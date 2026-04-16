@@ -4,7 +4,7 @@ import asyncio
 import time
 import uuid
 import hashlib
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Union
 from litestar import WebSocket, websocket
 from litestar.exceptions import NotAuthorizedException, PermissionDeniedException
 from .voice_utils import (
@@ -17,7 +17,7 @@ from backend.middleware import UserPayload
 
 logger = logging.getLogger("api-gateway")
 
-def get_user_info(socket: WebSocket) -> Optional[Dict[str, Any]]:
+def get_user_info(socket: WebSocket) -> Optional[UserPayload]:
     """Helper to safely extract user from socket scope with V2.2 hierarchy."""
     return socket.scope.get("state", {}).get("user") or getattr(socket.state, "user", None)
 

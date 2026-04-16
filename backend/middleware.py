@@ -1,4 +1,4 @@
-from typing import TypedDict, List, Optional, Dict, Union, Any
+from typing import TypedDict, List, Optional, Dict, Union
 import os
 import jwt
 from litestar.types import ASGIApp, Receive, Scope, Send
@@ -32,7 +32,7 @@ class AuthMiddleware:
             await self.app(scope, receive, send)
             return
 
-        token_ctx: Any = None # Standard resource cleanup placeholder
+        token_ctx = None # Standard resource cleanup placeholder
 
         # ═══ MEGA-HARDEN: Try/Except to prevent 502/Crash ═══
         try:
@@ -82,14 +82,14 @@ class AuthMiddleware:
             # R00: Try each candidate until success
             for token in [c for c in candidates if c]:
                 try:
-                    payload_raw: Dict[str, Any] = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]) # type: ignore
+                    payload_raw: Dict[str, object] = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]) # type: ignore
                     payload: UserPayload = {
                         "id": str(payload_raw.get("id", "")),
                         "sub": str(payload_raw.get("sub", "")),
                         "email": str(payload_raw.get("email", "")),
-                        "roles": list(payload_raw.get("roles", [])),
-                        "perms": list(payload_raw.get("perms", [])),
-                        "tenant_id": payload_raw.get("tenant_id"),
+                        "roles": list(payload_raw.get("roles", [])) if isinstance(payload_raw.get("roles"), list) else [],
+                        "perms": list(payload_raw.get("perms", [])) if isinstance(payload_raw.get("perms"), list) else [],
+                        "tenant_id": str(payload_raw.get("tenant_id", "")) if payload_raw.get("tenant_id") else None,
                         "stamp": str(payload_raw.get("stamp", "")),
                         "name": str(payload_raw.get("name", ""))
                     }

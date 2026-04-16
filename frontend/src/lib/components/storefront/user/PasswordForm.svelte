@@ -58,8 +58,8 @@
       authStore.syncUser({ has_password: true });
       oldPassword = ''; newPassword = ''; confirmPassword = '';
       ui.closeModal();
-    } catch (e: any) {
-      ui.showToast(e.message || 'Lỗi khi đổi mật khẩu.', 'error');
+    } catch (e) {
+      error = (e as Error).message || 'Không thể cập nhật mật khẩu';
     } finally {
       isSaving = false;
     }

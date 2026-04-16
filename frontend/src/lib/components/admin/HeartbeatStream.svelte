@@ -14,17 +14,11 @@
   import ContentReviewCard from "./ui/ContentReviewCard.svelte";
   import XohiLogo from "./XohiLogo.svelte";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+  import type { UserData, SystemLog } from "$lib/state/types";
 
   let { hideHeader = false } = $props();
 
   const TRUNCATE_LIMIT = 120;
-
-  interface UserData {
-    id: string;
-    name: string;
-    email: string;
-    roles?: { id: string; code: string }[];
-  }
 
   // GOD-MODE: User Selection State
   let availableUsers: UserData[] = $state([]);
@@ -70,7 +64,7 @@
      return true;
   }));
 
-  function getDisplayName(log: any) {
+  function getDisplayName(log: SystemLog) {
     let src = log.source || "System";
     // CNS V86.6: Identity Resolution Protocol
     // Prioritize Data Role 'user' over Source string
@@ -86,7 +80,7 @@
     return src.toUpperCase();
   }
 
-  function isHumanSource(log: any) {
+  function isHumanSource(log: SystemLog) {
     const src = log.source || "";
     return log.data?.role === "user" || src === "SẾP" || src === "Sếp";
   }

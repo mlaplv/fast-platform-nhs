@@ -383,8 +383,13 @@ export interface Product {
   metadata: ProductMetadata;
   tierVariations: TierVariation[];
   variants: ProductVariant[];
-  orderCount?: number;
-  rating?: number;
+  category_id?: string;
+  category_ids?: string[];
+  categories?: { id: string; name: string }[];
+  order_count?: number;
+  order_count_text?: string;
+  rating?: number | string;
+  rating_text?: string;
   createdAt: string;
 }
 
@@ -648,4 +653,24 @@ export interface Voucher {
   usage_limit?: number;
   used_count: number;
   is_active: boolean;
+}
+export interface ReviewAttachment {
+  url: string;
+  type?: 'image' | 'video';
+}
+
+export interface Review {
+  id: string;
+  customer_name: string;
+  rating: number;
+  content: string;
+  created_at: string;
+  attachments?: ReviewAttachment[];
+  is_verified?: boolean;
+}
+
+export interface ReviewStats {
+  average_rating: number;
+  total_count: number;
+  rating_distribution: Record<string, number>;
 }

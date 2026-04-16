@@ -40,6 +40,7 @@ export interface CustomItem {
 /** Checkout success response from stealth endpoint */
 interface CheckoutSuccessResponse {
     ok: boolean;
+    success?: boolean;
     status?: string;
     id?: string;
     message?: string;

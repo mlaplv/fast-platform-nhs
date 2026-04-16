@@ -34,7 +34,6 @@
     pulseSource = new EventSource(`/api/v1/client/support/pulse/${rid}`);
 
     pulseSource.addEventListener("OTP_UPDATE", (e: MessageEvent) => {
-      console.log("[Pulse] Received OTP_UPDATE event:", e.data);
       const data = JSON.parse(e.data);
       if (data.message) {
         liveLogs = [...liveLogs, data.message];
@@ -75,7 +74,7 @@
       const hashedPassword = await hashPassword(password);
       const normalizedIdentifier = identifier.trim().toLowerCase();
 
-      const data = await apiClient.post<any>('/api/v1/auth/login', {
+      const data = await apiClient.post<import('$lib/types').LoginResponse>('/api/v1/auth/login', {
         identifier: normalizedIdentifier,
         password: hashedPassword,
         remember_me: false
@@ -90,8 +89,8 @@
       });
 
       onClose?.();
-    } catch (e: any) {
-      error = e.message || 'Tên đăng nhập hoặc mật khẩu không đúng';
+    } catch (e) {
+      error = (e as Error).message || 'Tên đăng nhập hoặc mật khẩu không đúng';
     } finally {
       isLoading = false;
     }

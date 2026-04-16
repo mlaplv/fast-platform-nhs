@@ -47,7 +47,7 @@ export function createAnalysisController(config: {
     $effect(() => {
         const data = nanobot.currentData as CampaignData;
         const campaignId = resolve(config.campaign_id);
-        const msg = (data as any)?.progress_msg ?? '';
+        const msg = data?.progress_msg ?? '';
         if (!data || !campaignId || (data.campaign_id !== campaignId && data.id !== campaignId) || !msg) return;
 
         untrack(() => {

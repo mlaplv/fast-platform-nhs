@@ -484,7 +484,7 @@ export function useNanobot(): NanobotState {
   // Elite V2.2: Placeholder Proxy to prevent crashes during module evaluation
   return new Proxy({} as NanobotState, {
     get: (target, prop) => {
-      if (_globalNanobotState) return (_globalNanobotState as any)[prop];
+      if (_globalNanobotState) return _globalNanobotState[prop as keyof NanobotState];
       console.warn(`[Nanobot] Accessing property '${String(prop)}' before initialization.`);
       return undefined;
     }

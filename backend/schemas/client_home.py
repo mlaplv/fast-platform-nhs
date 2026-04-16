@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 from backend.schemas.product import ProductResponse
 from backend.schemas.promotion import VoucherResponse
 from backend.schemas.system_settings import SystemSettingsPayload

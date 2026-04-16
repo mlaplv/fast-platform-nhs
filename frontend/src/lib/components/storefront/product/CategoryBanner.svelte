@@ -54,7 +54,7 @@
       <!-- Content Left -->
       <div class="relative z-10 flex flex-col gap-4 max-w-[55%] ml-[-20px]">
         <div in:fly={{y: 20, duration: 1000, delay: 200}} class="flex items-center gap-3">
-            <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[8px] font-black px-2 py-1 uppercase tracking-widest border border-[#C18F7E]/20">Micsmo Elite Choice</span>
+            <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[8px] font-black px-2 py-1 uppercase tracking-widest border border-[#C18F7E]/20">Micsmo Shop Choice</span>
             <div class="h-px w-8 bg-black/10"></div>
             <span class="text-black/30 text-[7px] font-black uppercase tracking-[0.3em]">Hàng hiếm có sẵn</span>
         </div>

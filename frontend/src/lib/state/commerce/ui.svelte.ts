@@ -149,7 +149,7 @@ export function createClientUiState(): ClientUiState {
                 notif.addPendingSignal({
                     id,
                     message,
-                    severity: type.toUpperCase() as any, // Map toast type to severity
+                    severity: type.toUpperCase() as "CRITICAL" | "ACTION" | "PROGRESS" | "INFO",
                     isRead: false
                 });
             }).catch(e => console.error("[UI] Pulse sync failed", e));

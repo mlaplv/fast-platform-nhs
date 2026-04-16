@@ -7,11 +7,11 @@
   let { banners }: Props = $props();
 
   // Elite V2.2: Neural Link Intelligence
-  // Tự động chuẩn hóa link: Nếu chỉ là slug -> /product/slug, nếu là full url -> giữ nguyên
+  // Chuẩn hóa link: Mọi slug đều được coi là sản phẩm hoặc danh mục cấp cao (Root-level)
   function getProductLink(url?: string) {
     if (!url) return '#';
     if (url.startsWith('http') || url.startsWith('/')) return url;
-    return `/${url}`; // Mặc định là slug sản phẩm vì đã bỏ tiền tố /product ở route
+    return `/${url}`;
   }
 
   // Chỉ lấy banner đầu tiên ở mỗi vị trí (giới hạn 1 slide)

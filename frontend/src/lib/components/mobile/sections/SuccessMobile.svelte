@@ -94,9 +94,9 @@
         
         showToast("Đã cập nhật thông tin thành công");
         isEditing = false;
-    } catch (err: any) {
+    } catch (err) {
         console.error("Failed to save", err);
-        showToast(err.message || "Lỗi cập nhật dữ liệu", "error");
+        showToast((err as Error).message || "Lỗi cập nhật dữ liệu", "error");
     } finally {
         isSubmittingAction = false;
     }

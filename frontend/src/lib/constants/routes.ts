@@ -23,6 +23,5 @@ export const ADMIN_PROTECTED_PATHS = [
 export const PUBLIC_CLIENT_ROUTES = [
     "/",
     "/search",
-    "/categories",
-    "/product"
+    "/categories"
 ] as const;

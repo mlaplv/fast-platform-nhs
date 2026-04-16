@@ -71,7 +71,11 @@
   {:else}
     <!-- GIAO DIỆN DANH MỤC SẢN PHẨM TRẮNG SẠCH (TMĐT 2026) -->
     {#if isMobile}
-      <ProductListMobile products={data.items} />
+      <ProductListMobile 
+        products={data.items} 
+        categoryName={data.categoryName}
+        facets={data.facets}
+      />
     {:else}
       <ProductListDesktop 
         products={data.items} 

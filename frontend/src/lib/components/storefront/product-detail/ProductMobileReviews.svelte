@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { ChevronRight, MessageCircleMore, Star, Loader2, Play, CheckCircle2, PenLine } from 'lucide-svelte';
-  import type { Product } from '$lib/types';
+  import type { Product, Review, ReviewStats } from '$lib/types';
 
   interface Props {
     product: Product;
@@ -9,8 +9,8 @@
 
   let { product }: Props = $props();
 
-  let reviews = $state<any[]>([]);
-  let stats = $state<any>(null);
+  let reviews = $state<Review[]>([]);
+  let stats = $state<ReviewStats | null>(null);
   let isLoading = $state(true);
 
   async function fetchStats() {

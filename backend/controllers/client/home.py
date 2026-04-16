@@ -3,7 +3,7 @@ import logging
 from litestar import Controller, get, Request
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict, Any
+from typing import List, Optional
 
 from backend.services.commerce.product import ProductService, provide_product_service
 from backend.services.commerce.category import CategoryService, provide_category_service

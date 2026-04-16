@@ -7,6 +7,9 @@
   import type { Product, ProductFacets } from '$lib/types';
 
   import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';
+  import SmartSearch from '$lib/components/storefront/product/SmartSearch.svelte';
+
+  const searchStore = getSearchStore();
 
   let { products = [], searchQuery = '', facets = null, loading = false } = $props<{
     products: Product[];
@@ -103,10 +106,13 @@
       <button onclick={() => goto('/')} class="p-2 text-gray-900 active:scale-90 transition-transform">
         <ChevronLeft size={24} />
       </button>
-      <div class="flex-1 h-10 bg-gray-100 rounded-xl flex items-center px-4 gap-2 border border-gray-100">
-        <Search size={18} class="text-gray-400" />
+      <button 
+        onclick={() => searchStore.isOverlayOpen = true}
+        class="flex-1 h-10 bg-gray-100 rounded-xl flex items-center px-4 gap-2 border border-gray-100 active:scale-[0.98] transition-all cursor-pointer overflow-hidden group"
+      >
+        <Search size={18} class="text-gray-400 group-active:text-luxury-copper transition-colors" />
         <span class="text-[14px] font-bold text-gray-900 truncate">{searchQuery || "Tìm kiếm sản phẩm..."}</span>
-      </div>
+      </button>
     </div>
 
     <!-- Tabs + Filter Row -->
@@ -284,4 +290,7 @@
       </button>
     </div>
   </BottomSheet>
+
+  <!-- Smart Search Overlay -->
+  <SmartSearch variant="mobile-overlay" />
 </div>

@@ -110,7 +110,6 @@
               const isFormEmpty = !form.province || !form.street;
 
               if (defaultAddr && isFormEmpty) {
-                console.log('📦 [Elite Checkout] Auto-filling from Default Address:', defaultAddr.name);
                 form.name = defaultAddr.name || form.name || user.name;
                 form.phone = defaultAddr.phone || form.phone || user.phone;
                 form.province = defaultAddr.city || '';

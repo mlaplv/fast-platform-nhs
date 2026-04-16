@@ -173,7 +173,7 @@
         </div>
       </div>
       <div class="divider"></div>
-      <div class="sold-count">{(product as any).order_count_text || `Đã bán ${product.order_count || 0}`}</div>
+      <div class="sold-count">{product.order_count_text || `Đã bán ${product.order_count || 0}`}</div>
       <div class="trust-badge text-luxury-copper font-bold bg-luxury-peach/10">{product.metadata?.brand_type || 'Micsmo Mall'}</div>
     </div>
   </section>

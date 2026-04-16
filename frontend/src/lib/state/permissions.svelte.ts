@@ -44,8 +44,6 @@ class PermissionState {
     }
 
     if (urlToken) {
-      console.log("🛡️ [RBAC] Capturing administrative token from URL. Initiating Lockdown V2.2...");
-
       // Elite V2.2: Broad Domain Persistence (.micsmo.com)
       // We set this BEFORE purging storage to ensure identity continuity
       const rootDomain = window.location.hostname.split('.').slice(-2).join('.');

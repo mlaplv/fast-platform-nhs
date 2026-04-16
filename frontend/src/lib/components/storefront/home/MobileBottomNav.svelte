@@ -31,8 +31,8 @@
 
   // State menu 
   let isMenuOpen = $state(false);
-  let categoriesData = $state<any[]>([]);
-  let homeProducts = $state<any[]>([]);
+  let categoriesData = $state<Category[]>([]);
+  let homeProducts = $state<Product[]>([]);
   let isLoadingCats = $state(false);
   let activeCategoryId = $state<string | null>(null);
 
@@ -85,10 +85,10 @@
     if (!activeCategoryId || homeProducts.length === 0) return [];
     // Elite V2.2: Dùng == để so sánh linh hoạt ID string/number
     return homeProducts.filter(p => 
-      p.category_id == activeCategoryId || 
-      p.categoryId == activeCategoryId || 
-      p.category_ids?.some((id: any) => id == activeCategoryId) ||
-      p.categories?.some((c: any) => c.id == activeCategoryId)
+      p.categoryId === activeCategoryId || 
+      p.category_id === activeCategoryId || 
+      p.category_ids?.some((id: string) => id === activeCategoryId) ||
+      p.categories?.some((c: {id: string}) => c.id === activeCategoryId)
     ).slice(0, 6);
   });
 
@@ -177,8 +177,9 @@
              <h3 class="tbn-content-title">
                {activeCategory?.name || 'Danh mục'}
              </h3>
-             <a href={`/products?category=${activeCategory?.slug || ''}`} onclick={toggleMenu} class="tbn-content-link group">
-               Xem tất cả <ChevronRight class="w-3 h-3 group-active:translate-x-1 transition-transform" />
+             <a href={`/${activeCategory?.slug || ''}`} onclick={toggleMenu} class="tbn-content-link group">
+               <span class="text-xs font-medium text-gray-500 group-hover:text-luxury-copper transition-colors">Xem tất cả</span>
+               <ChevronRight class="w-3.5 h-3.5 text-gray-400 group-hover:text-luxury-copper transform group-hover:translate-x-0.5 transition-all" />
              </a>
           </div>
 
@@ -191,7 +192,7 @@
                 <!-- 1. Ưu tiên danh mục con -->
                 {#if activeCategory?.children && activeCategory.children.length > 0}
                   {#each activeCategory.children as child}
-                    <a href={`/products?category=${child.slug}`} onclick={toggleMenu} class="tbn-cat-card active:scale-[0.96]">
+                    <a href={`/${child.slug}`} onclick={toggleMenu} class="tbn-cat-card active:scale-[0.96]">
                       <div class="tbn-cat-img-wrapper">
                         {#if (child.image || child.thumbnail || child.icon) && !brokenImages[child.id]}
                           <img 

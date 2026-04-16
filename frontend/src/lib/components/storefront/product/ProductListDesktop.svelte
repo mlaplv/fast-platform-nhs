@@ -161,6 +161,11 @@
       window.addEventListener('pointerup', handlePointerUp);
     });
   }
+  // Helper to get attribute safely from multiple possible paths
+  function getAttr(p: Product, key: string): string | null {
+    const val = p.metadata?.[key] ?? p.attributes?.[key] ?? p.attributes?.[key === 'brand' ? 'Thương hiệu' : 'Xuất xứ'];
+    return typeof val === 'string' ? val.trim() : null;
+  }
 
   // Elite V2.2: Filter options — prefer backend facets, fallback to client-side derivation
   // CẤM hardcode brands/origins — mọi dữ liệu phải flow từ DB
@@ -168,11 +173,8 @@
     if (facets?.brands && facets.brands.length > 0) return facets.brands;
     const set = new Set<string>();
     allProducts.forEach(p => {
-      const attrs = p.attributes;
-      if (attrs && typeof attrs === 'object') {
-        const b = attrs['brand' as keyof typeof attrs] ?? attrs['Thương hiệu' as keyof typeof attrs];
-        if (typeof b === 'string' && b.trim()) set.add(b.trim());
-      }
+      const b = getAttr(p, 'brand');
+      if (b) set.add(b);
     });
     return Array.from(set).sort();
   });
@@ -181,16 +183,13 @@
     if (facets?.origins && facets.origins.length > 0) return facets.origins;
     const set = new Set<string>();
     allProducts.forEach(p => {
-      const attrs = p.attributes;
-      if (attrs && typeof attrs === 'object') {
-        const o = attrs['origin' as keyof typeof attrs] ?? attrs['Xuất xứ' as keyof typeof attrs];
-        if (typeof o === 'string' && o.trim()) set.add(o.trim());
-      }
+      const o = getAttr(p, 'origin');
+      if (o) set.add(o);
     });
     return Array.from(set).sort();
   });
 
-  const enhancedProducts = $derived(() => {
+  const enhancedProducts = $derived.by(() => {
     return allProducts.map(p => ({
       ...p,
       image: p.images && p.images.length > 0 ? p.images[0] : '',
@@ -203,10 +202,24 @@
     }));
   });
 
-  let filteredProducts = $derived(() => {
-    let result = enhancedProducts().filter(p => {
-      const matchPrice = p.price >= minPrice && p.price <= maxPrice;
-      return matchPrice;
+  const filteredProducts = $derived.by(() => {
+    let result = enhancedProducts.filter(p => {
+      const price = p.discountPrice ?? p.price;
+      const matchPrice = price >= minPrice && price <= maxPrice;
+      
+      // Brand Filter
+      const matchBrand = selectedBrands.length === 0 || (() => {
+        const b = getAttr(p, 'brand');
+        return b && selectedBrands.includes(b);
+      })();
+
+      // Origin Filter
+      const matchOrigin = selectedOrigins.length === 0 || (() => {
+        const o = getAttr(p, 'origin');
+        return o && selectedOrigins.includes(o);
+      })();
+
+      return matchPrice && matchBrand && matchOrigin;
     });
 
     // Elite V2.2: Search mode → giữ nguyên backend ranking (Hybrid Search Engine)
@@ -224,15 +237,15 @@
 
   // Elite V2.2: Search mode → no banner (banner steals the #1 match result)
   // Category mode → item[0] → banner, item[1..N] → grid
-  const bannerProduct = $derived(() => isSearchMode ? null : (filteredProducts()[0] ?? null));
+  const bannerProduct = $derived(isSearchMode ? null : (filteredProducts[0] ?? null));
 
-  let displayProducts = $derived(() => {
+  const displayProducts = $derived.by(() => {
     if (isSearchMode) {
       // Search mode: show all products in grid (no banner skip)
-      return filteredProducts().slice(0, pageSize);
+      return filteredProducts.slice(0, pageSize);
     }
     // Category mode: skip index 0 (used for banner)
-    return filteredProducts().slice(1, 1 + pageSize);
+    return filteredProducts.slice(1, 1 + pageSize);
   });
 </script>
 
@@ -267,7 +280,7 @@
   {#if !isSearchMode}
   <!-- VIRAL BANNER ZONE: đọc 1 lần duy nhất / tab → item[0] làm banner -->
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 mt-6">
-    <CategoryBanner product={bannerProduct()} />
+    <CategoryBanner product={bannerProduct} />
   </div>
   {/if}
 
@@ -281,7 +294,7 @@
         <div class="absolute inset-0 bg-gradient-to-tr from-[#ee4d2d]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
         <h2 class="text-[14px] font-black uppercase tracking-[0.2em] relative z-10 flex items-center gap-3">
            <div class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full animate-pulse"></div>
-           Bộ lọc Elite
+           Bộ lọc
         </h2>
       </div>
 
@@ -348,18 +361,20 @@
           <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Thương Hiệu</h4>
           <div class="flex flex-col gap-4">
             {#each brands() as brand}
-              <label class="flex items-center justify-between group cursor-pointer">
+              <button 
+                onclick={() => toggleBrand(brand)}
+                class="flex items-center justify-between group cursor-pointer w-full text-left"
+              >
                 <span class="text-[13px] font-bold {selectedBrands.includes(brand) ? 'text-black' : 'text-gray-400'} group-hover:text-black transition-all">
                    {brand}
                 </span>
                 <div 
-                  onclick={() => toggleBrand(brand)}
                   class="w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center {selectedBrands.includes(brand) ? 'border-[#ee4d2d] bg-[#ee4d2d]' : 'border-gray-100 bg-gray-50'} shadow-inner">
                    {#if selectedBrands.includes(brand)}
                       <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
                    {/if}
                 </div>
-              </label>
+              </button>
             {/each}
           </div>
         </div>
@@ -371,18 +386,20 @@
           <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Xuất Xứ</h4>
           <div class="flex flex-col gap-4">
             {#each origins() as country}
-              <label class="flex items-center justify-between group cursor-pointer">
+              <button 
+                onclick={() => toggleOrigin(country)}
+                class="flex items-center justify-between group cursor-pointer w-full text-left"
+              >
                 <span class="text-[13px] font-bold {selectedOrigins.includes(country) ? 'text-black' : 'text-gray-400'} group-hover:text-black transition-all">
                    {country}
                 </span>
                 <div 
-                  onclick={() => toggleOrigin(country)}
                   class="w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center {selectedOrigins.includes(country) ? 'border-[#ee4d2d] bg-[#ee4d2d]' : 'border-gray-100 bg-gray-50'}">
                    {#if selectedOrigins.includes(country)}
                       <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
                    {/if}
                 </div>
-              </label>
+              </button>
             {/each}
           </div>
         </div>
@@ -490,8 +507,8 @@
       {/if}
 
       <div class="mt-8">
-        {#if filteredProducts().length > 0}
-          <ProductGrid products={displayProducts()} />
+        {#if filteredProducts.length > 0}
+          <ProductGrid products={displayProducts} />
         {:else}
           <!-- ELITE EMPTY STATE (Premium 2026) -->
           <div class="bg-white/80 backdrop-blur-xl border border-dashed border-gray-200 py-32 flex flex-col items-center justify-center text-center shadow-sm">
@@ -537,13 +554,13 @@
 
       <!-- AUTOMATIC PAGINATION (Infinite Scroll) -->
       <!-- AUTOMATIC PAGINATION (Infinite Scroll Elite) -->
-      {#if (allProducts.length < serverTotal || displayProducts().length < filteredProducts().length - 1) && filteredProducts().length > 0}
+      {#if (allProducts.length < serverTotal || displayProducts.length < filteredProducts.length - 1) && filteredProducts.length > 0}
         <div class="mt-12 flex flex-col items-center gap-4 py-10" use:setupInfiniteScroll>
           <div class="text-[12px] text-gray-400 font-black uppercase tracking-widest">
-            Đã tải <span class="text-black">{displayProducts().length + 1}</span> / {serverTotal} sản phẩm
+            Đã tải <span class="text-black">{displayProducts.length + 1}</span> / {serverTotal} sản phẩm
           </div>
           <div class="w-[200px] h-[2px] bg-gray-100 overflow-hidden relative">
-             <div class="h-full bg-[#ee4d2d] transition-all duration-700" style="width: {( (displayProducts().length + 1) / serverTotal) * 100}%"></div>
+             <div class="h-full bg-[#ee4d2d] transition-all duration-700" style="width: {( (displayProducts.length + 1) / serverTotal) * 100}%"></div>
              {#if isLoading}
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer"></div>
              {/if}

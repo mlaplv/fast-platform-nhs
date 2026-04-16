@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import type { Product } from '$lib/types';
 
 export class SearchState {
   // --- Runes ---
@@ -8,10 +9,10 @@ export class SearchState {
   isOverlayOpen = $state(false); // Mobile primarily
 
   // Removed Violating Hardcoded Mock Arrays
-  featuredProducts = $state<ProductResponse[]>([]);
+  featuredProducts = $state<Product[]>([]);
 
   // Real DB Results
-  searchResults = $state<ProductResponse[]>([]);
+  searchResults = $state<Product[]>([]);
 
   // Elite V2.2: Dynamic Placeholder (Root Fix for hardcoding & derived_inert warning)
   get searchPlaceholder() {
