@@ -119,7 +119,11 @@
         </div>
         <div class="flex flex-col hidden md:flex">
           <span class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] leading-none mb-0.5">AUTH_LEVEL</span>
-          <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none">{permissionState.userName || 'OPERATOR'}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none">
+              {permissionState.userName || 'UNAUTHORIZED'}
+            </span>
+          </div>
         </div>
       </div>
     </div>

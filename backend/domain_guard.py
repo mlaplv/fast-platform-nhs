@@ -82,6 +82,7 @@ class DomainGuardMiddleware:
 
             # [ELITE V2.2] Identity Bypass: SUPER_ADMIN can perform mutations from any domain (supporting Live Edit)
             user = scope.get("state", {}).get("user")
+                
             if user and "SUPER_ADMIN" in user.get("roles", []):
                 if scope["type"] == "websocket":
                     logger.info(f"👑 [DomainGuard] SUPER_ADMIN bypass granted for {path}")

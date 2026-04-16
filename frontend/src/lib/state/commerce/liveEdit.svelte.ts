@@ -1,4 +1,4 @@
-import { permissionState } from "../permissions.svelte";
+import { permissionState, getAuthToken } from "../permissions.svelte";
 import type { Product, ProductMetadata } from "$lib/types";
 
 class LiveEditStore {
@@ -84,10 +84,15 @@ class LiveEditStore {
     this.isSaving = true;
 
     try {
-      const token = localStorage.getItem("admin_token") || localStorage.getItem("access_token");
+      const token = getAuthToken();
+      if (!token) {
+        this.notify("Không tìm thấy định danh ADMIN. Vui lòng đăng nhập lại.", "alert");
+        this.isSaving = false;
+        return;
+      }
       const p = this.dirtyProduct;
       
-      const payload: UpdateProductPayload = {
+      const payload = {
         name: p.name,
         shortDescription: p.shortDescription,
         metadata: p.metadata,
@@ -113,8 +118,10 @@ class LiveEditStore {
             setTimeout(() => window.location.reload(), 1500);
         }
       } else {
-        const err = await response.json();
-        this.notify(`Lỗi khi lưu (HTTP ${response.status}): ${err.detail || 'Kiểm tra lỗi'}`, "alert");
+        const err = await response.json().catch(() => ({ detail: "Lỗi phản hồi không xác định" }));
+        const reason = err.detail || err.message || "Kiểm tra quyền hạn hoặc đăng nhập lại";
+        this.notify(`Lỗi khi lưu (HTTP ${response.status}): ${reason}`, "alert");
+        console.error("💥 LiveEdit Save Failure:", { status: response.status, error: err });
       }
     } catch (e: any) {
       this.notify(`Lỗi kết nối máy chủ: ${e.message}`, "alert");

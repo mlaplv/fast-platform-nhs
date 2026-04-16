@@ -12,6 +12,7 @@
   import { formatCurrency } from "$lib/utils/format";
   import type { Product } from "$lib/types";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+  import { getAuthToken } from "$lib/state/permissions.svelte";
 
   function isVideoUrl(url: string): boolean {
     if (!url) return false;
@@ -222,7 +223,7 @@
               <ExternalLink size={14} />
             </a>
             <a
-              href="/{product.slug}-funnel?live_edit=true"
+              href="/{product.slug}-funnel?live_edit=true&token={getAuthToken()}"
               target="_blank"
               class="p-2 text-[#00FFFF] hover:text-white transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-[#00FFFF]/20 hover:border-[#00FFFF]/40 shadow-sm"
               title="Edit Live (Supper Admin Only)"

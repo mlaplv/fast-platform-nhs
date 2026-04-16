@@ -24,19 +24,46 @@ class PermissionState {
 
   constructor() {
     if (typeof window !== "undefined") {
-      this.syncFromToken();
+      this.handshake();
     }
   }
 
-  syncFromToken() {
+  public handshake() {
+    if (typeof window === "undefined") return;
+    
+    // 1. Prioritized Capture from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get("token");
+    
+    if (urlToken) {
+      console.log("🛡️ [RBAC] Capturing administrative token from URL...");
+      localStorage.setItem("admin_token", urlToken);
+      
+      // Elite V2.2: Aggressive Purge of legacy sessions
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_token");
+      
+      const rootDomain = window.location.hostname.split('.').slice(-2).join('.');
+      document.cookie = `admin_token=${urlToken}; path=/; domain=.${rootDomain}; max-age=604800; SameSite=Lax; Secure`;
+
+      // Clean URL WITHOUT triggering a state purge immediately
+      const newUrl = window.location.origin + window.location.pathname + window.location.search.replace(/[?&]token=[^&]+/, '').replace(/^&/, '?');
+      window.history.replaceState({}, '', newUrl);
+    }
+
+    // 2. Immediate Sync from collected sources
+    this.syncFromToken();
+  }
+
+  private syncFromToken() {
     if (typeof window === "undefined") return;
 
-    // Check both common keys to be safe
+    // Elite V2.2: Root Cause Fix - Priority Selection
     const token =
-      localStorage.getItem("access_token") ||
       localStorage.getItem("admin_token") ||
-      sessionStorage.getItem("admin_token") ||
-      this.getCookie("admin_token");
+      this.getCookie("admin_token") ||
+      localStorage.getItem("access_token") ||
+      sessionStorage.getItem("admin_token");
 
     if (token) {
       try {
@@ -129,6 +156,19 @@ class PermissionState {
     if (parts.length === 2) return parts.pop()?.split(";").shift();
     return null;
   }
+
+  getAuthToken(): string | null {
+    if (typeof window === "undefined") return null;
+    // Elite V2.2: Root Cause Fix - Priority Selection
+    const token =
+      localStorage.getItem("admin_token") ||
+      this.getCookie("admin_token") ||
+      localStorage.getItem("access_token") ||
+      sessionStorage.getItem("admin_token");
+      
+    return token || null;
+  }
 }
 
 export const permissionState = new PermissionState();
+export const getAuthToken = () => permissionState.getAuthToken();
