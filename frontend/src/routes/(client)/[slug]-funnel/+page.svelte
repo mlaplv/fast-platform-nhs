@@ -23,6 +23,7 @@
   
   // Admin Live Editor (Elite V2.2)
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { permissionState } from '$lib/state/permissions.svelte';
   import AdminActionBar from '$lib/components/admin/AdminActionBar.svelte';
   import LiveEditorOverlay from '$lib/components/admin/LiveEditorOverlay.svelte';
   import LiveEditNotification from '$lib/components/admin/LiveEditNotification.svelte';
@@ -103,11 +104,16 @@
       if (product) {
         liveEditStore.init(product);
         
-        // Auto-enable edit mode if explicitly requested via URL
+        // Auto-enable edit mode if explicitly requested via URL AND user is actually an Admin (Viral 2026 Supreme Security)
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('live_edit') === 'true') {
-            liveEditStore.forceAdmin = true;
-            liveEditStore.isEditMode = true;
+            if (permissionState.hasRole('SUPER_ADMIN') || permissionState.hasRole('ADMIN')) {
+                liveEditStore.isEditMode = true;
+            } else {
+                // Elite V2.2: Cứng rắn chặn và đá văng về link trắng (Hard Redirect)
+                const newUrl = window.location.origin + window.location.pathname;
+                window.location.replace(newUrl);
+            }
         }
       }
       
@@ -342,10 +348,12 @@
   </div>
 {/if}
 
-<!-- Administrative HUD (Elite V2.2 Overlay Layer) -->
-<AdminActionBar />
-<LiveEditorOverlay />
-<LiveEditNotification />
+<!-- Administrative HUD (Elite V2.2 Overlay Layer - Severely Protected) -->
+{#if liveEditStore.isAdmin}
+  <AdminActionBar />
+  <LiveEditorOverlay />
+  <LiveEditNotification />
+{/if}
 
 <style lang="postcss">
   .client-page-root {

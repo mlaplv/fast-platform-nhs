@@ -7,7 +7,6 @@ class LiveEditStore {
   originalProduct = $state<Product | null>(null);
   dirtyProduct = $state<Product | null>(null);
   activePath = $state<string | null>(null); // Path of currently focused inline editor
-  forceAdmin = $state(false);
 
   // Elite V2.2: Transient HUD State
   notification = $state({
@@ -28,8 +27,8 @@ class LiveEditStore {
     }, 4000);
   }
 
-  // Administrative access detection
-  isAdmin = $derived(this.forceAdmin || permissionState.hasRole("SUPER_ADMIN"));
+  // Elite V2.2 Supreme Security: Administrative access strictly derives from RBAC token
+  isAdmin = $derived(permissionState.hasRole("SUPER_ADMIN") || permissionState.hasRole("ADMIN"));
 
   // Computed helper for components
   get dirtyMetadata() {
