@@ -11,7 +11,8 @@ from backend.schemas.client.checkout import StealthCheckoutSchema
 from backend.database import current_tenant_id
 from backend.services.event_bus import event_bus
 from backend.utils.device import is_mobile_device
-from litestar.exceptions import NotFoundException
+from litestar.exceptions import NotFoundException, ValidationException
+from backend.services.commerce.promotion import PromotionService
 
 logger = logging.getLogger("api-gateway")
 
@@ -129,6 +130,9 @@ class CheckoutService:
 
         # Build items list with correct prices
         items_list: List[OrderItem] = []
+        
+        # Ensure compatibility layer (Seed defaults if needed)
+        await PromotionService.ensure_default_vouchers(db_session)
 
         for item in payload.items:
             product_stmt = select(ProductBase).where(ProductBase.id == item.product_id)
@@ -136,16 +140,58 @@ class CheckoutService:
             product = product_res.scalar_one_or_none()
             if not product:
                 raise NotFoundException(f"Sản phẩm {item.product_id} không tồn tại")
+            
+            # Determine correct price from DB
+            db_price = product.discount_price if product.discount_price is not None else product.price
+            
+            if item.variant_id:
+                variant_stmt = select(ProductVariant).where(ProductVariant.id == item.variant_id)
+                variant_res = await db_session.execute(variant_stmt)
+                variant = variant_res.scalar_one_or_none()
+                if not variant:
+                    raise NotFoundException(f"Biến thể {item.variant_id} không tồn tại")
+                db_price = variant.discount_price if variant.discount_price is not None else variant.price
 
-            # Trust the frontend-validated price in payload for efficiency
+            # [VIRAL 2026 SECURITY] Rigorous Item Price Check
+            if abs(item.price - db_price) > 0.1:
+                 logger.warning(f"[STRIKE-PRICE] Item price mismatch for {product.name} ({item.product_id}): Payload={item.price}, DB={db_price}")
+                 raise ValidationException("Giá sản phẩm đã thay đổi. Vui lòng cập nhật lại giỏ hàng.")
+
             items_list.append({
                 "id": item.product_id,
                 "name": product.name,
                 "variant_id": item.variant_id,
                 "qty": item.quantity,
-                "unit_price": item.price,
-                "total_price": item.price * item.quantity
+                "unit_price": db_price,
+                "total_price": db_price * item.quantity
             })
+
+        # [VIRAL 2026] RIGOROUS TOTAL VALIDATION
+        base_subtotal = sum(it["total_price"] for it in items_list)
+        
+        # 1. Apply Combo Deals
+        combo_deals = await PromotionService.get_active_combo_deals(db_session)
+        combo_discount = PromotionService.calculate_combo_discount(items_list, combo_deals)
+        
+        # 2. Apply Voucher
+        voucher_discount = 0.0
+        if payload.voucher_id:
+            voucher = await PromotionService.get_active_voucher(db_session, payload.voucher_id)
+            if voucher:
+                # Voucher applies on subtotal AFTER combo discount
+                voucher_discount = PromotionService.calculate_voucher_discount(base_subtotal - combo_discount, voucher)
+            else:
+                logger.warning(f"[VOUCHER-FAIL] Voucher {payload.voucher_id} not found or inactive.")
+                # We don't necessarily fail here if the price check passes, 
+                # but the expected_total calculation below will fail if client gởi total đã trừ voucher ảo.
+
+        expected_total = base_subtotal - combo_discount - voucher_discount + payload.shipping_fee
+        
+        # 3. Final Manipulation Lock
+        if abs(expected_total - payload.total_amount) > 1.0:
+            logger.error(f"[SECURITY-ALERT] Price Manipulation Attempt: Expected {expected_total}, Got {payload.total_amount}. Phone: {payload.customer_phone}")
+            raise ValidationException("Đơn hàng chưa được bảo vệ thành công do thay đổi về giá hoặc khuyến mãi. Vui lòng tải lại trang.")
+
 
         # 5. Prepare Order Metadata
         order_metadata: OrderMetadata = {

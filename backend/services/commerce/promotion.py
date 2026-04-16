@@ -1,0 +1,131 @@
+from typing import List, Dict, Optional
+from sqlalchemy import select, and_, or_
+from sqlalchemy.ext.asyncio import AsyncSession
+from backend.database.models.promotion import Voucher, ComboDeal
+from backend.database import current_tenant_id
+from datetime import datetime, timezone
+import logging
+
+logger = logging.getLogger("api-gateway")
+
+class PromotionService:
+    @staticmethod
+    async def get_active_voucher(db_session: AsyncSession, voucher_id: str) -> Optional[Voucher]:
+        now = datetime.now(timezone.utc)
+        stmt = select(Voucher).where(
+            and_(
+                Voucher.id == voucher_id,
+                Voucher.is_active == True,
+                Voucher.tenant_id == (current_tenant_id.get() or "default"),
+                or_(Voucher.start_date == None, Voucher.start_date <= now),
+                or_(Voucher.end_date == None, Voucher.end_date >= now)
+            )
+        )
+        res = await db_session.execute(stmt)
+        return res.scalar_one_or_none()
+
+    @staticmethod
+    async def get_active_combo_deals(db_session: AsyncSession) -> List[ComboDeal]:
+        now = datetime.now(timezone.utc)
+        stmt = select(ComboDeal).where(
+            and_(
+                ComboDeal.is_active == True,
+                ComboDeal.tenant_id == (current_tenant_id.get() or "default"),
+                or_(ComboDeal.start_date == None, ComboDeal.start_date <= now),
+                or_(ComboDeal.end_date == None, ComboDeal.end_date >= now)
+            )
+        )
+        res = await db_session.execute(stmt)
+        return list(res.scalars().all())
+
+    @staticmethod
+    def calculate_combo_discount(items: List[Dict], combo_deals: List[ComboDeal]) -> float:
+        """
+        Elite V2.2: Advanced Combo Calculation
+        Supports BUY_X_GET_Y and BUNDLE_PRICE.
+        """
+        total_discount = 0.0
+        # Make a copy of items to track remaining quantity during calculation
+        working_items = [dict(it) for it in items]
+        
+        for deal in combo_deals:
+            if deal.type == "BUY_X_GET_Y":
+                cond = deal.condition_payload or {}
+                reward = deal.reward_payload or {}
+                
+                buy_qty = int(cond.get("buy_qty", 0))
+                get_qty = int(reward.get("get_qty", 1))
+                product_ids = cond.get("product_ids", [])
+                
+                if buy_qty <= 0 or not product_ids:
+                    continue
+                
+                cycle_size = buy_qty + get_qty
+                
+                # Get relevant items and sort by price ascending (cheapest items discounted first)
+                relevant_items = [it for it in working_items if it["id"] in product_ids and it["qty"] > 0]
+                relevant_items.sort(key=lambda x: x["unit_price"])
+                
+                total_deal_qty = sum(it["qty"] for it in relevant_items)
+                num_cycles = total_deal_qty // cycle_size
+                items_to_discount = num_cycles * get_qty
+                
+                discount_pct = float(reward.get("discount_percent", 100)) / 100.0
+                
+                applied_count = 0
+                for it in relevant_items:
+                    if applied_count >= items_to_discount:
+                        break
+                    
+                    can_discount = min(it["qty"], items_to_discount - applied_count)
+                    total_discount += can_discount * it["unit_price"] * discount_pct
+                    it["qty"] -= can_discount
+                    applied_count += can_discount
+                                
+        return total_discount
+
+    @staticmethod
+    def calculate_voucher_discount(subtotal: float, voucher: Voucher) -> float:
+        if subtotal < voucher.min_spend:
+            return 0.0
+            
+        discount = 0.0
+        if voucher.type == "FIXED":
+            discount = voucher.value
+        elif voucher.type == "PERCENT":
+            discount = subtotal * (voucher.value / 100.0)
+            if voucher.max_discount:
+                discount = min(discount, voucher.max_discount)
+        elif voucher.type == "SHIPPING":
+             # Shipping vouchers subtract from shipping fee elsewhere, 
+             # but here we can return the value if we consider it a generic discount
+             discount = voucher.value
+             
+        return min(discount, subtotal)
+
+    @staticmethod
+    async def ensure_default_vouchers(db_session: AsyncSession):
+        """Seed default vouchers if they don't exist (Backward Compatibility)."""
+        defaults = [
+            {"id": "SHIP0", "type": "SHIPPING", "value": 30000, "min_spend": 0, "name": "Miễn phí vận chuyển"},
+            {"id": "SALE30K", "type": "FIXED", "value": 30000, "min_spend": 150000, "name": "Giảm 30.000đ"},
+            {"id": "SALE60K", "type": "FIXED", "value": 60000, "min_spend": 300000, "name": "Giảm 60.000đ"},
+        ]
+        
+        tenant = current_tenant_id.get() or "default"
+        
+        for d in defaults:
+            check_stmt = select(Voucher).where(and_(Voucher.id == d["id"], Voucher.tenant_id == tenant))
+            exists = (await db_session.execute(check_stmt)).scalar_one_or_none()
+            if not exists:
+                v = Voucher(
+                    id=d["id"],
+                    type=d["type"],
+                    value=d["value"],
+                    min_spend=d["min_spend"],
+                    tenant_id=tenant,
+                    is_active=True
+                )
+                db_session.add(v)
+        
+        await db_session.flush()

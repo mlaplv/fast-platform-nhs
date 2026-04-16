@@ -69,6 +69,7 @@ export function createNanobotState() {
       { label: "Xem đơn hàng", command: "mở đơn hàng" },
       { label: "Viết Bài viết", command: "tạo Bài viết" },
       { label: "Đào tạo Helen", command: "mở tri thức helen" },
+      { label: "Quản lý Voucher", command: "mở voucher" },
     ] as Suggestion[],
     mobileScrollPosition: 0,
     isExpanded: false,

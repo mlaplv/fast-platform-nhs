@@ -17,6 +17,7 @@
   import ReviewManagement from "./management/ReviewManagement.svelte";
   import SupportKnowledgeManagement from "./management/SupportKnowledgeManagement.svelte";
   import SupportInbox from "./management/SupportInbox.svelte";
+import VoucherManagement from "./management/VoucherManagement.svelte";
 
   const WIDGET_REGISTRY: Record<string, Component<BaseWidgetProps>> = {
     RevenueChart: RevenueChart as Component<BaseWidgetProps>,
@@ -37,6 +38,7 @@
     REVIEW_MANAGEMENT: ReviewManagement as Component<BaseWidgetProps>,
     SUPPORT_KNOWLEDGE: SupportKnowledgeManagement as Component<BaseWidgetProps>,
     SUPPORT_INBOX: SupportInbox as Component<BaseWidgetProps>,
+    VOUCHER_MANAGEMENT: VoucherManagement as Component<BaseWidgetProps>,
   };
 
   let ActiveWidget = $derived(

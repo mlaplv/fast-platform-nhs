@@ -8,6 +8,7 @@
   import Users from "lucide-svelte/icons/users";
   import Newspaper from "lucide-svelte/icons/newspaper";
   import ShoppingCart from "lucide-svelte/icons/shopping-cart";
+  import Gift from "lucide-svelte/icons/gift";
   import Sparkles from "lucide-svelte/icons/sparkles";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import Megaphone from "lucide-svelte/icons/megaphone";
@@ -53,6 +54,14 @@
       icon: ShoppingCart,
       color: "#FFB800", // Amber/Gold for orders
       widget: "ORDER_MANAGEMENT",
+    },
+    {
+      id: "vouchers",
+      label: "Vouchers",
+      sublabel: "Viral Gift & Promotion",
+      icon: Gift,
+      color: "#FE2C55", // TikTok Red/Pink
+      widget: "VOUCHER_MANAGEMENT",
     },
     {
       id: "appointments",

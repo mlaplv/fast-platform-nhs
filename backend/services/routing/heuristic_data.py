@@ -21,6 +21,7 @@ TARGET_KEYWORDS = {
     "settings": ["cai dat", "setting", "cau hinh", "voice", "giong noi", "am thanh", "skills", "ky nang"],
     "campaign": ["campaign", "chien dich", "chien dichh", "chien dichx", "camp", "canh pain", "cam pain"],
     "brain":    ["brain", "nao", "tri thuc", "quan tri nao", "helen brain", "bo nao"],
+    "voucher":  ["voucher", "khuyen mai", "ma giam gia", "km", "vou che", "voucher"],
 }
 
 MODE_KEYWORDS = {
@@ -56,10 +57,11 @@ TARGET_TO_WIDGET = {
     "settings": "show_voice_settings",
     "campaign": "show_campaigns",
     "brain":    "show_brain",
+    "voucher":  "show_voucher_management",
 }
 
 VI_VERB_MAP = {"create": "tạo", "edit": "sửa", "delete": "xóa"}
-VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết", "campaign": "chiến dịch", "brain": "brain"}
+VI_TARGET_MAP = {"user": "nhân viên", "product": "sản phẩm", "category": "danh mục", "order": "đơn hàng", "news": "bài viết", "campaign": "chiến dịch", "brain": "brain", "voucher": "voucher"}
 
 # --- Phase 76.3: Pre-Normalized Keywords ---
 NORM_TARGET_KEYWORDS = {tgt: [normalize_vn(kw) for kw in kws] for tgt, kws in TARGET_KEYWORDS.items()}

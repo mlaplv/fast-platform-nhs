@@ -34,6 +34,7 @@ import SupportKnowledgeManagement from "../management/SupportKnowledgeManagement
 import SupportInbox from "../management/SupportInbox.svelte";
 import BrainManagerWidget from "../management/BrainManagerWidget.svelte";
 import VideoFullView from "../../widgets/VideoFullView.svelte";
+import VoucherManagement from "../management/VoucherManagement.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -63,6 +64,7 @@ import VideoFullView from "../../widgets/VideoFullView.svelte";
     SUPPORT_INBOX: SupportInbox,
     BRAIN_MANAGEMENT: BrainManagerWidget,
     VIDEO_FULLVIEW: VideoFullView,
+    VOUCHER_MANAGEMENT: VoucherManagement,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -87,6 +89,7 @@ import VideoFullView from "../../widgets/VideoFullView.svelte";
     SUPPORT_INBOX: "HELEN INBOX — GIÁM SÁT HỘI THOẠI",
     BRAIN_MANAGEMENT: "HELEN BRAIN — QUẢN TRỊ TRI THỨC",
     VIDEO_FULLVIEW: "XEM VIDEO",
+    VOUCHER_MANAGEMENT: "QUẢN LÝ VOUCHER & KHUYẾN MÃI",
   };
 
   let open = $derived(nanobot.universalModalOpen);

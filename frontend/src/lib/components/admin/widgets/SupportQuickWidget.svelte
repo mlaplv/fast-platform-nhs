@@ -6,6 +6,7 @@
   import Settings from "lucide-svelte/icons/settings";
   import Sparkles from "lucide-svelte/icons/sparkles";
   import Brain from "lucide-svelte/icons/brain";
+  import Gift from "lucide-svelte/icons/gift";
   import ArrowUpRight from "lucide-svelte/icons/arrow-up-right";
   import { fade, fly } from "svelte/transition";
 
@@ -41,6 +42,14 @@
       icon: Settings,
       color: "from-amber-500 to-orange-600",
       widget: "SYSTEM_SETTINGS"
+    },
+    {
+      id: "vouchers",
+      label: "Vouchers",
+      sub: "Gift & KM TikTok",
+      icon: Gift,
+      color: "from-rose-500 to-pink-600",
+      widget: "VOUCHER_MANAGEMENT"
     }
   ];
 
@@ -73,7 +82,7 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
       {#each actions as action, i}
         <button
           onclick={() => openAction(action.widget)}

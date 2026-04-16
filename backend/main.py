@@ -58,6 +58,7 @@ from backend.controllers.client.notifications import ClientNotificationControlle
 from backend.controllers.admin_support import AdminSupportController
 from backend.controllers.admin_support_inbox import AdminSupportInboxController
 from backend.controllers.review import AdminReviewController
+from backend.controllers.promotion import PromotionController
 from backend.controllers.settings import SettingsController
 from backend.controllers.ai_management import AIManagementController
 from backend.controllers.chat import ChatController
@@ -114,7 +115,7 @@ app = Litestar(
         CheckoutController, PublicOrderController, ChatController, SettingsController, AIManagementController, ContentController, MediaController, ContentStreamController,
         BannerController, stt_websocket, TTSController, IntentMapController, SchedulerController, DiagnosticController,
         AdminReviewController, PublicReviewController, SupportController, ClientPulseController, AdminSupportController, AdminSupportInboxController,
-        PublicNewsController, ClientSettingsController, ClientUserController,
+        PublicNewsController, ClientSettingsController, ClientUserController, PromotionController,
         ClientNotificationController
     ],
     middleware=[StallDetectorMiddleware, BodyLimitMiddleware, rate_limit_config.middleware, AuthMiddleware, DomainGuardMiddleware, AuditMiddleware],

@@ -47,7 +47,8 @@ export type WidgetType =
   | "REVIEW_MANAGEMENT"
   | "SUPPORT_KNOWLEDGE"
   | "SUPPORT_INBOX"
-  | "BRAIN_MANAGEMENT";
+  | "BRAIN_MANAGEMENT"
+  | "VOUCHER_MANAGEMENT";
 
 export type NanoBotState =
   | "IDLE"
