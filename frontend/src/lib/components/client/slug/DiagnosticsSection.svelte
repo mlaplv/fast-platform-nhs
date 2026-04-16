@@ -26,7 +26,7 @@
 <section id="diagnostics-section" aria-labelledby="personalized-care" class="snap-session-standard diagnostics-container diagnostic-premium-flow relative overflow-x-hidden">
   <div class="container mx-auto px-4 md:px-6 max-w-7xl text-center relative z-surface">
     <EditableWrapper path="metadata.diagnostics_headline" label="SỬA TIÊU ĐỀ CHẨN ĐOÁN">
-      <h3 id="personalized-care" class="section-title text-neural font-black tracking-tight leading-none uppercase mb-4 text-4xl md:text-6xl">
+      <h3 id="personalized-care" class="section-headline text-neural font-black tracking-tighter leading-none uppercase mb-6 text-4xl md:text-7xl lg:text-8xl mx-auto max-w-5xl">
         {@html labels.headline}
       </h3>
     </EditableWrapper>

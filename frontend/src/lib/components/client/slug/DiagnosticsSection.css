@@ -15,26 +15,37 @@
     color: var(--diag-accent-text);
   }
 
-  & .section-title {
-    color: #fff;
-    font-size: var(--fs-title); /* Fluid! */
-    transition: font-size 0.3s ease-in-out;
+  & .section-headline {
+    font-size: clamp(2.5rem, 8vw, 5.5rem) !important;
+    font-weight: 950 !important;
+    letter-spacing: -0.05em !important;
+    line-height: 1.3 !important;
+    padding-top: 0.1em !important;
+    background: linear-gradient(to bottom, #fff 20%, rgba(255, 255, 255, 0.4) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.5));
+    text-transform: uppercase;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-bottom: 2rem !important;
+    overflow: visible !important;
   }
 }
 
 /* Container-Aware Scaling */
 /* Container queries kept for specific structural logic if needed! */
 @container diagnostics (min-width: 768px) {
-  .section-title {
-    line-height: 1;
+  .section-headline {
+    /* Maintained by clamp */
   }
 }
 
 /* Tablet (768px - 1024px) Surgical Scaling */
 @media (min-width: 768px) and (max-width: 1024px) {
-  .diagnostics-container .section-title {
-    font-size: clamp(2rem, 5vw, 2.75rem) !important;
-    margin-bottom: 0.5rem !important;
+  .diagnostics-container .section-headline {
+    font-size: clamp(2.5rem, 6vw, 4rem) !important;
+    margin-bottom: 1rem !important;
   }
   .diagnostics-container .section-description {
     font-size: 0.9rem !important;

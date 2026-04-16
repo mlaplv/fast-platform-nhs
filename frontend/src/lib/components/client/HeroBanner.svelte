@@ -32,6 +32,16 @@
   // plain let — không phải $state → không trigger re-render khi gán
   let _springRafId: number | null = null;
 
+  // Elite V2.2: Live FOMO Pulse Logic (Standardized)
+  let liveViewers = $state(Math.floor(Math.random() * (45 - 12 + 1)) + 12);
+  onMount(() => {
+    const interval = setInterval(() => {
+      const delta = Math.random() > 0.5 ? 1 : -1;
+      liveViewers = Math.max(8, Math.min(64, liveViewers + delta));
+    }, 5000);
+    return () => clearInterval(interval);
+  });
+
   /** CTO FIX #1: Self-terminating spring.
    *  Tự dừng khi delta < 0.05px — ZERO CPU khi user idle (tránh 60fps rAF vô hạn) */
   function _tickSpring() {
@@ -310,19 +320,22 @@
   </div>
 
   <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pt-[var(--standard-pt)] pb-12 z-surface">
-    <EditableWrapper path="metadata.hero_headline" type="html" label="SỬA TIÊU ĐỀ BANNER" class="w-full flex justify-center">
-        <h1 class="typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 text-5xl md:text-7xl lg:text-9xl tracking-normal">
-        {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-red-500"></span>
-        </h1>
-    </EditableWrapper>
+    <!-- SECTION HEADER: Normalized spacing & Full-width prominence -->
+    <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
+      <EditableWrapper path="metadata.hero_headline" type="html" label="SỬA TIÊU ĐỀ BANNER">
+          <h1 class="hero-titanic-headline typing-headline text-center w-full max-w-4xl lg:max-w-7xl font-black mb-6 mt-0 tracking-tight mx-auto text-4xl md:text-7xl lg:text-8xl uppercase leading-[1]">
+          {@html displayText}<span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-red-500"></span>
+          </h1>
+      </EditableWrapper>
 
-    {#if product?.shortDescription}
-       <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN" class="w-full flex justify-center">
-           <p class="hero-description text-center text-xl md:text-2xl text-slate-300 max-w-3xl font-medium mb-4">
-              {@html product.shortDescription}
-           </p>
-       </EditableWrapper>
-    {/if}
+      {#if product?.shortDescription}
+         <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">
+             <p class="section-description hero-description text-center text-slate-300 max-w-3xl font-medium mx-auto">
+                {@html product.shortDescription}
+             </p>
+         </EditableWrapper>
+      {/if}
+    </header>
 
     <div class="hero-product-display relative w-full mt-6 md:mt-8 lg:mt-12 pb-0 flex flex-col md:flex-row items-center justify-center gap-2 lg:gap-4 z-surface">
           <div class="relative w-full md:w-1/2 flex justify-center parallax-layer">

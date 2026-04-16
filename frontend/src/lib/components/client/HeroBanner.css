@@ -190,6 +190,39 @@
     padding: 0 1.5rem;
   }
 
+  & .hero-titanic-headline {
+    font-size: clamp(2.5rem, 9vw, 6.5rem) !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.03em !important;
+    line-height: 1.3 !important;
+    padding-top: 0.1em !important;
+    overflow: visible !important;
+    background: linear-gradient(to bottom, #fff 20%, rgba(255, 255, 255, 0.4) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 15px 40px rgba(0, 0, 0, 0.6));
+    text-transform: uppercase;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  & .section-description {
+    font-size: var(--fs-sub);
+    color: rgba(255, 255, 255, 0.4);
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+    margin-bottom: 2.5rem;
+  }
+
+  & .animate-fade-in {
+    animation: fade-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+
   & .flashlight-beam {
     position: absolute;
     top: 50%;
@@ -386,29 +419,25 @@
     animation: shimmer 3s infinite;
   }
 
-  & h1 {
+  & h1.hero-titanic-headline {
     font-family: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif !important;
     font-weight: 900 !important;
     text-transform: uppercase;
-    /* Forces thick sans-serif */
-    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.05);
-    color: #ffffff;
-    text-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
-    font-size: var(--fs-hero) !important;
-    /* Balanced for Vietnamese accents - Relaxed from 0.98 to 1.05 */
-    line-height: 1.05 !important;
+    color: transparent; /* Handled by gradient */
+    font-size: clamp(2.5rem, 9vw, 6.5rem) !important;
+    line-height: 1.3 !important;
+    padding-top: 0.1em !important;
     text-rendering: optimizeLegibility;
     font-variant-ligatures: common-ligatures;
-    margin-bottom: 0.5rem !important;
+    margin-bottom: 2rem !important;
 
     @media (min-width: 1024px) {
-      line-height: 1.1 !important;
-      margin-bottom: 0.75rem !important;
+      margin-bottom: 2.5rem !important;
     }
   }
 
   & .hero-description {
-    font-family: 'Inter', sans-serif !important;
+    font-size: var(--fs-sub) !important;
     line-height: 1.75 !important;
     letter-spacing: 0.01em !important;
     font-weight: 450 !important;
@@ -694,7 +723,7 @@ html {
 /* TYPING CURSOR EFFECT (Elite V2.2 - Antigravity Style) */
 .typing-headline {
   position: relative;
-  min-height: 1.1em;
+  min-height: 1.3em;
   /* Multi-line safety - remove flex to keep cursor inline */
 
   @media (min-width: 1024px) {
@@ -710,8 +739,8 @@ html {
 
 .typing-cursor {
   display: inline-block;
-  width: clamp(3px, 0.25vw, 5px);
-  height: 1em;
+  width: 2px;
+  height: 0.8em;
   /* Premium Gradient Beam: Blue -> Emerald -> Gold -> Red */
   background: linear-gradient(to bottom,
       #3b82f6 0%,
@@ -732,8 +761,9 @@ html {
   will-change: opacity, transform;
 
   &.is-complete {
-    display: none;
-    /* Fully remove when done */
+    opacity: 0;
+    width: 0;
+    /* Maintain layout but hide and shrink width to prevent final snap */
   }
 }
 
