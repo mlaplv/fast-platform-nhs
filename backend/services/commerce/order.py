@@ -199,8 +199,8 @@ class OrderService:
             )
         )
 
-        # R2026: Elite Suffix Lookup Support
-        if len(order_id) == 6:
+        # R2026: Elite Suffix Lookup Support (Support 6-12 chars)
+        if len(order_id) < 36:
              stmt = stmt.where(Order.id.ilike(f"%{order_id}"))
         else:
              stmt = stmt.where(Order.id == order_id)

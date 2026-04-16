@@ -182,7 +182,7 @@
         body: JSON.stringify({
           entity_type: 'PRODUCT',
           entity_id: product.id,
-          customer_name: authStore.user?.name || 'Guest',
+          customer_name: authStore.user?.name || 'Khách',
           rating: newRating,
           content: newContent,
           attributes: Object.fromEntries(Object.entries(newAttributes).filter(([k, v]) => v !== '')),
@@ -219,9 +219,10 @@
   <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 pb-6 border-b border-gray-50">
     <div>
       <h2 class="text-2xl font-black text-[#1a1a1a] tracking-tight leading-none mb-2">Đánh Giá Sản Phẩm</h2>
-      <p class="text-gray-400 text-xs font-medium uppercase tracking-[0.2em]">Authentic Reviews from Customers</p>
+      <p class="text-gray-400 text-xs font-medium uppercase tracking-[0.2em]">Trải nghiệm thực tế từ người dùng</p>
     </div>
     <button 
+      id="btn-write-review"
       onclick={handleWriteReview}
       class="px-10 py-5 bg-gradient-to-r from-luxury-copper to-luxury-peach text-white font-black rounded-none text-[11px] tracking-[0.3em] hover:opacity-90 hover:shadow-lg hover:shadow-luxury-copper/20 hover:-translate-y-1 transition-all border border-white/20">
       VIẾT ĐÁNH GIÁ NGAY
@@ -311,10 +312,10 @@
               >
                 {#if isUploadingMedia}
                     <Loader2 class="w-6 h-6 animate-spin" />
-                    <span class="text-[9px] font-black uppercase tracking-[0.2em]">UPLOADING</span>
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em]">ĐANG TẢI LÊN</span>
                 {:else}
                     <Camera class="w-6 h-6" />
-                    <span class="text-[9px] font-black uppercase tracking-[0.2em]">ADD MEDIA</span>
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em]">THÊM ẢNH/VIDEO</span>
                 {/if}
               </button>
             {/if}

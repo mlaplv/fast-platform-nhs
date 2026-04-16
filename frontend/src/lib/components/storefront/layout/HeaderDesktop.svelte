@@ -41,9 +41,7 @@
     <!-- Top Navbar - Micsmo Elite 2026 -->
     <div class="flex items-center justify-between h-[28px] text-[11px] text-gray-500 border-b border-gray-50 bg-gray-50/30 -mx-4 px-4 xl:-mx-0 xl:px-0">
       <div class="flex items-center space-x-3">
-        <button type="button" class="hover:text-luxury-copper transition-colors">Kênh Người Bán</button>
-        <span class="w-[1px] h-3 bg-gray-200"></span>
-        <button type="button" class="hover:text-luxury-copper transition-colors">Trở thành Người bán Micsmo</button>
+        <a href="/track" class="hover:text-luxury-copper transition-colors font-medium">Kiểm tra đơn</a>
         <span class="w-[1px] h-3 bg-gray-200"></span> 
         <a href="/bai-viet" class="hover:text-luxury-copper transition-colors">Hướng dẫn - kiến thức</a>
         <!--

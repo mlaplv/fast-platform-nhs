@@ -228,6 +228,87 @@
     cartStore.buyNow(product, currentVariant, quantity);
     goto('/checkout');
   }
+
+  function triggerWriteReview() {
+    const el = document.getElementById('product-reviews');
+    if (el) {
+       el.scrollIntoView({ behavior: 'smooth' });
+       setTimeout(() => {
+         const btn = document.getElementById('btn-write-review');
+         if (btn) btn.click();
+       }, 600);
+    }
+  }
+
+  // --- SOCIAL & LIKES LOGIC (VIRAL 2026) ---
+  let isLiked = $state(false);
+  let likeCount = $state(product.metadata?.likes ? Number(product.metadata.likes) : 1700);
+  let likeAnimating = $state(false);
+
+  function toggleLike() {
+    isLiked = !isLiked;
+    if (isLiked) {
+      likeCount++;
+      clientUi.showToast('Đã thêm sản phẩm vào mục Yêu thích', 'success');
+      likeAnimating = true;
+      setTimeout(() => { likeAnimating = false; }, 300);
+    } else {
+      likeCount--;
+    }
+  }
+
+  function formatCount(count: number) {
+    if (count >= 1000) {
+      return (count / 1000).toFixed(1).replace('.0', '') + 'k';
+    }
+    return count.toString();
+  }
+
+  function share(platform: string) {
+    if (typeof window === 'undefined') return;
+    const url = encodeURIComponent(window.location.href);
+    const text = encodeURIComponent(`Xem ngay: ${product.name}`);
+    const media = encodeURIComponent(currentImage || '');
+    
+    let shareUrl = '';
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+        break;
+      case 'zalo':
+        shareUrl = `https://sp.zalo.me/plugins/share?url=${url}`;
+        break;
+      case 'pinterest':
+        shareUrl = `https://pinterest.com/pin/create/button/?url=${url}&media=${media}&description=${text}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+        break;
+    }
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+  }
+
+  async function shareNative() {
+    if (typeof navigator === 'undefined') return;
+    if (navigator.share) {
+       try {
+          await navigator.share({
+             title: product.name,
+             text: `Xem ngay ${product.name} trên Micsmo!`,
+             url: window.location.href
+          });
+       } catch (e) {
+          // User cancelled or failed
+       }
+    } else {
+       if (navigator.clipboard) {
+          await navigator.clipboard.writeText(window.location.href);
+          clientUi.showToast('Đã sao chép đường dẫn', 'success');
+       }
+    }
+  }
 </script>
 
 <div class="bg-[#f6f6f6] min-h-screen">
@@ -312,22 +393,29 @@
         {/each}
       </div>
 
-      <!-- Social & Like -->
+      <!-- Social & Like (Viral 2026 UI) -->
       <div class="mt-8 flex items-center justify-between px-2">
         <div class="flex items-center gap-3">
           <span class="text-sm font-medium text-gray-800">Chia sẻ:</span>
           <div class="flex gap-1.5 font-bold">
-            <button class="w-6 h-6 rounded-full bg-[#0384ff] text-white text-[10px] flex items-center justify-center">f</button>
-            <button class="w-6 h-6 rounded-full bg-[#38adff] text-white text-[10px] flex items-center justify-center">z</button>
-            <button class="w-6 h-6 rounded-full bg-[#ff4500] text-white text-[10px] flex items-center justify-center">p</button>
-            <button class="w-6 h-6 rounded-full bg-black text-white text-[10px] flex items-center justify-center">𝕏</button>
+            <button onclick={() => share('facebook')} class="w-6 h-6 rounded-full bg-[#0384ff] text-white text-[10px] flex items-center justify-center hover:-translate-y-0.5 transition-transform" aria-label="Share on Facebook">f</button>
+            <button onclick={() => share('zalo')} class="w-6 h-6 rounded-full bg-[#38adff] text-white text-[10px] flex items-center justify-center hover:-translate-y-0.5 transition-transform" aria-label="Share on Zalo">z</button>
+            <button onclick={() => share('pinterest')} class="w-6 h-6 rounded-full bg-[#ff4500] text-white text-[10px] flex items-center justify-center hover:-translate-y-0.5 transition-transform" aria-label="Share on Pinterest">p</button>
+            <button onclick={() => share('twitter')} class="w-6 h-6 rounded-full bg-black text-white text-[10px] flex items-center justify-center hover:-translate-y-0.5 transition-transform" aria-label="Share on Twitter/X">𝕏</button>
+            <button onclick={shareNative} class="w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-[10px] flex items-center justify-center hover:-translate-y-0.5 hover:bg-gray-200 transition-all shrink-0 ml-1" title="Tùy chọn khác">
+               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+            </button>
           </div>
         </div>
         <div class="w-px h-5 bg-gray-100"></div>
-        <div class="flex items-center gap-2">
-           <svg class="w-6 h-6 text-[#ff424f] fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-           <span class="text-sm font-medium text-gray-700">Đã thích (1,7k)</span>
-        </div>
+        <button onclick={toggleLike} class="flex items-center gap-2 group cursor-pointer hover:bg-[#ff424f]/5 px-2 py-1 -mr-2 rounded-lg transition-colors select-none outline-none">
+           <svg 
+              class="w-6 h-6 transition-all duration-300 {isLiked ? 'text-[#ff424f] fill-current drop-shadow-[0_2px_4px_rgba(255,66,79,0.3)] border-transparent' : 'text-gray-400 fill-transparent stroke-current group-hover:text-[#ff424f]/60'} {likeAnimating ? 'scale-125' : 'scale-100'}" 
+              viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+           <span class="text-sm font-medium transition-colors {isLiked ? 'text-[#ff424f]' : 'text-gray-700 group-hover:text-[#ff424f]'}">
+              {isLiked ? 'Đã thích' : 'Yêu thích'} ({formatCount(likeCount)})
+           </span>
+        </button>
       </div>
     </div>
 
@@ -369,7 +457,7 @@
           <svg class="w-3.5 h-3.5 opacity-30 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         </div>
         <div class="ml-auto">
-           <button class="text-[13px] text-gray-400 font-medium hover:text-[#ee4d2d] transition-colors">Tố cáo</button>
+           <button onclick={triggerWriteReview} class="text-[13px] text-gray-400 font-medium hover:text-[#ee4d2d] transition-colors">Tố cáo</button>
         </div>
       </div>
 
