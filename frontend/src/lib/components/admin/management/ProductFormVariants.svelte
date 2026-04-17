@@ -45,6 +45,26 @@
     brokenVariantImages = new Set();
   });
 
+  // Normalize loaded variants to ensure attributes exist
+  $effect(() => {
+    // R102: Normalize attributes structure to stay compatible with V2.2 Pydantic schemas
+    let structuralChange = false;
+    formVariants.forEach((v, i) => {
+      if (!v.attributes) {
+        v.attributes = { combo_qty: null, gifts: [] };
+        structuralChange = true;
+      } else if (!v.attributes.gifts) {
+        v.attributes.gifts = [];
+        structuralChange = true;
+      }
+    });
+    
+    // Only trigger re-assignment if we added missing nodes
+    if (structuralChange) {
+      formVariants = [...formVariants];
+    }
+  });
+
   function addTier() {
     if (formTierVariations.length >= 2) return;
     formTierVariations = [...formTierVariations, { 
@@ -123,12 +143,12 @@
         for (let j = 0; j < t2.length; j++) {
           const tIdx = [i, j];
           const existing = findExistingVariant(tIdx);
-          newVariants.push(existing || { tierIndex: tIdx, sku: "", price: 0, discountPrice: 0, stock: 0 });
+          newVariants.push(existing || { tierIndex: tIdx, sku: "", price: 0, discountPrice: 0, stock: 0, attributes: { combo_qty: null, gifts: [] } });
         }
       } else {
         const tIdx = [i];
         const existing = findExistingVariant(tIdx);
-        newVariants.push(existing || { tierIndex: tIdx, sku: "", price: 0, discountPrice: 0, stock: 0 });
+        newVariants.push(existing || { tierIndex: tIdx, sku: "", price: 0, discountPrice: 0, stock: 0, attributes: { combo_qty: null, gifts: [] } });
       }
     }
 
@@ -190,6 +210,24 @@
 
   function handleVariantImageError(imgSrc: string) {
     brokenVariantImages = new Set([...brokenVariantImages, imgSrc]);
+  }
+
+  function ensureAttributes(vIndex: number) {
+    if (!formVariants[vIndex].attributes) formVariants[vIndex].attributes = { combo_qty: null, gifts: [] };
+    if (!formVariants[vIndex].attributes.gifts) formVariants[vIndex].attributes.gifts = [];
+  }
+
+  function addGift(vIndex: number) {
+    ensureAttributes(vIndex);
+    formVariants[vIndex].attributes!.gifts!.push({ name: '', qty: 1 });
+    formVariants = [...formVariants];
+  }
+
+  function removeGift(vIndex: number, gIndex: number) {
+    if (formVariants[vIndex].attributes?.gifts) {
+      formVariants[vIndex].attributes!.gifts!.splice(gIndex, 1);
+      formVariants = [...formVariants];
+    }
   }
 </script>
 
@@ -400,10 +438,11 @@
                 {#each formTierVariations as tier}
                   <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 whitespace-nowrap">{tier.name}</th>
                 {/each}
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-amber-500/60 w-32 border-l border-white/5 whitespace-nowrap">Giá Bán</th>
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-rose-500/60 w-32 border-l border-white/5 whitespace-nowrap">Giá Khuyến Mãi</th>
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-24 border-l border-white/5 whitespace-nowrap">Kho Hàng</th>
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 min-w-[150px] border-l border-white/5">SKU (Mã PL)</th>
+                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-amber-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Bán</th>
+                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-rose-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Khuyến Mãi</th>
+                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-20 border-l border-white/5 whitespace-nowrap">Kho Hàng</th>
+                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-cyan-400/60 min-w-[200px] border-l border-white/5">Thiết Lập Combo & Quà</th>
+                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 min-w-[120px] border-l border-white/5">SKU (Mã PL)</th>
               </tr>
             </thead>
             <tbody>
@@ -424,15 +463,22 @@
 
                   <!-- Discount Price -->
                   <td class="p-1 border-l border-white/5">
-                    <input 
-                      type="number" 
-                      bind:value={variant.discountPrice} 
-                      class="w-full bg-transparent border !outline-none px-3 py-2 text-xs font-mono text-right rounded transition-all 
-                        {variantValidation[vIndex]?.isInvalid 
-                          ? 'border-red-500 bg-red-500/10 text-red-400' 
-                          : 'border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-rose-500/50 text-rose-400'}" 
-                      placeholder="0" 
-                    />
+                    <div class="relative group/price">
+                      <input 
+                        type="number" 
+                        bind:value={variant.discountPrice} 
+                        class="w-full bg-transparent border !outline-none px-3 py-2 text-xs font-mono text-right rounded transition-all 
+                          {variantValidation[vIndex]?.isInvalid 
+                            ? 'border-red-500 bg-red-500/10 text-red-400' 
+                            : 'border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-rose-500/50 text-rose-400'}" 
+                        placeholder="0" 
+                      />
+                      {#if variantValidation[vIndex]?.isInvalid}
+                        <div class="absolute -bottom-6 right-0 whitespace-nowrap bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-lg z-50 pointer-events-none uppercase">
+                          Giá KM ≥ Giá bán
+                        </div>
+                      {/if}
+                    </div>
                   </td>
 
                   <!-- Stock -->
@@ -440,8 +486,31 @@
                     <input type="number" bind:value={variant.stock} class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-amber-500/50 !outline-none px-3 py-2 text-xs text-white/60 font-mono text-right rounded" placeholder="0" />
                   </td>
 
+                  <!-- Combo Config -->
+                  <td class="p-2 border-l border-white/5 align-top">
+                    <div class="flex flex-col gap-2">
+                       <div class="flex items-center gap-2">
+                         <span class="text-[9px] font-black uppercase text-cyan-500/60 w-12 shrink-0">Số lượng</span>
+                         <input type="number" bind:value={variant.attributes.combo_qty} class="flex-1 bg-black/40 border border-white/10 focus:border-cyan-500/50 outline-none px-2 py-1 text-[10px] text-cyan-400 font-mono rounded placeholder:text-cyan-900" placeholder="1 (Gói lẻ)" />
+                       </div>
+                       
+                       {#each variant.attributes.gifts as gift, gIdx}
+                         <div class="flex gap-1 items-start bg-cyan-900/10 p-1.5 rounded border border-cyan-500/10 relative group/gift cursor-default">
+                           <input type="text" bind:value={gift.name} placeholder="Tên quà (VD: Mặt nạ)" class="flex-1 min-w-[80px] bg-transparent border-b border-white/10 outline-none text-[9px] text-white px-1" />
+                           <input type="number" bind:value={gift.qty} placeholder="SL" class="w-10 bg-transparent border-b border-white/10 outline-none text-[9px] text-center text-rose-400 font-bold px-1" />
+                           
+                           <button onclick={() => removeGift(vIndex, gIdx)} class="text-white/20 hover:text-red-400 opacity-0 group-hover/gift:opacity-100 transition-opacity p-0.5"><X size={10}/></button>
+                         </div>
+                       {/each}
+                       
+                       <button onclick={() => addGift(vIndex)} class="self-start text-[9px] font-black text-cyan-500 hover:text-cyan-300 uppercase tracking-widest flex items-center gap-1 mt-1">
+                          <Plus size={10} /> Quà Tặng ({variant.attributes.gifts?.length || 0})
+                       </button>
+                    </div>
+                  </td>
+
                   <!-- SKU -->
-                  <td class="p-1 border-l border-white/5">
+                  <td class="p-1 border-l border-white/5 align-top">
                     <input type="text" bind:value={variant.sku} class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-amber-500/50 !outline-none px-3 py-2 text-xs text-white/60 font-mono uppercase tracking-wider rounded" placeholder="SKU" />
                   </td>
                 </tr>

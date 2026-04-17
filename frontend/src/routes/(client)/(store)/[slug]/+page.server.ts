@@ -124,11 +124,23 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
         }
       };
     }
-  } catch (e) {
+
+    // Rule 2.2: Only fallback to Articles if Product is definitively NOT found (404)
+    // If it's a 500/403/etc, we should report the actual error or proceed to article ONLY if 404.
+    if (prodRes.status !== 404) {
+      const errorData = await prodRes.text();
+      console.error(`[PRODUCT FETCH ERROR] status: ${prodRes.status}, slug: ${slug}, data: ${errorData}`);
+      throw error(prodRes.status as any, { 
+        message: `Lỗi hệ thống khi tải sản phẩm: ${slug} (${prodRes.status})` 
+      });
+    }
+
+  } catch (e: any) {
+    if (e.status) throw e; // Re-throw SvelteKit errors
     console.error(`[PRODUCT FETCH SYSTEM ERROR] slug: ${slug}`, e);
   }
 
-  // Phase 2026: Friendly URL Fallback - If not a product, try fetching as News/Article
+  // Phase 2026: Friendly URL Fallback - If not a product (404), try fetching as News/Article
   const articleUrl = `${apiUrl}/api/v1/client/news/slug/${slug}`;
   try {
     const artRes = await fetch(articleUrl, {

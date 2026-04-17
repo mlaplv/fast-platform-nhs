@@ -416,6 +416,10 @@ export interface ProductVariant {
   price: number;
   discountPrice?: number;
   stock: number;
+  attributes?: {
+    combo_qty?: number;
+    gifts?: { name: string; qty: number; image?: string }[];
+  } | null;
 }
 
 export interface MediaMetadata {

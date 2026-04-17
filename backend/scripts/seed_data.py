@@ -65,10 +65,6 @@ PRODUCT_DEFS = [
                     ]
                 }
             ],
-            "active_deals": [
-                {"label": "ƯU ĐÃI LIỆU TRÌNH PHỤC HỒI", "buy_qty": 2, "get_qty": 1, "fixed_price": 0.0},
-                {"label": "GÓI TRỊ LIỆU DỨT ĐIỂM", "buy_qty": 4, "get_qty": 2, "fixed_price": 0.0}
-            ],
             "reviews": [
                 {
                     "name": "suzzyy",
@@ -100,7 +96,48 @@ PRODUCT_DEFS = [
                     "content": "Siêu phẩm thực sự! Mình mua đợt sale vừa rồi, dùng được 2 tuần là thấy hiệu quả rõ rệt nhất là ở nách. Da mềm mịn hẳn. Nhóm bạn mình ai cũng đang săn lùng em này, may mà mình chốt sớm không là lại phải đợi đặt hàng lâu. Đáng đồng tiền bát gạo lắm ạ."
                 }
             ]
-        }
+        },
+        "tier_variations": [
+            {
+                "name": "Khuyến mãi",
+                "options": ["1 Tuýp 30g", "Combo 2 Tặng 1", "Combo 4 Tặng 2"]
+            }
+        ],
+        "variants": [
+            {
+                "id": "var_virgin_white_1",
+                "tier_index": [0],
+                "sku": "4968123159004-1",
+                "price": 600000,
+                "stock": 100,
+                "attributes": {
+                    "combo_qty": 1,
+                    "gifts": []
+                }
+            },
+            {
+                "id": "var_virgin_white_2",
+                "tier_index": [1],
+                "sku": "4968123159004-2",
+                "price": 1200000,
+                "stock": 100,
+                "attributes": {
+                    "combo_qty": 2,
+                    "gifts": [{"name": "Tuýp Virgin White 30g", "qty": 1}]
+                }
+            },
+            {
+                "id": "var_virgin_white_3",
+                "tier_index": [2],
+                "sku": "4968123159004-3",
+                "price": 2400000,
+                "stock": 100,
+                "attributes": {
+                    "combo_qty": 4,
+                    "gifts": [{"name": "Tuýp Virgin White 30g", "qty": 2}]
+                }
+            }
+        ]
     },
     {
         "id": "prod_hurry_harry",
@@ -115,7 +152,18 @@ PRODUCT_DEFS = [
             "origin": "Japan",
             "weight": "20g",
             "brand": "Miccosmo"
-        }
+        },
+        "is_ai_featured": True,
+        "variants": [
+            {
+                "id": "var_hurry_harry_1",
+                "tier_index": [0],
+                "sku": "4968123159005-1",
+                "price": 850000,
+                "stock": 100,
+                "attributes": {"combo_qty": 1, "gifts": []}
+            }
+        ]
     },
     {
         "id": "prod_white_label",
@@ -130,7 +178,8 @@ PRODUCT_DEFS = [
             "origin": "Japan",
             "weight": "60g",
             "brand": "Miccosmo"
-        }
+        },
+        "is_ai_featured": True
     },
     {
         "id": "prod_miccosmo_eye_cream_gold",

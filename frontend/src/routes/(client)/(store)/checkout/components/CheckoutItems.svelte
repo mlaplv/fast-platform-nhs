@@ -90,6 +90,23 @@
                   </span>
                 </div>
               </div>
+
+              <!-- QUÀ TẶNG KÈM THEO -->
+              {#if item.variant?.attributes?.gifts && item.variant.attributes.gifts.length > 0}
+                <div class="mt-2 bg-orange-50/50 border border-orange-100 p-2 flex flex-col gap-1 rounded-sm relative overflow-hidden">
+                  <div class="absolute inset-0 bg-gradient-to-r from-orange-100/30 to-transparent"></div>
+                  <span class="text-[9px] font-black text-orange-600 uppercase flex items-center gap-1 relative z-10">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
+                    Quà Tặng Combo:
+                  </span>
+                  {#each item.variant.attributes.gifts as gift}
+                    <div class="flex items-center justify-between relative z-10 pl-4">
+                      <span class="text-[9px] text-gray-700 italic font-medium tracking-tight"> {gift.name}</span>
+                      <span class="text-[9px] text-orange-500 font-extrabold pr-1">x{gift.qty * item.quantity}</span>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
             </div>
           </div>
         {/each}

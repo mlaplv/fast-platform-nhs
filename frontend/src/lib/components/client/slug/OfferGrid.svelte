@@ -172,35 +172,6 @@
       </div>
     </div>
 
-    <div class="mt-1 mb-8 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-4 px-4 text-left">
-      {#each (metadata.active_deals || []) as deal, dealIdx (dealIdx)}
-        {@const isActive = shopStore.appliedDeal?.label === deal.label}
-        <button 
-           onclick={() => shopStore.setQuantity(deal.buy_qty + (deal.get_qty || 0))}
-           class="liquid-glass-deal rounded-3xl px-8 py-5 flex items-center justify-between group active:scale-[0.98] {isActive ? 'active' : ''}"
-        >
-           <div class="flex items-center gap-5">
-              <div class="liquid-orb {isActive ? 'animate-pulse' : 'inactive'}"></div>
-              <div class="flex flex-col text-left">
-                 <span class="text-[10px] font-black text-luxury-sakura uppercase tracking-[0.2em] mb-1">
-                    Ưu đãi: {deal.label.replace('🎁', '')}
-                    <span class="ml-1 text-white/50">(MUA {deal.buy_qty} + TẶNG {deal.get_qty || 0})</span>
-                 </span>
-                 <span class="text-white text-lg font-black italic tracking-tight uppercase leading-none">
-                    CHỈ CÒN <span class="text-2xl not-italic ml-1">{(deal.fixed_price).toLocaleString()}đ</span>
-                 </span>
-              </div>
-           </div>
-           <div class="flex items-center gap-3">
-              {#if isActive}
-                 <CheckCircle2 class="w-6 h-6 text-luxury-sakura" strokeWidth={3} />
-              {:else}
-                 <span class="text-xl leading-none transition-transform group-hover:translate-x-2 text-white/40">→</span>
-              {/if}
-           </div>
-        </button>
-      {/each}
-    </div>
 
     <div class="package-grid pt-8 {gridClass} gap-6 items-stretch">
       {#each variants as variant, idx (idx)}
@@ -291,6 +262,20 @@
            </div>
 
            <ul class="bullet-list mb-8 flex-grow space-y-2">
+             {#if variant.attributes?.gifts && variant.attributes.gifts.length > 0}
+               <li class="flex flex-col gap-1.5 mt-2 mb-3 bg-gradient-to-r from-luxury-sakura/10 to-transparent p-3 rounded-xl border border-luxury-sakura/20 transform hover:scale-[1.02] transition-transform">
+                 <span class="text-[10px] text-luxury-sakura font-black uppercase tracking-widest flex items-center gap-1.5">
+                    <Zap class="w-3 h-3 animate-pulse" /> QUÀ TẶNG ĐỘC QUYỀN:
+                 </span>
+                 <div class="flex flex-col gap-0.5">
+                   {#each variant.attributes.gifts as gift}
+                     <span class="text-[11px] text-white/90 font-medium pl-1 tracking-wide">
+                        + {gift.name} <span class="text-luxury-gold ml-1 font-black">x{gift.qty}</span>
+                     </span>
+                   {/each}
+                 </div>
+               </li>
+             {/if}
              {#each getFeatures(variant, idx, isCardActive) as feature}
                 <li class="flex items-center gap-3">
                   <span class="text-luxury-sakura font-black">✦</span>

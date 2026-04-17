@@ -92,6 +92,11 @@ class ProductMetadata(BaseModel):
     checkout_cta_text: Optional[str] = Field(None, alias="checkout_cta_text")
     checkout_variant_title: Optional[str] = Field(None, alias="checkout_variant_title")
 
+class VariantAttributes(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+    combo_qty: Optional[int] = Field(None, alias="combo_qty")
+    gifts: List[Dict[str, JSONType]] = Field(default_factory=list, alias="gifts")
+
 class ProductVariantSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
     id: Optional[str] = None
@@ -100,6 +105,7 @@ class ProductVariantSchema(BaseModel):
     price: float
     discountPrice: Optional[float] = Field(None, alias="discount_price")
     stock: int
+    attributes: Optional[VariantAttributes] = Field(None)
 
     @field_validator("tierIndex", mode="before")
     @classmethod

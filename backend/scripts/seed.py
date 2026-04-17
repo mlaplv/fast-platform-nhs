@@ -55,6 +55,8 @@ async def clear_data(session):
     await session.execute(delete(ProductVariant))
     # Clear internal dependencies first
     await session.execute(delete(ProductEmbedding).where(ProductEmbedding.product_base_id.in_(select(ProductBase.id).where(ProductBase.tenant_id == TENANT_ID))))
+    from backend.database.models.content import ArticleEmbedding
+    await session.execute(delete(ArticleEmbedding).where(ArticleEmbedding.article_id.in_(select(Article.id).where(Article.tenant_id == TENANT_ID))))
     for model in [Order, Article, Notification, Draft, ChatMessage, AgentTelemetryLog, CampaignEvent, ContentCampaign, ProductBase, Category, Appointment, SystemReview, SupportKnowledge]:
         await session.execute(delete(model).where(model.tenant_id == TENANT_ID))
     if user_ids:
@@ -103,7 +105,7 @@ async def seed_products(session):
             sku=d["sku"],
             price=d["price"],
             discount_price=d.get("discount_price"),
-            stock=sum(v["stock"] for v in d.get("variants", [])),
+            stock=sum(v["stock"] for v in d.get("variants", [])) if "variants" in d else 999,
             status="ACTIVE",
             category_id=d["category_id"],
             tenant_id=TENANT_ID,
@@ -126,7 +128,8 @@ async def seed_products(session):
                     sku=v_data["sku"],
                     price=v_data["price"],
                     discount_price=v_data.get("discount_price"),
-                    stock=v_data["stock"]
+                    stock=v_data["stock"],
+                    attributes=v_data.get("attributes", {})
                 )
                 session.add(variant)
         

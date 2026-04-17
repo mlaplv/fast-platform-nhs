@@ -523,6 +523,23 @@
                        <button type="button" onclick={() => cartStore.updateQuantity(item.id, item.quantity + 1)} class="w-7 h-6 flex items-center justify-center text-gray-500 font-medium active:bg-gray-100 border-l border-gray-200">+</button>
                     </div>
                   </div>
+
+                  <!-- QUÀ TẶNG KÈM THEO MOBILE -->
+                  {#if item.variant?.attributes?.gifts && item.variant.attributes.gifts.length > 0}
+                    <div class="mt-2.5 bg-[#fef2f2] border border-[#fecdd3] rounded-sm p-1.5 flex flex-col gap-1 w-full relative overflow-hidden">
+                      <div class="absolute inset-0 bg-gradient-to-r from-[#ffe4e6]/50 to-transparent pointer-events-none"></div>
+                      <span class="text-[10px] font-bold text-[#e11d48] uppercase flex items-center gap-1 leading-none relative z-10">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
+                        Quà tặng kèm:
+                      </span>
+                      {#each item.variant.attributes.gifts as gift}
+                        <div class="flex items-center justify-between text-[11px] relative z-10 px-1">
+                          <span class="text-gray-600 font-medium tracking-tight truncate max-w-[140px]">- {gift.name}</span>
+                          <span class="text-[#e11d48] font-bold shrink-0 min-w-[16px] text-center">x{gift.qty * item.quantity}</span>
+                        </div>
+                      {/each}
+                    </div>
+                  {/if}
                 </div>
               </div>
             {/each}

@@ -253,72 +253,7 @@
     </div>
   </div>
 
-  <!-- ACTIVE DEALS (PROMOTIONS) -->
-  <div class="flex flex-col gap-4 pt-6 border-t border-white/10">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
-        <Tag size={11} class="text-sky-400/60" />
-        Chương trình Khuyến mãi (Combo Deals)
-      </div>
-      <button 
-        type="button"
-        onclick={() => {
-          if (!formMetadata.active_deals) formMetadata.active_deals = [];
-          formMetadata.active_deals.push({ buy_qty: 2, get_qty: 1, fixed_price: 550000, label: 'Mua 2 Tặng 1', scope: 'global' });
-        }}
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-[9px] font-bold text-sky-400 hover:bg-sky-500/20 transition-all"
-      >
-        <Plus size={10} /> Thêm Deal mới
-      </button>
-    </div>
 
-    <div class="space-y-3">
-      {#if formMetadata.active_deals && formMetadata.active_deals.length > 0}
-        {#each formMetadata.active_deals as deal, i}
-          <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/5 relative group/deal">
-            <button 
-              type="button"
-              onclick={() => formMetadata.active_deals = formMetadata.active_deals.filter((_, idx) => idx !== i)}
-              class="absolute top-3 right-3 p-1.5 rounded-md hover:bg-red-500/10 text-white/20 hover:text-red-400 transition-all opacity-0 group-hover/deal:opacity-100"
-            >
-              <Trash2 size={12} />
-            </button>
-
-            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              <div class="flex flex-col gap-1">
-                <label class="text-[8px] font-bold text-white/30 uppercase">Số lượng Mua</label>
-                <input type="number" bind:value={deal.buy_qty} class="bg-black/40 border border-white/5 rounded-md px-2 py-1.5 text-[10px] text-white" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="text-[8px] font-bold text-white/30 uppercase">Số lượng Tặng</label>
-                <input type="number" bind:value={deal.get_qty} class="bg-black/40 border border-white/5 rounded-md px-2 py-1.5 text-[10px] text-white" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label class="text-[8px] font-bold text-white/30 uppercase">Giá trọn gói (VNĐ)</label>
-                <input type="number" bind:value={deal.fixed_price} class="bg-black/40 border border-white/5 rounded-md px-2 py-1.5 text-[10px] text-sky-400 font-bold" />
-              </div>
-              <div class="flex flex-col gap-1 lg:col-span-1">
-                <label class="text-[8px] font-bold text-white/30 uppercase">Phạm vi</label>
-                <select bind:value={deal.scope} class="bg-black/40 border border-white/5 rounded-md px-2 py-1.5 text-[10px] text-white outline-none">
-                  <option value="global">Toàn bộ (Global)</option>
-                  <option value="variant_only">Chỉ biến thể này</option>
-                </select>
-              </div>
-              <div class="flex flex-col gap-1 lg:col-span-1">
-                <label class="text-[8px] font-bold text-white/30 uppercase">Nhãn (Label)</label>
-                <input type="text" bind:value={deal.label} class="bg-black/40 border border-white/5 rounded-md px-2 py-1.5 text-[10px] text-white" placeholder="Mua 2 Tặng 1..." />
-              </div>
-            </div>
-          </div>
-        {/each}
-      {:else}
-        <div class="py-10 flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/10 text-white/20">
-          <Tag size={20} class="opacity-50" />
-          <span class="text-[9px] font-bold uppercase tracking-widest">Chưa có chương trình khuyến mãi nào</span>
-        </div>
-      {/if}
-    </div>
-  </div>
 </div>
 
 <style>
