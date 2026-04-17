@@ -431,7 +431,81 @@ ARTICLE_DEFS = [
 ARTICLE_TITLES = [article["title"] for article in ARTICLE_DEFS]
 
 # Support Knowledge Base (Elite V2.2)
-SUPPORT_KNOWLEDGE_DEFS = []
+SUPPORT_KNOWLEDGE_DEFS = [
+    {
+        "category": "POLICY",
+        "question": "Quy trình xử lý đơn hàng của Micsmo diễn ra như thế nào?",
+        "answer": "Sau khi Sếp đặt hàng, AI sẽ tự động xác thực và chuyển sang kho đóng gói trong vòng 30 phút. Đơn hàng sẽ được giao hỏa tốc từ 1-3 ngày làm việc.",
+        "priority": 10
+    },
+    {
+        "category": "PRODUCT",
+        "question": "Dòng Beppin Body Virgin White Serum có an toàn cho da nhạy cảm không?",
+        "answer": "Dạ hoàn toàn an toàn thưa Sếp! Sản phẩm được chiết xuất từ 100% thảo mộc Nhật Bản, không chứa paraben hay hương liệu nhân tạo, đã qua kiểm định khắt khe.",
+        "priority": 9
+    },
+    {
+        "category": "SHIPPING",
+        "question": "Micsmo có miễn phí vận chuyển không?",
+        "answer": "Dạ có thưa Sếp! Mọi đơn hàng trên 500.000 VNĐ đều được hưởng chính sách 'Neural Express' - Miễn phí vận chuyển toàn quốc.",
+        "priority": 8
+    },
+    {
+        "category": "GENERAL",
+        "question": "Làm thế nào để sử dụng tính năng Chẩn đoán AI?",
+        "answer": "Sếp chỉ cần truy cập trang Chi tiết sản phẩm, nhấn vào nút 'Chẩn đoán ngay'. AI của chúng em sẽ phân tích sắc tố da và thiết lập phác đồ riêng cho Sếp.",
+        "priority": 7
+    }
+]
+
+# Banner & Visual Suite (Elite V2.2)
+BANNER_DEFS = [
+    {
+        "id": "banner_viral_1",
+        "title": "Sát Thủ Sắc Tố - Beppin Body",
+        "image_url": "/uploads/img/banner/vn-11134258-81ztc-mm7801vsbw94c6@resize_w797_nl.webp",
+        "link_url": "miccosmo-beppin-body-virgin-white-serum",
+        "position": "home_main",
+        "order_index": 1
+    },
+    {
+        "id": "banner_viral_2",
+        "title": "Micsmo Live - Phục Hồi Chuyên Sâu",
+        "image_url": "/uploads/img/banner/vn-11134258-81ztc-mmiz6tc047peb7@resize_w797_nl.webp",
+        "link_url": "miccosmo-white-label-premium-placenta-pack-130g",
+        "position": "home_main",
+        "order_index": 2
+    },
+    {
+        "id": "banner_viral_3",
+        "title": "Combo 2 Tặng 1 - Giới Hạn",
+        "image_url": "/uploads/img/banner/sg-11134258-81zu3-mmr6osj4nb41df@resize_w797_nl.webp",
+        "link_url": "miccosmo-beppin-body-virgin-white-serum",
+        "position": "home_main",
+        "order_index": 3
+    }
+]
+
+# Strategic Vouchers (Elite V2.2)
+VOUCHER_DEFS = [
+    {
+        "code": "ELITE2026",
+        "title": "MÃ QUÀ TẶNG ELITE",
+        "subtitle": "Giảm ngay 50k cho đơn hàng Viral đầu tiên",
+        "type": "FIXED",
+        "value": 50000,
+        "min_spend": 500000,
+        "is_global": True
+    },
+    {
+        "code": "FREESHIP",
+        "title": "FREE SHIPPING NEURAL",
+        "subtitle": "Miễn phí vận chuyển mọi miền tổ quốc",
+        "type": "PERCENTAGE",
+        "value": 100,
+        "is_global": True
+    }
+]
 
 # System Settings (Elite V2.2)
 SYSTEM_SETTINGS_DEF = {

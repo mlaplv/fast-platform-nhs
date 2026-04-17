@@ -193,11 +193,12 @@ function check_deps() {
     fi
 }
 
-
-
-
-
 function init_deploy() {
+    local NO_SEED=false
+    if [[ "$1" == "--no-seed" ]]; then
+        NO_SEED=true
+    fi
+
     # [ELITE V2.2] Bảo trì hệ thống trước khi khởi tạo dự án
     update_docker --no-wait || return 1
     
@@ -224,18 +225,13 @@ function init_deploy() {
         uv venv --python 3.14 && source .venv/bin/activate
         uv pip install -e . || true
     else
-        echo -e "${CYAN}-> Đang tạo môi trường ảo (Python 3.13)...${NC}"
-        # [CTO ELITE] Official PyPI source for security and reliability
-        # export UV_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
-        # export PIP_INDEX_URL="https://mirrors.aliyun.com/pypi/simple/"
-        
+        echo -e "${CYAN}-> Đang tạo môi trường ảo (Python 3.14)...${NC}"
         uv venv --seed --python 3.14
         source .venv/bin/activate
         echo -e "${CYAN}-> Đang cài đặt Core Dependencies (Mirror Mode)...${NC}"
         ./.venv/bin/pip install --upgrade pip
         ./.venv/bin/pip install "litellm>=1.83.0"
         uv pip install litestar[standard] advanced-alchemy asyncpg pydantic-ai
-        # Sau đó cài nốt các thằng còn lại
         uv pip install -e .
     fi
     echo -e "${CYAN}-> [CTO ELITE] Đang tạo uv.lock cho Docker...${NC}"
@@ -243,40 +239,40 @@ function init_deploy() {
     (cd frontend && pnpm install)
     
     echo -e "${CYAN}[4/6] Xây dựng và khởi động Cơ sở hạ tầng (Database & Cache)...${NC}"
-    # [CTO ELITE] Build tuần tự để bảo vệ RAM tuyệt đối
-    docker compose build db
-    docker compose build redis
-    docker compose build caddy
+    docker compose build db redis caddy
     docker compose up -d db redis caddy
     
     echo -e "${CYAN}[5/6] Database Migration & SSL Setup...${NC}"
     echo -e "${YELLOW}Đang chờ DB sẵn sàng...${NC}"
-    # Đợi DB khởi khởi động hoàn toàn
     sleep 5
     echo -e "${YELLOW}Đang chạy Migration (Một lần)...${NC}"
-    # [CTO ELITE] Chạy migration như một container tạm, tránh chiếm RAM lâu dài
     docker compose run --rm api /opt/venv/bin/alembic -c backend/alembic.ini upgrade head
     
     echo -e "${CYAN}[6/6] Khởi tạo dữ liệu (Data Injection)...${NC}"
-    echo -e "Sếp muốn làm gì với Database?"
-    echo "1) Cháy Seed DB Test (Dữ liệu mẫu)"
-    echo "2) Khôi phục từ bản sao lưu (Restore Backup)"
-    echo "3) Bỏ qua (Giữ DB trắng)"
-    db_choice=""
-    for i in {10..1}; do
-        echo -ne "\rLựa chọn của Sếp (mặc định 1 sau ${i}s): "
-        if read -t 1 input; then
-            db_choice=$input
-            break
-        fi
-    done
-
-    # [ELITE V2.2] Tự động chọn 1 nếu Sếp không phản hồi sau 10s
-    if [[ -z "$db_choice" ]]; then
-        db_choice=1
-        echo -e "\n${YELLOW}-> Tự động chọn mục 1 (Seed DB)...${NC}"
+    
+    if [ "$NO_SEED" = true ]; then
+        db_choice=3
+        echo -e "${YELLOW}-> [BLANK DB] Tự động bỏ qua Seeding theo yêu cầu.${NC}"
     else
-        echo -e "" # Xuống dòng sau khi nhận input
+        echo -e "Sếp muốn làm gì với Database?"
+        echo "1) Cháy Seed DB Test (Dữ liệu mẫu)"
+        echo "2) Khôi phục từ bản sao lưu (Restore Backup)"
+        echo "3) Bỏ qua (Giữ DB trắng)"
+        db_choice=""
+        for i in {10..1}; do
+            echo -ne "\rLựa chọn của Sếp (mặc định 1 sau ${i}s): "
+            if read -t 1 input; then
+                db_choice=$input
+                break
+            fi
+        done
+
+        if [[ -z "$db_choice" ]]; then
+            db_choice=1
+            echo -e "\n${YELLOW}-> Tự động chọn mục 1 (Seed DB)...${NC}"
+        else
+            echo -e "" 
+        fi
     fi
 
     case $db_choice in
@@ -290,30 +286,26 @@ function init_deploy() {
             ;;
         *)
             echo -e "${YELLOW}[SKIP] Không gieo mầm dữ liệu.${NC}"
-            echo -e "Sếp có muốn khởi tạo Super User (Admin) để đăng nhập không? (y/n)"
-            read -p "Lựa chọn (mặc định y): " create_admin
-            if [[ -z "$create_admin" || "$create_admin" =~ ^[Yy]$ ]]; then
-                create_superuser
+            if [ "$NO_SEED" = false ]; then
+                echo -e "Sếp có muốn khởi tạo Super User (Admin) để đăng nhập không? (y/n)"
+                read -p "Lựa chọn (mặc định y): " create_admin
+                if [[ -z "$create_admin" || "$create_admin" =~ ^[Yy]$ ]]; then
+                    create_superuser
+                fi
+            else
+                echo -e "${YELLOW}[INFO] Bỏ qua bước xác nhận tạo Super User (Dành cho bản 3.1).${NC}"
             fi
             ;;
     esac
     
     echo -e "${YELLOW}Đang khởi động toàn bộ dịch vụ (API, Worker & UI)...${NC}"
-    docker compose build api
-    docker compose build worker_high
-    docker compose build worker_default
-    docker compose build ui
-    
-    # [CTO ELITE] SKIP_MIGRATE=true vì đã chạy migrate tuần tự ở bước [5/6] rồi
-    # Đảm bảo các biến môi trường RAM từ Ghost Mode được truyền trực tiếp vào Compose
+    docker compose build api worker_high worker_default ui
     export SKIP_MIGRATE=true
     docker compose up -d --remove-orphans api worker_high worker_default ui
     chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
     
     echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! (Đã tối ưu RAM) ===${NC}"
     echo -e "${CYAN}Truy cập: https://admin.micsmo.com${NC}"
-    
-    # [CTO ELITE] Tự động chuyển sang xem log để Sếp theo dõi WARNING/ERROR
     view_logs
 }
 
@@ -780,6 +772,7 @@ while true; do
     echo "1) LÀM SẠCH CODE (Xóa Cache, Node_modules, Python Venv)"
     echo "2) BẢO TRÌ DOCKER (Làm sạch 100% + Cập nhật Engine)"
     echo "3) FULL INIT (Dọn + Build + Migration + Seed + SSL)"
+    echo "3.1) INITIALIZE (Bản 3.1: Dọn + Build + Migration + SSL - Trống DB)"
     echo ""
     echo -e "${CYAN}>>> CÔNG CỤ HỖ TRỢ:${NC}"
     echo "4) XEM LOG BACKEND"
@@ -808,6 +801,9 @@ while true; do
             ;;
         3)
             init_deploy
+            ;;
+        3.1)
+            init_deploy --no-seed
             ;;
         4)
             view_logs

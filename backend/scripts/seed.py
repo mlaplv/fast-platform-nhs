@@ -20,13 +20,16 @@ from backend.database.models import (
     User, VoiceProfile, Role, Permission, Category, Article, Order, 
     ProductBase, ProductVariant, ProductEmbedding, Draft, Notification, 
     AgentTelemetryLog, ChatMessage, SystemSetting, Appointment, ContentCampaign, 
-    CampaignEvent, SystemReview, SupportKnowledge, SupportKnowledgeCategory
+    CampaignEvent, SystemReview, SupportKnowledge, SupportKnowledgeCategory,
+    Banner, Voucher, ComboDeal, MediaRegistry, MediaUsage
 )
+from backend.database.models.content import ArticleEmbedding
+from backend.database.models.system import SupportKnowledgeEmbedding
 from backend.utils.security import GeminiSecurity
 from backend.scripts.seed_data import (
     CATEGORY_DEFS, SUB_CATEGORY_DEFS, PRODUCT_DEFS,
     PRODUCT_NAMES, ARTICLE_TITLES, ARTICLE_DEFS, SUPPORT_KNOWLEDGE_DEFS,
-    SYSTEM_SETTINGS_DEF
+    SYSTEM_SETTINGS_DEF, BANNER_DEFS, VOUCHER_DEFS
 )
 from backend.utils.text import slugify, sanitize_id
 from backend.services.xohi.creative_studio.models.schemas import CategoryEnum
@@ -50,21 +53,44 @@ TENANT_ID = os.getenv("APP_DOMAIN", "micsmo.com")
 def utcnow(): return datetime.now(timezone.utc)
 
 async def clear_data(session):
-    print(f"🧹 Clearing old data for tenant: {TENANT_ID}...")
+    print(f"🧹 Clearing old data for tenant: {TENANT_ID} (Strict Order)...")
+    
+    # 1. Clear Embeddings & Child dependencies first
+    # [CTO ELITE] Use subqueries for clean cross-table cleanup
+    product_subq = select(ProductBase.id).where(ProductBase.tenant_id == TENANT_ID)
+    article_subq = select(Article.id).where(Article.tenant_id == TENANT_ID)
+    sk_subq = select(SupportKnowledge.id).where(SupportKnowledge.tenant_id == TENANT_ID)
     user_ids = (await session.execute(select(User.id).where((User.tenant_id == TENANT_ID) | (User.id == "user_admin")))).scalars().all()
-    await session.execute(delete(ProductVariant))
-    # Clear internal dependencies first
-    await session.execute(delete(ProductEmbedding).where(ProductEmbedding.product_base_id.in_(select(ProductBase.id).where(ProductBase.tenant_id == TENANT_ID))))
-    from backend.database.models.content import ArticleEmbedding
-    await session.execute(delete(ArticleEmbedding).where(ArticleEmbedding.article_id.in_(select(Article.id).where(Article.tenant_id == TENANT_ID))))
-    for model in [Order, Article, Notification, Draft, ChatMessage, AgentTelemetryLog, CampaignEvent, ContentCampaign, ProductBase, Category, Appointment, SystemReview, SupportKnowledge]:
-        await session.execute(delete(model).where(model.tenant_id == TENANT_ID))
+
+    # Drop in reverse dependency order
+    await session.execute(delete(ProductEmbedding).where(ProductEmbedding.product_base_id.in_(product_subq)))
+    await session.execute(delete(ArticleEmbedding).where(ArticleEmbedding.article_id.in_(article_subq)))
+    await session.execute(delete(SupportKnowledgeEmbedding).where(SupportKnowledgeEmbedding.knowledge_id.in_(sk_subq)))
+    await session.execute(delete(ProductVariant).where(ProductVariant.product_base_id.in_(product_subq)))
+    
+    # [CTO ELITE] FileManager Isolation: Always wipe media usage tracking
+    await session.execute(delete(MediaUsage).where(MediaUsage.tenant_id == TENANT_ID))
+    
+    # User-centric dependencies
     if user_ids:
-        for model in [Notification, Draft, CampaignEvent, ContentCampaign, ChatMessage, Order, VoiceProfile]:
+        for model in [Notification, Draft, CampaignEvent, ContentCampaign, ChatMessage, Order, VoiceProfile, AgentTelemetryLog]:
             if hasattr(model, 'user_id'): await session.execute(delete(model).where(model.user_id.in_(user_ids)))
-        await session.execute(delete(User).where(User.id.in_(user_ids)))
+            elif hasattr(model, 'author_id'): await session.execute(delete(model).where(model.author_id.in_(user_ids)))
+    
+    # Standalone tenant data
+    models_to_clear = [
+        Banner, Voucher, ComboDeal, SystemReview, SupportKnowledge, 
+        Appointment, CampaignEvent, ContentCampaign, Article, 
+        ProductBase, Category, MediaRegistry, User
+    ]
+    for model in models_to_clear:
+        await session.execute(delete(model).where(model.tenant_id == TENANT_ID))
+        
+    # Global roles that we managed
     await session.execute(delete(Role).where((Role.tenant_id == TENANT_ID) | (Role.id.in_(["role_superadmin", "role_customer"]))))
+    
     await session.flush()
+    print("✨ Cleanup complete.")
 
 async def seed_rbac(session):
     print("🔐 Setting up RBAC...")
@@ -232,6 +258,37 @@ async def seed_support_knowledge(session):
         ))
     await session.flush()
 
+async def seed_banners(session):
+    print(f"🖼️ Seeding {len(BANNER_DEFS)} banners...")
+    for d in BANNER_DEFS:
+        session.add(Banner(
+            id=d["id"],
+            title=d["title"],
+            image_url=d["image_url"],
+            link_url=d["link_url"],
+            position=d["position"],
+            order_index=d["order_index"],
+            is_active=True,
+            tenant_id=TENANT_ID,
+            device_type="all"
+        ))
+    await session.flush()
+
+async def seed_vouchers(session):
+    print(f"🎫 Seeding {len(VOUCHER_DEFS)} vouchers...")
+    for d in VOUCHER_DEFS:
+        session.add(Voucher(
+            id=d["code"], # Using the code (e.g. ELITE2026) as the Primary Key ID
+            type=d["type"], # Model uses 'type', not 'voucher_type'
+            title=d["title"],
+            subtitle=d["subtitle"],
+            value=d["value"],
+            min_spend=d.get("min_spend", 0),
+            is_active=True,
+            tenant_id=TENANT_ID
+        ))
+    await session.flush()
+
 async def main():
     print("🚀 Starting Refactored Seed Process...")
     async with async_session_maker() as session:
@@ -240,7 +297,9 @@ async def main():
             await seed_categories(session); p = await seed_products(session)
             await seed_articles(session, u.id)
             await seed_reviews(session)
-            # await seed_support_knowledge(session)
+            await seed_support_knowledge(session)
+            await seed_banners(session)
+            await seed_vouchers(session)
             await seed_appointments(session)
             await seed_system_settings(session)
             await session.commit(); print("✨ Successful!")

@@ -5,6 +5,23 @@ All notable changes to the **Fast Platform Core** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [22.4.17.01] - 2026-04-17
+### Added
+- **Watermark Editor Elite Pro V2.2 (Multi-Layer):** Upgraded the image branding engine to support independent draggable layers:
+    - **Logo Layer:** high-fidelity branding with togglable visibility.
+    - **Neural Text Overlay:** Support for custom Phone/Domain strings with professional 2-pass dropshadows for maximum legibility.
+- **Root-Level Orchestration (Portal V2):** Implemented a Portalled Modal architecture for the Editor and Confirmation dialogs, ensuring they always remain on top of the Media Vault regardless of app stacking depth.
+- **Neural Calibration (Precision 1:1):** Synchronized the coordinate system between Svelte 5 (Frontend) and PIL (Backend) by binding the interactive workspace to the physical image dimensions.
+
+### Changed
+- **High-Fidelity Rendering:** Upgraded backend resampling to **Image.Resampling.LANCZOS** and implemented adaptive font scaling for crisp, professional watermarks on any resolution.
+- **Administrative Experience:** Redesigned the Watermark Editor with a specialized sidebar control panel, providing granular control over layer positioning, scale, and styling.
+
+### Fixed
+- **Critical Logic Regressions:** Resolved `ReferenceError` (resolveThumbnailUrl) and `TypeError` in the media processing pipeline.
+- **Backend Stability:** Fixed an `IndentationError` in the `MediaEditorMixin` that was intermittently stalling background worker execution.
+- **Stacking Context Conflict:** Resolved a visibility bug where the Watermark Editor would appear behind the portalled Media Hub overlay.
+
 ## [22.4.16.01] - 2026-04-16
 ### Added
 - **Dynamic Voucher Integration (Elite V2.2):** Replaced legacy hardcoded lists with a database-driven architecture using `PromotionAdminService`. Added `title` and `subtitle` to the `Voucher` model for premium UI labeling.
