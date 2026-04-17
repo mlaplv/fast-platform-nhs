@@ -286,3 +286,15 @@ body.live-edit-mode .is-disabled .content-container {
 .client-layout ::-webkit-scrollbar-thumb:hover {
   background: rgba(193, 143, 126, 0.45);
 }
+
+/* ELITE V2.2: EMERGENCY EDIT MODE VISIBILITY - OPTIMIZED */
+body.live-edit-mode .elite-hero-headline,
+body.live-edit-mode .elite-session-headline {
+    -webkit-text-fill-color: #FFFFFF !important;
+    color: #FFFFFF !important;
+    background-image: none !important;
+}
+
+body.live-edit-mode .editable-wrapper.is-disabled {
+    opacity: 0.4;
+}

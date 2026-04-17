@@ -24,9 +24,6 @@
   // Admin Live Editor (Elite V2.2)
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { permissionState } from '$lib/state/permissions.svelte';
-  import AdminActionBar from '$lib/components/admin/AdminActionBar.svelte';
-  import LiveEditorOverlay from '$lib/components/admin/LiveEditorOverlay.svelte';
-  import LiveEditNotification from '$lib/components/admin/LiveEditNotification.svelte';
 
   let { data }: { data: PageData } = $props();
   let themeMode = $state<'system' | 'light' | 'dark'>('system');
@@ -365,9 +362,15 @@
 
 <!-- Administrative HUD (Elite V2.2 Overlay Layer - Severely Protected) -->
 {#if liveEditStore.isAdmin}
-  <AdminActionBar />
-  <LiveEditorOverlay />
-  <LiveEditNotification />
+  {#await import('$lib/components/admin/AdminActionBar.svelte') then { default: AdminActionBar }}
+    <AdminActionBar />
+  {/await}
+  {#await import('$lib/components/admin/LiveEditorOverlay.svelte') then { default: LiveEditorOverlay }}
+    <LiveEditorOverlay />
+  {/await}
+  {#await import('$lib/components/admin/LiveEditNotification.svelte') then { default: LiveEditNotification }}
+    <LiveEditNotification />
+  {/await}
 {/if}
 
 <style lang="postcss">

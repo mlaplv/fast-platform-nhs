@@ -25,11 +25,13 @@
 
 <section id="diagnostics-section" aria-labelledby="personalized-care" class="snap-session snap-session-standard diagnostics-container diagnostic-premium-flow relative overflow-x-hidden" style:padding-top="var(--standard-pt)">
   <div class="container mx-auto px-4 md:px-6 max-w-7xl text-center relative z-surface">
-    <h3 id="personalized-care" class="elite-session-headline mb-8 text-center">
-      <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ CHẨN ĐOÁN">
-        {product?.metadata?.diagnostics_headline || 'THIẾT KẾ LỘ TRÌNH TÁI SINH RIÊNG BIỆT'}
-      </EditableWrapper>
-    </h3>
+    {#if !(product?.metadata?.diagnostics_headline || '').startsWith('[OFF]') || liveEditStore.isEditMode}
+      <h3 id="personalized-care" class="elite-session-headline mb-8 text-center">
+        <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ CHẨN ĐOÁN">
+          {@html product?.metadata?.diagnostics_headline || 'THIẾT KẾ LỘ TRÌNH TÁI SINH RIÊNG BIỆT'}
+        </EditableWrapper>
+      </h3>
+    {/if}
 
     <div class="quiz-wrapper relative">
       <ClinicalQuiz {product} {questions} {metadata} />

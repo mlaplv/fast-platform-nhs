@@ -28,6 +28,7 @@
   let springMouse = $state({ x: 0, y: 0 });
   let currentImageIndex = $state(0);
   let _springRafId: number | null = null;
+  let lastTypedHeadline = $state("");
 
   let liveViewers = $state(Math.floor(Math.random() * (45 - 12 + 1)) + 12);
   onMount(() => {
@@ -103,8 +104,18 @@
   
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.hero_headline?.split('<br/>') || []);
-  const h1 = $derived(metadata.hero_headline_1 || stripTags(legacyParts[0]) || "TỰ TIN RẠNG RỠ VỚI");
-  const h2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || "LÀN DA SÁNG HỒNG");
+  const h1 = $derived(clean(metadata.hero_headline_1 || stripTags(legacyParts[0]) || "TỰ TIN RẠNG RỠ VỚI"));
+  const h2 = $derived(clean(metadata.hero_headline_2 || stripTags(legacyParts[1]) || "LÀN DA SÁNG HỒNG"));
+  
+  const rawH1 = $derived(metadata.hero_headline_1 || stripTags(legacyParts[0]) || "TỰ TIN RẠNG RỠ VỚI");
+  const rawH2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || "LÀN DA SÁNG HỒNG");
+
+  const clean = (s: unknown) => {
+    if (!s) return "";
+    let val = String(s);
+    if (val.startsWith('[OFF]')) return val.substring(5).trim();
+    return val;
+  };
 
   const videoUrl = $derived.by(() => {
     let url = labels.video_url?.trim() ?? '';
@@ -243,10 +254,11 @@
   };
 
   $effect(() => {
-    if (browser && rawHeadline) {
+    if (browser && !liveEditStore.isEditMode && rawHeadline && rawHeadline !== lastTypedHeadline) {
       const controller = new AbortController();
       displayText = "";
       isTypingComplete = false;
+      lastTypedHeadline = rawHeadline;
       typeWriter(controller.signal);
       return () => { controller.abort(); };
     }
@@ -297,15 +309,27 @@
   <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface" style:padding-top="var(--standard-pt)">
     <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
       <h1 class="elite-hero-headline typing-headline text-center">
-        <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
-          {h1}
-        </EditableWrapper>
-        <br/>
-        <span class="text-luxury-copper">
-          <EditableWrapper path="metadata.hero_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
-            {h2}
-          </EditableWrapper>
-        </span>
+        {#if !liveEditStore.isEditMode && !isTypingComplete && displayText}
+          {@html displayText}
+        {:else}
+          {#if !rawH1.startsWith('[OFF]') || liveEditStore.isEditMode}
+            <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+              {@html h1}
+            </EditableWrapper>
+          {/if}
+          
+          {#if (!rawH1.startsWith('[OFF]') && !rawH2.startsWith('[OFF]')) || liveEditStore.isEditMode}
+            <br/>
+          {/if}
+
+          {#if !rawH2.startsWith('[OFF]') || liveEditStore.isEditMode}
+            <span class="text-luxury-copper">
+              <EditableWrapper path="metadata.hero_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+                {@html h2}
+              </EditableWrapper>
+            </span>
+          {/if}
+        {/if}
         <span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-luxury-copper"></span>
       </h1>
 

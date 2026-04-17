@@ -25,21 +25,32 @@
   const legacyParts = $derived(metadata.offer_headline?.split("<span class='text-luxury-gold'>") || []);
   const h1 = $derived(metadata.offer_headline_1 || stripTags(legacyParts[0]) || "CHẠM NGƯỠNG ĐỈNH CAO CỦA");
   const h2 = $derived(metadata.offer_headline_2 || stripTags(legacyParts[1]) || "SỰ TỰ TIN TUYỆT ĐỐI");
+  
+  const clean = (s: unknown) => {
+    if (!s) return "";
+    let val = String(s);
+    if (val.startsWith('[OFF]')) return val.substring(5).trim();
+    return val;
+  };
 
   const mkt = $derived({
     sub: metadata.offer_subheadline || "",
-    timer_prefix: metadata.offer_timer_prefix || "Ưu đãi lột xác kết thúc sau:",
-    shipping_prefix: metadata.offer_shipping_prefix || "+ VẬN CHUYỂN:",
-    savings_prefix: metadata.offer_savings_prefix || "TIẾT KIỆM NGAY:",
-    booking_suffix: metadata.offer_booking_suffix || "phụ nữ đã lột xác thành công tuần này",
-    trust_verified_by: metadata.offer_trust_verified_by || "TIÊU CHUẨN Y KHOA NHẬT BẢN",
-    compliance_note: metadata.offer_compliance_note || "* Giao hàng bảo mật, <br/> Đóng gói tinh tế như một món quà trang sức.",
+    timer_prefix: clean(metadata.offer_timer_prefix || "Ưu đãi lột xác kết thúc sau:"),
+    shipping_prefix: clean(metadata.offer_shipping_prefix || "+ VẬN CHUYỂN:"),
+    savings_prefix: clean(metadata.offer_savings_prefix || "TIẾT KIỆM NGAY:"),
+    booking_suffix: clean(metadata.offer_booking_suffix || "phụ nữ đã lột xác thành công tuần này"),
+    trust_verified_by: clean(metadata.offer_trust_verified_by || "TIÊU CHUẨN Y KHOA NHẬT BẢN"),
+    compliance_note: clean(metadata.offer_compliance_note || "* Giao hàng bảo mật, <br/> Đóng gói tinh tế như một món quà trang sức."),
     label_activation: metadata.offer_label_activation || "GIAI ĐOẠN ĐÁNH THỨC",
     label_full_treatment: metadata.offer_label_full_treatment || "LIỆU TRÌNH HOÀN MỸ",
     label_expert_choice: metadata.offer_label_expert_choice || "SỰ LỰA CHỌN CỦA PHÁI ĐẸP",
     cta_start: metadata.offer_cta_start || "BẮT ĐẦU TÁI SINH",
     cta_full: metadata.offer_cta_full || "SỞ HỮU SỰ KIÊU SA"
   });
+  
+  const mark1 = $derived(metadata.offer_trust_verified_by || "TIÊU CHUẨN Y KHOA NHẬT BẢN");
+  const mark2 = $derived(metadata.offer_trust_mark_2 || "HIỆU QUẢ KIỂM CHỨNG");
+  const mark3 = $derived(metadata.offer_trust_mark_3 || "DƯỢC MỸ PHẨM CAO CẤP");
 
   let isDetailsOpen = $state(false);
   
@@ -104,32 +115,59 @@
   <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px] pointer-events-none" style:background-color="var(--luxury-gold)" style:opacity="0.05"></div>
 
   <div class="container mx-auto px-6 max-w-6xl relative z-surface">
-    <div class="text-center mb-16 md:mb-20">
+    <div class="text-center">
       <h2 class="elite-session-headline mb-8 text-center offer-grid-headline">
-        <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
-          {h1}
-        </EditableWrapper>
-        <br class="md:hidden"/>
-        <span class="text-luxury-gold md:ml-3">
-           <EditableWrapper path="metadata.offer_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
-             {h2}
-           </EditableWrapper>
-        </span>
+        {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]') || liveEditStore.isEditMode}
+          <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+            {h1}
+          </EditableWrapper>
+        {/if}
+
+        {#if (!(metadata.offer_headline_1 || '').startsWith('[OFF]') && !(metadata.offer_headline_2 || '').startsWith('[OFF]')) || liveEditStore.isEditMode}
+          <br class="md:hidden"/>
+        {/if}
+
+        {#if !(metadata.offer_headline_2 || '').startsWith('[OFF]') || liveEditStore.isEditMode}
+          <span class="text-luxury-gold md:ml-3">
+             <EditableWrapper path="metadata.offer_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+               {h2}
+             </EditableWrapper>
+          </span>
+        {/if}
       </h2>
 
       <div class="flex items-center justify-center gap-4 mt-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-700">
-         <span class="text-[8px] uppercase tracking-[0.6em] font-medium text-slate-400">{mkt.trust_verified_by}</span>
-         <div class="h-px w-10 bg-white/5"></div>
-         <span class="text-[9px] uppercase tracking-[0.3em] font-black text-luxury-sakura">{metadata.offer_trust_mark_2 || "HIỆU QUẢ KIỂM CHỨNG"}</span>
-         <div class="h-px w-10 bg-white/5"></div>
-         <span class="text-[8px] uppercase tracking-[0.6em] font-medium text-slate-400">{metadata.offer_trust_mark_3 || "DƯỢC MỸ PHẨM CAO CẤP"}</span>
+         <EditableWrapper path="metadata.offer_trust_verified_by" type="text" label="SỬA CHỨNG NHẬN 1" class="inline" as="span">
+           <span class="text-[8px] uppercase tracking-[0.6em] font-medium text-slate-400">{clean(mark1)}</span>
+         </EditableWrapper>
+         
+         {#if (!mark1.startsWith('[OFF]') && !mark2.startsWith('[OFF]')) || liveEditStore.isEditMode}
+            <div class="h-px w-10 bg-white/5"></div>
+         {/if}
+
+         <EditableWrapper path="metadata.offer_trust_mark_2" type="text" label="SỬA CHỨNG NHẬN 2" class="inline" as="span">
+           <span class="text-[9px] uppercase tracking-[0.3em] font-black text-luxury-sakura">{clean(mark2)}</span>
+         </EditableWrapper>
+         
+         {#if (!mark2.startsWith('[OFF]') && !mark3.startsWith('[OFF]')) || liveEditStore.isEditMode}
+            <div class="h-px w-10 bg-white/5"></div>
+         {/if}
+
+         <EditableWrapper path="metadata.offer_trust_mark_3" type="text" label="SỬA CHỨNG NHẬN 3" class="inline" as="span">
+            <span class="text-[8px] uppercase tracking-[0.6em] font-medium text-slate-400">{clean(mark3)}</span>
+         </EditableWrapper>
       </div>
     </div>
 
     <div class="flex justify-center mb-10 mt-6">
       <div class="timer-badge px-8 py-2 rounded-full text-[10px] uppercase tracking-[0.4em] flex items-center gap-3 backdrop-blur-3xl shadow-[0_0_20px_rgba(255,183,197,0.1)]">
         <span class="w-2 h-2 rounded-full bg-luxury-sakura animate-pulse shadow-[0_0_12px_var(--luxury-sakura)]"></span>
-        {mkt.timer_prefix} <span class="font-black tabular-nums text-white">{formatTime(timeLeft)}</span>
+        {#if !(metadata.offer_timer_prefix || '').startsWith('[OFF]') || liveEditStore.isEditMode}
+          <EditableWrapper path="metadata.offer_timer_prefix" type="text" label="SỬA TIÊU ĐỀ HẸN GIỜ" class="inline" as="span">
+            {mkt.timer_prefix}
+          </EditableWrapper>
+        {/if}
+        <span class="font-black tabular-nums text-white">{formatTime(timeLeft)}</span>
       </div>
     </div>
 
@@ -229,10 +267,15 @@
                      TIẾT KIỆM KHỦNG: {((variant.price * shopStore.quantity) - shopStore.totalAmount).toLocaleString()}đ
                   </p>
                 {:else if (variant.price - unitPrice) > 0}
-                  <p class="text-[10px] text-emerald-400 font-black uppercase tracking-widest flex items-center gap-3">
-                     <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                     {mkt.savings_prefix} {(variant.price - unitPrice).toLocaleString()}đ
-                  </p>
+                  {#if !(metadata.offer_savings_prefix || '').startsWith('[OFF]') || liveEditStore.isEditMode}
+                    <p class="text-[10px] text-emerald-400 font-black uppercase tracking-widest flex items-center gap-3">
+                       <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                       <EditableWrapper path="metadata.offer_savings_prefix" type="text" label="SỬA TIÊU ĐỀ TIẾT KIỆM" class="inline" as="span">
+                         {mkt.savings_prefix}
+                       </EditableWrapper>
+                       {(variant.price - unitPrice).toLocaleString()}đ
+                    </p>
+                  {/if}
                 {/if}
                 <p class="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 {isCardActive && shopStore.quantity > 1 ? 'mt-1' : ''}">
                   <span class="text-luxury-sakura animate-pulse">●</span> SPECS: {metadata.weight || "30G"} - {metadata.origin || "JAPAN"} | MÃ VẠCH: {variant.sku || product?.sku || 'N/A'}
@@ -276,7 +319,15 @@
                    </div>
                 {:else}
                    <ShoppingCart class="w-5 h-5 shrink-0" strokeWidth={3} />
-                   <span class="uppercase tracking-[0.2em] text-[11px] text-center leading-tight">{idx === 0 ? mkt.cta_start : mkt.cta_full}</span>
+                   <EditableWrapper 
+                      path={idx === 0 ? "metadata.offer_cta_start" : "metadata.offer_cta_full"} 
+                      type="text" 
+                      label="SỬA TEXT NÚT" 
+                      class="inline" 
+                      as="span"
+                    >
+                      <span class="uppercase tracking-[0.2em] text-[11px] text-center leading-tight">{idx === 0 ? mkt.cta_start : mkt.cta_full}</span>
+                    </EditableWrapper>
                 {/if}
               </div>
            </div>
