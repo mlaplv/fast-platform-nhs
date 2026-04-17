@@ -121,6 +121,22 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
 
             await db.commit()
 
+            if "campaign_id" in payload:
+                from backend.database.repositories import ContentCampaignRepository
+                repo = ContentCampaignRepository(session=db)
+                camp = await repo.get(str(payload["campaign_id"]))
+                if camp:
+                    await event_bus.emit("CONTENT_PROGRESS", {
+                        "campaign_id": str(camp.id),
+                        "user_id": str(camp.user_id),
+                        "message": "✅ Agent Task đã xử lý xong. Đang đồng bộ giao diện...",
+                        "status": "PROCESSING",
+                        "data": {
+                            "gold_metadata": dict(camp.gold_metadata or {})
+                        },
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+
             # 6. Universal Completion Signal (Central Nervous System)
             await event_bus.emit("AGENT_TASK_COMPLETED", {
                 "task_id": task_id,

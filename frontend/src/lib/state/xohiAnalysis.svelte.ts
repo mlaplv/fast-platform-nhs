@@ -88,45 +88,55 @@ export function createAnalysisController(config: {
     }
 
     async function handleApiResponse<T>(res: GenericResponse<T>, targetSetter: (v: T) => void) {
-        if (res?.data) {
+        if (res?.status === "accepted" && (res.data as any)?.task_id) {
+            return 'accepted';
+        } else if (res?.data) {
             if (res.logs) bulkFixLogs = [...bulkFixLogs, ...(res.logs.filter(l => !bulkFixLogs.includes(l)))];
             targetSetter(res.data);
+            return 'success';
         }
+        return 'error';
     }
 
     async function runCopyrightCheck(force = false, skipSave = false) {
         if (isCopyrightLoading) return;
         isCopyrightLoading = true; isBulkFixing = true; bulkFixStatus = "Đang quét..."; activeTab = 'copyright';
-        bulkFixLogs = ["🔍 Đang khởi động tầm soát bản quyền...", "🧠 Đang phân tích cấu trúc..."];
+        let isAccepted = false;
         try {
             if (!skipSave) await saveBeforeAnalysis();
             const cid = resolve(config.campaign_id);
             const url = isAdhoc ? `/api/v1/content/analyze/copyright?force=${force}` : `/api/v1/content/campaigns/${cid}/analyze/copyright?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)() } : undefined;
             const res = await apiClient.post<GenericResponse<CopyrightResult>>(url, body);
-            await handleApiResponse(res, (v) => { copyrightResult = v; });
+            const status = await handleApiResponse(res, (v) => { copyrightResult = v; });
+            if (status === 'accepted') isAccepted = true;
         } finally {
-            isCopyrightLoading = false;
-            setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
-            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
+            if (!isAccepted) {
+                isCopyrightLoading = false;
+                setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
+                setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
+            }
         }
     }
 
     async function runSeoAnalysis(force = false, skipSave = false) {
         if (isSeoLoading) return;
         isSeoLoading = true; isBulkFixing = true; bulkFixStatus = "Đang quét SEO..."; activeTab = 'seo';
-        bulkFixLogs = ["🔍 Đang khởi động máy quét SEO...", "🧠 Đang phân tích mật độ từ khóa..."];
+        let isAccepted = false;
         try {
             if (!skipSave) await saveBeforeAnalysis();
             const cid = resolve(config.campaign_id);
             const url = isAdhoc ? `/api/v1/content/analyze/seo?force=${force}` : `/api/v1/content/campaigns/${cid}/analyze/seo?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)(), topic: resolve(config.topic) || '' } : undefined;
             const res = await apiClient.post<GenericResponse<SEOResult>>(url, body);
-            await handleApiResponse(res, (v) => { seoResult = v; });
+            const status = await handleApiResponse(res, (v) => { seoResult = v; });
+            if (status === 'accepted') isAccepted = true;
         } finally {
-            isSeoLoading = false;
-            setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
-            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
+            if (!isAccepted) {
+                isSeoLoading = false;
+                setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
+                setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
+            }
         }
     }
 
@@ -134,21 +144,25 @@ export function createAnalysisController(config: {
         if (isAiLoading || aiLocked) return;
         isAiLoading = true; isBulkFixing = true; bulkFixStatus = "Đang quét AI MOD..."; activeTab = 'ai';
         bulkFixLogs = ["🔍 Đang khởi động AI MOD...", "🧠 Đang rà soát dấu vân tay AI..."];
+        let isAccepted = false;
         try {
             if (!skipSave) await saveBeforeAnalysis();
             const cid = resolve(config.campaign_id);
             const url = isAdhoc ? `/api/v1/content/analyze/ai-inspect?force=${force}` : `/api/v1/content/campaigns/${cid}/analyze/ai-inspect?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)() } : undefined;
             const res = await apiClient.post<GenericResponse<AIInspectResult>>(url, body);
-            await handleApiResponse(res, (v) => { 
+            const status = await handleApiResponse(res, (v) => { 
                 const oldFixed = (aiReadyResult?.ai_annotations || []).filter(a => a.type === 'fixed-area');
                 v.ai_annotations = [...oldFixed, ...(v.ai_annotations || [])];
                 aiReadyResult = v;
             });
+            if (status === 'accepted') isAccepted = true;
         } finally {
-            isAiLoading = false;
-            setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
-            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
+            if (!isAccepted) {
+                isAiLoading = false;
+                setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
+                setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
+            }
         }
     }
 
@@ -255,9 +269,18 @@ export function createAnalysisController(config: {
         const cache = resolve(config.analysis_cache);
         if (cache && Object.keys(cache).length > 0) {
             untrack(() => {
-                if (cache.copyright?.data && !copyrightResult) copyrightResult = cache.copyright.data as CopyrightResult;
-                if (cache.seo?.data && !seoResult) seoResult = cache.seo.data as SEOResult;
-                if (cache.ai_inspect?.data && !aiReadyResult) aiReadyResult = cache.ai_inspect.data as AIInspectResult;
+                if (cache.copyright?.data && !copyrightResult) {
+                     copyrightResult = cache.copyright.data as CopyrightResult;
+                     if (isCopyrightLoading) { isCopyrightLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
+                }
+                if (cache.seo?.data && !seoResult) {
+                     seoResult = cache.seo.data as SEOResult;
+                     if (isSeoLoading) { isSeoLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
+                }
+                if (cache.ai_inspect?.data && !aiReadyResult) {
+                     aiReadyResult = cache.ai_inspect.data as AIInspectResult;
+                     if (isAiLoading) { isAiLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
+                }
             });
         }
     });
