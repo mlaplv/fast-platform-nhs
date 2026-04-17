@@ -105,6 +105,16 @@ export function createNanobotState() {
     brainCoverage: 0,
     brainManualOpen: false,
     liveStreamBuffer: "" as string, // CNS V86.5: Real-time neural stream buffer
+    watermarkEditor: {
+      show: false,
+      asset: null as any | null,
+      assetId: null as string | null,
+      onApply: null as ((params: any) => void) | null,
+      logoEnabled: true,
+      textEnabled: false,
+      text: "",
+      textColor: "#FFFFFF"
+    }
   });
 
   const audioThrottle = createAudioThrottle(state);
@@ -341,6 +351,18 @@ export function createNanobotState() {
     get liveStreamBuffer() { return state.liveStreamBuffer; },
     appendStreamChunk: (text: string) => { state.liveStreamBuffer += text; },
     clearStreamBuffer: () => { state.liveStreamBuffer = ""; },
+    
+    // Watermark Control
+    get watermarkEditor() { return state.watermarkEditor; },
+    openWatermarkEditor: (asset: any, onApply: (params: any) => void) => {
+      state.watermarkEditor.asset = asset;
+      state.watermarkEditor.assetId = asset?.id || null;
+      state.watermarkEditor.onApply = onApply;
+      state.watermarkEditor.show = true;
+    },
+    closeWatermarkEditor: () => {
+      state.watermarkEditor.show = false;
+    },
 
     get universalModalOpen() { return ui.universalModalOpen; },
     get confirmDialog() { return ui.confirmDialog; },

@@ -55,6 +55,7 @@
     let isAutoFilling = $state(false);
     let activeVideoUrl = $state<string | null>(null); // State mới cho video overlay
     let previewImageUrl = $state<string | null>(null);
+    let showWatermarkEditor = $state(false);
 
     // AI Semantic Search Debounce
     $effect(() => {
@@ -217,6 +218,16 @@
 
     async function handleQuickEdit(action: string, params: Record<string, unknown> | null = null) {
         if (!selectedAssetId) return;
+        if (action === 'watermark') {
+            console.log('[FileManager] Triggering watermark editor for:', selectedAssetId);
+            nanobot.openWatermarkEditor(selectedAsset, async (params) => {
+                console.log('[FileManager] Watermark editor apply:', params);
+                nanobot.closeWatermarkEditor();
+                await mediaStore.quickEdit(selectedAssetId!, 'watermark', params);
+                nanobot.showToast("Đã đóng dấu watermark thành công", "success");
+            });
+            return;
+        }
         await mediaStore.quickEdit(selectedAssetId, action, params);
     }
 

@@ -12,6 +12,7 @@
   import UserHud from "../hud/UserHud.svelte";
   import VaultModal from "../VaultModal.svelte";
   import ConfirmationModal from "../ui/ConfirmationModal.svelte";
+  import WatermarkEditorModal from '../ui/WatermarkEditorModal.svelte';
   import UniversalModal from "../ui/UniversalModal.svelte";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { permissionState } from "$lib/state/permissions.svelte";
@@ -142,6 +143,7 @@
   <!-- Version Footer (Global Bottom) -->
   <TechStackFooter />
   <ConfirmationModal />
+  <WatermarkEditorModal />
 </div>
 
 <style>

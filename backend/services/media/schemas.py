@@ -110,6 +110,17 @@ class QuickEditParams(BaseModel):
     w: Optional[int] = None
     h: Optional[int] = None
     preset: Optional[str] = "square"  # 'square', 'banner', etc.
+    # Watermark positioning (percentage 0.0 - 1.0)
+    logo_enabled: Optional[bool] = True
+    logo_x: Optional[float] = None
+    logo_y: Optional[float] = None
+    logo_scale: Optional[float] = 0.12
+    # Text Overlay positioning
+    text: Optional[str] = None
+    text_x: Optional[float] = None
+    text_y: Optional[float] = None
+    text_scale: Optional[float] = 0.05
+    text_color: Optional[str] = "#FFFFFF"
 
 class QuickEditResponse(BaseModel):
     model_config = ConfigDict(strict=True)

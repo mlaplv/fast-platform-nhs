@@ -2,7 +2,7 @@ import logging
 import os
 import uuid
 from typing import Optional
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from backend.database.models import MediaRegistry
 from backend.database.repositories import MediaRegistryRepository
 from backend.services.media.schemas import MediaUpdateMetadata, QuickEditParams, MediaMetadata
@@ -102,16 +102,45 @@ class MediaEditorMixin:
                             d = params.model_dump(); x, y, w, h = d.get('x', 0), d.get('y', 0), d.get('w', img.width), d.get('h', img.height)
                             img = img.crop((x, y, x + (w or img.width), y + (h or img.height)))
                     elif action == "watermark":
-                        logo_p = "frontend/static/uploads/img/logo_transparent.webp"
-                        if os.path.exists(logo_p):
-                            with Image.open(logo_p) as logo:
-                                # Professional scaling: 12% of image width
-                                lw = int(img.width * 0.12)
-                                lh = int(logo.height * (lw / logo.width))
-                                logo = logo.resize((lw, lh), Image.Resampling.LANCZOS)
-                                # Position at bottom-right with 2.5% padding
-                                padding = int(img.width * 0.025)
-                                img.paste(logo, (img.width - lw - padding, img.height - lh - padding), logo if logo.mode == 'RGBA' else None)
+                        # 1. Logo Layer Handling
+                        if params and params.logo_enabled:
+                            logo_p = "frontend/static/uploads/img/logo_transparent.webp"
+                            if os.path.exists(logo_p):
+                                with Image.open(logo_p) as logo:
+                                    # Use high-quality resampling
+                                    scale = params.logo_scale if params.logo_scale else 0.15
+                                    lw = int(img.width * scale)
+                                    lh = int(logo.height * (lw / logo.width))
+                                    logo = logo.resize((lw, lh), Image.Resampling.LANCZOS)
+                                    
+                                    if params.logo_x is not None and params.logo_y is not None:
+                                        px, py = int(img.width * params.logo_x), int(img.height * params.logo_y)
+                                    else:
+                                        padding = int(img.width * 0.05)
+                                        px, py = img.width - lw - padding, img.height - lh - padding
+                                    
+                                    # Ensure alpha compositing is used
+                                    img.paste(logo, (px, py), logo if logo.mode == 'RGBA' else None)
+                        
+                        # 2. Text Layer Handling (SĐT/Domain)
+                        if params and params.text:
+                            draw = ImageDraw.Draw(img)
+                            # Professional adaptive font sizing
+                            text_scale = params.text_scale or 0.06
+                            font_size = int(img.width * text_scale)
+                            
+                            font_p = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+                            try: font = ImageFont.truetype(font_p, font_size)
+                            except: font = ImageFont.load_default()
+                            
+                            tx = int(img.width * (params.text_x if params.text_x is not None else 0.05))
+                            ty = int(img.height * (params.text_y if params.text_y is not None else 0.05))
+                            
+                            # Enhanced shadow for maximum legibility (2-pass shadow)
+                            sh = max(1, font_size // 12)
+                            draw.text((tx + sh, ty + sh), params.text, font=font, fill=(0, 0, 0, 140))
+                            draw.text((tx - 1, ty - 1), params.text, font=font, fill=(0, 0, 0, 60)) # Subtle outline
+                            draw.text((tx, ty), params.text, font=font, fill=params.text_color or "#FFFFFF")
                     
                     s_p = t_p if is_remote else src_p
                     img.save(s_p, "WEBP", quality=DEFAULT_QUALITY, optimize=True); return f"{img.width}x{img.height}"
