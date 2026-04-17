@@ -20,14 +20,23 @@ class StallDetectorMiddleware:
         self.app = app
         # Default 10 seconds for standard APIs. Can be overridden in .env
         self.timeout = float(os.getenv("REQUEST_STALL_TIMEOUT", "10.0"))
-        # Paths to exclude (e.g., long-polling, streaming, AI generation sites)
+        # Paths to exclude from Stall Detector:
+        # - Long-polling / streaming endpoints (unlimited)
+        # - AI-heavy synthesis endpoints (have their OWN internal timeouts — do NOT double-kill)
         self.excluded_paths = [
-            "/ws/", 
-            "/api/v1/stream", 
+            # Streaming & WebSocket
+            "/ws/",
+            "/api/v1/stream",
             "/api/v1/intent/stream",
-            "/api/v1/client/diagnostics/analyze",
             "/api/v1/client/support/pulse",
-            "/api/v1/pulse"
+            "/api/v1/pulse",
+            "/api/v1/tts/stream",
+            # AI-heavy — self-managed timeouts (R.C.1/R.C.2 in analyst.py)
+            "/api/v1/content/scout",
+            "/api/v1/content/analyze",
+            "/api/v1/content/clean",
+            "/api/v1/content/campaigns",   # Campaign-level analyze/* calls
+            "/api/v1/client/diagnostics",
         ]
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
