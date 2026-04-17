@@ -1,7 +1,7 @@
 .science-section {
     background-color: #010101;
     position: relative;
-    padding-bottom: 200px;
+    padding-bottom: 100px;
 }
 
 .tech-grid {
@@ -69,12 +69,12 @@
 }
 
 /* Viral 2026: Kinetic Bento Gaps */
-.science-section .grid {
+.bento-grid-kinetic {
     gap: 2rem;
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
-    .science-section .grid {
+    .bento-grid-kinetic {
         display: grid !important;
         grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
         gap: 1.5rem !important;
@@ -95,6 +95,12 @@
     .science-section .p-10 {
         padding: 2rem !important;
     }
+}
+
+/* Stable FAQ Grid (Elite V2.2) */
+.faq-grid {
+    display: grid;
+    width: 100%;
 }
 
 .science-section .flex-1 {
@@ -139,63 +145,113 @@
     100% { transform: scaleX(1) translateX(0); }
 }
 
-/* FAQ & Commitment Styles (Elite V2.2) */
-.faq-container {
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
+/* Viral FAQ Section (Elite V2.2) */
+.faq-ultra-compact {
     position: relative;
     z-index: var(--z-surface);
 }
 
-.faq-icon-box {
-    backdrop-filter: blur(10px);
-}
-
-.faq-item {
+.faq-header-row {
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-.faq-item.active {
-    border-bottom-color: rgba(193, 143, 126, 0.2);
-}
-
-.faq-question:focus {
-    outline: none;
-}
-
-.chevron-box {
+.faq-item-card {
+    background: rgba(255, 255, 255, 0.01);
+    backdrop-filter: blur(15px);
+    border: 0.5px solid rgba(255, 255, 255, 0.05); /* Ultra-thin luxury border */
+    border-radius: 1.5rem; /* Capsule feel */
+    padding: 1rem 1.75rem !important; /* SIGNIFICANTLY REDUCED HEIGHT */
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    overflow: hidden;
+    min-height: auto !important; /* Allow collapse */
+    height: auto !important;
 }
 
-.faq-answer {
-    transform-origin: top;
-    animation: slideDown 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+.faq-item-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 183, 197, 0.03) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.5s;
 }
 
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.faq-item-card:hover {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 183, 197, 0.2);
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 
+        0 15px 35px rgba(0,0,0,0.4),
+        0 0 15px rgba(255, 183, 197, 0.1);
+}
+
+.faq-item-card:hover::before {
+    opacity: 1;
+}
+
+.faq-item-card .question-text {
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.01em !important;
+    line-height: 1.4 !important;
+    color: rgba(255,255,255,0.8);
+    transition: color 0.3s;
+}
+
+.faq-item-card:hover .question-text {
+    color: #fff;
+}
+
+.faq-arrow-indicator {
+    opacity: 0.3;
+    transition: all 0.3s;
+    transform: translateX(-5px);
+}
+
+.faq-item-card:hover .faq-arrow-indicator {
+    opacity: 1;
+    color: var(--luxury-sakura);
+    transform: translateX(0);
+}
+
+/* Modal Specifics */
+.faq-viral-modal {
+    background: transparent;
+}
+
+.faq-viral-modal > div {
+    backdrop-filter: blur(40px);
+    box-shadow: 
+        0 50px 100px rgba(0,0,0,0.9),
+        inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+.faq-viral-modal h2 {
+    text-shadow: 0 10px 30px rgba(0,0,0,0.8);
 }
 
 @media (max-width: 768px) {
-    .faq-header {
-        flex-direction: column;
-        gap: 1.5rem;
+    .faq-header-row {
+        gap: 1.25rem;
     }
     
-    .faq-container {
-        margin-top: 4rem;
-        padding: 0 1rem;
+    .faq-icon-box {
+        width: 3.5rem !important;
+        height: 3.5rem !important;
     }
 
-    .faq-question span {
-        font-size: 1.1rem;
+    .faq-item-card {
+        padding: 1.25rem !important;
+    }
+
+    .faq-viral-modal > div {
+        padding: 2.5rem 1.5rem !important;
+        border-radius: 2.5rem !important;
+    }
+    
+    .modal-close-btn {
+        right: 1.5rem !important;
+        top: 1.5rem !important;
     }
 }

@@ -14,11 +14,6 @@
   
   import MobileLandingLayout from '$lib/components/mobile/MobileLandingLayout.svelte';
   
-  // Support Agent
-  import SupportAgentFAB from '$lib/components/client/support/SupportAgentFAB.svelte';
-  import SupportChatDesktop from '$lib/components/client/support/SupportChatDesktop.svelte';
-  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
-  
   import type { PageData } from './$types';
   
   // Admin Live Editor (Elite V2.2)
@@ -74,18 +69,14 @@
     }
   };
 
-  // Footer Control & Shop Settings Sync (Elite V2.2)
+  // Shop Settings Sync (Elite V2.2)
   $effect(() => {
     if (clientUi) {
-      clientUi.isFooterHidden = useMobileLayout;
       // Inject global shop settings into the UI state for sub-components (OfferGrid, etc.)
       if (data.shopInfo) {
         clientUi.settings = data.shopInfo;
       }
     }
-    return () => { 
-      if (clientUi) clientUi.isFooterHidden = false; 
-    };
   });
 
   // Cleanup Timer on unmount
@@ -95,9 +86,6 @@
       const validTheme = (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') ? savedTheme : 'system';
       applyTheme(validTheme);
       
-      // Helen V2.2: Persistent Memory & Context Injection
-      supportAgent.init(metadata.agent_name || 'Helen');
-
       // Viral 2026: Fomo Activity Init
       if (product?.slug) fomoStore.init(product.slug);
       
@@ -192,9 +180,8 @@
     // Escape limiters: Mobile layout, Server, or interacting with Checkout
     if (useMobileLayout || !browser || shopStore.isCheckoutOpen) return;
 
-    // Viral 2026: Chat Interception - Only return if scrolling INSIDE the chat modal
+    // Viral 2026: Neural Activity Interception? (Optional)
     const target = e.target as HTMLElement;
-    if (supportAgent.isOpen && target?.closest?.('.support-chat-container')) return;
 
     // Elite V2.2 Escape: Don't hijack scroll if we are in Edit Mode and hovering over an editor
     if (liveEditStore.isEditMode && (target?.closest('.edit-mode-container') || target?.closest('.editor-box'))) return;
@@ -338,10 +325,6 @@
 
     <StealthCheckout />
     
-    <!-- AI Medical Assistant (Viral 2026 - Desktop Float Card) -->
-    <SupportAgentFAB isMobile={false} />
-    <SupportChatDesktop productSlug={product.slug} />
-
     <!-- NEURAL ACTIVITY BAR (Viral 2026 Social Proof) -->
     {#await import('$lib/components/client/common/NeuralActivityBar.svelte') then { default: NeuralActivityBar }}
       <NeuralActivityBar />

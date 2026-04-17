@@ -3,6 +3,10 @@
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
+  import { fade, scale } from 'svelte/transition';
+  import { portal } from '$lib/core/actions/portal';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { X, HelpCircle } from 'lucide-svelte';
   import "./ScienceBento.css";
 
   const shopStore = getShopStore();
@@ -25,53 +29,37 @@
     faq_subtitle: metadata.science_faq_subtitle || 'Giải đáp các thắc mắc phổ biến về sản phẩm'
   });
 
-  let activeFaqIndex = $state(-1);
+  let selectedFaqIndex = $state(-1);
+  let isModalOpen = $state(false);
 
   const faqs = [
     {
-        q: "Bao lâu thì thấy hiệu quả rõ rệt hả Sếp?",
-        a: "Dạ thường thì sau 2-4 tuần xài đều đặn ngày 2 lần, Sếp sẽ thấy da bật tông rõ, sờ vào mịn mướt hẳn luôn. Còn để mấy vết thâm 'cứng đầu' mờ hẳn thì tầm 6-8 tuần là đẹp nhất ạ!"
+        q: "Bao lâu thì thấy hiệu quả rõ rệt nhất?",
+        a: "Dạ thường thì sau 2-4 tuần sử dụng đều đặn ngày 2 lần, nàng sẽ thấy da bật tông rõ, sờ vào mịn mướt hẳn luôn. Còn để các vết thâm 'cứng đầu' mờ hẳn thì tầm 6-8 tuần là thời điểm đẹp nhất ạ!"
     },
     {
         q: "Ngưng dùng rồi có bị thâm đen trở lại không?",
-        a: "Sếp yên tâm nhé, ngưng dùng không bị thâm lại đâu ạ. Miễn là mình vẫn giữ vệ sinh và dưỡng da cơ bản thì kết quả vẫn bền đẹp theo thời gian."
+        a: "Nàng yên tâm nhé, ngưng dùng sẽ không bị thâm lại đâu ạ. Miễn là mình vẫn duy trì vệ sinh và các bước dưỡng da cơ bản thì kết quả vẫn sẽ bền đẹp theo thời gian."
     },
     {
         q: "Sản phẩm có thực sự làm hồng nhũ hoa không hay chỉ là quảng cáo?",
-        a: "Đây là cái các chị hay hỏi nhất nè! Serum nhà em tập trung đánh bay sắc tố đen, làm mờ thâm sạm để vùng da nhạy cảm sáng hồng tự nhiên, chứ không phải kiểu 'nhuộm màu' ảo lòi như mấy loại kem tẩy lột đâu Sếp ơi."
+        a: "Đây là thắc mắc phổ biến nhất của phái đẹp! Serum tập trung đánh bay sắc tố đen, làm mờ thâm sạm để vùng da nhạy cảm sáng hồng tự nhiên, chứ không phải kiểu 'nhuộm màu' ảo lòi đâu ạ."
     },
     {
         q: "Vùng bikini nhạy cảm có dùng được không?",
-        a: "Dạ vô tư luôn Sếp ơi! Em này sinh ra là để 'chiều lòng' mấy vùng nhạy cảm nhất như bikini, nhũ hoa với nách mà. Thành phần lành tính nên cực kỳ êm ái."
-    },
-    {
-        q: "Bôi xong có bị bết dính hay châm chích gì không?",
-        a: "Kết cấu serum siêu mỏng nhẹ, thấm nhanh như điện luôn! Xoa xong là thấm sạch vào da, không bết dính, không lem ra quần áo nên Sếp cứ thoải mái lên đồ ạ."
-    },
-    {
-        q: "Đang bầu hoặc mẹ bỉm sữa có dùng được không Sếp?",
-        a: "Dạ thành phần siêu lành tính, không paraben hay dầu khoáng nên cực an toàn. Tuy nhiên nếu Sếp đang bầu hoặc cho con bú mà muốn dùng cho vùng nhũ hoa thì cứ hỏi qua ý kiến bác sĩ cho chắc ăn nhất nhé!"
-    },
-    {
-        q: "Làm sao để em chắc chắn mua đúng hàng chuẩn Nhật?",
-        a: "Sếp cứ check kỹ cho em: bao bì sắc nét, tem phụ chính hãng với date xa tít tắp là chuẩn bài. Nhà em luôn cập nhật mẫu mới nhất từ Store Nhật nên Sếp cứ yên tâm 'chốt đơn' nha."
-    },
-    {
-        q: "Em muốn mua hàng chính hãng tại Việt Nam thì ghé đâu?",
-        a: "Cứ ghé trực tiếp mấy hệ thống lớn như Hali Group, Nhà thuốc Việt hoặc 'canh' Mall trên Shopee/Lazada cho đảm bảo Sếp nhé. Tránh mua mấy chỗ trôi nổi kẻo tiền mất tật mang ạ."
-    },
-    {
-        q: "Một ngày em nên bôi mấy lần là hiệu quả nhất?",
-        a: "Chuẩn nhất là 2 lần/ngày: sáng và tối sau khi tắm sạch. Lúc đó lỗ chân lông đang mở, serum thấm sâu nhất Sếp ạ."
-    },
-    {
-        q: "Có cần kết hợp thêm sản phẩm nào để trắng nhanh hơn không?",
-        a: "Nếu muốn 'hack' tốc độ mờ thâm, Sếp nên kết hợp tẩy tế bào chết bằng mặt nạ bùn khoáng Beppin Body trước khi thoa serum. Combo này thì đỉnh của chóp luôn!"
+        a: "Dạ vô tư luôn nàng ơi! Sản phẩm này sinh ra là để 'chiều lòng' những vùng nhạy cảm nhất như bikini, nhũ hoa và nách. Thành phần cực kỳ lành tính nên rất êm ái cho da."
     }
   ];
 
-  function toggleFaq(index: number) {
-    activeFaqIndex = activeFaqIndex === index ? -1 : index;
+  const selectedFaq = $derived(selectedFaqIndex >= 0 ? faqs[selectedFaqIndex] : null);
+
+  function openFaq(index: number) {
+    selectedFaqIndex = index;
+    isModalOpen = true;
+  }
+
+  function closeFaq() {
+    isModalOpen = false;
   }
 </script>
 
@@ -101,7 +89,7 @@
         </p>
 
         <!-- BENTO GRID (KINETIC ASYMMETRIC - Viral 2026) -->
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-10 items-stretch text-left">
+        <div class="bento-grid-kinetic grid grid-cols-1 md:grid-cols-12 gap-10 items-stretch text-left">
             
             <!-- KHỐI TRÁI (DYNAMIC IMAGE SCANNER) -->
             <div class="md:col-span-7 flex items-center mechanism-image-wrapper relative group overflow-hidden rounded-[2rem] border border-white/5 bg-slate-900/10">
@@ -165,60 +153,106 @@
                         </EditableWrapper>
                     </p>
                 </div>
-            </div>
-        <!-- FAQ & COMMITMENT SECTION (Elite V2.2) -->
-        <div class="faq-container mt-24 text-left">
-            <div class="faq-header flex items-start gap-5 mb-12">
-                <div class="faq-icon-box flex-shrink-0 w-14 h-14 rounded-2xl bg-luxury-gold/10 border border-luxury-gold/20 flex items-center justify-center text-luxury-gold shadow-[0_0_30px_rgba(227,181,164,0.1)]">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                        <line x1="12" y1="17" x2="12.01" y2="17"/>
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="text-3xl font-black text-white tracking-tight mb-2">
-                        <EditableWrapper path="metadata.science_faq_title" type="text" label="SỬA TIÊU ĐỀ FAQ" as="span">
-                            {labels.faq_title}
-                        </EditableWrapper>
-                    </h3>
-                    <p class="text-slate-400 text-base font-medium">
-                        <EditableWrapper path="metadata.science_faq_subtitle" type="text" label="SỬA MÔ TẢ FAQ" as="span">
-                            {labels.faq_subtitle}
-                        </EditableWrapper>
-                    </p>
-                </div>
-            </div>
+                </div> <!-- Close Khối phải kinetic stack -->
+            </div> <!-- Close BENTO GRID -->
 
-            <div class="faq-list space-y-4">
-                {#each faqs as faq, i}
-                    <div class="faq-item group border-b border-white/5 transition-all duration-500 {activeFaqIndex === i ? 'pb-8 active' : 'pb-6'}">
-                        <button 
-                            class="faq-question w-full flex items-center justify-between text-left py-2 outline-none group-hover:text-luxury-sakura transition-colors"
-                            onclick={() => toggleFaq(i)}
-                            aria-expanded={activeFaqIndex === i}
-                        >
-                            <span class="text-lg lg:text-xl font-bold tracking-tight {activeFaqIndex === i ? 'text-luxury-sakura' : 'text-slate-200'}">
-                                {faq.q}
-                            </span>
-                            <div class="chevron-box flex-shrink-0 ml-4 w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all duration-500 {activeFaqIndex === i ? 'rotate-180 border-luxury-sakura/30 bg-luxury-sakura/5' : ''}">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </svg>
-                            </div>
-                        </button>
+            <!-- FAQ SECTION (Super Compact Viral Modal Edition) -->
+            <div class="faq-ultra-compact mt-12 border-t border-white/5 pt-10 pb-16">
+                <div class="max-w-6xl mx-auto flex flex-col items-start">
+                    
+                    <!-- HEADER: SINGLE ROW -->
+                    <div class="faq-header-row flex flex-row items-center gap-6 mb-10 w-full group cursor-pointer">
+                        <div class="faq-icon-box w-14 h-14 rounded-2xl bg-luxury-sakura/10 border border-luxury-sakura/20 flex items-center justify-center text-luxury-sakura shadow-[0_0_30px_rgba(193,143,126,0.1)] transition-transform group-hover:scale-110">
+                            <HelpCircle class="w-8 h-8" strokeWidth={2.5} />
+                        </div>
                         
-                        {#if activeFaqIndex === i}
-                            <div 
-                                class="faq-answer mt-4 text-slate-400 text-base lg:text-lg leading-relaxed font-medium transition-all duration-500 animate-reveal"
-                            >
-                                {faq.a}
-                            </div>
-                        {/if}
+                        <div class="flex flex-col">
+                            <h3 class="text-2xl lg:text-3xl font-black text-white tracking-tighter uppercase leading-none">
+                                <EditableWrapper path="metadata.science_faq_title" type="text" label="SỬA TIÊU ĐỀ FAQ" as="span">
+                                    {labels.faq_title}
+                                </EditableWrapper>
+                            </h3>
+                            <p class="text-[10px] uppercase tracking-[0.3em] font-bold text-slate-500 mt-2 opacity-60">
+                                Click để xem giải đáp chuyên sâu
+                            </p>
+                        </div>
                     </div>
-                {/each}
+
+                    <!-- FAQ GRID (LOCKED TO 4 ITEMS) -->
+                    <div class="faq-grid w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {#each faqs.slice(0, 4) as faq, i}
+                            <button 
+                                class="faq-item-card group relative bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-left transition-all duration-500 hover:bg-white/[0.04] hover:border-luxury-sakura/30 hover:-translate-y-1 h-full"
+                                onclick={() => openFaq(i)}
+                            >
+                                <div class="flex items-center justify-between gap-4 w-full h-full">
+                                    <span class="question-text flex-1">
+                                        {faq.q}
+                                    </span>
+                                    <div class="faq-arrow-indicator shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M5 12h14m-7-7 7 7-7 7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+            </div>
+        </div> <!-- Close Container -->
+
+        <!-- VIRAL FAQ MODAL -->
+        {#if isModalOpen && selectedFaq}
+        <div use:portal class="faq-viral-modal fixed inset-0 flex items-center justify-center p-6" style:z-index={Z_INDEX_CLIENT.MODAL}>
+            <!-- Backdrop -->
+            <button
+                transition:fade={{ duration: 300 }}
+                type="button"
+                class="absolute inset-0 bg-black/80 backdrop-blur-xl border-none outline-none cursor-default"
+                onclick={closeFaq}
+                aria-label="Đóng"
+            ></button>
+
+            <!-- Modal Content -->
+            <div
+                transition:scale={{ duration: 400, start: 0.9, opacity: 0 }}
+                class="relative w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-[40px] shadow-[0_50px_100px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col p-10 lg:p-14"
+                role="dialog"
+                aria-modal="true"
+            >
+                <button 
+                    onclick={closeFaq} 
+                    class="absolute right-8 top-8 w-12 h-12 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5 transition-all rounded-full border border-white/5"
+                >
+                    <X class="w-6 h-6" strokeWidth={2} />
+                </button>
+
+                <div class="flex flex-col text-center items-center">
+                    <div class="w-20 h-20 rounded-[2rem] bg-luxury-sakura/10 border border-luxury-sakura/20 flex items-center justify-center text-luxury-sakura mb-10 shadow-[0_0_50px_rgba(193,143,126,0.2)]">
+                        <HelpCircle class="w-10 h-10" strokeWidth={2.5} />
+                    </div>
+
+                    <h2 class="text-2xl lg:text-3xl font-black text-white tracking-tighter leading-tight mb-8">
+                        {selectedFaq.q}
+                    </h2>
+
+                    <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-10"></div>
+
+                    <p class="text-slate-400 text-lg lg:text-xl font-medium leading-relaxed opacity-90 italic">
+                        "{selectedFaq.a}"
+                    </p>
+
+                    <button 
+                        onclick={closeFaq}
+                        class="mt-14 w-full py-5 bg-white text-black text-xs font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-luxury-sakura hover:text-white transition-all transform hover:scale-[1.02] active:scale-95 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
+                    >
+                        Tôi đã rõ
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
+        {/if}
 
     <!-- Dynamic Line Wave Divider -->
     <div class="wave-container">

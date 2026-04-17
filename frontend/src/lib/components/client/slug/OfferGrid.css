@@ -212,23 +212,47 @@
     .package-grid { gap: 1rem; }
 }
 
-/* Tablet Optimization (768px - 1024px) */
-@media (min-width: 768px) and (max-width: 1024px) {
+/* Tablet & Mobile Slider Optimization (Elite V2.2) */
+@media (max-width: 1024px) {
     .package-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 1.5rem !important;
-        padding: 0 1rem;
+        display: flex !important;
+        overflow-x: auto !important;
+        scroll-snap-type: x mandatory !important;
+        gap: 2rem;
+        
+        /* FIX CLIPPING: Nới rộng padding trên-dưới để chứa shadow và hiệu ứng lift */
+        padding: 60px 2rem 100px 2rem !important;
+        margin-top: -40px !important;
+        margin-bottom: -60px !important;
+        
+        -webkit-overflow-scrolling: touch;
+        
+        /* ẨN THANH CUỘN (SCROLLBAR) */
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE/Edge */
+        
+        /* SNAP ALIGNMENT PADDING */
+        scroll-padding-left: 2rem;
+        scroll-padding-right: 2rem;
+    }
+
+    /* ẨN THANH CUỘN CHROME/SAFARI */
+    .package-grid::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .package-grid > div {
+        scroll-snap-align: center;
+        flex-shrink: 0;
     }
 
     .package-card {
-        border-radius: 2rem; /* Slightly smaller radius for tablet */
+        border-radius: 3rem;
+        /* Giảm độ giật khi scroll */
+        backface-visibility: hidden;
     }
 
     .variant-image-hero {
-        height: 240px; /* Reduced image height to prevent excessive vertical scrolling */
-    }
-
-    .package-card.active {
-        transform: translateY(-5px) scale(1.02);
+        height: 280px;
     }
 }

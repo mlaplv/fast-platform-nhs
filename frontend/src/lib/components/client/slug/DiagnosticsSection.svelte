@@ -18,8 +18,8 @@
 
   const labels = $derived({
     headline: metadata.diagnostics_headline || 'THIẾT KẾ LỘ TRÌNH TÁI SINH RIÊNG BIỆT',
-    subheadline: metadata.diagnostics_subheadline || 'Hệ thống AI của Micsmo Luxury sẽ phân tích tình trạng da hiện tại để đề xuất phác đồ phục hồi tối ưu nhất cho riêng Sếp.',
-    disclaimer: metadata.diagnostics_disclaimer || `Micsmo - Gemini AI: Độ chính xác 98.6% dựa trên dữ liệu lâm sàng.`
+    subheadline: metadata.diagnostics_subheadline || 'Hệ thống AI của Micsmo Luxury sẽ phân tích tình trạng da hiện tại để đề xuất phác đồ phục hồi tối ưu nhất cho riêng phái đẹp.',
+    disclaimer: metadata.diagnostics_disclaimer || `Micsmo - Gemini là AI và có thể mắc sai sót.`
   });
 </script>
 
@@ -38,8 +38,8 @@
     </div>
 
     <!-- Security & Privacy Disclaimer! -->
-    <div class="mt-4 md:mt-6 flex items-center justify-center gap-3 text-[10px] font-black tracking-[0.2em] text-white/20 uppercase bg-white/5 py-4 px-8 rounded-full border border-white/5 w-fit mx-auto backdrop-blur-md">
-      <svg class="w-4 h-4 text-luxury-sakura/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div class="mt-8 flex items-center justify-center gap-3 text-[10px] font-black tracking-[0.2em] text-white/20 uppercase w-fit mx-auto">
+      <svg class="w-4 h-4 text-luxury-sakura/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
       </svg>
       <EditableWrapper path="metadata.diagnostics_disclaimer" label="SỬA LỜI NHẮC">

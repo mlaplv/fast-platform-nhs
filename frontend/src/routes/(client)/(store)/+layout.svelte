@@ -39,9 +39,14 @@
     ui.isHydrated && !ui.isHeaderHidden && !(isSpecializedPage && ui.isMobile)
   );
 
-  // Global bottom nav: tương tự, ẩn trên home/search mobile
+  const isFunnelPage = $derived(
+    $page.data.product?.metadata?.landing_type && 
+    $page.data.product.metadata.landing_type !== 'standard'
+  );
+
+  // Global bottom nav: tương tự, ẩn trên home/search mobile và KHÔNG RENDER TRÊN LANDINGPAGE (FUNNEL)
   const showGlobalFooter = $derived(
-    ui.isHydrated && !ui.isFooterHidden && !(isSpecializedPage && ui.isMobile)
+    ui.isHydrated && !ui.isFooterHidden && !isFunnelPage && !(isSpecializedPage && ui.isMobile)
   );
 
   // Map backend settings to UI structure (Elite V2.2: Deep Mapping)

@@ -86,8 +86,8 @@
   };
 
   const gridClass = $derived(variants.length >= 3 
-    ? 'slider-track overflow-x-auto md:overflow-visible scrollbar-hide snap-x snap-mandatory flex md:grid md:grid-cols-3'
-    : `grid grid-cols-1 ${variants.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`
+    ? 'slider-track overflow-x-auto lg:overflow-visible scrollbar-hide snap-x snap-mandatory flex lg:grid lg:grid-cols-3'
+    : `grid grid-cols-1 ${variants.length === 2 ? 'md:grid-cols-2' : 'lg:grid-cols-3'}`
   );
 
   onMount(() => {
@@ -206,7 +206,7 @@
       {#each variants as variant, idx (idx)}
           {@const isCardActive = shopStore.variant?.id === variant.id}
           {@const unitPrice = variant.discountPrice || variant.price}
-          <div class="relative h-full z-10 {variants.length >= 3 ? 'min-w-[280px] snap-center' : ''}">
+          <div class="relative h-full z-10 {variants.length >= 3 ? 'min-w-[300px] md:min-w-[420px] lg:min-w-0 snap-center' : ''}">
              <div class="absolute -top-4 left-1/2 -translate-x-1/2 flex flex-wrap gap-2 justify-center w-[120%] z-[60] pointer-events-none mt-1">
                 {#if idx === 1 && !isCardActive}
                    <div class="px-5 py-2 expert-choice-ribbon text-white font-black text-[9px] uppercase tracking-[0.4em] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
