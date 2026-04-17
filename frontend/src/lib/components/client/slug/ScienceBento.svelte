@@ -32,24 +32,24 @@
   let selectedFaqIndex = $state(-1);
   let isModalOpen = $state(false);
 
-  const faqs = [
+  const faqs = $derived([
     {
-        q: "Bao lâu thì thấy hiệu quả rõ rệt nhất?",
-        a: "Dạ thường thì sau 2-4 tuần sử dụng đều đặn ngày 2 lần, nàng sẽ thấy da bật tông rõ, sờ vào mịn mướt hẳn luôn. Còn để các vết thâm 'cứng đầu' mờ hẳn thì tầm 6-8 tuần là thời điểm đẹp nhất ạ!"
+        q: metadata?.science_faq_1_q || "Bao lâu thì thấy hiệu quả rõ rệt nhất?",
+        a: metadata?.science_faq_1_a || "Dạ thường thì sau 2-4 tuần sử dụng đều đặn ngày 2 lần, nàng sẽ thấy da bật tông rõ, sờ vào mịn mướt hẳn luôn. Còn để các vết thâm 'cứng đầu' mờ hẳn thì tầm 6-8 tuần là thời điểm đẹp nhất ạ!"
     },
     {
-        q: "Ngưng dùng rồi có bị thâm đen trở lại không?",
-        a: "Nàng yên tâm nhé, ngưng dùng sẽ không bị thâm lại đâu ạ. Miễn là mình vẫn duy trì vệ sinh và các bước dưỡng da cơ bản thì kết quả vẫn sẽ bền đẹp theo thời gian."
+        q: metadata?.science_faq_2_q || "Ngưng dùng rồi có bị thâm đen trở lại không?",
+        a: metadata?.science_faq_2_a || "Nàng yên tâm nhé, ngưng dùng sẽ không bị thâm lại đâu ạ. Miễn là mình vẫn duy trì vệ sinh và các bước dưỡng da cơ bản thì kết quả vẫn sẽ bền đẹp theo thời gian."
     },
     {
-        q: "Sản phẩm có thực sự làm hồng nhũ hoa không hay chỉ là quảng cáo?",
-        a: "Đây là thắc mắc phổ biến nhất của phái đẹp! Serum tập trung đánh bay sắc tố đen, làm mờ thâm sạm để vùng da nhạy cảm sáng hồng tự nhiên, chứ không phải kiểu 'nhuộm màu' ảo lòi đâu ạ."
+        q: metadata?.science_faq_3_q || "Sản phẩm có thực sự làm hồng nhũ hoa không hay chỉ là quảng cáo?",
+        a: metadata?.science_faq_3_a || "Đây là thắc mắc phổ biến nhất của phái đẹp! Serum tập trung đánh bay sắc tố đen, làm mờ thâm sạm để vùng da nhạy cảm sáng hồng tự nhiên, chứ không phải kiểu 'nhuộm màu' ảo lòi đâu ạ."
     },
     {
-        q: "Vùng bikini nhạy cảm có dùng được không?",
-        a: "Dạ vô tư luôn nàng ơi! Sản phẩm này sinh ra là để 'chiều lòng' những vùng nhạy cảm nhất như bikini, nhũ hoa và nách. Thành phần cực kỳ lành tính nên rất êm ái cho da."
+        q: metadata?.science_faq_4_q || "Vùng bikini nhạy cảm có dùng được không?",
+        a: metadata?.science_faq_4_a || "Dạ vô tư luôn nàng ơi! Sản phẩm này sinh ra là để 'chiều lòng' những vùng nhạy cảm nhất như bikini, nhũ hoa và nách. Thành phần cực kỳ lành tính nên rất êm ái cho da."
     }
-  ];
+  ]);
 
   const selectedFaq = $derived(selectedFaqIndex >= 0 ? faqs[selectedFaqIndex] : null);
 
@@ -187,7 +187,11 @@
                             >
                                 <div class="flex items-center justify-between gap-4 w-full h-full">
                                     <span class="question-text flex-1">
-                                        {faq.q}
+                                        {#if !faq.q.startsWith('[OFF]') || liveEditStore.isEditMode}
+                                            <EditableWrapper path={`metadata.science_faq_${i+1}_q`} type="text" label={`SỬA CÂU HỎI ${i+1}`} as="span">
+                                                {faq.q.startsWith('[OFF]') ? faq.q.substring(5).trim() : faq.q}
+                                            </EditableWrapper>
+                                        {/if}
                                     </span>
                                     <div class="faq-arrow-indicator shrink-0">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -234,13 +238,17 @@
                     </div>
 
                     <h2 class="text-2xl lg:text-3xl font-black text-white tracking-tighter leading-tight mb-8">
-                        {selectedFaq.q}
+                        <EditableWrapper path={`metadata.science_faq_${selectedFaqIndex+1}_q`} type="text" label="SỬA CÂU HỎI">
+                             {selectedFaq.q.startsWith('[OFF]') ? selectedFaq.q.substring(5).trim() : selectedFaq.q}
+                        </EditableWrapper>
                     </h2>
 
                     <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-10"></div>
 
                     <p class="text-slate-400 text-lg lg:text-xl font-medium leading-relaxed opacity-90 italic">
-                        "{selectedFaq.a}"
+                        "<EditableWrapper path={`metadata.science_faq_${selectedFaqIndex+1}_a`} type="text" label="SỬA TRẢ LỜI" as="span">
+                             {selectedFaq.a}
+                         </EditableWrapper>"
                     </p>
 
                     <button 
