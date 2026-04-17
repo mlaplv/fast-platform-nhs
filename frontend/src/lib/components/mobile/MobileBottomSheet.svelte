@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { Product, ProductVariant } from '$lib/types';
-  import { X, ShoppingCart, ShieldCheck, ArrowRight, ArrowLeft, Phone, MapPin, User, Loader2 } from 'lucide-svelte';
+  import { X, ShoppingCart, ShieldCheck, Phone, MapPin, User, Loader2 } from 'lucide-svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { getShopStore, type ShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { portal } from '$lib/core/actions/portal';
-  import { fade, fly } from 'svelte/transition';
+  import { fly } from 'svelte/transition';
   import GiftModal from '$lib/components/storefront/ui/GiftModal.svelte';
 
   let { active = $bindable(), product }: { active: boolean, product: Product } = $props();
@@ -23,12 +23,9 @@
   let validationError = $state<string | null>(null);
 
   const labels = $derived({
-    title_select: metadata?.mobile_bottom_sheet_title || "Lựa chọn liệu trình",
     title_shipping: "Thông tin nhận hàng",
-    cta_next: "TIẾP TỤC",
     cta_submit: metadata?.mobile_bottom_sheet_cta || "XÁC NHẬN LIỆU TRÌNH",
     free_shipping: metadata?.mobile_free_shipping_label || "Lightning Free Shipping",
-    variant_label: metadata?.mobile_variant_selection_label || "Phân loại đang chọn",
   });
 
   // Memory cleanup for async timers
@@ -115,15 +112,6 @@
       if (!err) validationError = null;
     }
   }
-
-  function getVariantTitle(variant: ProductVariant): string {
-    if (!product.tierVariations?.length || !variant.tierIndex?.length) return variant.sku || 'Combo';
-    return variant.tierIndex.map((optIdx: number, tierIdx: number) => {
-      const option = product.tierVariations![tierIdx]?.options[optIdx];
-      if (typeof option === 'string') return option;
-      return option?.name || option?.label || '';
-    }).filter(Boolean).join(' - ') || 'Combo';
-  }
 </script>
 
 <div use:portal class="mobile-bottom-sheet-root">
@@ -167,7 +155,7 @@
     <div class="relative flex items-center justify-center px-6 pt-2 pb-4 border-b border-white/5">
 
       <h2 class="text-[13px] font-black uppercase tracking-[0.25em] italic text-white/90">
-        {step === 'selection' ? labels.title_select : labels.title_shipping}
+        {labels.title_shipping}
       </h2>
     </div>
 
@@ -279,8 +267,6 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
                             <span class="text-[9px] font-black uppercase tracking-tighter">ĐÃ LƯU</span>
                         </div>
-                    {:else}
-                        <ArrowRight class="w-3.5 h-3.5 text-white/30" />
                     {/if}
                 </button>
                 

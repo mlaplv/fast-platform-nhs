@@ -261,7 +261,8 @@
   line-height: 1;
 }
 
+/* ELITE V2.2: Standardized mobile container padding to 5px (0.3125rem) to match VideoBanner standard */
 .mobile-snap-section .container {
-  padding-left: 1.5rem !important;
-  padding-right: 1.5rem !important;
+  padding-left: 0.3125rem;
+  padding-right: 0.3125rem;
 }

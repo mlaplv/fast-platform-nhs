@@ -156,9 +156,9 @@
   }
 </script>
 
-<div class="reviews-mobile-viewport h-full flex flex-col px-4 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden" id="reviews">
-  <!-- HUD Header -->
-  <div class="mt-3 mb-8">
+<div class="reviews-mobile-viewport h-full flex flex-col px-[3px] pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden" id="reviews">
+  <!-- HUD Header & Content (Aligned to 26px Standard: 3px base + 23px internal) -->
+  <div class="mt-3 mb-8 px-[23px]">
     <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full backdrop-blur-md mb-6">
       <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
       <span class="text-[9px] uppercase tracking-[0.2em] text-emerald-400 font-black italic">
@@ -206,7 +206,7 @@
     </div>
   </div>
 
-  <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-4 px-4 scrollbar-hide pb-10">
+  <div class="flex overflow-x-auto snap-x snap-mandatory gap-0 scrollbar-hide pb-10">
     {#if isLoading && realReviews.length === 0}
       <div class="py-20 text-center">
         <div class="w-10 h-10 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"></div>
@@ -218,7 +218,7 @@
       </div>
     {:else}
       {#each realReviews.slice(0, 8) as review, i}
-        <div class="review-card-mobile flex-none snap-center p-6 bg-white/[0.03] border border-white/10 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden" in:fly={{ y: 20, delay: i * 100 }}>
+        <div class="review-card-mobile flex-none snap-start p-6 bg-white/[0.03] border border-white/10 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden" in:fly={{ y: 20, delay: i * 100 }}>
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-4">
               <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 font-black text-xl italic shadow-inner">
@@ -254,7 +254,7 @@
     {/if}
   </div>
 
-  <div class="mt-4 pb-6">
+  <div class="mt-4 pb-6 px-[23px]">
     <EditableWrapper path="metadata.reviews_cta_write" label="SỬA NÚT CTA" class="w-full">
       <button 
         onclick={() => showFormModal = true}
@@ -437,8 +437,7 @@
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   
   .review-card-mobile {
-    width: 92vw;
-    max-width: 440px;
+    width: 100%;
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
   }
 

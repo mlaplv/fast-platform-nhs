@@ -31,8 +31,6 @@
   left: 0;
   right: 0;
   z-index: var(--z-surface);
-  padding-left: 9px;
-  padding-right: 24px; 
   pointer-events: none;
   bottom: calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom, 20px) + 2px); /* Tối ưu Safe Zone */
 }

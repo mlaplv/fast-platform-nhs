@@ -120,7 +120,7 @@
          <div class="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent pointer-events-none"></div>
 
           <!-- Product Info Overlay -->
-          <div class="hero-info-overlay">
+          <div class="hero-info-overlay container !px-2">
             <!-- Live & Scarcity Indicator (Viral 2026) -->
             <div class="inline-flex items-center gap-2 px-2.5 py-1 bg-white/15 backdrop-blur-2xl rounded-full border border-white/20 shadow-[0_4px_24px_rgba(255,59,48,0.2)] mb-1.5 w-max">
                <div class="relative flex h-2 w-2">
@@ -203,11 +203,25 @@
             </div>
 
             <!-- CTA Button (Elite 2026 Viral Pill) -->
-            <div class="mt-2.5 w-full pr-14">
-               <button 
-                  class="relative w-[285px] max-w-full group flex items-center justify-between p-1 pr-4 bg-white/10 backdrop-blur-[25px] border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.3)] active:scale-[0.98] transition-all duration-300"
-                  onclick={() => window.scrollBy({ top: window.innerHeight, behavior: 'smooth' })}
-               >
+            <div class="mt-2.5 w-full pr-14 relative z-surface pointer-events-auto">
+                <button 
+                   class="relative w-[285px] max-w-full group flex items-center justify-between p-1 pr-4 bg-white/10 backdrop-blur-[25px] border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.3)] active:scale-[0.98] transition-all duration-300 pointer-events-auto cursor-pointer"
+                   onclick={() => {
+                      // 🚀 ELITE V2.2: Hard-targeted navigation for treatment section
+                      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+                      
+                      const target = document.getElementById('offer-section');
+                      if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      } else {
+                        // Fallback: Force scroll container to bottom
+                        const container = document.querySelector('.mobile-snap-container');
+                        if (container) {
+                          container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+                        }
+                      }
+                   }}
+                >
                   <!-- Inner Shimmer -->
                   <div class="absolute inset-0 rounded-full overflow-hidden pointer-events-none">
                      <div class="absolute top-[0%] left-[-150%] w-[50%] h-[100%] bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-25deg] animate-shimmer"></div>

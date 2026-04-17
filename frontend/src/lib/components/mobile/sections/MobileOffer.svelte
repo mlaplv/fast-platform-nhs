@@ -6,7 +6,7 @@
   import { resolveMediaUrl } from '$lib/state/utils';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import type { ProductVariant } from '$lib/types';
-  import { ShoppingCart, Clock, CheckCircle2, Lock, Users, Zap, Check } from 'lucide-svelte';
+  import { ShoppingCart, Clock, Zap, Check } from 'lucide-svelte';
   
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   let { product: propProduct } = $props();
@@ -32,10 +32,7 @@
     timer_prefix: metadata?.offer_timer_prefix || "Ưu đãi nội bộ kết thúc sau:",
     shipping_prefix: metadata?.offer_shipping_prefix || "+ Phí vận chuyển:",
     savings_prefix: metadata?.offer_savings_prefix || "Tiết kiệm:",
-    label_activation: metadata?.offer_label_activation || OFFER_CONSTANTS.labels.activation,
-    label_full_treatment: metadata?.offer_label_full_treatment || OFFER_CONSTANTS.labels.full_treatment,
     label_expert_choice: metadata?.offer_label_expert_choice || OFFER_CONSTANTS.labels.expert_choice,
-    label_scarcity: metadata?.offer_label_scarcity || OFFER_CONSTANTS.labels.scarcity,
     cta_start: metadata?.offer_cta_start || OFFER_CONSTANTS.labels.cta_start,
     cta_full: metadata?.offer_cta_full || OFFER_CONSTANTS.labels.cta_full,
   });
@@ -66,7 +63,7 @@
   const noiseSvg = `data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E`;
 </script>
 
-<div class="h-full flex flex-col !px-0 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] relative overflow-hidden bg-black">
+<div class="h-full w-full container flex flex-col !px-0 !max-w-none pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] relative overflow-hidden bg-black">
   <!-- Premium Ambient Liquid Background (iPhone 18 Aesthetic) -->
   <div class="absolute inset-0 pointer-events-none overflow-hidden">
     <div class="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] opacity-40">
@@ -89,7 +86,7 @@
 
 
   <!-- Optimized Premium Scarcity HUD (Viral 2026) -->
-  <div class="mt-3 mb-2 flex flex-col items-center gap-3 z-surface !px-1">
+  <div class="mt-3 mb-2 flex flex-col items-center gap-3 z-surface !px-2">
     <div class="flex items-center gap-1 p-1 bg-white/[0.03] border border-white/10 rounded-full backdrop-blur-3xl shadow-2xl overflow-hidden relative group">
        <!-- Active Glow Background -->
        <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -121,7 +118,7 @@
     </div>
 
     <!-- Master Branding Headline -->
-    <div class="text-center mt-1 w-full !px-0">
+    <div class="text-center mt-1 w-full !px-2">
       <div class="max-w-4xl mx-auto text-center relative mb-0">
       <h3 class="text-2xl font-black text-center text-white italic tracking-tighter uppercase mb-4">
         <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
@@ -140,21 +137,30 @@
       </p>
     </div>
   </div>
+  </div>
   <div class="flex-1 flex flex-col z-surface overflow-y-auto pb-4 space-y-2.5 !px-0">
-    <div class="!px-0 !mt-0 !w-full">
+    <div class="mt-0 !w-full">
        <div class="grid grid-cols-1 gap-0">
          {#each variants as variant, i}
             <button 
               onclick={() => handleSelect(i)}
-              class="relative w-full text-left py-3 !px-2 border-y border-x-0 transition-all duration-700 flex items-center gap-4 group active:scale-[0.98] {selectedIndex === i ? 'bg-white/[0.06] backdrop-blur-3xl text-white border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.3)] z-surface' : 'bg-transparent text-white/30 border-white/5 hover:bg-white/5'}"
+             class="relative w-full text-left py-3 !px-0 border-y border-x-0 transition-all duration-700 active:scale-[0.98] {selectedIndex === i ? 'bg-white/[0.06] backdrop-blur-3xl text-white border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.3)] z-surface' : 'bg-transparent text-white/30 border-white/5 hover:bg-white/5'}"
             >
-               <!-- Liquid Border Accent (Only Active) -->
+               <!-- Liquid Backglow (Only Active) -->
                {#if selectedIndex === i}
-                  <div class="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-blue-500 via-indigo-500 to-purple-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
                   <div class="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent pointer-events-none"></div>
                {/if}
 
-                 
+               <!-- Internal Content Standard Alignment (Viral Symmetry) -->
+               <div class="flex items-center gap-4 px-2 w-full">
+                 <!-- Floating Selection Status (Liquid Stick - Left) -->
+                 <div class="relative w-1 h-10 shrink-0">
+                    {#if selectedIndex === i}
+                       <div class="absolute inset-0 w-full bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.8)]" in:fly={{ y: -10 }}></div>
+                    {:else}
+                       <div class="absolute inset-0 w-full bg-white/5 rounded-full"></div>
+                    {/if}
+                 </div>
                  <!-- Liquid Image Container (Premium iPhone 18 Style) -->
                  <div class="w-20 h-20 rounded-[2px] overflow-hidden flex items-center justify-center shrink-0 shadow-inner relative transition-all duration-700 {selectedIndex === i ? 'bg-white/10 scale-105 shadow-2xl ring-1 ring-white/20' : 'bg-white/5 border border-white/5 opacity-40'}">
                     {#if (product.tierVariations?.[0]?.images?.[variant.tierIndex?.[0]]) || variant.image_url || variant.imageUrl || variant.image || (product.images && product.images[i]?.url) || (product.images && product.images[0]?.url)}
@@ -174,35 +180,33 @@
                     <div class="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none opacity-30"></div>
                  </div>
 
-               <div class="flex-1 flex flex-col justify-center gap-1 px-1">
-                   <div class="flex flex-wrap items-center gap-1.5 mb-1">
-                      {#if i === 1}
-                         <div class="bg-gradient-to-r from-amber-400/20 to-orange-500/20 border border-amber-500/30 text-amber-600 px-2.5 py-0.5 rounded-full font-black text-[7px] uppercase tracking-[0.15em] flex items-center gap-1 shadow-sm backdrop-blur-md">
-                            <span class="text-[9px]"></span> {mkt.label_expert_choice}
-                         </div>
-                      {/if}
+                 <div class="flex-1 flex flex-col justify-center gap-1">
+                    <div class="flex flex-wrap items-center gap-1.5 mb-1">
+                       {#if i === 1}
+                          <div class="bg-gradient-to-r from-amber-400/20 to-orange-500/20 border border-amber-500/30 text-amber-600 px-2.5 py-0.5 rounded-full font-black text-[7px] uppercase tracking-[0.15em] flex items-center gap-1 shadow-sm backdrop-blur-md">
+                             <span class="text-[9px]"></span> {mkt.label_expert_choice}
+                          </div>
+                       {/if}
+                    </div>
+                   <span class="font-black uppercase tracking-tight italic text-[15px] leading-tight transition-colors duration-500 {selectedIndex === i ? 'text-white' : 'text-white/40'}">{getVariantTitle(variant)}</span>
+                   <div class="flex items-center gap-3">
+                     <span class="font-black text-[24px] italic tracking-tight leading-none transition-all duration-500 {selectedIndex === i ? 'text-blue-400' : 'text-blue-400/40'}">{(variant.discountPrice || variant.price).toLocaleString()}đ</span>
+                     {#if variant.price > (variant.discountPrice || variant.price)}
+                       <span class="text-[12px] {selectedIndex === i ? 'text-white/20' : 'text-white/10'} line-through font-bold opacity-60">{(variant.price).toLocaleString()}đ</span>
+                     {/if}
                    </div>
-                  <span class="font-black uppercase tracking-tight italic text-[15px] leading-tight transition-colors duration-500 {selectedIndex === i ? 'text-white' : 'text-white/40'}">{getVariantTitle(variant)}</span>
-                  <div class="flex items-center gap-3">
-                    <span class="font-black text-[24px] italic tracking-tight leading-none transition-all duration-500 {selectedIndex === i ? 'text-blue-400' : 'text-blue-400/40'}">{(variant.discountPrice || variant.price).toLocaleString()}đ</span>
-                    {#if variant.price > (variant.discountPrice || variant.price)}
-                      <span class="text-[12px] {selectedIndex === i ? 'text-white/20' : 'text-white/10'} line-through font-bold opacity-60">{(variant.price).toLocaleString()}đ</span>
-                    {/if}
-                  </div>
+                 </div>
                </div>
-               
             </button>
          {/each}
        </div>
     </div>
-
-    
   </div>
   
   <!-- Unified CTA (Liquid Sapphire Masterpiece - FOMO Optimized) -->
-  <div class="mt-auto z-nav pt-1 pb-1 !px-0 relative">
+  <div class="mt-auto z-nav pt-1 pb-1 relative">
       <!-- Upsell/Incentive Header (Only if not optimal) -->
-      <div class="flex flex-col gap-4 mb-6 px-0">
+      <div class="flex flex-col gap-4 mb-6">
         {#each (metadata.active_deals || []) as deal}
           {@const isActive = shopStore.quantity === (deal.buy_qty + (deal.get_qty || 0))}
           {@const totalQty = deal.buy_qty + (deal.get_qty || 0)}
@@ -211,7 +215,7 @@
           
           <button 
              onclick={() => shopStore.setQuantity(totalQty)}
-             class="w-full text-left relative transition-all duration-700 active:scale-[0.98] py-2 !px-2"
+             class="w-full text-left relative transition-all duration-700 active:scale-[0.98] py-2 !px-0"
           >
              <!-- 🚀 Selection Backglow (Naked HUD Aesthetic) -->
              {#if isActive}
@@ -221,7 +225,8 @@
                 ></div>
              {/if}
 
-             <div class="relative flex items-center justify-between gap-2">
+             <!-- Standard Internal Alignment (Viral Standard) -->
+             <div class="relative flex items-center justify-between gap-2 px-2">
                 <!-- 🎯 Absolute Top-Right Selection Stick (Badge Style) -->
                 {#if isActive}
                    <div 
@@ -277,39 +282,41 @@
           </button>
         {/each}
       </div>
-    </div>
 
-      <button 
-         onclick={() => { 
-           if (!selectedVariant) return;
-           shopStore.openCheckout(); 
-         }}
-         class="w-full h-[72px] rounded-full font-black text-[15px] uppercase tracking-[0.12em] flex items-center justify-center gap-4 transition-all duration-700 italic active:scale-95 active:brightness-90 bg-white/10 backdrop-blur-3xl border border-white/20 shadow-[0_20px_50px_rgba(59,130,246,0.2)] overflow-hidden relative group"
-       >
-         <!-- Liquid Sapphire Gradient Fill (Hover/Active) -->
-         <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-emerald-500/20 to-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-         
-         <!-- Internal Fluid Shimmer (Enhanced) -->
-         <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none"></div>
-         
-         <!-- Orbital Glow Pulse (FOMO) -->
-         <div class="absolute inset-0 rounded-full border border-blue-400/20 animate-pulse opacity-50"></div>
-         
-         <div class="relative z-surface flex items-center justify-between w-full px-4 gap-2">
-            <span class="text-white drop-shadow-md text-[14px] font-black leading-tight flex-1 pr-2">{selectedIndex === 0 ? mkt.cta_start : mkt.cta_full}</span>
+      <!-- CTA Action Centered (Viral Standard) -->
+      <div class="px-2 pb-2">
+        <button 
+           onclick={() => { 
+             if (!selectedVariant) return;
+             shopStore.openCheckout(); 
+           }}
+           class="w-full h-[72px] rounded-full font-black text-[15px] uppercase tracking-[0.12em] flex items-center justify-center gap-4 transition-all duration-700 italic active:scale-95 active:brightness-90 bg-white/10 backdrop-blur-3xl border border-white/20 shadow-[0_20px_50px_rgba(59,130,246,0.2)] overflow-hidden relative group"
+         >
+           <!-- Liquid Sapphire Gradient Fill (Hover/Active) -->
+           <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-emerald-500/20 to-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+           
+           <!-- Internal Fluid Shimmer (Enhanced) -->
+           <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none"></div>
+           
+           <!-- Orbital Glow Pulse (FOMO) -->
+           <div class="absolute inset-0 rounded-full border border-blue-400/20 animate-pulse opacity-50"></div>
+           
+           <div class="relative z-surface flex items-center justify-between w-full px-2 gap-2">
+              <span class="text-white drop-shadow-md text-[14px] font-black leading-tight flex-1 pr-2">{selectedIndex === 0 ? mkt.cta_start : mkt.cta_full}</span>
 
-            <div class="flex items-center gap-3 shrink-0">
-               <div class="flex flex-col items-end leading-tight">
-                  {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount}
-                    <span class="text-[10px] text-white/30 line-through font-bold opacity-60">{(shopStore.originalPrice * shopStore.quantity).toLocaleString()}đ</span>
-                  {/if}
-                  <span class="text-blue-400 text-[20px] drop-shadow-[0_0_15px_rgba(59,130,246,0.5)] font-black">{shopStore.totalAmount.toLocaleString()}đ</span>
-               </div>
-               <div class="w-9 h-9 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-400/30">
-                  <ShoppingCart class="w-4.5 h-4.5 text-blue-400" />
-               </div>
-            </div>
-         </div>
-      </button>
+              <div class="flex items-center gap-3 shrink-0">
+                 <div class="flex flex-col items-end leading-tight">
+                    {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount}
+                      <span class="text-[10px] text-white/30 line-through font-bold opacity-60">{(shopStore.originalPrice * shopStore.quantity).toLocaleString()}đ</span>
+                    {/if}
+                    <span class="text-blue-400 text-[20px] drop-shadow-[0_0_15px_rgba(59,130,246,0.5)] font-black">{shopStore.totalAmount.toLocaleString()}đ</span>
+                 </div>
+                 <div class="w-9 h-9 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-400/30">
+                    <ShoppingCart class="w-4.5 h-4.5 text-blue-400" />
+                 </div>
+              </div>
+           </div>
+        </button>
+      </div>
   </div>
 </div>

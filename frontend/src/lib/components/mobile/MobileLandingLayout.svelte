@@ -178,7 +178,7 @@
   </section>
 
   <!-- SECTION 5: NATIVE OFFER -->
-  <section class="mobile-snap-section" data-section-idx={hasVideo ? 5 : 4}>
+  <section id="offer-section" class="mobile-snap-section" data-section-idx={hasVideo ? 5 : 4}>
     <MobileOffer {product} />
   </section>
 
