@@ -47,6 +47,21 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
                     .where(UnifiedAgentTask.task_id == task_id)
                     .values(status="DONE", result=cached_res, completed_at=datetime.now(timezone.utc))
                 )
+                
+                if "campaign_id" in payload:
+                    from backend.database.repositories import ContentCampaignRepository
+                    repo = ContentCampaignRepository(session=cache_db)
+                    camp = await repo.get(str(payload["campaign_id"]))
+                    if camp:
+                        await event_bus.emit("CONTENT_PROGRESS", {
+                            "campaign_id": str(camp.id),
+                            "user_id": str(camp.user_id),
+                            "message": "✅ Đã tải kết quả siêu tốc từ bộ nhớ Neural Cache.",
+                            "status": "PROCESSING",
+                            "data": {"gold_metadata": dict(camp.gold_metadata or {})},
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        })
+                
                 await cache_db.commit()
             
             # Emit signals for cached result

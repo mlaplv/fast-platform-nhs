@@ -25,6 +25,9 @@ class SemanticCacheService:
         if not xohi_memory._use_redis:
             return None
             
+        if isinstance(payload, dict) and payload.get("force") is True:
+            return None
+            
         key = self._generate_key(agent_id, payload)
         try:
             data = await xohi_memory.client.get(key)
