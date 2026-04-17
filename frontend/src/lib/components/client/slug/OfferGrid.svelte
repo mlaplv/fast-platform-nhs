@@ -62,6 +62,9 @@
     }).filter(Boolean).join(' - ') || 'Combo';
   }
 
+  const displayQty = $derived(shopStore.variant?.attributes?.combo_qty || shopStore.quantity);
+  const totalDisplayPrice = $derived(shopStore.totalAmount);
+
   const formatTime = (s: number): string => {
     const mins = Math.floor(s / 60);
     const secs = (s % 60).toString().padStart(2, '0');
@@ -69,20 +72,28 @@
   };
 
   const getFeatures = (variant: ProductVariant, idx: number, isActive: boolean): string[] => {
-    const fallbackIdx = idx > 1 ? 1 : idx;
-    const variantRaw = variant as ProductVariant & { attributes?: { features?: string[] } };
-    let base = variantRaw.attributes?.features || SHOP_CONFIG.default_features[fallbackIdx] || [];
-    let features = [...base].filter(f => !['Cam kết hoàn tiền ẩn danh', 'Tặng kèm Voucher'].some(term => f.includes(term)));
+    const variantRaw = variant as ProductVariant & { attributes?: { features?: string[]; combo_qty?: number } };
     
-    // ĐỒNG BỘ: Tự động đổi '01' thành số combo áp dụng cho card đang chọn (Elite V2.2)
-    if (isActive && shopStore.quantity > 1) {
-        let displayQty = shopStore.quantity < 10 ? `0${shopStore.quantity}` : `${shopStore.quantity}`;
-        features = features.map(f => {
-            // Thay thế '01 ' hoặc '1 ' bằng số lượng
-            return f.replace(/^(0?1)\s+/i, `${displayQty} `);
-        });
+    // ƯU TIÊN: Đặc tính cụ thể từ Variant attributes trong DB (V2.2)
+    let features = [...(variantRaw.attributes?.features || [])];
+    
+    // FALLBACK: Nếu không có đặc tính riêng, dùng bộ mặc định theo index (với logic index n-1)
+    if (features.length === 0) {
+        const fallbackIdx = idx > 0 ? 1 : 0;
+        features = [...(SHOP_CONFIG.default_features[fallbackIdx] || [])];
     }
-    return features;
+
+    // CLEANUP: Loại bỏ các cam kết đã hiển thị ở phần khác
+    features = features.filter(f => !['Cam kết hoàn tiền ẩn danh', 'Tặng kèm Voucher'].some(term => f.includes(term)));
+    
+    // ĐỒNG BỘ: Tự động đổi '01' thành số combo của variant đang chọn/active
+    let currentQty = isActive ? displayQty : (variantRaw.attributes?.combo_qty || 1);
+    let displayQtyStr = currentQty < 10 ? `0${currentQty}` : `${currentQty}`;
+    
+    return features.map(f => {
+        // Thay thế '01 ' hoặc '1 ' bằng số lượng thực tế của combo
+        return f.replace(/^(0?1)\s+/i, `${displayQtyStr} `);
+    });
   };
 
   const gridClass = $derived(variants.length >= 3 
@@ -106,6 +117,9 @@
         window.location.href = '/checkout';
     } else {
         shopStore.selectVariant(variant);
+        // Resync quantity: For combo variants in OfferGrid, we usually want quantity=1 
+        // but display it using combo_qty.
+        shopStore.setQuantity(1);
     }
   }
 </script>
@@ -184,7 +198,7 @@
                       {mkt.label_expert_choice}
                    </div>
                 {/if}
-                {#if isCardActive && shopStore.quantity > 1}
+                {#if isCardActive && displayQty > 1}
                    <div class="px-5 py-2 bg-gradient-to-r from-red-600 to-rose-500 text-white font-black text-[9px] uppercase tracking-widest rounded-xl shadow-[0_4px_30px_rgba(225,29,72,0.8)] animate-pulse flex items-center gap-1 border border-red-400/50">
                       <Zap class="w-3 h-3"/> ĐÃ ÁP DỤNG MỨC GIÁ SỈ
                    </div>
@@ -210,7 +224,7 @@
                   
                   <!-- OVERLAY BADGE -->
                   <div class="absolute top-6 left-6 z-20">
-                    <p class="text-[8px] font-black {idx === 1 ? 'text-luxury-sakura' : 'text-slate-200'} uppercase tracking-[0.4em] px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                    <p class="text-[8px] font-black {idx >= 1 ? 'text-luxury-sakura' : 'text-slate-200'} uppercase tracking-[0.4em] px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                        {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
                     </p>
                   </div>
@@ -221,10 +235,11 @@
                   <h5 class="text-xl font-black text-white mb-4 italic tracking-tight text-center md:text-left">{getVariantTitle(variant)}</h5>
 
                   <div class="flex items-baseline justify-center md:justify-start flex-nowrap gap-x-4 mb-2">
-               {#if isCardActive && shopStore.quantity > 1}
-                  <span class="original-price text-sm text-slate-600 line-through">{(variant.price * shopStore.quantity).toLocaleString()}đ</span>
+               {#if isCardActive && displayQty > 1}
+                   {@const comboOriginalTotal = (product?.price || variant.price) * (variant.attributes?.combo_qty || 1)}
+                   <span class="original-price text-sm text-slate-600 line-through">{comboOriginalTotal.toLocaleString()}đ</span>
                   <span class="text-4xl font-black text-white tabular-nums drop-shadow-[0_0_15px_rgba(255,183,197,0.5)]">
-                    {(shopStore.totalAmount).toLocaleString()}đ
+                    {(totalDisplayPrice).toLocaleString()}đ
                   </span>
                {:else}
                   {#if variant.price > unitPrice}
@@ -239,11 +254,12 @@
              </div>
 
               <div class="flex flex-col gap-2 mt-2 items-center md:items-start">
-                {#if isCardActive && shopStore.quantity > 1}
-                  <p class="text-[12px] text-red-400 font-black uppercase tracking-widest flex items-center gap-3 bg-red-950/40 px-3 py-1.5 rounded-lg border border-red-900/50">
-                     <span class="w-2 h-2 bg-red-500 rounded-full animate-bounce"></span>
-                     TIẾT KIỆM KHỦNG: {((variant.price * shopStore.quantity) - shopStore.totalAmount).toLocaleString()}đ
-                  </p>
+                 {#if isCardActive && displayQty > 1}
+                   {@const comboOriginalTotal = (product?.price || variant.price) * (variant.attributes?.combo_qty || 1)}
+                   <p class="text-[12px] text-red-400 font-black uppercase tracking-widest flex items-center gap-3 bg-red-950/40 px-3 py-1.5 rounded-lg border border-red-900/50">
+                      <span class="w-2 h-2 bg-red-500 rounded-full animate-bounce"></span>
+                      TIẾT KIỆM KHỦNG: {(comboOriginalTotal - totalDisplayPrice).toLocaleString()}đ
+                   </p>
                 {:else if (variant.price - unitPrice) > 0}
                   {#if !(metadata.offer_savings_prefix || '').startsWith('[OFF]') || liveEditStore.isEditMode}
                     <p class="text-[10px] text-emerald-400 font-black uppercase tracking-widest flex items-center gap-3">
@@ -255,7 +271,7 @@
                     </p>
                   {/if}
                 {/if}
-                <p class="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 {isCardActive && shopStore.quantity > 1 ? 'mt-1' : ''}">
+                <p class="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 {isCardActive && displayQty > 1 ? 'mt-1' : ''}">
                   <span class="text-luxury-sakura animate-pulse">●</span> SPECS: {metadata.weight || "30G"} - {metadata.origin || "JAPAN"} | MÃ VẠCH: {variant.sku || product?.sku || 'N/A'}
                 </p>
               </div>
@@ -306,7 +322,7 @@
                          <ArrowRight class="w-4 h-4 text-luxury-sakura" />
                       </span>
                       <span class="text-[10px] text-luxury-sakura uppercase font-black tracking-[0.15em] truncate">
-                         {shopStore.quantity} MÓN • {(shopStore.totalAmount).toLocaleString()}Đ
+                         {displayQty} MÓN • {totalDisplayPrice.toLocaleString()}Đ
                       </span>
                    </div>
                 {:else}

@@ -458,7 +458,8 @@ class ProductService:
                     sku=v.sku if v.sku and v.sku.strip() else None,
                     price=v.price,
                     discount_price=v.discountPrice,
-                    stock=v.stock
+                    stock=v.stock,
+                    attributes=v.attributes.model_dump() if v.attributes else {}
                 )
                 db_session.add(variant)
 
@@ -522,7 +523,8 @@ class ProductService:
                     sku=v.sku if v.sku and v.sku.strip() else None,
                     price=v.price,
                     discount_price=v.discountPrice,
-                    stock=v.stock
+                    stock=v.stock,
+                    attributes=v.attributes.model_dump() if v.attributes else {}
                 )
                 db_session.add(variant)
 

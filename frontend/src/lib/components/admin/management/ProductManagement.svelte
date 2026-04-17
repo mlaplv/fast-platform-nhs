@@ -317,8 +317,13 @@
         name: tv.name, options: tv.options, images: tv.images || null, mobile_images: tv.mobile_images || null
       })),
       variants: (formVariants || []).map(v => ({
-        id: v.id || null, sku: v.sku || "", price: Number(v.price), discount_price: v.discountPrice ? Number(v.discountPrice) : null,
-        stock: Number(v.stock), tier_index: v.tierIndex || []
+        id: v.id || null, 
+        sku: v.sku || "", 
+        price: Number(v.price), 
+        discount_price: v.discountPrice ? Number(v.discountPrice) : null,
+        stock: Number(v.stock), 
+        tier_index: v.tierIndex || [],
+        attributes: v.attributes || { combo_qty: null, gifts: [] }
       }))
     };
     try {

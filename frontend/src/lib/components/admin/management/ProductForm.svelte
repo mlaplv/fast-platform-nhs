@@ -99,6 +99,8 @@
     variantEditTierIndex = null;
     variantEditOptionIndex = null;
     variantEditIsMobile = false;
+    giftEditVariantIndex = null;
+    giftEditGiftIndex = null;
     showMediaModal = false;
   }
 
@@ -119,7 +121,21 @@
     showMediaModal = false;
   }
 
+  function handleGiftImageSelect(url: string) {
+    if (giftEditVariantIndex !== null && giftEditGiftIndex !== null) {
+      if (formVariants[giftEditVariantIndex].attributes?.gifts?.[giftEditGiftIndex]) {
+        formVariants[giftEditVariantIndex].attributes.gifts[giftEditGiftIndex].image = url;
+        formVariants = [...formVariants];
+      }
+    }
+    giftEditVariantIndex = null;
+    giftEditGiftIndex = null;
+    showMediaModal = false;
+  }
+
   let isVaultForMobile = $state(false);
+  let giftEditVariantIndex = $state<number | null>(null);
+  let giftEditGiftIndex = $state<number | null>(null);
 
   function openVaultForGeneral(isMobile = false, replaceIndex: number | null = null) {
     variantEditTierIndex = null;
@@ -134,6 +150,13 @@
     variantEditOptionIndex = oIdx;
     variantEditIsMobile = isMobile;
     reserve_assets = []; // clear previous selection
+    showMediaModal = true;
+  }
+
+  function openVaultForGift(vIdx: number, gIdx: number) {
+    giftEditVariantIndex = vIdx;
+    giftEditGiftIndex = gIdx;
+    reserve_assets = [];
     showMediaModal = true;
   }
 
@@ -173,9 +196,12 @@
           <ProductFormVariants
             bind:formTierVariations={formTierVariations}
             bind:formVariants={formVariants}
+            {formSku}
             onOpenVault={openVaultForVariant}
+            onOpenVaultForGift={openVaultForGift}
           />
         </div>
+
 
         <!-- Section 2 (Editor) -->
         <div class="flex flex-col">
@@ -279,8 +305,8 @@
 {:else}
   <MediaVaultModal
     isOpen={showMediaModal}
-    onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; isVaultForMobile = false; variantEditIsMobile = false; albumReplaceIndex = null; }}
-    onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : (albumReplaceIndex !== null ? handleAlbumImageSelect : undefined)}
+    onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; isVaultForMobile = false; variantEditIsMobile = false; albumReplaceIndex = null; giftEditVariantIndex = null; giftEditGiftIndex = null; }}
+    onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : (albumReplaceIndex !== null ? handleAlbumImageSelect : (giftEditGiftIndex !== null ? handleGiftImageSelect : undefined))}
     bind:assets={formImages}
     bind:reserve_assets
     bind:selectedAvatarUrl

@@ -7,11 +7,15 @@
   let {
     formTierVariations = $bindable(),
     formVariants = $bindable(),
-    onOpenVault
+    formSku = "",
+    onOpenVault,
+    onOpenVaultForGift
   } = $props<{
     formTierVariations: Product['tierVariations'];
     formVariants: Product['variants'];
+    formSku?: string;
     onOpenVault: (tierIndex: number, optionIndex: number, isMobile?: boolean) => void;
+    onOpenVaultForGift: (vIndex: number, gIndex: number) => void;
   }>();
 
   let hasCustomImages = $state(false);
@@ -61,6 +65,26 @@
     
     // Only trigger re-assignment if we added missing nodes
     if (structuralChange) {
+      formVariants = [...formVariants];
+    }
+  });
+
+  // R00 Auto-SKU Generator: Sync with main SKU pattern
+  $effect(() => {
+    if (!formSku) return;
+    
+    let changed = false;
+    formVariants.forEach((v, idx) => {
+      // Auto-fill if SKU is empty
+      const isEmpty = !v.sku || v.sku.trim() === "";
+      
+      if (isEmpty) {
+        v.sku = `${formSku}-${idx + 1}`;
+        changed = true;
+      }
+    });
+
+    if (changed) {
       formVariants = [...formVariants];
     }
   });
@@ -143,12 +167,30 @@
         for (let j = 0; j < t2.length; j++) {
           const tIdx = [i, j];
           const existing = findExistingVariant(tIdx);
-          newVariants.push(existing || { tierIndex: tIdx, sku: "", price: 0, discountPrice: 0, stock: 0, attributes: { combo_qty: null, gifts: [] } });
+          const newIdx = newVariants.length + 1;
+          const generatedSku = formSku ? `${formSku}-${newIdx}` : "";
+          newVariants.push(existing || { 
+            tierIndex: tIdx, 
+            sku: generatedSku, 
+            price: 0, 
+            discountPrice: 0, 
+            stock: 0, 
+            attributes: { combo_qty: null, gifts: [] } 
+          });
         }
       } else {
         const tIdx = [i];
         const existing = findExistingVariant(tIdx);
-        newVariants.push(existing || { tierIndex: tIdx, sku: "", price: 0, discountPrice: 0, stock: 0, attributes: { combo_qty: null, gifts: [] } });
+        const newIdx = newVariants.length + 1;
+        const generatedSku = formSku ? `${formSku}-${newIdx}` : "";
+        newVariants.push(existing || { 
+          tierIndex: tIdx, 
+          sku: generatedSku, 
+          price: 0, 
+          discountPrice: 0, 
+          stock: 0, 
+          attributes: { combo_qty: null, gifts: [] } 
+        });
       }
     }
 
@@ -219,7 +261,7 @@
 
   function addGift(vIndex: number) {
     ensureAttributes(vIndex);
-    formVariants[vIndex].attributes!.gifts!.push({ name: '', qty: 1 });
+    formVariants[vIndex].attributes!.gifts!.push({ name: '', qty: 1, image: '' });
     formVariants = [...formVariants];
   }
 
@@ -491,13 +533,33 @@
                     <div class="flex flex-col gap-2">
                        <div class="flex items-center gap-2">
                          <span class="text-[9px] font-black uppercase text-cyan-500/60 w-12 shrink-0">Số lượng</span>
-                         <input type="number" bind:value={variant.attributes.combo_qty} class="flex-1 bg-black/40 border border-white/10 focus:border-cyan-500/50 outline-none px-2 py-1 text-[10px] text-cyan-400 font-mono rounded placeholder:text-cyan-900" placeholder="1 (Gói lẻ)" />
+                         <input 
+                           type="number" 
+                           bind:value={variant.attributes.combo_qty} 
+                           oninput={() => formVariants = [...formVariants]}
+                           class="flex-1 bg-black/40 border border-white/10 focus:border-cyan-500/50 outline-none px-2 py-1 text-[10px] text-cyan-400 font-mono rounded placeholder:text-cyan-900" 
+                           placeholder="1 (Gói lẻ)" 
+                         />
                        </div>
                        
                        {#each variant.attributes.gifts as gift, gIdx}
-                         <div class="flex gap-1 items-start bg-cyan-900/10 p-1.5 rounded border border-cyan-500/10 relative group/gift cursor-default">
-                           <input type="text" bind:value={gift.name} placeholder="Tên quà (VD: Mặt nạ)" class="flex-1 min-w-[80px] bg-transparent border-b border-white/10 outline-none text-[9px] text-white px-1" />
-                           <input type="number" bind:value={gift.qty} placeholder="SL" class="w-10 bg-transparent border-b border-white/10 outline-none text-[9px] text-center text-rose-400 font-bold px-1" />
+                         <div class="flex gap-2 items-center bg-cyan-900/10 p-1.5 rounded border border-cyan-500/10 relative group/gift cursor-default">
+                           <!-- Small Thumbnail for Gift (Rule R03: Premium UX) -->
+                           <button 
+                             onclick={() => onOpenVaultForGift(vIndex, gIdx)}
+                             class="w-6 h-6 rounded border border-white/10 bg-black/40 flex items-center justify-center overflow-hidden shrink-0 group/img-gift hover:border-cyan-500/50 transition-colors"
+                           >
+                             {#if gift.image}
+                               <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                             {:else}
+                               <ImagePlus size={10} class="text-cyan-500/40 group-hover/img-gift:text-cyan-400 transition-colors" />
+                             {/if}
+                           </button>
+
+                           <div class="flex flex-1 gap-1 items-start">
+                             <input type="text" bind:value={gift.name} oninput={() => formVariants = [...formVariants]} placeholder="Tên quà (VD: Mặt nạ)" class="flex-1 min-w-[80px] bg-transparent border-b border-white/10 outline-none text-[9px] text-white px-1" />
+                             <input type="number" bind:value={gift.qty} oninput={() => formVariants = [...formVariants]} placeholder="SL" class="w-10 bg-transparent border-b border-white/10 outline-none text-[9px] text-center text-rose-400 font-bold px-1" />
+                           </div>
                            
                            <button onclick={() => removeGift(vIndex, gIdx)} class="text-white/20 hover:text-red-400 opacity-0 group-hover/gift:opacity-100 transition-opacity p-0.5"><X size={10}/></button>
                          </div>
