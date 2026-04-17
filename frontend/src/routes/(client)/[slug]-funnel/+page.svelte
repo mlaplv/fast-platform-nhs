@@ -181,8 +181,8 @@
   // Elite 2026 Programmatic Scroll Coordinator (O(1) Speed/Memory)
   const hasQuiz = $derived((metadata?.quiz_questions?.length || 0) > 0);
   const sectionIds = $derived(hasQuiz 
-    ? ['hero', 'diagnostics', 'science', 'result-timeline', 'reviews', 'offers']
-    : ['hero', 'science', 'result-timeline', 'reviews', 'offers']
+    ? ['hero', 'diagnostics', 'science', 'reviews', 'offers']
+    : ['hero', 'science', 'reviews', 'offers']
   );
   let currentSessionIdx = $state(0);
   const activeId = $derived(sectionIds[currentSessionIdx]);
@@ -315,15 +315,6 @@
       {/if}
     </section>
 
-      <section id="result-timeline" class="snap-session">
-        {#if loadJIT}
-          {#await import('$lib/components/client/slug/ResultTimeline.svelte') then { default: ResultTimeline }}
-            <ResultTimeline />
-          {/await}
-        {:else}
-          <div class="w-full h-full bg-[#010101] animate-pulse"></div>
-        {/if}
-      </section>
 
     <section id="reviews" class="snap-session">
       {#if loadJIT}

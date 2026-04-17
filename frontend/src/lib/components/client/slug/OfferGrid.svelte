@@ -70,7 +70,8 @@
 
   const getFeatures = (variant: ProductVariant, idx: number, isActive: boolean): string[] => {
     const fallbackIdx = idx > 1 ? 1 : idx;
-    let base = (variant as any).attributes?.features || SHOP_CONFIG.default_features[fallbackIdx] || [];
+    const variantRaw = variant as ProductVariant & { attributes?: { features?: string[] } };
+    let base = variantRaw.attributes?.features || SHOP_CONFIG.default_features[fallbackIdx] || [];
     let features = [...base].filter(f => !['Cam kết hoàn tiền ẩn danh', 'Tặng kèm Voucher'].some(term => f.includes(term)));
     
     // ĐỒNG BỘ: Tự động đổi '01' thành số combo áp dụng cho card đang chọn (Elite V2.2)

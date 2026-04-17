@@ -20,8 +20,59 @@
     card1_title: metadata.science_card1_title || 'TÁC ĐỘNG SÂU - HIỆU QUẢ NHANH',
     card1_desc: metadata.science_card1_desc || '"Công nghệ dẫn truyền Nano vượt trội giúp tinh chất Placenta Nhật Bản thẩm thấu sâu hơn 3 lần. Giai đoạn 1: Phá vỡ chuỗi melanin tối màu ngay dưới bề mặt biểu bì."',
     card2_title: metadata.science_card2_title || 'PHỤC HỒI & TRẺ HÓA TỨC THÌ',
-    card2_desc: metadata.science_card2_desc || '"Tổ hợp Collagen cao cấp cùng Vitamin C tinh khiết giúp kích thích sản sinh tế bào mới. Không chỉ dưỡng trắng, chúng tôi còn kiến tạo bề mặt da mịn mướt, săn chắc và luôn khô thoáng."'
+    card2_desc: metadata.science_card2_desc || '"Tổ hợp Collagen cao cấp cùng Vitamin C tinh khiết giúp kích thích sản sinh tế bào mới. Không chỉ dưỡng trắng, chúng tôi còn kiến tạo bề mặt da mịn mướt, săn chắc và luôn khô thoáng."',
+    faq_title: metadata.science_faq_title || 'Câu hỏi thường gặp',
+    faq_subtitle: metadata.science_faq_subtitle || 'Giải đáp các thắc mắc phổ biến về sản phẩm'
   });
+
+  let activeFaqIndex = $state(-1);
+
+  const faqs = [
+    {
+        q: "Bao lâu thì thấy hiệu quả rõ rệt hả Sếp?",
+        a: "Dạ thường thì sau 2-4 tuần xài đều đặn ngày 2 lần, Sếp sẽ thấy da bật tông rõ, sờ vào mịn mướt hẳn luôn. Còn để mấy vết thâm 'cứng đầu' mờ hẳn thì tầm 6-8 tuần là đẹp nhất ạ!"
+    },
+    {
+        q: "Ngưng dùng rồi có bị thâm đen trở lại không?",
+        a: "Sếp yên tâm nhé, ngưng dùng không bị thâm lại đâu ạ. Miễn là mình vẫn giữ vệ sinh và dưỡng da cơ bản thì kết quả vẫn bền đẹp theo thời gian."
+    },
+    {
+        q: "Sản phẩm có thực sự làm hồng nhũ hoa không hay chỉ là quảng cáo?",
+        a: "Đây là cái các chị hay hỏi nhất nè! Serum nhà em tập trung đánh bay sắc tố đen, làm mờ thâm sạm để vùng da nhạy cảm sáng hồng tự nhiên, chứ không phải kiểu 'nhuộm màu' ảo lòi như mấy loại kem tẩy lột đâu Sếp ơi."
+    },
+    {
+        q: "Vùng bikini nhạy cảm có dùng được không?",
+        a: "Dạ vô tư luôn Sếp ơi! Em này sinh ra là để 'chiều lòng' mấy vùng nhạy cảm nhất như bikini, nhũ hoa với nách mà. Thành phần lành tính nên cực kỳ êm ái."
+    },
+    {
+        q: "Bôi xong có bị bết dính hay châm chích gì không?",
+        a: "Kết cấu serum siêu mỏng nhẹ, thấm nhanh như điện luôn! Xoa xong là thấm sạch vào da, không bết dính, không lem ra quần áo nên Sếp cứ thoải mái lên đồ ạ."
+    },
+    {
+        q: "Đang bầu hoặc mẹ bỉm sữa có dùng được không Sếp?",
+        a: "Dạ thành phần siêu lành tính, không paraben hay dầu khoáng nên cực an toàn. Tuy nhiên nếu Sếp đang bầu hoặc cho con bú mà muốn dùng cho vùng nhũ hoa thì cứ hỏi qua ý kiến bác sĩ cho chắc ăn nhất nhé!"
+    },
+    {
+        q: "Làm sao để em chắc chắn mua đúng hàng chuẩn Nhật?",
+        a: "Sếp cứ check kỹ cho em: bao bì sắc nét, tem phụ chính hãng với date xa tít tắp là chuẩn bài. Nhà em luôn cập nhật mẫu mới nhất từ Store Nhật nên Sếp cứ yên tâm 'chốt đơn' nha."
+    },
+    {
+        q: "Em muốn mua hàng chính hãng tại Việt Nam thì ghé đâu?",
+        a: "Cứ ghé trực tiếp mấy hệ thống lớn như Hali Group, Nhà thuốc Việt hoặc 'canh' Mall trên Shopee/Lazada cho đảm bảo Sếp nhé. Tránh mua mấy chỗ trôi nổi kẻo tiền mất tật mang ạ."
+    },
+    {
+        q: "Một ngày em nên bôi mấy lần là hiệu quả nhất?",
+        a: "Chuẩn nhất là 2 lần/ngày: sáng và tối sau khi tắm sạch. Lúc đó lỗ chân lông đang mở, serum thấm sâu nhất Sếp ạ."
+    },
+    {
+        q: "Có cần kết hợp thêm sản phẩm nào để trắng nhanh hơn không?",
+        a: "Nếu muốn 'hack' tốc độ mờ thâm, Sếp nên kết hợp tẩy tế bào chết bằng mặt nạ bùn khoáng Beppin Body trước khi thoa serum. Combo này thì đỉnh của chóp luôn!"
+    }
+  ];
+
+  function toggleFaq(index: number) {
+    activeFaqIndex = activeFaqIndex === index ? -1 : index;
+  }
 </script>
 
 <section id="science-mechanism" class="snap-session snap-session-standard science-section relative w-full overflow-hidden" style:padding-top="var(--standard-pt)">
@@ -114,6 +165,57 @@
                         </EditableWrapper>
                     </p>
                 </div>
+            </div>
+        <!-- FAQ & COMMITMENT SECTION (Elite V2.2) -->
+        <div class="faq-container mt-24 text-left">
+            <div class="faq-header flex items-start gap-5 mb-12">
+                <div class="faq-icon-box flex-shrink-0 w-14 h-14 rounded-2xl bg-luxury-gold/10 border border-luxury-gold/20 flex items-center justify-center text-luxury-gold shadow-[0_0_30px_rgba(227,181,164,0.1)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-3xl font-black text-white tracking-tight mb-2">
+                        <EditableWrapper path="metadata.science_faq_title" type="text" label="SỬA TIÊU ĐỀ FAQ" as="span">
+                            {labels.faq_title}
+                        </EditableWrapper>
+                    </h3>
+                    <p class="text-slate-400 text-base font-medium">
+                        <EditableWrapper path="metadata.science_faq_subtitle" type="text" label="SỬA MÔ TẢ FAQ" as="span">
+                            {labels.faq_subtitle}
+                        </EditableWrapper>
+                    </p>
+                </div>
+            </div>
+
+            <div class="faq-list space-y-4">
+                {#each faqs as faq, i}
+                    <div class="faq-item group border-b border-white/5 transition-all duration-500 {activeFaqIndex === i ? 'pb-8 active' : 'pb-6'}">
+                        <button 
+                            class="faq-question w-full flex items-center justify-between text-left py-2 outline-none group-hover:text-luxury-sakura transition-colors"
+                            onclick={() => toggleFaq(i)}
+                            aria-expanded={activeFaqIndex === i}
+                        >
+                            <span class="text-lg lg:text-xl font-bold tracking-tight {activeFaqIndex === i ? 'text-luxury-sakura' : 'text-slate-200'}">
+                                {faq.q}
+                            </span>
+                            <div class="chevron-box flex-shrink-0 ml-4 w-10 h-10 rounded-full border border-white/10 flex items-center justify-center transition-all duration-500 {activeFaqIndex === i ? 'rotate-180 border-luxury-sakura/30 bg-luxury-sakura/5' : ''}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </div>
+                        </button>
+                        
+                        {#if activeFaqIndex === i}
+                            <div 
+                                class="faq-answer mt-4 text-slate-400 text-base lg:text-lg leading-relaxed font-medium transition-all duration-500 animate-reveal"
+                            >
+                                {faq.a}
+                            </div>
+                        {/if}
+                    </div>
+                {/each}
             </div>
         </div>
     </div>

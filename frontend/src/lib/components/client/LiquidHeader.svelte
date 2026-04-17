@@ -23,7 +23,7 @@
     hero: product?.metadata?.nav_label_home || 'Trang chủ',
     diagnostics: product?.metadata?.nav_label_diagnostics || 'Chẩn đoán',
     science: product?.metadata?.nav_label_science || 'Cơ chế',
-    'result-timeline': product?.metadata?.nav_label_transformation || 'Lột xác',
+
     reviews: product?.metadata?.nav_label_reviews || 'Đánh giá',
     offers: product?.metadata?.nav_label_offers || 'Ưu đãi'
   });
@@ -32,7 +32,7 @@
     { id: 'hero', label: navLabels['hero'], href: '#hero', icon: Sparkles },
     { id: 'diagnostics', label: navLabels['diagnostics'], href: '#diagnostics' },
     { id: 'science', label: navLabels['science'], href: '#science' },
-    { id: 'result-timeline', label: navLabels['result-timeline'], href: '#result-timeline' },
+
     { id: 'reviews', label: navLabels['reviews'], href: '#reviews' },
     { id: 'offers', label: navLabels['offers'], href: '#offers', icon: Tag }
   ]);
@@ -114,11 +114,11 @@
                <link.icon class="w-3.5 h-3.5 transition-transform duration-500 {activeId === link.id ? 'scale-110' : 'opacity-60'}" />
             {/if}
             
-            <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] font-inter whitespace-nowrap">
-               <EditableWrapper path={`metadata.nav_label_${link.id === 'hero' ? 'home' : (link.id === 'result-timeline' ? 'transformation' : link.id)}`} type="text" label="SỬA ĐIỀU HƯỚNG" as="span">
-                 {link.label}
-               </EditableWrapper>
-            </span>
+             <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] font-inter whitespace-nowrap">
+                <EditableWrapper path={`metadata.nav_label_${link.id === 'hero' ? 'home' : link.id}`} type="text" label="SỬA ĐIỀU HƯỚNG" as="span">
+                  {link.label}
+                </EditableWrapper>
+             </span>
             
             {#if activeId === link.id}
                <!-- Elite V2.2: Removed the ugly dot, using highlighter glow instead -->
