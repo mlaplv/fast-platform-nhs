@@ -49,9 +49,7 @@
     isInitialized = true;
   }
 
-  // Removed duplicate getClientUi call
-
-  const updateDOM = (theme: 'light' | 'dark') => {
+  const updateDOM = (theme: 'light' | 'dark'): void => {
     if (!browser) return;
     document.documentElement.setAttribute('data-theme', theme);
     document.body.setAttribute('data-theme', theme);
@@ -79,83 +77,74 @@
     }
   });
 
-  // Cleanup Timer on unmount
+  // 🚀 ELITE QUANTUM COORDINATOR (Elite V2.2)
   onMount(() => {
-    if (browser) {
-      const savedTheme = localStorage.getItem('hero-theme-mode');
-      const validTheme = (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') ? savedTheme : 'system';
-      applyTheme(validTheme);
+    if (!browser) return;
+
+    const savedTheme = localStorage.getItem('hero-theme-mode');
+    applyTheme((savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') ? savedTheme : 'system');
       
-      // Viral 2026: Fomo Activity Init
-      if (product?.slug) fomoStore.init(product.slug);
+    if (product?.slug) fomoStore.init(product.slug);
       
-      // Admin Editor Init
-      if (product) {
-        liveEditStore.init(product);
-        
-        // Auto-enable edit mode if explicitly requested via URL AND user is actually an Admin (Viral 2026 Supreme Security)
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('live_edit') === 'true') {
-            if (permissionState.hasRole('SUPER_ADMIN') || permissionState.hasRole('ADMIN')) {
-                liveEditStore.isEditMode = true;
-            } else {
-                // Elite V2.2: Cứng rắn chặn và đá văng về link trắng (Hard Redirect)
-                const newUrl = window.location.origin + window.location.pathname;
-                window.location.replace(newUrl);
-            }
+    if (product) {
+      liveEditStore.init(product);
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('live_edit') === 'true') {
+        if (permissionState.hasRole('SUPER_ADMIN') || permissionState.hasRole('ADMIN')) {
+          liveEditStore.isEditMode = true;
+        } else {
+          window.location.replace(window.location.origin + window.location.pathname);
         }
       }
-      
-      const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      const h = (e: MediaQueryListEvent): void => {
-        if (themeMode === 'system') updateDOM(e.matches ? 'dark' : 'light');
-      };
-      
-      mq.addEventListener('change', h);
-
-      // JIT Intersection Observer
-      const jitObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            loadJIT = true;
-            jitObserver.disconnect();
-          }
-        });
-      }, { rootMargin: '600px', threshold: 0.01 });
-      
-      const trigger = document.getElementById('jit-trigger');
-      if (trigger) jitObserver.observe(trigger);
-
-      // Elite Smart-Adaptive Init
-      const cleanupObservers = clientUi.initObservers();
-
-      // Master Scroll Coordinator (Elite V2.2)
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting && !isWheelLocked) {
-            const idx = sectionIds.indexOf(entry.target.id);
-            if (idx !== -1) currentSessionIdx = idx;
-          }
-        });
-      }, {
-        root: document.querySelector('.client-page-root'),
-        rootMargin: '-50% 0px -50% 0px',
-        threshold: 0
-      });
-
-      sectionIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) observer.observe(el);
-      });
-
-      return () => {
-        shopStore.dispose();
-        mq.removeEventListener('change', h);
-        jitObserver.disconnect();
-        observer.disconnect();
-        if (cleanupObservers) cleanupObservers();
-      };
     }
+      
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const h = (e: MediaQueryListEvent): void => {
+      if (themeMode === 'system') updateDOM(e.matches ? 'dark' : 'light');
+    };
+    mq.addEventListener('change', h);
+
+    // JIT ASSET LOADER (Elite V2.2 Protocol) - FIRE EARLY
+    const jitObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          loadJIT = true;
+          jitObserver.disconnect();
+        }
+      });
+    }, { rootMargin: '600px', threshold: 0.01 });
+
+    // SESSION COORDINATOR (Elite V2.2 HUD Sync) - FIRE AT CENTER
+    const sessionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !isWheelLocked) {
+          const idx = sectionIds.indexOf(entry.target.id);
+          if (idx !== -1) currentSessionIdx = idx;
+        }
+      });
+    }, {
+      rootMargin: '-50% 0px -50% 0px',
+      threshold: 0
+    });
+
+    // Register Assets
+    const trigger = document.getElementById('jit-trigger');
+    if (trigger) jitObserver.observe(trigger);
+
+    sectionIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) sessionObserver.observe(el);
+    });
+
+    const cleanupObservers = clientUi.initObservers();
+
+    return () => {
+      shopStore.dispose();
+      mq.removeEventListener('change', h);
+      jitObserver.disconnect();
+      sessionObserver.disconnect();
+      if (cleanupObservers) cleanupObservers();
+    };
   });
 
   const scrollToQuiz = () => {

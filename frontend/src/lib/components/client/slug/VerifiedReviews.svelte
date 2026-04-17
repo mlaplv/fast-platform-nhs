@@ -103,15 +103,24 @@
     "Bình Dương", "Đồng Nai", "Khánh Hòa", "Lâm Đồng", "Quảng Ninh"
   ];
 
-  async function fetchRealReviews() {
+  interface ReviewSubmission {
+    entity_type: 'PRODUCT' | 'SHOP';
+    entity_id: string | number;
+    customer_name: string;
+    customer_phone: string;
+    customer_location: string;
+    rating: number;
+    content: string;
+  }
+
+  async function fetchRealReviews(): Promise<void> {
     if (!product?.id) return;
     isLoading = true;
     try {
       const res = await fetch(`/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED`);
       if (res.ok) {
-        const data = await res.json();
-        realReviews = (data.items as ReviewApiResponse[] || []).map((r: ReviewApiResponse) => {
-          // Elite 2026: Strip legacy suffixes "(09...)" or "- TP..." from name to prevent redundancy
+        const data: { items: ReviewApiResponse[] } = await res.json();
+        realReviews = (data.items || []).map((r) => {
           const cleanName = r.customer_name 
             ? r.customer_name.split('(')[0].split('-')[0].trim() 
             : 'Ẩn danh';
@@ -129,7 +138,7 @@
         });
       }
     } catch (e) {
-      console.error("Lỗi fetch reviews:", e);
+      console.error("Master Sync Error (Reviews):", e);
     } finally {
       isLoading = false;
     }

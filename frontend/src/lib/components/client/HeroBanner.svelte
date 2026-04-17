@@ -99,7 +99,6 @@
   });
 
   const productName = $derived(labels.product_name);
-  const rawHeadline = $derived(labels.headline);
   const images = $derived(product?.images || []);
   const mainImage = $derived(images.length > 0 ? resolveMediaUrl(images[currentImageIndex]) : '');
   
@@ -110,6 +109,15 @@
   
   const rawH1 = $derived(metadata.hero_headline_1 || stripTags(legacyParts[0]) || "TỰ TIN RẠNG RỠ VỚI");
   const rawH2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || "LÀN DA SÁNG HỒNG");
+
+  const rawHeadline = $derived.by(() => {
+    const isH1Off = rawH1.startsWith('[OFF]');
+    const isH2Off = rawH2.startsWith('[OFF]');
+    if (isH1Off && isH2Off) return '';
+    if (isH1Off) return `<span class="text-luxury-copper">${h2}</span>`;
+    if (isH2Off) return h1;
+    return `${h1}<br/><span class="text-luxury-copper">${h2}</span>`;
+  });
 
   const clean = (s: unknown) => {
     if (!s) return "";

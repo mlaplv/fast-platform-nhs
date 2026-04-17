@@ -57,19 +57,26 @@
   const heroIndex = $derived(hasVideo ? 1 : 0);
   const tabsHidden = $derived(activeSectionIndex !== heroIndex);
 
-  // Scroll Reactive Logic
+  // 🚀 ELITE MOBILE SCROLL COORDINATOR (O(1))
   let isScrollingDown = $state(false);
   let lastScrollTop = 0;
+  let scrollTicking = false;
 
-  function handleScroll(e: Event) {
-    const container = e.target as HTMLElement;
-    const currentScroll = container.scrollTop;
+  function handleScroll(e: Event): void {
+    if (scrollTicking) return;
+    scrollTicking = true;
     
-    // Threshold to prevent jitter
-    if (Math.abs(currentScroll - lastScrollTop) < 10) return;
-
-    isScrollingDown = currentScroll > lastScrollTop;
-    lastScrollTop = currentScroll;
+    requestAnimationFrame(() => {
+      const container = e.target as HTMLElement;
+      if (!container) return;
+      
+      const currentScroll = container.scrollTop;
+      if (Math.abs(currentScroll - lastScrollTop) >= 10) {
+        isScrollingDown = currentScroll > lastScrollTop;
+        lastScrollTop = currentScroll;
+      }
+      scrollTicking = false;
+    });
   }
 
   onMount(() => {

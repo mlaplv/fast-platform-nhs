@@ -188,76 +188,75 @@
   });
 </script>
 
-{#if !isAdmin}
-  <!-- ZERO-HYDRATION: Normal users get pure content with zero wrapper overhead -->
-  {#if shouldRender}
+{#if !isEditMode}
+  <!-- ZERO-HYDRATION: When not in Edit Mode, we render pure, raw DOM. No wrappers, no CSS side-effects. -->
+  {#if !isDisabled}
     {@render children?.()}
   {/if}
-{:else if shouldRender}
+{:else}
+  <!-- ACTIVE EDIT MODE: Render full Svelte wrappers, HUD bridges, and portals -->
   <svelte:element
     this={as}
     bind:this={wrapperRef}
-    class="editable-wrapper relative group/editable {isEditMode ? 'cursor-pointer' : ''} {isDisabled ? 'is-disabled' : ''} {showSuccessFlash ? 'success-flash' : ''} {as === 'span' ? (isEditMode ? 'inline' : 'inline-block') : 'block'} {props.class || ''}"
+    class="editable-wrapper relative group/editable cursor-pointer {isDisabled ? 'is-disabled' : ''} {showSuccessFlash ? 'success-flash' : ''} {as === 'span' ? 'inline' : 'block'} {props.class || ''}"
     onmouseenter={() => isHovered = true}
     onmouseleave={() => isHovered = false}
     onclick={handleEditClick}
     ontouchend={handleEditClick}
     role="presentation"
   >
-    {#if isEditMode}
-      {#if isInlineEditing}
-          <div use:portal>
-              <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-md" style:z-index={Z_INDEX_ADMIN.BACKDROP} transition:fade={{ duration: 250 }} onclick={saveInline} role="presentation"></div>
-              <div class="fixed inset-0 flex items-end md:items-center justify-center md:pb-6 pointer-events-none" style:z-index={Z_INDEX_ADMIN.EDITOR} transition:fade={{ duration: 250 }}>
-                  <div class="relative w-full md:max-w-3xl h-[85dvh] md:h-auto bg-black md:bg-[#0d1117] rounded-t-[40px] md:rounded-[40px] shadow-[0_-15px_60px_rgba(0,0,0,0.9)] md:shadow-[0_40px_120px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col pointer-events-auto animate-editor-reveal">
-                      <div class="md:hidden w-full flex justify-center pt-5 pb-3">
-                          <div class="w-10 h-1 bg-white/20 rounded-full"></div>
-                      </div>
-                      <div class="flex items-center justify-between px-8 py-4 md:border-b border-white/5 bg-transparent md:bg-slate-900/50 backdrop-blur-sm">
-                          <span class="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] italic">{label}</span>
-                          <div class="flex items-center gap-4">
-                              <button class="text-white/40 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors" onclick={() => { triggerHaptic(5); cancelInline(); }}>HỦY</button>
-                              <button class="bg-blue-600 text-white text-[10px] font-black px-8 py-3 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)] active:scale-95 flex items-center gap-2 uppercase tracking-widest" onclick={() => { triggerHaptic(20); saveInline(); }}>
-                                  <Check size={14} strokeWidth={4} />
-                                  XONG
-                              </button>
-                          </div>
-                      </div>
-                      <div class="flex-1 p-8 md:p-14 overflow-y-auto">
-                          <textarea bind:value={inlineValue} autofocus onblur={() => setTimeout(saveInline, 100)} onkeydown={handleKeydown} oninput={(e) => autoResize(e.currentTarget as HTMLTextAreaElement)} class="inline-edit-ta w-full h-full bg-transparent text-white outline-none font-sans resize-none transition-all placeholder:text-white/5" style="font-size: 1.25rem; line-height: 1.5; font-weight: 500; text-align: left;" placeholder="Chạm để bắt đầu nhập..."></textarea>
-                      </div>
-                      <div class="h-10 md:hidden bg-transparent"></div>
-                  </div>
-              </div>
-          </div>
-      {:else if !shouldHideHUD}
-          <div class="absolute -inset-2 border md:border-blue-500/0 border-blue-500/40 md:group-hover/editable:border-blue-500/40 rounded-xl transition-all duration-300 pointer-events-none overflow-visible" style:z-index={Z_INDEX_ADMIN.HUD}>
-            <div class="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full opacity-100 md:opacity-0 md:group-hover/editable:opacity-100 shadow-[0_0_10px_#3b82f6]"></div>
-            <div class="absolute bottom-full left-0 mb-2 opacity-100 md:opacity-0 md:group-hover/editable:opacity-100 transition-opacity flex items-center gap-2 bg-blue-600 md:px-3 md:py-1 p-1.5 rounded-full whitespace-nowrap shadow-xl pointer-events-auto hud-label-bridge">
-              {#if type === 'image' || type === 'video'}
-                  <ImageIcon size={12} class="text-white" />
-              {:else if type === 'quiz'}
-                  <Settings2 size={12} class="text-white" />
-              {:else}
-                  <Edit size={12} class="text-white" />
-              {/if}
-              <span class="text-[8px] font-black text-white uppercase tracking-widest px-1 min-w-[50px] inline-block">{label}</span>
-              <button class="ml-2 pl-2 border-l border-white/20 text-white/60 hover:text-white transition-colors flex items-center gap-1 active:scale-90" onclick={toggleDisabled} ontouchend={toggleDisabled} title={isDisabled ? "Hiện nội dung" : "Ẩn nội dung"}>
-                  {#if isDisabled}
-                      <EyeOff size={12} strokeWidth={3} />
-                      <span class="text-[8px] font-bold hidden md:inline">ĐÃ ẨN</span>
-                  {:else}
-                      <Eye size={12} strokeWidth={3} />
-                      <span class="text-[8px] font-bold hidden md:inline">ẨN</span>
-                  {/if}
-              </button>
+    {#if isInlineEditing}
+        <div use:portal>
+            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-md" style:z-index={Z_INDEX_ADMIN.BACKDROP} transition:fade={{ duration: 250 }} onclick={saveInline} role="presentation"></div>
+            <div class="fixed inset-0 flex items-end md:items-center justify-center md:pb-6 pointer-events-none" style:z-index={Z_INDEX_ADMIN.EDITOR} transition:fade={{ duration: 250 }}>
+                <div class="relative w-full md:max-w-3xl h-[85dvh] md:h-auto bg-black md:bg-[#0d1117] rounded-t-[40px] md:rounded-[40px] shadow-[0_-15px_60px_rgba(0,0,0,0.9)] md:shadow-[0_40px_120px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col pointer-events-auto animate-editor-reveal">
+                    <div class="md:hidden w-full flex justify-center pt-5 pb-3">
+                        <div class="w-10 h-1 bg-white/20 rounded-full"></div>
+                    </div>
+                    <div class="flex items-center justify-between px-8 py-4 md:border-b border-white/5 bg-transparent md:bg-slate-900/50 backdrop-blur-sm">
+                        <span class="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] italic">{label}</span>
+                        <div class="flex items-center gap-4">
+                            <button class="text-white/40 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors" onclick={() => { triggerHaptic(5); cancelInline(); }}>HỦY</button>
+                            <button class="bg-blue-600 text-white text-[10px] font-black px-8 py-3 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)] active:scale-95 flex items-center gap-2 uppercase tracking-widest" onclick={() => { triggerHaptic(20); saveInline(); }}>
+                                <Check size={14} strokeWidth={4} />
+                                XONG
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex-1 p-8 md:p-14 overflow-y-auto">
+                        <textarea bind:value={inlineValue} autofocus onblur={() => setTimeout(saveInline, 100)} onkeydown={handleKeydown} oninput={(e) => autoResize(e.currentTarget as HTMLTextAreaElement)} class="inline-edit-ta w-full h-full bg-transparent text-white outline-none font-sans resize-none transition-all placeholder:text-white/5" style="font-size: 1.25rem; line-height: 1.5; font-weight: 500; text-align: left;" placeholder="Chạm để bắt đầu nhập..."></textarea>
+                    </div>
+                    <div class="h-10 md:hidden bg-transparent"></div>
+                </div>
             </div>
+        </div>
+    {:else if !shouldHideHUD}
+        <div class="absolute -inset-2 border md:border-blue-500/0 border-blue-500/40 md:group-hover/editable:border-blue-500/40 rounded-xl transition-all duration-300 pointer-events-none overflow-visible" style:z-index={Z_INDEX_ADMIN.HUD}>
+          <div class="absolute -top-1 -left-1 w-2 h-2 bg-blue-500 rounded-full opacity-100 md:opacity-0 md:group-hover/editable:opacity-100 shadow-[0_0_10px_#3b82f6]"></div>
+          <div class="absolute bottom-full left-0 mb-2 opacity-100 md:opacity-0 md:group-hover/editable:opacity-100 transition-opacity flex items-center gap-2 bg-blue-600 md:px-3 md:py-1 p-1.5 rounded-full whitespace-nowrap shadow-xl pointer-events-auto hud-label-bridge">
+            {#if type === 'image' || type === 'video'}
+                <ImageIcon size={12} class="text-white" />
+            {:else if type === 'quiz'}
+                <Settings2 size={12} class="text-white" />
+            {:else}
+                <Edit size={12} class="text-white" />
+            {/if}
+            <span class="text-[8px] font-black text-white uppercase tracking-widest px-1 min-w-[50px] inline-block">{label}</span>
+            <button class="ml-2 pl-2 border-l border-white/20 text-white/60 hover:text-white transition-colors flex items-center gap-1 active:scale-90" onclick={toggleDisabled} ontouchend={toggleDisabled} title={isDisabled ? "Hiện nội dung" : "Ẩn nội dung"}>
+                {#if isDisabled}
+                    <EyeOff size={12} strokeWidth={3} />
+                    <span class="text-[8px] font-bold hidden md:inline">ĐÃ ẨN</span>
+                {:else}
+                    <Eye size={12} strokeWidth={3} />
+                    <span class="text-[8px] font-bold hidden md:inline">ẨN</span>
+                {/if}
+            </button>
           </div>
-          <div class="absolute inset-0 bg-blue-500/5 opacity-100 md:opacity-0 md:group-hover/editable:opacity-100 transition-opacity rounded-lg pointer-events-none"></div>
-      {/if}
+        </div>
+        <div class="absolute inset-0 bg-blue-500/5 opacity-100 md:opacity-0 md:group-hover/editable:opacity-100 transition-opacity rounded-lg pointer-events-none"></div>
     {/if}
 
-    <svelte:element this={as} class="content-container w-full h-full {isInlineEditing ? 'opacity-20 blur-sm pointer-events-none' : ''} transition-all duration-300 relative" style:display={isEditMode ? 'contents' : (as === 'span' ? 'inline-block' : 'block')}>
+    <svelte:element this={as} class="content-container w-full h-full {isInlineEditing ? 'opacity-20 blur-sm pointer-events-none' : ''} transition-all duration-300 relative" style:display={as === 'span' ? 'contents' : 'block'}>
       {@render children?.()}
     </svelte:element>
   </svelte:element>
