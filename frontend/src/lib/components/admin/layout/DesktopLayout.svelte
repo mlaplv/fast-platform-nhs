@@ -123,7 +123,6 @@
 
     <FullLogView />
     <VaultModal />
-    <ConfirmationModal />
   </main>
 
   <!-- Right Sidebar: Heartbeat -->
@@ -142,6 +141,7 @@
 
   <!-- Version Footer (Global Bottom) -->
   <TechStackFooter />
+  <ConfirmationModal />
 </div>
 
 <style>

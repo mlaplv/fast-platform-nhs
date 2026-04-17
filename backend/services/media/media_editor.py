@@ -102,11 +102,16 @@ class MediaEditorMixin:
                             d = params.model_dump(); x, y, w, h = d.get('x', 0), d.get('y', 0), d.get('w', img.width), d.get('h', img.height)
                             img = img.crop((x, y, x + (w or img.width), y + (h or img.height)))
                     elif action == "watermark":
-                        logo_p = "frontend/static/logo_watermark.png"
+                        logo_p = "frontend/static/uploads/img/logo_transparent.webp"
                         if os.path.exists(logo_p):
                             with Image.open(logo_p) as logo:
-                                lw = int(img.width * 0.15); lh = int(logo.height * (lw / logo.width)); logo = logo.resize((lw, lh), Image.Resampling.LANCZOS)
-                                img.paste(logo, (img.width - lw - 20, img.height - lh - 20), logo if logo.mode == 'RGBA' else None)
+                                # Professional scaling: 12% of image width
+                                lw = int(img.width * 0.12)
+                                lh = int(logo.height * (lw / logo.width))
+                                logo = logo.resize((lw, lh), Image.Resampling.LANCZOS)
+                                # Position at bottom-right with 2.5% padding
+                                padding = int(img.width * 0.025)
+                                img.paste(logo, (img.width - lw - padding, img.height - lh - padding), logo if logo.mode == 'RGBA' else None)
                     
                     s_p = t_p if is_remote else src_p
                     img.save(s_p, "WEBP", quality=DEFAULT_QUALITY, optimize=True); return f"{img.width}x{img.height}"

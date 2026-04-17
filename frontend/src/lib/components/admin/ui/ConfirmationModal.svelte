@@ -84,7 +84,7 @@
     maxWidth={dialog.fields && dialog.fields.length > 0 ? "max-w-xl" : "max-w-lg"}
     height="h-auto"
     zIndex={Z_INDEX_ADMIN.MODAL_CONFIRM}
-    backdropClass="bg-[#050505]/95 md:bg-black/40 md:backdrop-blur-sm"
+    backdropClass="bg-black/20 backdrop-blur-xl"
   >
     <div class="px-8 py-6 relative">
       <!-- Message -->
@@ -200,5 +200,3 @@
     </div>
   </MissionControlShell>
 {/if}
-
-

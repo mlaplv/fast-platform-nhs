@@ -2,7 +2,7 @@
   import type { MediaAsset } from '$lib/state/types';
   import {
     Search, Upload, Link, LayoutGrid, List, BarChart3, Filter, FileEdit, RefreshCw,
-    Brain, Check, X
+    Brain, Check, X, Trash2
   } from 'lucide-svelte';
   import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
 
@@ -30,6 +30,8 @@
     onPickTabChange?: (tab: string) => void;
     onPickConfirm?: () => void;
     onPickClose?: () => void;
+    isTrashMode: boolean;
+    onToggleTrash: () => void;
     campaignId?: string;
   }
 
@@ -57,6 +59,8 @@
     onPickTabChange,
     onPickConfirm,
     onPickClose,
+    isTrashMode,
+    onToggleTrash,
     campaignId
   } = $props<Props>();
 
@@ -139,6 +143,13 @@
                 title="Làm mới"
             >
                 <RefreshCw size={18} />
+            </button>
+            <button
+                onclick={onToggleTrash}
+                class="p-1.5 rounded-lg transition-all {isTrashMode ? 'bg-red-500/10 text-red-500' : 'text-zinc-500 hover:text-zinc-700'}"
+                title="Thùng rác"
+            >
+                <Trash2 size={18} />
             </button>
         </div>
 

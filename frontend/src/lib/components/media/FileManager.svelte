@@ -170,17 +170,13 @@
 
     async function handleDelete(id: string) {
         if (mediaStore.isTrashMode) {
-            pendingHardDeleteId = id;
+            await mediaStore.deleteAsset(id, true);
+            if (selectedAssetId === id) selectedAssetId = null;
+            nanobot.showToast("Đã xóa vĩnh viễn tài nguyên từ hệ thống", "success");
         } else {
-            const confirmed = await nanobot.showConfirm({
-                title: "QUẢN LÝ TÀI NGUYÊN",
-                message: "Chuyển ảnh này vào Thùng rác?",
-                confirmLabel: "CHUYỂN VÀO THÙNG RÁC"
-            });
-            if (confirmed) {
-                await mediaStore.deleteAsset(id);
-                if (selectedAssetId === id) selectedAssetId = null;
-            }
+            await mediaStore.deleteAsset(id);
+            if (selectedAssetId === id) selectedAssetId = null;
+            nanobot.showToast("Đã chuyển ảnh vào Thùng rác", "success");
         }
     }
 
@@ -209,24 +205,13 @@
     }
 
     async function handleBulkDelete() {
+        const count = mediaStore.selectedIds.size;
         if (mediaStore.isTrashMode) {
-            const confirmed = await nanobot.showConfirm({
-                title: "CẢNH BÁO",
-                message: `Sếp có chắc chắn muốn xóa VĨNH VIỄN ${mediaStore.selectedIds.size} ảnh đã chọn?`,
-                confirmLabel: "XÓA VĨNH VIỄN"
-            });
-            if (confirmed) {
-                await mediaStore.bulkDelete(true);
-            }
+            await mediaStore.bulkDelete(true);
+            nanobot.showToast(`Đã xóa vĩnh viễn ${count} tài nguyên`, "success");
         } else {
-            const confirmed = await nanobot.showConfirm({
-                title: "QUẢN LÝ TÀI NGUYÊN",
-                message: `Sếp có chắc chắn muốn chuyển ${mediaStore.selectedIds.size} ảnh vào Thùng rác?`,
-                confirmLabel: "CHUYỂN VÀO THÙNG RÁC"
-            });
-            if (confirmed) {
-                await mediaStore.bulkDelete(false);
-            }
+            await mediaStore.bulkDelete(false);
+            nanobot.showToast(`Đã chuyển ${count} ảnh vào Thùng rác`, "success");
         }
     }
 
@@ -280,6 +265,8 @@
         onRefresh={() => mediaStore.loadAssets(campaignId, true)}
         onViewModeToggle={() => viewMode = viewMode === 'grid' ? 'list' : 'grid'}
         onPostFilterToggle={() => showPostFilter = !showPostFilter}
+        isTrashMode={mediaStore.isTrashMode}
+        onToggleTrash={() => mediaStore.toggleTrashMode()}
         onPickConfirm={onPickConfirm ? () => onPickConfirm(mediaStore.assets.filter(a => mediaStore.selectedIds.has(a.id))) : undefined}
         onPickClose={onPickClose}
     />
@@ -392,7 +379,7 @@
 
     <BulkSEOModal bind:show={showBulkSeo} bind:isAutoFilling />
     <LinkToPostModal bind:show={showLinkModal} />
-    <HardDeleteModal bind:pendingId={pendingHardDeleteId} onConfirm={confirmHardDelete} />
+    <!-- Hard delete modal removed as per instant delete requirement -->
 
     <!-- Video Full View Overlay -->
     {#if activeVideoUrl}

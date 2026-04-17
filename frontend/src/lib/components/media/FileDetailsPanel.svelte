@@ -242,6 +242,10 @@
                             <ShieldCheck size={16} class="text-blue-500" />
                             SEO_SYNC
                         </button>
+                        <button onclick={() => onQuickEdit('watermark', null)} class="flex flex-col items-center justify-center gap-2 py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-2xl text-[9px] font-black uppercase hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all border border-transparent">
+                            <ShieldCheck size={16} class="text-indigo-500" />
+                            WATERMARK
+                        </button>
                         <button onclick={() => onDelete(asset.id)} class="flex flex-col items-center justify-center gap-2 py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 rounded-2xl text-[9px] font-black uppercase hover:bg-red-500 hover:text-white transition-all border border-transparent">
                             <Trash2 size={16} class="text-red-500/60 group-hover:text-white" />
                             BIN_MOVE
