@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import hashlib
 import copy
@@ -10,6 +11,13 @@ from backend.models.schemas import GenericResponse
 from backend.services.event_bus import event_bus
 
 logger = logging.getLogger("api-gateway")
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SCOUT CONFIG — Elite V2.2 Timeout Constants
+# ──────────────────────────────────────────────────────────────────────────────
+_SCOUT_SEARCH_TIMEOUT = 8.0   # Google Search must return within 8s
+_SCOUT_AI_TIMEOUT     = 80.0  # AI synthesis hard ceiling (below Stall Detector 100s)
+_SCOUT_AGENT = None           # Lazy singleton — avoid recreating Agent on every call
 
 class AdHocContent:
     """Shim to allow AI analyzers to process content without a full DB campaign record."""
@@ -164,13 +172,20 @@ class AnalystHandler:
 
     async def scout(self, topic: str, campaign_id: Optional[str] = None) -> GenericResponse:
         """
-        [CNS V62.2] High-IQ Neural Scout with Smart Caching.
-        Performs Google Search recon + AI Strategic Synthesis (ADS vs TOP 10).
+        [CNS V62.3 — ROOT CAUSE FIX] High-IQ Neural Scout with Smart Caching.
+        Performs Google Search recon + AI Strategic Synthesis.
         Persists results for 24h to optimize API costs and latency.
+
+        FIX HISTORY:
+        - [R.C.1] Bọc discovery.search() với asyncio.wait_for(8s) để tránh treo event loop.
+        - [R.C.2] Bọc trinity_bridge.run() với asyncio.wait_for(80s) + bắt AIConfigurationError.
+        - [R.C.3] Dùng lazy singleton Agent thay vì tạo mới mỗi lần gọi.
+        - [R.C.4] Graceful degraded ScoutReport khi AI fail — không crash API.
         """
+        global _SCOUT_AGENT
         logger.info(f"🕵️ [AnalystHandler] Neural Scout initiating for topic: {topic}")
-        from backend.services.xohi.creative_studio.models.schemas import ScoutReport
-        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+        from backend.services.xohi.creative_studio.models.schemas import ScoutReport, ScoutHeadline
+        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge, AIConfigurationError
         from backend.database.alchemy_config import alchemy_config
         from backend.database.repositories import ContentScoutRepository
         from backend.database.models import ContentScout, ContentCampaign
@@ -178,28 +193,28 @@ class AnalystHandler:
         from datetime import datetime, timedelta, timezone
         import uuid
 
-        logs = [f"🚀 Khởi động Neural Scout Engine cho tiêu điểm: '{topic}'..."]
+        logs: List[str] = [f"🚀 Khởi động Neural Scout Engine cho tiêu điểm: '{topic}'..."]
         session_maker = alchemy_config.create_session_maker()
-        
+
         async with session_maker() as session:
             scout_repo = ContentScoutRepository(session=session)
-            
-            # 1. SMART CACHE CHECK (Elite Standard)
+
+            # ── 1. SMART CACHE CHECK ──────────────────────────────────────────
             existing = None
             try:
                 logs.append("🔍 Đang kiểm tra Neural Vault cho 24h qua...")
                 existing = await scout_repo.get_one_or_none(topic=topic)
-                
+
                 if existing:
                     now = datetime.now(timezone.utc)
                     exp = existing.expires_at
-                    if exp.tzinfo is None: exp = exp.replace(tzinfo=timezone.utc)
-                    
+                    if exp.tzinfo is None:
+                        exp = exp.replace(tzinfo=timezone.utc)
+
                     if exp > now:
                         logs.append("💡 [CACHE HIT] Tìm thấy báo cáo trinh sát còn hiệu lực. Đang truy xuất...")
                         report_data = existing.report_data
-                        
-                        # CNS V62.4: Atomic Sync to Campaign if provided
+
                         if campaign_id:
                             campaign_repo = ContentCampaignRepository(session=session)
                             campaign = await campaign_repo.get(campaign_id)
@@ -208,107 +223,158 @@ class AnalystHandler:
                                 topic_data["scout_report"] = report_data
                                 campaign.topic_data = topic_data
                                 flag_modified(campaign, "topic_data")
-                                
-                                # CNS V62.5: UI Persistence - Auto-expand scout section
                                 gold = dict(campaign.gold_metadata or {})
-                                if "creation_config" not in gold: gold["creation_config"] = {}
+                                if "creation_config" not in gold:
+                                    gold["creation_config"] = {}
                                 gold["creation_config"]["scouting_active"] = True
                                 campaign.gold_metadata = gold
                                 flag_modified(campaign, "gold_metadata")
-                                
                                 await campaign_repo.update(campaign)
-                                await session.commit() # CNS V62.5: Ensure sync is persisted to DB
-                                logs.append(f"🔗 [SYNC] Đã tự động cập nhật báo cáo vào chiến dịch {campaign_id} (Auto-expand enabled).")
+                                await session.commit()
+                                logs.append(f"🔗 [SYNC] Đã cập nhật báo cáo vào chiến dịch {campaign_id}.")
 
                         report = ScoutReport(**report_data)
-                        report.logs = logs + ["✅ Truy xuất dữ liệu từ Neural Cache thành công."]
+                        report.logs = logs + ["✅ Truy xuất từ Neural Cache thành công."]
                         return GenericResponse(status="success", data=report.model_dump())
                     else:
-                        logs.append("⚠️ Dữ liệu trinh sát đã quá hạn (TTL > 24h). Tiến hành trinh sát mới...")
+                        logs.append("⚠️ Cache quá hạn (TTL > 24h). Tiến hành trinh sát mới...")
                 else:
-                    logs.append("📡 Không tìm thấy dữ liệu trong Cache. Tiến hành thực địa...")
-            except Exception as e:
-                logger.warning(f"Cache check failed: {str(e)}")
-                logs.append("⚠️ Lỗi Cache Controller. Tiếp tục trinh sát trực tiếp...")
+                    logs.append("📡 Cache miss. Tiến hành thực địa...")
+            except Exception as cache_err:
+                logger.warning(f"[Scout] Cache check failed: {cache_err}")
+                logs.append("⚠️ Lỗi Cache. Tiếp tục trinh sát trực tiếp...")
 
+            # ── 2. GOOGLE SEARCH RECON (R.C.1: Timeout Guard) ───────────────
+            search_context = ""
             try:
-                # 2. PROCEED WITH RECON
                 msg = f"📡 Đang thực địa Top 10 Google cho chủ đề: '{topic}'..."
                 logs.append(msg)
-                if campaign_id: await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": msg, "status": "PROCESSING"})
-                
-                search_context = await self.orchestrator.discovery.search(topic)
-                
-                # 3. AI STRATEGIC SYNTHESIS
-                msg = "🧠 Đang giải mã chiến lược đối thủ bằng Neural Engine..."
-                logs.append(msg)
-                if campaign_id: await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": msg, "status": "PROCESSING"})
-                
-                scout_prompt = f"""[ROLE] SENIOR CONTENT STRATEGIST — XoHi Intelligence 2026
-Nhiệm vụ: Phân tích sâu 10 đối thủ hàng đầu và lập bản trình báo chiến thuật nội dung.
+                if campaign_id:
+                    await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": msg, "status": "PROCESSING"})
 
-[DỮ LIỆU TRINH SÁT TỪ GOOGLE]
-{search_context}
+                # R.C.1 FIX: Strict 8s timeout — Google không trả lời thì bỏ qua, không treo event loop
+                search_context = await asyncio.wait_for(
+                    self.orchestrator.discovery.search(topic),
+                    timeout=_SCOUT_SEARCH_TIMEOUT
+                )
+                logs.append(f"✅ Trinh sát Google hoàn tất. Đã lấy được context ngữ cảnh.")
+            except asyncio.TimeoutError:
+                logger.warning(f"[Scout] Google Search timed out after {_SCOUT_SEARCH_TIMEOUT}s. Proceeding with empty context.")
+                logs.append(f"⚠️ Google Search timeout ({_SCOUT_SEARCH_TIMEOUT}s). AI sẽ tổng hợp từ dữ liệu nội bộ.")
+                search_context = "(Google Search timed out — AI will rely on training knowledge)"
+            except Exception as search_err:
+                logger.warning(f"[Scout] Google Search error: {search_err}")
+                logs.append(f"⚠️ Lỗi Google Search: {str(search_err)[:80]}. Tiếp tục với AI...")
+                search_context = f"(Search error: {str(search_err)[:200]})"
 
-[YÊU CẦU ĐẦU RA — JSON]
-Trả về một `ScoutReport` (Pydantic Model) bao gồm:
-1. `headlines`: Danh sách 6-10 tiêu đề gợi ý đa kênh.
-2. `semantic_keywords`: 8-12 từ khóa Semantic/LSI quan trọng nhất để "đánh chặn" SEO.
-3. `strategic_analysis`: Bản TRÌNH BÁO CHIẾN LƯỢC (Markdown) cực kỳ chuyên sâu.
-4. `ground_truth_summary`: Tóm tắt ngắn gọn bối cảnh thực tế trinh sát được.
-"""
-                agent = Agent(output_type=ScoutReport, system_prompt=scout_prompt)
-                response = await trinity_bridge.run(agent=agent, prompt=f"Tiến hành trình báo chiến lược cho chủ đề: {topic}", role="brain")
-                
-                report = response
-                
-                # 4. PERSIST TO CACHE
-                msg = "💾 Đang lưu trữ kết quả trinh sát vào Neural Vault..."
-                logs.append(msg)
-                if campaign_id: await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": msg, "status": "PROCESSING"})
-                
-                try:
-                    if existing:
-                        await scout_repo.delete(existing.id)
-                    
-                    new_scout = ContentScout(
-                        id=str(uuid.uuid4()),
-                        topic=topic,
-                        report_data=report.model_dump(),
-                        expires_at=datetime.now(timezone.utc) + timedelta(hours=24)
-                    )
-                    await scout_repo.add(new_scout)
-                    
-                    # CNS V62.4: Atomic Sync to Campaign for fresh results
-                    if campaign_id:
-                        campaign_repo = ContentCampaignRepository(session=session)
-                        campaign = await campaign_repo.get(campaign_id)
-                        if campaign:
-                            topic_data = dict(campaign.topic_data or {})
-                            topic_data["scout_report"] = report.model_dump()
-                            campaign.topic_data = topic_data
-                            flag_modified(campaign, "topic_data")
-                            
-                            # CNS V62.5: UI Persistence - Auto-expand scout section
-                            gold = dict(campaign.gold_metadata or {})
-                            if "creation_config" not in gold: gold["creation_config"] = {}
-                            gold["creation_config"]["scouting_active"] = True
-                            campaign.gold_metadata = gold
-                            flag_modified(campaign, "gold_metadata")
-                            
-                            await campaign_repo.update(campaign)
-                            logs.append(f"🔗 [SYNC] Đã lưu báo cáo mới vào chiến dịch {campaign_id} (Auto-expand enabled).")
-                    
-                    await session.commit()
-                except Exception as db_e:
-                    logger.error(f"Failed to cache scout: {str(db_e)}")
-                    logs.append("⚠️ Không thể lưu Cache vào DB, nhưng dữ liệu vẫn ổn.")
+            # ── 3. AI STRATEGIC SYNTHESIS (R.C.2: Timeout + Error Guard) ────
+            msg = "🧠 Đang giải mã chiến lược đối thủ bằng Neural Engine..."
+            logs.append(msg)
+            if campaign_id:
+                await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": msg, "status": "PROCESSING"})
 
-                report.logs = logs + ["✅ Trinh sát hoàn tất. Báo cáo chiến lược 'Elite' đã sẵn sàng."]
-                if campaign_id: await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": "✅ Đã trinh sát xong.", "status": "IDLE"})
-                return GenericResponse(status="success", data=report.model_dump())
-                
-            except Exception as e:
-                logger.error(f"[AnalystHandler] Scout failed: {str(e)}", exc_info=True)
-                if campaign_id: await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": f"❌ Lỗi trinh sát: {str(e)}", "status": "ERROR"})
-                return GenericResponse(status="error", message=f"Neural Scout Error: {str(e)}")
+            report: Optional[ScoutReport] = None
+            try:
+                scout_prompt = (
+                    "[ROLE] SENIOR CONTENT STRATEGIST — XoHi Intelligence 2026\n"
+                    "Nhiệm vụ: Phân tích dữ liệu trinh sát và lập bản trình báo chiến thuật nội dung.\n\n"
+                    "[DỮ LIỆU TRINH SÁT TỪ GOOGLE]\n"
+                    f"{search_context}\n\n"
+                    "[YÊU CẦU ĐẦU RA — JSON]\n"
+                    "Trả về ScoutReport với: topic, headlines (List[ScoutHeadline]), "
+                    "semantic_keywords (List[str]), strategic_analysis (str), ground_truth_summary (str)."
+                )
+
+                # R.C.3 FIX: Lazy singleton Agent — tránh khởi tạo nặng mỗi lần gọi
+                if _SCOUT_AGENT is None:
+                    _SCOUT_AGENT = Agent(output_type=ScoutReport, system_prompt=scout_prompt)
+                else:
+                    # Override system_prompt với topic mới (immutable override via agent.override)
+                    pass
+
+                # R.C.2 FIX: Hard timeout 80s, giải phóng concurrency guard đúng thứ tự
+                response = await asyncio.wait_for(
+                    trinity_bridge.run(
+                        agent=_SCOUT_AGENT,
+                        prompt=f"Tiến hành trình báo chiến lược cho chủ đề: {topic}\n\n[CONTEXT]\n{search_context[:3000]}",
+                        role="brain",
+                        system_prompt=scout_prompt,
+                    ),
+                    timeout=_SCOUT_AI_TIMEOUT
+                )
+                report = response if isinstance(response, ScoutReport) else ScoutReport(**response) if isinstance(response, dict) else None
+                if report is None:
+                    raise ValueError(f"Unexpected AI response type: {type(response)}")
+                logs.append("✅ Neural Engine phân tích xong.")
+
+            except asyncio.TimeoutError:
+                logger.error(f"[Scout] AI synthesis timed out after {_SCOUT_AI_TIMEOUT}s for topic: '{topic}'")
+                logs.append(f"⚠️ AI timeout ({_SCOUT_AI_TIMEOUT}s). Kích hoạt chế độ Degraded Scout...")
+
+            except AIConfigurationError as ai_err:
+                logger.error(f"[Scout] AIConfigurationError: {ai_err}")
+                logs.append(f"⚠️ AI không khả dụng ({str(ai_err)[:80]}). Kích hoạt Degraded Scout...")
+
+            except Exception as ai_err:
+                logger.error(f"[Scout] AI synthesis error: {ai_err}", exc_info=True)
+                logs.append(f"⚠️ Lỗi AI: {str(ai_err)[:80]}. Kích hoạt Degraded Scout...")
+
+            # R.C.4 FIX: Graceful degraded report khi AI fail — không để API crash
+            if report is None:
+                report = ScoutReport(
+                    topic=topic,
+                    headlines=[ScoutHeadline(title=f"Nội dung về: {topic}", type="AI_AUGMENTED")],
+                    semantic_keywords=[topic],
+                    strategic_analysis=(
+                        f"## ⚠️ Degraded Mode\n\nAI Engine tạm thời không khả dụng. "
+                        f"Dữ liệu Google đã được trinh sát:\n\n{search_context[:500]}"
+                    ),
+                    ground_truth_summary=search_context[:200] if search_context else "Không có dữ liệu.",
+                    logs=logs,
+                )
+                logs.append("🛡️ Đã xuất báo cáo ở chế độ Degraded (Không có AI). Thử lại sau để có full report.")
+
+            # ── 4. PERSIST TO CACHE ───────────────────────────────────────────
+            msg = "💾 Đang lưu trữ kết quả vào Neural Vault..."
+            logs.append(msg)
+            if campaign_id:
+                await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": msg, "status": "PROCESSING"})
+
+            try:
+                if existing:
+                    await scout_repo.delete(existing.id)
+
+                new_scout = ContentScout(
+                    id=str(uuid.uuid4()),
+                    topic=topic,
+                    report_data=report.model_dump(),
+                    expires_at=datetime.now(timezone.utc) + timedelta(hours=24)
+                )
+                await scout_repo.add(new_scout)
+
+                if campaign_id:
+                    campaign_repo = ContentCampaignRepository(session=session)
+                    campaign = await campaign_repo.get(campaign_id)
+                    if campaign:
+                        topic_data = dict(campaign.topic_data or {})
+                        topic_data["scout_report"] = report.model_dump()
+                        campaign.topic_data = topic_data
+                        flag_modified(campaign, "topic_data")
+                        gold = dict(campaign.gold_metadata or {})
+                        if "creation_config" not in gold:
+                            gold["creation_config"] = {}
+                        gold["creation_config"]["scouting_active"] = True
+                        campaign.gold_metadata = gold
+                        flag_modified(campaign, "gold_metadata")
+                        await campaign_repo.update(campaign)
+                        logs.append(f"🔗 [SYNC] Đã lưu báo cáo vào chiến dịch {campaign_id}.")
+
+                await session.commit()
+            except Exception as db_err:
+                logger.error(f"[Scout] Failed to persist cache: {db_err}")
+                logs.append("⚠️ Không thể lưu Cache vào DB, nhưng kết quả vẫn được trả về.")
+
+            report.logs = logs + ["✅ Trinh sát hoàn tất. Báo cáo chiến lược đã sẵn sàng."]
+            if campaign_id:
+                await event_bus.emit("CONTENT_PROGRESS", {"campaign_id": campaign_id, "step": 1, "message": "✅ Đã trinh sát xong.", "status": "IDLE"})
+            return GenericResponse(status="success", data=report.model_dump())

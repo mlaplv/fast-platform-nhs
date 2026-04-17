@@ -58,13 +58,15 @@ class TrinityBridge:
             if self.rotator.get_count() == 0:
                 logger.info("🔑 [TrinityBridge] No keys detected in rotator. Initializing key loader...")
                 await self.rotator.load_keys()
-            
+
+            # [R.C.3 FIX] Đồng bộ với run(): Semaphore(8) để tránh Queue Starvation với 8 API keys
             if self.concurrency_guard is None:
-                self.concurrency_guard = asyncio.Semaphore(4)
-            
+                self.concurrency_guard = asyncio.Semaphore(8)
+
             await self.reload_models()
             self._initialized = True
             logger.info(f"✅ [TrinityBridge] Neural Bridge ready. Models discovered: {len(self.discovered)}")
+
 
     async def reload_models(self) -> None:
         from backend.database.alchemy_config import alchemy_config
@@ -112,8 +114,10 @@ class TrinityBridge:
 
         max_k, last_err = max(1, self.rotator.get_count()), None
 
-        # Elite V2.2: Xeon Per-Core Thread Locking
-        if self.concurrency_guard is None: self.concurrency_guard = asyncio.Semaphore(4)
+        # [R.C.3 FIX] Tăng Semaphore 4→8 để phù hợp với 8 API keys.
+        # Tránh tình trạng Queue Starvation khi nhiều request cùng chờ.
+        if self.concurrency_guard is None:
+            self.concurrency_guard = asyncio.Semaphore(8)
 
         # Extract shared parameters once (R110: Dependency Injection Support)
         system_prompt = kwargs.pop("system_prompt", None)
@@ -131,34 +135,34 @@ class TrinityBridge:
                         continue
                     if not force and await self.rotator.is_model_daily_exhausted(key, m_name):
                         continue
-                    
+
                     logger.info(f"🧬 [Neural Bridge] {m_name} | Key {att+1}/{max_k} | S: {s_id or 'N/A'}")
-                    
-                    # Elite V2.2: Unified Model Provisioning (Self-Contained for 1.77.0 Safety)
+
                     model_instance = GoogleModel(m_name, provider=GoogleProvider(api_key=key))
                     ms = dict(model_settings_base)
                     if safety_none:
                         ms["google_safety_settings"] = _G_SAFETY_NONE
-                    
-                    # CNS V82.55: Move locked segment only to actual AI execution
+
+                    # [R.C.3 FIX] Semaphore chỉ bảo vệ ĐÚNG tác vụ AI, không bảo vệ cả vòng lặp key.
+                    # Timeout (t) được áp dụng bên trong guard để coroutine có thể bị cancel đúng cách.
                     async with self.concurrency_guard:
                         if system_prompt:
                             with agent.override(instructions=str(system_prompt)):
                                 res = await asyncio.wait_for(
-                                    agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs), 
+                                    agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs),
                                     timeout=t
                                 )
                         else:
                             res = await asyncio.wait_for(
-                                agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs), 
+                                agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs),
                                 timeout=t
                             )
-                    
+
                     if hasattr(res, 'usage'):
                         await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
-                    
+
                     await self.rotator.set_success(key, session_id=s_id)
-                    
+
                     # Elite V2.2: Standardized Result Extraction (Universal Wrapper Bypass)
                     if hasattr(res, 'data'):
                         return res.data
@@ -168,28 +172,29 @@ class TrinityBridge:
 
                 except (asyncio.TimeoutError, TimeoutError):
                     last_err = "Timeout"
+                    logger.warning(f"[TrinityBridge] Model '{m_name}' timed out after {t}s. Breaking to next model.")
                     break
                 except Exception as e:
                     last_err = e
                     cat = self.models_helper.classify_error(str(e))
-                    
+
                     if cat == "fail_fast":
                         raise AIConfigurationError(f"AI Fail-Fast: {e}", m_name, att)
                     if cat == "tool_unsupported":
                         break
                     if not key:
-                        continue 
-                    
+                        continue
+
                     if cat == "rate_limit":
                         if "RESOURCE_EXHAUSTED" in str(e) or "QUOTA/COOLDOWN" in str(e):
                             logger.warning(f"[TrinityBridge] Model '{m_name}' QUOTA EXHAUSTED. Marking for Daily Cooldown.")
                             await self.rotator.mark_model_daily(key, m_name)
-                            break 
+                            break
                         if self.models_helper.is_daily_quota(str(e)):
                             await self.rotator.mark_model_daily(key, m_name)
                         continue
-                    
-                    if cat == "auth_hard": 
+
+                    if cat == "auth_hard":
                         await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
                         continue
                     if cat == "auth_soft":
@@ -198,7 +203,7 @@ class TrinityBridge:
                     if cat == "model_not_found":
                         await self.rotator.mark_model_poisoned(m_name, reason="404")
                         break
-        
+
         raise AIConfigurationError(f"AI Overloaded: {last_err}", str(models[-1]) if models else "N/A", max_k-1)
 
     @asynccontextmanager
