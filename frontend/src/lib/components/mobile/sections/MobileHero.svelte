@@ -157,7 +157,7 @@
             </EditableWrapper>
 
             <!-- Title & Variant -->
-            <h1 class="main-title mb-4">
+            <h1 class="text-3xl font-black text-white tracking-tighter mb-4 italic uppercase leading-none">
               <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
                   {h1}
               </EditableWrapper>

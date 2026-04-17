@@ -16,7 +16,7 @@
   const nextDeal = $derived(shopStore.nextDeal);
   const totalSaved = $derived(shopStore.originalPrice * shopStore.quantity - shopStore.totalAmount);
 
-  let step = $state<'selection' | 'shipping'>('selection');
+  let step = $state<'selection' | 'shipping'>('shipping');
   let name = $state('');
   let phone = $state('');
   let address = $state('');
@@ -68,7 +68,7 @@
 
   function close() { 
     active = false;
-    setTimeout(() => step = 'selection', 300); // Reset after animation
+    setTimeout(() => step = 'shipping', 300); // Reset after animation
   }
   
   function validate() {
@@ -101,16 +101,12 @@
 
   async function handleAction() {
     validationError = null;
-    if (step === 'selection') {
-      step = 'shipping';
-    } else {
-      const err = validate();
-      if (err) {
-        validationError = err;
-        return;
-      }
-      await shopStore.submitCheckout({ name, phone, address });
+    const err = validate();
+    if (err) {
+      validationError = err;
+      return;
     }
+    await shopStore.submitCheckout({ name, phone, address });
   }
 
   function handleInputChange() {
@@ -169,14 +165,6 @@
 
     <!-- Header: Optimized Spacing -->
     <div class="relative flex items-center justify-center px-6 pt-2 pb-4 border-b border-white/5">
-      {#if step === 'shipping'}
-        <button 
-          onclick={() => step = 'selection'} 
-          class="absolute left-6 text-white/40 hover:text-white transition-colors p-2 active:scale-90"
-        >
-          <ArrowLeft class="w-5 h-5" strokeWidth={1.5} />
-        </button>
-      {/if}
 
       <h2 class="text-[13px] font-black uppercase tracking-[0.25em] italic text-white/90">
         {step === 'selection' ? labels.title_select : labels.title_shipping}
@@ -185,78 +173,7 @@
 
     <!-- Scrollable content area -->
     <div class="px-6 py-4 overflow-y-auto custom-scrollbar flex flex-col h-auto max-h-[75dvh] flex-initial">
-      {#if step === 'selection'}
-        <div in:fade={{ duration: 200 }}>
-          <div class="flex items-center gap-4 mb-6 p-4 bg-white/[0.02] rounded-3xl border border-white/5">
-            <div class="w-20 h-20 rounded-2xl overflow-hidden border border-white/5 shrink-0">
-               <img src={product.images[0]} alt={product.name} class="w-full h-full object-cover" />
-            </div>
-            <div class="flex-1">
-               <div class="flex items-baseline gap-2 mb-1">
-                  <span class="text-xl font-black text-white italic">{(shopStore.totalAmount).toLocaleString()}đ</span>
-                  {#if shopStore.originalPrice * shopStore.quantity > shopStore.totalAmount}
-                    <span class="text-[10px] text-white/20 line-through">{(shopStore.originalPrice * shopStore.quantity).toLocaleString()}đ</span>
-                  {/if}
-               </div>
-               <div class="inline-flex items-center gap-1.5 text-[8px] font-black text-luxury-peach uppercase tracking-[0.2em]">
-                  <ShieldCheck class="w-2.5 h-2.5" /> {labels.free_shipping}
-               </div>
-               
-               <!-- Active Deal Placement -->
-               {#if shopStore.quantity >= 3}
-                  <div class="mt-2 inline-flex items-center gap-2 px-2 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-[7px] font-bold text-red-400 uppercase tracking-tight">
-                    <span>🔥 MUA 2 TẶNG 1 ĐÃ KÍCH HOẠT</span>
-                  </div>
-               {/if}
-            </div>
-          </div>
-
-          <!-- Compact Variant Chips -->
-          <div class="space-y-3 mb-6">
-            <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">{labels.variant_label}</span>
-            <div class="flex flex-wrap gap-2">
-              {#each variants as v}
-                <button
-                  onclick={() => shopStore.selectVariant(v)}
-                  class="px-4 py-2.5 rounded-full border transition-all flex items-center gap-3 {shopStore.variant?.id === v.id ? 'border-luxury-copper bg-luxury-copper/10 shadow-lg' : 'border-white/10 bg-white/5 opacity-60'}"
-                >
-                  <span class="text-[11px] font-bold {shopStore.variant?.id === v.id ? 'text-white' : 'text-white/60'} uppercase tracking-tight">
-                    {getVariantTitle(v).split('-')[0].trim()}
-                  </span>
-                  <div class="w-px h-3 bg-white/10"></div>
-                  <span class="text-[11px] font-black italic">{(v.discountPrice || v.price).toLocaleString()}đ</span>
-                </button>
-              {/each}
-            </div>
-          </div>
-          
-
-          <!-- Streamlined Quantity -->
-          <div class="flex justify-between items-center mb-6">
-            <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Số lượng mua</span>
-            <div class="flex items-center bg-white/5 rounded-full p-1 border border-white/5">
-              <button onclick={() => shopStore.setQuantity(shopStore.quantity - 1)} class="w-8 h-8 flex items-center justify-center rounded-full text-white/40 active:bg-white/10 active:text-white transition-all">-</button>
-              <span class="px-4 text-[13px] font-black italic tabular-nums">{shopStore.quantity}</span>
-              <button onclick={() => shopStore.setQuantity(shopStore.quantity + 1)} class="w-8 h-8 flex items-center justify-center rounded-full text-white/40 active:bg-white/10 active:text-white transition-all">+</button>
-            </div>
-          </div>
-
-          <!-- Streamlined Upsell -->
-          {#if nextDeal && !appliedDeal}
-            <button
-              onclick={() => shopStore.setQuantity(shopStore.quantity + nextDeal.missing)}
-              class="w-full p-3 bg-luxury-copper/5 border border-luxury-copper/20 rounded-xl flex items-center justify-between group active:scale-[0.98] transition-all"
-            >
-              <div class="flex items-center gap-3">
-                <span class="text-base">🎁</span>
-                <span class="text-[10px] font-bold text-luxury-copper/80 uppercase tracking-tight">Thêm {nextDeal.missing} hộp để nhận {nextDeal.deal.label}</span>
-              </div>
-              <ArrowRight class="w-3.5 h-3.5 text-luxury-copper/50 group-hover:translate-x-1 transition-transform" />
-            </button>
-          {/if}
-        </div>
-      {:else}
-        <div in:fly={{ x: 20, duration: 300 }}>
+      <div in:fly={{ x: 20, duration: 300 }}>
           <!-- Applied Deal & Savings for Step 2 -->
           {#if appliedDeal || totalSaved > 0}
             <div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-between">
@@ -379,7 +296,6 @@
             </div>
           </div>
         </div>
-      {/if}
     </div>
 
     {#if validationError || shopStore.error}
@@ -414,21 +330,15 @@
           <Loader2 class="w-4 h-4 animate-spin shrink-0" />
         {:else}
           <div class="flex flex-col items-center leading-none relative z-surface">
-            <span class="text-[12px] font-black tracking-widest whitespace-nowrap">{step === 'selection' ? labels.cta_next : labels.cta_submit}</span>
-            {#if step === 'shipping' && totalSaved > 0}
+            <span class="text-[12px] font-black tracking-widest whitespace-nowrap">{labels.cta_submit}</span>
+            {#if totalSaved > 0}
               <span class="text-[9px] font-bold text-white/80 tracking-tighter mt-1.5 whitespace-nowrap drop-shadow-sm">
                 TIẾT KIỆM {totalSaved.toLocaleString()}đ | FREESHIP
               </span>
-            {:else if step === 'selection'}
-              <span class="text-[9px] font-bold text-white/70 tracking-tighter mt-1.5 uppercase whitespace-nowrap">Xác nhận thông tin</span>
             {/if}
           </div>
           
-          {#if step === 'selection'}
-            <ArrowRight class="w-4 h-4 relative z-surface group-hover:translate-x-1 transition-transform shrink-0" />
-          {:else}
-            <ShoppingCart class="w-4 h-4 relative z-surface group-hover:scale-110 transition-transform shrink-0" />
-          {/if}
+          <ShoppingCart class="w-4 h-4 relative z-surface group-hover:scale-110 transition-transform shrink-0" />
         {/if}
       </button>
     </div>

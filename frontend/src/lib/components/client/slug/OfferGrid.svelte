@@ -224,25 +224,31 @@
                 onkeydown={(e) => e.key === 'Enter' && handleSelect(variant)}
                 role="button"
                 tabindex="0"
-                class="package-card p-8 text-left flex flex-col h-full relative cursor-pointer {idx === 1 ? 'popular' : ''} {isCardActive ? 'active border-luxury-sakura shadow-[0_0_80px_rgba(255,183,197,0.3)]' : ''}"
+                class="package-card overflow-hidden text-left flex flex-col h-full relative cursor-pointer {idx === 1 ? 'popular' : ''} {isCardActive ? 'active border-luxury-sakura shadow-[0_0_80px_rgba(255,183,197,0.3)]' : ''}"
               >
+                <!-- TOP HERO IMAGE -->
+                <div class="variant-image-hero relative w-full h-[300px] mb-2 overflow-hidden">
+                  <div class="absolute inset-0 bg-radial-at-t from-luxury-sakura/10 to-transparent pointer-events-none transition-opacity duration-700 {isCardActive ? 'opacity-100' : 'opacity-0'}"></div>
+                  
+                  <img 
+                     src="{product?.images?.[0] ? resolveMediaUrl(product.images[0]) : ''}" 
+                     alt="{getVariantTitle(variant)}" 
+                     class="w-full h-full object-cover drop-shadow-[0_60px_40px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform duration-1000"
+                  />
+                  
+                  <!-- OVERLAY BADGE -->
+                  <div class="absolute top-6 left-6 z-20">
+                    <p class="text-[8px] font-black {idx === 1 ? 'text-luxury-sakura' : 'text-slate-200'} uppercase tracking-[0.4em] px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                       {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
+                    </p>
+                  </div>
+                </div>
 
-           <div class="mb-6 text-center md:text-left">
-             <div class="flex items-center justify-center md:justify-between mb-4">
-               <p class="text-[9px] font-black {idx === 1 ? 'text-luxury-sakura' : 'text-slate-500'} uppercase tracking-[0.6em]">
-                  {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
-               </p>
-             </div>
-              <div class="variant-image-outer mb-6 flex justify-center">
-                <img 
-                   src="{product?.images?.[0] ? resolveMediaUrl(product.images[0]) : ''}" 
-                   alt="{getVariantTitle(variant)}" 
-                   class="w-full h-36 object-contain drop-shadow-[0_40px_60px_rgba(0,0,0,0.6)]"
-                />
-              </div>
-              <h5 class="text-xl font-black text-white mb-4 italic tracking-tight text-center md:text-left">{getVariantTitle(variant)}</h5>
+                <!-- CONTENT WRAPPER -->
+                <div class="px-8 pb-8 pt-4 flex flex-col flex-grow">
+                  <h5 class="text-xl font-black text-white mb-4 italic tracking-tight text-center md:text-left">{getVariantTitle(variant)}</h5>
 
-             <div class="flex items-baseline justify-center md:justify-start flex-nowrap gap-x-4 mb-2">
+                  <div class="flex items-baseline justify-center md:justify-start flex-nowrap gap-x-4 mb-2">
                {#if isCardActive && shopStore.quantity > 1}
                   <span class="original-price text-sm text-slate-600 line-through">{(variant.price * shopStore.quantity).toLocaleString()}đ</span>
                   <span class="text-4xl font-black text-white tabular-nums drop-shadow-[0_0_15px_rgba(255,183,197,0.5)]">

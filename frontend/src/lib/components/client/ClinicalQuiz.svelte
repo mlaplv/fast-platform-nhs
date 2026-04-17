@@ -254,7 +254,7 @@
       <div id="s{currentStep + 1}" class="step-container relative z-surface" in:fly={{ y: 30, duration: 800, easing: quintOut }}>
         <div class="mb-8 md:mb-10 text-left">
           <h3 class="text-4xl md:text-5xl font-semibold text-white mb-3 tracking-[-0.04em] leading-tight">
-            {questions[currentStep].title}
+            {@html questions[currentStep].title}
           </h3>
           <p class="text-luxury-peach/40 font-medium text-lg leading-relaxed">{questions[currentStep].subtitle}</p>
         </div>
@@ -272,7 +272,7 @@
                 <QuizIcon icon={option.icon} />
               </div>
               <div class="flex-1 relative z-surface">
-                <span class="block text-xl font-medium text-white/90 group-hover:text-luxury-gold transition-colors uppercase tracking-tight">{option.label}</span>
+                <span class="block text-xl font-medium text-white/90 group-hover:text-luxury-gold transition-colors uppercase tracking-tight">{@html option.label}</span>
               </div>
               
               <div class="w-10 h-10 rounded-full border border-white/5 group-hover:border-luxury-gold/50 group-hover:bg-luxury-gold/20 flex items-center justify-center transition-all duration-500 relative z-surface">
@@ -311,7 +311,7 @@
             <div class="space-y-6">
               <div>
                 <h4 class="text-xs font-semibold text-luxury-copper/60 mb-2 uppercase tracking-[0.3em]">Phân tích chuyên sâu</h4>
-                <p class="text-white text-2xl md:text-3xl lg:text-4xl font-medium leading-tight tracking-tight">{shopStore.diagnosticResult.analysis}</p>
+                <p class="text-white text-2xl md:text-3xl lg:text-4xl font-medium leading-tight tracking-tight">{@html shopStore.diagnosticResult.analysis}</p>
               </div>
               
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">

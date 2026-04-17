@@ -92,14 +92,14 @@
   <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
   
   {#if !shopStore.diagnosticResult}
-    <div class="mt-2 mb-2" transition:fade>
+    <div class="mt-3 mb-2" transition:fade>
       <div class="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full mb-2 backdrop-blur-md">
         <div class="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></div>
         <span class="text-[7px] uppercase tracking-[0.2em] text-blue-400 font-bold italic">System v2.6+</span>
       </div>
-      <h2 class="text-xl font-bold text-white leading-tight uppercase tracking-tighter italic tiktok-shadow">
+      <h2 class="text-2xl font-bold text-white leading-tight uppercase tracking-tighter italic tiktok-shadow">
         <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ">
-          {product?.metadata?.diagnostics_headline || 'CHẨN ĐOÁN CÁ NHÂN HÓA'}
+          {@html product?.metadata?.diagnostics_headline || 'CHẨN ĐOÁN CÁ NHÂN HÓA'}
         </EditableWrapper>
       </h2>
     </div>
@@ -296,8 +296,12 @@
                   </div>
                 </div>
                 
-                <h3 class="text-xl font-bold text-white mb-6 leading-tight uppercase italic tracking-tight drop-shadow-sm">
-                  {typeof questions[currentStep].title === 'string' ? questions[currentStep].title : 'Đang tải phác đồ...'}
+                <h3 class="text-2xl font-bold text-white mb-6 leading-tight uppercase italic tracking-tight drop-shadow-sm">
+                  {#if typeof questions[currentStep].title === 'string'}
+                    {@html questions[currentStep].title}
+                  {:else}
+                    Đang tải phác đồ...
+                  {/if}
                 </h3>
                 
                 <div class="grid gap-3 content-start overflow-y-auto pb-8 hide-scrollbar">
@@ -311,7 +315,11 @@
                       </div>
                       <div class="flex flex-col overflow-hidden">
                         <span class="text-white/90 font-black text-xs uppercase tracking-tight truncate">
-                          {typeof opt.label === 'string' ? opt.label : 'Lưu trữ...'}
+                          {#if typeof opt.label === 'string'}
+                            {@html opt.label}
+                          {:else}
+                            Lưu trữ...
+                          {/if}
                         </span>
                         <span class="text-[7px] text-white/20 uppercase tracking-[0.3em] font-black mt-0.5 group-hover:text-blue-400/50 transition-colors">SELECT_DATAPOINT</span>
                       </div>

@@ -156,9 +156,9 @@
   }
 </script>
 
-<div class="reviews-mobile-viewport h-full flex flex-col px-6 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden" id="reviews">
+<div class="reviews-mobile-viewport h-full flex flex-col px-4 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden" id="reviews">
   <!-- HUD Header -->
-  <div class="mt-8 mb-8">
+  <div class="mt-3 mb-8">
     <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full backdrop-blur-md mb-6">
       <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
       <span class="text-[9px] uppercase tracking-[0.2em] text-emerald-400 font-black italic">
@@ -169,7 +169,7 @@
     </div>
     
     <div class="header-content text-center mb-8 relative">
-        <h2 class="text-3xl font-black text-white tracking-tighter mb-4 italic uppercase">
+        <h2 class="text-2xl font-black text-white tracking-tighter mb-4 italic uppercase">
           <EditableWrapper path="metadata.reviews_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
             {h1}
           </EditableWrapper>
@@ -206,7 +206,7 @@
     </div>
   </div>
 
-  <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 scrollbar-hide pb-10">
+  <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-4 px-4 scrollbar-hide pb-10">
     {#if isLoading && realReviews.length === 0}
       <div class="py-20 text-center">
         <div class="w-10 h-10 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"></div>
@@ -279,7 +279,7 @@
     transition:fade={{ duration: 300 }}
   >
     <!-- Tactical Header -->
-    <div class="px-6 py-4 flex items-center justify-between border-b border-white/5 bg-white/[0.01] overflow-hidden relative">
+    <div class="px-4 py-4 flex items-center justify-between border-b border-white/5 bg-white/[0.01] overflow-hidden relative">
       <div class="flex items-center gap-3">
         <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
           <ShieldCheck class="w-4 h-4 text-emerald-400" />
@@ -305,7 +305,7 @@
       <div class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
     </div>
 
-    <div class="flex-1 overflow-y-auto px-6 py-8">
+    <div class="flex-1 overflow-y-auto px-4 py-8">
       {#if showSuccess}
         <div class="h-full flex flex-col items-center justify-center text-center pb-20" in:scale={{ duration: 600, easing: elasticOut }}>
           <div class="w-24 h-24 bg-emerald-500/20 rounded-3xl flex items-center justify-center mb-8 border border-emerald-500/40">
@@ -361,7 +361,7 @@
                         <button
                           type="button"
                           onclick={() => { locationSelected = loc; isLocationOpen = false; }}
-                          class="w-full px-6 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] transition-all border-b border-white/5 last:border-none flex items-center justify-between group {locationSelected === loc ? 'bg-emerald-500/10 text-emerald-400' : 'text-white/40 hover:bg-white/[0.03] hover:text-white'}"
+                          class="w-full px-4 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] transition-all border-b border-white/5 last:border-none flex items-center justify-between group {locationSelected === loc ? 'bg-emerald-500/10 text-emerald-400' : 'text-white/40 hover:bg-white/[0.03] hover:text-white'}"
                         >
                           {loc}
                           {#if locationSelected === loc}
@@ -425,7 +425,7 @@
     class="fixed top-8 left-6 right-6 reviews-toast"
     transition:fly={{ y: -50 }}
   >
-    <div class="bg-red-500/20 border border-red-500/40 backdrop-blur-2xl px-6 py-4 rounded-2xl flex items-center gap-3">
+    <div class="bg-red-500/20 border border-red-500/40 backdrop-blur-2xl px-4 py-4 rounded-2xl flex items-center gap-3">
       <div class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></div>
       <span class="text-xs font-black text-red-100 uppercase tracking-widest">{toastMessage}</span>
     </div>

@@ -66,7 +66,7 @@
   const noiseSvg = `data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E`;
 </script>
 
-<div class="h-full flex flex-col px-0 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] relative overflow-hidden bg-black">
+<div class="h-full flex flex-col !px-0 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] relative overflow-hidden bg-black">
   <!-- Premium Ambient Liquid Background (iPhone 18 Aesthetic) -->
   <div class="absolute inset-0 pointer-events-none overflow-hidden">
     <div class="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] opacity-40">
@@ -89,7 +89,7 @@
 
 
   <!-- Optimized Premium Scarcity HUD (Viral 2026) -->
-  <div class="mt-4 mb-2 flex flex-col items-center gap-3 z-surface px-6">
+  <div class="mt-3 mb-2 flex flex-col items-center gap-3 z-surface !px-1">
     <div class="flex items-center gap-1 p-1 bg-white/[0.03] border border-white/10 rounded-full backdrop-blur-3xl shadow-2xl overflow-hidden relative group">
        <!-- Active Glow Background -->
        <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -121,9 +121,9 @@
     </div>
 
     <!-- Master Branding Headline -->
-    <div class="text-center mt-1 w-full px-6">
+    <div class="text-center mt-1 w-full !px-0">
       <div class="max-w-4xl mx-auto text-center relative mb-0">
-      <h3 class="elite-session-headline mb-4 text-center">
+      <h3 class="text-2xl font-black text-center text-white italic tracking-tighter uppercase mb-4">
         <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
           {h1}
         </EditableWrapper>
@@ -140,16 +140,13 @@
       </p>
     </div>
   </div>
-  <div class="flex-1 flex flex-col z-surface overflow-y-auto pb-4 space-y-2.5">
-    <div class="px-1 mt-0">
-        <div class="text-[10px] text-white/40 font-bold mb-4 ml-1 flex items-center gap-2">
-          <div class="w-1 h-1 bg-blue-500 rounded-full animate-ping"></div> Lựa chọn gói liệu trình:
-        </div>
+  <div class="flex-1 flex flex-col z-surface overflow-y-auto pb-4 space-y-2.5 !px-0">
+    <div class="!px-0 !mt-0 !w-full">
        <div class="grid grid-cols-1 gap-0">
          {#each variants as variant, i}
             <button 
               onclick={() => handleSelect(i)}
-              class="relative w-full text-left py-3 px-4 border-y border-x-0 transition-all duration-700 flex items-center gap-4 group active:scale-[0.98] {selectedIndex === i ? 'bg-white/[0.06] backdrop-blur-3xl text-white border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.3)] z-surface' : 'bg-transparent text-white/30 border-white/5 hover:bg-white/5'}"
+              class="relative w-full text-left py-3 !px-2 border-y border-x-0 transition-all duration-700 flex items-center gap-4 group active:scale-[0.98] {selectedIndex === i ? 'bg-white/[0.06] backdrop-blur-3xl text-white border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.3)] z-surface' : 'bg-transparent text-white/30 border-white/5 hover:bg-white/5'}"
             >
                <!-- Liquid Border Accent (Only Active) -->
                {#if selectedIndex === i}
@@ -159,7 +156,7 @@
 
                  
                  <!-- Liquid Image Container (Premium iPhone 18 Style) -->
-                 <div class="w-28 h-28 rounded-[2px] overflow-hidden flex items-center justify-center shrink-0 shadow-inner relative transition-all duration-700 {selectedIndex === i ? 'bg-white/10 scale-105 shadow-2xl ring-1 ring-white/20' : 'bg-white/5 border border-white/5 opacity-40'}">
+                 <div class="w-20 h-20 rounded-[2px] overflow-hidden flex items-center justify-center shrink-0 shadow-inner relative transition-all duration-700 {selectedIndex === i ? 'bg-white/10 scale-105 shadow-2xl ring-1 ring-white/20' : 'bg-white/5 border border-white/5 opacity-40'}">
                     {#if (product.tierVariations?.[0]?.images?.[variant.tierIndex?.[0]]) || variant.image_url || variant.imageUrl || variant.image || (product.images && product.images[i]?.url) || (product.images && product.images[0]?.url)}
                       <img 
                         src={resolveMediaUrl(product.tierVariations?.[0]?.images?.[variant.tierIndex?.[0]] || variant.image_url || variant.imageUrl || variant.image || (product.images && product.images[i]) || (product.images && product.images[0]))} 
@@ -199,36 +196,13 @@
        </div>
     </div>
 
-    <!-- Locked Free-ship Badge (Elite FOMO) -->
-    <div class="flex items-center justify-center gap-4 py-1">
-       <div class="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-2xl flex items-center gap-3 backdrop-blur-2xl shadow-lg relative overflow-hidden group">
-          <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-          <div class="relative w-6 h-6 flex items-center justify-center bg-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-             <Lock class="w-3 h-3 text-white" />
-          </div>
-          <div class="flex flex-col">
-             <span class="text-[9px] font-black text-white uppercase tracking-[0.1em]">Ưu đãi đã được khóa</span>
-             <span class="text-[8px] font-bold text-emerald-400/80 uppercase">FREESHIP TOÀN QUỐC CHO BẠN</span>
-          </div>
-       </div>
-       
-       <div class="bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-2xl flex items-center gap-3 backdrop-blur-2xl shadow-lg">
-          <div class="w-6 h-6 flex items-center justify-center bg-blue-500 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.4)]">
-             <CheckCircle2 class="w-3.5 h-3.5 text-white" />
-          </div>
-          <div class="flex flex-col">
-             <span class="text-[9px] font-black text-white uppercase tracking-[0.1em]">Hệ thống bảo mật</span>
-             <span class="text-[8px] font-bold text-blue-400/80 uppercase">KIỂM HÀNG - THANH TOÁN</span>
-          </div>
-       </div>
-    </div>
     
   </div>
   
   <!-- Unified CTA (Liquid Sapphire Masterpiece - FOMO Optimized) -->
-  <div class="mt-auto z-nav pt-1 pb-1 px-4 relative">
+  <div class="mt-auto z-nav pt-1 pb-1 !px-0 relative">
       <!-- Upsell/Incentive Header (Only if not optimal) -->
-      <div class="flex flex-col gap-4 mb-6 pl-2 pr-4">
+      <div class="flex flex-col gap-4 mb-6 px-0">
         {#each (metadata.active_deals || []) as deal}
           {@const isActive = shopStore.quantity === (deal.buy_qty + (deal.get_qty || 0))}
           {@const totalQty = deal.buy_qty + (deal.get_qty || 0)}
@@ -237,7 +211,7 @@
           
           <button 
              onclick={() => shopStore.setQuantity(totalQty)}
-             class="w-full text-left relative transition-all duration-700 active:scale-[0.98] py-2"
+             class="w-full text-left relative transition-all duration-700 active:scale-[0.98] py-2 !px-2"
           >
              <!-- 🚀 Selection Backglow (Naked HUD Aesthetic) -->
              {#if isActive}
@@ -247,7 +221,7 @@
                 ></div>
              {/if}
 
-             <div class="relative flex items-center justify-between gap-4">
+             <div class="relative flex items-center justify-between gap-2">
                 <!-- 🎯 Absolute Top-Right Selection Stick (Badge Style) -->
                 {#if isActive}
                    <div 
@@ -277,7 +251,7 @@
                            <span class="text-[7.5px] font-black text-blue-400 uppercase tracking-widest bg-blue-500/5 px-1.5 py-0.5 rounded border border-blue-500/10">Khuyên dùng</span>
                         {/if}
                       </div>
-                      <h3 class="text-[14px] font-semibold {isActive ? 'text-white' : 'text-white/20'} leading-tight tracking-tight pr-8">
+                      <h3 class="text-[14px] font-semibold {isActive ? 'text-white' : 'text-white/20'} leading-tight tracking-tight">
                         {deal.label || 'Liệu trình cao cấp'}
                       </h3>
                       <div class="flex items-baseline gap-2 mt-0.5">
@@ -321,7 +295,7 @@
          <!-- Orbital Glow Pulse (FOMO) -->
          <div class="absolute inset-0 rounded-full border border-blue-400/20 animate-pulse opacity-50"></div>
          
-         <div class="relative z-surface flex items-center justify-between w-full px-5 gap-2">
+         <div class="relative z-surface flex items-center justify-between w-full px-4 gap-2">
             <span class="text-white drop-shadow-md text-[14px] font-black leading-tight flex-1 pr-2">{selectedIndex === 0 ? mkt.cta_start : mkt.cta_full}</span>
 
             <div class="flex items-center gap-3 shrink-0">
