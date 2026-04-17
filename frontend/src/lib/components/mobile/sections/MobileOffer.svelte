@@ -187,6 +187,11 @@
                              <span class="text-[9px]"></span> {mkt.label_expert_choice}
                           </div>
                        {/if}
+                       {#if variant.attributes?.combo_qty && variant.attributes.combo_qty > 1}
+                         <div class="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-black text-[7px] uppercase tracking-widest">
+                           Combo x{variant.attributes.combo_qty}
+                         </div>
+                       {/if}
                     </div>
                    <span class="font-black uppercase tracking-tight italic text-[15px] leading-tight transition-colors duration-500 {selectedIndex === i ? 'text-white' : 'text-white/40'}">{getVariantTitle(variant)}</span>
                    <div class="flex items-center gap-3">
@@ -195,6 +200,25 @@
                        <span class="text-[12px] {selectedIndex === i ? 'text-white/20' : 'text-white/10'} line-through font-bold opacity-60">{(variant.price).toLocaleString()}đ</span>
                      {/if}
                    </div>
+
+                   <!-- Mini Gifts (Viral 2026 UI) -->
+                   {#if variant.attributes?.gifts && variant.attributes.gifts.length > 0}
+                     <div class="mt-2 flex flex-wrap gap-2">
+                       {#each variant.attributes.gifts as gift}
+                         <div class="flex items-center gap-1.5 bg-white/5 py-1 px-1.5 rounded-lg border border-white/5 group/gift">
+                            <div class="w-5 h-5 rounded-md overflow-hidden bg-black/40 border border-white/10 shrink-0">
+                               {#if gift.image}
+                                 <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                               {:else}
+                                 <div class="w-full h-full flex items-center justify-center text-[6px] text-white/20 uppercase font-black">Gift</div>
+                               {/if}
+                            </div>
+                            <span class="text-[8px] font-bold {selectedIndex === i ? 'text-white/70' : 'text-white/20'} truncate max-w-[60px]">{gift.name}</span>
+                            <span class="text-[8px] font-black text-amber-500 opacity-80">x{gift.qty}</span>
+                         </div>
+                       {/each}
+                     </div>
+                   {/if}
                  </div>
                </div>
             </button>

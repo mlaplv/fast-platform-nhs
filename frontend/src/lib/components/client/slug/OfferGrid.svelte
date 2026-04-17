@@ -276,41 +276,66 @@
                 </p>
               </div>
            </div>
-
-           <ul class="bullet-list mb-8 flex-grow space-y-2">
-             {#if variant.attributes?.gifts && variant.attributes.gifts.length > 0}
-               <li class="flex flex-col gap-1.5 mt-2 mb-3 bg-gradient-to-r from-luxury-sakura/10 to-transparent p-3 rounded-xl border border-luxury-sakura/20 transform hover:scale-[1.02] transition-transform">
-                 <span class="text-[10px] text-luxury-sakura font-black uppercase tracking-widest flex items-center gap-1.5">
-                    <Zap class="w-3 h-3 animate-pulse" /> QUÀ TẶNG ĐỘC QUYỀN:
-                 </span>
-                 <div class="flex flex-col gap-0.5">
-                   {#each variant.attributes.gifts as gift}
-                     <span class="text-[11px] text-white/90 font-medium pl-1 tracking-wide">
-                        + {gift.name} <span class="text-luxury-gold ml-1 font-black">x{gift.qty}</span>
-                     </span>
-                   {/each}
-                 </div>
-               </li>
-             {/if}
-             {#each getFeatures(variant, idx, isCardActive) as feature}
+            <div class="flex flex-col flex-grow">
+              <ul class="bullet-list space-y-2 mb-6">
+                {#each getFeatures(variant, idx, isCardActive) as feature}
+                   <li class="flex items-center gap-3">
+                     <span class="text-luxury-sakura font-black">✦</span>
+                     <span class="text-[11px] font-black uppercase tracking-wide text-white/80">{feature.replace(/^[+!-]/, '')}</span>
+                   </li>
+                {/each}
                 <li class="flex items-center gap-3">
                   <span class="text-luxury-sakura font-black">✦</span>
-                  <span class="text-[11px] font-black uppercase tracking-wide text-white/80">{feature.replace(/^[+!-]/, '')}</span>
+                  <a href="/chinh-sach-kiem-hang" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-wide text-luxury-sakura hover:underline">
+                    Kiểm tra hàng trước nhận
+                  </a>
                 </li>
-             {/each}
-             <li class="flex items-center gap-3">
-               <span class="text-luxury-sakura font-black">✦</span>
-               <a href="/chinh-sach-kiem-hang" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-wide text-luxury-sakura hover:underline">
-                 Kiểm tra hàng trước nhận
-               </a>
-             </li>
-             <li class="flex items-center gap-3">
-               <span class="text-luxury-sakura font-black">✦</span>
-               <a href="/chinh-sach-doi-tra-hoan-tien" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-wide text-luxury-sakura hover:underline">
-                 Đổi trả 7 ngày
-               </a>
-             </li>
-           </ul>
+                <li class="flex items-center gap-3">
+                  <span class="text-luxury-sakura font-black">✦</span>
+                  <a href="/chinh-sach-doi-tra-hoan-tien" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-wide text-luxury-sakura hover:underline">
+                    Đổi trả 7 ngày
+                  </a>
+                </li>
+              </ul>
+
+              <!-- Premium Combo & Gift Flow (Viral 2026 / Elite V2.2) - Moved to bottom for layout stability -->
+              {#if variant.attributes?.gifts && variant.attributes.gifts.length > 0}
+                <div class="gift-section-wrapper mt-auto mb-2">
+                  <div class="flex flex-col gap-2 bg-gradient-to-br from-luxury-sakura/20 via-luxury-sakura/5 to-transparent p-4 rounded-2xl border border-luxury-sakura/20 shadow-[0_10px_30px_rgba(255,183,197,0.1)] group/gift-box hover:border-luxury-sakura/40 transition-all duration-500">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-[10px] text-luxury-sakura font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                         <div class="relative flex h-2 w-2">
+                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-luxury-sakura opacity-75"></span>
+                           <span class="relative inline-flex rounded-full h-2 w-2 bg-luxury-sakura"></span>
+                         </div>
+                         QUÀ TẶNG ĐỘC QUYỀN
+                      </span>
+                      {#if variant.attributes?.combo_qty && variant.attributes.combo_qty > 1}
+                        <span class="text-[9px] bg-luxury-gold/20 text-luxury-gold px-2 py-0.5 rounded-full font-black border border-luxury-gold/10">COMBO X{variant.attributes.combo_qty}</span>
+                      {/if}
+                    </div>
+                    
+                    <div class="flex flex-col gap-2.5">
+                      {#each variant.attributes.gifts as gift}
+                        <div class="flex items-center gap-3 group/gift-item">
+                          <div class="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black/40 flex items-center justify-center p-0.5 group-hover/gift-item:border-luxury-sakura/50 transition-colors">
+                            {#if gift.image}
+                              <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover rounded-sm" loading="lazy" />
+                            {:else}
+                              <Zap size={14} class="text-luxury-sakura/40" />
+                            {/if}
+                          </div>
+                          <div class="flex flex-col">
+                             <span class="text-[11px] text-white/90 font-bold tracking-wide group-hover/gift-item:text-luxury-sakura transition-colors">{gift.name}</span>
+                             <span class="text-[9px] text-luxury-gold font-black uppercase tracking-tighter">Số lượng: x{gift.qty}</span>
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                </div>
+              {/if}
+            </div>
 
            <div class="liquid-cta-viral text-white min-h-[64px] rounded-2xl font-black shadow-2xl relative overflow-hidden flex items-center justify-center px-4 w-full mt-4 pointer-events-none transition-all duration-500 {isCardActive ? 'border-2 border-luxury-sakura bg-luxury-sakura/10 scale-[1.03]' : ''}">
               <div class="relative z-10 flex items-center gap-4 w-full justify-center">

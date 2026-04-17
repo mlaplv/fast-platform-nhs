@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { ChevronLeft, ChevronRight, Zap, Bookmark } from 'lucide-svelte';
+  import { ChevronLeft, ChevronRight, Zap, Bookmark, Gift, Sparkles, Package } from 'lucide-svelte';
   import type { Product } from '$lib/types';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
+  import { resolveMediaUrl } from '$lib/state/utils';
   
   interface Props {
     product: Product;
@@ -160,6 +161,44 @@
       <h1 class="product-title">{product.name}</h1>
       <button class="bookmark-btn"><Bookmark size={22} /></button>
     </div>
+
+    <!-- COMBO & GIFTS MINI (Viral 2026) -->
+    {#if product.variants?.[0]?.attributes?.combo_qty || (product.variants?.[0]?.attributes?.gifts && product.variants[0].attributes.gifts.length > 0)}
+      {@const firstVar = product.variants[0]}
+      <div class="mb-4 bg-gradient-to-br from-[#fdf2f2] to-white p-3 rounded-xl border border-[#ee4d2d]/10">
+         <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+               <Gift size={16} class="text-[#ee4d2d]" />
+               <span class="text-[11px] font-black uppercase text-gray-800 tracking-wider">Quà tặng đi kèm</span>
+            </div>
+            {#if firstVar.attributes.combo_qty && firstVar.attributes.combo_qty > 1}
+               <div class="bg-[#ee4d2d]/10 text-[#ee4d2d] text-[9px] font-black px-2 py-0.5 rounded-full border border-[#ee4d2d]/20 flex items-center gap-1">
+                  <Package size={10} /> COMBO X{firstVar.attributes.combo_qty}
+               </div>
+            {/if}
+         </div>
+         
+         {#if firstVar.attributes.gifts && firstVar.attributes.gifts.length > 0}
+            <div class="flex flex-col gap-2">
+               {#each firstVar.attributes.gifts as gift}
+                  <div class="flex items-center gap-3">
+                     <div class="w-10 h-10 rounded-lg overflow-hidden bg-white border border-gray-100 shrink-0 shadow-sm">
+                        {#if gift.image}
+                           <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                        {:else}
+                           <div class="w-full h-full flex items-center justify-center text-gray-200"><Sparkles size={14} /></div>
+                        {/if}
+                     </div>
+                     <div class="flex flex-col">
+                        <span class="text-[12px] font-bold text-gray-900 leading-tight">{gift.name}</span>
+                        <span class="text-[10px] text-[#ee4d2d] font-black italic">Tặng kèm x{gift.qty}</span>
+                     </div>
+                  </div>
+               {/each}
+            </div>
+         {/if}
+      </div>
+    {/if}
 
     <div class="product-stats-row">
       <div class="rating-box">

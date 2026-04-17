@@ -3,9 +3,10 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { goto } from '$app/navigation';
   import type { Product, ProductVariant } from '$lib/types';
-  import { ShoppingCart, Minus, Plus, Star } from 'lucide-svelte';
+  import { ShoppingCart, Minus, Plus, Star, Gift, Package, Sparkles } from 'lucide-svelte';
   import { Volume2, VolumeX } from 'lucide-svelte';
   import ProductDetailReviews from './ProductDetailReviews.svelte';
+  import { resolveMediaUrl } from '$lib/state/utils';
 
   /** Detect video URL: mp4, webm, mov, ogg … */
   function isVideoUrl(url: string | undefined | null): boolean {
@@ -580,6 +581,60 @@
             </div>
          </div>
       </div>
+
+      <!-- COMBO & GIFTS SECTION (Viral 2026 UI) -->
+      {#if currentVariant?.attributes?.combo_qty || (currentVariant?.attributes?.gifts && currentVariant.attributes.gifts.length > 0)}
+        <div class="px-5 mb-6">
+          <div class="bg-gradient-to-br from-[#fdf2f2] to-[#fff] border-2 border-[#ee4d2d]/10 p-5 relative overflow-hidden group/combo-box shadow-sm">
+              <!-- Background Decorative Elements -->
+              <div class="absolute -top-10 -right-10 w-32 h-32 bg-[#ee4d2d]/5 rounded-full blur-3xl group-hover/combo-box:bg-[#ee4d2d]/10 transition-colors"></div>
+              
+              <div class="flex items-start gap-4 relative z-10">
+                <div class="mt-1">
+                  <div class="w-10 h-10 rounded-full bg-[#ee4d2d] flex items-center justify-center text-white shadow-lg shadow-[#ee4d2d]/20">
+                    <Gift size={20} />
+                  </div>
+                </div>
+                
+                <div class="flex-1 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-[14px] font-black uppercase tracking-widest text-gray-800">Ưu đãi độc quyền</h3>
+                    {#if currentVariant.attributes.combo_qty && currentVariant.attributes.combo_qty > 1}
+                      <div class="bg-[#d0011b] text-white text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-md">
+                        <Package size={10} /> COMBO X{currentVariant.attributes.combo_qty}
+                      </div>
+                    {/if}
+                  </div>
+                  
+                  {#if currentVariant.attributes.gifts && currentVariant.attributes.gifts.length > 0}
+                    <div class="grid grid-cols-1 gap-2.5">
+                      {#each currentVariant.attributes.gifts as gift}
+                        <div class="flex items-center gap-3 bg-white/60 backdrop-blur-md p-2 border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/20 transition-all group/gift-item rounded-sm">
+                          <div class="w-12 h-12 rounded-sm overflow-hidden bg-gray-50 border border-gray-100 shrink-0 group-hover/gift-item:scale-105 transition-transform shadow-sm">
+                            {#if gift.image}
+                              <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                            {:else}
+                              <div class="w-full h-full flex items-center justify-center bg-gray-50 text-gray-300">
+                                <Sparkles size={16} />
+                              </div>
+                            {/if}
+                          </div>
+                          <div class="flex flex-col">
+                            <span class="text-[13px] font-bold text-gray-900 leading-tight">{gift.name}</span>
+                            <div class="flex items-center gap-2 mt-0.5">
+                              <span class="text-[11px] text-gray-500 font-medium">Số lượng:</span>
+                              <span class="text-[11px] text-[#ee4d2d] font-black italic">x{gift.qty}</span>
+                            </div>
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+              </div>
+          </div>
+        </div>
+      {/if}
 
       <!-- CTA BUTTONS (Elite V2.2 Sharp) -->
       <div class="px-5 flex gap-4 mt-auto pb-4">
