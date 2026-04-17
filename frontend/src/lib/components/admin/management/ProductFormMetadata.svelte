@@ -71,15 +71,10 @@
     }
   }
 
-  /** Khi video_url thay đổi → tự động detect duration */
-  $effect(() => {
-    const url = formMetadata?.video_url;
-    if (url && isVideoFile(url)) {
-      // Dùng untrack để khỏi check $derived lặp
-      autoDetectEndTime(url);
-    }
-  });
-
+  /* 
+   * Xóa $effect() ở đây để tránh bị ghi đè video_end_time khi mở load bài từ DB.
+   * Chức năng tự động detect giờ sẽ được chuyển sang onchange của ô nhập URL.
+   */
 </script>
 
 <div class="flex flex-col gap-6">
@@ -126,6 +121,12 @@
       <input
         type="text"
         bind:value={formMetadata.video_url}
+        onchange={() => {
+          const url = formMetadata.video_url;
+          if (url && isVideoFile(url)) {
+            autoDetectEndTime(url);
+          }
+        }}
         placeholder="/static/video/HN_TikTok.mp4  hoặc  https://youtu.be/xxxx"
         class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-amber-500/50 transition-colors"
       />

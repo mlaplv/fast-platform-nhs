@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount, untrack } from "svelte";
   import Settings from "lucide-svelte/icons/settings";
   import Image from "lucide-svelte/icons/image";
   import FileText from "lucide-svelte/icons/file-text";
@@ -13,8 +12,7 @@
   import ProductFormSeo from "./ProductFormSeo.svelte";
   import ProductFormSpecs from "./ProductFormSpecs.svelte";
   import ProductFormVariants from "./ProductFormVariants.svelte";
-  import { processContentImages } from "$lib/state/utils";
-  import type { MediaAsset, Product } from "$lib/types";
+  import type { Product } from "$lib/types";
 
   let {
     isOpen = false,
@@ -87,30 +85,6 @@
   let reserve_assets = $state<string[]>([]);
   let selectedAvatarUrl = $state<string | null>(null);
   let selectedAssetIndex = $state(0);
-  let contentAssets = $state<(MediaAsset | string)[]>([]);
-
-  // ⚡ PERF: One-time asset extraction
-  let assetsExtracted = false;
-
-  $effect(() => {
-    if (formDescription && formDescription.includes("[IMAGE_")) {
-      const assets = untrack(() => contentAssets);
-      formDescription = processContentImages(formDescription, assets);
-    }
-  });
-
-  onMount(() => {
-    if (formDescription && !assetsExtracted) {
-      assetsExtracted = true;
-      const imgRegex = /<img[^>]+src=["']([^"']+)["']/g;
-      const found: string[] = [];
-      let match: RegExpExecArray | null;
-      while ((match = imgRegex.exec(formDescription)) !== null) {
-        if (match[1] && !found.includes(match[1])) found.push(match[1]);
-      }
-      if (found.length > 0) contentAssets = found;
-    }
-  });
 
   function handleVariantImageSelect(url: string) {
     if (variantEditTierIndex !== null && variantEditOptionIndex !== null) {

@@ -352,7 +352,7 @@
 
 <div class="w-full h-full flex flex-col relative bg-[#050505] isolation-auto">
   <!-- Fixed Background Layer (Rule R03: Ultra-Fast UX) -->
-  <div class="fixed inset-0 bg-[#050505] pointer-events-none -z-10"></div>
+  <div class="absolute inset-0 bg-[#050505] pointer-events-none -z-10"></div>
   
   <div class="flex flex-col gap-6 p-6 border-b border-white/[0.05] relative z-10 bg-[#050505]">
     {#if !isHeaderCollapsed}
