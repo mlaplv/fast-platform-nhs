@@ -10,6 +10,14 @@
   let dragY = $state(0);
   let isDragging = $state(false);
   let startY = 0;
+  let contentRef = $state<HTMLElement | null>(null);
+
+  // Elite V2.2: Reset scroll position when opening to ensure starting at top
+  $effect(() => {
+    if (active && contentRef) {
+      contentRef.scrollTop = 0;
+    }
+  });
 
   function onPointerDown(e: PointerEvent) {
     isDragging = true;
@@ -68,13 +76,13 @@
       <div class="w-10 h-1 bg-white/10 rounded-full"></div>
     </div>
 
-    <!-- Close Button -->
+    <!-- Close Button (Elegant Ghost - Elite V2.2) -->
     <button
       onclick={close}
-      class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/20 hover:text-white transition-all z-header active:scale-90 active:bg-white/5 rounded-tr-[inherit]"
+      class="absolute right-6 top-6 text-white/30 hover:text-white transition-all z-[1100] active:scale-75 outline-none border-none bg-transparent"
       aria-label="Đóng"
     >
-      <X class="w-5 h-5" strokeWidth={1.5} />
+      <X size={22} strokeWidth={1.2} />
     </button>
 
     <!-- Header: Sticky at the top -->
@@ -86,7 +94,10 @@
     </div>
 
     <!-- Scrollable Description Body -->
-    <div class="px-6 py-6 overflow-y-auto custom-scrollbar flex-1 relative elite-prose">
+    <div 
+      bind:this={contentRef}
+      class="px-6 py-6 overflow-y-auto custom-scrollbar flex-1 relative elite-prose select-text"
+    >
       {#if product?.description}
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
         {@html product.description}
@@ -109,61 +120,90 @@
 </div>
 
 <style lang="postcss">
-  /* Elite Prose Typography for Admin HTML content */
+  /* Elite Prose Typography - VIRAL 2026 PREMIUM EDITION */
   .elite-prose {
+    font-family: 'Be Vietnam Pro', sans-serif;
     font-size: 15px;
     line-height: 1.8;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.7);
+    text-align: left; /* 🚀 CRITICAL FIX: Stops the "chuối" justified text gaps */
+    word-break: break-word;
+    letter-spacing: -0.01em;
   }
 
-  /* Safe subset of prose styles to format arbitrary HTML gracefully in dark mode */
+  /* Premium Headings with Sapphire-to-Emerald Gradient */
   :global(.elite-prose h1, .elite-prose h2, .elite-prose h3) {
+    font-family: 'Be Vietnam Pro', sans-serif;
     color: white;
-    font-weight: 900;
-    line-height: 1.3;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-    letter-spacing: -0.02em;
+    font-weight: 950;
+    line-height: 1.2;
+    margin-top: 2.5rem;
+    margin-bottom: 1.25rem;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    position: relative;
+    width: fit-content;
   }
   
-  :global(.elite-prose h1) { font-size: 1.5rem; }
-  :global(.elite-prose h2) { font-size: 1.25rem; }
-  :global(.elite-prose h3) { font-size: 1.125rem; }
+  :global(.elite-prose h1) { font-size: 1.4rem; }
+  :global(.elite-prose h2) { 
+    font-size: 1.15rem;
+    color: #fff;
+    border-left: 3px solid #00A3FF;
+    padding-left: 14px;
+    margin-left: -20px;
+    background: linear-gradient(90deg, rgba(0, 163, 255, 0.1) 0%, transparent 100%);
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  
+  :global(.elite-prose h3) { 
+    font-size: 0.95rem; 
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.9);
+  }
 
   :global(.elite-prose p) {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.85;
   }
 
   :global(.elite-prose strong, .elite-prose b) {
-    color: white;
-    font-weight: 700;
+    color: #fff;
+    font-weight: 800;
   }
 
+  /* Viral Glowy Bullets */
   :global(.elite-prose ul) {
-    list-style-type: disc;
-    padding-left: 1.25rem;
-    margin-bottom: 1.25rem;
-  }
-
-  :global(.elite-prose ol) {
-    list-style-type: decimal;
-    padding-left: 1.25rem;
-    margin-bottom: 1.25rem;
+    list-style-type: none;
+    padding-left: 0.5rem;
+    margin-bottom: 2rem;
   }
 
   :global(.elite-prose li) {
-    margin-bottom: 0.5rem;
+    position: relative;
+    padding-left: 1.75rem;
+    margin-bottom: 1rem;
+    line-height: 1.6;
   }
-  
-  :global(.elite-prose li::marker) {
-    color: rgba(255, 255, 255, 0.4);
+
+  :global(.elite-prose li::before) {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 6px;
+    height: 6px;
+    background: #00A3FF;
+    border-radius: 50%;
+    box-shadow: 0 0 12px #00A3FF, 0 0 4px #00A3FF;
   }
 
   :global(.elite-prose a) {
-    color: #3b82f6;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    transition: color 0.2s;
+    color: #00A3FF;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s;
   }
 
   :global(.elite-prose a:hover) {

@@ -2,7 +2,7 @@
   import { onMount, tick } from 'svelte';
   import { fade, fly, scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { Sparkles, ArrowRight, ShieldCheck, RefreshCw, Cpu, Database, Activity } from 'lucide-svelte';
+  import { Sparkles, ArrowRight, ShieldCheck, RefreshCw, Cpu, Database, Activity, Circle, Zap, Timer, Calendar, Dna, PlusCircle, ShieldX } from 'lucide-svelte';
   import { SHOP_CONFIG } from '$lib/constants/shop';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
@@ -15,7 +15,7 @@
   const questions = $derived(metadata?.quiz_questions || []);
   
   const labels = $derived({
-    headline: metadata?.diagnostics_headline || 'CHẨN ĐOÁN CÁ NHÂN HÓA',
+    headline: metadata?.diagnostics_headline || 'CHẨN ĐOÁN PHỤC HỒI <br/><span class="text-blue-500">SẮC TỐ GỐC</span>',
     subheadline: metadata?.diagnostics_subheadline || `Để hệ thống chẩn đoán của ${SHOP_CONFIG.pharmacy.name} thiết lập liệu trình liều lượng chính xác nhất.`,
     result_headline: metadata?.quiz_result_headline || 'LIỆU TRÌNH OPTIMAL.',
     result_subheadline: metadata?.quiz_result_subheadline || 'Hệ thống AI đề xuất: Bạn cần liệu trình {quantity} lọ để đạt hiệu quả tối ưu.',
@@ -77,6 +77,20 @@
     }
   }
 
+  // Elite V2.2: Icon Resolver for Quiz Options
+  const iconMap: Record<string, any> = {
+    'Circle': Circle,
+    'Zap': Zap,
+    'Sparkles': Sparkles,
+    '😊': Sparkles,
+    '😐': Activity,
+    '🕒': Timer,
+    '📅': Calendar,
+    '🧬': Dna,
+    'Plus': PlusCircle,
+    'none': Circle
+  };
+
   function restart() {
     currentStep = 0;
     answers = [];
@@ -97,11 +111,11 @@
         <div class="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></div>
         <span class="text-[7px] uppercase tracking-[0.2em] text-blue-400 font-bold italic">System v2.6+</span>
       </div>
-      <h2 class="text-2xl font-bold text-white leading-tight uppercase tracking-tighter italic tiktok-shadow">
-        <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ">
-          {@html product?.metadata?.diagnostics_headline || 'CHẨN ĐOÁN CÁ NHÂN HÓA'}
-        </EditableWrapper>
-      </h2>
+        <h2 class="text-2xl font-bold text-white leading-tight uppercase tracking-tighter italic tiktok-shadow">
+          <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ">
+            {@html (product?.metadata?.diagnostics_headline || 'CHẨN ĐOÁN PHỤC HỒI <span class="text-blue-500">SẮC TỐ GỐC</span>').replace('SẮC TỐ GỐC', '<br/>SẮC TỐ GỐC')}
+          </EditableWrapper>
+        </h2>
     </div>
   {/if}
 
@@ -296,7 +310,7 @@
                   </div>
                 </div>
                 
-                <h3 class="text-2xl font-bold text-white mb-6 leading-tight uppercase italic tracking-tight drop-shadow-sm">
+                <h3 class="text-xl font-bold text-white mb-6 leading-tight uppercase italic tracking-tight drop-shadow-sm">
                   {#if typeof questions[currentStep].title === 'string'}
                     {@html questions[currentStep].title}
                   {:else}
@@ -310,8 +324,19 @@
                       onclick={() => nextStep(opt.value, opt.label)}
                       class="w-full py-4 px-5 bg-white/[0.04] border border-white/10 rounded-2xl text-left flex items-center gap-4 group active:scale-[0.97] transition-all duration-300 hover:bg-white/[0.08] hover:border-blue-500/30"
                     >
-                      <div class="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-xl group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-all border border-white/5 shadow-inner">
-                        {opt.icon || (idx + 1)}
+                      <!-- Option Icon: Viral Bio-Pulse (Elite V2.2) -->
+                      <div class="relative w-11 h-11 shrink-0">
+                        <div class="absolute inset-0 bg-blue-500/10 rounded-full blur-[8px] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div class="relative w-full h-full bg-white/5 rounded-full flex items-center justify-center text-lg font-black group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-all border border-white/5 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] overflow-hidden">
+                          {#if opt.icon && iconMap[opt.icon]}
+                            {@const IconComp = iconMap[opt.icon]}
+                            <IconComp size={18} strokeWidth={2} class="drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                          {:else if opt.icon && opt.icon.length <= 2}
+                            <span class="drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">{opt.icon}</span>
+                          {:else}
+                            <span class="text-[14px] text-white/40 group-hover:text-blue-400">{idx + 1}</span>
+                          {/if}
+                        </div>
                       </div>
                       <div class="flex flex-col overflow-hidden">
                         <span class="text-white/90 font-black text-xs uppercase tracking-tight truncate">
