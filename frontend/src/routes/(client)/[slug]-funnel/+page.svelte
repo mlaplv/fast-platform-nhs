@@ -24,6 +24,7 @@
   // Admin Live Editor (Elite V2.2)
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { permissionState } from '$lib/state/permissions.svelte';
+  import { fomoStore } from '$lib/state/commerce/fomo.svelte';
 
   let { data }: { data: PageData } = $props();
   let themeMode = $state<'system' | 'light' | 'dark'>('system');
@@ -96,6 +97,9 @@
       
       // Helen V2.2: Persistent Memory & Context Injection
       supportAgent.init(metadata.agent_name || 'Helen');
+
+      // Viral 2026: Fomo Activity Init
+      if (product?.slug) fomoStore.init(product.slug);
       
       // Admin Editor Init
       if (product) {
@@ -347,9 +351,9 @@
     <SupportAgentFAB isMobile={false} />
     <SupportChatDesktop productSlug={product.slug} />
 
-    <!-- FOMO NOTIFICATION (Elite V2.2 Social Proof) -->
-    {#await import('$lib/components/client/slug/FomoNotification.svelte') then { default: FomoNotification }}
-      <FomoNotification />
+    <!-- NEURAL ACTIVITY BAR (Viral 2026 Social Proof) -->
+    {#await import('$lib/components/client/common/NeuralActivityBar.svelte') then { default: NeuralActivityBar }}
+      <NeuralActivityBar />
     {/await}
   {:else}
     <div class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white">

@@ -1,6 +1,9 @@
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, List
+from sqlalchemy import select, desc
 from backend.services.xohi_memory import xohi_memory
+from backend.database import async_session_maker
+from backend.database.models.commerce import Order
 
 logger = logging.getLogger("api-gateway")
 
@@ -55,5 +58,56 @@ class FomoService:
         if visitor_count >= 2:
             return "TRENDING"    # "Growing interest in this item"
         return "QUIET"           # Focus on product quality instead
+
+    async def get_recent_activities(self) -> List[dict]:
+        """
+        Elite V2.2: Fetch real recent orders and combine with visitor metrics.
+        Returns anonymized activity feed.
+        """
+        activities = []
+        
+        # 1. Get Live Visitor Count
+        visitors = await self.get_active_visitors_count()
+        if visitors > 3:
+            activities.append({
+                "type": "VISITORS",
+                "count": visitors,
+                "msg": f"Có {visitors} người cũng đang xem như bạn",
+                "icon": "Users"
+            })
+
+        # 2. Get Recent Orders
+        async with async_session_maker() as db_session:
+            try:
+                stmt = select(Order).where(Order.is_spam == False).order_by(desc(Order.created_at)).limit(5)
+                res = await db_session.execute(stmt)
+                orders = res.scalars().all()
+                
+                for order in orders:
+                    # Anonymize: "Nguyễn Văn A" -> "Anh A."
+                    name = order.customer_name or "Khách hàng"
+                    if len(name.split()) > 1:
+                        parts = name.split()
+                        name = f"{parts[0]} {parts[-1][0]}."
+                    
+                    activities.append({
+                        "type": "ORDER",
+                        "name": name,
+                        "action": "vừa sở hữu thành công",
+                        "time": "vừa xong",
+                        "icon": "ShoppingBag"
+                    })
+            except Exception as e:
+                logger.error(f"[FomoService] Error fetching recent orders: {e}")
+
+        # 3. AI Hybrid: If no orders, add a Scarcity/Trending vibe
+        if not activities:
+            activities.append({
+                "type": "TRENDING",
+                "msg": "Sản phẩm đang được quan tâm đặc biệt bởi AI",
+                "icon": "Zap"
+            })
+
+        return activities
 
 fomo_service = FomoService()

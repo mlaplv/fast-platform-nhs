@@ -6,6 +6,7 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
+  import { typewriter } from '$lib/actions/typewriter';
   import { fade } from 'svelte/transition';
 
   const shopStore = getShopStore();
@@ -204,65 +205,14 @@
 
   const ctaText = $derived(labels.cta_text);
   const metrics = $derived(labels.metrics);
-  let displayText = $state("");
   let isTypingComplete = $state(false);
 
-  const typeWriter = (signal: AbortSignal) => {
-    if (!browser) return;
-    const parts = rawHeadline.split(/(<[^>]+>)/g);
-    
-    const tokens: { text: string; delay: number }[] = [];
-    for (const part of parts) {
-      if (part.startsWith("<")) {
-        tokens.push({ text: part, delay: 0 });
-      } else {
-        for (const char of part) {
-          const isPunctuation = ['.', ',', '!', '?'].includes(char);
-          const delay = isPunctuation ? 500 : 45 + Math.random() * 55;
-          tokens.push({ text: char, delay });
-        }
-      }
-    }
-
-    let currentText = "";
-    let tokenIdx = 0;
-    let nextStepTime = performance.now() + 600;
-
-    const tick = (now: number) => {
-      if (signal.aborted) return;
-      
-      let changed = false;
-      while (tokenIdx < tokens.length && now >= nextStepTime) {
-        currentText += tokens[tokenIdx].text;
-        nextStepTime += tokens[tokenIdx].delay;
-        tokenIdx++;
-        changed = true;
-      }
-
-      if (changed) {
-        displayText = currentText;
-      }
-
-      if (tokenIdx < tokens.length) {
-        requestAnimationFrame(tick);
-      } else {
-        isTypingComplete = true;
-      }
-    };
-
-    requestAnimationFrame(tick);
-  };
-
   $effect(() => {
-    if (browser && !liveEditStore.isEditMode && rawHeadline && rawHeadline !== lastTypedHeadline) {
-      const controller = new AbortController();
-      displayText = "";
-      isTypingComplete = false;
-      lastTypedHeadline = rawHeadline;
-      typeWriter(controller.signal);
-      return () => { controller.abort(); };
-    }
+    if (rawHeadline) isTypingComplete = false;
   });
+
+  // Elite V2.2: The actual headline is derived from shopStore metadata
+  // We use the centralized typewriter action to handle the animation
 </script>
 
   <section
@@ -309,8 +259,14 @@
   <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface" style:padding-top="var(--standard-pt)">
     <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
       <h1 class="elite-hero-headline typing-headline text-center">
-        {#if !liveEditStore.isEditMode && !isTypingComplete && displayText}
-          {@html displayText}
+        {#if !liveEditStore.isEditMode}
+          <span 
+            use:typewriter={{ 
+                text: rawHeadline, 
+                speed: 40,
+                onComplete: () => isTypingComplete = true 
+            }}
+          ></span>
         {:else}
           {#if !rawH1.startsWith('[OFF]') || liveEditStore.isEditMode}
             <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">

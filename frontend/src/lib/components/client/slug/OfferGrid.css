@@ -211,3 +211,24 @@
     .offer-section { padding: 60px 0; }
     .package-grid { gap: 1rem; }
 }
+
+/* Tablet Optimization (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .package-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 1.5rem !important;
+        padding: 0 1rem;
+    }
+
+    .package-card {
+        border-radius: 2rem; /* Slightly smaller radius for tablet */
+    }
+
+    .variant-image-hero {
+        height: 240px; /* Reduced image height to prevent excessive vertical scrolling */
+    }
+
+    .package-card.active {
+        transform: translateY(-5px) scale(1.02);
+    }
+}

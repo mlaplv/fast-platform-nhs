@@ -19,6 +19,7 @@
   // Support Agent
   import SupportChatMobile from '../client/support/SupportChatMobile.svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
+  import NeuralActivityBar from '../client/common/NeuralActivityBar.svelte';
 
   import './mobile.css';
 
@@ -187,4 +188,7 @@
 
   <!-- AI Medical Assistant (Viral 2026 - TikTok Style) -->
   <SupportChatMobile productSlug={product?.slug} />
+
+  <!-- Neural Social Proof -->
+  <NeuralActivityBar />
 </div>

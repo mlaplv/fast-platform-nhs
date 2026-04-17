@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import { ShieldCheck, Tag, Sparkles } from 'lucide-svelte';
+  import { Tag, Sparkles } from 'lucide-svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { fade, fly, scale } from 'svelte/transition';
+  import { scale } from 'svelte/transition';
+  import { spring } from 'svelte/motion';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
 
@@ -37,19 +38,35 @@
   ]);
 
   let scrolled = $state(false);
-  let scrollY = $state(0);
   let hoverId = $state<string | null>(null);
+  
+  // Elite V2.2: Advanced Sliding Logic
+  let navElements = $state<Record<string, HTMLElement>>({});
+  const highlighterPos = spring({ left: 0, width: 0 }, { stiffness: 0.08, damping: 0.4 });
 
-  const handleScroll = () => {
-    if (!browser) return;
-    scrollY = window.scrollY;
-    scrolled = scrollY > 50;
+  const updateHighlighter = (id: string | null) => {
+    if (!id || !navElements[id]) return;
+    const el = navElements[id];
+    highlighterPos.set({
+      left: el.offsetLeft,
+      width: el.offsetWidth
+    });
   };
+
+  $effect(() => {
+    const target = hoverId || activeId;
+    if (browser && target) {
+      updateHighlighter(target);
+    }
+  });
 
   onMount(() => {
     if (browser) {
+      const handleScroll = () => { scrolled = window.scrollY > 50; };
       window.addEventListener('scroll', handleScroll, { passive: true });
       handleScroll();
+      // Initial pos
+      setTimeout(() => updateHighlighter(activeId), 100);
       return () => window.removeEventListener('scroll', handleScroll);
     }
   });
@@ -58,18 +75,32 @@
 </script>
 
 <div class={headerClass}>
-  <div class="fluid-island-container">
-    <!-- Viral 2026: Bokeh Background for the Island -->
-    <div class="bokeh-layer absolute inset-0 overflow-hidden rounded-full pointer-events-none">
-       <div class="bokeh-dot" style:left="{(navLinks.findIndex(l => l.id === (hoverId || activeId)) * 100) / navLinks.length}%"></div>
-    </div>
+  <nav class="fluid-island-container">
+    <div class="liquid-island bg-[#0A0A0A]/70 backdrop-blur-[30px] border border-white/10 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative overflow-hidden">
+      
+      <!-- Premium Glass Refraction Glare (Viral Animation) -->
+      <div class="liquid-glare absolute inset-0 pointer-events-none opacity-20 bg-gradient-to-r from-transparent via-white to-transparent -translate-x-full animate-shine"></div>
 
-    <div class="liquid-island bg-black/40 backdrop-blur-[40px] border border-white/5 rounded-full shadow-[0_30px_100px_rgba(0,0,0,0.8)] relative">
-      <div class="island-content px-6 py-3 flex items-center justify-center gap-10 md:gap-14">
+      <!-- Sliding Highlighter (The "Liquid" Core) -->
+      {#if $highlighterPos.width > 0}
+        <div 
+          class="sliding-highlighter absolute top-1.5 bottom-1.5 rounded-full bg-white/10 border border-white/10 shadow-[0_0_30px_rgba(255,255,255,0.1)] z-0"
+          style:left="{$highlighterPos.left}px"
+          style:width="{$highlighterPos.width}px"
+        >
+          <!-- Internal Glow Edge (Liquid Light) -->
+          <div class="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
+          <!-- Bottom Indicator Bar (Sleek replacement for the dot) -->
+          <div class="absolute inset-x-1/2 -translate-x-1/2 bottom-[2px] w-6 h-[1.5px] bg-white rounded-full shadow-[0_0_12px_white]"></div>
+        </div>
+      {/if}
+
+      <div class="island-content relative z-10 px-2 py-1.5 flex items-center gap-0.5">
         {#each navLinks as link}
           <a
             href={link.href}
-            class="island-link relative group flex items-center gap-2 transition-all duration-500 {activeId === link.id ? 'is-active' : 'text-white/40 hover:text-white'}"
+            bind:this={navElements[link.id]}
+            class="island-link relative flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 {activeId === link.id ? 'is-active text-white' : 'text-white/40 hover:text-white/80'}"
             onmouseenter={() => hoverId = link.id}
             onmouseleave={() => hoverId = null}
             onclick={(e) => {
@@ -80,25 +111,23 @@
             }}
           >
             {#if link.icon}
-               <link.icon class="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
+               <link.icon class="w-3.5 h-3.5 transition-transform duration-500 {activeId === link.id ? 'scale-110' : 'opacity-60'}" />
             {/if}
-            <span class="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] font-outfit">
+            
+            <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] font-inter whitespace-nowrap">
                <EditableWrapper path={`metadata.nav_label_${link.id === 'hero' ? 'home' : (link.id === 'result-timeline' ? 'transformation' : link.id)}`} type="text" label="SỬA ĐIỀU HƯỚNG" as="span">
                  {link.label}
                </EditableWrapper>
             </span>
             
             {#if activeId === link.id}
-               <div class="active-indicator absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-luxury-gold rounded-full shadow-[0_0_10px_var(--luxury-gold)]" in:scale={{ duration: 600 }}></div>
+               <!-- Elite V2.2: Removed the ugly dot, using highlighter glow instead -->
             {/if}
           </a>
         {/each}
       </div>
-
-      <!-- Refraction Lens Effect -->
-      <div class="lens-glare absolute inset-0 rounded-full bg-gradient-to-tr from-white/5 via-transparent to-white/5 pointer-events-none opacity-50"></div>
     </div>
-  </div>
+  </nav>
 </div>
 
 <style>
@@ -107,14 +136,14 @@
     top: 2rem;
     left: 50%;
     transform: translateX(-50%);
-    z-index: var(--z-sticky-header);
+    z-index: var(--z-header);
     transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
     pointer-events: none;
   }
 
   .liquid-header-wrapper.is-collapsed {
-    top: 1rem;
-    transform: translateX(-50%) scale(0.95);
+    top: 1.25rem;
+    transform: translateX(-50%) scale(0.9);
   }
 
   .fluid-island-container {
@@ -130,48 +159,68 @@
     text-shadow: 0 0 20px rgba(0,0,0,0.5);
   }
 
-  .island-link.is-active {
-    color: var(--luxury-gold);
-    filter: drop-shadow(0 0 10px rgba(232, 213, 176, 0.3));
+  /* PREMIUM SHINE ANIMATION */
+  @keyframes shine {
+    0% { transform: translateX(-150%) skewX(-30deg); }
+    30% { transform: translateX(150%) skewX(-30deg); }
+    100% { transform: translateX(150%) skewX(-30deg); }
   }
 
-  /* BOKEH EFFECT */
-  .bokeh-layer {
-     z-index: 0;
-  }
-
-  .bokeh-dot {
-     position: absolute;
-     top: 50%;
-     transform: translateY(-50%);
-     width: 100px;
-     height: 40px;
-     background: var(--luxury-copper);
-     filter: blur(25px);
-     opacity: 0.15;
-     transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+  .animate-shine {
+    animation: shine 8s infinite ease-in-out;
   }
 
   .liquid-island:hover {
-     transform: translateY(-2px);
-     border-color: rgba(193, 143, 126, 0.2);
-     box-shadow: 0 40px 120px rgba(0,0,0,0.9);
+     border-color: rgba(255, 255, 255, 0.15);
+     box-shadow: 0 30px 100px rgba(0,0,0,0.7);
+     transform: translateY(-1px);
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1024px) {
     .liquid-header-wrapper {
-       width: 90%;
+       width: 95%;
+       max-width: fit-content;
     }
+  }
+
+  /* Tablet Refinement (768px - 1024px): Keep labels but compact */
+  @media (min-width: 768px) and (max-width: 1024px) {
     .island-content {
-       gap: 1.25rem;
-       padding: 0.75rem 1rem;
+       gap: 0.15rem;
+       padding: 0.35rem;
+    }
+    .island-link {
+       padding-left: 0.65rem;
+       padding-right: 0.65rem;
     }
     .island-link span {
-       display: none; /* Icon only on small mobile to avoid cramped text */
+       font-size: 9px !important;
+       letter-spacing: 0.1em !important;
+    }
+  }
+
+  /* Mobile Only: Hide labels to save space */
+  @media (max-width: 767px) {
+    .island-content {
+       gap: 0.1rem;
+       padding: 0.4rem;
+    }
+    .island-link {
+       padding-left: 0.75rem;
+       padding-right: 0.75rem;
+    }
+    .island-link span {
+       display: none;
     }
     .island-link.is-active span {
-       display: inline-block; /* Show only active label */
-       font-size: 8px;
+       display: inline-block;
+       font-size: 9px;
     }
+  }
+
+  @media (max-width: 480px) {
+     .liquid-header-wrapper.is-collapsed {
+        transform: translateX(-50%) scale(0.85);
+     }
   }
 </style>

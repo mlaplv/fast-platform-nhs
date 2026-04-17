@@ -201,7 +201,7 @@
       {/each}
     </div>
 
-    <div class="package-grid pt-20 {gridClass} gap-6 items-stretch">
+    <div class="package-grid pt-8 {gridClass} gap-6 items-stretch">
       {#each variants as variant, idx (idx)}
           {@const isCardActive = shopStore.variant?.id === variant.id}
           {@const unitPrice = variant.discountPrice || variant.price}

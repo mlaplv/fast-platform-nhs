@@ -112,7 +112,13 @@
 
 @media (max-width: 1024px) {
   .review-card {
-    flex: 0 0 calc(85% - 1rem); /* Show ~1.2 cards for standard iPad */
+    flex: 0 0 calc(65% - 1rem); /* Elite V2.2: Show ~1.5 cards for better hinting on Tablet */
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1024px) {
+  .review-card {
+     flex: 0 0 calc(48% - 1rem); /* Show ~2.1 cards on wider tablets/landscape */
   }
 }
 

@@ -70,6 +70,7 @@ from backend.routers.voice_core import stt_websocket
 from backend.controllers.tts_handler import TTSController
 from backend.routers.intent_map import IntentMapController
 from backend.routers.scheduler_router import SchedulerController
+from backend.controllers.client.fomo import FomoController
 
 from backend.middleware import AuthMiddleware
 from backend.body_limit import BodyLimitMiddleware
@@ -90,7 +91,10 @@ logger = logging.getLogger("api-gateway")
 allowed_origins = [
     os.getenv("ADMIN_URL", "https://admin.micsmo.com"),
     os.getenv("API_URL", "https://api.micsmo.com"),
-    os.getenv("APP_URL", "https://micsmo.com")
+    os.getenv("APP_URL", "https://micsmo.com"),
+    "https://smartshop.test",
+    "https://admin.smartshop.test",
+    "https://api.smartshop.test"
 ]
 cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS")
 if cors_origins_str:
@@ -116,7 +120,8 @@ app = Litestar(
         BannerController, stt_websocket, TTSController, IntentMapController, SchedulerController, DiagnosticController,
         AdminReviewController, PublicReviewController, SupportController, ClientPulseController, AdminSupportController, AdminSupportInboxController,
         PublicNewsController, ClientSettingsController, ClientUserController, PromotionController,
-        ClientNotificationController
+        ClientNotificationController,
+        FomoController
     ],
     middleware=[StallDetectorMiddleware, BodyLimitMiddleware, rate_limit_config.middleware, AuthMiddleware, DomainGuardMiddleware, AuditMiddleware],
     cors_config=cors_config,

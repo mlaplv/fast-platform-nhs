@@ -8,22 +8,8 @@
   /* Protection against fixed header */
   scroll-margin-top: 80px;
   /* Professional Standard */
-  --blue-rgb: 193, 143, 126; /* REPLACED with Copper */
-  --copper-rgb: 193, 143, 126;
-  --gold-rgb: 232, 213, 176;
-  --peach-rgb: 227, 181, 164;
-  --indigo-rgb: 99, 102, 241;
-  --emerald-rgb: 16, 185, 129;
-  --sakura-rgb: 255, 183, 197;
-  --headline-mb: 3rem;
-
-  /* Z-INDEX REGISTRY (Standardization!) */
-  --z-bg: 0;
-  --z-beam: 5;
-  --z-product: 10;
-  --z-hud: 20;
-  --z-cta: 30;
-  --z-nav: 100;
+  /* Z-INDEX REGISTRY (Standardization: elite-v2.2-compliant) */
+  /* Centralized in src/lib/core/constants/zIndex.ts */
 
   & .hud-frame {
     position: relative;
@@ -65,9 +51,13 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    
+
     @media (min-width: 768px) {
       flex-direction: row;
+    }
+
+    @media (min-width: 768px) and (max-width: 1024px) {
+      margin-top: calc(clamp(2rem, 8vh, 10rem) - 110px) !important;
     }
   }
 
@@ -110,18 +100,22 @@
 
   & .video-vignette-top {
     position: absolute;
-    top: 0; left: 0; right: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 12rem;
-    background: linear-gradient(to bottom, #020617 0%, rgba(2,6,23,0.65) 50%, transparent 100%);
+    background: linear-gradient(to bottom, #020617 0%, rgba(2, 6, 23, 0.65) 50%, transparent 100%);
     z-index: 2;
     pointer-events: none;
   }
 
   & .video-vignette-bottom {
     position: absolute;
-    bottom: 0; left: 0; right: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
     height: 12rem;
-    background: linear-gradient(to top, #020617 0%, rgba(2,6,23,0.55) 50%, transparent 100%);
+    background: linear-gradient(to top, #020617 0%, rgba(2, 6, 23, 0.55) 50%, transparent 100%);
     z-index: 2;
     pointer-events: none;
   }
@@ -131,9 +125,9 @@
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(to right, rgba(2,6,23,0.75) 0%, transparent 30%),
-      linear-gradient(to left,  rgba(2,6,23,0.75) 0%, transparent 30%),
-      radial-gradient(ellipse 75% 55% at 50% 50%, transparent 25%, rgba(2,6,23,0.4) 100%);
+      linear-gradient(to right, rgba(2, 6, 23, 0.75) 0%, transparent 30%),
+      linear-gradient(to left, rgba(2, 6, 23, 0.75) 0%, transparent 30%),
+      radial-gradient(ellipse 75% 55% at 50% 50%, transparent 25%, rgba(2, 6, 23, 0.4) 100%);
     z-index: 2;
     pointer-events: none;
   }
@@ -144,11 +138,8 @@
   }
 
   & .cinematic-grading {
-    filter: 
-      contrast(1.05) 
-      saturate(1.03) 
-      brightness(0.98) 
-      drop-shadow(0 20px 50px rgba(0,0,0,0.5));
+    filter:
+      contrast(1.05) saturate(1.03) brightness(0.98) drop-shadow(0 20px 50px rgba(0, 0, 0, 0.5));
     transition: all 1s ease;
   }
 
@@ -160,11 +151,27 @@
   }
 
   @keyframes grain-shift {
-    0%, 100% { transform: translate(0, 0); }
-    20% { transform: translate(-1%, 2%); }
-    40% { transform: translate(3%, -1%); }
-    60% { transform: translate(-2%, -3%); }
-    80% { transform: translate(1%, 2%); }
+
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+
+    20% {
+      transform: translate(-1%, 2%);
+    }
+
+    40% {
+      transform: translate(3%, -1%);
+    }
+
+    60% {
+      transform: translate(-2%, -3%);
+    }
+
+    80% {
+      transform: translate(1%, 2%);
+    }
   }
 
   & .font-mono {
@@ -210,8 +217,15 @@
   }
 
   @keyframes fade-in {
-    from { opacity: 0; transform: translate(-50%, 10px); }
-    to { opacity: 1; transform: translate(-50%, 0); }
+    from {
+      opacity: 0;
+      transform: translate(-50%, 10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
   }
 
   & .flashlight-beam {
@@ -297,6 +311,13 @@
       align-items: flex-start;
       margin-top: 0;
       margin-bottom: 0;
+      padding-left: 1.5rem;
+      /* Elite V2.2: Side breathing room */
+    }
+
+    @media (min-width: 768px) and (max-width: 1024px) {
+      gap: 0.85rem;
+      /* Tighter gap for tablet */
     }
   }
 
@@ -307,7 +328,8 @@
       font-size: clamp(1.125rem, 2vw, 1.5rem) !important;
       font-family: 'Inter', sans-serif !important;
       font-weight: 700 !important;
-      letter-spacing: -0.03em !important;
+      letter-spacing: -0.01em !important;
+      /* Slightly tighter for tablet */
     }
   }
 
@@ -364,7 +386,8 @@
       /* Prevent wrapping on title only! */
 
       @media (min-width: 768px) and (max-width: 1024px) {
-        font-size: clamp(1rem, 2.5vw, 1.25rem) !important;
+        font-size: clamp(1rem, 1.8vw, 1.15rem) !important;
+        /* Elite V2.2: Tighter for tablet */
       }
     }
 
@@ -372,15 +395,18 @@
       font-family: 'Inter', sans-serif;
       font-weight: 400;
       color: #94a3b8;
-      line-height: 1.6;
+      line-height: 1.5;
+      /* Elite V2.2: Tighter line height */
       opacity: 0.7;
       transition: opacity 0.4s ease;
 
       /* TABLET ONLY: constrain and allow wrap */
       @media (min-width: 768px) and (max-width: 1024px) {
         white-space: normal;
-        max-width: 280px;
+        max-width: 240px;
+        /* Reduced max-width for column stability */
         overflow-wrap: break-word;
+        font-size: 0.85rem;
       }
     }
   }
@@ -717,31 +743,27 @@ html {
 
 .typing-cursor {
   display: inline-block;
-  width: 2px;
-  height: 0.8em;
+  width: 3px;
+  height: 0.85em;
   /* Premium Gradient Beam: Blue -> Emerald -> Gold -> Red */
   background: linear-gradient(to bottom,
       #3b82f6 0%,
-      /* Blue */
       #10b981 40%,
-      /* Emerald */
       #fcd34d 70%,
-      /* Gold/Yellow */
-      #ef4444 100%
-      /* Red */
-    );
+      #ef4444 100%);
   margin-left: 8px;
-  vertical-align: middle;
-  border-radius: 99px;
+  vertical-align: baseline;
+  transform: translateY(-0.08em);
+  /* Precise optical lift for All-Caps headlines */
+  border-radius: 4px;
   /* Cinematic Glow */
-  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) drop-shadow(0 0 12px rgba(239, 68, 68, 0.4));
-  animation: cursor-smooth-pulse 1.2s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.7)) drop-shadow(0 0 15px rgba(239, 68, 68, 0.5));
+  animation: cursor-smooth-pulse 1.1s ease-in-out infinite;
   will-change: opacity, transform;
 
   &.is-complete {
     opacity: 0;
     width: 0;
-    /* Maintain layout but hide and shrink width to prevent final snap */
   }
 }
 
