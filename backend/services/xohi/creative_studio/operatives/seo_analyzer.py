@@ -7,7 +7,9 @@ import copy
 from typing import List, Dict, Union, Optional
 from datetime import datetime, timezone
 
+from pydantic import BaseModel
 from pydantic_ai import Agent
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.utils.http_client import get_http_client
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
@@ -86,19 +88,62 @@ CALIBRATION:
 """
 
 
+class SeoAnalyzerTaskRequest(BaseModel):
+    """Worker task payload for SeoAnalyzer."""
+    campaign_id: str
+    force: bool = False
+
 class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
     """
     On-Demand SEO Analyzer for Step 4 Content Studio — 2026 Edition.
     Uses Gemini AI to evaluate content against 7 modern ranking signals.
     Returns per-passage seo_annotations for inline editor highlighting.
     """
+    agent_id_class = "seo_analyzer"
+    _seo_semaphore = asyncio.Semaphore(1)
 
-    def __init__(self):
+    def __init__(self, **kwargs: object):
         super().__init__(agent_id="seo_analyzer")
         # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation
         self._agent = Agent(output_type=SeoReport, system_prompt=SEO_ANALYSIS_PROMPT, retries=3)
 
     # Heritage Mixin handles _emit_progress
+
+    async def chat(self, request: object, **kwargs: object) -> Union[SeoReport, dict]:
+        """Standardized Heritage Entry (V2.2). Maps to self.analyze."""
+        if isinstance(request, ContentCampaign):
+            return await self.analyze(request, force=bool(kwargs.get("force", False)))
+        from typing import cast as _cast
+        return await self.analyze(_cast(ContentCampaign, request), **kwargs)  # type: ignore
+
+    def get_schema(self) -> Optional[type]:
+        return SeoAnalyzerTaskRequest
+
+    async def process_brain_logic(self, request: SeoAnalyzerTaskRequest, db: AsyncSession) -> SeoReport:
+        """Elite V2.2: Async worker execution for SEO analysis."""
+        repo = ContentCampaignRepository(session=db)
+        campaign = await repo.get(request.campaign_id)
+        if not campaign:
+            raise ValueError(f"Campaign {request.campaign_id} not found")
+
+        result = await self.analyze(campaign, force=request.force)
+
+        # Persist results to campaign's gold_metadata
+        import hashlib
+        gold = dict(campaign.gold_metadata or {})
+        cache = dict(gold.get("analysis_cache", {}))
+        metrics = dict(gold.get("analysis_metrics", {}))
+        content_hash = hashlib.sha256((campaign.draft_content or "").encode('utf-8')).hexdigest()
+        cache["seo"] = {"hash": content_hash, "data": result.model_dump(), "at": datetime.now(timezone.utc).isoformat()}
+        metrics["seo_score"] = result.total_score
+        metrics["seo_grade"] = result.grade
+        gold["analysis_cache"], gold["analysis_metrics"] = cache, metrics
+        campaign.gold_metadata = gold
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(campaign, "gold_metadata")
+        await repo.update(campaign)
+        return result
+
 
     async def _fetch_competitors(self, keyword: str) -> List[str]:
         """Fetch top competitor content for semantic comparison."""

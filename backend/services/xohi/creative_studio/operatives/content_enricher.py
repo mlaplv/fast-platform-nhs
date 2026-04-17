@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 import os
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Type, cast
 from datetime import datetime, timezone
 
 from pydantic_ai import Agent
@@ -52,11 +52,19 @@ Nhiệm vụ: Nâng cấp bài viết bằng cách chèn Data Thật (Stats), Ý
 - Bạn PHẢI trả về toàn bộ bài viết qua công cụ `final_result`. Đây là yêu cầu BẮT BUỘC.
 """
 
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+class EnrichTaskRequest(BaseModel):
+    campaign_id: str
+    force: bool = False
+
 class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
     """
     Auto-enriches articles with real stats, quotes, and comparison tables.
     Pushes SEO scores from 85 to 95+.
     """
+    agent_id_class = "content_enricher"
     
     def __init__(self):
         super().__init__(agent_id="content_enricher")
@@ -69,6 +77,26 @@ class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             return await self.enrich(request)
         # Fallback for generic calls (duck typing)
         return await self.enrich(cast(ContentCampaign, request))
+
+    def get_schema(self) -> Optional[Type[BaseModel]]:
+        return EnrichTaskRequest
+
+    async def process_brain_logic(self, request: EnrichTaskRequest, db: AsyncSession) -> EnrichResponse:
+        repo = ContentCampaignRepository(session=db)
+        campaign = await repo.get(request.campaign_id)
+        if not campaign:
+            raise ValueError(f"Campaign {request.campaign_id} not found")
+
+        result = await self.enrich(campaign)
+        
+        # Enrich changes draft_content
+        if result.new_content and result.new_content != campaign.draft_content:
+            campaign.draft_content = result.new_content
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(campaign, "draft_content")
+            await repo.update(campaign)
+            
+        return result
 
     async def _search_data(self, query: str) -> list[str]:
         """Fetch search snippets for a query related to the topic."""
@@ -183,14 +211,14 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
                 logger.error(f"[Enricher] AI returned invalid data. Result: {result is not None} | Data: N/A")
                 logger.error(f"[Enricher] Message History Trace:\n{history}")
                 logger.error(f"[Enricher] Last Message Raw (first {MAX_HISTORY_TRACE_CHARS} chars): {raw_text[:MAX_HISTORY_TRACE_CHARS]}")
-                await self._emit_log(campaign, "❌ Hệ thống AI không phản hồi đúng định dạng.")
+                await self._emit_progress(campaign, "❌ Hệ thống AI không phản hồi đúng định dạng.")
                 raise ValueError("AI fail to generate enriched content structure. Check backend logs for trace.")
         else:
             result_data = result.data
             
         logger.info(f"[Enricher] Enrichment successful. Stats: {result_data.stats_added}, Quotes: {result_data.quotes_added}, Tables: {result_data.tables_added}")
         logs.append(f"✅ Hoàn tất! Đã chèn {result_data.stats_added} số liệu, {result_data.quotes_added} câu quote và {result_data.tables_added} bảng so sánh.")
-        await self._emit_log(campaign, logs[-1])
+        await self._emit_progress(campaign, logs[-1])
         
         # CNS V85.24: Reliable Auto-Extraction of items from HTML
         new_html = result_data.new_content

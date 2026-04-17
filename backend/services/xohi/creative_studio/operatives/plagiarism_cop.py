@@ -167,7 +167,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             comps = await self._fetch_competitor_snippets(campaign, kw, logs=logs)
 
             logs.append("🧠 Đang nạp dữ liệu vào Neural Engine (Trinity Core)...")
-            await self._emit_log(campaign, logs[-1])
+            await self._emit_progress(campaign, logs[-1])
             try:
                 prompt = f"[BÀI VIẾT]\n{('\n'.join(deduped))[:12000]}\n\n[ĐỐI THỦ]\n{'\n'.join(comps)}"
                 res = await self.bridge.run(self._agent, prompt, force=force, role="brain")

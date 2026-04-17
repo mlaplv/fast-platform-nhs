@@ -15,9 +15,10 @@ from datetime import datetime, timezone
 # Ensure all operatives are imported so they register themselves (R0.2)
 import backend.services.commerce.operatives.support_agent
 import backend.services.xohi.creative_studio.operatives.plagiarism_cop
+import backend.services.xohi.creative_studio.operatives.seo_analyzer
+import backend.services.xohi.creative_studio.operatives.ai_inspector
+import backend.services.xohi.creative_studio.operatives.content_enricher
 from backend.infra.jobs import cleanup_old_tasks, helen_follow_up_job
-# Add other XoHi agents to ensure registration if needed
-
 logger = logging.getLogger("neural-worker")
 
 async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, session_id: str, payload: Dict[str, object]) -> None:

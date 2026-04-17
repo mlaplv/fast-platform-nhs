@@ -1,12 +1,15 @@
 import re
 import asyncio
 import logging
+import hashlib
 from datetime import datetime, timezone
-from typing import List, Dict, Union, Optional, cast
+from typing import List, Dict, Union, Optional, cast, Type
 from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent
+from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models import ContentCampaign
-from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from backend.services.ai_engine.core.agent_base import BaseAgentOperative, XoHiProgressMixin
+from backend.database.repositories import ContentCampaignRepository
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.xohi.creative_studio.models.schemas import (
     AiReadyReport, AutoFixResponse, BulkFixResponse, BulkFixRequest,
@@ -17,26 +20,65 @@ from .ai_inspector_prompts import GEO_ANALYSIS_PROMPT, SURGEON_PROMPT, ATOMIC_SU
 
 logger = logging.getLogger("api-gateway")
 
-class AiInspector:
+class AiInspectorTaskRequest(BaseModel):
+    """Worker task payload for AiInspector."""
+    campaign_id: str
+    force: bool = False
+
+class AutoFixRequest(BaseModel):
+    """Request for auto-fix a single annotation."""
+    text: str = ""
+    message: str = ""
+
+class AiInspector(BaseAgentOperative, XoHiProgressMixin):
     """
     VIRAL EDGE Algorithm — AI-powered SEO & AI-Ready Auditor.
     Complying with Martial Law (<300 lines) by externalizing prompts.
     """
-    def __init__(self):
+    agent_id_class = "ai_inspector"
+
+    def __init__(self, **kwargs: object):
+        super().__init__(agent_id="ai_inspector")
         self._agent = Agent(output_type=AiReadyReport, system_prompt=GEO_ANALYSIS_PROMPT, retries=3)
         self._surgeon_agent = Agent(output_type=AutoFixResponse, system_prompt=SURGEON_PROMPT, retries=2)
         self._atomic_surgeon_agent = Agent(output_type=AtomicFixResponse, system_prompt=ATOMIC_SURGEON_PROMPT, retries=2)
 
-    async def _emit_log(self, campaign: ContentCampaign, msg: str):
-        """Emit progress event to the system bus."""
-        from backend.services.event_bus import event_bus
-        await event_bus.emit("CONTENT_PROGRESS", {
-            "campaign_id": str(campaign.id),
-            "user_id": str(campaign.user_id),
-            "message": msg,
-            "status": "PROCESSING",
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+    async def _emit_log(self, campaign: ContentCampaign, msg: str) -> None:
+        """Backward-compat alias → delegates to Heritage _emit_progress."""
+        await self._emit_progress(campaign, msg)
+
+    async def chat(self, request: object, **kwargs: object) -> Union[AiReadyReport, dict]:
+        """Standardized Heritage Entry (V2.2). Maps to self.analyze."""
+        if isinstance(request, ContentCampaign):
+            return await self.analyze(request, force=bool(kwargs.get("force", False)))
+        return await self.analyze(cast(ContentCampaign, request), **kwargs)  # type: ignore
+
+    def get_schema(self) -> Optional[Type[BaseModel]]:
+        return AiInspectorTaskRequest
+
+    async def process_brain_logic(self, request: AiInspectorTaskRequest, db: AsyncSession) -> AiReadyReport:
+        """Elite V2.2: Async worker execution for AI-Ready analysis."""
+        repo = ContentCampaignRepository(session=db)
+        campaign = await repo.get(request.campaign_id)
+        if not campaign:
+            raise ValueError(f"Campaign {request.campaign_id} not found")
+
+        result = await self.analyze(campaign, force=request.force)
+
+        # Persist to gold_metadata
+        gold = dict(campaign.gold_metadata or {})
+        cache = dict(gold.get("analysis_cache", {}))
+        metrics = dict(gold.get("analysis_metrics", {}))
+        content_hash = hashlib.sha256((campaign.draft_content or "").encode('utf-8')).hexdigest()
+        cache["ai_inspect"] = {"hash": content_hash, "data": result.model_dump(), "at": datetime.now(timezone.utc).isoformat()}
+        metrics["geo_score"] = result.geo_score
+        gold["analysis_cache"], gold["analysis_metrics"] = cache, metrics
+        campaign.gold_metadata = gold
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(campaign, "gold_metadata")
+        await repo.update(campaign)
+        return result
+
 
     async def analyze(self, campaign: ContentCampaign, force: bool = False) -> AiReadyReport:
         logs = ["🚀 Khởi động Neural AI-Ready Engine (XoHi 2026)..."]
