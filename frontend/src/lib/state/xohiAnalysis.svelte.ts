@@ -269,17 +269,23 @@ export function createAnalysisController(config: {
         const cache = resolve(config.analysis_cache);
         if (cache && Object.keys(cache).length > 0) {
             untrack(() => {
-                if (cache.copyright?.data && !copyrightResult) {
-                     copyrightResult = cache.copyright.data as CopyrightResult;
-                     if (isCopyrightLoading) { isCopyrightLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
+                if (cache.copyright?.data) {
+                    if (!copyrightResult || isCopyrightLoading) {
+                        copyrightResult = cache.copyright.data as CopyrightResult;
+                        if (isCopyrightLoading) { isCopyrightLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
+                    }
                 }
-                if (cache.seo?.data && !seoResult) {
-                     seoResult = cache.seo.data as SEOResult;
-                     if (isSeoLoading) { isSeoLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
+                if (cache.seo?.data) {
+                    if (!seoResult || isSeoLoading) {
+                        seoResult = cache.seo.data as SEOResult;
+                        if (isSeoLoading) { isSeoLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
+                    }
                 }
-                if (cache.ai_inspect?.data && !aiReadyResult) {
-                     aiReadyResult = cache.ai_inspect.data as AIInspectResult;
-                     if (isAiLoading) { isAiLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
+                if (cache.ai_inspect?.data) {
+                    if (!aiReadyResult || isAiLoading) {
+                        aiReadyResult = cache.ai_inspect.data as AIInspectResult;
+                        if (isAiLoading) { isAiLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
+                    }
                 }
             });
         }
