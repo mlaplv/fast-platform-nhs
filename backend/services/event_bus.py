@@ -107,6 +107,16 @@ class InternalBus:
                     
             except Exception as e:
                 logger.warning(f"[EventBus] Redis bridge/cache failed for {event_name}: {e}")
+        elif event_name in ["CONTENT_PROGRESS", "AGENT_TASK_COMPLETED", "MEDIA_ANALYZED", "SYSTEM_SIGNAL"]:
+            from backend.services.xohi_memory import xohi_memory
+            import json
+            try:
+                if xohi_memory._use_redis and xohi_memory.client:
+                    str_payload: str = json.dumps({"event": event_name, "payload": payload}, ensure_ascii=False)
+                    await xohi_memory.client.publish("admin:pulse", str_payload)
+                    logger.info(f"[EventBus] Bridged {event_name} to Redis channel admin:pulse")
+            except Exception as e:
+                logger.warning(f"[EventBus] Redis bridge failed for {event_name}: {e}")
 
         try:
             self.queue.put_nowait(event)
