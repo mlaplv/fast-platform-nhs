@@ -83,6 +83,7 @@ export class ShopStore {
     
     // Vouchers (Elite V2.2)
     vouchers = $state<Voucher[]>([]);
+    selectedVoucherIds = $state<string[]>([]);
 
     // Scarcity Timer
     timeLeft = $state<number>(0);
@@ -104,8 +105,49 @@ export class ShopStore {
                 }
             }
         }
-        return baseTotal;
+        
+        // 🚀 ELITE V2.2: Apply Selected Vouchers
+        let discount = 0;
+        for (const vId of this.selectedVoucherIds) {
+            const v = this.vouchers.find(v => v.id === vId);
+            if (!v) continue;
+            
+            if (v.type === 'FIXED') {
+                discount += v.value;
+            } else if (v.type === 'PERCENT') {
+                discount += (baseTotal * v.value) / 100;
+            }
+        }
+        
+        return Math.max(0, baseTotal - discount);
     });
+
+    toggleVoucher(id: string): void {
+        const voucher = this.vouchers.find(v => v.id === id);
+        if (!voucher) return;
+
+        if (this.selectedVoucherIds.includes(id)) {
+            this.selectedVoucherIds = this.selectedVoucherIds.filter(v => v !== id);
+        } else {
+            // Group-based exclusive selection (Elite V2.2 Standard)
+            // Separate types: SHIPPING (freeship) and others (discounts)
+            if (voucher.type === 'SHIPPING') {
+                // Keep other types, but remove existing shipping vouchers
+                const otherTypes = this.selectedVoucherIds.filter(vId => {
+                    const existing = this.vouchers.find(v => v.id === vId);
+                    return existing?.type !== 'SHIPPING';
+                });
+                this.selectedVoucherIds = [...otherTypes, id];
+            } else {
+                // Remove existing discount vouchers (FIXED/PERCENT)
+                const otherTypes = this.selectedVoucherIds.filter(vId => {
+                    const existing = this.vouchers.find(v => v.id === vId);
+                    return existing?.type === 'SHIPPING';
+                });
+                this.selectedVoucherIds = [...otherTypes, id];
+            }
+        }
+    }
 
     appliedDeal = $derived.by((): PromotionDeal | null => {
         const deals = this.product?.metadata?.active_deals;

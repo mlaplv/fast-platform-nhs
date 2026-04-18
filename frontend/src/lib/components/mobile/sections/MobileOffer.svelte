@@ -6,7 +6,8 @@
   import { resolveMediaUrl } from '$lib/state/utils';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import type { ProductVariant } from '$lib/types';
-  import { ShoppingCart, Clock, Zap, Check } from 'lucide-svelte';
+  import { ShoppingCart, Clock, Zap, Check, Gift, Truck, ShieldCheck } from 'lucide-svelte';
+  import { fade, fly, scale } from 'svelte/transition';
   
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   let { product: propProduct } = $props();
@@ -47,7 +48,9 @@
       id: v.id,
       label: v.title || v.id,
       sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${v.value.toLocaleString()}đ`),
-      type: v.type === 'SHIPPING' ? 'ship' : 'discount'
+      type: v.type === 'SHIPPING' ? 'ship' : 'discount',
+      value: v.value,
+      type_raw: v.type
     }));
   });
 
@@ -78,52 +81,30 @@
 
 <div class="h-full w-full container flex flex-col !px-0 !max-w-none pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] relative overflow-hidden bg-black">
   <!-- Premium Ambient Liquid Background (iPhone 18 Aesthetic) -->
-  <div class="absolute inset-0 pointer-events-none overflow-hidden">
+  <div class="absolute inset-0 pointer-events-none overflow-hidden text-white">
     <div class="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] opacity-40">
-      <!-- Sapphire Liquid Orb -->
-      <div 
-        class="absolute top-[20%] right-[-10%] w-[70%] h-[70%] rounded-full bg-blue-600/20 blur-[120px] animate-[pulse_8s_infinite]"
-      ></div>
-      <!-- Emerald Liquid Orb -->
-      <div 
-        class="absolute bottom-[10%] left-[-20%] w-[80%] h-[80%] rounded-full bg-emerald-600/10 blur-[140px] animate-[pulse_12s_infinite_reverse]"
-      ></div>
-      <!-- Diamond Glow -->
-      <div 
-        class="absolute top-[40%] left-[10%] w-[40%] h-[40%] rounded-full bg-indigo-500/15 blur-[100px] animate-pulse"
-      ></div>
+      <div class="absolute top-[20%] right-[-10%] w-[70%] h-[70%] rounded-full bg-blue-600/20 blur-[120px] animate-[pulse_8s_infinite]"></div>
+      <div class="absolute bottom-[10%] left-[-20%] w-[80%] h-[80%] rounded-full bg-emerald-600/10 blur-[140px] animate-[pulse_12s_infinite_reverse]"></div>
+      <div class="absolute top-[40%] left-[10%] w-[40%] h-[40%] rounded-full bg-indigo-500/15 blur-[100px] animate-pulse"></div>
     </div>
-    <!-- Soft Glass Noise Overlay -->
     <div class="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style="background-image: url('{noiseSvg}')"></div>
   </div>
 
 
-  <!-- Optimized Premium Scarcity HUD (Viral 2026) -->
+  <!-- Optimized Premium Scarcity HUD -->
   <div class="mt-3 mb-2 flex flex-col items-center gap-3 z-surface !px-2">
     <div class="flex items-center gap-1 p-1 bg-white/[0.03] border border-white/10 rounded-full backdrop-blur-3xl shadow-2xl overflow-hidden relative group">
-       <!-- Active Glow Background -->
        <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-       
-       <!-- Inner Timer Pill -->
        <div class="bg-red-500/10 px-3 py-1.5 rounded-full flex items-center gap-2 border border-red-500/20 relative">
           <Clock class="w-3 h-3 text-red-500 animate-pulse" />
           <span class="text-[10px] text-white font-black tabular-nums tracking-widest">{formatTime(timeLeft)}</span>
        </div>
-
        <div class="w-[1px] h-3 bg-white/10 mx-1"></div>
-
-       <!-- Viewers Tracking -->
        <div class="flex items-center gap-2 px-2">
-          <div class="relative flex h-1.5 w-1.5">
-             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
-             <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
-          </div>
+          <div class="relative flex h-1.5 w-1.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span><span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span></div>
           <span class="text-[9px] font-bold text-white/50">{fomoStore.viewers} đang xem</span>
        </div>
-
        <div class="w-[1px] h-3 bg-white/10 mx-1"></div>
-
-       <!-- Scarcity Tag -->
        <div class="flex items-center gap-1.5 pr-3 pl-1">
           <Zap class="w-2.5 h-2.5 text-amber-500/80 animate-bounce" />
           <span class="text-[9px] font-bold text-amber-500/70">Sắp hết hàng</span>
@@ -133,25 +114,22 @@
     <!-- Master Branding Headline -->
     <div class="text-center mt-1 w-full !px-2">
       <div class="max-w-4xl mx-auto text-center relative mb-0">
-      <h3 class="text-2xl font-black text-center text-white italic tracking-tighter uppercase mb-4">
-        <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
-          {h1}
-        </EditableWrapper>
-        <br/>
-        <EditableWrapper path="metadata.offer_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
-          {h2}
-        </EditableWrapper>
-      </h3>
-
-      <p class="text-[10px] text-[#A6C0FE] tracking-widest font-bold opacity-70">
-        <EditableWrapper path="metadata.offer_subheadline" type="text" label="SỬA MÔ TẢ PHỤ" as="span">
-          {product?.metadata?.offer_subheadline || "Nhưng chúng tôi cam kết: Phá vỡ từ gốc tế bào."}
-        </EditableWrapper>
-      </p>
+        <h3 class="text-2xl font-black text-center text-white italic tracking-tighter uppercase mb-4">
+          <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">{h1}</EditableWrapper>
+          <br/>
+          <EditableWrapper path="metadata.offer_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">{h2}</EditableWrapper>
+        </h3>
+        <p class="text-[10px] text-[#A6C0FE] tracking-widest font-bold opacity-70">
+          <EditableWrapper path="metadata.offer_subheadline" type="text" label="SỬA MÔ TẢ PHỤ" as="span">
+            {product?.metadata?.offer_subheadline || "Cam kết hiệu quả từ gốc tế bào Nhật Bản."}
+          </EditableWrapper>
+        </p>
+      </div>
     </div>
   </div>
-  </div>
+
   <div class="flex-1 flex flex-col z-surface overflow-y-auto pb-4 space-y-2.5 !px-0">
+    <!-- 3 BIẾN THỂ TRÊN (KHÔNG ĐỔI THEO YÊU CẦU SẾP) -->
     <div class="mt-0 !w-full">
        <div class="grid grid-cols-1 gap-0">
          {#each variants as variant, i}
@@ -160,16 +138,13 @@
             {@const vGifts = variant.attributes?.gifts || []}
             <button 
               onclick={() => handleSelect(i)}
-             class="relative w-full text-left py-3 !px-0 border-y border-x-0 transition-all duration-700 active:scale-[0.98] {selectedIndex === i ? 'bg-white/[0.06] backdrop-blur-3xl text-white border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.3)] z-surface' : 'bg-transparent text-white/30 border-white/5 hover:bg-white/5'}"
+              class="relative w-full text-left py-3 !px-0 border-y border-x-0 transition-all duration-700 active:scale-[0.98] {selectedIndex === i ? 'bg-white/[0.06] backdrop-blur-3xl text-white border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.3)] z-surface' : 'bg-transparent text-white/30 border-white/5 hover:bg-white/5'}"
             >
-               <!-- Liquid Backglow (Only Active) -->
                {#if selectedIndex === i}
                   <div class="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent pointer-events-none"></div>
                {/if}
 
-               <!-- Internal Content Standard Alignment (Viral Symmetry) -->
                <div class="flex items-center gap-4 px-2 w-full">
-                 <!-- Floating Selection Status (Liquid Stick - Left) -->
                  <div class="relative w-1 h-10 shrink-0">
                     {#if selectedIndex === i}
                        <div class="absolute inset-0 w-full bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.8)]" in:fly={{ y: -10 }}></div>
@@ -177,7 +152,7 @@
                        <div class="absolute inset-0 w-full bg-white/5 rounded-full"></div>
                     {/if}
                  </div>
-                 <!-- Liquid Image Container (Premium iPhone 18 Style) -->
+                 
                  <div class="w-20 h-20 rounded-[2px] overflow-hidden flex items-center justify-center shrink-0 shadow-inner relative transition-all duration-700 {selectedIndex === i ? 'bg-white/10 scale-105 shadow-2xl ring-1 ring-white/20' : 'bg-white/5 border border-white/5 opacity-40'}">
                     {#if (product.tierVariations?.[0]?.images?.[variant.tierIndex?.[0]]) || variant.image_url || variant.imageUrl || variant.image || (product.images && product.images[i]?.url) || (product.images && product.images[0]?.url)}
                       <img 
@@ -186,13 +161,7 @@
                         class="w-full h-full object-cover transition-all duration-1000 {selectedIndex === i ? 'scale-110 rotate-1 brightness-110' : 'grayscale brightness-50'}" 
                         loading="lazy"
                       />
-                    {:else}
-                      <div class="flex flex-col items-center justify-center text-[8px] font-black opacity-5 uppercase tracking-widest text-center">
-                         Liquid<br/>Glass
-                      </div>
                     {/if}
-                    
-                    <!-- Premium Glass Reflective Coating -->
                     <div class="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none opacity-30"></div>
                  </div>
 
@@ -204,9 +173,7 @@
                           </div>
                        {/if}
                        {#if cQty > 1}
-                         <div class="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-black text-[7px] uppercase tracking-widest">
-                           Combo x{cQty}
-                         </div>
+                         <div class="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-black text-[7px] uppercase tracking-widest">Combo x{cQty}</div>
                        {/if}
                     </div>
                    <span class="font-black uppercase tracking-tight italic text-[15px] leading-tight transition-colors duration-500 {selectedIndex === i ? 'text-white' : 'text-white/40'}">{getVariantTitle(variant)}</span>
@@ -216,25 +183,6 @@
                        <span class="text-[12px] {selectedIndex === i ? 'text-white/20' : 'text-white/10'} line-through font-bold opacity-60">{(variant.price).toLocaleString()}đ</span>
                      {/if}
                    </div>
-
-                   <!-- Mini Gifts (Viral 2026 UI) -->
-                   {#if vGifts.length > 0}
-                     <div class="mt-2 flex flex-wrap gap-2">
-                       {#each vGifts as gift}
-                         <div class="flex items-center gap-1.5 bg-white/5 py-1 px-1.5 rounded-lg border border-white/5 group/gift">
-                            <div class="w-5 h-5 rounded-md overflow-hidden bg-black/40 border border-white/10 shrink-0">
-                               {#if gift.image}
-                                 <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
-                               {:else}
-                                 <div class="w-full h-full flex items-center justify-center text-[6px] text-white/20 uppercase font-black">Gift</div>
-                               {/if}
-                            </div>
-                            <span class="text-[8px] font-bold {selectedIndex === i ? 'text-white/70' : 'text-white/20'} truncate max-w-[60px]">{gift.name}</span>
-                            <span class="text-[8px] font-black text-amber-500 opacity-80">x{gift.qty}</span>
-                         </div>
-                       {/each}
-                     </div>
-                   {/if}
                  </div>
                </div>
             </button>
@@ -242,130 +190,153 @@
        </div>
     </div>
 
-    <!-- 🎁 VIRAL 2026: VOUCHER LISTING (Premium Glass HUD) -->
+    <!-- 🎫 PHẦN DIỄN GIẢI CHI TIẾT (Giải quyết trùng lặp) -->
+    <div class="px-3 py-4 space-y-4">
+      <div class="flex items-center gap-2">
+        <div class="w-1 h-3 bg-rose-500 rounded-full"></div>
+        <span class="text-[11px] font-black text-white/50 uppercase tracking-[0.15em] italic">Chi tiết quyền lợi gói</span>
+      </div>
+      
+      <div class="bg-white/[0.04] border border-white/5 rounded-2xl p-4 backdrop-blur-3xl relative overflow-hidden group">
+         <!-- Liquid Sapphire Ambient Glow -->
+         <div class="absolute -right-10 -top-10 w-32 h-32 bg-blue-500/10 blur-[50px] pointer-events-none group-hover:bg-blue-500/20 transition-all duration-700"></div>
+         
+         <div class="flex flex-col gap-3 relative z-10">
+            <div class="flex items-center gap-3">
+               <div class="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20 shadow-inner">
+                  <Gift class="w-5 h-5 text-rose-500" />
+               </div>
+               <div class="flex flex-col">
+                  <span class="text-[13px] font-black text-white italic uppercase tracking-tight">Quà tặng đi kèm</span>
+                  <span class="text-[10px] text-white/40 font-bold">Chính sách ưu đãi giới hạn cho {getVariantTitle(selectedVariant)}</span>
+               </div>
+            </div>
+
+            <div class="space-y-2 ml-1">
+               {#if selectedVariant.attributes?.gifts?.length > 0}
+                  {#each selectedVariant.attributes.gifts as gift}
+                     <div class="flex items-center gap-3 bg-white/[0.03] p-2 rounded-xl border border-white/5 group/gift transition-all hover:bg-white/5">
+                        <div class="w-10 h-10 rounded-lg overflow-hidden bg-black/40 border border-white/10">
+                           {#if gift.image}
+                              <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                           {:else}
+                              <div class="w-full h-full flex items-center justify-center text-[8px] text-white/20 uppercase font-black">Gift</div>
+                           {/if}
+                        </div>
+                        <div class="flex flex-col">
+                           <span class="text-[11px] font-black text-rose-400 capitalize">{gift.name}</span>
+                           <span class="text-[9px] text-white/40 font-bold">Trị giá: {(gift.value || 0).toLocaleString()}đ • Số lượng: {gift.qty}</span>
+                        </div>
+                     </div>
+                  {/each}
+               {:else}
+                  <div class="flex items-center gap-2 text-white/20 py-2">
+                     <ShieldCheck class="w-4 h-4" />
+                     <span class="text-[10px] font-bold italic">Cam kết chất lượng chuẩn Nhật Bản</span>
+                  </div>
+               {/if}
+            </div>
+
+            <div class="flex items-center gap-4 mt-1 pt-3 border-t border-white/5">
+                <div class="flex items-center gap-1.5">
+                   <Truck class="w-3.5 h-3.5 text-emerald-400" />
+                   <span class="text-[10px] font-black text-emerald-400/80 uppercase">Freeship Toàn Quốc</span>
+                </div>
+                <div class="w-1 h-1 bg-white/10 rounded-full"></div>
+                <div class="flex items-center gap-1.5">
+                   <ShieldCheck class="w-3.5 h-3.5 text-blue-400" />
+                   <span class="text-[10px] font-black text-blue-400/80 uppercase">Bảo mật thông tin</span>
+                </div>
+            </div>
+         </div>
+      </div>
+    </div>
+
+    <!-- 🎁 VIRAL 2026: VOUCHER TICKETS (CHỈNH THEO HÌNH 2) -->
     {#if productVouchers.length > 0}
-      <div class="mt-4 px-2">
-        <div class="flex items-center gap-2 mb-3">
-           <div class="w-1 h-3 bg-blue-500 rounded-full"></div>
-           <span class="text-[10px] font-black text-white/40 uppercase tracking-widest italic">Mã giảm giá độc quyền</span>
-        </div>
-        <div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-           {#each productVouchers as v}
-             <div class="relative shrink-0 flex items-center gap-3 bg-white/[0.03] border border-white/10 p-2 pr-4 rounded-xl backdrop-blur-3xl group">
-                <!-- Ticket Edge Cutouts -->
-                <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-black rounded-full border border-white/10"></div>
-                <div class="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-black rounded-full border border-white/10"></div>
-                
-                <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                   <Zap class="w-4 h-4 text-blue-400" />
-                </div>
-                <div class="flex flex-col">
-                   <span class="text-[11px] font-black text-blue-400 leading-none">{v.label}</span>
-                   <span class="text-[8px] text-white/40 font-bold uppercase mt-1 tracking-tighter italic">{v.sub}</span>
-                </div>
-             </div>
-           {/each}
-        </div>
+      <div class="px-3 py-6 relative">
+         <div class="flex items-center justify-between mb-5 px-1">
+            <div class="flex items-center gap-2">
+               <div class="w-2 h-2 rounded-full bg-blue-500 glow-blue animate-pulse"></div>
+               <span class="text-[12px] font-black text-white italic uppercase tracking-[0.2em]">Mã Giảm Giá Viral</span>
+            </div>
+            <span class="text-[9px] font-bold text-white/20">Chạm để áp dụng ngay</span>
+         </div>
+         
+         <div class="flex flex-col gap-5 px-1">
+            {#each productVouchers as v}
+              {@const isApplied = shopStore.selectedVoucherIds.includes(v.id)}
+              <button 
+                onclick={() => shopStore.toggleVoucher(v.id)}
+                class="w-full text-left relative transition-all duration-700 active:scale-[0.98] outline-none group/voucher"
+              >
+                 {#if isApplied}
+                    <div class="absolute inset-[-6px] bg-blue-500/15 blur-[20px] rounded-2xl pointer-events-none transition-all duration-700"></div>
+                 {/if}
+
+                 <!-- 🎟️ TIKTOK VIRAL TICKET DESIGN (Chuẩn Hình 2) -->
+                 <div class="relative flex h-[90px] bg-[#0A0A0A] border border-white/10 rounded-xl overflow-hidden transition-all duration-700 {isApplied ? 'border-blue-500/60 shadow-[0_15px_45px_rgba(59,130,246,0.3)]' : 'hover:border-white/20'}">
+                    
+                    <!-- Ticket Dashed Perforation (Symmetry standard) -->
+                    <div class="absolute left-[85px] top-0 bottom-0 w-px border-l border-dashed border-white/20 z-10 flex flex-col justify-between py-1">
+                       {#each Array(6) as _}
+                         <div class="w-1.5 h-1.5 -ml-[4px] bg-black rounded-full border border-white/5"></div>
+                       {/each}
+                    </div>
+
+                    <!-- LEFT: THE VISUAL HOOK (Savings/Type) -->
+                    <div class="w-[88px] h-full bg-gradient-to-br {isApplied ? 'from-blue-600 to-indigo-700' : 'from-gray-900 to-black'} flex flex-col items-center justify-center transition-all duration-700 relative overflow-hidden shrink-0">
+                       <span class="text-[8px] font-black text-white/60 uppercase tracking-tighter mb-1">Quyền lợi</span>
+                       <div class="flex items-baseline">
+                          <span class="text-[20px] font-black text-white italic tracking-tighter">
+                            {v.type_raw === 'SHIPPING' ? 'SHIP' : (v.value >= 1000 ? `-${Math.round(v.value/1000)}K` : `-${v.value}%`)}
+                          </span>
+                       </div>
+                       {#if isApplied}
+                         <div class="absolute -bottom-1 -right-1 opacity-20"><Zap class="w-12 h-12 text-white" /></div>
+                       {/if}
+                    </div>
+
+                    <!-- RIGHT: INFO SECTION -->
+                    <div class="flex-1 h-full p-3 pl-6 flex flex-col justify-center relative min-w-0">
+                       {#if isApplied}
+                          <div class="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 bg-blue-500 rounded-full shadow-lg" in:scale={{ duration: 300 }}>
+                             <Check class="w-2.5 h-2.5 text-white stroke-[4]" />
+                             <span class="text-[8px] font-black text-white uppercase tracking-widest">Đã lưu</span>
+                          </div>
+                       {/if}
+
+                       <div class="flex flex-col gap-0.5">
+                          <span class="text-[15px] font-black italic tracking-tight transition-all duration-700 {isApplied ? 'text-white' : 'text-blue-400/80'}">
+                             {v.label}
+                          </span>
+                          <span class="text-[9px] text-white/40 font-bold uppercase mt-1 tracking-tight truncate">{v.sub}</span>
+                          
+                          <div class="flex items-center gap-1.5 mt-2">
+                             <div class="h-1 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-500/40 w-[75%]"></div>
+                             </div>
+                             <span class="text-[8px] font-black text-white/20 italic">75% USED</span>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+              </button>
+            {/each}
+         </div>
       </div>
     {/if}
   </div>
   
-  <!-- Unified CTA (Liquid Sapphire Masterpiece - FOMO Optimized) -->
-  <div class="mt-auto z-nav pt-1 pb-1 relative">
-      <!-- Upsell/Incentive Header (Only if not optimal) -->
-      <div class="flex flex-col gap-4 mb-6">
-        {#each (metadata.active_deals || []) as deal}
-          {@const isActive = shopStore.quantity === (deal.buy_qty + (deal.get_qty || 0))}
-          {@const totalQty = deal.buy_qty + (deal.get_qty || 0)}
-          {@const totalOriginal = shopStore.originalPrice * totalQty}
-          {@const savings = totalOriginal - deal.fixed_price}
-          
-          <button 
-             onclick={() => shopStore.setQuantity(totalQty)}
-             class="w-full text-left relative transition-all duration-700 active:scale-[0.98] py-2 !px-0"
-          >
-             <!-- 🚀 Selection Backglow (Naked HUD Aesthetic) -->
-             {#if isActive}
-                <div 
-                  class="absolute inset-[-15px] bg-blue-600/[0.07] blur-[30px] rounded-full pointer-events-none transition-all duration-700"
-                  in:fade={{ duration: 800 }}
-                ></div>
-             {/if}
-
-             <!-- Standard Internal Alignment (Viral Standard) -->
-             <div class="relative flex items-center justify-between gap-2 px-2">
-                <!-- 🎯 Absolute Top-Right Selection Stick (Badge Style) -->
-                {#if isActive}
-                   <div 
-                      class="absolute -top-3 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(59,130,246,0.6)] z-surface"
-                      in:scale={{ duration: 400, start: 0.5 }}
-                   >
-                      <Check class="w-3.5 h-3.5 text-white stroke-[4]" />
-                   </div>
-                {/if}
-
-                <div class="flex items-center gap-3 flex-1">
-                   <!-- Floating Selection Status (Liquid Stick - Left) -->
-                   <div class="relative w-1 h-8 shrink-0">
-                      {#if isActive}
-                         <div class="absolute inset-0 w-full bg-gradient-to-b from-blue-400 to-blue-600 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.8)]" in:fly={{ y: -10 }}></div>
-                      {:else}
-                         <div class="absolute inset-0 w-full bg-white/5 rounded-full"></div>
-                      {/if}
-                   </div>
-
-                   <div class="flex flex-col gap-0.5">
-                      <div class="flex items-center gap-2">
-                        <span class="text-[11px] font-bold {isActive ? 'text-white/90' : 'text-white/30'} transition-all duration-500">
-                           {deal.buy_qty > 0 ? `Mua ${deal.buy_qty}` : ''} {deal.get_qty > 0 ? `tặng ${deal.get_qty}` : ''}
-                        </span>
-                        {#if isActive}
-                           <span class="text-[7.5px] font-black text-blue-400 uppercase tracking-widest bg-blue-500/5 px-1.5 py-0.5 rounded border border-blue-500/10">Khuyên dùng</span>
-                        {/if}
-                      </div>
-                      <h3 class="text-[14px] font-semibold {isActive ? 'text-white' : 'text-white/20'} leading-tight tracking-tight">
-                        {deal.label || 'Liệu trình cao cấp'}
-                      </h3>
-                      <div class="flex items-baseline gap-2 mt-0.5">
-                         <span class="text-[18px] font-black {isActive ? 'text-blue-400' : 'text-blue-400/20'} italic tracking-tighter">{(deal.fixed_price).toLocaleString()}đ</span>
-                         {#if totalOriginal > deal.fixed_price}
-                            <div class="flex items-center gap-1.5 opacity-40">
-                               <span class="text-[10px] text-white/20 line-through font-medium">{(totalOriginal).toLocaleString()}đ</span>
-                               <span class="text-[9px] text-emerald-400 font-bold tracking-tight">| Freeship</span>
-                            </div>
-                         {/if}
-                      </div>
-                   </div>
-                </div>
-
-                <div class="flex flex-col items-end gap-1.5 self-end mb-1">
-                   {#if savings > 0}
-                      <div class="h-4 px-2 flex items-center justify-center bg-emerald-400/10 rounded-full">
-                         <span class="text-[8px] font-black text-emerald-400 leading-none tracking-tighter italic">Tiết kiệm {savings.toLocaleString()}đ</span>
-                      </div>
-                   {/if}
-                </div>
-             </div>
-          </button>
-        {/each}
-      </div>
-
-      <!-- CTA Action Centered (Viral Standard) -->
+   <!-- Unified CTA Masterpiece -->
+   <div class="mt-auto z-nav pt-1 pb-1 relative">
       <div class="px-2 pb-2">
         <button 
-           onclick={() => { 
-             if (!selectedVariant) return;
-             shopStore.openCheckout(); 
-           }}
+           onclick={() => { if (!selectedVariant) return; shopStore.openCheckout(); }}
            class="w-full h-[72px] rounded-full font-black text-[15px] uppercase tracking-[0.12em] flex items-center justify-center gap-4 transition-all duration-700 italic active:scale-95 active:brightness-90 bg-white/10 backdrop-blur-3xl border border-white/20 shadow-[0_20px_50px_rgba(59,130,246,0.2)] overflow-hidden relative group"
          >
-           <!-- Liquid Sapphire Gradient Fill (Hover/Active) -->
            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-emerald-500/20 to-indigo-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-           
-           <!-- Internal Fluid Shimmer (Enhanced) -->
            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none"></div>
-           
-           <!-- Orbital Glow Pulse (FOMO) -->
            <div class="absolute inset-0 rounded-full border border-blue-400/20 animate-pulse opacity-50"></div>
            
            <div class="relative z-surface flex items-center justify-between w-full px-2 gap-2">
@@ -387,3 +358,12 @@
       </div>
   </div>
 </div>
+
+<style>
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
+  }
+  .glow-blue {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+  }
+</style>
