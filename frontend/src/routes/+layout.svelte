@@ -10,17 +10,15 @@
   import ToastProvider from "$lib/components/storefront/ui/ToastProvider.svelte";
   import GlobalConfirmModal from "$lib/components/storefront/ui/GlobalConfirmModal.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
-  import NeuralActivityBar from "$lib/components/client/common/NeuralActivityBar.svelte";
-  import { fomoStore } from "$lib/state/commerce/fomo.svelte";
 
   // Elite V2.2: Context initialization gated by tenant
   let { children, data } = $props();
 
-  const isAdmin = $derived(data.tenant === 'admin');
+  const isAdmin = $derived(data?.tenant === 'admin');
   const ui = isAdmin ? null : setClientUi();
-  
+
   setNanobotContext();
-  
+
   if (!isAdmin) {
     setCartStore();
   }
@@ -28,17 +26,12 @@
   onMount(async () => {
     // Elite V2.2: Global Identity Handshake
     await permissionState.handshake();
-    
-    // Elite V2.2: Independent Fomo Initialization (Zero-Latency)
-    if (!isAdmin) {
-      fomoStore.init('micsmo-elite');
-    }
 
     if (ui) {
       return ui.initObservers();
     }
   });
-  
+
   onDestroy(() => {
     // Elite V2.2: Resource Discipline
     permissionState.dispose();
@@ -99,7 +92,6 @@
 
     <ToastProvider />
     <GlobalConfirmModal />
-    <NeuralActivityBar />
   {/if}
 </div>
 

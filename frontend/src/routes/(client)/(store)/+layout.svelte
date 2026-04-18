@@ -6,16 +6,33 @@
   import FooterDesktop from "$lib/components/storefront/layout/FooterDesktop.svelte";
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import { getShopStore } from "$lib/state/commerce/shop.svelte";
+  import { fomoStore } from "$lib/state/commerce/fomo.svelte";
+  import NeuralActivityBar from "$lib/components/client/common/NeuralActivityBar.svelte";
   import { onMount, type Snippet } from "svelte";
   import type { LayoutData } from './$types';
   import "../client.css";
 
   let { data, children }: { data: LayoutData, children: Snippet } = $props();
+  const isAdmin = $derived(data.tenant === 'admin');
   const ui = getClientUi();
   const cart = getCartStore();
 
   onMount(() => {
+    // Elite V2.2: Independent Fomo Initialization (Zero-Latency)
+    // Only initialize if settings are available and enabled
+    if (!isAdmin && ui.settings?.conversions?.fomo_enabled) {
+        fomoStore.init('micsmo-elite');
+    }
     return ui.initObservers();
+  });
+
+  // Re-check initialization if settings update
+  $effect(() => {
+    if (!isAdmin && ui.settings?.conversions?.fomo_enabled && !fomoStore.isInitialized) {
+        fomoStore.init('micsmo-elite');
+    } else if (!isAdmin && ui.settings?.conversions?.fomo_enabled === false) {
+        fomoStore.dispose();
+    }
   });
 
   // Elite V2.2: Global Data Sync
@@ -80,5 +97,9 @@
     {#if !ui.isMobile}
       <FooterDesktop shopInfo={footerShopInfo} />
     {/if}
+  {/if}
+
+  {#if !isAdmin && ui.settings?.conversions?.fomo_enabled}
+    <NeuralActivityBar />
   {/if}
 </div>

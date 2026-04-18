@@ -544,5 +544,8 @@ SYSTEM_SETTINGS_DEF = {
     "maintenance": {
         "is_enabled": False,
         "message": "Hệ thống đang bảo trì để nâng cấp Core AI. Vui lòng quay lại sau."
+    },
+    "conversions": {
+        "fomo_enabled": True
     }
 }

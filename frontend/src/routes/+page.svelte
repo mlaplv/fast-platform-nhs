@@ -10,6 +10,8 @@
      */
     let { data }: { data: PageData } = $props();
 
+    console.error('!!! MISSION CONTROL LOADED !!!', { tenant: data.tenant });
+
     // ELITE V2.2: Strict Typing for Dynamic Imports
     interface DynamicModuleProps {
         data: PageData;

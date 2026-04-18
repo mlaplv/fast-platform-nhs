@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { ShieldCheck, Zap, Droplets } from 'lucide-svelte';
+  import { ShieldCheck, Zap, Droplets, HelpCircle } from 'lucide-svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import './MobileScience.css';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
 
   const shopStore = getShopStore();
+  const ui = getClientUi();
   let { product: propProduct } = $props();
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
@@ -33,11 +35,41 @@
       desc: typeof claims[1].content === 'string' ? claims[1].content : 'Cam kết 3 KHÔNG: Không cồn, không Paraben, không hóa chất lột tẩy.'
     }
   ]);
+
+  const faqs = $derived([
+    {
+        q: metadata?.science_faq_1_q || "Bao lâu thì thấy hiệu quả rõ rệt nhất?",
+        a: metadata?.science_faq_1_a || "Dạ thường thì sau 2-4 tuần sử dụng đều đặn ngày 2 lần, nàng sẽ thấy da bật tông rõ, sờ vào mịn mướt hẳn luôn. Còn để các vết thâm 'cứng đầu' mờ hẳn thì tầm 6-8 tuần là thời điểm đẹp nhất ạ!"
+    },
+    {
+        q: metadata?.science_faq_2_q || "Ngưng dùng rồi có bị thâm đen trở lại không?",
+        a: metadata?.science_faq_2_a || "Nàng yên tâm nhé, ngưng dùng sẽ không bị thâm lại đâu ạ. Miễn là mình vẫn duy trì vệ sinh và các bước dưỡng da cơ bản thì kết quả vẫn sẽ bền đẹp theo thời gian."
+    },
+    {
+        q: metadata?.science_faq_3_q || "Sản phẩm có thực sự làm hồng không?",
+        a: metadata?.science_faq_3_a || "Serum tập trung đánh bay sắc tố đen, làm mờ thâm sạm để da sáng hồng tự nhiên, chứ không phải kiểu 'nhuộm màu' đâu ạ."
+    },
+    {
+        q: metadata?.science_faq_4_q || "Vùng nhạy cảm có dùng được không?",
+        a: metadata?.science_faq_4_a || "Dạ vô tư luôn nàng ơi! Sản phẩm này sinh ra là để 'chiều lòng' những vùng nhạy cảm nhất. Thành phần cực kỳ lành tính nên rất êm ái cho da."
+    }
+  ]);
+
+  async function openFaq(index: number) {
+    const faq = faqs[index];
+    await ui.openConfirm({
+      title: faq.q,
+      message: faq.a,
+      confirmLabel: 'ĐÃ HIỂU',
+      cancelLabel: 'ĐÓNG'
+    });
+  }
 </script>
 
 <div class="science-root">
   <div class="science-glow-1"></div>
   <div class="science-glow-2"></div>
+  <div class="tech-grid"></div>
 
   <div class="science-header">
     <h2 class="science-headline">
@@ -48,34 +80,68 @@
     
     <p class="science-subheadline">
       <EditableWrapper path="metadata.science_subheadline" type="text" label="SỬA MÔ TẢ PHỤ" as="span">
-        {metadata.science_subheadline || `Đột phá công thức "Bodycare" hàng đầu từ Nhật Bản.`}
+        {metadata.science_subheadline || `Đột phá công thức hàng đầu từ Nhật Bản.`}
       </EditableWrapper>
     </p>
   </div>
 
-  <div class="science-claims-stack">
-    {#each tech as item, i}
-      {@const Icon = item.icon}
-      <div class="claim-card group">
-        <div class="claim-icon-box">
-          <div class="claim-icon-glow"></div>
-          <Icon class="w-6 h-6 text-blue-400 relative z-surface" />
-        </div>
-        <div class="flex-1">
-          <h4 class="claim-title">
-            <EditableWrapper path={`metadata.science_claims[${i}].label`} type="text" label="SỬA NHÃN {i+1}" as="span">
-              {item.title}
-            </EditableWrapper>
-          </h4>
+  <div class="science-content-container">
+    <div class="science-claims-stack">
+      {#each tech as item, i}
+        <div class="claim-card" style="--i: {i}">
+          <div class="line-wave-container">
+            <svg viewBox="0 0 100 20" preserveAspectRatio="none" class="line-wave">
+                <path d="M0 10 Q 25 {5 + Math.sin(i) * 5}, 50 10 T 100 10" fill="none" class="wave-path" />
+            </svg>
+          </div>
 
-          <p class="claim-desc">
-            <EditableWrapper path={`metadata.science_claims[${i}].content`} type="text" label="SỬA MÔ TẢ {i+1}" as="span">
-              {item.desc}
-            </EditableWrapper>
-          </p>
+          <div class="claim-info">
+            <h4 class="claim-title">
+              <EditableWrapper path={`metadata.science_claims[${i}].label`} type="text" label="SỬA NHÃN {i+1}" as="span">
+                {item.title}
+              </EditableWrapper>
+            </h4>
+
+            <div class="claim-desc">
+              <EditableWrapper path={`metadata.science_claims[${i}].content`} type="text" label="SỬA MÔ TẢ {i+1}">
+                {item.desc}
+              </EditableWrapper>
+            </div>
+          </div>
+        </div>
+      {/each}
+    </div>
+
+    <!-- FAQ SECTION (Viral Mobile Grid) -->
+    <div class="faq-section-mobile">
+      <div class="faq-header-compact">
+        <div class="faq-icon-min">
+          <HelpCircle class="w-5 h-5 text-luxury-sakura" />
+        </div>
+        <div class="flex flex-col">
+          <span class="faq-title-min">CÂU HỎI THƯỜNG GẶP</span>
+          <span class="faq-desc-min">CLICK ĐỂ XEM GIẢI ĐÁP CHUYÊN SÂU</span>
         </div>
       </div>
-    {/each}
+
+      <div class="faq-grid-mobile">
+        {#each faqs as faq, i}
+          <button 
+            class="faq-btn-item"
+            onclick={() => openFaq(i)}
+          >
+            <span class="faq-q-text">
+              <EditableWrapper path={`metadata.science_faq_${i+1}_q`} type="text" label={`SỬA CÂU HỎI ${i+1}`} as="span">
+                {faq.q}
+              </EditableWrapper>
+            </span>
+            <div class="faq-arrow">
+              <Zap class="w-3 h-3 text-white/40" />
+            </div>
+          </button>
+        {/each}
+      </div>
+    </div>
   </div>
 
   <div class="science-footer">

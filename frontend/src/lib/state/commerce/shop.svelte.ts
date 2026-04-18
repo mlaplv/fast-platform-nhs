@@ -201,14 +201,8 @@ export class ShopStore {
             // Mặc định chọn Loại 2 (Best Seller) nếu có
             this.variant = productData.variants.length > 1 ? productData.variants[1] : productData.variants[0];
             
-            // Mặc định set quantity là gói Mua 2 tặng 1
-            const deals = productData.metadata?.active_deals as import('$lib/types').PromotionDeal[] | undefined;
-            const defaultDeal = deals?.find(d => d.buy_qty === 2);
-            if (defaultDeal) {
-                this.quantity = defaultDeal.buy_qty + (defaultDeal.get_qty || 0);
-            } else {
-                this.quantity = 3;
-            }
+            // ELITE V2.2: Default quantity should be 1 when using combo-based variants
+            this.quantity = 1;
         }
         
         // 🚀 ELITE V2.2: Load Gift Info from Storage (F5 Persistence)
@@ -226,6 +220,12 @@ export class ShopStore {
 
     setVouchers(data: Voucher[]): void {
         this.vouchers = data || [];
+        
+        // 🚀 ELITE V2.2: Auto-select Free Ship vouchers by default
+        const shipVoucher = this.vouchers.find(v => v.type === 'SHIPPING');
+        if (shipVoucher && !this.selectedVoucherIds.includes(shipVoucher.id)) {
+            this.selectedVoucherIds = [...this.selectedVoucherIds, shipVoucher.id];
+        }
     }
 
     startTimer(): void {

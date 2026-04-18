@@ -65,7 +65,7 @@ class FomoService:
         Returns anonymized activity feed.
         """
         activities = []
-        
+
         # 1. Get Live Visitor Count
         visitors = await self.get_active_visitors_count()
         if visitors > 3:
@@ -82,14 +82,14 @@ class FomoService:
                 stmt = select(Order).where(Order.is_spam == False).order_by(desc(Order.created_at)).limit(5)
                 res = await db_session.execute(stmt)
                 orders = res.scalars().all()
-                
+
                 for order in orders:
                     # Anonymize: "Nguyễn Văn A" -> "Anh A."
                     name = order.customer_name or "Khách hàng"
                     if len(name.split()) > 1:
                         parts = name.split()
                         name = f"{parts[0]} {parts[-1][0]}."
-                    
+
                     activities.append({
                         "type": "ORDER",
                         "name": name,
@@ -109,5 +109,40 @@ class FomoService:
             })
 
         return activities
+
+    async def get_product_metrics(self, slug: str) -> dict:
+        """
+        Elite V2.2: Fetch real-time metrics for a specific product.
+        No seeds - strictly DB/Redis driven.
+        """
+        from backend.database.models.commerce import ProductBase
+
+        async with async_session_maker() as db_session:
+            try:
+                # 1. Fetch Real Stock & Sales from DB
+                stmt = select(ProductBase).where(ProductBase.slug == slug)
+                res = await db_session.execute(stmt)
+                product = res.scalar_one_or_none()
+
+                # 2. Fetch Active Visitors from Redis
+                visitors = await self.get_active_visitors_count()
+
+                if product:
+                    return {
+                        "viewers": visitors,
+                        "stockLeft": product.stock,
+                        "totalSales": product.order_count or 0,
+                        "status": self.get_scarcity_vibe(product.stock)
+                    }
+
+                return {
+                    "viewers": visitors,
+                    "stockLeft": 0,
+                    "totalSales": 0,
+                    "status": "UNKNOWN"
+                }
+            except Exception as e:
+                logger.error(f"[FomoService] Error fetching product metrics for {slug}: {e}")
+                return {"viewers": 1, "stockLeft": 0, "totalSales": 0}
 
 fomo_service = FomoService()

@@ -588,7 +588,7 @@ export interface ShopInfo {
     zalo?: string;
   };
   conversions?: {
-    fomo_enabled: bool;
+    fomo_enabled: boolean;
   };
   footer_links?: {
     label: string;

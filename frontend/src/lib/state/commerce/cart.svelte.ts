@@ -178,6 +178,30 @@ export class CartStore {
     setVouchers(data: Voucher[]): void {
         this.vouchers = data || [];
     }
+
+    toggleVoucher(id: string): void {
+        const voucher = this.vouchers.find(v => v.id === id);
+        if (!voucher) return;
+
+        if (this.selectedVoucherIds.includes(id)) {
+            this.selectedVoucherIds = this.selectedVoucherIds.filter(v => v !== id);
+        } else {
+            // 🛡️ Elite V2.2: Exclusive Selection Logic (1 Ship + 1 Discount)
+            if (voucher.type === 'SHIPPING') {
+                const others = this.selectedVoucherIds.filter(vId => {
+                    const v = this.vouchers.find(v => v.id === vId);
+                    return v?.type !== 'SHIPPING';
+                });
+                this.selectedVoucherIds = [...others, id];
+            } else {
+                const others = this.selectedVoucherIds.filter(vId => {
+                    const v = this.vouchers.find(v => v.id === vId);
+                    return v?.type === 'SHIPPING';
+                });
+                this.selectedVoucherIds = [...others, id];
+            }
+        }
+    }
 }
 
 // 🚀 ELITE CONTEXT KEYS

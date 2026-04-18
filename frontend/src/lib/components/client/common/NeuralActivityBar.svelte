@@ -5,18 +5,22 @@
   import { cubicOut } from 'svelte/easing';
   import { ShoppingBag, Users, Zap } from 'lucide-svelte';
   import { onDestroy } from 'svelte';
+  import { browser } from '$app/environment';
 
   const ui = getClientUi();
-  const isEnabled = $derived(ui.settings?.conversions?.fomo_enabled ?? true);
+  const isEnabled = $derived(browser && (ui.settings?.conversions?.fomo_enabled ?? false));
+
+  const shouldShow = $derived(isEnabled && fomoStore.isActivityVisible && fomoStore.currentActivity);
 
   onDestroy(() => {
     fomoStore.dispose();
   });
 </script>
 
-{#if isEnabled && fomoStore.isActivityVisible && fomoStore.currentActivity}
-  <div 
-    class="neural-activity-root fixed z-[var(--z-fomo, 9999)] pointer-events-none"
+{#if shouldShow}
+  <div
+    class="neural-activity-root fixed pointer-events-none"
+    style="z-index: var(--z-fomo, 9999);"
     in:fly={{ x: -20, duration: 800, easing: cubicOut }}
     out:fade={{ duration: 400 }}
   >
@@ -162,9 +166,32 @@
 
   @media (max-width: 768px) {
     .neural-activity-root {
-      left: 10px;
+      left: 12px;
       right: auto;
-      bottom: 82px; /* Dâng cao để né Bottom Nav */
+      bottom: 220px; /* Vị trí "Viral Floating" tối ưu - cao hẳn khỏi vùng thao tác tay và các nút giỏ hàng */
+    }
+    .neural-bar-v2 {
+      padding: 0.5px;
+      border-radius: 20px; /* Bo tròn Pill-shape cực mạnh kiểu TikTok Shop */
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.1);
+    }
+    .neural-inner {
+      padding: 5px 12px 5px 8px;
+      border-radius: 20px;
+      background: rgba(18, 18, 20, 0.98);
+      backdrop-filter: blur(20px);
+    }
+    .user-name {
+        font-size: 10px;
+        color: #FF0050; /* TikTok Pink accent */
+    }
+    .action-text, .time-tag {
+        font-size: 10px;
+    }
+    .neural-icon-wrap {
+        width: 18px;
+        height: 18px;
+        background: rgba(255, 255, 255, 0.1);
     }
   }
 </style>
