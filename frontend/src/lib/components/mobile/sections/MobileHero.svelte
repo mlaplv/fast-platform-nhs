@@ -83,11 +83,18 @@
     }
   });
 
+  // Elite V2.2: Gifts Interface for Static Typing
+  interface GiftItem {
+    name: string;
+    qty: number;
+    image?: string;
+  }
+
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
   };
 
-  const iconMap: Record<string, import('svelte').Component> = { blue: Zap, indigo: ShieldCheck, emerald: Droplets };
+  const iconMap: Record<string, typeof Zap> = { blue: Zap, indigo: ShieldCheck, emerald: Droplets };
 </script>
 
 <div class="h-full w-full relative group">
@@ -128,7 +135,7 @@
                   <span class="relative inline-flex rounded-full h-2 w-2 bg-[#ff3b30]"></span>
                </div>
                <span class="text-[10px] font-black text-white tracking-wider flex items-center gap-1">
-                  {viewers} <span class="text-white/60 font-medium">BẠN ĐANG XEM</span>
+                  {viewers} <span class="text-white/60 font-medium lowercase">bạn đang xem</span>
                </span>
                <div class="w-[1px] h-3 bg-white/30 mx-1"></div>
                <Flame class="w-3.5 h-3.5 text-[#ffcc00] fill-[#ffcc00]" />
@@ -137,7 +144,6 @@
                </span>
             </div>
 
-            <!-- Pricing Row -->
             <!-- Pricing Row -->
             <EditableWrapper path="price" label="SỬA GIÁ GỐC" class="block w-full pointer-events-auto">
               <div class="flex items-end gap-3 mt-1 pr-14">
@@ -166,7 +172,6 @@
                       {h2}
                   </EditableWrapper>
               </span>
-              <span class="text-sakura-pink">.</span>
             </h1>
 
             <!-- Trust / Review Badge -->
@@ -203,9 +208,9 @@
             </div>
 
             <!-- VIRAL 2026: COMBO & GIFT INJECTION (Elite Ultra-Lean) -->
-            {#if v?.attributes?.combo_qty || v?.attributes?.gifts?.length}
+            {#if v?.attributes?.combo_qty || (v?.attributes?.gifts && v.attributes.gifts.length > 0)}
                <div class="mt-2 pr-14 space-y-1.5 pointer-events-auto">
-                  {#if v.attributes.combo_qty > 1}
+                  {#if v.attributes.combo_qty && v.attributes.combo_qty > 1}
                      <div class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-gradient-to-r from-[#ff3b30] to-[#ff2d55] rounded-full shadow-[0_4px_12px_rgba(255,59,48,0.3)] animate-pulse-gentle">
                         <Flame class="w-2.5 h-2.5 text-white fill-white" />
                         <span class="text-[8px] font-black text-white uppercase tracking-widest italic leading-none">
@@ -222,7 +227,7 @@
                         <div class="flex items-center gap-3 relative z-10">
                            <div class="w-11 h-11 rounded-lg overflow-hidden bg-white/10 border border-white/10 shrink-0 shadow-inner">
                               <img 
-                                 src={resolveMediaUrl(v.attributes.gifts[0].image || product?.mobileImages?.[0] || product?.images?.[0])} 
+                                 src={resolveMediaUrl((v.attributes.gifts[0] as GiftItem).image || product?.mobileImages?.[0] || product?.images?.[0])} 
                                  alt="Quà tặng" 
                                  class="w-full h-full object-cover" 
                               />
@@ -231,7 +236,7 @@
                            <div class="flex-1 min-w-0">
                               <div class="text-[7.5px] font-black text-white/30 uppercase tracking-[0.25em] mb-0.5 font-mono leading-none">Quà tặng đặc quyền</div>
                               <div class="space-y-0.5">
-                                 {#each v.attributes.gifts as gift}
+                                 {#each (v.attributes.gifts as GiftItem[]) as gift}
                                     <div class="flex items-center justify-between gap-1.5">
                                        <span class="text-[10.5px] font-bold text-white drop-shadow-md truncate leading-tight">{gift.name}</span>
                                        <span class="text-[10px] font-black text-[#ffcc00] italic shrink-0">x{gift.qty}</span>
