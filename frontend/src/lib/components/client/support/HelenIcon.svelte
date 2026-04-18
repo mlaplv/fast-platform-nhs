@@ -37,29 +37,30 @@
   </defs>
 
   <!-- Neural Orbit Rings (Stable baseline) -->
-  <g class="opacity-30">
-    <circle cx="50" cy="50" r="42" stroke="var(--helen-color)" stroke-width="0.5" stroke-dasharray="4 8">
+  <g class="opacity-40">
+    <circle cx="50" cy="50" r="44" stroke="var(--helen-color)" stroke-width="0.25" stroke-dasharray="1 10">
       {#if !isPaused}
-        <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="20s" repeatCount="indefinite" />
+        <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="10s" repeatCount="indefinite" />
       {/if}
     </circle>
-    <circle cx="50" cy="50" r="36" stroke="var(--helen-color)" stroke-width="0.5" stroke-dasharray="2 4">
+    <circle cx="50" cy="50" r="38" stroke="var(--helen-color)" stroke-width="0.5" stroke-dasharray="2 6">
       {#if !isPaused}
-        <animateTransform attributeName="transform" type="rotate" from="360 50 50" to="0 50 50" dur="15s" repeatCount="indefinite" />
+        <animateTransform attributeName="transform" type="rotate" from="360 50 50" to="0 50 50" dur="8s" repeatCount="indefinite" />
       {/if}
     </circle>
   </g>
 
   <!-- Liquid Morphing Core (Mathematically Balanced) -->
   <g filter="url(#helen-glow-fx)" mask="url(#helen-mask)">
-    <path fill="url(#helen-core-grad)" class="opacity-85">
+    <path fill="url(#helen-core-grad)" class="opacity-90">
       {#if !isPaused}
         <animate 
           attributeName="d" 
-          dur="6s" 
+          dur="4s" 
           repeatCount="indefinite"
           values="
             M50,20 C66,20 80,34 80,50 C80,66 66,80 50,80 C34,80 20,66 20,50 C20,34 34,20 50,20;
+            M50,15 C85,15 85,50 85,50 C85,85 50,85 50,85 C15,85 15,50 15,50 C15,15 50,15 50,15;
             M50,22 C72,18 78,38 78,50 C78,62 72,82 50,78 C28,82 22,62 22,50 C22,38 28,18 50,22;
             M50,20 C66,20 80,34 80,50 C80,66 66,80 50,80 C34,80 20,66 20,50 C20,34 34,20 50,20
           "
@@ -67,11 +68,11 @@
       {/if}
     </path>
     
-    <!-- Central Neural Node -->
-    <circle cx="50" cy="50" r="10" fill="white" class="opacity-90">
+    <!-- Central Neural Node (Hyper Focal) -->
+    <circle cx="50" cy="50" r="12" fill="white" class="opacity-100 shadow-lg">
       {#if !isPaused}
-        <animate attributeName="r" values="8.5;11.5;8.5" dur="2.5s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="0.7;1;0.7" dur="2.5s" repeatCount="indefinite" />
+        <animate attributeName="r" values="10;14;10" dur="2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite" />
       {/if}
     </circle>
   </g>

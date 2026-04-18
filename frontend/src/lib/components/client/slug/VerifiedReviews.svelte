@@ -241,9 +241,11 @@
     <!-- Header Section -->
     <div class="text-center mb-16" in:fade>
       <!-- FLOATING HUD: No layout space occupied -->
-      <div class="absolute top-[-4vh] left-1/2 -translate-x-1/2 flex items-center justify-center gap-2 mb-6 opacity-0 animate-fade-in pointer-events-none" style="animation-delay: 0.2s">
-        <div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,1)]"></div>
-        <span class="text-[10px] font-black text-red-500/80 uppercase tracking-[0.3em] font-mono">LIVE_ACTIVITY: {liveViewers} KHÁCH ĐANG XEM ĐÁNH GIÁ</span>
+      <div class="absolute top-[-4vh] left-1/2 -translate-x-1/2 elite-status-pill !bg-transparent border-none shadow-none opacity-0 animate-fade-in pointer-events-none" style="animation-delay: 0.2s; --status-color: #ef4444;">
+        <div class="elite-dot-container">
+          <span class="elite-status-dot"></span>
+        </div>
+        <span class="text-[10px] font-black text-red-500 uppercase tracking-[0.3em] font-mono whitespace-nowrap">LIVE_ACTIVITY: {liveViewers} KHÁCH ĐANG XEM ĐÁNH GIÁ</span>
       </div>
       
       <div class="max-w-4xl mx-auto text-center" style:margin-bottom="calc(var(--headline-mb) * 0.5)">
@@ -321,9 +323,11 @@
     <div class="bento-hub-frame relative group">
       <div class="reviews-layout relative z-surface">
         <div class="flex items-center justify-between mt-6 mb-10 px-2">
-            <div class="hud-tag primary bg-luxury-sakura/5 text-luxury-sakura border-luxury-sakura/20 animate-fade-in">
-                <span class="w-2 h-2 rounded-full bg-luxury-sakura shadow-[0_0_10px_rgba(193,143,126,0.8)]"></span>
-                {labels.hud_feedback}
+            <div class="elite-status-pill !py-1 !px-4 !bg-luxury-sakura/5 text-luxury-sakura border-luxury-sakura/20 animate-fade-in">
+                <div class="elite-dot-container">
+                   <span class="elite-status-dot"></span>
+                </div>
+                <span class="text-luxury-sakura uppercase tracking-widest">{labels.hud_feedback.replace('//', '•')}</span>
             </div>
 
             <!-- iPad Mini / Tablet Navigation Controls (Elite Delicate) -->
@@ -511,8 +515,10 @@
           {/if}
 
           <div class="flex flex-col sm:flex-row items-center justify-between mb-4 sm:mb-8 pb-3 sm:pb-6 border-b border-white/5 sm:pr-10 gap-2 sm:gap-4">
-            <div class="hud-tag primary px-4 py-1.5 bg-luxury-sakura/5 text-luxury-sakura border-luxury-sakura/10">
-              <span class="w-1.5 h-1.5 rounded-full bg-luxury-gold animate-pulse shadow-[0_0_10px_rgba(232,213,176,0.8)]"></span>
+            <div class="elite-status-pill !py-1 !px-4 !bg-luxury-sakura/5 text-luxury-sakura border-luxury-sakura/10">
+              <div class="elite-dot-container" style="--status-color: var(--luxury-gold);">
+                <span class="elite-status-dot"></span>
+              </div>
               <span class="text-[10px] font-black tracking-[0.2em] uppercase whitespace-nowrap">{labels.form_title}</span>
             </div>
             <div class="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/20 font-mono italic">{labels.label_secure_encryption}</div>

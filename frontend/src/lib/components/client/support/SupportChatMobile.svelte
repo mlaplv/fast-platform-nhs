@@ -139,6 +139,9 @@
       style="z-index: {Z_INDEX_CLIENT.MOBILE_BOTTOM_SHEET}; height: 95svh; will-change: transform, opacity;"
       transition:fly={{ y: 800, duration: 500, easing: (t) => 1 - Math.pow(1 - t, 5) }}
     >
+    <!-- Specular Highlight Layer (Mobile Liquid Glass) -->
+    <div class="absolute top-[5%] left-[10%] w-[50%] h-[15%] bg-gradient-to-br from-white/10 to-transparent blur-2xl pointer-events-none z-0"></div>
+    <div class="absolute top-10 left-8 w-1.5 h-1.5 bg-white/30 blur-[1px] rounded-full pointer-events-none z-0"></div>
     <!-- iOS Style Drag Handle -->
     <div class="absolute top-0 left-0 right-0 h-12 flex justify-center items-start pt-[18px] z-20 pointer-events-none">
       <div class="w-14 h-[6px] bg-white/20 rounded-full"></div>
@@ -153,16 +156,17 @@
           <div class="absolute bottom-0 right-0 w-4 h-4 bg-[#FFB7C5] rounded-full ring-[3px] ring-[#0a0a0a] shadow-[0_0_12px_#FFB7C5]"></div>
         </div>
         <div>
-          <h3 class="font-black text-white tracking-tight leading-tight text-[19px] flex items-center gap-2">
+          <h3 class="font-black text-white tracking-[-0.02em] leading-tight text-[21px] flex items-center gap-3 uppercase">
             {supportAgent.config.agentName}
-            <div class="flex items-center gap-1 px-2 py-0.5 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 rounded-md">
-              <Lock size={10} class="text-[#FFB7C5]" />
-              <span class="text-[9px] text-[#FFB7C5] font-black uppercase tracking-wider">AES-256</span>
+            <div class="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 border border-white/10 rounded-md">
+              <Lock size={10} class="text-white/30" />
+              <span class="text-[8px] text-white/40 font-black uppercase tracking-widest">AES_256</span>
             </div>
           </h3>
           <div class="flex items-center gap-2 mt-1.5">
-             <p class="text-[11px] text-[#FFB7C5] font-black uppercase tracking-[0.2em] opacity-90">
-               {supportAgent.helenEnabled ? 'Tư vấn(online)' : 'Nhân viên trực'}
+             <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"></div>
+             <p class="text-[11px] text-[#FFB7C5] font-black uppercase tracking-[0.3em] opacity-90">
+               {supportAgent.helenEnabled ? 'Neural Advisor' : 'Human Support'}
              </p>
           </div>
         </div>
@@ -377,8 +381,9 @@
 
   @keyframes mobile-morph {
     0% { border-radius: 48px 48px 0 0; }
-    50% { border-radius: 64px 32px 0 0; }
-    100% { border-radius: 32px 64px 0 0; }
+    33% { border-radius: 64px 32px 0 0; }
+    66% { border-radius: 40px 60px 0 0; }
+    100% { border-radius: 48px 48px 0 0; }
   }
   
   .safe-area-bottom {

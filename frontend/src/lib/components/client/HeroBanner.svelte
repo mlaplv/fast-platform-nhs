@@ -383,18 +383,18 @@
   </div>
 
 
-  <button class="hero-cta-button" onclick={scrollToQuiz}>
-     <div class="cta-gradient-overlay"></div>
+  <button class="hero-cta-button elite-status-pill" onclick={scrollToQuiz}>
      <EditableWrapper path="metadata.hero_cta_text" value={ctaText} label="SỬA CHỮ NÚT BẤM" class="w-full flex justify-center">
-        <div class="cta-content">
-           <div class="cta-status-dot"></div>
-           <span class="cta-text">{ctaText}</span>
-           <svg class="cta-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="flex items-center gap-3">
+           <div class="elite-dot-container">
+              <span class="elite-status-dot" style="--status-color: #94a3b8;"></span>
+           </div>
+           <span class="elite-status-text uppercase tracking-[0.2em]">{ctaText}</span>
+           <svg class="cta-icon ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
            </svg>
         </div>
      </EditableWrapper>
-     <div class="cta-shimmer"></div>
   </button>
 
   <a href="#diagnostics" class="mouse-scroll-indicator" aria-label={labels.aria_scroll} onclick={(e) => { e.preventDefault(); scrollToQuiz?.(); }}>

@@ -175,14 +175,16 @@
     </div>
 
     <div class="flex justify-center mb-10 mt-6">
-      <div class="timer-badge px-8 py-2 rounded-full text-[10px] uppercase tracking-[0.4em] flex items-center gap-3 backdrop-blur-3xl shadow-[0_0_20px_rgba(255,183,197,0.1)]">
-        <span class="w-2 h-2 rounded-full bg-luxury-sakura animate-pulse shadow-[0_0_12px_var(--luxury-sakura)]"></span>
+      <div class="elite-status-pill px-8 py-2 shadow-[0_0_20px_rgba(255,183,197,0.1)]">
+        <div class="elite-dot-container">
+           <span class="elite-status-dot"></span>
+        </div>
         {#if !(metadata.offer_timer_prefix || '').startsWith('[OFF]') || liveEditStore.isEditMode}
           <EditableWrapper path="metadata.offer_timer_prefix" type="text" label="SỬA TIÊU ĐỀ HẸN GIỜ" class="inline" as="span">
-            {mkt.timer_prefix}
+            <span class="text-[10px] uppercase tracking-[0.4em]">{mkt.timer_prefix}</span>
           </EditableWrapper>
         {/if}
-        <span class="font-black tabular-nums text-white">{formatTime(timeLeft)}</span>
+        <span class="font-black tabular-nums text-white text-[10px] tracking-[0.4em]">{formatTime(timeLeft)}</span>
       </div>
     </div>
 
@@ -198,11 +200,12 @@
                       {mkt.label_expert_choice}
                    </div>
                 {/if}
-                {#if isCardActive && displayQty > 1}
-                   <div class="px-5 py-2 bg-gradient-to-r from-red-600 to-rose-500 text-white font-black text-[9px] uppercase tracking-widest rounded-xl shadow-[0_4px_30px_rgba(225,29,72,0.8)] animate-pulse flex items-center gap-1 border border-red-400/50">
-                      <Zap class="w-3 h-3"/> ĐÃ ÁP DỤNG MỨC GIÁ SỈ
-                   </div>
-                {/if}
+                 {#if isCardActive && displayQty > 1}
+                    <div class="elite-status-pill px-5 py-2 !bg-red-600/80 shadow-[0_4px_30px_rgba(225,29,72,0.8)] border-red-400/50">
+                       <Zap class="w-3 h-3 text-white"/> 
+                       <span class="text-white font-black text-[9px] uppercase tracking-widest">ĐÃ ÁP DỤNG MỨC GIÁ SỈ</span>
+                    </div>
+                 {/if}
               </div>
 
               <div 
@@ -256,19 +259,23 @@
               <div class="flex flex-col gap-2 mt-2 items-center md:items-start">
                  {#if isCardActive && displayQty > 1}
                    {@const comboOriginalTotal = (product?.price || variant.price) * (variant.attributes?.combo_qty || 1)}
-                   <p class="text-[12px] text-red-400 font-black uppercase tracking-widest flex items-center gap-3 bg-red-950/40 px-3 py-1.5 rounded-lg border border-red-900/50">
-                      <span class="w-2 h-2 bg-red-500 rounded-full animate-bounce"></span>
+                   <div class="text-[12px] text-red-100 font-black uppercase tracking-widest flex items-center gap-3 bg-red-950/60 px-3 py-1.5 rounded-lg border border-red-900/50">
+                      <div class="elite-dot-container" style="--status-color: #ef4444;">
+                         <span class="elite-status-dot"></span>
+                      </div>
                       TIẾT KIỆM KHỦNG: {(comboOriginalTotal - totalDisplayPrice).toLocaleString()}đ
-                   </p>
+                   </div>
                 {:else if (variant.price - unitPrice) > 0}
                   {#if !(metadata.offer_savings_prefix || '').startsWith('[OFF]') || liveEditStore.isEditMode}
-                    <p class="text-[10px] text-emerald-400 font-black uppercase tracking-widest flex items-center gap-3">
-                       <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                    <div class="text-[10px] text-emerald-100 font-black uppercase tracking-widest flex items-center gap-3">
+                       <div class="elite-dot-container" style="--status-color: #10b981;">
+                          <span class="elite-status-dot"></span>
+                       </div>
                        <EditableWrapper path="metadata.offer_savings_prefix" type="text" label="SỬA TIÊU ĐỀ TIẾT KIỆM" class="inline" as="span">
                          {mkt.savings_prefix}
                        </EditableWrapper>
                        {(variant.price - unitPrice).toLocaleString()}đ
-                    </p>
+                    </div>
                   {/if}
                 {/if}
                 <p class="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 {isCardActive && displayQty > 1 ? 'mt-1' : ''}">
@@ -304,9 +311,8 @@
                   <div class="flex flex-col gap-2 bg-gradient-to-br from-luxury-sakura/20 via-luxury-sakura/5 to-transparent p-4 rounded-2xl border border-luxury-sakura/20 shadow-[0_10px_30px_rgba(255,183,197,0.1)] group/gift-box hover:border-luxury-sakura/40 transition-all duration-500">
                     <div class="flex items-center justify-between mb-2">
                       <span class="text-[10px] text-luxury-sakura font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                         <div class="relative flex h-2 w-2">
-                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-luxury-sakura opacity-75"></span>
-                           <span class="relative inline-flex rounded-full h-2 w-2 bg-luxury-sakura"></span>
+                         <div class="elite-dot-container">
+                            <span class="elite-status-dot"></span>
                          </div>
                          QUÀ TẶNG ĐỘC QUYỀN
                       </span>

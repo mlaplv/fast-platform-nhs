@@ -260,24 +260,7 @@
   }
 }
 
-.hud-tag {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 1.5px;
-  padding: 6px 14px;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  text-transform: uppercase;
-}
-
-.hud-tag.primary {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
+/* Indicator System delegated to global elite-status-pill */
 
 /* Elite V2.2 Inputs */
 .input-liquid {

@@ -16,7 +16,7 @@
   const contextUI = $derived.by(() => {
     switch (supportAgent.currentContext) {
       case 'home':
-        return { color: '#FFB7C5', icon: HelenIcon, label: 'Khám phá SmartShop' };
+        return { color: '#FFB7C5', icon: HelenIcon, label: 'Trợ giúp AI' };
       case 'product':
         return { color: '#FFB7C5', icon: HelenIcon, label: 'Tư vấn sản phẩm' };
       case 'cart':
@@ -160,19 +160,13 @@
 
   {#if !supportAgent.isOpen && supportAgent.messages.length <= 1 && !isMobile && !isScrolled}
     <div 
-      class="absolute right-[calc(100%+24px)] whitespace-nowrap bg-black/60 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.1)] border border-white/10 text-gray-200 px-6 py-3.5 rounded-full font-semibold text-[14px] tracking-tight tooltip-float flex items-center gap-3 transition-all animate-in fade-in slide-in-from-right-8"
+      class="absolute right-[calc(100%+24px)] elite-status-pill tooltip-float flex items-center gap-3 transition-all animate-in fade-in slide-in-from-right-8"
+      style="--status-color: var(--theme-color);"
     >
-      <div class="relative flex h-2.5 w-2.5">
-        <span 
-          class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-          style="background-color: var(--theme-color);"
-        ></span>
-        <span 
-          class="relative inline-flex rounded-full h-2.5 w-2.5 shadow-[0_0_8px_var(--theme-color)]"
-          style="background-color: var(--theme-color);"
-        ></span>
+      <div class="elite-dot-container">
+        <span class="elite-status-dot"></span>
       </div>
-      <span class="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+      <span class="elite-status-text">
         {supportAgent.helenEnabled ? contextUI.label : 'Nhân viên đang trực tuyến'}
       </span>
     </div>

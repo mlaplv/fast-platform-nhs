@@ -144,11 +144,15 @@
     style="z-index: {Z_INDEX_CLIENT.MODAL}; will-change: transform, opacity;"
     transition:scale={{ start: 0.7, opacity: 0, duration: 600, easing: (t) => 1 - Math.pow(1 - t, 5) }}
   >
-    <!-- Liquid Neural Border (Optimized for No-GPU CPU-only VPS) -->
-    <div class="absolute inset-[-1px] border border-white/5 {isExpanded ? 'rounded-[48px]' : 'helen-box-v2'} pointer-events-none"></div>
+    <!-- Liquid Neural Border (Optimized for No-GPU) -->
+    <div class="absolute inset-[-1px] border border-white/10 {isExpanded ? 'rounded-[48px]' : 'helen-box-v2'} pointer-events-none z-[100]"></div>
+
+    <!-- Specular Highlight (The "Refraction" layer that makes it viral) -->
+    <div class="absolute top-[10%] left-[10%] w-[40%] h-[20%] bg-gradient-to-br from-white/20 to-transparent blur-xl {isExpanded ? 'hidden' : 'helen-box-v2'} pointer-events-none z-20"></div>
+    <div class="absolute top-4 left-10 w-2 h-2 bg-white/40 blur-[2px] rounded-full {isExpanded ? 'hidden' : ''} pointer-events-none z-20"></div>
 
     <!-- Ultra-Glass Background Layer -->
-    <div class="absolute inset-0 apple-glass-dark-modal pointer-events-none transition-all duration-700 {isExpanded ? 'rounded-[48px] is-expanded' : 'helen-box-v2'} border border-white/10 shadow-xl"></div>
+    <div class="absolute inset-0 apple-glass-dark-modal pointer-events-none transition-all duration-700 {isExpanded ? 'rounded-[48px] is-expanded' : 'helen-box-v2'} border border-white/5 shadow-2xl"></div>
 
     <!-- Interface Contents -->
     <div class="relative z-10 flex flex-col h-full">
@@ -161,19 +165,22 @@
             </div>
             <div class="absolute bottom-0 right-0 w-4 h-4 bg-[#FFB7C5] rounded-full ring-[3px] ring-[#0a0a0a] shadow-[0_0_12px_#FFB7C5]"></div>
           </div>
-          <div class="flex flex-col gap-1.5">
+          <div class="flex flex-col gap-1">
             <div class="flex items-center gap-3">
-              <h3 class="font-black text-white tracking-tight text-[22px] leading-none">
+              <h3 class="font-black text-white tracking-[-0.03em] text-[24px] leading-none uppercase">
                 {supportAgent.config.agentName}
               </h3>
-              <div class="flex items-center gap-1.5 px-2.5 py-0.5 bg-white/5 border border-white/10 rounded-full h-fit">
-                <Lock size={11} class="text-white/40" />
-                <span class="text-[9px] text-white/40 font-black uppercase tracking-wider">AES-256</span>
+              <div class="apple-glass-badge px-2 py-0.5 rounded-md flex items-center gap-1.5 border border-white/10">
+                <Lock size={9} class="text-white/30" />
+                <span class="text-[8px] text-white/40 font-black tracking-widest uppercase">AES_256</span>
               </div>
             </div>
-            <p class="text-[11px] text-[#FFB7C5] font-black uppercase tracking-[0.25em] opacity-80">
-              {supportAgent.helenEnabled ? 'Hỗ trợ thực tế (AI)' : 'Chuyên gia tư vấn'}
-            </p>
+            <div class="flex items-center gap-2">
+               <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"></div>
+               <p class="text-[10px] text-[#FFB7C5] font-black uppercase tracking-[0.35em] opacity-90">
+                 {supportAgent.helenEnabled ? 'Neural Advisor' : 'Human Specialist'}
+               </p>
+            </div>
           </div>
         </div>
         
@@ -387,16 +394,23 @@
     background: rgba(8, 12, 21, 0.98) !important;
   }
 
-  /* Liquid Hyper-Drop Shape V2 (Organic & Balanced) */
+  /* Liquid Hyper-Drop Shape V3 (Strict Aesthetic Morphing) */
   .helen-box-v2 {
-      border-radius: 30% 70% 50% 50% / 30% 30% 70% 70%;
-      animation: morph-blob 8s infinite alternate ease-in-out;
+      border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+      animation: morph-blob-v3 12s infinite alternate cubic-bezier(0.445, 0.05, 0.55, 0.95);
   }
 
-  @keyframes morph-blob {
-    0% { border-radius: 30% 70% 50% 50% / 30% 30% 70% 70%; }
-    50% { border-radius: 50% 50% 30% 70% / 50% 30% 70% 50%; }
-    100% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; }
+  @keyframes morph-blob-v3 {
+    0% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
+    33% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; }
+    66% { border-radius: 50% 50% 30% 70% / 50% 30% 70% 50%; }
+    100% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
+  }
+
+  .apple-glass-badge {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.02);
   }
 
   @keyframes liquid-float {

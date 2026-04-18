@@ -129,18 +129,12 @@
           <!-- Product Info Overlay -->
           <div class="hero-info-overlay container !px-2">
             <!-- Live & Scarcity Indicator (Viral 2026) -->
-            <div class="inline-flex items-center gap-2 px-2.5 py-1 bg-white/15 backdrop-blur-2xl rounded-full border border-white/20 shadow-[0_4px_24px_rgba(255,59,48,0.2)] mb-1.5 w-max">
-               <div class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FFB7C5] opacity-80"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-[#FFB7C5]"></span>
+            <div class="elite-status-pill mb-1.5 shadow-[0_4px_24px_rgba(255,59,48,0.2)]" style="padding: 0.35rem 0.75rem; font-size: 10px;">
+               <div class="elite-dot-container">
+                  <span class="elite-status-dot"></span>
                </div>
-               <span class="text-[10px] font-black text-white tracking-wider flex items-center gap-1">
+               <span class="elite-status-text tracking-wider flex items-center gap-1">
                   {viewers} <span class="text-white/60 font-medium lowercase">bạn đang xem</span>
-               </span>
-               <div class="w-[1px] h-3 bg-white/30 mx-1"></div>
-               <Flame class="w-3.5 h-3.5 text-[#ffcc00] fill-[#ffcc00]" />
-               <span class="text-[10px] font-black text-[#ffcc00] tracking-wide">
-                  HÀNG SẮP HẾT
                </span>
             </div>
 
