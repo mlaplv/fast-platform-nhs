@@ -5,11 +5,11 @@
 
 export const SHOP_CONFIG = {
     pharmacy: {
-        name: "Nhà Thuốc Hồng Sơn",
-        address: "33 Ngô Thị Nhậm, Trung Sơn, Tam Điệp, Ninh Bình",
-        phone: "097 878 5079",
-        zalo: "Nhà thuốc Hồng Sơn",
-        license: "GPKD: 09 B8 004018 | Ninh Bình | MICSMO.COM"
+        name: "Hệ Thống Phân Phối Chính Hãng",
+        address: "Trung tâm Phân phối Toàn quốc",
+        phone: "Hotline Hỗ trợ",
+        zalo: "Zalo Official",
+        license: "GPKD: Đang cập nhật | MICSMO.COM"
     },
     shipping: {
         fixed_cost: 30000,
@@ -71,6 +71,22 @@ export const OFFER_CONSTANTS = {
         expert_choice: "Chuyên gia khuyên dùng",
         scarcity: "Sắp cháy hàng",
         cta_start: "Bắt đầu trải nghiệm",
-        cta_full: "Chọn liệu trình tự tin"
+        cta_full: "Chọn liệu trình tự tin",
+        voucher_viral_title: "Mã Giảm Giá Viral",
+        voucher_used_label: "Lượt dùng",
+        benefit_detail_title: "Chi tiết quyền lợi gói",
+        sold_count_prefix: "Đã bán",
+        expert_verify_label: "Bác sĩ da liễu khuyên dùng"
     }
+};
+
+export const PRIVACY_CONSTANTS = {
+    title: "ĐẶC QUYỀN BẢO MẬT CAO CẤP",
+    sub: "Cam kết đóng gói kín đáo & bảo mật quyền riêng tư cá nhân.",
+    benefits: [
+        "BẢO MẬT TÊN SẢN PHẨM",
+        "KIỂM TRA HÀNG TRƯỚC NHẬN",
+        "ĐÓNG GÓI KÍN ĐÁO 3 LỚP",
+        "ĐỔI TRẢ 7 NGÀY"
+    ]
 };

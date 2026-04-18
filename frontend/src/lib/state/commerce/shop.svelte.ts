@@ -85,6 +85,9 @@ export class ShopStore {
     vouchers = $state<Voucher[]>([]);
     selectedVoucherIds = $state<string[]>([]);
 
+    // 🛡️ Elite V2.2: Privacy & Stealth Features
+    isStealthMode = $state<boolean>(true); // Default to protected
+
     // Scarcity Timer
     timeLeft = $state<number>(0);
     private _timerId: ReturnType<typeof setTimeout> | null = null;
@@ -266,6 +269,10 @@ export class ShopStore {
             this.variant = found;
             this.quantity = 1; // Reset to 1!
         }
+    }
+
+    toggleStealthMode(): void {
+        this.isStealthMode = !this.isStealthMode;
     }
 
     setQuantity(q: number): void {
