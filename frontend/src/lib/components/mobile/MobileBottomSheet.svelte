@@ -1,11 +1,13 @@
 <script lang="ts">
   import type { Product, ProductVariant } from '$lib/types';
-  import { X, ShoppingCart, ShieldCheck, Phone, MapPin, User, Loader2 } from 'lucide-svelte';
+  import { X, ShoppingCart, ShieldCheck, Phone, MapPin, User, Loader2, MessageSquare } from 'lucide-svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { getShopStore, type ShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { portal } from '$lib/core/actions/portal';
   import { fly } from 'svelte/transition';
   import GiftModal from '$lib/components/storefront/ui/GiftModal.svelte';
+  import AddressSelector from '$lib/components/mobile/checkout/AddressSelector.svelte';
+  import SimpleTiptap from '$lib/components/storefront/ui/SimpleTiptap.svelte';
 
   let { active = $bindable(), product }: { active: boolean, product: Product } = $props();
   const shopStore = getShopStore();
@@ -19,7 +21,9 @@
   let step = $state<'selection' | 'shipping'>('shipping');
   let name = $state('');
   let phone = $state('');
-  let address = $state('');
+  let address = $state({ province: '', ward: '', detail: '' });
+  let note = $state('');
+  let showNote = $state(false);
   let validationError = $state<string | null>(null);
 
   const labels = $derived({
@@ -71,7 +75,10 @@
   function validate() {
     if (step === 'shipping') {
       if (phone.length < 10) return "Số điện thoại không hợp lệ";
-      if (address.length < 5) return "Địa chỉ cần chi tiết hơn";
+      if (!name.trim()) return "Vui lòng nhập họ và tên";
+      if (!address.province) return "Vui lòng chọn Tỉnh/Thành phố";
+      if (!address.ward) return "Vui lòng chọn Phường/Xã";
+      if (address.detail.length < 5) return "Vui lòng nhập địa chỉ chi tiết (số nhà, tên đường)";
     }
     return null;
   }
@@ -87,23 +94,45 @@
   }
 
 
-  // Elite Identity Shield v2.2: Masked Auto-fill
+  // Elite Identity Shield v2.2: Masked Auto-fill & Smart Distribution
   $effect(() => {
     const data = shopStore.customerData;
     if (data?.isRecurring) {
       if (data.nameMasked && !name) name = data.nameMasked;
-      if (data.addressMasked && !address) address = data.addressMasked;
+      
+      // Smart Address Distribution: Tách chuỗi địa chỉ cũ (ví dụ: "Số 10, Phường Đa Kao, Thành phố Hồ Chí Minh")
+      if (data.addressMasked && (!address.province || !address.detail)) {
+        const parts = data.addressMasked.split(',').map(p => p.trim());
+        if (parts.length >= 3) {
+          // Lấy Tỉnh (phần cuối) và Phường (phần gần cuối)
+          const dbProvince = parts[parts.length - 1];
+          const dbWard = parts[parts.length - 2];
+          const dbDetail = parts.slice(0, parts.length - 2).join(', ');
+
+          if (!address.province) address.province = dbProvince;
+          if (!address.ward) address.ward = dbWard;
+          if (!address.detail) address.detail = dbDetail;
+        } else {
+          // Fallback nếu chuỗi không chuẩn format
+          if (!address.detail) address.detail = data.addressMasked;
+        }
+      }
     }
   });
 
   async function handleAction() {
+    console.log('Elite Action Clicked!'); // 🚀 Nút đã được nhấn!
     validationError = null;
     const err = validate();
     if (err) {
+      console.log('Elite Validation Failed:', err); 
       validationError = err;
       return;
     }
-    await shopStore.submitCheckout({ name, phone, address });
+    
+    console.log('Elite Submitting Order...', { name, phone, address, note });
+    const fullAddress = `${address.detail}, ${address.ward}, ${address.province}`;
+    await shopStore.submitCheckout({ name, phone, address: fullAddress, note });
   }
 
   function handleInputChange() {
@@ -176,8 +205,8 @@
             </div>
           {/if}
           <!-- Shipping & Trust Info! -->
-          <div class="mb-4 space-y-2">
-            <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/40 border-b border-white/5 pb-2">
+          <div class="mb-1.5 space-y-1.5">
+            <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/40 border-b border-white/5 pb-1.5">
               <span>Phương thức vận chuyển</span>
               <span class="text-emerald-400">Miễn phí (Tiết kiệm 30k)</span>
             </div>
@@ -186,12 +215,12 @@
             </div>
           </div>
 
-          <div class="mb-6">
-            <p class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-medium leading-relaxed mb-6">
+          <div class="mb-4">
+            <p class="text-[9px] text-white/30 uppercase tracking-[0.2em] font-medium leading-relaxed mb-2">
               Vui lòng điền thông tin.
             </p>
             
-            <div class="space-y-4">
+            <div class="space-y-3">
               <!-- 1. Phone FIRST (Mobile) -->
               <div class="relative group">
                 <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-luxury-copper transition-colors">
@@ -202,7 +231,7 @@
                   bind:value={phone}
                   oninput={() => { handlePhoneInput(); handleInputChange(); }}
                   placeholder="SỐ ĐIỆN THOẠI *"
-                  class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 {validationError?.includes('thoại') ? 'border-red-500/30' : 'border-white/5 focus:border-luxury-copper/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-lg uppercase transition-all"
+                  class="w-full pl-12 pr-6 py-3.5 bg-white/[0.03] border-2 {validationError?.includes('thoại') ? 'border-red-500/30' : 'border-white/5 focus:border-luxury-copper/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-base uppercase transition-all"
                 />
 
                 {#if shopStore.customerData?.isRecurring}
@@ -223,7 +252,7 @@
                   bind:value={name}
                   oninput={handleInputChange}
                   placeholder="HỌ VÀ TÊN *"
-                  class="w-full pl-12 pr-12 py-5 bg-white/[0.03] border-2 border-white/5 focus:border-luxury-copper/30 rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all"
+                  class="w-full pl-12 pr-12 py-3.5 bg-white/[0.03] border-2 border-white/5 focus:border-luxury-copper/30 rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all"
                 />
                 
                 {#if shopStore.customerData?.isRecurring && name === shopStore.customerData.nameMasked}
@@ -233,18 +262,60 @@
                 {/if}
               </div>
 
-              <!-- 3. Address -->
+              <!-- 3. Address Selector (Province & Ward) -->
+              <div class="relative z-[200]">
+                 <AddressSelector 
+                   value={address}
+                   onSelect={(data) => { address = { ...address, ...data }; handleInputChange(); }}
+                 />
+              </div>
+
+              <!-- 4. Detailed Address -->
               <div class="relative group">
                 <div class="absolute top-5 left-5 pointer-events-none text-white/20 group-focus-within:text-luxury-copper transition-colors">
                   <MapPin class="w-4 h-4" />
                 </div>
                 <textarea
-                  bind:value={address}
+                  bind:value={address.detail}
                   oninput={handleInputChange}
-                  rows="3"
-                  placeholder="ĐỊA CHỈ NHẬN HÀNG CHI TIẾT *"
-                  class="w-full pl-12 pr-6 py-5 bg-white/[0.03] border-2 {validationError?.includes('Địa chỉ') ? 'border-red-500/30' : 'border-white/5 focus:border-luxury-copper/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all resize-none"
+                  rows="2"
+                  placeholder="SỐ NHÀ, TÊN ĐƯỜNG... *"
+                  class="w-full pl-12 pr-6 py-3.5 bg-white/[0.03] border-2 {validationError?.includes('chi tiết') ? 'border-red-500/30' : 'border-white/5 focus:border-luxury-copper/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all resize-none"
                 ></textarea>
+              </div>
+
+              <!-- 5. Professional Note (Toggleable Tiptap) -->
+              <div class="relative group mt-1">
+                {#if !showNote}
+                  <button 
+                    type="button"
+                    onclick={() => showNote = true}
+                    class="flex items-center gap-2 py-2 px-1 hover:text-luxury-copper transition-colors group/note"
+                  >
+                    <MessageSquare class="w-3.5 h-3.5 text-white/20 group-hover/note:text-luxury-copper" />
+                    <span class="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] italic group-hover/note:text-white/60">
+                      + Thêm ghi chú cho đơn hàng...
+                    </span>
+                  </button>
+                {:else}
+                  <div in:fly={{ y: -5, duration: 200 }}>
+                    <div class="flex items-center justify-between mb-2 px-1">
+                      <div class="flex items-center gap-2">
+                        <MessageSquare class="w-3 h-3 text-luxury-copper" />
+                        <span class="text-[9px] font-black text-white/40 uppercase tracking-widest">Ghi chú dặn dò</span>
+                      </div>
+                      <button onclick={() => { showNote = false; note = ''; }} class="text-[8px] font-bold text-white/10 hover:text-red-400 uppercase tracking-tighter">Hủy bỏ</button>
+                    </div>
+                    <div class="rounded-xl overflow-hidden border border-white/5 focus-within:border-luxury-copper/20 transition-all bg-black/20">
+                      <SimpleTiptap 
+                        bind:content={note} 
+                        placeholder="VÍ DỤ: GIAO GIỜ HÀNH CHÍNH, GỌI TRƯỚC 15 PHÚT..." 
+                        variant="dark"
+                        minHeight="80px"
+                      />
+                    </div>
+                  </div>
+                {/if}
               </div>
 
               <!-- Viral Gift Modal Trigger (Elite V2.2 Mobile) -->
@@ -281,71 +352,72 @@
               </div>
             </div>
           </div>
-        </div>
-    </div>
 
-    {#if validationError || shopStore.error}
-      <div class="px-6 py-2 bg-red-500/10 border-t border-red-500/20 text-[10px] text-red-500 font-bold uppercase tracking-widest text-center animate-pulse">
-        {validationError || shopStore.error}
-      </div>
-    {/if}
-
-    <!-- Horizontal Pinned Action Bar: Stick to bottom -->
-    <div class="flex items-center gap-3 px-6 py-4 border-t border-white/5 bg-[#0a0a0a]">
-      <div class="flex-1 flex flex-col min-w-0">
-        <div class="flex items-baseline gap-1 mb-0.5 whitespace-nowrap">
-          <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">Tổng giá trị liệu trình</span>
-          {#if shopStore.originalPrice * shopStore.quantity > shopStore.totalAmount}
-             <div class="px-1 py-0.5 bg-emerald-500/10 rounded-[4px] text-[6px] font-black text-emerald-400">-{totalSaved.toLocaleString()}đ</div>
+          <!-- 🚩 Validation Error Display (Elite V2.2) -->
+          {#if validationError || shopStore.error}
+            <div class="px-6 py-2.5 bg-red-500/10 border-y border-red-500/20 text-[10px] text-red-500 font-black uppercase tracking-widest text-center animate-pulse z-[300]">
+              ⚠️ {validationError || shopStore.error}
+            </div>
           {/if}
-        </div>
-        <span class="text-xl font-black text-white italic tabular-nums leading-none">
-          {(shopStore.totalAmount).toLocaleString()}đ
-        </span>
-      </div>
 
-      <button
-        class="flex-[1.2] py-[14px] px-3 text-white font-black text-[12px] leading-none uppercase tracking-wider rounded-full btn-primary-viral active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 overflow-hidden relative group shrink-0"
-        onclick={handleAction}
-        disabled={shopStore.isSubmitting}
-      >
-        <!-- Shimmer Effect -->
-        <div class="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shimmer pointer-events-none"></div>
-        
-        {#if shopStore.isSubmitting}
-          <Loader2 class="w-4 h-4 animate-spin shrink-0" />
-        {:else}
-          <div class="flex flex-col items-center leading-none relative z-surface">
-            <span class="text-[12px] font-black tracking-widest whitespace-nowrap">{labels.cta_submit}</span>
-            {#if totalSaved > 0}
-              <span class="text-[9px] font-bold text-white/80 tracking-tighter mt-1.5 whitespace-nowrap drop-shadow-sm">
-                TIẾT KIỆM {totalSaved.toLocaleString()}đ | FREESHIP
+          <!-- 🚀 Footer Action Bar (Pinned) -->
+          <div class="flex items-center gap-3 px-6 py-4 border-t border-white/5 bg-[#0a0a0a] mt-auto">
+            <div class="flex-1 flex flex-col min-w-0">
+              <div class="flex items-baseline gap-1 mb-0.5 whitespace-nowrap">
+                <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">Tổng giá trị liệu trình</span>
+                {#if shopStore.originalPrice * shopStore.quantity > shopStore.totalAmount}
+                   <div class="px-1 py-0.5 bg-emerald-500/10 rounded-[4px] text-[6px] font-black text-emerald-400">-{totalSaved.toLocaleString()}đ</div>
+                {/if}
+              </div>
+              <span class="text-xl font-black text-white italic tabular-nums leading-none">
+                {(shopStore.totalAmount).toLocaleString()}đ
               </span>
-            {/if}
+            </div>
+
+            <button
+              class="flex-[1.2] py-[14px] px-3 text-white font-black text-[12px] leading-none uppercase tracking-wider rounded-full btn-primary-viral active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 overflow-hidden relative group shrink-0"
+              onclick={handleAction}
+              disabled={shopStore.isSubmitting}
+            >
+              <!-- Shimmer Effect -->
+              <div class="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shimmer pointer-events-none"></div>
+              
+              {#if shopStore.isSubmitting}
+                <Loader2 class="w-4 h-4 animate-spin shrink-0" />
+              {:else}
+                <div class="flex flex-col items-center leading-none relative z-surface">
+                  <span class="text-[12px] font-black tracking-widest whitespace-nowrap">{labels.cta_submit}</span>
+                  {#if totalSaved > 0}
+                    <span class="text-[9px] font-bold text-white/80 tracking-tighter mt-1.5 whitespace-nowrap drop-shadow-sm">
+                      TIẾT KIỆM {totalSaved.toLocaleString()}đ | FREESHIP
+                    </span>
+                  {/if}
+                </div>
+                
+                <ShoppingCart class="w-4 h-4 relative z-surface group-hover:scale-110 transition-transform shrink-0" />
+              {/if}
+            </button>
+          </div>
+
+          <!-- FOMO Indicator -->
+          <div class="mt-4 flex items-center justify-center gap-2 pb-2">
+            <div class="flex -space-x-1.5">
+              {#each Array(3) as _, i}
+                <div class="w-4 h-4 rounded-full border border-black bg-gray-800 flex items-center justify-center overflow-hidden">
+                   <div class="w-full h-full bg-gradient-to-br from-gray-600 to-gray-800"></div>
+                </div>
+              {/each}
+            </div>
+            <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest">
+               🔥 <span class="text-luxury-peach/50">32 người</span> đang chọn phân loại này
+            </p>
           </div>
           
-          <ShoppingCart class="w-4 h-4 relative z-surface group-hover:scale-110 transition-transform shrink-0" />
-        {/if}
-      </button>
-    </div>
-
-    <!-- FOMO Indicator -->
-    <div class="mt-4 flex items-center justify-center gap-2">
-      <div class="flex -space-x-1.5">
-        {#each Array(3) as _, i}
-          <div class="w-4 h-4 rounded-full border border-black bg-gray-800 flex items-center justify-center overflow-hidden">
-             <div class="w-full h-full bg-gradient-to-br from-gray-600 to-gray-800"></div>
-          </div>
-        {/each}
+          <p class="mt-6 mb-4 text-[9px] text-white/10 text-center uppercase tracking-[0.3em] font-medium italic">
+            🔒 Bảo mật AES-256 mã hóa quân sự
+          </p>
       </div>
-      <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest">
-         🔥 <span class="text-luxury-peach/50">32 người</span> đang chọn phân loại này
-      </p>
     </div>
-    
-    <p class="mt-6 mb-4 text-[9px] text-white/10 text-center uppercase tracking-[0.3em] font-medium italic">
-      🔒 Bảo mật AES-256 mã hóa quân sự
-    </p>
   </div>
 
   <GiftModal />

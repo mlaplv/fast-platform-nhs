@@ -11,13 +11,15 @@
     placeholder?: string;
     limit?: number;
     variant?: 'light' | 'dark';
+    minHeight?: string;
   }
 
   let {
     content = $bindable(''),
     placeholder = 'Nhập nội dung...',
     limit = 5000,
-    variant = 'light'
+    variant = 'light',
+    minHeight = '160px'
   }: Props = $props();
 
   let element: HTMLElement;
@@ -47,7 +49,8 @@
       ],
       editorProps: {
         attributes: {
-          class: `focus:outline-none w-full min-h-[160px] p-0 tiptap-simple-content text-sm leading-relaxed ${variant === 'dark' ? 'text-white' : 'text-gray-900'}`,
+          class: `focus:outline-none w-full p-0 tiptap-simple-content text-sm leading-relaxed ${variant === 'dark' ? 'text-white' : 'text-gray-900'}`,
+          style: `min-height: ${minHeight};`,
         },
       },
       onUpdate: () => {
@@ -101,8 +104,8 @@
      </button>
   </div>
 
-  <div class="p-5">
-    <div bind:this={element} class="h-[140px] overflow-y-auto custom-scrollbar"></div>
+  <div class="px-5 py-3">
+    <div bind:this={element} class="overflow-y-auto custom-scrollbar" style="height: {minHeight};"></div>
   </div>
   
   {#if limit}

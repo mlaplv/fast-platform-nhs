@@ -7,6 +7,7 @@
   import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
+  import AddressSelector from '$lib/components/mobile/checkout/AddressSelector.svelte';
   import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
   import { SHOP_CONFIG, OFFER_CONSTANTS, PRIVACY_CONSTANTS } from '$lib/constants/shop';
   import { resolveMediaUrl } from '$lib/state/utils';
