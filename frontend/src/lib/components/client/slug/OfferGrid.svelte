@@ -176,9 +176,7 @@
 
     <div class="flex justify-center mb-10 mt-6">
       <div class="elite-status-pill px-8 py-2 shadow-[0_0_20px_rgba(255,183,197,0.1)]">
-        <div class="elite-dot-container">
-           <span class="elite-status-dot"></span>
-        </div>
+        <span class="w-2 h-2 rounded-full bg-luxury-sakura mr-3 shadow-[0_0_8px_var(--luxury-sakura)]"></span>
         {#if !(metadata.offer_timer_prefix || '').startsWith('[OFF]') || liveEditStore.isEditMode}
           <EditableWrapper path="metadata.offer_timer_prefix" type="text" label="SỬA TIÊU ĐỀ HẸN GIỜ" class="inline" as="span">
             <span class="text-[10px] uppercase tracking-[0.4em]">{mkt.timer_prefix}</span>
@@ -200,12 +198,7 @@
                       {mkt.label_expert_choice}
                    </div>
                 {/if}
-                 {#if isCardActive && displayQty > 1}
-                    <div class="elite-status-pill px-5 py-2 !bg-red-600/80 shadow-[0_4px_30px_rgba(225,29,72,0.8)] border-red-400/50">
-                       <Zap class="w-3 h-3 text-white"/> 
-                       <span class="text-white font-black text-[9px] uppercase tracking-widest">ĐÃ ÁP DỤNG MỨC GIÁ SỈ</span>
-                    </div>
-                 {/if}
+
               </div>
 
               <div 
@@ -216,13 +209,20 @@
                 class="package-card overflow-hidden text-left flex flex-col h-full relative cursor-pointer {idx === 1 ? 'popular' : ''} {isCardActive ? 'active border-luxury-sakura shadow-[0_0_80px_rgba(255,183,197,0.3)]' : ''}"
               >
                 <!-- TOP HERO IMAGE -->
-                <div class="variant-image-hero relative w-full h-[300px] mb-2 overflow-hidden">
+                <div class="variant-image-hero relative w-full h-[320px] overflow-hidden">
                   <div class="absolute inset-0 bg-radial-at-t from-luxury-sakura/10 to-transparent pointer-events-none transition-opacity duration-700 {isCardActive ? 'opacity-100' : 'opacity-0'}"></div>
                   
                   <img 
                      src="{product?.images?.[0] ? resolveMediaUrl(product.images[0]) : ''}" 
                      alt="{getVariantTitle(variant)}" 
-                     class="w-full h-full object-cover drop-shadow-[0_60px_40px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform duration-1000"
+                     class="w-full h-full object-cover drop-shadow-[0_40px_30px_rgba(0,0,0,0.7)] transform hover:scale-110 transition-transform duration-1000 z-10 relative animate-breathing-zoom"
+                  />
+                  
+                  <!-- IMAGE REFLECTION (LOWER OPACITY) -->
+                  <img 
+                     src="{product?.images?.[0] ? resolveMediaUrl(product.images[0]) : ''}" 
+                     alt="" 
+                     class="absolute top-[75%] left-0 w-full h-full object-cover scale-y-[-1] opacity-30 blur-lg grayscale pointer-events-none animate-breathing-zoom"
                   />
                   
                   <!-- OVERLAY BADGE -->
@@ -234,17 +234,10 @@
                 </div>
 
                 <!-- CONTENT WRAPPER -->
-                <div class="px-8 pb-8 pt-4 flex flex-col flex-grow">
+                <div class="px-8 pb-8 pt-6 flex flex-col flex-grow relative z-20">
                   <h5 class="text-xl font-black text-white mb-4 italic tracking-tight text-center md:text-left">{getVariantTitle(variant)}</h5>
 
                   <div class="flex items-baseline justify-center md:justify-start flex-nowrap gap-x-4 mb-2">
-               {#if isCardActive && displayQty > 1}
-                   {@const comboOriginalTotal = (product?.price || variant.price) * (variant.attributes?.combo_qty || 1)}
-                   <span class="original-price text-sm text-slate-600 line-through">{comboOriginalTotal.toLocaleString()}đ</span>
-                  <span class="text-4xl font-black text-white tabular-nums drop-shadow-[0_0_15px_rgba(255,183,197,0.5)]">
-                    {(totalDisplayPrice).toLocaleString()}đ
-                  </span>
-               {:else}
                   {#if variant.price > unitPrice}
                      <span class="original-price text-sm text-slate-600 line-through">{(variant.price).toLocaleString()}đ</span>
                   {:else}
@@ -253,24 +246,13 @@
                   <span class="text-3xl font-black text-white tabular-nums">
                     {(unitPrice).toLocaleString()}đ
                   </span>
-               {/if}
              </div>
 
               <div class="flex flex-col gap-2 mt-2 items-center md:items-start">
-                 {#if isCardActive && displayQty > 1}
-                   {@const comboOriginalTotal = (product?.price || variant.price) * (variant.attributes?.combo_qty || 1)}
-                   <div class="text-[12px] text-red-100 font-black uppercase tracking-widest flex items-center gap-3 bg-red-950/60 px-3 py-1.5 rounded-lg border border-red-900/50">
-                      <div class="elite-dot-container" style="--status-color: #ef4444;">
-                         <span class="elite-status-dot"></span>
-                      </div>
-                      TIẾT KIỆM KHỦNG: {(comboOriginalTotal - totalDisplayPrice).toLocaleString()}đ
-                   </div>
-                {:else if (variant.price - unitPrice) > 0}
+                {#if (variant.price - unitPrice) > 0}
                   {#if !(metadata.offer_savings_prefix || '').startsWith('[OFF]') || liveEditStore.isEditMode}
-                    <div class="text-[10px] text-emerald-100 font-black uppercase tracking-widest flex items-center gap-3">
-                       <div class="elite-dot-container" style="--status-color: #10b981;">
-                          <span class="elite-status-dot"></span>
-                       </div>
+                    <div class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-md border border-emerald-500/20">
+                       <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                        <EditableWrapper path="metadata.offer_savings_prefix" type="text" label="SỬA TIÊU ĐỀ TIẾT KIỆM" class="inline" as="span">
                          {mkt.savings_prefix}
                        </EditableWrapper>
@@ -278,12 +260,12 @@
                     </div>
                   {/if}
                 {/if}
-                <p class="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-white/30 {isCardActive && displayQty > 1 ? 'mt-1' : ''}">
-                  <span class="text-luxury-sakura animate-pulse">●</span> SPECS: {metadata.weight || "30G"} - {metadata.origin || "JAPAN"} | MÃ VẠCH: {variant.sku || product?.sku || 'N/A'}
+                <p class="flex items-center gap-2 text-[8px] font-bold uppercase tracking-[0.1em] text-white/40 mt-3 border-t border-white/5 pt-3">
+                  <span class="text-luxury-sakura">●</span> SPECS: {metadata.weight || "30G"} - {metadata.origin || "JAPAN"} | MÃ VẠCH: {variant.sku || product?.sku || 'N/A'}
                 </p>
               </div>
-           </div>
-            <div class="flex flex-col flex-grow">
+
+
               <ul class="bullet-list space-y-2 mb-6">
                 {#each getFeatures(variant, idx, isCardActive) as feature}
                    <li class="flex items-center gap-3">
@@ -311,9 +293,7 @@
                   <div class="flex flex-col gap-2 bg-gradient-to-br from-luxury-sakura/20 via-luxury-sakura/5 to-transparent p-4 rounded-2xl border border-luxury-sakura/20 shadow-[0_10px_30px_rgba(255,183,197,0.1)] group/gift-box hover:border-luxury-sakura/40 transition-all duration-500">
                     <div class="flex items-center justify-between mb-2">
                       <span class="text-[10px] text-luxury-sakura font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                         <div class="elite-dot-container">
-                            <span class="elite-status-dot"></span>
-                         </div>
+                         <span class="w-1.5 h-1.5 rounded-full bg-luxury-sakura mr-2"></span>
                          QUÀ TẶNG ĐỘC QUYỀN
                       </span>
                       {#if variant.attributes?.combo_qty && variant.attributes.combo_qty > 1}
@@ -353,7 +333,7 @@
                          <ArrowRight class="w-4 h-4 text-luxury-sakura" />
                       </span>
                       <span class="text-[10px] text-luxury-sakura uppercase font-black tracking-[0.15em] truncate">
-                         {displayQty} MÓN • {totalDisplayPrice.toLocaleString()}Đ
+                          Sở hữu ngay • {unitPrice.toLocaleString()}đ
                       </span>
                    </div>
                 {:else}

@@ -109,19 +109,41 @@
 }
 
 .variant-image-hero {
-    mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 60%, transparent 95%);
+    -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 95%);
+    transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .variant-image-hero::after {
     content: '';
     position: absolute;
-    bottom: 0;
+    bottom: -10%;
     left: 0;
     right: 0;
-    height: 35%;
-    background: linear-gradient(to top, var(--deep-bg), transparent);
+    height: 50%;
+    background: linear-gradient(to top, var(--deep-bg) 10%, transparent 100%);
     z-index: 5;
+    pointer-events: none;
+}
+
+/* GLOSSY SHINE ON IMAGE */
+.variant-image-hero::before {
+    content: '';
+    position: absolute;
+    top: -150%;
+    left: -150%;
+    width: 300%;
+    height: 300%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    z-index: 6;
+    pointer-events: none;
+    transition: all 1.5s ease;
+}
+
+.package-card:hover .variant-image-hero::before {
+    top: -50%;
+    left: -50%;
+    opacity: 0.5;
 }
 
 .active .variant-image-hero {
@@ -138,6 +160,15 @@
     background: var(--luxury-sakura);
     color: var(--deep-bg);
     box-shadow: 0 0 30px var(--luxury-sakura);
+}
+
+@keyframes breathing-zoom {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+}
+
+.animate-breathing-zoom {
+    animation: breathing-zoom 6s ease-in-out infinite;
 }
 
 /* LIQUID CTA BUTTON */
