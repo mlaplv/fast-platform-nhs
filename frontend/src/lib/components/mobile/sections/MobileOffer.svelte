@@ -18,23 +18,37 @@
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.offer_headline?.split('<br/>') || []);
-  const h1 = $derived(metadata.offer_headline_1 || stripTags(legacyParts[0]) || "Hắc sắc tố không tự");
-  const h2 = $derived(metadata.offer_headline_2 || stripTags(legacyParts[1]) || "sinh ra hay mất đi.");
+  const h1 = $derived(metadata.offer_headline_1 || stripTags(legacyParts[0]) || product?.name || "Siêu ưu đãi độc quyền");
+  const h2 = $derived(metadata.offer_headline_2 || stripTags(legacyParts[1]) || "");
 
-  const selectedIndex = $derived(variants.findIndex(v => v.id === shopStore.variant?.id) ?? 1);
+  const foundIndex = $derived(variants.findIndex(v => v.id === shopStore.variant?.id));
+  const selectedIndex = $derived(foundIndex !== -1 ? foundIndex : (variants.length > 1 ? 1 : 0));
   const selectedVariant = $derived(variants[selectedIndex] ?? variants[0]);
-  const mainDeal = $derived(metadata?.active_deals?.[0]);
-
 
   const mkt = $derived({
-    headline: metadata?.offer_headline || "Hắc sắc tố không tự <br/> sinh ra hay mất đi.",
-    sub: metadata?.offer_subheadline || "Nhưng chúng tôi cam kết: <span class=\"text-blue-400 font-bold\">Phá vỡ từ gốc tế bào.</span>",
-    timer_prefix: metadata?.offer_timer_prefix || "Ưu đãi nội bộ kết thúc sau:",
+    headline: metadata?.offer_headline || product?.name || "Ưu đãi đặc biệt",
+    sub: metadata?.offer_subheadline || (product?.metadata?.brand ? `Thương hiệu: ${product.metadata.brand}` : "Cam kết hiệu quả từ gốc tế bào."),
+    timer_prefix: metadata?.offer_timer_prefix || "Ưu đãi kết thúc sau:",
     shipping_prefix: metadata?.offer_shipping_prefix || "+ Phí vận chuyển:",
     savings_prefix: metadata?.offer_savings_prefix || "Tiết kiệm:",
-    label_expert_choice: metadata?.offer_label_expert_choice || OFFER_CONSTANTS.labels.expert_choice,
+    label_expert_choice: metadata?.offer_label_expert_choice || "Chuyên gia khuyên dùng",
     cta_start: metadata?.offer_cta_start || OFFER_CONSTANTS.labels.cta_start,
     cta_full: metadata?.offer_cta_full || OFFER_CONSTANTS.labels.cta_full,
+  });
+
+  const productVouchers = $derived.by(() => {
+    // 1. Check if product has specific override vouchers in metadata
+    if (Array.isArray(product?.metadata?.vouchers) && product.metadata.vouchers.length > 0) {
+      return product.metadata.vouchers;
+    }
+    
+    // 2. Fallback to global active vouchers from ShopStore (Elite V2.2)
+    return (shopStore.vouchers || []).map(v => ({
+      id: v.id,
+      label: v.title || v.id,
+      sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${v.value.toLocaleString()}đ`),
+      type: v.type === 'SHIPPING' ? 'ship' : 'discount'
+    }));
   });
 
   const formatTime = (s: number): string => {
@@ -44,19 +58,18 @@
   };
 
   function getVariantTitle(variant: ProductVariant): string {
-    if (!product.tierVariations?.length || !variant.tierIndex?.length) return variant.sku || 'Combo';
+    if (!product?.tierVariations?.length || !variant.tierIndex?.length) return variant.name || variant.sku || 'Combo';
     return variant.tierIndex.map((optIdx: number, tierIdx: number) => {
       const option = product.tierVariations![tierIdx]?.options[optIdx];
       if (typeof option === 'string') return option;
       if (typeof option === 'object' && option) return (option.name || option.label || '');
       return '';
-    }).filter(Boolean).join(' - ') || 'Combo';
+    }).filter(Boolean).join(' - ') || variant.name || 'Combo';
   }
 
   function handleSelect(i: number) {
      if (variants[i]) {
        shopStore.selectVariant(variants[i]);
-       shopStore.setQuantity(1);
      }
   }
 
@@ -142,6 +155,9 @@
     <div class="mt-0 !w-full">
        <div class="grid grid-cols-1 gap-0">
          {#each variants as variant, i}
+            {@const cQty = variant.attributes?.combo_qty || variant.attributes?.comboQty || 0}
+            {@const vPrice = variant.discountPrice || variant.discount_price || variant.price}
+            {@const vGifts = variant.attributes?.gifts || []}
             <button 
               onclick={() => handleSelect(i)}
              class="relative w-full text-left py-3 !px-0 border-y border-x-0 transition-all duration-700 active:scale-[0.98] {selectedIndex === i ? 'bg-white/[0.06] backdrop-blur-3xl text-white border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.3)] z-surface' : 'bg-transparent text-white/30 border-white/5 hover:bg-white/5'}"
@@ -187,24 +203,24 @@
                              <span class="text-[9px]"></span> {mkt.label_expert_choice}
                           </div>
                        {/if}
-                       {#if variant.attributes?.combo_qty && variant.attributes.combo_qty > 1}
+                       {#if cQty > 1}
                          <div class="bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-black text-[7px] uppercase tracking-widest">
-                           Combo x{variant.attributes.combo_qty}
+                           Combo x{cQty}
                          </div>
                        {/if}
                     </div>
                    <span class="font-black uppercase tracking-tight italic text-[15px] leading-tight transition-colors duration-500 {selectedIndex === i ? 'text-white' : 'text-white/40'}">{getVariantTitle(variant)}</span>
                    <div class="flex items-center gap-3">
-                     <span class="font-black text-[24px] italic tracking-tight leading-none transition-all duration-500 {selectedIndex === i ? 'text-blue-400' : 'text-blue-400/40'}">{(variant.discountPrice || variant.price).toLocaleString()}đ</span>
-                     {#if variant.price > (variant.discountPrice || variant.price)}
+                     <span class="font-black text-[24px] italic tracking-tight leading-none transition-all duration-500 {selectedIndex === i ? 'text-blue-400' : 'text-blue-400/40'}">{vPrice.toLocaleString()}đ</span>
+                     {#if variant.price > vPrice}
                        <span class="text-[12px] {selectedIndex === i ? 'text-white/20' : 'text-white/10'} line-through font-bold opacity-60">{(variant.price).toLocaleString()}đ</span>
                      {/if}
                    </div>
 
                    <!-- Mini Gifts (Viral 2026 UI) -->
-                   {#if variant.attributes?.gifts && variant.attributes.gifts.length > 0}
+                   {#if vGifts.length > 0}
                      <div class="mt-2 flex flex-wrap gap-2">
-                       {#each variant.attributes.gifts as gift}
+                       {#each vGifts as gift}
                          <div class="flex items-center gap-1.5 bg-white/5 py-1 px-1.5 rounded-lg border border-white/5 group/gift">
                             <div class="w-5 h-5 rounded-md overflow-hidden bg-black/40 border border-white/10 shrink-0">
                                {#if gift.image}
@@ -225,6 +241,33 @@
          {/each}
        </div>
     </div>
+
+    <!-- 🎁 VIRAL 2026: VOUCHER LISTING (Premium Glass HUD) -->
+    {#if productVouchers.length > 0}
+      <div class="mt-4 px-2">
+        <div class="flex items-center gap-2 mb-3">
+           <div class="w-1 h-3 bg-blue-500 rounded-full"></div>
+           <span class="text-[10px] font-black text-white/40 uppercase tracking-widest italic">Mã giảm giá độc quyền</span>
+        </div>
+        <div class="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+           {#each productVouchers as v}
+             <div class="relative shrink-0 flex items-center gap-3 bg-white/[0.03] border border-white/10 p-2 pr-4 rounded-xl backdrop-blur-3xl group">
+                <!-- Ticket Edge Cutouts -->
+                <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-black rounded-full border border-white/10"></div>
+                <div class="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-black rounded-full border border-white/10"></div>
+                
+                <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                   <Zap class="w-4 h-4 text-blue-400" />
+                </div>
+                <div class="flex flex-col">
+                   <span class="text-[11px] font-black text-blue-400 leading-none">{v.label}</span>
+                   <span class="text-[8px] text-white/40 font-bold uppercase mt-1 tracking-tighter italic">{v.sub}</span>
+                </div>
+             </div>
+           {/each}
+        </div>
+      </div>
+    {/if}
   </div>
   
   <!-- Unified CTA (Liquid Sapphire Masterpiece - FOMO Optimized) -->
