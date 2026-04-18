@@ -587,6 +587,9 @@ export interface ShopInfo {
     tiktok?: string;
     zalo?: string;
   };
+  conversions?: {
+    fomo_enabled: bool;
+  };
   footer_links?: {
     label: string;
     url: string;

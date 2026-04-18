@@ -19,11 +19,8 @@
   // Support Agent
   import SupportChatMobile from '../client/support/SupportChatMobile.svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
-  import NeuralActivityBar from '../client/common/NeuralActivityBar.svelte';
 
   import './mobile.css';
-
-  import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
 
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   const shopStore = getShopStore();
@@ -80,8 +77,6 @@
   }
 
   onMount(() => {
-    if (product?.slug) fomoStore.init(product.slug);
-    
     const sections = document.querySelectorAll<HTMLElement>('.mobile-snap-section');
     if (sections.length === 0) return;
 
@@ -195,7 +190,4 @@
 
   <!-- AI Medical Assistant (Viral 2026 - TikTok Style) -->
   <SupportChatMobile productSlug={product?.slug} />
-
-  <!-- Neural Social Proof -->
-  <NeuralActivityBar />
 </div>

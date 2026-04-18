@@ -34,21 +34,30 @@ export class FomoStore {
     private _cycleTimeout: ReturnType<typeof setTimeout> | null = null;
 
     init(slug: string) {
+        if (!browser) return;
+        
+        // Elite V2.2: Idempotent initialization - Cleanup existing timers
+        this.dispose();
+        
         this._slug = slug;
+        
+        // Viral 2026: Immediate Seed Activities to prevent "cold" storefront
+        this.activities = [
+            { type: 'ORDER', name: 'Chị Lan', action: 'vừa sở hữu Serum Micsmo', icon: 'ShoppingBag' },
+            { type: 'ORDER', name: 'Anh Tuấn', action: 'vừa đặt 02 Tinh chất Phục hồi', icon: 'ShoppingBag' }
+        ];
         
         // Initial Seed for metrics (Viral 2026: Hybrid Logic)
         this.viewers = this.getSeedValue(134, 256, 1);
         this.stockLeft = this.getSeedValue(2, 7, 2);
         this.totalSales = this.getSeedValue(12000, 17000, 3);
         
-        if (browser) {
-            this.startViewerPulse();
-            this.fetchActivities();
-            this.startCycle();
-            
-            // Sync with backend every 2 minutes
-            this._fetchInterval = setInterval(() => this.fetchActivities(), 120000);
-        }
+        this.startViewerPulse();
+        this.fetchActivities();
+        this.startCycle();
+        
+        // Sync with backend every 2 minutes
+        this._fetchInterval = setInterval(() => this.fetchActivities(), 120000);
     }
 
     private getSeedValue(min: number, max: number, offset = 0) {
@@ -71,8 +80,9 @@ export class FomoStore {
         try {
             const { apiClient } = await import('$lib/utils/apiClient');
             const data = await apiClient.get<ActivityItem[]>('https://api.micsmo.com/api/v1/client/fomo/activity');
-            if (data) {
-                this.activities = data;
+            if (data && data.length > 0) {
+                // Elite V2.2: Merge API data with seed, keeping seed as priority for luxury feel
+                this.activities = [...this.activities, ...data];
             }
         } catch (error) {
             console.error('[FomoStore] Fetch failed', error);
@@ -93,13 +103,14 @@ export class FomoStore {
                 this.isActivityVisible = false;
                 this.currentIndex = (this.currentIndex + 1) % this.activities.length;
                 
-                // Randomized gap (15s - 30s)
-                const gap = 15000 + Math.random() * 15000;
+                // Randomized gap (10s - 20s) - Tightened for better viral effect
+                const gap = 10000 + Math.random() * 10000;
                 this._cycleTimeout = setTimeout(run, gap);
-            }, 8000);
+            }, 6000);
         };
 
-        run();
+        // Elite V2.2: First run starts after 2 seconds to allow layout to settle
+        this._cycleTimeout = setTimeout(run, 2000);
     }
 
     dispose() {

@@ -19,7 +19,6 @@
   // Admin Live Editor (Elite V2.2)
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { permissionState } from '$lib/state/permissions.svelte';
-  import { fomoStore } from '$lib/state/commerce/fomo.svelte';
 
   let { data }: { data: PageData } = $props();
   let themeMode = $state<'system' | 'light' | 'dark'>('system');
@@ -83,8 +82,6 @@
 
     const savedTheme = localStorage.getItem('hero-theme-mode');
     applyTheme((savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') ? savedTheme : 'system');
-      
-    if (product?.slug) fomoStore.init(product.slug);
       
     if (product) {
       liveEditStore.init(product);
@@ -313,11 +310,6 @@
     </section>
 
     <StealthCheckout />
-    
-    <!-- NEURAL ACTIVITY BAR (Viral 2026 Social Proof) -->
-    {#await import('$lib/components/client/common/NeuralActivityBar.svelte') then { default: NeuralActivityBar }}
-      <NeuralActivityBar />
-    {/await}
   {:else}
     <div class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white">
        <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>

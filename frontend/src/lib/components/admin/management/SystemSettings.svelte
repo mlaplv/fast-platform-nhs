@@ -14,6 +14,7 @@
   import MapPin from "lucide-svelte/icons/map-pin";
   import Tool from "lucide-svelte/icons/wrench";
   import Plus from "lucide-svelte/icons/plus";
+  import TrendingUp from "lucide-svelte/icons/trending-up";
   import Trash2 from "lucide-svelte/icons/trash-2";
   import Upload from "lucide-svelte/icons/upload";
   import Sparkles from "lucide-svelte/icons/sparkles";
@@ -72,6 +73,10 @@
     messenger_integration_enabled: boolean;
   }
 
+  interface ConversionSettings {
+    fomo_enabled: boolean;
+  }
+
   interface SystemSettings {
     basic_info: BasicInfo;
     contact_info: ContactInfo;
@@ -80,6 +85,7 @@
     google_maps: GoogleMaps;
     maintenance: MaintenanceMode;
     support_bot: SupportBotSettings;
+    conversions: ConversionSettings;
   }
 
   let settings = $state<SystemSettings>({
@@ -94,6 +100,9 @@
       offline_message: "",
       zalo_integration_enabled: true,
       messenger_integration_enabled: true
+    },
+    conversions: {
+      fomo_enabled: true
     }
   });
 
@@ -107,7 +116,7 @@
   let currentPickType = $state<'basic' | 'social'>('basic');
   let currentSocialIndex = $state<number | null>(null);
 
-  type TabId = "basic" | "contact" | "social" | "seo" | "maps" | "maintenance" | "helen";
+  type TabId = "basic" | "contact" | "social" | "seo" | "maps" | "maintenance" | "helen" | "conversion";
 
   interface TabDefinition {
     id: TabId;
@@ -122,7 +131,8 @@
     { id: "seo", label: "SEO & Analytics", icon: Search },
     { id: "maps", label: "Google Maps", icon: MapPin },
     { id: "maintenance", label: "Bảo trì", icon: Tool },
-    { id: "helen", label: "Helen AI", icon: Sparkles }
+    { id: "helen", label: "Helen AI", icon: Sparkles },
+    { id: "conversion", label: "Chuyển đổi", icon: TrendingUp }
   ];
 
   onMount(async () => {
@@ -595,6 +605,59 @@
                     <p class="text-[10px] text-zinc-400 leading-relaxed italic">Điều hướng khách hàng sang kênh Facebook Messenger khi cần tư vấn chuyên sâu.</p>
                   </div>
                 </div>
+              </div>
+            </div>
+          {:else if activeTab === 'conversion'}
+            <div class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h3 class="text-sm font-black text-rose-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                <TrendingUp size={16} /> Viral Marketing & Conversion
+              </h3>
+              
+              <div class="grid grid-cols-1 gap-6 bg-zinc-950/40 border border-white/5 rounded-2xl p-8 items-center">
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 class="text-base font-black text-white uppercase italic tracking-tighter">Neural Activity Bar (FOMO)</h4>
+                    <p class="text-[10px] text-zinc-500 font-mono tracking-widest mt-1">REAL-TIME SOCIAL PROOF NOTIFICATIONS</p>
+                  </div>
+                  
+                  <button 
+                    onclick={() => settings.conversions.fomo_enabled = !settings.conversions.fomo_enabled}
+                    aria-label="Toggle FOMO"
+                    class="relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none 
+                      {settings.conversions.fomo_enabled ? 'bg-rose-500' : 'bg-zinc-800'}"
+                  >
+                    <div class="absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-lg transition-transform duration-300
+                      {settings.conversions.fomo_enabled ? 'translate-x-7' : 'translate-x-0'}">
+                    </div>
+                  </button>
+                </div>
+
+                <div class="p-6 bg-black/40 border border-white/5 rounded-xl space-y-4">
+                  <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center flex-shrink-0">
+                      <Sparkles size={18} class="text-rose-400" />
+                    </div>
+                    <div>
+                      <h5 class="text-xs font-bold text-white uppercase tracking-wider mb-1">Cơ chế hoạt động thần kinh 2026</h5>
+                      <p class="text-[10px] text-zinc-400 leading-relaxed">
+                        Tự động hiển thị các thông báo mua hàng, số lượng tồn kho và lượt xem thực tế theo phong cách tối giản. 
+                        Nâng cao uy tín thương hiệu và kích thích quyết định mua hàng tức thì của khách hàng.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {#if settings.conversions.fomo_enabled}
+                  <div class="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-4">
+                    <div class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></div>
+                    <span class="text-[10px] font-black text-rose-400 uppercase tracking-[0.2em]">FOMO Engine is Active & Accelerating Conversions</span>
+                  </div>
+                {:else}
+                  <div class="p-4 bg-zinc-800/20 border border-white/5 rounded-xl flex items-center gap-4 opacity-50">
+                    <div class="w-2 h-2 rounded-full bg-zinc-600"></div>
+                    <span class="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Conversion Boosters Disabled</span>
+                  </div>
+                {/if}
               </div>
             </div>
           {/if}

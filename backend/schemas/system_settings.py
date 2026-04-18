@@ -44,6 +44,9 @@ class SupportBotSettings(BaseModel):
     zalo_integration_enabled: bool = True
     messenger_integration_enabled: bool = True
 
+class ConversionSettings(BaseModel):
+    fomo_enabled: bool = True
+
 class SystemSettingsPayload(BaseModel):
     basic_info: BasicInfo = Field(default_factory=BasicInfo)
     contact_info: ContactInfo = Field(default_factory=ContactInfo)
@@ -52,6 +55,7 @@ class SystemSettingsPayload(BaseModel):
     google_maps: GoogleMaps = Field(default_factory=GoogleMaps)
     maintenance: MaintenanceMode = Field(default_factory=MaintenanceMode)
     support_bot: SupportBotSettings = Field(default_factory=SupportBotSettings)
+    conversions: ConversionSettings = Field(default_factory=ConversionSettings)
 
 class SystemSettingsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

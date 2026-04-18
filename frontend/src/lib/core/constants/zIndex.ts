@@ -28,6 +28,7 @@ export const Z_INDEX_CLIENT = {
   ADMIN_HUD: 1100,
   ADMIN_ACTION_BAR: 9999,
   ADMIN_NAV_DRAWER: 110,
+  FOMO: 1500,
 } as const;
 
 export const Z_INDEX_ADMIN = {

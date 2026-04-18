@@ -1,16 +1,20 @@
 <script lang="ts">
   import { fomoStore } from '$lib/state/commerce/fomo.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { fly, fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { ShoppingBag, Users, Zap } from 'lucide-svelte';
   import { onDestroy } from 'svelte';
+
+  const ui = getClientUi();
+  const isEnabled = $derived(ui.settings?.conversions?.fomo_enabled ?? true);
 
   onDestroy(() => {
     fomoStore.dispose();
   });
 </script>
 
-{#if fomoStore.isActivityVisible && fomoStore.currentActivity}
+{#if isEnabled && fomoStore.isActivityVisible && fomoStore.currentActivity}
   <div 
     class="neural-activity-root fixed z-[var(--z-fomo, 9999)] pointer-events-none"
     in:fly={{ x: -20, duration: 800, easing: cubicOut }}
