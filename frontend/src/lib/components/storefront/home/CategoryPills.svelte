@@ -1,19 +1,6 @@
 <script lang="ts">
   import type { Category } from '$lib/types';
-
-  interface Palette {
-    bg: string;
-    text: string;
-    shadow: string;
-  }
-
-  interface TabItem {
-    label: string;
-    slug?: string;
-    isHot?: boolean;
-    badgeText?: string;
-    style: Palette;
-  }
+  import { fade } from 'svelte/transition';
 
   interface Props {
     categories: Category[];
@@ -23,71 +10,45 @@
 
   let { categories, activeTab, onTabChange }: Props = $props();
 
-  // High-authority "Viral 2026" palettes for standard items
-  const palettes: Palette[] = [
-    { bg: 'linear-gradient(135deg, #0cebeb, #20e3b2, #29ffc6)', text: '#004d40', shadow: '#20e3b2' }, // Neon Mint
-    { bg: 'linear-gradient(135deg, #e0c3fc, #8ec5fc)', text: '#3c315b', shadow: '#8ec5fc' }, // Pastel Blue-Lilac
-    { bg: 'linear-gradient(135deg, #ffd6a5, #ffadad)', text: '#800000', shadow: '#ffadad' }, // Soft Peach
-    { bg: 'linear-gradient(135deg, #81ffef, #f067ff)', text: '#ffffff', shadow: '#81ffef' }, // Hyper Link
-    { bg: 'linear-gradient(135deg, #bdb2ff, #7d2ae8)', text: '#ffffff', shadow: '#bdb2ff' }, // Violet
-    { bg: 'linear-gradient(135deg, #60efff, #0061ff)', text: '#ffffff', shadow: '#0061ff' }, // Ocean
-    { bg: 'linear-gradient(135deg, #ff2b54, #ff00c1)', text: '#ffffff', shadow: '#ff2b54' }  // Flashy Red
-  ];
-
-  // Strategic "Hot/Viral" palettes for 2026 conversion
-  const hotPalettes: Palette[] = [
-    { bg: 'linear-gradient(135deg, #fbda61, #ff5acd)', text: '#ffffff', shadow: '#fbda61' }, // Viral Pink-Gold
-    { bg: 'linear-gradient(135deg, #81ffef, #f067ff)', text: '#ffffff', shadow: '#f067ff' }, // Electric Cyan-Magenta
-    { bg: 'linear-gradient(135deg, #3a86ff, #4cc9f0)', text: '#ffffff', shadow: '#3a86ff' }, // Tech Blue
-    { bg: 'linear-gradient(135deg, #ffbe0b, #fb5607)', text: '#ffffff', shadow: '#ffbe0b' }  // Mango Burst
-  ];
-
-  // Badge labels for variety to avoid "HOT" repetition
-  const badgeLabels = ['HOT', 'TREND', 'NEW', 'TOP'];
-
-  // Combine static Elite tabs with dynamic DB categories
-  const tabs = $derived<TabItem[]>([
-    { label: 'Tất cả', style: { bg: 'linear-gradient(135deg, #C18F7E, #E3B5A4)', text: '#fff', shadow: '#C18F7E' } },
-    ...categories.map((cat, i) => {
-      const nameLower = cat.name.toLowerCase();
-      const isHot = nameLower.includes('kem dưỡng') || nameLower.includes('serum') || nameLower.includes('hot');
-      
-      let style: Palette;
-      if (isHot) {
-        // Rotate through hot palettes
-        style = hotPalettes[i % hotPalettes.length];
-      } else {
-        style = palettes[i % palettes.length];
-      }
-        
-      return { 
-        label: cat.name, 
-        slug: cat.slug,
-        isHot,
-        badgeText: isHot ? badgeLabels[i % badgeLabels.length] : undefined,
-        style
-      };
-    })
+  // Elite V2.2: Combine "All" with real categories
+  const tabs = $derived([
+    { id: 'all', name: 'Tất cả', image: null },
+    ...categories
   ]);
+
+  // Broken image tracker for fallback
+  let brokenImages = $state<Record<string, boolean>>({});
+  function handleImgError(id: string) {
+    brokenImages[id] = true;
+  }
 </script>
 
-<div class="category-tabs-container">
-  <div class="tabs-scroll">
-    {#each tabs as tab, i}
+<div class="category-pills-wrapper">
+  <div class="pills-scroll">
+    {#each tabs as tab, i (tab.id)}
       <button 
-        class="tab-item {activeTab === i ? 'active' : ''}"
+        class="pill-item {activeTab === i ? 'active' : ''}"
         onclick={() => onTabChange(i)}
       >
-        <div class="tab-pill-wrap" style:background={tab.style.bg} style:box-shadow="0 4px 12px {tab.style.shadow}44">
-          <span class="tab-pill" style:color={tab.style.text}>
-            {tab.label}
-          </span>
-          {#if tab.isHot && tab.badgeText}
-            <span class="hot-tag">{tab.badgeText}</span>
+        <div class="pill-content">
+          {#if tab.image && !brokenImages[tab.id]}
+            <img 
+              src={tab.image} 
+              alt={tab.name} 
+              class="pill-icon"
+              onerror={() => handleImgError(tab.id)}
+            />
+          {:else if tab.id !== 'all'}
+            <div class="pill-icon-placeholder">
+              <span>✨</span>
+            </div>
           {/if}
+          
+          <span class="pill-label">{tab.name}</span>
         </div>
+        
         {#if activeTab === i}
-          <div class="tab-indicator"></div>
+          <div class="pill-indicator" in:fade={{ duration: 200 }}></div>
         {/if}
       </button>
     {/each}
@@ -95,78 +56,90 @@
 </div>
 
 <style>
-  .category-tabs-container {
-    background: #fff;
-    padding: 0;
+  .category-pills-wrapper {
+    background: #FFFFFF;
     position: sticky;
-    top: var(--mobile-header-total);
-    z-index: var(--z-category-pills);
-    border-bottom: 1px solid #f0f0f0;
+    top: var(--mobile-header-total, 48px);
+    z-index: var(--z-category-pills, 100);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    width: 100%;
   }
 
-  .tabs-scroll {
+  .pills-scroll {
     display: flex;
     overflow-x: auto;
-    overflow-y: visible; /* Ensure absolute children aren't clipped */
     scrollbar-width: none;
     -ms-overflow-style: none;
-    gap: 4px;
-    padding: 0 2px 0 7px;
+    padding: 8px 12px;
+    gap: 8px;
+    align-items: center;
   }
-  .tabs-scroll::-webkit-scrollbar { display: none; }
+  .pills-scroll::-webkit-scrollbar { display: none; }
 
-  .tab-item {
+  .pill-item {
     position: relative;
-    padding: 10px 1px 8px; /* High-density alignment */
-    border: none;
-    background: none;
-    cursor: pointer;
-    flex-shrink: 0;
-    user-select: none;
-  }
-
-  .tab-pill-wrap {
-    position: relative;
-    padding: 6px 14px;
+    padding: 6px 16px;
+    border: 1px solid #F0F0F0;
     border-radius: 12px;
-    transition: transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-  }
-  .tab-item.active .tab-pill-wrap {
-    transform: scale(1.05);
-  }
-
-  .tab-pill {
-    font-size: 13px;
-    font-weight: 800;
-    white-space: nowrap;
+    background: #FAFAFA;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .hot-tag {
-    position: absolute;
-    top: -8px;
-    right: -6px;
-    background: #ff2b54;
-    color: #fff;
-    font-size: 8px;
-    font-weight: 900;
-    padding: 2px 5px;
+  .pill-item.active {
+    background: #FFFFFF;
+    border-color: #C18F7E;
+    box-shadow: 0 4px 12px rgba(193, 143, 126, 0.12);
+    transform: scale(1.02);
+  }
+
+  .pill-content {
+    display: flex;
+    items-center: center;
+    gap: 8px;
+  }
+
+  .pill-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
     border-radius: 4px;
-    box-shadow: 0 2px 6px rgba(255, 43, 84, 0.4);
-    animation: hot-float 1s ease-in-out infinite alternate;
   }
 
-  @keyframes hot-float {
-    from { transform: translateY(0); }
-    to { transform: translateY(-3px); }
+  .pill-icon-placeholder {
+    width: 20px;
+    height: 20px;
+    background: #F5F5F5;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
   }
 
-  .tab-indicator {
+  .pill-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #666;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+  }
+
+  .pill-item.active .pill-label {
+    color: #C18F7E;
+  }
+
+  .pill-indicator {
     position: absolute;
-    bottom: 2px;
-    left: 15%;
-    right: 15%;
+    bottom: -8px;
+    left: 20%;
+    right: 20%;
     height: 3px;
     background: #C18F7E;
-    border-radius: 4px;
+    border-radius: 10px 10px 0 0;
   }
 </style>

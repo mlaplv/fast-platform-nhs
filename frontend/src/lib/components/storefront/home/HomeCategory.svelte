@@ -15,19 +15,26 @@
         onclick={() => goto(`/${category.slug || slugify(category.name)}/`)}
         class="flex flex-col items-center justify-start w-[85px] md:w-[100px] cursor-pointer group outline-none"
       >
-        <!-- Modern Squircle Icon Container -->
-        <div class="w-[50px] h-[50px] md:w-[56px] md:h-[56px] bg-white rounded-[18px] md:rounded-[22px] flex items-center justify-center border border-gray-100/80 shadow-[0_4px_12px_rgba(0,0,0,0.03),0_1px_2px_rgba(0,0,0,0.06)] transition-all duration-400 group-hover:-translate-y-2 group-hover:shadow-[0_12px_200px_rgba(0,0,0,0.08)] group-hover:border-[#ee4d2d]/10 shrink-0 overflow-hidden">
+        <!-- Elite Squircle Icon Container (Viral 2026) -->
+        <div class="w-[50px] h-[50px] md:w-[60px] md:h-[60px] bg-white rounded-[20px] md:rounded-[24px] flex items-center justify-center border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] transition-all duration-500 group-hover:-translate-y-2 group-hover:shadow-[0_12px_30px_rgba(193,143,126,0.15)] group-hover:border-[#C18F7E]/20 shrink-0 overflow-hidden relative">
           {#if category.image}
-            <img src={category.image} alt={category.name} class="w-3/4 h-3/4 md:w-full md:h-full object-contain transition-transform duration-500 group-hover:scale-110" />
+            <img 
+              src={category.image} 
+              alt={category.name} 
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+            />
           {:else}
-            <div class="text-2xl md:text-3xl transition-transform duration-500 group-hover:scale-110 select-none">
-              {category.icon || '📦'}
+            <div class="text-2xl md:text-3xl transition-transform duration-700 group-hover:scale-110 select-none opacity-80 group-hover:opacity-100">
+              {category.icon || '✨'}
             </div>
           {/if}
+          
+          <!-- Liquid Glow Overlay -->
+          <div class="absolute inset-0 bg-gradient-to-tr from-[#C18F7E]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
         </div>
         
-        <!-- Refined Typography -->
-        <span class="mt-3 text-[11px] md:text-[13px] font-medium text-gray-700 text-center leading-snug transition-colors duration-300 group-hover:text-[#ee4d2d] w-full line-clamp-2 px-1">
+        <!-- Premium Typography -->
+        <span class="mt-4 text-[11px] md:text-[13px] font-bold text-gray-600 text-center leading-snug transition-colors duration-300 group-hover:text-[#C18F7E] w-full line-clamp-2 px-1 tracking-tight">
           {category.name}
         </span>
       </button>
