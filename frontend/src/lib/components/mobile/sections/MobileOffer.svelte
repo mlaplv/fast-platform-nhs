@@ -102,7 +102,20 @@
     }
   };
 
+  function handleVoucherClick(v: any) {
+    if (v.id) {
+      shopStore.toggleVoucher(v.id);
+    }
+  }
+
   const noiseSvg = `data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E`;
+
+  // 🚀 SYNC CLOUD VOUCHERS TO FUNNEL STORE (Elite V2.2)
+  $effect(() => {
+    if (cartStore.vouchers?.length > 0) {
+      shopStore.setVouchers(cartStore.vouchers);
+    }
+  });
 </script>
 
 <div class="h-full w-full container flex flex-col !px-0 !max-w-none pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] relative overflow-hidden bg-black text-white">
@@ -192,7 +205,7 @@
                      </div>
                   {/if}
                   {#if cQty > 1}
-                     <div class="bg-blue-600/20 border border-blue-500/30 text-blue-300 px-1.5 py-0.5 rounded-sm font-black text-[8px] uppercase tracking-widest uppercase">Combo X{cQty}</div>
+                     <div class="bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] px-1.5 py-0.5 rounded-sm font-black text-[8px] uppercase tracking-widest">Combo X{cQty}</div>
                   {/if}
                </div>
 
@@ -214,7 +227,7 @@
                               {#if gift.image}
                                  <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
                               {:else}
-                                 <Gift class="w-full h-full p-0.5 text-blue-400" />
+                                 <Gift class="w-full h-full p-0.5 text-[#FFB7C5]" />
                               {/if}
                            </div>
                            <span class="text-[8px] font-black text-white/50 uppercase italic truncate max-w-[80px]">+{gift.qty} {gift.name}</span>
@@ -225,7 +238,7 @@
 
                {#if isActive}
                   <div class="w-full h-1 bg-white/5 rounded-full mt-3 overflow-hidden shadow-inner">
-                     <div class="h-full bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]" style="width: {90 - (i * 20)}%"></div>
+                     <div class="h-full bg-[#FFB7C5] shadow-[0_0_15px_rgba(255,183,197,0.8)]" style="width: {90 - (i * 20)}%"></div>
                   </div>
                {/if}
             </div>
@@ -237,49 +250,64 @@
                   </div>
                </div>
             {/if}
-         </button>
-      {/each}
+          </button>
+       {/each}
     </div>
 
-    <!-- 🎫 PREMIUM TICKET VOUCHER ROW -->
+    <!-- 🎫 PIXEL-PERFECT VOUCHER 1:1 (Redemption Version) -->
     {#if productVouchers.length > 0}
-    <div class="px-4 mt-8 mb-4 z-surface shrink-0" in:fade>
+    <div class="px-4 mt-6 mb-4 z-surface shrink-0" in:fade>
        <div class="flex items-center justify-between mb-3 px-1">
-          <span class="text-[12px] font-black text-white/70 uppercase tracking-widest italic flex items-center gap-2">
-             Voucher & khuyến mãi <ArrowRight class="w-3.5 h-3.5" />
+          <span class="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] italic flex items-center gap-2">
+             Mã giảm giá ưu đãi
           </span>
        </div>
-       <div class="flex flex-row gap-2 overflow-x-auto no-scrollbar py-2 -mx-4 px-4">
+       <div class="flex flex-row gap-2 overflow-x-auto no-scrollbar py-3 -mx-4 px-3">
           {#each productVouchers as v}
-             {@const isApplied = cartStore.selectedVoucherIds.includes(v.id)}
+             {@const isApplied = shopStore.selectedVoucherIds.includes(v.id)}
              <button 
                onclick={() => handleVoucherClick(v)}
-               class="flex-shrink-0 relative w-[265px] h-[80px] transition-all duration-300 transform active:scale-[0.97]"
+               class="flex-shrink-0 relative w-fit min-w-[140px] h-[85px] transition-all duration-300 transform active:scale-[0.97] overflow-visible group"
              >
-                <div class="flex h-full w-full bg-white/95 backdrop-blur-sm rounded-xl overflow-hidden relative shadow-[0_4px_12px_rgba(255,183,197,0.15)] {isApplied ? 'ring-2 ring-[#FFB7C5] shadow-[0_0_20px_rgba(255,183,197,0.3)]' : ''}">
-                   <div class="w-[60px] h-full flex items-center justify-center border-r-[1.5px] border-dashed border-[#FFB7C5]/20 bg-[#FFB7C5]/5">
-                      <div class="text-[#FFB7C5]">
-                         {#if v.type_raw === 'SHIPPING'}
-                            <Truck class="w-6 h-6" />
-                         {:else}
-                            <Zap class="w-6 h-6" />
-                         {/if}
+                <!-- 📦 Postage Stamp Body (Advanced Composite Mask) -->
+                <div 
+                  class="flex h-full w-full relative overflow-visible shadow-xl transition-all duration-500 {isApplied ? 'scale-105 rotate-[1.5deg] z-20' : 'opacity-95 hover:opacity-100 hover:scale-[1.02]'}"
+                  style="
+                    background: linear-gradient(135deg, #FFB7C5 0%, #E8D5B0 100%);
+                    --r: 6px;
+                    --s: 16px;
+                    -webkit-mask: 
+                      radial-gradient(var(--r) at var(--r) 50%, #0000 98%, #000) calc(-1 * var(--r)) 50% / 100% var(--s),
+                      radial-gradient(var(--r) at 50% var(--r), #0000 98%, #000) 50% calc(-1 * var(--r)) / var(--s) 100%;
+                    mask: 
+                      radial-gradient(var(--r) at var(--r) 50%, #0000 98%, #000) calc(-1 * var(--r)) 50% / 100% var(--s),
+                      radial-gradient(var(--r) at 50% var(--r), #0000 98%, #000) 50% calc(-1 * var(--r)) / var(--s) 100%;
+                    -webkit-mask-composite: destination-in;
+                    mask-composite: intersect;
+                  "
+                >
+                   <!-- 📝 Content (Stamp Center) -->
+                   <div class="flex-1 flex flex-col items-center justify-center px-6 py-2 min-w-0 bg-white/20 backdrop-blur-[2px] m-1.5 border border-black/5">
+                      <div class="flex flex-col items-center leading-none mb-1">
+                         <span class="text-[14px] font-[1000] text-[#111111] uppercase tracking-tighter whitespace-nowrap drop-shadow-sm">{v.label}</span>
+                         <div class="w-10 h-[1.5px] bg-black/20 my-1 animate-pulse"></div>
+                         <span class="text-[10px] text-[#222222] font-black truncate uppercase tracking-tight italic">{v.sub}</span>
                       </div>
+                      
+                      <!-- 🖋️ Postage Mark Detail -->
+                      <div class="absolute top-1 right-2 opacity-30 rotate-12">
+                         <Sparkles class="w-3.5 h-3.5 text-black" />
+                      </div>
+                      <div class="absolute bottom-1.5 left-3 opacity-10 font-[serif] text-[7px] font-bold uppercase tracking-widest text-black">Miccosmo Elite</div>
                    </div>
-                   <div class="flex-1 flex items-center justify-between px-4 min-w-0">
-                      <div class="flex flex-col min-w-0 flex-1">
-                         <span class="text-[17px] font-black leading-none text-[#d1506a] uppercase tracking-tighter truncate">{v.label}</span>
-                         <span class="text-[11px] text-[#FFB7C5] font-black truncate uppercase tracking-tight mt-1.5">{v.sub}</span>
-                      </div>
-                      <div class="shrink-0 ml-2">
-                         <div class="px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-wider transition-all {isApplied ? 'bg-gray-100 text-gray-400' : 'bg-[#FFB7C5] text-white shadow-[0_5px_15px_rgba(255,183,197,0.3)]'}">
-                            {isApplied ? 'DÙNG' : 'LẤY'}
-                         </div>
-                      </div>
-                   </div>
-                   <div class="absolute left-[54px] -top-2.5 w-3 h-5 bg-black rounded-full"></div>
-                   <div class="absolute left-[54px] -bottom-2.5 w-3 h-5 bg-black rounded-full"></div>
                 </div>
+
+                <!-- ✅ Stick Badge (Postage Seal Style) - MOVED OUTSIDE MASKED CONTAINER -->
+                {#if isApplied}
+                   <div class="absolute -top-[6px] -right-[6px] w-[28px] h-[28px] rounded-full bg-[#FFB7C5] shadow-2xl border-2 border-white flex items-center justify-center z-30" in:scale>
+                      <Check class="w-4 h-4 text-black stroke-[4]" />
+                   </div>
+                {/if}
              </button>
           {/each}
        </div>

@@ -1,35 +1,11 @@
 @import "tailwindcss";
 
-/* 🇻🇳 ELITE V2.2: BE VIETNAM PRO LOCAL INFRASTRUCTURE */
-@font-face {
-  font-family: 'Be Vietnam Pro';
-  src: url('/fonts/be-vietnam-pro-vietnamese-wght-normal.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
-  font-style: normal;
-}
+/* 🇻🇳 ELITE V2.2: Infrastructure inherited from global layout.css */
 
-@font-face {
-  font-family: 'Be Vietnam Pro';
-  src: url('/fonts/be-vietnam-pro-vietnamese-wght-italic.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
-  font-style: italic;
-}
 
 :root {
-  --z-base: 0;
-  --z-wave: 1;
-  --z-surface: 10;
-  --z-header: 100;
-  --z-mobile-tabs: 100;
-  --z-overlay: 500;
-  --z-modal: 1000;
-  --z-mobile-sheet-bg: 1000;
-  --z-mobile-sheet: 1100;
-  --z-review-overlay: 1200;
-  --z-toast: 2000;
-  --z-review-header: 2000;
+  /* Z-Index inherited from Global +layout.svelte injection */
+
 
   --standard-pt: calc(10vh + 10px);
   --standard-pb: 10vh;

@@ -95,7 +95,7 @@
           phone: r.customer_phone ? r.customer_phone.slice(0, 3) + '****' + r.customer_phone.slice(-3) : 'Ẩn danh',
           location: r.customer_location || 'Việt Nam',
           rating: r.rating,
-          content: r.content,
+          content: r.content.replace(/^<p>/i, '').replace(/<\/p>$/i, ''),
           initial: r.customer_name ? r.customer_name.charAt(0).toUpperCase() : '?'
         }));
       }
@@ -159,9 +159,9 @@
 <div class="reviews-mobile-viewport h-full flex flex-col px-[3px] pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden" id="reviews">
   <!-- HUD Header & Content (Aligned to 26px Standard: 3px base + 23px internal) -->
   <div class="mt-3 mb-8 px-[23px]">
-    <div class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full backdrop-blur-md mb-6">
-      <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
-      <span class="text-[9px] uppercase tracking-[0.2em] text-emerald-400 font-black italic">
+    <div class="inline-flex items-center gap-2 px-3 py-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 rounded-full backdrop-blur-md mb-6">
+      <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] animate-pulse shadow-[0_0_8px_rgba(255,183,197,0.6)]"></div>
+      <span class="text-[9px] uppercase tracking-[0.2em] text-[#FFB7C5] font-black italic">
         <EditableWrapper path="metadata.reviews_hud_feedback" label="SỬA NHÃN HỆ THỐNG" as="span">
           {metadata.reviews_hud_feedback || 'HỆ THỐNG // PHẢN HỒI THỰC TẾ'}
         </EditableWrapper>
@@ -196,7 +196,7 @@
               {metadata.reviews_trust_score || '4.9/5'}
             </EditableWrapper>
           </span>
-          <span class="text-[9px] text-emerald-400 font-black uppercase tracking-widest">
+          <span class="text-[9px] text-[#FFB7C5] font-black uppercase tracking-widest">
             <EditableWrapper path="metadata.reviews_count_text" label="SỬA SỐ LƯỢT MUA" as="span">
               {product?.orderCountText || metadata.reviews_count_text || '2,140+ LƯỢT MUA'}
             </EditableWrapper>
@@ -209,7 +209,7 @@
   <div class="flex overflow-x-auto snap-x snap-mandatory gap-0 scrollbar-hide pb-10">
     {#if isLoading && realReviews.length === 0}
       <div class="py-20 text-center">
-        <div class="w-10 h-10 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"></div>
+        <div class="w-10 h-10 border-2 border-[#FFB7C5]/20 border-t-[#FFB7C5] rounded-full animate-spin mx-auto mb-4"></div>
         <p class="text-[9px] font-black text-white/20 uppercase tracking-[0.4em]">Syncing_Voices...</p>
       </div>
     {:else if realReviews.length === 0}
@@ -221,20 +221,20 @@
         <div class="review-card-mobile flex-none snap-start p-6 bg-white/[0.03] border border-white/10 rounded-[2.5rem] backdrop-blur-3xl relative overflow-hidden" in:fly={{ y: 20, delay: i * 100 }}>
           <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-emerald-400 font-black text-xl italic shadow-inner">
+              <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#FFB7C5] font-black text-xl italic shadow-inner">
                 {review.initial}
               </div>
               <div>
                 <h4 class="text-white font-black text-sm tracking-tight uppercase italic">{review.name}</h4>
                 <div class="flex items-center gap-2">
                   <span class="text-[8px] text-white/30 font-black uppercase tracking-[0.2em]">{review.location}</span>
-                  <div class="w-1 h-1 rounded-full bg-emerald-500/40"></div>
-                  <span class="text-[8px] text-emerald-400 font-black uppercase tracking-widest">{labels.label_verified}</span>
+                  <div class="w-1 h-1 rounded-full bg-[#FFB7C5]/40"></div>
+                  <span class="text-[8px] text-[#FFB7C5] font-black uppercase tracking-widest">{labels.label_verified}</span>
                 </div>
               </div>
             </div>
             <div class="p-2 bg-white/5 rounded-xl border border-white/5">
-               <ShieldCheck class="w-4 h-4 text-emerald-500/40" />
+               <ShieldCheck class="w-4 h-4 text-[#FFB7C5]/40" />
             </div>
           </div>
           
@@ -247,7 +247,7 @@
           </div>
 
           <p class="text-white/80 text-xs leading-relaxed italic font-medium tracking-tight">
-            "{review.content}"
+            "{@html review.content}"
           </p>
         </div>
       {/each}
@@ -258,19 +258,19 @@
     <EditableWrapper path="metadata.reviews_cta_write" label="SỬA NÚT CTA" class="w-full">
       <button 
         onclick={() => showFormModal = true}
-        class="w-full py-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-[2.5rem] font-black text-[13px] tracking-[0.3em] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase italic shadow-[0_0_30px_rgba(16,185,129,0.15)]"
+        class="w-full py-6 bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] rounded-[2.5rem] font-black text-[13px] tracking-[0.3em] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase italic shadow-[0_0_30px_rgba(255,183,197,0.15)]"
       >
         <MessageSquarePlus class="w-5 h-5" /> {labels.cta_write}
       </button>
     </EditableWrapper>
   </div>
 
-  <div class="absolute -top-32 -right-32 w-80 h-80 bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none"></div>
+  <div class="absolute -top-32 -right-32 w-80 h-80 bg-[#FFB7C5]/5 blur-[120px] rounded-full pointer-events-none"></div>
 </div>
 
   <!-- Design Flourish -->
-  <div class="absolute -top-32 -right-32 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none"></div>
-  <div class="absolute -bottom-32 -left-32 w-64 h-64 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none"></div>
+  <div class="absolute -top-32 -right-32 w-64 h-64 bg-[#FFB7C5]/10 blur-[100px] rounded-full pointer-events-none"></div>
+  <div class="absolute -bottom-32 -left-32 w-64 h-64 bg-[#FFB7C5]/5 blur-[100px] rounded-full pointer-events-none"></div>
 
 <!-- Mobile Form Modal -->
 {#if showFormModal}
@@ -281,11 +281,11 @@
     <!-- Tactical Header -->
     <div class="px-4 py-4 flex items-center justify-between border-b border-white/5 bg-white/[0.01] overflow-hidden relative">
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-          <ShieldCheck class="w-4 h-4 text-emerald-400" />
+        <div class="w-8 h-8 rounded-xl bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 flex items-center justify-center">
+          <ShieldCheck class="w-4 h-4 text-[#FFB7C5]" />
         </div>
         <div class="flex flex-col">
-          <div class="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] font-mono leading-none mb-1">
+          <div class="text-[9px] font-black text-[#FFB7C5] uppercase tracking-[0.3em] font-mono leading-none mb-1">
             {labels.label_store_verified}
           </div>
           <div class="text-[7px] font-bold text-white/20 uppercase tracking-[0.5em] font-mono">
@@ -302,14 +302,14 @@
       </button>
 
       <!-- HUD Decoration Line -->
-      <div class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
+      <div class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#FFB7C5]/20 to-transparent"></div>
     </div>
 
     <div class="flex-1 overflow-y-auto px-4 py-8">
       {#if showSuccess}
         <div class="h-full flex flex-col items-center justify-center text-center pb-20" in:scale={{ duration: 600, easing: elasticOut }}>
-          <div class="w-24 h-24 bg-emerald-500/20 rounded-3xl flex items-center justify-center mb-8 border border-emerald-500/40">
-            <CheckCircle2 class="w-12 h-12 text-emerald-400" />
+          <div class="w-24 h-24 bg-[#FFB7C5]/20 rounded-3xl flex items-center justify-center mb-8 border border-[#FFB7C5]/40">
+            <CheckCircle2 class="w-12 h-12 text-[#FFB7C5]" />
           </div>
           <h3 class="text-4xl font-black text-white italic uppercase tracking-tighter mb-4">{labels.success_title}</h3>
           <p class="text-white/40 text-[11px] font-bold uppercase tracking-[0.2em] max-w-[240px] leading-relaxed">
@@ -328,7 +328,7 @@
                   type="text"
                   bind:value={name}
                   placeholder="Danh tính của bạn"
-                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-white outline-none focus:border-emerald-500/50 transition-colors uppercase font-black text-xs tracking-widest placeholder:text-white/10"
+                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-white outline-none focus:border-[#FFB7C5]/50 transition-colors uppercase font-black text-xs tracking-widest placeholder:text-white/10"
                 />
               </div>
               <div class="relative">
@@ -337,15 +337,15 @@
                   type="tel"
                   bind:value={phone}
                   placeholder="Số điện thoại bảo mật"
-                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-white outline-none focus:border-emerald-500/50 transition-colors font-mono tracking-[0.2em] text-xs placeholder:text-white/10"
+                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-white outline-none focus:border-[#FFB7C5]/50 transition-colors font-mono tracking-[0.2em] text-xs placeholder:text-white/10"
                 />
               </div>
               <div class="relative">
-                <MapPin class="absolute left-4 top-5 w-4 h-4 text-white/20 {isLocationOpen ? 'text-emerald-500/60' : ''} transition-colors" />
+                <MapPin class="absolute left-4 top-5 w-4 h-4 text-white/20 {isLocationOpen ? 'text-[#FFB7C5]/60' : ''} transition-colors" />
                 <button
                   type="button"
                   onclick={() => isLocationOpen = !isLocationOpen}
-                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-left outline-none transition-all uppercase font-black text-xs tracking-widest {locationSelected ? 'text-white' : 'text-white/20'} {isLocationOpen ? 'border-emerald-500/50 bg-emerald-500/5 shadow-[0_0_20px_rgba(16,185,129,0.05)]' : ''}"
+                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-left outline-none transition-all uppercase font-black text-xs tracking-widest {locationSelected ? 'text-white' : 'text-white/20'} {isLocationOpen ? 'border-[#FFB7C5]/50 bg-[#FFB7C5]/5 shadow-[0_0_20px_rgba(255,183,197,0.05)]' : ''}"
                 >
                   {locationSelected || 'Chọn Vị trí'}
                 </button>
@@ -361,11 +361,11 @@
                         <button
                           type="button"
                           onclick={() => { locationSelected = loc; isLocationOpen = false; }}
-                          class="w-full px-4 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] transition-all border-b border-white/5 last:border-none flex items-center justify-between group {locationSelected === loc ? 'bg-emerald-500/10 text-emerald-400' : 'text-white/40 hover:bg-white/[0.03] hover:text-white'}"
+                          class="w-full px-4 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] transition-all border-b border-white/5 last:border-none flex items-center justify-between group {locationSelected === loc ? 'bg-[#FFB7C5]/10 text-[#FFB7C5]' : 'text-white/40 hover:bg-white/[0.03] hover:text-white'}"
                         >
                           {loc}
                           {#if locationSelected === loc}
-                            <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_rgba(255,183,197,0.5)]"></div>
                           {/if}
                         </button>
                       {/each}
@@ -394,7 +394,7 @@
               <textarea
                 bind:value={content}
                 placeholder="Nhập trải nghiệm thực tế tại đây..."
-                class="w-full h-40 bg-white/[0.03] border border-white/10 p-6 rounded-3xl text-white focus:border-emerald-500/50 transition-colors text-sm leading-relaxed placeholder:text-white/10 outline-none"
+                class="w-full h-40 bg-white/[0.03] border border-white/10 p-6 rounded-3xl text-white focus:border-[#FFB7C5]/50 transition-colors text-sm leading-relaxed placeholder:text-white/10 outline-none"
               ></textarea>
             </div>
 
@@ -404,7 +404,7 @@
             <button
               type="submit"
               disabled={isSubmitting}
-              class="w-full py-6 bg-emerald-500 rounded-3xl font-black text-slate-950 text-base tracking-[0.4em] uppercase flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98] transition-all"
+              class="w-full py-6 bg-[#FFB7C5] rounded-3xl font-black text-slate-950 text-base tracking-[0.4em] uppercase flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98] transition-all"
             >
               {#if isSubmitting}
                 <div class="w-5 h-5 border-2 border-slate-950/20 border-t-slate-950 rounded-full animate-spin"></div>

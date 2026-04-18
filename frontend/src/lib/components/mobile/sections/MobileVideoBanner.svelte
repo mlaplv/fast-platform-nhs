@@ -131,9 +131,9 @@
   const metrics = $derived.by(() => {
     const raw = metadata.hero_metrics || [];
     const fallbacks = [
-      { label: '[Khoa học]', value: 'LIPOSOME PHÁ GỐC THÂM', color: 'blue' },
-      { label: '[Hiệu quả]', value: 'DỨT ĐIỂM HẮC SẾT TỐ', color: 'indigo' },
-      { label: '[Tiêu chuẩn]', value: 'SỐ 1 DƯỢC LIỆU NHẬT', color: 'emerald' }
+      { label: '[Khoa học]', value: 'LIPOSOME PHÁ GỐC THÂM', color: 'sakura' },
+      { label: '[Hiệu quả]', value: 'DỨT ĐIỂM HẮC SẾT TỐ', color: 'sakura' },
+      { label: '[Tiêu chuẩn]', value: 'SỐ 1 DƯỢC LIỆU NHẬT', color: 'sakura' }
     ];
     return fallbacks.map((fb, i) => {
       const custom = raw[i];
@@ -181,7 +181,7 @@
 
     <div class="meta-overlay">
       <div class="content-overlay">
-      <h1 class="headline tiktok-shadow">
+      <h1 class="headline">
         <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
           {h1}
         </EditableWrapper>
@@ -203,17 +203,10 @@
         
         <div class="metrics-grid">
           {#each metrics as metric, i}
-            <div class="metric-item {metric.color}">
-              <EditableWrapper path="metadata.hero_metrics.{i}.label" value={metric.label} label="SỬA NHÃN {i+1}">
-                <span class="metric-label whitespace-nowrap"
-                      class:text-blue-400={metric.color === 'blue'}
-                      class:text-indigo-400={metric.color === 'indigo'}
-                      class:text-emerald-400={metric.color === 'emerald'}
-                      class:text-sakura-pink={!metric.color || metric.color === 'sakura'}>{metric.label}</span>
-              </EditableWrapper>
-              <EditableWrapper path="metadata.hero_metrics.{i}.value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}">
-                <span class="metric-value whitespace-nowrap">{metric.value}</span>
-              </EditableWrapper>
+            <div class="metric-item">
+              <div class="metric-dot"></div>
+              <span class="metric-label whitespace-nowrap text-sakura-pink">{metric.label}</span>
+              <span class="metric-value whitespace-nowrap">{metric.value}</span>
             </div>
           {/each}
         </div>

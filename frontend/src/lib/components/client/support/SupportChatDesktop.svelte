@@ -140,40 +140,40 @@
 {#if supportAgent.isOpen}
   <!-- Hyper Drop Container (Viral 2026 Aggressive Asymmetric Shape) -->
   <div 
-    class="support-chat-container fixed transform-gpu origin-bottom-right transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] {isExpanded ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px] overflow-hidden bg-[#030712]' : 'bottom-[110px] right-8 w-[450px] h-[740px] max-h-[85vh] hyper-drop-v2 animate-liquid-float'} {isInputFocused ? 'pause-animations' : ''}"
+    class="support-chat-container fixed transform-gpu origin-bottom-right transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] {isExpanded ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px] overflow-hidden bg-[#0a0a0a]' : 'bottom-[110px] right-8 w-[450px] h-[740px] max-h-[85vh] helen-box-v2 helen-float-v3'} {isInputFocused ? 'pause-animations' : ''}"
     style="z-index: {Z_INDEX_CLIENT.MODAL}; will-change: transform, opacity;"
     transition:scale={{ start: 0.7, opacity: 0, duration: 600, easing: (t) => 1 - Math.pow(1 - t, 5) }}
   >
     <!-- Liquid Neural Border (Optimized for No-GPU CPU-only VPS) -->
-    <div class="absolute inset-[-1px] bg-gradient-to-br from-[#00A3FF] via-transparent to-[#005B99] opacity-20 {isExpanded ? 'rounded-[48px]' : 'hyper-drop-v2'} pointer-events-none"></div>
+    <div class="absolute inset-[-1px] border border-white/5 {isExpanded ? 'rounded-[48px]' : 'helen-box-v2'} pointer-events-none"></div>
 
     <!-- Ultra-Glass Background Layer -->
-    <div class="absolute inset-0 apple-glass-dark-modal pointer-events-none transition-all duration-700 {isExpanded ? 'rounded-[48px] is-expanded' : 'hyper-drop-v2'} border border-white/10 shadow-[0_45px_100px_rgba(0,0,0,0.9)]"></div>
+    <div class="absolute inset-0 apple-glass-dark-modal pointer-events-none transition-all duration-700 {isExpanded ? 'rounded-[48px] is-expanded' : 'helen-box-v2'} border border-white/10 shadow-xl"></div>
 
     <!-- Interface Contents -->
     <div class="relative z-10 flex flex-col h-full">
       <!-- Blended Ghost Header -->
-      <header class="flex-shrink-0 pt-8 px-10 pb-6 flex items-center justify-between">
-        <div class="flex items-center gap-4">
+      <header class="flex-shrink-0 pt-10 px-12 pb-6 flex items-center justify-between">
+        <div class="flex items-center gap-6">
           <div class="relative group/avatar">
-            <div class="w-14 h-14 rounded-full bg-black/40 flex items-center justify-center shadow-[0_8px_24px_rgba(0,163,255,0.4)] border border-white/20 transition-transform group-hover/avatar:scale-105 overflow-hidden">
-              <HelenIcon size={56} color="#00A3FF" isPaused={isInputFocused} />
+            <div class="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center shadow-[0_8px_32px_rgba(255,183,197,0.3)] border border-white/20 transition-transform group-hover/avatar:scale-105 overflow-hidden">
+              <HelenIcon size={64} color="#FFB7C5" isPaused={isInputFocused} />
             </div>
-            <div class="absolute bottom-0 right-0 w-4 h-4 bg-[#34C759] rounded-full ring-[3px] ring-[#0a0a0a] shadow-[0_0_12px_#34C759]"></div>
+            <div class="absolute bottom-0 right-0 w-4 h-4 bg-[#FFB7C5] rounded-full ring-[3px] ring-[#0a0a0a] shadow-[0_0_12px_#FFB7C5]"></div>
           </div>
-          <div>
-            <h3 class="font-black text-white tracking-tight text-[19px] leading-tight flex items-center gap-2">
-              {supportAgent.config.agentName}
-              <div class="flex items-center gap-1 px-2 py-0.5 bg-[#00A3FF]/10 border border-[#00A3FF]/20 rounded-md">
-                <Lock size={10} class="text-[#00A3FF]" />
-                <span class="text-[9px] text-[#00A3FF] font-black uppercase tracking-wider">AES-256</span>
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center gap-3">
+              <h3 class="font-black text-white tracking-tight text-[22px] leading-none">
+                {supportAgent.config.agentName}
+              </h3>
+              <div class="flex items-center gap-1.5 px-2.5 py-0.5 bg-white/5 border border-white/10 rounded-full h-fit">
+                <Lock size={11} class="text-white/40" />
+                <span class="text-[9px] text-white/40 font-black uppercase tracking-wider">AES-256</span>
               </div>
-            </h3>
-          <div class="flex items-center gap-2 mt-1.5">
-             <p class="text-[11px] {supportAgent.helenEnabled ? 'text-[#00A3FF]' : 'text-[#34C759]'} font-black uppercase tracking-[0.2em] opacity-90">
-               {supportAgent.helenEnabled ? 'Tư vấn(online)' : 'Nhân viên trực'}
-             </p>
-          </div>
+            </div>
+            <p class="text-[11px] text-[#FFB7C5] font-black uppercase tracking-[0.25em] opacity-80">
+              {supportAgent.helenEnabled ? 'Hỗ trợ thực tế (AI)' : 'Chuyên gia tư vấn'}
+            </p>
           </div>
         </div>
         
@@ -205,7 +205,7 @@
       >
         <div class="flex flex-col items-center justify-center mb-10 opacity-30 hover:opacity-100 transition-opacity">
           <div class="flex items-center gap-2.5 px-5 py-2 bg-black/40 border border-white/10 rounded-full">
-             <ShieldCheck size={14} class="text-[#00A3FF]" />
+             <ShieldCheck size={14} class="text-[#FFB7C5]" />
              <span class="text-[10px] text-white/60 tracking-[0.2em] uppercase font-black italic">SmartShop Neural Link v2.2</span>
           </div>
         </div>
@@ -216,7 +216,7 @@
             <button 
               onclick={() => supportAgent.loadHistory()}
               disabled={supportAgent.isHistoryLoading}
-              class="px-8 py-2.5 bg-white/5 hover:bg-[#00A3FF]/10 border border-white/5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-[#00A3FF] transition-all active:scale-95 disabled:opacity-30"
+              class="px-8 py-2.5 bg-white/5 hover:bg-[#FFB7C5]/10 border border-white/5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-[#FFB7C5] transition-all active:scale-95 disabled:opacity-30"
             >
               {supportAgent.isHistoryLoading ? 'Đang đồng bộ dữ liệu...' : 'Tải thêm tin nhắn cũ'}
             </button>
@@ -224,7 +224,7 @@
         {/if}
         {#if supportAgent.messages.length === 0 && supportAgent.isHistoryLoading}
           <div class="flex flex-col items-center justify-center py-20 opacity-40 animate-pulse">
-            <div class="w-12 h-12 rounded-full border-2 border-t-[#00A3FF] border-white/5 animate-spin"></div>
+            <div class="w-12 h-12 rounded-full border-2 border-t-[#FFB7C5] border-white/5 animate-spin"></div>
             <p class="text-[11px] font-black uppercase tracking-[0.2em] text-white mt-6">Đang đồng bộ dữ liệu giao tiếp...</p>
           </div>
         {/if}
@@ -240,7 +240,7 @@
               <div class="flex-shrink-0 mt-1">
                 {#if msg.role === 'assistant'}
                   <div class="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/10 shadow-lg overflow-hidden">
-                    <HelenIcon size={28} color="#00A3FF" isPaused={isInputFocused} />
+                    <HelenIcon size={28} color="#FFB7C5" isPaused={isInputFocused} />
                   </div>
                 {:else}
                   <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/5 shadow-md">
@@ -261,15 +261,15 @@
                     [Tin nhắn đã bị thu hồi]
                   </div>
                 {:else if msg.role === 'assistant' && msg.intent === 'ORDER_STATUS'}
-                  <div class="inline-flex items-center gap-3 px-4 py-2 mb-4 bg-[#00A3FF]/10 text-[#00A3FF] rounded-2xl border border-[#00A3FF]/20 font-black text-[15px] uppercase tracking-wider">
+                  <div class="inline-flex items-center gap-3 px-4 py-2 mb-4 bg-[#FFB7C5]/10 text-[#FFB7C5] rounded-2xl border border-[#FFB7C5]/20 font-black text-[15px] uppercase tracking-wider">
                     <PackageSearch size={18} /> Tra cứu vận đơn
                   </div>
                   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                   <div class="text-[16px] mb-6">{@html msg.content.replace(/\n/g, '<br/>')}</div>
-                  <div class="w-full max-w-[340px] p-1 bg-black/40 rounded-[32px] border border-white/10 shadow-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all">
+                  <div class="w-full max-w-[340px] p-1 bg-black/40 rounded-[32px] border border-white/10 shadow-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all">
                     <div class="flex items-center">
                         <input type="tel" placeholder="Số điện thoại / Mã đơn" class="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-600 outline-none text-[15px]" />
-                        <button class="mr-1 w-12 h-12 bg-[#00A3FF] text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all">
+                        <button class="mr-1 w-12 h-12 bg-[#FFB7C5] text-slate-950 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all">
                             <Send size={18} />
                         </button>
                     </div>
@@ -280,7 +280,7 @@
                   
                   <button 
                     onclick={() => shopStore.openCheckout()}
-                    class="mt-6 px-10 py-4 bg-gradient-to-r from-[#00A3FF] to-[#005B99] text-white text-[16px] font-black rounded-full shadow-[0_12px_32px_rgba(0,163,255,0.4)] hover:shadow-[0_16px_40px_rgba(0,163,255,0.5)] transition-all active:scale-[0.98] uppercase tracking-wider animate-pulse-subtle"
+                    class="mt-6 px-10 py-4 bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 text-[16px] font-black rounded-full shadow-[0_12px_32px_rgba(255,183,197,0.4)] hover:shadow-[0_16px_40px_rgba(255,183,197,0.5)] transition-all active:scale-[0.98] uppercase tracking-wider animate-pulse-subtle"
                   >
                      NHẬN ƯU ĐÃI NGAY →
                   </button>
@@ -310,9 +310,9 @@
         {#if supportAgent.isTyping}
           <div class="flex justify-start w-full">
             <div class="flex items-center gap-3 px-5 py-2.5 bg-black/40 rounded-full border border-white/5">
-              <div class="w-1.5 h-1.5 bg-[#00A3FF] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-              <div class="w-1.5 h-1.5 bg-[#00A3FF] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-              <div class="w-1.5 h-1.5 bg-[#00A3FF] rounded-full animate-bounce"></div>
+              <div class="w-1.5 h-1.5 bg-[#FFB7C5] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+              <div class="w-1.5 h-1.5 bg-[#FFB7C5] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+              <div class="w-1.5 h-1.5 bg-[#FFB7C5] rounded-full animate-bounce"></div>
             </div>
           </div>
         {/if}
@@ -329,12 +329,12 @@
               class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white rounded-full text-[11px] font-bold transition-all active:scale-95 group/action"
               onclick={() => handleQuickAction(action)}
             >
-              <Icon size={12} class="text-[#00A3FF] opacity-30 group-hover/action:opacity-100 transition-opacity" /> {action.label}
+              <Icon size={12} class="text-[#FFB7C5] opacity-30 group-hover/action:opacity-100 transition-opacity" /> {action.label}
             </button>
           {/each}
         </div>
 
-        <div class="relative bg-black/60 border border-white/10 rounded-[44px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#00A3FF]/40 transition-all">
+        <div class="relative bg-black/60 border border-white/10 rounded-[44px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all">
           <textarea
             bind:this={inputElement}
             bind:value={userInput}
@@ -354,7 +354,7 @@
           <button 
             onclick={handleSend}
             disabled={!userInput.trim() || supportAgent.isTyping}
-            class="absolute right-4 bottom-4 w-16 h-16 flex items-center justify-center rounded-full {userInput.trim() && !supportAgent.isTyping ? 'bg-[#00A3FF] text-white shadow-[0_8px_32px_rgba(0,163,255,0.4)]' : 'bg-white/5 text-gray-700'} transition-all scale-100 active:scale-90"
+            class="absolute right-4 bottom-4 w-16 h-16 flex items-center justify-center rounded-full {userInput.trim() && !supportAgent.isTyping ? 'bg-[#FFB7C5] text-slate-950 shadow-[0_8px_32px_rgba(255,183,197,0.4)]' : 'bg-white/5 text-gray-700'} transition-all scale-100 active:scale-90"
           >
             <Send size={28} />
           </button>
@@ -366,15 +366,12 @@
 
 <style>
   .apple-glass-dark-modal {
-    background: linear-gradient(165deg, rgba(16, 24, 39, 0.85) 0%, rgba(3, 7, 18, 0.98) 100%);
-    backdrop-filter: blur(12px) saturate(210%);
-    -webkit-backdrop-filter: blur(12px) saturate(210%);
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
     will-change: backdrop-filter, background, opacity;
-    box-shadow: 
-      0 60px 120px rgba(0, 0, 0, 0.9),
-      inset 0 1px 1px rgba(255, 255, 255, 0.1),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.4);
   }
 
   /* Full-View Optimization: Prevent background bleed-through with 100% opacity layer */
@@ -391,7 +388,7 @@
   }
 
   /* Liquid Hyper-Drop Shape V2 (Organic & Balanced) */
-  .hyper-drop-v2 {
+  .helen-box-v2 {
       border-radius: 30% 70% 50% 50% / 30% 30% 70% 70%;
       animation: morph-blob 8s infinite alternate ease-in-out;
   }
@@ -408,7 +405,7 @@
     66% { transform: translateY(4px) rotate(-0.5deg); }
   }
 
-  .animate-liquid-float {
+  .helen-float-v3 {
     animation: liquid-float 12s infinite ease-in-out;
   }
 
@@ -436,13 +433,13 @@
     justify-content: center;
     margin-top: 1.5rem;
     padding: 1.25rem 2.5rem;
-    background: linear-gradient(135deg, #00A3FF 0%, #005B99 100%);
-    color: white !important;
+    background: linear-gradient(135deg, #FFB7C5 0%, #FF8FA3 100%);
+    color: #000 !important;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     border-radius: 9999px;
-    box-shadow: 0 10px 25px rgba(0, 163, 255, 0.3);
+    box-shadow: 0 10px 25px rgba(255, 183, 197, 0.3);
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     text-decoration: none !important;
     width: fit-content;
@@ -453,7 +450,7 @@
 
   :global(.helen-cta-btn:hover) {
     transform: scale(1.03) translateY(-2px);
-    box-shadow: 0 15px 35px rgba(0, 163, 255, 0.4);
+    box-shadow: 0 15px 35px rgba(255, 183, 197, 0.4);
     filter: brightness(1.1);
   }
 

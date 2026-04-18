@@ -50,7 +50,6 @@
       const data = await response.json();
       // Bỏ qua object hướng dẫn đầu tiên
       provinces = data.slice(1);
-      console.log('Elite Address Data Loaded:', provinces.length);
     } catch (e) {
       console.error('Failed to load address data', e);
       isLoading = false;

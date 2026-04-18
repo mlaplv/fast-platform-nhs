@@ -16,9 +16,9 @@
    animation: bounce-slow 1.5s infinite ease-in-out;
 }
 
-.text-sakura-pink { color: #fe6b8b; }
+.text-sakura-pink { color: #FFB7C5; }
 .text-gradient-indigo {
-   background: linear-gradient(135deg, #a5b4fc, #818cf8);
+   background: linear-gradient(135deg, #FFB7C5, #E8D5B0);
    -webkit-background-clip: text;
    -webkit-text-fill-color: transparent;
 }

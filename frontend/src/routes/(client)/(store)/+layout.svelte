@@ -5,7 +5,6 @@
   import HeaderMobile from "$lib/components/storefront/layout/HeaderMobile.svelte";
   import FooterDesktop from "$lib/components/storefront/layout/FooterDesktop.svelte";
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
-  import { getShopStore } from "$lib/state/commerce/shop.svelte";
   import { fomoStore } from "$lib/state/commerce/fomo.svelte";
   import NeuralActivityBar from "$lib/components/client/common/NeuralActivityBar.svelte";
   import { onMount, type Snippet } from "svelte";

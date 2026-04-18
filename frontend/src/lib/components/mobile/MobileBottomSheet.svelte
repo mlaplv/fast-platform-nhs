@@ -193,14 +193,14 @@
       <div in:fly={{ x: 20, duration: 300 }}>
           <!-- Applied Deal & Savings for Step 2 -->
           {#if appliedDeal || totalSaved > 0}
-            <div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-between">
+            <div class="mb-6 p-4 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 rounded-2xl flex items-center justify-between">
               <div class="flex flex-col">
-                <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest">ƯU ĐÃI ĐÃ ÁP DỤNG</span>
+                <span class="text-[8px] font-black text-[#FFB7C5] uppercase tracking-widest">ƯU ĐÃI ĐÃ ÁP DỤNG</span>
                 <span class="text-xs font-bold text-white uppercase italic">{appliedDeal?.label || 'GIÁ KHUYẾN MÃI'}</span>
               </div>
               <div class="text-right">
-                <span class="text-[8px] font-black text-emerald-400 uppercase tracking-widest block">BẠN TIẾT KIỆM</span>
-                <span class="text-lg font-black text-emerald-400 italic">-{totalSaved.toLocaleString()}đ</span>
+                <span class="text-[8px] font-black text-[#FFB7C5] uppercase tracking-widest block">BẠN TIẾT KIỆM</span>
+                <span class="text-lg font-black text-[#FFB7C5] italic">-{totalSaved.toLocaleString()}đ</span>
               </div>
             </div>
           {/if}
@@ -208,7 +208,7 @@
           <div class="mb-1.5 space-y-1.5">
             <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-white/40 border-b border-white/5 pb-1.5">
               <span>Phương thức vận chuyển</span>
-              <span class="text-emerald-400">Miễn phí (Tiết kiệm 30k)</span>
+              <span class="text-[#FFB7C5]">Miễn phí (Tiết kiệm 30k)</span>
             </div>
             <div class="flex items-center gap-2 text-[9px] font-medium text-white/20 italic">
                <ShieldCheck class="w-3 h-3" /> Kiểm tra và nhận hàng tận nơi
@@ -223,7 +223,7 @@
             <div class="space-y-3">
               <!-- 1. Phone FIRST (Mobile) -->
               <div class="relative group">
-                <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-luxury-copper transition-colors">
+                <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-[#FFB7C5] transition-colors">
                   <Phone class="w-4 h-4" />
                 </div>
                 <input
@@ -231,32 +231,32 @@
                   bind:value={phone}
                   oninput={() => { handlePhoneInput(); handleInputChange(); }}
                   placeholder="SỐ ĐIỆN THOẠI *"
-                  class="w-full pl-12 pr-6 py-3.5 bg-white/[0.03] border-2 {validationError?.includes('thoại') ? 'border-red-500/30' : 'border-white/5 focus:border-luxury-copper/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-base uppercase transition-all"
+                  class="w-full pl-12 pr-6 py-3.5 bg-white/[0.03] border-2 {validationError?.includes('thoại') ? 'border-red-500/30' : 'border-white/5 focus:border-[#FFB7C5]/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-base uppercase transition-all"
                 />
 
                 {#if shopStore.customerData?.isRecurring}
-                   <div class="absolute -bottom-5 left-2 flex items-center gap-1.5 text-[8px] font-black text-luxury-peach uppercase tracking-widest animate-in fade-in slide-in-from-top-1">
-                      <div class="w-1.5 h-1.5 {shopStore.customerData.isTrustedDevice ? 'bg-emerald-500' : 'bg-amber-500'} rounded-full animate-pulse"></div>
+                   <div class="absolute -bottom-5 left-2 flex items-center gap-1.5 text-[8px] font-black text-[#FFB7C5] uppercase tracking-widest animate-in fade-in slide-in-from-top-1">
+                      <div class="w-1.5 h-1.5 {shopStore.customerData.isTrustedDevice ? 'bg-[#FFB7C5]' : 'bg-amber-500'} rounded-full animate-pulse"></div>
                       CHÀO MỪNG {shopStore.customerData.nameMasked || 'QUÝ KHÁCH'} QUAY TRỞ LẠI!
-                      <span class="ml-1 px-1 py-0.5 bg-luxury-peach/10 text-luxury-peach text-[6px] rounded italic">BẢO MẬT (***)</span>
+                      <span class="ml-1 px-1 py-0.5 bg-[#FFB7C5]/10 text-[#FFB7C5] text-[6px] rounded italic">BẢO MẬT (***)</span>
                    </div>
                 {/if}
               </div>
 
               <!-- 2. Name -->
               <div class="relative group {shopStore.customerData?.isRecurring ? 'mt-3' : ''}">
-                <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-luxury-copper transition-colors">
+                <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-white/20 group-focus-within:text-[#FFB7C5] transition-colors">
                   <User class="w-4 h-4" />
                 </div>
                 <input
                   bind:value={name}
                   oninput={handleInputChange}
                   placeholder="HỌ VÀ TÊN *"
-                  class="w-full pl-12 pr-12 py-3.5 bg-white/[0.03] border-2 border-white/5 focus:border-luxury-copper/30 rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all"
+                  class="w-full pl-12 pr-12 py-3.5 bg-white/[0.03] border-2 border-white/5 focus:border-[#FFB7C5]/30 rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all"
                 />
                 
                 {#if shopStore.customerData?.isRecurring && name === shopStore.customerData.nameMasked}
-                   <div class="absolute right-5 inset-y-0 flex items-center text-emerald-400 animate-in zoom-in">
+                   <div class="absolute right-5 inset-y-0 flex items-center text-[#FFB7C5] animate-in zoom-in">
                       <ShieldCheck class="w-5 h-5" />
                    </div>
                 {/if}
@@ -272,7 +272,7 @@
 
               <!-- 4. Detailed Address -->
               <div class="relative group">
-                <div class="absolute top-5 left-5 pointer-events-none text-white/20 group-focus-within:text-luxury-copper transition-colors">
+                <div class="absolute top-5 left-5 pointer-events-none text-white/20 group-focus-within:text-[#FFB7C5] transition-colors">
                   <MapPin class="w-4 h-4" />
                 </div>
                 <textarea
@@ -280,7 +280,7 @@
                   oninput={handleInputChange}
                   rows="2"
                   placeholder="SỐ NHÀ, TÊN ĐƯỜNG... *"
-                  class="w-full pl-12 pr-6 py-3.5 bg-white/[0.03] border-2 {validationError?.includes('chi tiết') ? 'border-red-500/30' : 'border-white/5 focus:border-luxury-copper/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all resize-none"
+                  class="w-full pl-12 pr-6 py-3.5 bg-white/[0.03] border-2 {validationError?.includes('chi tiết') ? 'border-red-500/30' : 'border-white/5 focus:border-[#FFB7C5]/30'} rounded-2xl outline-none placeholder:text-white/10 text-white font-bold text-sm uppercase transition-all resize-none"
                 ></textarea>
               </div>
 
@@ -290,9 +290,9 @@
                   <button 
                     type="button"
                     onclick={() => showNote = true}
-                    class="flex items-center gap-2 py-2 px-1 hover:text-luxury-copper transition-colors group/note"
+                    class="flex items-center gap-2 py-2 px-1 hover:text-[#FFB7C5] transition-colors group/note"
                   >
-                    <MessageSquare class="w-3.5 h-3.5 text-white/20 group-hover/note:text-luxury-copper" />
+                    <MessageSquare class="w-3.5 h-3.5 text-white/20 group-hover/note:text-[#FFB7C5]" />
                     <span class="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] italic group-hover/note:text-white/60">
                       + Thêm ghi chú cho đơn hàng...
                     </span>
@@ -301,7 +301,7 @@
                   <div in:fly={{ y: -5, duration: 200 }}>
                     <div class="flex items-center justify-between mb-2 px-1">
                       <div class="flex items-center gap-2">
-                        <MessageSquare class="w-3 h-3 text-luxury-copper" />
+                        <MessageSquare class="w-3 h-3 text-[#FFB7C5]" />
                         <span class="text-[9px] font-black text-white/40 uppercase tracking-widest">Ghi chú dặn dò</span>
                       </div>
                       <button onclick={() => { showNote = false; note = ''; }} class="text-[8px] font-bold text-white/10 hover:text-red-400 uppercase tracking-tighter">Hủy bỏ</button>
@@ -328,13 +328,13 @@
                     <div class="flex items-center gap-3">
                         <span class="text-xl group-hover:scale-125 transition-transform">🎁</span>
                         <div class="flex flex-col text-left">
-                            <span class="text-[9px] font-black tracking-widest text-luxury-peach uppercase">Ưu đãi Elite đặc biệt</span>
+                            <span class="text-[9px] font-black tracking-widest text-[#FFB7C5] uppercase">Ưu đãi Elite đặc biệt</span>
                             <span class="text-xs font-bold text-white">Thêm Gói quà & Lời nhắn tặng người thân</span>
                         </div>
                     </div>
                     
                     {#if shopStore?.giftInfo}
-                        <div class="flex items-center gap-1.5 text-emerald-400">
+                        <div class="flex items-center gap-1.5 text-[#FFB7C5]">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
                             <span class="text-[9px] font-black uppercase tracking-tighter">ĐÃ LƯU</span>
                         </div>
@@ -360,41 +360,40 @@
             </div>
           {/if}
 
-          <!-- 🚀 Footer Action Bar (Pinned) -->
-          <div class="flex items-center gap-3 px-6 py-4 border-t border-white/5 bg-[#0a0a0a] mt-auto">
-            <div class="flex-1 flex flex-col min-w-0">
+          <!-- 🚀 Footer Action Bar (Pinned Elite V2.2) -->
+          <div class="flex items-center gap-4 px-5 py-5 border-t border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl mt-auto relative z-header shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+            <div class="flex-1 flex flex-col min-w-0 max-w-[100px]">
               <div class="flex items-baseline gap-1 mb-0.5 whitespace-nowrap">
-                <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">Tổng giá trị liệu trình</span>
+                <span class="text-[8px] font-black text-white/20 uppercase tracking-widest">TỔNG CỘNG</span>
                 {#if shopStore.originalPrice * shopStore.quantity > shopStore.totalAmount}
-                   <div class="px-1 py-0.5 bg-emerald-500/10 rounded-[4px] text-[6px] font-black text-emerald-400">-{totalSaved.toLocaleString()}đ</div>
+                   <div class="px-1 py-0.5 bg-[#FFB7C5]/10 rounded-[4px] text-[6px] font-black text-[#FFB7C5]">-{(totalSaved/1000).toFixed(0)}K</div>
                 {/if}
               </div>
-              <span class="text-xl font-black text-white italic tabular-nums leading-none">
+              <span class="text-lg font-black text-white italic tabular-nums leading-none tracking-tighter">
                 {(shopStore.totalAmount).toLocaleString()}đ
               </span>
             </div>
 
             <button
-              class="flex-[1.2] py-[14px] px-3 text-white font-black text-[12px] leading-none uppercase tracking-wider rounded-full btn-primary-viral active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 overflow-hidden relative group shrink-0"
+              class="flex-1 min-w-0 py-[15px] px-8 text-white font-black rounded-full active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-50 overflow-hidden relative group shrink-0 shadow-[0_10px_30px_rgba(255,183,197,0.3)]"
+              style="background: linear-gradient(135deg, #FFB7C5 0%, #FF8FA3 50%, #E8D5B0 100%);"
               onclick={handleAction}
               disabled={shopStore.isSubmitting}
             >
-              <!-- Shimmer Effect -->
-              <div class="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 animate-shimmer pointer-events-none"></div>
+              <!-- 💎 Shimmer Overlay -->
+              <div class="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-25 animate-shimmer pointer-events-none"></div>
               
               {#if shopStore.isSubmitting}
-                <Loader2 class="w-4 h-4 animate-spin shrink-0" />
+                <Loader2 class="w-5 h-5 animate-spin shrink-0" />
               {:else}
-                <div class="flex flex-col items-center leading-none relative z-surface">
-                  <span class="text-[12px] font-black tracking-widest whitespace-nowrap">{labels.cta_submit}</span>
+                <div class="flex flex-col items-center leading-tight relative z-surface">
+                  <span class="text-[13px] font-[1000] tracking-[0.05em] whitespace-nowrap drop-shadow-md uppercase italic">{labels.cta_submit}</span>
                   {#if totalSaved > 0}
-                    <span class="text-[9px] font-bold text-white/80 tracking-tighter mt-1.5 whitespace-nowrap drop-shadow-sm">
+                    <span class="text-[9px] font-black text-white/90 tracking-tighter mt-1 whitespace-nowrap drop-shadow-sm uppercase">
                       TIẾT KIỆM {totalSaved.toLocaleString()}đ | FREESHIP
                     </span>
                   {/if}
                 </div>
-                
-                <ShoppingCart class="w-4 h-4 relative z-surface group-hover:scale-110 transition-transform shrink-0" />
               {/if}
             </button>
           </div>
@@ -409,7 +408,7 @@
               {/each}
             </div>
             <p class="text-[8px] font-bold text-white/20 uppercase tracking-widest">
-               🔥 <span class="text-luxury-peach/50">32 người</span> đang chọn phân loại này
+               🔥 <span class="text-[#FFB7C5]/50">32 người</span> đang chọn phân loại này
             </p>
           </div>
           
@@ -447,15 +446,15 @@
 
   /* ── Viral Gift Trigger ── */
   .gift-trigger-btn {
-    background: linear-gradient(135deg, rgba(219, 39, 119, 0.08) 0%, rgba(131, 24, 67, 0.05) 100%);
-    border: 1px solid rgba(219, 39, 119, 0.2);
+    background: linear-gradient(135deg, rgba(255, 183, 197, 0.08) 0%, rgba(232, 213, 176, 0.05) 100%);
+    border: 1px solid rgba(255, 183, 197, 0.2);
     border-radius: 1rem;
     padding: 14px 18px;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .gift-trigger-btn:active {
-    background: rgba(219, 39, 119, 0.15);
+    background: rgba(255, 183, 197, 0.15);
     scale: 0.98;
   }
 </style>

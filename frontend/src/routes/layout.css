@@ -93,15 +93,15 @@
 @theme {
   --color-neon-cyan: #00f3ff;
   --color-alert-red: #ff003c;
-  --color-sakura-pink: #ffb7c5;
-  --color-sakura-glow: #ff69b4;
+  --color-sakura-pink: #FFB7C5;
+  --color-sakura-glow: #FF8FA3;
   --color-surface-glass: rgba(15, 23, 42, 0.4);
   
-  /* Elite V2.2: Hardened Brand Colors */
+  /* Elite V2.2: Hardened Brand Colors (Micsmo Standard) */
   --color-luxury-copper: #C18F7E;
   --color-luxury-peach: #E3B5A4;
-  --color-neon-cyan: #00f3ff;
   --color-brand-primary: var(--color-luxury-copper);
+  --color-night: #0a0a0a;
 }
 
 /* 
@@ -125,6 +125,14 @@
   --color-luxury-peach-raw: 227, 181, 164;
   --color-neon-cyan-raw: 0, 243, 255;
   --color-alert-red-raw: 255, 0, 60;
+  --color-sakura-pink-raw: 255, 183, 197;
+
+  /* Z-Index Variables (Synced from JS) */
+  --z-base: 0;
+  --z-surface: 10;
+  --z-header: 100;
+  --z-fab: 9999;
+  --z-modal: 10000;
 }
 
 body {

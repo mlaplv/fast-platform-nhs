@@ -16,15 +16,15 @@
   const contextUI = $derived.by(() => {
     switch (supportAgent.currentContext) {
       case 'home':
-        return { color: '#00A3FF', icon: Home, label: 'Khám phá SmartShop' };
+        return { color: '#FFB7C5', icon: HelenIcon, label: 'Khám phá SmartShop' };
       case 'product':
-        return { color: '#8B5CF6', icon: PackageSearch, label: 'Tư vấn sản phẩm' };
+        return { color: '#FFB7C5', icon: HelenIcon, label: 'Tư vấn sản phẩm' };
       case 'cart':
-        return { color: '#10B981', icon: ShoppingCart, label: 'Kiểm tra giỏ hàng' };
+        return { color: '#FFB7C5', icon: HelenIcon, label: 'Kiểm tra giỏ hàng' };
       case 'checkout':
-        return { color: '#F59E0B', icon: CreditCard, label: 'Hỗ trợ thanh toán' };
+        return { color: '#E8D5B0', icon: HelenIcon, label: 'Hỗ trợ thanh toán' };
       default:
-        return { color: '#00A3FF', icon: HelenIcon, label: 'Trợ giúp AI' };
+        return { color: '#FFB7C5', icon: HelenIcon, label: 'Trợ giúp AI' };
     }
   });
 
@@ -101,8 +101,8 @@
 
 <button
   id="support-agent-fab"
-  class="agent-fab flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] 
-    {supportAgent.isOpen ? 'rotate-[135deg] scale-75 opacity-0 pointer-events-none' : 'rotate-0 opacity-100'}
+  class="agent-fab hidden md:flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] 
+    {supportAgent.isOpen ? 'rotate-[135deg] scale-75 opacity-0 pointer-events-none' : 'rotate-0 opacity-100 !important'}
     {supportAgent.aiPulse ? 'neural-pulse-active' : ''}"
   style="
     --theme-color: {contextUI.color};
@@ -112,7 +112,7 @@
     width: {isScrolled ? (isMobile ? '40px' : '48px') : (isMobile ? '56px' : '64px')};
     height: {isScrolled ? (isMobile ? '40px' : '48px') : (isMobile ? '56px' : '64px')};
     transform: {isScrolled ? 'translateY(8px)' : 'translateY(0)'};
-    opacity: {isScrolled ? '0.8' : '1'};
+    opacity: {supportAgent.isOpen ? '0' : '1 !important'};
   "
   onclick={toggleAgent}
   aria-label={contextUI.label}
@@ -122,7 +122,7 @@
     class="absolute inset-[-15px] rounded-full blur-[30px] transition-all duration-1000"
     style="
       background: radial-gradient(circle, var(--theme-color) 0%, transparent 70%);
-      opacity: {supportAgent.aiPulse ? '0.4' : (isScrolled ? '0.05' : '0.2')};
+      opacity: {supportAgent.aiPulse ? '0.2' : (isScrolled ? '0.02' : '0.1')};
       transform: scale({supportAgent.aiPulse ? '1.5' : '1'});
     "
   ></div>
@@ -132,7 +132,7 @@
     <!-- Fluid morphing gradient background for Dark Mode -->
     <div 
       class="absolute inset-0 transition-colors duration-1000 saturate-200"
-      style="background: linear-gradient(135deg, #000000 0%, #0f172a 50%, var(--theme-color) 150%);"
+      style="background: linear-gradient(135deg, #000000 0%, #1e111a 50%, var(--theme-color) 150%);"
     ></div>
     
     <!-- Caustic highlight (Glass reflection) -->
@@ -153,7 +153,8 @@
         color: var(--theme-color);
         filter: drop-shadow(0 0 12px var(--theme-color));
       "
-      strokeWidth={isScrolled ? 2 : 1.5} 
+      color={contextUI.color}
+      strokeWidth={contextUI.icon !== HelenIcon ? (isScrolled ? 2 : 1.5) : undefined} 
     />
   </div>
 
@@ -188,10 +189,10 @@
       0 16px 40px rgba(0, 0, 0, 0.5),
       0 4px 16px rgba(0, 0, 0, 0.2);
     border-radius: 45% 55% 45% 55% / 55% 45% 55% 45%;
-    animation: morphDrop 8s ease-in-out infinite alternate;
+    animation: helen-orb-morph 8s ease-in-out infinite alternate;
   }
 
-  @keyframes morphDrop {
+  @keyframes helen-orb-morph {
     0% { border-radius: 40% 60% 50% 50% / 40% 50% 60% 50%; }
     50% { border-radius: 55% 45% 55% 45% / 45% 55% 45% 55%; }
     100% { border-radius: 50% 40% 60% 40% / 60% 40% 50% 60%; }

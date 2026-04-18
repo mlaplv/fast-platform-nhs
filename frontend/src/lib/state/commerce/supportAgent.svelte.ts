@@ -369,9 +369,20 @@ class SupportAgentState {
 
     private _disconnectPulse() {
         if (this._pulseSource) {
+            console.log("[SupportAgent] Pulse infrastructure disposed.");
             this._pulseSource.close();
             this._pulseSource = null;
         }
+    }
+
+    /**
+     * Elite V2.2: Universal Cleanup
+     * Call this when the application or core component is unmounted.
+     */
+    dispose() {
+        this._disconnectPulse();
+        this.isOpen = false;
+        this.isTyping = false;
     }
 
     async sendMessage(text: string, productSlug?: string, customerName?: string, customerPhone?: string) {

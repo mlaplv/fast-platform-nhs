@@ -151,11 +151,11 @@
         <span class="footer-main-label">& CHẤT LƯỢNG QUỐC TẾ</span>
       </div>
       <div class="footer-badges">
-        <div class="footer-badge badge-emerald">
-          <ShieldCheck class="w-4 h-4 text-emerald-400" />
+        <div class="footer-badge badge-sakura">
+          <ShieldCheck class="w-4 h-4 text-[#FFB7C5]" />
         </div>
-        <div class="footer-badge badge-blue">
-          <Zap class="w-4 h-4 text-blue-400" />
+        <div class="footer-badge badge-sakura">
+          <Zap class="w-4 h-4 text-[#FFB7C5]" />
         </div>
       </div>
     </div>

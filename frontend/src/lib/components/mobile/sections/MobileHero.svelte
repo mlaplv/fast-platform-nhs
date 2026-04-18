@@ -48,9 +48,9 @@
   const metrics = $derived.by(() => {
     const raw = metadata.hero_metrics || [];
     const fallbacks = [
-      { label: '[Khoa học]', value: 'LIPOSOME PHÁ GỐC THÂM', color: 'blue' },
-      { label: '[Hiệu quả]', value: 'DỨT ĐIỂM HẮC SẮC TỐ', color: 'indigo' },
-      { label: '[Tiêu chuẩn]', value: 'SỐ 1 DƯỢC LIỆU NHẬT', color: 'emerald' }
+      { label: '[Khoa học]', value: 'LIPOSOME PHÁ GỐC THÂM', color: 'sakura' },
+      { label: '[Hiệu quả]', value: 'DỨT ĐIỂM HẮC SẮC TỐ', color: 'sakura' },
+      { label: '[Tiêu chuẩn]', value: 'SỐ 1 DƯỢC LIỆU NHẬT', color: 'sakura' }
     ];
 
     return fallbacks.map((fb, i) => {
@@ -131,8 +131,8 @@
             <!-- Live & Scarcity Indicator (Viral 2026) -->
             <div class="inline-flex items-center gap-2 px-2.5 py-1 bg-white/15 backdrop-blur-2xl rounded-full border border-white/20 shadow-[0_4px_24px_rgba(255,59,48,0.2)] mb-1.5 w-max">
                <div class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff3b30] opacity-80"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-[#ff3b30]"></span>
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FFB7C5] opacity-80"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-[#FFB7C5]"></span>
                </div>
                <span class="text-[10px] font-black text-white tracking-wider flex items-center gap-1">
                   {viewers} <span class="text-white/60 font-medium lowercase">bạn đang xem</span>
@@ -197,7 +197,7 @@
               {#each metrics.slice(0, 3) as metric, i}
                 {@const Icon = iconMap[metric.color] || Zap}
                 <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-xl rounded-md border border-white/20 shadow-lg pointer-events-auto">
-                    <Icon class="w-3 h-3 text-{metric.color || 'blue'}-400" />
+                    <Icon class="w-3 h-3 text-[#FFB7C5]" />
                     <EditableWrapper path="metadata.hero_metrics[{i}].value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}" as="span">
                       <span class="text-[9px] font-black text-white/90 uppercase tracking-tight">
                         {metric.value}
@@ -211,7 +211,7 @@
             {#if v?.attributes?.combo_qty || (v?.attributes?.gifts && v.attributes.gifts.length > 0)}
                <div class="mt-2 pr-14 space-y-1.5 pointer-events-auto">
                   {#if v.attributes.combo_qty && v.attributes.combo_qty > 1}
-                     <div class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-gradient-to-r from-[#ff3b30] to-[#ff2d55] rounded-full shadow-[0_4px_12px_rgba(255,59,48,0.3)] animate-pulse-gentle">
+                     <div class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] rounded-full shadow-[0_4px_12px_rgba(255,183,197,0.3)] animate-pulse-gentle">
                         <Flame class="w-2.5 h-2.5 text-white fill-white" />
                         <span class="text-[8px] font-black text-white uppercase tracking-widest italic leading-none">
                            TIẾT KIỆM COMBO X{v.attributes.combo_qty}
@@ -282,7 +282,7 @@
                      </div>
                      <div class="flex flex-col items-start justify-center mt-[1px]">
                         <span class="text-[12px] font-black text-white uppercase tracking-wider leading-[1.1] mb-[1.5px]">XEM LIỆU TRÌNH</span>
-                        <span class="text-[8px] font-bold text-[#00f2fe] tracking-widest uppercase flex items-center gap-1 leading-none drop-shadow-md">
+                        <span class="text-[8px] font-bold text-[#FFB7C5] tracking-widest uppercase flex items-center gap-1 leading-none drop-shadow-md">
                            <Zap class="w-2.5 h-2.5" /> FREESHIP HỎA TỐC
                         </span>
                      </div>

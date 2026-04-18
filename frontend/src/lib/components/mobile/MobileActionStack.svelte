@@ -84,7 +84,7 @@
   </button>
 
   <!-- MIỄN PHÍ SHIP Badge (Centered between Star and Cart) -->
-  <div class="bg-emerald-500 text-white text-[7px] font-black px-2 py-0.5 rounded shadow-lg animate-bounce whitespace-nowrap z-surface uppercase tracking-wider relative translate-y-[10px]">
+  <div class="bg-[#FFB7C5] text-slate-950 text-[7px] font-black px-2 py-0.5 rounded shadow-[0_4px_12px_rgba(255,183,197,0.4)] animate-bounce whitespace-nowrap z-surface uppercase tracking-wider relative translate-y-[8px]">
     FREESHIP
   </div>
 
@@ -94,13 +94,13 @@
     onclick={onPurchase}
     aria-label={labels.label_purchase}
   >
-    <div class="w-12 h-12 vinyl-spin bg-black rounded-full flex items-center justify-center border border-white/20 shadow-2xl overflow-hidden relative">
+    <div class="w-12 h-12 vinyl-spin bg-black rounded-full flex items-center justify-center border border-[#FFB7C5]/30 shadow-[0_0_20px_rgba(255,183,197,0.2)] overflow-hidden relative">
       <div
-        class="w-full h-full animate-spin-slow bg-cover opacity-80 absolute inset-0"
+        class="w-full h-full animate-spin-slow bg-cover opacity-60 absolute inset-0"
         style:background-image="url('{labels.disk_image}')"
       ></div>
-      <div class="absolute inset-0 bg-black/20"></div>
-      <ShoppingCart class="w-6 h-6 text-white relative z-surface drop-shadow-lg" />
+      <div class="absolute inset-0 bg-[#FFB7C5]/5"></div>
+      <ShoppingCart class="w-6 h-6 text-[#FFB7C5] relative z-surface drop-shadow-lg" />
     </div>
   </button>
 </div>

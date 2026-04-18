@@ -23,7 +23,7 @@ PRODUCT_DEFS = [
         "sku": "4968123159004",
         "price": 600000,
         "category_id": "cat_kem_duong",
-        "short_description": "Bật tông trắng sáng cùng Beppin Body Virgin White Serum - Tinh chất dưỡng sáng hồng vùng nhạy cảm (Nách, Nhũ hoa, Bikini). Giải pháp An toàn - Hiệu quả - Không bết dính.",
+        "short_description": "Bật tông trắng sáng cùng <strong>Beppin Body</strong> trẻ hóa da cấp độ tế bào. Giải pháp chuyên biệt dưỡng sáng hồng vùng nhạy cảm (<strong>Nách, Nhũ hoa, Bikini</strong>) với công nghệ thẩm thấu đa tầng.",
         "description": "Serum dưỡng hồng vùng kín, nhũ hoa, nách và đùi trong với chiết xuất từ Nhật Bản.",
         "product_metadata": {
             "ingredients": "Water, Butylene Glycol, Glycerin, Vitamin C dẫn xuất & Vitamin E, Chiết xuất lá hoa anh đào.",

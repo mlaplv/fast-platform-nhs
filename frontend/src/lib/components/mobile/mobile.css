@@ -253,8 +253,8 @@
 
 /* Viral Primary Button */
 .btn-primary-viral {
-  background: linear-gradient(110deg, #C18F7E 0%, #E3B5A4 100%);
-  box-shadow: 0 10px 40px rgba(193, 143, 126, 0.4);
+  background: linear-gradient(135deg, var(--luxury-sakura) 0%, var(--luxury-gold) 100%);
+  box-shadow: 0 10px 40px rgba(255, 183, 197, 0.4);
 }
 
 /* Snap Section Global Overrides */

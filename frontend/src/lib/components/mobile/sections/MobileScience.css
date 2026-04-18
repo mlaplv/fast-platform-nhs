@@ -26,7 +26,7 @@
   right: 0;
   width: 20rem;
   height: 20rem;
-  background-color: rgba(193, 143, 126, 0.08);
+  background-color: rgba(255, 183, 197, 0.08);
   filter: blur(100px);
   border-radius: 9999px;
   transform: translate(30%, -20%);
@@ -39,7 +39,7 @@
   left: 0;
   width: 15rem;
   height: 15rem;
-  background-color: rgba(59, 130, 246, 0.05);
+  background-color: rgba(255, 183, 197, 0.05);
   filter: blur(80px);
   border-radius: 9999px;
   transform: translate(-30%, 0);
@@ -128,7 +128,7 @@
 }
 
 .wave-path {
-    stroke: rgba(59, 130, 246, 0.3);
+    stroke: rgba(255, 183, 197, 0.3);
     stroke-width: 0.5px;
     stroke-dasharray: 20 20;
     animation: path-flow 3s linear infinite;
@@ -322,12 +322,7 @@
   backdrop-filter: blur(8px);
 }
 
-.badge-emerald {
-  background-color: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.badge-blue {
-  background-color: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+.badge-sakura {
+  background-color: rgba(255, 183, 197, 0.1);
+  border: 1px solid rgba(255, 183, 197, 0.3);
 }

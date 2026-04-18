@@ -264,7 +264,7 @@
     </div>
   </div>
 
-  <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface" style:padding-top="var(--standard-pt)">
+  <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface">
     <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
       <h1 class="elite-hero-headline typing-headline text-center">
         {#if !liveEditStore.isEditMode}
@@ -299,8 +299,8 @@
 
       {#if product?.shortDescription}
          <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">
-             <p class="section-description hero-description text-center text-slate-300 max-w-3xl font-medium mx-auto mt-4">
-                {@html product.shortDescription}
+             <p class="section-description hero-description text-center text-slate-300 max-w-4xl font-medium mx-auto mt-4">
+                {@html product.shortDescription || `Bật tông trắng sáng cùng <strong>Beppin Body</strong> trẻ hóa da cấp độ tế bào. Giải pháp chuyên biệt dưỡng sáng hồng vùng nhạy cảm (<strong>Nách, Nhũ hoa, Bikini</strong>) với công nghệ thẩm thấu đa tầng.`}
              </p>
          </EditableWrapper>
       {/if}

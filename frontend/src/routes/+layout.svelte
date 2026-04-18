@@ -10,6 +10,10 @@
   import ToastProvider from "$lib/components/storefront/ui/ToastProvider.svelte";
   import GlobalConfirmModal from "$lib/components/storefront/ui/GlobalConfirmModal.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
+  import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
+  import SupportAgentFAB from "$lib/components/client/support/SupportAgentFAB.svelte";
+  import SupportChatDesktop from "$lib/components/client/support/SupportChatDesktop.svelte";
+  import SupportChatMobile from "$lib/components/client/support/SupportChatMobile.svelte";
 
   // Elite V2.2: Context initialization gated by tenant
   let { children, data } = $props();
@@ -35,6 +39,7 @@
   onDestroy(() => {
     // Elite V2.2: Resource Discipline
     permissionState.dispose();
+    supportAgent.dispose();
   });
 
   const siteName = $derived(
@@ -67,9 +72,6 @@
   <meta property="og:type" content="website" />
 
   <link rel="icon" href="/favicon.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;800;900&family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet" />
 </svelte:head>
 
 <!-- Premium Navigation Progress Bar (Liquid Glass) -->
@@ -92,6 +94,13 @@
 
     <ToastProvider />
     <GlobalConfirmModal />
+
+    <SupportAgentFAB isMobile={ui.isMobile} />
+    {#if ui.isMobile}
+      <SupportChatMobile />
+    {:else}
+      <SupportChatDesktop />
+    {/if}
   {/if}
 </div>
 
