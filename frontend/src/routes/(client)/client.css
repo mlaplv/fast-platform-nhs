@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+/* 🇻🇳 ELITE V2.2: BE VIETNAM PRO LOCAL INFRASTRUCTURE */
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  src: url('/fonts/be-vietnam-pro-vietnamese-wght-normal.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  src: url('/fonts/be-vietnam-pro-vietnamese-wght-italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: italic;
+}
+
 :root {
   --z-base: 0;
   --z-wave: 1;
@@ -66,6 +83,9 @@
   color-scheme: light;
   --bg-canvas: #010101;
   --text-base: #FFFFFF;
+  
+  /* Elite V2.2 Typo Logic */
+  --font-main: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* ZERO-SHIFT RESPONSIVE UTILITIES (Elite V2.2) */
@@ -148,7 +168,7 @@ body {
 .client-layout {
   background-color: #010101 !important;
   color: var(--text-base);
-  font-family: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-main);
   min-height: 100vh;
 }
 
@@ -170,7 +190,7 @@ body.live-edit-mode .is-disabled .content-container {
 .client-layout h3,
 .client-layout h4,
 .client-layout .headline-font {
-  font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
+  font-family: var(--font-main);
 }
 
 /* --- HERO COMPONENT --- */
@@ -205,7 +225,7 @@ body.live-edit-mode .is-disabled .content-container {
 /* ELITE V2.2: GLOBAL HEADLINE RESET */
 .elite-hero-headline,
 .elite-session-headline {
-  font-family: 'Be Vietnam Pro', 'Inter', sans-serif !important;
+  font-family: var(--font-main) !important;
   font-weight: 950 !important;
   letter-spacing: -0.05em !important;
   line-height: 1.4 !important;
