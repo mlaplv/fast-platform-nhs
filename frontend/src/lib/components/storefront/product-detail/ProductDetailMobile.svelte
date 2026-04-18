@@ -10,7 +10,9 @@
   import ProductMobileReviews from './ProductMobileReviews.svelte';
   import ProductMobileSpecs from './ProductMobileSpecs.svelte';
   import ProductMobileRecommendations from './ProductMobileRecommendations.svelte';
+  import ProductMobileVariantSelector from './ProductMobileVariantSelector.svelte';
   import MobileBottomNav from '../home/MobileBottomNav.svelte';
+  import type { ProductVariant } from '$lib/types';
 
   interface Props {
     product: Product;
@@ -23,12 +25,16 @@
   // State: Navigation & Visibility
   let activeTab = $state('overview');
   let showTabs = $state(false);
-  let sectionRefs = $state<Record<string, HTMLElement | null>>({
-    overview: null,
-    reviews: null,
-    description: null,
-    recommendations: null
+  let showVariantSelector = $state(false);
+  const pVariants = $derived(product.variants || []);
+  let selectedVariant = $state<ProductVariant | null>(null);
+  
+  $effect(() => {
+    if (!selectedVariant && pVariants.length > 0) {
+      selectedVariant = pVariants.find(v => v.is_default) || pVariants[0];
+    }
   });
+  let selectedQty = $state(1);
 
   // State: Flash Sale Countdown
   let timeLeft = $state({ hours: 14, minutes: 9, seconds: 9 });
@@ -75,10 +81,28 @@
     }
   }
 
+  const variations = $derived(product.tier_variations || product.tierVariations || product.attributes?.tier_variations || product.metadata?.tier_variations || []);
+
+  function handleVariantConfirm(variant: ProductVariant | undefined, qty: number) {
+    selectedVariant = variant || null;
+    selectedQty = qty;
+    showVariantSelector = false;
+  }
+
+  function addToCart() {
+    if (!selectedVariant && variations.length > 0) {
+      showVariantSelector = true;
+      return;
+    }
+    cartStore.addItem(product, selectedVariant || undefined, selectedQty);
+  }
+
   function buyNow() {
-    // Elite V2.2: Direct checkout path (TikTok Shop / Shopee style) bypassed modal
-    const defaultVariant = product.variants && product.variants.length > 0 ? product.variants[0] : undefined;
-    cartStore.addItem(product, defaultVariant);
+    if (!selectedVariant && variations.length > 0) {
+      showVariantSelector = true;
+      return;
+    }
+    cartStore.addItem(product, selectedVariant || undefined, selectedQty);
     goto('/checkout');
   }
 </script>
@@ -91,7 +115,12 @@
   <!-- 2. MAIN CONTENT SECTIONS -->
   <main class="content-body">
     <div id="overview">
-      <ProductMobileOverview {product} {timeLeft} />
+      <ProductMobileOverview 
+        {product} 
+        {timeLeft} 
+        {selectedVariant} 
+        onOpenSelector={() => showVariantSelector = true} 
+      />
     </div>
     
     <div class="section-divider"></div>
@@ -117,9 +146,17 @@
   <MobileBottomNav
     isProductMode={true}
     {product}
-    onAddToCart={() => cartStore.addItem(product)}
+    onAddToCart={addToCart}
     onBuyNow={buyNow}
     onChatOpen={() => {}}
+  />
+
+  <!-- 6. VARIANT SELECTOR MODAL -->
+  <ProductMobileVariantSelector 
+    {product}
+    show={showVariantSelector}
+    onClose={() => showVariantSelector = false}
+    onConfirm={handleVariantConfirm}
   />
 
   <div class="h-12"></div>

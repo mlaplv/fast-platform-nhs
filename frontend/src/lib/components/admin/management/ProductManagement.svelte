@@ -213,7 +213,8 @@
         price: Number(v.price || 0),
         discountPrice: Number(v.discountPrice ?? v.discount_price ?? 0),
         stock: Number(v.stock || 0),
-        tierIndex: v.tierIndex ?? v.tier_index ?? []
+        tierIndex: v.tierIndex ?? v.tier_index ?? [],
+        is_default: v.is_default || false
       })) : [];
       showForm = true;
     } catch (err) {
@@ -323,6 +324,7 @@
         discount_price: v.discountPrice ? Number(v.discountPrice) : null,
         stock: Number(v.stock), 
         tier_index: v.tierIndex || [],
+        is_default: v.is_default || false,
         attributes: v.attributes || { combo_qty: null, gifts: [] }
       }))
     };

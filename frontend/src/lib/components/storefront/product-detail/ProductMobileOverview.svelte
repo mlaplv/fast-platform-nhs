@@ -7,10 +7,15 @@
   interface Props {
     product: Product;
     timeLeft: { hours: number; minutes: number; seconds: number };
+    selectedVariant?: ProductVariant | null;
+    onOpenSelector?: () => void;
   }
 
-  let { product, timeLeft }: Props = $props();
+  let { product, timeLeft, selectedVariant, onOpenSelector }: Props = $props();
   const cartStore = getCartStore();
+
+  const pVariants = $derived(product.variants || []);
+  const variations = $derived(product.tier_variations || product.tierVariations || product.attributes?.tier_variations || product.metadata?.tier_variations || []);
 
   // Carousel State
   let activeImageIndex = $state(0);
@@ -37,15 +42,24 @@
       id: v.id,
       label: v.title || v.id,
       sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${v.value.toLocaleString()}đ`),
-      type: v.type === 'SHIPPING' ? 'ship' : 'discount'
+      type: (v.type === 'SHIPPING' || v.type === 'ship') ? 'ship' : 'discount'
     }));
   });
 
-  const pDiscountPrice = $derived(product.discountPrice || product.discount_price);
-  const displaySalePrice = $derived(pDiscountPrice || product.price);
-  const displayOriginalPrice = $derived(pDiscountPrice ? product.price : product.price * 1.5);
+  const activeVariant = $derived(selectedVariant || pVariants?.[0]);
+  const pDiscountPrice = $derived(activeVariant?.discountPrice || activeVariant?.discount_price || activeVariant?.price || product.discountPrice || product.discount_price);
+  const displaySalePrice = $derived.by(() => {
+    if (!selectedVariant && pVariants.length > 1) {
+       const prices = pVariants.map(v => v.discountPrice || v.discount_price || v.price);
+       return Math.min(...prices);
+    }
+    return pDiscountPrice || product.price || 0;
+  });
+  const displayOriginalPrice = $derived(activeVariant?.price || product.price || 0);
   const displayDiscountPercent = $derived(
-    Math.round(((displayOriginalPrice - displaySalePrice) / displayOriginalPrice) * 100)
+    displayOriginalPrice > displaySalePrice 
+      ? Math.round(((displayOriginalPrice - displaySalePrice) / displayOriginalPrice) * 100)
+      : 0
   );
 
   function handleCarouselScroll(e: Event) {
@@ -79,6 +93,9 @@
     isAtStart = scrollLeft <= 5;
     isAtEnd = scrollLeft + clientWidth >= scrollWidth - 5;
   }
+
+  const activeComboQty = $derived((selectedVariant || pVariants?.[0])?.attributes?.combo_qty || (selectedVariant || pVariants?.[0])?.attributes?.comboQty || product.metadata?.combo_qty || 0);
+  const activeGifts = $derived((selectedVariant || pVariants?.[0])?.attributes?.gifts || product.metadata?.gifts || []);
 </script>
 
 <section id="overview" class="overview-section">
@@ -92,6 +109,21 @@
       {/each}
     </div>
     <div class="image-counter">{activeImageIndex + 1}/{displayImages.length}</div>
+
+    <!-- Thumbnails (Hình thuib) -->
+    <div class="thumbnails-track mt-2 px-4 flex gap-2 overflow-x-auto no-scrollbar">
+      {#each displayImages as img, i}
+        <button 
+          class="w-12 h-12 rounded-sm border-2 overflow-hidden shrink-0 transition-all {activeImageIndex === i ? 'border-[#ee4d2d]' : 'border-transparent opacity-60'}"
+          onclick={() => {
+            activeImageIndex = i;
+            carouselRef?.scrollTo({ left: i * carouselRef.clientWidth, behavior: 'smooth' });
+          }}
+        >
+          <img src={img} alt="thumb" class="w-full h-full object-cover" />
+        </button>
+      {/each}
+    </div>
   </section>
 
   <!-- FLASH SALE BANNER -->
@@ -157,30 +189,44 @@
     </div>
 
     <!-- Title & Stats -->
-    <div class="title-row">
-      <h1 class="product-title">{product.name}</h1>
-      <button class="bookmark-btn"><Bookmark size={22} /></button>
-    </div>
+    <!-- Selection Row (Shopee Viral Style) -->
+    {#if variations.length > 0}
+      <button 
+        onclick={onOpenSelector}
+        class="w-full flex items-center justify-between py-4 border-y border-gray-50 my-2 active:bg-gray-50 transition-colors"
+      >
+        <div class="flex items-center gap-4">
+          <span class="text-[13px] text-gray-500 w-[80px] text-left">Phân loại</span>
+          <span class="text-[13px] font-bold text-gray-900">
+            {#if selectedVariant}
+              {selectedVariant.tierIndex.map((idx, i) => variations?.[i]?.options?.[idx] || '').filter(Boolean).join(', ')}
+            {:else}
+              Chọn màu sắc, kích cỡ, combo...
+            {/if}
+          </span>
+        </div>
+        <ChevronRight size={16} class="text-gray-400" />
+      </button>
+    {/if}
 
     <!-- COMBO & GIFTS MINI (Viral 2026) -->
-    {#if product.variants?.[0]?.attributes?.combo_qty || (product.variants?.[0]?.attributes?.gifts && product.variants[0].attributes.gifts.length > 0)}
-      {@const firstVar = product.variants[0]}
+    {#if activeComboQty > 1 || activeGifts.length > 0}
       <div class="mb-4 bg-gradient-to-br from-[#fdf2f2] to-white p-3 rounded-xl border border-[#ee4d2d]/10">
          <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
                <Gift size={16} class="text-[#ee4d2d]" />
                <span class="text-[11px] font-black uppercase text-gray-800 tracking-wider">Quà tặng đi kèm</span>
             </div>
-            {#if firstVar.attributes.combo_qty && firstVar.attributes.combo_qty > 1}
+            {#if activeComboQty > 1}
                <div class="bg-[#ee4d2d]/10 text-[#ee4d2d] text-[9px] font-black px-2 py-0.5 rounded-full border border-[#ee4d2d]/20 flex items-center gap-1">
-                  <Package size={10} /> COMBO X{firstVar.attributes.combo_qty}
+                  <Package size={10} /> COMBO X{activeComboQty}
                </div>
             {/if}
          </div>
          
-         {#if firstVar.attributes.gifts && firstVar.attributes.gifts.length > 0}
+         {#if activeGifts.length > 0}
             <div class="flex flex-col gap-2">
-               {#each firstVar.attributes.gifts as gift}
+               {#each activeGifts as gift}
                   <div class="flex items-center gap-3">
                      <div class="w-10 h-10 rounded-lg overflow-hidden bg-white border border-gray-100 shrink-0 shadow-sm">
                         {#if gift.image}
@@ -224,7 +270,9 @@
   .carousel-container::-webkit-scrollbar { display: none; }
   .carousel-slide { flex: 0 0 100%; height: 100%; scroll-snap-align: start; }
   .carousel-slide img { width: 100%; height: 100%; object-fit: cover; }
-  .image-counter { position: absolute; bottom: 12px; right: 12px; background: rgba(0, 0, 0, 0.4); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+  .image-counter { position: absolute; bottom: 64px; right: 12px; background: rgba(0, 0, 0, 0.4); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+  .thumbnails-track { scrollbar-width: none; -ms-overflow-style: none; }
+  .thumbnails-track::-webkit-scrollbar { display: none; }
 
   .flash-sale-banner { background: var(--color-luxury-copper, #C18F7E); color: white; display: flex; padding: 4px 8px; justify-content: space-between; align-items: center; position: relative; overflow: hidden; }
   .fs-left { flex: 1; z-index: var(--z-base); }

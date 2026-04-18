@@ -29,7 +29,7 @@
   <!-- Content scroll area -->
   <div class="mobile-home-content">
     <!-- Banner slidshow -->
-    <MobileBannerCarousel {banners} />
+    <MobileBannerCarousel {banners} {products} />
 
     <!-- Service icon shortcuts -->
     <MobileServiceIcons />

@@ -70,35 +70,49 @@
   }
   let { product }: Props = $props();
 
-  let selectedIndices = $state<number[]>(product.tierVariations?.map(() => -1) ?? []);
+  const variations = $derived(product.tier_variations || product.tierVariations || []);
+  let selectedIndices = $state<number[]>([]);
+  
+  $effect(() => {
+    if (selectedIndices.length === 0 && variations.length > 0) {
+      const defaultVariant = pVariants.find(v => v.is_default);
+      if (defaultVariant && defaultVariant.tierIndex) {
+        selectedIndices = [...defaultVariant.tierIndex];
+      } else {
+        selectedIndices = variations.map(() => 0);
+      }
+    }
+  });
   let quantity = $state(1);
   let activeImageIndex = $state(0);
 
+  const pVariants = $derived(product.variants || []);
   let currentVariant = $derived<ProductVariant | undefined>(
-    product.variants?.find(v => 
+    pVariants.find(v => 
       v.tierIndex.length === selectedIndices.length && 
       v.tierIndex.every((val, i) => val === selectedIndices[i])
     )
   );
 
   let currentImage = $derived.by(() => {
-    if (selectedIndices[0] >= 0 && product.tierVariations?.[0]?.images?.[selectedIndices[0]]) {
-      return product.tierVariations[0].images[selectedIndices[0]];
+    if (selectedIndices[0] >= 0 && variations?.[0]?.images?.[selectedIndices[0]]) {
+      return variations[0].images[selectedIndices[0]];
     }
-    return product.images?.[activeImageIndex] || product.images?.[0] || '/placeholder.png';
+    const pImages = product.images || [];
+    return pImages[activeImageIndex] || pImages[0] || '/placeholder.png';
   });
 
   let displayPrice = $derived.by(() => {
     if (currentVariant) {
       return {
         price: currentVariant.price,
-        discountPrice: currentVariant.discountPrice
+        discountPrice: currentVariant.discountPrice || currentVariant.discount_price
       };
     }
     // Min max range if not selected
-    if (product.variants?.length > 0) {
-      const prices = product.variants.map(v => v.price);
-      const discountPrices = product.variants.map(v => v.discountPrice).filter(p => p != null) as number[];
+    if (pVariants.length > 0) {
+      const prices = pVariants.map(v => v.price);
+      const discountPrices = pVariants.map(v => v.discountPrice || v.discount_price).filter(p => p != null) as number[];
       
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
@@ -106,15 +120,17 @@
       const minDiscount = discountPrices.length > 0 ? Math.min(...discountPrices) : undefined;
       const maxDiscount = discountPrices.length > 0 ? Math.max(...discountPrices) : undefined;
 
+      const formatRange = (min: number, max: number) => min === max ? min : `${min.toLocaleString('vi-VN')} - ${max.toLocaleString('vi-VN')}`;
+
       return {
-        price: minPrice === maxPrice ? minPrice : `${minPrice.toLocaleString('vi-VN')} - ${maxPrice.toLocaleString('vi-VN')}`,
-        discountPrice: minDiscount ? (minDiscount === maxDiscount ? minDiscount : `${minDiscount.toLocaleString('vi-VN')} - ${maxDiscount.toLocaleString('vi-VN')}`) : undefined
+        price: formatRange(minPrice, maxPrice),
+        discountPrice: minDiscount ? formatRange(minDiscount, maxDiscount) : undefined
       };
     }
 
     return {
       price: product.price,
-      discountPrice: product.discountPrice
+      discountPrice: product.discountPrice || product.discount_price
     };
   });
   
@@ -136,7 +152,7 @@
   }
 
   function validateSelection(): boolean {
-    if (product.tierVariations?.length > 0 && selectedIndices.includes(-1)) {
+    if (variations.length > 0 && selectedIndices.includes(-1)) {
       clientUi.showToast('Vui lòng chọn phân loại hàng', 'error');
       return false;
     }
@@ -220,8 +236,13 @@
     brand: product.metadata?.brand || '',
     origin: product.metadata?.origin || '',
     weight: product.metadata?.weight || '',
-    originalPrice: pDiscountPrice ? product.price : product.price * 1.55,
-    salePrice: pDiscountPrice || product.price
+    originalPrice: pDiscountPrice ? (product.price || product.base_price || 0) : (product.price || 0) * 1.55,
+    salePrice: pDiscountPrice || product.price || 0
+  });
+
+  const activePrices = $derived({
+    sale: displayPrice.discountPrice || displayPrice.price,
+    original: displayPrice.discountPrice ? displayPrice.price : (typeof displayPrice.price === 'number' ? displayPrice.price * 1.55 : displayPrice.price)
   });
 
   function buyNow() {
@@ -258,6 +279,8 @@
     }
   }
 
+  const activeComboQty = $derived((currentVariant || pVariants[0])?.attributes?.combo_qty || (currentVariant || pVariants[0])?.attributes?.comboQty || 0);
+  const activeGifts = $derived((currentVariant || pVariants[0])?.attributes?.gifts || []);
   function formatCount(count: number) {
     if (count >= 1000) {
       return (count / 1000).toFixed(1).replace('.0', '') + 'k';
@@ -466,12 +489,20 @@
       <div class="bg-[#f6f6f6] px-5 py-3 flex items-center justify-between mb-3 relative overflow-hidden group border-y border-gray-100/50">
         <div class="flex flex-col">
             <div class="flex items-center gap-3 mb-1">
-               <span class="text-[16px] text-gray-400 line-through">₫{formatVnd(productInfo.originalPrice)}</span>
-               <div class="bg-[#ee4d2d] text-white text-[10px] font-black px-1.5 py-0.5 uppercase tracking-tighter">Giảm 55%</div>
+               <span class="text-[16px] text-gray-400 line-through">₫{formatVnd(activePrices.original)}</span>
+               {#if activePrices.original > activePrices.sale}
+                <div class="bg-[#ee4d2d] text-white text-[10px] font-black px-1.5 py-0.5 uppercase tracking-tighter">
+                  Giảm {Math.round((1 - Number(activePrices.sale) / Number(activePrices.original)) * 100)}%
+                </div>
+               {/if}
             </div>
             <div class="flex items-baseline gap-4">
-               <span class="text-[36px] font-black text-[#d0011b] tracking-tighter">₫{formatVnd(productInfo.salePrice)}</span>
-               <span class="text-[13px] font-black text-[#00bfa5] uppercase tracking-widest bg-[#e6f9f6] px-2 py-1">Tiết kiệm {formatVnd(productInfo.originalPrice - productInfo.salePrice)}₫</span>
+               <span class="text-[36px] font-black text-[#d0011b] tracking-tighter">₫{formatVnd(activePrices.sale)}</span>
+               {#if activePrices.original > activePrices.sale}
+                <span class="text-[13px] font-black text-[#00bfa5] uppercase tracking-widest bg-[#e6f9f6] px-2 py-1">
+                  Tiết kiệm {formatVnd(Number(activePrices.original) - Number(activePrices.sale))}₫
+                </span>
+               {/if}
             </div>
         </div>
 
@@ -539,10 +570,38 @@
             </div>
          </div>
       </div>
-
-
-
-
+      <!-- Variations Selection (Standard Mall UI) -->
+      {#if variations.length > 0}
+        <div class="px-5 space-y-5 mb-5 mt-2">
+          {#each variations as tier, tIdx}
+            <div class="flex items-start">
+              <span class="w-[110px] shrink-0 text-[14px] text-gray-500 mt-2 capitalize">{tier.name}</span>
+              <div class="flex flex-wrap gap-2.5">
+                {#each tier.options as option, oIdx}
+                  {@const isSelected = selectedIndices[tIdx] === oIdx}
+                  <button 
+                    type="button"
+                    onclick={() => selectOption(tIdx, oIdx)}
+                    class="relative min-w-[80px] h-10 px-4 border transition-all flex items-center justify-center text-[14px] hover:bg-[#ffeee8]/20 group
+                    {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-white ring-1 ring-[#ee4d2d]/10' : 'border-gray-200 text-gray-800 bg-white'}"
+                  >
+                    {#if tIdx === 0 && tier.images?.[oIdx]}
+                      <img src={tier.images[oIdx]} alt={option} class="w-6 h-6 object-cover mr-2 border border-gray-100" />
+                    {/if}
+                    <span class="font-medium">{option}</span>
+                    
+                    {#if isSelected}
+                      <!-- Selection Indicator Corner -->
+                      <div class="absolute bottom-0 right-0 w-0 h-0 border-t-[12px] border-t-transparent border-r-[12px] border-r-[#ee4d2d]"></div>
+                      <svg class="absolute bottom-0 right-0 w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M20 6L9 17l-5-5" /></svg>
+                    {/if}
+                  </button>
+                {/each}
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
 
       <!-- Quantity & Luxury Stock Logic (Vietnamese) -->
       <div class="px-5 flex items-center mb-4">
@@ -583,7 +642,7 @@
       </div>
 
       <!-- COMBO & GIFTS SECTION (Viral 2026 UI) -->
-      {#if currentVariant?.attributes?.combo_qty || (currentVariant?.attributes?.gifts && currentVariant.attributes.gifts.length > 0)}
+      {#if activeComboQty > 1 || activeGifts.length > 0}
         <div class="px-5 mb-6">
           <div class="bg-gradient-to-br from-[#fdf2f2] to-[#fff] border-2 border-[#ee4d2d]/10 p-5 relative overflow-hidden group/combo-box shadow-sm">
               <!-- Background Decorative Elements -->
@@ -599,16 +658,16 @@
                 <div class="flex-1 space-y-3">
                   <div class="flex items-center justify-between">
                     <h3 class="text-[14px] font-black uppercase tracking-widest text-gray-800">Ưu đãi độc quyền</h3>
-                    {#if currentVariant.attributes.combo_qty && currentVariant.attributes.combo_qty > 1}
+                    {#if activeComboQty > 1}
                       <div class="bg-[#d0011b] text-white text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-md">
-                        <Package size={10} /> COMBO X{currentVariant.attributes.combo_qty}
+                        <Package size={10} /> COMBO X{activeComboQty}
                       </div>
                     {/if}
                   </div>
                   
-                  {#if currentVariant.attributes.gifts && currentVariant.attributes.gifts.length > 0}
+                  {#if activeGifts.length > 0}
                     <div class="grid grid-cols-1 gap-2.5">
-                      {#each currentVariant.attributes.gifts as gift}
+                      {#each activeGifts as gift}
                         <div class="flex items-center gap-3 bg-white/60 backdrop-blur-md p-2 border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/20 transition-all group/gift-item rounded-sm">
                           <div class="w-12 h-12 rounded-sm overflow-hidden bg-gray-50 border border-gray-100 shrink-0 group-hover/gift-item:scale-105 transition-transform shadow-sm">
                             {#if gift.image}

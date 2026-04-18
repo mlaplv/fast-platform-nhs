@@ -106,6 +106,7 @@ class ProductVariantSchema(BaseModel):
     discountPrice: Optional[float] = Field(None, alias="discount_price")
     stock: int
     attributes: Optional[VariantAttributes] = Field(None)
+    is_default: bool = False
 
     @field_validator("tierIndex", mode="before")
     @classmethod

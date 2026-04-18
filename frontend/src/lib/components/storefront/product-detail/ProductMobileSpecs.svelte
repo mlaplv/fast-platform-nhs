@@ -55,43 +55,50 @@
 
 <section id="description" class="content-section">
   <h2 class="section-title">Chi tiết sản phẩm</h2>
-  <div class="spec-table">
+  <div class="spec-infographic">
     {#if product.metadata?.brand}
-      <div class="spec-row">
-        <span class="label">Thương hiệu</span>
-        <span class="val">{product.metadata.brand}</span>
+      <div class="info-tag">
+        <span class="tag-label">Thương hiệu</span>
+        <span class="tag-val text-[#ee4d2d]">{product.metadata.brand}</span>
       </div>
     {/if}
     {#if product.metadata?.origin}
-      <div class="spec-row">
-        <span class="label">Xuất xứ</span>
-        <span class="val">{product.metadata.origin}</span>
+      <div class="info-tag">
+        <span class="tag-label">Xuất xứ</span>
+        <span class="tag-val">{product.metadata.origin}</span>
       </div>
     {/if}
     {#if product.metadata?.weight}
-      <div class="spec-row">
-        <span class="label">Trọng lượng</span>
-        <span class="val">{product.metadata.weight}</span>
+      <div class="info-tag">
+        <span class="tag-label">Quy cách</span>
+        <span class="tag-val">{product.metadata.weight}</span>
       </div>
     {/if}
+    <div class="info-tag">
+      <span class="tag-label">Danh mục</span>
+      <span class="tag-val text-[#0384ff]">{product.category || 'Chăm sóc da'}</span>
+    </div>
     {#if product.sku && product.sku !== 'N/A'}
-      <div class="spec-row">
-        <span class="label">Mã vạch</span>
-        <span class="val">{product.sku}</span>
+      <div class="info-tag col-span-2">
+        <span class="tag-label">Mã vạch (Barcode)</span>
+        <span class="tag-val tracking-widest">{product.sku}</span>
       </div>
-    {/if}
-    {#if product.attributes}
-      {#each Object.entries(product.attributes) as [key, val]}
-        {@const k = key.toLowerCase().replace(/_/g, ' ').trim()}
-        {#if !( ((k === 'thương hiệu' || k === 'brand') && product.metadata?.brand) || ((k === 'xuất xứ' || k === 'origin') && product.metadata?.origin) || ((k === 'trọng lượng' || k === 'quy cách' || k === 'weight') && product.metadata?.weight) || ((k === 'mã vạch' || k === 'barcode') && product.sku && product.sku !== 'N/A') )}
-        <div class="spec-row">
-          <span class="label capitalize">{key.replace(/_/g, ' ')}</span>
-          <span class="val">{val}</span>
-        </div>
-        {/if}
-      {/each}
     {/if}
   </div>
+
+  {#if product.attributes && Object.keys(product.attributes).length > 0}
+    <div class="mt-4 grid grid-cols-2 gap-2">
+      {#each Object.entries(product.attributes) as [key, val]}
+        {@const k = key.toLowerCase().replace(/_/g, ' ').trim()}
+        {#if !( ((k === 'thương hiệu' || k === 'brand') && product.metadata?.brand) || ((k === 'xuất xứ' || k === 'origin') && product.metadata?.origin) || ((k === 'trọng lượng' || k === 'quy cách' || k === 'weight') && product.metadata?.weight) || ((k === 'mã vạch' || k === 'barcode') && product.sku) )}
+          <div class="flex flex-col p-2 bg-gray-50/50 rounded-lg">
+            <span class="text-[10px] text-gray-400 uppercase font-bold">{key.replace(/_/g, ' ')}</span>
+            <span class="text-[12px] text-gray-800 font-medium">{val}</span>
+          </div>
+        {/if}
+      {/each}
+    </div>
+  {/if}
   
   <h2 class="section-title mt-6">Mô tả sản phẩm</h2>
   
@@ -120,12 +127,12 @@
 
 <style>
   .content-section { background: white; padding: 16px; overflow: hidden; }
-  .section-title { font-size: 14px; font-weight: 800; color: #222; margin-bottom: 12px; text-transform: uppercase; letter-spacing: -0.01em; }
-  .spec-table { display: flex; flex-direction: column; gap: 8px; }
-  .spec-row { display: flex; justify-content: space-between; font-size: 13px; border-bottom: 1px solid #f5f5f5; padding-bottom: 8px; }
-  .spec-row:last-child { border-bottom: none; }
-  .label { color: #888; font-weight: 500; }
-  .val { color: #222; font-weight: 700; text-align: right; }
+  .section-title { font-size: 14px; font-weight: 800; color: #222; margin-bottom: 16px; text-transform: uppercase; letter-spacing: -0.01em; border-left: 4px solid #ee4d2d; padding-left: 10px; }
+  
+  .spec-infographic { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: #f0f0f0; border: 1px solid #f0f0f0; border-radius: 8px; overflow: hidden; }
+  .info-tag { background: white; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .tag-label { font-size: 11px; color: #888; font-weight: 500; }
+  .tag-val { font-size: 13px; color: #222; font-weight: 800; }
 
   /* Elite V2.2: Smooth Description Truncation */
   .description-wrapper {

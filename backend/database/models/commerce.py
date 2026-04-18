@@ -88,6 +88,7 @@ class ProductVariant(Base, AuditMixin, SoftDeleteMixin):
     discount_price: Mapped[Optional[float]] = mapped_column(Float)
     stock: Mapped[int] = mapped_column(Integer, default=0)
     attributes: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, server_default='{}', default=dict)
+    is_default: Mapped[bool] = mapped_column(Boolean, server_default=sa.text('false'), default=False)
 
 class RentalContract(Base, AuditMixin, SoftDeleteMixin):
     __tablename__ = 'rental_contracts'

@@ -1,3 +1,28 @@
+@keyframes pulse-gentle {
+   0%, 100% { transform: scale(1); opacity: 1; filter: brightness(1); }
+   50% { transform: scale(1.05); opacity: 0.9; filter: brightness(1.2); }
+}
+
+@keyframes bounce-slow {
+   0%, 100% { transform: translateY(0); }
+   50% { transform: translateY(-3px); }
+}
+
+.animate-pulse-gentle {
+   animation: pulse-gentle 2s infinite ease-in-out;
+}
+
+.animate-bounce-slow {
+   animation: bounce-slow 1.5s infinite ease-in-out;
+}
+
+.text-sakura-pink { color: #fe6b8b; }
+.text-gradient-indigo {
+   background: linear-gradient(135deg, #a5b4fc, #818cf8);
+   -webkit-background-clip: text;
+   -webkit-text-fill-color: transparent;
+}
+
 @keyframes shimmer-custom {
    0% { transform: translateX(-150%) skewX(-20deg); }
    100% { transform: translateX(350%) skewX(-20deg); }
@@ -32,5 +57,6 @@
   right: 0;
   z-index: var(--z-surface);
   pointer-events: none;
-  bottom: calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom, 20px) + 2px); /* Tối ưu Safe Zone */
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+  bottom: calc(var(--mobile-bottom-space, 80px) + 12px); /* Tối ưu Safe Zone */
 }

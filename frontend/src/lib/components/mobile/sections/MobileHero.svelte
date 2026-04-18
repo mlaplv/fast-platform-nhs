@@ -202,6 +202,49 @@
               {/each}
             </div>
 
+            <!-- VIRAL 2026: COMBO & GIFT INJECTION (Elite Ultra-Lean) -->
+            {#if v?.attributes?.combo_qty || v?.attributes?.gifts?.length}
+               <div class="mt-2 pr-14 space-y-1.5 pointer-events-auto">
+                  {#if v.attributes.combo_qty > 1}
+                     <div class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-gradient-to-r from-[#ff3b30] to-[#ff2d55] rounded-full shadow-[0_4px_12px_rgba(255,59,48,0.3)] animate-pulse-gentle">
+                        <Flame class="w-2.5 h-2.5 text-white fill-white" />
+                        <span class="text-[8px] font-black text-white uppercase tracking-widest italic leading-none">
+                           TIẾT KIỆM COMBO X{v.attributes.combo_qty}
+                        </span>
+                     </div>
+                  {/if}
+
+                  {#if v.attributes.gifts && v.attributes.gifts.length > 0}
+                     <div class="bg-black/40 backdrop-blur-3xl rounded-xl p-2.5 border border-white/10 shadow-2xl group/gift-box relative overflow-hidden max-w-[280px]">
+                        <!-- Subtle Shimmer -->
+                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/gift-box:translate-x-full transition-transform duration-1000"></div>
+                        
+                        <div class="flex items-center gap-3 relative z-10">
+                           <div class="w-11 h-11 rounded-lg overflow-hidden bg-white/10 border border-white/10 shrink-0 shadow-inner">
+                              <img 
+                                 src={resolveMediaUrl(v.attributes.gifts[0].image || product?.mobileImages?.[0] || product?.images?.[0])} 
+                                 alt="Quà tặng" 
+                                 class="w-full h-full object-cover" 
+                              />
+                           </div>
+                           
+                           <div class="flex-1 min-w-0">
+                              <div class="text-[7.5px] font-black text-white/30 uppercase tracking-[0.25em] mb-0.5 font-mono leading-none">Quà tặng đặc quyền</div>
+                              <div class="space-y-0.5">
+                                 {#each v.attributes.gifts as gift}
+                                    <div class="flex items-center justify-between gap-1.5">
+                                       <span class="text-[10.5px] font-bold text-white drop-shadow-md truncate leading-tight">{gift.name}</span>
+                                       <span class="text-[10px] font-black text-[#ffcc00] italic shrink-0">x{gift.qty}</span>
+                                    </div>
+                                 {/each}
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  {/if}
+               </div>
+            {/if}
+
             <!-- CTA Button (Elite 2026 Viral Pill) -->
             <div class="mt-2.5 w-full pr-14 relative z-surface pointer-events-auto">
                 <button 

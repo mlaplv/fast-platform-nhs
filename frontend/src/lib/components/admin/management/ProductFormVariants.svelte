@@ -49,11 +49,16 @@
     brokenVariantImages = new Set();
   });
 
-  // Normalize loaded variants to ensure attributes exist
+  // Normalize loaded variants to ensure attributes exist and is_default is valid
   $effect(() => {
     // R102: Normalize attributes structure to stay compatible with V2.2 Pydantic schemas
     let structuralChange = false;
+    
+    // Track if we have any default selected
+    const hasAnyDefault = formVariants.some(v => v.is_default);
+    
     formVariants.forEach((v, i) => {
+      // Attributes normalization
       if (!v.attributes) {
         v.attributes = { combo_qty: null, gifts: [] };
         structuralChange = true;
@@ -61,9 +66,23 @@
         v.attributes.gifts = [];
         structuralChange = true;
       }
+
+      // R00: Ensure is_default is boolean and not undefined
+      if (v.is_default === undefined) {
+        v.is_default = false;
+        structuralChange = true;
+      }
     });
     
-    // Only trigger re-assignment if we added missing nodes
+    // R102: If variants exist but none are marked default, auto-select the first one
+    if (formVariants.length > 0 && !hasAnyDefault) {
+      if (formVariants[0]) {
+        formVariants[0].is_default = true;
+        structuralChange = true;
+      }
+    }
+    
+    // Only trigger re-assignment if we added missing nodes or corrected is_default
     if (structuralChange) {
       formVariants = [...formVariants];
     }
@@ -175,6 +194,7 @@
             price: 0, 
             discountPrice: 0, 
             stock: 0, 
+            is_default: false,
             attributes: { combo_qty: null, gifts: [] } 
           });
         }
@@ -189,6 +209,7 @@
           price: 0, 
           discountPrice: 0, 
           stock: 0, 
+          is_default: false,
           attributes: { combo_qty: null, gifts: [] } 
         });
       }
@@ -228,6 +249,13 @@
       discountPrice: batchDiscountPrice > 0 ? batchDiscountPrice : v.discountPrice,
       stock: batchStock > 0 ? batchStock : v.stock,
       sku: batchSku ? `${batchSku}-${v.tierIndex.join('-')}` : v.sku
+    }));
+  }
+
+  function setDefault(vIndex: number) {
+    formVariants = formVariants.map((v, i) => ({
+      ...v,
+      is_default: i === vIndex
     }));
   }
 
@@ -480,6 +508,7 @@
                 {#each formTierVariations as tier}
                   <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 whitespace-nowrap">{tier.name}</th>
                 {/each}
+                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-12 text-center border-l border-white/5 whitespace-nowrap">Mặc định</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-amber-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Bán</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-rose-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Khuyến Mãi</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-20 border-l border-white/5 whitespace-nowrap">Kho Hàng</th>
@@ -498,6 +527,16 @@
                       {formTierVariations[i].options[tIdx]}
                     </td>
                   {/each}
+
+                  <td class="p-1 border-l border-white/5 text-center">
+                    <button 
+                      onclick={() => setDefault(vIndex)}
+                      class="p-2 transition-all rounded-md {variant.is_default ? 'text-amber-500 bg-amber-500/10' : 'text-white/20 hover:text-white/40'}"
+                      title={variant.is_default ? 'Đang là mặc định' : 'Đặt làm mặc định'}
+                    >
+                      <Zap size={14} fill={variant.is_default ? 'currentColor' : 'none'} />
+                    </button>
+                  </td>
 
                   <td class="p-1 border-l border-white/5">
                     <input type="number" bind:value={variant.price} class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-amber-500/50 !outline-none px-3 py-2 text-xs text-amber-400 font-mono text-right rounded" placeholder="0" />

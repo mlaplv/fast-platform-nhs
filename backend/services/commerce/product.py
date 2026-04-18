@@ -459,6 +459,7 @@ class ProductService:
                     price=v.price,
                     discount_price=v.discountPrice,
                     stock=v.stock,
+                    is_default=v.is_default,
                     attributes=v.attributes.model_dump() if v.attributes else {}
                 )
                 db_session.add(variant)
@@ -524,6 +525,7 @@ class ProductService:
                     price=v.price,
                     discount_price=v.discountPrice,
                     stock=v.stock,
+                    is_default=v.is_default,
                     attributes=v.attributes.model_dump() if v.attributes else {}
                 )
                 db_session.add(variant)

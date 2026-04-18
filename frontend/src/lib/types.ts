@@ -420,6 +420,7 @@ export interface ProductVariant {
     combo_qty?: number;
     gifts?: { name: string; qty: number; image?: string }[];
   } | null;
+  is_default?: boolean;
 }
 
 export interface MediaMetadata {
