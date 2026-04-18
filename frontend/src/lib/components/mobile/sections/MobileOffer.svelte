@@ -136,7 +136,7 @@
     </div>
   </div>
 
-  <div class="flex-1 flex flex-col z-surface overflow-y-auto no-scrollbar pb-6 space-y-4 !px-0">
+  <div class="flex-1 flex flex-col z-[var(--z-surface)] overflow-y-auto no-scrollbar pb-6 space-y-4 !px-0">
     <!-- 🎛️ VARIANT SELECTOR (Top HUD) -->
     <div class="mt-0 !w-full">
        <div class="grid grid-cols-1 gap-0">
@@ -374,16 +374,16 @@
   </div>
   
   <!-- 🛰️ Unified CTA HUD (Cinematic Sapphire) -->
-  <div class="mt-auto z-nav pt-2 pb-2 relative bg-gradient-to-t from-black via-black/95 to-transparent">
+  <div class="mt-auto z-[var(--z-nav)] pt-2 pb-2 relative bg-gradient-to-t from-black via-black/95 to-transparent">
       <div class="px-3 pb-2">
-        <button 
+        <button
            onclick={() => { if (!selectedVariant) return; shopStore.openCheckout(); }}
            class="w-full h-[75px] rounded-[2rem] font-black text-[15px] uppercase tracking-[0.15em] flex items-center justify-center transition-all duration-700 italic active:scale-95 bg-white/10 backdrop-blur-3xl border border-white/20 shadow-[0_25px_60px_rgba(59,130,246,0.3)] overflow-hidden relative group"
          >
            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/30 via-transparent to-blue-600/30 opacity-0 group-hover:opacity-100 transition-opacity"></div>
            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_3s_infinite] pointer-events-none"></div>
-           
-           <div class="relative z-surface flex items-center justify-between w-full px-6 gap-3">
+
+           <div class="relative z-[var(--z-surface)] flex items-center justify-between w-full px-6 gap-3">
               <div class="flex flex-col text-left leading-tight min-w-0 flex-1">
                 <span class="text-white text-[14px] font-black drop-shadow-md whitespace-normal leading-[1.1] uppercase italic">{selectedIndex === 0 ? OFFER_CONSTANTS.labels.cta_start : OFFER_CONSTANTS.labels.cta_full}</span>
                 <span class="text-[9px] text-white/50 font-bold uppercase tracking-[0.1em] mt-1 italic">Số lượng: {shopStore.quantity}</span>
