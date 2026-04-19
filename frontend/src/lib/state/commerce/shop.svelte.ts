@@ -192,6 +192,32 @@ export class ShopStore {
         return this.variant?.price ?? this.product.price ?? 0;
     });
 
+    /**
+     * ELITE V2.2: Helper to calculate what-if price for any variant with current vouchers
+     * Used by Grid to show live price updates on all cards simultaneously.
+     */
+    calculateAdjustedPrice(v: ProductVariant, q: number = 1, selectedIds: string[] = this.selectedVoucherIds): { final: number, voucherDiscount: number } {
+        const basePrice = v.discountPrice || v.price || 0;
+        let baseTotal = basePrice * q;
+        
+        let voucherDiscount = 0;
+        for (const vId of selectedIds) {
+            const voucher = this.vouchers.find(item => item.id === vId);
+            if (!voucher) continue;
+            
+            if (voucher.type === 'FIXED') {
+                voucherDiscount += voucher.value;
+            } else if (voucher.type === 'PERCENT') {
+                voucherDiscount += (baseTotal * voucher.value) / 100;
+            }
+        }
+        
+        return {
+            final: Math.max(0, baseTotal - voucherDiscount),
+            voucherDiscount
+        };
+    }
+
     // 3. Actions
     init(productData: Product): void {
         this.product = productData;
@@ -221,10 +247,12 @@ export class ShopStore {
     setVouchers(data: Voucher[]): void {
         this.vouchers = data || [];
         
-        // 🚀 ELITE V2.2: Auto-select Free Ship vouchers by default
-        const shipVoucher = this.vouchers.find(v => v.type === 'SHIPPING');
-        if (shipVoucher && !this.selectedVoucherIds.includes(shipVoucher.id)) {
-            this.selectedVoucherIds = [...this.selectedVoucherIds, shipVoucher.id];
+        // 🚀 ELITE V2.2: Auto-select Free Ship vouchers ONLY if no selection exists yet (Elite V6.4 Fix)
+        if (this.selectedVoucherIds.length === 0) {
+            const shipVoucher = this.vouchers.find(v => v.type === 'SHIPPING');
+            if (shipVoucher) {
+                this.selectedVoucherIds = [shipVoucher.id];
+            }
         }
     }
 

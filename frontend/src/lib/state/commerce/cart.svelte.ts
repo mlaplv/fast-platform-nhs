@@ -50,6 +50,9 @@ export class CartStore {
                     if (parsed.giftInfo) {
                         this.giftInfo = parsed.giftInfo;
                     }
+                    if (parsed.selectedVoucherIds) {
+                        this.selectedVoucherIds = parsed.selectedVoucherIds;
+                    }
                 } catch (e) {
                     console.error('Failed to parse cart data', e);
                 }
@@ -108,6 +111,7 @@ export class CartStore {
             if (browser) {
                 localStorage.setItem('elite_global_cart', JSON.stringify({
                     items: this.items,
+                    selectedVoucherIds: this.selectedVoucherIds,
                     giftInfo: this.giftInfo
                 }));
             }
@@ -119,7 +123,7 @@ export class CartStore {
         this.giftInfo = info;
     }
 
-    addItem(product: Product, variant?: ProductVariant, quantity: number = 1): void {
+    addItem(product: Product, variant?: ProductVariant, quantity: number = 1, voucherIds?: string[]): void {
         const uniqueId = variant ? `${product.id}_${variant.id}` : product.id;
         const existingItem = this.items.find(item => item.id === uniqueId);
 
@@ -134,6 +138,11 @@ export class CartStore {
                 quantity,
                 selected: true
             });
+        }
+
+        // ELITE V7.4: Sync vouchers if provided
+        if (voucherIds && voucherIds.length > 0) {
+            this.selectedVoucherIds = voucherIds;
         }
     }
 
@@ -169,10 +178,9 @@ export class CartStore {
         this.isGiftModalOpen = open ?? !this.isGiftModalOpen;
     }
 
-    buyNow(product: Product, variant?: ProductVariant, quantity: number = 1): void {
-        // Elite V2.2 Cumulative: Add to selection instead of isolating
-        this.addItem(product, variant, quantity);
-        // addItem handles finding/updating and setting selected = true
+    buyNow(product: Product, variant?: ProductVariant, quantity: number = 1, voucherIds?: string[]): void {
+        // Elite V7.4: Pass vouchers to ensure price syncs with product page
+        this.addItem(product, variant, quantity, voucherIds);
     }
 
     setVouchers(data: Voucher[]): void {

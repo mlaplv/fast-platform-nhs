@@ -104,13 +104,16 @@ class LiveEditStore {
         }
         const p = this.dirtyProduct;
         
-        const payload = {
+        const payload: any = {
             name: p.name,
             shortDescription: p.shortDescription || '',
             metadata: p.metadata,
             price: p.price,
             discountPrice: p.discountPrice,
-            status: p.status as 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
+            status: p.status as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
+            variants: p.variants,
+            images: p.images,
+            mobileImages: p.mobileImages
         };
 
         const response = await fetch(`/api/v1/products/${p.id}`, {

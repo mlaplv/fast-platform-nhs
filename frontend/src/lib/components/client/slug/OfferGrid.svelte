@@ -8,7 +8,10 @@
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import type { Product, ProductVariant } from '$lib/types';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
-  import { ShoppingCart, CheckCircle2, ArrowRight, Zap } from 'lucide-svelte';
+  import { ShoppingCart, CheckCircle2, ArrowRight, Zap, Sparkles, Check, Ticket } from 'lucide-svelte';
+  import { scale, fade, fly } from 'svelte/transition';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { cubicOut, cubicIn } from 'svelte/easing';
   import DesktopProductDetailsModal from './DesktopProductDetailsModal.svelte';
   import "./OfferGrid.css";
   
@@ -47,6 +50,54 @@
     cta_start: metadata.offer_cta_start || "BẮT ĐẦU TÁI SINH",
     cta_full: metadata.offer_cta_full || "SỞ HỮU SỰ KIÊU SA"
   });
+
+  // --- Voucher Logic (Elite V2.2) ---
+  const productVouchers = $derived.by(() => {
+    const rawVouchers = cartStore.vouchers && cartStore.vouchers.length > 0 ? cartStore.vouchers : [];
+    return rawVouchers.map((v: any) => ({
+      id: v.id,
+      label: v.id || v.code || v.name || 'ƯU ĐÃI',
+      sub: v.type === 'SHIPPING' ? 'SHIPPING 0Đ' : (v.type === 'PERCENT' ? `${v.value}%` : `${v.value?.toLocaleString()}đ`),
+      type: v.type === 'SHIPPING' ? 'ship' : 'discount',
+      value: v.value || 0
+    }));
+  });
+
+  // --- ĐỒNG BỘ HÓA VOUCHER (ELITE V5.8: REACTIVITY FIX) ---
+  $effect(() => {
+    if (cartStore.vouchers && cartStore.vouchers.length > 0) {
+      shopStore.setVouchers(cartStore.vouchers);
+    }
+  });
+
+  function handleVoucherClick(v: any) {
+    if (v.id) {
+      shopStore.toggleVoucher(v.id);
+    }
+  }
+
+  let expandedVariantVouchers = $state<Record<number, boolean>>({});
+  function toggleVouchers(idx: number) {
+    expandedVariantVouchers[idx] = !expandedVariantVouchers[idx];
+  }
+
+  let activeOfferTab = $state<Record<number, 'vouchers' | 'gifts'>>({});
+  function setOfferTab(vIdx: number, tab: 'vouchers' | 'gifts') {
+    activeOfferTab[vIdx] = tab;
+  }
+
+  function getActiveTab(vIdx: number, hasVouchers: boolean, hasGifts: boolean) {
+    if (activeOfferTab[vIdx]) return activeOfferTab[vIdx];
+    if (hasVouchers) return 'vouchers';
+    if (hasGifts) return 'gifts';
+    return 'vouchers';
+  }
+
+  let openPopoverId = $state<string | null>(null);
+  function togglePopover(id: string | null) {
+    if (openPopoverId === id) openPopoverId = null;
+    else openPopoverId = id;
+  }
   
   const mark1 = $derived(metadata.offer_trust_verified_by || "TIÊU CHUẨN Y KHOA NHẬT BẢN");
   const mark2 = $derived(metadata.offer_trust_mark_2 || "HIỆU QUẢ KIỂM CHỨNG");
@@ -108,19 +159,19 @@
     }
   });
 
-  function handleSelect(variant: ProductVariant) {
-    const isActive = shopStore.variant?.id === variant.id;
-    if (isActive) {
-        if (product) {
-            cartStore.buyNow(product, variant, shopStore.quantity);
-        }
-        window.location.href = '/checkout';
-    } else {
-        shopStore.selectVariant(variant);
-        // Resync quantity: For combo variants in OfferGrid, we usually want quantity=1 
-        // but display it using combo_qty.
-        shopStore.setQuantity(1);
+  function selectVariant(variant: ProductVariant) {
+    shopStore.selectVariant(variant);
+    // Đối với combo trong OfferGrid, mặc định chọn số lượng 1 (vì số lượng thực tế đã nằm trong combo_qty)
+    shopStore.setQuantity(1);
+  }
+
+  function handleCheckout(e: MouseEvent, variant: ProductVariant) {
+    e.stopPropagation();
+    if (product) {
+        // Elite V7.4: Ensure selected vouchers are synced to cart for correct checkout price
+        cartStore.buyNow(product, variant, shopStore.quantity, shopStore.selectedVoucherIds);
     }
+    window.location.href = '/checkout';
   }
 </script>
 
@@ -129,7 +180,7 @@
   <div class="liquid-orb top-[10%] left-[-10%] w-[800px] h-[800px] pointer-events-none" style:background-color="var(--luxury-sakura)" style:opacity="0.1"></div>
   <div class="liquid-orb bottom-[-10%] right-[-10%] w-[600px] h-[600px] pointer-events-none" style:background-color="var(--luxury-gold)" style:opacity="0.05"></div>
 
-  <div class="container mx-auto px-6 max-w-6xl relative z-surface">
+  <div class="container mx-auto px-3 max-w-6xl relative z-surface">
     <div class="text-center">
       <h2 class="elite-session-headline mb-8 text-center offer-grid-headline">
         {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]') || liveEditStore.isEditMode}
@@ -174,55 +225,67 @@
       </div>
     </div>
 
-    <div class="flex justify-center mb-10 mt-6">
-      <div class="elite-status-pill px-8 py-2 shadow-[0_0_20px_rgba(255,183,197,0.1)]">
-        <span class="w-2 h-2 rounded-full bg-luxury-sakura mr-3 shadow-[0_0_8px_var(--luxury-sakura)]"></span>
-        {#if !(metadata.offer_timer_prefix || '').startsWith('[OFF]') || liveEditStore.isEditMode}
-          <EditableWrapper path="metadata.offer_timer_prefix" type="text" label="SỬA TIÊU ĐỀ HẸN GIỜ" class="inline" as="span">
-            <span class="text-[10px] uppercase tracking-[0.4em]">{mkt.timer_prefix}</span>
-          </EditableWrapper>
-        {/if}
-        <span class="font-black tabular-nums text-white text-[10px] tracking-[0.4em]">{formatTime(timeLeft)}</span>
+    <div class="flex justify-center mb-10 mt-6 relative z-surface">
+      <div class="flex flex-col items-center gap-6">
+        <div class="elite-status-pill px-8 py-2 shadow-[0_0_20px_rgba(255,183,197,0.1)]">
+          <span class="w-2 h-2 rounded-full bg-luxury-sakura mr-3 shadow-[0_0_8px_var(--luxury-sakura)]"></span>
+          {#if !(metadata.offer_timer_prefix || '').startsWith('[OFF]') || liveEditStore.isEditMode}
+            <EditableWrapper path="metadata.offer_timer_prefix" type="text" label="SỬA TIÊU ĐỀ HẸN GIỜ" class="inline" as="span">
+              <span class="text-[10px] uppercase tracking-[0.4em]">{mkt.timer_prefix}</span>
+            </EditableWrapper>
+          {/if}
+          <span class="font-black tabular-nums text-white text-[10px] tracking-[0.4em]">{formatTime(timeLeft)}</span>
+        </div>
       </div>
     </div>
 
 
     <div class="package-grid pt-8 {gridClass} gap-6 items-stretch">
       {#each variants as variant, idx (idx)}
-          {@const isCardActive = shopStore.variant?.id === variant.id}
+          <!-- 🧮 REACTIVE COMPUTATION CLUSTER (ELITE V5.8: REACTION FORCED) -->
           {@const unitPrice = variant.discountPrice || variant.price}
+          {@const priceInfo = shopStore.calculateAdjustedPrice(variant, 1, shopStore.selectedVoucherIds)}
+          {@const finalPrice = priceInfo.final}
+          {@const voucherDiscount = priceInfo.voucherDiscount}
+          {@const totalSavings = (variant.price - unitPrice) + voucherDiscount}
+          
+          {@const isCardActive = shopStore.variant?.id === variant.id}
+          {@const hasVouchers = productVouchers.length > 0}
+          {@const hasGifts = !!(variant.attributes?.gifts?.length)}
+          {@const currentTab = getActiveTab(idx, hasVouchers, hasGifts)}
+          {@const selectedVouchers = (shopStore.vouchers || []).filter(v => shopStore.selectedVoucherIds.includes(v.id))}
+          {@const shippingVoucher = selectedVouchers.find(v => v.type === 'SHIPPING')}
+          {@const discountVoucher = selectedVouchers.find(v => v.type !== 'SHIPPING')}
+
           <div class="relative h-full z-10 {variants.length >= 3 ? 'min-w-[300px] md:min-w-[420px] lg:min-w-0 snap-center' : ''}">
-             <div class="absolute -top-4 left-1/2 -translate-x-1/2 flex flex-wrap gap-2 justify-center w-[120%] z-[60] pointer-events-none mt-1">
+              <div class="absolute -top-4 left-1/2 -translate-x-1/2 flex flex-wrap gap-2 justify-center w-[120%] z-[60] pointer-events-none mt-1">
                 {#if idx === 1 && !isCardActive}
                    <div class="px-5 py-2 expert-choice-ribbon text-white font-black text-[9px] uppercase tracking-[0.4em] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
                       {mkt.label_expert_choice}
                    </div>
                 {/if}
-
               </div>
 
               <div 
-                onclick={() => handleSelect(variant)}
-                onkeydown={(e) => e.key === 'Enter' && handleSelect(variant)}
+                onclick={() => selectVariant(variant)}
+                onkeydown={(e) => e.key === 'Enter' && selectVariant(variant)}
                 role="button"
                 tabindex="0"
                 class="package-card overflow-hidden text-left flex flex-col h-full relative cursor-pointer {idx === 1 ? 'popular' : ''} {isCardActive ? 'active border-luxury-sakura shadow-[0_0_80px_rgba(255,183,197,0.3)]' : ''}"
               >
-                <!-- TOP HERO IMAGE -->
                 <div class="variant-image-hero relative w-full h-[320px] overflow-hidden">
                   <div class="absolute inset-0 bg-radial-at-t from-luxury-sakura/10 to-transparent pointer-events-none transition-opacity duration-700 {isCardActive ? 'opacity-100' : 'opacity-0'}"></div>
-                  
                   <img 
-                     src="{product?.images?.[0] ? resolveMediaUrl(product.images[0]) : ''}" 
+                     src="{product?.images?.[idx] || product?.images?.[0] ? resolveMediaUrl(product.images[idx] || product.images[0]) : ''}" 
                      alt="{getVariantTitle(variant)}" 
-                     class="w-full h-full object-cover drop-shadow-[0_40px_30px_rgba(0,0,0,0.7)] transform hover:scale-110 transition-transform duration-1000 z-10 relative animate-breathing-zoom"
+                     class="w-full h-full object-cover drop-shadow-[0_40px_30px_rgba(0,0,0,0.7)] transform hover:scale-110 transition-transform duration-1000 z-10 relative"
                   />
                   
-                  <!-- IMAGE REFLECTION (LOWER OPACITY) -->
+                  <!-- IMAGE REFLECTION -->
                   <img 
-                     src="{product?.images?.[0] ? resolveMediaUrl(product.images[0]) : ''}" 
+                     src="{product?.images?.[idx] || product?.images?.[0] ? resolveMediaUrl(product.images[idx] || product.images[0]) : ''}" 
                      alt="" 
-                     class="absolute top-[75%] left-0 w-full h-full object-cover scale-y-[-1] opacity-30 blur-lg grayscale pointer-events-none animate-breathing-zoom"
+                     class="absolute top-[75%] left-0 w-full h-full object-cover scale-y-[-1] opacity-30 blur-lg grayscale pointer-events-none"
                   />
                   
                   <!-- OVERLAY BADGE -->
@@ -234,127 +297,255 @@
                 </div>
 
                 <!-- CONTENT WRAPPER -->
-                <div class="px-8 pb-8 pt-6 flex flex-col flex-grow relative z-20">
-                  <h5 class="text-xl font-black text-white mb-4 italic tracking-tight text-center md:text-left">{getVariantTitle(variant)}</h5>
-
-                  <div class="flex items-baseline justify-center md:justify-start flex-nowrap gap-x-4 mb-2">
-                  {#if variant.price > unitPrice}
-                     <span class="original-price text-sm text-slate-600 line-through">{(variant.price).toLocaleString()}đ</span>
-                  {:else}
-                     <span class="text-sm text-transparent">0đ</span>
-                  {/if}
-                  <span class="text-3xl font-black text-white tabular-nums">
-                    {(unitPrice).toLocaleString()}đ
-                  </span>
-             </div>
-
-              <div class="flex flex-col gap-2 mt-2 items-center md:items-start">
-                {#if (variant.price - unitPrice) > 0}
-                  {#if !(metadata.offer_savings_prefix || '').startsWith('[OFF]') || liveEditStore.isEditMode}
-                    <div class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-md border border-emerald-500/20">
-                       <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                       <EditableWrapper path="metadata.offer_savings_prefix" type="text" label="SỬA TIÊU ĐỀ TIẾT KIỆM" class="inline" as="span">
-                         {mkt.savings_prefix}
-                       </EditableWrapper>
-                       {(variant.price - unitPrice).toLocaleString()}đ
-                    </div>
-                  {/if}
-                {/if}
-                <p class="flex items-center gap-2 text-[8px] font-bold uppercase tracking-[0.1em] text-white/40 mt-3 border-t border-white/5 pt-3">
-                  <span class="text-luxury-sakura">●</span> SPECS: {metadata.weight || "30G"} - {metadata.origin || "JAPAN"} | MÃ VẠCH: {variant.sku || product?.sku || 'N/A'}
-                </p>
-              </div>
-
-
-              <ul class="bullet-list space-y-2 mb-6">
-                {#each getFeatures(variant, idx, isCardActive) as feature}
-                   <li class="flex items-center gap-3">
-                     <span class="text-luxury-sakura font-black">✦</span>
-                     <span class="text-[11px] font-black uppercase tracking-wide text-white/80">{feature.replace(/^[+!-]/, '')}</span>
-                   </li>
-                {/each}
-                <li class="flex items-center gap-3">
-                  <span class="text-luxury-sakura font-black">✦</span>
-                  <a href="/chinh-sach-kiem-hang" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-wide text-luxury-sakura hover:underline">
-                    Kiểm tra hàng trước nhận
-                  </a>
-                </li>
-                <li class="flex items-center gap-3">
-                  <span class="text-luxury-sakura font-black">✦</span>
-                  <a href="/chinh-sach-doi-tra-hoan-tien" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-wide text-luxury-sakura hover:underline">
-                    Đổi trả 7 ngày
-                  </a>
-                </li>
-              </ul>
-
-              <!-- Premium Combo & Gift Flow (Viral 2026 / Elite V2.2) - Moved to bottom for layout stability -->
-              {#if variant.attributes?.gifts && variant.attributes.gifts.length > 0}
-                <div class="gift-section-wrapper mt-auto mb-2">
-                  <div class="flex flex-col gap-2 bg-gradient-to-br from-luxury-sakura/20 via-luxury-sakura/5 to-transparent p-4 rounded-2xl border border-luxury-sakura/20 shadow-[0_10px_30px_rgba(255,183,197,0.1)] group/gift-box hover:border-luxury-sakura/40 transition-all duration-500">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-[10px] text-luxury-sakura font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                         <span class="w-1.5 h-1.5 rounded-full bg-luxury-sakura mr-2"></span>
-                         QUÀ TẶNG ĐỘC QUYỀN
-                      </span>
-                      {#if variant.attributes?.combo_qty && variant.attributes.combo_qty > 1}
-                        <span class="text-[9px] bg-luxury-gold/20 text-luxury-gold px-2 py-0.5 rounded-full font-black border border-luxury-gold/10">COMBO X{variant.attributes.combo_qty}</span>
-                      {/if}
-                    </div>
-                    
-                    <div class="flex flex-col gap-2.5">
-                      {#each variant.attributes.gifts as gift}
-                        <div class="flex items-center gap-3 group/gift-item">
-                          <div class="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-black/40 flex items-center justify-center p-0.5 group-hover/gift-item:border-luxury-sakura/50 transition-colors">
-                            {#if gift.image}
-                              <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover rounded-sm" loading="lazy" />
-                            {:else}
-                              <Zap size={14} class="text-luxury-sakura/40" />
-                            {/if}
-                          </div>
-                          <div class="flex flex-col">
-                             <span class="text-[11px] text-white/90 font-bold tracking-wide group-hover/gift-item:text-luxury-sakura transition-colors">{gift.name}</span>
-                             <span class="text-[9px] text-luxury-gold font-black uppercase tracking-tighter">Số lượng: x{gift.qty}</span>
-                          </div>
+                <div class="px-5 pb-6 pt-2 flex flex-col flex-grow relative z-20">
+                   <!-- 💎 ELITE PRICE CLUSTER -->
+                   <div class="elite-price-cluster flex flex-col items-center md:items-start gap-0 mb-2">
+                      <h5 class="text-[15px] font-black text-white italic tracking-tighter text-center md:text-left leading-none mb-1">{getVariantTitle(variant)}</h5>
+                      <div class="flex items-center gap-2 leading-none">
+                         {#if variant.price > finalPrice}
+                            <span class="original-price text-[11px] text-white/20 line-through tabular-nums decoration-luxury-sakura/50">{(variant.price).toLocaleString()}đ</span>
+                         {/if}
+                         <span class="text-3xl font-black text-white tabular-nums leading-none tracking-tighter">{(finalPrice).toLocaleString()}đ</span>
+                      </div>
+                      
+                      <!-- 🎫 DUAL VOUCHER STICKERS -->
+                      {#if shippingVoucher || discountVoucher}
+                        <div class="active-vouchers-row flex flex-wrap gap-2 mt-0.5">
+                           {#if shippingVoucher}
+                              <div class="elite-voucher-sticker freeship flex items-center h-4 rounded-full bg-black/40 border border-luxury-sakura/20 overflow-hidden shadow-sm">
+                                 <div class="px-1.5 bg-luxury-sakura/20 h-full flex items-center">
+                                    <span class="text-[6px] font-black text-luxury-sakura uppercase tracking-tighter">FREE</span>
+                                  </div>
+                                  <div class="px-1.5 h-full flex items-center">
+                                    <span class="text-[5px] font-bold text-white/40 uppercase">SHIP</span>
+                                  </div>
+                              </div>
+                           {/if}
+                           {#if discountVoucher}
+                              <div class="elite-voucher-sticker discount flex items-center h-4 rounded-full bg-black/40 border border-luxury-gold/20 overflow-hidden shadow-sm">
+                                 <div class="px-1.5 bg-luxury-gold/20 h-full flex items-center">
+                                    <span class="text-[6px] font-black text-luxury-gold uppercase tracking-tighter">DISCOUNT</span>
+                                 </div>
+                                 <div class="px-1.5 h-full flex items-center">
+                                    <span class="text-[6px] font-bold text-white/80 tabular-nums">-{discountVoucher.value?.toLocaleString()}đ</span>
+                                 </div>
+                              </div>
+                           {/if}
                         </div>
-                      {/each}
-                    </div>
-                  </div>
-                </div>
-              {/if}
-            </div>
+                      {/if}
 
-           <div class="liquid-cta-viral text-white min-h-[64px] rounded-2xl font-black shadow-2xl relative overflow-hidden flex items-center justify-center px-4 w-full mt-4 pointer-events-none transition-all duration-500 {isCardActive ? 'border-2 border-luxury-sakura bg-luxury-sakura/10 scale-[1.03]' : ''}">
-              <div class="relative z-10 flex items-center gap-4 w-full justify-center">
-                {#if isCardActive}
-                   <ShoppingCart class="w-6 h-6 shrink-0 text-luxury-sakura animate-pulse drop-shadow-md" strokeWidth={2.5} />
-                   <div class="flex flex-col text-left justify-center flex-1 max-w-[75%]">
-                      <span class="text-[14px] font-black uppercase tracking-[0.2em] text-white leading-none mb-1 mt-0.5 flex items-center justify-between">
-                         MUA NGAY
-                         <ArrowRight class="w-4 h-4 text-luxury-sakura" />
-                      </span>
-                      <span class="text-[10px] text-luxury-sakura uppercase font-black tracking-[0.15em] truncate">
-                          Sở hữu ngay • {unitPrice.toLocaleString()}đ
-                      </span>
+                      {#if totalSavings > 0}
+                        <div class="mt-[3px] flex items-center">
+                           {#if !(metadata.offer_savings_prefix || '').startsWith('[OFF]') || liveEditStore.isEditMode}
+                             <div class="ultimate-savings-box text-[8px] text-black font-black uppercase tracking-wider flex items-center gap-1.5 bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] px-2.5 py-1 rounded-full border border-white/20 shadow-lg transform active:scale-95 transition-all">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-led-red-pulse shadow-[0_0_8px_#ff0000]"></span>
+                                <EditableWrapper path="metadata.offer_savings_prefix" type="text" label="SỬA TIÊU ĐỀ TIẾT KIỆM" class="inline" as="span">
+                                  {mkt.savings_prefix}
+                                </EditableWrapper>
+                                <span class="tabular-nums">{(totalSavings).toLocaleString()}đ</span>
+                             </div>
+                           {/if}
+                        </div>
+                      {/if}
                    </div>
-                {:else}
-                   <ShoppingCart class="w-5 h-5 shrink-0" strokeWidth={3} />
-                   <EditableWrapper 
-                      path={idx === 0 ? "metadata.offer_cta_start" : "metadata.offer_cta_full"} 
-                      type="text" 
-                      label="SỬA TEXT NÚT" 
-                      class="inline" 
-                      as="span"
+
+                   <p class="flex items-center gap-2 text-[8px] font-bold uppercase tracking-[0.1em] text-white/40 border-t border-white/5 pt-2">
+                      <span class="text-luxury-sakura">●</span> SPECS: {metadata.weight || "30G"} - {metadata.origin || "JAPAN"} | MÃ VẠCH: {variant.sku || product?.sku || 'N/A'}
+                   </p>
+
+                  <ul class="bullet-list space-y-3 mb-6 mt-4">
+                    {#each getFeatures(variant, idx, isCardActive) as feature, featureIdx}
+                       <li class="flex items-start gap-3">
+                         <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
+                         <EditableWrapper path="variants.{idx}.attributes.features.{featureIdx}" type="text" label="SỬA ĐẶC TÍNH" class="block" as="div">
+                            <span class="text-[11px] font-black uppercase tracking-widest text-white/90 leading-relaxed block">{feature.replace(/^[+!-]/, '')}</span>
+                         </EditableWrapper>
+                       </li>
+                    {/each}
+                    <li class="flex items-start gap-3">
+                      <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
+                      <a href="/chinh-sach-kiem-hang" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-widest text-luxury-sakura hover:underline leading-relaxed flex-1">
+                        Kiểm tra hàng trước nhận
+                      </a>
+                    </li>
+                    <li class="flex items-start gap-3">
+                      <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
+                      <a href="/chinh-sach-doi-tra-hoan-tien" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-widest text-luxury-sakura hover:underline leading-relaxed flex-1">
+                        Đổi trả 7 ngày
+                      </a>
+                    </li>
+                  </ul>
+
+                  <!-- 💎 Elite Offer Box -->
+                  {#if hasVouchers || hasGifts}
+                    <div 
+                      onclick={(e) => { e.stopPropagation(); togglePopover(variant.id); }}
+                      role="button"
+                      tabindex="0"
+                      class="package-offer-box mt-auto mb-2 bg-gradient-to-br from-luxury-sakura/15 via-black/40 to-transparent p-3 px-1.5 rounded-2xl border border-luxury-sakura/10 transition-all duration-500 hover:border-luxury-sakura/30 cursor-pointer relative z-30"
                     >
-                      <span class="uppercase tracking-[0.2em] text-[11px] text-center leading-tight">{idx === 0 ? mkt.cta_start : mkt.cta_full}</span>
-                    </EditableWrapper>
+                      <div class="flex items-center justify-between mb-1 px-1.5 pointer-events-none">
+                         <span class="text-[9px] text-luxury-sakura font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-luxury-sakura animate-pulse"></span>
+                            {hasVouchers ? (hasGifts ? 'Ưu đãi & Quà tặng' : 'Mã giảm giá') : 'Quà tặng độc quyền'}
+                         </span>
+                      </div>
+
+                       <div class="flex items-center gap-1.5 mt-3 pointer-events-none overflow-x-auto scrollbar-hide">
+                         {#if (productVouchers.filter(v => shopStore.selectedVoucherIds.includes(v.id))).length > 0}
+                           {#each productVouchers.filter(v => shopStore.selectedVoucherIds.includes(v.id)) as v}
+                             <div class="sticker-mini-preview flex items-center gap-1.5 bg-luxury-sakura/10 px-1 py-1.5 rounded-lg border border-luxury-sakura/20 shadow-[0_0_10px_rgba(255,183,197,0.1)]">
+                               <span class="text-[9px] font-black text-luxury-sakura uppercase leading-none">{v.label}</span>
+                               <span class="w-px h-2 bg-luxury-sakura/20"></span>
+                               <span class="text-[10px] text-white uppercase font-black truncate leading-none">{v.sub}</span>
+                             </div>
+                           {/each}
+                         {:else if hasVouchers}
+                           {@const bestV = productVouchers[0]}
+                           <div class="sticker-mini-preview flex items-center gap-1.5 bg-white/5 px-1 py-1.5 rounded-lg border border-white/10">
+                             <span class="text-[9px] font-black text-luxury-sakura uppercase leading-none">{bestV.label}</span>
+                             <span class="w-px h-2 bg-white/10"></span>
+                             <span class="text-[10px] text-white uppercase font-black truncate leading-none">{bestV.sub}</span>
+                           </div>
+                         {/if}
+                       </div>
+
+                      <p class="text-[8px] text-white/30 uppercase font-bold tracking-widest mt-4 flex items-center gap-2 pointer-events-none">
+                        Bấm để xem chi tiết <ArrowRight size={8} class="text-luxury-sakura" />
+                      </p>
+                    </div>
+                  {/if}
+
+                  <!-- 🚀 ELITE CTA BUTTON (UNIFIED INSIDE CARD) -->
+                  <button 
+                    onclick={(e) => { e.stopPropagation(); isCardActive ? handleCheckout(e, variant) : selectVariant(variant); }}
+                    class="liquid-cta-viral text-white min-h-[76px] rounded-2xl font-black shadow-2xl relative overflow-hidden flex flex-col items-center justify-center px-5 w-full mt-4 transition-all duration-500 {isCardActive ? 'scale-[1.03] cursor-pointer ring-2 ring-white/30' : 'pointer-events-auto cursor-pointer'}"
+                  >
+                     <!-- ⚡ FOMO HEADER (VIRAL 2026: ULTRA-MINIMALIST) -->
+                     <div class="fomo-header-viral text-[7px] font-black tracking-[0.3em] text-white/60 mb-1 flex items-center justify-center gap-3 uppercase w-full">
+                        <div class="flex items-center gap-1">
+                           <Zap size={8} class="text-yellow-300/80 fill-yellow-300/80" />
+                           CHỈ CÒN {variant.stock || 5} SUẤT
+                        </div>
+                        <span class="w-1 h-1 rounded-full bg-white/20"></span>
+                        <div class="flex items-center gap-1">
+                           <Sparkles size={8} class="text-blue-200/80" />
+                           MIỄN PHÍ VẬN CHUYỂN
+                        </div>
+                     </div>
+ 
+                     <div class="relative z-10 flex items-center justify-between w-full pointer-events-none">
+                       <div class="flex items-center gap-3.5 text-left">
+                          <div class="bg-white/15 p-2 rounded-xl backdrop-blur-xl border border-white/10 shadow-[inner_0_1px_1px_rgba(255,255,255,0.2)]">
+                             <ShoppingCart class="w-6 h-6 text-white drop-shadow-md" strokeWidth={2} />
+                          </div>
+                          <div class="flex flex-col justify-center">
+                             <span class="text-[14px] font-black uppercase tracking-[0.2em] text-white leading-none mb-1 text-shadow-sm">
+                                MUA NGAY
+                             </span>
+                             <span class="text-[9px] text-white/80 uppercase font-bold tracking-[0.1em]">
+                                 Sở hữu ngay • {finalPrice.toLocaleString()}đ
+                             </span>
+                          </div>
+                       </div>
+                       <div class="bg-white/10 p-2 rounded-full border border-white/5 shadow-lg">
+                          <ArrowRight class="w-3.5 h-3.5 text-white/90 animate-bounce-x" />
+                       </div>
+                     </div>
+                   </button>
+
+                </div>
+
+                <!-- 🌪️ LOCAL IN-CARD SHEET (ELITE V5.7: BOTTOM-ANCHORED) -->
+                {#if String(openPopoverId) === String(variant.id)}
+                   <div 
+                     class="absolute inset-x-0 bottom-0 h-[85%] z-50 flex flex-col bg-[#060606] rounded-t-[2.5rem] border-t border-white/10 shadow-[0_-20px_60px_rgba(0,0,0,0.8)] overflow-hidden"
+                     in:fly={{ y: '100%', duration: 500, easing: cubicOut }}
+                     out:fly={{ y: '100%', duration: 400, easing: cubicIn }}
+                   >
+                      <!-- 💎 SHEET DRAG HANDLE -->
+                      <div class="flex justify-center pt-4 pb-1 shrink-0">
+                         <div class="w-8 h-1 rounded-full bg-white/10"></div>
+                      </div>
+
+                      <div class="px-5 pb-4 flex-grow overflow-y-auto scrollbar-hide">
+                         <!-- TABS (MINI) -->
+                         <div class="offer-tabs-nav flex items-center gap-6 mb-4 border-b border-white/5 sticky top-0 bg-[#060606] z-20 pt-1 pb-2">
+                           {#if hasVouchers}
+                             <button 
+                               onclick={(e) => { e.stopPropagation(); setOfferTab(idx, 'vouchers'); }}
+                               class="text-[9px] font-black uppercase tracking-wider transition-all {currentTab === 'vouchers' ? 'text-luxury-sakura' : 'text-white/30'}"
+                             >
+                               ƯU ĐÃI
+                             </button>
+                           {/if}
+                           {#if hasGifts}
+                             <button 
+                               onclick={(e) => { e.stopPropagation(); setOfferTab(idx, 'gifts'); }}
+                               class="text-[9px] font-black uppercase tracking-wider transition-all {currentTab === 'gifts' ? 'text-luxury-sakura' : 'text-white/30'}"
+                             >
+                               QUÀ TẶNG
+                             </button>
+                           {/if}
+                         </div>
+
+                         {#if currentTab === 'vouchers' && hasVouchers}
+                           <div class="flex flex-col gap-3 py-1 mb-24">
+                             {#each productVouchers as v}
+                               {@const isApplied = shopStore.selectedVoucherIds.includes(v.id)}
+                               <div class="viral-voucher-tag-mini relative h-[60px] flex items-center bg-white/5 rounded-xl border border-white/5 overflow-hidden">
+                                  <div class="w-10 h-full bg-white/5 flex items-center justify-center border-r border-dashed border-white/10 shrink-0">
+                                     <Ticket class="text-luxury-sakura opacity-40" size={14} />
+                                  </div>
+                                  <div class="flex-grow px-3 flex items-center justify-between gap-1 overflow-hidden">
+                                     <div class="flex flex-col text-left truncate">
+                                        <span class="text-[10px] font-black text-white truncate leading-none uppercase">{v.label}</span>
+                                        <span class="text-[7px] font-bold text-white/30 uppercase truncate">{v.sub}</span>
+                                     </div>
+                                     <button 
+                                       onclick={(e) => { e.stopPropagation(); handleVoucherClick(v); }}
+                                       class="voucher-action-btn-mini {isApplied ? 'active' : ''} transition-all active:scale-90"
+                                     >
+                                        {isApplied ? 'ĐANG DÙNG' : 'SỬ DỤNG'}
+                                     </button>
+                                  </div>
+                               </div>
+                             {/each}
+                           </div>
+                         {:else if currentTab === 'gifts' && hasGifts}
+                           <div class="flex flex-col gap-2 py-1 mb-24">
+                              {#each variant.attributes?.gifts || [] as gift}
+                               <div class="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5">
+                                 <div class="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-black/40 flex items-center justify-center">
+                                   {#if gift.image}
+                                     <img src={resolveMediaUrl(gift.image)} alt="" class="w-full h-full object-cover" />
+                                   {/if}
+                                 </div>
+                                 <div class="flex flex-col">
+                                    <span class="text-[9px] text-white/90 font-bold truncate tracking-tight">{gift.name}</span>
+                                    <span class="text-[7px] text-luxury-gold font-black uppercase tracking-tighter">x{gift.qty}</span>
+                                 </div>
+                               </div>
+                             {/each}
+                           </div>
+                         {/if}
+                      </div>
+
+                      <div class="absolute inset-x-0 bottom-0 px-5 pt-8 pb-10 done-area-mini z-30">
+                        <button 
+                          onclick={(e) => { e.stopPropagation(); togglePopover(null); }}
+                          class="liquid-done-btn-mini w-full py-4 rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] transition-all"
+                        >
+                           XONG
+                        </button>
+                      </div>
+                   </div>
                 {/if}
               </div>
            </div>
-          </div>
-         </div>
-      {/each}
+        {/each}
+      </div>
     </div>
+  </section>
 
-    <DesktopProductDetailsModal bind:active={isDetailsOpen} {product} />
-  </div>
-</section>
+<DesktopProductDetailsModal bind:active={isDetailsOpen} {product} />

@@ -603,6 +603,9 @@ export interface UpdateProductPayload {
   price?: number;
   discountPrice?: number;
   status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  variants?: ProductVariant[];
+  images?: string[];
+  mobileImages?: string[];
 }
 
 export interface VideoAsset {

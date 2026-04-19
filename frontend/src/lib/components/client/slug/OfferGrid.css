@@ -61,6 +61,139 @@
 }
 
 /* PACKAGE CARDS */
+.package-offer-box {
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.offer-overlay-viral {
+   background: rgba(6, 6, 6, 0.98);
+   backdrop-filter: blur(60px) saturate(200%);
+   border: 1px solid rgba(255, 183, 197, 0.15);
+   border-radius: 3rem;
+   animation: overlay-slide-up 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+   box-shadow: 0 -20px 80px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes overlay-slide-up {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.sticker-mini-preview {
+  transition: all 0.3s ease;
+}
+
+.package-offer-box:hover .sticker-mini-preview {
+  border-color: var(--luxury-sakura);
+  background: rgba(255, 183, 197, 0.05);
+}
+
+.viral-voucher-tag {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.viral-voucher-tag:hover {
+  background: rgba(255, 255, 255, 0.07);
+  transform: translateX(4px);
+  border-color: rgba(255, 183, 197, 0.2);
+}
+
+.active-viral-tag {
+  background: rgba(255, 183, 197, 0.08);
+  border-color: transparent !important;
+}
+
+.viral-led-glow {
+  position: absolute;
+  inset: -2px;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    var(--luxury-sakura),
+    transparent 30%,
+    transparent 70%,
+    var(--luxury-sakura),
+    transparent
+  );
+  animation: led-rotate 3s linear infinite;
+  border-radius: 14px;
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  padding: 1.5px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes led-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ticket-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: none;
+  pointer-events: none;
+}
+
+.elite-luxury-ticket:hover .ticket-shimmer {
+  animation: ticket-shimmer-run 1.2s infinite;
+}
+
+@keyframes ticket-shimmer-run {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+.sticker-tiny-expanded:hover {
+  transform: scale(1.05) rotate(1deg);
+}
+
+.offer-tabs-nav button {
+  position: relative;
+  padding-bottom: 4px;
+}
+
+.offer-tabs-nav button::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--luxury-sakura);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.offer-tabs-nav button.text-luxury-sakura::after {
+  transform: scaleX(1);
+}
+
+.sticker-tiny:hover {
+  transform: scale(1.05) rotate(1deg);
+}
+
 .package-card {
     background: rgba(255, 255, 255, 0.01);
     backdrop-filter: blur(40px);
@@ -109,21 +242,7 @@
 }
 
 .variant-image-hero {
-    mask-image: linear-gradient(to bottom, black 60%, transparent 95%);
-    -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 95%);
     transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.variant-image-hero::after {
-    content: '';
-    position: absolute;
-    bottom: -10%;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(to top, var(--deep-bg) 10%, transparent 100%);
-    z-index: 5;
-    pointer-events: none;
 }
 
 /* GLOSSY SHINE ON IMAGE */
@@ -148,55 +267,39 @@
 
 .active .variant-image-hero {
     background: radial-gradient(circle at center, rgba(255, 183, 197, 0.15) 0%, transparent 70%);
-    animation: aura-pulse 4s infinite ease-in-out;
-}
-
-@keyframes aura-pulse {
-    0%, 100% { opacity: 0.5; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.1); }
-}
-
-.active .quantity-glow-badge {
-    background: var(--luxury-sakura);
-    color: var(--deep-bg);
-    box-shadow: 0 0 30px var(--luxury-sakura);
-}
-
-@keyframes breathing-zoom {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.04); }
-}
-
-.animate-breathing-zoom {
-    animation: breathing-zoom 6s ease-in-out infinite;
 }
 
 /* LIQUID CTA BUTTON */
+/* 🚀 ELITE SIÊU CTA (ELITE V7.3: MICSMO COPPER IDENTITY) */
 .liquid-cta-viral {
-    background: linear-gradient(135deg, var(--luxury-sakura) 0%, #D48C9A 100%);
-    position: relative;
-    overflow: hidden;
-    transition: all 0.5s ease;
-}
-
-.liquid-cta-viral::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: 0.5s;
-}
-
-.liquid-cta-viral:hover::before {
-    left: 100%;
+  background: linear-gradient(135deg, #C18F7E 0%, #E8D5B0 100%);
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 4px 25px rgba(193, 143, 126, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.2);
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1) !important;
+  animation: cta-breathing 4s infinite ease-in-out;
+  position: relative;
+  overflow: hidden;
 }
 
 .liquid-cta-viral:hover {
-    transform: scale(1.02);
-    box-shadow: 0 20px 40px rgba(255, 183, 197, 0.3);
+  filter: brightness(1.1);
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 15px 40px rgba(193, 143, 126, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.liquid-cta-viral:active {
+  transform: scale(0.95);
+}
+
+@keyframes cta-breathing {
+  0%, 100% { box-shadow: 0 4px 20px rgba(193, 143, 126, 0.3); }
+  50% { box-shadow: 0 8px 35px rgba(193, 143, 126, 0.6); }
+}
+
+.fomo-header-viral {
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.15em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* STATUS BAR */
@@ -286,4 +389,206 @@
     .variant-image-hero {
         height: 280px;
     }
+}
+
+/* 💎 ELITE PRICE CLUSTER (UNIFIED V2.4) */
+.elite-price-cluster h5 {
+  text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.elite-price-cluster .original-price {
+  transform: translateY(2px);
+}
+
+.elite-price-cluster .animate-pulse {
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .7; transform: scale(0.95); }
+}
+
+/* 🎫 ELITE VOUCHER STICKERS (STATIONARY) */
+.active-vouchers-row {
+  min-height: 24px;
+}
+
+.elite-voucher-sticker {
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.elite-voucher-sticker:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.2);
+}
+
+/* 💰 ULTIMATE SAVINGS BOX (GOLD & RED LED) */
+.ultimate-savings-box {
+  background: linear-gradient(135deg, #FFD700 0%, #FDB931 50%, #FFD700 100%);
+  color: #000 !important;
+  font-family: 'Inter', sans-serif;
+}
+
+.animate-led-red-pulse {
+  animation: led-red-pulse 1s infinite alternate;
+}
+
+@keyframes led-red-pulse {
+  0% { 
+    background-color: #ff0000;
+    box-shadow: 0 0 2px #ff0000;
+  }
+  100% { 
+    background-color: #8b0000;
+    box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
+  }
+}
+
+/* 💎 BOTTOM SHEET OVERLAY (ELITE V2.6) */
+.offer-overlay-viral {
+   border-top-left-radius: 3.5rem !important;
+   border-top-right-radius: 3.5rem !important;
+   box-shadow: 0 -20px 100px rgba(0, 0, 0, 0.9);
+}
+
+.modal-drag-handle {
+   box-shadow: 0 0 10px rgba(255,255,255,0.05);
+}
+
+/* 🎫 ENLARGED VOUCHER TAG (74px) */
+.viral-voucher-tag.relative.h-\[74px\] {
+  height: 74px !important;
+}
+
+.active-viral-tag {
+  background: rgba(255, 183, 197, 0.1) !important;
+  border-color: rgba(255, 183, 197, 0.4) !important;
+}
+
+.viral-voucher-tag:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 💎 ELITE VOUCHER ACTION BUTTONS (V2.7) */
+.voucher-action-btn {
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  letter-spacing: 0.15em;
+}
+
+.voucher-action-btn.active {
+  box-shadow: 0 0 20px rgba(255, 183, 197, 0.4);
+}
+
+/* ✨ LIQUID DONE BUTTON (GRADIENT SHIMMER) */
+.liquid-done-btn {
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.liquid-done-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  width: 50%;
+  transform: skewX(-20deg) translateX(-150%);
+  transition: transform 0.8s ease;
+}
+
+.liquid-done-btn:hover::after {
+  transform: skewX(-20deg) translateX(300%);
+}
+
+/* 🌑 MODAL BACKDROP (ELITE V2.8) */
+.modal-backdrop {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(12px) saturate(150%);
+    pointer-events: auto;
+}
+
+/* 🏔️ CENTERED BOTTOM SHEET ON DESKTOP */
+@media (min-width: 768px) {
+    .offer-overlay-viral {
+        border-radius: 4rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        max-height: 80vh !important;
+    }
+}
+
+/* 🌪️ MINI DONE BUTTON & AREA (ELITE V5.5) */
+.liquid-done-btn-mini {
+  background: linear-gradient(135deg, var(--luxury-sakura) 0%, #FFD1DC 100%);
+  color: #000 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 40px rgba(255, 183, 197, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.liquid-done-btn-mini:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 15px 50px rgba(255, 183, 197, 0.6);
+}
+
+.liquid-done-btn-mini:active {
+  transform: scale(0.95);
+}
+
+.done-area-mini {
+  background: linear-gradient(to top, #060606 80%, transparent) !important;
+}
+
+.viral-voucher-tag-mini {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+.viral-voucher-tag-mini:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 183, 197, 0.2);
+}
+
+/* 🎫 MINI VOUCHER ACTION BUTTON (ELITE V5.9) */
+.voucher-action-btn-mini {
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* STATE: AVAILABLE (LẤY) */
+.voucher-action-btn-mini:not(.active) {
+  background: rgba(255, 183, 197, 0.05);
+  border: 1px solid rgba(255, 183, 197, 0.2);
+  color: var(--luxury-sakura);
+  backdrop-filter: blur(5px);
+}
+
+.voucher-action-btn-mini:not(.active):hover {
+  background: rgba(255, 183, 197, 0.1);
+  border-color: var(--luxury-sakura);
+  transform: translateY(-1px);
+}
+
+/* STATE: SELECTED (DÙNG) */
+.voucher-action-btn-mini.active {
+  background: linear-gradient(135deg, var(--luxury-sakura) 0%, #FFD1DC 100%);
+  color: #000 !important;
+  box-shadow: 0 4px 15px rgba(255, 183, 197, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.voucher-action-btn-mini.active:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(255, 183, 197, 0.6);
 }

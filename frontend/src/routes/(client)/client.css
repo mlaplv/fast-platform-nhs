@@ -42,10 +42,10 @@
   --liquid-blur: 0px !important;
   --glass-blur: 0px !important;
 
-  /* Glowing Sakura & Honey Gold (Viral 2026 Elite V2.2) */
-  --luxury-sakura: #FFB7C5;
+  /* Brand Identity: MICSMO COPPER & HONEY GOLD (Elite V7.3) */
+  --luxury-sakura: #C18F7E; /* MICSMO Brand Copper */
   --luxury-gold: #E8D5B0;
-  --luxury-copper: #FFB7C5; /* Aliasing for compatibility */
+  --luxury-copper: #C18F7E; 
   --luxury-peach: #FFF0F0;
   --luxury-accent-bright: #FFFFFF;
 
