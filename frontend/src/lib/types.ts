@@ -301,13 +301,15 @@ export interface HeroMetric {
 export interface Review {
   id: string | number;
   name: string;
+  customer_name?: string;
   phone?: string;
-  location: string;
+  location?: string;
   rating: number;
   content: string;
-  initial: string;
+  initial?: string;
   avatar?: string;
   created_at?: string;
+  is_verified?: boolean;
   attributes?: Record<string, string>;
   attachments?: ReviewAttachment[];
   likes_count?: number;
@@ -320,11 +322,12 @@ export interface ReviewAttachment {
 }
 
 export interface ReviewStats {
-  total_count: int;
-  average_rating: float;
-  rating_breakdown: Record<number, number>;
-  has_content_count: int;
-  has_media_count: int;
+  total_count: number;
+  average_rating: number;
+  rating_breakdown?: Record<number, number>;
+  rating_distribution?: Record<string, number>;
+  has_content_count?: number;
+  has_media_count?: number;
 }
 
 export interface QuizOption {
@@ -664,24 +667,4 @@ export interface Voucher {
   usage_limit?: number;
   used_count: number;
   is_active: boolean;
-}
-export interface ReviewAttachment {
-  url: string;
-  type?: 'image' | 'video';
-}
-
-export interface Review {
-  id: string;
-  customer_name: string;
-  rating: number;
-  content: string;
-  created_at: string;
-  attachments?: ReviewAttachment[];
-  is_verified?: boolean;
-}
-
-export interface ReviewStats {
-  average_rating: number;
-  total_count: number;
-  rating_distribution: Record<string, number>;
 }

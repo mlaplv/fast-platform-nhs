@@ -1,5 +1,5 @@
 import { permissionState, getAuthToken } from "../permissions.svelte";
-import type { Product } from "$lib/types";
+import type { Product, UpdateProductPayload } from "$lib/types";
 
 // Elite V2.2: Deep Indexing Types
 type RecordObject = Record<string, unknown>;
@@ -104,7 +104,7 @@ class LiveEditStore {
         }
         const p = this.dirtyProduct;
         
-        const payload: any = {
+        const payload: UpdateProductPayload = {
             name: p.name,
             shortDescription: p.shortDescription || '',
             metadata: p.metadata,

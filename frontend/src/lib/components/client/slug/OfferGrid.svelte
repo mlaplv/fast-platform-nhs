@@ -6,7 +6,7 @@
   import { resolveMediaUrl } from '$lib/state/utils';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
-  import type { Product, ProductVariant } from '$lib/types';
+  import type { Product, ProductVariant, Voucher } from '$lib/types';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
   import { ShoppingCart, CheckCircle2, ArrowRight, Zap, Sparkles, Check, Ticket } from 'lucide-svelte';
   import { scale, fade, fly } from 'svelte/transition';
@@ -54,9 +54,9 @@
   // --- Voucher Logic (Elite V2.2) ---
   const productVouchers = $derived.by(() => {
     const rawVouchers = cartStore.vouchers && cartStore.vouchers.length > 0 ? cartStore.vouchers : [];
-    return rawVouchers.map((v: any) => ({
+    return rawVouchers.map((v: Voucher) => ({
       id: v.id,
-      label: v.id || v.code || v.name || 'ƯU ĐÃI',
+      label: v.id || v.title || 'ƯU ĐÃI',
       sub: v.type === 'SHIPPING' ? 'SHIPPING 0Đ' : (v.type === 'PERCENT' ? `${v.value}%` : `${v.value?.toLocaleString()}đ`),
       type: v.type === 'SHIPPING' ? 'ship' : 'discount',
       value: v.value || 0
@@ -70,7 +70,7 @@
     }
   });
 
-  function handleVoucherClick(v: any) {
+  function handleVoucherClick(v: { id: string }) {
     if (v.id) {
       shopStore.toggleVoucher(v.id);
     }
@@ -106,11 +106,16 @@
   let isDetailsOpen = $state(false);
   
   function getVariantTitle(variant: ProductVariant): string {
-    if (!product?.tierVariations?.length || !variant.tierIndex?.length) return variant.sku || 'Combo';
-    return variant.tierIndex.map((optIdx: number, tierIdx: number) => {
+    const qty = variant.attributes?.combo_qty || 1;
+    const qtySuffix = qty > 1 ? ` - BỘ ${qty} MÓN` : '';
+    
+    if (!product?.tierVariations?.length || !variant.tierIndex?.length) return (variant.sku || 'Combo') + qtySuffix;
+    const title = variant.tierIndex.map((optIdx: number, tierIdx: number) => {
       const option = product.tierVariations![tierIdx]?.options[optIdx];
       return option || '';
     }).filter(Boolean).join(' - ') || 'Combo';
+    
+    return title + qtySuffix;
   }
 
   const displayQty = $derived(shopStore.variant?.attributes?.combo_qty || shopStore.quantity);
@@ -167,6 +172,9 @@
 
   function handleCheckout(e: MouseEvent, variant: ProductVariant) {
     e.stopPropagation();
+    // Elite V7.6: Force select variant immediately on buy now click
+    shopStore.selectVariant(variant);
+    
     if (product) {
         // Elite V7.4: Ensure selected vouchers are synced to cart for correct checkout price
         cartStore.buyNow(product, variant, shopStore.quantity, shopStore.selectedVoucherIds);
@@ -300,6 +308,12 @@
                 <div class="px-5 pb-6 pt-2 flex flex-col flex-grow relative z-20">
                    <!-- 💎 ELITE PRICE CLUSTER -->
                    <div class="elite-price-cluster flex flex-col items-center md:items-start gap-0 mb-2">
+                       {#if variant.attributes?.combo_qty && variant.attributes.combo_qty > 1}
+                          <div class="combo-volume-badge mb-1.5 flex items-center gap-1 px-2.5 py-1 rounded-md bg-luxury-sakura/10 border border-luxury-sakura/20">
+                             <Ticket class="w-2.5 h-2.5 text-luxury-sakura" />
+                             <span class="text-[9px] font-black text-luxury-sakura uppercase tracking-[0.2em]">SỐ LƯỢNG: {variant.attributes.combo_qty} SẢN PHẨM</span>
+                          </div>
+                       {/if}
                       <h5 class="text-[15px] font-black text-white italic tracking-tighter text-center md:text-left leading-none mb-1">{getVariantTitle(variant)}</h5>
                       <div class="flex items-center gap-2 leading-none">
                          {#if variant.price > finalPrice}
@@ -418,7 +432,7 @@
 
                   <!-- 🚀 ELITE CTA BUTTON (UNIFIED INSIDE CARD) -->
                   <button 
-                    onclick={(e) => { e.stopPropagation(); isCardActive ? handleCheckout(e, variant) : selectVariant(variant); }}
+                    onclick={(e) => handleCheckout(e, variant)}
                     class="liquid-cta-viral text-white min-h-[76px] rounded-2xl font-black shadow-2xl relative overflow-hidden flex flex-col items-center justify-center px-5 w-full mt-4 transition-all duration-500 {isCardActive ? 'scale-[1.03] cursor-pointer ring-2 ring-white/30' : 'pointer-events-auto cursor-pointer'}"
                   >
                      <!-- ⚡ FOMO HEADER (VIRAL 2026: ULTRA-MINIMALIST) -->
