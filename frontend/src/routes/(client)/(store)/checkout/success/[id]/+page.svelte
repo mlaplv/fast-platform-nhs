@@ -361,9 +361,54 @@
                 {/if}
 
                 <div class="mt-6 pt-6 border-t border-slate-100 space-y-3">
-                   <div class="flex justify-between text-[11px] font-black text-slate-400 uppercase italic"><span>Tổng cộng:</span><span>{formatCurrency(order.total_amount)}</span></div>
-                   <div class="flex justify-between text-[11px] font-black text-emerald-500 uppercase italic"><span>Vận chuyển:</span><span>MIỄN PHÍ</span></div>
-                   <div class="flex justify-between items-end pt-2">
+                   {@const subtotal = order.items.reduce((acc, it) => acc + (it.total_price || 0), 0)}
+                   {@const voucherDiscount = Number(order.order_metadata?.voucher_discount || 0)}
+                   {@const comboDiscount = Number(order.order_metadata?.combo_discount || 0)}
+                   {@const totalSavings = voucherDiscount + comboDiscount}
+
+                   <div class="flex justify-between text-[11px] font-black text-slate-400 uppercase italic">
+                      <span>Tạm tính:</span>
+                      <span>{formatCurrency(subtotal)}</span>
+                   </div>
+                   
+                   {#if comboDiscount > 0}
+                     <div class="flex justify-between text-[11px] font-black text-emerald-500 uppercase italic">
+                        <span>Ưu đãi Combo:</span>
+                        <span>-{formatCurrency(comboDiscount)}</span>
+                     </div>
+                   {/if}
+                   
+                   {#if voucherDiscount > 0}
+                     <div class="flex justify-between text-[11px] font-black text-pink-500 uppercase italic">
+                        <span>Voucher giảm giá:</span>
+                        <span>-{formatCurrency(voucherDiscount)}</span>
+                     </div>
+                   {/if}
+
+                   <div class="flex justify-between text-[11px] font-black text-emerald-500 uppercase italic">
+                      <span>Vận chuyển:</span>
+                      <span>MIỄN PHÍ</span>
+                   </div>
+
+                   <!-- 🧧 VIRAL SAVINGS BADGE -->
+                   {#if totalSavings > 0}
+                     <div 
+                       class="relative py-3 px-4 bg-gradient-to-r from-emerald-500/10 to-transparent border-l-2 border-emerald-500 mt-4 overflow-hidden group"
+                       in:fly={{ x: -20, delay: 600 }}
+                     >
+                        <div class="flex items-center gap-2">
+                           <div class="p-1 bg-emerald-500 text-white rounded-full">
+                              <Sparkles size={10} class="animate-pulse" />
+                           </div>
+                           <span class="text-[10px] font-black text-emerald-600 uppercase italic tracking-wider">
+                              YAY! BẠN ĐÃ TIẾT KIỆM ĐƯỢC {formatCurrency(totalSavings)}
+                           </span>
+                        </div>
+                        <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 -translate-x-full animate-[shimmer_2s_infinite]"></div>
+                     </div>
+                   {/if}
+
+                   <div class="flex justify-between items-end pt-4">
                       <span class="text-[10px] font-black text-slate-900 uppercase italic">TỔNG THANH TOÁN:</span>
                       <span class="text-3xl font-black text-[#ee4d2d] italic tabular-nums">{formatCurrency(order.total_amount)}</span>
                    </div>

@@ -174,17 +174,42 @@
     </div>
 
     <div class="w-full bg-white shadow-sm border-t-4 border-[#ee4d2d] p-6 mb-6 text-left space-y-8">
-      <div class="flex justify-between items-start pb-6 border-b border-slate-50">
-        <div>
-           <span class="text-[9px] font-black text-slate-500 uppercase block mb-1">Mã liệu trình</span>
-           <div class="bg-slate-50 px-2 py-1 border border-slate-100" onclick={copyOrderId} role="button" tabindex="0">
-             <span class="text-xs font-black text-slate-900 tracking-widest uppercase italic">{copied ? 'COPIED!' : `#${orderId.slice(-6).toUpperCase()}`}</span>
+      <div class="flex flex-col gap-6 pb-6 border-b border-slate-50">
+        <div class="flex justify-between items-start">
+           <div>
+              <span class="text-[9px] font-black text-slate-500 uppercase block mb-1">Mã liệu trình</span>
+              <div class="bg-slate-50 px-2 py-1 border border-slate-100" onclick={copyOrderId} role="button" tabindex="0">
+                <span class="text-xs font-black text-slate-900 tracking-widest uppercase italic">{copied ? 'COPIED!' : `#${orderId.slice(-6).toUpperCase()}`}</span>
+              </div>
+           </div>
+           <div class="text-right">
+              <span class="text-[9px] font-black text-slate-400 uppercase block mb-1">Tổng thanh toán</span>
+              <span class="text-xl font-black text-[#ee4d2d] italic tabular-nums">{formatCurrency(order?.total_amount || 0)}</span>
            </div>
         </div>
-        <div class="text-right">
-           <span class="text-[9px] font-black text-slate-400 uppercase block mb-1">Tổng thanh toán</span>
-           <span class="text-xl font-black text-[#ee4d2d] italic tabular-nums">{formatCurrency(order?.total_amount || 0)}</span>
-        </div>
+
+        <!-- 🚀 [ELITE V2.2] Viral Savings Breakdown -->
+        {@const voucherDiscount = Number(order.order_metadata?.voucher_discount || 0)}
+        {@const comboDiscount = Number(order.order_metadata?.combo_discount || 0)}
+        {@const totalSavings = voucherDiscount + comboDiscount}
+
+        {#if totalSavings > 0}
+          <div 
+            class="py-4 px-4 bg-emerald-500/5 border-l-2 border-emerald-500 rounded-r-lg group relative overflow-hidden"
+            in:fly={{ x: -20, delay: 400 }}
+          >
+             <div class="flex items-center gap-3">
+                <div class="w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                   <Sparkles size={14} class="animate-pulse" />
+                </div>
+                <div class="flex flex-col">
+                   <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">SIÊU ƯU ĐÃI</span>
+                   <span class="text-[10px] font-black text-emerald-600 uppercase italic">TIẾT KIỆM {formatCurrency(totalSavings)}</span>
+                </div>
+             </div>
+             <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/40 to-white/0 -translate-x-full animate-[shimmer_2.5s_infinite]"></div>
+          </div>
+        {/if}
       </div>
 
       <div class="space-y-6">

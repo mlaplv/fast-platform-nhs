@@ -230,11 +230,15 @@ class CheckoutService:
             "items": items_list,
             "is_mobile": is_mobile_device(user_agent),
             "payment_method": payload.payment_method,
-            "shipping_fee": payload.shipping_fee
+            "shipping_fee": payload.shipping_fee,
+            "combo_discount": combo_discount,
+            "voucher_discount": voucher_discount
         }
 
         if payload.voucher_id:
             order_metadata["voucher_id"] = payload.voucher_id
+            # 🚀 [ELITE V2.2] ACCOUNTING: Increment voucher usage & protect against abuse
+            await PromotionService.validate_and_use_voucher(db_session, payload.voucher_id, payload.customer_phone)
         
         if payload.note:
             order_metadata["customer_note"] = payload.note

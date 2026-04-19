@@ -104,6 +104,45 @@ class PromotionService:
         return min(discount, subtotal)
 
     @staticmethod
+    async def validate_and_use_voucher(db_session: AsyncSession, voucher_id: str, phone: str) -> Optional[Voucher]:
+        """
+        [ELITE V2.2] Shopee-Style Voucher Accounting & Protection
+        Increments usage count and prevents multi-use per phone.
+        """
+        from backend.database.models.commerce import Order
+        from sqlalchemy import update, func
+        
+        # 1. Anti-Abuse: Check if this phone used this voucher already
+        # Using JSONB containment check for order_metadata.voucher_id
+        usage_stmt = select(Order).where(
+            and_(
+                Order.customer_phone == phone,
+                Order.order_metadata["voucher_id"].astext == voucher_id,
+                Order.status != "CANCELLED"
+            )
+        ).limit(1)
+        usage_res = await db_session.execute(usage_stmt)
+        if usage_res.scalar_one_or_none():
+            logger.warning(f"[VOUCHER-ABUSE] Phone {phone} attempted second use of voucher {voucher_id}")
+            raise ValidationException("Bạn đã sử dụng mã giảm giá này cho đơn hàng trước đó.")
+
+        # 2. Atomic Increment & Limit Check
+        # We fetch the voucher first to check limits
+        voucher = await PromotionService.get_active_voucher(db_session, voucher_id)
+        if not voucher:
+             raise NotFoundException("Mã giảm giá không hợp lệ hoặc đã hết hạn.")
+             
+        if voucher.usage_limit and voucher.used_count >= voucher.usage_limit:
+             logger.warning(f"[VOUCHER-EXHAUSTED] Voucher {voucher_id} reached limit {voucher.usage_limit}")
+             raise ValidationException("Mã giảm giá này đã hết lượt sử dụng.")
+
+        # Atomic increment
+        voucher.used_count += 1
+        db_session.add(voucher)
+        # No full commit here, we let the CheckoutService handle the transaction commit
+        return voucher
+
+    @staticmethod
     async def ensure_default_vouchers(db_session: AsyncSession):
         """Seed default vouchers if they don't exist (Backward Compatibility)."""
         defaults = [
