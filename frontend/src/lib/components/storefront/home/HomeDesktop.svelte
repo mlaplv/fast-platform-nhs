@@ -5,7 +5,6 @@
   import HomeCategory from './HomeCategory.svelte';
   import HomeFlashDeal from './HomeFlashDeal.svelte';
   import HomeProductGrid from './HomeProductGrid.svelte';
-  import CategoryPills from './CategoryPills.svelte';
 
   interface Props {
     banners: Banner[];
@@ -35,10 +34,6 @@
       <HomeBanner {banners} />
       
       <!-- Viral 2026 Category Navigation -->
-      <div class="sticky top-[var(--z-header)] bg-white z-[var(--z-category-pills)]">
-        <CategoryPills {categories} activeTab={activeCatIndex} onTabChange={handleCatChange} />
-      </div>
-
       <HomeCategory {categories} />
     </div>
   </div>

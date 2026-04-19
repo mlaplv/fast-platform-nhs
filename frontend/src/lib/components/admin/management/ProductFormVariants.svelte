@@ -510,9 +510,9 @@
                 {/each}
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-12 text-center border-l border-white/5 whitespace-nowrap">Mặc định</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-amber-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Bán</th>
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-rose-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Khuyến Mãi</th>
+                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-rose-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Khuyến Mãi / 1 sản phẩm</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-20 border-l border-white/5 whitespace-nowrap">Kho Hàng</th>
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-cyan-400/60 min-w-[200px] border-l border-white/5">Thiết Lập Combo & Quà</th>
+                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-cyan-400/60 min-w-[200px] border-l border-white/5">Thiết Lập Combo(Số lượng bắt buộc để áp dụng) & Quà(nếu có)</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 min-w-[120px] border-l border-white/5">SKU (Mã PL)</th>
               </tr>
             </thead>
