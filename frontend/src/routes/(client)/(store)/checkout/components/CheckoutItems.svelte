@@ -31,7 +31,7 @@
         <span class="italic">GIỎ HÀNG</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-[10px] bg-gray-50 px-2 py-1 text-gray-400 font-bold uppercase tracking-widest">{cartStore.selectedItemsCount} SẢN PHẨM</span>
+        <span class="text-[10px] bg-gray-50 px-2 py-1 text-gray-400 font-bold uppercase tracking-widest">{cartStore.items.filter(i => i.selected).length} SẢN PHẨM</span>
         <button 
           onclick={async () => { 
             const confirmed = await clientUi.openConfirm({

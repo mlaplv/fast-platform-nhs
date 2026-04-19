@@ -10,7 +10,20 @@
      */
     let { data }: { data: PageData } = $props();
 
-    console.error('!!! MISSION CONTROL LOADED !!!', { tenant: data.tenant });
+    if (typeof window !== 'undefined') {
+        const styles = [
+            'color: #C5A25D',
+            'background: #000',
+            'padding: 4px 12px',
+            'border-radius: 4px',
+            'font-weight: 900',
+            'border: 1px solid #C5A25D',
+            'font-family: serif',
+            'text-transform: uppercase',
+            'letter-spacing: 0.2em'
+        ].join(';');
+        console.info(`%c!!! MISSION CONTROL LOADED !!! tenant: ${data.tenant}`, styles);
+    }
 
     // ELITE V2.2: Strict Typing for Dynamic Imports
     interface DynamicModuleProps {

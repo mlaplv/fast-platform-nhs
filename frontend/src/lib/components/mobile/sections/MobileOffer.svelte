@@ -53,12 +53,11 @@
   )));
 
   const productVouchers = $derived.by(() => {
-    // 🗄️ ĐỒNG BỘ TUYỆT ĐỐI VỚI DATABASE - TRẢ LẠI DỮ LIỆU THỰC
-    const rawVouchers = cartStore.vouchers && cartStore.vouchers.length > 0 ? cartStore.vouchers : [];
+    const rawVouchers = (cartStore.vouchers && cartStore.vouchers.length > 0 ? cartStore.vouchers : []) as Voucher[];
 
-    return rawVouchers.map((v: any) => ({
+    return rawVouchers.map((v) => ({
       id: v.id,
-      label: v.id || v.code || v.name || 'ƯU ĐÃI', // Ưu tiên hiển thị mã code thật (SALE60K...)
+      label: v.title || v.id || 'ƯU ĐÃI',
       sub: v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : (v.type === 'PERCENT' ? `GIẢM ${v.value}%` : `GIẢM ${v.value?.toLocaleString()}đ`),
       type: v.type === 'SHIPPING' ? 'ship' : 'discount',
       value: v.value || 0,
@@ -102,7 +101,7 @@
     }
   };
 
-  function handleVoucherClick(v: any) {
+  function handleVoucherClick(v: Voucher | { id: string }) {
     if (v.id) {
       shopStore.toggleVoucher(v.id);
     }

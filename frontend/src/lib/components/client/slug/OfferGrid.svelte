@@ -8,7 +8,7 @@
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import type { Product, ProductVariant, Voucher } from '$lib/types';
   import { SHOP_CONFIG, OFFER_CONSTANTS } from '$lib/constants/shop';
-  import { ShoppingCart, CheckCircle2, ArrowRight, Zap, Sparkles, Check, Ticket } from 'lucide-svelte';
+  import { ShoppingCart, CheckCircle2, ArrowRight, Zap, Sparkles, Check, Ticket, ArrowUpDown, ArrowDownNarrowWide, ArrowUpWideNarrow } from 'lucide-svelte';
   import { scale, fade, fly } from 'svelte/transition';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { cubicOut, cubicIn } from 'svelte/easing';
@@ -52,15 +52,30 @@
   });
 
   // --- Voucher Logic (Elite V2.2) ---
+  let voucherSortOrder = $state<'none' | 'desc' | 'asc'>('none');
+  
+  function toggleVoucherSort() {
+    if (voucherSortOrder === 'none') voucherSortOrder = 'desc';
+    else if (voucherSortOrder === 'desc') voucherSortOrder = 'asc';
+    else voucherSortOrder = 'none';
+  }
+
   const productVouchers = $derived.by(() => {
     const rawVouchers = cartStore.vouchers && cartStore.vouchers.length > 0 ? cartStore.vouchers : [];
-    return rawVouchers.map((v: Voucher) => ({
+    let mapped = rawVouchers.map((v: Voucher) => ({
       id: v.id,
       label: v.id || v.title || 'ƯU ĐÃI',
       sub: v.type === 'SHIPPING' ? 'SHIPPING 0Đ' : (v.type === 'PERCENT' ? `${v.value}%` : `${v.value?.toLocaleString()}đ`),
       type: v.type === 'SHIPPING' ? 'ship' : 'discount',
       value: v.value || 0
     }));
+
+    if (voucherSortOrder === 'desc') {
+      return [...mapped].sort((a, b) => b.value - a.value);
+    } else if (voucherSortOrder === 'asc') {
+      return [...mapped].sort((a, b) => a.value - b.value);
+    }
+    return mapped;
   });
 
   // --- ĐỒNG BỘ HÓA VOUCHER (ELITE V5.8: REACTIVITY FIX) ---
@@ -166,18 +181,21 @@
 
   function selectVariant(variant: ProductVariant) {
     shopStore.selectVariant(variant);
-    // Đối với combo trong OfferGrid, mặc định chọn số lượng 1 (vì số lượng thực tế đã nằm trong combo_qty)
-    shopStore.setQuantity(1);
+    // Elite V2.2: Set quantity to match combo volume (e.g. 2 or 3)
+    const qty = variant.attributes?.combo_qty || 1;
+    shopStore.setQuantity(qty);
   }
 
   function handleCheckout(e: MouseEvent, variant: ProductVariant) {
     e.stopPropagation();
     // Elite V7.6: Force select variant immediately on buy now click
     shopStore.selectVariant(variant);
+    const qty = variant.attributes?.combo_qty || 1;
+    shopStore.setQuantity(qty);
     
     if (product) {
         // Elite V7.4: Ensure selected vouchers are synced to cart for correct checkout price
-        cartStore.buyNow(product, variant, shopStore.quantity, shopStore.selectedVoucherIds);
+        cartStore.buyNow(product, variant, qty, shopStore.selectedVoucherIds);
     }
     window.location.href = '/checkout';
   }
@@ -396,16 +414,17 @@
                       onclick={(e) => { e.stopPropagation(); togglePopover(variant.id); }}
                       role="button"
                       tabindex="0"
-                      class="package-offer-box mt-auto mb-2 bg-gradient-to-br from-luxury-sakura/15 via-black/40 to-transparent p-3 px-1.5 rounded-2xl border border-luxury-sakura/10 transition-all duration-500 hover:border-luxury-sakura/30 cursor-pointer relative z-30"
+                      class="package-offer-box mt-auto mb-2 bg-gradient-to-br from-luxury-sakura/15 via-black/40 to-transparent p-4 pl-0.5 rounded-2xl transition-all duration-500 cursor-pointer relative z-30"
                     >
-                      <div class="flex items-center justify-between mb-1 px-1.5 pointer-events-none">
+                      <div class="viral-liquid-border"></div>
+                      <div class="flex items-center justify-start mb-1 px-0.5 pointer-events-none">
                          <span class="text-[9px] text-luxury-sakura font-black uppercase tracking-[0.2em] flex items-center gap-2">
                             <span class="w-1.5 h-1.5 rounded-full bg-luxury-sakura animate-pulse"></span>
                             {hasVouchers ? (hasGifts ? 'Ưu đãi & Quà tặng' : 'Mã giảm giá') : 'Quà tặng độc quyền'}
                          </span>
                       </div>
 
-                       <div class="flex items-center gap-1.5 mt-3 pointer-events-none overflow-x-auto scrollbar-hide">
+                       <div class="flex items-center gap-1.5 mt-3 pointer-events-none overflow-x-auto scrollbar-hide pl-3">
                          {#if (productVouchers.filter(v => shopStore.selectedVoucherIds.includes(v.id))).length > 0}
                            {#each productVouchers.filter(v => shopStore.selectedVoucherIds.includes(v.id)) as v}
                              <div class="sticker-mini-preview flex items-center gap-1.5 bg-luxury-sakura/10 px-1 py-1.5 rounded-lg border border-luxury-sakura/20 shadow-[0_0_10px_rgba(255,183,197,0.1)]">
@@ -424,7 +443,7 @@
                          {/if}
                        </div>
 
-                      <p class="text-[8px] text-white/30 uppercase font-bold tracking-widest mt-4 flex items-center gap-2 pointer-events-none">
+                      <p class="text-[8px] text-white/30 uppercase font-bold tracking-widest mt-4 flex items-center gap-2 pointer-events-none pl-3">
                         Bấm để xem chi tiết <ArrowRight size={8} class="text-luxury-sakura" />
                       </p>
                     </div>
@@ -499,6 +518,25 @@
                                class="text-[9px] font-black uppercase tracking-wider transition-all {currentTab === 'gifts' ? 'text-luxury-sakura' : 'text-white/30'}"
                              >
                                QUÀ TẶNG
+                             </button>
+                           {/if}
+
+                           <!-- ⚡ ELITE SORT TOGGLE -->
+                           {#if currentTab === 'vouchers' && productVouchers.length > 1}
+                             <button 
+                               onclick={(e) => { e.stopPropagation(); toggleVoucherSort(); }}
+                               class="ml-auto flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all active:scale-95"
+                             >
+                               <span class="text-[7px] font-black text-white/40 uppercase tracking-tighter">
+                                 {voucherSortOrder === 'none' ? 'Mặc định' : (voucherSortOrder === 'desc' ? 'Giá trị cao' : 'Giá trị thấp')}
+                               </span>
+                               {#if voucherSortOrder === 'desc'}
+                                 <ArrowDownNarrowWide size={10} class="text-luxury-sakura" />
+                               {:else if voucherSortOrder === 'asc'}
+                                 <ArrowUpWideNarrow size={10} class="text-luxury-sakura" />
+                               {:else}
+                                 <ArrowUpDown size={10} class="text-white/20" />
+                               {/if}
                              </button>
                            {/if}
                          </div>

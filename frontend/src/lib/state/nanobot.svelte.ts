@@ -107,9 +107,9 @@ export function createNanobotState() {
     liveStreamBuffer: "" as string, // CNS V86.5: Real-time neural stream buffer
     watermarkEditor: {
       show: false,
-      asset: null as any | null,
+      asset: null as MediaAsset | null,
       assetId: null as string | null,
-      onApply: null as ((params: any) => void) | null,
+      onApply: null as ((params: Record<string, unknown>) => void) | null,
       logoEnabled: true,
       textEnabled: false,
       text: "",
@@ -354,7 +354,7 @@ export function createNanobotState() {
     
     // Watermark Control
     get watermarkEditor() { return state.watermarkEditor; },
-    openWatermarkEditor: (asset: any, onApply: (params: any) => void) => {
+    openWatermarkEditor: (asset: MediaAsset, onApply: (params: Record<string, unknown>) => void) => {
       state.watermarkEditor.asset = asset;
       state.watermarkEditor.assetId = asset?.id || null;
       state.watermarkEditor.onApply = onApply;

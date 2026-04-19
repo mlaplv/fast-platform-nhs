@@ -1,20 +1,12 @@
 <script lang="ts">
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import type { GenericPageData } from '$lib/types';
   import HomeProductGrid from '$lib/components/storefront/home/HomeProductGrid.svelte';
   import ProductListMobile from '$lib/components/storefront/product/ProductListMobile.svelte';
-  import { onMount } from 'svelte';
 
-  let { data }: { data: any } = $props();
-
-  let isMobile = $state(false);
-
-  onMount(() => {
-    isMobile = window.innerWidth < 768;
-    const handleResize = () => {
-      isMobile = window.innerWidth < 768;
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  });
+  let { data }: { data: GenericPageData } = $props();
+  const ui = getClientUi();
+  const isMobile = $derived(ui.isMobile);
 </script>
 
 <svelte:head>
