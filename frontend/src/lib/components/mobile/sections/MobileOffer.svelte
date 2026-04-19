@@ -19,6 +19,7 @@
   import { fade, fly, scale } from 'svelte/transition';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { onMount } from 'svelte';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
   // --- Props & State (Runes) ---
   let { product: propProduct } = $props();
@@ -315,11 +316,14 @@
   </div>
   
   <!-- 🛰️ CTA HUD -->
-  <div class="mt-auto z-[var(--z-nav)] pt-2 pb-2 relative bg-gradient-to-t from-black via-black/95 to-transparent shrink-0">
+  <div class="mt-auto pt-2 pb-2 relative bg-gradient-to-t from-black via-black/95 to-transparent shrink-0" style="z-index: {Z_INDEX_CLIENT.OVERLAY};">
       <div class="px-3 pb-2">
         <button
-           onclick={() => { if (!selectedVariant) return; shopStore.openCheckout(); }}
-           class="w-full h-[70px] rounded-[2rem] font-black text-[15px] uppercase tracking-[0.1em] flex items-center justify-center transition-all duration-700 italic active:scale-95 bg-white/10 backdrop-blur-3xl border border-white/20 shadow-2xl relative group overflow-hidden"
+           onclick={() => { 
+             if (!selectedVariant) return;
+             shopStore.openCheckout(cartStore, product as Product); 
+           }}
+           class="w-full h-[70px] rounded-[2rem] font-black text-[15px] uppercase tracking-[0.1em] flex items-center justify-center transition-all duration-700 italic active:scale-95 bg-white/10 backdrop-blur-3xl border border-white/20 shadow-2xl relative group overflow-hidden pointer-events-auto cursor-pointer"
          >
            <div class="absolute inset-0 bg-gradient-to-r from-[#FFB7C5]/20 via-transparent to-[#FFB7C5]/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
            <div class="relative z-10 flex items-center justify-between w-full px-6 gap-3">

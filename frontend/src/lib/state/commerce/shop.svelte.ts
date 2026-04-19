@@ -2,6 +2,7 @@ import { setContext, getContext } from 'svelte';
 import { browser } from '$app/environment';
 import { apiClient, ApiError } from '$lib/utils/apiClient';
 import type { Product, ProductVariant, PromotionDeal, Voucher } from '$lib/types';
+import type { CartStore } from '$lib/state/commerce/cart.svelte';
 
 /** Domain model for auto-fill state (used by identity shield) */
 interface CustomerData {
@@ -284,6 +285,24 @@ export class ShopStore {
         if (found) {
             this.variant = found;
             this.quantity = 1;
+        }
+    }
+
+    openCheckout(cartStore: CartStore, product: Product): void {
+        if (!this.variant || !product) return;
+
+        // Pass vouchers to ensure price syncs correctly in the checkout flow
+        try {
+            cartStore.buyNow(product, this.variant, this.quantity, this.selectedVoucherIds);
+        } catch (e) {
+            console.error('[ShopStore] Failed to sync to CartStore', e);
+        }
+        
+        if (browser) {
+            // Cinematic delay for interaction feedback
+            setTimeout(() => {
+                window.location.href = '/checkout';
+            }, 150);
         }
     }
 
