@@ -8,6 +8,7 @@
   let { 
     searchInput = $bindable(), 
     activeFilter = $bindable(), 
+    categoryFilter = $bindable(),
     totalVouchers, 
     isLoading, 
     isAllSelected,
@@ -18,6 +19,7 @@
   } = $props<{
     searchInput: string;
     activeFilter: string;
+    categoryFilter: string;
     totalVouchers: number;
     isLoading: boolean;
     isAllSelected: boolean;
@@ -63,6 +65,34 @@
         class="px-4 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest transition-all {activeFilter === 'inactive' ? 'bg-neon-cyan text-black font-bold' : 'text-gray-500 hover:text-white'}"
       >
         Đã tắt
+      </button>
+    </div>
+
+    <!-- Category Filter (Elite V2.2) -->
+    <div class="flex items-center bg-white/[0.03] border border-white/10 rounded-full p-1">
+      <button
+        onclick={() => categoryFilter = "ALL"}
+        class="px-4 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest transition-all {categoryFilter === 'ALL' ? 'bg-amber-400 text-black font-bold' : 'text-gray-500 hover:text-white'}"
+      >
+        Tất cả mục
+      </button>
+      <button
+        onclick={() => categoryFilter = "SHIPPING"}
+        class="px-4 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest transition-all {categoryFilter === 'SHIPPING' ? 'bg-amber-400 text-black font-bold' : 'text-gray-500 hover:text-white'}"
+      >
+        Vận chuyển
+      </button>
+      <button
+        onclick={() => categoryFilter = "DISCOUNT"}
+        class="px-4 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest transition-all {categoryFilter === 'DISCOUNT' ? 'bg-amber-400 text-black font-bold' : 'text-gray-500 hover:text-white'}"
+      >
+        Giảm giá
+      </button>
+      <button
+        onclick={() => categoryFilter = "GIFT"}
+        class="px-4 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest transition-all {categoryFilter === 'GIFT' ? 'bg-amber-400 text-black font-bold' : 'text-gray-500 hover:text-white'}"
+      >
+        Quà tặng
       </button>
     </div>
   </div>

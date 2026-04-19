@@ -13,6 +13,7 @@ class PromotionAdminService:
         db_session: AsyncSession, 
         search: Optional[str] = None,
         is_active: Optional[bool] = None,
+        category: Optional[str] = None,
         limit: int = 100, 
         offset: int = 0
     ) -> VoucherListResponse:
@@ -23,6 +24,8 @@ class PromotionAdminService:
             stmt = stmt.where(Voucher.id.ilike(f"%{search}%"))
         if is_active is not None:
             stmt = stmt.where(Voucher.is_active == is_active)
+        if category:
+            stmt = stmt.where(Voucher.category == category)
             
         # Count total
         count_stmt = select(func.count()).select_from(stmt.subquery())
@@ -60,11 +63,23 @@ class PromotionAdminService:
             raise NotFoundException(f"Voucher {voucher_id} không tồn tại.")
             
         update_data = data.model_dump(exclude_unset=True)
+        is_setting_default = update_data.get("is_default", False)
+        
+        if is_setting_default:
+            tenant_id = voucher.tenant_id
+            category = update_data.get("category") or voucher.category
+            # Unset all other defaults in same category
+            await db_session.execute(
+                update(Voucher)
+                .where(and_(Voucher.tenant_id == tenant_id, Voucher.category == category, Voucher.id != voucher_id))
+                .values(is_default=False)
+            )
+
         for key, value in update_data.items():
             setattr(voucher, key, value)
             
         await db_session.commit()
-        return SuccessResponse(message=f"Đậm cập nhật voucher {voucher_id} thành công.")
+        return SuccessResponse(message=f"Đã cập nhật voucher {voucher_id} thành công.")
 
     async def delete_voucher(self, db_session: AsyncSession, voucher_id: str) -> SuccessResponse:
         voucher = await db_session.get(Voucher, voucher_id)
@@ -85,14 +100,33 @@ class PromotionAdminService:
         await db_session.commit()
         return SuccessResponse(message=f"Đã xoá {len(ids)} voucher thành công.")
 
-    async def bulk_update_status(self, db_session: AsyncSession, ids: List[str], is_active: bool) -> SuccessResponse:
+    async def bulk_update_status(self, db_session: AsyncSession, ids: List[str], is_active: Optional[bool] = None, is_default: Optional[bool] = None) -> SuccessResponse:
         if not ids:
             return SuccessResponse(message="Không có voucher nào được chọn.")
         
         tenant_id = current_tenant_id.get() or "default"
-        stmt = update(Voucher).where(and_(Voucher.id.in_(ids), Voucher.tenant_id == tenant_id)).values(is_active=is_active)
-        await db_session.execute(stmt)
+        
+        if is_active is not None:
+            stmt = update(Voucher).where(and_(Voucher.id.in_(ids), Voucher.tenant_id == tenant_id)).values(is_active=is_active)
+            await db_session.execute(stmt)
+            
+        if is_default is True:
+            # For bulk setting default, we pick the LAST one in the list to be the absolute default per category
+            # To be safe, we iterate through categories of selected vouchers
+            stmt = select(Voucher).where(and_(Voucher.id.in_(ids), Voucher.tenant_id == tenant_id))
+            vouchers = (await db_session.execute(stmt)).scalars().all()
+            
+            categories = set(v.category for v in vouchers)
+            for cat in categories:
+                # Unset all in category
+                await db_session.execute(
+                    update(Voucher).where(and_(Voucher.tenant_id == tenant_id, Voucher.category == cat)).values(is_default=False)
+                )
+                # Set the last one from our selection in this category to True
+                last_in_cat = [v for v in vouchers if v.category == cat][-1]
+                last_in_cat.is_default = True
+        
         await db_session.commit()
-        return SuccessResponse(message=f"Đã cập nhật trạng thái cho {len(ids)} voucher thành công.")
+        return SuccessResponse(message=f"Đã cập nhật hàng loạt {len(ids)} voucher thành công.")
 
 promotion_admin_service = PromotionAdminService()

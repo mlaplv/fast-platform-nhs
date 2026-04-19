@@ -35,6 +35,9 @@ class Voucher(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     start_date: Mapped[Optional[sa.DateTime]] = mapped_column(DateTime(timezone=True))
     end_date: Mapped[Optional[sa.DateTime]] = mapped_column(DateTime(timezone=True))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    category: Mapped[str] = mapped_column(String, default="DISCOUNT") # DISCOUNT, SHIPPING, GIFT
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    priority: Mapped[int] = mapped_column(Integer, default=0)
 
 class ComboDeal(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'combo_deals'

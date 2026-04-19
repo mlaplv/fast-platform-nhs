@@ -32,7 +32,7 @@
     CheckoutResponse,
     CustomerLookupResponse
   } from '$lib/types/commerce/checkout';
-  import type { User } from '$lib/state/authStore.svelte.ts';
+  import type { User, UserAddress } from '$lib/state/authStore.svelte';
 
   const cartStore = getCartStore();
   const clientUi = getClientUi();
@@ -111,8 +111,8 @@
            if (user) {
               authStore.syncUser(user);
 
-              const addresses = user.extra_metadata?.addresses || [];
-              const defaultAddr = addresses.find(a => a.isDefault);
+              const addresses: UserAddress[] = user.extra_metadata?.addresses || [];
+              const defaultAddr = addresses.find((a: UserAddress) => a.isDefault);
 
               const isFormEmpty = !form.province || !form.street;
 
@@ -140,15 +140,33 @@
   // [ELITE V2.2] Auto-Stick Protocol: Intelligence-based Voucher Selection
   $effect(() => {
     if (cartStore.vouchers.length > 0) {
-      const hasShippingSelected = cartStore.selectedVoucherIds.some(id => 
-        cartStore.vouchers.find(v => v.id === id)?.type === 'SHIPPING'
+      // 1. Auto-apply Shipping Voucher
+      const hasShippingSelected = cartStore.selectedVoucherIds.some((id: string) => 
+        cartStore.vouchers.find((v: Voucher) => v.id === id)?.type === 'SHIPPING'
       );
       
       if (!hasShippingSelected) {
-        const defaultShip = cartStore.vouchers.find(v => v.id === 'FREESHIP60' || (v.type === 'SHIPPING' && v.value === 60000));
+        const defaultShip = cartStore.vouchers
+          .filter((v: Voucher) => v.is_default && v.type === 'SHIPPING' && cartStore.totalAmountWithoutDiscount >= (v.min_spend || 0))
+          .sort((a: Voucher, b: Voucher) => (b.priority || 0) - (a.priority || 0))[0];
+          
         if (defaultShip) {
-          // Use toggleVoucher to respect exclusive selection logic (1 Ship + 1 Discount)
           cartStore.toggleVoucher(defaultShip.id);
+        }
+      }
+
+      // 2. Auto-apply Discount Voucher
+      const hasDiscountSelected = cartStore.selectedVoucherIds.some((id: string) => 
+        ['FIXED', 'PERCENT'].includes(cartStore.vouchers.find((v: Voucher) => v.id === id)?.type || '')
+      );
+
+      if (!hasDiscountSelected) {
+        const defaultDiscount = cartStore.vouchers
+          .filter((v: Voucher) => v.is_default && ['FIXED', 'PERCENT'].includes(v.type) && cartStore.totalAmountWithoutDiscount >= (v.min_spend || 0))
+          .sort((a: Voucher, b: Voucher) => (b.priority || 0) - (a.priority || 0))[0];
+          
+        if (defaultDiscount) {
+          cartStore.toggleVoucher(defaultDiscount.id);
         }
       }
     }
@@ -161,11 +179,11 @@
   $effect(() => {
     for (const item of cartStore.items) {
       if (!item.selected) continue;
-      const comboVariants = item.product?.variants?.filter(v => v.attributes && v.attributes.combo_qty) || [];
+      const comboVariants = item.product?.variants?.filter((v: any) => v.attributes && v.attributes.combo_qty) || [];
       if (comboVariants.length === 0) continue;
 
-      const sortedTiers = [...comboVariants].sort((a, b) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty));
-      const reachedTier = sortedTiers.find(v => Number(v.attributes.combo_qty) <= item.quantity);
+      const sortedTiers = [...comboVariants].sort((a: any, b: any) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty));
+      const reachedTier = sortedTiers.find((v: any) => Number(v.attributes.combo_qty) <= item.quantity);
       const tierId = reachedTier?.id || 'base';
 
       const lastId = prevTierMap.get(item.id);
@@ -207,13 +225,13 @@
   }
 
   const normalize = (s: string) => s.normalize('NFC').toLowerCase().trim();
-  const validProvinces = $derived(vnDivisions.filter(p => 'id' in p));
-  const selectedProvinceData = $derived(validProvinces.find(p => p.name === form.province));
+  const validProvinces = $derived(vnDivisions.filter((p: any) => 'id' in p));
+  const selectedProvinceData = $derived(validProvinces.find((p: any) => p.name === form.province));
 
   const canExpress = $derived.by(() => {
     if (!selectedProvinceData?.has_express || !form.ward) return false;
     const normWard = normalize(form.ward);
-    return selectedProvinceData.express_supported_wards?.some(w => normalize(w) === normWard) || false;
+    return selectedProvinceData.express_supported_wards?.some((w: string) => normalize(w) === normWard) || false;
   });
 
   $effect(() => {
@@ -230,8 +248,8 @@
 
     if (form.shippingMethod === 'express' && selectedProvinceData?.express_fee) {
        // Elite V2.2: Check if a shipping voucher is applied to zero out or reduce express fee
-       const hasShippingDiscount = cartStore.selectedVoucherIds.some(id => {
-          const v = cartStore.vouchers.find(v => v.id === id);
+       const hasShippingDiscount = cartStore.selectedVoucherIds.some((id: string) => {
+          const v = cartStore.vouchers.find((v: Voucher) => v.id === id);
           return v?.type === 'SHIPPING';
        });
        
@@ -261,8 +279,8 @@
 
   const originalSubtotal = $derived.by(() => {
     return cartStore.items
-      .filter(i => i.selected)
-      .reduce((acc, item) => acc + ((item.variant?.price ?? item.product.price ?? 0) * item.quantity), 0);
+      .filter((i: any) => i.selected)
+      .reduce((acc: number, item: any) => acc + ((item.variant?.price ?? item.product.price ?? 0) * item.quantity), 0);
   });
 
   const productSavings = $derived(originalSubtotal - cartStore.totalAmountWithoutDiscount);
@@ -271,7 +289,7 @@
 
   // --- HELEN AI PRICE INTELLIGENCE (CHECKOUT CONTEXT) ---
   const helenAdvice = $derived.by(() => {
-    const selectedItems = cartStore.items.filter(i => i.selected);
+    const selectedItems = cartStore.items.filter((i: any) => i.selected);
     if (selectedItems.length === 0) return "";
 
     const advices: { gravity: number; text: string }[] = [];
@@ -309,7 +327,7 @@
     return "Tuyệt vời! Đơn hàng của bạn đã đạt mức giá tối ưu cho tất cả liệu trình. Helen cam kết bảo vệ quyền lợi và chất lượng sản phẩm cho bạn.";
   });
 
-  function toggleVoucher(voucher: import('$lib/types').Voucher) {
+  function toggleVoucher(voucher: Voucher) {
     if (cartStore.totalAmountWithoutDiscount < (voucher.min_spend || 0)) {
       clientUi.showToast(`Cần mua thêm ${formatCurrency((voucher.min_spend || 0) - cartStore.totalAmountWithoutDiscount)}!`, 'info');
       return;
@@ -525,7 +543,7 @@
           <!-- Items list -->
           <div class="bg-white rounded-xl shadow-sm mb-3 mt-1 overflow-hidden mx-2">
             <!-- Gift Banner -->
-            {#if cartStore.items.some((i) => i.product.discountPrice)}
+            {#if cartStore.items.some((i: any) => i.product.discountPrice)}
               <div class="bg-[#fff0f1] text-[#fe2c55] text-[13px] font-medium px-3 py-3 flex items-center justify-between border-b border-[#ffe1e3]">
                 <div class="flex items-center gap-1.5">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>

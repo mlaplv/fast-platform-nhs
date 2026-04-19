@@ -7,39 +7,43 @@
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
 
-  // Define Voucher interface for local usage
-  interface Voucher {
-    id: string;
-    type: string;
-    value: number;
-    min_spend: number;
-    max_discount?: number | null;
-    usage_limit?: number | null;
-    start_date?: string | null;
-    end_date?: string | null;
-    is_active: boolean;
-  }
+  import type { Voucher } from "$lib/types";
 
-  let { isOpen = $bindable(false), voucherId = "", onClose, onReload } = $props<{
+  let { 
+    voucherId = null, 
+    isOpen = $bindable(false), 
+    onSaved = () => {} 
+  } = $props<{
+    voucherId: string | null;
     isOpen: boolean;
-    voucherId?: string;
-    onClose: () => void;
-    onReload: () => void;
+    onSaved: () => void;
   }>();
 
   let isLoading = $state(false);
   let isSaving = $state(false);
 
-  let form = $state<Voucher>({
+  let form = $state({
     id: "",
     type: "FIXED",
     value: 0,
     min_spend: 0,
-    max_discount: null,
-    usage_limit: null,
+    max_discount: null as number | null,
+    usage_limit: null as number | null,
     start_date: "",
     end_date: "",
-    is_active: true
+    is_active: true,
+    category: "",
+    is_default: false,
+    priority: 0
+  });
+
+  // [ELITE V2.2] Auto-Sync Category selection with Voucher Type
+  $effect(() => {
+    if (form.type === 'SHIPPING' && (form.category === '' || form.category === 'DISCOUNT')) {
+      form.category = 'SHIPPING';
+    } else if (['FIXED', 'PERCENT'].includes(form.type) && (form.category === '' || form.category === 'SHIPPING')) {
+      form.category = 'DISCOUNT';
+    }
   });
 
   $effect(() => {
@@ -67,7 +71,10 @@
           usage_limit: voucher.usage_limit,
           start_date: voucher.start_date ? voucher.start_date.split('T')[0] : "",
           end_date: voucher.end_date ? voucher.end_date.split('T')[0] : "",
-          is_active: voucher.is_active
+          is_active: voucher.is_active,
+          category: voucher.category || "DISCOUNT",
+          is_default: voucher.is_default || false,
+          priority: voucher.priority || 0
         };
       }
     } catch (error: unknown) {
@@ -87,7 +94,10 @@
       usage_limit: null,
       start_date: "",
       end_date: "",
-      is_active: true
+      is_active: true,
+      category: "",
+      is_default: false,
+      priority: 0
     };
   }
 
@@ -109,8 +119,8 @@
         await apiClient.post(`/api/v1/admin/vouchers`, payload);
         nanobot.showToast(`Đã tạo voucher ${payload.id}`, "success");
       }
-      onReload();
-      onClose();
+      onSaved();
+      isOpen = false;
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Lỗi khi lưu voucher";
       nanobot.showToast(msg, "error");
@@ -125,8 +135,8 @@
   <div
     class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000]"
     transition:fade={{ duration: 300 }}
-    onclick={onClose}
-    onkeydown={(e) => e.key === "Escape" && onClose()}
+    onclick={() => (isOpen = false)}
+    onkeydown={(e) => e.key === "Escape" && (isOpen = false)}
     role="button"
     tabindex="0"
     aria-label="Close Drawer"
@@ -149,7 +159,7 @@
         </div>
       </div>
       <button
-        onclick={onClose}
+        onclick={() => (isOpen = false)}
         class="p-2 hover:bg-white/5 rounded-full transition-colors text-gray-400 hover:text-white"
       >
         <X size={20} />
@@ -200,6 +210,50 @@
                 bind:value={form.value}
                 class="w-full bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-cyan/50 text-sm font-mono"
               />
+            </div>
+          </div>
+
+          <!-- Elite V2.2: Category, Priority & Default (Promoted to Top) -->
+          <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="block text-[11px] font-black text-emerald-400 tracking-widest uppercase">Thiết lập mặc định</span>
+                <span class="text-[9px] text-gray-500 uppercase tracking-tighter">Elite Auto-Stick Engine</span>
+              </div>
+              <button
+                onclick={() => (form.is_default = !form.is_default)}
+                class="w-12 h-6 rounded-full transition-all relative {form.is_default ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-gray-800'}"
+                aria-label="Toggle default status"
+                role="switch"
+                aria-checked={form.is_default}
+              >
+                <div class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all {form.is_default ? 'left-7' : 'left-1'}"></div>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-category">Phân loại (Tab)</label>
+                <select
+                  id="v-category"
+                  bind:value={form.category}
+                  class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500/50 text-sm"
+                >
+                  <option value="" disabled class="bg-[#050505]">--- Chọn phân loại ---</option>
+                  <option value="DISCOUNT" class="bg-[#050505]">Giảm giá (Discount)</option>
+                  <option value="SHIPPING" class="bg-[#050505]">Vận chuyển (Shipping)</option>
+                  <option value="GIFT" class="bg-[#050505]">Quà tặng (Gift)</option>
+                </select>
+              </div>
+              <div class="space-y-2">
+                <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-priority">Độ ưu tiên</label>
+                <input
+                  id="v-priority"
+                  type="number"
+                  bind:value={form.priority}
+                  class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500/50 text-sm font-mono"
+                />
+              </div>
             </div>
           </div>
 
@@ -256,7 +310,7 @@
             </div>
             <button
               onclick={() => (form.is_active = !form.is_active)}
-              class="w-12 h-6 rounded-full transition-all relative {form.is_active ? 'bg-neon-cyan' : 'bg-gray-800'}"
+              class="w-12 h-6 rounded-full transition-all relative {form.is_active ? 'bg-neon-cyan shadow-[0_0_15px_rgba(0,243,255,0.3)]' : 'bg-gray-800'}"
               aria-label="Toggle active status"
               role="switch"
               aria-checked={form.is_active}

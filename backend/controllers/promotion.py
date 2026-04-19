@@ -21,11 +21,12 @@ class PromotionController(Controller):
         db_session: AsyncSession, 
         search: Optional[str] = None,
         is_active: Optional[bool] = None,
+        category: Optional[str] = None,
         limit: int = 100, 
         offset: int = 0
     ) -> VoucherListResponse:
         """List all vouchers with optional filters."""
-        return await promotion_admin_service.list_vouchers(db_session, search, is_active, limit, offset)
+        return await promotion_admin_service.list_vouchers(db_session, search, is_active, category, limit, offset)
 
     @post("/")
     async def create_voucher(self, db_session: AsyncSession, data: CreateVoucherRequest) -> SuccessResponse:
@@ -52,5 +53,6 @@ class PromotionController(Controller):
     async def bulk_update_status(self, db_session: AsyncSession, data: dict) -> SuccessResponse:
         """Update status for multiple vouchers."""
         voucher_ids = data.get("ids", [])
-        is_active = data.get("is_active", True)
-        return await promotion_admin_service.bulk_update_status(db_session, voucher_ids, is_active)
+        is_active = data.get("is_active")
+        is_default = data.get("is_default")
+        return await promotion_admin_service.bulk_update_status(db_session, voucher_ids, is_active, is_default)

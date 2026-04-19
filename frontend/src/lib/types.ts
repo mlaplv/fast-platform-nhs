@@ -670,4 +670,7 @@ export interface Voucher {
   usage_limit?: number;
   used_count: number;
   is_active: boolean;
+  category: string;
+  is_default: boolean;
+  priority: number;
 }

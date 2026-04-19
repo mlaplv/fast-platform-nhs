@@ -9,15 +9,46 @@
   }>();
 
   const cartStore = getCartStore();
+
+  let activeCategory = $state('ALL');
+  const categories = [
+    { id: 'ALL', label: 'Tất cả', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+    { id: 'SHIPPING', label: 'Vận chuyển', icon: 'M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 011 1v2a1 1 0 01-1 1h-1m-4-14H5a1 1 0 00-1 1v9a1 1 0 001 1h3m3 3H5a1 1 0 01-1-1v-2a1 1 0 011-1h6' },
+    { id: 'DISCOUNT', label: 'Giảm giá', icon: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z' },
+    { id: 'GIFT', label: 'Quà tặng', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' }
+  ];
+
+  let filteredVouchers = $derived.by(() => {
+    if (activeCategory === 'ALL') return vouchers;
+    return vouchers.filter(v => v.category === activeCategory);
+  });
 </script>
 
-<div class="pt-2 space-y-3">
-  <h2 class="text-sm font-bold uppercase text-gray-800 flex items-center gap-2 mb-2 border-b border-gray-50 pb-2">
-    <svg class="w-4 h-4 text-[#fe2c55]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
-    Voucher & Ưu đãi
-  </h2>
+<div class="pt-2 space-y-4">
+  <div class="flex items-center justify-between border-b border-gray-50 pb-2">
+    <h2 class="text-sm font-bold uppercase text-gray-800 flex items-center gap-2">
+      <svg class="w-4 h-4 text-[#fe2c55]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
+      Kho Voucher
+    </h2>
+    <span class="text-[10px] font-bold text-[#fe2c55] bg-[#fff0f1] px-2 py-0.5 rounded-full">Elite V2.2</span>
+  </div>
+
+  <!-- Category Tabs -->
+  <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+    {#each categories as cat}
+      <button
+        type="button"
+        onclick={() => activeCategory = cat.id}
+        class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border {activeCategory === cat.id ? 'bg-gray-900 border-gray-900 text-white shadow-sm' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-300'}"
+      >
+        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d={cat.icon} /></svg>
+        {cat.label}
+      </button>
+    {/each}
+  </div>
+
   <div class="grid grid-cols-2 md:grid-cols-2 gap-2">
-    {#each vouchers as v}
+    {#each filteredVouchers as v}
       {@const isSelected = cartStore.selectedVoucherIds.includes(v.id)}
       {@const isEligible = cartStore.totalAmountWithoutDiscount >= (v.min_spend || 0)}
       <button 

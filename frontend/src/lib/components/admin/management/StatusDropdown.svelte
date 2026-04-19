@@ -96,7 +96,7 @@
       <div class="flex items-center gap-2 overflow-hidden">
         <Activity size={10} class="{isOpen ? 'text-neon-cyan animate-pulse' : 'text-gray-600'}" />
         <span class="text-[10px] font-mono uppercase tracking-[0.15em] truncate {isOpen ? 'text-white font-black' : 'text-neon-cyan/80 font-bold'}">
-          {isOpen ? placeholder : "OPS_CORE"}
+          {label || statusMap[currentStatus]?.label || currentStatus || placeholder}
         </span>
       </div>
       <ChevronDown size={12} class="text-gray-500 transition-all duration-500 {isOpen ? 'rotate-180 text-neon-cyan' : 'group-hover:text-neon-cyan'}" />

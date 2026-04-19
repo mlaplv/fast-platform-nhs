@@ -5,7 +5,7 @@
   import Search from "lucide-svelte/icons/search";
   import Ticket from "lucide-svelte/icons/ticket";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import type { BaseWidgetProps } from "$lib/types";
+  import type { BaseWidgetProps, Voucher } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
@@ -14,21 +14,6 @@
   import VoucherFilters from "./VoucherFilters.svelte";
   import OrderPagination from "./OrderPagination.svelte"; // Reusing pagination layout
   import BulkActionBar from "./BulkActionBar.svelte";
-
-  export interface Voucher {
-    id: string;
-    type: "FIXED" | "PERCENT" | "SHIPPING";
-    value: number;
-    min_spend: number;
-    max_discount?: number | null;
-    usage_limit?: number | null;
-    used_count: number;
-    start_date?: string | null;
-    end_date?: string | null;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-  }
 
   let { data = {} } = $props<BaseWidgetProps>();
 
@@ -39,6 +24,7 @@
   let searchTerm = $state("");
   let searchInput = $state("");
   let activeFilter = $state("all");
+  let categoryFilter = $state("ALL");
 
   let currentPage = $state(1);
   let pageSize = $state(10);
@@ -57,6 +43,7 @@
       });
       if (activeFilter === "active") params.append("is_active", "true");
       if (activeFilter === "inactive") params.append("is_active", "false");
+      if (categoryFilter !== "ALL") params.append("category", categoryFilter);
       if (searchTerm) params.append("search", searchTerm);
 
       const res = await apiClient.get<{ data: Voucher[]; total: number }>(
@@ -153,7 +140,7 @@
     INACTIVE: { label: "TẮT HOẠT ĐỘNG", color: "text-gray-500", border: "border-gray-500" }
   };
 
-  async function handleDeleteBulk() {
+  const handleDeleteBulk = async () => {
     const confirm = await nanobot.showConfirm({
       title: "XÁC NHẬN XOÁ HÀNG LOẠT",
       message: `Bạn có chắc chắn muốn xoá ${selectedIds.length} voucher đã chọn? Hành động này không thể hoàn tác.`,
@@ -171,9 +158,9 @@
         nanobot.showToast(msg, "error");
       }
     }
-  }
+  };
 
-  async function handleStatusBulk(status: string) {
+  const handleStatusBulk = async (status: string) => {
     const is_active = status === "ACTIVE";
     try {
       await apiClient.post(`/api/v1/admin/vouchers/bulk-status`, { ids: selectedIds, is_active });
@@ -184,7 +171,33 @@
       const msg = error instanceof Error ? error.message : String(error);
       nanobot.showToast(msg, "error");
     }
-  }
+  };
+
+  const handleToggleDefault = async (id: string) => {
+    try {
+      const voucher = vouchers.find(v => v.id === id);
+      if (!voucher) return;
+      const newVal = !voucher.is_default;
+      await apiClient.patch(`/api/v1/admin/vouchers/${id}`, { is_default: newVal });
+      nanobot.showToast(`Đã cập nhật mặc định cho ${id}`, "success");
+      loadVouchers();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      nanobot.showToast(msg, "error");
+    }
+  };
+
+  const handleSetDefaultBulk = async () => {
+    try {
+      await apiClient.post(`/api/v1/admin/vouchers/bulk-status`, { ids: selectedIds, is_default: true });
+      nanobot.showToast(`Đã đặt ${selectedIds.length} voucher làm mặc định`, "success");
+      selectedIds = [];
+      loadVouchers();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      nanobot.showToast(msg, "error");
+    }
+  };
 
   let totalPages = $derived(Math.max(1, Math.ceil(totalVouchers / pageSize)));
   let isAllSelected = $derived(vouchers.length > 0 && vouchers.every(v => selectedIds.includes(v.id)));
@@ -194,6 +207,7 @@
   <VoucherFilters
     bind:searchInput
     bind:activeFilter
+    bind:categoryFilter
     {totalVouchers}
     {isLoading}
     {isAllSelected}
@@ -225,6 +239,7 @@
             onOpenDetail={openDrawer}
             onDelete={handleDelete}
             onToggleSelect={toggleSelect}
+            onSetDefault={handleToggleDefault}
           />
         {/each}
       </div>
@@ -243,6 +258,7 @@
     onClear={() => selectedIds = []}
     onDeleteBulk={handleDeleteBulk}
     onArchiveBulk={() => handleStatusBulk("INACTIVE")}
+    onSetDefaultBulk={handleSetDefaultBulk}
     onStatusBulk={handleStatusBulk}
     statusMap={VOUCHER_STATUS_MAP}
   />
@@ -250,9 +266,8 @@
 
 <VoucherDrawer
   bind:isOpen={isDrawerOpen}
-  voucherId={selectedVoucherId || ""}
-  onClose={() => (isDrawerOpen = false)}
-  onReload={loadVouchers}
+  voucherId={selectedVoucherId}
+  onSaved={loadVouchers}
 />
 
 <style>

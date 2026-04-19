@@ -15,6 +15,9 @@ class VoucherBase(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     is_active: bool = True
+    category: str = Field("DISCOUNT")
+    is_default: bool = Field(False)
+    priority: int = Field(0)
 
 class CreateVoucherRequest(VoucherBase):
     pass
@@ -30,6 +33,9 @@ class UpdateVoucherRequest(BaseModel):
     is_active: Optional[bool] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    category: Optional[str] = None
+    is_default: Optional[bool] = None
+    priority: Optional[int] = None
 
 class VoucherResponse(VoucherBase):
     model_config = ConfigDict(from_attributes=True)
