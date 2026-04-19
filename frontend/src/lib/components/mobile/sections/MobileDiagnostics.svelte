@@ -268,7 +268,14 @@
           <!-- Sticky Action Footer (Naked Style) -->
           <div class="flex-none space-y-4 pb-4 mt-auto relative z-modal">
             <button 
-              onclick={() => shopStore.openCheckout()}
+              onclick={() => {
+                const recommendedQty = shopStore.diagnosticResult?.quantity || 1;
+                const variant = shopStore.product?.variants?.find(v => (v.attributes?.combo_qty || 1) === recommendedQty);
+                if (variant) {
+                  shopStore.selectVariant(variant);
+                }
+                document.getElementById('offer-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               class="w-full py-4 bg-[#FFB7C5]/90 rounded-2xl font-black text-slate-950 text-[13px] tracking-[0.3em] flex items-center justify-center gap-2 active:scale-95 transition-all uppercase italic shadow-[0_10px_30px_rgba(255,183,197,0.2)]"
             >
               XEM LIỆU TRÌNH <ArrowRight class="w-4 h-4" />

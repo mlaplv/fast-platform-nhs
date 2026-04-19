@@ -329,9 +329,17 @@
             </div>
           </div>
 
+
           <div class="flex flex-col gap-4 max-w-sm mx-auto mt-8 md:mt-10 lg:mt-12">
             <button
-              onclick={() => shopStore.openCheckout()}
+              onclick={() => {
+                const recommendedQty = shopStore.diagnosticResult?.quantity || 1;
+                const variant = shopStore.product?.variants?.find(v => (v.attributes?.combo_qty || 1) === recommendedQty);
+                if (variant) {
+                  shopStore.selectVariant(variant);
+                }
+                document.getElementById('offers')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               class="group relative w-full py-5 md:py-6 bg-luxury-copper text-white rounded-[2rem] font-semibold text-2xl md:text-2xl lg:text-3xl shadow-[0_20px_50px_rgba(193,143,126,0.4)] overflow-hidden active:scale-[0.98] transition-all duration-500"
             >
               <span class="relative z-surface">XEM LIỆU TRÌNH</span>

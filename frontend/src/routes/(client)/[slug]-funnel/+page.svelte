@@ -309,7 +309,7 @@
       {/if}
     </section>
 
-    <StealthCheckout />
+
   {:else}
     <div class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white">
        <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>

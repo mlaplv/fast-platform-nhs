@@ -148,7 +148,9 @@
     {product} 
     {isTikTokActive}
     {isScrollingDown}
-    onPurchase={() => shopStore.openCheckout()} 
+    onPurchase={() => {
+      document.getElementById('offer-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }} 
     onOpenDetails={() => isDetailsModalOpen = true}
     onChat={() => supportAgent.toggle()}
   />
@@ -183,6 +185,6 @@
     <MobileOffer {product} />
   </section>
 
-  <MobileBottomSheet bind:active={shopStore.isCheckoutOpen} {product} />
+
   <MobileProductDetailsModal bind:active={isDetailsModalOpen} {product} />
 </div>
