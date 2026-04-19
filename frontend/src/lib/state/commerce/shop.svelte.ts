@@ -84,6 +84,10 @@ export class ShopStore {
     // Vouchers (Elite V2.2)
     vouchers = $state<Voucher[]>([]);
     selectedVoucherIds = $state<string[]>([]);
+    
+    // ⚡ Elite V2.2: Mini-Sheet Transient State
+    voucherSortOrder = $state<'none' | 'desc' | 'asc'>('none');
+    activeOfferTab = $state<Record<number, 'vouchers' | 'gifts'>>({});
 
     // 🛡️ Elite V2.2: Privacy & Stealth Features
     isStealthMode = $state<boolean>(true); // Default to protected
@@ -133,16 +137,13 @@ export class ShopStore {
             this.selectedVoucherIds = this.selectedVoucherIds.filter(v => v !== id);
         } else {
             // Group-based exclusive selection (Elite V2.2 Standard)
-            // Separate types: SHIPPING (freeship) and others (discounts)
             if (voucher.type === 'SHIPPING') {
-                // Keep other types, but remove existing shipping vouchers
                 const otherTypes = this.selectedVoucherIds.filter(vId => {
                     const existing = this.vouchers.find(v => v.id === vId);
                     return existing?.type !== 'SHIPPING';
                 });
                 this.selectedVoucherIds = [...otherTypes, id];
             } else {
-                // Remove existing discount vouchers (FIXED/PERCENT)
                 const otherTypes = this.selectedVoucherIds.filter(vId => {
                     const existing = this.vouchers.find(v => v.id === vId);
                     return existing?.type === 'SHIPPING';
@@ -150,6 +151,16 @@ export class ShopStore {
                 this.selectedVoucherIds = [...otherTypes, id];
             }
         }
+    }
+
+    toggleVoucherSort(): void {
+        if (this.voucherSortOrder === 'none') this.voucherSortOrder = 'desc';
+        else if (this.voucherSortOrder === 'desc') this.voucherSortOrder = 'asc';
+        else this.voucherSortOrder = 'none';
+    }
+
+    setOfferTab(idx: number, tab: 'vouchers' | 'gifts'): void {
+        this.activeOfferTab[idx] = tab;
     }
 
     appliedDeal = $derived.by((): PromotionDeal | null => {
@@ -192,6 +203,22 @@ export class ShopStore {
         return this.variant?.price ?? this.product.price ?? 0;
     });
 
+    /** ELITE V2.2: Computed sorting for mini-sheet */
+    productVouchers = $derived.by(() => {
+        const raw = this.vouchers || [];
+        let mapped = raw.map((v: Voucher) => ({
+            id: v.id,
+            label: v.id || v.title || 'ƯU ĐÃI',
+            sub: v.type === 'SHIPPING' ? 'SHIPPING 0Đ' : (v.type === 'PERCENT' ? `${v.value}%` : `${v.value?.toLocaleString()}đ`),
+            type: v.type === 'SHIPPING' ? 'ship' : 'discount',
+            value: v.value || 0
+        }));
+
+        if (this.voucherSortOrder === 'desc') return [...mapped].sort((a, b) => b.value - a.value);
+        if (this.voucherSortOrder === 'asc') return [...mapped].sort((a, b) => a.value - b.value);
+        return mapped;
+    });
+
     /**
      * ELITE V2.2: Helper to calculate what-if price for any variant with current vouchers
      * Used by Grid to show live price updates on all cards simultaneously.
@@ -224,14 +251,10 @@ export class ShopStore {
         this.timeLeft = productData.metadata?.scarcity_seconds ?? 1800;
         this.startTimer();
         if (!this.variant && productData?.variants && productData.variants.length > 0) {
-            // Mặc định chọn Loại 2 (Best Seller) nếu có
             this.variant = productData.variants.length > 1 ? productData.variants[1] : productData.variants[0];
-            
-            // ELITE V2.2: Default quantity should be 1 when using combo-based variants
             this.quantity = 1;
         }
         
-        // 🚀 ELITE V2.2: Load Gift Info from Storage (F5 Persistence)
         if (browser) {
             const saved = localStorage.getItem('elite_shop_gift');
             if (saved) {
@@ -246,8 +269,6 @@ export class ShopStore {
 
     setVouchers(data: Voucher[]): void {
         this.vouchers = data || [];
-        
-        // 🚀 ELITE V2.2: Auto-select Free Ship vouchers ONLY if no selection exists yet (Elite V6.4 Fix)
         if (this.selectedVoucherIds.length === 0) {
             const shipVoucher = this.vouchers.find(v => v.type === 'SHIPPING');
             if (shipVoucher) {
@@ -295,7 +316,7 @@ export class ShopStore {
         );
         if (found) {
             this.variant = found;
-            this.quantity = 1; // Reset to 1!
+            this.quantity = 1;
         }
     }
 
@@ -331,7 +352,6 @@ export class ShopStore {
         this.isGiftModalOpen = open ?? !this.isGiftModalOpen;
     }
 
-    // Side-effects (Persistence)
     syncToStorage = $effect.root(() => {
         $effect(() => {
             if (browser && this.giftInfo) {
@@ -396,9 +416,8 @@ export class ShopStore {
                 this.orderSuccess = true;
                 
                 if (orderId) {
-                    // Fallback redirect if component doesn't handle it
                     setTimeout(() => {
-                        if (window.location.pathname.includes('/checkout')) return; // Avoid double redirect
+                        if (window.location.pathname.includes('/checkout')) return;
                         goto(`/checkout/success/${orderId}?phone=${encodeURIComponent(customer.phone)}`);
                     }, 2000);
                 }
@@ -424,7 +443,6 @@ export class ShopStore {
                 quiz_data: quizData
             });
 
-            // 🚀 Cinematic Experience: Min-scan duration (Elite V2.2)
             const MIN_SCAN_DURATION = 12000;
             const elapsed = Date.now() - startTime;
             if (elapsed < MIN_SCAN_DURATION) {
@@ -435,7 +453,6 @@ export class ShopStore {
             
             this.diagnosticResult = res;
             if (res.quantity) {
-                // 🎁 Viral 2026: Auto-apply deals if AI recommends a 'buy' threshold
                 const deals = this.product?.metadata?.active_deals;
                 const matchingDeal = deals?.find((d: PromotionDeal) => d.buy_qty === res.quantity);
                 
@@ -449,7 +466,6 @@ export class ShopStore {
             const message = err instanceof Error ? err.message : String(err);
             console.error('Diagnostic analysis failed:', message);
             
-            // 🛡️ Fail-safe Fallback: Apply "Mua 2 Tặng 1" by default if AI fails
             const fallbackQty = 2;
             const deals = this.product?.metadata?.active_deals;
             const matchingDeal = deals?.find((d: PromotionDeal) => d.buy_qty === fallbackQty);

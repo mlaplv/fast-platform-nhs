@@ -13,6 +13,7 @@
   position: relative;
   overflow: hidden;
   padding: 100px 0;
+  contain: layout;
 }
 
 .offer-section .liquid-orb {
@@ -62,8 +63,8 @@
 
 /* PACKAGE CARDS */
 .package-offer-box {
-  backdrop-filter: blur(25px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(25px) saturate(180%) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
   box-shadow: 
     0 10px 40px rgba(0, 0, 0, 0.4),
     inset 0 0 20px rgba(255, 183, 197, 0.05);
@@ -124,6 +125,7 @@
   inset: -150%;
   background: inherit;
   animation: led-rotate 4s linear infinite;
+  will-change: transform;
 }
 
 .package-card.active .viral-liquid-border,
@@ -139,7 +141,7 @@
 
 .offer-overlay-viral {
    background: rgba(6, 6, 6, 0.98);
-   backdrop-filter: blur(60px) saturate(200%);
+   backdrop-filter: blur(20px) saturate(200%);
    border: 1px solid rgba(255, 183, 197, 0.15);
    border-radius: 3rem;
    animation: overlay-slide-up 0.5s cubic-bezier(0.23, 1, 0.32, 1);
@@ -263,7 +265,7 @@
 
 .package-card {
     background: rgba(255, 255, 255, 0.01);
-    backdrop-filter: blur(40px);
+    backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 3rem;
@@ -305,7 +307,9 @@
     font-weight: 900;
     letter-spacing: 0.2em;
     z-index: 10;
+    z-index: 10;
     box-shadow: 0 0 20px rgba(255, 183, 197, 0.1);
+    will-change: transform, border-color;
 }
 
 .variant-image-hero {
@@ -569,7 +573,7 @@
 /* 🌑 MODAL BACKDROP (ELITE V2.8) */
 .modal-backdrop {
     background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(12px) saturate(150%);
+    backdrop-filter: blur(8px) saturate(150%);
     pointer-events: auto;
 }
 

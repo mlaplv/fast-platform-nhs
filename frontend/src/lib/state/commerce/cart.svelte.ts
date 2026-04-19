@@ -106,17 +106,15 @@ export class CartStore {
     );
 
     // Side-effects (Persistence)
-    syncToStorage = $effect.root(() => {
-        $effect(() => {
-            if (browser) {
-                localStorage.setItem('elite_global_cart', JSON.stringify({
-                    items: this.items,
-                    selectedVoucherIds: this.selectedVoucherIds,
-                    giftInfo: this.giftInfo
-                }));
-            }
-        });
-    });
+    save(): void {
+        if (browser) {
+            localStorage.setItem('elite_global_cart', JSON.stringify({
+                items: this.items,
+                selectedVoucherIds: this.selectedVoucherIds,
+                giftInfo: this.giftInfo
+            }));
+        }
+    }
 
     // Actions
     setGiftInfo(info: GiftInfo | null): void {
@@ -144,6 +142,8 @@ export class CartStore {
         if (voucherIds && voucherIds.length > 0) {
             this.selectedVoucherIds = voucherIds;
         }
+        
+        this.save();
     }
 
     updateQuantity(id: string, quantity: number): void {
@@ -152,11 +152,15 @@ export class CartStore {
             return;
         }
         const item = this.items.find(i => i.id === id);
-        if (item) item.quantity = quantity;
+        if (item) {
+            item.quantity = quantity;
+            this.save();
+        }
     }
 
     removeItem(id: string): void {
         this.items = this.items.filter(item => item.id !== id);
+        this.save();
     }
 
     toggleItemSelection(id: string): void {
@@ -172,6 +176,7 @@ export class CartStore {
         this.items = [];
         this.giftInfo = null;
         this.isGiftModalOpen = false;
+        this.save();
     }
 
     toggleGiftModal(open?: boolean): void {

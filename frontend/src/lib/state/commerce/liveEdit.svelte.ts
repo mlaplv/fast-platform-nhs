@@ -9,7 +9,10 @@ class LiveEditStore {
   isSaving = $state(false);
   originalProduct = $state<Product | null>(null);
   dirtyProduct = $state<Product | null>(null);
-  activePath = $state<string | null>(null); // Path of currently focused inline editor
+  activePath = $state<string | null>(null); 
+  
+  // Elite V2.2: Transient UI Popovers
+  openPopoverId = $state<string | null>(null);
 
   // Elite V2.2: Transient HUD State
   notification = $state({
@@ -28,6 +31,11 @@ class LiveEditStore {
         this.notification.type = null;
       }
     }, 4000);
+  }
+
+  togglePopover(id: string | null) {
+    if (this.openPopoverId === id) this.openPopoverId = null;
+    else this.openPopoverId = id;
   }
 
   // Elite V2.2 Supreme Security: Administrative access strictly derives from RBAC token

@@ -52,8 +52,7 @@
 
     <!-- Items -->
     <div class="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar mb-6">
-      {#if !clientUi.isMobile}
-        {#each cartStore.items.filter(i => i.selected) as item}
+      {#each cartStore.items.filter(i => i.selected) as item}
           <div class="flex gap-4 group bg-gray-50/50 p-2 border border-transparent hover:border-gray-100 transition-all">
             <div class="w-16 h-16 bg-white border border-gray-100 overflow-hidden shrink-0 relative">
               <img 
@@ -74,10 +73,39 @@
                 {/if}
               </div>
               <div class="flex items-center justify-between mt-1">
-                <div class="flex items-center gap-1">
-                   <button type="button" onclick={() => cartStore.updateQuantity(item.id, item.quantity - 1)} class="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] text-[10px] font-black">-</button>
-                   <span class="text-[10px] font-black w-4 text-center">{item.quantity}</span>
-                   <button type="button" onclick={() => cartStore.updateQuantity(item.id, item.quantity + 1)} class="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] text-[10px] font-black">+</button>
+                <div class="flex items-center">
+                   <button 
+                     type="button" 
+                     onclick={() => cartStore.updateQuantity(item.id, item.quantity - 1)} 
+                     class="w-7 h-7 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] hover:border-[#ee4d2d] text-xs font-black transition-all active:scale-90"
+                   >
+                     -
+                   </button>
+                   <input 
+                     type="number" 
+                     bind:value={item.quantity}
+                     oninput={(e) => {
+                       const val = parseInt((e.target as HTMLInputElement).value);
+                       if (!isNaN(val) && val >= 1) {
+                         cartStore.updateQuantity(item.id, val);
+                       }
+                     }}
+                     onblur={(e) => {
+                        const val = parseInt((e.target as HTMLInputElement).value);
+                        if (isNaN(val) || val < 1) {
+                           (e.target as HTMLInputElement).value = item.quantity.toString();
+                        }
+                     }}
+                     class="w-9 h-7 border-y border-gray-100 text-[11px] font-black text-center focus:outline-none focus:bg-gray-50 focus:border-gray-200 focus:ring-0 focus:z-10 bg-white text-gray-900 transition-colors"
+                     style="color: #000 !important;"
+                   />
+                   <button 
+                     type="button" 
+                     onclick={() => cartStore.updateQuantity(item.id, item.quantity + 1)} 
+                     class="w-7 h-7 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-[#ee4d2d] hover:border-[#ee4d2d] text-xs font-black transition-all active:scale-90"
+                   >
+                     +
+                   </button>
                 </div>
                 <div class="flex flex-col items-end gap-0">
                   {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
@@ -102,7 +130,12 @@
                   {#each item.variant.attributes.gifts as gift}
                     <div class="flex items-center justify-between relative z-10 pl-4">
                       <span class="text-[9px] text-gray-700 italic font-medium tracking-tight"> {gift.name}</span>
-                      <span class="text-[9px] text-orange-500 font-extrabold pr-1">x{gift.qty * item.quantity}</span>
+                      <input 
+                        type="number" 
+                        value={gift.qty * item.quantity} 
+                        readonly
+                        class="w-8 text-[9px] text-orange-500 font-extrabold text-right bg-transparent border-none focus:outline-none"
+                      />
                     </div>
                   {/each}
                 </div>
@@ -110,7 +143,6 @@
             </div>
           </div>
         {/each}
-      {/if}
 
       {#if customItems.length > 0}
         <div class="mt-4 pt-4 border-t border-dashed border-gray-200 space-y-3" in:slide>
@@ -214,5 +246,15 @@
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #d1d5db;
+  }
+
+  /* 🚫 ELITE: HIDE NUMBER SPINNERS */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] {
+    -moz-appearance: textfield;
   }
 </style>
