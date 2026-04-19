@@ -3,6 +3,7 @@ import hashlib
 import unicodedata
 import logging
 from typing import Optional, TypedDict, Dict, List
+import sqlalchemy as sa
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models.commerce import Order, ProductBase, ProductVariant

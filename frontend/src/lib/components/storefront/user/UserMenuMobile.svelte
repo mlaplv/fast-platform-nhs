@@ -4,7 +4,7 @@
   import { page } from '$app/state';
   import { authStore } from '$lib/state/authStore.svelte';
   import { goto } from '$app/navigation';
-  import { X, LogOut, ChevronRight, Home, User as UserIcon, Package, MapPin, Key, Bell, Sparkles } from 'lucide-svelte';
+  import { X, LogOut, ChevronRight, Home, User as UserIcon, Package, MapPin, Key, Bell, Sparkles, Ticket } from 'lucide-svelte';
 
   interface Props {
     active: boolean;
@@ -15,6 +15,7 @@
   const links = [
     { label: 'Hồ sơ', href: '/user/profile', icon: UserIcon },
     { label: 'Đơn mua', href: '/user/purchase', icon: Package },
+    { label: 'Kho Voucher', href: '/user/vouchers', icon: Ticket },
     { label: 'Địa chỉ', href: '/user/address', icon: MapPin },
     { label: 'Mật khẩu', href: '/user/password', icon: Key },
     { label: 'Thông báo', href: '/user/notifications', icon: Bell },

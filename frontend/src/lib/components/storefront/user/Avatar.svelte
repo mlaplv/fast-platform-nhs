@@ -46,6 +46,15 @@
     }
   }
 
+  let imgError = $state(false);
+  let lastSrc = $state(src);
+
+  // Elite V2.2: Reset error if src changes
+  if (src !== lastSrc) {
+    imgError = false;
+    lastSrc = src;
+  }
+
   const sizes = {
     xs: 'w-4 h-4 text-[6px]',
     sm: 'w-8 h-8 text-xs',
@@ -55,8 +64,13 @@
 
 <div class="relative group {sizes[size]} {className}">
   <div class="w-full h-full rounded-full overflow-hidden border border-stone-100 bg-stone-50 shrink-0 {size === 'lg' ? 'border-2 shadow-sm transition-transform duration-700 group-hover:scale-105' : ''}">
-    {#if src}
-      <img {src} alt="Avatar" class="w-full h-full object-cover" />
+    {#if src && !imgError}
+      <img 
+        {src} 
+        alt="Avatar" 
+        class="w-full h-full object-cover" 
+        onerror={() => imgError = true}
+      />
     {:else}
       <div class="w-full h-full flex items-center justify-center font-serif italic text-luxury-copper uppercase {size === 'lg' ? 'bg-stone-50' : ''}">
         {name?.charAt(0) || 'U'}

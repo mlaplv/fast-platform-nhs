@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models.promotion import Voucher, ComboDeal
 from backend.database import current_tenant_id
 from datetime import datetime, timezone
+from litestar.exceptions import NotFoundException, ValidationException
 import logging
 
 logger = logging.getLogger("api-gateway")
