@@ -80,7 +80,7 @@
 
   <div class="container mx-auto px-3 max-w-6xl relative z-surface">
     <div class="text-center">
-      <h2 class="elite-session-headline mb-8 text-center offer-grid-headline">
+      <h2 class="elite-session-headline mb-4 text-center offer-grid-headline">
         {#if !(metadata.offer_headline_1 || '').startsWith('[OFF]') || liveEditStore.isEditMode}
           <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
             {h1}
@@ -100,7 +100,7 @@
         {/if}
       </h2>
 
-      <div class="flex items-center justify-center gap-4 mt-8 opacity-60 grayscale hover:grayscale-0 transition-all duration-700">
+      <div class="flex items-center justify-center gap-4 mt-2 opacity-60 grayscale hover:grayscale-0 transition-all duration-700">
          <EditableWrapper path="metadata.offer_trust_verified_by" type="text" label="SỬA CHỨNG NHẬN 1" class="inline" as="span">
            <span class="text-[8px] uppercase tracking-[0.6em] font-medium text-slate-400">{clean(mark1)}</span>
          </EditableWrapper>
@@ -123,7 +123,7 @@
       </div>
     </div>
 
-    <div class="flex justify-center mb-10 mt-6 relative z-surface">
+    <div class="flex justify-center mb-6 mt-4 relative z-surface">
       <OfferFomoTimer {...mkt} />
     </div>
 

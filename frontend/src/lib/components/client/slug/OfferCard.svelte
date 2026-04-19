@@ -114,6 +114,7 @@
     {/if}
   </div>
 
+  <!-- 📦 PRODUCT CARD CONTENT -->
   <div 
     onclick={selectVariant}
     onkeydown={(e) => e.key === 'Enter' && selectVariant()}
@@ -317,20 +318,20 @@
          </div>
        </button>
     </div>
-
-    <!-- 🌙 VOUCHER BOTTOM SHEET (NESTED FOR TIKTOK EFFECT) -->
-    {#if liveEditStore.openPopoverId === variant.id}
-       <OfferVoucherSheet 
-          {variant} 
-          idx={idx} 
-          {productVouchers}
-          voucherSortOrder={shopStore.voucherSortOrder || 'none'}
-          activeOfferTab={shopStore.activeOfferTab || {}}
-          onClose={() => liveEditStore.togglePopover(null)}
-          onToggleSort={() => shopStore.toggleVoucherSort()}
-          onVoucherClick={(v) => shopStore.toggleVoucher(v.id)}
-          onSetTab={(i, tab) => shopStore.setOfferTab(i, tab)}
-       />
-    {/if}
   </div>
+
+  <!-- 🌙 VOUCHER BOTTOM SHEET (OUTSIDE CONTENT BOX TO FIX CLIPPING) -->
+  {#if liveEditStore.openPopoverId === variant.id}
+      <OfferVoucherSheet 
+        {variant} 
+        idx={idx} 
+        {productVouchers}
+        voucherSortOrder={shopStore.voucherSortOrder || 'none'}
+        activeOfferTab={shopStore.activeOfferTab || {}}
+        onClose={() => liveEditStore.togglePopover(null)}
+        onToggleSort={() => shopStore.toggleVoucherSort()}
+        onVoucherClick={(v) => shopStore.toggleVoucher(v.id)}
+        onSetTab={(i, tab) => shopStore.setOfferTab(i, tab)}
+      />
+  {/if}
 </div>

@@ -160,7 +160,7 @@
   <!-- TikTok Style Black Overlay -->
   <button 
     class="tbn-bottom-sheet-overlay" 
-    style="z-index: 99998"
+    style="z-index: var(--z-mobile-bottom-sheet-overlay, 20000)"
     aria-label="Đóng menu"
     onclick={toggleMenu}
     in:fade={{ duration: 300 }} 
@@ -170,7 +170,7 @@
   <!-- TikTok Style Bottom Sheet (Opaque White) -->
   <div 
     class="tbn-bottom-sheet"
-    style="z-index: 99999"
+    style="z-index: var(--z-mobile-bottom-sheet, 20001)"
     in:fly={{ y: '100%', duration: 400, opacity: 1, easing: cubicOut }}
     out:fly={{ y: '100%', duration: 300, opacity: 1 }}
   >
@@ -297,7 +297,7 @@
 {/if}
 
 <!-- ... giữ nguyên nav ... -->
-<nav class="tbn-nav {isShrunk ? 'tbn-nav--shrunk' : ''}" style="z-index: 100000;">
+<nav class="tbn-nav {isShrunk ? 'tbn-nav--shrunk' : ''}" style="z-index: var(--z-mobile-tab-bar, 100);">
   <div class="tbn-nav-inner">
     {#if !isProductMode}
       <button class="tbn-item {isMenuOpen ? 'tbn-item--active' : ''}" aria-label="Menu" onclick={toggleMenu}>
@@ -322,7 +322,6 @@
     </button>
 
     <button class="tbn-item tbn-item--ai {isMenuOpen ? 'opacity-30' : ''}" aria-label="AI Chat" onclick={() => { if(!isMenuOpen) onChatOpen?.(); }}>
-      <div class="tbn-ai-tooltip"><span class="tbn-ai-tooltip-text">AI agentic hỗ trợ</span></div>
       <svg class="tbn-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <defs>
           <linearGradient id="ai-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -370,6 +369,7 @@
     width: 100vw; height: 100vh;
     background: rgba(0, 0, 0, 0.6); 
     border: none; cursor: default;
+    z-index: var(--z-mobile-bottom-sheet-overlay, 20000);
   }
 
   /* TIKTOK STYLE BOTTOM SHEET (OPAQUE WHITE) */
@@ -382,6 +382,7 @@
     box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     display: flex; flex-direction: column;
+    z-index: var(--z-mobile-bottom-sheet, 20001);
   }
 
   /* Grab Handle TikTok style */
@@ -544,9 +545,6 @@
 
   /* AI CHAT */
   .tbn-label--ai { background: linear-gradient(90deg, #C18F7E, #E3B5A4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
-  .tbn-ai-tooltip { position: absolute; top: -40px; right: -20px; background: #FFFFFF; border: 1px solid #F0F0F0; height: 28px; padding: 0 12px; display: flex; align-items: center; border-radius: 14px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.1); animation: floatTooltip 2s infinite ease-in-out; }
-  .tbn-ai-tooltip-text { background: linear-gradient(90deg, #C18F7E, #E3B5A4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 10px; font-weight: 900; }
-  .tbn-ai-tooltip::after { content: ''; position: absolute; bottom: -5px; right: 40px; border-width: 5px 6px 0; border-style: solid; border-color: #FFFFFF transparent transparent transparent; }
   @keyframes floatTooltip { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 
   /* FUSED CAPSULE (ACTION GROUP) */
