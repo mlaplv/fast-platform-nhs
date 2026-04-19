@@ -132,6 +132,11 @@ class CheckoutService:
         # Build items list with correct prices
         items_list: List[OrderItem] = []
         
+        # [ELITE V2.2] Pre-calculate total quantity per product for tier resolution (Sync with Frontend)
+        total_qty_by_product: Dict[str, int] = {}
+        for item in payload.items:
+            total_qty_by_product[item.product_id] = total_qty_by_product.get(item.product_id, 0) + item.quantity
+
         # Ensure compatibility layer (Seed defaults if needed)
         await PromotionService.ensure_default_vouchers(db_session)
 
@@ -140,6 +145,7 @@ class CheckoutService:
             product_res = await db_session.execute(product_stmt)
             product = product_res.scalar_one_or_none()
             if not product:
+                logger.error(f"[CHECKOUT] Product {item.product_id} not found")
                 raise NotFoundException(f"Sản phẩm {item.product_id} không tồn tại")
             
             # ELITE V2.2: DYNAMIC TIER PRICING ENGINE (Lazada/TikTok Style)
@@ -149,26 +155,26 @@ class CheckoutService:
             db_price = None
             resolved_variant_id = item.variant_id
             
+            # Use total quantity of this product across all lines for tier resolution
+            total_qty = total_qty_by_product.get(item.product_id, item.quantity)
+
             if combo_variants:
                 # 1. Mandatory Qty Constraint Check (Security)
-                # If user explicitly selected a combo variant, verify quantity requirement
                 selected_v = next((v for v in combo_variants if v.id == item.variant_id), None)
                 if selected_v:
                     min_qty = int(selected_v.attributes.get("combo_qty", 1))
-                    if item.quantity < min_qty:
-                        logger.error(f"[SECURITY-ALERT] Invalid Combo Qty: {item.quantity} < {min_qty} for variant {item.variant_id}")
-                        raise ValidationException(f"Gói này yểu cầu tối thiểu {min_qty} sản phẩm.")
+                    # Note: We check against total_qty because multiple lines can satisfy the combo
+                    if total_qty < min_qty:
+                        logger.error(f"[SECURITY-ALERT] Invalid Combo Qty: Total={total_qty} < Min={min_qty} for product {item.product_id}")
+                        raise ValidationException(f"Gói này yêu cầu tổng tối thiểu {min_qty} sản phẩm cùng loại.")
 
                 # 2. Dynamic Price Resolution (The "Reward" Logic)
-                # Find the best tier matching current quantity (Highest combo_qty <= quantity)
+                # Find the best tier matching total quantity (Highest combo_qty <= total_qty)
                 sorted_tiers = sorted(combo_variants, key=lambda v: int(v.attributes.get("combo_qty", 0)), reverse=True)
-                best_tier = next((v for v in sorted_tiers if int(v.attributes.get("combo_qty", 0)) <= item.quantity), None)
+                best_tier = next((v for v in sorted_tiers if int(v.attributes.get("combo_qty", 0)) <= total_qty), None)
                 
                 if best_tier:
                     db_price = best_tier.discount_price if best_tier.discount_price is not None else best_tier.price
-                    # If we found a better tier than what the client sent, we auto-upgrade (or stay correct)
-                    # Note: We don't automatically change variant_id here if it has other attributes, 
-                    # but we ENFORCE the price of the matching quantity tier.
                 else:
                     # Fallback to base product price if quantity is below all combo tiers
                     db_price = product.discount_price if product.discount_price is not None else product.price
@@ -179,6 +185,7 @@ class CheckoutService:
                     variant_res = await db_session.execute(variant_stmt)
                     variant = variant_res.scalar_one_or_none()
                     if not variant:
+                        logger.error(f"[CHECKOUT] Variant {item.variant_id} not found")
                         raise NotFoundException(f"Biến thể {item.variant_id} không tồn tại")
                     db_price = variant.discount_price if variant.discount_price is not None else variant.price
                 else:
@@ -187,7 +194,7 @@ class CheckoutService:
             # [VIRAL 2026 SECURITY] Rigorous Item Price Check
             if db_price is None: db_price = 0.0
             if abs(item.price - db_price) > 1.0: # Allow small rounding deltas
-                 logger.warning(f"[STRIKE-PRICE] Item price mismatch for {product.name} ({item.product_id}): Payload={item.price}, DB={db_price}. Qty={item.quantity}")
+                 logger.warning(f"[STRIKE-PRICE] Item price mismatch for {product.name} ({item.product_id}): ItemPayload={item.price}, ResolvedDB={db_price}. LineQty={item.quantity}, TotalQty={total_qty}")
                  raise ValidationException("Giá sản phẩm đã thay đổi theo chương trình khuyến mãi. Vui lòng cập nhật lại giỏ hàng.")
 
             items_list.append({

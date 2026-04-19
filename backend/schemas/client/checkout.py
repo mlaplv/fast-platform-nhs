@@ -8,7 +8,7 @@ from typing import Optional
 class CheckoutItemSchema(BaseModel):
     product_id: str
     variant_id: Optional[str] = None
-    quantity: int = Field(default=1, ge=1, le=10)
+    quantity: int = Field(default=1, ge=1, le=1000)
     price: float = Field(..., ge=0)
 
 class CustomItemSchema(BaseModel):
@@ -41,22 +41,41 @@ class StealthCheckoutSchema(BaseModel):
     payment_method: str = Field(default="cod", description="Phương thức thanh toán: cod, bank")
     note: Optional[str] = Field(None, description="Ghi chú đơn hàng từ khách hàng")
 
+    @field_validator("customer_phone", mode="before")
+    @classmethod
+    def clean_phone(cls, v: str) -> str:
+        if isinstance(v, str):
+            # Clean: +84 912-345.678 -> 0912345678
+            v = re.sub(r"[\s\.\-\+]", "", v)
+            if v.startswith("84"):
+                v = "0" + v[2:]
+        return v
+
     @field_validator("customer_phone")
     @classmethod
     def validate_phone(cls, v: str) -> str:
-        # Chuẩn hóa số điện thoại Việt Nam: (0|84) + [3|5|7|8|9] + 8 số
-        pattern = re.compile(r"^(0|84|)(3|5|7|8|9)([0-9]{8})$")
+        # Standard VN format: 0 + [3|5|7|8|9] + 8 digits
+        pattern = re.compile(r"^0(3|5|7|8|9)([0-9]{8})$")
         if not pattern.match(v):
-            raise ValueError("Số điện thoại không hợp lệ (Chuẩn Việt Nam)")
+            raise ValueError("Số điện thoại không hợp lệ (Chuẩn Việt Nam 10 số)")
         return v
 
 class CustomerLookupSchema(BaseModel):
     phone: str = Field(..., description="Số điện thoại cần tra cứu")
 
+    @field_validator("phone", mode="before")
+    @classmethod
+    def clean_phone(cls, v: str) -> str:
+        if isinstance(v, str):
+            v = re.sub(r"[\s\.\-\+]", "", v)
+            if v.startswith("84"):
+                v = "0" + v[2:]
+        return v
+
     @field_validator("phone")
     @classmethod
     def validate_phone(cls, v: str) -> str:
-        pattern = re.compile(r"^(0|84|)(3|5|7|8|9)([0-9]{8})$")
+        pattern = re.compile(r"^0(3|5|7|8|9)([0-9]{8})$")
         if not pattern.match(v):
             raise ValueError("Số điện thoại không hợp lệ")
         return v

@@ -20,7 +20,7 @@
   const searchStore = getSearchStore();
 
   // Elite V2.2: Sync global search store with current page data (URL query)
-  $effect(() => {
+  $effect.pre(() => {
     if (data.searchQuery !== undefined && searchStore.searchQuery !== data.searchQuery) {
        searchStore.searchQuery = data.searchQuery;
     }

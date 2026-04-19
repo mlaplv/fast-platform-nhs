@@ -17,7 +17,7 @@
   const clientUi = getClientUi();
 
   // Elite V2.2: Sync layout with track context
-  $effect(() => {
+  $effect.pre(() => {
     if (clientUi.isDetermined && clientUi.isMobile) {
       clientUi.isHeaderHidden = true;
       clientUi.isFooterHidden = true;

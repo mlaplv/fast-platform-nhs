@@ -66,7 +66,7 @@
   };
 
   // Shop Settings Sync (Elite V2.2)
-  $effect(() => {
+  $effect.pre(() => {
     if (clientUi) {
       // Inject global shop settings into the UI state for sub-components (OfferGrid, etc.)
       if (data.shopInfo) {

@@ -17,7 +17,7 @@
   const ui = getClientUi();
 
   // Standardize Layout: Sync header/footer with Elite V3.2 Protocol
-  $effect(() => {
+  $effect.pre(() => {
     if (ui.isMobile) {
       ui.isHeaderHidden = true;
       ui.isFooterHidden = true;

@@ -18,7 +18,7 @@
   const ui = getClientUi();
 
   // Elite V2.2: Dynamic Layout Sync (Viral 2026 Protocol)
-  $effect(() => {
+  $effect.pre(() => {
     // Luôn ẩn header/footer trên mobile cho trang chi tiết để dùng header/footer riêng (Shopee/TikTok style)
     if (ui.isMobile) {
       ui.isHeaderHidden = true;
@@ -26,7 +26,7 @@
     }
 
     const isFunnel = data.product?.metadata?.landing_type && data.product.metadata.landing_type !== 'standard';
-    
+
     if (isFunnel) {
       ui.isHeaderHidden = true;
       ui.isFooterHidden = true;

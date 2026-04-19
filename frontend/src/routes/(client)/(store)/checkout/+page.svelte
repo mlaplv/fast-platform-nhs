@@ -39,7 +39,7 @@
   let isMenuOpen = $state(false);
 
   // Immersive layout management: Hide global header/footer on mobile
-  $effect(() => {
+  $effect.pre(() => {
     if (clientUi.isDetermined && clientUi.isMobile) {
       clientUi.isHeaderHidden = true;
       clientUi.isFooterHidden = true;
@@ -136,9 +136,11 @@
       if (authStore.isAuthenticated && form.street && form.province) {
          isAddressFormVisible = false;
       }
+    }
+  });
 
   // [ELITE V2.2] Auto-Stick Protocol: Synchronize with Backend Defaults
-  $effect(() => {
+  $effect.pre(() => {
     if (cartStore.vouchers.length > 0) {
       // 1. Resolve Shipping Channel
       const hasShippingSelected = cartStore.selectedVoucherIds.some((id: string) => 
@@ -171,12 +173,10 @@
       }
     }
   });
-    }
-  });
 
   // ELITE V2.2: Dynamic Tier Notification System
   let prevTierMap = new Map<string, number>();
-  $effect(() => {
+  $effect.pre(() => {
     for (const item of cartStore.items) {
       if (!item.selected) continue;
       const comboVariants = item.product?.variants?.filter((v: any) => v.attributes && v.attributes.combo_qty) || [];
@@ -194,7 +194,7 @@
     }
   });
 
-  $effect(() => {
+  $effect.pre(() => {
     if (browser) {
       localStorage.setItem('elite_checkout_draft', JSON.stringify({
         form: $state.snapshot(form),
@@ -203,7 +203,7 @@
     }
   });
 
-  $effect(() => {
+  $effect.pre(() => {
     if (browser && cartStore.items.length === 0) {
       localStorage.removeItem('elite_checkout_draft');
     }
@@ -393,14 +393,14 @@
           quantity: i.quantity
         })),
         customer_name: form.name,
-        customer_phone: form.phone,
+        customer_phone: form.phone.replace(/[\s\.\-\+]/g, ''),
         customer_address: `${form.street}, ${form.ward}, ${form.province}`,
         total_amount: cartStore.totalAmount + shippingFee,
         shipping_fee: shippingFee,
         payment_method: form.paymentMethod,
         note: form.note || null,
         voucher_id: cartStore.selectedVoucherIds[0] || null,
-        gift_info: cartStore.giftInfo || null
+        gift_info: (cartStore.giftInfo?.sender_name && cartStore.giftInfo?.sender_phone) ? cartStore.giftInfo : null
       };
 
       const res = await apiClient.post<{ id: string, ok: boolean, success?: boolean }>('/api/v1/client/checkout/stealth', backendPayload);

@@ -12,7 +12,7 @@
   let isMenuOpen = $state(false);
 
   // Quản lý layout: Ẩn Header mặc định trên mobile, hiển thị trên desktop
-  $effect(() => {
+  $effect.pre(() => {
     if (ui.isMobile) {
       ui.isHeaderHidden = true;
     } else {

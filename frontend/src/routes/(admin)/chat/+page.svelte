@@ -51,7 +51,7 @@
 
   // ── TEST CASE 3: NEW MESSAGE ANCHOR ──
   // Tự động cuộn xuống đáy khi có tin nhắn mới (Xohi trả lời hoặc User gửi)
-  $effect(() => {
+  $effect.pre(() => {
     if (history.length > 0 && scrollContainer) {
       // Chỉ tự động cuộn nếu người dùng đang ở gần đáy (trong khoảng 300px)
       // Hoặc nếu đó là tin nhắn đầu tiên/vừa khởi tạo

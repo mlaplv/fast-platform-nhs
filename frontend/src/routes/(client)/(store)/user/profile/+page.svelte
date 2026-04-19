@@ -13,7 +13,7 @@
   let isMenuOpen = $state(false);
 
   // Quản lý layout: Ẩn Header mặc định trên mobile, hiển thị trên desktop
-  $effect(() => {
+  $effect.pre(() => {
     if (ui.isMobile) {
       ui.isHeaderHidden = true;
     } else {
@@ -27,7 +27,7 @@
     };
   });
 
-  $effect(() => {
+  $effect.pre(() => {
     if (browser && !authStore.isAuthenticated) {
       ui.openLogin();
       goto('/');
