@@ -13,6 +13,7 @@
   import VoucherDrawer from "./VoucherDrawer.svelte";
   import VoucherFilters from "./VoucherFilters.svelte";
   import OrderPagination from "./OrderPagination.svelte"; // Reusing pagination layout
+  import BulkActionBar from "./BulkActionBar.svelte";
 
   export interface Voucher {
     id: string;
@@ -147,6 +148,44 @@
     }
   }
 
+  const VOUCHER_STATUS_MAP = {
+    ACTIVE: { label: "BẬT HOẠT ĐỘNG", color: "text-[#00FFFF]", border: "border-[#00FFFF]" },
+    INACTIVE: { label: "TẮT HOẠT ĐỘNG", color: "text-gray-500", border: "border-gray-500" }
+  };
+
+  async function handleDeleteBulk() {
+    const confirm = await nanobot.showConfirm({
+      title: "XÁC NHẬN XOÁ HÀNG LOẠT",
+      message: `Bạn có chắc chắn muốn xoá ${selectedIds.length} voucher đã chọn? Hành động này không thể hoàn tác.`,
+      confirmLabel: "XOÁ HẾT NGAY",
+      cancelLabel: "HỦY BỎ",
+    });
+    if (confirm) {
+      try {
+        await apiClient.post(`/api/v1/admin/vouchers/bulk-delete`, { ids: selectedIds });
+        nanobot.showToast(`Đã xoá ${selectedIds.length} voucher`, "success");
+        selectedIds = [];
+        loadVouchers();
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : String(error);
+        nanobot.showToast(msg, "error");
+      }
+    }
+  }
+
+  async function handleStatusBulk(status: string) {
+    const is_active = status === "ACTIVE";
+    try {
+      await apiClient.post(`/api/v1/admin/vouchers/bulk-status`, { ids: selectedIds, is_active });
+      nanobot.showToast(`Đã cập nhật trạng thái cho ${selectedIds.length} voucher`, "success");
+      selectedIds = [];
+      loadVouchers();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      nanobot.showToast(msg, "error");
+    }
+  }
+
   let totalPages = $derived(Math.max(1, Math.ceil(totalVouchers / pageSize)));
   let isAllSelected = $derived(vouchers.length > 0 && vouchers.every(v => selectedIds.includes(v.id)));
 </script>
@@ -197,6 +236,15 @@
     {totalPages}
     {pageSize}
     totalItems={totalVouchers}
+  />
+
+  <BulkActionBar
+    selectedCount={selectedIds.length}
+    onClear={() => selectedIds = []}
+    onDeleteBulk={handleDeleteBulk}
+    onArchiveBulk={() => handleStatusBulk("INACTIVE")}
+    onStatusBulk={handleStatusBulk}
+    statusMap={VOUCHER_STATUS_MAP}
   />
 </div>
 

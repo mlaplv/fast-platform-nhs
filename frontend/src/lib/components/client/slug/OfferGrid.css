@@ -148,6 +148,55 @@
   z-index: 5;
 }
 
+/* 🚀 ELITE METALLIC SHIMMER (GOLD/SAKURA) */
+.metallic-shimmer {
+  background-size: 200% 100%;
+  background-image: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: metallic-glide 3s infinite linear;
+}
+
+@keyframes metallic-glide {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+/* 🧪 LIQUID SPECULAR GLASS HIGHLIGHT */
+.liquid-specular-highlight {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.4) 0%,
+    transparent 20%
+  );
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.package-card:hover .liquid-specular-highlight {
+  opacity: 0.8;
+  animation: liquid-float 10s infinite linear;
+}
+
+@keyframes liquid-float {
+  0% { transform: translate(-10%, -10%) rotate(0deg); }
+  50% { transform: translate(10%, 10%) rotate(180deg); }
+  100% { transform: translate(-10%, -10%) rotate(360deg); }
+}
+
 .offer-overlay-viral {
    background: rgba(6, 6, 6, 0.98);
    backdrop-filter: blur(20px) saturate(200%);

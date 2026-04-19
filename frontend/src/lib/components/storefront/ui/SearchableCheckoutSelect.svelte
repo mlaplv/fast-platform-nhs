@@ -25,14 +25,15 @@
 
   const filteredOptions = $derived.by(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return options;
-    return options.filter(opt => 
+    const results = !q ? options : options.filter(opt => 
       opt && (opt.toLowerCase().includes(q) || 
       removeAccents(opt.toLowerCase()).includes(removeAccents(q)))
     );
+    return results.slice(0, 50); // [ELITE V2.2] Performance Guard: Limit DOM nodes to 50
   });
 
   function removeAccents(str: string) {
+    if (!str) return '';
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
   }
 
@@ -64,6 +65,13 @@
     onChange();
   }
 
+  function clearSelection(e: MouseEvent) {
+    e.stopPropagation();
+    value = '';
+    search = '';
+    onChange();
+  }
+
   // Effect to close if disabled changes
   $effect(() => {
     if (disabled && open) open = false;
@@ -72,27 +80,42 @@
 
 <div class="relative w-full font-sans" bind:this={containerRef}>
   <!-- Main Display Box -->
-  <button
-    type="button"
-    onclick={toggle}
-    class="w-full bg-gray-50 border {open ? 'border-[#ee4d2d] shadow-[0_0_0_1px_#ee4d2d]' : 'border-gray-100'} px-4 py-3 text-sm outline-none font-bold flex items-center justify-between transition-all duration-200 {disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-gray-200'} {value ? 'text-gray-900' : 'text-gray-400'}"
-    {disabled}
-  >
-    <span class="truncate">{value || placeholder}</span>
-    <svg 
-      class="w-4 h-4 text-gray-400 transition-transform duration-300 {open ? 'rotate-180 text-[#ee4d2d]' : ''}" 
-      fill="none" 
-      viewBox="0 0 24 24" 
-      stroke="currentColor"
+  <div class="relative group">
+    <button
+      type="button"
+      onclick={toggle}
+      class="w-full bg-gray-50 border {open ? 'border-[#ee4d2d] shadow-[0_0_0_1px_#ee4d2d]' : 'border-gray-100'} pl-4 pr-8 py-3 text-sm outline-none font-bold flex items-center justify-between transition-all duration-200 {disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-gray-200'} {value ? 'text-gray-900' : 'text-gray-400'}"
+      {disabled}
     >
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-    </svg>
-  </button>
+      <span class="truncate">{value || placeholder}</span>
+      <svg 
+        class="w-4 h-4 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 transition-transform duration-300 {open ? 'rotate-180 text-[#ee4d2d]' : ''}" 
+        fill="none" 
+        viewBox="0 0 24 24" 
+        stroke="currentColor"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+      </svg>
+    </button>
+
+    {#if value && !disabled}
+      <button
+        type="button"
+        onclick={clearSelection}
+        class="absolute right-7 top-1/2 -translate-y-1/2 p-1 text-gray-300 hover:text-[#ee4d2d] bg-gray-50 transition-colors"
+        aria-label="Xóa chọn"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    {/if}
+  </div>
 
   <!-- Dropdown Menu -->
   {#if open}
     <div 
-      class="absolute left-0 right-0 top-[110%] bg-white border border-gray-100 shadow-2xl z-[100] max-h-[320px] flex flex-col overflow-hidden"
+      class="absolute left-0 right-0 top-[110%] bg-white border border-gray-100 shadow-2xl z-[100] max-h-[320px] flex flex-col overflow-hidden rounded-md"
       in:fly={{ y: 5, duration: 200 }}
       out:fade={{ duration: 150 }}
     >

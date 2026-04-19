@@ -8,10 +8,11 @@
     product: Product;
     timeLeft: { hours: number; minutes: number; seconds: number };
     selectedVariant?: ProductVariant | null;
+    selectedQty?: number;
     onOpenSelector?: () => void;
   }
 
-  let { product, timeLeft, selectedVariant, onOpenSelector }: Props = $props();
+  let { product, timeLeft, selectedVariant, selectedQty = 1, onOpenSelector }: Props = $props();
   const cartStore = getCartStore();
 
   const pVariants = $derived(product.variants || []);
@@ -47,14 +48,25 @@
   });
 
   const activeVariant = $derived(selectedVariant || pVariants?.[0]);
-  const pDiscountPrice = $derived(activeVariant?.discountPrice || activeVariant?.discount_price || activeVariant?.price || product.discountPrice || product.discount_price);
-  const displaySalePrice = $derived.by(() => {
-    if (!selectedVariant && pVariants.length > 1) {
-       const prices = pVariants.map(v => v.discountPrice || v.discount_price || v.price);
-       return Math.min(...prices);
+  
+  const effectiveUnitPrice = $derived.by(() => {
+    const v = activeVariant;
+    if (!v) return product.discountPrice || product.discount_price || product.price || 0;
+    
+    // Tier Resolution logic
+    const comboVariants = pVariants.filter(cv => cv.attributes && cv.attributes.combo_qty);
+    const qty = selectedQty;
+    
+    if (comboVariants.length > 0) {
+      const sortedTiers = [...comboVariants].sort((a, b) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty));
+      const bestTier = sortedTiers.find(t => Number(t.attributes.combo_qty) <= qty);
+      const finalV = bestTier || v;
+      return finalV.discountPrice || finalV.discount_price || finalV.price;
     }
-    return pDiscountPrice || product.price || 0;
+    return v.discountPrice || v.discount_price || v.price;
   });
+
+  const displaySalePrice = $derived(effectiveUnitPrice);
   const displayOriginalPrice = $derived(activeVariant?.price || product.price || 0);
   const displayDiscountPercent = $derived(
     displayOriginalPrice > displaySalePrice 
@@ -149,9 +161,11 @@
       <div class="fs-title"><Zap size={18} fill="white" /><span>Flash Sale</span></div>
       <div class="fs-countdown">
         <span>Kết thúc sau</span>
-        <div class="time-box">
-          <span>{timeLeft.hours.toString().padStart(2, '0')}</span>:
-          <span>{timeLeft.minutes.toString().padStart(2, '0')}</span>:
+        <div class="time-box font-mono tabular-nums">
+          <span>{timeLeft.hours.toString().padStart(2, '0')}</span>
+          <span class="separator">:</span>
+          <span>{timeLeft.minutes.toString().padStart(2, '0')}</span>
+          <span class="separator">:</span>
           <span>{timeLeft.seconds.toString().padStart(2, '0')}</span>
         </div>
       </div>
@@ -285,8 +299,9 @@
   .fs-right { text-align: right; z-index: var(--z-base); display: flex; flex-direction: column; align-items: flex-end; }
   .fs-title { display: flex; align-items: center; gap: 4px; font-weight: 900; font-size: 16px; text-transform: uppercase; font-style: italic; }
   .fs-countdown { font-size: 11px; display: flex; align-items: center; gap: 4px; font-weight: 700; }
-  .time-box { display: flex; gap: 2px; }
-  .time-box span { background: rgba(0,0,0,0.2); color: white; padding: 1px 4px; border-radius: 2px; font-weight: 900; border: 1px solid rgba(255,255,255,0.2); }
+  .time-box { display: flex; gap: 2px; align-items: center; }
+  .time-box span { background: rgba(0,0,0,0.2); color: white; padding: 1px 4px; border-radius: 2px; font-weight: 900; border: 1px solid rgba(255,255,255,0.2); min-width: 24px; text-align: center; }
+  .time-box .separator { background: none; border: none; padding: 0; min-width: 8px; opacity: 0.6; text-align: center; }
 
   .info-content { background: white; padding: 12px; }
   .vouchers-outer { position: relative; margin-bottom: 12px; margin-left: -12px; margin-right: -12px; }

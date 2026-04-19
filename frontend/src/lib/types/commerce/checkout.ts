@@ -13,9 +13,11 @@ export interface Voucher {
   id: string;
   title: string;
   desc: string;
-  type: 'shipping' | 'discount';
+  type: 'FIXED' | 'PERCENT' | 'SHIPPING' | 'discount' | 'shipping';
   value: number;
-  minSpend: number;
+  min_spend?: number; // Backend uses min_spend (snake_case)
+  minSpend?: number;  // Keep camelCase for compatibility
+  subtitle?: string;
 }
 
 export interface CheckoutPayload {

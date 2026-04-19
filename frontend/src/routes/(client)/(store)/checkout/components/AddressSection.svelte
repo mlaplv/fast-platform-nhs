@@ -34,30 +34,43 @@
 
   const normalize = (s: string) => s.normalize('NFC').toLowerCase().trim();
 
-  const currentWards = $derived.by(() => {
-    if (!form.province) return [];
-    const province = validProvinces.find(p => p.name === form.province);
-    if (!province) return [];
-    
-    const wards = [...(province?.wards || [])];
-    if (!province.has_express || !province.express_supported_wards?.length) return wards;
-    
-    const supported = province.express_supported_wards;
-    return wards.sort((a, b) => {
-      const aSupported = supported.some(w => normalize(w) === normalize(a));
-      const bSupported = supported.some(w => normalize(w) === normalize(b));
-      if (aSupported && !bSupported) return -1;
-      if (!aSupported && bSupported) return 1;
-      return 0;
-    });
+  // [ELITE V2.2] Performance Guard: Pre-calculate static data only once
+  const unifiedOptions = validProvinces.flatMap(p => 
+    (p.wards || []).map(w => `${w}, ${p.name}`)
+  ).sort((a, b) => a.localeCompare(b, 'vi'));
+
+  let unifiedValue = $state(form.ward && form.province ? `${form.ward}, ${form.province}` : '');
+
+  // Sync from form state to unified display (for initial load/drafts)
+  $effect(() => {
+    if (form.ward && form.province) {
+       const combined = `${form.ward}, ${form.province}`;
+       if (unifiedValue !== combined) unifiedValue = combined;
+    }
   });
 
-  const selectedProvinceData = $derived(validProvinces.find(p => p.name === form.province));
+  function handleUnifiedChange() {
+    if (unifiedValue.includes(', ')) {
+      const parts = unifiedValue.split(', ');
+      const wardName = parts[0];
+      const provinceName = parts[1];
+      
+      form.ward = wardName;
+      form.province = provinceName;
+    } else if (!unifiedValue) {
+      form.ward = '';
+      form.province = '';
+    }
+  }
 
-  const getWardBadge = (wardName: string) => {
-    if (!selectedProvinceData?.has_express || !selectedProvinceData.express_supported_wards) return null;
-    const normWard = normalize(wardName);
-    const isSupported = selectedProvinceData.express_supported_wards?.some(w => normalize(w) === normWard);
+  const getUnifiedBadge = (val: string) => {
+    if (!val.includes(', ')) return null;
+    const [ward, provinceName] = val.split(', ');
+    const province = validProvinces.find(p => p.name === provinceName);
+    if (!province?.has_express || !province.express_supported_wards) return null;
+    
+    const normWard = normalize(ward);
+    const isSupported = province.express_supported_wards?.some(w => normalize(w) === normWard);
     if (!isSupported) return { text: 'Tiêu chuẩn', type: 'default' };
     return { text: 'Hỏa tốc 2h', type: 'success' };
   };
@@ -93,26 +106,15 @@
       </div>
     </div>
     
-    <div class="space-y-3">
-      <div class="space-y-1">
-        <label class="text-[9px] font-bold uppercase text-gray-500 ml-1">Tỉnh / Thành phố</label>
-        <SearchableCheckoutSelect 
-          bind:value={form.province} 
-          options={validProvinces.map(p => p.name)} 
-          placeholder="Chọn tỉnh/thành..." 
-          onChange={() => form.ward = ''}
-        />
-      </div>
-      <div class="space-y-1">
-        <label class="text-[9px] font-bold uppercase text-gray-500 ml-1">Phường / Quận / Xã</label>
-        <SearchableCheckoutSelect 
-          bind:value={form.ward} 
-          options={currentWards} 
-          placeholder="Chọn phường/xã..." 
-          disabled={!form.province}
-          getBadge={getWardBadge}
-        />
-      </div>
+    <div class="space-y-1">
+      <label class="text-[9px] font-bold uppercase text-gray-500 ml-1">Khu vực (Tỉnh / Quận / Huyện / Xã)</label>
+      <SearchableCheckoutSelect 
+        bind:value={unifiedValue} 
+        options={unifiedOptions} 
+        placeholder="Gõ tên xã, quận, tỉnh để tìm nhanh..." 
+        onChange={handleUnifiedChange}
+        getBadge={getUnifiedBadge}
+      />
     </div>
 
     <div class="space-y-1">
@@ -147,7 +149,11 @@
         
         {#if showNote}
           <div transition:slide class="mt-3">
-             <input type="text" bind:value={orderNote} placeholder="VD: Giao trong giờ hành chính..." class="w-full bg-gray-50 border border-gray-200 px-3 py-2 text-[12px] focus:border-[#fe2c55] focus:bg-white outline-none font-medium text-gray-800 rounded" />
+             <SimpleTiptap 
+               bind:content={orderNote} 
+               placeholder="VD: Giao trong giờ hành chính, gọi trước khi đến 15 phút..." 
+               minHeight="80px" 
+             />
           </div>
         {/if}
       </div>

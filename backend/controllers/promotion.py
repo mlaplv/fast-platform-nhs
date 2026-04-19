@@ -41,3 +41,16 @@ class PromotionController(Controller):
     async def delete_voucher(self, db_session: AsyncSession, voucher_id: str) -> SuccessResponse:
         """Delete a voucher."""
         return await promotion_admin_service.delete_voucher(db_session, voucher_id)
+
+    @post("/bulk-delete")
+    async def bulk_delete_vouchers(self, db_session: AsyncSession, data: dict) -> SuccessResponse:
+        """Delete multiple vouchers."""
+        voucher_ids = data.get("ids", [])
+        return await promotion_admin_service.bulk_delete_vouchers(db_session, voucher_ids)
+
+    @post("/bulk-status")
+    async def bulk_update_status(self, db_session: AsyncSession, data: dict) -> SuccessResponse:
+        """Update status for multiple vouchers."""
+        voucher_ids = data.get("ids", [])
+        is_active = data.get("is_active", True)
+        return await promotion_admin_service.bulk_update_status(db_session, voucher_ids, is_active)

@@ -31,6 +31,11 @@
     // Elite V2.2: Global Identity Handshake
     await permissionState.handshake();
 
+    // Elite V2.2: Neural Advisor Persona Initialization
+    if (!isAdmin) {
+      await supportAgent.init(data.agentName);
+    }
+
     if (ui) {
       return ui.initObservers();
     }

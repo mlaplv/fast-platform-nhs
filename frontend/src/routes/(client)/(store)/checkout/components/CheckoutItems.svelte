@@ -115,7 +115,7 @@
                     </span>
                   {/if}
                   <span class="text-sm font-black text-[#ee4d2d] italic tracking-tightest antialiased">
-                    {formatCurrency((item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0) * item.quantity)}
+                    {formatCurrency(cartStore.getEffectiveItemPrice(item.id) * item.quantity)}
                   </span>
                 </div>
               </div>

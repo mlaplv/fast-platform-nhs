@@ -1,5 +1,5 @@
 from typing import Optional, List
-from sqlalchemy import select, func, and_, or_, delete
+from sqlalchemy import select, func, and_, or_, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models.promotion import Voucher
 from backend.schemas.promotion import CreateVoucherRequest, UpdateVoucherRequest, VoucherListResponse, VoucherResponse
@@ -74,5 +74,25 @@ class PromotionAdminService:
         await db_session.delete(voucher)
         await db_session.commit()
         return SuccessResponse(message=f"Đã xoá voucher {voucher_id} thành công.")
+
+    async def bulk_delete_vouchers(self, db_session: AsyncSession, ids: List[str]) -> SuccessResponse:
+        if not ids:
+            return SuccessResponse(message="Không có voucher nào được chọn.")
+        
+        tenant_id = current_tenant_id.get() or "default"
+        stmt = delete(Voucher).where(and_(Voucher.id.in_(ids), Voucher.tenant_id == tenant_id))
+        await db_session.execute(stmt)
+        await db_session.commit()
+        return SuccessResponse(message=f"Đã xoá {len(ids)} voucher thành công.")
+
+    async def bulk_update_status(self, db_session: AsyncSession, ids: List[str], is_active: bool) -> SuccessResponse:
+        if not ids:
+            return SuccessResponse(message="Không có voucher nào được chọn.")
+        
+        tenant_id = current_tenant_id.get() or "default"
+        stmt = update(Voucher).where(and_(Voucher.id.in_(ids), Voucher.tenant_id == tenant_id)).values(is_active=is_active)
+        await db_session.execute(stmt)
+        await db_session.commit()
+        return SuccessResponse(message=f"Đã cập nhật trạng thái cho {len(ids)} voucher thành công.")
 
 promotion_admin_service = PromotionAdminService()

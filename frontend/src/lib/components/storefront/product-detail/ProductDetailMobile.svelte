@@ -119,6 +119,7 @@
         {product} 
         {timeLeft} 
         {selectedVariant} 
+        selectedQty={selectedQty}
         onOpenSelector={() => showVariantSelector = true} 
       />
     </div>

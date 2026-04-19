@@ -33,11 +33,23 @@
   const isCardActive = $derived(shopStore.variant?.id === variant.id);
   const displayQty = $derived(isCardActive ? (shopStore.variant?.attributes?.combo_qty || shopStore.quantity) : (variant.attributes?.combo_qty || 1));
 
-  // --- MEMOIZED PRICING DATA (ELITE V2.2: ZERO-LAG) ---
-  const priceInfo = $derived(shopStore.calculateAdjustedPrice(variant, 1, shopStore.selectedVoucherIds));
-  const finalPrice = $derived(priceInfo.final);
-  const voucherDiscount = $derived(priceInfo.voucherDiscount);
-  const totalSavings = $derived((variant.price - (variant.discountPrice || variant.price)) + voucherDiscount);
+  // --- ELITE V2.2: DYNAMIC COMBO PRICING ENGINE ---
+  const comboQty = $derived(variant.attributes?.combo_qty || 1);
+  
+  // Base unit prices (DB source)
+  const unitPrice = $derived(variant.discountPrice || variant.price || 0);
+  const unitOriginalPrice = $derived(variant.price || 0);
+
+  // Adjusted prices (including vouchers) - Grid shows UNIT price as primary
+  const unitPriceInfo = $derived(shopStore.calculateAdjustedPrice(variant, 1, shopStore.selectedVoucherIds));
+  const finalUnitPrice = $derived(unitPriceInfo.final);
+  
+  // Total package values
+  const totalPackagePrice = $derived(finalUnitPrice * comboQty);
+  const totalOriginalPackagePrice = $derived(unitOriginalPrice * comboQty);
+  
+  const voucherDiscountPerUnit = $derived(unitPriceInfo.voucherDiscount);
+  const totalSavings = $derived((totalOriginalPackagePrice - totalPackagePrice));
   
   const selectedVouchers = $derived((shopStore.vouchers || []).filter(v => shopStore.selectedVoucherIds.includes(v.id)));
   const shippingVoucher = $derived(selectedVouchers.find(v => v.type === 'SHIPPING'));
@@ -62,8 +74,6 @@
 
   function selectVariant() {
     shopStore.selectVariant(variant);
-    const qty = variant.attributes?.combo_qty || 1;
-    shopStore.setQuantity(qty);
   }
 
   function handleCheckout(e: MouseEvent) {
@@ -72,9 +82,8 @@
     
     isNavigating = true;
     shopStore.selectVariant(variant);
-    const qty = variant.attributes?.combo_qty || 1;
-    shopStore.setQuantity(qty);
     if (product) {
+        const qty = variant.attributes?.combo_qty || 1;
         cartStore.buyNow(product, variant, qty, shopStore.selectedVoucherIds);
     }
     
@@ -129,6 +138,8 @@
            {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
         </p>
       </div>
+      <!-- 🧪 ELITE V2.2: LIQUID SPECULAR GLASS -->
+      <div class="liquid-specular-highlight"></div>
     </div>
 
     <div class="px-5 pb-6 pt-2 flex flex-col flex-grow relative z-20">
@@ -140,12 +151,23 @@
               </div>
            {/if}
           <h5 class="text-[15px] font-black text-white italic tracking-tighter text-center md:text-left leading-none mb-1">{getVariantTitle(variant)}</h5>
-          <div class="flex items-center gap-2 leading-none">
-             {#if variant.price > finalPrice}
-                <span class="original-price text-[11px] text-white/20 line-through tabular-nums decoration-luxury-sakura/50">{(variant.price).toLocaleString()}đ</span>
-             {/if}
-             <span class="text-3xl font-black text-white tabular-nums leading-none tracking-tighter">{(finalPrice).toLocaleString()}đ</span>
+          <div class="flex items-baseline gap-2 leading-none mt-1">
+             <span class="text-3xl font-black text-white tabular-nums leading-none tracking-tighter">{(finalUnitPrice).toLocaleString()}đ</span>
+             <span class="text-[10px] font-bold text-white/40 uppercase tracking-widest">/ SẢN PHẨM</span>
           </div>
+          
+          {#if comboQty > 1}
+            <div class="flex items-center gap-2 mt-1 mb-1">
+               <span class="text-[11px] font-bold text-luxury-sakura/80 tabular-nums">Tổng gói: {(totalPackagePrice).toLocaleString()}đ</span>
+               {#if totalOriginalPackagePrice > totalPackagePrice}
+                  <span class="text-[10px] text-white/20 line-through tabular-nums decoration-white/20">{(totalOriginalPackagePrice).toLocaleString()}đ</span>
+               {/if}
+            </div>
+          {:else if unitOriginalPrice > finalUnitPrice}
+             <div class="mt-1 mb-1">
+                <span class="text-[11px] text-white/20 line-through tabular-nums decoration-white/20">{(unitOriginalPrice).toLocaleString()}đ</span>
+             </div>
+          {/if}
           
           {#if shippingVoucher || discountVoucher}
             <div class="active-vouchers-row flex flex-wrap gap-2 mt-0.5">
@@ -174,7 +196,7 @@
 
           {#if totalSavings > 0}
             <div class="mt-[3px] flex items-center">
-                 <div class="ultimate-savings-box text-[8px] text-black font-black uppercase tracking-wider flex items-center gap-1.5 bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] px-2.5 py-1 rounded-full border border-white/20 shadow-lg transform active:scale-95 transition-all">
+                 <div class="ultimate-savings-box metallic-shimmer text-[8px] text-black font-black uppercase tracking-wider flex items-center gap-1.5 bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] px-2.5 py-1 rounded-full border border-white/20 shadow-lg transform active:scale-95 transition-all">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-led-red-pulse shadow-[0_0_8px_#ff0000]"></span>
                     <span>{mkt.savings_prefix}</span>
                     <span class="tabular-nums">{(totalSavings).toLocaleString()}đ</span>
@@ -284,9 +306,9 @@
                  <span class="text-[14px] font-black uppercase tracking-[0.2em] text-white leading-none mb-1 text-shadow-sm">
                     MUA NGAY
                  </span>
-                 <span class="text-[9px] text-white/80 uppercase font-bold tracking-[0.1em]">
-                     Sở hữu ngay • {finalPrice.toLocaleString()}đ
-                 </span>
+                  <span class="text-[9px] text-white/80 uppercase font-bold tracking-[0.1em]">
+                     Sở hữu ngay • {totalPackagePrice.toLocaleString()}đ
+                  </span>
               </div>
            </div>
            <div class="bg-white/10 p-2 rounded-full border border-white/5 shadow-lg">

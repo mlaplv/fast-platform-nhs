@@ -58,6 +58,15 @@ export class CartStore {
                 }
             }
         }
+
+        // Auto-save on state change
+        if (browser) {
+            $effect.root(() => {
+                $effect(() => {
+                    this.save();
+                });
+            });
+        }
     }
 
     // Computed State
@@ -69,37 +78,49 @@ export class CartStore {
         if (this.selectedVoucherIds.length === 0 || this.vouchers.length === 0) return 0;
         
         let total = 0;
+        const subtotal = this.totalAmountWithoutDiscount;
+
         for (const id of this.selectedVoucherIds) {
             const v = this.vouchers.find(v => v.id === id);
             if (!v) continue;
             
-            if (v.type === 'FIXED' && this.totalAmountWithoutDiscount >= (v.min_spend || 0)) {
+            if (subtotal < (v.min_spend || 0)) continue;
+
+            if (v.type === 'FIXED') {
                 total += v.value;
-            } else if (v.type === 'PERCENT' && this.totalAmountWithoutDiscount >= (v.min_spend || 0)) {
-                total += (this.totalAmountWithoutDiscount * v.value) / 100;
+            } else if (v.type === 'PERCENT') {
+                total += (subtotal * v.value) / 100;
+            } else if (v.type === 'SHIPPING') {
+                // In Elite V2.2, shipping vouchers are handled as absolute discounts to subtotal if not zeroed at UI level
+                total += v.value;
             }
         }
         return total;
     });
 
-    totalAmountWithoutDiscount = $derived(
-        this.items.filter(item => item.selected).reduce((acc, item) => {
-            const price = item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0;
-            const deals = item.product?.metadata?.active_deals as import('$lib/types').PromotionDeal[] | undefined;
-            if (deals && deals.length > 0) {
-                const sortedDeals = [...deals].sort((a, b) => (b.buy_qty + (b.get_qty || 0)) - (a.buy_qty + (a.get_qty || 0)));
-                for (const deal of sortedDeals) {
-                    const totalInBundle = deal.buy_qty + (deal.get_qty || 0);
-                    if (item.quantity >= totalInBundle) {
-                        const bundleCount = Math.floor(item.quantity / totalInBundle);
-                        const remainder = item.quantity % totalInBundle;
-                        return acc + ((bundleCount * deal.fixed_price) + (remainder * price));
-                    }
-                }
-            }
-            return acc + (price * item.quantity);
-        }, 0)
-    );
+    totalAmountWithoutDiscount = $derived.by(() => {
+        const selectedItems = this.items.filter(item => item.selected);
+        if (selectedItems.length === 0) return 0;
+
+        // Group by product to calculate total quantity per product for tier resolution
+        const productStats = new Map<string, { totalQty: number, product: Product }>();
+        selectedItems.forEach(item => {
+            const stats = productStats.get(item.product.id) || { totalQty: 0, product: item.product };
+            stats.totalQty += item.quantity;
+            productStats.set(item.product.id, stats);
+        });
+
+        let total = 0;
+        for (const item of selectedItems) {
+            const stats = productStats.get(item.product.id)!;
+            const totalQtyForProduct = stats.totalQty;
+            
+            const effectiveUnitPrice = this.getEffectiveItemPrice(item.id);
+
+            total += (effectiveUnitPrice * item.quantity);
+        }
+        return total;
+    });
 
     totalAmount = $derived(
         Math.max(0, this.totalAmountWithoutDiscount - this.totalDiscount)
@@ -158,6 +179,45 @@ export class CartStore {
         }
     }
 
+    /**
+     * ELITE V2.2: Tier-Aware Unit Price Resolution
+     * Handles both 'combo_qty' and 'comboQty' and 'gifts' metadata.
+     */
+    getEffectiveItemPrice(itemId: string): number {
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return 0;
+        
+        // Use aggregate product quantity for tier resolution across all selected lines of same product
+        const selectedItems = this.items.filter(i => i.selected);
+        const totalQtyForProduct = selectedItems
+            .filter(i => i.product.id === item.product.id)
+            .reduce((acc, i) => acc + i.quantity, 0);
+            
+        // Elite V2.2: Standardized attribute resolution
+        const getQty = (attrs: NonNullable<ProductVariant['attributes']>): number => 
+            Number(attrs?.combo_qty ?? attrs?.comboQty ?? 0);
+
+        const comboVariants = item.product?.variants?.filter(v => {
+            if (!v.attributes) return false;
+            return getQty(v.attributes) > 0;
+        }) || [];
+        
+        if (comboVariants.length > 0) {
+            const sortedTiers = [...comboVariants].sort((a, b) => 
+                getQty(b.attributes as NonNullable<ProductVariant['attributes']>) - 
+                getQty(a.attributes as NonNullable<ProductVariant['attributes']>)
+            );
+            const bestTier = sortedTiers.find(v => 
+                getQty(v.attributes as NonNullable<ProductVariant['attributes']>) <= totalQtyForProduct
+            );
+            
+            const resolvedVariant = bestTier || item.variant || item.product.variants?.[0];
+            return resolvedVariant?.discountPrice ?? item.product.discountPrice ?? resolvedVariant?.price ?? item.product.price ?? 0;
+        }
+        
+        return item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0;
+    }
+
     removeItem(id: string): void {
         this.items = this.items.filter(item => item.id !== id);
         this.save();
@@ -214,6 +274,7 @@ export class CartStore {
                 this.selectedVoucherIds = [...others, id];
             }
         }
+        this.save();
     }
 }
 

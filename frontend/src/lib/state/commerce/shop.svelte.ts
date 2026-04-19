@@ -41,6 +41,7 @@ export class ShopStore {
     product = $state<Product | null>(null);
     variant = $state<ProductVariant | null>(null);
     quantity = $state<number>(1);
+    lastTierReached = $state<number | null>(null); // For notification logic
 
     // UI & Funnel State
     error = $state<string | null>(null);
@@ -70,19 +71,7 @@ export class ShopStore {
     // Computed State
     totalAmount = $derived.by((): number => {
         let baseTotal = this.currentPrice * this.quantity;
-        const deals = this.product?.metadata?.active_deals;
-        if (deals && deals.length > 0) {
-            const sortedDeals = [...deals].sort((a, b) => (b.buy_qty + (b.get_qty || 0)) - (a.buy_qty + (a.get_qty || 0)));
-            for (const deal of sortedDeals) {
-                const totalInBundle = deal.buy_qty + (deal.get_qty || 0);
-                if (this.quantity >= totalInBundle) {
-                    const bundleCount = Math.floor(this.quantity / totalInBundle);
-                    const remainder = this.quantity % totalInBundle;
-                    baseTotal = (bundleCount * deal.fixed_price) + (remainder * this.currentPrice);
-                    break;
-                }
-            }
-        }
+        // Legacy active_deals removed
         
         // 🚀 ELITE V2.2: Apply Selected Vouchers
         let discount = 0;
@@ -135,38 +124,32 @@ export class ShopStore {
     }
 
     appliedDeal = $derived.by((): PromotionDeal | null => {
-        const deals = this.product?.metadata?.active_deals;
-        if (!deals) return null;
-        const sortedDeals = [...deals].sort((a, b) => (b.buy_qty + (b.get_qty || 0)) - (a.buy_qty + (a.get_qty || 0)));
-        for (const deal of sortedDeals) {
-            const totalInBundle = deal.buy_qty + (deal.get_qty || 0);
-            if (this.quantity >= totalInBundle) return deal;
-        }
         return null;
     });
 
     nextDeal = $derived.by((): { deal: PromotionDeal; missing: number; priceDiff: number } | null => {
-        const deals = this.product?.metadata?.active_deals;
-        if (!deals || !this.product) return null;
-        const currentPriceTotal = this.currentPrice * this.quantity;
-        const sortedDeals = [...deals].sort((a, b) => (a.buy_qty + (a.get_qty || 0)) - (b.buy_qty + (b.get_qty || 0)));
-        for (const deal of sortedDeals) {
-            const totalInBundle = deal.buy_qty + (deal.get_qty || 0);
-            if (this.quantity < totalInBundle) {
-                return { 
-                    deal, 
-                    missing: totalInBundle - this.quantity,
-                    priceDiff: deal.fixed_price - currentPriceTotal
-                };
-            }
-        }
         return null;
+    });
+
+    effectiveVariant = $derived.by((): ProductVariant | null => {
+        if (!this.product?.variants || this.product.variants.length === 0) return this.variant;
+        
+        // Find variants with combo_qty
+        const comboVariants = this.product.variants.filter(v => v.attributes && v.attributes.combo_qty);
+        if (comboVariants.length === 0) return this.variant;
+
+        // Find best tier for current quantity
+        const sortedTiers = [...comboVariants].sort((a, b) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty));
+        const bestTier = sortedTiers.find(v => Number(v.attributes.combo_qty) <= this.quantity);
+        
+        return bestTier || this.variant || this.product.variants[0];
     });
 
     currentPrice = $derived.by((): number => {
         if (!this.product) return 0;
-        return this.variant?.discountPrice ?? this.product.discountPrice ??
-               this.variant?.price ?? this.product.price ?? 0;
+        const v = this.effectiveVariant;
+        return v?.discountPrice ?? this.product.discountPrice ??
+               v?.price ?? this.product.price ?? 0;
     });
 
     originalPrice = $derived.by((): number => {
@@ -240,10 +223,31 @@ export class ShopStore {
 
     setVouchers(data: Voucher[]): void {
         this.vouchers = data || [];
-        if (this.selectedVoucherIds.length === 0) {
-            const shipVoucher = this.vouchers.find(v => v.type === 'SHIPPING');
-            if (shipVoucher) {
-                this.selectedVoucherIds = [shipVoucher.id];
+        
+        // 🚀 ELITE V2.2: Auto-optimize conversion by selecting best vouchers if none selected
+        if (this.selectedVoucherIds.length === 0 && this.vouchers.length > 0) {
+            let bestShip: string | null = null;
+            let bestDiscount: string | null = null;
+            let maxDiscountValue = -1;
+
+            for (const v of this.vouchers) {
+                if (v.type === 'SHIPPING') {
+                    bestShip = v.id; // Usually only one valid shipping voucher
+                } else {
+                    // Simple heuristic: higher value is better
+                    if (v.value > maxDiscountValue) {
+                        maxDiscountValue = v.value;
+                        bestDiscount = v.id;
+                    }
+                }
+            }
+
+            const autoSelect = [];
+            if (bestShip) autoSelect.push(bestShip);
+            if (bestDiscount) autoSelect.push(bestDiscount);
+            
+            if (autoSelect.length > 0) {
+                this.selectedVoucherIds = autoSelect;
             }
         }
     }
@@ -274,6 +278,10 @@ export class ShopStore {
 
     selectVariant(v: ProductVariant): void {
         this.variant = v;
+        const comboQty = v.attributes?.combo_qty ?? v.attributes?.comboQty;
+        if (comboQty != null) {
+            this.setQuantity(Number(comboQty));
+        }
     }
 
     selectVariantByTier(indices: number[]): void {
@@ -283,8 +291,7 @@ export class ShopStore {
             v.tierIndex.every((val: number, idx: number) => val === indices[idx])
         );
         if (found) {
-            this.variant = found;
-            this.quantity = 1;
+            this.selectVariant(found);
         }
     }
 

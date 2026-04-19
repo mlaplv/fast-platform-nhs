@@ -1,17 +1,13 @@
 export type OrderStatus = 'PENDING' | 'PACKED' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED';
 
 export interface OrderItem {
-  id: string;
+  id: string;              // product_id
   name: string;
-  image?: string;
   image_url?: string;
-  quantity: number;
-  qty?: number;
-  price: number;
-  unit_price?: number;
-  total_price?: number;
-  totalPrice?: number;
-  variant?: string;
+  quantity: number;        // qty
+  unit_price: number;      // unit_price
+  total_price: number;     // unit_price * quantity
+  variant_id?: string;
   sku?: string;
 }
 
@@ -47,42 +43,27 @@ export interface GiftInfo {
 
 export interface CustomRequestItem {
   name: string;
-  image?: string;
   image_url?: string;
-  qty?: number;
-  quantity?: number;
+  quantity: number;
+  price?: number;
 }
 
 export interface Order {
   id: string;
   status: OrderStatus;
   created_at: string;
-  createdAt?: string;
   total_amount: number;
-  total?: number;
   items: OrderItem[];
   customer_name: string;
-  customerName?: string;
   customer_phone: string;
-  customerPhone?: string;
   customer_address: string;
-  customerAddress?: string;
-  name_masked?: string;
-  address_masked?: string;
   shipping_fee: number;
   payment_method: string;
   note?: string;
-  itemCount?: number;
   is_trusted_device?: boolean;
+  name_masked?: string;
+  address_masked?: string;
   order_metadata?: {
-    zalo_status?: 'ACTIVE' | 'NOT_FOUND' | 'PENDING';
-    gift_info?: GiftInfo;
-    custom_requests?: CustomRequestItem[];
-    customer_note?: string;
-    note?: string;
-    [key: string]: unknown;
-  };
-  orderMetadata?: {
     zalo_status?: 'ACTIVE' | 'NOT_FOUND' | 'PENDING';
     gift_info?: GiftInfo;
     custom_requests?: CustomRequestItem[];
@@ -94,6 +75,8 @@ export interface Order {
 
 export interface OrderDetail extends Order {
   history: OrderHistory[];
-  insight?: CustomerInsight;
-  cancellationReason?: string;
+  insight?: {
+    total_orders: number;
+  };
+  cancellation_reason?: string;
 }

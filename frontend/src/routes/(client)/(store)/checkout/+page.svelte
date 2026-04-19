@@ -22,6 +22,7 @@
 
   import Countdown from '$lib/components/storefront/ui/Countdown.svelte';
   import GiftModal from '$lib/components/storefront/ui/GiftModal.svelte';
+  import NeuralGuardian from '$lib/components/storefront/ui/NeuralGuardian.svelte';
 
   // Types
   import type {
@@ -55,7 +56,9 @@
     };
   });
 
-  let isSubmitting = $state(false);
+  type NeuralStatus = 'idle' | 'verifying' | 'encoding' | 'submitting' | 'success' | 'error';
+  let neuralStatus = $state<NeuralStatus>('idle');
+  let isSubmitting = $derived(neuralStatus !== 'idle' && neuralStatus !== 'success' && neuralStatus !== 'error');
   let errorMsg = $state('');
   let invalidFields = $state(new Set<string>());
   let showCoInspectionModal = $state(false);
@@ -134,9 +137,42 @@
          isAddressFormVisible = false;
       }
 
-      if (cartStore.selectedVoucherIds.length === 0 && !cartStore.selectedVoucherIds.includes('SHIP0')) {
-        cartStore.selectedVoucherIds.push('SHIP0');
+  // [ELITE V2.2] Auto-Stick Protocol: Intelligence-based Voucher Selection
+  $effect(() => {
+    if (cartStore.vouchers.length > 0) {
+      const hasShippingSelected = cartStore.selectedVoucherIds.some(id => 
+        cartStore.vouchers.find(v => v.id === id)?.type === 'SHIPPING'
+      );
+      
+      if (!hasShippingSelected) {
+        const defaultShip = cartStore.vouchers.find(v => v.id === 'FREESHIP60' || (v.type === 'SHIPPING' && v.value === 60000));
+        if (defaultShip) {
+          // Use toggleVoucher to respect exclusive selection logic (1 Ship + 1 Discount)
+          cartStore.toggleVoucher(defaultShip.id);
+        }
       }
+    }
+  });
+    }
+  });
+
+  // ELITE V2.2: Dynamic Tier Notification System
+  let prevTierMap = new Map<string, number>();
+  $effect(() => {
+    for (const item of cartStore.items) {
+      if (!item.selected) continue;
+      const comboVariants = item.product?.variants?.filter(v => v.attributes && v.attributes.combo_qty) || [];
+      if (comboVariants.length === 0) continue;
+
+      const sortedTiers = [...comboVariants].sort((a, b) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty));
+      const reachedTier = sortedTiers.find(v => Number(v.attributes.combo_qty) <= item.quantity);
+      const tierId = reachedTier?.id || 'base';
+
+      const lastId = prevTierMap.get(item.id);
+      if (lastId && lastId !== tierId && reachedTier) {
+        clientUi.showToast(`Chúc mừng! Bạn đã đạt mức giá ưu đãi gói ${reachedTier.attributes.combo_qty} món cho ${item.product.name}`, 'success');
+      }
+      prevTierMap.set(item.id, tierId);
     }
   });
 
@@ -189,8 +225,18 @@
   });
 
   const shippingFee = $derived.by(() => {
+    // Standard shipping is always free in this store config
+    if (form.shippingMethod !== 'express') return 0;
+
     if (form.shippingMethod === 'express' && selectedProvinceData?.express_fee) {
-      return selectedProvinceData.express_fee;
+       // Elite V2.2: Check if a shipping voucher is applied to zero out or reduce express fee
+       const hasShippingDiscount = cartStore.selectedVoucherIds.some(id => {
+          const v = cartStore.vouchers.find(v => v.id === id);
+          return v?.type === 'SHIPPING';
+       });
+       
+       if (hasShippingDiscount) return 0; 
+       return selectedProvinceData.express_fee;
     }
     return 0;
   });
@@ -219,41 +265,56 @@
       .reduce((acc, item) => acc + ((item.variant?.price ?? item.product.price ?? 0) * item.quantity), 0);
   });
 
-  const productSavings = $derived(originalSubtotal - cartStore.totalAmount);
-  const totalSavings = $derived(productSavings + cartStore.totalDiscount);
+  const productSavings = $derived(originalSubtotal - cartStore.totalAmountWithoutDiscount);
+  const totalSavings = $derived(originalSubtotal - cartStore.totalAmount);
 
-  const vouchers: Voucher[] = [
-    { id: 'SHIP0', title: 'MIỄN PHÍ VẬN CHUYỂN', desc: 'Miễn phí vận chuyển cho đơn ₫0', type: 'shipping', value: 30000, minSpend: 0 },
-    { id: 'SALE30K', title: 'GIẢM GIÁ ₫30.000', desc: 'Đơn hàng từ ₫150.000', type: 'discount', value: 30000, minSpend: 150000 },
-    { id: 'SALE60K', title: 'GIẢM GIÁ ₫60.000', desc: 'Đơn hàng từ ₫300.000', type: 'discount', value: 60000, minSpend: 300000 }
-  ];
 
-  $effect(() => {
-    if (browser) {
-      // Đổ danh sách voucher xuống lõi CartStore theo chuẩn kiểu dữ liệu của Svelte state
-      cartStore.setVouchers(vouchers.map(v => ({
-         id: v.id,
-         type: v.type === 'discount' ? 'FIXED' : 'SHIPPING',
-         value: v.value,
-         min_spend: v.minSpend,
-         is_active: true,
-         used_count: 0
-      } as any)));
+  // --- HELEN AI PRICE INTELLIGENCE (CHECKOUT CONTEXT) ---
+  const helenAdvice = $derived.by(() => {
+    const selectedItems = cartStore.items.filter(i => i.selected);
+    if (selectedItems.length === 0) return "";
+
+    const advices: { gravity: number; text: string }[] = [];
+
+    for (const item of selectedItems) {
+      const comboVariants = item.product?.variants?.filter(v => v.attributes && v.attributes.combo_qty) || [];
+      if (comboVariants.length === 0) continue;
+
+      const sortedTiers = [...comboVariants].sort((a, b) => Number(a.attributes.combo_qty) - Number(b.attributes.combo_qty));
+      const nextTier = sortedTiers.find(t => Number(t.attributes.combo_qty) > item.quantity);
+
+      if (nextTier) {
+        const gap = Number(nextTier.attributes.combo_qty) - item.quantity;
+        const nextUnitPrice = nextTier.discountPrice || nextTier.discount_price || nextTier.price || 0;
+        
+        // Calculate current effective unit price for this item
+        const reachedTier = [...sortedTiers].reverse().find(v => Number(v.attributes.combo_qty) <= item.quantity);
+        const currentUnitPrice = reachedTier?.discountPrice || item.variant?.discountPrice || item.product.discountPrice || item.product.price || 0;
+        
+        const savingsPerUnit = currentUnitPrice - nextUnitPrice;
+        
+        if (savingsPerUnit > 0) {
+          advices.push({
+            gravity: savingsPerUnit * (item.quantity + gap),
+            text: `Thêm ${gap} sp ${item.product.name} để giảm thêm ${formatCurrency(savingsPerUnit)}/sp. Tiết kiệm ngay ${formatCurrency(nextUnitPrice)}/món!`
+          });
+        }
+      }
     }
+
+    if (advices.length > 0) {
+      return advices.sort((a, b) => b.gravity - a.gravity)[0].text;
+    }
+
+    return "Tuyệt vời! Đơn hàng của bạn đã đạt mức giá tối ưu cho tất cả liệu trình. Helen cam kết bảo vệ quyền lợi và chất lượng sản phẩm cho bạn.";
   });
 
-  function toggleVoucher(voucher: Voucher) {
-    if (cartStore.totalAmountWithoutDiscount < voucher.minSpend) {
-      clientUi.showToast(`Cần mua thêm ${formatCurrency(voucher.minSpend - cartStore.totalAmountWithoutDiscount)}!`, 'info');
+  function toggleVoucher(voucher: import('$lib/types').Voucher) {
+    if (cartStore.totalAmountWithoutDiscount < (voucher.min_spend || 0)) {
+      clientUi.showToast(`Cần mua thêm ${formatCurrency((voucher.min_spend || 0) - cartStore.totalAmountWithoutDiscount)}!`, 'info');
       return;
     }
-    const idx = cartStore.selectedVoucherIds.indexOf(voucher.id);
-    if (idx > -1) cartStore.selectedVoucherIds.splice(idx, 1);
-    else {
-      const same = vouchers.find(v => v.type === voucher.type && cartStore.selectedVoucherIds.includes(v.id));
-      if (same) cartStore.selectedVoucherIds[cartStore.selectedVoucherIds.indexOf(same.id)] = voucher.id;
-      else cartStore.selectedVoucherIds.push(voucher.id);
-    }
+    cartStore.toggleVoucher(voucher.id);
   }
 
   async function lookupCustomer() {
@@ -293,16 +354,19 @@
       return;
     }
 
-    isSubmitting = true;
+    neuralStatus = 'verifying';
     errorMsg = '';
-
+    
     try {
+      neuralStatus = 'encoding';
+      neuralStatus = 'submitting';
+
       const backendPayload = {
         items: cartStore.items.filter(i => i.selected).map(i => ({
           product_id: i.product.id,
           variant_id: i.variant?.id,
           quantity: i.quantity,
-          price: (i.variant?.discountPrice ?? i.variant?.price ?? i.product.discountPrice ?? i.product.price ?? 0)
+          price: cartStore.getEffectiveItemPrice(i.id)
         })),
         custom_items: customItems.map(i => ({
           name: i.name,
@@ -321,16 +385,16 @@
         gift_info: cartStore.giftInfo || null
       };
 
-      const res = await apiClient.post<CheckoutResponse>('/api/v1/client/checkout/stealth', backendPayload);
+      const res = await apiClient.post<{ id: string, ok: boolean, success?: boolean }>('/api/v1/client/checkout/stealth', backendPayload);
       if (res.ok || res.success) {
+        neuralStatus = 'success';
         await clientUi.showToast('Đặt hàng thành công!', 'success');
         window.location.href = `/checkout/success/${res.id}?phone=${form.phone}`;
       }
     } catch (e: unknown) {
+      neuralStatus = 'error';
       errorMsg = e instanceof Error ? e.message : 'Lỗi đặt hàng, vui lòng thử lại!';
       clientUi.showToast(errorMsg, 'error');
-    } finally {
-      isSubmitting = false;
     }
   }
 </script>
@@ -388,14 +452,23 @@
                   </div>
                 {/if}
                 <DeliveryPaymentSection bind:form {deliveryEstimate} {canExpress} {selectedProvinceData} bind:showCoInspectionModal />
-                <VoucherSection {vouchers} {toggleVoucher} />
+                <VoucherSection vouchers={cartStore.vouchers} {toggleVoucher} />
               </div>
             </div>
 
             <div class="lg:col-span-5">
                <div class="bg-white p-6 shadow-sm md:sticky md:top-20 border-t-4 border-[#ee4d2d] space-y-6">
                   <CheckoutItems bind:customItems bind:showCustomItemForm bind:newCustomItem {addCustomItem} {removeCustomItem} />
-                  <OrderSummarySection bind:form {originalSubtotal} {productSavings} {shippingFee} {totalSavings} {isSubmitting} {handleSubmit} />
+                  <OrderSummarySection 
+                    bind:form 
+                    {originalSubtotal} 
+                    {productSavings} 
+                    {shippingFee} 
+                    {totalSavings} 
+                    {helenAdvice}
+                    {neuralStatus}
+                    {handleSubmit} 
+                  />
                </div>
             </div>
           </div>
@@ -506,14 +579,24 @@
                   <div class="flex items-end justify-between mt-2 max-w-full">
                     <div class="flex flex-col items-start min-w-[70px]">
                       <div class="text-[17px] font-bold text-[#fe2c55] leading-none shrink-0 flex items-center gap-1">
-                         {formatCurrency(item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0)}
+                         {formatCurrency(cartStore.getEffectiveItemPrice(item.id))}
+                         {#if cartStore.getEffectiveItemPrice(item.id) < (item.variant?.discountPrice ?? item.product.discountPrice ?? item.variant?.price ?? item.product.price ?? 0)}
+                           <span class="text-[8px] bg-[#fe2c55] text-white px-1 py-0.5 rounded-[2px] font-black uppercase italic tracking-tighter shadow-sm animate-pulse-subtle">Combo</span>
+                         {/if}
                       </div>
-                      {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
-                        <div class="flex items-center gap-1 mt-1">
+                      <div class="flex items-center gap-1 mt-1">
+                         {#if cartStore.getEffectiveItemPrice(item.id) < (item.variant?.discountPrice ?? item.product.discountPrice ?? 0)}
+                           <span class="text-[11px] text-gray-400 line-through shrink-0 italic">{formatCurrency(item.variant?.discountPrice ?? item.product.discountPrice ?? 0)}</span>
+                         {:else if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
                            <span class="text-[11px] text-gray-400 line-through shrink-0 text-center">{formatCurrency(item.variant?.price ?? item.product.price ?? 0)}</span>
-                           <span class="bg-[#fff0f1] text-[#fe2c55] text-[9px] px-1 py-0.5 rounded-sm font-bold shrink-0">-98%</span>
-                        </div>
-                      {/if}
+                         {/if}
+                         
+                         {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
+                           <span class="bg-[#fff0f1] text-[#fe2c55] text-[9px] px-1 py-0.5 rounded-sm font-bold shrink-0">
+                             -{Math.round(100 - (cartStore.getEffectiveItemPrice(item.id) / (item.variant?.price ?? item.product.price ?? 1) * 100))}%
+                           </span>
+                         {/if}
+                      </div>
                     </div>
                     
                     <!-- Qty Control matches TikTok design: border, compact -->
@@ -604,6 +687,11 @@
             </div>
           </div>
 
+          <!-- AGENTIC AI OVERSIGHT (MOBILE - TỔNG HỢP SAU GIỎ HÀNG) -->
+          <div class="px-2 mb-3 mt-1">
+             <NeuralGuardian status={neuralStatus} advice={helenAdvice} />
+          </div>
+
           <!-- Extra Fields (Required for Checkout to function) styled conservatively -->
           {#if isAddressFormVisible}
             <div id="address-section" transition:slide class="mb-3 mt-3 mx-2 scroll-mt-[90px]">
@@ -616,8 +704,9 @@
           </div>
 
           <div class="bg-white rounded-xl shadow-sm mb-3 overflow-hidden p-4 mx-2">
-             <VoucherSection {vouchers} {toggleVoucher} />
+             <VoucherSection vouchers={cartStore.vouchers} {toggleVoucher} />
           </div>
+
         </div>
 
         <!-- Terms and Conditions -->
@@ -662,10 +751,24 @@
                 type="button" 
                 onclick={(e) => handleSubmit(e as unknown as SubmitEvent)}
                 disabled={isSubmitting || cartStore.selectedItemsCount === 0}
-                class="px-5 py-3 bg-[#fe2c55] text-white text-[15px] font-semibold rounded-lg min-w-[120px] shadow-sm shadow-[#fe2c55]/30 disabled:opacity-50 disabled:cursor-not-allowed active:bg-[#e0264b] transition-colors flex justify-center items-center"
+                class="px-5 py-3 bg-[#fe2c55] text-white text-[15px] font-semibold rounded-lg min-w-[140px] shadow-sm shadow-[#fe2c55]/30 disabled:opacity-50 disabled:cursor-not-allowed active:bg-[#e0264b] transition-colors flex justify-center items-center overflow-hidden relative group"
                >
-                {#if isSubmitting}
-                  <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                {#if neuralStatus === 'verifying'}
+                  <div class="flex items-center gap-2" in:slide={{axis: 'y'}}>
+                    <div class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                    <span class="text-[11px] font-black uppercase tracking-widest leading-none">Neural Verifying...</span>
+                  </div>
+                {:else if neuralStatus === 'encoding'}
+                  <div class="flex items-center gap-2" in:slide={{axis: 'y'}}>
+                    <div class="flex gap-0.5">
+                       <div class="w-1 h-1 bg-white/60 animate-bounce"></div>
+                       <div class="w-1 h-1 bg-white/60 animate-bounce" style:animation-delay="0.1s"></div>
+                       <div class="w-1 h-1 bg-white/60 animate-bounce" style:animation-delay="0.2s"></div>
+                    </div>
+                    <span class="text-[11px] font-black uppercase tracking-widest leading-none">Stealth Encoding...</span>
+                  </div>
+                {:else if neuralStatus === 'submitting'}
+                   <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 {:else}
                   Thanh toán ({cartStore.selectedItemsCount})
                 {/if}

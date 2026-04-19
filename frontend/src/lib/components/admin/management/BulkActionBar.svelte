@@ -13,13 +13,17 @@
     onClear, 
     onDeleteBulk, 
     onArchiveBulk,
-    onStatusBulk
+    onStatusBulk,
+    statusMap = CAMPAIGN_STATUS_MAP,
+    placeholder = "BULK_UPDATE..."
   } = $props<{
     selectedCount: number;
     onClear: () => void;
     onDeleteBulk: () => void;
     onArchiveBulk: () => void;
     onStatusBulk: (status: string) => void;
+    statusMap?: Record<string, { label: string; color: string; border: string }>;
+    placeholder?: string;
   }>();
 </script>
 
@@ -64,10 +68,10 @@
         <!-- Bulk Status Transition (Elite V2.2) -->
         <div class="w-[200px]">
           <StatusDropdown 
-            options={Object.keys(CAMPAIGN_STATUS_MAP)}
+            options={Object.keys(statusMap)}
             onSelect={onStatusBulk}
-            statusMap={CAMPAIGN_STATUS_MAP}
-            placeholder="BULK_UPDATE..."
+            {statusMap}
+            {placeholder}
             variant="bulk"
           />
         </div>

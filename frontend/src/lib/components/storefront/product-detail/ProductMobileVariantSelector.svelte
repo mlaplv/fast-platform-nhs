@@ -4,6 +4,8 @@
   import type { Product, ProductVariant } from '$lib/types';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
+  import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
 
   interface Props {
     product: Product;
@@ -50,7 +52,48 @@
     return pImages[0] || '/placeholder.png';
   });
 
-  let currentPrice = $derived(currentVariant ? (currentVariant.discountPrice || currentVariant.discount_price || currentVariant.price) : (product.discountPrice || product.discount_price || product.price || 0));
+  const effectiveUnitPrice = $derived.by(() => {
+    const v = currentVariant;
+    if (!v) return product.discountPrice || product.discount_price || product.price || 0;
+    
+    // Check if there's a better tier for THIS product based on quantity
+    const comboVariants = pVariants.filter(cv => cv.attributes && cv.attributes.combo_qty);
+    if (comboVariants.length === 0) return v.discountPrice || v.discount_price || v.price;
+
+    const sortedTiers = [...comboVariants].sort((a, b) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty));
+    const bestTier = sortedTiers.find(t => Number(t.attributes.combo_qty) <= quantity);
+    
+    const finalV = bestTier || v;
+    return finalV.discountPrice || finalV.discount_price || finalV.price;
+  });
+
+  // --- HELEN AI PRICE INTELLIGENCE (MOBILE VERSION) ---
+  const formatVnd = (val: number) => val.toLocaleString('vi-VN');
+  const helenAdvice = $derived.by(() => {
+    const comboVariants = pVariants.filter(cv => cv.attributes && cv.attributes.combo_qty);
+    if (comboVariants.length === 0) return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền.";
+    
+    const sortedTiers = [...comboVariants].sort((a, b) => Number(a.attributes.combo_qty) - Number(b.attributes.combo_qty));
+    const nextTier = sortedTiers.find(t => Number(t.attributes.combo_qty) > quantity);
+    
+    if (nextTier) {
+      const gap = Number(nextTier.attributes.combo_qty) - quantity;
+      const nextUnitPrice = nextTier.discountPrice || nextTier.discount_price || nextTier.price;
+      const currentUnitPrice = effectiveUnitPrice;
+      const savingsPerUnit = currentUnitPrice - nextUnitPrice;
+      const tierName = nextTier.tierIndex.map((idx, i) => variations?.[i]?.options?.[idx] || '').filter(Boolean).join(' ') || "Combo tiếp theo";
+      
+      if (savingsPerUnit > 0) {
+        return `Thêm ${gap} sp để nâng cấp lên "${tierName}" (giảm ₫${formatVnd(savingsPerUnit)}/sp)!`;
+      }
+      return `Chỉ thêm ${gap} sp để nhận trọn bộ quà tặng "${tierName}"!`;
+    }
+    
+    return "Tuyệt vời! Bạn đang nhận được mức giá tối ưu nhất cho liệu trình này.";
+  });
+
+  let currentPrice = $derived(effectiveUnitPrice);
+  let totalPrice = $derived(effectiveUnitPrice * quantity);
   let currentStock = $derived(currentVariant ? currentVariant.stock : product.stock);
 
   function selectOption(tierIdx: number, optIdx: number) {
@@ -62,7 +105,14 @@
     }
     selectedIndices = newSelected;
     
-    if (quantity > (currentStock || 0)) {
+    // Sync quantity with combo_qty (Elite V2.2)
+    const nextVariant = pVariants.find(v => 
+      v.tierIndex.length === selectedIndices.length && 
+      v.tierIndex.every((val, i) => val === selectedIndices[i])
+    );
+    if (nextVariant?.attributes?.combo_qty) {
+      quantity = Number(nextVariant.attributes.combo_qty);
+    } else if (quantity > (currentStock || 0)) {
       quantity = currentStock > 0 ? 1 : 0;
     }
   }
@@ -71,6 +121,12 @@
     const newVal = quantity + delta;
     if (newVal >= 1 && newVal <= (currentStock || 99)) {
       quantity = newVal;
+      
+      // SYNC BACK: Auto-select variant matching this quantity (Elite V2.2)
+      const matchingVariant = pVariants.find(v => Number(v.attributes?.combo_qty || 0) === quantity);
+      if (matchingVariant && matchingVariant.tierIndex) {
+        selectedIndices = [...matchingVariant.tierIndex];
+      }
     }
   }
 
@@ -105,11 +161,26 @@
         <img src={currentImage} alt={product.name} class="w-full h-full object-cover" />
       </div>
       <div class="flex flex-col justify-end pb-1 pr-8">
-        <div class="flex items-baseline gap-2">
+        <div class="flex items-baseline gap-1.5">
            <span class="text-[#ee4d2d] text-xl font-black">₫{currentPrice.toLocaleString('vi-VN')}</span>
+           <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">/ sp</span>
         </div>
-        <div class="text-[12px] text-gray-500 font-medium mt-1">Kho: {currentStock || 0} sản phẩm</div>
-        <div class="text-[12px] text-gray-800 font-bold mt-1">
+        {#if quantity > 1}
+          <div class="text-[12px] text-[#ee4d2d] font-black mt-1">Tổng: ₫{totalPrice.toLocaleString('vi-VN')}</div>
+        {/if}
+        <div class="text-[11px] text-gray-500 font-medium mt-1">Kho: {currentStock || 0} sản phẩm</div>
+        
+        <!-- Agentic AI Advice (Mini) -->
+        <div class="flex items-center gap-2 mt-2 bg-blue-50/20 px-2 py-1 rounded-sm border border-blue-100/20">
+            <div class="flex items-center gap-1.5 shrink-0">
+                <HelenIcon size={12} color="#3b82f6" />
+                <span class="text-[8px] text-blue-500 font-mono font-black uppercase tracking-[0.2em]">{supportAgent.config.agentName}</span>
+                <div class="w-0.5 h-0.5 bg-blue-400 rounded-full animate-pulse"></div>
+            </div>
+            <span class="text-[10px] text-slate-600 font-medium tracking-tight line-clamp-1">{helenAdvice}</span>
+        </div>
+
+        <div class="text-[11px] text-gray-800 font-bold mt-1">
           {#if selectedIndices.every(idx => idx === -1)}
             Vui lòng chọn phân loại
           {:else}

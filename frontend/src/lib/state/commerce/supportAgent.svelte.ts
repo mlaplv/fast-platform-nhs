@@ -121,10 +121,14 @@ class SupportAgentState {
      */
     vibrate(pattern: number | number[] = 10) {
         if (browser && "vibrate" in navigator) {
+            // ELITE V2.2: Safely vibrate only if interaction is allowed
             try {
-                navigator.vibrate(pattern);
+                // @ts-ignore - navigator.userActivation is experimental but helpful
+                if (!navigator.userActivation || navigator.userActivation.isActive) {
+                    navigator.vibrate(pattern);
+                }
             } catch (e) {
-                // Ignore if blocked or not supported
+                // Ignore if blocked
             }
         }
     }

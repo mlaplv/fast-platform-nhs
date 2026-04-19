@@ -7,6 +7,8 @@
   import { Volume2, VolumeX } from 'lucide-svelte';
   import ProductDetailReviews from './ProductDetailReviews.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
+  import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
 
   /** Detect video URL: mp4, webm, mov, ogg … */
   function isVideoUrl(url: string | undefined | null): boolean {
@@ -102,11 +104,24 @@
     return pImages[activeImageIndex] || pImages[0] || '/placeholder.png';
   });
 
+  const effectiveTier = $derived.by(() => {
+    const comboVariants = pVariants.filter(cv => cv.attributes && cv.attributes.combo_qty);
+    if (comboVariants.length === 0) return currentVariant;
+    const sortedTiers = [...comboVariants].sort((a, b) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty));
+    return sortedTiers.find(t => Number(t.attributes.combo_qty) <= quantity) || currentVariant;
+  });
+
+  const effectiveUnitPrice = $derived.by(() => {
+    const v = effectiveTier;
+    if (!v) return typeof product.discountPrice === 'number' ? product.discountPrice : (product.discount_price || product.price || 0);
+    return v.discountPrice || v.discount_price || v.price;
+  });
+
   let displayPrice = $derived.by(() => {
     if (currentVariant) {
       return {
         price: currentVariant.price,
-        discountPrice: currentVariant.discountPrice || currentVariant.discount_price
+        discountPrice: effectiveUnitPrice
       };
     }
     // Min max range if not selected
@@ -120,7 +135,7 @@
       const minDiscount = discountPrices.length > 0 ? Math.min(...discountPrices) : undefined;
       const maxDiscount = discountPrices.length > 0 ? Math.max(...discountPrices) : undefined;
 
-      const formatRange = (min: number, max: number) => min === max ? min : `${min.toLocaleString('vi-VN')} - ${max.toLocaleString('vi-VN')}`;
+      const formatRange = (min: number, max: number) => min === max ? min.toLocaleString('vi-VN') : `${min.toLocaleString('vi-VN')} - ${max.toLocaleString('vi-VN')}`;
 
       return {
         price: formatRange(minPrice, maxPrice),
@@ -145,8 +160,16 @@
     }
     selectedIndices = newSelected;
     
-    // Reset quantity if it exceeds new stock
-    if (quantity > currentStock) {
+    // Sync quantity with combo_qty
+    // Sync quantity with combo_qty (Elite V2.2)
+    const nextVariant = pVariants.find(v => 
+      v.tierIndex.length === selectedIndices.length && 
+      v.tierIndex.every((val, i) => val === selectedIndices[i])
+    );
+    if (nextVariant?.attributes?.combo_qty) {
+      quantity = Number(nextVariant.attributes.combo_qty);
+    } else if (quantity > currentStock) {
+      // Reset quantity if it exceeds new stock
       quantity = currentStock > 0 ? 1 : 0;
     }
   }
@@ -165,9 +188,15 @@
 
   function handleQuantityChange(delta: number) {
     const newVal = quantity + delta;
-    const maxStock = currentStock || 99; // Fallback to 99 for Transino single variant
+    const maxStock = currentStock || 99;
     if (newVal >= 1 && newVal <= maxStock) {
       quantity = newVal;
+      
+      // SYNC BACK: Auto-select variant matching this quantity (Elite V2.2 Intelligence)
+      const matchingVariant = pVariants.find(v => Number(v.attributes?.combo_qty || 0) === quantity);
+      if (matchingVariant && matchingVariant.tierIndex) {
+        selectedIndices = [...matchingVariant.tierIndex];
+      }
     }
   }
 
@@ -279,8 +308,32 @@
     }
   }
 
-  const activeComboQty = $derived((currentVariant || pVariants[0])?.attributes?.combo_qty || (currentVariant || pVariants[0])?.attributes?.comboQty || 0);
-  const activeGifts = $derived((currentVariant || pVariants[0])?.attributes?.gifts || []);
+  // --- HELEN AI PRICE INTELLIGENCE (VIRAL 2026) ---
+  const helenAdvice = $derived.by(() => {
+    const comboVariants = pVariants.filter(cv => cv.attributes && cv.attributes.combo_qty);
+    if (comboVariants.length === 0) return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền. Hãy chọn số lượng phù hợp để tối ưu kết quả.";
+    
+    const sortedTiers = [...comboVariants].sort((a, b) => Number(a.attributes.combo_qty) - Number(b.attributes.combo_qty));
+    const nextTier = sortedTiers.find(t => Number(t.attributes.combo_qty) > quantity);
+    
+    if (nextTier) {
+      const gap = Number(nextTier.attributes.combo_qty) - quantity;
+      const nextUnitPrice = nextTier.discountPrice || nextTier.discount_price || nextTier.price;
+      const currentUnitPrice = effectiveUnitPrice;
+      const savingsPerUnit = currentUnitPrice - nextUnitPrice;
+      const tierName = nextTier.tierIndex.map((idx, i) => variations?.[i]?.options?.[idx] || '').filter(Boolean).join(' ') || "Combo tiếp theo";
+      
+      if (savingsPerUnit > 0) {
+        return `Nâng cấp ngay lên bộ "${tierName}" (thêm ${gap} sp) để chạm ngưỡng tiết kiệm ₫${formatVnd(nextUnitPrice)}/sp. Bạn sẽ giảm thêm ₫${formatVnd(savingsPerUnit)} trên mỗi sản phẩm!`;
+      }
+      return `Chỉ thêm ${gap} sản phẩm để kích hoạt bộ "${tierName}" và nhận trọn vẹn đặc quyền quà tặng đi kèm!`;
+    }
+    
+    return `Tuyệt vời! Bạn đã sở hữu Liệu Trình Hoàn Mỹ với mức giá tối ưu nhất. ${supportAgent.config.agentName} cam kết bảo vệ quyền lợi và chất lượng sản phẩm cho đơn hàng của bạn.`;
+  });
+
+  const activeComboQty = $derived(effectiveTier?.attributes?.combo_qty || effectiveTier?.attributes?.comboQty || 0);
+  const activeGifts = $derived(effectiveTier?.attributes?.gifts || []);
   function formatCount(count: number) {
     if (count >= 1000) {
       return (count / 1000).toFixed(1).replace('.0', '') + 'k';
@@ -486,38 +539,55 @@
       </div>
 
       <!-- Price Bar (Soft Luxury FOMO - Vietnamese Edition) -->
-      <div class="bg-[#f6f6f6] px-5 py-3 flex items-center justify-between mb-3 relative overflow-hidden group border-y border-gray-100/50">
+      <div class="bg-[#f6f6f6] px-5 py-2.5 flex items-center justify-between mb-3 relative overflow-hidden group border-y border-gray-100/50">
         <div class="flex flex-col">
-            <div class="flex items-center gap-3 mb-1">
-               <span class="text-[16px] text-gray-400 line-through">₫{formatVnd(activePrices.original)}</span>
+            <div class="flex items-center gap-3 mb-0.5">
+               <span class="text-[14px] text-gray-400 line-through">₫{formatVnd(activePrices.original)}</span>
                {#if activePrices.original > activePrices.sale}
-                <div class="bg-[#ee4d2d] text-white text-[10px] font-black px-1.5 py-0.5 uppercase tracking-tighter">
-                  Giảm {Math.round((1 - Number(activePrices.sale) / Number(activePrices.original)) * 100)}%
-                </div>
+                  <span class="text-[11px] font-black text-[#00bfa5] uppercase tracking-widest bg-[#e6f9f6] px-1.5 py-0.5">
+                      Tiết kiệm {formatVnd(Number(activePrices.original) - Number(activePrices.sale))}₫
+                  </span>
                {/if}
             </div>
             <div class="flex items-baseline gap-4">
-               <span class="text-[36px] font-black text-[#d0011b] tracking-tighter">₫{formatVnd(activePrices.sale)}</span>
-               {#if activePrices.original > activePrices.sale}
-                <span class="text-[13px] font-black text-[#00bfa5] uppercase tracking-widest bg-[#e6f9f6] px-2 py-1">
-                  Tiết kiệm {formatVnd(Number(activePrices.original) - Number(activePrices.sale))}₫
-                </span>
-               {/if}
+                <span class="text-[32px] font-black text-[#d0011b] tracking-tighter leading-none">₫{formatVnd(activePrices.sale)}</span>
             </div>
+
+            {#if pVariants.some(v => v.attributes?.combo_qty && v.attributes.combo_qty > 1)}
+                <div class="mt-1 flex flex-col gap-2">
+                    <div class="flex items-center gap-2.5">
+                        {#if activeComboQty > 1}
+                           <div class="bg-slate-900 text-white text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-widest flex items-center gap-1">
+                               <Package size={10} class="text-white/70" /> {activeComboQty} SP ĐÃ ÁP DỤNG
+                           </div>
+                        {/if}
+                        <div class="flex items-center gap-1.5 group/ai cursor-default">
+                            <HelenIcon size={12} color="#3b82f6" />
+                            <span class="text-[8px] text-blue-500 font-mono font-black uppercase tracking-[0.2em]">{supportAgent.config.agentName}</span>
+                            <div class="w-0.5 h-0.5 bg-blue-400 rounded-full animate-pulse"></div>
+                        </div>
+                    </div>
+                    <div class="relative pl-4 border-l border-blue-200/40">
+                        <p class="text-[12.5px] text-slate-500 font-medium leading-[1.4] max-w-[580px] tracking-tight">
+                            {helenAdvice}
+                        </p>
+                    </div>
+                </div>
+            {/if}
         </div>
 
         <!-- Minimalist Timer (Soft Version) -->
         <div class="flex flex-col items-end">
-           <div class="flex items-center gap-2 mb-2">
+           <div class="flex items-center gap-2 mb-1">
               <div class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full animate-pulse shadow-[0_0_8px_#ee4d2d]"></div>
               <span class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] opacity-80">Kết thúc sau</span>
            </div>
-           <div class="flex gap-2 text-gray-800 font-black text-[18px]">
-              <div class="bg-gray-200/50 px-2 py-0.5 min-w-[32px] text-center">0</div>
-              <span class="opacity-30">:</span>
-              <div class="bg-gray-200/50 px-2 py-0.5 min-w-[32px] text-center">{timeLeft.minutes < 10 ? '0' + timeLeft.minutes : timeLeft.minutes}</div>
-              <span class="opacity-30">:</span>
-              <div class="bg-gray-200/50 px-2 py-0.5 min-w-[32px] text-center">{timeLeft.seconds < 10 ? '0' + timeLeft.seconds : timeLeft.seconds}</div>
+           <div class="flex gap-1 text-gray-800 font-black text-[17px] font-mono tabular-nums select-none">
+              <div class="bg-gray-200/50 px-1.5 py-0.5 min-w-[30px] text-center rounded-sm">0</div>
+              <span class="opacity-30 self-center w-1.5 text-center text-[12px]">:</span>
+              <div class="bg-gray-200/50 px-1.5 py-0.5 min-w-[30px] text-center rounded-sm">{timeLeft.minutes < 10 ? '0' + timeLeft.minutes : timeLeft.minutes}</div>
+              <span class="opacity-30 self-center w-1.5 text-center text-[12px]">:</span>
+              <div class="bg-gray-200/50 px-1.5 py-0.5 min-w-[30px] text-center rounded-sm">{timeLeft.seconds < 10 ? '0' + timeLeft.seconds : timeLeft.seconds}</div>
            </div>
         </div>
       </div>
@@ -642,7 +712,7 @@
       </div>
 
       <!-- COMBO & GIFTS SECTION (Viral 2026 UI) -->
-      {#if activeComboQty > 1 || activeGifts.length > 0}
+      {#if activeGifts.length > 0}
         <div class="px-5 mb-6">
           <div class="bg-gradient-to-br from-[#fdf2f2] to-[#fff] border-2 border-[#ee4d2d]/10 p-5 relative overflow-hidden group/combo-box shadow-sm">
               <!-- Background Decorative Elements -->

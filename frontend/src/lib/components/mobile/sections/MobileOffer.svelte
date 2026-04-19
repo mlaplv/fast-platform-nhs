@@ -173,7 +173,7 @@
          
          <button 
            onclick={() => handleSelect(i)}
-           class="relative w-full text-left transition-all duration-500 h-[145px] flex items-center overflow-hidden {isActive ? 'bg-white/[0.08] border-y border-white/20 z-surface z-10' : 'bg-transparent border-y border-white/5 opacity-40 hover:opacity-100'}"
+           class="relative w-full text-left transition-all duration-500 h-[145px] flex items-center overflow-hidden {isActive ? 'bg-white/[0.08] border-y border-white/20 z-surface z-10 scale-[1.02] shadow-[0_0_40px_rgba(255,183,197,0.1)]' : 'bg-transparent border-y border-white/5 opacity-40 hover:opacity-100'} active:scale-95 transform-gpu"
          >
             {#if isActive}
                <div class="absolute inset-0 bg-gradient-to-r from-[#FFB7C5]/15 via-transparent to-[#E8D5B0]/10 pointer-events-none"></div>

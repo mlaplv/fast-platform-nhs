@@ -135,27 +135,59 @@ class CheckoutService:
         await PromotionService.ensure_default_vouchers(db_session)
 
         for item in payload.items:
-            product_stmt = select(ProductBase).where(ProductBase.id == item.product_id)
+            product_stmt = select(ProductBase).where(ProductBase.id == item.product_id).options(sa.orm.selectinload(ProductBase.variants))
             product_res = await db_session.execute(product_stmt)
             product = product_res.scalar_one_or_none()
             if not product:
                 raise NotFoundException(f"Sản phẩm {item.product_id} không tồn tại")
             
-            # Determine correct price from DB
-            db_price = product.discount_price if product.discount_price is not None else product.price
+            # ELITE V2.2: DYNAMIC TIER PRICING ENGINE (Lazada/TikTok Style)
+            # Find all potential combo variants
+            combo_variants = [v for v in product.variants if v.attributes and v.attributes.get("combo_qty")]
             
-            if item.variant_id:
-                variant_stmt = select(ProductVariant).where(ProductVariant.id == item.variant_id)
-                variant_res = await db_session.execute(variant_stmt)
-                variant = variant_res.scalar_one_or_none()
-                if not variant:
-                    raise NotFoundException(f"Biến thể {item.variant_id} không tồn tại")
-                db_price = variant.discount_price if variant.discount_price is not None else variant.price
+            db_price = None
+            resolved_variant_id = item.variant_id
+            
+            if combo_variants:
+                # 1. Mandatory Qty Constraint Check (Security)
+                # If user explicitly selected a combo variant, verify quantity requirement
+                selected_v = next((v for v in combo_variants if v.id == item.variant_id), None)
+                if selected_v:
+                    min_qty = int(selected_v.attributes.get("combo_qty", 1))
+                    if item.quantity < min_qty:
+                        logger.error(f"[SECURITY-ALERT] Invalid Combo Qty: {item.quantity} < {min_qty} for variant {item.variant_id}")
+                        raise ValidationException(f"Gói này yểu cầu tối thiểu {min_qty} sản phẩm.")
+
+                # 2. Dynamic Price Resolution (The "Reward" Logic)
+                # Find the best tier matching current quantity (Highest combo_qty <= quantity)
+                sorted_tiers = sorted(combo_variants, key=lambda v: int(v.attributes.get("combo_qty", 0)), reverse=True)
+                best_tier = next((v for v in sorted_tiers if int(v.attributes.get("combo_qty", 0)) <= item.quantity), None)
+                
+                if best_tier:
+                    db_price = best_tier.discount_price if best_tier.discount_price is not None else best_tier.price
+                    # If we found a better tier than what the client sent, we auto-upgrade (or stay correct)
+                    # Note: We don't automatically change variant_id here if it has other attributes, 
+                    # but we ENFORCE the price of the matching quantity tier.
+                else:
+                    # Fallback to base product price if quantity is below all combo tiers
+                    db_price = product.discount_price if product.discount_price is not None else product.price
+            else:
+                # STANDARD PRODUCT (Isolation Mode)
+                if item.variant_id:
+                    variant_stmt = select(ProductVariant).where(ProductVariant.id == item.variant_id)
+                    variant_res = await db_session.execute(variant_stmt)
+                    variant = variant_res.scalar_one_or_none()
+                    if not variant:
+                        raise NotFoundException(f"Biến thể {item.variant_id} không tồn tại")
+                    db_price = variant.discount_price if variant.discount_price is not None else variant.price
+                else:
+                    db_price = product.discount_price if product.discount_price is not None else product.price
 
             # [VIRAL 2026 SECURITY] Rigorous Item Price Check
-            if abs(item.price - db_price) > 0.1:
-                 logger.warning(f"[STRIKE-PRICE] Item price mismatch for {product.name} ({item.product_id}): Payload={item.price}, DB={db_price}")
-                 raise ValidationException("Giá sản phẩm đã thay đổi. Vui lòng cập nhật lại giỏ hàng.")
+            if db_price is None: db_price = 0.0
+            if abs(item.price - db_price) > 1.0: # Allow small rounding deltas
+                 logger.warning(f"[STRIKE-PRICE] Item price mismatch for {product.name} ({item.product_id}): Payload={item.price}, DB={db_price}. Qty={item.quantity}")
+                 raise ValidationException("Giá sản phẩm đã thay đổi theo chương trình khuyến mãi. Vui lòng cập nhật lại giỏ hàng.")
 
             items_list.append({
                 "id": item.product_id,

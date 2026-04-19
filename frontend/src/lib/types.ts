@@ -421,6 +421,7 @@ export interface ProductVariant {
   stock: number;
   attributes?: {
     combo_qty?: number;
+    comboQty?: number;
     gifts?: { name: string; qty: number; image?: string }[];
   } | null;
   is_default?: boolean;

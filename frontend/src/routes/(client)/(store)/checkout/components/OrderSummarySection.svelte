@@ -7,13 +7,17 @@
     securePackaging: boolean;
   }
 
+  type NeuralStatus = 'idle' | 'verifying' | 'encoding' | 'submitting' | 'success' | 'error';
+  import NeuralGuardian from '$lib/components/storefront/ui/NeuralGuardian.svelte';
+
   let { 
     form = $bindable(), 
     originalSubtotal, 
     productSavings, 
     shippingFee, 
     totalSavings, 
-    isSubmitting,
+    helenAdvice = '',
+    neuralStatus = 'idle',
     handleSubmit 
   } = $props<{
     form: FormState;
@@ -21,9 +25,12 @@
     productSavings: number;
     shippingFee: number;
     totalSavings: number;
-    isSubmitting: boolean;
+    helenAdvice?: string;
+    neuralStatus?: NeuralStatus;
     handleSubmit: (e: SubmitEvent) => void;
   }>();
+
+  const isSubmitting = $derived(neuralStatus !== 'idle' && neuralStatus !== 'success' && neuralStatus !== 'error');
 
   const cartStore = getCartStore();
 </script>
@@ -139,17 +146,31 @@
       </div>
     </div>
 
-    <!-- SUBMIT BUTTON -->
+    <!-- NEURAL GUARDIAN (AGENTIC AI OVERSIGHT) -->
+    <div class="w-full mt-6">
+       <NeuralGuardian status={neuralStatus} advice={helenAdvice} />
+    </div>
+
+    <!-- SUBMIT BUTTON (AGENTIC PHASES) -->
     <button
       type="button"
       onclick={handleSubmit}
       disabled={isSubmitting}
-      class="w-full mt-6 py-4.5 bg-[#ee4d2d] text-white font-black text-lg uppercase italic tracking-widest hover:brightness-110 shadow-xl flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
+      class="w-full mt-3 py-4.5 bg-[#ee4d2d] text-white font-black text-lg uppercase italic tracking-widest hover:brightness-110 shadow-xl flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden relative"
     >
-      {#if isSubmitting}
-        <div class="w-5 h-5 border-3 border-white/20 border-t-white rounded-full animate-spin"></div>
+      {#if neuralStatus === 'verifying'}
+         <div class="flex items-center gap-3 animate-pulse">
+            <div class="w-2 h-2 bg-white rounded-full"></div>
+            <span class="text-sm font-black italic tracking-widest">Neural Verifying...</span>
+         </div>
+      {:else if neuralStatus === 'encoding'}
+         <div class="flex items-center gap-3">
+            <span class="text-sm font-black italic tracking-widest animate-pulse">Stealth Encoding...</span>
+         </div>
+      {:else if neuralStatus === 'submitting'}
+         <div class="w-5 h-5 border-3 border-white/20 border-t-white rounded-full animate-spin"></div>
       {:else}
-        <span>ĐẶT HÀNG NGAY</span>
+        <span>XÁC NHẬN ĐẶT HÀNG</span>
         <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
       {/if}
     </button>

@@ -177,12 +177,12 @@
                 <span class="text-[8px] text-white/40 font-black tracking-widest uppercase">AES_256</span>
               </div>
             </div>
-            <div class="flex items-center gap-2">
-               <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"></div>
-               <p class="text-[10px] text-[#FFB7C5] font-black uppercase tracking-[0.35em] opacity-90">
-                 {supportAgent.helenEnabled ? 'Neural Advisor' : 'Human Specialist'}
-               </p>
-            </div>
+             <div class="flex items-center gap-2">
+                <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"></div>
+                <p class="text-[10px] text-[#FFB7C5] font-black uppercase tracking-[0.35em] opacity-90">
+                  {supportAgent.helenEnabled ? supportAgent.config.agentName : 'Human Specialist'}
+                </p>
+             </div>
           </div>
         </div>
         
