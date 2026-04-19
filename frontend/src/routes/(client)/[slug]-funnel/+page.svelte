@@ -5,7 +5,6 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import HeroBanner from '$lib/components/client/HeroBanner.svelte';
   import LiquidHeader from '$lib/components/client/LiquidHeader.svelte';
-  import StealthCheckout from '$lib/components/client/StealthCheckout.svelte';
   import { browser } from '$app/environment';
   import type { Action } from 'svelte/action';
   
@@ -164,7 +163,7 @@
 
   const onWheelObserver = (e: WheelEvent) => {
     // Escape limiters: Mobile layout, Server, or interacting with Checkout
-    if (useMobileLayout || !browser || shopStore.isCheckoutOpen) return;
+    if (useMobileLayout || !browser) return;
 
     // Viral 2026: Neural Activity Interception? (Optional)
     const target = e.target as HTMLElement;

@@ -4,7 +4,6 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import MobileActionStack from './MobileActionStack.svelte';
-  import MobileBottomSheet from './MobileBottomSheet.svelte';
   import MobileVariantTabs from './MobileVariantTabs.svelte';
 
   // Dedicated Mobile Sections

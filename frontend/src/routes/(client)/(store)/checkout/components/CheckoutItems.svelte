@@ -111,11 +111,11 @@
                 <div class="flex flex-col items-end gap-0">
                   {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
                     <span class="text-[9px] text-gray-400 line-through font-bold">
-                      {formatCurrency((item.variant?.price ?? item.product.price ?? 0) * Math.floor(item.quantity / (item.variant?.attributes?.combo_qty || 1)))}
+                      {formatCurrency((item.variant?.price ?? item.product.price ?? 0) * item.quantity)}
                     </span>
                   {/if}
                   <span class="text-sm font-black text-[#ee4d2d] italic tracking-tightest antialiased">
-                    {formatCurrency((item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0) * Math.floor(item.quantity / (item.variant?.attributes?.combo_qty || 1)))}
+                    {formatCurrency((item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0) * item.quantity)}
                   </span>
                 </div>
               </div>
@@ -143,7 +143,7 @@
                         
                         <div class="flex-1 flex items-center justify-between min-w-0">
                           <span class="text-[10px] text-orange-600 font-extrabold tabular-nums">
-                            {gift.qty * Math.floor(item.quantity / (item.variant?.attributes?.combo_qty || 1))}
+                            {gift.qty * item.quantity}
                           </span>
                         </div>
                       </div>

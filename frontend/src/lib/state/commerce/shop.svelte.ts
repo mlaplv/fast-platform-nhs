@@ -1,25 +1,14 @@
 import { setContext, getContext } from 'svelte';
 import { browser } from '$app/environment';
 import { apiClient, ApiError } from '$lib/utils/apiClient';
-import { goto } from '$app/navigation';
 import type { Product, ProductVariant, PromotionDeal, Voucher } from '$lib/types';
 
-/** Identity Shield API response types (must match backend schema) */
-interface CustomerLookupResponse {
-    is_recurring: boolean;
-    is_trusted_device: boolean;
-    name_masked: string | null;
-    address_masked: string | null;
-}
-
-/** Domain model for auto-fill state */
+/** Domain model for auto-fill state (used by identity shield) */
 interface CustomerData {
     nameMasked?: string;
     addressMasked?: string;
     isRecurring: boolean;
     isTrustedDevice: boolean;
-    city?: string;
-    ward?: string;
 }
 
 export interface GiftInfo {
@@ -28,22 +17,8 @@ export interface GiftInfo {
     message?: string;
     packaging?: string;
     scheduled_at?: string;
-}
-
-export interface CustomItem {
-    name: string;
-    image_url?: string;
-    price?: number;
-    quantity: number;
-}
-
-/** Checkout success response from stealth endpoint */
-interface CheckoutSuccessResponse {
-    ok: boolean;
-    success?: boolean;
-    status?: string;
-    id?: string;
-    message?: string;
+    recurring_type?: string;
+    recurring_metadata?: { daysOfWeek: number[]; dayOfMonth: number };
 }
 
 export interface DiagnosticReport {
@@ -67,14 +42,9 @@ export class ShopStore {
     quantity = $state<number>(1);
 
     // UI & Funnel State
-    isCheckoutOpen = $state<boolean>(false);
-    isSubmitting = $state<boolean>(false);
-    orderSuccess = $state<boolean>(false);
-    checkoutResult = $state<{id: string} | null>(null); // Elite V2.2: Store result for cinematic redirect
     error = $state<string | null>(null);
     customerData = $state<CustomerData | null>(null);
     giftInfo = $state<GiftInfo | null>(null);
-    customItems = $state<CustomItem[]>([]);
     isGiftModalOpen = $state<boolean>(false);
     
     // Diagnostic State
@@ -299,10 +269,7 @@ export class ShopStore {
         this.stopTimer();
     }
 
-    addItem(productData: Product): void {
-        this.init(productData);
-        this.openCheckout();
-    }
+
 
     selectVariant(v: ProductVariant): void {
         this.variant = v;
@@ -329,17 +296,9 @@ export class ShopStore {
         this.quantity = q;
     }
 
-    openCheckout(): void {
-        this.isCheckoutOpen = true;
-    }
-
     closeCheckout(): void {
-        this.isCheckoutOpen = false;
-        this.orderSuccess = false;
         this.error = null;
-        this.customerData = null;
         this.giftInfo = null;
-        this.customItems = [];
         if (browser) localStorage.removeItem('elite_shop_gift');
         this.isGiftModalOpen = false;
     }
@@ -360,76 +319,7 @@ export class ShopStore {
         });
     });
 
-    async lookupCustomer(phone: string): Promise<void> {
-        if (phone.length < 10) return;
-        try {
-            const res = await apiClient.post<CustomerLookupResponse>('/api/v1/client/checkout/lookup', { phone });
-            if (res?.is_recurring) {
-                this.customerData = {
-                    nameMasked: res.name_masked ?? undefined,
-                    addressMasked: res.address_masked ?? undefined,
-                    isRecurring: true,
-                    isTrustedDevice: res.is_trusted_device
-                };
-            } else {
-                this.customerData = null;
-            }
-        } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : String(err);
-            console.error('Identity lookup failed:', message);
-        }
-    }
 
-
-    async submitCheckout(customer: { 
-        name: string; 
-        phone: string; 
-        address: string;
-        gift_info?: GiftInfo;
-        note?: string;
-        custom_items?: CustomItem[];
-    }): Promise<void> {
-        if (!this.product) return;
-        this.isSubmitting = true;
-        this.error = null;
-
-        try {
-            const res = await apiClient.post<CheckoutSuccessResponse>('/api/v1/client/checkout/stealth', {
-                items: [{
-                    product_id: this.product.id,
-                    variant_id: this.variant?.id,
-                    quantity: this.quantity,
-                    price: this.currentPrice
-                }],
-                customer_name: customer.name,
-                customer_phone: customer.phone,
-                customer_address: customer.address,
-                gift_info: customer.gift_info,
-                custom_items: customer.custom_items,
-                note: customer.note,
-                total_amount: this.totalAmount
-            });
-
-            if (res.ok || res.success) {
-                const orderId = res.id;
-                this.checkoutResult = orderId ? { id: orderId } : null;
-                this.orderSuccess = true;
-                
-                if (orderId) {
-                    setTimeout(() => {
-                        if (window.location.pathname.includes('/checkout')) return;
-                        goto(`/checkout/success/${orderId}?phone=${encodeURIComponent(customer.phone)}`);
-                    }, 2000);
-                }
-            } else {
-                this.error = res.message ?? 'Có lỗi xảy ra, vui lòng thử lại';
-                this.isSubmitting = false;
-            }
-        } catch (err: unknown) {
-            this.error = err instanceof Error ? err.message : 'Không thể kết nối máy chủ';
-            this.isSubmitting = false;
-        }
-    }
 
     async analyzeDiagnostics(quizData: Array<{q: string, a: string}>): Promise<void> {
         if (!this.product) return;
