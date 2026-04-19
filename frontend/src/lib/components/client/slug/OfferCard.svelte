@@ -34,7 +34,7 @@
   const displayQty = $derived(isCardActive ? (shopStore.variant?.attributes?.combo_qty || shopStore.quantity) : (variant.attributes?.combo_qty || 1));
 
   // --- MEMOIZED PRICING DATA (ELITE V2.2: ZERO-LAG) ---
-  const priceInfo = $derived(shopStore.calculateAdjustedPrice(variant, displayQty, shopStore.selectedVoucherIds));
+  const priceInfo = $derived(shopStore.calculateAdjustedPrice(variant, 1, shopStore.selectedVoucherIds));
   const finalPrice = $derived(priceInfo.final);
   const voucherDiscount = $derived(priceInfo.voucherDiscount);
   const totalSavings = $derived((variant.price - (variant.discountPrice || variant.price)) + voucherDiscount);

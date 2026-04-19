@@ -97,7 +97,7 @@ export class CartStore {
                     }
                 }
             }
-            return acc + (price * item.quantity);
+            return acc + (price * Math.floor(item.quantity / (item.variant?.attributes?.combo_qty || 1)));
         }, 0)
     );
 

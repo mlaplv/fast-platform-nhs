@@ -9,7 +9,7 @@
 </script>
 
 {#if isSubmitting}
-    <div class="processing-overlay" style:z-index={Z_INDEX_CLIENT.OVERLAY}>
+    <div class="processing-overlay" style:z-index={Z_INDEX_CLIENT.SUBMISSION_OVERLAY}>
         <div class="glass-loader">
             <div class="loader-ripple"></div>
             <div class="loader-content">

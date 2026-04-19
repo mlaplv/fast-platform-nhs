@@ -244,12 +244,7 @@
                             style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);">
                           <div class="flex items-center justify-between border-l-2 border-emerald-500/30 pl-2">
                              <h4 class="text-[10px] font-black text-emerald-400/60 uppercase tracking-[0.2em]">02. LIỆU TRÌNH TỐI ƯU</h4>
-                             {#if shopStore.diagnosticResult.promotion_label}
-                                <span class="px-2 py-0.5 bg-red-500/20 text-red-500 text-[9px] font-black rounded-full animate-pulse">
-                                   🎁 {shopStore.diagnosticResult.promotion_label}
-                                </span>
-                             {/if}
-                          </div>
+                           </div>
                           <p class="text-emerald-400 text-[14px] font-bold leading-normal italic">{shopStore.diagnosticResult.recommendation}</p>
                           <div class="h-6"></div> <!-- Spacer for mask -->
                        </div>

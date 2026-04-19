@@ -322,11 +322,6 @@
                 <div>
                   <div class="flex items-center gap-3 mb-3">
                     <h4 class="text-[10px] font-semibold text-emerald-400/60 uppercase tracking-[0.3em]">Liệu trình tối ưu</h4>
-                    {#if shopStore.diagnosticResult.promotion_label}
-                      <span class="px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-semibold rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-                        🎁 {shopStore.diagnosticResult.promotion_label}
-                      </span>
-                    {/if}
                   </div>
                   <p class="text-emerald-500/80 text-sm font-medium leading-relaxed">{shopStore.diagnosticResult.recommendation}</p>
                 </div>

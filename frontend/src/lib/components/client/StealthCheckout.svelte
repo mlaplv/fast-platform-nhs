@@ -135,9 +135,9 @@
 </script>
 
 {#if shopStore?.isCheckoutOpen}
-  <div class="fixed inset-0 bg-slate-950/85 backdrop-blur-md" style:z-index={Z_INDEX_CLIENT.MODAL} role="presentation" aria-hidden="true"></div>
-
-  <div class="checkout-drawer">
+  <div class="fixed inset-0 bg-slate-950/85 backdrop-blur-md" style:z-index={Z_INDEX_CLIENT.MODAL_OVERLAY} role="presentation" aria-hidden="true"></div>
+  
+  <div class="checkout-drawer" style:z-index={Z_INDEX_CLIENT.MODAL}>
     <div class="glow glow-top"></div>
     <div class="glow glow-bottom"></div>
 

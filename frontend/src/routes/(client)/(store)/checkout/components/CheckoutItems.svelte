@@ -3,6 +3,7 @@
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { formatCurrency } from '$lib/utils/format';
+  import { resolveMediaUrl } from '$lib/state/utils';
   import type { CustomItem } from '$lib/types/commerce/checkout';
 
   let { 
@@ -110,34 +111,44 @@
                 <div class="flex flex-col items-end gap-0">
                   {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
                     <span class="text-[9px] text-gray-400 line-through font-bold">
-                      {formatCurrency((item.variant?.price ?? item.product.price ?? 0) * item.quantity)}
+                      {formatCurrency((item.variant?.price ?? item.product.price ?? 0) * Math.floor(item.quantity / (item.variant?.attributes?.combo_qty || 1)))}
                     </span>
                   {/if}
                   <span class="text-sm font-black text-[#ee4d2d] italic tracking-tightest antialiased">
-                    {formatCurrency((item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0) * item.quantity)}
+                    {formatCurrency((item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0) * Math.floor(item.quantity / (item.variant?.attributes?.combo_qty || 1)))}
                   </span>
                 </div>
               </div>
 
               <!-- QUÀ TẶNG KÈM THEO -->
               {#if item.variant?.attributes?.gifts && item.variant.attributes.gifts.length > 0}
-                <div class="mt-2 bg-orange-50/50 border border-orange-100 p-2 flex flex-col gap-1 rounded-sm relative overflow-hidden">
+                <div class="mt-2 bg-orange-50/50 border border-orange-100 p-2.5 flex flex-col gap-2 rounded-sm relative overflow-hidden">
                   <div class="absolute inset-0 bg-gradient-to-r from-orange-100/30 to-transparent"></div>
-                  <span class="text-[9px] font-black text-orange-600 uppercase flex items-center gap-1 relative z-10">
+                  <span class="text-[9px] font-black text-orange-600 uppercase flex items-center gap-1 relative z-10 mb-1">
                     <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
                     Quà Tặng Combo:
                   </span>
-                  {#each item.variant.attributes.gifts as gift}
-                    <div class="flex items-center justify-between relative z-10 pl-4">
-                      <span class="text-[9px] text-gray-700 italic font-medium tracking-tight"> {gift.name}</span>
-                      <input 
-                        type="number" 
-                        value={gift.qty * item.quantity} 
-                        readonly
-                        class="w-8 text-[9px] text-orange-500 font-extrabold text-right bg-transparent border-none focus:outline-none"
-                      />
-                    </div>
-                  {/each}
+                  
+                  <div class="space-y-2 relative z-10">
+                    {#each item.variant.attributes.gifts as gift}
+                      <div class="flex items-center gap-3 pl-1">
+                        <!-- 🎁 GIFT IMAGE -->
+                        <div class="w-8 h-8 bg-white border border-orange-100 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
+                          {#if gift.image}
+                            <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                          {:else}
+                            <svg class="w-4 h-4 text-orange-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                          {/if}
+                        </div>
+                        
+                        <div class="flex-1 flex items-center justify-between min-w-0">
+                          <span class="text-[10px] text-orange-600 font-extrabold tabular-nums">
+                            {gift.qty * Math.floor(item.quantity / (item.variant?.attributes?.combo_qty || 1))}
+                          </span>
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
                 </div>
               {/if}
             </div>

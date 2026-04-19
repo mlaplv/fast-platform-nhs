@@ -7,7 +7,7 @@
 .checkout-drawer {
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  z-index: 1001;
+  z-index: 10; /* Lower than modal constant, but overriden by inline */
   background: linear-gradient(180deg, #0f1117 0%, #080b12 100%);
   border: 1px solid rgba(255,255,255,0.07);
   border-bottom: none;
