@@ -23,14 +23,14 @@
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.offer_headline?.split("<span class='text-luxury-gold'>") || []);
-  const h1 = $derived(metadata.offer_headline_1 || stripTags(legacyParts[0]) || "CHẠM NGƯỠNG ĐỈNH CAO CỦA");
-  const h2 = $derived(metadata.offer_headline_2 || stripTags(legacyParts[1]) || "SỰ TỰ TIN TUYỆT ĐỐI");
+  const h1 = $derived(clean(metadata.offer_headline_1) || stripTags(legacyParts[0]) || "CHẠM NGƯỠNG ĐỈNH CAO CỦA");
+  const h2 = $derived(clean(metadata.offer_headline_2) || stripTags(legacyParts[1]) || "SỰ TỰ TIN TUYỆT ĐỐI");
   
   const clean = (s: unknown) => {
     if (!s) return "";
-    let val = String(s);
-    if (val.startsWith('[OFF]')) return val.substring(5).trim();
-    return val;
+    return String(s)
+      .replace(/^(\[OFF\]|\*|\s)+/i, '') // Strips [OFF], *, and leading spaces aggressively
+      .trim();
   };
 
   const mkt = $derived({
@@ -124,7 +124,7 @@
     </div>
 
     <div class="flex justify-center mb-10 mt-6 relative z-surface">
-      <OfferFomoTimer {mkt} />
+      <OfferFomoTimer {...mkt} />
     </div>
 
     <div class="package-grid pt-8 {gridClass} gap-6 items-stretch">

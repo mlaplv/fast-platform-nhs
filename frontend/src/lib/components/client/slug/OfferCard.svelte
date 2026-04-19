@@ -192,7 +192,7 @@
            <li class="flex items-start gap-3">
              <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
              <EditableWrapper path="variants.{idx}.attributes.features.{featureIdx}" type="text" label="SỬA ĐẶC TÍNH" class="block" as="div">
-                <span class="text-[11px] font-black uppercase tracking-widest text-white/90 leading-relaxed block">{feature.replace(/^[+!-]/, '')}</span>
+                <span class="text-[11px] font-black uppercase tracking-widest text-white/90 leading-relaxed block">{feature.replace(/^[+!*-]/, '').trim()}</span>
              </EditableWrapper>
            </li>
         {/each}
@@ -210,45 +210,48 @@
         </li>
       </ul>
 
-      {#if productVouchers.length > 0 || !!(variant.attributes?.gifts?.length)}
         <div 
           onclick={(e) => { e.stopPropagation(); onOpenVouchers(variant.id); }}
           role="button"
           tabindex="0"
-          class="package-offer-box mt-auto mb-2 bg-gradient-to-br from-luxury-sakura/15 via-black/40 to-transparent p-4 pl-0.5 rounded-2xl transition-all duration-500 cursor-pointer relative z-30"
+          class="package-offer-box mt-auto mb-2 bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] p-4 rounded-3xl transition-all duration-700 cursor-pointer relative z-30 group/offer-box"
         >
-          <div class="viral-liquid-border"></div>
-          <div class="flex items-center justify-start mb-1 px-0.5 pointer-events-none">
+          <div class="viral-liquid-border opacity-0 group-hover/offer-box:opacity-100 transition-opacity duration-700"></div>
+          
+          <!-- Specular Highlight -->
+          <div class="absolute inset-0 rounded-[inherit] pointer-events-none bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover/offer-box:opacity-100 transition-opacity duration-700"></div>
+
+          <div class="flex items-center justify-between mb-2 relative z-10">
              <span class="text-[9px] text-luxury-sakura font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                <span class="w-1.5 h-1.5 rounded-full bg-luxury-sakura animate-pulse"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-luxury-sakura shadow-[0_0_8px_var(--luxury-sakura)] animate-pulse"></span>
                 {productVouchers.length > 0 ? (variant.attributes?.gifts?.length ? 'Ưu đãi & Quà tặng' : 'Mã giảm giá') : 'Quà tặng độc quyền'}
              </span>
+             <div class="bg-white/10 p-1.5 rounded-full opacity-0 group-hover/offer-box:opacity-100 transition-all duration-500 scale-75 group-hover/offer-box:scale-100">
+                <ArrowRight size={10} class="text-luxury-sakura" />
+             </div>
           </div>
 
-           <div class="flex items-center gap-1.5 mt-3 pointer-events-none overflow-x-auto scrollbar-hide pl-3">
+          <div class="flex items-center gap-1.5 mt-3 pointer-events-none overflow-x-auto scrollbar-hide pl-0.5 relative z-10">
              {#if (productVouchers.filter(v => shopStore.selectedVoucherIds.includes(v.id))).length > 0}
                {#each productVouchers.filter(v => shopStore.selectedVoucherIds.includes(v.id)) as v}
-                 <div class="sticker-mini-preview flex items-center gap-1.5 bg-luxury-sakura/10 px-1 py-1.5 rounded-lg border border-luxury-sakura/20 shadow-[0_0_10px_rgba(255,183,197,0.1)]">
+                 <div class="sticker-mini-preview flex items-center gap-1.5 bg-luxury-sakura/10 px-2 py-1.5 rounded-xl border border-luxury-sakura/20">
                    <span class="text-[9px] font-black text-luxury-sakura uppercase leading-none">{v.label}</span>
-                   <span class="w-px h-2 bg-luxury-sakura/20"></span>
                    <span class="text-[10px] text-white uppercase font-black truncate leading-none">{v.sub}</span>
                  </div>
                {/each}
              {:else if productVouchers.length > 0}
                {@const bestV = productVouchers[0]}
-               <div class="sticker-mini-preview flex items-center gap-1.5 bg-white/5 px-1 py-1.5 rounded-lg border border-white/10">
+               <div class="sticker-mini-preview flex items-center gap-1.5 bg-white/5 px-2 py-1.5 rounded-xl border border-white/10">
                  <span class="text-[9px] font-black text-luxury-sakura uppercase leading-none">{bestV.label}</span>
-                 <span class="w-px h-2 bg-white/10"></span>
                  <span class="text-[10px] text-white uppercase font-black truncate leading-none">{bestV.sub}</span>
                </div>
              {/if}
-           </div>
+          </div>
 
-          <p class="text-[8px] text-white/30 uppercase font-bold tracking-widest mt-4 flex items-center gap-2 pointer-events-none pl-3">
-            Bấm để xem chi tiết <ArrowRight size={8} class="text-luxury-sakura" />
+          <p class="text-[7.5px] text-white/20 uppercase font-black tracking-[0.2em] mt-4 flex items-center gap-2 pointer-events-none relative z-10">
+            VIEW DETAILS & BONUSES
           </p>
         </div>
-      {/if}
 
       <button 
         onclick={handleCheckout}
