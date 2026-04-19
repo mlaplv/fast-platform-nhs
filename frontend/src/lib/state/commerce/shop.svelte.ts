@@ -224,30 +224,14 @@ export class ShopStore {
     setVouchers(data: Voucher[]): void {
         this.vouchers = data || [];
         
-        // 🚀 ELITE V2.2: Auto-optimize conversion by selecting best vouchers if none selected
+        // 🚀 ELITE V2.2: Use Real 'is_default' Flag (Rule R00 Alignment)
         if (this.selectedVoucherIds.length === 0 && this.vouchers.length > 0) {
-            let bestShip: string | null = null;
-            let bestDiscount: string | null = null;
-            let maxDiscountValue = -1;
-
-            for (const v of this.vouchers) {
-                if (v.type === 'SHIPPING') {
-                    bestShip = v.id; // Usually only one valid shipping voucher
-                } else {
-                    // Simple heuristic: higher value is better
-                    if (v.value > maxDiscountValue) {
-                        maxDiscountValue = v.value;
-                        bestDiscount = v.id;
-                    }
-                }
-            }
-
-            const autoSelect = [];
-            if (bestShip) autoSelect.push(bestShip);
-            if (bestDiscount) autoSelect.push(bestDiscount);
+            const defaultVoucherIds = this.vouchers
+                .filter(v => v.is_default)
+                .map(v => v.id);
             
-            if (autoSelect.length > 0) {
-                this.selectedVoucherIds = autoSelect;
+            if (defaultVoucherIds.length > 0) {
+                this.selectedVoucherIds = defaultVoucherIds;
             }
         }
     }

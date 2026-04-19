@@ -294,7 +294,7 @@
             <span class="w-1 h-1 rounded-full bg-white/20"></span>
             <div class="flex items-center gap-1">
                <Sparkles size={8} class="text-blue-200/80" />
-               MIỄN PHÍ VẬN CHUYỂN
+               {shippingVoucher ? 'MIỄN PHÍ VẬN CHUYỂN' : 'GIAO HÀNG BẢO MẬT'}
             </div>
          </div>
 

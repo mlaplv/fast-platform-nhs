@@ -137,10 +137,10 @@
          isAddressFormVisible = false;
       }
 
-  // [ELITE V2.2] Auto-Stick Protocol: Intelligence-based Voucher Selection
+  // [ELITE V2.2] Auto-Stick Protocol: Synchronize with Backend Defaults
   $effect(() => {
     if (cartStore.vouchers.length > 0) {
-      // 1. Auto-apply Shipping Voucher
+      // 1. Resolve Shipping Channel
       const hasShippingSelected = cartStore.selectedVoucherIds.some((id: string) => 
         cartStore.vouchers.find((v: Voucher) => v.id === id)?.type === 'SHIPPING'
       );
@@ -148,14 +148,14 @@
       if (!hasShippingSelected) {
         const defaultShip = cartStore.vouchers
           .filter((v: Voucher) => v.is_default && v.type === 'SHIPPING' && cartStore.totalAmountWithoutDiscount >= (v.min_spend || 0))
-          .sort((a: Voucher, b: Voucher) => (b.priority || 0) - (a.priority || 0))[0];
+          .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
           
         if (defaultShip) {
           cartStore.toggleVoucher(defaultShip.id);
         }
       }
 
-      // 2. Auto-apply Discount Voucher
+      // 2. Resolve Discount Channel (Fixed/Percent)
       const hasDiscountSelected = cartStore.selectedVoucherIds.some((id: string) => 
         ['FIXED', 'PERCENT'].includes(cartStore.vouchers.find((v: Voucher) => v.id === id)?.type || '')
       );
@@ -163,7 +163,7 @@
       if (!hasDiscountSelected) {
         const defaultDiscount = cartStore.vouchers
           .filter((v: Voucher) => v.is_default && ['FIXED', 'PERCENT'].includes(v.type) && cartStore.totalAmountWithoutDiscount >= (v.min_spend || 0))
-          .sort((a: Voucher, b: Voucher) => (b.priority || 0) - (a.priority || 0))[0];
+          .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
           
         if (defaultDiscount) {
           cartStore.toggleVoucher(defaultDiscount.id);

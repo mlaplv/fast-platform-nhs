@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import type { Product, Category } from '$lib/types';
   import { fade, fly } from 'svelte/transition';
@@ -10,6 +11,9 @@
   import { browser } from '$app/environment';
 
   const ui = getClientUi();
+  const cartStore = getCartStore();
+
+  const hasFreeship = $derived(cartStore.vouchers.some(v => v.is_default && v.type === 'SHIPPING'));
 
   interface Props {
     isProductMode?: boolean;
@@ -344,7 +348,7 @@
         </button>
         <button class="tbn-action-split tbn-action-split--buy" aria-label="Mua ngay" onclick={() => onBuyNow?.()}>
           <span class="buy-text">Mua ngay</span>
-          <span class="buy-sub">{(product.discount_price || product.price).toLocaleString('vi-VN')}₫ | Freeship</span>
+          <span class="buy-sub">{(product.discount_price || product.price || 0).toLocaleString('vi-VN')}₫ {hasFreeship ? '| Freeship' : ''}</span>
         </button>
       </div>
     {/if}
