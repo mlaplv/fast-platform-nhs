@@ -117,6 +117,7 @@
     showForm = true;
   }
   function openEdit(cat: Category, p: string | null = null) {
+    console.log("[CategoryManagement] Opening Edit. Category Data Snapshot:", $state.snapshot(cat));
     editingId = cat.id;
     formName = cat.name;
     formSlug = cat.slug;
@@ -127,7 +128,15 @@
     formIcon = cat.icon || "";
     formShowOnMobile = cat.showOnMobile ?? true;
     formShowOnDesktop = cat.showOnDesktop ?? true;
-    formFaqs = cat.category_metadata?.faqs || [];
+    
+    // Elite V2.2: Dual-Key Metadata Probe (Metadata vs CategoryMetadata)
+    // Pydantic có thể serialize vào 'metadata' (key gốc) hoặc 'category_metadata' (alias)
+    const raw: any = cat;
+    const meta = raw.metadata || raw.category_metadata;
+    formFaqs = meta?.faqs || [];
+    
+    console.log("[CategoryManagement] Metadata Found:", $state.snapshot(meta));
+    console.log("[CategoryManagement] Form FAQs initialized:", $state.snapshot(formFaqs));
     formParentId = p;
     showForm = true;
   }

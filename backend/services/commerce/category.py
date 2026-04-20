@@ -272,8 +272,9 @@ class CategoryService:
         )
 
         # 1. Zero-Hydration Response Reconstruction
-        # Elite V2.2: Phải lấy metadata chuẩn từ model để tránh lệch key alias
-        db_metadata = category.category_metadata if isinstance(category.category_metadata, dict) else {}
+        # Elite V2.2: Ensure metadata is properly typed before response
+        from backend.schemas.category import CategoryMetadata
+        verified_metadata = CategoryMetadata.model_validate(category.category_metadata) if category.category_metadata else CategoryMetadata()
 
         cat_data = CategoryResponse(
             id=str(category.id),
@@ -290,7 +291,7 @@ class CategoryService:
             position=category.position,
             show_on_mobile=category.show_on_mobile,
             show_on_desktop=category.show_on_desktop,
-            category_metadata=db_metadata,
+            category_metadata=verified_metadata, # Pydantic will handle the alias to 'metadata' if defined
             created_at=category.created_at or datetime.now(timezone.utc),
             seo_meta=seo_meta
         )
