@@ -12,6 +12,7 @@
   let loadJIT = $state(false);
   
   import MobileLandingLayout from '$lib/components/mobile/MobileLandingLayout.svelte';
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
   
   import type { PageData } from './$types';
   
@@ -210,44 +211,31 @@
   };
 </script>
 
-<svelte:head>
-  {#if seoMeta}
-    <title>{seoMeta.title} | {siteName}</title>
-    <meta name="description" content={seoMeta.description} />
-    <meta name="keywords" content={seoMeta.keywords} />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
-    <link rel="canonical" href={seoMeta.canonical_url} />
-
-    <!-- Open Graph (Facebook, Zalo, Threads) -->
-    <meta property="og:type" content="product" />
-    <meta property="og:title" content={seoMeta.title} />
-    <meta property="og:description" content={seoMeta.description} />
-    <meta property="og:url" content={seoMeta.canonical_url} />
-    <meta property="og:site_name" content={siteName} />
-    <meta property="og:locale" content="vi_VN" />
-    {#if product?.images?.[0]}
-      <meta property="og:image" content={product.images[0]} />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="630" />
-      <meta property="og:image:alt" content={seoMeta.title} />
-    {/if}
-
-    <!-- Twitter / X Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={seoMeta.title} />
-    <meta name="twitter:description" content={seoMeta.description} />
-    {#if product?.images?.[0]}<meta name="twitter:image" content={product.images[0]} />{/if}
-
-    <!-- JSON-LD Structured Data -->
-    {#if seoMeta.json_ld_string}
-      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-      {@html `<script type="application/ld+json">${seoMeta.json_ld_string}</script>`}
-    {/if}
-  {:else}
-    <title>{product?.name || 'Loading...'} | {siteName}</title>
-    <meta name="robots" content="noindex" />
-  {/if}
-</svelte:head>
+{#if seoMeta}
+  <SeoHead
+    title="{seoMeta.title} | {siteName}"
+    description={seoMeta.description}
+    keywords={seoMeta.keywords}
+    canonical={seoMeta.canonical_url}
+    ogType="product"
+    ogImage={product?.images?.[0] || ""}
+    ogImageAlt={seoMeta.title}
+    siteName={siteName}
+    jsonLdScripts={[
+      seoMeta.json_ld_string,
+      seoMeta.breadcrumb_ld_string,
+      seoMeta.faq_ld_string,
+    ]}
+  />
+{:else}
+  <SeoHead
+    title="{product?.name || 'Loading...'} | {siteName}"
+    description={metadata?.short_description || product?.name || ""}
+    canonical=""
+    siteName={siteName}
+    robots="noindex"
+  />
+{/if}
 
 {#if useMobileLayout}
   {#if product}

@@ -163,9 +163,12 @@
 
 {:else if isStandardProduct}
   <!-- Product Detail fallback (no seoMeta from backend) -->
-  <svelte:head>
-    <title>{data.product?.name} | Micsmo</title>
-  </svelte:head>
+  <SeoHead
+    title="{data.product?.name || 'Sản phẩm'} | Micsmo"
+    description={data.product?.short_description || data.product?.name || "Sản phẩm chính hãng tại Micsmo Elite."}
+    canonical="{siteUrl}/{data.product?.slug || ''}"
+    siteName="Micsmo Elite"
+  />
 
 {:else if data.type === 'product'}
   <!-- Funnel pages handle their own <svelte:head> -->
