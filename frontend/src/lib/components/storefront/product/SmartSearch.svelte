@@ -1,5 +1,6 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte';
+  import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import { trimProductName } from '$lib/utils/format';
@@ -10,6 +11,9 @@
   let { variant = 'desktop' } = $props<{
     variant?: 'desktop' | 'mobile-overlay';
   }>();
+
+  // Elite V2.2: Context-Aware Intelligence
+  const isNewsContext = $derived($page.data.type === 'news' || $page.url.pathname.includes('/bai-viet') || $page.url.pathname.includes('/tin-tuc'));
 
   const searchStore = getSearchStore();
 
@@ -236,68 +240,103 @@
                 </div>
               </section>
           {:else}
-            <!-- Case 2: Suggestions (Real DB Products) -->
-            <section>
-              {#if searchStore.searchResults.length > 0}
-                <div class="text-[10px] font-black uppercase tracking-widest text-[#161823] mb-2">Sản phẩm</div>
-              {/if}
+            <!-- Case 2: Suggestions (Products & News) -->
+            <section class="flex flex-col gap-6">
               {#if searchStore.isSearching}
-                 <div class="py-4 text-center text-gray-400 text-xs">Đang tìm kiếm...</div>
+                 <div class="py-10 text-center flex flex-col items-center gap-3">
+                    <div class="w-6 h-6 border-2 border-luxury-copper/20 border-t-luxury-copper rounded-full animate-spin"></div>
+                    <span class="text-gray-400 text-[11px] font-bold uppercase tracking-widest">Đang trích xuất dữ liệu...</span>
+                 </div>
               {:else}
+                <!-- Dynamic Re-ordering -->
+                {#if isNewsContext}
+                   {#if searchStore.searchArticleResults.length === 0 && searchStore.searchQuery}
+                      <div class="px-4 py-8 text-center bg-gray-50/50 border border-dashed border-gray-200 rounded-none mb-4">
+                         <div class="text-[11px] font-black uppercase tracking-[0.2em] text-luxury-copper opacity-60 mb-2">Thông tin bối cảnh</div>
+                         <div class="text-[14px] font-bold text-gray-400 italic">Không tìm thấy kiến thức phù hợp với từ khóa của bạn.</div>
+                      </div>
+                   {/if}
+                   {@render articleResults()}
+                   {@render productResults()}
+                {:else}
+                   {@render productResults()}
+                   {@render articleResults()}
+                {/if}
+
+                {#if searchStore.searchResults.length === 0 && searchStore.searchArticleResults.length === 0}
+                  <div class="py-20 text-center px-10">
+                    <span class="text-gray-300 font-bold uppercase tracking-widest text-[13px]">Không tìm thấy kết quả phù hợp.</span>
+                  </div>
+                {/if}
+              {/if}
+            </section>
+          {/if}
+
+          <!-- Desktop Snippets -->
+          {#snippet productResults()}
+             {#if searchStore.searchResults.length > 0}
                 <div class="flex flex-col gap-1">
+                  <div class="text-[10px] font-black uppercase tracking-widest text-[#C18F7E] mb-2 px-2">{isNewsContext ? 'Sản phẩm liên quan' : 'Sản phẩm dành cho bạn'}</div>
                   {#each searchStore.searchResults as p}
                     <a 
                       href="/{p.slug}"
                       onclick={() => { 
-                        if (variant === 'desktop') searchStore.addSearch(p.name);
+                        searchStore.addSearch(p.name);
                         isFocused = false; 
                         searchStore.isOverlayOpen = false; 
                       }}
                       class="px-4 py-3 bg-white hover:bg-gray-50 flex items-start gap-4 border-b border-gray-100 transition-colors group"
                     >
-                      <!-- Image viewport (Elite V2.2: Consistent 64px) -->
                       <div class="w-16 h-16 flex-shrink-0 relative overflow-hidden bg-white">
-                        {#if p.images?.length > 0 || p.metadata?.image_url}
-                           <img src={p.images?.[0] ?? p.metadata?.image_url} class="w-full h-full object-contain mix-blend-multiply" alt={p.name} />
+                        {#if p.images?.[0]}
+                           <img src={p.images[0]} class="w-full h-full object-contain mix-blend-multiply" alt={p.name} />
                         {/if}
                       </div>
-                      
-                      <!-- Product Intelligence Info -->
                       <div class="flex flex-col flex-grow min-w-0">
-                        <!-- Product Name: High contrast blue-grey -->
-                        <h4 class="text-[15px] font-bold text-[#374151] line-clamp-1 mb-0.5 leading-tight group-hover:text-luxury-copper transition-colors">{trimProductName(p.name)}</h4>
-                        
-                        <!-- SKU & Dynamic Category Tag -->
-                        <div class="flex items-center justify-between gap-4 mb-2">
-                           <span class="text-[12px] text-gray-500 font-medium">Mã sản phẩm: {p.sku || p.id.split('-')[0].toUpperCase()}</span>
-                           
-                           {#if p.category}
-                             <div class="bg-[#ff9a9a]/20 text-[#ff6b6b] px-2 py-1 flex items-center gap-1.5 rounded-sm shadow-sm border border-[#ff9a9a]/30">
-                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
-                                <span class="text-[10px] font-black uppercase tracking-tight">{p.category}</span>
-                             </div>
-                           {/if}
-                        </div>
-                        
-                        <!-- Pricing Intelligence (Literal Match) -->
-                        <div class="flex items-center gap-2 mt-auto">
-                           <span class="text-[15px] text-gray-900 font-black tabular-nums">
-                             <span class="text-[#C18F7E] mr-0.5">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
-                           </span>
-                           {#if p.discountPrice}
-                             <span class="text-[12px] text-gray-300 line-through font-medium tabular-nums px-1">
-                               đ{p.price.toLocaleString('vi-VN')}
-                             </span>
-                           {/if}
+                        <h4 class="text-[15px] font-bold text-gray-800 line-clamp-1 mb-1">{trimProductName(p.name)}</h4>
+                        <div class="text-[14px] font-black text-black tabular-nums">
+                          <span class="text-[#C18F7E] mr-0.5">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
                         </div>
                       </div>
                     </a>
                   {/each}
                 </div>
-              {/if}
-            </section>
-          {/if}
+             {/if}
+          {/snippet}
 
+          {#snippet articleResults()}
+             {#if searchStore.searchArticleResults.length > 0}
+                <div class="flex flex-col gap-1">
+                  <div class="text-[10px] font-black uppercase tracking-widest text-[#C18F7E] mb-2 px-2">{isNewsContext ? 'Kết quả kiến thức hàng đầu' : 'Kiến thức chuyên sâu'}</div>
+                  {#each searchStore.searchArticleResults as art}
+                    <a 
+                      href="/{art.slug}"
+                      onclick={() => { 
+                        searchStore.addSearch(art.title); 
+                        isFocused = false; 
+                        searchStore.isOverlayOpen = false; 
+                      }}
+                      class="px-4 py-4 bg-white hover:bg-gray-50 flex items-start gap-5 border-b border-gray-100 transition-all group"
+                    >
+                      <div class="w-20 h-20 flex-shrink-0 relative overflow-hidden bg-gray-100 rounded-sm">
+                        {#if art.featuredImage}
+                          <img src={art.featuredImage} class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={art.title} />
+                        {/if}
+                      </div>
+                      <div class="flex flex-col flex-grow min-w-0">
+                        <div class="flex items-center justify-between mb-1.5">
+                           <span class="text-[9px] font-black text-[#C18F7E] uppercase tracking-wider">{art.category}</span>
+                           {#if art.match_score}
+                              <span class="text-[9px] font-bold text-green-500 bg-green-50 px-1.5 py-0.5 rounded-none">{Math.round(art.match_score * 100)}% Match</span>
+                           {/if}
+                        </div>
+                        <h4 class="text-[16px] font-bold text-gray-900 group-hover:text-luxury-copper transition-colors uppercase italic leading-snug line-clamp-2">{art.title}</h4>
+                      </div>
+                    </a>
+                  {/each}
+                </div>
+             {/if}
+          {/snippet}
 
           <!-- Visual Product Preview (Elite Touch) — chỉ hiện khi không search -->
           {#if !searchStore.searchQuery && searchStore.featuredProducts.length > 0}
@@ -310,20 +349,8 @@
                        {#if p.images?.length > 0 || p.metadata?.image_url}
                           <img src={p.images?.[0] ?? p.metadata?.image_url} alt={p.name} class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
                        {/if}
-                      <div class="absolute inset-0 bg-gradient-to-tr from-luxury-copper/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      {#if p.metadata?.landing_type === 'XOHI'}
-                        <div class="absolute bottom-1 left-1 text-[8px] font-black bg-white/90 px-1.5 py-0.5 text-luxury-copper rounded-sm shadow-sm hover:scale-105 transition-transform">MẬT MÃ XOHI</div>
-                      {/if}
                     </div>
-                    <div class="text-[12px] font-bold line-clamp-2 leading-tight group-hover:text-luxury-copper transition-colors" title={p.name}>{trimProductName(p.name)}</div>
-                    <div class="flex flex-col">
-                       <div class="text-[14px] font-black text-black tabular-nums tracking-toggle">
-                         <span class="text-[#C18F7E]">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
-                       </div>
-                       {#if p.discountPrice}
-                         <div class="text-[10px] text-gray-300 line-through font-bold tabular-nums tracking-tight">đ{p.price.toLocaleString('vi-VN')}</div>
-                       {/if}
-                    </div>
+                    <div class="text-[12px] font-bold line-clamp-2 leading-tight" title={p.name}>{trimProductName(p.name)}</div>
                   </a>
                 {/each}
               </div>
@@ -340,17 +367,15 @@
     class="fixed inset-0 bg-white flex flex-col font-sans"
     style:z-index={Z_INDEX_CLIENT.MODAL + 10}
   >
-    <!-- TikTok Exact Header - Matched with MobileSearchHeader.svelte -->
     <header class="w-full px-2 py-2 flex items-center bg-white z-20 relative border-b border-gray-50/50 h-12">
-      <button onclick={() => searchStore.isOverlayOpen = false} class="p-1 -ml-1 text-gray-900 active:scale-90 transition-transform flex-shrink-0">
+      <button onclick={() => searchStore.isOverlayOpen = false} class="p-1 -ml-1 text-gray-900 active:scale-90 transition-transform">
         <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
       </button>
 
       <div class="search-ring-mobile flex-grow ml-1">
         <div class="search-inner-mobile">
-          <svg class="w-[18px] h-[18px] flex-shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <svg class="w-[18px] h-[18px] flex-shrink-0 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
           <input
             bind:this={inputElement}
@@ -358,231 +383,143 @@
             type="text"
             onkeydown={handleKeyDown}
             placeholder={searchStore.searchPlaceholder}
-            autocomplete="off"
             class="search-input-mobile"
           />
           {#if localQuery}
-            <button 
-              onclick={() => { localQuery = ''; inputElement?.focus(); }}
-              class="search-clear-mobile"
-            >
+            <button onclick={() => { localQuery = ''; inputElement?.focus(); }} class="search-clear-mobile">
               <svg class="w-4 h-4 bg-gray-200 text-white rounded-full p-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           {/if}
-          <button 
-            onclick={() => commitSearch(localQuery)}
-            class="search-cta-mobile"
-          >
-            Tìm kiếm
-          </button>
         </div>
       </div>
     </header>
 
-    <!-- Content Area: Actual TikTok Layout -->
-    <div class="flex-grow overflow-y-auto bg-white relative z-10 flex flex-col pb-8">
-      
+    <div class="flex-grow overflow-y-auto bg-white flex flex-col pb-10">
       {#if !localQuery}
-        <!-- RECENT HISTORY (List Style with Clock Icons) -->
+        <!-- History / Trends -->
         {#if searchStore.recentSearches.length > 0}
           <div class="flex flex-col mb-4">
-            {#each searchStore.recentSearches.slice(0, 5) as item}
-               <div class="flex items-center px-4 py-[14px] border-b border-gray-50/50">
-                 <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                 <button onclick={() => commitSearch(item)} class="flex-grow text-left text-[15px] text-gray-700 font-bold ml-3 truncate tracking-tight">{item}</button>
-                 <button onclick={(e) => { e.stopPropagation(); searchStore.removeSearch(item); }} class="p-2 -mr-2 text-gray-300 active:text-red-500 transition-colors">
-                    <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                 </button>
-               </div>
-            {/each}
+             {#each searchStore.recentSearches.slice(0, 5) as item}
+               <button onclick={() => commitSearch(item)} class="flex items-center px-4 py-4 border-b border-gray-50 text-[15px] text-gray-700 font-bold active:bg-gray-50 transition-colors">
+                 <svg class="w-5 h-5 text-gray-300 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                 {item}
+               </button>
+             {/each}
           </div>
         {/if}
-
-        <!-- YOU MIGHT ALSO LIKE (Vertical High-Density List) -->
-        {#if searchStore.featuredProducts.length > 0}
-          <div class="px-4">
-            <h3 class="text-[16px] font-black text-gray-900 mb-5 tracking-tight">Có thể bạn cũng thích</h3>
-            <div class="flex flex-col gap-6">
-               {#each searchStore.featuredProducts as p}
-                 <a href="/{p.slug}" onclick={() => searchStore.isOverlayOpen = false} class="flex items-center gap-4 w-full active:opacity-70 transition-opacity">
-                   <div class="w-[54px] h-[54px] rounded-lg bg-gray-50 flex-shrink-0 border border-gray-100 overflow-hidden">
-                      {#if p.images?.length > 0 || p.metadata?.image_url}
-                         <img src={p.images?.[0] ?? p.metadata?.image_url} alt={p.name} class="w-full h-full object-cover" loading="lazy" />
-                      {/if}
-                   </div>
-                   <div class="flex flex-col justify-center flex-1">
-                      <span class="text-[14px] text-gray-800 font-bold tracking-tight line-clamp-1 leading-tight mb-1">{trimProductName(p.name)}</span>
-                      <div class="flex items-center gap-2">
-                         <span class="text-[15px] text-black font-black tracking-tight">
-                           <span class="text-[#C18F7E]">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
-                         </span>
-                         {#if p.discountPrice}
-                           <span class="text-[11px] text-gray-300 line-through font-bold">đ{(p.price).toLocaleString('vi-VN')}</span>
-                         {/if}
-                      </div>
-                   </div>
-                 </a>
-               {/each}
-            </div>
-          </div>
-        {/if}
-
       {:else}
-        <!-- Real-time DB Suggestions: Minimalist TikTok -->
-        <div class="flex flex-col pt-1 bg-white">
-            {#if searchStore.isSearching}
-               <div class="py-20 text-center flex flex-col items-center gap-3">
-                  <div class="w-8 h-8 border-2 border-luxury-copper/20 border-t-luxury-copper rounded-full animate-spin"></div>
-                  <span class="text-gray-400 text-[13px] font-bold uppercase tracking-widest">Đang trích xuất dữ liệu...</span>
-               </div>
-            {:else}
-              {#each searchStore.searchResults as p}
-                <a 
-                  href="/{p.slug}"
-                  onclick={() => { 
-                     searchStore.addSearch(p.name); 
-                     searchStore.isOverlayOpen = false; 
-                  }}
-                  class="flex items-center px-4 py-[14px] active:bg-gray-50 transition-colors border-b border-gray-50/50 relative overflow-hidden group"
-                >
-                   <div class="w-[68px] h-[68px] bg-gray-50 rounded-none flex-shrink-0 overflow-hidden border border-gray-100 relative shadow-sm">
-                     {#if p.images?.length > 0 || p.metadata?.image_url}
-                        <img src={p.images?.[0] ?? p.metadata?.image_url} class="w-full h-full object-cover" alt={p.name} />
-                     {/if}
-                     {#if p.discountPrice}
-                        <div class="absolute top-0 right-0 bg-[#fe2c55] text-white text-[8px] font-black px-1.5 py-0.5 shadow-lg">
-                           GIẢM GIÁ
-                        </div>
-                     {/if}
-                   </div>
-                   <div class="flex flex-col ml-4 flex-grow min-w-0">
-                      <div class="flex items-center gap-2 mb-1">
-                        <span class="text-[14px] text-gray-900 font-bold line-clamp-1 tracking-tight leading-snug">{trimProductName(p.name)}</span>
-                      </div>
-                      <div class="flex items-center justify-between">
-                         <div class="flex flex-col">
-                            <div class="flex items-center gap-2">
-                               <span class="text-[16px] text-black font-black tracking-tighter">
-                                 <span class="text-[#C18F7E]">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
-                               </span>
-                               {#if p.discountPrice}
-                                 <span class="text-[11px] text-gray-300 line-through font-bold">đ{(p.price).toLocaleString('vi-VN')}</span>
-                               {/if}
-                            </div>
-                            <div class="flex items-center gap-2 mt-1">
-                               <span class="flex items-center gap-1">
-                                 <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                                 <span class="text-[10px] text-luxury-copper font-black uppercase">{getPseudoViews(p.id)} ĐANG XEM</span>
-                               </span>
-                            </div>
-                         </div>
-                         <div class="flex flex-col items-end gap-1">
-                            {#if p.orderCount && p.orderCount > 0}
-                              <span class="text-[10px] text-gray-400 font-black uppercase tracking-tighter opacity-70 underline decoration-luxury-copper/20 underline-offset-2">Đã bán {p.orderCount}</span>
-                            {/if}
-                            {#if p.stock < 10 && p.stock > 0}
-                              <span class="text-[8px] font-black text-white bg-red-500 px-1.5 py-0.5 animate-pulse">SẮP HẾT</span>
-                            {/if}
-                         </div>
-                      </div>
-                   </div>
-                </a>
-              {/each}
-              {#if searchStore.searchResults.length === 0}
-                 <div class="py-20 text-center px-10">
-                    <span class="text-gray-300 font-bold uppercase tracking-widest text-[13px]">Không tìm thấy kỳ quan nào phù hợp với mã khóa của bạn.</span>
-                 </div>
-              {/if}
-            {/if}
+        <div class="flex flex-col bg-white">
+          {#if searchStore.isSearching}
+             <div class="py-20 text-center flex flex-col items-center gap-3">
+                <div class="w-8 h-8 border-2 border-luxury-copper/20 border-t-luxury-copper rounded-full animate-spin"></div>
+                <span class="text-gray-400 text-[13px] font-black uppercase tracking-widest">Neural Scanning...</span>
+             </div>
+          {:else}
+             {#if isNewsContext}
+                {#if searchStore.searchArticleResults.length === 0 && localQuery}
+                  <div class="px-6 py-10 text-center flex flex-col items-center gap-3 bg-gray-50/50">
+                    <svg class="w-10 h-10 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.181 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+                    <div class="text-[13px] font-bold text-gray-400 italic">Mục kiến thức không có kết quả phù hợp.</div>
+                  </div>
+                {/if}
+                {@render mobileArticles()}
+                {@render mobileProducts()}
+             {:else}
+                {@render mobileProducts()}
+                {@render mobileArticles()}
+             {/if}
+
+             {#if searchStore.searchResults.length === 0 && searchStore.searchArticleResults.length === 0}
+                <div class="py-20 text-center px-10 text-gray-300 font-bold uppercase tracking-widest text-[13px]">Không tìm thấy kỳ quan nào.</div>
+             {/if}
+          {/if}
         </div>
       {/if}
     </div>
   </div>
 {/if}
 
-<style>
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+<!-- Snippets -->
+{#snippet mobileProducts()}
+  {#if searchStore.searchResults.length > 0}
+    <div class="flex flex-col">
+       <h3 class="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 bg-gray-50/20">{isNewsContext ? 'Sản phẩm tham khảo' : 'Sản phẩm Elite'}</h3>
+       {#each searchStore.searchResults as p}
+        <a href="/{p.slug}" onclick={() => { searchStore.addSearch(p.name); searchStore.isOverlayOpen = false; }} class="flex items-center gap-4 px-4 py-4 border-b border-gray-100 active:bg-gray-50">
+           <div class="w-20 h-20 shrink-0 bg-white border border-gray-100 rounded-sm overflow-hidden p-1">
+             {#if p.images?.[0]}
+                <img src={p.images[0]} class="w-full h-full object-contain mix-blend-multiply" alt={p.name} />
+             {/if}
+           </div>
+           <div class="flex flex-col min-w-0">
+              <h4 class="text-[14px] font-black text-gray-900 uppercase italic line-clamp-2 leading-tight mb-1">{p.name}</h4>
+              <div class="text-[16px] font-black text-black">
+                <span class="text-[#C18F7E]">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
+              </div>
+           </div>
+        </a>
+       {/each}
+    </div>
+  {/if}
+{/snippet}
 
+{#snippet mobileArticles()}
+  {#if searchStore.searchArticleResults.length > 0}
+    <div class="flex flex-col">
+       <h3 class="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 bg-gray-50/20">{isNewsContext ? 'Kết quả hàng đầu' : 'Kiến thức & Tin tức'}</h3>
+       {#each searchStore.searchArticleResults as art}
+        <a href="/{art.slug}" onclick={() => { searchStore.addSearch(art.title); searchStore.isOverlayOpen = false; }} class="flex flex-col gap-3 px-4 py-5 border-b border-gray-100 active:bg-gray-50">
+           <div class="flex items-center gap-4">
+              <div class="w-16 h-16 shrink-0 bg-gray-100 rounded-sm overflow-hidden">
+                {#if art.featuredImage}
+                   <img src={art.featuredImage} class="w-full h-full object-cover" alt={art.title} />
+                {/if}
+              </div>
+              <div class="flex flex-col min-w-0">
+                 <div class="text-[9px] font-black text-[#C18F7E] uppercase tracking-widest mb-1">{art.category}</div>
+                 <h4 class="text-[15px] font-black text-gray-900 uppercase italic leading-snug line-clamp-2">{art.title}</h4>
+                 {#if art.match_score}
+                    <div class="mt-2 text-[10px] font-bold text-green-500 uppercase">Độ phù hợp: {Math.round(art.match_score * 100)}%</div>
+                 {/if}
+              </div>
+           </div>
+        </a>
+       {/each}
+    </div>
+  {/if}
+{/snippet}
+
+<style>
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  
   @keyframes scanning {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
-  .animate-scanning {
-    animation: scanning 1.5s linear infinite;
-  }
-
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-
-  @keyframes pulse-soft {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-  }
+  .animate-scanning { animation: scanning 2s linear infinite; }
 
   .search-ring-mobile {
-    height: 36px;
+    height: 38px;
     flex: 1;
-    min-width: 0;
-    border: 1.5px solid transparent;
-    border-radius: 8px;
+    border-radius: 9999px;
+    background: #F2F2F2;
     overflow: hidden;
-    background-image:
-      linear-gradient(white, white), 
-      linear-gradient(90deg, #06d6d6, #fe2c55);
-    background-origin: border-box;
-    background-clip: padding-box, border-box;
-    transform: translateZ(0); 
   }
-
   .search-inner-mobile {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 8px 0 10px;
+    padding: 0 12px;
     height: 100%;
-    width: 100%;
   }
-
   .search-input-mobile {
     flex: 1;
-    min-width: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #111;
     background: transparent;
     border: none;
     outline: none;
-  }
-  .search-input-mobile::placeholder {
-    color: #9ca3af;
-    font-weight: 500;
-  }
-
-  .search-cta-mobile {
-    background: none;
-    border: none;
-    padding: 0 4px 0 0;
-    cursor: pointer;
     font-size: 15px;
-    font-weight: 800;
-    color: #fe2c55;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .search-clear-mobile {
-    padding: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    font-weight: 500;
+    margin-left: 8px;
+    color: #000;
   }
 </style>

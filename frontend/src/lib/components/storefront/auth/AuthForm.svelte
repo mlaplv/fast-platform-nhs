@@ -233,14 +233,14 @@
         <!-- TikTok Style Profile View -->
         <div class="flex flex-col items-center py-6 space-y-6" in:fade>
             <div class="relative group">
-                <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-50 shadow-xl">
+                <div class="w-24 h-24 rounded-none overflow-hidden border-4 border-gray-50 shadow-xl">
                     <img 
                         src={authStore.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authStore.user.name || 'User')}&background=000&color=fff`} 
                         alt={authStore.user.name} 
                         class="w-full h-full object-cover"
                     />
                 </div>
-                <div class="absolute bottom-0 right-0 p-1.5 bg-black rounded-full border-2 border-white shadow-lg">
+                <div class="absolute bottom-0 right-0 p-1.5 bg-black rounded-none border-2 border-white shadow-lg">
                     <UserPlus class="w-3.5 h-3.5 text-white" />
                 </div>
             </div>
@@ -251,14 +251,14 @@
             </div>
 
             <div class="w-full space-y-3 pt-4">
-                <button class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all">
+                <button class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-none transition-all">
                     <div class="flex items-center gap-3">
                         <ShieldCheck class="w-5 h-5 text-gray-400" />
                         <span class="text-sm font-bold text-black">Bảo mật tài khoản</span>
                     </div>
                     <ArrowRight class="w-4 h-4 text-gray-300" />
                 </button>
-                <button class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all" onclick={() => ui.openAddress?.()}>
+                <button class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-none transition-all" onclick={() => ui.openAddress?.()}>
                     <div class="flex items-center gap-3">
                         <Mail class="w-5 h-5 text-gray-400" />
                         <span class="text-sm font-bold text-black">Địa chỉ nhận hàng</span>
@@ -266,7 +266,7 @@
                     <ArrowRight class="w-4 h-4 text-gray-300" />
                 </button>
                 <button 
-                    class="w-full p-4 bg-gray-50 text-[#ff3b30] rounded-2xl font-black text-xs tracking-widest uppercase hover:bg-[#ff3b30]/10 transition-all mt-4"
+                    class="w-full p-4 bg-gray-50 text-[#ff3b30] rounded-none font-black text-xs tracking-widest uppercase hover:bg-[#ff3b30]/10 transition-all mt-4"
                     onclick={() => { authStore.logout(); onClose?.(); }}
                 >
                     Đăng xuất
@@ -283,7 +283,7 @@
             id="fullName"
             bind:value={fullName}
             placeholder="Nguyễn Văn A"
-            class="w-full bg-gray-50 border-2 border-transparent p-4 rounded-2xl text-sm font-bold text-black focus:bg-white focus:border-black transition-all outline-none shadow-sm"
+            class="w-full bg-gray-50 border-2 border-transparent p-4 md:p-5 rounded-none text-sm md:text-[15px] font-bold text-black focus:bg-white focus:border-[#C18F7E] transition-all outline-none shadow-sm"
             />
         </div>
         {/if}
@@ -297,9 +297,9 @@
             bind:value={identifier}
             placeholder="name@example.com"
             onkeydown={(e) => e.key === 'Enter' && (authMethod === 'otp' ? handleRequestOTP() : handlePasswordLogin())}
-            class="w-full bg-gray-50 border-2 border-transparent p-4 pl-12 rounded-2xl text-sm font-bold text-black focus:bg-white focus:border-black transition-all outline-none shadow-sm"
+            class="w-full bg-gray-50 border-2 border-transparent p-4 md:p-5 pl-12 md:pl-14 rounded-none text-sm md:text-[15px] font-bold text-black focus:bg-white focus:border-[#C18F7E] transition-all outline-none shadow-sm"
             />
-            <Mail class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+            <Mail class="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 w-5 h-5 md:w-6 md:h-6 text-gray-300" />
         </div>
         </div>
 
@@ -313,9 +313,9 @@
             bind:value={password}
             placeholder="••••••••"
             onkeydown={(e) => e.key === 'Enter' && handlePasswordLogin()}
-            class="w-full bg-gray-50 border-2 border-transparent p-4 pl-12 pr-12 rounded-2xl text-sm font-bold text-black focus:bg-white focus:border-black transition-all outline-none shadow-sm"
+            class="w-full bg-gray-50 border-2 border-transparent p-4 md:p-5 pl-12 md:pl-14 pr-12 rounded-none text-sm md:text-[15px] font-bold text-black focus:bg-white focus:border-[#C18F7E] transition-all outline-none shadow-sm"
             />
-            <Lock class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+            <Lock class="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 w-5 h-5 md:w-6 md:h-6 text-gray-300" />
             <button
             type="button"
             onclick={() => showPassword = !showPassword}
@@ -328,14 +328,14 @@
         {/if}
 
         {#if error}
-        <div class="text-[#ff3b30] text-[11px] font-black text-center uppercase tracking-widest bg-[#ff3b30]/10 p-3 rounded-xl border border-[#ff3b30]/20" in:scale>{error}</div>
+        <div class="text-[#ff3b30] text-[11px] font-black text-center uppercase tracking-widest bg-[#ff3b30]/10 p-3 rounded-none border border-[#ff3b30]/20" in:scale>{error}</div>
         {/if}
 
         {#if isLoading && liveLogs.length > 0}
-        <div class="bg-gray-50 rounded-2xl p-6 space-y-3" in:fade>
+        <div class="bg-gray-50 rounded-none p-6 space-y-3" in:fade>
             {#each liveLogs as log, i}
             <div class="flex items-center gap-3" in:fly={{ x: -10, delay: i * 100 }}>
-                <div class="w-1.5 h-1.5 rounded-full {i === liveLogs.length - 1 ? 'bg-black animate-pulse' : 'bg-gray-300'}"></div>
+                <div class="w-1.5 h-1.5 rounded-none {i === liveLogs.length - 1 ? 'bg-black animate-pulse' : 'bg-gray-300'}"></div>
                 <span class="text-[10px] font-bold {i === liveLogs.length - 1 ? 'text-black' : 'text-gray-400'} uppercase tracking-wider">{log}</span>
             </div>
             {/each}
@@ -346,14 +346,14 @@
             <button
                 onclick={authMethod === 'otp' ? handleRequestOTP : handlePasswordLogin}
                 disabled={isLoading || !identifier || (authMethod === 'password' && !password)}
-                class="w-full bg-black text-white p-5 rounded-2xl font-black text-xs tracking-[0.2em] flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-xl"
+                class="w-full bg-[#0f172a] text-white p-5 md:p-5.5 rounded-none font-black text-xs md:text-[13px] tracking-[0.2em] flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-xl hover:bg-[#C18F7E] group"
             >
                 {#if isLoading && liveLogs.length === 0}
                 <Loader2 class="w-5 h-5 animate-spin" />
                 {:else if isLoading}
                 ĐANG XỬ LÝ...
                 {:else}
-                {authMethod === 'otp' ? (mode === 'login' ? 'GỬI MÃ OTP' : 'ĐĂNG KÝ NGAY') : 'ĐĂNG NHẬP'} <ArrowRight class="w-5 h-5" />
+                {authMethod === 'otp' ? (mode === 'login' ? 'NHẬN MÃ' : 'GIA NHẬP') : 'TRUY CẬP'} <ArrowRight class="w-5 h-5" />
                 {/if}
             </button>
 
@@ -362,7 +362,7 @@
                 onclick={() => authMethod = authMethod === 'otp' ? 'password' : 'otp'}
                 class="w-full text-center text-[10px] italic text-gray-400 hover:text-black transition-colors mt-1"
                 >
-                {authMethod === 'otp' ? 'hoặc đăng nhập bằng mật khẩu' : 'hoặc sử dụng mã otp'}
+                {authMethod === 'otp' ? 'sử dụng mật khẩu' : 'sử dụng mã otp'}
                 </button>
             {/if}
         </div>
@@ -379,13 +379,13 @@
             </div>
         </div>
 
-        <!-- Social Login Buttons (TikTok Round Style) -->
+        <!-- Social Login Buttons (TikTok Round Style Changed to Sharp) -->
         <div class="flex justify-center gap-6 pb-2">
             <button
                 type="button"
                 onclick={() => handleSocialLogin('google')}
                 disabled={isLoading}
-                class="flex items-center justify-center w-14 h-14 rounded-full bg-gray-50 border border-gray-100 hover:bg-white active:scale-90 transition-all disabled:opacity-30 shadow-sm"
+                class="flex items-center justify-center w-14 h-14 rounded-none bg-gray-50 border border-gray-100 hover:bg-white active:scale-90 transition-all disabled:opacity-30 shadow-sm"
                 aria-label="Login with Google"
             >
                 <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -399,7 +399,7 @@
                 type="button"
                 onclick={() => handleSocialLogin('facebook')}
                 disabled={isLoading}
-                class="flex items-center justify-center w-14 h-14 rounded-full bg-gray-50 border border-gray-100 hover:bg-white active:scale-90 transition-all disabled:opacity-30 shadow-sm"
+                class="flex items-center justify-center w-14 h-14 rounded-none bg-gray-50 border border-gray-100 hover:bg-white active:scale-90 transition-all disabled:opacity-30 shadow-sm"
                 aria-label="Login with Facebook"
             >
                 <svg class="w-6 h-6 text-[#1877F2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
@@ -410,7 +410,7 @@
                 type="button"
                 onclick={() => handleSocialLogin('zalo')}
                 disabled={isLoading}
-                class="flex items-center justify-center w-14 h-14 rounded-full bg-gray-50 border border-gray-100 hover:bg-white active:scale-90 transition-all disabled:opacity-30 shadow-sm"
+                class="flex items-center justify-center w-14 h-14 rounded-none bg-gray-50 border border-gray-100 hover:bg-white active:scale-90 transition-all disabled:opacity-30 shadow-sm"
                 aria-label="Login with Zalo"
             >
                 <svg class="w-8 h-8" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -424,7 +424,7 @@
         onclick={() => ui.authModal.mode = ui.authModal.mode === 'login' ? 'register' : 'login'}
         class="w-full text-center text-[11px] font-black text-black hover:underline transition-colors uppercase tracking-[0.2em] pt-4"
         >
-        {mode === 'login' ? 'BẠN LÀ THÀNH VIÊN MỚI? ĐĂNG KÝ' : 'ĐÃ CÓ TÀI KHOẢN? ĐĂNG NHẬP'}
+        {mode === 'login' ? 'CHƯA CÓ TÀI KHOẢN? GIA NHẬP' : 'ĐÃ LÀ THÀNH VIÊN? TRUY CẬP'}
         </button>
     </div>
     {:else}
@@ -447,25 +447,25 @@
                 oninput={(e) => handleInput(e, i)}
                 onkeydown={(e) => handleKeydown(e, i)}
                 onpaste={handlePaste}
-                class="w-11 h-16 bg-gray-50 border-2 {code[i] ? 'border-black text-black' : 'border-transparent text-black'} text-center text-3xl font-black rounded-2xl focus:bg-white focus:border-black transition-all outline-none shadow-sm"
+                class="w-11 h-16 bg-gray-50 border-2 {code[i] ? 'border-black text-black' : 'border-transparent text-black'} text-center text-3xl font-black rounded-none focus:bg-white focus:border-black transition-all outline-none shadow-sm"
             />
             {/each}
         </div>
 
         {#if error}
-            <div class="text-[#ff3b30] text-[11px] font-black text-center uppercase tracking-widest bg-[#ff3b30]/10 p-3 rounded-xl border border-[#ff3b30]/20">{error}</div>
+            <div class="text-[#ff3b30] text-[11px] font-black text-center uppercase tracking-widest bg-[#ff3b30]/10 p-3 rounded-none border border-[#ff3b30]/20">{error}</div>
         {/if}
 
         <div class="space-y-4">
             <button
             onclick={handleVerifyOTP}
             disabled={isLoading || fullCode.length < 6}
-            class="w-full bg-black text-white p-5 rounded-2xl font-black text-xs tracking-[0.3em] flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 shadow-xl"
+            class="w-full bg-black text-white p-5 rounded-none font-black text-xs tracking-[0.3em] flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 shadow-xl"
             >
             {#if isLoading}
                 <Loader2 class="w-5 h-5 animate-spin" />
             {:else}
-                XÁC NHẬN MẬT MÃ
+                XÁC NHẬN TRUY CẬP
             {/if}
             </button>
             <button

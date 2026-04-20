@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
-from backend.schemas.product import ProductResponse
+from backend.schemas.product import ProductResponse, SeoMetaSchema
 from backend.schemas.promotion import VoucherResponse
 from backend.schemas.system_settings import SystemSettingsPayload
 from backend.schemas.category import CategoryResponse
@@ -24,4 +24,5 @@ class HomeDataResponse(BaseModel):
     ai_products: List[ProductResponse]
     vouchers: List[VoucherResponse]
     settings: SystemSettingsPayload = Field(default_factory=SystemSettingsPayload)
+    seo_meta: Optional[SeoMetaSchema] = Field(None, alias="seo_meta")
     videos: List[HomeVideoSchema] = []

@@ -12,6 +12,7 @@ from backend.services.commerce.product_vector import ProductVectorService, provi
 from backend.services.banner_service import BannerService, provide_banner_service
 from backend.services.settings_service import SettingsService, provide_settings_service
 from backend.services.promotion_admin_service import PromotionAdminService, promotion_admin_service
+from backend.services.commerce.seo_service import SeoService
 from backend.schemas.client_home import HomeDataResponse
 from backend.schemas.promotion import VoucherListResponse
 from backend.schemas.category import CategoryResponse
@@ -83,6 +84,17 @@ class ClientHomeController(Controller):
         ai_products_resp = await product_service.list_products(db_session, limit=10, offset=0, status="ACTIVE", featured_only=True)
         ai_products = ai_products_resp.data if ai_products_resp else []
 
+        # 3. Generate SEO Metadata (Elite V2.2)
+        seo_meta = None
+        if system_settings and system_settings.settings:
+            settings = system_settings.settings
+            seo_meta = SeoService.generate_home_seo_meta(
+                title=settings.seo_analytics.meta_title,
+                description=settings.seo_analytics.meta_description,
+                keywords=settings.seo_analytics.meta_keywords,
+                site_name=settings.basic_info.site_name
+            )
+
         # Format response
         return HomeDataResponse(
             banners=[b for b in banners.data] if banners else [],
@@ -91,6 +103,7 @@ class ClientHomeController(Controller):
             ai_products=[p for p in ai_products],
             vouchers=[v for v in vouchers_resp.data] if vouchers_resp else [],
             settings=system_settings.settings if system_settings else SystemSettingsPayload(),
+            seo_meta=seo_meta,
             videos=[]
         )
 

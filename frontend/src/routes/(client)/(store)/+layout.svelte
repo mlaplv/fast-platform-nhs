@@ -5,6 +5,8 @@
   import HeaderMobile from "$lib/components/storefront/layout/HeaderMobile.svelte";
   import FooterDesktop from "$lib/components/storefront/layout/FooterDesktop.svelte";
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
+  import { getSearchStore } from "$lib/state/commerce/search.svelte";
+  import SmartSearch from "$lib/components/storefront/product/SmartSearch.svelte";
   import { fomoStore } from "$lib/state/commerce/fomo.svelte";
   import NeuralActivityBar from "$lib/components/client/common/NeuralActivityBar.svelte";
   import { onMount, type Snippet } from "svelte";
@@ -15,6 +17,7 @@
   const isAdmin = $derived(data.tenant === 'admin');
   const ui = getClientUi();
   const cart = getCartStore();
+  const searchStore = getSearchStore();
 
   onMount(() => {
     // Elite V2.2: Independent Fomo Initialization (Zero-Latency)
@@ -101,5 +104,9 @@
 
   {#if !isAdmin && ui.settings?.conversions?.fomo_enabled}
     <NeuralActivityBar />
+  {/if}
+
+  {#if searchStore.isOverlayOpen}
+    <SmartSearch variant="mobile-overlay" />
   {/if}
 </div>

@@ -1,6 +1,9 @@
 <script lang="ts">
   import { fade, fly } from 'svelte/transition';
+  import { goto } from '$app/navigation';
+  import { ChevronLeft, Search, X } from 'lucide-svelte';
   import ImageWithFallback from '../ui/ImageWithFallback.svelte';
+  import { getSearchStore } from '$lib/state/commerce/search.svelte';
 
   interface NewsItem {
      id: string;
@@ -12,57 +15,115 @@
   }
   interface Props {
     newsList: NewsItem[];
+    categoryName?: string;
   }
-  let { newsList = [] }: Props = $props();
+  let { newsList = [], categoryName = "Tin tức" }: Props = $props();
+
+  const searchStore = getSearchStore();
+  let searchQuery = $state("");
+
+  const filteredNewsList = $derived(() => {
+    if (!searchQuery.trim()) return newsList;
+    const q = searchQuery.toLowerCase().trim();
+    return newsList.filter(n => 
+      n.title.toLowerCase().includes(q) || 
+      n.summary.toLowerCase().includes(q)
+    );
+  });
 </script>
 
-<div class="min-h-screen bg-[#F7F8F9] pb-24 pt-4 px-4 space-y-4">
-  <div class="flex items-center justify-between mb-6">
-    <div class="flex flex-col">
-      <span class="text-[10px] font-black uppercase tracking-[0.2em] {newsList[0]?.category === 'Chính sách' ? 'text-gray-400' : 'text-luxury-copper'}">
-        {newsList[0]?.category === 'Chính sách' ? 'Hệ thống pháp lý' : 'Hướng dẫn nâng cao'}
-      </span>
-      <h2 class="text-xl font-bold text-gray-900 tracking-tighter">
-        {newsList[0]?.category === 'Chính sách' ? 'Chính sách & Quy định' : 'Bài viết mới nhất'}
-      </h2>
+<div class="min-h-screen bg-[#F7F8F9] pb-24">
+  <!-- 1. Synchronized Header (Standard Micsmo Pattern) -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-gray-100 flex flex-col shadow-sm">
+    <!-- Row 1: Back + Search (System Trigger) -->
+    <div class="px-2 py-1 flex items-center gap-2 h-14">
+       <button onclick={() => history.back()} class="p-2 text-gray-900 flex-shrink-0"><ChevronLeft size={24} /></button>
+       <div 
+          onclick={() => searchStore.isOverlayOpen = true}
+          role="presentation"
+          class="flex-1 min-w-0 h-[40px] bg-gray-100 rounded-xl flex items-center px-4 gap-2 border border-gray-100 cursor-pointer"
+        >
+          <Search size={16} class="text-gray-400 flex-shrink-0" />
+          <span class="text-[13px] text-gray-400 font-bold truncate">Tìm kiếm kiến thức AI, bài viết...</span>
+       </div>
     </div>
-    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-gray-100">
-       <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+
+    <!-- Row 2: Category Bubble Scroller -->
+    <div class="px-4 pb-4 overflow-x-auto scrollbar-hide flex items-center gap-3 whitespace-nowrap pt-1">
+      <button class="px-5 py-1.5 rounded-none bg-[#C18F7E] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#C18F7E]/20 transition-all active:scale-95">Tất cả</button>
+      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest border border-gray-100 transition-all active:scale-95">Tư vấn</button>
+      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest border border-gray-100 transition-all active:scale-95">Chăm sóc da</button>
+      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest border border-gray-100 transition-all active:scale-95">Sự kiện</button>
     </div>
-  </div>
+  </header>
 
-  {#each newsList as news (news.id)}
-    <a 
-      href="/{news.slug}"
-      class="block bg-white group active:scale-[0.98] transition-all duration-300 shadow-sm hover:shadow-md border border-gray-50 overflow-hidden"
-    >
-      <div class="flex gap-4 p-3">
-        <!-- Thumbnail -->
-        <div class="w-32 h-32 flex-shrink-0">
-           <ImageWithFallback src={news.featuredImage} alt={news.title} aspectRatio="aspect-square" class="rounded-lg border border-gray-100" />
-        </div>
-
-        <!-- Meta -->
-        <div class="flex flex-col justify-center flex-1">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="bg-gray-100 text-gray-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest rounded-sm">Micsmo News</span>
-            <span class="text-[9px] text-gray-300 font-bold">12 giờ trước</span>
+  <div class="px-4 py-6 space-y-8">
+    {#each filteredNewsList() as news, i (news.id)}
+      {#if i === 0 && !searchQuery}
+        <!-- 2. Hero Spotlight Card (Only show if not searching) -->
+        <a 
+          href="/{news.slug}"
+          class="block group relative bg-white overflow-hidden shadow-2xl shadow-black/10 active:scale-[0.98] transition-all duration-500"
+          in:fly={{ y: 20, duration: 600 }}
+        >
+          <div class="aspect-[16/10] relative overflow-hidden">
+             <ImageWithFallback 
+                src={news.featuredImage || "/home/lv/.gemini/antigravity/brain/9ea17a17-8f07-46fd-b120-9823cc68a3a5/micsmo_news_hero_placeholder_1776682173691.png"} 
+                alt={news.title} 
+                aspectRatio="aspect-video" 
+                class="w-full h-full object-cover scale-105 group-hover:scale-100 transition-transform duration-[8s]" 
+             />
+             <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
           </div>
-          <h3 class="text-[14px] font-bold text-gray-900 leading-snug line-clamp-2 mb-2 group-hover:text-luxury-copper transition-colors">{news.title}</h3>
-          <p class="text-[11px] text-gray-400 line-clamp-2 leading-relaxed italic">{news.summary}</p>
-        </div>
-      </div>
-    </a>
-  {/each}
+          <div class="absolute bottom-0 inset-x-0 p-6 space-y-2">
+            <div class="flex items-center gap-3">
+                <span class="bg-[#C18F7E] text-white px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] italic">Micsmo News</span>
+                <span class="text-[9px] text-white/60 font-medium">Trending now</span>
+            </div>
+            <h3 class="text-2xl font-black text-white leading-tight tracking-tighter uppercase italic">{news.title}</h3>
+            <p class="text-[12px] text-white/70 line-clamp-2 leading-relaxed font-medium">{news.summary}</p>
+          </div>
+        </a>
+      {:else}
+        <!-- 3. Standard Magazine Card -->
+        <a 
+          href="/{news.slug}"
+          class="block bg-white group active:scale-[0.98] transition-all duration-300 shadow-xl shadow-black/5 border border-gray-100 p-4"
+          in:fly={{ y: 20, delay: i * 50, duration: 500 }}
+        >
+          <div class="flex gap-4">
+            <div class="w-24 h-24 flex-shrink-0 relative overflow-hidden">
+               <ImageWithFallback src={news.featuredImage} alt={news.title} aspectRatio="aspect-square" class="object-cover" />
+               <div class="absolute inset-0 bg-[#C18F7E]/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            </div>
+            <div class="flex flex-col flex-1 justify-between py-1">
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] font-black text-[#C18F7E] uppercase tracking-widest">{news.category || 'TIN TỨC'}</span>
+                    <span class="text-[8px] text-gray-300 font-bold">1H TRƯỚC</span>
+                </div>
+                <h3 class="text-[14px] font-black text-gray-900 leading-snug line-clamp-2 group-hover:text-[#C18F7E] transition-colors uppercase italic">{news.title}</h3>
+              </div>
+              <div class="flex items-center gap-4 pt-2 border-t border-gray-50">
+                <span class="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">4 min read</span>
+                <span class="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">1.2k views</span>
+              </div>
+            </div>
+          </div>
+        </a>
+      {/if}
+    {/each}
 
-  {#if newsList.length === 0}
-     <div class="flex flex-col items-center justify-center py-20 text-center" in:fade>
-        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-           <svg class="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2z" /></svg>
-        </div>
-        <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Không có bài viết nào</p>
-     </div>
-  {/if}
+    {#if filteredNewsList().length === 0}
+       <div class="flex flex-col items-center justify-center py-24 text-center" in:fade>
+          <div class="w-20 h-20 bg-white shadow-xl flex items-center justify-center mb-6">
+             <svg class="w-10 h-10 text-[#C18F7E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2z" /></svg>
+          </div>
+          <p class="text-[11px] font-black text-[#C18F7E] uppercase tracking-[0.3em]">Không tìm thấy bài viết nào...</p>
+          <button onclick={() => searchQuery = ""} class="mt-4 text-[10px] font-bold text-gray-400 underline uppercase tracking-widest">Xóa tìm kiếm</button>
+       </div>
+    {/if}
+  </div>
 </div>
 
 <style>

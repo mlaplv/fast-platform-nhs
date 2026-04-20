@@ -2,6 +2,7 @@
     import type { PageData } from './$types';
     import { fade } from 'svelte/transition';
     import type { Component } from 'svelte';
+    import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
 
     /**
      * ELITE V2.2 - MISSION CONTROL HUB
@@ -21,8 +22,25 @@
     const loadStorefront = (): Promise<DynamicModule> => import("$lib/components/storefront/StorefrontHome.svelte");
 </script>
 
+{#if data.tenant !== 'admin' && data.seo_meta}
+    <SeoHead
+        title={data.seo_meta.title}
+        description={data.seo_meta.description}
+        canonical={data.seo_meta.canonical_url}
+        keywords={data.seo_meta.keywords}
+        jsonLdScripts={[
+            data.seo_meta.json_ld_string,
+            data.seo_meta.breadcrumb_ld_string
+        ]}
+    />
+{/if}
+
 <svelte:head>
-    <title>{data.tenant === 'admin' ? 'Xohi Darkboard' : 'SmartShop Storefront'}</title>
+    {#if data.tenant === 'admin'}
+        <title>Xohi Darkboard</title>
+    {:else if !data.seo_meta}
+        <title>SmartShop Storefront</title>
+    {/if}
 </svelte:head>
 
 <div class="page-container h-dvh overflow-x-hidden overflow-y-auto bg-[#010101]">

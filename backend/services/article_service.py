@@ -89,6 +89,76 @@ class ArticleService:
         data = [ArticleResponse.model_validate(row._mapping) for row in result]
         return ArticleListResponse(data=data, total=total)
 
+    async def search_semantic(
+        self,
+        db_session: AsyncSession,
+        query: str,
+        limit: int = 5
+    ) -> List[ArticleResponse]:
+        """Elite V2.2: Hybrid Search (Keyword + Semantic) for articles."""
+        safe = query.strip()
+        if not safe:
+            return []
+
+        # 1. First Pass: Fast Keyword Search (Explicit matching)
+        keyword_stmt = select(Article.id).where(
+            and_(
+                Article.status == "PUBLISHED",
+                Article.title.ilike(f"%{safe}%")
+            )
+        ).limit(limit)
+        keyword_result = await db_session.execute(keyword_stmt)
+        keyword_ids = [str(row[0]) for row in keyword_result.fetchall()]
+
+        # 2. Second Pass: Deep Semantic Search (Vector)
+        vectors = await self.vector_service.search_semantic(
+            db_session=db_session,
+            query=safe,
+            limit=limit
+        )
+        
+        # Merge IDs maintaining order: Keywords first, then new semantic hits
+        seen_ids = set(keyword_ids)
+        final_ids = list(keyword_ids)
+        
+        vector_ids = []
+        scores_map = {}
+        for v in vectors:
+            vid = str(v["id"])
+            scores_map[vid] = v["match_score"]
+            if vid not in seen_ids:
+                final_ids.append(vid)
+                seen_ids.add(vid)
+        
+        if not final_ids:
+            return []
+
+        # 3. Final Hydration (Scalar Projection)
+        stmt = select(
+            Article.id, Article.title, Article.slug, Article.excerpt,
+            Article.status, Article.category, Article.views,
+            Article.created_at, Article.author_id, Article.featured_image,
+            Article.article_metadata,
+            UserModel.name.label("author_name")
+        ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
+            Article.id.in_(final_ids[:limit])
+        )
+        
+        result = await db_session.execute(stmt)
+        articles_map = {str(row.id): row._mapping for row in result}
+        
+        # Reconstruct ordered list with metadata injection
+        final_results = []
+        for aid in final_ids[:limit]:
+            if aid in articles_map:
+                art_data = dict(articles_map[aid])
+                # Inject match score if available from vector search, else 0.99 for exact keyword hit
+                art_data["match_score"] = scores_map.get(aid, 0.995 if aid in keyword_ids else 0.5)
+                final_results.append(ArticleResponse.model_validate(art_data))
+                
+        return final_results
+
+
     async def get_article(self, db_session: AsyncSession, article_id: str) -> ArticleResponse:
         """Get a single article (R76: Scalar Projection)."""
         stmt = select(

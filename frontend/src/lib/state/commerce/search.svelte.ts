@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import type { Product } from '$lib/types';
+import type { Product, Article } from '$lib/types';
 
 export class SearchState {
   // --- Runes ---
@@ -13,6 +13,7 @@ export class SearchState {
 
   // Real DB Results
   searchResults = $state<Product[]>([]);
+  searchArticleResults = $state<Article[]>([]);
 
   // Elite V2.2: Dynamic Placeholder (Root Fix for hardcoding & derived_inert warning)
   get searchPlaceholder() {
@@ -79,16 +80,28 @@ export class SearchState {
     this.isSearching = true;
 
     try {
-      const res = await fetch(`/api/v1/client/products?search=${encodeURIComponent(query)}&limit=5`);
-      if (res.ok) {
-        const json = await res.json();
-        this.searchResults = json.data || [];
+      // Neural Sync Search: Execute Products & News search in parallel
+      const [prodRes, newsRes] = await Promise.all([
+        fetch(`/api/v1/client/products?search=${encodeURIComponent(query)}&limit=5`),
+        fetch(`/api/v1/client/news/search?q=${encodeURIComponent(query)}&limit=5`)
+      ]);
+
+      if (prodRes.ok) {
+        const prodJson = await prodRes.json();
+        this.searchResults = prodJson.data || [];
       } else {
         this.searchResults = [];
       }
+
+      if (newsRes.ok) {
+        this.searchArticleResults = await newsRes.json();
+      } else {
+        this.searchArticleResults = [];
+      }
     } catch (e) {
-      console.error("Search API error", e);
+      console.error("Neural Search API error", e);
       this.searchResults = [];
+      this.searchArticleResults = [];
     } finally {
       this.isSearching = false;
     }

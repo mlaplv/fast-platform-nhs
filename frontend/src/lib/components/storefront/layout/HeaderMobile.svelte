@@ -180,6 +180,4 @@
   }
 </style>
 
-{#if searchStore.isOverlayOpen}
-  <SmartSearch variant="mobile-overlay" />
-{/if}
+

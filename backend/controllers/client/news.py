@@ -40,6 +40,21 @@ class PublicNewsController(Controller):
             category="Bài viết"
         )
 
+    @get("/search")
+    async def search_news(
+        self,
+        db_session: AsyncSession,
+        article_service: ArticleService,
+        q: str,
+        limit: int = 5
+    ) -> List[ArticleResponse]:
+        """PUBLIC: Semantic/Vector search for news articles."""
+        return await article_service.search_semantic(
+            db_session=db_session,
+            query=q,
+            limit=limit
+        )
+
     @get("/{article_id:str}")
     async def get_news_detail(
         self,

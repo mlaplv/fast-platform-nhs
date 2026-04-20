@@ -478,14 +478,23 @@ class SeoService:
         )
 
     @staticmethod
-    def generate_home_seo_meta(site_name: Optional[str] = None, slogan: Optional[str] = None, description: Optional[str] = None) -> SeoMetaSchema:
-        """Tạo SEO cho trang chủ."""
+    def generate_home_seo_meta(
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        keywords: Optional[str] = None,
+        site_name: Optional[str] = None
+    ) -> SeoMetaSchema:
+        """Tạo SEO cho trang chủ (Elite V2.2)."""
         name = site_name or _SITE_NAME
-        title = f"{name} - {slogan}" if slogan else name
-        desc = description or f"{name} - Hệ thống chuyên cung cấp sản phẩm chăm sóc sức khỏe chính hãng, chất lượng cao."
+        
+        # GEO 2026: Ưu tiên dữ liệu từ Admin cấu hình
+        final_title = title or name
+        final_desc = description or f"{name} - Hệ thống chuyên cung cấp sản phẩm chăm sóc sức khỏe chính hãng, chất lượng cao."
+        final_keywords = keywords or f"{name}, thực phẩm chức năng, chăm sóc sức khỏe"
+        
         canonical_url = _SITE_URL
 
-        # WebSite + SearchAction
+        # WebSite + SearchAction (GEO 2026 AI Ready)
         website_schema = {
             "@context": "https://schema.org",
             "@type": "WebSite",
@@ -499,7 +508,7 @@ class SeoService:
             }
         }
 
-        # Organization
+        # Organization (Branding trust for AI Search)
         org_schema = {
             "@context": "https://schema.org",
             "@type": "Organization",
@@ -511,10 +520,10 @@ class SeoService:
         }
 
         return SeoMetaSchema(
-            title=title,
-            description=desc,
-            keywords=f"{name}, thực phẩm chức năng, chăm sóc sức khỏe",
+            title=final_title,
+            description=final_desc,
+            keywords=final_keywords,
             canonical_url=canonical_url,
             json_ld_string=json.dumps(website_schema, separators=(",", ":"), ensure_ascii=False),
-            breadcrumb_ld_string=json.dumps(org_schema, separators=(",", ":"), ensure_ascii=False) # Reuse breadcrumb slot for Organization on Home
+            breadcrumb_ld_string=json.dumps(org_schema, separators=(",", ":"), ensure_ascii=False)
         )
