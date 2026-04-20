@@ -19,6 +19,10 @@
   --z-omni-command: 1100;
   --z-toast: 2000;
 
+  /* Tiptap Bubble Menus — Must stay above MissionControlShell modals (500k) */
+  --z-admin-tiptap-link-bubble: 510000;
+  --z-admin-tiptap-bubble-menu: 520000;
+
   /* Elite V2.2: Consistent Mapping Aliases */
   --z-admin-modal: var(--z-modal);
   --z-admin-asset-modal-backdrop: var(--z-modal-overlay);

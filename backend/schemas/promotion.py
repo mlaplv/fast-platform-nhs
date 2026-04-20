@@ -36,6 +36,7 @@ class UpdateVoucherRequest(BaseModel):
     category: Optional[str] = None
     is_default: Optional[bool] = None
     priority: Optional[int] = None
+    id: Optional[str] = Field(None, description="New Voucher Code if renaming")
 
 class VoucherResponse(VoucherBase):
     model_config = ConfigDict(from_attributes=True)

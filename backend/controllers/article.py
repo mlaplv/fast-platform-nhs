@@ -12,7 +12,7 @@ from backend.constants.permissions import PermissionEnum
 from backend.schemas.common import SuccessResponse, BulkActionResponse, BulkIdsRequest
 from backend.schemas.article import (
     ArticleResponse, ArticleListResponse, CreateArticleRequest,
-    UpdateArticleRequest
+    UpdateArticleRequest, BulkPatchRequest
 )
 from backend.services.article_service import ArticleService, provide_article_service
 from backend.services.article_vector_service import ArticleVectorService, provide_article_vector_service
@@ -125,11 +125,9 @@ class ArticleController(Controller):
         self, 
         db_session: AsyncSession, 
         article_service: ArticleService,
-        data: BulkIdsRequest
+        data: BulkPatchRequest
     ) -> BulkActionResponse:
         """Bulk update status or category."""
-        from backend.schemas.article import BulkPatchRequest
-        # Cast for type safety in logic if needed, but here simple access is fine
         res = await article_service.bulk_patch(db_session, data.ids, data.status, data.category)
         await db_session.commit()
         return res

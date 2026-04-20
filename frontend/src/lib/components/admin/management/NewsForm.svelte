@@ -206,7 +206,7 @@
 </script>
 
 <MissionControlShell
-  title={editingId ? `Intelligence_Archive // EDIT_${editingId.slice(0, 8)}` : "Intelligence_Archive // NEW_ENTRY"}
+  title={editingId ? `LƯU_TRỮ_TIN_TỨC // SỬA_${editingId.slice(0, 8)}` : "LƯU_TRỮ_TIN_TỨC // TẠO_MỚI"}
   variant="cyan"
   {isOpen}
   {onClose}
@@ -427,7 +427,7 @@
         <div class="flex items-center justify-between mb-4">
           <div class="section-label !mb-0 italic !tracking-[0.4em]">
             <Globe size={11} />
-            SEO SEARCH ENGINE
+            SEO - TỐI ƯU TÌM KIẾM
           </div>
           <button
             onclick={handleAiSuggestSeo}
@@ -436,18 +436,17 @@
           >
             {#if isSuggestingSeo}
               <div class="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
-              SYZ_SYNC...
+              XOHI_DRAFTING...
             {:else}
               <Globe size={10} class="animate-pulse" />
-              AI SUGGEST
+              XOHI GỢI Ý SEO
             {/if}
           </button>
         </div>
 
         <div class="flex flex-col gap-5">
-          <!-- BÍ DANH URL (Slug) -->
           <div class="field-group">
-            <label class="field-label">BÍ DANH URL</label>
+            <label class="field-label">ĐỊA CHỈ URL (SLUG)</label>
             <div class="relative flex items-center gap-2">
               <div class="relative flex-1">
                 <input
@@ -473,7 +472,7 @@
           <!-- SEO Title -->
           <div class="field-group">
             <label class="field-label">
-              SEO META TITLE
+              TIÊU ĐỀ SEO (META TITLE)
               <span class="ml-auto {seoTitleLen > 60 ? 'text-red-400' : 'text-cyan-500/60'}">{seoTitleLen}/60</span>
             </label>
             <div class="relative">
@@ -485,9 +484,8 @@
             </div>
           </div>
 
-          <!-- SEO Keywords -->
           <div class="field-group">
-            <label class="field-label">SEO KEYWORDS</label>
+            <label class="field-label">TỪ KHÓA SEO (KEYWORDS)</label>
             <div class="relative">
               <input type="text" bind:value={formSeoKeywords}
                 placeholder="từ-khóa-1, từ-khóa-2, ..."
@@ -500,7 +498,7 @@
           <!-- SEO Description -->
           <div class="field-group">
             <label class="field-label">
-              SEO META DESCRIPTION
+              MÔ TẢ SEO (META DESCRIPTION)
               <span class="ml-auto {seoDescLen > 160 ? 'text-red-400' : 'text-cyan-500/60'}">{seoDescLen}/160</span>
             </label>
             <textarea bind:value={formSeoDescription} rows="4"
@@ -514,7 +512,7 @@
       <!-- 3C: Preview Column (Right) -->
       <div class="mt-3 flex flex-col gap-4">
         <div class="section-label mb-0 italic text-white/20">
-          Visual Preview
+          Bản xem trước trực quan
         </div>
         
         <div class="flex flex-col gap-4">
@@ -603,7 +601,7 @@
             Đang tạo...
           {:else}
             <Sparkles size={12} />
-            XOHI Auto FAQ
+            XOHI GỢI Ý FAQ
           {/if}
         </button>
         <button
@@ -655,7 +653,7 @@
     <div class="flex items-center justify-between gap-4 py-2">
       <div class="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/20">
         <div class="w-1.5 h-1.5 rounded-full bg-cyan-400"></div>
-        Neural Live Sync Active
+        Hệ thống Neural LIVE đang đồng bộ
       </div>
 
       <div class="flex items-center gap-3">

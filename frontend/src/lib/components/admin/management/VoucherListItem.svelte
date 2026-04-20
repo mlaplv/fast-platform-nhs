@@ -14,6 +14,8 @@
   export interface Voucher {
     id: string;
     type: string;
+    title?: string;
+    subtitle?: string;
     value: number;
     min_spend: number;
     max_discount?: number | null;
@@ -97,7 +99,13 @@
           {/if}
         </div>
         <div class="text-[15px] font-black text-white tracking-widest uppercase group-hover:text-neon-cyan transition-colors flex items-center gap-3">
-          {props.voucher.id}
+          {props.voucher.title || props.voucher.id}
+          
+          {#if props.voucher.title}
+            <span class="text-[10px] text-gray-500 font-mono lowercase tracking-tighter">
+              <span class="opacity-30">CODE:</span> {props.voucher.id}
+            </span>
+          {/if}
           
           <!-- Elite V2.2: AUTO-STICK Badge -->
           {#if props.voucher.is_default}
@@ -118,6 +126,9 @@
           {/if}
         </div>
         <div class="flex items-center gap-2 text-[10px] text-gray-500 font-mono italic">
+          {#if props.voucher.subtitle}
+             <span class="text-emerald-400/80 font-bold mr-2">« {props.voucher.subtitle} »</span>
+          {/if}
           <Icon size={10} class="text-neon-cyan/60" />
           <span class="text-neon-cyan/80 font-bold">{props.voucher.category}</span>
           <span class="text-white/20">|</span>

@@ -63,6 +63,25 @@ class PromotionAdminService:
             raise NotFoundException(f"Voucher {voucher_id} không tồn tại.")
             
         update_data = data.model_dump(exclude_unset=True)
+        
+        # [ELITE V2.2] Handle voucher ID (code) change via Explicit SQL Update for PK integrity
+        new_id = update_data.pop("id", None)
+        if new_id and new_id != voucher_id:
+            # Check if new ID already exists
+            existing = await db_session.get(Voucher, new_id)
+            if existing:
+                raise ClientException(status_code=409, detail=f"Mã voucher '{new_id}' đã tồn tại.")
+            
+            # Use raw update to force PK change in DB
+            await db_session.execute(
+                update(Voucher).where(Voucher.id == voucher_id).values(id=new_id)
+            )
+            # Flush and re-fetch to update session identity map
+            await db_session.flush()
+            voucher = await db_session.get(Voucher, new_id)
+            if not voucher:
+                raise NotFoundException(f"Lỗi đồng bộ voucher {new_id} sau khi đổi mã.")
+            
         is_setting_default = update_data.get("is_default", False)
         
         if is_setting_default:
@@ -71,7 +90,7 @@ class PromotionAdminService:
             # Unset all other defaults in same category
             await db_session.execute(
                 update(Voucher)
-                .where(and_(Voucher.tenant_id == tenant_id, Voucher.category == category, Voucher.id != voucher_id))
+                .where(and_(Voucher.tenant_id == tenant_id, Voucher.category == category, Voucher.id != (new_id or voucher_id)))
                 .values(is_default=False)
             )
 
@@ -79,7 +98,7 @@ class PromotionAdminService:
             setattr(voucher, key, value)
             
         await db_session.commit()
-        return SuccessResponse(message=f"Đã cập nhật voucher {voucher_id} thành công.")
+        return SuccessResponse(message=f"Đã cập nhật voucher {new_id or voucher_id} thành công.")
 
     async def delete_voucher(self, db_session: AsyncSession, voucher_id: str) -> SuccessResponse:
         voucher = await db_session.get(Voucher, voucher_id)

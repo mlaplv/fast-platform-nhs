@@ -34,7 +34,9 @@
     is_active: true,
     category: "",
     is_default: false,
-    priority: 0
+    priority: 0,
+    title: "",
+    subtitle: ""
   });
 
   // [ELITE V2.2] Auto-Sync Category selection with Voucher Type
@@ -74,7 +76,9 @@
           is_active: voucher.is_active,
           category: voucher.category || "DISCOUNT",
           is_default: voucher.is_default || false,
-          priority: voucher.priority || 0
+          priority: voucher.priority || 0,
+          title: voucher.title || "",
+          subtitle: voucher.subtitle || ""
         };
       }
     } catch (error: unknown) {
@@ -97,7 +101,9 @@
       is_active: true,
       category: "",
       is_default: false,
-      priority: 0
+      priority: 0,
+      title: "",
+      subtitle: ""
     };
   }
 
@@ -105,15 +111,21 @@
     isSaving = true;
     try {
       const payload: Record<string, unknown> = { ...form };
-      // Clean up dates for Python ISO format
-      if (payload.start_date) payload.start_date = new Date(payload.start_date as string).toISOString();
-      if (payload.end_date) payload.end_date = new Date(payload.end_date as string).toISOString();
+      // [ELITE V2.2] Strict Payload Sanitization for Pydantic Compatibility
+      payload.start_date = payload.start_date ? new Date(payload.start_date as string).toISOString() : null;
+      payload.end_date = payload.end_date ? new Date(payload.end_date as string).toISOString() : null;
+      
+      // Handle empty numeric strings
+      if (payload.max_discount === "" || payload.max_discount === undefined) payload.max_discount = null;
+      if (payload.usage_limit === "" || payload.usage_limit === undefined) payload.usage_limit = null;
+      if (payload.min_spend === "" || payload.min_spend === undefined) payload.min_spend = 0;
+      if (payload.value === "" || payload.value === undefined) payload.value = 0;
+      if (payload.priority === "" || payload.priority === undefined) payload.priority = 0;
       
       if (voucherId) {
-        // Update (id is immutable usually, we only update status/value)
-        const { id, ...updateData } = payload;
-        await apiClient.patch(`/api/v1/admin/vouchers/${voucherId}`, updateData);
-        nanobot.showToast(`Đã cập nhật voucher ${voucherId}`, "success");
+        // Update (ID is now editable)
+        await apiClient.patch(`/api/v1/admin/vouchers/${voucherId}`, payload);
+        nanobot.showToast(`Đã cập nhật voucher ${payload.id}`, "success");
       } else {
         // Create
         await apiClient.post(`/api/v1/admin/vouchers`, payload);
@@ -182,10 +194,33 @@
               id="v-code"
               type="text"
               bind:value={form.id}
-              disabled={!!voucherId}
               placeholder="VD: SALE30K..."
               class="w-full bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-cyan/50 text-sm font-bold tracking-widest uppercase disabled:opacity-50"
             />
+          </div>
+
+          <!-- Title & Subtitle -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-title">Tiêu đề (Hiển thị)</label>
+              <input
+                id="v-title"
+                type="text"
+                bind:value={form.title}
+                placeholder="VD: Giảm 60K"
+                class="w-full bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-cyan/50 text-sm"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-subtitle">Mô tả phụ</label>
+              <input
+                id="v-subtitle"
+                type="text"
+                bind:value={form.subtitle}
+                placeholder="VD: Cho đơn từ 200K"
+                class="w-full bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-cyan/50 text-sm"
+              />
+            </div>
           </div>
 
           <!-- Type & Value -->

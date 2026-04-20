@@ -69,11 +69,11 @@
       {#if isAllSelected}<CheckSquare size={16} />{:else}<Square size={16} />{/if}
     </button>
   </div>
-  <div>Intelligence Title</div>
-  <div>Stream Category</div>
-  <div>Neural Author</div>
-  <div>Intel Status</div>
-  <div class="text-right">Operations</div>
+  <div>Tiêu đề bài viết</div>
+  <div>Chuyên mục</div>
+  <div>Tác giả</div>
+  <div>Trạng thái</div>
+  <div class="text-right">Hành động</div>
 </div>
 
 <div class="flex flex-col flex-1 pb-10">
@@ -115,14 +115,14 @@
               {article.title}
             </div>
             <div class="md:hidden text-[9px] font-mono text-gray-500 mt-1 uppercase tracking-widest">
-              {article.category || "General_Node"}
+              {article.category || "Chung"}
             </div>
           </div>
         </div>
 
         <!-- Category -->
         <div class="hidden md:block text-[10px] font-mono text-gray-500 uppercase tracking-widest group-hover:text-gray-300 transition-colors">
-          {article.category || "General_Node"}
+          {article.category || "Chung"}
         </div>
 
         <!-- Author / Views -->
@@ -140,7 +140,7 @@
           <span
             class="px-2.5 py-1 rounded-lg text-[9px] font-bold font-mono uppercase tracking-widest inline-flex border {article.status.toLowerCase() === 'published' ? 'text-[#39FF14] border-[#39FF14]/30 bg-[#39FF14]/10' : 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10'}"
           >
-            {article.status.toLowerCase() === 'published' ? 'LIVE' : 'DRAFT'}
+            {article.status.toLowerCase() === 'published' ? 'ĐÃ ĐĂNG' : 'BẢN NHÁP'}
           </span>
         </div>
 
@@ -151,7 +151,7 @@
               href="https://micsmo.com/{article.slug}"
               target="_blank"
               class="p-2 text-cyan-400 hover:text-white transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-cyan-500/20 hover:border-cyan-500/40"
-              title="View Article"
+              title="Xem bài viết"
               onclick={(e: MouseEvent) => e.stopPropagation()}
             >
               <ExternalLink size={14} />
@@ -159,14 +159,14 @@
             <button
               onclick={(e: MouseEvent) => { e.stopPropagation(); onEdit(article); }}
               class="p-2 text-gray-500 hover:text-cyan-400 transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-transparent hover:border-cyan-500/20"
-              title="Edit Article"
+              title="Sửa bài viết"
             >
               <Pencil size={14} />
             </button>
             <button
               onclick={(e: MouseEvent) => { e.stopPropagation(); onDelete(article.id); }}
               class="p-2 text-red-500 md:text-gray-500 hover:text-red-400 transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-transparent hover:border-red-500/20"
-              title="Delete Article"
+              title="Xóa bài viết"
             >
               <Trash2 size={14} />
             </button>

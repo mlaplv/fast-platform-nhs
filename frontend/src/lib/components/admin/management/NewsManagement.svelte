@@ -25,7 +25,7 @@
   let searchTerm = $state("");
   let searchInput = $state("");
   let activeTab = $state("all");
-  let activeCategoryFilter = $state("all");
+  let activeCategoryFilter = $state("Bài viết");
   let currentPage = $state(1);
   let editingId = $state<string | null>(null);
   let selectedIds = $state<Set<string>>(new Set());
@@ -158,12 +158,13 @@
     formContent = ""; formSlug = ""; formSeoTitle = "";
     formSeoDescription = ""; formSeoKeywords = ""; formSeoOgImage = null; formFeaturedImage = null;
     formFaqs = [];
+    formStatus = "DRAFT";
     showDraftForm = true;
   }
 
   async function openEdit(a: Article) {
     try {
-      nanobot.showToast("Loading intelligence...", "info");
+      nanobot.showToast("Đang tải dữ liệu...", "info");
       const fullArticle = await apiClient.get<Article>(`/api/v1/articles/${a.id}`);
       editingId = fullArticle.id;
       formTitle = fullArticle.title; formCategory = fullArticle.category;
@@ -176,6 +177,7 @@
       formSeoOgImage = fullArticle.seoOgImage || null;
       formFeaturedImage = fullArticle.featuredImage || null;
       formFaqs = (fullArticle as any).metadata?.faqs || [];
+      formStatus = fullArticle.status;
       showDraftForm = true;
     } catch {
       nanobot.showToast("Dạ sếp, không lấy được chi tiết bài viết.", "error");
@@ -206,10 +208,10 @@
 
       if (editingId) {
         await apiClient.patch(`/api/v1/articles/${editingId}`, payload);
-        nanobot.showToast("Neural sync complete. Đã cập nhật bài viết thành công!", "success");
+        nanobot.showToast("Đã đồng bộ Neural. Cập nhật bài viết thành công!", "success");
       } else {
         await apiClient.post("/api/v1/articles", payload);
-        nanobot.showToast("Intelligence deployed. Bài viết đã được đăng tải!", "success");
+        nanobot.showToast("Khởi tạo hoàn tất. Bài viết đã được đăng tải!", "success");
       }
       showDraftForm = false;
       await loadArticles();
@@ -254,7 +256,7 @@
     try {
       await apiClient.patch("/api/v1/articles/bulk-update", { ids, ...fields });
       selectedIds = new Set();
-      nanobot.showToast(`Neural override complete. Đã cập nhật ${ids.length} bài viết.`, "success");
+      nanobot.showToast(`Cập nhật thành công ${ids.length} bài viết.`, "success");
       await loadArticles();
     } catch (err: unknown) {
       const detail = err instanceof ApiError ? (err.data as any)?.detail : "Cập nhật hàng loạt thất bại";
@@ -269,7 +271,7 @@
     try {
       await apiClient.post("/api/v1/articles/bulk-delete", { ids });
       selectedIds = new Set();
-      nanobot.showToast("Neural purge complete.", "success");
+      nanobot.showToast("Đã tiêu hủy dữ liệu thành công.", "success");
       await loadArticles();
     } catch (err: unknown) {
       const detail = err instanceof ApiError ? (err.data as any)?.detail : "Tiêu hủy thất bại";
@@ -333,8 +335,8 @@
       <div transition:fade={{ duration: 200 }} class="flex flex-col gap-4">
         <div class="flex items-center gap-3">
           <Newspaper size={20} class="text-cyan-500" />
-          <h2 class="text-lg font-black uppercase tracking-[0.3em] text-white/90">Intelligence_Stream</h2>
-          <span class="px-3 py-1 bg-cyan-400/10 border border-cyan-400/20 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest">{totalArticles} nodes</span>
+          <h2 class="text-lg font-black uppercase tracking-[0.3em] text-white/90">QUẢN_LÝ_TIN_TỨC</h2>
+          <span class="px-3 py-1 bg-cyan-400/10 border border-cyan-400/20 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest">{totalArticles} bài</span>
         </div>
       </div>
     {/if}
@@ -361,7 +363,7 @@
   <div class="flex-1 overflow-y-auto custom-scrollbar relative bg-[#050505]/50">
     {#if isLoading}
       <div class="h-full flex items-center justify-center animate-pulse">
-        <span class="text-[9px] font-mono text-cyan-500/40 uppercase tracking-[0.3em]">Synching Neural Data...</span>
+        <span class="text-[9px] font-mono text-cyan-500/40 uppercase tracking-[0.3em]">Đang đồng bộ dữ liệu Neural...</span>
       </div>
     {:else}
       <div class="pl-6 border-l border-white/5 ml-4 my-2 mb-[80px]">
@@ -396,26 +398,41 @@
       >
         <div class="flex items-center gap-3 border-r border-white/10 pr-6">
           <div class="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs font-bold">{selectedIds.size}</div>
-          <span class="text-[10px] font-black uppercase tracking-widest text-white/60">Selected</span>
+          <span class="text-[10px] font-black uppercase tracking-widest text-white/60">Đã chọn</span>
         </div>
 
         <div class="flex items-center gap-2">
-          <button onclick={selectAll} class="cmd-btn">All</button>
-          <button onclick={invertSelection} class="cmd-btn">Invert</button>
-          <button onclick={deselectAll} class="cmd-btn">Clear</button>
+          <button onclick={selectAll} class="cmd-btn">Tất cả</button>
+          <button onclick={invertSelection} class="cmd-btn">Đảo ngược</button>
+          <button onclick={deselectAll} class="cmd-btn">Bỏ chọn</button>
         </div>
 
         <div class="w-px h-6 bg-white/5 ml-2"></div>
 
         <div class="flex items-center gap-2 pr-2">
           <div class="relative group/drop">
-            <button class="action-btn text-cyan-400 hover:bg-cyan-500/10">Status</button>
-            <div class="absolute bottom-full mb-2 left-0 hidden group-hover/drop:flex flex-col bg-[#111] border border-white/10 rounded-xl overflow-hidden min-w-[120px]">
-              <button onclick={() => bulkUpdate({ status: 'PUBLISHED' })} class="drop-item hover:text-[#39FF14]">Deploy_Live</button>
-              <button onclick={() => bulkUpdate({ status: 'DRAFT' })} class="drop-item hover:text-cyan-400">Move_Staging</button>
+            <button class="action-btn text-cyan-400 hover:bg-cyan-500/10">Trạng thái</button>
+            <!-- Hover Bridge & Popup -->
+            <div class="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover/drop:flex flex-col pb-2 min-w-[160px]">
+              <div class="flex flex-col bg-[#111]/95 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                <button onclick={() => bulkUpdate({ status: 'PUBLISHED' })} class="drop-item hover:text-[#39FF14] hover:bg-white/5 transition-colors">Đăng bài (Live)</button>
+                <button onclick={() => bulkUpdate({ status: 'DRAFT' })} class="drop-item hover:text-cyan-400 hover:bg-white/5 transition-colors">Chuyển về Nháp</button>
+              </div>
             </div>
           </div>
-          <button onclick={confirmBulkDelete} class="action-btn text-red-400 hover:bg-red-500/10">Purge</button>
+
+          <div class="relative group/drop-cat">
+            <button class="action-btn text-amber-400 hover:bg-amber-500/10">Chuyên mục</button>
+            <div class="absolute bottom-full left-1/2 -translate-x-1/2 hidden group-hover/drop-cat:flex flex-col pb-2 min-w-[160px]">
+              <div class="flex flex-col bg-[#111]/95 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] max-h-[200px] overflow-y-auto custom-scrollbar">
+                {#each categories as cat}
+                  <button onclick={() => bulkUpdate({ category: cat })} class="drop-item hover:text-amber-400 hover:bg-white/5 transition-colors">{cat}</button>
+                {/each}
+              </div>
+            </div>
+          </div>
+
+          <button onclick={confirmBulkDelete} class="action-btn text-red-500 hover:bg-red-500/10">Xóa vĩnh viễn</button>
         </div>
       </div>
     {/if}
