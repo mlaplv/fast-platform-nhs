@@ -75,6 +75,18 @@
    * Xóa $effect() ở đây để tránh bị ghi đè video_end_time khi mở load bài từ DB.
    * Chức năng tự động detect giờ sẽ được chuyển sang onchange của ô nhập URL.
    */
+
+  // ─── FAQ Management (GEO 2026) ──────────────────────────────────
+  function addFaq() {
+    if (!formMetadata.faqs) formMetadata.faqs = [];
+    formMetadata.faqs = [...formMetadata.faqs, { question: '', answer: '' }];
+  }
+
+  function removeFaq(index: number) {
+    if (!formMetadata.faqs) return;
+    formMetadata.faqs.splice(index, 1);
+    formMetadata.faqs = [...formMetadata.faqs];
+  }
 </script>
 
 <div class="flex flex-col gap-6">
@@ -253,6 +265,64 @@
     </div>
   </div>
 
+  <!-- GEO 2026: Product FAQs (Schema JSON-LD & UI) -->
+  <div class="flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+        <HelpCircle size={11} class="text-amber-400/60" />
+        Hỏi đáp (FAQ Schema - GEO 2026)
+      </div>
+      <button
+        type="button"
+        onclick={addFaq}
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 transition-all text-[9px] font-black uppercase tracking-wider"
+      >
+        <Plus size={12} strokeWidth={3} />
+        Thêm câu hỏi
+      </button>
+    </div>
+
+    {#if formMetadata.faqs && formMetadata.faqs.length > 0}
+      <div class="flex flex-col gap-3">
+        {#each formMetadata.faqs as faq, i}
+          <div class="flex flex-col gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 relative group">
+            <button
+              type="button"
+              onclick={() => removeFaq(i)}
+              class="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500/10 text-red-400/50 hover:text-red-400 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-all"
+              title="Xóa câu hỏi"
+            >
+              <Trash2 size={12} />
+            </button>
+            <div class="flex flex-col gap-1.5 pr-8">
+              <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Câu hỏi {i + 1}</label>
+              <input
+                type="text"
+                bind:value={faq.question}
+                placeholder="VD: Sản phẩm có tác dụng phụ không?"
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-amber-500/50 transition-colors font-medium"
+              />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Câu trả lời</label>
+              <textarea
+                bind:value={faq.answer}
+                placeholder="VD: Sản phẩm được chiết xuất từ 100% thảo dược thiên nhiên..."
+                rows="2"
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white/80 focus:outline-none focus:border-amber-500/50 transition-colors resize-none leading-relaxed"
+              ></textarea>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <div class="flex items-center justify-center p-6 rounded-2xl border border-dashed border-white/10 bg-white/[0.01]">
+        <span class="text-[10px] text-white/20 uppercase font-black tracking-widest text-center">
+          Chưa có câu hỏi FAQ.<br/>Thêm FAQ để tăng cường thứ hạng trên AI Search.
+        </span>
+      </div>
+    {/if}
+  </div>
 
 </div>
 

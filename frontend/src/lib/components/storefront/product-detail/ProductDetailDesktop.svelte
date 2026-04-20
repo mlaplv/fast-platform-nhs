@@ -848,6 +848,23 @@
        </div>
     </div>
 
+    <!-- GEO 2026: Desktop FAQ Section -->
+    {#if product.metadata?.faqs && product.metadata.faqs.length > 0}
+    <div class="bg-white p-5 shadow-sm">
+       <div class="bg-gray-50/50 px-0 py-4 border-b border-gray-100 mb-6">
+          <h2 class="text-[18px] font-black text-gray-800 uppercase tracking-tight">Câu hỏi thường gặp</h2>
+       </div>
+       <div class="px-0 flex flex-col gap-4">
+          {#each product.metadata.faqs as faq}
+            <div class="border border-gray-100 p-4 rounded-md bg-gray-50/30">
+              <h3 class="text-[15px] font-bold text-gray-900 mb-2">{faq.question}</h3>
+              <p class="text-[14px] text-gray-600 leading-relaxed max-w-4xl">{faq.answer}</p>
+            </div>
+          {/each}
+       </div>
+    </div>
+    {/if}
+
     <!-- ĐÁNH GIÁ SẢN PHẨM -->
     <div id="product-reviews">
        <ProductDetailReviews {product} />

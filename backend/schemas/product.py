@@ -5,6 +5,12 @@ JSONPrimitive = Union[str, int, float, bool, None]
 JSONType = Union[JSONPrimitive, List[object], Dict[str, object]]
 from datetime import datetime
 
+class FaqItem(BaseModel):
+    """Elite V2.2: Structured FAQ for Product Detail + Schema.org FAQPage."""
+    model_config = ConfigDict(strict=True)
+    question: str
+    answer: str
+
 class SeoMetaSchema(BaseModel):
     model_config = ConfigDict(strict=True)
     title: str
@@ -12,6 +18,8 @@ class SeoMetaSchema(BaseModel):
     keywords: str
     canonical_url: str
     json_ld_string: str
+    breadcrumb_ld_string: str = ""
+    faq_ld_string: str = ""
 
 
 class TierVariation(BaseModel):
@@ -43,6 +51,9 @@ class ProductMetadata(BaseModel):
     scarcity_seconds: Optional[int] = Field(None, alias="scarcity_seconds")
     show_reviews: Optional[bool] = Field(None, alias="show_reviews")
     video_url: Optional[str] = Field(None, alias="video_url")
+
+    # Elite V2.2: Product FAQs (Tùy biến từ Admin → hiện trên Product Detail + Schema JSON-LD)
+    faqs: List[FaqItem] = Field(default_factory=list, alias="faqs")
 
     # R00 Compliance: Externalized UI Labels
     sync_loading_text: Optional[str] = Field(None, alias="sync_loading_text")

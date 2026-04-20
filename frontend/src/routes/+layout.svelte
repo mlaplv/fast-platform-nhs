@@ -70,11 +70,14 @@
   <title>{siteName}</title>
   <meta name="description" content={metaDescription} />
   <meta name="theme-color" content="#020202" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
 
-  <!-- OpenGraph -->
+  <!-- OpenGraph (GEO 2026) -->
   <meta property="og:title" content={siteName} />
   <meta property="og:description" content={metaDescription} />
   <meta property="og:type" content="website" />
+  <meta property="og:site_name" content={siteName} />
+  <meta property="og:locale" content="vi_VN" />
 
   <link rel="icon" href="/favicon.svg" />
 </svelte:head>

@@ -123,6 +123,21 @@
       {/if}
     </button>
   {/if}
+
+  <!-- GEO 2026: Mobile FAQ Section -->
+  {#if product.metadata?.faqs && product.metadata.faqs.length > 0}
+    <div class="mt-8 border-t border-gray-100 pt-6">
+      <h2 class="section-title">Câu hỏi thường gặp</h2>
+      <div class="flex flex-col gap-3 mt-4">
+        {#each product.metadata.faqs as faq}
+          <div class="bg-gray-50/50 border border-gray-100 rounded-lg p-3">
+            <h3 class="text-[13px] font-bold text-gray-900 mb-1.5 leading-tight">{faq.question}</h3>
+            <p class="text-[12px] text-gray-600 leading-relaxed">{faq.answer}</p>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
 </section>
 
 <style>
