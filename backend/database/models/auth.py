@@ -51,6 +51,7 @@ class User(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     articles: Mapped[List["Article"]] = relationship("Article", back_populates="author")
     chat_messages: Mapped[List["ChatMessage"]] = relationship("ChatMessage", back_populates="user")
     voice_profile: Mapped[Optional["VoiceProfile"]] = relationship("VoiceProfile", back_populates="user", uselist=False)
+    loyalty: Mapped[Optional["UserLoyalty"]] = relationship("UserLoyalty", uselist=False)
     
     # RBAC M2M
     roles: Mapped[List["Role"]] = relationship("Role", secondary=user_roles, back_populates="users")

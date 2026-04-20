@@ -1,7 +1,7 @@
 <script lang="ts">
   import { authStore } from '$lib/state/authStore.svelte';
   import { page } from '$app/stores';
-  import { Bell, User as UserIcon, ShoppingBag, MapPin, Lock, LogOut, Ticket } from 'lucide-svelte';
+  import { Bell, User as UserIcon, ShoppingBag, MapPin, Lock, LogOut, Ticket, Star } from 'lucide-svelte';
   import { goto } from '$app/navigation';
   import Avatar from './Avatar.svelte';
 
@@ -25,6 +25,11 @@
       label: 'Kho Voucher',
       icon: Ticket,
       href: '/user/vouchers'
+    },
+    {
+      label: 'Điểm thưởng',
+      icon: Star,
+      href: '/user/loyalty'
     },
     {
       label: 'Thông báo',

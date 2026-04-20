@@ -9,6 +9,9 @@
   import Shield from "lucide-svelte/icons/shield";
   import CheckCircle from "lucide-svelte/icons/check-circle";
   import AlertCircle from "lucide-svelte/icons/alert-circle";
+  import Coins from "lucide-svelte/icons/coins";
+  import Plus from "lucide-svelte/icons/plus";
+  import History from "lucide-svelte/icons/history";
   import { apiClient } from "$lib/utils/apiClient";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
@@ -37,6 +40,12 @@
   let isLoading = $state(false);
   let error = $state<string | null>(null);
 
+  // Loyalty State
+  let loyaltyData = $state<any>(null);
+  let isAdjusting = $state(false);
+  let adjustAmount = $state(0);
+  let adjustNotes = $state("");
+
   // Sync state when initialData changes
   $effect(() => {
     if (initialData) {
@@ -48,8 +57,38 @@
       formData.dob = initialData.dob ? initialData.dob.split('T')[0] : "";
       formData.status = initialData.status || "ACTIVE";
       formData.role_codes = initialData.roles?.map(r => r.code) || [];
+      if (editingId) fetchLoyalty();
     }
   });
+
+  async function fetchLoyalty() {
+    if (!editingId) return;
+    try {
+      loyaltyData = await apiClient.get(`/api/v1/users/${editingId}/loyalty`);
+    } catch (e) {
+      console.error("Failed to fetch loyalty:", e);
+    }
+  }
+
+  async function handleAdjustPoints() {
+    if (!editingId || adjustAmount === 0 || !adjustNotes) return;
+    isAdjusting = true;
+    try {
+      await apiClient.post(`/api/v1/users/${editingId}/loyalty/adjust`, {
+        amount: adjustAmount,
+        notes: adjustNotes,
+        transaction_type: "ADJUST_ADMIN"
+      });
+      nanobot.addLog(`System points adjusted for user ${editingId}: ${adjustAmount}`, "Nanobot-Sec");
+      adjustAmount = 0;
+      adjustNotes = "";
+      fetchLoyalty();
+    } catch (err: any) {
+      error = err.message || "Failed to adjust points.";
+    } finally {
+      isAdjusting = false;
+    }
+  }
 
   async function handleSubmit(e: Event) {
     e.preventDefault();
@@ -256,6 +295,84 @@
             {/each}
           </div>
         </div>
+
+        <!-- SECTION: LOYALTY PROTOCOL -->
+        {#if editingId}
+        <div class="md:col-span-2 flex flex-col gap-4 mt-4 border-t border-white/5 pt-6">
+          <div class="flex items-center justify-between border-b border-white/5 pb-2">
+            <div class="flex items-center gap-2">
+              <Coins size={12} class="text-amber-400" />
+              <span class="text-[9px] font-mono text-gray-400 uppercase tracking-widest font-bold">Loyalty_Rewards_Matrix</span>
+            </div>
+            {#if loyaltyData}
+              <div class="flex items-center gap-3">
+                <div class="flex flex-col items-end">
+                   <span class="text-[8px] font-mono text-gray-500 uppercase">Current_Balance</span>
+                   <span class="text-xs font-mono font-bold text-amber-400">{loyaltyData.available_points} PTS</span>
+                </div>
+                <div class="w-px h-6 bg-white/10"></div>
+                <div class="flex flex-col items-end">
+                   <span class="text-[8px] font-mono text-gray-500 uppercase">User_Tier</span>
+                   <span class="text-[10px] font-mono font-bold text-white tracking-widest">{loyaltyData.tier}</span>
+                </div>
+              </div>
+            {/if}
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Point Adjustment -->
+            <div class="space-y-4 bg-white/[0.02] p-4 rounded-xl border border-white/5">
+               <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest block mb-2">Manual_Adjustment</span>
+               <div class="flex flex-col gap-3">
+                 <div class="flex gap-4">
+                    <div class="flex-1">
+                      <label class="text-[8px] font-mono text-gray-600 uppercase mb-1 block">Points_Delta</label>
+                      <input type="number" bind:value={adjustAmount} placeholder="+/- Amount"
+                        class="w-full bg-black/40 border border-white/10 rounded-lg py-2 px-3 text-[11px] font-mono text-white focus:outline-none focus:border-amber-500/50"
+                      />
+                    </div>
+                    <div class="flex-[2]">
+                      <label class="text-[8px] font-mono text-gray-600 uppercase mb-1 block">Adjustment_Reason</label>
+                      <input type="text" bind:value={adjustNotes} placeholder="Reason for change..."
+                        class="w-full bg-black/40 border border-white/10 rounded-lg py-2 px-3 text-[11px] font-mono text-white focus:outline-none focus:border-amber-500/50"
+                      />
+                    </div>
+                 </div>
+                 <button type="button" onclick={handleAdjustPoints} disabled={isAdjusting || adjustAmount === 0 || !adjustNotes}
+                   class="w-full py-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest transition-all disabled:opacity-30 flex items-center justify-center gap-2"
+                 >
+                   <Plus size={12} /> Commit_Adjustment
+                 </button>
+               </div>
+            </div>
+
+            <!-- Mini History -->
+            <div class="space-y-3">
+              <div class="flex items-center gap-2 mb-1">
+                <History size={10} class="text-gray-500" />
+                <span class="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Recent_Activity_Ledger</span>
+              </div>
+              <div class="max-h-[120px] overflow-y-auto custom-scrollbar space-y-2 pr-2">
+                {#if loyaltyData?.history?.length > 0}
+                  {#each loyaltyData.history.slice(0, 5) as tx}
+                    <div class="flex items-center justify-between text-[9px] font-mono p-2 bg-white/5 rounded-lg border border-white/5">
+                      <div class="flex flex-col">
+                        <span class="text-gray-400 uppercase tracking-tighter">{tx.transaction_type}</span>
+                        <span class="text-[8px] text-gray-600">{tx.notes || 'No notes'}</span>
+                      </div>
+                      <span class={tx.amount > 0 ? "text-green-400" : "text-red-400"}>
+                        {tx.amount > 0 ? '+' : ''}{tx.amount} P
+                      </span>
+                    </div>
+                  {/each}
+                {:else}
+                  <div class="text-[9px] font-mono text-gray-600 italic py-4 text-center">No transactions recorded.</div>
+                {/if}
+              </div>
+            </div>
+          </div>
+        </div>
+        {/if}
 
       </form>
     </div>

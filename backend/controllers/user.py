@@ -8,7 +8,7 @@ import logging
 from backend.database.models import User
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
-from backend.schemas.user import UserResponse, UserListResponse, RoleResponse, PermissionResponse, UserUpdatePayload, UserCreatePayload
+from backend.schemas.user import UserResponse, UserListResponse, RoleResponse, PermissionResponse, UserUpdatePayload, UserCreatePayload, LoyaltyResponse, PointAdjustmentRequest
 from backend.schemas.common import SuccessResponse
 from backend.services.user_service import user_service
 from litestar.exceptions import ClientException
@@ -81,5 +81,17 @@ class UserController(Controller):
     async def update_role_permissions(self, db_session: "AsyncSession", role_id: str, data: List[str]) -> SuccessResponse:
         """Update permissions for a specific role (R36)."""
         res = await user_service.update_role_permissions(db_session, role_id, data)
+        await db_session.commit()
+        return res
+
+    @get("/{user_id:str}/loyalty", guards=[PermissionGuard(PermissionEnum.USER_MANAGE)])
+    async def get_user_loyalty(self, db_session: "AsyncSession", user_id: str) -> LoyaltyResponse:
+        """Fetch user loyalty summary for admin."""
+        return await user_service.get_user_loyalty(db_session, user_id)
+
+    @post("/{user_id:str}/loyalty/adjust", guards=[PermissionGuard(PermissionEnum.USER_MANAGE)])
+    async def adjust_user_points(self, db_session: "AsyncSession", user_id: str, data: PointAdjustmentRequest) -> SuccessResponse:
+        """Manually adjust user points (Admin)."""
+        res = await user_service.adjust_points(db_session, user_id, data)
         await db_session.commit()
         return res

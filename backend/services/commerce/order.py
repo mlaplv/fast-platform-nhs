@@ -14,6 +14,7 @@ from backend.services.event_bus import event_bus
 from backend.utils.sql import escape_like
 from backend.schemas.order import OrderResponse, OrderListResponse, OrderCreateRequest, OrderStatusUpdate, CancelOrderRequest, OrderPlanningRequest
 from backend.schemas.common import SuccessResponse
+from backend.services.commerce.loyalty import LoyaltyService
 
 # Phase 85: Strict JSON Typography
 JSONType = Union[str, int, float, bool, None, List["JSONType"], Dict[str, "JSONType"]]
@@ -153,6 +154,7 @@ class OrderService:
             Order.is_spam, Order.spam_score, Order.spam_reason,
             Order.customer_name, Order.customer_phone, Order.customer_address, Order.customer_ip,
             Order.order_metadata,
+            Order.points_earned, Order.points_redeemed, Order.point_discount_amount,
             User.name.label("user_name"),
             success_sq, cancel_sq
         ).outerjoin(User, Order.user_id == User.id).where(
@@ -189,6 +191,7 @@ class OrderService:
                 Order.is_spam, Order.spam_score, Order.spam_reason,
                 Order.customer_name, Order.customer_phone, Order.customer_address, Order.customer_ip,
                 Order.history, Order.cancellation_reason, Order.order_metadata,
+                Order.points_earned, Order.points_redeemed, Order.point_discount_amount,
                 User.name.label("user_name"),
                 success_sq, cancel_sq
             )
@@ -327,6 +330,14 @@ class OrderService:
             "status": new_status,
             "tenant_id": tenant_id
         })
+        
+        # Elite V2.2: Loyalty Point Accrual
+        if new_status == "DELIVERED":
+            try:
+                await LoyaltyService.earn_order_points(db_session, order_id)
+                logger.info(f"[LOYALTY] Points processed for order {order_id}")
+            except Exception as e:
+                logger.error(f"[LOYALTY-ERROR] Failed to process points for order {order_id}: {e}")
 
         return SuccessResponse(ok=True, id=order_id, message=f"Status updated to {new_status}")
 

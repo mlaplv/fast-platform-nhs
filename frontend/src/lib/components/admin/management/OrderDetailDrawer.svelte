@@ -24,6 +24,7 @@
   import MessageSquareIcon from "lucide-svelte/icons/message-square";
   import Sparkles from "lucide-svelte/icons/sparkles";
   import Gift from "lucide-svelte/icons/gift";
+  import Coins from "lucide-svelte/icons/coins";
   import StatusDropdown from "./StatusDropdown.svelte";
   import StatusStepper from "./StatusStepper.svelte";
   import { ORDER_STATUS_MAP, ORDER_TRANSITIONS } from "$lib/constants/order";
@@ -666,6 +667,31 @@
                 <span class="text-xs text-gray-400">Tax & Fees</span>
                 <span class="text-xs font-mono text-white">0đ</span>
               </div>
+
+              {#if orderData.points_earned > 0 || orderData.points_redeemed > 0}
+              <div class="flex flex-col gap-2 pb-3 mb-3 border-b border-white/5 bg-amber-500/[0.03] p-2 rounded-lg">
+                <div class="flex items-center gap-1.5 mb-1">
+                  <Coins size={12} class="text-amber-400" />
+                  <span class="text-[9px] font-mono text-amber-400/80 uppercase tracking-widest font-bold">Loyalty Rewards</span>
+                </div>
+                {#if orderData.points_earned > 0}
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] text-gray-400">Points Earned</span>
+                  <span class="text-[10px] font-mono text-amber-400">+{orderData.points_earned} PTS</span>
+                </div>
+                {/if}
+                {#if orderData.points_redeemed > 0}
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] text-gray-400">Points Redeemed</span>
+                  <span class="text-[10px] font-mono text-red-400">-{orderData.points_redeemed} PTS</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] text-gray-400">Point Discount</span>
+                  <span class="text-[10px] font-mono text-red-400">-{formatCurrency(orderData.point_discount_amount)}</span>
+                </div>
+                {/if}
+              </div>
+              {/if}
               <div class="flex items-center justify-between">
                 <span class="text-sm font-bold text-white">Net Total</span>
                 <span class="text-lg font-bold text-green-400 font-mono tracking-wider">{formatCurrency(orderData.total)}</span>

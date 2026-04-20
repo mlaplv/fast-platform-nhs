@@ -13,8 +13,8 @@ from litestar.exceptions import NotFoundException, ClientException, NotAuthorize
 import bcrypt
 
 from backend.database.models import User, Role, Permission, Order
-from backend.utils.sql import escape_like
-from backend.schemas.user import UserResponse, UserListResponse, RoleResponse, PermissionResponse
+from backend.database.models.commerce import UserLoyalty, PointTransaction
+from backend.schemas.user import UserResponse, UserListResponse, RoleResponse, PermissionResponse, LoyaltyResponse, PointAdjustmentRequest
 from backend.schemas.common import SuccessResponse
 
 logger = logging.getLogger("api-gateway")
@@ -382,5 +382,54 @@ class UserService:
             raise  # Unknown IntegrityError — re-raise for visibility
         
         return new_user, True, None, False
+
+
+    @staticmethod
+    async def get_user_loyalty(db_session: AsyncSession, user_id: str) -> LoyaltyResponse:
+        """Fetch user loyalty summary for admin."""
+        stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id)
+        loyalty = await db_session.scalar(stmt)
+        
+        if not loyalty:
+            # Create if missing
+            loyalty = UserLoyalty(user_id=user_id, available_points=0, total_spent=0.0)
+            db_session.add(loyalty)
+            await db_session.flush()
+
+        history_stmt = (
+            select(PointTransaction)
+            .where(PointTransaction.user_id == user_id)
+            .order_by(PointTransaction.created_at.desc())
+            .limit(50)
+        )
+        history = (await db_session.execute(history_stmt)).scalars().all()
+        
+        res = LoyaltyResponse.model_validate(loyalty)
+        res.history = history
+        return res
+
+    @staticmethod
+    async def adjust_points(db_session: AsyncSession, user_id: str, data: PointAdjustmentRequest) -> SuccessResponse:
+        """Manually adjust user points (Admin Logic)."""
+        stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id)
+        loyalty = await db_session.scalar(stmt)
+        
+        if not loyalty:
+            loyalty = UserLoyalty(user_id=user_id, available_points=0, total_spent=0.0)
+            db_session.add(loyalty)
+
+        loyalty.available_points += data.amount
+        
+        # Create ledger entry
+        transaction = PointTransaction(
+            user_id=user_id,
+            amount=data.amount,
+            transaction_type=data.transaction_type,
+            status="COMPLETED",
+            notes=data.notes
+        )
+        db_session.add(transaction)
+        
+        return SuccessResponse(ok=True, message=f"Adjusted {data.amount} points. New balance: {loyalty.available_points}")
 
 user_service = UserService()

@@ -91,3 +91,28 @@ class UpdatePasswordPayload(BaseModel):
     model_config = ConfigDict(strict=True)
     old_password: Optional[str] = Field(None, min_length=64, max_length=64)
     new_password: str = Field(..., min_length=64, max_length=64)
+
+class PointTransactionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, strict=True)
+    id: str
+    amount: int
+    transaction_type: str
+    status: str
+    notes: Optional[str] = None
+    created_at: datetime
+
+class LoyaltyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, strict=True)
+    tier: str
+    available_points: int
+    pending_points: int
+    total_spent: float
+    tier_updated_at: Optional[datetime] = None
+    history: List[PointTransactionResponse] = Field(default_factory=list)
+
+
+class PointAdjustmentRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    amount: int
+    notes: str = Field(..., min_length=1, max_length=500)
+    transaction_type: str = "ADJUST_ADMIN"

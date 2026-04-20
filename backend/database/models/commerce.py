@@ -118,7 +118,8 @@ class UserLoyalty(Base, AuditMixin, TenantMixin):
     """Elite V2.2: User Loyalty Account Snapshot"""
     __tablename__ = 'user_loyalty'
     
-    user_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), unique=True)
     tier: Mapped[str] = mapped_column(String, default="MEMBER") # MEMBER, TIER_1, TIER_2, TIER_3
     available_points: Mapped[int] = mapped_column(Integer, default=0)
     pending_points: Mapped[int] = mapped_column(Integer, default=0)

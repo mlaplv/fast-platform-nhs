@@ -11,8 +11,9 @@ import logging
 
 from backend.database.models import User, Role
 from backend.database.repositories import MediaRegistryRepository
-from backend.schemas.user import UserResponse, UserUpdatePayload, UpdatePasswordPayload
+from backend.schemas.user import UserResponse, UserUpdatePayload, UpdatePasswordPayload, LoyaltyResponse, PointTransactionResponse
 from backend.schemas.order import OrderListResponse, OrderResponse, CancelOrderRequest
+from backend.database.models.commerce import Order, UserLoyalty, PointTransaction
 from backend.schemas.common import SuccessResponse
 from backend.services.user_service import user_service
 from backend.services.media.media_service import media_service
@@ -285,3 +286,37 @@ class ClientUserController(Controller):
         )
         await db_session.commit()
         return res
+
+    @get("/loyalty")
+    async def get_loyalty(self, request: Request, db_session: AsyncSession) -> LoyaltyResponse:
+        """
+        Elite V2.2: Fetch loyalty points and history.
+        """
+        user_state = request.scope.get("state", {}).get("user")
+        if not user_state:
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("User not authenticated")
+            
+        user_id = user_state.get("id")
+        
+        # Fetch loyalty profile
+        l_stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id)
+        l_res = await db_session.execute(l_stmt)
+        loyalty = l_res.scalar_one_or_none()
+        
+        if not loyalty:
+            # Sếp Rule: Auto-create if not exists upon first view
+            loyalty = UserLoyalty(user_id=user_id, available_points=0, total_spent=0.0)
+            db_session.add(loyalty)
+            await db_session.flush()
+            
+        # Fetch history (limited to last 50)
+        h_stmt = select(PointTransaction).where(PointTransaction.user_id == user_id).order_by(PointTransaction.created_at.desc()).limit(50)
+        h_res = await db_session.execute(h_stmt)
+        history = h_res.scalars().all()
+        
+        resp = LoyaltyResponse.model_validate(loyalty)
+        resp.history = [PointTransactionResponse.model_validate(h) for h in history]
+        
+        return resp
+

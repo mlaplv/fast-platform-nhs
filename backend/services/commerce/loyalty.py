@@ -19,8 +19,8 @@ class LoyaltyService:
         if not order or not order.user_id:
             return False
 
-        # Only process completed orders and ensure points were not already given
-        if order.status != "COMPLETED":
+        # Only process delivered orders and ensure points were not already given
+        if order.status != "DELIVERED":
             return False
 
         if order.points_earned > 0: # already earned
@@ -45,22 +45,14 @@ class LoyaltyService:
         loyalty.available_points += points_to_earn
         loyalty.total_spent += order.total_amount
         
-        # Check Tiers
-        # Thăng hạng mốc mua: Tier 1: 10m, Tier 2: 20m, Tier 3: > 20m
-        new_tier = "MEMBER"
-        if loyalty.total_spent >= 20_000_000:
-            new_tier = "TIER_3"
-        elif loyalty.total_spent >= 10_000_000:
-            new_tier = "TIER_1"
-        
-        # NOTE: Sếp said: thăng hạng mốc 10 tr, 20 tr > trên 20 tr. 
-        # TIER_1 = 10m, TIER_2 = 20m, TIER_3 > 20m is an interpretation.
+        # Check Tiers: STANDARD, SILVER, GOLD, PLATINUM (R2026)
+        new_tier = "STANDARD"
         if loyalty.total_spent > 20_000_000:
-             new_tier = "TIER_3"
+            new_tier = "PLATINUM"
         elif loyalty.total_spent == 20_000_000:
-             new_tier = "TIER_2"
+            new_tier = "GOLD"
         elif loyalty.total_spent >= 10_000_000:
-             new_tier = "TIER_1"
+            new_tier = "SILVER"
 
         if loyalty.tier != new_tier:
             loyalty.tier = new_tier

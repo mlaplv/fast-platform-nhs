@@ -6,7 +6,7 @@ from typing import Optional, TypedDict, Dict, List
 import sqlalchemy as sa
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.database.models.commerce import Order, ProductBase, ProductVariant
+from backend.database.models.commerce import Order, ProductBase, ProductVariant, UserLoyalty, PointTransaction
 from backend.database.models.auth import User
 from backend.schemas.client.checkout import StealthCheckoutSchema
 from backend.database import current_tenant_id
@@ -14,6 +14,7 @@ from backend.services.event_bus import event_bus
 from backend.utils.device import is_mobile_device
 from litestar.exceptions import NotFoundException, ValidationException
 from backend.services.commerce.promotion import PromotionService
+from backend.database.models.system import SystemSetting
 
 logger = logging.getLogger("api-gateway")
 
@@ -87,6 +88,8 @@ class OrderMetadata(TypedDict, total=False):
     custom_requests: List[Dict[str, object]]
     gift_info: Dict[str, object]
     voucher_id: str
+    points_redeemed: int
+    point_discount_amount: float
 
 class CheckoutService:
     @staticmethod
@@ -296,9 +299,42 @@ class CheckoutService:
 
         expected_total = base_subtotal - combo_discount - voucher_discount + payload.shipping_fee
         
+        # 2.5 Elite V2.2 Loyalty Logic
+        point_discount = 0.0
+        if payload.points_redeemed > 0:
+            if not user_id:
+                raise ValidationException("Bạn phải đăng nhập để sử dụng Điểm thuởng.")
+            
+            # Sếp Rule [ELITE V2.2 UPDATED]: Đảm bảo số tiền trừ không vượt quá 1% giá trị đơn hàng (Hợp lý hóa từ 0.01%)
+            max_point_discount = base_subtotal * 0.01
+            
+            # Lock the loyalty row to prevent race conditions during point redemption
+            loyalty_stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id).with_for_update()
+            loyalty_res = await db_session.execute(loyalty_stmt)
+            loyalty = loyalty_res.scalar_one_or_none()
+            
+            if not loyalty or loyalty.available_points < payload.points_redeemed:
+                raise ValidationException("Bạn không có đủ số điểm để sử dụng.")
+                
+            # Get Point Value from Admin config (Default 1 pt = 1000 VNĐ)
+            setting_res = await db_session.execute(select(SystemSetting).where(SystemSetting.key == "LOYALTY_POINT_VALUE_VND"))
+            setting = setting_res.scalar_one_or_none()
+            point_value = int(setting.value.get("value", 1000)) if setting and "value" in setting.value else 1000
+            
+            proposed_discount = float(payload.points_redeemed * point_value)
+            
+            if proposed_discount > max_point_discount:
+                raise ValidationException(f"Lỗi: Số tiền thanh toán bằng điểm ({proposed_discount:,.0f}đ) vượt quá 0.01% giá trị đơn hàng ({max_point_discount:,.0f}đ).")
+                
+            point_discount = proposed_discount
+            expected_total -= point_discount
+            
+            # Khóa/Trừ điểm tạm thời tại session này
+            loyalty.available_points -= payload.points_redeemed
+
         # 3. Final Manipulation Lock
         if abs(expected_total - payload.total_amount) > 1.0:
-            logger.error(f"[SECURITY-ALERT] Price Manipulation Attempt: Expected {expected_total}, Got {payload.total_amount}. Sub={base_subtotal}, Combo={combo_discount}, Vouchers={voucher_discount}, Ship={payload.shipping_fee}. Phone: {payload.customer_phone}")
+            logger.error(f"[SECURITY-ALERT] Price Manipulation Attempt: Expected {expected_total}, Got {payload.total_amount}. Sub={base_subtotal}, Combo={combo_discount}, Vouchers={voucher_discount}, Points={point_discount}, Ship={payload.shipping_fee}. Phone: {payload.customer_phone}")
             raise ValidationException("Đơn hàng chưa được bảo vệ thành công do thay đổi về giá hoặc khuyến mãi. Vui lòng tải lại trang.")
 
         # 5. Prepare Order Metadata
@@ -309,7 +345,9 @@ class CheckoutService:
             "shipping_fee": payload.shipping_fee,
             "combo_discount": combo_discount,
             "voucher_discount": voucher_discount,
-            "voucher_ids": applied_voucher_ids
+            "voucher_ids": applied_voucher_ids,
+            "points_redeemed": payload.points_redeemed,
+            "point_discount_amount": point_discount
         }
 
         # 🚀 [ELITE V2.2] ACCOUNTING: Increment usage & protect against abuse for ALL applied vouchers
@@ -377,10 +415,24 @@ class CheckoutService:
             is_spam=is_spam,
             spam_score=score,
             spam_reason=reason,
-            order_metadata=order_metadata
+            order_metadata=order_metadata,
+            points_redeemed=payload.points_redeemed,
+            point_discount_amount=point_discount
         )
 
         db_session.add(new_order)
+        
+        # 5.1 Ghi log trừ điểm nếu có
+        if payload.points_redeemed > 0:
+            pt = PointTransaction(
+                user_id=user.id,
+                order_id=new_order.id,
+                amount=-payload.points_redeemed,
+                transaction_type="REDEEM_ORDER",
+                notes=f"Thanh toán một phần đơn hàng bằng điểm. (Chiết khấu 0.01% - Giá trị: {point_discount}đ)"
+            )
+            db_session.add(pt)
+
         await db_session.commit()
 
         # 6. Proactive Nerve System: Notify Zalo Intelligence (Elite V2.2)
