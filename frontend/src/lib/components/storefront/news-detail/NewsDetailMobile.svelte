@@ -1,6 +1,17 @@
 <script lang="ts">
+  import ImageWithFallback from '../ui/ImageWithFallback.svelte';
   interface Props {
-    article: { title: string; author: string; publishedAt: string; content: string; image: string; category?: string };
+    article: { 
+      title: string; 
+      author: string; 
+      publishedAt: string; 
+      content: string; 
+      featuredImage: string; 
+      category?: string;
+      metadata?: {
+        faqs?: { question: string; answer: string }[];
+      };
+    };
   }
   let { article }: Props = $props();
 </script>
@@ -9,7 +20,7 @@
   {#if article.category !== 'Chính sách'}
   <!-- Immersive Hero -->
   <div class="h-[60vh] relative w-full overflow-hidden bg-black">
-    <img src={article.image} alt={article.title} class="absolute inset-0 w-full h-full object-cover z-0 opacity-80" />
+    <ImageWithFallback src={article.featuredImage} alt={article.title} aspectRatio="aspect-video" class="absolute inset-0 w-full h-full z-0 opacity-80" />
     <div class="absolute inset-0 bg-gradient-to-t from-white via-transparent to-black/40 z-10"></div>
     
     <!-- Top Action Bar -->
@@ -61,6 +72,31 @@
   <div class="px-6 py-10 elite-prose-mobile">
       {@html article.content}
   </div>
+
+  <!-- GEO 2026: FAQ Section -->
+  {#if article.metadata?.faqs && article.metadata.faqs.length > 0}
+  <div class="px-6 py-10 border-t border-gray-100">
+    <h2 class="text-[12px] font-black uppercase tracking-[0.2em] text-gray-900 mb-6 flex items-center gap-3">
+      <div class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full"></div>
+      Câu hỏi thường gặp
+    </h2>
+    <div class="space-y-4">
+      {#each article.metadata.faqs as faq}
+        <details class="group border border-gray-100 rounded-xl overflow-hidden active:bg-gray-50 transition-colors">
+          <summary class="flex items-center justify-between p-4 cursor-pointer select-none bg-gray-50/50">
+            <span class="text-[14px] font-bold text-gray-800 pr-4">{faq.question}</span>
+            <svg class="w-4 h-4 text-gray-400 shrink-0 group-open:rotate-180 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+            </svg>
+          </summary>
+          <div class="px-4 pb-4 pt-2 text-[13px] text-gray-600 leading-relaxed italic">
+            {faq.answer}
+          </div>
+        </details>
+      {/each}
+    </div>
+  </div>
+  {/if}
 
   <!-- Footer Navigation -->
   <div class="p-10 text-center border-t border-gray-100 bg-gray-50">

@@ -5,8 +5,20 @@ export interface Category {
   name: string;
   slug: string;
   parentId: string | null;
+  description?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  image?: string;
+  icon?: string;
+  position: number;
+  showOnMobile: boolean;
+  showOnDesktop: boolean;
   productCount: number;
   children: Category[];
+  category_metadata?: {
+    faqs?: { question: string; answer: string }[];
+    [key: string]: any;
+  };
   createdAt: string;
 }
 

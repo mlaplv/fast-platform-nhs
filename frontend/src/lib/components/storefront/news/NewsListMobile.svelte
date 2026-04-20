@@ -1,12 +1,13 @@
 <script lang="ts">
   import { fade, fly } from 'svelte/transition';
+  import ImageWithFallback from '../ui/ImageWithFallback.svelte';
 
   interface NewsItem {
      id: string;
      slug: string;
      title: string;
      summary: string;
-     image: string;
+     featuredImage: string;
      category?: string;
   }
   interface Props {
@@ -37,8 +38,8 @@
     >
       <div class="flex gap-4 p-3">
         <!-- Thumbnail -->
-        <div class="w-32 h-32 flex-shrink-0 overflow-hidden rounded-lg bg-gray-50 border border-gray-100">
-           <img src={news.image} alt={news.title} class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
+        <div class="w-32 h-32 flex-shrink-0">
+           <ImageWithFallback src={news.featuredImage} alt={news.title} aspectRatio="aspect-square" class="rounded-lg border border-gray-100" />
         </div>
 
         <!-- Meta -->

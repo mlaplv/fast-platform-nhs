@@ -133,3 +133,27 @@ class ArticleController(Controller):
         res = await article_service.bulk_patch(db_session, data.ids, data.status, data.category)
         await db_session.commit()
         return res
+
+    @post("/faq-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
+    async def suggest_faqs(
+        self,
+        article_service: ArticleService,
+        data: Dict[str, str],
+    ) -> Dict[str, object]:
+        """GEO 2026: XOHI Auto FAQ Generator for Articles."""
+        title = data.get("title", "")
+        content = data.get("content", "")
+        faqs = await article_service.suggest_faqs(title, content)
+        return {"data": faqs}
+
+    @post("/seo-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
+    async def suggest_seo(
+        self,
+        article_service: ArticleService,
+        data: Dict[str, str],
+    ) -> Dict[str, object]:
+        """GEO 2026: XOHI Auto SEO Generator for Articles."""
+        title = data.get("title", "")
+        content = data.get("content", "")
+        seo = await article_service.suggest_seo(title, content)
+        return {"data": seo}

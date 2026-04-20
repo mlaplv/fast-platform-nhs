@@ -17,6 +17,7 @@
     buildBreadcrumbLd,
     buildCategoryLd,
     buildArticleLd,
+    buildFaqLd,
     truncateDescription,
   } from '$lib/utils/seo';
   import type { PageData } from './$types';
@@ -94,8 +95,9 @@
   );
 
   // --- Article Detail ---
+  const articleSeoMeta = $derived(data.article?.seoMeta || data.article?.seo_meta || null);
   const articleLd = $derived(
-    data.type === 'article' && data.article
+    !articleSeoMeta && data.type === 'article' && data.article
       ? buildArticleLd({
           headline: data.article.title,
           description: data.article.excerpt || "",
@@ -108,7 +110,7 @@
       : ""
   );
   const articleBreadcrumbLd = $derived(
-    data.type === 'article' && data.article
+    !articleSeoMeta && data.type === 'article' && data.article
       ? buildBreadcrumbLd([
           { name: "Trang chủ", url: siteUrl },
           { name: "Bài viết", url: `${siteUrl}/bai-viet` },
@@ -116,6 +118,7 @@
         ])
       : ""
   );
+  const categorySeoMeta = $derived(data.category?.seoMeta || data.category?.seo_meta || null);
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
@@ -123,25 +126,63 @@
      ═══════════════════════════════════════════════════════════════════════════ -->
 
 {#if data.type === 'category' || data.type === 'news'}
-  <SeoHead
-    title="{data.categoryName} | Micsmo Elite"
-    description={categoryDescription}
-    canonical={categoryCanonical}
-    siteName="Micsmo Elite"
-    jsonLdScripts={[categoryBreadcrumbLd, categoryLd]}
-  />
+  {#if categorySeoMeta}
+    <SeoHead
+      title={categorySeoMeta.title}
+      description={categorySeoMeta.description}
+      canonical={categorySeoMeta.canonical_url}
+      ogImage={data.category?.image || ""}
+      keywords={categorySeoMeta.keywords}
+      siteName="Micsmo Elite"
+      jsonLdScripts={[
+        categorySeoMeta.json_ld_string,
+        categorySeoMeta.breadcrumb_ld_string,
+        categorySeoMeta.faq_ld_string || buildFaqLd(data.category?.category_metadata?.faqs || [])
+      ]}
+    />
+  {:else}
+    <SeoHead
+      title="{data.categoryName} | Micsmo Elite"
+      description={categoryDescription}
+      canonical={categoryCanonical}
+      siteName="Micsmo Elite"
+      jsonLdScripts={[
+        categoryBreadcrumbLd, 
+        categoryLd,
+        buildFaqLd(data.category?.category_metadata?.faqs || [])
+      ]}
+    />
+  {/if}
 
 {:else if data.type === 'article' && data.article}
-  <SeoHead
-    title="{data.article.title} | Micsmo Elite"
-    description={truncateDescription(data.article.excerpt || "")}
-    canonical="{siteUrl}/{data.article.slug}"
-    ogType="article"
-    ogImage={data.article.featured_image || ""}
-    ogImageAlt={data.article.title}
-    siteName="Micsmo Elite"
-    jsonLdScripts={[articleLd, articleBreadcrumbLd]}
-  />
+  {#if articleSeoMeta}
+    <SeoHead
+      title={articleSeoMeta.title}
+      description={articleSeoMeta.description}
+      canonical={articleSeoMeta.canonical_url}
+      ogType="article"
+      ogImage={data.article.featured_image || ""}
+      ogImageAlt={data.article.title}
+      keywords={articleSeoMeta.keywords}
+      siteName="Micsmo Elite"
+      jsonLdScripts={[
+        articleSeoMeta.json_ld_string,
+        articleSeoMeta.breadcrumb_ld_string,
+        articleSeoMeta.faq_ld_string
+      ]}
+    />
+  {:else}
+    <SeoHead
+      title="{data.article.title} | Micsmo Elite"
+      description={truncateDescription(data.article.excerpt || "")}
+      canonical="{siteUrl}/{data.article.slug}"
+      ogType="article"
+      ogImage={data.article.featured_image || ""}
+      ogImageAlt={data.article.title}
+      siteName="Micsmo Elite"
+      jsonLdScripts={[articleLd, articleBreadcrumbLd]}
+    />
+  {/if}
 
 {:else if isStandardProduct && productSeoMeta}
   <!-- Product Detail (Standard) — Full SEO from backend seoMeta -->
@@ -195,6 +236,7 @@
           products={data.items}
           categoryName={data.categoryName}
           facets={data.facets}
+          category={data.category}
         />
       {:else}
         <ProductListDesktop
@@ -202,6 +244,8 @@
           categoryName={data.categoryName}
           categorySlug={data.categorySlug}
           serverTotal={data.serverTotal}
+          facets={data.facets}
+          category={data.category}
         />
       {/if}
     {/if}

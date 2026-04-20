@@ -2,6 +2,25 @@ from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validat
 from typing import Optional, List
 from datetime import datetime
 from backend.services.xohi.creative_studio.models.schemas import CategoryEnum
+from backend.schemas.product import FaqItem
+
+
+class ArticleMetadata(BaseModel):
+    """GEO 2026: Article metadata — FAQs for Schema.org FAQPage."""
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+    faqs: List[FaqItem] = Field(default_factory=list, alias="faqs")
+
+
+class ArticleSeoMeta(BaseModel):
+    """GEO 2026: Pre-computed SEO metadata for Article pages."""
+    model_config = ConfigDict(strict=True)
+    title: str
+    description: str
+    keywords: str
+    canonical_url: str
+    json_ld_string: str
+    breadcrumb_ld_string: str = ""
+    faq_ld_string: str = ""
 
 
 class CreateArticleRequest(BaseModel):
@@ -17,6 +36,7 @@ class CreateArticleRequest(BaseModel):
     status: str = Field("DRAFT", pattern=r"^(DRAFT|PUBLISHED|ARCHIVED)$")
     category: CategoryEnum = Field(CategoryEnum.TIN_TUC)
     featured_image: Optional[str] = Field(None, alias="featured_image")
+    metadata: Optional[ArticleMetadata] = None
     authorId: Optional[str] = None
 
 
@@ -33,10 +53,11 @@ class UpdateArticleRequest(BaseModel):
     status: Optional[str] = Field(None, pattern=r"^(DRAFT|PUBLISHED|ARCHIVED)$")
     category: Optional[CategoryEnum] = Field(None)
     featured_image: Optional[str] = Field(None, alias="featured_image")
+    metadata: Optional[ArticleMetadata] = None
 
 
 class ArticleResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True, strict=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     id: str
     title: str
@@ -50,6 +71,8 @@ class ArticleResponse(BaseModel):
     status: str
     category: str
     featuredImage: Optional[str] = Field(None, alias="featured_image")
+    metadata: ArticleMetadata = Field(default_factory=ArticleMetadata, alias="article_metadata")
+    seoMeta: Optional[ArticleSeoMeta] = Field(None, alias="seo_meta")
     views: int = 0
     author: str = Field("System", alias="author_name")
     authorId: Optional[str] = Field(None, alias="author_id")

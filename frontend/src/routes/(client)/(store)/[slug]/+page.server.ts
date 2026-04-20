@@ -31,20 +31,38 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
 
     // TĂNG GIỚI HẠN LÊN 49: 1 sp cho banner + 48 sp cho grid (4 cột x 12 hàng)
     const productsUrl = `${apiUrl}/api/v1/client/products/?category_slug=${slug}&limit=49&status=ACTIVE`;
+    const categoryDetailUrl = `${apiUrl}/api/v1/client/categories/slug/${slug}`;
+
     try {
-      const catRes = await fetch(productsUrl, {
-        headers: { 'x-tenant': tenantId },
-        signal: AbortSignal.timeout(5000)
-      });
-      if (catRes.ok) {
-        const data = await catRes.json();
-        const items = (data.data || []) as unknown[];
-        const total = data.total || items.length;
+      const [prodRes, catDetailRes] = await Promise.all([
+        fetch(productsUrl, {
+          headers: { 'x-tenant': tenantId },
+          signal: AbortSignal.timeout(5000)
+        }),
+        fetch(categoryDetailUrl, {
+          headers: { 'x-tenant': tenantId },
+          signal: AbortSignal.timeout(5000)
+        }).catch(e => {
+          console.error(`[CATEGORY DETAIL FETCH FAILED] slug: ${slug}`, e);
+          return null;
+        })
+      ]);
+
+      if (prodRes.ok) {
+        const prodData = await prodRes.json();
+        const items = (prodData.data || []) as unknown[];
+        const total = prodData.total || items.length;
+
+        let category: any = null;
+        if (catDetailRes && catDetailRes.ok) {
+          category = await catDetailRes.json();
+        }
 
         return {
           type: 'category',
-          categoryName: slug.replace(/-/g, ' ').toUpperCase(),
+          categoryName: category?.name || slug.replace(/-/g, ' ').toUpperCase(),
           categorySlug: slug,
+          category,
           serverTotal: total,
           items
         };

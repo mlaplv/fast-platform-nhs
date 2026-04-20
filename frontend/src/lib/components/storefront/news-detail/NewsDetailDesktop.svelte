@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fade, fly, scale } from 'svelte/transition';
+  import ImageWithFallback from '../ui/ImageWithFallback.svelte';
 
   interface Props {
     article: { 
@@ -7,8 +8,11 @@
       author: string; 
       publishedAt: string; 
       content: string; 
-      image: string;
+      featuredImage: string;
       category?: string;
+      metadata?: {
+        faqs?: { question: string; answer: string }[];
+      };
     };
   }
 
@@ -69,9 +73,7 @@
         <!-- Featured Image -->
         {#if article.category !== 'Chính sách'}
         <div class="px-8 md:px-12 mb-12">
-            <div class="aspect-video w-full overflow-hidden bg-gray-50 border border-gray-100 group">
-                <img src={article.image} alt={article.title} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]" />
-            </div>
+            <ImageWithFallback src={article.featuredImage} alt={article.title} aspectRatio="aspect-video" class="w-full border border-gray-100" />
         </div>
         {/if}
 
@@ -114,6 +116,29 @@
 
     <!-- RIGHT SIDEBAR -->
     <aside class="w-[320px] shrink-0 space-y-8 hidden xl:block" in:fade={{duration: 1000, delay: 500}}>
+        <!-- GEO 2026: FAQ Section Relocated to Top Sidebar -->
+        {#if article.metadata?.faqs && article.metadata.faqs.length > 0}
+        <div class="bg-white border border-gray-100 p-8 shadow-sm">
+          <h2 class="text-[12px] font-black uppercase tracking-[0.2em] text-gray-900 mb-8 flex items-center gap-3">
+            <div class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full animate-pulse"></div>
+            GIẢI ĐÁP CỐ VẤN AI
+          </h2>
+          <div class="space-y-4">
+            {#each article.metadata.faqs as faq}
+              <details class="group border-b border-gray-50 pb-4 last:border-0 last:pb-0">
+                <summary class="flex items-center justify-between cursor-pointer select-none hover:text-[#ee4d2d] transition-colors">
+                  <span class="text-[13px] font-bold leading-snug pr-4">{faq.question}</span>
+                  <svg class="w-3 h-3 text-gray-300 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" /></svg>
+                </summary>
+                <div class="pt-3 text-[12px] text-gray-500 leading-relaxed italic">
+                  {faq.answer}
+                </div>
+              </details>
+            {/each}
+          </div>
+        </div>
+        {/if}
+
         <!-- Related News -->
         <div class="bg-white border border-gray-100 p-8">
             <h2 class="text-[12px] font-black uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
@@ -124,9 +149,7 @@
             <div class="space-y-8">
                 {#each relatedNews as news}
                     <a href="#" class="group block space-y-3">
-                        <div class="aspect-video bg-gray-100 overflow-hidden border border-gray-100">
-                            <img src={news.image} alt={news.title} class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                        </div>
+                        <ImageWithFallback src={news.image} alt={news.title} aspectRatio="aspect-video" class="border border-gray-100" />
                         <div>
                             <span class="text-[9px] font-black text-red-600 uppercase tracking-widest">{news.category}</span>
                             <h3 class="text-[14px] font-bold text-gray-800 line-clamp-2 leading-snug group-hover:text-red-600 transition-colors">
@@ -160,7 +183,9 @@
   }
   
   :global(.elite-prose p) {
-    margin-bottom: 2rem;
+    margin-bottom: 2.25rem;
+    font-weight: 500;
+    letter-spacing: -0.011em;
   }
 
   :global(.elite-prose h2) {

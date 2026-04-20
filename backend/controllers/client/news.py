@@ -9,6 +9,7 @@ from litestar.exceptions import NotFoundException
 from backend.schemas.article import ArticleResponse, ArticleListResponse
 from backend.services.article_service import ArticleService, provide_article_service
 from backend.services.article_vector_service import ArticleVectorService, provide_article_vector_service
+from backend.services.commerce.seo_service import SeoService
 
 logger = logging.getLogger("api-gateway")
 
@@ -30,8 +31,6 @@ class PublicNewsController(Controller):
         search: Optional[str] = None,
     ) -> ArticleListResponse:
         """PUBLIC: List news articles with pagination."""
-        # Elite V2.2: Force filter by 'Bài viết' category for public news endpoint
-        # This prevents policies or other articles from appearing in the news list.
         return await article_service.list_articles(
             db_session=db_session, 
             limit=limit, 
@@ -53,6 +52,17 @@ class PublicNewsController(Controller):
             article = await article_service.get_article(db_session, article_id)
             if article.status != "PUBLISHED":
                 raise NotFoundException(f"Article {article_id} is not published")
+            # GEO 2026: Inject SEO meta with FAQ JSON-LD
+            faq_dicts = [f.model_dump() for f in article.metadata.faqs] if article.metadata.faqs else []
+            article.seoMeta = SeoService.generate_article_seo_meta(
+                title=article.title,
+                slug=article.slug,
+                excerpt=article.excerpt,
+                image=article.featuredImage,
+                author=article.author,
+                date_published=article.createdAt.isoformat() if article.createdAt else None,
+                faqs=faq_dicts,
+            )
             return article
         except NotFoundException:
             raise NotFoundException(f"Article {article_id} not found")
@@ -69,6 +79,17 @@ class PublicNewsController(Controller):
             article = await article_service.get_article_by_slug(db_session, slug)
             if article.status != "PUBLISHED":
                 raise NotFoundException(f"Article with slug '{slug}' is not published")
+            # GEO 2026: Inject SEO meta with FAQ JSON-LD
+            faq_dicts = [f.model_dump() for f in article.metadata.faqs] if article.metadata.faqs else []
+            article.seoMeta = SeoService.generate_article_seo_meta(
+                title=article.title,
+                slug=article.slug,
+                excerpt=article.excerpt,
+                image=article.featuredImage,
+                author=article.author,
+                date_published=article.createdAt.isoformat() if article.createdAt else None,
+                faqs=faq_dicts,
+            )
             return article
         except NotFoundException:
             raise NotFoundException(f"Article with slug '{slug}' not found")

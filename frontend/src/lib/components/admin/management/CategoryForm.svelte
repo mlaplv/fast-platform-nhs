@@ -1,11 +1,18 @@
 <script lang="ts">
-  import { slide } from "svelte/transition";
+  import { slide, fade } from "svelte/transition";
   import { onMount } from "svelte";
   import X from "lucide-svelte/icons/x";
   import Globe from "lucide-svelte/icons/globe";
   import FileText from "lucide-svelte/icons/file-text";
   import ImageIcon from "lucide-svelte/icons/image";
+  import Sparkles from "lucide-svelte/icons/sparkles";
+  import Plus from "lucide-svelte/icons/plus";
+  import Trash2 from "lucide-svelte/icons/trash-2";
+  import MessageCircleQuestion from "lucide-svelte/icons/message-circle-question";
   import TiptapEditor from "../ui/tiptap/TiptapEditor.svelte";
+  import { apiClient } from "$lib/utils/apiClient";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  const nanobot = useNanobot();
 
   let {
     editingId,
@@ -19,6 +26,7 @@
     formIcon = $bindable(),
     formShowOnMobile = $bindable(),
     formShowOnDesktop = $bindable(),
+    formFaqs = $bindable(),
     onSave,
     onClose,
     generateSlug,
@@ -32,8 +40,9 @@
     formSeoDescription: string;
     formImage: string;
     formIcon: string;
-    formShowOnMobile: bool;
-    formShowOnDesktop: bool;
+    formShowOnMobile: boolean;
+    formShowOnDesktop: boolean;
+    formFaqs: { question: string; answer: string }[];
     onSave: () => void;
     onClose: () => void;
     generateSlug: (name: string) => string;
@@ -49,9 +58,65 @@
     if (formIcon === undefined) formIcon = "";
     if (formShowOnMobile === undefined) formShowOnMobile = true;
     if (formShowOnDesktop === undefined) formShowOnDesktop = true;
+    if (formFaqs === undefined) formFaqs = [];
   });
 
   let activeTab = $state("general");
+  let isSuggestingSeo = $state(false);
+  let isSuggestingFaqs = $state(false);
+
+  async function suggestSeo() {
+    if (!formName.trim()) {
+      nanobot.showToast("Cần nhập tên danh mục để gợi ý SEO", "warning");
+      return;
+    }
+    isSuggestingSeo = true;
+    try {
+      const res = await apiClient.post<Record<string, string>>("/api/v1/categories/seo-suggest", {
+        name: formName,
+        description: formDescription
+      });
+      if (res.title) formSeoTitle = res.title;
+      if (res.description) formSeoDescription = res.description;
+      nanobot.showToast("Đã gợi ý SEO thành công", "success");
+    } catch (e) {
+      console.error("SEO suggest failed:", e);
+      nanobot.showToast("Gợi ý SEO thất bại", "error");
+    } finally {
+      isSuggestingSeo = false;
+    }
+  }
+
+  async function suggestFaqs() {
+    if (!formName.trim()) {
+      nanobot.showToast("Cần nhập tên danh mục để gợi ý FAQ", "warning");
+      return;
+    }
+    isSuggestingFaqs = true;
+    try {
+      const res = await apiClient.post<{ question: string; answer: string }[]>("/api/v1/categories/faq-suggest", {
+        name: formName,
+        description: formDescription
+      });
+      if (res && res.length > 0) {
+        formFaqs = [...formFaqs, ...res];
+        nanobot.showToast(`Đã gợi ý ${res.length} câu hỏi FAQ`, "success");
+      }
+    } catch (e) {
+      console.error("FAQ suggest failed:", e);
+      nanobot.showToast("Gợi ý FAQ thất bại", "error");
+    } finally {
+      isSuggestingFaqs = false;
+    }
+  }
+
+  function addFaq() {
+    formFaqs = [...formFaqs, { question: "", answer: "" }];
+  }
+
+  function removeFaq(index: number) {
+    formFaqs = formFaqs.filter((_, i) => i !== index);
+  }
 </script>
 
 <div
@@ -84,6 +149,10 @@
         onclick={() => activeTab = "seo"}
         class="px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all {activeTab === 'seo' ? 'bg-[#00FFFF]/20 text-[#00FFFF]' : 'text-gray-500 hover:text-gray-300'}"
       >SEO_Engine</button>
+      <button 
+        onclick={() => activeTab = "faqs"}
+        class="px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all {activeTab === 'faqs' ? 'bg-orange-500/20 text-orange-400' : 'text-gray-500 hover:text-gray-300'}"
+      >FAQs_Schema</button>
     </div>
   </div>
 
@@ -179,21 +248,29 @@
           </div>
         </div>
       </div>
-    {:else}
+    {:else if activeTab === "seo"}
       <div class="grid grid-cols-1 gap-6" transition:slide>
         <div class="flex flex-col gap-4">
-          <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between">
             <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2 text-blue-400">
               <Globe size={10} /> Meta_Title_Override
             </label>
-            <div class="relative group bg-black/40 border border-white/5 hover:border-white/10 focus-within:border-blue-500/40 rounded-2xl transition-all shadow-inner">
-              <input
-                bind:value={formSeoTitle}
-                placeholder={formName || "Meta title..."}
-                class="w-full bg-transparent py-3.5 px-5 text-sm text-gray-100 placeholder:text-gray-700 focus:outline-none"
-              />
-              <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-mono text-gray-600">{formSeoTitle.length}/60</div>
-            </div>
+            <button 
+              onclick={suggestSeo}
+              disabled={isSuggestingSeo}
+              class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-lg text-[9px] font-bold text-blue-400 uppercase tracking-widest hover:bg-blue-500/20 disabled:opacity-50 transition-all"
+            >
+              <Sparkles size={10} class={isSuggestingSeo ? "animate-spin" : ""} />
+              {isSuggestingSeo ? "Analysing..." : "AI_Suggest"}
+            </button>
+          </div>
+          <div class="relative group bg-black/40 border border-white/5 hover:border-white/10 focus-within:border-blue-500/40 rounded-2xl transition-all shadow-inner">
+            <input
+              bind:value={formSeoTitle}
+              placeholder={formName || "Meta title..."}
+              class="w-full bg-transparent py-3.5 px-5 text-sm text-gray-100 placeholder:text-gray-700 focus:outline-none"
+            />
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-mono text-gray-600">{(formSeoTitle || "").length}/60</div>
           </div>
 
           <div class="flex flex-col gap-2">
@@ -207,11 +284,83 @@
                 rows="3"
                 class="w-full bg-transparent py-3.5 px-5 text-sm text-gray-100 placeholder:text-gray-700 focus:outline-none resize-none"
               ></textarea>
-              <div class="absolute right-4 bottom-3 text-[9px] font-mono text-gray-600">{formSeoDescription.length}/160</div>
+              <div class="absolute right-4 bottom-3 text-[9px] font-mono text-gray-600">{(formSeoDescription || "").length}/160</div>
             </div>
           </div>
         </div>
       </div>
+    {:else if activeTab === "faqs"}
+       <div class="flex flex-col gap-6" transition:slide>
+          <div class="flex items-center justify-between bg-white/5 border border-white/10 p-4 rounded-2xl">
+             <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center border border-orange-500/30">
+                   <MessageCircleQuestion size={20} class="text-orange-400" />
+                </div>
+                <div class="flex flex-col">
+                   <span class="text-xs font-black uppercase text-white tracking-widest">FAQ_Schema_Core</span>
+                   <span class="text-[9px] text-gray-500 uppercase tracking-wider">AI-Powered Structured Data Generation</span>
+                </div>
+             </div>
+             <div class="flex items-center gap-2">
+                <button 
+                  onclick={suggestFaqs}
+                  disabled={isSuggestingFaqs}
+                  class="flex items-center gap-2 px-4 py-2 bg-orange-500/20 border border-orange-500/30 rounded-xl text-[10px] font-bold text-orange-400 uppercase tracking-widest hover:bg-orange-500/30 disabled:opacity-50 transition-all"
+                >
+                  <Sparkles size={12} class={isSuggestingFaqs ? "animate-spin" : ""} />
+                  {isSuggestingFaqs ? "Synthesizing..." : "XOHI_AUTO_GEN"}
+                </button>
+                <button 
+                  onclick={addFaq}
+                  class="p-2 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-[#00FFFF] hover:border-[#00FFFF]/30 transition-all"
+                >
+                  <Plus size={18} />
+                </button>
+             </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+             {#each formFaqs as faq, i}
+                <div 
+                  class="group relative bg-white/[0.02] border border-white/5 hover:border-white/10 rounded-2xl p-5 transition-all"
+                  transition:fade
+                >
+                   <div class="flex flex-col gap-4">
+                      <div class="relative">
+                         <div class="absolute -left-2 top-0 bottom-0 w-1 bg-orange-500/30 rounded-full"></div>
+                         <input 
+                           bind:value={faq.question}
+                           placeholder="Enter FAQ Question..."
+                           class="w-full bg-transparent border-none text-xs font-bold text-white placeholder:text-gray-700 focus:outline-none"
+                         />
+                      </div>
+                      <textarea 
+                        bind:value={faq.answer}
+                        placeholder="Enter FAQ Answer..."
+                        rows="2"
+                        class="w-full bg-black/20 border border-white/5 rounded-xl p-3 text-[11px] text-gray-400 placeholder:text-gray-700 focus:outline-none focus:border-[#00FFFF]/20 transition-all resize-none"
+                      ></textarea>
+                   </div>
+                   <button 
+                     onclick={() => removeFaq(i)}
+                     class="absolute top-4 right-4 p-2 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                   >
+                     <Trash2 size={14} />
+                   </button>
+                </div>
+             {/each}
+             {#if formFaqs.length === 0}
+                <div class="py-12 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-3">
+                   <MessageCircleQuestion size={32} class="text-gray-800" />
+                   <span class="text-[9px] font-bold text-gray-600 uppercase tracking-[0.2em]">No questions mapped to this node</span>
+                   <button 
+                     onclick={addFaq}
+                     class="text-[9px] font-black text-orange-500/60 uppercase tracking-widest hover:text-white transition-colors"
+                   >Initialize_FAQ_Store</button>
+                </div>
+             {/if}
+          </div>
+       </div>
     {/if}
   </div>
 
@@ -232,5 +381,12 @@
 <style>
   :global(.tiptap-shell) {
     @apply border-none !bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
   }
 </style>

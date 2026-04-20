@@ -1,6 +1,7 @@
 from typing import Optional, List, Union
 from datetime import datetime
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import (
     String, ForeignKey, Integer, Text, JSON, Index
 )
@@ -26,6 +27,7 @@ class Category(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     position: Mapped[int] = mapped_column(sa.Integer, default=0)
     show_on_mobile: Mapped[bool] = mapped_column(sa.Boolean, default=True)
     show_on_desktop: Mapped[bool] = mapped_column(sa.Boolean, default=True)
+    category_metadata: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict, server_default='{}') # Elite V2.2: FAQ & Extension metadata
 
     products: Mapped[List["ProductBase"]] = relationship("ProductBase", back_populates="category")
 
@@ -50,6 +52,9 @@ class Article(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     category_id: Mapped[Optional[str]] = mapped_column(String, sa.ForeignKey('categories.id'))
     views: Mapped[int] = mapped_column(Integer, default=0)
     featured_image: Mapped[Optional[str]] = mapped_column(String)
+
+    # GEO 2026: Article metadata (FAQs, etc.) — mirrors product_metadata pattern
+    article_metadata: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
     
     author_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id'))
     author: Mapped[Optional["User"]] = relationship("User", back_populates="articles")

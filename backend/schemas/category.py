@@ -1,6 +1,12 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator, computed_field
 from typing import Optional, List
 from datetime import datetime
+from backend.schemas.product import SeoMetaSchema, FaqItem
+
+
+class CategoryMetadata(BaseModel):
+    model_config = ConfigDict(extra='allow', populate_by_name=True)
+    faqs: List[FaqItem] = Field(default_factory=list, alias="faqs")
 
 
 class CreateCategoryRequest(BaseModel):
@@ -18,6 +24,7 @@ class CreateCategoryRequest(BaseModel):
     position: int = 0
     showOnMobile: bool = Field(True, alias="show_on_mobile")
     showOnDesktop: bool = Field(True, alias="show_on_desktop")
+    metadata: CategoryMetadata = Field(default_factory=CategoryMetadata)
 
 
 class UpdateCategoryRequest(BaseModel):
@@ -35,6 +42,7 @@ class UpdateCategoryRequest(BaseModel):
     position: Optional[int] = None
     showOnMobile: Optional[bool] = Field(None, alias="show_on_mobile")
     showOnDesktop: Optional[bool] = Field(None, alias="show_on_desktop")
+    metadata: Optional[CategoryMetadata] = None
 
 
 class CategoryResponse(BaseModel):
@@ -55,8 +63,10 @@ class CategoryResponse(BaseModel):
     position: int = 0
     showOnMobile: bool = Field(True, alias="show_on_mobile")
     showOnDesktop: bool = Field(True, alias="show_on_desktop")
+    metadata: CategoryMetadata = Field(default_factory=CategoryMetadata, alias="category_metadata")
     
     children: List["CategoryResponse"] = Field(default_factory=list)
+    seoMeta: Optional[SeoMetaSchema] = Field(None, alias="seo_meta")
     createdAt: datetime = Field(alias="created_at")
 
     @field_validator("id", "parentId", mode="before")

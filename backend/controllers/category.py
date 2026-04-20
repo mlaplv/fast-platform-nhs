@@ -52,3 +52,22 @@ class CategoryController(Controller):
     async def reorder_categories(self, db_session: "AsyncSession", data: BulkIdsRequest) -> SuccessResponse:
         """Cập nhật thứ tự hiển thị danh mục theo danh sách ID."""
         return await category_service.reorder_categories(db_session, data.ids)
+
+    @post("/seo-suggest", guards=[PermissionGuard(PermissionEnum.CATEGORY_WRITE)])
+    async def suggest_seo(self, data: Dict[str, str]) -> Dict[str, str]:
+        """Elite V2.2: AI SEO Suggestion for Categories."""
+        name = data.get("name", "")
+        description = data.get("description", "")
+        # Gọi ProductService logic tương tự vì metadata SEO giống nhau
+        from backend.services.commerce.product import provide_product_service, ProductVectorService
+        ps = await provide_product_service(vector_service=None) # type: ignore
+        return await ps.suggest_seo(name, description)
+
+    @post("/faq-suggest", guards=[PermissionGuard(PermissionEnum.CATEGORY_WRITE)])
+    async def suggest_faqs(self, data: Dict[str, str]) -> List[Dict[str, str]]:
+        """Elite V2.2: AI FAQ Generation for Categories."""
+        name = data.get("name", "")
+        description = data.get("description", "")
+        from backend.services.commerce.product import provide_product_service
+        ps = await provide_product_service(vector_service=None) # type: ignore
+        return await ps.suggest_faqs(name, description)

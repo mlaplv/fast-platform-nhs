@@ -1,4 +1,5 @@
 import re
+import json
 import time
 import uuid
 import logging
@@ -78,7 +79,7 @@ class ArticleService:
             Article.id, Article.title, Article.slug, Article.excerpt,
             Article.status, Article.category, Article.views,
             Article.created_at, Article.author_id, Article.featured_image,
-            Article.seo_keywords, Article.seo_og_image,
+            Article.seo_keywords, Article.seo_og_image, Article.article_metadata,
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
             and_(*conditions)
@@ -95,7 +96,7 @@ class ArticleService:
             Article.status, Article.category, Article.views,
             Article.seo_title, Article.seo_description,
             Article.seo_keywords, Article.seo_og_image,
-            Article.featured_image,
+            Article.featured_image, Article.article_metadata,
             Article.created_at, Article.author_id,
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
@@ -119,7 +120,7 @@ class ArticleService:
             Article.status, Article.category, Article.views,
             Article.seo_title, Article.seo_description,
             Article.seo_keywords, Article.seo_og_image,
-            Article.featured_image,
+            Article.featured_image, Article.article_metadata,
             Article.created_at, Article.author_id,
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
@@ -133,7 +134,24 @@ class ArticleService:
         if not row:
             raise NotFoundException(f"Article with slug '{slug}' not found")
 
-        return ArticleResponse.model_validate(row._mapping)
+        # GEO 2026: Inject real FAQs into pre-computed SEO Meta
+        article_data = dict(row._mapping)
+        meta_dict = article_data.get("article_metadata") or {}
+        faqs = meta_dict.get("faqs", [])
+
+        from backend.services.commerce.seo_service import SeoService
+        seo_meta = SeoService.generate_article_seo_meta(
+            title=article_data["title"],
+            slug=article_data["slug"],
+            excerpt=article_data["excerpt"],
+            image=article_data["featured_image"],
+            author=article_data["author_name"],
+            date_published=article_data["created_at"].isoformat() if article_data["created_at"] else None,
+            faqs=faqs
+        )
+        article_data["seo_meta"] = seo_meta
+        
+        return ArticleResponse.model_validate(article_data)
 
     async def create_article(self, db_session: AsyncSession, data: CreateArticleRequest) -> SuccessResponse:
         """Create a new article and its embedding."""
@@ -166,6 +184,7 @@ class ArticleService:
             category=data.category,
             author_id=data.authorId,
             featured_image=data.featured_image,
+            article_metadata=data.metadata.model_dump() if data.metadata else {},
         )
         db_session.add(article)
 
@@ -208,6 +227,13 @@ class ArticleService:
         if data.status is not None: article.status = data.status.upper()
         if data.category is not None: article.category = data.category
         if data.featured_image is not None: article.featured_image = data.featured_image
+
+        # GEO 2026: Merge metadata (FAQs etc.)
+        if data.metadata is not None:
+            existing_meta = article.article_metadata or {}
+            new_meta = data.metadata.model_dump()
+            existing_meta.update(new_meta)
+            article.article_metadata = existing_meta
 
         if data.title is not None or data.content is not None:
             await self.vector_service.upsert_article_embedding(
@@ -283,6 +309,84 @@ class ArticleService:
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
         return BulkActionResponse(ok=True, count=len(ids))
+
+    async def suggest_seo(self, title: str, content: str) -> Dict[str, str]:
+        """GEO 2026: XOHI Auto SEO Suggestion for Articles."""
+        from pydantic_ai import Agent
+        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+
+        agent = Agent(
+            system_prompt=(
+                "You are an SEO expert. Given an article title and content, suggest optimized SEO metadata.\n"
+                "Constraints:\n"
+                "1. SEO Title: Max 60 characters, catchy but professional.\n"
+                "2. SEO Description: Max 160 characters, concise and engaging.\n"
+                "3. Keywords: 5-7 keywords separated by commas.\n"
+                "Return ONLY exact valid JSON object: {\"seo_title\": \"...\", \"seo_description\": \"...\", \"seo_keywords\": \"...\"}"
+            )
+        )
+        content_excerpt = (content or "")[:2000]
+        prompt = f"Article Title: {title}\nArticle Content: {content_excerpt}"
+
+        try:
+            result = await trinity_bridge.run(
+                agent=agent,
+                prompt=prompt,
+                role="fast",
+                timeout=45.0
+            )
+
+            if result:
+                suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
+                match = re.search(r'\{.*\}', suggested_json_str, re.DOTALL)
+                if match:
+                    parsed = json.loads(match.group(0))
+                    if isinstance(parsed, dict):
+                        return {
+                            "seo_title": parsed.get("seo_title", ""),
+                            "seo_description": parsed.get("seo_description", ""),
+                            "seo_keywords": parsed.get("seo_keywords", ""),
+                        }
+
+            return {"seo_title": "", "seo_description": "", "seo_keywords": ""}
+
+        except Exception as e:
+            logger.exception(f"[ArticleService] AI SEO Suggestion Failed: {e}")
+            return {"seo_title": "", "seo_description": "", "seo_keywords": ""}
+
+    async def suggest_faqs(self, title: str, content: str) -> List[Dict[str, str]]:
+        """GEO 2026: XOHI Auto FAQ Generator for Articles."""
+        from pydantic_ai import Agent
+        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+
+        agent = Agent(
+            system_prompt="You are an expert content advisor. Given an article title and content excerpt, generate 3 to 5 frequently asked questions and short, helpful answers in Vietnamese. Return ONLY exact valid JSON array of objects without markdown wrapping or backticks, like this: [{\"question\": \"...\", \"answer\": \"...\"}]"
+        )
+        # Truncate content to first 2000 chars for prompt efficiency
+        content_excerpt = (content or "")[:2000]
+        prompt = f"Article Title: {title}\nArticle Content: {content_excerpt}"
+
+        try:
+            result = await trinity_bridge.run(
+                agent=agent,
+                prompt=prompt,
+                role="fast",
+                timeout=45.0
+            )
+
+            if result:
+                suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
+                match = re.search(r'\[.*\]', suggested_json_str, re.DOTALL)
+                if match:
+                    parsed = json.loads(match.group(0))
+                    if isinstance(parsed, list):
+                        return parsed
+
+            return []
+
+        except Exception as e:
+            logger.exception(f"[ArticleService] AI FAQ Suggestion Failed: {e}")
+            return []
 
 # ==========================================
 # SERVICE PROVIDERS (V76.2 DI PATTERN)

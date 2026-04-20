@@ -351,7 +351,13 @@ class SeoService:
         )
 
     @staticmethod
-    def generate_category_seo_meta(name: str, slug: str, description: Optional[str] = None, items: Optional[list] = None) -> SeoMetaSchema:
+    def generate_category_seo_meta(
+        name: str, 
+        slug: str, 
+        description: Optional[str] = None, 
+        items: Optional[list] = None,
+        faqs: Optional[list[dict]] = None
+    ) -> SeoMetaSchema:
         """Tạo SEO cho trang danh mục."""
         canonical_url = f"{_SITE_URL}/{slug}/"
         title = SeoService._build_title(name)
@@ -395,18 +401,34 @@ class SeoService:
             ]
         }
 
+        # GEO 2026: FAQ JSON-LD
+        faq_ld: str = ""
+        if faqs:
+            faq_ld = SeoService._build_faq_ld(faqs)
+
         return SeoMetaSchema(
             title=title,
             description=desc,
             keywords=f"{name}, {name} chính hãng, {_SITE_NAME}",
             canonical_url=canonical_url,
             json_ld_string=json.dumps(schema, separators=(",", ":"), ensure_ascii=False),
-            breadcrumb_ld_string=json.dumps(breadcrumb, separators=(",", ":"), ensure_ascii=False)
+            breadcrumb_ld_string=json.dumps(breadcrumb, separators=(",", ":"), ensure_ascii=False),
+            faq_ld_string=faq_ld
         )
 
     @staticmethod
-    def generate_article_seo_meta(title: str, slug: str, excerpt: Optional[str] = None, image: Optional[str] = None, author: str = "Admin", date_published: Optional[str] = None) -> SeoMetaSchema:
-        """Tạo SEO cho trang bài viết."""
+    def generate_article_seo_meta(
+        title: str,
+        slug: str,
+        excerpt: Optional[str] = None,
+        image: Optional[str] = None,
+        author: str = "Admin",
+        date_published: Optional[str] = None,
+        faqs: Optional[list[dict]] = None,
+    ) -> "ArticleSeoMeta":
+        """GEO 2026: Tạo SEO + FAQPage JSON-LD cho trang bài viết."""
+        from backend.schemas.article import ArticleSeoMeta
+
         canonical_url = f"{_SITE_URL}/{slug}"
         seo_title = SeoService._build_title(title)
         desc = excerpt or f"Đọc bài viết {title} để biết thêm thông tin chi tiết và hữu ích tại {_SITE_NAME}."
@@ -415,7 +437,7 @@ class SeoService:
             desc = desc[:_DESC_TRIM] + "…"
 
         # Build Article JSON-LD
-        schema = {
+        schema: dict = {
             "@context": "https://schema.org",
             "@type": "Article",
             "@id": f"{canonical_url}#article",
@@ -425,27 +447,34 @@ class SeoService:
             "datePublished": date_published or "2026-01-01",
             "author": {"@type": "Person", "name": author},
             "publisher": {"@type": "Organization", "name": _SITE_NAME, "logo": {"@type": "ImageObject", "url": f"{_SITE_URL}/favicon.svg"}},
-            "url": canonical_url
+            "url": canonical_url,
+            "inLanguage": "vi",
         }
 
         # Breadcrumb
-        breadcrumb = {
+        breadcrumb: dict = {
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             "itemListElement": [
                 {"@type": "ListItem", "position": 1, "name": "Trang chủ", "item": _SITE_URL},
-                {"@type": "ListItem", "position": 2, "name": "Bài viết", "item": f"{_SITE_URL}/news"},
-                {"@type": "ListItem", "position": 2, "name": title, "item": canonical_url}
+                {"@type": "ListItem", "position": 2, "name": "Bài viết", "item": f"{_SITE_URL}/bai-viet"},
+                {"@type": "ListItem", "position": 3, "name": title, "item": canonical_url}
             ]
         }
 
-        return SeoMetaSchema(
+        # GEO 2026: FAQ JSON-LD from article metadata
+        faq_ld: str = ""
+        if faqs:
+            faq_ld = SeoService._build_faq_ld(faqs)
+
+        return ArticleSeoMeta(
             title=seo_title,
             description=desc,
             keywords=f"{title}, bài viết, {_SITE_NAME}",
             canonical_url=canonical_url,
             json_ld_string=json.dumps(schema, separators=(",", ":"), ensure_ascii=False),
-            breadcrumb_ld_string=json.dumps(breadcrumb, separators=(",", ":"), ensure_ascii=False)
+            breadcrumb_ld_string=json.dumps(breadcrumb, separators=(",", ":"), ensure_ascii=False),
+            faq_ld_string=faq_ld,
         )
 
     @staticmethod

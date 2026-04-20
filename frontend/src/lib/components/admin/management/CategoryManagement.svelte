@@ -31,7 +31,8 @@
     formIcon = $state(""),
     formShowOnMobile = $state(true),
     formShowOnDesktop = $state(true),
-    formParentId = $state<string | null>(null);
+    formParentId = $state<string | null>(null),
+    formFaqs = $state<{ question: string; answer: string }[]>([]);
   let selectedIds = $state<Set<string>>(new Set()),
     expandedIds = $state<Set<string>>(new Set());
 
@@ -111,6 +112,7 @@
     formIcon = "";
     formShowOnMobile = true;
     formShowOnDesktop = true;
+    formFaqs = [];
     formParentId = p;
     showForm = true;
   }
@@ -125,6 +127,7 @@
     formIcon = cat.icon || "";
     formShowOnMobile = cat.showOnMobile ?? true;
     formShowOnDesktop = cat.showOnDesktop ?? true;
+    formFaqs = cat.category_metadata?.faqs || [];
     formParentId = p;
     showForm = true;
   }
@@ -152,7 +155,8 @@
       image: formImage,
       icon: formIcon,
       show_on_mobile: formShowOnMobile,
-      show_on_desktop: formShowOnDesktop
+      show_on_desktop: formShowOnDesktop,
+      metadata: { faqs: formFaqs }
     };
     try {
       if (editingId) {
@@ -176,7 +180,16 @@
           if (i >= 0) {
             const existingChildren = categories[i].children;
             const existingCount = categories[i].productCount;
-            categories[i] = { ...updated, children: existingChildren, productCount: existingCount };
+            // Elite V2.2: Deep sync updated data to local store
+            categories[i] = { 
+              ...categories[i],
+              ...updated, 
+              children: existingChildren, 
+              productCount: existingCount,
+              category_metadata: updated.category_metadata,
+              showOnMobile: updated.show_on_mobile,
+              showOnDesktop: updated.show_on_desktop
+            };
           }
         }
       } else {
@@ -267,6 +280,7 @@
         bind:formIcon
         bind:formShowOnMobile
         bind:formShowOnDesktop
+        bind:formFaqs
         onSave={save}
         onClose={() => (showForm = false)}
         generateSlug={genSlug}

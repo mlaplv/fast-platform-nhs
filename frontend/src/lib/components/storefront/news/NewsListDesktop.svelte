@@ -1,12 +1,13 @@
 <script lang="ts">
   import { fade, fly, scale } from 'svelte/transition';
+  import ImageWithFallback from '../ui/ImageWithFallback.svelte';
 
   interface NewsItem {
     id: string;
     slug: string;
     title: string;
     summary: string;
-    image: string;
+    featuredImage: string;
     category?: string;
     date?: string;
   }
@@ -67,8 +68,8 @@
       <div class="space-y-6">
         {#each featuredNews() as news, i}
           <a href="/{news.slug}" class="group flex gap-4 items-start" in:fly={{y: 20, duration: 800, delay: 100 * i}}>
-            <div class="w-20 h-20 shrink-0 bg-gray-200 overflow-hidden border border-gray-100">
-                <img src={news.image} alt={news.title} class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+            <div class="w-20 h-20 shrink-0">
+                <ImageWithFallback src={news.featuredImage} alt={news.title} aspectRatio="aspect-square" class="rounded-none border border-gray-100" />
             </div>
             <div class="flex flex-col gap-1">
                 <span class="text-[9px] font-black text-red-600 uppercase tracking-widest">{news.category}</span>
@@ -105,15 +106,14 @@
              in:fly={{y: 40, duration: 1000, delay: 200 + (i * 100)}}
              class="group bg-white border border-gray-100 hover:border-red-600/20 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 overflow-hidden flex flex-col h-full transform hover:-translate-y-2">
             <!-- Image Frame -->
-            <div class="aspect-[16/10] overflow-hidden relative bg-gray-50">
-                <img src={news.image} alt={news.title} class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
-                <div class="absolute top-4 left-4">
+            <ImageWithFallback src={news.featuredImage} alt={news.title} aspectRatio="aspect-[16/10]" class="relative">
+                <div class="absolute top-4 left-4 z-10">
                     <span class="bg-black text-white px-3 py-1 text-[9px] font-black uppercase tracking-widest shadow-xl">
                       {news.category}
                     </span>
                 </div>
-                <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            </div>
+                <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-10"></div>
+            </ImageWithFallback>
 
             <!-- Content -->
             <div class="p-8 flex-1 flex flex-col">

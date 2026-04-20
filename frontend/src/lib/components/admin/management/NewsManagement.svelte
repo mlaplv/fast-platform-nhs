@@ -40,6 +40,7 @@
   let formSeoKeywords = $state("");
   let formSeoOgImage = $state<string | null>(null);
   let formFeaturedImage = $state<string | null>(null);
+  let formFaqs = $state<{ question: string; answer: string }[]>([]);
   let showDraftForm = $state(false);
   let isHeaderCollapsed = $state(false);
 
@@ -156,6 +157,7 @@
     formTitle = ""; formCategory = categories[0] || ""; formExcerpt = "";
     formContent = ""; formSlug = ""; formSeoTitle = "";
     formSeoDescription = ""; formSeoKeywords = ""; formSeoOgImage = null; formFeaturedImage = null;
+    formFaqs = [];
     showDraftForm = true;
   }
 
@@ -173,6 +175,7 @@
       formSeoKeywords = fullArticle.seoKeywords || "";
       formSeoOgImage = fullArticle.seoOgImage || null;
       formFeaturedImage = fullArticle.featuredImage || null;
+      formFaqs = (fullArticle as any).metadata?.faqs || [];
       showDraftForm = true;
     } catch {
       nanobot.showToast("Dạ sếp, không lấy được chi tiết bài viết.", "error");
@@ -197,7 +200,8 @@
         seo_description: formSeoDescription,
         seo_keywords: formSeoKeywords,
         seo_og_image: formSeoOgImage,
-        featured_image: formFeaturedImage
+        featured_image: formFeaturedImage,
+        metadata: { faqs: formFaqs },
       };
 
       if (editingId) {
@@ -311,6 +315,7 @@
   bind:formSeoKeywords
   bind:formSeoOgImage
   bind:formFeaturedImage
+  bind:formFaqs
   onSave={saveArticle}
   onClose={() => (showDraftForm = false)}
   {generateSlug}

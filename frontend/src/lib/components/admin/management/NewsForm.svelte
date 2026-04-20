@@ -16,7 +16,13 @@
   import NeuralEditor from "../ui/tiptap/NeuralEditor.svelte";
   import { resolveMediaUrl, processContentImages } from "$lib/state/utils";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+  import { apiClient } from "$lib/utils/apiClient";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  import Sparkles from "lucide-svelte/icons/sparkles";
+  import Plus from "lucide-svelte/icons/plus";
   import type { MediaAsset } from "$lib/types";
+
+  const nanobot = useNanobot();
   
   let {
     isOpen = false,
@@ -32,6 +38,7 @@
     formSeoKeywords = $bindable(),
     formSeoOgImage = $bindable(),
     formFeaturedImage = $bindable(),
+    formFaqs = $bindable(),
     dbCategories,
     onSave,
     onClose,
@@ -51,6 +58,7 @@
     formSeoKeywords: string;
     formSeoOgImage: string | null;
     formFeaturedImage: string | null;
+    formFaqs: { question: string; answer: string }[];
     dbCategories: readonly string[];
     onSave: () => void;
     onClose: () => void;
@@ -133,6 +141,68 @@
     formSeoOgImage;
     ogImageBroken = false;
   });
+
+  // GEO 2026: XOHI FAQ State
+  let isSuggestingFaqs = $state(false);
+  let isSuggestingSeo = $state(false);
+
+  async function handleAiSuggestSeo() {
+    if (!formTitle) {
+      nanobot.showToast("Vui lòng nhập tiêu đề bài viết trước.", "warning");
+      return;
+    }
+    isSuggestingSeo = true;
+    try {
+      const res = await apiClient.post<{ data: { seo_title: string; seo_description: string; seo_keywords: string } }>('/api/v1/articles/seo-suggest', {
+        title: formTitle,
+        content: formContent || formExcerpt || ''
+      });
+      if (res?.data) {
+        formSeoTitle = res.data.seo_title || formSeoTitle;
+        formSeoDescription = res.data.seo_description || formSeoDescription;
+        formSeoKeywords = res.data.seo_keywords || formSeoKeywords;
+        nanobot.showToast("XOHI đã tối ưu SEO thành công.", "success");
+      }
+    } catch (e) {
+      console.error('XOHI Article SEO failed:', e);
+      nanobot.showToast("Lỗi tối ưu SEO.", "error");
+    } finally {
+      isSuggestingSeo = false;
+    }
+  }
+
+  async function handleAiSuggestFaqs() {
+    if (!formTitle) {
+      nanobot.showToast("Vui lòng nhập tiêu đề bài viết trước khi gọi XOHI.", "warning");
+      return;
+    }
+    isSuggestingFaqs = true;
+    try {
+      const res = await apiClient.post<{ data: { question: string; answer: string }[] }>('/api/v1/articles/faq-suggest', {
+        title: formTitle,
+        content: formContent || formExcerpt || ''
+      });
+      if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+        formFaqs = [...formFaqs, ...res.data];
+        nanobot.showToast(`XOHI đã tạo ${res.data.length} câu hỏi FAQ thành công.`, "success");
+      } else {
+        nanobot.showToast("XOHI không thể tạo câu hỏi. Vui lòng thử lại.", "error");
+      }
+    } catch (e) {
+      console.error('XOHI Article FAQ failed:', e);
+      nanobot.showToast("Lỗi kết nối tới hệ thống AI XOHI.", "error");
+    } finally {
+      isSuggestingFaqs = false;
+    }
+  }
+
+  function addFaqManual() {
+    formFaqs = [...formFaqs, { question: '', answer: '' }];
+  }
+
+  function removeFaq(index: number) {
+    formFaqs = formFaqs.filter((_, i) => i !== index);
+  }
 </script>
 
 <MissionControlShell
@@ -354,22 +424,74 @@
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
       <!-- 3B: SEO -->
       <div>
-        <div class="section-label">
-          <Globe size={11} />
-          SEO & Mạng xã hội
+        <div class="flex items-center justify-between mb-4">
+          <div class="section-label !mb-0 italic !tracking-[0.4em]">
+            <Globe size={11} />
+            SEO SEARCH ENGINE
+          </div>
+          <button
+            onclick={handleAiSuggestSeo}
+            disabled={isSuggestingSeo}
+            class="flex items-center gap-1.5 px-4 py-1.5 bg-[#0a192f] border border-cyan-900/50 rounded-lg text-[9px] font-black uppercase tracking-widest text-cyan-400 hover:bg-[#112240] hover:border-cyan-400/50 disabled:opacity-40 transition-all cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.1)]"
+          >
+            {#if isSuggestingSeo}
+              <div class="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+              SYZ_SYNC...
+            {:else}
+              <Globe size={10} class="animate-pulse" />
+              AI SUGGEST
+            {/if}
+          </button>
         </div>
 
-        <div class="mt-3 flex flex-col gap-4">
+        <div class="flex flex-col gap-5">
+          <!-- BÍ DANH URL (Slug) -->
+          <div class="field-group">
+            <label class="field-label">BÍ DANH URL</label>
+            <div class="relative flex items-center gap-2">
+              <div class="relative flex-1">
+                <input
+                  type="text"
+                  bind:value={formSlug}
+                  placeholder="duong-dan-bai-viet"
+                  disabled={isSlugLocked}
+                  class="field-input font-mono text-sm text-cyan-400/80 {isSlugLocked ? 'opacity-50 cursor-not-allowed' : ''}"
+                />
+                <div class="field-line"></div>
+              </div>
+              <button
+                onclick={() => { if (!isSlugLocked) formSlug = generateSlug(formTitle); }}
+                disabled={isSlugLocked}
+                class="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-wider text-white/40 hover:text-cyan-400 hover:border-cyan-500/30 transition-all cursor-pointer"
+              >
+                <RefreshCw size={10} />
+                TẠO LẠI
+              </button>
+            </div>
+          </div>
+
           <!-- SEO Title -->
           <div class="field-group">
             <label class="field-label">
-              SEO Meta Title
+              SEO META TITLE
               <span class="ml-auto {seoTitleLen > 60 ? 'text-red-400' : 'text-cyan-500/60'}">{seoTitleLen}/60</span>
             </label>
             <div class="relative">
               <input type="text" bind:value={formSeoTitle}
                 placeholder="Tiêu đề SEO (50-60 ký tự)..."
-                class="field-input text-sm"
+                class="field-input text-sm font-bold"
+              />
+              <div class="field-line"></div>
+            </div>
+          </div>
+
+          <!-- SEO Keywords -->
+          <div class="field-group">
+            <label class="field-label">SEO KEYWORDS</label>
+            <div class="relative">
+              <input type="text" bind:value={formSeoKeywords}
+                placeholder="từ-khóa-1, từ-khóa-2, ..."
+                class="field-input text-sm font-mono text-cyan-400/70"
               />
               <div class="field-line"></div>
             </div>
@@ -378,58 +500,13 @@
           <!-- SEO Description -->
           <div class="field-group">
             <label class="field-label">
-              SEO Meta Description
+              SEO META DESCRIPTION
               <span class="ml-auto {seoDescLen > 160 ? 'text-red-400' : 'text-cyan-500/60'}">{seoDescLen}/160</span>
             </label>
-            <textarea bind:value={formSeoDescription} rows="2"
+            <textarea bind:value={formSeoDescription} rows="4"
               placeholder="Mô tả chuẩn SEO (150-160 ký tự)..."
-              class="w-full bg-white/[0.02] border border-white/8 rounded-xl p-3 text-sm text-white/60 placeholder:text-white/15 outline-none focus:border-cyan-500/30 resize-none"
+              class="w-full bg-white/[0.02] border border-white/8 rounded-2xl p-4 text-sm text-white/60 placeholder:text-white/15 outline-none focus:border-cyan-500/30 resize-none leading-relaxed"
             ></textarea>
-          </div>
-
-          <!-- Keywords -->
-          <div class="field-group">
-            <label class="field-label">Từ khóa (Keywords)</label>
-            <div class="relative">
-              <input type="text" bind:value={formSeoKeywords}
-                placeholder="từ-khóa-1, từ-khóa-2, ..."
-                class="field-input text-sm font-mono text-cyan-400/70"
-              />
-              <div class="field-line"></div>
-            </div>
-            <p class="text-[8px] text-white/15 italic">Phân tách bằng dấu phẩy. Ưu tiên 3-5 từ khóa chính.</p>
-          </div>
-
-          <!-- SEO OG Image -->
-          <div class="field-group">
-            <label class="field-label">Ảnh đại diện MXH (OG Image)</label>
-            <div class="flex items-center gap-4">
-              <div class="w-24 aspect-video rounded-xl bg-white/[0.02] border {ogImageBroken ? 'border-red-500/20' : 'border-white/5'} overflow-hidden flex items-center justify-center relative group">
-                {#if formSeoOgImage}
-                  {#if ogImageBroken}
-                    <div class="flex flex-col items-center justify-center gap-1">
-                      <AlertTriangle size={14} class="text-red-400/60" />
-                      <span class="text-[6px] font-black uppercase text-red-400/50">Lỗi</span>
-                    </div>
-                  {:else}
-                    <img src={resolveMediaUrl(formSeoOgImage)} alt="OG" class="w-full h-full object-cover" onerror={() => ogImageBroken = true} />
-                  {/if}
-                  <div class="absolute inset-0 bg-black/40 {ogImageBroken ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity flex items-center justify-center gap-1.5">
-                    <button onclick={(e) => { e.stopPropagation(); selectingOgImage = true; showMediaModal = true; }} class="p-1.5 bg-white text-black rounded-lg shadow-lg hover:bg-cyan-400 transition-colors" title="Thay thế ảnh"><ImagePlus size={12} /></button>
-                    <button onclick={(e) => { e.stopPropagation(); formSeoOgImage = null; }} class="p-1.5 bg-red-500 rounded-lg text-white shadow-lg hover:bg-red-600 transition-colors" title="Xóa ảnh"><Trash2 size={12} /></button>
-                  </div>
-                {:else}
-                  <div class="text-white/10"><Image size={24} /></div>
-                {/if}
-              </div>
-              <div class="flex flex-col gap-2">
-                <button 
-                  onclick={() => { selectingOgImage = true; showMediaModal = true; }}
-                  class="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[9px] font-black uppercase tracking-wider text-white/50 hover:bg-white/10 hover:text-white"
-                >Chọn ảnh riêng</button>
-                <p class="text-[8px] text-white/10 italic w-48">Mặc định sẽ lấy ảnh đại diện bài viết nếu bạn không chọn ảnh riêng.</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -505,6 +582,71 @@
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 4: FAQ (GEO 2026) ──────────────────── -->
+  <section class="relative px-5 pt-4 pb-0" style="z-index: {Z_INDEX_ADMIN.SURFACE}">
+    <div class="flex items-center justify-between">
+      <div class="section-label">
+        <Globe size={11} />
+        Hỏi đáp (FAQ Schema - GEO 2026)
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          onclick={handleAiSuggestFaqs}
+          disabled={isSuggestingFaqs}
+          class="flex items-center gap-1.5 px-4 py-2 bg-[#1a2742] border border-[#2a4a7f] rounded-lg text-[9px] font-black uppercase tracking-wider text-cyan-300 hover:bg-[#243860] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+        >
+          {#if isSuggestingFaqs}
+            <div class="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+            Đang tạo...
+          {:else}
+            <Sparkles size={12} />
+            XOHI Auto FAQ
+          {/if}
+        </button>
+        <button
+          onclick={addFaqManual}
+          class="flex items-center gap-1 px-3 py-2 bg-white/5 border border-amber-500/30 rounded-lg text-[9px] font-black uppercase tracking-wider text-amber-400 hover:bg-amber-500/10 transition-all cursor-pointer"
+        >
+          <Plus size={12} />
+          Thêm tay
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-3 flex flex-col gap-3">
+      {#if formFaqs.length === 0}
+        <div class="text-center py-8 border border-dashed border-white/10 rounded-xl">
+          <p class="text-[10px] text-white/20 uppercase tracking-widest font-black">Chưa có câu hỏi FAQ.</p>
+          <p class="text-[9px] text-white/10 italic mt-1">Thêm FAQ để tăng cường thứ hạng trên AI Search.</p>
+        </div>
+      {:else}
+        {#each formFaqs as faq, i}
+          <div class="bg-white/[0.02] border border-white/8 rounded-xl p-4 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[8px] font-black uppercase tracking-widest text-white/20">Câu hỏi {i + 1}</span>
+              <button onclick={() => removeFaq(i)} class="p-1 text-red-400/50 hover:text-red-400 transition-colors cursor-pointer">
+                <Trash2 size={12} />
+              </button>
+            </div>
+            <input
+              type="text"
+              bind:value={faq.question}
+              placeholder="Nhập câu hỏi..."
+              class="w-full bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2 text-sm text-white/80 placeholder:text-white/15 outline-none focus:border-cyan-500/40"
+            />
+            <span class="text-[8px] font-black uppercase tracking-widest text-white/15">Câu trả lời:</span>
+            <textarea
+              bind:value={faq.answer}
+              rows="2"
+              placeholder="Nhập câu trả lời..."
+              class="w-full bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2 text-sm text-white/60 placeholder:text-white/15 outline-none focus:border-cyan-500/40 resize-none"
+            ></textarea>
+          </div>
+        {/each}
+      {/if}
     </div>
   </section>
 
