@@ -7,7 +7,7 @@ from typing import List, Dict, Optional
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
 from backend.schemas.category import CreateCategoryRequest, UpdateCategoryRequest, CategoryResponse, CategoryListResponse
-from backend.schemas.common import SuccessResponse, BulkActionResponse, BulkIdsRequest
+from backend.schemas.common import SuccessResponse, BulkActionResponse, BulkIdsRequest, BulkStatusRequest
 from backend.services.commerce.category import category_service
 
 class CategoryController(Controller):
@@ -45,6 +45,13 @@ class CategoryController(Controller):
     async def bulk_delete(self, db_session: "AsyncSession", data: BulkIdsRequest) -> BulkActionResponse:
         """R18: Soft delete multiple categories. R39: Batch via update."""
         res = await category_service.bulk_delete(db_session, data.ids)
+        await db_session.commit()
+        return res
+
+    @post("/bulk-status", guards=[PermissionGuard(PermissionEnum.CATEGORY_WRITE)])
+    async def bulk_status(self, db_session: "AsyncSession", data: BulkStatusRequest) -> BulkActionResponse:
+        """Elite V2.2: Batch update category status (active/deactive)."""
+        res = await category_service.bulk_update_status(db_session, data.ids, data.active)
         await db_session.commit()
         return res
 

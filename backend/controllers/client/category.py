@@ -38,18 +38,41 @@ class PublicCategoryController(Controller):
         if not category:
             raise NotFoundException(f"Category with slug '{slug}' not found")
 
-        # Reuse CategoryService structure if needed or map directly
-        return CategoryResponse(
-            id=category.id,
+        # Elite V2.2: Generate SEO Meta with FAQs (GEO 2026 Strategy)
+        from backend.services.commerce.seo_service import SeoService
+        from backend.schemas.category import CategoryMetadata
+
+        # Prepare FAQs for SEO Service
+        faqs = []
+        db_meta = category.category_metadata or {}
+        if isinstance(db_meta, dict) and "faqs" in db_meta:
+            faqs = db_meta["faqs"]
+        
+        verified_metadata = CategoryMetadata.model_validate(db_meta) if db_meta else CategoryMetadata()
+
+        seo_meta = SeoService.generate_category_seo_meta(
             name=category.name,
             slug=category.slug,
-            parent_id=category.parent_id,
-            product_count=0, # Can be expanded to fetch real count
+            description=category.description,
+            faqs=faqs
+        )
+
+        return CategoryResponse(
+            id=str(category.id),
+            name=category.name,
+            slug=category.slug,
+            parent_id=str(category.parent_id) if category.parent_id else None,
+            product_count=0, # Simplified for detail view
             children=[],
             description=category.description,
             seo_title=category.seo_title,
             seo_description=category.seo_description,
             image=category.image,
             icon=category.icon,
+            position=category.position or 0,
+            show_on_mobile=category.show_on_mobile if category.show_on_mobile is not None else True,
+            show_on_desktop=category.show_on_desktop if category.show_on_desktop is not None else True,
+            category_metadata=verified_metadata,
+            seo_meta=seo_meta,
             created_at=category.created_at
         )

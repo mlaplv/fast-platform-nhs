@@ -323,6 +323,17 @@ class CategoryService:
         return SuccessResponse(ok=True)
 
     @staticmethod
+    async def bulk_update_status(db_session: AsyncSession, ids: List[str], active: bool) -> BulkActionResponse:
+        stmt = update(Category).where(Category.id.in_(ids)).values(
+            show_on_mobile=active,
+            show_on_desktop=active,
+            updated_at=datetime.now(timezone.utc)
+        )
+        await db_session.execute(stmt)
+        await CategoryService._invalidate_cache()
+        return BulkActionResponse(ok=True, count=len(ids))
+
+    @staticmethod
     async def _sync_media_links(category_id: str, image_url: Optional[str]) -> None:
         try:
             urls = extract_media_urls(image_url)

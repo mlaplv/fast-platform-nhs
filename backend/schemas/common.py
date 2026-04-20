@@ -26,3 +26,9 @@ class BulkActionResponse(BaseModel):
 class BulkIdsRequest(BaseModel):
     model_config = ConfigDict(strict=True)
     ids: List[str] = Field(..., min_length=1, max_length=100)
+
+class BulkStatusRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    ids: List[str] = Field(..., min_length=1, max_length=100)
+    active: bool = True
+

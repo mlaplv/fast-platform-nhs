@@ -7,6 +7,8 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import CheckSquare from "lucide-svelte/icons/check-square";
   import Square from "lucide-svelte/icons/square";
+  import Eye from "lucide-svelte/icons/eye";
+  import EyeOff from "lucide-svelte/icons/eye-off";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
@@ -145,6 +147,21 @@
     n.has(id) ? n.delete(id) : n.add(id);
     selectedIds = n;
   }
+  function toggleSelectAll() {
+    if (allSelected) {
+      selectedIds = new Set();
+    } else {
+      const allIds = new Set<string>();
+      const collect = (list: Category[]) => {
+        list.forEach(c => {
+          allIds.add(c.id);
+          if (c.children) collect(c.children);
+        });
+      };
+      collect(categories);
+      selectedIds = allIds;
+    }
+  }
   function toggleExpand(id: string) {
     const n = new Set(expandedIds);
     n.has(id) ? n.delete(id) : n.add(id);
@@ -271,6 +288,31 @@
     }
   }
 
+  async function bulkStatusUpdate(active: boolean) {
+    if (selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    try {
+      await apiClient.post("/api/v1/categories/bulk-status", { ids, active });
+      // R1.5: Zero-hydration local update to avoid full tree re-fetch
+      const updateTree = (list: Category[]) => {
+        return list.map(c => {
+          if (selectedIds.has(c.id)) {
+            c = { ...c, showOnMobile: active, showOnDesktop: active };
+          }
+          if (c.children && c.children.length > 0) {
+            c.children = updateTree(c.children);
+          }
+          return c;
+        });
+      };
+      categories = updateTree(categories);
+      nanobot.showToast(`Đã ${active ? 'kích hoạt' : 'vô hiệu hóa'} ${ids.length} danh mục`, "success");
+    } catch (e) {
+      console.error("[CategoryManagement] Bulk status update failed:", e);
+      nanobot.showToast("Cập nhật trạng thái thất bại", "error");
+    }
+  }
+
   async function handleReorder(newOrder: Category[]) {
     categories = newOrder;
     try {
@@ -305,23 +347,57 @@
     <div
       class="flex flex-col lg:flex-row lg:items-center md:gap-4 gap-3 bg-white/[0.02] border border-white/10 p-3 sm:p-2.5 rounded-2xl"
     >
-      <!-- Search Input -->
-      <div class="flex-1 relative group w-full lg:min-w-[250px]">
-        <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-          <Search size={16} class="text-gray-500 group-focus-within:text-neon-cyan group-focus-within:scale-110 transition-all" />
+      <!-- Select All & Search -->
+      <div class="flex-1 flex items-center bg-black/50 border border-white/5 rounded-xl pr-4 focus-within:border-neon-cyan/50 focus-within:ring-2 focus-within:ring-neon-cyan/20 transition-all shadow-inner shadow-black/50">
+        <button 
+          onclick={toggleSelectAll}
+          class="flex items-center justify-center pl-2 pr-2 py-3 hover:text-neon-cyan transition-colors group shrink-0"
+          title="Select All"
+        >
+          {#if allSelected}
+            <CheckSquare size={16} class="text-neon-cyan" />
+          {:else}
+            <Square size={16} class="text-gray-500 group-hover:text-gray-300" />
+          {/if}
+        </button>
+        
+        <div class="w-px h-5 bg-white/10 mx-2"></div>
+
+        <div class="flex-1 relative group flex items-center">
+          <div class="absolute left-1 flex items-center pointer-events-none">
+            <Search size={14} class="text-gray-500 group-focus-within:text-neon-cyan group-focus-within:scale-110 transition-all" />
+          </div>
+          <input
+            bind:value={searchTerm}
+            type="text"
+            placeholder="QUERY_TAXONOMY..."
+            class="w-full bg-transparent border-none py-3 pl-8 pr-4 text-[10px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none uppercase tracking-widest leading-none outline-none"
+          />
         </div>
-        <input
-          bind:value={searchTerm}
-          type="text"
-          placeholder="QUERY_TAXONOMY..."
-          class="w-full bg-black/50 border border-white/5 rounded-xl py-3 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-neon-cyan/50 focus:ring-2 focus:ring-neon-cyan/20 transition-all uppercase tracking-widest shadow-inner shadow-black/50"
-        />
       </div>
 
       <!-- Actions & Stats -->
       <div class="flex items-center flex-wrap sm:flex-nowrap justify-between lg:justify-end gap-3 w-full lg:w-auto mt-1 lg:mt-0 lg:pr-2">
         <div class="flex items-center gap-2">
           {#if selectedIds.size > 0}
+            <div class="flex items-center gap-2 pr-2 mr-2 border-r border-white/10">
+              <button
+                onclick={() => bulkStatusUpdate(true)}
+                class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl hover:bg-emerald-500/20 transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                title="Kích hoạt tất cả"
+              >
+                <Eye size={12} />
+                <span class="hidden xl:inline">Active</span>
+              </button>
+              <button
+                onclick={() => bulkStatusUpdate(false)}
+                class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl hover:bg-amber-500/20 transition-all shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+                title="Vô hiệu hóa tất cả"
+              >
+                <EyeOff size={12} />
+                <span class="hidden xl:inline">Deactive</span>
+              </button>
+            </div>
             <button
               onclick={bulkDelete}
               class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)]"

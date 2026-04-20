@@ -126,16 +126,30 @@
     {/if}
 
     {#if faqs.length > 0}
-      <div class="mt-16 pt-10 border-t border-gray-50 flex flex-col gap-6">
-         <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center"><MessageCircleQuestion size={18} class="text-orange-500" /></div>
-            <h4 class="text-[14px] font-black uppercase tracking-widest text-gray-900">Câu hỏi thường gặp</h4>
+      <div class="mt-16 pt-10 border-t border-gray-100 flex flex-col gap-6">
+         <div class="flex items-center gap-3 px-1">
+            <div class="w-10 h-10 rounded-2xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
+               <MessageCircleQuestion size={22} class="text-orange-500" />
+            </div>
+            <div class="flex flex-col">
+               <h4 class="text-[15px] font-black uppercase tracking-widest text-gray-900 leading-tight">FAQ_SCHEMA_CORE</h4>
+               <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Hỗ trợ trích dẫn bởi AI Search 2026</span>
+            </div>
          </div>
          <div class="space-y-4">
-            {#each faqs as faq}
-               <div class="bg-gray-50/50 rounded-2xl p-4 border border-gray-100/50">
-                  <p class="text-[13px] font-bold text-gray-900 mb-2">{faq.question}</p>
-                  <p class="text-[12px] text-gray-500 leading-relaxed">{faq.answer}</p>
+            {#each faqs as faq, i}
+               <div 
+                 class="bg-gray-50/80 backdrop-blur-sm rounded-3xl p-5 border border-gray-100/50 shadow-sm group active:scale-[0.98] transition-all"
+                 in:fly={{ y: 20, delay: i * 100 }}
+               >
+                  <div class="flex items-start gap-4">
+                     <span class="w-6 h-6 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-[10px] font-black text-orange-500 shrink-0 shadow-sm">{i + 1}</span>
+                     <div class="flex flex-col gap-3">
+                        <p class="text-[14px] font-black text-gray-900 leading-tight">{faq.question}</p>
+                        <div class="h-px w-8 bg-orange-500/30"></div>
+                        <p class="text-[13px] text-gray-500 leading-relaxed font-medium">{faq.answer}</p>
+                     </div>
+                  </div>
                </div>
             {/each}
          </div>

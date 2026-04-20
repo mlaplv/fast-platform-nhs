@@ -264,17 +264,28 @@
         {/if}
 
         {#if faqs.length > 0}
-        <div class="space-y-6 pt-8 border-t border-gray-100">
-           <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Câu hỏi thường gặp</h4>
-           <div class="space-y-4">
+        <div class="space-y-6 pt-10 border-t border-gray-100">
+           <div class="flex items-center gap-3">
+              <div class="w-1.5 h-6 bg-orange-500/50 rounded-full"></div>
+              <h4 class="text-[11px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+                 <MessageCircleQuestion size={12} class="text-orange-500" /> FAQ_CORE
+              </h4>
+           </div>
+           <div class="space-y-3">
               {#each faqs as faq}
-                 <details class="group">
-                    <summary class="text-[12px] font-bold text-gray-800 list-none cursor-pointer hover:text-[#ee4d2d] transition-colors pr-4 relative">
+                 <details class="group bg-gray-50/30 rounded-2xl border border-transparent hover:border-orange-500/20 hover:bg-white transition-all overflow-hidden">
+                    <summary class="text-[12px] font-black text-gray-700 list-none cursor-pointer p-4 pr-10 relative select-none">
                        {faq.question}
-                       <svg class="w-3 h-3 absolute right-0 top-1/2 -translate-y-1/2 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" /></svg>
+                       <div class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-lg bg-white border border-gray-100 flex items-center justify-center transition-transform group-open:rotate-180 group-open:bg-orange-500 group-open:border-orange-600 shadow-sm">
+                          <svg class="w-3 h-3 text-gray-400 group-open:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                       </div>
                     </summary>
-                    <div class="pt-2 text-[11px] text-gray-500 leading-relaxed">
-                       {faq.answer}
+                    <div class="px-4 pb-4 text-[12px] text-gray-500 leading-relaxed font-medium animate-in fade-in slide-in-from-top-2 duration-300">
+                       <div class="pt-2 border-t border-gray-50">
+                          {faq.answer}
+                       </div>
                     </div>
                  </details>
               {/each}
