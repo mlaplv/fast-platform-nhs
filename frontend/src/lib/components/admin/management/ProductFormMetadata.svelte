@@ -8,10 +8,18 @@
   import Plus from "lucide-svelte/icons/plus";
   import Trash2 from "lucide-svelte/icons/trash-2";
   import Tag from "lucide-svelte/icons/tag";
+  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import Sparkles from "lucide-svelte/icons/sparkles";
   import type { ProductMetadata } from "$lib/types";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  import { apiClient } from "$lib/utils/apiClient";
 
-  let { formMetadata = $bindable() } = $props<{
+  const nanobot = useNanobot();
+
+  let { formMetadata = $bindable(), formName = "", formDescription = "" } = $props<{
     formMetadata: ProductMetadata;
+    formName?: string;
+    formDescription?: string;
   }>();
 
   onMount(() => {
@@ -86,6 +94,34 @@
     if (!formMetadata.faqs) return;
     formMetadata.faqs.splice(index, 1);
     formMetadata.faqs = [...formMetadata.faqs];
+  }
+
+  let isSuggestingFaqs = $state(false);
+
+  async function handleAiSuggestFaqs() {
+    if (!formName) {
+      nanobot.showToast("Vui lòng nhập tên sản phẩm trước khi gọi XOHI.", "warning");
+      return;
+    }
+    isSuggestingFaqs = true;
+    try {
+      const res = await apiClient.post<{ data: { question: string, answer: string }[] }>('/api/v1/products/faq-suggest', {
+        name: formName,
+        description: formDescription || ''
+      });
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        if (!formMetadata.faqs) formMetadata.faqs = [];
+        formMetadata.faqs = [...formMetadata.faqs, ...res.data];
+        nanobot.showToast("XOHI đã tự động tạo thành công bộ câu hỏi FAQ.", "success");
+      } else {
+        nanobot.showToast("XOHI không thể tạo thêm câu hỏi. Vui lòng thử lại.", "error");
+      }
+    } catch (e) {
+      console.error('XOHI FAQ Suggestion failed:', e);
+      nanobot.showToast("Lỗi kết nối tới hệ thống AI XOHI.", "error");
+    } finally {
+      isSuggestingFaqs = false;
+    }
   }
 </script>
 
@@ -272,14 +308,30 @@
         <HelpCircle size={11} class="text-amber-400/60" />
         Hỏi đáp (FAQ Schema - GEO 2026)
       </div>
-      <button
-        type="button"
-        onclick={addFaq}
-        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 transition-all text-[9px] font-black uppercase tracking-wider"
-      >
-        <Plus size={12} strokeWidth={3} />
-        Thêm câu hỏi
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          onclick={handleAiSuggestFaqs}
+          disabled={isSuggestingFaqs}
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-600/20 hover:border-blue-500/50 hover:text-blue-300 transition-all text-[9px] font-black uppercase tracking-wider disabled:opacity-50"
+        >
+          {#if isSuggestingFaqs}
+            <RefreshCw size={10} class="animate-spin" />
+            ĐANG TẠO...
+          {:else}
+            <Sparkles size={10} />
+            🪄 XOHI AUTO FAQ
+          {/if}
+        </button>
+        <button
+          type="button"
+          onclick={addFaq}
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 transition-all text-[9px] font-black uppercase tracking-wider"
+        >
+          <Plus size={12} strokeWidth={3} />
+          Thêm tay
+        </button>
+      </div>
     </div>
 
     {#if formMetadata.faqs && formMetadata.faqs.length > 0}

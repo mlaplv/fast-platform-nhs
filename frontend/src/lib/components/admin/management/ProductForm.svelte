@@ -249,7 +249,7 @@
 
         <!-- Product Metadata (Contextual) -->
         <div class="flex flex-col pt-2">
-          <ProductFormMetadata bind:formMetadata={formMetadata} />
+          <ProductFormMetadata bind:formMetadata={formMetadata} {formName} formDescription={formShortDescription || formDescription} />
         </div>
 
         <!-- Specs -->

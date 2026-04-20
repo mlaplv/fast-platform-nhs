@@ -656,6 +656,35 @@ class ProductService:
             logger.exception(f"[ProductService] AI SEO Suggestion Failed: {e}")
             return {"title": f"{name} Chính Hãng", "description": "Mua sản phẩm chính hãng với nhiều ưu đãi", "keywords": ""}
 
+    async def suggest_faqs(self, name: str, description: str) -> List[Dict[str, str]]:
+        """Elite V2.2: XOHI Auto FAQ Generator."""
+        agent = Agent(
+            system_prompt="You are an expert product advisor. Given a product name and description, generate 3 to 5 frequently asked questions and short, helpful answers in Vietnamese. Return ONLY exact valid JSON array of objects without markdown wrapping or backticks, like this: [{\"question\": \"...\", \"answer\": \"...\"}]"
+        )
+        prompt = f"Product Name: {name}\nProduct Desc: {description}"
+        
+        try:
+            result = await trinity_bridge.run(
+                agent=agent,
+                prompt=prompt,
+                role="fast",
+                timeout=45.0
+            )
+            
+            if result:
+                suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
+                match = re.search(r'\[.*\]', suggested_json_str, re.DOTALL)
+                if match:
+                    parsed = json.loads(match.group(0))
+                    if isinstance(parsed, list):
+                        return parsed
+            
+            return []
+            
+        except Exception as e:
+            logger.exception(f"[ProductService] AI FAQ Suggestion Failed: {e}")
+            return []
+
 # ==========================================
 # SERVICE PROVIDERS (V76.2 DI PATTERN)
 # ==========================================

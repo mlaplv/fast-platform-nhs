@@ -32,24 +32,7 @@
   let selectedFaqIndex = $state(-1);
   let isModalOpen = $state(false);
 
-  const faqs = $derived([
-    {
-        q: metadata?.science_faq_1_q || "Bao lâu thì thấy hiệu quả rõ rệt nhất?",
-        a: metadata?.science_faq_1_a || "Dạ thường thì sau 2-4 tuần sử dụng đều đặn ngày 2 lần, nàng sẽ thấy da bật tông rõ, sờ vào mịn mướt hẳn luôn. Còn để các vết thâm 'cứng đầu' mờ hẳn thì tầm 6-8 tuần là thời điểm đẹp nhất ạ!"
-    },
-    {
-        q: metadata?.science_faq_2_q || "Ngưng dùng rồi có bị thâm đen trở lại không?",
-        a: metadata?.science_faq_2_a || "Nàng yên tâm nhé, ngưng dùng sẽ không bị thâm lại đâu ạ. Miễn là mình vẫn duy trì vệ sinh và các bước dưỡng da cơ bản thì kết quả vẫn sẽ bền đẹp theo thời gian."
-    },
-    {
-        q: metadata?.science_faq_3_q || "Sản phẩm có thực sự làm hồng nhũ hoa không hay chỉ là quảng cáo?",
-        a: metadata?.science_faq_3_a || "Đây là thắc mắc phổ biến nhất của phái đẹp! Serum tập trung đánh bay sắc tố đen, làm mờ thâm sạm để vùng da nhạy cảm sáng hồng tự nhiên, chứ không phải kiểu 'nhuộm màu' ảo lòi đâu ạ."
-    },
-    {
-        q: metadata?.science_faq_4_q || "Vùng bikini nhạy cảm có dùng được không?",
-        a: metadata?.science_faq_4_a || "Dạ vô tư luôn nàng ơi! Sản phẩm này sinh ra là để 'chiều lòng' những vùng nhạy cảm nhất như bikini, nhũ hoa và nách. Thành phần cực kỳ lành tính nên rất êm ái cho da."
-    }
-  ]);
+  const faqs = $derived(metadata?.faqs || []);
 
   const selectedFaq = $derived(selectedFaqIndex >= 0 ? faqs[selectedFaqIndex] : null);
 
@@ -157,6 +140,7 @@
             </div> <!-- Close BENTO GRID -->
 
             <!-- FAQ SECTION (Super Compact Viral Modal Edition) -->
+            {#if faqs.length > 0}
             <div class="faq-ultra-compact mt-12 border-t border-white/5 pt-10 pb-16">
                 <div class="max-w-6xl mx-auto flex flex-col items-start">
                     
@@ -178,7 +162,7 @@
                         </div>
                     </div>
 
-                    <!-- FAQ GRID (LOCKED TO 4 ITEMS) -->
+                    <!-- FAQ GRID (LOCKED TO MAX 4 ITEMS UI) -->
                     <div class="faq-grid w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {#each faqs.slice(0, 4) as faq, i}
                             <button 
@@ -186,15 +170,11 @@
                                 onclick={() => openFaq(i)}
                             >
                                 <div class="flex items-center justify-between gap-4 w-full h-full">
-                                    <span class="question-text flex-1">
-                                        {#if !faq.q.startsWith('[OFF]') || liveEditStore.isEditMode}
-                                            <EditableWrapper path={`metadata.science_faq_${i+1}_q`} type="text" label={`SỬA CÂU HỎI ${i+1}`} as="span">
-                                                {faq.q.startsWith('[OFF]') ? faq.q.substring(5).trim() : faq.q}
-                                            </EditableWrapper>
-                                        {/if}
+                                    <span class="question-text flex-1 text-[13px] font-bold text-white/90">
+                                        {faq.question}
                                     </span>
                                     <div class="faq-arrow-indicator shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 opacity-40 group-hover:text-luxury-sakura group-hover:opacity-100 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M5 12h14m-7-7 7 7-7 7"/>
                                         </svg>
                                     </div>
@@ -204,6 +184,7 @@
                     </div>
                 </div>
             </div>
+            {/if}
         </div> <!-- Close Container -->
 
         <!-- VIRAL FAQ MODAL -->
@@ -238,17 +219,13 @@
                     </div>
 
                     <h2 class="text-2xl lg:text-3xl font-black text-white tracking-tighter leading-tight mb-8">
-                        <EditableWrapper path={`metadata.science_faq_${selectedFaqIndex+1}_q`} type="text" label="SỬA CÂU HỎI">
-                             {selectedFaq.q.startsWith('[OFF]') ? selectedFaq.q.substring(5).trim() : selectedFaq.q}
-                        </EditableWrapper>
+                         {selectedFaq.question}
                     </h2>
 
                     <div class="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-10"></div>
 
                     <p class="text-slate-400 text-lg lg:text-xl font-medium leading-relaxed opacity-90 italic">
-                        "<EditableWrapper path={`metadata.science_faq_${selectedFaqIndex+1}_a`} type="text" label="SỬA TRẢ LỜI" as="span">
-                             {selectedFaq.a}
-                         </EditableWrapper>"
+                        "{selectedFaq.answer}"
                     </p>
 
                     <button 

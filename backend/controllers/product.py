@@ -141,3 +141,16 @@ class ProductController(Controller):
             description=data.get("description", "")
         )
         return SuccessResponse(message="Thành công", data=res_data)
+
+    @post("/faq-suggest", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
+    async def suggest_faqs(
+        self,
+        product_service: ProductService,
+        data: Dict[str, str]
+    ) -> SuccessResponse:
+        """AI Suggestion for Product FAQs (Elite V2.2: XOHI Engine)."""
+        res_data = await product_service.suggest_faqs(
+            name=data.get("name", ""),
+            description=data.get("description", "")
+        )
+        return SuccessResponse(message="Thành công", data=res_data)
