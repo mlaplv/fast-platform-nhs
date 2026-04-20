@@ -44,9 +44,11 @@ class OrderInsight(TypedDict):
     previous_orders: List[PreviousOrder]
 
 def mask_string(s: str, visible_prefix: int = 1, visible_suffix: int = 1) -> str:
-    if not s or len(s) < (visible_prefix + visible_suffix):
+    if not s or len(s) <= (visible_prefix + visible_suffix):
         return "***"
-    return f"{s[:visible_prefix]}{'*' * (len(s) - visible_prefix - visible_suffix)}{s[len(s)-visible_suffix:]}"
+    if visible_suffix == 0:
+        return f"{s[:visible_prefix]}***"
+    return f"{s[:visible_prefix]}***{s[len(s)-visible_suffix:]}"
 
 logger = logging.getLogger("api-gateway")
 

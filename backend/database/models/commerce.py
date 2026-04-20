@@ -6,7 +6,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.models.base import Base, AuditMixin, SoftDeleteMixin, TenantMixin
-
+import uuid
 class Order(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'orders'
 
@@ -25,6 +25,11 @@ class Order(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     customer_address: Mapped[Optional[str]] = mapped_column(Text)
     customer_ip: Mapped[Optional[str]] = mapped_column(String)
     order_metadata: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    
+    # Loyalty V2.2 Points Tracking
+    points_earned: Mapped[int] = mapped_column(Integer, default=0)
+    points_redeemed: Mapped[int] = mapped_column(Integer, default=0)
+    point_discount_amount: Mapped[float] = mapped_column(Float, default=0.0)
     
     # V56.5 Anti-Spam Shield Fields
     is_spam: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -108,3 +113,27 @@ class ProductEmbedding(Base, AuditMixin):
     product_base_id: Mapped[str] = mapped_column(String, ForeignKey('product_bases.id'), unique=True)
     product_base: Mapped["ProductBase"] = relationship("ProductBase", back_populates="embedding")
     embedding: Mapped[str] = mapped_column(Text)
+
+class UserLoyalty(Base, AuditMixin, TenantMixin):
+    """Elite V2.2: User Loyalty Account Snapshot"""
+    __tablename__ = 'user_loyalty'
+    
+    user_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), primary_key=True)
+    tier: Mapped[str] = mapped_column(String, default="MEMBER") # MEMBER, TIER_1, TIER_2, TIER_3
+    available_points: Mapped[int] = mapped_column(Integer, default=0)
+    pending_points: Mapped[int] = mapped_column(Integer, default=0)
+    total_spent: Mapped[float] = mapped_column(Float, default=0.0) # Accumulation for tier upgrades
+    tier_updated_at: Mapped[Optional[sa.DateTime]] = mapped_column(sa.DateTime(timezone=True))
+
+class PointTransaction(Base, AuditMixin, TenantMixin):
+    """Elite V2.2: Immutable Ledger for Point Activity"""
+    __tablename__ = 'point_transactions'
+    
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), index=True)
+    order_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('orders.id'), index=True)
+    amount: Mapped[int] = mapped_column(Integer) # Can be positive or negative
+    transaction_type: Mapped[str] = mapped_column(String) # EARN_ORDER, REDEEM_ORDER, REFUND_DEDUCT, EXPIRED, ADJUST_ADMIN
+    status: Mapped[str] = mapped_column(String, default="COMPLETED") # PENDING, COMPLETED, CANCELLED
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+

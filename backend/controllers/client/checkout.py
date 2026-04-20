@@ -29,8 +29,9 @@ class CheckoutController(Controller):
             ip = forwarded_for.split(",")[0].strip()
 
         ua = request.headers.get("user-agent", "unknown")
+        user_id = request.scope.get("state", {}).get("user", {}).get("id")
 
-        res = await CheckoutService.create_stealth_order(db_session, data, ip, ua)
+        res = await CheckoutService.create_stealth_order(db_session, data, ip, ua, user_id=user_id)
         
         response = Response(
             content=SuccessResponse(id=res["id"], ok=res["ok"])

@@ -30,16 +30,18 @@ def _mask_name(name: str) -> str:
     parts = name.split()
     if len(parts) == 1:
         return f"{name[0]}***"
-    return f"{parts[0][0]}*** {' '.join([p[0]+'**' for p in parts[1:-1]])} {parts[-1]}".replace("  ", " ")
+    if len(parts) == 2:
+        return f"{parts[0][0]}*** {parts[-1]}"
+    return f"{parts[0][0]}*** {parts[-1]}"
 
 def _mask_address(addr: str) -> str:
     if not addr: return ""
     # Che phần giữa, giữ lại đầu và cuối (tỉnh/thành)
     parts = addr.split(",")
     if len(parts) < 2:
-        return f"{addr[:5]}*******"
+        return f"{addr[:5]}***"
     street = parts[0].strip()
-    masked_street = f"{street[:4]}*******"
+    masked_street = f"{street[:4]}***"
     return f"{masked_street}, {', '.join(parts[1:])}"
 
 
@@ -92,7 +94,8 @@ class CheckoutService:
         db_session: AsyncSession,
         payload: StealthCheckoutSchema,
         customer_ip: str,
-        user_agent: str
+        user_agent: str,
+        user_id: Optional[str] = None
     ) -> CheckoutResult:
         from backend.services.anti_spam import anti_spam_service
 
@@ -113,21 +116,40 @@ class CheckoutService:
             logger.warning(f"[STRIKE] Spam Order Detected: {reason} (Score: {score}) | IP: {customer_ip}")
             # R2026: Elite V2.2: We proceed to save but mark as spam to prevent 404 and allow tracking
 
-        user_stmt = select(User).where(User.username == payload.customer_phone).limit(1)
-        user_res = await db_session.execute(user_stmt)
-        user = user_res.scalar_one_or_none()
+        # ELITE V2.2: AUTH-AWARE IDENTITY RESOLUTION
+        user = None
+        
+        # 1. First priority: Use the authenticated user ID passed from controller
+        if user_id:
+            user_stmt = select(User).where(User.id == user_id).limit(1)
+            user_res = await db_session.execute(user_stmt)
+            user = user_res.scalar_one_or_none()
+            if user:
+                logger.info(f"[Checkout] Linking order to authenticated user: {user_id}")
+                # Update phone if missing from profile but provided in checkout
+                if not user.phone:
+                    user.phone = payload.customer_phone
 
+        # 2. Second priority: Fallback to phone-based lookup (Shadow accounts or returning guests)
         if not user:
-            user = User(
-                id=str(uuid.uuid4()),
-                username=payload.customer_phone,
-                email=f"{payload.customer_phone}@shadow.test",
-                name=payload.customer_name,
-                status="ACTIVE",
-                tenant_id=current_tenant_id.get() or "default",
-                password="SHADOW_ACCOUNT"
-            )
-            db_session.add(user)
+            user_stmt = select(User).where(User.username == payload.customer_phone).limit(1)
+            user_res = await db_session.execute(user_stmt)
+            user = user_res.scalar_one_or_none()
+
+            if not user:
+                # 3. Create Shadow Account if absolutely no matching user found
+                user = User(
+                    id=str(uuid.uuid4()),
+                    username=payload.customer_phone,
+                    phone=payload.customer_phone,
+                    email=f"{payload.customer_phone}@shadow.test",
+                    name=payload.customer_name,
+                    status="ACTIVE",
+                    tenant_id=current_tenant_id.get() or "default",
+                    password="SHADOW_ACCOUNT"
+                )
+                db_session.add(user)
+                logger.info(f"[Checkout] Created new shadow account for phone: {payload.customer_phone}")
 
         # Build items list with correct prices
         items_list: List[OrderItem] = []
@@ -197,13 +219,46 @@ class CheckoutService:
                  logger.warning(f"[STRIKE-PRICE] Item price mismatch for {product.name} ({item.product_id}): ItemPayload={item.price}, ResolvedDB={db_price}. LineQty={item.quantity}, TotalQty={total_qty}")
                  raise ValidationException("Giá sản phẩm đã thay đổi theo chương trình khuyến mãi. Vui lòng cập nhật lại giỏ hàng.")
 
+            # Resolve readable variant name from attributes (if variant exists)
+            variant_name = None
+            if item.variant_id:
+                # Need to fetch the variant to get the actual attributes if it's not best_tier
+                v_obj = next((v for v in product.variants if v.id == item.variant_id), None)
+                if not v_obj:
+                    v_stmt = select(ProductVariant).where(ProductVariant.id == item.variant_id)
+                    variant_res = await db_session.execute(v_stmt)
+                    v_obj = variant_res.scalar_one_or_none()
+                    
+                if v_obj:
+                    # Elite V2.2: Deterministic Variant Truth via Tier Index Mapping
+                    tier_names = []
+                    if getattr(v_obj, 'tier_index', None) and getattr(product, 'tier_variations', None):
+                        for i, t_idx in enumerate(v_obj.tier_index):
+                            if i < len(product.tier_variations):
+                                tier = product.tier_variations[i]
+                                options = tier.get("options", [])
+                                if isinstance(options, list) and isinstance(t_idx, int) and t_idx < len(options):
+                                    tier_names.append(str(options[t_idx]))
+                    
+                    if tier_names:
+                        variant_name = " - ".join(tier_names)
+                    elif getattr(v_obj, 'attributes', None):
+                        # Fallback for systems without tier_variations (Scalar values only)
+                        filtered_attrs = [str(v) for k, v in v_obj.attributes.items() 
+                                          if str(k).lower() not in ["combo_qty", "comboqty", "gifts"] 
+                                          and isinstance(v, (str, int, float, bool))]
+                        if filtered_attrs:
+                            variant_name = " - ".join(filtered_attrs)
+
             items_list.append({
                 "id": item.product_id,
                 "name": product.name,
                 "variant_id": item.variant_id,
+                "variant_name": variant_name,  # Elite V2.2: Include human readable name
                 "qty": item.quantity,
                 "unit_price": db_price,
-                "total_price": db_price * item.quantity
+                "total_price": db_price * item.quantity,
+                "image": product.images[0] if product.images else None
             })
 
         # [VIRAL 2026] RIGOROUS TOTAL VALIDATION
@@ -213,25 +268,38 @@ class CheckoutService:
         combo_deals = await PromotionService.get_active_combo_deals(db_session)
         combo_discount = PromotionService.calculate_combo_discount(items_list, combo_deals)
         
-        # 2. Apply Voucher
+        # 2. Apply Vouchers (Elite V2.2: Multi-Voucher Support with Category Exclusivity)
         voucher_discount = 0.0
-        if payload.voucher_id:
-            voucher = await PromotionService.get_active_voucher(db_session, payload.voucher_id)
-            if voucher:
-                # Voucher applies on subtotal AFTER combo discount
-                voucher_discount = PromotionService.calculate_voucher_discount(base_subtotal - combo_discount, voucher)
-            else:
-                logger.warning(f"[VOUCHER-FAIL] Voucher {payload.voucher_id} not found or inactive.")
-                # We don't necessarily fail here if the price check passes, 
-                # but the expected_total calculation below will fail if client gởi total đã trừ voucher ảo.
+        used_categories = set()
+        applied_voucher_ids = []
+
+        if payload.voucher_ids:
+            for v_id in payload.voucher_ids:
+                voucher = await PromotionService.get_active_voucher(db_session, v_id)
+                if not voucher:
+                    logger.warning(f"[VOUCHER-FAIL] Voucher {v_id} not found or inactive.")
+                    continue
+                
+                # [SECURITY-RULE] Category Exclusivity (Sếp dặn: mỗi nhóm chỉ 1 mã)
+                if voucher.category in used_categories:
+                    logger.error(f"[VOUCHER-EXCLUSIVITY] Duplicate category {voucher.category} for voucher {v_id}")
+                    raise ValidationException(f"Chỉ được áp dụng tối đa 1 mã trong nhóm {voucher.category}.")
+                
+                used_categories.add(voucher.category)
+                
+                # Voucher applies on subtotal AFTER combo discount and previous vouchers
+                current_discount = PromotionService.calculate_voucher_discount(
+                    base_subtotal - combo_discount - voucher_discount, voucher
+                )
+                voucher_discount += current_discount
+                applied_voucher_ids.append(v_id)
 
         expected_total = base_subtotal - combo_discount - voucher_discount + payload.shipping_fee
         
         # 3. Final Manipulation Lock
         if abs(expected_total - payload.total_amount) > 1.0:
-            logger.error(f"[SECURITY-ALERT] Price Manipulation Attempt: Expected {expected_total}, Got {payload.total_amount}. Phone: {payload.customer_phone}")
+            logger.error(f"[SECURITY-ALERT] Price Manipulation Attempt: Expected {expected_total}, Got {payload.total_amount}. Sub={base_subtotal}, Combo={combo_discount}, Vouchers={voucher_discount}, Ship={payload.shipping_fee}. Phone: {payload.customer_phone}")
             raise ValidationException("Đơn hàng chưa được bảo vệ thành công do thay đổi về giá hoặc khuyến mãi. Vui lòng tải lại trang.")
-
 
         # 5. Prepare Order Metadata
         order_metadata: OrderMetadata = {
@@ -240,13 +308,13 @@ class CheckoutService:
             "payment_method": payload.payment_method,
             "shipping_fee": payload.shipping_fee,
             "combo_discount": combo_discount,
-            "voucher_discount": voucher_discount
+            "voucher_discount": voucher_discount,
+            "voucher_ids": applied_voucher_ids
         }
 
-        if payload.voucher_id:
-            order_metadata["voucher_id"] = payload.voucher_id
-            # 🚀 [ELITE V2.2] ACCOUNTING: Increment voucher usage & protect against abuse
-            await PromotionService.validate_and_use_voucher(db_session, payload.voucher_id, payload.customer_phone)
+        # 🚀 [ELITE V2.2] ACCOUNTING: Increment usage & protect against abuse for ALL applied vouchers
+        for v_id in applied_voucher_ids:
+            await PromotionService.validate_and_use_voucher(db_session, v_id, payload.customer_phone)
         
         if payload.note:
             order_metadata["customer_note"] = payload.note

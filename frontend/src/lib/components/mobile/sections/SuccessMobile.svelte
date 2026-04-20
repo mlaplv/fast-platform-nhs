@@ -132,6 +132,11 @@
   const items = $derived(order?.items || []);
   const customerNameDisplay = $derived(order?.name_masked || order?.customer_name || 'Khách hàng');
   const customerAddressDisplay = $derived(order?.address_masked || order?.customer_address || 'Địa chỉ bảo mật');
+
+  // Elite V2.2: Reactive Financial Breakdown
+  const voucherDiscount = $derived(Number(order?.order_metadata?.voucher_discount || 0));
+  const comboDiscount = $derived(Number(order?.order_metadata?.combo_discount || 0));
+  const totalSavings = $derived(voucherDiscount + comboDiscount);
 </script>
 
 <div class="fixed inset-0 bg-[#fafafa] text-slate-900 overflow-y-auto flex flex-col">
@@ -189,9 +194,6 @@
         </div>
 
         <!-- 🚀 [ELITE V2.2] Viral Savings Breakdown -->
-        {@const voucherDiscount = Number(order.order_metadata?.voucher_discount || 0)}
-        {@const comboDiscount = Number(order.order_metadata?.combo_discount || 0)}
-        {@const totalSavings = voucherDiscount + comboDiscount}
 
         {#if totalSavings > 0}
           <div 

@@ -51,7 +51,8 @@ class PublicOrderController(Controller):
             order_res.customerName = order_res.name_masked
             order_res.customerAddress = order_res.address_masked
 
-        return PublicOrderResponse.model_validate(order_res.model_dump())
+        # Elite V3.1: Safe public projection from ORM/Schema object
+        return PublicOrderResponse.model_validate(order_res, from_attributes=True)
 
     @patch("/{order_id:str}", guards=[])
     async def update_public_order(
@@ -92,7 +93,7 @@ class PublicOrderController(Controller):
         await db_session.commit()
         # Return updated order via public schema
         updated_order = await order_service.get_order(db_session, order_id)
-        return PublicOrderResponse.model_validate(updated_order.model_dump())
+        return PublicOrderResponse.model_validate(updated_order, from_attributes=True)
 
     @post("/{order_id:str}/cancel", guards=[], status_code=HTTP_200_OK)
     async def cancel_public_order(

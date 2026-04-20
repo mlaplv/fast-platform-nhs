@@ -53,3 +53,15 @@ class PublicProductController(Controller):
         product = await product_service.get_product_by_slug(db_session, slug)
         product.seoMeta = SeoService.generate_seo_meta(product)
         return product
+
+    @get("/{product_id:str}")
+    async def get_product_by_id(
+        self,
+        db_session: AsyncSession,
+        product_service: ProductService,
+        product_id: str
+    ) -> ProductResponse:
+        """PUBLIC: Get a single product by exact ID (Crucial for Reorder features)."""
+        product = await product_service.get_product(db_session, product_id)
+        product.seoMeta = SeoService.generate_seo_meta(product)
+        return product

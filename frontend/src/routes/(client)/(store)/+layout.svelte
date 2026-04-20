@@ -43,11 +43,12 @@
   });
 
   // Trang home/search mobile tự quản lý header riêng (Marketplace style)
+  const isAccountPage = $derived($page.url.pathname.startsWith('/user/'));
   const isSpecializedPage = $derived(
     $page.url.pathname === '/home' ||
     $page.url.pathname === '/' ||
     $page.url.pathname === '/products' ||
-    $page.url.pathname.startsWith('/user/')
+    isAccountPage
   );
 
   // Global header chỉ hiện khi: đã hydrate + không bị ẩn + không phải trang chuyên biệt trên mobile
@@ -79,7 +80,7 @@
   });
 </script>
 
-<div class="client-layout min-h-screen flex flex-col">
+<div class="client-layout min-h-screen flex flex-col {ui.isMobile && isAccountPage ? '!bg-white' : ''}">
   {#if showGlobalHeader}
     {#if ui.isMobile}
       <HeaderMobile />

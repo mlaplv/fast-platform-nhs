@@ -399,7 +399,7 @@
         shipping_fee: shippingFee,
         payment_method: form.paymentMethod,
         note: form.note || null,
-        voucher_id: cartStore.selectedVoucherIds[0] || null,
+        voucher_ids: cartStore.selectedVoucherIds,
         gift_info: (cartStore.giftInfo?.sender_name && cartStore.giftInfo?.sender_phone) ? cartStore.giftInfo : null
       };
 

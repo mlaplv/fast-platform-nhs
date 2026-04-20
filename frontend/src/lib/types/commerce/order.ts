@@ -3,8 +3,10 @@ export type OrderStatus = 'PENDING' | 'PACKED' | 'SHIPPING' | 'DELIVERED' | 'CAN
 export interface OrderItem {
   id: string;              // product_id
   name: string;
-  image_url?: string;
-  quantity: number;        // qty
+  image?: string;          // snapshot image
+  image_url?: string;      // legacy image
+  quantity?: number;       // legacy qty
+  qty?: number;            // backend qty
   unit_price: number;      // unit_price
   total_price: number;     // unit_price * quantity
   variant_id?: string;

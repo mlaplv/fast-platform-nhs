@@ -103,11 +103,29 @@
   });
 
   const validProvinces = (vnDivisions as unknown as VnDivision[]).filter(p => p.id);
-  const currentWards = $derived.by(() => {
-    if (!editForm.province) return [];
-    const province = validProvinces.find(p => p.name === editForm.province);
-    return province?.wards || [];
+  const unifiedOptions = validProvinces.flatMap(p => 
+    (p.wards || []).map((w: any) => `${w.name || w}, ${p.name}`)
+  ).sort((a, b) => a.localeCompare(b, 'vi'));
+
+  let unifiedValue = $state(editForm.ward && editForm.province ? `${editForm.ward}, ${editForm.province}` : '');
+
+  $effect(() => {
+    if (editForm.ward && editForm.province) {
+       const combined = `${editForm.ward}, ${editForm.province}`;
+       if (unifiedValue !== combined) unifiedValue = combined;
+    }
   });
+
+  function handleUnifiedChange() {
+    if (unifiedValue.includes(', ')) {
+      const parts = unifiedValue.split(', ');
+      editForm.ward = parts[0];
+      editForm.province = parts[1];
+    } else if (!unifiedValue) {
+      editForm.ward = '';
+      editForm.province = '';
+    }
+  }
 
   function parseAddress(fullAddress: string) {
     if (!fullAddress) return { province: '', ward: '', street: '' };
@@ -142,10 +160,14 @@
         if (phoneToUse && typeof localStorage !== 'undefined') {
           localStorage.setItem(`order_verify_${orderId}`, phoneToUse);
         }
-        const addrParts = parseAddress(order.customer_address || '');
+        const cName = order.customer_name || (order as any).customerName || (order as any).name_masked || '';
+        const cPhone = order.customer_phone || (order as any).customerPhone || '';
+        const cAddress = order.customer_address || (order as any).customerAddress || (order as any).address_masked || '';
+        
+        const addrParts = parseAddress(cAddress);
         editForm = {
-            name: order.customer_name || '',
-            phone: order.customer_phone || '',
+            name: cName,
+            phone: cPhone,
             province: addrParts.province,
             ward: addrParts.ward,
             street: addrParts.street
@@ -204,6 +226,13 @@
 
   const stepIdx = $derived(getStepIndex(order?.status ?? ''));
   let isConfirmCancelOpen = $state(false);
+
+  // Elite V2.2: Reactive Financial Computations
+  const subtotal = $derived(order?.items?.reduce((acc, it) => acc + (it.total_price || 0), 0) ?? 0);
+  const voucherDiscount = $derived(Number(order?.order_metadata?.voucher_discount || 0));
+  const comboDiscount = $derived(Number(order?.order_metadata?.combo_discount || 0));
+  const totalSavings = $derived(voucherDiscount + comboDiscount);
+  const finalTotal = $derived(order?.total ?? order?.total_amount ?? 0);
 </script>
 
 <svelte:head>
@@ -303,18 +332,42 @@
                     </div>
                     <div>
                       <span class="text-[9px] font-black text-slate-400 uppercase block mb-1">Địa chỉ:</span>
-                      <span class="text-xs font-bold text-slate-600 leading-snug uppercase">{order.address_masked || order.customer_address}</span>
+                      <span class="text-xs font-bold text-slate-600 leading-snug uppercase break-all whitespace-normal block">{order.address_masked || order.customer_address}</span>
                     </div>
                   </div>
                 {:else}
-                  <div class="space-y-6">
+                  <div class="space-y-4">
                     <div class="grid md:grid-cols-2 gap-4">
-                      <input type="text" bind:value={editForm.name} class="px-4 py-3 bg-slate-50 border border-slate-100 font-bold text-sm uppercase" />
-                      <input type="tel" bind:value={editForm.phone} class="px-4 py-3 bg-slate-50 border border-slate-100 font-bold text-sm" />
+                      <div>
+                         <span class="text-[9px] font-black text-slate-400 uppercase block mb-2">Họ tên</span>
+                         <input type="text" bind:value={editForm.name} class="w-full px-4 py-3 bg-slate-50 border border-slate-100 font-bold text-sm uppercase text-slate-900 outline-none focus:border-slate-300 transition-colors" placeholder="Nguyễn Văn A" />
+                      </div>
+                      <div>
+                         <span class="text-[9px] font-black text-slate-400 uppercase block mb-2">Số điện thoại</span>
+                         <input type="tel" bind:value={editForm.phone} class="w-full px-4 py-3 bg-slate-50 border border-slate-100 font-bold text-sm text-slate-900 outline-none focus:border-slate-300 transition-colors" placeholder="0901234567" />
+                      </div>
                     </div>
-                    <div class="flex gap-4">
-                      <button onclick={() => isEditing = false} class="px-6 py-2 text-[10px] font-black text-slate-400 uppercase">HỦY BỎ</button>
-                      <button onclick={handleSaveEdit} class="px-8 py-3 bg-slate-900 text-white text-[10px] font-black uppercase">LƯU THÔNG TIN</button>
+                    
+                    <div>
+                      <span class="text-[9px] font-black text-slate-400 uppercase block mb-2">Khu vực (Tỉnh / Quận / Huyện / Xã)</span>
+                      <SearchableCheckoutSelect 
+                        bind:value={unifiedValue} 
+                        options={unifiedOptions} 
+                        placeholder="Gõ tên xã, quận, tỉnh để tìm nhanh..." 
+                        onChange={handleUnifiedChange}
+                      />
+                    </div>
+
+                    <div>
+                      <span class="text-[9px] font-black text-slate-400 uppercase block mb-2">Địa chỉ cụ thể</span>
+                      <textarea bind:value={editForm.street} rows="2" class="w-full px-4 py-3 bg-slate-50 border border-slate-100 font-bold text-sm text-slate-900 outline-none focus:border-slate-300 transition-colors resize-none" placeholder="123 Đường Số 1..."></textarea>
+                    </div>
+
+                    <div class="flex gap-4 pt-4 border-t border-slate-50 justify-end">
+                      <button onclick={() => isEditing = false} class="px-6 py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors">HỦY BỎ</button>
+                      <button onclick={handleSaveEdit} disabled={isSubmittingAction} class="px-8 py-3 bg-slate-900 hover:bg-slate-800 transition-colors text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-50">
+                        {isSubmittingAction ? 'ĐANG LƯU...' : 'LƯU THÔNG TIN'}
+                      </button>
                     </div>
                   </div>
                 {/if}
@@ -336,10 +389,10 @@
                         </div>
                         <div class="flex-1 min-w-0">
                           <p class="text-xs font-black text-slate-900 uppercase truncate mb-1">{item.name}</p>
-                          <p class="text-[9px] text-slate-400 font-bold uppercase italic">SL: {item.quantity} × {formatCurrency(item.unit_price)}</p>
+                          <p class="text-[9px] text-slate-400 font-bold uppercase italic">SL: {item.quantity} × {formatCurrency(item.unit_price || 0)}</p>
                         </div>
                         <div class="text-right">
-                          <span class="text-sm font-black italic">{formatCurrency(item.total_price)}</span>
+                          <span class="text-sm font-black italic">{formatCurrency(item.total_price || 0)}</span>
                         </div>
                      </div>
                    {/each}
@@ -361,10 +414,6 @@
                 {/if}
 
                 <div class="mt-6 pt-6 border-t border-slate-100 space-y-3">
-                   {@const subtotal = order.items.reduce((acc, it) => acc + (it.total_price || 0), 0)}
-                   {@const voucherDiscount = Number(order.order_metadata?.voucher_discount || 0)}
-                   {@const comboDiscount = Number(order.order_metadata?.combo_discount || 0)}
-                   {@const totalSavings = voucherDiscount + comboDiscount}
 
                    <div class="flex justify-between text-[11px] font-black text-slate-400 uppercase italic">
                       <span>Tạm tính:</span>
@@ -410,7 +459,7 @@
 
                    <div class="flex justify-between items-end pt-4">
                       <span class="text-[10px] font-black text-slate-900 uppercase italic">TỔNG THANH TOÁN:</span>
-                      <span class="text-3xl font-black text-[#ee4d2d] italic tabular-nums">{formatCurrency(order.total_amount)}</span>
+                      <span class="text-3xl font-black text-[#ee4d2d] italic tabular-nums">{formatCurrency(finalTotal)}</span>
                    </div>
                 </div>
 

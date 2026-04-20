@@ -12,7 +12,7 @@ import logging
 from backend.database.models import User, Role
 from backend.database.repositories import MediaRegistryRepository
 from backend.schemas.user import UserResponse, UserUpdatePayload, UpdatePasswordPayload
-from backend.schemas.order import OrderListResponse, OrderResponse
+from backend.schemas.order import OrderListResponse, OrderResponse, CancelOrderRequest
 from backend.schemas.common import SuccessResponse
 from backend.services.user_service import user_service
 from backend.services.media.media_service import media_service
@@ -128,6 +128,55 @@ class ClientUserController(Controller):
 
         data = [OrderResponse.model_validate(order) for order in orders]
         return OrderListResponse(data=data, total=total)
+
+    @post("/orders/{order_id:str}/cancel")
+    async def cancel_my_order(
+        self,
+        request: Request,
+        db_session: AsyncSession,
+        order_id: str,
+        data: CancelOrderRequest
+    ) -> SuccessResponse:
+        """
+        Elite V2.2: Public Secure Cancellation Endpoint.
+        Allows users to cancel their own PENDING orders.
+        """
+        from backend.services.commerce.order import order_service
+        from backend.database.models.commerce import Order
+        from litestar.exceptions import NotAuthorizedException, ValidationException
+
+        user_state = request.scope.get("state", {}).get("user")
+        if not user_state:
+            raise NotAuthorizedException("User not authenticated")
+        user_id = user_state.get("id")
+
+        # 1. Ownership & Existential Verification
+        stmt = select(Order).where(Order.id == order_id)
+        res = await db_session.execute(stmt)
+        order = res.scalar_one_or_none()
+
+        if not order:
+             from litestar.exceptions import NotFoundException
+             raise NotFoundException(f"Đơn hàng {order_id} không tồn tại")
+        
+        if str(order.user_id) != str(user_id):
+             raise NotAuthorizedException("Bạn không có quyền hủy đơn hàng này.")
+
+        # 2. Strict State Machine: Users can only cancel if PENDING or PACKED
+        # Note: Shopee allows PENDING cancellation immediately. 
+        # PACKED might require shop approval in reality, but for MVP we allow it if PENDING.
+        if order.status.upper() not in ["PENDING", "PACKED"]:
+             raise ValidationException("Đơn hàng này đã vào giai đoạn vận chuyển và không thể tự hủy.")
+
+        # 3. Delegate to Service for history and event bus
+        res = await order_service.cancel_order(
+            db_session=db_session,
+            order_id=order_id,
+            reason=data.reason,
+            actor_email=user_state.get("username", "Customer")
+        )
+        await db_session.commit()
+        return res
 
     @post("/avatar")
     async def upload_avatar(

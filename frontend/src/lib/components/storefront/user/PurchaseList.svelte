@@ -2,121 +2,272 @@
   import { apiClient } from '$lib/utils/apiClient';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { fade, fly } from 'svelte/transition';
-  import { onMount } from 'svelte';
+  import { untrack } from 'svelte';
   import { formatCurrency, formatDate } from '$lib/utils/format';
-  import { Package, Truck, CheckCircle, XCircle, Clock, ShoppingBag, Search } from 'lucide-svelte';
+  import { Package, Truck, CheckCircle, XCircle, Clock, ShoppingBag, Search, MessageSquare } from 'lucide-svelte';
   import type { Order, OrderStatus } from '$lib/types/commerce/order';
 
+  import { getCartStore } from '$lib/state/commerce/cart.svelte';
+  import type { Product } from '$lib/types';
+  import { resolveMediaUrl } from '$lib/state/utils';
+  import { Sparkles, AlertCircle } from 'lucide-svelte';
+
   const ui = getClientUi();
+  const cartStore = getCartStore();
 
   let activeTab = $state('all');
   let orders = $state<Order[]>([]);
   let isLoading = $state(true);
+  let isReordering = $state(false);
   let searchQuery = $state('');
+
+  // Infinite Scroll State
+  let offset = $state(0);
+  let isLoadingMore = $state(false);
+  let hasMore = $state(true);
+  const LIMIT = 3;
 
   const tabs = [
     { id: 'all', label: 'Tất cả' },
     { id: 'pending', label: 'Chờ xác nhận' },
-    { id: 'packed', label: 'Đang xử lý' },
+    { id: 'packed', label: 'Luồng vận chuyển' },
     { id: 'shipping', label: 'Đang giao' },
     { id: 'delivered', label: 'Hoàn thành' },
     { id: 'cancelled', label: 'Đã hủy' }
   ];
 
-  async function fetchOrders() {
-    isLoading = true;
+  async function fetchOrders(isLoadMore = false, tab = activeTab) {
+    if (isLoadMore) {
+      isLoadingMore = true;
+    } else {
+      isLoading = true;
+      offset = 0;
+      hasMore = true;
+      orders = [];
+    }
+
     try {
-      const res = await apiClient.get<{ data: Order[] }>('/api/v1/client/user/orders', {
-        params: {
-          status: activeTab === 'all' ? undefined : activeTab,
-          limit: 50
-        }
-      });
-      orders = res.data;
+      const params: any = { limit: LIMIT, offset };
+      if (tab && tab !== 'all') {
+        params.status = tab;
+      }
+      
+      const res = await apiClient.get<{ data: Order[] }>('/api/v1/client/user/orders', { params });
+      const fetched = res.data || [];
+      
+      if (isLoadMore) {
+        orders = [...orders, ...fetched];
+      } else {
+        orders = fetched;
+      }
+
+      if (fetched.length < LIMIT) {
+        hasMore = false;
+      }
     } catch (e: unknown) {
-      ui.showToast('Không thể tải lịch sử đơn hàng.', 'error');
+      console.error('Fetch orders failed', e);
+      if (!isLoadMore) ui.showToast('Không thể tải lịch sử đơn hàng.', 'error');
     } finally {
       isLoading = false;
+      isLoadingMore = false;
+    }
+  }
+
+  function handleScroll() {
+    if (typeof window === 'undefined') return;
+    
+    // Cross-browser resilient scrolling metrics for Safari/Mobile
+    const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    const scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight || 0;
+    const clientHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+
+    // Check if we are near the bottom of the page (within 800px for early triggering)
+    if (scrollTop + clientHeight >= scrollHeight - 800) {
+      if (!isLoading && !isLoadingMore && hasMore && orders.length > 0) {
+        offset += LIMIT;
+        fetchOrders(true, activeTab);
+      }
     }
   }
 
   function getStatusStyle(status: OrderStatus | string) {
     switch (status) {
-      case 'PENDING': return { color: 'text-amber-500', icon: Clock, label: 'Chờ xác nhận' };
-      case 'PACKED': return { color: 'text-blue-500', icon: Package, label: 'Đang đóng gói' };
-      case 'SHIPPING': return { color: 'text-indigo-500', icon: Truck, label: 'Đang giao hàng' };
-      case 'DELIVERED': return { color: 'text-emerald-500', icon: CheckCircle, label: 'Đã hoàn thành' };
-      case 'CANCELLED': return { color: 'text-stone-400', icon: XCircle, label: 'Đã hủy' };
-      default: return { color: 'text-stone-500', icon: Package, label: status };
+      case 'PENDING': return { color: 'text-[#fe2c55]', icon: Clock, label: 'Chờ xác nhận', bg: 'bg-[#fe2c55]/5' };
+      case 'PACKED': return { color: 'text-blue-500', icon: Package, label: 'Đang xử lý', bg: 'bg-blue-500/5' };
+      case 'SHIPPING': return { color: 'text-indigo-500', icon: Truck, label: 'Đang giao hàng', bg: 'bg-indigo-500/5' };
+      case 'DELIVERED': return { color: 'text-[#00b5ad]', icon: CheckCircle, label: 'Hoàn thành', bg: 'bg-[#00b5ad]/5' };
+      case 'CANCELLED': return { color: 'text-stone-400', icon: XCircle, label: 'Đã hủy', bg: 'bg-stone-100' };
+      default: return { color: 'text-stone-500', icon: Package, label: status, bg: 'bg-stone-50' };
     }
   }
 
-  onMount(() => {
-    fetchOrders();
-  });
-
   $effect(() => {
-    if (activeTab) {
-      fetchOrders();
-    }
+    const currentTab = activeTab; // Track activeTab
+    untrack(() => {
+      fetchOrders(false, currentTab); // Run untracked
+    });
   });
 
-  function handleReorder(order: Order) {
-    ui.showToast('Tính năng mua lại đang được xử lý, vui lòng chờ trong giây lát! ✨', 'info');
+  async function handleReorder(order: Order) {
+    if (isReordering || !order.items?.length) return;
+    
+    isReordering = true;
+    let addedCount = 0;
+    
+    ui.showToast('🚀 Đang chuẩn bị giỏ hàng của Sếp...', 'info');
+    
+    try {
+      for (const item of order.items) {
+        const productId = item.id;
+        if (!productId) continue;
+
+        try {
+          const product = await apiClient.get<Product>(`/api/v1/client/products/${productId}`);
+          const variant = product.variants?.find(v => v.id === item.variant_id);
+          const qty = Number(item.qty || item.quantity || 1);
+          cartStore.addItem(product, variant, qty);
+          addedCount++;
+        } catch (itemErr: any) {
+          console.warn(`Product ${productId} likely no longer exists or is inactive.`, itemErr);
+        }
+      }
+      
+      if (addedCount > 0) {
+        if (addedCount < order.items.length) {
+          ui.showToast(`✨ Đã thêm ${addedCount}/${order.items.length} món. Một số món không còn khả dụng.`, 'info');
+        } else {
+          ui.showToast('✨ Giỏ hàng đã sẵn sàng!', 'success');
+        }
+        window.location.href = '/checkout';
+      } else {
+        ui.showToast('⚠️ Rất tiếc, các sản phẩm trong đơn này hiện không còn khả dụng.', 'error');
+      }
+    } catch (err: any) {
+      console.error('Reorder process failed', err);
+      ui.showToast('Có lỗi xảy ra khi chuẩn bị giỏ hàng.', 'error');
+    } finally {
+      isReordering = false;
+    }
+  }
+
+  async function handleCancelOrder(orderId: string) {
+    const isConfirmed = await ui.openConfirm({
+      title: 'Xác nhận hủy đơn hàng',
+      message: 'Sếp có chắc chắn muốn hủy đơn hàng này không? 😢',
+      confirmLabel: 'ĐỒNG Ý HỦY',
+      cancelLabel: 'QUAY LẠI'
+    });
+    
+    if (!isConfirmed) return;
+    
+    try {
+      await apiClient.post(`/api/v1/client/user/orders/${orderId}/cancel`, {
+          reason: "Khách hàng tự hủy qua trang Đơn Mua"
+      });
+      ui.showToast('✅ Đã hủy đơn hàng thành công.', 'success');
+      fetchOrders();
+    } catch (err: any) {
+      console.error('Cancel order failed', err);
+      ui.showToast(err.response?.data?.detail || 'Không thể hủy đơn hàng. Vui lòng liên hệ shop.', 'error');
+    }
+  }
+
+  function getOrderSavings(order: Order) {
+    const meta = order.order_metadata || {};
+    const voucher = Number(meta.voucher_discount || 0);
+    const combo = Number(meta.combo_discount || 0);
+    return voucher + combo;
+  }
+
+  function getVariantName(item: any) {
+    let name = item.variant_name;
+    
+    // 🔥 Chiến dịch làm sạch (Sanitize) rác mã hoá từ phiên bản cũ 🔥
+    if (name) {
+      name = name.replace(/\[\s*\]\s*-\s*/g, ''); // Xóa "[] - "
+      name = name.replace(/\[|\]|'|"/g, ''); // Xóa ngoặc vuông và dấu nháy
+      name = name.trim();
+      
+      // Nếu sau khi bóc tách, thẻ phân loại lại trùng hoàn toàn với tên sản phẩm 
+      // (Chứng tỏ bản thân nó là sản phẩm đơn - Mặc định) -> Ẩn luôn!
+      if (name.toLowerCase() === (item.name || '').toLowerCase()) {
+         return '';
+      }
+      if (name) return name;
+    }
+
+    if (!item.variant_id) return '';
+    const split = item.variant_id.split('_');
+    const suffix = split.pop() || '';
+    // Xóa các ID hex 12 ký tự rác tạo bởi UUID (Vd: ea1b5d6f82ea)
+    if (/^[0-9a-f]{12}$/i.test(suffix)) {
+      return '';
+    }
+    return suffix;
   }
 
   // Filter orders by search query
   const filteredOrders = $derived(
-    orders.filter(o =>
-      o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      o.items?.some(item => item.name?.toLowerCase().includes(searchQuery.toLowerCase()))
-    )
+    orders.filter(o => {
+      const idMatch = o.id?.toLowerCase().includes(searchQuery.toLowerCase());
+      const itemMatch = o.items?.some(item => 
+        item.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      return idMatch || itemMatch;
+    })
   );
 </script>
 
-<div class="space-y-8" in:fade>
-  <!-- Navigation Tabs -->
-  <div class="flex border-b border-stone-100 gap-6 md:gap-10 overflow-x-auto no-scrollbar scroll-smooth">
-    {#each tabs as tab}
-      <button
-        onclick={() => activeTab = tab.id}
-        class="pt-2 pb-5 text-[11px] md:text-[12px] uppercase tracking-widest font-bold whitespace-nowrap transition-all relative {activeTab === tab.id ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
-      >
-        {tab.label}
-        {#if activeTab === tab.id}
-          <div class="absolute bottom-0 left-0 w-full h-0.5 bg-luxury-copper" in:fly={{ y: 2 }}></div>
-        {/if}
-      </button>
-    {/each}
+<svelte:window onscroll={handleScroll} />
+
+<div class="space-y-6" in:fade>
+  <!-- Navigation Tabs: Shopee Style -->
+  <div class="bg-white sticky top-0 z-[40] border-b border-stone-100 -mx-4 md:mx-0 px-4 md:px-0">
+    <div class="flex gap-4 md:gap-0 overflow-x-auto no-scrollbar scroll-smooth">
+      {#each tabs as tab}
+        <button
+          onclick={() => activeTab = tab.id}
+          class="flex-1 min-w-fit md:min-w-0 pt-4 pb-4 text-[13px] md:text-[14px] font-medium whitespace-nowrap transition-all relative px-4 text-center {activeTab === tab.id ? 'text-[#fe2c55]' : 'text-stone-500 hover:text-stone-800'}"
+        >
+          {tab.label}
+          {#if activeTab === tab.id}
+            <div 
+               class="absolute bottom-0 left-0 w-full h-[2.5px] bg-[#fe2c55]" 
+               in:fade={{ duration: 200 }}
+            ></div>
+          {/if}
+        </button>
+      {/each}
+    </div>
   </div>
 
-  <!-- Search / Filter -->
-  <div class="relative group">
-    <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-luxury-copper transition-colors" />
+  <!-- Search / Filter: TikTok Minimal -->
+  <div class="relative group mt-4">
+    <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-[#fe2c55] transition-colors" />
     <input
       type="text"
       bind:value={searchQuery}
       placeholder="Tìm kiếm theo Mã đơn hàng hoặc Tên sản phẩm..."
-      class="w-full h-12 pl-12 pr-4 bg-stone-50 border border-transparent focus:border-stone-200 focus:bg-white outline-none text-[13px] text-stone-800 transition-all rounded-sm placeholder:italic"
+      class="w-full h-11 pl-11 pr-4 bg-stone-100/50 border border-transparent focus:border-[#fe2c55]/20 focus:bg-white outline-none text-[13px] text-stone-800 transition-all rounded-xl placeholder:text-stone-400"
     />
   </div>
 
   <!-- Order List -->
-  <div class="space-y-6">
+  <div class="space-y-4 md:space-y-6">
     {#if isLoading}
       <div class="py-20 flex flex-col items-center justify-center space-y-4">
-        <div class="w-8 h-8 border-2 border-luxury-copper border-t-transparent animate-spin rounded-full"></div>
-        <p class="text-[11px] text-stone-400 uppercase tracking-widest animate-pulse">Đang truy xuất dữ liệu...</p>
+        <div class="w-8 h-8 border-[3px] border-[#fe2c55]/20 border-t-[#fe2c55] animate-spin rounded-full"></div>
+        <p class="text-[11px] text-stone-400 font-bold uppercase tracking-[0.2em] animate-pulse">Synchronizing Data...</p>
       </div>
     {:else if filteredOrders.length === 0}
-      <div class="py-24 text-center border-2 border-dashed border-stone-50 rounded-lg" in:fade>
-        <div class="w-20 h-20 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-6">
-          <ShoppingBag class="w-10 h-10 text-stone-200" />
+      <div class="py-24 text-center bg-white border border-stone-100 rounded-3xl" in:fade>
+        <div class="w-24 h-24 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-6">
+          <ShoppingBag class="w-12 h-12 text-stone-200" />
         </div>
-        <p class="text-stone-400 font-serif italic">Không tìm thấy đơn hàng nào.</p>
+        <p class="text-stone-400 text-sm font-medium">Chưa có đơn hàng nào trong mục này.</p>
         {#if !searchQuery && activeTab === 'all'}
-          <a href="/" class="inline-block mt-8 px-10 py-3 bg-stone-900 text-white text-[11px] uppercase tracking-[3px] font-bold hover:bg-luxury-copper transition-all duration-500 shadow-lg">
-            Khám phá bộ sưu tập
+          <a href="/" class="inline-block mt-8 px-10 py-3.5 bg-[#fe2c55] text-white text-[12px] uppercase tracking-widest font-black rounded-full hover:scale-105 transition-all shadow-xl shadow-[#fe2c55]/20">
+            Khám phá ngay
           </a>
         {/if}
       </div>
@@ -124,90 +275,158 @@
       {#each filteredOrders as order (order.id)}
         {@const status = getStatusStyle(order.status)}
         <div
-          class="bg-white border border-stone-100 overflow-hidden hover:shadow-[0_15px_40px_rgba(0,0,0,0.04)] transition-all duration-700 group rounded-sm"
-          in:fly={{ y: 10 }}
+          class="bg-white/80 backdrop-blur-xl md:border md:border-white/40 overflow-hidden md:rounded-[32px] transition-all duration-500 group {ui.isMobile ? 'border-b-8 border-stone-100/80' : 'hover:shadow-[0_40px_100px_rgba(0,0,0,0.1)] hover:-translate-y-1 mb-6 shadow-sm'}"
+          in:fly={{ y: 20, duration: 400 }}
         >
-          <!-- Order Header -->
-          <div class="px-4 md:px-6 py-4 border-b border-stone-50 flex flex-col md:flex-row md:items-center justify-between bg-stone-50/30 gap-3">
-            <div class="flex items-center gap-3 md:gap-4 flex-wrap">
-              <span class="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-stone-400">Đơn hàng</span>
-              <span class="text-[12px] md:text-[13px] font-bold text-stone-800">#{order.id.slice(-8).toUpperCase()}</span>
-              <span class="hidden md:inline text-[11px] text-stone-300">|</span>
-              <span class="text-[11px] md:text-[12px] text-stone-500 font-medium italic font-serif">{formatDate(order.created_at)}</span>
+          <!-- 📦 Order Header: Shopee Style -->
+          {#if !ui.isMobile}
+            <div class="px-6 py-4 border-b border-stone-50 flex items-center justify-between bg-white relative">
+              <div class="flex items-center gap-4">
+                <span class="flex items-center gap-2 text-[12px] font-bold text-stone-800">
+                  <span class="px-2 py-0.5 bg-black text-white text-[9px] font-black rounded">ELITE</span>
+                  Micsmo Official Store
+                </span>
+                <button class="bg-stone-100 hover:bg-stone-200 px-3 py-1 rounded text-[11px] font-bold transition-all flex items-center gap-1.5">
+                   <MessageSquare size={12} /> Chat
+                </button>
+                <div class="w-px h-4 bg-stone-100 mx-1"></div>
+                <button class="text-stone-500 hover:text-stone-800 text-[11px] font-medium transition-all">Xem Shop</button>
+              </div>
+              <div class="flex items-center gap-2 {status.color}">
+                <span class="text-[12px] font-bold uppercase tracking-wider">{status.label}</span>
+                {#if order.status === 'DELIVERED'}
+                  <div class="w-px h-4 bg-stone-100 mx-2"></div>
+                  <span class="text-[12px] font-bold text-[#fe2c55] uppercase">Hoàn thành</span>
+                {/if}
+              </div>
             </div>
-            <div class="flex items-center gap-2 {status.color}">
-              <status.icon class="w-4 h-4" />
-              <span class="text-[10px] md:text-[11px] font-black uppercase tracking-widest">{status.label}</span>
+          {:else}
+            <!-- 📱 Mobile Header: TikTok Minimal -->
+            <div class="px-4 py-3 flex items-center justify-between">
+               <div class="flex items-center gap-2">
+                 <div class="w-5 h-5 bg-black rounded flex items-center justify-center">
+                    <span class="text-[8px] text-white font-black">M</span>
+                 </div>
+                 <span class="text-[13px] font-bold text-stone-800">Micsmo Store</span>
+               </div>
+               <span class="text-[11px] font-bold {status.color} uppercase tracking-tighter px-2.5 py-1 rounded-full {status.bg} backdrop-blur-md">{status.label}</span>
             </div>
-          </div>
+          {/if}
 
-          <!-- Order Items -->
-          <div class="p-4 md:p-6 space-y-6">
+          <!-- 🛍️ Order Items: High Density -->
+          <div class="{ui.isMobile ? 'px-4 pb-4' : 'p-6'} space-y-4">
             {#if order.items && Array.isArray(order.items)}
               {#each order.items as item}
-                <div class="flex gap-4 md:gap-6 items-center">
-                  <div class="w-16 h-16 md:w-20 md:h-20 bg-stone-50 border border-stone-100 shrink-0 p-1 rounded-sm overflow-hidden group-hover:scale-105 transition-transform duration-700">
-                    {#if item.image}
-                      <img src={item.image} alt={item.name} class="w-full h-full object-cover" />
+                {@const itemImage = item.image || item.image_url}
+                <div class="flex gap-4 items-start md:items-center">
+                  <div class="w-20 h-20 bg-stone-50/50 border border-white/20 shrink-0 p-1 rounded-2xl overflow-hidden relative shadow-sm group-hover:shadow-md transition-shadow">
+                    {#if itemImage}
+                      <img src={resolveMediaUrl(itemImage)} alt={item.name} class="w-full h-full object-cover rounded-xl" />
                     {:else}
-                      <div class="w-full h-full flex items-center justify-center text-stone-200">
-                         <ShoppingBag class="w-6 h-6" />
+                      <div class="w-full h-full flex items-center justify-center text-stone-300">
+                         <ShoppingBag class="w-8 h-8" strokeWidth={1.5} />
+                      </div>
+                    {/if}
+                    <div class="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-lg font-black backdrop-blur-md">x{item.qty || item.quantity}</div>
+                  </div>
+                  <div class="flex-1 min-w-0 py-1">
+                    <h3 class="text-[15px] font-black text-stone-900 leading-tight mb-2 group-hover:text-[#fe2c55] transition-colors line-clamp-2 uppercase italic tracking-tight">{item.name}</h3>
+                    {#if getVariantName(item)}
+                      <div class="flex items-center gap-2 text-[11px] text-stone-400 font-medium">
+                        <span>Phân loại: {getVariantName(item)}</span>
                       </div>
                     {/if}
                   </div>
-                  <div class="flex-1 min-w-0">
-                    <h3 class="text-[13px] md:text-[14px] font-medium text-stone-800 truncate mb-1">{item.name || 'Sản phẩm cao cấp'}</h3>
-                    <div class="flex items-center gap-3 md:gap-4 text-[11px] md:text-[12px] text-stone-400 uppercase tracking-widest flex-wrap">
-                      <span>Số lượng: {item.quantity || item.qty || 1}</span>
-                      {#if item.variant}
-                        <span class="w-px h-3 bg-stone-100"></span>
-                        <span>Phân loại: {item.variant}</span>
-                      {/if}
-                    </div>
-                  </div>
-                  <div class="text-right">
-                     <span class="text-[13px] md:text-[14px] font-bold text-stone-800">{formatCurrency(item.price || item.unit_price || 0)}</span>
+                  <div class="text-right flex flex-col justify-center">
+                     <span class="text-[16px] font-black text-stone-900 tabular-nums">{formatCurrency(item.unit_price || (item as any).price || 0)}</span>
                   </div>
                 </div>
               {/each}
             {/if}
           </div>
 
-          <!-- Order Footer -->
-          <div class="px-4 md:px-6 py-5 bg-stone-50/30 border-t border-stone-50 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div class="flex items-center gap-2">
-              <span class="text-[11px] md:text-[12px] text-stone-400 uppercase tracking-widest">Thành tiền:</span>
-              <span class="text-lg md:text-xl font-bold text-luxury-copper tabular-nums">{formatCurrency(order.total_amount || order.total || 0)}</span>
+          <!-- 💰 Order Footer: Viral 2026 Style -->
+          <div class="{ui.isMobile ? 'px-4 py-5' : 'px-8 py-6'} border-t border-white/20 bg-gradient-to-br from-stone-50/10 to-stone-100/5 backdrop-blur-sm flex flex-col items-end gap-6">
+            
+            <div class="w-full flex flex-col gap-2.5 items-end">
+              {#if getOrderSavings(order) > 0}
+                <div class="flex items-center gap-2 text-[#ee4d2d] bg-[#ee4d2d]/5 px-3 py-1.5 rounded-2xl border border-[#ee4d2d]/10">
+                  <Sparkles size={14} class="animate-pulse" />
+                  <span class="text-[12px] font-black italic tracking-tight">SIÊU ƯU ĐÃI: -{formatCurrency(getOrderSavings(order))}</span>
+                </div>
+              {/if}
+              
+              <div class="flex items-end gap-3 translate-y-1">
+                <span class="text-[11px] text-stone-400 font-bold uppercase tracking-[0.1em] italic">Thành tiền</span>
+                <span class="text-3xl font-black text-[#fe2c55] tracking-tighter tabular-nums drop-shadow-sm">{formatCurrency(order.total || order.total_amount || 0)}</span>
+              </div>
             </div>
 
-            <div class="flex items-center gap-3 md:gap-4">
+            <div class="flex items-center gap-3 w-full md:w-auto">
+              {#if order.status === 'PENDING' || order.status === 'PACKED'}
+                 <button
+                    onclick={() => handleCancelOrder(order.id)}
+                    class="flex-1 md:flex-none h-12 px-6 border border-stone-200 rounded-full text-[12px] font-black text-stone-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 hover:shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                  >
+                    <XCircle size={14} /> Hủy Đơn
+                  </button>
+              {/if}
+
               <a
                 href="/checkout/success/{order.id}"
-                class="flex-1 md:flex-none text-center px-4 md:px-6 py-3.5 border border-stone-200 text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-stone-600 hover:border-stone-800 hover:text-stone-800 transition-all"
+                class="flex-1 md:flex-none h-12 flex items-center justify-center px-8 border border-stone-200 rounded-full text-[12px] font-black text-stone-900 hover:bg-stone-50 hover:shadow-xl transition-all uppercase tracking-widest"
               >
                 Chi tiết
               </a>
+
               <button
                 onclick={() => handleReorder(order)}
-                class="flex-1 md:flex-none px-6 md:px-8 py-3.5 bg-stone-900 text-white text-[10px] md:text-[11px] font-bold uppercase tracking-widest hover:bg-luxury-copper transition-all duration-500 shadow-md"
+                disabled={isReordering}
+                class="flex-1 md:flex-none h-12 min-w-[140px] px-8 bg-gradient-to-r from-[#fe2c55] to-[#f43f5e] text-white text-[12px] font-black uppercase tracking-[0.2em] rounded-full hover:scale-[1.02] active:scale-95 transition-all shadow-[0_15px_30px_-5px_rgba(254,44,85,0.4)] hover:shadow-[0_20px_40px_-5px_rgba(254,44,85,0.6)] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group overflow-hidden relative"
               >
-                Mua lại
+                <div class="relative z-10 flex items-center justify-center gap-2">
+                  {#if isReordering}
+                    <div class="w-4 h-4 border-2 border-white/20 border-t-white animate-spin rounded-full"></div>
+                    <span class="animate-pulse">ĐANG XỬ LÝ...</span>
+                  {:else}
+                    MUA LẠI
+                  {/if}
+                </div>
+                <div class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 skew-x-[-20deg]"></div>
               </button>
             </div>
           </div>
         </div>
       {/each}
+
+      {#if orders.length > 0}
+        <div class="h-20 w-full flex items-center justify-center pt-4 pb-8">
+          {#if isLoadingMore}
+            <div class="flex items-center gap-2 text-[#fe2c55]/80">
+              <div class="w-5 h-5 border-2 border-[#fe2c55]/30 border-t-[#fe2c55] animate-spin rounded-full"></div>
+              <span class="text-[12px] font-bold uppercase tracking-wider">Đang tải thêm...</span>
+            </div>
+          {:else if !hasMore}
+            <div class="flex items-center gap-2 text-stone-300">
+              <div class="w-8 h-px bg-stone-200"></div>
+              <Sparkles size={14} />
+              <span class="text-[11px] font-medium tracking-widest uppercase">Bạn đã xem hết đơn hàng</span>
+              <div class="w-8 h-px bg-stone-200"></div>
+            </div>
+          {/if}
+        </div>
+      {/if}
     {/if}
   </div>
 
-  <!-- Aesthetic Branding -->
-  <div class="pt-16 text-center opacity-30 pb-10">
-     <div class="flex items-center justify-center gap-4 mb-2">
-        <div class="h-[1px] w-12 md:w-20 bg-stone-200"></div>
-        <span class="text-[9px] md:text-[10px] font-serif italic uppercase tracking-[3px] md:tracking-[5px] text-stone-800 whitespace-nowrap">Micsmo Elite Experience</span>
-        <div class="h-[1px] w-12 md:w-20 bg-stone-200"></div>
+  <!-- 🔱 Cinematic Branding -->
+  <div class="pt-20 text-center pb-12">
+     <div class="flex items-center justify-center gap-5 mb-3 opacity-10">
+        <div class="h-[0.5px] w-24 bg-stone-800"></div>
+        <span class="text-[11px] font-serif italic uppercase tracking-[0.6em] text-stone-800">VIRAL 2026</span>
+        <div class="h-[0.5px] w-24 bg-stone-800"></div>
      </div>
-     <p class="text-[8px] md:text-[9px] text-stone-400 uppercase tracking-[2px]">Bản quyền thuộc về Micsmo.com • 2026</p>
+     <p class="text-[9px] text-stone-300 font-black uppercase tracking-[0.4em] opacity-40">Elite Transaction Shield • AES-256</p>
   </div>
 </div>
 
