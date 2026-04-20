@@ -262,12 +262,25 @@ class CategoryService:
         await CategoryService._invalidate_cache()
         await CategoryService._sync_media_links(category_id, category.image)
 
-        cat_data = CategoryResponse(
-            id=category.id,
+        # Elite V2.2: Deep Sync SEO Meta after update
+        faqs = category.category_metadata.get("faqs", []) if category.category_metadata else []
+        seo_meta = SeoService.generate_category_seo_meta(
             name=category.name,
             slug=category.slug,
-            parent_id=category.parent_id,
-            product_count=0,
+            description=category.seo_description or category.description,
+            faqs=faqs
+        )
+
+        # 1. Zero-Hydration Response Reconstruction
+        # Elite V2.2: Phải lấy metadata chuẩn từ model để tránh lệch key alias
+        db_metadata = category.category_metadata if isinstance(category.category_metadata, dict) else {}
+
+        cat_data = CategoryResponse(
+            id=str(category.id),
+            name=category.name,
+            slug=category.slug,
+            parent_id=str(category.parent_id) if category.parent_id else None,
+            product_count=0, # Will be refreshed on total list fetch
             children=[],
             description=category.description,
             seo_title=category.seo_title,
@@ -277,8 +290,9 @@ class CategoryService:
             position=category.position,
             show_on_mobile=category.show_on_mobile,
             show_on_desktop=category.show_on_desktop,
-            category_metadata=category.category_metadata,
-            created_at=category.created_at or datetime.now(timezone.utc)
+            category_metadata=db_metadata,
+            created_at=category.created_at or datetime.now(timezone.utc),
+            seo_meta=seo_meta
         )
         return SuccessResponse(ok=True, id=category_id, data=cat_data)
 

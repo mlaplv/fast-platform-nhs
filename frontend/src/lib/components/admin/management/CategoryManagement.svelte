@@ -181,14 +181,22 @@
             const existingChildren = categories[i].children;
             const existingCount = categories[i].productCount;
             // Elite V2.2: Deep sync updated data to local store
+            // Chú ý: Backend trả về JSON với các key alias (snake_case)
+            const up: any = updated;
             categories[i] = { 
               ...categories[i],
-              ...updated, 
+              name: up.name ?? categories[i].name,
+              slug: up.slug ?? categories[i].slug,
+              description: up.description ?? categories[i].description,
+              seoTitle: up.seo_title ?? categories[i].seoTitle,
+              seoDescription: up.seo_description ?? categories[i].seoDescription,
+              image: up.image ?? categories[i].image,
+              icon: up.icon ?? categories[i].icon,
+              showOnMobile: up.show_on_mobile ?? categories[i].showOnMobile,
+              showOnDesktop: up.show_on_desktop ?? categories[i].showOnDesktop,
+              category_metadata: up.category_metadata || { faqs: [] },
               children: existingChildren, 
-              productCount: existingCount,
-              category_metadata: updated.category_metadata,
-              showOnMobile: updated.show_on_mobile,
-              showOnDesktop: updated.show_on_desktop
+              productCount: existingCount
             };
           }
         }

@@ -28,8 +28,8 @@ logger = logging.getLogger("api-gateway")
 
 # ── Config từ Env để tránh hardcode ────────────────────────────────────────────
 _BASE_DOMAIN: str = os.getenv("APP_DOMAIN", "micsmo.com")
-_SITE_NAME: str = os.getenv("SEO_SITE_NAME", "Nhà Thuốc Hồng Sơn")
-_BRAND_NAME: str = os.getenv("SEO_BRAND_NAME", "Hồng Sơn")
+_SITE_NAME: str = os.getenv("SEO_SITE_NAME", "Micsmo Elite")
+_BRAND_NAME: str = os.getenv("SEO_BRAND_NAME", "Micsmo")
 _SITE_URL: str = f"https://{_BASE_DOMAIN}"
 
 # ── Layout: Google Title 50-60, Desc 150-160, ít nhất 8 từ khóa đuôi dài ─────
@@ -409,7 +409,7 @@ class SeoService:
         return SeoMetaSchema(
             title=title,
             description=desc,
-            keywords=f"{name}, {name} chính hãng, {_SITE_NAME}",
+            keywords=f"{name}, {name} chính hãng, {_SITE_NAME}, {_BRAND_NAME}",
             canonical_url=canonical_url,
             json_ld_string=json.dumps(schema, separators=(",", ":"), ensure_ascii=False),
             breadcrumb_ld_string=json.dumps(breadcrumb, separators=(",", ":"), ensure_ascii=False),
