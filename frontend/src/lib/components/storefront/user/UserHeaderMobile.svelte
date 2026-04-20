@@ -15,7 +15,7 @@
 </script>
 
 <header
-  class="fixed top-0 left-0 w-full bg-white/90 backdrop-blur-md border-b border-gray-100"
+  class="fixed top-0 left-0 w-full bg-white/90 backdrop-blur-md border-b border-stone-100 shadow-sm"
   style="z-index: {Z_INDEX_CLIENT.HEADER}; padding-top: env(safe-area-inset-top);"
 >
   <div class="flex items-center justify-between px-2 h-[52px]">
@@ -24,7 +24,7 @@
     </button>
 
     <div class="flex-1 flex flex-col items-center justify-center overflow-hidden px-2">
-        <h1 class="text-[13px] font-bold uppercase tracking-[2px] text-stone-900 truncate w-full text-center">
+        <h1 class="text-[14px] font-serif italic text-stone-800 truncate w-full text-center tracking-wide">
           {title}
         </h1>
         <div class="flex items-center gap-2 mt-0.5">

@@ -102,6 +102,12 @@
       <span class="text-5xl font-black text-[#ee4d2d] italic tracking-tightest drop-shadow-sm">
         {formatCurrency(finalTotal)}
       </span>
+      
+      <!-- 🧧 [ELITE V2.2] ESTIMATED POINTS EARNED MARKETING -->
+      <div class="mt-2 flex items-center gap-1.5 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+        <div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+        <span class="text-[9px] font-black text-amber-700 uppercase tracking-widest leading-none">DỰ KIẾN TÍCH LŨY: +{Math.floor(finalTotal / 100000)} PTS</span>
+      </div>
     </div>
 
     {#if totalSavings > 0}

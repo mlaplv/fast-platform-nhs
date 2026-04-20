@@ -275,7 +275,7 @@
       {#each filteredOrders as order (order.id)}
         {@const status = getStatusStyle(order.status)}
         <div
-          class="bg-white/80 backdrop-blur-xl md:border md:border-white/40 overflow-hidden md:rounded-[32px] transition-all duration-500 group {ui.isMobile ? 'border-b-8 border-stone-100/80' : 'hover:shadow-[0_40px_100px_rgba(0,0,0,0.1)] hover:-translate-y-1 mb-6 shadow-sm'}"
+          class="bg-white/80 backdrop-blur-xl md:border md:border-stone-100 overflow-hidden md:rounded-[32px] transition-all duration-500 group {ui.isMobile ? 'rounded-[32px] mx-2 mb-6 shadow-[0_10px_30px_rgba(0,0,0,0.03)] border border-stone-100' : 'hover:shadow-[0_40px_100px_rgba(0,0,0,0.1)] hover:-translate-y-1 mb-10 shadow-sm'}"
           in:fly={{ y: 20, duration: 400 }}
         >
           <!-- 📦 Order Header: Shopee Style -->
@@ -301,44 +301,44 @@
               </div>
             </div>
           {:else}
-            <!-- 📱 Mobile Header: TikTok Minimal -->
-            <div class="px-4 py-3 flex items-center justify-between">
+            <!-- 📱 Mobile Header: Viral Elite Style -->
+            <div class="px-6 py-4 flex items-center justify-between border-b border-stone-50">
                <div class="flex items-center gap-2">
-                 <div class="w-5 h-5 bg-black rounded flex items-center justify-center">
-                    <span class="text-[8px] text-white font-black">M</span>
+                 <div class="w-6 h-6 bg-stone-900 rounded-lg flex items-center justify-center shadow-lg shadow-stone-900/20">
+                    <span class="text-[9px] text-white font-black italic">M</span>
                  </div>
-                 <span class="text-[13px] font-bold text-stone-800">Micsmo Store</span>
+                 <span class="text-[12px] font-black text-stone-800 uppercase tracking-widest">Micsmo Official</span>
                </div>
-               <span class="text-[11px] font-bold {status.color} uppercase tracking-tighter px-2.5 py-1 rounded-full {status.bg} backdrop-blur-md">{status.label}</span>
+               <span class="text-[9px] font-black {status.color} uppercase tracking-[2px] px-3 py-1.5 rounded-full {status.bg} border border-current/10">{status.label}</span>
             </div>
           {/if}
 
           <!-- 🛍️ Order Items: High Density -->
-          <div class="{ui.isMobile ? 'px-4 pb-4' : 'p-6'} space-y-4">
+          <div class="{ui.isMobile ? 'px-6 py-6' : 'p-8'} space-y-5">
             {#if order.items && Array.isArray(order.items)}
               {#each order.items as item}
                 {@const itemImage = item.image || item.image_url}
                 <div class="flex gap-4 items-start md:items-center">
-                  <div class="w-20 h-20 bg-stone-50/50 border border-white/20 shrink-0 p-1 rounded-2xl overflow-hidden relative shadow-sm group-hover:shadow-md transition-shadow">
+                  <div class="w-24 h-24 bg-stone-50 border border-stone-100 shrink-0 p-1 rounded-2xl overflow-hidden relative shadow-sm transition-all group-hover:scale-[1.02]">
                     {#if itemImage}
                       <img src={resolveMediaUrl(itemImage)} alt={item.name} class="w-full h-full object-cover rounded-xl" />
                     {:else}
-                      <div class="w-full h-full flex items-center justify-center text-stone-300">
-                         <ShoppingBag class="w-8 h-8" strokeWidth={1.5} />
+                      <div class="w-full h-full flex items-center justify-center text-stone-200">
+                         <ShoppingBag class="w-10 h-10" strokeWidth={1} />
                       </div>
                     {/if}
-                    <div class="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded-lg font-black backdrop-blur-md">x{item.qty || item.quantity}</div>
+                    <div class="absolute bottom-1 right-1 bg-stone-900/90 text-white text-[9px] px-2 py-0.5 rounded-lg font-black backdrop-blur-md">x{item.qty || item.quantity}</div>
                   </div>
                   <div class="flex-1 min-w-0 py-1">
-                    <h3 class="text-[15px] font-black text-stone-900 leading-tight mb-2 group-hover:text-[#fe2c55] transition-colors line-clamp-2 uppercase italic tracking-tight">{item.name}</h3>
+                    <h3 class="text-[14px] font-serif italic text-stone-800 leading-snug mb-1.5 group-hover:text-luxury-copper transition-colors line-clamp-2">{item.name}</h3>
                     {#if getVariantName(item)}
-                      <div class="flex items-center gap-2 text-[11px] text-stone-400 font-medium">
-                        <span>Phân loại: {getVariantName(item)}</span>
+                      <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 bg-stone-50 text-stone-400 text-[9px] font-black uppercase tracking-widest rounded-md border border-stone-100">{getVariantName(item)}</span>
                       </div>
                     {/if}
                   </div>
                   <div class="text-right flex flex-col justify-center">
-                     <span class="text-[16px] font-black text-stone-900 tabular-nums">{formatCurrency(item.unit_price || (item as any).price || 0)}</span>
+                     <span class="text-[15px] font-black text-stone-800 tabular-nums italic tracking-tighter">{formatCurrency(item.unit_price || (item as any).price || 0)}</span>
                   </div>
                 </div>
               {/each}
@@ -366,15 +366,15 @@
               {#if order.status === 'PENDING' || order.status === 'PACKED'}
                  <button
                     onclick={() => handleCancelOrder(order.id)}
-                    class="flex-1 md:flex-none h-12 px-6 border border-stone-200 rounded-full text-[12px] font-black text-stone-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 hover:shadow-lg transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                    class="flex-1 md:flex-none h-11 px-6 border border-stone-100 rounded-full text-[10px] font-black text-stone-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
                   >
-                    <XCircle size={14} /> Hủy Đơn
+                    Hủy Đơn
                   </button>
               {/if}
 
               <a
                 href="/checkout/success/{order.id}"
-                class="flex-1 md:flex-none h-12 flex items-center justify-center px-8 border border-stone-200 rounded-full text-[12px] font-black text-stone-900 hover:bg-stone-50 hover:shadow-xl transition-all uppercase tracking-widest"
+                class="flex-1 md:flex-none h-11 flex items-center justify-center px-8 border border-stone-100 rounded-full text-[10px] font-black text-stone-800 hover:bg-stone-50 transition-all uppercase tracking-widest whitespace-nowrap"
               >
                 Chi tiết
               </a>
@@ -382,17 +382,17 @@
               <button
                 onclick={() => handleReorder(order)}
                 disabled={isReordering}
-                class="flex-1 md:flex-none h-12 min-w-[140px] px-8 bg-gradient-to-r from-[#fe2c55] to-[#f43f5e] text-white text-[12px] font-black uppercase tracking-[0.2em] rounded-full hover:scale-[1.02] active:scale-95 transition-all shadow-[0_15px_30px_-5px_rgba(254,44,85,0.4)] hover:shadow-[0_20px_40px_-5px_rgba(254,44,85,0.6)] disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group overflow-hidden relative"
+                class="flex-1 md:flex-none h-11 min-w-[130px] px-8 bg-stone-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full hover:bg-luxury-copper transition-all shadow-[0_15px_30px_rgba(0,0,0,0.1)] active:scale-95 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group overflow-hidden relative"
               >
                 <div class="relative z-10 flex items-center justify-center gap-2">
                   {#if isReordering}
-                    <div class="w-4 h-4 border-2 border-white/20 border-t-white animate-spin rounded-full"></div>
-                    <span class="animate-pulse">ĐANG XỬ LÝ...</span>
+                    <div class="w-3.5 h-3.5 border-2 border-white/20 border-t-white animate-spin rounded-full"></div>
+                    <span class="animate-pulse">PROCESSING...</span>
                   {:else}
                     MUA LẠI
                   {/if}
                 </div>
-                <div class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 skew-x-[-20deg]"></div>
+                <div class="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 skew-x-[-20deg]"></div>
               </button>
             </div>
           </div>

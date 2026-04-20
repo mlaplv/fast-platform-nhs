@@ -7,9 +7,28 @@
   import UserLayout from '$lib/components/storefront/user/UserLayout.svelte';
   import MemberCard from '$lib/components/storefront/user/MemberCard.svelte';
   import { formatCurrency } from '$lib/utils/format';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { browser } from '$app/environment';
+  import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
+  import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
+
+  const ui = getClientUi();
+  let isMenuOpen = $state(false);
 
   onMount(() => {
     loyaltyStore.fetchLoyalty();
+    
+    if (ui.isMobile) {
+      ui.isHeaderHidden = true;
+    } else {
+      ui.isHeaderHidden = false;
+    }
+    ui.isFooterHidden = false;
+
+    return () => {
+      ui.isHeaderHidden = false;
+      ui.isFooterHidden = false;
+    };
   });
 
   function formatDate(dateStr: string) {
@@ -29,7 +48,9 @@
   }
 </script>
 
-<UserLayout>
+{#if browser}
+  {#if !ui.isMobile}
+    <UserLayout>
   <div class="space-y-10" in:fade>
     <!-- Page Header -->
     <div class="border-b border-stone-100 pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -110,7 +131,7 @@
                     </div>
                     <p class="text-[13px] text-stone-600 font-medium">1 Điểm = 1.000 VNĐ chiết khấu</p>
                     <p class="text-[10px] text-stone-400 italic font-medium leading-relaxed">
-                        Chính sách bảo vệ biên lợi nhuận Elite V2.2: Áp dụng tối đa 0.01% giá trị mỗi đơn hàng.
+                        Chính sách bảo vệ biên lợi nhuận Elite V2.2: Áp dụng tối đa 1% giá trị mỗi đơn hàng.
                     </p>
                 </div>
             </div>
@@ -170,7 +191,98 @@
       </div>
     {/if}
   </div>
-</UserLayout>
+    </UserLayout>
+  {:else}
+    <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
+    <UserHeaderMobile title="Điểm Thưởng" bind:isMenuOpen />
+
+    <div
+      class="pb-20 px-4 space-y-8 bg-[#f9f8f6] min-h-screen"
+      style="padding-top: calc(env(safe-area-inset-top) + 80px);"
+      in:fade
+    >
+      {#if loyaltyStore.loading && !loyaltyStore.data}
+        <div class="flex flex-col items-center justify-center py-20 space-y-4">
+          <div class="w-8 h-8 border-2 border-stone-100 border-t-luxury-copper rounded-full animate-spin"></div>
+        </div>
+      {:else if loyaltyStore.data}
+        <!-- Mobile Member Card -->
+        <MemberCard />
+        
+        <!-- Mobile Quick Stats -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="p-4 bg-stone-50 border border-stone-100 rounded-2xl flex flex-col gap-1">
+             <span class="text-[8px] font-black text-stone-400 uppercase tracking-widest">Tổng chi tiêu</span>
+             <span class="text-sm font-black text-stone-800">{formatCurrency(loyaltyStore.data.total_spent)}</span>
+          </div>
+          <div class="p-4 bg-stone-900 text-white rounded-2xl flex flex-col gap-1">
+            <span class="text-[8px] font-black text-stone-500 uppercase tracking-widest">Hạng hiện tại</span>
+            <span class="text-sm font-black text-luxury-copper uppercase italic">{loyaltyStore.tierName}</span>
+         </div>
+        </div>
+
+        <!-- Tier Progress -->
+        <div class="space-y-4 p-5 bg-white border border-stone-100 rounded-2xl">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] font-black text-stone-800 uppercase tracking-widest">Tiến trình hạng</span>
+                <TrendingUp class="w-3 h-3 text-luxury-copper" />
+            </div>
+            
+            <div class="h-1.5 w-full bg-stone-50 rounded-full overflow-hidden border border-stone-100">
+                <div 
+                    class="h-full bg-luxury-copper transition-all duration-1000 shadow-[0_0_8px_rgba(197,160,89,0.2)]"
+                    style="width: {loyaltyStore.nextTierProgress}%"
+                ></div>
+            </div>
+
+            <div class="flex justify-between text-[8px] uppercase tracking-widest font-black text-stone-300">
+                <span>Standard</span>
+                <span>Silver</span>
+                <span>Gold</span>
+                <span>Elite</span>
+            </div>
+        </div>
+
+        <!-- Redemption Card -->
+        <div class="p-6 bg-[#fcfbf9] border border-[#f5f1e8] rounded-2xl relative overflow-hidden group">
+            <Gift class="absolute -right-4 -bottom-4 w-20 h-20 text-luxury-copper/5 rotate-12" />
+            <div class="relative z-10 space-y-1">
+                <span class="text-[9px] uppercase tracking-[2px] font-black text-stone-800">Quy tắc đổi thưởng</span>
+                <p class="text-sm text-stone-600 font-serif italic">1 PTS = 1.000 VNĐ</p>
+                <p class="text-[10px] text-stone-400 leading-relaxed font-medium">Hạn mức chiết khấu: 1% giá trị mỗi đơn hàng.</p>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div class="space-y-5">
+            <div class="flex items-center gap-2 border-b border-stone-100 pb-2">
+                <History class="w-3.5 h-3.5 text-luxury-copper" />
+                <h2 class="text-[11px] uppercase tracking-[2px] font-black text-stone-800">Lịch sử giao dịch</h2>
+            </div>
+
+            <div class="bg-white border border-stone-100 rounded-3xl overflow-hidden shadow-sm">
+                <div class="divide-y divide-stone-50">
+                    {#each loyaltyStore.data.history as tx}
+                        <div class="px-5 py-4 flex justify-between items-center">
+                            <div class="flex flex-col">
+                                <span class="text-[12px] font-bold text-stone-800 tracking-tight">{tx.notes || 'Giao dịch điểm'}</span>
+                                <span class="text-[9px] text-stone-400 font-mono mt-0.5">{formatDate(tx.created_at)}</span>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                <span class="text-base font-black {getTransactionIcon(tx.transaction_type)} tracking-tighter">
+                                    {tx.amount > 0 ? '+' : ''}{tx.amount}
+                                </span>
+                                <span class="text-[8px] uppercase tracking-widest opacity-40 font-black">Points</span>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+        </div>
+      {/if}
+    </div>
+  {/if}
+{/if}
 
 <style>
     :global(.text-luxury-copper) {

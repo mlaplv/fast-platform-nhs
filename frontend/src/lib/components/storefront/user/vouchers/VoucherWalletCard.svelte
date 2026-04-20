@@ -22,51 +22,51 @@
 </script>
 
 <div 
-  class="voucher-wallet-card relative w-full h-[100px] flex bg-white border border-stone-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group"
+  class="voucher-wallet-card relative w-full h-[110px] flex bg-white border border-stone-100 rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.04)] transition-all group"
   in:scale={{ duration: 400, start: 0.98 }}
 >
-  <!-- 🎫 LEFT STUB (COLORFUL) -->
-  <div class="w-[80px] md:w-[100px] h-full flex flex-col items-center justify-center relative border-r border-dashed border-stone-100/50 {isShipping ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-luxury-sakura to-luxury-copper'}">
-    <!-- 🟢 TikTok Notches -->
-    <div class="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-[#f9f8f6] z-10"></div>
-    <div class="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-[#f9f8f6] z-10 border-l border-stone-100/10"></div>
+  <!-- 🎫 LEFT STUB (PREMIUM METALLIC GRADIENT) -->
+  <div class="w-[90px] md:w-[110px] h-full flex flex-col items-center justify-center relative border-r border-dashed border-stone-200/50 {isShipping ? 'bg-stone-900' : 'bg-luxury-copper'}">
+    <!-- 🟢 Perforated Ticket Notches -->
+    <div class="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#f9f8f6] z-10 border border-stone-100"></div>
+    <div class="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#f9f8f6] z-10 border border-stone-100"></div>
 
-    <div class="relative z-10 flex flex-col items-center gap-1.5">
-       <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white shadow-inner">
-          <Ticket size={20} class="drop-shadow-sm" />
+    <div class="relative z-10 flex flex-col items-center gap-2">
+       <div class="w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 text-white shadow-xl group-hover:scale-110 transition-transform duration-500">
+          <Ticket size={22} class="drop-shadow-lg" strokeWidth={1.5} />
        </div>
-       <span class="text-[8px] font-black text-white/80 uppercase tracking-[0.2em]">{voucher.category}</span>
+       <span class="text-[8px] font-black text-white/50 uppercase tracking-[0.3em] font-mono">{voucher.category}</span>
     </div>
     
-    <!-- Decorative sparkles -->
-    <Sparkles size={12} class="absolute top-2 left-2 text-white/20 animate-pulse" />
+    <!-- Premium Shimmer -->
+    <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-shimmer opacity-0 group-hover:opacity-100 transition-opacity"></div>
   </div>
 
-  <!-- 📄 MAIN CONTENT -->
-  <div class="flex-1 p-4 flex flex-col justify-between min-w-0 bg-white">
-    <div class="space-y-1">
+  <!-- 📄 MAIN CONTENT (CLEAN & BREATHABLE) -->
+  <div class="flex-1 p-5 flex flex-col justify-between min-w-0 bg-white">
+    <div class="space-y-1.5">
       <div class="flex items-center justify-between gap-2">
-         <h3 class="text-sm md:text-base font-black text-stone-900 truncate uppercase tracking-tight">{mainLabel}</h3>
+         <h3 class="text-sm md:text-base font-serif italic text-stone-800 truncate tracking-wide">{mainLabel}</h3>
          {#if voucher.is_default}
-           <span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase rounded-[4px] border border-emerald-100 animate-pulse">Mặc định</span>
+           <span class="px-2 py-0.5 bg-stone-900 text-white text-[8px] font-black uppercase rounded-full border border-stone-800 shadow-lg shadow-stone-900/10">ELITE</span>
          {/if}
       </div>
-      <p class="text-[10px] md:text-[11px] font-bold text-stone-500 uppercase tracking-wide truncate">{subLabel}</p>
+      <p class="text-[10px] md:text-[11px] font-black text-stone-400 uppercase tracking-widest truncate">{subLabel}</p>
     </div>
 
-    <!-- 📊 USAGE STATS -->
+    <!-- 📊 USAGE STATS (MINIMALIST) -->
     <div class="space-y-2">
-       <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-stone-400">
-          <span>Đã dùng: {voucher.used_count.toLocaleString()}</span>
+       <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.2em] text-stone-300">
+          <span>PROGRESS: {usagePercent.toFixed(0)}%</span>
           {#if voucher.usage_limit}
-            <span>Hạn mức: {voucher.usage_limit.toLocaleString()}</span>
+            <span class="flex items-center gap-1"><Clock size={8} /> {voucher.usage_limit - voucher.used_count} Lượt còn lại</span>
           {/if}
        </div>
        
        {#if voucher.usage_limit}
-         <div class="h-1 w-full bg-stone-50 rounded-full overflow-hidden border border-stone-100/50">
+         <div class="h-1 w-full bg-stone-50 rounded-full overflow-hidden">
             <div 
-              class="h-full {usagePercent > 80 ? 'bg-red-400' : 'bg-luxury-copper'} transition-all duration-1000" 
+              class="h-full bg-stone-900 transition-all duration-1000 ease-out" 
               style="width: {usagePercent}%"
             ></div>
          </div>
@@ -74,13 +74,13 @@
     </div>
   </div>
 
-  <!-- 💡 ACTION / INFO -->
-  <div class="w-[60px] md:w-[80px] h-full flex flex-col items-center justify-center bg-stone-50/50 border-l border-stone-50">
-     <button class="flex flex-col items-center gap-1 group/btn">
-        <div class="w-8 h-8 rounded-full bg-white border border-stone-200 flex items-center justify-center text-stone-400 group-hover/btn:text-luxury-copper group-hover/btn:border-luxury-copper transition-all active:scale-90">
-           <Info size={16} />
+  <!-- 💡 ACTION SECTION (GLASS BUTTON) -->
+  <div class="w-[70px] md:w-[90px] h-full flex flex-col items-center justify-center bg-stone-50/30 border-l border-stone-50">
+     <button class="flex flex-col items-center gap-1.5 group/btn">
+        <div class="w-9 h-9 rounded-full bg-white border border-stone-100 flex items-center justify-center text-stone-300 group-hover/btn:text-luxury-copper group-hover/btn:border-luxury-copper group-hover/btn:shadow-lg transition-all active:scale-90">
+           <Info size={18} />
         </div>
-        <span class="text-[8px] font-black text-stone-400 group-hover/btn:text-luxury-copper uppercase tracking-tighter">Chi tiết</span>
+        <span class="text-[8px] font-black text-stone-400 group-hover/btn:text-stone-800 uppercase tracking-widest transition-colors font-mono">DETAIL</span>
      </button>
   </div>
 </div>

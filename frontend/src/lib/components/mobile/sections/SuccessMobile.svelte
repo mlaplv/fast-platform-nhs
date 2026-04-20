@@ -242,6 +242,31 @@
     </div>
     
     <div class="w-full space-y-4 mb-20 px-4">
+       <!-- 🚀 [ELITE V2.2] LOYALTY BOOSTER WOW MOMENT MOBILE -->
+       <div 
+         class="w-full bg-white border border-stone-100 p-5 rounded-2xl relative overflow-hidden group shadow-sm transition-all duration-500"
+         in:fly={{ y: 20, delay: 600 }}
+       >
+         <div class="absolute -right-4 -bottom-4 w-16 h-16 text-luxury-copper/10 rotate-12 transition-transform duration-700">
+           <Gift class="w-full h-full" />
+         </div>
+         <div class="relative z-10 flex items-center gap-4 text-left">
+           <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500 to-amber-200 flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
+              <Sparkles class="w-6 h-6 animate-pulse" />
+           </div>
+           <div>
+               <h4 class="text-[10px] font-black text-stone-900 uppercase tracking-[2px] leading-none mb-1.5 flex items-center gap-2">
+                 Loyalty Booster
+                 <span class="w-1 h-1 bg-amber-500 rounded-full animate-ping"></span>
+               </h4>
+               <p class="text-[14px] font-serif italic text-stone-700 leading-none">
+                 Tích được <span class="text-amber-600 font-black">+{Math.floor((order?.total_amount || 0) / 100000)} PTS</span>
+               </p>
+               <p class="text-[8px] text-stone-400 font-bold uppercase mt-2 opacity-60">Khả dụng sau khi giao hàng</p>
+           </div>
+         </div>
+       </div>
+
        <a href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}" class="block w-full py-4 bg-slate-900 text-white font-black uppercase italic tracking-widest text-center shadow-xl">GỌI XÁC NHẬN NGAY →</a>
        <p class="text-[10px] font-bold text-slate-400 uppercase italic">Hệ thống Micsmo Elite đang xử lý yêu cầu...</p>
     </div>

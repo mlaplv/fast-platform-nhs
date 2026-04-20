@@ -42,10 +42,10 @@ class LoyaltyStore {
 
     get tierName() {
         switch (this.data?.tier) {
-            case 'TIER_1': return 'Bạc (Silver)';
-            case 'TIER_2': return 'Vàng (Gold)';
-            case 'TIER_3': return 'Bạch Kim (Platinum)';
-            default: return 'Thành viên (Member)';
+            case 'SILVER': return 'Hạng Silver';
+            case 'GOLD': return 'Hạng Gold';
+            case 'PLATINUM': return 'Hạng Platinum (Elite)';
+            default: return 'Thành viên Standard';
         }
     }
 

@@ -24,7 +24,7 @@ export interface User {
   phone?: string;
   has_password?: boolean;
   extra_metadata?: {
-    tier?: 'MEMBER' | 'SILVER' | 'GOLD' | 'PLATINUM';
+    tier?: 'STANDARD' | 'SILVER' | 'GOLD' | 'PLATINUM';
     points?: number;
     addresses?: UserAddress[];
     skin_profile?: {

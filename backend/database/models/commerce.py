@@ -120,7 +120,7 @@ class UserLoyalty(Base, AuditMixin, TenantMixin):
     
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), unique=True)
-    tier: Mapped[str] = mapped_column(String, default="MEMBER") # MEMBER, TIER_1, TIER_2, TIER_3
+    tier: Mapped[str] = mapped_column(String, default="STANDARD") # STANDARD, SILVER, GOLD, PLATINUM
     available_points: Mapped[int] = mapped_column(Integer, default=0)
     pending_points: Mapped[int] = mapped_column(Integer, default=0)
     total_spent: Mapped[float] = mapped_column(Float, default=0.0) # Accumulation for tier upgrades

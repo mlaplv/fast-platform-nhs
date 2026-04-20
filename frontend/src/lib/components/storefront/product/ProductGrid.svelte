@@ -86,6 +86,11 @@
                   {product.metadata?.reviews_count_text || ''}
                 </span>
              </div>
+
+             <!-- Points Reward (Elite V2.2 Marketing) -->
+             <div class="flex items-center gap-1 bg-amber-50/50 px-1.5 py-0.5 rounded-[4px] border border-amber-100/30">
+               <span class="text-[9px] font-black text-amber-600 uppercase tracking-tighter">+{Math.floor((product.discountPrice || product.price) / 100000)} PTS</span>
+             </div>
              
              <!-- Location -->
              {#if product.metadata?.location}

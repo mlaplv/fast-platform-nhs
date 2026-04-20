@@ -324,7 +324,7 @@ class CheckoutService:
             proposed_discount = float(payload.points_redeemed * point_value)
             
             if proposed_discount > max_point_discount:
-                raise ValidationException(f"Lỗi: Số tiền thanh toán bằng điểm ({proposed_discount:,.0f}đ) vượt quá 0.01% giá trị đơn hàng ({max_point_discount:,.0f}đ).")
+                raise ValidationException(f"Lỗi: Số tiền thanh toán bằng điểm ({proposed_discount:,.0f}đ) vượt quá 1% giá trị đơn hàng ({max_point_discount:,.0f}đ).")
                 
             point_discount = proposed_discount
             expected_total -= point_discount
@@ -429,7 +429,7 @@ class CheckoutService:
                 order_id=new_order.id,
                 amount=-payload.points_redeemed,
                 transaction_type="REDEEM_ORDER",
-                notes=f"Thanh toán một phần đơn hàng bằng điểm. (Chiết khấu 0.01% - Giá trị: {point_discount}đ)"
+                notes=f"Thanh toán một phần đơn hàng bằng điểm. (Chiết khấu 1% - Giá trị: {point_discount}đ)"
             )
             db_session.add(pt)
 

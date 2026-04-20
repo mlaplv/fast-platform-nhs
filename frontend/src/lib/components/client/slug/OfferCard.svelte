@@ -196,11 +196,17 @@
           {/if}
 
           {#if totalSavings > 0}
-            <div class="mt-[3px] flex items-center">
+            <div class="mt-[3px] flex items-center gap-2">
                  <div class="ultimate-savings-box metallic-shimmer text-[8px] text-black font-black uppercase tracking-wider flex items-center gap-1.5 bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] px-2.5 py-1 rounded-full border border-white/20 shadow-lg transform active:scale-95 transition-all">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-led-red-pulse shadow-[0_0_8px_#ff0000]"></span>
                     <span>{mkt.savings_prefix}</span>
                     <span class="tabular-nums">{(totalSavings).toLocaleString()}đ</span>
+                 </div>
+
+                 <!-- 🧧 [ELITE V2.2] LOYALTY REWARD BADGE -->
+                 <div class="flex items-center gap-1.5 bg-luxury-sakura/10 border border-luxury-sakura/30 px-2 py-0.5 rounded-full shadow-[0_0_15px_rgba(255,183,197,0.1)]">
+                    <Sparkles class="w-2 h-2 text-luxury-sakura animate-pulse" />
+                    <span class="text-[8px] font-black text-luxury-sakura uppercase tracking-widest leading-none">+{Math.floor(totalPackagePrice / 100000)} PTS</span>
                  </div>
             </div>
           {/if}

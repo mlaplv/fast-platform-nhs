@@ -49,7 +49,7 @@ class LoyaltyService:
         new_tier = "STANDARD"
         if loyalty.total_spent > 20_000_000:
             new_tier = "PLATINUM"
-        elif loyalty.total_spent == 20_000_000:
+        elif loyalty.total_spent >= 20_000_000:
             new_tier = "GOLD"
         elif loyalty.total_spent >= 10_000_000:
             new_tier = "SILVER"

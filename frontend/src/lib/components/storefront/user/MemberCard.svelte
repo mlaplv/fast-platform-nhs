@@ -4,11 +4,12 @@
   import { fade } from 'svelte/transition';
 
   let user = $derived(authStore.user);
-  let tier = $derived(loyaltyStore.data?.tier || user?.extra_metadata?.tier || 'MEMBER'); 
+  let tier = $derived(loyaltyStore.data?.tier || user?.extra_metadata?.tier || 'STANDARD'); 
   let points = $derived(loyaltyStore.data?.available_points ?? (user?.extra_metadata?.points || 0));
 
-  const tierColors = {
+   const tierColors = {
     STANDARD: 'bg-[#8c857d]',
+    MEMBER: 'bg-[#8c857d]', // Add for legacy support
     SILVER: 'bg-[#a3a3a3]',
     GOLD: 'bg-[#c5a059]',
     PLATINUM: 'bg-[#1c1c1c]'
@@ -16,6 +17,7 @@
 
   const tierName = {
     STANDARD: 'Thành viên Standard',
+    MEMBER: 'Thành viên Standard', // Add for legacy support
     SILVER: 'Thành viên Bạc',
     GOLD: 'Hội viên Vàng',
     PLATINUM: 'Thượng khách Kim cương'

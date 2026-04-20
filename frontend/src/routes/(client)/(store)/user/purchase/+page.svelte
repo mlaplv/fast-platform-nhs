@@ -44,7 +44,7 @@
     <UserHeaderMobile title="Đơn Mua" bind:isMenuOpen />
 
     <div
-      class="pb-20 px-4 space-y-6"
+      class="pb-20 px-4 space-y-6 bg-[#f9f8f6] min-h-screen"
       style="padding-top: calc(env(safe-area-inset-top) + 80px);"
     >
       <PurchaseList />

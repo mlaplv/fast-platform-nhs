@@ -481,7 +481,32 @@
                   </div>
                 {/if}
 
-                <div class="pt-8 space-y-3">
+                <!-- 🚀 [ELITE V2.2] LOYALTY BOOSTER WOW MOMENT -->
+                <div 
+                  class="w-full bg-[#fcfbf9] border border-[#f5f1e8] p-5 rounded-2xl relative overflow-hidden group shadow-sm transition-all duration-500 hover:shadow-md"
+                  in:fly={{ y: 20, delay: 800 }}
+                >
+                  <div class="absolute -right-4 -bottom-4 w-16 h-16 text-luxury-copper/10 rotate-12 group-hover:scale-125 transition-transform duration-700">
+                    <Gift class="w-full h-full" />
+                  </div>
+                  <div class="relative z-10 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500 to-amber-200 flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
+                       <Sparkles class="w-6 h-6 animate-pulse" />
+                    </div>
+                    <div>
+                        <h4 class="text-[10px] font-black text-stone-900 uppercase tracking-[2px] leading-none mb-1.5 flex items-center gap-2">
+                          Loyalty Booster
+                          <span class="w-1 h-1 bg-amber-500 rounded-full animate-ping"></span>
+                        </h4>
+                        <p class="text-[13px] font-serif italic text-stone-700 leading-none">
+                          Bạn vừa tích được <span class="text-amber-600 font-black">+{Math.floor(finalTotal / 100000)} PTS</span>
+                        </p>
+                        <p class="text-[8px] text-stone-400 font-bold uppercase mt-2 opacity-60">Điểm sẽ khả dụng sau khi giao hàng thành công</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pt-2 space-y-3">
                    <a href="/" class="block w-full py-4 bg-slate-900 text-white text-center text-xs font-black uppercase italic tracking-widest">TIẾP TỤC MUA SẮM →</a>
                    {#if order.status !== 'CANCELLED'}
                       <button onclick={() => isConfirmCancelOpen = true} class="block w-full py-2 text-[10px] font-black text-slate-300 uppercase italic text-center">Hủy đơn hàng</button>

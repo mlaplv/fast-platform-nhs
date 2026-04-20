@@ -212,9 +212,17 @@
                <span class="font-black uppercase tracking-tight italic text-[20px] leading-tight transition-all truncate {isActive ? 'text-white drop-shadow-md' : 'text-white/40'}">{getVariantTitle(variant)}</span>
                
                <div class="flex items-end gap-2.5 my-1.5">
-                  <span class="font-black text-[23px] italic tracking-tighter leading-none {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{vPrice.toLocaleString()}đ</span>
+                   <div class="flex flex-col">
+                      <span class="font-black text-[23px] italic tracking-tighter leading-none {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{vPrice.toLocaleString()}đ</span>
+                      {#if isActive}
+                         <div class="flex items-center gap-1 mt-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1.5 py-0.5 rounded-full w-fit" in:fade>
+                            <Sparkles class="w-2 h-2 text-[#FFB7C5] animate-pulse" />
+                            <span class="text-[7px] font-black text-[#FFB7C5] uppercase tracking-widest">+{Math.floor(vPrice / 100000)} PTS</span>
+                         </div>
+                      {/if}
+                   </div>
                   {#if variant.price > vPrice}
-                    <span class="text-[13px] text-white/20 line-through font-bold">{(variant.price).toLocaleString()}đ</span>
+                    <span class="text-[13px] text-white/20 line-through font-bold mb-1">{(variant.price).toLocaleString()}đ</span>
                   {/if}
                </div>
 
@@ -329,7 +337,10 @@
            <div class="relative z-10 flex items-center justify-between w-full px-6 gap-3">
               <div class="flex flex-col text-left leading-tight">
                 <span class="text-white text-[13px] font-black uppercase italic">{selectedIndex === 0 ? OFFER_CONSTANTS.labels.cta_start : OFFER_CONSTANTS.labels.cta_full}</span>
-                <span class="text-[8px] text-white/40 font-bold uppercase tracking-widest mt-0.5">MIỄN PHÍ VẬN CHUYỂN TOÀN QUỐC</span>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                   <span class="text-[7px] text-[#FFB7C5] font-black uppercase tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20">TÍCH +{Math.floor(shopStore.totalAmount / 100000)} PTS</span>
+                   <span class="text-[7px] text-white/30 font-bold uppercase tracking-widest italic">• SHIP 0đ</span>
+                </div>
               </div>
               <div class="flex items-center gap-3 ml-auto">
                  <div class="flex flex-col items-end leading-none">
