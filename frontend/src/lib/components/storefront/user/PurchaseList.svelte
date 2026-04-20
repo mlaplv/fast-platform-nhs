@@ -294,10 +294,6 @@
               </div>
               <div class="flex items-center gap-2 {status.color}">
                 <span class="text-[12px] font-bold uppercase tracking-wider">{status.label}</span>
-                {#if order.status === 'DELIVERED'}
-                  <div class="w-px h-4 bg-stone-100 mx-2"></div>
-                  <span class="text-[12px] font-bold text-[#fe2c55] uppercase">Hoàn thành</span>
-                {/if}
               </div>
             </div>
           {:else}

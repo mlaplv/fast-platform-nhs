@@ -125,6 +125,7 @@ class UserLoyalty(Base, AuditMixin, TenantMixin):
     pending_points: Mapped[int] = mapped_column(Integer, default=0)
     total_spent: Mapped[float] = mapped_column(Float, default=0.0) # Accumulation for tier upgrades
     tier_updated_at: Mapped[Optional[sa.DateTime]] = mapped_column(sa.DateTime(timezone=True))
+    balance_seal: Mapped[Optional[str]] = mapped_column(String) # R2026: AES-GCM Integrity Seal
 
 class PointTransaction(Base, AuditMixin, TenantMixin):
     """Elite V2.2: Immutable Ledger for Point Activity"""
@@ -137,4 +138,5 @@ class PointTransaction(Base, AuditMixin, TenantMixin):
     transaction_type: Mapped[str] = mapped_column(String) # EARN_ORDER, REDEEM_ORDER, REFUND_DEDUCT, EXPIRED, ADJUST_ADMIN
     status: Mapped[str] = mapped_column(String, default="COMPLETED") # PENDING, COMPLETED, CANCELLED
     notes: Mapped[Optional[str]] = mapped_column(Text)
+    integrity_token: Mapped[Optional[str]] = mapped_column(String) # R2026: AES-GCM Transaction Seal
 

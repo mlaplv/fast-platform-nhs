@@ -59,9 +59,17 @@
         <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Tích điểm từ mỗi đơn hàng để nhận ưu đãi</p>
       </div>
       {#if loyaltyStore.data}
-        <div class="flex items-center gap-2 px-4 py-2 bg-stone-50 border border-stone-100 rounded-full">
-            <Wallet class="w-3.5 h-3.5 text-luxury-copper" />
-            <span class="text-[11px] font-black text-stone-700 tracking-tighter uppercase">{loyaltyStore.data.available_points} PTS SẴN CÓ</span>
+        <div class="flex items-center gap-3">
+          {#if loyaltyStore.data.pending_points > 0}
+            <div class="flex items-center gap-2 px-4 py-2 bg-luxury-copper/10 border border-luxury-copper/20 rounded-full animate-pulse-slow">
+              <TrendingUp class="w-3.5 h-3.5 text-luxury-copper" />
+              <span class="text-[10px] font-black text-luxury-copper tracking-tighter uppercase">+{loyaltyStore.data.pending_points} CHỜ DUYỆT</span>
+            </div>
+          {/if}
+          <div class="flex items-center gap-2 px-4 py-2 bg-stone-50 border border-stone-100 rounded-full">
+              <Wallet class="w-3.5 h-3.5 text-luxury-copper" />
+              <span class="text-[11px] font-black text-stone-700 tracking-tighter uppercase">{loyaltyStore.data.available_points} PTS SẴN CÓ</span>
+          </div>
         </div>
       {/if}
     </div>
@@ -287,5 +295,12 @@
 <style>
     :global(.text-luxury-copper) {
         color: #c5a059;
+    }
+    :global(.animate-pulse-slow) {
+        animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse-slow {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
     }
 </style>

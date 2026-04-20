@@ -32,8 +32,8 @@ class LoyaltyStore {
         try {
             const res = await apiClient.get<LoyaltyData>('/api/v1/client/user/loyalty');
             this.data = res;
-        } catch (err: any) {
-            console.error('Failed to fetch loyalty data:', err);
+        } catch (err) {
+            console.error("[Loyalty] Sync error:", err);
             this.error = err.message || 'Lỗi khi tải dữ liệu tích điểm';
         } finally {
             this.loading = false;

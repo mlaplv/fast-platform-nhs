@@ -12,52 +12,15 @@ from backend.schemas.client.checkout import StealthCheckoutSchema
 from backend.database import current_tenant_id
 from backend.services.event_bus import event_bus
 from backend.utils.device import is_mobile_device
-from litestar.exceptions import NotFoundException, ValidationException
 from backend.services.commerce.promotion import PromotionService
+from backend.services.commerce.loyalty import LoyaltyService
+from backend.services.commerce.logic.identity_shield import IdentityShield, LookupResult, VerifyResult, _mask_name, _mask_address
 from backend.database.models.system import SystemSetting
 
 logger = logging.getLogger("api-gateway")
 
 
-def _normalize_name(s: str) -> str:
-    """Normalize VN name for comparison: lowercase, strip accents/whitespace."""
-    return "".join(
-        c for c in unicodedata.normalize("NFD", s.lower().strip())
-        if unicodedata.category(c) != "Mn"
-    )
-
-def _mask_name(name: str) -> str:
-    if not name: return ""
-    parts = name.split()
-    if len(parts) == 1:
-        return f"{name[0]}***"
-    if len(parts) == 2:
-        return f"{parts[0][0]}*** {parts[-1]}"
-    return f"{parts[0][0]}*** {parts[-1]}"
-
-def _mask_address(addr: str) -> str:
-    if not addr: return ""
-    # Che phần giữa, giữ lại đầu và cuối (tỉnh/thành)
-    parts = addr.split(",")
-    if len(parts) < 2:
-        return f"{addr[:5]}***"
-    street = parts[0].strip()
-    masked_street = f"{street[:4]}***"
-    return f"{masked_street}, {', '.join(parts[1:])}"
-
-
-class LookupResult(TypedDict):
-    is_recurring: bool
-    is_trusted_device: bool
-    name_masked: Optional[str]
-    address_masked: Optional[str]
-    name: Optional[str]
-    address: Optional[str]
-
-
-class VerifyResult(TypedDict):
-    verified: bool
-    address: Optional[str]
+# Elite V2.2: Identity logic moved to identity_shield.py (R00 Compliance)
 
 
 class OrderBumpMetadata(TypedDict):
@@ -315,6 +278,11 @@ class CheckoutService:
             
             if not loyalty or loyalty.available_points < payload.points_redeemed:
                 raise ValidationException("Bạn không có đủ số điểm để sử dụng.")
+            
+            # ELITE V2.2: Military-Grade Integrity Verification
+            if not await LoyaltyService.verify_loyalty_integrity(db_session, user_id):
+                logger.critical(f"[SECURITY-ALERT] Loyalty Point Tampering Detected! User: {user_id}. Transaction blocked.")
+                raise ValidationException("Hệ thống phát hiện bất thường về bảo mật tài khoản. Vui lòng liên hệ hỗ trợ.")
                 
             # Get Point Value from Admin config (Default 1 pt = 1000 VNĐ)
             setting_res = await db_session.execute(select(SystemSetting).where(SystemSetting.key == "LOYALTY_POINT_VALUE_VND"))
@@ -422,6 +390,11 @@ class CheckoutService:
 
         db_session.add(new_order)
         
+        # 🚀 [ELITE V2.2] LOYALTY: Track pending points for immediate client feedback
+        pts_to_earn = math.floor(payload.total_amount / 100000)
+        if pts_to_earn > 0:
+            await LoyaltyService.register_pending_points(db_session, user.id, pts_to_earn)
+        
         # 5.1 Ghi log trừ điểm nếu có
         if payload.points_redeemed > 0:
             pt = PointTransaction(
@@ -431,7 +404,11 @@ class CheckoutService:
                 transaction_type="REDEEM_ORDER",
                 notes=f"Thanh toán một phần đơn hàng bằng điểm. (Chiết khấu 1% - Giá trị: {point_discount}đ)"
             )
+            pt.integrity_token = LoyaltyService._create_transaction_token(pt)
             db_session.add(pt)
+            
+            # Reseal the definitive balance after all operations
+            loyalty.balance_seal = LoyaltyService._create_balance_seal(loyalty)
 
         await db_session.commit()
 
@@ -457,75 +434,8 @@ class CheckoutService:
         ox_cookie: Optional[str] = None,
         user_id: Optional[str] = None
     ) -> LookupResult:
-        """Recognition with Identity Shield Cookie V3.0."""
-        last_order = None
-        
-        # ELITE V2.2: Phase A - Priority Lookup by User ID (Verified Identity)
-        if user_id:
-            stmt = (
-                select(Order)
-                .where(Order.user_id == user_id)
-                .order_by(Order.created_at.desc())
-                .limit(1)
-            )
-            res = await db_session.execute(stmt)
-            last_order = res.scalar_one_or_none()
-            if last_order:
-                logger.info(f"[CheckoutService] Identity match found by user_id={user_id}")
-
-        # Phase B - Fallback/Stealth Lookup by Phone (Identity Shield)
-        if not last_order and phone:
-            stmt = (
-                select(Order)
-                .where(Order.customer_phone == phone)
-                .order_by(Order.created_at.desc())
-                .limit(1)
-            )
-            res = await db_session.execute(stmt)
-            last_order = res.scalar_one_or_none()
-
-        # Identity Shield V3.0: Trust via secure HttpOnly Cookie __ox
-        is_trusted = (last_order.id == ox_cookie) if last_order and ox_cookie else False
-        
-        # ELITE V2.2: Full data return if authenticated user matches search context
-        # 1. Matches by direct user_id OR 2. Phone matches but we found an order with the same user_id
-        is_authenticated_match = (last_order.user_id == user_id) if last_order and user_id else False
-
-        if last_order:
-            return LookupResult(
-                is_recurring=True,
-                is_trusted_device=is_trusted,
-                name_masked=_mask_name(last_order.customer_name),
-                address_masked=_mask_address(last_order.customer_address),
-                name=last_order.customer_name if is_authenticated_match else None,
-                address=last_order.customer_address if is_authenticated_match else None
-            )
-
-        user_res = await db_session.execute(
-            select(User)
-            .where(User.username == phone)
-            .limit(1)
-        )
-        user = user_res.scalar_one_or_none()
-        if user:
-            is_match = (user.id == user_id) if user_id else False
-            return LookupResult(
-                is_recurring=True,
-                is_trusted_device=False,
-                name_masked=_mask_name(user.name),
-                address_masked=None,
-                name=user.name if is_match else None,
-                address=None
-            )
-
-        return LookupResult(
-            is_recurring=False, 
-            is_trusted_device=False, 
-            name_masked=None, 
-            address_masked=None,
-            name=None,
-            address=None
-        )
+        """Recognition with Identity Shield Cookie V3.0 (Proxy to IdentityShield)."""
+        return await IdentityShield.lookup_customer(db_session, phone, ox_cookie, user_id)
 
     @staticmethod
     async def verify_identity(
@@ -533,22 +443,5 @@ class CheckoutService:
         phone: str,
         name: str
     ) -> VerifyResult:
-        """Verify Phone + Name match to unlock Address (Identity Shield)."""
-        res = await db_session.execute(
-            select(Order)
-            .where(Order.customer_phone == phone)
-            .order_by(Order.created_at.desc())
-            .limit(1)
-        )
-        last_order = res.scalar_one_or_none()
-
-        if not last_order:
-            return VerifyResult(verified=False, address=None)
-
-        stored_name = _normalize_name(last_order.customer_name or "")
-        input_name = _normalize_name(name)
-
-        if input_name == stored_name:
-            return VerifyResult(verified=True, address=last_order.customer_address)
-
-        return VerifyResult(verified=False, address=None)
+        """Verify Identity (Proxy to IdentityShield)."""
+        return await IdentityShield.verify_identity(db_session, phone, name)

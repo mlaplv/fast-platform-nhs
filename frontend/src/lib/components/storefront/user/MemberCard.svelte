@@ -6,6 +6,7 @@
   let user = $derived(authStore.user);
   let tier = $derived(loyaltyStore.data?.tier || user?.extra_metadata?.tier || 'STANDARD'); 
   let points = $derived(loyaltyStore.data?.available_points ?? (user?.extra_metadata?.points || 0));
+  let pending = $derived(loyaltyStore.data?.pending_points || 0);
 
    const tierColors = {
     STANDARD: 'bg-[#8c857d]',
@@ -80,6 +81,9 @@
           <p class="text-[9px] uppercase tracking-wider opacity-60 font-bold">Tích lũy</p>
           <p class="text-xl font-black italic tracking-tighter">
             {points} <span class="text-[10px] not-italic font-bold opacity-80 uppercase tracking-tighter">Pts</span>
+            {#if pending > 0}
+               <span class="text-[10px] not-italic font-bold text-white/70 ml-1">(+{pending})</span>
+            {/if}
           </p>
         </div>
       </div>

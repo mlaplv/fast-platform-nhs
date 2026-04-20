@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { slide } from 'svelte/transition';
+  import { slide, fade } from 'svelte/transition';
+  import { Sparkles } from 'lucide-svelte';
   import { formatCurrency } from '$lib/utils/format';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
 
@@ -18,16 +19,18 @@
     totalSavings, 
     helenAdvice = '',
     neuralStatus = 'idle',
+    availablePoints = 0,
     pointsRedeemed = 0,
     handleSubmit 
   } = $props<{
-    form: FormState;
+    form: FormState & { usePoints: boolean };
     originalSubtotal: number;
     productSavings: number;
     shippingFee: number;
     totalSavings: number;
     helenAdvice?: string;
     neuralStatus?: NeuralStatus;
+    availablePoints?: number;
     pointsRedeemed?: number;
     handleSubmit: (e: SubmitEvent) => void;
   }>();
@@ -38,6 +41,7 @@
 
   const isSubmitting = $derived(neuralStatus !== 'idle' && neuralStatus !== 'success' && neuralStatus !== 'error');
 
+  let showLoyaltyTooltip = $state(false);
   const cartStore = getCartStore();
 </script>
 
@@ -78,13 +82,75 @@
     </div>
   {/if}
 
-  {#if pointDiscount > 0}
-    <div class="flex justify-between items-center bg-stone-900 cursor-pointer p-3 border-l-4 border-luxury-copper group overflow-hidden relative" in:slide>
-      <div class="flex items-center gap-2 text-[10px] font-black text-luxury-copper uppercase italic relative z-10">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        ĐIỂM THƯỞNG (LOYALTY)
+  {#if availablePoints > 0}
+    <div 
+      class="flex justify-between items-center bg-stone-900 px-4 py-3 border-l-4 {form.usePoints ? 'border-luxury-copper ring-1 ring-luxury-copper/20' : 'border-stone-700 opacity-80'} transition-all duration-500 rounded-lg group overflow-hidden relative select-none cursor-pointer" 
+      onclick={() => form.usePoints = !form.usePoints}
+      onmouseenter={() => showLoyaltyTooltip = true}
+      onmouseleave={() => showLoyaltyTooltip = false}
+      in:slide
+    >
+      <div class="flex items-center gap-3 relative z-10">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center {form.usePoints ? 'bg-luxury-copper text-stone-900 shadow-[0_0_15px_rgba(197,160,89,0.4)]' : 'bg-stone-800 text-stone-500'} transition-all">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-black {form.usePoints ? 'text-luxury-copper' : 'text-stone-400'} uppercase italic tracking-widest leading-none">Dùng {availablePoints} điểm tích lũy</span>
+            {#if pointsRedeemed > 0 && form.usePoints}
+               <span class="bg-luxury-copper/20 text-luxury-copper text-[9px] px-1.5 py-0.5 rounded-sm font-black animate-pulse">OPTIMIZED</span>
+            {/if}
+          </div>
+          <p class="text-[9px] {form.usePoints ? 'text-stone-300' : 'text-stone-500'} mt-1 font-bold">Giảm ngay {formatCurrency(pointsRedeemed * 1000)} vào đơn hàng</p>
+        </div>
       </div>
-      <span class="font-black italic text-sm relative z-10 text-white">-{formatCurrency(pointDiscount)}</span>
+      
+      <div class="relative z-10 flex flex-col items-end">
+         <div 
+           class="w-10 h-5 rounded-full relative transition-colors duration-300 {form.usePoints ? 'bg-luxury-copper' : 'bg-stone-800'}"
+         >
+           <div class="absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-transform duration-300 {form.usePoints ? 'translate-x-5' : 'translate-x-0'} shadow-sm"></div>
+         </div>
+      </div>
+      
+      <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+      <!-- Viral FOMO Tooltip (Glassmorphism) -->
+      {#if showLoyaltyTooltip}
+        <div 
+          class="absolute bottom-full left-0 w-full mb-2 z-50 pointer-events-none"
+          transition:slide={{ duration: 300 }}
+        >
+          <div class="bg-stone-900/95 backdrop-blur-xl border border-luxury-copper/30 p-4 rounded-2xl shadow-2xl relative overflow-hidden">
+            <!-- Glow Effect -->
+            <div class="absolute -top-10 -right-10 w-24 h-24 bg-luxury-copper/10 blur-3xl animate-pulse"></div>
+            
+            <div class="flex flex-col gap-2 relative z-10">
+              <div class="flex items-center gap-2 border-b border-luxury-copper/10 pb-2 mb-1">
+                <Sparkles size={10} class="text-luxury-copper animate-bounce" />
+                <span class="text-[9px] font-black text-luxury-copper uppercase tracking-[0.2em] italic">Quy trình tích điểm Elite V2.2</span>
+              </div>
+              
+              <div class="space-y-1.5">
+                <p class="text-[10px] text-stone-200 font-bold leading-relaxed">
+                  🛡️ <span class="text-white">Luật bảo mật:</span> Giảm tối đa 1% đơn hàng để đảm bảo cân bằng Neural Link.
+                </p>
+                <p class="text-[10px] text-stone-200 font-bold leading-relaxed">
+                  🔥 <span class="text-luxury-copper italic">Viral Tip:</span> Sếp ơi, đơn này tích được thêm <span class="text-white">+{Math.floor(finalTotal / 100000)} Pts</span>. Mua thêm combo để <span class="bg-luxury-copper text-stone-900 px-1 ml-1 rounded-sm">X2 TÍCH LŨY</span> ngay!
+                </p>
+                <p class="text-[9px] text-stone-400 italic mt-2 text-right">
+                  #StayElite #MicsmoAI
+                </p>
+              </div>
+            </div>
+            
+            <!-- Bottom Accent -->
+            <div class="absolute bottom-0 left-0 h-[2px] bg-luxury-copper w-0 group-hover:w-full transition-all duration-700"></div>
+          </div>
+          <!-- Tooltip Triangle -->
+          <div class="w-3 h-3 bg-stone-900/95 rotate-45 border-r border-b border-luxury-copper/30 ml-8 -mt-1.5 relative z-0"></div>
+        </div>
+      {/if}
     </div>
   {/if}
 

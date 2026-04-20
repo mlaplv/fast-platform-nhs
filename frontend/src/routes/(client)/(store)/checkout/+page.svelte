@@ -76,6 +76,7 @@
     shippingMethod: 'standard' as 'standard' | 'express',
     securePackaging: true,
     pointsRedeemed: 0,
+    usePoints: false, // [ELITE V2.2] Professional Toggle State
     note: ''
   });
 
@@ -293,7 +294,12 @@
   const productSavings = $derived(originalSubtotal - cartStore.totalAmountWithoutDiscount);
   const totalSavings = $derived(originalSubtotal - cartStore.totalAmount);
   
-  const pointDiscount = $derived(form.pointsRedeemed * 1000);
+  // [ELITE V2.2] Professional Automatic Points Calculation
+  const availablePoints = $derived(loyaltyStore.data?.available_points || 0);
+  const maxPointsAllowed = $derived(Math.floor((cartStore.totalAmount * 0.01) / 1000));
+  const pointsToRedeem = $derived(form.usePoints ? Math.min(availablePoints, maxPointsAllowed) : 0);
+  const pointDiscount = $derived(pointsToRedeem * 1000);
+  
   const finalTotal = $derived(cartStore.totalAmount + shippingFee - pointDiscount);
 
 
@@ -410,7 +416,7 @@
         payment_method: form.paymentMethod,
         note: form.note || null,
         voucher_ids: cartStore.selectedVoucherIds,
-        points_redeemed: form.pointsRedeemed,
+        points_redeemed: pointsToRedeem,
         gift_info: (cartStore.giftInfo?.sender_name && cartStore.giftInfo?.sender_phone) ? cartStore.giftInfo : null
       };
 
@@ -480,65 +486,9 @@
                     <button onclick={() => isAddressFormVisible = true} class="text-sm font-bold text-[#ee4d2d]">Chỉnh sửa</button>
                   </div>
                 {/if}
+                
                 <DeliveryPaymentSection bind:form {deliveryEstimate} {canExpress} {selectedProvinceData} bind:showCoInspectionModal />
                 <VoucherSection vouchers={cartStore.vouchers} {toggleVoucher} />
-
-                <!-- Points Redemption Section: Relocated for Shopee/TikTok UX -->
-                {#if authStore.isAuthenticated}
-                  {@const availablePoints = loyaltyStore.data?.available_points || 0}
-                  <div class="mt-4 p-5 bg-white shadow-sm border-l-4 {availablePoints > 0 ? 'border-amber-500' : 'border-stone-200'} space-y-4" in:slide>
-                    <div class="flex items-center justify-between">
-                      <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-amber-600">
-                          <Wallet class="w-4 h-4" />
-                        </div>
-                        <div>
-                           <span class="block text-[11px] font-black text-stone-900 uppercase tracking-widest">Sử dụng điểm thưởng</span>
-                           <span class="block text-[9px] text-stone-400 font-medium">Bạn hiện có <span class="text-amber-600 font-black">{availablePoints}</span> điểm</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {#if availablePoints > 0}
-                      <div class="flex items-center gap-2">
-                        <div class="flex-1 relative">
-                          <input 
-                            type="number" 
-                            bind:value={form.pointsRedeemed}
-                            max={availablePoints}
-                            min="0"
-                            class="w-full pl-4 pr-12 py-3 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-amber-500 transition-all font-mono font-bold text-sm"
-                            placeholder="Nhập số điểm cần dùng..."
-                          />
-                          <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-stone-400 uppercase">PTS</div>
-                        </div>
-                        <button 
-                          type="button"
-                          class="px-6 py-3 bg-stone-900 text-white text-[11px] font-black rounded-lg uppercase tracking-widest hover:bg-amber-600 transition-all shadow-md active:scale-95"
-                          onclick={() => {
-                            const maxPointsAllowed = Math.floor((cartStore.totalAmount * 0.01) / 1000); 
-                            if (form.pointsRedeemed > availablePoints) {
-                              form.pointsRedeemed = availablePoints;
-                            }
-                            if (form.pointsRedeemed > maxPointsAllowed && maxPointsAllowed > 0) {
-                              form.pointsRedeemed = maxPointsAllowed;
-                              clientUi.showToast(`Chỉ được dùng tối đa ${maxPointsAllowed} điểm cho đơn này!`, 'info');
-                            }
-                          }}
-                        >
-                          Sử dụng
-                        </button>
-                      </div>
-                      <p class="text-[9px] text-stone-400 italic">
-                        * Tối đa 1% đơn hàng ({formatCurrency(cartStore.totalAmount * 0.01)}) - Chính sách Elite V2.2
-                      </p>
-                    {:else}
-                      <div class="p-3 bg-stone-50 rounded-lg border border-dashed border-stone-200">
-                         <p class="text-[10px] text-stone-400 font-medium italic text-center">Hãy tích điểm từ các đơn hàng để nhận ưu đãi chiết khấu lần sau nhé! 🌸</p>
-                      </div>
-                    {/if}
-                  </div>
-                {/if}
               </div>
             </div>
 
@@ -553,7 +503,8 @@
                     {totalSavings} 
                     {helenAdvice}
                     {neuralStatus}
-                    pointsRedeemed={form.pointsRedeemed}
+                    {availablePoints}
+                    pointsRedeemed={pointsToRedeem}
                     {handleSubmit} 
                   />
                   <!-- Points section moved to main column -->
@@ -776,6 +727,50 @@
           </div>
 
           <!-- AGENTIC AI OVERSIGHT (MOBILE - TỔNG HỢP SAU GIỎ HÀNG) -->
+          <!-- [ELITE V2.2] Professional Loyalty Toggle Mobile -->
+          {#if authStore.isAuthenticated && availablePoints > 0}
+            <div class="px-2 mb-3 mt-1" in:slide>
+              <div 
+                class="bg-white rounded-xl shadow-sm overflow-hidden select-none"
+              >
+                <!-- Toggle Row -->
+                <div 
+                  class="p-4 flex items-center justify-between active:bg-gray-50 transition-colors cursor-pointer"
+                  onclick={() => form.usePoints = !form.usePoints}
+                >
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center {form.usePoints ? 'bg-amber-500/10 text-amber-600' : 'bg-gray-100 text-gray-400'} transition-all">
+                      <Wallet class="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span class="text-[13px] font-bold text-gray-800 uppercase tracking-widest leading-none">Dùng {availablePoints} điểm tích lũy</span>
+                      <p class="text-[11px] text-gray-500 mt-0.5 font-medium italic">Tiết kiệm {formatCurrency(pointsToRedeem * 1000)} cho đơn này</p>
+                    </div>
+                  </div>
+                  
+                  <div class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none {form.usePoints ? 'bg-[#fe2c55]' : 'bg-gray-200'}">
+                    <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 {form.usePoints ? 'translate-x-5' : 'translate-x-0'}"></span>
+                  </div>
+                </div>
+
+                <!-- Mobile FOMO Tip (Always visible, compact) -->
+                <div class="px-4 pb-3 pt-0 border-t border-gray-50">
+                  <div class="flex items-start gap-2 bg-amber-50/80 rounded-lg p-2.5 mt-2">
+                    <div class="w-4 h-4 shrink-0 mt-0.5">
+                      <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                    <div>
+                      <p class="text-[10px] text-gray-700 font-bold leading-relaxed">
+                        🔥 Đơn này tích thêm <span class="text-[#fe2c55] font-black">+{Math.floor(finalTotal / 100000)} Pts</span>. Mua thêm combo để <span class="bg-[#fe2c55] text-white px-1 rounded-sm text-[9px] font-black">X2 TÍCH LŨY</span>
+                      </p>
+                      <p class="text-[9px] text-gray-400 font-medium mt-1 italic">Luật: Giảm tối đa 1% đơn hàng · #StayElite</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {/if}
+
           <div class="px-2 mb-3 mt-1">
              <NeuralGuardian status={neuralStatus} advice={helenAdvice} />
           </div>
@@ -794,57 +789,6 @@
           <div class="bg-white rounded-xl shadow-sm mb-3 overflow-hidden p-4 mx-2">
              <VoucherSection vouchers={cartStore.vouchers} {toggleVoucher} />
           </div>
-
-          <!-- Loyalty Points Section Mobile -->
-          {#if authStore.isAuthenticated}
-            {@const points = loyaltyStore.data?.available_points || 0}
-            <div class="bg-white rounded-xl shadow-sm mb-3 overflow-hidden p-4 mx-2 space-y-3" in:slide>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <Wallet class="w-4 h-4 text-[#fe2c55]" />
-                  <span class="text-[13px] font-bold text-gray-800 uppercase tracking-widest leading-none">Sử dụng điểm thưởng</span>
-                </div>
-                <span class="text-[11px] font-bold text-[#fe2c55]">{points} Pts</span>
-              </div>
-              
-              {#if points > 0}
-                <div class="flex items-center gap-2">
-                  <input 
-                    type="number" 
-                    bind:value={form.pointsRedeemed}
-                    max={points}
-                    min="0"
-                    class="flex-1 px-3 py-2.5 text-[14px] bg-gray-50 border border-gray-100 rounded-lg outline-none focus:border-[#fe2c55]"
-                    placeholder="Nhập số điểm..."
-                  />
-                  <button 
-                    type="button"
-                    class="px-4 py-2.5 bg-[#fe2c55] text-white text-[12px] font-bold rounded-lg uppercase"
-                    onclick={() => {
-                      const maxPointsAllowed = Math.floor((cartStore.totalAmount * 0.01) / 1000);
-                      if (form.pointsRedeemed > points) {
-                        form.pointsRedeemed = points;
-                      }
-                      if (form.pointsRedeemed > maxPointsAllowed && maxPointsAllowed > 0) {
-                        form.pointsRedeemed = maxPointsAllowed;
-                        clientUi.showToast(`Chỉ được dùng tối đa ${maxPointsAllowed} điểm!`, 'info');
-                      }
-                    }}
-                  >
-                    Dùng
-                  </button>
-                </div>
-                <p class="text-[9px] text-gray-400 italic">
-                  * Tối đa 1% giá trị đơn hàng ({formatCurrency(cartStore.totalAmount * 0.01)})
-                </p>
-              {:else}
-                <div class="p-3 bg-gray-50 rounded-lg border border-dashed border-gray-100">
-                   <p class="text-[10px] text-gray-400 font-medium italic text-center">Hãy tích thêm điểm để được ưu đãi nhé! 🌸</p>
-                </div>
-              {/if}
-            </div>
-          {/if}
-
         </div>
 
         <!-- Terms and Conditions -->

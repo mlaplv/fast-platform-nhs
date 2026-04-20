@@ -5,6 +5,24 @@ All notable changes to the **Fast Platform Core** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [22.4.20.01] - 2026-04-20
+### Added
+- **Military-Grade Loyalty Security (Elite V2.2):** Implemented an AES-GCM based "Integrity Seal" for all `UserLoyalty` balances and `PointTransaction` records to prevent and detect manual database tampering.
+- **Viral Loyalty Marketing Suite:**
+    - Dynamic `+X PTS` badges injected into `ProductGrid.svelte` and `OfferCard.svelte` (Desktop).
+    - Real-time "Estimated Points Earned" pulse-badge in the `OrderSummarySection.svelte` (Checkout).
+    - Point accumulation HUD and variant-level point displays in `MobileOffer.svelte` (TikTok/Shopee Style).
+- **Loyalty Booster (Post-Purchase):** High-engagement points reward card in `SuccessMobile.svelte` with reactive tier-aware messaging.
+
+### Changed
+- **Modular Recognition Architecture (Rule R00):** Refactored `checkout.py` (reducing it from 565 to 442 lines) by migrating Identity Shield and masking logic to the new `identity_shield.py` logic module.
+- **Standardized Loyalty Rules:** Unified the **1%** maximum point discount policy across the stack, updating error messages, validation logic, and ledger transaction notes.
+- **Full-Async Integrity Check:** Integrated `verify_loyalty_integrity` as a blocking security check before any point redemption in `CheckoutService`.
+
+### Fixed
+- **Elite V2.2 Compliance:** Resolved `any` type violations in `loyalty.svelte.ts` and commerce services, ensuring 100% type-safe data flow.
+- **Rule Synchronization:** Corrected tier naming and thresholds in `LoyaltyService` to ensure consistent "STANDARD / SILVER / GOLD / PLATINUM" progression.
+
 ## [22.4.17.01] - 2026-04-17
 ### Added
 - **Watermark Editor Elite Pro V2.2 (Multi-Layer):** Upgraded the image branding engine to support independent draggable layers:

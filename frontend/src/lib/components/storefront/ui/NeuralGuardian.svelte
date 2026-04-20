@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Shield, Sparkles } from 'lucide-svelte';
+  import { Shield, Sparkles, Terminal } from 'lucide-svelte';
   import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import { slide, fade } from 'svelte/transition';
@@ -12,62 +12,102 @@
   }>();
 
   const messages = {
-    idle: 'Neural Guardian Active: Đơn hàng được bảo vệ bởi giao thức Stealth.',
-    verifying: 'Đang xác thực thông tin đơn hàng...',
-    encoding: 'Mã hóa địa chỉ & dữ liệu thanh toán...',
-    submitting: 'Đang hoàn tất giao diện vận hành...',
-    success: 'Đơn hàng đã được xác nhận bảo mật thành công!',
-    error: 'Phát hiện sự cố Neural. Vui lòng thử lại.'
+    idle: 'Neural Link: Giao thức Stealth đang bảo vệ phiên bản.',
+    verifying: 'Syncing Neural Data...',
+    encoding: 'AES-256 Stealth Encoding...',
+    submitting: 'Finalizing Transaction DNA...',
+    success: 'Neural Integrity Verified.',
+    error: 'Neural Collision Detected.'
   };
 </script>
 
-<div class="neural-guardian relative overflow-hidden bg-white rounded-xl border border-gray-100 p-4 shadow-sm group">
-  <!-- Specular Reflection Layer -->
-  <div class="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none z-10"></div>
+<div class="neural-guardian-agentic relative overflow-hidden bg-gradient-to-r from-stone-50/80 to-white/40 backdrop-blur-xl rounded-2xl border-l-[3px] border-luxury-copper/40 p-4 py-3 shadow-[0_15px_40px_rgba(0,0,0,0.02)] group">
+  <!-- Dynamic Scanline -->
+  <div class="absolute inset-x-0 h-[100%] w-[1px] bg-gradient-to-b from-transparent via-luxury-copper/20 to-transparent left-0 animate-scan pointer-events-none"></div>
   
-  <div class="flex items-center gap-4 relative z-20">
-    <div class="relative">
-      <div class="absolute -inset-2 bg-gradient-to-r from-luxury-sakura/20 to-luxury-gold/20 rounded-full blur-md animate-pulse"></div>
-      <HelenIcon size={32} color="#C18F7E" isPaused={status === 'success'} />
+  <!-- Neural Pulse Indicator -->
+  <div class="absolute top-0 right-0 p-3 opacity-20">
+    <div class="w-1.5 h-1.5 rounded-full bg-luxury-copper animate-ping"></div>
+  </div>
+
+  <div class="flex items-start gap-4 relative z-20">
+    <!-- Mini Agent Avatar -->
+    <div class="relative shrink-0 mt-0.5">
+      <div class="absolute -inset-1 bg- luxury-copper/10 rounded-full blur-sm"></div>
+      <div class="scale-75 origin-top-left">
+        <HelenIcon size={32} color="#c5a059" isPaused={status === 'success'} />
+      </div>
     </div>
     
     <div class="flex flex-col flex-1 min-w-0">
-      <div class="flex items-center gap-1.5 mb-0.5">
-        <Sparkles size={10} class="text-luxury-gold fill-luxury-gold/20" />
-        <span class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">AI {supportAgent.config.agentName} Advisor</span>
+      <!-- Agentic Mono Header -->
+      <div class="flex items-center gap-2 mb-1.5">
+        <Terminal size={8} class="text-luxury-copper" />
+        <span class="text-[8px] font-mono font-bold uppercase tracking-[0.4em] text-stone-400 select-none">
+          {supportAgent.config.agentName}.AI Agentic Advisor
+        </span>
+        {#if status !== 'idle' && status !== 'success'}
+          <span class="w-1 h-3 bg-luxury-copper/40 animate-pulse rounded-full"></span>
+        {/if}
       </div>
       
-      <p class="text-[12px] font-bold text-gray-800 leading-tight">
+      <!-- Content Area with Caret -->
+      <div class="text-[12px] font-bold text-stone-800 leading-tight">
         {#key status + advice}
-          <span in:slide={{axis: 'y'}} class="block">
+          <div in:fade={{ duration: 400 }} class="flex flex-col gap-1">
             {#if advice}
-              <span class="text-slate-600 font-medium tracking-tight leading-relaxed block">{advice}</span>
+              <span class="text-stone-600 font-medium tracking-tight leading-relaxed">
+                {advice}<span class="inline-block w-1.5 h-4 ml-1 bg-luxury-copper/40 animate-caret align-middle"></span>
+              </span>
             {:else}
-              {messages[status]}
+              <span class="text-stone-800">
+                {messages[status]}<span class="inline-block w-1.5 h-4 ml-1 bg-luxury-copper/40 animate-caret align-middle"></span>
+              </span>
             {/if}
-          </span>
+          </div>
         {/key}
-      </p>
+      </div>
     </div>
 
+    <!-- Integrity Shield on Success -->
     {#if status === 'success'}
-      <div in:fade class="shrink-0 bg-green-50 p-1.5 rounded-full border border-green-100">
-        <Shield size={16} class="text-green-500 fill-green-50" />
+      <div in:fade={{ delay: 300 }} class="shrink-0 flex flex-col items-center gap-1 opacity-60">
+        <Shield size={14} class="text-luxury-copper" />
+        <span class="text-[7px] font-black uppercase text-luxury-copper tracking-tighter">SECURED</span>
       </div>
     {/if}
   </div>
 
-  <!-- Micro-interaction: Liquid pulse on the bottom border -->
-  <div class="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-transparent via-luxury-sakura/40 to-transparent w-full transition-all duration-1000 group-hover:via-luxury-gold/60"></div>
+  <!-- Bottom Specular Highlight -->
+  <div class="absolute bottom-0 left-0 h-[1px] bg-gradient-to-r from-transparent via-luxury-copper/10 to-transparent w-full"></div>
 </div>
 
 <style>
-  .neural-guardian {
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  .neural-guardian-agentic {
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   }
-  .neural-guardian:hover {
-    border-color: rgba(193, 143, 126, 0.2);
-    box-shadow: 0 10px 30px -10px rgba(193, 143, 126, 0.1);
-    transform: translateY(-1px);
+  .neural-guardian-agentic:hover {
+    background-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 20px 50px -10px rgba(197, 160, 89, 0.08);
+    border-left-width: 5px;
+    transform: translateX(4px);
+  }
+
+  @keyframes scan {
+    0% { transform: translateX(0); opacity: 0; }
+    10% { opacity: 0.5; }
+    90% { opacity: 0.5; }
+    100% { transform: translateX(800px); opacity: 0; }
+  }
+  .animate-scan {
+    animation: scan 4s linear infinite;
+  }
+
+  @keyframes caret {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  .animate-caret {
+    animation: caret 1s step-end infinite;
   }
 </style>
