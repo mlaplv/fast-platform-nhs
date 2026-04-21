@@ -11,14 +11,15 @@ from typing import List, Optional, Dict, Union, TypedDict, Tuple
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic_ai import Agent
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
-
+from sqlalchemy import select, or_, and_
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.commerce.order import order_service
 from backend.services.commerce.logic.location_resolver import location_resolver, ResolvedLocation
 from backend.services.user_service import user_service
-from backend.schemas.order import OrderCreateRequest
-from backend.database.models import ProductBase
+from backend.services.xohi_memory import xohi_memory
+from backend.schemas.order import OrderCreateRequest, OrderDraft
+from backend.database.models.commerce import ProductBase
+from backend.utils.security import GeminiSecurity
 
 logger = logging.getLogger("api-gateway")
 
@@ -85,11 +86,15 @@ class LeadExtractor:
     async def _hydrate_from_history(db: AsyncSession, session_id: str, lead: ExtractedLead) -> ExtractedLead:
         """Retrieve missing lead info from recent successful extractions in history."""
         from backend.database.models.system import SupportChatHistory
-        from backend.utils.security import GeminiSecurity
         
         stmt = (
             select(SupportChatHistory)
-            .where(SupportChatHistory.session_id == session_id)
+            .where(
+                and_(
+                    SupportChatHistory.session_id == session_id,
+                    SupportChatHistory.role == "user"
+                )
+            )
             .order_by(SupportChatHistory.created_at.desc())
             .limit(10)
         )
@@ -98,32 +103,53 @@ class LeadExtractor:
         
         # Phone regex
         phone_re = re.compile(r"0\d{9}")
-
-        for h in history:
-            # 1. Direct field check
-            if not lead.customer_phone and h.customer_phone:
-                lead.customer_phone = h.customer_phone
-            if not lead.customer_name and h.customer_name:
-                lead.customer_name = h.customer_name
-
-            # 2. Content regex extraction (if fields are missing)
-            content = GeminiSecurity.decrypt(h.content or "")
+        for r in history:
+            content = GeminiSecurity.decrypt(r.content or "")
             if not lead.customer_phone:
-                match = phone_re.search(content)
-                if match:
-                    lead.customer_phone = match.group(0)
+                found_p = phone_re.search(content)
+                if found_p: lead.customer_phone = found_p.group()
+            
+            if not lead.customer_address and any(kw in content.lower() for kw in ["địa chỉ", "về :", "số nhà", "ở đường"]):
+                # Extract address fragment if obvious
+                addr_match = re.search(r"(?:về :|địa chỉ:?)\s*([^0\n,]+)", content, re.IGNORECASE)
+                if addr_match: lead.customer_address = addr_match.group(1).strip()
+                
+        return lead
 
-            # 3. Address extraction (simple heuristic)
-            if not lead.customer_address and h.role == "user":
-                if any(kw in content.lower() for kw in ["đường", "phố", "quận", "huyện", "/"]):
-                     # Heuristic: just pick the first user message that looks like an address
-                     lead.customer_address = content
-
-        # Log results
-        if lead.customer_phone or lead.customer_address:
-            masked_phone = (lead.customer_phone[:3] + "****" + lead.customer_phone[-3:]) if lead.customer_phone and len(lead.customer_phone) > 6 else "****"
-            logger.info(f"[LeadExtractor] Hydration successful: phone={masked_phone}, address_exists={bool(lead.customer_address)}")
-
+    @staticmethod
+    async def _hydrate_from_redis(session_id: str, lead: ExtractedLead) -> ExtractedLead:
+        """Elite V3.6: Fast L0 hydration from Redis OrderDraft."""
+        raw_draft = await xohi_memory.get_order_draft(session_id)
+        if not raw_draft:
+            return lead
+            
+        try:
+            draft = OrderDraft.model_validate(raw_draft)
+            
+            # Merge slots if missing in current turn
+            if not lead.customer_phone and draft.customer_phone:
+                lead.customer_phone = draft.customer_phone
+            if not lead.customer_address and draft.customer_address:
+                lead.customer_address = draft.customer_address
+            if not lead.customer_name and draft.customer_name:
+                lead.customer_name = draft.customer_name
+                
+            # Items merge logic: If current turn has NO items, use draft items
+            if not lead.items and draft.items:
+                for item in draft.items:
+                    lead.items.append(LeadOrderItem(
+                        name=str(item.get("name", "Sản phẩm")),
+                        quantity=int(item.get("quantity", 1)),
+                        price=float(item.get("price", 0.0)),
+                        id=str(item.get("product_id") or item.get("id") or "")
+                    ))
+            
+            # Intent merge
+            if draft.is_definite_intent:
+                lead.is_definite_purchase = True
+        except Exception as e:
+            logger.warning("[LeadExtractor] Redis hydration failed: %s", e)
+        
         return lead
 
     @staticmethod
@@ -198,11 +224,32 @@ class LeadExtractor:
             # 2. DATA HYGIENE
             lead.customer_phone = validate_vietnam_phone(lead.customer_phone or "")
             
-            # 🚀 2.0 HYDRATION FOR SHORT CONFIRMATIONS & FRAGMENTS (Elite V3.1)
+            # 🚀 Elite V3.7/V3.8: Deterministic Current-Turn SĐT Recovery
+            # If LLM failed but message has a clear 10-digit phone, force it.
+            if not lead.customer_phone:
+                # Elite V3.8: Stripping \D to handle "0949...," cases
+                digits_only = re.sub(r"\D", "", message)
+                phone_match = re.search(r"0\d{9}", digits_only)
+                if phone_match:
+                    lead.customer_phone = phone_match.group()
+                    logger.info(f"⚡ [LeadExtractor] Deterministic Recovery: Found phone {lead.customer_phone} in current turn.")
+            
+            # 🚀 Elite V3.8: Hybrid Intent Trust
+            # If we have contact info, the user is obviously chốt đơn.
+            if lead.customer_phone or lead.customer_address:
+                if not lead.is_definite_purchase:
+                    logger.info("💡 [LeadExtractor] Hybrid Trust: Info provided -> Forcing is_definite_purchase=True")
+                    lead.is_definite_purchase = True
+            
+            # 🚀 2.0 HYDRATION FOR SHORT CONFIRMATIONS & FRAGMENTS (Elite V3.6)
             # Hydrate if it's a confirmation, OR if we have some data but are missing others.
             has_any_data = bool(lead.customer_phone or lead.customer_address or lead.items)
             is_confirmation = message.lower().strip() in ["ok", "chốt", "đồng ý", "gửi đi", "vâng", "đúng rồi"]
             
+            # Layer 0: Redis L0 Hydration (Fastest)
+            lead = await LeadExtractor._hydrate_from_redis(session_id, lead)
+
+            # Layer 1: History Hydration (Fallback for consistency)
             if is_confirmation or (has_any_data and (not lead.customer_phone or not lead.customer_address or not lead.items)):
                 lead = await LeadExtractor._hydrate_from_history(db, session_id, lead)
                 # Re-validate phone after hydration
@@ -214,18 +261,38 @@ class LeadExtractor:
                 logger.info(f"🚀 [LeadExtractor] Heuristic Force: is_definite_purchase=True matched for '{message[:20]}...'")
                 lead.is_definite_purchase = True
 
+            # 🚀 V4.0: Post-Hydration Intent Re-Evaluation
+            # Semantic Autocracy (line ~217) runs BEFORE hydration and may have locked
+            # is_definite_purchase=False because items were empty at that point.
+            # After hydration fills items from Redis/History, we must re-evaluate.
+            if lead.items and lead.customer_phone and not lead.is_definite_purchase:
+                logger.info("🔄 [LeadExtractor] V4.0 Post-Hydration Re-Eval: items+phone found after hydration -> Forcing is_definite_purchase=True")
+                lead.is_definite_purchase = True
+
             # 2.1 ADDRESS RESOLUTION (Elite V2.2)
             if lead.customer_address:
-                # CTO Guard: Nếu địa chỉ giống hệt tên sản phẩm -> Hallucination detected
+                # 🚀 Elite V3.7: Strict Semantic Hallucination Guard
                 is_hallucination = False
-                for item in lead.items:
-                    if item.name.lower() in lead.customer_address.lower() or lead.customer_address.lower() in item.name.lower():
-                        if len(lead.customer_address) < 20: # Địa chỉ thật thường dài hơn tên sản phẩm vắn tắt
+                
+                # Check for product keywords that should NEVER be in a delivery address
+                address_lower = lead.customer_address.lower()
+                forbidden_keywords = [
+                    "serum", "lọ", "chai", "combo", "giảm giá", "mỹ phẩm", "kem", 
+                    "white", "virgin", "body", "beppin", "trắng da", "vùng kín"
+                ]
+                if any(kw in address_lower for kw in forbidden_keywords):
+                    is_hallucination = True
+                
+                if not is_hallucination:
+                    for item in lead.items:
+                        item_name_lower = item.name.lower()
+                        # If address is a subset of item name or vice versa
+                        if item_name_lower in address_lower or address_lower in item_name_lower:
                             is_hallucination = True
                             break
                 
                 if is_hallucination:
-                    logger.warning(f"[LeadExtractor] 🛑 Hallucination Blocked: Address '{lead.customer_address}' looks like product name.")
+                    logger.warning(f"[LeadExtractor] 🛑 Semantic Hallucination Blocked: Address '{lead.customer_address}' contains product keywords.")
                     lead.customer_address = None
                 else:
                     resolved: ResolvedLocation = await asyncio.to_thread(location_resolver.resolve, lead.customer_address)
@@ -238,6 +305,14 @@ class LeadExtractor:
                         
                         lead.customer_address = std_addr
                         lead.shipping_days = resolved.shipping_days
+                        
+                        # 🚀 Elite V3.9: Ambiguity Detection Protocol
+                        # If the Resolver flags multiple provinces (e.g. Phú Lâm), inhibit automatic conversion.
+                        if resolved.possible_provinces:
+                            lead.possible_provinces = resolved.possible_provinces
+                            logger.warning(f"⚠️ [LeadExtractor] Ambiguity Inhibitor: Multiple provinces found for '{lead.customer_address[:20]}'. Definite purchase inhibited.")
+                            lead.is_definite_purchase = False
+                        
                         masked_addr = (lead.customer_address[:10] + "...") if lead.customer_address else "N/A"
                         logger.info(f"[LeadExtractor] Address Resolved: {masked_addr} (Score: {resolved.score}, Days: {lead.shipping_days})")
                     else:
@@ -245,7 +320,16 @@ class LeadExtractor:
                             lead.possible_provinces = resolved.possible_provinces
                             lead.is_definite_purchase = False # Pause to ask user
                             logger.info(f"[LeadExtractor] Address Ambiguous, found provinces: {lead.possible_provinces}")
-                        logger.warning(f"[LeadExtractor] Address Resolution Low Confidence for: {lead.customer_address}")
+                        
+                        # 🚀 Elite V3.8: Shadow Address Trust
+                        # If resolving failed but the string looks like an address (slashes, numbers), TRUST IT.
+                        # Do not set shipping_days, but don't NULLIFY it.
+                        is_structured = bool(re.search(r"\d+/\d+", lead.customer_address) or re.search(r"\d+\s+", lead.customer_address))
+                        if is_structured:
+                            logger.info(f"[LeadExtractor] 🛡️ Shadow Trust: Unresolved but structured address kept: {lead.customer_address}")
+                        else:
+                            logger.warning(f"[LeadExtractor] Address Resolution Low Confidence & Not Structured: {lead.customer_address}")
+                            lead.customer_address = None # Truly unhelpful text
 
             # 3. IDENTITY RESOLUTION (Elite V2.2)
             # Only resolve identity when we have a REAL phone — never use dummy fallback.
@@ -356,6 +440,8 @@ class LeadExtractor:
             return lead
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             logger.exception(f"[LeadExtractor] Structural failure: {e}")
             return None
 

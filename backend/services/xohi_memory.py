@@ -220,5 +220,34 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         except Exception as e:
             logger.warning(f"[XoHiMemory] Failed to purge campaign memory: {e}")
 
+    # ═══════════════════════════════════════════════════════
+    # ORDER DRAFT PERSISTENCE — Elite V3.6
+    # ═══════════════════════════════════════════════════════
+
+    async def get_order_draft(self, session_id: str) -> Optional[Dict[str, object]]:
+        """Retrieve the pending order draft for slot-filling context."""
+        key = f"support:order_draft:{session_id}"
+        try:
+            if self._use_redis:
+                data = await self.client.get(key)
+                if data: return json.loads(data)
+        except Exception as e: logger.debug(f"[XoHiMemory] Draft get failed: {e}")
+        return None
+
+    async def set_order_draft(self, session_id: str, draft_data: Dict[str, object], ttl: int = 86400):
+        """Persist the pending order draft (Default 24h TTL)."""
+        key = f"support:order_draft:{session_id}"
+        try:
+            if self._use_redis:
+                await self.client.set(key, json.dumps(draft_data, ensure_ascii=False), ex=ttl)
+        except Exception as e: logger.debug(f"[XoHiMemory] Draft set failed: {e}")
+
+    async def clear_order_draft(self, session_id: str):
+        key = f"support:order_draft:{session_id}"
+        try:
+            if self._use_redis:
+                await self.client.delete(key)
+        except Exception as e: logger.debug(f"[XoHiMemory] Draft clear failed: {e}")
+
 # Singleton
 xohi_memory = XoHiMemory()

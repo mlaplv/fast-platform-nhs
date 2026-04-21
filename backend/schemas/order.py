@@ -218,3 +218,28 @@ class PublicOrderResponse(BaseModel):
             "priority": meta.get("priority", "NORMAL"),
             "planning_notes": meta.get("planning_notes")
         }
+class OrderDraft(BaseModel):
+    """Elite V3.6: Persistent Slot-Filling State for Support Orders"""
+    model_config = ConfigDict(strict=True)
+
+    session_id: str
+    items: List[Dict[str, JSONType]] = Field(default_factory=list)
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_address: Optional[str] = None
+    is_definite_intent: bool = False
+    last_update: datetime = Field(default_factory=datetime.utcnow)
+
+    @property
+    def is_complete(self) -> bool:
+        """Check if all required slots for chốt đơn are filled."""
+        return bool(self.items and self.customer_phone and self.customer_address)
+
+    @property
+    def missing_slots(self) -> List[str]:
+        """Identify which slots are still needed."""
+        missing = []
+        if not self.items: missing.append("Sản phẩm")
+        if not self.customer_phone: missing.append("Số điện thoại")
+        if not self.customer_address: missing.append("Địa chỉ cụ thể")
+        return missing

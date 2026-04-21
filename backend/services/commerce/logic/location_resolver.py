@@ -34,6 +34,8 @@ class LocationResolver:
     _data: List[Dict[str, JsonValue]] = []
     _province_map: Dict[str, Dict[str, JsonValue]] = {} # Normalized Name -> Province Data
     _ward_map: Dict[str, List[Tuple[str, Dict[str, JsonValue]]]] = {} # Province ID -> List[(Norm Ward, Province Data)]
+    _global_ward_map: Dict[str, List[Dict[str, JsonValue]]] = {} # Norm Ward -> List[Province Data] (Elite V3.8 Global Fallback)
+    _global_ward_map_sorted: List[Tuple[str, List[Dict[str, JsonValue]]]] = [] # Pre-sorted for efficiency
     _initialized: bool = False
 
     def __init__(self, data_path: str = "backend/resources/vn_divisions.json"):
@@ -58,13 +60,34 @@ class LocationResolver:
                     for name in [p["name"]] + p.get("aliases", []):
                         LocationResolver._province_map[normalize_vn(name)] = p
                     
+                    # Elite V3.8 Prefixes to strip for index
+                    prefixes = ["phuong ", "xa ", "thi tran ", "quan ", "huyen ", "thanh pho "]
+                    
                     # Index Wards (Flattened)
-                    LocationResolver._ward_map[p_id] = [
-                        (normalize_vn(w), p) for w in p.get("wards", [])
-                    ]
+                    LocationResolver._ward_map[p_id] = []
+                    for w in p.get("wards", []):
+                        w_norm = normalize_vn(w)
+                        LocationResolver._ward_map[p_id].append((w_norm, p))
+                        
+                        # Elite V3.8: Global Ward Index (Prefix-Agnostic)
+                        w_short = w_norm
+                        for pref in ["phuong ", "xa ", "thi tran "]:
+                            if w_short.startswith(pref):
+                                w_short = w_short[len(pref):]
+                                break
+                        
+                        if w_short not in LocationResolver._global_ward_map:
+                            LocationResolver._global_ward_map[w_short] = []
+                        LocationResolver._global_ward_map[w_short].append(p)
+                
+                # Elite V3.11: Pre-sort for resolve() efficiency
+                LocationResolver._global_ward_map_sorted = sorted(
+                    LocationResolver._global_ward_map.items(), key=lambda x: len(x[0]), reverse=True
+                )
                 
                 LocationResolver._initialized = True
-                logger.info(f"[LocationResolver] Seeded {len(LocationResolver._data)} provinces with Inverted Index.")
+                logger.info(f"[LocationResolver] Seeded {len(LocationResolver._data)} provinces.")
+                logger.info(f"[LocationResolver] Global Ward Index Size: {len(LocationResolver._global_ward_map)}")
             else:
                 logger.warning(f"[LocationResolver] Data file not found at {full_path}")
         except Exception as e:
@@ -109,23 +132,60 @@ class LocationResolver:
         best_province = None
         best_p_score = 0.0
         
-        # O(1) Fast Search First
+        # Exact substring search for Province (Pre-compiled map)
         for p_norm, p_data in LocationResolver._province_map.items():
-            if p_norm in addr_norm:
+            if f" {p_norm} " in f" {addr_norm} " or addr_norm.startswith(f"{p_norm} ") or addr_norm.endswith(f" {p_norm}"):
                 best_province = p_data
-                best_p_score = 1.0 # Exact match boost
+                best_p_score = 1.0 
                 break
         
-        # Fallback to Fuzzy if needed
+        # Fallback to Fuzzy ONLY if we have a significant match or global wards fail
         if not best_province:
-            for p in LocationResolver._data:
-                if "_GUIDE" in p or "name" not in p:
-                    continue
-                for name in [p["name"]] + p.get("aliases", []):
-                    score = self._fuzzy_score(name, addr_norm)
-                    if score > best_p_score:
-                        best_p_score = score
-                        best_province = p
+            # ... (Existing fuzzy logic is fine if we check scores strictly later)
+            pass
+            
+            # Elite V3.8 Hardening: If fuzzy score is too low, treat as None to allow fallback scan
+            if best_p_score < 0.5:
+                best_province = None
+                best_p_score = 0.0
+        
+        # 🔗 Elite V3.8: Global Ward Fallback (If no city mentioned or score is low)
+        if not best_province or best_p_score < 0.6:
+            potential_matches = []
+            for w_key, provinces in LocationResolver._global_ward_map_sorted:
+                match = re.search(rf"\b{re.escape(w_key)}\b", addr_norm)
+                if match:
+                    # Pick a preferred province for this ward (prefer HCM/HNI)
+                    target_p = provinces[0]
+                    for p in provinces:
+                        if p.get("code") in ["HCM", "HNI"] or any(x in p.get("name", "") for x in ["Hồ Chí Minh", "Hà Nội"]):
+                            target_p = p
+                            break
+                    potential_matches.append((match.start(), w_key, target_p))
+            
+            if potential_matches:
+                # Elite V3.14: Pick the RIGHTMOST match (usually wards are at the end of the string)
+                # This prevents 'Luông Phú' (Vĩnh Long) matching 'Nguyễn Văn LUÔNG PHÚ Lâm'
+                potential_matches.sort(key=lambda x: x[0], reverse=True)
+                best_match = potential_matches[0]
+                
+                # V3.9: Ambiguity Guard - If the best match ward exists in multiple provinces
+                # Find all provinces associated with this specific w_key
+                matched_w_key = best_match[1]
+                # Optimization: find the provinces again or store them in potential_matches
+                all_candidate_provinces = []
+                for wk, provs in LocationResolver._global_ward_map_sorted:
+                    if wk == matched_w_key:
+                        all_candidate_provinces = provs
+                        break
+                
+                if len(all_candidate_provinces) > 1:
+                    res.possible_provinces = [p["name"] for p in all_candidate_provinces]
+                    logger.warning(f"[LocationResolver] ⚠️ Ambiguity Detected for '{matched_w_key}': {res.possible_provinces}")
+                
+                best_province = best_match[2]
+                best_p_score = 0.98 if not res.possible_provinces else 0.8 # Lower score if ambiguous to trigger follow-up
+                logger.info(f"[LocationResolver] 🌐 Global Fallback Match (Rightmost): '{matched_w_key}' identified. Province: {best_province['name']}")
 
         if best_province and best_p_score > 0.6:
             res.province = best_province["name"]

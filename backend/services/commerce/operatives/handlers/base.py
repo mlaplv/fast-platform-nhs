@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.schemas.support import SupportRequest, SupportIntent, SupportProductInfo
 
 from backend.services.commerce.logic.lead_extractor import ExtractedLead
+from backend.schemas.order import OrderDraft
 
 class NeuralDNA(BaseModel):
     """Elite V2.2: Customer Personality & Segment DNA."""
@@ -40,6 +41,7 @@ class SupportContext(BaseModel):
     
     # Lead / Order results
     lead_data: Optional[ExtractedLead] = None
+    order_draft: Optional[OrderDraft] = None
     processed_order_id: Optional[str] = None
     
     # Composed response

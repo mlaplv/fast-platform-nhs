@@ -22,6 +22,7 @@ from backend.database.models.commerce import ProductBase, Order
 from backend.database.models.content import Category
 from backend.database.models.system import SupportChatHistory
 from backend.schemas.support import SupportIntent, SupportRequest, SupportResponse, SupportProductInfo
+from backend.schemas.order import OrderDraft
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative
 from backend.constants.infra import HELEN_FOLLOW_UP_TRIGGER
@@ -342,6 +343,10 @@ class SupportAgentOperative(BaseAgentOperative):
         from backend.services.commerce.logic.fomo_service import fomo_service
         active_visitors = await fomo_service.get_active_visitors_count()
 
+        # 🚀 1.3: Elite V3.6: Order Draft Hydration
+        raw_draft = await xohi_memory.get_order_draft(session_id)
+        order_draft = OrderDraft.model_validate(raw_draft) if raw_draft else None
+
         ctx = SupportContext(
             db=db,
             request=request,
@@ -354,7 +359,8 @@ class SupportAgentOperative(BaseAgentOperative):
             zalo_enabled=zalo_on,
             messenger_enabled=messenger_on,
             active_visitors=active_visitors,
-            product_stock=p_info.stock if p_info else 0
+            product_stock=p_info.stock if p_info else 0,
+            order_draft=order_draft
         )
         
         # 🚀 2. EXECUTE PIPELINE (The Specialists)
@@ -365,6 +371,15 @@ class SupportAgentOperative(BaseAgentOperative):
         # 🚀 3. POST-PROCESSING (Verification & Finalization)
         # We join all collected replies into one natural message
         final_reply = " ".join(ctx.replies).strip() if ctx.replies else "[fallback] Dạ Helen xin lỗi, hiện tại em đang bận xử lý dữ liệu một chút. Anh/Chị vui lòng nhập câu hỏi rõ hơn hoặc chờ em giây lát nhé! 🌸"
+        
+        # 🚀 Elite V3.6: Stateful Response Synthesis (The Closing Hook)
+        if ctx.order_draft and not ctx.order_draft.is_complete and ctx.intent != SupportIntent.PURCHASE:
+            missing = ctx.order_draft.missing_slots
+            if missing:
+                hook = f"\n\n(Dạ em vẫn đang chờ {', '.join(missing)} của mình để hoàn tất đơn hàng đó ạ! 🌸)"
+                if hook not in final_reply:
+                    final_reply += hook
+        
         safe_reply = _sanitize_response(final_reply) or "[fallback] Dạ em đang kết nối lại, Anh/Chị thông cảm nhé!"
         
         # Final Intent and Component Logic

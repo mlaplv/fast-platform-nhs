@@ -4,9 +4,11 @@ import unicodedata
 from sqlalchemy import select
 from backend.database.models.commerce import Order
 from backend.services.commerce.operatives.handlers.base import BaseHandler, SupportContext
-from backend.services.commerce.logic.lead_extractor import lead_extractor
+from backend.services.commerce.logic.lead_extractor import lead_extractor, ExtractedLead, LeadOrderItem, validate_vietnam_phone
 from backend.services.commerce.logic.location_resolver import location_resolver
+from backend.services.xohi_memory import xohi_memory
 from backend.schemas.support import SupportIntent
+from backend.schemas.order import OrderDraft
 
 logger = logging.getLogger("api-gateway")
 
@@ -81,25 +83,120 @@ class OrderHandler(BaseHandler):
         potential_keywords = ["mua", "đặt", "lấy", "ship", "giao", "ok", "chốt", "đơn", "cho"]
 
         has_digits = any(char.isdigit() for char in msg)
-        has_standalone_phone = bool(re.search(r"0\d{9}", msg))
+        # Elite V3.6: Loose phone check (9-11 digits) to catch typos
+        has_standalone_phone = bool(re.search(r"0\d{8,10}", msg))
         is_staff_order = any(sp in msg for sp in staff_patterns) and has_digits
         has_buying_intent = any(kw in msg for kw in potential_keywords)
         
-        # Elite V3.1 Memory Sync: Trigger if there's buying intent OR a standalone phone number (answering a request)
+        # Elite V3.6: Trigger if there's buying intent OR a standalone phone OR active draft exists (Sticky)
         is_strong_intent = has_digits and (has_buying_intent or is_staff_order or has_standalone_phone)
+        if ctx.order_draft and not is_strong_intent:
+            # If we have an active draft, be more sensitive to inputs
+            if has_digits or len(msg) > 10:
+                is_strong_intent = True
 
         logger.info(f"[OrderHandler] Intent: msg='{msg}', strong={is_strong_intent}")
 
-        # 🚀 2. ATOMIC EXTRACTION 
+        # 🚀 V4.0: DRAFT-FIRST SLOT FILLER (Deterministic, LLM-Free)
+        # When a draft already has items (Turn 1 created it), fill missing slots
+        # directly from the current message. This prevents the Dementia Loop where
+        # the LLM processes "0949901122" without context and returns items=[].
         lead_data = None
-        if is_strong_intent or is_staff_order:
+        draft_filled = False
+        
+        if ctx.order_draft and ctx.order_draft.items:
+            missing = ctx.order_draft.missing_slots
+            if missing:
+                # Deterministic Phone Slot Fill
+                if "Số điện thoại" in missing:
+                    digits_only = re.sub(r"\D", "", msg)
+                    phone_match = re.search(r"0\d{9}", digits_only)
+                    if phone_match:
+                        validated_phone = validate_vietnam_phone(phone_match.group())
+                        if validated_phone:
+                            ctx.order_draft.customer_phone = validated_phone
+                            draft_filled = True
+                            logger.info(f"📞 [OrderHandler] V4.0 Draft-First: Phone slot filled -> {validated_phone}")
+                
+                # Deterministic Address Slot Fill
+                if "Địa chỉ cụ thể" in missing:
+                    has_addr_signal = "/" in msg or any(
+                        kw in msg for kw in ["đường", "phố", "phường", "quận", "huyện", "xã", "tỉnh", "tp", "số", "ngõ", "ngách"]
+                    )
+                    if has_addr_signal or (len(msg) > 15 and has_digits):
+                        ctx.order_draft.customer_address = ctx.request.message.strip()
+                        draft_filled = True
+                        logger.info(f"📍 [OrderHandler] V4.0 Draft-First: Address slot filled")
+                
+                if draft_filled:
+                    # Mark definite intent since customer is actively providing info
+                    ctx.order_draft.is_definite_intent = True
+                    
+                    # V4.0: Resolve address to get shipping_days so is_address_resolved passes
+                    # the Decision Engine check (which requires shipping_days to be set).
+                    resolved_shipping_days: str | None = None
+                    resolved_addr: str | None = ctx.order_draft.customer_address
+                    resolved_possible_provinces: list[str] = []
+                    if ctx.order_draft.customer_address:
+                        import asyncio as _asyncio
+                        geo = await _asyncio.to_thread(location_resolver.resolve, ctx.order_draft.customer_address)
+                        if geo.is_valid:
+                            resolved_shipping_days = geo.shipping_days
+                            resolved_possible_provinces = geo.possible_provinces or []
+                            # Standardize address with province appended
+                            std = ctx.order_draft.customer_address
+                            if geo.province and geo.province not in std:
+                                std = f"{std}, {geo.province}"
+                            ctx.order_draft.customer_address = std
+                            resolved_addr = std
+                        elif geo.possible_provinces:
+                            resolved_possible_provinces = geo.possible_provinces
+                    
+                    await xohi_memory.set_order_draft(ctx.session_id, ctx.order_draft.model_dump())
+                    logger.info(f"💾 [OrderHandler] V4.0 Draft persisted for SID: {ctx.session_id}")
+                    
+                    # Synthesize lead_data from the updated draft for downstream Decision Engine
+                    lead_data = ExtractedLead(
+                        customer_phone=ctx.order_draft.customer_phone,
+                        customer_address=resolved_addr,
+                        customer_name=ctx.order_draft.customer_name,
+                        items=[LeadOrderItem(**it) for it in ctx.order_draft.items],
+                        is_definite_purchase=True,
+                        shipping_days=resolved_shipping_days,
+                        possible_provinces=resolved_possible_provinces,
+                    )
+                    ctx.lead_data = lead_data
+
+        # 🚀 2. ATOMIC EXTRACTION (Only if Draft-First didn't handle it)
+        if not draft_filled and (is_strong_intent or is_staff_order):
             try:
                 lead_data = await lead_extractor.extract_and_convert(
                     ctx.db, ctx.request.message, ctx.session_id, current_product_slug=ctx.request.product_slug
                 )
                 ctx.lead_data = lead_data
+
+                # 🚀 Elite V3.6: Atomic State Synchronization
+                if lead_data:
+                    if not ctx.order_draft:
+                        ctx.order_draft = OrderDraft(
+                            session_id=ctx.session_id,
+                            items=[it.model_dump() for it in lead_data.items]
+                        )
+                    
+                    # Update slots
+                    if lead_data.customer_phone: ctx.order_draft.customer_phone = lead_data.customer_phone
+                    if lead_data.customer_address: ctx.order_draft.customer_address = lead_data.customer_address
+                    if lead_data.customer_name: ctx.order_draft.customer_name = lead_data.customer_name
+                    if lead_data.items:
+                        ctx.order_draft.items = [it.model_dump() for it in lead_data.items]
+                    if lead_data.is_definite_purchase:
+                        ctx.order_draft.is_definite_intent = True
+                    
+                    # Persist to Redis
+                    await xohi_memory.set_order_draft(ctx.session_id, ctx.order_draft.model_dump())
+                    logger.info(f"💾 [OrderHandler] Draft Synchronized for SID: {ctx.session_id}")
             except Exception as e:
-                logger.error(f"[OrderHandler] Atomic extraction failed: {e}")
+                logger.error(f"[OrderHandler] Atomic extraction/draft failed: {e}")
 
         # 🚀 3. DECISION ENGINE (Shadow Checkout & Upsell)
         if lead_data:
@@ -128,16 +225,29 @@ class OrderHandler(BaseHandler):
             is_address_resolved = bool(lead_data.customer_address and lead_data.shipping_days)
             
             if not lead_data.customer_phone or not is_address_resolved:
-                if not lead_data.customer_phone and not is_address_resolved:
+                # 🚀 Elite V3.6: Detect invalid 9-digit phone typos specifically
+                raw_phone = re.search(r"0\d{8,10}", msg)
+                if not lead_data.customer_phone and raw_phone:
+                    ctx.replies.append(f"{debug_prefix}Dạ SĐT **{raw_phone.group()}** chị nhắn bị thiếu mất 1 số rồi ạ, chị kiểm tra lại giúp Helen nhé! 🌸")
+                elif not lead_data.customer_phone and not is_address_resolved:
                     ctx.replies.append(f"{debug_prefix}Dạ Helen đã nhận đơn của mình rồi ạ! 🌸 Anh/Chị cho em xin thêm **Số điện thoại và Địa chỉ** cụ thể để em lên bill gửi hàng luôn nhé! ✨")
                 elif not lead_data.customer_phone:
                     ctx.replies.append(f"{debug_prefix}Dạ địa chỉ thì Helen đã thấy rồi. Anh/Chị cho em xin thêm **Số Điện Thoại** để shipper liên lạc nha! 🌸")
                 else:
                     ctx.replies.append(f"{debug_prefix}Dạ SĐT em lưu 1 bản rồi ạ. Anh/Chị cho em xin thêm **Địa chỉ cụ thể** để gửi hàng về tận cửa luôn nhé! 🌸")
+                
+                # 🚀 Elite V3.6: Interleaved Recovery logic
+                # If message contains a question (?), update state but return False to allow ConsultantHandler to speak.
+                if "?" in msg or len(msg) > 60:
+                    logger.info("🔀 [OrderHandler] Interleaved Intent detected. Yielding to Consultant.")
+                    return False
                 return True
 
             # Case C: Shadow Checkout Thành Công -> Khai hỏa Voucher Intelligence
             if lead_data.processed_order_id:
+                # 🚀 Elite V3.6: Cleanup Draft on Success
+                await xohi_memory.clear_order_draft(ctx.session_id)
+                
                 ctx.processed_order_id = lead_data.processed_order_id
                 ctx.intent = SupportIntent.PURCHASE
 

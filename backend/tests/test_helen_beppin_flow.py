@@ -141,6 +141,66 @@ async def test_turn_1_hallucinated_address(base_ctx):
         assert "Số điện thoại và Địa chỉ" in reply
         assert "địa chỉ thì Helen đã thấy rồi" not in reply
 
+@pytest.mark.asyncio
+async def test_interleaved_multi_intent(base_ctx):
+    """
+    TURN 2 (V3.6): "0949901122. Bầu bí dùng được không?" (Phone + Medical Question)
+    EXPECTED: OrderHandler updates the Draft in Redis but returns FALSE to allow ConsultantHandler to answer.
+    """
+    handler = OrderHandler()
+    base_ctx.request.message = "0949901122. Bầu bí dùng được không?"
+    
+    # Mock Current Draft
+    base_ctx.order_draft = MagicMock()
+    base_ctx.order_draft.customer_phone = None
+    
+    # Mock Lead Extractor
+    from backend.services.commerce.logic.lead_extractor import LeadOrderItem
+    mock_lead = MagicMock()
+    mock_lead.items = [LeadOrderItem(name="Beppin Body Virgin White Serum", quantity=1)]
+    mock_lead.customer_phone = "0949901122"
+    mock_lead.customer_address = None # Still missing
+    mock_lead.shipping_days = None
+    mock_lead.is_definite_purchase = False
+    
+    with patch("backend.services.commerce.operatives.handlers.order.lead_extractor.extract_and_convert", new_callable=AsyncMock) as mock_ext:
+        with patch("backend.services.commerce.operatives.handlers.order.xohi_memory.set_order_draft", new_callable=AsyncMock) as mock_redis:
+            mock_ext.return_value = mock_lead
+            
+            # Action
+            res = await handler.handle(base_ctx)
+            
+            # PROOF: Should return False to let Consultant talk
+            assert res is False
+            # PROOF: Redis should have been updated
+            assert mock_redis.called
+            # PROOF: Phone was saved into context draft
+            assert base_ctx.order_draft.customer_phone == "0949901122"
+
+@pytest.mark.asyncio
+async def test_fuzzy_phone_typo(base_ctx):
+    """
+    TURN 2 (V3.6 Typos): "094990112" (9 digits)
+    EXPECTED: OrderHandler detects the typo and gives specific feedback.
+    """
+    handler = OrderHandler()
+    base_ctx.request.message = "094990112"
+    
+    # Mock Lead Extractor: Returns nothing for the phone because it's too short
+    mock_lead = MagicMock()
+    mock_lead.customer_phone = None
+    mock_lead.items = []
+    
+    with patch("backend.services.commerce.operatives.handlers.order.lead_extractor.extract_and_convert", new_callable=AsyncMock) as mock_ext:
+        mock_ext.return_value = mock_lead
+        
+        await handler.handle(base_ctx)
+        
+        reply = base_ctx.replies[0]
+        # PROOF: Recognition of the 9-digit fragment and providing correction feedback
+        assert "094990112" in reply
+        assert "thiếu mất 1 số" in reply
+
 if __name__ == "__main__":
     # Fallback for manual run if pytest fails
     async def run_manual():
