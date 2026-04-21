@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 # Elite 2026: Clear Type Definitions to avoid 'Any' (Rule R00)
-EncryptedData: TypeAlias = Union[str, list[str]]
+EncryptedData: TypeAlias = Union[str, list[str], dict[str, object]]
 
 logger: logging.Logger = logging.getLogger("security-utility")
 
@@ -94,11 +94,9 @@ class GeminiSecurity:
                 # V2026: Try JSON decoding (Standard)
                 result: object = json.loads(decrypted)
                 
-                # CNS V2.2: Explicit Type Safety — Ensure result is str or list[str]
-                if isinstance(result, str):
+                # CNS V2.2: Explicit Type Safety — Ensure result is str, list, or dict
+                if isinstance(result, (str, list, dict)):
                     return result
-                if isinstance(result, list):
-                    return [str(item) for item in result]
                 
                 return str(result)
             except (json.JSONDecodeError, ValueError):

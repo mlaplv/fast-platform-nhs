@@ -38,6 +38,7 @@ class SupportContext(BaseModel):
     history_text: str = ""
     knowledge_index: str = "" # Elite V2.2: Layer 1 Memory (Knowledge Map)
     p_info: Optional[SupportProductInfo] = None
+    cart_text: str = "" # Elite V4.2: Real-time Cart Awareness
     
     # Lead / Order results
     lead_data: Optional[ExtractedLead] = None

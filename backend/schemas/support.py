@@ -73,6 +73,8 @@ class SupportRequest(BaseModel):
     customer_name: Optional[str] = Field(default="Khách ẩn danh", max_length=100)
     customer_phone: Optional[str] = Field(default=None, max_length=20)
     user_id: Optional[str] = Field(default=None, max_length=64)
+    cart_items: Optional[List[Dict[str, JSONValue]]] = Field(default=None, description="Current cart snapshot from client localStorage.")
+    selected_vouchers: Optional[List[str]] = Field(default=None, description="Active voucher IDs from client cart.")
 
     @field_validator("message", mode="before")
     @classmethod

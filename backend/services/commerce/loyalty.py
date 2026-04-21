@@ -56,6 +56,13 @@ class LoyaltyService:
         seal_data = GeminiSecurity.decrypt(loyalty.balance_seal)
         if not seal_data or not isinstance(seal_data, dict):
             logger.error(f"[SECURITY-CRITICAL] Loyalty Seal Corrupted for user {user_id}!")
+            
+            import os
+            if os.getenv("ENV") != "production":
+                logger.warning(f"[SECURITY-RESCUE] Re-sealing corrupted loyalty for user {user_id} in {os.getenv('ENV')} environment.")
+                loyalty.balance_seal = LoyaltyService._create_balance_seal(loyalty)
+                await db_session.commit()
+                return True
             return False
 
         # Detect manual DB intervention

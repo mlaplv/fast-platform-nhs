@@ -67,7 +67,15 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
             # Emit signals for cached result
             await event_bus.emit("AGENT_TASK_COMPLETED", {"task_id": task_id, "session_id": session_id, "agent_id": agent_id, "status": "DONE"})
             if agent_id == "support_agent":
-                await event_bus.emit("SUPPORT_RESPONSE_READY", {"session_id": session_id, "task_id": task_id, "reply": cached_res.get("reply"), "intent": cached_res.get("intent"), "status": "DONE"})
+                await event_bus.emit("SUPPORT_RESPONSE_READY", {
+                    "session_id": session_id, 
+                    "task_id": task_id, 
+                    "reply": cached_res.get("reply"), 
+                    "intent": cached_res.get("intent"), 
+                    "status": "DONE",
+                    "ui_metadata": cached_res.get("ui_metadata"),
+                    "metadata": cached_res.get("metadata")
+                })
             return
 
         # 1. Update status to RUNNING in DB and RESTORE TENANT CONTEXT
@@ -166,7 +174,9 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
                     "task_id": task_id,
                     "reply": result_data.get("reply"),
                     "intent": result_data.get("intent"),
-                    "status": "DONE"
+                    "status": "DONE",
+                    "ui_metadata": result_data.get("ui_metadata"),
+                    "metadata": result_data.get("metadata")
                 })
             
             duration = (datetime.now(timezone.utc) - t0).total_seconds()

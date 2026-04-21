@@ -33,8 +33,13 @@ class KnowledgeVectorService:
         try:
             model = self.encoder
             if not model:
-                logger.warning("[KNOWLEDGE-VECTOR] Encoder not ready.")
-                return []
+                from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
+                logger.info("[KNOWLEDGE-VECTOR] Encoder not ready. Attempting emergency warmup...")
+                await warmup_encoder()
+                model = self.encoder
+                if not model:
+                    logger.warning("[KNOWLEDGE-VECTOR] Encoder STILL not ready after warmup.")
+                    return []
 
             # 1. Generate Embeddings
             loop = asyncio.get_running_loop()
@@ -44,7 +49,7 @@ class KnowledgeVectorService:
 
             # 2. Advanced pgvector Query (Elite Pattern)
             sql = text("""
-                SELECT k.id, k.question, k.answer, e.embedding <=> :v::vector AS cosine_distance
+                SELECT k.id, k.question, k.answer, e.embedding <=> CAST(:v AS vector) AS cosine_distance
                 FROM support_knowledge k
                 JOIN support_knowledge_embeddings e ON k.id = e.knowledge_id
                 WHERE k.deleted_at IS NULL

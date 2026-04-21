@@ -186,7 +186,8 @@ class SupportAgentOperative(BaseAgentOperative):
                 except Exception as arqe:
                     logger.warning("[SupportAgent] Follow-up scheduling failed: %s", arqe)
         except Exception as exc:
-            logger.warning("[SupportAgent] Saving failed: %s", exc)
+            logger.warning("[SupportAgent] Saving failed: %s. Rolling back to clear session state.", exc)
+            await db.rollback()
 
     async def _fetch_chat_context(self, db: AsyncSession, session_id: str) -> str:
         """Context-window hydration (Elite V2.2). Enhanced to 10 turns with character clipping."""
@@ -347,6 +348,114 @@ class SupportAgentOperative(BaseAgentOperative):
         raw_draft = await xohi_memory.get_order_draft(session_id)
         order_draft = OrderDraft.model_validate(raw_draft) if raw_draft else None
 
+        # 🚀 1.4: Elite V4.2: Real Cart Hydration (Sales Assassin Intelligence)
+        from backend.services.commerce.promotion import PromotionService
+        from backend.database.models.promotion import Voucher
+        
+        cart_lines = []
+        subtotal = 0.0
+        items_for_promo = []
+        
+        if request.cart_items:
+            from backend.database.models.commerce import ProductBase
+            from sqlalchemy import select
+            
+            for item in request.cart_items:
+                p_raw = item.get("product", {})
+                v_raw = item.get("variant", {})
+                qty = item.get("quantity", 1)
+                p_id = p_raw.get("id")
+                
+                if not p_id: continue
+                
+                # 🚀 Elite V4.4: DB-Verified Price Hydration
+                stmt = select(ProductBase).where(ProductBase.id == p_id)
+                p_db = (await db.execute(stmt)).scalar_one_or_none()
+                
+                if p_db:
+                    # Priority: DB Discount > DB Base
+                    p_price = float(p_db.discount_price or p_db.price or 0)
+                    p_name = p_db.name
+                else:
+                    # Fallback to frontend snapshot if DB fails (unlikely)
+                    prices = [p_raw.get("discountPrice"), p_raw.get("discount_price"), p_raw.get("price")]
+                    p_price = float(next((pr for pr in prices if pr is not None and float(pr) > 0), 0))
+                    p_name = p_raw.get("name", "Sản phẩm")
+                
+                subtotal += p_price * qty
+                items_for_promo.append({
+                    "id": p_id,
+                    "unit_price": p_price,
+                    "qty": qty
+                })
+                
+                v_name = v_raw.get("name", "")
+                line = f"- {p_name}"
+                if v_name: line += f" ({v_name})"
+                line += f": {qty} x {int(p_price):,}đ".replace(",", ".")
+                cart_lines.append(line)
+        
+        # Calculate Potential Savings
+        combo_deals = await PromotionService.get_active_combo_deals(db)
+        combo_discount = PromotionService.calculate_combo_discount(items_for_promo, combo_deals)
+        
+        # 🚀 Elite V4.3: Active Voucher Calculation
+        voucher_discount = 0.0
+        applied_v_names = []
+        if request.selected_vouchers:
+            for v_id in request.selected_vouchers:
+                # Resolve voucher from DB for security/real-time verification
+                v_obj = await PromotionService.get_active_voucher(db, v_id)
+                if v_obj:
+                    # Note: We calculate voucher on subtotal AFTER combo (if needed) 
+                    # but here we follow frontend logic (on subtotal)
+                    v_val = PromotionService.calculate_voucher_discount(subtotal, v_obj)
+                    if v_val > 0:
+                        voucher_discount += v_val
+                        applied_v_names.append(f"'{v_obj.id}' (-{int(v_val):,}đ)".replace(",", "."))
+
+        # Fetch Other Active Vouchers for Proactive Upselling
+        v_stmt = select(Voucher).where(Voucher.is_active == True).order_by(Voucher.min_spend.asc())
+        v_res = await db.execute(v_stmt)
+        all_vouchers = v_res.scalars().all()
+        
+        applicable_vouchers = []
+        next_tier_vouchers = []
+        
+        for v in all_vouchers:
+            if subtotal >= v.min_spend:
+                if not request.selected_vouchers or v.id not in request.selected_vouchers:
+                    applicable_vouchers.append(v)
+            elif subtotal > 0 and subtotal >= v.min_spend * 0.6: # Within 40% of next tier
+                next_tier_vouchers.append(v)
+        
+        # Calculate Points (100k = 1 point, 1 point = 1000đ)
+        final_payable = max(0, subtotal - combo_discount - voucher_discount)
+        potential_points = int(final_payable // 100000)
+        
+        cart_text = "\n[GIỎ HÀNG THỰC CỦA KHÁCH]\n" + "\n".join(cart_lines) + "\n" if cart_lines else "\n[GIỎ HÀNG THỰC]: Trống.\n"
+        
+        if subtotal > 0:
+            cart_text += f"\n[TRÍ TUỆ GIÁ CẢ & CHỐT SALES V4.3]\n"
+            cart_text += f"- Tổng tạm tính: {int(subtotal):,}đ\n".replace(",", ".")
+            if combo_discount > 0:
+                cart_text += f"- Giảm giá Combo: -{int(combo_discount):,}đ (Đã áp dụng tự động)\n".replace(",", ".")
+            
+            if applied_v_names:
+                cart_text += f"- Voucher đã chọn: {', '.join(applied_v_names)}\n"
+                cart_text += f"- Cần thanh toán: {int(final_payable):,}đ\n".replace(",", ".")
+            
+            cart_text += f"- Điểm thưởng dự kiến: +{potential_points} PTS (Tích lũy ~{potential_points * 1000:,}đ cho đơn sau)\n".replace(",", ".")
+            
+            if applicable_vouchers:
+                v_names = [f"'{v.id}' (Giảm {int(v.value):,}đ)".replace(",", ".") for v in applicable_vouchers]
+                cart_text += f"- MÃ GIẢM GIÁ KHÁC CÓ THỂ DÙNG: {', '.join(v_names)}\n"
+            
+            if next_tier_vouchers:
+                for nv in next_tier_vouchers[:1]: # Suggest only the closest one
+                    gap = nv.min_spend - subtotal
+                    cart_text += f"- GỢI Ý CHỐT ĐƠN (FOMO): Chị chỉ cần mua thêm {int(gap):,}đ nữa là đủ điều kiện dùng mã '{nv.id}' để giảm ngay {int(nv.value):,}đ đó ạ!\n".replace(",", ".")
+
         ctx = SupportContext(
             db=db,
             request=request,
@@ -360,13 +469,19 @@ class SupportAgentOperative(BaseAgentOperative):
             messenger_enabled=messenger_on,
             active_visitors=active_visitors,
             product_stock=p_info.stock if p_info else 0,
-            order_draft=order_draft
+            order_draft=order_draft,
+            cart_text=cart_text
         )
         
         # 🚀 2. EXECUTE PIPELINE (The Specialists)
         await event_bus.emit("SUPPORT_THOUGHT", {"session_id": session_id, "think": f"Đang điều phối chuyên gia {dna.segment}..."})
         
-        ctx = await self.router.process(ctx)
+        try:
+            ctx = await self.router.process(ctx)
+        except Exception as pe:
+            logger.error(f"[SupportAgent] Router Pipeline Failed: {pe}")
+            await db.rollback()
+            # Allow to proceed to fallback reply
         
         # 🚀 3. POST-PROCESSING (Verification & Finalization)
         # We join all collected replies into one natural message
@@ -379,6 +494,16 @@ class SupportAgentOperative(BaseAgentOperative):
                 hook = f"\n\n(Dạ em vẫn đang chờ {', '.join(missing)} của mình để hoàn tất đơn hàng đó ạ! 🌸)"
                 if hook not in final_reply:
                     final_reply += hook
+
+        # 🚀 V4.2: Universal UI Metadata - Always include draft state for UI/Debugging
+        if ctx.order_draft:
+            if not ctx.ui_metadata:
+                ctx.ui_metadata = {}
+            ctx.ui_metadata.update({
+                "order_draft": ctx.order_draft.model_dump(),
+                "missing_slots": ctx.order_draft.missing_slots,
+                "is_definite": ctx.lead_data.is_definite_purchase if ctx.lead_data else False
+            })
         
         safe_reply = _sanitize_response(final_reply) or "[fallback] Dạ em đang kết nối lại, Anh/Chị thông cảm nhé!"
         
@@ -387,7 +512,8 @@ class SupportAgentOperative(BaseAgentOperative):
         
         # Hydrate ui_metadata if component is PRODUCT_CARD
         if ctx.ui_component == "PRODUCT_CARD" and p_info:
-            ctx.ui_metadata = {"type": "PRODUCT_CARD", "data": p_info.model_dump()}
+            if not ctx.ui_metadata: ctx.ui_metadata = {}
+            ctx.ui_metadata.update({"type": "PRODUCT_CARD", "data": p_info.model_dump()})
 
         # 🚀 4. PERSISTENCE (Atomic Commit)
         await self._save_history(

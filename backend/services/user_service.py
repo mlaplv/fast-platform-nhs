@@ -319,7 +319,7 @@ class UserService:
             )
         )
         res = await db.execute(stmt)
-        user = res.scalar_one_or_none()
+        user = res.scalars().first()
 
         if user:
             # 2. Returning Customer - Check Address History

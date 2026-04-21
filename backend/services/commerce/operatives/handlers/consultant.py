@@ -181,7 +181,7 @@ async def search_products_tool(ctx_tool: RunContext[ConsultantDeps], query: str,
                 sql = text("""
                     SELECT p.id, p.name, p.short_description, p.description,
                            p.product_metadata, p.price, p.discount_price, p.stock, p.slug,
-                           pe.embedding <=> :v::vector AS dist
+                           pe.embedding <=> CAST(:v AS vector) AS dist
                     FROM product_bases p
                     JOIN product_embeddings pe ON p.id = pe.product_base_id
                     WHERE p.deleted_at IS NULL
@@ -432,10 +432,16 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         "   - CÂU HỎI ĐẶC THÙ (chính hãng, thương hiệu): Dùng 'search_knowledge_base' làm fallback.\n"
         "2. HỆ THỐNG ĐIỂM THƯỞNG (NEW): Giải thích về tích lũy điểm (PTS):\n"
         "   - Tỷ lệ: 1 điểm = {point_value}đ. \n"
+        "   - NHẬN DIỆN GIỎ HÀNG: Nếu thấy trong [CART] có sản phẩm, hãy chủ động nhắc khách hoặc tư vấn dựa trên những món đó để thúc đẩy chốt đơn (Upsell/Cross-sell).\n"
+        "   - LUÔN dùng tiếng Việt tự nhiên, ấm áp, chuyên nghiệp.\n"
         "   - Gợi ý khách dùng điểm để nhận 'Đặc quyền thượng lưu'.\n"
         "3. PHONG THÁI CHUYÊN GIA: Dùng kiến thức chuyên môn da liễu (Glass Skin, thủy tinh hóa làn da). Xưng hô là 'Helen' và 'Anh/Chị' hoặc 'Chị đẹp' hoặc 'Quý khách'. TUYỆT ĐỐI CẤM dùng từ 'bạn' hoặc 'Sếp'. Hãy ưu tiên gọi Tên riêng khách hàng (ví dụ: 'chị Lê Anh') nếu có trong dữ liệu [DNA]. Phản hồi sang trọng, đẳng cấp, dùng icon ✨, 💄.\n"
         "4. 🛡️ QUÂN KỶ: Tuyệt đối không dùng từ 'Sếp' hay 'bạn'. Không bịa đặt giá hoặc tặng điểm miễn phí.\n"
-        "5. CHỐT ĐƠN NGHỆ THUẬT: Luôn tế nhị. Khi kết thúc tư vấn, khéo léo hỏi khách muốn lấy số lượng bao nhiêu. Nếu khách có điểm, hãy chủ động nhắc: 'Mình đang có X điểm (~Yđ), em dùng luôn để trừ trực tiếp vào đơn hàng cho mình nhé?'.\n"
+        "5. CHỐT ĐƠN NGHỆ THUẬT (SALES ASSASSIN): \n"
+        "   - LUÔN nhìn vào [TRÍ TUỆ GIÁ CẢ] để báo giá cuối cùng cho khách (sau khi trừ combo, voucher). \n"
+        "   - Nếu khách ở gần ngưỡng mã giảm giá tiếp theo (GỢI Ý UPSELL), hãy dùng kỹ thuật FOMO để khuyên khách mua thêm cho đủ điều kiện.\n"
+        "   - Nhắc về quyền lợi: 'Mua đơn này chị được tích thêm X điểm (~Yđ) để dùng cho lần sau đó ạ'.\n"
+        "   - Khi kết thúc tư vấn, khéo léo hỏi khách muốn lấy số lượng bao nhiêu. Nếu khách có điểm, hãy chủ động nhắc: 'Mình đang có X điểm (~Yđ), em dùng luôn để trừ trực tiếp vào đơn hàng cho mình nhé?'.\n"
         "6. TẠO SỨC ÉP (FOMO): Sử dụng dữ liệu [TỒN KHO] và [ĐANG XEM] để tạo sự khan hiếm thực tế.\n"
         "7. DEBUG PROTOCOL: Bắt đầu câu trả lời bằng tiền tố '[z2] '.\n"
     )
@@ -548,6 +554,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             f"{lead_alert}\n"
             f"\n[MỤC LỤC TRI THỨC HỆ THỐNG - LAYER 1]\n{ctx.knowledge_index}\n"
             f"\n[LỊCH SỬ GẦN ĐÂY]\n{ctx.history_text}\n"
+            f"--- CART ---\n{ctx.cart_text}\n"
             f"--- PRODUCT ---\n{ctx.product_ctx}\n"
         )
         

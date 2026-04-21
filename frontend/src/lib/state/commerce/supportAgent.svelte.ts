@@ -58,6 +58,8 @@ export interface SupportChatResponse {
     task_id?: string;
     session_id?: string;
     processed_order_id?: string;
+    ui_metadata?: Record<string, any>;
+    metadata?: Record<string, any>;
 }
 
 const STORAGE_KEY = "fp_helen_sid";
@@ -354,6 +356,16 @@ class SupportAgentState {
                         this.messages = messages;
                     }
                     
+                    console.log("🧩 [Helen Pulse] Received Response:", data);
+                
+                if (data.ui_metadata) {
+                    console.log("📊 [Helen UI Meta] Pulse Metadata:", data.ui_metadata);
+                    if (data.ui_metadata.order_draft) {
+                        console.log("📝 [Order Draft] Current State:", data.ui_metadata.order_draft);
+                    }
+                }
+                    if (data.metadata) console.log("🧠 [Helen Thoughts]:", data.metadata);
+                    
                     this.vibrate([10, 50, 10]);
                     this.isTyping = false;
                     this._disconnectPulse();
@@ -418,7 +430,7 @@ class SupportAgentState {
         this.isTyping = false;
     }
 
-    async sendMessage(text: string, productSlug?: string, customerName?: string, customerPhone?: string, userId?: string) {
+    async sendMessage(text: string, productSlug?: string, customerName?: string, customerPhone?: string, userId?: string, cartItems?: any[], selectedVouchers?: string[]) {
         if (!text.trim() || this.isTyping) return;
 
         const userMsg: SupportMessage = {
@@ -438,7 +450,9 @@ class SupportAgentState {
                 product_slug: productSlug || null,
                 customer_name: customerName || "Khách ẩn danh",
                 customer_phone: customerPhone || null,
-                user_id: userId || null
+                user_id: userId || null,
+                cart_items: cartItems || null,
+                selected_vouchers: selectedVouchers || null
             });
 
             if (res && typeof res.reply === "string") {
@@ -453,6 +467,10 @@ class SupportAgentState {
                         timestamp: new Date()
                     }
                 ];
+                
+                console.log("🧩 [Helen Chat] Received Response:", res);
+                if (res.metadata) console.log("🧠 [Helen Thoughts]:", res.metadata);
+                if (res.ui_metadata) console.log("📊 [Helen UI Meta]:", res.ui_metadata);
 
                 // Check for Async Protocol (Elite V2.2)
                 if (res.status === "PROCESSING") {

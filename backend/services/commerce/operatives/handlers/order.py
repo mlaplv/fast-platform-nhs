@@ -130,7 +130,7 @@ class OrderHandler(BaseHandler):
                                 logger.info(f"📞 [OrderHandler] V4.1 Draft-First: Phone slot filled -> {validated_phone}")
                     
                     # Deterministic Address Slot Fill
-                    if "Địa chỉ cụ thể" in missing and not draft_filled:
+                    if "Địa chỉ cụ thể" in missing:
                         has_addr_signal = "/" in msg or any(
                             kw in msg for kw in ["đường", "phố", "phường", "quận", "huyện", "xã", "tỉnh", "tp", "số", "ngõ", "ngách"]
                         )
@@ -138,7 +138,8 @@ class OrderHandler(BaseHandler):
                         if has_addr_signal or (len(msg) > 15 and has_digits):
                             ctx.order_draft.customer_address = ctx.request.message.strip()
                             draft_filled = True
-                            logger.info(f"📍 [OrderHandler] V4.1 Draft-First: Address slot filled")
+                            print(f"DEBUG_CONSOLE: 📍 [OrderHandler] 🧩 SLOT FILL: Address captured -> {ctx.order_draft.customer_address[:30]}...")
+                            logger.info(f"📍 [OrderHandler] 🧩 SLOT FILL: Address captured -> {ctx.order_draft.customer_address[:30]}...")
                     
                     if draft_filled:
                         # Mark definite intent since customer is actively providing info
@@ -161,6 +162,8 @@ class OrderHandler(BaseHandler):
                                 resolved_addr = std
                             elif geo.possible_provinces:
                                 resolved_possible_provinces = geo.possible_provinces
+                                # V4.2: If ambiguous, mark as NOT definite to trigger provincial ask
+                                ctx.order_draft.is_definite_intent = False
                         
                         await xohi_memory.set_order_draft(ctx.session_id, ctx.order_draft.model_dump())
                         logger.info(f"💾 [OrderHandler] V4.1 Draft persisted for SID: {ctx.session_id}")
@@ -170,11 +173,14 @@ class OrderHandler(BaseHandler):
                             customer_address=resolved_addr,
                             customer_name=ctx.order_draft.customer_name,
                             items=[LeadOrderItem(**it) for it in ctx.order_draft.items],
-                            is_definite_purchase=True,
+                            is_definite_purchase=ctx.order_draft.is_definite_intent,
                             shipping_days=resolved_shipping_days,
                             possible_provinces=resolved_possible_provinces,
                         )
                         ctx.lead_data = lead_data
+                        
+                        print(f"DEBUG_CONSOLE: ✅ [OrderHandler] 🧩 DRAFT UPDATE: Phone={lead_data.customer_phone}, Address={'SET' if lead_data.customer_address else 'MISSING'}, Items={len(lead_data.items)}")
+                        logger.info(f"✅ [OrderHandler] 🧩 DRAFT UPDATE: Phone={lead_data.customer_phone}, Address={'SET' if lead_data.customer_address else 'MISSING'}, Items={len(lead_data.items)}")
                         logger.info(f"✅ [OrderHandler] V4.1 Draft-First Synthesis Complete for SID: {session_id}")
                 except Exception as dfe:
                     logger.error(f"❌ [OrderHandler] Draft-First Critical Error: {dfe}")
@@ -183,7 +189,9 @@ class OrderHandler(BaseHandler):
         if not draft_filled and (is_strong_intent or is_staff_order):
             try:
                 lead_data = await lead_extractor.extract_and_convert(
-                    ctx.db, ctx.request.message, ctx.session_id, current_product_slug=ctx.request.product_slug
+                    ctx.db, ctx.request.message, ctx.session_id, 
+                    current_product_slug=ctx.request.product_slug,
+                    cart_text=ctx.cart_text
                 )
                 ctx.lead_data = lead_data
 
@@ -215,16 +223,17 @@ class OrderHandler(BaseHandler):
             from backend.database import current_tenant_id
             tid = current_tenant_id.get() or "default"
 
-            # Case A: Mập Mờ Số Lượng (Đã Bị Chặn Bằng Lệnh Không Có Items ở LeadExtractor)
+            # Case A: Mập Mờ Số Lượng hoặc Địa Chỉ
             is_definite = lead_data.is_definite_purchase
             has_items = bool(lead_data.items)
 
-            if not is_definite and not has_items:
-                if lead_data.possible_provinces:
-                    provinces = ", ".join(lead_data.possible_provinces)
-                    ctx.replies.append(f"{debug_prefix}Dạ địa chỉ của mình trùng tên ở nhiều nơi ({provinces}), Anh/Chị cho Helen xin thêm Tỉnh/Thành phố nhé! 🌸")
-                    return True
+            # V4.2: Ambiguity check takes priority over everything except definite success
+            if lead_data.possible_provinces and not lead_data.processed_order_id:
+                provinces = ", ".join(lead_data.possible_provinces)
+                ctx.replies.append(f"{debug_prefix}Dạ địa chỉ của mình trùng tên ở nhiều nơi ({provinces}), Anh/Chị cho Helen xin thêm Tỉnh/Thành phố nhé! 🌸")
+                return True
 
+            if not is_definite and not has_items:
                 base_price = int(ctx.p_info.price) if ctx.p_info and ctx.p_info.price else 0
                 formatted_base = "{:,.0f}".format(base_price).replace(",", ".") + "đ" if base_price > 0 else "đang cập nhật"
                 
@@ -249,10 +258,8 @@ class OrderHandler(BaseHandler):
                     ctx.replies.append(f"{debug_prefix}Dạ SĐT em lưu 1 bản rồi ạ. Anh/Chị cho em xin thêm **Địa chỉ cụ thể** để gửi hàng về tận cửa luôn nhé! 🌸")
                 
                 # 🚀 Elite V3.6: Interleaved Recovery logic
-                # If message contains a question (?), update state but return False to allow ConsultantHandler to speak.
                 if "?" in msg or len(msg) > 60:
                     logger.info("🔀 [OrderHandler] Interleaved Intent detected. Yielding to Consultant.")
-                    # V4.2: Even if interleaved, if we filled a slot, we MUST ensure the next turn knows it.
                     return False
                 
                 logger.info(f"✅ [OrderHandler] V4.2 Decision Engine consumed message with response: {ctx.replies[-1][:30]}...")

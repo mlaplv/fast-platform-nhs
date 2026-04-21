@@ -67,7 +67,7 @@
     const name = user?.name || customer?.nameMasked || 'Khách ẩn danh';
     const userId = user?.id || null;
 
-    await supportAgent.sendMessage(text, productSlug, name, undefined, userId);
+    await supportAgent.sendMessage(text, productSlug, name, undefined, userId, cartStore.items, cartStore.selectedVoucherIds);
     scrollToNewestMessage();
   }
 
@@ -77,7 +77,7 @@
       return;
     }
     if (supportAgent.isTyping || !action.prompt) return;
-    await supportAgent.sendMessage(action.prompt, productSlug);
+    await supportAgent.sendMessage(action.prompt, productSlug, undefined, undefined, undefined, cartStore.items, cartStore.selectedVoucherIds);
     scrollToNewestMessage();
   }
 

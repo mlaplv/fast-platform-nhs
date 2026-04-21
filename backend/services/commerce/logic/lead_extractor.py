@@ -133,6 +133,9 @@ class LeadExtractor:
                 lead.customer_address = draft.customer_address
             if not lead.customer_name and draft.customer_name:
                 lead.customer_name = draft.customer_name
+            
+            print(f"DEBUG_CONSOLE: 🧩 [LeadExtractor] L0 Hydration Success: Phone={lead.customer_phone}, Address={'SET' if lead.customer_address else 'MISSING'}")
+            logger.info(f"🧩 [LeadExtractor] L0 Hydration Success: Phone={lead.customer_phone}, Address={'SET' if lead.customer_address else 'MISSING'}")
                 
             # Items merge logic: If current turn has NO items, use draft items
             if not lead.items and draft.items:
@@ -194,14 +197,16 @@ class LeadExtractor:
         db: AsyncSession, 
         message: str, 
         session_id: str,
-        current_product_slug: Optional[str] = None
+        current_product_slug: Optional[str] = None,
+        cart_text: str = ""
     ) -> Optional[ExtractedLead]:
         """
         Atomic Extraction -> Validation -> Conversion Loop.
         """
         try:
             # 1. AI EXTRACTION (TrinityBridge Fast Tier)
-            result = await trinity_bridge.run(_lead_extraction_agent, message, role="fast", session_id=session_id)
+            full_message = f"{message}\n\n[USER_CONTEXT_HINT]\n{cart_text}" if cart_text else message
+            result = await trinity_bridge.run(_lead_extraction_agent, full_message, role="fast", session_id=session_id)
             
             # Elite V2.2: Standardized Result Extraction (Trust the Bridge)
             if isinstance(result, dict):
@@ -229,10 +234,14 @@ class LeadExtractor:
             if not lead.customer_phone:
                 # Elite V3.8: Stripping \D to handle "0949...," cases
                 digits_only = re.sub(r"\D", "", message)
+                # Look for 10-digit phone starting with 0, but allow it to be at the start of a longer digit string
+                # to handle "09499011223362819" (phone + address components)
                 phone_match = re.search(r"0\d{9}", digits_only)
                 if phone_match:
-                    lead.customer_phone = phone_match.group()
-                    logger.info(f"⚡ [LeadExtractor] Deterministic Recovery: Found phone {lead.customer_phone} in current turn.")
+                    pot_phone = phone_match.group()
+                    if validate_vietnam_phone(pot_phone):
+                        lead.customer_phone = pot_phone
+                        logger.info(f"⚡ [LeadExtractor] Deterministic Recovery: Found phone {lead.customer_phone} in current turn.")
             
             # 🚀 Elite V3.8: Hybrid Intent Trust
             # If we have contact info, the user is obviously chốt đơn.
@@ -265,9 +274,13 @@ class LeadExtractor:
             # Semantic Autocracy (line ~217) runs BEFORE hydration and may have locked
             # is_definite_purchase=False because items were empty at that point.
             # After hydration fills items from Redis/History, we must re-evaluate.
+            # V4.2: Ensure we don't force it if there's ambiguity (handled by Resolver later)
             if lead.items and lead.customer_phone and not lead.is_definite_purchase:
                 logger.info("🔄 [LeadExtractor] V4.0 Post-Hydration Re-Eval: items+phone found after hydration -> Forcing is_definite_purchase=True")
                 lead.is_definite_purchase = True
+
+            print(f"DEBUG_CONSOLE: 🧩 [LeadExtractor] Final Extraction State: SĐT={lead.customer_phone}, Addr={'SET' if lead.customer_address else 'MISSING'}, Definite={lead.is_definite_purchase}")
+            logger.info(f"🧩 [LeadExtractor] Final Extraction State: SĐT={lead.customer_phone}, Addr={'SET' if lead.customer_address else 'MISSING'}, Definite={lead.is_definite_purchase}")
 
             # 2.1 ADDRESS RESOLUTION (Elite V2.2)
             if lead.customer_address:
