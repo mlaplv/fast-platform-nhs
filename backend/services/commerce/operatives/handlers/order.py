@@ -81,9 +81,12 @@ class OrderHandler(BaseHandler):
         potential_keywords = ["mua", "đặt", "lấy", "ship", "giao", "ok", "chốt", "đơn", "cho"]
 
         has_digits = any(char.isdigit() for char in msg)
+        has_standalone_phone = bool(re.search(r"0\d{9}", msg))
         is_staff_order = any(sp in msg for sp in staff_patterns) and has_digits
         has_buying_intent = any(kw in msg for kw in potential_keywords)
-        is_strong_intent = has_digits and (has_buying_intent or is_staff_order)
+        
+        # Elite V3.1 Memory Sync: Trigger if there's buying intent OR a standalone phone number (answering a request)
+        is_strong_intent = has_digits and (has_buying_intent or is_staff_order or has_standalone_phone)
 
         logger.info(f"[OrderHandler] Intent: msg='{msg}', strong={is_strong_intent}")
 
@@ -115,15 +118,22 @@ class OrderHandler(BaseHandler):
 
                 base_price = int(ctx.p_info.price) if ctx.p_info and ctx.p_info.price else 0
                 formatted_base = "{:,.0f}".format(base_price).replace(",", ".") + "đ" if base_price > 0 else "đang cập nhật"
-                ctx.replies.append(f"{debug_prefix}Dạ Helen đã ghi nhận địa chỉ của mình! 🌸\nAnh/Chị cho em xin **số lượng** sản phẩm muốn lấy để Helen lên bill nhé. (Giá đang là: **{formatted_base}**)")
+                
+                header = "Dạ Helen đã ghi nhận thông tin!" if (lead_data.customer_phone or lead_data.customer_address) else "Dạ Helen đã sẵn sàng lên đơn!"
+                ctx.replies.append(f"{debug_prefix}{header} 🌸\nAnh/Chị cho em xin **số lượng** sản phẩm muốn lấy để Helen chốt bill cho mình nhé. (Giá đang là: **{formatted_base}**)")
                 return True
 
             # Case B: Thiếu Thông Tin Liên Hệ
-            if not lead_data.customer_phone or not lead_data.customer_address:
-                if not lead_data.customer_phone:
+            # Elite V3.1 CTO Guard: Only count address as 'found' if it was successfully resolved (has shipping_days)
+            is_address_resolved = bool(lead_data.customer_address and lead_data.shipping_days)
+            
+            if not lead_data.customer_phone or not is_address_resolved:
+                if not lead_data.customer_phone and not is_address_resolved:
+                    ctx.replies.append(f"{debug_prefix}Dạ Helen đã nhận đơn của mình rồi ạ! 🌸 Anh/Chị cho em xin thêm **Số điện thoại và Địa chỉ** cụ thể để em lên bill gửi hàng luôn nhé! ✨")
+                elif not lead_data.customer_phone:
                     ctx.replies.append(f"{debug_prefix}Dạ địa chỉ thì Helen đã thấy rồi. Anh/Chị cho em xin thêm **Số Điện Thoại** để shipper liên lạc nha! 🌸")
                 else:
-                    ctx.replies.append(f"{debug_prefix}Dạ SĐT em lưu 1 bản rồi ạ. Anh/Chị cho em xin **Địa chỉ cụ thể** để gửi hàng về tận cửa luôn nhé! 🌸")
+                    ctx.replies.append(f"{debug_prefix}Dạ SĐT em lưu 1 bản rồi ạ. Anh/Chị cho em xin thêm **Địa chỉ cụ thể** để gửi hàng về tận cửa luôn nhé! 🌸")
                 return True
 
             # Case C: Shadow Checkout Thành Công -> Khai hỏa Voucher Intelligence
