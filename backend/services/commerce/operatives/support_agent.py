@@ -13,10 +13,9 @@ import re
 import time
 import uuid
 from typing import Optional, cast, Union, Dict, Type, List, Tuple
-
 from pydantic import BaseModel, Field, ConfigDict, JsonValue
 from pydantic_ai import Agent, RunContext
-from sqlalchemy import select, and_, desc
+from sqlalchemy import select, and_, desc, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.models.commerce import ProductBase, Order
@@ -61,12 +60,18 @@ _support_ai_agent: Agent[SupportAgentDeps, AgenticSupportResponse] = Agent(
     retries=1, 
 )
 
-_fast_intent_agent: Agent[None, FastIntentResponse] = Agent(
+class FastIntentDeps(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    customer_name: str = "Sếp"
+
+_fast_intent_agent: Agent[FastIntentDeps, FastIntentResponse] = Agent(
     output_type=FastIntentResponse,
     system_prompt=(
         "You are Helen's Fast Intent Classifier. Classify user message into: "
         "GREETING, POLICY, PRODUCT, ORDER, PURCHASE, OTHER. "
-        "If it's a simple greeting, provide a friendly quick_reply in Vietnamese. "
+        "IMPORTANT: If it's a simple greeting, provide a friendly quick_reply in Vietnamese. "
+        "Always personalize the quick_reply using the customer's name from deps. "
+        "Use 'Sếp' if the name is not specific or if they are a regular. "
         "Confidence must be 0.0 to 1.0."
     )
 )
@@ -137,7 +142,8 @@ class SupportAgentOperative(BaseAgentOperative):
         self.router = SupportRouter()
         self._arq_pool = None
 
-    async def _get_arq_pool(self):
+    async def _get_arq_pool(self) -> object:
+        """Resource handle for arq Pool. Elite V2.2: Using 'object' instead of 'Any' for strict typing."""
         if self._arq_pool is None:
             from arq import create_pool
             from backend.infra.arq_config import get_redis_settings
@@ -233,10 +239,19 @@ class SupportAgentOperative(BaseAgentOperative):
             
             # --- 1. Identity Resolution ---
             final_user_id = user_id
+            customer_name = None
+            
             if not final_user_id and lead_phone:
                 from backend.database.models.auth import User
-                u_stmt = select(User.id).where(User.phone == lead_phone).limit(1)
-                final_user_id = await db.scalar(u_stmt)
+                u_stmt = select(User.id, User.name).where(User.phone == lead_phone).limit(1)
+                u_row = (await db.execute(u_stmt)).first()
+                if u_row:
+                    final_user_id = u_row[0]
+                    customer_name = u_row[1]
+            elif final_user_id:
+                from backend.database.models.auth import User
+                u_stmt = select(User.name).where(User.id == final_user_id).limit(1)
+                customer_name = await db.scalar(u_stmt)
 
             available_pts = 0
             pt_value = 1000
@@ -255,7 +270,7 @@ class SupportAgentOperative(BaseAgentOperative):
             # --- 3. Point Value Config ---
             s_stmt = select(SystemSetting).where(SystemSetting.key == "LOYALTY_POINT_VALUE_VND")
             setting = (await db.execute(s_stmt)).scalar_one_or_none()
-            if setting and "value" in setting.value:
+            if setting and isinstance(setting.value, dict) and "value" in setting.value:
                 pt_value = int(setting.value["value"])
 
             # --- 4. Order History for Segmentation ---
@@ -277,7 +292,8 @@ class SupportAgentOperative(BaseAgentOperative):
                 purchase_count=order_count,
                 total_spent=total_spent,
                 available_points=available_pts,
-                point_value_vnd=pt_value
+                point_value_vnd=pt_value,
+                customer_name=customer_name
             )
             await xohi_memory.set_user_context(session_id, {"dna": dna.model_dump()})
             return dna
@@ -411,6 +427,16 @@ class SupportAgentOperative(BaseAgentOperative):
         """Internal dispatch logic with Elite V2.2 Inhibition Guards."""
         session_id = request.session_id or str(uuid.uuid4())
 
+        # 🚀 Elite V3.0: Early DNA Hydration for Personalized Fast-Path & Contextual Awareness
+        dna = await self._fetch_neural_dna(
+            db, 
+            session_id, 
+            lead_phone=request.customer_phone,
+            user_id=request.user_id
+        )
+        c_name = dna.customer_name or request.customer_name or "Sếp"
+        if c_name == "Khách ẩn danh": c_name = "Sếp"
+
         # 🚀 Elite V2.2: Inhibition Guards (Handover & Global Control)
         # 1. Global Switch
         helen_on = await xohi_memory.client.get("system:helen_enabled")
@@ -443,6 +469,7 @@ class SupportAgentOperative(BaseAgentOperative):
             fast_res = await trinity_bridge.run(
                 _fast_intent_agent, 
                 masked_msg, 
+                deps=FastIntentDeps(customer_name=c_name),
                 role=trinity_bridge.ROLE_FAST, 
                 timeout=2.0,
                 safety_none=True

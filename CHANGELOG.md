@@ -5,6 +5,16 @@ All notable changes to the **Fast Platform Core** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [22.4.21.01] - 2026-04-21
+### Added
+- **Helen Loyalty Intelligence (Elite V3.0):** Integrated full loyalty point (PTS) awareness into the Helen AI support agent.
+    - **Identity DNA:** Helen now recognizes authenticated users and hydrates point balances, point value, and personalized greetings.
+    - **Proactive Redemption:** Added intelligent point-redemption proposal logic in the `OrderHandler` and `ConsultantHandler`.
+- **Military-Grade AI Security:**
+    - **Loyalty Integrity Seal:** Integrated mandatory AES-GCM seal verification in `_fetch_neural_dna` to prevent AI from using tampered point balances.
+    - **Injection Shield:** Hardened Specialist prompts to detect and reject point/price manipulation attempts.
+- **Architect-Level Optimization (Rule R00):** Eliminated `Any` type leaks and enforced strict typing across the Specialist Pipeline.
+
 ## [22.4.20.01] - 2026-04-20
 ### Added
 - **Military-Grade Loyalty Security (Elite V2.2):** Implemented an AES-GCM based "Integrity Seal" for all `UserLoyalty` balances and `PointTransaction` records to prevent and detect manual database tampering.
