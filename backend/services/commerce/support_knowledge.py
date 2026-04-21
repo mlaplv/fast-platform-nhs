@@ -177,7 +177,7 @@ class SupportKnowledgeService:
                 SupportKnowledge.is_active == True,
                 or_(SupportKnowledge.tenant_id == tid, SupportKnowledge.tenant_id == "default")
             )
-        ).order_by(SupportKnowledge.priority.desc())
+        ).order_by(SupportKnowledge.priority.desc()).limit(15)
         
         result = await db_session.execute(stmt)
         items = result.all()

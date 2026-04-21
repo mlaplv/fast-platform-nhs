@@ -1,6 +1,6 @@
-# HELEN INTELLIGENT PIPELINE (IP) - ARCHITECT'S BLUEPRINT (ELITE V2.5)
+# HELEN INTELLIGENT PIPELINE (IP) - ARCHITECT'S BLUEPRINT (MICSMO ELITE V2.6)
 
-> **CHỈ THỊ TỐI CAO:** Helen không chỉ là Chatbot, Helen là một **Autonomous Sales Engine**. Hệ thống được thiết kế để chốt đơn thần tốc, tối ưu hóa RAM (4GB) và duy trì tỷ lệ chuyển đổi (CR) cao nhất thông qua Specialist Pipeline.
+> **CHỈ THỊ TỐI CAO:** Helen là một **Autonomous Sales Engine** — chuyên gia tư vấn mỹ phẩm cao cấp và chăm sóc da chuyên sâu cho toàn sàn **Micsmo.com**. Hệ thống được thiết kế để chốt đơn thần tốc, tối ưu hóa RAM (2-4GB) và duy trì tỷ lệ chuyển đổi (CR) cao nhất thông qua Specialist Pipeline + 6 DB Tools.
 
 ---
 
@@ -20,18 +20,22 @@ graph TD
     subgraph Specialist_Pipeline [L1: Specialist Pipeline]
         Router[SupportRouter - Orchestrator] --> Guard[Zone 0: Guardrail]
         Guard --> Order[Zone 3: Order Closer - SALE FIRST]
-        Order --> Greet[Zone 1: Greeting - Persona]
-        Greet --> Cons[Zone 2: Consultant - RAG]
+        Order --> Greet[Zone 1: Greeting - Smart Hook]
+        Greet --> Cons[Zone 2: Consultant - RAG + 6 DB Tools]
     end
     
     L1_Brain --> Router
-    Order -- "Ambiguous (Đơn)" --> Upsell[Upsell Menu / Confirmation]
-    Order -- "Specific (Lọ/Hộp)" --> DB[(SQLAlchemy 2.0 / Order Creation)]
+    Order -- "Missing Info" --> AskInfo[Hỏi SĐT/Địa chỉ/Số lượng]
+    Order -- "Full Data" --> DB[(SQLAlchemy 2.0 / Order Creation)]
+    
+    Cons -- "search_products_tool" --> ProductDB[(ProductBase)]
+    Cons -- "get_active_promotions_tool" --> VoucherDB[(Voucher + ComboDeal)]
+    Cons -- "search_articles_tool" --> ArticleDB[(Article / News)]
     
     Trinity[TrinityBridge - AI Orchestrator] <--> L0_Fast
     Trinity <--> Specialist_Pipeline
     
-    Upsell --> Pulse[Neural Pulse - SSE Update]
+    AskInfo --> Pulse[Neural Pulse - SSE Update]
     DB --> Pulse
     Pulse --> Frontend
 ```
@@ -40,67 +44,74 @@ graph TD
 
 ## ⚡ 3-LAYER EXECUTION MODEL
 
-Hệ thống điều phối xử lý theo 3 tầng chiến thuật để đảm bảo trải nghiệm "thực" và tốc độ phản hồi kinh ngạc.
-
 ### 🔹 Layer 0: Neural Reflex (Classifier)
 - **Cơ chế:** Fast-Path LLM (Gemini Flash).
-- **Nhiệm vụ:** Phân loại ý định ngay lập tức. Nếu là chào hỏi xã giao, phản hồi ngay để giữ chân khách.
+- **Nhiệm vụ:** Phân loại ý định ngay lập tức. Nếu là chào hỏi xã giao, phản hồi ngay.
 - **Latency:** < 200ms.
 
 ### 🔹 Layer 0.5: Heuristic Sync (Phản xạ tức thì)
 - **Cơ chế:** Synchronous Keyword Matching + Context Awareness (Bypass LLM).
-- **Nhiệm vụ:** Trả lời các câu hỏi về **Giá**, **Phí ship**, **Địa chỉ**, **Hotline**.
-- **Điểm đặc biệt:** Tự động lấy giá thực tế từ `ProductBase` trong DB theo Context trang sản phẩm để báo giá chính xác 100%.
+- **Nhiệm vụ:** Trả lời: **Giá**, **Phí ship**, **Địa chỉ**, **Hotline**, **Thành phần**.
+- **Điểm đặc biệt:** Lấy giá thực tế từ `ProductBase` trong DB.
 - **Latency:** < 100ms.
 
 ### 🔹 Layer 1: Deep Brain (Specialist Pipeline)
-- **Cơ chế:** Background Task + `SupportRouter` điều phối các Specialist Handlers.
-- **Nhiệm vụ:** Xử lý các câu hỏi bệnh lý phức tạp, tư vấn liệu trình, so sánh sản phẩm (RAG) và bóc tách đơn hàng.
-- **Latency:** 2s - 5s (Phản hồi qua SSE Neural Pulse).
+- **Cơ chế:** Background Task + `SupportRouter` điều phối Specialist Handlers.
+- **Nhiệm vụ:** Tư vấn chuyên sâu (RAG), tra cứu sản phẩm/voucher/bài viết, chốt đơn.
+- **Latency:** 2s - 5s (SSE Neural Pulse).
 
 ---
 
 ## 💰 THE "CONVERSION-FIRST" PROTOCOL (ORDER CLOSING)
 
-Đây là trái tim của Helen, được thiết kế để "bắt bài" mọi tín hiệu chốt đơn của khách hàng.
-
-### 1. Phân biệt Ý định Chốt đơn (Specific vs Ambiguous)
-Dựa trên thực tế code tại `OrderHandler.py`, Helen phân biệt hai loại tín hiệu:
-- **Tín hiệu "Lọ/Hộp/Chai" (Confirmed Unit):** 
-    - *Input:* "Cho 1 lọ về địa chỉ..."
+### 1. Phân biệt Ý định Chốt đơn
+- **Tín hiệu "Lọ/Hộp/Chai/..." (Confirmed Unit):**
+    - *Input:* "Cho 1 hộp về địa chỉ..."
     - *Xử lý:* Lên đơn ngay lập tức.
-    - *Phản hồi:* Chúc mừng thành công + Mã đơn + Link theo dõi.
-- **Tín hiệu "Đơn" (Ambiguous Quantity):** 
+    - *Phản hồi:* Chúc mừng + Mã đơn + Link theo dõi.
+- **Tín hiệu "Đơn" (Ambiguous Quantity):**
     - *Input:* "Cho 1 đơn về địa chỉ..."
-    - *Xử lý:* Ghi nhận thông tin Lead (SĐT/Địa chỉ) nhưng dừng lại ở bước xác nhận số lượng.
-    - *Phản hồi:* Kích hoạt **Menu Upsell** (Combo 2 tặng 1, Combo 4 tặng 1) để tối ưu AOV.
+    - *Xử lý:* Ghi nhận Lead (SĐT/Địa chỉ), hỏi xác nhận số lượng + giá dynamic từ DB.
 
 ### 2. Lead Extraction (PydanticAI)
-Sử dụng `lead_extractor` để bóc tách thông tin nguyên tử từ câu chat tự nhiên:
-- **LeadPhone:** Tự động nhận diện định dạng SĐT Việt Nam.
-- **LeadAddress:** Bóc tách địa chỉ chi tiết, tỉnh thành.
-- **Neural DNA:** Ghi nhớ khách là VIP hay khách mới để điều chỉnh phong thái phục vụ.
+- **LeadPhone:** Nhận diện SĐT Việt Nam.
+- **LeadAddress:** Bóc tách địa chỉ chi tiết, tỉnh thành, resolve multi-province.
+- **Neural DNA:** VIP / REGULAR / NEW → điều chỉnh phong thái phục vụ.
 
 ---
 
-## 🛡️ CÁC ZONE CHIẾN THUẬT (SPECIALIST ZONES)
+## 🛡️ CÁC ZONE CHIẾN THUẬT
 
-- **Zone 0 (Guardrail):** Chặn các câu hỏi nhạy cảm, chính trị hoặc đối thủ cạnh tranh.
-- **Zone 1 (Greeting):** Xây dựng lòng tin, sử dụng Social Proof (số người đang xem) để tạo hiệu ứng FOMO.
-- **Zone 2 (Consultant):** Sử dụng RAG để tư vấn kiến thức sản phẩm chuyên sâu (thành phần, công dụng).
-- **Zone 3 (Order):** Đảm nhận vai trò "Sát thủ chốt đơn", ưu tiên cao nhất trong Pipeline.
+| Zone | Handler | Nhiệm vụ |
+|---|---|---|
+| 0 | Guardrail | Chặn nội dung nhạy cảm, đối thủ, prompt injection |
+| 1 | Greeting | Xây dựng lòng tin, Smart Hook gợi mở sản phẩm/khuyến mãi |
+| 2 | Consultant | RAG + 6 DB Tools (Product/Voucher/Article/KB) |
+| 3 | Order | Sát thủ chốt đơn, ưu tiên cao nhất |
+
+## 🛠️ CONSULTANT DB TOOLS (Layer 2–6)
+
+| Layer | Tool | Nguồn DB | Mô tả |
+|---|---|---|---|
+| L2 | `fetch_topic_details` | `SupportKnowledge` | Lấy KB item theo ID |
+| L3 | `search_knowledge_base` | `SupportKnowledge` | Semantic/keyword search KB |
+| L4 | `search_products_tool` | `ProductBase` | Tìm sản phẩm theo keyword — max 5 kết quả |
+| L5 | `get_active_promotions_tool` | `Voucher` + `ComboDeal` | Voucher đang active + trong HSD |
+| L6 | `search_articles_tool` | `Article` | Bài viết/chính sách — content cắt 500 ký tự |
 
 ---
 
-## 🚫 TIÊU CHUẨN KỸ THUẬT (ENGINEERING STANDARDS)
+## 🚫 TIÊU CHUẨN KỸ THUẬT
 
-1. **TrinityBridge Only:** Mọi lượt gọi AI phải qua Bridge để quản lý **Key Rotation** (8 keys) và **Concurrency Guard** (Semaphore 4) để bảo vệ CPU.
-2. **Context Persistence:** Lịch sử hội thoại được lấy **10 tin nhắn** gần nhất để đảm bảo ngữ cảnh tư vấn sâu.
-3. **Zero Leak:** Mọi thông tin nhạy cảm của khách (SĐT, Địa chỉ) được mã hóa (AES-256) trước khi lưu vào Database qua `GeminiSecurity`.
-4. **SSE Flow:** Tuyệt đối tuân thủ luồng SSE để hiển thị trạng thái "Helen đang suy nghĩ..." giúp khách hàng không cảm thấy bị bỏ rơi.
+1. **TrinityBridge Only:** Mọi lượt gọi AI qua Bridge (Key Rotation 8 keys, Semaphore 4).
+2. **Context Persistence:** 10 tin nhắn gần nhất.
+3. **Zero Leak:** AES-256 cho SĐT/Địa chỉ.
+4. **SSE Flow:** "Helen đang suy nghĩ..." realtime.
+5. **FOMO Guard:** Chỉ inject [TỒN KHO]/[ĐANG XEM] khi có data thật.
+6. **Tenant-Aware:** Mọi DB tool filter theo `current_tenant_id`.
 
 ---
 
-**Phiên bản:** Elite V2.5  
-**Cập nhật cuối:** 2026-04-08  
-**Tác giả:** Trinity Neural Core via Claude Agent
+**Phiên bản:** Micsmo Elite V2.6
+**Cập nhật cuối:** 2026-04-20
+**Tác giả:** Trinity Neural Core via Antigravity Agent

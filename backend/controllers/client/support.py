@@ -25,6 +25,7 @@ from backend.schemas.support import SupportRequest, SupportResponse, SupportHist
 from backend.services.commerce.constants.support_config import support_cfg
 from backend.services.commerce.operatives.support_agent import support_agent
 from backend.utils.security import GeminiSecurity
+from backend.constants.infra import HELEN_FOLLOW_UP_TRIGGER
 
 logger = logging.getLogger("api-gateway")
 
@@ -113,20 +114,32 @@ class SupportController(Controller):
             rows = result.scalars().all()
             
             # Return in chronological order for the client (reversed from our DESC fetch)
-            return [
-                SupportHistoryItem(
-                    id=str(r.id),
-                    role=r.role,
-                    content="[Tin nhắn đã bị thu hồi]" if r.is_revoked else (GeminiSecurity.decrypt(r.content) if r.content else ""),
-                    intent=r.intent,
-                    timestamp=r.created_at.isoformat() if r.created_at else None,
-                    is_revoked=r.is_revoked
-                )
-                for r in reversed(rows)
-            ]
+            items = []
+            for r in reversed(rows):
+                try:
+                    # R2: Fault-tolerant decryption. Identify and skip corrupted segments 
+                    # without crashing the entire session view for the user.
+                    decrypted = "[Tin nhắn đã bị thu hồi]" if r.is_revoked else (GeminiSecurity.decrypt(r.content) if r.content else "")
+                    
+                    if decrypted == HELEN_FOLLOW_UP_TRIGGER:
+                        continue # Hide internal triggers from client view
+                    
+                    items.append(SupportHistoryItem(
+                        id=str(r.id),
+                        role=r.role,
+                        content=decrypted,
+                        intent=r.intent,
+                        timestamp=r.created_at.isoformat() if r.created_at else None,
+                        is_revoked=r.is_revoked
+                    ))
+                except Exception as row_err:
+                    logger.warning("[SupportController] Skipping corrupted history row %s: %s", r.id, row_err)
+                    continue
+
+            return items
         except Exception as exc:
-            # R2: Silent fail for non-critical history lookup to protect availability
-            logger.error("[SupportController] History lookup failed: %s", exc)
+            # R2: Final safety net. Log the critical error but return current items if any.
+            logger.error("[SupportController] Critical History lookup failure: %s", exc, exc_info=True)
             return []
 
     @get("/status", guards=[])
@@ -156,12 +169,26 @@ class SupportController(Controller):
         - Synchronous Tier-1 Butler (Greetings/FAQ)
         - Asynchronous Tier-2/3 Brain (LLM/RAG via arq)
         """
-        await self._check_rate_limit(request, data.session_id)
-
-        response = await support_agent.chat(request=data, db=db_session)
+        session_id = data.session_id or "unknown"
+        logger.info(f"📥 [SupportController] Incoming message for SID: {session_id}")
         
-        # Elite V2.2: Semantic HTTP logic
-        # If the task is still PROCESSING, return 202 Accepted (INTERNATIONAL STANDARD)
-        status_code = 202 if response.status == "PROCESSING" else 200
-            
-        return Response(content=response, status_code=status_code)
+        try:
+            await self._check_rate_limit(request, session_id)
+            response = await support_agent.chat(request=data, db=db_session)
+            await db_session.commit()
+            logger.info(f"✅ [SupportController] Chat processed successfully for SID: {session_id}")
+            status_code = 202 if response.status == "PROCESSING" else 200
+            return Response(content=response, status_code=status_code)
+        except Exception as e:
+            logger.error(f"💥 [SupportController] FAILURE for SID: {session_id}: {e}", exc_info=True)
+            await db_session.rollback()
+            return Response(
+                content=SupportResponse(
+                    ok=False,
+                    reply="Xin lỗi sếp, hệ thống tư vấn đang gặp sự cố nhỏ. Sếp vui lòng thử lại sau vài giây ạ.",
+                    intent=SupportIntent.UNKNOWN,
+                    session_id=session_id,
+                    status="FAILED"
+                ),
+                status_code=500
+            )

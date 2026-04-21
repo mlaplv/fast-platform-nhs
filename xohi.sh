@@ -398,6 +398,30 @@ function backup_data() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
+function purge_helen_data() {
+    echo -e "${RED}[PURGE] ĐANG LÀM SẠCH DỮ LIỆU HELEN (CHAT LOGS & AI MEMORY)...${NC}"
+    echo -e "${YELLOW}[WARNING] Thao tác này sẽ xóa vĩnh viễn toàn bộ lịch sử tư vấn và bộ nhớ đệm AI.${NC}"
+    read -p "Sếp chắc chắn muốn thực hiện? (y/n): " confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then return 1; fi
+
+    # 1. Database Purge (Chat History & Telemetry)
+    echo -e "${CYAN}-> [1/2] Đang xóa dữ liệu trong Database (PostgreSQL)...${NC}"
+    # Xử lý xóa đồng thời nhiều bảng để đảm bảo tính nhất quán (Elite V2.2)
+    docker exec fast_platform_db psql -U postgres -d fast_platform -c "DELETE FROM support_chat_history; DELETE FROM unified_agent_tasks; DELETE FROM agent_telemetry_logs; DELETE FROM chat_messages;" || echo -e "${YELLOW}[SKIP] DB Purge failed, maybe containers are down?${NC}"
+
+    # 2. Redis Purge (Memory Caches)
+    echo -e "${CYAN}-> [2/2] Đang xóa bộ nhớ đệm AI (Redis)...${NC}"
+    # Use scan + xargs to avoid blocking Redis if large keys exist (Elite V2.2 RAM Guard)
+    docker exec fast_platform_redis redis-cli --scan --pattern "xohi:chat:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+    docker exec fast_platform_redis redis-cli --scan --pattern "xohi:ctx:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+    docker exec fast_platform_redis redis-cli --scan --pattern "support:kb:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+    docker exec fast_platform_redis redis-cli del support:presence:* support:takeover:* || true
+    
+    echo -e "${GREEN}[SUCCESS] Đã làm sạch toàn bộ dữ liệu Helen cực kỳ triệt để!${NC}"
+    # Trigger inbox update across browsers
+    docker exec fast_platform_api /opt/venv/bin/python3 -c "import asyncio; from backend.services.event_bus import event_bus; asyncio.run(event_bus.emit('SUPPORT_INBOX_UPDATE', {'session_id': 'all'}))" || true
+}
+
 function restore_data() {
     BACKUP_DIR="backups"
     if [ ! -d "$BACKUP_DIR" ] || [ -z "$(ls -A "$BACKUP_DIR"/*.enc 2>/dev/null)" ]; then
@@ -787,6 +811,7 @@ while true; do
     echo "13) QUẢN TRỊ USER & SSH (Lockdown Root)"
     echo "14) HƯỚNG DẪN CHI TIẾT (Tránh Quên)"
     echo "15) KHỞI TẠO SIÊU ADMIN (Login cho DB Trắng)"
+    echo "16) LÀM SẠCH DỮ LIỆU HELEN (Purge Logs & Memory)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -850,6 +875,10 @@ while true; do
             ;;
         15)
             create_superuser
+            read -p "Nhấn Enter để quay lại menu..."
+            ;;
+        16)
+            purge_helen_data
             read -p "Nhấn Enter để quay lại menu..."
             ;;
         0)

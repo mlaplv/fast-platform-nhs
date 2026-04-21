@@ -105,9 +105,10 @@ class GeminiSecurity:
                 # Fallback for Legacy Era: Return raw string (Comma-separated or plain)
                 logger.info("[GeminiSecurity] Legacy key cluster detected. Fallback to raw string.")
                 return decrypted
-        except Exception as e:
-            logger.error(f"[Security] AES-GCM Decryption Failed (Wrong Salt?): {e}")
-            return None
+        except Exception:
+            # Fallback for Legacy Era: If decryption fails (e.g. data is plain text), 
+            # return the original string to maintain reverse compatibility.
+            return encrypted_str
 
 
 def mask_pii(event_name: str, payload: dict[str, object]) -> dict[str, object]:

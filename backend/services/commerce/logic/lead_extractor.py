@@ -117,7 +117,8 @@ class LeadExtractor:
 
         # Log results
         if lead.customer_phone or lead.customer_address:
-            logger.info(f"[LeadExtractor] Hydration successful: phone={lead.customer_phone}, address_exists={bool(lead.customer_address)}")
+            masked_phone = (lead.customer_phone[:3] + "****" + lead.customer_phone[-3:]) if lead.customer_phone and len(lead.customer_phone) > 6 else "****"
+            logger.info(f"[LeadExtractor] Hydration successful: phone={masked_phone}, address_exists={bool(lead.customer_address)}")
 
         return lead
 
@@ -231,7 +232,8 @@ class LeadExtractor:
                     
                     lead.customer_address = std_addr
                     lead.shipping_days = resolved.shipping_days
-                    logger.info(f"[LeadExtractor] Address Resolved: {lead.customer_address} (Score: {resolved.score}, Days: {lead.shipping_days})")
+                    masked_addr = (lead.customer_address[:10] + "...") if lead.customer_address else "N/A"
+                    logger.info(f"[LeadExtractor] Address Resolved: {masked_addr} (Score: {resolved.score}, Days: {lead.shipping_days})")
                 else:
                     if resolved.possible_provinces:
                         lead.possible_provinces = resolved.possible_provinces
@@ -337,7 +339,8 @@ class LeadExtractor:
                 items=order_items,
             )
 
-            logger.info(f"[LeadExtractor] Calling order_service.create_order with: {order_data.model_dump()}")
+            # logger.info(f"[LeadExtractor] Calling order_service.create_order with: {order_data.model_dump()}")
+            logger.info(f"[LeadExtractor] Calling order_service.create_order for phone={lead.customer_phone[:3]}****")
 
             created_order = await order_service.create_order(db_session=db, data=order_data, ip="0.0.0.0", ua="Helen-AI-Sales-Engine", user_id=str(resolved_user.id))
             await db.commit()

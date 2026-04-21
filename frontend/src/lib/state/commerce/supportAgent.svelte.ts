@@ -1,6 +1,7 @@
 // Support Agent State — Svelte 5 Runes (Elite V2.2 Persistent Memory)
 import { apiClient } from "$lib/utils/apiClient";
 import { browser } from "$app/environment";
+import { getNotificationState } from "$lib/state/notification.svelte";
 
 // Helper để render UUID native
 function randomId() {
@@ -46,6 +47,7 @@ export interface SupportHistoryItem {
     intent?: string;
     timestamp: string;
     is_revoked?: boolean;
+    customer_phone?: string;
 }
 
 export interface SupportChatResponse {
@@ -55,6 +57,7 @@ export interface SupportChatResponse {
     status: "DONE" | "PROCESSING" | "FAILED";
     task_id?: string;
     session_id?: string;
+    processed_order_id?: string;
 }
 
 const STORAGE_KEY = "fp_helen_sid";
@@ -130,6 +133,22 @@ class SupportAgentState {
             } catch (e) {
                 // Ignore if blocked
             }
+        }
+    }
+
+    /**
+     * Elite V2.2: ID-Deduplicated Merging Logic
+     * Prevents race conditions from wiping messages during rehydration/sync.
+     */
+    private _mergeMessages(newMsgs: SupportMessage[]) {
+        const existingIds = new Set(this.messages.map(m => m.id));
+        const filtered = newMsgs.filter(m => !existingIds.has(m.id));
+        
+        if (filtered.length > 0) {
+            // Sort combined set by timestamp to maintain chronological integrity
+            const combined = [...this.messages, ...filtered];
+            combined.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+            this.messages = combined;
         }
     }
 
@@ -259,12 +278,18 @@ class SupportAgentState {
                 }
 
                 if (history.length > 0) {
-                    // Prepend history to current thread
-                    this.messages = [...history, ...this.messages];
+                    // Prepend history to current thread using deduplicated merge
+                    this._mergeMessages(history);
                 }
             }
         } catch (error) {
             console.error("[SupportAgent] History load error:", error);
+            getNotificationState().addPendingSignal({
+                id: randomId(),
+                message: "Không thể tải lịch sử trò chuyện. Vui lòng kiểm tra kết nối.",
+                severity: "warning",
+                isRead: false
+            });
             this.hasMoreHistory = false; // Stop trying on error
         } finally {
             this.isHistoryLoading = false;
@@ -361,14 +386,12 @@ class SupportAgentState {
 
         this._pulseSource.onerror = (err) => {
             console.warn("[Pulse] SSE connection state changed, auto-recovering...");
-            // Standard cleanup on protocol error
-            if (this.isTyping) {
-                 // If we were waiting for AI and it error'd, we might need a timeout
-            }
+            // Elite V2.2: Release typing lock on connection error to ensure UI resilience
+            this.isTyping = false;
         };
 
-        // Guard: Kill pulse if it hangs
-        setTimeout(() => this._disconnectPulse(), 120000);
+        // Guard: Kill pulse if it hangs (Reduced to 60s for better responsiveness)
+        setTimeout(() => this._disconnectPulse(), 60000);
     }
 
     private _disconnectPulse() {
@@ -450,6 +473,13 @@ class SupportAgentState {
                     timestamp: new Date()
                 }
             ];
+
+            getNotificationState().addPendingSignal({
+                id: randomId(),
+                message: "Lỗi kết nối Helen AI. Tin nhắn của bạn có thể chưa được lưu.",
+                severity: "error",
+                isRead: false
+            });
         } finally {
             this.isTyping = false;
         }

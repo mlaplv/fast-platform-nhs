@@ -25,6 +25,8 @@ from backend.database.models.system import SupportChatHistory
 from backend.schemas.support import SupportIntent, SupportRequest, SupportResponse, SupportProductInfo
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative
+from backend.constants.infra import HELEN_FOLLOW_UP_TRIGGER
+from backend.database.alchemy_config import alchemy_config
 from backend.services.commerce.constants.support_config import support_cfg
 from backend.services.event_bus import event_bus
 from backend.services.xohi_memory import xohi_memory
@@ -83,25 +85,34 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> Tuple
     if not slug: return "", None
     try:
         stmt = (
-            select(ProductBase)
+            select(
+                ProductBase.id,
+                ProductBase.name,
+                ProductBase.price,
+                ProductBase.discount_price,
+                ProductBase.slug,
+                ProductBase.stock,
+                ProductBase.short_description,
+                ProductBase.images
+            )
             .where(and_(ProductBase.slug == slug, ProductBase.deleted_at.is_(None), ProductBase.status == "ACTIVE"))
         )
         res = await db.execute(stmt)
-        p = res.scalar_one_or_none()
-        if not p: return "", None
-        img_url = p.images[0] if p.images and len(p.images) > 0 else None
+        p_row = res.first()
+        if not p_row: return "", None
+        img_url = p_row.images[0] if p_row.images and len(p_row.images) > 0 else None
         p_info = SupportProductInfo(
-            id=str(p.id), 
-            name=p.name, 
-            price=float(p.price or 0), 
-            price_display=f"{int(p.discount_price or p.price or 0):,}đ".replace(",", "."), 
-            slug=slug or "",
+            id=str(p_row.id), 
+            name=p_row.name, 
+            price=float(p_row.price or 0), 
+            price_display=f"{int(p_row.discount_price or p_row.price or 0):,}đ".replace(",", "."), 
+            slug=p_row.slug or "",
             image_url=img_url,
-            stock=p.stock
+            stock=p_row.stock
         )
-        ctx = f"[SẢN PHẨM HIỆN TẠI]\nTên: {p.name}\nMô tả: {p.short_description}\nGiá niêm yết: {p.price} VND\n"
-        if p.discount_price: ctx += f"Giá khuyến mãi: {p.discount_price} VND\n"
-        ctx += f"Tồn kho thực tế: {p.stock or 0} lọ\n"
+        ctx = f"[SẢN PHẨM HIỆN TẠI]\nTên: {p_row.name}\nMô tả: {p_row.short_description}\nGiá niêm yết: {p_row.price} VND\n"
+        if p_row.discount_price: ctx += f"Giá khuyến mãi: {p_row.discount_price} VND\n"
+        ctx += f"Tồn kho thực tế: {p_row.stock or 0} sản phẩm\n"
         return ctx, p_info
     except Exception as e:
         logger.warning("[SupportAgent] Context sweep failure: %s", e)
@@ -109,8 +120,12 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> Tuple
 
 def _sanitize_response(text: str) -> str:
     """Surgical leak prevention (Elite V2.2)."""
+    # 1. Hide AI thought tags
     clean = re.sub(r"<thought>.*?</thought>", "", text, flags=re.DOTALL)
-    clean = re.sub(r"/\w+/\w+/\w+", "[REDACTED]", clean)
+    # 2. Redact internal paths
+    clean = re.sub(r"/\w+/\w+/\w+", "[REDACTED_PATH]", clean)
+    # 3. Privacy Guard: Mask Phone Numbers (Vietnamese format)
+    clean = re.sub(r"(0|84|(\+84))(\d{2,3})[\s\.\-]?(\d{3})[\s\.\-]?(\d{3,4})", r"\1\3****\5", clean)
     return clean.strip()
 
 class SupportAgentOperative(BaseAgentOperative):
@@ -135,42 +150,65 @@ class SupportAgentOperative(BaseAgentOperative):
     async def _save_history(self, db: AsyncSession, session_id: str, user_msg: str, assistant_reply: str, intent: SupportIntent, product_slug: Optional[str], customer_name: Optional[str] = None, customer_phone: Optional[str] = None) -> None:
         """Encrypted transactional history persistence."""
         try:
-            enc_user_msg = GeminiSecurity.encrypt(user_msg)
+            # Shield internal trigger from history
+            if user_msg != HELEN_FOLLOW_UP_TRIGGER:
+                enc_user_msg = GeminiSecurity.encrypt(user_msg)
+                msg_user = SupportChatHistory(session_id=session_id, role="user", content=enc_user_msg, intent=intent.value, product_slug=product_slug, customer_name=customer_name, customer_phone=customer_phone)
+                db.add(msg_user)
+
             enc_assistant_reply = GeminiSecurity.encrypt(assistant_reply)
-            msg_user = SupportChatHistory(session_id=session_id, role="user", content=enc_user_msg, intent=intent.value, product_slug=product_slug, customer_name=customer_name, customer_phone=customer_phone)
             msg_ai = SupportChatHistory(session_id=session_id, role="assistant", content=enc_assistant_reply, intent=intent.value, product_slug=product_slug, customer_name=customer_name, customer_phone=customer_phone)
-            db.add_all([msg_user, msg_ai])
+            db.add(msg_ai)
             await db.flush()
+            logger.info("[SupportAgent] Persisted chat segment for SID: %s", session_id)
             
             # 🚀 Elite V2.2: Proactive Follow-up (Feedback Loop)
             # Schedule a reminder in 1 hour if the user doesn't respond.
-            # Using 'high' queue for support priority.
-            try:
-                redis = await self._get_arq_pool()
-                await redis.enqueue_job(
-                    "helen_follow_up_job",
-                    session_id=session_id,
-                    _defer_by=3600, # 1 hour (3600s)
-                    _job_id=f"followup:{session_id}:{int(time.time())}", # Avoid colliding with same-second jobs
-                    _queue_name="high"
-                )
-            except Exception as arqe:
-                logger.warning("[SupportAgent] Follow-up scheduling failed: %s", arqe)
+            # Only if this is a real user message (not a system trigger)
+            if user_msg != HELEN_FOLLOW_UP_TRIGGER:
+                try:
+                    redis = await self._get_arq_pool()
+                    await redis.enqueue_job(
+                        "helen_follow_up_job",
+                        session_id=session_id,
+                        _defer_by=3600, # 1 hour (3600s)
+                        _job_id=f"followup:{session_id}:{int(time.time())}", 
+                        _queue_name="high"
+                    )
+                except Exception as arqe:
+                    logger.warning("[SupportAgent] Follow-up scheduling failed: %s", arqe)
         except Exception as exc:
             logger.warning("[SupportAgent] Saving failed: %s", exc)
 
     async def _fetch_chat_context(self, db: AsyncSession, session_id: str) -> str:
-        """Context-window hydration (Elite V2.2). Enhanced to 10 turns for Deep Consultation."""
+        """Context-window hydration (Elite V2.2). Enhanced to 10 turns with character clipping."""
         try:
             stmt = select(SupportChatHistory).where(SupportChatHistory.session_id == session_id).order_by(desc(SupportChatHistory.created_at), desc(SupportChatHistory.id)).limit(10)
             history_rows = (await db.execute(stmt)).scalars().all()
             if not history_rows: return ""
             h_parts = []
+            total_chars = 0
+            MAX_TOTAL_CHARS = 5000 # Safety cap for context window
+
             for r in reversed(history_rows):
                 h_content = GeminiSecurity.decrypt(r.content or "")
+                if h_content == HELEN_FOLLOW_UP_TRIGGER:
+                    continue # Elite V2.2: Shield internal triggers
+                
+                # Làm sạch dữ liệu log chat (trunc history) để tránh bùng nổ context
+                # Giới hạn mỗi tin nhắn 300 ký tự
+                if len(h_content) > 300:
+                    h_content = h_content[:300] + "... [TRUNCATED_HISTORY]"
+                
+                # Global Context Guard
+                if total_chars + len(h_content) > MAX_TOTAL_CHARS:
+                    break
+
                 h_role = "Khách" if r.role == "user" else "Helen"
                 h_parts.append(f"{h_role}: {h_content}")
-            return "\n[LỊCH SỬ GẦN ĐÂY]\n" + "\n".join(h_parts) + "\n"
+                total_chars += len(h_content)
+
+            return "\n[LỊCH SỬ GẦN ĐÂY]\n" + "\n".join(h_parts) + "\n" if h_parts else ""
         except: return ""
 
     async def _fetch_neural_dna(self, db: AsyncSession, session_id: str, lead_phone: Optional[str] = None) -> NeuralDNA:
@@ -282,6 +320,9 @@ class SupportAgentOperative(BaseAgentOperative):
 
         await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
         
+        # 🚀 Elite V2.2: Ensure data is flushed for other agents to see
+        await db.flush()
+        
         return SupportResponse(
             ok=True, 
             reply=safe_reply, 
@@ -293,37 +334,80 @@ class SupportAgentOperative(BaseAgentOperative):
             processed_order_id=ctx.processed_order_id
         )
 
-    async def chat(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:
+    async def chat(self, request: Union[SupportRequest, dict], **kwargs: object) -> SupportResponse:
         """
         Elite V2.5: Entry Protocol.
-        L0: Fast-Path LLM (<200ms) - Intent Classification
-        L0.5: Sync Heuristic Fast-Path (Race Condition Fix - No Background Task)
-        L1: Deep Brain (Background Task) - Orchestrated Specialists
+        Supports both direct API (SupportRequest) and Worker calls (dict).
         """
+        # 0. Normalize Request & DB Session
+        if isinstance(request, dict):
+            request = SupportRequest.model_validate(request)
+            
+        db = cast(Optional[AsyncSession], kwargs.get("db"))
+        if not db:
+            # Lifecycle: Worker Context — Create standalone session
+            session_maker = alchemy_config.create_session_maker()
+            async with session_maker() as standalone_db:
+                res = await self._chat_internal(request, standalone_db)
+                await standalone_db.commit()
+                logger.info("[SupportAgent] Worker commit successful for SID: %s", request.session_id)
+                return res
+        
+        return await self._chat_internal(request, db)
+
+    async def _chat_internal(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:
+        """Internal dispatch logic with Elite V2.2 Inhibition Guards."""
         session_id = request.session_id or str(uuid.uuid4())
+
+        # 🚀 Elite V2.2: Inhibition Guards (Handover & Global Control)
+        # 1. Global Switch
+        helen_on = await xohi_memory.client.get("system:helen_enabled")
+        if helen_on == "0":
+            return SupportResponse(
+                ok=False, 
+                reply="Hệ thống tư vấn AI hiện đang bảo trì. Vui lòng để lại lời nhắn cho dược sĩ ạ.", 
+                intent=SupportIntent.UNKNOWN, 
+                session_id=session_id, 
+                status="FAILED"
+            )
+
+        # 2. Staff Takeover (Inverse Logic: 0 = Human Active / AI Blocked)
+        takeover_val = await xohi_memory.client.get(f"support:takeover:{session_id}")
+        if takeover_val == "0":
+            logger.info("[SupportAgent] Helen inhibited for SID: %s (Human Takeover)", session_id)
+            return SupportResponse(
+                ok=True, 
+                reply="Dược sĩ đang trực tiếp hỗ trợ sếp. Vui lòng đợi trong giây lát ạ.", 
+                intent=SupportIntent.UNKNOWN, 
+                session_id=session_id, 
+                status="DONE"
+            )
         
         # 🚀 FAST-PATH (Intent Classification Only)
-        # We skip Fast-Path for Strategic Specialist Products to ensure deep reasoning
-        if request.product_slug == support_cfg.hong_son_slug:
-            logger.info("[SupportAgent] Lockdown: Bypassing Fast-Path for Deep Specialist.")
-        else:
-            try:
-                # Elite V2.2: Shield sensitive terms before fast-path classification
-                masked_msg = await self._mask_sensitive_medical_terms(request.message)
-                fast_res = await trinity_bridge.run(
-                    _fast_intent_agent, 
-                    masked_msg, 
-                    role=trinity_bridge.ROLE_FAST, 
-                    timeout=2.0,
-                    safety_none=True
+        logger.info("[SupportAgent] Entering Fast-Path classification for SID: %s", session_id)
+        try:
+            # Elite V2.2: Shield sensitive terms before fast-path classification
+            masked_msg = await self._mask_sensitive_medical_terms(request.message)
+            fast_res = await trinity_bridge.run(
+                _fast_intent_agent, 
+                masked_msg, 
+                role=trinity_bridge.ROLE_FAST, 
+                timeout=2.0,
+                safety_none=True
+            )
+            f_data = cast(FastIntentResponse, fast_res) # Proper Elite V2.2 Typing
+            logger.info("[SupportAgent] Fast-Path detected intent: %s for SID: %s", f_data.intent, session_id)
+            
+            if f_data.intent == "GREETING" and f_data.quick_reply:
+                await self._save_history(
+                    db, session_id, request.message, f_data.quick_reply, 
+                    SupportIntent.GENERAL_ADVICE, request.product_slug,
+                    request.customer_name, request.customer_phone
                 )
-                f_data = cast(FastIntentResponse, fast_res) # Proper Elite V2.2 Typing
-                
-                if f_data.intent == "GREETING" and f_data.quick_reply:
-                    await self._save_history(db, session_id, request.message, f_data.quick_reply, SupportIntent.GENERAL_ADVICE, request.product_slug)
-                    return SupportResponse(ok=True, reply=f_data.quick_reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
-            except Exception as e:
-                logger.warning("[SupportAgent] Fast-Path Bypass: %s", e)
+                await db.flush()
+                return SupportResponse(ok=True, reply=f_data.quick_reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
+        except Exception as e:
+            logger.warning("[SupportAgent] Fast-Path Bypass: %s", e)
 
         # 🚀 L0.5: SYNCHRONOUS HEURISTIC FAST-PATH (Elite V2.5 — Race Condition Fix)
         # Handles INFO_ADDRESS / INFO_INGREDIENTS / INFO_HOTLINE INSTANTLY, no background task.
@@ -335,7 +419,9 @@ class SupportAgentOperative(BaseAgentOperative):
             return heuristic_res
 
         # 🚀 DEEP BRAIN (Background Task) — for complex queries only
+        logger.info("[SupportAgent] Falling back to Deep-Brain for SID: %s", session_id)
         task_id = await self.enqueue_chat(request_data=request.model_dump(), session_id=session_id)
+        logger.info("[SupportAgent] Deep-Brain task enqueued: %s for SID: %s", task_id, session_id)
         return SupportResponse(ok=True, reply="Helen đang xử lý...", intent=SupportIntent.UNKNOWN, session_id=session_id, task_id=task_id, status="PROCESSING")
 
     async def _try_heuristic_sync(self, request: SupportRequest, db: AsyncSession, session_id: str, p_info: Optional[SupportProductInfo] = None) -> Optional[SupportResponse]:
@@ -428,7 +514,7 @@ class SupportAgentOperative(BaseAgentOperative):
 
                 # Logic đặc biệt cho PRICE_QUERY (Sử dụng dữ liệu thực tế)
                 if detected_category == SupportKnowledgeCategory.PRICE_QUERY and p_info:
-                    final_reply = f"{debug_prefix}Dạ liệu trình **{p_info.name}** hiện tại có giá ưu đãi chỉ từ **{p_info.price_display}** ạ. 🌸 Anh/Chị muốn chốt mấy lọ để Helen lên đơn ngay cho mình nhé?"
+                    final_reply = f"{debug_prefix}Dạ liệu trình **{p_info.name}** hiện tại có giá ưu đãi chỉ từ **{p_info.price_display}** ạ. 🌸 Anh/Chị muốn chốt số lượng bao nhiêu để Helen lên đơn ngay cho mình nhé?"
                 else:
                     final_reply = f"{debug_prefix}{item.answer}"
 

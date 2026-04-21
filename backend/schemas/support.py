@@ -105,6 +105,7 @@ class SupportResponse(BaseModel):
     # 🎭 Elite V2.2: Rich UI & Active Reasoning
     ui_metadata: Optional[Dict[str, JsonValue]] = Field(default=None, description="Metadata for UI components (cards, buttons, etc.)")
     metadata: Optional[Dict[str, JsonValue]] = Field(default=None, description="Extra metadata like 'think' reasoning snapshots")
+    processed_order_id: Optional[str] = Field(default=None, description="UUID of the order processed in this turn")
 
 
 class SupportStatusResponse(BaseModel):
@@ -123,6 +124,7 @@ class SupportHistoryItem(BaseModel):
     intent: Optional[str] = None
     timestamp: Optional[str] = None
     is_revoked: bool = False
+    customer_phone: Optional[str] = None
 
 
 # ══════════════════════════════════════════════════════════════

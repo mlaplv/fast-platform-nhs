@@ -80,7 +80,7 @@ class OrderHandler(BaseHandler):
                 reply = (
                     f"{debug_prefix}Dạ Helen chúc mừng Anh/Chị đã đặt hàng thành công! 🌸\nHelen sẽ gửi đơn đi ngay ạ:\n"
                     f"- Mã đơn: **{order_id[-8:].upper()}**\n"
-                    f"- Sản phẩm: {total_qty} {ctx.p_info.name if ctx.p_info else 'lọ/combo'}\n"
+                    f"- Sản phẩm: {total_qty} {ctx.p_info.name if ctx.p_info else 'sản phẩm'}\n"
                     f"- Tổng tiền: **{formatted_price}đ** (Free ship)\n"
                     f"- Nhận hàng: **{delivery_info}**\n\n"
                     f"Anh/Chị nhớ để ý điện thoại để shipper gọi giao hàng nhé! 📞\n"
@@ -111,26 +111,15 @@ class OrderHandler(BaseHandler):
 
                 logger.info(f"💡 [OrderHandler] Ambiguous 'đơn' detected. Triggering Upsell Menu.")
 
-                base_price = int(ctx.p_info.price) if ctx.p_info and ctx.p_info.price else 249000
-                formatted_base = "{:,.0f}".format(base_price).replace(",", ".")
-                formatted_combo2 = "{:,.0f}".format(base_price * 2).replace(",", ".")
+                base_price = int(ctx.p_info.price) if ctx.p_info and ctx.p_info.price else 0
+                formatted_base = "{:,.0f}".format(base_price).replace(",", ".") + "đ" if base_price > 0 else "đang cập nhật"
 
                 offer_reply = (
                     f"{debug_prefix}Dạ Helen đã nhận thông tin chốt đơn của mình tại địa chỉ trên ạ! 🌸\n\n"
-                    "Để Helen lên đơn chính xác nhất, mình muốn lấy liệu trình nào cho tiết kiệm ạ?\n"
-                    f"- **1 Lọ:** {formatted_base}đ (Dùng thử)\n"
-                    f"- **Combo 2 Tặng 1 (3 Lọ):** {formatted_combo2}đ (Tiết kiệm {formatted_base}đ - **🔥 Bán chạy nhất**)\n"
-                    "- **Combo 4 Tặng 1 (5 Lọ):** Ưu đãi lớn nhất cho liệu trình chuyên sâu.\n\n"
-                    "Anh/Chị cho em xin **số lượng** để em gửi hàng đi ngay nhé!"
+                    f"Để Helen xác nhận đơn hàng chuẩn xác, Anh/Chị cho em xin **số lượng** sản phẩm mà mình muốn lấy nhé. (Giá sản phẩm hiện tại: **{formatted_base}**)"
                 )
                 ctx.replies.append(offer_reply)
                 return True
-
-            # Case B3: Explicit Quantity without Phone/Address (Force Purchase, ask for info)
-            if lead_data and lead_data.is_definite_purchase and (not lead_data.customer_phone or not lead_data.customer_address):
-                 # This will fall through to Case B2 automatically if we don't return here.
-                 # Actually, Case B2 handles this.
-                 pass
 
             # Case B2: Missing Phone or Address but intent is clear
             if lead_data and (not lead_data.customer_phone or not lead_data.customer_address):

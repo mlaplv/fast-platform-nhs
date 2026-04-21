@@ -30,6 +30,7 @@ from backend.schemas.support_inbox import (
 )
 from backend.schemas.support import SupportIntent
 from backend.utils.security import GeminiSecurity
+from backend.constants.infra import HELEN_FOLLOW_UP_TRIGGER
 
 logger = logging.getLogger("api-gateway")
 
@@ -98,7 +99,7 @@ class AdminSupportInboxController(Controller):
         summaries: list[SupportSessionSummary] = []
         for row in rows:
             sid = row.session_id
-            is_takeover = await xohi_memory.client.get(f"support:takeover:{sid}") == "1"
+            is_takeover = await xohi_memory.client.get(f"support:takeover:{sid}") != "0"
             is_online = await xohi_memory.client.get(f"support:presence:{sid}") == "1"
             intent_str = (row.intent or "").upper()
             has_phone = bool(phone_map.get(sid))
@@ -150,9 +151,15 @@ class AdminSupportInboxController(Controller):
         for r in rows:
             try:
                 decrypted: str = GeminiSecurity.decrypt(r.content) if r.content else ""
+                
+                # Elite V2.2: Ensure internal trigger is hidden from the Admin inbox as well
+                if decrypted == HELEN_FOLLOW_UP_TRIGGER:
+                    continue
+                    
             except Exception as e:
                 logger.error(f"[AdminSupportInbox] Decryption failed for message {r.id}: {e}")
                 decrypted = "[Không thể giải mã nội dung]"
+                
             messages.append(
                 SupportChatMessageView(
                     id=str(r.id),
@@ -164,7 +171,7 @@ class AdminSupportInboxController(Controller):
                 )
             )
 
-        is_takeover = await xohi_memory.client.get(f"support:takeover:{session_id}") == "1"
+        is_takeover = await xohi_memory.client.get(f"support:takeover:{session_id}") != "0"
         is_online = await xohi_memory.client.get(f"support:presence:{session_id}") == "1"
 
         return SupportSessionDetailResponse(
@@ -182,7 +189,7 @@ class AdminSupportInboxController(Controller):
         """Enable or disable AI for a specific session via Redis."""
         key = f"support:takeover:{session_id}"
         current = await xohi_memory.client.get(key)
-        new_state = "1" if current != "1" else "0"
+        new_state = "1" if current == "0" else "0"
         await xohi_memory.client.set(key, new_state, ex=86400 * 3) # 3 days TTL
         
         return {"is_takeover": new_state == "1"}
