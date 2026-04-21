@@ -33,7 +33,7 @@
   }
 </script>
 
-<aside class="border-r border-white/10 overflow-y-auto custom-scrollbar flex flex-col shrink-0">
+<aside class="w-full h-full overflow-y-auto custom-scrollbar flex flex-col shrink-0">
   {#if isLoading && sessions.length === 0}
     <div class="p-8 text-center text-white/20">Đang tải phiên...</div>
   {:else if sessions.length === 0}

@@ -51,6 +51,8 @@ class LocationResolver:
                 
                 # R106: Build Inverted Index for O(1) Scaling
                 for p in LocationResolver._data:
+                    if "_GUIDE" in p or "id" not in p:
+                        continue
                     p_id = str(p["id"])
                     # Index Province
                     for name in [p["name"]] + p.get("aliases", []):
@@ -117,6 +119,8 @@ class LocationResolver:
         # Fallback to Fuzzy if needed
         if not best_province:
             for p in LocationResolver._data:
+                if "_GUIDE" in p or "name" not in p:
+                    continue
                 for name in [p["name"]] + p.get("aliases", []):
                     score = self._fuzzy_score(name, addr_norm)
                     if score > best_p_score:

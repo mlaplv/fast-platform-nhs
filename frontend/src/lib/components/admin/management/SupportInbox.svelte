@@ -122,7 +122,7 @@
     </header>
   {/if}
 
-  <div class="flex-1 flex overflow-hidden {isResizing ? 'select-none cursor-col-resize' : ''}" 
+  <div class="flex-1 flex overflow-hidden min-h-0 min-w-0 {isResizing ? 'select-none cursor-col-resize' : ''}" 
     onmousemove={(e) => { if (isResizing) sidebarWidth = Math.max(200, Math.min(600, e.clientX - 60)); }} 
     onmouseup={() => isResizing = false} onmouseleave={() => isResizing = false} role="presentation">
     
@@ -131,7 +131,10 @@
     </div>
 
     <!-- Divider -->
-    <div class="w-1 hover:w-1.5 bg-white/5 hover:bg-cyan-500/50 cursor-col-resize" onmousedown={() => isResizing = true} role="separator"></div>
+    <div class="w-px shrink-0 relative bg-white/10 hover:bg-cyan-500/50 cursor-col-resize z-10 transition-colors" onmousedown={() => isResizing = true} role="separator">
+      <!-- Mở rộng vùng grab để dễ kéo thả -->
+      <div class="absolute inset-y-0 -inset-x-2"></div>
+    </div>
 
     <SupportChatView 
       session={selectedSessionDetail} 

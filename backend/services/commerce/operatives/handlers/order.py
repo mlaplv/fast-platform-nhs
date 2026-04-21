@@ -17,27 +17,77 @@ class OrderHandler(BaseHandler):
     """
     
     async def handle(self, ctx: SupportContext) -> bool:
-        """ZONE 3: Order Closing. Refined Elite V2.5 Architecture."""
+        """ZONE 3: Order Closing. Refined Elite V3.0 Architecture."""
         msg = unicodedata.normalize("NFKC", ctx.request.message.lower().strip())
+        import os
+        import re
+        from backend.database.models.promotion import Voucher
+        from sqlalchemy import and_, or_
+        from datetime import datetime, timezone
+        
+        debug_prefix = "[z3] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
 
+        # --- Q1: KIỂM TRA TRẠNG THÁI & HỦY ĐƠN (ORDER_STATUS / CANCEL) ---
+        check_patterns = ["check đơn", "đơn tới đâu", "vận đơn", "đơn của chị", "bao giờ nhận", "trạng thái đơn"]
+        cancel_patterns = ["hủy đơn", "không mua nữa", "hủy cho chị", "bỏ đơn"]
+        
+        is_check = any(p in msg for p in check_patterns)
+        is_cancel = any(p in msg for p in cancel_patterns)
+        
+        if is_check or is_cancel:
+            ctx.intent = SupportIntent.ESCALATE if is_cancel else SupportIntent.ORDER_STATUS # Mapping intent cho hệ thống
+            phone_to_check = ctx.lead_data.customer_phone if ctx.lead_data else None
+            if not phone_to_check:
+                match = re.search(r"(0\d{9})", msg)
+                if match: phone_to_check = match.group(1)
+            
+            if not phone_to_check:
+                ctx.replies.append(f"{debug_prefix}Dạ để kiểm tra đơn hàng, Anh/Chị cho Helen xin **Số điện thoại** lúc đặt hàng nhé! 🌸")
+                return True
+                
+            recent_order = (await ctx.db.execute(select(Order).where(Order.customer_phone == phone_to_check).order_by(Order.created_at.desc()).limit(1))).scalar_one_or_none()
+            
+            masked_phone = f"{phone_to_check[:3]}****{phone_to_check[-3:]}"
+            
+            if not recent_order:
+                ctx.replies.append(f"{debug_prefix}Dạ Helen không tìm thấy đơn hàng nào gần đây của SĐT {masked_phone} ạ. Anh/Chị kiểm tra lại số điện thoại giúp em nhé! 🌸")
+                return True
+
+            if is_cancel:
+                if recent_order.status in ["PENDING", "DRAFT"]:
+                    recent_order.status = "CANCELLED"
+                    await ctx.db.flush()
+                    ctx.replies.append(f"{debug_prefix}Dạ Helen đã ghi nhận **Hủy đơn hàng** của SĐT {masked_phone} thành công rồi ạ. Hẹn phục vụ Anh/Chị dịp khác nhé! 🌸")
+                else:
+                    ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} hiện đang ở trạng thái **{recent_order.status}** và đã được giao cho Shipper, nên Helen không tự động hủy được nữa ạ. Anh/Chị vui lòng từ chối nhận hàng khi shipper gọi nha! 🌸")
+                return True
+
+            # Tracking Info
+            if recent_order.status == "PENDING":
+                ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} hiện đang **Chờ đóng gói** và sẽ được gửi đi trong hôm nay ạ. Anh/Chị chú ý điện thoại nha! 🌸")
+            elif recent_order.status == "SHIPPING":
+                ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} hiện **Đang trên đường giao**. Dự kiến 1-2 ngày tới shipper sẽ gọi, Anh/Chị để ý điện thoại nha! 🌸")
+            elif recent_order.status == "COMPLETED":
+                ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} đã **Giao thành công** rồi ạ. Cảm ơn Anh/Chị đã tin tưởng Sếp và Micsmo! 🌸")
+            elif recent_order.status == "CANCELLED":
+                ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} đã bị **Hủy** trước đó rồi ạ. Nếu cần mua lại, Anh/Chị cứ báo em nhé! 🌸")
+            else:
+                ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} hiện ở trạng thái **{recent_order.status}**. Anh/Chị chờ thêm chút nữa nhé! 🌸")
+            return True
+
+
+        # --- Q2: TẠO ĐƠN & VOUCHER INTELLIGENCE (PURCHASE) ---
         staff_patterns = ["cho 1 đơn", "cho đơn", "về :", "về:", "lên đơn", "gửi đơn"]
-        confirmed_units = ["lọ", "hộp", "chai", "hũ", "tuýp", "combo", "bộ", "gói"]
+        potential_keywords = ["mua", "đặt", "lấy", "ship", "giao", "ok", "chốt", "đơn", "cho"]
 
         has_digits = any(char.isdigit() for char in msg)
-        has_confirmed_unit = any(unit in msg for unit in confirmed_units)
-        is_ambiguous_order = "đơn" in msg and not has_confirmed_unit
-
-        potential_keywords = ["mua", "đặt", "lấy", "ship", "giao", "ok", "chốt", "đơn", "lên đơn", "chốt đơn", "cho"]
-
         is_staff_order = any(sp in msg for sp in staff_patterns) and has_digits
         has_buying_intent = any(kw in msg for kw in potential_keywords)
-        is_strong_intent = has_digits and (has_buying_intent or is_staff_order or has_confirmed_unit)
+        is_strong_intent = has_digits and (has_buying_intent or is_staff_order)
 
-        # 1. INTENT RECOGNITION (Elite V2.5: Unit-Aware Detection)
-        msg_debug = f"DEBUG: msg='{msg}', digits={has_digits}, unit={has_confirmed_unit}, strong_intent={has_digits and (has_buying_intent or is_staff_order or has_confirmed_unit)}"
-        logger.info(f"[OrderHandler] {msg_debug}")
+        logger.info(f"[OrderHandler] Intent: msg='{msg}', strong={is_strong_intent}")
 
-        # 🚀 2. ATOMIC EXTRACTION (Execute ONLY ONCE)
+        # 🚀 2. ATOMIC EXTRACTION 
         lead_data = None
         if is_strong_intent or is_staff_order:
             try:
@@ -45,94 +95,86 @@ class OrderHandler(BaseHandler):
                     ctx.db, ctx.request.message, ctx.session_id, current_product_slug=ctx.request.product_slug
                 )
                 ctx.lead_data = lead_data
-                logger.info(f"[OrderHandler] Atomic extraction result: items={len(lead_data.items) if lead_data else 0}, definite={lead_data.is_definite_purchase if lead_data else 'N/A'}, order_id={lead_data.processed_order_id if lead_data else 'N/A'}")
             except Exception as e:
                 logger.error(f"[OrderHandler] Atomic extraction failed: {e}")
 
-        # 🚀 3. DECISION ENGINE (The Lockdown)
+        # 🚀 3. DECISION ENGINE (Shadow Checkout & Upsell)
         if lead_data:
-            logger.info(f"[OrderHandler] Debug: definite={lead_data.is_definite_purchase}, phone={lead_data.customer_phone}, address={lead_data.customer_address}")
+            from backend.database import current_tenant_id
+            tid = current_tenant_id.get() or "default"
 
-        import os
-        debug_prefix = "[z3] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
+            # Case A: Mập Mờ Số Lượng (Đã Bị Chặn Bằng Lệnh Không Có Items ở LeadExtractor)
+            is_definite = lead_data.is_definite_purchase
+            has_items = bool(lead_data.items)
 
-        # Case A: Success (Order Created)
-        if lead_data and lead_data.processed_order_id:
-            ctx.processed_order_id = lead_data.processed_order_id
-            ctx.intent = SupportIntent.PURCHASE
-
-            order_id = str(lead_data.processed_order_id)
-            stmt = select(Order).where(Order.id == order_id)
-            order_obj = (await ctx.db.execute(stmt)).scalar_one_or_none()
-
-            if order_obj:
-                total_qty = 0
-                if isinstance(order_obj.items, list):
-                    for it in order_obj.items:
-                        if isinstance(it, dict):
-                            qty_val = it.get("quantity", 1)
-                            total_qty += int(qty_val) if isinstance(qty_val, (int, str)) else 1
-
-                formatted_price = "{:,.0f}".format(float(order_obj.total_amount or 0)).replace(",", ".")
-                delivery_info = location_resolver.resolve(order_obj.customer_address or "").shipping_days or "2-3 ngày"
-
-                from backend.services.commerce.constants.support_config import support_cfg
-                reply = (
-                    f"{debug_prefix}Dạ Helen chúc mừng Anh/Chị đã đặt hàng thành công! 🌸\nHelen sẽ gửi đơn đi ngay ạ:\n"
-                    f"- Mã đơn: **{order_id[-8:].upper()}**\n"
-                    f"- Sản phẩm: {total_qty} {ctx.p_info.name if ctx.p_info else 'sản phẩm'}\n"
-                    f"- Tổng tiền: **{formatted_price}đ** (Free ship)\n"
-                    f"- Nhận hàng: **{delivery_info}**\n\n"
-                    f"Anh/Chị nhớ để ý điện thoại để shipper gọi giao hàng nhé! 📞\n"
-                    f"[🔍 THEO DÕI ĐƠN HÀNG]({support_cfg.app_url}/account/orders/{order_id})"
-                )
-                ctx.replies.append(reply)
-                return True # ACTION SUCCESS -> STOP PIPELINE
-
-        # Case B: Ambiguous "Đơn" or Partial Data
-        if is_strong_intent:
-            logger.info(f"[OrderHandler] Debug Case B: lead_data={lead_data}, definite={lead_data.is_definite_purchase if lead_data else 'N/A'}, items={len(lead_data.items) if lead_data else 0}")
-            ctx.intent = SupportIntent.PURCHASE
-
-            # Case B1: "Cho 1 đơn" -> No specific unit confirmed
-            # FIX: Only trigger upsell if not a definite purchase AND (ambiguous "đơn" OR no items)
-            is_definite = lead_data.is_definite_purchase if lead_data else False
-            has_items = bool(lead_data.items) if lead_data else False
-
-            logger.info(f"[OrderHandler] Debug B1: is_ambiguous={is_ambiguous_order}, definite={is_definite}, items={has_items}")
-
-            if (is_ambiguous_order and not is_definite) or (lead_data and not has_items and not is_definite):
-                # New: Handle Ambiguous Location
-                if lead_data and lead_data.possible_provinces:
+            if not is_definite and not has_items:
+                if lead_data.possible_provinces:
                     provinces = ", ".join(lead_data.possible_provinces)
-                    reply = f"{debug_prefix}Dạ địa chỉ của mình có tên phường trùng ở nhiều nơi ({provinces}), Anh/Chị cho Helen xin thêm tên Tỉnh/Thành phố để em gửi hàng chính xác nhé ạ! 🌸"
-                    ctx.replies.append(reply)
+                    ctx.replies.append(f"{debug_prefix}Dạ địa chỉ của mình trùng tên ở nhiều nơi ({provinces}), Anh/Chị cho Helen xin thêm Tỉnh/Thành phố nhé! 🌸")
                     return True
-
-                logger.info(f"💡 [OrderHandler] Ambiguous 'đơn' detected. Triggering Upsell Menu.")
 
                 base_price = int(ctx.p_info.price) if ctx.p_info and ctx.p_info.price else 0
                 formatted_base = "{:,.0f}".format(base_price).replace(",", ".") + "đ" if base_price > 0 else "đang cập nhật"
-
-                offer_reply = (
-                    f"{debug_prefix}Dạ Helen đã nhận thông tin chốt đơn của mình tại địa chỉ trên ạ! 🌸\n\n"
-                    f"Để Helen xác nhận đơn hàng chuẩn xác, Anh/Chị cho em xin **số lượng** sản phẩm mà mình muốn lấy nhé. (Giá sản phẩm hiện tại: **{formatted_base}**)"
-                )
-                ctx.replies.append(offer_reply)
+                ctx.replies.append(f"{debug_prefix}Dạ Helen đã ghi nhận địa chỉ của mình! 🌸\nAnh/Chị cho em xin **số lượng** sản phẩm muốn lấy để Helen lên bill nhé. (Giá đang là: **{formatted_base}**)")
                 return True
 
-            # Case B2: Missing Phone or Address but intent is clear
-            if lead_data and (not lead_data.customer_phone or not lead_data.customer_address):
+            # Case B: Thiếu Thông Tin Liên Hệ
+            if not lead_data.customer_phone or not lead_data.customer_address:
                 if not lead_data.customer_phone:
-                    reply = f"{debug_prefix}Dạ Helen đã thấy địa chỉ rồi ạ. Anh/Chị cho em xin thêm **Số Điện Thoại** để shipper liên hệ giao hàng nhé! 🌸"
+                    ctx.replies.append(f"{debug_prefix}Dạ địa chỉ thì Helen đã thấy rồi. Anh/Chị cho em xin thêm **Số Điện Thoại** để shipper liên lạc nha! 🌸")
                 else:
-                    reply = f"{debug_prefix}Dạ Helen đã có SĐT rồi ạ. Anh/Chị cho em xin **Địa chỉ cụ thể** để em gửi hàng về ngay nhé! 🌸"
-                ctx.replies.append(reply)
+                    ctx.replies.append(f"{debug_prefix}Dạ SĐT em lưu 1 bản rồi ạ. Anh/Chị cho em xin **Địa chỉ cụ thể** để gửi hàng về tận cửa luôn nhé! 🌸")
                 return True
 
-        return False # Fallthrough # Fallthrough to next specialists (Greeting/Consultant)
+            # Case C: Shadow Checkout Thành Công -> Khai hỏa Voucher Intelligence
+            if lead_data.processed_order_id:
+                ctx.processed_order_id = lead_data.processed_order_id
+                ctx.intent = SupportIntent.PURCHASE
 
-    def _calculate_delivery_time(self, address: str, shipping_days: str | None = None) -> str:
-        """Heuristic Shipping Estimator (Standardized Logic)."""
-        if shipping_days: return shipping_days
-        return location_resolver.resolve(address).shipping_days or "2-3 ngày"
+                order_id = str(lead_data.processed_order_id)
+                order_obj = (await ctx.db.execute(select(Order).where(Order.id == order_id))).scalar_one_or_none()
+
+                if order_obj:
+                    total_amount = float(order_obj.total_amount or 0)
+                    total_qty = sum(int(it.get("quantity", 1)) for it in (order_obj.items or []) if isinstance(it, dict))
+                    
+                    # Tìm Voucher Phù Hợp Tiếp Theo (Upsell Logic)
+                    now = datetime.now(timezone.utc)
+                    v_stmt = select(Voucher).where(
+                        and_(Voucher.deleted_at.is_(None), Voucher.is_active == True, Voucher.tenant_id == tid,
+                             or_(Voucher.start_date.is_(None), Voucher.start_date <= now),
+                             or_(Voucher.end_date.is_(None), Voucher.end_date >= now),
+                             Voucher.min_spend > total_amount)  # Tìm voucher cao hơn mức mua hiện tại
+                    ).order_by(Voucher.min_spend.asc()).limit(1)
+                    
+                    next_voucher = (await ctx.db.execute(v_stmt)).scalar_one_or_none()
+
+                    formatted_price = "{:,.0f}".format(total_amount).replace(",", ".")
+                    delivery_info = location_resolver.resolve(order_obj.customer_address or "").shipping_days or "2-3 ngày"
+
+                    # 💎 THE UPSELL HOOK
+                    if next_voucher and next_voucher.min_spend and (next_voucher.min_spend - total_amount) < 500000:
+                        diff = next_voucher.min_spend - total_amount
+                        diff_f = "{:,.0f}".format(diff).replace(",", ".")
+                        v_val_f = "{:,.0f}".format(next_voucher.value).replace(",", ".") if next_voucher.type != "PERCENT" else f"{next_voucher.value}%"
+                        
+                        reply = (
+                            f"{debug_prefix}Dạ Helen đã gom đơn **{total_qty} sản phẩm** ({formatted_price}đ) của chị vào hệ thống. Đơn hàng sẽ về tới trong khoảng **{delivery_info}** ạ! 🌸\n\n"
+                            f"⚡ **Helen mách nhỏ:** Chị đang có một mã giảm giá **{v_val_f}** dành cho đơn từ {'{:,.0f}'.format(next_voucher.min_spend).replace(',', '.')}đ. "
+                            f"Chị chỉ cần mua thêm khoảng **{diff_f}đ** nữa thôi là dùng được mã này rẻ bèo luôn! Chị có muốn mua thêm để áp mã luôn không ạ?"
+                        )
+                    else:
+                        reply = (
+                            f"{debug_prefix}Dạ Helen chúc mừng Anh/Chị đã đặt hàng thành công! 🌸\nHelen đã chốt gửi đơn đi theo lịch trình:\n"
+                            f"- Mã đơn: **{order_id[-8:].upper()}**\n"
+                            f"- Sản phẩm: {total_qty} mục\n"
+                            f"- Tổng tiền: **{formatted_price}đ** (Lưu giỏ thành công)\n"
+                            f"- Dự kiến tới tay: **{delivery_info}**\n\n"
+                            f"Anh/Chị nhớ để ý điện thoại để shipper gọi nha! 📞"
+                        )
+
+                    ctx.replies.append(reply)
+                    return True # Ngắt luồng, trả lời luôn
+
+        return False # Fallthrough (Cho Consultant xử lý tiếp)
+

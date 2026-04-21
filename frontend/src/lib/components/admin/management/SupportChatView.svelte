@@ -62,7 +62,7 @@
   }
 </script>
 
-<main class="flex-1 flex flex-col bg-black/20 overflow-hidden select-text">
+<main class="flex-1 flex flex-col bg-black/20 overflow-hidden select-text h-full min-w-0 min-h-0">
   {#if session}
     <div class="p-4 bg-white/5 border-b border-white/10 flex items-center justify-between">
       <div class="flex items-center gap-4">
@@ -86,10 +86,10 @@
       </button>
     </div>
 
-    <div class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar" bind:this={chatScrollRef}>
+    <div class="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-4 custom-scrollbar" bind:this={chatScrollRef}>
       {#each session.messages as msg}
-        <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'} group/msg relative">
-          <div class="max-w-[80%] group">
+        <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full">
+          <div class="max-w-[80%] group relative">
             <div class="{msg.role === 'user' ? 'bg-cyan-600/20 border border-cyan-500/30 rounded-tr-none' : 'bg-white/10 border border-white/10 rounded-tl-none'} transition-all p-4 rounded-2xl {msg.is_revoked ? 'opacity-40 grayscale' : ''}">
               <div class="text-[9px] uppercase tracking-widest text-white/30 mb-1 flex justify-between gap-10">
                 <span>{msg.role === 'user' ? 'KHÁCH HÀNG' : 'HELEN AI'}</span>
@@ -138,3 +138,9 @@
     <div class="flex-1 flex flex-col items-center justify-center text-white/10 text-center"><MessageCircle class="w-20 h-20 mb-6 opacity-20" /><h3 class="text-lg font-bold">Chọn hội thoại</h3></div>
   {/if}
 </main>
+
+<style>
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.5); }
+</style>

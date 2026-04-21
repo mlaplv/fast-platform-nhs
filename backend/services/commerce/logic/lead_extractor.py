@@ -182,15 +182,13 @@ class LeadExtractor:
                 logger.warning(f"[LeadExtractor] Unknown result type: {type(result)}")
                 return None
 
-            # 🚀 1.1 AMBIGUITY OVERRIDE (Elite V2.6)
-            # If AI Agent mistakenly thinks it's a definite purchase but it's ambiguous, FORCE False.
-            msg_lower = message.lower().strip()
-            confirmed_units = ["lọ", "hộp", "chai", "hũ", "tuýp", "combo", "bộ", "gói"]
-            has_confirmed_unit = any(unit in msg_lower for unit in confirmed_units)
-            is_ambiguous = ("cho 1 đơn" in msg_lower or "cho đơn" in msg_lower) and not has_confirmed_unit
-
-            if is_ambiguous:
-                logger.info(f"💡 [LeadExtractor] Ambiguous Staff Order Detected (Override AI). Setting is_definite_purchase=False.")
+            # 🚀 1.1 SEMANTIC AUTOCRACY (Elite V3.0)
+            # Dựa hoàn toàn vào kết quả trích xuất items của PydanticAI. Xóa bỏ cản trở của Regex.
+            if lead.items and len(lead.items) > 0:
+                logger.info(f"💡 [LeadExtractor] Semantic Autocracy: Found {len(lead.items)} items. Forcing is_definite_purchase=True.")
+                lead.is_definite_purchase = True
+            elif not lead.items and lead.is_definite_purchase:
+                logger.info(f"💡 [LeadExtractor] Semantic Guard: No items extracted but AI marked definite. Reverting to False.")
                 lead.is_definite_purchase = False
 
             # 2. DATA HYGIENE
@@ -204,20 +202,10 @@ class LeadExtractor:
                 # Re-validate phone after hydration
                 lead.customer_phone = validate_vietnam_phone(lead.customer_phone or "")
 
-            # 2.1 Elite V2.5: Heuristic Purchase Force
-
-            # If the staff explicitly says "Lên đơn", we FORCE definite purchase
-            # to bypass any AI uncertainty.
-            # Removed: "cho 1 đơn", "cho đơn", "lấy 1 đơn", "gửi đơn" (now handled by AI or unit detection)
+            # 2.1 Elite V3.0: Heuristic Purchase Force (Staff 'Lên đơn' override)
             force_keywords = ["lên đơn"]
             if any(fw in message.lower() for fw in force_keywords):
                 logger.info(f"🚀 [LeadExtractor] Heuristic Force: is_definite_purchase=True matched for '{message[:20]}...'")
-                lead.is_definite_purchase = True
-
-            # Elite V2.5: Force definite purchase if message contains quantity (e.g., "2 lọ")
-            quantity_pattern = r"(\d+)\s*(lọ|hộp|chai|hũ|tuýp|combo|bộ|gói)"
-            if re.search(quantity_pattern, message.lower()):
-                logger.info(f"🚀 [LeadExtractor] Heuristic Force: is_definite_purchase=True matched for quantity in '{message[:20]}...'")
                 lead.is_definite_purchase = True
 
             # 2.1 ADDRESS RESOLUTION (Elite V2.2)
@@ -349,7 +337,7 @@ class LeadExtractor:
             return lead
 
         except Exception as e:
-            logger.error(f"[LeadExtractor] Structural failure: {e}")
+            logger.exception(f"[LeadExtractor] Structural failure: {e}")
             return None
 
 lead_extractor = LeadExtractor()
