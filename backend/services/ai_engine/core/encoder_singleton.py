@@ -20,20 +20,35 @@ _lock: Optional[asyncio.Lock] = None
 _init_in_progress = False
 
 def _check_model_health() -> bool:
-    """Verifies if the model exists and seems complete in the cache (Old or New folder structure)."""
-    # [ELITE 2.2] Support regular and Qdrant-repo-style folder names
-    model_paths = [
-        os.path.join(CACHE_DIR, "paraphrase-multilingual-MiniLM-L12-v2"),
-        os.path.join(CACHE_DIR, "models--qdrant--paraphrase-multilingual-MiniLM-L12-v2-onnx-Q")
-    ]
+    """Verifies if the model exists and seems complete in the cache.
+    Supports both flat and HF hub snapshots/{SHA}/ directory structures.
+    """
     required_files = ["model_optimized.onnx", "config.json"]
-    
-    for path in model_paths:
-        if all(os.path.exists(os.path.join(path, f)) for f in required_files):
-            # Double check size for model file (> 100MB) to ensure it's not a git-lfs pointer
-            model_file = os.path.join(path, "model_optimized.onnx")
-            if os.path.getsize(model_file) > 100 * 1024 * 1024:
+
+    def _is_valid_dir(path: str) -> bool:
+        if not all(os.path.exists(os.path.join(path, f)) for f in required_files):
+            return False
+        model_file = os.path.join(path, "model_optimized.onnx")
+        return os.path.getsize(model_file) > 100 * 1024 * 1024
+
+    # 1. Check flat / legacy paths
+    flat_paths = [
+        os.path.join(CACHE_DIR, "paraphrase-multilingual-MiniLM-L12-v2"),
+        os.path.join(CACHE_DIR, "models--qdrant--paraphrase-multilingual-MiniLM-L12-v2-onnx-Q"),
+    ]
+    for path in flat_paths:
+        if _is_valid_dir(path):
+            return True
+
+    # 2. Check HF hub snapshots/{SHA}/ sub-directories (standard curl download target)
+    base_qdrant = os.path.join(CACHE_DIR, "models--qdrant--paraphrase-multilingual-MiniLM-L12-v2-onnx-Q")
+    snapshots_dir = os.path.join(base_qdrant, "snapshots")
+    if os.path.isdir(snapshots_dir):
+        for sha in os.listdir(snapshots_dir):
+            snapshot_path = os.path.join(snapshots_dir, sha)
+            if os.path.isdir(snapshot_path) and _is_valid_dir(snapshot_path):
                 return True
+
     return False
 
 async def warmup_encoder(max_retries: int = 5):

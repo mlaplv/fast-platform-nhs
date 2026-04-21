@@ -17,8 +17,8 @@
   const shopStore = getShopStore();
   const cartStore = getCartStore();
   
-  let chatContainer: HTMLDivElement;
-  let inputElement: HTMLTextAreaElement;
+  let chatContainer = $state<HTMLDivElement>();
+  let inputElement = $state<HTMLTextAreaElement>();
   let userInput = $state('');
   let isExpanded = $state(false);
   let isInputFocused = $state(false);
@@ -71,7 +71,7 @@
     userInput = ''; 
     
     // Elite V2.2: Pass customer info for Zalo OA Bridge
-    const customer = shopStore.customerData;
+    const customer = shopStore?.customerData;
     const name = customer?.nameMasked || 'Khách ẩn danh';
     
     await supportAgent.sendMessage(text, productSlug, name);
@@ -288,7 +288,7 @@
                   <div class="text-[17px]">{@html msg.content.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-black">$1</strong>').replace(/\n/g, '<br/>')}</div>
                   
                   <button 
-                    onclick={() => shopStore.openCheckout(cartStore, shopStore.product!)}
+                    onclick={() => shopStore?.openCheckout(cartStore, shopStore.product!)}
                     class="mt-6 px-10 py-4 bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 text-[16px] font-black rounded-full shadow-[0_12px_32px_rgba(255,183,197,0.4)] hover:shadow-[0_16px_40px_rgba(255,183,197,0.5)] transition-all active:scale-[0.98] uppercase tracking-wider animate-pulse-subtle"
                   >
                      NHẬN ƯU ĐÃI NGAY →

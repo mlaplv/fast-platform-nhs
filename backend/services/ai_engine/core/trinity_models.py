@@ -18,7 +18,7 @@ DEFAULT_AI_CONFIG = {
         "brain": ["3.1-pro", "2.0-pro", "1.5-pro", "brain"]
     },
     "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision"],
-    "lockdown": ["early-access", "alpha"],
+    "lockdown": ["early-access", "alpha", "preview", "customtools"],
     "error_mapping": {
         "auth_hard": ["api key not valid", "invalid_key", "key_expired", "project disabled", "deleted"],
         "auth_soft": ["401", "403", "unauthorized", "forbidden", "permission_denied", "user_location_not_supported"],

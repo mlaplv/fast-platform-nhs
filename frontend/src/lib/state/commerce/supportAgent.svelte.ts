@@ -391,7 +391,10 @@ class SupportAgentState {
         };
 
         // Guard: Kill pulse if it hangs (Reduced to 60s for better responsiveness)
-        setTimeout(() => this._disconnectPulse(), 60000);
+        setTimeout(() => {
+            this.isTyping = false;
+            this._disconnectPulse();
+        }, 60000);
     }
 
     private _disconnectPulse() {
@@ -460,10 +463,10 @@ class SupportAgentState {
         } catch (error: unknown) {
             console.error("[SupportAgent] Chat error:", error);
             const status = (error as { status?: number })?.status;
-            const userFriendlyMsg = status === 429 
-                ? "Hệ thống đang xử lý nhiều luồng, bạn vui lòng đợi một lát rồi thử lại nhé!" 
+            const userFriendlyMsg = status === 429
+                ? "Hệ thống đang xử lý nhiều luồng, bạn vui lòng đợi một lát rồi thử lại nhé!"
                 : "Xin lỗi bạn, hệ thống kết nối đang bị gián đoạn. Bạn vui lòng thử lại sau nhé.";
-                
+
             this.messages = [
                 ...this.messages,
                 {
@@ -480,8 +483,8 @@ class SupportAgentState {
                 severity: "error",
                 isRead: false
             });
-        } finally {
             this.isTyping = false;
+        } finally {
         }
     }
 }

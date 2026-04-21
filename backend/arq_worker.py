@@ -263,9 +263,15 @@ async def send_otp_email(ctx: Dict[str, object], email: str, code: str, request_
 
 async def startup(ctx: Dict[str, object]) -> None:
     logger.info("🚀 [Neural Worker] Arq Worker starting up... Elite V2.2 Protocol Active.")
-    # Initialize shared resources like TrinityBridge if needed
+    # Elite V2.2: Initialize both TrinityBridge AND Encoder in parallel.
+    # Worker is a separate process — _shared_encoder is NOT shared with the API container.
+    # Without warmup_encoder(), all vector/semantic searches in worker tasks return empty lists.
     from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-    await trinity_bridge.initialize()
+    from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
+    await asyncio.gather(
+        trinity_bridge.initialize(),
+        warmup_encoder()
+    )
 
 async def shutdown(ctx: Dict[str, object]) -> None:
     logger.info("[Worker] Arq Worker shutting down.")
