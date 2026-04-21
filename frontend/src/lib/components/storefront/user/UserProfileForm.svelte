@@ -136,9 +136,19 @@
 <div class="max-w-4xl mx-auto space-y-12 pb-20 px-4 md:px-6">
   <!-- Elite Header Section: Card & Identity -->
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-    <div class="lg:col-span-7">
+    <div class="lg:col-span-7 space-y-4">
        <MemberCard />
+       <div class="flex justify-center md:justify-start px-2">
+          <a
+            href="/user/loyalty"
+            class="flex items-center gap-2 px-4 py-2 bg-luxury-copper/5 border border-luxury-copper/20 rounded-full group active:scale-95 transition-all"
+          >
+             <Sparkles class="w-3.5 h-3.5 text-luxury-copper animate-pulse" />
+             <span class="text-[9px] font-black text-luxury-copper uppercase tracking-[2px]">Xem quyền lợi thành viên Elite →</span>
+          </a>
+       </div>
     </div>
+
 
     <div class="lg:col-span-5 flex flex-col items-center lg:items-end justify-center space-y-4 px-4">
       <div class="relative">

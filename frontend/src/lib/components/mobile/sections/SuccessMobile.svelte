@@ -139,20 +139,11 @@
   const totalSavings = $derived(voucherDiscount + comboDiscount);
 </script>
 
-<div class="fixed inset-0 bg-[#fafafa] text-slate-900 overflow-y-auto flex flex-col">
-  <header class="fixed top-0 left-0 w-full h-[48px] bg-white border-b border-slate-100 flex items-center justify-between px-4 z-[1000]">
-     <button onclick={() => goto('/')} class="p-2 text-slate-900 active:scale-90 transition-transform">
-       <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
-     </button>
-     <h1 class="text-sm font-black text-slate-900 uppercase italic tracking-tight">
-        {isLookup ? 'CHI TIẾT ĐƠN HÀNG' : 'ĐẶT HÀNG THÀNH CÔNG'}
-     </h1>
-     <div class="w-9"></div>
-  </header>
+<div class="min-h-screen bg-[#fafafa] text-slate-900 flex flex-col w-full relative">
+  <!-- Cinematic Background Bloom -->
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[300px] {isLookup ? 'bg-sky-500/10' : 'bg-emerald-500/10'} blur-[80px] pointer-events-none"></div>
 
-  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[250px] {isLookup ? 'bg-sky-500/5' : 'bg-emerald-500/5'} blur-[60px] pointer-events-none"></div>
-
-  <div class="relative px-4 pt-[72px] flex flex-col items-center text-center">
+  <div class="relative px-4 pt-8 flex flex-col items-center text-center">
     <p class="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-black mb-8 italic">
       {order?.status === 'CANCELLED' ? 'RẤT TIẾC VÌ LIỆU TRÌNH KHÔNG ĐƯỢC TIẾP TỤC' : isLookup ? 'CẬP NHẬT TRẠNG THÁI MỚI NHẤT' : 'CẢM ƠN QUÝ KHÁCH ĐÃ TIN TƯỞNG'}
     </p>

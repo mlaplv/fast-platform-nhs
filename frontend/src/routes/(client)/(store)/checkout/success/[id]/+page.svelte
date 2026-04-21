@@ -19,7 +19,7 @@
   // Standardize Layout: Sync header/footer with Elite V3.2 Protocol
   $effect.pre(() => {
     if (ui.isMobile) {
-      ui.isHeaderHidden = true;
+      ui.isHeaderHidden = false; // Show header like product detail
       ui.isFooterHidden = true;
     } else {
       ui.isHeaderHidden = false;

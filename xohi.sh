@@ -415,11 +415,12 @@ function purge_helen_data() {
     docker exec fast_platform_redis redis-cli --scan --pattern "xohi:chat:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
     docker exec fast_platform_redis redis-cli --scan --pattern "xohi:ctx:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
     docker exec fast_platform_redis redis-cli --scan --pattern "support:kb:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
-    docker exec fast_platform_redis redis-cli del support:presence:* support:takeover:* || true
+    docker exec fast_platform_redis redis-cli --scan --pattern "support:presence:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
+    docker exec fast_platform_redis redis-cli --scan --pattern "support:takeover:*" | xargs -r docker exec fast_platform_redis redis-cli del || true
     
     echo -e "${GREEN}[SUCCESS] Đã làm sạch toàn bộ dữ liệu Helen cực kỳ triệt để!${NC}"
-    # Trigger inbox update across browsers
-    docker exec fast_platform_api /opt/venv/bin/python3 -c "import asyncio; from backend.services.event_bus import event_bus; asyncio.run(event_bus.emit('SUPPORT_INBOX_UPDATE', {'session_id': 'all'}))" || true
+    # Trigger inbox update across browsers (Global Admin Pulse)
+    docker exec fast_platform_api /opt/venv/bin/python3 -c "import asyncio; from backend.services.event_bus import event_bus; asyncio.run(event_bus.emit('SUPPORT_INBOX_UPDATE', {'session_id': 'all', 'action': 'PURGE_ALL'}))" || true
 }
 
 function restore_data() {

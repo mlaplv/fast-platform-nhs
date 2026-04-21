@@ -62,16 +62,17 @@ _support_ai_agent: Agent[SupportAgentDeps, AgenticSupportResponse] = Agent(
 
 class FastIntentDeps(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    customer_name: str = "Sếp"
+    customer_name: str = "Quý khách"
 
 _fast_intent_agent: Agent[FastIntentDeps, FastIntentResponse] = Agent(
     output_type=FastIntentResponse,
     system_prompt=(
-        "You are Helen's Fast Intent Classifier. Classify user message into: "
+        "You are Helen - a high-end Cosmetics Specialist. Classify user message into: "
         "GREETING, POLICY, PRODUCT, ORDER, PURCHASE, OTHER. "
         "IMPORTANT: If it's a simple greeting, provide a friendly quick_reply in Vietnamese. "
-        "Always personalize the quick_reply using the customer's name from deps. "
-        "Use 'Sếp' if the name is not specific or if they are a regular. "
+        "Always personalize the quick_reply using the specific customer's name from deps if provided. "
+        "DO NOT use the word 'Sếp' or 'bạn'. Use 'Quý khách' or 'Anh/Chị' if the name is generic. "
+        "Tone: Elegant, professional, welcoming, using icons like 🌸, ✨. "
         "Confidence must be 0.0 to 1.0."
     )
 )
@@ -376,7 +377,7 @@ class SupportAgentOperative(BaseAgentOperative):
         # 🚀 4. PERSISTENCE (Atomic Commit)
         await self._save_history(
             db, session_id, request.message, safe_reply, final_intent, 
-            request.product_slug, request.customer_name, 
+            request.product_slug, dna.customer_name or request.customer_name, 
             ctx.lead_data.customer_phone if ctx.lead_data else None
         )
         # 🚀 Elite V2.2: Presence Tracking (Heartbeat)
@@ -434,8 +435,9 @@ class SupportAgentOperative(BaseAgentOperative):
             lead_phone=request.customer_phone,
             user_id=request.user_id
         )
-        c_name = dna.customer_name or request.customer_name or "Sếp"
-        if c_name == "Khách ẩn danh": c_name = "Sếp"
+        # 🚀 Elite v3.2 Identity Hardening
+        c_name = dna.customer_name or request.customer_name or "Quý khách"
+        if c_name in ["Khách ẩn danh", "Sếp"]: c_name = "Quý khách"
 
         # 🚀 Elite V2.2: Inhibition Guards (Handover & Global Control)
         # 1. Global Switch
@@ -455,7 +457,7 @@ class SupportAgentOperative(BaseAgentOperative):
             logger.info("[SupportAgent] Helen inhibited for SID: %s (Human Takeover)", session_id)
             return SupportResponse(
                 ok=True, 
-                reply="Dược sĩ đang trực tiếp hỗ trợ sếp. Vui lòng đợi trong giây lát ạ.", 
+                reply="Dược sĩ đang trực tiếp hỗ trợ mình ạ. Vui lòng đợi trong giây lát nhé! ✨", 
                 intent=SupportIntent.UNKNOWN, 
                 session_id=session_id, 
                 status="DONE"
@@ -481,7 +483,7 @@ class SupportAgentOperative(BaseAgentOperative):
                 await self._save_history(
                     db, session_id, request.message, f_data.quick_reply, 
                     SupportIntent.GENERAL_ADVICE, request.product_slug,
-                    request.customer_name, request.customer_phone
+                    c_name, request.customer_phone
                 )
                 await db.flush()
                 return SupportResponse(ok=True, reply=f_data.quick_reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
@@ -489,11 +491,8 @@ class SupportAgentOperative(BaseAgentOperative):
             logger.warning("[SupportAgent] Fast-Path Bypass: %s", e)
 
         # 🚀 L0.5: SYNCHRONOUS HEURISTIC FAST-PATH (Elite V2.5 — Race Condition Fix)
-        # Handles INFO_ADDRESS / INFO_INGREDIENTS / INFO_HOTLINE INSTANTLY, no background task.
-        # ROOT CAUSE FIX: Eliminates off-by-one SSE race condition when users send messages
-        # faster than background tasks complete.
         _, p_info = await _fetch_product_context(db, request.product_slug)
-        heuristic_res = await self._try_heuristic_sync(request, db, session_id, p_info)
+        heuristic_res = await self._try_heuristic_sync(request, db, session_id, p_info, c_name)
         if heuristic_res:
             return heuristic_res
 
@@ -503,7 +502,7 @@ class SupportAgentOperative(BaseAgentOperative):
         logger.info("[SupportAgent] Deep-Brain task enqueued: %s for SID: %s", task_id, session_id)
         return SupportResponse(ok=True, reply="Helen đang xử lý...", intent=SupportIntent.UNKNOWN, session_id=session_id, task_id=task_id, status="PROCESSING")
 
-    async def _try_heuristic_sync(self, request: SupportRequest, db: AsyncSession, session_id: str, p_info: Optional[SupportProductInfo] = None) -> Optional[SupportResponse]:
+    async def _try_heuristic_sync(self, request: SupportRequest, db: AsyncSession, session_id: str, p_info: Optional[SupportProductInfo] = None, customer_name: Optional[str] = None) -> Optional[SupportResponse]:
         """
         Elite V3.0: Synchronous Heuristic Fast-Path.
         - INFO_ADDRESS / INFO_HOTLINE → đọc SystemSettings (Redis cache) — không cần LLM, < 100ms.
@@ -530,7 +529,7 @@ class SupportAgentOperative(BaseAgentOperative):
             if p_info:
                 logger.info("✅ [SupportAgent] Sync Heuristic HIT: PRICE_QUERY")
                 final_reply = f"{debug_prefix}Dạ liệu trình **{p_info.name}** hiện tại có giá ưu đãi chỉ từ **{p_info.price_display}** ạ. 🌸 Anh/Chị muốn chốt số lượng bao nhiêu để Helen lên đơn ngay cho mình nhé?"
-                await self._save_history(db, session_id, request.message, final_reply, SupportIntent.PRICE_QUERY, request.product_slug)
+                await self._save_history(db, session_id, request.message, final_reply, SupportIntent.PRICE_QUERY, request.product_slug, customer_name)
                 await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
                 return SupportResponse(ok=True, reply=final_reply, intent=SupportIntent.PRICE_QUERY, session_id=session_id, status="DONE")
 
@@ -558,7 +557,7 @@ class SupportAgentOperative(BaseAgentOperative):
                 final_reply = f"{debug_prefix}Dạ số hotline của Micsmo là **{hotline}** ạ. Anh/Chị cần tư vấn thêm cứ nhắn em nhé 🌸."
                 intent = SupportIntent.POLICY_QUERY
                 
-            await self._save_history(db, session_id, request.message, final_reply, intent, request.product_slug)
+            await self._save_history(db, session_id, request.message, final_reply, intent, request.product_slug, customer_name)
             await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
             return SupportResponse(ok=True, reply=final_reply, intent=intent, session_id=session_id, status="DONE")
 

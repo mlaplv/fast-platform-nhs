@@ -8,6 +8,7 @@
     Maximize2, Minimize2, ScanSearch, Lock
   } from 'lucide-svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
+  import { authStore } from '$lib/state/authStore.svelte.ts';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
@@ -71,10 +72,14 @@
     userInput = ''; 
     
     // Elite V2.2: Pass customer info for Zalo OA Bridge
+    // Elite V3.1: Priority Auth Persistence — use real name if logged in
+    const user = authStore.user;
     const customer = shopStore?.customerData;
-    const name = customer?.nameMasked || 'Khách ẩn danh';
     
-    await supportAgent.sendMessage(text, productSlug, name);
+    const name = user?.name || customer?.nameMasked || 'Khách ẩn danh';
+    const userId = user?.id || null;
+    
+    await supportAgent.sendMessage(text, productSlug, name, undefined, userId);
     scrollToNewestMessage();
   }
 
@@ -177,12 +182,12 @@
                 <span class="text-[8px] text-white/40 font-black tracking-widest uppercase">AES_256</span>
               </div>
             </div>
-             <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2">
                 <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"></div>
                 <p class="text-[10px] text-[#FFB7C5] font-black uppercase tracking-[0.35em] opacity-90">
-                  {supportAgent.helenEnabled ? supportAgent.config.agentName : 'Human Specialist'}
+                  {supportAgent.helenEnabled ? 'ĐANG HOẠT ĐỘNG' : 'CHUYÊN VIÊN TRỰC'}
                 </p>
-             </div>
+              </div>
           </div>
         </div>
         
@@ -215,7 +220,7 @@
         <div class="flex flex-col items-center justify-center mb-10 opacity-30 hover:opacity-100 transition-opacity">
           <div class="flex items-center gap-2.5 px-5 py-2 bg-black/40 border border-white/10 rounded-full">
              <ShieldCheck size={14} class="text-[#FFB7C5]" />
-             <span class="text-[10px] text-white/60 tracking-[0.2em] uppercase font-black italic">SmartShop Neural Link v2.2</span>
+             <span class="text-[10px] text-white/60 tracking-[0.2em] uppercase font-black italic">Hệ thống chuyên gia Helen v3.2</span>
           </div>
         </div>
 
@@ -243,6 +248,16 @@
             class="flex flex-col w-full group animate-in fade-in slide-in-from-bottom-4 duration-500 message-bubble-container"
             data-role={msg.role}
           >
+            <!-- Name Label (Elite V3.1: Professional Identity) -->
+            <div class="flex items-center gap-2 mb-2 px-12 {msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}">
+              <span class="text-[10px] font-black uppercase tracking-[0.2em] {msg.role === 'user' ? 'text-[#FFB7C5]' : 'text-white/40'}">
+                {msg.role === 'assistant' ? supportAgent.config.agentName : (authStore.user?.name || 'Quý khách')}
+              </span>
+              {#if msg.role === 'assistant'}
+                <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"></div>
+              {/if}
+            </div>
+
             <div class="flex items-start gap-4 w-full {msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}">
               
               <!-- Identity Icon -->
@@ -252,8 +267,12 @@
                     <HelenIcon size={28} color="#FFB7C5" isPaused={isInputFocused} />
                   </div>
                 {:else}
-                  <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/5 shadow-md">
-                    <UserRound size={16} class="text-white/60" />
+                  <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/5 shadow-md overflow-hidden">
+                    {#if authStore.user?.avatar_url}
+                      <img src={authStore.user.avatar_url} alt="User" class="w-full h-full object-cover" />
+                    {:else}
+                      <UserRound size={16} class="text-white/60" />
+                    {/if}
                   </div>
                 {/if}
               </div>

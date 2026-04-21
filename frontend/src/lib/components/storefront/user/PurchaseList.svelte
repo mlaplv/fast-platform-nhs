@@ -4,13 +4,15 @@
   import { fade, fly } from 'svelte/transition';
   import { untrack } from 'svelte';
   import { formatCurrency, formatDate } from '$lib/utils/format';
-  import { Package, Truck, CheckCircle, XCircle, Clock, ShoppingBag, Search, MessageSquare } from 'lucide-svelte';
+  import { 
+    Package, Truck, CheckCircle, XCircle, Clock, ShoppingBag, Search, MessageSquare,
+    FileText, ShieldCheck, Gift, Sparkles, AlertCircle, LayoutGrid,
+    X, ChevronRight, RefreshCw
+  } from 'lucide-svelte';
   import type { Order, OrderStatus } from '$lib/types/commerce/order';
-
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import type { Product } from '$lib/types';
   import { resolveMediaUrl } from '$lib/state/utils';
-  import { Sparkles, AlertCircle } from 'lucide-svelte';
 
   const ui = getClientUi();
   const cartStore = getCartStore();
@@ -28,12 +30,12 @@
   const LIMIT = 3;
 
   const tabs = [
-    { id: 'all', label: 'Tất cả' },
-    { id: 'pending', label: 'Chờ xác nhận' },
-    { id: 'packed', label: 'Luồng vận chuyển' },
-    { id: 'shipping', label: 'Đang giao' },
-    { id: 'delivered', label: 'Hoàn thành' },
-    { id: 'cancelled', label: 'Đã hủy' }
+    { id: 'all', label: 'Tất cả', icon: LayoutGrid },
+    { id: 'pending', label: 'Tiếp nhận', icon: FileText },
+    { id: 'packed', label: 'Bảo mật', icon: ShieldCheck },
+    { id: 'shipping', label: 'Vận chuyển', icon: Truck },
+    { id: 'delivered', label: 'Thành công', icon: Gift },
+    { id: 'cancelled', label: 'Đã hủy', icon: XCircle }
   ];
 
   async function fetchOrders(isLoadMore = false, tab = activeTab) {
@@ -206,8 +208,21 @@
     return suffix;
   }
 
+  // Status Tracker Steps Definition
+  const trackerSteps = [
+    { id: 'PENDING', label: 'Tiếp nhận', icon: FileText },
+    { id: 'PACKED', label: 'Bảo mật', icon: ShieldCheck },
+    { id: 'SHIPPING', label: 'Vận chuyển', icon: Truck },
+    { id: 'DELIVERED', label: 'Thành công', icon: Gift }
+  ];
+
+  function getActiveStepIndex(status: string) {
+    const idx = trackerSteps.findIndex(s => s.id === status);
+    return idx === -1 ? 0 : idx;
+  }
   // Filter orders by search query
   const filteredOrders = $derived(
+
     orders.filter(o => {
       const idMatch = o.id?.toLowerCase().includes(searchQuery.toLowerCase());
       const itemMatch = o.items?.some(item => 
@@ -218,182 +233,200 @@
   );
 </script>
 
+
 <svelte:window onscroll={handleScroll} />
 
-<div class="space-y-6" in:fade>
-  <!-- Navigation Tabs: Shopee Style -->
-  <div class="bg-white sticky top-0 z-[40] border-b border-stone-100 -mx-4 md:mx-0 px-4 md:px-0">
-    <div class="flex gap-4 md:gap-0 overflow-x-auto no-scrollbar scroll-smooth">
-      {#each tabs as tab}
-        <button
-          onclick={() => activeTab = tab.id}
-          class="flex-1 min-w-fit md:min-w-0 pt-4 pb-4 text-[13px] md:text-[14px] font-medium whitespace-nowrap transition-all relative px-4 text-center {activeTab === tab.id ? 'text-[#fe2c55]' : 'text-stone-500 hover:text-stone-800'}"
-        >
-          {tab.label}
-          {#if activeTab === tab.id}
-            <div 
-               class="absolute bottom-0 left-0 w-full h-[2.5px] bg-[#fe2c55]" 
-               in:fade={{ duration: 200 }}
-            ></div>
-          {/if}
-        </button>
-      {/each}
+<div class="space-y-0" in:fade>
+  <!-- 🛰️ Integrated Icon-Tabs Command Center -->
+  <div 
+    class="bg-white/95 backdrop-blur-3xl sticky z-[40] border-b border-stone-100 transition-all duration-300"
+    style={ui.isMobile ? `top: calc(52px + env(safe-area-inset-top));` : 'top: 0;'}
+  >
+    <!-- Icon Navigation Rack (Far Left Align) -->
+    <div class="relative pt-5 pb-4 overflow-x-auto no-scrollbar scroll-smooth bg-white/80 backdrop-blur-md border-b border-stone-100/50">
+      <!-- Connecting Line (Under Icon Style) -->
+      <div class="absolute top-[64px] left-0 right-0 h-[1.5px] bg-stone-50 z-0">
+         <div 
+           class="h-full bg-gradient-to-r from-luxury-copper to-transparent transition-all duration-1000 origin-left"
+           style="width: {((tabs.findIndex(t => t.id === activeTab) + 1) / tabs.length) * 100}%"
+         ></div>
+      </div>
+
+      <div class="flex items-start justify-start px-4 gap-6 relative z-10">
+        {#each tabs as tab}
+          <button
+            onclick={() => activeTab = tab.id}
+            class="group flex flex-col items-center gap-3 transition-all duration-500 {activeTab === tab.id ? 'scale-105' : 'opacity-30 hover:opacity-100 grayscale'}"
+          >
+            <!-- Circular Icon Container (Glassmorphic) -->
+            <div class="h-10 w-10 md:h-12 md:w-12 rounded-full border flex items-center justify-center transition-all duration-700
+              {activeTab === tab.id 
+                ? 'border-luxury-copper bg-white text-luxury-copper shadow-[0_10px_25px_rgba(193,143,126,0.3)]' 
+                : 'border-stone-50 bg-stone-50/50 text-stone-400'}">
+                <div class="{activeTab === tab.id ? 'animate-pulse' : ''}">
+                   <tab.icon size={activeTab === tab.id ? 19 : 17} strokeWidth={1.5} />
+                </div>
+            </div>
+            
+            <!-- Label (Sleek Typography) -->
+            <span class="text-[7px] md:text-[9px] font-black uppercase tracking-[0.2em] transition-colors
+              {activeTab === tab.id ? 'text-stone-900' : 'text-stone-400'}">
+              {tab.label}
+            </span>
+          </button>
+        {/each}
+      </div>
     </div>
+
+
+
+    <!-- Nano-Search Rack -->
+    <div class="relative group h-11 bg-white">
+      <div class="absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+         <Search class="w-3.5 h-3.5 text-stone-300 group-focus-within:text-luxury-copper transition-colors" />
+      </div>
+      <input
+        type="text"
+        bind:value={searchQuery}
+        placeholder="Tìm kiếm nhanh đơn hàng..."
+        class="w-full h-full pl-10 pr-4 bg-transparent outline-none text-[12px] text-stone-900 transition-all placeholder:text-stone-300 font-bold"
+      />
+      <!-- Specular Highlight -->
+      <div class="absolute bottom-0 left-0 w-full h-[0.5px] bg-stone-200/40"></div>
+    </div>
+
   </div>
 
-  <!-- Search / Filter: TikTok Minimal -->
-  <div class="relative group mt-4">
-    <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 group-focus-within:text-[#fe2c55] transition-colors" />
-    <input
-      type="text"
-      bind:value={searchQuery}
-      placeholder="Tìm kiếm theo Mã đơn hàng hoặc Tên sản phẩm..."
-      class="w-full h-11 pl-11 pr-4 bg-stone-100/50 border border-transparent focus:border-[#fe2c55]/20 focus:bg-white outline-none text-[13px] text-stone-800 transition-all rounded-xl placeholder:text-stone-400"
-    />
-  </div>
-
-  <!-- Order List -->
-  <div class="space-y-4 md:space-y-6">
+  <!-- 📦 Order Content Stream (Full Width) -->
+  <div class="divide-y divide-stone-100 bg-white">
     {#if isLoading}
-      <div class="py-20 flex flex-col items-center justify-center space-y-4">
-        <div class="w-8 h-8 border-[3px] border-[#fe2c55]/20 border-t-[#fe2c55] animate-spin rounded-full"></div>
-        <p class="text-[11px] text-stone-400 font-bold uppercase tracking-[0.2em] animate-pulse">Synchronizing Data...</p>
+      <div class="py-32 flex flex-col items-center justify-center space-y-5 bg-[#f9f8f6]">
+        <div class="w-10 h-10 border-[3px] border-luxury-copper/10 border-t-luxury-copper animate-spin rounded-full"></div>
+        <p class="text-[10px] text-stone-400 font-black uppercase tracking-[0.4em] animate-pulse">Syncing Records...</p>
       </div>
     {:else if filteredOrders.length === 0}
-      <div class="py-24 text-center bg-white border border-stone-100 rounded-3xl" in:fade>
-        <div class="w-24 h-24 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-6">
-          <ShoppingBag class="w-12 h-12 text-stone-200" />
+      <div class="py-32 text-center bg-[#f9f8f6]" in:fade>
+        <div class="w-20 h-20 bg-white rounded-full shadow-inner flex items-center justify-center mx-auto mb-8 opacity-40">
+          <ShoppingBag class="w-10 h-10 text-stone-200" strokeWidth={1} />
         </div>
-        <p class="text-stone-400 text-sm font-medium">Chưa có đơn hàng nào trong mục này.</p>
+        <p class="text-stone-400 text-[13px] font-bold uppercase tracking-widest">Lịch sử trống</p>
         {#if !searchQuery && activeTab === 'all'}
-          <a href="/" class="inline-block mt-8 px-10 py-3.5 bg-[#fe2c55] text-white text-[12px] uppercase tracking-widest font-black rounded-full hover:scale-105 transition-all shadow-xl shadow-[#fe2c55]/20">
-            Khám phá ngay
+          <a href="/" class="inline-block mt-10 px-12 py-4 bg-stone-900 text-white text-[10px] uppercase tracking-[0.3em] font-black rounded-full hover:scale-105 transition-all shadow-2xl shadow-stone-900/20 active:scale-95">
+            Mua sắm ngay
           </a>
         {/if}
       </div>
     {:else}
       {#each filteredOrders as order (order.id)}
         {@const status = getStatusStyle(order.status)}
+        {@const brandColor = status.color === 'text-[#fe2c55]' ? 'text-luxury-copper' : status.color}
+        {@const brandBg = status.bg === 'bg-[#fe2c55]/5' ? 'bg-luxury-copper/5' : status.bg}
+        
         <div
-          class="bg-white/80 backdrop-blur-xl md:border md:border-stone-100 overflow-hidden md:rounded-[32px] transition-all duration-500 group {ui.isMobile ? 'rounded-[32px] mx-2 mb-6 shadow-[0_10px_30px_rgba(0,0,0,0.03)] border border-stone-100' : 'hover:shadow-[0_40px_100px_rgba(0,0,0,0.1)] hover:-translate-y-1 mb-10 shadow-sm'}"
-          in:fly={{ y: 20, duration: 400 }}
+          class="bg-white overflow-hidden transition-all duration-300 group {ui.isMobile ? 'pb-8 pt-8' : 'hover:bg-stone-50/50 pt-12 pb-12 px-8'}"
+          in:fly={{ y: 0, duration: 400 }}
         >
-          <!-- 📦 Order Header: Shopee Style -->
-          {#if !ui.isMobile}
-            <div class="px-6 py-4 border-b border-stone-50 flex items-center justify-between bg-white relative">
-              <div class="flex items-center gap-4">
-                <span class="flex items-center gap-2 text-[12px] font-bold text-stone-800">
-                  <span class="px-2 py-0.5 bg-black text-white text-[9px] font-black rounded">ELITE</span>
-                  Micsmo Official Store
-                </span>
-                <button class="bg-stone-100 hover:bg-stone-200 px-3 py-1 rounded text-[11px] font-bold transition-all flex items-center gap-1.5">
-                   <MessageSquare size={12} /> Chat
-                </button>
-                <div class="w-px h-4 bg-stone-100 mx-1"></div>
-                <button class="text-stone-500 hover:text-stone-800 text-[11px] font-medium transition-all">Xem Shop</button>
-              </div>
-              <div class="flex items-center gap-2 {status.color}">
-                <span class="text-[12px] font-bold uppercase tracking-wider">{status.label}</span>
-              </div>
-            </div>
-          {:else}
-            <!-- 📱 Mobile Header: Viral Elite Style -->
-            <div class="px-6 py-4 flex items-center justify-between border-b border-stone-50">
-               <div class="flex items-center gap-2">
-                 <div class="w-6 h-6 bg-stone-900 rounded-lg flex items-center justify-center shadow-lg shadow-stone-900/20">
-                    <span class="text-[9px] text-white font-black italic">M</span>
-                 </div>
-                 <span class="text-[12px] font-black text-stone-800 uppercase tracking-widest">Micsmo Official</span>
+          <!-- 🔝 Order Meta Header -->
+          <div class="px-4 md:px-0 mb-6 flex items-center justify-between">
+             <div class="flex items-center gap-3">
+               <div class="w-8 h-8 md:w-10 md:h-10 bg-stone-900 rounded-xl flex items-center justify-center shadow-lg shadow-stone-900/20">
+                  <span class="text-[12px] text-white font-black italic">M</span>
                </div>
-               <span class="text-[9px] font-black {status.color} uppercase tracking-[2px] px-3 py-1.5 rounded-full {status.bg} border border-current/10">{status.label}</span>
-            </div>
-          {/if}
+               <div class="flex flex-col">
+                 <span class="text-[11px] font-black text-stone-900 uppercase tracking-[0.1em]">Micsmo Official</span>
+                 <span class="text-[9px] font-bold text-stone-300 uppercase tracking-tighter italic">Order Record: #{order.id.slice(-8).toUpperCase()}</span>
+               </div>
+             </div>
+             <div class="flex items-center gap-2 px-3 py-1.5 rounded-full {brandBg} border border-current/10">
+                <span class="text-[9px] font-black {brandColor} uppercase tracking-[0.1em]">{status.label}</span>
+             </div>
+          </div>
 
-          <!-- 🛍️ Order Items: High Density -->
-          <div class="{ui.isMobile ? 'px-6 py-6' : 'p-8'} space-y-5">
+          <!-- 👕 Order Items Stream (Full Width Scan) -->
+          <div class="space-y-px bg-stone-50/20">
             {#if order.items && Array.isArray(order.items)}
               {#each order.items as item}
                 {@const itemImage = item.image || item.image_url}
-                <div class="flex gap-4 items-start md:items-center">
-                  <div class="w-24 h-24 bg-stone-50 border border-stone-100 shrink-0 p-1 rounded-2xl overflow-hidden relative shadow-sm transition-all group-hover:scale-[1.02]">
+                <div class="flex gap-4 items-center bg-white px-4 py-5 group/item transition-colors hover:bg-stone-50/30">
+                  <div class="w-16 h-16 bg-stone-50 border border-stone-100 shrink-0 p-1 rounded-lg overflow-hidden relative shadow-sm transition-all group-hover/item:shadow-lg">
                     {#if itemImage}
-                      <img src={resolveMediaUrl(itemImage)} alt={item.name} class="w-full h-full object-cover rounded-xl" />
+                      <img src={resolveMediaUrl(itemImage)} alt={item.name} class="w-full h-full object-cover rounded-md group-hover/item:scale-105 transition-transform" />
                     {:else}
                       <div class="w-full h-full flex items-center justify-center text-stone-200">
-                         <ShoppingBag class="w-10 h-10" strokeWidth={1} />
+                         <ShoppingBag class="w-6 h-6" strokeWidth={1} />
                       </div>
                     {/if}
-                    <div class="absolute bottom-1 right-1 bg-stone-900/90 text-white text-[9px] px-2 py-0.5 rounded-lg font-black backdrop-blur-md">x{item.qty || item.quantity}</div>
+                    <div class="absolute bottom-1 right-1 bg-stone-900/90 text-white text-[8px] px-1.5 py-0.5 rounded font-black backdrop-blur-md">x{item.qty || item.quantity}</div>
                   </div>
-                  <div class="flex-1 min-w-0 py-1">
-                    <h3 class="text-[14px] font-serif italic text-stone-800 leading-snug mb-1.5 group-hover:text-luxury-copper transition-colors line-clamp-2">{item.name}</h3>
+                  <div class="flex-1 min-w-0 pr-2">
+                    <h3 class="text-[12px] md:text-[15px] font-serif italic text-stone-800 leading-tight mb-1 line-clamp-2">{item.name}</h3>
                     {#if getVariantName(item)}
-                      <div class="flex items-center gap-2">
-                        <span class="px-2 py-0.5 bg-stone-50 text-stone-400 text-[9px] font-black uppercase tracking-widest rounded-md border border-stone-100">{getVariantName(item)}</span>
-                      </div>
+                      <span class="text-[8px] font-black text-stone-400 uppercase tracking-widest bg-stone-50 px-1.5 py-0.5 rounded border border-stone-100">{getVariantName(item)}</span>
                     {/if}
                   </div>
-                  <div class="text-right flex flex-col justify-center">
-                     <span class="text-[15px] font-black text-stone-800 tabular-nums italic tracking-tighter">{formatCurrency(item.unit_price || (item as any).price || 0)}</span>
+                  <div class="text-right">
+                     <span class="text-[11px] md:text-[14px] font-black text-stone-900 tabular-nums italic tracking-tighter opacity-40">{formatCurrency(item.unit_price || (item as any).price || 0)}</span>
                   </div>
                 </div>
               {/each}
             {/if}
           </div>
 
-          <!-- 💰 Order Footer: Viral 2026 Style -->
-          <div class="{ui.isMobile ? 'px-4 py-5' : 'px-8 py-6'} border-t border-white/20 bg-gradient-to-br from-stone-50/10 to-stone-100/5 backdrop-blur-sm flex flex-col items-end gap-6">
-            
-            <div class="w-full flex flex-col gap-2.5 items-end">
-              {#if getOrderSavings(order) > 0}
-                <div class="flex items-center gap-2 text-[#ee4d2d] bg-[#ee4d2d]/5 px-3 py-1.5 rounded-2xl border border-[#ee4d2d]/10">
-                  <Sparkles size={14} class="animate-pulse" />
-                  <span class="text-[12px] font-black italic tracking-tight">SIÊU ƯU ĐÃI: -{formatCurrency(getOrderSavings(order))}</span>
-                </div>
-              {/if}
-              
-              <div class="flex items-end gap-3 translate-y-1">
-                <span class="text-[11px] text-stone-400 font-bold uppercase tracking-[0.1em] italic">Thành tiền</span>
-                <span class="text-3xl font-black text-[#fe2c55] tracking-tighter tabular-nums drop-shadow-sm">{formatCurrency(order.total || order.total_amount || 0)}</span>
-              </div>
+          <!-- 💎 Final Calculation Surface (Dramatic Lean) -->
+          <div class="px-4 md:px-0 mt-5 flex flex-col items-end gap-3">
+            <div class="w-full flex items-center justify-between">
+               {#if getOrderSavings(order) > 0}
+                  <div class="flex items-center gap-1 text-luxury-copper bg-luxury-copper/5 px-2 py-1 rounded border border-luxury-copper/10">
+                    <Sparkles size={9} />
+                    <span class="text-[8px] font-black uppercase tracking-tighter">-{formatCurrency(getOrderSavings(order))}</span>
+                  </div>
+               {:else}
+                  <div></div>
+               {/if}
+
+               <div class="flex items-baseline gap-2">
+                  <span class="text-[8px] text-stone-300 font-black uppercase tracking-[0.2em] italic">Total</span>
+                  <span class="text-2xl md:text-5xl font-black text-stone-900 tracking-tighter tabular-nums">{formatCurrency(order.total || order.total_amount || 0)}</span>
+               </div>
             </div>
 
-            <div class="flex items-center gap-3 w-full md:w-auto">
+
+            <!-- Agentic Actions (Elite Tactical Viral - Ultra Lean) -->
+            <div class="grid grid-cols-3 gap-2 w-full px-4 md:px-0 mt-2">
+
               {#if order.status === 'PENDING' || order.status === 'PACKED'}
                  <button
                     onclick={() => handleCancelOrder(order.id)}
-                    class="flex-1 md:flex-none h-11 px-6 border border-stone-100 rounded-full text-[10px] font-black text-stone-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                    class="h-9 bg-white border border-stone-100 rounded-xl text-[8px] font-black text-red-500/60 hover:text-red-600 hover:bg-red-50/30 transition-all uppercase tracking-widest flex items-center justify-center gap-1.5"
                   >
-                    Hủy Đơn
+                    <X size={10} strokeWidth={3} />
+                    HỦY
                   </button>
               {/if}
 
               <a
                 href="/checkout/success/{order.id}"
-                class="flex-1 md:flex-none h-11 flex items-center justify-center px-8 border border-stone-100 rounded-full text-[10px] font-black text-stone-800 hover:bg-stone-50 transition-all uppercase tracking-widest whitespace-nowrap"
+                class="col-span-{ (order.status === 'PENDING' || order.status === 'PACKED') ? '1' : '2' } h-9 flex items-center justify-center bg-stone-50/50 backdrop-blur-md border border-stone-100/30 rounded-xl text-[8px] font-black text-stone-500 hover:bg-white transition-all uppercase tracking-widest whitespace-nowrap active:scale-95 gap-1.5"
               >
-                Chi tiết
+                CHI TIẾT
+                <ChevronRight size={10} />
               </a>
 
               <button
                 onclick={() => handleReorder(order)}
                 disabled={isReordering}
-                class="flex-1 md:flex-none h-11 min-w-[130px] px-8 bg-stone-900 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-full hover:bg-luxury-copper transition-all shadow-[0_15px_30px_rgba(0,0,0,0.1)] active:scale-95 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group overflow-hidden relative"
+                class="h-9 bg-stone-900 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-stone-800 transition-all shadow-lg active:scale-95 disabled:opacity-50 overflow-hidden relative flex items-center justify-center gap-1.5"
               >
-                <div class="relative z-10 flex items-center justify-center gap-2">
-                  {#if isReordering}
-                    <div class="w-3.5 h-3.5 border-2 border-white/20 border-t-white animate-spin rounded-full"></div>
-                    <span class="animate-pulse">PROCESSING...</span>
-                  {:else}
-                    MUA LẠI
-                  {/if}
-                </div>
-                <div class="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 skew-x-[-20deg]"></div>
+                 <div class="w-1 h-1 bg-luxury-copper rounded-full animate-pulse"></div>
+                 MUA LẠI
               </button>
             </div>
+
+
           </div>
         </div>
       {/each}
+
 
       {#if orders.length > 0}
         <div class="h-20 w-full flex items-center justify-center pt-4 pb-8">

@@ -57,7 +57,7 @@ class OrderHandler(BaseHandler):
                 if recent_order.status in ["PENDING", "DRAFT"]:
                     recent_order.status = "CANCELLED"
                     await ctx.db.flush()
-                    ctx.replies.append(f"{debug_prefix}Dạ Helen đã ghi nhận **Hủy đơn hàng** của SĐT {masked_phone} thành công rồi ạ. Hẹn phục vụ Anh/Chị dịp khác nhé! 🌸")
+                    ctx.replies.append(f"{debug_prefix}Dạ Helen đã ghi nhận **Hủy đơn hàng** của SĐT {masked_phone} thành công rồi ạ. Hẹn sớm được phục vụ mình trong lần tới nhé! 🌸")
                 else:
                     ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} hiện đang ở trạng thái **{recent_order.status}** và đã được giao cho Shipper, nên Helen không tự động hủy được nữa ạ. Anh/Chị vui lòng từ chối nhận hàng khi shipper gọi nha! 🌸")
                 return True
@@ -68,7 +68,7 @@ class OrderHandler(BaseHandler):
             elif recent_order.status == "SHIPPING":
                 ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} hiện **Đang trên đường giao**. Dự kiến 1-2 ngày tới shipper sẽ gọi, Anh/Chị để ý điện thoại nha! 🌸")
             elif recent_order.status == "COMPLETED":
-                ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} đã **Giao thành công** rồi ạ. Cảm ơn Anh/Chị đã tin tưởng Sếp và Micsmo! 🌸")
+                ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} đã **Giao thành công** rồi ạ. Cảm ơn Anh/Chị đã luôn tin tưởng và đồng hành cùng Micsmo! ✨")
             elif recent_order.status == "CANCELLED":
                 ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} đã bị **Hủy** trước đó rồi ạ. Nếu cần mua lại, Anh/Chị cứ báo em nhé! 🌸")
             else:
@@ -156,7 +156,7 @@ class OrderHandler(BaseHandler):
                     pts_hook = ""
                     if ctx.dna.available_points > 0:
                         money_pts = "{:,.0f}".format(ctx.dna.available_points * ctx.dna.point_value_vnd).replace(",", ".")
-                        pts_hook = f"⚡ **Ưu đãi thành viên:** Sếp đang có **{ctx.dna.available_points} điểm** (~{money_pts}đ). Sếp có muốn Helen dùng luôn để giảm giá cho đơn này không ạ? "
+                        pts_hook = f"⚡ **Ưu đãi thành viên:** Mình đang có **{ctx.dna.available_points} điểm** tích lũy (~{money_pts}đ). Mình có muốn Helen dùng luôn để chiết khấu trực tiếp cho đơn này không ạ? "
 
                     if next_voucher and next_voucher.min_spend and (next_voucher.min_spend - total_amount) < 500000:
                         diff = next_voucher.min_spend - total_amount
@@ -164,8 +164,8 @@ class OrderHandler(BaseHandler):
                         v_val_f = "{:,.0f}".format(next_voucher.value).replace(",", ".") if next_voucher.type != "PERCENT" else f"{next_voucher.value}%"
                         
                         reply = (
-                            f"{debug_prefix}Dạ Helen đã gom đơn **{total_qty} sản phẩm** ({formatted_price}đ) của chị vào hệ thống. Đơn hàng sẽ về tới trong khoảng **{delivery_info}** ạ! 🌸\n\n{pts_hook}"
-                            f"Ngoài ra, chị chỉ cần mua thêm khoảng **{diff_f}đ** nữa thôi là dùng được mã giảm giá **{v_val_f}** (áp dụng cho đơn từ {'{:,.0f}'.format(next_voucher.min_spend).replace(',', '.')}đ). Chị có muốn mua thêm để áp mã luôn cho rẻ không ạ?"
+                            f"{debug_prefix}Dạ Helen đã gom đơn **{total_qty} mục** ({formatted_price}đ) của mình vào hệ thống. Đơn hàng sẽ về đến tay mình sau khoảng **{delivery_info}** ạ! 🌸\n\n{pts_hook}"
+                            f"Đặc biệt, mình chỉ cần mua thêm khoảng **{diff_f}đ** nữa thôi là được áp dụng mã giảm giá **{v_val_f}** rồi đó ạ. Mình có muốn chọn thêm sản phẩm nào để tối ưu voucher luôn không?"
                         )
                     else:
                         reply = (

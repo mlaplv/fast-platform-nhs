@@ -1,12 +1,18 @@
 <script lang="ts">
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { X, Mail, ShieldCheck, ArrowRight, Loader2, KeyRound, UserPlus, Lock, Eye, EyeOff } from 'lucide-svelte';
+  import { X, Mail, ShieldCheck, ArrowRight, Loader2, KeyRound, UserPlus, Lock, Eye, EyeOff, ChevronRight } from 'lucide-svelte';
   import { fallbackSha256 } from '$lib/utils/cryptoFallback';
   import { apiClient } from '$lib/utils/apiClient';
   import { fade, fly, scale, slide } from 'svelte/transition';
 
-  let { onClose } = $props();
+  interface Props {
+    onClose?: () => void;
+    rounded?: boolean;
+  }
+
+  let { onClose, rounded = true }: Props = $props();
+  const r = $derived(rounded ? 'rounded-2xl' : 'rounded-none');
 
   const ui = getClientUi();
   let step = $state<'input' | 'otp'>('input');
@@ -228,45 +234,45 @@
   });
 </script>
 
-    <div class="px-8 pt-2 pb-8 max-h-[calc(92vh-100px)] overflow-y-auto scrollbar-hide">
+    <div class="px-7 pt-1 pb-2 max-h-[calc(92vh-100px)] overflow-y-auto scrollbar-hide">
     {#if mode === 'profile' && authStore.user}
         <!-- TikTok Style Profile View -->
         <div class="flex flex-col items-center py-6 space-y-6" in:fade>
             <div class="relative group">
-                <div class="w-24 h-24 rounded-none overflow-hidden border-4 border-gray-50 shadow-xl">
+                <div class="w-24 h-24 {r} overflow-hidden border-4 border-gray-50 shadow-xl">
                     <img 
                         src={authStore.user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(authStore.user.name || 'User')}&background=000&color=fff`} 
                         alt={authStore.user.name} 
                         class="w-full h-full object-cover"
                     />
                 </div>
-                <div class="absolute bottom-0 right-0 p-1.5 bg-black rounded-none border-2 border-white shadow-lg">
+                <div class="absolute bottom-0 right-0 p-1.5 bg-black rounded-full border-2 border-white shadow-lg">
                     <UserPlus class="w-3.5 h-3.5 text-white" />
                 </div>
             </div>
 
             <div class="text-center">
-                <h3 class="text-xl font-black text-black tracking-tight">{authStore.user.name || 'Thành viên mới'}</h3>
-                <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">{authStore.user.email}</p>
+                <h3 class="text-xl font-black text-black tracking-tight italic">{authStore.user.name || 'Thành viên mới'}</h3>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{authStore.user.email}</p>
             </div>
 
             <div class="w-full space-y-3 pt-4">
-                <button class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-none transition-all">
+                <button class="w-full flex items-center justify-between p-4 bg-gray-50/50 hover:bg-gray-100/50 {r} transition-all">
                     <div class="flex items-center gap-3">
                         <ShieldCheck class="w-5 h-5 text-gray-400" />
-                        <span class="text-sm font-bold text-black">Bảo mật tài khoản</span>
+                        <span class="text-[13px] font-bold text-black italic">Bảo mật tài khoản</span>
                     </div>
-                    <ArrowRight class="w-4 h-4 text-gray-300" />
+                    <ChevronRight class="w-4 h-4 text-gray-300" />
                 </button>
-                <button class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-none transition-all" onclick={() => ui.openAddress?.()}>
+                <button class="w-full flex items-center justify-between p-4 bg-gray-50/50 hover:bg-gray-100/50 {r} transition-all" onclick={() => ui.openAddress?.()}>
                     <div class="flex items-center gap-3">
                         <Mail class="w-5 h-5 text-gray-400" />
-                        <span class="text-sm font-bold text-black">Địa chỉ nhận hàng</span>
+                        <span class="text-[13px] font-bold text-black italic">Địa chỉ nhận hàng</span>
                     </div>
-                    <ArrowRight class="w-4 h-4 text-gray-300" />
+                    <ChevronRight class="w-4 h-4 text-gray-300" />
                 </button>
                 <button 
-                    class="w-full p-4 bg-gray-50 text-[#ff3b30] rounded-none font-black text-xs tracking-widest uppercase hover:bg-[#ff3b30]/10 transition-all mt-4"
+                    class="w-full p-4 bg-red-50/50 text-[#ff3b30] {r} font-black text-[10px] tracking-widest uppercase hover:bg-[#ff3b30]/10 transition-all mt-4"
                     onclick={() => { authStore.logout(); onClose?.(); }}
                 >
                     Đăng xuất
@@ -274,22 +280,22 @@
             </div>
         </div>
     {:else if step === 'input'}
-    <div class="space-y-6">
+    <div class="space-y-3 pt-2">
         {#if mode === 'register'}
         <div class="group">
-            <label for="fullName" class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1 block">HỌ VÀ TÊN</label>
+            <label for="fullName" class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-2 block">HỌ VÀ TÊN</label>
             <input
             type="text"
             id="fullName"
             bind:value={fullName}
             placeholder="Nguyễn Văn A"
-            class="w-full bg-gray-50 border-2 border-transparent p-4 md:p-5 rounded-none text-sm md:text-[15px] font-bold text-black focus:bg-white focus:border-[#C18F7E] transition-all outline-none shadow-sm"
+            class="w-full bg-gray-50/80 border-2 border-transparent p-3 md:p-3.5 {r} text-sm md:text-[14px] font-bold text-black focus:bg-white focus:border-[#C18F7E] transition-all outline-none shadow-sm"
             />
         </div>
         {/if}
 
         <div class="group">
-        <label for="email" class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1 block">ĐỊA CHỈ EMAIL</label>
+        <label for="email" class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-2 block">ĐỊA CHỈ EMAIL</label>
         <div class="relative">
             <input
             type="email"
@@ -297,7 +303,7 @@
             bind:value={identifier}
             placeholder="name@example.com"
             onkeydown={(e) => e.key === 'Enter' && (authMethod === 'otp' ? handleRequestOTP() : handlePasswordLogin())}
-            class="w-full bg-gray-50 border-2 border-transparent p-4 md:p-5 pl-12 md:pl-14 rounded-none text-sm md:text-[15px] font-bold text-black focus:bg-white focus:border-[#C18F7E] transition-all outline-none shadow-sm"
+            class="w-full bg-gray-50/80 border-2 border-transparent p-3 md:p-3.5 pl-12 md:pl-12 {r} text-sm md:text-[14px] font-bold text-black focus:bg-white focus:border-[#C18F7E] transition-all outline-none shadow-sm"
             />
             <Mail class="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 w-5 h-5 md:w-6 md:h-6 text-gray-300" />
         </div>
@@ -305,7 +311,7 @@
 
         {#if authMethod === 'password' && mode === 'login'}
         <div class="group" in:slide>
-        <label for="password" class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1 block">MẬT KHẨU</label>
+        <label for="password" class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-2 block italic">MẬT KHẨU</label>
         <div class="relative">
             <input
             type={showPassword ? 'text' : 'password'}
@@ -313,7 +319,7 @@
             bind:value={password}
             placeholder="••••••••"
             onkeydown={(e) => e.key === 'Enter' && handlePasswordLogin()}
-            class="w-full bg-gray-50 border-2 border-transparent p-4 md:p-5 pl-12 md:pl-14 pr-12 rounded-none text-sm md:text-[15px] font-bold text-black focus:bg-white focus:border-[#C18F7E] transition-all outline-none shadow-sm"
+            class="w-full bg-gray-50/80 border-2 border-transparent p-3 md:p-3.5 pl-12 md:pl-12 pr-12 {r} text-sm md:text-[14px] font-bold text-black focus:bg-white focus:border-[#C18F7E] transition-all outline-none shadow-sm"
             />
             <Lock class="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 w-5 h-5 md:w-6 md:h-6 text-gray-300" />
             <button
@@ -328,15 +334,15 @@
         {/if}
 
         {#if error}
-        <div class="text-[#ff3b30] text-[11px] font-black text-center uppercase tracking-widest bg-[#ff3b30]/10 p-3 rounded-none border border-[#ff3b30]/20" in:scale>{error}</div>
+        <div class="text-[#ff3b30] text-[10px] font-black text-center uppercase tracking-widest bg-[#ff3b30]/10 p-3 rounded-xl border border-[#ff3b30]/20" in:scale>{error}</div>
         {/if}
 
         {#if isLoading && liveLogs.length > 0}
-        <div class="bg-gray-50 rounded-none p-6 space-y-3" in:fade>
+        <div class="bg-gray-50/80 {r} p-6 space-y-3" in:fade>
             {#each liveLogs as log, i}
             <div class="flex items-center gap-3" in:fly={{ x: -10, delay: i * 100 }}>
-                <div class="w-1.5 h-1.5 rounded-none {i === liveLogs.length - 1 ? 'bg-black animate-pulse' : 'bg-gray-300'}"></div>
-                <span class="text-[10px] font-bold {i === liveLogs.length - 1 ? 'text-black' : 'text-gray-400'} uppercase tracking-wider">{log}</span>
+                <div class="w-1.5 h-1.5 rounded-full {i === liveLogs.length - 1 ? 'bg-luxury-copper animate-pulse' : 'bg-gray-300'}"></div>
+                <span class="text-[10px] font-bold {i === liveLogs.length - 1 ? 'text-black italic' : 'text-gray-400'} uppercase tracking-wider">{log}</span>
             </div>
             {/each}
         </div>
@@ -346,21 +352,24 @@
             <button
                 onclick={authMethod === 'otp' ? handleRequestOTP : handlePasswordLogin}
                 disabled={isLoading || !identifier || (authMethod === 'password' && !password)}
-                class="w-full bg-[#0f172a] text-white p-5 md:p-5.5 rounded-none font-black text-xs md:text-[13px] tracking-[0.2em] flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-xl hover:bg-[#C18F7E] group"
+                class="w-full bg-[#C18F7E] text-white p-4 md:p-4.5 {r} font-black text-xs md:text-[12px] tracking-[0.2em] italic flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none shadow-xl shadow-luxury-copper/20 group relative overflow-hidden"
             >
+                <!-- Premium Shine Effect -->
+                <div class="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none"></div>
+
                 {#if isLoading && liveLogs.length === 0}
                 <Loader2 class="w-5 h-5 animate-spin" />
                 {:else if isLoading}
                 ĐANG XỬ LÝ...
                 {:else}
-                {authMethod === 'otp' ? (mode === 'login' ? 'NHẬN MÃ' : 'GIA NHẬP') : 'TRUY CẬP'} <ArrowRight class="w-5 h-5" />
+                {mode === 'login' ? 'ĐĂNG NHẬP' : 'ĐĂNG KÝ'} <ArrowRight class="w-5 h-5" />
                 {/if}
             </button>
 
             {#if mode === 'login'}
                 <button
                 onclick={() => authMethod = authMethod === 'otp' ? 'password' : 'otp'}
-                class="w-full text-center text-[10px] italic text-gray-400 hover:text-black transition-colors mt-1"
+                class="w-full text-center text-[10px] italic text-gray-400 hover:text-black transition-colors mt-1 underline underline-offset-4 decoration-gray-100"
                 >
                 {authMethod === 'otp' ? 'sử dụng mật khẩu' : 'sử dụng mã otp'}
                 </button>
@@ -368,24 +377,24 @@
         </div>
 
         <!-- Social Login Divider -->
-        <div class="relative py-2">
+        <div class="relative py-1">
             <div class="absolute inset-0 flex items-center">
                 <div class="w-full border-t border-gray-100"></div>
             </div>
             <div class="relative flex justify-center text-center">
-                <span class="bg-white px-4 text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                <span class="bg-white px-4 text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">
                 HOẶC TIẾP TỤC VỚI
                 </span>
             </div>
         </div>
 
-        <!-- Social Login Buttons (TikTok Round Style Changed to Sharp) -->
+        <!-- Social Login Buttons (TikTok Premium Round Style) -->
         <div class="flex justify-center gap-6 pb-2">
             <button
                 type="button"
                 onclick={() => handleSocialLogin('google')}
                 disabled={isLoading}
-                class="flex items-center justify-center w-14 h-14 rounded-none bg-gray-50 border border-gray-100 hover:bg-white active:scale-90 transition-all disabled:opacity-30 shadow-sm"
+                class="flex items-center justify-center w-14 h-14 {r} bg-white border border-gray-100 hover:bg-gray-50 active:scale-90 transition-all disabled:opacity-30 shadow-sm"
                 aria-label="Login with Google"
             >
                 <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -399,7 +408,7 @@
                 type="button"
                 onclick={() => handleSocialLogin('facebook')}
                 disabled={isLoading}
-                class="flex items-center justify-center w-14 h-14 rounded-none bg-gray-50 border border-gray-100 hover:bg-white active:scale-90 transition-all disabled:opacity-30 shadow-sm"
+                class="flex items-center justify-center w-14 h-14 {r} bg-white border border-gray-100 hover:bg-gray-50 active:scale-90 transition-all disabled:opacity-30 shadow-sm"
                 aria-label="Login with Facebook"
             >
                 <svg class="w-6 h-6 text-[#1877F2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
@@ -410,7 +419,7 @@
                 type="button"
                 onclick={() => handleSocialLogin('zalo')}
                 disabled={isLoading}
-                class="flex items-center justify-center w-14 h-14 rounded-none bg-gray-50 border border-gray-100 hover:bg-white active:scale-90 transition-all disabled:opacity-30 shadow-sm"
+                class="flex items-center justify-center w-14 h-14 {r} bg-white border border-gray-100 hover:bg-gray-50 active:scale-90 transition-all disabled:opacity-30 shadow-sm"
                 aria-label="Login with Zalo"
             >
                 <svg class="w-8 h-8" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -422,17 +431,17 @@
 
         <button
         onclick={() => ui.authModal.mode = ui.authModal.mode === 'login' ? 'register' : 'login'}
-        class="w-full text-center text-[11px] font-black text-black hover:underline transition-colors uppercase tracking-[0.2em] pt-4"
+        class="w-full text-center text-[9px] font-bold text-gray-300 hover:text-black transition-colors uppercase tracking-[0.1em] pt-2"
         >
-        {mode === 'login' ? 'CHƯA CÓ TÀI KHOẢN? GIA NHẬP' : 'ĐÃ LÀ THÀNH VIÊN? TRUY CẬP'}
+        {mode === 'login' ? 'CHƯA CÓ TÀI KHOẢN? ĐĂNG KÝ' : 'ĐÃ LÀ THÀNH VIÊN? ĐĂNG NHẬP'}
         </button>
     </div>
     {:else}
         <div class="space-y-8 text-center" in:scale>
         <div>
-            <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">XÁC THỰC TRUY CẬP</p>
-            <p class="text-xs text-black font-medium mt-2">
-            Đã gửi mã đến <span class="font-black underline italic">{identifier}</span>
+            <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] italic">XÁC THỰC TRUY CẬP</p>
+            <p class="text-[13px] text-black font-semibold mt-3">
+            Đã gửi mã đến <span class="font-black underline italic decoration-luxury-copper">{identifier}</span>
             </p>
         </div>
 
@@ -447,34 +456,35 @@
                 oninput={(e) => handleInput(e, i)}
                 onkeydown={(e) => handleKeydown(e, i)}
                 onpaste={handlePaste}
-                class="w-11 h-16 bg-gray-50 border-2 {code[i] ? 'border-black text-black' : 'border-transparent text-black'} text-center text-3xl font-black rounded-none focus:bg-white focus:border-black transition-all outline-none shadow-sm"
+                class="w-11 h-16 bg-gray-50/80 border-2 {code[i] ? 'border-luxury-copper text-luxury-copper' : 'border-transparent text-black'} text-center text-3xl font-black {r} focus:bg-white focus:border-luxury-copper transition-all outline-none shadow-sm"
             />
             {/each}
         </div>
 
         {#if error}
-            <div class="text-[#ff3b30] text-[11px] font-black text-center uppercase tracking-widest bg-[#ff3b30]/10 p-3 rounded-none border border-[#ff3b30]/20">{error}</div>
+            <div class="text-[#ff3b30] text-[10px] font-black text-center uppercase tracking-widest bg-[#ff3b30]/10 p-3 rounded-xl border border-[#ff3b30]/20">{error}</div>
         {/if}
 
         <div class="space-y-4">
             <button
             onclick={handleVerifyOTP}
             disabled={isLoading || fullCode.length < 6}
-            class="w-full bg-black text-white p-5 rounded-none font-black text-xs tracking-[0.3em] flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 shadow-xl"
+            class="w-full bg-[#C18F7E] text-white p-5 {r} font-black text-[13px] tracking-[0.3em] italic flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-30 shadow-xl shadow-luxury-copper/20"
             >
             {#if isLoading}
                 <Loader2 class="w-5 h-5 animate-spin" />
             {:else}
-                XÁC NHẬN TRUY CẬP
+                XÁC NHẬN ĐĂNG NHẬP
             {/if}
             </button>
             <button
             onclick={() => step = 'input'}
-            class="text-[11px] font-black text-gray-400 hover:text-black transition-colors uppercase tracking-widest"
+            class="text-[10px] font-bold text-gray-400 hover:text-black transition-colors uppercase tracking-[0.2em] italic"
             >
             THAY ĐỔI THÔNG TIN
             </button>
         </div>
         </div>
     {/if}
+
 </div>

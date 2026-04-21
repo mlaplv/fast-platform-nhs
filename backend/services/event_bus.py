@@ -107,7 +107,7 @@ class InternalBus:
                     
             except Exception as e:
                 logger.warning(f"[EventBus] Redis bridge/cache failed for {event_name}: {e}")
-        elif event_name in ["CONTENT_PROGRESS", "AGENT_TASK_COMPLETED", "MEDIA_ANALYZED", "SYSTEM_SIGNAL"]:
+        elif event_name in ["CONTENT_PROGRESS", "AGENT_TASK_COMPLETED", "MEDIA_ANALYZED", "SYSTEM_SIGNAL", "SUPPORT_INBOX_UPDATE"]:
             from backend.services.xohi_memory import xohi_memory
             import json
             try:

@@ -44,10 +44,11 @@
     <UserHeaderMobile title="Đơn Mua" bind:isMenuOpen />
 
     <div
-      class="pb-20 px-4 space-y-6 bg-[#f9f8f6] min-h-screen"
-      style="padding-top: calc(env(safe-area-inset-top) + 80px);"
+      class="pb-20 px-0 space-y-0 bg-white min-h-screen"
+      style="padding-top: calc(env(safe-area-inset-top) + 52px);"
     >
       <PurchaseList />
     </div>
+
   {/if}
 {/if}

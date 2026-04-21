@@ -16,10 +16,12 @@
     { label: 'Hồ sơ', href: '/user/profile', icon: UserIcon },
     { label: 'Đơn mua', href: '/user/purchase', icon: Package },
     { label: 'Kho Voucher', href: '/user/vouchers', icon: Ticket },
+    { label: 'Tích điểm', href: '/user/loyalty', icon: Sparkles },
     { label: 'Địa chỉ', href: '/user/address', icon: MapPin },
     { label: 'Mật khẩu', href: '/user/password', icon: Key },
     { label: 'Thông báo', href: '/user/notifications', icon: Bell },
   ];
+
 
   function handleLogout() {
     authStore.logout();

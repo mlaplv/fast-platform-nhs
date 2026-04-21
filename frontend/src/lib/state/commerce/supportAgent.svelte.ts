@@ -1,7 +1,7 @@
-// Support Agent State — Svelte 5 Runes (Elite V2.2 Persistent Memory)
 import { apiClient } from "$lib/utils/apiClient";
 import { browser } from "$app/environment";
 import { getNotificationState } from "$lib/state/notification.svelte";
+import { authStore } from "$lib/state/authStore.svelte.ts";
 
 // Helper để render UUID native
 function randomId() {
@@ -92,13 +92,26 @@ class SupportAgentState {
     private _pulseSource: EventSource | null = null;
 
     
-    // Persistent Session UUID
-    private _sessionId: string = "";
+    // Elite V3.1: Persona Intelligence — Dynamic Welcome Based on Identity
+    welcomeMessage = $derived.by(() => {
+        const user = authStore.user;
+        const agentName = this.config.agentName || "Helen";
+        
+        if (!this.helenEnabled) {
+            return this.offlineMessage || "Chào mừng Quý khách! Hiện tại em đang tạm nghỉ, chuyên viên trực sẽ sớm hỗ trợ mình qua Zalo OA ạ. 🌸";
+        }
+
+        if (user?.name) {
+            return `Dạ Helen chào ${user.name}! Rất vui được gặp lại mình. Helen đang đợi để chăm sóc làn da của mình đây ạ. ${user.name} muốn nhận ưu đãi đặc quyền gì hôm nay không? ✨💄`;
+        }
+
+        return `Chào mừng Quý khách đến với Micsmo! Mình là ${agentName}, chuyên gia tư vấn làn da thủy tinh (Glass Skin). Quý khách cần mình giúp gì ạ? 🌸`;
+    });
 
     // Config initialized once
     public config: SupportConfig = {
-        agentName: "Chuyên viên Tư vấn",
-        welcomeMessage: "Chào bạn! Mình có thể hỗ trợ gì cho bạn hôm nay ạ?"
+        agentName: "Helen",
+        welcomeMessage: "" 
     };
 
     constructor() {
@@ -209,13 +222,14 @@ class SupportAgentState {
 
         // If after fetch, we still have NO messages, then we inject the welcome message
         if (this.messages.length === 0) {
+            const self = this; // Capture context for getter
             this.messages = [
                 {
                     id: randomId(),
                     role: "assistant",
-                    content: this.config.welcomeMessage,
+                    get content() { return self.welcomeMessage; },
                     timestamp: new Date()
-                }
+                } as SupportMessage
             ];
         } else {
             // We have history, but maybe it only contains old messages. 
@@ -230,12 +244,8 @@ class SupportAgentState {
         // Elite V2.2: Fetch global AI toggle state first
         await this.fetchStatus();
 
-        if (this.helenEnabled && envAgentName) {
+        if (envAgentName) {
             this.config.agentName = envAgentName;
-            this.config.welcomeMessage = `Dạ chào bạn, mình là ${envAgentName}. Bạn cần hỗ trợ thông tin gì về sản phẩm hay chính sách ạ?`;
-        } else if (!this.helenEnabled) {
-            this.config.agentName = "Chuyên viên Tư vấn";
-            this.config.welcomeMessage = this.offlineMessage || "Chào bạn! Hiện tại em đang tạm nghỉ, chuyên viên trực sẽ sớm hỗ trợ bạn qua Zalo OA ạ.";
         }
 
         // Proactive Rehydration
@@ -308,13 +318,6 @@ class SupportAgentState {
             // Sync config if it changed
             if (!this.helenEnabled) {
                 this.config.agentName = "Chuyên viên Tư vấn";
-                // Only update welcome message if no history (avoid weird jumps)
-                if (this.messages.length <= 1) {
-                    this.config.welcomeMessage = this.offlineMessage || "Chào bạn! Hiện tại em đang tạm nghỉ, chuyên viên trực sẽ sớm hỗ trợ bạn qua Zalo OA ạ.";
-                    if (this.messages.length === 1 && this.messages[0].role === "assistant") {
-                        this.messages[0].content = this.config.welcomeMessage;
-                    }
-                }
             }
         }
     }
@@ -415,7 +418,7 @@ class SupportAgentState {
         this.isTyping = false;
     }
 
-    async sendMessage(text: string, productSlug?: string, customerName?: string, customerPhone?: string) {
+    async sendMessage(text: string, productSlug?: string, customerName?: string, customerPhone?: string, userId?: string) {
         if (!text.trim() || this.isTyping) return;
 
         const userMsg: SupportMessage = {
@@ -434,7 +437,8 @@ class SupportAgentState {
                 session_id: this._sessionId,
                 product_slug: productSlug || null,
                 customer_name: customerName || "Khách ẩn danh",
-                customer_phone: customerPhone || null
+                customer_phone: customerPhone || null,
+                user_id: userId || null
             });
 
             if (res && typeof res.reply === "string") {

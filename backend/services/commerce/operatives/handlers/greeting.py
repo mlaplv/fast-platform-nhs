@@ -37,16 +37,16 @@ class GreetingHandler(BaseHandler):
                 time_greet = "buổi tối ấm áp"
 
             # Elite V3.0: Identify Name
-            c_name = ctx.dna.customer_name or ctx.request.customer_name or "Sếp"
-            if c_name == "Khách ẩn danh": c_name = "Sếp"
+            c_name = ctx.dna.customer_name or ctx.request.customer_name or "Quý khách"
+            if c_name == "Khách ẩn danh": c_name = "Quý khách"
             
             pts_msg = ""
             if ctx.dna.available_points > 0:
                 money = "{:,.0f}".format(ctx.dna.available_points * ctx.dna.point_value_vnd).replace(",", ".")
-                pts_msg = f" Hiện sếp đang có **{ctx.dna.available_points} điểm** tích lũy (~{money}đ) đó ạ. "
+                pts_msg = f" Hiện mình đang có **{ctx.dna.available_points} điểm** tích lũy đặc quyền (~{money}đ) đó ạ. "
 
             if ctx.dna.segment == "VIP":
-                prefix = f"{debug_prefix}Dạ Helen thân chào {c_name} - khách quý của Micsmo! 🌟 Chúc mình một {time_greet} ạ. Rất vui được gặp lại mình!{pts_msg}"
+                prefix = f"{debug_prefix}Dạ Helen thân chào {c_name} - khách quý của Micsmo! 🌟 Chúc mình một {time_greet} ạ. Thật tuyệt vời khi được gặp lại mình!{pts_msg}"
             elif ctx.dna.segment == "REGULAR":
                 prefix = f"{debug_prefix}Dạ Helen chào {c_name}, em rất vui được gặp lại mình trong {time_greet} hôm nay!{pts_msg}"
             else:
