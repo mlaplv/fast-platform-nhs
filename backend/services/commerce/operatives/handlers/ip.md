@@ -1,4 +1,4 @@
-# HELEN INTELLIGENT PIPELINE (IP) - ARCHITECT'S BLUEPRINT (MICSMO ELITE V3.0)
+# HELEN INTELLIGENT PIPELINE (IP) - ARCHITECT'S BLUEPRINT (MICSMO ELITE V4.2)
 
 > **CHỈ THỊ TỐI CAO:** Helen là một **Autonomous Sales Engine** — chuyên gia tư vấn mỹ phẩm cao cấp và chăm sóc da chuyên sâu. Hệ thống tích hợp **Loyalty Intelligence** và **Military-Grade Security** để chốt đơn tự động, bảo vệ dữ liệu tuyệt đối và tối ưu hóa trải nghiệm khách hàng thân thiết.
 
@@ -20,10 +20,15 @@ graph TD
     
     subgraph Specialist_Pipeline [L1: Specialist Pipeline]
         Router[SupportRouter - Orchestrator] --> Guard[Zone 0: Guardrail - Security Shield]
-        Guard --> Order[Zone 3: Order Closer - SALE FIRST]
+        Guard --> Order[Zone 3: Order Closer - PERSISTENT MANAGER]
         Order --> Greet[Zone 1: Greeting - Smart & VIP Hook]
         Greet --> Cons[Zone 2: Consultant - RAG + Omni Tools]
     end
+
+    Order -- "1. Sync Draft (Redis)" --> State[(Draft State: Cart + Todo-List)]
+    State -- "2. Evaluate Missing Slots" --> Order
+    Order -- "3. If Complete -> Conversion" --> DB
+    Order -- "4. If Partial -> Remind Customer" --> Output
     
     L1_Brain --> Router
     Specialist_Pipeline -- "Fetch DNA" --> LoyaltyDB[(Loyalty DB + AES-GCM Seal)]
@@ -73,15 +78,25 @@ graph TD
 
 ---
 
-## 💰 THE "LOYALTY-DRIVEN" CONVERSION (ORDER CLOSING)
+---
 
-### 1. Nhận diện VIP (Neural DNA)
-- **Segment DNA:** NEW (Mới), REGULAR (Quen), VIP (Thân thiết).
-- **Hydration:** Tự động nạp `available_points` và `point_value_vnd` vào Context.
+## 🏗️ ELITE V4.4: THE PERSISTENT ASSASSIN (DRAFT-CENTRIC)
 
-### 2. Chốt đơn dùng điểm
-- **1% Hard Cap:** Điểm thưởng chỉ được giảm tối đa 1% giá trị đơn hàng (quy định của Sếp).
-- **Extraction:** `LeadExtractor` tự động bóc tách ý định: "dùng điểm", "trừ điểm cho chị", "trừ hết điểm".
+> **QUY TẮC TỐI THƯỢNG:** Draft không chỉ là bộ nhớ, nó là **Bộ Điều Phối (Orchestrator)**. Helen không được phép "quên" khách đang chốt đơn dù có bị ngắt quãng bởi bất kỳ câu hỏi nào.
+
+### 📋 To-Do List Chốt Đơn (Bắt Buộc)
+Mọi phiên chat có ý định mua hàng phải đi qua 3 trạm kiểm soát (Slots):
+1.  **Xác định Sản phẩm & Số lượng**: Điểm bắt đầu của Draft.
+2.  **Xác định Số điện thoại**: Định danh khách hàng.
+3.  **Xác định Địa chỉ cụ thể**: Giải mã Geo-resolution để tính ngày giao.
+
+### ⚓ Quy tắc "Always Remind" (Nhắc nhở bền bỉ)
+- **Cơ chế:** Tại bước Post-processing (SupportAgent), nếu Draft tồn tại và chưa hoàn thiện (`is_complete = False`), hệ thống **BẮT BUỘC** đính kèm lời nhắc về các thông tin còn thiếu vào cuối mỗi câu trả lời.
+- **Tránh "Hỏi trước quên sau":** Dữ liệu nạp vào Draft được lưu trữ vĩnh viễn trên Redis (TTL 24h). Không bao giờ được hỏi lại thông tin khách đã cung cấp.
+
+### ⚡ Atomic Checkout (Chốt đơn tức thì)
+- **Lập tức:** Ngay khi Slot cuối cùng được điền (Draft-First Filler), hệ thống phải kích hoạt `extract_and_convert` để tạo đơn ngay trong turn đó.
+- **Phản hồi:** Trả về Mã đơn hàng + Upsell voucher ngay lập tức, không để khách phải đợi lượt chat sau.
 
 ---
 
@@ -90,6 +105,6 @@ graph TD
 | Tool | Nguồn DB | Mô tả Tính năng |
 |---|---|---|
 
-**Phiên bản:** Micsmo Elite V3.0 (Omni-Support Engine)
-**Cập nhật cuối:** 2026-04-21
+**Phiên bản:** Micsmo Elite V4.4 (Persistent Assassin Engine)
+**Cập nhật cuối:** 2026-04-22
 **Tác giả:** Trinity Neural Core via Antigravity Agent

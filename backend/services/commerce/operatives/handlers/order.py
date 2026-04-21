@@ -21,6 +21,9 @@ class OrderHandler(BaseHandler):
     async def handle(self, ctx: SupportContext) -> bool:
         """ZONE 3: Order Closing. Refined Elite V3.0 Architecture."""
         msg = unicodedata.normalize("NFKC", ctx.request.message.lower().strip())
+        session_id = ctx.session_id
+        logger.info(f"⚡ [OrderHandler] Checking Intent for SID: {session_id} | Msg: '{msg[:30]}...' | HasDraft: {bool(ctx.order_draft)}")
+        
         import os
         import re
         from backend.database.models.promotion import Voucher
@@ -90,10 +93,16 @@ class OrderHandler(BaseHandler):
         
         # Elite V3.6: Trigger if there's buying intent OR a standalone phone OR active draft exists (Sticky)
         is_strong_intent = has_digits and (has_buying_intent or is_staff_order or has_standalone_phone)
-        if ctx.order_draft and not is_strong_intent:
-            # If we have an active draft, be more sensitive to inputs
-            if has_digits or len(msg) > 10:
+        
+        # 🚀 V4.1: Sticky Order Protocol
+        # If we have an active draft, OR the message is a clear phone/address after a purchase prompt,
+        # we MUST hold the intent to prevent falling through to ConsultantHandler for slot-filling.
+        if ctx.order_draft:
+            logger.info(f"🎯 [OrderHandler] Sticky Check: Active Draft found for SID {session_id}")
+            # Only sticky if it looks like they are providing the missing info (digits = phone/address, / = address)
+            if has_digits or has_standalone_phone or "/" in msg or "phường" in msg or "quận" in msg:
                 is_strong_intent = True
+                logger.info(f"🎯 [OrderHandler] Sticky Intent Activated for session {session_id}")
 
         logger.info(f"[OrderHandler] Intent: msg='{msg}', strong={is_strong_intent}")
 
@@ -106,66 +115,69 @@ class OrderHandler(BaseHandler):
         
         if ctx.order_draft and ctx.order_draft.items:
             missing = ctx.order_draft.missing_slots
+            logger.info(f"🧩 [OrderHandler] V4.1 Draft-First Check: Missing Slots={missing}")
             if missing:
-                # Deterministic Phone Slot Fill
-                if "Số điện thoại" in missing:
-                    digits_only = re.sub(r"\D", "", msg)
-                    phone_match = re.search(r"0\d{9}", digits_only)
-                    if phone_match:
-                        validated_phone = validate_vietnam_phone(phone_match.group())
-                        if validated_phone:
-                            ctx.order_draft.customer_phone = validated_phone
+                try:
+                    # Deterministic Phone Slot Fill
+                    if "Số điện thoại" in missing:
+                        digits_only = re.sub(r"\D", "", msg)
+                        phone_match = re.search(r"0\d{9}", digits_only)
+                        if phone_match:
+                            validated_phone = validate_vietnam_phone(phone_match.group())
+                            if validated_phone:
+                                ctx.order_draft.customer_phone = validated_phone
+                                draft_filled = True
+                                logger.info(f"📞 [OrderHandler] V4.1 Draft-First: Phone slot filled -> {validated_phone}")
+                    
+                    # Deterministic Address Slot Fill
+                    if "Địa chỉ cụ thể" in missing and not draft_filled:
+                        has_addr_signal = "/" in msg or any(
+                            kw in msg for kw in ["đường", "phố", "phường", "quận", "huyện", "xã", "tỉnh", "tp", "số", "ngõ", "ngách"]
+                        )
+                        # If message is long and has digits, it's likely an address
+                        if has_addr_signal or (len(msg) > 15 and has_digits):
+                            ctx.order_draft.customer_address = ctx.request.message.strip()
                             draft_filled = True
-                            logger.info(f"📞 [OrderHandler] V4.0 Draft-First: Phone slot filled -> {validated_phone}")
-                
-                # Deterministic Address Slot Fill
-                if "Địa chỉ cụ thể" in missing:
-                    has_addr_signal = "/" in msg or any(
-                        kw in msg for kw in ["đường", "phố", "phường", "quận", "huyện", "xã", "tỉnh", "tp", "số", "ngõ", "ngách"]
-                    )
-                    if has_addr_signal or (len(msg) > 15 and has_digits):
-                        ctx.order_draft.customer_address = ctx.request.message.strip()
-                        draft_filled = True
-                        logger.info(f"📍 [OrderHandler] V4.0 Draft-First: Address slot filled")
-                
-                if draft_filled:
-                    # Mark definite intent since customer is actively providing info
-                    ctx.order_draft.is_definite_intent = True
+                            logger.info(f"📍 [OrderHandler] V4.1 Draft-First: Address slot filled")
                     
-                    # V4.0: Resolve address to get shipping_days so is_address_resolved passes
-                    # the Decision Engine check (which requires shipping_days to be set).
-                    resolved_shipping_days: str | None = None
-                    resolved_addr: str | None = ctx.order_draft.customer_address
-                    resolved_possible_provinces: list[str] = []
-                    if ctx.order_draft.customer_address:
-                        import asyncio as _asyncio
-                        geo = await _asyncio.to_thread(location_resolver.resolve, ctx.order_draft.customer_address)
-                        if geo.is_valid:
-                            resolved_shipping_days = geo.shipping_days
-                            resolved_possible_provinces = geo.possible_provinces or []
-                            # Standardize address with province appended
-                            std = ctx.order_draft.customer_address
-                            if geo.province and geo.province not in std:
-                                std = f"{std}, {geo.province}"
-                            ctx.order_draft.customer_address = std
-                            resolved_addr = std
-                        elif geo.possible_provinces:
-                            resolved_possible_provinces = geo.possible_provinces
-                    
-                    await xohi_memory.set_order_draft(ctx.session_id, ctx.order_draft.model_dump())
-                    logger.info(f"💾 [OrderHandler] V4.0 Draft persisted for SID: {ctx.session_id}")
-                    
-                    # Synthesize lead_data from the updated draft for downstream Decision Engine
-                    lead_data = ExtractedLead(
-                        customer_phone=ctx.order_draft.customer_phone,
-                        customer_address=resolved_addr,
-                        customer_name=ctx.order_draft.customer_name,
-                        items=[LeadOrderItem(**it) for it in ctx.order_draft.items],
-                        is_definite_purchase=True,
-                        shipping_days=resolved_shipping_days,
-                        possible_provinces=resolved_possible_provinces,
-                    )
-                    ctx.lead_data = lead_data
+                    if draft_filled:
+                        # Mark definite intent since customer is actively providing info
+                        ctx.order_draft.is_definite_intent = True
+                        
+                        # V4.0: Resolve address to get shipping_days
+                        resolved_shipping_days: str | None = None
+                        resolved_addr: str | None = ctx.order_draft.customer_address
+                        resolved_possible_provinces: list[str] = []
+                        if ctx.order_draft.customer_address:
+                            import asyncio as _asyncio
+                            geo = await _asyncio.to_thread(location_resolver.resolve, ctx.order_draft.customer_address)
+                            if geo.is_valid:
+                                resolved_shipping_days = geo.shipping_days
+                                resolved_possible_provinces = geo.possible_provinces or []
+                                std = ctx.order_draft.customer_address
+                                if geo.province and geo.province not in std:
+                                    std = f"{std}, {geo.province}"
+                                ctx.order_draft.customer_address = std
+                                resolved_addr = std
+                            elif geo.possible_provinces:
+                                resolved_possible_provinces = geo.possible_provinces
+                        
+                        await xohi_memory.set_order_draft(ctx.session_id, ctx.order_draft.model_dump())
+                        logger.info(f"💾 [OrderHandler] V4.1 Draft persisted for SID: {ctx.session_id}")
+                        
+                        lead_data = ExtractedLead(
+                            customer_phone=ctx.order_draft.customer_phone,
+                            customer_address=resolved_addr,
+                            customer_name=ctx.order_draft.customer_name,
+                            items=[LeadOrderItem(**it) for it in ctx.order_draft.items],
+                            is_definite_purchase=True,
+                            shipping_days=resolved_shipping_days,
+                            possible_provinces=resolved_possible_provinces,
+                        )
+                        ctx.lead_data = lead_data
+                        logger.info(f"✅ [OrderHandler] V4.1 Draft-First Synthesis Complete for SID: {session_id}")
+                except Exception as dfe:
+                    logger.error(f"❌ [OrderHandler] Draft-First Critical Error: {dfe}")
 
         # 🚀 2. ATOMIC EXTRACTION (Only if Draft-First didn't handle it)
         if not draft_filled and (is_strong_intent or is_staff_order):
@@ -240,7 +252,10 @@ class OrderHandler(BaseHandler):
                 # If message contains a question (?), update state but return False to allow ConsultantHandler to speak.
                 if "?" in msg or len(msg) > 60:
                     logger.info("🔀 [OrderHandler] Interleaved Intent detected. Yielding to Consultant.")
+                    # V4.2: Even if interleaved, if we filled a slot, we MUST ensure the next turn knows it.
                     return False
+                
+                logger.info(f"✅ [OrderHandler] V4.2 Decision Engine consumed message with response: {ctx.replies[-1][:30]}...")
                 return True
 
             # Case C: Shadow Checkout Thành Công -> Khai hỏa Voucher Intelligence

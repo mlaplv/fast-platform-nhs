@@ -117,9 +117,9 @@ function deep_clean() {
     fi
 
     # === LOCK FILES, LOGS, OS JUNK ===
-    echo -e "${YELLOW}-> [5/6] Đang xóa Lock files, Logs, .DS_Store...${NC}"
-    sudo rm -f uv.lock vad.slice kehoach.txt
-    sudo find . -maxdepth 3 -type f \( -name "pnpm-lock.yaml" -o -name "package-lock.json" -o -name "yarn.lock" -o -name "*.log" -o -name ".DS_Store" \) -delete 2>/dev/null || true
+    echo -e "${YELLOW}-> [5/6] Đang xóa Logs, .DS_Store... (Giữ lại Lock files)${NC}"
+    sudo rm -f vad.slice kehoach.txt
+    sudo find . -maxdepth 3 -type f \( -name "*.log" -o -name ".DS_Store" \) -delete 2>/dev/null || true
 
     # === ORPHAN EMPTY DIRS ===
     echo -e "${YELLOW}-> [6/6] Đang xóa thư mục rỗng...${NC}"
@@ -191,6 +191,23 @@ function check_deps() {
         echo -e "${YELLOW}[INFO] Không tìm thấy 'pnpm'. Đang tự động cài đặt qua npm...${NC}"
         sudo npm install -g pnpm
     fi
+}
+
+# Helper: Ensure Lock files exist before build
+function ensure_locks() {
+    echo -e "${CYAN}[SAFEGUARD] Đang kiểm tra tính toàn vẹn của Pháo đài...${NC}"
+    
+    if [ ! -f "uv.lock" ]; then
+        echo -e "${YELLOW}[WARNING] Thiếu uv.lock. Đang tự động gieo mầm (uv lock)...${NC}"
+        uv lock
+    fi
+
+    if [ ! -f "frontend/pnpm-lock.yaml" ]; then
+        echo -e "${YELLOW}[WARNING] Thiếu pnpm-lock.yaml. Đang tạo môi trường frontend...${NC}"
+        (cd frontend && pnpm install --lockfile-only)
+    fi
+    
+    echo -e "${GREEN}[OK] Đã xác nhận đầy đủ Lock files.${NC}"
 }
 
 function init_deploy() {
@@ -330,6 +347,7 @@ function update_ai_model() {
 }
 
 function create_superuser() {
+    ensure_locks
     echo -e "${CYAN}[AUTH] Đang khởi tạo Super User (Admin Elite 2026)...${NC}"
     # Đảm bảo dùng 'run --rm' để có môi trường cô lập và kết nối DB ổn định
     docker compose run --rm api /opt/venv/bin/python3 -m backend.scripts.init_superuser

@@ -471,6 +471,19 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         # L0.5 Sync Heuristic in support_agent.py handles these categories before
         # the pipeline reaches Consultant. No need to duplicate here.
 
+        # --- 🚀 [ELITE V4.2] DATA SYNC GUARD ---
+        # If OrderHandler (Priority 2) already filled some lead data, 
+        # Consultant MUST use it to avoid asking redundant questions.
+        if ctx.lead_data:
+            logger.info(f"🛡️ [ConsultantHandler] V4.2 Sync Guard: Found existing lead_data (Phone: {bool(ctx.lead_data.customer_phone)}, Addr: {bool(ctx.lead_data.customer_address)})")
+            # If everything is already filled and we are just waiting for chốt đơn,
+            # this handler should be very careful or yield back.
+            if ctx.lead_data.customer_phone and ctx.lead_data.customer_address and ctx.lead_data.items:
+                logger.info("🛡️ [ConsultantHandler] V4.2 Sync Guard: Order complete. Yielding for final chốt đơn.")
+                # We return False to let potential Greeting or Order finish, but wait, 
+                # OrderHandler already runs before us. If we are here, OrderHandler likely 
+                # yielded because it wanted a consultant's touch (Interleaved).
+
         # [ELITE V2.2] Layer 0: Static Fast-Path (The Root Solution)
         # Bypassing AI entirely for high-confidence knowledge matches to eliminate latency and quota issues.
         from backend.database.repositories import SupportKnowledgeRepository
