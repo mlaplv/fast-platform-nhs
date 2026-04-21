@@ -34,28 +34,40 @@
     <span class="text-[10px] font-bold text-[#fe2c55] bg-[#fff0f1] px-2 py-0.5 rounded-full">Elite V2.2</span>
   </div>
 
-  <!-- Category Tabs -->
-  <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+  <!-- Viral TikTok-Style Grid (5 Columns) -->
+  <div class="grid grid-cols-5 gap-2 pb-1">
     {#each categories as cat}
       <button
         type="button"
         onclick={() => activeCategory = cat.id}
-        class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border {activeCategory === cat.id ? 'bg-gray-900 border-gray-900 text-white shadow-sm' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-300'}"
+        class="flex flex-col items-center gap-1.5 group transition-all"
       >
-        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d={cat.icon} /></svg>
-        {cat.label}
+        <!-- Icon Container -->
+        <div class="w-10 h-10 rounded-2xl flex items-center justify-center transition-all border {activeCategory === cat.id ? 'bg-gray-900 border-gray-900 text-white shadow-md' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-300'}">
+           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d={cat.icon} /></svg>
+        </div>
+        <!-- Subtext -->
+        <span class="text-[9px] font-black uppercase tracking-tighter text-center leading-none {activeCategory === cat.id ? 'text-gray-900' : 'text-gray-400'}">
+          {cat.label === 'Tất cả' ? 'Tất cả' : (cat.label === 'Vận chuyển' ? 'Ship' : (cat.label === 'Giảm giá' ? 'Giảm giá' : 'Quà tặng'))}
+        </span>
       </button>
     {/each}
 
-    <!-- AI Optimize Button -->
+    <!-- AI Optimize Button (The 5th Column) -->
     <button
       type="button"
       onclick={onOptimize}
-      class="shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-gradient-to-r from-[#fe2c55] via-[#ff4760] to-[#ff8a00] text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95 group relative overflow-hidden"
+      class="flex flex-col items-center gap-1.5 group transition-all active:scale-95"
     >
-      <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-      <svg class="w-3 h-3 animate-pulse" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
-      AI Tối ưu
+      <!-- AI Icon Container (Neural Gradient) -->
+      <div class="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#fe2c55] via-[#ff4760] to-[#ff8a00] text-white shadow-md group-hover:shadow-lg relative overflow-hidden">
+        <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+        <svg class="w-5 h-5 animate-pulse" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+      </div>
+      <!-- AI Subtext -->
+      <span class="text-[9px] font-black uppercase tracking-tighter text-[#fe2c55] text-center leading-none">
+        AI Tối ưu
+      </span>
     </button>
   </div>
 
