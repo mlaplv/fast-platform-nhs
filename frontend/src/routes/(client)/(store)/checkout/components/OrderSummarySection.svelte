@@ -66,7 +66,7 @@
       <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 011 1v2a1 1 0 01-1 1h-1m-4-14H5a1 1 0 00-1 1v9a1 1 0 001 1h3m3 3H5a1 1 0 01-1-1v-2a1 1 0 011-1h6" /></svg>
       <span>Phí vận chuyển</span>
     </div>
-    <span class="text-emerald-500 font-black italic text-xs uppercase tracking-tighter">
+    <span class="{shippingFee > 0 ? 'text-gray-900' : 'text-emerald-500'} font-black italic text-xs uppercase tracking-tighter">
       {shippingFee > 0 ? formatCurrency(shippingFee) : 'Miễn phí 100%'}
     </span>
   </div>

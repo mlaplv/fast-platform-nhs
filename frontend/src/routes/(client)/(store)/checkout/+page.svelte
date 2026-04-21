@@ -83,6 +83,11 @@
   let showNote = $state(false);
   let customItems = $state<CustomItem[]>([]);
   let showCustomItemForm = $state(false);
+  
+  // [ELITE V2.2] User Intent Tracking for Vouchers
+  // Track if user has manually deselected a category to prevent auto-stick fighting
+  let userInteractedVoucherTypes = $state({ SHIPPING: false, DISCOUNT: false });
+
   let newCustomItem = $state<CustomItem>({
     id: '',
     name: '',
@@ -147,36 +152,73 @@
     }
   });
 
-  // [ELITE V2.2] Auto-Stick Protocol: Synchronize with Backend Defaults
+  /**
+   * [NEURAL INTELLIGENCE V3.0] Value-First Voucher Resolution
+   * Calculates actual VND savings for a given voucher and subtotal.
+   */
+  function getVoucherSavings(v: Voucher, subtotal: number): number {
+    if (subtotal < (v.min_spend || 0)) return -1; // Ineligible
+    
+    if (v.type === 'SHIPPING') {
+      // For shipping vouchers, the saving is either the voucher value or the actual shipping fee
+      // (simplified to v.value for sorting purposes)
+      return v.value || 0;
+    }
+    
+    if (v.type === 'FIXED') return v.value || 0;
+    
+    if (v.type === 'PERCENT') {
+       const savings = (subtotal * (v.value || 0)) / 100;
+       return v.max_discount ? Math.min(savings, v.max_discount) : savings;
+    }
+    
+    return 0;
+  }
+
+  // [ELITE V2.2] Auto-Stick Protocol: Synchronize with Neural Best-Deals
   $effect.pre(() => {
-    if (cartStore.vouchers.length > 0) {
-      // 1. Resolve Shipping Channel
+    const subtotal = cartStore.totalAmountWithoutDiscount;
+    if (cartStore.vouchers.length > 0 && subtotal > 0) {
+      
+      // 1. Resolve Shipping Channel (Value-Based)
       const hasShippingSelected = cartStore.selectedVoucherIds.some((id: string) => 
         cartStore.vouchers.find((v: Voucher) => v.id === id)?.type === 'SHIPPING'
       );
       
-      if (!hasShippingSelected) {
-        const defaultShip = cartStore.vouchers
-          .filter((v: Voucher) => v.is_default && v.type === 'SHIPPING' && cartStore.totalAmountWithoutDiscount >= (v.min_spend || 0))
-          .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+      if (!hasShippingSelected && !userInteractedVoucherTypes.SHIPPING) {
+        const bestShip = cartStore.vouchers
+          .filter((v: Voucher) => v.type === 'SHIPPING' && subtotal >= (v.min_spend || 0))
+          .sort((a, b) => {
+             const diff = getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal);
+             if (diff !== 0) return diff;
+             // Tie-breakers: Default flag -> Priority
+             if (b.is_default !== a.is_default) return b.is_default ? 1 : -1;
+             return (b.priority || 0) - (a.priority || 0);
+          })[0];
           
-        if (defaultShip) {
-          cartStore.toggleVoucher(defaultShip.id);
+        if (bestShip) {
+          cartStore.toggleVoucher(bestShip.id);
         }
       }
 
-      // 2. Resolve Discount Channel (Fixed/Percent)
+      // 2. Resolve Discount Channel (Value-Based)
       const hasDiscountSelected = cartStore.selectedVoucherIds.some((id: string) => 
         ['FIXED', 'PERCENT'].includes(cartStore.vouchers.find((v: Voucher) => v.id === id)?.type || '')
       );
 
-      if (!hasDiscountSelected) {
-        const defaultDiscount = cartStore.vouchers
-          .filter((v: Voucher) => v.is_default && ['FIXED', 'PERCENT'].includes(v.type) && cartStore.totalAmountWithoutDiscount >= (v.min_spend || 0))
-          .sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+      if (!hasDiscountSelected && !userInteractedVoucherTypes.DISCOUNT) {
+        const bestDiscount = cartStore.vouchers
+          .filter((v: Voucher) => ['FIXED', 'PERCENT'].includes(v.type) && subtotal >= (v.min_spend || 0))
+          .sort((a, b) => {
+             const diff = getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal);
+             if (diff !== 0) return diff;
+             // Tie-breakers: Default flag -> Priority
+             if (b.is_default !== a.is_default) return b.is_default ? 1 : -1;
+             return (b.priority || 0) - (a.priority || 0);
+          })[0];
           
-        if (defaultDiscount) {
-          cartStore.toggleVoucher(defaultDiscount.id);
+        if (bestDiscount) {
+          cartStore.toggleVoucher(bestDiscount.id);
         }
       }
     }
@@ -250,21 +292,28 @@
     }
   });
 
-  const shippingFee = $derived.by(() => {
-    // Standard shipping is always free in this store config
-    if (form.shippingMethod !== 'express') return 0;
+  const STANDARD_SHIPPING_FEE = 30000;
 
+  const shippingFee = $derived.by(() => {
+    // Determine Base Fee
+    let baseFee = STANDARD_SHIPPING_FEE;
+    
     if (form.shippingMethod === 'express' && selectedProvinceData?.express_fee) {
-       // Elite V2.2: Check if a shipping voucher is applied to zero out or reduce express fee
-       const hasShippingDiscount = cartStore.selectedVoucherIds.some((id: string) => {
-          const v = cartStore.vouchers.find((v: Voucher) => v.id === id);
-          return v?.type === 'SHIPPING';
-       });
-       
-       if (hasShippingDiscount) return 0; 
-       return selectedProvinceData.express_fee;
+       baseFee = selectedProvinceData.express_fee;
     }
-    return 0;
+
+    // Elite V2.2: Check if a shipping voucher is applied to zero out the fee
+    const hasShippingDiscount = cartStore.selectedVoucherIds.some((id: string) => {
+      const v = cartStore.vouchers.find((v: Voucher) => v.id === id);
+      return v?.type === 'SHIPPING';
+    });
+    
+    if (hasShippingDiscount) return 0;
+    
+    // Elite V2.5: Store-wide Free Shipping Threshold (e.g., 2,000,000 VND)
+    if (cartStore.totalAmountWithoutDiscount >= 2000000) return 0;
+
+    return baseFee;
   });
 
   const deliveryEstimate = $derived.by(() => {
@@ -348,7 +397,24 @@
       clientUi.showToast(`Cần mua thêm ${formatCurrency((voucher.min_spend || 0) - cartStore.totalAmountWithoutDiscount)}!`, 'info');
       return;
     }
+    
+    // Record interaction to prevent Auto-Stick protocol from overstepping
+    if (voucher.type === 'SHIPPING') userInteractedVoucherTypes.SHIPPING = true;
+    else userInteractedVoucherTypes.DISCOUNT = true;
+    
     cartStore.toggleVoucher(voucher.id);
+  }
+
+  function optimizeVouchers() {
+    // 1. Reset user interaction flags to allow Auto-Stick protocol to run
+    userInteractedVoucherTypes.SHIPPING = false;
+    userInteractedVoucherTypes.DISCOUNT = false;
+    
+    // 2. Clear current selections to trigger a clean auto-selection
+    cartStore.selectedVoucherIds = [];
+    
+    // 3. Show "Neural" feedback
+    clientUi.showToast('Helen đã tối ưu hóa đơn hàng giúp Sếp! ✨', 'success');
   }
 
   async function lookupCustomer() {
@@ -488,7 +554,7 @@
                 {/if}
                 
                 <DeliveryPaymentSection bind:form {deliveryEstimate} {canExpress} {selectedProvinceData} bind:showCoInspectionModal />
-                <VoucherSection vouchers={cartStore.vouchers} {toggleVoucher} />
+                <VoucherSection vouchers={cartStore.vouchers} {toggleVoucher} onOptimize={optimizeVouchers} />
               </div>
             </div>
 
@@ -787,7 +853,7 @@
           </div>
 
           <div class="bg-white rounded-xl shadow-sm mb-3 overflow-hidden p-4 mx-2">
-             <VoucherSection vouchers={cartStore.vouchers} {toggleVoucher} />
+             <VoucherSection vouchers={cartStore.vouchers} {toggleVoucher} onOptimize={optimizeVouchers} />
           </div>
         </div>
 

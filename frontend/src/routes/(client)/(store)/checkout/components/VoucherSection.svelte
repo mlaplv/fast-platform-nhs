@@ -3,9 +3,10 @@
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import type { Voucher } from '$lib/types';
 
-  let { vouchers, toggleVoucher } = $props<{
+  let { vouchers, toggleVoucher, onOptimize } = $props<{
     vouchers: Voucher[];
     toggleVoucher: (v: Voucher) => void;
+    onOptimize?: () => void;
   }>();
 
   const cartStore = getCartStore();
@@ -45,6 +46,17 @@
         {cat.label}
       </button>
     {/each}
+
+    <!-- AI Optimize Button -->
+    <button
+      type="button"
+      onclick={onOptimize}
+      class="shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-gradient-to-r from-[#fe2c55] via-[#ff4760] to-[#ff8a00] text-white shadow-md hover:shadow-lg hover:scale-105 active:scale-95 group relative overflow-hidden"
+    >
+      <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+      <svg class="w-3 h-3 animate-pulse" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+      AI Tối ưu
+    </button>
   </div>
 
   <div class="grid grid-cols-2 md:grid-cols-2 gap-2">
