@@ -211,33 +211,80 @@ class SupportAgentOperative(BaseAgentOperative):
             return "\n[LỊCH SỬ GẦN ĐÂY]\n" + "\n".join(h_parts) + "\n" if h_parts else ""
         except: return ""
 
-    async def _fetch_neural_dna(self, db: AsyncSession, session_id: str, lead_phone: Optional[str] = None) -> NeuralDNA:
-        """Hydrate Neural DNA from memory or Order History (Elite V2.2: Lead-driven)."""
+    async def _fetch_neural_dna(
+        self, 
+        db: AsyncSession, 
+        session_id: str, 
+        lead_phone: Optional[str] = None,
+        user_id: Optional[str] = None
+    ) -> NeuralDNA:
+        """Hydrate Neural DNA from Loyalty & Order History (Elite V3.0: Military-Grade)."""
         try:
             mem = await xohi_memory.get_user_context(session_id)
             if mem and "dna" in mem:
-                return NeuralDNA.model_validate(mem["dna"])
+                # Still check for phone/id updates if user just provided them
+                dna_obj = NeuralDNA.model_validate(mem["dna"])
+                if not lead_phone and not user_id:
+                    return dna_obj
             
-            # Elite V2.2: If we have a phone, we can look up order history to determine seniority.
+            from backend.database.models.commerce import Order, UserLoyalty
+            from backend.database.models.system import SystemSetting
+            from backend.services.commerce.loyalty import LoyaltyService
+            
+            # --- 1. Identity Resolution ---
+            final_user_id = user_id
+            if not final_user_id and lead_phone:
+                from backend.database.models.auth import User
+                u_stmt = select(User.id).where(User.phone == lead_phone).limit(1)
+                final_user_id = await db.scalar(u_stmt)
+
+            available_pts = 0
+            pt_value = 1000
+            
+            # --- 2. Loyalty & Integrity (Military Grade) ---
+            if final_user_id:
+                # R00: Verify integrity seal before trusting point balance
+                if await LoyaltyService.verify_loyalty_integrity(db, final_user_id):
+                    l_stmt = select(UserLoyalty).where(UserLoyalty.user_id == final_user_id)
+                    loyalty = (await db.execute(l_stmt)).scalar_one_or_none()
+                    if loyalty:
+                        available_pts = loyalty.available_points
+                else:
+                    logger.critical("[SECURITY] Loyalty Tampering detected for user: %s", final_user_id)
+
+            # --- 3. Point Value Config ---
+            s_stmt = select(SystemSetting).where(SystemSetting.key == "LOYALTY_POINT_VALUE_VND")
+            setting = (await db.execute(s_stmt)).scalar_one_or_none()
+            if setting and "value" in setting.value:
+                pt_value = int(setting.value["value"])
+
+            # --- 4. Order History for Segmentation ---
             total_spent = 0.0
             order_count = 0
-            if lead_phone:
-                from backend.database.models.commerce import Order
-                stmt = select(Order).where(and_(Order.customer_phone == lead_phone, Order.status == "COMPLETED"))
+            if lead_phone or final_user_id:
+                cond = []
+                if lead_phone: cond.append(Order.customer_phone == lead_phone)
+                if final_user_id: cond.append(Order.user_id == final_user_id)
+                
+                stmt = select(Order).where(and_(or_(*cond), Order.status == "DELIVERED"))
                 orders = (await db.execute(stmt)).scalars().all()
                 order_count = len(orders)
                 total_spent = sum(float(o.total_amount or 0) for o in orders)
 
             dna = NeuralDNA(
-                segment="VIP" if order_count >= 3 else ("REGULAR" if order_count >= 1 else "NEW"),
+                segment="VIP" if (order_count >= 3 or total_spent > 5000000) else ("REGULAR" if order_count >= 1 else "NEW"),
                 vibe="WARM" if order_count >= 1 else "PROFESSIONAL",
                 purchase_count=order_count,
-                total_spent=total_spent
+                total_spent=total_spent,
+                available_points=available_pts,
+                point_value_vnd=pt_value
             )
             await xohi_memory.set_user_context(session_id, {"dna": dna.model_dump()})
             return dna
         except Exception as e:
             logger.warning("[SupportAgent] DNA fetch failed: %s", e)
+            import traceback
+            logger.error(traceback.format_exc())
             return NeuralDNA()
 
     async def process_brain_logic(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:
@@ -249,7 +296,12 @@ class SupportAgentOperative(BaseAgentOperative):
         
         ctx_text, p_info = await _fetch_product_context(db, request.product_slug)
         hist_text = await self._fetch_chat_context(db, session_id)
-        dna = await self._fetch_neural_dna(db, session_id)
+        dna = await self._fetch_neural_dna(
+            db, 
+            session_id, 
+            lead_phone=request.customer_phone,
+            user_id=request.user_id
+        )
         
         logger.info(f"🧠 [SupportAgent] Processing Brain Logic for Session: {session_id}")
         logger.debug(f"📜 [SupportAgent] History Window: {hist_text[:100]}...")

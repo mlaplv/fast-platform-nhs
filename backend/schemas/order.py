@@ -32,6 +32,7 @@ class OrderCreateRequest(BaseModel):
     customer_email: str = Field(..., min_length=3, max_length=200)
     customer_phone: Optional[str] = None
     customer_address: Optional[str] = None
+    points_to_redeem: Optional[int] = Field(0, description="Elite V3.0: Loyalty Points to use")
 
 
 class OrderStatusUpdate(BaseModel):

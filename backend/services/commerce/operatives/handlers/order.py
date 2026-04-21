@@ -152,16 +152,20 @@ class OrderHandler(BaseHandler):
                     formatted_price = "{:,.0f}".format(total_amount).replace(",", ".")
                     delivery_info = location_resolver.resolve(order_obj.customer_address or "").shipping_days or "2-3 ngày"
 
-                    # 💎 THE UPSELL HOOK
+                    # 💎 THE UPSELL & LOYALTY HOOK (Elite V3.0)
+                    pts_hook = ""
+                    if ctx.dna.available_points > 0:
+                        money_pts = "{:,.0f}".format(ctx.dna.available_points * ctx.dna.point_value_vnd).replace(",", ".")
+                        pts_hook = f"⚡ **Ưu đãi thành viên:** Sếp đang có **{ctx.dna.available_points} điểm** (~{money_pts}đ). Sếp có muốn Helen dùng luôn để giảm giá cho đơn này không ạ? "
+
                     if next_voucher and next_voucher.min_spend and (next_voucher.min_spend - total_amount) < 500000:
                         diff = next_voucher.min_spend - total_amount
                         diff_f = "{:,.0f}".format(diff).replace(",", ".")
                         v_val_f = "{:,.0f}".format(next_voucher.value).replace(",", ".") if next_voucher.type != "PERCENT" else f"{next_voucher.value}%"
                         
                         reply = (
-                            f"{debug_prefix}Dạ Helen đã gom đơn **{total_qty} sản phẩm** ({formatted_price}đ) của chị vào hệ thống. Đơn hàng sẽ về tới trong khoảng **{delivery_info}** ạ! 🌸\n\n"
-                            f"⚡ **Helen mách nhỏ:** Chị đang có một mã giảm giá **{v_val_f}** dành cho đơn từ {'{:,.0f}'.format(next_voucher.min_spend).replace(',', '.')}đ. "
-                            f"Chị chỉ cần mua thêm khoảng **{diff_f}đ** nữa thôi là dùng được mã này rẻ bèo luôn! Chị có muốn mua thêm để áp mã luôn không ạ?"
+                            f"{debug_prefix}Dạ Helen đã gom đơn **{total_qty} sản phẩm** ({formatted_price}đ) của chị vào hệ thống. Đơn hàng sẽ về tới trong khoảng **{delivery_info}** ạ! 🌸\n\n{pts_hook}"
+                            f"Ngoài ra, chị chỉ cần mua thêm khoảng **{diff_f}đ** nữa thôi là dùng được mã giảm giá **{v_val_f}** (áp dụng cho đơn từ {'{:,.0f}'.format(next_voucher.min_spend).replace(',', '.')}đ). Chị có muốn mua thêm để áp mã luôn cho rẻ không ạ?"
                         )
                     else:
                         reply = (
@@ -170,6 +174,7 @@ class OrderHandler(BaseHandler):
                             f"- Sản phẩm: {total_qty} mục\n"
                             f"- Tổng tiền: **{formatted_price}đ** (Lưu giỏ thành công)\n"
                             f"- Dự kiến tới tay: **{delivery_info}**\n\n"
+                            f"{pts_hook}\n"
                             f"Anh/Chị nhớ để ý điện thoại để shipper gọi nha! 📞"
                         )
 

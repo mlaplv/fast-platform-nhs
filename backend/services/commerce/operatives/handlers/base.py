@@ -18,6 +18,9 @@ class NeuralDNA(BaseModel):
     vibe: str = Field(default="PROFESSIONAL", description="WARM | PROFESSIONAL")
     purchase_count: int = 0
     total_spent: float = 0.0
+    available_points: int = 0
+    point_value_vnd: int = 0
+    customer_name: Optional[str] = None
     last_hook: Optional[str] = None
 
 class SupportContext(BaseModel):

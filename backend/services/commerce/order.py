@@ -7,6 +7,7 @@ from sqlalchemy import select, func, or_, and_
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException, ValidationException
+import math
 
 from backend.database.models import Order, User
 from backend.database import current_tenant_id
@@ -65,11 +66,78 @@ class OrderService:
             "note": "Order created via checkout"
         }]
 
+        # --- Elite V3.0 Loyalty Redemption (Military Grade) ---
+        points_redeemed = 0
+        point_discount = 0.0
+        
+        if data.points_to_redeem:
+            if not user_id:
+                 raise ValidationException("Bạn phải đăng nhập để sử dụng Điểm thưởng.")
+            
+            # Lock the loyalty row to prevent race conditions (Elite Protocol)
+            from backend.database.models.commerce import UserLoyalty, PointTransaction
+            from backend.database.models.system import SystemSetting
+            
+            # ELITE V2.2: Military-Grade Integrity Verification
+            if not await LoyaltyService.verify_loyalty_integrity(db_session, user_id):
+                logger.critical(f"[SECURITY-ALERT] Loyalty Point Tampering Detected! User: {user_id}. Order aborted.")
+                raise ValidationException("Hệ thống phát hiện bất thường về bảo mật tài khoản. Vui lòng liên hệ hỗ trợ.")
+            
+            loyalty_stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id).with_for_update()
+            loyalty = (await db_session.execute(loyalty_stmt)).scalar_one_or_none()
+            
+            if not loyalty:
+                raise ValidationException("Danh mục điểm thưởng không tồn tại.")
+                
+            pts_to_use = data.points_to_redeem
+            if pts_to_use == -1: # "Dùng hết điểm" Protocol
+                pts_to_use = loyalty.available_points
+                
+            if pts_to_use > 0:
+                if loyalty.available_points < pts_to_use:
+                    raise ValidationException(f"Sếp chỉ còn {loyalty.available_points} điểm, không đủ để trừ {pts_to_use} điểm ạ.")
+                
+                # Fetch Point Value (Default 1000)
+                s_stmt = select(SystemSetting).where(SystemSetting.key == "LOYALTY_POINT_VALUE_VND")
+                setting = (await db_session.execute(s_stmt)).scalar_one_or_none()
+                point_value = int(setting.value.get("value", 1000)) if setting and "value" in setting.value else 1000
+                
+                # Sếp Rule [ELITE V2.2]: Cap at 1% of total
+                max_point_discount = data.total_amount * 0.01 
+                proposed_discount = float(pts_to_use * point_value)
+                
+                if proposed_discount > max_point_discount:
+                    # Adjust points to match the cap
+                    point_discount = max_point_discount
+                    points_redeemed = int(math.ceil(point_discount / point_value))
+                    # Re-verify we don't exceed available
+                    points_redeemed = min(points_redeemed, loyalty.available_points)
+                    point_discount = float(points_redeemed * point_value)
+                else:
+                    point_discount = proposed_discount
+                    points_redeemed = pts_to_use
+
+                if points_redeemed > 0:
+                    loyalty.available_points -= points_redeemed
+                    loyalty.balance_seal = LoyaltyService._create_balance_seal(loyalty)
+                    
+                    # Log Transaction
+                    pt = PointTransaction(
+                        user_id=user_id,
+                        order_id=new_id,
+                        amount=-points_redeemed,
+                        transaction_type="REDEEM_ORDER",
+                        notes=f"Thanh toán đơn hàng {new_id} bằng điểm. (Giảm giá: {point_discount:,.0f}đ)"
+                    )
+                    pt.integrity_token = LoyaltyService._create_transaction_token(pt)
+                    db_session.add(pt)
+                    logger.info(f"[LOYALTY] User {user_id} redeemed {points_redeemed} pts for order {new_id}")
+
         order = Order(
             id=new_id,
             user_id=user_id,
             items=data.items,
-            total_amount=data.total_amount,
+            total_amount=data.total_amount - point_discount, # Apply Discount
             status="PENDING",
             customer_name=data.customer_name,
             customer_phone=data.customer_phone,
@@ -79,7 +147,9 @@ class OrderService:
             order_metadata=OrderMetadata(
                 user_agent=ua
             ),
-            history=history
+            history=history,
+            points_redeemed=points_redeemed,
+            point_discount_amount=point_discount
         )
 
         db_session.add(order)
@@ -94,7 +164,7 @@ class OrderService:
             "customer": data.customer_name,
             "phone": data.customer_phone,
             "address": data.customer_address,
-            "total_amount": data.total_amount,
+            "total_amount": data.total_amount - point_discount,
             "tenant_id": current_tenant_id.get() or "default",
             "items": data.items if isinstance(data.items, list) else [],
         })

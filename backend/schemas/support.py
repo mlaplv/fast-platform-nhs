@@ -72,6 +72,7 @@ class SupportRequest(BaseModel):
     )
     customer_name: Optional[str] = Field(default="Khách ẩn danh", max_length=100)
     customer_phone: Optional[str] = Field(default=None, max_length=20)
+    user_id: Optional[str] = Field(default=None, max_length=64)
 
     @field_validator("message", mode="before")
     @classmethod
