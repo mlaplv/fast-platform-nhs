@@ -245,11 +245,6 @@ class SettingsService:
 
         return SystemSettingsResponse(settings=SystemSettingsPayload(**setting.value))
 
-        # 3. Update cache
-        await xohi_memory.client.set("system:settings:primary_config", json.dumps(setting.value))
-
-        return SystemSettingsResponse(settings=SystemSettingsPayload(**setting.value))
-
     @staticmethod
     async def update_general_settings(db_session: AsyncSession, data: SystemSettingsPayload) -> SuccessResponse:
         """Update global system settings and invalidate cache."""

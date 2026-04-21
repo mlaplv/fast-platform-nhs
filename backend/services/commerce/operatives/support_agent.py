@@ -426,20 +426,21 @@ class SupportAgentOperative(BaseAgentOperative):
 
     async def _try_heuristic_sync(self, request: SupportRequest, db: AsyncSession, session_id: str, p_info: Optional[SupportProductInfo] = None) -> Optional[SupportResponse]:
         """
-        Elite V2.5: Synchronous Heuristic Fast-Path.
-        Detects high-confidence INFO categories (ADDRESS, INGREDIENTS, HOTLINE) and returns
-        immediately WITHOUT enqueuing a background task.
-        This is the architectural fix for the SSE off-by-one race condition.
+        Elite V3.0: Synchronous Heuristic Fast-Path.
+        - INFO_ADDRESS / INFO_HOTLINE → đọc SystemSettings (Redis cache) — không cần LLM, < 100ms.
+        - PRICE_QUERY → đọc p_info trực tiếp — không cần LLM, < 100ms.
+        - INFO_INGREDIENTS / INFO_SHIPPING → fall-through đến Deep-Brain (context-dependent).
+        - Xóa sự phụ thuộc sai vào bảng support_knowledge cho dữ liệu cấu trúc.
         """
-        from backend.database.models.system import SupportKnowledge, SupportKnowledgeCategory
+        from backend.database.models.system import SupportKnowledgeCategory
         from backend.database import current_tenant_id
-        from sqlalchemy import select, and_, or_
+        import json as _json
 
         msg_norm = request.message.lower().strip()
         detected_category: Optional[SupportKnowledgeCategory] = None
         matched_kw: Optional[str] = None
 
-        # Priority 1: INGREDIENTS
+        # Priority 1: INGREDIENTS — fall-through to Deep-Brain (sản phẩm nào? cần AI phân tích)
         kws_ing = ["thành phần", "chiết xuất", "gồm những gì", "làm từ gì", "thảo dược gì", "công thức", "thành phần thuốc", "chất gì", "có gì trong thuốc"]
         for kw in kws_ing:
             if kw in msg_norm:
@@ -474,7 +475,7 @@ class SupportAgentOperative(BaseAgentOperative):
                     matched_kw = kw
                     break
 
-        # Priority 5: SHIPPING QUERY (Ultra-Fast)
+        # Priority 5: SHIPPING QUERY — fall-through (cần AI kiểm tra chính sách thực)
         if not detected_category:
             kws_ship = ["ship", "phí", "giao hàng", "vận chuyển", "nhận hàng"]
             for kw in kws_ship:

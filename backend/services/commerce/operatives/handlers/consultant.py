@@ -35,15 +35,112 @@ def _dynamic_system_prompt(ctx: RunContext[ConsultantDeps]) -> str:
     """Thread-safe dynamic prompt injection via Context deps."""
     return ctx.deps.dynamic_prompt
 
-# 🛠️ TOOL LAYER 2: Lấy chi tiết chủ đề tri thức (Fetch on-demand)
+# 🛠️ TOOL LAYER 2: Lấy chi tiết thông tin cửa hàng và sản phẩm chuyên sâu
+
 @_consultant_agent.tool
-async def fetch_topic_details(ctx_tool: RunContext[ConsultantDeps], topic_id: str) -> str:
-    """Dùng tool này khi bạn thấy ID trong Layer 1 và cần biết chi tiết câu trả lời chuyên sâu."""
-    from backend.database.repositories import SupportKnowledgeRepository
-    from backend.services.commerce.support_knowledge import SupportKnowledgeService
-    repo_tool = SupportKnowledgeRepository(session=ctx_tool.deps.db)
-    service_tool = SupportKnowledgeService(repo=repo_tool)
-    return await service_tool.fetch_topic_details(ctx_tool.deps.db, topic_id)
+async def get_shop_profile_tool(ctx_tool: RunContext[ConsultantDeps]) -> str:
+    """
+    Lấy thông tin chính thức cửa hàng Micsmo: địa chỉ, hotline, email, giờ làm việc, Zalo, Facebook.
+    BẮT BUỘC dùng khi khách hỏi: địa chỉ, liên hệ, hotline, zalo, facebook, giờ hoạt động.
+    KHÔNG được đoán. Phải gọi tool này trước khi trả lời.
+    """
+    import json as _json
+    from backend.database.models.system import SystemSetting
+    from backend.database import current_tenant_id
+    from backend.services.xohi_memory import xohi_memory
+    from sqlalchemy import select as _sel
+
+    tid = current_tenant_id.get() or "default"
+    raw = await xohi_memory.client.get("system:settings:primary_config")
+    
+    if raw:
+        cfg: dict[str, object] = _json.loads(raw)
+    else:
+        _row = (await ctx_tool.deps.db.execute(
+            _sel(SystemSetting).where(SystemSetting.key == "primary_config")
+        )).scalar_one_or_none()
+        cfg = dict(_row.value) if _row else {}
+
+    ci: dict[str, object] = cfg.get("contact_info", {})  # type: ignore[assignment]
+    bi: dict[str, object] = cfg.get("basic_info", {})    # type: ignore[assignment]
+    sm: list[dict[str, object]] = cfg.get("social_media", [])  # type: ignore[assignment]
+
+    zalo = next((str(x.get("url", "")) for x in sm if x.get("platform") == "Zalo"), None)
+    fb   = next((str(x.get("url", "")) for x in sm if x.get("platform") == "Facebook"), None)
+
+    site_name = str(bi.get('site_name','Micsmo'))
+    lines: list[str] = [
+        f"[THÔNG TIN CỬA HÀNG {site_name.upper()}]",
+        f"Địa chỉ: {ci.get('address','Chưa cập nhật')}",
+        f"Hotline: {ci.get('hotline','')}",
+        f"SĐT: {ci.get('phone','')}",
+        f"Email: {ci.get('email','')}",
+        f"Giờ làm việc: {ci.get('working_hours','')}",
+    ]
+    if zalo: lines.append(f"Zalo OA: {zalo}")
+    if fb:   lines.append(f"Facebook: {fb}")
+    return "\n".join(lines)
+
+
+@_consultant_agent.tool
+async def fetch_product_full_detail(ctx_tool: RunContext[ConsultantDeps], slug: str) -> str:
+    """
+    Lấy chi tiết đầy đủ 1 sản phẩm: công dụng, thành phần, cách sử dụng, xuất xứ, trọng lượng.
+    Nguồn CHÍNH: ProductBase.description (HTML stripped).
+    Nguồn PHỤ: product_metadata (ingredients, instructions, origin, weight).
+    BẮT BUỘC dùng khi khách hỏi: 'thành phần?', 'cách dùng?', 'công dụng?', 'xuất xứ?'.
+    Tham số slug: lấy từ kết quả search_products_tool.
+    """
+    import re as _re
+    from sqlalchemy import select as _sel, and_
+    from backend.database.models.commerce import ProductBase
+    from backend.database import current_tenant_id
+
+    tid = current_tenant_id.get() or "default"
+    stmt = _sel(
+        ProductBase.name,
+        ProductBase.short_description,
+        ProductBase.description,       # Nguồn CHÍNH: HTML rich text admin nhập
+        ProductBase.product_metadata,  # Nguồn PHỤ: structured {ingredients, instructions}
+        ProductBase.slug,
+        ProductBase.price,
+        ProductBase.discount_price,
+    ).where(and_(
+        ProductBase.slug == slug,
+        ProductBase.deleted_at.is_(None),
+        ProductBase.status == "ACTIVE",
+        ProductBase.tenant_id == tid,
+    ))
+    row = (await ctx_tool.deps.db.execute(stmt)).first()
+    if not row:
+        return f"[Không tìm thấy sản phẩm '{slug}'. Hãy dùng search_products_tool để tìm đúng slug.]"
+
+    meta: dict[str, object] = row.product_metadata or {}
+    price_display = f"{int(row.discount_price or row.price or 0):,}đ".replace(",", ".")
+
+    lines: list[str] = [f"[CHI TIẾT SẢN PHẨM: {row.name} | Giá: {price_display}]"]
+
+    if row.short_description:
+        lines.append(f"Tóm tắt: {row.short_description}")
+
+    # Nguồn CHÍNH: strip HTML từ description
+    if row.description:
+        plain = _re.sub(r"<[^>]+>", " ", str(row.description))
+        plain = _re.sub(r"\s+", " ", plain).strip()
+        if plain:
+            lines.append(f"\nThông tin mô tả đầy đủ:\n{plain[:1500]}")
+
+    # Nguồn PHỤ: structured metadata
+    if meta.get("ingredients"):
+        lines.append(f"\nThành phần: {meta['ingredients']}")
+    if meta.get("instructions"):
+        lines.append(f"Cách sử dụng: {meta['instructions']}")
+    if meta.get("origin"):
+        lines.append(f"Xuất xứ: {meta['origin']}")
+    if meta.get("weight"):
+        lines.append(f"Trọng lượng/Thể tích: {meta['weight']}")
+
+    return "\n".join(lines)
 
 # 🛠️ TOOL LAYER 3: Tìm kiếm mờ trong Knowledge Base (Semantic Search)
 @_consultant_agent.tool
@@ -64,38 +161,72 @@ async def search_products_tool(ctx_tool: RunContext[ConsultantDeps], query: str,
     Tham số category (tùy chọn): tên danh mục để lọc thêm.
     """
     try:
-        from sqlalchemy import select, and_, or_
+        from sqlalchemy import select, and_, or_, text
         from backend.database.models.commerce import ProductBase
         from backend.database import current_tenant_id
+        from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+        import asyncio
+        
         tid = current_tenant_id.get() or "default"
-        kw = f"%{query}%"
-        stmt = (
-            select(
-                ProductBase.id,
-                ProductBase.name,
-                ProductBase.short_description,
-                ProductBase.price,
-                ProductBase.discount_price,
-                ProductBase.stock,
-                ProductBase.slug,
-            )
-            .where(
-                and_(
-                    ProductBase.deleted_at.is_(None),
-                    ProductBase.status == "ACTIVE",
-                    ProductBase.tenant_id == tid,
-                    or_(
-                        ProductBase.name.ilike(kw),
-                        ProductBase.short_description.ilike(kw),
-                        ProductBase.seo_keywords.ilike(kw),
+        encoder = get_shared_encoder()
+        rows = []
+        db = ctx_tool.deps.db
+        
+        # 1. Thử Vector Search trước
+        if encoder:
+            loop = asyncio.get_running_loop()
+            vecs = await loop.run_in_executor(None, lambda: list(encoder.embed([query])))
+            if vecs:
+                vec_str = f"[{','.join(map(str, vecs[0]))}]"
+                sql = text("""
+                    SELECT p.id, p.name, p.short_description, p.description,
+                           p.product_metadata, p.price, p.discount_price, p.stock, p.slug,
+                           pe.embedding <=> :v::vector AS dist
+                    FROM product_bases p
+                    JOIN product_embeddings pe ON p.id = pe.product_base_id
+                    WHERE p.deleted_at IS NULL
+                      AND p.status = 'ACTIVE'
+                      AND p.tenant_id = :tid
+                    ORDER BY dist ASC
+                    LIMIT 5
+                """)
+                res = await db.execute(sql, {"v": vec_str, "tid": tid})
+                rows = res.fetchall()
+
+        # 2. Fallback Keyword Search nếu vector fail hoặc encoder chưa sẵn sàng
+        if not rows:
+            kw = f"%{query}%"
+            stmt = (
+                select(
+                    ProductBase.id,
+                    ProductBase.name,
+                    ProductBase.short_description,
+                    ProductBase.description,
+                    ProductBase.product_metadata,
+                    ProductBase.price,
+                    ProductBase.discount_price,
+                    ProductBase.stock,
+                    ProductBase.slug,
+                )
+                .where(
+                    and_(
+                        ProductBase.deleted_at.is_(None),
+                        ProductBase.status == "ACTIVE",
+                        ProductBase.tenant_id == tid,
+                        or_(
+                            ProductBase.name.ilike(kw),
+                            ProductBase.short_description.ilike(kw),
+                            ProductBase.seo_keywords.ilike(kw),
+                        )
                     )
                 )
+                .limit(5)
             )
-            .limit(5)
-        )
-        rows = (await ctx_tool.deps.db.execute(stmt)).fetchall()
+            rows = (await db.execute(stmt)).fetchall()
+
         if not rows:
             return f"[Không tìm thấy sản phẩm phù hợp với từ khóa: '{query}']"
+            
         lines: list[str] = [f"[KẾT QUẢ SẢN PHẨM - '{query}']"]
         for r in rows:
             price_display = int(r.discount_price or r.price or 0)
@@ -106,6 +237,11 @@ async def search_products_tool(ctx_tool: RunContext[ConsultantDeps], query: str,
             )
             if r.short_description:
                 lines.append(f"  Mô tả: {r.short_description[:120]}")
+            meta: dict[str, object] = getattr(r, 'product_metadata', {}) or {}
+            if meta.get("ingredients"):
+                lines.append(f"  Thành phần: {str(meta['ingredients'])[:100]}...")
+            if meta.get("origin"):
+                lines.append(f"  Xuất xứ: {meta['origin']}")
         return "\n".join(lines)
     except Exception as e:
         logger.error(f"[ConsultantTool:search_products] Error: {e}")
@@ -213,39 +349,54 @@ async def search_articles_tool(ctx_tool: RunContext[ConsultantDeps], query: str,
     Tham số category (tùy chọn): tên danh mục bài viết để lọc.
     """
     try:
+        import re as _re
         from sqlalchemy import select, and_, or_
         from backend.database.models.content import Article
         from backend.database import current_tenant_id
-        import re as _re
+        
         tid = current_tenant_id.get() or "default"
-        kw = f"%{query}%"
+        db = ctx_tool.deps.db
+        rows = []
 
-        stmt = (
-            select(
-                Article.id,
-                Article.title,
-                Article.excerpt,
-                Article.content,
-                Article.slug,
-                Article.category,
-            )
-            .where(
-                and_(
-                    Article.deleted_at.is_(None),
-                    Article.status == "PUBLISHED",
-                    Article.tenant_id == tid,
-                    or_(
-                        Article.title.ilike(kw),
-                        Article.excerpt.ilike(kw),
-                        Article.seo_keywords.ilike(kw),
-                        Article.content.ilike(kw),
+        # 1. Thử Vector Search trước
+        try:
+            from backend.services.article_vector_service import article_vector_service
+            vec_results = await article_vector_service.search_semantic(db, query, limit=3)
+            if vec_results:
+                rows = vec_results
+        except Exception as vec_err:
+            logger.warning(f"[ConsultantTool] Article vector search failed: {vec_err}")
+
+        # 2. Fallback Keyword Search nếu vector fail
+        if not rows:
+            kw = f"%{query}%"
+            stmt = (
+                select(
+                    Article.id,
+                    Article.title,
+                    Article.excerpt,
+                    Article.content,
+                    Article.slug,
+                    Article.category,
+                )
+                .where(
+                    and_(
+                        Article.deleted_at.is_(None),
+                        Article.status == "PUBLISHED",
+                        Article.tenant_id == tid,
+                        or_(
+                            Article.title.ilike(kw),
+                            Article.excerpt.ilike(kw),
+                            Article.seo_keywords.ilike(kw),
+                            Article.content.ilike(kw),
+                        )
                     )
                 )
+                .order_by(Article.views.desc())
+                .limit(3)
             )
-            .order_by(Article.views.desc())
-            .limit(3)
-        )
-        rows = (await ctx_tool.deps.db.execute(stmt)).fetchall()
+            rows = (await db.execute(stmt)).fetchall()
+
         if not rows:
             return f"[Không tìm thấy bài viết phù hợp với từ khóa: '{query}']"
 
@@ -256,7 +407,7 @@ async def search_articles_tool(ctx_tool: RunContext[ConsultantDeps], query: str,
                 lines.append(f"Tóm tắt: {r.excerpt[:200]}")
             elif r.content:
                 # Strip HTML tags and take first 500 chars
-                plain = _re.sub(r'<[^>]+>', '', r.content or '')[:500]
+                plain = _re.sub(r'<[^>]+>', '', str(r.content))[:500]
                 lines.append(f"Nội dung: {plain}...")
         return "\n".join(lines)
     except Exception as e:
@@ -273,11 +424,12 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         "Bạn là Helen - Chuyên gia tư vấn mỹ phẩm cao cấp và chăm sóc da chuyên sâu của Micsmo.\n"
         "NHIỆM VỤ CHIẾN THUẬT SIÊU CẤP (ELITE FOMO):\n"
         "1. TRA CỨU TRI THỨC (BẮT BUỘC):\n"
-        "   - Khách hỏi về ĐỊA CHỈ, THÀNH PHẦN, HOTLINE, CHÍNH SÁCH cụ thể: Dùng 'search_knowledge_base' hoặc 'fetch_topic_details'.\n"
-        "   - Khách hỏi TÌM SẢN PHẨM ('có kem X không?', 'sản phẩm cho da Y?'): Dùng 'search_products_tool'.\n"
-        "   - Khách hỏi KHUYẾN MÃI / Voucher ('có mã giảm không?', 'ưu đãi gì không?'): Dùng 'get_active_promotions_tool'.\n"
-        "   - Khách hỏi CHÍNH SÁCH/Tin tức ('đổi trả thế nào?', 'chính sách bảo hành?'): Dùng 'search_articles_tool'.\n"
-        "   Tuyệt đối KHÔNG được đoán. Phải tra cứu rồi mới trả lời.\n"
+        "   - Yêu cầu ĐỊA CHỈ / HOTLINE / GIỜ LÀM VIỆC: Dùng 'get_shop_profile_tool'. TUYỆT ĐỐI không đoán.\n"
+        "   - Xem THÀNH PHẦN / CÁCH DÙNG / CÔNG DỤNG của 1 sản phẩm: Dùng 'fetch_product_full_detail' (truyền slug).\n"
+        "   - Tìm SẢN PHẨM chung ('có kem X không?', 'sản phẩm da Y'): Dùng 'search_products_tool'.\n"
+        "   - MÃ GIẢM GIÁ / KHUYẾN MÃI: Dùng 'get_active_promotions_tool'.\n"
+        "   - CHÍNH SÁCH / BÀI VIẾT (đổi trả, bảo hành, kiến thức): Dùng 'search_articles_tool'.\n"
+        "   - CÂU HỎI ĐẶC THÙ (chính hãng, thương hiệu): Dùng 'search_knowledge_base' làm fallback.\n"
         "2. GIẢI THÍCH CHUYÊN SÂU: Dùng kiến thức chuyên môn về da liễu, phục hồi màng bảo vệ da, trị mụn/nám/thâm để tư vấn. Xưng hô là 'Helen' và 'Anh/Chị'. Phản hồi sang trọng, tinh tế, đi thẳng vào vấn đề.\n"
         "3. TRÁNH SAI LỆCH: Không hứa hẹn 'khỏi bệnh 100%', không dùng từ 'bác sĩ' hay 'kê đơn thuốc'. Chúng ta là dược mỹ phẩm trị liệu.\n"
         "4. CHỐT ĐƠN CHIẾN THUẬT (BRIDGE-TO-SALE): Luôn tế nhị, văn minh. Khi kết thúc tư vấn, khéo léo hỏi khách muốn lấy số lượng bao nhiêu, hoặc giới thiệu chương trình khuyến mãi đang chạy từ kết quả tool nếu phù hợp.\n"
