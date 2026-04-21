@@ -432,111 +432,57 @@ class SupportAgentOperative(BaseAgentOperative):
         - INFO_INGREDIENTS / INFO_SHIPPING → fall-through đến Deep-Brain (context-dependent).
         - Xóa sự phụ thuộc sai vào bảng support_knowledge cho dữ liệu cấu trúc.
         """
-        from backend.database.models.system import SupportKnowledgeCategory
-        from backend.database import current_tenant_id
+        import os
         import json as _json
-
+        
         msg_norm = request.message.lower().strip()
-        detected_category: Optional[SupportKnowledgeCategory] = None
-        matched_kw: Optional[str] = None
-
-        # Priority 1: INGREDIENTS — fall-through to Deep-Brain (sản phẩm nào? cần AI phân tích)
+        debug_prefix = "" if os.getenv("HELEN_DEBUG", "0") != "1" else "[L0.5] "
+        
+        # 1. INFO_INGREDIENTS & INFO_SHIPPING → Fall-through (Trả về None ngay lập tức để Deep Brain chạy Tool)
         kws_ing = ["thành phần", "chiết xuất", "gồm những gì", "làm từ gì", "thảo dược gì", "công thức", "thành phần thuốc", "chất gì", "có gì trong thuốc"]
-        for kw in kws_ing:
-            if kw in msg_norm:
-                detected_category = SupportKnowledgeCategory.INFO_INGREDIENTS
-                matched_kw = kw
-                break
-
-        # Priority 2: ADDRESS
-        if not detected_category:
-            kws_addr = ["địa chỉ", "ở đâu", "chi nhánh", "cửa hàng", "văn phòng", "trụ sở", "phòng khám", "showroom", "địa điểm", "chỗ nào"]
-            for kw in kws_addr:
-                if kw in msg_norm:
-                    detected_category = SupportKnowledgeCategory.INFO_ADDRESS
-                    matched_kw = kw
-                    break
-
-        # Priority 3: HOTLINE
-        if not detected_category:
-            kws_hot = ["điện thoại", "hotline", "số điện thoại", "liên hệ", "sốđt", "sdt", "website", "tư vấn qua đâu"]
-            for kw in kws_hot:
-                if kw in msg_norm:
-                    detected_category = SupportKnowledgeCategory.INFO_HOTLINE
-                    matched_kw = kw
-                    break
-
-        # Priority 4: PRICE QUERY (Ultra-Fast)
-        if not detected_category:
-            kws_price = ["giá", "bao nhiêu", "nhiêu tiền", "nhiêu", "rổ giá", "giá cả"]
-            for kw in kws_price:
-                if kw in msg_norm:
-                    detected_category = SupportKnowledgeCategory.PRICE_QUERY
-                    matched_kw = kw
-                    break
-
-        # Priority 5: SHIPPING QUERY — fall-through (cần AI kiểm tra chính sách thực)
-        if not detected_category:
-            kws_ship = ["ship", "phí", "giao hàng", "vận chuyển", "nhận hàng"]
-            for kw in kws_ship:
-                if kw in msg_norm:
-                    detected_category = SupportKnowledgeCategory.INFO_SHIPPING
-                    matched_kw = kw
-                    break
-
-        if not detected_category:
+        kws_ship = ["ship", "phí", "giao hàng", "vận chuyển", "nhận hàng"]
+        if any(kw in msg_norm for kw in kws_ing) or any(kw in msg_norm for kw in kws_ship):
+            logger.info("⚡ [SupportAgent] Sync Heuristic: Fall-through to Deep Brain for INGREDIENTS/SHIPPING")
             return None
 
-        tid = current_tenant_id.get() or "default"
-        logger.info(f"⚡ [SupportAgent] Sync Heuristic TRIGGERED: category='{detected_category}' | kw='{matched_kw}' | tenant='{tid}'")
-
-        try:
-            stmt = select(SupportKnowledge).where(
-                and_(
-                    SupportKnowledge.deleted_at == None,
-                    SupportKnowledge.is_active == True,
-                    or_(
-                        SupportKnowledge.tenant_id == tid,
-                        SupportKnowledge.tenant_id == "default",
-                        SupportKnowledge.tenant_id == "smartshop"
-                    ),
-                    SupportKnowledge.category == detected_category
-                )
-            ).order_by(SupportKnowledge.priority.desc()).limit(1)
-
-            res = await db.execute(stmt)
-            item = res.scalar_one_or_none()
-
-            if item or (detected_category == SupportKnowledgeCategory.PRICE_QUERY and p_info):
-                logger.info(f"✅ [SupportAgent] Sync Heuristic HIT: category='{detected_category}'")
-
-                import os
-                debug_prefix = f"[L0.5|{detected_category.value}] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
-
-                # Logic đặc biệt cho PRICE_QUERY (Sử dụng dữ liệu thực tế)
-                if detected_category == SupportKnowledgeCategory.PRICE_QUERY and p_info:
-                    final_reply = f"{debug_prefix}Dạ liệu trình **{p_info.name}** hiện tại có giá ưu đãi chỉ từ **{p_info.price_display}** ạ. 🌸 Anh/Chị muốn chốt số lượng bao nhiêu để Helen lên đơn ngay cho mình nhé?"
-                else:
-                    final_reply = f"{debug_prefix}{item.answer}"
-
-                await self._save_history(
-                    db, session_id, request.message, final_reply,
-                    SupportIntent.POLICY_QUERY if detected_category != SupportKnowledgeCategory.PRICE_QUERY else SupportIntent.PRICE_QUERY,
-                    request.product_slug
-                )
+        # 2. PRICE_QUERY → Xử lý ngay với p_info
+        kws_price = ["giá", "bao nhiêu", "nhiêu tiền", "nhiêu", "rổ giá", "giá cả"]
+        if any(kw in msg_norm for kw in kws_price):
+            if p_info:
+                logger.info("✅ [SupportAgent] Sync Heuristic HIT: PRICE_QUERY")
+                final_reply = f"{debug_prefix}Dạ liệu trình **{p_info.name}** hiện tại có giá ưu đãi chỉ từ **{p_info.price_display}** ạ. 🌸 Anh/Chị muốn chốt số lượng bao nhiêu để Helen lên đơn ngay cho mình nhé?"
+                await self._save_history(db, session_id, request.message, final_reply, SupportIntent.PRICE_QUERY, request.product_slug)
                 await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
-                return SupportResponse(
-                    ok=True,
-                    reply=final_reply,
-                    intent=SupportIntent.POLICY_QUERY if detected_category != SupportKnowledgeCategory.PRICE_QUERY else SupportIntent.PRICE_QUERY,
-                    session_id=session_id,
-                    status="DONE"
-                )
-            else:
-                logger.warning(f"❌ [SupportAgent] Sync Heuristic MISS: No row for category='{detected_category}' | tenant='{tid}'")
+                return SupportResponse(ok=True, reply=final_reply, intent=SupportIntent.PRICE_QUERY, session_id=session_id, status="DONE")
+
+        # 3. INFO_ADDRESS & INFO_HOTLINE → Đọc từ Settings Cache
+        is_address = any(kw in msg_norm for kw in ["địa chỉ", "ở đâu", "chi nhánh", "cửa hàng", "văn phòng", "trụ sở", "phòng khám", "showroom", "địa điểm", "chỗ nào"])
+        is_hotline = any(kw in msg_norm for kw in ["điện thoại", "hotline", "số điện thoại", "liên hệ", "sốđt", "sdt", "website", "tư vấn qua đâu"])
+        
+        if is_address or is_hotline:
+            logger.info("⚡ [SupportAgent] Sync Heuristic: Reading SystemSettings for ADDRESS/HOTLINE")
+            raw_cfg = await xohi_memory.client.get("system:settings:primary_config")
+            if not raw_cfg:
+                logger.warning("❌ [SupportAgent] Sync Heuristic MISS: primary_config cache empty")
                 return None
-        except Exception as e:
-            logger.error(f"[SupportAgent] Sync Heuristic Error: {e}")
-            return None
+            
+            cfg = _json.loads(raw_cfg)
+            ci = cfg.get("contact_info", {})
+            
+            if is_address:
+                address = ci.get("address", "Chưa cập nhật địa chỉ")
+                working_hours = ci.get("working_hours", "Chưa cập nhật")
+                final_reply = f"{debug_prefix}Dạ địa chỉ của Micsmo ở **{address}** ạ. Giờ làm việc: {working_hours} 🌸."
+                intent = SupportIntent.POLICY_QUERY
+            else: # Hotline
+                hotline = ci.get("hotline", "Chưa cập nhật hotline")
+                final_reply = f"{debug_prefix}Dạ số hotline của Micsmo là **{hotline}** ạ. Anh/Chị cần tư vấn thêm cứ nhắn em nhé 🌸."
+                intent = SupportIntent.POLICY_QUERY
+                
+            await self._save_history(db, session_id, request.message, final_reply, intent, request.product_slug)
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            return SupportResponse(ok=True, reply=final_reply, intent=intent, session_id=session_id, status="DONE")
+
+        return None
 
 support_agent = SupportAgentOperative()
