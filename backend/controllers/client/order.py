@@ -11,6 +11,7 @@ class OrderUpdateSchema(BaseModel):
     customer_name: Optional[str] = Field(None, min_length=1, max_length=200)
     customer_phone: Optional[str] = Field(None, min_length=10, max_length=15)
     customer_address: Optional[str] = Field(None, min_length=5, max_length=500)
+    note: Optional[str] = Field(None, max_length=1000)
 
 class PublicOrderController(Controller):
     """Elite V2.2: Public Order Controller for Client Success Page."""
@@ -89,6 +90,11 @@ class PublicOrderController(Controller):
         if data.customer_name: order.customer_name = data.customer_name
         if data.customer_phone: order.customer_phone = data.customer_phone
         if data.customer_address: order.customer_address = data.customer_address
+        
+        if data.note is not None:
+            meta = dict(order.order_metadata or {})
+            meta["customer_note"] = data.note
+            order.order_metadata = meta
 
         await db_session.commit()
         # Return updated order via public schema

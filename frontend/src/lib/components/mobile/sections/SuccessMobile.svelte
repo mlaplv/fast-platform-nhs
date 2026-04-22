@@ -7,10 +7,12 @@
   import { apiClient } from '$lib/utils/apiClient';
   import { page } from '$app/state';
   import vnDivisions from '$lib/data/vn_divisions.json';
-  import SearchableCheckoutSelect from '$lib/components/storefront/ui/SearchableCheckoutSelect.svelte';
+  import AddressSelector from '$lib/components/mobile/checkout/AddressSelector.svelte';
+  import SimpleTiptap from '$lib/components/storefront/ui/SimpleTiptap.svelte';
+  import HeaderMobile from '$lib/components/storefront/layout/HeaderMobile.svelte';
 
   import type { OrderDetail } from '$lib/types/commerce/order';
-  let { order, orderId, isLookup } = $props<{ order: OrderDetail, orderId: string, isLookup: boolean }>();
+  let { order = $bindable(), orderId, isLookup } = $props<{ order: OrderDetail, orderId: string, isLookup: boolean }>();
 
   // --- Elite V2.2: Edit Logic ---
   let isEditing = $state(false);
@@ -20,7 +22,8 @@
     phone: '',
     province: '',
     ward: '',
-    street: ''
+    street: '',
+    note: ''
   });
 
   interface VnDivision {
@@ -29,13 +32,6 @@
     code: string;
     wards: string[];
   }
-
-  const validProvinces = (vnDivisions as unknown as VnDivision[]).filter(p => p.id);
-  const currentWards = $derived.by(() => {
-    if (!editForm.province) return [];
-    const province = validProvinces.find(p => p.name === editForm.province);
-    return province?.wards || [];
-  });
 
   function parseAddress(fullAddress: string) {
     if (!fullAddress) return { province: '', ward: '', street: '' };
@@ -51,13 +47,20 @@
   }
 
   function startEditing() {
-    const addrParts = parseAddress(order.customer_address || '');
+    // Elite V2.2: Dual-Layer Identity Recognition (Handles both camelCase and snake_case from API)
+    const rawName = order.customer_name || (order as any).customerName || '';
+    const rawPhone = order.customer_phone || (order as any).customerPhone || '';
+    const rawAddress = order.customer_address || (order as any).customerAddress || '';
+    const rawNote = (order?.order_metadata?.customer_note as string) || (order?.order_metadata?.note as string) || '';
+
+    const addrParts = parseAddress(rawAddress);
     editForm = {
-        name: order.customer_name || '',
-        phone: order.customer_phone || '',
+        name: rawName,
+        phone: rawPhone,
         province: addrParts.province,
         ward: addrParts.ward,
-        street: addrParts.street
+        street: addrParts.street,
+        note: rawNote
     };
     isEditing = true;
   }
@@ -80,16 +83,23 @@
     try {
         const phoneParam = page.url.searchParams.get('phone') || (typeof localStorage !== 'undefined' ? localStorage.getItem(`order_verify_${orderId}`) : null);
         
-        await apiClient.patch(`/api/v1/client/orders/${orderId}`, {
+        const res = await apiClient.patch(`/api/v1/client/orders/${orderId}`, {
             customer_name: editForm.name,
             customer_phone: editForm.phone,
-            customer_address: `${editForm.street}, ${editForm.ward}, ${editForm.province}`
+            customer_address: `${editForm.street}, ${editForm.ward}, ${editForm.province}`,
+            note: editForm.note
         }, { params: { phone: phoneParam } });
         
-        // Refresh local data
-        order.customer_name = editForm.name;
-        order.customer_phone = editForm.phone;
-        order.customer_address = `${editForm.street}, ${editForm.ward}, ${editForm.province}`;
+        // Refresh local data from response
+        if (res.data) {
+          order = res.data;
+        } else {
+          order.customer_name = editForm.name;
+          order.customer_phone = editForm.phone;
+          order.customer_address = `${editForm.street}, ${editForm.ward}, ${editForm.province}`;
+          if (!order.order_metadata) order.order_metadata = {};
+          order.order_metadata.customer_note = editForm.note;
+        }
         
         showToast("Đã cập nhật thông tin thành công");
         isEditing = false;
@@ -99,6 +109,11 @@
     } finally {
         isSubmittingAction = false;
     }
+  }
+
+  function handleAddressSelect(data: { province: string, ward: string }) {
+    editForm.province = data.province;
+    editForm.ward = data.ward;
   }
 
   const STATUS_STEPS = [
@@ -130,8 +145,8 @@
   }
 
   const items = $derived(order?.items || []);
-  const customerNameDisplay = $derived(order?.name_masked || order?.customer_name || 'Khách hàng');
-  const customerAddressDisplay = $derived(order?.address_masked || order?.customer_address || 'Địa chỉ bảo mật');
+  const customerNameDisplay = $derived(order?.name_masked || order.customer_name || (order as any).customerName || 'Khách hàng');
+  const customerAddressDisplay = $derived(order?.address_masked || order.customer_address || (order as any).customerAddress || 'Địa chỉ bảo mật');
 
   // Elite V2.2: Reactive Financial Breakdown
   const voucherDiscount = $derived(Number(order?.order_metadata?.voucher_discount || 0));
@@ -140,6 +155,7 @@
 </script>
 
 <div class="min-h-screen bg-[#fafafa] text-slate-900 flex flex-col w-full relative">
+  <HeaderMobile />
   <!-- Cinematic Background Bloom -->
   <div class="fixed top-0 left-1/2 -translate-x-1/2 w-full h-[300px] {isLookup ? 'bg-sky-500/10' : 'bg-emerald-500/10'} blur-[80px] pointer-events-none"></div>
 
@@ -180,7 +196,7 @@
            </div>
            <div class="text-right">
               <span class="text-[9px] font-black text-slate-400 uppercase block mb-1">Tổng thanh toán</span>
-              <span class="text-xl font-black text-[#ee4d2d] italic tabular-nums">{formatCurrency(order?.total_amount || 0)}</span>
+              <span class="text-xl font-black text-[#ee4d2d] italic tabular-nums">{formatCurrency(order?.total || order?.total_amount || 0)}</span>
            </div>
         </div>
 
@@ -251,7 +267,7 @@
                  <span class="w-1 h-1 bg-amber-500 rounded-full animate-ping"></span>
                </h4>
                <p class="text-[14px] font-serif italic text-stone-700 leading-none">
-                 Tích được <span class="text-amber-600 font-black">+{Math.floor((order?.total_amount || 0) / 100000)} PTS</span>
+                 Tích được <span class="text-amber-600 font-black">+{Math.floor((order?.total || order?.total_amount || 0) / 100000)} PTS</span>
                </p>
                <p class="text-[8px] text-stone-400 font-bold uppercase mt-2 opacity-60">Khả dụng sau khi giao hàng</p>
            </div>
@@ -265,14 +281,88 @@
 </div>
 
 {#if isEditing}
-  <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
-     <div class="w-full max-w-sm bg-white p-8 space-y-6 border-t-4 border-sky-500 shadow-2xl">
-        <h2 class="text-xl font-black text-slate-900 uppercase italic text-center">Cập nhật thông tin</h2>
-        <div class="space-y-3">
-           <input type="text" bind:value={editForm.name} class="w-full p-4 bg-slate-50 border border-slate-100 font-bold text-sm uppercase" />
-           <input type="tel" bind:value={editForm.phone} class="w-full p-4 bg-slate-50 border border-slate-100 font-bold text-sm" />
-           <button onclick={handleSaveEdit} class="w-full py-4 bg-slate-900 text-white font-black uppercase italic">LƯU THÔNG TIN</button>
-           <button onclick={() => isEditing = false} class="w-full py-2 text-[10px] font-black text-slate-400 uppercase">QUAY LẠI</button>
+  <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex flex-col justify-end">
+     <div 
+        class="w-full bg-white rounded-t-[32px] p-6 pb-[calc(24px+env(safe-area-inset-bottom))] space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+        in:fly={{ y: 300, duration: 500 }}
+     >
+        <div class="flex items-center justify-between pb-2 border-b border-slate-50">
+           <h2 class="text-lg font-black text-slate-900 uppercase italic tracking-tighter">Cập nhật thông tin</h2>
+           <button onclick={() => isEditing = false} class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">✕</button>
+        </div>
+
+        <div class="space-y-4">
+           <!-- Basic Info -->
+           <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-1">
+                 <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Tên người nhận</label>
+                 <input 
+                    type="text" 
+                    bind:value={editForm.name} 
+                    style="color: #0f172a !important;"
+                    class="w-full p-3.5 bg-slate-50 border border-slate-100 font-bold text-sm uppercase text-slate-900 rounded-xl outline-none focus:border-sky-500 transition-all" 
+                 />
+              </div>
+              <div class="space-y-1">
+                 <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Số điện thoại</label>
+                 <input 
+                    type="tel" 
+                    bind:value={editForm.phone} 
+                    style="color: #0f172a !important;"
+                    class="w-full p-3.5 bg-slate-50 border border-slate-100 font-bold text-sm text-slate-900 rounded-xl outline-none focus:border-sky-500 transition-all" 
+                 />
+              </div>
+           </div>
+
+           <!-- Area Selector (Elite V2.2 Professional) -->
+           <div class="space-y-1">
+              <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Khu vực (Tỉnh / Phường)</label>
+              <div class="bg-slate-50 rounded-2xl shadow-sm border border-slate-100">
+                 <AddressSelector 
+                   value={{ province: editForm.province, ward: editForm.ward }}
+                   onSelect={handleAddressSelect}
+                   light={true}
+                 />
+              </div>
+           </div>
+
+           <!-- Detailed Address -->
+           <div class="space-y-1">
+              <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Địa chỉ chi tiết</label>
+              <input 
+                 type="text" 
+                 bind:value={editForm.street} 
+                 style="color: #0f172a !important;"
+                 placeholder="Số nhà, tên đường..."
+                 class="w-full p-3.5 bg-slate-50 border border-slate-100 font-bold text-sm text-slate-900 rounded-xl outline-none focus:border-sky-500 transition-all" 
+              />
+           </div>
+
+           <!-- Order Note -->
+           <div class="space-y-1">
+              <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Ghi chú đơn hàng</label>
+              <div class="bg-slate-50 rounded-xl border border-slate-100 overflow-hidden text-slate-900">
+                 <SimpleTiptap 
+                   bind:content={editForm.note} 
+                   placeholder="Ghi chú thêm cho shipper (VD: Giao giờ hành chính...)" 
+                   minHeight="100px" 
+                 />
+              </div>
+           </div>
+        </div>
+
+        <div class="pt-4 flex flex-col gap-3">
+           <button 
+              onclick={handleSaveEdit} 
+              disabled={isSubmittingAction}
+              class="w-full py-4 bg-slate-900 text-white font-black uppercase italic tracking-widest rounded-2xl shadow-xl shadow-slate-900/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+           >
+              {#if isSubmittingAction}
+                <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              {/if}
+              XÁC NHẬN CẬP NHẬT
+           </button>
+           <button onclick={() => isEditing = false} class="w-full py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">ĐÓNG CỬA SỔ</button>
         </div>
      </div>
   </div>

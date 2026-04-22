@@ -90,10 +90,9 @@ export class CartStore {
                 total += v.value;
             } else if (v.type === 'PERCENT') {
                 total += (subtotal * v.value) / 100;
-            } else if (v.type === 'SHIPPING') {
-                // In Elite V2.2, shipping vouchers are handled as absolute discounts to subtotal if not zeroed at UI level
-                total += v.value;
             }
+            // Elite V2.2: Shipping vouchers are EXCLUDED from product subtotal discount.
+            // They are handled separately in the checkout layout.
         }
         return total;
     });

@@ -14,9 +14,10 @@
     wards: string[];
   }
 
-  let { onSelect, value = { province: '', ward: '' } } = $props<{
+  let { onSelect, value = { province: '', ward: '' }, light = false } = $props<{
     onSelect: (data: { province: string, ward: string }) => void;
     value?: { province: string, ward: string };
+    light?: boolean;
   }>();
 
   // State Management (Runes)
@@ -79,7 +80,7 @@
     isOpen = !isOpen;
     if (isOpen) {
         searchQuery = '';
-        if (value.province) step = 'ward';
+        step = 'province'; // Elite V2.2: Always start from province for zero-friction re-selection
     }
   }
 </script>
@@ -88,42 +89,42 @@
   <!-- Trigger Button -->
   <button 
     onclick={toggle}
-    class="w-full h-[52px] bg-white/[0.03] border border-white/10 rounded-2xl px-5 flex items-center justify-between transition-all {isOpen ? 'border-[#FFB7C5]/50 ring-2 ring-[#FFB7C5]/10' : ''}"
+    class="w-full h-[52px] rounded-2xl px-5 flex items-center justify-between transition-all {light ? 'bg-slate-100/50 border-slate-200 text-slate-900' : 'bg-white/[0.03] border-white/10 text-white'} border {isOpen ? (light ? 'border-sky-500 ring-2 ring-sky-500/10' : 'border-[#FFB7C5]/50 ring-2 ring-[#FFB7C5]/10') : ''}"
   >
     <div class="flex items-center gap-3 overflow-hidden">
-      <MapPin class="w-4 h-4 {value.province ? 'text-[#FFB7C5]' : 'text-white/20'}" />
+      <MapPin class="w-4 h-4 {value.province ? (light ? 'text-sky-500' : 'text-[#FFB7C5]') : (light ? 'text-slate-300' : 'text-white/20')}" />
       <div class="flex flex-col items-start leading-tight">
         {#if value.province}
-          <span class="text-[8px] text-white/40 font-black uppercase tracking-[0.15em]">Khu vực</span>
-          <span class="text-white text-[13px] font-bold truncate tracking-tight">
+          <span class="text-[8px] {light ? 'text-slate-400' : 'text-white/40'} font-black uppercase tracking-[0.15em]">Khu vực</span>
+          <span class="{light ? 'text-slate-900' : 'text-white'} text-[13px] font-bold truncate tracking-tight">
             {value.province}{value.ward ? `, ${value.ward}` : ''}
           </span>
         {:else}
-          <span class="text-white/40 text-[13px] font-bold uppercase tracking-wider italic">Chọn Khu Vực *</span>
+          <span class="{light ? 'text-slate-400' : 'text-white/40'} text-[13px] font-bold uppercase tracking-wider italic">Chọn Khu Vực *</span>
         {/if}
       </div>
     </div>
-    <ChevronRight class="w-4 h-4 text-white/20 transition-transform {isOpen ? 'rotate-90' : ''}" />
+    <ChevronRight class="w-4 h-4 {light ? 'text-slate-300' : 'text-white/20'} transition-transform {isOpen ? 'rotate-90' : ''}" />
   </button>
 
   <!-- Dropdown Modal (Elite Glass) -->
   {#if isOpen}
     <div 
-      class="absolute top-[calc(100%+8px)] left-0 w-full z-[2000] bg-[#121212] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[400px]"
+      class="absolute top-[calc(100%+8px)] left-0 w-full z-[2000] border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[400px] {light ? 'bg-white border-slate-200' : 'bg-[#121212] border-white/10'}"
       transition:slide={{ duration: 300 }}
     >
       <!-- Search Bar -->
-      <div class="p-3 border-b border-white/10 flex items-center gap-2 bg-white/[0.02]">
-        <Search class="w-4 h-4 text-white/40" />
+      <div class="p-3 border-b flex items-center gap-2 {light ? 'bg-slate-50 border-slate-100' : 'bg-white/[0.02] border-white/10'}">
+        <Search class="w-4 h-4 {light ? 'text-slate-400' : 'text-white/40'}" />
         <input 
           type="text" 
           bind:value={searchQuery}
           placeholder={step === 'province' ? 'Tìm Tỉnh/Thành phố...' : 'Tìm Phường/Xã...'}
-          class="flex-1 bg-transparent border-none outline-none text-white text-[14px] placeholder:text-white/20"
+          class="flex-1 bg-transparent border-none outline-none text-[14px] {light ? 'text-slate-900 placeholder:text-slate-300' : 'text-white placeholder:text-white/20'}"
           autofocus
         />
         {#if step === 'ward'}
-          <button onclick={reset} class="text-[10px] font-black text-[#FFB7C5] uppercase px-2 hover:opacity-80">Quay lại</button>
+          <button onclick={reset} class="text-[10px] font-black {light ? 'text-sky-500' : 'text-[#FFB7C5]'} uppercase px-2 hover:opacity-80">Quay lại</button>
         {/if}
       </div>
 
@@ -139,15 +140,15 @@
             {#each filteredProvinces as p}
               <button 
                 onclick={() => selectProvince(p)}
-                class="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-[#FFB7C5]/5 transition-colors group"
+                class="w-full px-5 py-3.5 flex items-center justify-between text-left transition-colors group {light ? 'hover:bg-slate-50' : 'hover:bg-[#FFB7C5]/5'}"
               >
-                <span class="text-[14px] font-semibold {value.province === p.name ? 'text-[#FFB7C5]' : 'text-white/70 group-hover:text-white'}">
+                <span class="text-[14px] font-semibold {value.province === p.name ? (light ? 'text-sky-500' : 'text-[#FFB7C5]') : (light ? 'text-slate-600 group-hover:text-slate-900' : 'text-white/70 group-hover:text-white')}">
                   {p.name}
                 </span>
                 {#if value.province === p.name}
-                  <Check class="w-4 h-4 text-[#FFB7C5]" />
+                  <Check class="w-4 h-4 {light ? 'text-sky-500' : 'text-[#FFB7C5]'}" />
                 {:else}
-                  <ChevronRight class="w-3.5 h-3.5 text-white/10" />
+                  <ChevronRight class="w-3.5 h-3.5 {light ? 'text-slate-200' : 'text-white/10'}" />
                 {/if}
               </button>
             {/each}
@@ -155,18 +156,18 @@
             {#each filteredWards as w}
               <button 
                 onclick={() => selectWard(w)}
-                class="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-[#FFB7C5]/5 transition-colors group"
+                class="w-full px-5 py-3.5 flex items-center justify-between text-left transition-colors group {light ? 'hover:bg-slate-50' : 'hover:bg-[#FFB7C5]/5'}"
               >
-                <span class="text-[14px] font-semibold {value.ward === w ? 'text-[#FFB7C5]' : 'text-white/70 group-hover:text-white'}">
+                <span class="text-[14px] font-semibold {value.ward === w ? (light ? 'text-sky-500' : 'text-[#FFB7C5]') : (light ? 'text-slate-600 group-hover:text-slate-900' : 'text-white/70 group-hover:text-white')}">
                   {w}
                 </span>
                 {#if value.ward === w}
-                  <Check class="w-4 h-4 text-[#FFB7C5]" />
+                  <Check class="w-4 h-4 {light ? 'text-sky-500' : 'text-[#FFB7C5]'}" />
                 {/if}
               </button>
             {:else}
               <div class="p-8 text-center">
-                <span class="text-[12px] text-white/20 italic">Không tìm thấy kết quả nào...</span>
+                <span class="text-[12px] {light ? 'text-slate-400' : 'text-white/20'} italic">Không tìm thấy kết quả nào...</span>
               </div>
             {/each}
           {/if}

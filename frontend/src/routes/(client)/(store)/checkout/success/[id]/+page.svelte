@@ -241,7 +241,7 @@
 
 {#if browser}
   {#if data.isMobile && order}
-    <SuccessMobile {order} {orderId} isLookup={isTrackingMode} />
+    <SuccessMobile bind:order={order} {orderId} isLookup={isTrackingMode} />
   {:else}
     <div class="min-h-screen bg-[#fafafa] text-slate-900 pb-20 pt-4 md:pt-10">
       <div class="max-w-[1240px] mx-auto px-4">

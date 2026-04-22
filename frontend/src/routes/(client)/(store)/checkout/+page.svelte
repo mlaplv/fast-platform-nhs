@@ -77,7 +77,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
     shippingMethod: 'standard' as 'standard' | 'express',
     securePackaging: true,
     pointsRedeemed: 0,
-    usePoints: false, // [ELITE V2.2] Professional Toggle State
+    usePoints: true, // [ELITE V2.2] Auto-Redeem Protocol: Enabled by default
     note: ''
   });
 
@@ -504,7 +504,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
         customer_name: form.name,
         customer_phone: form.phone.replace(/[\s\.\-\+]/g, ''),
         customer_address: `${form.street}, ${form.ward}, ${form.province}`,
-        total_amount: cartStore.totalAmount + shippingFee,
+        total_amount: cartStore.totalAmount + shippingFee - (pointsToRedeem * 1000),
         shipping_fee: shippingFee,
         payment_method: form.paymentMethod,
         note: form.note || null,

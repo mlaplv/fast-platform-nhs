@@ -2,7 +2,6 @@
   import { page } from '$app/stores';
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import HeaderDesktop from "$lib/components/storefront/layout/HeaderDesktop.svelte";
-  import HeaderMobile from "$lib/components/storefront/layout/HeaderMobile.svelte";
   import FooterDesktop from "$lib/components/storefront/layout/FooterDesktop.svelte";
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import { getSearchStore } from "$lib/state/commerce/search.svelte";
@@ -44,19 +43,12 @@
       cart.setVouchers(data.vouchers);
     }
   });
-
-  // Trang home/search mobile tự quản lý header riêng (Marketplace style)
+  
   const isAccountPage = $derived($page.url.pathname.startsWith('/user/'));
-  const isSpecializedPage = $derived(
-    $page.url.pathname === '/home' ||
-    $page.url.pathname === '/' ||
-    $page.url.pathname === '/products' ||
-    isAccountPage
-  );
 
-  // Global header chỉ hiện khi: đã hydrate + không bị ẩn + không phải trang chuyên biệt trên mobile
+  // Global header: chỉ hiện trên DESKTOP (Hydrated + Not Hidden)
   const showGlobalHeader = $derived(
-    ui.isHydrated && !ui.isHeaderHidden && !(isSpecializedPage && ui.isMobile)
+    ui.isHydrated && !ui.isHeaderHidden && !ui.isMobile
   );
 
   const isFunnelPage = $derived(
@@ -64,9 +56,9 @@
     $page.data.product.metadata.landing_type !== 'standard'
   );
 
-  // Global bottom nav: tương tự, ẩn trên home/search mobile và KHÔNG RENDER TRÊN LANDINGPAGE (FUNNEL)
+  // Global footer: chỉ hiện trên DESKTOP + không phải funnel
   const showGlobalFooter = $derived(
-    ui.isHydrated && !ui.isFooterHidden && !isFunnelPage && !(isSpecializedPage && ui.isMobile)
+    ui.isHydrated && !ui.isFooterHidden && !isFunnelPage && !ui.isMobile
   );
 
   // Map backend settings to UI structure (Elite V2.2: Deep Mapping)
@@ -85,11 +77,7 @@
 
 <div class="client-layout min-h-screen flex flex-col {ui.isMobile && isAccountPage ? '!bg-white' : ''}">
   {#if showGlobalHeader}
-    {#if ui.isMobile}
-      <HeaderMobile />
-    {:else}
-      <HeaderDesktop />
-    {/if}
+    <HeaderDesktop />
   {/if}
 
   <main class="flex-grow">

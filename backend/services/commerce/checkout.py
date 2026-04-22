@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models.commerce import Order, ProductBase, ProductVariant, UserLoyalty, PointTransaction
 from backend.database.models.auth import User
 from backend.schemas.client.checkout import StealthCheckoutSchema
+from litestar.exceptions import ValidationException
 from backend.database import current_tenant_id
 from backend.services.event_bus import event_bus
 from backend.utils.device import is_mobile_device
@@ -295,8 +296,8 @@ class CheckoutService:
             "is_mobile": is_mobile_device(user_agent),
             "payment_method": payload.payment_method,
             "shipping_fee": payload.shipping_fee,
-            "combo_discount": combo_discount,
-            "voucher_discount": voucher_discount,
+            "combo_discount": pricing.combo_discount,
+            "voucher_discount": pricing.voucher_discount,
             "voucher_ids": applied_voucher_ids,
             "points_redeemed": payload.points_redeemed,
             "point_discount_amount": point_discount
@@ -375,9 +376,8 @@ class CheckoutService:
         db_session.add(new_order)
         
         # 🚀 [ELITE V2.2] LOYALTY: Track pending points for immediate client feedback
-        pts_to_earn = math.floor(payload.total_amount / 100000)
-        if pts_to_earn > 0:
-            await LoyaltyService.register_pending_points(db_session, user.id, pts_to_earn)
+        if pricing.points_to_earn > 0:
+            await LoyaltyService.register_pending_points(db_session, user.id, pricing.points_to_earn)
         
         # 5.1 Ghi log trừ điểm nếu có
         if payload.points_redeemed > 0:
