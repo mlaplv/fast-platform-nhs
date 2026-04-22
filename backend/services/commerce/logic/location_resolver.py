@@ -56,9 +56,11 @@ class LocationResolver:
                     if "_GUIDE" in p or "id" not in p:
                         continue
                     p_id = str(p["id"])
-                    # Index Province
+                    # Index Province (Elite V5.9: Added code indexing for abbreviations like HCM, HN)
                     for name in [p["name"]] + p.get("aliases", []):
                         LocationResolver._province_map[normalize_vn(name)] = p
+                    if "code" in p:
+                        LocationResolver._province_map[normalize_vn(p["code"])] = p
                     
                     # Elite V3.8 Prefixes to strip for index
                     prefixes = ["phuong ", "xa ", "thi tran ", "quan ", "huyen ", "thanh pho "]

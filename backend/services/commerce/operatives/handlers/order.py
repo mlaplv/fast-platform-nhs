@@ -105,8 +105,14 @@ class OrderHandler(BaseHandler):
         # we MUST hold the intent to prevent falling through to ConsultantHandler for slot-filling.
         if ctx.order_draft:
             logger.info(f"🎯 [OrderHandler] Sticky Check: Active Draft found for SID {session_id}")
+            # Elite V5.9: Expanded location keywords to catch address fragments (e.g. "HCM" to clarify ambiguous province)
+            msg_lower = msg.lower()
+            is_location_keyword = any(kw in msg_lower.split() for kw in ["hcm", "hn", "sg"]) or any(
+                kw in msg_lower for kw in ["tỉnh", "thành phố", "hồ chí minh", "hà nội", "đà nẵng", "hải phòng", "cần thơ", "quận", "huyện", "phường", "xã", "đường", "ngõ", "ngách"]
+            )
+            
             # Only sticky if it looks like they are providing the missing info (digits = phone/address, / = address)
-            if has_digits or has_standalone_phone or "/" in msg or "phường" in msg or "quận" in msg:
+            if has_digits or has_standalone_phone or "/" in msg or is_location_keyword:
                 is_strong_intent = True
                 logger.info(f"🎯 [OrderHandler] Sticky Intent Activated for session {session_id}")
 

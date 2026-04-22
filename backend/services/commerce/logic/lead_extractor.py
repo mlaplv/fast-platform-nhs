@@ -129,8 +129,19 @@ class LeadExtractor:
             # Merge slots if missing in current turn
             if not lead.customer_phone and draft.customer_phone:
                 lead.customer_phone = draft.customer_phone
+
+            # Elite V5.9: Smart Address Hydration
+            # If current turn has NO address, or just a short fragment (like "HCM"), merge with draft
             if not lead.customer_address and draft.customer_address:
                 lead.customer_address = draft.customer_address
+            elif lead.customer_address and draft.customer_address:
+                # If current is just a fragment (e.g. "HCM") while the draft HAS a detailed address,
+                # merge them to prevent losing the street name.
+                if len(lead.customer_address) < 20 and len(draft.customer_address) > 15:
+                    if lead.customer_address.lower() in draft.customer_address.lower():
+                        lead.customer_address = draft.customer_address
+                    else:
+                        lead.customer_address = f"{draft.customer_address}, {lead.customer_address}"
             if not lead.customer_name and draft.customer_name:
                 lead.customer_name = draft.customer_name
             
@@ -205,7 +216,15 @@ class LeadExtractor:
         """
         try:
             # 1. AI EXTRACTION (TrinityBridge Fast Tier)
-            full_message = f"{message}\n\n[USER_CONTEXT_HINT]\n{cart_text}" if cart_text else message
+            # Elite V5.9: Inject Draft Address to prevent fragment overwriting (e.g., "HCM" erasing street name)
+            context_hint = cart_text
+            raw_draft = await xohi_memory.get_order_draft(session_id)
+            if raw_draft:
+                draft_addr = raw_draft.get("customer_address")
+                if draft_addr:
+                    context_hint += f"\n\n[QUAN TRỌNG - GHÉP NỐI ĐỊA CHỈ]: Khách hàng ĐÃ cung cấp phần địa chỉ ở câu trước: '{draft_addr}'. Nếu tin nhắn hiện tại của khách là một Tỉnh/Thành phố hoặc Quận/Huyện còn thiếu (ví dụ: 'HCM', 'Hà Nội'), BẠN PHẢI GHÉP NỐI tin nhắn này vào địa chỉ cũ để trả về địa chỉ ĐẦY ĐỦ. Tuyệt đối KHÔNG ĐƯỢC vứt bỏ phần địa chỉ cũ."
+            
+            full_message = f"{message}\n\n[USER_CONTEXT_HINT]\n{context_hint}" if context_hint else message
             result = await trinity_bridge.run(_lead_extraction_agent, full_message, role="fast", session_id=session_id)
             
             # Elite V2.2: Standardized Result Extraction (Trust the Bridge)
