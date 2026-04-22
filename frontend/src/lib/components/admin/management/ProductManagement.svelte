@@ -212,6 +212,7 @@
         sku: v.sku || "",
         price: Number(v.price || 0),
         discountPrice: Number(v.discountPrice ?? v.discount_price ?? 0),
+        discountPercent: Number((v as any).discountPercent ?? (v as any).discount_percent ?? 0),
         stock: Number(v.stock || 0),
         tierIndex: v.tierIndex ?? v.tier_index ?? [],
         is_default: v.is_default || false
@@ -300,6 +301,9 @@
       sku: formSku || `SKU-${Date.now()}`,
       price: Number(formPrice),
       discount_price: formDiscountPrice ? Number(formDiscountPrice) : null,
+      discount_percent: (formVariants.length === 0 && formPrice > 0 && formDiscountPrice > 0) 
+        ? Math.round(((formPrice - formDiscountPrice) / formPrice) * 10000) / 100 
+        : null,
       stock: Number(formStock),
       categoryId: formCategory || null,
       status: (formStatus || "draft").toUpperCase(),
@@ -322,6 +326,7 @@
         sku: v.sku || "", 
         price: Number(v.price), 
         discount_price: v.discountPrice ? Number(v.discountPrice) : null,
+        discount_percent: v.discountPercent || null,
         stock: Number(v.stock), 
         tier_index: v.tierIndex || [],
         is_default: v.is_default || false,

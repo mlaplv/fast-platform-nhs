@@ -381,6 +381,7 @@ export interface Product {
   sku: string;
   price: number;
   discountPrice?: number;
+  discountPercent?: number;
   stock: number;
   status: string;
   category: string;
@@ -430,6 +431,7 @@ export interface ProductVariant {
   sku: string;
   price: number;
   discountPrice?: number;
+  discountPercent?: number;
   stock: number;
   attributes?: {
     combo_qty?: number;
@@ -618,6 +620,7 @@ export interface UpdateProductPayload {
   metadata?: ProductMetadata;
   price?: number;
   discountPrice?: number;
+  discountPercent?: number;
   status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
   variants?: ProductVariant[];
   images?: string[];

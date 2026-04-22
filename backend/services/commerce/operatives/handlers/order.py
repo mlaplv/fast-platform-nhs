@@ -224,6 +224,12 @@ class OrderHandler(BaseHandler):
             except Exception as e:
                 logger.error(f"[OrderHandler] Atomic extraction/draft failed: {e}")
 
+        # 🚀 Elite V5.5: Real-time Draft Monitoring for Sếp
+        if ctx.order_draft:
+            _items_str = ", ".join([f"{it.get('name', 'SP')} x{it.get('quantity', 1)}" for it in ctx.order_draft.items])
+            print(f"DEBUG_CONSOLE: 📦 [OrderDraft] SID: {ctx.session_id} | SPXSL: [{_items_str}] | SĐT: {ctx.order_draft.customer_phone} | ĐỊA CHỈ: {ctx.order_draft.customer_address}")
+            logger.info(f"📦 [OrderDraft] SID: {ctx.session_id} Sync: {_items_str} | {ctx.order_draft.customer_phone} | {ctx.order_draft.customer_address}")
+
         # 🚀 3. DECISION ENGINE (Shadow Checkout & Upsell)
         if lead_data:
             from backend.database import current_tenant_id

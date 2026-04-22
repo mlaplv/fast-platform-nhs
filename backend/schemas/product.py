@@ -115,6 +115,7 @@ class ProductVariantSchema(BaseModel):
     sku: Optional[str] = None
     price: float
     discountPrice: Optional[float] = Field(None, alias="discount_price")
+    discountPercent: Optional[float] = Field(None, alias="discount_percent")
     stock: int
     attributes: Optional[VariantAttributes] = Field(None)
     is_default: bool = False
@@ -141,6 +142,7 @@ class CreateProductRequest(BaseModel):
     sku: Optional[str] = Field(None, max_length=50)
     price: float = Field(0, ge=0)
     discountPrice: Optional[float] = Field(None, ge=0, alias="discount_price")
+    discountPercent: Optional[float] = Field(None, ge=0, alias="discount_percent")
     stock: int = Field(0, ge=0)
     status: str = Field("DRAFT", pattern=r"^(DRAFT|ACTIVE|ARCHIVED)$")
     shortDescription: Optional[str] = Field(None, max_length=1000)
@@ -177,6 +179,7 @@ class UpdateProductRequest(BaseModel):
     sku: Optional[str] = Field(None, max_length=50)
     price: Optional[float] = Field(None, ge=0)
     discountPrice: Optional[float] = Field(None, ge=0, alias="discount_price")
+    discountPercent: Optional[float] = Field(None, ge=0, alias="discount_percent")
     stock: Optional[int] = Field(None, ge=0)
     status: Optional[str] = Field(None, pattern=r"^(DRAFT|ACTIVE|ARCHIVED)$")
     shortDescription: Optional[str] = Field(None, max_length=1000)
@@ -214,6 +217,7 @@ class ProductResponse(BaseModel):
     sku: Optional[str] = ""
     price: float
     discountPrice: Optional[float] = Field(None, alias="discount_price")
+    discountPercent: Optional[float] = Field(None, alias="discount_percent")
     stock: int
     status: str
     category: Optional[str] = Field("", alias="category_name")

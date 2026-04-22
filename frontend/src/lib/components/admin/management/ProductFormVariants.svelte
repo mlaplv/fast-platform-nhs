@@ -22,6 +22,7 @@
   let brokenVariantImages = $state<Set<string>>(new Set());
   let batchPrice = $state<number>(0);
   let batchDiscountPrice = $state<number>(0);
+  let batchDiscountPercent = $state<number>(0);
   let batchStock = $state<number>(0);
   let batchSku = $state<string>('');
   
@@ -67,9 +68,15 @@
         structuralChange = true;
       }
 
-      // R00: Ensure is_default is boolean and not undefined
+      // R102: Ensure is_default is boolean and not undefined
       if (v.is_default === undefined) {
         v.is_default = false;
+        structuralChange = true;
+      }
+
+      // Initialize discountPercent if it doesn't exist or is 0
+      if (!v.discountPercent && v.discountPrice > 0) {
+        v.discountPercent = calculateDiscountPercent(Number(v.price), Number(v.discountPrice));
         structuralChange = true;
       }
     });
@@ -193,6 +200,7 @@
             sku: generatedSku, 
             price: 0, 
             discountPrice: 0, 
+            discountPercent: 0,
             stock: 0, 
             is_default: false,
             attributes: { combo_qty: null, gifts: [] } 
@@ -208,6 +216,7 @@
           sku: generatedSku, 
           price: 0, 
           discountPrice: 0, 
+          discountPercent: 0,
           stock: 0, 
           is_default: false,
           attributes: { combo_qty: null, gifts: [] } 
@@ -242,14 +251,38 @@
     );
   }
 
+  function calculateDiscountPrice(price: number, percent: number) {
+    if (!price || price <= 0) return 0;
+    return Math.round(price * (1 - percent / 100));
+  }
+
+  function calculateDiscountPercent(price: number, discountPrice: number) {
+    if (!price || price <= 0 || !discountPrice || discountPrice <= 0) return 0;
+    if (discountPrice >= price) return 0;
+    const percent = ((price - discountPrice) / price) * 100;
+    return Math.round(percent * 100) / 100; // Round to 2 decimal places
+  }
+
   function applyBatch() {
-    formVariants = formVariants.map(v => ({
-      ...v,
-      price: batchPrice > 0 ? batchPrice : v.price,
-      discountPrice: batchDiscountPrice > 0 ? batchDiscountPrice : v.discountPrice,
-      stock: batchStock > 0 ? batchStock : v.stock,
-      sku: batchSku ? `${batchSku}-${v.tierIndex.join('-')}` : v.sku
-    }));
+    formVariants = formVariants.map(v => {
+      let finalPrice = batchPrice > 0 ? batchPrice : v.price;
+      let finalDiscountPrice = v.discountPrice;
+
+      if (batchDiscountPercent > 0) {
+        finalDiscountPrice = calculateDiscountPrice(finalPrice, batchDiscountPercent);
+      } else if (batchDiscountPrice > 0) {
+        finalDiscountPrice = batchDiscountPrice;
+      }
+
+      return {
+        ...v,
+        price: finalPrice,
+        discountPrice: finalDiscountPrice,
+        discountPercent: calculateDiscountPercent(finalPrice, finalDiscountPrice),
+        stock: batchStock > 0 ? batchStock : v.stock,
+        sku: batchSku ? `${batchSku}-${v.tierIndex.join('-')}` : v.sku
+      };
+    });
   }
 
   function setDefault(vIndex: number) {
@@ -493,7 +526,10 @@
             <ChevronRight size={12} class="text-amber-500/40" />
           </div>
           <input type="number" bind:value={batchPrice} placeholder="Giá bán..." class="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-amber-200 outline-none w-24 placeholder:text-white/20" />
-          <input type="number" bind:value={batchDiscountPrice} placeholder="Giá KM..." class="bg-black/40 border border-rose-500/20 rounded px-2 py-1.5 text-xs text-rose-300 outline-none w-24 placeholder:text-white/20" />
+          <div class="flex items-center bg-black/40 border border-rose-500/20 rounded overflow-hidden">
+            <input type="number" bind:value={batchDiscountPercent} placeholder="%" class="w-12 bg-transparent px-2 py-1.5 text-xs text-rose-300 outline-none border-r border-white/5 placeholder:text-white/10" />
+            <input type="number" bind:value={batchDiscountPrice} placeholder="Giá KM..." class="w-24 bg-transparent px-2 py-1.5 text-xs text-rose-300 outline-none placeholder:text-white/20" />
+          </div>
           <input type="number" bind:value={batchStock} placeholder="Tồn kho..." class="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-amber-200 outline-none w-24 placeholder:text-white/20" />
           <input type="text" bind:value={batchSku} placeholder="Mã SKU chung..." class="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-amber-200 outline-none flex-1 placeholder:text-white/20 uppercase" />
           <button onclick={applyBatch} class="px-3 py-1.5 bg-amber-500 text-black text-[9px] font-black uppercase tracking-wider rounded-lg hover:brightness-110 flex items-center gap-1">
@@ -510,6 +546,7 @@
                 {/each}
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-12 text-center border-l border-white/5 whitespace-nowrap">Mặc định</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-amber-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Bán</th>
+                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-rose-500/40 w-16 border-l border-white/5 whitespace-nowrap text-center">Giảm %</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-rose-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Khuyến Mãi / 1 sản phẩm</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-20 border-l border-white/5 whitespace-nowrap">Kho Hàng</th>
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-cyan-400/60 min-w-[200px] border-l border-white/5">Thiết Lập Combo(Số lượng bắt buộc để áp dụng) & Quà(nếu có)</th>
@@ -539,7 +576,33 @@
                   </td>
 
                   <td class="p-1 border-l border-white/5">
-                    <input type="number" bind:value={variant.price} class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-amber-500/50 !outline-none px-3 py-2 text-xs text-amber-400 font-mono text-right rounded" placeholder="0" />
+                    <input 
+                      type="number" 
+                      bind:value={variant.price} 
+                      oninput={() => {
+                        if (variant.discountPercent > 0) {
+                          variant.discountPrice = calculateDiscountPrice(Number(variant.price), Number(variant.discountPercent));
+                        } else if (variant.discountPrice > 0) {
+                          variant.discountPercent = calculateDiscountPercent(Number(variant.price), Number(variant.discountPrice));
+                        }
+                        formVariants = [...formVariants];
+                      }}
+                      class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-amber-500/50 !outline-none px-3 py-2 text-xs text-amber-400 font-mono text-right rounded" 
+                      placeholder="0" 
+                    />
+                  </td>
+
+                  <td class="p-1 border-l border-white/5">
+                    <input 
+                      type="number" 
+                      bind:value={variant.discountPercent} 
+                      oninput={() => {
+                        variant.discountPrice = calculateDiscountPrice(Number(variant.price), Number(variant.discountPercent));
+                        formVariants = [...formVariants];
+                      }}
+                      class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-rose-500/50 !outline-none px-2 py-2 text-xs text-rose-400/70 font-mono text-center rounded" 
+                      placeholder="0" 
+                    />
                   </td>
 
                   <!-- Discount Price -->
@@ -548,6 +611,10 @@
                       <input 
                         type="number" 
                         bind:value={variant.discountPrice} 
+                        oninput={() => {
+                          variant.discountPercent = calculateDiscountPercent(Number(variant.price), Number(variant.discountPrice));
+                          formVariants = [...formVariants];
+                        }}
                         class="w-full bg-transparent border !outline-none px-3 py-2 text-xs font-mono text-right rounded transition-all 
                           {variantValidation[vIndex]?.isInvalid 
                             ? 'border-red-500 bg-red-500/10 text-red-400' 
