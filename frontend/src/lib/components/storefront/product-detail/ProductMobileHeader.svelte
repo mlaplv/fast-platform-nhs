@@ -21,7 +21,7 @@
 
 <header class="detail-header" style="z-index: var(--z-header, 100);">
   <div class="header-main">
-    <button class="icon-btn" onclick={() => history.back()}>
+    <button type="button" class="icon-btn" onclick={() => history.back()} aria-label="Quay lại">
       <ChevronLeft size={24} />
     </button>
     
@@ -35,16 +35,16 @@
     </div>
 
     <div class="header-actions">
-      <button class="icon-btn">
+      <button type="button" class="icon-btn" aria-label="Chia sẻ">
         <Share2 size={24} />
       </button>
-      <button class="icon-btn relative" onclick={() => goto('/checkout')}>
+      <button type="button" class="icon-btn relative" onclick={() => goto('/checkout')} aria-label="Giỏ hàng">
         <ShoppingCart size={24} />
         {#if cartStore.totalItems > 0}
           <span class="badge">{cartStore.totalItems}</span>
         {/if}
       </button>
-      <button class="icon-btn">
+      <button type="button" class="icon-btn" aria-label="Thêm">
         <MoreHorizontal size={24} />
       </button>
     </div>
@@ -54,7 +54,7 @@
   <nav class="tabs-nav" class:visible={showTabs}>
     {#each ['overview', 'reviews', 'description', 'recommendations'] as id}
       {@const label = id === 'overview' ? 'Tổng quan' : id === 'reviews' ? 'Đánh giá' : id === 'description' ? 'Mô tả' : 'Đề xuất'}
-      <button class="tab-item" class:active={activeTab === id} onclick={() => onScrollToSection(id)}>
+      <button type="button" class="tab-item" class:active={activeTab === id} onclick={() => onScrollToSection(id)}>
         {label}
         {#if activeTab === id}<div class="active-indicator"></div>{/if}
       </button>

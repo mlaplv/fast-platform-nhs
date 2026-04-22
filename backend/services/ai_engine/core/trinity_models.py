@@ -88,9 +88,10 @@ class TrinityModels:
                 resp = await client.get(url)
                 if resp.status_code == 200:
                     models = [
-                        m["name"].replace("models/", "") for m in resp.json().get("models", [])
-                        if "generateContent" in (m.get("supportedGenerationMethods") or [])
-                        and not any(bl in m["name"] for bl in self._config.get("blacklist", []))
+                        m.get("name", "").replace("models/", "") for m in resp.json().get("models", [])
+                        if m.get("name")
+                        and "generateContent" in (m.get("supportedGenerationMethods") or [])
+                        and not any(bl in m.get("name", "") for bl in self._config.get("blacklist", []))
                     ]
                     await self.rotator.save_discovered_models(models)
                     return models

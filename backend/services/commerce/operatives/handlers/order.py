@@ -132,14 +132,20 @@ class OrderHandler(BaseHandler):
                     # Deterministic Address Slot Fill
                     if "Địa chỉ cụ thể" in missing:
                         has_addr_signal = "/" in msg or any(
-                            kw in msg for kw in ["đường", "phố", "phường", "quận", "huyện", "xã", "tỉnh", "tp", "số", "ngõ", "ngách"]
+                            kw in msg for kw in ["đường", "phố", "phường", "quận", "huyện", "xã", "tỉnh", "tp", "số", "ngõ", "ngách", "p.", "q."]
                         )
-                        # If message is long and has digits, it's likely an address
-                        if has_addr_signal or (len(msg) > 15 and has_digits):
+                        # Elite V4.2: Guard against capturing pure phone numbers as addresses
+                        # If the message is mostly digits (e.g. "SĐT: 09xx"), it's likely NOT an address unless signal is strong
+                        digits_only = re.sub(r"\D", "", msg)
+                        digit_ratio = len(digits_only) / len(msg) if msg else 0
+                        is_likely_phone = digit_ratio > 0.3 and not has_addr_signal
+
+                        # If message is long and has digits, it's likely an address (if not a phone)
+                        # Elite V5.4: Capture as raw address even if not fully resolved to prevent Dementia Loop
+                        if has_addr_signal or (len(msg) > 12 and has_digits and not is_likely_phone):
                             ctx.order_draft.customer_address = ctx.request.message.strip()
                             draft_filled = True
-                            print(f"DEBUG_CONSOLE: 📍 [OrderHandler] 🧩 SLOT FILL: Address captured -> {ctx.order_draft.customer_address[:30]}...")
-                            logger.info(f"📍 [OrderHandler] 🧩 SLOT FILL: Address captured -> {ctx.order_draft.customer_address[:30]}...")
+                            logger.info(f"📍 [OrderHandler] 🧩 SLOT FILL (RAW): Address captured -> {ctx.order_draft.customer_address[:30]}...")
                     
                     if draft_filled:
                         # Mark definite intent since customer is actively providing info
@@ -241,28 +247,44 @@ class OrderHandler(BaseHandler):
                 ctx.replies.append(f"{debug_prefix}{header} 🌸\nAnh/Chị cho em xin **số lượng** sản phẩm muốn lấy để Helen chốt bill cho mình nhé. (Giá đang là: **{formatted_base}**)")
                 return True
 
-            # Case B: Thiếu Thông Tin Liên Hệ
+            # Case B: Thiếu Thông Tin Liên Hệ (Elite V5.4: Hyper-Contextual Responses)
             # Elite V3.1 CTO Guard: Only count address as 'found' if it was successfully resolved (has shipping_days)
             is_address_resolved = bool(lead_data.customer_address and lead_data.shipping_days)
             
+            # Logic: If we JUST filled a slot in this turn, we should acknowledge it specifically.
             if not lead_data.customer_phone or not is_address_resolved:
                 # 🚀 Elite V3.6: Detect invalid 9-digit phone typos specifically
                 raw_phone = re.search(r"0\d{8,10}", msg)
+                
                 if not lead_data.customer_phone and raw_phone:
                     ctx.replies.append(f"{debug_prefix}Dạ SĐT **{raw_phone.group()}** chị nhắn bị thiếu mất 1 số rồi ạ, chị kiểm tra lại giúp Helen nhé! 🌸")
                 elif not lead_data.customer_phone and not is_address_resolved:
+                    # CẢ HAI ĐỀU THIẾU
                     ctx.replies.append(f"{debug_prefix}Dạ Helen đã nhận đơn của mình rồi ạ! 🌸 Anh/Chị cho em xin thêm **Số điện thoại và Địa chỉ** cụ thể để em lên bill gửi hàng luôn nhé! ✨")
                 elif not lead_data.customer_phone:
-                    ctx.replies.append(f"{debug_prefix}Dạ địa chỉ thì Helen đã thấy rồi. Anh/Chị cho em xin thêm **Số Điện Thoại** để shipper liên lạc nha! 🌸")
+                    # CÓ ĐỊA CHỈ NHƯNG THIẾU SĐT
+                    ack = "Dạ địa chỉ thì Helen đã thấy rồi."
+                    if draft_filled and ctx.order_draft.customer_address in ctx.request.message:
+                        ack = f"Dạ Helen đã ghi nhận địa chỉ của mình tại **{lead_data.customer_address}** rồi ạ."
+                    ctx.replies.append(f"{debug_prefix}{ack} Anh/Chị cho em xin thêm **Số Điện Thoại** để shipper liên lạc nha! 🌸")
                 else:
-                    ctx.replies.append(f"{debug_prefix}Dạ SĐT em lưu 1 bản rồi ạ. Anh/Chị cho em xin thêm **Địa chỉ cụ thể** để gửi hàng về tận cửa luôn nhé! 🌸")
+                    # CÓ SĐT NHƯNG THIẾU ĐỊA CHỈ (HOẶC CHƯA RESOLVED)
+                    ack = "Dạ SĐT em lưu 1 bản rồi ạ."
+                    if draft_filled and lead_data.customer_phone in msg:
+                        ack = f"Dạ Helen đã lưu SĐT **{lead_data.customer_phone}** của mình rồi ạ."
+                    
+                    # Nếu có địa chỉ thô nhưng chưa resolved (thiếu Tỉnh/TP)
+                    if lead_data.customer_address and not is_address_resolved:
+                        ctx.replies.append(f"{debug_prefix}{ack} Địa chỉ **{lead_data.customer_address}** mình vừa nhắn Helen chưa rõ là ở Tỉnh/Thành phố nào, Anh/Chị nhắn rõ hơn để em tính phí ship nhé! 🌸")
+                    else:
+                        ctx.replies.append(f"{debug_prefix}{ack} Anh/Chị cho em xin thêm **Địa chỉ cụ thể** để gửi hàng về tận cửa luôn nhé! 🌸")
                 
                 # 🚀 Elite V3.6: Interleaved Recovery logic
                 if "?" in msg or len(msg) > 60:
                     logger.info("🔀 [OrderHandler] Interleaved Intent detected. Yielding to Consultant.")
                     return False
                 
-                logger.info(f"✅ [OrderHandler] V4.2 Decision Engine consumed message with response: {ctx.replies[-1][:30]}...")
+                logger.info(f"✅ [OrderHandler] V5.4 Decision Engine consumed message with response: {ctx.replies[-1][:30]}...")
                 return True
 
             # Case C: Shadow Checkout Thành Công -> Khai hỏa Voucher Intelligence
@@ -279,6 +301,8 @@ class OrderHandler(BaseHandler):
                 if order_obj:
                     total_amount = float(order_obj.total_amount or 0)
                     total_qty = sum(int(it.get("quantity", 1)) for it in (order_obj.items or []) if isinstance(it, dict))
+                    formatted_price = "{:,.0f}".format(total_amount).replace(",", ".")
+                    delivery_info = lead_data.shipping_days or "3-5 ngày"
                     
                     # Tìm Voucher Phù Hợp Tiếp Theo (Upsell Logic)
                     now = datetime.now(timezone.utc)

@@ -126,11 +126,13 @@
     <div class="thumbnails-track mt-2 px-4 flex gap-2 overflow-x-auto no-scrollbar">
       {#each displayImages as img, i}
         <button 
-          class="w-12 h-12 rounded-sm border-2 overflow-hidden shrink-0 transition-all {activeImageIndex === i ? 'border-[#ee4d2d]' : 'border-transparent opacity-60'}"
+          type="button"
+          class="w-12 h-12 rounded-sm border-2 overflow-hidden shrink-0 transition-all {activeImageIndex === i ? 'border-[#ee4d2d]' : 'border-transparent opacity-60'} p-0"
           onclick={() => {
             activeImageIndex = i;
             carouselRef?.scrollTo({ left: i * carouselRef.clientWidth, behavior: 'smooth' });
           }}
+          aria-label="Xem ảnh nhỏ {i + 1}"
         >
           <img src={img} alt="thumb" class="w-full h-full object-cover" />
         </button>
@@ -181,7 +183,7 @@
         <div class="vouchers-list" bind:this={vouchersListRef} onscroll={handleVoucherScroll}>
           {#each vouchers as v}
             {@const isApplied = selectedVouchers.includes(v.id)}
-            <button class="ticket-wrapper" onclick={() => toggleVoucher(v.id)}>
+            <button type="button" class="ticket-wrapper" onclick={() => toggleVoucher(v.id)}>
               <div class="ticket" class:active={isApplied}>
                 <div class="ticket-content">
                    <span class="main">{v.label}</span>

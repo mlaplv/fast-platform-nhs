@@ -293,8 +293,16 @@
 
   // --- SOCIAL & LIKES LOGIC (VIRAL 2026) ---
   let isLiked = $state(false);
-  let likeCount = $state(product.metadata?.likes ? Number(product.metadata.likes) : 1700);
+  let likeCount = $state(1700);
   let likeAnimating = $state(false);
+
+  // Sync like state with product (Elite V2.2)
+  $effect(() => {
+    if (product) {
+      isLiked = false; // Reset when switching products
+      likeCount = product.metadata?.likes ? Number(product.metadata.likes) : 1700;
+    }
+  });
 
   function toggleLike() {
     isLiked = !isLiked;
@@ -422,7 +430,7 @@
             playsinline
             preload="auto"
             ontimeupdate={handleTimeUpdate}
-          />
+          ></video>
           <!-- Mute / Unmute button (Shopee-style, bottom-right) -->
           <button
             onclick={toggleMute}
@@ -454,9 +462,11 @@
       <!-- Thumbnails -->
       <div class="mt-4 grid grid-cols-5 gap-2 px-1">
         {#each (product.images || []).slice(0, 5) as img, i}
-          <div 
-            class="aspect-square border-2 cursor-pointer transition-all {activeImageIndex === i ? 'border-[#ee4d2d]' : 'border-transparent hover:border-[#ee4d2d]'} relative overflow-hidden bg-gray-50"
+          <button 
+            type="button"
+            class="aspect-square border-2 cursor-pointer transition-all {activeImageIndex === i ? 'border-[#ee4d2d]' : 'border-transparent hover:border-[#ee4d2d]'} relative overflow-hidden bg-gray-50 p-0"
             onclick={() => activeImageIndex = i}
+            aria-label="Xem ảnh {i + 1}"
           >
             {#if isVideoUrl(img)}
               <video
@@ -465,7 +475,7 @@
                 muted
                 playsinline
                 preload="metadata"
-              />
+              ></video>
               <!-- Play icon mini -->
               <div class="absolute inset-0 flex items-center justify-center bg-black/20">
                 <svg class="w-4 h-4 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -473,7 +483,7 @@
             {:else}
               <img src={img} alt="Thumb" class="w-full h-full object-cover" />
             {/if}
-          </div>
+          </button>
         {/each}
       </div>
 

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator, AliasChoices
 from typing import Optional, List, Union, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Elite 2026: Strict JSON Type (Rule R00)
 JSONPrimitive = Union[str, int, float, bool, None]
@@ -220,7 +220,7 @@ class PublicOrderResponse(BaseModel):
         }
 class OrderDraft(BaseModel):
     """Elite V3.6: Persistent Slot-Filling State for Support Orders"""
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=False)
 
     session_id: str
     items: List[Dict[str, JSONType]] = Field(default_factory=list)
@@ -228,7 +228,7 @@ class OrderDraft(BaseModel):
     customer_phone: Optional[str] = None
     customer_address: Optional[str] = None
     is_definite_intent: bool = False
-    last_update: datetime = Field(default_factory=datetime.utcnow)
+    last_update: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @property
     def is_complete(self) -> bool:

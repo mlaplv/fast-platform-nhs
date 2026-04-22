@@ -3,6 +3,7 @@ import asyncio
 import os
 import time
 import random
+import warnings
 from typing import Optional
 from fastembed import TextEmbedding
 
@@ -109,11 +110,13 @@ async def warmup_encoder(max_retries: int = 5):
                                 ], check=True, capture_output=True)
 
                     def _init():
-                        return TextEmbedding(
-                            model_name=model_name,
-                            cache_dir=CACHE_DIR,
-                            local_files_only=os.getenv("HF_HUB_OFFLINE") == "1"
-                        )
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings("ignore", category=UserWarning, message=".*mean pooling.*")
+                            return TextEmbedding(
+                                model_name=model_name,
+                                cache_dir=CACHE_DIR,
+                                local_files_only=os.getenv("HF_HUB_OFFLINE") == "1"
+                            )
 
                     loop = asyncio.get_running_loop()
                     _shared_encoder = await loop.run_in_executor(None, _init)

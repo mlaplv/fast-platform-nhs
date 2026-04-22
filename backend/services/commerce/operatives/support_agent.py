@@ -397,8 +397,8 @@ class SupportAgentOperative(BaseAgentOperative):
             
             # Elite V5.8: Display REAL voucher names (SPLIT: Product vs Shipping)
             applied_v = pb.get("applied_vouchers") or []
-            prod_v_names = ", ".join([v["name"] for v in applied_v if v.get("type") != "SHIPPING"])
-            ship_v_names = ", ".join([v["name"] for v in applied_v if v.get("type") == "SHIPPING"])
+            prod_v_names = ", ".join([v.get("name", v.get("id", "Voucher")) for v in applied_v if v.get("type") != "SHIPPING"])
+            ship_v_names = ", ".join([v.get("name", v.get("id", "Voucher")) for v in applied_v if v.get("type") == "SHIPPING"])
 
             if pb.get("voucher_discount", 0) > 0: 
                 v_label = f"({prod_v_names})" if prod_v_names else ""
@@ -489,19 +489,22 @@ class SupportAgentOperative(BaseAgentOperative):
         final_reply = " ".join(ctx.replies).strip() if ctx.replies else "[fallback] Dạ Helen xin lỗi, hiện tại em đang bận xử lý dữ liệu một chút. Anh/Chị vui lòng nhập câu hỏi rõ hơn hoặc chờ em giây lát nhé! 🌸"
         
         # 🚀 Elite V3.6: Stateful Response Synthesis (The Closing Hook)
+        # Elite V5.4: Inhibit redundant hooks if specialized handler already replied or intent is clear
         if ctx.order_draft and not ctx.order_draft.is_complete and ctx.intent != SupportIntent.PURCHASE:
-            missing = ctx.order_draft.missing_slots
-            if missing:
-                hook = f"\n\n(Dạ em vẫn đang chờ {', '.join(missing)} của mình để hoàn tất đơn hàng đó ạ! 🌸)"
-                if hook not in final_reply:
-                    final_reply += hook
+            # Skip hook if specialists (like OrderHandler) already provided a slot-filling reply
+            if not ctx.replies or len(ctx.replies) == 0:
+                missing = ctx.order_draft.missing_slots
+                if missing:
+                    hook = f"\n\n(Dạ em vẫn đang chờ {', '.join(missing)} của mình để hoàn tất đơn hàng đó ạ! 🌸)"
+                    if hook not in final_reply:
+                        final_reply += hook
 
         # 🚀 V4.2: Universal UI Metadata - Always include draft state for UI/Debugging
         if ctx.order_draft:
             if not ctx.ui_metadata:
                 ctx.ui_metadata = {}
             ctx.ui_metadata.update({
-                "order_draft": ctx.order_draft.model_dump(),
+                "order_draft": ctx.order_draft.model_dump(mode='json'),
                 "missing_slots": ctx.order_draft.missing_slots,
                 "is_definite": ctx.lead_data.is_definite_purchase if ctx.lead_data else False
             })
