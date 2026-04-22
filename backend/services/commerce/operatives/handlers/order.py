@@ -284,6 +284,11 @@ class OrderHandler(BaseHandler):
                 return True
 
             if not is_definite and not has_items:
+                # Elite V6.0: Handle Financial Error specifically
+                if lead_data.is_financial_error:
+                    ctx.replies.append(f"{debug_prefix}Dạ Helen đã ghi nhận ý định mua hàng của mình, nhưng em cần kiểm tra lại giá chính xác cho sản phẩm này một chút ạ. Anh/Chị đợi em 30 giây để em báo giá chuẩn và chốt đơn cho mình luôn nhé! 🌸")
+                    return True
+
                 base_price = int(ctx.p_info.price) if ctx.p_info and ctx.p_info.price else 0
                 formatted_base = "{:,.0f}".format(base_price).replace(",", ".") + "đ" if base_price > 0 else "đang cập nhật"
                 
@@ -388,20 +393,22 @@ class OrderHandler(BaseHandler):
                         money_pts = "{:,.0f}".format(pricing.point_discount_amount).replace(",", ".")
                         pts_hook = f"⚡ **Ưu đãi thành viên:** Helen thấy mình đang có **{ctx.dna.available_points} điểm**. Mình có muốn Helen dùng luôn để chiết khấu tối đa **{money_pts}đ** cho đơn này không ạ? "
 
+                    item_names = ", ".join([f"**{it.get('name', 'SP')}** (x{it.get('quantity', 1)})" for it in (order_obj.items or [])])
+
                     if next_voucher and next_voucher.min_spend and (next_voucher.min_spend - total_amount) < 500000:
                         diff = next_voucher.min_spend - total_amount
                         diff_f = "{:,.0f}".format(diff).replace(",", ".")
                         v_val_f = "{:,.0f}".format(next_voucher.value).replace(",", ".") if next_voucher.type != "PERCENT" else f"{next_voucher.value}%"
                         
                         reply = (
-                            f"{debug_prefix}Dạ Helen đã gom đơn **{total_qty} mục** ({formatted_price}đ) của mình vào hệ thống. Đơn hàng sẽ về đến tay mình sau khoảng **{delivery_info}** ạ! 🌸\n\n{pts_hook}"
+                            f"{debug_prefix}Dạ Helen đã gom đơn {item_names} với tổng bill **{formatted_price}đ** của mình vào hệ thống. Đơn hàng sẽ về đến tay mình sau khoảng **{delivery_info}** ạ! 🌸\n\n{pts_hook}"
                             f"Đặc biệt, mình chỉ cần mua thêm khoảng **{diff_f}đ** nữa thôi là được áp dụng mã giảm giá **{v_val_f}** rồi đó ạ. Mình có muốn chọn thêm sản phẩm nào để tối ưu voucher luôn không?"
                         )
                     else:
                         reply = (
                             f"{debug_prefix}Dạ Helen chúc mừng Anh/Chị đã đặt hàng thành công! 🌸\nHelen đã chốt gửi đơn đi theo lịch trình:\n"
                             f"- Mã đơn: **{order_id[-8:].upper()}**\n"
-                            f"- Sản phẩm: {total_qty} mục\n"
+                            f"- Sản phẩm: {item_names}\n"
                             f"- Tổng tiền: **{formatted_price}đ** (Lưu giỏ thành công)\n"
                             f"- Dự kiến tới tay: **{delivery_info}**\n\n"
                             f"{pts_hook}\n"

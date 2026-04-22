@@ -89,13 +89,20 @@ class SupportAgentState {
     
     // Elite V2.2: Context & Pulse Intelligence
     currentPath = $state("");
+    currentProductName = $state(""); // Elite V6.3: Track current product name for greeting
     aiPulse = $state(false);
 
     // Derived context computed from path
     currentContext = $derived.by(() => {
         if (!this.currentPath) return "default";
         if (this.currentPath === "/" || this.currentPath === "") return "home";
-        if (this.currentPath.startsWith("/p/")) return "product";
+        // Handle both clean URLs and potential product prefixes
+        if (this.currentPath.includes("-sua-rua-mat-") || 
+            this.currentPath.includes("-kem-duong-") || 
+            this.currentPath.includes("-serum-") ||
+            this.currentPath.split("/").length >= 2 && this.currentPath.length > 20) {
+            return "product";
+        }
         if (this.currentPath.startsWith("/cart")) return "cart";
         if (this.currentPath.startsWith("/checkout")) return "checkout";
         return "default";
@@ -105,13 +112,23 @@ class SupportAgentState {
     private _pulseSource: EventSource | null = null;
 
     
-    // Elite V3.1: Persona Intelligence — Dynamic Welcome Based on Identity
+    // Elite V3.1/V6.3: Persona Intelligence — Dynamic Welcome Based on Identity & Context
     welcomeMessage = $derived.by(() => {
         const user = authStore.user;
         const agentName = this.config.agentName || "Helen";
+        const isProductPage = this.currentContext === "product";
+        const pName = this.currentProductName;
         
         if (!this.helenEnabled) {
             return this.offlineMessage || "Chào mừng Quý khách! Hiện tại em đang tạm nghỉ, chuyên viên trực sẽ sớm hỗ trợ mình qua Zalo OA ạ. 🌸";
+        }
+
+        const nameLabel = user?.name || "mình";
+        const greeting = user?.name ? `Dạ Helen chào ${user.name}!` : `Chào mừng Quý khách đến với Micsmo!`;
+
+        if (isProductPage) {
+            const prodHook = pName ? `siêu phẩm **${pName}**` : "sản phẩm này";
+            return `${greeting} Rất vui được gặp lại mình. Em thấy mình đang quan tâm đến ${prodHook} - đây là dòng sản phẩm cao cấp nhà Micsmo đó ạ. ${nameLabel} có muốn Helen tư vấn kỹ hơn không? ✨💄`;
         }
 
         if (user?.name) {

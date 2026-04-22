@@ -13,6 +13,7 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';
   import { onMount, untrack } from 'svelte';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import {
     buildBreadcrumbLd,
     buildCategoryLd,
@@ -51,6 +52,20 @@
 
   onMount(() => {
     return ui.initObservers();
+  });
+
+  // Elite V6.3: Neural Product Sync
+  $effect(() => {
+    const pName = data.product?.name || "";
+    untrack(() => {
+        supportAgent.currentProductName = pName;
+    });
+    
+    return () => {
+        untrack(() => {
+            supportAgent.currentProductName = "";
+        });
+    };
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

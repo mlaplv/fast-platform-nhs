@@ -23,6 +23,11 @@ from backend.database.models.content import Category
 from backend.database.models.system import SupportChatHistory
 from backend.schemas.support import SupportIntent, SupportRequest, SupportResponse, SupportProductInfo
 from backend.schemas.order import OrderDraft
+from backend.database.models.promotion import Voucher
+from backend.database.repositories import SupportKnowledgeRepository
+from backend.services.commerce.support_knowledge import SupportKnowledgeService
+from backend.services.commerce.logic.fomo_service import fomo_service
+from backend.services.commerce.promotion import PromotionService
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative
 from backend.constants.infra import HELEN_FOLLOW_UP_TRIGGER
@@ -59,11 +64,20 @@ class SupportAgentDeps(BaseModel):
 _support_ai_agent: Agent[SupportAgentDeps, AgenticSupportResponse] = Agent(
     output_type=AgenticSupportResponse,
     retries=1, 
+    system_prompt=(
+        "Bạn là Helen - Chuyên gia tư vấn sắc đẹp cao cấp tại Micsmo.\n"
+        "NHIỆM VỤ CHIẾN THUẬT:\n"
+        "1. NHẬN DIỆN VỊ TRÍ: Nếu khách hỏi 'tôi đang ở đâu', 'đây là sản phẩm gì', 'tên sản phẩm này là gì' -> BẠN PHẢI đọc ngay mục [SẢN PHẨM KHÁCH ĐANG XEM TẠI TRANG HIỆN TẠI] trong context để trả lời chính xác.\n"
+        "2. TƯ VẤN CHUYÊN SÂU: Sử dụng kho tri thức (Tool) để giải thích thành phần, công dụng.\n"
+        "3. CHỐT ĐƠN: Nếu khách muốn mua, hãy dùng phong thái 'Sales Assassin' để chốt bill.\n"
+        "PHONG THÁI: Sang trọng, lịch sự, dùng các icon 🌸, ✨. Tuyệt đối KHÔNG dùng từ 'Sếp' hay 'bạn'. Dùng 'Anh/Chị' hoặc 'mình'."
+    )
 )
 
 class FastIntentDeps(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     customer_name: str = "Quý khách"
+    product_name: Optional[str] = None
 
 _fast_intent_agent: Agent[FastIntentDeps, FastIntentResponse] = Agent(
     output_type=FastIntentResponse,
@@ -72,6 +86,7 @@ _fast_intent_agent: Agent[FastIntentDeps, FastIntentResponse] = Agent(
         "GREETING, POLICY, PRODUCT, ORDER, PURCHASE, OTHER. "
         "IMPORTANT: If it's a simple greeting, provide a friendly quick_reply in Vietnamese. "
         "Always personalize the quick_reply using the specific customer's name from deps if provided. "
+        "If 'product_name' is provided in deps, mention that you see them looking at it (e.g., 'Em thấy mình đang quan tâm đến [product_name]...'). "
         "DO NOT use the word 'Sếp' or 'bạn'. Use 'Quý khách' or 'Anh/Chị' if the name is generic. "
         "Tone: Elegant, professional, welcoming, using icons like 🌸, ✨. "
         "Confidence must be 0.0 to 1.0."
@@ -319,6 +334,18 @@ class SupportAgentOperative(BaseAgentOperative):
         
         logger.info(f"🧠 [SupportAgent] Context Slug: {request.product_slug}")
         ctx_text, p_info = await _fetch_product_context(db, request.product_slug)
+        
+        # Elite V6.0: Tenant Synchronization
+        from backend.database import current_tenant_id
+        if p_info:
+            # Check DB for full product to get tenant_id if not in p_info
+            # (We already did a select in _fetch_product_context, but p_info is a BaseModel)
+            # Let's ensure p_info has tenant_id or fetch it.
+            stmt = select(ProductBase.tenant_id).where(ProductBase.id == p_info.id)
+            t_id = (await db.execute(stmt)).scalar()
+            if t_id:
+                current_tenant_id.set(t_id)
+                logger.info(f"🏢 [SupportAgent] Tenant Context Set: {t_id}")
         hist_text = await self._fetch_chat_context(db, session_id)
         dna = await self._fetch_neural_dna(
             db, 
@@ -334,8 +361,6 @@ class SupportAgentOperative(BaseAgentOperative):
         
         # 🚀 1.0.1: Layer 1 Memory (Knowledge Map) - Elite V2.2 Protocol
         try:
-            from backend.database.repositories import SupportKnowledgeRepository
-            from backend.services.commerce.support_knowledge import SupportKnowledgeService
             repo = SupportKnowledgeRepository(session=db)
             kb_service = SupportKnowledgeService(repo=repo)
             kb_index = await kb_service.get_knowledge_index(db)
@@ -347,7 +372,6 @@ class SupportAgentOperative(BaseAgentOperative):
         messenger_on = await xohi_memory.client.get("system:messenger_enabled") != "0"
 
         # 🚀 1.2: Elite FOMO Sync
-        from backend.services.commerce.logic.fomo_service import fomo_service
         active_visitors = await fomo_service.get_active_visitors_count()
 
         # 🚀 1.3: Elite V3.6: Order Draft Hydration
@@ -355,9 +379,6 @@ class SupportAgentOperative(BaseAgentOperative):
         order_draft = OrderDraft.model_validate(raw_draft) if raw_draft else None
 
         # 🚀 Elite V5.3: ULTRA-LEAN GROUND TRUTH PROTOCOL
-        from backend.services.commerce.promotion import PromotionService
-        from backend.database.models.commerce import ProductBase, ProductVariant
-        from sqlalchemy import select
         
         # 1. REPORT GENERATION (What the customer sees)
         cart_lines = []
@@ -390,11 +411,14 @@ class SupportAgentOperative(BaseAgentOperative):
 
         # 🚀 Elite V5.9: Product Page Awareness
         # If the user is on a product page, inject it into the context so AI knows "cho 1 cái" refers to THIS.
+        # 🚀 Elite V5.9.1: Correct Context Stitching (Fix context loss when cart is empty)
         current_product_text = ""
         if request.product_slug and ctx_text:
             current_product_text = f"\n[SẢN PHẨM KHÁCH ĐANG XEM TẠI TRANG HIỆN TẠI]:\n{ctx_text}\n"
+
+        cart_lines_text = "\n".join(cart_lines) if cart_lines else "[GIỎ HÀNG THỰC]: Trống."
+        cart_text = f"{current_product_text}\n[CHI TIẾT GIỎ HÀNG THỰC TẾ]\n{cart_lines_text}\n"
         
-        cart_text = current_product_text + "\n[CHI TIẾT GIỎ HÀNG THỰC TẾ]\n" + "\n".join(cart_lines) + "\n" if cart_lines else "\n[GIỎ HÀNG THỰC]: Trống.\n"
         if pb.get("subtotal", 0) > 0:
             cart_text += f"\n[BẢNG TÍNH TOÁN CHI TIẾT - ELITE GROUND TRUTH]\n"
             if pb.get("is_fallback"):
@@ -426,7 +450,6 @@ class SupportAgentOperative(BaseAgentOperative):
             cart_text += f"--------------------------------\n"
             
             # 🚀 Elite V4.9: INTELLIGENT BEST-DEAL RESOLUTION (FOMO)
-            from backend.database.models.promotion import Voucher
             all_vouchers = (await db.execute(select(Voucher).where(Voucher.is_active == True))).scalars().all()
             
             best_v = None
@@ -596,14 +619,49 @@ class SupportAgentOperative(BaseAgentOperative):
         if not fallback_items:
             return {"subtotal": 0, "final_payable": 0, "points_to_earn": 0, "is_fallback": True}
 
+        # Elite V6.0: Triple Optimization Protocol (Value + Ship + Points)
+        subtotal_fallback = sum(i.unit_price * i.quantity for i in fallback_items)
+        all_vouchers = (await db.execute(select(Voucher).where(Voucher.is_active == True))).scalars().all()
+        
+        # 1. Best Value Voucher
+        best_vouchers = []
+        best_v = None
+        max_v_sav = 0
+        
+        # 2. Best Shipping Voucher
+        best_ship_v = None
+        max_ship_sav = 0
+        
+        for v in all_vouchers:
+            if subtotal_fallback < (v.min_spend or 0): continue
+            
+            if v.type == "SHIPPING":
+                ship_sav = PromotionService.calculate_voucher_discount(subtotal_fallback, v)
+                if ship_sav > max_ship_sav:
+                    max_ship_sav = ship_sav
+                    best_ship_v = v
+            else:
+                sav = PromotionService.calculate_voucher_discount(subtotal_fallback, v)
+                if sav > max_v_sav:
+                    max_v_sav = sav
+                    best_v = v
+        
+        if best_v: best_vouchers.append(best_v)
+        if best_ship_v: best_vouchers.append(best_ship_v)
+
+        # 3. Points Awareness (Extract from message if possible)
+        pts_to_use = 0
+        if any(kw in request.message.lower() for kw in ["dùng điểm", "trừ điểm", "xài điểm", "đổi điểm"]):
+            pts_to_use = dna.available_points
+
         pricing = PricingEngine.calculate(
             items=fallback_items,
-            vouchers=[], 
+            vouchers=best_vouchers, 
             combo_deals=await PromotionService.get_active_combo_deals(db),
-            points_to_redeem=0, 
+            points_to_redeem=pts_to_use, 
             available_points=dna.available_points,
             point_value_vnd=dna.point_value_vnd or 1000.0,
-            base_shipping_fee=30000.0 if sum(i.unit_price * i.quantity for i in fallback_items) < 2000000 else 0.0
+            base_shipping_fee=30000.0 if subtotal_fallback < 2000000 else 0.0
         )
         return {
             "subtotal": pricing.subtotal,
@@ -687,12 +745,18 @@ class SupportAgentOperative(BaseAgentOperative):
             # Elite V5.6: Enforce an absolute 4.0s ceiling for the entire fast-path.
             # If trinity_bridge spends too much time falling back through rate-limited models,
             # this strict timeout instantly aborts and forces the task to the Deep-Brain worker.
+            # Elite V6.1: Early Product Context for Fast-Path Awareness
+            _, p_info_fast = await _fetch_product_context(db, request.product_slug)
+            
             import asyncio
             fast_res = await asyncio.wait_for(
                 trinity_bridge.run(
                     _fast_intent_agent, 
                     masked_msg, 
-                    deps=FastIntentDeps(customer_name=c_name),
+                    deps=FastIntentDeps(
+                        customer_name=c_name,
+                        product_name=p_info_fast.name if p_info_fast else None
+                    ),
                     role=trinity_bridge.ROLE_FAST, 
                     timeout=2.0,  # Fast-path internal per-model timeout
                     safety_none=True

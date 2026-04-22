@@ -19,9 +19,11 @@ class GreetingHandler(BaseHandler):
         keywords = ["chào", "hi", "hello", "dạ", "alo", "helen", "ơi", "shop ơi", "ad ơi"]
         has_greeting = any(kw in msg for kw in keywords)
 
-        # Elite V2.6: Expanded threshold (25 chars) to catch "chào shop tư vấn giúp"
-        # Elite V5.6: NEVER consume greeting if cart exists (Let Consultant report cart)
-        if (is_first_msg or has_greeting) and len(msg) < 25 and not ctx.request.cart_items:
+        # Elite V6.2: Question Guard - NEVER consume if it looks like a specific query
+        q_keywords = ["nào", "gì", "đâu", "sao", "thế nào", "bao nhiêu", "ở đâu", "là gì"]
+        is_question = "?" in msg or any(q in msg for q in q_keywords)
+
+        if (is_first_msg or has_greeting) and len(msg) < 30 and not ctx.request.cart_items and not is_question:
             import os
             from datetime import datetime
             debug_prefix = "[z1] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""

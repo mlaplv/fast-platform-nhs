@@ -4,7 +4,7 @@
   import QuickLoginModal from "$lib/components/storefront/auth/QuickLoginModal.svelte";
   import { setNanobotContext } from "$lib/state/nanobot.svelte";
   import { setCartStore } from "$lib/state/commerce/cart.svelte";
-  import { navigating } from "$app/stores";
+  import { navigating, page } from "$app/stores";
   import { onMount, onDestroy, type Snippet } from "svelte";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import ToastProvider from "$lib/components/storefront/ui/ToastProvider.svelte";
@@ -14,9 +14,18 @@
   import SupportAgentFAB from "$lib/components/client/support/SupportAgentFAB.svelte";
   import SupportChatDesktop from "$lib/components/client/support/SupportChatDesktop.svelte";
   import SupportChatMobile from "$lib/components/client/support/SupportChatMobile.svelte";
+  import { untrack } from "svelte";
 
   // Elite V2.2: Context initialization gated by tenant
   let { children, data } = $props();
+
+  // Elite V6.3: Neural Path Synchronization
+  $effect(() => {
+    const path = $page.url.pathname;
+    untrack(() => {
+        supportAgent.setPath(path);
+    });
+  });
 
   const isAdmin = $derived(data?.tenant === 'admin');
   const ui = isAdmin ? null : setClientUi();
@@ -105,9 +114,9 @@
 
     <SupportAgentFAB isMobile={ui.isMobile} />
     {#if ui.isMobile}
-      <SupportChatMobile />
+      <SupportChatMobile productSlug={$page.params.slug} />
     {:else}
-      <SupportChatDesktop />
+      <SupportChatDesktop productSlug={$page.params.slug} />
     {/if}
   {/if}
 </div>
