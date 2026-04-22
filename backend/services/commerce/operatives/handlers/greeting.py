@@ -53,18 +53,24 @@ class GreetingHandler(BaseHandler):
             else:
                 prefix = f"{debug_prefix}Dạ Helen chào {c_name}! Chúc mình một {time_greet} nhé. 🌸 "
 
-            # Elite V2.6: Context-aware greeting hook
+            # Elite V5.9: Context-aware Sales Assassin Hook
             if ctx.p_info:
-                # Đang ở trang sản phẩm cụ thể
-                prefix += f"Helen rất hân hạnh được hỗ trợ mình về sản phẩm **{ctx.p_info.name}** ạ. "
+                # Đang ở trang sản phẩm cụ thể - Chốt FOMO & Ưu đãi
+                price_tag = f" (**{ctx.p_info.price_display}**)" if ctx.p_info.price_display else ""
+                prefix += f"Em thấy mình đang quan tâm đến siêu phẩm **{ctx.p_info.name}**{price_tag} - đây hiện đang là dòng 'best-seller' thăng hạng nhan sắc nhà Micsmo đó ạ! ✨ "
+                
+                # Add a punchy Sales Hook
                 ctx.replies.append(prefix)
-                ctx.replies.append("Anh/Chị cần Helen tư vấn thông tin gì hay muốn lên đơn trải nghiệm luôn không ạ?")
+                ctx.replies.append(
+                    "Hiện tại Helen đang có ưu đãi đặc quyền **Mua 2 Tặng 1 (Combo 2+1)** hoặc **Voucher giảm sâu** dành riêng cho mình khi chốt đơn tại đây. 🌸 "
+                    "Anh/Chị có muốn Helen kiểm tra mức giá tốt nhất sau khi áp mã cho mình không ạ?"
+                )
             else:
                 # Ở Homepage / Category / Cart — Smart Hook
                 ctx.replies.append(prefix)
                 ctx.replies.append(
-                    "Bên Micsmo đang có nhiều sản phẩm chăm sóc da hot và chương trình ưu đãi hấp dẫn lắm ạ! "
-                    "Anh/Chị muốn Helen tư vấn dòng sản phẩm nào cho mình, hay tìm hiểu về ưu đãi đang chạy không ạ? 🌸"
+                    "Bên Micsmo đang có rất nhiều siêu phẩm chăm sóc da và chương trình ưu đãi đặc quyền lên đến 50% dành cho mình đó ạ! ✨ "
+                    "Anh/Chị đang quan tâm dòng sản phẩm nào (Trắng da, Trị nám, Chống lão hóa...) để Helen gửi mình mã giảm giá hời nhất nhé! 🌸"
                 )
 
             return True  # TERMINATE: Pure greeting consumed.

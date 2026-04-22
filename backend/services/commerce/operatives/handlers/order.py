@@ -98,21 +98,27 @@ class OrderHandler(BaseHandler):
         has_buying_intent = any(kw in msg for kw in potential_keywords)
         
         # Elite V3.6: Trigger if there's buying intent OR a standalone phone OR active draft exists (Sticky)
-        is_strong_intent = has_digits and (has_buying_intent or is_staff_order or has_standalone_phone)
+        is_strong_intent = (has_digits and (has_buying_intent or is_staff_order or has_standalone_phone))
+        
+        # Elite V5.9.1: Force strong intent for very short, clear purchase messages (e.g., "cho mình hộp", "lấy 1 cái")
+        if has_buying_intent and len(msg.strip()) < 20 and any(kw in msg for kw in ["hộp", "lọ", "cái", "bộ", "set", "tuýp", "chai"]):
+            is_strong_intent = True
         
         # 🚀 V4.1: Sticky Order Protocol
         # If we have an active draft, OR the message is a clear phone/address after a purchase prompt,
         # we MUST hold the intent to prevent falling through to ConsultantHandler for slot-filling.
         if ctx.order_draft:
             logger.info(f"🎯 [OrderHandler] Sticky Check: Active Draft found for SID {session_id}")
-            # Elite V5.9: Expanded location keywords to catch address fragments (e.g. "HCM" to clarify ambiguous province)
+            # Elite V5.9: Expanded location keywords and buying intent to catch address fragments or short orders
             msg_lower = msg.lower()
             is_location_keyword = any(kw in msg_lower.split() for kw in ["hcm", "hn", "sg"]) or any(
                 kw in msg_lower for kw in ["tỉnh", "thành phố", "hồ chí minh", "hà nội", "đà nẵng", "hải phòng", "cần thơ", "quận", "huyện", "phường", "xã", "đường", "ngõ", "ngách"]
             )
+            # Clear buying intent keywords (Elite V5.9.1)
+            is_buying_intent = any(kw in msg_lower for kw in ["mua", "đặt", "lấy", "cho mình", "gửi cho", "ship cho", "chốt", "lên đơn"])
             
-            # Only sticky if it looks like they are providing the missing info (digits = phone/address, / = address)
-            if has_digits or has_standalone_phone or "/" in msg or is_location_keyword:
+            # Only sticky if it looks like they are providing the missing info (digits = phone/address, / = address, or clear intent)
+            if has_digits or has_standalone_phone or "/" in msg or is_location_keyword or is_buying_intent:
                 is_strong_intent = True
                 logger.info(f"🎯 [OrderHandler] Sticky Intent Activated for session {session_id}")
 

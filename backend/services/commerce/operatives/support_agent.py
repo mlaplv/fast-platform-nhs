@@ -317,6 +317,7 @@ class SupportAgentOperative(BaseAgentOperative):
         # 🚀 1. HYDRATE CONTEXT (Zero-Leak Hydration)
         await event_bus.emit("SUPPORT_THOUGHT", {"session_id": session_id, "think": "Đang đồng bộ DNA Helen..."})
         
+        logger.info(f"🧠 [SupportAgent] Context Slug: {request.product_slug}")
         ctx_text, p_info = await _fetch_product_context(db, request.product_slug)
         hist_text = await self._fetch_chat_context(db, session_id)
         dna = await self._fetch_neural_dna(

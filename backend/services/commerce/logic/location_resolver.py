@@ -58,7 +58,13 @@ class LocationResolver:
                     p_id = str(p["id"])
                     # Index Province (Elite V5.9: Added code indexing for abbreviations like HCM, HN)
                     for name in [p["name"]] + p.get("aliases", []):
-                        LocationResolver._province_map[normalize_vn(name)] = p
+                        n_name = normalize_vn(name)
+                        LocationResolver._province_map[n_name] = p
+                        # Elite V5.9.1: Also index short name (strip "thanh pho ", "tinh ") to allow "Hồ Chí Minh" match
+                        for pref in ["thanh pho ", "tinh "]:
+                            if n_name.startswith(pref):
+                                LocationResolver._province_map[n_name[len(pref):]] = p
+                                break
                     if "code" in p:
                         LocationResolver._province_map[normalize_vn(p["code"])] = p
                     
@@ -70,6 +76,14 @@ class LocationResolver:
                     for w in p.get("wards", []):
                         w_norm = normalize_vn(w)
                         LocationResolver._ward_map[p_id].append((w_norm, p))
+                        
+                        # Elite V5.9.1: Also index short ward name for local search (e.g. "Phú Lâm" instead of "Phường Phú Lâm")
+                        w_short = w_norm
+                        for pref in ["phuong ", "xa ", "thi tran "]:
+                            if w_short.startswith(pref):
+                                w_short = w_short[len(pref):]
+                                LocationResolver._ward_map[p_id].append((w_short, p))
+                                break
                         
                         # Elite V3.8: Global Ward Index (Prefix-Agnostic)
                         w_short = w_norm
@@ -206,7 +220,12 @@ class LocationResolver:
                 if w_norm in addr_norm:
                     # Heuristic: If we have multiple Phú Lâm, maybe check district from addr_norm?
                     # For now, just ensure we find a valid match
-                    best_ward_match = next(w for w in best_province["wards"] if normalize_vn(w) == w_norm)
+                    # Elite V5.9.1: Robust original name recovery
+                    for w_orig in best_province["wards"]:
+                        wn = normalize_vn(w_orig)
+                        if wn == w_norm or any(wn == pref + w_norm for pref in ["phuong ", "xa ", "thi tran "]):
+                            best_ward_match = w_orig
+                            break
                     break
 
             if best_ward_match:
