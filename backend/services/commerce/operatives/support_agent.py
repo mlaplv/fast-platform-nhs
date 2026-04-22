@@ -713,6 +713,16 @@ class SupportAgentOperative(BaseAgentOperative):
 
         # 🚀 DEEP BRAIN (Background Task) — for complex queries only
         logger.info("[SupportAgent] Falling back to Deep-Brain for SID: %s", session_id)
+        
+        # Elite V5.8: Purge the old Pulse Cache to prevent Race Condition
+        # If we don't do this, GET /pulse will read the PREVIOUS task's result (which lives for 5 mins)
+        # and instantly close the SSE connection before the new worker finishes.
+        if xohi_memory._use_redis and xohi_memory.client:
+            try:
+                await xohi_memory.client.delete(f"pulse:{session_id}:cache")
+            except Exception as e:
+                logger.warning(f"[SupportAgent] Failed to clear pulse cache: {e}")
+
         task_id = await self.enqueue_chat(request_data=request.model_dump(), session_id=session_id)
         logger.info("[SupportAgent] Deep-Brain task enqueued: %s for SID: %s", task_id, session_id)
         return SupportResponse(ok=True, reply="Helen đang xử lý...", intent=SupportIntent.UNKNOWN, session_id=session_id, task_id=task_id, status="PROCESSING")
