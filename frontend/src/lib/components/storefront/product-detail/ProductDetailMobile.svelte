@@ -106,15 +106,21 @@
     cartStore.addItem(product, selectedVariant || undefined, selectedQty);
     goto('/checkout');
   }
+
+  // SGE Shield V1.0: Deterministic DOM Entropy (Product Detail Mobile)
+  const wrapperTags = ['div', 'article', 'section', 'main'];
+  const seedLength = $derived(product?.name ? product.name.length : 10);
+  const outerWrapper = $derived(wrapperTags[seedLength % wrapperTags.length]);
+  const mainWrapper = $derived(['div', 'main', 'section'][(seedLength + 3) % 3]);
 </script>
 
-<div class="product-mobile-root">
+<svelte:element this={outerWrapper} class="product-mobile-root">
 
   <!-- 1. STICKY HEADER -->
   <ProductMobileHeader {product} {showTabs} {activeTab} onScrollToSection={scrollToSection} />
 
   <!-- 2. MAIN CONTENT SECTIONS -->
-  <main class="content-body">
+  <svelte:element this={mainWrapper} class="content-body">
     <div id="overview">
       <ProductMobileOverview 
         {product} 
@@ -142,7 +148,7 @@
     <div id="recommendations">
       <ProductMobileRecommendations {relatedProducts} />
     </div>
-  </main>
+  </svelte:element>
 
   <!-- 5. STICKY BOTTOM NAV -->
   <MobileBottomNav
@@ -162,7 +168,7 @@
   />
 
   <div class="h-12"></div>
-</div>
+</svelte:element>
 
 <style>
   .product-mobile-root {

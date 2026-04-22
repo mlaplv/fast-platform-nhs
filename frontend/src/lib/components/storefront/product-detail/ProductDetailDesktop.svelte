@@ -386,9 +386,16 @@
        }
     }
   }
+
+  // SGE Shield V1.0: Deterministic DOM Entropy (Product Detail)
+  const wrapperTags = ['div', 'article', 'section', 'main'];
+  const seedLength = $derived(product?.name ? product.name.length : 10);
+  const outerWrapper = $derived(wrapperTags[seedLength % wrapperTags.length]);
+  const contentWrapper = $derived(wrapperTags[(seedLength + 3) % wrapperTags.length]);
+  const descWrapper = $derived(['div', 'section', 'article'][(seedLength + 5) % 3]);
 </script>
 
-<div class="bg-[#f6f6f6] min-h-screen">
+<svelte:element this={outerWrapper} class="bg-[#f6f6f6] min-h-screen">
   <!-- VIRAL 2026: PROFESSIONAL BREADCRUMB -->
   <div class="bg-[#f5f5f5] py-4">
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-2 text-[13px] text-gray-600 font-medium">
@@ -398,7 +405,7 @@
   </div>
 </div>
 
-<div class="max-w-[1200px] mx-auto bg-white shadow-sm my-4 rounded-none p-5">
+<svelte:element this={contentWrapper} class="max-w-[1200px] mx-auto bg-white shadow-sm my-4 rounded-none p-5">
   <div class="flex flex-col md:flex-row gap-8">
     <!-- LEFT: IMAGES & SOCIAL (Viral 2026) -->
     <div class="w-full md:w-[450px] shrink-0">
@@ -782,7 +789,7 @@
 
     </div>
   </div>
-</div>
+</svelte:element>
 
 <!-- Bottom Sections (Professional Layout) -->
 <div class="max-w-[1200px] mx-auto flex flex-col gap-4 mb-0">
@@ -870,7 +877,7 @@
        <ProductDetailReviews {product} />
     </div>
   </div>
-</div>
+</svelte:element>
 <style>
   /* Elite V2.2: Premium Prose System */
   :global(.prose-micsmo) {

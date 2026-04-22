@@ -28,14 +28,14 @@
 
   // SGE Shield V1.0: Deterministic DOM Entropy
   const wrapperTags = ['div', 'article', 'section', 'main'];
-  const seedLength = article?.title ? article.title.length : 10;
-  const outerWrapper = wrapperTags[seedLength % wrapperTags.length];
+  const seedLength = $derived(article?.title ? article.title.length : 10);
+  const outerWrapper = $derived(wrapperTags[seedLength % wrapperTags.length]);
   
   const innerTags = ['div', 'section', 'article'];
-  const innerWrapper = innerTags[(seedLength + 5) % innerTags.length];
+  const innerWrapper = $derived(innerTags[(seedLength + 5) % innerTags.length]);
   
   const proseTags = ['div', 'section'];
-  const proseWrapper = proseTags[(seedLength + 7) % proseTags.length];
+  const proseWrapper = $derived(proseTags[(seedLength + 7) % proseTags.length]);
 </script>
 
 <svelte:element this={outerWrapper} class="news-detail-content pb-8 text-gray-900">

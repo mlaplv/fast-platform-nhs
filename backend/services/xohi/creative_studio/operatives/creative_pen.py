@@ -28,7 +28,7 @@ class CreativePen:
         self.outline_agent = Agent(output_type=ArticleOutline, retries=3)
         self.draft_agent = Agent()
 
-    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: Dict[str, object]) -> AgentResponse:
+    async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
         campaign = await repo.get(campaign_id)
         if not campaign: return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
 
