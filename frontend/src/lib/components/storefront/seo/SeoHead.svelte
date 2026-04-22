@@ -38,6 +38,9 @@
     robots = "index, follow, max-image-preview:large",
     jsonLdScripts = [],
   }: SeoHeadProps = $props();
+
+  import { buildGraphLd } from '$lib/utils/seo';
+  const unifiedGraphLd = $derived(buildGraphLd(jsonLdScripts));
 </script>
 
 <svelte:head>
@@ -73,11 +76,9 @@
     <meta name="twitter:image" content={ogImage} />
   {/if}
 
-  <!-- JSON-LD Structured Data (GEO 2026) -->
-  {#each jsonLdScripts as ldScript}
-    {#if ldScript}
-      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-      {@html `<script type="application/ld+json">${ldScript}</script>`}
-    {/if}
-  {/each}
+  <!-- JSON-LD Structured Data (GEO 2026: Unified @graph) -->
+  {#if unifiedGraphLd}
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    {@html `<script type="application/ld+json">${unifiedGraphLd}</script>`}
+  {/if}
 </svelte:head>
