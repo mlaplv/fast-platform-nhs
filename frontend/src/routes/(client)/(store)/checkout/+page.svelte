@@ -23,8 +23,9 @@
   import OrderSummarySection from './components/OrderSummarySection.svelte';
 
   import Countdown from '$lib/components/storefront/ui/Countdown.svelte';
-  import GiftModal from '$lib/components/storefront/ui/GiftModal.svelte';
-  import NeuralGuardian from '$lib/components/storefront/ui/NeuralGuardian.svelte';
+import GiftModal from '$lib/components/storefront/ui/GiftModal.svelte';
+import NeuralGuardian from '$lib/components/storefront/ui/NeuralGuardian.svelte';
+import { checkoutState } from '$lib/state/commerce/checkout.svelte';
 
   // Types
   import type {
@@ -350,6 +351,20 @@
   const pointDiscount = $derived(pointsToRedeem * 1000);
   
   const finalTotal = $derived(cartStore.totalAmount + shippingFee - pointDiscount);
+
+  // [ELITE V2.2] Ground Truth Sync: Export pricing breakdown for Helen
+  $effect(() => {
+    checkoutState.breakdown = {
+      subtotal: originalSubtotal,
+      combo_discount: productSavings,
+      voucher_discount: cartStore.totalDiscount,
+      shipping_fee: shippingFee,
+      total_amount: cartStore.totalAmount + shippingFee,
+      points_redeemed: pointsToRedeem,
+      point_discount: pointDiscount,
+      final_total: finalTotal
+    };
+  });
 
 
   // --- HELEN AI PRICE INTELLIGENCE (CHECKOUT CONTEXT) ---

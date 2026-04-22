@@ -82,6 +82,42 @@ class PromotionService:
                     total_discount += can_discount * it["unit_price"] * discount_pct
                     it["qty"] -= can_discount
                     applied_count += can_discount
+            elif deal.type == "BUNDLE_PRICE":
+                cond = deal.condition_payload or {}
+                reward = deal.reward_payload or {}
+                
+                required_qty = int(cond.get("qty", 0))
+                product_ids = cond.get("product_ids", [])
+                bundle_price = float(reward.get("price", 0))
+                
+                if required_qty <= 0 or not product_ids or bundle_price <= 0:
+                    continue
+                
+                relevant_items = [it for it in working_items if it["id"] in product_ids and it["qty"] > 0]
+                total_qty = sum(it["qty"] for it in relevant_items)
+                
+                if total_qty >= required_qty:
+                    num_bundles = total_qty // required_qty
+                    items_in_bundles = num_bundles * required_qty
+                    
+                    # Sort by price descending (discount the most expensive items into the bundle)
+                    # This is usually how shops work to show the "hời"
+                    relevant_items.sort(key=lambda x: x["unit_price"], reverse=True)
+                    
+                    bundle_discount = 0.0
+                    consumed_qty = 0
+                    for it in relevant_items:
+                        if consumed_qty >= items_in_bundles:
+                            break
+                        
+                        count = min(it["qty"], items_in_bundles - consumed_qty)
+                        # Current subtotal of these items: count * it['unit_price']
+                        # Target price for these items: count * (bundle_price / required_qty)
+                        bundle_discount += (count * it["unit_price"]) - (count * (bundle_price / required_qty))
+                        it["qty"] -= count
+                        consumed_qty += count
+                    
+                    total_discount += bundle_discount
                                 
         return total_discount
 

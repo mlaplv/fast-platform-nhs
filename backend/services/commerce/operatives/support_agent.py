@@ -18,7 +18,7 @@ from pydantic_ai import Agent, RunContext
 from sqlalchemy import select, and_, desc, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database.models.commerce import ProductBase, Order
+from backend.database.models.commerce import ProductBase, ProductVariant, Order
 from backend.database.models.content import Category
 from backend.database.models.system import SupportChatHistory
 from backend.schemas.support import SupportIntent, SupportRequest, SupportResponse, SupportProductInfo
@@ -323,6 +323,8 @@ class SupportAgentOperative(BaseAgentOperative):
         )
         
         logger.info(f"🧠 [SupportAgent] Processing Brain Logic for Session: {session_id}")
+        logger.info(f"🛒 [SupportAgent] Cart Items Count: {len(request.cart_items) if request.cart_items else 0}")
+        logger.info(f"💰 [SupportAgent] Pricing Context Present: {bool(request.pricing_context)}")
         logger.debug(f"📜 [SupportAgent] History Window: {hist_text[:100]}...")
         
         # 🚀 1.0.1: Layer 1 Memory (Knowledge Map) - Elite V2.2 Protocol
@@ -348,113 +350,152 @@ class SupportAgentOperative(BaseAgentOperative):
         raw_draft = await xohi_memory.get_order_draft(session_id)
         order_draft = OrderDraft.model_validate(raw_draft) if raw_draft else None
 
-        # 🚀 1.4: Elite V4.2: Real Cart Hydration (Sales Assassin Intelligence)
+        # 🚀 Elite V5.3: ULTRA-LEAN GROUND TRUTH PROTOCOL
         from backend.services.commerce.promotion import PromotionService
-        from backend.database.models.promotion import Voucher
+        from backend.database.models.commerce import ProductBase, ProductVariant
+        from sqlalchemy import select
         
+        # 1. REPORT GENERATION (What the customer sees)
         cart_lines = []
-        subtotal = 0.0
-        items_for_promo = []
-        
         if request.cart_items:
-            from backend.database.models.commerce import ProductBase
-            from sqlalchemy import select
-            
             for item in request.cart_items:
                 p_raw = item.get("product", {})
                 v_raw = item.get("variant", {})
                 qty = item.get("quantity", 1)
                 p_id = p_raw.get("id")
-                
                 if not p_id: continue
                 
-                # 🚀 Elite V4.4: DB-Verified Price Hydration
-                stmt = select(ProductBase).where(ProductBase.id == p_id)
-                p_db = (await db.execute(stmt)).scalar_one_or_none()
-                
-                if p_db:
-                    # Priority: DB Discount > DB Base
-                    p_price = float(p_db.discount_price or p_db.price or 0)
-                    p_name = p_db.name
-                else:
-                    # Fallback to frontend snapshot if DB fails (unlikely)
-                    prices = [p_raw.get("discountPrice"), p_raw.get("discount_price"), p_raw.get("price")]
-                    p_price = float(next((pr for pr in prices if pr is not None and float(pr) > 0), 0))
-                    p_name = p_raw.get("name", "Sản phẩm")
-                
-                subtotal += p_price * qty
-                items_for_promo.append({
-                    "id": p_id,
-                    "unit_price": p_price,
-                    "qty": qty
-                })
-                
-                v_name = v_raw.get("name", "")
-                line = f"- {p_name}"
-                if v_name: line += f" ({v_name})"
-                line += f": {qty} x {int(p_price):,}đ".replace(",", ".")
-                cart_lines.append(line)
-        
-        # Calculate Potential Savings
-        combo_deals = await PromotionService.get_active_combo_deals(db)
-        combo_discount = PromotionService.calculate_combo_discount(items_for_promo, combo_deals)
-        
-        # 🚀 Elite V4.3: Active Voucher Calculation
-        voucher_discount = 0.0
-        applied_v_names = []
-        if request.selected_vouchers:
-            for v_id in request.selected_vouchers:
-                # Resolve voucher from DB for security/real-time verification
-                v_obj = await PromotionService.get_active_voucher(db, v_id)
-                if v_obj:
-                    # Note: We calculate voucher on subtotal AFTER combo (if needed) 
-                    # but here we follow frontend logic (on subtotal)
-                    v_val = PromotionService.calculate_voucher_discount(subtotal, v_obj)
-                    if v_val > 0:
-                        voucher_discount += v_val
-                        applied_v_names.append(f"'{v_obj.id}' (-{int(v_val):,}đ)".replace(",", "."))
+                p_db = (await db.execute(select(ProductBase).where(ProductBase.id == p_id))).scalar_one_or_none()
+                v_id = v_raw.get("id")
+                v_db = None
+                if v_id:
+                    v_db = (await db.execute(select(ProductVariant).where(ProductVariant.id == v_id))).scalar_one_or_none()
 
-        # Fetch Other Active Vouchers for Proactive Upselling
-        v_stmt = select(Voucher).where(Voucher.is_active == True).order_by(Voucher.min_spend.asc())
-        v_res = await db.execute(v_stmt)
-        all_vouchers = v_res.scalars().all()
-        
-        applicable_vouchers = []
-        next_tier_vouchers = []
-        
-        for v in all_vouchers:
-            if subtotal >= v.min_spend:
-                if not request.selected_vouchers or v.id not in request.selected_vouchers:
-                    applicable_vouchers.append(v)
-            elif subtotal > 0 and subtotal >= v.min_spend * 0.6: # Within 40% of next tier
-                next_tier_vouchers.append(v)
-        
-        # Calculate Points (100k = 1 point, 1 point = 1000đ)
-        final_payable = max(0, subtotal - combo_discount - voucher_discount)
-        potential_points = int(final_payable // 100000)
-        
-        cart_text = "\n[GIỎ HÀNG THỰC CỦA KHÁCH]\n" + "\n".join(cart_lines) + "\n" if cart_lines else "\n[GIỎ HÀNG THỰC]: Trống.\n"
-        
-        if subtotal > 0:
-            cart_text += f"\n[TRÍ TUỆ GIÁ CẢ & CHỐT SALES V4.3]\n"
-            cart_text += f"- Tổng tạm tính: {int(subtotal):,}đ\n".replace(",", ".")
-            if combo_discount > 0:
-                cart_text += f"- Giảm giá Combo: -{int(combo_discount):,}đ (Đã áp dụng tự động)\n".replace(",", ".")
+                # Use Base Price for parity with Checkout UI "TỔNG" line
+                p_price = float(v_db.price if v_db else (p_db.price if p_db else (p_raw.get("price") or 0)))
+                p_name = p_db.name if p_db else p_raw.get("name", "Sản phẩm")
+                # Elite V5.5: Safe variant label resolution (ProductVariant model has no 'name' field)
+                v_label = v_raw.get("name") or v_raw.get("label")
+                if v_label:
+                    p_name += f" ({v_label})"
+                
+                cart_lines.append(f"- {p_name}: {qty} x {int(p_price):,}đ = {int(p_price * qty):,}đ".replace(",", "."))
+
+        # 2. PRICING BREAKDOWN (The Ground Truth)
+        if request.pricing_context and request.pricing_context.subtotal > 0:
+            # 🚀 OPTIMIZED: Direct consumption of Frontend Ground Truth (Zero recalculation)
+            ctx_gt = request.pricing_context
+            logger.info(f"🎯 [SupportAgent] GROUND TRUTH HIT for SID {session_id}: Total={ctx_gt.final_total}")
+            pb = {
+                "subtotal": ctx_gt.subtotal,
+                "combo_discount": ctx_gt.combo_discount,
+                "voucher_discount": ctx_gt.voucher_discount,
+                "final_shipping_fee": ctx_gt.shipping_fee,
+                "base_shipping_fee": 30000.0 if (ctx_gt.shipping_fee > 0 or ctx_gt.subtotal < 2000000) else 0.0,
+                "shipping_discount": 30000.0 if (ctx_gt.shipping_fee == 0 and ctx_gt.subtotal < 2000000) else 0.0,
+                "point_discount_amount": ctx_gt.point_discount,
+                "final_payable": ctx_gt.final_total,
+                "points_redeemed": ctx_gt.points_redeemed,
+                "points_to_earn": int(ctx_gt.final_total // 100000),
+                "is_fallback": False
+            }
+        else:
+            logger.info(f"⚠️ [SupportAgent] GROUND TRUTH MISS for SID {session_id} - Falling back to PricingEngine")
+            # Fallback for product pages/incomplete checkout states
+            from backend.services.commerce.logic.pricing_engine import PricingEngine
+            from backend.schemas.pricing import PricingInputItem
             
-            if applied_v_names:
-                cart_text += f"- Voucher đã chọn: {', '.join(applied_v_names)}\n"
-                cart_text += f"- Cần thanh toán: {int(final_payable):,}đ\n".replace(",", ".")
+            fallback_items = []
+            for it in request.cart_items:
+                p_raw = it.get("product", {})
+                p_id = p_raw.get("id")
+                if not p_id: continue
+                # Elite V5.6: Use ORIGINAL PRICE in fallback to match Checkout UI "TỔNG" line
+                p_pr = float(p_raw.get("price") or p_raw.get("discountPrice") or 0)
+                fallback_items.append(PricingInputItem(product_id=str(p_id), name=p_raw.get("name", "SP"), quantity=it.get("quantity", 1), unit_price=p_pr))
             
-            cart_text += f"- Điểm thưởng dự kiến: +{potential_points} PTS (Tích lũy ~{potential_points * 1000:,}đ cho đơn sau)\n".replace(",", ".")
+            pricing = PricingEngine.calculate(
+                items=fallback_items,
+                vouchers=[], # Simplified for non-checkout
+                combo_deals=await PromotionService.get_active_combo_deals(db),
+                points_to_redeem=0, # Elite V5.4: Never auto-redeem points in fallback (Drift Prevention)
+                available_points=dna.available_points,
+                point_value_vnd=dna.point_value_vnd or 1000.0,
+                base_shipping_fee=30000.0 if sum(i.unit_price * i.quantity for i in fallback_items) < 2000000 else 0.0
+            )
+            pb = {
+                "subtotal": pricing.subtotal,
+                "combo_discount": pricing.combo_discount,
+                "voucher_discount": pricing.voucher_discount,
+                "base_shipping_fee": pricing.base_shipping_fee,
+                "shipping_discount": pricing.shipping_discount,
+                "final_shipping_fee": pricing.final_shipping_fee,
+                "point_discount_amount": pricing.point_discount_amount,
+                "final_payable": pricing.final_payable,
+                "points_to_earn": pricing.points_to_earn,
+                "points_redeemed": pricing.points_redeemed,
+                "is_fallback": True
+            }
+
+        cart_text = "\n[CHI TIẾT GIỎ HÀNG THỰC TẾ]\n" + "\n".join(cart_lines) + "\n" if cart_lines else "\n[GIỎ HÀNG THỰC]: Trống.\n"
+        if pb["subtotal"] > 0:
+            cart_text += f"\n[BẢNG TÍNH TOÁN CHI TIẾT - ELITE GROUND TRUTH]\n"
+            if pb.get("is_fallback"):
+                cart_text += "⚠️ [LƯU Ý HỆ THỐNG]: Đang dùng logic tính toán dự phòng. Hãy nhắc khách kiểm tra lại giỏ hàng và Voucher đã áp dụng trên trang Checkout để có con số chính xác tuyệt đối.\n"
+            cart_text += f"1. Tổng tạm tính (Sản phẩm): {int(pb['subtotal']):,}đ\n".replace(",", ".")
+            if pb["combo_discount"] > 0: cart_text += f"2. Chiết khấu Combo: -{int(pb['combo_discount']):,}đ\n".replace(",", ".")
+            if pb["voucher_discount"] > 0: cart_text += f"3. Giảm giá Voucher: -{int(pb['voucher_discount']):,}đ\n".replace(",", ".")
+            cart_text += f"4. Phí vận chuyển: {int(pb['base_shipping_fee']):,}đ\n".replace(",", ".")
+            if pb["shipping_discount"] > 0: cart_text += f"   - Giảm phí ship: -{int(pb['shipping_discount']):,}đ\n".replace(",", ".")
             
-            if applicable_vouchers:
-                v_names = [f"'{v.id}' (Giảm {int(v.value):,}đ)".replace(",", ".") for v in applicable_vouchers]
-                cart_text += f"- MÃ GIẢM GIÁ KHÁC CÓ THỂ DÙNG: {', '.join(v_names)}\n"
+            if pb["point_discount_amount"] > 0:
+                cart_text += f"5. Điểm tích lũy (Khách dùng {pb['points_redeemed']} pts):\n"
+                cart_text += f"   - Giảm giá: -{int(pb['point_discount_amount']):,}đ\n".replace(",", ".")
+                cart_text += f"   - [HỆ THỐNG ĐÃ TÍNH SẴN]: Khách chỉ được giảm tối đa 1% giá trị đơn để bảo vệ quyền lợi Sếp.\n"
             
-            if next_tier_vouchers:
-                for nv in next_tier_vouchers[:1]: # Suggest only the closest one
-                    gap = nv.min_spend - subtotal
-                    cart_text += f"- GỢI Ý CHỐT ĐƠN (FOMO): Chị chỉ cần mua thêm {int(gap):,}đ nữa là đủ điều kiện dùng mã '{nv.id}' để giảm ngay {int(nv.value):,}đ đó ạ!\n".replace(",", ".")
+            cart_text += f"   - Phí ship thực tế: {int(pb['final_shipping_fee']):,}đ\n".replace(",", ".")
+            cart_text += f"\n=> TỔNG THANH TOÁN CUỐI CÙNG: {int(pb['final_payable']):,}đ\n".replace(",", ".")
+            cart_text += f"=> DỰ KIẾN TÍCH THÊM: +{pb['points_to_earn']} PTS\n"
+            cart_text += f"--------------------------------\n"
+            
+            # 🚀 Elite V4.9: INTELLIGENT BEST-DEAL RESOLUTION (FOMO)
+            from backend.database.models.promotion import Voucher
+            all_vouchers = (await db.execute(select(Voucher).where(Voucher.is_active == True))).scalars().all()
+            
+            best_v = None
+            max_sav = 0
+            
+            for v in all_vouchers:
+                if pb["subtotal"] < (v.min_spend or 0): continue
+                
+                sav = 0
+                if v.type == "FIXED": sav = v.value
+                elif v.type == "PERCENT":
+                    sav = (pb["subtotal"] * v.value) / 100
+                    if v.max_discount: sav = min(sav, v.max_discount)
+                elif v.type == "SHIPPING": sav = 30000.0 # Standard ship fee value
+                
+                if sav > max_sav:
+                    max_sav = sav
+                    best_v = v
+
+            if best_v:
+                cart_text += f"\n[CHỈ THỊ FOMO CHO HELEN]:\n"
+                cart_text += f"- Mã ưu đãi TỐT NHẤT hiện tại: '{best_v.id}' (Giảm ~{int(max_sav):,}đ)\n".replace(",", ".")
+                if pb["voucher_discount"] < (max_sav - 1000): # Allow for small floating point diff
+                    cart_text += f"- [CẢNH BÁO]: Khách chưa dùng mã tốt nhất. HÃY THUYẾT PHỤC KHÁCH DÙNG MÃ '{best_v.id}' ĐỂ TIẾT KIỆM TỐI ĐA!\n"
+                else:
+                    cart_text += f"- [XÁC NHẬN]: Khách đã dùng mã tối ưu. Hãy khen khách thông thái và chốt đơn ngay.\n"
+            
+            # Upsell to next tier if close
+            next_v = next((v for v in all_vouchers if (v.min_spend or 0) > pb["subtotal"]), None)
+            if next_v:
+                gap = next_v.min_spend - pb["subtotal"]
+                if gap < 300000:
+                    cart_text += f"- Gợi ý mua thêm: Chỉ thiếu {int(gap):,}đ nữa là dùng được mã '{next_v.id}' (Giảm cực sâu).\n".replace(",", ".")
+
+            cart_text += f"--------------------------------\n"
+
 
         ctx = SupportContext(
             db=db,
@@ -568,6 +609,8 @@ class SupportAgentOperative(BaseAgentOperative):
     async def _chat_internal(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:
         """Internal dispatch logic with Elite V2.2 Inhibition Guards."""
         session_id = request.session_id or str(uuid.uuid4())
+        logger.info(f"🚀 [SupportAgent] Incoming Request for SID: {session_id} | Msg: '{request.message}'")
+        logger.info(f"🚀 [SupportAgent] Pricing Context Received: {request.pricing_context.model_dump() if request.pricing_context else 'NONE'}")
 
         # 🚀 Elite V3.0: Early DNA Hydration for Personalized Fast-Path & Contextual Awareness
         dna = await self._fetch_neural_dna(
@@ -620,7 +663,7 @@ class SupportAgentOperative(BaseAgentOperative):
             f_data = cast(FastIntentResponse, fast_res) # Proper Elite V2.2 Typing
             logger.info("[SupportAgent] Fast-Path detected intent: %s for SID: %s", f_data.intent, session_id)
             
-            if f_data.intent == "GREETING" and f_data.quick_reply:
+            if f_data.intent == "GREETING" and f_data.quick_reply and not request.cart_items:
                 await self._save_history(
                     db, session_id, request.message, f_data.quick_reply, 
                     SupportIntent.GENERAL_ADVICE, request.product_slug,
@@ -664,15 +707,17 @@ class SupportAgentOperative(BaseAgentOperative):
             logger.info("⚡ [SupportAgent] Sync Heuristic: Fall-through to Deep Brain for INGREDIENTS/SHIPPING")
             return None
 
-        # 2. PRICE_QUERY → Xử lý ngay với p_info
+        # 2. PRICE_QUERY → Xử lý ngay với p_info (Chỉ dùng khi giỏ hàng trống)
         kws_price = ["giá", "bao nhiêu", "nhiêu tiền", "nhiêu", "rổ giá", "giá cả"]
         if any(kw in msg_norm for kw in kws_price):
-            if p_info:
+            if p_info and not request.cart_items: # Elite V5.4: Skip sync price if cart has items
                 logger.info("✅ [SupportAgent] Sync Heuristic HIT: PRICE_QUERY")
                 final_reply = f"{debug_prefix}Dạ liệu trình **{p_info.name}** hiện tại có giá ưu đãi chỉ từ **{p_info.price_display}** ạ. 🌸 Anh/Chị muốn chốt số lượng bao nhiêu để Helen lên đơn ngay cho mình nhé?"
                 await self._save_history(db, session_id, request.message, final_reply, SupportIntent.PRICE_QUERY, request.product_slug, customer_name)
                 await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
                 return SupportResponse(ok=True, reply=final_reply, intent=SupportIntent.PRICE_QUERY, session_id=session_id, status="DONE")
+            else:
+                logger.info("⚡ [SupportAgent] Sync Heuristic SKIP: Price query but Cart has items. Passing to Deep Brain.")
 
         # 3. INFO_ADDRESS & INFO_HOTLINE → Đọc từ Settings Cache
         is_address = any(kw in msg_norm for kw in ["địa chỉ", "ở đâu", "chi nhánh", "cửa hàng", "văn phòng", "trụ sở", "phòng khám", "showroom", "địa điểm", "chỗ nào"])

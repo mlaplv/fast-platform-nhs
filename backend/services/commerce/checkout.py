@@ -227,82 +227,66 @@ class CheckoutService:
                 "image": product.images[0] if product.images else None
             })
 
-        # [VIRAL 2026] RIGOROUS TOTAL VALIDATION
-        base_subtotal = sum(it["total_price"] for it in items_list)
+        from backend.services.commerce.logic.pricing_engine import PricingEngine
         
-        # 1. Apply Combo Deals
-        combo_deals = await PromotionService.get_active_combo_deals(db_session)
-        combo_discount = PromotionService.calculate_combo_discount(items_list, combo_deals)
-        
-        # 2. Apply Vouchers (Elite V2.2: Multi-Voucher Support with Category Exclusivity)
-        voucher_discount = 0.0
-        used_categories = set()
-        applied_voucher_ids = []
-
+        # 1. Fetch Vouchers and Combo Deals
+        vouchers = []
         if payload.voucher_ids:
             for v_id in payload.voucher_ids:
-                voucher = await PromotionService.get_active_voucher(db_session, v_id)
-                if not voucher:
-                    logger.warning(f"[VOUCHER-FAIL] Voucher {v_id} not found or inactive.")
-                    continue
-                
-                # [SECURITY-RULE] Category Exclusivity (Sếp dặn: mỗi nhóm chỉ 1 mã)
-                if voucher.category in used_categories:
-                    logger.error(f"[VOUCHER-EXCLUSIVITY] Duplicate category {voucher.category} for voucher {v_id}")
-                    raise ValidationException(f"Chỉ được áp dụng tối đa 1 mã trong nhóm {voucher.category}.")
-                
-                used_categories.add(voucher.category)
-                
-                # Voucher applies on subtotal AFTER combo discount and previous vouchers
-                current_discount = PromotionService.calculate_voucher_discount(
-                    base_subtotal - combo_discount - voucher_discount, voucher
-                )
-                voucher_discount += current_discount
-                applied_voucher_ids.append(v_id)
-
-        expected_total = base_subtotal - combo_discount - voucher_discount + payload.shipping_fee
+                v = await PromotionService.get_active_voucher(db_session, v_id)
+                if v:
+                    vouchers.append(v)
         
-        # 2.5 Elite V2.2 Loyalty Logic
-        point_discount = 0.0
-        if payload.points_redeemed > 0:
-            if not user_id:
-                raise ValidationException("Bạn phải đăng nhập để sử dụng Điểm thuởng.")
-            
-            # Sếp Rule [ELITE V2.2 UPDATED]: Đảm bảo số tiền trừ không vượt quá 1% giá trị đơn hàng (Hợp lý hóa từ 0.01%)
-            max_point_discount = base_subtotal * 0.01
-            
-            # Lock the loyalty row to prevent race conditions during point redemption
+        combo_deals = await PromotionService.get_active_combo_deals(db_session)
+        
+        # 2. Get User Loyalty Context
+        available_points = 0
+        point_value = 1000.0
+        loyalty = None
+        if user_id:
             loyalty_stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id).with_for_update()
-            loyalty_res = await db_session.execute(loyalty_stmt)
-            loyalty = loyalty_res.scalar_one_or_none()
-            
-            if not loyalty or loyalty.available_points < payload.points_redeemed:
-                raise ValidationException("Bạn không có đủ số điểm để sử dụng.")
-            
-            # ELITE V2.2: Military-Grade Integrity Verification
-            if not await LoyaltyService.verify_loyalty_integrity(db_session, user_id):
-                logger.critical(f"[SECURITY-ALERT] Loyalty Point Tampering Detected! User: {user_id}. Transaction blocked.")
-                raise ValidationException("Hệ thống phát hiện bất thường về bảo mật tài khoản. Vui lòng liên hệ hỗ trợ.")
+            l_res = await db_session.execute(loyalty_stmt)
+            loyalty = l_res.scalar_one_or_none()
+            if loyalty:
+                available_points = loyalty.available_points
                 
-            # Get Point Value from Admin config (Default 1 pt = 1000 VNĐ)
             setting_res = await db_session.execute(select(SystemSetting).where(SystemSetting.key == "LOYALTY_POINT_VALUE_VND"))
             setting = setting_res.scalar_one_or_none()
-            point_value = int(setting.value.get("value", 1000)) if setting and "value" in setting.value else 1000
-            
-            proposed_discount = float(payload.points_redeemed * point_value)
-            
-            if proposed_discount > max_point_discount:
-                raise ValidationException(f"Lỗi: Số tiền thanh toán bằng điểm ({proposed_discount:,.0f}đ) vượt quá 1% giá trị đơn hàng ({max_point_discount:,.0f}đ).")
-                
-            point_discount = proposed_discount
-            expected_total -= point_discount
-            
+            if setting and "value" in setting.value:
+                point_value = float(setting.value.get("value", 1000))
+
+        # 3. UNIFIED PRICING CALCULATION (Elite V2.2)
+        from backend.schemas.pricing import PricingInputItem
+        
+        pricing_input = [
+            PricingInputItem(
+                product_id=it["id"],
+                name=it["name"],
+                quantity=it["qty"],
+                unit_price=it["unit_price"]
+            ) for it in items_list
+        ]
+        
+        pricing = PricingEngine.calculate(
+            items=pricing_input,
+            vouchers=vouchers,
+            combo_deals=combo_deals,
+            points_to_redeem=payload.points_redeemed,
+            available_points=available_points,
+            point_value_vnd=point_value,
+            base_shipping_fee=payload.shipping_fee
+        )
+
+        expected_total = pricing.final_payable
+        point_discount = pricing.point_discount_amount
+        applied_voucher_ids = pricing.applied_voucher_ids
+        if user_id and loyalty and payload.points_redeemed > 0:
             # Khóa/Trừ điểm tạm thời tại session này
             loyalty.available_points -= payload.points_redeemed
 
         # 3. Final Manipulation Lock
         if abs(expected_total - payload.total_amount) > 1.0:
-            logger.error(f"[SECURITY-ALERT] Price Manipulation Attempt: Expected {expected_total}, Got {payload.total_amount}. Sub={base_subtotal}, Combo={combo_discount}, Vouchers={voucher_discount}, Points={point_discount}, Ship={payload.shipping_fee}. Phone: {payload.customer_phone}")
+            logger.error(f"[SECURITY-ALERT] Price Manipulation Attempt: Expected {expected_total}, Got {payload.total_amount}. Sub={pricing.subtotal}, Combo={pricing.combo_discount}, Vouchers={pricing.voucher_discount}, Points={point_discount}, Ship={payload.shipping_fee}. Phone: {payload.customer_phone}")
             raise ValidationException("Đơn hàng chưa được bảo vệ thành công do thay đổi về giá hoặc khuyến mãi. Vui lòng tải lại trang.")
 
         # 5. Prepare Order Metadata

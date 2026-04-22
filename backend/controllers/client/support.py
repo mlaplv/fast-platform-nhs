@@ -173,6 +173,7 @@ class SupportController(Controller):
         logger.info(f"📥 [SupportController] Incoming message for SID: {session_id}")
         
         try:
+            logger.info(f"📥 [SupportController] Payload for SID {session_id}: {data.model_dump(exclude_none=True)}")
             await self._check_rate_limit(request, session_id)
             response = await support_agent.chat(request=data, db=db_session)
             await db_session.commit()

@@ -291,14 +291,34 @@ class OrderHandler(BaseHandler):
                     
                     next_voucher = (await ctx.db.execute(v_stmt)).scalar_one_or_none()
 
-                    formatted_price = "{:,.0f}".format(total_amount).replace(",", ".")
-                    delivery_info = location_resolver.resolve(order_obj.customer_address or "").shipping_days or "2-3 ngày"
+                    from backend.services.commerce.logic.pricing_engine import PricingEngine
+                    
+                    # Calculate potential discount to show in the hook
+                    from backend.schemas.pricing import PricingInputItem
+                    
+                    pricing_input = []
+                    for it in (order_obj.items or []):
+                        if isinstance(it, dict):
+                            pricing_input.append(PricingInputItem(
+                                product_id=str(it.get("product_id") or ""),
+                                name=str(it.get("name", "Sản phẩm")),
+                                quantity=int(it.get("quantity", 1)),
+                                unit_price=float(it.get("price", 0.0))
+                            ))
+                    
+                    pricing = PricingEngine.calculate(
+                        items=pricing_input,
+                        available_points=ctx.dna.available_points,
+                        points_to_redeem=ctx.dna.available_points,
+                        point_value_vnd=ctx.dna.point_value_vnd or 1000.0,
+                        base_shipping_fee=0.0 # Assuming subtotal already includes what's needed
+                    )
 
-                    # 💎 THE UPSELL & LOYALTY HOOK (Elite V3.0)
+                    # 💎 THE UPSELL & LOYALTY HOOK (Elite V3.1 - Unified)
                     pts_hook = ""
-                    if ctx.dna.available_points > 0:
-                        money_pts = "{:,.0f}".format(ctx.dna.available_points * ctx.dna.point_value_vnd).replace(",", ".")
-                        pts_hook = f"⚡ **Ưu đãi thành viên:** Mình đang có **{ctx.dna.available_points} điểm** tích lũy (~{money_pts}đ). Mình có muốn Helen dùng luôn để chiết khấu trực tiếp cho đơn này không ạ? "
+                    if ctx.dna.available_points > 0 and pricing.point_discount_amount > 0:
+                        money_pts = "{:,.0f}".format(pricing.point_discount_amount).replace(",", ".")
+                        pts_hook = f"⚡ **Ưu đãi thành viên:** Helen thấy mình đang có **{ctx.dna.available_points} điểm**. Mình có muốn Helen dùng luôn để chiết khấu tối đa **{money_pts}đ** cho đơn này không ạ? "
 
                     if next_voucher and next_voucher.min_spend and (next_voucher.min_spend - total_amount) < 500000:
                         diff = next_voucher.min_spend - total_amount
@@ -319,7 +339,7 @@ class OrderHandler(BaseHandler):
                             f"{pts_hook}\n"
                             f"Anh/Chị nhớ để ý điện thoại để shipper gọi nha! 📞"
                         )
-
+                    
                     ctx.replies.append(reply)
                     return True # Ngắt luồng, trả lời luôn
 

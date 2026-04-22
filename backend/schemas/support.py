@@ -55,6 +55,18 @@ class SupportKnowledgeCategory(str, Enum):
     INFO_SHIPPING    = "INFO_SHIPPING"
 
 
+class SupportPricingContext(BaseModel):
+    """Ground Truth pricing context passed from frontend (Elite V4.2)"""
+    subtotal: float = Field(default=0.0)
+    combo_discount: float = Field(default=0.0)
+    voucher_discount: float = Field(default=0.0)
+    shipping_fee: float = Field(default=0.0)
+    total_amount: float = Field(default=0.0)
+    points_redeemed: int = Field(default=0)
+    point_discount: float = Field(default=0.0)
+    final_total: float = Field(default=0.0)
+
+
 class SupportRequest(BaseModel):
     """Inbound chat message from the client (Zero-Auth)."""
     model_config = ConfigDict(strict=True)
@@ -75,6 +87,7 @@ class SupportRequest(BaseModel):
     user_id: Optional[str] = Field(default=None, max_length=64)
     cart_items: Optional[List[Dict[str, JSONValue]]] = Field(default=None, description="Current cart snapshot from client localStorage.")
     selected_vouchers: Optional[List[str]] = Field(default=None, description="Active voucher IDs from client cart.")
+    pricing_context: Optional[SupportPricingContext] = Field(default=None, description="Calculated breakdown from frontend (Ground Truth).")
 
     @field_validator("message", mode="before")
     @classmethod

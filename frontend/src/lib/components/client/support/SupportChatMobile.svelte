@@ -8,6 +8,7 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { checkoutState } from '$lib/state/commerce/checkout.svelte';
   import HelenIcon from './HelenIcon.svelte';
   
   const { productSlug = '' } = $props<{ productSlug?: string }>();
@@ -67,7 +68,10 @@
     const name = user?.name || customer?.nameMasked || 'Khách ẩn danh';
     const userId = user?.id || null;
 
-    await supportAgent.sendMessage(text, productSlug, name, undefined, userId, cartStore.items, cartStore.selectedVoucherIds);
+    // Elite V2.2: Pass Ground Truth pricing if on checkout page
+    const pricingContext = checkoutState.breakdown || undefined;
+
+    await supportAgent.sendMessage(text, productSlug, name, undefined, userId, cartStore.items, cartStore.selectedVoucherIds, pricingContext);
     scrollToNewestMessage();
   }
 
@@ -76,8 +80,8 @@
       action.action();
       return;
     }
-    if (supportAgent.isTyping || !action.prompt) return;
-    await supportAgent.sendMessage(action.prompt, productSlug, undefined, undefined, undefined, cartStore.items, cartStore.selectedVoucherIds);
+    const pricingContext = checkoutState.breakdown || undefined;
+    await supportAgent.sendMessage(action.prompt, productSlug, undefined, undefined, undefined, cartStore.items, cartStore.selectedVoucherIds, pricingContext);
     scrollToNewestMessage();
   }
 
@@ -379,7 +383,7 @@
     will-change: transform, opacity;
   }
 
-  .pause-animations .apple-glass-dark-mobile {
+  .pause-animations.apple-glass-dark-mobile {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     background: rgba(8, 12, 21, 0.99) !important;

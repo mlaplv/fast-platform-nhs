@@ -19,6 +19,17 @@ export interface SupportProductInfo {
     slug: string;
 }
 
+export interface SupportPricingContext {
+    subtotal: number;
+    combo_discount: number;
+    voucher_discount: number;
+    shipping_fee: number;
+    total_amount: number;
+    points_redeemed: number;
+    point_discount: number;
+    final_total: number;
+}
+
 export interface SupportMessage {
     id: string;
     role: "user" | "assistant";
@@ -430,7 +441,16 @@ class SupportAgentState {
         this.isTyping = false;
     }
 
-    async sendMessage(text: string, productSlug?: string, customerName?: string, customerPhone?: string, userId?: string, cartItems?: any[], selectedVouchers?: string[]) {
+    async sendMessage(
+        text: string, 
+        productSlug?: string, 
+        customerName?: string, 
+        customerPhone?: string, 
+        userId?: string, 
+        cartItems?: any[], 
+        selectedVouchers?: string[],
+        pricingContext?: SupportPricingContext
+    ) {
         if (!text.trim() || this.isTyping) return;
 
         const userMsg: SupportMessage = {
@@ -452,7 +472,8 @@ class SupportAgentState {
                 customer_phone: customerPhone || null,
                 user_id: userId || null,
                 cart_items: cartItems || null,
-                selected_vouchers: selectedVouchers || null
+                selected_vouchers: selectedVouchers || null,
+                pricing_context: pricingContext || null
             });
 
             if (res && typeof res.reply === "string") {
