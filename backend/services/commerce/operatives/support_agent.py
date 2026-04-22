@@ -677,13 +677,20 @@ class SupportAgentOperative(BaseAgentOperative):
         try:
             # Elite V2.2: Shield sensitive terms before fast-path classification
             masked_msg = await self._mask_sensitive_medical_terms(request.message)
-            fast_res = await trinity_bridge.run(
-                _fast_intent_agent, 
-                masked_msg, 
-                deps=FastIntentDeps(customer_name=c_name),
-                role=trinity_bridge.ROLE_FAST, 
-                timeout=2.0,
-                safety_none=True
+            # Elite V5.6: Enforce an absolute 4.0s ceiling for the entire fast-path.
+            # If trinity_bridge spends too much time falling back through rate-limited models,
+            # this strict timeout instantly aborts and forces the task to the Deep-Brain worker.
+            import asyncio
+            fast_res = await asyncio.wait_for(
+                trinity_bridge.run(
+                    _fast_intent_agent, 
+                    masked_msg, 
+                    deps=FastIntentDeps(customer_name=c_name),
+                    role=trinity_bridge.ROLE_FAST, 
+                    timeout=2.0,  # Fast-path internal per-model timeout
+                    safety_none=True
+                ),
+                timeout=4.0
             )
             f_data = cast(FastIntentResponse, fast_res)
             

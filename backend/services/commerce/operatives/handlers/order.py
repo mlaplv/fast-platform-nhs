@@ -24,6 +24,12 @@ class OrderHandler(BaseHandler):
         session_id = ctx.session_id
         logger.info(f"⚡ [OrderHandler] Checking Intent for SID: {session_id} | Msg: '{msg[:30]}...' | HasDraft: {bool(ctx.order_draft)}")
         
+        # 🚀 Elite V5.6: Deep Diagnostic Entry Log (Anti-Dementia)
+        if ctx.order_draft:
+            print(f"DEBUG_CONSOLE: 🔍 [OrderHandler] ENTRY STATE: items_count={len(ctx.order_draft.items)}, phone={ctx.order_draft.customer_phone}, addr={ctx.order_draft.customer_address}")
+        else:
+            print(f"DEBUG_CONSOLE: 🔍 [OrderHandler] ENTRY STATE: order_draft=None for SID={session_id}")
+        
         import os
         import re
         from backend.database.models.promotion import Voucher
@@ -107,13 +113,14 @@ class OrderHandler(BaseHandler):
         logger.info(f"[OrderHandler] Intent: msg='{msg}', strong={is_strong_intent}")
 
         # 🚀 V4.0: DRAFT-FIRST SLOT FILLER (Deterministic, LLM-Free)
-        # When a draft already has items (Turn 1 created it), fill missing slots
-        # directly from the current message. This prevents the Dementia Loop where
-        # the LLM processes "0949901122" without context and returns items=[].
+        # When a draft already exists, fill missing slots directly from the current message.
+        # This prevents the Dementia Loop where the LLM processes "0949901122" without context.
+        # Elite V5.6: Removed `and ctx.order_draft.items` guard — allow slot-filling
+        # even when items are empty (e.g. draft created but items lost in serialization).
         lead_data = None
         draft_filled = False
         
-        if ctx.order_draft and ctx.order_draft.items:
+        if ctx.order_draft:
             missing = ctx.order_draft.missing_slots
             logger.info(f"🧩 [OrderHandler] V4.1 Draft-First Check: Missing Slots={missing}")
             if missing:
@@ -174,11 +181,27 @@ class OrderHandler(BaseHandler):
                         await xohi_memory.set_order_draft(ctx.session_id, ctx.order_draft.model_dump())
                         logger.info(f"💾 [OrderHandler] V4.1 Draft persisted for SID: {ctx.session_id}")
                         
+                        # 🚀 Elite V5.6: Fault-tolerant LeadOrderItem construction
+                        try:
+                            lead_items = [LeadOrderItem(**it) for it in ctx.order_draft.items]
+                        except Exception as item_err:
+                            print(f"DEBUG_CONSOLE: ❌ [OrderHandler] LeadOrderItem CONSTRUCTION FAILED: {item_err}")
+                            logger.error(f"❌ [OrderHandler] LeadOrderItem(**it) failed: {item_err}. Raw items: {ctx.order_draft.items[:2]}")
+                            # Fallback: Build from raw dict safely
+                            lead_items = [
+                                LeadOrderItem(
+                                    name=str(it.get("name", "Sản phẩm")),
+                                    quantity=int(it.get("quantity", 1)),
+                                    price=float(it.get("price", 0)),
+                                    id=str(it.get("product_id") or it.get("id") or "")
+                                ) for it in ctx.order_draft.items
+                            ]
+                        
                         lead_data = ExtractedLead(
                             customer_phone=ctx.order_draft.customer_phone,
                             customer_address=resolved_addr,
                             customer_name=ctx.order_draft.customer_name,
-                            items=[LeadOrderItem(**it) for it in ctx.order_draft.items],
+                            items=lead_items,
                             is_definite_purchase=ctx.order_draft.is_definite_intent,
                             shipping_days=resolved_shipping_days,
                             possible_provinces=resolved_possible_provinces,
@@ -189,7 +212,10 @@ class OrderHandler(BaseHandler):
                         logger.info(f"✅ [OrderHandler] 🧩 DRAFT UPDATE: Phone={lead_data.customer_phone}, Address={'SET' if lead_data.customer_address else 'MISSING'}, Items={len(lead_data.items)}")
                         logger.info(f"✅ [OrderHandler] V4.1 Draft-First Synthesis Complete for SID: {session_id}")
                 except Exception as dfe:
+                    print(f"DEBUG_CONSOLE: ❌ [OrderHandler] Draft-First CRITICAL: {dfe}")
                     logger.error(f"❌ [OrderHandler] Draft-First Critical Error: {dfe}")
+                    import traceback
+                    traceback.print_exc()
 
         # 🚀 2. ATOMIC EXTRACTION (Only if Draft-First didn't handle it)
         if not draft_filled and (is_strong_intent or is_staff_order):

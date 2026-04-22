@@ -239,8 +239,12 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
         key = f"support:order_draft:{session_id}"
         try:
             if self._use_redis:
-                await self.client.set(key, json.dumps(draft_data, ensure_ascii=False), ex=ttl)
-        except Exception as e: logger.debug(f"[XoHiMemory] Draft set failed: {e}")
+                # Elite V5.6: default=str handles datetime serialization from OrderDraft.model_dump()
+                await self.client.set(key, json.dumps(draft_data, ensure_ascii=False, default=str), ex=ttl)
+                logger.info(f"💾 [XoHiMemory] Draft persisted for SID: {session_id}")
+        except Exception as e:
+            logger.error(f"[XoHiMemory] Draft set FAILED: {e}")
+            print(f"DEBUG_CONSOLE: ❌ [XoHiMemory] Draft set FAILED: {e}")
 
     async def clear_order_draft(self, session_id: str):
         key = f"support:order_draft:{session_id}"

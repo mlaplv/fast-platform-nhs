@@ -39,7 +39,12 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
 
     try:
         # [R00 - DISPOSE] Check Semantic Cache BEFORE touching heavy resources
-        cached_res = await semantic_cache.get_cached_result(agent_id, payload)
+        # Elite V5.6 Fix: Do NOT cache stateful conversational agents (support_agent) 
+        # because the same payload (e.g. "0949901122") must yield different responses based on DB state.
+        cached_res = None
+        if agent_id != "support_agent":
+            cached_res = await semantic_cache.get_cached_result(agent_id, payload)
+            
         if cached_res:
             async with session_maker() as cache_db:
                 await cache_db.execute(

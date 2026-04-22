@@ -33,7 +33,7 @@ class TrinityBridge:
     """V65.0: Centralized AI Bridge. Modularized for Martial Law (<300 lines)."""
     def __init__(self) -> None:
         self.rotator: 'KeyRotator' = key_rotator
-        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-1.5-pro")
+        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-2.5-pro")
         self.fallback_model: str = os.getenv("AI_FALLBACK_MODEL", "gemini-1.5-flash")
         self.models_helper: TrinityModels = TrinityModels(self.rotator, self.primary_model, self.fallback_model)
         self.db_primary_model: Optional[str] = None
