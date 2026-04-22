@@ -47,6 +47,20 @@ class SupportBotSettings(BaseModel):
 class ConversionSettings(BaseModel):
     fomo_enabled: bool = True
 
+
+class EntropySettings(BaseModel):
+    """SGE Shield V1.0: Admin config cho AI Footprint Entropy Injector."""
+    enabled: bool = True
+    # Tone override: None = random ngẫu nhiên, hoặc chọn 1 tone cố định
+    tone_override: Optional[str] = None
+    # Structure override: None = random ngẫu nhiên
+    structure_override: Optional[str] = None
+    # Schema mutation: Xác suất drop optional keys (0.0 = không drop, 1.0 = luôn drop)
+    schema_drop_probability: float = 0.2
+    # Lexical sanitizer: Bật/tắt lọc AI buzzwords
+    lexical_sanitizer_enabled: bool = True
+
+
 class SystemSettingsPayload(BaseModel):
     basic_info: BasicInfo = Field(default_factory=BasicInfo)
     contact_info: ContactInfo = Field(default_factory=ContactInfo)
@@ -56,6 +70,7 @@ class SystemSettingsPayload(BaseModel):
     maintenance: MaintenanceMode = Field(default_factory=MaintenanceMode)
     support_bot: SupportBotSettings = Field(default_factory=SupportBotSettings)
     conversions: ConversionSettings = Field(default_factory=ConversionSettings)
+    entropy: EntropySettings = Field(default_factory=EntropySettings)
 
 class SystemSettingsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

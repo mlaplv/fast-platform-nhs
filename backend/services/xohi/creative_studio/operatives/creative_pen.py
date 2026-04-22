@@ -9,6 +9,8 @@ from backend.services.xohi.creative_studio.models.schemas import ArticleOutline,
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.text import to_int
 from backend.utils.noise_cleaner import noise_cleaner
+from backend.services.prompt_entropy import build_entropy_system_prompt
+from backend.services.lexical_sanitizer import sanitize_ai_text
 from .creative_pen_prompts import PROMPTS
 from .creative_pen_utils import process_pen_draft
 
@@ -58,7 +60,10 @@ class CreativePen:
         
         # CNS V85.1: Adaptive Prompting
         ent = config.get("target_entity", "article")
-        system_prompt = PROMPTS.get(ent, PROMPTS["article"])["outline"]
+        base_system_prompt = PROMPTS.get(ent, PROMPTS["article"])["outline"]
+        
+        # SGE Shield V1.0: Inject Tone + Structure Entropy for AI detection bypass
+        system_prompt = build_entropy_system_prompt(base_system_prompt, product_id=campaign.id)
         
         inst = f"Hãy tạo Dàn Ý (ArticleOutline) chi tiết gồm đúng {max_s} mục H2. Bám sát Ground Truth."
         prompt = f"Tiêu đề: {t}\nTừ khóa: {p}\nGround Truth: {gt}\nGiới hạn: {max_s} mục H2."
@@ -80,7 +85,10 @@ class CreativePen:
     async def write_draft(self, campaign: ContentCampaign) -> str:
         config = campaign.get_gold_config()
         ent = config.get("target_entity", "article")
-        system_prompt = PROMPTS.get(ent, PROMPTS["article"])["draft"]
+        base_system_prompt = PROMPTS.get(ent, PROMPTS["article"])["draft"]
+        
+        # SGE Shield V1.0: Inject Tone + Structure Entropy
+        system_prompt = build_entropy_system_prompt(base_system_prompt, product_id=campaign.id)
         
         prompt, assets, primary = await self._build_p(campaign)
         try:
@@ -90,6 +98,10 @@ class CreativePen:
                 session_id=campaign.id, model=self.model_name
             )
             raw = getattr(res, "data", getattr(res, "output", str(res)))
+            
+            # SGE Shield V1.0: Lexical Sanitizer (Remove AI Buzzwords)
+            raw = sanitize_ai_text(str(raw), seed=campaign.id)
+            
             content = await process_pen_draft(str(raw), assets, primary)
             
             # CNS V85.1: Extract Metadata for Products
@@ -110,7 +122,10 @@ class CreativePen:
                 async for text in stream.stream_text(delta=True):
                     if text: full_raw += text; yield {"type": "chunk", "text": text}
             
-            final_content = await process_pen_draft(full_raw, assets, primary)
+            # SGE Shield V1.0: Lexical Sanitizer (Remove AI Buzzwords)
+            sanitized_raw = sanitize_ai_text(full_raw, seed=campaign.id)
+            
+            final_content = await process_pen_draft(sanitized_raw, assets, primary)
             if ent == "product":
                 final_content = self._extract_xohi_metadata(final_content, campaign)
                 

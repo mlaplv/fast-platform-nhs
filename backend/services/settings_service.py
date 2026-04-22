@@ -273,6 +273,13 @@ class SettingsService:
         await xohi_memory.client.set("system:zalo_enabled", "1" if data.support_bot.zalo_integration_enabled else "0")
         await xohi_memory.client.set("system:messenger_enabled", "1" if data.support_bot.messenger_integration_enabled else "0")
         await xohi_memory.client.set("system:fomo_enabled", "1" if data.conversions.fomo_enabled else "0")
+
+        # SGE Shield V1.0: Sync Entropy Settings vào Redis
+        import json as _json
+        await xohi_memory.client.set(
+            "system:entropy_config",
+            _json.dumps(data.entropy.model_dump()),
+        )
         
         # Elite V2.2: Sync Media
         await SettingsService._sync_media_links(data_dict)

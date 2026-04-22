@@ -18,6 +18,7 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import Upload from "lucide-svelte/icons/upload";
   import Sparkles from "lucide-svelte/icons/sparkles";
+  import ShieldCheck from "lucide-svelte/icons/shield-check";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import type { MediaAsset } from "$lib/state/types";
 
@@ -77,6 +78,14 @@
     fomo_enabled: boolean;
   }
 
+  interface EntropySettings {
+    enabled: boolean;
+    tone_override: string | null;
+    structure_override: string | null;
+    schema_drop_probability: number;
+    lexical_sanitizer_enabled: boolean;
+  }
+
   interface SystemSettings {
     basic_info: BasicInfo;
     contact_info: ContactInfo;
@@ -86,6 +95,7 @@
     maintenance: MaintenanceMode;
     support_bot: SupportBotSettings;
     conversions: ConversionSettings;
+    entropy: EntropySettings;
   }
 
   let settings = $state<SystemSettings>({
@@ -103,6 +113,13 @@
     },
     conversions: {
       fomo_enabled: true
+    },
+    entropy: {
+      enabled: true,
+      tone_override: null,
+      structure_override: null,
+      schema_drop_probability: 0.2,
+      lexical_sanitizer_enabled: true
     }
   });
 
@@ -116,7 +133,7 @@
   let currentPickType = $state<'basic' | 'social'>('basic');
   let currentSocialIndex = $state<number | null>(null);
 
-  type TabId = "basic" | "contact" | "social" | "seo" | "maps" | "maintenance" | "helen" | "conversion";
+  type TabId = "basic" | "contact" | "social" | "seo" | "maps" | "maintenance" | "helen" | "conversion" | "entropy";
 
   interface TabDefinition {
     id: TabId;
@@ -132,7 +149,8 @@
     { id: "maps", label: "Google Maps", icon: MapPin },
     { id: "maintenance", label: "Bảo trì", icon: Tool },
     { id: "helen", label: "Helen AI", icon: Sparkles },
-    { id: "conversion", label: "Chuyển đổi", icon: TrendingUp }
+    { id: "conversion", label: "Chuyển đổi", icon: TrendingUp },
+    { id: "entropy", label: "SGE Shield", icon: ShieldCheck }
   ];
 
   onMount(async () => {
@@ -658,6 +676,88 @@
                     <span class="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em]">Conversion Boosters Disabled</span>
                   </div>
                 {/if}
+              </div>
+            </div>
+          {:else if activeTab === 'entropy'}
+            <div class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h3 class="text-sm font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                <ShieldCheck size={16} /> AI Footprint Entropy (SGE Shield)
+              </h3>
+              
+              <div class="grid grid-cols-1 gap-6 bg-zinc-950/40 border border-white/5 rounded-2xl p-8 items-center">
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 class="text-base font-black text-white uppercase italic tracking-tighter">SGE Shield V1.0</h4>
+                    <p class="text-[10px] text-zinc-500 font-mono tracking-widest mt-1">PROTECT AGAINST GOOGLE AI OVERVIEWS PURGE</p>
+                  </div>
+                  
+                  <button 
+                    onclick={() => settings.entropy.enabled = !settings.entropy.enabled}
+                    aria-label="Toggle Entropy"
+                    class="relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none 
+                      {settings.entropy.enabled ? 'bg-indigo-500' : 'bg-zinc-800'}"
+                  >
+                    <div class="absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-lg transition-transform duration-300
+                      {settings.entropy.enabled ? 'translate-x-7' : 'translate-x-0'}">
+                    </div>
+                  </button>
+                </div>
+
+                <div class="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl mb-4">
+                  <p class="text-[11px] text-zinc-300 leading-relaxed font-mono">
+                    <span class="text-indigo-400 font-bold">INFO:</span> Cơ chế tiêm "Độ nhiễu của con người" vào AI Content. Mặc định tự động Random giọng văn (Tone), cấu trúc (Structure) và Schema.
+                  </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Giọng văn (Tone) mặc định</label>
+                    <select bind:value={settings.entropy.tone_override} disabled={!settings.entropy.enabled} class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-indigo-500/50 outline-none transition-colors disabled:opacity-40">
+                      <option value={null}>🎲 Auto Random (Khuyên dùng)</option>
+                      <option value="dermatologist">👨‍⚕️ Bác sĩ da liễu</option>
+                      <option value="pharmacist">👩‍🔬 Dược sĩ tận tâm</option>
+                      <option value="health_blogger">✨ Beauty Blogger</option>
+                      <option value="science_writer">🔬 Nhà khoa học</option>
+                      <option value="mom_expert">👩‍👧 Mẹ Việt Nam chia sẻ</option>
+                      <option value="customer_advocate">🛍️ Khách hàng trải nghiệm</option>
+                      <option value="wellness_coach">🏃 Coach sức khỏe</option>
+                      <option value="traditional_medicine">🌿 Bác sĩ Y học cổ truyền</option>
+                    </select>
+                  </div>
+                  
+                  <div class="space-y-1">
+                    <label class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Cấu trúc (Structure) mặc định</label>
+                    <select bind:value={settings.entropy.structure_override} disabled={!settings.entropy.enabled} class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-indigo-500/50 outline-none transition-colors disabled:opacity-40">
+                      <option value={null}>🎲 Auto Random (Khuyên dùng)</option>
+                      <option value="hook_first">🎣 Mở đầu gây tò mò</option>
+                      <option value="problem_solution">🎯 Vấn đề → Giải pháp</option>
+                      <option value="story_driven">📖 Kể chuyện trải nghiệm</option>
+                      <option value="listicle">🔢 Danh sách đánh số</option>
+                      <option value="comparison">⚖️ So sánh trước/sau</option>
+                      <option value="question_answer">❓ Hỏi đáp xen kẽ</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="space-y-1 mt-4">
+                  <label class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Tỉ lệ Drop Optional Schema Keys (0 - 1.0)</label>
+                  <input bind:value={settings.entropy.schema_drop_probability} type="number" step="0.1" min="0" max="1" disabled={!settings.entropy.enabled} class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-sm focus:border-indigo-500/50 outline-none transition-colors disabled:opacity-40" />
+                  <p class="text-[9px] text-zinc-600 mt-1 italic">Mặc định: 0.2 (20%). Google thường soi các keys Schema quá hoàn hảo.</p>
+                </div>
+
+                <div class="flex items-center justify-between mt-4 p-4 bg-black/40 border border-white/5 rounded-xl">
+                  <div>
+                    <h4 class="text-xs font-bold text-white uppercase tracking-wider">Bộ lọc Lexical Sanitizer</h4>
+                    <p class="text-[9px] text-zinc-500 font-mono">Tự động xóa/thay thế các từ "rập khuôn AI" (Tóm lại, Không ngoa khi nói...)</p>
+                  </div>
+                  <button 
+                    onclick={() => settings.entropy.lexical_sanitizer_enabled = !settings.entropy.lexical_sanitizer_enabled}
+                    disabled={!settings.entropy.enabled}
+                    class="relative w-10 h-5 rounded-full transition-colors duration-300 disabled:opacity-40 {settings.entropy.lexical_sanitizer_enabled ? 'bg-indigo-500' : 'bg-zinc-800'}"
+                  >
+                    <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 {settings.entropy.lexical_sanitizer_enabled ? 'translate-x-5' : 'translate-x-0'}"></div>
+                  </button>
+                </div>
               </div>
             </div>
           {/if}

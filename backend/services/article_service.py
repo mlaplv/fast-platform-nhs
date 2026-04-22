@@ -21,6 +21,8 @@ from backend.utils.sql import escape_like
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.event_bus import event_bus
 from backend.utils.media import extract_media_urls
+from backend.services.lexical_sanitizer import sanitize_ai_text
+from backend.services.prompt_entropy import build_entropy_system_prompt
 
 logger = logging.getLogger("api-gateway")
 
@@ -236,9 +238,13 @@ class ArticleService:
 
         new_id = str(uuid.uuid4())
 
+        # SGE Shield V1.0: Lexical Sanitizer — loại AI buzzwords TRƯỚC noise_cleaner
+        pre_content = sanitize_ai_text(data.content, seed=slug) if data.content else ""
+        pre_excerpt = sanitize_ai_text(data.excerpt, seed=f"{slug}:excerpt") if data.excerpt else ""
+
         # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
-        cleaned_content = await noise_cleaner.clean(data.content, strip_html=False) if data.content else ""
-        cleaned_excerpt = await noise_cleaner.clean(data.excerpt, strip_html=True) if data.excerpt else ""
+        cleaned_content = await noise_cleaner.clean(pre_content, strip_html=False) if pre_content else ""
+        cleaned_excerpt = await noise_cleaner.clean(pre_excerpt, strip_html=True) if pre_excerpt else ""
 
         article = Article(
             id=new_id,
@@ -284,11 +290,13 @@ class ArticleService:
         if data.title is not None: article.title = data.title
         if data.slug is not None: article.slug = data.slug
 
-        # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
+        # SGE Shield V1.0: Lexical Sanitizer — loại AI buzzwords TRƯỚC noise_cleaner
         if data.excerpt is not None:
-            article.excerpt = await noise_cleaner.clean(data.excerpt, strip_html=True)
+            pre_excerpt = sanitize_ai_text(data.excerpt, seed=f"{article.slug}:excerpt")
+            article.excerpt = await noise_cleaner.clean(pre_excerpt, strip_html=True)
         if data.content is not None:
-            article.content = await noise_cleaner.clean(data.content, strip_html=False)
+            pre_content = sanitize_ai_text(data.content, seed=article.slug)
+            article.content = await noise_cleaner.clean(pre_content, strip_html=False)
 
         if data.seo_title is not None: article.seo_title = data.seo_title
         if data.seo_description is not None: article.seo_description = data.seo_description
@@ -385,16 +393,18 @@ class ArticleService:
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
-        agent = Agent(
-            system_prompt=(
-                "You are an SEO expert. Given an article title and content, suggest optimized SEO metadata.\n"
-                "Constraints:\n"
-                "1. SEO Title: Max 60 characters, catchy but professional.\n"
-                "2. SEO Description: Max 160 characters, concise and engaging.\n"
-                "3. Keywords: 5-7 keywords separated by commas.\n"
-                "Return ONLY exact valid JSON object: {\"seo_title\": \"...\", \"seo_description\": \"...\", \"seo_keywords\": \"...\"}"
-            )
+        # SGE Shield V1.0: Dynamic Prompting — inject entropy vào system prompt
+        base_seo_prompt = (
+            "You are an SEO expert. Given an article title and content, suggest optimized SEO metadata.\n"
+            "Constraints:\n"
+            "1. SEO Title: Max 60 characters, catchy but professional.\n"
+            "2. SEO Description: Max 160 characters, concise and engaging.\n"
+            "3. Keywords: 5-7 keywords separated by commas.\n"
+            "Return ONLY exact valid JSON object: {\"seo_title\": \"...\", \"seo_description\": \"...\", \"seo_keywords\": \"...\"}"
         )
+        system_prompt = build_entropy_system_prompt(base_seo_prompt)
+
+        agent = Agent(system_prompt=system_prompt)
         content_excerpt = (content or "")[:2000]
         prompt = f"Article Title: {title}\nArticle Content: {content_excerpt}"
 
@@ -429,9 +439,16 @@ class ArticleService:
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
-        agent = Agent(
-            system_prompt="You are an expert content advisor. Given an article title and content excerpt, generate 3 to 5 frequently asked questions and short, helpful answers in Vietnamese. Return ONLY exact valid JSON array of objects without markdown wrapping or backticks, like this: [{\"question\": \"...\", \"answer\": \"...\"}]"
+        # SGE Shield V1.0: Dynamic Prompting — inject entropy vào system prompt
+        base_faq_prompt = (
+            "You are an expert content advisor. Given an article title and content excerpt, "
+            "generate 3 to 5 frequently asked questions and short, helpful answers in Vietnamese. "
+            "Return ONLY exact valid JSON array of objects without markdown wrapping or backticks, "
+            "like this: [{\"question\": \"...\", \"answer\": \"...\"}]"
         )
+        system_prompt = build_entropy_system_prompt(base_faq_prompt)
+
+        agent = Agent(system_prompt=system_prompt)
         # Truncate content to first 2000 chars for prompt efficiency
         content_excerpt = (content or "")[:2000]
         prompt = f"Article Title: {title}\nArticle Content: {content_excerpt}"

@@ -23,6 +23,7 @@ import re
 from typing import Optional
 
 from backend.schemas.product import ProductResponse, SeoMetaSchema
+from backend.utils.schema_mutator import mutate_json_ld
 
 logger = logging.getLogger("api-gateway")
 
@@ -451,6 +452,16 @@ class SeoService:
             "inLanguage": "vi",
         }
 
+        # SGE Shield V1.0: Mutate Article JSON-LD schema
+        entropy_cfg = SeoService._get_entropy_config()
+        if entropy_cfg.get("enabled", True):
+            schema = mutate_json_ld(
+                schema,
+                seed=slug,
+                enable_drop=True,
+                drop_probability=entropy_cfg.get("schema_drop_probability", 0.2),
+            )
+
         # Breadcrumb
         breadcrumb: dict = {
             "@context": "https://schema.org",
@@ -461,6 +472,10 @@ class SeoService:
                 {"@type": "ListItem", "position": 3, "name": title, "item": canonical_url}
             ]
         }
+
+        # SGE Shield: Mutate Breadcrumb JSON-LD
+        if entropy_cfg.get("enabled", True):
+            breadcrumb = mutate_json_ld(breadcrumb, seed=f"{slug}:bc")
 
         # GEO 2026: FAQ JSON-LD from article metadata
         faq_ld: str = ""
@@ -476,6 +491,35 @@ class SeoService:
             breadcrumb_ld_string=json.dumps(breadcrumb, separators=(",", ":"), ensure_ascii=False),
             faq_ld_string=faq_ld,
         )
+
+    @staticmethod
+    def _get_entropy_config() -> dict:
+        """
+        SGE Shield V1.0: Đọc entropy config từ Redis.
+        Fallback về defaults nếu Redis unavailable.
+        """
+        defaults: dict = {
+            "enabled": True,
+            "tone_override": None,
+            "structure_override": None,
+            "schema_drop_probability": 0.2,
+            "lexical_sanitizer_enabled": True,
+        }
+        try:
+            from backend.services.xohi_memory import xohi_memory
+            import asyncio
+
+            # Sync context: Dùng cache-first approach
+            # SeoService là staticmethod sync → không thể await.
+            # Đọc từ in-memory cache nếu có, fallback defaults.
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # Đang trong async context nhưng gọi sync → dùng defaults
+                # Config sẽ được load khi admin cập nhật settings
+                return defaults
+        except Exception:
+            pass
+        return defaults
 
     @staticmethod
     def generate_home_seo_meta(

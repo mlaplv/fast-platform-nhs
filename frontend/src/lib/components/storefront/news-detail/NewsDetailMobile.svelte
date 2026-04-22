@@ -15,9 +15,17 @@
     };
   }
   let { article }: Props = $props();
+
+  // SGE Shield V1.0: Deterministic DOM Entropy
+  const wrapperTags = ['div', 'article', 'section', 'main'];
+  const seedLength = article?.title ? article.title.length : 10;
+  const outerWrapper = wrapperTags[seedLength % wrapperTags.length];
+  
+  const innerTags = ['div', 'section'];
+  const innerWrapper = innerTags[(seedLength + 3) % innerTags.length];
 </script>
 
-<div class="bg-white min-h-screen text-gray-900">
+<svelte:element this={outerWrapper} class="bg-white min-h-screen text-gray-900">
   {#if article.category !== 'Chính sách'}
   <!-- Immersive Hero -->
   <div class="h-[60vh] relative w-full overflow-hidden bg-black">
@@ -70,9 +78,9 @@
   {/if}
 
   <!-- Content Reader (Elite Prose) -->
-  <div class="px-[5px] py-0 elite-prose-mobile">
+  <svelte:element this={innerWrapper} class="px-[5px] py-0 elite-prose-mobile">
       {@html article.content}
-  </div>
+  </svelte:element>
 
   <!-- GEO 2026: FAQ Section (Full Width Redesign) -->
   {#if article.metadata?.faqs && article.metadata.faqs.length > 0}
@@ -113,7 +121,7 @@
           </a>
       </div>
   </div>
-</div>
+</svelte:element>
 
 <style>
   :global(.elite-prose-mobile) {

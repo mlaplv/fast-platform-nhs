@@ -228,7 +228,7 @@
   let isConfirmCancelOpen = $state(false);
 
   // Elite V2.2: Reactive Financial Computations
-  const subtotal = $derived(order?.items?.reduce((acc, it) => acc + (it.total_price || 0), 0) ?? 0);
+  const subtotal = $derived(order?.items?.reduce((acc: number, it: any) => acc + (it.total_price || 0), 0) ?? 0);
   const voucherDiscount = $derived(Number(order?.order_metadata?.voucher_discount || 0));
   const comboDiscount = $derived(Number(order?.order_metadata?.combo_discount || 0));
   const totalSavings = $derived(voucherDiscount + comboDiscount);

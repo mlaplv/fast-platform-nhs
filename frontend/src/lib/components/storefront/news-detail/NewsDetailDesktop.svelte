@@ -25,9 +25,20 @@
     { title: "Top 5 serum đáng mua nhất năm", category: "TRENDS", image: article.featuredImage },
     { title: "Cách tối ưu hóa vận hành AI cho shop", category: "TECH", image: article.featuredImage }
   ];
+
+  // SGE Shield V1.0: Deterministic DOM Entropy
+  const wrapperTags = ['div', 'article', 'section', 'main'];
+  const seedLength = article?.title ? article.title.length : 10;
+  const outerWrapper = wrapperTags[seedLength % wrapperTags.length];
+  
+  const innerTags = ['div', 'section', 'article'];
+  const innerWrapper = innerTags[(seedLength + 5) % innerTags.length];
+  
+  const proseTags = ['div', 'section'];
+  const proseWrapper = proseTags[(seedLength + 7) % proseTags.length];
 </script>
 
-<div class="news-detail-content pb-8 text-gray-900">
+<svelte:element this={outerWrapper} class="news-detail-content pb-8 text-gray-900">
   <!-- BREADCRUMB & ELITE HEADER -->
   <div class="bg-white border-b border-gray-100 mb-8">
     <div class="max-w-[1200px] mx-auto px-4 xl:px-0 py-6">
@@ -49,7 +60,7 @@
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 flex gap-8 items-start">
     <!-- MAIN ARTICLE AREA -->
     <main class="flex-1">
-      <article 
+      <svelte:element this={innerWrapper} 
         class="bg-white border border-gray-100 shadow-[0_20px_60px_rgba(0,0,0,0.04)] overflow-hidden"
         in:fly={{y: 40, duration: 1000}}
       >
@@ -79,9 +90,9 @@
         {/if}
 
         <!-- Content Body (Elite Prose) -->
-        <div class="py-0 px-10 elite-prose">
+        <svelte:element this={proseWrapper} class="py-0 px-10 elite-prose">
             {@html article.content}
-        </div>
+        </svelte:element>
 
         <!-- Social Share Bar -->
         <div class="px-8 md:px-12 py-8 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
@@ -104,7 +115,7 @@
                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7" /></svg>
             </button>
         </div>
-      </article>
+      </svelte:element>
 
       <!-- Bottom Navigation -->
       <div class="mt-8 flex justify-between items-center mb-10 pb-6 border-b border-gray-100">
@@ -179,7 +190,7 @@
         </div>
     </aside>
   </div>
-</div>
+</svelte:element>
 
 <style>
   :global(.elite-prose) {
