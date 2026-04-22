@@ -352,29 +352,20 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
   
   const finalTotal = $derived(cartStore.totalAmount + shippingFee - pointDiscount);
 
-  // [ELITE V2.2] Ground Truth Sync: Export pricing breakdown for Helen
+  // [ELITE V5.0] Ground Truth Sync: Leverage unified breakdown from CartStore
   $effect(() => {
-    const productVoucherDiscount = cartStore.vouchers
-      .filter(v => cartStore.selectedVoucherIds.includes(v.id) && v.type !== 'SHIPPING')
-      .reduce((acc, v) => acc + (v.type === 'FIXED' ? v.value : (cartStore.totalAmountWithoutDiscount * v.value / 100)), 0);
-    
     const shippingVoucherDiscount = cartStore.vouchers
       .filter(v => cartStore.selectedVoucherIds.includes(v.id) && v.type === 'SHIPPING')
       .reduce((acc, v) => acc + v.value, 0);
 
     checkoutState.breakdown = {
-      subtotal: originalSubtotal,
-      combo_discount: productSavings,
-      voucher_discount: productVoucherDiscount,
-      shipping_fee: shippingFee,
+      ...cartStore.breakdown,
+      base_shipping_fee: shippingFee,
       shipping_discount: shippingVoucherDiscount,
-      total_amount: cartStore.totalAmount + shippingFee,
+      final_shipping_fee: Math.max(0, shippingFee - shippingVoucherDiscount),
       points_redeemed: pointsToRedeem,
-      point_discount: pointDiscount,
-      final_total: finalTotal,
-      applied_vouchers: cartStore.vouchers
-        .filter(v => cartStore.selectedVoucherIds.includes(v.id))
-        .map(v => ({ id: v.id, name: v.name, type: v.type }))
+      point_discount_amount: pointDiscount,
+      final_payable: finalTotal
     };
   });
 

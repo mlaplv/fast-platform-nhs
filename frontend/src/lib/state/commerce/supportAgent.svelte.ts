@@ -20,14 +20,26 @@ export interface SupportProductInfo {
 }
 
 export interface SupportPricingContext {
+    items: Array<{
+        product_id: string;
+        name: string;
+        quantity: number;
+        unit_price: number;
+        total_price: number;
+    }>;
     subtotal: number;
     combo_discount: number;
     voucher_discount: number;
-    shipping_fee: number;
-    total_amount: number;
+    base_shipping_fee: number;
+    shipping_discount: number;
+    final_shipping_fee: number;
+    max_point_discount_allowed: number;
     points_redeemed: number;
-    point_discount: number;
-    final_total: number;
+    point_discount_amount: number;
+    final_payable: number;
+    points_to_earn: number;
+    applied_voucher_ids: string[];
+    applied_combo_ids: string[];
 }
 
 export interface SupportMessage {
@@ -86,6 +98,7 @@ class SupportAgentState {
     // Elite V2.2: AI Toggle State
     helenEnabled = $state(true);
     offlineMessage = $state("");
+    optimalPriceNotice = $state(false);
     
     // Elite V2.2: Context & Pulse Intelligence
     currentPath = $state("");
@@ -400,6 +413,9 @@ class SupportAgentState {
                 
                 if (data.ui_metadata) {
                     console.log("📊 [Helen UI Meta] Pulse Metadata:", data.ui_metadata);
+                    if (data.ui_metadata.is_optimal_price !== undefined) {
+                        this.optimalPriceNotice = data.ui_metadata.is_optimal_price;
+                    }
                     if (data.ui_metadata.order_draft) {
                         console.log("📝 [Order Draft] Current State:", data.ui_metadata.order_draft);
                     }

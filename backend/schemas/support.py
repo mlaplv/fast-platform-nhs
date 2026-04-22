@@ -10,6 +10,7 @@ from enum import Enum
 from typing import Optional, Dict
 from pydantic import BaseModel, ConfigDict, Field, field_validator, JsonValue
 from typing import Optional, Dict, List, Union
+from backend.schemas.pricing import PricingBreakdown
 
 # Type Aliases for 100% Static Typing (Elite V2.2 Standard)
 # Using Pydantic built-in JsonValue for strict compliance (CẤM 'Any')
@@ -55,18 +56,7 @@ class SupportKnowledgeCategory(str, Enum):
     INFO_SHIPPING    = "INFO_SHIPPING"
 
 
-class SupportPricingContext(BaseModel):
-    """Ground Truth pricing context passed from frontend (Elite V4.2)"""
-    subtotal: float = Field(default=0.0)
-    combo_discount: float = Field(default=0.0)
-    voucher_discount: float = Field(default=0.0)
-    shipping_fee: float = Field(default=0.0)
-    total_amount: float = Field(default=0.0)
-    points_redeemed: int = Field(default=0)
-    point_discount: float = Field(default=0.0)
-    shipping_discount: float = Field(default=0.0)
-    final_total: float = Field(default=0.0)
-    applied_vouchers: Optional[List[Dict[str, str]]] = Field(default=None)
+# SupportPricingContext removed in favor of unified PricingBreakdown (Elite V5.0)
 
 
 class SupportRequest(BaseModel):
@@ -89,7 +79,7 @@ class SupportRequest(BaseModel):
     user_id: Optional[str] = Field(default=None, max_length=64)
     cart_items: Optional[List[Dict[str, JSONValue]]] = Field(default=None, description="Current cart snapshot from client localStorage.")
     selected_vouchers: Optional[List[str]] = Field(default=None, description="Active voucher IDs from client cart.")
-    pricing_context: Optional[SupportPricingContext] = Field(default=None, description="Calculated breakdown from frontend (Ground Truth).")
+    pricing_context: Optional[PricingBreakdown] = Field(default=None, description="Calculated breakdown from frontend (Ground Truth).")
 
     @field_validator("message", mode="before")
     @classmethod

@@ -125,6 +125,52 @@ export class CartStore {
         Math.max(0, this.totalAmountWithoutDiscount - this.totalDiscount)
     );
 
+    /**
+     * ELITE V5.0: Unified Pricing Breakdown (Ground Truth)
+     * This is the authoritative pricing state shared between UI and AI.
+     */
+    breakdown = $derived.by(() => {
+        const subtotal = this.totalAmountWithoutDiscount;
+        const voucherDiscount = this.totalDiscount;
+        
+        // Items with resolved unit prices (Tier/Combo aware)
+        const pricingItems = this.items.filter(i => i.selected).map(item => {
+            const unitPrice = this.getEffectiveItemPrice(item.id);
+            return {
+                product_id: item.product.id,
+                name: item.product.name,
+                quantity: item.quantity,
+                unit_price: unitPrice,
+                total_price: unitPrice * item.quantity
+            };
+        });
+
+        // Heuristic combo discount (for reporting)
+        // In Elite V2.2, originalSubtotal is the sum of base prices.
+        const originalSubtotal = this.items
+            .filter(i => i.selected)
+            .reduce((acc, item) => acc + ((item.variant?.price ?? item.product.price ?? 0) * item.quantity), 0);
+        
+        const comboDiscount = Math.max(0, originalSubtotal - subtotal);
+
+        return {
+            items: pricingItems,
+            subtotal: originalSubtotal,
+            combo_discount: comboDiscount,
+            voucher_discount: voucherDiscount,
+            base_shipping_fee: 0, // Will be updated by Checkout page if needed
+            shipping_discount: 0, 
+            final_shipping_fee: 0,
+            max_point_discount_allowed: subtotal * 0.01,
+            points_redeemed: 0,
+            point_discount_amount: 0,
+            final_payable: this.totalAmount,
+            points_to_earn: Math.floor(this.totalAmount / 100000),
+            applied_voucher_ids: this.selectedVoucherIds,
+            applied_combo_ids: [] // Future extension
+        };
+    });
+
     // Side-effects (Persistence)
     save(): void {
         if (browser) {

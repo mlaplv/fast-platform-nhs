@@ -82,7 +82,7 @@
     
     // Elite V2.2: Pass Ground Truth pricing if on checkout page
     // [FIX] Explicitly read from singleton for precision sync
-    const pricingContext = checkoutState.breakdown || undefined;
+    const pricingContext = checkoutState.breakdown || cartStore.breakdown;
     
     await supportAgent.sendMessage(text, productSlug, name, undefined, userId, cartStore.items, cartStore.selectedVoucherIds, pricingContext);
     scrollToNewestMessage();
@@ -93,7 +93,7 @@
       action.action();
       return;
     }
-    const pricingContext = checkoutState.breakdown || undefined;
+    const pricingContext = checkoutState.breakdown || cartStore.breakdown;
     await supportAgent.sendMessage(action.prompt, productSlug, undefined, undefined, undefined, cartStore.items, cartStore.selectedVoucherIds, pricingContext);
     scrollToNewestMessage();
   }
@@ -216,18 +216,44 @@
           </button>
         </div>
       </header>
+
+      {#if supportAgent.optimalPriceNotice}
+        <div 
+          transition:fly={{ y: -20, duration: 600 }}
+          class="flex-shrink-0 px-10 pb-6 -mt-2 animate-in fade-in zoom-in duration-700"
+        >
+          <div class="relative w-full p-5 bg-gradient-to-br from-[#FFB7C5]/20 to-black/40 border border-[#FFB7C5]/30 rounded-[32px] shadow-[0_12px_40px_rgba(255,183,197,0.15)] overflow-hidden group">
+            <div class="absolute -top-12 -right-12 w-24 h-24 bg-[#FFB7C5]/10 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-1000"></div>
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-[#FFB7C5] flex items-center justify-center shadow-[0_0_15px_rgba(255,183,197,0.5)] flex-shrink-0">
+                <Sparkles size={20} class="text-slate-950" />
+              </div>
+              <div class="flex flex-col">
+                <p class="text-[13px] text-white font-black leading-tight tracking-tight uppercase">
+                  Mức giá tối ưu cho liệu trình
+                </p>
+                <p class="text-[11px] text-white/70 leading-snug font-medium mt-1">
+                  Tuyệt vời! Đơn hàng của bạn đã đạt mức giá tối ưu. Helen cam kết bảo vệ quyền lợi cho bạn.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      {/if}
   
       <!-- Thread: Zero-Background Floating Text Aesthetic -->
       <div 
         bind:this={chatContainer}
         class="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-start space-y-12 hide-scrollbar relative"
       >
-        <div class="flex flex-col items-center justify-center mb-10 opacity-30 hover:opacity-100 transition-opacity">
-          <div class="flex items-center gap-2.5 px-5 py-2 bg-black/40 border border-white/10 rounded-full">
-             <ShieldCheck size={14} class="text-[#FFB7C5]" />
-             <span class="text-[10px] text-white/60 tracking-[0.2em] uppercase font-black italic">Hệ thống chuyên gia Helen v3.2</span>
+        {#if !supportAgent.optimalPriceNotice}
+          <div class="flex flex-col items-center justify-center mb-10 opacity-30 hover:opacity-100 transition-opacity">
+            <div class="flex items-center gap-2.5 px-5 py-2 bg-black/40 border border-white/10 rounded-full">
+               <ShieldCheck size={14} class="text-[#FFB7C5]" />
+               <span class="text-[10px] text-white/60 tracking-[0.2em] uppercase font-black italic">Hệ thống chuyên gia Helen v3.2</span>
+            </div>
           </div>
-        </div>
+        {/if}
 
         <!-- Viral Lazy Memory: Zalo-style pagination -->
         {#if supportAgent.hasMoreHistory}
