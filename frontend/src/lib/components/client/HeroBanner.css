@@ -120,6 +120,14 @@ html {
     max-width: 65ch;
     margin: 0 auto !important;
     padding: 0 1.5rem;
+
+    @media (max-width: 1024px) {
+      font-size: 1.4rem !important; /* To thêm tí nữa theo ý Sếp */
+      line-height: 1.6 !important;
+    }
+    @media (max-width: 768px) {
+      font-size: 1rem !important;
+    }
   }
 
   /* --- ELITE HEADLINE SYSTEM --- */
@@ -128,6 +136,15 @@ html {
     font-weight: 900 !important;
     line-height: 1.05 !important;
     margin-top: -15px !important;
+
+    @media (max-width: 1024px) {
+      margin-top: 45px !important; /* Đẩy thêm một chút */
+      font-size: 4.5rem !important; /* Đã to thêm theo ý Sếp */
+    }
+    @media (max-width: 768px) {
+      margin-top: 50px !important; /* Đẩy xuống sâu hơn trên màn hình nhỏ */
+      font-size: 2.5rem !important; /* Thu nhỏ lại cho iPad Mini */
+    }
 
     & .text-luxury-copper {
       display: inline-block;
@@ -140,6 +157,16 @@ html {
     line-height: 1.6;
     letter-spacing: 0.02em;
     margin-bottom: 2.5rem;
+
+    @media (max-width: 1024px) {
+      font-size: 1.4rem !important; /* To thêm tí nữa */
+      line-height: 1.5 !important;
+      margin-bottom: 2rem !important;
+    }
+    @media (max-width: 768px) {
+      font-size: 1rem !important;
+      margin-bottom: 1.25rem !important;
+    }
 
     & strong {
       color: var(--color-luxury-copper);

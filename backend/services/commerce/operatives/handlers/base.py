@@ -55,6 +55,10 @@ class SupportContext(BaseModel):
     active_visitors: int = 1
     product_stock: Optional[int] = 0
 
+    # Integration toggles (Elite V2.2)
+    zalo_enabled: bool = False
+    messenger_enabled: bool = False
+
 # Late binding for Pydantic V2
 SupportContext.model_rebuild()
 

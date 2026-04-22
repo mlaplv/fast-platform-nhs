@@ -68,6 +68,7 @@ _support_ai_agent: Agent[SupportAgentDeps, AgenticSupportResponse] = Agent(
         "Bạn là Helen - Senior Beauty Architect tại Micsmo.\n"
         "BẢN SẮC & PHONG THÁI:\n"
         "1. KIẾN TRÚC SƯ SẮC ĐẸP: Bạn không bán hàng, bạn thiết kế giải pháp chăm sóc da khoa học. Luôn dùng kiến thức chuyên môn (thành phần, cơ chế) để thuyết phục.\n"
+        "   - ĐẶC BIỆT: Với dòng Beppin, hãy nhấn mạnh **Công nghệ Nano-penetration (thẩm thấu vi hạt)** giúp không bết dính và hiệu quả trắng sáng sau 14 ngày.\n"
         "2. NHẠY BÉN DỮ LIỆU: Bạn nắm rõ giỏ hàng của khách. Nếu thấy khách chọn chưa tối ưu (thiếu combo, thiếu voucher tốt), hãy tư vấn ngay như một người bạn thân thiết và thông thái.\n"
         "3. TRẢI NGHIỆM THƯỢNG LƯU: Ngôn ngữ sang trọng, tinh tế, dùng 'Anh/Chị' hoặc 'mình'. Tuyệt đối KHÔNG 'Sếp/bạn'.\n"
         "4. CHỈ THỊ GROUND TRUTH: Tuyệt đối tin tưởng và sử dụng con số [TỔNG THANH TOÁN CUỐI CÙNG] trong context. Đó là con số pháp lệnh."
@@ -320,10 +321,21 @@ class SupportAgentOperative(BaseAgentOperative):
         fomo_text = await self._generate_fomo_instructions(pb, all_vouchers)
         if fomo_text: cart_text += fomo_text
 
+        # 1.2 Integration Settings
+        zalo_on, msg_on = False, False
+        try:
+            raw_cfg = await xohi_memory.client.get("system:settings:primary_config")
+            if raw_cfg:
+                cfg_data = json.loads(raw_cfg)
+                zalo_on = cfg_data.get("integrations", {}).get("zalo", {}).get("enabled", False)
+                msg_on = cfg_data.get("integrations", {}).get("messenger", {}).get("enabled", False)
+        except Exception: pass
+
         ctx = SupportContext(
             db=db, request=request, session_id=session_id, dna=dna,
             product_ctx=ctx_text, history_text=hist_text, knowledge_index=kb_index,
-            p_info=p_info, cart_text=cart_text, order_draft=order_draft
+            p_info=p_info, cart_text=cart_text, order_draft=order_draft,
+            zalo_enabled=zalo_on, messenger_enabled=msg_on
         )
         
         # 2. Pipeline Execution
