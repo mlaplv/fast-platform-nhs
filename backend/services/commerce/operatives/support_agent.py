@@ -90,6 +90,10 @@ async def search_knowledge_base(ctx: RunContext[SupportAgentDeps], query: str) -
 async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> Tuple[str, Optional[SupportProductInfo]]:
     """Fetch product info via SQLAlchemy 2.0 Scalar projection."""
     if not slug: return "", None
+    # Elite V2.2: Skip context fetch for static/policy pages to reduce log noise
+    if any(p in slug for p in ["chinh-sach", "gioi-thieu", "tuyen-dung", "dieu-khoan", "thanh-toan", "kiem-hang", "bao-hanh"]):
+        return "", None
+        
     try:
         stmt = (
             select(
@@ -335,7 +339,6 @@ class SupportAgentOperative(BaseAgentOperative):
             kb_service = SupportKnowledgeService(repo=repo)
             kb_index = await kb_service.get_knowledge_index(db)
         except Exception as kbe:
-            logger.warning("[SupportAgent] Knowledge Index fetch failed: %s", kbe)
             kb_index = ""
 
         # 🚀 1.1: Fetch Integration Config (Elite V2.2)
@@ -381,81 +384,38 @@ class SupportAgentOperative(BaseAgentOperative):
                 
                 cart_lines.append(f"- {p_name}: {qty} x {int(p_price):,}đ = {int(p_price * qty):,}đ".replace(",", "."))
 
-        # 2. PRICING BREAKDOWN (The Ground Truth)
-        if request.pricing_context and request.pricing_context.subtotal > 0:
-            # 🚀 OPTIMIZED: Direct consumption of Frontend Ground Truth (Zero recalculation)
-            ctx_gt = request.pricing_context
-            logger.info(f"🎯 [SupportAgent] GROUND TRUTH HIT for SID {session_id}: Total={ctx_gt.final_total}")
-            pb = {
-                "subtotal": ctx_gt.subtotal,
-                "combo_discount": ctx_gt.combo_discount,
-                "voucher_discount": ctx_gt.voucher_discount,
-                "final_shipping_fee": ctx_gt.shipping_fee,
-                "base_shipping_fee": 30000.0 if (ctx_gt.shipping_fee > 0 or ctx_gt.subtotal < 2000000) else 0.0,
-                "shipping_discount": 30000.0 if (ctx_gt.shipping_fee == 0 and ctx_gt.subtotal < 2000000) else 0.0,
-                "point_discount_amount": ctx_gt.point_discount,
-                "final_payable": ctx_gt.final_total,
-                "points_redeemed": ctx_gt.points_redeemed,
-                "points_to_earn": int(ctx_gt.final_total // 100000),
-                "is_fallback": False
-            }
-        else:
-            logger.info(f"⚠️ [SupportAgent] GROUND TRUTH MISS for SID {session_id} - Falling back to PricingEngine")
-            # Fallback for product pages/incomplete checkout states
-            from backend.services.commerce.logic.pricing_engine import PricingEngine
-            from backend.schemas.pricing import PricingInputItem
-            
-            fallback_items = []
-            for it in request.cart_items:
-                p_raw = it.get("product", {})
-                p_id = p_raw.get("id")
-                if not p_id: continue
-                # Elite V5.6: Use ORIGINAL PRICE in fallback to match Checkout UI "TỔNG" line
-                p_pr = float(p_raw.get("price") or p_raw.get("discountPrice") or 0)
-                fallback_items.append(PricingInputItem(product_id=str(p_id), name=p_raw.get("name", "SP"), quantity=it.get("quantity", 1), unit_price=p_pr))
-            
-            pricing = PricingEngine.calculate(
-                items=fallback_items,
-                vouchers=[], # Simplified for non-checkout
-                combo_deals=await PromotionService.get_active_combo_deals(db),
-                points_to_redeem=0, # Elite V5.4: Never auto-redeem points in fallback (Drift Prevention)
-                available_points=dna.available_points,
-                point_value_vnd=dna.point_value_vnd or 1000.0,
-                base_shipping_fee=30000.0 if sum(i.unit_price * i.quantity for i in fallback_items) < 2000000 else 0.0
-            )
-            pb = {
-                "subtotal": pricing.subtotal,
-                "combo_discount": pricing.combo_discount,
-                "voucher_discount": pricing.voucher_discount,
-                "base_shipping_fee": pricing.base_shipping_fee,
-                "shipping_discount": pricing.shipping_discount,
-                "final_shipping_fee": pricing.final_shipping_fee,
-                "point_discount_amount": pricing.point_discount_amount,
-                "final_payable": pricing.final_payable,
-                "points_to_earn": pricing.points_to_earn,
-                "points_redeemed": pricing.points_redeemed,
-                "is_fallback": True
-            }
-
+        # 🚀 Elite V5.7: Optimized Pricing Breakdown (Ground Truth vs Fallback)
+        pb = await self._prepare_pricing_breakdown(db, request, dna)
+        
         cart_text = "\n[CHI TIẾT GIỎ HÀNG THỰC TẾ]\n" + "\n".join(cart_lines) + "\n" if cart_lines else "\n[GIỎ HÀNG THỰC]: Trống.\n"
-        if pb["subtotal"] > 0:
+        if pb.get("subtotal", 0) > 0:
             cart_text += f"\n[BẢNG TÍNH TOÁN CHI TIẾT - ELITE GROUND TRUTH]\n"
             if pb.get("is_fallback"):
                 cart_text += "⚠️ [LƯU Ý HỆ THỐNG]: Đang dùng logic tính toán dự phòng. Hãy nhắc khách kiểm tra lại giỏ hàng và Voucher đã áp dụng trên trang Checkout để có con số chính xác tuyệt đối.\n"
             cart_text += f"1. Tổng tạm tính (Sản phẩm): {int(pb['subtotal']):,}đ\n".replace(",", ".")
-            if pb["combo_discount"] > 0: cart_text += f"2. Chiết khấu Combo: -{int(pb['combo_discount']):,}đ\n".replace(",", ".")
-            if pb["voucher_discount"] > 0: cart_text += f"3. Giảm giá Voucher: -{int(pb['voucher_discount']):,}đ\n".replace(",", ".")
-            cart_text += f"4. Phí vận chuyển: {int(pb['base_shipping_fee']):,}đ\n".replace(",", ".")
-            if pb["shipping_discount"] > 0: cart_text += f"   - Giảm phí ship: -{int(pb['shipping_discount']):,}đ\n".replace(",", ".")
+            if pb.get("combo_discount", 0) > 0: cart_text += f"2. Chiết khấu Combo: -{int(pb['combo_discount']):,}đ\n".replace(",", ".")
             
-            if pb["point_discount_amount"] > 0:
+            # Elite V5.8: Display REAL voucher names (SPLIT: Product vs Shipping)
+            applied_v = pb.get("applied_vouchers") or []
+            prod_v_names = ", ".join([v["name"] for v in applied_v if v.get("type") != "SHIPPING"])
+            ship_v_names = ", ".join([v["name"] for v in applied_v if v.get("type") == "SHIPPING"])
+
+            if pb.get("voucher_discount", 0) > 0: 
+                v_label = f"({prod_v_names})" if prod_v_names else ""
+                cart_text += f"3. Giảm giá Voucher {v_label}: -{int(pb['voucher_discount']):,}đ\n".replace(",", ".")
+            
+            cart_text += f"4. Phí vận chuyển: {int(pb.get('base_shipping_fee', 0)):,}đ\n".replace(",", ".")
+            if pb.get("shipping_discount", 0) > 0: 
+                v_label = f"(mã {ship_v_names})" if ship_v_names else ""
+                cart_text += f"   - Giảm phí ship {v_label}: -{int(pb['shipping_discount']):,}đ\n".replace(",", ".")
+            
+            if pb.get("point_discount_amount", 0) > 0:
                 cart_text += f"5. Điểm tích lũy (Khách dùng {pb['points_redeemed']} pts):\n"
                 cart_text += f"   - Giảm giá: -{int(pb['point_discount_amount']):,}đ\n".replace(",", ".")
                 cart_text += f"   - [HỆ THỐNG ĐÃ TÍNH SẴN]: Khách chỉ được giảm tối đa 1% giá trị đơn để bảo vệ quyền lợi Sếp.\n"
             
-            cart_text += f"   - Phí ship thực tế: {int(pb['final_shipping_fee']):,}đ\n".replace(",", ".")
-            cart_text += f"\n=> TỔNG THANH TOÁN CUỐI CÙNG: {int(pb['final_payable']):,}đ\n".replace(",", ".")
-            cart_text += f"=> DỰ KIẾN TÍCH THÊM: +{pb['points_to_earn']} PTS\n"
+            cart_text += f"\n👉 TỔNG THANH TOÁN CUỐI CÙNG: {int(pb['final_payable']):,}đ\n".replace(",", ".")
+            cart_text += f"👉 DỰ KIẾN TÍCH LŨY: +{pb['points_to_earn']} điểm.\n"
             cart_text += f"--------------------------------\n"
             
             # 🚀 Elite V4.9: INTELLIGENT BEST-DEAL RESOLUTION (FOMO)
@@ -585,6 +545,70 @@ class SupportAgentOperative(BaseAgentOperative):
             processed_order_id=ctx.processed_order_id
         )
 
+    async def _prepare_pricing_breakdown(self, db: AsyncSession, request: SupportRequest, dna: NeuralDNA) -> Dict[str, Union[float, int, bool]]:
+        """
+        [ELITE V5.7] Centralized Pricing Intelligence.
+        Consumes Frontend Ground Truth OR falls back to specialized PricingEngine with Bundle support.
+        """
+        # 1. GROUND TRUTH HIT
+        if request.pricing_context and request.pricing_context.subtotal > 0:
+            ctx_gt = request.pricing_context
+            return {
+                "subtotal": ctx_gt.subtotal,
+                "combo_discount": ctx_gt.combo_discount,
+                "voucher_discount": ctx_gt.voucher_discount,
+                "final_shipping_fee": ctx_gt.shipping_fee,
+                "base_shipping_fee": 30000.0 if (ctx_gt.shipping_fee > 0 or ctx_gt.subtotal < 2000000) else 0.0,
+                "shipping_discount": 30000.0 if (ctx_gt.shipping_fee == 0 and ctx_gt.subtotal < 2000000) else 0.0,
+                "point_discount_amount": ctx_gt.point_discount,
+                "shipping_discount": ctx_gt.shipping_discount,
+                "final_payable": ctx_gt.final_total,
+                "points_redeemed": ctx_gt.points_redeemed,
+                "points_to_earn": int(ctx_gt.final_total // 100000),
+                "applied_vouchers": ctx_gt.applied_vouchers,
+                "is_fallback": False
+            }
+
+        # 2. FALLBACK (Heuristic calculations)
+        from backend.services.commerce.logic.pricing_engine import PricingEngine
+        from backend.schemas.pricing import PricingInputItem
+        from backend.services.commerce.promotion import PromotionService
+        
+        fallback_items = []
+        for it in (request.cart_items or []):
+            p_raw = it.get("product", {})
+            p_id = p_raw.get("id")
+            if not p_id: continue
+            # Elite V5.6: Use ORIGINAL PRICE in fallback to match Checkout UI
+            p_pr = float(p_raw.get("price") or p_raw.get("discountPrice") or 0)
+            fallback_items.append(PricingInputItem(product_id=str(p_id), name=p_raw.get("name", "SP"), quantity=it.get("quantity", 1), unit_price=p_pr))
+        
+        if not fallback_items:
+            return {"subtotal": 0, "final_payable": 0, "points_to_earn": 0, "is_fallback": True}
+
+        pricing = PricingEngine.calculate(
+            items=fallback_items,
+            vouchers=[], 
+            combo_deals=await PromotionService.get_active_combo_deals(db),
+            points_to_redeem=0, 
+            available_points=dna.available_points,
+            point_value_vnd=dna.point_value_vnd or 1000.0,
+            base_shipping_fee=30000.0 if sum(i.unit_price * i.quantity for i in fallback_items) < 2000000 else 0.0
+        )
+        return {
+            "subtotal": pricing.subtotal,
+            "combo_discount": pricing.combo_discount,
+            "voucher_discount": pricing.voucher_discount,
+            "base_shipping_fee": pricing.base_shipping_fee,
+            "shipping_discount": pricing.shipping_discount,
+            "final_shipping_fee": pricing.final_shipping_fee,
+            "point_discount_amount": pricing.point_discount_amount,
+            "final_payable": pricing.final_payable,
+            "points_to_earn": pricing.points_to_earn,
+            "points_redeemed": pricing.points_redeemed,
+            "is_fallback": True
+        }
+
     async def chat(self, request: Union[SupportRequest, dict], **kwargs: object) -> SupportResponse:
         """
         Elite V2.5: Entry Protocol.
@@ -609,8 +633,6 @@ class SupportAgentOperative(BaseAgentOperative):
     async def _chat_internal(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:
         """Internal dispatch logic with Elite V2.2 Inhibition Guards."""
         session_id = request.session_id or str(uuid.uuid4())
-        logger.info(f"🚀 [SupportAgent] Incoming Request for SID: {session_id} | Msg: '{request.message}'")
-        logger.info(f"🚀 [SupportAgent] Pricing Context Received: {request.pricing_context.model_dump() if request.pricing_context else 'NONE'}")
 
         # 🚀 Elite V3.0: Early DNA Hydration for Personalized Fast-Path & Contextual Awareness
         dna = await self._fetch_neural_dna(
@@ -660,8 +682,7 @@ class SupportAgentOperative(BaseAgentOperative):
                 timeout=2.0,
                 safety_none=True
             )
-            f_data = cast(FastIntentResponse, fast_res) # Proper Elite V2.2 Typing
-            logger.info("[SupportAgent] Fast-Path detected intent: %s for SID: %s", f_data.intent, session_id)
+            f_data = cast(FastIntentResponse, fast_res)
             
             if f_data.intent == "GREETING" and f_data.quick_reply and not request.cart_items:
                 await self._save_history(

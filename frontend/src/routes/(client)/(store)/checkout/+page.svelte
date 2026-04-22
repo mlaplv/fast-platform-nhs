@@ -354,15 +354,27 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
 
   // [ELITE V2.2] Ground Truth Sync: Export pricing breakdown for Helen
   $effect(() => {
+    const productVoucherDiscount = cartStore.vouchers
+      .filter(v => cartStore.selectedVoucherIds.includes(v.id) && v.type !== 'SHIPPING')
+      .reduce((acc, v) => acc + (v.type === 'FIXED' ? v.value : (cartStore.totalAmountWithoutDiscount * v.value / 100)), 0);
+    
+    const shippingVoucherDiscount = cartStore.vouchers
+      .filter(v => cartStore.selectedVoucherIds.includes(v.id) && v.type === 'SHIPPING')
+      .reduce((acc, v) => acc + v.value, 0);
+
     checkoutState.breakdown = {
       subtotal: originalSubtotal,
       combo_discount: productSavings,
-      voucher_discount: cartStore.totalDiscount,
+      voucher_discount: productVoucherDiscount,
       shipping_fee: shippingFee,
+      shipping_discount: shippingVoucherDiscount,
       total_amount: cartStore.totalAmount + shippingFee,
       points_redeemed: pointsToRedeem,
       point_discount: pointDiscount,
-      final_total: finalTotal
+      final_total: finalTotal,
+      applied_vouchers: cartStore.vouchers
+        .filter(v => cartStore.selectedVoucherIds.includes(v.id))
+        .map(v => ({ id: v.id, name: v.name, type: v.type }))
     };
   });
 

@@ -170,14 +170,11 @@ class SupportController(Controller):
         - Asynchronous Tier-2/3 Brain (LLM/RAG via arq)
         """
         session_id = data.session_id or "unknown"
-        logger.info(f"📥 [SupportController] Incoming message for SID: {session_id}")
         
         try:
-            logger.info(f"📥 [SupportController] Payload for SID {session_id}: {data.model_dump(exclude_none=True)}")
             await self._check_rate_limit(request, session_id)
             response = await support_agent.chat(request=data, db=db_session)
             await db_session.commit()
-            logger.info(f"✅ [SupportController] Chat processed successfully for SID: {session_id}")
             status_code = 202 if response.status == "PROCESSING" else 200
             return Response(content=response, status_code=status_code)
         except Exception as e:

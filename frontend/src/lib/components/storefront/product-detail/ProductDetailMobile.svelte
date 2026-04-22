@@ -11,6 +11,7 @@
   import ProductMobileSpecs from './ProductMobileSpecs.svelte';
   import ProductMobileRecommendations from './ProductMobileRecommendations.svelte';
   import ProductMobileVariantSelector from './ProductMobileVariantSelector.svelte';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import MobileBottomNav from '../home/MobileBottomNav.svelte';
   import type { ProductVariant } from '$lib/types';
 
@@ -149,7 +150,7 @@
     {product}
     onAddToCart={addToCart}
     onBuyNow={buyNow}
-    onChatOpen={() => {}}
+    onChatOpen={() => supportAgent.open()}
   />
 
   <!-- 6. VARIANT SELECTOR MODAL -->

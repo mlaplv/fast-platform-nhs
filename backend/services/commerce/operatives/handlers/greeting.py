@@ -21,7 +21,6 @@ class GreetingHandler(BaseHandler):
 
         # Elite V2.6: Expanded threshold (25 chars) to catch "chào shop tư vấn giúp"
         # Elite V5.6: NEVER consume greeting if cart exists (Let Consultant report cart)
-        logger.info(f"🔍 [GreetingHandler] Check: is_first={is_first_msg}, has_greet={has_greeting}, msg_len={len(msg)}, has_cart={bool(ctx.request.cart_items)}")
         if (is_first_msg or has_greeting) and len(msg) < 25 and not ctx.request.cart_items:
             import os
             from datetime import datetime
@@ -68,7 +67,6 @@ class GreetingHandler(BaseHandler):
                     "Anh/Chị muốn Helen tư vấn dòng sản phẩm nào cho mình, hay tìm hiểu về ưu đãi đang chạy không ạ? 🌸"
                 )
 
-            logger.info(f"✨ [Greeting Heuristic] Responding to greeting: {msg}")
             return True  # TERMINATE: Pure greeting consumed.
 
         return False  # Fall-through to Consultant/Order for complex queries

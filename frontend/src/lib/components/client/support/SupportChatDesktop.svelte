@@ -81,11 +81,8 @@
     const userId = user?.id || null;
     
     // Elite V2.2: Pass Ground Truth pricing if on checkout page
-    // [FIX] Explicitly read from singleton and provide fallback for diagnostic tracing
+    // [FIX] Explicitly read from singleton for precision sync
     const pricingContext = checkoutState.breakdown || undefined;
-    if (!pricingContext && window.location.pathname.includes('/checkout')) {
-      console.warn('⚠️ [SupportChat] Ground Truth Missing on Checkout page! Helen will use Fallback Brain.');
-    }
     
     await supportAgent.sendMessage(text, productSlug, name, undefined, userId, cartStore.items, cartStore.selectedVoucherIds, pricingContext);
     scrollToNewestMessage();

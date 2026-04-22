@@ -11,7 +11,9 @@ export interface CheckoutBreakdown {
     total_amount: number;
     points_redeemed: number;
     point_discount: number;
+    shipping_discount: number;
     final_total: number;
+    applied_vouchers?: { id: string, name: string, type: string }[];
 }
 
 class CheckoutState {

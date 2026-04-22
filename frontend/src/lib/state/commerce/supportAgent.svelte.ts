@@ -335,6 +335,18 @@ class SupportAgentState {
         }
     }
 
+    async open() {
+        if (!this.isOpen) {
+            this.isOpen = true;
+            await this.fetchStatus();
+            await this.ensureHistoryLoaded();
+            
+            if (!this.helenEnabled) {
+                this.config.agentName = "Chuyên viên Tư vấn";
+            }
+        }
+    }
+
     close() {
         this.isOpen = false;
         this._disconnectPulse();

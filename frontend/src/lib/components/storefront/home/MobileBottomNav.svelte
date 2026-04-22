@@ -9,6 +9,7 @@
   import { cubicOut } from 'svelte/easing';
   import { Hash, ChevronRight, Droplet, Sparkles, Eye, Leaf, Smile, Waves, Pill } from 'lucide-svelte';
   import { browser } from '$app/environment';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
 
   const ui = getClientUi();
   const cartStore = getCartStore();
@@ -325,7 +326,7 @@
       <span class="tbn-label">Hotline</span>
     </button>
 
-    <button class="tbn-item tbn-item--ai {isMenuOpen ? 'opacity-30' : ''}" aria-label="AI Chat" onclick={() => { if(!isMenuOpen) onChatOpen?.(); }}>
+    <button class="tbn-item tbn-item--ai {isMenuOpen ? 'opacity-30' : ''}" aria-label="AI Chat" onclick={() => { if(!isMenuOpen) (onChatOpen ? onChatOpen() : supportAgent.open()); }}>
       <svg class="tbn-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <defs>
           <linearGradient id="ai-grad" x1="0%" y1="0%" x2="100%" y2="100%">

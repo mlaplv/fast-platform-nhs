@@ -64,7 +64,9 @@ class SupportPricingContext(BaseModel):
     total_amount: float = Field(default=0.0)
     points_redeemed: int = Field(default=0)
     point_discount: float = Field(default=0.0)
+    shipping_discount: float = Field(default=0.0)
     final_total: float = Field(default=0.0)
+    applied_vouchers: Optional[List[Dict[str, str]]] = Field(default=None)
 
 
 class SupportRequest(BaseModel):
