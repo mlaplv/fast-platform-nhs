@@ -386,8 +386,14 @@ class SupportAgentOperative(BaseAgentOperative):
 
         # 🚀 Elite V5.7: Optimized Pricing Breakdown (Ground Truth vs Fallback)
         pb = await self._prepare_pricing_breakdown(db, request, dna)
+
+        # 🚀 Elite V5.9: Product Page Awareness
+        # If the user is on a product page, inject it into the context so AI knows "cho 1 cái" refers to THIS.
+        current_product_text = ""
+        if request.product_slug and ctx_text:
+            current_product_text = f"\n[SẢN PHẨM KHÁCH ĐANG XEM TẠI TRANG HIỆN TẠI]:\n{ctx_text}\n"
         
-        cart_text = "\n[CHI TIẾT GIỎ HÀNG THỰC TẾ]\n" + "\n".join(cart_lines) + "\n" if cart_lines else "\n[GIỎ HÀNG THỰC]: Trống.\n"
+        cart_text = current_product_text + "\n[CHI TIẾT GIỎ HÀNG THỰC TẾ]\n" + "\n".join(cart_lines) + "\n" if cart_lines else "\n[GIỎ HÀNG THỰC]: Trống.\n"
         if pb.get("subtotal", 0) > 0:
             cart_text += f"\n[BẢNG TÍNH TOÁN CHI TIẾT - ELITE GROUND TRUTH]\n"
             if pb.get("is_fallback"):
