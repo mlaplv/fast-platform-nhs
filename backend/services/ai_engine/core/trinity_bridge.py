@@ -33,7 +33,7 @@ class TrinityBridge:
     """V65.0: Centralized AI Bridge. Modularized for Martial Law (<300 lines)."""
     def __init__(self) -> None:
         self.rotator: 'KeyRotator' = key_rotator
-        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-2.5-pro")
+        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-1.5-pro")
         self.fallback_model: str = os.getenv("AI_FALLBACK_MODEL", "gemini-1.5-flash")
         self.models_helper: TrinityModels = TrinityModels(self.rotator, self.primary_model, self.fallback_model)
         self.db_primary_model: Optional[str] = None
@@ -243,15 +243,15 @@ class TrinityBridge:
         model_settings_base = cast(dict[str, object], kwargs.pop("model_settings", {}))
         safety_none = bool(kwargs.pop("safety_none", False))
 
-        async with self.concurrency_guard:
-            for m_name in models:
-                for att in range(max_k):
-                    key = None
-                    try:
-                        key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
-                        if not key: continue
-                        if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
-                        
+        for m_name in models:
+            for att in range(max_k):
+                key = None
+                try:
+                    key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
+                    if not key: continue
+                    if not force and await self.rotator.is_model_daily_exhausted(key, m_name): continue
+                    
+                    async with self.concurrency_guard:
                         model_instance = GoogleModel(m_name, provider=GoogleProvider(api_key=key))
                         ms = dict(model_settings_base)
                         if safety_none: ms["google_safety_settings"] = _G_SAFETY_NONE
@@ -263,25 +263,26 @@ class TrinityBridge:
                         else:
                             async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs) as stream:
                                 yield stream
-                        await self.rotator.set_success(key, session_id=s_id); return
-                    except Exception as e:
-                        last_err, cat = e, self.models_helper.classify_error(str(e))
-                        if not key: continue
-                        if cat == "rate_limit":
-                             if "RESOURCE_EXHAUSTED" in str(e) or "QUOTA/COOLDOWN" in str(e):
-                                 logger.warning(f"[TrinityBridge] Model '{m_name}' QUOTA EXHAUSTED (Stream). Marking for Cooldown.")
-                                 if key: await self.rotator.mark_model_daily(key, m_name)
-                                 continue
-                             if self.models_helper.is_daily_quota(str(e)) and key:
-                                 await self.rotator.mark_model_daily(key, m_name)
+                    
+                    await self.rotator.set_success(key, session_id=s_id); return
+                except Exception as e:
+                    last_err, cat = e, self.models_helper.classify_error(str(e))
+                    if not key: continue
+                    if cat == "rate_limit":
+                         if "RESOURCE_EXHAUSTED" in str(e) or "QUOTA/COOLDOWN" in str(e):
+                             logger.warning(f"[TrinityBridge] Model '{m_name}' QUOTA EXHAUSTED (Stream). Marking for Cooldown.")
+                             if key: await self.rotator.mark_model_daily(key, m_name)
                              continue
-                        if cat == "auth_hard": 
-                            await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
-                            continue
-                        if cat == "auth_soft": 
-                            await self.rotator.mark_unhealthy(key, reason=cat, session_id=s_id)
-                            continue
-                        if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
+                         if self.models_helper.is_daily_quota(str(e)) and key:
+                             await self.rotator.mark_model_daily(key, m_name)
+                         continue
+                    if cat == "auth_hard": 
+                        await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
+                        continue
+                    if cat == "auth_soft": 
+                        await self.rotator.mark_unhealthy(key, reason=cat, session_id=s_id)
+                        continue
+                    if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
         raise AIConfigurationError(f"Stream Overloaded: {last_err}")
 
     def _provision_model(self, m_name: str, key: str, params: dict[str, object]) -> tuple[GoogleModel, dict[str, object]]:

@@ -148,12 +148,27 @@
           <div class="min-w-0 flex flex-col justify-center flex-1">
             <div class="text-[14px] md:text-[13px] font-bold text-gray-100 truncate group-hover:text-[#FFB800] transition-colors tracking-wide flex items-center gap-2">
               {product.name}
-              {#if product.isAiFeatured || (product as any).is_ai_featured}
+              {#if product.isAiFeatured || product.is_ai_featured}
                 <Sparkles size={12} class="text-[#00FFFF] animate-pulse shrink-0" />
               {/if}
             </div>
-            <div class="text-[10px] font-mono text-gray-500 mt-1 uppercase tracking-[0.2em] flex items-center gap-2">
+            <div class="text-[10px] font-mono text-gray-500 mt-1 uppercase tracking-[0.2em] flex items-center flex-wrap gap-2">
               <span class="px-2 py-0.5 rounded-lg bg-white/5 border border-white/5 text-[8px] text-[#FFB800]/70">{product.category || "General_Node"}</span>
+              
+              {#if product.metadata?.analysis_metrics}
+                {@const metrics = product.metadata.analysis_metrics}
+                {#if metrics.unique_score !== undefined}
+                  <span class="px-1.5 py-0.5 rounded-md bg-orange-500/10 border border-orange-500/30 text-[8px] text-orange-400 font-black shadow-[0_0_10px_rgba(249,115,22,0.1)]" title="Tiêu chí vàng: Copyright Certificate">
+                    © {Math.round(metrics.unique_score * 100)}%
+                  </span>
+                {/if}
+                {#if metrics.seo_score !== undefined}
+                  <span class="px-1.5 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/30 text-[8px] text-blue-400 font-black shadow-[0_0_10px_rgba(59,130,246,0.1)]" title="Tiêu chí vàng: SEO Certificate">
+                    📊 {metrics.seo_score}
+                  </span>
+                {/if}
+              {/if}
+
               <span class="md:hidden text-gray-800">/</span>
               <span class="md:hidden text-gray-600 font-bold">{product.sku}</span>
             </div>

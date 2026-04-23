@@ -49,7 +49,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
     Complying with Martial Law (<300 lines) by delegating to specialized surgeon.
     """
     agent_id_class = "plagiarism_cop"
-    _plagiarism_semaphore = asyncio.Semaphore(1)
+    _plagiarism_semaphore = asyncio.Semaphore(4)
 
     def __init__(self, agent_id: str = "plagiarism_cop", threshold: float = DEFAULT_SIMILARITY_THRESHOLD, **kwargs: object):
         super().__init__(agent_id=agent_id)
@@ -169,6 +169,10 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             logs.append("🧠 Đang nạp dữ liệu vào Neural Engine (Trinity Core)...")
             await self._emit_progress(campaign, logs[-1])
             try:
+                if logs is not None:
+                    logs.append("🧠 Gemini AI đang phân tích rủi ro & cấu trúc ngữ nghĩa...")
+                    await self._emit_progress(campaign, logs[-1])
+                
                 prompt = f"[BÀI VIẾT]\n{('\n'.join(deduped))[:12000]}\n\n[ĐỐI THỦ]\n{'\n'.join(comps)}"
                 res = await self.bridge.run(self._agent, prompt, force=force, role="brain")
 
@@ -194,7 +198,8 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             except Exception as e:
                 logger.error(f"[PlagiarismCop] Neural Engine Error: {str(e)}", exc_info=True)
                 if logs is not None: logs.append(f"📡 AI đang bận, kích hoạt Heuristic Mode (Dò tìm cục bộ)...")
-                h_res = self._heuristic_analyze(deduped, comps, i_annots)
+                # R110: Run CPU-bound heuristic in a thread to avoid blocking the event loop
+                h_res = await asyncio.to_thread(self._heuristic_analyze, deduped, comps, i_annots)
                 h_res.logs = logs + ["✅ [NEURAL XOHI] Trinh sát hoàn tất. Kết quả dựa trên đối soát cục bộ."]
                 h_res.verdict = f"Hệ thống bận ({str(e)[:40]}). Đã kích hoạt Heuristic Mode của Neural XoHi để đảm bảo tiến độ."
                 return h_res
@@ -205,24 +210,26 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         h_annots = list(i_annots)
         total_chars, matched_chars = sum(len(p) for p in deduped), 0
         
-        # Flatten competitor content for searching
-        comp_pool = "\n".join(comps)
+        # R110: Optimization — Pre-normalize comp pool for faster intersection search
+        comp_pool = normalize_vn("\n".join(comps))
         
         for p in deduped:
             if len(p) < 40: continue
-            # Split into chunks of 100 chars for searching if the paragraph is long
-            chunks = [p[i:i+100] for i in range(0, len(p), 100)]
+            p_norm = normalize_vn(p)
             p_matched = False
-            for chunk in chunks:
-                if len(chunk) < 20: continue
-                # Look for exact match first
-                if chunk in comp_pool:
-                    p_matched = True; break
-                # Then fuzzy (expensive, so only if short paragraph)
-                if len(p) < 300:
-                    s = SequenceMatcher(None, p, comp_pool[:5000]) # Sample pool to stay fast
-                    if s.quick_ratio() > 0.7 and s.ratio() > 0.8:
-                        p_matched = True; break
+            
+            # 1. Exact/Sliding Window match (Fast O(N))
+            if p_norm in comp_pool:
+                p_matched = True
+            else:
+                # 2. Fuzzy match via word-set intersection (Fast O(N+M))
+                p_words = set(p_norm.split())
+                if len(p_words) > 10:
+                    # Sample pool to stay extremely fast
+                    pool_words = set(comp_pool[:10000].split())
+                    intersect = p_words.intersection(pool_words)
+                    if len(intersect) / len(p_words) > 0.85:
+                        p_matched = True
             
             if p_matched:
                 matched_chars += len(p)

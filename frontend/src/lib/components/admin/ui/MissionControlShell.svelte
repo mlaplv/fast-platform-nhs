@@ -35,7 +35,7 @@
     height = "h-[85vh]",
     children,
     headerIcon = Terminal,
-    zIndex = 1000,
+    zIndex = 500000,
     backdropClass = "bg-[#050505]/98",
     fullScreen = false,
   }: Props = $props();
@@ -180,7 +180,7 @@
       <!-- Footer HUD -->
       {#if showFooter}
         <div
-          class="px-8 py-3 bg-white/[0.02] border-t {theme.borderClass} flex justify-between items-center relative overflow-hidden z-10"
+          class="px-8 py-3 bg-white/[0.02] border-t {theme.borderClass} flex justify-between items-center relative overflow-hidden z-10 admin-shell-footer"
         >
           <div class="flex flex-col">
             <span

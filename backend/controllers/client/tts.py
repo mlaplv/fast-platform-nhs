@@ -23,13 +23,13 @@ class TTSRequest(BaseModel):
 class PublicTTSController(Controller):
     path: Final[str] = "/api/v1/client/tts"
 
-    @get("/stream", sync_to_thread=False)
+    @get("/stream")
     async def get_public_tts_stream_get(self, request: Request, text: Optional[str] = None) -> Stream:
         """Standardized TTS GET Entry."""
         self._validate_request(request)
         return self._create_tts_stream(text or "")
 
-    @post("/stream", sync_to_thread=False)
+    @post("/stream")
     async def get_public_tts_stream_post(self, request: Request, data: TTSRequest) -> Stream:
         """Standardized TTS POST Entry."""
         self._validate_request(request)

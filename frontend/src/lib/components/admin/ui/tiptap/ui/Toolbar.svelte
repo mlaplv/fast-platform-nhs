@@ -339,7 +339,7 @@
                <button onclick={() => { editor?.chain().focus().toggleBold().run(); }} class="tb-btn !h-8 !w-8 {active.bold ? 'active-neural' : ''}"><BoldIcon size={12}/></button>
                <button onclick={() => { editor?.chain().focus().toggleItalic().run(); }} class="tb-btn !h-8 !w-8 {active.italic ? 'active-neural' : ''}"><ItalicIcon size={12}/></button>
                <button onclick={() => { editor?.chain().focus().toggleUnderline().run(); }} class="tb-btn !h-8 !w-8 {active.underline ? 'active-neural' : ''}"><UnderlineIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().toggleStrike().run(); }} class="tb-btn !h-8 !w-8 {active.strike ? 'active-neural' : ''}"><Strikethrough size={12}/></button>
+               <button onclick={() => { editor?.chain().focus().toggleStrike().run(); }} class="tb-btn !h-8 !w-8 {active.strike ? 'active-neural' : ''}"><StrikethroughIcon size={12}/></button>
              </div>
            </div>
         {/if}

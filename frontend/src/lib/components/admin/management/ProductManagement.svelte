@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
-  import type { Product, BaseWidgetProps, TierVariation, ProductVariant } from "$lib/types";
+  import type { Product, BaseWidgetProps, ProductVariant, TierVariation } from "$lib/types";
   import { formatCurrency, slugify } from "$lib/utils/format";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
@@ -50,7 +50,7 @@
   let formImages = $state<string[]>([]);
   let formMobileImages = $state<string[]>([]);
   let formAttributes = $state<Record<string, string | number | boolean | null>>({});
-  let formMetadata = $state<Product["metadata"]>({ landing_type: 'standard' });
+  let formMetadata = $state<Product["metadata"]>({ landing_type: 'standard', analysis_cache: {}, analysis_metrics: {} });
   let formTierVariations = $state<Product["tierVariations"]>([]);
   let formVariants = $state<Product["variants"]>([]);
   let formIsAiFeatured = $state(false);
@@ -130,48 +130,15 @@
     formName = ""; formSku = ""; formPrice = 0; formDiscountPrice = 0; formStock = 0; formCategory = ""; formStatus = "draft";
     formShortDescription = ""; formDescription = ""; formSlug = ""; formSeoTitle = ""; formSeoDescription = ""; formSeoKeywords = "";
     formImages = []; formMobileImages = []; formAttributes = {};
-    formMetadata = { landing_type: 'standard' };
+    formMetadata = { landing_type: 'standard', analysis_cache: {}, analysis_metrics: {} };
     formTierVariations = []; formVariants = [];
     formIsAiFeatured = false;
     showForm = true;
   }
 
-  interface RawTierVariation {
-    name: string;
-    options: string[];
-    images: (string | null)[];
-  }
-
-  interface RawVariant {
-    id: string;
-    tierIndex?: number[];
-    tier_index?: number[];
-    sku?: string;
-    price: number | string;
-    discountPrice?: number | string;
-    discount_price?: number | string;
-    stock: number | string;
-  }
-
-  interface RawProduct extends Product {
-    discount_price?: number;
-    category_id?: string;
-    categoryId?: string | null;
-    short_description?: string;
-    shortDescription?: string | null;
-    seo_title?: string;
-    seoTitle?: string | null;
-    seo_description?: string;
-    seoDescription?: string | null;
-    seo_keywords?: string;
-    seoKeywords?: string | null;
-    tierVariations?: RawTierVariation[];
-    tier_variations?: RawTierVariation[];
-    variants?: RawVariant[];
-  }
 
   async function openEdit(productOrId: Product | string) {
-    let p: RawProduct;
+    let p: Product;
     const id = typeof productOrId === "string" ? productOrId : productOrId.id;
     if (!id) { nanobot.showToast("ID sản phẩm không hợp lệ", "error"); return; }
     isSaving = true;
@@ -194,12 +161,14 @@
       formSeoDescription = p.seoDescription ?? p.seo_description ?? "";
       formSeoKeywords = p.seoKeywords ?? p.seo_keywords ?? "";
       formImages = p.images || [];
-      formMobileImages = p.mobileImages ?? (p as any).mobile_images ?? [];
+      formMobileImages = p.mobileImages ?? p.mobile_images ?? [];
       formAttributes = p.attributes || {};
-      formMetadata = p.metadata || { landing_type: 'standard' };
-      formIsAiFeatured = p.isAiFeatured ?? (p as any).is_ai_featured ?? false;
-      const rawTierVariations = (p.tierVariations ?? p.tier_variations ?? []) as RawTierVariation[];
-      formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map((tv: RawTierVariation) => ({
+      formMetadata = p.metadata || { landing_type: 'standard', analysis_cache: {}, analysis_metrics: {} };
+      if (!formMetadata.analysis_cache) formMetadata.analysis_cache = {};
+      if (!formMetadata.analysis_metrics) formMetadata.analysis_metrics = {};
+      formIsAiFeatured = p.isAiFeatured ?? p.is_ai_featured ?? false;
+      const rawTierVariations = p.tierVariations ?? p.tier_variations ?? [];
+      formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map(tv => ({
         name: tv.name || "",
         options: Array.isArray(tv.options) ? tv.options : [],
         images: Array.isArray(tv.images) ? tv.images : [],
@@ -212,7 +181,7 @@
         sku: v.sku || "",
         price: Number(v.price || 0),
         discountPrice: Number(v.discountPrice ?? v.discount_price ?? 0),
-        discountPercent: Number((v as any).discountPercent ?? (v as any).discount_percent ?? 0),
+        discountPercent: Number(v.discountPercent ?? v.discount_percent ?? 0),
         stock: Number(v.stock || 0),
         tierIndex: v.tierIndex ?? v.tier_index ?? [],
         is_default: v.is_default || false
@@ -260,7 +229,7 @@
     let message = `Bạn muốn thiết lập giá khuyến mãi cho ${ids.length} sản phẩm? (Để trống để xóa)`;
 
     if (ids.length === 1) {
-      const p = products.find(x => x.id === ids[0]) as any;
+      const p = products.find(x => x.id === ids[0]);
       if (p) {
         title = "Cập nhật giá khuyến mãi";
         const currentDiscount = p.discountPrice ?? p.discount_price ?? 0;
@@ -344,7 +313,7 @@
         showForm = false; await loadProducts();
       }
     } catch (err: unknown) {
-      nanobot.showToast((err as any)?.message || "Lưu thất bại", "error");
+      nanobot.showToast((err as Error)?.message || "Lưu thất bại", "error");
     } finally { isSaving = false; }
   }
 
@@ -435,7 +404,7 @@
     {/if}
   </div>
 
-  <div class="absolute bottom-0 left-0 right-0">
+  <div class="absolute bottom-0 left-0 right-0 admin-pagination-footer">
     <OrderPagination
       bind:currentPage
       {totalPages}

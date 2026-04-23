@@ -3,6 +3,7 @@
   import Image from "lucide-svelte/icons/image";
   import FileText from "lucide-svelte/icons/file-text";
   import ShoppingCart from "lucide-svelte/icons/shopping-cart";
+  import Sparkles from "lucide-svelte/icons/sparkles";
   import MissionControlShell from "../ui/MissionControlShell.svelte";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import NeuralEditor from "../ui/tiptap/NeuralEditor.svelte";
@@ -17,32 +18,32 @@
   let {
     isOpen = false,
     editingId,
-    formName = $bindable(""),
-    formSku = $bindable(""),
-    formPrice = $bindable(0),
-    formDiscountPrice = $bindable(0),
-    formStock = $bindable(0),
-    formCategory = $bindable(""),
-    formStatus = $bindable("draft"),
-    formShortDescription = $bindable(""),
-    formDescription = $bindable(""),
-    formSlug = $bindable(""),
-    formSeoTitle = $bindable(""),
-    formSeoDescription = $bindable(""),
-    formSeoKeywords = $bindable(""),
-    formImages = $bindable([]),
-    formMobileImages = $bindable([]),
-    formAttributes = $bindable({}),
-    formMetadata = $bindable({}),
-    formTierVariations = $bindable([]),
-    formVariants = $bindable([]),
+    formName = $bindable(),
+    formSku = $bindable(),
+    formPrice = $bindable(),
+    formDiscountPrice = $bindable(),
+    formStock = $bindable(),
+    formCategory = $bindable(),
+    formStatus = $bindable(),
+    formShortDescription = $bindable(),
+    formDescription = $bindable(),
+    formSlug = $bindable(),
+    formSeoTitle = $bindable(),
+    formSeoDescription = $bindable(),
+    formSeoKeywords = $bindable(),
+    formImages = $bindable(),
+    formMobileImages = $bindable(),
+    formAttributes = $bindable(),
+    formMetadata = $bindable(),
+    formTierVariations = $bindable(),
+    formVariants = $bindable(),
     categories = [],
     onSave,
     onClose,
     generateSlug,
     isSaving = false,
     errors = {},
-    formIsAiFeatured = $bindable(false),
+    formIsAiFeatured = $bindable(),
   } = $props<{
     isOpen?: boolean;
     editingId: string | null;
@@ -205,9 +206,15 @@
 
         <!-- Section 2 (Editor) -->
         <div class="flex flex-col">
-          <div class="section-label mb-3">
-            <FileText size={11} />
-            Thông tin mô tả sản phẩm
+          <div class="flex items-center justify-between mb-3">
+            <div class="section-label">
+              <FileText size={11} />
+              Thông tin mô tả sản phẩm
+            </div>
+            <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#FFB800]/10 border border-[#FFB800]/20 shadow-[0_0_15px_rgba(255,184,0,0.1)]">
+              <Sparkles size={10} class="text-[#FFB800] animate-pulse" />
+              <span class="text-[8px] font-black text-[#FFB800] uppercase tracking-widest">Tiêu chí vàng AI</span>
+            </div>
           </div>
           <div class="border border-white/5 rounded-2xl overflow-hidden bg-black/40 min-h-[500px] flex flex-col">
             <NeuralEditor
@@ -215,6 +222,8 @@
               topic={formName}
               editable={true}
               placeholder="Mô tả kỹ thuật, câu chuyện thiết kế của sản phẩm..."
+              bind:analysisCache={formMetadata.analysis_cache}
+              bind:analysisMetrics={formMetadata.analysis_metrics}
             />
           </div>
         </div>
@@ -261,7 +270,7 @@
     </div>
 
     <!-- ACTION BAR -->
-    <section class="relative px-5 pt-5 pb-2 mt-auto" style="z-index: var(--z-layout_header)">
+    <section class="relative px-5 pt-5 pb-2 mt-auto" style="z-index: var(--z-layout-header)">
       <div class="flex items-center justify-between gap-4 py-2 border-t border-white/5 pt-4">
         <div class="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/20">
           <div class="w-1.5 h-1.5 rounded-full bg-amber-400"></div>

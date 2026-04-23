@@ -101,8 +101,9 @@ class XoHiProgressMixin:
         from datetime import datetime, timezone
         from backend.database.models import ContentCampaign
         
-        c_id = getattr(campaign, "id", campaign) if isinstance(campaign, ContentCampaign) else campaign
-        u_id = getattr(campaign, "user_id", None) if isinstance(campaign, ContentCampaign) else None
+        # CNS V2.2: Resilient ID extraction supporting both ORM models and AdHocContent shims
+        c_id = getattr(campaign, "id", campaign)
+        u_id = getattr(campaign, "user_id", None)
         
         await event_bus.emit("CONTENT_PROGRESS", {
             "campaign_id": str(c_id),

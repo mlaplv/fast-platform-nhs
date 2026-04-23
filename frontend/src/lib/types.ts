@@ -294,6 +294,9 @@ export interface ProductMetadata {
   is_mall?: boolean;
   brand_type?: string;
 
+  analysis_cache?: AnalysisCache;
+  analysis_metrics?: CampaignMetrics;
+
   [key: string]: unknown;
 }
 
@@ -375,13 +378,19 @@ export interface ScienceGuarantee {
   description: string;
 }
 
+export interface TaskAcceptedResponse {
+  task_id: string;
+}
+
 export interface Product {
   id: string;
   name: string;
   sku: string;
   price: number;
   discountPrice?: number;
+  discount_price?: number;
   discountPercent?: number;
+  discount_percent?: number;
   stock: number;
   status: string;
   category: string;
@@ -390,11 +399,13 @@ export interface Product {
   description: string | null;
   type: string;
   isAiFeatured: boolean;
+  is_ai_featured?: boolean;
   slug: string;
   seoTitle: string | null;
   seoDescription: string | null;
   images: string[];
   mobileImages?: string[];
+  mobile_images?: string[];
   attributes: Record<string, unknown>; // Elite V2.2: Strict types for product attributes
   metadata: ProductMetadata;
   tierVariations: TierVariation[];
@@ -423,15 +434,19 @@ export interface TierVariation {
   options: string[];
   images: (string | null)[];
   mobile_images?: (string | null)[];
+  mobileImages?: (string | null)[];
 }
 
 export interface ProductVariant {
   id: string;
   tierIndex: number[];
+  tier_index?: number[];
   sku: string;
   price: number;
   discountPrice?: number;
+  discount_price?: number;
   discountPercent?: number;
+  discount_percent?: number;
   stock: number;
   attributes?: {
     combo_qty?: number;

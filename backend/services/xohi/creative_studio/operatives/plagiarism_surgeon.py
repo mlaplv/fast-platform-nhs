@@ -47,41 +47,12 @@ class PlagiarismSurgeon:
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
         logs = ["🔍 Khởi động hệ thống phẫu thuật nội dung..."]
-        draft = await noise_cleaner.clean(campaign.draft_content or "", mode="light", strip_html=False)
-        raw_paragraphs = self._split_into_paragraphs(draft)
-        paragraphs = raw_paragraphs[:500]
+        # R110: Use raw draft content to ensure surgical snippets (annotations) match perfectly.
+        draft = campaign.draft_content or ""
 
-        THRESHOLD = 0.82
-        kept: List[Tuple[str, set[str]]] = []
-        for para in paragraphs:
-            if len(para) < 15:
-                kept.append((para, set()))
-                continue
-            tokens = self._tokenize(para)
-            if not any(self._jaccard(tokens, k_tok) >= THRESHOLD for _, k_tok in kept if k_tok):
-                kept.append((para, tokens))
-            else:
-                logs.append(f"✂️ Đã cắt bỏ đoạn văn trùng lặp nội bộ: \"{para[:40]}...\"")
-
-        # Deterministic Sentence-Level Dedup
-        seen_norms: set[str] = set()
-        dedup_count = 0
-        final_paragraphs = []
-        for para, _ in kept:
-            para_sentences = [s.strip() for s in re.split(r'(?<=[.!?。])[\s\n]+', para) if s.strip()]
-            para_kept = []
-            for s in para_sentences:
-                norm = normalize_vn(s)
-                if len(norm) < 40: para_kept.append(s); continue
-                if norm not in seen_norms:
-                    seen_norms.add(norm)
-                    para_kept.append(s)
-                else:
-                    dedup_count += 1
-                    logs.append(f"✂️ Đã loại bỏ câu lặp nội bộ: \"{s[:40]}...\"")
-            if para_kept: final_paragraphs.append(" ".join(para_kept))
-
-        cleaned_draft = "\n\n".join(final_paragraphs)
+        # R110: Simplified Bulk Fix. We avoid aggressive dedup here to ensure 
+        # surgical replacements match the editor's current structure.
+        cleaned_draft = draft
         
         # AI Surgeon for external plagiarism
         annots = req.annotations if isinstance(req.annotations, list) else []
@@ -93,7 +64,7 @@ class PlagiarismSurgeon:
         snippet_list = ""
         valid_items = []
         for i, a in enumerate(all_annots[:40]):
-            txt = await noise_cleaner.clean(str(a.get('text', '')), mode="light", strip_html=False)
+            txt = str(a.get('text', ''))
             snippet_list += f"\n[ID {i+1}]:\n- Cần sửa: \"{txt}\"\n- Lỗi: {a.get('reason','')}\n"
             valid_items.append({"id": i+1, "old_text": txt})
 
@@ -120,7 +91,7 @@ class PlagiarismSurgeon:
                             replacements_log.append({"old_text": old_txt, "new_text": new_txt})
                             logs.append(f"✅ Đã phẫu thuật xong: \"{old_txt[:30]}...\"")
             
-            logs.append(f"🏅 Hoàn tất! Đã xử lý {replacements_made + dedup_count} điểm yếu.")
+            logs.append(f"🏅 Hoàn tất! Đã phẫu thuật xong {replacements_made} điểm vi phạm.")
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
             logger.error(f"[PlagiarismSurgeon] AI Bulk Fix failed: {e}")

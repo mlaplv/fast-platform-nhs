@@ -14,7 +14,6 @@
   import ImageBubbleMenu from './ui/ImageBubbleMenu.svelte';
   import type { MediaAsset } from '$lib/state/types';
   import { resolveMediaUrl } from '$lib/state/utils';
-  import { apiClient } from '$lib/utils/apiClient';
   import { xohiActions, type CleanOptions } from '$lib/state/xohiActions';
 
   let {
@@ -56,6 +55,9 @@
   } = $props();
 
   let internalFullScreen = $state<boolean>(fullScreen);
+  // Elite V2.2: Sync internal state with prop for parent-driven toggles (NeuralEditor mode)
+  $effect(() => { internalFullScreen = fullScreen; });
+
   let showSource = $state(false);
 
   const toggleFullScreen = () => {
@@ -96,10 +98,9 @@
   let tooltipX = $state(0);
   let tooltipY = $state(0);
   let isFixing = $state(false);
-  let lastTooltipAnchorId = $state('');
   let tooltipHideTimeout: ReturnType<typeof setTimeout> | null = null;
   let isHoveringTooltip = $state(false);
-  let isInternalUpdating = false;
+  let isInternalUpdating = $state(false);
   let cleanStatus = $state<'idle' | 'cleaning' | 'done'>('idle');
 
   // Image Menu tracking
@@ -111,29 +112,53 @@
   let linkMenuY = $state(0);
   let blockClicks = $state(false);
   let lastInternalActionAt = 0;
-  let isSyncLocked = false;
+  let isSyncLocked = $state(false);
 
-  // ✦ Cerberus NEURAL XOHI: Frontend Clean — Jaccard near-duplicate dedup + Viral NEURAL XOHI Polish (Phase 76.9)
-  // Extract meaningful word tokens: lowercase, NFC, strip digits + punctuation (Viral NEURAL XOHI Core)
-  function tokenize(text: string): Set<string> {
+  const tokenize = (text: string): Set<string> => {
     const normalized = text.toLowerCase().normalize('NFC');
-    const words = normalized
-      .replace(/\d+/g, '')                        // strip numbers (noise like 1111)
-      .replace(/[^\w\s\u00C0-\u024F\u1E00-\u1EFF]/g, ' ')  // strip punctuation/emoji
+    return new Set(normalized
+      .replace(/\d+/g, '')
+      .replace(/[^\w\s\u00C0-\u024F\u1E00-\u1EFF]/g, ' ')
       .split(/\s+/)
-      .filter(w => w.length >= 2);                // skip very short tokens
-    return new Set(words);
-  }
+      .filter(w => w.length >= 2));
+  };
 
-  // Jaccard similarity between two word sets
-  function jaccard(a: Set<string>, b: Set<string>): number {
+  const jaccard = (a: Set<string>, b: Set<string>): number => {
     if (a.size === 0 && b.size === 0) return 1;
     if (a.size === 0 || b.size === 0) return 0;
     let intersect = 0;
     a.forEach(w => { if (b.has(w)) intersect++; });
-    const union = a.size + b.size - intersect;
-    return intersect / union;
-  }
+    return intersect / (a.size + b.size - intersect);
+  };
+
+  // CNS V2.2: Deterministic HTML Normalization for Cross-Browser Comparison
+  const normalizeHTML = (html: string, stripMarksFn: (h: string) => string) => {
+    if (typeof document === 'undefined') return html.trim();
+    const div = document.createElement('div');
+    
+    // CNS V2.2: Strip temporary marks for comparison to prevent sync loops
+    const clean = stripMarksFn(html)
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    div.innerHTML = clean;
+
+    const prune = (node: Node) => {
+        for (let i = node.childNodes.length - 1; i >= 0; i--) {
+            const child = node.childNodes[i];
+            if (child.nodeType === 1) {
+                prune(child);
+                const el = child as HTMLElement;
+                const isContainer = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'STRONG', 'B', 'EM', 'I', 'SPAN'].includes(el.tagName);
+                const isEmpty = el.innerHTML.replace(/&nbsp;/g, '').replace(/\s+/g, '').trim() === '' || el.innerHTML === '<br>';
+                if (isContainer && isEmpty) el.remove();
+            }
+        }
+    };
+    prune(div);
+    return div.innerHTML.replace(/>\s+</g, '><');
+  };
 
   async function handleClean(options: CleanOptions = { stripFont: true, stripAlign: true, stripRedundantWrappers: true, stripEmpty: true }) {
     if (!editor || editor.isDestroyed) {
@@ -177,23 +202,20 @@
     }
   }
 
-  function stripMarks(html: string): string {
-    return html.replace(/<mark[^>]*>|<\/mark>/g, '');
-  }
+  const stripMarks = (html: string): string => html.replace(/<mark[^>]*>|<\/mark>/g, '');
 
-  // Stable ID Hashing (djb2) to prevent tooltip flickering
-  function generateStableId(text: string, message: string): string {
+  const generateStableId = (text: string, message: string): string => {
     let hash = 5381;
     const str = text + message;
     for (let i = 0; i < str.length; i++) {
       hash = (hash * 33) ^ str.charCodeAt(i);
     }
     return (hash >>> 0).toString(36);
-  }
+  };
   
   const containerClass = $derived(`tiptap-shell flex flex-col w-full ${
     internalFullScreen
-      ? 'fixed inset-0 z-[99999] bg-[#0a0d14]'
+      ? 'fixed inset-0 z-[var(--z-admin-tiptap-fullscreen)] bg-[#0a0d14]'
       : (flex 
           ? 'flex-1 h-full bg-transparent min-h-0' 
           : (editable ? 'bg-transparent' : 'bg-transparent overflow-visible'))
@@ -227,9 +249,13 @@
         if (isInternalUpdating) return;
         const html = editor?.getHTML() ?? '';
         const cleaned = stripMarks(html);
-        content = cleaned;
-        onChange(cleaned);
-        updateMetrics();
+        
+        // CNS V2.2: Guard against redundant writes that trigger effects
+        if (cleaned !== content) {
+          content = cleaned;
+          onChange(cleaned);
+          updateMetrics();
+        }
       },
     });
     updateMetrics();
@@ -274,40 +300,7 @@
     untrack(() => {
         const currentHTML = editor!.getHTML();
 
-        // CNS V2.2: Deterministic HTML Normalization for Cross-Browser Comparison
-        const normalizeHTML = (html: string) => {
-            if (typeof document === 'undefined') return html.trim();
-            const div = document.createElement('div');
-            
-            // CNS V2.2: Strip temporary marks for comparison to prevent sync loops
-            const clean = stripMarks(html)
-                .replace(/&nbsp;/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim();
-
-            div.innerHTML = clean;
-
-            // Rule 3: Recursive pruning of empty nodes to match Backend NASP logic
-            const prune = (node: Node) => {
-                for (let i = node.childNodes.length - 1; i >= 0; i--) {
-                    const child = node.childNodes[i];
-                    if (child.nodeType === 1) { // Element
-                        prune(child);
-                        const el = child as HTMLElement;
-                        const isContainer = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'STRONG', 'B', 'EM', 'I', 'SPAN'].includes(el.tagName);
-                        const isEmpty = el.innerHTML.replace(/&nbsp;/g, '').replace(/\s+/g, '').trim() === '' || el.innerHTML === '<br>';
-                        if (isContainer && isEmpty) {
-                            el.remove();
-                        }
-                    }
-                }
-            };
-            prune(div);
-
-            return div.innerHTML.replace(/>\s+</g, '><');
-        };
-
-        if (normalizeHTML(normalizedContent) !== normalizeHTML(currentHTML)) {
+        if (normalizeHTML(normalizedContent, stripMarks) !== normalizeHTML(currentHTML, stripMarks)) {
             isInternalUpdating = true;
             const { from, to } = editor!.state.selection;
             editor!.commands.setContent(normalizedContent, false);
@@ -361,19 +354,30 @@
   });
 
   // Cerberus NEURAL XOHI: Sustainable Highlighting Sync
+  let lastAnnotationsJson = $state("");
   $effect(() => {
     if (!editor || editor.isDestroyed) return;
     
-    // Track annotations as dependency
-    const _annotationsTrigger = annotations;
+    // CNS V2.2: Deep Equality Guard to prevent infinite loops from re-calculated prop references
+    const json = JSON.stringify(annotations || []);
+    if (json === lastAnnotationsJson) return;
+    lastAnnotationsJson = json;
     
-    // Dispatch to the plugin instead of mutating the doc with marks
-    editor.view.dispatch(
-      editor.state.tr.setMeta(AnnotationPluginKey, {
-        type: 'SET_ANNOTATIONS',
-        annotations: _annotationsTrigger || []
-      })
-    );
+    // CNS V2.2: Explicitly block onUpdate during meta-transactions
+    untrack(() => {
+      isInternalUpdating = true;
+      try {
+        editor!.view.dispatch(
+          editor!.state.tr.setMeta(AnnotationPluginKey, {
+            type: 'SET_ANNOTATIONS',
+            annotations: annotations || []
+          })
+        );
+      } finally {
+        // CNS V2.2: Immediate reset as dispatch is synchronous
+        isInternalUpdating = false;
+      }
+    });
   });
 
   function handleAnnotationHover(e: Event) {
@@ -559,7 +563,7 @@
   >
     <div 
       class="
-        {internalFullScreen ? 'w-full min-h-screen px-12 md:px-24 py-16 transition-all duration-300 flex flex-col' : (flex ? 'w-full bg-transparent flex-1 min-h-full px-6 py-4' : 'w-full bg-transparent min-h-[400px] px-6 py-4')}
+        {internalFullScreen ? 'w-full flex-1 min-h-0 px-4 py-4 transition-all duration-300 flex flex-col' : (flex ? 'w-full bg-transparent flex-1 min-h-full px-6 py-4' : 'w-full bg-transparent min-h-[400px] px-6 py-4')}
         {!editable ? 'cursor-default' : 'cursor-text'}
       "
       onclick={() => { if (editable && !showSource) editor?.commands.focus(); }}

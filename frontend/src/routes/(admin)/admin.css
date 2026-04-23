@@ -4,31 +4,43 @@
 :root {
   --z-base: 0;
   --z-surface: 10;
+  --z-sidebar-sub: 20;
   --z-layout-header: 30;
+  --z-toolbar-sub: 50;
   --z-sticky-header: 100;
   --z-sidebar: 100;
-  --z-overlay: 1000;
-  --z-modal-overlay: 1100;
-  --z-modal: 1200;
-  --z-modal-confirm: 1500;
+  --z-grid-hover: 40;
+  --z-modal-sub: 200;
+  --z-modal-sub-high: 210;
+  --z-modal-sub-higher: 220;
+  --z-overlay: 500;
+  --z-modal: 500000;
+  --z-modal-confirm: 999000;
   --z-hud-dropdown: 1050;
-  --z-admin-hud: 1060;
   --z-hud-floating: 1060;
   --z-hud-service: 1100;
   --z-popover: 1100;
   --z-omni-command: 1100;
-  --z-toast: 2000;
-
-  /* Tiptap Bubble Menus — Must stay above MissionControlShell modals (500k) */
+  --z-toast: 991000;
+  --z-vui-caption: 50;
+  --z-vui-caption-expanded: 5;
+  --z-media-overlay: 600000;
+  --z-system: 995000;
+  --z-vui-exit: 110000;
+  --z-neural-hud: 200000;
+  --z-admin-tiptap-fullscreen: 600000;
   --z-admin-tiptap-link-bubble: 510000;
   --z-admin-tiptap-bubble-menu: 520000;
+  --z-admin-tiptap-toolbar-overlay: 529000;
+  --z-admin-tiptap-toolbar-dropdown: 530000;
+  --z-supreme-power: 999999;
 
   /* Elite V2.2: Consistent Mapping Aliases */
   --z-admin-modal: var(--z-modal);
-  --z-admin-asset-modal-backdrop: var(--z-modal-overlay);
+  --z-admin-asset-modal-backdrop: var(--z-overlay);
   --z-admin-nav-drawer: var(--z-sidebar);
-  --z-admin-mobile-backdrop: var(--z-modal-overlay);
-  --z-admin-mobile-quick-tips: var(--z-modal-overlay);
+  --z-admin-mobile-backdrop: var(--z-overlay);
+  --z-admin-mobile-quick-tips: var(--z-overlay);
   
   --z-vui-caption: 50;
   --z-vui-caption-expanded: 5;

@@ -11,7 +11,8 @@ import type {
     AnalysisAnnotation,
     GenericResponse,
     CampaignData,
-    BulkFixReplacement
+    BulkFixReplacement,
+    TaskAcceptedResponse
 } from "$lib/state/types";
 
 export function createAnalysisController(config: {
@@ -26,6 +27,7 @@ export function createAnalysisController(config: {
     analysis_cache: AnalysisCache | (() => AnalysisCache);
     analysis_metrics: CampaignMetrics | (() => CampaignMetrics);
     getIsProcessing?: () => boolean;
+    onUpdate?: (cache: AnalysisCache, metrics: CampaignMetrics) => void;
 }) {
     const nanobot = useNanobot();
     const resolve = <T>(val: T | (() => T)): T => (typeof val === 'function' ? (val as () => T)() : val);
@@ -43,19 +45,41 @@ export function createAnalysisController(config: {
     let isBoosting = $state(false);
     let activeTab = $state<'copyright' | 'seo' | 'ai' | 'enrich' | null>(null);
 
-    // Sync Pulse logs
+    // Sync Pulse logs & Auto-close HUD
     $effect(() => {
         const data = nanobot.currentData as CampaignData;
         const campaignId = resolve(config.campaign_id);
         const msg = data?.progress_msg ?? '';
-        if (!data || !campaignId || (data.campaign_id !== campaignId && data.id !== campaignId) || !msg) return;
+        
+        // Ad-hoc progress routing: If no campaignId, we listen for 'adhoc' signals
+        const isMatch = campaignId ? (data?.campaign_id === campaignId || data?.id === campaignId) : (data?.campaign_id === 'adhoc');
+        if (!data || !isMatch) return;
+
+        // Auto-close loading state if campaign reaches terminal status
+        if (campaignId && (data.status === 'WAITING_FOR_REVIEW' || data.status === 'COMPLETED' || data.status === 'ERROR')) {
+            untrack(() => {
+                if (isBulkFixing || isCopyrightLoading || isSeoLoading || isAiLoading) {
+                    isCopyrightLoading = false; isSeoLoading = false; isAiLoading = false;
+                    setTimeout(() => { 
+                        if (isBulkFixing) {
+                            isBulkFixing = false; 
+                            bulkFixStatus = ""; 
+                            bulkFixLogs = [];
+                        }
+                    }, 2500);
+                }
+            });
+        }
+
+        if (!msg) return;
 
         untrack(() => {
-            if (config.getIsProcessing?.() || isBulkFixing) {
+            if (config.getIsProcessing?.() || isBulkFixing || isCopyrightLoading || isSeoLoading || isAiLoading) {
                 if (!bulkFixLogs.some(l => l.includes(msg) || msg.includes(l))) {
                     bulkFixLogs = [...bulkFixLogs, msg];
-                    if (!bulkFixStatus) bulkFixStatus = "Đang xử lý...";
                 }
+                // Always update status to reflect current step, ensuring HUD doesn't feel 'stuck'
+                bulkFixStatus = msg;
             }
         });
     });
@@ -78,6 +102,31 @@ export function createAnalysisController(config: {
             severity: (s.severity || 'medium').toLowerCase()
         }));
     });
+    
+    // R110: Sync results back to parent for persistence (Product/Adhoc mode)
+    $effect(() => {
+        if (!config.onUpdate) return;
+        // R110: Untrack props to avoid infinity loop when parent updates them via onUpdate
+        const cache: AnalysisCache = { ...untrack(() => resolve(config.analysis_cache)) };
+        const metrics: CampaignMetrics = { ...untrack(() => resolve(config.analysis_metrics)) };
+        const now = new Date().toISOString();
+        const contentHash = 'adhoc'; // Simplified for adhoc
+
+        if (copyrightResult) {
+            cache.copyright = { hash: contentHash, at: now, data: copyrightResult };
+            metrics.unique_score = copyrightResult.uniqueness_score;
+        }
+        if (seoResult) {
+            cache.seo = { hash: contentHash, at: now, data: seoResult };
+            metrics.seo_score = seoResult.total_score;
+        }
+        if (aiReadyResult) {
+            cache.ai_inspect = { hash: contentHash, at: now, data: aiReadyResult };
+            metrics.ai_ready_score = aiReadyResult.geo_score;
+        }
+        
+        untrack(() => { config.onUpdate?.(cache, metrics); });
+    });
 
     async function saveBeforeAnalysis() {
         if (isAdhoc) return;
@@ -87,12 +136,12 @@ export function createAnalysisController(config: {
         await apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: currentText });
     }
 
-    async function handleApiResponse<T>(res: GenericResponse<T>, targetSetter: (v: T) => void) {
-        if (res?.status === "accepted" && (res.data as any)?.task_id) {
+    async function handleApiResponse<T>(res: GenericResponse<T | TaskAcceptedResponse>, targetSetter: (v: T) => void) {
+        if (res?.status === "accepted" && res.data && typeof res.data === 'object' && 'task_id' in res.data) {
             return 'accepted';
         } else if (res?.data) {
             if (res.logs) bulkFixLogs = [...bulkFixLogs, ...(res.logs.filter(l => !bulkFixLogs.includes(l)))];
-            targetSetter(res.data);
+            targetSetter(res.data as T);
             return 'success';
         }
         return 'error';
@@ -100,13 +149,17 @@ export function createAnalysisController(config: {
 
     async function runCopyrightCheck(force = false, skipSave = false) {
         if (isCopyrightLoading) return;
+        if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isCopyrightLoading = true; isBulkFixing = true; bulkFixStatus = "Đang quét..."; activeTab = 'copyright';
         let isAccepted = false;
         try {
             if (!skipSave) await saveBeforeAnalysis();
             const cid = resolve(config.campaign_id);
             const url = isAdhoc ? `/api/v1/content/analyze/copyright?force=${force}` : `/api/v1/content/campaigns/${cid}/analyze/copyright?force=${force}`;
-            const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)() } : undefined;
+            const body = isAdhoc ? { 
+                content: (config.getContent ?? config.getEditedDraft)(),
+                topic: resolve(config.topic) || ''
+            } : undefined;
             const res = await apiClient.post<GenericResponse<CopyrightResult>>(url, body);
             const status = await handleApiResponse(res, (v) => { copyrightResult = v; });
             if (status === 'accepted') isAccepted = true;
@@ -120,8 +173,9 @@ export function createAnalysisController(config: {
     }
 
     async function runSeoAnalysis(force = false, skipSave = false) {
-        if (isSeoLoading) return;
-        isSeoLoading = true; isBulkFixing = true; bulkFixStatus = "Đang quét SEO..."; activeTab = 'seo';
+        if (isSeoLoading || seoLocked) return;
+        if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
+        isSeoLoading = true; isBulkFixing = true; bulkFixStatus = "Đang phân tích SEO..."; activeTab = 'seo';
         let isAccepted = false;
         try {
             if (!skipSave) await saveBeforeAnalysis();
@@ -142,14 +196,17 @@ export function createAnalysisController(config: {
 
     async function runAiAnalysis(force = false, skipSave = false) {
         if (isAiLoading || aiLocked) return;
-        isAiLoading = true; isBulkFixing = true; bulkFixStatus = "Đang quét AI MOD..."; activeTab = 'ai';
-        bulkFixLogs = ["🔍 Đang khởi động AI MOD...", "🧠 Đang rà soát dấu vân tay AI..."];
+        if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
+        isAiLoading = true; isBulkFixing = true; bulkFixStatus = "Đang kiểm định AI..."; activeTab = 'ai';
         let isAccepted = false;
         try {
             if (!skipSave) await saveBeforeAnalysis();
             const cid = resolve(config.campaign_id);
             const url = isAdhoc ? `/api/v1/content/analyze/ai-inspect?force=${force}` : `/api/v1/content/campaigns/${cid}/analyze/ai-inspect?force=${force}`;
-            const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)() } : undefined;
+            const body = isAdhoc ? { 
+                content: (config.getContent ?? config.getEditedDraft)(),
+                topic: resolve(config.topic) || ''
+            } : undefined;
             const res = await apiClient.post<GenericResponse<AIInspectResult>>(url, body);
             const status = await handleApiResponse(res, (v) => { 
                 const oldFixed = (aiReadyResult?.ai_annotations || []).filter(a => a.type === 'fixed-area');
@@ -208,6 +265,7 @@ export function createAnalysisController(config: {
         if (annotations.length === 0) return;
 
         isBulkFixing = true; bulkFixStatus = "Đang phẫu thuật...";
+        if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         bulkFixLogs = ["Đang khởi tạo Neural Engine...", "Đang phân tích cấu trúc..."];
         try {
             const payload = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)(), topic: resolve(config.topic), category, annotations } : { category, annotations };

@@ -41,8 +41,8 @@
 
 {#if totalPages > 1}
   <div
-    class="sticky bottom-0 bg-[#050505] px-6 py-3 flex items-center justify-end gap-4 border-t border-white/5"
-    style="z-index: var(--z-sticky_header);"
+    class="sticky bottom-0 bg-[#050505] px-6 py-3 flex items-center justify-end gap-4 border-t border-white/5 admin-pagination-footer"
+    style="z-index: var(--z-sticky-header);"
   >
     <span class="text-[9px] font-mono text-gray-600 uppercase tracking-widest">
       Viewing {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalItems)} of {totalItems}
