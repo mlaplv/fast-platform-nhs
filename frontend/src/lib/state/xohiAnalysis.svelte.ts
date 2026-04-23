@@ -55,19 +55,21 @@ export function createAnalysisController(config: {
         const isMatch = campaignId ? (data?.campaign_id === campaignId || data?.id === campaignId) : (data?.campaign_id === 'adhoc');
         if (!data || !isMatch) return;
 
-        // Auto-close loading state if campaign reaches terminal status
-        if (campaignId && (data.status === 'WAITING_FOR_REVIEW' || data.status === 'COMPLETED' || data.status === 'ERROR')) {
+        // Auto-close loading state if campaign reaches terminal status (Sync with HUD)
+        const isTerminal = campaignId 
+            ? (data.status === 'WAITING_FOR_REVIEW' || data.status === 'COMPLETED' || data.status === 'ERROR')
+            : (data.status === 'SUCCESS' || data.status === 'ERROR'); // Adhoc signals
+
+        if (isTerminal) {
             untrack(() => {
-                if (isBulkFixing || isCopyrightLoading || isSeoLoading || isAiLoading) {
-                    isCopyrightLoading = false; isSeoLoading = false; isAiLoading = false;
-                    setTimeout(() => { 
-                        if (isBulkFixing) {
-                            isBulkFixing = false; 
-                            bulkFixStatus = ""; 
-                            bulkFixLogs = [];
-                        }
-                    }, 2500);
-                }
+                isCopyrightLoading = false; isSeoLoading = false; isAiLoading = false;
+                setTimeout(() => { 
+                    if (isBulkFixing) {
+                        isBulkFixing = false; 
+                        bulkFixStatus = "Hoàn tất ✅"; 
+                        setTimeout(() => { bulkFixStatus = "";  }, 1000);
+                    }
+                }, 1000);
             });
         }
 
@@ -106,26 +108,30 @@ export function createAnalysisController(config: {
     // R110: Sync results back to parent for persistence (Product/Adhoc mode)
     $effect(() => {
         if (!config.onUpdate) return;
-        // R110: Untrack props to avoid infinity loop when parent updates them via onUpdate
-        const cache: AnalysisCache = { ...untrack(() => resolve(config.analysis_cache)) };
-        const metrics: CampaignMetrics = { ...untrack(() => resolve(config.analysis_metrics)) };
-        const now = new Date().toISOString();
-        const contentHash = 'adhoc'; // Simplified for adhoc
-
-        if (copyrightResult) {
-            cache.copyright = { hash: contentHash, at: now, data: copyrightResult };
-            metrics.unique_score = copyrightResult.uniqueness_score;
-        }
-        if (seoResult) {
-            cache.seo = { hash: contentHash, at: now, data: seoResult };
-            metrics.seo_score = seoResult.total_score;
-        }
-        if (aiReadyResult) {
-            cache.ai_inspect = { hash: contentHash, at: now, data: aiReadyResult };
-            metrics.ai_ready_score = aiReadyResult.geo_score;
-        }
+        // Trigger on any result change
+        const _ = [copyrightResult, seoResult, aiReadyResult];
         
-        untrack(() => { config.onUpdate?.(cache, metrics); });
+        untrack(() => {
+            const cache: AnalysisCache = { ...resolve(config.analysis_cache) };
+            const metrics: CampaignMetrics = { ...resolve(config.analysis_metrics) };
+            const now = new Date().toISOString();
+            const contentHash = 'adhoc';
+
+            if (copyrightResult) {
+                cache.copyright = { hash: contentHash, at: now, data: $state.snapshot(copyrightResult) };
+                metrics.unique_score = copyrightResult.uniqueness_score;
+            }
+            if (seoResult) {
+                cache.seo = { hash: contentHash, at: now, data: $state.snapshot(seoResult) };
+                metrics.seo_score = seoResult.total_score;
+            }
+            if (aiReadyResult) {
+                cache.ai_inspect = { hash: contentHash, at: now, data: $state.snapshot(aiReadyResult) };
+                metrics.ai_ready_score = aiReadyResult.geo_score;
+            }
+            
+            config.onUpdate?.(cache, metrics);
+        });
     });
 
     async function saveBeforeAnalysis() {
@@ -136,21 +142,85 @@ export function createAnalysisController(config: {
         await apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: currentText });
     }
 
-    async function handleApiResponse<T>(res: GenericResponse<T | TaskAcceptedResponse>, targetSetter: (v: T) => void) {
+    async function saveAnalysisEvidence(category: string, data: any) {
+        try {
+            const cid = resolve(config.campaign_id);
+            if (!cid || cid === 'adhoc') return;
+            await apiClient.post(`/api/v1/content/campaigns/${cid}/metadata`, {
+                analysis_evidence: {
+                    [category]: {
+                        timestamp: new Date().toISOString(),
+                        score: category === 'copyright' ? data.uniqueness_score : category === 'seo' ? data.score : data.viral_score,
+                        data: data
+                    }
+                }
+            });
+            console.log(`[Neural Vault] Evidence saved for ${category}`);
+        } catch (e) {
+            console.error("[Neural Vault] Failed to save evidence:", e);
+        }
+    }
+
+    async function handleApiResponse<T>(res: GenericResponse<T | TaskAcceptedResponse>, targetSetter: (v: T) => void, category?: string) {
         if (res?.status === "accepted" && res.data && typeof res.data === 'object' && 'task_id' in res.data) {
             return 'accepted';
         } else if (res?.data) {
             if (res.logs) bulkFixLogs = [...bulkFixLogs, ...(res.logs.filter(l => !bulkFixLogs.includes(l)))];
             targetSetter(res.data as T);
+            bulkFixLogs = [...bulkFixLogs, "✅ Phân tích hoàn tất. Đã nạp dữ liệu Intelligence."];
+            if (category) await saveAnalysisEvidence(category, res.data);
             return 'success';
         }
         return 'error';
+    }
+
+    // CNS V85.5: Neural Thinking Engine
+    let thinkingInterval: ReturnType<typeof setInterval> | null = null;
+    function startThinkingLogs(type: 'copyright' | 'seo' | 'ai') {
+        const pools = {
+            copyright: [
+                "🔍 Đang truy quét cơ sở dữ liệu Google Search...",
+                "⚖️ Đang đối soát với 14 triệu bản ghi News/Blog...",
+                "🧠 Gemini đang phân tích cấu trúc ngữ nghĩa (Semantics)...",
+                "⚙️ Đang bóc tách các cụm từ trùng lặp tiềm năng...",
+                "📊 Đang tính toán chỉ số Uniqueness..."
+            ],
+            seo: [
+                "🚀 Đang nạp bộ quy tắc E-E-A-T v2026...",
+                "📊 Đang đánh giá mật độ từ khóa (Density)...",
+                "🔍 Đang kiểm tra cấu trúc Semantic Headers (H1-H4)...",
+                "📈 Đang so sánh với Top 5 đối thủ cùng Topic...",
+                "🤖 AI đang chấm điểm trải nghiệm người dùng (UX Score)..."
+            ],
+            ai: [
+                "🧠 Đang mở cổng Neural Inspection...",
+                "⚡ Đang đo lường chỉ số Viral Edge...",
+                "🧪 Đang kiểm tra tính 'Con người' của văn bản...",
+                "🛡️ Đang quét các mẫu câu bị AI-Purge đào thải...",
+                "💎 Đang tối ưu hóa Brand Voice & Tone..."
+            ]
+        };
+        const pool = pools[type];
+        let idx = 0;
+        thinkingInterval = setInterval(() => {
+            if (idx < pool.length && !bulkFixLogs.includes(pool[idx])) {
+                bulkFixLogs = [...bulkFixLogs, pool[idx]];
+                idx++;
+            } else {
+                clearInterval(thinkingInterval!);
+            }
+        }, 1200);
+    }
+    function stopThinkingLogs() {
+        if (thinkingInterval) clearInterval(thinkingInterval);
     }
 
     async function runCopyrightCheck(force = false, skipSave = false) {
         if (isCopyrightLoading) return;
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isCopyrightLoading = true; isBulkFixing = true; bulkFixStatus = "Đang quét..."; activeTab = 'copyright';
+        bulkFixLogs = ["🧠 Đang khởi động Neural Engine...", "🔍 Đang trinh sát dữ liệu..."];
+        startThinkingLogs('copyright');
         let isAccepted = false;
         try {
             if (!skipSave) await saveBeforeAnalysis();
@@ -161,13 +231,20 @@ export function createAnalysisController(config: {
                 topic: resolve(config.topic) || ''
             } : undefined;
             const res = await apiClient.post<GenericResponse<CopyrightResult>>(url, body);
-            const status = await handleApiResponse(res, (v) => { copyrightResult = v; });
+            const status = await handleApiResponse(res, (v) => { copyrightResult = v; }, 'copyright');
             if (status === 'accepted') isAccepted = true;
         } finally {
+            stopThinkingLogs();
             if (!isAccepted) {
                 isCopyrightLoading = false;
-                setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
-                setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
+                bulkFixStatus = "Hoàn tất ✅";
+                setTimeout(() => {
+                    if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) {
+                        isBulkFixing = false;
+                        bulkFixStatus = "";
+                        // CNS V85.22: Keep logs for review until next run starts
+                    }
+                }, 1500);
             }
         }
     }
@@ -176,6 +253,8 @@ export function createAnalysisController(config: {
         if (isSeoLoading || seoLocked) return;
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isSeoLoading = true; isBulkFixing = true; bulkFixStatus = "Đang phân tích SEO..."; activeTab = 'seo';
+        bulkFixLogs = ["🚀 Đang nạp bộ lọc SEO...", "📊 Đang đánh giá tín hiệu..."];
+        startThinkingLogs('seo');
         let isAccepted = false;
         try {
             if (!skipSave) await saveBeforeAnalysis();
@@ -183,13 +262,20 @@ export function createAnalysisController(config: {
             const url = isAdhoc ? `/api/v1/content/analyze/seo?force=${force}` : `/api/v1/content/campaigns/${cid}/analyze/seo?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)(), topic: resolve(config.topic) || '' } : undefined;
             const res = await apiClient.post<GenericResponse<SEOResult>>(url, body);
-            const status = await handleApiResponse(res, (v) => { seoResult = v; });
+            const status = await handleApiResponse(res, (v) => { seoResult = v; }, 'seo');
             if (status === 'accepted') isAccepted = true;
         } finally {
+            stopThinkingLogs();
             if (!isAccepted) {
                 isSeoLoading = false;
-                setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
-                setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
+                bulkFixStatus = "Hoàn tất ✅";
+                setTimeout(() => {
+                    if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) {
+                        isBulkFixing = false;
+                        bulkFixStatus = "";
+                        
+                    }
+                }, 1500);
             }
         }
     }
@@ -198,6 +284,8 @@ export function createAnalysisController(config: {
         if (isAiLoading || aiLocked) return;
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isAiLoading = true; isBulkFixing = true; bulkFixStatus = "Đang kiểm định AI..."; activeTab = 'ai';
+        bulkFixLogs = ["🧠 Đang mở cổng Neural AI...", "⚡ Đang kiểm tra Viral Edge..."];
+        startThinkingLogs('ai');
         let isAccepted = false;
         try {
             if (!skipSave) await saveBeforeAnalysis();
@@ -212,13 +300,20 @@ export function createAnalysisController(config: {
                 const oldFixed = (aiReadyResult?.ai_annotations || []).filter(a => a.type === 'fixed-area');
                 v.ai_annotations = [...oldFixed, ...(v.ai_annotations || [])];
                 aiReadyResult = v;
-            });
+            }, 'ai_inspect');
             if (status === 'accepted') isAccepted = true;
         } finally {
+            stopThinkingLogs();
             if (!isAccepted) {
                 isAiLoading = false;
-                setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
-                setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
+                bulkFixStatus = "Hoàn tất ✅";
+                setTimeout(() => {
+                    if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) {
+                        isBulkFixing = false;
+                        bulkFixStatus = "";
+                        
+                    }
+                }, 1500);
             }
         }
     }
@@ -236,15 +331,34 @@ export function createAnalysisController(config: {
             return cleaned;
         } finally {
             setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
-            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3200);
+            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = "";  } }, 3200);
         }
     }
 
     async function runAutoFix(target: string, type: string, msg: string) {
         const cid = resolve(config.campaign_id);
-        if (!cid) return null;
-        const newText = await xohiActions.runAutoFix(cid, target, type, msg);
+        const topic = resolve(config.topic) ?? '';
+        const content = (config.getContent ?? config.getEditedDraft)?.() ?? '';
+
+        // CNS V86.5: Hỗ trợ cả ad-hoc (không có campaign_id) lẫn campaign mode
+        let newText: string | null = null;
+        if (cid) {
+            newText = await xohiActions.runAutoFix(cid, target, type, msg);
+        } else {
+            // Ad-hoc mode: truyền content hiện tại để AI có context đầy đủ
+            newText = await xohiActions.runAdHocAutoFix(content, target, type, msg, topic);
+        }
+
         if (newText) {
+            // Áp dụng kết quả vào editor — surgical replace
+            const currentContent = (config.getContent ?? config.getEditedDraft)?.() ?? '';
+            const updated = currentContent.replace(target, newText);
+            if (updated !== currentContent) {
+                if (resolve(config.isEditing)) config.setEditedDraft(updated);
+                else config.setDraftContent(updated);
+            }
+
+            // Xóa annotation đã sửa khỏi danh sách
             const update = (a: AnalysisAnnotation) => {
                 const nt = target.replace(/[\s\*\u200B\uFEFF]+/g, '').toLowerCase();
                 const na = (a.text || '').replace(/[\s\*\u200B\uFEFF]+/g, '').toLowerCase();
@@ -293,7 +407,7 @@ export function createAnalysisController(config: {
             }
         } finally {
             isBulkFixing = false;
-            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = ""; bulkFixLogs = []; } }, 3000);
+            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = "";  } }, 3000);
         }
     }
 
@@ -318,11 +432,11 @@ export function createAnalysisController(config: {
             }
         } finally {
             isBoosting = false;
-            setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; bulkFixLogs = []; }, 3500);
+            setTimeout(() => { isBulkFixing = false; bulkFixStatus = "";  }, 3500);
         }
     }
 
-    // Hydrate
+    // CNS V86.5: Hydrate — Khôi phục kết quả phân tích từ cache sau F5
     $effect(() => {
         const cache = resolve(config.analysis_cache);
         if (cache && Object.keys(cache).length > 0) {
@@ -345,7 +459,41 @@ export function createAnalysisController(config: {
                         if (isAiLoading) { isAiLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
                     }
                 }
+
+                // CNS V86.5: Auto-select tab sau khi hydrate để khôi phục highlights & nút Fix All
+                // Ưu tiên: tab đầu tiên có annotations, fallback về tab có dữ liệu
+                if (activeTab === null) {
+                    if (cache.copyright?.data && (cache.copyright.data as CopyrightResult).annotations?.length > 0) {
+                        activeTab = 'copyright';
+                    } else if (cache.seo?.data && (cache.seo.data as SEOResult).seo_annotations?.length > 0) {
+                        activeTab = 'seo';
+                    } else if (cache.ai_inspect?.data && (cache.ai_inspect.data as AIInspectResult).ai_annotations?.length > 0) {
+                        activeTab = 'ai';
+                    } else if (cache.ai_inspect?.data) {
+                        activeTab = 'ai';
+                    } else if (cache.seo?.data) {
+                        activeTab = 'seo';
+                    } else if (cache.copyright?.data) {
+                        activeTab = 'copyright';
+                    }
+                }
             });
+        }
+    });
+
+    // CNS V85.5: Log-based Completion Detector (Force close when task finishes)
+    $effect(() => {
+        if (bulkFixLogs.length > 0) {
+            const lastLog = bulkFixLogs[bulkFixLogs.length - 1];
+            if (lastLog.includes("ĐÃ XỬ LÝ XONG") || lastLog.includes("ĐANG ĐỒNG BỘ GIAO DIỆN") || lastLog.includes("Đã dọn dẹp xong")) {
+                // CNS V85.6: Use untrack and direct assignments to prevent loop/freeze
+                untrack(() => {
+                    if (isCopyrightLoading) isCopyrightLoading = false;
+                    if (isSeoLoading) isSeoLoading = false;
+                    if (isAiLoading) isAiLoading = false;
+                    if (isBulkFixing) isBulkFixing = false; 
+                });
+            }
         }
     });
 
@@ -369,7 +517,7 @@ export function createAnalysisController(config: {
         get aiLocked() { return aiLocked; },
         get editorAnnotations() { return editorAnnotations; },
         runCopyrightCheck, runSeoAnalysis, runAiAnalysis, runAutoFix, runCleanContent, runBulkFix, runAiBooster, dispose: () => {
-            copyrightResult = null; seoResult = null; aiReadyResult = null; bulkFixLogs = []; bulkFixStatus = ""; activeTab = null;
+            copyrightResult = null; seoResult = null; aiReadyResult = null;  bulkFixStatus = ""; activeTab = null;
         }
     };
 }

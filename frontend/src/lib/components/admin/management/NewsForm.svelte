@@ -21,6 +21,7 @@
   import Sparkles from "lucide-svelte/icons/sparkles";
   import Plus from "lucide-svelte/icons/plus";
   import type { MediaAsset } from "$lib/types";
+  import type { AnalysisCache, CampaignMetrics } from "$lib/state/types";
 
   const nanobot = useNanobot();
   
@@ -39,6 +40,8 @@
     formSeoOgImage = $bindable(),
     formFeaturedImage = $bindable(),
     formFaqs = $bindable(),
+    formAnalysisCache = $bindable(),
+    formAnalysisMetrics = $bindable(),
     dbCategories,
     onSave,
     onClose,
@@ -66,6 +69,8 @@
     isSaving?: boolean;
     isOpen?: boolean;
     errors?: Record<string, string>;
+    formAnalysisCache?: AnalysisCache;
+    formAnalysisMetrics?: CampaignMetrics;
   }>();
 
   let showMediaModal = $state(false);
@@ -415,6 +420,8 @@
         topic={formTitle}
         editable={true}
         placeholder="Viết nội dung bài viết tại đây..."
+        bind:analysisCache={formAnalysisCache}
+        bind:analysisMetrics={formAnalysisMetrics}
       />
     </div>
   </section>

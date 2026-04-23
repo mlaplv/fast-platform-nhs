@@ -8,14 +8,13 @@
    *
    * Rules: SvelteKit 5 Runes, strict typing, no anys, no TODO, no mock data
    */
-  import { onMount } from "svelte";
-  import { fade, fly } from "svelte/transition";
-  import { Brain, ShieldCheck, BarChart2, Sparkles, X, ChevronUp } from "lucide-svelte";
+  import { onMount, untrack } from "svelte";
+  import { ShieldCheck, BarChart2, Sparkles } from "lucide-svelte";
   import TiptapEditor from "./TiptapEditor.svelte";
-  import CheckResultPanel from "../content-factory/CheckResultPanel.svelte";
-  import NeuralProgressTooltip from "../content-factory/NeuralProgressTooltip.svelte";
-  import CriteriaTooltip from "../content-factory/CriteriaTooltip.svelte";
   import { createAnalysisController } from "$lib/state/xohiAnalysis.svelte";
+  import { portal } from "$lib/core/actions/portal";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+  import NeuralProgressTooltip from "../content-factory/NeuralProgressTooltip.svelte";
   import type { AnalysisCache, CampaignMetrics } from "$lib/state/types";
 
   interface Props {
@@ -31,6 +30,18 @@
     analysisCache?: AnalysisCache;
     /** Bindable: Metrics for scores persistence */
     analysisMetrics?: CampaignMetrics;
+    /** Extra toolbar actions */
+    toolbarActions?: any[];
+    /** Editor annotations/highlights */
+    annotations?: any[];
+    /** Optional: Campaign ID for persistent tracking */
+    campaign_id?: string | null;
+    /** Whether the system is currently processing (DraftStep mode) */
+    isProcessing?: boolean;
+    /** Bindable: selected images/assets */
+    assets?: (MediaAsset | string)[];
+    selectedAvatarUrl?: string | null;
+    selectedAssetIndex?: number;
   }
 
   let {
@@ -41,6 +52,13 @@
     fullScreen = $bindable(false),
     analysisCache = $bindable(),
     analysisMetrics = $bindable(),
+    toolbarActions = [],
+    annotations = [],
+    campaign_id = null,
+    isProcessing = false,
+    assets = $bindable([]),
+    selectedAvatarUrl = $bindable(null),
+    selectedAssetIndex = $bindable(0),
   }: Props = $props();
 
   // Internal edit buffer — mirrors content prop while editing
@@ -53,8 +71,6 @@
     }
   });
 
-  // Viral UI State
-  let showResultsPanel = $state(false);
 
   // Footer Lockdown Logic
   $effect(() => {
@@ -64,9 +80,9 @@
     }
   });
 
-  // Adhoc analysis controller — no campaign_id needed
+  // Neural Intelligence Controller — Universal Logic
   const analysis = createAnalysisController({
-    campaign_id: null,          // Explicit null → adhoc mode
+    campaign_id: () => campaign_id,
     topic,
     isEditing: editable,
     getContent: () => editBuffer,
@@ -76,9 +92,12 @@
     setDraftContent: (v) => { content = v; },
     analysis_cache: () => analysisCache,
     analysis_metrics: () => analysisMetrics,
+    getIsProcessing: () => isProcessing,
     onUpdate: (cache, metrics) => {
-      analysisCache = cache;
-      analysisMetrics = metrics;
+      untrack(() => {
+        analysisCache = cache;
+        analysisMetrics = metrics;
+      });
     }
   });
 
@@ -98,186 +117,140 @@
     if (content === undefined) content = "";
     if (!editBuffer) editBuffer = content;
   });
+
+  // CNS V85.2: Unified Toolbar Actions for Analysis (Elite V2.2: Lock & Hover Logic)
+  const analysisActions = $derived([
+    {
+      id: 'copyright',
+      label: analysis.copyrightResult 
+        ? `Copyright ${Math.round(analysis.copyrightResult.uniqueness_score * 100)}%`
+        : 'Copyright',
+      icon: ShieldCheck,
+      onclick: () => {
+        if (analysis.activeTab === 'copyright') {
+          handleAction(analysis.runCopyrightCheck, true);
+        } else {
+          analysis.activeTab = 'copyright';
+          if (!analysis.copyrightResult && !analysis.isCopyrightLoading) handleAction(analysis.runCopyrightCheck);
+        }
+      },
+      loading: analysis.isCopyrightLoading,
+      // Golden Criteria: Uniqueness >= 95% and no critical annotations
+      isPerfect: analysis.copyrightResult ? (analysis.copyrightResult.uniqueness_score >= 0.95 && (analysis.copyrightResult.annotations?.length || 0) === 0) : false,
+      isLocked: analysis.copyrightResult ? (analysis.copyrightResult.uniqueness_score < 0.90 || (analysis.copyrightResult.annotations?.length || 0) > 0) : false,
+      active: analysis.activeTab === 'copyright',
+      colorClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+    },
+    {
+      id: 'seo',
+      label: analysis.seoResult 
+        ? `SEO ${analysis.seoResult.total_score}/100`
+        : 'SEO Scan',
+      icon: BarChart2,
+      onclick: () => {
+        if (analysis.activeTab === 'seo') {
+          handleAction(analysis.runSeoAnalysis, true);
+        } else {
+          analysis.activeTab = 'seo';
+          if (!analysis.seoResult && !analysis.isSeoLoading) handleAction(analysis.runSeoAnalysis);
+        }
+      },
+      loading: analysis.isSeoLoading,
+      // Golden Criteria: SEO Score >= 95
+      isPerfect: analysis.seoResult ? (analysis.seoResult.score >= 95) : false,
+      isLocked: analysis.seoResult ? (analysis.seoResult.score < 90) : false,
+      active: analysis.activeTab === 'seo',
+      colorClass: 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+    },
+    {
+      id: 'ai',
+      label: analysis.aiReadyResult 
+        ? `AI Mod ${analysis.aiReadyResult.geo_score}/100`
+        : 'AI Mod',
+      icon: Sparkles,
+      onclick: () => {
+        if (analysis.activeTab === 'ai') {
+          handleAction(analysis.runAiAnalysis, true);
+        } else {
+          analysis.activeTab = 'ai';
+          if (!analysis.aiReadyResult && !analysis.isAiLoading) handleAction(analysis.runAiAnalysis);
+        }
+      },
+      loading: analysis.isAiLoading,
+      // Golden Criteria: Viral Score >= 8.5 and no critical AI annotations
+      isPerfect: analysis.aiReadyResult ? (analysis.aiReadyResult.viral_score >= 8.5 && (analysis.aiReadyResult.ai_annotations?.filter(a => a.severity === 'high')?.length || 0) === 0) : false,
+      isLocked: analysis.aiReadyResult ? (analysis.aiReadyResult.viral_score < 7.0 || (analysis.aiReadyResult.ai_annotations?.filter(a => a.severity === 'high')?.length || 0) > 0) : false,
+      active: analysis.activeTab === 'ai',
+      colorClass: 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+    },
+    // AI Booster (id: enrich)
+    {
+      id: 'enrich',
+      label: analysis.isBoosting ? '🚀 ENRICHING...' : '🚀 AI BOOSTER',
+      loading: analysis.isBoosting,
+      disabled: !analysis.seoResult || analysis.seoResult.score >= 95,
+      onclick: () => {
+        // AI Booster is a transformation, allow re-run to inject fresh data if editor changed
+        handleAction(analysis.runAiBooster);
+      },
+      colorClass: 'bg-pink-500/10 text-pink-400 border-pink-500/20'
+    },
+    // Fix All (Contextual)
+    ...(analysis.activeTab && analysis.activeTab !== 'enrich' && (analysis.editorAnnotations.length > 0) ? [{ 
+      id: `${analysis.activeTab}-fix`,
+      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || '✨ FIXING...') : `✨ FIX ALL ${analysis.activeTab.toUpperCase()}`, 
+      loading: analysis.isBulkFixing, 
+      onclick: () => handleAction(analysis.runBulkFix),
+      colorClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+    }] : [])
+  ]);
+
+  const allToolbarActions = $derived([...analysisActions, ...toolbarActions]);
 </script>
 
-<div class="flex flex-col {fullScreen ? 'fixed inset-0 z-[var(--z-admin-tiptap-fullscreen)] bg-[#0a0d14] h-screen' : 'gap-2 relative'}">
+<div 
+  use:portal={fullScreen}
+  class="flex flex-col {fullScreen ? 'fixed inset-0 bg-[#0a0d14] h-[100dvh]' : 'gap-2 relative'}" 
+  style={fullScreen ? `z-index: ${Z_INDEX_ADMIN.TIPTAP_FULLSCREEN}` : ''}
+>
 
   <!-- Editor Container -->
   <div class="relative flex flex-col {editable ? 'bg-[#09090b]/40' : 'bg-transparent'} {fullScreen ? 'flex-1 min-h-0' : ''}">
     <TiptapEditor
-      bind:this={editorRef}
-      content={editBuffer}
-      editable={editable}
-      placeholder={placeholder}
+      bind:editorRef
+      bind:content
+      {editable}
+      {placeholder}
       fullScreen={fullScreen}
       onToggleFullScreen={() => fullScreen = !fullScreen}
       onChange={(val) => { if (editable && val !== editBuffer) { editBuffer = val; content = val; } }}
       onfix={analysis.runAutoFix}
       onClean={analysis.runCleanContent}
       annotations={analysis.editorAnnotations}
-      toolbarActions={[
-        { label: analysis.isCopyrightLoading ? '...' : '🔍 COPYRIGHT', loading: analysis.isCopyrightLoading, onclick: () => handleAction(analysis.runCopyrightCheck, true) },
-        { label: analysis.isSeoLoading ? '...' : '📊 SEO', loading: analysis.isSeoLoading, disabled: analysis.seoLocked, onclick: () => handleAction(analysis.runSeoAnalysis, true), lockedMsg: analysis.seoLocked ? '🔒 SEO bị khoá — Cần COPYRIGHT ≥ 55 trước' : undefined },
-        { label: analysis.isAiLoading ? '...' : '✨ AI MOD', loading: analysis.isAiLoading, disabled: analysis.aiLocked, onclick: () => handleAction(analysis.runAiAnalysis, true), lockedMsg: analysis.aiLocked ? '🔒 AI MOD bị khoá — Cần SEO ≥ 40 trước' : undefined },
-        ...(analysis.activeTab && analysis.activeTab !== 'enrich' && analysis.editorAnnotations.length > 0 ? [{
-          label: analysis.isBulkFixing ? (analysis.bulkFixStatus || '✨ ĐANG PHẪU THUẬT...') : `✨ SỬA TOÀN BỘ LỖI ${(analysis.activeTab ?? '').toUpperCase()}`,
-          loading: analysis.isBulkFixing,
-          onclick: () => handleAction(analysis.runBulkFix)
-        }] : [])
-      ]}
+      toolbarActions={allToolbarActions}
+      analysisData={analysis}
+      {campaign_id}
+      bind:assets
+      bind:selectedAvatarUrl
+      bind:selectedAssetIndex
+      copyrightResult={analysis.copyrightResult}
+      seoResult={analysis.seoResult}
+      aiReadyResult={analysis.aiReadyResult}
+      isCopyrightLoading={analysis.isCopyrightLoading}
+      isSeoLoading={analysis.isSeoLoading}
+      isAiLoading={analysis.isAiLoading}
+      isBoosting={analysis.isBoosting}
+      isBulkFixing={analysis.isBulkFixing}
+      bulkFixLogs={analysis.bulkFixLogs}
     />
   </div>
 
-  <!-- Analysis Trigger HUD (Viral 2026 Style) -->
-  <div class="{fullScreen ? 'fixed bottom-8 left-1/2 -translate-x-1/2 z-[700000]' : 'shrink-0 mt-2'}">
-    <div class="flex items-center gap-1.5 p-1.5 {fullScreen ? 'bg-black/60 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : ''}">
-      <!-- Copyright Trigger -->
-      <div class="relative group">
-        <button
-          onclick={() => {
-            if (analysis.activeTab === 'copyright' && !analysis.isCopyrightLoading) showResultsPanel = true;
-            else { 
-              analysis.activeTab = 'copyright'; 
-              showResultsPanel = true;
-              if (!analysis.copyrightResult && !analysis.isCopyrightLoading) handleAction(analysis.runCopyrightCheck); 
-            }
-          }}
-          disabled={analysis.isCopyrightLoading}
-          class="flex items-center gap-1.5 h-[36px] px-4 rounded-xl transition-all duration-300 {analysis.activeTab === 'copyright' ? 'bg-orange-500/20 border border-orange-500/40 text-orange-300' : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10'}"
-        >
-          {#if analysis.isCopyrightLoading}<span class="w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>{:else}<ShieldCheck size={14} />{/if}
-          <span class="text-[10px] uppercase font-black tracking-widest">Copyright</span>
-          {#if analysis.copyrightScore}
-            <span class="text-[9px] font-black px-1.5 py-0.5 rounded-md {analysis.copyrightScore >= 90 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-yellow-500/20 text-yellow-400'}">{analysis.copyrightScore}%</span>
-          {/if}
-        </button>
-      </div>
-
-      <!-- SEO Trigger -->
-      <div class="relative group">
-        <button
-          onclick={() => {
-            if (analysis.activeTab === 'seo' && !analysis.isSeoLoading) showResultsPanel = true;
-            else { 
-              analysis.activeTab = 'seo'; 
-              showResultsPanel = true;
-              if (!analysis.seoResult && !analysis.isSeoLoading && !analysis.seoLocked) handleAction(analysis.runSeoAnalysis); 
-            }
-          }}
-          disabled={analysis.isSeoLoading || analysis.seoLocked}
-          class="flex items-center gap-1.5 h-[36px] px-4 rounded-xl transition-all duration-300 {analysis.activeTab === 'seo' ? 'bg-blue-500/20 border border-blue-500/40 text-blue-300' : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10'}"
-        >
-          {#if analysis.isSeoLoading}<span class="w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>{:else}<BarChart2 size={14} />{/if}
-          <span class="text-[10px] uppercase font-black tracking-widest">SEO</span>
-          {#if analysis.seoLocked}<span>🔒</span>{:else if analysis.seoResult}
-            <span class="text-[9px] font-black px-1.5 py-0.5 rounded-md {analysis.seoResult.grade === 'A' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}">{analysis.seoResult.grade}.{analysis.seoResult.total_score}</span>
-          {/if}
-        </button>
-      </div>
-
-      <!-- AI MOD Trigger -->
-      <div class="relative group">
-        <button
-          onclick={() => {
-            if (analysis.activeTab === 'ai' && !analysis.isAiLoading) showResultsPanel = true;
-            else { 
-              analysis.activeTab = 'ai'; 
-              showResultsPanel = true;
-              if (!analysis.aiReadyResult && !analysis.isAiLoading && !analysis.aiLocked) handleAction(analysis.runAiAnalysis); 
-            }
-          }}
-          disabled={analysis.isAiLoading || analysis.aiLocked}
-          class="flex items-center gap-1.5 h-[36px] px-4 rounded-xl transition-all duration-300 {analysis.activeTab === 'ai' ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300' : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10'}"
-        >
-          {#if analysis.isAiLoading}<span class="w-3 h-3 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></span>{:else}<Sparkles size={14} />{/if}
-          <span class="text-[10px] uppercase font-black tracking-widest">AI Mod</span>
-          {#if analysis.aiLocked}<span>🔒</span>{:else if analysis.aiScore}
-            <span class="text-[9px] font-black px-1.5 py-0.5 rounded-md {analysis.aiScore >= 85 ? 'bg-purple-500/20 text-purple-400' : 'bg-fuchsia-500/20 text-fuchsia-400'}">{analysis.aiScore}%</span>
-          {/if}
-        </button>
-      </div>
-
-      {#if fullScreen && showResultsPanel}
-        <button 
-          onclick={() => showResultsPanel = false}
-          class="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/40 hover:bg-white/10 hover:text-white transition-all ml-1"
-        >
-          <X size={16} />
-        </button>
-      {/if}
-    </div>
-  </div>
-
-  <!-- TikTok-style Bottom Sheet (Viral 2026) -->
-  {#if analysis.activeTab && showResultsPanel}
-    {#if fullScreen}
-      <div 
-        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[750000]" 
-        onclick={() => showResultsPanel = false}
-        transition:fade={{ duration: 300 }}
-      ></div>
-    {/if}
-
-    <div 
-      class="{fullScreen 
-        ? 'fixed bottom-0 left-0 right-0 z-[800000] bg-[#0c0c0e]/95 backdrop-blur-3xl border-t border-white/10 rounded-t-[32px] shadow-[0_-20px_100px_rgba(0,0,0,0.8)] p-6' 
-        : 'mt-4 bg-black/20 rounded-2xl border border-white/5 p-4'}"
-      transition:fly={{ y: 100, duration: 500, opacity: 0 }}
-    >
-      <!-- Drag Handle (Visual only for TikTok style) -->
-      {#if fullScreen}
-        <div class="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-6"></div>
-      {/if}
-
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
-            {#if analysis.activeTab === 'copyright'}<ShieldCheck size={18} class="text-cyan-400" />
-            {:else if analysis.activeTab === 'seo'}<BarChart2 size={18} class="text-blue-400" />
-            {:else}<Sparkles size={18} class="text-purple-400" />{/if}
-          </div>
-          <div>
-            <h3 class="text-sm font-black text-white uppercase tracking-[0.2em]">
-              {analysis.activeTab === 'copyright' ? 'BÁO CÁO BẢN QUYỀN' : analysis.activeTab === 'seo' ? 'PHÂN TÍCH SEO' : 'NEURAL ENRICHMENT'}
-            </h3>
-            <p class="text-[10px] text-white/40 font-mono tracking-widest mt-0.5">XOHI CORE ENGINE v4.0 • ACTIVE</p>
-          </div>
-        </div>
-
-        {#if fullScreen}
-          <button 
-            onclick={() => showResultsPanel = false}
-            class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-all"
-          >
-            <X size={20} />
-          </button>
-        {/if}
-      </div>
-
-      <div class="{fullScreen ? 'max-h-[60vh]' : 'max-h-96'} overflow-y-auto custom-scrollbar">
-        <CheckResultPanel
-          activeTab={analysis.activeTab}
-          copyrightResult={analysis.copyrightResult}
-          isCopyrightLoading={analysis.isCopyrightLoading}
-          seoResult={analysis.seoResult}
-          isSeoLoading={analysis.isSeoLoading}
-          aiReadyResult={analysis.aiReadyResult}
-          isAiLoading={analysis.isAiLoading}
-          isBoosting={analysis.isBoosting}
-          runCopyrightCheck={analysis.runCopyrightCheck}
-          runSeoAnalysis={analysis.runSeoAnalysis}
-          runAiAnalysis={analysis.runAiAnalysis}
-          onfix={analysis.runAutoFix}
-        />
-      </div>
-    </div>
-  {/if}
 </div>
 
-<NeuralProgressTooltip
-  active={analysis.isBulkFixing}
-  logs={analysis.bulkFixLogs}
-  status={analysis.bulkFixStatus}
+<NeuralProgressTooltip 
+  active={analysis.isBulkFixing} 
+  logs={analysis.bulkFixLogs} 
+  status={analysis.bulkFixStatus} 
 />
 
 <style>

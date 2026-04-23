@@ -72,3 +72,12 @@ class ScoutTopicRequest(BaseModel):
     model_config = ConfigDict(strict=True)
     topic: str
     campaign_id: Optional[str] = None
+
+class AdhocAutoFixRequest(BaseModel):
+    """Ad-hoc auto-fix: sửa từng annotation không cần campaign_id."""
+    model_config = ConfigDict(strict=True)
+    content: str
+    target_snippet: str
+    annotation_type: str
+    error_message: str
+    topic: Optional[str] = None

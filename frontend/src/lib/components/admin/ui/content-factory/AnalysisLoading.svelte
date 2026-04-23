@@ -54,12 +54,12 @@
   const phases = $derived(PHASES[tab || 'copyright'] || []);
 </script>
 
-<div class="relative overflow-hidden rounded-xl border {accentBorder} bg-gradient-to-br {accentBg} via-slate-950/90 to-slate-900/90 p-4 live-scanner">
+<div class="relative overflow-hidden border {accentBorder} bg-gradient-to-br {accentBg} via-slate-950/90 to-slate-900/90 p-4 live-scanner">
   <div class="scan-line" style="--accent: {accent}"></div>
   <div class="flex items-center gap-3 mb-4">
     <div class="relative w-8 h-8">
-      <div class="absolute inset-0 rounded-lg animate-ping opacity-20" style="background:{accent}"></div>
-      <div class="relative w-8 h-8 rounded-lg flex items-center justify-center" style="background:{accent}20; border:1px solid {accent}30">
+      <div class="absolute inset-0 animate-ping opacity-20" style="background:{accent}"></div>
+      <div class="relative w-8 h-8 flex items-center justify-center" style="background:{accent}20; border:1px solid {accent}30">
         {#if tab === 'copyright'}<ShieldCheck size={14} style="color:{accent}" />
         {:else if tab === 'seo'}<BarChart2 size={14} style="color:{accent}" />
         {:else if tab === 'enrich'}<Brain size={14} style="color:{accent}" />

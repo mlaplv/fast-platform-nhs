@@ -17,6 +17,7 @@ from backend.services.xohi.creative_studio.models.schemas import (
 )
 from backend.services.xohi.creative_studio.utils.stitcher import surgical_stitch
 from .ai_inspector_prompts import GEO_ANALYSIS_PROMPT, SURGEON_PROMPT, ATOMIC_SURGEON_PROMPT
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
 logger = logging.getLogger("api-gateway")
 

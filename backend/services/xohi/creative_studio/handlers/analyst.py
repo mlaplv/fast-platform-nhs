@@ -128,6 +128,23 @@ class AnalystHandler:
             return GenericResponse(status="success", data=result.model_dump())
         except Exception as e: return GenericResponse(status="error", message=str(e))
 
+    async def auto_fix_adhoc(self, content: str, target_snippet: str, annotation_type: str, error_message: str, topic: Optional[str] = None) -> GenericResponse:
+        """CNS V86.5: Ad-hoc surgical fix — không cần campaign. Dùng cho ProductForm/NewsForm."""
+        from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector, AutoFixRequest
+        if not content or not target_snippet:
+            return GenericResponse(status="error", message="Thiếu content hoặc target_snippet.")
+        campaign = AdHocContent(content=content, topic=topic or "")
+        try:
+            req = AutoFixRequest(text=target_snippet, message=error_message)
+            result = await AiInspector().auto_fix(campaign, req)
+            # Áp dụng kết quả vào content và trả về new_text
+            new_text = result.new_text if result.new_text and result.new_text != target_snippet else None
+            return GenericResponse(status="success", data={"new_text": new_text})
+        except Exception as e:
+            logger.error(f"[AnalystHandler] ad-hoc auto_fix failed: {e}", exc_info=True)
+            return GenericResponse(status="error", message=str(e))
+
+
     async def bulk_fix(self, campaign_id: Optional[str], data: Dict[str, object], campaign_repo: Optional[ContentCampaignRepository], raw_content: Optional[str] = None) -> GenericResponse:
         from backend.services.xohi.creative_studio.models.schemas import BulkFixRequest
         from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector

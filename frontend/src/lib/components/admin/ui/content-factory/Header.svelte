@@ -132,11 +132,15 @@
       {/if}
     </div>
     
-    <div>
-      <h2 class="text-xs font-mono tracking-[0.15em] uppercase text-cyan-400 font-bold">
-        PHASE {viewingStep}
-      </h2>
-      <p class="text-[9px] font-mono text-gray-500 uppercase tracking-wider hidden md:block">
+    <div class="flex flex-col justify-center">
+      <div class="flex items-center gap-2">
+        <h2 class="text-sm font-black tracking-[0.2em] uppercase bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">
+          PHASE {viewingStep}
+        </h2>
+        <div class="w-1 h-1 rounded-full bg-cyan-500/40"></div>
+        <span class="text-[9px] font-bold text-white/30 uppercase tracking-[0.1em]">{PHASES.find(p => p.s === viewingStep)?.label || ''}</span>
+      </div>
+      <p class="text-[9px] font-medium text-gray-500 uppercase tracking-wider hidden md:block mt-0.5 opacity-80">
         {subtitle}
       </p>
     </div>

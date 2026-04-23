@@ -18,7 +18,7 @@ from backend.database.repositories import (
 # Schema Imports
 from backend.schemas.content import (
     CampaignSchema, CampaignListResponse, ContentCleanRequest,
-    AdhocAnalysisRequest, BulkFixRequest, ScoutTopicRequest
+    AdhocAnalysisRequest, BulkFixRequest, ScoutTopicRequest, AdhocAutoFixRequest
 )
 from backend.schemas.common import SuccessResponse as GenericResponse
 
@@ -140,3 +140,13 @@ class ContentController(Controller):
         """[CNS V62.2] Perform high-IQ content scouting and strategic analysis."""
         return await content_factory.analyst.scout(data.topic, campaign_id=data.campaign_id)
 
+    @post("/analyze/auto-fix", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
+    async def analyze_auto_fix_adhoc(self, data: AdhocAutoFixRequest) -> GenericResponse:
+        """CNS V86.5: Ad-hoc auto-fix — sửa từng annotation không cần campaign_id (ProductForm/NewsForm)."""
+        return await content_factory.analyst.auto_fix_adhoc(
+            content=data.content,
+            target_snippet=data.target_snippet,
+            annotation_type=data.annotation_type,
+            error_message=data.error_message,
+            topic=data.topic,
+        )

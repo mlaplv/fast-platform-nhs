@@ -4,27 +4,25 @@
   import BoldIcon from 'lucide-svelte/icons/bold';
   import ItalicIcon from 'lucide-svelte/icons/italic';
   import UnderlineIcon from 'lucide-svelte/icons/underline';
-  import ListIcon from 'lucide-svelte/icons/list';
-  import ListOrderedIcon from 'lucide-svelte/icons/list-ordered';
   import UndoIcon from 'lucide-svelte/icons/undo';
   import RedoIcon from 'lucide-svelte/icons/redo';
-  import AlignLeftIcon from 'lucide-svelte/icons/align-left';
-  import AlignCenterIcon from 'lucide-svelte/icons/align-center';
-  import AlignRightIcon from 'lucide-svelte/icons/align-right';
-  import AlignJustifyIcon from 'lucide-svelte/icons/align-justify';
   import PaletteIcon from 'lucide-svelte/icons/palette';
   import ImageIcon from 'lucide-svelte/icons/image';
   import Link2Icon from 'lucide-svelte/icons/link-2';
-  import QuoteIcon from 'lucide-svelte/icons/quote';
   import CodeIcon from 'lucide-svelte/icons/code';
   import Maximize2Icon from 'lucide-svelte/icons/maximize-2';
-  import MinusIcon from 'lucide-svelte/icons/minus';
   import SparklesIcon from 'lucide-svelte/icons/sparkles';
+  import TrendingUpIcon from 'lucide-svelte/icons/trending-up';
   import MoreHorizontalIcon from 'lucide-svelte/icons/more-horizontal';
-  import StrikethroughIcon from 'lucide-svelte/icons/strikethrough';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import type { CleanOptions } from '$lib/state/xohiActions';
+  import type { CopyrightResult, SEOResult, AIInspectResult } from '$lib/state/types';
+  import { fly, fade } from 'svelte/transition';
+  import { quintOut } from 'svelte/easing';
+  import IntelligenceHUD from '../parts/IntelligenceHUD.svelte';
+  import ToolbarMoreMenu from '../parts/ToolbarMoreMenu.svelte';
+  import NeuralCleanMenu from '../parts/NeuralCleanMenu.svelte';
 
   let {
     editor,
@@ -32,22 +30,41 @@
     annotations = [],
     onOpenImage,
     onOpenLink,
-    onClearHighlights,
     onClean = null,
     fullScreen = false,
     onToggleFullScreen = null,
     showSource = $bindable(),
+    // CNS V85.2: Intelligence Context
+    analysisData = null,
+    copyrightResult = null,
+    seoResult = null,
+    aiReadyResult = null,
+    isCopyrightLoading = false,
+    isSeoLoading = false,
+    isAiLoading = false,
+    isBoosting = false,
+    isBulkFixing = false,
+    bulkFixLogs = [],
   }: {
     editor: Editor | null;
     toolbarActions?: ToolbarAction[];
     annotations?: EditorAnnotation[];
     onOpenImage: () => void;
     onOpenLink: () => void;
-    onClearHighlights: () => void;
     onClean?: ((options: CleanOptions) => Promise<void>) | null;
     fullScreen?: boolean;
     onToggleFullScreen?: (() => void) | null;
     showSource?: boolean;
+    analysisData?: any; // Controller is complex, keep any for now or use return type
+    copyrightResult?: CopyrightResult | null;
+    seoResult?: SEOResult | null;
+    aiReadyResult?: AIInspectResult | null;
+    isCopyrightLoading?: boolean;
+    isSeoLoading?: boolean;
+    isAiLoading?: boolean;
+    isBoosting?: boolean;
+    isBulkFixing?: boolean;
+    bulkFixLogs?: string[];
   } = $props();
 
   const FONTS = ['Inter', 'Roboto', 'Georgia', 'Times New Roman', 'Courier New', 'Arial'];
@@ -111,6 +128,37 @@
   }
 
   let cleanButtonRef = $state<HTMLElement | null>(null);
+  let intelPopoverPos = $state({ top: 0, left: 0 });
+  let activeIntelAction = $state<string | null>(null);
+
+  // CNS V85.5: Neural HUD Auto-Close Protocol
+  // Automatically retracts the HUD 1.5s after a task (Check/Clean/Fix) completes
+  let lastLoadingState = $state(false);
+  let isAutoClosing = $state(false); // Cooldown flag
+  
+  $effect(() => {
+    if (!activeIntelAction) {
+      lastLoadingState = false;
+      return;
+    }
+    const activeAction = toolbarActions.find(a => a.id === activeIntelAction);
+    const isLoading = activeAction?.loading || false;
+
+    // Detect transition from Loading -> Done
+    if (lastLoadingState && !isLoading) {
+      setTimeout(() => {
+        // Guard: Only close if the action hasn't changed or been manually toggled
+        if (activeIntelAction === activeAction?.id && !activeAction?.loading) {
+           activeIntelAction = null;
+           isAutoClosing = true;
+           setTimeout(() => { isAutoClosing = false; }, 2000); // 2s cooldown for hover
+        }
+      }, 1500);
+    }
+    lastLoadingState = isLoading;
+  });
+
+
 
   $effect(() => {
     if (showColorPicker || showMore || showCleanOptions) {
@@ -188,7 +236,7 @@
   bind:clientWidth={containerWidth}
   onscroll={handleToolbarScroll}
   class="sticky top-0 w-full flex flex-nowrap items-center gap-2 md:gap-3 px-4 py-1.5 bg-[#0a0a0a]/90 backdrop-blur-[80px] border-b border-white/5 shadow-2xl transition-all duration-300 overflow-x-auto hide-scrollbar"
-  style="z-index: {Z_INDEX_ADMIN.STICKY_HEADER}"
+  style="z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_DROPDOWN}"
 >
   
   <!-- Group 1: Navigation -->
@@ -296,90 +344,19 @@
       <MoreHorizontalIcon size={14} />
     </button>
 
-    {#if showMore}
-      <div
-           use:portal
-           class="fixed bg-[#0d0d0d]/95 backdrop-blur-3xl border border-white/10 rounded-xl p-3 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-3 min-w-[240px]"
-           style="top: {morePopupPos.top}px; left: {morePopupPos.left}px; transform: translateX(-100%); z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_DROPDOWN}"
-      >
-        <!-- Extra Tools (Always in More) -->
-        <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-           <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Extended Tools</span>
-            <div class="flex gap-1.5">
-               <button onclick={() => { editor?.chain().focus().toggleBulletList().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.bulletList ? 'active-neural' : ''}" title="Bullet List"><ListIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().toggleOrderedList().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.orderedList ? 'active-neural' : ''}" title="Ordered List"><ListOrderedIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().toggleBlockquote().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.blockquote ? 'active-neural' : ''}" title="Quote"><QuoteIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().toggleCode().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.code ? 'active-neural' : ''}" title="Code"><CodeIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().setHorizontalRule().run(); showMore=false; }} class="tb-btn !h-8 !w-8" title="Horizontal Rule"><MinusIcon size={12}/></button>
-            </div>
-        </div>
-
-        <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-           <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Text Alignment</span>
-           <div class="flex gap-1.5">
-             <button onclick={() => { editor?.chain().focus().setTextAlign('left').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignLeft ? 'active-neural' : ''}"><AlignLeftIcon size={12}/></button>
-             <button onclick={() => { editor?.chain().focus().setTextAlign('center').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignCenter ? 'active-neural' : ''}"><AlignCenterIcon size={12}/></button>
-             <button onclick={() => { editor?.chain().focus().setTextAlign('right').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignRight ? 'active-neural' : ''}"><AlignRightIcon size={12}/></button>
-             <button onclick={() => { editor?.chain().focus().setTextAlign('justify').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignJustify ? 'active-neural' : ''}"><AlignJustifyIcon size={12}/></button>
-           </div>
-        </div>
-
-        <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-           <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Extra Formatting</span>
-           <div class="flex gap-1.5">
-             <button onclick={() => { editor?.chain().focus().toggleStrike().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.strike ? 'active-neural' : ''}"><StrikethroughIcon size={12}/></button>
-           </div>
-        </div>
-
-        <!-- Hidden Groups depending on width -->
-        {#if isCompact}
-           <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-             <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Formatting</span>
-             <div class="flex gap-1">
-               <button onclick={() => { editor?.chain().focus().toggleBold().run(); }} class="tb-btn !h-8 !w-8 {active.bold ? 'active-neural' : ''}"><BoldIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().toggleItalic().run(); }} class="tb-btn !h-8 !w-8 {active.italic ? 'active-neural' : ''}"><ItalicIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().toggleUnderline().run(); }} class="tb-btn !h-8 !w-8 {active.underline ? 'active-neural' : ''}"><UnderlineIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().toggleStrike().run(); }} class="tb-btn !h-8 !w-8 {active.strike ? 'active-neural' : ''}"><StrikethroughIcon size={12}/></button>
-             </div>
-           </div>
-        {/if}
-
-        {#if isSuperCompact}
-          <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-             <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Media & Views</span>
-             <div class="flex items-center justify-between">
-                <div class="flex gap-1">
-                  <button onclick={onOpenImage} class="tb-btn !h-8 !w-8"><ImageIcon size={12}/></button>
-                  <button onclick={onOpenLink} class="tb-btn !h-8 !w-8"><Link2Icon size={12}/></button>
-                </div>
-                <div class="w-px h-6 bg-white/10 mx-2"></div>
-                <button onclick={onToggleFullScreen} class="tb-btn !h-8 !w-8 {fullScreen ? 'text-amber-500' : ''}"><SparklesIcon size={12}/></button>
-             </div>
-          </div>
-        {/if}
-
-
-        <!-- CNS V85.23: AI Booster & Extra Actions Overflow -->
-        {#if toolbarActions.length > 0}
-          <div class="flex flex-col gap-2 p-2 bg-pink-500/5 rounded-lg border border-pink-500/10">
-             <span class="text-[7px] font-black uppercase tracking-widest text-pink-400/40 px-1 italic">Intelligence Actions</span>
-             <div class="flex flex-wrap gap-2">
-                {#each toolbarActions as action}
-                  <button
-                    onclick={() => { action.onclick(); showMore = false; }}
-                    disabled={action.loading || action.disabled}
-                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all {action.loading ? 'opacity-50' : action.disabled ? 'opacity-30 cursor-not-allowed' : 'bg-pink-500/10 text-pink-400 hover:bg-pink-500 hover:text-white border border-pink-500/20'}"
-                  >
-                    {#if action.loading}<div class="w-2 h-2 border border-white/20 border-t-white rounded-full animate-spin"></div>{/if}
-                    {action.label}
-                  </button>
-                {/each}
-             </div>
-          </div>
-        {/if}
-      </div>
-      <div use:portal class="fixed inset-0" style="z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_OVERLAY}" onclick={() => showMore = false}></div>
-    {/if}
+    <ToolbarMoreMenu
+      bind:showMore
+      {morePopupPos}
+      {editor}
+      {active}
+      {isCompact}
+      {isSuperCompact}
+      {onOpenImage}
+      {onOpenLink}
+      {onToggleFullScreen}
+      {fullScreen}
+      {toolbarActions}
+    />
   </div>
 
   <!-- Flexible Space -->
@@ -397,67 +374,103 @@
         >
           <SparklesIcon size={11} class={showCleanOptions ? '' : 'animate-pulse'} />
           <span class="{isThin ? 'hidden' : 'inline'} text-[9px]">Neural Clean</span>
+          <TrendingUpIcon size={8} class="ml-0.5 opacity-60" />
         </button>
 
-        {#if showCleanOptions}
-          <div 
-               use:portal
-               class="fixed bg-[#0d0d0d] border border-white/10 rounded-xl p-4 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-4 min-w-[220px]"
-               style="top: {cleanPopupPos.top}px; left: {cleanPopupPos.left}px; transform: translateX(-100%); z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_DROPDOWN}"
-          >
-            <div class="flex flex-col gap-1">
-              <span class="text-[10px] font-black uppercase tracking-widest text-orange-500">Neural Clean</span>
-              <span class="text-[8px] text-white/40">Select optimization parameters</span>
-            </div>
-
-            <div class="flex flex-col gap-3 py-2">
-              <label class="flex items-center gap-3 cursor-pointer group">
-                <input type="checkbox" bind:checked={cleanOptions.stripFont} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
-                <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Clear Font Families</span>
-              </label>
-              <label class="flex items-center gap-3 cursor-pointer group">
-                <input type="checkbox" bind:checked={cleanOptions.stripAlign} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
-                <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Reset Text Alignment</span>
-              </label>
-              <label class="flex items-center gap-3 cursor-pointer group">
-                <input type="checkbox" bind:checked={cleanOptions.stripRedundantWrappers} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
-                <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Prune Redundant Tags</span>
-              </label>
-              <label class="flex items-center gap-3 cursor-pointer group">
-                <input type="checkbox" bind:checked={cleanOptions.stripEmpty} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
-                <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Purge Empty Elements</span>
-              </label>
-            </div>
-
-            <button 
-              onclick={() => { onClean?.(cleanOptions); showCleanOptions = false; }}
-              class="w-full py-2 bg-orange-500 text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-orange-400 transition-all active:scale-95 shadow-lg shadow-orange-500/20"
-            >
-              Execute Neural Clean
-            </button>
-          </div>
-          <div use:portal class="fixed inset-0" style="z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_OVERLAY}" onclick={() => showCleanOptions = false}></div>
-        {/if}
+        <NeuralCleanMenu
+          bind:showCleanOptions={showCleanOptions}
+          {cleanPopupPos}
+          bind:cleanOptions={cleanOptions}
+          onClean={async (options) => {
+            if (onClean) {
+              activeIntelAction = 'clean';
+              const rect = cleanButtonRef?.getBoundingClientRect();
+              if (rect) {
+                intelPopoverPos = { 
+                  top: Math.round(rect.bottom + 8), 
+                  left: Math.round(Math.min(rect.left, window.innerWidth - 440))
+                };
+              }
+              await onClean(options);
+              // CNS V85.5: Auto-close HUD after success with a brief delay for user verification
+              setTimeout(() => {
+                if (activeIntelAction === 'clean') activeIntelAction = null;
+              }, 2500);
+            }
+          }}
+        />
       </div>
     {/if}
 
     {#if toolbarActions.length > 0}
-      {#each toolbarActions.slice(0, isCompact ? (isSuperCompact ? 0 : 1) : toolbarActions.length) as action, i}
-        <button
-          onclick={action.disabled ? undefined : action.onclick}
-          disabled={action.loading || action.disabled}
-          class="tb-neural-action {action.loading ? 'loading' : action.disabled ? 'disabled' : 'bg-cyan-500 text-black font-black'} {!isThin && action.label.length > 10 ? 'px-6' : 'px-4'}"
-        >
-          {#if action.loading}
-            <div class="w-2.5 h-2.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-          {/if}
-          <span class="text-[9px] {isThin && toolbarActions.length > 1 ? 'hidden' : 'inline'}">{action.label}</span>
-          {#if isThin && toolbarActions.length > 1}
-             <SparklesIcon size={10} />
-          {/if}
-        </button>
+      {#each toolbarActions.slice(0, isCompact ? (isSuperCompact ? 0 : 1) : toolbarActions.length) as action (action.id)}
+        <div class="relative">
+          <button
+            onclick={(e) => { 
+                e.stopPropagation();
+                console.log("[Neural Intel] Clicked action:", action.id);
+                action.onclick(); 
+                // CNS V85.22: Always ensure it's open on click, don't toggle off
+                activeIntelAction = action.id || null;
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                intelPopoverPos = { 
+                    top: Math.round(rect.bottom + 8), 
+                    left: Math.round(Math.min(rect.left, window.innerWidth - 440))
+                };
+                console.log("[Neural Intel] Popover pos:", intelPopoverPos);
+            }}
+            onmouseenter={(e) => { 
+                if (isAutoClosing) return; // CNS V85.5: Ignore hover during auto-close cooldown
+                const resultKey = action.id === 'ai' ? 'aiReadyResult' : (action.id + 'Result');
+                if (analysisData?.[resultKey] || action.loading) {
+                    console.log("[Neural Intel] Hover active:", action.id);
+                    activeIntelAction = action.id || null;
+                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    intelPopoverPos = { 
+                        top: Math.round(rect.bottom + 8), 
+                        left: Math.round(Math.min(rect.left, window.innerWidth - 440))
+                    };
+                }
+            }}
+            disabled={action.loading || action.disabled}
+            class="tb-neural-action {action.loading ? 'loading' : action.disabled ? 'disabled' : ''} {(action.active || activeIntelAction === action.id) && !action.loading ? 'active-neural scale-105' : ''} {action.isPerfect ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : action.isLocked ? 'border-rose-500/30 bg-rose-500/5 text-rose-400/70' : action.colorClass || 'bg-cyan-500 text-black'} transition-all duration-300"
+          >
+            {#if action.loading}
+              <div class="w-2.5 h-2.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+            {/if}
+            
+            {#if action.icon && !action.loading}
+               <svelte:component this={action.icon} size={11} class={action.isPerfect ? 'animate-pulse' : ''} />
+            {/if}
+
+            <span class="text-[9px] {isThin && toolbarActions.length > 1 ? 'hidden' : 'inline'}">{action.label}</span>
+            <TrendingUpIcon size={8} class="ml-0.5 opacity-60" />
+            
+            {#if action.isPerfect && !action.loading}
+               <div class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,1)]"></div>
+            {:else if action.isLocked && !action.loading}
+               <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lock"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            {/if}
+          </button>
+        </div>
       {/each}
     {/if}
+
+    <IntelligenceHUD
+      bind:activeIntelAction
+      {toolbarActions}
+      {intelPopoverPos}
+      {bulkFixLogs}
+      {copyrightResult}
+      {seoResult}
+      {aiReadyResult}
+      {isCopyrightLoading}
+      {isSeoLoading}
+      {isAiLoading}
+      {isBoosting}
+      {isBulkFixing}
+      {analysisData}
+    />
   </div>
 </div>
 
@@ -490,6 +503,9 @@
 
   .tb-neural-action.loading { @apply bg-white/5 text-white/20 cursor-wait; }
   .tb-neural-action.disabled { @apply opacity-30 grayscale; }
+
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
   .hide-scrollbar::-webkit-scrollbar { display: none; }
   .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

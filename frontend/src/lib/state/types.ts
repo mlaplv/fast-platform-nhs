@@ -156,6 +156,21 @@ export interface ConfirmDialog {
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
+export interface ToolbarAction {
+  id?: string;
+  label: string;
+  icon?: any;
+  onclick: () => void;
+  onmouseenter?: () => void;
+  onmouseleave?: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+  active?: boolean;
+  isPerfect?: boolean;
+  isLocked?: boolean;
+  colorClass?: string;
+}
+
 export interface Toast {
   id: string;
   type: ToastType;

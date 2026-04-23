@@ -3,6 +3,7 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import Newspaper from "lucide-svelte/icons/newspaper";
   import type { Article, BaseWidgetProps } from "$lib/types";
+  import type { AnalysisCache, CampaignMetrics } from "$lib/state/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient, ApiError } from "$lib/utils/apiClient";
@@ -41,6 +42,9 @@
   let formSeoOgImage = $state<string | null>(null);
   let formFeaturedImage = $state<string | null>(null);
   let formFaqs = $state<{ question: string; answer: string }[]>([]);
+  // CNS V86.5: Neural Analysis cache/metrics — đồng nhất với ProductForm & DraftStep
+  let formAnalysisCache = $state<AnalysisCache>({});
+  let formAnalysisMetrics = $state<CampaignMetrics>({});
   let showDraftForm = $state(false);
   let isHeaderCollapsed = $state(false);
 
@@ -159,6 +163,8 @@
     formSeoDescription = ""; formSeoKeywords = ""; formSeoOgImage = null; formFeaturedImage = null;
     formFaqs = [];
     formStatus = "DRAFT";
+    formAnalysisCache = {};
+    formAnalysisMetrics = {};
     showDraftForm = true;
   }
 
@@ -176,7 +182,11 @@
       formSeoKeywords = fullArticle.seoKeywords || "";
       formSeoOgImage = fullArticle.seoOgImage || null;
       formFeaturedImage = fullArticle.featuredImage || null;
-      formFaqs = (fullArticle as any).metadata?.faqs || [];
+      const meta = (fullArticle as any).metadata || {};
+      formFaqs = meta.faqs || [];
+      // CNS V86.5: Hydrate analysis cache để khôi phục highlights sau F5
+      formAnalysisCache = meta.analysis_cache || {};
+      formAnalysisMetrics = meta.analysis_metrics || {};
       formStatus = fullArticle.status;
       showDraftForm = true;
     } catch {
@@ -203,7 +213,12 @@
         seo_keywords: formSeoKeywords,
         seo_og_image: formSeoOgImage,
         featured_image: formFeaturedImage,
-        metadata: { faqs: formFaqs },
+        // CNS V86.5: Persist analysis cache để highlights không bị mất sau F5
+        metadata: { 
+          faqs: formFaqs,
+          analysis_cache: formAnalysisCache,
+          analysis_metrics: formAnalysisMetrics
+        },
       };
 
       if (editingId) {
@@ -318,6 +333,8 @@
   bind:formSeoOgImage
   bind:formFeaturedImage
   bind:formFaqs
+  bind:formAnalysisCache
+  bind:formAnalysisMetrics
   onSave={saveArticle}
   onClose={() => (showDraftForm = false)}
   {generateSlug}

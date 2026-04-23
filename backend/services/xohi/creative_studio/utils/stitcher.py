@@ -52,27 +52,34 @@ def surgical_stitch(content: str, old_text: str, new_text: str, label: str = "St
     s = difflib.SequenceMatcher(None, norm_old, window)
     match = s.find_longest_match(0, len(norm_old), 0, len(window))
     
-    # R2026.5: If we found a substantial shared block (>50% of old_text), we proceed
-    if match.size > len(norm_old) * 0.5:
+    # R2026.5: If we found a substantial shared block (>45% of old_text), we proceed
+    # We lowered the threshold slightly to catch more manual edits.
+    if match.size > len(norm_old) * 0.45:
         # Infer the start/end of the full snippet in the window
-        # This is an approximation: we find the range that surrounds the matched block
-        # and has similar character count
+        # We calculate the relative position to expand the window correctly
         w_match_start = match.b
         w_match_end = match.b + match.size
         
-        # Expand backwards/forwards to cover the full expected length of old_text
-        # adjusting for the position of the match within old_text
         offset_start = match.a
         offset_end = len(norm_old) - (match.a + match.size)
         
-        final_start = max(0, w_match_start - int(offset_start * 1.5))
-        final_end = min(len(window), w_match_end + int(offset_end * 1.5))
+        # Elite V2.7: Dynamic Expansion. We use 1.6x multiplier for better coverage 
+        # of structural changes (like extra spaces/tags)
+        final_start = max(0, w_match_start - int(offset_start * 1.6))
+        final_end = min(len(window), w_match_end + int(offset_end * 1.6))
         
         # Verify the candidate block in raw content
         candidate = window[final_start:final_end]
-        if len(_strip(candidate)) > len(norm_old) * 0.4:
+        if len(_strip(candidate)) > len(norm_old) * 0.35:
             logger.info(f"[{label}] Neural fuzzy match successful (Score: {match.size}/{len(norm_old)}).")
             return content[:search_start + final_start] + new_text + content[search_start + final_end:]
+
+    # [PHASE 3] Extreme Anchor Recovery (Last resort)
+    # If we have a very strong anchor but the rest is messed up
+    if anchor and len(anchor) > 10 and anchor in content:
+        # If the anchor is unique enough, we might try to replace the paragraph it belongs to
+        # But for now, we just log and fail safely to avoid data corruption.
+        pass
 
     logger.warning(f"[{label}] Surgical match failed: Snippet not found even with Neural Fuzzy Logic.")
     return content

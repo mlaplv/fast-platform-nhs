@@ -6,15 +6,17 @@
   import type { EditorAnnotation, ToolbarAction } from '$lib/types';
 
   import Toolbar from './ui/Toolbar.svelte';
-  import MediaVaultModal from "../../../media/MediaVaultModal.svelte";
-  import LinkDialog from './ui/LinkDialog.svelte';
+  import EditorOverlays from './parts/EditorOverlays.svelte';
   import StatusBar from './ui/StatusBar.svelte';
-  import AnnotationTooltip from './ui/AnnotationTooltip.svelte';
-  import LinkBubbleMenu from './ui/LinkBubbleMenu.svelte';
-  import ImageBubbleMenu from './ui/ImageBubbleMenu.svelte';
   import type { MediaAsset } from '$lib/state/types';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { xohiActions, type CleanOptions } from '$lib/state/xohiActions';
+  import type { CopyrightResult, SEOResult, AIInspectResult } from '$lib/state/types';
+  import { tokenize, jaccard, normalizeHTML, stripMarks, generateStableId } from './utils/editorUtils';
+  import { portal } from '$lib/core/actions/portal';
+  import { createAnnotationManager } from './parts/AnnotationManager.svelte.ts';
+  import { createEditorHandlers } from './parts/EditorHandlers.svelte.ts';
+  import './TiptapEditor.css';
 
   let {
     content = $bindable(),
@@ -34,6 +36,16 @@
     flex = false,
     onClean = null,
     syncAssetsMode = 'append',
+    analysisData = null,
+    copyrightResult = null,
+    seoResult = null,
+    aiReadyResult = null,
+    isCopyrightLoading = false,
+    isSeoLoading = false,
+    isAiLoading = false,
+    isBoosting = false,
+    isBulkFixing = false,
+    bulkFixLogs = [],
   }: {
     content?: string;
     onChange?: (val: string) => void;
@@ -52,6 +64,16 @@
     flex?: boolean;
     onClean?: (() => Promise<string | null>) | null;
     syncAssetsMode?: 'strict' | 'append';
+    analysisData?: any;
+    copyrightResult?: CopyrightResult | null;
+    seoResult?: SEOResult | null;
+    aiReadyResult?: AIInspectResult | null;
+    isCopyrightLoading?: boolean;
+    isSeoLoading?: boolean;
+    isAiLoading?: boolean;
+    isBoosting?: boolean;
+    isBulkFixing?: boolean;
+    bulkFixLogs?: string[];
   } = $props();
 
   let internalFullScreen = $state<boolean>(fullScreen);
@@ -87,21 +109,11 @@
     if (!showMediaVault) lastDialogCloseAt = Date.now();
   });
 
-  // Tooltip tracking
-  let tooltipVisible = $state(false);
-  let tooltipText = $state('');
-  let tooltipSnippet = $state('');
-  let tooltipType = $state('');
-  let tooltipId = $state('');
-  let tooltipFrom = $state(0);
-  let tooltipTo = $state(0);
-  let tooltipX = $state(0);
-  let tooltipY = $state(0);
-  let isFixing = $state(false);
-  let tooltipHideTimeout: ReturnType<typeof setTimeout> | null = null;
-  let isHoveringTooltip = $state(false);
+  const annManager = createAnnotationManager({
+    onfix,
+    getEditor: () => editor
+  });
   let isInternalUpdating = $state(false);
-  let cleanStatus = $state<'idle' | 'cleaning' | 'done'>('idle');
 
   // Image Menu tracking
   let imageMenuVisible = $state(false);
@@ -111,61 +123,44 @@
   let linkMenuX = $state(0);
   let linkMenuY = $state(0);
   let blockClicks = $state(false);
+
+  const handlers = createEditorHandlers({
+    get editor() { return editor; },
+    get showMediaVault() { return showMediaVault; },
+    set showMediaVault(v) { showMediaVault = v; },
+    get imageMenuVisible() { return imageMenuVisible; },
+    set imageMenuVisible(v) { imageMenuVisible = v; },
+    get imageMenuX() { return imageMenuX; },
+    set imageMenuX(v) { imageMenuX = v; },
+    get imageMenuY() { return imageMenuY; },
+    set imageMenuY(v) { imageMenuY = v; },
+    onblur
+  });
   let lastInternalActionAt = 0;
   let isSyncLocked = $state(false);
 
-  const tokenize = (text: string): Set<string> => {
-    const normalized = text.toLowerCase().normalize('NFC');
-    return new Set(normalized
-      .replace(/\d+/g, '')
-      .replace(/[^\w\s\u00C0-\u024F\u1E00-\u1EFF]/g, ' ')
-      .split(/\s+/)
-      .filter(w => w.length >= 2));
-  };
 
-  const jaccard = (a: Set<string>, b: Set<string>): number => {
-    if (a.size === 0 && b.size === 0) return 1;
-    if (a.size === 0 || b.size === 0) return 0;
-    let intersect = 0;
-    a.forEach(w => { if (b.has(w)) intersect++; });
-    return intersect / (a.size + b.size - intersect);
-  };
+
+
 
   // CNS V2.2: Deterministic HTML Normalization for Cross-Browser Comparison
-  const normalizeHTML = (html: string, stripMarksFn: (h: string) => string) => {
-    if (typeof document === 'undefined') return html.trim();
-    const div = document.createElement('div');
+
     
     // CNS V2.2: Strip temporary marks for comparison to prevent sync loops
-    const clean = stripMarksFn(html)
-        .replace(/&nbsp;/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
 
-    div.innerHTML = clean;
 
-    const prune = (node: Node) => {
-        for (let i = node.childNodes.length - 1; i >= 0; i--) {
-            const child = node.childNodes[i];
-            if (child.nodeType === 1) {
-                prune(child);
-                const el = child as HTMLElement;
-                const isContainer = ['P', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'STRONG', 'B', 'EM', 'I', 'SPAN'].includes(el.tagName);
-                const isEmpty = el.innerHTML.replace(/&nbsp;/g, '').replace(/\s+/g, '').trim() === '' || el.innerHTML === '<br>';
-                if (isContainer && isEmpty) el.remove();
-            }
-        }
-    };
-    prune(div);
-    return div.innerHTML.replace(/>\s+</g, '><');
-  };
+
+
+
+
+
 
   async function handleClean(options: CleanOptions = { stripFont: true, stripAlign: true, stripRedundantWrappers: true, stripEmpty: true }) {
     if (!editor || editor.isDestroyed) {
       console.warn('[Clean] Editor not ready');
       return;
     }
-    cleanStatus = 'cleaning';
+    isInternalUpdating = true;
 
     try {
       const html = editor.getHTML();
@@ -196,22 +191,11 @@
       }
     } catch (err) {
       console.error('[Clean] Viral Clean Failed:', err);
-    } finally {
-      cleanStatus = 'done';
-      setTimeout(() => cleanStatus = 'idle', 2000);
+      isInternalUpdating = false;
     }
   }
 
-  const stripMarks = (html: string): string => html.replace(/<mark[^>]*>|<\/mark>/g, '');
 
-  const generateStableId = (text: string, message: string): string => {
-    let hash = 5381;
-    const str = text + message;
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash * 33) ^ str.charCodeAt(i);
-    }
-    return (hash >>> 0).toString(36);
-  };
   
   const containerClass = $derived(`tiptap-shell flex flex-col w-full ${
     internalFullScreen
@@ -261,16 +245,16 @@
     updateMetrics();
 
     // Cerberus 2026: Attach visual-overlay events to window for portal-safe tracking
-    window.addEventListener('annotation-hover', handleAnnotationHover);
-    window.addEventListener('annotation-leave', handleAnnotationLeave);
+    window.addEventListener('annotation-hover', annManager.handleAnnotationHover);
+    window.addEventListener('annotation-leave', annManager.handleAnnotationLeave);
   });
 
   onDestroy(() => {
     if (editor) editor.destroy();
     if (metricsTimer) clearTimeout(metricsTimer);
     if (imageScanTimer) clearTimeout(imageScanTimer);
-    window.removeEventListener('annotation-hover', handleAnnotationHover);
-    window.removeEventListener('annotation-leave', handleAnnotationLeave);
+    window.removeEventListener('annotation-hover', annManager.handleAnnotationHover);
+    window.removeEventListener('annotation-leave', annManager.handleAnnotationLeave);
   });
 
   $effect(() => {
@@ -354,14 +338,11 @@
   });
 
   // Cerberus NEURAL XOHI: Sustainable Highlighting Sync
-  let lastAnnotationsJson = $state("");
   $effect(() => {
     if (!editor || editor.isDestroyed) return;
     
-    // CNS V2.2: Deep Equality Guard to prevent infinite loops from re-calculated prop references
-    const json = JSON.stringify(annotations || []);
-    if (json === lastAnnotationsJson) return;
-    lastAnnotationsJson = json;
+    // Read annotations to establish reactive dependency
+    const currentAnnotations = annotations || [];
     
     // CNS V2.2: Explicitly block onUpdate during meta-transactions
     untrack(() => {
@@ -380,151 +361,19 @@
     });
   });
 
-  function handleAnnotationHover(e: Event) {
-    if (isFixing) return;
-    if (tooltipHideTimeout) {
-      clearTimeout(tooltipHideTimeout);
-      tooltipHideTimeout = null;
-    }
-    const customEvent = e as CustomEvent;
-    const data = customEvent.detail;
-    if (!data || !data.id) return;
 
-    tooltipX = data.x;
-    tooltipY = data.y - 10; // Rule NEURAL XOHI: Small offset to avoid blocking initial hover
-    tooltipText = data.message;
-    tooltipType = data.type;
-    tooltipId = data.id;
-    tooltipSnippet = data.text;
-    tooltipFrom = data.from;
-    tooltipTo = data.to;
-    tooltipVisible = true;
-  }
 
-  function handleAnnotationLeave() {
-    if (isFixing || isHoveringTooltip) return;
-    
-    // Rule NEURAL XOHI: Substantial delay (600ms) to allow travel to tooltip
-    if (tooltipHideTimeout) clearTimeout(tooltipHideTimeout);
-    tooltipHideTimeout = setTimeout(() => {
-      if (!isHoveringTooltip && !isFixing) {
-        tooltipVisible = false;
-      }
-    }, 600);
-  }
 
-  function handleTooltipEnter() {
-    isHoveringTooltip = true;
-    if (tooltipHideTimeout) {
-      clearTimeout(tooltipHideTimeout);
-      tooltipHideTimeout = null;
-    }
-  }
 
-  function handleTooltipLeave() {
-    isHoveringTooltip = false;
-    handleAnnotationLeave();
-  }
 
-  // Rule R82.48: Viewport Reliability — Portal for stacking context bypass
-  function portal(node: HTMLElement) {
-    document.body.appendChild(node);
-    return {
-      destroy() {
-        if (node.parentNode) node.parentNode.removeChild(node);
-      }
-    };
-  }
 
-  async function handleFix() {
-    if (!onfix || isFixing || !tooltipSnippet) return;
-    isFixing = true;
-    try {
-      const newText = await onfix(tooltipSnippet, tooltipType, tooltipText);
-      if (newText && editor) {
-        // Use the precise positions from the decoration hover
-        const { state, view } = editor;
-        const tr = state.tr.insertText(newText, tooltipFrom, tooltipTo);
-        view.dispatch(tr);
-        tooltipType = 'fixed';
-      }
-    } finally {
-      isFixing = false;
-      setTimeout(() => { if (!isFixing) tooltipVisible = false; }, 1500);
-    }
-  }
 
-  function handleFocusOut(e: FocusEvent) {
-    if (!onblur) return;
-    const ct = e.currentTarget;
-    const rt = e.relatedTarget;
-    if (!rt || !(ct instanceof Node) || !ct.contains(rt as Node)) {
-      onblur();
-    }
-  }
-
-  function handleImageClick(e: MouseEvent | KeyboardEvent) {
-    const target = e.target as HTMLElement;
-    let img = target.closest('.tiptap-content img') as HTMLImageElement | null;
-    // Also handle clicks on figcaption
-    if (!img && target.closest('figcaption')) {
-      img = target.closest('figure')?.querySelector('img') as HTMLImageElement | null;
-    }
-    if (img && editor) {
-      editor.commands.focus();
-      const pos = editor.view.posAtDOM(img, 0);
-      if (pos >= 0) {
-        const rect = img.getBoundingClientRect();
-        imageMenuX = rect.left + rect.width / 2;
-        imageMenuY = rect.top - 10;
-        imageMenuVisible = true;
-        editor.commands.setNodeSelection(pos);
-      }
-    } else if (!target.closest('.image-bubble-menu')) {
-      imageMenuVisible = false;
-    }
-
-    // Handle link clicks/selection
-    const link = target.closest('.tiptap-content a') as HTMLAnchorElement | null;
-    if (link && editor) {
-      editor.commands.focus();
-      const pos = editor.view.posAtDOM(link, 0);
-      if (pos >= 0) {
-        const rect = link.getBoundingClientRect();
-        linkMenuX = rect.left + rect.width / 2;
-        linkMenuY = rect.top - 10;
-        linkMenuVisible = true;
-        // Also update data for potential edit
-        const attrs = editor.getAttributes('link');
-        currentLinkData = { 
-          url: attrs.href || '', 
-          title: attrs.title || '', 
-          target: attrs.target || null, 
-          rel: attrs.rel || null 
-        };
-      }
-    } else if (!target.closest('.link-bubble-menu')) {
-      linkMenuVisible = false;
-    }
-  }
-
-  function handleDoubleClick(e: MouseEvent) {
-    if (blockClicks) return;
-    if (Date.now() - lastInternalActionAt < 800) return;
-    if (Date.now() - lastDialogCloseAt < 500) return; // Prevent double-click bleed-through
-    const target = e.target as HTMLElement;
-    const img = target.closest('.tiptap-content img') as HTMLImageElement | null;
-    if (img && editor) {
-      showMediaVault = true;
-      imageMenuVisible = false;
-    }
-  }
 
 </script>
 
 <div 
   class={containerClass}
-  onfocusout={handleFocusOut}
+  onfocusout={handlers.handleFocusOut}
 >
   {#if editable}
     <Toolbar
@@ -544,9 +393,19 @@
       }}
       onClearHighlights={() => editor?.commands.clearAllAnnotations()}
       onClean={onClean || handleClean}
-      bind:showSource
+      bind:showSource={showSource}
       fullScreen={internalFullScreen}
       onToggleFullScreen={toggleFullScreen}
+      analysisData={analysisData}
+      copyrightResult={copyrightResult}
+      seoResult={seoResult}
+      aiReadyResult={aiReadyResult}
+      isCopyrightLoading={isCopyrightLoading}
+      isSeoLoading={isSeoLoading}
+      isAiLoading={isAiLoading}
+      isBoosting={isBoosting}
+      isBulkFixing={isBulkFixing}
+      bulkFixLogs={bulkFixLogs}
     />
   {/if}
 
@@ -554,10 +413,10 @@
     class="w-full flex flex-col overflow-y-auto document-scroll {internalFullScreen ? 'bg-[#0a0d14] flex-1 min-h-0' : (flex ? 'bg-transparent flex-1 min-h-0' : 'bg-transparent max-h-[650px]')}"
     onclick={(e) => { 
       if (e.target === e.currentTarget) editor?.commands.focus();
-      handleImageClick(e); 
+      handlers.handleImageClick(e); 
     }}
-    ondblclick={handleDoubleClick}
-    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleImageClick(e); }}
+    ondblclick={handlers.handleDoubleClick}
+    onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlers.handleImageClick(e); }}
     role="button"
     tabindex="0"
   >
@@ -590,226 +449,35 @@
   {/if}
 </div>
 
-  <div use:portal>
-    <MediaVaultModal
-      isOpen={showMediaVault}
-      onClose={() => showMediaVault = false}
-      {campaignId}
-      bind:assets
-      bind:selectedAvatarUrl
-      bind:selectedAssetIndex
-      onSelect={(url) => {
-        if (editor) {
-          blockClicks = true;
-          imageMenuVisible = false;
-          const safeUrl = resolveMediaUrl(url);
-          
-          // V22: Robust Insertion
-          isSyncLocked = true;
-          
-          // Defer focus to avoid click-through when portal unmounts
-          setTimeout(() => {
-            if (!editor || editor.isDestroyed) { isSyncLocked = false; return; }
-            
-            if (editor.isActive('image')) {
-              editor.chain().focus().updateAttributes('image', { src: safeUrl }).run();
-            } else {
-              editor.chain().focus().setImage({ src: safeUrl }).run();
-            }
-            
-            // Final sync
-            const cleaned = stripMarks(editor.getHTML());
-            content = cleaned;
-            onChange(cleaned);
-            
-            setTimeout(() => { 
-              blockClicks = false; 
-              isSyncLocked = false;
-            }, 300);
-          }, 50);
-        }
-      }}
-    />
-  </div>
+  <EditorOverlays
+    {editor}
+    {editable}
+    bind:showMediaVault={showMediaVault}
+    bind:showLinkDialog={showLinkDialog}
+    {campaignId}
+    bind:assets={assets}
+    bind:selectedAvatarUrl={selectedAvatarUrl}
+    bind:selectedAssetIndex={selectedAssetIndex}
+    bind:blockClicks={blockClicks}
+    bind:imageMenuVisible={imageMenuVisible}
+    bind:linkMenuVisible={linkMenuVisible}
+    bind:isSyncLocked={isSyncLocked}
+    bind:content={content}
+    {onChange}
+    {currentLinkData}
+    bind:tooltipVisible={annManager.state.tooltipVisible}
+    tooltipX={annManager.state.tooltipX}
+    tooltipY={annManager.state.tooltipY}
+    tooltipType={annManager.state.tooltipType}
+    tooltipText={annManager.state.tooltipText}
+    isFixing={annManager.state.isFixing}
+    handleFix={annManager.handleFix}
+    handleTooltipEnter={annManager.handleTooltipEnter}
+    handleTooltipLeave={annManager.handleTooltipLeave}
+    {linkMenuX}
+    {linkMenuY}
+    {imageMenuX}
+    {imageMenuY}
+  />
 
-  <div use:portal>
-    <LinkDialog 
-      bind:show={showLinkDialog} 
-      currentData={currentLinkData} 
-      onApply={(data) => {
-        if (data.url && editor) {
-          editor.chain().focus().setLink({ 
-            href: data.url, 
-            title: data.title, 
-            target: data.target || undefined, 
-            rel: data.rel || undefined 
-          }).run();
-        } else if (editor) {
-          editor.chain().focus().unsetLink().run();
-        }
-      }} 
-    />
-  </div>
-  <div use:portal>
-    <AnnotationTooltip 
-      bind:visible={tooltipVisible} 
-      x={tooltipX} 
-      y={tooltipY} 
-      type={tooltipType} 
-      text={tooltipText} 
-      {isFixing} 
-      onFix={handleFix} 
-      onMouseEnter={handleTooltipEnter}
-      onMouseLeave={handleTooltipLeave}
-    />
-  </div>
 
-  {#if linkMenuVisible && editor && !blockClicks}
-    <div
-      use:portal
-      class="fixed z-[var(--z-admin-tiptap-link-bubble)] pointer-events-auto link-bubble-menu"
-      style="left: {linkMenuX}px; top: {linkMenuY}px; transform: translate(-50%, -100%);"
-      role="tooltip"
-    >
-      <LinkBubbleMenu
-        {editor}
-        onEdit={() => { showLinkDialog = true; linkMenuVisible = false; }}
-        onClose={() => linkMenuVisible = false}
-      />
-    </div>
-  {/if}
-
-  {#if editor && editable && imageMenuVisible && !blockClicks && !showMediaVault && !showLinkDialog}
-  <div
-    use:portal
-    class="fixed z-[var(--z-admin-tiptap-bubble-menu)] -translate-x-1/2 -translate-y-full pointer-events-auto transition-all duration-75 ease-out image-bubble-menu"
-    style="left: {imageMenuX}px; top: {imageMenuY}px;"
-  >
-    <ImageBubbleMenu
-      {editor}
-      onReplace={() => {
-        if (!blockClicks) showMediaVault = true;
-      }}
-      onClose={() => imageMenuVisible = false}
-    />
-  </div>
-  {/if}
-
-<style>
-  @reference "tailwindcss";
-  
-  .document-scroll::-webkit-scrollbar {
-    width: 4px;
-  }
-  .document-scroll::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .document-scroll::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    transition: background 0.3s;
-  }
-  .document-scroll:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-  }
-  
-  :global(.tiptap-content) { @apply outline-none text-white/90 leading-relaxed; }
-  :global(.tiptap-content p) { @apply my-2; }
-  :global(.tiptap-content.prose) {
-    --tw-prose-links: #00f3ff;
-    --tw-prose-invert-links: #00f3ff;
-  }
-  :global(.tiptap-content h1) { @apply text-3xl font-black mb-4 text-white; }
-  :global(.tiptap-content h2) { @apply text-2xl font-bold mb-2 mt-4 text-white/80; }
-  :global(.tiptap-content h3) { @apply text-xl font-bold mb-1 mt-3 text-white/70; }
-  :global(.tiptap-content img) { @apply rounded-lg my-2 mx-auto cursor-pointer border-2 border-transparent transition-all duration-200; }
-  :global(.tiptap-content img.ProseMirror-selectednode) { @apply border-blue-500/50 shadow-lg shadow-blue-500/10; }
-
-  /* Figure / Caption */
-  :global(.tiptap-content figure.image-figure) {
-    @apply my-6 mx-auto text-center;
-  }
-  :global(.tiptap-content figure.image-figure img) {
-    @apply my-0;
-  }
-  :global(.tiptap-content figure.image-figure figcaption) {
-    @apply text-xs text-white/40 mt-2 italic font-light tracking-wide;
-  }
-
-  /* Premium Highlighting (Neural Studio) */
-  :global(.xohi-annotation) {
-    @apply cursor-help transition-all duration-300 border-b-2;
-    padding: 1px 0;
-  }
-  
-  :global(.xohi-annotation.severity-low) {
-    @apply bg-emerald-500/10 border-emerald-500/30 text-emerald-200/90;
-  }
-  :global(.xohi-annotation.severity-low:hover) {
-    @apply bg-emerald-500/20 border-emerald-500/50;
-  }
-
-  :global(.xohi-annotation.severity-medium) {
-    @apply bg-amber-500/15 border-amber-400/40 text-amber-100/90;
-  }
-  :global(.xohi-annotation.severity-medium:hover) {
-    @apply bg-amber-500/25 border-amber-400/60;
-  }
-
-  :global(.xohi-annotation.severity-high) {
-    @apply bg-red-500/20 border-red-500/50 text-red-100/90;
-    animation: annotation-pulse 2s infinite ease-in-out;
-  }
-  :global(.xohi-annotation.severity-high:hover) {
-    @apply bg-red-500/30 border-red-500/70;
-  }
-
-  :global(.xohi-annotation.type-fixed) {
-    @apply bg-transparent border-transparent text-white/90 cursor-default;
-    border-bottom: 2px dashed rgba(16, 185, 129, 0.4);
-    text-decoration: none;
-    animation: none;
-  }
-
-  /* Fixed-area: AI-repaired segment — professional emerald pulse × 3, then static */
-  :global(.xohi-annotation.type-fixed-area) {
-    background: rgba(16, 185, 129, 0.10);
-    border-bottom: 2px solid rgba(16, 185, 129, 0.55);
-    color: rgba(167, 243, 208, 0.95);
-    cursor: help;
-    animation: fixed-area-pulse 1.4s ease-in-out 3;
-  }
-  :global(.xohi-annotation.type-fixed-area:hover) {
-    background: rgba(16, 185, 129, 0.20);
-    border-bottom-color: rgba(52, 211, 153, 0.8);
-  }
-  @keyframes fixed-area-pulse {
-    0%   { background: rgba(16, 185, 129, 0.10); box-shadow: none; }
-    50%  { background: rgba(16, 185, 129, 0.30); box-shadow: 0 0 8px rgba(16, 185, 129, 0.35); }
-    100% { background: rgba(16, 185, 129, 0.10); box-shadow: none; }
-  }
-  
-  /* Enrich: AI Booster™ segment — liquid magenta glass */
-  :global(.xohi-annotation.type-enrich) {
-    background: rgba(236, 72, 153, 0.10);
-    border-bottom: 2px solid rgba(236, 72, 153, 0.5);
-    color: rgba(254, 215, 226, 0.95);
-    cursor: help;
-    animation: enrich-pulse 1.8s ease-in-out infinite;
-  }
-  :global(.xohi-annotation.type-enrich:hover) {
-    background: rgba(236, 72, 153, 0.20);
-    border-bottom-color: rgba(244, 114, 182, 0.8);
-  }
-  @keyframes enrich-pulse {
-    0%   { background: rgba(236, 72, 153, 0.10); box-shadow: none; }
-    50%  { background: rgba(236, 72, 153, 0.25); box-shadow: 0 0 12px rgba(236, 72, 153, 0.3); }
-    100% { background: rgba(236, 72, 153, 0.10); box-shadow: none; }
-  }
-
-  @keyframes annotation-pulse {
-    0% { background-color: rgba(239, 68, 68, 0.15); }
-    50% { background-color: rgba(239, 68, 68, 0.3); }
-    100% { background-color: rgba(239, 68, 68, 0.15); }
-  }
-</style>

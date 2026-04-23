@@ -50,7 +50,7 @@
   const isLoading = $derived((activeTab === 'copyright' && isCopyrightLoading) || (activeTab === 'seo' && isSeoLoading) || (activeTab === 'ai' && isAiLoading) || (activeTab === 'enrich' && isBoosting));
 </script>
 
-<div class="shrink-0 flex flex-col gap-2">
+<div class="shrink-0 flex flex-col">
   {#if isLoading}
     <AnalysisLoading tab={activeTab} phaseIndex={phaseCtrl.phaseIndex} phaseProgress={phaseCtrl.phaseProgress} />
   {:else if activeTab === 'copyright'}
@@ -61,13 +61,13 @@
     {/if}
   {:else if activeTab === 'seo'}
     {#if seoResult}
-      <AnalysisResultSEO {seoResult} {runSeoAnalysis} />
+      <AnalysisResultSEO {seoResult} {runSeoAnalysis} {isFixing} handleInternalFix={onfix ? handleInternalFix : null} />
     {:else}
       <div class="px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30">Nhấn <span class="text-blue-400/70 font-bold">SEO</span> để chấm điểm 7 tín hiệu SEO.</div>
     {/if}
   {:else if activeTab === 'ai'}
     {#if aiReadyResult}
-      <AnalysisResultAI {aiReadyResult} {runAiAnalysis} />
+      <AnalysisResultAI {aiReadyResult} {runAiAnalysis} {isFixing} handleInternalFix={onfix ? handleInternalFix : null} />
     {:else}
       <div class="px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30">Nhấn <span class="text-purple-400/70 font-bold">AI MOD</span> để kiểm tra Viral Edge Score.</div>
     {/if}

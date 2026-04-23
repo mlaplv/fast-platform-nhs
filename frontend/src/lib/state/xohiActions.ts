@@ -107,6 +107,18 @@ export const xohiActions = {
         return res?.status === 'success' ? res.data?.new_text : null;
     },
 
+    // CNS V86.5: Ad-hoc auto-fix — không cần campaign_id (dùng cho ProductForm/NewsForm)
+    async runAdHocAutoFix(content: string, targetSnippet: string, annotationType: string, errorMessage: string, topic?: string) {
+        const res = await apiClient.post<GenericResponse<{ new_text: string }>>(`/api/v1/content/analyze/auto-fix`, {
+            content,
+            target_snippet: targetSnippet,
+            annotation_type: annotationType,
+            error_message: errorMessage,
+            topic: topic ?? '',
+        });
+        return res?.status === 'success' ? res.data?.new_text : null;
+    },
+
     async runBulkFix(cid: string | null, isAdhoc: boolean, payload: { category: string, annotations: AnalysisAnnotation[], content?: string, topic?: string }) {
         const url = isAdhoc ? `/api/v1/content/analyze/bulk-fix` : `/api/v1/content/campaigns/${cid}/analyze/bulk-fix`;
         const res = await apiClient.post<GenericResponse<{ new_content: string, logs?: string[], replacements: BulkFixReplacement[] }>>(url, payload);

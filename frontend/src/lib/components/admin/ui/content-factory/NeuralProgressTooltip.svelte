@@ -46,7 +46,7 @@
   <!-- CNS V85.25: use:portal teleports HUD to <body> to escape ALL parent stacking/containing block contexts -->
   <div use:portal class="pointer-events-none">
     <div 
-      class="fixed bottom-24 right-8 w-80 md:w-96 flex flex-col pointer-events-auto"
+      class="fixed top-24 right-8 w-80 md:w-96 flex flex-col pointer-events-auto"
       style="z-index: {Z_INDEX_ADMIN.NEURAL_HUD}"
       in:fly={{ y: 20, duration: 800, opacity: 0 }}
       out:fade={{ duration: 300 }}

@@ -525,13 +525,21 @@ export interface EditorAnnotation {
 }
 
 export interface ToolbarAction {
+  id?: string;             // Identification for intelligence mapping
   label: string;
+  icon?: import('svelte').Component;
   loading?: boolean;
   disabled?: boolean;       // Gate lock — nút bị khoá
+  active?: boolean;         // Trạng thái đang hoạt động
+  isPerfect?: boolean;      // Golden Criteria met
+  isLocked?: boolean;       // Security lock active
+  colorClass?: string;      // Premium styling class
   lockedMsg?: string;       // Tooltip hiển thị khi bị khoá
   onclick: () => void | Promise<void>;
+  onmouseenter?: () => void; // Intelligence triggers
+  onmouseleave?: () => void;
   tooltipDetails?: {        // Tooltip chuyên nghiệp
-    icon?: import('svelte').Component;             // lucide-svelte icon component
+    icon?: import('svelte').Component;
     title: string;
     description: string;
     colorClass?: string;    // e.g. text-pink-400
