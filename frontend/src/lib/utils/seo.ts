@@ -278,5 +278,5 @@ export function buildGraphLd(scripts: (string | null | undefined)[]): string {
     return JSON.stringify({
         "@context": "https://schema.org",
         "@graph": graphEntities
-    });
+    }).replace(/</g, '\\u003C');
 }

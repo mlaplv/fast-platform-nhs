@@ -109,7 +109,7 @@
           jitObserver.disconnect();
         }
       });
-    }, { rootMargin: '600px', threshold: 0.01 });
+    }, { rootMargin: '1200px', threshold: 0.01 });
 
     // SESSION COORDINATOR (Elite V2.2 HUD Sync) - FIRE AT CENTER
     const sessionObserver = new IntersectionObserver((entries) => {
@@ -193,10 +193,10 @@
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
-      // Memory-efficient cooling lock to prevent scroll-looping (800ms)
+      // Memory-efficient cooling lock to prevent scroll-looping (450ms for ultra-fast snap)
       setTimeout(() => {
         isWheelLocked = false;
-      }, 800);
+      }, 450);
     }
   };
 

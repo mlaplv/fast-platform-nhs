@@ -17,8 +17,6 @@
   const questions = $derived(metadata?.quiz_questions || []);
 
   const labels = $derived({
-    headline: metadata.diagnostics_headline || 'THIẾT KẾ LỘ TRÌNH TÁI SINH RIÊNG BIỆT',
-    subheadline: metadata.diagnostics_subheadline || 'Hệ thống AI của Micsmo Luxury sẽ phân tích tình trạng da hiện tại để đề xuất phác đồ phục hồi tối ưu nhất cho riêng phái đẹp.',
     disclaimer: metadata.diagnostics_disclaimer || `Micsmo - Gemini là AI và có thể mắc sai sót.`
   });
 </script>

@@ -117,6 +117,8 @@
            <img
              src={resolveMediaUrl(mobileImg || product?.tierVariations?.[0]?.images?.[i] || (product?.images?.length ? product.images[0] : ''))}
              alt="{product?.name} - {opt}"
+             width="390"
+             height="844"
              class="w-full h-full object-cover select-none"
              loading={i === 0 ? "eager" : "lazy"}
              fetchpriority={i === 0 ? "high" : "low"}
@@ -223,6 +225,10 @@
                               <img 
                                  src={resolveMediaUrl((v.attributes.gifts[0] as GiftItem).image || product?.mobileImages?.[0] || product?.images?.[0])} 
                                  alt="Quà tặng" 
+                                 loading="lazy"
+                                 decoding="async"
+                                 width="44"
+                                 height="44"
                                  class="w-full h-full object-cover" 
                               />
                            </div>

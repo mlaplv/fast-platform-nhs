@@ -35,8 +35,20 @@
   const variants: ProductVariant[] = $derived(product?.variants || []);
   const metadata = $derived(product?.metadata || {});
 
-  const foundIndex: number = $derived(variants.findIndex(v => v.id === shopStore.variant?.id));
-  const selectedIndex: number = $derived(foundIndex !== -1 ? foundIndex : (variants.length > 1 ? 1 : 0));
+  // Elite V2.2: Unbreakable UI Index Tracking
+  let userSelectedIndex = $state<number | null>(null);
+
+  const foundIndex: number = $derived(variants.findIndex(v => {
+    if (v.id != null && shopStore.variant?.id != null) return String(v.id) === String(shopStore.variant.id);
+    if (v.sku != null && shopStore.variant?.sku != null) return String(v.sku) === String(shopStore.variant.sku);
+    return v === shopStore.variant;
+  }));
+
+  const selectedIndex: number = $derived(
+    userSelectedIndex !== null 
+      ? userSelectedIndex 
+      : (foundIndex !== -1 ? foundIndex : 0)
+  );
   const selectedVariant: ProductVariant | null = $derived(variants[selectedIndex] ?? variants[0] ?? null);
 
   const h1: string = $derived(
@@ -97,8 +109,8 @@
   const handleSelect = (i: number) => {
     const v = variants[i];
     if (v) {
+      userSelectedIndex = i;
       shopStore.selectVariant(v);
-      shopStore.setQuantity(1);
     }
   };
 
@@ -166,18 +178,16 @@
   <div class="flex-1 flex flex-col z-[var(--z-surface)] overflow-y-auto no-scrollbar pb-10 !px-0 gap-2">
     <!-- 🎛️ VARIANT SELECTOR -->
     <div class="flex flex-col">
-      {#each variants as variant, i}
+      {#each variants as variant, i (variant.id || i)}
          {@const cQty = variant.attributes?.combo_qty || 0}
          {@const vPrice = variant.discountPrice || variant.price}
          {@const isActive = selectedIndex === i}
          
          <button 
            onclick={() => handleSelect(i)}
-           class="relative w-full text-left transition-all duration-500 h-[145px] flex items-center overflow-hidden {isActive ? 'bg-white/[0.08] border-y border-white/20 z-surface z-10 scale-[1.02] shadow-[0_0_40px_rgba(255,183,197,0.1)]' : 'bg-transparent border-y border-white/5 opacity-40 hover:opacity-100'} active:scale-95 transform-gpu"
+           class="relative w-full text-left transition-all duration-500 h-[145px] flex items-center overflow-hidden {isActive ? 'bg-white/[0.08] border-y border-white/20 z-surface z-10 shadow-[0_0_40px_rgba(255,183,197,0.1)]' : 'bg-transparent border-y border-white/5 opacity-40 hover:opacity-100'}"
          >
-            {#if isActive}
-               <div class="absolute inset-0 bg-gradient-to-r from-[#FFB7C5]/15 via-transparent to-[#E8D5B0]/10 pointer-events-none"></div>
-            {/if}
+            <div class="absolute inset-0 bg-gradient-to-r from-[#FFB7C5]/15 via-transparent to-[#E8D5B0]/10 pointer-events-none transition-opacity duration-500 {isActive ? 'opacity-100' : 'opacity-0'}"></div>
             
             <!-- 🖼️ FULL HEIGHT EDGE IMAGE -->
             <div class="w-[125px] h-full shrink-0 relative bg-white/5 overflow-hidden">
@@ -185,16 +195,18 @@
                  <img 
                    src={variantImages[i]} 
                    alt={getVariantTitle(variant)} 
-                   class="w-full h-full object-cover transition-all {isActive ? 'scale-110 brightness-110' : 'grayscale-[40%]'}" 
+                   loading="lazy"
+                   decoding="async"
+                   width="125"
+                   height="145"
+                   class="w-full h-full object-cover transition-all {isActive ? 'brightness-110' : 'grayscale-[40%]'}" 
                  />
                {:else}
                   <div class="w-full h-full flex items-center justify-center">
                      <ShoppingCart class="w-8 h-8 text-white/5" />
                   </div>
                {/if}
-               {#if isActive}
-                  <div class="absolute inset-0 ring-4 ring-inset ring-[#FFB7C5]/20 shadow-[inset_0_0_40px_rgba(255,183,197,0.2)]"></div>
-               {/if}
+               <div class="absolute inset-0 ring-4 ring-inset ring-[#FFB7C5]/20 shadow-[inset_0_0_40px_rgba(255,183,197,0.2)] transition-opacity duration-500 {isActive ? 'opacity-100' : 'opacity-0'}"></div>
             </div>
 
             <div class="flex-1 flex flex-col justify-center px-6 py-4 min-w-0">
@@ -213,13 +225,11 @@
                
                <div class="flex items-end gap-2.5 my-1.5">
                    <div class="flex flex-col">
-                      <span class="font-black text-[23px] italic tracking-tighter leading-none {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{vPrice.toLocaleString()}đ</span>
-                      {#if isActive}
-                         <div class="flex items-center gap-1 mt-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1.5 py-0.5 rounded-full w-fit" in:fade>
-                            <Sparkles class="w-2 h-2 text-[#FFB7C5] animate-pulse" />
-                            <span class="text-[7px] font-black text-[#FFB7C5] uppercase tracking-widest">+{Math.floor(vPrice / 100000)} PTS</span>
-                         </div>
-                      {/if}
+                      <span class="font-black text-[23px] italic tracking-tighter leading-none transition-colors duration-300 {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{vPrice.toLocaleString()}đ</span>
+                      <div class="flex items-center gap-1 mt-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1.5 py-0.5 rounded-full w-fit transition-all duration-300 transform-gpu origin-left {isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}">
+                         <Sparkles class="w-2 h-2 text-[#FFB7C5] {isActive ? 'animate-pulse' : ''}" />
+                         <span class="text-[7px] font-black text-[#FFB7C5] uppercase tracking-widest">+{Math.floor(vPrice / 100000)} PTS</span>
+                      </div>
                    </div>
                   {#if variant.price > vPrice}
                     <span class="text-[13px] text-white/20 line-through font-bold mb-1">{(variant.price).toLocaleString()}đ</span>
@@ -233,7 +243,7 @@
                         <div class="flex items-center gap-2 bg-white/10 border border-white/10 px-2 py-1 rounded-sm">
                            <div class="w-4 h-4 rounded-none overflow-hidden bg-black/40">
                               {#if gift.image}
-                                 <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                                 <img src={resolveMediaUrl(gift.image)} alt={gift.name} loading="lazy" decoding="async" width="16" height="16" class="w-full h-full object-cover" />
                               {:else}
                                  <Gift class="w-full h-full p-0.5 text-[#FFB7C5]" />
                               {/if}
@@ -244,38 +254,34 @@
                   </div>
                {/if}
 
-               {#if isActive}
-                  <div class="w-full h-1 bg-white/5 rounded-full mt-3 overflow-hidden shadow-inner">
-                     <div class="h-full bg-[#FFB7C5] shadow-[0_0_15px_rgba(255,183,197,0.8)]" style="width: {90 - (i * 20)}%"></div>
-                  </div>
-               {/if}
+               <div class="w-full h-1 bg-white/5 rounded-full mt-3 overflow-hidden shadow-inner transition-opacity duration-300 {isActive ? 'opacity-100' : 'opacity-0'}">
+                  <div class="h-full bg-[#FFB7C5] shadow-[0_0_15px_rgba(255,183,197,0.8)] transition-all duration-700 ease-out" style="width: {isActive ? Math.max(10, 90 - (i * 20)) : 0}%"></div>
+               </div>
             </div>
             
-            {#if isActive}
-               <div class="absolute right-4 top-1/2 -translate-y-1/2" in:scale>
-                  <div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#FFB7C5] to-[#E8D5B0] flex items-center justify-center shadow-[0_5px_15px_rgba(255,183,197,0.4)] ring-4 ring-[#FFB7C5]/20">
-                     <Check class="w-4 h-4 text-black stroke-[4]" />
-                  </div>
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 transition-all duration-300 transform-gpu {isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}">
+               <div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#FFB7C5] to-[#E8D5B0] flex items-center justify-center shadow-[0_5px_15px_rgba(255,183,197,0.4)] ring-4 ring-[#FFB7C5]/20">
+                  <Check class="w-4 h-4 text-black stroke-[4]" />
                </div>
-            {/if}
+            </div>
           </button>
        {/each}
     </div>
 
     <!-- 🎫 PIXEL-PERFECT VOUCHER 1:1 (Redemption Version) -->
     {#if productVouchers.length > 0}
-    <div class="px-4 mt-6 mb-4 z-surface shrink-0" in:fade>
-       <div class="flex items-center justify-between mb-3 px-1">
+    <div class="px-4 mt-4 mb-2 z-surface shrink-0" in:fade>
+       <div class="flex items-center justify-between mb-1.5 px-1">
           <span class="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] italic flex items-center gap-2">
              Mã giảm giá ưu đãi
           </span>
        </div>
-       <div class="flex flex-row gap-2 overflow-x-auto no-scrollbar py-3 -mx-4 px-3">
+       <div class="flex flex-row gap-2 overflow-x-auto no-scrollbar py-1 -mx-4 px-3">
           {#each productVouchers as v}
              {@const isApplied = shopStore.selectedVoucherIds.includes(v.id)}
              <button 
                onclick={() => handleVoucherClick(v)}
-               class="flex-shrink-0 relative w-fit min-w-[140px] h-[85px] transition-all duration-300 transform active:scale-[0.97] overflow-visible group"
+               class="flex-shrink-0 relative w-fit min-w-[140px] h-[75px] transition-all duration-300 transform active:scale-[0.97] overflow-visible group"
              >
                 <!-- 📦 Postage Stamp Body (Advanced Composite Mask) -->
                 <div 
@@ -295,7 +301,7 @@
                   "
                 >
                    <!-- 📝 Content (Stamp Center) -->
-                   <div class="flex-1 flex flex-col items-center justify-center px-6 py-2 min-w-0 bg-white/20 backdrop-blur-[2px] m-1.5 border border-black/5">
+                   <div class="flex-1 flex flex-col items-center justify-center px-4 py-1.5 min-w-0 bg-white/20 backdrop-blur-[2px] m-1 border border-black/5">
                       <div class="flex flex-col items-center leading-none mb-1">
                          <span class="text-[14px] font-[1000] text-[#111111] uppercase tracking-tighter whitespace-nowrap drop-shadow-sm">{v.label}</span>
                          <div class="w-10 h-[1.5px] bg-black/20 my-1 animate-pulse"></div>

@@ -205,7 +205,7 @@ export class ShopStore {
         this.timeLeft = productData.metadata?.scarcity_seconds ?? 1800;
         this.startTimer();
         if (!this.variant && productData?.variants && productData.variants.length > 0) {
-            this.variant = productData.variants.length > 1 ? productData.variants[1] : productData.variants[0];
+            this.variant = productData.variants[0];
             this.quantity = 1;
         }
         

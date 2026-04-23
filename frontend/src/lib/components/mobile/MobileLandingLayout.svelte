@@ -9,10 +9,6 @@
   // Dedicated Mobile Sections
   import MobileVideoBanner from './sections/MobileVideoBanner.svelte';
   import MobileHero from './sections/MobileHero.svelte';
-  import MobileDiagnostics from './sections/MobileDiagnostics.svelte';
-  import MobileScience from './sections/MobileScience.svelte';
-  import MobileReviews from './sections/MobileReviews.svelte';
-  import MobileOffer from './sections/MobileOffer.svelte';
   import MobileProductDetailsModal from './MobileProductDetailsModal.svelte';
 
   // Support Agent
@@ -36,6 +32,7 @@
   // Active section index tracked via IntersectionObserver (O(1) – no scroll listeners)
   let activeSectionIndex = $state(0);
   let isDetailsModalOpen = $state(false);
+  let loadJIT = $state(false);
 
   // Variant tabs should be hidden when user is on the video banner (section 0)
   // Check both `video_url` (admin field) and `hero_video_url` (desktop fallback) for compatibility
@@ -92,53 +89,29 @@
       { threshold: 0.6 }
     );
 
+    const jitObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          loadJIT = true;
+          jitObserver.disconnect();
+        }
+      });
+    }, { rootMargin: '600px', threshold: 0.01 });
+
+    const jitTrigger = document.getElementById('mobile-jit-trigger');
+    if (jitTrigger) jitObserver.observe(jitTrigger);
+
     sections.forEach((el, idx) => {
       el.dataset.sectionIdx = String(idx);
       observer.observe(el);
     });
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      jitObserver.disconnect();
+    };
   });
 </script>
-
-<svelte:head>
-  {#if seoMeta}
-    <title>{seoMeta.title} | {siteName}</title>
-    <meta name="description" content={seoMeta.description} />
-    <meta name="keywords" content={seoMeta.keywords} />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
-    <link rel="canonical" href={seoMeta.canonical_url} />
-
-    <!-- Open Graph (Facebook, Threads, Telegram) -->
-    <meta property="og:type" content="product" />
-    <meta property="og:title" content={seoMeta.title} />
-    <meta property="og:description" content={seoMeta.description} />
-    <meta property="og:url" content={seoMeta.canonical_url} />
-    {#if ogImage}
-      <meta property="og:image" content={ogImage} />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="630" />
-      <meta property="og:image:alt" content={seoMeta.title} />
-    {/if}
-    <meta property="og:site_name" content={siteName} />
-    <meta property="og:locale" content="vi_VN" />
-
-    <!-- Twitter / X Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={seoMeta.title} />
-    <meta name="twitter:description" content={seoMeta.description} />
-    {#if ogImage}<meta name="twitter:image" content={ogImage} />{/if}
-
-    <!-- JSON-LD Structured Data -->
-    {#if seoMeta.json_ld_string}
-      <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-      {@html `<script type="application/ld+json">${seoMeta.json_ld_string}</script>`}
-    {/if}
-  {:else if product}
-    <title>{product.name} | {siteName}</title>
-    <meta name="robots" content="noindex" />
-  {/if}
-</svelte:head>
 
 <div class="mobile-snap-container relative h-screen overflow-y-auto" onscroll={handleScroll}>
   <!-- PERSISTENT OVERLAYS -->
@@ -164,24 +137,50 @@
     <MobileHero {product} />
   </section>
 
+  <div id="mobile-jit-trigger"></div>
+
   <!-- SECTION 2: NATIVE DIAGNOSTICS -->
   <section id="diagnostics-section" class="mobile-snap-section" data-section-idx={hasVideo ? 2 : 1}>
-    <MobileDiagnostics {product} />
+    {#if loadJIT}
+      {#await import('./sections/MobileDiagnostics.svelte') then { default: MobileDiagnostics }}
+        <MobileDiagnostics {product} />
+      {/await}
+    {:else}
+      <div class="w-full min-h-[50vh] bg-black animate-pulse"></div>
+    {/if}
   </section>
 
   <!-- SECTION 3: NATIVE SCIENCE -->
   <section class="mobile-snap-section" data-section-idx={hasVideo ? 3 : 2}>
-    <MobileScience {product} />
+    {#if loadJIT}
+      {#await import('./sections/MobileScience.svelte') then { default: MobileScience }}
+        <MobileScience {product} />
+      {/await}
+    {:else}
+      <div class="w-full min-h-[50vh] bg-black animate-pulse"></div>
+    {/if}
   </section>
 
   <!-- SECTION 4: NATIVE REVIEWS -->
   <section class="mobile-snap-section" data-section-idx={hasVideo ? 4 : 3}>
-    <MobileReviews {product} />
+    {#if loadJIT}
+      {#await import('./sections/MobileReviews.svelte') then { default: MobileReviews }}
+        <MobileReviews {product} />
+      {/await}
+    {:else}
+      <div class="w-full min-h-[50vh] bg-black animate-pulse"></div>
+    {/if}
   </section>
 
   <!-- SECTION 5: NATIVE OFFER -->
   <section id="offer-section" class="mobile-snap-section" data-section-idx={hasVideo ? 5 : 4}>
-    <MobileOffer {product} />
+    {#if loadJIT}
+      {#await import('./sections/MobileOffer.svelte') then { default: MobileOffer }}
+        <MobileOffer {product} />
+      {/await}
+    {:else}
+      <div class="w-full min-h-[100vh] bg-black animate-pulse"></div>
+    {/if}
   </section>
 
 

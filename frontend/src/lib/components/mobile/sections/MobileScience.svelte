@@ -135,9 +135,6 @@
                 {faq.q}
               </EditableWrapper>
             </span>
-            <div class="faq-arrow">
-              <Zap class="w-3 h-3 text-white/40" />
-            </div>
           </button>
         {/each}
       </div>
