@@ -8,6 +8,9 @@
   import ListOrderedIcon from 'lucide-svelte/icons/list-ordered';
   import UndoIcon from 'lucide-svelte/icons/undo';
   import RedoIcon from 'lucide-svelte/icons/redo';
+  import AlignLeftIcon from 'lucide-svelte/icons/align-left';
+  import AlignCenterIcon from 'lucide-svelte/icons/align-center';
+  import AlignRightIcon from 'lucide-svelte/icons/align-right';
   import AlignJustifyIcon from 'lucide-svelte/icons/align-justify';
   import PaletteIcon from 'lucide-svelte/icons/palette';
   import ImageIcon from 'lucide-svelte/icons/image';
@@ -18,7 +21,7 @@
   import MinusIcon from 'lucide-svelte/icons/minus';
   import SparklesIcon from 'lucide-svelte/icons/sparkles';
   import MoreHorizontalIcon from 'lucide-svelte/icons/more-horizontal';
-  import Strikethrough from 'lucide-svelte/icons/strikethrough';
+  import StrikethroughIcon from 'lucide-svelte/icons/strikethrough';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
@@ -117,6 +120,50 @@
   const isCompact = $derived(containerWidth < 600);
   const isSuperCompact = $derived(containerWidth < 400);
 
+  // --- REACTIVE STATE SYNC ---
+  let updateTick = $state(0);
+
+  $effect(() => {
+    if (!editor) return;
+    const update = () => { updateTick++; };
+    editor.on('selectionUpdate', update);
+    editor.on('transaction', update);
+    return () => {
+      if (editor) {
+        editor.off('selectionUpdate', update);
+        editor.off('transaction', update);
+      }
+    };
+  });
+
+  const active = $derived.by(() => {
+    updateTick;
+    if (!editor) return {
+       format: 'p', font: 'Inter', bold: false, italic: false, underline: false,
+       strike: false, blockquote: false, code: false, color: 'white'
+    };
+
+    return {
+      format: editor.isActive('heading', { level: 1 }) ? 'h1' :
+              editor.isActive('heading', { level: 2 }) ? 'h2' :
+              editor.isActive('heading', { level: 3 }) ? 'h3' : 'p',
+      font: editor.getAttributes('textStyle').fontFamily || 'Inter',
+      bold: editor.isActive('bold'),
+      italic: editor.isActive('italic'),
+      underline: editor.isActive('underline'),
+      strike: editor.isActive('strike'),
+      blockquote: editor.isActive('blockquote'),
+      code: editor.isActive('code'),
+      color: editor.getAttributes('textStyle').color || 'white',
+      bulletList: editor.isActive('bulletList'),
+      orderedList: editor.isActive('orderedList'),
+      alignLeft: editor.isActive({ textAlign: 'left' }),
+      alignCenter: editor.isActive({ textAlign: 'center' }),
+      alignRight: editor.isActive({ textAlign: 'right' }),
+      alignJustify: editor.isActive({ textAlign: 'justify' }),
+    };
+  });
+
 </script>
 
 <div 
@@ -144,16 +191,24 @@
   <!-- Group 2: Typography (Main Bar) -->
   {#if !isThin}
     <div class="tb-platter shrink-0 px-2 flex">
-      <select class="tb-select font-black uppercase tracking-widest text-[8px]" onchange={handleParagraphChange}>
-        <option value="p">Body</option>
-        <option value="h1">H1</option>
-        <option value="h2">H2</option>
-        <option value="h3">H3</option>
+      <select 
+        class="tb-select font-black uppercase tracking-widest text-[8px] {active.format !== 'p' ? '!text-cyan-400 font-bold' : ''}" 
+        value={active.format}
+        onchange={handleParagraphChange}
+      >
+        <option value="p" class="bg-[#0d0d0d] text-white">Body</option>
+        <option value="h1" class="bg-[#0d0d0d] text-white">H1</option>
+        <option value="h2" class="bg-[#0d0d0d] text-white">H2</option>
+        <option value="h3" class="bg-[#0d0d0d] text-white">H3</option>
       </select>
       <div class="w-px h-3 bg-white/5 mx-1"></div>
-      <select class="tb-select font-mono text-[8px] uppercase tracking-wider" onchange={handleFontChange}>
+      <select 
+        class="tb-select font-mono text-[8px] uppercase tracking-wider" 
+        value={active.font}
+        onchange={handleFontChange}
+      >
         {#each FONTS as font}
-          <option value={font}>{font}</option>
+          <option value={font} class="bg-[#0d0d0d] text-white">{font}</option>
         {/each}
       </select>
     </div>
@@ -161,10 +216,10 @@
 
   <!-- Group 3: Formatting -->
   <div class="tb-platter shrink-0">
-    <button onclick={() => editor?.chain().focus().toggleBold().run()} class="tb-btn {editor?.isActive('bold') ? 'active-neural' : ''}" title="Bold"><BoldIcon size={12} /></button>
+    <button onclick={() => editor?.chain().focus().toggleBold().run()} class="tb-btn {active.bold ? 'active-neural' : ''}" title="Bold"><BoldIcon size={12} /></button>
     {#if !isCompact}
-      <button onclick={() => editor?.chain().focus().toggleItalic().run()} class="tb-btn {editor?.isActive('italic') ? 'active-neural' : ''}" title="Italic"><ItalicIcon size={12} /></button>
-      <button onclick={() => editor?.chain().focus().toggleUnderline().run()} class="tb-btn {editor?.isActive('underline') ? 'active-neural' : ''}" title="Underline"><UnderlineIcon size={12} /></button>
+      <button onclick={() => editor?.chain().focus().toggleItalic().run()} class="tb-btn {active.italic ? 'active-neural' : ''}" title="Italic"><ItalicIcon size={12} /></button>
+      <button onclick={() => editor?.chain().focus().toggleUnderline().run()} class="tb-btn {active.underline ? 'active-neural' : ''}" title="Underline"><UnderlineIcon size={12} /></button>
     {/if}
   </div>
 
@@ -184,7 +239,7 @@
       class="w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-white/20 active:scale-95 transition-all bg-white/[0.05]"
       title="Color Picker"
     >
-      <div class="w-4 h-4 rounded-sm border border-black/50 overflow-hidden relative shadow-sm" style="background: {editor?.getAttributes('textStyle').color || 'white'};">
+      <div class="w-4 h-4 rounded-sm border border-black/50 overflow-hidden relative shadow-sm" style="background: {active.color};">
          <PaletteIcon size={10} class="absolute inset-0 m-auto mix-blend-difference text-white/80" />
       </div>
     </button>
@@ -192,8 +247,8 @@
     {#if showColorPicker}
       <div 
            use:portal
-           class="fixed z-[1001] bg-[#0d0d0d] border border-white/10 rounded-xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col gap-3 min-w-[200px]"
-           style="top: {colorPopupPos.top}px; left: {colorPopupPos.left}px; transform: translateX(-100%);"
+           class="fixed bg-[#0d0d0d] border border-white/10 rounded-xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col gap-3 min-w-[200px]"
+           style="top: {colorPopupPos.top}px; left: {colorPopupPos.left}px; transform: translateX(-100%); z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_DROPDOWN}"
       >
         <div class="flex items-center justify-between px-1">
           <span class="text-[8px] font-black uppercase tracking-widest text-white/30">Color Swatches</span>
@@ -209,7 +264,7 @@
           {/each}
         </div>
       </div>
-      <div use:portal class="fixed inset-0 z-[var(--z-admin-tiptap-toolbar-dropdown)]" onclick={() => showColorPicker = false}></div>
+      <div use:portal class="fixed inset-0" style="z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_OVERLAY}" onclick={() => showColorPicker = false}></div>
     {/if}
   </div>
 
@@ -227,16 +282,35 @@
     {#if showMore}
       <div
            use:portal
-           class="fixed z-[var(--z-admin-tiptap-toolbar-dropdown)] bg-[#0d0d0d]/95 backdrop-blur-3xl border border-white/10 rounded-xl p-3 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-3 min-w-[240px]"
-           style="top: {morePopupPos.top}px; left: {morePopupPos.left}px; transform: translateX(-100%);"
+           class="fixed bg-[#0d0d0d]/95 backdrop-blur-3xl border border-white/10 rounded-xl p-3 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-3 min-w-[240px]"
+           style="top: {morePopupPos.top}px; left: {morePopupPos.left}px; transform: translateX(-100%); z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_DROPDOWN}"
       >
         <!-- Extra Tools (Always in More) -->
         <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
            <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Extended Tools</span>
+            <div class="flex gap-1.5">
+               <button onclick={() => { editor?.chain().focus().toggleBulletList().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.bulletList ? 'active-neural' : ''}" title="Bullet List"><ListIcon size={12}/></button>
+               <button onclick={() => { editor?.chain().focus().toggleOrderedList().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.orderedList ? 'active-neural' : ''}" title="Ordered List"><ListOrderedIcon size={12}/></button>
+               <button onclick={() => { editor?.chain().focus().toggleBlockquote().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.blockquote ? 'active-neural' : ''}" title="Quote"><QuoteIcon size={12}/></button>
+               <button onclick={() => { editor?.chain().focus().toggleCode().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.code ? 'active-neural' : ''}" title="Code"><CodeIcon size={12}/></button>
+               <button onclick={() => { editor?.chain().focus().setHorizontalRule().run(); showMore=false; }} class="tb-btn !h-8 !w-8" title="Horizontal Rule"><MinusIcon size={12}/></button>
+            </div>
+        </div>
+
+        <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
+           <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Text Alignment</span>
            <div class="flex gap-1.5">
-             <button onclick={() => { editor?.chain().focus().toggleBlockquote().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {editor?.isActive('blockquote') ? 'active-neural' : ''}"><QuoteIcon size={12}/></button>
-             <button onclick={() => { editor?.chain().focus().toggleCode().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {editor?.isActive('code') ? 'active-neural' : ''}"><CodeIcon size={12}/></button>
-             <button onclick={() => { editor?.chain().focus().setHorizontalRule().run(); showMore=false; }} class="tb-btn !h-8 !w-8"><MinusIcon size={12}/></button>
+             <button onclick={() => { editor?.chain().focus().setTextAlign('left').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignLeft ? 'active-neural' : ''}"><AlignLeftIcon size={12}/></button>
+             <button onclick={() => { editor?.chain().focus().setTextAlign('center').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignCenter ? 'active-neural' : ''}"><AlignCenterIcon size={12}/></button>
+             <button onclick={() => { editor?.chain().focus().setTextAlign('right').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignRight ? 'active-neural' : ''}"><AlignRightIcon size={12}/></button>
+             <button onclick={() => { editor?.chain().focus().setTextAlign('justify').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignJustify ? 'active-neural' : ''}"><AlignJustifyIcon size={12}/></button>
+           </div>
+        </div>
+
+        <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
+           <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Extra Formatting</span>
+           <div class="flex gap-1.5">
+             <button onclick={() => { editor?.chain().focus().toggleStrike().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.strike ? 'active-neural' : ''}"><StrikethroughIcon size={12}/></button>
            </div>
         </div>
 
@@ -245,10 +319,10 @@
            <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
              <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Formatting</span>
              <div class="flex gap-1">
-               <button onclick={() => { editor?.chain().focus().toggleBold().run(); }} class="tb-btn !h-8 !w-8 {editor?.isActive('bold') ? 'active-neural' : ''}"><BoldIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().toggleItalic().run(); }} class="tb-btn !h-8 !w-8 {editor?.isActive('italic') ? 'active-neural' : ''}"><ItalicIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().toggleUnderline().run(); }} class="tb-btn !h-8 !w-8 {editor?.isActive('underline') ? 'active-neural' : ''}"><UnderlineIcon size={12}/></button>
-               <button onclick={() => { editor?.chain().focus().toggleStrike().run(); }} class="tb-btn !h-8 !w-8 {editor?.isActive('strike') ? 'active-neural' : ''}"><Strikethrough size={12}/></button>
+               <button onclick={() => { editor?.chain().focus().toggleBold().run(); }} class="tb-btn !h-8 !w-8 {active.bold ? 'active-neural' : ''}"><BoldIcon size={12}/></button>
+               <button onclick={() => { editor?.chain().focus().toggleItalic().run(); }} class="tb-btn !h-8 !w-8 {active.italic ? 'active-neural' : ''}"><ItalicIcon size={12}/></button>
+               <button onclick={() => { editor?.chain().focus().toggleUnderline().run(); }} class="tb-btn !h-8 !w-8 {active.underline ? 'active-neural' : ''}"><UnderlineIcon size={12}/></button>
+               <button onclick={() => { editor?.chain().focus().toggleStrike().run(); }} class="tb-btn !h-8 !w-8 {active.strike ? 'active-neural' : ''}"><Strikethrough size={12}/></button>
              </div>
            </div>
         {/if}
@@ -287,7 +361,7 @@
           </div>
         {/if}
       </div>
-      <div use:portal class="fixed inset-0 z-[var(--z-admin-tiptap-toolbar-dropdown)]" onclick={() => showMore = false}></div>
+      <div use:portal class="fixed inset-0" style="z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_OVERLAY}" onclick={() => showMore = false}></div>
     {/if}
   </div>
 
@@ -343,7 +417,11 @@
   }
 
   .tb-select {
-    @apply appearance-none bg-transparent text-white/40 px-2 py-1 h-8 outline-none cursor-pointer rounded-lg hover:bg-white/5 hover:text-white transition-all duration-500;
+    @apply appearance-none bg-white/[0.03] text-white/40 px-2.5 py-1 h-8 outline-none cursor-pointer rounded-lg hover:bg-white/5 hover:text-white transition-all duration-500 border border-white/5;
+  }
+
+  .tb-select option {
+    @apply bg-[#0d0d0d] text-white py-2;
   }
 
   .tb-neural-action {
