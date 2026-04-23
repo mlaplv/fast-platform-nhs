@@ -2,7 +2,11 @@
   import { onMount, tick } from 'svelte';
   import { fade, fly, scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { Sparkles, ArrowRight, ShieldCheck, RefreshCw, Cpu, Database, Activity, Circle, Zap, Timer, Calendar, Dna, PlusCircle, ShieldX } from 'lucide-svelte';
+  import { 
+    Sparkles, ArrowRight, ShieldCheck, RefreshCw, Cpu, Database, Activity, 
+    Circle, Zap, Timer, Calendar, Dna, PlusCircle, ShieldX, Flame, Sun, 
+    Droplets, Moon, CloudMoon, ShieldAlert, Target, Heart, Wind, Shield, Layers 
+  } from 'lucide-svelte';
   import { SHOP_CONFIG } from '$lib/constants/shop';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
@@ -12,7 +16,38 @@
   const shopStore = getShopStore();
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
-  const questions = $derived(metadata?.quiz_questions || []);
+  const questions = $derived(metadata?.quiz_questions || [
+    {
+      id: 'area',
+      title: 'Vùng cần giải cứu sắc tố?',
+      options: [
+        { label: 'Vùng nách', value: 'armpit', icon: 'Wind' },
+        { label: 'Vùng bikini', value: 'bikini', icon: 'Shield' },
+        { label: 'Vùng nhũ hoa', value: 'sun', icon: 'Sun' },
+        { label: 'Khác / Đùi trong', value: 'other', icon: 'Layers' }
+      ]
+    },
+    {
+      id: 'level',
+      title: 'Tình trạng sạm đen thực tế?',
+      options: [
+        { label: 'Sạm nhẹ', value: 'light', icon: 'Moon' },
+        { label: 'Sạm trung bình', value: 'medium', icon: 'CloudMoon' },
+        { label: 'Sạm nặng (Báo động)', value: 'heavy', icon: 'Activity' },
+        { label: 'Xơ cứng (Thâm đen)', value: 'chronic', icon: 'ShieldAlert' }
+      ]
+    },
+    {
+      id: 'goal',
+      title: 'Mục tiêu mong muốn nhất?',
+      options: [
+        { label: 'Trắng sáng bật tone', value: 'whitening', icon: 'Zap' },
+        { label: 'Phục hồi gốc da', value: 'recovery', icon: 'ShieldCheck' },
+        { label: 'Dứt điểm thâm sạm', value: 'permanent', icon: 'Target' },
+        { label: 'Dịu nhẹ cho da', value: 'sensitive', icon: 'Heart' }
+      ]
+    }
+  ]);
   
   const labels = $derived({
     headline: metadata?.diagnostics_headline || 'CHẨN ĐOÁN PHỤC HỒI <br/><span class="text-blue-500">SẮC TỐ GỐC</span>',
@@ -82,6 +117,31 @@
     'Circle': Circle,
     'Zap': Zap,
     'Sparkles': Sparkles,
+    'Flame': Flame,
+    'Sun': Sun,
+    'Droplets': Droplets,
+    'Moon': Moon,
+    'CloudMoon': CloudMoon,
+    'Activity': Activity,
+    'ShieldAlert': ShieldAlert,
+    'ShieldCheck': ShieldCheck,
+    'Target': Target,
+    'Heart': Heart,
+    'Wind': Wind,
+    'Shield': Shield,
+    'Layers': Layers,
+    // 🚀 Elite Overwrite: Force-mapping legacy emojis to viral bio-icons
+    '🛁': Wind,
+    '👙': Shield,
+    '✨': Sun,
+    '💧': Layers,
+    '🌕': Moon,
+    '🌗': CloudMoon,
+    '🌑': ShieldAlert,
+    '🔘': ShieldCheck,
+    '🌱': Sparkles,
+    '🔄': RefreshCw,
+    '🚀': Zap,
     '😊': Sparkles,
     '😐': Activity,
     '🕒': Timer,
@@ -99,6 +159,42 @@
     shopStore.setQuantity(1);
     activeSlide = 0;
   }
+
+  function prevStep() {
+    if (currentStep > 0) {
+      currentStep--;
+      answers.pop();
+    }
+  }
+
+  function getStepSubtitle(stepIdx: number, optIdx: number): string {
+    const matrix = [
+      // Step 0: Vùng da
+      [
+        "85% khách hàng bắt đầu từ vùng này",
+        "Hệ thống đang quét cấu trúc tế bào...",
+        "Vùng nhạy cảm cần phác đồ dịu nhẹ",
+        "Lựa chọn phổ biến nhất hiện nay"
+      ],
+      // Step 1: Tình trạng
+      [
+        "Xác nhận mức độ hắc sắc tố thực tế",
+        "Phân tích mật độ sạm đen biometric",
+        "Độ trễ phục hồi dự kiến: 12ms",
+        "Yêu cầu can thiệp liposome chuyên sâu"
+      ],
+      // Step 2: Mục tiêu
+      [
+        "Ưu tiên trắng sáng bật tone sau 7 ngày",
+        "Ngăn ngừa tái thâm sạm vĩnh viễn",
+        "Phục hồi gốc da từ sâu bên trong",
+        "Phác đồ chuyên biệt cho da nhạy cảm"
+      ]
+    ];
+
+    const stepMatrix = matrix[stepIdx] || matrix[0];
+    return stepMatrix[optIdx % stepMatrix.length];
+  }
 </script>
 
 <div class="h-[100dvh] transition-all duration-700 flex flex-col px-4 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden" id="diagnostics">
@@ -108,10 +204,10 @@
   {#if !shopStore.diagnosticResult}
     <div class="mt-3 mb-2" transition:fade>
       <div class="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 rounded-full mb-2 backdrop-blur-md">
-        <div class="w-1 h-1 rounded-full bg-[#FFB7C5] animate-pulse"></div>
-        <span class="text-[7px] uppercase tracking-[0.2em] text-[#FFB7C5] font-bold italic">System v2.6+</span>
+        <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] animate-pulse"></div>
+        <span class="text-[10px] uppercase tracking-[0.2em] text-[#FFB7C5] font-bold italic">System v2.6+</span>
       </div>
-        <h2 class="text-2xl font-bold text-white leading-tight uppercase tracking-tighter italic tiktok-shadow">
+        <h2 class="text-2xl font-extrabold text-white leading-relaxed uppercase tracking-tighter italic tiktok-shadow">
           <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ">
             {@html (product?.metadata?.diagnostics_headline || 'CHẨN ĐOÁN PHỤC HỒI <span class="text-blue-500">SẮC TỐ GỐC</span>').replace('SẮC TỐ GỐC', '<br/>SẮC TỐ GỐC')}
           </EditableWrapper>
@@ -146,7 +242,7 @@
               ĐANG PHÂN TÍCH...
             </div>
             
-            <div class="text-[10px] text-[#FFB7C5] font-bold uppercase tracking-[0.2em] mb-12 h-4 animate-pulse">
+            <div class="text-[11px] text-[#FFB7C5] font-bold uppercase tracking-[0.2em] mb-12 h-4 animate-pulse">
               {analysisStatus}
             </div>
 
@@ -156,10 +252,10 @@
           </div>
 
           <!-- HUD Data Overlays -->
-          <div class="absolute top-10 left-6 opacity-30 text-[7px] font-mono text-[#FFB7C5]/80 space-y-1 text-left">
-            <div class="flex items-center gap-1"><Cpu size={8} /> HỆ THỐNG: ỔN ĐỊNH</div>
-            <div class="flex items-center gap-1"><Activity size={8} /> ĐỘ TRỄ: 12ms</div>
-            <div class="flex items-center gap-1"><Database size={8} /> MÃ HÓA: QUANTUM_V3</div>
+          <div class="absolute top-10 left-6 opacity-30 text-[10px] font-mono text-[#FFB7C5]/80 space-y-1 text-left">
+            <div class="flex items-center gap-1"><Cpu size={10} /> HỆ THỐNG: ỔN ĐỊNH</div>
+            <div class="flex items-center gap-1"><Activity size={10} /> ĐỘ TRỄ: 12ms</div>
+            <div class="flex items-center gap-1"><Database size={10} /> MÃ HÓA: QUANTUM_V3</div>
           </div>
 
           <div class="absolute top-10 right-6 opacity-30 text-[7px] font-mono text-[#FFB7C5]/80 text-right">
@@ -172,15 +268,14 @@
           </div>
 
           <!-- Binary Streams -->
-          <div class="absolute bottom-10 left-6 right-6 opacity-20 text-[6px] font-mono text-[#FFB7C5]/80 flex justify-between">
+          <div class="absolute bottom-10 left-6 right-6 opacity-20 text-[10px] font-mono text-[#FFB7C5]/80 flex justify-between">
             <div class="flex flex-col gap-1">
-                <div>AI_LOG_STREAM // START_SYNC</div>
+                <div>AI_LOG_STREAM // ĐỒNG BỘ</div>
                 <div class="tracking-widest">{binaryData}</div>
-                <div class="tracking-widest">{binaryData.split(' ').reverse().join(' ')}</div>
             </div>
             <div class="text-right flex flex-col justify-end">
-                <div>BIOMETRIC_ENCRYPTION_ACTIVE</div>
-                <div>PARALLAX_SYNC_COMPLETE</div>
+                <div>MÃ HÓA SINH TRẮC HỌC</div>
+                <div>ĐỒNG BỘ HOÀN TẤT</div>
             </div>
           </div>
         </div>
@@ -210,10 +305,10 @@
             <div class="space-y-6">
               <div class="relative overflow-visible group">
                 <div class="flex items-center justify-between mb-2">
-                  <h4 class="text-[9px] font-black text-[#FFB7C5] group-hover:text-pink-300 transition-colors uppercase tracking-[0.2em] border-l-2 border-[#FFB7C5]/50 pl-2">
+                  <h4 class="text-[11px] font-black text-[#FFB7C5] group-hover:text-pink-300 transition-colors uppercase tracking-[0.2em] border-l-2 border-[#FFB7C5]/50 pl-2">
                     PHÂN TÍCH CHUYÊN SÂU
                   </h4>
-                  <span class="text-[7px] font-mono text-white/20">LOG_ID: A126-DX</span>
+                  <span class="text-[10px] font-mono text-white/20">LOG_ID: A126-DX</span>
                 </div>
                 <p class="text-white text-[15px] font-bold leading-relaxed italic px-1 drop-shadow-sm">
                   "{shopStore.diagnosticResult.analysis}"
@@ -302,9 +397,21 @@
               >
                 <div class="flex items-center justify-between mb-4 bg-white/[0.03] p-3 rounded-2xl border border-white/10 backdrop-blur-3xl shadow-lg relative overflow-hidden group">
                   <div class="absolute inset-0 bg-[#FFB7C5]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div class="flex flex-col relative z-surface">
-                    <span class="text-[6px] text-white/30 uppercase tracking-[0.2em] font-black">AI_PHASE_SEQUENCE</span>
-                    <p class="text-[10px] text-[#FFB7C5] uppercase tracking-[0.2em] font-black italic mt-0.5">Step {currentStep + 1} <span class="text-white/10">//</span> {questions.length}</p>
+                  
+                  <div class="flex items-center gap-3 relative z-surface">
+                    {#if currentStep > 0}
+                      <button 
+                        onclick={prevStep}
+                        class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#FFB7C5] active:scale-90 transition-all hover:bg-[#FFB7C5]/10"
+                        aria-label="Quay lại bước trước"
+                      >
+                        <ArrowRight class="w-4 h-4 rotate-180" />
+                      </button>
+                    {/if}
+                    <div class="flex flex-col">
+                      <span class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-black">AI_PHASE_SEQUENCE</span>
+                      <p class="text-[10px] text-[#FFB7C5] uppercase tracking-[0.2em] font-black italic mt-0.5">Step {currentStep + 1} <span class="text-white/10">//</span> {questions.length}</p>
+                    </div>
                   </div>
                   <div class="relative w-20 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
                     <div class="absolute inset-0 bg-[#FFB7C5]/10 animate-pulse"></div>
@@ -341,14 +448,16 @@
                         </div>
                       </div>
                       <div class="flex flex-col overflow-hidden">
-                        <span class="text-white/90 font-black text-xs uppercase tracking-tight truncate">
+                        <span class="text-white/90 font-bold text-xs uppercase tracking-tight truncate">
                           {#if typeof opt.label === 'string'}
                             {@html opt.label}
                           {:else}
                             Lưu trữ...
                           {/if}
                         </span>
-                        <span class="text-[7px] text-white/20 uppercase tracking-[0.3em] font-black mt-0.5 group-hover:text-[#FFB7C5]/50 transition-colors">SELECT_DATAPOINT</span>
+                        <span class="text-[10px] text-white/30 tracking-wide font-medium mt-1 group-hover:text-[#FFB7C5]/50 transition-colors">
+                          {getStepSubtitle(currentStep, idx)}
+                        </span>
                       </div>
                     </button>
                   {/each}

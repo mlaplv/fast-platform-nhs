@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Product } from '$lib/types';
-  import { X, ShieldCheck, Info, Volume2, VolumeX } from 'lucide-svelte';
+  import { X, ShieldCheck, Info, AudioLines, VolumeX } from 'lucide-svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
 
@@ -230,27 +230,34 @@
         <div class="w-8 h-[2px] bg-white/10 rounded-full"></div>
       </div>
 
-      <!-- 🎙️ READ ALOUD BUTTON (Left) -->
+      <!-- 🎙️ NEURAL VOICE CAPSULE (Elite V6.4 Lite) -->
       <button
         onclick={toggleSpeech}
-        class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 px-3 py-2 rounded-full transition-all active:scale-95 {isReading || isBuffering ? 'bg-[#FFB7C5]/20 text-[#FFB7C5]' : 'text-white/20'}"
+        class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full transition-all duration-500 active:scale-90 {isReading || isBuffering ? 'bg-[#FFB7C5]/30 border-[#FFB7C5]/50 text-[#FFB7C5] shadow-[0_0_20px_rgba(255,183,197,0.4)]' : 'bg-white/10 border-white/20 text-white/80 shadow-[0_0_10px_rgba(255,255,255,0.05)]'} border backdrop-blur-md"
         aria-label={isReading ? "Dừng đọc" : "Đọc thông tin"}
       >
         {#if isBuffering}
-          <div class="w-4 h-4 border-2 border-[#FFB7C5] border-t-transparent rounded-full animate-spin"></div>
-          <span class="text-[8px] font-black uppercase tracking-widest italic">...</span>
+          <div class="relative w-3 h-3">
+            <div class="absolute inset-0 border-[1.5px] border-[#FFB7C5]/30 rounded-full"></div>
+            <div class="absolute inset-0 border-[1.5px] border-[#FFB7C5] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <span class="text-[7.5px] font-bold uppercase tracking-[0.2em] italic leading-none opacity-80">Wait</span>
         {:else if isReading}
-          <VolumeX size={16} class="animate-pulse" />
-          <span class="text-[8px] font-black uppercase tracking-widest italic">Dừng</span>
+          <div class="flex items-end gap-[1.5px] h-2.5 mb-[0.5px]">
+            <div class="w-[1.5px] bg-[#FFB7C5] shadow-[0_0_5px_#FFB7C5] animate-voice-bar-1"></div>
+            <div class="w-[1.5px] bg-[#FFB7C5] shadow-[0_0_5px_#FFB7C5] animate-voice-bar-2"></div>
+            <div class="w-[1.5px] bg-[#FFB7C5] shadow-[0_0_5px_#FFB7C5] animate-voice-bar-3"></div>
+          </div>
+          <span class="text-[7.5px] font-black uppercase tracking-[0.2em] italic leading-none">Stop</span>
         {:else}
-          <Volume2 size={16} />
-          <span class="text-[8px] font-black uppercase tracking-widest italic">
+          <AudioLines size={12} class="text-white drop-shadow-[0_0_3px_rgba(255,255,255,0.5)]" />
+          <span class="text-[7.5px] font-bold uppercase tracking-[0.2em] italic leading-none">
             {#if typeof window !== 'undefined' && localStorage.getItem(`tts_pos_${productSlug}`)}
-              Tiếp tục
+              Resume
             {:else if typeof window !== 'undefined' && localStorage.getItem(`tts_done_${productSlug}`)}
-              Nghe lại
+              Replay
             {:else}
-              Nghe
+              Listen
             {/if}
           </span>
         {/if}
@@ -277,7 +284,7 @@
     <!-- Scrollable Description Body -->
     <div 
       bind:this={contentRef}
-      class="px-4 py-6 overflow-y-auto custom-scrollbar flex-1 relative elite-prose select-text"
+      class="pl-4 pr-2.5 pt-2 pb-10 overflow-y-auto custom-scrollbar flex-1 relative elite-prose select-text"
     >
       {#if product?.description}
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -292,7 +299,7 @@
 
     <!-- Footer sticky -->
     <div class="shrink-0 flex items-center justify-center px-4 py-4 border-t border-white/5 bg-[#0a0a0a]">
-      <div class="flex items-center gap-2 text-[9px] font-bold text-white/30 uppercase tracking-[0.25em] italic">
+      <div class="flex items-center gap-2 text-[10px] font-bold text-white/30 uppercase tracking-[0.25em] italic">
         <ShieldCheck class="w-3.5 h-3.5 text-blue-500/80" />
         <span class="text-transparent bg-clip-text bg-gradient-to-r from-white/60 to-white/30">Hệ thống thông tin chính hãng</span>
       </div>
@@ -303,10 +310,10 @@
 <style lang="postcss">
   /* Elite Prose Typography - VIRAL 2026 PREMIUM EDITION */
   .elite-prose {
-    font-family: 'Be Vietnam Pro', sans-serif;
-    font-size: 14px;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.7);
+    font-family: var(--font-main);
+    font-size: 15px;
+    line-height: 1.5; /* Giảm độ giãn dòng để không bị hở */
+    color: rgba(255, 255, 255, 0.95);
     text-align: left !important;
     word-break: break-word;
     letter-spacing: -0.01em;
@@ -314,9 +321,9 @@
 
   /* Premium Headings with Sapphire-to-Emerald Gradient */
   :global(.elite-prose h1, .elite-prose h2, .elite-prose h3) {
-    font-family: 'Be Vietnam Pro', sans-serif;
+    font-family: var(--font-main);
     color: white;
-    font-weight: 950;
+    font-weight: 800;
     line-height: 1.2;
     margin-top: 1.5rem;
     margin-bottom: 0.75rem;
@@ -345,8 +352,12 @@
   }
 
   :global(.elite-prose p) {
-    margin-bottom: 1rem;
-    opacity: 0.8;
+    margin-bottom: 0.6rem; /* Giảm mạnh khoảng hở giữa các đoạn văn */
+    opacity: 1;
+  }
+
+  :global(.elite-prose > *:first-child) {
+    margin-top: 0 !important;
   }
 
   :global(.elite-prose strong, .elite-prose b) {
@@ -354,30 +365,51 @@
     font-weight: 800;
   }
 
-  /* Viral Glowy Bullets */
+  /* Viral Glowy Bullets - ULTRA TIGHT RESET */
   :global(.elite-prose ul) {
-    list-style-type: none;
-    padding-left: 0;
-    margin-bottom: 1.5rem;
+    list-style-type: none !important;
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    margin-bottom: 1rem;
   }
 
   :global(.elite-prose li) {
     position: relative;
-    padding-left: 1.5rem;
-    margin-bottom: 0.75rem;
+    padding-left: 14px !important; /* Đủ rộng để chứa dấu chấm và một chút khoảng hở */
+    margin-bottom: 0.3rem;
     line-height: 1.5;
+    list-style: none !important;
   }
 
   :global(.elite-prose li::before) {
     content: '';
     position: absolute;
-    left: 0;
-    top: 0.5em;
-    width: 6px;
-    height: 6px;
+    left: 0; /* Đưa dấu chấm về lại bên trong để chắc chắn hiển thị */
+    top: 0.55em;
+    width: 3.5px;
+    height: 3.5px;
     background: #FFB7C5;
     border-radius: 50%;
-    box-shadow: 0 0 10px #FFB7C5;
+    box-shadow: 0 0 5px rgba(255, 183, 197, 0.5);
+  }
+
+  /* 🧪 iPhone Minimalist Scrollbar (Scoped to Modal) */
+  :global(.mobile-modal-base::-webkit-scrollbar),
+  :global(.custom-scrollbar::-webkit-scrollbar) {
+    width: 2px !important;
+    height: 2px !important;
+  }
+  
+  :global(.mobile-modal-base::-webkit-scrollbar-thumb),
+  :global(.custom-scrollbar::-webkit-scrollbar-thumb) {
+    background: rgba(255, 255, 255, 0.25) !important;
+    border-radius: 100px !important;
+  }
+
+  :global(.mobile-modal-base),
+  :global(.custom-scrollbar) {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent !important;
   }
 
   :global(.elite-prose a) {
@@ -429,4 +461,20 @@
     font-weight: 700;
     color: white;
   }
+
+  :global(.elite-prose th) {
+    background: rgba(255,255,255,0.05);
+    font-weight: 700;
+    color: white;
+  }
+
+  /* 🎙️ Neural Voice Animations */
+  @keyframes voice-bar {
+    0%, 100% { height: 4px; }
+    50% { height: 12px; }
+  }
+
+  .animate-voice-bar-1 { animation: voice-bar 0.6s infinite ease-in-out; }
+  .animate-voice-bar-2 { animation: voice-bar 0.8s infinite ease-in-out 0.2s; }
+  .animate-voice-bar-3 { animation: voice-bar 0.7s infinite ease-in-out 0.4s; }
 </style>

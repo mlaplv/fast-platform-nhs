@@ -146,7 +146,7 @@
     <div class="flex items-center justify-center gap-2 mb-3" in:fly={{ y: -10 }}>
        <div class="bg-[#FFB7C5]/20 backdrop-blur-md border border-[#FFB7C5]/30 rounded-full px-3 py-0.5 flex items-center gap-2">
           <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] animate-pulse shadow-[0_0_8px_rgba(255,183,197,0.8)]"></div>
-          <span class="text-[9px] font-black text-white/90 uppercase tracking-tight italic">
+          <span class="text-[10px] font-bold text-white/90 uppercase tracking-tight italic">
             <span class="text-[#FFB7C5]">{viralViewers.toLocaleString()}</span> ĐANG XEM
           </span>
        </div>
@@ -165,11 +165,11 @@
     <div class="flex items-center justify-center gap-4 mt-2">
         <div class="flex items-center gap-1.5">
            <ShoppingBag class="w-2.5 h-2.5 text-[#FFB7C5]" />
-           <span class="text-[9px] text-white/40 font-black uppercase tracking-widest italic">{fomoStore.totalSales || '8,421'} ĐÃ BÁN</span>
+           <span class="text-[10px] text-white/40 font-bold uppercase tracking-widest italic">{fomoStore.totalSales || '8,421'} ĐÃ BÁN</span>
         </div>
         <div class="flex items-center gap-1.5">
            <Star class="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-           <span class="text-[9px] text-white/40 font-black uppercase tracking-widest italic">4.9/5 RATING</span>
+           <span class="text-[10px] text-white/40 font-bold uppercase tracking-widest italic">4.9/5 RATING</span>
         </div>
     </div>
   </div>
@@ -216,12 +216,12 @@
              <div class="flex-1 flex flex-col justify-center px-6 py-4 min-w-0">
                 <div class="flex items-center gap-2 mb-2">
                    {#if i === 1}
-                      <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-sm font-black text-[8px] uppercase tracking-widest flex items-center gap-1 shadow-md shadow-amber-500/10">
+                      <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-sm font-bold text-[10px] uppercase tracking-widest flex items-center gap-1 shadow-md shadow-amber-500/10">
                         <Flame class="w-3 h-3 fill-black" /> BEST SELLER
                       </div>
                    {/if}
                    {#if cQty > 1}
-                      <div class="bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] px-1.5 py-0.5 rounded-sm font-black text-[8px] uppercase tracking-widest">Combo X{cQty}</div>
+                      <div class="bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] px-1.5 py-0.5 rounded-sm font-bold text-[10px] uppercase tracking-widest">Combo X{cQty}</div>
                    {/if}
                 </div>
 
@@ -232,7 +232,7 @@
                        <span class="font-black text-[23px] italic tracking-tighter leading-none transition-colors duration-300 {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{vPrice.toLocaleString()}đ</span>
                        <div class="flex items-center gap-1 mt-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1.5 py-0.5 rounded-full w-fit transition-all duration-300 transform-gpu origin-left {isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}">
                           <Sparkles class="w-2 h-2 text-[#FFB7C5] {isActive ? 'animate-pulse' : ''}" />
-                          <span class="text-[7px] font-black text-[#FFB7C5] uppercase tracking-widest">+{Math.floor(vPrice / 100000)} PTS</span>
+                          <span class="text-[10px] font-bold text-[#FFB7C5] uppercase tracking-widest">+{Math.floor(vPrice / 100000)} PTS</span>
                        </div>
                     </div>
                    {#if variant.price > vPrice}
@@ -252,7 +252,7 @@
                                   <Gift class="w-full h-full p-0.5 text-[#FFB7C5]" />
                                {/if}
                             </div>
-                            <span class="text-[8px] font-black text-white/50 uppercase italic truncate max-w-[80px]">+{gift.qty} {gift.name}</span>
+                            <span class="text-[10px] font-bold text-white/50 uppercase italic truncate max-w-[80px]">+{gift.qty} {gift.name}</span>
                          </div>
                       {/each}
                    </div>
@@ -274,7 +274,7 @@
                 <div class="w-6 h-6 rounded-full border border-white/40 flex items-center justify-center group-hover/info:border-white transition-colors">
                    <Info class="w-3.5 h-3.5 text-white/60 group-hover/info:text-white" />
                 </div>
-                <span class="text-[7px] font-black text-white/30 uppercase tracking-widest group-hover/info:text-white/60">Chi tiết</span>
+                <span class="text-[10px] font-bold text-white/30 uppercase tracking-widest group-hover/info:text-white/60">Chi tiết</span>
              </button>
 
 
@@ -358,8 +358,8 @@
               <div class="flex flex-col text-left leading-tight">
                 <span class="text-white text-[11px] font-black uppercase italic">CHỌN COMBO X{selectedVariant?.attributes?.combo_qty || 1}</span>
                 <div class="flex items-center gap-1.5 mt-0.5">
-                   <span class="text-[7px] text-[#FFB7C5] font-black uppercase tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20">TÍCH +{Math.floor(shopStore.totalAmount / 100000)} PTS</span>
-                   <span class="text-[7px] text-white/30 font-bold uppercase tracking-widest italic">• SHIP 0đ</span>
+                   <span class="text-[10px] text-[#FFB7C5] font-bold uppercase tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20">TÍCH +{Math.floor(shopStore.totalAmount / 100000)} PTS</span>
+                   <span class="text-[10px] text-white/30 font-bold uppercase tracking-widest italic">• SHIP 0đ</span>
                 </div>
               </div>
               <div class="flex items-center gap-3 ml-auto">

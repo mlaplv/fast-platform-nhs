@@ -202,7 +202,7 @@ body.live-edit-mode .is-disabled .content-container {
 .elite-hero-headline,
 .elite-session-headline {
   font-family: var(--font-main) !important;
-  font-weight: 950 !important;
+  font-weight: 800 !important;
   letter-spacing: -0.05em !important;
   line-height: 1.4 !important;
   margin: 0 !important;

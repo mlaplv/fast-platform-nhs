@@ -67,9 +67,9 @@
 .science-subheadline {
   margin-top: 0.75rem;
   color: rgba(255, 255, 255, 0.4);
-  font-size: 9px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.15rem;
+  letter-spacing: 0.12rem;
   font-weight: 800;
   line-height: 1.4;
   font-style: italic;
@@ -217,10 +217,10 @@
 }
 
 .faq-desc-min {
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 600;
     color: rgba(255,255,255,0.3);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
 }
 
 .faq-grid-mobile {
@@ -289,18 +289,18 @@
 }
 
 .footer-top-label {
-  font-size: 8px;
+  font-size: 10px;
   color: rgba(255, 255, 255, 0.2);
-  font-weight: 900;
-  letter-spacing: 0.3em;
+  font-weight: 800;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   margin-bottom: 0.125rem;
 }
 
 .footer-main-label {
-  font-size: 10px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.8);
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   font-style: italic;

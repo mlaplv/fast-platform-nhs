@@ -138,7 +138,7 @@
                   <span class="elite-status-dot"></span>
                </div>
                <span class="elite-status-text tracking-wider flex items-center gap-1">
-                  {viewers} <span class="text-white/60 font-medium lowercase">bạn đang xem</span>
+                  {viewers} <span class="text-white/60 font-semibold lowercase">bạn đang xem</span>
                </span>
             </div>
 
@@ -146,14 +146,14 @@
             <EditableWrapper path="price" label="SỬA GIÁ GỐC" class="block w-full pointer-events-auto">
               <div class="flex items-end gap-3 mt-1 pr-14">
                 {#if v?.discountPrice}
-                    <span class="text-3xl font-black text-white tracking-tighter drop-shadow-md">
+                    <span class="text-3xl font-extrabold text-white tracking-tighter drop-shadow-md">
                         {formatCurrency(v.discountPrice)}
                     </span>
                     <span class="text-sm text-white/40 line-through mb-1 font-bold">
                         {formatCurrency(v.price)}
                     </span>
                 {:else if v}
-                    <span class="text-3xl font-black text-white tracking-tighter drop-shadow-md">
+                    <span class="text-3xl font-extrabold text-white tracking-tighter drop-shadow-md">
                         {formatCurrency(v.price)}
                     </span>
                 {/if}
@@ -161,7 +161,7 @@
             </EditableWrapper>
 
             <!-- Title & Variant -->
-            <h1 class="text-3xl font-black text-white tracking-tighter mb-4 italic uppercase leading-none">
+            <h1 class="text-3xl font-extrabold text-white tracking-tighter mb-4 italic uppercase leading-none">
               <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
                   {h1}
               </EditableWrapper>
@@ -197,7 +197,7 @@
                 <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-xl rounded-md border border-white/20 shadow-lg pointer-events-auto">
                     <Icon class="w-3 h-3 text-[#FFB7C5]" />
                     <EditableWrapper path="metadata.hero_metrics[{i}].value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}" as="span">
-                      <span class="text-[9px] font-black text-white/90 uppercase tracking-tight">
+                      <span class="text-[10px] font-bold text-white/90 uppercase tracking-tight">
                         {metric.value}
                       </span>
                     </EditableWrapper>
@@ -211,7 +211,7 @@
                   {#if v.attributes.combo_qty && v.attributes.combo_qty > 1}
                      <div class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] rounded-full shadow-[0_4px_12px_rgba(255,183,197,0.3)] animate-pulse-gentle">
                         <Flame class="w-2.5 h-2.5 text-white fill-white" />
-                        <span class="text-[8px] font-black text-white uppercase tracking-widest italic leading-none">
+                        <span class="text-[10px] font-bold text-white uppercase tracking-widest italic leading-none">
                            TIẾT KIỆM COMBO X{v.attributes.combo_qty}
                         </span>
                      </div>
@@ -236,7 +236,7 @@
                            </div>
                            
                            <div class="flex-1 min-w-0">
-                              <div class="text-[7.5px] font-black text-white/30 uppercase tracking-[0.25em] mb-0.5 font-mono leading-none">Quà tặng đặc quyền</div>
+                              <div class="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-0.5 font-mono leading-none">Quà tặng đặc quyền</div>
                               <div class="space-y-0.5">
                                  {#each (v.attributes.gifts as GiftItem[]) as gift}
                                     <div class="flex items-center justify-between gap-1.5">
@@ -283,8 +283,8 @@
                         <ArrowRight class="w-4 h-4 ml-[2px]" />
                      </div>
                      <div class="flex flex-col items-start justify-center mt-[1px]">
-                        <span class="text-[12px] font-black text-white uppercase tracking-wider leading-[1.1] mb-[1.5px]">XEM LIỆU TRÌNH</span>
-                        <span class="text-[8px] font-bold text-[#FFB7C5] tracking-widest uppercase flex items-center gap-1 leading-none drop-shadow-md">
+                        <span class="text-[12px] font-bold text-white uppercase tracking-wider leading-[1.1] mb-[1.5px]">XEM LIỆU TRÌNH</span>
+                        <span class="text-[10px] font-bold text-[#FFB7C5] tracking-widest uppercase flex items-center gap-1 leading-none drop-shadow-md">
                            <Zap class="w-2.5 h-2.5" /> FREESHIP HỎA TỐC
                         </span>
                      </div>
@@ -292,8 +292,8 @@
                   
                   <!-- Right: Countdown -->
                   <div class="flex flex-col items-end justify-center relative z-surface mt-[1px]">
-                     <span class="text-[7.5px] font-bold text-white/50 uppercase tracking-widest mb-[1.5px]">KẾT THÚC SAU</span>
-                     <span class="text-[11px] font-black text-white font-mono tracking-tighter drop-shadow-md leading-none">{formattedTime}</span>
+                     <span class="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-[1.5px]">KẾT THÚC SAU</span>
+                     <span class="text-[11px] font-bold text-white font-mono tracking-tighter drop-shadow-md leading-none">{formattedTime}</span>
                   </div>
                </button>
             </div>
