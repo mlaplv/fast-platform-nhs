@@ -29,7 +29,7 @@
     if (!isDragging) return;
     const delta = e.clientY - startY;
     if (delta > 0) dragY = delta;
-    else dragY = delta * 0.2; // Tension when pulling up
+    else dragY = delta * 0.2;
   }
 
   function onPointerUp(e: PointerEvent) {
@@ -45,45 +45,129 @@
     active = false;
   }
 
-  // 🎙️ TTS: READ ALOUD ENGINE (Elite V2.6)
-  let isReading = $state(false);
+  // 🎙️ TTS: MASTER STREAM (Elite V4.0 - Professional Standard)
+  // Uses MediaSource for a single, continuous, gap-free stream.
+  let isReading: boolean = $state(false);
+  let isBuffering: boolean = $state(false);
+  let currentAudio: HTMLAudioElement | null = $state(null);
+  let mediaSource: MediaSource | null = null;
+  let sourceBuffer: SourceBuffer | null = null;
+  let abortController: AbortController | null = null;
 
-  function toggleSpeech() {
-    if (isReading) {
-      window.speechSynthesis.cancel();
-      isReading = false;
+  async function toggleSpeech(): Promise<void> {
+    if (isReading || isBuffering) {
+      stopSpeech();
       return;
     }
 
-    const text = contentRef?.innerText || "";
+    const text: string = contentRef?.innerText || "";
     if (!text) return;
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'vi-VN'; 
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
+    isBuffering = true;
     
-    utterance.onend = () => {
-      isReading = false;
-    };
+    try {
+      abortController = new AbortController();
+      const res: Response = await fetch('/api/v1/client/tts/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text.slice(0, 4000) }),
+        signal: abortController.signal
+      });
 
-    utterance.onerror = () => {
-      isReading = false;
-    };
+      if (!res.ok) throw new Error("Connection failed");
+      const reader: ReadableStreamDefaultReader<Uint8Array> | undefined = res.body?.getReader();
+      if (!reader) throw new Error("No stream body");
 
-    window.speechSynthesis.speak(utterance);
-    isReading = true;
+      // Initialize Native Audio Element
+      const audio: HTMLAudioElement = new Audio();
+      currentAudio = audio;
+      
+      // Setup MediaSource Pipeline
+      mediaSource = new MediaSource();
+      audio.src = URL.createObjectURL(mediaSource);
+
+      mediaSource.addEventListener('sourceopen', async () => {
+        if (!mediaSource) return;
+        
+        // Elite R2: Force MPEG-1 Audio Layer III (Standard MP3)
+        sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+        
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              if (mediaSource && mediaSource.readyState === 'open') {
+                mediaSource.endOfStream();
+              }
+              break;
+            }
+            
+            if (value && sourceBuffer) {
+              // Append chunk to buffer with state-check
+              if (!sourceBuffer.updating) {
+                sourceBuffer.appendBuffer(value);
+              } else {
+                await new Promise<void>(resolve => sourceBuffer?.addEventListener('updateend', () => resolve(), { once: true }));
+                if (sourceBuffer) sourceBuffer.appendBuffer(value);
+              }
+
+              // R4.0 Auto-Resume
+              if (audio.paused && isBuffering) {
+                audio.play().catch(() => {});
+              }
+            }
+          }
+        } catch (err) {
+          console.error('[TTS] Stream error:', err);
+        }
+      });
+
+      audio.onplay = () => {
+        isBuffering = false;
+        isReading = true;
+      };
+
+      audio.onended = () => cleanup();
+      audio.onerror = () => cleanup();
+
+    } catch (e: any) {
+      if (e.name !== 'AbortError') {
+        console.error('[TTS] Master Stream Error:', e);
+      }
+      cleanup();
+    }
   }
 
-  // Auto-cleanup on close or unmount
-  $effect(() => {
-    if (!active) {
-      window.speechSynthesis.cancel();
-      isReading = false;
+  function stopSpeech(): void {
+    cleanup();
+  }
+
+  function cleanup() {
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
     }
-    return () => {
-      window.speechSynthesis.cancel();
-    };
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.src = "";
+      currentAudio = null;
+    }
+    if (mediaSource && mediaSource.readyState === 'open') {
+      try { mediaSource.endOfStream(); } catch(e) {}
+    }
+    mediaSource = null;
+    sourceBuffer = null;
+    isReading = false;
+    isBuffering = false;
+  }
+
+  // Stop speech when modal closes
+  let wasActive = false;
+  $effect(() => {
+    if (wasActive && !active) {
+      stopSpeech();
+    }
+    wasActive = active;
   });
 </script>
 
@@ -122,10 +206,13 @@
       <!-- 🎙️ READ ALOUD BUTTON (Left) -->
       <button
         onclick={toggleSpeech}
-        class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 px-3 py-2 rounded-full transition-all active:scale-95 {isReading ? 'bg-[#FFB7C5]/20 text-[#FFB7C5]' : 'text-white/20'}"
+        class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 px-3 py-2 rounded-full transition-all active:scale-95 {isReading || isBuffering ? 'bg-[#FFB7C5]/20 text-[#FFB7C5]' : 'text-white/20'}"
         aria-label={isReading ? "Dừng đọc" : "Đọc thông tin"}
       >
-        {#if isReading}
+        {#if isBuffering}
+          <div class="w-4 h-4 border-2 border-[#FFB7C5] border-t-transparent rounded-full animate-spin"></div>
+          <span class="text-[8px] font-black uppercase tracking-widest italic">...</span>
+        {:else if isReading}
           <VolumeX size={16} class="animate-pulse" />
           <span class="text-[8px] font-black uppercase tracking-widest italic">Dừng</span>
         {:else}

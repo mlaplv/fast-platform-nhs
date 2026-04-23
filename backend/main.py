@@ -68,6 +68,7 @@ from backend.controllers.banner import BannerController
 from backend.routers.content_stream import ContentStreamController
 from backend.routers.voice_core import stt_websocket
 from backend.controllers.tts_handler import TTSController
+from backend.controllers.client.tts import PublicTTSController
 from backend.routers.intent_map import IntentMapController
 from backend.routers.scheduler_router import SchedulerController
 from backend.controllers.client.fomo import FomoController
@@ -121,7 +122,8 @@ app = Litestar(
         AdminReviewController, PublicReviewController, SupportController, ClientPulseController, AdminSupportController, AdminSupportInboxController,
         PublicNewsController, ClientSettingsController, ClientUserController, PromotionController,
         ClientNotificationController,
-        FomoController
+        FomoController,
+        PublicTTSController
     ],
     middleware=[StallDetectorMiddleware, BodyLimitMiddleware, rate_limit_config.middleware, AuthMiddleware, DomainGuardMiddleware, AuditMiddleware],
     cors_config=cors_config,
