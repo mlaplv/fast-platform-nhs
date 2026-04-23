@@ -6,6 +6,7 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import type { ProductVariant } from '$lib/types';
   import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
+  import MobileVariantTabs from '../MobileVariantTabs.svelte';
 
   let { product: propProduct } = $props();
   const shopStore = getShopStore();
@@ -98,6 +99,7 @@
 </script>
 
 <div class="h-full w-full relative group">
+  <MobileVariantTabs />
   <div 
     class="variant-slider-container h-full" 
     bind:this={variantScroller}

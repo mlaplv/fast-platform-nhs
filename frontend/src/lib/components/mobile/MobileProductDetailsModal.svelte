@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Product } from '$lib/types';
-  import { X, ShieldCheck, Info } from 'lucide-svelte';
+  import { X, ShieldCheck, Info, Volume2, VolumeX } from 'lucide-svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
 
@@ -44,6 +44,47 @@
   function close() { 
     active = false;
   }
+
+  // 🎙️ TTS: READ ALOUD ENGINE (Elite V2.6)
+  let isReading = $state(false);
+
+  function toggleSpeech() {
+    if (isReading) {
+      window.speechSynthesis.cancel();
+      isReading = false;
+      return;
+    }
+
+    const text = contentRef?.innerText || "";
+    if (!text) return;
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'vi-VN'; 
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    
+    utterance.onend = () => {
+      isReading = false;
+    };
+
+    utterance.onerror = () => {
+      isReading = false;
+    };
+
+    window.speechSynthesis.speak(utterance);
+    isReading = true;
+  }
+
+  // Auto-cleanup on close or unmount
+  $effect(() => {
+    if (!active) {
+      window.speechSynthesis.cancel();
+      isReading = false;
+    }
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  });
 </script>
 
 <div use:portal class="mobile-product-details-modal">
@@ -65,38 +106,56 @@
     role="dialog"
     aria-modal="true"
   >
-    <!-- Drag Handle -->
-    <div 
-      class="w-full flex justify-center pt-3 pb-2 relative touch-none cursor-grab active:cursor-grabbing border-b border-white/5 shrink-0"
-      onpointerdown={onPointerDown}
-      onpointermove={onPointerMove}
-      onpointerup={onPointerUp}
-      onpointercancel={onPointerUp}
-    >
-      <div class="w-10 h-1 bg-white/10 rounded-full"></div>
-    </div>
+    <!-- 🚀 COMPACT HEADER (Elite V2.6) -->
+    <div class="sticky top-0 w-full z-header bg-[#0a0a0a] border-b border-white/5 shrink-0">
+      <!-- Minimalist Drag Handle -->
+      <div 
+        class="w-full flex justify-center pt-2.5 pb-1 touch-none cursor-grab active:cursor-grabbing"
+        onpointerdown={onPointerDown}
+        onpointermove={onPointerMove}
+        onpointerup={onPointerUp}
+        onpointercancel={onPointerUp}
+      >
+        <div class="w-8 h-[2px] bg-white/10 rounded-full"></div>
+      </div>
 
-    <!-- Close Button (Elegant Ghost - Elite V2.2) -->
-    <button
-      onclick={close}
-      class="absolute right-6 top-6 text-white/30 hover:text-white transition-all z-[1100] active:scale-75 outline-none border-none bg-transparent"
-      aria-label="Đóng"
-    >
-      <X size={22} strokeWidth={1.2} />
-    </button>
+      <!-- 🎙️ READ ALOUD BUTTON (Left) -->
+      <button
+        onclick={toggleSpeech}
+        class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2 px-3 py-2 rounded-full transition-all active:scale-95 {isReading ? 'bg-[#FFB7C5]/20 text-[#FFB7C5]' : 'text-white/20'}"
+        aria-label={isReading ? "Dừng đọc" : "Đọc thông tin"}
+      >
+        {#if isReading}
+          <VolumeX size={16} class="animate-pulse" />
+          <span class="text-[8px] font-black uppercase tracking-widest italic">Dừng</span>
+        {:else}
+          <Volume2 size={16} />
+          <span class="text-[8px] font-black uppercase tracking-widest italic">Nghe</span>
+        {/if}
+      </button>
 
-    <!-- Header: Sticky at the top -->
-    <div class="relative flex items-center justify-center px-6 pb-2 pt-1 border-b border-white/5 bg-[#0a0a0a] shrink-0 z-header">
-      <h2 class="text-[12px] font-black uppercase tracking-[0.2em] italic text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 py-2 flex items-center gap-2">
-        <Info class="w-4 h-4 text-emerald-400" />
-        Thông tin sản phẩm
-      </h2>
+      <!-- Compact Header Title Row -->
+      <div class="flex items-center justify-center px-4 pb-2.5 pt-0">
+        <h2 class="text-[10px] font-black uppercase tracking-[0.25em] italic text-transparent bg-clip-text bg-gradient-to-r from-[#FFB7C5] to-[#E8D5B0] flex items-center gap-1.5 py-1">
+          <Info class="w-3 h-3 text-[#FFB7C5]" />
+          Thông tin sản phẩm
+        </h2>
+      </div>
+
+      <!-- Close Button (Elegant Integrated X) -->
+      <button
+        onclick={close}
+        class="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-all p-2 active:scale-75 outline-none border-none bg-transparent"
+        aria-label="Đóng"
+      >
+        <X size={18} strokeWidth={2} />
+      </button>
     </div>
 
     <!-- Scrollable Description Body -->
     <div 
       bind:this={contentRef}
-      class="px-6 py-6 overflow-y-auto custom-scrollbar flex-1 relative elite-prose select-text"
+      class="px-4 py-6 overflow-y-auto custom-scrollbar flex-1 relative elite-prose select-text"
     >
       {#if product?.description}
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -110,7 +169,7 @@
     </div>
 
     <!-- Footer sticky -->
-    <div class="shrink-0 flex items-center justify-center px-6 py-4 border-t border-white/5 bg-[#0a0a0a]">
+    <div class="shrink-0 flex items-center justify-center px-4 py-4 border-t border-white/5 bg-[#0a0a0a]">
       <div class="flex items-center gap-2 text-[9px] font-bold text-white/30 uppercase tracking-[0.25em] italic">
         <ShieldCheck class="w-3.5 h-3.5 text-blue-500/80" />
         <span class="text-transparent bg-clip-text bg-gradient-to-r from-white/60 to-white/30">Hệ thống thông tin chính hãng</span>
@@ -123,10 +182,10 @@
   /* Elite Prose Typography - VIRAL 2026 PREMIUM EDITION */
   .elite-prose {
     font-family: 'Be Vietnam Pro', sans-serif;
-    font-size: 15px;
-    line-height: 1.8;
+    font-size: 14px;
+    line-height: 1.6;
     color: rgba(255, 255, 255, 0.7);
-    text-align: left; /* 🚀 CRITICAL FIX: Stops the "chuối" justified text gaps */
+    text-align: left !important;
     word-break: break-word;
     letter-spacing: -0.01em;
   }
@@ -137,24 +196,24 @@
     color: white;
     font-weight: 950;
     line-height: 1.2;
-    margin-top: 2.5rem;
-    margin-bottom: 1.25rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
     letter-spacing: -0.03em;
     text-transform: uppercase;
     position: relative;
     width: fit-content;
   }
   
-  :global(.elite-prose h1) { font-size: 1.4rem; }
+  :global(.elite-prose h1) { font-size: 1.2rem; }
   :global(.elite-prose h2) { 
-    font-size: 1.15rem;
+    font-size: 1.05rem;
     color: #fff;
-    border-left: 3px solid #00A3FF;
-    padding-left: 14px;
-    margin-left: -20px;
-    background: linear-gradient(90deg, rgba(0, 163, 255, 0.1) 0%, transparent 100%);
-    padding-top: 8px;
-    padding-bottom: 8px;
+    border-left: 3px solid #FFB7C5;
+    padding-left: 12px;
+    margin-left: -16px;
+    background: linear-gradient(90deg, rgba(255, 183, 197, 0.1) 0%, transparent 100%);
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
   
   :global(.elite-prose h3) { 
@@ -164,8 +223,8 @@
   }
 
   :global(.elite-prose p) {
-    margin-bottom: 1.5rem;
-    opacity: 0.85;
+    margin-bottom: 1rem;
+    opacity: 0.8;
   }
 
   :global(.elite-prose strong, .elite-prose b) {
@@ -176,27 +235,27 @@
   /* Viral Glowy Bullets */
   :global(.elite-prose ul) {
     list-style-type: none;
-    padding-left: 0.5rem;
-    margin-bottom: 2rem;
+    padding-left: 0;
+    margin-bottom: 1.5rem;
   }
 
   :global(.elite-prose li) {
     position: relative;
-    padding-left: 1.75rem;
-    margin-bottom: 1rem;
-    line-height: 1.6;
+    padding-left: 1.5rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
   }
 
   :global(.elite-prose li::before) {
     content: '';
     position: absolute;
     left: 0;
-    top: 0.6em;
+    top: 0.5em;
     width: 6px;
     height: 6px;
-    background: #00A3FF;
+    background: #FFB7C5;
     border-radius: 50%;
-    box-shadow: 0 0 12px #00A3FF, 0 0 4px #00A3FF;
+    box-shadow: 0 0 10px #FFB7C5;
   }
 
   :global(.elite-prose a) {
@@ -215,17 +274,18 @@
     height: auto;
     border-radius: 12px;
     margin: 1.5rem 0;
+    margin: 1rem 0;
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     border: 1px solid rgba(255,255,255,0.1);
   }
   
   :global(.elite-prose blockquote) {
-    border-left: 3px solid #3b82f6;
+    border-left: 3px solid #FFB7C5;
     padding-left: 1rem;
     font-style: italic;
-    color: rgba(255,255,255,0.7);
+    color: rgba(255, 255, 255, 0.7);
     margin: 1.5rem 0;
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.1) 0%, transparent 100%);
+    background: linear-gradient(90deg, rgba(255, 183, 197, 0.1) 0%, transparent 100%);
     padding: 1rem;
     border-radius: 0 8px 8px 0;
   }

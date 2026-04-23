@@ -22,35 +22,34 @@
 </script>
 
 <div
-  class="fixed top-0 left-0 right-0 flex justify-center pt-safe-top tabs-container"
+  class="absolute top-0 left-0 right-0 flex justify-center pt-tabs tabs-container"
   class:tabs-hidden={hidden}
 >
-  <div class="flex items-center gap-6 px-6 py-4">
+  <div class="glass-capsule relative flex items-center p-1 bg-white/[0.03] backdrop-blur-[40px] border border-white/10 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)]">
+    <!-- 🚀 iOS 26 Sliding Active Pill -->
+    {#if activeIndex !== -1}
+      <div 
+        class="absolute top-1 bottom-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-[0_2px_10px_rgba(0,0,0,0.2),inset_0_1px_1px_rgba(255,255,255,0.1)]"
+        style="width: calc((100% - 8px) / {variants.length}); left: calc(4px + {activeIndex} * (100% - 8px) / {variants.length})"
+      ></div>
+    {/if}
+
     {#each variants as variant, i}
       <button
-        class="relative flex flex-col items-center group transition-all duration-300"
+        class="relative px-6 py-2.5 rounded-full transition-all duration-500 z-10 {activeIndex === i ? 'text-white' : 'text-white/30 hover:text-white/60'}"
         onclick={() => selectVariant(i)}
       >
-        <span
-          class="text-[11px] font-black tracking-widest transition-all duration-300 uppercase {activeIndex === i ? 'text-white scale-110 shadow-glow-text' : 'text-white/30'}"
-        >
+        <span class="text-[10px] font-black uppercase tracking-[0.25em] italic whitespace-nowrap drop-shadow-sm">
           {variant}
         </span>
-        
-        {#if activeIndex === i}
-          <div
-            class="absolute -bottom-2 w-4 h-[3px] bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,1)]"
-            transition:scale={{ duration: 300, start: 0 }}
-          ></div>
-        {/if}
       </button>
     {/each}
   </div>
 </div>
 
 <style lang="postcss">
-  .pt-safe-top {
-    padding-top: env(safe-area-inset-top, 20px);
+  .pt-tabs {
+    padding-top: calc(env(safe-area-inset-top, 20px) + 16px);
   }
 
   .tabs-container {
@@ -64,12 +63,5 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-  }
-
-  .shadow-glow-text {
-    /* Adaptive shadow: visible on white, transparent on black */
-    text-shadow: 
-      0 1px 2px rgba(0, 0, 0, 0.8),
-      0 0 15px rgba(0, 0, 0, 0.4);
   }
 </style>

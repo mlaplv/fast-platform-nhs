@@ -274,7 +274,7 @@
                 if (variant) {
                   shopStore.selectVariant(variant);
                 }
-                document.getElementById('offer-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document.getElementById('offers')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
               class="w-full py-4 bg-[#FFB7C5]/90 rounded-2xl font-black text-slate-950 text-[13px] tracking-[0.3em] flex items-center justify-center gap-2 active:scale-95 transition-all uppercase italic shadow-[0_10px_30px_rgba(255,183,197,0.2)]"
             >

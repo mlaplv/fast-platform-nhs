@@ -14,7 +14,7 @@
   import type { ProductVariant, Product, Voucher } from '$lib/types';
   import { 
     ShoppingCart, Clock, Zap, Check, Gift, Truck, 
-    ShieldCheck, Eye, Sparkles, Flame, Star, ShoppingBag, ArrowRight
+    ShieldCheck, Eye, Sparkles, Flame, Star, ShoppingBag, ArrowRight, Info
   } from 'lucide-svelte';
   import { fade, fly, scale } from 'svelte/transition';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
@@ -22,7 +22,7 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
   // --- Props & State (Runes) ---
-  let { product: propProduct } = $props();
+  let { product: propProduct, onOpenDetails } = $props();
   const shopStore = getShopStore();
   const cartStore = getCartStore();
   
@@ -179,92 +179,106 @@
     <!-- 🎛️ VARIANT SELECTOR -->
     <div class="flex flex-col">
       {#each variants as variant, i (variant.id || i)}
-         {@const cQty = variant.attributes?.combo_qty || 0}
-         {@const vPrice = variant.discountPrice || variant.price}
+         {@const cQty = variant.attributes?.combo_qty || 1}
+         {@const priceData = shopStore.calculateAdjustedPrice(variant, 1)}
+         {@const vPrice = priceData.final}
          {@const isActive = selectedIndex === i}
          
-         <button 
-           onclick={() => handleSelect(i)}
-           class="relative w-full text-left transition-all duration-500 h-[145px] flex items-center overflow-hidden {isActive ? 'bg-white/[0.08] border-y border-white/20 z-surface z-10 shadow-[0_0_40px_rgba(255,183,197,0.1)]' : 'bg-transparent border-y border-white/5 opacity-40 hover:opacity-100'}"
-         >
-            <div class="absolute inset-0 bg-gradient-to-r from-[#FFB7C5]/15 via-transparent to-[#E8D5B0]/10 pointer-events-none transition-opacity duration-500 {isActive ? 'opacity-100' : 'opacity-0'}"></div>
-            
-            <!-- 🖼️ FULL HEIGHT EDGE IMAGE -->
-            <div class="w-[125px] h-full shrink-0 relative bg-white/5 overflow-hidden">
-               {#if variantImages[i]}
-                 <img 
-                   src={variantImages[i]} 
-                   alt={getVariantTitle(variant)} 
-                   loading="lazy"
-                   decoding="async"
-                   width="125"
-                   height="145"
-                   class="w-full h-full object-cover transition-all {isActive ? 'brightness-110' : 'grayscale-[40%]'}" 
-                 />
-               {:else}
-                  <div class="w-full h-full flex items-center justify-center">
-                     <ShoppingCart class="w-8 h-8 text-white/5" />
-                  </div>
-               {/if}
-               <div class="absolute inset-0 ring-4 ring-inset ring-[#FFB7C5]/20 shadow-[inset_0_0_40px_rgba(255,183,197,0.2)] transition-opacity duration-500 {isActive ? 'opacity-100' : 'opacity-0'}"></div>
-            </div>
-
-            <div class="flex-1 flex flex-col justify-center px-6 py-4 min-w-0">
-               <div class="flex items-center gap-2 mb-2">
-                  {#if i === 1}
-                     <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-sm font-black text-[8px] uppercase tracking-widest flex items-center gap-1 shadow-md shadow-amber-500/10">
-                       <Flame class="w-3 h-3 fill-black" /> BEST SELLER
-                     </div>
-                  {/if}
-                  {#if cQty > 1}
-                     <div class="bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] px-1.5 py-0.5 rounded-sm font-black text-[8px] uppercase tracking-widest">Combo X{cQty}</div>
-                  {/if}
-               </div>
-
-               <span class="font-black uppercase tracking-tight italic text-[20px] leading-tight transition-all truncate {isActive ? 'text-white drop-shadow-md' : 'text-white/40'}">{getVariantTitle(variant)}</span>
-               
-               <div class="flex items-end gap-2.5 my-1.5">
-                   <div class="flex flex-col">
-                      <span class="font-black text-[23px] italic tracking-tighter leading-none transition-colors duration-300 {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{vPrice.toLocaleString()}đ</span>
-                      <div class="flex items-center gap-1 mt-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1.5 py-0.5 rounded-full w-fit transition-all duration-300 transform-gpu origin-left {isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}">
-                         <Sparkles class="w-2 h-2 text-[#FFB7C5] {isActive ? 'animate-pulse' : ''}" />
-                         <span class="text-[7px] font-black text-[#FFB7C5] uppercase tracking-widest">+{Math.floor(vPrice / 100000)} PTS</span>
-                      </div>
+          <div 
+            role="button"
+            tabindex="0"
+            onclick={() => handleSelect(i)}
+            onkeydown={(e) => e.key === 'Enter' && handleSelect(i)}
+            class="relative w-full text-left transition-all duration-500 h-[145px] flex items-center overflow-hidden cursor-pointer {isActive ? 'bg-white/[0.08] border-y border-white/20 z-surface z-10 shadow-[0_0_40px_rgba(255,183,197,0.1)]' : 'bg-transparent border-y border-white/5 opacity-40 hover:opacity-100'}"
+          >
+             <div class="absolute inset-0 bg-gradient-to-r from-[#FFB7C5]/15 via-transparent to-[#E8D5B0]/10 pointer-events-none transition-opacity duration-500 {isActive ? 'opacity-100' : 'opacity-0'}"></div>
+             
+             <!-- 🖼️ FULL HEIGHT EDGE IMAGE -->
+             <div class="w-[125px] h-full shrink-0 relative bg-white/5 overflow-hidden">
+                {#if variantImages[i]}
+                  <img 
+                    src={variantImages[i]} 
+                    alt={getVariantTitle(variant)} 
+                    loading="lazy"
+                    decoding="async"
+                    width="125"
+                    height="145"
+                    class="w-full h-full object-cover transition-all {isActive ? 'brightness-110' : 'grayscale-[40%]'}" 
+                  />
+                {:else}
+                   <div class="w-full h-full flex items-center justify-center">
+                      <ShoppingCart class="w-8 h-8 text-white/5" />
                    </div>
-                  {#if variant.price > vPrice}
-                    <span class="text-[13px] text-white/20 line-through font-bold mb-1">{(variant.price).toLocaleString()}đ</span>
-                  {/if}
-               </div>
+                {/if}
+                <div class="absolute inset-0 ring-4 ring-inset ring-[#FFB7C5]/20 shadow-[inset_0_0_40px_rgba(255,183,197,0.2)] transition-opacity duration-500 {isActive ? 'opacity-100' : 'opacity-0'}"></div>
+             </div>
 
-               <!-- 🎁 GIFTS INTEGRATED -->
-               {#if variant.attributes?.gifts?.length > 0}
-                  <div class="flex flex-wrap gap-1.5 mt-1">
-                     {#each variant.attributes.gifts as gift}
-                        <div class="flex items-center gap-2 bg-white/10 border border-white/10 px-2 py-1 rounded-sm">
-                           <div class="w-4 h-4 rounded-none overflow-hidden bg-black/40">
-                              {#if gift.image}
-                                 <img src={resolveMediaUrl(gift.image)} alt={gift.name} loading="lazy" decoding="async" width="16" height="16" class="w-full h-full object-cover" />
-                              {:else}
-                                 <Gift class="w-full h-full p-0.5 text-[#FFB7C5]" />
-                              {/if}
-                           </div>
-                           <span class="text-[8px] font-black text-white/50 uppercase italic truncate max-w-[80px]">+{gift.qty} {gift.name}</span>
-                        </div>
-                     {/each}
-                  </div>
-               {/if}
+             <div class="flex-1 flex flex-col justify-center px-6 py-4 min-w-0">
+                <div class="flex items-center gap-2 mb-2">
+                   {#if i === 1}
+                      <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-sm font-black text-[8px] uppercase tracking-widest flex items-center gap-1 shadow-md shadow-amber-500/10">
+                        <Flame class="w-3 h-3 fill-black" /> BEST SELLER
+                      </div>
+                   {/if}
+                   {#if cQty > 1}
+                      <div class="bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] px-1.5 py-0.5 rounded-sm font-black text-[8px] uppercase tracking-widest">Combo X{cQty}</div>
+                   {/if}
+                </div>
 
-               <div class="w-full h-1 bg-white/5 rounded-full mt-3 overflow-hidden shadow-inner transition-opacity duration-300 {isActive ? 'opacity-100' : 'opacity-0'}">
-                  <div class="h-full bg-[#FFB7C5] shadow-[0_0_15px_rgba(255,183,197,0.8)] transition-all duration-700 ease-out" style="width: {isActive ? Math.max(10, 90 - (i * 20)) : 0}%"></div>
-               </div>
-            </div>
-            
-            <div class="absolute right-4 top-1/2 -translate-y-1/2 transition-all duration-300 transform-gpu {isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}">
-               <div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#FFB7C5] to-[#E8D5B0] flex items-center justify-center shadow-[0_5px_15px_rgba(255,183,197,0.4)] ring-4 ring-[#FFB7C5]/20">
-                  <Check class="w-4 h-4 text-black stroke-[4]" />
-               </div>
-            </div>
-          </button>
+                <span class="font-black uppercase tracking-tight italic text-[20px] leading-tight transition-all truncate {isActive ? 'text-white drop-shadow-md' : 'text-white/40'}">{getVariantTitle(variant)}</span>
+                
+                <div class="flex items-end gap-2.5 my-1.5">
+                    <div class="flex flex-col">
+                       <span class="font-black text-[23px] italic tracking-tighter leading-none transition-colors duration-300 {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{vPrice.toLocaleString()}đ</span>
+                       <div class="flex items-center gap-1 mt-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1.5 py-0.5 rounded-full w-fit transition-all duration-300 transform-gpu origin-left {isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}">
+                          <Sparkles class="w-2 h-2 text-[#FFB7C5] {isActive ? 'animate-pulse' : ''}" />
+                          <span class="text-[7px] font-black text-[#FFB7C5] uppercase tracking-widest">+{Math.floor(vPrice / 100000)} PTS</span>
+                       </div>
+                    </div>
+                   {#if variant.price > vPrice}
+                     <span class="text-[13px] text-white/20 line-through font-bold mb-1">{(variant.price).toLocaleString()}đ</span>
+                   {/if}
+                </div>
+
+                <!-- 🎁 GIFTS INTEGRATED -->
+                {#if variant.attributes?.gifts?.length > 0}
+                   <div class="flex flex-wrap gap-1.5 mt-1">
+                      {#each variant.attributes.gifts as gift}
+                         <div class="flex items-center gap-2 bg-white/10 border border-white/10 px-2 py-1 rounded-sm">
+                            <div class="w-4 h-4 rounded-none overflow-hidden bg-black/40">
+                               {#if gift.image}
+                                  <img src={resolveMediaUrl(gift.image)} alt={gift.name} loading="lazy" decoding="async" width="16" height="16" class="w-full h-full object-cover" />
+                               {:else}
+                                  <Gift class="w-full h-full p-0.5 text-[#FFB7C5]" />
+                               {/if}
+                            </div>
+                            <span class="text-[8px] font-black text-white/50 uppercase italic truncate max-w-[80px]">+{gift.qty} {gift.name}</span>
+                         </div>
+                      {/each}
+                   </div>
+                {/if}
+
+                <div class="w-full h-1 bg-white/5 rounded-full mt-3 overflow-hidden shadow-inner transition-opacity duration-300 {isActive ? 'opacity-100' : 'opacity-0'}">
+                   <div class="h-full bg-[#FFB7C5] shadow-[0_0_15px_rgba(255,183,197,0.8)] transition-all duration-700 ease-out" style="width: {isActive ? Math.max(10, 90 - (i * 20)) : 0}%"></div>
+                </div>
+             </div>
+             
+             <!-- ℹ️ VIEW DETAILS BUTTON (Viral iOS Style) -->
+             <button 
+               class="absolute right-4 top-4 flex flex-col items-center gap-1 group/info active:scale-95 transition-all z-20"
+               onclick={(e) => {
+                 e.stopPropagation();
+                 if (onOpenDetails) onOpenDetails();
+               }}
+             >
+                <div class="w-6 h-6 rounded-full border border-white/40 flex items-center justify-center group-hover/info:border-white transition-colors">
+                   <Info class="w-3.5 h-3.5 text-white/60 group-hover/info:text-white" />
+                </div>
+                <span class="text-[7px] font-black text-white/30 uppercase tracking-widest group-hover/info:text-white/60">Chi tiết</span>
+             </button>
+
+
+          </div>
        {/each}
     </div>
 
@@ -340,9 +354,9 @@
            class="w-full h-[70px] rounded-[2rem] font-black text-[15px] uppercase tracking-[0.1em] flex items-center justify-center transition-all duration-700 italic active:scale-95 bg-white/10 backdrop-blur-3xl border border-white/20 shadow-2xl relative group overflow-hidden pointer-events-auto cursor-pointer"
          >
            <div class="absolute inset-0 bg-gradient-to-r from-[#FFB7C5]/20 via-transparent to-[#FFB7C5]/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-           <div class="relative z-10 flex items-center justify-between w-full px-6 gap-3">
+           <div class="relative z-10 flex items-center justify-between w-full px-4 gap-2">
               <div class="flex flex-col text-left leading-tight">
-                <span class="text-white text-[13px] font-black uppercase italic">{selectedIndex === 0 ? OFFER_CONSTANTS.labels.cta_start : OFFER_CONSTANTS.labels.cta_full}</span>
+                <span class="text-white text-[11px] font-black uppercase italic">CHỌN COMBO X{selectedVariant?.attributes?.combo_qty || 1}</span>
                 <div class="flex items-center gap-1.5 mt-0.5">
                    <span class="text-[7px] text-[#FFB7C5] font-black uppercase tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20">TÍCH +{Math.floor(shopStore.totalAmount / 100000)} PTS</span>
                    <span class="text-[7px] text-white/30 font-bold uppercase tracking-widest italic">• SHIP 0đ</span>

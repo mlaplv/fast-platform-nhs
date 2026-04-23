@@ -209,6 +209,29 @@
       }
     };
   };
+
+  // ── SITE NAVIGATION LD (Google Sitelinks Support) ──────────────────────────
+  const siteNavigationLd = $derived.by(() => {
+    const sections = [
+      { name: 'Đầu trang', url: '#hero' },
+      { name: 'Chẩn đoán AI', url: '#diagnostics' },
+      { name: 'Cơ chế Khoa học', url: '#science' },
+      { name: 'Đánh giá thực tế', url: '#reviews' },
+      { name: 'Ưu đãi Đặc biệt', url: '#offers' }
+    ];
+    
+    return JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "Mục lục nội dung",
+      "itemListElement": sections.map((s, i) => ({
+        "@type": "ListItem",
+        "position": i + 1,
+        "name": s.name,
+        "url": s.url
+      }))
+    });
+  });
 </script>
 
 {#if seoMeta}
@@ -225,6 +248,7 @@
       seoMeta.json_ld_string,
       seoMeta.breadcrumb_ld_string,
       seoMeta.faq_ld_string,
+      siteNavigationLd
     ]}
   />
 {:else}

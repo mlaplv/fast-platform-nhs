@@ -4,7 +4,6 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import MobileActionStack from './MobileActionStack.svelte';
-  import MobileVariantTabs from './MobileVariantTabs.svelte';
 
   // Dedicated Mobile Sections
   import MobileVideoBanner from './sections/MobileVideoBanner.svelte';
@@ -48,7 +47,6 @@
   const isTikTokActive = $derived(activeSectionIndex === 0 && isTikTokVideo);
 
   const heroIndex = $derived(hasVideo ? 1 : 0);
-  const tabsHidden = $derived(activeSectionIndex !== heroIndex);
 
   // 🚀 ELITE MOBILE SCROLL COORDINATOR (O(1))
   let isScrollingDown = $state(false);
@@ -115,32 +113,31 @@
 
 <div class="mobile-snap-container relative h-screen overflow-y-auto" onscroll={handleScroll}>
   <!-- PERSISTENT OVERLAYS -->
-  <MobileVariantTabs hidden={tabsHidden} />
   <MobileActionStack 
     {product} 
     {isTikTokActive}
     {isScrollingDown}
     onPurchase={() => {
-      document.getElementById('offer-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('offers')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }} 
     onOpenDetails={() => isDetailsModalOpen = true}
     onChat={() => supportAgent.toggle()}
   />
   {#if hasVideo}
-    <section class="mobile-snap-section video-section" data-section-idx="0">
+    <section id="video-banner" class="mobile-snap-section video-section" data-section-idx="0">
       <MobileVideoBanner {product} />
     </section>
   {/if}
 
   <!-- SECTION 1 (or 0 if no video): NATIVE HERO (variant slider) -->
-  <section class="mobile-snap-section" data-section-idx={hasVideo ? 1 : 0}>
+  <section id="hero" class="mobile-snap-section" data-section-idx={hasVideo ? 1 : 0}>
     <MobileHero {product} />
   </section>
 
   <div id="mobile-jit-trigger"></div>
 
   <!-- SECTION 2: NATIVE DIAGNOSTICS -->
-  <section id="diagnostics-section" class="mobile-snap-section" data-section-idx={hasVideo ? 2 : 1}>
+  <section id="diagnostics" class="mobile-snap-section" data-section-idx={hasVideo ? 2 : 1}>
     {#if loadJIT}
       {#await import('./sections/MobileDiagnostics.svelte') then { default: MobileDiagnostics }}
         <MobileDiagnostics {product} />
@@ -151,7 +148,7 @@
   </section>
 
   <!-- SECTION 3: NATIVE SCIENCE -->
-  <section class="mobile-snap-section" data-section-idx={hasVideo ? 3 : 2}>
+  <section id="science" class="mobile-snap-section" data-section-idx={hasVideo ? 3 : 2}>
     {#if loadJIT}
       {#await import('./sections/MobileScience.svelte') then { default: MobileScience }}
         <MobileScience {product} />
@@ -162,7 +159,7 @@
   </section>
 
   <!-- SECTION 4: NATIVE REVIEWS -->
-  <section class="mobile-snap-section" data-section-idx={hasVideo ? 4 : 3}>
+  <section id="reviews" class="mobile-snap-section" data-section-idx={hasVideo ? 4 : 3}>
     {#if loadJIT}
       {#await import('./sections/MobileReviews.svelte') then { default: MobileReviews }}
         <MobileReviews {product} />
@@ -173,10 +170,10 @@
   </section>
 
   <!-- SECTION 5: NATIVE OFFER -->
-  <section id="offer-section" class="mobile-snap-section" data-section-idx={hasVideo ? 5 : 4}>
+  <section id="offers" class="mobile-snap-section" data-section-idx={hasVideo ? 5 : 4}>
     {#if loadJIT}
       {#await import('./sections/MobileOffer.svelte') then { default: MobileOffer }}
-        <MobileOffer {product} />
+        <MobileOffer {product} onOpenDetails={() => isDetailsModalOpen = true} />
       {/await}
     {:else}
       <div class="w-full min-h-[100vh] bg-black animate-pulse"></div>
@@ -185,4 +182,21 @@
 
 
   <MobileProductDetailsModal bind:active={isDetailsModalOpen} {product} />
+
+  <!-- 🔍 SEO INTERNAL LINKING (Google Sitelinks Support) -->
+  <nav class="sr-only" aria-label="Nội dung chính">
+    <ul>
+      <li><a href="#hero">Đầu trang</a></li>
+      <li><a href="#diagnostics">Chẩn đoán da liễu</a></li>
+      <li><a href="#science">Cơ chế khoa học</a></li>
+      <li><a href="#reviews">Đánh giá khách hàng</a></li>
+      <li><a href="#offers">Ưu đãi mua hàng</a></li>
+    </ul>
+  </nav>
 </div>
+
+<style lang="postcss">
+  :root {
+    --z-mobile-tabs: 1000;
+  }
+</style>
