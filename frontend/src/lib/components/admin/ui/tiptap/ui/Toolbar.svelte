@@ -24,6 +24,7 @@
   import StrikethroughIcon from 'lucide-svelte/icons/strikethrough';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+  import type { CleanOptions } from '$lib/state/xohiActions';
 
   let {
     editor,
@@ -43,7 +44,7 @@
     onOpenImage: () => void;
     onOpenLink: () => void;
     onClearHighlights: () => void;
-    onClean?: (() => void) | null;
+    onClean?: ((options: CleanOptions) => Promise<void>) | null;
     fullScreen?: boolean;
     onToggleFullScreen?: (() => void) | null;
     showSource?: boolean;
@@ -84,6 +85,15 @@
   
   let colorPopupPos = $state({ top: 0, left: 0 });
   let morePopupPos = $state({ top: 0, left: 0 });
+  let cleanPopupPos = $state({ top: 0, left: 0 });
+
+  let showCleanOptions = $state(false);
+  let cleanOptions = $state<CleanOptions>({
+    stripFont: true,
+    stripAlign: true,
+    stripRedundantWrappers: true,
+    stripEmpty: true
+  });
 
   function updatePopupPositions() {
     if (showColorPicker && colorButtonRef) {
@@ -94,10 +104,16 @@
       const rect = moreButtonRef.getBoundingClientRect();
       morePopupPos = { top: rect.bottom + 12, left: rect.right };
     }
+    if (showCleanOptions && cleanButtonRef) {
+      const rect = cleanButtonRef.getBoundingClientRect();
+      cleanPopupPos = { top: rect.bottom + 8, left: rect.right };
+    }
   }
 
+  let cleanButtonRef = $state<HTMLElement | null>(null);
+
   $effect(() => {
-    if (showColorPicker || showMore) {
+    if (showColorPicker || showMore || showCleanOptions) {
       updatePopupPositions();
       window.addEventListener('scroll', updatePopupPositions, true);
       window.addEventListener('resize', updatePopupPositions);
@@ -109,9 +125,10 @@
   });
 
   function handleToolbarScroll() {
-    if (showColorPicker || showMore) {
+    if (showColorPicker || showMore || showCleanOptions) {
       showColorPicker = false;
       showMore = false;
+      showCleanOptions = false;
     }
   }
   
@@ -371,14 +388,57 @@
   <!-- Island: Intelligence & Actions -->
   <div class="flex items-center gap-2">
     {#if onClean}
-      <button
-        onclick={onClean}
-        class="tb-neural-action bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500 hover:text-white group"
-        title="Neural Clean"
-      >
-        <SparklesIcon size={11} class="animate-pulse" />
-        <span class="{isThin ? 'hidden' : 'inline'} text-[9px]">Neural Clean</span>
-      </button>
+      <div class="relative">
+        <button
+          bind:this={cleanButtonRef}
+          onclick={() => showCleanOptions = !showCleanOptions}
+          class="tb-neural-action bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500 hover:text-white group {showCleanOptions ? 'active-neural !bg-orange-500 !text-white' : ''}"
+          title="Neural Clean Options"
+        >
+          <SparklesIcon size={11} class={showCleanOptions ? '' : 'animate-pulse'} />
+          <span class="{isThin ? 'hidden' : 'inline'} text-[9px]">Neural Clean</span>
+        </button>
+
+        {#if showCleanOptions}
+          <div 
+               use:portal
+               class="fixed bg-[#0d0d0d] border border-white/10 rounded-xl p-4 shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col gap-4 min-w-[220px]"
+               style="top: {cleanPopupPos.top}px; left: {cleanPopupPos.left}px; transform: translateX(-100%); z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_DROPDOWN}"
+          >
+            <div class="flex flex-col gap-1">
+              <span class="text-[10px] font-black uppercase tracking-widest text-orange-500">Neural Clean</span>
+              <span class="text-[8px] text-white/40">Select optimization parameters</span>
+            </div>
+
+            <div class="flex flex-col gap-3 py-2">
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" bind:checked={cleanOptions.stripFont} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
+                <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Clear Font Families</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" bind:checked={cleanOptions.stripAlign} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
+                <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Reset Text Alignment</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" bind:checked={cleanOptions.stripRedundantWrappers} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
+                <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Prune Redundant Tags</span>
+              </label>
+              <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="checkbox" bind:checked={cleanOptions.stripEmpty} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
+                <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Purge Empty Elements</span>
+              </label>
+            </div>
+
+            <button 
+              onclick={() => { onClean?.(cleanOptions); showCleanOptions = false; }}
+              class="w-full py-2 bg-orange-500 text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-orange-400 transition-all active:scale-95 shadow-lg shadow-orange-500/20"
+            >
+              Execute Neural Clean
+            </button>
+          </div>
+          <div use:portal class="fixed inset-0" style="z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_OVERLAY}" onclick={() => showCleanOptions = false}></div>
+        {/if}
+      </div>
     {/if}
 
     {#if toolbarActions.length > 0}

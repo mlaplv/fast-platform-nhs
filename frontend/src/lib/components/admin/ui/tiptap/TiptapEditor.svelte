@@ -15,6 +15,7 @@
   import type { MediaAsset } from '$lib/state/types';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { apiClient } from '$lib/utils/apiClient';
+  import { xohiActions, type CleanOptions } from '$lib/state/xohiActions';
 
   let {
     content = $bindable(),
@@ -134,7 +135,7 @@
     return intersect / union;
   }
 
-  async function handleClean() {
+  async function handleClean(options: CleanOptions = { stripFont: true, stripAlign: true, stripRedundantWrappers: true, stripEmpty: true }) {
     if (!editor || editor.isDestroyed) {
       console.warn('[Clean] Editor not ready');
       return;
@@ -143,106 +144,31 @@
 
     try {
       const html = editor.getHTML();
-
-      const div = document.createElement('div');
-      div.innerHTML = html;
-
-      // 1. Surgical Artifact Stripping: Remove rogue code blocks and excessive links
-      // Viral articles should not contain raw <code> or <pre> blocks unless explicitly intended.
-      const codeBlocks = div.querySelectorAll('pre, code');
-      codeBlocks.forEach(cb => {
-        cb.remove();
-      });
-
-      // Scan for Link Density (Spam detection)
-      const paragraphs = div.querySelectorAll('p');
-      paragraphs.forEach(p => {
-        const links = p.querySelectorAll('a');
-        const textLen = p.textContent?.length || 0;
-        if (links.length > 3 || (textLen > 0 && links.length / textLen > 0.05)) {
-          // If a paragraph is just a bunch of links or has too many, unwrap links but keep text
-          links.forEach(a => {
-            const span = document.createElement('span');
-            span.textContent = a.textContent;
-            a.replaceWith(span);
-          });
-        }
-      });
-
-      // 2. Structural Dedup (Viral 2026 Edition)
-      // Rule: Identify near-duplicate blocks while preserving the document hierarchy.
-      const THRESHOLD = 0.85; 
-      const keptTokens: Array<{ tokens: Set<string>; el: Element }> = [];
-      let removedCount = 0;
-
-      // We only dedup top-level blocks or list items to avoid destroying nested structures like figure/img
-      const blocksToDedup = div.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, blockquote');
       
-      blocksToDedup.forEach(el => {
-        const text = el.textContent?.trim() || "";
-        if (text.length < 20) return; 
+      // CNS V85.2: Use unified system cleaning logic
+      const cleanedHTML = await xohiActions.runClean(html, options);
 
-        const tokens = tokenize(text);
-        const duplicate = keptTokens.find(k => jaccard(tokens, k.tokens) >= THRESHOLD);
-
-        if (duplicate) {
-          el.remove();
-          removedCount++;
-        } else {
-          keptTokens.push({ tokens, el });
-        }
-      });
-
-
-      // 3. Viral NEURAL XOHI: Backend Semantic Polish
-      const interimHTML = div.innerHTML;
-
-      const response = await apiClient.post<{ data: { content: string } }>('/api/v1/content/clean', {
-        content: interimHTML
-      });
-
-      if (response && response.data && response.data.content) {
-        const finalContent = response.data.content;
-
-        // Elite V2.2 Deep Sync: Lock everything to prevent race conditions with Svelte 5 $effect
+      if (cleanedHTML) {
+        // Elite V2.2 Deep Sync: Lock everything to prevent race conditions
         isInternalUpdating = true;
         isSyncLocked = true;
 
-        editor.commands.setContent(finalContent, false);
+        editor.commands.setContent(cleanedHTML, false);
 
-        // Elite V2.2: Ensure Svelte reactivity & Tiptap internal render settle
         await tick();
 
-        // CNS V84.5: DIRECT SYNC - Avoid editor.getHTML() immediately as it might be stale
-        const cleaned = stripMarks(finalContent);
-        content = cleaned; // Sync bindable prop immediately
-        onChange(cleaned);
+        // CNS V84.5: DIRECT SYNC
+        const finalContent = stripMarks(cleanedHTML);
+        content = finalContent;
+        onChange(finalContent);
         updateMetrics();
 
-        // Safety lock: prevent redundant $effect syncs (RAG Startup Optimization-style stability)
-        setTimeout(() => {
-            isInternalUpdating = false;
-            isSyncLocked = false;
-        }, 150);
-
-      } else {
-        // Fallback to deduped content if backend fails
-        isInternalUpdating = true;
-        isSyncLocked = true;
-
-        editor.commands.setContent(interimHTML, false);
-        await tick();
-
-        const cleanedFallback = stripMarks(interimHTML);
-        content = cleanedFallback;
-        onChange(cleanedFallback);
-
+        // Safety lock
         setTimeout(() => {
             isInternalUpdating = false;
             isSyncLocked = false;
         }, 150);
       }
-
     } catch (err) {
       console.error('[Clean] Viral Clean Failed:', err);
     } finally {
@@ -352,9 +278,9 @@
         const normalizeHTML = (html: string) => {
             if (typeof document === 'undefined') return html.trim();
             const div = document.createElement('div');
-            // Rule 1: Collapse all whitespace (including newlines and multiple spaces)
-            // Rule 2: Standardize &nbsp; to space for comparison (Tiptap often converts them)
-            const clean = html
+            
+            // CNS V2.2: Strip temporary marks for comparison to prevent sync loops
+            const clean = stripMarks(html)
                 .replace(/&nbsp;/g, ' ')
                 .replace(/\s+/g, ' ')
                 .trim();
@@ -362,7 +288,6 @@
             div.innerHTML = clean;
 
             // Rule 3: Recursive pruning of empty nodes to match Backend NASP logic
-            // This prevents "ghost" tags from triggering sync loops
             const prune = (node: Node) => {
                 for (let i = node.childNodes.length - 1; i >= 0; i--) {
                     const child = node.childNodes[i];
