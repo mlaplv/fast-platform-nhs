@@ -45,14 +45,18 @@
     active = false;
   }
 
-  // 🎙️ TTS: MASTER STREAM (Elite V4.0 - Professional Standard)
-  // Uses MediaSource for a single, continuous, gap-free stream.
+  // 🎙️ TTS: MASTER STREAM (Elite V6.0 - Neural Memory Sync)
+  // Persists reading progress and audio chunks to survive F5.
   let isReading: boolean = $state(false);
   let isBuffering: boolean = $state(false);
   let currentAudio: HTMLAudioElement | null = $state(null);
   let mediaSource: MediaSource | null = null;
   let sourceBuffer: SourceBuffer | null = null;
   let abortController: AbortController | null = null;
+  
+  // R6.0 Memory State
+  const CACHE_NAME: string = "micsmo-tts-v1";
+  let productSlug: string = $derived(product?.slug || "unknown");
 
   async function toggleSpeech(): Promise<void> {
     if (isReading || isBuffering) {
@@ -66,89 +70,112 @@
     isBuffering = true;
     
     try {
-      abortController = new AbortController();
-      const res: Response = await fetch('/api/v1/client/tts/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text.slice(0, 4000) }),
-        signal: abortController.signal
-      });
-
-      if (!res.ok) throw new Error("Connection failed");
-      const reader: ReadableStreamDefaultReader<Uint8Array> | undefined = res.body?.getReader();
-      if (!reader) throw new Error("No stream body");
-
-      // Initialize Native Audio Element
-      const audio: HTMLAudioElement = new Audio();
-      currentAudio = audio;
+      // 1. Check for Cached Audio first (F5 Survival)
+      const cache = await caches.open(CACHE_NAME);
+      const cachedResponse = await cache.match(`/tts/${productSlug}`);
       
-      // Setup MediaSource Pipeline
-      mediaSource = new MediaSource();
-      audio.src = URL.createObjectURL(mediaSource);
+      let audioUrl: string;
+      
+      if (cachedResponse) {
+        const blob = await cachedResponse.blob();
+        audioUrl = URL.createObjectURL(blob);
+      } else {
+        // 2. No cache, fetch new stream
+        abortController = new AbortController();
+        const res: Response = await fetch('/api/v1/client/tts/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: text.slice(0, 4000) }),
+          signal: abortController.signal
+        });
 
-      mediaSource.addEventListener('sourceopen', async () => {
-        if (!mediaSource) return;
+        if (!res.ok) throw new Error("Connection failed");
         
-        // Elite R2: Force MPEG-1 Audio Layer III (Standard MP3)
-        sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
-        
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              if (mediaSource && mediaSource.readyState === 'open') {
-                mediaSource.endOfStream();
-              }
-              break;
-            }
-            
-            if (value && sourceBuffer) {
-              // Append chunk to buffer with state-check
-              if (!sourceBuffer.updating) {
-                sourceBuffer.appendBuffer(value);
-              } else {
-                await new Promise<void>(resolve => sourceBuffer?.addEventListener('updateend', () => resolve(), { once: true }));
-                if (sourceBuffer) sourceBuffer.appendBuffer(value);
-              }
+        // Elite R6: Capture stream for caching while playing
+        const clonedRes = res.clone();
+        cache.put(`/tts/${productSlug}`, clonedRes); // Background cache
 
-              // R4.0 Auto-Resume
-              if (audio.paused && isBuffering) {
-                audio.play().catch(() => {});
-              }
-            }
-          }
-        } catch (err) {
-          console.error('[TTS] Stream error:', err);
-        }
-      });
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error("No stream body");
+
+        // Standard MediaSource flow for instant play
+        mediaSource = new MediaSource();
+        audioUrl = URL.createObjectURL(mediaSource);
+        setupMediaSource(reader);
+      }
+
+      // 3. Initialize Audio
+      const audio: HTMLAudioElement = new Audio();
+      audio.src = audioUrl;
+      currentAudio = audio;
 
       audio.onplay = () => {
         isBuffering = false;
         isReading = true;
+        // Restore progress if exists
+        const savedTime = localStorage.getItem(`tts_pos_${productSlug}`);
+        if (savedTime) audio.currentTime = parseFloat(savedTime);
       };
 
-      audio.onended = () => cleanup();
+      // R6.0: Save progress every second
+      audio.ontimeupdate = () => {
+        if (audio.currentTime > 0) {
+          localStorage.setItem(`tts_pos_${productSlug}`, audio.currentTime.toString());
+        }
+      };
+
+      audio.onended = () => {
+        localStorage.removeItem(`tts_pos_${productSlug}`);
+        localStorage.setItem(`tts_done_${productSlug}`, "true");
+        cleanup();
+      };
+      
       audio.onerror = () => cleanup();
+      await audio.play();
 
     } catch (e: any) {
-      if (e.name !== 'AbortError') {
-        console.error('[TTS] Master Stream Error:', e);
-      }
+      if (e.name !== 'AbortError') console.error('[TTS] Sync Error:', e);
       cleanup();
     }
+  }
+
+  function setupMediaSource(reader: ReadableStreamDefaultReader<Uint8Array>): void {
+    if (!mediaSource) return;
+    mediaSource.addEventListener('sourceopen', async () => {
+      if (!mediaSource) return;
+      sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            if (mediaSource?.readyState === 'open') mediaSource.endOfStream();
+            break;
+          }
+          if (value && sourceBuffer) {
+            if (!sourceBuffer.updating) {
+              sourceBuffer.appendBuffer(value);
+            } else {
+              await new Promise<void>(resolve => sourceBuffer?.addEventListener('updateend', () => resolve(), { once: true }));
+              sourceBuffer?.appendBuffer(value);
+            }
+          }
+        }
+      } catch (err) { console.error('[TTS] Stream error:', err); }
+    });
   }
 
   function stopSpeech(): void {
     cleanup();
   }
 
-  function cleanup() {
+  function cleanup(): void {
     if (abortController) {
       abortController.abort();
       abortController = null;
     }
     if (currentAudio) {
       currentAudio.pause();
+      currentAudio.ontimeupdate = null;
       currentAudio.src = "";
       currentAudio = null;
     }
@@ -217,7 +244,15 @@
           <span class="text-[8px] font-black uppercase tracking-widest italic">Dừng</span>
         {:else}
           <Volume2 size={16} />
-          <span class="text-[8px] font-black uppercase tracking-widest italic">Nghe</span>
+          <span class="text-[8px] font-black uppercase tracking-widest italic">
+            {#if typeof window !== 'undefined' && localStorage.getItem(`tts_pos_${productSlug}`)}
+              Tiếp tục
+            {:else if typeof window !== 'undefined' && localStorage.getItem(`tts_done_${productSlug}`)}
+              Nghe lại
+            {:else}
+              Nghe
+            {/if}
+          </span>
         {/if}
       </button>
 

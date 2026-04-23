@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator
 import edge_tts
 
 logger = logging.getLogger("api-gateway")
@@ -17,6 +17,7 @@ async def stream_tts_public(text: str) -> AsyncGenerator[bytes, None]:
         return
 
     # Process everything in one high-performance stream
+    # R4.0: Zero-Hydration safety, direct binary stream
     communicate = edge_tts.Communicate(sanitized_text, "vi-VN-HoaiMyNeural")
     try:
         async for data in communicate.stream():
@@ -24,30 +25,6 @@ async def stream_tts_public(text: str) -> AsyncGenerator[bytes, None]:
                 yield data["data"]
     except Exception as e:
         logger.error(f"[TTS-Public] Master Stream failed: {e}")
-
-
-def _split_into_chunks(text: str, max_chars: int = 800) -> List[str]:
-    """Splits long text into chunks at natural sentence boundaries."""
-    sentences: List[str] = re.split(r'([\.!\?]\s+)', text)
-    chunks: List[str] = []
-    current_chunk: str = ""
-    
-    for i in range(0, len(sentences), 2):
-        sentence: str = sentences[i]
-        punctuation: str = sentences[i+1] if i+1 < len(sentences) else ""
-        full_sentence: str = sentence + punctuation
-        
-        if len(current_chunk) + len(full_sentence) > max_chars:
-            if current_chunk:
-                chunks.append(current_chunk.strip())
-            current_chunk = full_sentence
-        else:
-            current_chunk += full_sentence
-            
-    if current_chunk:
-        chunks.append(current_chunk.strip())
-        
-    return chunks
 
 
 def _sanitize_text(text: str) -> str:
@@ -59,7 +36,6 @@ def _sanitize_text(text: str) -> str:
         return ""
     
     # R5.0: ANTI-HACKER - Strip all potential SSML tags or control characters
-    # This prevents attackers from injecting <break time='10s'/> or other malicious tags.
     text = re.sub(r'[<>]', '', text)
     
     # 1. Clean HTML entities and hidden tags

@@ -1,77 +1,70 @@
 import os
 import time
-from typing import Optional, Final, Dict
+import logging
+from typing import Optional, Final, Dict, List
 from litestar import Controller, get, post, Request
 from litestar.response import Stream
 from litestar.exceptions import PermissionDeniedException, TooManyRequestsException
 from pydantic import BaseModel, Field, ConfigDict
 from backend.services.client_tts import stream_tts_public
 
-# R5.0: IP Rate Limiting State (In-Memory for 4GB limit)
-# CNS V5.0: Using a simple dict for rate tracking.
-RATE_LIMIT_STORE: Dict[str, list[float]] = {}
-LIMIT_WINDOW: Final[int] = 60  # 1 minute
-LIMIT_MAX_REQUESTS: Final[int] = 5  # Max 5 calls per minute
+logger = logging.getLogger("api-gateway")
+
+# R5.1: RAM-Safe Rate Limiter (Max 1000 unique IPs in memory)
+RATE_LIMIT_STORE: Dict[str, List[float]] = {}
+MAX_STORED_IPS: Final[int] = 1000
+LIMIT_WINDOW: Final[int] = 60
+LIMIT_MAX_REQUESTS: Final[int] = 5
 
 class TTSRequest(BaseModel):
     model_config = ConfigDict(frozen=True)
     text: str = Field(..., min_length=1, max_length=3000)
-
 
 class PublicTTSController(Controller):
     path: Final[str] = "/api/v1/client/tts"
 
     @get("/stream", sync_to_thread=False)
     async def get_public_tts_stream_get(self, request: Request, text: Optional[str] = None) -> Stream:
-        """Public TTS endpoint via GET."""
+        """Standardized TTS GET Entry."""
         self._validate_request(request)
-        input_text: str = text if text else ""
-        return self._create_tts_stream(input_text)
+        return self._create_tts_stream(text or "")
 
     @post("/stream", sync_to_thread=False)
     async def get_public_tts_stream_post(self, request: Request, data: TTSRequest) -> Stream:
-        """Public TTS endpoint via POST."""
+        """Standardized TTS POST Entry."""
         self._validate_request(request)
         return self._create_tts_stream(data.text)
 
     def _validate_request(self, request: Request) -> None:
-        """
-        Lockdown Defense V5.1: micsmo.com EXCLUSIVITY.
-        Only authorized domains can access the Voice Engine.
-        """
-        # 1. Domain Exclusivity Check (Anti-Stealing)
+        """Lockdown Defense V5.1: Security & RAM Guard."""
+        # 1. Domain Lockdown
         origin: str = request.headers.get("origin", "").lower()
         referer: str = request.headers.get("referer", "").lower()
         host: str = request.headers.get("host", "").lower()
         
-        # Elite SSOT: Authorized Domains - PRODUCTION ONLY
-        authorized_domains: Final[list[str]] = ["micsmo.com"]
-        
-        is_authorized: bool = any(domain in h for domain in authorized_domains for h in [origin, referer, host])
-        
-        if not is_authorized:
-            logger.warning(f"⛔ [Lockdown] Unauthorized domain attempt: host={host}, origin={origin}")
-            raise PermissionDeniedException("⛔ Lockdown: Voice service is exclusive to micsmo.com")
+        if not any("micsmo.com" in h for h in [origin, referer, host]):
+            raise PermissionDeniedException("⛔ Lockdown: Domain unauthorized.")
 
-        # 2. IP-based Rate Limiting (RAM Protection)
+        # 2. RAM-Safe Rate Limiting
         ip: str = request.client.host if request.client else "unknown"
         now: float = time.time()
         
-        if ip not in RATE_LIMIT_STORE:
-            RATE_LIMIT_STORE[ip] = []
+        # Prevent Store Overflow (RAM Protection R60.1)
+        if len(RATE_LIMIT_STORE) > MAX_STORED_IPS:
+            RATE_LIMIT_STORE.clear() # Emergency flush
             
-        # Clean old timestamps
-        RATE_LIMIT_STORE[ip] = [ts for ts in RATE_LIMIT_STORE[ip] if now - ts < LIMIT_WINDOW]
+        history: List[float] = RATE_LIMIT_STORE.get(ip, [])
+        history = [ts for ts in history if now - ts < LIMIT_WINDOW]
         
-        if len(RATE_LIMIT_STORE[ip]) >= LIMIT_MAX_REQUESTS:
-            logger.warning(f"🚨 [Security] Rate limit triggered for IP: {ip}")
-            raise TooManyRequestsException("⛔ Lockdown: Rate limit exceeded. Try again in 1 minute.")
+        if len(history) >= LIMIT_MAX_REQUESTS:
+            logger.warning(f"🚨 [Security] Rate limit: {ip}")
+            raise TooManyRequestsException("⛔ Lockdown: Rate limit exceeded.")
             
-        RATE_LIMIT_STORE[ip].append(now)
+        history.append(now)
+        RATE_LIMIT_STORE[ip] = history
 
     def _create_tts_stream(self, input_text: str) -> Stream:
-        """Helper to create the standardized TTS stream."""
-        safe_text: str = input_text[:3000] if input_text else ""
+        """Elite Stream Factory."""
         headers: Final[dict[str, str]] = {
             "Content-Type": "audio/mpeg",
             "Cache-Control": "public, max-age=3600",
@@ -79,6 +72,5 @@ class PublicTTSController(Controller):
             "Accept-Ranges": "bytes",
             "Connection": "keep-alive",
             "X-RateLimit-Limit": str(LIMIT_MAX_REQUESTS),
-            "X-RateLimit-Remaining": "calculating",
         }
-        return Stream(stream_tts_public(safe_text), headers=headers)
+        return Stream(stream_tts_public(input_text[:3000]), headers=headers)
