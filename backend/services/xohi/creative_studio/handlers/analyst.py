@@ -248,6 +248,7 @@ class AnalystHandler:
         from backend.services.xohi.creative_studio.models.schemas import BulkFixRequest
         from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
         from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
+        from backend.services.xohi.creative_studio.operatives.seo_analyzer import SeoAnalyzer
         
         if campaign_id and campaign_repo:
             campaign = await campaign_repo.get(campaign_id)
@@ -259,7 +260,12 @@ class AnalystHandler:
         
         try:
             fix_req = BulkFixRequest(**data)
-            op = PlagiarismCop() if fix_req.category == "copyright" else AiInspector()
+            if fix_req.category == "copyright":
+                op = PlagiarismCop()
+            elif fix_req.category == "seo":
+                op = SeoAnalyzer()
+            else:
+                op = AiInspector()
             res = await op.bulk_fix(campaign, fix_req)
             
             if res.new_content and res.new_content != campaign.draft_content:

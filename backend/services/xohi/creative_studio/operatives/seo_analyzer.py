@@ -14,7 +14,8 @@ from backend.utils.http_client import get_http_client
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin
-from backend.services.xohi.creative_studio.models.schemas import SeoReport, SeoSignal, SeoAnnotation
+from backend.services.xohi.creative_studio.models.schemas import SeoReport, SeoSignal, SeoAnnotation, BulkFixRequest, BulkFixResponse, AtomicFixResponse
+from backend.services.xohi.creative_studio.utils.stitcher import surgical_stitch
 from backend.database.repositories import ContentCampaignRepository
 from backend.database.models.content import ContentCampaign
 from backend.utils.config import get_env_json
@@ -66,6 +67,23 @@ Nhiệm vụ: Phân tích SEO dựa trên Information Gain và Search Intent. Tu
 }
 """
 
+ATOMIC_SEO_SURGEON_PROMPT = """[ROLE] SENIOR SEO SURGEON — Elite V2.2
+Nhiệm vụ: Sửa các đoạn văn bản bị lỗi SEO (thiếu từ khóa, nhồi nhét từ khóa, sai intent, thiếu LSI keywords).
+Mục tiêu:
+1. Sửa đoạn văn bản [CẦN SỬA] dựa trên [LỖI SEO] tương ứng.
+2. Tuyệt đối giữ nguyên cấu trúc HTML, chỉ thay đổi text bên trong.
+3. Chèn từ khóa một cách tự nhiên, không gượng ép. Tăng tính semantic và information gain.
+4. KHÔNG giải thích, CHỈ TRẢ VỀ JSON theo format:
+{
+  "replacements": [
+    {
+      "id": 1,
+      "new_text": "<đoạn HTML đã sửa cho ID 1>"
+    }
+  ]
+}
+"""
+
 
 class SeoAnalyzerTaskRequest(BaseModel):
     """Worker task payload for SeoAnalyzer."""
@@ -85,6 +103,7 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         super().__init__(agent_id="seo_analyzer")
         # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation
         self._agent = Agent(output_type=SeoReport, system_prompt=SEO_ANALYSIS_PROMPT, retries=3)
+        self._atomic_surgeon_agent = Agent(output_type=AtomicFixResponse, system_prompt=ATOMIC_SEO_SURGEON_PROMPT, retries=2)
 
     # Heritage Mixin handles _emit_progress
 
@@ -253,3 +272,52 @@ DRAFT:
             ))
 
         return annotations
+
+    async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
+        logs = ["[SEO SURGEON] Initializing Neural SEO Surgeon (Elite V2.2)..."]
+        await self._emit_progress(campaign, logs[-1])
+        
+        draft = await noise_cleaner.clean(campaign.draft_content or "", mode="light", strip_html=False)
+        annots = req.annotations if isinstance(req.annotations, list) else []
+        valid_items = []
+        snippet_list = ""
+
+        for i, a in enumerate(annots[:40]):
+            txt_raw = str(a.get('text', '')).strip()
+            if len(txt_raw) < 5: continue
+            txt = await noise_cleaner.clean(txt_raw, mode="light", strip_html=False)
+            snippet_list += f"\n[ID {i+1}]:\n- Cần sửa: \"{txt}\"\n- Lỗi SEO: {a.get('message','')}\n"
+            valid_items.append({"id": i+1, "old_text": txt})
+
+        if not valid_items: return BulkFixResponse(new_content=draft, logs=logs)
+
+        logs.append(f"[SCAN] Ingesting {len(valid_items)} SEO weaknesses into AI Surgeon...")
+        await self._emit_progress(campaign, logs[-1])
+        prompt = f"{ATOMIC_SEO_SURGEON_PROMPT}\n\n[CẦN SỬA]\n{snippet_list}"
+        
+        try:
+            res = await trinity_bridge.run(self._atomic_surgeon_agent, prompt, role="fast", timeout=120.0)
+            raw = res
+            if hasattr(raw, 'data') and not hasattr(raw, 'replacements'):
+                raw = raw.data
+                
+            final_content = draft
+            replacements_made = 0
+            replacements_log = []
+            if hasattr(raw, "replacements"):
+                for fix in sorted(raw.replacements, key=lambda x: len(next((v["old_text"] for v in valid_items if v["id"] == x.id), "")), reverse=True):
+                    orig = next((v for v in valid_items if v["id"] == fix.id), None)
+                    if orig and fix.new_text:
+                        old, new = orig["old_text"], await noise_cleaner.clean(fix.new_text, mode="light", strip_html=False)
+                        new_c = surgical_stitch(final_content, old, new, label="SeoAnalyzer")
+                        if new_c != final_content:
+                            final_content, replacements_made = new_c, replacements_made + 1
+                            replacements_log.append({"old_text": old, "new_text": new})
+                            logs.append(f"✅ [SEO SURGEON] Optimized: \"{old[:40]}...\"")
+                            await self._emit_progress(campaign, logs[-1])
+            logs.append(f"[QUANTUM] SEO optimization complete. Successfully boosted {replacements_made}/{len(valid_items)} segments.")
+            await self._emit_progress(campaign, logs[-1])
+            return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
+        except Exception as e:
+            logger.error(f"[SeoAnalyzer] Bulk fix failed: {e}")
+            return BulkFixResponse(new_content=draft, logs=logs)

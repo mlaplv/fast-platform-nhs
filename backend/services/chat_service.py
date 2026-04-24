@@ -81,6 +81,9 @@ class ChatService:
         if selective:
             if is_user or is_voice:
                 should_persist = True
+            # [CNS V86.12] State Resilience: Always persist assistant messages containing UI actions or campaign state
+            elif is_assistant and isinstance(content, dict) and (content.get("ui_action") or content.get("campaign_id")):
+                should_persist = True
         else:
             should_persist = True
             if is_assistant and not save_ai:

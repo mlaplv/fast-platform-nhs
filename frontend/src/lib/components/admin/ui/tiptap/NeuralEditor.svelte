@@ -57,10 +57,11 @@
     annotations = [],
     campaign_id = null,
     isProcessing = false,
-    assets = $bindable([]),
-    selectedAvatarUrl = $bindable(null),
-    selectedAssetIndex = $bindable(0),
-  }: Props = $props();
+    assets = $bindable(),
+    selectedAvatarUrl = $bindable(),
+    selectedAssetIndex = $bindable(),
+    analysisReport = $bindable(),
+  }: Props & { fullScreen?: boolean } = $props();
 
 
   // Internal edit buffer — mirrors content prop while editing
@@ -110,16 +111,19 @@
   let editorRef = $state<TiptapEditor | null>(null);
   let resultPanelEl = $state<HTMLElement | null>(null);
 
-  function scrollToPanel() {
   onMount(() => {
     if (content === undefined) content = "";
     if (fullScreen === undefined) fullScreen = false;
     if (assets === undefined) assets = [];
+    if (selectedAvatarUrl === undefined) selectedAvatarUrl = null;
+    if (selectedAssetIndex === undefined) selectedAssetIndex = 0;
   });
+
+  function scrollToPanel() {
     setTimeout(() => resultPanelEl?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   }
 
-  const handleAction = async (fn: (...args: any[]) => Promise<any> | any, ...args: any[]) => {
+  const handleAction = async <T extends unknown[]>(fn: (...args: T) => Promise<unknown> | unknown, ...args: T) => {
     if (analysis.isCopyrightLoading || analysis.isSeoLoading || analysis.isAiLoading) return;
     await fn(...args);
     scrollToPanel();

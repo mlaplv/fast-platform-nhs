@@ -5,6 +5,7 @@ import { isDev } from "./env";
 import type { SystemLog, CampaignData, ToastType } from "../types";
 import { sanitizeId } from "../utils";
 import { useNanobot } from "../nanobot.svelte";
+import { persistMessage } from "../chat.svelte";
 
 interface ResumeDeps {
   state: {
@@ -126,9 +127,19 @@ export function createResumeManager(
       processingCids.delete(campaignId);
     }
 
+    const msgText = (logOrCampaign as SystemLog).message || (logOrCampaign as Record<string, unknown>).text as string || "Đang tiếp tục bài viết cũ...";
+    const xohiReply = isSilent ? "Neural Link Restored" : "Khôi phục phiên làm việc";
+
+    // CNS V86.12: Persist state to DB so it survives F5/Hydration
+    persistMessage("account", "assistant", msgText, "text", {
+      ui_action: "CONTENT_CREATE",
+      ...campaignData,
+      isSilent
+    });
+
     voice.setVoiceResult(
-      isSilent ? "Neural Link Restored" : "Khôi phục phiên làm việc",
-      (logOrCampaign as SystemLog).message || (logOrCampaign as Record<string, unknown>).text as string || "Đang tiếp tục bài viết cũ...",
+      xohiReply,
+      msgText,
       "CONTENT_CREATE",
       { ...campaignData, isSilent },
       "text", // Force "text" so the backend does not mistakenly open VUI thinking it was a voice command

@@ -12,7 +12,7 @@
   import { resolveMediaUrl } from '$lib/state/utils';
   import { xohiActions, type CleanOptions } from '$lib/state/xohiActions';
   import type { CopyrightResult, SEOResult, AIInspectResult } from '$lib/state/types';
-  import { tokenize, jaccard, normalizeHTML, stripMarks, generateStableId } from './utils/editorUtils';
+  import { tokenize, jaccard, normalizeHTML, stripMarks, generateStableId, beautifyHTML } from './utils/editorUtils';
   import { portal } from '$lib/core/actions/portal';
   import { createAnnotationManager } from './parts/AnnotationManager.svelte.ts';
   import { createEditorHandlers } from './parts/EditorHandlers.svelte.ts';
@@ -84,6 +84,15 @@
   $effect(() => { internalFullScreen = fullScreen; });
 
   let showSource = $state(false);
+  
+  // CNS V88.5: Auto-format HTML when entering source mode
+  $effect(() => {
+    if (showSource) {
+      untrack(() => {
+        content = beautifyHTML(content || '');
+      });
+    }
+  });
 
   const toggleFullScreen = () => {
     if (onToggleFullScreen) {
@@ -105,12 +114,8 @@
   let showMediaVault = $state(false);
   let showLinkDialog = $state(false);
   let currentLinkData = $state({ url: '', title: '', target: null as string | null, rel: null as string | null });
-  
-  // Guard against double-click bleed-through from dialog
   let lastDialogCloseAt = 0;
-  $effect(() => {
-    if (!showMediaVault) lastDialogCloseAt = Date.now();
-  });
+  $effect(() => { if (!showMediaVault) lastDialogCloseAt = Date.now(); });
 
   const annManager = createAnnotationManager({
     getOnFix: () => onfix,
@@ -158,8 +163,6 @@
       setTimeout(() => { isInternalUpdating = false; isSyncLocked = false; }, 150);
     }
   }
-
-
 
   const containerClass = $derived(`tiptap-shell flex flex-col w-full ${
     internalFullScreen
@@ -242,7 +245,8 @@
 
   $effect(() => {
     if (editor && !editor.isDestroyed) {
-      if (editor.isEditable !== editable) {
+      const isCurrentlyEditable = editor.isEditable;
+      if (isCurrentlyEditable !== editable) {
         untrack(() => {
           isInternalUpdating = true;
           editor!.setEditable(editable);

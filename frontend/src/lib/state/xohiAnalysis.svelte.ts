@@ -2,6 +2,7 @@ import { apiClient } from "$lib/utils/apiClient";
 import { useNanobot } from "./nanobot.svelte";
 import { tick, untrack } from "svelte";
 import { xohiActions, cleanHtmlContent } from "./xohiActions";
+import { robustNormalize, surgicalStitch } from "./xohiAnalysisLogic";
 import type {
     CopyrightResult,
     SEOResult,
@@ -32,59 +33,6 @@ export function createAnalysisController(config: {
 }) {
     const nanobot = useNanobot();
     const resolve = <T>(val: T | (() => T)): T => (typeof val === 'function' ? (val as () => T)() : val);
-    
-    // CNS V88.2: Neural Surgical Stitching (TS Port of backend logic)
-    function robustNormalize(text: string): string {
-        if (!text) return "";
-        return text.normalize('NFC')
-            .replace(/<[^>]+>/g, '') // Strip HTML
-            .replace(/[^\p{L}\p{N}]/gu, '') // Keep only letters and numbers
-            .toLowerCase();
-    }
-
-    function surgicalStitch(content: string, oldText: string, newText: string): string {
-        content = content.normalize('NFC');
-        oldText = oldText.normalize('NFC');
-        newText = newText.normalize('NFC');
-
-        // Phase 1: Exact Match (Fast Path)
-        if (content.includes(oldText)) {
-            return content.replace(oldText, newText);
-        }
-
-        // Phase 2: Alphanumeric Mapping (HTML-Aware)
-        const normOld = robustNormalize(oldText);
-        if (normOld.length < 5) return content;
-
-        const parts = content.split(/(<[^>]+>)/);
-        let plainBuffer = "";
-        const plainToHtmlMap: number[] = [];
-        let htmlPos = 0;
-
-        for (const part of parts) {
-            if (part.startsWith('<')) {
-                htmlPos += part.length;
-            } else {
-                for (let i = 0; i < part.length; i++) {
-                    const ch = part[i];
-                    if (/[\p{L}\p{N}]/u.test(ch)) {
-                        plainToHtmlMap.push(htmlPos + i);
-                        plainBuffer += ch.toLowerCase();
-                    }
-                }
-                htmlPos += part.length;
-            }
-        }
-
-        const idx = plainBuffer.indexOf(normOld);
-        if (idx !== -1) {
-            const startHtml = plainToHtmlMap[idx];
-            const endHtmlIdx = idx + normOld.length - 1;
-            const endHtml = plainToHtmlMap[endHtmlIdx] + 1;
-            return content.slice(0, startHtml) + newText + content.slice(endHtml);
-        }
-        return content;
-    }
 
     const isAdhoc = $derived(!resolve(config.campaign_id));
     let copyrightResult = $state<CopyrightResult | null>(null);
@@ -258,7 +206,7 @@ export function createAnalysisController(config: {
         }
         
         // Handle Error status
-        const errorMsg = (res as any)?.message || "Lỗi phản hồi từ Neural Engine";
+        const errorMsg = (res as Record<string, unknown>)?.message || "Lỗi phản hồi từ Neural Engine";
         console.error(`[Neural Engine] ${category} Error:`, res);
         bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${errorMsg}`];
         return 'error';
@@ -290,10 +238,11 @@ export function createAnalysisController(config: {
             } : undefined;
             const res = await apiClient.post<GenericResponse<CopyrightResult>>(url, body);
             status = await handleApiResponse(res, (v) => { copyrightResult = v; }, 'copyright');
-        } catch (e: any) {
+        } catch (e: unknown) {
             status = 'error';
-            bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${e.message || String(e)}`];
-            nanobot.showToast(`Lỗi Copyright: ${e.message || String(e)}`, 'error');
+            const errorObj = e as Error;
+            bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${errorObj.message || String(e)}`];
+            nanobot.showToast(`Lỗi Copyright: ${errorObj.message || String(e)}`, 'error');
         } finally {
             stopThinkingLogs();
             if (status !== 'accepted') {
@@ -323,10 +272,11 @@ export function createAnalysisController(config: {
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)(), topic: resolve(config.topic) || '' } : undefined;
             const res = await apiClient.post<GenericResponse<SEOResult>>(url, body);
             status = await handleApiResponse(res, (v) => { seoResult = v; }, 'seo');
-        } catch (e: any) {
+        } catch (e: unknown) {
             status = 'error';
-            bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${e.message || String(e)}`];
-            nanobot.showToast(`Lỗi SEO: ${e.message || String(e)}`, 'error');
+            const errorObj = e as Error;
+            bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${errorObj.message || String(e)}`];
+            nanobot.showToast(`Lỗi SEO: ${errorObj.message || String(e)}`, 'error');
         } finally {
             stopThinkingLogs();
             if (status !== 'accepted') {
@@ -363,10 +313,11 @@ export function createAnalysisController(config: {
                 v.ai_annotations = [...oldFixed, ...(v.ai_annotations || [])];
                 aiReadyResult = v;
             }, 'ai_inspect');
-        } catch (e: any) {
+        } catch (e: unknown) {
             status = 'error';
-            bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${e.message || String(e)}`];
-            nanobot.showToast(`Lỗi AI Mod: ${e.message || String(e)}`, 'error');
+            const errorObj = e as Error;
+            bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${errorObj.message || String(e)}`];
+            nanobot.showToast(`Lỗi AI Mod: ${errorObj.message || String(e)}`, 'error');
         } finally {
             stopThinkingLogs();
             if (status !== 'accepted') {
@@ -557,15 +508,16 @@ export function createAnalysisController(config: {
                 bulkFixLogs = [...bulkFixLogs, "✅ Phẫu thuật hoàn tất. Dữ liệu Neural Intelligence đã được cập nhật."];
                 bulkFixStatus = "Hoàn tất ✅";
             } else {
-                const msg = (res as any)?.message || "Không thể thực hiện phẫu thuật hàng loạt";
+                const msg = (res as Record<string, unknown>)?.message || "Không thể thực hiện phẫu thuật hàng loạt";
                 console.error("[Neural Engine] Bulk Fix Error:", res);
                 bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
                 bulkFixStatus = "Thất bại ❌";
-                nanobot.showToast(msg, "error");
+                nanobot.showToast(msg as string, "error");
             }
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error("[Neural Engine] Bulk Fix Critical Error:", e);
-            const errorMsg = e.message || String(e);
+            const errorObj = e as Error;
+            const errorMsg = errorObj.message || String(e);
             bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${errorMsg}`];
             bulkFixStatus = "Thất bại ❌";
             nanobot.showToast(`Lỗi Neural Engine: ${errorMsg}`, "error");
@@ -606,10 +558,10 @@ export function createAnalysisController(config: {
                     activeTab = 'seo';
                     await runSeoAnalysis(true, true);
                 } else {
-                    const msg = (res as any)?.message || "Enrichment failed";
+                    const msg = (res as Record<string, unknown>)?.message || "Enrichment failed";
                     bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
                     bulkFixStatus = "Thất bại ❌";
-                    nanobot.showToast(msg, 'error');
+                    nanobot.showToast(msg as string, 'error');
                 }
             } else {
                 // CNS V87.0: Ad-hoc mode — Surgeon Booster (không cần Google Search)
@@ -637,17 +589,18 @@ export function createAnalysisController(config: {
                         bulkFixStatus = "Hoàn tất ✅";
                     }
                 } else {
-                    const msg = (res as any)?.message || "Surgeon Booster failed";
+                    const msg = (res as Record<string, unknown>)?.message || "Surgeon Booster failed";
                     bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
                     bulkFixStatus = "Thất bại ❌";
-                    nanobot.showToast(msg, 'error');
+                    nanobot.showToast(msg as string, 'error');
                 }
             }
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error("[Neural Engine] AI Booster Error:", e);
-            bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${e.message || String(e)}`];
+            const errorObj = e as Error;
+            bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${errorObj.message || String(e)}`];
             bulkFixStatus = "Thất bại ❌";
-            nanobot.showToast(`Lỗi Booster: ${e.message || String(e)}`, 'error');
+            nanobot.showToast(`Lỗi Booster: ${errorObj.message || String(e)}`, 'error');
         } finally {
             isBoosting = false;
             setTimeout(() => { 
