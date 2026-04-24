@@ -140,13 +140,13 @@
 
 
   async function openEdit(productOrId: Product | string) {
-    let p: Product;
     const id = typeof productOrId === "string" ? productOrId : productOrId.id;
     if (!id) { nanobot.showToast("ID sản phẩm không hợp lệ", "error"); return; }
     isSaving = true;
     try {
-      p = await apiClient.get<RawProduct>(`/api/v1/products/${id}`, { params: { _cb: Date.now().toString() } });
+      const p = await apiClient.get<any>(`/api/v1/products/${id}`, { params: { _cb: Date.now().toString() } });
       if (!p) throw new Error("Không nhận được phản hồi từ máy chủ");
+      console.log(`[ProductManagement] Fresh description for ${id}. Len: ${p.description?.length}`);
       editingId = p.id;
       formName = p.name || "";
       formSku = p.sku || "";
@@ -268,6 +268,7 @@
       nanobot.showToast("Giá khuyến mãi phải nhỏ hơn giá bán gốc", "error"); return;
     }
     isSaving = true;
+    console.log(`[ProductManagement] Saving product ${editingId}. Description len: ${formDescription?.length}`);
     const payload = {
       name: formName.trim(),
       sku: formSku || `SKU-${Date.now()}`,

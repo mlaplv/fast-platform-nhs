@@ -497,7 +497,10 @@ class ProductService:
 
         if data.description is not None:
             # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
-            product.description = await noise_cleaner.clean(data.description, strip_html=False)
+            logger.info(f"🧬 [ProductService] Updating description for {product_id}. Input len: {len(data.description)}. Snippet: {data.description[:100]}...")
+            cleaned = await noise_cleaner.clean(data.description, strip_html=False)
+            logger.info(f"🧬 [ProductService] Cleaned description for {product_id}. Result len: {len(cleaned)}. Snippet: {cleaned[:100]}...")
+            product.description = cleaned
 
         if data.categoryId is not None: product.category_id = data.categoryId
         if data.slug is not None: product.slug = data.slug

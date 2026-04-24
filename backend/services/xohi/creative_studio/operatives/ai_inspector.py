@@ -82,12 +82,19 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
 
 
     async def analyze(self, campaign: ContentCampaign, force: bool = False) -> AiReadyReport:
+        logs = ["[GEO] Initializing Neural AI-Ready Engine (XoHi 2026)..."]
+        await self._emit_log(campaign, logs[-1])
+        
+        draft = campaign.draft_content or ""
         word_count = len(draft.split())
         logs.append(f"[GEO] Structural Scan: {word_count} words. Analyzing NLP Entity Density & Information Gain...")
         await self._emit_log(campaign, logs[-1])
         try:
             res = await trinity_bridge.run(self._agent, draft[:50000], role="pro") # Use Pro for high-IQ analysis
             raw = res
+            if hasattr(raw, 'data') and not hasattr(raw, 'geo_score'):
+                raw = raw.data
+                
             logs.append(f"[QUANTUM] AI-Ready Audit complete. Detected {len(getattr(raw, 'annotations', []))} structural optimization points.")
             raw.logs = logs
             return raw
@@ -101,7 +108,10 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
         prompt = f"[BÀI VIẾT]\n{content[:5000]}\n\n[ĐOẠN LỖI]\n{snippet}\n\n[LÝ DO]\n{issue}"
         try:
             res = await trinity_bridge.run(self._surgeon_agent, prompt, role="fast")
-            return res
+            raw = res
+            if hasattr(raw, 'data') and not hasattr(raw, 'new_text'):
+                raw = raw.data
+            return raw
         except Exception as e:
             logger.error(f"[AiInspector] Auto-fix failed: {e}")
             return AutoFixResponse(old_text=snippet, new_text=snippet)
@@ -131,6 +141,9 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
         try:
             res = await trinity_bridge.run(self._atomic_surgeon_agent, prompt, role="fast", timeout=120.0)
             raw = res
+            if hasattr(raw, 'data') and not hasattr(raw, 'replacements'):
+                raw = raw.data
+                
             final_content = draft
             replacements_made = 0
             replacements_log = []

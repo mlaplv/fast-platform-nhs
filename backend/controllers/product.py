@@ -77,6 +77,8 @@ class ProductController(Controller):
     ) -> SuccessResponse:
         """Update a product (Service-Centric RAG)."""
         # Elite V2.2: Pure dependency injection
+        if data.description is not None:
+            logger.info(f"📥 [ProductController] PATCH {product_id} received description. Len: {len(data.description)}")
         res = await product_service.update_product(db_session, product_id, data)
         await db_session.commit()
         return res

@@ -304,11 +304,12 @@ class NoiseCleaner:
                                 break
                             # Fuzzy matching for large paragraphs to catch 90% similar modified copies
                             elif len(text) > 150 and len(seen) > 150:
-                                if fuzz.ratio(text, seen) >= 85 or fuzz.partial_ratio(text, seen) >= 85:
+                                if fuzz.ratio(text, seen) >= 90 or fuzz.partial_ratio(text, seen) >= 90:
                                     is_dup = True
                                     break
                                 
                         if is_dup:
+                            logger.info(f"🛡️ [Noise Shield] Dropping single-element duplicate: {text[:50]}...")
                             to_drop.add(blocks[i])
                         else:
                             seen_long.append(text)
@@ -321,6 +322,7 @@ class NoiseCleaner:
                     if not t1 or not t2: continue
                     seq = ((tag1, t1), (tag2, t2))
                     if seq in seen_seqs:
+                        logger.info(f"🛡️ [Noise Shield] Dropping sequence duplicate: {t1[:30]}... / {t2[:30]}...")
                         to_drop.add(blocks[i])
                         to_drop.add(blocks[i+1])
                     else:
@@ -348,10 +350,7 @@ class NoiseCleaner:
                 result = result[:-6]
             return result
         except Exception as e:
-            logger.error(f"[Noise Shield] Structural pruning failed: {e}")
-            return html_content
-        except Exception as e:
-            logger.error(f"[Noise Shield] Structural pruning failed: {e}")
+            logger.error(f"[Noise Shield] Structural pruning failed: {e}", exc_info=True)
             return html_content
 
     def _sync_clean_cpu(self, text: str, mode: str) -> str:

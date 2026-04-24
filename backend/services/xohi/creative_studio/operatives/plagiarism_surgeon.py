@@ -7,6 +7,7 @@ from backend.database.models import ContentCampaign
 from backend.services.xohi.creative_studio.models.schemas import (
     BulkFixRequest, BulkFixResponse, AtomicFixResponse, SurgicalSnippetFix
 )
+from backend.services.ai_engine.core.agent_base import XoHiProgressMixin
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.utils.text import normalize_vn
@@ -17,7 +18,7 @@ logger = logging.getLogger("api-gateway")
 
 RE_DIGIT = re.compile(r'\d+')
 
-class PlagiarismSurgeon:
+class PlagiarismSurgeon(XoHiProgressMixin):
     """
     Handles deterministic deduplication and AI-powered surgical fixes for Copyright.
     Separated from PlagiarismCop to comply with Martial Law line limits (<300 lines).
@@ -28,6 +29,10 @@ class PlagiarismSurgeon:
             output_type=AtomicFixResponse,
             retries=2
         )
+
+    async def _emit_log(self, campaign: ContentCampaign, msg: str) -> None:
+        """Helper to emit logs to the SSE stream."""
+        await self._emit_progress(campaign, msg)
 
     def _split_into_paragraphs(self, html_or_text: str) -> List[str]:
         if not html_or_text: return []
@@ -47,6 +52,8 @@ class PlagiarismSurgeon:
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
         logs = ["[SURGEON] Initializing Neural Surgical Engine (Elite V2.2)..."]
+        await self._emit_log(campaign, logs[-1])
+        
         # R110: Use raw draft content to ensure surgical snippets (annotations) match perfectly.
         draft = campaign.draft_content or ""
 
@@ -58,10 +65,20 @@ class PlagiarismSurgeon:
         annots = req.annotations if isinstance(req.annotations, list) else []
         all_annots = [a for a in annots if (a.get("text") or a.get("reason")) and len(str(a.get("text",""))) > 5]
         
+        valid_items = []
+        snippet_list = ""
+        for i, a in enumerate(all_annots[:40]):
+            txt = str(a.get("text") or a.get("reason") or "").strip()
+            if len(txt) < 5: continue
+            snippet_list += f"\n[ID {i+1}]:\n- Cần sửa: \"{txt}\"\n"
+            valid_items.append({"id": i+1, "old_text": txt})
+
         if not valid_items:
             return BulkFixResponse(new_content=cleaned_draft, logs=logs)
 
         logs.append(f"[SCAN] Ingesting {len(valid_items)} violation points into AI Surgeon...")
+        await self._emit_log(campaign, logs[-1])
+        
         bulk_prompt = f"{PLAGIARISM_SURGEON_PROMPT}\n\n[DANH SÁCH CẦN SỬA]\n{snippet_list}"
         
         try:
@@ -70,7 +87,16 @@ class PlagiarismSurgeon:
             final_content = cleaned_draft
             replacements_made = 0
             replacements_log = []
+            
+            # Use data attribute if trinity_bridge returned the raw AgentRunResult
+            if hasattr(raw_data, 'data') and not hasattr(raw_data, 'replacements'):
+                raw_data = raw_data.data
+
             if hasattr(raw_data, "replacements"):
+                logs.append(f"[PATCH] AI surgery plan received. Applying {len(raw_data.replacements)} patches...")
+                await self._emit_log(campaign, logs[-1])
+                
+                # Sort by length descending to avoid nested replacement issues
                 sorted_fixes = sorted(raw_data.replacements, key=lambda x: len(next((v["old_text"] for v in valid_items if v["id"] == x.id), "")), reverse=True)
                 for fix in sorted_fixes:
                     orig_item = next((v for v in valid_items if v["id"] == fix.id), None)
@@ -83,8 +109,10 @@ class PlagiarismSurgeon:
                             replacements_made += 1
                             replacements_log.append({"old_text": old_txt, "new_text": new_txt})
                             logs.append(f"✅ [SURGEON] Successfully patched: \"{old_txt[:40]}...\"")
+                            await self._emit_log(campaign, logs[-1])
             
             logs.append(f"[QUANTUM] Bulk fix complete. Successfully optimized {replacements_made}/{len(valid_items)} segments.")
+            await self._emit_log(campaign, logs[-1])
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
             logger.error(f"[PlagiarismSurgeon] AI Bulk Fix failed: {e}")
