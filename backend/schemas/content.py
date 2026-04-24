@@ -53,9 +53,18 @@ class CampaignListResponse(BaseModel):
     offset: int
     has_more: bool
 
+class ContentCleanOptions(BaseModel):
+    model_config = ConfigDict(strict=False) # Frontend might send partial
+    stripFont: bool = True
+    stripAlign: bool = True
+    stripRedundantWrappers: bool = True
+    stripEmpty: bool = True
+    deduplicateContent: bool = True
+
 class ContentCleanRequest(BaseModel):
     model_config = ConfigDict(strict=True)
     content: str
+    options: Optional[ContentCleanOptions] = None
 
 class AdhocAnalysisRequest(BaseModel):
     model_config = ConfigDict(strict=True)

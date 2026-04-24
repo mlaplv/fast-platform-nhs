@@ -64,7 +64,7 @@
     onblur?: () => void;
     campaignId?: string;
     flex?: boolean;
-    onClean?: (() => Promise<string | null>) | null;
+    onClean?: ((options?: CleanOptions, rawContent?: string) => Promise<string | null>) | null;
     syncAssetsMode?: 'strict' | 'append';
     analysisData?: Record<string, unknown> | null;
     copyrightResult?: CopyrightResult | null;
@@ -142,45 +142,24 @@
   let lastInternalActionAt = 0;
   let isSyncLocked = $state(false);
 
-  async function handleClean(options: CleanOptions = { stripFont: true, stripAlign: true, stripRedundantWrappers: true, stripEmpty: true }) {
-    if (!editor || editor.isDestroyed) {
-      console.warn('[Clean] Editor not ready');
-      return;
-    }
+  // CNS V88.4: Direct Editor Apply — bypasses reactive chain for guaranteed update
+  async function applyContentToEditor(newHtml: string) {
+    if (!editor || editor.isDestroyed) return;
     isInternalUpdating = true;
-
+    isSyncLocked = true;
     try {
-      const html = editor.getHTML();
-      
-      // CNS V85.2: Use unified system cleaning logic
-      const cleanedHTML = await xohiActions.runClean(html, options);
-
-      if (cleanedHTML) {
-        // Elite V2.2 Deep Sync: Lock everything to prevent race conditions
-        isInternalUpdating = true;
-        isSyncLocked = true;
-
-        editor.commands.setContent(cleanedHTML, false);
-
-        await tick();
-
-        // CNS V84.5: DIRECT SYNC
-        const finalContent = stripMarks(cleanedHTML);
-        content = finalContent;
-        onChange(finalContent);
-        updateMetrics();
-
-        // Safety lock
-        setTimeout(() => {
-            isInternalUpdating = false;
-            isSyncLocked = false;
-        }, 150);
-      }
-    } catch (err) {
-      console.error('[Clean] Viral Clean Failed:', err);
-      isInternalUpdating = false;
+      editor.commands.setContent(newHtml, false);
+      await tick();
+      const finalContent = stripMarks(newHtml);
+      content = finalContent;
+      onChange(finalContent);
+      updateMetrics();
+    } finally {
+      setTimeout(() => { isInternalUpdating = false; isSyncLocked = false; }, 150);
     }
   }
+
+
 
   const containerClass = $derived(`tiptap-shell flex flex-col w-full ${
     internalFullScreen
@@ -318,6 +297,22 @@
     });
   });
 
+  // CNS V88.4: Force-apply content after Bulk Fix / AI Booster completes
+  // The reactive sync above may skip updates due to normalizeHTML equality or focus guards.
+  // This effect watches isBulkFixing transition true→false and force-pushes content into editor.
+  let _prevBulkFixing = false;
+  $effect(() => {
+    const currentBulk = isBulkFixing;
+    if (_prevBulkFixing && !currentBulk && editor && !editor.isDestroyed) {
+      // Bulk operation just completed — force apply content
+      const newContent = content || '<p></p>';
+      untrack(() => {
+        applyContentToEditor(newContent);
+      });
+    }
+    _prevBulkFixing = currentBulk;
+  });
+
   // Elite V2.2: Scan Editor for Images — debounced to avoid regex on every keystroke
   let imageScanTimer: ReturnType<typeof setTimeout> | null = null;
   $effect(() => {
@@ -404,7 +399,7 @@
         showLinkDialog = true; 
       }}
       onClearHighlights={() => editor?.commands.clearAllAnnotations()}
-      onClean={onClean || handleClean}
+      onClean={onClean}
       bind:showSource={showSource}
       fullScreen={internalFullScreen}
       onToggleFullScreen={toggleFullScreen}

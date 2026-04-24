@@ -21,7 +21,7 @@
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import type { CleanOptions } from '$lib/state/xohiActions';
-  import type { CopyrightResult, SEOResult, AIInspectResult } from '$lib/state/types';
+  import type { CopyrightResult, SEOResult, AIInspectResult, NeuralAnalysisController } from '$lib/state/types';
   import { fly, fade } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
   import IntelligenceHUD from '../parts/IntelligenceHUD.svelte';
@@ -39,7 +39,7 @@
     onToggleFullScreen = null,
     showSource = $bindable(),
     // CNS V85.2: Intelligence Context
-    analysisData = null,
+    analysisData = undefined,
     copyrightResult = null,
     seoResult = null,
     aiReadyResult = null,
@@ -48,7 +48,7 @@
     isAiLoading = false,
     isBoosting = false,
     isBulkFixing = false,
-    runBulkFix = null,
+    runBulkFix = undefined,
     bulkFixLogs = [],
     // CNS V87.0: SSE streaming
     streamingText = '',
@@ -59,11 +59,11 @@
     annotations?: EditorAnnotation[];
     onOpenImage: () => void;
     onOpenLink: () => void;
-    onClean?: ((options: CleanOptions) => Promise<void>) | null;
+    onClean?: ((options?: CleanOptions, rawContent?: string) => Promise<string | null>) | null;
     fullScreen?: boolean;
     onToggleFullScreen?: (() => void) | null;
     showSource?: boolean;
-    analysisData?: any;
+    analysisData?: NeuralAnalysisController;
     copyrightResult?: CopyrightResult | null;
     seoResult?: SEOResult | null;
     aiReadyResult?: AIInspectResult | null;
@@ -120,7 +120,8 @@
     stripFont: true,
     stripAlign: true,
     stripRedundantWrappers: true,
-    stripEmpty: true
+    stripEmpty: true,
+    deduplicateContent: true
   });
 
   function updatePopupPositions() {
@@ -402,7 +403,7 @@
                   left: Math.round(Math.min(rect.left, window.innerWidth - 440))
                 };
               }
-              await onClean(options);
+              await onClean(options, editor?.getHTML());
               // CNS V85.5: Auto-close HUD after success with a brief delay for user verification
               setTimeout(() => {
                 if (activeIntelAction === 'clean') activeIntelAction = null;

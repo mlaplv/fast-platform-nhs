@@ -368,18 +368,36 @@ export function createAnalysisController(config: {
         }
     }
 
-    async function runCleanContent() {
-        if (isCopyrightLoading || isSeoLoading || isAiLoading) return null;
+    // CNS V88.4: rawContent is passed directly from TiptapEditor (current editor HTML)
+    // to avoid stale editBuffer. TiptapEditor handles applying the result to the editor.
+    async function runCleanContent(options?: CleanOptions, rawContent?: string) {
+        if (_bulkFixRunning) return null;
+        _bulkFixRunning = true;
         isBulkFixing = true; bulkFixStatus = "Đang dọn dẹp...";
         bulkFixLogs = ["🧹 Đang khởi động Neural Clean...", "🧠 Đang dọn dẹp artifacts..."];
         try {
-            const content = (config.getContent ?? config.getEditedDraft)();
-            const cleaned = await xohiActions.runClean(content);
-            config.setEditedDraft?.(cleaned);
-            bulkFixLogs = [...bulkFixLogs, "🎯 Đã dọn dẹp xong ✅"];
-            nanobot.showToast("Đã dọn dẹp & tối ưu cấu trúc thành công!", "success");
-            return cleaned;
+            // Prefer rawContent (from editor) over editBuffer to avoid stale state
+            const content = rawContent ?? (config.getContent ?? config.getEditedDraft)?.() ?? '';
+            const cleaned = await xohiActions.runClean(content, options);
+            
+            if (cleaned && cleaned !== content) {
+                // Always sync editBuffer/content for persistence — TiptapEditor applies to editor separately
+                if (resolve(config.isEditing)) config.setEditedDraft(cleaned);
+                else config.setDraftContent(cleaned);
+                bulkFixLogs = [...bulkFixLogs, "🎯 Đã dọn dẹp xong ✅"];
+                nanobot.showToast("Đã dọn dẹp & tối ưu cấu trúc thành công!", "success");
+            } else {
+                bulkFixLogs = [...bulkFixLogs, "✅ Nội dung đã sạch, không cần dọn dẹp thêm."];
+            }
+            bulkFixStatus = "Hoàn tất ✅";
+            return cleaned; // TiptapEditor's handleClean uses this return value to applyContentToEditor
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
+            bulkFixStatus = "Thất bại ❌";
+            return null;
         } finally {
+            _bulkFixRunning = false;
             setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
             setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = "";  } }, 3200);
         }
@@ -465,16 +483,18 @@ export function createAnalysisController(config: {
         });
     }
 
+    let _bulkFixRunning = false; // CNS V88.3: Dedicated guard — tách khỏi isBulkFixing (HUD indicator)
     async function runBulkFix() {
-        if (isBulkFixing || !activeTab) return;
+        if (_bulkFixRunning || !activeTab) return;
         const cid = resolve(config.campaign_id);
         const category = activeTab === 'copyright' ? 'copyright' : activeTab === 'seo' ? 'seo' : 'ai';
-        const annotations = (activeTab === 'copyright' ? copyrightResult?.annotations : activeTab === 'seo' ? seoResult?.seo_annotations : aiReadyResult?.ai_annotations) || [];
+        const annotations = ((activeTab === 'copyright' ? copyrightResult?.annotations : activeTab === 'seo' ? seoResult?.seo_annotations : aiReadyResult?.ai_annotations) || []).filter(a => a.type !== 'fixed-area');
         if (annotations.length === 0) {
             nanobot.showToast("Không tìm thấy vấn đề nào cần sửa", "info");
             return;
         }
 
+        _bulkFixRunning = true; // CNS V88.3: Guard chặn double-click
         isBulkFixing = true; bulkFixStatus = "Đang phẫu thuật...";
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         bulkFixLogs = ["Đang khởi tạo Neural Engine...", "Đang phân tích cấu trúc..."];
@@ -514,6 +534,7 @@ export function createAnalysisController(config: {
                 bulkFixStatus = "Hoàn tất ✅";
             }
         } finally {
+            _bulkFixRunning = false; // CNS V88.3: Mở khóa guard
             isBulkFixing = false;
             // CNS V87.4: 'Treo' (Persist) the HUD for 5s after completion so user can read logs
             setTimeout(() => { 

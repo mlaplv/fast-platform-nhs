@@ -94,7 +94,7 @@ class NoiseCleaner:
         except Exception as e:
             logger.error(f"[Noise Shield] Failed to load dictionary: {e}")
 
-    async def clean(self, text: str, mode: str = "aggressive", strip_markdown: bool = True, strip_html: bool = False) -> str:
+    async def clean(self, text: str, mode: str = "aggressive", strip_markdown: bool = True, strip_html: bool = False, options: Optional[Dict] = None) -> str:
         """
         Executes the 4-layer cleaning pipeline.
 
@@ -133,7 +133,7 @@ class NoiseCleaner:
         # Replacing legacy regex loops with high-performance DOM pruning
         # Run in thread to avoid blocking event loop on large HTML (Optimization R23)
         if not strip_html and ('<' in cleaned_text and '>' in cleaned_text):
-            cleaned_text = await asyncio.to_thread(self._structural_tree_pruning, cleaned_text)
+            cleaned_text = await asyncio.to_thread(self._structural_tree_pruning, cleaned_text, options)
 
         # Phase 76.96: Newline Normalization
         if strip_html:
@@ -142,13 +142,20 @@ class NoiseCleaner:
         logger.debug(f"[Noise Shield] Finished Expert polish in {time.time() - start_time:.4f}s")
         return unicodedata.normalize('NFC', cleaned_text.strip())
 
-    def _structural_tree_pruning(self, html_content: str) -> str:
+    def _structural_tree_pruning(self, html_content: str, options: Optional[Dict] = None) -> str:
         """
         NASP (Neural-Agnostic Structural Pruner) - Elite V2.2
         Linear-time structural pruning using lxml C-backend.
         Removes all empty nodes (including nested) in a single bottom-up pass.
+        Now natively integrates Neural Clean Checklist (V88.5).
         """
         try:
+            opts = options or {}
+            strip_font = opts.get("stripFont", True)
+            strip_align = opts.get("stripAlign", True)
+            strip_redundant = opts.get("stripRedundantWrappers", True)
+            strip_empty = opts.get("stripEmpty", True)
+            dedup = opts.get("deduplicateContent", True)
             # Container tags that should be removed if they are effectively empty
             containers = {
                 'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote',
@@ -182,6 +189,27 @@ class NoiseCleaner:
                 # Actually, Tiptap uses <br> for empty lines.
                 # If we prune <br>, we might lose formatting.
                 # However, the user wants <h1><strong><br></strong></h1> GONE.
+
+                # 0. Strip Styles (Checklist)
+                if strip_font or strip_align:
+                    style = element.get('style')
+                    if style:
+                        new_style = []
+                        for s in style.split(';'):
+                            s = s.strip()
+                            if not s: continue
+                            if strip_font and s.lower().startswith('font-family'): continue
+                            if strip_align and s.lower().startswith('text-align'): continue
+                            new_style.append(s)
+                        if new_style:
+                            element.set('style', '; '.join(new_style))
+                        else:
+                            element.attrib.pop('style', None)
+
+                # 0.5. Prune Redundant Tags (Checklist)
+                if strip_redundant and tag in ('span', 'div') and not element.attrib:
+                    element.drop_tag()
+                    continue
 
                 # Check if element is effectively empty
                 has_content = False
@@ -234,7 +262,7 @@ class NoiseCleaner:
                     if is_effectively_empty:
                         has_content = False
 
-                if not has_content:
+                if not has_content and strip_empty:
                     parent = element.getparent()
                     if parent is not None:
                         # Preserve tail text when removing element
@@ -245,6 +273,71 @@ class NoiseCleaner:
                             else:
                                 parent.text = (parent.text or "") + element.tail
                         parent.remove(element)
+
+            # 4. Neural Deduplication (Checklist)
+            if dedup:
+                dedup_tags = ('p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li')
+                all_blocks = [el for el in list(fragment.iter()) if el.tag in dedup_tags]
+                
+                blocks = []
+                for el in all_blocks:
+                    has_block_child = any(child.tag in dedup_tags for child in el.iterdescendants())
+                    if not has_block_child:
+                        blocks.append(el)
+
+                signatures = []
+                for el in blocks:
+                    text = "".join(el.itertext()).strip().lower()
+                    text = re.sub(r'\s+', ' ', text)
+                    signatures.append((el.tag, text))
+
+                to_drop = set()
+                
+                # Rule 1: Single-element dedup (for long paragraphs > 30 chars)
+                seen_long = []
+                for i, (tag, text) in enumerate(signatures):
+                    if len(text) > 30:
+                        is_dup = False
+                        for seen in seen_long:
+                            if text == seen:
+                                is_dup = True
+                                break
+                            # Fuzzy matching for large paragraphs to catch 90% similar modified copies
+                            elif len(text) > 150 and len(seen) > 150:
+                                if fuzz.ratio(text, seen) >= 85 or fuzz.partial_ratio(text, seen) >= 85:
+                                    is_dup = True
+                                    break
+                                
+                        if is_dup:
+                            to_drop.add(blocks[i])
+                        else:
+                            seen_long.append(text)
+
+                # Rule 2: Sequence-level dedup (Window size 2) for structure
+                seen_seqs = set()
+                for i in range(len(signatures) - 1):
+                    tag1, t1 = signatures[i]
+                    tag2, t2 = signatures[i+1]
+                    if not t1 or not t2: continue
+                    seq = ((tag1, t1), (tag2, t2))
+                    if seq in seen_seqs:
+                        to_drop.add(blocks[i])
+                        to_drop.add(blocks[i+1])
+                    else:
+                        seen_seqs.add(seq)
+
+                for el in to_drop:
+                    if el.getparent() is not None:
+                        el.drop_tree()
+                        
+            # 5. Final Empty Prune (Cleanup wrappers left empty by dedup)
+            if strip_empty or dedup:
+                for element in reversed(list(fragment.iter())):
+                    if element == fragment: continue
+                    if element.tag in ('ul', 'ol', 'li', 'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+                        has_text = bool((element.text or "").replace('\u00A0', '').strip())
+                        if not has_text and len(element) == 0:
+                            element.drop_tree()
 
             # Convert back to string and remove our wrapper div
             result = html.tostring(fragment, encoding='unicode', method='html')

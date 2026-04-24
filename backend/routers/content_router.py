@@ -115,7 +115,8 @@ class ContentController(Controller):
     async def clean_content(self, data: ContentCleanRequest) -> GenericResponse:
         try:
             from backend.utils.noise_cleaner import noise_cleaner
-            cleaned = await noise_cleaner.clean(data.content, mode="aggressive")
+            opts = data.options.model_dump() if data.options else None
+            cleaned = await noise_cleaner.clean(data.content, mode="aggressive", options=opts)
             return GenericResponse(status="success", data={"content": cleaned})
         except Exception as e:
             logger.error(f"[ContentController] Viral Clean Error: {e}")

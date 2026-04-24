@@ -17,7 +17,7 @@ export interface Category {
   children: Category[];
   category_metadata?: {
     faqs?: { question: string; answer: string }[];
-    [key: string]: any;
+    [key: string]: unknown;
   };
   createdAt: string;
 }
@@ -166,7 +166,7 @@ export interface Article {
   author: string;
   authorId: string | null;
   createdAt: string;
-  analysis_report?: Record<string, any>;
+  analysis_report?: Record<string, unknown>;
 }
 
 export interface PromotionDeal {
@@ -419,7 +419,7 @@ export interface Product {
   rating?: number | string;
   rating_text?: string;
   createdAt: string;
-  analysis_report?: Record<string, any>;
+  analysis_report?: Record<string, unknown>;
 }
 
 export interface ProductFacets {

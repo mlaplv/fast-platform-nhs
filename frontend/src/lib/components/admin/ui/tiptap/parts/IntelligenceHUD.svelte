@@ -193,7 +193,7 @@
      <div class="flex-1 overflow-y-auto custom-scrollbar p-0 min-h-0 relative">
         <div class="bg-white/[0.01] overflow-hidden">
           <CheckResultPanel
-             activeTab={(activeAction.id.includes('-fix') ? activeAction.id.split('-')[0] : activeAction.id) as any}
+             activeTab={(activeAction.id.includes('-fix') ? activeAction.id.split('-')[0] : activeAction.id) as 'copyright' | 'seo' | 'ai' | 'enrich' | null}
              copyrightResult={copyrightResult}
              isCopyrightLoading={isCopyrightLoading}
              seoResult={seoResult}

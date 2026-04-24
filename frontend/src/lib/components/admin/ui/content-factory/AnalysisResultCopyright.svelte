@@ -68,11 +68,11 @@
     </div>
 
     <!-- Fix All Emerald Button -->
-    {#if runBulkFix && copyrightResult.annotations?.length > 0}
+    {#if runBulkFix && copyrightResult.annotations?.filter(a => a.type !== 'fixed-area').length > 0}
       <div class="px-3 py-2 border-b border-emerald-500/10 bg-emerald-500/[0.02]">
         <button 
           onclick={() => runBulkFix?.()}
-          disabled={isBulkFixing}
+          disabled={isBulkFixing && copyrightResult.annotations.filter(a => a.type !== 'fixed-area').length === 0}
           class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500 hover:text-black hover:border-emerald-400 text-emerald-400 text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(16,185,129,0.1)] active:scale-95 disabled:opacity-50"
         >
           {#if isBulkFixing}
@@ -80,7 +80,7 @@
             NEURAL_FIXING...
           {:else}
             <Sparkles size={12} class="animate-pulse" />
-            FIX ALL COPYRIGHT ({copyrightResult.annotations.length})
+            FIX ALL COPYRIGHT ({copyrightResult.annotations.filter(a => a.type !== 'fixed-area').length})
           {/if}
         </button>
       </div>

@@ -159,7 +159,7 @@ export type ToastType = "success" | "error" | "info" | "warning";
 export interface ToolbarAction {
   id?: string;
   label: string;
-  icon?: any;
+  icon?: import('svelte').Component;
   onclick: () => void;
   onmouseenter?: () => void;
   onmouseleave?: () => void;
@@ -212,6 +212,36 @@ export interface AIInspectResult {
   geo_score: number;
   summary: string;
   ai_annotations: AnalysisAnnotation[];
+}
+
+export interface NeuralAnalysisController {
+  readonly copyrightResult: CopyrightResult | null;
+  readonly isCopyrightLoading: boolean;
+  readonly seoResult: SEOResult | null;
+  readonly isSeoLoading: boolean;
+  readonly aiReadyResult: AIInspectResult | null;
+  readonly isAiLoading: boolean;
+  readonly isBulkFixing: boolean;
+  readonly bulkFixStatus: string;
+  readonly bulkFixLogs: string[];
+  readonly isBoosting: boolean;
+  activeTab: 'copyright' | 'seo' | 'ai' | 'enrich' | null;
+  readonly copyrightScore: number | null;
+  readonly seoScore: number | null;
+  readonly aiScore: number | null;
+  readonly seoLocked: boolean;
+  readonly aiLocked: boolean;
+  readonly editorAnnotations: AnalysisAnnotation[];
+  readonly streamingText: string;
+  readonly streamingTarget: string | null;
+  runCopyrightCheck: (force?: boolean, skipSave?: boolean) => Promise<void>;
+  runSeoAnalysis: (force?: boolean, skipSave?: boolean) => Promise<void>;
+  runAiAnalysis: (force?: boolean, skipSave?: boolean) => Promise<void>;
+  runAutoFix: (target: string, type: string, msg: string) => Promise<string | null>;
+  runCleanContent: (options?: CleanOptions, rawContent?: string) => Promise<string | null>;
+  runBulkFix: () => Promise<void>;
+  runAiBooster: () => Promise<void>;
+  dispose: () => void;
 }
 
 export interface CampaignSection {
