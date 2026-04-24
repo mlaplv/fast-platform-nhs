@@ -89,7 +89,7 @@
       <!-- CENTRAL BRANDING WATERMARK -->
       <XohiWatermark />
 
-      <div class="relative w-full h-full p-6" style="z-index: {Z_INDEX_ADMIN.SURFACE};">
+      <div class="relative w-full h-full p-0" style="z-index: {Z_INDEX_ADMIN.SURFACE};">
         <div class:hidden={nanobot.isVuiActive && !nanobot.isTraining}>
           <DynamicCanvas />
         </div>

@@ -2,7 +2,6 @@
   import Search from "lucide-svelte/icons/search";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import Check from "lucide-svelte/icons/check";
-  import { onMount } from "svelte";
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
   let {
@@ -37,98 +36,87 @@
   ];
 </script>
 
+<!-- FINAL ATOMIC CONSOLIDATION (Elite V2.2) -->
 <div
-  class="sticky top-0 bg-[#050505] border-b border-white/5 p-4 flex flex-col gap-3 shrink-0"
+  class="sticky top-0 bg-[#050505]/95 backdrop-blur-2xl border-t border-white/5 border-b border-neon-cyan/10 px-2 h-8 flex flex-row flex-nowrap items-center gap-2 shrink-0 shadow-[0_4px_30px_rgba(0,0,0,0.5)] overflow-hidden"
   style="z-index: var(--z-sticky_header);"
 >
-  <div
-    class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-between"
+  <!-- 1. Master Selector -->
+  <div 
+    class="shrink-0 flex items-center justify-center w-6 h-6 cursor-pointer group/master ml-1 sm:ml-2"
+    onclick={onToggleSelectAll}
+    onkeydown={(e) => { if (e.key === ' ') onToggleSelectAll(); }}
+    role="checkbox"
+    aria-checked={isAllSelected}
+    tabindex="0"
   >
-    <div class="flex items-center gap-4 flex-1">
-      <!-- Select All Master Checkbox (Elite V2.2) -->
-      <div 
-        class="shrink-0 flex items-center justify-center w-8 h-8 cursor-pointer group/master"
-        onclick={onToggleSelectAll}
-        onkeydown={(e) => { if (e.key === ' ') onToggleSelectAll(); }}
-        role="checkbox"
-        aria-checked={isAllSelected}
-        tabindex="0"
-        title="Select All on this page"
-      >
-        <div class="w-5 h-5 rounded-md border-2 transition-all flex items-center justify-center
-          {isAllSelected ? 'bg-neon-cyan border-neon-cyan' : 'bg-white/5 border-white/20 group-hover/master:border-white/40'}">
-          {#if isAllSelected}
-            <Check size={14} strokeWidth={4} class="text-black" />
-          {/if}
-        </div>
-      </div>
-      <div class="relative group w-full sm:w-[350px]">
-        <div
-          class="absolute inset-y-0 left-4 flex items-center pointer-events-none"
-        >
-          <Search
-            size={16}
-            class="text-gray-500 group-focus-within:text-neon-cyan group-focus-within:scale-110 transition-all"
-          />
-        </div>
-        <input
-          bind:value={searchInput}
-          oninput={onSearchInput}
-          type="text"
-          placeholder="SEARCH ID OR CUSTOMER..."
-          class="w-full bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 rounded-xl py-3 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-neon-cyan/50 focus:bg-black/50 transition-all uppercase tracking-widest"
-        />
-      </div>
-    </div>
-
-    <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-      <div
-        class="flex items-center gap-2 bg-white/[0.02] border border-white/5 px-3 py-2.5 rounded-xl flex-1 justify-center sm:flex-none"
-      >
-        <span
-          class="text-[9px] font-mono text-gray-500 uppercase tracking-widest hidden sm:inline"
-          >Show</span
-        >
-        <select
-          bind:value={pageSize}
-          class="bg-transparent border-none text-neon-cyan text-[10px] font-mono font-bold focus:outline-none cursor-pointer appearance-none text-center"
-        >
-          <option value={10}>10</option>
-          <option value={20}>20</option>
-          <option value={50}>50</option>
-        </select>
-        <span
-          class="text-[9px] font-mono text-gray-400 uppercase tracking-widest whitespace-nowrap hidden sm:inline"
-          >of {totalOrders}</span
-        >
-      </div>
-
-      <button
-        onclick={onRefresh}
-        title="Force Resync"
-        class="p-2.5 shrink-0 text-gray-500 hover:text-neon-cyan border border-white/5 hover:border-neon-cyan/30 rounded-xl bg-white/[0.02] hover:bg-neon-cyan/10 transition-all"
-      >
-        <RefreshCw
-          size={16}
-          class={isLoading ? "animate-spin text-neon-cyan" : ""}
-        />
-      </button>
+    <div class="w-4 h-4 rounded border-2 transition-all flex items-center justify-center
+      {isAllSelected ? 'bg-neon-cyan border-neon-cyan shadow-[0_0_10px_rgba(0,243,255,0.4)]' : 'bg-white/5 border-white/10 group-hover/master:border-white/30'}">
+      {#if isAllSelected}
+        <Check size={12} strokeWidth={4} class="text-black" />
+      {/if}
     </div>
   </div>
 
-  <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1">
+  <!-- 2. Integrated Search -->
+  <div class="relative group w-[100px] sm:w-[160px] shrink-0">
+    <div class="absolute inset-y-0 left-2 flex items-center pointer-events-none">
+      <Search size={11} class="text-gray-600 group-focus-within:text-neon-cyan transition-all" />
+    </div>
+    <input
+      bind:value={searchInput}
+      oninput={onSearchInput}
+      type="text"
+      placeholder="ID..."
+      class="w-full h-6 bg-white/[0.02] border border-white/5 rounded-md pl-7 pr-2 text-[9px] font-mono text-gray-300 placeholder:text-gray-700 focus:outline-none focus:border-neon-cyan/40 focus:bg-white/[0.04] transition-all uppercase tracking-widest leading-none"
+    />
+  </div>
+
+  <!-- 3. Atomic Filter Strip -->
+  <div class="flex-1 flex items-center gap-0.5 overflow-x-auto no-scrollbar scroll-smooth">
     {#each filters as filter}
       {@const isActive = activeFilter === filter}
       {@const statusConfig = filter !== "all" ? ORDER_STATUS_MAP[filter] : null}
       <button
         onclick={() => (activeFilter = filter)}
-        class="px-5 py-2.5 text-[10px] font-mono font-bold uppercase tracking-widest rounded-lg transition-all relative overflow-hidden flex-shrink-0 border
+        class="px-2 py-1 text-[8.5px] font-mono font-black uppercase tracking-tighter rounded transition-all relative flex-shrink-0
           {isActive
-          ? 'bg-white/10 text-white border-white/20 shadow-sm'
-          : 'text-gray-500 border-white/5 hover:text-gray-200 hover:bg-white/[0.05] hover:border-white/10'}"
+          ? 'text-neon-cyan'
+          : 'text-gray-600 hover:text-gray-300'}"
       >
-        {filter === "all" ? "TOTAL_LINK" : statusConfig?.label || filter}
+        {filter === "all" ? "TOTAL" : statusConfig?.label || filter}
+        {#if isActive}
+          <div class="absolute -bottom-1.5 left-1 right-1 h-[2px] bg-neon-cyan shadow-[0_0_10px_neon-cyan] rounded-full"></div>
+        {/if}
       </button>
     {/each}
+  </div>
+
+  <div class="w-px h-3.5 bg-white/10 shrink-0"></div>
+
+  <!-- 4. Global Metrics -->
+  <div class="flex items-center gap-2 shrink-0 pr-1">
+    <div class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-neon-cyan/5 border border-neon-cyan/10 rounded">
+      <span class="text-[7px] font-mono text-neon-cyan/40 uppercase">P</span>
+      <span class="text-[9px] font-mono text-neon-cyan font-black">{totalOrders}</span>
+    </div>
+
+    <div class="bg-white/[0.03] border border-white/10 px-1 py-0.5 rounded flex items-center hover:border-neon-cyan/30 transition-all group/select">
+      <select
+        bind:value={pageSize}
+        class="bg-transparent border-none text-gray-400 text-[8.5px] font-mono focus:outline-none cursor-pointer appearance-none text-center hover:text-neon-cyan transition-colors"
+      >
+        <option value={10} class="bg-[#0a0a0a] text-gray-300">10</option>
+        <option value={20} class="bg-[#0a0a0a] text-gray-300">20</option>
+        <option value={50} class="bg-[#0a0a0a] text-gray-300">50</option>
+      </select>
+    </div>
+
+    <button
+      onclick={onRefresh}
+      class="p-1 text-gray-600 hover:text-neon-cyan transition-all"
+    >
+      <RefreshCw size={12} class={isLoading ? "animate-spin text-neon-cyan" : ""} />
+    </button>
   </div>
 </div>

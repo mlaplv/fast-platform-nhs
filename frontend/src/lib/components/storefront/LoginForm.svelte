@@ -5,6 +5,7 @@
   import LucideArrowRight from "lucide-svelte/icons/arrow-right";
   import LucideEye from "lucide-svelte/icons/eye";
   import LucideEyeOff from "lucide-svelte/icons/eye-off";
+  import LucideFingerprint from "lucide-svelte/icons/fingerprint";
 
   let { onLogin, isLoading, error } = $props<{
     onLogin: (email: string, password: string, rememberMe: boolean) => void;
@@ -122,18 +123,28 @@
     </button>
   </div>
 
-  <button
-    type="submit"
-    disabled={isLoading}
-    class="w-full bg-black text-white font-bold py-4 rounded-2xl hover:bg-gray-900 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 shadow-xl shadow-black/10"
-  >
-    {#if isLoading}
-      <div
-        class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"
-      ></div>
-    {:else}
-      <span>Tiếp tục</span>
-      <LucideArrowRight size={18} />
-    {/if}
-  </button>
+  <div class="flex items-center gap-3 mt-4">
+    <button
+      type="submit"
+      disabled={isLoading}
+      class="flex-1 bg-black text-white font-bold py-4 rounded-2xl hover:bg-gray-900 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-black/10"
+    >
+      {#if isLoading}
+        <div
+          class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"
+        ></div>
+      {:else}
+        <span>Tiếp tục</span>
+        <LucideArrowRight size={18} />
+      {/if}
+    </button>
+
+    <button
+      type="button"
+      class="w-14 h-14 border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 hover:text-black hover:border-black/20 hover:bg-gray-50 transition-all active:scale-[0.95] shrink-0 group"
+      title="Mở khóa bằng vân tay"
+    >
+      <LucideFingerprint size={32} class="transition-transform group-hover:scale-110" />
+    </button>
+  </div>
 </form>

@@ -320,7 +320,7 @@
   />
 
   <!-- Main Order Grid (Data Modules) -->
-  <div class="flex-1 overflow-y-scroll custom-scrollbar p-4 sm:p-6">
+  <div class="flex-1 overflow-y-scroll custom-scrollbar p-0">
     {#if isLoading}
       <div class="h-full flex flex-col items-center justify-center gap-4">
         <div
@@ -345,7 +345,7 @@
         >
       </div>
     {:else}
-      <div class="grid grid-cols-1 gap-3">
+      <div class="grid grid-cols-1 gap-0">
         {#each orders as order (order.id)}
           {@const status = ORDER_STATUS_MAP[order.status.toLowerCase()] || {
             label: order.status,

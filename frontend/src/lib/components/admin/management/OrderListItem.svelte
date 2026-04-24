@@ -70,11 +70,11 @@
       onOpenDetail(order.id);
     }
   }}
-  class="order-item group flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-6 w-full {isSelected ? 'border-neon-cyan/50 bg-neon-cyan/[0.03]' : ''} {order.isSpam
-    ? 'border-red-500/50 bg-red-500/[0.02]'
+  class="order-item group flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full {isSelected ? 'border-neon-cyan/30 bg-neon-cyan/[0.02]' : ''} {order.isSpam
+    ? 'border-red-500/30 bg-red-500/[0.01]'
     : ''}"
 >
-  <div class="flex items-start sm:items-center gap-4 w-full">
+  <div class="flex items-start sm:items-center gap-3 w-full">
     <!-- Selection Checkbox (Elite V2.2) -->
     <div 
       class="shrink-0 flex items-center justify-center w-6 h-6 grayscale hover:grayscale-0 transition-all"
@@ -419,25 +419,22 @@
 <style>
   /* ZERO-REFLOW hover: only background-color changes, no border/size/shadow changes */
   .order-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem;
-    background: #0a0a0a;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 0.75rem;
-    text-align: left;
+    position: relative;
+    background-color: #050505;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 0;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
     cursor: pointer;
-    will-change: background-color;
   }
   @media (min-width: 640px) {
     .order-item {
-      padding: 1.25rem;
+      padding: 0.5rem 1rem;
     }
   }
   .order-item:hover {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.02);
     z-index: var(--z-surface);
     position: relative;
   }

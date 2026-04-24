@@ -79,11 +79,11 @@
 {#if dialog}
   <div use:portal>
     <MissionControlShell
-      title={dialog.title || "SYSTEM_CONFIRMATION"}
+      title={dialog?.title || "SYSTEM_CONFIRMATION"}
       isOpen={!!dialog}
-      onClose={() => dialog.onCancel?.()}
+      onClose={() => dialog?.onCancel?.()}
       headerIcon={AlertTriangle}
-      maxWidth={dialog.fields && dialog.fields.length > 0 ? "max-w-xl" : "max-w-lg"}
+      maxWidth={dialog?.fields && dialog?.fields.length > 0 ? "max-w-xl" : "max-w-lg"}
       height="h-auto"
       zIndex={Z_INDEX_ADMIN.MODAL_CONFIRM}
       backdropClass="bg-black/20 backdrop-blur-xl"

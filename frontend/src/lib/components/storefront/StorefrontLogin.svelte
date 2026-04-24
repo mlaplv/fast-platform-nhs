@@ -6,7 +6,7 @@
   import LucideArrowRight from "lucide-svelte/icons/arrow-right";
   import LucidePhone from "lucide-svelte/icons/phone";
   import LucideGithub from "lucide-svelte/icons/github";
-  import LucideScanFace from "lucide-svelte/icons/scan-face";
+  import LucideFingerprint from "lucide-svelte/icons/fingerprint";
   import LucideEye from "lucide-svelte/icons/eye";
   import LucideEyeOff from "lucide-svelte/icons/eye-off";
   import { apiClient } from "$lib/utils/apiClient";
@@ -236,7 +236,7 @@
             <button
               class="w-full bg-white border border-gray-200 hover:border-black text-black font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 transition-all"
             >
-              <LucideScanFace size={20} />
+              <LucideFingerprint size={24} />
               <span class="text-sm">Mở khóa vân tay</span>
             </button>
           </div>
