@@ -116,7 +116,7 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
             logger.error(f"[AiInspector] Auto-fix failed: {e}")
             return AutoFixResponse(old_text=snippet, new_text=snippet)
 
-    async def atomic_bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
+    async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
         logs = ["[SURGEON] Initializing Neural AI-Ready Surgeon (Elite V2.2)..."]
         await self._emit_log(campaign, logs[-1])
         
