@@ -165,7 +165,7 @@
           {/if}
 
           <!-- Command Center (Mic/Timer) -->
-          <div class="w-full flex justify-end items-center gap-2 mb-6 opacity-80">
+          <div class="w-full flex justify-end items-center gap-2 mb-6 opacity-80" class:hidden={nanobot.modality === "text"}>
             <div class="flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 font-mono text-[14px] tracking-widest text-white shadow-2xl backdrop-blur-xl">
               <Mic size={16} class={phase === "listening" ? "text-red-500 animate-pulse" : "text-blue-400"} />
               <span class="min-w-[45px]">{formatTime(timer)}</span>

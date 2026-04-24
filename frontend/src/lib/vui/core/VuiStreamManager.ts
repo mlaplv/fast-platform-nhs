@@ -127,8 +127,9 @@ export class VuiStreamManager {
         } else if (parsed.phase === "text_delta" && parsed.text) {
           txtResult += parsed.text;
 
+          // Unified Chat: Cả voice và text đều set speaking để VoiceStatusCaption render live
+          vuiState.setPhase("speaking");
           if (source === "voice") {
-            vuiState.setPhase("speaking");
             this.audio.processChunk(parsed.text);
           }
 
@@ -186,10 +187,10 @@ export class VuiStreamManager {
       getBot().setVoiceResult(query, finalMsg, this.lastActionType, lastData || {}, source, lastData?.router_tier);
 
       if (source === "text") {
-        setTimeout(() => {
-          vuiState.setPhase("idle");
-          vuiState.setLiveText("");
-        }, 300);
+        // Unified Chat: Finalize interaction để push vào history (phương án A: giữ modal mở)
+        vuiState.finalizeInteraction();
+        vuiState.setPhase("idle");
+        vuiState.setLiveText("");
         return;
       }
 

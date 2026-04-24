@@ -109,7 +109,7 @@ class DataInjector:
                     res["revenue"].append(float(r.rev or 0))
                     res["orders"].append(int(r.cnt or 0))
             except Exception as pg_err:
-                logger.debug(f"[Data Injector] Postgres grouping failed for {trunc_unit}, trying SQLite: {pg_err}")
+                logger.error(f"[Data Injector] Postgres grouping failed for {trunc_unit}, trying SQLite: {pg_err}", exc_info=True)
                 # 2. SQLite Fallback (strftime)
                 try:
                     if trunc_unit == 'year':

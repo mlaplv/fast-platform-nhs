@@ -58,7 +58,8 @@
       nanobot.isVuiActive &&
       !nanobot.vuiResponse &&
       vuiState.phase === "idle" &&
-      !vuiState.isStarting
+      !vuiState.isStarting &&
+      vuiState.history.length === 0
     ) {
       console.warn(
         "[VoiceModal] Safety unmount triggered: isVuiActive=true but no response/phase.",

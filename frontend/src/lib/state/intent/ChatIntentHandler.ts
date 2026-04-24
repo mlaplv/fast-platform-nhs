@@ -12,8 +12,8 @@ export async function handleChatIntent(
 ): Promise<boolean> {
   const { state, voice, resetVui } = deps;
   
-  // Phase 55: Ensure VUI visuals are forced OFF for chat initially
-  // Reverted blind VUI activation. VUI state is now managed by the VuiOrchestrator based on source.
+  // Unified Chat: KHÔNG set isVuiActive ở đây — để execTextCmd xử lý đồng bộ
+  // cả isVuiActive + phase="thinking" cùng 1 tick, tránh Safety Unmount race condition
   
   const { vuiController } = await import("$lib/vui");
   
