@@ -1,4 +1,8 @@
-/* TiptapEditor.css (Elite V2.7) */
+/* 
+  TiptapEditor.css (Elite V2.7 - Neural Prose Hardened) 
+  Layer: Typography & Interaction
+  Rules: No Tailwind Typography plugin required. Pure Vanilla CSS.
+*/
 
 .document-scroll::-webkit-scrollbar {
   width: 4px;
@@ -15,33 +19,195 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
-:global(.tiptap-content) { outline: none; color: rgba(255, 255, 255, 0.9); line-height: 1.625; }
-:global(.tiptap-content p) { margin: 0.5rem 0; }
-:global(.tiptap-content.prose) {
-  --tw-prose-links: #00f3ff;
-  --tw-prose-invert-links: #00f3ff;
+/* 🧪 NEURAL PROSE SYSTEM (Professional & Clean Edition) */
+.tiptap-content .ProseMirror,
+.tiptap-content {
+  outline: none !important;
+  color: rgba(255, 255, 255, 0.85) !important; /* Professional off-white */
+  line-height: 1.65 !important;
+  font-size: 15px !important;
+  word-wrap: break-word !important;
+  text-align: left !important;
 }
-:global(.tiptap-content h1) { font-size: 1.875rem; font-weight: 900; margin-bottom: 1rem; color: white; }
-:global(.tiptap-content h2) { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; margin-top: 1rem; color: rgba(255, 255, 255, 0.8); }
-:global(.tiptap-content h3) { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.25rem; margin-top: 0.75rem; color: rgba(255, 255, 255, 0.7); }
-:global(.tiptap-content img) { border-radius: 0.5rem; margin: 0.5rem auto; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
-:global(.tiptap-content img.ProseMirror-selectednode) { border-color: rgba(59, 130, 246, 0.5); box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1); }
+
+/* Paragraphs & Spacing */
+.tiptap-content p {
+  margin: 1.25em 0 !important;
+}
+
+/* Professional Heading Hierarchy */
+.tiptap-content h1 {
+  display: block !important;
+  font-size: 2.25rem !important; /* ~36px */
+  font-weight: 800 !important;
+  margin-top: 1.75rem !important;
+  margin-bottom: 1.25rem !important;
+  color: #ffffff !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.02em !important;
+  scroll-margin-top: 100px;
+}
+
+.tiptap-content h2 {
+  display: block !important;
+  font-size: 1.75rem !important; /* ~28px */
+  font-weight: 700 !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 1rem !important;
+  color: #ffffff !important;
+  line-height: 1.3 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding-bottom: 0.5rem !important;
+  scroll-margin-top: 80px;
+}
+
+.tiptap-content h3 {
+  display: block !important;
+  font-size: 1.45rem !important; /* ~23px */
+  font-weight: 800 !important;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.75rem !important;
+  color: #ffffff !important;
+  line-height: 1.3 !important;
+  scroll-margin-top: 60px;
+}
+
+.tiptap-content h4 {
+  display: block !important;
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.5rem !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Lists - Standard Professional Markers */
+.tiptap-content ul {
+  display: block !important;
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin: 1.25rem 0 !important;
+}
+
+.tiptap-content ol {
+  display: block !important;
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin: 1.25rem 0 !important;
+}
+
+.tiptap-content li {
+  margin: 0.5rem 0 !important;
+}
+
+.tiptap-content li p {
+  margin: 0 !important;
+}
+
+/* Blockquotes - Clean & Sober */
+.tiptap-content blockquote {
+  display: block !important;
+  border-left: 3px solid rgba(255, 255, 255, 0.2) !important;
+  padding: 0.75rem 1.25rem !important;
+  font-style: italic !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  margin: 1.5rem 0 !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Code Blocks & Inline Code */
+.tiptap-content .ProseMirror code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.9em;
+  color: #00f3ff;
+}
+
+.tiptap-content .ProseMirror pre {
+  background: #0d1117;
+  color: #e6edf3;
+  padding: 1.25rem;
+  border-radius: 12px;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tiptap-content .ProseMirror pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font-size: 13px;
+}
+
+/* Horizontal Rule */
+.tiptap-content .ProseMirror hr {
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 2rem 0;
+}
+
+/* Links */
+.tiptap-content .ProseMirror a {
+  color: #00f3ff;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.tiptap-content .ProseMirror a:hover {
+  opacity: 0.8;
+}
+
+/* Images & Assets */
+.tiptap-content .ProseMirror img {
+  border-radius: 1rem;
+  margin: 1.5rem auto;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 100%;
+  display: block;
+}
+
+.tiptap-content .ProseMirror img.ProseMirror-selectednode {
+  border-color: #00f3ff;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+  transform: scale(1.01);
+}
 
 /* Figure / Caption */
-:global(.tiptap-content figure.image-figure) {
-  margin: 1.5rem auto;
+.tiptap-content .ProseMirror figure.image-figure {
+  margin: 2rem auto;
   text-align: center;
 }
-:global(.tiptap-content figure.image-figure img) {
-  margin: 0;
+
+.tiptap-content .ProseMirror figure.image-figure img {
+  margin: 0 auto;
 }
-:global(.tiptap-content figure.image-figure figcaption) {
-  font-size: 0.75rem;
+
+.tiptap-content .ProseMirror figure.image-figure figcaption {
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.4);
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
   font-style: italic;
   font-weight: 300;
   letter-spacing: 0.025em;
 }
 
-/* Highlighting styles moved to neural-highlights.css for global system use */
+/* Selection */
+.tiptap-content .ProseMirror ::selection {
+  background: rgba(0, 243, 255, 0.3);
+}
+
+/* Placeholder */
+.tiptap-content .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+  height: 0;
+}

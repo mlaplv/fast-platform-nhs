@@ -14,6 +14,7 @@
   import type { CopyrightResult, SEOResult, AIInspectResult } from '$lib/state/types';
   import { tokenize, jaccard, normalizeHTML, stripMarks, generateStableId, beautifyHTML } from './utils/editorUtils';
   import { portal } from '$lib/core/actions/portal';
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { createAnnotationManager } from './parts/AnnotationManager.svelte.ts';
   import { createEditorHandlers } from './parts/EditorHandlers.svelte.ts';
   import './TiptapEditor.css';
@@ -27,7 +28,7 @@
     assets = $bindable(),
     selectedAvatarUrl = $bindable(),
     selectedAssetIndex = $bindable(),
-    fullScreen = false,
+    fullScreen = $bindable(false),
     onToggleFullScreen = null,
     toolbarActions = [] as ToolbarAction[],
     annotations = [] as EditorAnnotation[],
@@ -79,9 +80,7 @@
     bulkFixLogs?: string[];
   } = $props();
 
-  let internalFullScreen = $state<boolean>(fullScreen);
-  // Elite V2.2: Sync internal state with prop for parent-driven toggles (NeuralEditor mode)
-  $effect(() => { internalFullScreen = fullScreen; });
+  // Full screen state is now driven directly by the bindable fullScreen prop.
 
   let showSource = $state(false);
   
@@ -98,9 +97,9 @@
     if (onToggleFullScreen) {
       onToggleFullScreen();
     } else {
-      internalFullScreen = !internalFullScreen;
+      fullScreen = !fullScreen;
       if (typeof window !== 'undefined') {
-        document.body.style.overflow = internalFullScreen ? 'hidden' : '';
+        document.body.style.overflow = fullScreen ? 'hidden' : '';
       }
     }
   };
@@ -165,8 +164,8 @@
   }
 
   const containerClass = $derived(`tiptap-shell flex flex-col w-full ${
-    internalFullScreen
-      ? 'fixed inset-0 z-[var(--z-admin-tiptap-fullscreen)] bg-[#0a0d14]'
+    fullScreen
+      ? `fixed inset-0 z-[${Z_INDEX_ADMIN.TIPTAP_FULLSCREEN}] bg-[#0a0d14]`
       : (flex 
           ? 'flex-1 h-full bg-transparent min-h-0' 
           : (editable ? 'bg-transparent' : 'bg-transparent overflow-visible'))
@@ -257,28 +256,32 @@
   });
 
   $effect(() => {
-    // CNS V2.2: Stabilized Content Sync (Zero-Flicker)
+    // CNS V2.3: Stabilized Content Sync (Zero-Flicker & No Scroll Jump)
     if (!editor || editor.isDestroyed || isInternalUpdating || isSyncLocked) return;
     
+    // [CRITICAL] If editor is focused, it IS the master. 
+    // Do NOT sync back from props to avoid scroll/cursor resets during active editing.
+    if (isFocused) return;
+
     const normalizedContent = content || "<p></p>";
 
     untrack(() => {
         const currentHTML = editor!.getHTML();
+        
+        // Use a faster string-based check first to avoid expensive DOM normalization
+        if (normalizedContent === currentHTML) return;
+
         const normProp = normalizeHTML(normalizedContent, stripMarks);
         const normCurrent = normalizeHTML(currentHTML, stripMarks);
 
         if (normProp !== normCurrent) {
-            // [CRITICAL] Nếu đang focus (người dùng đang bôi đen/gõ), KHÔNG ĐÈ content 
-            // để tránh mất vùng chọn, trừ khi lệch quá lớn (crash guard)
-            if (isFocused && Math.abs(normProp.length - normCurrent.length) < 50) {
-              return;
-            }
-
             isInternalUpdating = true;
             const { from, to } = editor!.state.selection;
+            
+            // CNS V88.6: Use setContent with emitUpdate: false to prevent feedback loops
             editor!.commands.setContent(normalizedContent, false);
             
-            // CNS V87.9: Explicitly re-trigger annotations after document replacement
+            // Re-sync annotations
             editor!.view.dispatch(
               editor!.state.tr.setMeta(AnnotationPluginKey, {
                 type: "SET_ANNOTATIONS",
@@ -286,16 +289,15 @@
               })
             );
 
-            // Re-sync selection if it was focused and valid
-            if (isFocused) {
-                try { 
-                  const maxPos = editor!.state.doc.content.size;
-                  editor!.commands.setTextSelection({ 
-                    from: Math.min(from, maxPos), 
-                    to: Math.min(to, maxPos) 
-                  }); 
-                } catch (e) {}
-            }
+            // Re-sync selection if valid
+            try { 
+              const maxPos = editor!.state.doc.content.size;
+              editor!.commands.setTextSelection({ 
+                from: Math.min(from, maxPos), 
+                to: Math.min(to, maxPos) 
+              }); 
+            } catch (e) {}
+            
             setTimeout(() => { isInternalUpdating = false; }, 50);
         }
     });
@@ -405,7 +407,7 @@
       onClearHighlights={() => editor?.commands.clearAllAnnotations()}
       onClean={onClean}
       bind:showSource={showSource}
-      fullScreen={internalFullScreen}
+      fullScreen={fullScreen}
       onToggleFullScreen={toggleFullScreen}
       analysisData={analysisData}
       copyrightResult={copyrightResult}
@@ -422,7 +424,7 @@
   {/if}
 
   <div
-    class="w-full flex flex-col overflow-y-auto document-scroll {internalFullScreen ? 'bg-[#0a0d14] flex-1 min-h-0' : (flex ? 'bg-transparent flex-1 min-h-0' : 'bg-transparent max-h-[650px]')}"
+    class="w-full overflow-y-auto document-scroll relative {fullScreen ? 'bg-[#0a0d14] flex-1 min-h-0' : (flex ? 'bg-transparent flex-1 min-h-0' : 'bg-transparent max-h-[650px]')}"
     onclick={(e) => { 
       if (e.target === e.currentTarget) editor?.commands.focus();
       handlers.handleImageClick(e); 
@@ -434,7 +436,7 @@
   >
     <div 
       class="
-        {internalFullScreen ? 'w-full flex-1 min-h-0 px-4 py-4 transition-all duration-300 flex flex-col' : (flex ? 'w-full bg-transparent flex-1 min-h-full px-6 py-4' : 'w-full bg-transparent min-h-[400px] px-6 py-4')}
+        {fullScreen ? 'w-full min-h-full px-4 pt-4 pb-16 transition-all duration-300 flex flex-col' : (flex ? 'w-full bg-transparent min-h-full px-6 pt-4 pb-16 flex flex-col' : 'w-full bg-transparent min-h-[400px] px-6 pt-4 pb-16 flex flex-col')}
         {!editable ? 'cursor-default' : 'cursor-text'}
       "
       onclick={() => { if (editable && !showSource) editor?.commands.focus(); }}
@@ -448,7 +450,7 @@
       {#if showSource}
         <textarea
           bind:value={content}
-          class="w-full {internalFullScreen ? 'flex-1 min-h-0' : 'min-h-[500px]'} bg-black/5 text-cyan-50/70 font-mono text-[11px] p-6 outline-none border border-white/5 rounded-xl resize-none leading-relaxed custom-scrollbar shadow-2xl"
+          class="w-full {fullScreen ? 'flex-1 min-h-0' : 'min-h-[500px]'} bg-[#050505] text-white/70 font-mono text-[12px] p-6 outline-none border border-white/5 rounded-xl resize-none leading-relaxed custom-scrollbar shadow-2xl"
           spellcheck="false"
           placeholder="HTML Source Code..."
         ></textarea>
@@ -491,7 +493,3 @@
   {imageMenuX}
   {imageMenuY}
 />
-
-<style>
-  /* Elite V2.2: Essential Component Layout Only. Neural highlights are managed in neural-highlights.css */
-</style>

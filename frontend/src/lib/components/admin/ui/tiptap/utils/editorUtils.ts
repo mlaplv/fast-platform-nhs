@@ -65,25 +65,32 @@ export const generateStableId = (text: string, message: string): string => {
   return (hash >>> 0).toString(36);
 };
 /**
- * Beautifies HTML for source view (Elite V2.7)
+ * Beautifies HTML for source view (Elite V2.7 - Robust Edition)
  */
 export const beautifyHTML = (html: string): string => {
-  let formatted = '';
+  if (!html) return '';
+  
+  let result = '';
   let indent = '';
   const tab = '  ';
-  const nodes = html.split(/>\s*</);
+  
+  // Robust split by tags, preserving tags and content
+  const tokens = html.replace(/>\s*</g, '><').split(/(<[^>]+>)/g).filter(v => v.trim() !== '');
 
-  nodes.forEach((node, i) => {
-    if (node.match(/^\/\w/)) {
-      indent = indent.substring(tab.length);
-    }
-    
-    formatted += (i === 0 ? '' : '\n') + indent + '<' + node + '>';
-    
-    if (node.match(/^<?\w[^>]*[^\/]$/) && !node.match(/^(br|hr|img|input|link|meta)/)) {
+  tokens.forEach(token => {
+    if (token.startsWith('</')) {
+      // Closing tag: decrement indent and append
+      indent = indent.slice(tab.length);
+      result += indent + token + '\n';
+    } else if (token.startsWith('<') && !token.endsWith('/>') && !token.match(/^<(br|hr|img|input|link|meta)/i)) {
+      // Opening tag (not self-closing): append and increment indent
+      result += indent + token + '\n';
       indent += tab;
+    } else {
+      // Self-closing tag or text content
+      result += indent + token + '\n';
     }
   });
 
-  return formatted.replace(/<</g, '<').replace(/>>/g, '>');
+  return result.trim();
 };

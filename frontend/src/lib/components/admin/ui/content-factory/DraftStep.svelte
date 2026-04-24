@@ -119,6 +119,7 @@
       bind:analysisCache={analysis_cache}
       bind:analysisMetrics={analysis_metrics}
       analysisReport={analysis_report}
+      flex={true}
     />
   </div>
 

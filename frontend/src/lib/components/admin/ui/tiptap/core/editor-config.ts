@@ -18,6 +18,9 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
     strike: {},
     code: {},
     history: {},
+    heading: {
+      levels: [1, 2, 3, 4]
+    },
     link: false,
     underline: false
   }),

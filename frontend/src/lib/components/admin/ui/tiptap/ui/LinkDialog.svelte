@@ -60,7 +60,7 @@
   headerIcon={Globe}
   maxWidth="max-w-xl"
   height="h-auto"
-  zIndex={Z_INDEX_ADMIN.MODAL}
+  zIndex={Z_INDEX_ADMIN.TIPTAP_MODAL}
   backdropClass="bg-black/90 backdrop-blur-xl"
 >
   <div class="px-8 py-8 flex flex-col gap-6">

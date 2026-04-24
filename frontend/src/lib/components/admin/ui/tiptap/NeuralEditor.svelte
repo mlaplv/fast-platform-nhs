@@ -43,6 +43,8 @@
     selectedAssetIndex?: number;
     /** Bindable: Detailed report from DB (CNS V87.0) */
     analysisReport?: Record<string, unknown>;
+    /** Enable flex-1 fill behavior */
+    flex?: boolean;
   }
 
   let {
@@ -61,6 +63,7 @@
     selectedAvatarUrl = $bindable(),
     selectedAssetIndex = $bindable(),
     analysisReport = $bindable(),
+    flex = false,
   }: Props & { fullScreen?: boolean } = $props();
 
 
@@ -230,19 +233,19 @@
 
 <div 
   use:portal={fullScreen}
-  class="flex flex-col {fullScreen ? 'fixed inset-0 bg-[#0a0d14] h-[100dvh]' : 'gap-2 relative'}" 
+  class="flex flex-col {fullScreen ? 'fixed inset-0 bg-[#0a0d14] h-[100dvh]' : (flex ? 'flex-1 min-h-0 relative' : 'gap-2 relative')}" 
   style={fullScreen ? `z-index: ${Z_INDEX_ADMIN.TIPTAP_FULLSCREEN}` : ''}
 >
 
   <!-- Editor Container -->
-  <div class="relative flex flex-col {editable ? 'bg-[#09090b]/40' : 'bg-transparent'} {fullScreen ? 'flex-1 min-h-0' : ''}">
+  <div class="relative flex flex-col {editable ? 'bg-[#09090b]/40' : 'bg-transparent'} {fullScreen || flex ? 'flex-1 min-h-0' : ''}">
     <TiptapEditor
       bind:editorRef
       bind:content
       {editable}
       {placeholder}
-      fullScreen={fullScreen}
-      onToggleFullScreen={() => fullScreen = !fullScreen}
+      bind:fullScreen
+      {flex}
       onChange={(val) => { if (editable && val !== editBuffer) { editBuffer = val; content = val; } }}
       onfix={analysis.runAutoFix}
       onClean={analysis.runCleanContent}
