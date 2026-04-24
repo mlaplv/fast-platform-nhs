@@ -61,41 +61,7 @@
     (activeTab === 'enrich' && isBoosting)
   );
 
-  // ── CNS V87.0: Dashboard — chỉ hiển thị khi ≥1 kết quả có dữ liệu ────────
-  const hasAnyResult = $derived(!!(copyrightResult || seoResult || aiReadyResult));
-
-  // Gom tất cả annotations từ 3 nguồn
-  const allAnnotations = $derived([
-    ...(copyrightResult?.annotations ?? []),
-    ...(seoResult?.seo_annotations ?? []),
-    ...(aiReadyResult?.ai_annotations ?? []),
-  ].filter(a => a.type !== 'fixed-area'));
-
-  const totalIssues = $derived(allAnnotations.length);
-  const highCount   = $derived(allAnnotations.filter(a => a.severity === 'high').length);
-  const warnCount   = $derived(allAnnotations.filter(a =>
-    a.severity === 'medium' || a.severity === 'warning'
-  ).length);
-  const lowCount    = $derived(allAnnotations.filter(a =>
-    a.severity === 'low' || a.severity === 'info' || !a.severity
-  ).length);
-
-  // Health Score: trung bình các điểm hiện có
-  const healthScore = $derived.by(() => {
-    const scores: number[] = [];
-    if (copyrightResult) scores.push(Math.round((copyrightResult.uniqueness_score ?? 0) * 100));
-    if (seoResult) scores.push(seoResult.total_score ?? 0);
-    if (aiReadyResult) scores.push(aiReadyResult.geo_score ?? 0);
-    if (scores.length === 0) return null;
-    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-  });
-
-  const healthColor = $derived(
-    healthScore === null ? '#6b7280' :
-    healthScore >= 80 ? '#10b981' :
-    healthScore >= 60 ? '#3b82f6' :
-    healthScore >= 40 ? '#f59e0b' : '#ef4444'
-  );
+  // ── CNS V87.0: Dashboard removal — Cleaned up unused metrics ────────
 </script>
 
 <div class="shrink-0 flex flex-col">

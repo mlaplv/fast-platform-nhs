@@ -1,36 +1,23 @@
 import logging
 from datetime import datetime, timezone
 from pydantic_ai import Agent
-from backend.services.xohi.creative_studio.models.schemas import (
-    SurgeonBoosterReport, ContentPatch
-)
+from backend.services.xohi.creative_studio.models.schemas import SurgeonBoosterReport
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative, XoHiProgressMixin
 
 logger = logging.getLogger("api-gateway")
 
-_SURGEON_BOOST_PROMPT = """[ROLE] VIRAL EDGE SURGEON BOOSTER — XoHi 2026
-Nhiệm vụ: Phân tích bài viết và trả về danh sách các thao tác "phẫu thuật" CỤ THỂ để nâng cấp nội dung.
+_SURGEON_BOOST_PROMPT = """[ROLE] VIRAL EDGE SENIOR SURGEON — Neural XoHi Elite V2.2
+Nhiệm vụ: Phẫu thuật nội dung để đạt Viral Edge tối đa. Tuyệt đối không viết chung chung vô giá trị.
 
-[8 TIÊU CHÍ CẦN PHẪU THUẬT]
-1. Xóa câu "fluff" (Không thể phủ nhận, Trong thời đại 4.0...)
-2. Thêm số liệu cụ thể vào các tuyên bỏ mơ hồ
-3. Tăng EEAT: thêm dẫn chứng thực tế, trích dẫn
-4. Tăng Featured Snippet: cấu trúc câu trả lời ≤40 từ sau H2
-5. Tối ưu Topic Sentence mỗi đoạn
-6. Loại bỏ nội dung trùng lặp trong bài
-7. Tăng Entity Density (tên riêng, số liệu, thuật ngữ)
-8. Cải thiện cấu trúc bullet/table để AI dễ trích dẫn
-
-[QUY TẮC BẮT BUỘC]
-- search_string: PHẢI là đoạn text tồn tại THỰC SỰ trong bài (copy nguyên văn ≤200 chars)
-- replacement_string: Đoạn text cải thiện (không được dài hơn 2x gốc)
-- Tối thiểu 3 patches, tối đa 10 patches
-- Không sửa HTML tags, chỉ sửa text bên trong tags
-- Không thêm nội dung không có trong bài gốc trừ khi cần thêm số liệu
+[QUY TẮC BÁO CÁO — ELITE PROTOCOL]
+1. 🚫 KHÔNG DÙNG LỜI MỞ ĐẦU/KẾT THÚC: Đi thẳng vào các thao tác phẫu thuật.
+2. 🚫 KHÔNG DÙNG DẤU BA SAO (***): Sử dụng tiêu đề Markdown hoặc danh sách chuẩn.
+3. 💉 INFORMATION GAIN: Mỗi patch phẫu thuật phải tăng cường EEAT (Số liệu, Trích dẫn, Thực thể).
+4. 🔪 SURGICAL PRECISION: search_string phải khớp 100% bản gốc.
 
 [YÊU CẦU ĐẦU RA — SurgeonBoosterReport]
-Trả về patches: List[ContentPatch] và summary tóm tắt những gì đã cải thiện.
+summary: "BẢN TRÌNH BÁO PHẪU THUẬT NỘI DUNG (Elite V2.2)\\n\\n- **[LUẬN ĐIỂM CẢI TIẾN]**: Phân tích vì sao nội dung gốc đang bị 'loãng' hoặc thiếu sức nặng.\\n- **[CHỨNG CỨ PHẪU THUẬT]**: Liệt kê các đoạn đã được tiêm Information Gain.\\n- **[KẾT QUẢ KỲ VỌNG]**: Tăng khả năng lọt TOP 1 và AI Overview."
 """
 
 class SurgeonBooster(BaseAgentOperative, XoHiProgressMixin):

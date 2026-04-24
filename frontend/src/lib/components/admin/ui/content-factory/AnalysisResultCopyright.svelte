@@ -41,14 +41,14 @@
         </div>
 
         <!-- Risk Level & Protocol -->
-        <div class="flex flex-col gap-1 px-3">
-          <div class="flex items-center gap-2">
-            <span class="text-[11px] font-black uppercase tracking-[0.1em]" style="color:{riskColor}">
-              {copyrightResult.risk_level === 'LOW' ? 'PROTECTED ✅' : copyrightResult.risk_level === 'MEDIUM' ? 'STRICT CAUTION ⚠️' : 'CRITICAL RISK 🚨'}
+        <div class="flex flex-col gap-1.5 px-3">
+          <div class="flex flex-col gap-1.5">
+            <span class="text-sm font-black uppercase tracking-[0.1em]" style="color:{riskColor}">
+              {copyrightResult.risk_level === 'LOW' ? 'PROTECTED' : copyrightResult.risk_level === 'MEDIUM' ? 'STRICT CAUTION' : 'CRITICAL RISK'}
             </span>
-          </div>
-          <div class="flex items-center gap-1.5 opacity-20">
-            <span class="text-[7px] font-black uppercase tracking-[0.3em]">Protocol_XoHi_System_V2.2</span>
+            <div class="flex items-center gap-1.5 opacity-30">
+              <span class="text-[9px] font-black uppercase tracking-[0.3em]">Protocol_XoHi_System_V2.2</span>
+            </div>
           </div>
         </div>
       </div>
@@ -58,13 +58,15 @@
       </button>
     </div>
 
-    <!-- Verdict (Full Width) -->
-    <div class="px-3 py-3 bg-black/20 border-b border-white/5">
-      <div class="flex items-center gap-2 mb-2 opacity-20">
-        <div class="w-1 h-1 rounded-full bg-white"></div>
-        <span class="text-[7px] font-black uppercase tracking-[0.2em]">Neural_Legal_Verdict</span>
+    <!-- Verdict -->
+    <div class="px-4 py-4 bg-black/40 border-b border-white/5 shadow-inner">
+      <div class="flex items-center gap-2 mb-3 opacity-30">
+        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+        <span class="text-[10px] font-black uppercase tracking-[0.2em]">Neural_Legal_Verdict</span>
       </div>
-      <p class="text-[10px] text-white/80 leading-relaxed font-medium whitespace-pre-wrap">{copyrightResult.verdict}</p>
+      <p class="text-[14px] text-white/90 leading-[1.6] font-medium tracking-tight whitespace-pre-line">
+        {copyrightResult.verdict.replace(/\*\*\*/g, '').trim()}
+      </p>
     </div>
 
     <!-- Fix All Emerald Button -->
@@ -96,8 +98,10 @@
           <div class="px-3 py-2 border-b border-emerald-500/20 bg-emerald-500/[0.04] flex items-start gap-2">
             <CheckCircle2 size={10} class="text-emerald-400 mt-0.5 shrink-0" />
             <div class="min-w-0">
-              <span class="text-[7px] font-black text-emerald-400 uppercase">✅ ĐÃ SỬA</span>
-              <p class="text-[8px] text-emerald-200/60 leading-relaxed mt-0.5 truncate italic">"{ann.text}"</p>
+              <span class="text-[8px] font-black text-emerald-400 uppercase">✅ ĐÃ SỬA</span>
+              <p class="text-[12px] text-white/80 leading-relaxed mt-0.5 tracking-tight">
+                <span class="text-white/40 font-mono italic">"{ann.text}"</span>
+              </p>
             </div>
           </div>
         {:else}
@@ -116,7 +120,10 @@
                 {/if}
               </button>
             </div>
-            <p class="text-[8px] text-white/70 leading-relaxed"><span class="text-white/30 italic">"{ann.text}"</span> — {ann.reason}</p>
+            <p class="text-[12px] text-white/80 leading-relaxed tracking-tight">
+              <span class="text-white/40 font-mono italic">"{ann.text}"</span> <br/>
+              <span class="text-orange-200/90">{ann.reason}</span>
+            </p>
             {#if ann.source_url && !isInternal}<a href={ann.source_url} target="_blank" class="text-[7px] text-blue-400/60 hover:text-blue-400 underline truncate">🔗 Nguồn: {ann.source_url}</a>{/if}
           </div>
         {/if}

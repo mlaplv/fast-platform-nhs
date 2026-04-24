@@ -180,7 +180,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                     await self._emit_progress(campaign, logs[-1])
                 
                 prompt = f"[BÀI VIẾT]\n{('\n'.join(deduped))[:50000]}\n\n[ĐỐI THỦ]\n{'\n'.join(comps)}"
-                res = await self.bridge.run(self._agent, prompt, force=force, role="brain")
+                res = await self.bridge.run(self._agent, prompt, force=force, role="brain", timeout=180.0)
 
                 # Phase 3.1: Strict Typing & Result Extraction
                 raw = res

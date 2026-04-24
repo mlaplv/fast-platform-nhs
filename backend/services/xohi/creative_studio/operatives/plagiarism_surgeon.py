@@ -69,8 +69,9 @@ class PlagiarismSurgeon(XoHiProgressMixin):
         snippet_list = ""
         for i, a in enumerate(all_annots[:40]):
             txt = str(a.get("text") or a.get("reason") or "").strip()
+            reason = str(a.get("message") or a.get("reason") or "Cần tối ưu nội dung").strip()
             if len(txt) < 5: continue
-            snippet_list += f"\n[ID {i+1}]:\n- Cần sửa: \"{txt}\"\n"
+            snippet_list += f"\n[ID {i+1}]:\n- Cần sửa: \"{txt}\"\n- Lỗi cần khắc phục: {reason}\n"
             valid_items.append({"id": i+1, "old_text": txt})
 
         if not valid_items:
@@ -79,7 +80,17 @@ class PlagiarismSurgeon(XoHiProgressMixin):
         logs.append(f"[SCAN] Ingesting {len(valid_items)} violation points into AI Surgeon...")
         await self._emit_log(campaign, logs[-1])
         
-        bulk_prompt = f"{PLAGIARISM_SURGEON_PROMPT}\n\n[DANH SÁCH CẦN SỬA]\n{snippet_list}"
+        # CNS V2.2: Fetch competitor context to avoid fixing "in the dark"
+        gold = dict(campaign.gold_metadata or {})
+        cache = dict(gold.get("analysis_cache", {}))
+        copyright_cache = cache.get("copyright", {}).get("data", {})
+        similar_sources = copyright_cache.get("similar_sources", [])
+        
+        source_context = ""
+        if similar_sources:
+            source_context = "\n[NGUỒN ĐỐI CHIẾU CẦN TRÁNH]\n" + "\n".join(similar_sources[:3])
+
+        bulk_prompt = f"{PLAGIARISM_SURGEON_PROMPT}\n{source_context}\n\n[DANH SÁCH CẦN SỬA]\n{snippet_list}"
         
         try:
             res = await trinity_bridge.run(self._atomic_surgeon_agent, bulk_prompt, role="fast", timeout=120.0)

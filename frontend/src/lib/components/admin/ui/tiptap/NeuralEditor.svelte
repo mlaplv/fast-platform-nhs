@@ -14,7 +14,6 @@
   import { createAnalysisController } from "$lib/state/xohiAnalysis.svelte";
   import { portal } from "$lib/core/actions/portal";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
-  import NeuralProgressTooltip from "../content-factory/NeuralProgressTooltip.svelte";
   import type { AnalysisCache, CampaignMetrics } from "$lib/state/types";
 
   interface Props {
@@ -61,8 +60,8 @@
     assets = $bindable([]),
     selectedAvatarUrl = $bindable(null),
     selectedAssetIndex = $bindable(0),
-    analysisReport = {},
   }: Props = $props();
+
 
   // Internal edit buffer — mirrors content prop while editing
   let editBuffer = $state(content);
@@ -112,18 +111,19 @@
   let resultPanelEl = $state<HTMLElement | null>(null);
 
   function scrollToPanel() {
+  onMount(() => {
+    if (content === undefined) content = "";
+    if (fullScreen === undefined) fullScreen = false;
+    if (assets === undefined) assets = [];
+  });
     setTimeout(() => resultPanelEl?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   }
 
-  const handleAction = async (fn: (...args: unknown[]) => Promise<void>, ...args: unknown[]) => {
+  const handleAction = async (fn: (...args: any[]) => Promise<any> | any, ...args: any[]) => {
+    if (analysis.isCopyrightLoading || analysis.isSeoLoading || analysis.isAiLoading) return;
     await fn(...args);
     scrollToPanel();
   };
-
-  onMount(() => {
-    if (content === undefined) content = "";
-    if (!editBuffer) editBuffer = content;
-  });
 
   // CNS V85.2: Unified Toolbar Actions for Analysis (Elite V2.2: Lock & Hover Logic)
   const analysisActions = $derived([
@@ -148,70 +148,79 @@
       active: analysis.activeTab === 'copyright',
       colorClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
     },
-    {
+    // Progressive Disclosure: Only show next steps if conditions are met
+    ...(!analysis.seoLocked ? [{
       id: 'seo',
-      label: analysis.seoResult 
-        ? `SEO ${analysis.seoResult.total_score}/100`
-        : 'SEO Scan',
+      label: analysis.seoResult ? `SEO ${analysis.seoResult.total_score}/100` : 'SEO Scan',
       icon: BarChart2,
       onclick: () => {
-        if (analysis.activeTab === 'seo') {
-          handleAction(analysis.runSeoAnalysis, true);
-        } else {
+        if (analysis.activeTab === 'seo') handleAction(analysis.runSeoAnalysis, true);
+        else {
           analysis.activeTab = 'seo';
           if (!analysis.seoResult && !analysis.isSeoLoading) handleAction(analysis.runSeoAnalysis);
         }
       },
       loading: analysis.isSeoLoading,
-      // Golden Criteria: SEO Score >= 95
-      isPerfect: analysis.seoResult ? (analysis.seoResult.score >= 95) : false,
-      isLocked: analysis.seoResult ? (analysis.seoResult.score < 90) : false,
+      isPerfect: analysis.seoResult ? (analysis.seoResult.total_score >= 95) : false,
+      isLocked: analysis.seoResult ? (analysis.seoResult.total_score < 90) : false,
       active: analysis.activeTab === 'seo',
       colorClass: 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-    },
-    {
+    }] : []),
+
+    ...(!analysis.aiLocked ? [{
       id: 'ai',
-      label: analysis.aiReadyResult 
-        ? `AI Mod ${analysis.aiReadyResult.geo_score}/100`
-        : 'AI Mod',
+      label: analysis.aiReadyResult ? `AI Mod ${analysis.aiReadyResult.geo_score}/100` : 'AI Mod',
       icon: Sparkles,
       onclick: () => {
-        if (analysis.activeTab === 'ai') {
-          handleAction(analysis.runAiAnalysis, true);
-        } else {
+        if (analysis.activeTab === 'ai') handleAction(analysis.runAiAnalysis, true);
+        else {
           analysis.activeTab = 'ai';
           if (!analysis.aiReadyResult && !analysis.isAiLoading) handleAction(analysis.runAiAnalysis);
         }
       },
       loading: analysis.isAiLoading,
-      // Golden Criteria: Viral Score >= 8.5 and no critical AI annotations
       isPerfect: analysis.aiReadyResult ? (analysis.aiReadyResult.viral_score >= 8.5 && (analysis.aiReadyResult.ai_annotations?.filter(a => a.severity === 'high')?.length || 0) === 0) : false,
-      isLocked: analysis.aiReadyResult ? (analysis.aiReadyResult.viral_score < 7.0 || (analysis.aiReadyResult.ai_annotations?.filter(a => a.severity === 'high')?.length || 0) > 0) : false,
+      isLocked: analysis.aiReadyResult ? (analysis.aiReadyResult.geo_score < 80 || (analysis.aiReadyResult.ai_annotations?.filter(a => a.severity === 'high')?.length || 0) > 0) : false,
       active: analysis.activeTab === 'ai',
       colorClass: 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-    },
-    // AI Booster (id: enrich)
-    {
+    }] : []),
+
+    ...(!analysis.enrichLocked ? [{
       id: 'enrich',
       label: analysis.isBoosting ? '🚀 ENRICHING...' : '🚀 AI BOOSTER',
       loading: analysis.isBoosting,
-      disabled: !analysis.seoResult || analysis.seoResult.score >= 95,
-      onclick: () => {
-        // AI Booster is a transformation, allow re-run to inject fresh data if editor changed
-        handleAction(analysis.runAiBooster);
-      },
+      disabled: analysis.seoScore !== null && analysis.seoScore >= 95,
+      onclick: () => handleAction(analysis.runAiBooster),
+      active: analysis.activeTab === 'enrich',
       colorClass: 'bg-pink-500/10 text-pink-400 border-pink-500/20'
-    },
-    // Fix All (Contextual - Always allow if result exists)
-    ...((analysis.copyrightResult || analysis.seoResult || analysis.aiReadyResult) ? [{ 
-      id: `${analysis.activeTab || 'neural'}-fix`,
-      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || '✨ FIXING...') : `✨ FIX ALL ${analysis.activeTab?.toUpperCase() || 'NEURAL'}`, 
-      loading: analysis.isBulkFixing, 
-      onclick: () => handleAction(analysis.runBulkFix),
-      colorClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+    }] : []),
+
+    // Contextual Fix All: Only show if critical issues exist in the active tab
+    ...(analysis.activeTab === 'copyright' && (analysis.copyrightResult?.annotations?.filter(a => a.type !== 'fixed-area').length || 0) > 0 ? [{
+      id: 'copyright-fix',
+      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || 'FIXING...') : '✨ FIX ALL COPYRIGHT',
+      icon: ShieldCheck,
+      onclick: () => analysis.runBulkFix(),
+      loading: analysis.isBulkFixing,
+      colorClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-black'
+    }] : []),
+    ...(analysis.activeTab === 'seo' && (analysis.seoResult?.seo_annotations?.filter(a => a.type !== 'fixed-area' && a.severity !== 'info').length || 0) > 0 ? [{
+      id: 'seo-fix',
+      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || 'OPTIMIZING...') : '✨ OPTIMIZE ALL SEO',
+      icon: BarChart2,
+      onclick: () => analysis.runBulkFix(),
+      loading: analysis.isBulkFixing,
+      colorClass: 'bg-blue-500/20 text-blue-400 border-blue-500/30 font-black'
+    }] : []),
+    ...(analysis.activeTab === 'ai' && (analysis.aiReadyResult?.ai_annotations?.filter(a => a.type !== 'fixed-area' && a.severity === 'high').length || 0) > 0 ? [{
+      id: 'ai-fix',
+      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || 'BOOSTING...') : '✨ BOOST VIRAL EDGE',
+      icon: Sparkles,
+      onclick: () => analysis.runBulkFix(),
+      loading: analysis.isBulkFixing,
+      colorClass: 'bg-purple-500/20 text-purple-400 border-purple-500/30 font-black'
     }] : [])
   ]);
-
   const allToolbarActions = $derived([...analysisActions, ...toolbarActions]);
 </script>
 

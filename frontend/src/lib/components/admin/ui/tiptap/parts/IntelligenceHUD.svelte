@@ -5,10 +5,6 @@
    * Elite V2.7: Strictly typed, no any, high-performance logic.
    */
   import { fly, fade } from 'svelte/transition';
-  import { quintOut } from 'svelte/easing';
-  import ShieldCheckIcon from 'lucide-svelte/icons/shield-check';
-  import BarChart2Icon from 'lucide-svelte/icons/bar-chart-2';
-  import SparklesIcon from 'lucide-svelte/icons/sparkles';
   import TrendingUpIcon from 'lucide-svelte/icons/trending-up';
   import XIcon from 'lucide-svelte/icons/x';
   import Maximize2Icon from 'lucide-svelte/icons/maximize-2';
@@ -134,27 +130,25 @@
      <div class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-500/40 rounded-br-lg m-1.5"></div>
 
      <!-- Header: System Status -->
-     <div class="px-4 py-2.5 border-b border-white/5 flex items-center justify-between relative bg-gradient-to-r from-cyan-500/5 to-transparent">
+     <div class="px-4 py-3 border-b border-white/5 flex items-center justify-between relative bg-black/20 backdrop-blur-md">
         <div class="flex items-center gap-3">
-
+           <div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.1)] relative group">
+              <div class="absolute inset-0 bg-cyan-400/20 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <TrendingUpIcon size={16} class="text-cyan-400 relative z-10" />
+           </div>
            <div class="flex flex-col">
               <div class="flex items-center gap-2">
-                 <div class="flex items-center gap-1.5">
-                    <span class="text-[12px] font-black tracking-widest text-white uppercase opacity-90">NEURAL XOHI</span>
-                    <TrendingUpIcon size={10} class="text-cyan-500 animate-pulse" />
-                 </div>
-                 {#if (activeAction.id === 'copyright' && copyrightResult) || (activeAction.id === 'seo' && seoResult) || (activeAction.id === 'ai' && aiReadyResult)}
-                    <div class="px-1.5 py-0.5 rounded-full bg-green-500/20 border border-green-500/40 text-[7px] font-bold text-green-400 animate-pulse">ACTIVE_LINK</div>
-                 {/if}
+                 <span class="text-[12px] font-black tracking-[0.2em] text-white uppercase opacity-90">NEURAL TERMINAL</span>
+                 <div class="px-1.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[7px] font-black text-cyan-400 uppercase tracking-widest animate-pulse">Live</div>
               </div>
-              <span class="text-[9px] font-black text-cyan-400/60 uppercase tracking-[0.2em]">NEURAL SURGEON V85.5</span>
+              <span class="text-[8px] font-black text-white/20 uppercase tracking-[0.4em]">Elite Protocol V2.2 // Surgical AI</span>
            </div>
         </div>
-        <div class="flex items-center gap-1">
-           <button onclick={(e) => { e.stopPropagation(); isExpanded = !isExpanded; }} class="p-2 rounded-lg hover:bg-white/5 text-white/20 hover:text-white transition-all" title={isExpanded ? "Collapse" : "Full View"}>
-              {#if isExpanded}<Minimize2Icon size={14}/>{:else}<Maximize2Icon size={14}/>{/if}
+        <div class="flex items-center gap-1.5">
+           <button onclick={(e) => { e.stopPropagation(); isExpanded = !isExpanded; }} class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/5 text-white/20 hover:text-white transition-all group" title={isExpanded ? "Collapse" : "Full View"}>
+              {#if isExpanded}<Minimize2Icon size={14} class="group-hover:scale-110 transition-transform"/>{:else}<Maximize2Icon size={14} class="group-hover:scale-110 transition-transform"/>{/if}
            </button>
-           <button onclick={(e) => { e.stopPropagation(); activeIntelAction = null; }} class="p-2 rounded-lg hover:bg-white/5 text-white/20 hover:text-white transition-all">
+           <button onclick={(e) => { e.stopPropagation(); activeIntelAction = null; }} class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-rose-500/10 text-white/20 hover:text-rose-400 transition-all">
               <XIcon size={16}/>
            </button>
         </div>

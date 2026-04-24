@@ -147,8 +147,11 @@ export function createAnalysisController(config: {
     let copyrightScore = $derived(copyrightResult ? Math.round(copyrightResult.uniqueness_score * 100) : null);
     let seoScore = $derived(seoResult ? seoResult.total_score : null);
     let aiScore = $derived(aiReadyResult ? aiReadyResult.geo_score : null);
-    let seoLocked = $derived(copyrightScore === null || copyrightScore < 55);
-    let aiLocked = $derived(seoScore === null || seoScore < 40);
+    let seoLocked = $derived(copyrightScore === null || copyrightScore < 70);
+
+    let aiLocked = $derived(seoScore === null || seoScore < 60);
+    let enrichLocked = $derived(aiScore === null || aiScore < 70);
+
 
     let editorAnnotations = $derived.by(() => {
         const res = (activeTab === 'copyright' ? copyrightResult?.annotations : 
@@ -387,7 +390,7 @@ export function createAnalysisController(config: {
                 bulkFixLogs = [...bulkFixLogs, "🎯 Đã dọn dẹp xong ✅"];
                 nanobot.showToast("Đã dọn dẹp & tối ưu cấu trúc thành công!", "success");
             } else {
-                bulkFixLogs = [...bulkFixLogs, "✅ Nội dung đã sạch, không cần dọn dẹp thêm."];
+                // [Elite V2.2] Silent success
             }
             bulkFixStatus = "Hoàn tất ✅";
             return cleaned; // TiptapEditor's handleClean uses this return value to applyContentToEditor

@@ -14,10 +14,6 @@ logger = logging.getLogger("api-gateway")
 
 # Phase 76.3: Advanced Deterministic Artifact Stripper (HFS)
 # Exported for use in sibling operatives (V76.3)
-RE_HTML_TAGS = re.compile(r'<[^>]+>')
-RE_IMAGE_PLACEHOLDERS = re.compile(r'\[IMAGE_\d+\]')
-RE_WHITESPACE = re.compile(r'\s+')
-
 RE_MARKDOWN_CLEAN = [
     (re.compile(r'\*\*'), ''),           # Bold **
     (re.compile(r'__'), ''),             # Bold __
@@ -25,23 +21,12 @@ RE_MARKDOWN_CLEAN = [
     (re.compile(r'!\[.*?\]\(.*?\)\s*'), ''), # Images
     (re.compile(r'\[.*?\]\(.*?\)\s*'), ''),   # Links
     (re.compile(r'`{1,3}.*?`{1,3}', re.DOTALL), ''), # Inline code / fences
-    (re.compile(r'^\s*[-*+]\s+', re.MULTILINE), ''), # List bullets
-    (re.compile(r'^\s*\d+\.\s+', re.MULTILINE), ''), # Numbered lists
 ]
 
 # Phase 76.9: Deterministic HTML Artifact Strippers
 RE_CODE_ARTIFACTS = re.compile(r'<(pre|code|script|style)[^>]*>.*?</\1>', re.DOTALL | re.IGNORECASE)
-RE_ROGUE_LINKS = re.compile(r'<a\s+[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', re.IGNORECASE)
-
-# Phase 76.9: Advanced AI Preamble & Postamble Strippers (Viral 2026)
-RE_AI_CONVERSATION = re.compile(
-    r'(?i)^(vâng|dưới đây là|chắc chắn rồi|đây là|tôi đã|hy vọng|sau đây là|bài viết của bạn).*?(\n|:)',
-    re.MULTILINE
-)
-RE_AI_POSTAMBLES = re.compile(
-    r'(?i)(hy vọng bài viết|chúc bạn|nếu cần thêm|liên hệ với tôi|đây là bản thảo).*$',
-    re.DOTALL
-)
+RE_HTML_TAGS = re.compile(r'<[^>]+>')
+RE_IMAGE_PLACEHOLDERS = re.compile(r'\[IMAGE_\d+\]')
 RE_MARKDOWN_FENCES = re.compile(r'```[a-z]*|```', re.IGNORECASE)
 
 class NoiseCleaner:
@@ -108,9 +93,12 @@ class NoiseCleaner:
         if not text:
             return ""
 
-        # --- LAYER 0: HTML & PLACEHOLDERS ---
-        # Viral 2026: Stripping AI Preambles, Postambles & Markdown Fences
+        # --- LAYER 0: ARTIFACT STRIPPING ---
         text = RE_MARKDOWN_FENCES.sub('', text)
+
+        if strip_markdown:
+            for pattern, replacement in RE_MARKDOWN_CLEAN:
+                text = pattern.sub(replacement, text)
 
         if strip_html:
             text = RE_HTML_TAGS.sub(' ', text)

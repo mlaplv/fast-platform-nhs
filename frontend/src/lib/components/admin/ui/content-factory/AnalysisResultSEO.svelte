@@ -54,12 +54,12 @@
             <span class="text-[6px] font-black opacity-30 uppercase tracking-[0.2em]">Quality</span>
           </div>
         </div>
-        <div class="flex flex-col gap-1">
-          <span class="text-[11px] font-black uppercase tracking-[0.1em]" style="color:{gradeColor}">
+        <div class="flex flex-col gap-1.5">
+          <span class="text-sm font-black uppercase tracking-[0.1em]" style="color:{gradeColor}">
             📊 Optimization — {seoResult.total_score}/100
           </span>
-          <div class="flex items-center gap-1.5 opacity-20">
-            <span class="text-[7px] font-black uppercase tracking-[0.3em]">Protocol_SEO_Core_V2.2</span>
+          <div class="flex items-center gap-1.5 opacity-30">
+            <span class="text-[9px] font-black uppercase tracking-[0.3em]">Protocol_SEO_Core_V2.2</span>
           </div>
         </div>
       </div>
@@ -73,12 +73,14 @@
     </div>
 
     <!-- Verdict -->
-    <div class="px-3 py-3 bg-black/20 border-b border-white/5">
-      <div class="flex items-center gap-2 mb-2 opacity-20">
-        <div class="w-1 h-1 rounded-full bg-white"></div>
-        <span class="text-[7px] font-black uppercase tracking-[0.2em]">Neural_SEO_Verdict</span>
+    <div class="px-4 py-4 bg-black/40 border-b border-white/5 shadow-inner">
+      <div class="flex items-center gap-2 mb-3 opacity-30">
+        <div class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
+        <span class="text-[10px] font-black uppercase tracking-[0.2em]">Neural_SEO_Verdict</span>
       </div>
-      <p class="text-[10px] text-white/80 leading-relaxed font-medium">{seoResult.summary}</p>
+      <p class="text-[13px] text-white/90 leading-[1.6] font-medium tracking-tight whitespace-pre-line">
+        {seoResult.summary.replace(/\*\*\*/g, '').trim()}
+      </p>
     </div>
 
     <!-- Fix All SEO Button -->
@@ -176,15 +178,13 @@
                 </button>
               {/if}
             </div>
-            <p class="text-[8px] text-white/70 leading-relaxed">
-              {#if ann.text}<span class="text-white/30 italic">"{ann.text}"</span> — {/if}
-              {ann.message || ann.reason}
+            <p class="text-[12px] text-white/80 leading-relaxed tracking-tight">
+              {#if ann.text}<span class="text-white/40 font-mono italic">"{ann.text}"</span> <br/>{/if}
+              <span class="text-blue-200/90">{ann.message || ann.reason}</span>
             </p>
           </div>
         {/if}
       {/each}
     </div>
-  {:else}
-    <div class="px-3 py-4 text-center text-[9px] text-white/20 italic">Không phát hiện vấn đề SEO. Nội dung đạt chuẩn Neural.</div>
   {/if}
 </div>

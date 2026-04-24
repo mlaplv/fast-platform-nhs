@@ -19,6 +19,7 @@ from backend.database.repositories import ContentCampaignRepository
 from backend.database.models.content import ContentCampaign
 from backend.utils.config import get_env_json
 from backend.services.event_bus import event_bus
+from sqlalchemy.orm.attributes import flag_modified
 from .content_enricher import ContentEnricher
 
 logger = logging.getLogger("api-gateway")
@@ -38,53 +39,31 @@ STUFFING_STRICTNESS = 3
 # SYSTEM PROMPT — AI SEO Judge 2026
 # ══════════════════════════════════════════════════════════════
 
-SEO_ANALYSIS_PROMPT = """[ROLE] SENIOR SEO STRATEGIST — XoHi Intelligence 2026
-Nhiệm vụ: Chấm điểm SEO TRUNG THỰC và KHÁCH QUAN. Tuyệt đối không nương tay.
+SEO_ANALYSIS_PROMPT = """[ROLE] SENIOR SEO STRATEGIST — Neural XoHi Elite V2.2
+Nhiệm vụ: Phân tích SEO dựa trên Information Gain và Search Intent. Tuyệt đối không viết chung chung vô giá trị.
 
-[PHƯƠNG PHÁP LUẬN 2026]
-Google 2026 ưu tiên bài viết mang lại GIÁ TRỊ THỰC (Information Gain).
-- Nếu nội dung chỉ là nhặt nhạnh từ đối thủ mà không có insight khác biệt: ĐIỂM THẤP.
-- Nếu không có dữ liệu thực tế hoặc lời khuyên chuyên gia: ĐIỂM THẤP.
-
-[NHIỆM VỤ]
-So sánh bài viết với các nguồn TOP GOOGLE được cung cấp để chấm 7 tiêu chí:
-1. search_intent_match (20%) — Có giải quyết được nỗi đau/câu hỏi của user tốt hơn đối thủ không?
-2. eeat_signals (20%) — Có bằng chứng chuyên gia, kinh nghiệm thực tế không?
-3. entity_coverage (15%) — Bao phủ đầy đủ các concept quan trọng so với đối thủ chưa?
-4. ai_naturalness (15%) — Văn phong có mượt mà, tránh lặp lại cấu trúc máy móc?
-5. featured_snippet_potential (15%) — Cấu trúc câu trả lời có sắc bén để AI trích dẫn?
-6. semantic_richness (10%) — Sử dụng thuật ngữ chuyên sâu thay vì từ ngữ phổ thông?
-7. technical_seo (5%) — H1/H2/H3 structure, CTA.
-
-[QUY TẮC R2026.9: H1 & TITLE INTEGRITY]
-Tuyệt đối KHÔNG đề xuất thay đổi thẻ H1 hoặc Tiêu đề nếu chúng đã chứa từ khóa chính và có cấu trúc tốt. Ưu tiên giữ nguyên bản sắc của bài viết gốc.
+[QUY TẮC BÁO CÁO — ELITE PROTOCOL]
+1. 🚫 KHÔNG DÙNG LỜI MỞ ĐẦU/KẾT THÚC: Đi thẳng vào phân tích dữ liệu.
+2. 🚫 KHÔNG DÙNG DẤU BA SAO (***): Sử dụng tiêu đề Markdown hoặc danh sách chuẩn.
+3. 📊 PHÂN TÍCH ĐỐI THỦ: Phải chỉ ra ĐỐI THỦ (Nguồn cạnh tranh) đang làm tốt hơn ở điểm nào (Ví dụ: 'Nguồn A có bảng so sánh giá, bài này chỉ có text').
+4. 🔪 GIẢI PHÁP PHẪU THUẬT: Đưa ra hành động cụ thể (Ví dụ: 'Bổ sung bảng thông số kỹ thuật ngay sau H2').
 
 [YÊU CẦU ĐẦU RA — JSON]
 {
-  "total_score": <int 0-100 — Phản ánh chính xác Information Gain so với đối thủ>,
+  "total_score": <int 0-100>,
   "grade": "<A|B|C|D|F>",
   "signals": [<7 SeoSignal objects>],
-  "summary": "<Nhận xét trung thực 2 câu tiếng Việt — Nêu rõ bài viết đang thua/thắng đối thủ ở điểm nào>",
-  "quick_wins": ["<gợi ý 1>", "<gợi ý 2>", "<gợi ý 3>"],
+  "summary": "BẢN TRÌNH BÁO CHIẾN LƯỢC SEO (Elite V2.2)\\n\\n- **[PHẢN BIỆN INTENT]**: Phân tích vì sao bài viết chưa thỏa mãn người dùng so với đối thủ TOP 1.\\n- **[CHỨNG CỨ THIẾU HỤT]**: Liệt kê các thực thể/số liệu mà đối thủ có nhưng bài này thiếu.\\n- **[PHƯƠNG ÁN PHẪU THUẬT]**: Bước 1: [Làm gì], Bước 2: [Làm gì] để đạt TOP 1.",
+  "quick_wins": [],
   "seo_annotations": [
     {
-      "type": "<missing_h1|missing_h2|keyword_missing|weak_intro|thin_section|ai_stiff|missing_cta|keyword_stuffing>",
-      "text": "<CỤM 5-15 TỪ ĐẶC TRƯNG NGUYÊN VĂN từ bài viết — PHẢI tồn tại chính xác trong bài, KHÔNG paraphrase, KHÔNG dùng toàn bộ đoạn>",
-      "message": "<lý do và hướng dẫn fix cụ thể — tiếng Việt>",
-      "severity": "<info|warning|error>"
+      "type": "<type>",
+      "text": "<cụm từ nguyên văn>",
+      "message": "<Phân tích lỗi sắc bén + Giải pháp sửa đổi cụ thể>",
+      "severity": "<severity>"
     }
   ]
 }
-
-[YÊU CẦU BẮT BUỘC]
-- Nếu `total_score` < 95: BẮT BUỘC phải có ít nhất 1-3 `seo_annotations` chỉ ra chính xác đoạn nào cần cải thiện hoặc thiếu hụt so với đối thủ.
-- Tuyệt đối không để trống `seo_annotations` nếu bài viết không đạt điểm tối đa.
-
-CALIBRATION:
-- A (>= 85): Xuất sắc, có insight/dữ liệu độc quyền vượt trội đối thủ (High Information Gain).
-- B (>= 70): Tốt, đầy đủ thông tin nhưng insight chưa thực sự đột phá.
-- C (>= 55): Đạt yêu cầu kỹ thuật nhưng nội dung còn mỏng và chung chung.
-- D/F (< 55): Yếu, xào nấu lộ liễu hoặc thiếu quá nhiều thực thể quan trọng.
 """
 
 
@@ -113,8 +92,8 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         """Standardized Heritage Entry (V2.2). Maps to self.analyze."""
         if isinstance(request, ContentCampaign):
             return await self.analyze(request, force=bool(kwargs.get("force", False)))
-        from typing import cast as _cast
-        return await self.analyze(_cast(ContentCampaign, request), **kwargs)  # type: ignore
+        from typing import cast
+        return await self.analyze(cast(ContentCampaign, request), **kwargs)  # type: ignore
 
     def get_schema(self) -> Optional[type]:
         return SeoAnalyzerTaskRequest
@@ -129,7 +108,6 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         result = await self.analyze(campaign, force=request.force)
 
         # Persist results to campaign's gold_metadata
-        import hashlib
         gold = dict(campaign.gold_metadata or {})
         cache = dict(gold.get("analysis_cache", {}))
         metrics = dict(gold.get("analysis_metrics", {}))
@@ -139,7 +117,6 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         metrics["seo_grade"] = result.grade
         gold["analysis_cache"], gold["analysis_metrics"] = cache, metrics
         campaign.gold_metadata = gold
-        from sqlalchemy.orm.attributes import flag_modified
         flag_modified(campaign, "gold_metadata")
         await repo.update(campaign)
         return result
@@ -174,6 +151,7 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         CNS Phase 82.35: Enforce GLOBAL serial processing for SEO.
         """
         async with self._seo_semaphore:
+            draft = campaign.draft_content or ""
             word_count = len(draft.split())
             logs = [f"[SCAN] Khởi động Neural SEO Engine... Đang phân tích {word_count} từ."]
             await self._emit_progress(campaign, logs[-1])
@@ -221,7 +199,8 @@ DRAFT:
             response = await trinity_bridge.run(
                 agent=self._agent, 
                 prompt=user_input, 
-                role="brain"
+                role="brain",
+                timeout=180.0
             )
             report = response
             report.logs = logs
@@ -263,7 +242,7 @@ DRAFT:
             annotations.append(SeoAnnotation(
                 type="keyword_stuffing",
                 text=stuffed[:120] if stuffed else "",
-                message=f"🚫 Mật độ từ khóa quá cao ({kw_density:.1f}%) — Google 2026 penalize keyword stuffing. Nên giảm xuống 1-2%.",
+                message=f"🚫 Mật độ từ khóa quá cao ({kw_density:.1f}%) — Google 2026 penalize keyword stuffing. BẮT BUỘC XÓA bớt từ khóa '{primary}' hoặc thay bằng từ đồng nghĩa để giảm mật độ xuống 1-2%.",
                 severity="error"
             ))
         elif kw_density < KEYWORD_DENSITY_MIN and primary:
