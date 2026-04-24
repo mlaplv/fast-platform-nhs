@@ -30,20 +30,29 @@
     if (visible === undefined) visible = false;
   });
 
+  let isFlipped = $state(false);
   let tooltipEl = $state<HTMLElement | null>(null);
 
-  const isFixed = $derived(type === 'fixed');
+  $effect(() => {
+    if (visible && y < 150) {
+      isFlipped = true;
+    } else {
+      isFlipped = false;
+    }
+  });
+
+  const isFixed = $derived(type === 'fixed' || type === 'fixed-area');
   const isInternal = $derived(type === 'internal-dedup');
 </script>
 
 {#if visible}
   <div 
     bind:this={tooltipEl}
-    class="fixed z-[100001] opacity-100 pointer-events-none transition-opacity duration-150"
-    style="left: {x}px; top: {y}px; transform: translate(-50%, calc(-100% + 15px))"
+    class="fixed z-[var(--z-neural-hud)] opacity-100 pointer-events-none transition-all duration-200 ease-out"
+    style="left: {x}px; top: {y}px; transform: {isFlipped ? 'translate(-50%, 15px)' : 'translate(-50%, calc(-100% + 15px))'}"
   >
     <div 
-      class="pointer-events-auto pb-8"
+      class="pointer-events-auto {isFlipped ? 'pt-8' : 'pb-8'}"
       role="tooltip"
       onmouseenter={onMouseEnter}
       onmouseleave={onMouseLeave}

@@ -8,9 +8,13 @@
     isFixing: string | null;
     runCopyrightCheck: () => void;
     handleInternalFix: (snippet: string, type: string, message: string) => void;
+    runBulkFix?: () => void;
+    isBulkFixing?: boolean;
+    streamingText?: string;
+    streamingTarget?: string | null;
   }
 
-  let { copyrightResult, isFixing, runCopyrightCheck, handleInternalFix }: Props = $props();
+  let { copyrightResult, isFixing, runCopyrightCheck, handleInternalFix, runBulkFix, isBulkFixing = false, streamingText = '', streamingTarget = null }: Props = $props();
 
   const pct = $derived(Math.round(copyrightResult.uniqueness_score * 100));
   const riskColor = $derived(copyrightResult.risk_level === 'LOW' ? '#10b981' : copyrightResult.risk_level === 'MEDIUM' ? '#f59e0b' : '#ef4444');
@@ -62,6 +66,25 @@
       </div>
       <p class="text-[10px] text-white/80 leading-relaxed font-medium whitespace-pre-wrap">{copyrightResult.verdict}</p>
     </div>
+
+    <!-- Fix All Emerald Button -->
+    {#if runBulkFix && copyrightResult.annotations?.length > 0}
+      <div class="px-3 py-2 border-b border-emerald-500/10 bg-emerald-500/[0.02]">
+        <button 
+          onclick={() => runBulkFix?.()}
+          disabled={isBulkFixing}
+          class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500 hover:text-black hover:border-emerald-400 text-emerald-400 text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(16,185,129,0.1)] active:scale-95 disabled:opacity-50"
+        >
+          {#if isBulkFixing}
+            <div class="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+            NEURAL_FIXING...
+          {:else}
+            <Sparkles size={12} class="animate-pulse" />
+            FIX ALL COPYRIGHT ({copyrightResult.annotations.length})
+          {/if}
+        </button>
+      </div>
+    {/if}
   </div>
 
   <!-- Detailed Annotations List -->
@@ -84,8 +107,13 @@
             <div class="flex items-start justify-between gap-2">
               <span class="text-[7px] font-black px-1 py-0.5 rounded uppercase" style="background: {annHex}20; color: {annHex}">{isInternal ? '🔁 TRÙNG LẶP NỘI BỘ' : `🚨 COPYRIGHT ${ann.severity?.toUpperCase()}`}</span>
               <button onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason || 'Cần kiểm tra COPYRIGHT')} disabled={!!isFixing} class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-white/10 text-[7px] font-black uppercase transition-all disabled:opacity-40">
-                {#if isFixing === ann.text} <span class="w-2 h-2 border border-white/30 border-t-white rounded-full animate-spin"></span> FIXING...
-                {:else} <Sparkles size={8} class="text-yellow-400" /> SỬA LỖI {/if}
+                {#if streamingTarget === ann.text}
+                  <span class="text-[8px] text-white/80 font-mono leading-relaxed">{streamingText}<span class="inline-block w-1 h-2.5 bg-orange-400 animate-pulse ml-0.5 -mb-0.5"></span></span>
+                {:else if isFixing === ann.text}
+                  <span class="w-2 h-2 border border-white/30 border-t-white rounded-full animate-spin"></span> FIXING...
+                {:else}
+                  <Sparkles size={8} class="text-yellow-400" /> SỬA LỖI
+                {/if}
               </button>
             </div>
             <p class="text-[8px] text-white/70 leading-relaxed"><span class="text-white/30 italic">"{ann.text}"</span> — {ann.reason}</p>

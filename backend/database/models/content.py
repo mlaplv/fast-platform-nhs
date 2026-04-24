@@ -53,8 +53,9 @@ class Article(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     views: Mapped[int] = mapped_column(Integer, default=0)
     featured_image: Mapped[Optional[str]] = mapped_column(String)
 
-    # GEO 2026: Article metadata (FAQs, etc.) — mirrors product_metadata pattern
     article_metadata: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, default=dict)
+    # CNS V87.0: Analysis Report (Copyright/SEO/AI)
+    analysis_report: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict, server_default='{}')
     
     author_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id'))
     author: Mapped[Optional["User"]] = relationship("User", back_populates="articles")
@@ -94,6 +95,8 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     draft_content: Mapped[Optional[str]] = mapped_column(Text)
     search_count: Mapped[int] = mapped_column(Integer, default=0)
     unique_score: Mapped[float] = mapped_column(sa.Float, default=1.0)
+    # CNS V87.0: Centralized Analysis Report (Dashboard & Surgeon Patches)
+    analysis_report: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict, server_default='{}')
     
     final_html: Mapped[Optional[str]] = deferred(mapped_column(Text))
     events: Mapped[List["CampaignEvent"]] = relationship("CampaignEvent", back_populates="campaign", cascade="all, delete-orphan")

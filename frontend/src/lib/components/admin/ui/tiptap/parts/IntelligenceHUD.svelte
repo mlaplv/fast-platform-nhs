@@ -38,7 +38,10 @@
     isAiLoading,
     isBoosting,
     isBulkFixing,
-    analysisData
+    runBulkFix = null,
+    analysisData,
+    streamingText = '',
+    streamingTarget = null,
   }: {
     activeIntelAction: string | null;
     toolbarActions: ToolbarAction[];
@@ -52,7 +55,10 @@
     isAiLoading: boolean;
     isBoosting: boolean;
     isBulkFixing: boolean;
+    runBulkFix?: (() => void) | null;
     analysisData: NeuralAnalysisData | null;
+    streamingText?: string;
+    streamingTarget?: string | null;
   } = $props();
 
   let isExpanded = $state(false);
@@ -113,6 +119,7 @@
   <div 
      bind:this={hudEl}
      use:portal
+     onmouseleave={() => { if (!isExpanded && !isBulkFixing && !isCopyrightLoading && !isSeoLoading && !isAiLoading) activeIntelAction = null; }}
      class="fixed bg-[#0d1117]/98 backdrop-blur-3xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden pointer-events-auto system-hologram"
      style="top: {geometry.top}; left: {geometry.left}; width: {geometry.width}; {isExpanded ? `height: ${geometry.height};` : ''} max-height: {geometry.maxHeight}; z-index: {Z_INDEX_ADMIN.NEURAL_HUD}; border-radius: {geometry.borderRadius};"
      transition:fade={{ duration: 200 }}
@@ -161,10 +168,10 @@
                  <div class="w-1 h-1 rounded-full bg-cyan-500/40"></div>
                  <div class="w-1 h-1 rounded-full bg-cyan-500/20"></div>
               </div>
-              {#each (bulkFixLogs || []).slice(-5) as log}
-                 <div class="flex gap-2 text-[9px] font-mono tracking-tight" in:fade>
-                    <span class="text-cyan-500/40">[{new Date().toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'})}]</span>
-                    <span class="text-white/60 leading-relaxed">{log}</span>
+              {#each (bulkFixLogs || []).slice(-15) as log}
+                 <div class="flex gap-2 text-[10px] font-mono tracking-tight py-0.5 border-b border-white/[0.02]" in:fade>
+                    <span class="text-cyan-500/40 shrink-0">[{new Date().toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'})}]</span>
+                    <span class="text-white/80 leading-relaxed font-semibold">{log}</span>
                  </div>
               {/each}
               {#if activeAction.loading}
@@ -198,6 +205,10 @@
              runSeoAnalysis={analysisData?.runSeoAnalysis}
              runAiAnalysis={analysisData?.runAiAnalysis}
              onfix={analysisData?.runAutoFix}
+             {streamingTarget}
+             {bulkFixLogs}
+             runBulkFix={runBulkFix || null}
+             isBulkFixing={isBulkFixing}
           />
         </div>
      </div>

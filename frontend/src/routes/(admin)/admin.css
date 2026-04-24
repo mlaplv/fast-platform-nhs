@@ -52,6 +52,9 @@
   color-scheme: dark;
 }
 
+/* --- TÍCH HỢP BẢNG MÀU LỖI & FIX TOÀN CỤC --- */
+@import url('../styles/neural-highlights.css');
+
 /* --- ADMIN DOMAIN --- */
 .admin-layout {
   background-color: #010101; /* Vantablack */

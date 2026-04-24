@@ -42,6 +42,7 @@
     formFaqs = $bindable(),
     formAnalysisCache = $bindable(),
     formAnalysisMetrics = $bindable(),
+    formAnalysisReport = $bindable(),
     dbCategories,
     onSave,
     onClose,
@@ -71,6 +72,7 @@
     errors?: Record<string, string>;
     formAnalysisCache?: AnalysisCache;
     formAnalysisMetrics?: CampaignMetrics;
+    formAnalysisReport?: Record<string, any>;
   }>();
 
   let showMediaModal = $state(false);
@@ -422,6 +424,7 @@
         placeholder="Viết nội dung bài viết tại đây..."
         bind:analysisCache={formAnalysisCache}
         bind:analysisMetrics={formAnalysisMetrics}
+        bind:analysisReport={formAnalysisReport}
       />
     </div>
   </section>

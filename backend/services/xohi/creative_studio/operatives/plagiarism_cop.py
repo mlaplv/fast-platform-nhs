@@ -31,7 +31,7 @@ UNIQUENESS_THRESHOLD_HIGH = 0.65
 UNIQUENESS_THRESHOLD_LOW = 0.90
 INTERNAL_DEDUP_PENALTY = 0.02
 MAX_COMPETITOR_FETCH = 5
-MAX_PARAGRAPHS_ANALYZE = 200
+MAX_PARAGRAPHS_ANALYZE = 1000
 DEFAULT_SIMILARITY_THRESHOLD = 0.75
 RECON_TIMEOUT_SECONDS = 10.0
 COMPETITOR_TIMEOUT_SECONDS = 5.0
@@ -141,7 +141,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         Phase 4: Heuristic Fallback (If AI fails)
         """
         async with self._plagiarism_semaphore:
-            logs = ["🚀 Khởi động Neural Copyright Engine (XoHi 2026)..."]
+            logs = ["[CNS] Initializing Neural Copyright Engine (XoHi 2026)..."]
             await self._emit_progress(campaign, logs[-1])
 
             draft = campaign.draft_content or ""
@@ -149,31 +149,37 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             if not kw and not draft:
                 return PlagiarismResult(uniqueness_score=1.0, risk_level="LOW", flagged_sentences=[], annotations=[], similar_sources=[], verdict="Thiếu dữ liệu (Chưa có Topic/Keyword).", logs=logs)
 
-            logs.append("🧹 Đang tiền xử lý & làm sạch dữ liệu nhiễu (Advanced Noise Cleaning)...")
+            word_count = len(draft.split())
+            logs.append(f"[NFC] Normalizing {word_count} words... cleaning noise & artifacts.")
             await self._emit_progress(campaign, logs[-1])
             plain = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
 
-            logs.append("🧠 Đang rà soát trùng lặp nội bộ (Cross-Paragraph Synthesis)...")
+            logs.append("[DEDUP] Internal Cross-Paragraph Synthesis... scanning for internal redundancy.")
             await self._emit_progress(campaign, logs[-1])
             seen, deduped, i_annots = set(), [], []
             for para in self._surgeon._split_into_paragraphs(plain)[:MAX_PARAGRAPHS_ANALYZE]:
                 norm = normalize_vn(para)
                 if len(norm) < 10: deduped.append(para); continue
                 if norm not in seen: seen.add(norm); deduped.append(para)
-                else: i_annots.append(CopyrightAnnotation(text=para[:200], reason="Đoạn lặp lại trong bài", source_url="internal", severity="high", type="internal-dedup"))
+                else: i_annots.append(CopyrightAnnotation(text=para, reason="Đoạn lặp lại trong bài", source_url="internal", severity="high", type="internal-dedup"))
 
-            logs.append(f"📡 Đang trinh sát nguồn đối thủ (Google Recon) cho: '{kw}'...")
-            await self._emit_progress(campaign, logs[-1])
-            comps = await self._fetch_competitor_snippets(campaign, kw, logs=logs)
+            if not kw:
+                logs.append("[RECON] No topic/keyword found. Skipping Google Recon, proceeding with internal scan.")
+                await self._emit_progress(campaign, logs[-1])
+                comps = []
+            else:
+                logs.append(f"[RECON] Initiating Google Search Recon for: '{kw}'")
+                await self._emit_progress(campaign, logs[-1])
+                comps = await self._fetch_competitor_snippets(campaign, kw, logs=logs)
 
-            logs.append("🧠 Đang nạp dữ liệu vào Neural Engine (Trinity Core)...")
+            logs.append("[BRAIN] Loading competitive landscape into Neural Core...")
             await self._emit_progress(campaign, logs[-1])
             try:
                 if logs is not None:
-                    logs.append("🧠 Gemini AI đang phân tích rủi ro & cấu trúc ngữ nghĩa...")
+                    logs.append("[SEMANTIC] Analyzing Information Gain & Structural Risks with Gemini AI...")
                     await self._emit_progress(campaign, logs[-1])
                 
-                prompt = f"[BÀI VIẾT]\n{('\n'.join(deduped))[:12000]}\n\n[ĐỐI THỦ]\n{'\n'.join(comps)}"
+                prompt = f"[BÀI VIẾT]\n{('\n'.join(deduped))[:50000]}\n\n[ĐỐI THỦ]\n{'\n'.join(comps)}"
                 res = await self.bridge.run(self._agent, prompt, force=force, role="brain")
 
                 # Phase 3.1: Strict Typing & Result Extraction
@@ -187,12 +193,12 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                 if hasattr(raw, 'annotations'):
                     annots = list(raw.annotations or [])
                     for ian in i_annots:
-                        # Deeply link internal dedup annotations
                         raw.uniqueness_score = max(0.0, raw.uniqueness_score - INTERNAL_DEDUP_PENALTY)
                         annots.append(ian)
                     raw.annotations = annots
                     raw.risk_level = "HIGH" if raw.uniqueness_score < UNIQUENESS_THRESHOLD_HIGH else ("MEDIUM" if raw.uniqueness_score < UNIQUENESS_THRESHOLD_LOW else "LOW")
-
+                
+                logs.append(f"[QUANTUM] Analysis complete. Detected {len(getattr(raw, 'annotations', []))} potential copyright risks.")
                 if hasattr(raw, 'logs'): raw.logs = logs
                 return raw
             except Exception as e:
@@ -272,12 +278,12 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                         return ["(No results)"]
                     
                     # Success: start content fetching
-                    await self._emit_progress(campaign, f"🕵️ Phát hiện {len(items)} nguồn dữ liệu khả nghi. Đang thẩm định...")
+                    await self._emit_progress(campaign, f"[RECON] Discovered {len(items)} competitor sites. Starting deep inspection...")
                     async def _c(it: dict, idx: int):
                         url = it.get("link", "")
                         if not url.startswith("http"): return it.get("snippet","")
                         try:
-                            await self._emit_progress(campaign, f"🌐 Trinh sát [{idx+1}/5]: {url[:45]}...")
+                            await self._emit_progress(campaign, f"[SCRAPE] Fetching content [{idx+1}/5]: {url[:45]}...")
                             # Use shorter timeout for competitor sites
                             r = await client.get(url, timeout=COMPETITOR_TIMEOUT_SECONDS)
                             if r.status_code == 200:
@@ -290,7 +296,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
 
                     rs = await asyncio.gather(*[_c(it, i) for i, it in enumerate(items[:5])], return_exceptions=True)
                     valid_rs = [r if isinstance(r, str) else "(Snippet only)" for r in rs]
-                    msg = f"📡 Đã tải xong nội dung từ {len(valid_rs)} website đối thủ."
+                    msg = f"[RECON] Competitor content ingestion complete ({len(valid_rs)} sources)."
                     await self._emit_progress(campaign, msg)
                     if logs is not None: logs.append(msg)
                     return valid_rs

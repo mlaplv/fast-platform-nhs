@@ -54,6 +54,7 @@
   let formTierVariations = $state<Product["tierVariations"]>([]);
   let formVariants = $state<Product["variants"]>([]);
   let formIsAiFeatured = $state(false);
+  let formAnalysisReport = $state<Record<string, any>>({});
   let generateSlug = (n: string) => slugify(n);
 
   let pageSize = $state(50);
@@ -133,6 +134,7 @@
     formMetadata = { landing_type: 'standard', analysis_cache: {}, analysis_metrics: {} };
     formTierVariations = []; formVariants = [];
     formIsAiFeatured = false;
+    formAnalysisReport = {};
     showForm = true;
   }
 
@@ -167,6 +169,7 @@
       if (!formMetadata.analysis_cache) formMetadata.analysis_cache = {};
       if (!formMetadata.analysis_metrics) formMetadata.analysis_metrics = {};
       formIsAiFeatured = p.isAiFeatured ?? p.is_ai_featured ?? false;
+      formAnalysisReport = p.analysis_report || {};
       const rawTierVariations = p.tierVariations ?? p.tier_variations ?? [];
       formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map(tv => ({
         name: tv.name || "",
@@ -287,6 +290,7 @@
       mobile_images: formMobileImages || [],
       attributes: formAttributes || {},
       metadata: formMetadata || {},
+      analysis_report: formAnalysisReport || {},
       tier_variations: (formTierVariations || []).map(tv => ({
         name: tv.name, options: tv.options, images: tv.images || null, mobile_images: tv.mobile_images || null
       })),
@@ -373,10 +377,10 @@
     bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus
     bind:formShortDescription bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
     bind:formImages bind:formMobileImages bind:formAttributes bind:formMetadata bind:formTierVariations bind:formVariants
-    bind:formIsAiFeatured
+    bind:formIsAiFeatured bind:formAnalysisReport
     {categories}
     onSave={save}
-    onClose={() => (showForm = false)}
+    onClose={() => { showForm = false; nanobot.toggleExpand(false); }}
     {generateSlug}
     {isSaving}
   />

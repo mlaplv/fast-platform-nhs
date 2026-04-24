@@ -17,6 +17,7 @@
     outline: CampaignOutline; assets: (MediaAsset | string)[]; isExpanded: boolean;
     selectedAvatarUrl: string | null; selectedAssetIndex: number;
     editorRef?: any | null; analysis_cache: AnalysisCache; analysis_metrics: CampaignMetrics;
+    analysis_report: Record<string, any>;
     copyrightScore: number | null; seoScore: number | null; aiScore: number | null; isProcessing?: boolean;
   }
 
@@ -25,6 +26,7 @@
     outline = {} as CampaignOutline, assets = [] as (MediaAsset | string)[], isExpanded,
     selectedAvatarUrl = $bindable(), selectedAssetIndex = $bindable(),
     editorRef = $bindable(), analysis_cache = $bindable({} as AnalysisCache), analysis_metrics = $bindable({} as CampaignMetrics),
+    analysis_report = {},
     copyrightScore = $bindable(), seoScore = $bindable(), aiScore = $bindable(), isProcessing = false
   }: Props = $props();
 
@@ -116,6 +118,7 @@
       bind:selectedAssetIndex
       bind:analysisCache={analysis_cache}
       bind:analysisMetrics={analysis_metrics}
+      analysisReport={analysis_report}
     />
   </div>
 

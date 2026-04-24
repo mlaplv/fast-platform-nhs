@@ -1,0 +1,107 @@
+/* 
+  Neural Intelligence Highlighting System
+  File: neural-highlights.css
+  Quy định bảng màu lỗi & fix (Copyright, SEO, AI Mod)
+  Áp dụng toàn bộ hệ thống cho ProductForm, NewsForm, DraftStep
+*/
+
+.xohi-annotation {
+  cursor: help !important;
+  transition: all 0.3s ease !important;
+  border-bottom: 2px solid transparent !important;
+  padding: 1px 0 !important;
+  display: inline !important;
+  position: relative !important;
+}
+
+/* 🟢 Lỗi nhẹ (Low Severity) - Màu xanh lam nhẹ */
+.xohi-annotation.severity-low {
+  background-color: rgba(16, 185, 129, 0.25) !important;
+  border-bottom-color: rgba(16, 185, 129, 0.6) !important;
+  color: rgba(167, 243, 208, 1) !important;
+}
+.xohi-annotation.severity-low:hover {
+  background-color: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+/* 🟠 Lỗi vừa (Medium Severity) - Màu cam/vàng */
+.xohi-annotation.severity-medium {
+  background-color: rgba(245, 158, 11, 0.3) !important;
+  border-bottom: 3px solid rgba(251, 191, 36, 0.7) !important;
+  color: rgba(254, 243, 199, 1) !important;
+}
+.xohi-annotation.severity-medium:hover {
+  background-color: rgba(245, 158, 11, 0.25);
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+/* 🔴 Lỗi nghiêm trọng (High Severity) - Màu đỏ báo động */
+.xohi-annotation.severity-high {
+  background-color: rgba(239, 68, 68, 0.4) !important;
+  border-bottom: 4px solid rgba(239, 68, 68, 0.95) !important;
+  color: #ffffff !important;
+  animation: annotation-pulse 1s infinite ease-in-out !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3) !important;
+}
+.xohi-annotation.severity-high:hover {
+  background-color: rgba(239, 68, 68, 0.35);
+  border-bottom-color: rgba(239, 68, 68, 1);
+}
+
+/* ✅ Đã sửa (Fixed) - Chữ thường, gạch dưới đứt nét */
+.xohi-annotation.type-fixed {
+  background-color: transparent;
+  border-color: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: default;
+  border-bottom: 2px dashed rgba(16, 185, 129, 0.4);
+  text-decoration: none;
+  animation: none;
+}
+
+/* ✨ Vùng phẫu thuật AI (Fixed Area) - Màu ngọc bích phát sáng */
+.xohi-annotation.type-fixed-area {
+  background: rgba(16, 185, 129, 0.15);
+  border-bottom: 2.5px solid rgba(16, 185, 129, 0.9);
+  color: rgba(255, 255, 255, 1);
+  cursor: help;
+  animation: fixed-area-pulse 1.2s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+}
+.xohi-annotation.type-fixed-area:hover {
+  background: rgba(16, 185, 129, 0.30);
+  border-bottom-color: rgba(52, 211, 153, 1);
+}
+
+/* 🚀 AI Booster (Enrich) - Liquid Magenta Glass */
+.xohi-annotation.type-enrich {
+  background: rgba(236, 72, 153, 0.10);
+  border-bottom: 2px solid rgba(236, 72, 153, 0.5);
+  color: rgba(254, 215, 226, 0.95);
+  cursor: help;
+  animation: enrich-pulse 1.8s ease-in-out infinite;
+}
+.xohi-annotation.type-enrich:hover {
+  background: rgba(236, 72, 153, 0.20);
+  border-bottom-color: rgba(244, 114, 182, 0.8);
+}
+
+/* --- KEYFRAMES --- */
+@keyframes annotation-pulse {
+  0% { background-color: rgba(239, 68, 68, 0.15); }
+  50% { background-color: rgba(239, 68, 68, 0.3); }
+  100% { background-color: rgba(239, 68, 68, 0.15); }
+}
+
+@keyframes fixed-area-pulse {
+  0%   { background: rgba(16, 185, 129, 0.10); box-shadow: none; }
+  50%  { background: rgba(16, 185, 129, 0.30); box-shadow: 0 0 8px rgba(16, 185, 129, 0.35); }
+  100% { background: rgba(16, 185, 129, 0.10); box-shadow: none; }
+}
+
+@keyframes enrich-pulse {
+  0%   { background: rgba(236, 72, 153, 0.10); box-shadow: none; }
+  50%  { background: rgba(236, 72, 153, 0.25); box-shadow: 0 0 12px rgba(236, 72, 153, 0.3); }
+  100% { background: rgba(236, 72, 153, 0.10); box-shadow: none; }
+}

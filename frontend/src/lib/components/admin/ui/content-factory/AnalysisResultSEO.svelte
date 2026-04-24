@@ -8,9 +8,13 @@
     runSeoAnalysis: () => void;
     isFixing?: string | null;
     handleInternalFix?: ((snippet: string, type: string, message: string) => void) | null;
+    runBulkFix?: () => void;
+    isBulkFixing?: boolean;
+    streamingText?: string;
+    streamingTarget?: string | null;
   }
 
-  let { seoResult, runSeoAnalysis, isFixing = null, handleInternalFix = null }: Props = $props();
+  let { seoResult, runSeoAnalysis, isFixing = null, handleInternalFix = null, runBulkFix, isBulkFixing = false, streamingText = '', streamingTarget = null }: Props = $props();
 
   const gradeColor = $derived(
     seoResult.grade === 'A' ? '#10b981' :
@@ -74,6 +78,25 @@
       </div>
       <p class="text-[10px] text-white/80 leading-relaxed">{seoResult.summary}</p>
     </div>
+
+    <!-- Fix All SEO Button -->
+    {#if runBulkFix && sortedAnnotations.length > 0}
+      <div class="px-3 py-2 border-b border-blue-500/10 bg-blue-500/[0.02]">
+        <button 
+          onclick={() => runBulkFix?.()}
+          disabled={isBulkFixing}
+          class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500 hover:text-white hover:border-blue-400 text-blue-400 text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(59,130,246,0.1)] active:scale-95 disabled:opacity-50"
+        >
+          {#if isBulkFixing}
+            <div class="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+            BOOSTING_SEO...
+          {:else}
+            <Sparkles size={12} class="animate-pulse" />
+            OPTIMIZE ALL SEO ({sortedAnnotations.length})
+          {/if}
+        </button>
+      </div>
+    {/if}
   </div>
 
   <!-- 7 Signals Grid -->
@@ -141,7 +164,9 @@
                   onclick={() => handleInternalFix!(ann.text, ann.type || 'seo', ann.message || ann.reason || '')}
                   disabled={!!isFixing}
                   class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-blue-500/20 hover:border-blue-500/40 hover:text-blue-300 text-[7px] font-black uppercase transition-all disabled:opacity-40 cursor-pointer">
-                  {#if isFixing === ann.text}
+                  {#if streamingTarget === ann.text}
+                    <span class="text-[8px] text-white/80 font-mono leading-relaxed max-w-[160px] truncate">{streamingText}<span class="inline-block w-1 h-2.5 bg-blue-400 animate-pulse ml-0.5 -mb-0.5"></span></span>
+                  {:else if isFixing === ann.text}
                     <span class="w-2 h-2 border border-white/30 border-t-blue-400 rounded-full animate-spin"></span> FIXING...
                   {:else}
                     <Sparkles size={8} class="text-blue-400" /> SỬA LỖI

@@ -31,9 +31,9 @@
     /** Bindable: Metrics for scores persistence */
     analysisMetrics?: CampaignMetrics;
     /** Extra toolbar actions */
-    toolbarActions?: any[];
+    toolbarActions?: ToolbarAction[];
     /** Editor annotations/highlights */
-    annotations?: any[];
+    annotations?: EditorAnnotation[];
     /** Optional: Campaign ID for persistent tracking */
     campaign_id?: string | null;
     /** Whether the system is currently processing (DraftStep mode) */
@@ -42,6 +42,8 @@
     assets?: (MediaAsset | string)[];
     selectedAvatarUrl?: string | null;
     selectedAssetIndex?: number;
+    /** Bindable: Detailed report from DB (CNS V87.0) */
+    analysisReport?: Record<string, unknown>;
   }
 
   let {
@@ -59,6 +61,7 @@
     assets = $bindable([]),
     selectedAvatarUrl = $bindable(null),
     selectedAssetIndex = $bindable(0),
+    analysisReport = {},
   }: Props = $props();
 
   // Internal edit buffer — mirrors content prop while editing
@@ -66,9 +69,12 @@
 
   // Keep editBuffer in sync when content is set from outside (Zero-Flicker)
   $effect(() => { 
-    if (content !== editBuffer) {
-      editBuffer = content; 
-    }
+    untrack(() => {
+      // CNS V2.2: Use a safer comparison to avoid reactive loops while typing
+      if (content && content !== editBuffer && content.length !== editBuffer.length) {
+        editBuffer = content; 
+      }
+    });
   });
 
 
@@ -83,8 +89,8 @@
   // Neural Intelligence Controller — Universal Logic
   const analysis = createAnalysisController({
     campaign_id: () => campaign_id,
-    topic,
-    isEditing: editable,
+    topic: () => topic,
+    isEditing: () => editable,
     getContent: () => editBuffer,
     getEditedDraft: () => editBuffer,
     getDraftContent: () => content,
@@ -92,6 +98,7 @@
     setDraftContent: (v) => { content = v; },
     analysis_cache: () => analysisCache,
     analysis_metrics: () => analysisMetrics,
+    analysis_report: () => analysisReport,
     getIsProcessing: () => isProcessing,
     onUpdate: (cache, metrics) => {
       untrack(() => {
@@ -195,10 +202,10 @@
       },
       colorClass: 'bg-pink-500/10 text-pink-400 border-pink-500/20'
     },
-    // Fix All (Contextual)
-    ...(analysis.activeTab && analysis.activeTab !== 'enrich' && (analysis.editorAnnotations.length > 0) ? [{ 
-      id: `${analysis.activeTab}-fix`,
-      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || '✨ FIXING...') : `✨ FIX ALL ${analysis.activeTab.toUpperCase()}`, 
+    // Fix All (Contextual - Always allow if result exists)
+    ...((analysis.copyrightResult || analysis.seoResult || analysis.aiReadyResult) ? [{ 
+      id: `${analysis.activeTab || 'neural'}-fix`,
+      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || '✨ FIXING...') : `✨ FIX ALL ${analysis.activeTab?.toUpperCase() || 'NEURAL'}`, 
       loading: analysis.isBulkFixing, 
       onclick: () => handleAction(analysis.runBulkFix),
       colorClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
@@ -229,6 +236,7 @@
       annotations={analysis.editorAnnotations}
       toolbarActions={allToolbarActions}
       analysisData={analysis}
+      runBulkFix={analysis.runBulkFix}
       {campaign_id}
       bind:assets
       bind:selectedAvatarUrl
@@ -242,15 +250,18 @@
       isBoosting={analysis.isBoosting}
       isBulkFixing={analysis.isBulkFixing}
       bulkFixLogs={analysis.bulkFixLogs}
+      streamingText={analysis.streamingText}
+      streamingTarget={analysis.streamingTarget}
     />
   </div>
 
 </div>
 
 <NeuralProgressTooltip 
-  active={analysis.isBulkFixing} 
+  active={analysis.isBulkFixing || analysis.bulkFixStatus === "Hoàn tất ✅"} 
   logs={analysis.bulkFixLogs} 
   status={analysis.bulkFixStatus} 
+  onClose={() => analysis.bulkFixStatus = ""}
 />
 
 <style>

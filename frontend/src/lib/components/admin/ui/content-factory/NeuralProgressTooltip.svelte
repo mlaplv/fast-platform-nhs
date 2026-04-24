@@ -14,9 +14,10 @@
     active: boolean;
     logs: string[];
     status: string;
+    onClose?: () => void;
   }
 
-  let { active, logs = [], status }: Props = $props();
+  let { active, logs = [], status, onClose }: Props = $props();
 
   let scrollContainer: HTMLElement | null = $state(null);
 
@@ -69,9 +70,21 @@
           </div>
         </div>
         
-        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20">
-          <div class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"></div>
-          <span class="text-[9px] font-black text-blue-300 uppercase tracking-widest">{status || 'Processing'}</span>
+        <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20">
+            <div class="w-1.5 h-1.5 rounded-full bg-blue-400 {status.includes('✅') ? '' : 'animate-ping'}"></div>
+            <span class="text-[9px] font-black text-blue-300 uppercase tracking-widest">{status || 'Processing'}</span>
+          </div>
+          
+          {#if status.includes('✅') && onClose}
+            <button 
+              onclick={onClose}
+              class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/10 transition-colors"
+              aria-label="Close HUD"
+            >
+              <Zap size={12} class="rotate-45 text-white/40" />
+            </button>
+          {/if}
         </div>
       </div>
 

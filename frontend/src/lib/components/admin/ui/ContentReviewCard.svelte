@@ -26,7 +26,7 @@
     keywords: CampaignKeywords; assets: (MediaAsset | string)[]; reserve_assets: string[];
     outline: CampaignOutline; draft_content: string; finalHtml: string;
     selectedAvatarUrl: string | null; selectedAssetIndex: number; creation_config: Record<string, unknown>;
-    analysis_cache: AnalysisCache; analysis_metrics: CampaignMetrics;
+    analysis_cache: AnalysisCache; analysis_metrics: CampaignMetrics; analysis_report: Record<string, any>;
   }
 
   let {
@@ -34,7 +34,8 @@
     keywords = $bindable(), assets = $bindable(), reserve_assets = $bindable(),
     outline = $bindable(), draft_content = $bindable(), finalHtml = $bindable(),
     selectedAvatarUrl = $bindable(), selectedAssetIndex = $bindable(),
-    creation_config = $bindable(), analysis_cache = $bindable(), analysis_metrics = $bindable()
+    creation_config = $bindable(), analysis_cache = $bindable(), analysis_metrics = $bindable(),
+    analysis_report = $bindable()
   }: Props = $props();
 
   const campaign = createCampaignController({
@@ -46,7 +47,8 @@
     get reserve_assets() { return reserve_assets; }, set reserve_assets(v) { reserve_assets = v; },
     get selectedAvatarUrl() { return selectedAvatarUrl; }, set selectedAvatarUrl(v) { selectedAvatarUrl = v; },
     get selectedAssetIndex() { return selectedAssetIndex; }, set selectedAssetIndex(v) { selectedAssetIndex = v; },
-    get analysis_metrics() { return analysis_metrics; }, get analysis_cache() { return analysis_cache; }
+    get analysis_metrics() { return analysis_metrics; }, get analysis_cache() { return analysis_cache; },
+    get analysis_report() { return analysis_report; }
   });
 
   let viewingStep = $state(step || 1), isEditing = $state(false), maxStepSeen = $state(step || 1);
@@ -212,6 +214,7 @@
     if (creation_config === undefined) creation_config = {};
     if (analysis_cache === undefined) analysis_cache = {} as AnalysisCache;
     if (analysis_metrics === undefined) analysis_metrics = {} as CampaignMetrics;
+    if (analysis_report === undefined) analysis_report = {};
 
     // Phase 82.5: Initial sync is handled by the $effect above after mount
     editedDraft = draft_content || ""; 
@@ -293,7 +296,7 @@
       {:else if viewingStep === 3}
         <OutlineStep {isEditing} bind:editedOutline {outline} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex isExpanded={nanobot.isExpanded} {campaign_id} isProcessing={shouldShowOverlay} />
       {:else if viewingStep === 4}
-        <DraftStep {campaign_id} {isEditing} bind:editedDraft {draft_content} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex isExpanded={nanobot.isExpanded} {outline} bind:analysis_cache bind:analysis_metrics isProcessing={shouldShowOverlay} bind:copyrightScore={campaign.copyrightScore} bind:seoScore={campaign.seoScore} bind:aiScore={campaign.aiScore} />
+        <DraftStep {campaign_id} {isEditing} bind:editedDraft {draft_content} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex isExpanded={nanobot.isExpanded} {outline} bind:analysis_cache bind:analysis_metrics {analysis_report} isProcessing={shouldShowOverlay} bind:copyrightScore={campaign.copyrightScore} bind:seoScore={campaign.seoScore} bind:aiScore={campaign.aiScore} />
       {:else if viewingStep === 5}
         <ValidationPreviewStep {draft_content} {assets} {keywords} copyrightScore={campaign.copyrightScore} seoScore={campaign.seoScore} aiScore={campaign.aiScore} {analysis_cache} isExpanded={nanobot.isExpanded} />
       {:else if viewingStep === 6}

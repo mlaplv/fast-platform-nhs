@@ -45,6 +45,7 @@
   // CNS V86.5: Neural Analysis cache/metrics — đồng nhất với ProductForm & DraftStep
   let formAnalysisCache = $state<AnalysisCache>({});
   let formAnalysisMetrics = $state<CampaignMetrics>({});
+  let formAnalysisReport = $state<Record<string, any>>({});
   let showDraftForm = $state(false);
   let isHeaderCollapsed = $state(false);
 
@@ -165,6 +166,7 @@
     formStatus = "DRAFT";
     formAnalysisCache = {};
     formAnalysisMetrics = {};
+    formAnalysisReport = {};
     showDraftForm = true;
   }
 
@@ -187,6 +189,7 @@
       // CNS V86.5: Hydrate analysis cache để khôi phục highlights sau F5
       formAnalysisCache = meta.analysis_cache || {};
       formAnalysisMetrics = meta.analysis_metrics || {};
+      formAnalysisReport = fullArticle.analysis_report || {};
       formStatus = fullArticle.status;
       showDraftForm = true;
     } catch {
@@ -213,6 +216,7 @@
         seo_keywords: formSeoKeywords,
         seo_og_image: formSeoOgImage,
         featured_image: formFeaturedImage,
+        analysis_report: formAnalysisReport || {},
         // CNS V86.5: Persist analysis cache để highlights không bị mất sau F5
         metadata: { 
           faqs: formFaqs,
@@ -335,8 +339,9 @@
   bind:formFaqs
   bind:formAnalysisCache
   bind:formAnalysisMetrics
+  bind:formAnalysisReport
   onSave={saveArticle}
-  onClose={() => (showDraftForm = false)}
+  onClose={() => { showDraftForm = false; nanobot.toggleExpand(false); }}
   {generateSlug}
   dbCategories={categories}
   {isSaving}

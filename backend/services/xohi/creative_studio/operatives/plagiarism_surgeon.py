@@ -46,7 +46,7 @@ class PlagiarismSurgeon:
         return intersect / (len(a) + len(b) - intersect)
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
-        logs = ["🔍 Khởi động hệ thống phẫu thuật nội dung..."]
+        logs = ["[SURGEON] Initializing Neural Surgical Engine (Elite V2.2)..."]
         # R110: Use raw draft content to ensure surgical snippets (annotations) match perfectly.
         draft = campaign.draft_content or ""
 
@@ -58,17 +58,10 @@ class PlagiarismSurgeon:
         annots = req.annotations if isinstance(req.annotations, list) else []
         all_annots = [a for a in annots if (a.get("text") or a.get("reason")) and len(str(a.get("text",""))) > 5]
         
-        if not all_annots:
+        if not valid_items:
             return BulkFixResponse(new_content=cleaned_draft, logs=logs)
 
-        snippet_list = ""
-        valid_items = []
-        for i, a in enumerate(all_annots[:40]):
-            txt = str(a.get('text', ''))
-            snippet_list += f"\n[ID {i+1}]:\n- Cần sửa: \"{txt}\"\n- Lỗi: {a.get('reason','')}\n"
-            valid_items.append({"id": i+1, "old_text": txt})
-
-        logs.append(f"🧠 Đang xử lý {len(valid_items)} đoạn vi phạm qua AI...")
+        logs.append(f"[SCAN] Ingesting {len(valid_items)} violation points into AI Surgeon...")
         bulk_prompt = f"{PLAGIARISM_SURGEON_PROMPT}\n\n[DANH SÁCH CẦN SỬA]\n{snippet_list}"
         
         try:
@@ -89,9 +82,9 @@ class PlagiarismSurgeon:
                             final_content = new_content
                             replacements_made += 1
                             replacements_log.append({"old_text": old_txt, "new_text": new_txt})
-                            logs.append(f"✅ Đã phẫu thuật xong: \"{old_txt[:30]}...\"")
+                            logs.append(f"✅ [SURGEON] Successfully patched: \"{old_txt[:40]}...\"")
             
-            logs.append(f"🏅 Hoàn tất! Đã phẫu thuật xong {replacements_made} điểm vi phạm.")
+            logs.append(f"[QUANTUM] Bulk fix complete. Successfully optimized {replacements_made}/{len(valid_items)} segments.")
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
             logger.error(f"[PlagiarismSurgeon] AI Bulk Fix failed: {e}")

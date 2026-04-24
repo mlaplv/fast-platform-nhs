@@ -17,6 +17,7 @@
   import { createAnnotationManager } from './parts/AnnotationManager.svelte.ts';
   import { createEditorHandlers } from './parts/EditorHandlers.svelte.ts';
   import './TiptapEditor.css';
+  import '$lib/styles/neural-highlights.css';
 
   let {
     content = $bindable(),
@@ -45,6 +46,7 @@
     isAiLoading = false,
     isBoosting = false,
     isBulkFixing = false,
+    runBulkFix = null,
     bulkFixLogs = [],
   }: {
     content?: string;
@@ -64,7 +66,7 @@
     flex?: boolean;
     onClean?: (() => Promise<string | null>) | null;
     syncAssetsMode?: 'strict' | 'append';
-    analysisData?: any;
+    analysisData?: Record<string, unknown> | null;
     copyrightResult?: CopyrightResult | null;
     seoResult?: SEOResult | null;
     aiReadyResult?: AIInspectResult | null;
@@ -73,6 +75,7 @@
     isAiLoading?: boolean;
     isBoosting?: boolean;
     isBulkFixing?: boolean;
+    runBulkFix?: () => void;
     bulkFixLogs?: string[];
   } = $props();
 
@@ -110,7 +113,7 @@
   });
 
   const annManager = createAnnotationManager({
-    onfix,
+    getOnFix: () => onfix,
     getEditor: () => editor
   });
   let isInternalUpdating = $state(false);
@@ -138,22 +141,6 @@
   });
   let lastInternalActionAt = 0;
   let isSyncLocked = $state(false);
-
-
-
-
-
-  // CNS V2.2: Deterministic HTML Normalization for Cross-Browser Comparison
-
-    
-    // CNS V2.2: Strip temporary marks for comparison to prevent sync loops
-
-
-
-
-
-
-
 
   async function handleClean(options: CleanOptions = { stripFont: true, stripAlign: true, stripRedundantWrappers: true, stripEmpty: true }) {
     if (!editor || editor.isDestroyed) {
@@ -195,8 +182,6 @@
     }
   }
 
-
-  
   const containerClass = $derived(`tiptap-shell flex flex-col w-full ${
     internalFullScreen
       ? 'fixed inset-0 z-[var(--z-admin-tiptap-fullscreen)] bg-[#0a0d14]'
@@ -230,17 +215,30 @@
       extensions: getEditorExtensions(placeholder),
       editorProps,
       onUpdate: () => {
-        if (isInternalUpdating) return;
+        if (isInternalUpdating || isSyncLocked) return;
         const html = editor?.getHTML() ?? '';
         const cleaned = stripMarks(html);
         
         // CNS V2.2: Guard against redundant writes that trigger effects
-        if (cleaned !== content) {
-          content = cleaned;
-          onChange(cleaned);
-          updateMetrics();
-        }
+        untrack(() => {
+          if (normalizeHTML(cleaned, stripMarks) !== normalizeHTML(content || '', stripMarks)) {
+            content = cleaned;
+            onChange(cleaned);
+            updateMetrics();
+          }
+        });
       },
+      onFocus: () => {
+        isFocused = true;
+      },
+      onBlur: () => {
+        isFocused = false;
+        onblur();
+      },
+      onSelectionUpdate: () => {
+        // CNS V88.2: Ensure metrics update on selection change (e.g. word count of selected text could be next)
+        updateMetrics();
+      }
     });
     updateMetrics();
 
@@ -283,15 +281,37 @@
 
     untrack(() => {
         const currentHTML = editor!.getHTML();
+        const normProp = normalizeHTML(normalizedContent, stripMarks);
+        const normCurrent = normalizeHTML(currentHTML, stripMarks);
 
-        if (normalizeHTML(normalizedContent, stripMarks) !== normalizeHTML(currentHTML, stripMarks)) {
+        if (normProp !== normCurrent) {
+            // [CRITICAL] Nếu đang focus (người dùng đang bôi đen/gõ), KHÔNG ĐÈ content 
+            // để tránh mất vùng chọn, trừ khi lệch quá lớn (crash guard)
+            if (isFocused && Math.abs(normProp.length - normCurrent.length) < 50) {
+              return;
+            }
+
             isInternalUpdating = true;
             const { from, to } = editor!.state.selection;
             editor!.commands.setContent(normalizedContent, false);
             
-            // Re-sync selection if it was focused
+            // CNS V87.9: Explicitly re-trigger annotations after document replacement
+            editor!.view.dispatch(
+              editor!.state.tr.setMeta(AnnotationPluginKey, {
+                type: "SET_ANNOTATIONS",
+                annotations: annotations || []
+              })
+            );
+
+            // Re-sync selection if it was focused and valid
             if (isFocused) {
-                try { editor!.commands.setTextSelection({ from, to }); } catch (e) {}
+                try { 
+                  const maxPos = editor!.state.doc.content.size;
+                  editor!.commands.setTextSelection({ 
+                    from: Math.min(from, maxPos), 
+                    to: Math.min(to, maxPos) 
+                  }); 
+                } catch (e) {}
             }
             setTimeout(() => { isInternalUpdating = false; }, 50);
         }
@@ -361,14 +381,6 @@
     });
   });
 
-
-
-
-
-
-
-
-
 </script>
 
 <div 
@@ -405,6 +417,7 @@
       isAiLoading={isAiLoading}
       isBoosting={isBoosting}
       isBulkFixing={isBulkFixing}
+      runBulkFix={runBulkFix}
       bulkFixLogs={bulkFixLogs}
     />
   {/if}
@@ -449,35 +462,37 @@
   {/if}
 </div>
 
-  <EditorOverlays
-    {editor}
-    {editable}
-    bind:showMediaVault={showMediaVault}
-    bind:showLinkDialog={showLinkDialog}
-    {campaignId}
-    bind:assets={assets}
-    bind:selectedAvatarUrl={selectedAvatarUrl}
-    bind:selectedAssetIndex={selectedAssetIndex}
-    bind:blockClicks={blockClicks}
-    bind:imageMenuVisible={imageMenuVisible}
-    bind:linkMenuVisible={linkMenuVisible}
-    bind:isSyncLocked={isSyncLocked}
-    bind:content={content}
-    {onChange}
-    {currentLinkData}
-    bind:tooltipVisible={annManager.state.tooltipVisible}
-    tooltipX={annManager.state.tooltipX}
-    tooltipY={annManager.state.tooltipY}
-    tooltipType={annManager.state.tooltipType}
-    tooltipText={annManager.state.tooltipText}
-    isFixing={annManager.state.isFixing}
-    handleFix={annManager.handleFix}
-    handleTooltipEnter={annManager.handleTooltipEnter}
-    handleTooltipLeave={annManager.handleTooltipLeave}
-    {linkMenuX}
-    {linkMenuY}
-    {imageMenuX}
-    {imageMenuY}
-  />
+<EditorOverlays
+  {editor}
+  {editable}
+  bind:showMediaVault={showMediaVault}
+  bind:showLinkDialog={showLinkDialog}
+  {campaignId}
+  bind:assets={assets}
+  bind:selectedAvatarUrl={selectedAvatarUrl}
+  bind:selectedAssetIndex={selectedAssetIndex}
+  bind:blockClicks={blockClicks}
+  bind:imageMenuVisible={imageMenuVisible}
+  bind:linkMenuVisible={linkMenuVisible}
+  bind:isSyncLocked={isSyncLocked}
+  bind:content={content}
+  {onChange}
+  {currentLinkData}
+  bind:tooltipVisible={annManager.state.tooltipVisible}
+  tooltipX={annManager.state.tooltipX}
+  tooltipY={annManager.state.tooltipY}
+  tooltipType={annManager.state.tooltipType}
+  tooltipText={annManager.state.tooltipText}
+  isFixing={annManager.state.isFixing}
+  handleFix={annManager.handleFix}
+  handleTooltipEnter={annManager.handleTooltipEnter}
+  handleTooltipLeave={annManager.handleTooltipLeave}
+  {linkMenuX}
+  {linkMenuY}
+  {imageMenuX}
+  {imageMenuY}
+/>
 
-
+<style>
+  /* Elite V2.2: Essential Component Layout Only. Neural highlights are managed in neural-highlights.css */
+</style>

@@ -94,6 +94,21 @@ class AtomicFixResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     replacements: List[SurgicalSnippetFix]
 
+# ── CNS V87.0: Surgeon Booster Schemas ──────────────────────────────────────
+class ContentPatch(BaseModel):
+    """Một thao tác phẫu thuật đơn lẻ: tìm search_string, thay bằng replacement_string."""
+    model_config = ConfigDict(strict=True)
+    search_string: str      # Đoạn text nguyên văn cần tìm trong content
+    replacement_string: str # Đoạn text thay thế (cải tiến)
+    rationale: str          # Giải thích ngắn gọn tại sao sửa
+
+class SurgeonBoosterReport(BaseModel):
+    """Kết quả phẫu thuật toàn bộ content từ Surgeon Agent."""
+    model_config = ConfigDict(strict=True)
+    patches: List[ContentPatch] = Field(default_factory=list)
+    summary: str = ""
+    logs: List[str] = Field(default_factory=list)
+
 # ══════════════════════════════════════════════════════════════
 # SCOUT & INTELLIGENCE SCHEMAS — V62.2 Elite
 # ══════════════════════════════════════════════════════════════

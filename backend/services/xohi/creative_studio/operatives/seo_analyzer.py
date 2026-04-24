@@ -27,7 +27,7 @@ logger = logging.getLogger("api-gateway")
 # ELITE V2.2 CONSTANTS — SEO Logic
 # ══════════════════════════════════════════════════════════════
 MAX_COMPETITOR_FETCH = 5
-MAX_CONTENT_TOKENS = 8000
+MAX_CONTENT_TOKENS = 50000
 AUTO_DETECT_TOPIC_WORDS = 8
 KEYWORD_DENSITY_MAX = 3.0
 KEYWORD_DENSITY_MIN = 0.5
@@ -174,11 +174,10 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         CNS Phase 82.35: Enforce GLOBAL serial processing for SEO.
         """
         async with self._seo_semaphore:
-            logs = ["🔍 Khởi động SEO Analysis Engine..."]
+            word_count = len(draft.split())
+            logs = [f"[SCAN] Initializing SEO Engine... Analyzing {word_count} words for ranking signals."]
             await self._emit_progress(campaign, logs[-1])
-            draft = campaign.draft_content or ""
             # Phase 76.3: Unified Logic-First Sanitization
-            # clean_draft keeps HTML for AI structure analysis, pure_text for exact word counts/density
             clean_draft = await noise_cleaner.clean(draft, mode="light", strip_html=False)
             pure_text = await noise_cleaner.clean(draft, mode="light", strip_html=True)
 
@@ -198,12 +197,11 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                     topic = " ".join(words[:AUTO_DETECT_TOPIC_WORDS]) if words else "SEO content"
                 logger.info(f"[SEO] No campaign topic set — auto-detected: '{topic}'")
             
-            logs.append(f"📡 Đang tải nội dung đối thủ cho: '{topic}'...")
+            logs.append(f"[RECON] Cross-referencing with {len(competitors)} top competitors for Information Gain...")
             await self._emit_progress(campaign, logs[-1])
-            competitors = await self._fetch_competitors(topic)
             competitor_str = "\n".join(competitors)
             
-            logs.append("🧠 Đang phân tích SEO bằng Neural Engine...")
+            logs.append("[JUDGE] Ingesting data into Neural Core for semantic scoring...")
             await self._emit_progress(campaign, logs[-1])
             # Logic Layer: Pass data to AI judge
             user_input = f"""
@@ -240,6 +238,7 @@ DRAFT:
                 elif isinstance(report, dict) and 'seo_annotations' in report:
                     report['seo_annotations'].extend(extra_annotations)
             
+            logs.append(f"[QUANTUM] SEO Audit finalized. {len(getattr(report, 'seo_annotations', []))} tactical improvements detected.")
             return report
 
     def _audit_keyword_density(self, plain_text: str, primary: str) -> List[SeoAnnotation]:

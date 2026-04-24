@@ -82,17 +82,13 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
 
 
     async def analyze(self, campaign: ContentCampaign, force: bool = False) -> AiReadyReport:
-        logs = ["🚀 Khởi động Neural AI-Ready Engine (XoHi 2026)..."]
-        await self._emit_log(campaign, logs[-1])
-        
-        draft = campaign.draft_content or ""
-        if not draft: return AiReadyReport(geo_score=0, summary="Thiếu dữ liệu.", logs=logs)
-        
-        logs.append("🧠 Đang phân tích NLP Entity Density & Information Gain...")
+        word_count = len(draft.split())
+        logs.append(f"[GEO] Structural Scan: {word_count} words. Analyzing NLP Entity Density & Information Gain...")
         await self._emit_log(campaign, logs[-1])
         try:
-            res = await trinity_bridge.run(self._agent, draft[:12000], role="pro") # Use Pro for high-IQ analysis
+            res = await trinity_bridge.run(self._agent, draft[:50000], role="pro") # Use Pro for high-IQ analysis
             raw = res
+            logs.append(f"[QUANTUM] AI-Ready Audit complete. Detected {len(getattr(raw, 'annotations', []))} structural optimization points.")
             raw.logs = logs
             return raw
         except Exception as e:
@@ -111,7 +107,7 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
             return AutoFixResponse(old_text=snippet, new_text=snippet)
 
     async def atomic_bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
-        logs = ["🚀 Khởi động Neural Surgical Engine (Elite V2.2)..."]
+        logs = ["[SURGEON] Initializing Neural AI-Ready Surgeon (Elite V2.2)..."]
         await self._emit_log(campaign, logs[-1])
         
         draft = await noise_cleaner.clean(campaign.draft_content or "", mode="light", strip_html=False)
@@ -128,7 +124,7 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
 
         if not valid_items: return BulkFixResponse(new_content=draft, logs=logs)
 
-        logs.append(f"🧠 Đang xử lý {len(valid_items)} điểm yếu qua AI Surgeon...")
+        logs.append(f"[SCAN] Ingesting {len(valid_items)} structural weaknesses into AI Surgeon...")
         await self._emit_log(campaign, logs[-1])
         prompt = f"{ATOMIC_SURGEON_PROMPT}\n\n[CẦN SỬA]\n{snippet_list}"
         
@@ -147,9 +143,9 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
                         if new_c != final_content:
                             final_content, replacements_made = new_c, replacements_made + 1
                             replacements_log.append({"old_text": old, "new_text": new})
-                            logs.append(f"✅ Đã phẫu thuật: \"{old[:30]}...\"")
+                            logs.append(f"✅ [SURGEON] Optimized: \"{old[:40]}...\"")
                             await self._emit_log(campaign, logs[-1])
-            logs.append(f"🏅 Hoàn tất! Đã tối ưu {replacements_made} phân đoạn.")
+            logs.append(f"[QUANTUM] Structural optimization complete. Successfully boosted {replacements_made}/{len(valid_items)} segments.")
             await self._emit_log(campaign, logs[-1])
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:

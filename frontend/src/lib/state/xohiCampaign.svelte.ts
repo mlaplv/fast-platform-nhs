@@ -18,6 +18,7 @@ export function createCampaignController(config: {
     selectedAssetIndex: number;
     analysis_metrics: CampaignMetrics;
     analysis_cache: AnalysisCache;
+    analysis_report?: Record<string, any>;
 }) {
     let isLoading = $state(false);
     let isPublishing = $state(false);
@@ -217,6 +218,7 @@ export function createCampaignController(config: {
         syncAssetChanges,
         get isStepProcessing() { return isStepProcessing; },
         set isStepProcessing(v) { isStepProcessing = v; },
+        get analysis_report() { return config.analysis_report; },
         resetStepProcessing
     };
 }

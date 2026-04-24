@@ -25,6 +25,7 @@ class CampaignSchema(BaseModel):
     draft_content: Optional[str] = None
     search_count: int = 0
     unique_score: float = 1.0
+    analysis_report: Optional[Dict[str, object]] = None
     # final_html is deferred — only present when explicitly loaded
     final_html: Optional[str] = None
 
@@ -81,3 +82,9 @@ class AdhocAutoFixRequest(BaseModel):
     annotation_type: str
     error_message: str
     topic: Optional[str] = None
+
+class SurgeonBoostRequest(BaseModel):
+    """CNS V87.0: Surgeon Boost request — phẫu thuật toàn bộ content."""
+    model_config = ConfigDict(strict=True)
+    content: str
+    topic: str = ""

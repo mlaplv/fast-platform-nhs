@@ -5,7 +5,7 @@
 import type { Editor } from '@tiptap/core';
 
 export function createAnnotationManager(options: {
-  onfix: ((snippet: string, type: string, message: string) => Promise<string | null>) | null;
+  getOnFix: () => (((snippet: string, type: string, message: string) => Promise<string | null>) | null);
   getEditor: () => Editor | null;
 }) {
   const state = $state({
@@ -71,10 +71,11 @@ export function createAnnotationManager(options: {
 
   async function handleFix() {
     const editor = options.getEditor();
-    if (!options.onfix || state.isFixing || !state.tooltipSnippet || !editor) return;
+    const onfix = options.getOnFix();
+    if (!onfix || state.isFixing || !state.tooltipSnippet || !editor) return;
     state.isFixing = true;
     try {
-      const newText = await options.onfix(state.tooltipSnippet, state.tooltipType, state.tooltipText);
+      const newText = await onfix(state.tooltipSnippet, state.tooltipType, state.tooltipText);
       if (newText) {
         const { state: editorState, view } = editor;
         const tr = editorState.tr.insertText(newText, state.tooltipFrom, state.tooltipTo);

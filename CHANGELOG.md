@@ -5,6 +5,22 @@ All notable changes to the **Fast Platform Core** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [22.4.24.01] - 2026-04-24
+### Added
+- **Neural Content Persistence (Elite V2.2):** Unified the persistence layer for diagnostic intelligence across the stack.
+- **Deep Hydration Protocol:** Implemented auto-sync of `analysis_report` (JSONB) between Frontend and Backend, allowing highlights/scores to persist across page reloads (F5).
+- **AI Surgeon Agent (Phase 2):** Unlocked the Surgeon Agent for Ad-hoc content forms, enabling targeted "phẫu thuật" (patching) instead of total replacement.
+- **Unified Intelligence HUD:** Standardized the diagnostic interface across `ProductForm`, `NewsForm`, and `DraftStep`.
+
+### Changed
+- **Database Evolution:** Migrated PostgreSQL schema to include `analysis_report` columns for `articles` and `products`.
+- **Backend Schema Hardening:** Updated Pydantic Schemas (Campaign, Article, Product) to support JSONB sync.
+
+### Fixed
+- **Individual Fix Reactivity:** Resolved Svelte 5 reactivity bugs in individual fix actions by implementing Getter Pattern for props.
+- **UI Reset Protocol:** Fixed fullscreen bug where the editor would remain expanded after form closure.
+- **Fix All Synchronization:** Ensured the "Fix All" button correctly tracks tab changes in the Neural Editor.
+
 ## [22.4.21.01] - 2026-04-21
 ### Added
 - **Helen Loyalty Intelligence (Elite V3.0):** Integrated full loyalty point (PTS) awareness into the Helen AI support agent.

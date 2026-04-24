@@ -137,13 +137,112 @@ class AnalystHandler:
         try:
             req = AutoFixRequest(text=target_snippet, message=error_message)
             result = await AiInspector().auto_fix(campaign, req)
-            # Áp dụng kết quả vào content và trả về new_text
             new_text = result.new_text if result.new_text and result.new_text != target_snippet else None
             return GenericResponse(status="success", data={"new_text": new_text})
         except Exception as e:
             logger.error(f"[AnalystHandler] ad-hoc auto_fix failed: {e}", exc_info=True)
             return GenericResponse(status="error", message=str(e))
 
+    async def stream_auto_fix(
+        self, content: str, target_snippet: str, error_message: str, topic: str = ""
+    ):
+        """
+        CNS V87.0: SSE streaming auto-fix — dùng text-streaming Agent để typewriter effect.
+        Yields SSE lines: data: {"chunk": "..."} hoặc data: {"done": true, "full": "..."}
+        CLAUDE.md: Dispose resources sau khi xong, cấm block async.
+        """
+        import json
+        from pydantic_ai import Agent
+        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+
+        stream_prompt = (
+            f"[BÀI VIẾT - CHỦ ĐỀ: {topic}]\n{content[:5000]}\n\n"
+            f"[ĐOẠN CẦN SỬA]\n\"{target_snippet}\"\n\n"
+            f"[LỖI CẦN KHẮC PHỤC]\n{error_message}\n\n"
+            "Hãy viết lại đoạn văn trên. Chỉ trả về đoạn văn đã sửa, không giải thích."
+        )
+        stream_agent: Agent[None, str] = Agent(
+            output_type=str,
+            system_prompt=(
+                "Bạn là Neural Surgeon. Viết lại đoạn văn theo yêu cầu. "
+                "Sắc bén, thêm số liệu thực, giữ nguyên HTML tag. Chỉ trả về đoạn văn đã sửa."
+            ),
+            retries=1
+        )
+
+        full_text = ""
+        try:
+            word_count = len(content.split())
+            yield f"data: {json.dumps({'chunk': f'[NFC] Normalizing {word_count} words for surgical alignment...\\n'}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.1)
+            yield f"data: {json.dumps({'chunk': '[JUDGE] Decoding error context & initiating Neural Surgeon...\\n'}, ensure_ascii=False)}\n\n"
+            await asyncio.sleep(0.1)
+            yield f"data: {json.dumps({'chunk': '--- [REASONING START] ---\\n'}, ensure_ascii=False)}\n\n"
+            async with trinity_bridge.run_stream(stream_agent, stream_prompt, role="fast") as stream:
+                async for chunk in stream.stream_text(delta=True):
+                    full_text += chunk
+                    yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'done': True, 'full': full_text}, ensure_ascii=False)}\n\n"
+        except Exception as exc:
+            logger.error(f"[AnalystHandler] stream_auto_fix error: {exc}", exc_info=True)
+            yield f"data: {json.dumps({'error': str(exc)[:100]})}\n\n"
+
+    async def surgeon_boost(
+        self, content: str, topic: str = "", campaign_id: Optional[str] = None,
+        campaign_repo: Optional[ContentCampaignRepository] = None
+    ) -> GenericResponse:
+        """
+        CNS V87.0: Surgeon Boost — phẫu thuật content, trả về ContentPatch list.
+        Hỗ trợ cả ad-hoc (content trực tiếp) và campaign mode.
+        """
+        from backend.services.xohi.creative_studio.operatives.surgeon_booster import run_surgeon_boost
+
+        raw_content = content
+        if campaign_id and campaign_repo and not raw_content:
+            campaign = await campaign_repo.get(campaign_id)
+            if not campaign:
+                return GenericResponse(status="error", message="Campaign not found")
+            raw_content = campaign.draft_content or ""
+
+        if not raw_content:
+            return GenericResponse(status="error", message="Chưa có nội dung để phẫu thuật.")
+
+        try:
+            result = await run_surgeon_boost(raw_content, topic)
+            return GenericResponse(status="success", data=result.model_dump())
+        except Exception as exc:
+            logger.error(f"[AnalystHandler] surgeon_boost failed: {exc}", exc_info=True)
+            return GenericResponse(status="error", message=str(exc))
+
+    async def save_analysis_report(
+        self, campaign_id: str, campaign_repo: ContentCampaignRepository,
+        report_type: str, data: Dict[str, object]
+    ) -> GenericResponse:
+        """
+        CNS V87.0: Lưu kết quả phân tích vào JSONB column analysis_report.
+        Hỗ trợ dọn dẹp và gom nhóm dữ liệu để Dashboard load nhanh.
+        """
+        campaign = await campaign_repo.get(campaign_id)
+        if not campaign:
+            return GenericResponse(status="error", message="Campaign not found")
+
+        # Khởi tạo report nếu chưa có
+        report = dict(campaign.analysis_report or {})
+        
+        # Cập nhật slot dữ liệu tương ứng (copyright, seo, ai_inspect, surgeon)
+        report[report_type] = {
+            "data": data,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "version": "V87.0"
+        }
+
+        try:
+            await campaign_repo.update(campaign_id, {"analysis_report": report})
+            logger.info(f"[AnalystHandler] Saved {report_type} report for campaign {campaign_id}")
+            return GenericResponse(status="success", message=f"Đã lưu báo cáo {report_type}")
+        except Exception as exc:
+            logger.error(f"[AnalystHandler] Failed to save report: {exc}", exc_info=True)
+            return GenericResponse(status="error", message=str(exc))
 
     async def bulk_fix(self, campaign_id: Optional[str], data: Dict[str, object], campaign_repo: Optional[ContentCampaignRepository], raw_content: Optional[str] = None) -> GenericResponse:
         from backend.services.xohi.creative_studio.models.schemas import BulkFixRequest

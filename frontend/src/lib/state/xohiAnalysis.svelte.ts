@@ -18,7 +18,7 @@ import type {
 export function createAnalysisController(config: {
     campaign_id?: string | null | (() => string | null | undefined);
     getContent?: () => string;
-    topic?: string;
+    topic?: string | (() => string);
     isEditing: boolean | (() => boolean);
     getEditedDraft: () => string;
     getDraftContent: () => string;
@@ -26,11 +26,65 @@ export function createAnalysisController(config: {
     setDraftContent: (v: string) => void;
     analysis_cache: AnalysisCache | (() => AnalysisCache);
     analysis_metrics: CampaignMetrics | (() => CampaignMetrics);
+    analysis_report?: Record<string, Record<string, unknown>> | (() => Record<string, Record<string, unknown>> | undefined);
     getIsProcessing?: () => boolean;
     onUpdate?: (cache: AnalysisCache, metrics: CampaignMetrics) => void;
 }) {
     const nanobot = useNanobot();
     const resolve = <T>(val: T | (() => T)): T => (typeof val === 'function' ? (val as () => T)() : val);
+    
+    // CNS V88.2: Neural Surgical Stitching (TS Port of backend logic)
+    function robustNormalize(text: string): string {
+        if (!text) return "";
+        return text.normalize('NFC')
+            .replace(/<[^>]+>/g, '') // Strip HTML
+            .replace(/[^\p{L}\p{N}]/gu, '') // Keep only letters and numbers
+            .toLowerCase();
+    }
+
+    function surgicalStitch(content: string, oldText: string, newText: string): string {
+        content = content.normalize('NFC');
+        oldText = oldText.normalize('NFC');
+        newText = newText.normalize('NFC');
+
+        // Phase 1: Exact Match (Fast Path)
+        if (content.includes(oldText)) {
+            return content.replace(oldText, newText);
+        }
+
+        // Phase 2: Alphanumeric Mapping (HTML-Aware)
+        const normOld = robustNormalize(oldText);
+        if (normOld.length < 5) return content;
+
+        const parts = content.split(/(<[^>]+>)/);
+        let plainBuffer = "";
+        const plainToHtmlMap: number[] = [];
+        let htmlPos = 0;
+
+        for (const part of parts) {
+            if (part.startsWith('<')) {
+                htmlPos += part.length;
+            } else {
+                for (let i = 0; i < part.length; i++) {
+                    const ch = part[i];
+                    if (/[\p{L}\p{N}]/u.test(ch)) {
+                        plainToHtmlMap.push(htmlPos + i);
+                        plainBuffer += ch.toLowerCase();
+                    }
+                }
+                htmlPos += part.length;
+            }
+        }
+
+        const idx = plainBuffer.indexOf(normOld);
+        if (idx !== -1) {
+            const startHtml = plainToHtmlMap[idx];
+            const endHtmlIdx = idx + normOld.length - 1;
+            const endHtml = plainToHtmlMap[endHtmlIdx] + 1;
+            return content.slice(0, startHtml) + newText + content.slice(endHtml);
+        }
+        return content;
+    }
 
     const isAdhoc = $derived(!resolve(config.campaign_id));
     let copyrightResult = $state<CopyrightResult | null>(null);
@@ -44,6 +98,10 @@ export function createAnalysisController(config: {
     let bulkFixLogs = $state<string[]>([]);
     let isBoosting = $state(false);
     let activeTab = $state<'copyright' | 'seo' | 'ai' | 'enrich' | null>(null);
+    // CNS V87.0: SSE Streaming state — typewriter effect
+    let streamingText = $state<string>("");        // Text đang stream từng chunk
+    let streamingTarget = $state<string | null>(null); // Annotation text đang được sửa
+    let _sseAbort: AbortController | null = null;  // CLAUDE.md: dispose resource khi xong
 
     // Sync Pulse logs & Auto-close HUD
     $effect(() => {
@@ -109,7 +167,8 @@ export function createAnalysisController(config: {
     $effect(() => {
         if (!config.onUpdate) return;
         // Trigger on any result change
-        const _ = [copyrightResult, seoResult, aiReadyResult];
+        // CNS V87.5: Trigger reactivity for persistent sync
+        const _trigger = [copyrightResult, seoResult, aiReadyResult];
         
         untrack(() => {
             const cache: AnalysisCache = { ...resolve(config.analysis_cache) };
@@ -142,84 +201,75 @@ export function createAnalysisController(config: {
         await apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: currentText });
     }
 
-    async function saveAnalysisEvidence(category: string, data: any) {
+    async function saveAnalysisEvidence(category: string, data: Record<string, unknown>) {
         try {
             const cid = resolve(config.campaign_id);
             if (!cid || cid === 'adhoc') return;
+            
+            // CNS V88.2: Save both as evidence and as the main analysis report for hydration
+            const reportTypeMap: Record<string, 'copyright' | 'seo' | 'ai_inspect'> = {
+                'copyright': 'copyright',
+                'seo': 'seo',
+                'ai_inspect': 'ai_inspect'
+            };
+            const reportType = reportTypeMap[category];
+            if (reportType) await xohiActions.saveAnalysisReport(cid, reportType, data);
+
             await apiClient.post(`/api/v1/content/campaigns/${cid}/metadata`, {
                 analysis_evidence: {
                     [category]: {
                         timestamp: new Date().toISOString(),
-                        score: category === 'copyright' ? data.uniqueness_score : category === 'seo' ? data.score : data.viral_score,
+                        score: category === 'copyright' ? (data.uniqueness_score as number) : category === 'seo' ? (data.total_score as number) : (data.geo_score as number),
                         data: data
                     }
                 }
             });
-            console.log(`[Neural Vault] Evidence saved for ${category}`);
         } catch (e) {
             console.error("[Neural Vault] Failed to save evidence:", e);
         }
     }
 
     async function handleApiResponse<T>(res: GenericResponse<T | TaskAcceptedResponse>, targetSetter: (v: T) => void, category?: string) {
+        const cid = resolve(config.campaign_id);
         if (res?.status === "accepted" && res.data && typeof res.data === 'object' && 'task_id' in res.data) {
             return 'accepted';
         } else if (res?.data) {
             if (res.logs) bulkFixLogs = [...bulkFixLogs, ...(res.logs.filter(l => !bulkFixLogs.includes(l)))];
             targetSetter(res.data as T);
             bulkFixLogs = [...bulkFixLogs, "✅ Phân tích hoàn tất. Đã nạp dữ liệu Intelligence."];
+            
+            // CNS V87.0: Tự động đồng bộ lên DB cột analysis_report
+            if (cid && cid !== 'adhoc' && category) {
+                const reportTypeMap: Record<string, 'copyright' | 'seo' | 'ai_inspect' | 'surgeon'> = {
+                    'copyright': 'copyright',
+                    'seo': 'seo',
+                    'ai_inspect': 'ai_inspect',
+                    'surgeon': 'surgeon'
+                };
+                const reportType = reportTypeMap[category];
+                if (reportType) await xohiActions.saveAnalysisReport(cid, reportType, res.data);
+            }
+            
             if (category) await saveAnalysisEvidence(category, res.data);
             return 'success';
         }
         return 'error';
     }
 
-    // CNS V85.5: Neural Thinking Engine
-    let thinkingInterval: ReturnType<typeof setInterval> | null = null;
+    // CNS V87.0: Real-time Thinking Feed — consumed directly from backend logs
     function startThinkingLogs(type: 'copyright' | 'seo' | 'ai') {
-        const pools = {
-            copyright: [
-                "🔍 Đang truy quét cơ sở dữ liệu Google Search...",
-                "⚖️ Đang đối soát với 14 triệu bản ghi News/Blog...",
-                "🧠 Gemini đang phân tích cấu trúc ngữ nghĩa (Semantics)...",
-                "⚙️ Đang bóc tách các cụm từ trùng lặp tiềm năng...",
-                "📊 Đang tính toán chỉ số Uniqueness..."
-            ],
-            seo: [
-                "🚀 Đang nạp bộ quy tắc E-E-A-T v2026...",
-                "📊 Đang đánh giá mật độ từ khóa (Density)...",
-                "🔍 Đang kiểm tra cấu trúc Semantic Headers (H1-H4)...",
-                "📈 Đang so sánh với Top 5 đối thủ cùng Topic...",
-                "🤖 AI đang chấm điểm trải nghiệm người dùng (UX Score)..."
-            ],
-            ai: [
-                "🧠 Đang mở cổng Neural Inspection...",
-                "⚡ Đang đo lường chỉ số Viral Edge...",
-                "🧪 Đang kiểm tra tính 'Con người' của văn bản...",
-                "🛡️ Đang quét các mẫu câu bị AI-Purge đào thải...",
-                "💎 Đang tối ưu hóa Brand Voice & Tone..."
-            ]
-        };
-        const pool = pools[type];
-        let idx = 0;
-        thinkingInterval = setInterval(() => {
-            if (idx < pool.length && !bulkFixLogs.includes(pool[idx])) {
-                bulkFixLogs = [...bulkFixLogs, pool[idx]];
-                idx++;
-            } else {
-                clearInterval(thinkingInterval!);
-            }
-        }, 1200);
+        // Mock intervals removed. HUD now renders bulkFixLogs which are updated 
+        // in real-time from the backend stream.
     }
     function stopThinkingLogs() {
-        if (thinkingInterval) clearInterval(thinkingInterval);
+        // CNS V87.0: No-op, mock interval was removed.
     }
 
     async function runCopyrightCheck(force = false, skipSave = false) {
         if (isCopyrightLoading) return;
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isCopyrightLoading = true; isBulkFixing = true; bulkFixStatus = "Đang quét..."; activeTab = 'copyright';
-        bulkFixLogs = ["🧠 Đang khởi động Neural Engine...", "🔍 Đang trinh sát dữ liệu..."];
+        bulkFixLogs = [...bulkFixLogs, "--- NEW SCAN: COPYRIGHT ---", "🧠 Đang khởi động Neural Engine...", "🔍 Đang trinh sát dữ liệu..."];
         startThinkingLogs('copyright');
         let isAccepted = false;
         try {
@@ -253,7 +303,7 @@ export function createAnalysisController(config: {
         if (isSeoLoading || seoLocked) return;
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isSeoLoading = true; isBulkFixing = true; bulkFixStatus = "Đang phân tích SEO..."; activeTab = 'seo';
-        bulkFixLogs = ["🚀 Đang nạp bộ lọc SEO...", "📊 Đang đánh giá tín hiệu..."];
+        bulkFixLogs = [...bulkFixLogs, "--- NEW SCAN: SEO ---", "🚀 Đang nạp bộ lọc SEO...", "📊 Đang đánh giá tín hiệu..."];
         startThinkingLogs('seo');
         let isAccepted = false;
         try {
@@ -284,7 +334,7 @@ export function createAnalysisController(config: {
         if (isAiLoading || aiLocked) return;
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isAiLoading = true; isBulkFixing = true; bulkFixStatus = "Đang kiểm định AI..."; activeTab = 'ai';
-        bulkFixLogs = ["🧠 Đang mở cổng Neural AI...", "⚡ Đang kiểm tra Viral Edge..."];
+        bulkFixLogs = [...bulkFixLogs, "--- NEW SCAN: VIRAL ---", "🧠 Đang mở cổng Neural AI...", "⚡ Đang kiểm tra Viral Edge..."];
         startThinkingLogs('ai');
         let isAccepted = false;
         try {
@@ -336,39 +386,83 @@ export function createAnalysisController(config: {
     }
 
     async function runAutoFix(target: string, type: string, msg: string) {
+        // Guard: prevent double-call (CLAUDE.md)
+        if (streamingTarget) return null;
+
         const cid = resolve(config.campaign_id);
         const topic = resolve(config.topic) ?? '';
         const content = (config.getContent ?? config.getEditedDraft)?.() ?? '';
 
-        // CNS V86.5: Hỗ trợ cả ad-hoc (không có campaign_id) lẫn campaign mode
-        let newText: string | null = null;
-        if (cid) {
-            newText = await xohiActions.runAutoFix(cid, target, type, msg);
-        } else {
-            // Ad-hoc mode: truyền content hiện tại để AI có context đầy đủ
-            newText = await xohiActions.runAdHocAutoFix(content, target, type, msg, topic);
-        }
+        // CNS V87.0: Dùng SSE streaming để typewriter effect ngay trong annotation row
+        return new Promise<string | null>((resolve_p) => {
+            streamingTarget = target;
+            streamingText = '';
 
-        if (newText) {
-            // Áp dụng kết quả vào editor — surgical replace
-            const currentContent = (config.getContent ?? config.getEditedDraft)?.() ?? '';
-            const updated = currentContent.replace(target, newText);
-            if (updated !== currentContent) {
-                if (resolve(config.isEditing)) config.setEditedDraft(updated);
-                else config.setDraftContent(updated);
-            }
+            const cleanup = async (newText: string | null) => {
+                // CLAUDE.md: Dispose SSE resource ngay khi xong
+                _sseAbort?.abort();
+                _sseAbort = null;
+                streamingTarget = null;
 
-            // Xóa annotation đã sửa khỏi danh sách
-            const update = (a: AnalysisAnnotation) => {
-                const nt = target.replace(/[\s\*\u200B\uFEFF]+/g, '').toLowerCase();
-                const na = (a.text || '').replace(/[\s\*\u200B\uFEFF]+/g, '').toLowerCase();
-                return (na.includes(nt) || nt.includes(na)) && (a.message === msg || a.reason === msg) && a.type === type;
+                if (newText) {
+                    // CNS V88.2: Surgical apply với Neural Stitching (HTML-Aware)
+                    const currentContent = (config.getContent ?? config.getEditedDraft)?.() ?? '';
+                    const updated = surgicalStitch(currentContent, target, newText);
+                    
+                    if (updated !== currentContent) {
+                        if (resolve(config.isEditing)) config.setEditedDraft(updated);
+                        else config.setDraftContent(updated);
+                        
+                        // [CRITICAL] Đồng bộ ngay lên DB để tránh F5 bị mất
+                        if (cid && cid !== 'adhoc') {
+                            apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: updated }).catch(e => {
+                                console.error("[Neural Vault] Persistence failed:", e);
+                            });
+                        }
+                    }
+                    // Xóa annotation đã sửa
+                    // CNS V88.2: Robust Matcher using alphanumeric normalization
+                    const match = (a: AnalysisAnnotation) => {
+                        const nt = robustNormalize(target);
+                        const na = robustNormalize(a.text || '');
+                        const nm = (a.message || a.reason || '').toLowerCase().trim();
+                        const targetM = (msg || '').toLowerCase().trim();
+                        
+                        const textMatch = (na.includes(nt) || nt.includes(na)) && nt.length > 5;
+                        const msgMatch = nm.includes(targetM) || targetM.includes(nm);
+                        const typeMatch = a.type?.split('-')[0] === type?.split('-')[0]; // Allow seo-warning to match seo
+
+                        return textMatch && (msgMatch || typeMatch);
+                    };
+
+                    if (seoResult) {
+                        seoResult.seo_annotations = (seoResult.seo_annotations || []).filter(a => !match(a));
+                        saveAnalysisEvidence('seo', $state.snapshot(seoResult));
+                    }
+                    if (aiReadyResult) {
+                        aiReadyResult.ai_annotations = (aiReadyResult.ai_annotations || []).filter(a => !match(a));
+                        saveAnalysisEvidence('ai_inspect', $state.snapshot(aiReadyResult));
+                    }
+                    if (copyrightResult) {
+                        copyrightResult.annotations = (copyrightResult.annotations || []).filter(a => !match(a));
+                        saveAnalysisEvidence('copyright', $state.snapshot(copyrightResult));
+                    }
+                }
+                resolve_p(newText);
             };
-            if (seoResult) seoResult.seo_annotations = (seoResult.seo_annotations || []).filter(a => !update(a));
-            if (aiReadyResult) aiReadyResult.ai_annotations = (aiReadyResult.ai_annotations || []).filter(a => !update(a));
-            if (copyrightResult) copyrightResult.annotations = (copyrightResult.annotations || []).filter(a => !update(a));
-        }
-        return newText;
+
+            // Campaign mode: có campaign_id thì dùng SSE stream
+            // Ad-hoc mode: không có campaign_id cũng dùng SSE stream (endpoint mới hỗ trợ cả 2)
+            _sseAbort = xohiActions.streamAutoFix(
+                content,
+                target,
+                msg,
+                topic,
+                (chunk) => { streamingText += chunk; },
+                (fullText) => { cleanup(fullText || null); },
+                (err) => { nanobot.showToast(`Lỗi sửa: ${err}`, 'error'); cleanup(null); },
+            );
+        });
     }
 
     async function runBulkFix() {
@@ -376,7 +470,10 @@ export function createAnalysisController(config: {
         const cid = resolve(config.campaign_id);
         const category = activeTab === 'copyright' ? 'copyright' : activeTab === 'seo' ? 'seo' : 'ai';
         const annotations = (activeTab === 'copyright' ? copyrightResult?.annotations : activeTab === 'seo' ? seoResult?.seo_annotations : aiReadyResult?.ai_annotations) || [];
-        if (annotations.length === 0) return;
+        if (annotations.length === 0) {
+            nanobot.showToast("Không tìm thấy vấn đề nào cần sửa", "info");
+            return;
+        }
 
         isBulkFixing = true; bulkFixStatus = "Đang phẫu thuật...";
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
@@ -401,85 +498,132 @@ export function createAnalysisController(config: {
                     if (rep) fixed.push({ text: rep.new_text, reason: '✅ Đã sửa', message: '✅ Đã sửa', severity: 'low', type: 'fixed-area' });
                     else remaining.push({ ...a, message: `[CHƯA SỬA] ${a.message || a.reason}` });
                 }
-                if (activeTab === 'copyright') copyrightResult = { ...copyrightResult!, annotations: [...fixed, ...remaining] };
-                else if (activeTab === 'seo') seoResult = { ...seoResult!, seo_annotations: [...fixed, ...remaining] };
-                else aiReadyResult = { ...aiReadyResult!, ai_annotations: [...fixed, ...remaining] };
+                if (activeTab === 'copyright') {
+                    copyrightResult = { ...copyrightResult!, annotations: [...fixed, ...remaining] };
+                    await saveAnalysisEvidence('copyright', $state.snapshot(copyrightResult));
+                }
+                else if (activeTab === 'seo') {
+                    seoResult = { ...seoResult!, seo_annotations: [...fixed, ...remaining] };
+                    await saveAnalysisEvidence('seo', $state.snapshot(seoResult));
+                }
+                else {
+                    aiReadyResult = { ...aiReadyResult!, ai_annotations: [...fixed, ...remaining] };
+                    await saveAnalysisEvidence('ai_inspect', $state.snapshot(aiReadyResult));
+                }
+                bulkFixLogs = [...bulkFixLogs, "✅ Phẫu thuật hoàn tất. Dữ liệu Neural Intelligence đã được cập nhật."];
+                bulkFixStatus = "Hoàn tất ✅";
             }
         } finally {
             isBulkFixing = false;
-            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = "";  } }, 3000);
+            // CNS V87.4: 'Treo' (Persist) the HUD for 5s after completion so user can read logs
+            setTimeout(() => { 
+                if (!isBulkFixing && bulkFixStatus === "Hoàn tất ✅") {
+                    bulkFixStatus = ""; 
+                }
+            }, 5000);
         }
     }
 
     async function runAiBooster() {
         const cid = resolve(config.campaign_id);
-        if (isAdhoc || !cid || isBoosting || !seoResult) return;
-        isBoosting = true; isBulkFixing = true; bulkFixStatus = "Đang Booster...";
-        bulkFixLogs = ["🚀 Đang khởi động Neural Booster™...", "🧠 Đang trinh sát dữ liệu..."];
+        const content = (config.getContent ?? config.getEditedDraft)?.() ?? '';
+        const topic = resolve(config.topic) ?? '';
+
+        if (isBoosting) return;
+        isBoosting = true; isBulkFixing = true; bulkFixStatus = "Đang phẫu thuật...";
+        bulkFixLogs = ["🚀 Surgeon Booster khởi động...", "🧠 Đang phân tích cấu trúc nội dung..."];
+
         try {
-            await saveBeforeAnalysis();
-            const res = await xohiActions.runEnrich(cid);
-            if (res?.status === 'success' && res.data?.new_content) {
-                if (res.logs) bulkFixLogs = [...bulkFixLogs, ...res.logs];
-                config.setEditedDraft(res.data.new_content);
-                if (res.data.annotations?.length) {
-                    const ann = res.data.annotations;
-                    if (!seoResult) seoResult = { total_score: 0, grade: 'N/A', signals: [], summary: '', quick_wins: [], seo_annotations: ann, logs: [] };
-                    else seoResult.seo_annotations = [...(seoResult.seo_annotations || []), ...ann];
+            if (!isAdhoc && cid) {
+                // Campaign mode: dùng enricher cũ (Google Search + AI)
+                await saveBeforeAnalysis();
+                const res = await xohiActions.runEnrich(cid);
+                if (res?.status === 'success' && res.data?.new_content) {
+                    if (res.logs) bulkFixLogs = [...bulkFixLogs, ...res.logs];
+                    config.setEditedDraft(res.data.new_content);
+                    if (res.data.annotations?.length) {
+                        const ann = res.data.annotations;
+                        if (!seoResult) seoResult = { total_score: 0, grade: 'N/A', signals: [], summary: '', quick_wins: [], seo_annotations: ann, logs: [] };
+                        else seoResult.seo_annotations = [...(seoResult.seo_annotations || []), ...ann];
+                    }
+                    activeTab = 'seo';
+                    await runSeoAnalysis(true, true);
                 }
-                activeTab = 'seo';
-                await runSeoAnalysis(true, true);
+            } else {
+                // CNS V87.0: Ad-hoc mode — Surgeon Booster (không cần Google Search)
+                const res = await xohiActions.runSurgeonBoost(content, topic);
+                if (res?.status === 'success' && res.data?.patches?.length) {
+                    if (res.data.logs?.length) bulkFixLogs = [...bulkFixLogs, ...res.data.logs];
+                    // Áp dụng patches tuần tự: tìm và thay thế từng search_string
+                    let updatedContent = content;
+                    const applied: string[] = [];
+                    for (const patch of res.data.patches) {
+                        if (updatedContent.includes(patch.search_string)) {
+                            updatedContent = updatedContent.replace(patch.search_string, patch.replacement_string);
+                            applied.push(`✅ ${patch.rationale}`);
+                        }
+                    }
+                    if (applied.length > 0) {
+                        config.setEditedDraft(updatedContent);
+                        bulkFixLogs = [...bulkFixLogs, ...applied,
+                            `🏅 Hoàn tất! Đã phẫu thuật ${applied.length}/${res.data.patches.length} điểm.`
+                        ];
+                        nanobot.showToast(`Surgeon Booster đã tối ưu ${applied.length} đoạn văn`, 'success');
+                    }
+                }
             }
         } finally {
             isBoosting = false;
-            setTimeout(() => { isBulkFixing = false; bulkFixStatus = "";  }, 3500);
+            setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 3500);
         }
     }
 
-    // CNS V86.5: Hydrate — Khôi phục kết quả phân tích từ cache sau F5
+    // CNS V86.5/V87.0: Hydrate — Khôi phục kết quả phân tích từ DB (ưu tiên) hoặc cache sau F5
+    // CRITICAL FIX: One-shot hydration — chỉ nạp 1 lần khi mount, KHÔNG BAO GIỜ đè kết quả real-time
+    let _hydrated = false;
     $effect(() => {
         const cache = resolve(config.analysis_cache);
-        if (cache && Object.keys(cache).length > 0) {
-            untrack(() => {
-                if (cache.copyright?.data) {
-                    if (!copyrightResult || isCopyrightLoading) {
-                        copyrightResult = cache.copyright.data as CopyrightResult;
-                        if (isCopyrightLoading) { isCopyrightLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
-                    }
-                }
-                if (cache.seo?.data) {
-                    if (!seoResult || isSeoLoading) {
-                        seoResult = cache.seo.data as SEOResult;
-                        if (isSeoLoading) { isSeoLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
-                    }
-                }
-                if (cache.ai_inspect?.data) {
-                    if (!aiReadyResult || isAiLoading) {
-                        aiReadyResult = cache.ai_inspect.data as AIInspectResult;
-                        if (isAiLoading) { isAiLoading = false; setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 1000); }
-                    }
-                }
+        const dbReport = (resolve(config.campaign_id) ? resolve(config.analysis_report) : null) as Record<string, Record<string, unknown>> | null;
+        
+        untrack(() => {
+            // Guard: Nếu đã hydrate rồi hoặc đang có analysis chạy, KHÔNG đè
+            if (_hydrated) return;
+            if (isCopyrightLoading || isSeoLoading || isAiLoading || isBulkFixing) return;
 
-                // CNS V86.5: Auto-select tab sau khi hydrate để khôi phục highlights & nút Fix All
-                // Ưu tiên: tab đầu tiên có annotations, fallback về tab có dữ liệu
-                if (activeTab === null) {
-                    if (cache.copyright?.data && (cache.copyright.data as CopyrightResult).annotations?.length > 0) {
-                        activeTab = 'copyright';
-                    } else if (cache.seo?.data && (cache.seo.data as SEOResult).seo_annotations?.length > 0) {
-                        activeTab = 'seo';
-                    } else if (cache.ai_inspect?.data && (cache.ai_inspect.data as AIInspectResult).ai_annotations?.length > 0) {
-                        activeTab = 'ai';
-                    } else if (cache.ai_inspect?.data) {
-                        activeTab = 'ai';
-                    } else if (cache.seo?.data) {
-                        activeTab = 'seo';
-                    } else if (cache.copyright?.data) {
-                        activeTab = 'copyright';
-                    }
-                }
-            });
-        }
+            // Helper để lấy data: ưu tiên DB report nếu có, fallback về cache
+            const getD = (key: string) => {
+                if (dbReport?.[key]?.data) return dbReport[key].data;
+                if (cache?.[key]?.data) return cache[key].data;
+                return null;
+            };
+
+            const cr = getD('copyright');
+            if (cr && !copyrightResult) {
+                copyrightResult = cr as CopyrightResult;
+            }
+
+            const sr = getD('seo');
+            if (sr && !seoResult) {
+                seoResult = sr as SEOResult;
+            }
+
+            const ar = getD('ai_inspect');
+            if (ar && !aiReadyResult) {
+                aiReadyResult = ar as AIInspectResult;
+            }
+
+            // Tự động chọn tab nếu chưa có
+            if (activeTab === null) {
+                if (copyrightResult?.annotations?.length) activeTab = 'copyright';
+                else if (seoResult?.seo_annotations?.length) activeTab = 'seo';
+                else if (aiReadyResult?.ai_annotations?.length) activeTab = 'ai';
+            }
+
+            // Đánh dấu đã hydrate xong — không bao giờ chạy lại
+            _hydrated = true;
+        });
     });
+
 
     // CNS V85.5: Log-based Completion Detector (Force close when task finishes)
     $effect(() => {
@@ -516,8 +660,14 @@ export function createAnalysisController(config: {
         get seoLocked() { return seoLocked; },
         get aiLocked() { return aiLocked; },
         get editorAnnotations() { return editorAnnotations; },
+        // CNS V87.0: expose streaming state cho UI typewriter effect
+        get streamingText() { return streamingText; },
+        get streamingTarget() { return streamingTarget; },
         runCopyrightCheck, runSeoAnalysis, runAiAnalysis, runAutoFix, runCleanContent, runBulkFix, runAiBooster, dispose: () => {
-            copyrightResult = null; seoResult = null; aiReadyResult = null;  bulkFixStatus = ""; activeTab = null;
+            // CLAUDE.md: dispose SSE resource khi component unmount
+            _sseAbort?.abort(); _sseAbort = null;
+            copyrightResult = null; seoResult = null; aiReadyResult = null; bulkFixStatus = ""; activeTab = null;
+            streamingText = ""; streamingTarget = null;
         }
     };
 }

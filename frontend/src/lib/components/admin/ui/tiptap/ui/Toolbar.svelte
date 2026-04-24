@@ -1,4 +1,8 @@
 <script lang="ts">
+  import { untrack, tick } from 'svelte';
+
+
+
   import type { Editor } from '@tiptap/core';
   import type { ToolbarAction, EditorAnnotation } from '$lib/types';
   import BoldIcon from 'lucide-svelte/icons/bold';
@@ -44,7 +48,11 @@
     isAiLoading = false,
     isBoosting = false,
     isBulkFixing = false,
+    runBulkFix = null,
     bulkFixLogs = [],
+    // CNS V87.0: SSE streaming
+    streamingText = '',
+    streamingTarget = null,
   }: {
     editor: Editor | null;
     toolbarActions?: ToolbarAction[];
@@ -55,7 +63,7 @@
     fullScreen?: boolean;
     onToggleFullScreen?: (() => void) | null;
     showSource?: boolean;
-    analysisData?: any; // Controller is complex, keep any for now or use return type
+    analysisData?: any;
     copyrightResult?: CopyrightResult | null;
     seoResult?: SEOResult | null;
     aiReadyResult?: AIInspectResult | null;
@@ -64,7 +72,10 @@
     isAiLoading?: boolean;
     isBoosting?: boolean;
     isBulkFixing?: boolean;
+    runBulkFix?: () => void;
     bulkFixLogs?: string[];
+    streamingText?: string;
+    streamingTarget?: string | null;
   } = $props();
 
   const FONTS = ['Inter', 'Roboto', 'Georgia', 'Times New Roman', 'Courier New', 'Arial'];
@@ -412,12 +423,17 @@
                 action.onclick(); 
                 // CNS V85.22: Always ensure it's open on click, don't toggle off
                 activeIntelAction = action.id || null;
+                
+                // CNS V87.1: Sync analysis activeTab to ensure highlights follow HUD focus
+                if (analysisData && action.id !== 'clean' && action.id !== 'enrich' && !action.id.includes('-fix')) {
+                  analysisData.activeTab = action.id;
+                }
+
                 const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                 intelPopoverPos = { 
                     top: Math.round(rect.bottom + 8), 
                     left: Math.round(Math.min(rect.left, window.innerWidth - 440))
                 };
-                console.log("[Neural Intel] Popover pos:", intelPopoverPos);
             }}
             onmouseenter={(e) => { 
                 if (isAutoClosing) return; // CNS V85.5: Ignore hover during auto-close cooldown
@@ -425,6 +441,12 @@
                 if (analysisData?.[resultKey] || action.loading) {
                     console.log("[Neural Intel] Hover active:", action.id);
                     activeIntelAction = action.id || null;
+                    
+                    // CNS V87.1: Sync highlights on hover to match HUD focus
+                    if (analysisData && action.id !== 'clean' && action.id !== 'enrich' && !action.id.includes('-fix')) {
+                      analysisData.activeTab = action.id;
+                    }
+
                     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                     intelPopoverPos = { 
                         top: Math.round(rect.bottom + 8), 
@@ -468,8 +490,11 @@
       {isSeoLoading}
       {isAiLoading}
       {isBoosting}
-      {isBulkFixing}
+      isBulkFixing={isBulkFixing}
+      runBulkFix={runBulkFix}
       {analysisData}
+      {streamingText}
+      {streamingTarget}
     />
   </div>
 </div>

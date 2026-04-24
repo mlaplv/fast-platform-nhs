@@ -2,25 +2,22 @@ import { onDestroy } from "svelte";
 
 export const PHASES = {
     copyright: [
-        { icon: '🔍', label: 'Quét nội dung bài viết', duration: 1800 },
-        { icon: '🌐', label: 'Tìm kiếm Google Top 10', duration: 3500 },
-        { icon: '🧬', label: 'So sánh cấu trúc ngữ nghĩa', duration: 3000 },
-        { icon: '⚖️', label: 'Đánh giá mức độ trùng lặp', duration: 2500 },
-        { icon: '🤖', label: 'Gemini AI xử lý kết quả', duration: 2500 },
+        { icon: '🧬', label: '[NFC] Chuẩn hóa Unicode & Content', duration: 1500 },
+        { icon: '📡', label: '[RECON] Trinh sát Google & Đối thủ', duration: 4500 },
+        { icon: '🧠', label: '[SEMANTIC] Gemini phân tích ngữ nghĩa', duration: 3500 },
+        { icon: '📊', label: '[QUANTUM] Tổng hợp rủi ro bản quyền', duration: 2000 },
     ],
     seo: [
-        { icon: '📄', label: 'Đọc & phân tích bài viết', duration: 1500 },
-        { icon: '🎯', label: 'Xác định Search Intent', duration: 2500 },
-        { icon: '🏆', label: 'Tải Top 5 đối thủ Google', duration: 3500 },
-        { icon: '🧠', label: 'Đánh giá E-E-A-T & Entity', duration: 3000 },
-        { icon: '✨', label: 'Tính điểm 7 tiêu chí SEO', duration: 2500 },
+        { icon: '🔍', label: '[SCAN] Phân tích Ranking Signals', duration: 1500 },
+        { icon: '📡', label: '[RECON] So đối thủ & Intent', duration: 4000 },
+        { icon: '🧠', label: '[JUDGE] Chấm điểm Semantic SEO', duration: 3500 },
+        { icon: '✨', label: '[QUANTUM] Hoàn tất bộ lọc SEO', duration: 2000 },
     ],
     ai: [
-        { icon: '📝', label: 'Đọc & làm sạch nội dung', duration: 1500 },
-        { icon: '🎯', label: 'Phân tích Search Intent', duration: 2000 },
-        { icon: '🏅', label: 'Kiểm tra E-E-A-T & Authority', duration: 3000 },
-        { icon: '🌟', label: 'Đánh giá AI Overview readiness', duration: 2500 },
-        { icon: '📊', label: 'Tính Viral Edge Score (8 tiêu chí)', duration: 2500 },
+        { icon: '📝', label: '[GEO] Structural Scan bài viết', duration: 1500 },
+        { icon: '⚡', label: '[SURGEON] Phân tích NLP Entity', duration: 3500 },
+        { icon: '🌟', label: '[JUDGE] Đánh giá AI Readiness', duration: 3000 },
+        { icon: '📊', label: '[QUANTUM] Xuất báo cáo Viral Edge', duration: 2000 },
     ],
     enrich: [
         { icon: '🔍', label: 'Thu thập số liệu từ Google', duration: 3000 },

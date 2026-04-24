@@ -166,6 +166,7 @@ export interface Article {
   author: string;
   authorId: string | null;
   createdAt: string;
+  analysis_report?: Record<string, any>;
 }
 
 export interface PromotionDeal {
@@ -418,6 +419,7 @@ export interface Product {
   rating?: number | string;
   rating_text?: string;
   createdAt: string;
+  analysis_report?: Record<string, any>;
 }
 
 export interface ProductFacets {

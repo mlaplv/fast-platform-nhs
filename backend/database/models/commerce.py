@@ -69,6 +69,8 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     attributes: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict) # {"size": ["S", "M"], "color": ["Black"]}
     tier_variations: Mapped[Optional[list[object]]] = mapped_column(JSONB, default=list) # R102 Matrix: [{"name": "Màu", "options": ["Đỏ", "Xanh"], "images": ["url1", "url2"]}, {"name": "Size", "options": ["S", "M"]}]
     product_metadata: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict) # R00: Zero-Hardcode Elite Metadata
+    # CNS V87.0: Analysis Report (Copyright/SEO/AI)
+    analysis_report: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict, server_default='{}')
 
     category_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('categories.id'))
     category: Mapped[Optional["Category"]] = relationship("Category", back_populates="products")

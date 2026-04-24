@@ -28,7 +28,6 @@ export const AnnotationPlugin = () => {
         };
       },
       apply(tr: Transaction, value: AnnotationPluginState, oldState: EditorState, newState: EditorState): AnnotationPluginState {
-        // Handle metadata updates for annotations
         const meta = tr.getMeta(AnnotationPluginKey);
         if (meta && meta.type === 'SET_ANNOTATIONS') {
           return {
@@ -37,7 +36,8 @@ export const AnnotationPlugin = () => {
           };
         }
 
-        // Map decorations on document changes (ProseMirror magic)
+        // CNS V87.5: Rely on SET_ANNOTATIONS for full re-scans 
+        // and tr.mapping for incremental typing updates. 
         return {
           ...value,
           decorations: value.decorations.map(tr.mapping, tr.doc),
@@ -125,28 +125,35 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
   if (!annotations.length) return DecorationSet.empty;
 
   // Rule R82.45: Position-Safe Normalization
+  // CNS V87.1: Ultra-robust matching — Normalize to NFD and strip marks to avoid Vietnamese accent mismatches
   const isAlphaNum = (c: string) => /\p{L}|\p{N}/u.test(c);
+  const isMark = (c: string) => /\p{M}/u.test(c);
+  
+  const robustNormalize = (text: string) => {
+    return text.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Strip all combining marks
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]/gu, ''); // Keep only letters and numbers
+  };
 
   // 1. Build a searchable normalized buffer of the doc
-  // Viral 2026: Surgical Fuzzy Normalization
   let searchBuffer = '';
   const posMap: number[] = [];
 
+  // 1. Build the alphanumeric buffer & position map
   doc.descendants((node: ProseMirrorNode, pos: number) => {
     if (node.isText && node.text) {
       const text = node.text;
       for (let i = 0; i < text.length; i++) {
         const char = text[i];
-        const nfc = char.normalize('NFC');
-        
-        // Rule R82.48: Alphanumeric-only search buffer for ultimate matching robustness
-        if (isAlphaNum(nfc)) {
-          searchBuffer += nfc.toLowerCase();
-          posMap.push(pos + i);
+        if (isAlphaNum(char) || isMark(char)) {
+          const cleanChar = char.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+          if (cleanChar) {
+            searchBuffer += cleanChar;
+            posMap.push(pos + i);
+          }
         }
       }
-    } else if (node.isBlock) {
-      // We don't add characters to searchBuffer for blocks to allow pattern matching across blocks
     }
   });
 
@@ -154,50 +161,114 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
   for (const ann of annotations) {
     if (!ann.text || ann.text.length < 3) continue;
 
-    // Normalize pattern the same way: keep ONLY alphanumeric
-    let normalizedPattern = '';
-    for (const char of ann.text.normalize('NFC')) {
-      if (isAlphaNum(char)) {
-        normalizedPattern += char.toLowerCase();
-      }
+    // CNS V88.5: AI Prefix Stripping (Handles "Các mục: ", "Đoạn văn: ", etc.)
+    let plainPattern = ann.text.replace(/<[^>]+>/g, '');
+    const aiPrefixes = [
+      /^các mục:\s*/i, /^đoạn văn:\s*/i, /^nội dung:\s*/i, /^phần:\s*/i,
+      /^vấn đề:\s*/i, /^câu:\s*/i, /^dòng:\s*/i, /^từ:\s*/i
+    ];
+    for (const prefix of aiPrefixes) {
+      plainPattern = plainPattern.replace(prefix, '');
     }
 
-    if (normalizedPattern.length < 6) continue;
+    const normalizedPattern = robustNormalize(plainPattern);
 
-    // Find ALL occurrences
+    if (normalizedPattern.length < 4) {
+       console.warn(`[Neural Annotation] Pattern too short after normalization: "${ann.text.slice(0, 20)}..." -> "${normalizedPattern}"`);
+       continue;
+    }
+
+    const pushBlockSafeDecorations = (startIdx: number, endIdx: number, baseAttrs: Record<string, string | number | boolean | undefined>) => {
+      if (startIdx > endIdx || startIdx >= posMap.length) return;
+      const totalFrom = posMap[startIdx];
+      const totalTo = posMap[Math.min(posMap.length - 1, endIdx)] + 1;
+      
+      // Elite V2.2: Use nodesBetween to correctly span across blocks without dropping
+      doc.nodesBetween(totalFrom, totalTo, (node, pos) => {
+        if (node.isText) {
+          const start = Math.max(totalFrom, pos);
+          const end = Math.min(totalTo, pos + node.nodeSize);
+          if (start < end) {
+            // Each segment needs the FULL match range for the "Fix" feature to work
+            const attrs = {
+              ...baseAttrs,
+              'data-from': totalFrom,
+              'data-to': totalTo
+            };
+            decorations.push(Decoration.inline(start, end, attrs));
+          }
+        }
+      });
+    };
+
+    const getAttrs = (type: string, severity: string, suffix: string = ''): Record<string, string | number | boolean | undefined> => {
+      let inlineStyle = '';
+      if (severity === 'high') inlineStyle = 'background-color: rgba(239, 68, 68, 0.45) !important; border-bottom: 3px solid #ef4444 !important; color: #fff !important;';
+      else if (severity === 'medium') inlineStyle = 'background-color: rgba(245, 158, 11, 0.35) !important; border-bottom: 3px solid #f59e0b !important; color: #fff !important;';
+      else inlineStyle = 'background-color: rgba(16, 185, 129, 0.25) !important; border-bottom: 2px solid #10b981 !important;';
+
+      const startPos = posMap[startIdx] || 0; // fallback just for ID
+      return {
+        class: `xohi-annotation type-${type} severity-${severity}`,
+        'data-annotation-id': `deco-${type}-${startPos}-${matchCount}${suffix}`,
+        'data-annotation-type': type,
+        'data-annotation-message': ann.message,
+        'data-annotation-source': ann.source || '',
+        'data-annotation-severity': severity,
+        style: inlineStyle
+      };
+    };
+
+    // Find ALL occurrences (Exact Match)
     let startIdx = 0;
+    let matchCount = 0;
     while ((startIdx = searchBuffer.indexOf(normalizedPattern, startIdx)) !== -1) {
       const endIdx = startIdx + normalizedPattern.length - 1;
+      const severity = (ann.severity || 'medium').toLowerCase();
+      const type = (ann.type || 'unknown').toLowerCase();
+      
+      pushBlockSafeDecorations(startIdx, endIdx, getAttrs(type, severity));
+      matchCount++;
+      startIdx += 1; 
+    }
 
-      // Guard: posMap may not have entry if pattern overruns the buffer
-      if (endIdx >= posMap.length || startIdx >= posMap.length) {
-        startIdx += 1;
-        continue;
+    // CNS V87.6: Anchor-based Recovery Fallback + Smart Endpoint Detection
+    if (matchCount === 0 && normalizedPattern.length > 20) {
+      // Attempt matching with smaller chunks of the pattern (Sliding Anchor)
+      const anchorSize = Math.min(60, Math.floor(normalizedPattern.length * 0.7));
+      const anchors = [
+        normalizedPattern.slice(0, anchorSize),
+        normalizedPattern.slice(-anchorSize),
+        normalizedPattern.slice(Math.floor(normalizedPattern.length/2) - 20, Math.floor(normalizedPattern.length/2) + 20)
+      ].filter(a => a.length >= 10);
+
+      for (const anchor of anchors) {
+        if (matchCount > 0) break;
+        let anchorIdx = 0;
+        while ((anchorIdx = searchBuffer.indexOf(anchor, anchorIdx)) !== -1) {
+          // Smart Endpoint: match character by character until mismatch
+          let matchLen = 0;
+          while (anchorIdx + matchLen < searchBuffer.length && matchLen < normalizedPattern.length) {
+            if (searchBuffer[anchorIdx + matchLen] === normalizedPattern[matchLen]) matchLen++;
+            else break;
+          }
+          
+          if (matchLen < anchor.length) { anchorIdx += 1; continue; }
+
+          const endIdx = anchorIdx + matchLen - 1;
+          const severity = (ann.severity || 'medium').toLowerCase();
+          const type = (ann.type || 'unknown').toLowerCase();
+          
+          startIdx = anchorIdx; 
+          pushBlockSafeDecorations(anchorIdx, endIdx, getAttrs(type, severity, '-fuzzy'));
+          matchCount++;
+          anchorIdx += 1;
+        }
       }
-
-      const startPos = posMap[startIdx];
-      const endPos = posMap[endIdx] + 1;
-
-      if (startPos !== undefined && endPos !== undefined && endPos > startPos) {
-        decorations.push(
-          Decoration.inline(startPos, endPos, {
-            class: `xohi-annotation type-${ann.type} severity-${ann.severity || 'medium'}`,
-            'data-annotation-id': `deco-${ann.type}-${startPos}-${Math.random().toString(36).slice(2, 6)}`,
-            'data-annotation-type': ann.type,
-            'data-annotation-message': ann.message,
-            'data-annotation-source': ann.source || '',
-            'data-annotation-severity': ann.severity || 'medium',
-            'data-from': startPos.toString(),
-            'data-to': endPos.toString(),
-          })
-        );
-      }
-      startIdx += 1; // Overlapping matches allowed
     }
   }
 
-  // 3. Rule R82.46: Canonical Sorting — Mandatory for DecorationSet.create
-  // Restoring sorting as it's critical for ProseMirror rendering
+  // 3. Rule R82.46: Canonical Sorting
   decorations.sort((a, b) => {
     if (a.from !== b.from) return a.from - b.from;
     return a.to - b.to;

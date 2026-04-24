@@ -38,6 +38,7 @@ class CreateArticleRequest(BaseModel):
     featured_image: Optional[str] = Field(None, alias="featured_image")
     metadata: Optional[ArticleMetadata] = None
     authorId: Optional[str] = None
+    analysis_report: Optional[dict] = Field(None, alias="analysis_report")
 
 
 class UpdateArticleRequest(BaseModel):
@@ -54,6 +55,7 @@ class UpdateArticleRequest(BaseModel):
     category: Optional[CategoryEnum] = Field(None)
     featured_image: Optional[str] = Field(None, alias="featured_image")
     metadata: Optional[ArticleMetadata] = None
+    analysis_report: Optional[dict] = Field(None, alias="analysis_report")
 
 
 class ArticleResponse(BaseModel):
@@ -73,6 +75,7 @@ class ArticleResponse(BaseModel):
     featuredImage: Optional[str] = Field(None, alias="featured_image")
     metadata: ArticleMetadata = Field(default_factory=ArticleMetadata, alias="article_metadata")
     seoMeta: Optional[ArticleSeoMeta] = Field(None, alias="seo_meta")
+    analysis_report: Optional[dict] = Field(None, alias="analysis_report")
     views: int = 0
     author: str = Field("System", alias="author_name")
     authorId: Optional[str] = Field(None, alias="author_id")

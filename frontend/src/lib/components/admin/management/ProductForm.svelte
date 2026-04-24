@@ -44,6 +44,7 @@
     isSaving = false,
     errors = {},
     formIsAiFeatured = $bindable(),
+    formAnalysisReport = $bindable(),
   } = $props<{
     isOpen?: boolean;
     editingId: string | null;
@@ -73,6 +74,7 @@
     isSaving?: boolean;
     errors?: Record<string, string>;
     formIsAiFeatured: boolean;
+    formAnalysisReport?: Record<string, any>;
   }>();
 
   let showMediaModal = $state(false);
@@ -224,6 +226,7 @@
               placeholder="Mô tả kỹ thuật, câu chuyện thiết kế của sản phẩm..."
               bind:analysisCache={formMetadata.analysis_cache}
               bind:analysisMetrics={formMetadata.analysis_metrics}
+              bind:analysisReport={formAnalysisReport}
             />
           </div>
         </div>

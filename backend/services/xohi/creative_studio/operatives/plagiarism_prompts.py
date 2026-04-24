@@ -32,13 +32,14 @@ Không được đánh giá thấp bài viết chỉ vì nó chứa các từ kh
 - < 0.50 (CRITICAL): Sao chép nguyên văn hoặc cấu trúc gần như tuyệt đối từ nguồn.
 
 [YÊU CẦU ĐẦU RA — JSON]
+CẢNH BÁO: Phải liệt kê TẤT CẢ các đoạn văn bản có dấu hiệu trùng lặp vào danh sách 'annotations'. KHÔNG ĐƯỢC tóm tắt. Nếu bài viết 1000 từ mà trùng 500 từ, danh sách annotations phải bao phủ đủ 500 từ đó.
 {
   "uniqueness_score": <float 0.0-1.0>,
   "risk_level": "<LOW|MEDIUM|HIGH>",
   "flagged_sentences": [<câu/đoạn có dấu hiệu copy hoặc xào nấu>],
   "annotations": [
     {
-      "text": "<đoạn NGUYÊN VĂN từ bài viết>",
+      "text": "<đoạn NGUYÊN VĂN từ bài viết - TUYỆT ĐỐI KHÔNG BAO GỒM LÝ DO HAY GIẢI THÍCH Ở ĐÂY>",
       "reason": "<lý do cụ thể trùng lặp>",
       "source_url": "<URL nguồn>",
       "severity": "<low|medium|high>"

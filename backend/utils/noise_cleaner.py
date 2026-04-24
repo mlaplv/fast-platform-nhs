@@ -110,8 +110,6 @@ class NoiseCleaner:
 
         # --- LAYER 0: HTML & PLACEHOLDERS ---
         # Viral 2026: Stripping AI Preambles, Postambles & Markdown Fences
-        text = RE_AI_CONVERSATION.sub('', text)
-        text = RE_AI_POSTAMBLES.sub('', text)
         text = RE_MARKDOWN_FENCES.sub('', text)
 
         if strip_html:

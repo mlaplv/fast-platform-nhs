@@ -1,9 +1,11 @@
 import logging
-from typing import Dict
+from typing import Dict, AsyncGenerator
 from uuid import UUID
-from litestar import Controller, get, post, put, patch, delete, Request
+from litestar import Controller, get, post, put, patch, delete, Request, Response
+from litestar.response import Stream
 from litestar.di import Provide
 from litestar.exceptions import NotFoundException
+from litestar.enums import MediaType
 
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
@@ -18,7 +20,8 @@ from backend.database.repositories import (
 # Schema Imports
 from backend.schemas.content import (
     CampaignSchema, CampaignListResponse, ContentCleanRequest,
-    AdhocAnalysisRequest, BulkFixRequest, ScoutTopicRequest, AdhocAutoFixRequest
+    AdhocAnalysisRequest, BulkFixRequest, ScoutTopicRequest,
+    AdhocAutoFixRequest, SurgeonBoostRequest
 )
 from backend.schemas.common import SuccessResponse as GenericResponse
 
@@ -142,11 +145,61 @@ class ContentController(Controller):
 
     @post("/analyze/auto-fix", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
     async def analyze_auto_fix_adhoc(self, data: AdhocAutoFixRequest) -> GenericResponse:
-        """CNS V86.5: Ad-hoc auto-fix — sửa từng annotation không cần campaign_id (ProductForm/NewsForm)."""
+        """CNS V86.5: Ad-hoc auto-fix — sửa từng annotation không cần campaign_id."""
         return await content_factory.analyst.auto_fix_adhoc(
             content=data.content,
             target_snippet=data.target_snippet,
             annotation_type=data.annotation_type,
             error_message=data.error_message,
             topic=data.topic,
+        )
+    @post("/analyze/auto-fix-stream", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
+    async def analyze_auto_fix_stream(
+        self,
+        request: Request,
+    ) -> Stream:
+        """CNS V87.0: SSE streaming auto-fix — typewriter effect từng chunk text."""
+        data = await request.json()
+        content = data.get("content", "")
+        target_snippet = data.get("target_snippet", "")
+        error_message = data.get("error_message", "")
+        topic = data.get("topic", "")
+
+        async def _gen() -> AsyncGenerator[str, None]:
+            async for line in content_factory.analyst.stream_auto_fix(
+                content=content,
+                target_snippet=target_snippet,
+                error_message=error_message,
+                topic=topic,
+            ):
+                yield line
+
+        return Stream(
+            content=_gen(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            },
+        )
+
+    @post("/analyze/surgeon-boost", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
+    async def analyze_surgeon_boost(self, data: SurgeonBoostRequest) -> GenericResponse:
+        """CNS V87.0: Surgeon Boost — phẫu thuật nội dung, trả về ContentPatch list."""
+        return await content_factory.analyst.surgeon_boost(
+            content=data.content,
+            topic=data.topic,
+        )
+
+    @post("/campaigns/{campaign_id:uuid}/analyze/save-report", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
+    async def analyze_save_report(
+        self, campaign_id: UUID, report_type: str, data: Dict[str, object]
+    ) -> GenericResponse:
+        """CNS V87.0: Lưu báo cáo phân tích cho campaign."""
+        return await content_factory.analyst.save_analysis_report(
+            campaign_id=str(campaign_id),
+            campaign_repo=content_factory.campaigns,
+            report_type=report_type,
+            data=data,
         )
