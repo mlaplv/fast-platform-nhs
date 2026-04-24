@@ -105,20 +105,10 @@
     {/each}
   </div>
 
-  {#if logs.length > 0}
-    <div class="mt-4 p-2 bg-black/40 rounded border border-white/5 flex flex-col gap-1 max-h-32 overflow-y-auto custom-scrollbar">
-       {#each logs.slice(-4) as log}
-          <div class="flex gap-2 text-[8px] font-mono leading-tight">
-             <span class="text-white/20 shrink-0">>></span>
-             <span class="text-white/70 font-bold">{log}</span>
-          </div>
-       {/each}
-    </div>
-  {/if}
 
   <div class="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
     <span class="text-[8px] text-white/20 italic">{estimateMap[tab || 'copyright']}</span>
-    <span class="text-[8px] font-black animate-pulse" style="color:{accent}">LIVE</span>
+    <span class="text-[8px] font-black opacity-30 uppercase tracking-[0.1em]" style="color:{accent}">SYNC_ACTIVE</span>
   </div>
 </div>
 

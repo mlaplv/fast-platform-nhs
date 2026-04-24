@@ -160,10 +160,10 @@
         </div>
      </div>
 
-     <!-- AI Thinking Logs (HUD Integrated) -->
-     {#if activeAction.id === 'clean' && (activeAction.loading || (bulkFixLogs?.length > 0))}
+     <!-- AI Thinking Logs (Unified HUD Layer) -->
+     {#if isBulkFixing || (bulkFixLogs?.length > 0 && activeAction.id.includes('fix')) || (activeAction.id === 'clean' && activeAction.loading)}
         <div class="px-0 py-0.5 border-b border-white/5">
-           <div class="bg-black/40 p-3 max-h-40 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 relative group">
+           <div class="bg-black/60 p-3 max-h-40 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 relative group">
               <div class="absolute top-2 right-2 flex gap-1">
                  <div class="w-1 h-1 rounded-full bg-cyan-500/40"></div>
                  <div class="w-1 h-1 rounded-full bg-cyan-500/20"></div>

@@ -257,12 +257,6 @@
 
 </div>
 
-<NeuralProgressTooltip 
-  active={analysis.isBulkFixing || analysis.bulkFixStatus === "Hoàn tất ✅"} 
-  logs={analysis.bulkFixLogs} 
-  status={analysis.bulkFixStatus} 
-  onClose={() => analysis.bulkFixStatus = ""}
-/>
 
 <style>
   :global(.custom-scrollbar::-webkit-scrollbar) { width: 3px; }

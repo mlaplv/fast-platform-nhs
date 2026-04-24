@@ -47,17 +47,17 @@
               style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)" />
           </svg>
           <div class="absolute inset-0 flex flex-col items-center justify-center">
-            <span class="text-[14px] font-black tracking-tighter" style="color:{aiColor}">{aiPct}%</span>
-            <span class="text-[7px] font-bold opacity-30 uppercase tracking-tighter">Viral</span>
+            <span class="text-[13px] font-black tracking-tighter" style="color:{aiColor}">{aiPct}%</span>
+            <span class="text-[6px] font-black opacity-30 uppercase tracking-[0.2em]">Edge</span>
           </div>
         </div>
-
-        <!-- Label + Grade -->
         <div class="flex flex-col gap-1">
           <span class="text-[11px] font-black uppercase tracking-[0.1em]" style="color:{aiColor}">
-            {aiPct >= 85 ? '✨ VIRAL EDGE ELITE' : aiPct >= 65 ? '⚡ AI-READY STANDARD' : '🔴 AI BLACKLIST RISK'}
+            {aiPct >= 85 ? '✨ Viral Edge Elite' : aiPct >= 65 ? '⚡ AI-Ready Standard' : '🔴 Blacklist Risk'}
           </span>
-          <span class="text-[8px] font-mono opacity-40 uppercase tracking-widest">GEO_Algorithm_2026</span>
+          <div class="flex items-center gap-1.5 opacity-20">
+            <span class="text-[7px] font-black uppercase tracking-[0.3em]">Protocol_GEO_Viral_V2.2</span>
+          </div>
         </div>
       </div>
 
@@ -69,13 +69,13 @@
       </button>
     </div>
 
-    <!-- Summary -->
+    <!-- Verdict -->
     <div class="px-3 py-3 bg-black/20 border-b border-white/5">
-      <div class="flex items-center gap-2 mb-2 opacity-30">
+      <div class="flex items-center gap-2 mb-2 opacity-20">
         <div class="w-1 h-1 rounded-full bg-white"></div>
-        <span class="text-[7px] font-black uppercase tracking-widest">Viral_Edge_Verdict</span>
+        <span class="text-[7px] font-black uppercase tracking-[0.2em]">Neural_Viral_Verdict</span>
       </div>
-      <p class="text-[10px] text-white/80 leading-relaxed">{aiReadyResult.summary}</p>
+      <p class="text-[10px] text-white/80 leading-relaxed font-medium">{aiReadyResult.summary}</p>
     </div>
 
     <!-- Fix All AI-Ready Button -->

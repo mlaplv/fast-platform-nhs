@@ -35,8 +35,8 @@
             <circle cx="24" cy="24" r="20" fill="none" stroke={riskColor} stroke-width="4" stroke-dasharray={2 * Math.PI * 20} stroke-dashoffset={2 * Math.PI * 20 * (1 - copyrightResult.uniqueness_score)} stroke-linecap="round" class="transition-all duration-1000 ease-out" />
           </svg>
           <div class="absolute inset-0 flex flex-col items-center justify-center">
-            <span class="text-[14px] font-black tracking-tighter" style="color:{riskColor}">{pct}%</span>
-            <span class="text-[7px] font-bold opacity-30 uppercase tracking-tighter">Rank</span>
+            <span class="text-[13px] font-black tracking-tighter" style="color:{riskColor}">{pct}%</span>
+            <span class="text-[6px] font-black opacity-30 uppercase tracking-[0.2em]">Rating</span>
           </div>
         </div>
 
@@ -47,8 +47,8 @@
               {copyrightResult.risk_level === 'LOW' ? 'PROTECTED ✅' : copyrightResult.risk_level === 'MEDIUM' ? 'STRICT CAUTION ⚠️' : 'CRITICAL RISK 🚨'}
             </span>
           </div>
-          <div class="flex items-center gap-1.5 opacity-40">
-            <span class="text-[8px] font-mono uppercase tracking-widest">Protocol_XoHi_2026</span>
+          <div class="flex items-center gap-1.5 opacity-20">
+            <span class="text-[7px] font-black uppercase tracking-[0.3em]">Protocol_XoHi_System_V2.2</span>
           </div>
         </div>
       </div>
@@ -60,9 +60,9 @@
 
     <!-- Verdict (Full Width) -->
     <div class="px-3 py-3 bg-black/20 border-b border-white/5">
-      <div class="flex items-center gap-2 mb-2 opacity-30">
+      <div class="flex items-center gap-2 mb-2 opacity-20">
         <div class="w-1 h-1 rounded-full bg-white"></div>
-        <span class="text-[7px] font-black uppercase tracking-widest">Neural_Verdict_Report</span>
+        <span class="text-[7px] font-black uppercase tracking-[0.2em]">Neural_Legal_Verdict</span>
       </div>
       <p class="text-[10px] text-white/80 leading-relaxed font-medium whitespace-pre-wrap">{copyrightResult.verdict}</p>
     </div>

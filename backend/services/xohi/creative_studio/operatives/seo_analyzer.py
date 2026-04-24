@@ -175,33 +175,37 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         """
         async with self._seo_semaphore:
             word_count = len(draft.split())
-            logs = [f"[SCAN] Initializing SEO Engine... Analyzing {word_count} words for ranking signals."]
+            logs = [f"[SCAN] Khởi động Neural SEO Engine... Đang phân tích {word_count} từ."]
             await self._emit_progress(campaign, logs[-1])
+            
             # Phase 76.3: Unified Logic-First Sanitization
+            logs.append("[CLEAN] Đang tối ưu cấu trúc HTML & làm sạch dữ liệu nhiễu...")
+            await self._emit_progress(campaign, logs[-1])
             clean_draft = await noise_cleaner.clean(draft, mode="light", strip_html=False)
             pure_text = await noise_cleaner.clean(draft, mode="light", strip_html=True)
 
-            # Phase 115: Smart topic fallback — extract from H1 or first words of article
-            # NEVER use a hardcoded default that could mismatch the actual content
+            # Topic Detection
+            logs.append("[RECON] Đang xác định chủ đề mục tiêu và thực thể SEO...")
+            await self._emit_progress(campaign, logs[-1])
             raw_topic = campaign.get_gold_val("topic")
             if raw_topic:
                 topic = raw_topic
             else:
-                # Try H1 first
                 h1_match = re.search(r'<h1[^>]*>(.*?)</h1>', draft, re.IGNORECASE | re.DOTALL)
                 if h1_match:
                     topic = re.sub(r'<[^>]+>', '', h1_match.group(1)).strip()
                 else:
-                    # Fall back to first X words of pure text
                     words = pure_text.split()
                     topic = " ".join(words[:AUTO_DETECT_TOPIC_WORDS]) if words else "SEO content"
                 logger.info(f"[SEO] No campaign topic set — auto-detected: '{topic}'")
             
-            logs.append(f"[RECON] Cross-referencing with {len(competitors)} top competitors for Information Gain...")
+            # Competitor Recon
+            competitors = await self._fetch_competitors(topic)
+            logs.append(f"[RECON] Đang phân tích Top {len(competitors)} đối thủ trên Google để đo lường Information Gain...")
             await self._emit_progress(campaign, logs[-1])
             competitor_str = "\n".join(competitors)
             
-            logs.append("[JUDGE] Ingesting data into Neural Core for semantic scoring...")
+            logs.append("[JUDGE] Đang chấm điểm 7 tín hiệu SEO bằng Neural Core V2.2...")
             await self._emit_progress(campaign, logs[-1])
             # Logic Layer: Pass data to AI judge
             user_input = f"""
