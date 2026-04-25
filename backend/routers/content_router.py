@@ -196,12 +196,14 @@ class ContentController(Controller):
     @post("/analyze/neural-rewrite", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
     async def analyze_neural_rewrite(self, data: NeuralRewriteRequest, campaign_id: Optional[UUID] = None) -> GenericResponse:
         """CNS V88.5: Neural Rewrite — viết lại toàn bộ bài viết dựa trên phản biện."""
-        from backend.schemas.content import NeuralRewriteRequest
         return await content_factory.analyst.neural_rewrite(
             content=data.content,
             topic=data.topic,
             feedback=data.feedback,
-            campaign_id=str(campaign_id) if campaign_id else None
+            campaign_id=str(campaign_id) if campaign_id else None,
+            content_type=data.content_type or "article",
+            metadata=data.metadata,
+            user_note=data.user_note
         )
 
     @post("/campaigns/{campaign_id:uuid}/analyze/save-report", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])

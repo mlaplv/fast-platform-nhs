@@ -10,6 +10,8 @@ import FontFamily from '@tiptap/extension-font-family';
 import CharacterCount from '@tiptap/extension-character-count';
 import Typography from '@tiptap/extension-typography';
 import { AnnotationExtension } from './AnnotationPlugin';
+import { Div } from './DivExtension';
+import { Span } from './SpanExtension';
 
 export const getEditorExtensions = (placeholderText: string = 'Start writing...') => [
   StarterKit.configure({
@@ -108,6 +110,8 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
     emptyEditorClass: 'is-editor-empty',
   }),
   AnnotationExtension,
+  Div,
+  Span,
 ];
 
 export const editorProps = {

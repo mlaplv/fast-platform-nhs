@@ -72,7 +72,7 @@
     errors?: Record<string, string>;
     formAnalysisCache?: AnalysisCache;
     formAnalysisMetrics?: CampaignMetrics;
-    formAnalysisReport?: Record<string, any>;
+    formAnalysisReport?: Record<string, unknown>;
   }>();
 
   let showMediaModal = $state(false);
@@ -422,6 +422,13 @@
         topic={formTitle}
         editable={true}
         placeholder="Viết nội dung bài viết tại đây..."
+        contentType="article"
+        getMetadata={() => ({
+          excerpt: formExcerpt,
+          category: formCategory,
+          seo_keywords: formSeoKeywords,
+          faqs: formFaqs || []
+        })}
         bind:analysisCache={formAnalysisCache}
         bind:analysisMetrics={formAnalysisMetrics}
         bind:analysisReport={formAnalysisReport}

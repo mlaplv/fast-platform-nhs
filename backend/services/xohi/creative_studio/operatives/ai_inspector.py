@@ -95,7 +95,8 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
             if hasattr(raw, 'data') and not hasattr(raw, 'geo_score'):
                 raw = raw.data
                 
-            logs.append(f"[QUANTUM] AI-Ready Audit complete. Detected {len(getattr(raw, 'annotations', []))} structural optimization points.")
+            logs.append(f"[QUANTUM] Kiểm tra cấu trúc hoàn tất! Phát hiện {len(getattr(raw, 'annotations', []))} điểm tối ưu hóa.")
+            await self._emit_log(campaign, logs[-1])
             raw.logs = logs
             return raw
         except Exception as e:
@@ -158,7 +159,7 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
                             replacements_log.append({"old_text": old, "new_text": new})
                             logs.append(f"✅ [SURGEON] Optimized: \"{old[:40]}...\"")
                             await self._emit_log(campaign, logs[-1])
-            logs.append(f"[QUANTUM] Structural optimization complete. Successfully boosted {replacements_made}/{len(valid_items)} segments.")
+            logs.append(f"[QUANTUM] Phẫu thuật cấu trúc hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn.")
             await self._emit_log(campaign, logs[-1])
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:

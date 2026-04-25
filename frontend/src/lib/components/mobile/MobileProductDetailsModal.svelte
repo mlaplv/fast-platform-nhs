@@ -85,23 +85,33 @@
         const res: Response = await fetch('/api/v1/client/tts/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: text.slice(0, 4000) }),
+          body: JSON.stringify({ text: text.slice(0, 3000) }),
           signal: abortController.signal
         });
 
         if (!res.ok) throw new Error("Connection failed");
         
-        // Elite R6: Capture stream for caching while playing
-        const clonedRes = res.clone();
-        cache.put(`/tts/${productSlug}`, clonedRes); // Background cache
+        const clonedRes = res.clone(); // Clone immediately before consumption
+        
+        // Elite R6.2: Adaptive Streaming vs Blob Fallback
+        const canStream = window.MediaSource && MediaSource.isTypeSupported('audio/mpeg');
+        
+        if (canStream) {
+          const reader = res.body?.getReader();
+          if (!reader) throw new Error("No stream body");
 
-        const reader = res.body?.getReader();
-        if (!reader) throw new Error("No stream body");
+          mediaSource = new MediaSource();
+          audioUrl = URL.createObjectURL(mediaSource);
+          setupMediaSource(reader);
+        } else {
+          // Fallback for iOS/Safari: Buffer entire stream into Blob
+          const blob = await res.blob();
+          audioUrl = URL.createObjectURL(blob);
+        }
 
-        // Standard MediaSource flow for instant play
-        mediaSource = new MediaSource();
-        audioUrl = URL.createObjectURL(mediaSource);
-        setupMediaSource(reader);
+        // 2.1: Cache for next time
+        const cache = await caches.open(CACHE_NAME);
+        cache.put(`/tts/${productSlug}`, clonedRes).catch(() => {});
       }
 
       // 3. Initialize Audio
@@ -112,7 +122,10 @@
       audio.onplay = () => {
         isBuffering = false;
         isReading = true;
-        // Restore progress if exists
+      };
+
+      // Elite R6.1: Metadata Guard
+      audio.onloadedmetadata = () => {
         const savedTime = localStorage.getItem(`tts_pos_${productSlug}`);
         if (savedTime) audio.currentTime = parseFloat(savedTime);
       };
@@ -143,8 +156,8 @@
     if (!mediaSource) return;
     mediaSource.addEventListener('sourceopen', async () => {
       if (!mediaSource) return;
-      sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
       try {
+        sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
@@ -160,7 +173,11 @@
             }
           }
         }
-      } catch (err) { console.error('[TTS] Stream error:', err); }
+      } catch (err) { 
+        console.error('[TTS] MediaSource error:', err);
+        // If streaming fails mid-way, we don't want to crash, but current audio might stop.
+        if (mediaSource?.readyState === 'open') mediaSource.endOfStream();
+      }
     });
   }
 
@@ -176,6 +193,11 @@
     if (currentAudio) {
       currentAudio.pause();
       currentAudio.ontimeupdate = null;
+      currentAudio.onplay = null;
+      currentAudio.onloadedmetadata = null;
+      if (currentAudio.src.startsWith('blob:')) {
+        URL.revokeObjectURL(currentAudio.src);
+      }
       currentAudio.src = "";
       currentAudio = null;
     }
@@ -284,7 +306,7 @@
     <!-- Scrollable Description Body -->
     <div 
       bind:this={contentRef}
-      class="pl-4 pr-2.5 pt-2 pb-10 overflow-y-auto custom-scrollbar flex-1 relative elite-prose select-text"
+      class="pl-[10px] pr-2.5 pt-2 pb-10 overflow-y-auto custom-scrollbar flex-1 relative elite-prose select-text"
     >
       {#if product?.description}
         <!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -319,41 +341,72 @@
     letter-spacing: -0.01em;
   }
 
-  /* Premium Headings with Sapphire-to-Emerald Gradient */
-  :global(.elite-prose h1, .elite-prose h2, .elite-prose h3) {
+  /* 🏆 Premium Headings - VIRAL 2026 ELITE EDITION */
+  :global(.elite-prose h1) {
+    font-family: var(--font-main);
+    font-size: 1.6rem;
+    font-weight: 800; /* High-end Bold */
+    line-height: 1.2; 
+    margin-top: 0.5rem; /* Aggressively reduced */
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em; /* Relaxed for readability */
+    color: #fff;
+    text-transform: none; 
+    position: relative;
+    display: block;
+    width: fit-content;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+  }
+
+  :global(.elite-prose h1::after) {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 3px;
+    background: linear-gradient(90deg, #FFB7C5, #E8D5B0);
+    margin-top: 6px; /* Tightened */
+    border-radius: 100px;
+  }
+
+  :global(.elite-prose h2, .elite-prose h3) {
     font-family: var(--font-main);
     color: white;
     font-weight: 800;
     line-height: 1.2;
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
+    margin-top: 1.25rem; /* Reduced from 1.75rem */
+    margin-bottom: 0.5rem;
     letter-spacing: -0.03em;
     text-transform: uppercase;
     position: relative;
     width: fit-content;
   }
   
-  :global(.elite-prose h1) { font-size: 1.2rem; }
   :global(.elite-prose h2) { 
     font-size: 1.05rem;
     color: #fff;
     border-left: 3px solid #FFB7C5;
     padding-left: 12px;
-    margin-left: -16px;
+    margin-left: -15px;
     background: linear-gradient(90deg, rgba(255, 183, 197, 0.1) 0%, transparent 100%);
     padding-top: 6px;
     padding-bottom: 6px;
   }
   
   :global(.elite-prose h3) { 
-    font-size: 0.95rem; 
-    letter-spacing: 0.05em;
-    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem; 
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.85);
+    opacity: 0.9;
   }
 
   :global(.elite-prose p) {
-    margin-bottom: 0.6rem; /* Giảm mạnh khoảng hở giữa các đoạn văn */
+    margin-bottom: 0.4rem; /* Tightened for specs-style layout */
     opacity: 1;
+  }
+
+  /* ⚡ Viral Fix: No gap after images */
+  :global(.elite-prose img + *) {
+    margin-top: 0 !important;
   }
 
   :global(.elite-prose > *:first-child) {
@@ -424,11 +477,11 @@
   }
 
   :global(.elite-prose img) {
+    display: block; /* Eliminate baseline gap */
     max-width: 100%;
     height: auto;
     border-radius: 12px;
-    margin: 1.5rem 0;
-    margin: 1rem 0;
+    margin: 0.25rem 0 0.5rem 0; /* Tight bottom margin */
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     border: 1px solid rgba(255,255,255,0.1);
   }

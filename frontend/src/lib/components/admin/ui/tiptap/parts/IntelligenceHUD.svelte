@@ -35,10 +35,12 @@
     isAiLoading,
     isBoosting,
     isBulkFixing,
+    isRewriting = false,
     runBulkFix = null,
     analysisData,
     streamingText = '',
     streamingTarget = null,
+    userPlanNote = $bindable(''),
   }: {
     activeIntelAction: string | null;
     toolbarActions: ToolbarAction[];
@@ -52,10 +54,12 @@
     isAiLoading: boolean;
     isBoosting: boolean;
     isBulkFixing: boolean;
+    isRewriting?: boolean;
     runBulkFix?: (() => void) | null;
     analysisData: NeuralAnalysisData | null;
     streamingText?: string;
     streamingTarget?: string | null;
+    userPlanNote?: string;
   } = $props();
 
   let isExpanded = $state(false);
@@ -82,12 +86,12 @@
   // CNS V85.5: Viewport Sentinel — Dynamic positioning to prevent clipping
   const geometry = $derived.by(() => {
     if (isExpanded) return {
-      top: '6vh',
-      left: '5vw',
-      width: '90vw',
-      height: '88vh',
-      maxHeight: '88vh',
-      borderRadius: '20px'
+      top: '4vh',
+      left: '4vw',
+      width: '92vw',
+      height: '82vh',
+      maxHeight: '82vh',
+      borderRadius: '24px'
     };
 
     const targetHeight = 550;
@@ -124,7 +128,6 @@
   <div 
      bind:this={hudEl}
      use:portal
-     onmouseleave={() => { if (!isExpanded && !isBulkFixing && !isCopyrightLoading && !isSeoLoading && !isAiLoading) activeIntelAction = null; }}
      class="fixed bg-[#0d1117]/98 backdrop-blur-3xl border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden pointer-events-auto system-hologram"
      style="top: {geometry.top}; left: {geometry.left}; width: {geometry.width}; {isExpanded ? `height: ${geometry.height};` : ''} max-height: {geometry.maxHeight}; z-index: {Z_INDEX_ADMIN.NEURAL_HUD}; border-radius: {geometry.borderRadius};"
      transition:fade={{ duration: 200 }}
@@ -212,7 +215,9 @@
              {bulkFixLogs}
              runBulkFix={runBulkFix || undefined}
              isBulkFixing={isBulkFixing}
+             isRewriting={isRewriting}
              runNeuralRewrite={analysisData?.runNeuralRewrite}
+             bind:userPlanNote={userPlanNote}
           />
         </div>
      </div>

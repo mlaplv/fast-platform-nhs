@@ -47,6 +47,7 @@
     isAiLoading = false,
     isBoosting = false,
     isBulkFixing = false,
+    isRewriting = false,
     runBulkFix = null,
     bulkFixLogs = [],
   }: {
@@ -76,6 +77,7 @@
     isAiLoading?: boolean;
     isBoosting?: boolean;
     isBulkFixing?: boolean;
+    isRewriting?: boolean;
     runBulkFix?: () => void;
     bulkFixLogs?: string[];
   } = $props();
@@ -165,7 +167,7 @@
 
   const containerClass = $derived(`tiptap-shell flex flex-col w-full ${
     fullScreen
-      ? `fixed inset-0 z-[${Z_INDEX_ADMIN.TIPTAP_FULLSCREEN}] bg-[#0a0d14]`
+      ? `flex-1 h-full min-h-0 bg-[#0a0d14]`
       : (flex 
           ? 'flex-1 h-full bg-transparent min-h-0' 
           : (editable ? 'bg-transparent' : 'bg-transparent overflow-visible'))
@@ -418,6 +420,7 @@
       isAiLoading={isAiLoading}
       isBoosting={isBoosting}
       isBulkFixing={isBulkFixing}
+      isRewriting={isRewriting}
       runBulkFix={runBulkFix}
       bulkFixLogs={bulkFixLogs}
     />

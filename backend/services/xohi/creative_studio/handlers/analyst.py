@@ -215,22 +215,44 @@ class AnalystHandler:
             return GenericResponse(status="error", message=str(exc))
 
     async def neural_rewrite(
-        self, content: str, topic: str = "", feedback: str = "", campaign_id: Optional[str] = None
+        self, content: str, topic: str = "", feedback: str = "", 
+        campaign_id: Optional[str] = None, content_type: str = "article",
+        metadata: Optional[Dict[str, object]] = None,
+        user_note: Optional[str] = None
     ) -> GenericResponse:
         """
         CNS V88.5: Neural Rewrite — viết lại toàn bộ bài viết dựa trên phản biện.
+        Elite V2.2: Added Deep Context support (Metadata & ContentType).
         """
         from backend.services.xohi.creative_studio.operatives.neural_rewriter import run_neural_rewrite
         
         if not content:
             return GenericResponse(status="error", message="Chưa có nội dung để viết lại.")
+
+        # Intelligence Auto-Detection: If campaign exists, try to fill missing context
+        if campaign_id and campaign_id != "adhoc":
+            from backend.database.repositories import ContentCampaignRepository
+            from backend.database.alchemy_config import alchemy_config
+            async with alchemy_config.create_session_maker()() as session:
+                repo = ContentCampaignRepository(session=session)
+                campaign = await repo.get(campaign_id)
+                if campaign:
+                    if not content_type or content_type == "article":
+                        content_type = "product" if campaign.category == "PRODUCT_CATALOG" else "article"
+                    
+                    # Merge metadata from campaign if not provided
+                    if not metadata:
+                        metadata = campaign.gold_metadata or {}
             
         try:
             new_content = await run_neural_rewrite(
                 content=content, 
                 topic=topic, 
                 feedback=feedback, 
-                campaign_id=campaign_id or "adhoc"
+                campaign_id=campaign_id or "adhoc",
+                content_type=content_type,
+                metadata=metadata,
+                user_note=user_note
             )
             return GenericResponse(status="success", data={"new_content": new_content})
         except Exception as exc:

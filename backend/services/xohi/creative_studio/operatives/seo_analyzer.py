@@ -265,7 +265,8 @@ DRAFT:
                 elif isinstance(report, dict) and 'seo_annotations' in report:
                     report['seo_annotations'].extend(extra_annotations)
             
-            logs.append(f"[QUANTUM] SEO Audit finalized. {len(getattr(report, 'seo_annotations', []))} tactical improvements detected.")
+            logs.append(f"[QUANTUM] Phân tích SEO hoàn tất! {len(getattr(report, 'seo_annotations', []))} điểm cải tiến chiến thuật.")
+            await self._emit_progress(campaign, logs[-1])
             return report
 
     def _audit_keyword_density(self, plain_text: str, primary: str) -> List[SeoAnnotation]:
@@ -340,7 +341,7 @@ DRAFT:
                             replacements_log.append({"old_text": old, "new_text": new})
                             logs.append(f"✅ [SEO SURGEON] Optimized: \"{old[:40]}...\"")
                             await self._emit_progress(campaign, logs[-1])
-            logs.append(f"[QUANTUM] SEO optimization complete. Successfully boosted {replacements_made}/{len(valid_items)} segments.")
+            logs.append(f"[QUANTUM] Phẫu thuật SEO hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn.")
             await self._emit_progress(campaign, logs[-1])
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:

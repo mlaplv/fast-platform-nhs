@@ -15,7 +15,9 @@
     bulkFixLogs = [],
     runBulkFix,
     isBulkFixing = false,
+    isRewriting = false,
     runNeuralRewrite,
+    userPlanNote = $bindable(''),
   }: {
     activeTab: 'copyright' | 'seo' | 'ai' | 'enrich' | null;
     copyrightResult: CopyrightResult | null; isCopyrightLoading: boolean;
@@ -29,7 +31,9 @@
     bulkFixLogs?: string[];
     runBulkFix?: () => void;
     isBulkFixing?: boolean;
+    isRewriting?: boolean;
     runNeuralRewrite?: () => Promise<void>;
+    userPlanNote?: string;
   } = $props();
 
   let isFixing = $state<string | null>(null);
@@ -76,8 +80,9 @@
     {#if copyrightResult}
       <AnalysisResultCopyright
         {copyrightResult} {isFixing} {runCopyrightCheck} {handleInternalFix}
-        {streamingText} {streamingTarget} {runBulkFix} {isBulkFixing}
+        {streamingText} {streamingTarget} {runBulkFix} {isBulkFixing} {isRewriting}
         {runNeuralRewrite}
+        bind:userPlanNote={userPlanNote}
       />
     {:else}
       <div class="px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30">Nhấn <span class="text-orange-400/70 font-bold">COPYRIGHT</span> để phân tích đạo văn.</div>

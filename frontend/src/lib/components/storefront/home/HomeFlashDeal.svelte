@@ -81,21 +81,22 @@
   <div class="flex flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
     <div class="flex items-center gap-4">
       <div class="flex items-center group cursor-default">
-        <h2 class="text-2xl font-black text-[#ee4d2d] italic tracking-tighter uppercase flex items-center gap-2">
-          <svg class="w-6 h-6 fill-[#ee4d2d] animate-pulse drop-shadow-[0_0_8px_rgba(238,77,45,0.5)]" viewBox="0 0 24 24">
+        <h2 class="text-2xl font-black italic tracking-tighter uppercase flex items-center gap-1">
+          <span class="bg-gradient-to-r from-[#ee4d2d] to-[#ff6a00] bg-clip-text text-transparent">F</span>
+          <svg class="w-6 h-6 fill-[#ff2b54] animate-pulse drop-shadow-[0_0_8px_rgba(255,43,84,0.6)]" viewBox="0 0 24 24">
             <path d="M13 2L4 14h7l-1 8 9-12h-7z"/>
           </svg>
-          <span class="drop-shadow-sm bg-gradient-to-r from-[#ee4d2d] via-[#ff6a00] to-[#ee4d2d] bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient-flow">GIÁ SỐC HÔM NAY</span>
+          <span class="bg-gradient-to-r from-[#ee4d2d] to-[#ff6a00] bg-clip-text text-transparent">ash Sale</span>
         </h2>
       </div>
 
       <!-- Sync Countdown Block -->
       <div class="flex items-center gap-2 ml-4">
-        <div class="bg-black text-white px-2 py-1 rounded-md font-bold text-base min-w-[36px] text-center shadow-lg">{hh}</div>
-        <span class="font-black text-black text-lg">:</span>
-        <div class="bg-black text-white px-2 py-1 rounded-md font-bold text-base min-w-[36px] text-center shadow-lg">{mm}</div>
-        <span class="font-black text-black text-lg">:</span>
-        <div class="bg-black text-white px-2 py-1 rounded-md font-bold text-base min-w-[36px] text-center shadow-lg">{ss}</div>
+        <div class="bg-gradient-to-br from-[#ee4d2d] to-[#ff6a00] text-white px-2 py-1 rounded-md font-bold text-base min-w-[36px] text-center shadow-[0_4px_12px_rgba(238,77,45,0.3)]">{hh}</div>
+        <span class="font-black text-[#ee4d2d] text-lg">:</span>
+        <div class="bg-gradient-to-br from-[#ee4d2d] to-[#ff6a00] text-white px-2 py-1 rounded-md font-bold text-base min-w-[36px] text-center shadow-[0_4px_12px_rgba(238,77,45,0.3)]">{mm}</div>
+        <span class="font-black text-[#ee4d2d] text-lg">:</span>
+        <div class="bg-gradient-to-br from-[#ee4d2d] to-[#ff6a00] text-white px-2 py-1 rounded-md font-bold text-base min-w-[36px] text-center shadow-[0_4px_12px_rgba(238,77,45,0.3)]">{ss}</div>
       </div>
     </div>
     

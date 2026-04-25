@@ -19,6 +19,8 @@ import type {
 
 export function createAnalysisController(config: {
     campaign_id?: string | null | (() => string | null | undefined);
+    contentType?: string | (() => string);
+    getMetadata?: () => Record<string, unknown> | null;
     getContent?: () => string;
     topic?: string | (() => string);
     isEditing: boolean | (() => boolean);
@@ -43,9 +45,11 @@ export function createAnalysisController(config: {
     let aiReadyResult = $state<AIInspectResult | null>(null);
     let isAiLoading = $state(false);
     let isBulkFixing = $state(false);
+    let isRewriting = $state(false);
     let bulkFixStatus = $state("");
     let bulkFixLogs = $state<string[]>([]);
     let isBoosting = $state(false);
+    let userPlanNote = $state("");
     let activeTab = $state<'copyright' | 'seo' | 'ai' | 'enrich' | null>(null);
     // CNS V87.0: SSE Streaming state — typewriter effect
     let streamingText = $state<string>("");        // Text đang stream từng chunk
@@ -69,14 +73,37 @@ export function createAnalysisController(config: {
 
         if (isTerminal) {
             untrack(() => {
-                isCopyrightLoading = false; isSeoLoading = false; isAiLoading = false;
-                setTimeout(() => { 
-                    if (isBulkFixing) {
-                        isBulkFixing = false; 
-                        bulkFixStatus = "Hoàn tất ✅"; 
-                        setTimeout(() => { bulkFixStatus = "";  }, 1000);
-                    }
-                }, 1000);
+                const isSuccess = data.status === 'WAITING_FOR_REVIEW' || data.status === 'COMPLETED' || data.status === 'SUCCESS';
+                const isError = data.status === 'ERROR';
+                
+                // [CNS V90.0] Fire Toast BEFORE resetting loading flags to ensure condition matches
+                if (isSuccess && (isBulkFixing || isCopyrightLoading || isSeoLoading || isAiLoading)) {
+                    nanobot.showToast(data.progress_msg || "Xử lý hoàn tất thành công!", "success");
+                    console.log("[Neural Terminal] Success Toast fired.");
+                } else if (isError) {
+                    nanobot.showToast(data.progress_msg || "Xử lý thất bại.", "error");
+                    console.log("[Neural Terminal] Error Toast fired.");
+                }
+
+                // Update bulkFixLogs one last time
+                if (data.progress_msg) {
+                    bulkFixLogs = [...bulkFixLogs, `✅ ${data.progress_msg}`];
+                }
+
+                // CNS V85.8: Persistence logic — giữ trạng thái "Hoàn tất" lâu hơn
+                if (isBulkFixing || isCopyrightLoading || isSeoLoading || isAiLoading) {
+                    bulkFixStatus = isSuccess ? "Hoàn tất ✅" : "Thất bại ❌"; 
+                    
+                    setTimeout(() => {
+                        // Reset all flags after user had time to see the status
+                        isCopyrightLoading = false; 
+                        isSeoLoading = false; 
+                        isAiLoading = false;
+                        isBulkFixing = false;
+                        bulkFixStatus = "";
+                        console.log("[Neural Terminal] Resetting all loading flags.");
+                    }, 4000); // Increased to 4s for high-visibility
+                }
             });
         }
 
@@ -248,7 +275,7 @@ export function createAnalysisController(config: {
                         isBulkFixing = false;
                         bulkFixStatus = "";
                     }
-                }, 1500);
+                }, 4000);
             }
         }
     }
@@ -282,7 +309,7 @@ export function createAnalysisController(config: {
                         isBulkFixing = false;
                         bulkFixStatus = "";
                     }
-                }, 1500);
+                }, 4000);
             }
         }
     }
@@ -323,7 +350,7 @@ export function createAnalysisController(config: {
                         isBulkFixing = false;
                         bulkFixStatus = "";
                     }
-                }, 1500);
+                }, 4000);
             }
         }
     }
@@ -359,8 +386,12 @@ export function createAnalysisController(config: {
             return null;
         } finally {
             _bulkFixRunning = false;
-            setTimeout(() => { if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) isBulkFixing = false; }, 3000);
-            setTimeout(() => { if (!isBulkFixing) { bulkFixStatus = "";  } }, 3200);
+            setTimeout(() => { 
+                if (!isCopyrightLoading && !isSeoLoading && !isAiLoading) {
+                    isBulkFixing = false;
+                    bulkFixStatus = "";
+                }
+            }, 4000);
         }
     }
 
@@ -518,13 +549,13 @@ export function createAnalysisController(config: {
             nanobot.showToast(`Lỗi Neural Engine: ${errorMsg}`, "error");
         } finally {
             _bulkFixRunning = false; // CNS V88.3: Mở khóa guard
-            // CNS V87.4: 'Treo' (Persist) the HUD for 5s after completion so user can read logs
+            // CNS V87.4: 'Treo' (Persist) the HUD for 4s after completion so user can read logs
             setTimeout(() => { 
                 isBulkFixing = false;
                 if (bulkFixStatus === "Hoàn tất ✅" || bulkFixStatus === "Thất bại ❌") {
                     bulkFixStatus = ""; 
                 }
-            }, 5000);
+            }, 4000);
         }
     }
 
@@ -612,14 +643,17 @@ export function createAnalysisController(config: {
         }
     }
 
-    async function runNeuralRewrite() {
+    async function runNeuralRewrite(overrideContent?: string) {
         if (isBulkFixing || !copyrightResult) return;
         
         const cid = resolve(config.campaign_id);
         const topic = resolve(config.topic) ?? '';
-        const content = (config.getContent ?? config.getEditedDraft)?.() ?? '';
+        const content = overrideContent ?? (config.getContent ?? config.getEditedDraft)?.() ?? '';
         const feedback = copyrightResult.verdict;
+        const contentType = resolve(config.contentType) ?? 'article';
+        const metadata = resolve(config.getMetadata) ?? null;
 
+        isRewriting = true;
         isBulkFixing = true;
         bulkFixStatus = "Đang múa bút...";
         bulkFixLogs = [
@@ -629,11 +663,15 @@ export function createAnalysisController(config: {
         ];
 
         try {
-            const res = await apiClient.post<GenericResponse<{ new_content: string }>>('/api/v1/content/analyze/neural-rewrite', {
-                content,
-                topic,
-                feedback
-            });
+            const payload = { 
+                content, 
+                topic, 
+                feedback,
+                content_type: contentType,
+                metadata,
+                user_note: userPlanNote // CNS V90.1: Pass user-guided plan notes
+            };
+            const res = await apiClient.post<GenericResponse<{ new_content: string }>>(`/api/v1/content/analyze/neural-rewrite${cid ? `?campaign_id=${cid}` : ''}`, payload);
 
             if (res?.status === 'success' && res.data?.new_content) {
                 const newHtml = res.data.new_content;
@@ -661,11 +699,12 @@ export function createAnalysisController(config: {
             nanobot.showToast(`Lỗi Rewrite: ${msg}`, 'error');
         } finally {
             setTimeout(() => { 
+                isRewriting = false;
                 isBulkFixing = false; 
                 if (bulkFixStatus === "Hoàn tất ✅" || bulkFixStatus === "Thất bại ❌") {
                     bulkFixStatus = ""; 
                 }
-            }, 5000);
+            }, 4000);
         }
     }
 
@@ -716,17 +755,28 @@ export function createAnalysisController(config: {
     });
 
 
-    // CNS V85.5: Log-based Completion Detector (Force close when task finishes)
     $effect(() => {
         if (bulkFixLogs.length > 0) {
             const lastLog = bulkFixLogs[bulkFixLogs.length - 1];
-            if (lastLog.includes("ĐÃ XỬ LÝ XONG") || lastLog.includes("ĐANG ĐỒNG BỘ GIAO DIỆN") || lastLog.includes("Đã dọn dẹp xong")) {
-                // CNS V85.6: Use untrack and direct assignments to prevent loop/freeze
+            const isDone = lastLog.includes("ĐÃ XỬ LÝ XONG") || 
+                           lastLog.includes("ĐANG ĐỒNG BỘ GIAO DIỆN") || 
+                           lastLog.includes("Đã dọn dẹp xong") ||
+                           lastLog.includes("hoàn tất!") ||
+                           lastLog.includes("sẵn sàng.");
+
+            if (isDone) {
                 untrack(() => {
                     if (isCopyrightLoading) isCopyrightLoading = false;
                     if (isSeoLoading) isSeoLoading = false;
                     if (isAiLoading) isAiLoading = false;
-                    if (isBulkFixing) isBulkFixing = false; 
+                    
+                    if (isBulkFixing) {
+                        bulkFixStatus = "Hoàn tất ✅";
+                        setTimeout(() => {
+                            isBulkFixing = false;
+                            bulkFixStatus = "";
+                        }, 4000);
+                    }
                 });
             }
         }
@@ -743,8 +793,11 @@ export function createAnalysisController(config: {
         get bulkFixStatus() { return bulkFixStatus; },
         get bulkFixLogs() { return bulkFixLogs; },
         get isBoosting() { return isBoosting; },
+        get isRewriting() { return isRewriting; },
         get activeTab() { return activeTab; },
         set activeTab(v) { activeTab = v; },
+        get userPlanNote() { return userPlanNote; },
+        set userPlanNote(v) { userPlanNote = v; },
         get copyrightScore() { return copyrightScore; },
         get seoScore() { return seoScore; },
         get aiScore() { return aiScore; },

@@ -225,9 +225,11 @@ export interface NeuralAnalysisController {
   readonly aiReadyResult: AIInspectResult | null;
   readonly isAiLoading: boolean;
   readonly isBulkFixing: boolean;
+  readonly isRewriting: boolean;
   readonly bulkFixStatus: string;
   readonly bulkFixLogs: string[];
   readonly isBoosting: boolean;
+  userPlanNote: string;
   activeTab: 'copyright' | 'seo' | 'ai' | 'enrich' | null;
   readonly copyrightScore: number | null;
   readonly seoScore: number | null;

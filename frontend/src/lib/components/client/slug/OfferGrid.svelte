@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { getClientUi } from '$lib/state/commerce/ui.svelte.ts';
   import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
@@ -65,10 +64,19 @@
     }
   });
 
-  onMount(() => {
-    if (variants.length > 0 && !shopStore.variant) {
-      shopStore.selectVariant(variants[0]);
-      shopStore.setQuantity(variants[0].attributes?.combo_qty || 1);
+  let hasInitialized = $state(false);
+  $effect(() => {
+    if (variants.length > 0 && ui.isDetermined && !hasInitialized) {
+      // Elite V2.2: Force Item 2 (index 1) on Desktop as per design preference
+      const defaultIdx = (ui.isDesktop && variants.length >= 2) ? 1 : 0;
+      
+      if (defaultIdx === 1) {
+        shopStore.selectVariant(variants[1]);
+      } else if (!shopStore.variant) {
+        shopStore.selectVariant(variants[0]);
+      }
+      
+      hasInitialized = true;
     }
   });
 </script>

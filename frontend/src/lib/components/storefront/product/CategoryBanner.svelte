@@ -4,7 +4,9 @@
   import { fly, fade, scale } from 'svelte/transition';
   import { backOut } from 'svelte/easing';
 
-  interface Product {
+  import type { Product as RealProduct } from '$lib/types';
+  
+  interface Product extends Partial<RealProduct> {
     id: string;
     name: string;
     price: number;
@@ -14,18 +16,10 @@
   }
 
   interface Props {
-    // Nhận 1 product duy nhất (parent đã chọn item[0] sau sort)
     product: Product | null;
   }
 
   let { product = null }: Props = $props();
-
-  // Các badge thông tin cố định (không phụ thuộc sản phẩm)
-  const specs = [
-    { label: 'Đánh Giá AI', value: '9.9/10', color: 'text-orange-500' },
-    { label: 'Đã Xác Thực', value: 'Trợ Lý Cao Cấp', color: 'text-blue-500' },
-    { label: 'Tình Trạng', value: 'Loại A+', color: 'text-emerald-500' }
-  ];
 
   // Giá gốc tính toán nếu không có (Elite V2.2)
   const displayProduct = $derived(() => {
@@ -33,8 +27,33 @@
     return {
       ...product,
       originalPrice: product.originalPrice || product.price * 1.55,
-      sales: product.sales || 1200
+      sales: product.sales || 1200,
+      metadata: product.metadata || {}
     };
+  });
+
+  // Các badge thông tin từ real DB (Elite V2.2)
+  const specs = $derived(() => {
+    const p = displayProduct();
+    if (!p) return [];
+    
+    return [
+      { 
+        label: 'Đánh Giá AI', 
+        value: p.metadata?.reviews_trust_score || '9.8/10', 
+        color: 'text-orange-500' 
+      },
+      { 
+        label: 'Đã Xác Thực', 
+        value: p.metadata?.offer_trust_verified_by || 'Chuyên Gia Micsmo', 
+        color: 'text-blue-500' 
+      },
+      { 
+        label: 'Tình Trạng', 
+        value: p.metadata?.brand_type || 'Loại A++', 
+        color: 'text-emerald-500' 
+      }
+    ];
   });
 </script>
 
@@ -54,7 +73,13 @@
       <!-- Content Left -->
       <div class="relative z-10 flex flex-col gap-4 max-w-[55%] ml-[-20px]">
         <div in:fly={{y: 20, duration: 1000, delay: 200}} class="flex items-center gap-3">
-            <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[8px] font-black px-2 py-1 uppercase tracking-widest border border-[#C18F7E]/20">Micsmo Shop Choice</span>
+            <div class="flex items-center gap-0.5 bg-gradient-to-r from-[#ee4d2d] to-[#ff6a00] text-white px-2 py-1 italic font-black text-[10px] tracking-tighter uppercase shadow-[0_4px_10px_rgba(238,77,45,0.2)]">
+                <span>F</span>
+                <svg class="w-3 h-3 fill-white animate-pulse drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]" viewBox="0 0 24 24">
+                    <path d="M13 2L4 14h7l-1 8 9-12h-7z"/>
+                </svg>
+                <span>ash Sale</span>
+            </div>
             <div class="h-px w-8 bg-black/10"></div>
             <span class="text-black/30 text-[7px] font-black uppercase tracking-[0.3em]">Hàng hiếm có sẵn</span>
         </div>
@@ -103,7 +128,7 @@
         >
             <div class="absolute inset-0 bg-[#ee4d2d]/5 blur-[80px] rounded-full animate-pulse"></div>
             
-            {#each specs as spec, idx}
+            {#each specs() as spec, idx}
                 <div in:fly={{x: 30, duration: 1000, delay: 800 + (idx * 200)}} 
                      class="absolute z-20 px-3 py-1.5 bg-white/90 backdrop-blur-xl border border-white shadow-xl flex flex-col gap-0.5 animate-float-spec" 
                      style="top: {20 + (idx * 20)}%; right: {5 + (idx % 2 * 8)}%; animation-delay: {idx * 1.5}s">
@@ -114,8 +139,10 @@
 
             <div in:fly={{x: -30, duration: 1000, delay: 1200}} 
                  class="absolute z-20 bottom-[20%] left-[8%] px-3 py-2 bg-black text-white flex items-center gap-2 shadow-xl">
-                <div class="h-1.5 w-1.5 rounded-full bg-green-500"></div>
-                <span class="text-[8px] font-black uppercase tracking-[0.2em]">Chính hãng</span>
+                <div class="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
+                <span class="text-[8px] font-black uppercase tracking-[0.2em]">
+                    {slide.metadata?.brand || slide.metadata?.origin || 'Chính hãng'}
+                </span>
             </div>
 
             <img 

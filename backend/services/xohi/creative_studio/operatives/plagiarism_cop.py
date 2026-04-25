@@ -200,7 +200,8 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                     raw.annotations = annots
                     raw.risk_level = "HIGH" if raw.uniqueness_score < UNIQUENESS_THRESHOLD_HIGH else ("MEDIUM" if raw.uniqueness_score < UNIQUENESS_THRESHOLD_LOW else "LOW")
                 
-                logs.append(f"[QUANTUM] Analysis complete. Detected {len(getattr(raw, 'annotations', []))} potential copyright risks.")
+                logs.append(f"[QUANTUM] Kiểm tra tác quyền hoàn tất! Phát hiện {len(getattr(raw, 'annotations', []))} điểm cần lưu ý.")
+                await self._emit_progress(campaign, logs[-1])
                 if hasattr(raw, 'logs'): raw.logs = logs
                 return raw
             except Exception as e:

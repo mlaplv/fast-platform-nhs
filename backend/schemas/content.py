@@ -104,3 +104,6 @@ class NeuralRewriteRequest(BaseModel):
     content: str
     topic: str = ""
     feedback: str = ""
+    content_type: Optional[str] = "article" # 'product' | 'article'
+    metadata: Optional[Dict[str, object]] = None # Extra context (Specs, FAQs, etc.)
+    user_note: Optional[str] = None # CNS V90.1: Strategic user guidance

@@ -14,6 +14,8 @@
   import ProductFormSpecs from "./ProductFormSpecs.svelte";
   import ProductFormVariants from "./ProductFormVariants.svelte";
   import type { Product } from "$lib/types";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
+  import { portal } from "$lib/core/actions/portal";
 
   let {
     isOpen = false,
@@ -74,7 +76,7 @@
     isSaving?: boolean;
     errors?: Record<string, string>;
     formIsAiFeatured: boolean;
-    formAnalysisReport?: Record<string, any>;
+    formAnalysisReport?: Record<string, unknown>;
   }>();
 
   let showMediaModal = $state(false);
@@ -139,6 +141,8 @@
   let isVaultForMobile = $state(false);
   let giftEditVariantIndex = $state<number | null>(null);
   let giftEditGiftIndex = $state<number | null>(null);
+
+  let isEditorFullScreen = $state(false);
 
   function openVaultForGeneral(isMobile = false, replaceIndex: number | null = null) {
     variantEditTierIndex = null;
@@ -224,9 +228,21 @@
               topic={formName}
               editable={true}
               placeholder="Mô tả kỹ thuật, câu chuyện thiết kế của sản phẩm..."
+              contentType="product"
+              getMetadata={() => ({
+                short_description: formShortDescription,
+                sku: formSku,
+                price: formPrice,
+                brand: formMetadata.brand,
+                origin: formMetadata.origin,
+                attributes: formAttributes,
+                science_claims: formMetadata.science_claims,
+                faqs: formMetadata.faqs || []
+              })}
               bind:analysisCache={formMetadata.analysis_cache}
               bind:analysisMetrics={formMetadata.analysis_metrics}
               bind:analysisReport={formAnalysisReport}
+              bind:fullScreen={isEditorFullScreen}
             />
           </div>
         </div>
@@ -272,35 +288,34 @@
       </div>
     </div>
 
-    <!-- ACTION BAR -->
-    <section class="relative px-5 pt-5 pb-2 mt-auto" style="z-index: var(--z-layout-header)">
-      <div class="flex items-center justify-between gap-4 py-2 border-t border-white/5 pt-4">
-        <div class="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/20">
-          <div class="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
-          Neural Catalog Sync Link
-        </div>
-
-        <div class="flex items-center gap-3">
+    <!-- ACTION BAR (Elite V2.2: Solid Pop CTA) -->
+    <div use:portal={isEditorFullScreen}>
+      <section 
+        class="{isEditorFullScreen ? 'fixed bottom-0 left-0 right-0 z-[950000]' : 'relative mt-auto'} px-8 py-10 flex justify-end items-center pointer-events-none" 
+      >
+        <div class="flex items-center gap-4 pointer-events-auto">
           <button
             onclick={onClose}
-            class="px-5 py-2.5 text-[10px] font-black uppercase tracking-wider text-white/30 hover:text-white transition-colors cursor-pointer"
+            class="px-8 py-3 bg-[#1a1a1a] text-white/60 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(0,0,0,0.5)] cursor-pointer active:scale-95 transition-all"
           >Huỷ bỏ</button>
 
           <button
             onclick={onSave}
             disabled={isSaving}
-            class="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-black rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+            class="px-10 py-3 bg-[#FFB800] text-black rounded-xl text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_10px_40px_rgba(255,184,0,0.3)] disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all"
           >
             {#if isSaving}
-              <div class="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-              Đang đồng bộ...
+              <div class="flex items-center gap-3">
+                <div class="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
+                <span>Syncing...</span>
+              </div>
             {:else}
               {editingId ? "Ghi đè thay đổi" : "Xuất bản Inventory"}
             {/if}
           </button>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </div>
 </MissionControlShell>
 

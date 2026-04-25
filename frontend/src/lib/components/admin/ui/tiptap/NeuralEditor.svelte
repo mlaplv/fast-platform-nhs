@@ -45,6 +45,12 @@
     analysisReport?: Record<string, unknown>;
     /** Enable flex-1 fill behavior */
     flex?: boolean;
+    /** Content Type: 'product' | 'article' */
+    contentType?: string;
+    /** Metadata provider function */
+    getMetadata?: () => Record<string, object> | null;
+    /** Whether the editor is in full screen mode */
+    fullScreen?: boolean;
   }
 
   let {
@@ -64,7 +70,9 @@
     selectedAssetIndex = $bindable(),
     analysisReport = $bindable(),
     flex = false,
-  }: Props & { fullScreen?: boolean } = $props();
+    contentType = "article",
+    getMetadata = () => null,
+  }: Props = $props();
 
 
   // Internal edit buffer — mirrors content prop while editing
@@ -103,6 +111,8 @@
     analysis_metrics: () => analysisMetrics,
     analysis_report: () => analysisReport,
     getIsProcessing: () => isProcessing,
+    contentType: () => contentType,
+    getMetadata: () => getMetadata(),
     onUpdate: (cache, metrics) => {
       untrack(() => {
         analysisCache = cache;
@@ -233,8 +243,8 @@
 
 <div 
   use:portal={fullScreen}
-  class="flex flex-col {fullScreen ? 'fixed inset-0 bg-[#0a0d14] h-[100dvh]' : (flex ? 'flex-1 min-h-0 relative' : 'gap-2 relative')}" 
-  style={fullScreen ? `z-index: ${Z_INDEX_ADMIN.TIPTAP_FULLSCREEN}` : ''}
+  class="flex flex-col {fullScreen ? 'fixed inset-0 bg-[#0a0d14] h-[100dvh] w-[100vw]' : (flex ? 'flex-1 min-h-0 relative' : 'gap-2 relative')}" 
+  style={fullScreen ? `z-index: ${Z_INDEX_ADMIN.TIPTAP_FULLSCREEN}; pointer-events: auto;` : ''}
 >
 
   <!-- Editor Container -->
@@ -265,6 +275,7 @@
       isAiLoading={analysis.isAiLoading}
       isBoosting={analysis.isBoosting}
       isBulkFixing={analysis.isBulkFixing}
+      isRewriting={analysis.isRewriting}
       bulkFixLogs={analysis.bulkFixLogs}
       streamingText={analysis.streamingText}
       streamingTarget={analysis.streamingTarget}

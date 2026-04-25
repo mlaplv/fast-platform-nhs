@@ -52,6 +52,7 @@
     isAiLoading = false,
     isBoosting = false,
     isBulkFixing = false,
+    isRewriting = false,
     runBulkFix = undefined,
     bulkFixLogs = [],
     // CNS V87.0: SSE streaming
@@ -76,6 +77,7 @@
     isAiLoading?: boolean;
     isBoosting?: boolean;
     isBulkFixing?: boolean;
+    isRewriting?: boolean;
     runBulkFix?: () => void;
     bulkFixLogs?: string[];
     streamingText?: string;
@@ -147,10 +149,9 @@
   let intelPopoverPos = $state({ top: 0, left: 0 });
   let activeIntelAction = $state<string | null>(null);
 
-  // CNS V85.5: Neural HUD Auto-Close Protocol
-  // Automatically retracts the HUD 1.5s after a task (Check/Clean/Fix) completes
+  // [CNS V90.0] Removed aggressive Auto-Close Protocol. 
+  // Closing is now handled by Controller (xohiAnalysis) or User manual action.
   let lastLoadingState = $state(false);
-  let isAutoClosing = $state(false); // Cooldown flag
   
   $effect(() => {
     if (!activeIntelAction) {
@@ -159,18 +160,6 @@
     }
     const activeAction = toolbarActions.find(a => a.id === activeIntelAction);
     const isLoading = activeAction?.loading || false;
-
-    // Detect transition from Loading -> Done
-    if (lastLoadingState && !isLoading) {
-      setTimeout(() => {
-        // Guard: Only close if the action hasn't changed or been manually toggled
-        if (activeIntelAction === activeAction?.id && !activeAction?.loading) {
-           activeIntelAction = null;
-           isAutoClosing = true;
-           setTimeout(() => { isAutoClosing = false; }, 2000); // 2s cooldown for hover
-        }
-      }, 1500);
-    }
     lastLoadingState = isLoading;
   });
 
@@ -256,18 +245,22 @@
 >
   
   <!-- Group 1: Navigation -->
-  <div class="tb-platter shrink-0">
-    <button onclick={() => editor?.chain().focus().undo().run()} class="tb-btn" title="Undo"><UndoIcon size={12} /></button>
-    <button onclick={() => editor?.chain().focus().redo().run()} class="tb-btn" title="Redo"><RedoIcon size={12} /></button>
-    {#if onToggleFullScreen && !isCompact}
-      <button onclick={onToggleFullScreen} class="tb-btn {fullScreen ? 'text-amber-500' : ''}" title="Toggle Fullscreen">
-        <Maximize2Icon size={12} />
+    <div class="tb-platter shrink-0">
+      <button onclick={() => editor?.chain().focus().undo().run()} class="tb-btn" title="Undo"><UndoIcon size={12} /></button>
+      <button onclick={() => editor?.chain().focus().redo().run()} class="tb-btn" title="Redo"><RedoIcon size={12} /></button>
+      {#if onToggleFullScreen}
+        <button onclick={onToggleFullScreen} class="tb-btn {fullScreen ? 'text-amber-500' : ''}" title={fullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}>
+          {#if fullScreen}
+            <Maximize2Icon size={12} class="rotate-180" />
+          {:else}
+            <Maximize2Icon size={12} />
+          {/if}
+        </button>
+      {/if}
+      <button onclick={() => showSource = !showSource} class="tb-btn {showSource ? 'active-neural !bg-cyan-500/20' : ''}" title="View Source">
+        <CodeIcon size={12} />
       </button>
-    {/if}
-    <button onclick={() => showSource = !showSource} class="tb-btn {showSource ? 'active-neural !bg-cyan-500/20' : ''}" title="View Source">
-      <CodeIcon size={12} />
-    </button>
-  </div>
+    </div>
 
   <!-- Group 2: Typography (Main Bar) -->
   {#if !isThin}
@@ -418,10 +411,6 @@
                 };
               }
               await onClean(options, editor?.getHTML());
-              // CNS V85.5: Auto-close HUD after success with a brief delay for user verification
-              setTimeout(() => {
-                if (activeIntelAction === 'clean') activeIntelAction = null;
-              }, 1500);
             }
           }}
         />
@@ -434,7 +423,6 @@
           <button
             onclick={(e) => { 
                 e.stopPropagation();
-                console.log("[Neural Intel] Clicked action:", action.id);
                 action.onclick(); 
                 // CNS V85.22: Always ensure it's open on click, don't toggle off
                 activeIntelAction = action.id || null;
@@ -453,7 +441,6 @@
             onmouseenter={(e) => { 
                 const resultKey = action.id === 'ai' ? 'aiReadyResult' : (action.id + 'Result');
                 if (analysisData?.[resultKey] || action.loading) {
-                    console.log("[Neural Intel] Hover active:", action.id);
                     activeIntelAction = action.id || null;
                     
                     // CNS V87.1: Sync highlights on hover to match HUD focus
@@ -505,8 +492,10 @@
       {isAiLoading}
       {isBoosting}
       isBulkFixing={isBulkFixing}
+      isRewriting={isRewriting}
       runBulkFix={runBulkFix}
       {analysisData}
+      bind:userPlanNote={analysisData.userPlanNote}
       {streamingText}
       {streamingTarget}
     />

@@ -209,3 +209,62 @@
   pointer-events: none;
   height: 0;
 }
+
+/* 🧬 SPEC BENTO (Elite V2.2 - Neural Lightning Stream) */
+.tiptap-content .spec-bento-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    margin: 2.5rem 0 !important;
+}
+
+.tiptap-content .spec-card {
+    background: transparent !important;
+    padding: 1.25rem 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.15rem !important;
+    position: relative !important;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1) !important;
+    width: 100% !important;
+    align-items: flex-start !important; /* Forced Left Alignment */
+}
+
+/* Horizontal Lightning Line */
+.tiptap-content .spec-card::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, transparent 90%) !important;
+    transition: all 0.6s ease !important;
+}
+
+.tiptap-content .spec-card:hover {
+    background: rgba(193, 143, 126, 0.02) !important;
+    padding-left: 1rem !important; /* Subtle kinetic shift */
+}
+
+.tiptap-content .spec-card:hover::after {
+    background: linear-gradient(90deg, #C18F7E 0%, transparent 90%) !important;
+    box-shadow: -5px 0 15px rgba(193, 143, 126, 0.2) !important;
+}
+
+.tiptap-content .spec-label {
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.2em !important;
+    color: rgba(255, 255, 255, 0.2) !important;
+    margin: 0 !important;
+}
+
+.tiptap-content .spec-value {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+}
