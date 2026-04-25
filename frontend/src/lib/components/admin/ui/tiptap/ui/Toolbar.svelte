@@ -16,6 +16,10 @@
   import CodeIcon from 'lucide-svelte/icons/code';
   import Maximize2Icon from 'lucide-svelte/icons/maximize-2';
   import SparklesIcon from 'lucide-svelte/icons/sparkles';
+  import AlignLeftIcon from 'lucide-svelte/icons/align-left';
+  import AlignCenterIcon from 'lucide-svelte/icons/align-center';
+  import AlignRightIcon from 'lucide-svelte/icons/align-right';
+  import AlignJustifyIcon from 'lucide-svelte/icons/align-justify';
   import TrendingUpIcon from 'lucide-svelte/icons/trending-up';
   import MoreHorizontalIcon from 'lucide-svelte/icons/more-horizontal';
   import { portal } from '$lib/core/actions/portal';
@@ -299,6 +303,16 @@
       <button onclick={() => editor?.chain().focus().toggleUnderline().run()} class="tb-btn {active.underline ? 'active-neural' : ''}" title="Underline"><UnderlineIcon size={12} /></button>
     {/if}
   </div>
+
+  <!-- Group 3.5: Alignment (User Prioritized) -->
+  {#if !isCompact}
+    <div class="tb-platter shrink-0">
+      <button onclick={() => editor?.chain().focus().setTextAlign('left').run()} class="tb-btn {active.alignLeft ? 'active-neural' : ''}" title="Align Left"><AlignLeftIcon size={12} /></button>
+      <button onclick={() => editor?.chain().focus().setTextAlign('center').run()} class="tb-btn {active.alignCenter ? 'active-neural' : ''}" title="Align Center"><AlignCenterIcon size={12} /></button>
+      <button onclick={() => editor?.chain().focus().setTextAlign('right').run()} class="tb-btn {active.alignRight ? 'active-neural' : ''}" title="Align Right"><AlignRightIcon size={12} /></button>
+      <button onclick={() => editor?.chain().focus().setTextAlign('justify').run()} class="tb-btn {active.alignJustify ? 'active-neural' : ''}" title="Align Justify"><AlignJustifyIcon size={12} /></button>
+    </div>
+  {/if}
 
   <!-- Group 4: Media -->
   {#if !isSuperCompact}

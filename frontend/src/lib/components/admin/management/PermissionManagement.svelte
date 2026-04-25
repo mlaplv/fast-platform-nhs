@@ -58,13 +58,15 @@
   }
 
   const PERMISSION_GROUPS: Record<string, PermissionGroupDef> = {
-    sys: { label: "Hệ thống", icon: "⚙️" },
-    user: { label: "Người dùng", icon: "👤" },
+    sys: { label: "Hệ thống Lõi", icon: "⚙️" },
+    user: { label: "Tài khoản", icon: "👤" },
+    category: { label: "Danh mục", icon: "📁" },
     product: { label: "Sản phẩm", icon: "📦" },
     order: { label: "Đơn hàng", icon: "🛒" },
-    content: { label: "Nội dung", icon: "📝" },
-    agent: { label: "AI Agent", icon: "🤖" },
-    security: { label: "Bảo mật", icon: "🔒" },
+    content: { label: "Neural Content", icon: "📝" },
+    media: { label: "Thư viện Media", icon: "🖼️" },
+    ai: { label: "Trí tuệ Nhân tạo", icon: "🧠" },
+    schedule: { label: "Lịch trình", icon: "📅" },
   };
 
   let roles = $state<Role[]>([]),
@@ -292,6 +294,27 @@
           </div>
 
           {#if isEditing}
+            <!-- V22: Module Navigation HUD -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-4 custom-scrollbar no-scrollbar scroll-smooth">
+              <button 
+                onclick={() => activeGroupFilter = "all"}
+                class="px-4 py-2 rounded-xl text-[10px] font-mono uppercase tracking-widest transition-all shrink-0
+                {activeGroupFilter === 'all' ? 'bg-fuchsia-600 text-white shadow-[0_0_15px_rgba(217,70,239,0.3)]' : 'bg-white/5 text-gray-500 hover:text-white'}"
+              >
+                ALL_SYSTEM
+              </button>
+              {#each Object.entries(PERMISSION_GROUPS) as [key, group]}
+                <button 
+                  onclick={() => activeGroupFilter = key}
+                  class="px-4 py-2 rounded-xl text-[10px] font-mono uppercase tracking-widest transition-all shrink-0 flex items-center gap-2
+                  {activeGroupFilter === key ? 'bg-fuchsia-600 text-white shadow-[0_0_15px_rgba(217,70,239,0.3)]' : 'bg-white/5 text-gray-500 hover:text-white'}"
+                >
+                  <span class="opacity-70">{group.icon}</span>
+                  {group.label}
+                </button>
+              {/each}
+            </div>
+
             <div
               class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 bg-white/[0.01] border border-white/5 p-3 sm:p-2 rounded-2xl mb-6"
             >
@@ -312,14 +335,17 @@
                 />
               </div>
               <button
-                onclick={() =>
-                  (editPermissions =
-                    editPermissions.size === allPermissions.length
-                      ? new Set()
-                      : new Set(allPermissions.map((p) => p.code)))}
+                onclick={() => {
+                  const targetCodes = filteredPermissions.map(p => p.code);
+                  const allActive = targetCodes.every(c => editPermissions.has(c));
+                  const next = new Set(editPermissions);
+                  if (allActive) targetCodes.forEach(c => next.delete(c));
+                  else targetCodes.forEach(c => next.add(c));
+                  editPermissions = next;
+                }}
                 class="w-full sm:w-auto px-5 py-3 bg-fuchsia-500/10 border border-fuchsia-500/30 rounded-xl text-[10px] font-mono uppercase text-fuchsia-400 hover:bg-fuchsia-500/20 transition-all tracking-widest"
               >
-                Sync_All ({editPermissions.size})
+                Sync_Sector ({filteredPermissions.filter(p => editPermissions.has(p.code)).length}/{filteredPermissions.length})
               </button>
             </div>
             <PermissionEditGrid
@@ -392,5 +418,12 @@
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(168, 85, 247, 0.15);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 </style>

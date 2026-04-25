@@ -66,6 +66,14 @@
     fullScreen: boolean;
     toolbarActions: ToolbarAction[];
   } = $props();
+  
+  // CNS V87.5: Calculate overflow logic to prevent duplication
+  const visibleInMainCount = $derived(isCompact ? (isSuperCompact ? 0 : 1) : toolbarActions.length);
+  const overflowActions = $derived(toolbarActions.slice(visibleInMainCount));
+  
+  // Formatting visibility logic
+  const showBoldInMore = $derived(isSuperCompact); // Only show if not in main bar
+  const showItalicUnderlineInMore = $derived(isCompact); 
 </script>
 
 {#if showMore}
@@ -86,15 +94,17 @@
         </div>
     </div>
 
-    <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-       <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Text Alignment</span>
-       <div class="flex gap-1.5">
-         <button onclick={() => { editor?.chain().focus().setTextAlign('left').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignLeft ? 'active-neural' : ''}"><AlignLeftIcon size={12}/></button>
-         <button onclick={() => { editor?.chain().focus().setTextAlign('center').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignCenter ? 'active-neural' : ''}"><AlignCenterIcon size={12}/></button>
-         <button onclick={() => { editor?.chain().focus().setTextAlign('right').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignRight ? 'active-neural' : ''}"><AlignRightIcon size={12}/></button>
-         <button onclick={() => { editor?.chain().focus().setTextAlign('justify').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignJustify ? 'active-neural' : ''}"><AlignJustifyIcon size={12}/></button>
-       </div>
-    </div>
+    {#if isCompact}
+      <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
+         <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Text Alignment</span>
+         <div class="flex gap-1.5">
+           <button onclick={() => { editor?.chain().focus().setTextAlign('left').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignLeft ? 'active-neural' : ''}"><AlignLeftIcon size={12}/></button>
+           <button onclick={() => { editor?.chain().focus().setTextAlign('center').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignCenter ? 'active-neural' : ''}"><AlignCenterIcon size={12}/></button>
+           <button onclick={() => { editor?.chain().focus().setTextAlign('right').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignRight ? 'active-neural' : ''}"><AlignRightIcon size={12}/></button>
+           <button onclick={() => { editor?.chain().focus().setTextAlign('justify').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignJustify ? 'active-neural' : ''}"><AlignJustifyIcon size={12}/></button>
+         </div>
+      </div>
+    {/if}
 
     <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
        <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Extra Formatting</span>
@@ -108,7 +118,9 @@
        <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
          <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Formatting</span>
          <div class="flex gap-1">
-           <button onclick={() => { editor?.chain().focus().toggleBold().run(); }} class="tb-btn !h-8 !w-8 {active.bold ? 'active-neural' : ''}"><BoldIcon size={12}/></button>
+           {#if isSuperCompact}
+              <button onclick={() => { editor?.chain().focus().toggleBold().run(); }} class="tb-btn !h-8 !w-8 {active.bold ? 'active-neural' : ''}"><BoldIcon size={12}/></button>
+           {/if}
            <button onclick={() => { editor?.chain().focus().toggleItalic().run(); }} class="tb-btn !h-8 !w-8 {active.italic ? 'active-neural' : ''}"><ItalicIcon size={12}/></button>
            <button onclick={() => { editor?.chain().focus().toggleUnderline().run(); }} class="tb-btn !h-8 !w-8 {active.underline ? 'active-neural' : ''}"><UnderlineIcon size={12}/></button>
            <button onclick={() => { editor?.chain().focus().toggleStrike().run(); }} class="tb-btn !h-8 !w-8 {active.strike ? 'active-neural' : ''}"><StrikethroughIcon size={12}/></button>
@@ -131,12 +143,12 @@
     {/if}
 
 
-    <!-- CNS V85.23: AI Booster & Extra Actions Overflow -->
-    {#if toolbarActions.length > 0}
+    <!-- CNS V85.23: AI Booster & Extra Actions Overflow (Deduplicated) -->
+    {#if overflowActions.length > 0}
       <div class="flex flex-col gap-2 p-2 bg-pink-500/5 rounded-lg border border-pink-500/10">
          <span class="text-[7px] font-black uppercase tracking-widest text-pink-400/40 px-1 italic">Intelligence Actions</span>
          <div class="flex flex-wrap gap-2">
-            {#each toolbarActions as action (action.id)}
+            {#each overflowActions as action (action.id)}
               <button
                 onclick={() => { action.onclick(); showMore = false; }}
                 disabled={action.loading || action.disabled}
