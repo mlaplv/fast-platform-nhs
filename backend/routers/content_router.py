@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, AsyncGenerator
+from typing import Dict, AsyncGenerator, Optional, List
 from uuid import UUID
 from litestar import Controller, get, post, put, patch, delete, Request, Response
 from litestar.response import Stream
@@ -21,7 +21,7 @@ from backend.database.repositories import (
 from backend.schemas.content import (
     CampaignSchema, CampaignListResponse, ContentCleanRequest,
     AdhocAnalysisRequest, BulkFixRequest, ScoutTopicRequest,
-    AdhocAutoFixRequest, SurgeonBoostRequest
+    AdhocAutoFixRequest, SurgeonBoostRequest, NeuralRewriteRequest
 )
 from backend.schemas.common import SuccessResponse as GenericResponse
 
@@ -191,6 +191,17 @@ class ContentController(Controller):
         return await content_factory.analyst.surgeon_boost(
             content=data.content,
             topic=data.topic,
+        )
+
+    @post("/analyze/neural-rewrite", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
+    async def analyze_neural_rewrite(self, data: NeuralRewriteRequest, campaign_id: Optional[UUID] = None) -> GenericResponse:
+        """CNS V88.5: Neural Rewrite — viết lại toàn bộ bài viết dựa trên phản biện."""
+        from backend.schemas.content import NeuralRewriteRequest
+        return await content_factory.analyst.neural_rewrite(
+            content=data.content,
+            topic=data.topic,
+            feedback=data.feedback,
+            campaign_id=str(campaign_id) if campaign_id else None
         )
 
     @post("/campaigns/{campaign_id:uuid}/analyze/save-report", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])

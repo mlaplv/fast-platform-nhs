@@ -191,6 +191,7 @@ export interface CopyrightResult {
   uniqueness_score: number;
   risk_level?: string;
   annotations: AnalysisAnnotation[];
+  verdict: string;
 }
 
 export interface SeoSignal {
@@ -206,6 +207,7 @@ export interface SEOResult {
   signals: SeoSignal[];
   quick_wins: string[];
   seo_annotations: AnalysisAnnotation[];
+  logs?: string[];
 }
 
 export interface AIInspectResult {
@@ -241,6 +243,7 @@ export interface NeuralAnalysisController {
   runCleanContent: (options?: CleanOptions, rawContent?: string) => Promise<string | null>;
   runBulkFix: () => Promise<void>;
   runAiBooster: () => Promise<void>;
+  runNeuralRewrite: () => Promise<void>;
   dispose: () => void;
 }
 
@@ -327,9 +330,10 @@ export interface CampaignMetrics {
 }
 
 export interface AnalysisCache {
-  copyright?: { data: CopyrightResult };
-  seo?: { data: SEOResult };
-  ai_inspect?: { data: AIInspectResult };
+  copyright?: { data: CopyrightResult; hash?: string; at?: string };
+  seo?: { data: SEOResult; hash?: string; at?: string };
+  ai_inspect?: { data: AIInspectResult; hash?: string; at?: string };
+  [key: string]: { data: any; hash?: string; at?: string } | undefined;
 }
 
 export interface CampaignData {
@@ -419,9 +423,28 @@ export interface GhostCompletionResponse {
   token?: string;
 }
 export interface GenericResponse<T = unknown> {
-  status?: 'success' | 'error';
+  status?: 'success' | 'error' | 'accepted';
   ok?: boolean;
   message?: string;
   data: T;
   logs?: string[];
+}
+
+export interface TaskAcceptedResponse {
+  task_id: string;
+  status: 'accepted';
+}
+
+export interface BulkFixReplacement {
+  old_text: string;
+  new_text: string;
+  rationale?: string;
+}
+
+export interface CleanOptions {
+  stripFont?: boolean;
+  stripAlign?: boolean;
+  stripRedundantWrappers?: boolean;
+  stripEmpty?: boolean;
+  deduplicateContent?: boolean;
 }

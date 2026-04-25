@@ -19,6 +19,7 @@
     runSeoAnalysis: () => void;
     runAiAnalysis: () => void;
     runAutoFix: (snippet: string, type: string, message: string) => Promise<string | null>;
+    runNeuralRewrite: () => Promise<void>;
   }
 
   let {
@@ -59,10 +60,15 @@
 
   let isExpanded = $state(false);
 
-  const activeAction = $derived(
-    toolbarActions.find(a => a.id === activeIntelAction) || 
-    (activeIntelAction === 'clean' ? { id: 'clean', label: 'Neural Clean', loading: isBulkFixing } : null)
-  );
+  const activeAction = $derived.by(() => {
+    if (!activeIntelAction) return null;
+    const found = toolbarActions.find(a => a.id === activeIntelAction);
+    if (found) return found;
+    if (activeIntelAction === 'clean') return { id: 'clean', label: 'Neural Clean', loading: isBulkFixing };
+    
+    // CNS V89.0: Auto-construct virtual action if missing from toolbar (Safety fallback)
+    return { id: activeIntelAction, label: activeIntelAction.toUpperCase(), loading: false };
+  });
 
   // CNS V86.5: Tự động reset trạng thái phóng to khi HUD đóng (Fix lỗi viewfull lưu state)
   $effect(() => {
@@ -111,6 +117,9 @@
 </script>
 
 {#if activeAction}
+  <!-- CNS V89.0: Debug visibility check -->
+  <div class="hidden">{console.log("[IntelligenceHUD] Rendering for:", activeAction.id)}</div>
+  
   <!-- Holographic HUD Popover -->
   <div 
      bind:this={hudEl}
@@ -201,8 +210,9 @@
              onfix={analysisData?.runAutoFix}
              {streamingTarget}
              {bulkFixLogs}
-             runBulkFix={runBulkFix || null}
+             runBulkFix={runBulkFix || undefined}
              isBulkFixing={isBulkFixing}
+             runNeuralRewrite={analysisData?.runNeuralRewrite}
           />
         </div>
      </div>

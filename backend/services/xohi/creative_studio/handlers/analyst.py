@@ -214,6 +214,29 @@ class AnalystHandler:
             logger.error(f"[AnalystHandler] surgeon_boost failed: {exc}", exc_info=True)
             return GenericResponse(status="error", message=str(exc))
 
+    async def neural_rewrite(
+        self, content: str, topic: str = "", feedback: str = "", campaign_id: Optional[str] = None
+    ) -> GenericResponse:
+        """
+        CNS V88.5: Neural Rewrite — viết lại toàn bộ bài viết dựa trên phản biện.
+        """
+        from backend.services.xohi.creative_studio.operatives.neural_rewriter import run_neural_rewrite
+        
+        if not content:
+            return GenericResponse(status="error", message="Chưa có nội dung để viết lại.")
+            
+        try:
+            new_content = await run_neural_rewrite(
+                content=content, 
+                topic=topic, 
+                feedback=feedback, 
+                campaign_id=campaign_id or "adhoc"
+            )
+            return GenericResponse(status="success", data={"new_content": new_content})
+        except Exception as exc:
+            logger.error(f"[AnalystHandler] neural_rewrite failed: {exc}", exc_info=True)
+            return GenericResponse(status="error", message=str(exc))
+
     async def save_analysis_report(
         self, campaign_id: str, campaign_repo: ContentCampaignRepository,
         report_type: str, data: Dict[str, object]

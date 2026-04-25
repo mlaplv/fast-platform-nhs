@@ -421,7 +421,7 @@
               // CNS V85.5: Auto-close HUD after success with a brief delay for user verification
               setTimeout(() => {
                 if (activeIntelAction === 'clean') activeIntelAction = null;
-              }, 2500);
+              }, 1500);
             }
           }}
         />
@@ -451,7 +451,6 @@
                 };
             }}
             onmouseenter={(e) => { 
-                if (isAutoClosing) return; // CNS V85.5: Ignore hover during auto-close cooldown
                 const resultKey = action.id === 'ai' ? 'aiReadyResult' : (action.id + 'Result');
                 if (analysisData?.[resultKey] || action.loading) {
                     console.log("[Neural Intel] Hover active:", action.id);

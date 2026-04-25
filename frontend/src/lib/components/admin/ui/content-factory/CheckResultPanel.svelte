@@ -15,19 +15,21 @@
     bulkFixLogs = [],
     runBulkFix,
     isBulkFixing = false,
+    runNeuralRewrite,
   }: {
     activeTab: 'copyright' | 'seo' | 'ai' | 'enrich' | null;
     copyrightResult: CopyrightResult | null; isCopyrightLoading: boolean;
     seoResult: SEOResult | null; isSeoLoading: boolean;
     aiReadyResult: AIInspectResult | null; isAiLoading: boolean;
-    isBoosting?: boolean; runCopyrightCheck: () => void;
-    runSeoAnalysis: () => void; runAiAnalysis: () => void;
+    isBoosting?: boolean; runCopyrightCheck?: () => void;
+    runSeoAnalysis?: () => void; runAiAnalysis?: () => void;
     onfix?: ((snippet: string, type: string, message: string) => Promise<string | null>) | null;
     streamingText?: string;
     streamingTarget?: string | null;
     bulkFixLogs?: string[];
     runBulkFix?: () => void;
     isBulkFixing?: boolean;
+    runNeuralRewrite?: () => Promise<void>;
   } = $props();
 
   let isFixing = $state<string | null>(null);
@@ -75,6 +77,7 @@
       <AnalysisResultCopyright
         {copyrightResult} {isFixing} {runCopyrightCheck} {handleInternalFix}
         {streamingText} {streamingTarget} {runBulkFix} {isBulkFixing}
+        {runNeuralRewrite}
       />
     {:else}
       <div class="px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30">Nhấn <span class="text-orange-400/70 font-bold">COPYRIGHT</span> để phân tích đạo văn.</div>

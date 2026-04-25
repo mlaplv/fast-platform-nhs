@@ -97,3 +97,10 @@ class SurgeonBoostRequest(BaseModel):
     model_config = ConfigDict(strict=True)
     content: str
     topic: str = ""
+
+class NeuralRewriteRequest(BaseModel):
+    """CNS V88.5: Neural Rewrite request — viết lại toàn bộ bài viết dựa trên phản biện."""
+    model_config = ConfigDict(strict=True)
+    content: str
+    topic: str = ""
+    feedback: str = ""

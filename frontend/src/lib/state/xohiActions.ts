@@ -6,16 +6,11 @@ import type {
     CopyrightResult, 
     SEOResult, 
     AIInspectResult,
-    EnrichmentItem
+    EnrichmentItem,
+    CleanOptions
 } from "$lib/state/types";
 
-export interface CleanOptions {
-    stripFont?: boolean;
-    stripAlign?: boolean;
-    stripRedundantWrappers?: boolean;
-    stripEmpty?: boolean;
-    deduplicateContent?: boolean;
-}
+
 
 
 /**

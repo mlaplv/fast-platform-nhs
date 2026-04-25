@@ -1,7 +1,7 @@
 import { apiClient } from "$lib/utils/apiClient";
 import { useNanobot } from "./nanobot.svelte";
 import { tick, untrack } from "svelte";
-import { xohiActions, cleanHtmlContent } from "./xohiActions";
+import { xohiActions } from "./xohiActions";
 import { robustNormalize, surgicalStitch } from "./xohiAnalysisLogic";
 import type {
     CopyrightResult,
@@ -13,7 +13,8 @@ import type {
     GenericResponse,
     CampaignData,
     BulkFixReplacement,
-    TaskAcceptedResponse
+    TaskAcceptedResponse,
+    CleanOptions
 } from "$lib/state/types";
 
 export function createAnalysisController(config: {
@@ -201,12 +202,12 @@ export function createAnalysisController(config: {
                 if (reportType) await xohiActions.saveAnalysisReport(cid, reportType, res.data);
             }
             
-            if (category) await saveAnalysisEvidence(category, res.data);
+            if (category) await saveAnalysisEvidence(category, res.data as Record<string, unknown>);
             return 'success';
         }
         
         // Handle Error status
-        const errorMsg = (res as Record<string, unknown>)?.message || "Lỗi phản hồi từ Neural Engine";
+        const errorMsg = (res as unknown as Record<string, unknown>)?.message || "Lỗi phản hồi từ Neural Engine";
         console.error(`[Neural Engine] ${category} Error:`, res);
         bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${errorMsg}`];
         return 'error';
@@ -237,7 +238,7 @@ export function createAnalysisController(config: {
                 topic: resolve(config.topic) || ''
             } : undefined;
             const res = await apiClient.post<GenericResponse<CopyrightResult>>(url, body);
-            status = await handleApiResponse(res, (v) => { copyrightResult = v; }, 'copyright');
+            status = await handleApiResponse<CopyrightResult>(res, (v) => { copyrightResult = v; }, 'copyright');
         } catch (e: unknown) {
             status = 'error';
             const errorObj = e as Error;
@@ -271,7 +272,7 @@ export function createAnalysisController(config: {
             const url = isAdhoc ? `/api/v1/content/analyze/seo?force=${force}` : `/api/v1/content/campaigns/${cid}/analyze/seo?force=${force}`;
             const body = isAdhoc ? { content: (config.getContent ?? config.getEditedDraft)(), topic: resolve(config.topic) || '' } : undefined;
             const res = await apiClient.post<GenericResponse<SEOResult>>(url, body);
-            status = await handleApiResponse(res, (v) => { seoResult = v; }, 'seo');
+            status = await handleApiResponse<SEOResult>(res, (v) => { seoResult = v; }, 'seo');
         } catch (e: unknown) {
             status = 'error';
             const errorObj = e as Error;
@@ -308,7 +309,7 @@ export function createAnalysisController(config: {
                 topic: resolve(config.topic) || ''
             } : undefined;
             const res = await apiClient.post<GenericResponse<AIInspectResult>>(url, body);
-            status = await handleApiResponse(res, (v) => { 
+            status = await handleApiResponse<AIInspectResult>(res, (v) => { 
                 const oldFixed = (aiReadyResult?.ai_annotations || []).filter(a => a.type === 'fixed-area');
                 v.ai_annotations = [...oldFixed, ...(v.ai_annotations || [])];
                 aiReadyResult = v;
@@ -508,11 +509,11 @@ export function createAnalysisController(config: {
                 bulkFixLogs = [...bulkFixLogs, "✅ Phẫu thuật hoàn tất. Dữ liệu Neural Intelligence đã được cập nhật."];
                 bulkFixStatus = "Hoàn tất ✅";
             } else {
-                const msg = (res as Record<string, unknown>)?.message || "Không thể thực hiện phẫu thuật hàng loạt";
+                const msg = (res as { message?: string })?.message || "Không thể thực hiện phẫu thuật hàng loạt";
                 console.error("[Neural Engine] Bulk Fix Error:", res);
                 bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
                 bulkFixStatus = "Thất bại ❌";
-                nanobot.showToast(msg as string, "error");
+                nanobot.showToast(msg, "error");
             }
         } catch (e: unknown) {
             console.error("[Neural Engine] Bulk Fix Critical Error:", e);
@@ -558,7 +559,7 @@ export function createAnalysisController(config: {
                     activeTab = 'seo';
                     await runSeoAnalysis(true, true);
                 } else {
-                    const msg = (res as Record<string, unknown>)?.message || "Enrichment failed";
+                    const msg = (res as unknown as Record<string, unknown>)?.message || "Enrichment failed";
                     bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
                     bulkFixStatus = "Thất bại ❌";
                     nanobot.showToast(msg as string, 'error');
@@ -589,7 +590,7 @@ export function createAnalysisController(config: {
                         bulkFixStatus = "Hoàn tất ✅";
                     }
                 } else {
-                    const msg = (res as Record<string, unknown>)?.message || "Surgeon Booster failed";
+                    const msg = (res as unknown as Record<string, unknown>)?.message || "Surgeon Booster failed";
                     bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
                     bulkFixStatus = "Thất bại ❌";
                     nanobot.showToast(msg as string, 'error');
@@ -609,6 +610,63 @@ export function createAnalysisController(config: {
                     bulkFixStatus = ""; 
                 }
             }, 3500);
+        }
+    }
+
+    async function runNeuralRewrite() {
+        if (isBulkFixing || !copyrightResult) return;
+        
+        const cid = resolve(config.campaign_id);
+        const topic = resolve(config.topic) ?? '';
+        const content = (config.getContent ?? config.getEditedDraft)?.() ?? '';
+        const feedback = copyrightResult.verdict;
+
+        isBulkFixing = true;
+        bulkFixStatus = "Đang múa bút...";
+        bulkFixLogs = [
+            "🔥 Kích hoạt Xohi Creative Rewrite...",
+            "🧠 Đang nạp luận điểm phản biện...",
+            "🖋️ Đang tái cấu trúc nội dung sáng tạo..."
+        ];
+
+        try {
+            const res = await apiClient.post<GenericResponse<{ new_content: string }>>('/api/v1/content/analyze/neural-rewrite', {
+                content,
+                topic,
+                feedback
+            });
+
+            if (res?.status === 'success' && res.data?.new_content) {
+                const newHtml = res.data.new_content;
+                
+                if (!isAdhoc && cid) {
+                    await apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: newHtml });
+                }
+                
+                if (resolve(config.isEditing)) config.setEditedDraft(newHtml);
+                else config.setDraftContent(newHtml);
+
+                bulkFixLogs = [...bulkFixLogs, "✅ Hoàn tất phẫu thuật sáng tạo!", "✨ Bài viết mới đã được cập nhật."];
+                bulkFixStatus = "Hoàn tất ✅";
+                nanobot.showToast("Xohi đã viết lại bài mới thành công!", "success");
+            } else {
+                const msg = res?.message || "Không thể viết lại nội dung";
+                bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
+                bulkFixStatus = "Thất bại ❌";
+                nanobot.showToast(msg, 'error');
+            }
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            bulkFixLogs = [...bulkFixLogs, `❌ Lỗi hệ thống: ${msg}`];
+            bulkFixStatus = "Thất bại ❌";
+            nanobot.showToast(`Lỗi Rewrite: ${msg}`, 'error');
+        } finally {
+            setTimeout(() => { 
+                isBulkFixing = false; 
+                if (bulkFixStatus === "Hoàn tất ✅" || bulkFixStatus === "Thất bại ❌") {
+                    bulkFixStatus = ""; 
+                }
+            }, 5000);
         }
     }
 
@@ -697,7 +755,7 @@ export function createAnalysisController(config: {
         // CNS V87.0: expose streaming state cho UI typewriter effect
         get streamingText() { return streamingText; },
         get streamingTarget() { return streamingTarget; },
-        runCopyrightCheck, runSeoAnalysis, runAiAnalysis, runAutoFix, runCleanContent, runBulkFix, runAiBooster, dispose: () => {
+        runCopyrightCheck, runSeoAnalysis, runAiAnalysis, runAutoFix, runCleanContent, runBulkFix, runAiBooster, runNeuralRewrite, dispose: () => {
             // CLAUDE.md: dispose SSE resource khi component unmount
             _sseAbort?.abort(); _sseAbort = null;
             copyrightResult = null; seoResult = null; aiReadyResult = null; bulkFixStatus = ""; activeTab = null;
