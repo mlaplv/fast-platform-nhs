@@ -54,7 +54,7 @@ class DataInjector:
 
                 # 2. RESTORE: Fetch ALL revenue series ONLY if explicitly opening the chart
                 # This keeps voice counts fast but fills the chart with all tabs when needed.
-                if target == "revenue" and ui_action == "show_revenue_chart":
+                if target == "revenue":
                     logger.info(f"[Data Injector] Target={target}, Action={ui_action} -> Fetching Full Series (D/M/Q/Y)")
                     series = await self._fetch_revenue_series(**kwargs)
                     intent.data["series_data"] = series
@@ -145,12 +145,10 @@ class DataInjector:
                     logger.error(f"[Data Injector] SQLite grouping failed for {trunc_unit}: {sql_err}")
             return res
 
-        daily, monthly, quarterly, yearly = await asyncio.gather(
-            fetch_grouped('day', 30, '%d/%m'),
-            fetch_grouped('month', 365, '%m/%y'),
-            fetch_grouped('quarter', 365 * 2, None),
-            fetch_grouped('year', 365 * 5, '%Y')
-        )
+        daily = await fetch_grouped('day', 30, '%d/%m')
+        monthly = await fetch_grouped('month', 365, '%m/%y')
+        quarterly = await fetch_grouped('quarter', 365 * 2, None)
+        yearly = await fetch_grouped('year', 365 * 5, '%Y')
         return {
             "daily": daily,
             "monthly": monthly,

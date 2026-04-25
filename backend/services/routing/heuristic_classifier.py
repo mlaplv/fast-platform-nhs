@@ -125,7 +125,7 @@ async def heuristic_classify(combined_lower: str, user_id: str, context: Optiona
         intent_type, action = "DATA_QUERY", IntentAction.COUNT
     else: intent_type, action = "UI_NAV", IntentAction.READ
 
-    widget_id = TARGET_TO_WIDGET.get(target, "") if (intent_type == "UI_NAV" or any(kw in norm_query for kw in ["mo ", "xem ", "vao ", "bieu do"])) else ""
+    widget_id = TARGET_TO_WIDGET.get(target, "") if (intent_type == "UI_NAV" or target == "revenue" or any(kw in norm_query for kw in ["mo ", "xem ", "vao ", "bieu do"])) else ""
     response_msg = ""
     if intent_type == "MUTATE":
         response_msg = f"Sếp muốn {VI_VERB_MAP.get(verb, verb)} {VI_TARGET_MAP.get(target, target)}" + (f' "{extracted_entities["name"]}"' if "name" in extracted_entities else "") + ". Xác nhận thông tin bên dưới ạ."

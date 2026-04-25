@@ -31,9 +31,7 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "manage media": "MEDIA_MANAGER",
   "mở thư viện": "MEDIA_MANAGER",
   "thư viện ảnh": "MEDIA_MANAGER",
-  "biểu đồ": "REVENUE_CHART",
-  "mở biểu đồ": "REVENUE_CHART",
-  "doanh thu": "REVENUE_CHART",
+
   skill: "VOICE_SETTINGS",
   "voice settings": "VOICE_SETTINGS",
   "mở cài đặt giọng": "VOICE_SETTINGS",
