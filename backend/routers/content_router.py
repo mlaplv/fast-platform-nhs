@@ -215,3 +215,62 @@ class ContentController(Controller):
             report_type=report_type,
             data=data,
         )
+
+    @post("/campaigns/{campaign_id:uuid}/analyze/batch-save", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
+    async def analyze_batch_save(
+        self, campaign_id: UUID, request: Request, campaign_repo: ContentCampaignRepository
+    ) -> GenericResponse:
+        """
+        [CNS V90.0] Batch Save — Gộp save-report + metadata thành 1 HTTP call.
+        Giảm từ 2 POST → 1 POST per analysis. Tiết kiệm ~1 RTT mỗi phiên.
+
+        Body: {
+          "reports": { "copyright": {...}, "seo": {...}, "ai_inspect": {...} },
+          "evidence": { "copyright": { "score": 0.85, "timestamp": "..." }, ... }
+        }
+        """
+        from datetime import datetime, timezone
+        data = await request.json()
+        reports: Dict[str, object] = data.get("reports", {})
+        evidence: Dict[str, object] = data.get("evidence", {})
+
+        try:
+            campaign = await campaign_repo.get(str(campaign_id))
+            if not campaign:
+                return GenericResponse(status="error", message="Campaign not found")
+
+            from sqlalchemy.orm.attributes import flag_modified
+
+            # 1. Cập nhật analysis_report (gộp tất cả report types)
+            if reports:
+                report = dict(campaign.analysis_report or {})
+                now_iso = datetime.now(timezone.utc).isoformat()
+                for report_type, report_data in reports.items():
+                    if report_type in ("copyright", "seo", "ai_inspect", "surgeon"):
+                        report[report_type] = {
+                            "data": report_data,
+                            "updated_at": now_iso,
+                            "version": "V90.0"
+                        }
+                campaign.analysis_report = report
+                flag_modified(campaign, "analysis_report")
+
+            # 2. Cập nhật analysis_evidence vào gold_metadata
+            if evidence:
+                gold = dict(campaign.gold_metadata or {})
+                existing_evidence = dict(gold.get("analysis_evidence", {}))
+                existing_evidence.update(evidence)
+                gold["analysis_evidence"] = existing_evidence
+                campaign.gold_metadata = gold
+                flag_modified(campaign, "gold_metadata")
+
+            await campaign_repo.update(campaign)
+            if hasattr(campaign_repo, "session"):
+                await campaign_repo.session.commit()
+
+            logger.info(f"[ContentController] Batch saved {list(reports.keys())} for campaign {campaign_id}")
+            return GenericResponse(status="success", message=f"Đã lưu batch: {', '.join(reports.keys())}")
+        except Exception as e:
+            logger.error(f"[ContentController] Batch save error: {e}", exc_info=True)
+            return GenericResponse(status="error", message=str(e))
+

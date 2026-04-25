@@ -67,20 +67,22 @@
       </div>
       
       <div class="text-[13px] text-white/80 leading-[1.6] font-medium tracking-tight space-y-4">
-        {#each copyrightResult.verdict.split('\n\n') as section}
-          {#if section.startsWith('###') || section.includes('**[LUẬN ĐIỂM') || section.includes('**[CHỨNG CỨ') || section.includes('**[PHƯƠNG ÁN')}
+        {#each copyrightResult.verdict.split(/\n\n|(?=\n#{1,6}\s)|(?=\n-\s?\[?[A-ZÀ-Ỹ]{4,})/) as section}
+          {@const trimmed = section.trim()}
+          {#if !trimmed}{/if}
+          {#if trimmed.startsWith('#') || trimmed.includes('**[LUẬN ĐIỂM') || trimmed.includes('**[CHỨNG CỨ') || trimmed.includes('**[PHƯƠNG ÁN') || trimmed.includes('[1.') || trimmed.includes('[2.') || trimmed.includes('[3.') || (trimmed.startsWith('-') && trimmed.includes(':') && trimmed.length < 60)}
             <div class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.2em] pt-3 border-b border-emerald-500/10 pb-1 flex items-center gap-2">
                <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
-               {section.replace(/###|\*\*|\[|\]/g, '').replace(':', '').trim()}
+               {trimmed.replace(/#+\s?|\*\*|\[|\]/g, '').replace(':', '').trim()}
             </div>
-          {:else if section.startsWith('####')}
+          {:else if trimmed.startsWith('####') || (trimmed.startsWith('-') && trimmed.length < 50 && trimmed.toUpperCase() === trimmed)}
             <div class="text-[10px] font-black text-white/40 uppercase tracking-widest pt-1 flex items-center gap-1.5 ml-2">
                <div class="w-1 h-1 rounded-full bg-white/20"></div>
-               {section.replace('####', '').trim()}
+               {trimmed.replace(/#+\s?|- /, '').trim()}
             </div>
           {:else}
             <div class="whitespace-pre-line pl-3 border-l border-white/5 text-white/70 bg-white/[0.01] p-3 rounded-r-lg">
-              {@html section
+              {@html trimmed
                 .replace(/\*\*(.*?)\*\*/g, '<span class="text-white font-bold">$1</span>')
                 .replace(/^- (.*?)($|\n)/gm, '<div class="flex gap-2 items-start ml-2 mb-1.5"><span class="text-emerald-500/50 mt-1.5">›</span><span>$1</span></div>')
                 .replace(/^(\d+\. .*?)($|\n)/gm, '<div class="flex gap-2 items-start ml-2 mb-1.5"><span class="text-emerald-400 font-black mt-0.5">$1</span></div>')
@@ -94,7 +96,7 @@
       {#if copyrightResult.similar_sources && copyrightResult.similar_sources.length > 0}
         <div class="mt-4 px-3 py-2 bg-blue-500/5 rounded-xl border border-blue-500/10 shadow-inner">
           <div class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-            <Globe size={10} /> TOP_REFERENCE_SOURCES
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> TOP_REFERENCE_SOURCES
           </div>
           <div class="space-y-1.5">
             {#each copyrightResult.similar_sources.slice(0, 3) as source}
@@ -107,27 +109,26 @@
       {/if}
     </div>
 
-      <!-- Neural Rewrite Activation (Elite V2.2) -->
-      <div class="mt-5 pt-4 border-t border-white/5">
-        <button 
-          onclick={() => runNeuralRewrite?.()}
-          disabled={isBulkFixing}
-          class="group relative w-full overflow-hidden rounded-xl bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 p-[1px] transition-all hover:border-indigo-400 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] active:scale-[0.98] disabled:opacity-50"
-        >
-          <div class="relative z-10 flex items-center justify-center gap-3 bg-black/40 px-4 py-3 rounded-[11px] transition-all group-hover:bg-transparent">
-            <div class="relative">
-              <Sparkles size={16} class="text-indigo-400 animate-pulse" />
-              <div class="absolute inset-0 bg-indigo-400 blur-sm opacity-50 animate-ping"></div>
-            </div>
-            <div class="flex flex-col items-start">
-              <span class="text-[11px] font-black text-white uppercase tracking-widest leading-none">KÍCH HOẠT XOHI REWRITE</span>
-              <span class="text-[7px] font-bold text-indigo-300/60 uppercase tracking-[0.2em] mt-1">Creative_Neural_Synthesis_V88.5</span>
-            </div>
+    <!-- Neural Rewrite Activation (Elite V2.2) -->
+    <div class="mt-5 pt-4 border-t border-white/5 px-3">
+      <button 
+        onclick={() => runNeuralRewrite?.()}
+        disabled={isBulkFixing}
+        class="group relative w-full overflow-hidden rounded-xl bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 p-[1px] transition-all hover:border-indigo-400 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] active:scale-[0.98] disabled:opacity-50"
+      >
+        <div class="relative z-10 flex items-center justify-center gap-3 bg-black/40 px-4 py-3 rounded-[11px] transition-all group-hover:bg-transparent">
+          <div class="relative">
+            <Sparkles size={16} class="text-indigo-400 animate-pulse" />
+            <div class="absolute inset-0 bg-indigo-400 blur-sm opacity-50 animate-ping"></div>
           </div>
-          <!-- Internal Glow -->
-          <div class="absolute top-0 -left-[100%] w-[100%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:left-[100%] transition-all duration-1000 ease-in-out"></div>
-        </button>
-      </div>
+          <div class="flex flex-col items-start">
+            <span class="text-[11px] font-black text-white uppercase tracking-widest leading-none">KÍCH HOẠT XOHI REWRITE</span>
+            <span class="text-[7px] font-bold text-indigo-300/60 uppercase tracking-[0.2em] mt-1">Creative_Neural_Synthesis_V88.5</span>
+          </div>
+        </div>
+        <!-- Internal Glow -->
+        <div class="absolute top-0 -left-[100%] w-[100%] h-full bg-gradient-to-r from-transparent via-white/10 to-transparent group-hover:left-[100%] transition-all duration-1000 ease-in-out"></div>
+      </button>
     </div>
 
     <!-- Fix All Emerald Button -->

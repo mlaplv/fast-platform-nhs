@@ -157,27 +157,30 @@ export function createAnalysisController(config: {
         try {
             const cid = resolve(config.campaign_id);
             if (!cid || cid === 'adhoc') return;
-            
-            // CNS V88.2: Save both as evidence and as the main analysis report for hydration
-            const reportTypeMap: Record<string, 'copyright' | 'seo' | 'ai_inspect'> = {
-                'copyright': 'copyright',
-                'seo': 'seo',
-                'ai_inspect': 'ai_inspect'
-            };
-            const reportType = reportTypeMap[category];
-            if (reportType) await xohiActions.saveAnalysisReport(cid, reportType, data);
 
-            await apiClient.post(`/api/v1/content/campaigns/${cid}/metadata`, {
-                analysis_evidence: {
+            // [CNS V90.0] Batch Save: gộp save-report + metadata thành 1 HTTP call
+            // Trước: 2 POST (save-report + metadata) = 2 RTT
+            // Sau: 1 POST (batch-save) = 1 RTT — giảm 50% DB calls per analysis
+            const score = category === 'copyright'
+                ? (data.uniqueness_score as number)
+                : category === 'seo'
+                ? (data.total_score as number)
+                : (data.geo_score as number);
+
+            const reportKey = category as 'copyright' | 'seo' | 'ai_inspect';
+            await xohiActions.batchSave(
+                cid,
+                { [reportKey]: data },
+                {
                     [category]: {
                         timestamp: new Date().toISOString(),
-                        score: category === 'copyright' ? (data.uniqueness_score as number) : category === 'seo' ? (data.total_score as number) : (data.geo_score as number),
-                        data: data
+                        score,
+                        data
                     }
                 }
-            });
+            );
         } catch (e) {
-            console.error("[Neural Vault] Failed to save evidence:", e);
+            console.error("[Neural Vault] Batch save failed:", e);
         }
     }
 
@@ -189,20 +192,11 @@ export function createAnalysisController(config: {
             if (res.logs) bulkFixLogs = [...bulkFixLogs, ...(res.logs.filter(l => !bulkFixLogs.includes(l)))];
             targetSetter(res.data as T);
             bulkFixLogs = [...bulkFixLogs, "✅ Phân tích hoàn tất. Đã nạp dữ liệu Intelligence."];
-            
-            // CNS V87.0: Tự động đồng bộ lên DB cột analysis_report
+
+            // [CNS V90.0] Batch Save: gom cả save-report lẫn evidence vào 1 call (thay 2 POST cũ)
             if (cid && cid !== 'adhoc' && category) {
-                const reportTypeMap: Record<string, 'copyright' | 'seo' | 'ai_inspect' | 'surgeon'> = {
-                    'copyright': 'copyright',
-                    'seo': 'seo',
-                    'ai_inspect': 'ai_inspect',
-                    'surgeon': 'surgeon'
-                };
-                const reportType = reportTypeMap[category];
-                if (reportType) await xohiActions.saveAnalysisReport(cid, reportType, res.data);
+                await saveAnalysisEvidence(category, res.data as Record<string, unknown>);
             }
-            
-            if (category) await saveAnalysisEvidence(category, res.data as Record<string, unknown>);
             return 'success';
         }
         
@@ -545,7 +539,9 @@ export function createAnalysisController(config: {
 
         try {
             if (!isAdhoc && cid) {
-                // Campaign mode: dùng enricher cũ (Google Search + AI)
+                // [CNS V90.0 Plan B] Campaign mode: Enrich — KHÔNG chain runSeoAnalysis nữa!
+                // Trước: Enrich + runSeoAnalysis(force=true) = 2 Google + 2 LLM calls
+                // Sau: Enrich only, merge annotations vào seoResult = 1 Google + 1 LLM call
                 await saveBeforeAnalysis();
                 const res = await xohiActions.runEnrich(cid);
                 if (res?.status === 'success' && res.data?.new_content) {
@@ -554,10 +550,13 @@ export function createAnalysisController(config: {
                     if (res.data.annotations?.length) {
                         const ann = res.data.annotations;
                         if (!seoResult) seoResult = { total_score: 0, grade: 'N/A', signals: [], summary: '', quick_wins: [], seo_annotations: ann, logs: [] };
-                        else seoResult.seo_annotations = [...(seoResult.seo_annotations || []), ...ann];
+                        else seoResult = { ...seoResult, seo_annotations: [...(seoResult.seo_annotations || []), ...ann] };
                     }
                     activeTab = 'seo';
-                    await runSeoAnalysis(true, true);
+                    // [CNS V90.0] Đã xóa runSeoAnalysis(force=true) — tiết kiệm 1 Google + 1 LLM call
+                    bulkFixStatus = "Hoàn tất ✅";
+                    bulkFixLogs = [...bulkFixLogs, "🎯 AI Booster hoàn tất. Nội dung đã được làm giàu."];
+                    nanobot.showToast("AI Booster đã làm giàu nội dung!", "success");
                 } else {
                     const msg = (res as unknown as Record<string, unknown>)?.message || "Enrichment failed";
                     bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
@@ -565,7 +564,7 @@ export function createAnalysisController(config: {
                     nanobot.showToast(msg as string, 'error');
                 }
             } else {
-                // CNS V87.0: Ad-hoc mode — Surgeon Booster (không cần Google Search)
+                // [CNS V90.0 Plan B] Ad-hoc mode — Surgeon Booster (không cần Google Search)
                 const res = await xohiActions.runSurgeonBoost(content, topic);
                 if (res?.status === 'success' && res.data?.patches?.length) {
                     if (res.data.logs?.length) bulkFixLogs = [...bulkFixLogs, ...res.data.logs];

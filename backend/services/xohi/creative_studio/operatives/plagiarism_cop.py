@@ -23,6 +23,8 @@ from backend.utils.noise_cleaner import noise_cleaner
 from backend.utils.text import normalize_vn
 from .plagiarism_prompts import PLAGIARISM_PROMPT
 from .plagiarism_surgeon import PlagiarismSurgeon
+# [CNS V90.0] Shared Search Cache — tiết kiệm 50% Google quota với SEO
+from .shared_search_cache import get_or_fetch as _cached_search
 
 # ══════════════════════════════════════════════════════════════
 # ELITE V2.2 CONSTANTS — Copyright Logic
@@ -258,60 +260,76 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         )
 
     async def _fetch_competitor_snippets(self, campaign: ContentCampaign, keyword: str, logs: Optional[list[str]] = None) -> list[str]:
+        """
+        [CNS V90.0] Fetch competitor content with retry loop + shared cache.
+        - Shared Cache: Ghi kết quả để SeoAnalyzer tái dùng trong vòng 30 phút.
+        - Retry Loop: Rotate key khi gặp 429/403.
+        """
         self._ensure_search_keys()
         if not self.search_keys:
             if logs is not None: logs.append("❌ Thiếu API Key Search.")
             return ["(No API key)"]
 
-        client = await get_http_client()
-        # R105: Automated Key Rotation with Retry Loop
-        for attempt in range(len(self.search_keys)):
-            p = await self._get_search_pair()
-            try:
-                resp = await client.get("https://www.googleapis.com/customsearch/v1", params={"key": p["key"], "cx": p["cx"], "q": keyword, "num": MAX_COMPETITOR_FETCH}, timeout=RECON_TIMEOUT_SECONDS)
-                
-                if resp.status_code == 200:
-                    data = resp.json()
-                    items = data.get("items", [])
-                    if not items:
-                        if logs is not None: logs.append("❓ Không tìm thấy kết quả nào trên Google.")
-                        return ["(No results)"]
-                    
-                    # Success: start content fetching
-                    await self._emit_progress(campaign, f"[RECON] Discovered {len(items)} competitor sites. Starting deep inspection...")
-                    async def _c(it: dict, idx: int):
-                        url = it.get("link", "")
-                        if not url.startswith("http"): return it.get("snippet","")
-                        try:
-                            await self._emit_progress(campaign, f"[SCRAPE] Fetching content [{idx+1}/5]: {url[:45]}...")
-                            # Use shorter timeout for competitor sites
-                            r = await client.get(url, timeout=COMPETITOR_TIMEOUT_SECONDS)
-                            if r.status_code == 200:
-                                b = re.sub(r'<(script|style)[^>]*>.*?</\1>', ' ', r.text, flags=re.IGNORECASE|re.DOTALL)
-                                b = re.sub(r'<[^>]+>', ' ', b)
-                                return f"URL: {url}\nContent: {re.sub(r'\s+', ' ', b).strip()[:MAX_SNIPPET_CHARS]}"
-                        except Exception:
-                            pass
-                        return f"URL: {url}\nSnippet: {it.get('snippet','')}"
+        async def _do_fetch() -> list[str]:
+            client = await get_http_client()
+            # R105: Automated Key Rotation with Retry Loop
+            for attempt in range(len(self.search_keys)):
+                p = await self._get_search_pair()
+                try:
+                    resp = await client.get(
+                        "https://www.googleapis.com/customsearch/v1",
+                        params={"key": p["key"], "cx": p["cx"], "q": keyword, "num": MAX_COMPETITOR_FETCH},
+                        timeout=RECON_TIMEOUT_SECONDS
+                    )
 
-                    rs = await asyncio.gather(*[_c(it, i) for i, it in enumerate(items[:5])], return_exceptions=True)
-                    valid_rs = [r if isinstance(r, str) else "(Snippet only)" for r in rs]
-                    msg = f"[RECON] Competitor content ingestion complete ({len(valid_rs)} sources)."
-                    await self._emit_progress(campaign, msg)
-                    if logs is not None: logs.append(msg)
-                    return valid_rs
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        items = data.get("items", [])
+                        if not items:
+                            if logs is not None: logs.append("❓ Không tìm thấy kết quả nào trên Google.")
+                            return ["(No results)"]
 
-                elif resp.status_code in [429, 403]:
-                    self.logger.warning(f"[PlagiarismCop] Search Key Outage ({resp.status_code}), rotating...")
-                    continue # Try next key
-                else:
-                    err_hint = f"Google Error {resp.status_code}"
-                    if logs is not None: logs.append(f"❌ {err_hint}")
-                    return [f"({err_hint})"]
+                        # Success: start content fetching
+                        await self._emit_progress(campaign, f"[RECON] Discovered {len(items)} competitor sites. Starting deep inspection...")
+                        async def _c(it: dict, idx: int):
+                            url = it.get("link", "")
+                            if not url.startswith("http"): return it.get("snippet", "")
+                            try:
+                                await self._emit_progress(campaign, f"[SCRAPE] Fetching content [{idx+1}/5]: {url[:45]}...")
+                                r = await client.get(url, timeout=COMPETITOR_TIMEOUT_SECONDS)
+                                if r.status_code == 200:
+                                    b = re.sub(r'<(script|style)[^>]*>.*?</\1>', ' ', r.text, flags=re.IGNORECASE|re.DOTALL)
+                                    b = re.sub(r'<[^>]+>', ' ', b)
+                                    return f"URL: {url}\nContent: {re.sub(r'\\s+', ' ', b).strip()[:MAX_SNIPPET_CHARS]}"
+                            except Exception:
+                                pass
+                            return f"URL: {url}\nSnippet: {it.get('snippet', '')}"
 
-            except Exception as e:
-                self.logger.error(f"[PlagiarismCop] Search connection error: {e}")
-                continue # Try next key
+                        rs = await asyncio.gather(*[_c(it, i) for i, it in enumerate(items[:5])], return_exceptions=True)
+                        valid_rs = [r if isinstance(r, str) else "(Snippet only)" for r in rs]
+                        msg = f"[RECON] Competitor content ingestion complete ({len(valid_rs)} sources)."
+                        await self._emit_progress(campaign, msg)
+                        if logs is not None: logs.append(msg)
+                        return valid_rs
 
-        if logs is not None: logs.append("❌ Cạn kiệt API Key Search (Tất cả đều lỗi/hết hạn).")
-        return ["(All search keys failed)"]
+                    elif resp.status_code in [429, 403]:
+                        self.logger.warning(f"[PlagiarismCop] Search Key Outage ({resp.status_code}), rotating...")
+                        continue  # Try next key
+                    else:
+                        err_hint = f"Google Error {resp.status_code}"
+                        if logs is not None: logs.append(f"❌ {err_hint}")
+                        return [f"({err_hint})"]
+
+                except Exception as e:
+                    self.logger.error(f"[PlagiarismCop] Search connection error: {e}")
+                    continue  # Try next key
+
+            if logs is not None: logs.append("❌ Cạn kiệt API Key Search (Tất cả đều lỗi/hết hạn).")
+            return ["(All search keys failed)"]
+
+        # [CNS V90.0] Wrap với shared cache: Copyright và SEO cùng keyword → chỉ 1 Google call
+        results = await _cached_search(query=keyword, fetch_fn=_do_fetch, num=MAX_COMPETITOR_FETCH)
+        if not results:
+            if logs is not None: logs.append("❌ Không lấy được kết quả từ Google.")
+        return results if results else ["(No results)"]
+

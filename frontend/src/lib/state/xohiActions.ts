@@ -142,5 +142,21 @@ export const xohiActions = {
             annotations?: AnalysisAnnotation[]
         }>>(`/api/v1/content/campaigns/${cid}/analyze/enrich`);
         return res;
+    },
+
+    /**
+     * [CNS V90.0] Batch Save — Gộp save-report + metadata thành 1 HTTP call.
+     * Tiết kiệm 1 HTTP round-trip per analysis (từ 2 POST → 1 POST).
+     */
+    async batchSave(
+        cid: string,
+        reports: Partial<Record<'copyright' | 'seo' | 'ai_inspect' | 'surgeon', unknown>>,
+        evidence: Partial<Record<string, { score: number; timestamp: string; data: unknown }>>
+    ) {
+        const res = await apiClient.post<GenericResponse>(
+            `/api/v1/content/campaigns/${cid}/analyze/batch-save`,
+            { reports, evidence }
+        );
+        return res;
     }
 };

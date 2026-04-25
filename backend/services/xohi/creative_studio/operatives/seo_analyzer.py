@@ -28,6 +28,8 @@ logger = logging.getLogger("api-gateway")
 # ══════════════════════════════════════════════════════════════
 # ELITE V2.2 CONSTANTS — SEO Logic
 # ══════════════════════════════════════════════════════════════
+# [CNS V90.0] Import shared cache — tiết kiệm 50% Google quota
+from .shared_search_cache import get_or_fetch as _cached_search
 MAX_COMPETITOR_FETCH = 5
 MAX_CONTENT_TOKENS = 50000
 AUTO_DETECT_TOPIC_WORDS = 8
@@ -97,7 +99,9 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
     Returns per-passage seo_annotations for inline editor highlighting.
     """
     agent_id_class = "seo_analyzer"
-    _seo_semaphore = asyncio.Semaphore(1)
+    # [CNS V90.0] Tăng từ Semaphore(1) → (3): cho phép 3 user phân tích SEO song song.
+    # Rule P6: Semaphore(1) quá strict, gây queue starvation multi-user.
+    _seo_semaphore = asyncio.Semaphore(3)
 
     def __init__(self, **kwargs: object):
         super().__init__(agent_id="seo_analyzer")
@@ -142,27 +146,48 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
 
 
     async def _fetch_competitors(self, keyword: str) -> List[str]:
-        """Fetch top competitor content for semantic comparison."""
+        """
+        [CNS V90.0] Fetch top competitor snippets for SEO comparison.
+        - Shared Cache: Tái dùng kết quả nếu Copyright đã search cùng keyword (TTL 30m).
+        - Retry Loop: Nếu key bị 429/403 → rotate sang key tiếp theo (giống PlagiarismCop).
+        """
         self._ensure_search_keys()
-        pair = await self._get_search_pair()
-        if not pair: return ["(Không thể tải nội dung cạnh tranh)"]
-        try:
+        if not self.search_keys:
+            return ["(No API key configured)"]
+
+        async def _do_fetch() -> List[str]:
             client = await get_http_client()
-            response = await client.get(
-                "https://www.googleapis.com/customsearch/v1",
-                params={
-                    "key": pair["key"],
-                    "cx": pair["cx"],
-                    "q": keyword,
-                    "num": 5
-                }
-            )
-            data = response.json()
-            items = data.get("items", [])
-            return [f"{item['title']}: {item.get('snippet', '')}" for item in items]
-        except Exception as e:
-            logger.error(f"[SEO] Search API error: {e}")
-            return ["(Lỗi khi kết nối Google Search API)"]
+            for attempt in range(len(self.search_keys)):
+                pair = await self._get_search_pair()
+                if not pair:
+                    continue
+                try:
+                    response = await client.get(
+                        "https://www.googleapis.com/customsearch/v1",
+                        params={
+                            "key": pair["key"],
+                            "cx": pair["cx"],
+                            "q": keyword,
+                            "num": 5
+                        },
+                        timeout=10.0
+                    )
+                    if response.status_code in (429, 403):
+                        logger.warning(f"[SEO] Search Key rate-limited ({response.status_code}), rotating...")
+                        continue  # Retry với key tiếp theo
+                    if response.status_code == 200:
+                        data = response.json()
+                        items = data.get("items", [])
+                        return [f"{item['title']}: {item.get('snippet', '')}" for item in items]
+                    logger.error(f"[SEO] Search API returned {response.status_code}")
+                    return [f"(Google Error {response.status_code})"]
+                except Exception as e:
+                    logger.error(f"[SEO] Search connection error (attempt {attempt+1}): {e}")
+                    continue
+            return ["(Cạn kiệt API Key Search — tất cả key đều lỗi)"]
+
+        # [CNS V90.0] Dùng shared cache: nếu Copyright vừa search cùng keyword → 0 Google call
+        return await _cached_search(query=keyword, fetch_fn=_do_fetch, num=5)
 
     async def analyze(self, campaign: ContentCampaign, force: bool = False) -> SeoReport:
         """

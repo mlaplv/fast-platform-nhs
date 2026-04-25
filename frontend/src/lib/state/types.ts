@@ -191,6 +191,7 @@ export interface CopyrightResult {
   uniqueness_score: number;
   risk_level?: string;
   annotations: AnalysisAnnotation[];
+  similar_sources?: string[];
   verdict: string;
 }
 
