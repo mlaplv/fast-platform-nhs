@@ -492,7 +492,7 @@ class SupportAgentState {
         customerName?: string, 
         customerPhone?: string, 
         userId?: string, 
-        cartItems?: any[], 
+        cartItems?: Array<{ product_id: string; quantity: number; [key: string]: unknown }>, 
         selectedVouchers?: string[],
         pricingContext?: SupportPricingContext
     ) {

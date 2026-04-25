@@ -26,7 +26,8 @@ export const load: PageServerLoad = async ({ fetch, locals }) => {
             headers: { 'x-tenant': tenantId },
             signal: AbortSignal.timeout(5000) // Rationale: Prevent "Neural Link" hang
         });
-    } catch (e: any) {
+    } catch (err: unknown) {
+        const e = err as Error;
         const isTimeout = e.name === 'TimeoutError' || e.message?.includes('timeout');
         console.error(`[ROOT FETCH FAILED] ${isTimeout ? 'TIMEOUT' : 'CONNECTION ERROR'}`);
         console.error(`URL: ${targetUrl}`);

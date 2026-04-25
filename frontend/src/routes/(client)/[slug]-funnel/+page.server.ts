@@ -25,10 +25,10 @@ export const load: PageServerLoad = async ({
             headers: { 'x-tenant': tenantId },
             signal: AbortSignal.timeout(5000)
         });
-    } catch (e: any) {
+    } catch (err: unknown) {
+        const e = err as Error;
         const isTimeout = e.name === 'TimeoutError' || e.message?.includes('timeout');
         console.error(`[FUNNEL FETCH FAILED] ${isTimeout ? 'TIMEOUT' : 'CONNECTION ERROR'}`);
-        console.error(`URL: ${targetUrl}`);
         
         throw error(isTimeout ? 504 : 503, {
             message: isTimeout 
@@ -36,7 +36,7 @@ export const load: PageServerLoad = async ({
                 : "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)",
             details: isTimeout 
                 ? "Vui lòng chờ giây lát và thử lại (Request timed out after 5s)."
-                : `Failed to reach API at ${apiUrl}. Please check infra config.`
+                : `Failed to reach API for funnel ${params.slug}.`
         });
     }
 

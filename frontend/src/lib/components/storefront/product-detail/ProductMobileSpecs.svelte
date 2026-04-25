@@ -165,7 +165,7 @@
     height: 120px;
     background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.8) 50%, white 100%);
     pointer-events: none;
-    z-index: 10;
+    z-index: var(--z-surface);
   }
 
   .expand-btn-elite {

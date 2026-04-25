@@ -222,7 +222,7 @@
   onmousemove={handleMouseMove}
   style:--mx="{springMouse.x}px" style:--my="{springMouse.y}px" style:--hero-accent="#C18F7E" style:--hero-glass-blur="64px"
 >
-  <div class="absolute inset-0 overflow-hidden pointer-events-none" style="z-index: 0;">
+  <div class="absolute inset-0 overflow-hidden pointer-events-none" style="z-index: var(--z-base);">
     {#if videoMode === 'local'}
       <video
         bind:this={videoEl}
@@ -248,7 +248,7 @@
     <div class="video-vignette-bottom"></div>
     <div class="video-vignette-radial"></div>
 
-    <div class="absolute inset-0 pointer-events-auto" style="z-index: 3;">
+    <div class="absolute inset-0 pointer-events-auto" style="z-index: var(--z-wave);">
       <EditableWrapper path="metadata.video_url" type="video" label="SỬA VIDEO NỀN">
         <span></span>
       </EditableWrapper>
@@ -337,7 +337,7 @@
                     </div>
                 </EditableWrapper>
 
-                <div class="absolute -bottom-16 left-0 right-0 flex justify-center gap-2 z-30">
+                <div class="absolute -bottom-16 left-0 right-0 flex justify-center gap-2" style="z-index: var(--z-content);">
                    {#each images as _, i}
                       <button
                         onclick={() => currentImageIndex = i}
