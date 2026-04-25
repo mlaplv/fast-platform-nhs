@@ -53,6 +53,10 @@ async def lifespan(app: Litestar):
     try:
         # 2. Pre-load Data into Hot Cache (R76: Scalar Projection Optimization)
         async with alchemy_config.create_session_maker()() as session:
+            # [Elite V2.2] Auto-Sync RBAC on Boot
+            from backend.services.user_service import user_service
+            await user_service.sync_rbac(session)
+
             # R76: Return only necessary columns to reduce RAM hydration
             stmt = select(
                 VoiceProfile.user_id,

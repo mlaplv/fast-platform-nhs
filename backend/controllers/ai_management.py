@@ -27,7 +27,7 @@ class AIManagementController(Controller):
     [ADMIN ONLY] AI Engine Configuration & Monitoring.
     """
     path = "/api/v1/admin/ai"
-    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
+    guards = [PermissionGuard(PermissionEnum.AI_CONFIG)]
     tags = ["AI Management"]
     
     _start_time = time.time()
@@ -107,14 +107,14 @@ class AIManagementController(Controller):
             vector_engine="trinity_core_v2.2"
         )
 
-    @post("/brain/sync")
+    @post("/brain/sync", guards=[PermissionGuard(PermissionEnum.AI_TRAIN)])
     async def sync_brain(self, db_session: "AsyncSession") -> SuccessResponse:
         """Re-calculate all knowledge embeddings."""
         await brain_manager.sync_all_embeddings(db_session)
         AIManagementController._last_sync = time.time()
         return SuccessResponse(ok=True)
 
-    @post("/brain/purge")
+    @post("/brain/purge", guards=[PermissionGuard(PermissionEnum.AI_TRAIN)])
     async def purge_brain(self, db_session: "AsyncSession") -> SuccessResponse:
         """Remove orphan embeddings and redundant nodes."""
         await brain_manager.purge_orphans(db_session)

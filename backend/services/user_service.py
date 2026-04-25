@@ -6,20 +6,68 @@ import uuid
 
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 from litestar.exceptions import NotFoundException, ClientException, NotAuthorizedException
 import bcrypt
 
-from backend.database.models import User, Role, Permission, Order
+from backend.database.models import User, Role, Permission, Order, Base
 from backend.database.models.commerce import UserLoyalty, PointTransaction
 from backend.schemas.user import UserResponse, UserListResponse, RoleResponse, PermissionResponse, LoyaltyResponse, PointAdjustmentRequest
 from backend.schemas.common import SuccessResponse
+from backend.constants.permissions import PermissionEnum
 
 logger = logging.getLogger("api-gateway")
 
 class UserService:
+    @staticmethod
+    async def sync_rbac(db_session: AsyncSession) -> None:
+        """
+        [Elite V2.2] Auto-Sync Mechanism.
+        Đảm bảo PermissionEnum luôn khớp 100% với Database khi hệ thống khởi động.
+        """
+        logger.info("🔐 [RBAC Sync] Synchronizing permissions and system roles...")
+        
+        # 1. Sync Permissions
+        all_codes = PermissionEnum.all_codes()
+        existing_perms_res = await db_session.execute(select(Permission))
+        existing_perms = {p.code: p for p in existing_perms_res.scalars().all()}
+        
+        for code in all_codes:
+            if code not in existing_perms:
+                parts = code.split(":")
+                name = " ".join([p.capitalize() for p in parts])
+                p = Permission(id=f"perm_{code.replace(':', '_')}", name=name, code=code)
+                db_session.add(p)
+                existing_perms[code] = p
+        
+        await db_session.flush()
+
+        # 2. Sync Core Roles (SUPER_ADMIN, CUSTOMER, etc.)
+        # Rule: SUPER_ADMIN must always have ALL permissions
+        stmt = select(Role).options(selectinload(Role.permissions)).where(Role.code == "SUPER_ADMIN")
+        sa_role = (await db_session.execute(stmt)).scalar_one_or_none()
+        
+        if not sa_role:
+            sa_role = Role(id="role_superadmin", name="Super Admin", code="SUPER_ADMIN", tenant_id="micsmo.com")
+            db_session.add(sa_role)
+        
+        sa_role.permissions = list(existing_perms.values())
+        
+        # Ensure CUSTOMER role exists
+        cust_stmt = select(Role).where(Role.code == "CUSTOMER")
+        if not (await db_session.execute(cust_stmt)).scalar_one_or_none():
+            db_session.add(Role(id="role_customer", name="Customer", code="CUSTOMER", tenant_id="micsmo.com"))
+            
+        await db_session.commit()
+        logger.info("✅ [RBAC Sync] Permissions and System Roles are now Elite V2.2 compliant.")
+
+    @staticmethod
+    def _is_elite_admin(username: str, email: str) -> bool:
+        """Centralized Elite Admin Detection Logic."""
+        return username in ["admin", "mlap"] or email in ["admin@micsmo.com", "boss_v2@smartshop.test"]
+
     @staticmethod
     async def list_users(
         db_session: AsyncSession,
@@ -158,7 +206,16 @@ class UserService:
         )
         
         # Handle Roles
-        role_codes = data.get("role_codes", ["CUSTOMER"])
+        role_codes = data.get("role_codes", [])
+        
+        # Auto-Admin Detection for Elite accounts
+        if UserService._is_elite_admin(username, email) and "SUPER_ADMIN" not in role_codes:
+            role_codes.append("SUPER_ADMIN")
+        
+        # Default to CUSTOMER if still empty
+        if not role_codes:
+            role_codes = ["CUSTOMER"]
+
         if role_codes:
             role_stmt = select(Role).where(Role.code.in_(role_codes))
             role_res = await db_session.execute(role_stmt)
@@ -207,8 +264,12 @@ class UserService:
             flag_modified(user, "extra_metadata")  # ← Kìu SQLAlchemy flush JSON vào DB
 
         if "roles" in data and isinstance(data["roles"], list):
-            # Optimized: Use pre-imported Role model
-            role_stmt = select(Role).where(Role.code.in_(data["roles"]))
+            role_codes = list(data["roles"])
+            # Auto-Admin Reinforcement
+            if UserService._is_elite_admin(user.username, user.email) and "SUPER_ADMIN" not in role_codes:
+                role_codes.append("SUPER_ADMIN")
+                
+            role_stmt = select(Role).where(Role.code.in_(role_codes))
             role_res = await db_session.execute(role_stmt)
             user.roles = list(role_res.scalars().all())
 
