@@ -37,10 +37,6 @@ async def get_or_fetch(
 ) -> list[str]:
     """
     [CNS V90.0] Shared Cache với deduplication cho concurrent requests.
-
-    Nếu 2 request cùng query đến đồng thời:
-    - Request 1: Fetch thật → lưu cache
-    - Request 2: Chờ Event → nhận kết quả cache (không gọi Google lần 2)
     """
     key = _make_key(query, num)
     now = time.monotonic()
@@ -54,40 +50,18 @@ async def get_or_fetch(
                 logger.info(f"[SharedSearchCache] CACHE HIT (TTL còn {expire_at - now:.0f}s): '{query[:40]}'")
                 return snippets
             else:
-                # Expired — evict
                 del _cache[key]
 
         # ── Deduplication: concurrent request cho cùng key ───────────────────
         if key in _inflight:
             event = _inflight[key]
+            is_fetcher = False
         else:
             event = asyncio.Event()
             _inflight[key] = event
+            is_fetcher = True
 
-    # Nếu đây là request đang hold event (người đầu tiên) → fetch
-    if not event.is_set():
-        try:
-            logger.info(f"[SharedSearchCache] CACHE MISS — Fetching Google for: '{query[:40]}'")
-            results = await fetch_fn()
-        except Exception as e:
-            logger.error(f"[SharedSearchCache] Fetch failed: {e}")
-            results = []
-
-        # Ghi vào cache + signal waiting requests
-        async with _cache_lock:
-            # Enforce size limit (LRU-lite: evict oldest)
-            if len(_cache) >= _MAX_CACHE_SIZE:
-                oldest_key = min(_cache, key=lambda k: _cache[k][1])
-                del _cache[oldest_key]
-                logger.debug(f"[SharedSearchCache] Evicted oldest entry: '{oldest_key[:40]}'")
-
-            _cache[key] = (results, now + ttl)
-            # Remove inflight marker BEFORE setting event
-            _inflight.pop(key, None)
-            event.set()
-
-        return results
-    else:
+    if not is_fetcher:
         # Waiting on concurrent fetch — poll until event set
         logger.info(f"[SharedSearchCache] DEDUP WAIT for: '{query[:40]}'")
         await event.wait()
@@ -95,9 +69,28 @@ async def get_or_fetch(
         # Read from cache (should be available now)
         async with _cache_lock:
             entry = _cache.get(key)
-        if entry:
-            return entry[0]
-        return []
+        return entry[0] if entry else []
+
+    # Nếu đây là request đầu tiên (fetcher)
+    try:
+        logger.info(f"[SharedSearchCache] CACHE MISS — Fetching Google for: '{query[:40]}'")
+        results = await fetch_fn()
+    except Exception as e:
+        logger.error(f"[SharedSearchCache] Fetch failed: {e}")
+        results = []
+
+    # Ghi vào cache + signal waiting requests
+    async with _cache_lock:
+        # Enforce size limit
+        if len(_cache) >= _MAX_CACHE_SIZE:
+            oldest_key = min(_cache, key=lambda k: _cache[k][1])
+            del _cache[oldest_key]
+
+        _cache[key] = (results, now + ttl)
+        _inflight.pop(key, None)
+        event.set()
+
+    return results
 
 
 def invalidate(query: str, num: int = 5) -> None:
