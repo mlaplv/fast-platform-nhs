@@ -9,44 +9,52 @@
     tab: 'copyright' | 'seo' | 'ai' | 'enrich' | null;
     phaseIndex: number;
     phaseProgress: number;
+    realStep?: number | null;
     logs?: string[];
   }
 
-  let { tab, phaseIndex, phaseProgress, logs = [] }: Props = $props();
+  let { tab, phaseIndex, phaseProgress, realStep = null, logs = [] }: Props = $props();
+
+  const effectiveIndex = $derived(realStep !== null ? realStep : phaseIndex);
 
   const accentMap = {
     copyright: '#f97316',
     seo: '#3b82f6',
     enrich: '#ec4899',
-    ai: '#a855f7'
+    ai: '#a855f7',
+    rewrite: '#06b6d4'
   };
 
   const accentBgMap = {
     copyright: 'from-orange-950/80',
     seo: 'from-blue-950/80',
     enrich: 'from-pink-950/80',
-    ai: 'from-purple-950/80'
+    ai: 'from-purple-950/80',
+    rewrite: 'from-cyan-950/80'
   };
 
   const accentBorderMap = {
     copyright: 'border-orange-500/20',
     seo: 'border-blue-500/20',
     enrich: 'border-pink-500/20',
-    ai: 'border-purple-500/20'
+    ai: 'border-purple-500/20',
+    rewrite: 'border-cyan-500/20'
   };
 
   const labelMap = {
     copyright: 'Plagiarism Cop™',
     seo: 'SEO Strategist™',
     enrich: 'AI Booster™',
-    ai: 'Viral Edge™'
+    ai: 'Viral Edge™',
+    rewrite: 'Neural Rewriter™'
   };
 
   const estimateMap = {
     copyright: 'Kết nối Google Search API + Gemini...',
     seo: 'So sánh Top 5 đối thủ real-time...',
     enrich: 'Injecting Real-world data & Expert Quotes...',
-    ai: '8 tiêu chí Viral Edge đang chạy...'
+    ai: '8 tiêu chí Viral Edge đang chạy...',
+    rewrite: 'Tái cấu trúc nội dung với Brain Engine...'
   };
 
   const accent = $derived(accentMap[tab || 'copyright']);
@@ -80,9 +88,9 @@
 
   <div class="flex flex-col gap-1.5">
     {#each phases as phase, i}
-      {@const isDone = i < phaseIndex}
-      {@const isActive = i === phaseIndex}
-      {@const isPending = i > phaseIndex}
+      {@const isDone = i < effectiveIndex}
+      {@const isActive = i === effectiveIndex}
+      {@const isPending = i > effectiveIndex}
       <div class="flex items-center gap-2.5 transition-all duration-300 {isPending ? 'opacity-25' : 'opacity-100'}">
         <div class="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[10px] transition-all duration-300 {isDone ? 'shadow-glow' : isActive ? 'ring-pulse' : ''}"
           style="{isDone ? `background:${accent}30; border:1px solid ${accent}60` : isActive ? `background:${accent}15; border:1px solid ${accent}40` : 'background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08)'}">
@@ -105,6 +113,17 @@
     {/each}
   </div>
 
+
+  {#if logs.length > 0}
+    <div class="mt-4 pt-3 border-t border-white/5 flex flex-col gap-1 max-h-[80px] overflow-y-auto custom-scrollbar">
+      {#each logs.slice(-5) as log}
+        <div class="flex gap-2 text-[8px] font-mono opacity-40">
+          <span style="color:{accent}">[NEURAL]</span>
+          <span class="text-white/80">{log}</span>
+        </div>
+      {/each}
+    </div>
+  {/if}
 
   <div class="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
     <span class="text-[8px] text-white/20 italic">{estimateMap[tab || 'copyright']}</span>

@@ -9,9 +9,19 @@ import Color from '@tiptap/extension-color';
 import FontFamily from '@tiptap/extension-font-family';
 import CharacterCount from '@tiptap/extension-character-count';
 import Typography from '@tiptap/extension-typography';
+import { ListItem } from '@tiptap/extension-list';
 import { AnnotationExtension } from './AnnotationPlugin';
 import { Div } from './DivExtension';
 import { Span } from './SpanExtension';
+import { neuralCleanPastedHTML } from '../utils/editorUtils';
+
+/**
+ * [CNS V92.0] Neural ListItem: Allows inline content to prevent redundant <p> wrapping.
+ * This directly addresses the "li > p" noise issue.
+ */
+const NeuralListItem = ListItem.extend({
+  content: 'inline*',
+});
 
 export const getEditorExtensions = (placeholderText: string = 'Start writing...') => [
   StarterKit.configure({
@@ -24,8 +34,10 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
       levels: [1, 2, 3, 4]
     },
     link: false,
-    underline: false
+    underline: false,
+    listItem: false, // Disable default to use our Neural version
   }),
+  NeuralListItem,
   Typography,
   Underline,
   Link.configure({
@@ -118,4 +130,7 @@ export const editorProps = {
   attributes: {
     class: 'focus:outline-none w-full',
   },
+  transformPastedHTML(html: string) {
+    return neuralCleanPastedHTML(html);
+  }
 };

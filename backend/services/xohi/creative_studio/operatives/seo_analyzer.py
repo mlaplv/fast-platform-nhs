@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.utils.http_client import get_http_client
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
-from backend.services.ai_engine.core.agent_base import BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin
+from backend.services.ai_engine.core.agent_base import BaseAgentOperative, SearchKeyMixin
 from backend.services.xohi.creative_studio.models.schemas import SeoReport, SeoSignal, SeoAnnotation, BulkFixRequest, BulkFixResponse, AtomicFixResponse
 from backend.services.xohi.creative_studio.utils.stitcher import surgical_stitch
 from backend.database.repositories import ContentCampaignRepository
@@ -22,7 +22,8 @@ from backend.utils.config import get_env_json
 from backend.services.event_bus import event_bus
 from sqlalchemy.orm.attributes import flag_modified
 from backend.utils.text import extract_readable_text, is_json
-from .content_enricher import ContentEnricher
+from backend.services.xohi.prompts import composer
+from backend.services.xohi.prompts.shields.service import shield_service
 
 logger = logging.getLogger("api-gateway")
 
@@ -39,76 +40,25 @@ KEYWORD_DENSITY_MIN = 0.5
 MIN_WORDS_FOR_DENSITY = 50
 STUFFING_STRICTNESS = 3
 
-# ══════════════════════════════════════════════════════════════
-# SYSTEM PROMPT — AI SEO Judge 2026
-# ══════════════════════════════════════════════════════════════
-
-SEO_ANALYSIS_PROMPT = """[ROLE] SENIOR SEO STRATEGIST — Neural XoHi Elite V2.2
-Nhiệm vụ: Phân tích SEO dựa trên Information Gain và Search Intent. Tuyệt đối không viết chung chung vô giá trị.
-
-[QUY TẮC BÁO CÁO — ELITE PROTOCOL]
-1. 🚫 KHÔNG DÙNG LỜI MỞ ĐẦU/KẾT THÚC: Đi thẳng vào phân tích dữ liệu.
-2. 🚫 KHÔNG DÙNG DẤU BA SAO (***): Sử dụng tiêu đề Markdown hoặc danh sách chuẩn.
-3. 📊 PHÂN TÍCH ĐỐI THỦ: Phải chỉ ra ĐỐI THỦ (Nguồn cạnh tranh) đang làm tốt hơn ở điểm nào (Ví dụ: 'Nguồn A có bảng so sánh giá, bài này chỉ có text').
-4. 🔪 GIẢI PHÁP PHẪU THUẬT: Đưa ra hành động cụ thể (Ví dụ: 'Bổ sung bảng thông số kỹ thuật ngay sau H2').
-
-[YÊU CẦU ĐẦU RA — JSON]
-{
-  "total_score": <int 0-100>,
-  "grade": "<A|B|C|D|F>",
-  "signals": [<7 SeoSignal objects>],
-  "summary": "BẢN TRÌNH BÁO CHIẾN LƯỢC SEO (Elite V2.2)\\n\\n- **[PHẢN BIỆN INTENT]**: Phân tích vì sao bài viết chưa thỏa mãn người dùng so với đối thủ TOP 1.\\n- **[CHỨNG CỨ THIẾU HỤT]**: Liệt kê các thực thể/số liệu mà đối thủ có nhưng bài này thiếu.\\n- **[PHƯƠNG ÁN PHẪU THUẬT]**: Bước 1: [Làm gì], Bước 2: [Làm gì] để đạt TOP 1.",
-  "quick_wins": [],
-  "seo_annotations": [
-    {
-      "type": "<type>",
-      "text": "<cụm từ nguyên văn>",
-      "message": "<Phân tích lỗi sắc bén + Giải pháp sửa đổi cụ thể>",
-      "severity": "<severity>"
-    }
-  ]
-}
-"""
-
-ATOMIC_SEO_SURGEON_PROMPT = """[ROLE] SENIOR SEO SURGEON — Elite V2.2
-Nhiệm vụ: Sửa các đoạn văn bản bị lỗi SEO (thiếu từ khóa, nhồi nhét từ khóa, sai intent, thiếu LSI keywords).
-Mục tiêu:
-1. Sửa đoạn văn bản [CẦN SỬA] dựa trên [LỖI SEO] tương ứng.
-2. Tuyệt đối giữ nguyên cấu trúc HTML, chỉ thay đổi text bên trong.
-3. Chèn từ khóa một cách tự nhiên, không gượng ép. Tăng tính semantic và information gain.
-4. KHÔNG giải thích, CHỈ TRẢ VỀ JSON theo format:
-{
-  "replacements": [
-    {
-      "id": 1,
-      "new_text": "<đoạn HTML đã sửa cho ID 1>"
-    }
-  ]
-}
-"""
-
 
 class SeoAnalyzerTaskRequest(BaseModel):
     """Worker task payload for SeoAnalyzer."""
     campaign_id: str
     force: bool = False
 
-class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
+class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin):
     """
     On-Demand SEO Analyzer for Step 4 Content Studio — 2026 Edition.
-    Uses Gemini AI to evaluate content against 7 modern ranking signals.
-    Returns per-passage seo_annotations for inline editor highlighting.
+    Elite V2.2: Context-Aware with Neural Prompt Orchestration (NPO).
     """
     agent_id_class = "seo_analyzer"
     # [CNS V90.0] Tăng từ Semaphore(1) → (3): cho phép 3 user phân tích SEO song song.
-    # Rule P6: Semaphore(1) quá strict, gây queue starvation multi-user.
     _seo_semaphore = asyncio.Semaphore(3)
 
     def __init__(self, **kwargs: object):
         super().__init__(agent_id="seo_analyzer")
-        # BUG-07 fix: Cache Agent at class scope — R1.6 prohibits per-request Agent creation
-        self._agent = Agent(output_type=SeoReport, system_prompt=SEO_ANALYSIS_PROMPT, retries=3)
-        self._atomic_surgeon_agent = Agent(output_type=AtomicFixResponse, system_prompt=ATOMIC_SEO_SURGEON_PROMPT, retries=2)
+        self._agent = Agent(output_type=SeoReport, retries=3)
+        self._atomic_surgeon_agent = Agent(output_type=AtomicFixResponse, retries=2)
 
     # Heritage Mixin handles _emit_progress
 
@@ -200,8 +150,10 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             draft = extract_readable_text(original_draft)
             word_count = len(draft.split())
             now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
+            self.current_step = 0
             logs = [f"🚀 [{now_str}] [SCAN] Khởi động Neural SEO Engine... Đang phân tích {word_count} từ."]
             await self._emit_progress(campaign, logs[-1])
+            logger.warning(f"🚀 [SeoAnalyzer] Initializing [SCAN] Phase (word_count={word_count})...")
             
             # Phase 76.3: Unified Logic-First Sanitization
             logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [CLEAN] Đang tối ưu cấu trúc HTML & làm sạch dữ liệu nhiễu...")
@@ -212,6 +164,8 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             # Topic Detection
             logs.append(f"📡 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [RECON] Đang xác định chủ đề mục tiêu và thực thể SEO...")
             await self._emit_progress(campaign, logs[-1])
+            self.current_step = 1
+            logger.warning(f"📡 [SeoAnalyzer] Starting [RECON] Topic Detection & Competitor Search...")
             raw_topic = campaign.get_gold_val("topic")
             if raw_topic:
                 topic = raw_topic
@@ -232,20 +186,44 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             
             logs.append(f"🧠 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [JUDGE] Đang chấm điểm 7 tín hiệu SEO bằng Neural Core V2.2...")
             await self._emit_progress(campaign, logs[-1])
+            self.current_step = 2
+            logger.warning(f"🧠 [SeoAnalyzer] Entering [JUDGE] Phase (Brain response pending)...")
             # Logic Layer: Pass data to AI judge
             user_input = f"""
 [BÀI VIẾT ĐANG CHẤM]
 CHỦ ĐỀ: {topic}
 DRAFT:
-{clean_draft[:MAX_CONTENT_TOKENS]}  # CNS V76: Clip for token safety
+{clean_draft[:MAX_CONTENT_TOKENS]}
 
 [ĐỐI THỦ CẠNH TRANH TOP GOOGLE]
 {competitor_str}
 """
+            
+            # [CNS-V89] Resolve Context via Centralized Intelligence
+            context = await self._resolve_xohi_context(campaign, draft, "seo")
+            await self._emit_progress(campaign, context["log_msg"])
+
+            logs.append(f"🛡️ [ROLE] Đã xác nhận phân vai tác chiến: {context['role_assignment']}")
+            await self._emit_progress(campaign, logs[-1])
+
+            logs.append(f"🛡️ [SHIELD] Đã kích hoạt SGE Shield V2.1 (Anti-AI Footprint)")
+            await self._emit_progress(campaign, logs[-1])
+
+            is_adhoc = str(getattr(campaign, "id", "adhoc")) == "adhoc"
+            logs.append(f"🛡️ [SAFETY] Chế độ Ad-hoc Safety: {'ACTIVE' if is_adhoc else 'CAMPAIGN_MODE'}")
+            await self._emit_progress(campaign, logs[-1])
+            
+            shield = shield_service.get_shield_component(seed=str(getattr(campaign, "id", "adhoc")))
+            composer.register_component(shield)
+            
+            # ELITE V2.2: Use extra_components to maintain thread-safety
+            system_prompt = composer.compose("seo_analysis", context=context, extra_components=[shield.id])
+
             # CNS V76: Use ROLE_BRAIN for High-IQ Analysis
             response = await trinity_bridge.run(
                 agent=self._agent, 
                 prompt=user_input, 
+                system_prompt=system_prompt,
                 role="brain",
                 timeout=180.0
             )
@@ -254,7 +232,7 @@ DRAFT:
             
             # Phase 73.20: Deterministic Override for Keyword Density (Must use pure_text!)
             primary_kw = campaign.get_gold_val("topic")
-            enrich_annotations = ContentEnricher.detect_annotations(draft)
+            enrich_annotations = self.detect_enrichment_annotations(draft)
             
             if hasattr(report, 'seo_annotations'):
                 report.seo_annotations.extend(enrich_annotations)
@@ -268,8 +246,10 @@ DRAFT:
                 elif isinstance(report, dict) and 'seo_annotations' in report:
                     report['seo_annotations'].extend(extra_annotations)
             
-            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phân tích SEO hoàn tất! {len(getattr(report, 'seo_annotations', []))} điểm cải tiến chiến thuật.")
+            self.current_step = 3
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phân tích SEO hoàn tất! {len(getattr(report, 'seo_annotations', []))} điểm cải tiến chiến thuật. ĐÃ XỬ LÝ XONG")
             await self._emit_progress(campaign, logs[-1])
+            logger.warning(f"✅ [SeoAnalyzer] [QUANTUM] Completed. Score: {report.total_score}")
             # Elite V2.2: Prepend report timestamp to summary for traceability
             report_time = datetime.now(timezone.utc).strftime('%H:%M:%S %d/%m/%Y')
             time_badge = f"> [!IMPORTANT]\n> **THỜI GIAN LẬP BÁO CÁO:** {report_time}\n\n"
@@ -291,7 +271,18 @@ DRAFT:
         count = plain_text.lower().count(primary.lower())
         kw_density = (count / total_words) * 100
         
-        if kw_density > KEYWORD_DENSITY_MAX:
+        # ELITE V2.2: Sliding Max Density
+        # < 150 words: 5.0% (Allow more product name repetition)
+        # 150 - 500 words: 4.0%
+        # > 500 words: 3.0% (Strict SEO standard)
+        if total_words < 150:
+            dynamic_max = 5.0
+        elif total_words < 500:
+            dynamic_max = 4.0
+        else:
+            dynamic_max = KEYWORD_DENSITY_MAX
+
+        if kw_density > dynamic_max:
             # Find a sentence with keyword stuffing
             sentences = re.split(r'[.!?]', plain_text)
             kw_pattern = re.compile(re.escape(primary.lower()), re.IGNORECASE)
@@ -299,7 +290,7 @@ DRAFT:
             annotations.append(SeoAnnotation(
                 type="keyword_stuffing",
                 text=stuffed[:120] if stuffed else "",
-                message=f"🚫 Mật độ từ khóa quá cao ({kw_density:.1f}%) — Google 2026 penalize keyword stuffing. BẮT BUỘC XÓA bớt từ khóa '{primary}' hoặc thay bằng từ đồng nghĩa để giảm mật độ xuống 1-2%.",
+                message=f"🚫 Mật độ từ khóa quá cao ({kw_density:.1f}% > {dynamic_max}%) — Google 2026 penalize keyword stuffing. BẮT BUỘC XÓA bớt từ khóa '{primary}' hoặc thay bằng từ đồng nghĩa để giảm mật độ xuống an toàn.",
                 severity="error"
             ))
         elif kw_density < KEYWORD_DENSITY_MIN and primary:
@@ -313,8 +304,10 @@ DRAFT:
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
         now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
+        self.current_step = 0
         logs = [f"🚀 [{now_str}] [SEO SURGEON] Initializing Neural SEO Surgeon (Elite V2.2)..."]
         await self._emit_progress(campaign, logs[-1])
+        logger.warning(f"🚀 [SeoAnalyzer] Initializing [SEO SURGEON] Phase 0...")
         
         original_draft = campaign.draft_content or ""
         if not is_json(original_draft):
@@ -337,10 +330,22 @@ DRAFT:
 
         logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [SCAN] Ingesting {len(valid_items)} SEO weaknesses into AI Surgeon...")
         await self._emit_progress(campaign, logs[-1])
-        prompt = f"{ATOMIC_SEO_SURGEON_PROMPT}\n\n[CẦN SỬA]\n{snippet_list}"
+        self.current_step = 1
+        logger.warning(f"🔍 [SeoAnalyzer] Phase 1: [SCAN] SEO Weakness ingestion complete.")
+        
+        self.current_step = 2
+        logger.warning(f"🧠 [SeoAnalyzer] Phase 2: [BRAIN] SEO Surgery pending...")
+        
+        shield = shield_service.get_shield_component(seed=campaign.id)
+        composer.register_component(shield)
+        
+        # ELITE V2.2: Use extra_components to maintain thread-safety
+        system_prompt = composer.compose("seo_surgeon", extra_components=[shield.id])
+
+        prompt = f"[CẦN SỬA]\n{snippet_list}"
         
         try:
-            res = await trinity_bridge.run(self._atomic_surgeon_agent, prompt, role="fast", timeout=120.0)
+            res = await trinity_bridge.run(self._atomic_surgeon_agent, prompt, system_prompt=system_prompt, role="fast", timeout=120.0)
             raw = res
             if hasattr(raw, 'data') and not hasattr(raw, 'replacements'):
                 raw = raw.data
@@ -359,8 +364,11 @@ DRAFT:
                             replacements_log.append({"old_text": old, "new_text": new})
                             logs.append(f"✅ [SEO SURGEON] Optimized: \"{old[:40]}...\"")
                             await self._emit_progress(campaign, logs[-1])
-            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phẫu thuật SEO hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn.")
+            self.current_step = 3
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phẫu thuật SEO hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn. ĐÃ XỬ LÝ XONG")
             await self._emit_progress(campaign, logs[-1])
+            logger.warning(f"✅ [SeoAnalyzer] [QUANTUM] Bulk fix complete.")
+            final_content = self.clean_ai_html(final_content)
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
             logger.error(f"[SeoAnalyzer] Bulk fix failed: {e}")

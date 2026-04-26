@@ -5,6 +5,27 @@ All notable changes to the **Fast Platform Core** project will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [22.4.26.01] - 2026-04-26
+### Added
+- **Neural Prompt Orchestration (NPO) V2.2:** Centralized prompt management architecture ("The Vault") with dynamic composition engine.
+- **SGE Shield V2.1:** Upgraded AI Footprint Entropy and Lexical Sanitization to bypass search engine AI detection.
+- **Sliding Keyword Density (CNS V90.0):** Implemented dynamic SEO density thresholds based on word count (5% for short, 3% for long) to eliminate false positives in product descriptions.
+- **Shared Search Cache Full Pipeline:** Integrated `DiscoveryHunter` into the shared search cache, achieving up to 66% reduction in Google Search API quota usage.
+- **JSON-Aware Surgical Stitching:** Hardened the `surgical_stitch` utility to safely patch creative outputs stored in JSON format (Interactive Dashboard ready).
+- **Prompt Composer Engine:** Modular architecture for assembling prompts from Core Constitution, Agent Personas, Niche Mixins, and Security Shields.
+
+### Changed
+- **Operative Refactoring:** Migrated `NeuralRewriter`, `CreativePen`, `PlagiarismCop`, `SeoAnalyzer`, and `AiInspector` to the NPO framework, eliminating 100% of hardcoded prompts in service logic.
+- **NeuralRewriter NPO Migration:** Fully refactored `NeuralRewriter` to use the Prompt Vault, adding JSON-specific sanitization for Hero Headlines and Benefits.
+- **Type-Safety Hardening:** Fixed critical `ClientUiState` and `Voucher` typing errors in the Svelte 5 frontend.
+- **Infrastructure:** Corrected Alembic migration paths and synchronized database schema via `uv`.
+
+### Fixed
+- **Circular Import:** Resolved `ImportError` in `PlagiarismSurgeon` caused by self-referencing imports during arq worker initialization.
+- **CSS Precedence:** Resolved `@import` ordering and path issues in `admin.css`.
+- **UI Data Flow:** Fixed broken voucher saved-value calculation and auth callback modal cleanup.
+- **Code Rot Purge:** Eliminated duplicated methods in `CreativePen` and `NeuralRewriter` and removed 15+ unused legacy prompt files.
+
 ## [22.4.24.01] - 2026-04-24
 ### Added
 - **Neural Content Persistence (Elite V2.2):** Unified the persistence layer for diagnostic intelligence across the stack.

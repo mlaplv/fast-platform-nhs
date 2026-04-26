@@ -38,6 +38,7 @@
     isRewriting = false,
     runBulkFix = null,
     analysisData,
+    currentAnalysisStep,
     streamingText = '',
     streamingTarget = null,
     userPlanNote = $bindable(''),
@@ -56,7 +57,8 @@
     isBulkFixing: boolean;
     isRewriting?: boolean;
     runBulkFix?: (() => void) | null;
-    analysisData: NeuralAnalysisData | null;
+    analysisData: NeuralAnalysisController | null;
+    currentAnalysisStep: number | null;
     streamingText?: string;
     streamingTarget?: string | null;
     userPlanNote?: string;
@@ -167,7 +169,7 @@
      </div>
 
      <!-- AI Thinking Logs (Unified HUD Layer) -->
-     {#if isBulkFixing || (bulkFixLogs?.length > 0 && activeAction.id.includes('fix')) || (activeAction.id === 'clean' && activeAction.loading)}
+     {#if activeAction.loading || isBulkFixing || bulkFixLogs?.length > 0}
         <div class="px-0 py-0.5 border-b border-white/5">
            <div class="bg-black/60 p-3 max-h-40 overflow-y-auto custom-scrollbar flex flex-col gap-1.5 relative group">
               <div class="absolute top-2 right-2 flex gap-1">
@@ -218,6 +220,7 @@
              isRewriting={isRewriting}
              runNeuralRewrite={analysisData?.runNeuralRewrite}
              bind:userPlanNote={userPlanNote}
+             currentAnalysisStep={currentAnalysisStep}
           />
         </div>
      </div>

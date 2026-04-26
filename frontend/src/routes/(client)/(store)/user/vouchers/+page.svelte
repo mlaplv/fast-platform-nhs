@@ -5,7 +5,7 @@
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { apiClient } from '$lib/utils/apiClient';
-  import type { Voucher } from '$lib/types/commerce/checkout';
+  import type { Voucher } from '$lib/types';
   import VoucherWalletCard from '$lib/components/storefront/user/vouchers/VoucherWalletCard.svelte';
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
   import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';

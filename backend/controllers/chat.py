@@ -9,6 +9,7 @@ from litestar.middleware.rate_limit import RateLimitConfig
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete as sqlalchemy_delete, func
+from sqlalchemy.exc import IntegrityError
 
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
@@ -46,7 +47,15 @@ class ChatController(Controller):
             content=data.content,
             modality=data.modality
         )
-        await db_session.commit()
+        try:
+            await db_session.commit()
+        except IntegrityError as e:
+            logger.error(f"❌ [ChatController] Integrity violation: {e}")
+            await db_session.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail="Dữ hiệu không hợp lệ. Phiên làm việc hoặc ID người dùng không tồn tại."
+            )
         return res
 
 

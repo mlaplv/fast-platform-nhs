@@ -15,7 +15,7 @@ logger = logging.getLogger("api-gateway")
 from backend.utils.security import mask_pii
 
 class PulseStreamController(Controller):
-    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
+    guards = [PermissionGuard(PermissionEnum.CONTENT_READ)]
     """
     R82.32: Agent Pulse SSE Endpoint.
     Streams system-wide events (Progress, Completion, Alerts) to the UI in real-time.

@@ -76,9 +76,9 @@ class SystemReview(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     content: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="PENDING", index=True)
 
-    # Elite V2.2: Rich Meta & Attachments
-    attributes: Mapped[Optional[dict[str, object]]] = mapped_column(JSON, nullable=True) # e.g. {"Thấm thấu": "Tham nhanh", ...}
-    attachments: Mapped[Optional[list[dict[str, object]]]] = mapped_column(JSON, nullable=True) # e.g. [{"url": "...", "type": "image"}]
+    # Elite V2.2: Rich Meta & Attachments (Explicit JSONB for Postgres Performance)
+    attributes: Mapped[Optional[dict[str, object]]] = mapped_column(sa.dialects.postgresql.JSONB, nullable=True) # e.g. {"Thấm thấu": "Tham nhanh", ...}
+    attachments: Mapped[Optional[list[dict[str, object]]]] = mapped_column(sa.dialects.postgresql.JSONB, nullable=True) # e.g. [{"url": "...", "type": "image"}]
     likes_count: Mapped[int] = mapped_column(Integer, default=0)
     
     __table_args__ = (

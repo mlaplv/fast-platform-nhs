@@ -6,6 +6,7 @@
   import AnalysisResultCopyright from "./AnalysisResultCopyright.svelte";
   import AnalysisResultSEO from "./AnalysisResultSEO.svelte";
   import AnalysisResultAI from "./AnalysisResultAI.svelte";
+import AnalysisLocked from "./AnalysisLocked.svelte";
 
   let {
     activeTab, copyrightResult, isCopyrightLoading, seoResult, isSeoLoading,
@@ -18,6 +19,7 @@
     isRewriting = false,
     runNeuralRewrite,
     userPlanNote = $bindable(''),
+    currentAnalysisStep = null,
   }: {
     activeTab: 'copyright' | 'seo' | 'ai' | 'enrich' | null;
     copyrightResult: CopyrightResult | null; isCopyrightLoading: boolean;
@@ -34,6 +36,7 @@
     isRewriting?: boolean;
     runNeuralRewrite?: () => Promise<void>;
     userPlanNote?: string;
+    currentAnalysisStep?: number | null;
   } = $props();
 
   let isFixing = $state<string | null>(null);
@@ -49,7 +52,31 @@
     else if (activeTab === 'copyright' && isCopyrightLoading) phaseCtrl.startPhaseEngine('copyright');
     else if (activeTab === 'seo' && isSeoLoading) phaseCtrl.startPhaseEngine('seo');
     else if (activeTab === 'ai' && isAiLoading) phaseCtrl.startPhaseEngine('ai');
+    else if (isRewriting) phaseCtrl.startPhaseEngine('rewrite');
     else phaseCtrl.clearTimers();
+  });
+  let lastTriggeredTab = $state<string | null>(null);
+  $effect(() => {
+    if (isLoading || isBulkFixing || isRewriting || !activeTab) return;
+    if (activeTab === lastTriggeredTab) return;
+    
+    // CNS V91.2: Auto-trigger analysis if tab is active but no results exist
+    if (activeTab === 'copyright' && !copyrightResult && !isCopyrightLoading && runCopyrightCheck) {
+      lastTriggeredTab = 'copyright';
+      runCopyrightCheck();
+    } else if (activeTab === 'seo' && !seoResult && !isSeoLoading && runSeoAnalysis) {
+      lastTriggeredTab = 'seo';
+      runSeoAnalysis();
+    } else if (activeTab === 'ai' && !aiReadyResult && !isAiLoading && runAiAnalysis) {
+      lastTriggeredTab = 'ai';
+      runAiAnalysis();
+    }
+  });
+
+  $effect(() => {
+    if (isLoading && activeTab) {
+      phaseCtrl.syncWithLogs(bulkFixLogs, activeTab);
+    }
   });
 
   onDestroy(() => phaseCtrl.clearTimers());
@@ -64,7 +91,8 @@
     (activeTab === 'copyright' && isCopyrightLoading) ||
     (activeTab === 'seo' && isSeoLoading) ||
     (activeTab === 'ai' && isAiLoading) ||
-    (activeTab === 'enrich' && isBoosting)
+    (activeTab === 'enrich' && isBoosting) ||
+    isRewriting
   );
 
   // ── CNS V87.0: Dashboard removal — Cleaned up unused metrics ────────
@@ -75,7 +103,7 @@
 
   <!-- ── Panel Content ── -->
   {#if isLoading}
-    <AnalysisLoading tab={activeTab} phaseIndex={phaseCtrl.phaseIndex} phaseProgress={phaseCtrl.phaseProgress} logs={bulkFixLogs} />
+    <AnalysisLoading tab={isRewriting ? 'rewrite' : activeTab} phaseIndex={phaseCtrl.phaseIndex} phaseProgress={phaseCtrl.phaseProgress} realStep={currentAnalysisStep} logs={bulkFixLogs} />
   {:else if activeTab === 'copyright'}
     {#if copyrightResult}
       <AnalysisResultCopyright
@@ -85,27 +113,66 @@
         bind:userPlanNote={userPlanNote}
       />
     {:else}
-      <div class="px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30">Nhấn <span class="text-orange-400/70 font-bold">COPYRIGHT</span> để phân tích đạo văn.</div>
+      <button 
+        class="w-full px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30 hover:bg-white/[0.05] hover:border-orange-500/20 transition-all group"
+        onclick={runCopyrightCheck}
+      >
+        Nhấn <span class="text-orange-400/70 font-bold group-hover:text-orange-400">COPYRIGHT</span> để phân tích đạo văn.
+      </button>
     {/if}
   {:else if activeTab === 'seo'}
-    {#if seoResult}
+    {#if copyrightResult && (copyrightResult.uniqueness_score < 0.60)}
+      <div class="px-2 py-4">
+        <AnalysisLocked 
+          title="SEO Scan Restricted"
+          requirement="Cấp độ tác chiến chưa đạt. SEO Scan yêu cầu nội dung có độ độc bản tối thiểu 60% để đảm bảo hiệu quả Ranking."
+          currentValue="{Math.round(copyrightResult.uniqueness_score * 100)}%"
+          targetValue="60%"
+          colorClass="text-orange-400"
+          onAction={runCopyrightCheck}
+          actionLabel="Quét lại Copyright"
+        />
+      </div>
+    {:else if seoResult}
       <AnalysisResultSEO
         {seoResult} {runSeoAnalysis} {isFixing}
         handleInternalFix={onfix ? handleInternalFix : null}
         {streamingText} {streamingTarget} {runBulkFix} {isBulkFixing}
       />
     {:else}
-      <div class="px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30">Nhấn <span class="text-blue-400/70 font-bold">SEO</span> để chấm điểm 7 tín hiệu SEO.</div>
+      <button 
+        class="w-full px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30 hover:bg-white/[0.05] hover:border-blue-500/20 transition-all group"
+        onclick={runSeoAnalysis}
+      >
+        Nhấn <span class="text-blue-400/70 font-bold group-hover:text-blue-400">SEO</span> để chấm điểm 7 tín hiệu SEO.
+      </button>
     {/if}
   {:else if activeTab === 'ai'}
-    {#if aiReadyResult}
+    {#if seoResult && seoResult.total_score < 60}
+      <div class="px-2 py-4">
+        <AnalysisLocked 
+          title="AI Mod Restricted"
+          requirement="Tín hiệu SEO chưa đủ mạnh. AI Mod yêu cầu bài viết đạt chuẩn SEO tối thiểu 60 điểm để đánh giá khả năng Viral."
+          currentValue={seoResult.total_score}
+          targetValue="60"
+          colorClass="text-blue-400"
+          onAction={runSeoAnalysis}
+          actionLabel="Tối ưu SEO ngay"
+        />
+      </div>
+    {:else if aiReadyResult}
       <AnalysisResultAI
         {aiReadyResult} {runAiAnalysis} {isFixing}
         handleInternalFix={onfix ? handleInternalFix : null}
         {streamingText} {streamingTarget} {runBulkFix} {isBulkFixing}
       />
     {:else}
-      <div class="px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30">Nhấn <span class="text-purple-400/70 font-bold">AI MOD</span> để kiểm tra Viral Edge Score.</div>
+      <button 
+        class="w-full px-3 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-center text-[9px] text-white/30 hover:bg-white/[0.05] hover:border-purple-500/20 transition-all group"
+        onclick={runAiAnalysis}
+      >
+        Nhấn <span class="text-purple-400/70 font-bold group-hover:text-purple-400">AI MOD</span> để kiểm tra Viral Edge Score.
+      </button>
     {/if}
   {:else if activeTab === 'enrich'}
     <div class="px-3 py-4 rounded-2xl border border-pink-500/10 bg-pink-500/[0.03] flex flex-col gap-3">
@@ -120,9 +187,9 @@
        </p>
        <div class="flex items-center gap-2 mt-1">
           <div class="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
-             <div class="h-full bg-pink-500 animate-pulse" style="width: 100%"></div>
+             <div class="h-full bg-pink-500 {isBoosting ? 'animate-pulse' : ''}" style="width: {isBoosting ? '100%' : '0%'}"></div>
           </div>
-          <span class="text-[8px] font-bold text-pink-400/60">OPERATING</span>
+          <span class="text-[8px] font-bold text-pink-400/60 uppercase tracking-tighter">{isBoosting ? 'Operating' : 'System Ready'}</span>
        </div>
     </div>
   {/if}

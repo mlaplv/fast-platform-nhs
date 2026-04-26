@@ -42,27 +42,22 @@ def surgical_stitch(content: str, old_text: str, new_text: str, label: str = "St
         try:
             data = json.loads(content)
             def _stitch_recursive(obj: object, stitched_count: list) -> object:
-                if stitched_count[0] > 0: return obj
+                # We allow multiple stitches in JSON mode to ensure all instances in different keys are handled
                 if isinstance(obj, str):
-                    new_str = surgical_stitch(obj, old_text, new_text, label) # call self on pure string
+                    new_str = surgical_stitch(obj, old_text, new_text, f"{label} [Inner]") 
                     if new_str != obj:
                         stitched_count[0] += 1
                         return new_str
                     return obj
                 elif isinstance(obj, dict):
-                    for k, v in obj.items():
-                        obj[k] = _stitch_recursive(v, stitched_count)
-                        if stitched_count[0] > 0: break
-                    return obj
+                    return {k: _stitch_recursive(v, stitched_count) for k, v in obj.items()}
                 elif isinstance(obj, list):
-                    for i in range(len(obj)):
-                        obj[i] = _stitch_recursive(obj[i], stitched_count)
-                        if stitched_count[0] > 0: break
-                    return obj
+                    return [_stitch_recursive(v, stitched_count) for v in obj]
                 return obj
             count = [0]
             new_data = _stitch_recursive(data, count)
             if count[0] > 0:
+                logger.info(f"[{label}] Successfully stitched {count[0]} fields in JSON structure.")
                 return json.dumps(new_data, ensure_ascii=False)
             return content
         except Exception as e:

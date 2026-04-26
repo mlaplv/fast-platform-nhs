@@ -39,19 +39,19 @@
         <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Clear Font Families</span>
       </label>
       <label class="flex items-center gap-3 cursor-pointer group">
-        <input type="checkbox" bind:checked={cleanOptions.stripAlign} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
+        <input type="checkbox" bind:checked={cleanOptions.stripAlign} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" aria-label="Reset Text Alignment" />
         <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Reset Text Alignment</span>
       </label>
       <label class="flex items-center gap-3 cursor-pointer group">
-        <input type="checkbox" bind:checked={cleanOptions.stripRedundantWrappers} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
+        <input type="checkbox" bind:checked={cleanOptions.stripRedundantWrappers} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" aria-label="Prune Redundant Tags" />
         <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Prune Redundant Tags</span>
       </label>
       <label class="flex items-center gap-3 cursor-pointer group">
-        <input type="checkbox" bind:checked={cleanOptions.stripEmpty} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
+        <input type="checkbox" bind:checked={cleanOptions.stripEmpty} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" aria-label="Purge Empty Elements" />
         <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Purge Empty Elements</span>
       </label>
       <label class="flex items-center gap-3 cursor-pointer group">
-        <input type="checkbox" bind:checked={cleanOptions.deduplicateContent} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" />
+        <input type="checkbox" bind:checked={cleanOptions.deduplicateContent} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" aria-label="Neural Deduplication" />
         <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Neural Deduplication</span>
       </label>
     </div>
@@ -63,5 +63,15 @@
       Execute Neural Clean
     </button>
   </div>
-  <div use:portal transition:fade={{ duration: 150 }} class="fixed inset-0" style="z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_OVERLAY}" onclick={() => showCleanOptions = false}></div>
+  <div 
+    use:portal 
+    transition:fade={{ duration: 150 }} 
+    class="fixed inset-0 cursor-default" 
+    style="z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_OVERLAY}" 
+    onclick={() => showCleanOptions = false}
+    onkeydown={(e) => e.key === 'Escape' && (showCleanOptions = false)}
+    role="button"
+    tabindex="-1"
+    aria-label="Close Clean Options"
+  ></div>
 {/if}

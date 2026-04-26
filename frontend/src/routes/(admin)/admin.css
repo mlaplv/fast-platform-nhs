@@ -1,3 +1,4 @@
+@import url('../../lib/styles/neural-highlights.css');
 
 
 /* --- ADMIN Z-INDEX NEXUS --- */
@@ -53,7 +54,6 @@
 }
 
 /* --- TÍCH HỢP BẢNG MÀU LỖI & FIX TOÀN CỤC --- */
-@import url('../styles/neural-highlights.css');
 
 /* --- ADMIN DOMAIN --- */
 .admin-layout {

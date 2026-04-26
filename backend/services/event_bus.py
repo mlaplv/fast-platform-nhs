@@ -80,8 +80,11 @@ class InternalBus:
             logger.debug(f"[EventBus] Removed broadcast subscriber")
 
     async def emit(self, event_name: str, payload: Dict[str, object]):
-        logger.info(f"📤 [EventBus] Emitting event: {event_name}")
         """Emit event to queue for background processing (Non-blocking for Request)"""
+        if event_name == "CONTENT_PROGRESS":
+            msg = payload.get("message", "")
+            if any(k in str(msg) for k in ["[BRAIN]", "[ROLE]", "[RECON]", "✅", "❌"]):
+                logger.warning(f"📡 [BUS] Emitting: {msg}")
         if self.queue is None:
             self.queue = asyncio.Queue(maxsize=1000)
             
@@ -89,39 +92,47 @@ class InternalBus:
         
         # Elite V2.2: Cross-Container Redis PubSub Bridge & Stateful Pulse Caching
         if event_name in ["SUPPORT_RESPONSE_READY", "SUPPORT_INBOX_UPDATE", "OTP_UPDATE"] and "session_id" in payload:
-            from backend.services.xohi_memory import xohi_memory
-            import json
-            try:
-                if xohi_memory._use_redis and xohi_memory.client:
-                    # Filter JSON serialization carefully
-                    str_payload: str = json.dumps(payload, ensure_ascii=False)
-                    
-                    # 1. Real-time Broadcast (Pub/Sub)
-                    await xohi_memory.client.publish(f"pulse:{payload['session_id']}", str_payload)
-                    logger.info(f"[EventBus] Bridged {event_name} to Redis channel pulse:{payload['session_id']}")
-                    
-                    # 2. Stateful Cache for AI Responses & OTP (CTO Strategy)
-                    if event_name in ["SUPPORT_RESPONSE_READY", "OTP_UPDATE"]:
-                        cache_key: str = f"pulse:{payload['session_id']}:cache"
-                        await xohi_memory.client.set(cache_key, str_payload, ex=300)
-                    
-            except Exception as e:
-                logger.warning(f"[EventBus] Redis bridge/cache failed for {event_name}: {e}")
-        elif event_name in ["CONTENT_PROGRESS", "AGENT_TASK_COMPLETED", "MEDIA_ANALYZED", "SYSTEM_SIGNAL", "SUPPORT_INBOX_UPDATE"]:
-            from backend.services.xohi_memory import xohi_memory
-            import json
-            try:
-                if xohi_memory._use_redis and xohi_memory.client:
-                    str_payload: str = json.dumps({"event": event_name, "payload": payload}, ensure_ascii=False)
-                    await xohi_memory.client.publish("admin:pulse", str_payload)
-                    logger.info(f"[EventBus] Bridged {event_name} to Redis channel admin:pulse")
-            except Exception as e:
-                logger.warning(f"[EventBus] Redis bridge failed for {event_name}: {e}")
+            async def _bg_bridge_session(p_load: dict, e_name: str):
+                try:
+                    from backend.services.xohi_memory import xohi_memory
+                    import json
+                    if xohi_memory._use_redis and xohi_memory.client:
+                        str_payload = json.dumps(p_load, ensure_ascii=False)
+                        await asyncio.wait_for(
+                            xohi_memory.client.publish(f"pulse:{p_load['session_id']}", str_payload),
+                            timeout=2.0
+                        )
+                        if e_name in ["SUPPORT_RESPONSE_READY", "OTP_UPDATE"]:
+                            cache_key = f"pulse:{p_load['session_id']}:cache"
+                            await xohi_memory.client.set(cache_key, str_payload, ex=300)
+                except Exception as e:
+                    logger.error(f"❌ [EventBus] Session bridge failed: {e}")
 
+            asyncio.create_task(_bg_bridge_session(payload, event_name))
+            
+        elif event_name in ["CONTENT_PROGRESS", "AGENT_TASK_COMPLETED", "MEDIA_ANALYZED", "SYSTEM_SIGNAL", "SUPPORT_INBOX_UPDATE"]:
+            async def _bg_bridge_admin(p_load: dict, e_name: str):
+                try:
+                    from backend.services.xohi_memory import xohi_memory
+                    import json
+                    if xohi_memory._use_redis and xohi_memory.client:
+                        str_payload = json.dumps({"event": e_name, "payload": p_load}, ensure_ascii=False)
+                        await asyncio.wait_for(
+                            xohi_memory.client.publish("admin:pulse", str_payload),
+                            timeout=2.0
+                        )
+                except Exception as e:
+                    # CNS V90.5: Log to warning so it shows in Sếp's filtered terminal
+                    logger.warning(f"⚠️ [EventBus] Admin bridge failed: {e}")
+
+            asyncio.create_task(_bg_bridge_admin(payload, event_name))
+
+        # Local distribution
         try:
             self.queue.put_nowait(event)
         except asyncio.QueueFull:
-            logger.error(f"[EventBus] GLOBAL QUEUE FULL! Dropping event {event_name}")
+            logger.error(f"❌ [EventBus] GLOBAL QUEUE FULL! Dropping event {event_name}")
+
 
     async def start(self):
         """Start the background worker to process events."""

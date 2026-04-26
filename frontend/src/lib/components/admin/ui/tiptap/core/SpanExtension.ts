@@ -12,21 +12,20 @@ export const Span = Mark.create({
           if (!attributes.class) return {};
           return { class: attributes.class };
         },
-      },
-      style: {
-        default: null,
-        parseHTML: element => element.getAttribute('style'),
-        renderHTML: attributes => {
-          if (!attributes.style) return {};
-          return { style: attributes.style };
-        },
       }
     };
   },
 
   parseHTML() {
     return [
-      { tag: 'span' },
+      { 
+        tag: 'span',
+        getAttrs: (node) => {
+          const el = node as HTMLElement;
+          // [CNS V92.0] Only match if it actually does something (has attributes)
+          return el.attributes.length > 0 ? {} : false;
+        }
+      },
     ];
   },
 

@@ -5,6 +5,7 @@ import os
 from typing import List, Dict, Optional, Type, cast
 from datetime import datetime, timezone
 
+from pydantic import BaseModel
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
 from backend.utils.http_client import get_http_client
@@ -14,6 +15,8 @@ from backend.services.xohi.creative_studio.models.schemas import (
 )
 from backend.database.repositories import ContentCampaignRepository
 from backend.utils.text import extract_readable_text
+from backend.services.xohi.prompts import composer
+from backend.services.xohi.prompts.shields.service import shield_service
 
 logger = logging.getLogger("api-gateway")
 
@@ -27,49 +30,20 @@ MAX_PROGRESS_FAIL_LEN = 50
 MAX_HISTORY_TRACE_CHARS = 500
 EXPECTED_SEO_BOOST = 10
 
-# ══════════════════════════════════════════════════════════════
-# SYSTEM PROMPT — Viral Edge™ Content Enricher 
-# ══════════════════════════════════════════════════════════════
-
-ENRICHER_PROMPT = """[ROLE] VIETNAMESE SENIOR CONTENT ENRICHER (VIRAL EDGE™ 2026)
-Nhiệm vụ: Nâng cấp bài viết bằng cách chèn Data Thật (Stats), Ý kiến chuyên gia (Quotes), và Bảng so sánh (Tables).
-
-[NGUYÊN TẮC HOẠT ĐỘNG]
-1. Đọc bài viết gốc (DRAFT).
-2. XEM XÉT dữ liệu thực tế (DATA) được cung cấp.
-3. Chèn 2-3 số liệu thống kê (phải có citation rõ ràng) vào các đoạn liên quan.
-4. Chèn 1-2 câu quote của chuyên gia/authority vào bài.
-5. Tạo 1 BẢNG SO SÁNH (Table) tóm tắt các khía cạnh quan trọng (nếu phù hợp).
-6. Trả về toàn bộ bài viết ĐÃ ĐƯỢC CHÈN THÊM HTML qua công cụ output.
-
-[QUY TẮC HTML KHI CHÈN]
-- STATS: Dùng `<blockquote class="xohi-stat">📊 [Nội dung số liệu] <cite>[Nguồn]</cite></blockquote>`
-- QUOTES: Dùng `<blockquote class="xohi-quote">💬 "[Trích dẫn]" — <strong>[Tên chuyên gia/Nguồn]</strong></blockquote>`
-- TABLE: Dùng `<table class="xohi-compare border-collapse w-full"><thead>...</thead><tbody>...</tbody></table>`
-
-[LƯU Ý QUAN TRỌNG]
-- TUYỆT ĐỐI không xóa hoặc thay đổi nội dung cũ, chỉ chèn thêm vào vị trí phù hợp.
-- Đảm bảo HTML hợp lệ và giữ nguyên định dạng CSS classes yêu cầu.
-- Bạn PHẢI trả về toàn bộ bài viết qua công cụ `final_result`. Đây là yêu cầu BẮT BUỘC.
-"""
-
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-
 class EnrichTaskRequest(BaseModel):
+    """Worker task payload for ContentEnricher."""
     campaign_id: str
-    force: bool = False
 
 class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
     """
     Auto-enriches articles with real stats, quotes, and comparison tables.
-    Pushes SEO scores from 85 to 95+.
+    Elite V2.2: Context-Aware with Neural Prompt Orchestration (NPO).
     """
     agent_id_class = "content_enricher"
     
     def __init__(self):
         super().__init__(agent_id="content_enricher")
-        self._agent = Agent(output_type=EnrichAIPayload, system_prompt=ENRICHER_PROMPT, retries=3)
+        self._agent = Agent(output_type=EnrichAIPayload, retries=3)
 
     async def chat(self, request: object, **kwargs: object) -> object:
         """Standardized Heritage Entry (V2.2). Maps to self.enrich."""
@@ -124,8 +98,10 @@ class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
 
     async def enrich(self, campaign: ContentCampaign) -> EnrichResponse:
         now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
+        self.current_step = 0
         logs = [f"🚀 [{now_str}] Khởi động hệ thống AI Booster (Phase 82.8)..."]
         await self._emit_progress(campaign, logs[-1])
+        logger.warning(f"🚀 [ContentEnricher] Initializing [ENRICH] Phase 0: Data Collection...")
         draft = extract_readable_text(campaign.draft_content or "")
         if not draft:
             raise ValueError("Không có nội dung để enrich")
@@ -142,10 +118,14 @@ class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         logger.info(f"[Enricher] Starting enrichment for topic: {topic}")
         logs.append(f"🧠 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Đang phân tích chủ đề: '{topic}'...")
         await self._emit_progress(campaign, logs[-1])
+        self.current_step = 1
+        logger.warning(f"🧠 [ContentEnricher] Phase 1: Competitor Insight Analysis...")
 
         # Phase 1: Gather Real Data (Parallel)
         logs.append(f"📡 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Đang trinh sát dữ liệu thực tế từ Google (Stats & Quotes)...")
         await self._emit_progress(campaign, logs[-1])
+        self.current_step = 2
+        logger.warning(f"📡 [ContentEnricher] Phase 2: Expert Quotes Acquisition...")
         year = datetime.now().year
         stats_query = f"{topic} statistics {year} số liệu thống kê"
         quotes_query = f"{topic} expert quotes ý kiến chuyên gia"
@@ -184,9 +164,20 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
         logger.info(f"[Enricher] Sending to Gemini for synthesis (Payload length: {len(user_input)})...")
         logs.append(f"🧠 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Đang tổng hợp số liệu và chèn vào bản thảo...")
         await self._emit_progress(campaign, logs[-1])
+        self.current_step = 3
+        logger.warning(f"🧠 [ContentEnricher] Phase 3: Feature Comparison Synthesis...")
         try:
+            shield = shield_service.get_shield_component(seed=campaign.id)
+            composer.register_component(shield)
+            
+            # ELITE V2.2: Use extra_components to maintain thread-safety
+            system_prompt = composer.compose("booster_enrich", extra_components=[shield.id])
+            
+            logs.append(f"📡 [CONNECT] Kết nối Neural Bridge (Role: BRAIN)...")
+            await self._emit_progress(campaign, logs[-1])
+
             # Use role="brain" for complex synthesis tasks
-            result = await self.bridge.run(self._agent, user_input, role="brain")
+            result = await self.bridge.run(self._agent, user_input, system_prompt=system_prompt, role="brain")
         except Exception as ai_err:
             self.logger.error(f"[Enricher] AI Synthesis Fail: {ai_err}")
             logs.append(f"❌ Lỗi xử lý AI: {str(ai_err)[:MAX_LOG_ERROR_LEN]}...")
@@ -219,11 +210,17 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
             result_data = result.data
             
         logger.info(f"[Enricher] Enrichment successful. Stats: {result_data.stats_added}, Quotes: {result_data.quotes_added}, Tables: {result_data.tables_added}")
-        logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Hoàn tất! Đã chèn {result_data.stats_added} số liệu, {result_data.quotes_added} câu quote và {result_data.tables_added} bảng so sánh.")
+        self.current_step = 4
+        logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Hoàn tất! Đã chèn {result_data.stats_added} số liệu, {result_data.quotes_added} câu quote và {result_data.tables_added} bảng so sánh. ĐÃ XỬ LÝ XONG")
         await self._emit_progress(campaign, logs[-1])
+        logger.warning(f"✅ [ContentEnricher] Phase 4: Injection & Polish Complete.")
+        
+        # SGE Shield V2.0: Lexical Sanitizer
+        new_html = self.clean_ai_html(result_data.new_content)
+        new_html = shield_service.sanitize(new_html)
+        result_data.new_content = new_html
         
         # CNS V85.24: Reliable Auto-Extraction of items from HTML
-        new_html = result_data.new_content
         extracted_items = self.detect_items(new_html)
         annotations = self.detect_annotations(new_html)
         

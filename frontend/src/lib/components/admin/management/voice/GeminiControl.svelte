@@ -178,9 +178,22 @@
   .lead-card {
     animation: pulse-emerald 2s infinite;
   }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(34, 211, 238, 0.3);
+  }
 </style>
 
-<div class="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 space-y-8 flex flex-col h-full">
+<div class="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 space-y-8 flex flex-col h-[650px] flex-shrink-0 relative">
   <!-- Header -->
   <div class="flex items-center justify-between">
     <div class="flex flex-col gap-1">
@@ -237,7 +250,7 @@
     </div>
 
     <!-- Models List -->
-    <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">
+    <div class="h-[380px] overflow-y-auto pr-2 custom-scrollbar space-y-3 py-1">
       {#each priorityStack as model, i}
         <div 
           class="group flex items-center gap-3 p-3 bg-zinc-900/30 border rounded-xl transition-all {i === 0 ? 'bg-emerald-500/5 border-emerald-500/20 lead-card' : 'border-white/5 hover:border-white/10'}"
@@ -303,32 +316,32 @@
           </div>
         </div>
       {/each}
+    </div>
 
-      <!-- Quick Add Selection -->
-      <div class="relative discovery-container">
-        <button 
-          onclick={() => showDiscoveryDropdown = !showDiscoveryDropdown}
-          class="w-full p-3 border border-dashed border-white/5 hover:border-white/10 rounded-xl flex items-center justify-center gap-2 text-zinc-600 hover:text-zinc-400 transition-all group"
-        >
-          <Plus size={14} class="group-hover:rotate-90 transition-transform duration-300" />
-          <span class="text-[10px] font-black uppercase tracking-widest">Enlist New Operative</span>
-        </button>
+    <!-- Quick Add Selection (Moved outside scroll for persistent visibility) -->
+    <div class="relative discovery-container mt-2">
+      <button 
+        onclick={() => showDiscoveryDropdown = !showDiscoveryDropdown}
+        class="w-full p-3 border border-dashed border-white/5 hover:border-white/10 rounded-xl flex items-center justify-center gap-2 text-zinc-600 hover:text-zinc-400 transition-all group"
+      >
+        <Plus size={14} class="group-hover:rotate-90 transition-transform duration-300" />
+        <span class="text-[10px] font-black uppercase tracking-widest">Enlist New Operative</span>
+      </button>
 
-        {#if showDiscoveryDropdown && nanobot.discoveredModels.length}
-          <div class="absolute z-50 left-0 right-0 bottom-full mb-2 max-h-48 overflow-y-auto bg-zinc-900 border border-white/10 rounded-xl shadow-2xl backdrop-blur-xl p-1">
-            {#each nanobot.discoveredModels as m}
-              {#if !priorityStack.includes(m)}
-                <button 
-                  onclick={() => addModelFromDiscovery(m)}
-                  class="w-full text-left px-4 py-2 text-[10px] font-mono text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/5 rounded-lg transition-all"
-                >
-                  {m}
-                </button>
-              {/if}
-            {/each}
-          </div>
-        {/if}
-      </div>
+      {#if showDiscoveryDropdown && nanobot.discoveredModels.length}
+        <div class="absolute z-50 left-0 right-0 bottom-full mb-2 max-h-48 overflow-y-auto bg-zinc-900 border border-white/10 rounded-xl shadow-2xl backdrop-blur-xl p-1 custom-scrollbar">
+          {#each nanobot.discoveredModels as m}
+            {#if !priorityStack.includes(m)}
+              <button 
+                onclick={() => addModelFromDiscovery(m)}
+                class="w-full text-left px-4 py-2 text-[10px] font-mono text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/5 rounded-lg transition-all"
+              >
+                {m}
+              </button>
+            {/if}
+          {/each}
+        </div>
+      {/if}
     </div>
   </div>
 

@@ -61,10 +61,11 @@ class ReviewService:
             filters.append(SystemReview.status == status)
         
         if kwargs.get("has_media"):
-            # Fix: JSON array IS NOT NULL AND length > 0 (loại bỏ [] rỗng)
+            # Elite V2.2: Defensive JSONB Check for optimized Postgres Performance
             from sqlalchemy import func
             filters.append(SystemReview.attachments.isnot(None))
-            filters.append(func.json_array_length(SystemReview.attachments) > 0)
+            filters.append(func.jsonb_typeof(SystemReview.attachments) == 'array')
+            filters.append(func.jsonb_array_length(SystemReview.attachments) > 0)
         if kwargs.get("rating"):
             filters.append(SystemReview.rating == int(kwargs.get("rating")))
             
@@ -206,13 +207,14 @@ class ReviewService:
         for r, c in breakdown_res:
             rating_breakdown[r] = c
 
-        # 3. Has Media (JSON array IS NOT NULL AND length > 0)
+        # 3. Has Media (Elite V2.2: Defensive JSONB check for optimized performance)
         stmt_media = select(func.count(SystemReview.id)).where(and_(
             SystemReview.entity_type == entity_type,
             SystemReview.entity_id == entity_id,
             SystemReview.status == "APPROVED",
             SystemReview.attachments.isnot(None),
-            func.json_array_length(SystemReview.attachments) > 0
+            func.jsonb_typeof(SystemReview.attachments) == 'array',
+            func.jsonb_array_length(SystemReview.attachments) > 0
         ))
         media_count = await self.review_repo.session.scalar(stmt_media) or 0
 

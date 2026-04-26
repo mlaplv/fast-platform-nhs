@@ -428,7 +428,7 @@
                 activeIntelAction = action.id || null;
                 
                 // CNS V87.1: Sync analysis activeTab to ensure highlights follow HUD focus
-                if (analysisData && action.id !== 'clean' && action.id !== 'enrich' && !action.id.includes('-fix')) {
+                if (analysisData && action.id !== 'clean' && !action.id.includes('-fix')) {
                   analysisData.activeTab = action.id;
                 }
 
@@ -456,6 +456,7 @@
                 }
             }}
             disabled={action.loading || action.disabled}
+            title={action.title || action.label}
             class="tb-neural-action {action.loading ? 'loading' : action.disabled ? 'disabled' : ''} {(action.active || activeIntelAction === action.id) && !action.loading ? 'active-neural scale-105' : ''} {action.isPerfect ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : action.isLocked ? 'border-rose-500/30 bg-rose-500/5 text-rose-400/70' : action.colorClass || 'bg-cyan-500 text-black'} transition-all duration-300"
           >
             {#if action.loading}
@@ -495,6 +496,7 @@
       isRewriting={isRewriting}
       runBulkFix={runBulkFix}
       {analysisData}
+      currentAnalysisStep={analysisData.currentAnalysisStep}
       bind:userPlanNote={analysisData.userPlanNote}
       {streamingText}
       {streamingTarget}
@@ -531,9 +533,6 @@
 
   .tb-neural-action.loading { @apply bg-white/5 text-white/20 cursor-wait; }
   .tb-neural-action.disabled { @apply opacity-30 grayscale; }
-
-  .hide-scrollbar::-webkit-scrollbar { display: none; }
-  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
   .hide-scrollbar::-webkit-scrollbar { display: none; }
   .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

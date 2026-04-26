@@ -695,7 +695,30 @@ export interface ScreenState {
 export interface ClientUiState extends ScreenState {
   isHeaderHidden: boolean;
   isFooterHidden: boolean;
-  settings: ShopInfo | null; // Elite V2.2: Statically Typed Shop Settings
+  settings: ShopInfo | null;
+  authModal: {
+    isOpen: boolean;
+    mode: 'login' | 'register' | 'profile' | 'address' | 'password' | 'purchase';
+    onSuccess?: () => void;
+  };
+  confirmModal: {
+    title: string;
+    message: string;
+    confirmLabel: string;
+    cancelLabel: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  } | null;
+  toasts: Toast[];
+  openLogin(onSuccess?: () => void): void;
+  openRegister(onSuccess?: () => void): void;
+  openProfile(): void;
+  openAddress(): void;
+  openPassword(): void;
+  openPurchase(): void;
+  openConfirm(options: { title: string; message: string; confirmLabel?: string; cancelLabel?: string }): Promise<boolean>;
+  closeModal(): void;
+  showToast(message: string, type?: ToastType, duration?: number): void;
   initObservers(): (() => void) | undefined;
 }
 

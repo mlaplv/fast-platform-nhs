@@ -136,11 +136,11 @@
     setTimeout(() => resultPanelEl?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   }
 
-  const handleAction = async <T extends unknown[]>(fn: (...args: T) => Promise<unknown> | unknown, ...args: T) => {
+  async function handleAction<T extends unknown[]>(action: (...args: T) => Promise<unknown> | unknown, ...args: T) {
     if (analysis.isCopyrightLoading || analysis.isSeoLoading || analysis.isAiLoading) return;
-    await fn(...args);
+    await action(...args);
     scrollToPanel();
-  };
+  }
 
   // CNS V85.2: Unified Toolbar Actions for Analysis (Elite V2.2: Lock & Hover Logic)
   const analysisActions = $derived([
@@ -159,13 +159,15 @@
         }
       },
       loading: analysis.isCopyrightLoading,
-      // Golden Criteria: Uniqueness >= 95% and no critical annotations
-      isPerfect: analysis.copyrightResult ? (analysis.copyrightResult.uniqueness_score >= 0.95 && (analysis.copyrightResult.annotations?.length || 0) === 0) : false,
-      isLocked: analysis.copyrightResult ? (analysis.copyrightResult.uniqueness_score < 0.90 || (analysis.copyrightResult.annotations?.length || 0) > 0) : false,
+      // Golden Criteria: Uniqueness >= 90% (Relaxed from 95%)
+      isPerfect: analysis.copyrightResult ? (analysis.copyrightResult.uniqueness_score >= 0.90) : false,
+      // Locked: Only if really bad (< 50%) or no result
+      isLocked: analysis.copyrightResult ? (analysis.copyrightResult.uniqueness_score < 0.50) : false,
       active: analysis.activeTab === 'copyright',
-      colorClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+      colorClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+      title: analysis.copyrightResult ? `Copyright: ${Math.round(analysis.copyrightResult.uniqueness_score * 100)}% uniqueness` : 'Click to scan Copyright'
     },
-    // Progressive Disclosure: Only show next steps if conditions are met
+    // Progressive Disclosure: Always show if Copyright is done (>= 60%)
     ...(!analysis.seoLocked ? [{
       id: 'seo',
       label: analysis.seoResult ? `SEO ${analysis.seoResult.total_score}/100` : 'SEO Scan',
@@ -178,10 +180,11 @@
         }
       },
       loading: analysis.isSeoLoading,
-      isPerfect: analysis.seoResult ? (analysis.seoResult.total_score >= 95) : false,
-      isLocked: analysis.seoResult ? (analysis.seoResult.total_score < 90) : false,
+      isPerfect: analysis.seoResult ? (analysis.seoResult.total_score >= 90) : false,
+      isLocked: analysis.seoResult ? (analysis.seoResult.total_score < 50) : false,
       active: analysis.activeTab === 'seo',
-      colorClass: 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+      colorClass: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+      title: analysis.seoLocked ? 'Cần đạt trên 60% Copyright để chạy SEO' : (analysis.seoResult ? `SEO: ${analysis.seoResult.total_score}/100` : 'Click to scan SEO')
     }] : []),
 
     ...(!analysis.aiLocked ? [{
@@ -196,10 +199,11 @@
         }
       },
       loading: analysis.isAiLoading,
-      isPerfect: analysis.aiReadyResult ? (analysis.aiReadyResult.viral_score >= 8.5 && (analysis.aiReadyResult.ai_annotations?.filter(a => a.severity === 'high')?.length || 0) === 0) : false,
-      isLocked: analysis.aiReadyResult ? (analysis.aiReadyResult.geo_score < 80 || (analysis.aiReadyResult.ai_annotations?.filter(a => a.severity === 'high')?.length || 0) > 0) : false,
+      isPerfect: analysis.aiReadyResult ? (analysis.aiReadyResult.viral_score >= 8.0) : false,
+      isLocked: false, // AI Mod is never locked once SEO is decent
       active: analysis.activeTab === 'ai',
-      colorClass: 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+      colorClass: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+      title: analysis.aiLocked ? 'Cần đạt trên 60% SEO để chạy AI Mod' : (analysis.aiReadyResult ? `AI Mod: ${analysis.aiReadyResult.geo_score}/100` : 'Click to scan AI Mod')
     }] : []),
 
     ...(!analysis.enrichLocked ? [{

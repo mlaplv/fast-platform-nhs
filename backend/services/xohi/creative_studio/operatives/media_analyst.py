@@ -11,33 +11,20 @@ from backend.services.xohi.creative_studio.models.schemas import MediaAnalysisRe
 from backend.database.models import MediaRegistry
 from backend.database.repositories import MediaRegistryRepository
 from backend.services.event_bus import event_bus
+from backend.services.xohi.prompts import composer
 
 logger = logging.getLogger("api-gateway")
-
-MEDIA_ANALYST_PROMPT = """[ROLE] CHUYÊN GIA THỊ GIÁC AI — Hệ thống XoHi Content Factory V65.0
-
-[NHIỆM VỤ]
-Phân tích hình ảnh được cung cấp và trích xuất dữ liệu chuẩn SEO & Accessibility.
-
-[LUẬT]
-1. alt_text: Viết bằng tiếng Việt, tập trung vào hành động/đối tượng chính. CẤM dùng "Hình ảnh về...", "Ảnh chụp...".
-2. tags: Trích xuất 5-8 từ khóa (tiếng Việt) về đối tượng, chất liệu, ánh sáng, bối cảnh.
-3. description: Mô tả chi tiết cho người khiếm thị hoặc AI hiểu sâu.
-4. sentiment: Xác định vibe của ảnh (Chuyên nghiệp, Sang trọng, Tối giản, Năng động...).
-5. focal_point: Xác định toạ độ {x, y} của vật thể/vùng quan trọng nhất (như khuôn mặt, sản phẩm). Giá trị từ 0.0 đến 1.0.
-6. Trả về đúng JSON schema.
-"""
 
 class MediaAnalyst:
     """
     Operative chuyên dụng dùng Gemini 2.0 Flash (Vision) để phân tích ảnh.
+    Elite V2.2: Context-Aware with Neural Prompt Orchestration (NPO).
     """
     def __init__(self):
         # CNS V76: Global-like semaphore for Vision tasks to protect VPS RAM (2GB Limit)
         self.vision_semaphore = asyncio.Semaphore(1)
         self.agent = Agent(
             output_type=MediaAnalysisResult,
-            system_prompt=MEDIA_ANALYST_PROMPT,
             retries=2
         )
 
@@ -51,11 +38,14 @@ class MediaAnalyst:
         ]
 
         try:
+            system_prompt = composer.compose("media_analysis")
+
             # R101: Using trinity_bridge for managed AI calls
             # CNS V76: Enforce ROLE_FAST for vision tasks to optimize costs
             result = await trinity_bridge.run(
                 self.agent,
                 prompt,
+                system_prompt=system_prompt,
                 role=trinity_bridge.ROLE_FAST
             )
             return result.data

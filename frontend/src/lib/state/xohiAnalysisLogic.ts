@@ -5,7 +5,8 @@
 
 export function robustNormalize(text: string): string {
     if (!text) return "";
-    return text.normalize('NFC')
+    return text.normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Strip accents
         .replace(/<[^>]+>/g, '') // Strip HTML
         .replace(/[^\p{L}\p{N}]/gu, '') // Keep only letters and numbers
         .toLowerCase();

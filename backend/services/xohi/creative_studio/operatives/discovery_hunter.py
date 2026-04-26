@@ -53,67 +53,70 @@ class DiscoveryHunter:
     async def search(self, query: str) -> str:
         """
         Thực hiện duy nhất 01 request (Sếp yêu cầu) để lấy top snippets.
-        Trả về một chuỗi văn bản gộp từ các kết quả tìm kiếm.
+        [CNS V90.0] Sử dụng Shared Search Cache để tiết kiệm Quota.
         """
         if not query:
             return ""
 
-        url = "https://www.googleapis.com/customsearch/v1"
-        client = await get_http_client()
-        attempts = 0
-        max_attempts = len(self.key_pairs)
+        from .shared_search_cache import get_or_fetch as _cached_search
 
-        while attempts < max_attempts:
-            pair = self._get_current_pair()
-            try:
-                params = {
-                    "key": pair["key"],
-                    "cx": pair["cx"],
-                    "q": query,
-                    "num": 10,  # 1 trang đầu tiên = 10 kết quả
-                    "start": 1,
-                    **SEARCH_LOCALE_PARAMS
-                }
+        async def _do_fetch() -> List[str]:
+            url = "https://www.googleapis.com/customsearch/v1"
+            client = await get_http_client()
+            attempts = 0
+            max_attempts = len(self.key_pairs)
 
-                logger.info(f"[DiscoveryHunter] Discovery Search: {query} (Key index {self.current_index})")
-                response = await client.get(url, params=params, timeout=10.0)
-                
-                if response.status_code == 429:
-                    logger.warning(f"[DiscoveryHunter] Key limited (429). Rotating...")
-                    self._rotate_key(status_code=429)
+            while attempts < max_attempts:
+                pair = self._get_current_pair()
+                try:
+                    params = {
+                        "key": pair["key"],
+                        "cx": pair["cx"],
+                        "q": query,
+                        "num": 10,  # 1 trang đầu tiên = 10 kết quả
+                        "start": 1,
+                        **SEARCH_LOCALE_PARAMS
+                    }
+
+                    logger.info(f"[DiscoveryHunter] Discovery Search Attempt: {query} (Key index {self.current_index})")
+                    response = await client.get(url, params=params, timeout=10.0)
+                    
+                    if response.status_code == 429:
+                        logger.warning(f"[DiscoveryHunter] Key limited (429). Rotating...")
+                        self._rotate_key(status_code=429)
+                        attempts += 1
+                        continue
+                    
+                    if response.status_code == 403:
+                        logger.error(f"[DiscoveryHunter] Key forbidden (403). Rotating...")
+                        self._rotate_key(status_code=403)
+                        attempts += 1
+                        continue
+
+                    response.raise_for_status()
+                    data = response.json()
+                    items = data.get('items', [])
+                    
+                    if not items:
+                        logger.warning(f"[DiscoveryHunter] No results found for: {query}")
+                        return ["Không tìm thấy kết quả tìm kiếm thực tế."]
+
+                    # Trích xuất 10 snippets
+                    snippets = []
+                    for i, item in enumerate(items, 1):
+                        title = item.get('title', 'Unknown Title')
+                        snippet = item.get('snippet', '').replace('\n', ' ')
+                        snippets.append(f"[{i}] {title}: {snippet}")
+
+                    return snippets
+
+                except Exception as e:
+                    logger.error(f"[DiscoveryHunter] Search Error: {e}")
+                    self._rotate_key()
                     attempts += 1
                     continue
-                
-                if response.status_code == 403:
-                    logger.error(f"[DiscoveryHunter] Key forbidden (403). Rotating...")
-                    self._rotate_key(status_code=403)
-                    attempts += 1
-                    continue
+            return ["Cảnh báo: Không thể thực hiện trinh sát thực tế do lỗi API."]
 
-                response.raise_for_status()
-                data = response.json()
-                items = data.get('items', [])
-                
-                if not items:
-                    logger.warning(f"[DiscoveryHunter] No results found for: {query}")
-                    return "Không tìm thấy kết quả tìm kiếm thực tế."
-
-                # Trích xuất 10 snippets
-                snippets = []
-                for i, item in enumerate(items, 1):
-                    title = item.get('title', 'Unknown Title')
-                    snippet = item.get('snippet', '').replace('\n', ' ')
-                    snippets.append(f"[{i}] {title}: {snippet}")
-
-                context = "\n".join(snippets)
-                logger.info(f"[DiscoveryHunter] Discovery successful. Found {len(items)} snippets.")
-                return context
-
-            except Exception as e:
-                logger.error(f"[DiscoveryHunter] Search Error: {e}")
-                # CNS V82.55: Only rotate on connection/timeout or actual failures, not just any exception
-                self._rotate_key()
-                attempts += 1
-                continue
-
-        return "Cảnh báo: Không thể thực hiện trinh sát thực tế do lỗi API."
+        # [CNS V90.0] Dùng chung cache với SEO & Copyright
+        results = await _cached_search(query=query, fetch_fn=_do_fetch, num=10)
+        return "\n".join(results)

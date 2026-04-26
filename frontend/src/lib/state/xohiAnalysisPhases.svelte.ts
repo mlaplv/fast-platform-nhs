@@ -26,6 +26,12 @@ export const PHASES = {
         { icon: '📋', label: 'Tạo bảng so sánh tính năng', duration: 3000 },
         { icon: '🚀', label: 'Inject & polish content', duration: 3000 },
     ],
+    rewrite: [
+        { icon: '🚀', label: '[SCAN] Khởi động Neural Rewrite', duration: 1500 },
+        { icon: '🧠', label: '[FACTS] Nạp bối cảnh & Dữ liệu thực', duration: 2500 },
+        { icon: '🖋️', label: '[CREATIVE] Gemini đang múa bút...', duration: 5500 },
+        { icon: '✨', label: '[QUANTUM] Phẫu thuật sáng tạo hoàn tất', duration: 2000 },
+    ],
 };
 
 export function createPhaseController() {
@@ -64,10 +70,53 @@ export function createPhaseController() {
         runPhase(0);
     }
 
+    function jumpToPhase(idx: number, type: keyof typeof PHASES) {
+        if (idx === phaseIndex) return;
+        clearTimers();
+        phaseIndex = idx;
+        phaseProgress = 0;
+        
+        const phases = PHASES[type];
+        const dur = phases[idx].duration;
+        const step = 16;
+        
+        progressTimer = setInterval(() => {
+            phaseProgress = Math.min(phaseProgress + (step / dur) * 100, 98);
+        }, step);
+        
+        phaseTimer = setTimeout(() => {
+            if (progressTimer) clearInterval(progressTimer);
+            phaseProgress = 100;
+            phaseTimer = setTimeout(() => jumpToPhase(idx + 1, type), 150);
+        }, dur);
+    }
+
+    function syncWithLogs(logs: string[], type: keyof typeof PHASES) {
+        if (!logs || logs.length === 0) return;
+        const phases = PHASES[type];
+        const lastLog = logs[logs.length - 1];
+        
+        // Find the highest phase index that matches the logs
+        let targetIdx = -1;
+        for (let i = 0; i < phases.length; i++) {
+            const label = phases[i].label;
+            // Extract the [TAG] from the label, e.g. "[RECON]"
+            const tagMatch = label.match(/\[(.*?)\]/);
+            if (tagMatch && lastLog.includes(tagMatch[0])) {
+                targetIdx = i;
+            }
+        }
+        
+        if (targetIdx !== -1 && targetIdx > phaseIndex) {
+            jumpToPhase(targetIdx, type);
+        }
+    }
+
     return {
         get phaseIndex() { return phaseIndex; },
         get phaseProgress() { return phaseProgress; },
         startPhaseEngine,
+        syncWithLogs,
         clearTimers
     };
 }

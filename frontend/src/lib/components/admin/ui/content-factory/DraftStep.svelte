@@ -27,8 +27,8 @@
     campaign_id: string; isEditing: boolean; editedDraft: string; draft_content: string;
     outline: CampaignOutline; assets: (MediaAsset | string)[]; isExpanded: boolean;
     selectedAvatarUrl: string | null; selectedAssetIndex: number;
-    editorRef?: any | null; analysis_cache: AnalysisCache; analysis_metrics: CampaignMetrics;
-    analysis_report: Record<string, any>;
+    editorRef?: { getHTML: () => string; setContent: (c: string) => void } | null; analysis_cache: AnalysisCache; analysis_metrics: CampaignMetrics;
+    analysis_report: Record<string, unknown>;
     copyrightScore: number | null; seoScore: number | null; aiScore: number | null; isProcessing?: boolean;
   }
 

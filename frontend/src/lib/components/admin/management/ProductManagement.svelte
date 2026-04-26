@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
+  import { untrack } from "svelte";
   import type { Product, BaseWidgetProps, ProductVariant, TierVariation } from "$lib/types";
   import { formatCurrency, slugify } from "$lib/utils/format";
   import { useNanobot } from "$lib/state/nanobot.svelte";
@@ -108,7 +109,14 @@
     }
   }
 
-  $effect(() => { loadProducts(); });
+  $effect(() => { 
+    // Trigger reload only on these primary state changes
+    currentPage; pageSize; activeFilter; activeCategory; searchTerm;
+
+    untrack(() => {
+      loadProducts(); 
+    });
+  });
 
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   function handleSearchInput(e: Event) {

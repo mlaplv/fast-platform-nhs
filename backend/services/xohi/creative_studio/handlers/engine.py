@@ -250,6 +250,14 @@ class ExecutionEngine:
                 if step == 1:
                     campaign.topic_data = response.data
                     campaign.gold_metadata = response.data # First seal
+                    
+                    # Elite V2.2: Sync campaign category from TopicSeed
+                    if isinstance(response.data, dict) and "category" in response.data:
+                        cat_val = response.data["category"]
+                        if cat_val == "Sản phẩm":
+                            campaign.category = "PRODUCT_CATALOG"
+                        elif cat_val == "Bài viết":
+                            campaign.category = "CREATIVE_CONTENT"
                 elif step == 2:
                     # Phase 15.3: Chuẩn hóa dữ liệu assets (hỗ trợ kéo thả)
                     raw_assets = response.data.get("assets", response.data) if isinstance(response.data, dict) else response.data

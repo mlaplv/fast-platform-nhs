@@ -22,12 +22,13 @@ _SCOUT_AGENT = None           # Lazy singleton — avoid recreating Agent on eve
 
 class AdHocContent:
     """Shim to allow AI analyzers to process content without a full DB campaign record."""
-    def __init__(self, content: str, topic: str = None, user_id: str = "system", id: str = "adhoc"):
+    def __init__(self, content: str, topic: str = None, user_id: str = "system", id: str = "adhoc", category: str = "CREATIVE_CONTENT"):
         self.draft_content = content
         self.gold_metadata = {"topic": topic, "primary_keyword": topic}
         self.user_id = user_id
         self.id = id
         self.unique_score = 0.0
+        self.category = category
     def get_gold_val(self, key: str, fallback: object = None, *args, **kwargs) -> object:
         # [ELITE BUGFIX] Chấp nhận variadic arguments để tránh lỗi TypeError (takes 2 positional but 3 given)
         return self.gold_metadata.get(key, fallback)
@@ -36,13 +37,17 @@ class AnalystHandler:
     def __init__(self, orchestrator: "ContentOrchestrator"):
         self.orchestrator = orchestrator
 
-    async def _run_analysis(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], analyzer_class, category: str, force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None) -> GenericResponse:
+    async def _run_analysis(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], analyzer_class, category: str, force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None, content_type_adhoc: Optional[str] = None) -> GenericResponse:
         if campaign_id and campaign_repo:
             campaign = await campaign_repo.get(campaign_id)
             if not campaign: return GenericResponse(status="error", message="Campaign not found")
         else:
             if not raw_content: return GenericResponse(status="error", message="No content provided for ad-hoc analysis")
-            campaign = AdHocContent(content=raw_content, topic=raw_topic)
+            
+            # ELITE V2.2: Context Enforcement from Router
+            # Mapping frontend content_type to internal Category domain
+            cat = "PRODUCT_CATALOG" if content_type_adhoc == "product" else "CREATIVE_CONTENT"
+            campaign = AdHocContent(content=raw_content, topic=raw_topic, category=cat)
 
         if not campaign.draft_content: return GenericResponse(status="error", message="Chưa có nội dung để phân tích.")
 
@@ -103,20 +108,20 @@ class AnalystHandler:
             logger.error(f"[AnalystHandler] {category} analysis failed: {str(e)}", exc_info=True)
             return GenericResponse(status="error", message=str(e))
 
-    async def analyze_copyright(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None) -> GenericResponse:
+    async def analyze_copyright(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None, content_type: Optional[str] = None) -> GenericResponse:
         logger.info(f"🕵️ [AnalystHandler] Neural Copyright Engine initiating for campaign: {campaign_id}")
         from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
-        return await self._run_analysis(campaign_id, campaign_repo, PlagiarismCop, "copyright", force, raw_content=raw_content, raw_topic=raw_topic)
+        return await self._run_analysis(campaign_id, campaign_repo, PlagiarismCop, "copyright", force, raw_content=raw_content, raw_topic=raw_topic, content_type_adhoc=content_type)
 
-    async def analyze_seo(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None) -> GenericResponse:
+    async def analyze_seo(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None, content_type: Optional[str] = None) -> GenericResponse:
         logger.info(f"📡 [AnalystHandler] Neural SEO Engine initiating for campaign: {campaign_id}")
         from backend.services.xohi.creative_studio.operatives.seo_analyzer import SeoAnalyzer
-        return await self._run_analysis(campaign_id, campaign_repo, SeoAnalyzer, "seo", force, raw_content=raw_content, raw_topic=raw_topic)
+        return await self._run_analysis(campaign_id, campaign_repo, SeoAnalyzer, "seo", force, raw_content=raw_content, raw_topic=raw_topic, content_type_adhoc=content_type)
 
-    async def analyze_ai_inspect(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None) -> GenericResponse:
+    async def analyze_ai_inspect(self, campaign_id: Optional[str], campaign_repo: Optional[ContentCampaignRepository], force: bool = False, raw_content: Optional[str] = None, raw_topic: Optional[str] = None, content_type: Optional[str] = None) -> GenericResponse:
         logger.info(f"🧠 [AnalystHandler] Neural AI-Ready Inspector initiating for campaign: {campaign_id}")
         from backend.services.xohi.creative_studio.operatives.ai_inspector import AiInspector
-        return await self._run_analysis(campaign_id, campaign_repo, AiInspector, "ai_inspect", force, raw_content=raw_content, raw_topic=raw_topic)
+        return await self._run_analysis(campaign_id, campaign_repo, AiInspector, "ai_inspect", force, raw_content=raw_content, raw_topic=raw_topic, content_type_adhoc=content_type)
 
     async def auto_fix(self, campaign_id: str, data: Dict[str, object], campaign_repo: ContentCampaignRepository) -> GenericResponse:
         # Auto-fix still requires a campaign for now due to complexity of snippet replacement
@@ -217,20 +222,21 @@ class AnalystHandler:
 
     async def neural_rewrite(
         self, content: str, topic: str = "", feedback: str = "", 
-        campaign_id: Optional[str] = None, content_type: str = "article",
+        campaign_id: Optional[str] = None, content_type: Optional[str] = None,
         metadata: Optional[Dict[str, object]] = None,
         user_note: Optional[str] = None
     ) -> GenericResponse:
         """
         CNS V88.5: Neural Rewrite — viết lại toàn bộ bài viết dựa trên phản biện.
-        Elite V2.2: Added Deep Context support (Metadata & ContentType).
+        Elite V2.2: Mandatory Context Enforcement.
         """
         from backend.services.xohi.creative_studio.operatives.neural_rewriter import run_neural_rewrite
         
         if not content:
             return GenericResponse(status="error", message="Chưa có nội dung để viết lại.")
 
-        # Intelligence Auto-Detection: If campaign exists, try to fill missing context
+        # ELITE V2.2: Context Integrity
+        # If campaign exists, force context from Database category
         if campaign_id and campaign_id != "adhoc":
             from backend.database.repositories import ContentCampaignRepository
             from backend.database.alchemy_config import alchemy_config
@@ -238,12 +244,13 @@ class AnalystHandler:
                 repo = ContentCampaignRepository(session=session)
                 campaign = await repo.get(campaign_id)
                 if campaign:
-                    if not content_type or content_type == "article":
-                        content_type = "product" if campaign.category == "PRODUCT_CATALOG" else "article"
-                    
-                    # Merge metadata from campaign if not provided
+                    content_type = "product" if campaign.category == "PRODUCT_CATALOG" else "article"
                     if not metadata:
                         metadata = campaign.gold_metadata or {}
+        
+        # Fallback if still None (Anonymous)
+        if not content_type:
+            content_type = "article"
             
         try:
             new_content = await run_neural_rewrite(
@@ -296,11 +303,14 @@ class AnalystHandler:
         from backend.services.xohi.creative_studio.operatives.plagiarism_cop import PlagiarismCop
         from backend.services.xohi.creative_studio.operatives.seo_analyzer import SeoAnalyzer
         
+        content_type_adhoc = data.get("content_type")
+        
         if campaign_id and campaign_repo:
             campaign = await campaign_repo.get(campaign_id)
             if not campaign: return GenericResponse(status="error", message="Campaign not found")
         else:
-            campaign = AdHocContent(content=raw_content or data.get("content", ""), topic=data.get("topic"))
+            cat = "PRODUCT_CATALOG" if content_type_adhoc == "product" else "CREATIVE_CONTENT"
+            campaign = AdHocContent(content=raw_content or data.get("content", ""), topic=data.get("topic"), category=cat)
 
         if not campaign.draft_content: return GenericResponse(status="error", message="Chưa có nội dung để biên tập.")
         
@@ -312,6 +322,8 @@ class AnalystHandler:
                 op = SeoAnalyzer()
             else:
                 op = AiInspector()
+            
+            logger.warning(f"🚀 [AnalystHandler] Orchestrating Bulk Fix: category={fix_req.category}, campaign={campaign_id or 'adhoc'}")
             res = await op.bulk_fix(campaign, fix_req)
             
             if res.new_content and res.new_content != campaign.draft_content:
@@ -333,6 +345,7 @@ class AnalystHandler:
         if not campaign: return GenericResponse(status="error", message="Campaign not found")
         if not campaign.draft_content: return GenericResponse(status="error", message="Chưa có nội dung để enrich.")
         try:
+            logger.warning(f"🚀 [AnalystHandler] Orchestrating Content Enrichment: campaign={campaign_id}")
             res = await enricher.enrich(campaign)
             if res.new_content and res.new_content != campaign.draft_content:
                 # [JSON SAFETY] Enricher always returns HTML. Do not overwrite JSON draft content.

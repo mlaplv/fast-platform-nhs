@@ -43,6 +43,8 @@ if [ "$#" -eq 0 ]; then
         --host 0.0.0.0 \
         --port 8000 \
         --http h11 \
+        --proxy-headers \
+        --forwarded-allow-ips '*' \
         --limit-max-requests 10000 \
         --limit-concurrency 500 \
         --timeout-keep-alive 30 \

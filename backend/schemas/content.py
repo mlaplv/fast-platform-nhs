@@ -70,6 +70,7 @@ class AdhocAnalysisRequest(BaseModel):
     model_config = ConfigDict(strict=True)
     content: Optional[str] = None
     topic: Optional[str] = None
+    content_type: Optional[str] = None # ELITE V2.2: Mandatory Context Injection
     force: bool = False
 
 class BulkFixRequest(BaseModel):

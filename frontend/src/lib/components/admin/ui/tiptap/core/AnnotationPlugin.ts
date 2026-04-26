@@ -72,7 +72,9 @@ export const AnnotationPlugin = () => {
             let text = "";
             try {
               text = view.state.doc.textBetween(from, to);
-            } catch (e) {}
+            } catch (err: unknown) {
+              console.warn("[Neural Annotation] Position capture mismatch:", err);
+            }
 
             const customEvent = new CustomEvent('annotation-hover', {
               detail: {
@@ -136,7 +138,7 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
       .replace(/[^\p{L}\p{N}]/gu, ''); // Keep only letters and numbers
   };
 
-  // 1. Build a searchable normalized buffer of the doc
+  // Elite V2.2: Build alphanumeric buffer & position map for ultra-fast scanning
   let searchBuffer = '';
   const posMap: number[] = [];
 
@@ -174,9 +176,12 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
     const normalizedPattern = robustNormalize(plainPattern);
 
     if (normalizedPattern.length < 4) {
-       console.warn(`[Neural Annotation] Pattern too short after normalization: "${ann.text.slice(0, 20)}..." -> "${normalizedPattern}"`);
+       console.warn(`[Neural Annotation] Pattern too short: "${ann.text.slice(0, 20)}..."`);
        continue;
     }
+
+    let matchCount = 0;
+    let startIdx = 0;
 
     const pushBlockSafeDecorations = (startIdx: number, endIdx: number, baseAttrs: Record<string, string | number | boolean | undefined>) => {
       if (startIdx > endIdx || startIdx >= posMap.length) return;
@@ -219,17 +224,50 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
       };
     };
 
-    // Find ALL occurrences (Exact Match)
-    let startIdx = 0;
-    let matchCount = 0;
+    // 1. Exact Match Scan
     while ((startIdx = searchBuffer.indexOf(normalizedPattern, startIdx)) !== -1) {
+      console.log(`[Neural Annotation] Match found for: "${ann.text.slice(0, 30)}..." at buffer index ${startIdx}`);
       const endIdx = startIdx + normalizedPattern.length - 1;
       const severity = (ann.severity || 'medium').toLowerCase();
       const type = (ann.type || 'unknown').toLowerCase();
       
       pushBlockSafeDecorations(startIdx, endIdx, getAttrs(type, severity));
       matchCount++;
-      startIdx += 1; 
+      startIdx += 1;
+    }
+
+    // 2. Fuzzy/Anchor Scan (Only if no exact matches found)
+    if (matchCount === 0) {
+      console.warn(`[Neural Annotation] Failed to match pattern exactly: "${ann.text.slice(0, 30)}..." - Trying fuzzy mode.`);
+      const anchorSize = Math.min(60, Math.floor(normalizedPattern.length * 0.7));
+      const anchors = [
+        normalizedPattern.slice(0, anchorSize),
+        normalizedPattern.slice(-anchorSize),
+        normalizedPattern.slice(Math.floor(normalizedPattern.length/2) - 20, Math.floor(normalizedPattern.length/2) + 20)
+      ].filter(a => a.length >= 10);
+
+      for (const anchor of anchors) {
+        if (matchCount > 0) break;
+        let anchorIdx = 0;
+        while ((anchorIdx = searchBuffer.indexOf(anchor, anchorIdx)) !== -1) {
+          let matchLen = 0;
+          while (anchorIdx + matchLen < searchBuffer.length && matchLen < normalizedPattern.length) {
+            if (searchBuffer[anchorIdx + matchLen] === normalizedPattern[matchLen]) matchLen++;
+            else break;
+          }
+          
+          if (matchLen < anchor.length) { anchorIdx += 1; continue; }
+
+          const endIdx = anchorIdx + matchLen - 1;
+          const severity = (ann.severity || 'medium').toLowerCase();
+          const type = (ann.type || 'unknown').toLowerCase();
+          
+          startIdx = anchorIdx; 
+          pushBlockSafeDecorations(anchorIdx, endIdx, getAttrs(type, severity, '-fuzzy'));
+          matchCount++;
+          anchorIdx += 1;
+        }
+      }
     }
 
     // CNS V87.6: Anchor-based Recovery Fallback + Smart Endpoint Detection

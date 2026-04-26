@@ -176,6 +176,28 @@ function update_docker() {
     fi
 }
 
+# Helper: Rotate Encryption Key (Identity Shield)
+function rotate_encryption_key() {
+    echo -e "${CYAN}[SECURITY] Đang tạo dấu niêm phong mới (Rotate Encryption Salt)...${NC}"
+    if [ ! -f .env ]; then
+        echo -e "${RED}[ERROR] Không tìm thấy file .env để rotate key.${NC}"
+        return 1
+    fi
+
+    # Generate a 32-char random string (Military Grade)
+    NEW_SALT=$(openssl rand -hex 16)
+    
+    # Check if ENCRYPTION_SALT exists
+    if grep -q "ENCRYPTION_SALT=" .env; then
+        # Update existing
+        sed -i "s/^ENCRYPTION_SALT=.*/ENCRYPTION_SALT=$NEW_SALT/" .env
+    else
+        # Append new
+        echo "ENCRYPTION_SALT=$NEW_SALT" >> .env
+    fi
+    echo -e "${GREEN}[OK] Đã Rotate Encryption Salt thành công. Toàn bộ session cũ đã bị vô hiệu hóa.${NC}"
+}
+
 # Helper: Dependency Check
 function check_deps() {
     # Auto-fix PATH for UV on Mac
@@ -224,6 +246,9 @@ function init_deploy() {
     
     echo -e "${CYAN}[1/6] Dọn dẹp môi trường (Deep Clean)...${NC}"
     deep_clean
+    
+    # Rotate keys during fresh deploy to prevent "Ghost Identity" issues
+    rotate_encryption_key
     
     echo -e "${CYAN}[2/6] Kiểm tra file cấu hình môi trường (.env)...${NC}"
     if [ ! -f .env ]; then
@@ -831,6 +856,7 @@ while true; do
     echo "14) HƯỚNG DẪN CHI TIẾT (Tránh Quên)"
     echo "15) KHỞI TẠO SIÊU ADMIN (Login cho DB Trắng)"
     echo "16) LÀM SẠCH DỮ LIỆU HELEN (Purge Logs & Memory)"
+    echo "17) ROTATE ENCRYPTION SALT (Vô hiệu hóa toàn bộ session)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -898,6 +924,10 @@ while true; do
             ;;
         16)
             purge_helen_data
+            read -p "Nhấn Enter để quay lại menu..."
+            ;;
+        17)
+            rotate_encryption_key
             read -p "Nhấn Enter để quay lại menu..."
             ;;
         0)

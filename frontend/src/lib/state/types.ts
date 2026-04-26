@@ -228,6 +228,7 @@ export interface NeuralAnalysisController {
   readonly isRewriting: boolean;
   readonly bulkFixStatus: string;
   readonly bulkFixLogs: string[];
+  readonly currentAnalysisStep: number | null;
   readonly isBoosting: boolean;
   userPlanNote: string;
   activeTab: 'copyright' | 'seo' | 'ai' | 'enrich' | null;
@@ -318,10 +319,17 @@ export interface CampaignKeywords {
   secondary_keywords?: string[];
   persona?: string;
   category?: string;
+  category_id?: string | null;
   slug?: string;
   description?: string;
   creation_config?: Record<string, unknown>;
-  scout_report?: ScoutReport; // CNS V62.2: Persistent Strategic Intelligence
+  scout_report?: ScoutReport;
+  scheduling?: {
+    is_active: boolean;
+    frequency: "daily" | "weekly" | "monthly";
+    schedule_at: string;
+    days?: number[];
+  };
 }
 
 export interface CampaignMetrics {
@@ -473,4 +481,3 @@ export interface RewriteResult {
     combinations: string[];
     seo_metadata: string;
 }
-

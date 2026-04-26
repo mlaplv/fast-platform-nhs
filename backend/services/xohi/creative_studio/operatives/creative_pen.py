@@ -9,22 +9,20 @@ from backend.services.xohi.creative_studio.models.schemas import ArticleOutline,
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.text import to_int
 from backend.utils.noise_cleaner import noise_cleaner
-from backend.services.prompt_entropy import build_entropy_system_prompt
-from backend.services.lexical_sanitizer import sanitize_ai_text
-from .creative_pen_prompts import PROMPTS
 from .creative_pen_utils import process_pen_draft
+from backend.services.xohi.prompts import composer
+from backend.services.xohi.prompts.shields.service import shield_service
 
 logger = logging.getLogger("api-gateway")
 
 class CreativePen:
     """
     Step 3 & 4: Generate Outline and Draft Content. V62.1.
-    CNS V85.1: Multi-Entity Support (News vs Product).
+    Elite V2.2: Multi-Entity Support with Neural Prompt Orchestration (NPO).
     """
     def __init__(self, model_name: Optional[str] = None):
         logger.info("🔥 [CreativePen] CNS V85.1 Multi-Entity Engine Loaded.")
         self.model_name, self.pen_semaphore = model_name, asyncio.Semaphore(1)
-        # We'll initialize agents dynamically or with base prompts
         self.outline_agent = Agent(output_type=ArticleOutline, retries=3)
         self.draft_agent = Agent()
 
@@ -45,7 +43,6 @@ class CreativePen:
                 content = await self.write_draft(campaign)
                 campaign.draft_content = content
                 
-                # CNS V82.1: Immediate memory release for 2GB VPS safety
                 del content
                 gc.collect()
                 
@@ -58,12 +55,14 @@ class CreativePen:
         gt = campaign.get_gold_val("ground_truth", "")
         max_s = to_int(config.get("max_sections", 3))
         
-        # CNS V85.1: Adaptive Prompting
         ent = config.get("target_entity", "article")
-        base_system_prompt = PROMPTS.get(ent, PROMPTS["article"])["outline"]
         
-        # SGE Shield V1.0: Inject Tone + Structure Entropy for AI detection bypass
-        system_prompt = build_entropy_system_prompt(base_system_prompt, product_id=campaign.id)
+        shield = shield_service.get_shield_component(seed=campaign.id)
+        composer.register_component(shield)
+        
+        template_name = f"pen_outline_{ent}"
+        # ELITE V2.2: Use extra_components to maintain thread-safety
+        system_prompt = composer.compose(template_name, extra_components=[shield.id])
         
         inst = f"Hãy tạo Dàn Ý (ArticleOutline) chi tiết gồm đúng {max_s} mục H2. Bám sát Ground Truth."
         prompt = f"Tiêu đề: {t}\nTừ khóa: {p}\nGround Truth: {gt}\nGiới hạn: {max_s} mục H2."
@@ -85,10 +84,13 @@ class CreativePen:
     async def write_draft(self, campaign: ContentCampaign) -> str:
         config = campaign.get_gold_config()
         ent = config.get("target_entity", "article")
-        base_system_prompt = PROMPTS.get(ent, PROMPTS["article"])["draft"]
         
-        # SGE Shield V1.0: Inject Tone + Structure Entropy
-        system_prompt = build_entropy_system_prompt(base_system_prompt, product_id=campaign.id)
+        shield = shield_service.get_shield_component(seed=campaign.id)
+        composer.register_component(shield)
+        
+        template_name = f"pen_draft_{ent}"
+        # ELITE V2.2: Use extra_components to maintain thread-safety
+        system_prompt = composer.compose(template_name, extra_components=[shield.id])
         
         prompt, assets, primary = await self._build_p(campaign)
         try:
@@ -99,12 +101,12 @@ class CreativePen:
             )
             raw = getattr(res, "data", getattr(res, "output", str(res)))
             
-            # SGE Shield V1.0: Lexical Sanitizer (Remove AI Buzzwords)
-            raw = sanitize_ai_text(str(raw), seed=campaign.id)
+            # SGE Shield V2.0: Lexical Sanitizer
+            from backend.services.xohi.prompts.shields.service import shield_service
+            raw = shield_service.sanitize(str(raw))
             
             content = await process_pen_draft(str(raw), assets, primary)
             
-            # CNS V85.1: Extract Metadata for Products
             if ent == "product":
                 content = self._extract_xohi_metadata(content, campaign)
                 
@@ -118,12 +120,20 @@ class CreativePen:
         prompt, assets, primary = await self._build_p(campaign)
         try:
             full_raw = ""
-            async with trinity_bridge.run_stream(self.draft_agent, prompt, session_id=campaign.id, model=self.model_name) as stream:
+            
+            shield = shield_service.get_shield_component(seed=campaign.id)
+            composer.register_component(shield)
+            
+            template_name = f"pen_draft_{ent}"
+            # ELITE V2.2: Use extra_components to maintain thread-safety
+            system_prompt = composer.compose(template_name, extra_components=[shield.id])
+            
+            async with trinity_bridge.run_stream(self.draft_agent, prompt, system_prompt=system_prompt, session_id=campaign.id, model=self.model_name) as stream:
                 async for text in stream.stream_text(delta=True):
                     if text: full_raw += text; yield {"type": "chunk", "text": text}
             
-            # SGE Shield V1.0: Lexical Sanitizer (Remove AI Buzzwords)
-            sanitized_raw = sanitize_ai_text(full_raw, seed=campaign.id)
+            # SGE Shield V2.0: Lexical Sanitizer
+            sanitized_raw = shield_service.sanitize(full_raw)
             
             final_content = await process_pen_draft(sanitized_raw, assets, primary)
             if ent == "product":
@@ -131,41 +141,12 @@ class CreativePen:
                 
             yield {"type": "final", "content": final_content}
             
-            # Elite V2.2: Clear massive streaming buffers (RAM Discipline)
             del full_raw
             del final_content
             gc.collect()
             
         except Exception as e:
             logger.error(f"[CreativePen] Stream Error: {e}"); yield {"type": "error", "message": str(e)}; raise
-
-    def _extract_xohi_metadata(self, content: str, campaign: ContentCampaign) -> str:
-        """CNS V85.1: Neural Metadata Extraction (Regex based)."""
-        import re
-        import json
-        from sqlalchemy.orm.attributes import flag_modified
-        
-        match = re.search(r'<xohi-metadata>(.*?)</xohi-metadata>', content, re.DOTALL)
-        if match:
-            try:
-                meta = json.loads(match.group(1).strip())
-                gold = dict(campaign.gold_metadata or {})
-                
-                # Sync attributes, price, seo
-                for key in ["attributes", "price", "seo_title", "seo_description"]:
-                    if key in meta:
-                        gold[key] = meta[key]
-                
-                campaign.gold_metadata = gold
-                flag_modified(campaign, "gold_metadata")
-                logger.info(f"✅ [CreativePen] Metadata extracted for {campaign.id}")
-            except Exception as e:
-                logger.error(f"❌ [CreativePen] Metadata Parse Error: {e}")
-            
-            # Clean HTML
-            content = re.sub(r'<xohi-metadata>.*?</xohi-metadata>', '', content, flags=re.DOTALL).strip()
-            
-        return content
 
     async def _build_p(self, campaign: ContentCampaign) -> Tuple[str, List[str], str]:
         outline_data = campaign.outline_data or {}
@@ -195,3 +176,31 @@ class CreativePen:
 Chèn [IMAGE_N]. Trả về HTML thuần. Không giải thích.
 """
         return prompt, clean_assets, p
+
+    def _extract_xohi_metadata(self, content: str, campaign: ContentCampaign) -> str:
+        """CNS V85.1: Neural Metadata Extraction (Regex based)."""
+        import re
+        import json
+        from sqlalchemy.orm.attributes import flag_modified
+        
+        match = re.search(r'<xohi-metadata>(.*?)</xohi-metadata>', content, re.DOTALL)
+        if match:
+            try:
+                meta = json.loads(match.group(1).strip())
+                gold = dict(campaign.gold_metadata or {})
+                
+                # Sync attributes, price, seo
+                for key in ["attributes", "price", "seo_title", "seo_description"]:
+                    if key in meta:
+                        gold[key] = meta[key]
+                
+                campaign.gold_metadata = gold
+                flag_modified(campaign, "gold_metadata")
+                logger.info(f"✅ [CreativePen] Metadata extracted for {campaign.id}")
+            except Exception as e:
+                logger.error(f"❌ [CreativePen] Metadata Parse Error: {e}")
+            
+            # Clean HTML
+            content = re.sub(r'<xohi-metadata>.*?</xohi-metadata>', '', content, flags=re.DOTALL).strip()
+            
+        return content

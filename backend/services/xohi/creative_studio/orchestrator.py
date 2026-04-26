@@ -99,7 +99,7 @@ class ContentOrchestrator:
         self.analyst = AnalystHandler(self)
         self.management = ManagementHandler(self)
         
-        logger.info("[Content Factory] Orchestrator initialized with lean modular handlers.")
+        logger.info("🔥 [Content Factory] Neural Prompt Orchestration (NPO) V2.2 ACTIVE — The Vault is locked.")
 
     async def resume_all(self):
         """R104: Self-Healing Resume logic. R1.5: Zero-Hydration — only select needed columns."""

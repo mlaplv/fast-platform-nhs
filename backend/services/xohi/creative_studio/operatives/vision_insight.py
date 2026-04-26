@@ -11,6 +11,8 @@ from backend.database.repositories import ContentCampaignRepository
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge, AIConfigurationError
 from backend.services.xohi.creative_studio.models.schemas import TopicSeed, AgentResponse, AgentSignal, CategoryEnum
 from backend.services.event_bus import event_bus
+from backend.services.xohi.prompts import composer
+from backend.services.xohi.prompts.shields.service import shield_service
 
 logger = logging.getLogger("api-gateway")
 
@@ -24,29 +26,10 @@ CONSTRAINTS = {
     "VIRAL": {"word_count": 500, "max_sections": 3, "style": "Sắc sảo/Viral"}
 }
 
-VISION_PROMPT = """[ROLE] CHUYÊN GIA PHÂN TÍCH NỘI DUNG ĐA THỰC THỂ (ELITE V63.5)
-
-[CHẾ ĐỘ HOẠT ĐỘNG (INTENT MODES)]
-1. CHẾ ĐỘ SẢN PHẨM (PRODUCT COPYWRITER):
-   - Persona: Chuyên gia giới thiệu sản phẩm, súc tích, tập trung vào giá trị sử dụng.
-   - Tiêu đề: TÊN SẢN PHẨM + [ĐẶC ĐIỂM CHÍNH/ƯU ĐIỂM LỚN]. Ví dụ: "Áo Thun Nam Cotton 100% - Co Giãn 4 Chiều, Thấm Hút Cực Tốt".
-   - CẤM: Tuyệt đối CẤM các tiêu đề kiểu "Bật mí", "TOP X", "Hướng dẫn" cho sản phẩm.
-   - Nội dung: Tập trung vào Thông số, Chất liệu, Giá bán, Ưu đãi.
-
-2. CHẾ ĐỘ BÀI VIẾT (VIRAL SEO STRATEGIST):
-   - Persona: Người kể chuyện, chuyên gia thu hút đám đông (Viral).
-   - Tiêu đề: Giật gân, tò mò, chuẩn SEO Viral. Ví dụ: "Bật mí 5 bí mật về...", "TOP 10 cách...".
-   - Nội dung: Tập trung vào Kiến thức, Xu hướng, Giải quyết nỗi đau.
-
-[QUY TRÌNH NEURAL GUARD]
-- BƯỚC 1: Đọc [ENTITY TYPE]. Nếu là PRODUCT -> Bắt buộc dùng CHẾ ĐỘ SẢN PHẨM.
-- BƯỚC 2: Đối chiếu [GROUND TRUTH] để lấy thông số thực tế.
-- BƯỚC 3: Sinh TopicSeed chuẩn định dạng JSON, không giải thích."""
-
 class VisionInsight:
     """
     Step 1: Analyze input and generate the Golden Thread metadata.
-    [PHASE 15: DISCOVERY-FIRST REFORM]
+    Elite V2.2: Context-Aware with Neural Prompt Orchestration (NPO).
     """
     def __init__(self, discovery_hunter=None):
         # CNS V76: Global-like semaphore for Insight tasks to protect VPS RAM
@@ -54,7 +37,6 @@ class VisionInsight:
         self.discovery_hunter = discovery_hunter
         self.agent = Agent(
             output_type=TopicSeed,
-            system_prompt=VISION_PROMPT,
             retries=3
         )
 
@@ -164,8 +146,14 @@ class VisionInsight:
 
             # CNS V76: Enforce concurrency limit for insight tasks
             async with self.insight_semaphore:
+                shield = shield_service.get_shield_component(seed=c_id)
+                composer.register_component(shield)
+                
+                # ELITE V2.2: Use extra_components to maintain thread-safety
+                system_prompt = composer.compose("insight_discovery", extra_components=[shield.id])
+
                 # R101/R106: Using trinity_bridge for managed AI calls
-                ai_task = asyncio.create_task(trinity_bridge.run(self.agent, prompt))
+                ai_task = asyncio.create_task(trinity_bridge.run(self.agent, prompt, system_prompt=system_prompt))
 
                 progress_msgs = [
                     "🔍 Đang phân tích Search Intent cốt lõi...",
@@ -186,31 +174,26 @@ class VisionInsight:
                 # CNS V82.56: Safe result extraction for Elite V2.2 compat
                 seed: TopicSeed = getattr(result, "data", getattr(result, "output", result))
 
-                # CNS V85.7: Infinity Unified System (Articles=Enum, Products=DB-ID)
-                if target_entity == "product":
-                    seed.category = CategoryEnum.SAN_PHAM
+                # ELITE V2.2: Identify content type (Context-Driven Architecture)
+                # We trust the target_entity passed from the handler/module.
+                if target_entity == "product" or seed.category == "Sản phẩm":
+                    seed.category = "Sản phẩm"
+                    logger.info(f"[VisionInsight] [ROLE] Confirmed Product Entity for: {clean_topic}")
+                    
                     # Elite Guard: Enforce DB ID for Products
                     if not seed.category_id and "DANH MỤC HỆ THỐNG" in categories_ctx:
-                        # 1. Try to find a match by name if AI returned a name
                         if cat_list:
                             for c in cat_list:
                                 if c.name.lower() in clean_topic.lower() or (hasattr(seed, 'title') and c.name.lower() in seed.title.lower()):
                                     seed.category_id = c.id
-                                    logger.info(f"[VisionInsight] [Unified] Matched category_id by name: {c.name}")
                                     break
-                        
-                        # 2. Final Fallback: Recovery via regex from context
                         if not seed.category_id:
                             match = re.search(r"ID: ([a-z0-9_-]+) \|", categories_ctx)
-                            if match:
-                                seed.category_id = match.group(1)
-                                logger.info(f"[VisionInsight] [Unified] Auto-recovered ID for product: {seed.category_id}")
+                            if match: seed.category_id = match.group(1)
                 else:
                     # Articles/News/Viral use the Enum value (string), no DB ID allowed
                     seed.category_id = None
-                    # Safety: Ensure category is not SAN_PHAM if entity is article
-                    if seed.category == CategoryEnum.SAN_PHAM:
-                        seed.category = CategoryEnum.TIN_TUC
+                    seed.category = "Bài viết"
 
                 return seed
         except AIConfigurationError:
@@ -234,5 +217,5 @@ class VisionInsight:
                 secondary_keywords=[clean_topic[:50], f"{clean_topic} mới nhất", "Xohi AI Strategy"],
                 persona="Chuyên gia, giọng văn thân thiện và chuyên nghiệp",
                 description=f"Khám phá kiến thức chuyên sâu về {clean_topic} để tối ưu hóa hiệu quả công việc và cuộc sống.",
-                category=CategoryEnum.SAN_PHAM if target_entity == "product" else CategoryEnum.TIN_TUC
+                category="Sản phẩm" if target_entity == "product" else "Bài viết"
             )

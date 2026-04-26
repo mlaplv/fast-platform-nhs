@@ -3,28 +3,18 @@ from datetime import datetime, timezone
 from pydantic_ai import Agent
 from backend.services.xohi.creative_studio.models.schemas import SurgeonBoosterReport
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-from backend.services.ai_engine.core.agent_base import BaseAgentOperative, XoHiProgressMixin
+from backend.services.ai_engine.core.agent_base import BaseAgentOperative
 from backend.utils.text import extract_readable_text
+from backend.services.xohi.prompts import composer
+from backend.services.xohi.prompts.shields.service import shield_service
 
 logger = logging.getLogger("api-gateway")
 
-_SURGEON_BOOST_PROMPT = """[ROLE] VIRAL EDGE SENIOR SURGEON — Neural XoHi Elite V2.2
-Nhiệm vụ: Phẫu thuật nội dung để đạt Viral Edge tối đa. Tuyệt đối không viết chung chung vô giá trị.
 
-[QUY TẮC BÁO CÁO — ELITE PROTOCOL]
-1. 🚫 KHÔNG DÙNG LỜI MỞ ĐẦU/KẾT THÚC: Đi thẳng vào các thao tác phẫu thuật.
-2. 🚫 KHÔNG DÙNG DẤU BA SAO (***): Sử dụng tiêu đề Markdown hoặc danh sách chuẩn.
-3. 💉 INFORMATION GAIN: Mỗi patch phẫu thuật phải tăng cường EEAT (Số liệu, Trích dẫn, Thực thể).
-4. 🔪 SURGICAL PRECISION: search_string phải khớp 100% bản gốc.
-
-[YÊU CẦU ĐẦU RA — SurgeonBoosterReport]
-summary: "BẢN TRÌNH BÁO PHẪU THUẬT NỘI DUNG (Elite V2.2)\\n\\n- **[LUẬN ĐIỂM CẢI TIẾN]**: Phân tích vì sao nội dung gốc đang bị 'loãng' hoặc thiếu sức nặng.\\n- **[CHỨNG CỨ PHẪU THUẬT]**: Liệt kê các đoạn đã được tiêm Information Gain.\\n- **[KẾT QUẢ KỲ VỌNG]**: Tăng khả năng lọt TOP 1 và AI Overview."
-"""
-
-class SurgeonBooster(BaseAgentOperative, XoHiProgressMixin):
+class SurgeonBooster(BaseAgentOperative):
     """
     CNS V87.0: Surgeon Booster Operative.
-    Performs ad-hoc content enrichment and phẫu thuật.
+    Elite V2.2: Performs ad-hoc content enrichment and phẫu thuật with NPO.
     """
     agent_id_class = "surgeon_booster"
 
@@ -32,7 +22,6 @@ class SurgeonBooster(BaseAgentOperative, XoHiProgressMixin):
         super().__init__(agent_id="surgeon_booster")
         self._agent = Agent(
             output_type=SurgeonBoosterReport,
-            system_prompt=_SURGEON_BOOST_PROMPT,
             retries=2
         )
 
@@ -65,7 +54,36 @@ class SurgeonBooster(BaseAgentOperative, XoHiProgressMixin):
             logs.append("🔪 Đang thực hiện phẫu thuật nội dung bằng Neural Booster...")
             await self._emit_progress(campaign_id, logs[-1])
             
-            result = await trinity_bridge.run(self._agent, prompt, role="pro", timeout=90.0)
+            # [CNS-V89] Resolve Context via Centralized Intelligence
+            context = await self._resolve_xohi_context(request, content, "booster")
+            await self._emit_progress(campaign_id, context["log_msg"])
+
+            logs.append(f"🛡️ [ROLE] Đã xác nhận phân vai tác chiến: {context['role_assignment']}")
+            await self._emit_progress(campaign_id, logs[-1])
+
+            logs.append(f"🛡️ [SHIELD] Đã kích hoạt SGE Shield V2.1 (Anti-AI Footprint)")
+            await self._emit_progress(campaign_id, logs[-1])
+
+            is_adhoc = campaign_id == "adhoc"
+            logs.append(f"🛡️ [SAFETY] Chế độ Ad-hoc Safety: {'ACTIVE' if is_adhoc else 'CAMPAIGN_MODE'}")
+            await self._emit_progress(campaign_id, logs[-1])
+            
+            shield = shield_service.get_shield_component(seed=str(campaign_id))
+            composer.register_component(shield)
+            
+            # ELITE V2.2: Use extra_components to maintain thread-safety
+            system_prompt = composer.compose("booster_surgeon", context=context, extra_components=[shield.id])
+            
+            logs.append(f"📡 [CONNECT] Kết nối Neural Bridge (Role: PRO)...")
+            await self._emit_progress(campaign_id, logs[-1])
+
+            result = await trinity_bridge.run(self._agent, prompt, system_prompt=system_prompt, role="pro", timeout=90.0)
+            
+            # SGE Shield V2.0: Lexical Sanitizer
+            if hasattr(result, "patches"):
+                for patch in result.patches:
+                    if hasattr(patch, "new_text"):
+                        patch.new_text = shield_service.sanitize(patch.new_text)
             
             logs.append(f"✅ Hoàn tất! {len(result.patches)} thao tác phẫu thuật sẵn sàng.")
             await self._emit_progress(campaign_id, logs[-1], status="DONE")

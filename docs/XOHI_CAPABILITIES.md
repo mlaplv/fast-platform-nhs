@@ -98,8 +98,57 @@ XoHi đã chính thức thoát khỏi sự phụ thuộc vào mã nguồn cứng
 
 ---
 
-_V77.1: XOHI NEXUS — PRO DYNAMIC NEURAL LEARNING & IDENTITY MAPPING (2026 NEXT-GEN)._
-
 ---
 
-_V77.0: XOHI NEXUS — DYNAMIC NEURAL LEARNING & AUTONOMOUS INTENT MAPPING (2026 NEXT-GEN)._
+## 🛡️ 10. NEURAL PROMPT ORCHESTRATION (V2.2 — THE VAULT & SGE SHIELD)
+
+Hệ thống quản trị "linh hồn" AI tập trung, xóa bỏ hoàn toàn dấu vết AI và tối ưu hóa cho Google Search 2026:
+
+- **NPO "The Vault"**: Toàn bộ chỉ thị AI (Prompts) được quản trị tập trung tại `backend/services/xohi/prompts/`. Xóa sạch 100% prompt hardcode, tăng khả năng bảo trì và bảo mật.
+- **CNS-V89 Centralized Intelligence**: Hệ thống tự động nhận diện bối cảnh (Context) Sản phẩm vs. Bài viết ngay từ lớp Mixin cơ sở. Đảm bảo 100% các đặc vụ phân vai chính xác theo địa bàn tác chiến.
+- **Atomic Assembly (Layered Prompting)**: Prompt được lắp ghép động 5 lớp:
+    - **Constitution**: Hiến pháp tối cao (Ép kiểu JSON, Zero Explaining, Bảo mật lõi).
+    - **Agent Persona**: Vai diễn chuyên gia (Neural Journalist, SEO Strategist, Copywriter Master).
+    - **Niche Mixins**: Tri thức ngành hàng (Dược phẩm, Mỹ phẩm, Thời trang, Tech).
+    - **SGE Shield**: Lớp khiên tàng hình (Entropy instructions).
+    - **Adapter Layer**: Tối ưu hóa cho từng Model LLM (Gemini 2.0 / Claude 3.5).
+- **SGE Shield V2.0 (AI Footprint Entropy)**:
+    - **Dynamic Seeded Entropy**: Tự động biến thiên nhịp điệu hành văn (Burstiness) dựa trên `Campaign ID`. Mỗi kết quả là một bản thể độc bản, không có "dấu vân tay" AI lặp lại.
+    - **Lexical Sanitizer**: Bộ lọc hậu kỳ thời gian thực. Thanh trừng 100% các cụm từ sáo rỗng đặc trưng của LLM (buzzwords) như *"trong bối cảnh", "hứa hẹn mang lại"*.
+- **Model Adapters**: Tự động tối ưu hóa định dạng Output theo từng dòng Model (Gemini 2.0, Claude 3.5) để đạt độ chính xác cao nhất.
+
+### 🛠️ Ghi chú Kỹ thuật (Technical Specs):
+- **Cấu trúc**: `backend/services/xohi/prompts/{core,agents,niches,shields}`.
+- **Engine**: `PromptComposer` (Single-pass assembly, RAM optimized).
+- **Compliance**: Pydantic V2 Static Typing, zero-footprint injection.
+
+---
+ 
+## 🖥️ 11. NEURAL TERMINAL & INTELLIGENCE HUD (V2.2 — REAL-TIME MONITORING)
+ 
+ Hệ thống giám sát đặc vụ thời gian thực, mang lại sự minh bạch tuyệt đối cho quy trình AI:
+ 
+ - **Intelligence HUD**: Bảng điều khiển tác chiến hiển thị trực tiếp các dòng log từ Backend (SSE Stream).
+ - **Neural Logs**: Sếp có thể theo dõi từng bước suy nghĩ của AI:
+     - `[SCAN]`: Quét và làm sạch dữ liệu nhiễu.
+     - `[RECON]`: Trinh sát đối thủ trên Google.
+     - `[JUDGE]`: Chấm điểm và phân tích chiến thuật.
+     - `[SHIELD]`: Kích hoạt khiên chống AI footprint.
+ - **Interactive Console**: Tự động mở khi có tiến trình phân tích, giúp sếp nắm bắt trạng thái hệ thống mà không cần vào terminal.
+ 
+ ### 🛠️ Ghi chú Kỹ thuật (Technical Specs):
+ - **Frontend**: `IntelligenceHUD.svelte`, `AnalysisLoading.svelte` (Svelte 5 Runes).
+ - **Backend**: `XoHiProgressMixin` (SSE Emitter), `pulse_stream.py`.
+ - **Protocol**: Native Server-Sent Events (SSE) với nhịp tim (Heartbeat) 15s.
+ 
+ ---
+ 
+ _V2.2: XOHI NEXUS — NEURAL PROMPT ORCHESTRATION, SGE SHIELD & INTELLIGENCE HUD (ELITE 2026)._
+ 
+ ---
+ 
+ _V77.1: XOHI NEXUS — PRO DYNAMIC NEURAL LEARNING & IDENTITY MAPPING (2026 NEXT-GEN)._
+ 
+ ---
+ 
+ _V77.0: XOHI NEXUS — DYNAMIC NEURAL LEARNING & AUTONOMOUS INTENT MAPPING (2026 NEXT-GEN)._

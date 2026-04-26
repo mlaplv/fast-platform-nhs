@@ -76,7 +76,8 @@
     }
     
     if (editedConfig?.scheduling) {
-      const s = editedConfig.scheduling as any;
+      interface Scheduling { is_active: boolean; frequency: string; schedule_at: string; }
+      const s = editedConfig.scheduling as unknown as Scheduling;
       if (s.frequency && s.schedule_at && !s.is_active) {
         s.is_active = true; // Auto-ON as requested: "auto on khi có lịch"
       }
@@ -93,7 +94,7 @@
       // CNS V86.5: Recursive Flattening (Phase 102.3 Elite Hierarchy)
       if (res && res.data) {
         const flattened: {id: string, name: string, depth: number}[] = [];
-        const process = (cats: any[], depth = 0) => {
+        const process = (cats: {id: string, name: string, children?: any[]}[], depth = 0) => {
           cats.forEach(c => {
             flattened.push({ id: c.id, name: c.name, depth });
             if (c.children && c.children.length > 0) {
@@ -617,7 +618,8 @@
                   handleUpdateMetadata();
                 }
                 // CNS V82.3: Ensure we check the current state after sync trigger
-                const sch = editedConfig.scheduling as any;
+                interface Scheduling { is_active: boolean; frequency: string; schedule_at: string; }
+                const sch = editedConfig.scheduling as unknown as Scheduling;
                 if (sch?.is_active) {
                   nanobot.showToast(`Autopilot Elite: Đã lên lịch thực thi lúc ${sch.schedule_at} (${sch.frequency})`, "success");
                 } else {

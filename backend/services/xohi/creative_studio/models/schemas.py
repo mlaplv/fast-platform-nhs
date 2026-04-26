@@ -15,6 +15,7 @@ class CategoryEnum(str, Enum):
 class CampaignCategory(str, Enum):
     CREATIVE_CONTENT = "CREATIVE_CONTENT"
     AD_MANAGEMENT = "AD_MANAGEMENT"
+    PRODUCT_CATALOG = "PRODUCT_CATALOG"
 
 class AgentResponse(BaseModel):
     model_config = ConfigDict(strict=False)  # R105 exception: data wraps arbitrary dict
@@ -29,7 +30,7 @@ class TopicSeed(BaseModel):
     secondary_keywords: List[str] = Field(description="Danh sách từ khóa bổ trợ hoặc Thông số/Đặc tính then chốt")
     persona: str = Field(description="Mô tả phong cách (e.g. Chuyên gia review, Copywriter bán hàng)")
     description: str = Field(description="Mô tả SEO (Meta Description) hoặc Tóm tắt đặc điểm nổi bật SP")
-    category: CategoryEnum = Field(default=CategoryEnum.TIN_TUC, description="Phân loại hệ thực thể (Bài viết hoặc Sản phẩm)")
+    category: str = Field(default="Bài viết", description="Phân loại hệ thực thể (Bài viết hoặc Sản phẩm)")
     category_id: Optional[str] = Field(default=None, description="ID danh mục cụ thể từ Database (UUID)")
     ground_truth: Optional[str] = Field(default=None, description="Tóm tắt bối cảnh thực tế trinh sát được từ Google (Phase 15.1)")
     creation_config: Dict[str, object] = Field(

@@ -13,7 +13,8 @@ from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.utils.text import normalize_vn
 from backend.services.xohi.creative_studio.utils.stitcher import surgical_stitch
-from .plagiarism_prompts import PLAGIARISM_SURGEON_PROMPT
+from backend.services.xohi.prompts import composer
+from backend.services.xohi.prompts.shields.service import shield_service
 
 logger = logging.getLogger("api-gateway")
 
@@ -22,11 +23,10 @@ RE_DIGIT = re.compile(r'\d+')
 class PlagiarismSurgeon(XoHiProgressMixin):
     """
     Handles deterministic deduplication and AI-powered surgical fixes for Copyright.
-    Separated from PlagiarismCop to comply with Martial Law line limits (<300 lines).
+    Elite V2.2: Context-Aware with Neural Prompt Orchestration (NPO).
     """
     def __init__(self):
         self._atomic_surgeon_agent = Agent(
-            system_prompt=PLAGIARISM_SURGEON_PROMPT,
             output_type=AtomicFixResponse,
             retries=2
         )
@@ -52,18 +52,15 @@ class PlagiarismSurgeon(XoHiProgressMixin):
         return intersect / (len(a) + len(b) - intersect)
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
+        self.current_step = 0
         now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
         logs = [f"🚀 [{now_str}] [SURGEON] Initializing Neural Surgical Engine (Elite V2.2)..."]
         await self._emit_log(campaign, logs[-1])
+        logger.warning(f"🚀 [PlagiarismSurgeon] Initializing [SURGEON] Phase 0: Patch Preparation...")
         
-        # R110: Use raw draft content to ensure surgical snippets (annotations) match perfectly.
         draft = campaign.draft_content or ""
-
-        # R110: Simplified Bulk Fix. We avoid aggressive dedup here to ensure 
-        # surgical replacements match the editor's current structure.
         cleaned_draft = draft
         
-        # AI Surgeon for external plagiarism
         annots = req.annotations if isinstance(req.annotations, list) else []
         all_annots = [a for a in annots if (a.get("text") or a.get("reason")) and len(str(a.get("text",""))) > 5]
         
@@ -81,8 +78,12 @@ class PlagiarismSurgeon(XoHiProgressMixin):
 
         logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [SCAN] Ingesting {len(valid_items)} violation points into AI Surgeon...")
         await self._emit_log(campaign, logs[-1])
+        self.current_step = 1
+        logger.warning(f"🔍 [PlagiarismSurgeon] Phase 1: [SCAN] Context Ingestion complete.")
         
-        # CNS V2.2: Fetch competitor context to avoid fixing "in the dark"
+        self.current_step = 2
+        logger.warning(f"🧠 [PlagiarismSurgeon] Phase 2: [BRAIN] Surgery processing pending...")
+        
         gold = dict(campaign.gold_metadata or {})
         cache = dict(gold.get("analysis_cache", {}))
         copyright_cache = cache.get("copyright", {}).get("data", {})
@@ -91,17 +92,22 @@ class PlagiarismSurgeon(XoHiProgressMixin):
         source_context = ""
         if similar_sources:
             source_context = "\n[NGUỒN ĐỐI CHIẾU CẦN TRÁNH]\n" + "\n".join(similar_sources[:3])
+        
+        shield = shield_service.get_shield_component(seed=campaign.id)
+        composer.register_component(shield)
+        
+        # ELITE V2.2: Use extra_components to maintain thread-safety
+        system_prompt = composer.compose("copyright_surgeon", extra_components=[shield.id])
 
-        bulk_prompt = f"{PLAGIARISM_SURGEON_PROMPT}\n{source_context}\n\n[DANH SÁCH CẦN SỬA]\n{snippet_list}"
+        bulk_prompt = f"{source_context}\n\n[DANH SÁCH CẦN SỬA]\n{snippet_list}"
         
         try:
-            res = await trinity_bridge.run(self._atomic_surgeon_agent, bulk_prompt, role="fast", timeout=120.0)
+            res = await trinity_bridge.run(self._atomic_surgeon_agent, bulk_prompt, system_prompt=system_prompt, role="fast", timeout=120.0)
             raw_data = res
             final_content = cleaned_draft
             replacements_made = 0
             replacements_log = []
             
-            # Use data attribute if trinity_bridge returned the raw AgentRunResult
             if hasattr(raw_data, 'data') and not hasattr(raw_data, 'replacements'):
                 raw_data = raw_data.data
 
@@ -109,7 +115,6 @@ class PlagiarismSurgeon(XoHiProgressMixin):
                 logs.append(f"💉 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [PATCH] AI surgery plan received. Applying {len(raw_data.replacements)} patches...")
                 await self._emit_log(campaign, logs[-1])
                 
-                # Sort by length descending to avoid nested replacement issues
                 sorted_fixes = sorted(raw_data.replacements, key=lambda x: len(next((v["old_text"] for v in valid_items if v["id"] == x.id), "")), reverse=True)
                 for fix in sorted_fixes:
                     orig_item = next((v for v in valid_items if v["id"] == fix.id), None)
@@ -124,8 +129,11 @@ class PlagiarismSurgeon(XoHiProgressMixin):
                             logs.append(f"✅ [SURGEON] Successfully patched: \"{old_txt[:40]}...\"")
                             await self._emit_log(campaign, logs[-1])
             
-            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Bulk fix complete. Successfully optimized {replacements_made}/{len(valid_items)} segments.")
+            self.current_step = 3
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Bulk fix complete. Successfully optimized {replacements_made}/{len(valid_items)} segments. ĐÃ XỬ LÝ XONG")
             await self._emit_log(campaign, logs[-1])
+            logger.warning(f"✅ [PlagiarismSurgeon] [QUANTUM] Bulk fix complete.")
+            final_content = self.clean_ai_html(final_content)
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
             logger.error(f"[PlagiarismSurgeon] AI Bulk Fix failed: {e}")
