@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from pydantic import BaseModel
     from sqlalchemy.ext.asyncio import AsyncSession
     from backend.database.models import ContentCampaign
+    from backend.services.xohi.creative_studio.models.schemas import SeoAnnotation
 
 from backend.database.models.system import UnifiedAgentTask
 from backend.database.alchemy_config import alchemy_config
@@ -113,7 +114,7 @@ class XoHiProgressMixin:
             "timestamp": datetime.now(timezone.utc).isoformat()
         })
 
-class BaseAgentOperative(ABC, MedicalShieldMixin):
+class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
     """
     V2.2 Heritage Core: Standardized AI Orchestration.
     All XoHi/Client Operatives MUST inherit from this base.
@@ -209,3 +210,82 @@ class BaseAgentOperative(ABC, MedicalShieldMixin):
         """Standardized system-wide performance reporting."""
         status = "SUCCESS" if not error else f"FAILED ({error})"
         self.logger.info(f"[{self.agent_id}] {task} {status} | Latency: {duration:.3f}s")
+
+    async def _resolve_xohi_context(self, campaign: object, draft: str, mode: str) -> dict:
+        """
+        Elite V2.2: Centralized Context Resolution (CNS-V89).
+        Determines the 'Combat Domain' and 'Expert Role' for the AI.
+        """
+        # 1. Identify Entity Type
+        is_product = False
+        if hasattr(campaign, "category") and getattr(campaign, "category") == "PRODUCT_CATALOG":
+            is_product = True
+        elif hasattr(campaign, "get_gold_val"):
+            if campaign.get_gold_val("contentType") == "product" or campaign.get_gold_val("category") == "Sản phẩm":
+                is_product = True
+        
+        # 2. Assign Role & Log Message
+        role_map = {
+            "copyright": ("Thẩm định viên Bản quyền", "🕵️ Đang trinh sát mạng lưới tác quyền toàn cầu..."),
+            "seo": ("Chuyên gia Tối ưu SEO", "🧠 Đang tính toán ma trận thực thể SEO..."),
+            "ai_inspect": ("Kiểm định viên Cấu trúc", "🔍 Đang soi rọi cấu trúc Information Gain..."),
+            "rewriter": ("Biên tập viên Cao cấp", "✍️ Đang tinh chỉnh phong cách Viral 2026..."),
+            "booster": ("Phẫu thuật viên EEAT", "🔪 Đang cấy ghép dữ liệu thực tế vào bài viết...")
+        }
+        
+        role_base, log_msg = role_map.get(mode, ("Chuyên gia Phân tích", "📡 Đang khởi động hệ thống..."))
+        entity_suffix = "Sản phẩm" if is_product else "Bài viết"
+        role_assignment = f"{role_base} {entity_suffix} (Elite V2.2)"
+        
+        # 3. Dynamic Prompt Mixins (Elite V2.2 POS)
+        context = {
+            "role_assignment": role_assignment,
+            "log_msg": log_msg,
+            "content_type_vn": "sản phẩm" if is_product else "bài viết",
+            "is_product": is_product
+        }
+        
+        # Specific mixins for different modes
+        if mode == "ai_inspect":
+            context.update({
+                "four_blocks": "[FOMO - SCIENCE - RITUAL - TRUST]" if is_product else "[HOOK - EVIDENCE - STRATEGY - CONNECTION]",
+                "block_1": "FOMO" if is_product else "HOOK",
+                "block_3": "RITUAL" if is_product else "STRATEGY"
+            })
+            
+        return context
+
+    def clean_ai_html(self, html: str) -> str:
+        """CNS V82.0: Clean AI artifacts (Markdown blocks, artifacts) from HTML."""
+        if not html: return ""
+        # Remove ```html ... ``` blocks if present
+        clean = re.sub(r'```html\s*', '', html, flags=re.IGNORECASE)
+        clean = re.sub(r'```\s*', '', clean)
+        return clean.strip()
+
+    def detect_enrichment_annotations(self, draft: str) -> list["SeoAnnotation"]:
+        """
+        Elite V2.2: Universal EEAT Detection (CNS-V85.26).
+        Identifies Booster segments in draft and returns SEO annotations.
+        """
+        from backend.services.xohi.creative_studio.models.schemas import SeoAnnotation
+        annotations = []
+        
+        def _build_ann(m, label):
+            clean_text = re.sub(r'<[^>]*>', ' ', m.group(0))
+            clean_text = ' '.join(clean_text.split()).strip()
+            return SeoAnnotation(
+                type="enrich",
+                text=clean_text[:120],
+                message=f"🚀 AI Booster: Đã cấy {label} thực tế vào bài viết.",
+                severity="info"
+            )
+
+        for m in re.finditer(r'<blockquote\s+class="xohi-stat">(.*?)</blockquote>', draft, re.DOTALL):
+            annotations.append(_build_ann(m, "số liệu"))
+        for m in re.finditer(r'<blockquote\s+class="xohi-quote">(.*?)</blockquote>', draft, re.DOTALL):
+            annotations.append(_build_ann(m, "trích dẫn"))
+        for m in re.finditer(r'<table\s+class="xohi-compare[^"]*">(.*?)</table>', draft, re.DOTALL):
+            annotations.append(_build_ann(m, "bảng so sánh"))
+            
+        return annotations
