@@ -451,3 +451,26 @@ export interface CleanOptions {
   stripEmpty?: boolean;
   deduplicateContent?: boolean;
 }
+
+export interface ComponentData {
+    title: string;
+    description: string;
+}
+
+export interface SpecBento {
+    label: string;
+    value: string;
+}
+
+export interface RewriteResult {
+    hero_headline: string;
+    unique_identity: string;
+    spec_bento: SpecBento[];
+    golden_ingredients: ComponentData[];
+    benefits: ComponentData[];
+    routine: string[];
+    safety_warnings: string[];
+    combinations: string[];
+    seo_metadata: string;
+}
+

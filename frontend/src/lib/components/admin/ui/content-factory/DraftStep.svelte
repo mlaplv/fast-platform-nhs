@@ -11,6 +11,17 @@
   import { createOutlineController } from "$lib/state/xohiOutline.svelte";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import type { MediaAsset, CampaignOutline, CampaignSection, CampaignMetrics, AnalysisCache } from "$lib/state/types";
+  import InteractiveDashboard from "$lib/components/ui/InteractiveDashboard.svelte";
+
+  function isJson(str: string) {
+    if (typeof str !== 'string') return false;
+    try {
+      const parsed = JSON.parse(str);
+      return typeof parsed === 'object' && parsed !== null && ('hero_headline' in parsed || 'spec_bento' in parsed);
+    } catch (e) {
+      return false;
+    }
+  }
 
   interface Props {
     campaign_id: string; isEditing: boolean; editedDraft: string; draft_content: string;
@@ -105,22 +116,35 @@
         />
       </div>
     {/if}
-    <NeuralEditor
-      bind:content={editedDraft}
-      topic={outline?.title || ""}
-      editable={isEditing}
-      placeholder="AI đang chấp bút bản thảo..."
-      fullScreen={isExpanded}
-      campaign_id={campaign_id}
-      isProcessing={isProcessing}
-      bind:assets
-      bind:selectedAvatarUrl
-      bind:selectedAssetIndex
-      bind:analysisCache={analysis_cache}
-      bind:analysisMetrics={analysis_metrics}
-      analysisReport={analysis_report}
-      flex={true}
-    />
+    
+    {#if isJson(editedDraft || draft_content)}
+      <div class="p-4 overflow-y-auto w-full h-full custom-scrollbar flex-1 relative">
+         <InteractiveDashboard data={editedDraft || draft_content} compact={false} />
+         {#if isEditing}
+           <div class="mt-4 p-4 border border-yellow-500/50 bg-yellow-500/10 rounded-lg text-yellow-200/80 text-sm flex gap-2">
+             <span>⚠️</span>
+             <span>Giao diện này đang sử dụng Neural Data-driven API. Tính năng chỉnh sửa trực tiếp qua Tiptap Editor đã bị vô hiệu hóa cho định dạng này. Vui lòng sử dụng tính năng "Sửa hàng loạt" hoặc "Neural Rewrite" từ công cụ AI ở Sidebar để tinh chỉnh dữ liệu.</span>
+           </div>
+         {/if}
+      </div>
+    {:else}
+      <NeuralEditor
+        bind:content={editedDraft}
+        topic={outline?.title || ""}
+        editable={isEditing}
+        placeholder="AI đang chấp bút bản thảo..."
+        fullScreen={isExpanded}
+        campaign_id={campaign_id}
+        isProcessing={isProcessing}
+        bind:assets
+        bind:selectedAvatarUrl
+        bind:selectedAssetIndex
+        bind:analysisCache={analysis_cache}
+        bind:analysisMetrics={analysis_metrics}
+        analysisReport={analysis_report}
+        flex={true}
+      />
+    {/if}
   </div>
 
 </div>

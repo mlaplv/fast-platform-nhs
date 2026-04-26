@@ -4,6 +4,7 @@ from pydantic_ai import Agent
 from backend.services.xohi.creative_studio.models.schemas import SurgeonBoosterReport
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative, XoHiProgressMixin
+from backend.utils.text import extract_readable_text
 
 logger = logging.getLogger("api-gateway")
 
@@ -37,7 +38,8 @@ class SurgeonBooster(BaseAgentOperative, XoHiProgressMixin):
 
     async def chat(self, request: object, **kwargs: object) -> SurgeonBoosterReport:
         """Standard Heritage Entry."""
-        content = str(getattr(request, "draft_content", "")) or str(kwargs.get("content", ""))
+        content_raw = str(getattr(request, "draft_content", "")) or str(kwargs.get("content", ""))
+        content = extract_readable_text(content_raw)
         topic = str(getattr(request, "topic", "")) or str(kwargs.get("topic", ""))
         campaign_id = getattr(request, "id", str(kwargs.get("campaign_id", "adhoc")))
         

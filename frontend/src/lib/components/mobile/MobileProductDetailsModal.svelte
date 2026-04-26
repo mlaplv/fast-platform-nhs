@@ -3,6 +3,17 @@
   import { X, ShieldCheck, Info, AudioLines, VolumeX } from 'lucide-svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
+  import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
+
+  function isJson(str: string) {
+    if (typeof str !== 'string') return false;
+    try {
+      const parsed = JSON.parse(str);
+      return typeof parsed === 'object' && parsed !== null && ('hero_headline' in parsed || 'spec_bento' in parsed);
+    } catch (e) {
+      return false;
+    }
+  }
 
   let { active = $bindable(), product }: { active: boolean, product: Product } = $props();
 
@@ -309,8 +320,12 @@
       class="pl-[10px] pr-2.5 pt-2 pb-10 overflow-y-auto custom-scrollbar flex-1 relative elite-prose select-text"
     >
       {#if product?.description}
-        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-        {@html product.description}
+        {#if isJson(product.description)}
+          <InteractiveDashboard data={product.description} compact={true} />
+        {:else}
+          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+          {@html product.description}
+        {/if}
       {:else}
         <div class="flex flex-col items-center justify-center h-full text-white/30 space-y-4 pb-20">
           <ShieldCheck class="w-12 h-12 opacity-50" />

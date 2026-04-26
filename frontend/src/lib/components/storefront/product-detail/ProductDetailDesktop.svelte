@@ -9,6 +9,17 @@
   import { resolveMediaUrl } from '$lib/state/utils';
   import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
+  import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
+
+  function isJson(str: string) {
+    if (typeof str !== 'string') return false;
+    try {
+      const parsed = JSON.parse(str);
+      return typeof parsed === 'object' && parsed !== null && ('hero_headline' in parsed || 'spec_bento' in parsed);
+    } catch (e) {
+      return false;
+    }
+  }
 
   /** Detect video URL: mp4, webm, mov, ogg … */
   function isVideoUrl(url: string | undefined | null): boolean {
@@ -861,7 +872,13 @@
           <h2 class="text-[18px] font-black text-gray-800 uppercase tracking-tight">Mô tả sản phẩm</h2>
        </div>
        <div class="px-0 prose-micsmo">
-          {@html product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
+          {#if isJson(product.description)}
+             <div class="bg-black text-white p-4 rounded-xl">
+               <InteractiveDashboard data={product.description} compact={false} />
+             </div>
+          {:else}
+             {@html product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
+          {/if}
        </div>
     </div>
 

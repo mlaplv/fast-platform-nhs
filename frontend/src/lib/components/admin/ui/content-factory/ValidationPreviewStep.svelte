@@ -1,6 +1,17 @@
 <script lang="ts">
   import type { MediaAsset, CampaignKeywords, CopyrightResult, SEOResult, AIInspectResult, AnalysisCache } from "$lib/state/types";
   import { createPreviewController } from "$lib/state/xohiPreview.svelte";
+  import InteractiveDashboard from "$lib/components/ui/InteractiveDashboard.svelte";
+
+  function isJson(str: string) {
+    if (typeof str !== 'string') return false;
+    try {
+      const parsed = JSON.parse(str);
+      return typeof parsed === 'object' && parsed !== null && ('hero_headline' in parsed || 'spec_bento' in parsed);
+    } catch (e) {
+      return false;
+    }
+  }
 
   interface Props {
     draft_content: string;
@@ -78,7 +89,11 @@
           </div>
 
           <div class="prose prose-lg prose-red max-w-none break-words" style="font-family: 'Merriweather', serif;">
-            {@html ctrl.processedContent || "<p class='text-gray-400 italic'>Chưa có nội dung bản thảo...</p>"}
+            {#if isJson(draft_content)}
+               <InteractiveDashboard data={draft_content} compact={ctrl.previewMode === 'mobile'} />
+            {:else}
+               {@html ctrl.processedContent || "<p class='text-gray-400 italic'>Chưa có nội dung bản thảo...</p>"}
+            {/if}
           </div>
        </div>
     </div>

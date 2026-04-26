@@ -31,9 +31,43 @@ def surgical_stitch(content: str, old_text: str, new_text: str, label: str = "St
     
     CRITICAL FIX V87.1: Annotations từ AI luôn là plain text, nhưng bài viết là HTML.
     CRITICAL FIX V87.2: Force NFC Normalization để tránh lỗi tiếng Việt NFD/NFC.
+    CRITICAL FIX V91.0: Data-driven JSON awareness.
     """
     if not old_text or not new_text or not content:
         return content
+
+    from backend.utils.text import is_json
+    import json
+    if is_json(content):
+        try:
+            data = json.loads(content)
+            def _stitch_recursive(obj: object, stitched_count: list) -> object:
+                if stitched_count[0] > 0: return obj
+                if isinstance(obj, str):
+                    new_str = surgical_stitch(obj, old_text, new_text, label) # call self on pure string
+                    if new_str != obj:
+                        stitched_count[0] += 1
+                        return new_str
+                    return obj
+                elif isinstance(obj, dict):
+                    for k, v in obj.items():
+                        obj[k] = _stitch_recursive(v, stitched_count)
+                        if stitched_count[0] > 0: break
+                    return obj
+                elif isinstance(obj, list):
+                    for i in range(len(obj)):
+                        obj[i] = _stitch_recursive(obj[i], stitched_count)
+                        if stitched_count[0] > 0: break
+                    return obj
+                return obj
+            count = [0]
+            new_data = _stitch_recursive(data, count)
+            if count[0] > 0:
+                return json.dumps(new_data, ensure_ascii=False)
+            return content
+        except Exception as e:
+            logger.error(f"[{label}] JSON parsing failed during stitch: {e}")
+            return content
 
     # Chuẩn hóa Unicode NFC (W3C Standard) để tránh sai lệch dấu tiếng Việt
     content = unicodedata.normalize('NFC', content)

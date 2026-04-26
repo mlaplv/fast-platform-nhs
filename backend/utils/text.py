@@ -64,3 +64,53 @@ def to_int(val: object, default: int = 0) -> int:
         return default
     except (ValueError, TypeError):
         return default
+
+def extract_readable_text(content: str) -> str:
+    """
+    If content is a JSON string, parses it and recursively extracts all string values
+    into a single plain text string. Useful for AI operatives analyzing structured data.
+    If it's not JSON, returns the original string.
+    """
+    if not content or not isinstance(content, str):
+        return content or ""
+        
+    content_stripped = content.strip()
+    if not (content_stripped.startswith("{") and content_stripped.endswith("}")):
+        return content
+
+    import json
+    try:
+        data = json.loads(content_stripped)
+        
+        def _extract_strings(obj: object) -> list[str]:
+            if isinstance(obj, str):
+                return [obj]
+            elif isinstance(obj, dict):
+                res = []
+                for v in obj.values():
+                    res.extend(_extract_strings(v))
+                return res
+            elif isinstance(obj, list):
+                res = []
+                for item in obj:
+                    res.extend(_extract_strings(item))
+                return res
+            return []
+            
+        strings = _extract_strings(data)
+        return "\n\n".join(strings)
+    except Exception:
+        return content
+
+def is_json(content: str) -> bool:
+    if not content or not isinstance(content, str):
+        return False
+    content_stripped = content.strip()
+    if not (content_stripped.startswith("{") and content_stripped.endswith("}")):
+        return False
+    import json
+    try:
+        json.loads(content_stripped)
+        return True
+    except Exception:
+        return False

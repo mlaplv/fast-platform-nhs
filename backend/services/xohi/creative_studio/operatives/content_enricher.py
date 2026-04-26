@@ -13,6 +13,7 @@ from backend.services.xohi.creative_studio.models.schemas import (
     EnrichAIPayload, EnrichmentItem, EnrichResponse, SeoAnnotation
 )
 from backend.database.repositories import ContentCampaignRepository
+from backend.utils.text import extract_readable_text
 
 logger = logging.getLogger("api-gateway")
 
@@ -122,9 +123,10 @@ class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             return []
 
     async def enrich(self, campaign: ContentCampaign) -> EnrichResponse:
-        logs = ["🔍 Khởi động hệ thống AI Booster (Phase 82.8)..."]
+        now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
+        logs = [f"🚀 [{now_str}] Khởi động hệ thống AI Booster (Phase 82.8)..."]
         await self._emit_progress(campaign, logs[-1])
-        draft = campaign.draft_content or ""
+        draft = extract_readable_text(campaign.draft_content or "")
         if not draft:
             raise ValueError("Không có nội dung để enrich")
 
@@ -138,11 +140,11 @@ class ContentEnricher(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                 topic = "Kiến thức chung"
                 
         logger.info(f"[Enricher] Starting enrichment for topic: {topic}")
-        logs.append(f"🧠 Đang phân tích chủ đề: '{topic}'...")
+        logs.append(f"🧠 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Đang phân tích chủ đề: '{topic}'...")
         await self._emit_progress(campaign, logs[-1])
 
         # Phase 1: Gather Real Data (Parallel)
-        logs.append("📡 Đang trinh sát dữ liệu thực tế từ Google (Stats & Quotes)...")
+        logs.append(f"📡 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Đang trinh sát dữ liệu thực tế từ Google (Stats & Quotes)...")
         await self._emit_progress(campaign, logs[-1])
         year = datetime.now().year
         stats_query = f"{topic} statistics {year} số liệu thống kê"
@@ -180,7 +182,7 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
 """
         logger.info(f"[Enricher] Enrichment complete. Stats search found {len(stats_results)} results, Quotes search found {len(quotes_results)} results.")
         logger.info(f"[Enricher] Sending to Gemini for synthesis (Payload length: {len(user_input)})...")
-        logs.append("🧠 Đang tổng hợp số liệu và chèn vào bản thảo...")
+        logs.append(f"🧠 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Đang tổng hợp số liệu và chèn vào bản thảo...")
         await self._emit_progress(campaign, logs[-1])
         try:
             # Use role="brain" for complex synthesis tasks
@@ -217,7 +219,7 @@ Hãy chọn số liệu/quote hay nhất từ DỮ LIỆU THỰC TẾ và TỰ T
             result_data = result.data
             
         logger.info(f"[Enricher] Enrichment successful. Stats: {result_data.stats_added}, Quotes: {result_data.quotes_added}, Tables: {result_data.tables_added}")
-        logs.append(f"✅ Hoàn tất! Đã chèn {result_data.stats_added} số liệu, {result_data.quotes_added} câu quote và {result_data.tables_added} bảng so sánh.")
+        logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Hoàn tất! Đã chèn {result_data.stats_added} số liệu, {result_data.quotes_added} câu quote và {result_data.tables_added} bảng so sánh.")
         await self._emit_progress(campaign, logs[-1])
         
         # CNS V85.24: Reliable Auto-Extraction of items from HTML

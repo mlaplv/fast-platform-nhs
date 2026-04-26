@@ -20,7 +20,7 @@ from backend.services.xohi.creative_studio.models.schemas import (
 )
 from backend.database.repositories import ContentCampaignRepository
 from backend.utils.noise_cleaner import noise_cleaner
-from backend.utils.text import normalize_vn
+from backend.utils.text import normalize_vn, extract_readable_text, is_json
 from .plagiarism_prompts import PLAGIARISM_PROMPT
 from .plagiarism_surgeon import PlagiarismSurgeon
 # [CNS V90.0] Shared Search Cache — tiết kiệm 50% Google quota với SEO
@@ -107,9 +107,10 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         campaign = await repo.get(campaign_id)
         if not campaign: return AgentResponse(signal=AgentSignal.FAIL_GRACEFULLY, message="Campaign not found")
         
-        current_draft = campaign.draft_content or ""
+        original_draft = campaign.draft_content or ""
+        current_draft = extract_readable_text(original_draft)
         clean_draft = await noise_cleaner.clean(current_draft, mode="aggressive", strip_html=False)
-        if clean_draft != current_draft:
+        if clean_draft != current_draft and not is_json(original_draft):
             campaign.draft_content = clean_draft
             await repo.update(campaign)
 
@@ -143,20 +144,23 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         Phase 4: Heuristic Fallback (If AI fails)
         """
         async with self._plagiarism_semaphore:
-            logs = ["[CNS] Initializing Neural Copyright Engine (XoHi 2026)..."]
+            import time
+            start_time = time.time()
+            now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
+            logs = [f"🚀 [{now_str}] Initializing Neural Copyright Engine (XoHi 2026)..."]
             await self._emit_progress(campaign, logs[-1])
 
-            draft = campaign.draft_content or ""
+            draft = extract_readable_text(campaign.draft_content or "")
             kw = campaign.get_gold_val("primary_keyword", "")
             if not kw and not draft:
                 return PlagiarismResult(uniqueness_score=1.0, risk_level="LOW", flagged_sentences=[], annotations=[], similar_sources=[], verdict="Thiếu dữ liệu (Chưa có Topic/Keyword).", logs=logs)
 
             word_count = len(draft.split())
-            logs.append(f"[NFC] Normalizing {word_count} words... cleaning noise & artifacts.")
+            logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [NFC] Normalizing {word_count} words... cleaning noise & artifacts.")
             await self._emit_progress(campaign, logs[-1])
             plain = await noise_cleaner.clean(draft, mode="aggressive", strip_html=False)
 
-            logs.append("[DEDUP] Internal Cross-Paragraph Synthesis... scanning for internal redundancy.")
+            logs.append(f"📡 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [DEDUP] Internal Cross-Paragraph Synthesis... scanning for internal redundancy.")
             await self._emit_progress(campaign, logs[-1])
             seen, deduped, i_annots = set(), [], []
             for para in self._surgeon._split_into_paragraphs(plain)[:MAX_PARAGRAPHS_ANALYZE]:
@@ -174,7 +178,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                 await self._emit_progress(campaign, logs[-1])
                 comps = await self._fetch_competitor_snippets(campaign, kw, logs=logs)
 
-            logs.append("[BRAIN] Loading competitive landscape into Neural Core...")
+            logs.append(f"🧠 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [BRAIN] Loading competitive landscape into Neural Core...")
             await self._emit_progress(campaign, logs[-1])
             try:
                 if logs is not None:
@@ -200,8 +204,15 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
                     raw.annotations = annots
                     raw.risk_level = "HIGH" if raw.uniqueness_score < UNIQUENESS_THRESHOLD_HIGH else ("MEDIUM" if raw.uniqueness_score < UNIQUENESS_THRESHOLD_LOW else "LOW")
                 
-                logs.append(f"[QUANTUM] Kiểm tra tác quyền hoàn tất! Phát hiện {len(getattr(raw, 'annotations', []))} điểm cần lưu ý.")
+                duration = time.time() - start_time
+                logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Kiểm tra tác quyền hoàn tất trong {duration:.1f}s! Phát hiện {len(getattr(raw, 'annotations', []))} điểm cần lưu ý.")
                 await self._emit_progress(campaign, logs[-1])
+                # Elite V2.2: Prepend report timestamp to verdict for traceability
+                report_time = datetime.now(timezone.utc).strftime('%H:%M:%S %d/%m/%Y')
+                time_badge = f"> [!IMPORTANT]\n> **THỜI GIAN LẬP BÁO CÁO:** {report_time}\n\n"
+                if hasattr(raw, 'verdict'):
+                    raw.verdict = time_badge + (raw.verdict or "")
+                
                 if hasattr(raw, 'logs'): raw.logs = logs
                 return raw
             except Exception as e:

@@ -1,6 +1,7 @@
 import re
 import asyncio
 import logging
+from datetime import datetime, timezone
 from typing import List, Dict, Optional, Tuple, cast, Set
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
@@ -51,7 +52,8 @@ class PlagiarismSurgeon(XoHiProgressMixin):
         return intersect / (len(a) + len(b) - intersect)
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
-        logs = ["[SURGEON] Initializing Neural Surgical Engine (Elite V2.2)..."]
+        now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
+        logs = [f"🚀 [{now_str}] [SURGEON] Initializing Neural Surgical Engine (Elite V2.2)..."]
         await self._emit_log(campaign, logs[-1])
         
         # R110: Use raw draft content to ensure surgical snippets (annotations) match perfectly.
@@ -77,7 +79,7 @@ class PlagiarismSurgeon(XoHiProgressMixin):
         if not valid_items:
             return BulkFixResponse(new_content=cleaned_draft, logs=logs)
 
-        logs.append(f"[SCAN] Ingesting {len(valid_items)} violation points into AI Surgeon...")
+        logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [SCAN] Ingesting {len(valid_items)} violation points into AI Surgeon...")
         await self._emit_log(campaign, logs[-1])
         
         # CNS V2.2: Fetch competitor context to avoid fixing "in the dark"
@@ -104,7 +106,7 @@ class PlagiarismSurgeon(XoHiProgressMixin):
                 raw_data = raw_data.data
 
             if hasattr(raw_data, "replacements"):
-                logs.append(f"[PATCH] AI surgery plan received. Applying {len(raw_data.replacements)} patches...")
+                logs.append(f"💉 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [PATCH] AI surgery plan received. Applying {len(raw_data.replacements)} patches...")
                 await self._emit_log(campaign, logs[-1])
                 
                 # Sort by length descending to avoid nested replacement issues
@@ -122,7 +124,7 @@ class PlagiarismSurgeon(XoHiProgressMixin):
                             logs.append(f"✅ [SURGEON] Successfully patched: \"{old_txt[:40]}...\"")
                             await self._emit_log(campaign, logs[-1])
             
-            logs.append(f"[QUANTUM] Bulk fix complete. Successfully optimized {replacements_made}/{len(valid_items)} segments.")
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Bulk fix complete. Successfully optimized {replacements_made}/{len(valid_items)} segments.")
             await self._emit_log(campaign, logs[-1])
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:

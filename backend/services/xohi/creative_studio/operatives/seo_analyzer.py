@@ -21,6 +21,7 @@ from backend.database.models.content import ContentCampaign
 from backend.utils.config import get_env_json
 from backend.services.event_bus import event_bus
 from sqlalchemy.orm.attributes import flag_modified
+from backend.utils.text import extract_readable_text, is_json
 from .content_enricher import ContentEnricher
 
 logger = logging.getLogger("api-gateway")
@@ -195,19 +196,21 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
         CNS Phase 82.35: Enforce GLOBAL serial processing for SEO.
         """
         async with self._seo_semaphore:
-            draft = campaign.draft_content or ""
+            original_draft = campaign.draft_content or ""
+            draft = extract_readable_text(original_draft)
             word_count = len(draft.split())
-            logs = [f"[SCAN] Khởi động Neural SEO Engine... Đang phân tích {word_count} từ."]
+            now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
+            logs = [f"🚀 [{now_str}] [SCAN] Khởi động Neural SEO Engine... Đang phân tích {word_count} từ."]
             await self._emit_progress(campaign, logs[-1])
             
             # Phase 76.3: Unified Logic-First Sanitization
-            logs.append("[CLEAN] Đang tối ưu cấu trúc HTML & làm sạch dữ liệu nhiễu...")
+            logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [CLEAN] Đang tối ưu cấu trúc HTML & làm sạch dữ liệu nhiễu...")
             await self._emit_progress(campaign, logs[-1])
             clean_draft = await noise_cleaner.clean(draft, mode="light", strip_html=False)
             pure_text = await noise_cleaner.clean(draft, mode="light", strip_html=True)
 
             # Topic Detection
-            logs.append("[RECON] Đang xác định chủ đề mục tiêu và thực thể SEO...")
+            logs.append(f"📡 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [RECON] Đang xác định chủ đề mục tiêu và thực thể SEO...")
             await self._emit_progress(campaign, logs[-1])
             raw_topic = campaign.get_gold_val("topic")
             if raw_topic:
@@ -227,7 +230,7 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin, XoHiProgressMixin):
             await self._emit_progress(campaign, logs[-1])
             competitor_str = "\n".join(competitors)
             
-            logs.append("[JUDGE] Đang chấm điểm 7 tín hiệu SEO bằng Neural Core V2.2...")
+            logs.append(f"🧠 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [JUDGE] Đang chấm điểm 7 tín hiệu SEO bằng Neural Core V2.2...")
             await self._emit_progress(campaign, logs[-1])
             # Logic Layer: Pass data to AI judge
             user_input = f"""
@@ -265,8 +268,17 @@ DRAFT:
                 elif isinstance(report, dict) and 'seo_annotations' in report:
                     report['seo_annotations'].extend(extra_annotations)
             
-            logs.append(f"[QUANTUM] Phân tích SEO hoàn tất! {len(getattr(report, 'seo_annotations', []))} điểm cải tiến chiến thuật.")
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phân tích SEO hoàn tất! {len(getattr(report, 'seo_annotations', []))} điểm cải tiến chiến thuật.")
             await self._emit_progress(campaign, logs[-1])
+            # Elite V2.2: Prepend report timestamp to summary for traceability
+            report_time = datetime.now(timezone.utc).strftime('%H:%M:%S %d/%m/%Y')
+            time_badge = f"> [!IMPORTANT]\n> **THỜI GIAN LẬP BÁO CÁO:** {report_time}\n\n"
+            
+            if hasattr(report, 'summary'):
+                report.summary = time_badge + (report.summary or "")
+            elif isinstance(report, dict) and 'summary' in report:
+                report['summary'] = time_badge + (report.get('summary', "") or "")
+
             return report
 
     def _audit_keyword_density(self, plain_text: str, primary: str) -> List[SeoAnnotation]:
@@ -300,10 +312,16 @@ DRAFT:
         return annotations
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
-        logs = ["[SEO SURGEON] Initializing Neural SEO Surgeon (Elite V2.2)..."]
+        now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
+        logs = [f"🚀 [{now_str}] [SEO SURGEON] Initializing Neural SEO Surgeon (Elite V2.2)..."]
         await self._emit_progress(campaign, logs[-1])
         
-        draft = await noise_cleaner.clean(campaign.draft_content or "", mode="light", strip_html=False)
+        original_draft = campaign.draft_content or ""
+        if not is_json(original_draft):
+            draft = await noise_cleaner.clean(original_draft, mode="light", strip_html=False)
+        else:
+            draft = original_draft
+            
         annots = req.annotations if isinstance(req.annotations, list) else []
         valid_items = []
         snippet_list = ""
@@ -317,7 +335,7 @@ DRAFT:
 
         if not valid_items: return BulkFixResponse(new_content=draft, logs=logs)
 
-        logs.append(f"[SCAN] Ingesting {len(valid_items)} SEO weaknesses into AI Surgeon...")
+        logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [SCAN] Ingesting {len(valid_items)} SEO weaknesses into AI Surgeon...")
         await self._emit_progress(campaign, logs[-1])
         prompt = f"{ATOMIC_SEO_SURGEON_PROMPT}\n\n[CẦN SỬA]\n{snippet_list}"
         
@@ -341,7 +359,7 @@ DRAFT:
                             replacements_log.append({"old_text": old, "new_text": new})
                             logs.append(f"✅ [SEO SURGEON] Optimized: \"{old[:40]}...\"")
                             await self._emit_progress(campaign, logs[-1])
-            logs.append(f"[QUANTUM] Phẫu thuật SEO hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn.")
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phẫu thuật SEO hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn.")
             await self._emit_progress(campaign, logs[-1])
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:

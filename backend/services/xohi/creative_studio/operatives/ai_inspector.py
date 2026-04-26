@@ -16,6 +16,7 @@ from backend.services.xohi.creative_studio.models.schemas import (
     GoldMetadata, AiAnnotation, AtomicFixResponse, SurgicalSnippetFix
 )
 from backend.services.xohi.creative_studio.utils.stitcher import surgical_stitch
+from backend.utils.text import extract_readable_text, is_json
 from .ai_inspector_prompts import GEO_ANALYSIS_PROMPT, SURGEON_PROMPT, ATOMIC_SURGEON_PROMPT
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
@@ -82,12 +83,14 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
 
 
     async def analyze(self, campaign: ContentCampaign, force: bool = False) -> AiReadyReport:
-        logs = ["[GEO] Initializing Neural AI-Ready Engine (XoHi 2026)..."]
+        now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
+        logs = [f"🚀 [{now_str}] [GEO] Initializing Neural AI-Ready Engine (XoHi 2026)..."]
         await self._emit_log(campaign, logs[-1])
         
-        draft = campaign.draft_content or ""
+        original_draft = campaign.draft_content or ""
+        draft = extract_readable_text(original_draft)
         word_count = len(draft.split())
-        logs.append(f"[GEO] Structural Scan: {word_count} words. Analyzing NLP Entity Density & Information Gain...")
+        logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [GEO] Structural Scan: {word_count} words. Analyzing NLP Entity Density & Information Gain...")
         await self._emit_log(campaign, logs[-1])
         try:
             res = await trinity_bridge.run(self._agent, draft[:50000], role="pro") # Use Pro for high-IQ analysis
@@ -95,8 +98,15 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
             if hasattr(raw, 'data') and not hasattr(raw, 'geo_score'):
                 raw = raw.data
                 
-            logs.append(f"[QUANTUM] Kiểm tra cấu trúc hoàn tất! Phát hiện {len(getattr(raw, 'annotations', []))} điểm tối ưu hóa.")
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Kiểm tra cấu trúc hoàn tất! Phát hiện {len(getattr(raw, 'annotations', []))} điểm tối ưu hóa.")
             await self._emit_log(campaign, logs[-1])
+            # Elite V2.2: Prepend report timestamp to summary for traceability
+            report_time = datetime.now(timezone.utc).strftime('%H:%M:%S %d/%m/%Y')
+            time_badge = f"> [!IMPORTANT]\n> **THỜI GIAN LẬP BÁO CÁO:** {report_time}\n\n"
+            
+            if hasattr(raw, 'summary'):
+                raw.summary = time_badge + (raw.summary or "")
+            
             raw.logs = logs
             return raw
         except Exception as e:
@@ -104,7 +114,7 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
             return AiReadyReport(geo_score=75, summary="AI bận, thử lại sau.", logs=logs)
 
     async def auto_fix(self, campaign: ContentCampaign, annotation: AiAnnotation) -> AutoFixResponse:
-        content = campaign.draft_content or ""
+        content = extract_readable_text(campaign.draft_content or "")
         snippet, issue = annotation.text, annotation.message
         prompt = f"[BÀI VIẾT]\n{content[:5000]}\n\n[ĐOẠN LỖI]\n{snippet}\n\n[LÝ DO]\n{issue}"
         try:
@@ -118,10 +128,15 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
             return AutoFixResponse(old_text=snippet, new_text=snippet)
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
-        logs = ["[SURGEON] Initializing Neural AI-Ready Surgeon (Elite V2.2)..."]
+        now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
+        logs = [f"🚀 [{now_str}] [SURGEON] Initializing Neural AI-Ready Surgeon (Elite V2.2)..."]
         await self._emit_log(campaign, logs[-1])
         
-        draft = await noise_cleaner.clean(campaign.draft_content or "", mode="light", strip_html=False)
+        original_draft = campaign.draft_content or ""
+        if not is_json(original_draft):
+            draft = await noise_cleaner.clean(original_draft, mode="light", strip_html=False)
+        else:
+            draft = original_draft
         annots = req.annotations if isinstance(req.annotations, list) else []
         valid_items = []
         snippet_list = ""
@@ -135,7 +150,7 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
 
         if not valid_items: return BulkFixResponse(new_content=draft, logs=logs)
 
-        logs.append(f"[SCAN] Ingesting {len(valid_items)} structural weaknesses into AI Surgeon...")
+        logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [SCAN] Ingesting {len(valid_items)} structural weaknesses into AI Surgeon...")
         await self._emit_log(campaign, logs[-1])
         prompt = f"{ATOMIC_SURGEON_PROMPT}\n\n[CẦN SỬA]\n{snippet_list}"
         
@@ -159,7 +174,7 @@ class AiInspector(BaseAgentOperative, XoHiProgressMixin):
                             replacements_log.append({"old_text": old, "new_text": new})
                             logs.append(f"✅ [SURGEON] Optimized: \"{old[:40]}...\"")
                             await self._emit_log(campaign, logs[-1])
-            logs.append(f"[QUANTUM] Phẫu thuật cấu trúc hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn.")
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phẫu thuật cấu trúc hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn.")
             await self._emit_log(campaign, logs[-1])
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:

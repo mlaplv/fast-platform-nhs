@@ -7,6 +7,17 @@
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
+  import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
+
+  function isJson(str: string) {
+    if (typeof str !== 'string') return false;
+    try {
+      const parsed = JSON.parse(str);
+      return typeof parsed === 'object' && parsed !== null && ('hero_headline' in parsed || 'spec_bento' in parsed);
+    } catch (e) {
+      return false;
+    }
+  }
 
   const shopStore = getShopStore();
   let { active = $bindable(), product: propProduct } = $props();
@@ -57,8 +68,12 @@
       {#if product?.description}
         <EditableWrapper path="description" type="html" label="SỬA MÔ TẢ CHI TIẾT">
           <div class="elite-prose-container">
-            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-            {@html product.description}
+            {#if isJson(product.description)}
+               <InteractiveDashboard data={product.description} compact={false} />
+            {:else}
+               <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+               {@html product.description}
+            {/if}
           </div>
         </EditableWrapper>
       {:else}

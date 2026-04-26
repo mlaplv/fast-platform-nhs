@@ -1,10 +1,33 @@
 import logging
-from typing import Optional, Dict
+from datetime import datetime, timezone
+from typing import Optional, Dict, List
+from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative, XoHiProgressMixin
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
 logger = logging.getLogger("api-gateway")
+
+class ComponentData(BaseModel):
+    title: str = Field(..., description="Tiêu đề thành phần hoặc công dụng")
+    description: str = Field(..., description="Mô tả chi tiết")
+
+class SpecBento(BaseModel):
+    label: str = Field(..., description="Tên thông số (VD: Thương hiệu)")
+    value: str = Field(..., description="Giá trị (VD: Beppin Body)")
+
+class RewriteResult(BaseModel):
+    """Cấu trúc dữ liệu chuẩn JSON cho Dashboard Interactive UI"""
+    hero_headline: str = Field(..., description="Tiêu đề thôi miên (ngắn gọn, giật gân, có số liệu)")
+    unique_identity: str = Field(..., description="1-2 câu khẳng định vị thế độc bản")
+    spec_bento: List[SpecBento] = Field(..., description="Bảng thông số kỹ thuật (Thương hiệu, SKU, Xuất xứ...)")
+    golden_ingredients: List[ComponentData] = Field(..., description="Thành phần vàng & Công nghệ")
+    benefits: List[ComponentData] = Field(..., description="Công dụng (Feature -> Benefit)")
+    routine: List[str] = Field(..., description="Các bước hướng dẫn sử dụng")
+    safety_warnings: List[str] = Field(..., description="Lưu ý an toàn, kiêng cữ")
+    combinations: List[str] = Field(..., description="Gợi ý kết hợp (Combo)")
+    seo_metadata: str = Field(..., description="Tóm tắt SEO (150 ký tự)")
+    generated_at: Optional[str] = Field(None, description="Mốc thời gian lập báo cáo")
 
 _NEURAL_REWRITE_PROMPT = """[ROLE] {role} — XoHi Elite V2.2
 Nhiệm vụ: Viết lại toàn bộ nội dung dựa trên các luận điểm phản biện (Copyright Verdict) để đạt 100% Unique và Viral Edge.
@@ -14,19 +37,9 @@ Nhiệm vụ: Viết lại toàn bộ nội dung dựa trên các luận điểm
 2. 💉 INFORMATION GAIN: Sử dụng [DỮ LIỆU THỰC TẾ (FACT SHEET)] làm nguồn tư liệu chính để viết bài. Cấm bịa đặt thông số.
 3. 🚫 TỰ CHỦ NỘI DUNG: Không được lặp lại nguyên văn các câu văn cũ. Phải thay đổi cấu trúc câu, từ vựng để đạt điểm Uniqueness cao nhất.
 4. ⚡ VIRAL EDGE: Sử dụng ngôn ngữ sắc bén, tiêu đề giật gân nhưng chuyên nghiệp.
-5. 🛡️ HTML PRESERVATION: Giữ lại các thẻ HTML quan trọng (<h1>, <h2>, <ul>, <img>, <table>).
-6. 🚫 KHÔNG GIẢI THÍCH: Trả về kết quả là NỘI DUNG HTML thuần. CẤM tuyệt đối việc sử dụng các thẻ cấp trang như <!DOCTYPE>, <html>, <head>, <body>. Chỉ trả về cấu trúc nội dung (<h1>, <p>, <ul>, <img>, <table>, ...).
-7. 🚫 CẤM BẢO VỆ CODE: Không bao giờ được đặt kết quả trong khối mã markdown (```html). Trả về text HTML trực tiếp.
-8. 🚫 KHÔNG LẶP LẠI NHÃN: Tuyệt đối không sử dụng các tiêu đề nhãn từ yêu cầu (ví dụ: "[DỮ LIỆU THỰC TẾ]", "[FACT SHEET]", "[THÔNG TIN PHẢN BIỆN]") vào trong bài viết. Hãy tự đặt các tiêu đề phù hợp với ngữ cảnh bán hàng (ví dụ: "Thông số kỹ thuật", "Giải đáp thắc mắc").
-9. 🚫 CẤM TRÙNG LẶP UI: Các thông tin như Thương hiệu, SKU, Xuất xứ, FAQ đã có trong Fact Sheet sẽ bị CẤM viết lại vào nội dung bài viết để tránh dư thừa UI.
-10. 🧪 VIRAL SPEC BENTO: Tuyệt đối KHÔNG dùng thẻ <table> để trình bày thông số. Năm 2026, hãy sử dụng cấu trúc Spec Bento Grid chuyên nghiệp sau:
-<div class="spec-bento-grid">
-  <div class="spec-card">
-    <div class="spec-label">Thông số</div>
-    <div class="spec-value">Thương hiệu: Beppin Body</div>
-  </div>
-  ...
-</div>
+5. 🛡️ DATA EXTRACTION ONLY: Bạn CHỈ ĐƯỢC PHÉP TRẢ VỀ DỮ LIỆU THEO ĐÚNG ĐỊNH DẠNG JSON SCHEMA ĐƯỢC CUNG CẤP. Không trả về HTML, không giải thích.
+6. 🚫 KHÔNG LẶP LẠI NHÃN: Tuyệt đối không sử dụng các tiêu đề nhãn từ yêu cầu (ví dụ: "[DỮ LIỆU THỰC TẾ]") vào trong nội dung.
+7. 🕒 TIMESTAMPS: Luôn điền mốc thời gian hiện tại vào trường `generated_at` nếu có thể.
 
 {context_instructions}
 
@@ -42,68 +55,24 @@ Nhiệm vụ: Viết lại toàn bộ nội dung dựa trên các luận điểm
 _PRODUCT_INSTRUCTIONS = """[CHỈ THỊ RIÊNG CHO SẢN PHẨM — GOLD STANDARD V2.2]:
 - ROLE: Chuyên gia chốt đơn quốc tế (Global Direct-Response Copywriter).
 - GIỌNG ĐIỆU: Sắc bén, chuyên nghiệp, tập trung vào KẾT QUẢ và NIỀM TIN khoa học.
-- CẤU TRÚC BẮT BUỘC (Strict Layout):
-    1. **Headline (Tiêu đề thôi miên)**: [Tên sản phẩm] + [Lợi ích cốt lõi] + [Con số thực chứng].
-    2. **The Hero Identity**: 1-2 câu khẳng định vị thế độc bản (Hero Position).
-    3. **The Golden Formula (Thành phần vàng)**: Phân tích 2-3 thành phần chính theo hướng: Thành phần -> Công nghệ -> Kết quả.
-    4. **High-Impact Benefits (Công dụng)**: Dạng Bullet Points [Feature -> Benefit]. Giải quyết nỗi đau cụ thể.
-    5. **The Ritual (Hướng dẫn sử dụng)**: BẮT BUỘC. Hướng dẫn chi tiết các bước (Làm sạch -> Thẩm thấu -> Khóa ẩm).
-    6. **Safety Protocol (Lưu ý & Kiêng cử)**: BẮT BUỘC (EEAT). Cảnh báo về vết thương hở, kỵ hoạt chất, bảo quản.
-    7. **The Perfect Routine (Gợi ý kết hợp)**: BẮT BUỘC. Gợi ý Combo tối ưu hiệu quả.
-
-- QUY TẮC VĂN PHONG:
-*   Phong cách: High-End Landing Page (Apple/Paula's Choice).
-*   Trình bày thông tin rõ ràng, dễ tra cứu, không lan man kiểu blog.
-*   🛡️ PREMIUM SPECS: Nếu Sếp yêu cầu hoặc cần thiết, hãy sử dụng cấu trúc [PREMIUM FACT SHEET UI] (Rule #10) để trình bày bảng thông số.
-*   🚫 CẤM VIẾT LẠI: Tuyệt đối không trình bày lại các thông số (Thương hiệu, SKU, FAQ) dưới dạng văn bản xuôi (prose) nếu chúng đã có trong bảng thông số hoặc Fact Sheet UI.
+- ĐẢM BẢO CHẤT LƯỢNG: Phân bổ dữ liệu chuẩn xác vào các field của JSON, đặc biệt là `spec_bento` (thông số) và `golden_ingredients` (thành phần).
 """
 
 _ARTICLE_INSTRUCTIONS = """[CHỈ THỊ RIÊNG CHO BÀI VIẾT — NEURAL JOURNALIST]:
 - Tập trung vào Storytelling và giá trị thông tin (Information Gain).
-*   Sử dụng dữ liệu trinh sát (Scout Report) để tăng uy tín E-E-A-T.
-*   🚫 CẤM SAO CHÉP THÔ: Tuyệt đối không liệt kê lại các thông số (Thương hiệu, SKU, FAQ) thành một danh sách riêng biệt. Hãy lồng ghép chúng vào câu chuyện (Storytelling).
-*   Phong cách: Lôi cuốn, sắc bén, chuẩn chuyên gia."""
+- Sử dụng dữ liệu trinh sát để điền vào `benefits` và `golden_ingredients` sao cho lôi cuốn, sắc bén, chuẩn chuyên gia.
+"""
 
 class NeuralRewriter(BaseAgentOperative, XoHiProgressMixin):
     """
     CNS V88.5: Neural Creative Rewriter.
-    Elite V2.2: Context-Aware (Product/Article).
+    Elite V2.2: Context-Aware (Product/Article) with Data-driven API (JSON Outputs).
     """
     agent_id_class = "neural_rewriter"
 
     def __init__(self, **kwargs: object):
         super().__init__(agent_id="neural_rewriter")
-        self._agent = Agent(output_type=str, retries=2)
-
-    def _sanitize_html(self, html: str) -> str:
-        import re
-        # CNS V90.1: Military-grade cleanup.
-        # Step 1: Strip everything before the first '<' and after the last '>'
-        # This kills ```html and any AI chatter immediately.
-        first_tag = html.find('<')
-        last_tag = html.rfind('>')
-        
-        if first_tag != -1 and last_tag != -1:
-            html = html[first_tag:last_tag+1]
-        
-        # Step 2: Nuclear option for any remaining backticks or markdown bits
-        html = html.replace('```html', '').replace('```', '')
-        
-        # Step 3: Strip <!DOCTYPE>, <html>, <head> tags
-        html = re.sub(r'<!DOCTYPE.*?>', '', html, flags=re.IGNORECASE | re.DOTALL)
-        html = re.sub(r'<html.*?>', '', html, flags=re.IGNORECASE | re.DOTALL)
-        html = re.sub(r'</html>', '', html, flags=re.IGNORECASE)
-        html = re.sub(r'<head.*?>.*?</head>', '', html, flags=re.IGNORECASE | re.DOTALL)
-        
-        # Step 4: Extract content inside <body> if AI was too helpful
-        body_match = re.search(r'<body.*?>(.*?)</body>', html, flags=re.IGNORECASE | re.DOTALL)
-        if body_match:
-            html = body_match.group(1)
-        else:
-            html = re.sub(r'<body.*?>', '', html, flags=re.IGNORECASE)
-            html = re.sub(r'</body>', '', html, flags=re.IGNORECASE)
-            
-        return html.strip()
+        self._agent = Agent(output_type=RewriteResult, retries=2)
 
     def _generate_fact_sheet(self, metadata: Dict[str, object]) -> str:
         if not metadata: return "Không có dữ liệu bổ sung."
@@ -136,8 +105,9 @@ class NeuralRewriter(BaseAgentOperative, XoHiProgressMixin):
         if user_note:
             user_note_section = f"[GHI CHÚ CHIẾN LƯỢC - ƯU TIÊN CAO NHẤT]:\n{user_note}\n"
 
+        now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
         logs: list[str] = [
-            f"🚀 Neural Creative Rewrite khởi động cho {content_type}: '{topic}'...",
+            f"🚀 [{now_str}] Neural Creative Rewrite khởi động cho {content_type}: '{topic}'...",
         ]
         await self._emit_progress(campaign_id, logs[-1])
 
@@ -154,14 +124,13 @@ class NeuralRewriter(BaseAgentOperative, XoHiProgressMixin):
         prompt = f"[TIÊU ĐIỂM]: {topic}\n\n[NỘI DUNG GỐC]:\n{content[:15000]}"
 
         try:
-            logs.append(f"🧠 Đang nạp Fact Sheet & nạp vai {role}...")
+            logs.append(f"🧠 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Đang nạp Fact Sheet & nạp vai {role}...")
             if user_note:
                 logs.append(f"📝 Đã nhận chỉ đạo: '{user_note[:30]}...'")
             await self._emit_progress(campaign_id, logs[-1])
             
-            logs.append("🖋️ Xohi đang múa bút tái cấu trúc nội dung...")
-            await self._emit_progress(campaign_id, logs[-1])
-            
+            import time
+            start_time = time.time()
             response = await trinity_bridge.run(
                 self._agent, 
                 prompt, 
@@ -169,14 +138,17 @@ class NeuralRewriter(BaseAgentOperative, XoHiProgressMixin):
                 role="pro", 
                 timeout=120.0
             )
+            duration = time.time() - start_time
             
-            final_text = getattr(response, "data", str(response))
-            final_text = self._sanitize_html(final_text)
+            # response.data is an instance of RewriteResult
+            res_data = response.data
+            res_data.generated_at = datetime.now(timezone.utc).strftime('%H:%M:%S %d/%m/%Y')
+            final_json = res_data.model_dump_json()
             
-            logs.append("✅ Phẫu thuật sáng tạo hoàn tất! Nội dung mới đã sẵn sàng.")
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Phẫu thuật sáng tạo hoàn tất trong {duration:.1f}s! JSON Pipeline đã sẵn sàng.")
             await self._emit_progress(campaign_id, logs[-1], status="DONE")
             
-            return final_text
+            return final_json
         except Exception as exc:
             logger.error(f"[NeuralRewriter] Lỗi viết lại: {exc}", exc_info=True)
             err_msg = f"❌ Lỗi Neural Creative: {str(exc)[:100]}"

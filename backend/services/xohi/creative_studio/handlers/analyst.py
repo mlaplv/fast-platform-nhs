@@ -9,6 +9,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from backend.database.repositories import ContentCampaignRepository
 from backend.models.schemas import GenericResponse
 from backend.services.event_bus import event_bus
+from backend.utils.text import is_json
 
 logger = logging.getLogger("api-gateway")
 
@@ -315,10 +316,14 @@ class AnalystHandler:
             
             if res.new_content and res.new_content != campaign.draft_content:
                 if campaign_id and campaign_repo and not isinstance(campaign, AdHocContent):
-                    campaign.draft_content = res.new_content
-                    flag_modified(campaign, "draft_content")
-                    await campaign_repo.update(campaign)
-                    if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
+                    # Safety check: if input was JSON but output is not, don't overwrite
+                    if is_json(campaign.draft_content) and not is_json(res.new_content):
+                        logger.warning(f"[AnalystHandler] Bulk fix returned non-JSON for JSON campaign {campaign_id}. Skipping auto-save.")
+                    else:
+                        campaign.draft_content = res.new_content
+                        flag_modified(campaign, "draft_content")
+                        await campaign_repo.update(campaign)
+                        if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
             return GenericResponse(status="success", data=res.model_dump())
         except Exception as e: return GenericResponse(status="error", message=str(e))
 
@@ -330,10 +335,14 @@ class AnalystHandler:
         try:
             res = await enricher.enrich(campaign)
             if res.new_content and res.new_content != campaign.draft_content:
-                campaign.draft_content = res.new_content
-                flag_modified(campaign, "draft_content")
-                await campaign_repo.update(campaign)
-                if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
+                # [JSON SAFETY] Enricher always returns HTML. Do not overwrite JSON draft content.
+                if is_json(campaign.draft_content):
+                    logger.warning(f"[AnalystHandler] Enricher returned HTML for JSON campaign {campaign_id}. Skipping auto-save.")
+                else:
+                    campaign.draft_content = res.new_content
+                    flag_modified(campaign, "draft_content")
+                    await campaign_repo.update(campaign)
+                    if hasattr(campaign_repo, "session"): await campaign_repo.session.commit()
             return GenericResponse(status="success", data=res.model_dump())
         except Exception as e: return GenericResponse(status="error", message=str(e))
 

@@ -2,6 +2,17 @@
   import { onMount, tick } from 'svelte';
   import { ChevronDown, ChevronUp } from 'lucide-svelte';
   import type { Product } from '$lib/types';
+  import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
+
+  function isJson(str: string) {
+    if (typeof str !== 'string') return false;
+    try {
+      const parsed = JSON.parse(str);
+      return typeof parsed === 'object' && parsed !== null && ('hero_headline' in parsed || 'spec_bento' in parsed);
+    } catch (e) {
+      return false;
+    }
+  }
 
   interface Props {
     product: Product;
@@ -107,7 +118,11 @@
     style:max-height={isExpanded ? (containerRef?.scrollHeight + 'px') : (hasMore ? truncatedHeight + 'px' : 'none')}
   >
     <div bind:this={containerRef} class="prose-micsmo pb-4">
-      {@html product.short_description || product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
+      {#if isJson(product.short_description || product.description)}
+         <InteractiveDashboard data={product.short_description || product.description} compact={true} />
+      {:else}
+         {@html product.short_description || product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
+      {/if}
     </div>
   </div>
 
