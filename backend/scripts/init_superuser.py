@@ -128,8 +128,8 @@ async def init_superuser():
                     greeting_template="Bố đây.",
                     capabilities={"READ":True, "COUNT":True, "MUTATE":True, "ANALYZE":True},
                     gemini_keys_enc=GeminiSecurity.encrypt(GEMINI_KEYS),
-                    primary_model="gemini-2.0-flash",
-                    ai_models=["gemini-2.0-flash", "gemini-1.5-pro"]
+                    primary_model="gemini-1.5-pro",
+                    ai_models=["gemini-1.5-flash"]
                 )
                 session.add(vp)
                 print("   + Created Voice Profile for Admin")

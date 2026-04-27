@@ -17,6 +17,7 @@
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { permissionState } from "$lib/state/permissions.svelte";
   import CurrentSessionStatus from "./HUD/CurrentSessionStatus.svelte";
+  import NeuralMasterControl from "../management/ai/NeuralMasterControl.svelte";
   import TechStackFooter from "./TechStackFooter.svelte";
 
   let { children } = $props();
@@ -64,7 +65,10 @@
 
       <div class="flex gap-4 items-center">
         <!-- CONSOLIDATED HUD: SESSION & SYSTEM HEALTH -->
-        <CurrentSessionStatus />
+        <div class="flex items-center gap-3">
+          <NeuralMasterControl />
+          <CurrentSessionStatus />
+        </div>
 
         <!-- HUD Widgets -->
         <div class="flex items-center gap-3 pl-4 border-l border-white/5">

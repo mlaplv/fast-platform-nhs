@@ -1,0 +1,435 @@
+INFO:alembic.runtime.plugins:setup plugin alembic.autogenerate.schemas
+INFO:alembic.runtime.plugins:setup plugin alembic.autogenerate.tables
+INFO:alembic.runtime.plugins:setup plugin alembic.autogenerate.types
+INFO:alembic.runtime.plugins:setup plugin alembic.autogenerate.constraints
+INFO:alembic.runtime.plugins:setup plugin alembic.autogenerate.defaults
+INFO:alembic.runtime.plugins:setup plugin alembic.autogenerate.comments
+INFO:api-gateway:[Database] Initializing Elite asyncpg engine
+
+🚀 [NEURAL RECON V2.6] BẮT ĐẦU KIỂM THỬ TỔNG LỰC: Miccosmo Beppin Body Virgin White Serum
+
+--------------------------------------------------------------------------------
+INFO:api-gateway:📡 [TrinityBridge] Periodic Neural Bridge Initialization...
+INFO:api-gateway:🔑 [TrinityBridge] No keys detected in rotator. Initializing key loader...
+INFO:key-loader:✅ [KeyRotator] Successfully loaded 8 Gemini keys.
+INFO:api-gateway:🧬 [TrinityBridge] Loaded VoiceProfile configuration: gemini-3.1-flash-lite-preview
+INFO:api-gateway:✅ [TrinityBridge] Neural Bridge ready. Models discovered: 23
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3.1-pro-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-pro-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-pro. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-pro-latest. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-3-flash-preview | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE MISS — Fetching Google for: 'giá Miccosmo Beppin Body Virgin White Se'
+INFO:httpx:HTTP Request: GET https://www.googleapis.com/customsearch/v1?key=AIzaSyCyMT4rGfXOLAb_7w6szxEICAadSv2zc2o&cx=33041eeeedfcb4722&q=gi%C3%A1+Miccosmo+Beppin+Body+Virgin+White+Serum+Shopee+Lazada+Tiki+Vietnam&num=10 "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-3-flash-preview' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-3-flash-preview | Key 2/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent "HTTP/1.1 429 Too Many Requests"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview (Retry in 49.458593406s). Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE MISS — Fetching Google for: 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://www.googleapis.com/customsearch/v1?key=AIzaSyDOKHL3s1gczXTNnGttbSqGIhH8VcHAEAE&cx=a0d37b424b6f94eb9&q=Miccosmo+Beppin+Body+Virgin+White+Serum&num=10 "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+INFO:api-gateway:🧬 [Neural Bridge] gemini-3-flash-preview | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent "HTTP/1.1 429 Too Many Requests"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview (Retry in 43.553100581s). Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+WARNING:api-gateway:🛰️ [TrinityBridge] Service Unavailable (503): gemini-2.5-flash. Retrying fallback...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 2/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+WARNING:api-gateway:🛰️ [TrinityBridge] Service Unavailable (503): gemini-2.5-flash. Retrying fallback...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 3/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+WARNING:api-gateway:🛰️ [TrinityBridge] Service Unavailable (503): gemini-2.5-flash. Retrying fallback...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 4/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 2/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1781s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 3/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1769s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash (Retry in 8.964152356s). Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 4/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1759s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 5/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1745s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+WARNING:api-gateway:🛰️ [TrinityBridge] Service Unavailable (503): gemini-2.5-flash. Retrying fallback...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 2/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash (Retry in 42.048715716s). Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 6/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1731s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 7/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1719s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 8/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1708s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash (Retry in 12.622362764s). Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1697s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash (Retry in 1.759406101s). Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash-lite' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 2/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1688s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash-lite' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 3/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1677s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash-lite' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 4/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1670s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash-lite' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 5/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1661s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash-lite' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 6/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1654s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash-lite' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 7/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1646s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash-lite' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 8/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1639s): 'Miccosmo Beppin Body Virgin White Serum'
+INFO:httpx:HTTP Request: GET https://36best.com/en/catalog/products-for-body/miccosmo-beppin-body-virgin-white-serum-whitening-serum-for-the-body-30g/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.miccosmo-global.com/product-page/beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-2.5-flash-lite' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.0-flash | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.0-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.0-flash-001 | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent "HTTP/1.1 429 Too Many Requests"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.0-flash-001. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.0-flash-lite-001 | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent "HTTP/1.1 429 Too Many Requests"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.0-flash-lite-001 (Retry in 59.761564849s). Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.0-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent "HTTP/1.1 429 Too Many Requests"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.0-flash-lite (Retry in 59.460311076s). Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-flash-latest | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE MISS — Fetching Google for: 'Miccosmo Beppin Body Virgin White Serum '
+INFO:httpx:HTTP Request: GET https://www.googleapis.com/customsearch/v1?key=AIzaSyDOKHL3s1gczXTNnGttbSqGIhH8VcHAEAE&cx=a0d37b424b6f94eb9&q=Miccosmo+Beppin+Body+Virgin+White+Serum+gi%C3%A1+bao+nhi%C3%AAu+Shopee+Lazada+Tiki+ch%C3%ADnh+h%C3%A3ng&num=10 "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-flash-latest' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-flash-latest | Key 2/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE MISS — Fetching Google for: 'Miccosmo Beppin Body Virgin White Serum '
+INFO:httpx:HTTP Request: GET https://www.googleapis.com/customsearch/v1?key=AIzaSyDOKHL3s1gczXTNnGttbSqGIhH8VcHAEAE&cx=a0d37b424b6f94eb9&q=Miccosmo+Beppin+Body+Virgin+White+Serum+gi%C3%A1+b%C3%A1n+Shopee+Lazada+Tiki+Vi%E1%BB%87t+Nam&num=10 "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-flash-latest' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-flash-latest | Key 3/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE MISS — Fetching Google for: 'Miccosmo Beppin Body Virgin White Serum '
+INFO:httpx:HTTP Request: GET https://www.googleapis.com/customsearch/v1?key=AIzaSyDOKHL3s1gczXTNnGttbSqGIhH8VcHAEAE&cx=a0d37b424b6f94eb9&q=Miccosmo+Beppin+Body+Virgin+White+Serum+gi%C3%A1+b%C3%A1n+shopee+lazada+tiki+ch%C3%ADnh+h%C3%A3ng&num=10 "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-flash-latest' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-flash-latest | Key 4/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent "HTTP/1.1 429 Too Many Requests"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-flash-latest (Retry in 57.846348966s). Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-flash-lite-latest | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent "HTTP/1.1 503 Service Unavailable"
+WARNING:api-gateway:🛰️ [TrinityBridge] Service Unavailable (503): gemini-flash-lite-latest. Retrying fallback...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-flash-lite-latest | Key 2/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE MISS — Fetching Google for: 'Miccosmo Beppin Body Virgin White Serum '
+INFO:httpx:HTTP Request: GET https://www.googleapis.com/customsearch/v1?key=AIzaSyCyMT4rGfXOLAb_7w6szxEICAadSv2zc2o&cx=33041eeeedfcb4722&q=Miccosmo+Beppin+Body+Virgin+White+Serum+gi%C3%A1&num=10 "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://phuongha.vn/miccosmo-beppin-body-virgin-white-serum-serum-lam-hong-nhu-hoa-va-vung-bikini-chiet-xuat-sam-to-nu-p6215268.html "HTTP/1.1 301 Moved Permanently"
+INFO:httpx:HTTP Request: GET https://phuongha.vn/miccosmo-beppin-body-virgin-white-serum-serum-lam-hong-nhu-hoa-va-vung-bikini-chiet-xuat-sam-to-nu-p6215268.html "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://miccosmo.vn/beppin-body-b3.html "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-flash-lite-latest' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-flash-lite-latest | Key 3/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE HIT (TTL còn 1782s): 'Miccosmo Beppin Body Virgin White Serum '
+INFO:httpx:HTTP Request: GET https://www.chotinhcuaboo.com/products/tinh-chat-duong-trang-tri-tham-miccosmo-beppin-body-virgin-white-serum "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET http://phuongha.vn/miccosmo-beppin-body-virgin-white-serum-serum-lam-hong-nhu-hoa-va-vung-bikini-chiet-xuat-sam-to-nu-p6215268.html "HTTP/1.1 301 Moved Permanently"
+INFO:httpx:HTTP Request: GET https://phuongha.vn/miccosmo-beppin-body-virgin-white-serum-serum-lam-hong-nhu-hoa-va-vung-bikini-chiet-xuat-sam-to-nu-p6215268.html "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://miccosmo.vn/beppin-body-b3.html "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-flash-lite-latest' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-flash-lite-latest | Key 4/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent "HTTP/1.1 200 OK"
+INFO:api-gateway:[SharedSearchCache] CACHE MISS — Fetching Google for: 'Miccosmo Beppin Body Virgin White Serum '
+INFO:httpx:HTTP Request: GET https://www.googleapis.com/customsearch/v1?key=AIzaSyCyMT4rGfXOLAb_7w6szxEICAadSv2zc2o&cx=33041eeeedfcb4722&q=Miccosmo+Beppin+Body+Virgin+White+Serum+gi%C3%A1+b%C3%A1n+ch%C3%ADnh+h%C3%A3ng&num=10 "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://miccosmo.vn/beppin-body-virgin-white-serum-giai-phap-lam-hong-vung-kin-nhay-cam-den-tu-nhat-ban-n161850.html "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://haligroup.vn/san-pham/beppin-body-virgin-white-serum-miccosmo/ "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: GET https://sieuthilamdep.com/miccosmo-beppin-body-virgin-white-serum-serum-duong-hong-nhu-hoa-va-vung-bikini.html "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-3-flash-preview. Rotating key...
+WARNING:api-gateway:⚡ [TrinityBridge] Quota Exhausted: gemini-2.5-flash. Rotating key...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-2.5-flash-lite | Key 1/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 200 OK"
+WARNING:api-gateway:⚠️ [TrinityBridge] Model 'gemini-flash-lite-latest' error: name 'logger' is not defined
+INFO:api-gateway:🧬 [Neural Bridge] gemini-flash-lite-latest | Key 5/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent "HTTP/1.1 503 Service Unavailable"
+WARNING:api-gateway:🛰️ [TrinityBridge] Service Unavailable (503): gemini-flash-lite-latest. Retrying fallback...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-flash-lite-latest | Key 6/8 | S: N/A
+INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent "HTTP/1.1 503 Service Unavailable"
+WARNING:api-gateway:🛰️ [TrinityBridge] Service Unavailable (503): gemini-flash-lite-latest. Retrying fallback...
+INFO:api-gateway:🧬 [Neural Bridge] gemini-flash-lite-latest | Key 7/8 | S: N/A

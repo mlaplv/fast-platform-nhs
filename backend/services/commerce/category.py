@@ -151,6 +151,9 @@ class CategoryService:
     @staticmethod
     async def get_category_by_slug(db_session: AsyncSession, slug: str) -> Optional[CategoryResponse]:
         """Fetch category detail by slug with SEO metadata."""
+        from backend.database import current_tenant_id
+        tid = current_tenant_id.get()
+        
         stmt = select(
             Category.id, Category.name, Category.slug, Category.parent_id,
             Category.description, Category.seo_title, Category.seo_description,
@@ -159,7 +162,8 @@ class CategoryService:
             Category.category_metadata
         ).where(
             Category.slug == slug,
-            Category.deleted_at == None
+            Category.deleted_at == None,
+            Category.tenant_id == tid
         )
         res = await db_session.execute(stmt)
         row = res.first()

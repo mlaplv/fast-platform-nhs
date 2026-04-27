@@ -17,8 +17,14 @@ DEFAULT_AI_CONFIG = {
         "fast": ["flash", "8b", "lite"],
         "brain": ["pro", "ultra", "brain"]
     },
-    "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision", "deep-research", "robotics", "lyria", "banana"],
-    "lockdown": ["early-access", "alpha", "customtools"], # Gỡ bỏ 'preview' vì 2026 đa số là bản preview ổn định
+    "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision", "deep-research", "robotics", "lyria", "banana", "lite-preview"],
+    "lockdown": ["early-access", "alpha", "customtools"],
+    "penalties": {
+        "experimental": 100,
+        "preview": 20,
+        "lite": 50,
+        "8b": 30
+    },
     "error_mapping": {
         "auth_hard": ["api key not valid", "invalid_key", "key_expired", "project disabled", "deleted"],
         "auth_soft": ["401", "403", "unauthorized", "forbidden", "permission_denied", "user_location_not_supported"],
@@ -119,9 +125,11 @@ class TrinityModels:
         # 3. Special Features
         if "customtools" in m: score += 10 # Better tool support
         
-        # 4. Penalty for non-standard/experimental
-        if "experimental" in m: score -= 50
-        if "alpha" in m or "beta" in m: score -= 30
+        # 4. Dynamic Penalties (Elite V2.2 CTO Mod)
+        penalties = self._config.get("penalties", {})
+        for p_key, p_val in penalties.items():
+            if p_key in m:
+                score -= p_val
         
         return score
 

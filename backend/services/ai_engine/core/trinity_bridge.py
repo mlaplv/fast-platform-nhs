@@ -2,6 +2,7 @@ from __future__ import annotations
 import logging
 import asyncio
 import os
+import re
 from typing import Optional, Union, cast, TYPE_CHECKING
 from contextlib import asynccontextmanager
 from pydantic_ai import Agent
@@ -176,25 +177,38 @@ class TrinityBridge:
                     break
                 except Exception as e:
                     last_err = e
-                    logger.warning(f"[TrinityBridge] Model '{m_name}' failed: {e}")
-                    cat = self.models_helper.classify_error(str(e))
+                    err_msg = str(e).lower()
+                    cat = self.models_helper.classify_error(err_msg)
+
+                    # Elite V2.2: Professional Concise Logging
+                    if cat == "rate_limit":
+                        retry_match = re.search(r"retry in ([\d\.]+)s", err_msg)
+                        wait_info = f" (Retry in {retry_match.group(1)}s)" if retry_match else ""
+                        
+                        if "resource_exhausted" in str(e).upper() or "QUOTA" in str(e).upper():
+                            logger.warning(f"⚡ [TrinityBridge] Quota Exhausted: {m_name}{wait_info}. Rotating key...")
+                            await self.rotator.mark_model_daily(key, m_name)
+                            break
+                        else:
+                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503): {m_name}. Retrying fallback...")
+                            continue
 
                     if cat == "fail_fast":
-                        logger.error(f"[TrinityBridge] Model '{m_name}' incompatible or failed (Fail-Fast): {e}. Skipping model.")
+                        logger.error(f"🚫 [TrinityBridge] Fail-Fast: {m_name} | {str(e)[:100]}...")
                         await self.rotator.mark_model_poisoned(m_name, reason=f"fail_fast: {str(e)[:50]}")
                         break
+                    
+                    if cat == "model_not_found":
+                        logger.error(f"🔍 [TrinityBridge] Model Not Found (404): {m_name}")
+                        await self.rotator.mark_model_poisoned(m_name, reason="404")
+                        break
+
+                    # For all other errors, use standard logging
+                    logger.warning(f"⚠️ [TrinityBridge] Model '{m_name}' error: {str(e)[:200]}")
+                    
                     if cat == "tool_unsupported":
                         break
                     if not key:
-                        continue
-
-                    if cat == "rate_limit":
-                        if "RESOURCE_EXHAUSTED" in str(e) or "QUOTA/COOLDOWN" in str(e):
-                            logger.warning(f"[TrinityBridge] Model '{m_name}' QUOTA EXHAUSTED. Marking for Daily Cooldown.")
-                            await self.rotator.mark_model_daily(key, m_name)
-                            break
-                        if self.models_helper.is_daily_quota(str(e)):
-                            await self.rotator.mark_model_daily(key, m_name)
                         continue
 
                     if cat == "auth_hard":
@@ -203,9 +217,6 @@ class TrinityBridge:
                     if cat == "auth_soft":
                         await self.rotator.mark_unhealthy(key, reason="auth_soft", session_id=s_id)
                         continue
-                    if cat == "model_not_found":
-                        await self.rotator.mark_model_poisoned(m_name, reason="404")
-                        break
 
         raise AIConfigurationError(f"AI Overloaded: {last_err}", str(models[-1]) if models else "N/A", max_k-1)
 
@@ -269,23 +280,36 @@ class TrinityBridge:
                     
                     await self.rotator.set_success(key, session_id=s_id); return
                 except Exception as e:
-                    last_err, cat = e, self.models_helper.classify_error(str(e))
+                    last_err = e
+                    err_msg = str(e).lower()
+                    cat = self.models_helper.classify_error(err_msg)
+
                     if not key: continue
+
                     if cat == "rate_limit":
-                         if "RESOURCE_EXHAUSTED" in str(e) or "QUOTA/COOLDOWN" in str(e):
-                             logger.warning(f"[TrinityBridge] Model '{m_name}' QUOTA EXHAUSTED (Stream). Marking for Cooldown.")
-                             if key: await self.rotator.mark_model_daily(key, m_name)
-                             continue
-                         if self.models_helper.is_daily_quota(str(e)) and key:
-                             await self.rotator.mark_model_daily(key, m_name)
-                         continue
+                        retry_match = re.search(r"retry in ([\d\.]+)s", err_msg)
+                        wait_info = f" (Retry in {retry_match.group(1)}s)" if retry_match else ""
+                        
+                        if "resource_exhausted" in str(e).upper() or "QUOTA" in str(e).upper():
+                            logger.warning(f"⚡ [TrinityBridge] Quota Exhausted (Stream): {m_name}{wait_info}. Rotating key...")
+                            await self.rotator.mark_model_daily(key, m_name)
+                        else:
+                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (Stream): {m_name}. Retrying fallback...")
+                        continue
+
                     if cat == "auth_hard": 
                         await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
                         continue
                     if cat == "auth_soft": 
                         await self.rotator.mark_unhealthy(key, reason=cat, session_id=s_id)
                         continue
-                    if cat == "model_not_found": await self.rotator.mark_model_poisoned(m_name, reason="404"); break
+                    
+                    if cat == "model_not_found":
+                        logger.error(f"🔍 [TrinityBridge] Model Not Found (404): {m_name}")
+                        await self.rotator.mark_model_poisoned(m_name, reason="404")
+                        break
+                        
+                    logger.warning(f"⚠️ [TrinityBridge] Stream error '{m_name}': {str(e)[:150]}")
         raise AIConfigurationError(f"Stream Overloaded: {last_err}")
 
     def _provision_model(self, m_name: str, key: str, params: dict[str, object]) -> tuple[GoogleModel, dict[str, object]]:

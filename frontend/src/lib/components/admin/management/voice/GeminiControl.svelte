@@ -15,6 +15,10 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import Plus from "lucide-svelte/icons/plus";
   import Trophy from "lucide-svelte/icons/trophy";
+  import Settings from "lucide-svelte/icons/settings";
+  import Shield from "lucide-svelte/icons/shield";
+  import Database from "lucide-svelte/icons/database";
+  import X from "lucide-svelte/icons/x";
 
   import { dndzone } from "svelte-dnd-action";
   import { portal } from "$lib/actions/portal";
@@ -42,25 +46,45 @@
   let dropdownAnchor = $state<HTMLElement | null>(null);
   let showAll = $state(false);
 
+  interface AIOrchestrationConfig {
+    blacklist: string[];
+    role_patterns: Record<string, string[]>;
+    lockdown: boolean;
+    error_mapping: Record<string, string>;
+  }
+
+  // Orchestration State
+  let showOrchestrationModal = $state(false);
+  let orchestrationConfig = $state<AIOrchestrationConfig | null>(null);
+  let isSavingOrchestration = $state(false);
+
   // Load Initial Config
   onMount(async () => {
     try {
-      const res = await apiClient.get<AIModelConfig>("/api/v1/admin/ai/models");
-      if (res) {
-        const primary = res.primary_model;
-        const waterfall = res.ai_models || [];
+      const [modelRes, orchRes] = await Promise.all([
+        apiClient.get<AIModelConfig>("/api/v1/admin/ai/models"),
+        fetch("/api/v1/admin/ai/orchestration").then(r => r.json())
+      ]);
+
+      if (modelRes) {
+        const primary = modelRes.primary_model;
+        const waterfall = modelRes.ai_models || [];
         const fullStack = primary ? [primary, ...waterfall.filter(m => m !== primary)] : waterfall;
         
         items = fullStack.map(m => ({ id: m, name: m }));
         savedStack = [...fullStack];
         
         if (primary) hasSavedOnce = true;
-        if (res.discovered_models) {
-          nanobot.setDiscoveredModels(res.discovered_models);
+        if (modelRes.discovered_models) {
+          nanobot.setDiscoveredModels(modelRes.discovered_models);
         }
       }
+
+      if (orchRes) {
+        orchestrationConfig = orchRes;
+      }
     } catch (e) {
-      console.error("Failed to fetch model config:", e);
+      console.error("Failed to initialize AI management:", e);
     }
 
     const handleClick = (e: MouseEvent) => {
@@ -72,6 +96,33 @@
     window.addEventListener('click', handleClick);
     return () => window.removeEventListener('click', handleClick);
   });
+
+  async function loadOrchestration() {
+    try {
+      const resp = await fetch("/api/v1/admin/ai/orchestration");
+      if (resp.ok) orchestrationConfig = await resp.json();
+    } catch (e) {}
+  }
+
+  async function saveOrchestration() {
+    if (!orchestrationConfig) return;
+    isSavingOrchestration = true;
+    try {
+      const resp = await fetch("/api/v1/admin/ai/orchestration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orchestrationConfig)
+      });
+      if (resp.ok) {
+        nanobot.showToast("Neural Orchestration hot-reloaded!", "success");
+        showOrchestrationModal = false;
+      }
+    } catch (e) {
+      nanobot.showToast("Failed to update orchestration rules", "error");
+    } finally {
+      isSavingOrchestration = false;
+    }
+  }
 
   // Actions
   async function syncKeys() {
@@ -255,14 +306,83 @@
       </h3>
       <p class="text-[10px] text-zinc-500 font-medium">Configure priority stack & cognitive fallback.</p>
     </div>
-    <button 
-      onclick={onOpenDiagnostics}
-      class="h-8 px-3 bg-zinc-900/50 hover:bg-zinc-900 text-[10px] uppercase tracking-widest font-black text-zinc-400 hover:text-cyan-400 transition-all flex items-center gap-2 rounded-lg border border-white/5"
-    >
-      <Activity size={12} />
-      Diagnostics
-    </button>
+    <div class="flex items-center gap-2">
+      <button 
+        onclick={() => showOrchestrationModal = true}
+        class="h-8 px-3 bg-zinc-900/50 hover:bg-zinc-900 text-[10px] uppercase tracking-widest font-black text-zinc-500 hover:text-amber-400 transition-all flex items-center gap-2 rounded-lg border border-white/5"
+      >
+        <Settings size={12} />
+        Expert Rules
+      </button>
+      <button 
+        onclick={onOpenDiagnostics}
+        class="h-8 px-3 bg-zinc-900/50 hover:bg-zinc-900 text-[10px] uppercase tracking-widest font-black text-zinc-400 hover:text-cyan-400 transition-all flex items-center gap-2 rounded-lg border border-white/5"
+      >
+        <Activity size={12} />
+        Diagnostics
+      </button>
+    </div>
   </div>
+
+  <!-- Orchestration Modal -->
+  {#if showOrchestrationModal}
+    <div 
+      use:portal={"body"}
+      class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+    >
+      <div class="w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col max-h-[90vh]">
+        <div class="p-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/30">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 border border-amber-500/20">
+              <Shield size={20} />
+            </div>
+            <div>
+              <h4 class="text-sm font-black text-zinc-100 uppercase tracking-widest">Neural Orchestration</h4>
+              <p class="text-[10px] text-zinc-500 font-medium">Global AI governance, blacklists & patterns.</p>
+            </div>
+          </div>
+          <button onclick={() => showOrchestrationModal = false} class="text-zinc-500 hover:text-white transition-colors">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+          <div class="space-y-2">
+            <label class="text-[10px] text-zinc-500 font-black uppercase tracking-widest flex items-center gap-2">
+              <Database size={12} />
+              JSON Configuration (Real DB)
+            </label>
+            <textarea
+              value={JSON.stringify(orchestrationConfig, null, 2)}
+              oninput={(e) => {
+                try {
+                  orchestrationConfig = JSON.parse(e.currentTarget.value);
+                } catch(e) {}
+              }}
+              class="w-full h-[400px] bg-black/60 border border-white/5 rounded-2xl p-5 text-[11px] font-mono text-amber-200/80 focus:outline-none focus:border-amber-500/30 transition-all custom-scrollbar leading-relaxed"
+            ></textarea>
+            <p class="text-[9px] text-zinc-600 italic">⚠️ Changing these values will affect ALL AI services globally (Flash/Brain/Support).</p>
+          </div>
+        </div>
+
+        <div class="p-6 bg-zinc-900/30 border-t border-white/5 flex items-center justify-end gap-3">
+          <button 
+            onclick={() => showOrchestrationModal = false}
+            class="px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            onclick={saveOrchestration}
+            disabled={isSavingOrchestration}
+            class="px-8 py-2.5 bg-amber-500 text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-amber-400 transition-all shadow-[0_10px_30px_rgba(245,158,11,0.2)] disabled:opacity-50"
+          >
+            {isSavingOrchestration ? 'Reloading...' : 'Apply Global Rules'}
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <!-- Key Syncing -->
   <div class="space-y-3">

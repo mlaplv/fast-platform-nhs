@@ -11,7 +11,6 @@ logger = logging.getLogger("api-gateway")
 
 class IntentMapController(Controller):
     path = "/api/v1/intent/map"
-    guards = [PermissionGuard(PermissionEnum.SYS_ADMIN)]
 
     @get("/")
     async def get_intent_map(self) -> Dict[str, str]:

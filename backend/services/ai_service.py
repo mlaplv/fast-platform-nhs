@@ -213,4 +213,150 @@ class AIService:
             await key_rotator.mark_unhealthy(key, reason=str(e))
             return SuccessResponse(ok=False, message=str(e))
 
+    @staticmethod
+    async def deep_check_all_keys() -> SuccessResponse:
+        """
+        [Elite V2.2] Perform a comprehensive 'ping' test on all keys for real-time quota verification.
+        """
+        all_keys = key_rotator.keys
+        results = []
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            for idx, key in enumerate(all_keys):
+                # We use gemini-1.5-flash for the ping as it's the most available
+                model = "gemini-1.5-flash"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+                
+                try:
+                    resp = await client.post(url, json={"contents": [{"parts":[{"text": "ping"}]}]})
+                    if resp.status_code == 200:
+                        await key_rotator.set_success(key)
+                        results.append({"index": idx, "status": "HEALTHY", "code": 200})
+                    elif resp.status_code == 429:
+                        # 429 means Quota Exhausted
+                        await key_rotator.mark_unhealthy(key, reason="QUOTA_EXHAUSTED")
+                        results.append({"index": idx, "status": "EXHAUSTED", "code": 429})
+                    else:
+                        await key_rotator.mark_unhealthy(key, reason=f"HTTP_{resp.status_code}")
+                        results.append({"index": idx, "status": "FAILED", "code": resp.status_code})
+                except Exception as e:
+                    await key_rotator.mark_unhealthy(key, reason=str(e))
+                    results.append({"index": idx, "status": "ERROR", "message": str(e)})
+
+        # Record the deep check timestamp in Redis
+        if key_rotator.client:
+            await key_rotator.client.set("system:ai:last_deep_check", str(time.time()))
+
+        return SuccessResponse(
+            ok=True, 
+            data=results, 
+            message=f"Deep Scan Complete. Scanned {len(all_keys)} keys."
+        )
+
+    @staticmethod
+    async def get_orchestration_config() -> Dict:
+        """Fetch global orchestration config from SystemSettings."""
+        from backend.database.alchemy_config import alchemy_config
+        from backend.database.models import SystemSetting
+        from backend.services.ai_engine.core.trinity_models import DEFAULT_AI_CONFIG
+        
+        async with alchemy_config.create_session_maker()() as session:
+            setting = (await session.execute(
+                select(SystemSetting).where(SystemSetting.key == "ai_orchestration_config")
+            )).scalar_one_or_none()
+            return setting.value if setting else DEFAULT_AI_CONFIG
+
+    @staticmethod
+    async def update_orchestration_config(db_session: AsyncSession, data: Dict) -> SuccessResponse:
+        """Update global orchestration config in SystemSettings."""
+        from backend.database.models import SystemSetting
+        
+        setting = (await db_session.execute(
+            select(SystemSetting).where(SystemSetting.key == "ai_orchestration_config")
+        )).scalar_one_or_none()
+        
+        if not setting:
+            setting = SystemSetting(key="ai_orchestration_config")
+            db_session.add(setting)
+            
+        setting.value = data
+        await db_session.flush()
+        
+        # Elite Hot-Reload: Clear TTL cache in trinity_models
+        trinity_bridge.models_helper._last_config_load = 0
+        
+        return SuccessResponse(ok=True, message="Global AI Orchestration config updated and hot-reloaded.")
+
+    @staticmethod
+    async def auto_optimize_stack(db_session: AsyncSession, user_id: UserID) -> SuccessResponse:
+        """
+        [Elite V2.2] Automatically identifies the top 3 healthiest models and persists them to DB.
+        """
+        try:
+            # 0. Neural Purge (Reset health states to ensure we test everything fresh)
+            await AIService.reset_all_keys()
+            
+            # 1. Discover all available models
+            discovered = await trinity_bridge.models_helper.discover_available()
+            if not discovered:
+                return SuccessResponse(ok=False, message="No models discovered. Check API keys.")
+
+            # 2. Score them using the Elite Scoring engine
+            scored = []
+            for m in discovered:
+                score = trinity_bridge.models_helper._score_model(m)
+                scored.append({"name": m, "score": score})
+            
+            # Sort by score descending
+            scored.sort(key=lambda x: x["score"], reverse=True)
+            
+            # 3. Candidate Testing (Top 5)
+            candidates = [s["name"] for s in scored[:5]]
+            winners = []
+            
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                for model in candidates:
+                    # Get a key for this model
+                    key = await key_rotator.get_key(model_name=model)
+                    if not key: continue
+                    
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+                    try:
+                        resp = await client.post(url, json={"contents": [{"parts":[{"text": "ping"}]}]})
+                        if resp.status_code == 200:
+                            winners.append(model)
+                            if len(winners) >= 3: break
+                    except:
+                        continue
+
+            if not winners:
+                # Fallback to defaults if testing failed
+                winners = [trinity_bridge.primary_model, "gemini-1.5-flash", "gemini-1.5-pro"]
+
+            # 4. Persist to DB
+            from backend.database.models import VoiceProfile
+            stmt = select(VoiceProfile).where(VoiceProfile.user_id == user_id)
+            result = await db_session.execute(stmt)
+            profile = result.scalar_one_or_none()
+
+            if not profile:
+                profile = VoiceProfile(id=str(uuid.uuid4()), user_id=user_id)
+                db_session.add(profile)
+
+            profile.primary_model = winners[0]
+            profile.ai_models = winners[1:] # Rank 2 and 3
+            
+            # Hot-Reload Trinity Bridge
+            trinity_bridge.db_primary_model = winners[0]
+            trinity_bridge.db_waterfall = winners[1:]
+
+            return SuccessResponse(
+                ok=True, 
+                data={"top_3": winners}, 
+                message=f"Neural Stack Optimized: Lead={winners[0]}, Backups={', '.join(winners[1:])}"
+            )
+        except Exception as e:
+            logger.exception(f"[AIService] Auto-optimize failed: {e}")
+            return SuccessResponse(ok=False, message=str(e))
+
 ai_service = AIService()

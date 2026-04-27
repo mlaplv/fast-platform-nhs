@@ -90,6 +90,28 @@ class AIManagementController(Controller):
         """Manually trigger a health check for a specific key."""
         return await ai_service.test_key(index)
 
+    @post("/keys/deep-check")
+    async def deep_check_keys(self) -> SuccessResponse:
+        """
+        [Elite V2.2] Run a comprehensive 'ping' test on all keys for real-time quota verification.
+        Matches the logic in check_gemini.sh.
+        """
+        return await ai_service.deep_check_all_keys()
+
+    @post("/models/auto-optimize")
+    async def auto_optimize_stack(self, request: Request, db_session: "AsyncSession") -> SuccessResponse:
+        """
+        [Elite V2.2] Automatically identifies the top 3 healthiest models and persists them to DB.
+        The 'Magic Button' requested by the user.
+        """
+        user_info = getattr(request.state, "user", None)
+        if not user_info:
+             raise HTTPException(status_code=401, detail="User session required")
+             
+        res = await ai_service.auto_optimize_stack(db_session, user_info["id"])
+        await db_session.commit()
+        return res
+
     @get("/brain/status")
     async def get_brain_status(self, db_session: "AsyncSession") -> BrainStatus:
         """Elite V2.2: Real-time Brain Audit."""
@@ -106,6 +128,18 @@ class AIManagementController(Controller):
             stability_score=analytics["health"],
             vector_engine="trinity_core_v2.2"
         )
+
+    @get("/orchestration")
+    async def get_orchestration_config(self) -> Dict:
+        """Elite V2.2: Fetch global orchestration rules (Blacklist, Patterns)."""
+        return await ai_service.get_orchestration_config()
+
+    @post("/orchestration")
+    async def update_orchestration_config(self, request: Request, db_session: "AsyncSession", data: Dict) -> SuccessResponse:
+        """Elite V2.2: Update global orchestration rules."""
+        res = await ai_service.update_orchestration_config(db_session, data)
+        await db_session.commit()
+        return res
 
     @post("/brain/sync", guards=[PermissionGuard(PermissionEnum.AI_TRAIN)])
     async def sync_brain(self, db_session: "AsyncSession") -> SuccessResponse:

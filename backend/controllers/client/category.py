@@ -28,9 +28,13 @@ class PublicCategoryController(Controller):
         # Normalize slug
         slug = slug.rstrip('/')
 
+        from backend.database import current_tenant_id
+        tid = current_tenant_id.get()
+        
         stmt = select(Category).where(
             Category.slug == slug,
-            Category.deleted_at == None
+            Category.deleted_at == None,
+            Category.tenant_id == tid
         )
         result = await db_session.execute(stmt)
         category = result.scalar_one_or_none()

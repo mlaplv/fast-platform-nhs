@@ -11,7 +11,13 @@ export interface MarketPriceSource {
 export interface MarketPriceIntel {
   ads: MarketPriceSource[];
   organic_results: MarketPriceSource[];
-  analysis: string;
+  analysis_overview: string;
+  critical_analysis: string;
+  optimization_strategy: string;
+  viral_hook: string;
+  avg_market_price?: number;
+  min_market_price?: number;
+  competitor_count: number;
 }
 
 export interface Category {

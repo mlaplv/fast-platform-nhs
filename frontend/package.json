@@ -8,6 +8,7 @@
     "dev": "NODE_OPTIONS='--max-old-space-size=1024' vite dev --host 0.0.0.0",
     "build": "NODE_OPTIONS='--max-old-space-size=1024' vite build",
     "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run"
   },
   "dependencies": {
