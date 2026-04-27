@@ -3,6 +3,7 @@ import logging
 import time
 import uuid
 import httpx
+import asyncio
 from typing import List, Dict, Optional, Union
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,13 +53,13 @@ class AIService:
         return stats
 
     @staticmethod
-    async def reset_all_keys() -> SuccessResponse:
+    async def reset_all_keys(preserve_daily: bool = False) -> SuccessResponse:
         """Reset ALL key health states."""
         if not key_rotator._use_redis or not key_rotator.client:
             return SuccessResponse(ok=False, message="Redis unavailable")
 
         try:
-            cleared = await key_rotator.reset_health()
+            cleared = await key_rotator.reset_health(preserve_daily=preserve_daily)
             logger.info(f"[AIService] Key pool reset complete. {cleared} Redis records cleared.")
             return SuccessResponse(
                 ok=True,
@@ -117,23 +118,10 @@ class AIService:
 
     @staticmethod
     async def discover_models(db_session: AsyncSession, user_id: UserID) -> ModelDiscoveryResponse:
-        """Fetch available Gemini models and persist."""
+        """Fetch available Gemini models and persist (Using Centralized Discovery)."""
         try:
-            key = await key_rotator.get_key(model_name=trinity_bridge.models_helper.default_model)
-            models = []
-
-            if key:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
-                async with httpx.AsyncClient(timeout=10.0) as client:
-                    resp = await client.get(url)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        for m in data.get("models", []):
-                            name = m.get("name", "").replace("models/", "")
-                            methods = m.get("supportedGenerationMethods", [])
-                            if "generateContent" in methods and "gemini" in name:
-                                models.append(name)
-                        models.sort()
+            # V76: Use the helper to ensure Blacklist/Gemma filtering
+            models = await trinity_bridge.models_helper.discover_available()
 
             if models:
                 stmt = select(VoiceProfile).where(VoiceProfile.user_id == user_id)
@@ -290,50 +278,97 @@ class AIService:
     @staticmethod
     async def auto_optimize_stack(db_session: AsyncSession, user_id: UserID) -> SuccessResponse:
         """
-        [Elite V2.2] Automatically identifies the top 3 healthiest models and persists them to DB.
+        [Elite V2.2] Automatically identifies the top 5 healthiest models and persists them to DB.
+        Tests ALL discovered models and ranks them by health + capability score.
         """
+        from backend.services.ai_engine.core.trinity_models import HARD_BLACKLIST
+        
         try:
             # 0. Neural Purge (Reset health states to ensure we test everything fresh)
-            await AIService.reset_all_keys()
+            await AIService.reset_all_keys(preserve_daily=True)
             
-            # 1. Discover all available models
+            # 1. Discover all available models (already filtered by HARD_BLACKLIST in discover_available)
             discovered = await trinity_bridge.models_helper.discover_available()
             if not discovered:
                 return SuccessResponse(ok=False, message="No models discovered. Check API keys.")
 
-            # 2. Score them using the Elite Scoring engine
+            # 2. Score and sort all discovered models
             scored = []
             for m in discovered:
                 score = trinity_bridge.models_helper._score_model(m)
+                # Double-safety: skip anything that slipped past with negative score
+                if score < 0:
+                    continue
                 scored.append({"name": m, "score": score})
             
-            # Sort by score descending
             scored.sort(key=lambda x: x["score"], reverse=True)
             
-            # 3. Candidate Testing (Top 5)
-            candidates = [s["name"] for s in scored[:5]]
-            winners = []
+            # 3. Health Test — test ALL scored candidates until we get 5 healthy ones
+            winners: list[str] = []
+            failed: set[str] = set()
             
             async with httpx.AsyncClient(timeout=5.0) as client:
-                for model in candidates:
-                    # Get a key for this model
-                    key = await key_rotator.get_key(model_name=model)
-                    if not key: continue
+                for s in scored:
+                    model = s["name"]
+                    if len(winners) >= 5:
+                        break
+                        
+                    # Elite V2.2: Skip models already known as poisoned
+                    if await key_rotator.is_model_poisoned(model):
+                        failed.add(model)
+                        continue
+
+                    try:
+                        key = await key_rotator.get_key(model_name=model)
+                        if not key:
+                            failed.add(model)
+                            continue
+                    except Exception:
+                        failed.add(model)
+                        continue
                     
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
                     try:
                         resp = await client.post(url, json={"contents": [{"parts":[{"text": "ping"}]}]})
                         if resp.status_code == 200:
                             winners.append(model)
-                            if len(winners) >= 3: break
-                    except:
-                        continue
+                        elif resp.status_code == 429:
+                            if "daily" in resp.text.lower() or "quota" in resp.text.lower():
+                                await key_rotator.mark_model_daily(key, model)
+                            failed.add(model)
+                        elif resp.status_code in [400, 404]:
+                            await key_rotator.mark_model_poisoned(model, reason=f"HTTP_{resp.status_code}")
+                            failed.add(model)
+                        else:
+                            failed.add(model)
+                    except Exception:
+                        failed.add(model)
+                        
+                    # Elite V2.2: RPM Flood Protection
+                    await asyncio.sleep(0.3)
+
+            # 4. Fill remaining slots with untested models (sorted by score, skip failed ones)
+            if len(winners) < 5:
+                for s in scored:
+                    if s["name"] not in winners and s["name"] not in failed:
+                        winners.append(s["name"])
+                        if len(winners) >= 5:
+                            break
+
+            # 5. Final Safety: Remove any blacklisted model that might have slipped through
+            winners = [w for w in winners if not any(hbl in w.lower() for hbl in HARD_BLACKLIST)]
 
             if not winners:
-                # Fallback to defaults if testing failed
-                winners = [trinity_bridge.primary_model, "gemini-1.5-flash", "gemini-1.5-pro"]
+                # Absolute Fallback (only known-good, non-blacklisted models)
+                winners = [
+                    trinity_bridge.primary_model,
+                    "gemini-2.5-flash",
+                    "gemini-1.5-flash", 
+                    "gemini-1.5-pro",
+                    "gemini-2.0-flash",
+                ]
 
-            # 4. Persist to DB
+            # 6. Persist to DB
             from backend.database.models import VoiceProfile
             stmt = select(VoiceProfile).where(VoiceProfile.user_id == user_id)
             result = await db_session.execute(stmt)
@@ -344,15 +379,17 @@ class AIService:
                 db_session.add(profile)
 
             profile.primary_model = winners[0]
-            profile.ai_models = winners[1:] # Rank 2 and 3
+            profile.ai_models = winners[1:]
             
             # Hot-Reload Trinity Bridge
             trinity_bridge.db_primary_model = winners[0]
             trinity_bridge.db_waterfall = winners[1:]
 
+            logger.info(f"[AIService] Auto-Optimize complete: {winners} (tested {len(scored)}, healthy {len(winners)}, failed {len(failed)})")
+
             return SuccessResponse(
                 ok=True, 
-                data={"top_3": winners}, 
+                data={"top_5": winners, "tested": len(scored), "failed": len(failed)}, 
                 message=f"Neural Stack Optimized: Lead={winners[0]}, Backups={', '.join(winners[1:])}"
             )
         except Exception as e:

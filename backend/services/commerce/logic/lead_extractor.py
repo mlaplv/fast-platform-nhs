@@ -150,7 +150,6 @@ class LeadExtractor:
             if not lead.customer_name and draft.customer_name:
                 lead.customer_name = draft.customer_name
             
-            print(f"DEBUG_CONSOLE: 🧩 [LeadExtractor] L0 Hydration Success: Phone={lead.customer_phone}, Address={'SET' if lead.customer_address else 'MISSING'}")
             logger.info(f"🧩 [LeadExtractor] L0 Hydration Success: Phone={lead.customer_phone}, Address={'SET' if lead.customer_address else 'MISSING'}")
                 
             # Items merge logic: If current turn has NO items, use draft items
@@ -317,7 +316,6 @@ class LeadExtractor:
                 logger.info("🔄 [LeadExtractor] V4.0 Post-Hydration Re-Eval: items+phone found after hydration -> Forcing is_definite_purchase=True")
                 lead.is_definite_purchase = True
 
-            print(f"DEBUG_CONSOLE: 🧩 [LeadExtractor] Final Extraction State: SĐT={lead.customer_phone}, Addr={'SET' if lead.customer_address else 'MISSING'}, Definite={lead.is_definite_purchase}")
             logger.info(f"🧩 [LeadExtractor] Final Extraction State: SĐT={lead.customer_phone}, Addr={'SET' if lead.customer_address else 'MISSING'}, Definite={lead.is_definite_purchase}")
 
             # 2.1 ADDRESS RESOLUTION (Elite V2.2)
@@ -505,8 +503,6 @@ class LeadExtractor:
             return lead
 
         except Exception as e:
-            import traceback
-            traceback.print_exc()
             logger.exception(f"[LeadExtractor] Structural failure: {e}")
             return None
 

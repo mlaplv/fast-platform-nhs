@@ -246,6 +246,8 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                     logger.warning("📦 [PlagiarismCop] Unpacked raw.data")
 
                 if hasattr(raw, 'uniqueness_score'):
+                    if raw.uniqueness_score > 1.0:
+                        raw.uniqueness_score = raw.uniqueness_score / 100.0
                     logger.warning(f"📊 [PlagiarismCop] Final Uniqueness Score: {raw.uniqueness_score}")
 
                 if hasattr(raw, 'annotations'):

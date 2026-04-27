@@ -24,8 +24,8 @@ class SmartKeyRotator(KeyMetricsMixin, KeyLoaderMixin):
     POISON_PREFIX = "ai:model:v75:poison:"
     DISCOVERED_MODELS_KEY = "ai:bridge:discovered:v75"
     BASE_COOLDOWN, MAX_COOLDOWN = 60, 86400
-    MAX_RPM = int(os.getenv("GEMINI_MAX_RPM", 2))
-    MAX_TPM = int(os.getenv("GEMINI_MAX_TPM", 800000))
+    MAX_RPM = int(os.getenv("GEMINI_MAX_RPM", 10))
+    MAX_TPM = int(os.getenv("GEMINI_MAX_TPM", 1000000))
 
     _instance: Optional["SmartKeyRotator"] = None
     def __new__(cls):
@@ -101,8 +101,16 @@ class SmartKeyRotator(KeyMetricsMixin, KeyLoaderMixin):
 
         chosen_idx = random.choices(candidates, weights=weights, k=1)[0]
         chosen_key = self.keys[chosen_idx]
-        await self.client.hset(f"{self.METADATA_PREFIX}{self._get_key_id(chosen_key)}", "last_used", now)
+        kid: str = self._get_key_id(chosen_key)
+        
+        # Elite V2.2: Concurrent Reservation (R115)
+        # Add a placeholder to TPM set immediately to reserve a slot for this RPM.
+        # This prevents other concurrent tasks from picking the same key before track_tokens() is called.
+        placeholder: str = f"{now}:0:RESERVED:{random.randint(10000, 99999)}"
+        await self.client.zadd(f"{self.TPM_PREFIX}{kid}", {placeholder: now})
+        
+        await self.client.hset(f"{self.METADATA_PREFIX}{kid}", "last_used", now)
         self.index = chosen_idx
-        await asyncio.sleep(random.uniform(0.05, 0.15)); return chosen_key
+        return chosen_key
 
 key_rotator = SmartKeyRotator()

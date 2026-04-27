@@ -23,10 +23,10 @@ def trinity_trap_get_event_loop():
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            # print(f"🔗 [Neural Bridge] Restored missing event loop for thread '{threading.current_thread().name}'", file=sys.stderr)
+            # sys.stderr.write(f"🔗 [Neural Bridge] Restored missing event loop for thread '{threading.current_thread().name}'\n")
             return loop
         except Exception as e:
-            print(f"💀 [Neural Bridge] Critical failure restoring loop: {e}", file=sys.stderr)
+            sys.stderr.write(f"💀 [Neural Bridge] Critical failure restoring loop: {e}\n")
             raise
 
 import threading

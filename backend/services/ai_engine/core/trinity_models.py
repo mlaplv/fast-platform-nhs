@@ -12,6 +12,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("api-gateway")
 
+# Elite V2.2: Hard blacklist — models that NEVER enter the AI chain
+# These are either non-functional (no tool/function calling) or unstable.
+HARD_BLACKLIST = ["gemma", "lite-preview", "experimental", "alpha", "learnlm"]
+
 DEFAULT_AI_CONFIG = {
     "role_patterns": {
         "fast": ["flash", "8b", "lite"],
@@ -93,12 +97,27 @@ class TrinityModels:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.get(url)
                 if resp.status_code == 200:
-                    models = [
-                        m.get("name", "").replace("models/", "") for m in resp.json().get("models", [])
-                        if m.get("name")
-                        and "generateContent" in (m.get("supportedGenerationMethods") or [])
-                        and not any(bl in m.get("name", "") for bl in self._config.get("blacklist", []))
-                    ]
+                    all_models = resp.json().get("models", [])
+                    models = []
+                    for m in all_models:
+                        name = m.get("name", "")
+                        short = name.replace("models/", "")
+                        methods = m.get("supportedGenerationMethods") or []
+                        
+                        # Gate 1: Must support generateContent
+                        if "generateContent" not in methods:
+                            continue
+                        # Gate 2: Hard blacklist (no function calling, unstable, etc.)
+                        if any(hbl in name for hbl in HARD_BLACKLIST):
+                            continue
+                        # Gate 3: DB-configurable blacklist
+                        if any(bl in name for bl in self._config.get("blacklist", [])):
+                            continue
+                        models.append(short)
+                    
+                    # Sort by score so best models are tried first
+                    models.sort(key=lambda x: self._score_model(x), reverse=True)
+                    logger.info(f"[TrinityModels] Discovered {len(models)} valid models (top 5): {models[:5]}")
                     await self.rotator.save_discovered_models(models)
                     return models
         except Exception as e:
@@ -110,6 +129,10 @@ class TrinityModels:
         m = model_name.lower()
         score = 0
         
+        # 0. Hard Blacklist Guard
+        if any(hbl in m for hbl in HARD_BLACKLIST):
+            return -10000
+
         # 1. Version Tier (The most important factor in 2026)
         if "3.1" in m: score += 1000
         elif "3" in m: score += 900
@@ -130,6 +153,12 @@ class TrinityModels:
         for p_key, p_val in penalties.items():
             if p_key in m:
                 score -= p_val
+                
+        # 5. Elite V2.2: Hard penalties to ensure preview/lite models never beat stable PRO models
+        if "preview" in m or "experimental" in m:
+            score -= 500
+        if "lite" in m:
+            score -= 300
         
         return score
 
@@ -155,34 +184,46 @@ class TrinityModels:
 
     async def build_chain(self, role: Optional[str], db_primary: str, db_waterfall: list[str], discovered: list[str]) -> list[str]:
         await self._ensure_config()
-        raw = []
-        if db_primary: raw.append(db_primary)
-        for m in (db_waterfall + [self.default_model, self.fallback_model] + self.get_role_models(self.ROLE_BRAIN, discovered) + self.get_role_models(self.ROLE_FAST, discovered)):
-            if m and m not in raw: raw.append(m)
-
+        seen: set[str] = set()
+        raw: list[str] = []
+        
+        def _add(m: str) -> None:
+            if m and m not in seen:
+                seen.add(m)
+                raw.append(m)
+        
+        # Priority 1: DB-configured models (user's explicit choice)
+        if db_primary: _add(db_primary)
+        for m in db_waterfall: _add(m)
+        
+        # Priority 2: Role-specific discovered models (already scored & sorted)
         if role:
-            kw = ["lite", "8b", "flash"] if role == self.ROLE_FAST else ["pro", "ultra", "brain", "creative"]
-            prio = [m for m in raw if any(k in m.lower() for k in kw)]
-            raw = prio + [m for m in raw if m not in prio]
+            for m in self.get_role_models(role, discovered): _add(m)
+            # Also add the complementary role as fallback
+            alt_role = self.ROLE_FAST if role == self.ROLE_BRAIN else self.ROLE_BRAIN
+            for m in self.get_role_models(alt_role, discovered): _add(m)
+        else:
+            for m in self.get_role_models(self.ROLE_BRAIN, discovered): _add(m)
+            for m in self.get_role_models(self.ROLE_FAST, discovered): _add(m)
+        
+        # Priority 3: Env defaults as last resort
+        _add(self.default_model)
+        _add(self.fallback_model)
 
-        healthy = []
+        # Filter: Remove blacklisted, locked, and poisoned models
         blacklist = self._config.get("blacklist", [])
         lockdown = self._config.get("lockdown", [])
         
+        healthy: list[str] = []
         for m in raw:
-            # Elite V2.2: Double-safety — strip blacklisted model types even if they snuck into discovered.
-            if any(bl in m for bl in blacklist):
-                logger.debug(f"[TrinityModels] Skipping blacklisted model: {m}")
+            if any(bl in m for bl in blacklist) or any(hbl in m for hbl in HARD_BLACKLIST):
                 continue
-            
-            # Elite V2.2: Universal lockdown for experimental models in standard production flows
             if any(l in m for l in lockdown):
-                logger.debug(f"[TrinityModels] Skipping experimental/locked model in production chain: {m}")
                 continue
             if not await self.rotator.is_model_poisoned(m):
                 healthy.append(m)
         
-        # Elite V2.2: Fail-safe - ensure we have AT LEAST the defaults if everything else failed
+        # Fail-safe: ensure we have AT LEAST the defaults
         if not healthy:
             for m in [self.default_model, self.fallback_model]:
                 if not await self.rotator.is_model_poisoned(m):
@@ -204,4 +245,10 @@ class TrinityModels:
         return "unknown"
 
     def is_daily_quota(self, err: str) -> bool:
-        return any(p in err.lower() for p in ["daily", "per_day", "requests_per_day", "generaterequestsperdayperproject"])
+        """Elite V2.2: Phân biệt chính xác hạn mức ngày vs hạn mức phút."""
+        err_lower: str = err.lower()
+        # Nếu có chữ 'per minute' hoặc 'per minute per user' thì CHẮC CHẮN không phải daily
+        if "per minute" in err_lower:
+            return False
+        return any(p in err_lower for p in ["daily", "per_day", "requests_per_day", "generaterequestsperdayperproject"])
+

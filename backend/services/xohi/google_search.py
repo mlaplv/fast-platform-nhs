@@ -6,7 +6,7 @@ import random
 import time
 import asyncio
 import redis.asyncio as redis
-from typing import List, Dict, Any, Optional, cast, Tuple
+from typing import List, Dict, Optional, cast, Tuple
 
 from backend.services.xohi.creative_studio.operatives.shared_search_cache import get_or_fetch
 
@@ -118,42 +118,49 @@ class GoogleSearchService:
                 pipe.hset(f"{self.REDIS_PREFIX}{kid}", "last_used", time.time())
                 await pipe.execute()
 
-    async def search(self, query: str, num: int = 10) -> List[Dict[str, Any]]:
+    async def search(self, query: str, num: int = 10) -> List[Dict[str, object]]:
         """
-        [ELITE V2.2] High-performance search with Shared Cache and Smart Rotation.
+        [ELITE V3.0] High-performance search with Shared Cache, Smart Rotation, and Bounded Retry.
         """
-        async def _perform_search() -> List[Dict[str, Any]]:
-            api_key, cx, idx = await self._select_best_key()
-            if not api_key: return []
+        max_attempts: int = max(len(self.api_keys), 1)
 
-            url = "https://www.googleapis.com/customsearch/v1"
-            params = {"key": api_key, "cx": cx, "q": query, "num": num, "gl": "vn", "hl": "vi"}
+        async def _perform_search() -> List[Dict[str, object]]:
+            for attempt in range(max_attempts):
+                api_key, cx, idx = await self._select_best_key()
+                if not api_key:
+                    return []
 
-            try:
-                async with httpx.AsyncClient(timeout=10.0) as client:
-                    resp = await client.get(url, params=params)
-                    if resp.status_code == 200:
-                        await self._track_success(api_key)
-                        data = resp.json()
-                        items = data.get("items", [])
-                        return [{
-                            "title": item.get("title"),
-                            "link": item.get("link"),
-                            "snippet": item.get("snippet"),
-                            "displayLink": item.get("displayLink"),
-                            "pagemap": item.get("pagemap", {})
-                        } for item in items]
-                    
-                    elif resp.status_code in [429, 403]:
-                        logger.warning(f"Google Search Key {idx} limit reached ({resp.status_code}).")
-                        await self._track_failure(api_key, resp.status_code)
-                        return await _perform_search()
-                    else:
-                        logger.error(f"Google Search failed with status {resp.status_code} for key {idx}")
-                        await self._track_failure(api_key, resp.status_code)
-            except Exception as e:
-                logger.error(f"Google Search error with key {idx}: {e}")
-                await self._track_failure(api_key, 500)
+                url = "https://www.googleapis.com/customsearch/v1"
+                params: Dict[str, object] = {"key": api_key, "cx": cx, "q": query, "num": num, "gl": "vn", "hl": "vi"}
+
+                try:
+                    async with httpx.AsyncClient(timeout=10.0) as client:
+                        resp = await client.get(url, params=params)
+                        if resp.status_code == 200:
+                            await self._track_success(api_key)
+                            data = resp.json()
+                            items = data.get("items", [])
+                            return [{
+                                "title": item.get("title"),
+                                "link": item.get("link"),
+                                "snippet": item.get("snippet"),
+                                "displayLink": item.get("displayLink"),
+                                "pagemap": item.get("pagemap", {})
+                            } for item in items]
+
+                        elif resp.status_code in [429, 403]:
+                            logger.warning(f"Google Search Key {idx} limit reached ({resp.status_code}). Attempt {attempt+1}/{max_attempts}.")
+                            await self._track_failure(api_key, resp.status_code)
+                            continue  # Bounded retry — next key
+                        else:
+                            logger.error(f"Google Search failed with status {resp.status_code} for key {idx}")
+                            await self._track_failure(api_key, resp.status_code)
+                except Exception as e:
+                    logger.error(f"Google Search error with key {idx}: {e}")
+                    await self._track_failure(api_key, 500)
+                return []
+
+            logger.error("[GoogleSearch] All API keys exhausted after bounded retry.")
             return []
 
         return await get_or_fetch(query, _perform_search, num=num)

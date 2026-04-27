@@ -244,7 +244,6 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
                 logger.info(f"💾 [XoHiMemory] Draft persisted for SID: {session_id}")
         except Exception as e:
             logger.error(f"[XoHiMemory] Draft set FAILED: {e}")
-            print(f"DEBUG_CONSOLE: ❌ [XoHiMemory] Draft set FAILED: {e}")
 
     async def clear_order_draft(self, session_id: str):
         key = f"support:order_draft:{session_id}"

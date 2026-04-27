@@ -344,7 +344,7 @@ export interface AnalysisCache {
   copyright?: { data: CopyrightResult; hash?: string; at?: string };
   seo?: { data: SEOResult; hash?: string; at?: string };
   ai_inspect?: { data: AIInspectResult; hash?: string; at?: string };
-  [key: string]: { data: any; hash?: string; at?: string } | undefined;
+  [key: string]: { data: unknown; hash?: string; at?: string } | undefined;
 }
 
 export interface CampaignData {

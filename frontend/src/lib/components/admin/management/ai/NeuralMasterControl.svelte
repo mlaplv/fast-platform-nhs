@@ -61,7 +61,10 @@
     try {
       const res = await apiClient.post<any>("/api/v1/admin/ai/models/auto-optimize");
       if (res?.ok) {
-        nanobot.showToast(`Neural Link Optimized: ${res.data.top_3[0]} is now Lead.`, "success");
+        const top = res.data.top_5 || res.data.top_3 || [];
+        const tested = res.data.tested ?? "?";
+        const failed = res.data.failed ?? 0;
+        nanobot.showToast(`Neural Stack Optimized: ${top[0]} is Lead. (${top.length} ranks, ${tested} tested, ${failed} failed)`, "success");
         await loadStats();
       }
     } catch (e) {
@@ -174,7 +177,7 @@
           </div>
           <div class="flex flex-col gap-1">
             <h2 class="text-lg font-black text-white uppercase tracking-widest italic">Auto-Optimize Neural Stack</h2>
-            <p class="text-xs text-zinc-400 font-medium max-w-md">Automatically scans all keys, verifies real-time quotas, and selects the top 3 supreme models for your stack.</p>
+            <p class="text-xs text-zinc-400 font-medium max-w-md">Automatically scans all keys, verifies real-time quotas, and selects the top 5 supreme models for your stack.</p>
           </div>
         </div>
         <button 
@@ -304,7 +307,7 @@
       <div class="bg-black/40 border border-white/5 rounded-2xl p-1 overflow-hidden">
         <div class="flex items-center">
           {#if modelStatus}
-            {#each [modelStatus.primary_model, ...modelStatus.ai_models.filter(m => m !== modelStatus?.primary_model)] as model, idx}
+            {#each [modelStatus.primary_model, ...modelStatus.ai_models.filter(m => m !== modelStatus?.primary_model)].slice(0, 5) as model, idx}
               <button 
                 onclick={() => promoteModel(model)}
                 class="flex items-center hover:bg-white/[0.02] transition-colors group/mod"

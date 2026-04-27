@@ -16,7 +16,7 @@ class SystemEvent:
 
 class InternalBus:
     """
-    R23: Zero-latency    R82: Internal Event Bus — High-performance Pub/Sub for system synchronization.
+    R82: Internal Event Bus — High-performance Pub/Sub for system synchronization.
     
     [SECURITY WARNING]
     ================

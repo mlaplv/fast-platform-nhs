@@ -59,7 +59,7 @@
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        reviews = data.items.map((r: any) => ({
+        reviews = data.items.map((r: Review) => ({
           ...r,
           initial: (r.customer_name || 'K').charAt(0).toUpperCase(),
           name: r.customer_name
@@ -296,7 +296,7 @@
     <div class="flex-1 flex flex-wrap gap-2">
       {#each ratingTabs as tab}
         <button 
-          onclick={() => activeTab = tab.key as any}
+          onclick={() => activeTab = tab.key as 'all' | number | 'media'}
           class="px-6 py-3 text-[10px] font-black border transition-all uppercase tracking-widest {activeTab === tab.key ? 'bg-[#0f172a] text-white border-[#0f172a]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#C18F7E]'}">
           {tab.label} {getTabCount(tab.key)}
         </button>

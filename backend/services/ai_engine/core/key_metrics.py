@@ -73,10 +73,15 @@ class KeyMetricsMixin:
         m_slug = model_name.replace("/", "_").replace("-", "_")[:40]
         return bool(await self.client.exists(f"{self.POISON_PREFIX}{m_slug}"))
 
-    async def reset_health(self) -> int:
+    async def reset_health(self, preserve_daily: bool = False) -> int:
         if not self._use_redis or not self.client: return 0
         cleared = 0
-        for prefix in [self.BLACKLIST_PREFIX, self.METADATA_PREFIX, self.MODEL_DAILY_PREFIX, self.TPM_PREFIX]:
+        prefixes = [self.BLACKLIST_PREFIX, self.METADATA_PREFIX, self.TPM_PREFIX]
+        if not preserve_daily:
+            prefixes.append(self.MODEL_DAILY_PREFIX)
+            prefixes.append(self.POISON_PREFIX)
+            
+        for prefix in prefixes:
             async for k in self.client.scan_iter(f"{prefix}*"):
                 if prefix == self.METADATA_PREFIX: await self.client.hset(k, mapping={"fail_count": 0, "health_score": 100})
                 else: await self.client.delete(k)

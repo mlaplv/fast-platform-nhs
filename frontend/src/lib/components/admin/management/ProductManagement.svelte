@@ -11,6 +11,7 @@
   import ProductForm from "./ProductForm.svelte";
   import ProductTable from "./ProductTable.svelte";
   import OrderPagination from "./OrderPagination.svelte";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   let { data = {} } = $props<{ data?: Record<string, unknown> }>();
 
@@ -375,55 +376,41 @@
   <!-- Fixed Background Layer (Rule R03: Ultra-Fast UX) -->
   <div class="absolute inset-0 bg-[#050505] pointer-events-none -z-10"></div>
   
-  <div class="flex flex-col gap-6 p-6 border-b border-white/[0.05] relative z-10 bg-[#050505]">
+  <div class="flex-1 overflow-y-auto custom-scrollbar relative">
     {#if !isHeaderCollapsed}
-      <div transition:fade={{ duration: 200 }} class="flex flex-col gap-6">
+      <div transition:fade={{ duration: 200 }} class="flex flex-col gap-6 p-6 border-b border-white/[0.05] bg-[#050505]">
         <ProductStats {stats} />
       </div>
     {/if}
 
-    <ProductToolbar
-      {searchInput}
-      {activeFilter}
-      {activeCategory}
-      {categories}
-      bind:pageSize
-      {selectedIds}
-      {totalProducts}
-      {isLoading}
-      bind:isHeaderCollapsed
-      {STATUS_MAP}
-      onSearchInput={handleSearchInput}
-      onFilterChange={handleFilterChange}
-      onCategoryChange={handleCategoryChange}
-      onPageSizeChange={() => { currentPage = 1; }}
-      onBulkActivate={() => bulk("act")}
-      onBulkDeactivate={() => bulk("deact")}
-      onBulkDelete={() => bulk("del")}
-      onBulkAiFeatured={bulkAiFeatured}
-      onBulkDiscount={bulkDiscount}
-      onOpenCreate={openCreate}
-      onLoadProducts={loadProducts}
-    />
-  </div>
+    <div class="sticky top-0 p-6 pb-4 bg-[#050505]/95 backdrop-blur-xl border-b border-white/5" style="z-index: {Z_INDEX_ADMIN.TOOLBAR_SUB};">
+      <ProductToolbar
+        {searchInput}
+        {activeFilter}
+        {activeCategory}
+        {categories}
+        bind:pageSize
+        {selectedIds}
+        {totalProducts}
+        {isLoading}
+        bind:isHeaderCollapsed
+        {STATUS_MAP}
+        onSearchInput={handleSearchInput}
+        onFilterChange={handleFilterChange}
+        onCategoryChange={handleCategoryChange}
+        onPageSizeChange={() => { currentPage = 1; }}
+        onBulkActivate={() => bulk("act")}
+        onBulkDeactivate={() => bulk("deact")}
+        onBulkDelete={() => bulk("del")}
+        onBulkAiFeatured={bulkAiFeatured}
+        onBulkDiscount={bulkDiscount}
+        onOpenCreate={openCreate}
+        onLoadProducts={loadProducts}
+      />
+    </div>
 
-  <ProductForm
-    {editingId}
-    isOpen={showForm}
-    bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus
-    bind:formShortDescription bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
-    bind:formImages bind:formMobileImages bind:formAttributes bind:formMetadata bind:formTierVariations bind:formVariants
-    bind:formIsAiFeatured bind:formAnalysisReport bind:formMarketData bind:formLastMarketSync
-    {categories}
-    onSave={save}
-    onClose={() => { showForm = false; nanobot.toggleExpand(false); }}
-    {generateSlug}
-    {isSaving}
-  />
-
-  <div class="flex-1 overflow-y-auto custom-scrollbar relative">
     {#if isLoading}
-      <div class="h-full flex items-center justify-center animate-pulse">
+      <div class="h-[400px] flex items-center justify-center animate-pulse">
         <span class="text-[9px] font-mono text-[#FFB800]/40 uppercase tracking-[0.3em]">Loading Catalog...</span>
       </div>
     {:else}
@@ -445,7 +432,7 @@
     {/if}
   </div>
 
-  <div class="absolute bottom-0 left-0 right-0 admin-pagination-footer">
+  <div class="relative z-10 shrink-0 bg-[#050505] border-t border-white/5">
     <OrderPagination
       bind:currentPage
       {totalPages}
@@ -453,6 +440,21 @@
       totalItems={totalProducts}
     />
   </div>
+
+  <!-- Render Form outside scroll to ensure fixed/absolute positioning works without clipping -->
+  <ProductForm
+    {editingId}
+    isOpen={showForm}
+    bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus
+    bind:formShortDescription bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
+    bind:formImages bind:formMobileImages bind:formAttributes bind:formMetadata bind:formTierVariations bind:formVariants
+    bind:formIsAiFeatured bind:formAnalysisReport bind:formMarketData bind:formLastMarketSync
+    {categories}
+    onSave={save}
+    onClose={() => { showForm = false; nanobot.toggleExpand(false); }}
+    {generateSlug}
+    {isSaving}
+  />
 </div>
 
 <style>

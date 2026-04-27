@@ -186,9 +186,13 @@ class TrinityBridge:
                         wait_info = f" (Retry in {retry_match.group(1)}s)" if retry_match else ""
                         
                         if "resource_exhausted" in str(e).upper() or "QUOTA" in str(e).upper():
-                            logger.warning(f"⚡ [TrinityBridge] Quota Exhausted: {m_name}{wait_info}. Rotating key...")
-                            await self.rotator.mark_model_daily(key, m_name)
-                            break
+                            if self.models_helper.is_daily_quota(str(e)):
+                                logger.warning(f"⚡ [TrinityBridge] Daily Quota Exhausted: {m_name}{wait_info}. Marking as daily.")
+                                await self.rotator.mark_model_daily(key, m_name)
+                                break
+                            else:
+                                logger.warning(f"⏳ [TrinityBridge] Rate Limit (RPM) hit: {m_name}{wait_info}. Rotating key...")
+                                continue
                         else:
                             logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503): {m_name}. Retrying fallback...")
                             continue

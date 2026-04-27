@@ -81,8 +81,8 @@ export interface SupportChatResponse {
     task_id?: string;
     session_id?: string;
     processed_order_id?: string;
-    ui_metadata?: Record<string, any>;
-    metadata?: Record<string, any>;
+    ui_metadata?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
 }
 
 const STORAGE_KEY = "fp_helen_sid";

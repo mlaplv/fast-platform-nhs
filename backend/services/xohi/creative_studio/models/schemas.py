@@ -142,7 +142,7 @@ class CopyrightAnnotation(BaseModel):
 
 class PlagiarismResult(BaseModel):
     model_config = ConfigDict(strict=True)
-    uniqueness_score: float
+    uniqueness_score: float = Field(description="Điểm số đánh giá mức độ độc bản, giá trị từ 0.0 (copy hoàn toàn) đến 1.0 (mới hoàn toàn)")
     risk_level: str
     flagged_sentences: List[str]
     annotations: List[CopyrightAnnotation]

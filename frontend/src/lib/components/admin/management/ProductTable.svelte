@@ -249,7 +249,8 @@
                 </div>
 
                 <!-- Popover (Elite V2.2: Liquid Glass) -->
-                <div class="absolute left-0 bottom-full w-[340px] pb-2 opacity-0 translate-y-2 pointer-events-none group-hover/intel:opacity-100 group-hover/intel:translate-y-0 group-hover/intel:pointer-events-auto transition-all duration-300 z-50">
+                <div class="absolute left-0 bottom-full w-[340px] pb-2 opacity-0 translate-y-2 pointer-events-none group-hover/intel:opacity-100 group-hover/intel:translate-y-0 group-hover/intel:pointer-events-auto transition-all duration-300"
+                     style="z-index: {Z_INDEX_ADMIN.POPOVER};">
                   <!-- Invisible bridge to prevent disappearing on hover -->
                   <div class="absolute inset-x-0 bottom-0 h-4 translate-y-full"></div>
                   
@@ -320,7 +321,7 @@
 
                     <div class="pt-2 border-t border-white/5">
                       <p class="text-[9px] text-white/50 leading-relaxed italic line-clamp-2">
-                         "{m.analysis}"
+                         "{m.analysis_overview || m.analysis || 'AI đang tổng hợp dữ liệu...'}"
                       </p>
                     </div>
                   </div>
@@ -431,9 +432,23 @@
               <ShieldCheck size={16} class="text-emerald-400" />
               <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Phân tích từ XOHI</span>
             </div>
-            <p class="text-sm text-white/80 leading-relaxed italic font-serif">
-              "{fullViewMarketData.analysis}"
-            </p>
+            <div class="flex flex-col gap-3">
+              <p class="text-sm text-white/80 leading-relaxed italic font-serif">
+                "{fullViewMarketData.analysis_overview || fullViewMarketData.analysis || 'AI đang tổng hợp dữ liệu...'}"
+              </p>
+              {#if fullViewMarketData.critical_analysis}
+                <div class="mt-2 pt-2 border-t border-emerald-500/10">
+                  <span class="text-[9px] font-black text-amber-400/60 uppercase block mb-1">Phản biện:</span>
+                  <p class="text-xs text-white/60 italic leading-relaxed">{fullViewMarketData.critical_analysis}</p>
+                </div>
+              {/if}
+              {#if fullViewMarketData.optimization_strategy}
+                <div class="mt-2 pt-2 border-t border-emerald-500/10">
+                  <span class="text-[9px] font-black text-cyan-400/60 uppercase block mb-1">Chiến lược tối ưu:</span>
+                  <p class="text-xs text-white/60 italic leading-relaxed">{fullViewMarketData.optimization_strategy}</p>
+                </div>
+              {/if}
+            </div>
           </div>
 
           <!-- Quick Stats -->

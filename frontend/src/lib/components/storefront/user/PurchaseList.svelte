@@ -49,7 +49,7 @@
     }
 
     try {
-      const params: any = { limit: LIMIT, offset };
+      const params: Record<string, unknown> = { limit: LIMIT, offset };
       if (tab && tab !== 'all') {
         params.status = tab;
       }
@@ -129,7 +129,7 @@
           const qty = Number(item.qty || item.quantity || 1);
           cartStore.addItem(product, variant, qty);
           addedCount++;
-        } catch (itemErr: any) {
+        } catch (itemErr: unknown) {
           console.warn(`Product ${productId} likely no longer exists or is inactive.`, itemErr);
         }
       }
@@ -144,7 +144,7 @@
       } else {
         ui.showToast('⚠️ Rất tiếc, các sản phẩm trong đơn này hiện không còn khả dụng.', 'error');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Reorder process failed', err);
       ui.showToast('Có lỗi xảy ra khi chuẩn bị giỏ hàng.', 'error');
     } finally {
@@ -168,7 +168,7 @@
       });
       ui.showToast('✅ Đã hủy đơn hàng thành công.', 'success');
       fetchOrders();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Cancel order failed', err);
       ui.showToast(err.response?.data?.detail || 'Không thể hủy đơn hàng. Vui lòng liên hệ shop.', 'error');
     }
@@ -181,7 +181,7 @@
     return voucher + combo;
   }
 
-  function getVariantName(item: any) {
+  function getVariantName(item: { variant_name?: string; name?: string; variant_id?: string }) {
     let name = item.variant_name;
     
     // 🔥 Chiến dịch làm sạch (Sanitize) rác mã hoá từ phiên bản cũ 🔥
