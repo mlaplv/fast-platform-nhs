@@ -69,8 +69,8 @@
     try {
       const dur = await detectVideoDuration(target);
       if (dur !== null) {
-        (formMetadata as any).video_end_time = dur;
-        (formMetadata as any).video_start_time = (formMetadata as any).video_start_time ?? 0;
+        formMetadata.video_end_time = dur;
+        formMetadata.video_start_time = formMetadata.video_start_time ?? 0;
       } else {
         detectError = 'Không đọc được thời lượng';
       }

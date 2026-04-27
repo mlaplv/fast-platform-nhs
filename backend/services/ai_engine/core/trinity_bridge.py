@@ -176,10 +176,13 @@ class TrinityBridge:
                     break
                 except Exception as e:
                     last_err = e
+                    logger.warning(f"[TrinityBridge] Model '{m_name}' failed: {e}")
                     cat = self.models_helper.classify_error(str(e))
 
                     if cat == "fail_fast":
-                        raise AIConfigurationError(f"AI Fail-Fast: {e}", m_name, att)
+                        logger.error(f"[TrinityBridge] Model '{m_name}' incompatible or failed (Fail-Fast): {e}. Skipping model.")
+                        await self.rotator.mark_model_poisoned(m_name, reason=f"fail_fast: {str(e)[:50]}")
+                        break
                     if cat == "tool_unsupported":
                         break
                     if not key:

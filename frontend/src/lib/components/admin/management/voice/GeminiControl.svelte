@@ -16,13 +16,18 @@
   import Plus from "lucide-svelte/icons/plus";
   import Trophy from "lucide-svelte/icons/trophy";
 
+  import { dndzone } from "svelte-dnd-action";
+  import { portal } from "$lib/actions/portal";
+  
   let { onOpenDiagnostics } = $props<{
     onOpenDiagnostics: () => void;
   }>();
 
   // State Management
   let bulkKeys = $state("");
-  let priorityStack = $state<string[]>([]);
+  
+  // DnD requires objects with IDs
+  let items = $state<Array<{id: string, name: string}>>([]);
   
   let isSyncing = $state(false);
   let isSavingModels = $state(false);
@@ -34,19 +39,19 @@
 
   // Discovery State
   let showDiscoveryDropdown = $state(false);
+  let dropdownAnchor = $state<HTMLElement | null>(null);
+  let showAll = $state(false);
 
   // Load Initial Config
   onMount(async () => {
     try {
       const res = await apiClient.get<AIModelConfig>("/api/v1/admin/ai/models");
       if (res) {
-        // Construct the stack: Primary first, then waterfall
         const primary = res.primary_model;
         const waterfall = res.ai_models || [];
-        
-        // Ensure primary is at the top and avoid duplicates
         const fullStack = primary ? [primary, ...waterfall.filter(m => m !== primary)] : waterfall;
-        priorityStack = fullStack;
+        
+        items = fullStack.map(m => ({ id: m, name: m }));
         savedStack = [...fullStack];
         
         if (primary) hasSavedOnce = true;
@@ -60,7 +65,7 @@
 
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest('.discovery-container')) {
+      if (!target.closest('.discovery-container') && !target.closest('.portal-dropdown')) {
         showDiscoveryDropdown = false;
       }
     };
@@ -90,7 +95,8 @@
     }
   }
 
-  async function discoverModels() {
+  async function discoverModels(e: MouseEvent) {
+    dropdownAnchor = e.currentTarget as HTMLElement;
     isDiscovering = true;
     try {
       const res = await apiClient.get<GenericAIResponse>("/api/v1/admin/ai/models/discover");
@@ -107,14 +113,15 @@
   }
 
   async function savePriorityStack() {
-    if (priorityStack.length === 0) {
+    if (items.length === 0) {
       nanobot.showToast("Neural Stack cannot be empty.", "error");
       return;
     }
     isSavingModels = true;
     try {
-      const primary = priorityStack[0];
-      const waterfall = priorityStack.slice(1);
+      const currentStack = items.map(i => i.name);
+      const primary = currentStack[0];
+      const waterfall = currentStack.slice(1);
 
       const res = await apiClient.post<GenericAIResponse>("/api/v1/admin/ai/models", {
         primary_model: primary,
@@ -122,7 +129,7 @@
       });
 
       if (res?.status === "success") {
-        savedStack = [...priorityStack];
+        savedStack = [...currentStack];
         hasSavedOnce = true;
         nanobot.showToast(`Stack Persistent: Lead is ${primary}`, "success");
       }
@@ -133,41 +140,80 @@
     }
   }
 
-  // Stack Mutators
+  // DnD Handlers
+  function handleDndConsider(e: CustomEvent<DndEvent<{id: string, name: string}>>) {
+    items = e.detail.items;
+  }
+
+  function handleDndFinalize(e: CustomEvent<DndEvent<{id: string, name: string}>>) {
+    items = e.detail.items;
+  }
+
   function setAsLead(index: number) {
-    const model = priorityStack[index];
-    const rest = priorityStack.filter((_, i) => i !== index);
-    priorityStack = [model, ...rest];
-    nanobot.showToast(`${model} promoted to Lead Operative.`, "success");
-  }
-
-  function moveUp(index: number) {
-    if (index === 0) return;
-    const newStack = [...priorityStack];
-    [newStack[index - 1], newStack[index]] = [newStack[index], newStack[index - 1]];
-    priorityStack = newStack;
-  }
-
-  function moveDown(index: number) {
-    if (index === priorityStack.length - 1) return;
-    const newStack = [...priorityStack];
-    [newStack[index + 1], newStack[index]] = [newStack[index], newStack[index + 1]];
-    priorityStack = newStack;
+    const model = items[index];
+    const rest = items.filter((_, i) => i !== index);
+    items = [model, ...rest];
+    nanobot.showToast(`${model.name} promoted to Lead Operative.`, "success");
   }
 
   function removeModel(index: number) {
-    priorityStack = priorityStack.filter((_, i) => i !== index);
+    items = items.filter((_, i) => i !== index);
   }
 
   function addModelFromDiscovery(model: string) {
-    if (!priorityStack.includes(model)) {
-      priorityStack = [...priorityStack, model];
+    if (!items.find(i => i.name === model)) {
+      items = [...items, { id: model, name: model }];
     }
     showDiscoveryDropdown = false;
   }
 
+  // Dropdown Positioning
+  function toggleDiscovery(e: MouseEvent) {
+    dropdownAnchor = e.currentTarget as HTMLElement;
+    showDiscoveryDropdown = !showDiscoveryDropdown;
+  }
+
   // Derived
+  const priorityStack = $derived(items.map(i => i.name));
   const hasUnsavedChanges = $derived(JSON.stringify(priorityStack) !== JSON.stringify(savedStack));
+
+  let dropdownStyle = $state("");
+
+  // Elite V2.2: Universal Model Scoring (Client-side)
+  function scoreModel(name: string): number {
+    const m = (name || "").toLowerCase();
+    let score = 0;
+    if (m.includes("3.1")) score += 1000;
+    else if (m.includes("3")) score += 900;
+    else if (m.includes("2.5")) score += 800;
+    else if (m.includes("2.0")) score += 700;
+    else if (m.includes("1.5")) score += 600;
+
+    if (m.includes("pro")) score += 100;
+    else if (m.includes("ultra")) score += 200;
+    else if (m.includes("flash")) score += 50;
+    
+    if (m.includes("customtools")) score += 10;
+    return score;
+  }
+
+  const sortedDiscovered = $derived(
+    [...nanobot.discoveredModels].sort((a, b) => scoreModel(b) - scoreModel(a))
+  );
+
+  $effect(() => {
+    if (showDiscoveryDropdown && dropdownAnchor) {
+      const rect = dropdownAnchor.getBoundingClientRect();
+      const isTopHalf = rect.top < window.innerHeight / 2;
+      const isRightSide = rect.left > window.innerWidth / 2;
+      
+      dropdownStyle = `
+        ${isRightSide ? `right: ${window.innerWidth - rect.right}px;` : `left: ${rect.left}px;`}
+        min-width: 340px;
+        ${isTopHalf ? `top: ${rect.bottom + 12}px;` : `bottom: ${window.innerHeight - rect.top + 12}px;`}
+      `;
+    }
+  });
 </script>
 
 <style>
@@ -191,9 +237,15 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(34, 211, 238, 0.3);
   }
+  /* DnD Styles */
+  :global(.dnd-ghost) {
+    opacity: 0.5;
+    background: rgba(16, 185, 129, 0.1) !important;
+    border: 1px dashed rgba(16, 185, 129, 0.5) !important;
+  }
 </style>
 
-<div class="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 space-y-8 flex flex-col h-[650px] flex-shrink-0 relative">
+<div class="bg-zinc-950/40 border border-white/5 rounded-2xl p-5 space-y-5 flex flex-col h-[600px] flex-shrink-0 relative">
   <!-- Header -->
   <div class="flex items-center justify-between">
     <div class="flex flex-col gap-1">
@@ -213,7 +265,7 @@
   </div>
 
   <!-- Key Syncing -->
-  <div class="space-y-4">
+  <div class="space-y-3">
     <div class="flex items-center justify-between">
       <label for="bulk-keys" class="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Cognitive Pool (Keys)</label>
       <button
@@ -228,7 +280,7 @@
       id="bulk-keys"
       bind:value={bulkKeys}
       placeholder="Paste comma-separated Gemini API keys..."
-      class="w-full h-16 bg-black/40 border border-white/5 rounded-xl p-3 text-[11px] font-mono text-zinc-400 focus:outline-none focus:border-emerald-500/30 transition-all resize-none"
+      class="w-full h-12 bg-black/40 border border-white/5 rounded-xl p-3 text-[11px] font-mono text-zinc-400 focus:outline-none focus:border-emerald-500/30 transition-all resize-none"
     ></textarea>
   </div>
 
@@ -249,14 +301,24 @@
       </button>
     </div>
 
-    <!-- Models List -->
-    <div class="h-[380px] overflow-y-auto pr-2 custom-scrollbar space-y-3 py-1">
-      {#each priorityStack as model, i}
+    <!-- Models List with DnD -->
+    <div 
+      class="space-y-2 py-1"
+      use:dndzone={{items, flipDurationMs: 200, dropTargetStyle: {}}}
+      onconsider={handleDndConsider}
+      onfinalize={handleDndFinalize}
+    >
+      {#each items as item, i (item.id)}
         <div 
-          class="group flex items-center gap-3 p-3 bg-zinc-900/30 border rounded-xl transition-all {i === 0 ? 'bg-emerald-500/5 border-emerald-500/20 lead-card' : 'border-white/5 hover:border-white/10'}"
+          class="group flex items-center gap-2 p-2.5 bg-zinc-900/30 border rounded-xl transition-all {i === 0 ? 'bg-emerald-500/5 border-emerald-500/20 lead-card' : 'border-white/5 hover:border-white/10'} {!showAll && i >= 3 ? 'hidden' : 'flex'}"
         >
+          <!-- Drag Handle -->
+          <div class="cursor-grab active:cursor-grabbing p-1 -ml-1 text-zinc-700 hover:text-zinc-400 transition-colors">
+            <Layers size={12} />
+          </div>
+
           <!-- Rank Badge -->
-          <div class="w-8 flex flex-col items-center justify-center">
+          <div class="w-6 flex flex-col items-center justify-center">
             <span class="text-[10px] font-black {i === 0 ? 'text-emerald-400' : 'text-zinc-600'}">#{i + 1}</span>
             {#if i === 0}
               <Trophy size={10} class="text-emerald-500" />
@@ -267,7 +329,7 @@
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <span class="text-[11px] font-mono font-bold {i === 0 ? 'text-zinc-100' : 'text-zinc-400'} truncate">
-                {model}
+                {item.name}
               </span>
               {#if i === 0}
                 <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[8px] font-black rounded uppercase tracking-tighter">Leader</span>
@@ -288,24 +350,6 @@
                 <Zap size={14} />
               </button>
             {/if}
-            <div class="flex bg-zinc-800/50 rounded-lg p-0.5 mx-1">
-              <button 
-                onclick={() => moveUp(i)}
-                disabled={i === 0}
-                class="p-1 hover:text-white disabled:opacity-20 transition-colors"
-                title="Move Up"
-              >
-                <ArrowUp size={12} />
-              </button>
-              <button 
-                onclick={() => moveDown(i)}
-                disabled={i === priorityStack.length - 1}
-                class="p-1 hover:text-white disabled:opacity-20 transition-colors"
-                title="Move Down"
-              >
-                <ArrowDown size={12} />
-              </button>
-            </div>
             <button 
               onclick={() => removeModel(i)}
               class="p-1.5 hover:bg-red-500/20 text-red-400/50 hover:text-red-400 rounded transition-colors"
@@ -316,12 +360,22 @@
           </div>
         </div>
       {/each}
+
+      {#if items.length > 3}
+        <button 
+          onclick={() => showAll = !showAll}
+          class="w-full py-2 text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:text-cyan-400 transition-colors flex items-center justify-center gap-2"
+        >
+          {showAll ? 'Collapse Stack' : `Show All (${items.length - 3} more)`}
+          <ArrowDown size={10} class={showAll ? "rotate-180 transition-transform" : "transition-transform"} />
+        </button>
+      {/if}
     </div>
 
-    <!-- Quick Add Selection (Moved outside scroll for persistent visibility) -->
+    <!-- Quick Add Selection -->
     <div class="relative discovery-container mt-2">
       <button 
-        onclick={() => showDiscoveryDropdown = !showDiscoveryDropdown}
+        onclick={toggleDiscovery}
         class="w-full p-3 border border-dashed border-white/5 hover:border-white/10 rounded-xl flex items-center justify-center gap-2 text-zinc-600 hover:text-zinc-400 transition-all group"
       >
         <Plus size={14} class="group-hover:rotate-90 transition-transform duration-300" />
@@ -329,17 +383,31 @@
       </button>
 
       {#if showDiscoveryDropdown && nanobot.discoveredModels.length}
-        <div class="absolute z-50 left-0 right-0 bottom-full mb-2 max-h-48 overflow-y-auto bg-zinc-900 border border-white/10 rounded-xl shadow-2xl backdrop-blur-xl p-1 custom-scrollbar">
-          {#each nanobot.discoveredModels as m}
-            {#if !priorityStack.includes(m)}
-              <button 
-                onclick={() => addModelFromDiscovery(m)}
-                class="w-full text-left px-4 py-2 text-[10px] font-mono text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/5 rounded-lg transition-all"
-              >
-                {m}
-              </button>
-            {/if}
-          {/each}
+        <div 
+          use:portal={"body"}
+          class="portal-dropdown fixed z-[9999] bg-black/95 border border-cyan-500/30 rounded-2xl shadow-[0_20px_80px_rgba(0,0,0,0.9)] backdrop-blur-3xl p-1 custom-scrollbar overflow-y-auto ring-1 ring-white/10"
+          style={dropdownStyle}
+        >
+          <div class="p-3 border-b border-white/5 mb-1 sticky top-0 bg-black/90 backdrop-blur-md flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></div>
+              <span class="text-[9px] font-black text-cyan-400 uppercase tracking-[0.2em]">Available Neural Models</span>
+            </div>
+            <span class="text-[8px] font-mono text-zinc-600">{nanobot.discoveredModels.length} Active</span>
+          </div>
+          <div class="max-h-[400px] overflow-y-auto px-1 py-1 space-y-0.5">
+            {#each sortedDiscovered as m}
+              {#if !priorityStack.includes(m)}
+                <button 
+                  onclick={() => addModelFromDiscovery(m)}
+                  class="w-full text-left px-3 py-2.5 text-[11px] font-mono text-zinc-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-xl transition-all flex items-center justify-between group"
+                >
+                  <span class="break-all">{m}</span>
+                  <Plus size={12} class="opacity-0 group-hover:opacity-100 text-cyan-500 transition-opacity" />
+                </button>
+              {/if}
+            {/each}
+          </div>
         </div>
       {/if}
     </div>

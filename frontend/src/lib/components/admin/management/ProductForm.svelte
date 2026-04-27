@@ -13,6 +13,7 @@
   import ProductFormSeo from "./ProductFormSeo.svelte";
   import ProductFormSpecs from "./ProductFormSpecs.svelte";
   import ProductFormVariants from "./ProductFormVariants.svelte";
+  import ProductMarketPrice from "./ProductMarketPrice.svelte";
   import type { Product } from "$lib/types";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { portal } from "$lib/core/actions/portal";
@@ -47,6 +48,8 @@
     errors = {},
     formIsAiFeatured = $bindable(),
     formAnalysisReport = $bindable(),
+    formMarketData = $bindable(),
+    formLastMarketSync = $bindable(),
   } = $props<{
     isOpen?: boolean;
     editingId: string | null;
@@ -77,6 +80,8 @@
     errors?: Record<string, string>;
     formIsAiFeatured: boolean;
     formAnalysisReport?: Record<string, unknown>;
+    formMarketData?: Product['market_data'];
+    formLastMarketSync?: string;
   }>();
 
   let showMediaModal = $state(false);
@@ -283,6 +288,15 @@
         <!-- Specs -->
         <div class="flex flex-col pt-2">
           <ProductFormSpecs bind:formAttributes />
+        </div>
+
+        <!-- Market Price Intel -->
+        <div class="flex flex-col pt-2">
+          <ProductMarketPrice 
+            product_id={editingId} 
+            bind:market_data={formMarketData} 
+            last_sync={formLastMarketSync} 
+          />
         </div>
 
       </div>

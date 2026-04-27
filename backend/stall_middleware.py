@@ -38,6 +38,7 @@ class StallDetectorMiddleware:
             "/api/v1/content/clean",
             "/api/v1/content/campaigns",   # Campaign-level analyze/* calls
             "/api/v1/client/diagnostics",
+            "/api/v1/products/",           # AI Market Sync / SEO Suggest (Slow)
         ]
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:

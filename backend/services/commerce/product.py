@@ -665,7 +665,7 @@ class ProductService:
             system_prompt="You are an expert product advisor. Given a product name and description, generate 3 to 5 frequently asked questions and short, helpful answers in Vietnamese. Return ONLY exact valid JSON array of objects without markdown wrapping or backticks, like this: [{\"question\": \"...\", \"answer\": \"...\"}]"
         )
         prompt = f"Product Name: {name}\nProduct Desc: {description}"
-        
+
         try:
             result = await trinity_bridge.run(
                 agent=agent,
@@ -673,7 +673,7 @@ class ProductService:
                 role="fast",
                 timeout=45.0
             )
-            
+
             if result:
                 suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
                 match = re.search(r'\[.*\]', suggested_json_str, re.DOTALL)
@@ -681,12 +681,38 @@ class ProductService:
                     parsed = json.loads(match.group(0))
                     if isinstance(parsed, list):
                         return parsed
-            
+
             return []
-            
+
         except Exception as e:
             logger.exception(f"[ProductService] AI FAQ Suggestion Failed: {e}")
             return []
+
+    async def sync_market_price(self, db_session: AsyncSession, product_id: str) -> Dict[str, object]:
+        """Elite V2.2: Market Price Intel Sync (1/Day)."""
+        from backend.services.commerce.price_agent import scan_product_price
+
+        # 1. Fetch product
+        stmt = select(ProductBase).where(ProductBase.id == product_id, ProductBase.deleted_at == None)
+        product = (await db_session.execute(stmt)).scalar_one_or_none()
+        if not product:
+            raise NotFoundException(f"Product {product_id} not found")
+
+        # 2. Rate Limit: 1/day (Bản Elite V2.2: Tạm thời tắt để Sếp test ngay lập tức các thay đổi)
+        # today = datetime.now(timezone.utc).date()
+        # if product.last_market_sync and product.last_market_sync.date() == today:
+        #     return product.market_data or {}
+
+        # 3. Call AI
+        intel = await scan_product_price(product.name)
+
+        # 4. Update DB
+        data = intel.model_dump()
+        product.market_data = data
+        product.last_market_sync = datetime.now(timezone.utc)
+
+        await db_session.commit()
+        return data
 
 # ==========================================
 # SERVICE PROVIDERS (V76.2 DI PATTERN)

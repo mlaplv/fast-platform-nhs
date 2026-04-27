@@ -12,7 +12,7 @@
   import ProductTable from "./ProductTable.svelte";
   import OrderPagination from "./OrderPagination.svelte";
 
-  let { data = {} } = $props<BaseWidgetProps>();
+  let { data = {} } = $props<{ data?: Record<string, unknown> }>();
 
   interface CategoryOption {
     id: string;
@@ -55,7 +55,9 @@
   let formTierVariations = $state<Product["tierVariations"]>([]);
   let formVariants = $state<Product["variants"]>([]);
   let formIsAiFeatured = $state(false);
-  let formAnalysisReport = $state<Record<string, any>>({});
+  let formAnalysisReport = $state<Record<string, unknown>>({});
+  let formMarketData = $state<Product["market_data"]>({ ads: [], organic_results: [], analysis: "" });
+  let formLastMarketSync = $state<string | undefined>(undefined);
   let generateSlug = (n: string) => slugify(n);
 
   let pageSize = $state(50);
@@ -143,6 +145,8 @@
     formTierVariations = []; formVariants = [];
     formIsAiFeatured = false;
     formAnalysisReport = {};
+    formMarketData = { ads: [], organic_results: [], analysis: "" };
+    formLastMarketSync = undefined;
     showForm = true;
   }
 
@@ -152,7 +156,7 @@
     if (!id) { nanobot.showToast("ID sản phẩm không hợp lệ", "error"); return; }
     isSaving = true;
     try {
-      const p = await apiClient.get<any>(`/api/v1/products/${id}`, { params: { _cb: Date.now().toString() } });
+      const p = await apiClient.get<Product>(`/api/v1/products/${id}`, { params: { _cb: Date.now().toString() } });
       if (!p) throw new Error("Không nhận được phản hồi từ máy chủ");
       console.log(`[ProductManagement] Fresh description for ${id}. Len: ${p.description?.length}`);
       editingId = p.id;
@@ -178,6 +182,8 @@
       if (!formMetadata.analysis_metrics) formMetadata.analysis_metrics = {};
       formIsAiFeatured = p.isAiFeatured ?? p.is_ai_featured ?? false;
       formAnalysisReport = p.analysis_report || {};
+      formMarketData = p.marketData ?? p.market_data ?? { ads: [], organic_results: [], analysis: "" };
+      formLastMarketSync = p.lastMarketSync ?? p.last_market_sync;
       const rawTierVariations = p.tierVariations ?? p.tier_variations ?? [];
       formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map(tv => ({
         name: tv.name || "",
@@ -342,6 +348,27 @@
       nanobot.showToast(`Đã thực hiện thao tác hàng loạt`, "success");
     } catch (err) { nanobot.showToast("Thao tác hàng loạt thất bại", "error"); }
   }
+
+  async function syncMarket(id: string) {
+    try {
+      const res = await apiClient.post<{ message: string; data: Product["market_data"] }>(`/api/v1/products/${id}/sync-market`);
+      const newData = res.data;
+      if (!newData) throw new Error("Không nhận được dữ liệu từ máy chủ");
+
+      // Update local products array with new market data
+      products = products.map(p => p.id === id ? { 
+        ...p, 
+        market_data: newData,
+        marketData: newData, // sync both variations for safety
+        last_market_sync: new Date().toISOString(),
+        lastMarketSync: new Date().toISOString()
+      } : p);
+      nanobot.showToast("Đã cập nhật tình báo thị trường", "success");
+    } catch (err) {
+      nanobot.showToast("Đồng bộ giá thất bại", "error");
+      throw err;
+    }
+  }
 </script>
 
 <div class="w-full h-full flex flex-col relative bg-[#050505] isolation-auto">
@@ -386,7 +413,7 @@
     bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus
     bind:formShortDescription bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
     bind:formImages bind:formMobileImages bind:formAttributes bind:formMetadata bind:formTierVariations bind:formVariants
-    bind:formIsAiFeatured bind:formAnalysisReport
+    bind:formIsAiFeatured bind:formAnalysisReport bind:formMarketData bind:formLastMarketSync
     {categories}
     onSave={save}
     onClose={() => { showForm = false; nanobot.toggleExpand(false); }}
@@ -412,6 +439,7 @@
             try { await apiClient.post("/api/v1/products/bulk-delete", { ids: [id] }); await loadProducts(); }
             catch { nanobot.showToast("Xóa sản phẩm thất bại", "error"); }
           }}
+          onSyncMarket={syncMarket}
         />
       </div>
     {/if}

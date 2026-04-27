@@ -144,15 +144,13 @@ class ProductController(Controller):
         )
         return SuccessResponse(message="Thành công", data=res_data)
 
-    @post("/faq-suggest", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
-    async def suggest_faqs(
+    @post("/{product_id:str}/sync-market", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
+    async def sync_market_price(
         self,
+        db_session: AsyncSession,
         product_service: ProductService,
-        data: Dict[str, str]
+        product_id: str
     ) -> SuccessResponse:
-        """AI Suggestion for Product FAQs (Elite V2.2: XOHI Engine)."""
-        res_data = await product_service.suggest_faqs(
-            name=data.get("name", ""),
-            description=data.get("description", "")
-        )
+        """Trigger AI Market Price Sync (Elite V2.2: Price Intel)."""
+        res_data = await product_service.sync_market_price(db_session, product_id)
         return SuccessResponse(message="Thành công", data=res_data)

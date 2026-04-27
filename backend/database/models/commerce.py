@@ -72,6 +72,10 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     # CNS V87.0: Analysis Report (Copyright/SEO/AI)
     analysis_report: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict, server_default='{}')
 
+    # Market Price Intel (V2026)
+    market_data: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default=dict, server_default='{}')
+    last_market_sync: Mapped[Optional[sa.DateTime]] = mapped_column(sa.DateTime(timezone=True))
+
     category_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('categories.id'))
     category: Mapped[Optional["Category"]] = relationship("Category", back_populates="products")
     

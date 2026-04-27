@@ -1,5 +1,19 @@
 // TypeScript Type Definitions for Svelte Frontend
 
+export interface MarketPriceSource {
+  platform: string;
+  title: string;
+  price?: number;
+  link: string;
+  is_ad: boolean;
+}
+
+export interface MarketPriceIntel {
+  ads: MarketPriceSource[];
+  organic_results: MarketPriceSource[];
+  analysis: string;
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -407,9 +421,10 @@ export interface Product {
   images: string[];
   mobileImages?: string[];
   mobile_images?: string[];
-  attributes: Record<string, unknown>; // Elite V2.2: Strict types for product attributes
+  attributes: Record<string, string | number | boolean | null>;
   metadata: ProductMetadata;
   tierVariations: TierVariation[];
+  tier_variations?: TierVariation[];
   variants: ProductVariant[];
   category_id?: string;
   category_ids?: string[];
@@ -420,6 +435,15 @@ export interface Product {
   rating_text?: string;
   createdAt: string;
   analysis_report?: Record<string, unknown>;
+  market_data?: MarketPriceIntel;
+  marketData?: MarketPriceIntel;
+  last_market_sync?: string;
+  lastMarketSync?: string;
+  short_description?: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  seoKeywords?: string | null;
+  seo_keywords?: string | null;
 }
 
 export interface ProductFacets {

@@ -14,11 +14,11 @@ logger = logging.getLogger("api-gateway")
 
 DEFAULT_AI_CONFIG = {
     "role_patterns": {
-        "fast": ["3.1-flash", "2.0-flash", "1.5-flash", "flash-lite", "8b"],
-        "brain": ["3.1-pro", "2.0-pro", "1.5-pro", "brain"]
+        "fast": ["flash", "8b", "lite"],
+        "brain": ["pro", "ultra", "brain"]
     },
-    "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision"],
-    "lockdown": ["early-access", "alpha", "preview", "customtools"],
+    "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision", "deep-research", "robotics", "lyria", "banana"],
+    "lockdown": ["early-access", "alpha", "customtools"], # Gỡ bỏ 'preview' vì 2026 đa số là bản preview ổn định
     "error_mapping": {
         "auth_hard": ["api key not valid", "invalid_key", "key_expired", "project disabled", "deleted"],
         "auth_soft": ["401", "403", "unauthorized", "forbidden", "permission_denied", "user_location_not_supported"],
@@ -99,20 +99,51 @@ class TrinityModels:
             logger.error(f"[TrinityModels] Discovery failed: {e}")
         return []
 
+    def _score_model(self, model_name: str) -> int:
+        """Elite V2.2: Universal Model Scoring for Vietnam & Standard API."""
+        m = model_name.lower()
+        score = 0
+        
+        # 1. Version Tier (The most important factor in 2026)
+        if "3.1" in m: score += 1000
+        elif "3" in m: score += 900
+        elif "2.5" in m: score += 800
+        elif "2.0" in m: score += 700
+        elif "1.5" in m: score += 600
+        
+        # 2. Model Grade (Brain vs Fast)
+        if "pro" in m: score += 100
+        elif "ultra" in m: score += 200 # Ultra is rare but supreme
+        elif "flash" in m: score += 50
+        
+        # 3. Special Features
+        if "customtools" in m: score += 10 # Better tool support
+        
+        # 4. Penalty for non-standard/experimental
+        if "experimental" in m: score -= 50
+        if "alpha" in m or "beta" in m: score -= 30
+        
+        return score
+
     def get_role_models(self, role: str, discovered: list[str]) -> list[str]:
         if not discovered: return []
         
         patterns = self._config.get("role_patterns", {}).get(role, [])
+        blacklist = self._config.get("blacklist", [])
         lockdown = self._config.get("lockdown", [])
             
-        res = [
-            m for p in patterns for m in discovered 
-            if p in m.lower() 
+        # First filter: Only compatible and non-blacklisted
+        candidates = [
+            m for m in discovered 
+            if any(p in m.lower() for p in patterns)
             and "experimental" not in m.lower() 
             and not any(l in m.lower() for l in lockdown)
+            and not any(bl in m.lower() for bl in blacklist)
         ]
-        res.sort(reverse=True)
-        return res
+        
+        # Second filter: Sort by Elite V2.2 Score (Best to Worst)
+        candidates.sort(key=lambda x: self._score_model(x), reverse=True)
+        return candidates
 
     async def build_chain(self, role: Optional[str], db_primary: str, db_waterfall: list[str], discovered: list[str]) -> list[str]:
         await self._ensure_config()

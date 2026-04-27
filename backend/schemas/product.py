@@ -248,6 +248,10 @@ class ProductResponse(BaseModel):
     orderCount: int = Field(0, alias="order_count")
     orderCountText: str = Field("2,140+ LƯỢT MUA", alias="order_count_text")
 
+    # Market Price Intel (V2026)
+    marketData: Optional[Dict[str, object]] = Field(None, alias="market_data")
+    lastMarketSync: Optional[datetime] = Field(None, alias="last_market_sync")
+
     createdAt: datetime = Field(alias="created_at")
 
     @field_validator("id", "categoryId", mode="before")
