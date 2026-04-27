@@ -192,9 +192,11 @@ class TrinityBridge:
                                 break
                             else:
                                 logger.warning(f"⏳ [TrinityBridge] Rate Limit (RPM) hit: {m_name}{wait_info}. Rotating key...")
+                                await self.rotator.mark_unhealthy(key, reason="rate_limit", session_id=s_id)
                                 continue
                         else:
                             logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503): {m_name}. Retrying fallback...")
+                            await self.rotator.mark_unhealthy(key, reason="503", session_id=s_id)
                             continue
 
                     if cat == "fail_fast":
@@ -221,6 +223,9 @@ class TrinityBridge:
                     if cat == "auth_soft":
                         await self.rotator.mark_unhealthy(key, reason="auth_soft", session_id=s_id)
                         continue
+                        
+                    # Catch-all for other errors
+                    await self.rotator.mark_unhealthy(key, reason="unknown", session_id=s_id)
 
         raise AIConfigurationError(f"AI Overloaded: {last_err}", str(models[-1]) if models else "N/A", max_k-1)
 
@@ -298,7 +303,8 @@ class TrinityBridge:
                             logger.warning(f"⚡ [TrinityBridge] Quota Exhausted (Stream): {m_name}{wait_info}. Rotating key...")
                             await self.rotator.mark_model_daily(key, m_name)
                         else:
-                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (Stream): {m_name}. Retrying fallback...")
+                            logger.warning(f"🛰️ [TrinityBridge] Rate Limit/Unavailable (Stream): {m_name}. Retrying fallback...")
+                            await self.rotator.mark_unhealthy(key, reason="rate_limit", session_id=s_id)
                         continue
 
                     if cat == "auth_hard": 
@@ -314,6 +320,7 @@ class TrinityBridge:
                         break
                         
                     logger.warning(f"⚠️ [TrinityBridge] Stream error '{m_name}': {str(e)[:150]}")
+                    await self.rotator.mark_unhealthy(key, reason="unknown", session_id=s_id)
         raise AIConfigurationError(f"Stream Overloaded: {last_err}")
 
     def _provision_model(self, m_name: str, key: str, params: dict[str, object]) -> tuple[GoogleModel, dict[str, object]]:
