@@ -4,7 +4,7 @@ import httpx
 import re
 import json
 import random
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from pydantic import BaseModel, Field, field_validator, HttpUrl, JsonValue
 from pydantic_ai import Agent, RunContext
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -57,83 +57,86 @@ _TRUSTED_ECOMMERCE: List[str] = [
     "chotinhcuaboo.com", "xachtaynhat.net", "domy.vn"
 ]
 
+# [V3.3] Poison keywords that indicate the price might not be the product price
+_POISON_PHRASES: List[str] = [
+    "voucher", "mã giảm", "tặng", "phí ship", "phí vận chuyển", 
+    "tặng kèm", "quà", "ưu đãi", "hoàn tiền", "cashback", "coupon",
+    "giảm thêm", "ship chỉ"
+]
 
-def normalize_vn_price(raw: str) -> Optional[float]:
+def is_poisoned_context(text: str, start_idx: int, end_idx: int) -> bool:
+    """[V3.3] Kiểm tra xem giá tìm thấy có nằm gần từ khóa gây nhiễu không.
     """
-    [ELITE V3.0] Chuẩn hóa mọi format giá Việt Nam về float.
-    Hỗ trợ:
-      1.200.000đ → 1200000.0
-      1,200,000 VND → 1200000.0
-      350k → 350000.0
-      1,2 triệu → 1200000.0
-      490000 → 490000.0
-      350.000 → 350000.0
-    """
+    window_start = max(0, start_idx - 20)
+    window_end = min(len(text), end_idx + 25)
+    context = text[window_start:window_end].lower()
+    
+    for phrase in _POISON_PHRASES:
+        if phrase in context:
+            if phrase == "phí ship" and "miễn phí ship" in context:
+                continue
+            return True
+    return False
+
+
+def normalize_vn_price(raw: str, prefer_higher: bool = True) -> Optional[float]:
+    """[ELITE V3.3] Chuẩn hóa mọi format giá Việt Nam về float + Lọc độc."""
     if not raw:
         return None
 
     text = raw.strip()
+    valid_prices: List[float] = []
 
-    # Strategy 1: "k" suffix (350k → 350000)
-    m_k = _VN_PRICE_K_SUFFIX.search(text)
-    if m_k:
+    for m in _VN_PRICE_WITH_SUFFIX.finditer(text):
+        price = _parse_vn_number(m.group(1))
+        if price and not is_poisoned_context(text, m.start(), m.end()):
+            valid_prices.append(price)
+
+    for m in _VN_PRICE_K_SUFFIX.finditer(text):
+        price = float(m.group(1)) * 1000
+        if price >= 1000 and not is_poisoned_context(text, m.start(), m.end()):
+            valid_prices.append(price)
+
+    for m in _VN_PRICE_TR_SUFFIX.finditer(text):
         try:
-            return float(m_k.group(1)) * 1000
-        except ValueError:
-            pass
+            num_str = m.group(1).replace(",", ".")
+            price = float(num_str) * 1_000_000
+            if not is_poisoned_context(text, m.start(), m.end()):
+                valid_prices.append(price)
+        except ValueError: pass
 
-    # Strategy 2: "triệu/tr" suffix (1,2 triệu → 1200000)
-    m_tr = _VN_PRICE_TR_SUFFIX.search(text)
-    if m_tr:
-        try:
-            num_str = m_tr.group(1).replace(",", ".")
-            return float(num_str) * 1_000_000
-        except ValueError:
-            pass
+    for m in _VN_PRICE_BARE_LARGE.finditer(text):
+        price = _parse_vn_number(m.group(1))
+        if price and not is_poisoned_context(text, m.start(), m.end()):
+            valid_prices.append(price)
 
-    # Strategy 3: Number with VND suffix (1.200.000đ, 350,000 VND)
-    m_suffix = _VN_PRICE_WITH_SUFFIX.search(text)
-    if m_suffix:
-        return _parse_vn_number(m_suffix.group(1))
+    if valid_prices:
+        sane_prices = [p for p in valid_prices if 10000 <= p <= 10_000_000]
+        if sane_prices:
+            return max(sane_prices) if prefer_higher else sane_prices[0]
+        return max(valid_prices)
 
-    # Strategy 4: Bare large number after price keyword
-    m_bare = _VN_PRICE_BARE_LARGE.search(text)
-    if m_bare:
-        return _parse_vn_number(m_bare.group(1))
-
-    # Strategy 5: Plain numeric string (e.g. from JSON-LD "price": "490000")
     clean = re.sub(r'[^\d.]', '', text)
-    if clean:
+    if len(clean) >= 4:
         try:
             val = float(clean)
-            # Sanity: VN products rarely cost < 1000 or > 100M
-            if 1000 <= val <= 100_000_000:
+            if 10000 <= val <= 100_000_000:
                 return val
-        except ValueError:
-            pass
+        except ValueError: pass
 
     return None
 
 
 def _parse_vn_number(num_str: str) -> Optional[float]:
-    """Parse a VN-formatted number string into float.
-    '1.200.000' → 1200000.0
-    '1,200,000' → 1200000.0
-    '350.000' → 350000.0
-    """
-    # Detect separator style: dots vs commas
+    """Parse a VN-formatted number string into float."""
     dot_count = num_str.count('.')
     comma_count = num_str.count(',')
 
     if dot_count > 0 and comma_count == 0:
-        # VN-style: dots as thousands separator → remove all dots
         cleaned = num_str.replace('.', '')
     elif comma_count > 0 and dot_count == 0:
-        # US-style: commas as thousands separator → remove all commas
         cleaned = num_str.replace(',', '')
     elif dot_count > 0 and comma_count > 0:
-        # Mixed: assume last separator is decimal (unlikely for VN prices)
-        # E.g. "1,200.50" or "1.200,50" — just strip all to digits
         cleaned = re.sub(r'[.,]', '', num_str)
     else:
         cleaned = num_str
@@ -148,54 +151,95 @@ def _parse_vn_number(num_str: str) -> Optional[float]:
 
 
 def check_relevance(product_name: str, result_title: str) -> bool:
-    """[ELITE V3.3] Heuristic relevance check to filter out 'Bikini' from 'Neck Cream'.
-    Checks for common keyword overlap.
-    """
+    """[ELITE V3.3] Heuristic relevance check."""
     p_name = product_name.lower()
     r_title = result_title.lower()
     
-    # 1. High-Confidence Brand Match
     brands = ["miccosmo", "white label", "hurry harry", "beppin body", "okurabito"]
     for brand in brands:
         if brand in p_name and brand in r_title:
             return True
             
-    # 2. Category Keywords
-    # If the product name contains "cream" or "serum", the result should likely relate to skincare
     skincare_keywords = ["kem", "cream", "serum", "gel", "tẩy", "dưỡng", "body", "neck", "mặt", "face"]
     skincare_product = any(k in p_name for k in skincare_keywords)
     
     if skincare_product:
-        # If result is clearly something else (like bikini, quần áo, vv.)
         irrelevant = ["bikini", "quần", "áo", "giày", "túi", "đồ lót"]
         if any(irr in r_title for irr in irrelevant):
             return False
             
-    # 3. Simple Keyword Overlap
     p_words = set(re.findall(r'\w+', p_name))
     r_words = set(re.findall(r'\w+', r_title))
     overlap = p_words.intersection(r_words)
     
-    # Must have at least 2 significant words overlapping if no brand match
     significant_overlap = [w for w in overlap if len(w) > 3]
     return len(significant_overlap) >= 1
 
-def detect_is_ad(link: str, snippet: str) -> bool:
-    """[ELITE V3.2] Layer 4: Hybrid ad detection.
-    Check link patterns first, then look for specific snippet keywords.
+def detect_ad_type(link: str, snippet: str, pagemap: Dict) -> Tuple[bool, Optional[str], str]:
+    """[ELITE V3.4] Phân loại quảng cáo & Universal Tracking Cleanup.
+    Returns: (is_ad, ad_type, cleaned_link)
     """
-    link_lower = link.lower()
-    for pattern in _AD_LINK_PATTERNS:
-        if pattern in link_lower:
-            return True
-
+    is_ad = False
+    ad_type = None
+    link_str = str(link)
+    link_lower = link_str.lower()
     snippet_lower = snippet.lower()
-    # Hybrid Ad Detection (Elite V3.3)
-    for kw in ["được tài trợ", "sponsored", "ad ·", "quảng cáo", "tài trợ"]:
-        if kw in snippet_lower:
-            return True
+    
+    from urllib.parse import urlparse, parse_qs, unquote, urlunparse, urlencode
+    
+    # 1. First, check if it's a Google Redirect (aclk)
+    target_url = link_str
+    if any(p in link_lower for p in _AD_LINK_PATTERNS):
+        is_ad = True
+        ad_type = "SEARCH_AD"
+        if "adurl=" in link_str:
+            try:
+                parsed = urlparse(link_str)
+                qs = parse_qs(parsed.query)
+                if 'adurl' in qs:
+                    target_url = unquote(qs['adurl'][0])
+            except Exception: pass
+
+    # 2. Universal Surgical Cleanup & Auto-Ad Detection
+    cleaned_link = target_url
+    try:
+        u_parsed = urlparse(target_url)
+        u_qs = parse_qs(u_parsed.query)
+        
+        # Define tracking/noise parameters
+        tracking_params = ['gad', 'gclid', 'gbraid', 'wbraid', 'utm_', 'gads_t_sig', 'fbclid']
+        
+        # If the link HAS tracking params, it's very likely an ad (or from a campaign)
+        has_tracking = any(
+            any(tp in k.lower() for tp in tracking_params) 
+            for k in u_qs.keys()
+        )
+        
+        if has_tracking:
+            is_ad = True
+            if not ad_type: ad_type = "SHOPPING_AD" # Default for direct links with tracking
+
+        # Filter out tracking junk
+        clean_qs = {
+            k: v for k, v in u_qs.items() 
+            if not any(tp in k.lower() for tp in tracking_params)
+        }
+        
+        # Reconstruct clean URL
+        query_str = urlencode(clean_qs, doseq=True)
+        cleaned_link = urlunparse(u_parsed._replace(query=query_str))
+    except Exception: pass
+
+    # 3. Snippet-based detection (Backup)
+    if "ad ·" in snippet_lower or "sponsored ·" in snippet_lower or "được tài trợ" in snippet_lower:
+        is_ad = True
+        if not ad_type: ad_type = "SEARCH_AD"
+
+    # 4. Shopping Ads detection via pagemap
+    if is_ad and (pagemap.get('offer') or pagemap.get('product') or pagemap.get('shopping')):
+        ad_type = "SHOPPING_AD"
             
-    return False
+    return is_ad, ad_type, cleaned_link
 
 
 # --- 1. DATA MODELS ---
@@ -209,27 +253,17 @@ class RawSearchResult(BaseModel):
     pagemap: Dict[str, JsonValue] = Field(default_factory=dict)
 
     def extract_metadata_price(self) -> Optional[float]:
-        """[V3.2] Ultra-Aggressive Metadata Extraction.
-        Order: Title -> Pagemap (Schema/Meta) -> Snippet
-        """
+        """[V3.3] Ultra-Aggressive Metadata Extraction with Poison Filtering."""
         try:
-            # --- Tầng 0: Title Scan (Highly reliable for Google Ads) ---
-            price_from_title = normalize_vn_price(self.title)
-            if price_from_title:
-                return price_from_title
-
-            # --- Tầng 1: offer / offers schema ---
             offers = self.pagemap.get('offer', []) or self.pagemap.get('offers', [])
             if isinstance(offers, list) and offers:
-                first = offers[0]
-                if isinstance(first, dict):
-                    price_raw = first.get('price') or first.get('lowprice') or first.get('highprice')
-                    if price_raw:
-                        normalized = normalize_vn_price(str(price_raw))
-                        if normalized:
-                            return normalized
+                for off in offers:
+                    if isinstance(off, dict):
+                        price_raw = off.get('price') or off.get('lowprice') or off.get('highprice')
+                        if price_raw:
+                            normalized = normalize_vn_price(str(price_raw))
+                            if normalized: return normalized
 
-            # --- Tầng 2: product schema ---
             products = self.pagemap.get('product', [])
             if isinstance(products, list) and products:
                 for p in products:
@@ -237,10 +271,12 @@ class RawSearchResult(BaseModel):
                         for key in ('price', 'lowprice', 'saleprice', 'regularprice'):
                             if key in p:
                                 normalized = normalize_vn_price(str(p[key]))
-                                if normalized:
-                                    return normalized
+                                if normalized: return normalized
 
-            # --- Tầng 3: metatags (og:price:amount, product:price:amount) ---
+            price_from_title = normalize_vn_price(self.title)
+            if price_from_title:
+                return price_from_title
+
             metatags = self.pagemap.get('metatags', [])
             if isinstance(metatags, list) and metatags:
                 for meta in metatags:
@@ -252,38 +288,23 @@ class RawSearchResult(BaseModel):
                             val = meta.get(meta_key)
                             if val:
                                 normalized = normalize_vn_price(str(val))
-                                if normalized:
-                                    return normalized
+                                if normalized: return normalized
 
-            # --- Tầng 4: hproduct microformat ---
-            hproducts = self.pagemap.get('hproduct', [])
-            if isinstance(hproducts, list) and hproducts:
-                for hp in hproducts:
-                    if isinstance(hp, dict):
-                        price_raw = hp.get('price') or hp.get('currency_range')
-                        if price_raw:
-                            normalized = normalize_vn_price(str(price_raw))
-                            if normalized:
-                                return normalized
-
-            # --- Tầng 5: Snippet regex (mở rộng) ---
-            # Thử tìm các mẫu giá phổ biến trong snippet nếu các tầng trên thất bại
-            normalized = normalize_vn_price(self.snippet)
+            normalized = normalize_vn_price(self.snippet, prefer_higher=True)
             if normalized:
                 return normalized
 
-            # Fallback cuối cùng: Tìm chuỗi số có hậu tố đ/VND/₫ ở bất kỳ đâu trong snippet
-            m = re.search(r'([\d]{1,3}(?:[.,]\d{3})+)\s*(?:đ|VND|VNĐ|₫)', self.snippet, re.IGNORECASE)
-            if m:
-                return _parse_vn_number(m.group(1))
-
-            # [V3.2] Bare Number Heuristic (Google Search snippets often omit currency)
-            # Find patterns like 585.000 or 585,000 that look like prices
             bare_matches = re.findall(r'\b([\d]{1,3}(?:[.,]\d{3})+)\b', self.snippet)
+            valid_bare = []
             for bm in bare_matches:
                 p = _parse_vn_number(bm)
-                if p and 100000 <= p <= 3000000: # Reasonable range for Miccosmo
-                    return p
+                if p and 150000 <= p <= 5000000: 
+                    start_idx = self.snippet.find(bm)
+                    if not is_poisoned_context(self.snippet, start_idx, start_idx + len(bm)):
+                        valid_bare.append(p)
+            
+            if valid_bare:
+                return max(valid_bare)
 
         except Exception as e:
             logger.warning(f"[PriceAgent] Pagemap extraction error: {e}")
@@ -297,6 +318,7 @@ class SearchResult(BaseModel):
     price: Optional[float] = Field(None, description="Giá sản phẩm (VND)")
     link: str = Field(description="Đường dẫn sản phẩm")
     is_ad: bool = Field(False, description="Đánh dấu quảng cáo")
+    ad_type: Optional[str] = Field(None, description="Loại quảng cáo: SEARCH_AD hoặc SHOPPING_AD")
 
     @field_validator("link")
     @classmethod
@@ -339,7 +361,7 @@ QUY TẮC ELITE:
 1. JSON-LD FIRST: Ưu tiên dữ liệu "offers.price" hoặc "Product.price" trong [STRUCTURED_DATA]. Tin cậy 0.99.
 2. DATA-PRICE ATTRIBUTES: Nếu có [DATA_ATTRIBUTES] chứa data-price, data-original-price → Tin cậy 0.95.
 3. MAIN CONTENT ONLY: Chỉ tin dữ liệu giá trong [MAIN_CONTENT] khi không có nguồn cấu trúc.
-4. ANTI-DISTRACTION: Loại bỏ giá của sản phẩm KHÁC, giá khuyến mãi chéo, banner, quà tặng.
+4. ANTI-DISTRACTION: Loại bỏ giá của sản phẩm KHÁC, giá khuyến mãi chéo, banner, quà tặng, VOUCHER (50k, 100k), hoặc PHÍ SHIP.
 5. PRICE SANITY: Giá sản phẩm mỹ phẩm Nhật Bản tại VN thường từ 100.000 - 2.000.000 VND. Nếu giá ngoài khoảng này, ghi confidence thấp.
 6. FORMAT VN: Giá VN dùng dấu chấm hoặc dấu phẩy làm dấu phân cách hàng nghìn. Ví dụ: 350.000 = ba trăm năm mươi nghìn đồng. KHÔNG nhầm lẫn 350.000 với 350 (ba trăm năm mươi).
 7. HINT: Nếu có [PRICE_HINT] từ pagemap, dùng nó để cross-validate.
@@ -349,17 +371,37 @@ QUY TẮC ELITE:
 
 price_agent: Agent[None, MarketPriceIntel] = Agent(
     output_type=MarketPriceIntel,
-    system_prompt="""Bạn là ĐIỆP VIÊN TÌNH BÁO GIÁ (XOHI PriceIntel V3.2).
-Nhiệm vụ: Phân tích thị trường Việt Nam 2026. Phản biện sắc bén.
+    system_prompt="""Bạn là ĐIỆP VIÊN TÌNH BÁO GIÁ (XOHI PriceIntel V3.3).
+Nhiệm vụ: Phân tích thị trường Việt Nam 2026 với độ TRUNG THỰC TUYỆT ĐỐI.
 
-QUY TẮC TRÍCH XUẤT:
-1. TUYỆT ĐỐI KHÔNG HALLUCINATE: Chỉ dùng link và giá thực từ tool get_market_results.
-2. PHẢI CÓ TOP 10 TỰ NHIÊN: Luôn điền đầy đủ danh sách organic_results (ít nhất 5-10 kết quả). 
-3. PHÂN LOẠI MINH BẠCH: Phân biệt rõ QUẢNG CÁO (có chữ [AD]) vs KẾT QUẢ TỰ NHIÊN (có chữ [ORGANIC]). Đưa các kết quả [AD] vào danh sách 'ads'.
-4. PHÂN TÍCH CHI TIẾT: 
-   - analysis_overview: Đánh giá chi tiết về mặt bằng giá chung.
-   - critical_analysis: Phản biện gay gắt về việc tại sao đối thủ bán rẻ hoặc đắt, và Micsmo nên làm gì.
-   - optimization_strategy: Đề xuất hành động cụ thể để chiếm lĩnh thị trường.
+QUY TẮC TÁC CHIẾN (CẤM SAI LỆCH DỮ LIỆU):
+1. TRUNG THỰC LÀ TỐI THƯỢNG: Chỉ dùng dữ liệu từ tool get_market_results. CẤM tự bịa kết quả.
+2. PHÂN LOẠI CỨNG (NO HALLUCINATION):
+   - Tuyệt đối KHÔNG được đưa kết quả [ORGANIC] vào mục 'ads'. Dù đó là trang chủ của hãng thì vẫn là Organic nếu tool báo vậy.
+   - Chỉ đưa kết quả có tag [SEARCH_AD] hoặc [SHOPPING_AD] vào mục 'ads'.
+   - Nếu tool trả về 5 kết quả Organic, bạn phải điền đúng 5 kết quả vào 'organic_results'. KHÔNG được gộp, KHÔNG được tách, KHÔNG được đổi tên tiêu đề.
+3. GIÁ N/A: Nếu tool báo GIÁ: N/A, bạn phải để giá là null. KHÔNG được tự đoán giá từ snippet.
+4. ANTI-POISON: Loại bỏ Voucher/Phí ship khỏi giá sản phẩm.
+
+VÍ DỤ MẪU (DÙNG ĐỂ HỌC FORMAT, CẤM LẤY DỮ LIỆU TRONG NÀY):
+--- Tool Output ---
+[1] CATEGORY: ORGANIC | Miccosmo Official Site
+    DOMAIN: miccosmo.vn
+    LINK: https://miccosmo.vn/real-product-link
+    GIÁ: 600.000 VND
+[2] CATEGORY: SHOPPING_AD | Shopee - Beppin Body
+    DOMAIN: shopee.vn
+    LINK: https://shopee.vn/real-ad-link
+    GIÁ: 540.000 VND
+--- Kết quả Pydantic ---
+ads: [{title: "Shopee - Beppin Body", price: 540000, is_ad: true, ad_type: "SHOPPING_AD"}]
+organic_results: [{title: "Miccosmo Official Site", price: 600000, is_ad: false}]
+--- GIẢI THÍCH: Cấm dùng link /xyz hay link trong ví dụ. Phải dùng Link thực tế từ tool. ---
+
+PHÂN TÍCH CHI TIẾT:
+- analysis_overview: Đánh giá dựa trên đúng số liệu thực tế.
+- critical_analysis: Phản biện sắc bén về sự chênh lệch giá giữa các sàn và trang hãng.
+- optimization_strategy: Chiến lược chiếm lĩnh thị trường.
 """,
 )
 
@@ -373,7 +415,6 @@ def _extract_price_from_html(html: str) -> Dict[str, object]:
         "main_text": "",
     }
 
-    # --- JSON-LD extraction ---
     json_ld: List[object] = []
     scripts = re.findall(
         r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
@@ -390,7 +431,6 @@ def _extract_price_from_html(html: str) -> Dict[str, object]:
             pass
     result["json_ld"] = json_ld
 
-    # --- Data-attribute price extraction ---
     data_prices: List[str] = []
     data_attr_matches = re.findall(
         r'data-(?:price|original-price|product-price|sale-price|final-price)\s*=\s*["\']([^"\']+)["\']',
@@ -402,15 +442,12 @@ def _extract_price_from_html(html: str) -> Dict[str, object]:
             data_prices.append(f"{normalized:,.0f}")
     result["data_prices"] = data_prices
 
-    # --- Main text extraction (clean nav/header/footer/script/style) ---
     body_match = re.search(r'<body[^>]*>(.*?)</body>', html, re.DOTALL | re.IGNORECASE)
     content = body_match.group(1) if body_match else html
-    # Remove non-content sections
     content = re.sub(
         r'<(script|style|nav|header|footer|aside|iframe)[^>]*>.*?</\1>',
         '', content, flags=re.DOTALL | re.IGNORECASE
     )
-    # Strip tags but preserve spacing
     content = re.sub(r'<[^>]+>', ' ', content)
     content = re.sub(r'\s+', ' ', content).strip()
     result["main_text"] = content[:4000]
@@ -422,9 +459,6 @@ def _extract_price_from_html(html: str) -> Dict[str, object]:
 async def get_market_results(ctx: RunContext[None], query: str) -> str:
     """XOHI Recon Engine V3.0: Trích xuất dữ liệu thị trường đa tầng + multi-query."""
     clean_query = query.strip()
-
-    # --- Layer 1: Precise Query Strategy (Elite V3.3) ---
-    # Remove generic noise and focus on the product brand + name
     search_query = f"{clean_query} giá bán"
     raw_results = await google_search_service.search(search_query, num=10)
     merged_raw = list(raw_results) if raw_results else []
@@ -432,13 +466,12 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
     if not merged_raw:
         return "KHÔNG TÌM THẤY DỮ LIỆU."
 
-    # Parse into typed models + Filter Relevance (Elite V3.3)
     results: List[RawSearchResult] = []
     for r in merged_raw:
         try:
             model = RawSearchResult.model_validate(r)
-            # Only filter organic results, keep ads for now as they are often targeted anyway
-            if not detect_is_ad(str(model.link), model.snippet):
+            is_ad, ad_type, unmasked_link = detect_ad_type(str(model.link), model.snippet, model.pagemap)
+            if not is_ad:
                 if not check_relevance(clean_query, model.title):
                     continue
             results.append(model)
@@ -448,7 +481,6 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
     if not results:
         return "KHÔNG TÌM THẤY DỮ LIỆU HỢP LỆ."
 
-    # --- Sort: trusted ecommerce domains first ---
     def _domain_priority(r: RawSearchResult) -> int:
         domain = (r.displayLink or "").lower()
         for i, trusted in enumerate(_TRUSTED_ECOMMERCE):
@@ -458,46 +490,36 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
 
     results.sort(key=_domain_priority)
 
-    # --- Deep scan với Neural Verify ---
     async def neural_verify(r: RawSearchResult, idx: int, client: httpx.AsyncClient) -> str:
         link = str(r.link)
-        is_ad = detect_is_ad(link, r.snippet)
+        is_ad, ad_type, unmasked_link = detect_ad_type(link, r.snippet, r.pagemap)
         meta_price = r.extract_metadata_price()
         domain = r.displayLink or "unknown"
         
-        # Layer 3: Strategic AI Usage (Elite V3.1)
-        # Rule 1: ADS bypass AI (Google metadata is sufficient)
-        # Rule 2: Organic with metadata price bypasses AI (Reduced pressure)
-        # Rule 3: Only deep scan top 5 organic results IF meta price is missing
-        
-        ad_tag = " [AD]" if is_ad else " [ORGANIC]"
-        
-        if is_ad or meta_price:
-            # [ELITE V3.2] ADS always bypass Deep Scrape. 
-            # We trust Google Metadata + Title/Snippet heuristics.
-            price_info = f"GIÁ: {meta_price:,.0f} VND (Source: Google_Extract)" if meta_price else "GIÁ: N/A"
-            return f"[{idx+1}]{ad_tag} {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    {price_info}\n"
+        if is_ad:
+            # [ELITE V3.3] ADS ALWAYS BYPASS DEEP SCRAPE. 
+            price_info = f"GIÁ: {meta_price:,.0f} VND (Source: Google_Ads)" if meta_price else "GIÁ: N/A"
+            return f"[{idx+1}] CATEGORY: {ad_type} | {r.title}\n    DOMAIN: {domain}\n    LINK: {unmasked_link}\n    {price_info}\n"
+
+        category = "CATEGORY: ORGANIC"
+        if meta_price:
+            return f"[{idx+1}] {category} | {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    GIÁ: {meta_price:,.0f} VND (Source: Google_Extract)\n"
 
         if idx >= 5:
-            # Only deep scan top 5 organic results
-            return f"[{idx+1}]{ad_tag} {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    GIÁ: N/A\n"
+            return f"[{idx+1}] {category} | {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    GIÁ: N/A\n"
 
         try:
-            # Layer 3: UA Rotation (Anti-Block)
             ua = random.choice(_USER_AGENTS)
             resp = await client.get(
                 link, timeout=8.0, follow_redirects=True,
                 headers={"User-Agent": ua, "Accept-Language": "vi-VN,vi;q=0.9,en;q=0.8"}
             )
             html = resp.text
-
-            # Smart HTML Extraction
             extracted = _extract_price_from_html(html)
             json_ld_str = json.dumps(extracted["json_ld"], ensure_ascii=False)[:2000]
             data_prices_str = ", ".join(str(d) for d in extracted["data_prices"][:5])
             main_text = str(extracted["main_text"])
 
-            # Build prompt for scraper agent
             hint_parts: List[str] = []
             if meta_price:
                 hint_parts.append(f"Pagemap: {meta_price:,.0f} VND")
@@ -518,14 +540,13 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
                 timeout=30.0,
             )
 
-            # Determine final price: prioritize scraper AI result, fallback to meta
             final_price = data.price
             confidence = data.confidence_score
             src = data.source_type
             
             if not final_price and meta_price:
                 final_price = meta_price
-                confidence = 0.85  # Google-native price is highly trusted
+                confidence = 0.85
                 src = "Google_Meta"
 
             if final_price:
@@ -534,7 +555,7 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
                 recon = "GIÁ: N/A"
 
             return (
-                f"[{idx+1}]{ad_tag} {r.title}\n"
+                f"[{idx+1}] {category} | {r.title}\n"
                 f"    DOMAIN: {domain}\n"
                 f"    LINK: {link}\n"
                 f"    RECON: {recon}\n"
@@ -542,20 +563,17 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
             )
         except Exception as e:
             price_info = f"GIÁ_META: {meta_price:,.0f} VND" if meta_price else "GIÁ_META: N/A"
-            return f"[{idx+1}]{ad_tag} {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    {price_info} (scrape_error: {str(e)[:80]})\n"
+            return f"[{idx+1}] {category} | {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    {price_info} (scrape_error: {str(e)[:80]})\n"
 
-    # Limit concurrent scraping to 2 to avoid RPM flooding
     sem = asyncio.Semaphore(2)
     async def limited_verify(r, i, cl):
         async with sem:
             return await neural_verify(r, i, cl)
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
-        # Use gather with semaphore to be faster but safe
         tasks = [limited_verify(r, i, client) for i, r in enumerate(results)]
         scan_reports = await asyncio.gather(*tasks)
 
-    # Filter out invalid results for analysis
     valid_prices = [r.extract_metadata_price() for r in results if r.extract_metadata_price()]
     avg_p = sum(valid_prices) / len(valid_prices) if valid_prices else 0
     min_p = min(valid_prices) if valid_prices else 0
@@ -574,38 +592,32 @@ async def scan_product_price(product_name: str) -> MarketPriceIntel:
     except Exception as e:
         logger.warning(f"⚠️ [PriceAgent] Neural Engine bận ({str(e)[:50]}). Kích hoạt Heuristic Mode...")
         
-        # ELITE V2.2: HEURISTIC MODE - Phân tích cục bộ không cần AI
-        # Chúng ta gọi get_market_results thủ công để lấy dữ liệu thô
-        # Lưu ý: Vì đây là tool, ta cần giả lập RunContext nếu cần, hoặc gọi logic bên trong.
-        # Ở đây ta sẽ gọi lại Google Search và tính toán cơ bản.
-        
-        from backend.services.xohi.google_search import google_search_service
         raw_results = await google_search_service.search(f"{product_name} giá bán", num=10)
         
         prices = []
         organic = []
+        ads = []
         for r in raw_results:
             try:
                 res = RawSearchResult.model_validate(r)
                 p = res.extract_metadata_price()
                 link = str(res.link)
-                is_ad = detect_is_ad(link, res.snippet)
+                is_ad, ad_type, unmasked_link = detect_ad_type(link, res.snippet, res.pagemap)
                 
                 sr = SearchResult(
                     platform=res.displayLink or "Unknown",
                     title=res.title,
                     price=p,
-                    link=link,
-                    is_ad=is_ad
+                    link=unmasked_link,
+                    is_ad=is_ad,
+                    ad_type=ad_type
                 )
                 
                 if is_ad: 
                     ads.append(sr)
                     continue
                 
-                # Filter for relevance
                 if not check_relevance(product_name, res.title):
-                    logger.info(f"Filtering irrelevant result: {res.title}")
                     continue
                 
                 organic.append(sr)
@@ -616,8 +628,8 @@ async def scan_product_price(product_name: str) -> MarketPriceIntel:
         min_m = min(prices) if prices else 0
         
         return MarketPriceIntel(
-            ads=ads[:3],
-            organic_results=organic[:8],
+            ads=ads,
+            organic_results=organic,
             analysis_overview=f"Hệ thống đang ở chế độ Heuristic do AI quá tải. Dựa trên {len(organic)} kết quả thực tế, giá trung bình thị trường khoảng {avg_m:,.0f} VND.",
             critical_analysis=f"Phân tích cục bộ: Giá thấp nhất tìm thấy là {min_m:,.0f} VND. Đối thủ đang cạnh tranh gay gắt về giá trong phân khúc này.",
             optimization_strategy="Đề xuất: Duy trì mức giá hiện tại và tập trung vào dịch vụ hậu mãi trong khi chờ hệ thống Neural Core ổn định trở lại.",
