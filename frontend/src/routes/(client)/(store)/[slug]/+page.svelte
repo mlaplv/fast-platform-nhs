@@ -152,7 +152,7 @@
       jsonLdScripts={[
         categorySeoMeta.json_ld_string,
         categorySeoMeta.breadcrumb_ld_string,
-        categorySeoMeta.faq_ld_string || buildFaqLd(data.category?.category_metadata?.faqs || [])
+        categorySeoMeta.faq_ld_string || buildFaqLd(data.category?.metadata?.faqs || data.category?.category_metadata?.faqs || [])
       ]}
     />
   {:else}
@@ -164,7 +164,7 @@
       jsonLdScripts={[
         categoryBreadcrumbLd, 
         categoryLd,
-        buildFaqLd(data.category?.category_metadata?.faqs || [])
+        buildFaqLd(data.category?.metadata?.faqs || data.category?.category_metadata?.faqs || [])
       ]}
     />
   {/if}

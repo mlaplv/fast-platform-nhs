@@ -79,7 +79,8 @@
       color: "#00F3FF", // neon-cyan
       children: [
         { label: "Sản phẩm", widget: "PRODUCT_MANAGEMENT" },
-        { label: "Danh mục", widget: "CATEGORY_MANAGEMENT" }
+        { label: "Danh mục", widget: "CATEGORY_MANAGEMENT" },
+        { label: "Quản trị Đánh giá", widget: "REVIEW_MANAGEMENT" }
       ]
     },
     {
@@ -126,14 +127,6 @@
       icon: Layout,
       color: "#FFB800",
       widget: "BANNER_MANAGEMENT",
-    },
-    {
-      id: "reviews",
-      label: "Đánh giá",
-      sublabel: "Quản duyệt Đánh giá Đa hình",
-      icon: Star,
-      color: "#39FF14",
-      widget: "REVIEW_MANAGEMENT",
     },
     {
       id: "support-kb",

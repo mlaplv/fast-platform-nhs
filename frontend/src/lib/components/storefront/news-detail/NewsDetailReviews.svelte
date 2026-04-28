@@ -4,6 +4,7 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { Star, ThumbsUp, MoreHorizontal, Play, Camera, Send, CheckCircle2, Loader2, X } from 'lucide-svelte';
   import SimpleTiptap from '../ui/SimpleTiptap.svelte';
+  import { apiClient } from '$lib/utils/apiClient';
   import { fade, fly, scale } from 'svelte/transition';
   import type { Review, ReviewStats } from '$lib/types';
 
@@ -37,10 +38,12 @@
   
   async function fetchStats() {
     try {
-      const res = await fetch(`/api/v1/client/reviews/stats?entity_type=NEWS&entity_id=${articleId}`);
-      if (res.ok) {
-        stats = await res.json();
-      }
+      stats = await apiClient.get<ReviewStats>(`/client/reviews/stats`, {
+        params: {
+          entity_type: 'NEWS',
+          entity_id: articleId
+        }
+      });
     } catch (e) {
       console.error("Lỗi fetch stats:", e);
     }
@@ -49,22 +52,20 @@
   async function fetchReviews() {
     isLoading = true;
     try {
-      let url = `/api/v1/client/reviews?entity_type=NEWS&entity_id=${articleId}&status=APPROVED`;
-      if (typeof activeTab === 'number') {
-        url += `&rating=${activeTab}`;
-      } else if (activeTab === 'media') {
-        url += `&has_media=true`;
-      }
-      
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        reviews = data.items.map((r: Review) => ({
-          ...r,
-          initial: (r.customer_name || 'K').charAt(0).toUpperCase(),
-          name: r.customer_name
-        }));
-      }
+      const params: Record<string, string> = {
+        entity_type: 'NEWS',
+        entity_id: articleId,
+        status: 'APPROVED'
+      };
+      if (typeof activeTab === 'number') params.rating = activeTab.toString();
+      else if (activeTab === 'media') params.has_media = 'true';
+
+      const data = await apiClient.get<{ items: Review[] }>(`/client/reviews`, { params });
+      reviews = data.items.map((r: Review) => ({
+        ...r,
+        initial: (r.customer_name || 'K').charAt(0).toUpperCase(),
+        name: r.customer_name
+      }));
     } catch (e) {
       console.error("Lỗi fetch reviews:", e);
     } finally {
@@ -121,19 +122,9 @@
            const formData = new FormData();
            formData.append('data', file);
            
-           const res = await fetch('/api/v1/client/reviews/upload', {
-               method: 'POST',
-               headers: {
-                   'Authorization': `Bearer ${authStore.token}`
-               },
-               body: formData
-           });
-           
-           if (res.ok) {
-               const json = await res.json();
-               if (json.data && json.data.file_path) {
-                   attachedPhotos = [...attachedPhotos, json.data.file_path];
-               }
+           const json = await apiClient.upload<{ data: { file_path: string } }>('/client/reviews/upload', formData);
+           if (json.data && json.data.file_path) {
+               attachedPhotos = [...attachedPhotos, json.data.file_path];
            }
        }
     } catch (err) {
@@ -147,27 +138,19 @@
     if (!newContent || newContent.length < 5) return;
     isSubmitting = true;
     try {
-      const res = await fetch('/api/v1/client/reviews', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authStore.token}`
-        },
-        body: JSON.stringify({
-          entity_type: 'NEWS',
-          entity_id: articleId,
-          customer_name: authStore.user?.name || 'Khách Micsmo',
-          rating: newRating,
-          content: newContent,
-          attributes: Object.fromEntries(Object.entries(newAttributes).filter(([k, v]) => v !== '')),
-          attachments: attachedPhotos.map(url => ({ 
-             url, 
-             type: (url.match(/\.(mp4|webm|mov)$/i) || url.includes('video')) ? 'video' : 'image' 
-          }))
-        })
+      await apiClient.post('/client/reviews', {
+        entity_type: 'NEWS',
+        entity_id: articleId,
+        customer_name: authStore.user?.name || 'Khách Micsmo',
+        rating: newRating,
+        content: newContent,
+        attributes: Object.fromEntries(Object.entries(newAttributes).filter(([k, v]) => v !== '')),
+        attachments: attachedPhotos.map(url => ({ 
+           url, 
+           type: (url.match(/\.(mp4|webm|mov)$/i) || url.includes('video')) ? 'video' : 'image' 
+        }))
       });
-      if (res.ok) {
-        submitSuccess = true;
+      submitSuccess = true;
         setTimeout(() => {
           showWriteForm = false;
           submitSuccess = false;
@@ -176,7 +159,6 @@
           fetchStats();
           fetchReviews();
         }, 2000);
-      }
     } catch (e) {
       console.error("Lỗi submit review:", e);
     } finally {

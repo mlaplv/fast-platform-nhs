@@ -467,13 +467,26 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
         return "KHÔNG TÌM THẤY DỮ LIỆU."
 
     results: List[RawSearchResult] = []
+    seen_domains: set = set()
+
     for r in merged_raw:
         try:
             model = RawSearchResult.model_validate(r)
+            domain = (model.displayLink or "").lower()
+            
+            # Universal Ad & Tracking Detection
             is_ad, ad_type, unmasked_link = detect_ad_type(str(model.link), model.snippet, model.pagemap)
+            
             if not is_ad:
+                # [ELITE V3.5] DOMAIN DIVERSITY FILTER (Anti-Redundancy)
+                if domain in seen_domains:
+                    continue
+                
                 if not check_relevance(clean_query, model.title):
                     continue
+                
+                seen_domains.add(domain)
+            
             results.append(model)
         except Exception:
             pass
@@ -597,18 +610,22 @@ async def scan_product_price(product_name: str) -> MarketPriceIntel:
         prices = []
         organic = []
         ads = []
+        seen_domains: set = set()
+
         for r in raw_results:
             try:
                 res = RawSearchResult.model_validate(r)
                 p = res.extract_metadata_price()
                 link = str(res.link)
-                is_ad, ad_type, unmasked_link = detect_ad_type(link, res.snippet, res.pagemap)
+                domain = (res.displayLink or "").lower()
+                
+                is_ad, ad_type, cleaned_link = detect_ad_type(link, res.snippet, res.pagemap)
                 
                 sr = SearchResult(
                     platform=res.displayLink or "Unknown",
                     title=res.title,
                     price=p,
-                    link=unmasked_link,
+                    link=cleaned_link,
                     is_ad=is_ad,
                     ad_type=ad_type
                 )
@@ -617,12 +634,19 @@ async def scan_product_price(product_name: str) -> MarketPriceIntel:
                     ads.append(sr)
                     continue
                 
+                # [ELITE V3.5] DOMAIN DIVERSITY FILTER (Heuristic Mode)
+                if domain in seen_domains:
+                    continue
+                
                 if not check_relevance(product_name, res.title):
                     continue
                 
+                seen_domains.add(domain)
                 organic.append(sr)
                 if p: prices.append(p)
-            except: continue
+            except Exception as e:
+                logger.warning(f"Heuristic error for {r.get('link')}: {e}")
+                continue
             
         avg_m = sum(prices) / len(prices) if prices else 0
         min_m = min(prices) if prices else 0

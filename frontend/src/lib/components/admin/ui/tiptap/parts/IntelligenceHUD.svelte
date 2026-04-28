@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   /**
    * IntelligenceHUD.svelte — Holographic Intelligence HUD
    * Component split from Toolbar.svelte to maintain < 500 lines.
@@ -11,7 +12,7 @@
   import Minimize2Icon from 'lucide-svelte/icons/minimize-2';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
-  import type { CopyrightResult, SEOResult, AIInspectResult, ToolbarAction } from '$lib/state/types';
+  import type { CopyrightResult, SEOResult, AIInspectResult, ToolbarAction, NeuralAnalysisController } from '$lib/state/types';
   import CheckResultPanel from '../../content-factory/CheckResultPanel.svelte';
 
   interface NeuralAnalysisData {
@@ -41,7 +42,7 @@
     currentAnalysisStep,
     streamingText = '',
     streamingTarget = null,
-    userPlanNote = $bindable(''),
+    userPlanNote = $bindable(),
   }: {
     activeIntelAction: string | null;
     toolbarActions: ToolbarAction[];
@@ -65,6 +66,10 @@
   } = $props();
 
   let isExpanded = $state(false);
+
+  onMount(() => {
+    if (userPlanNote === undefined) userPlanNote = '';
+  });
 
   const activeAction = $derived.by(() => {
     if (!activeIntelAction) return null;

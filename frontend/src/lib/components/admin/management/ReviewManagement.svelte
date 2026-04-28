@@ -41,7 +41,7 @@
   let isLoading = $state(true);
 
   let activeFilter = $state("all"); // PENDING, APPROVED, REJECTED
-  let activeCategory = $state("all"); // PRODUCT, NEWS
+  let activeCategory = $state("all"); // PRODUCT, CATEGORY, NEWS
   let viewMode = $state<"grid" | "list">("grid");
   
   let currentPage = $state(1);
@@ -272,7 +272,7 @@
       <div class="flex flex-col gap-2">
         <span class="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Danh mục</span>
         <div class="flex items-center bg-white/[0.02] border border-white/5 p-1 rounded">
-          {#each ["all", "product", "news"] as c}
+          {#each ["all", "product", "category", "news"] as c}
             <button
               onclick={() => activeCategory = c}
               class="px-3 py-1 text-[9px] font-mono tracking-widest uppercase transition-all {activeCategory === c ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'text-gray-500 hover:text-gray-300'}"

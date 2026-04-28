@@ -5,6 +5,9 @@
   import CategoryBanner from './CategoryBanner.svelte';
   import type { Product, ProductFacets, Category } from '$lib/types';
   import { scale } from 'svelte/transition';
+  import { MessageCircleQuestion } from 'lucide-svelte';
+  import ProductDetailReviews from '../product-detail/ProductDetailReviews.svelte';
+
 
   interface Props {
     products: Product[];
@@ -169,7 +172,7 @@
   const bannerProduct = $derived(isSearchMode ? null : (filteredProducts[0] ?? null));
   const displayProducts = $derived.by(() => isSearchMode ? filteredProducts.slice(0, pageSize) : filteredProducts.slice(1, 1 + pageSize));
   
-  const faqs = $derived(category?.category_metadata?.faqs || []);
+  const faqs = $derived(category?.metadata?.faqs || category?.category_metadata?.faqs || []);
 </script>
 
 <div class="bg-[#F5F5F5] min-h-screen pb-20">
@@ -213,30 +216,85 @@
         </h2>
       </div>
 
-      <div class="bg-white/70 backdrop-blur-xl border border-white p-6 space-y-8 shadow-sm">
-        <div class="space-y-6">
-          <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Khoảng giá</h4>
-          <div class="flex flex-col gap-3">
-             <div class="relative group/input">
-                <input type="text" value={Math.round(minPrice).toLocaleString()} readonly class="w-full h-12 bg-gray-50/50 border-none px-4 pr-10 text-[14px] font-black text-gray-900 outline-none" />
-                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">đ</span>
+      <div class="bg-white/70 backdrop-blur-xl border border-white px-0 py-4 space-y-6 shadow-sm">
+        <div class="space-y-4 px-2">
+           <div class="flex items-center justify-between">
+              <h4 class="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                 <div class="w-1 h-1 bg-[#C18F7E] rounded-full"></div>
+                 KHOẢNG GIÁ
+              </h4>
+              <span class="text-[10px] font-mono text-[#C18F7E] font-bold">VND</span>
+           </div>
+           
+           <div class="flex items-center gap-2">
+              <div class="flex-1 relative group">
+                 <div class="absolute inset-0 bg-[#C18F7E]/5 blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                 <input 
+                    type="text" 
+                    value={Math.round(minPrice).toLocaleString()} 
+                    readonly 
+                    class="relative w-full h-8 bg-black/5 border border-gray-100/50 group-hover:border-[#C18F7E]/30 focus:border-[#C18F7E]/50 text-[11px] font-black text-gray-900 text-center outline-none transition-all rounded-md" 
+                 />
+              </div>
+              <div class="w-2 h-px bg-gray-200"></div>
+              <div class="flex-1 relative group">
+                 <div class="absolute inset-0 bg-[#C18F7E]/5 blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                 <input 
+                    type="text" 
+                    value={Math.round(maxPrice).toLocaleString()} 
+                    readonly 
+                    class="relative w-full h-8 bg-black/5 border border-gray-100/50 group-hover:border-[#C18F7E]/30 focus:border-[#C18F7E]/50 text-[11px] font-black text-gray-900 text-center outline-none transition-all rounded-md" 
+                 />
+              </div>
+           </div>
+
+           <div class="relative pt-4 pb-6 px-4">
+             <div bind:this={sliderEl} class="h-1 w-full bg-gray-100 rounded-full relative">
+               <div class="absolute h-full bg-[#C18F7E] rounded-full shadow-[0_0_10px_rgba(193,143,126,0.3)]" style="left: {getPercent(minPrice)}%; right: {100 - getPercent(maxPrice)}%"></div>
+               
+               <!-- Milestones -->
+               <div class="absolute inset-0 flex justify-between px-0.5">
+                  {#each [0, 500000, 1000000, 1500000, 2000000] as mark}
+                     <div class="relative flex flex-col items-center">
+                        <div class="w-1 h-1 rounded-full {mark >= minPrice && mark <= maxPrice ? 'bg-[#C18F7E]' : 'bg-gray-200'} transition-colors"></div>
+                        <span class="absolute top-3 text-[7px] font-black text-gray-300 uppercase tracking-tighter">
+                           {mark === 0 ? '0' : (mark / 1000000) + 'M'}
+                        </span>
+                     </div>
+                  {/each}
+               </div>
+
+               <!-- Min Handle -->
+               <div 
+                  use:setupDraggable={'min'} 
+                  class="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-[#C18F7E] rounded-full shadow-lg cursor-pointer transition-transform flex items-center justify-center group/handle z-10" 
+                  style="left: calc({getPercent(minPrice)}% - 8px)"
+               >
+                  <div class="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-black text-white text-[9px] font-black rounded opacity-0 group-hover/handle:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
+                    {minPrice === 0 ? '0đ' : (minPrice < 1000 ? minPrice : Math.round(minPrice / 1000) + 'k')}
+                    <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-black rotate-45"></div>
+                  </div>
+                  <div class="w-1 h-1 bg-[#C18F7E] rounded-full animate-pulse"></div>
+               </div>
+
+               <!-- Max Handle -->
+               <div 
+                  use:setupDraggable={'max'} 
+                  class="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-[#C18F7E] rounded-full shadow-lg cursor-pointer transition-transform flex items-center justify-center group/handle z-10" 
+                  style="left: calc({getPercent(maxPrice)}% - 8px)"
+               >
+                  <div class="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-black text-white text-[9px] font-black rounded opacity-0 group-hover/handle:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
+                    {maxPrice === 0 ? '0đ' : (maxPrice < 1000 ? maxPrice : Math.round(maxPrice / 1000) + 'k')}
+                    <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-black rotate-45"></div>
+                  </div>
+                  <div class="w-1 h-1 bg-[#C18F7E] rounded-full animate-pulse"></div>
+               </div>
              </div>
-             <div class="relative group/input">
-                <input type="text" value={Math.round(maxPrice).toLocaleString()} readonly class="w-full h-12 bg-gray-50/50 border-none px-4 pr-10 text-[14px] font-black text-gray-900 outline-none" />
-                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-black">đ</span>
-             </div>
-          </div>
-          <div class="relative pt-2 px-1">
-            <div bind:this={sliderEl} class="h-2 w-full bg-gray-100 rounded-full relative">
-              <div class="absolute h-full bg-[#ee4d2d] rounded-full" style="left: {getPercent(minPrice)}%; right: {100 - getPercent(maxPrice)}%"></div>
-              <div use:setupDraggable={'min'} class="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-4 border-[#ee4d2d] rounded-full shadow-xl cursor-pointer" style="left: calc({getPercent(minPrice)}% - 12px)"></div>
-              <div use:setupDraggable={'max'} class="absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-white border-4 border-[#ee4d2d] rounded-full shadow-xl cursor-pointer" style="left: calc({getPercent(maxPrice)}% - 12px)"></div>
-            </div>
-          </div>
+           </div>
         </div>
 
         {#if brands().length > 0}
-        <div class="space-y-6 pt-4">
+        <div class="space-y-6 pt-4 px-2">
           <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Thương Hiệu</h4>
           <div class="flex flex-col gap-4">
             {#each brands() as brand}
@@ -250,7 +308,7 @@
         {/if}
 
         {#if origins().length > 0}
-        <div class="space-y-6 pt-4">
+        <div class="space-y-6 pt-4 px-2">
           <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Xuất Xứ</h4>
           <div class="flex flex-col gap-4">
             {#each origins() as country}
@@ -264,26 +322,26 @@
         {/if}
 
         {#if faqs.length > 0}
-        <div class="space-y-6 pt-10 border-t border-gray-100">
-           <div class="flex items-center gap-3">
-              <div class="w-1.5 h-6 bg-orange-500/50 rounded-full"></div>
-              <h4 class="text-[11px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                 <MessageCircleQuestion size={12} class="text-orange-500" /> FAQ_CORE
+        <div class="space-y-3 pt-6 border-t border-gray-100 px-2">
+           <div class="flex items-center gap-2 mb-2">
+              <div class="w-1 h-4 bg-orange-500/40 rounded-full"></div>
+              <h4 class="text-[10px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-1.5">
+                 <MessageCircleQuestion size={11} class="text-orange-500" /> FAQ_CORE
               </h4>
            </div>
-           <div class="space-y-3">
+           <div class="space-y-2">
               {#each faqs as faq}
-                 <details class="group bg-gray-50/30 rounded-2xl border border-transparent hover:border-orange-500/20 hover:bg-white transition-all overflow-hidden">
-                    <summary class="text-[12px] font-black text-gray-700 list-none cursor-pointer p-4 pr-10 relative select-none">
+                 <details class="group bg-gray-50/40 rounded-xl border border-transparent hover:border-orange-500/10 hover:bg-white transition-all overflow-hidden">
+                    <summary class="text-[11px] font-bold text-gray-700 list-none cursor-pointer py-2.5 px-3 pr-8 relative select-none leading-tight">
                        {faq.question}
-                       <div class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-lg bg-white border border-gray-100 flex items-center justify-center transition-transform group-open:rotate-180 group-open:bg-orange-500 group-open:border-orange-600 shadow-sm">
-                          <svg class="w-3 h-3 text-gray-400 group-open:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                       <div class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-md bg-white border border-gray-100 flex items-center justify-center transition-transform group-open:rotate-180 group-open:bg-orange-500 group-open:border-orange-600 shadow-sm">
+                          <svg class="w-2.5 h-2.5 text-gray-400 group-open:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
                              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                           </svg>
                        </div>
                     </summary>
-                    <div class="px-4 pb-4 text-[12px] text-gray-500 leading-relaxed font-medium animate-in fade-in slide-in-from-top-2 duration-300">
-                       <div class="pt-2 border-t border-gray-50">
+                    <div class="px-3 pb-3 text-[11px] text-gray-500 leading-relaxed font-medium animate-in fade-in slide-in-from-top-1 duration-200">
+                       <div class="pt-2 border-t border-gray-50/50">
                           {faq.answer}
                        </div>
                     </div>
@@ -351,6 +409,12 @@
       {:else if serverTotal > 0}
         <div class="mt-16 text-center py-10 border-t border-gray-50">
            <span class="text-[11px] font-black text-gray-300 uppercase tracking-[0.5em]">Đã hiển thị toàn bộ {serverTotal} sản phẩm</span>
+        </div>
+      {/if}
+      
+      {#if !isSearchMode && category}
+        <div class="mt-20 border-t border-gray-100/50">
+          <ProductDetailReviews product={category} entityType="CATEGORY" />
         </div>
       {/if}
     </main>

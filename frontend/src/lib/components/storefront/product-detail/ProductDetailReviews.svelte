@@ -4,14 +4,16 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { Star, ThumbsUp, MoreHorizontal, Play, Camera, Send, CheckCircle2, Loader2, X } from 'lucide-svelte';
   import SimpleTiptap from '../ui/SimpleTiptap.svelte';
+  import { apiClient } from '$lib/utils/apiClient';
   
   const ui = getClientUi();
   import { fade, fly, scale } from 'svelte/transition';
 
   interface Props {
-    product: Product;
+    product: any;
+    entityType?: 'PRODUCT' | 'CATEGORY' | 'SHOP';
   }
-  let { product }: Props = $props();
+  let { product, entityType = 'PRODUCT' }: Props = $props();
 
   let reviews = $state<Review[]>([]);
   let stats = $state<ReviewStats | null>(null);
@@ -37,10 +39,12 @@
   
   async function fetchStats() {
     try {
-      const res = await fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`);
-      if (res.ok) {
-        stats = await res.json();
-      }
+      stats = await apiClient.get<ReviewStats>(`/client/reviews/stats`, {
+        params: {
+          entity_type: entityType,
+          entity_id: product.id
+        }
+      });
     } catch (e) {
       console.error("Lỗi fetch stats:", e);
     }
@@ -49,21 +53,19 @@
   async function fetchReviews() {
     isLoading = true;
     try {
-      let url = `/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED`;
-      if (typeof activeTab === 'number') {
-        url += `&rating=${activeTab}`;
-      } else if (activeTab === 'media') {
-        url += `&has_media=true`;
-      }
+      const params: Record<string, string> = {
+        entity_type: entityType,
+        entity_id: product.id,
+        status: 'APPROVED'
+      };
+      if (typeof activeTab === 'number') params.rating = activeTab.toString();
+      else if (activeTab === 'media') params.has_media = 'true';
       
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        reviews = data.items.map((r: Review) => ({
-          ...r,
-          initial: r.customer_name.charAt(0).toUpperCase()
-        }));
-      }
+      const data = await apiClient.get<{ items: Review[] }>(`/client/reviews`, { params });
+      reviews = data.items.map((r: Review) => ({
+        ...r,
+        initial: r.customer_name.charAt(0).toUpperCase()
+      }));
     } catch (e) {
       console.error("Lỗi fetch reviews:", e);
     } finally {
@@ -142,22 +144,9 @@
            // Litestar UploadFile uses "data" explicitly based on Body(...) binding
            formData.append('data', file);
            
-           const res = await fetch('/api/v1/client/reviews/upload', {
-               method: 'POST',
-               headers: {
-                   'Authorization': `Bearer ${authStore.token}`
-               },
-               body: formData
-           });
-           
-           if (res.ok) {
-               const json = await res.json();
-               if (json.data && json.data.file_path) {
-                   attachedPhotos = [...attachedPhotos, json.data.file_path];
-               }
-           } else {
-               const err = await res.json();
-               ui.showToast(err.detail || `Lỗi khi tải lên ${file.name}.`, 'error');
+           const json = await apiClient.upload<{ data: { file_path: string } }>('/client/reviews/upload', formData);
+           if (json.data && json.data.file_path) {
+               attachedPhotos = [...attachedPhotos, json.data.file_path];
            }
        }
     } catch (err) {
@@ -173,34 +162,26 @@
     if (!newContent || newContent.length < 5) return;
     isSubmitting = true;
     try {
-      const res = await fetch('/api/v1/client/reviews', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authStore.token}`
-        },
-        body: JSON.stringify({
-          entity_type: 'PRODUCT',
-          entity_id: product.id,
-          customer_name: authStore.user?.name || 'Khách',
-          rating: newRating,
-          content: newContent,
-          attributes: Object.fromEntries(Object.entries(newAttributes).filter(([k, v]) => v !== '')),
-          attachments: attachedPhotos.map(url => ({ 
-             url, 
-             type: (url.match(/\.(mp4|webm|mov)$/i) || url.includes('video')) ? 'video' : 'image' 
-          }))
-        })
+      await apiClient.post('/client/reviews', {
+        entity_type: entityType,
+        entity_id: product.id,
+        customer_name: authStore.user?.name || 'Khách',
+        rating: newRating,
+        content: newContent,
+        attributes: Object.fromEntries(Object.entries(newAttributes).filter(([k, v]) => v !== '')),
+        attachments: attachedPhotos.map(url => ({ 
+           url, 
+           type: (url.match(/\.(mp4|webm|mov)$/i) || url.includes('video')) ? 'video' : 'image' 
+        }))
       });
-      if (res.ok) {
-        submitSuccess = true;
+      
+      submitSuccess = true;
         setTimeout(() => {
           showWriteForm = false;
           submitSuccess = false;
           newContent = '';
           attachedPhotos = [];
-        }, 2000);
-      }
+      }, 2000);
     } catch (e) {
       console.error("Lỗi submit review:", e);
     } finally {
@@ -218,7 +199,7 @@
 <div class="bg-white p-10 mt-10 rounded-none relative overflow-hidden mb-24">
   <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 pb-6 border-b border-gray-50">
     <div>
-      <h2 class="text-2xl font-black text-[#1a1a1a] tracking-tight leading-none mb-2">Đánh Giá Sản Phẩm</h2>
+      <h2 class="text-2xl font-black text-[#1a1a1a] tracking-tight leading-none mb-2">Đánh Giá {entityType === 'CATEGORY' ? 'Danh Mục ' + (product?.name || '') : 'Sản Phẩm'}</h2>
       <p class="text-gray-400 text-xs font-medium uppercase tracking-[0.2em]">Trải nghiệm thực tế từ người dùng</p>
     </div>
     <button 
@@ -238,7 +219,7 @@
         <div class="flex flex-col items-center justify-center py-10 text-center" in:scale>
           <CheckCircle2 class="w-16 h-16 text-green-500 mb-4" />
           <h3 class="text-lg font-black text-gray-900">Gửi đánh giá thành công!</h3>
-          <p class="text-sm text-gray-500 mt-1">Cảm ơn Sếp đã đóng góp ý kiến cho sản phẩm.</p>
+          <p class="text-sm text-gray-500 mt-1">Cảm ơn Sếp đã đóng góp ý kiến cho {entityType === 'CATEGORY' ? 'danh mục' : 'sản phẩm'}.</p>
         </div>
       {:else}
         <div class="space-y-6">
@@ -275,7 +256,7 @@
           <div class="relative w-full">
             <SimpleTiptap 
               bind:content={newContent}
-              placeholder="Chia sẻ cảm nhận của bạn về sản phẩm này nhé..."
+              placeholder="Chia sẻ cảm nhận của bạn về {entityType === 'CATEGORY' ? 'danh mục' : 'sản phẩm'} này nhé..."
               limit={5000}
             />
           </div>

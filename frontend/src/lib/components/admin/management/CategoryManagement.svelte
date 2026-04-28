@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
+  import { tick } from "svelte";
   import FolderTree from "lucide-svelte/icons/folder-tree";
   import Plus from "lucide-svelte/icons/plus";
   import Search from "lucide-svelte/icons/search";
@@ -103,7 +104,9 @@
   function genSlug(n: string) {
     return slugify(n);
   }
-  function openCreate(p: string | null = null) {
+  async function openCreate(p: string | null = null) {
+    showForm = false;
+    await tick();
     editingId = null;
     formName = "";
     formSlug = "";
@@ -118,7 +121,9 @@
     formParentId = p;
     showForm = true;
   }
-  function openEdit(cat: Category, p: string | null = null) {
+  async function openEdit(cat: Category, p: string | null = null) {
+    showForm = false;
+    await tick();
     console.log("[CategoryManagement] Opening Edit. Category Data Snapshot:", $state.snapshot(cat));
     editingId = cat.id;
     formName = cat.name;
@@ -132,14 +137,13 @@
     formShowOnDesktop = cat.showOnDesktop ?? true;
     
     // Elite V2.2: Dual-Key Metadata Probe (Metadata vs CategoryMetadata)
-    // Pydantic có thể serialize vào 'metadata' (key gốc) hoặc 'category_metadata' (alias)
     const raw: any = cat;
     const meta = raw.metadata || raw.category_metadata;
     formFaqs = meta?.faqs || [];
     
     console.log("[CategoryManagement] Metadata Found:", $state.snapshot(meta));
     console.log("[CategoryManagement] Form FAQs initialized:", $state.snapshot(formFaqs));
-    formParentId = p;
+    formParentId = p || null; // CNS V2.3: Normalize undefined to null
     showForm = true;
   }
   function toggleSelect(id: string) {
@@ -327,23 +331,6 @@
 
 <div class="w-full h-full flex flex-col relative bg-[#050505]">
   <div class="flex flex-col gap-6 p-6 border-b border-white/[0.05]">
-    {#if showForm}<CategoryForm
-        {editingId}
-        {formParentId}
-        bind:formName
-        bind:formSlug
-        bind:formDescription
-        bind:formSeoTitle
-        bind:formSeoDescription
-        bind:formImage
-        bind:formIcon
-        bind:formShowOnMobile
-        bind:formShowOnDesktop
-        bind:formFaqs
-        onSave={save}
-        onClose={() => (showForm = false)}
-        generateSlug={genSlug}
-      />{/if}
     <div
       class="flex flex-col lg:flex-row lg:items-center md:gap-4 gap-3 bg-white/[0.02] border border-white/10 p-3 sm:p-2.5 rounded-2xl"
     >
@@ -430,6 +417,28 @@
       </div>
     </div>
   </div>
+
+  {#if showForm}
+    {#key editingId}
+      <CategoryForm
+        {editingId}
+        {formParentId}
+        bind:formName
+        bind:formSlug
+        bind:formDescription
+        bind:formSeoTitle
+        bind:formSeoDescription
+        bind:formImage
+        bind:formIcon
+        bind:formShowOnMobile
+        bind:formShowOnDesktop
+        bind:formFaqs
+        onSave={save}
+        onClose={() => (showForm = false)}
+        generateSlug={genSlug}
+      />
+    {/key}
+  {/if}
 
   <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
     {#if isLoading}

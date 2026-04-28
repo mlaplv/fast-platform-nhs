@@ -58,6 +58,7 @@ class SystemSetting(Base, AuditMixin):
 
 class ReviewEntityType(str, enum.Enum):
     PRODUCT = "PRODUCT"
+    CATEGORY = "CATEGORY"
     NEWS = "NEWS"
 
 class SystemReview(Base, AuditMixin, SoftDeleteMixin, TenantMixin):

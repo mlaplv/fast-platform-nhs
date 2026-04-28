@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { ChevronRight, MessageCircleMore, Star, Loader2, Play, CheckCircle2, PenLine } from 'lucide-svelte';
   import type { Product, Review, ReviewStats } from '$lib/types';
+  import { apiClient } from '$lib/utils/apiClient';
 
   interface Props {
     product: Product;
@@ -15,10 +16,12 @@
 
   async function fetchStats() {
     try {
-      const res = await fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`);
-      if (res.ok) {
-        stats = await res.json();
-      }
+      stats = await apiClient.get<ReviewStats>(`/client/reviews/stats`, {
+        params: {
+          entity_type: 'PRODUCT',
+          entity_id: product.id
+        }
+      });
     } catch (e) {
       console.error("Lỗi fetch stats:", e);
     }
@@ -27,11 +30,15 @@
   async function fetchReviews() {
     isLoading = true;
     try {
-      const res = await fetch(`/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED&limit=1`);
-      if (res.ok) {
-        const data = await res.json();
-        reviews = data.items;
-      }
+      const data = await apiClient.get<{ items: Review[] }>(`/client/reviews`, {
+        params: {
+          entity_type: 'PRODUCT',
+          entity_id: product.id,
+          status: 'APPROVED',
+          limit: '1'
+        }
+      });
+      reviews = data.items;
     } catch (e) {
       console.error("Lỗi fetch reviews:", e);
     } finally {

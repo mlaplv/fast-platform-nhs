@@ -234,6 +234,26 @@
     };
   });
 
+
+  // CNS V90.1: Local proxy state for userPlanNote to avoid crash when analysisData is null
+  let localUserPlanNote = $state("");
+  
+  $effect(() => {
+    if (analysisData) {
+      // Sync from analysisData to local state when analysisData is available
+      untrack(() => {
+        localUserPlanNote = analysisData.userPlanNote;
+      });
+    }
+  });
+
+  $effect(() => {
+    // Sync back to analysisData when local state changes (e.g. from HUD binding)
+    if (analysisData && localUserPlanNote !== analysisData.userPlanNote) {
+      analysisData.userPlanNote = localUserPlanNote;
+    }
+  });
+
 </script>
 
 <div 
@@ -496,8 +516,8 @@
       isRewriting={isRewriting}
       runBulkFix={runBulkFix}
       {analysisData}
-      currentAnalysisStep={analysisData.currentAnalysisStep}
-      bind:userPlanNote={analysisData.userPlanNote}
+      currentAnalysisStep={analysisData?.currentAnalysisStep ?? null}
+      bind:userPlanNote={localUserPlanNote}
       {streamingText}
       {streamingTarget}
     />

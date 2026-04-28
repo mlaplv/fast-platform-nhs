@@ -11,7 +11,7 @@
   import type { MediaAsset } from '$lib/state/types';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { xohiActions, type CleanOptions } from '$lib/state/xohiActions';
-  import type { CopyrightResult, SEOResult, AIInspectResult } from '$lib/state/types';
+  import type { CopyrightResult, SEOResult, AIInspectResult, NeuralAnalysisController } from '$lib/state/types';
   import { tokenize, jaccard, normalizeHTML, stripMarks, generateStableId, beautifyHTML } from './utils/editorUtils';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
@@ -38,7 +38,7 @@
     flex = false,
     onClean = null,
     syncAssetsMode = 'append',
-    analysisData = null,
+    analysisData = undefined,
     copyrightResult = null,
     seoResult = null,
     aiReadyResult = null,
@@ -68,7 +68,7 @@
     flex?: boolean;
     onClean?: ((options?: CleanOptions, rawContent?: string) => Promise<string | null>) | null;
     syncAssetsMode?: 'strict' | 'append';
-    analysisData?: Record<string, unknown> | null;
+    analysisData?: NeuralAnalysisController | null;
     copyrightResult?: CopyrightResult | null;
     seoResult?: SEOResult | null;
     aiReadyResult?: AIInspectResult | null;
