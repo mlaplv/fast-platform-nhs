@@ -14,14 +14,19 @@ logger = logging.getLogger("api-gateway")
 
 # Elite V2.2: Hard blacklist — models that NEVER enter the AI chain
 # These are either non-functional (no tool/function calling) or unstable.
-HARD_BLACKLIST = ["gemma", "lite-preview", "experimental", "alpha", "learnlm"]
+# R45: Lite-preview removed from blacklist to allow Viral 2026 models.
+HARD_BLACKLIST = [
+    "gemma", "experimental", "alpha", "learnlm", "preview", "latest", 
+    "exp", "-001", "-002", 
+    "flash-latest", "lite-latest"
+]
 
 DEFAULT_AI_CONFIG = {
     "role_patterns": {
         "fast": ["flash", "8b", "lite"],
         "brain": ["pro", "ultra", "brain"]
     },
-    "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision", "deep-research", "robotics", "lyria", "banana", "lite-preview"],
+    "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision", "deep-research", "robotics", "lyria", "banana", "lite-preview", "gemini-flash-latest", "gemini-flash-lite-latest", "-preview", "exp", "-latest", "-001", "-002"],
     "lockdown": ["early-access", "alpha", "customtools"],
     "penalties": {
         "experimental": 100,
@@ -113,10 +118,51 @@ class TrinityModels:
                         # Gate 3: DB-configurable blacklist
                         if any(bl in name for bl in self._config.get("blacklist", [])):
                             continue
+                            
+                        # Elite V2.2: Store metadata signals for intelligent ranking
+                        metadata = {
+                            "inputTokenLimit": m.get("inputTokenLimit", 128000),
+                            "outputTokenLimit": m.get("outputTokenLimit", 4096),
+                            "displayName": m.get("displayName", ""),
+                            "version": m.get("version", "")
+                        }
+                        await self.rotator.save_model_metadata(short, metadata)
+                        
+                        # Elite V2.2: Auto-assign capability for modern architectures
+                        if any(x in short.lower() for x in ["pro", "ultra", "brain", "2.0", "2.5", "3.0", "3.1", "flash"]):
+                            current_cap = await self.rotator.get_model_capability(short)
+                            
+                            # Refined Hierarchy: 3.x and 2.5-pro are ELITE. Others (2.0, 2.5-flash, 1.5-pro) are AGENTIC.
+                            target_cap = "AGENTIC"
+                            if any(v in short for v in ["3.1", "3.0", "ultra"]):
+                                target_cap = "ELITE"
+                            elif "2.5" in short and "pro" in short:
+                                target_cap = "ELITE"
+
+                            if current_cap != target_cap:
+                                await self.rotator.mark_model_capability(short, target_cap)
+                                logger.info(f"[TrinityModels] Sync-promoted {short} to {target_cap} (was {current_cap})")
+
                         models.append(short)
                     
+                    # Elite V2.2: Hard-inject CNS models if missing from Google API list
+                    cns_models = [self.default_model, self.fallback_model, "gemini-1.5-flash"]
+                    for cns in cns_models:
+                        if cns not in [m.get("name", "").replace("models/", "") for m in all_models]:
+                            if any(hbl in cns for hbl in HARD_BLACKLIST): continue
+                            if cns not in models:
+                                models.append(cns)
+                            # Ensure we have some default metadata
+                            await self.rotator.save_model_metadata(cns, {
+                                "inputTokenLimit": 1048576,
+                                "outputTokenLimit": 8192,
+                                "displayName": f"CNS Force: {cns}",
+                                "version": "v1beta"
+                            })
+                            await self.rotator.mark_model_capability(cns, "AGENTIC")
+
                     # Sort by score so best models are tried first
-                    models.sort(key=lambda x: self._score_model(x), reverse=True)
+                    models.sort(key=lambda x: self._score_model_sync(x), reverse=True)
                     logger.info(f"[TrinityModels] Discovered {len(models)} valid models (top 5): {models[:5]}")
                     await self.rotator.save_discovered_models(models)
                     return models
@@ -124,8 +170,8 @@ class TrinityModels:
             logger.error(f"[TrinityModels] Discovery failed: {e}")
         return []
 
-    def _score_model(self, model_name: str) -> int:
-        """Elite V2.2: Universal Model Scoring for Vietnam & Standard API."""
+    def _score_model_sync(self, model_name: str) -> int:
+        """Elite V2.2: Universal Model Scoring based on Metadata Signals."""
         m = model_name.lower()
         score = 0
         
@@ -134,35 +180,57 @@ class TrinityModels:
             return -10000
 
         # 1. Version Tier (The most important factor in 2026)
-        if "3.1" in m: score += 1000
-        elif "3" in m: score += 900
-        elif "2.5" in m: score += 800
-        elif "2.0" in m: score += 700
-        elif "1.5" in m: score += 600
+        # Modern Architecture Scoring (Elite V2.2)
+        if "3.1" in m: score += 2500
+        elif "3" in m: score += 2000
+        elif "2.5" in m: score += 1500
+        elif "2.0" in m: score += 1000
+        elif "1.5" in m: score += 800
+
+        # Tier Differentiation
+        if "-pro" in m: score += 300
+        if "-flash" in m: score += 100
+        if "-lite" in m: score -= 200
+        
+        # Elite V2.2: Free Tier Prioritization (Sếp's Order - CNS V89.5)
+        # Ưu tiên các model có Quota lớn hoặc là 'Điểm ngọt' trước để tiết kiệm Pro Quota.
+        if "gemini-1.5-flash" in m: score += 7000       # "Bao la" nhất (1500/day) - Rank 1
+        elif "gemini-2.5-flash-lite" in m: score += 5500 # "Điểm ngọt" (1000/day) - Rank 2
+        elif "gemini-2.5-flash" in m: score += 4500      # Ổn định (250/day) - Rank 3
         
         # 2. Model Grade (Brain vs Fast)
-        if "pro" in m: score += 100
-        elif "ultra" in m: score += 200 # Ultra is rare but supreme
-        elif "flash" in m: score += 50
+        if "pro" in m: score += 200
+        elif "ultra" in m: score += 400
+        elif "flash" in m: score += 100
         
         # 3. Special Features
-        if "customtools" in m: score += 10 # Better tool support
+        if "customtools" in m: score += 50
         
-        # 4. Dynamic Penalties (Elite V2.2 CTO Mod)
-        penalties = self._config.get("penalties", {})
-        for p_key, p_val in penalties.items():
-            if p_key in m:
-                score -= p_val
-                
-        # 5. Elite V2.2: Hard penalties to ensure preview/lite models never beat stable PRO models
-        if "preview" in m or "experimental" in m:
-            score -= 500
-        if "lite" in m:
-            score -= 300
+        # 4. Stability Signals (Preview/Lite)
+        # Elite V2.2: Reduced penalties for modern previews as requested by Sếp.
+        if "preview" in m: score -= 20
+        if "lite" in m: score -= 100
         
         return score
 
-    def get_role_models(self, role: str, discovered: list[str]) -> list[str]:
+    async def _score_model_async(self, model_name: str) -> int:
+        """Elite V2.2: Enhanced scoring incorporating Real-time Capability (ELITE/AGENTIC)."""
+        base_score = self._score_model_sync(model_name)
+        
+        # Add Capability Bonus
+        cap = await self.rotator.get_model_capability(model_name)
+        if cap == "ELITE": base_score += 500
+        elif cap == "AGENTIC": base_score += 200
+        elif cap == "LEGACY": base_score -= 100
+        
+        # Add Context Window Signal (Data-driven)
+        meta = await self.rotator.get_model_metadata(model_name)
+        ctx = int(meta.get("inputTokenLimit", 128000))
+        base_score += int((ctx / 128000) * 10) # 1M context = +78 points
+        
+        return base_score
+
+    async def get_role_models(self, role: str, discovered: list[str]) -> list[str]:
         if not discovered: return []
         
         patterns = self._config.get("role_patterns", {}).get(role, [])
@@ -177,10 +245,26 @@ class TrinityModels:
             and not any(l in m.lower() for l in lockdown)
             and not any(bl in m.lower() for bl in blacklist)
         ]
+
+        # Elite V2.2: Hard filter for Brain role (Must support tools/signals)
+        # R110: Allow Flash models in Brain role if they are verified AGENTIC/ELITE.
+        if role == self.ROLE_BRAIN:
+            verified = []
+            for m in candidates:
+                cap = await self.rotator.get_model_capability(m)
+                if cap in ["AGENTIC", "ELITE"]:
+                    verified.append(m)
+            candidates = verified
         
         # Second filter: Sort by Elite V2.2 Score (Best to Worst)
-        candidates.sort(key=lambda x: self._score_model(x), reverse=True)
-        return candidates
+        # We need to collect scores first because _score_model_async is awaitable
+        scored_candidates = []
+        for m in candidates:
+            score = await self._score_model_async(m)
+            scored_candidates.append((m, score))
+            
+        scored_candidates.sort(key=lambda x: x[1], reverse=True)
+        return [x[0] for x in scored_candidates]
 
     async def build_chain(self, role: Optional[str], db_primary: str, db_waterfall: list[str], discovered: list[str]) -> list[str]:
         await self._ensure_config()
@@ -198,13 +282,13 @@ class TrinityModels:
         
         # Priority 2: Role-specific discovered models (already scored & sorted)
         if role:
-            for m in self.get_role_models(role, discovered): _add(m)
+            for m in await self.get_role_models(role, discovered): _add(m)
             # Also add the complementary role as fallback
             alt_role = self.ROLE_FAST if role == self.ROLE_BRAIN else self.ROLE_BRAIN
-            for m in self.get_role_models(alt_role, discovered): _add(m)
+            for m in await self.get_role_models(alt_role, discovered): _add(m)
         else:
-            for m in self.get_role_models(self.ROLE_BRAIN, discovered): _add(m)
-            for m in self.get_role_models(self.ROLE_FAST, discovered): _add(m)
+            for m in await self.get_role_models(self.ROLE_BRAIN, discovered): _add(m)
+            for m in await self.get_role_models(self.ROLE_FAST, discovered): _add(m)
         
         # Priority 3: Env defaults as last resort
         _add(self.default_model)
@@ -223,10 +307,10 @@ class TrinityModels:
             if not await self.rotator.is_model_poisoned(m):
                 healthy.append(m)
         
-        # Fail-safe: ensure we have AT LEAST the defaults
+        # Fail-safe: ensure we have AT LEAST the defaults (Force Hardcoded Stable)
         if not healthy:
-            for m in [self.default_model, self.fallback_model]:
-                if not await self.rotator.is_model_poisoned(m):
+            for m in ["gemini-1.5-flash", "gemini-1.5-pro", self.default_model, self.fallback_model]:
+                if not await self.rotator.is_model_poisoned(m) and not self.is_blacklisted(m):
                     healthy.append(m)
 
         return healthy
@@ -251,4 +335,15 @@ class TrinityModels:
         if "per minute" in err_lower:
             return False
         return any(p in err_lower for p in ["daily", "per_day", "requests_per_day", "generaterequestsperdayperproject"])
+
+    def is_blacklisted(self, model_name: str) -> bool:
+        """Elite V2.2: Martial Law verification."""
+        m = model_name.lower()
+        # 1. Hard Blacklist (Kernel level)
+        if any(hbl in m for hbl in HARD_BLACKLIST):
+            return True
+        # 2. Configurable Blacklist (DB level)
+        if any(bl in m for bl in self._config.get("blacklist", [])):
+            return True
+        return False
 

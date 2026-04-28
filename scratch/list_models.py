@@ -1,16 +1,16 @@
 import asyncio
-from backend.services.ai_engine.core.key_rotator import key_rotator
-from backend.services.ai_engine.core.trinity_models import TrinityModels
+import os
+import sys
 
-async def check():
-    models_helper = TrinityModels(key_rotator, "gemini-1.5-flash", "gemini-1.5-flash")
-    discovered = await models_helper.discover_available()
-    print(f"Discovered {len(discovered)} models:")
-    for m in discovered:
-        print(f" - {m}")
-    
-    brain_models = models_helper.get_role_models("brain", discovered)
-    print(f"\nBrain Role Models: {brain_models}")
+# Add workspace to path
+sys.path.append("/app")
+
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+
+async def run():
+    models = await trinity_bridge.models_helper.discover_available()
+    print(f"Total discovered: {len(models)}")
+    print(f"Models: {models}")
 
 if __name__ == "__main__":
-    asyncio.run(check())
+    asyncio.run(run())

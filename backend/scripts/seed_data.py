@@ -35,32 +35,32 @@ PRODUCT_DEFS = [
             "quiz_questions": [
                 {
                     "id": "q1",
-                    "title": "KHU VỰC CẦN GIẢI CỨU SẮC TỐ?",
-                    "subtitle": "Chọn vùng da bạn muốn tập trung xóa bỏ hắc tố sạm màu và khôi phục sự rạng rỡ.",
+                    "title": "VÙNG CẦN GIẢI CỨU SẮC TỐ?",
+                    "subtitle": "Chọn vùng da bạn muốn tập trung xóa bỏ các vùng tối màu và khôi phục sự rạng rỡ.",
                     "options": [
-                        {"label": "Vùng Nách", "value": "underarm", "icon": "🛁", "desc": "Khử thâm chuyên sâu, khôi phục vẻ mịn màng"},
+                        {"label": "Vùng Nách", "value": "underarm", "icon": "🛁", "desc": "Khử vùng tối chuyên sâu, khôi phục vẻ mịn màng"},
                         {"label": "Vùng Bikini", "value": "bikini", "icon": "👙", "desc": "Tái tạo độ hồng hào, mềm mại tự nhiên"},
                         {"label": "Vùng Nhũ Hoa", "value": "nipple", "icon": "✨", "desc": "Bật tông rạng rỡ, lấy lại sự tự tin"},
-                        {"label": "Khác / Đùi trong", "value": "other", "icon": "💧", "desc": "Xử lý sạm màu thâm niên do ma sát"}
+                        {"label": "Khác / Đùi trong", "value": "other", "icon": "💧", "desc": "Xử lý vùng tối thâm niên do ma sát"}
                     ]
                 },
                 {
                     "id": "q2",
-                    "title": "TÌNH TRẠNG SẠM ĐEN THỰC TẾ?",
+                    "title": "HIỆN TRẠNG SẮC TỐ THỰC TẾ?",
                     "subtitle": "Hệ thống cần xác định mật độ Melanin để tính toán liều lượng phục hồi tối ưu.",
                     "options": [
-                        {"label": "Sạm nhẹ", "value": "light", "icon": "🌕", "desc": "Mới xuất hiện dấu hiệu tối màu"},
-                        {"label": "Sạm trung bình", "value": "medium", "icon": "🌗", "desc": "Sạm rõ rệt, cần can thiệp để tránh lan rộng"},
-                        {"label": "Sạm nặng (Báo động)", "value": "heavy", "icon": "🌑", "desc": "Thâm lâu năm, chai sạm, cần phác đồ mạnh"}
+                        {"label": "Sắc tố bề mặt nhẹ", "value": "light", "icon": "🌕", "desc": "Mới xuất hiện dấu hiệu tối màu"},
+                        {"label": "Khu vực tối màu rõ rệt", "value": "medium", "icon": "🌗", "desc": "Vùng tối rõ rệt, cần can thiệp để tránh lan rộng"},
+                        {"label": "Dày sừng & Sắc tố thâm niên", "value": "heavy", "icon": "🌑", "desc": "Vùng tối lâu năm, dày sừng nhẹ, cần phác đồ mạnh"}
                     ]
                 },
                 {
                     "id": "q3",
-                    "title": "KINH NGHIỆM TRỊ THÂM CỦA BẠN?",
+                    "title": "KINH NGHIỆM TÁI TẠO CỦA BẠN?",
                     "subtitle": "Để AI cân đối nồng độ dẫn xuất Vitamin C và Placenta tinh khiết cho bạn.",
                     "options": [
                         {"label": "Chưa từng dùng gì", "value": "never", "icon": "🌱", "desc": "Khởi đầu an toàn, chuẩn y khoa Nhật"},
-                        {"label": "Đã dùng nhưng thất bại", "value": "failed", "icon": "🔄", "desc": "Phá vỡ cấu trúc hắc tố cũ đã lờn thuốc"},
+                        {"label": "Đã dùng nhưng thất bại", "value": "failed", "icon": "🔄", "desc": "Phá vỡ cấu trúc hắc tố cũ kém hiệu quả"},
                         {"label": "Cần cải thiện thần tốc", "value": "boost", "icon": "🚀", "desc": "Kích hoạt chế độ phục hồi tế bào tối đa"}
                     ]
                 }

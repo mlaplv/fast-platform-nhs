@@ -32,7 +32,8 @@ class KeyMetricsMixin:
              logger.warning(f"[KeyRotator] Key {kid[:8]} hit DAILY QUOTA."); return
 
         if reason_lower == "rate_limit" or "429" in reason_lower:
-            await self.track_tokens(key, 100); await self.client.hset(f"{self.METADATA_PREFIX}{kid}", "last_used", now); return
+            await self.track_tokens(key, 500)
+            # Falling through to increment fail_count and trigger backoff.
 
         fail = await self.client.hincrby(f"{self.METADATA_PREFIX}{kid}", "fail_count", 1)
         await self.client.hset(f"{self.METADATA_PREFIX}{kid}", mapping={"health_score": max(0, 100 - (fail * 20)), "last_used": now})
@@ -72,6 +73,31 @@ class KeyMetricsMixin:
         if not self._use_redis or not self.client: return False
         m_slug = model_name.replace("/", "_").replace("-", "_")[:40]
         return bool(await self.client.exists(f"{self.POISON_PREFIX}{m_slug}"))
+
+    async def mark_model_capability(self, model_name: str, capability: str) -> None:
+        """Elite V2.2: Persist model capability (LEGACY, AGENTIC, ELITE)."""
+        if not self._use_redis or not self.client: return
+        m_slug = model_name.replace("/", "_").replace("-", "_")[:40]
+        await self.client.set(f"{self.MODEL_CAPABILITY_PREFIX}{m_slug}", capability, ex=self.MAX_COOLDOWN)
+
+    async def get_model_capability(self, model_name: str) -> str:
+        if not self._use_redis or not self.client: return "LEGACY"
+        m_slug = model_name.replace("/", "_").replace("-", "_")[:40]
+        val = await self.client.get(f"{self.MODEL_CAPABILITY_PREFIX}{m_slug}")
+        return val if val else "LEGACY"
+
+    async def save_model_metadata(self, model_name: str, metadata: dict) -> None:
+        if not self._use_redis or not self.client: return
+        m_slug = model_name.replace("/", "_").replace("-", "_")[:40]
+        import json
+        await self.client.set(f"{self.MODEL_METADATA_PREFIX}{m_slug}", json.dumps(metadata), ex=self.MAX_COOLDOWN)
+
+    async def get_model_metadata(self, model_name: str) -> dict:
+        if not self._use_redis or not self.client: return {}
+        m_slug = model_name.replace("/", "_").replace("-", "_")[:40]
+        import json
+        val = await self.client.get(f"{self.MODEL_METADATA_PREFIX}{m_slug}")
+        return json.loads(val) if val else {}
 
     async def reset_health(self, preserve_daily: bool = False) -> int:
         if not self._use_redis or not self.client: return 0

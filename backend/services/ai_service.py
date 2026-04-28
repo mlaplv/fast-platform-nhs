@@ -5,7 +5,7 @@ import uuid
 import httpx
 import asyncio
 from typing import List, Dict, Optional, Union
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import HTTPException
 
@@ -145,7 +145,8 @@ class AIService:
         stmt = select(
             VoiceProfile.primary_model,
             VoiceProfile.ai_models,
-            VoiceProfile.discovered_models
+            VoiceProfile.discovered_models,
+            VoiceProfile.updated_at
         ).where(VoiceProfile.user_id == user_id)
 
         result = await db_session.execute(stmt)
@@ -155,7 +156,8 @@ class AIService:
         return AIModelStatusResponse(
             primary_model=data.primary_model if data and data.primary_model else trinity_bridge.primary_model,
             ai_models=data.ai_models if data and data.ai_models else [trinity_bridge.primary_model, trinity_bridge.fallback_model],
-            discovered_models=data.discovered_models if data and data.discovered_models else []
+            discovered_models=data.discovered_models if data and data.discovered_models else [],
+            updated_at=data.updated_at.timestamp() if data and data.updated_at else None
         )
 
     @staticmethod
@@ -281,109 +283,146 @@ class AIService:
         [Elite V2.2] Automatically identifies the top 5 healthiest models and persists them to DB.
         Tests ALL discovered models and ranks them by health + capability score.
         """
-        from backend.services.ai_engine.core.trinity_models import HARD_BLACKLIST
-        
         try:
             # 0. Neural Purge (Reset health states to ensure we test everything fresh)
             await AIService.reset_all_keys(preserve_daily=True)
             
-            # 1. Discover all available models (already filtered by HARD_BLACKLIST in discover_available)
+            # 1. Discover all available models
             discovered = await trinity_bridge.models_helper.discover_available()
             if not discovered:
                 return SuccessResponse(ok=False, message="No models discovered. Check API keys.")
 
-            # 2. Score and sort all discovered models
+            # 2. Score and sort all discovered models based on Baseline Signals
             scored = []
             for m in discovered:
-                score = trinity_bridge.models_helper._score_model(m)
-                # Double-safety: skip anything that slipped past with negative score
-                if score < 0:
-                    continue
+                if trinity_bridge.models_helper.is_blacklisted(m): continue
+                score = trinity_bridge.models_helper._score_model_sync(m)
                 scored.append({"name": m, "score": score})
             
             scored.sort(key=lambda x: x["score"], reverse=True)
             
-            # 3. Health Test — test ALL scored candidates until we get 5 healthy ones
+            # 3. Capability Probing Matrix — test candidates until we get a solid waterfall
             winners: list[str] = []
             failed: set[str] = set()
             
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 for s in scored:
                     model = s["name"]
-                    if len(winners) >= 5:
-                        break
+                    if len(winners) >= 6: break # Collect top 6 for better waterfall
                         
-                    # Elite V2.2: Skip models already known as poisoned
                     if await key_rotator.is_model_poisoned(model):
-                        failed.add(model)
-                        continue
+                        failed.add(model); continue
 
                     try:
                         key = await key_rotator.get_key(model_name=model)
-                        if not key:
-                            failed.add(model)
-                            continue
-                    except Exception:
-                        failed.add(model)
-                        continue
+                        if not key: failed.add(model); continue
+                    except Exception: failed.add(model); continue
                     
+                    # --- LEVEL 1: Connectivity (Ping) ---
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
                     try:
                         resp = await client.post(url, json={"contents": [{"parts":[{"text": "ping"}]}]})
-                        if resp.status_code == 200:
-                            winners.append(model)
-                        elif resp.status_code == 429:
-                            if "daily" in resp.text.lower() or "quota" in resp.text.lower():
+                        if resp.status_code != 200:
+                            if resp.status_code == 429 and ("daily" in resp.text.lower() or "quota" in resp.text.lower()):
                                 await key_rotator.mark_model_daily(key, model)
-                            failed.add(model)
-                        elif resp.status_code in [400, 404]:
-                            await key_rotator.mark_model_poisoned(model, reason=f"HTTP_{resp.status_code}")
-                            failed.add(model)
+                            elif resp.status_code in [400, 404]:
+                                await key_rotator.mark_model_poisoned(model, reason=f"HTTP_{resp.status_code}")
+                            failed.add(model); continue
+                        
+                        # Passed Level 1 -> Capability = LEGACY (Baseline)
+                        capability = "LEGACY"
+                        
+                        # --- LEVEL 2: Agentic (Tool Calling Probe) ---
+                        # Elite V2.2: Verify if model actually supports function calling
+                        tool_probe = {
+                            "contents": [{"parts":[{"text": "What time is it? Use get_time tool."}]}],
+                            "tools": [{"function_declarations": [{"name": "get_time", "description": "Get current time"}]}],
+                            "tool_config": {"function_calling_config": {"mode": "ANY"}}
+                        }
+                        probe_resp = await client.post(url, json=tool_probe)
+                        if probe_resp.status_code == 200:
+                            res_json = probe_resp.json()
+                            parts = res_json.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                            if any("functionCall" in p for p in parts):
+                                capability = "AGENTIC"
+                                
+                                # --- LEVEL 3: Structural (JSON Compliance) ---
+                                json_probe = {
+                                    "contents": [{"parts":[{"text": "Return JSON: {'status': 'ok'}"}]}],
+                                    "generationConfig": {"response_mime_type": "application/json"}
+                                }
+                                json_resp = await client.post(url, json=json_probe)
+                                if json_resp.status_code == 200:
+                                    try:
+                                        import json
+                                        if json.loads(json_resp.json()["candidates"][0]["content"]["parts"][0]["text"]).get("status") == "ok":
+                                            capability = "ELITE"
+                                    except: pass
+                        
+                        # Persist Capability Signal to Redis
+                        await key_rotator.mark_model_capability(model, capability)
+                        logger.info(f"🏆 [NeuralOpt] Model {model} Qualified as {capability}")
+                        
+                        if capability in ["AGENTIC", "ELITE"]:
+                            winners.append(model)
                         else:
-                            failed.add(model)
-                    except Exception:
+                            # Still healthy but legacy
+                            winners.append(model)
+                            
+                    except Exception as e:
+                        logger.warning(f"[NeuralOpt] Probe failed for {model}: {type(e).__name__} - {str(e)}")
                         failed.add(model)
                         
-                    # Elite V2.2: RPM Flood Protection
-                    await asyncio.sleep(0.3)
+                    await asyncio.sleep(0.8) # RPM Flood Protection (Surgical)
 
-            # 4. Fill remaining slots with untested models (sorted by score, skip failed ones)
-            if len(winners) < 5:
-                for s in scored:
-                    if s["name"] not in winners and s["name"] not in failed:
-                        winners.append(s["name"])
-                        if len(winners) >= 5:
-                            break
-
-            # 5. Final Safety: Remove any blacklisted model that might have slipped through
-            winners = [w for w in winners if not any(hbl in w.lower() for hbl in HARD_BLACKLIST)]
-
+            # 4. Elite V2.2: Inclusive CNS Priority Force-Sync
+            # We ensure ALL discovered models are included in the waterfall.
+            # Order: High Priority > Healthy Probed > Others (Failed/Legacy)
+            priority_pool = ["gemini-1.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
+            final_winners: list[str] = []
+            
+            # Phase A: High Priority Models (Force Top)
+            for p in priority_pool:
+                if not trinity_bridge.models_helper.is_blacklisted(p):
+                    if p not in final_winners:
+                        final_winners.append(p)
+            
+            # Phase B: Healthy Probed Models (Middle)
+            for w in winners:
+                if w not in final_winners:
+                    final_winners.append(w)
+            
+            # Phase C: Failed/Remaining Discovered Models (Bottom - Max Redundancy)
+            for s in scored:
+                m_name = s["name"]
+                if m_name not in final_winners and not trinity_bridge.models_helper.is_blacklisted(m_name):
+                    final_winners.append(m_name)
+            
+            # Limit to top 6 for a deep waterfall
+            winners = final_winners[:6]
+            
             if not winners:
-                # Absolute Fallback (only known-good, non-blacklisted models)
-                winners = [
-                    trinity_bridge.primary_model,
-                    "gemini-2.5-flash",
-                    "gemini-1.5-flash", 
-                    "gemini-1.5-pro",
-                    "gemini-2.0-flash",
-                ]
-
-            # 6. Persist to DB
+                winners = ["gemini-1.5-flash", "gemini-2.5-flash-lite"]
+            
+            # Persist to VoiceProfile (Current Scalar Projection Rule)
             from backend.database.models import VoiceProfile
             stmt = select(VoiceProfile).where(VoiceProfile.user_id == user_id)
-            result = await db_session.execute(stmt)
-            profile = result.scalar_one_or_none()
-
+            profile = (await db_session.execute(stmt)).scalar_one_or_none()
+            
             if not profile:
                 profile = VoiceProfile(id=str(uuid.uuid4()), user_id=user_id)
                 db_session.add(profile)
-
+            
             profile.primary_model = winners[0]
-            profile.ai_models = winners[1:]
+            profile.ai_models = winners[1:6] # FIXED: Ensure correct field name
+            profile.updated_at = func.now()
+            
+            # Explicitly commit for safety in auto-optimize flow
+            await db_session.commit()
             
             # Hot-Reload Trinity Bridge
             trinity_bridge.db_primary_model = winners[0]
-            trinity_bridge.db_waterfall = winners[1:]
+            trinity_bridge.db_waterfall = winners[1:6]
 
             logger.info(f"[AIService] Auto-Optimize complete: {winners} (tested {len(scored)}, healthy {len(winners)}, failed {len(failed)})")
 

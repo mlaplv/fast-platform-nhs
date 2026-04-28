@@ -10,6 +10,8 @@
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import TrendingUp from "lucide-svelte/icons/trending-up";
   import ShieldCheck from "lucide-svelte/icons/shield-check";
+  import { fade } from "svelte/transition";
+  import { portal } from "$lib/core/actions/portal";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { formatCurrency } from "$lib/utils/format";
@@ -235,7 +237,12 @@
               {@const prices = allResults.map(r => r.price).filter(p => p && p > 0) as number[]}
               {@const bestPrice = prices.length > 0 ? Math.min(...prices) : null}
               
-              <div class="group/intel relative">
+              <div class="group/intel relative"
+                   onmouseenter={(e) => {
+                     const rect = e.currentTarget.getBoundingClientRect();
+                     e.currentTarget.style.setProperty('--popover-left', `${rect.left}px`);
+                     e.currentTarget.style.setProperty('--popover-top', `${rect.top}px`);
+                   }}>
                 <div class="flex flex-col gap-1 px-2 py-1 rounded-lg bg-emerald-500/5 border border-emerald-500/20 hover:border-emerald-500/50 transition-all cursor-help shadow-[0_0_15px_rgba(16,185,129,0.05)]">
                   <div class="flex items-center gap-1.5">
                     <TrendingUp size={10} class="text-emerald-400 shrink-0" />
@@ -248,9 +255,9 @@
                   {/if}
                 </div>
 
-                <!-- Popover (Elite V2.2: Liquid Glass) -->
-                <div class="absolute left-0 bottom-full w-[340px] pb-2 opacity-0 translate-y-2 pointer-events-none group-hover/intel:opacity-100 group-hover/intel:translate-y-0 group-hover/intel:pointer-events-auto transition-all duration-300"
-                     style="z-index: {Z_INDEX_ADMIN.POPOVER};">
+                <!-- Popover (Elite V2.2: Liquid Glass - Portaled to prevent clipping) -->
+                <div use:portal class="fixed w-[340px] pointer-events-none opacity-0 group-hover/intel:opacity-100 group-hover/intel:pointer-events-auto transition-all duration-300"
+                     style="z-index: {Z_INDEX_ADMIN.POPOVER}; left: var(--popover-left); top: var(--popover-top); transform: translateY(-100%) translateY(-10px);">
                   <!-- Invisible bridge to prevent disappearing on hover -->
                   <div class="absolute inset-x-0 bottom-0 h-4 translate-y-full"></div>
                   
@@ -401,7 +408,7 @@
 
 <!-- Full View Modal (Elite V2.2) -->
 {#if fullViewMarketData}
-  <div class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-6" style="z-index: 9999;">
+  <div use:portal class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-6" style="z-index: {Z_INDEX_ADMIN.MODAL};" transition:fade>
     <div class="w-full max-w-4xl max-h-[80vh] bg-[#0a0a0a] border border-emerald-500/30 rounded-3xl overflow-hidden flex flex-col shadow-[0_0_100px_rgba(16,185,129,0.1)]">
       <div class="flex items-center justify-between p-6 border-b border-white/5">
         <div class="flex items-center gap-3">

@@ -24,6 +24,7 @@ class AIModelStatusResponse(BaseModel):
     primary_model: str = Field(alias="primary_model")
     ai_models: List[str] = Field(alias="ai_models")
     discovered_models: List[str] = Field(alias="discovered_models")
+    updated_at: Optional[float] = Field(None, alias="updated_at")
 
 class ModelDiscoveryResponse(BaseModel):
     model_config = ConfigDict(strict=True)

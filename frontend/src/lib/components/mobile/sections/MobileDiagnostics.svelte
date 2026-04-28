@@ -16,6 +16,36 @@
   const shopStore = getShopStore();
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
+  const selectedAreaLabel = $derived(answers.find(ans => ans.q.includes('giải cứu'))?.a || '');
+  
+  const levelOptions = $derived(() => {
+    const area = selectedAreaLabel.toLowerCase();
+    if (area.includes('bikini')) return [
+      { label: 'Sắc tố chưa đồng nhất', value: 'light', icon: 'Moon' },
+      { label: 'Khu vực kém mịn màng', value: 'medium', icon: 'CloudMoon' },
+      { label: 'Điểm sắc tố li ti', value: 'heavy', icon: 'Activity' },
+      { label: 'Dày sừng vùng nhạy cảm', value: 'chronic', icon: 'ShieldAlert' }
+    ];
+    if (area.includes('nách')) return [
+      { label: 'Kích ứng sắc tố nhẹ', value: 'light', icon: 'Moon' },
+      { label: 'Tối màu do ma sát / hóa chất', value: 'medium', icon: 'CloudMoon' },
+      { label: 'Tập trung melanin sâu', value: 'heavy', icon: 'Activity' },
+      { label: 'Dày sừng do tổn thương bề mặt', value: 'chronic', icon: 'ShieldAlert' }
+    ];
+    if (area.includes('nhũ hoa')) return [
+      { label: 'Sắc tố chưa rạng rỡ', value: 'light', icon: 'Moon' },
+      { label: 'Vùng da kém mịn màng', value: 'medium', icon: 'CloudMoon' },
+      { label: 'Khu vực tập trung sắc tố', value: 'heavy', icon: 'Activity' },
+      { label: 'Mất độ hồng mọng tự nhiên', value: 'chronic', icon: 'ShieldAlert' }
+    ];
+    return [
+      { label: 'Sắc tố bề mặt nhẹ', value: 'light', icon: 'Moon' },
+      { label: 'Vùng da kém rạng rỡ', value: 'medium', icon: 'CloudMoon' },
+      { label: 'Khu vực tối màu rõ rệt', value: 'heavy', icon: 'Activity' },
+      { label: 'Dày sừng & Sắc tố thâm niên', value: 'chronic', icon: 'ShieldAlert' }
+    ];
+  });
+
   const questions = $derived(metadata?.quiz_questions || [
     {
       id: 'area',
@@ -29,22 +59,17 @@
     },
     {
       id: 'level',
-      title: 'Tình trạng sạm đen thực tế?',
-      options: [
-        { label: 'Sạm nhẹ', value: 'light', icon: 'Moon' },
-        { label: 'Sạm trung bình', value: 'medium', icon: 'CloudMoon' },
-        { label: 'Sạm nặng (Báo động)', value: 'heavy', icon: 'Activity' },
-        { label: 'Xơ cứng (Thâm đen)', value: 'chronic', icon: 'ShieldAlert' }
-      ]
+      title: 'Hiện trạng sắc tố thực tế?',
+      options: levelOptions()
     },
     {
       id: 'goal',
       title: 'Mục tiêu mong muốn nhất?',
       options: [
-        { label: 'Trắng sáng bật tone', value: 'whitening', icon: 'Zap' },
+        { label: 'Trắng sáng rạng rỡ', value: 'whitening', icon: 'Zap' },
         { label: 'Phục hồi gốc da', value: 'recovery', icon: 'ShieldCheck' },
-        { label: 'Dứt điểm thâm sạm', value: 'permanent', icon: 'Target' },
-        { label: 'Dịu nhẹ cho da', value: 'sensitive', icon: 'Heart' }
+        { label: 'Dứt điểm vùng tối màu', value: 'permanent', icon: 'Target' },
+        { label: 'Dịu nhẹ cho da nhạy cảm', value: 'sensitive', icon: 'Heart' }
       ]
     }
   ]);

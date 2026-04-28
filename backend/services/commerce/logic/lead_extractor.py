@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from pydantic_ai import Agent
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, and_
+from sqlalchemy.orm import selectinload
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.commerce.order import order_service
 from backend.services.commerce.logic.location_resolver import location_resolver, ResolvedLocation
@@ -172,11 +173,11 @@ class LeadExtractor:
 
     @staticmethod
     async def _resolve_product(db: AsyncSession, name: Optional[str] = None, slug: Optional[str] = None, tenant_id: str = "default") -> Optional[ProductBase]:
-        """Fuzzy lookup product in DB. Scalar projection only (R110)."""
+        """Fuzzy lookup product in DB with variants loaded (R110)."""
         try:
             # Elite V5.9.1: Global Slug Lookup with Tenant Priority (Worker Resilience)
             if slug:
-                stmt = select(ProductBase).where(ProductBase.slug == slug)
+                stmt = select(ProductBase).where(ProductBase.slug == slug).options(selectinload(ProductBase.variants))
                 if tenant_id and tenant_id != "default":
                     from sqlalchemy import case
                     stmt = stmt.order_by(case((ProductBase.tenant_id == tenant_id, 0), else_=1).asc())
@@ -186,7 +187,7 @@ class LeadExtractor:
                 if p: return p
                 
                 # Fallback to fuzzy slug search if exact fails
-                stmt_fuzzy = select(ProductBase).where(ProductBase.slug.ilike(f"%{slug}%")).limit(1)
+                stmt_fuzzy = select(ProductBase).where(ProductBase.slug.ilike(f"%{slug}%")).options(selectinload(ProductBase.variants)).limit(1)
                 if tenant_id and tenant_id != "default":
                     from sqlalchemy import case
                     stmt_fuzzy = stmt_fuzzy.order_by(case((ProductBase.tenant_id == tenant_id, 0), else_=1).asc())
@@ -197,7 +198,7 @@ class LeadExtractor:
             if name:
                 stmt_name = select(ProductBase).where(
                     or_(ProductBase.name.ilike(f"%{name}%"), ProductBase.slug.ilike(f"%{name.replace(' ', '-')}%"))
-                ).limit(1)
+                ).options(selectinload(ProductBase.variants)).limit(1)
                 if tenant_id and tenant_id != "default":
                     from sqlalchemy import case
                     stmt_name = stmt_name.order_by(case((ProductBase.tenant_id == tenant_id, 0), else_=1).asc())
@@ -208,18 +209,51 @@ class LeadExtractor:
         return None
 
     @staticmethod
-    def _apply_martial_combo_rules(qty: int) -> Tuple[int, Optional[str], bool]:
+    def _resolve_optimal_variant(product: ProductBase, requested_qty: int) -> Tuple[Optional[ProductVariant], int, bool]:
         """
-        Elite V4.0: The Martial Combo Protocol (Sales & Upsell Intelligence).
-        1 lọ -> 1 lọ
-        2-3 lọ -> 3 lọ (Combo 2+1)
-        4-5 lọ -> 5 lọ (Combo 4+1)
-        > 5 lọ -> Contact support for bulk price
+        Elite V6.0: Dynamic Combo & Upsell Resolver (SSOT Implementation).
+        Analyzes variants to find the best match for the requested quantity.
+        Returns: (BestVariant, EffectiveQty, NeedsContact)
         """
-        if qty <= 1: return 1, None, False
-        if 2 <= qty <= 3: return 3, "combo-3", False
-        if 4 <= qty <= 5: return 5, "combo-5", False
-        return qty, None, True
+        if not product or not product.variants:
+            return None, requested_qty, False
+
+        # 1. Analyze all variants to find their total item counts
+        variant_analysis = []
+        for v in product.variants:
+            c_qty = v.attributes.get('combo_qty') or v.attributes.get('comboQty') or 1
+            gifts = v.attributes.get('gifts') or []
+            g_qty = sum(g.get('qty', 0) for g in gifts)
+            total_items = c_qty + g_qty
+            variant_analysis.append({
+                "variant": v,
+                "total": total_items,
+                "is_combo": total_items > 1
+            })
+
+        # Sort by total items descending for greedy matching
+        variant_analysis.sort(key=lambda x: x["total"], reverse=True)
+
+        # 2. Greedy & Upsell Matching
+        # Rule: If requested_qty matches a combo or is at least 60% of a combo, upsell to it.
+        for item in variant_analysis:
+            total = item["total"]
+            # Exact match or larger requested quantity
+            if requested_qty >= total:
+                # If quantity is way larger than our biggest combo, maybe need contact for bulk
+                if total > 1 and requested_qty > total * 3:
+                    return item["variant"], requested_qty, True
+                return item["variant"], total, False
+            
+            # Upsell rule: e.g., if user wants 2 and we have a 3-pack (2+1), jump to 3.
+            # 60% threshold: 2/3 = 66% (Match), 1/3 = 33% (No match)
+            if total > 1 and requested_qty >= (total * 0.6):
+                logger.info(f"🚀 [LeadExtractor] Dynamic Upsell: {requested_qty} -> {total} items (Variant: {item['variant'].sku})")
+                return item["variant"], total, False
+
+        # 3. Fallback to smallest variant (usually 1 item)
+        smallest = variant_analysis[-1]["variant"] if variant_analysis else None
+        return smallest, requested_qty, False
 
     @staticmethod
     async def extract_and_convert(
@@ -405,61 +439,87 @@ class LeadExtractor:
             
             for item in lead.items:
                 raw_qty: int = int(item.quantity)
-                protocol_qty, combo_suffix, needs_contact = LeadExtractor._apply_martial_combo_rules(raw_qty)
+                target_slug: Optional[str] = item.id or current_product_slug
+                
+                resolved_product = await LeadExtractor._resolve_product(
+                    db, name=item.name, 
+                    slug=target_slug, tenant_id=target_tenant
+                )
+                
+                if not resolved_product:
+                    logger.warning(f"🛑 [LeadExtractor] Product NOT found: {item.name} / {target_slug}")
+                    lead.is_financial_error = True
+                    lead.is_definite_purchase = False
+                    continue
+
+                # 🚀 Elite V6.0: Dynamic Combo Resolution
+                best_variant, protocol_qty, needs_contact = LeadExtractor._resolve_optimal_variant(resolved_product, raw_qty)
                 
                 if needs_contact:
                     lead.is_definite_purchase = False
                     lead.needs_price_quote = True
                     return lead
 
-                target_slug: Optional[str] = item.id or current_product_slug
-                if combo_suffix and target_slug and "combo" not in target_slug:
-                    target_slug = f"{combo_suffix}-{target_slug}"
+                p_id: str = str(best_variant.id) if best_variant else str(resolved_product.id)
+                price_per: float = float(best_variant.price) if best_variant else float(resolved_product.discount_price or resolved_product.price)
                 
-                resolved_product = await LeadExtractor._resolve_product(
-                    db, name=item.name if not combo_suffix else f"Combo {protocol_qty} {item.name}", 
-                    slug=target_slug, tenant_id=target_tenant
-                )
+                # If using a combo variant, quantity in order is 1 (since the variant itself IS the combo)
+                # UNLESS it's a single item variant, then we use protocol_qty.
+                is_actual_combo = best_variant and (best_variant.attributes.get('combo_qty', 1) > 1 or best_variant.attributes.get('gifts'))
                 
-                p_id: str = str(resolved_product.id) if resolved_product else (target_slug or "unknown")
-                price_per: float = float(resolved_product.discount_price or resolved_product.price) if resolved_product else float(item.price or 0.0)
-
-                if not resolved_product or price_per <= 0:
-                    logger.warning(f"🛑 [LeadExtractor] Financial Error: Unresolved/0đ product: {item.name}")
-                    lead.is_financial_error = True
-                    lead.is_definite_purchase = False # Block order creation
-                
-                if resolved_product and "combo" in resolved_product.slug:
+                if is_actual_combo:
                     total_amount += price_per
-                    order_items.append({"product_id": p_id, "name": resolved_product.name, "quantity": 1, "price": price_per})
+                    order_items.append({
+                        "product_id": p_id, 
+                        "name": f"{resolved_product.name} ({best_variant.sku})", 
+                        "quantity": 1, 
+                        "price": price_per
+                    })
                 else:
                     total_amount += price_per * protocol_qty
-                    order_items.append({"product_id": p_id, "name": resolved_product.name if resolved_product else item.name, "quantity": protocol_qty, "price": price_per})
+                    order_items.append({
+                        "product_id": p_id, 
+                        "name": resolved_product.name, 
+                        "quantity": protocol_qty, 
+                        "price": price_per
+                    })
 
             if not order_items and current_product_slug:
                 # Fallback Heuristic (Surgical Regex Scan)
                 qty_match = re.search(r"(\d+)\s*(lọ|chai|hộp|combo)", message.lower())
                 raw_fallback_qty: int = int(qty_match.group(1)) if qty_match else 1
-                protocol_qty, combo_suffix, needs_contact = LeadExtractor._apply_martial_combo_rules(raw_fallback_qty)
                 
-                if needs_contact:
-                    lead.is_definite_purchase = False
-                    lead.needs_price_quote = True
-                    return lead
+                resolved_product_fallback = await LeadExtractor._resolve_product(db, slug=current_product_slug, tenant_id=target_tenant)
+                
+                if resolved_product_fallback:
+                    best_variant, protocol_qty, needs_contact = LeadExtractor._resolve_optimal_variant(resolved_product_fallback, raw_fallback_qty)
                     
-                target_slug_fallback: str = current_product_slug
-                if combo_suffix and "combo" not in target_slug_fallback:
-                    target_slug_fallback = f"{combo_suffix}-{target_slug_fallback}"
-                
-                resolved_product_fallback = await LeadExtractor._resolve_product(db, slug=target_slug_fallback, tenant_id=target_tenant)
-                price_per_fallback: float = float(resolved_product_fallback.discount_price or resolved_product_fallback.price) if resolved_product_fallback else 0.0
-                
-                if resolved_product_fallback and "combo" in resolved_product_fallback.slug:
-                    order_items.append({"product_id": str(resolved_product_fallback.id), "name": resolved_product_fallback.name, "quantity": 1, "price": price_per_fallback})
-                    total_amount = price_per_fallback
-                else:
-                    order_items.append({"product_id": current_product_slug, "name": resolved_product_fallback.name if resolved_product_fallback else "Sản phẩm", "quantity": protocol_qty, "price": price_per_fallback})
-                    total_amount = price_per_fallback * protocol_qty
+                    if needs_contact:
+                        lead.is_definite_purchase = False
+                        lead.needs_price_quote = True
+                        return lead
+                    
+                    p_id_fallback = str(best_variant.id) if best_variant else str(resolved_product_fallback.id)
+                    price_per_fallback = float(best_variant.price) if best_variant else float(resolved_product_fallback.discount_price or resolved_product_fallback.price)
+                    
+                    is_actual_combo = best_variant and (best_variant.attributes.get('combo_qty', 1) > 1 or best_variant.attributes.get('gifts'))
+                    
+                    if is_actual_combo:
+                        order_items.append({
+                            "product_id": p_id_fallback, 
+                            "name": f"{resolved_product_fallback.name} ({best_variant.sku})", 
+                            "quantity": 1, 
+                            "price": price_per_fallback
+                        })
+                        total_amount = price_per_fallback
+                    else:
+                        order_items.append({
+                            "product_id": p_id_fallback, 
+                            "name": resolved_product_fallback.name, 
+                            "quantity": protocol_qty, 
+                            "price": price_per_fallback
+                        })
+                        total_amount = price_per_fallback * protocol_qty
 
             if not order_items: return lead
 

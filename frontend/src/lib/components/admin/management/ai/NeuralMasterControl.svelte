@@ -29,6 +29,7 @@
     primary_model: string;
     ai_models: string[];
     discovered_models: string[];
+    updated_at?: number;
   }
 
   let isOpen = $state(false);
@@ -328,6 +329,14 @@
           {/if}
         </div>
       </div>
+      {#if modelStatus?.updated_at}
+        <div class="flex items-center justify-end px-2" in:fade>
+          <span class="text-[9px] font-mono text-zinc-600 uppercase tracking-widest flex items-center gap-1.5">
+            <div class="w-1 h-1 rounded-full bg-indigo-500/50"></div>
+            Last Stack Sync: {new Date(modelStatus.updated_at * 1000).toLocaleString('vi-VN')}
+          </span>
+        </div>
+      {/if}
     </div>
   </div>
 

@@ -22,6 +22,8 @@ class SmartKeyRotator(KeyMetricsMixin, KeyLoaderMixin):
     BLACKLIST_PREFIX = "ai:key:v70:black:"
     MODEL_DAILY_PREFIX = "ai:key:v70:daily:"
     POISON_PREFIX = "ai:model:v75:poison:"
+    MODEL_METADATA_PREFIX = "ai:model:v75:meta:"
+    MODEL_CAPABILITY_PREFIX = "ai:model:v75:cap:"
     DISCOVERED_MODELS_KEY = "ai:bridge:discovered:v75"
     BASE_COOLDOWN, MAX_COOLDOWN = 60, 86400
     MAX_RPM = int(os.getenv("GEMINI_MAX_RPM", 10))

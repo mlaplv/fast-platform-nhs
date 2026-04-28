@@ -10,34 +10,69 @@
     ShieldAlert,
     Activity,
     ShieldX,
-    Wind
+    Wind,
+    Shield,
+    Sun,
+    Layers,
+    Moon,
+    CloudMoon,
+    ShieldCheck,
+    Target,
+    Heart,
+    Flame,
+    Droplets,
+    RefreshCw,
+    Circle
   } from 'lucide-svelte';
 
   let { icon } = $props<{ icon: string }>();
 
   const iconMap: Record<string, import('svelte').Component> = {
-    // Body Odor Levels
+    // 🚀 Elite V2.2: Comprehensive Bio-Icon Mapping
+    'Circle': Circle,
+    'Zap': Zap,
+    'Sparkles': Sparkles,
+    'Flame': Flame,
+    'Sun': Sun,
+    'Droplets': Droplets,
+    'Moon': Moon,
+    'CloudMoon': CloudMoon,
+    'Activity': Activity,
+    'ShieldAlert': ShieldAlert,
+    'ShieldCheck': ShieldCheck,
+    'Target': Target,
+    'Heart': Heart,
+    'Wind': Wind,
+    'Shield': Shield,
+    'Layers': Layers,
+    
+    // Legacy Emoji Mappings (Backwards Compatibility)
+    '🛁': Wind,
+    '👙': Shield,
+    '✨': Sun,
+    '💧': Layers,
+    '🌕': Moon,
+    '🌗': CloudMoon,
+    '🌑': ShieldAlert,
+    '🔘': ShieldCheck,
+    '🌱': Sparkles,
+    '🔄': RefreshCw,
+    '🚀': Zap,
     '😊': Sparkles,
-    '😐': Waves,
-    '😰': ShieldAlert,
+    '😐': Activity,
+    '🕒': Timer,
+    '📅': Calendar,
+    '🧬': Dna,
+    'Plus': PlusCircle,
+    'none': Circle,
+
+    // Legacy String Mappings
     'light': Sparkles,
     'medium': Waves,
     'heavy': ShieldAlert,
-    
-    // Time & History
-    '🕒': Timer,
-    '📅': Calendar,
     'recent': Timer,
     'chronic': Calendar,
-    
-    // Medical/Science
-    '🧬': Dna,
     'genetic': Dna,
-    
-    // Usage/Status
-    '🆕': PlusCircle,
-    'none': PlusCircle,
-    '❌': ShieldX,
     'failed': ShieldX
   };
 

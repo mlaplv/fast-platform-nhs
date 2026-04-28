@@ -7,7 +7,7 @@ Lý do chọn giải pháp:
 """
 
 import os
-from advanced_alchemy.config.asyncio import SQLAlchemyAsyncConfig
+from advanced_alchemy.config.asyncio import SQLAlchemyAsyncConfig, AsyncSessionConfig
 from advanced_alchemy.extensions.litestar import SQLAlchemyPlugin
 
 # Elite V2.2: DATABASE_URL must be provided via environment. 
@@ -19,7 +19,7 @@ if not DATABASE_URL:
 
 db_config: SQLAlchemyAsyncConfig = SQLAlchemyAsyncConfig(
     connection_string=DATABASE_URL,
-    session_config={"expire_on_commit": False},
+    session_config=AsyncSessionConfig(expire_on_commit=False),
     engine_config={"pool_pre_ping": True, "pool_size": 5, "max_overflow": 10}
 )
 

@@ -248,7 +248,7 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         # Specific mixins for different modes
         if mode == "ai_inspect":
             context.update({
-                "four_blocks": "[FOMO - SCIENCE - RITUAL - TRUST]" if is_product else "[HOOK - EVIDENCE - STRATEGY - CONNECTION]",
+                "four_blocks": "[FOMO - SCIENCE - RITUAL - CONNECTION]" if is_product else "[HOOK - EVIDENCE - STRATEGY - CONNECTION]",
                 "block_1": "FOMO" if is_product else "HOOK",
                 "block_3": "RITUAL" if is_product else "STRATEGY"
             })

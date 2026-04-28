@@ -127,7 +127,14 @@ class TrinityBridge:
         safety_none = bool(kwargs.pop("safety_none", False))
 
         for m_name in models:
+            if self.models_helper.is_blacklisted(m_name):
+                logger.debug(f"🛡️ [TrinityBridge] Blocking blacklisted model: {m_name}")
+                continue
+            rpm_fail_count = 0
             for att in range(max_k):
+                if rpm_fail_count >= 3:
+                    logger.warning(f"🛑 [TrinityBridge] Max RPM failures (3) for {m_name}. Skipping to fallback model.")
+                    break
                 key = None
                 try:
                     # R105: Key discovery with strict safety
@@ -166,8 +173,16 @@ class TrinityBridge:
 
                     # Elite V2.2: Standardized Result Extraction (Universal Wrapper Bypass)
                     if hasattr(res, 'data'):
+                        logger.warning(f"📦 [TrinityBridge] Extraction (data): {type(res.data).__name__}")
+                        # Debug: Check for annotations in the data
+                        if hasattr(res.data, 'annotations') and not getattr(res.data, 'annotations'):
+                            logger.warning(f"⚠️ [TrinityBridge] Model {m_name} returned EMPTY annotations!")
+                        elif hasattr(res.data, 'seo_annotations') and not getattr(res.data, 'seo_annotations'):
+                            logger.warning(f"⚠️ [TrinityBridge] Model {m_name} returned EMPTY seo_annotations!")
+                        
                         return res.data
                     if hasattr(res, 'output'):
+                        logger.warning(f"📦 [TrinityBridge] Extraction (output): {type(res.output).__name__}")
                         return res.output
                     return res
 
@@ -193,6 +208,7 @@ class TrinityBridge:
                             else:
                                 logger.warning(f"⏳ [TrinityBridge] Rate Limit (RPM) hit: {m_name}{wait_info}. Rotating key...")
                                 await self.rotator.mark_unhealthy(key, reason="rate_limit", session_id=s_id)
+                                rpm_fail_count += 1
                                 continue
                         else:
                             logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503): {m_name}. Retrying fallback...")
@@ -267,7 +283,14 @@ class TrinityBridge:
         safety_none = bool(kwargs.pop("safety_none", False))
 
         for m_name in models:
+            if self.models_helper.is_blacklisted(m_name):
+                logger.debug(f"🛡️ [TrinityBridge] Blocking blacklisted model (Stream): {m_name}")
+                continue
+            rpm_fail_count = 0
             for att in range(max_k):
+                if rpm_fail_count >= 3:
+                    logger.warning(f"🛑 [TrinityBridge] Max RPM failures (Stream) (3) for {m_name}. Skipping to fallback model.")
+                    break
                 key = None
                 try:
                     key = await self.rotator.get_key(model_name=m_name, session_id=s_id)
@@ -305,6 +328,7 @@ class TrinityBridge:
                         else:
                             logger.warning(f"🛰️ [TrinityBridge] Rate Limit/Unavailable (Stream): {m_name}. Retrying fallback...")
                             await self.rotator.mark_unhealthy(key, reason="rate_limit", session_id=s_id)
+                            rpm_fail_count += 1
                         continue
 
                     if cat == "auth_hard": 

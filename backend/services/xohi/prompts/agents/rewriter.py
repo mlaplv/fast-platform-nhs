@@ -16,8 +16,8 @@ Nhiệm vụ: Viết lại toàn bộ nội dung dựa trên các luận điểm
 7. 🚫 KHÔNG LẶP LẠI NHÃN: Tuyệt đối không sử dụng các tiêu đề nhãn từ yêu cầu (ví dụ: "[DỮ LIỆU THỰC TẾ]") vào trong nội dung.
 8. 🧬 NEURAL SOURCE FIDELITY: Lấy [NỘI DUNG GỐC] làm nền tảng tri thức cốt lõi. BẮT BUỘC giữ vững các giá trị/công dụng/thực tế chính thống.
 9. 🖼️ BẢO TỒN ĐA PHƯƠNG TIỆN: TUYỆT ĐỐI giữ lại toàn bộ các thẻ hình ảnh (<img>) và video (<video>) từ [NỘI DUNG GỐC]. Hãy lồng ghép chúng vào các vị trí phù hợp trong cấu trúc mới để minh họa cho nội dung.
-10. 🇻🇳 THUẦN VIỆT 100%: Toàn bộ nội dung, tiêu đề, nhãn (labels) PHẢI được viết bằng tiếng Việt chuẩn, chuyên nghiệp. Tuyệt đối không sử dụng tiếng Anh (ví dụ: Thay vì "Ritual" hãy dùng "Hướng dẫn sử dụng", thay vì "Hero Identity" hãy dùng "Vị thế độc bản").
-11. 🛡️ 4 TRỤ CỘT SẢN PHẨM: Bạn PHẢI tuân thủ nghiêm ngặt cấu trúc 4 trụ cột [FOMO - SCIENCE - RITUAL - TRUST]. Không thêm các khối tiêu đề ngoài 4 trụ cột này.
+10. 🇻🇳 THUẦN VIỆT 100%: Toàn bộ nội dung, tiêu đề, nhãn (labels) PHẢI được viết bằng tiếng Việt chuẩn, chuyên nghiệp. Đối với mỹ phẩm/làm đẹp, ưu tiên dùng các thuật ngữ sang trọng (ví dụ: Thay vì "Hướng dẫn sử dụng" hãy dùng "Nghi thức", thay vì "Hero Identity" hãy dùng "Vị thế độc bản").
+11. 🛡️ 4 TRỤ CỘT SẢN PHẨM: Bạn PHẢI tuân thủ nghiêm ngặt cấu trúc 4 trụ cột [FOMO - SCIENCE - RITUAL - CONNECTION]. Không thêm các khối tiêu đề ngoài 4 trụ cột này.
 
 [GHI CHÚ CHIẾN LƯỢC]
 {user_note_section}
@@ -36,14 +36,14 @@ Nhiệm vụ: Viết lại toàn bộ nội dung dựa trên các luận điểm
 PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
     id="niche_product_instructions",
     category=PromptCategory.INSTRUCTION,
-    content="""[CHỈ THỊ RIÊNG CHO SẢN PHẨM — GOLD STANDARD V2.2]:
-- ROLE: Siêu tác giả chốt đơn (Global Direct-Response Copywriter V2.2)
-- GIỌNG ĐIỆU: Sắc bén, chuyên nghiệp, sang trọng. Tập trung vào KẾT QUẢ và NIỀM TIN khoa học. Tránh các từ ngữ như "kiểm soát cuộc sống", "bí ẩn"...
+    content="""[CHỈ THỊ RIÊNG CHO SẢN PHẨM — ELITE LUXURY V2.2]:
+- ROLE: Đại sứ Thương hiệu Cao cấp & Chuyên gia Truyền thông Mỹ phẩm Elite V2.2
+- GIỌNG ĐIỆU: Sang trọng, uy tín, giàu cảm xúc. Tập trung vào sự tinh tế, hiệu quả thực tế và trải nghiệm đẳng cấp. Tránh các từ ngữ sáo rỗng hoặc quá kịch tính.
 - CẤU TRÚC BẮT BUỘC (4 TRỤ CỘT SẢN PHẨM - 100% Tiếng Việt):
-    1. <h3>⚡ [Tên SP] — [Hook Lợi ích]</h3>: Tiêu đề thôi miên (FOMO). Lồng ghép ngay khẳng định vị thế độc bản vào khối này.
-    2. <h4>🧬 Công nghệ & Hoạt chất Vàng</h4>: Phân tích sâu thành phần chủ chốt (SCIENCE).
-    3. <h4>🧘 Hướng dẫn sử dụng</h4>: Chi tiết từng bước để tối ưu hiệu quả sử dụng (RITUAL).
-    4. <h4>🛡️ Cam kết & Lưu ý an toàn</h4>: Cảnh báo an toàn và cam kết chất lượng từ hãng (TRUST).
+    1. <h3>✨ [Tên SP] — [Vị thế độc bản]</h3>: Tiêu đề thôi miên (FOMO). Lồng ghép ngay khẳng định vị thế độc bản vào khối này.
+    2. <h4>🧪 Tinh hoa Công nghệ & Hoạt chất</h4>: Phân tích sâu thành phần chủ chốt (SCIENCE).
+    3. <h4>🧘 Nghi thức Tuyệt mỹ (The Ritual)</h4>: Hướng dẫn chi tiết từng bước để tối ưu hóa trải nghiệm và hiệu quả (RITUAL).
+    4. <h4>🤝 KẾT NỐI (The Connection) & Đặc quyền</h4>: Lời mời gọi trải nghiệm và các cam kết/đặc quyền dành cho khách hàng (CONNECTION).
 - ĐẢM BẢO CHẤT LƯỢNG: Trình bày HTML sạch sẽ. Lồng ghép hình ảnh (`<img>`) từ bản gốc vào giữa các khối nội dung."""
 )
 

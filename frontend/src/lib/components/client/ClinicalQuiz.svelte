@@ -22,20 +22,80 @@
 
   const shopStore = getShopStore();
 
-  const metadata = $derived(propMetadata || product?.metadata || {});
-  const questions = $derived(propQuestions || (metadata.quiz_questions as QuizQuestion[])?.map((q, i) => ({
-    ...q,
-    id: q.id || `q_auto_${i}_${Date.now()}`
-  })) || []);
-  const isEditable = $derived(liveEditStore.isEditMode && liveEditStore.isAdmin);
-
   const QUIZ_FALLBACKS = {
     result_headline: 'PHÁC ĐỒ ĐIỀU TRỊ <br/><span class="text-luxury-copper">ĐỘC QUYỜN.</span>',
-    result_subheadline: '⚠️ CẢNH BÁO TỪ AI: Tình trạng sạm sạm của Sếp cần can thiệp ngay với ít nhất <span class="text-luxury-gold font-semibold">{quantity} đơn vị</span> để đạt liệu trình phục hồi tối đa.',
+    result_subheadline: '⚠️ CẢNH BÁO TỪ AI: Hiện trạng sắc tố của Sếp cần can thiệp ngay với ít nhất <span class="text-luxury-gold font-semibold">{quantity} đơn vị</span> để đạt liệu trình phục hồi tối đa.',
     result_cta: 'KÍCH HOẠT LIỆU TRÌNH NGAY',
     restart_label: 'Thiết lập lại dữ liệu',
     loading_label: 'Đang truy xuất cơ sở dữ liệu lâm sàng...'
   };
+
+  const selectedAreaLabel = $derived(answers.find(ans => ans.q.includes('giải cứu'))?.a || '');
+  
+  const levelOptions = $derived(() => {
+    const area = selectedAreaLabel.toLowerCase();
+    if (area.includes('bikini')) return [
+      { label: 'Sắc tố chưa đồng nhất', value: 'light', icon: 'Moon' },
+      { label: 'Khu vực kém mịn màng', value: 'medium', icon: 'CloudMoon' },
+      { label: 'Điểm sắc tố li ti', value: 'heavy', icon: 'Activity' },
+      { label: 'Dày sừng vùng nhạy cảm', value: 'chronic', icon: 'ShieldAlert' }
+    ];
+    if (area.includes('nách')) return [
+      { label: 'Kích ứng sắc tố nhẹ', value: 'light', icon: 'Moon' },
+      { label: 'Tối màu do ma sát / hóa chất', value: 'medium', icon: 'CloudMoon' },
+      { label: 'Tập trung melanin sâu', value: 'heavy', icon: 'Activity' },
+      { label: 'Dày sừng do tổn thương bề mặt', value: 'chronic', icon: 'ShieldAlert' }
+    ];
+    if (area.includes('nhũ hoa')) return [
+      { label: 'Sắc tố chưa rạng rỡ', value: 'light', icon: 'Moon' },
+      { label: 'Vùng da kém mịn màng', value: 'medium', icon: 'CloudMoon' },
+      { label: 'Khu vực tập trung sắc tố', value: 'heavy', icon: 'Activity' },
+      { label: 'Mất độ hồng mọng tự nhiên', value: 'chronic', icon: 'ShieldAlert' }
+    ];
+    return [
+      { label: 'Sắc tố bề mặt nhẹ', value: 'light', icon: 'Moon' },
+      { label: 'Vùng da kém rạng rỡ', value: 'medium', icon: 'CloudMoon' },
+      { label: 'Khu vực tối màu rõ rệt', value: 'heavy', icon: 'Activity' },
+      { label: 'Dày sừng & Sắc tố thâm niên', value: 'chronic', icon: 'ShieldAlert' }
+    ];
+  });
+
+  const metadata = $derived(propMetadata || product?.metadata || {});
+  const questions = $derived(propQuestions || (metadata.quiz_questions as QuizQuestion[])?.map((q, i) => {
+    if (q.id === 'level' || q.title?.includes('sắc tố thực tế')) {
+       return { ...q, options: levelOptions() };
+    }
+    return {
+      ...q,
+      id: q.id || `q_auto_${i}_${Date.now()}`
+    };
+  }) || [
+    {
+      id: 'area',
+      title: 'Vùng cần giải cứu sắc tố?',
+      options: [
+        { label: 'Vùng nách', value: 'armpit', icon: 'Wind' },
+        { label: 'Vùng bikini', value: 'bikini', icon: 'Shield' },
+        { label: 'Vùng nhũ hoa', value: 'sun', icon: 'Sun' },
+        { label: 'Khác / Đùi trong', value: 'other', icon: 'Layers' }
+      ]
+    },
+    {
+      id: 'level',
+      title: 'Hiện trạng sắc tố thực tế?',
+      options: levelOptions()
+    },
+    {
+      id: 'goal',
+      title: 'Mục tiêu mong muốn nhất?',
+      options: [
+        { label: 'Trắng sáng rạng rỡ', value: 'whitening', icon: 'Zap' },
+        { label: 'Phục hồi gốc da', value: 'recovery', icon: 'ShieldCheck' },
+        { label: 'Dứt điểm vùng tối màu', value: 'permanent', icon: 'Target' },
+        { label: 'Dịu nhẹ cho da nhạy cảm', value: 'sensitive', icon: 'Heart' }
+      ]
+    }
+  ]);
 
   const labels = $derived({
     result_headline: (metadata.quiz_result_headline as string) || QUIZ_FALLBACKS.result_headline,
@@ -44,6 +104,8 @@
     restart_label: (metadata.quiz_restart_label as string) || QUIZ_FALLBACKS.restart_label,
     loading_label: (metadata.quiz_loading_label as string) || QUIZ_FALLBACKS.loading_label
   });
+
+  const isEditable = $derived(liveEditStore.isEditMode && liveEditStore.isAdmin);
 
   let currentStep = $state(0);
   let answers = $state<Array<{q: string, a: string}>>([]);

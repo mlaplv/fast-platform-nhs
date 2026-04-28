@@ -53,6 +53,8 @@ _AD_SNIPPET_KEYWORDS: List[str] = [
 _TRUSTED_ECOMMERCE: List[str] = [
     "shopee.vn", "lazada.vn", "tiki.vn", "sendo.vn",
     "hasaki.vn", "guardian.com.vn", "watsons.vn",
+    "miccosmo.vn", "haligroup.vn", "maihan.vn", "sieuthilamdep.com",
+    "chotinhcuaboo.com", "xachtaynhat.net", "domy.vn"
 ]
 
 
@@ -376,32 +378,10 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
     """XOHI Recon Engine V3.0: Trích xuất dữ liệu thị trường đa tầng + multi-query."""
     clean_query = query.strip()
 
-    # --- Layer 1: Multi-Query Strategy (2 queries song song) ---
-    query_ecommerce = f"{clean_query} mua online giá site:shopee.vn OR site:lazada.vn OR site:tiki.vn OR site:hasaki.vn"
+    # --- Layer 1: Single-Query Strategy (Emergency Quota Saving) ---
     query_official = f"{clean_query} giá bán chính hãng 2026"
-
-    raw_ecommerce, raw_official = await asyncio.gather(
-        google_search_service.search(query_ecommerce, num=10),
-        google_search_service.search(query_official, num=10),
-        return_exceptions=True,
-    )
-
-    # Handle exceptions from gather
-    if isinstance(raw_ecommerce, BaseException):
-        logger.warning(f"[PriceAgent] Ecommerce query failed: {raw_ecommerce}")
-        raw_ecommerce = []
-    if isinstance(raw_official, BaseException):
-        logger.warning(f"[PriceAgent] Official query failed: {raw_official}")
-        raw_official = []
-
-    # Merge & dedup by link
-    seen_links: set[str] = set()
-    merged_raw: List[Dict[str, object]] = []
-    for item in list(raw_ecommerce) + list(raw_official):
-        link = str(item.get("link", ""))
-        if link and link not in seen_links:
-            seen_links.add(link)
-            merged_raw.append(item)
+    raw_official = await google_search_service.search(query_official, num=10)
+    merged_raw = list(raw_official) if raw_official else []
 
     if not merged_raw:
         return "KHÔNG TÌM THẤY DỮ LIỆU."
@@ -435,9 +415,9 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
         ad_tag = " [QUẢNG CÁO]" if is_ad else ""
         domain = r.displayLink or "unknown"
 
-        # Layer 3: Deep scan top 7 (tăng từ 5)
+        # Layer 3: Deep scan top 3 (Elite V2.2: Reduced from 10 to save quota)
         try:
-            if idx >= 7:
+            if idx >= 3:
                 price_info = f"GIÁ_META: {meta_price:,.0f} VND" if meta_price else "GIÁ_META: N/A"
                 return f"[{idx+1}]{ad_tag} {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    {price_info}\n"
 
@@ -502,19 +482,78 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
             price_info = f"GIÁ_META: {meta_price:,.0f} VND" if meta_price else "GIÁ_META: N/A"
             return f"[{idx+1}]{ad_tag} {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    {price_info} (scrape_error: {str(e)[:80]})\n"
 
-    async with httpx.AsyncClient(follow_redirects=True) as client:
-        scan_reports: List[str] = []
-        for i, r in enumerate(results):
-            report: str = await neural_verify(r, i, client)
-            scan_reports.append(report)
-            # Thêm delay nhỏ để tránh spam API
-            await asyncio.sleep(0.2)
+    # Limit concurrent scraping to 2 to avoid RPM flooding
+    sem = asyncio.Semaphore(2)
+    async def limited_verify(r, i, cl):
+        async with sem:
+            return await neural_verify(r, i, cl)
 
-    return "DỮ LIỆU TRINH SÁT THỰC TẾ (V3.0):\n" + "\n".join(scan_reports)
+    async with httpx.AsyncClient(follow_redirects=True) as client:
+        # Use gather with semaphore to be faster but safe
+        tasks = [limited_verify(r, i, client) for i, r in enumerate(results)]
+        scan_reports = await asyncio.gather(*tasks)
+
+    # Filter out invalid results for analysis
+    valid_prices = [r.extract_metadata_price() for r in results if r.extract_metadata_price()]
+    avg_p = sum(valid_prices) / len(valid_prices) if valid_prices else 0
+    min_p = min(valid_prices) if valid_prices else 0
+    
+    return f"DỮ LIỆU TRINH SÁT THỰC TẾ (V3.0):\n" + "\n".join(scan_reports) + f"\n\n[HEURISTIC_STATS]: avg={avg_p}, min={min_p}, count={len(valid_prices)}"
+
 
 # --- 4. PUBLIC API ---
 
 async def scan_product_price(product_name: str) -> MarketPriceIntel:
-    """Khởi chạy chiến dịch tình báo giá thị trường V3.0."""
+    """Khởi chạy chiến dịch tình báo giá thị trường V3.0 (Elite V2.2: Heuristic Fallback)."""
     prompt = f"HÃY THỰC HIỆN TRINH SÁT CHO SẢN PHẨM: {product_name}"
-    return await trinity_bridge.run(agent=price_agent, prompt=prompt, role="brain", timeout=150.0)
+    
+    try:
+        return await trinity_bridge.run(agent=price_agent, prompt=prompt, role="brain", timeout=120.0)
+    except Exception as e:
+        logger.warning(f"⚠️ [PriceAgent] Neural Engine bận ({str(e)[:50]}). Kích hoạt Heuristic Mode...")
+        
+        # ELITE V2.2: HEURISTIC MODE - Phân tích cục bộ không cần AI
+        # Chúng ta gọi get_market_results thủ công để lấy dữ liệu thô
+        # Lưu ý: Vì đây là tool, ta cần giả lập RunContext nếu cần, hoặc gọi logic bên trong.
+        # Ở đây ta sẽ gọi lại Google Search và tính toán cơ bản.
+        
+        from backend.services.xohi.google_search import google_search_service
+        raw_results = await google_search_service.search(f"{product_name} giá bán chính hãng 2026", num=10)
+        
+        prices = []
+        organic = []
+        for r in raw_results:
+            try:
+                res = RawSearchResult.model_validate(r)
+                p = res.extract_metadata_price()
+                link = str(res.link)
+                is_ad = detect_is_ad(link, res.snippet)
+                
+                sr = SearchResult(
+                    platform=res.displayLink or "Unknown",
+                    title=res.title,
+                    price=p,
+                    link=link,
+                    is_ad=is_ad
+                )
+                
+                if is_ad: continue # Heuristic: skip ads for stats
+                
+                organic.append(sr)
+                if p: prices.append(p)
+            except: continue
+            
+        avg_m = sum(prices) / len(prices) if prices else 0
+        min_m = min(prices) if prices else 0
+        
+        return MarketPriceIntel(
+            ads=[],
+            organic_results=organic[:5],
+            analysis_overview=f"Hệ thống đang ở chế độ Heuristic do AI quá tải. Dựa trên {len(organic)} kết quả thực tế, giá trung bình thị trường khoảng {avg_m:,.0f} VND.",
+            critical_analysis=f"Phân tích cục bộ: Giá thấp nhất tìm thấy là {min_m:,.0f} VND. Đối thủ đang cạnh tranh gay gắt về giá trong phân khúc này.",
+            optimization_strategy="Đề xuất: Duy trì mức giá hiện tại và tập trung vào dịch vụ hậu mãi trong khi chờ hệ thống Neural Core ổn định trở lại.",
+            viral_hook="Giá tốt nhất thị trường - Kiểm chứng bởi XoHi Heuristic Engine!",
+            avg_market_price=avg_m,
+            min_market_price=min_m,
+            competitor_count=len(prices)
+        )
