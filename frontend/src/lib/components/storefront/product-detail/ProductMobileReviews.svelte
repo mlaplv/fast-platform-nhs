@@ -5,10 +5,11 @@
   import { apiClient } from '$lib/utils/apiClient';
 
   interface Props {
-    product: Product;
+    product: Product | Category;
+    entityType?: 'PRODUCT' | 'CATEGORY' | 'NEWS';
   }
 
-  let { product }: Props = $props();
+  let { product, entityType = 'PRODUCT' }: Props = $props();
 
   let reviews = $state<Review[]>([]);
   let stats = $state<ReviewStats | null>(null);
@@ -18,7 +19,7 @@
     try {
       stats = await apiClient.get<ReviewStats>(`/client/reviews/stats`, {
         params: {
-          entity_type: 'PRODUCT',
+          entity_type: entityType,
           entity_id: product.id
         }
       });
@@ -32,7 +33,7 @@
     try {
       const data = await apiClient.get<{ items: Review[] }>(`/client/reviews`, {
         params: {
-          entity_type: 'PRODUCT',
+          entity_type: entityType,
           entity_id: product.id,
           status: 'APPROVED',
           limit: '1'
@@ -51,7 +52,7 @@
     fetchReviews();
   });
 
-  const averageRating = $derived(stats?.average_rating || product.metadata?.rating || '5.0');
+  const averageRating = $derived(stats?.average_rating || (product as any).metadata?.rating || '5.0');
   const reviewCount = $derived(stats?.total_count || 0);
 
   function isVideo(url: string) {

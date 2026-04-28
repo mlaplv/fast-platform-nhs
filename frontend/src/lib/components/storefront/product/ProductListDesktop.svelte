@@ -355,40 +355,41 @@
     {/if}
 
     <main class="flex-1 min-w-0">
-      {#if !isSearchMode}
-      <div class="bg-white border border-gray-100 p-2 mb-8 flex flex-col gap-2 shadow-sm">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              {#each ['popular', 'sales', 'latest'] as sort}
-                <button 
-                  onclick={() => activeSort = sort}
-                  class="px-6 py-3 text-[12px] font-black tracking-tighter transition-all relative {activeSort === sort ? 'text-[#ee4d2d]' : 'text-gray-400'}">
-                  {sort === 'popular' ? 'PHỔ BIẾN' : sort === 'sales' ? 'BÁN CHẠY' : 'MỚI NHẤT'}
-                  {#if activeSort === sort}
-                    <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-[#ee4d2d] rounded-full"></div>
-                  {/if}
-                </button>
-              {/each}
+      <div class="bg-white border border-gray-100 shadow-sm p-8">
+        {#if !isSearchMode}
+        <div class="border-b border-gray-50 pb-2 mb-8 flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                {#each ['popular', 'sales', 'latest'] as sort}
+                  <button 
+                    onclick={() => activeSort = sort}
+                    class="px-6 py-3 text-[12px] font-black tracking-tighter transition-all relative {activeSort === sort ? 'text-[#ee4d2d]' : 'text-gray-400'}">
+                    {sort === 'popular' ? 'PHỔ BIẾN' : sort === 'sales' ? 'BÁN CHẠY' : 'MỚI NHẤT'}
+                    {#if activeSort === sort}
+                      <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-[#ee4d2d] rounded-full"></div>
+                    {/if}
+                  </button>
+                {/each}
+              </div>
+              <div class="relative group/sort">
+                 <button class="bg-gray-50 border px-5 py-2.5 text-[11px] font-black text-gray-800 flex items-center justify-between w-[200px] uppercase tracking-tighter">
+                    <span>{activeSort === 'price-asc' ? 'GIÁ: THẤP ĐẾN CAO' : activeSort === 'price-desc' ? 'GIÁ: CAO ĐẾN THẤP' : 'SẮP XẾP THEO GIÁ'}</span>
+                 </button>
+                 <div class="absolute top-full right-0 w-full bg-white border shadow-2xl opacity-0 group-hover/sort:opacity-100 invisible group-hover/sort:visible transition-all py-1 z-50">
+                    <button onclick={() => activeSort = 'price-asc'} class="w-full text-left px-5 py-3.5 text-[11px] font-black text-gray-500 hover:text-[#ee4d2d] hover:bg-gray-50">GIÁ: THẤP ĐẾN CAO</button>
+                    <button onclick={() => activeSort = 'price-desc'} class="w-full text-left px-5 py-3.5 text-[11px] font-black text-gray-500 hover:text-[#ee4d2d] hover:bg-gray-50">GIÁ: CAO ĐẾN THẤP</button>
+                 </div>
+              </div>
             </div>
-            <div class="relative group/sort">
-               <button class="bg-gray-50 border px-5 py-2.5 text-[11px] font-black text-gray-800 flex items-center justify-between w-[200px] uppercase tracking-tighter">
-                  <span>{activeSort === 'price-asc' ? 'GIÁ: THẤP ĐẾN CAO' : activeSort === 'price-desc' ? 'GIÁ: CAO ĐẾN THẤP' : 'SẮP XẾP THEO GIÁ'}</span>
-               </button>
-               <div class="absolute top-full right-0 w-full bg-white border shadow-2xl opacity-0 group-hover/sort:opacity-100 invisible group-hover/sort:visible transition-all py-1 z-50">
-                  <button onclick={() => activeSort = 'price-asc'} class="w-full text-left px-5 py-3.5 text-[11px] font-black text-gray-500 hover:text-[#ee4d2d] hover:bg-gray-50">GIÁ: THẤP ĐẾN CAO</button>
-                  <button onclick={() => activeSort = 'price-desc'} class="w-full text-left px-5 py-3.5 text-[11px] font-black text-gray-500 hover:text-[#ee4d2d] hover:bg-gray-50">GIÁ: CAO ĐẾN THẤP</button>
-               </div>
-            </div>
-          </div>
-          {#if hasActiveFilters()}
-            <div class="px-4 py-2 border-t border-gray-50 flex flex-wrap items-center gap-2">
-               <button onclick={clearAllFilters} class="text-[#ee4d2d] hover:underline text-[10px] font-black uppercase tracking-tighter">Xóa tất cả bộ lọc</button>
-            </div>
-          {/if}
-      </div>
-      {/if}
+            {#if hasActiveFilters()}
+              <div class="px-4 py-2 border-t border-gray-50 flex flex-wrap items-center gap-2">
+                 <button onclick={clearAllFilters} class="text-[#ee4d2d] hover:underline text-[10px] font-black uppercase tracking-tighter">Xóa tất cả bộ lọc</button>
+              </div>
+            {/if}
+        </div>
+        {/if}
 
-      <div class="mt-8">
+      <div class="mt-2">
         {#if filteredProducts.length > 0}
           <ProductGrid products={displayProducts} />
         {:else}
@@ -406,14 +407,19 @@
             <div class="text-[11px] font-black text-[#ee4d2d] animate-pulse uppercase">Đang tải thêm...</div>
           {/if}
         </div>
-      {:else if serverTotal > 0}
-        <div class="mt-16 text-center py-10 border-t border-gray-50">
-           <span class="text-[11px] font-black text-gray-300 uppercase tracking-[0.5em]">Đã hiển thị toàn bộ {serverTotal} sản phẩm</span>
-        </div>
-      {/if}
+        {:else if serverTotal > 0}
+          <div class="mt-12 text-center py-6 border-t border-gray-50">
+             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-60 flex items-center justify-center gap-3">
+               <div class="w-8 h-px bg-gray-200"></div>
+               Đã hiển thị toàn bộ {serverTotal} sản phẩm
+               <div class="w-8 h-px bg-gray-200"></div>
+             </span>
+          </div>
+        {/if}
+      </div>
       
       {#if !isSearchMode && category}
-        <div class="mt-20 border-t border-gray-100/50">
+        <div class="mt-8">
           <ProductDetailReviews product={category} entityType="CATEGORY" />
         </div>
       {/if}

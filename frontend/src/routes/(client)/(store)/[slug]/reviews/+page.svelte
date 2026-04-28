@@ -22,7 +22,11 @@
   import { authStore } from '$lib/state/authStore.svelte';
 
   let { data } = $props();
-  const product = data.product;
+  const entity = $derived(data.entity);
+  const entityType = $derived(data.entityType);
+  const product = $derived(entityType === 'PRODUCT' ? entity : null);
+  const category = $derived(entityType === 'CATEGORY' ? entity : null);
+  const news = $derived(entityType === 'NEWS' ? entity : null);
   const ui = getClientUi();
   const cartStore = getCartStore();
 
@@ -79,8 +83,8 @@
     isLoading = true;
     try {
       const [revRes, statRes] = await Promise.all([
-        fetch(`/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED`),
-        fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`)
+        fetch(`/api/v1/client/reviews?entity_type=${entityType}&entity_id=${entity.id}&status=APPROVED`),
+        fetch(`/api/v1/client/reviews/stats?entity_type=${entityType}&entity_id=${entity.id}`)
       ]);
       if (revRes.ok) reviews = (await revRes.json()).items;
       if (statRes.ok) stats = await statRes.json();
@@ -91,8 +95,13 @@
     }
   }
 
+  $effect(() => {
+    if (entity?.id) {
+      fetchData();
+    }
+  });
+
   onMount(() => {
-    fetchData();
     ui.isHeaderHidden = true;
     ui.isFooterHidden = true;
 
@@ -116,8 +125,12 @@
   }
 
   function buyNow() {
-    cartStore.addItem(product);
-    window.location.href = '/checkout';
+    if (product) {
+      cartStore.addItem(product);
+      window.location.href = '/checkout';
+    } else {
+      window.location.href = `/${entity.slug}`;
+    }
   }
 
   function openLightbox(src: string) { lightboxSrc = src; }
@@ -132,7 +145,7 @@
     return html.replace(/<[^>]*>?/gm, '');
   }
 
-  const avgRating = $derived(stats?.average_rating ?? product.metadata?.rating ?? 5);
+  const avgRating = $derived(stats?.average_rating ?? (entity as any).metadata?.rating ?? 5);
   const totalCount = $derived(stats?.total_count ?? 0);
 
   // --- Write Review Logic ---
@@ -199,8 +212,8 @@
         method: 'POST',
         headers,
         body: JSON.stringify({
-          entity_type: 'PRODUCT',
-          entity_id: product.id,
+          entity_type: entityType,
+          entity_id: entity.id,
           customer_name: authStore.user?.name || 'Khách hàng',
           customer_phone: writePhone || undefined,
           rating: writeRating,
@@ -360,21 +373,21 @@
           {/if}
 
           <!-- Product snippet card -->
-          {#if product}
+          {#if entity}
             <div class="rv-product-ref">
               <div class="rv-product-thumb">
-                {#if product.images?.[0]}
-                  <img src={product.images[0]} alt={product.name} />
+                {#if entity.images?.[0] || entity.image}
+                  <img src={entity.images?.[0] || entity.image} alt={entity.name} />
                 {:else}
                   <div class="rv-product-thumb-placeholder"></div>
                 {/if}
               </div>
               <div class="rv-product-ref-info">
-                <span class="rv-product-ref-name">{product.name}</span>
-                {#if product.discountPrice && product.discountPrice < product.price}
+                <span class="rv-product-ref-name">{entity.name}</span>
+                {#if entityType === 'PRODUCT' && entity.discountPrice && entity.discountPrice < entity.price}
                   <span class="rv-product-ref-avail rv-product-ref-avail--sale">Đang giảm giá</span>
                 {:else}
-                  <span class="rv-product-ref-avail">Còn hàng</span>
+                  <span class="rv-product-ref-avail">{entityType === 'PRODUCT' ? 'Còn hàng' : 'Khám phá ngay'}</span>
                 {/if}
               </div>
             </div>
@@ -428,18 +441,26 @@
   <!-- ── BOTTOM CTA ── -->
   <div class="rv-bottom-cta">
     <div class="rv-cta-product">
-      {#if product.images?.[0]}
-        <img src={product.images[0]} alt={product.name} class="rv-cta-thumb" />
+      {#if entity.images?.[0] || entity.image}
+        <img src={entity.images?.[0] || entity.image} alt={entity.name} class="rv-cta-thumb" />
       {/if}
       <div class="rv-cta-info">
-        <span class="rv-cta-name">{product.name}</span>
+        <span class="rv-cta-name">{entity.name}</span>
         <span class="rv-cta-price">
-          ₫{(product.discountPrice || product.price)?.toLocaleString('vi-VN')}
+          {#if entityType === 'PRODUCT'}
+            ₫{(entity.discountPrice || entity.price)?.toLocaleString('vi-VN')}
+          {:else}
+            Xem ngay
+          {/if}
         </span>
       </div>
     </div>
     <button class="rv-cta-buy" onclick={buyNow}>
-      MUA<br />NGAY
+      {#if entityType === 'PRODUCT'}
+        MUA<br />NGAY
+      {:else}
+        XEM<br />NGAY
+      {/if}
     </button>
   </div>
 </div>
@@ -472,11 +493,11 @@
         {:else}
           <!-- Product info -->
           <div class="rv-product-ref">
-            {#if product.images?.[0]}
-              <div class="rv-product-thumb"><img src={product.images[0]} alt={product.name} /></div>
+            {#if entity.images?.[0] || entity.image}
+              <div class="rv-product-thumb"><img src={entity.images?.[0] || entity.image} alt={entity.name} /></div>
             {/if}
             <div class="rv-product-ref-info">
-              <span class="rv-product-ref-name">{product.name}</span>
+              <span class="rv-product-ref-name">{entity.name}</span>
               <span class="rv-product-ref-avail">Mỹ phẩm Micsmo</span>
             </div>
           </div>

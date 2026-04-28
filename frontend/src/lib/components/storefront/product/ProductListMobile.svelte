@@ -6,7 +6,7 @@
   import { ChevronLeft, Search, Filter, MessageCircleQuestion } from 'lucide-svelte';
   import type { Product, ProductFacets, Category } from '$lib/types';
   import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';
-  import ProductDetailReviews from '../product-detail/ProductDetailReviews.svelte';
+  import ProductMobileReviews from '../product-detail/ProductMobileReviews.svelte';
 
 
   interface Props {
@@ -127,6 +127,14 @@
       </div>
     {/if}
 
+    <div class="mt-8 text-center py-4 bg-white border border-gray-100 shadow-sm rounded-2xl mb-4">
+       <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest opacity-60 flex items-center justify-center gap-3">
+         <div class="w-6 h-px bg-gray-200"></div>
+         Đã hiển thị toàn bộ {products.length} sản phẩm
+         <div class="w-6 h-px bg-gray-200"></div>
+       </span>
+    </div>
+
     {#if faqs.length > 0}
       <div class="mt-12 pt-8 border-t border-gray-100 flex flex-col gap-5">
          <div class="flex items-center gap-3 px-1">
@@ -158,8 +166,8 @@
       </div>
     {/if}
     {#if category}
-      <div class="mt-12 pt-8 border-t border-gray-100">
-        <ProductDetailReviews product={category} entityType="CATEGORY" />
+      <div class="mt-6">
+        <ProductMobileReviews product={category} entityType="CATEGORY" />
       </div>
     {/if}
   </div>

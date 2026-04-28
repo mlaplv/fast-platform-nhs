@@ -900,7 +900,7 @@
     {/if}
 
     <!-- ĐÁNH GIÁ SẢN PHẨM -->
-    <div id="product-reviews">
+    <div id="product-reviews" class="mt-8">
        <ProductDetailReviews {product} />
     </div>
   </div>
