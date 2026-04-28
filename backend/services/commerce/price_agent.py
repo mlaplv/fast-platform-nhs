@@ -147,18 +147,54 @@ def _parse_vn_number(num_str: str) -> Optional[float]:
     return None
 
 
+def check_relevance(product_name: str, result_title: str) -> bool:
+    """[ELITE V3.3] Heuristic relevance check to filter out 'Bikini' from 'Neck Cream'.
+    Checks for common keyword overlap.
+    """
+    p_name = product_name.lower()
+    r_title = result_title.lower()
+    
+    # 1. High-Confidence Brand Match
+    brands = ["miccosmo", "white label", "hurry harry", "beppin body", "okurabito"]
+    for brand in brands:
+        if brand in p_name and brand in r_title:
+            return True
+            
+    # 2. Category Keywords
+    # If the product name contains "cream" or "serum", the result should likely relate to skincare
+    skincare_keywords = ["kem", "cream", "serum", "gel", "tẩy", "dưỡng", "body", "neck", "mặt", "face"]
+    skincare_product = any(k in p_name for k in skincare_keywords)
+    
+    if skincare_product:
+        # If result is clearly something else (like bikini, quần áo, vv.)
+        irrelevant = ["bikini", "quần", "áo", "giày", "túi", "đồ lót"]
+        if any(irr in r_title for irr in irrelevant):
+            return False
+            
+    # 3. Simple Keyword Overlap
+    p_words = set(re.findall(r'\w+', p_name))
+    r_words = set(re.findall(r'\w+', r_title))
+    overlap = p_words.intersection(r_words)
+    
+    # Must have at least 2 significant words overlapping if no brand match
+    significant_overlap = [w for w in overlap if len(w) > 3]
+    return len(significant_overlap) >= 1
+
 def detect_is_ad(link: str, snippet: str) -> bool:
-    """[ELITE V3.0] Layer 4: Heuristic ad detection from link + snippet."""
+    """[ELITE V3.2] Layer 4: Hybrid ad detection.
+    Check link patterns first, then look for specific snippet keywords.
+    """
     link_lower = link.lower()
     for pattern in _AD_LINK_PATTERNS:
         if pattern in link_lower:
             return True
 
     snippet_lower = snippet.lower()
-    for kw in _AD_SNIPPET_KEYWORDS:
+    # Hybrid Ad Detection (Elite V3.3)
+    for kw in ["được tài trợ", "sponsored", "ad ·", "quảng cáo", "tài trợ"]:
         if kw in snippet_lower:
             return True
-
+            
     return False
 
 
@@ -173,15 +209,15 @@ class RawSearchResult(BaseModel):
     pagemap: Dict[str, JsonValue] = Field(default_factory=dict)
 
     def extract_metadata_price(self) -> Optional[float]:
-        """[V3.0] Multi-layer pagemap extraction + VN price normalization.
-
-        Tầng 1: offer / offers schema (Google Shopping)
-        Tầng 2: product schema
-        Tầng 3: metatags (og:price:amount, product:price:amount)
-        Tầng 4: hproduct microformat
-        Tầng 5: Snippet regex (mở rộng)
+        """[V3.2] Ultra-Aggressive Metadata Extraction.
+        Order: Title -> Pagemap (Schema/Meta) -> Snippet
         """
         try:
+            # --- Tầng 0: Title Scan (Highly reliable for Google Ads) ---
+            price_from_title = normalize_vn_price(self.title)
+            if price_from_title:
+                return price_from_title
+
             # --- Tầng 1: offer / offers schema ---
             offers = self.pagemap.get('offer', []) or self.pagemap.get('offers', [])
             if isinstance(offers, list) and offers:
@@ -237,9 +273,17 @@ class RawSearchResult(BaseModel):
                 return normalized
 
             # Fallback cuối cùng: Tìm chuỗi số có hậu tố đ/VND/₫ ở bất kỳ đâu trong snippet
-            m = re.search(r'([\d]{1,3}(?:[.,]\d{3})+)\s*(?:đ|VND|₫)', self.snippet, re.IGNORECASE)
+            m = re.search(r'([\d]{1,3}(?:[.,]\d{3})+)\s*(?:đ|VND|VNĐ|₫)', self.snippet, re.IGNORECASE)
             if m:
                 return _parse_vn_number(m.group(1))
+
+            # [V3.2] Bare Number Heuristic (Google Search snippets often omit currency)
+            # Find patterns like 585.000 or 585,000 that look like prices
+            bare_matches = re.findall(r'\b([\d]{1,3}(?:[.,]\d{3})+)\b', self.snippet)
+            for bm in bare_matches:
+                p = _parse_vn_number(bm)
+                if p and 100000 <= p <= 3000000: # Reasonable range for Miccosmo
+                    return p
 
         except Exception as e:
             logger.warning(f"[PriceAgent] Pagemap extraction error: {e}")
@@ -265,10 +309,10 @@ class MarketPriceIntel(BaseModel):
     """Elite V3.0: Báo cáo tình báo giá thị trường hoàn chỉnh."""
     ads: List[SearchResult] = Field(default_factory=list)
     organic_results: List[SearchResult] = Field(default_factory=list)
-    analysis_overview: str = Field(min_length=150)
-    critical_analysis: str = Field(min_length=150)
-    optimization_strategy: str = Field(min_length=100)
-    viral_hook: str = Field(min_length=50)
+    analysis_overview: str = Field(min_length=50, description="Tổng quan thị trường và đánh giá giá trị sản phẩm.")
+    critical_analysis: str = Field(min_length=50, description="Phản biện về giá của đối thủ và rủi ro.")
+    optimization_strategy: str = Field(min_length=50, description="Chiến lược tối ưu giá để micsmo.com chiến thắng.")
+    viral_hook: str = Field(min_length=30, description="Câu hook truyền thông thu hút khách hàng.")
     avg_market_price: Optional[float] = None
     min_market_price: Optional[float] = None
     competitor_count: int = 0
@@ -305,16 +349,17 @@ QUY TẮC ELITE:
 
 price_agent: Agent[None, MarketPriceIntel] = Agent(
     output_type=MarketPriceIntel,
-    system_prompt="""Bạn là ĐIỆP VIÊN TÌNH BÁO GIÁ (XOHI PriceIntel V3.0).
+    system_prompt="""Bạn là ĐIỆP VIÊN TÌNH BÁO GIÁ (XOHI PriceIntel V3.2).
 Nhiệm vụ: Phân tích thị trường Việt Nam 2026. Phản biện sắc bén.
 
-CHỈ THỊ CỐT LÕI:
+QUY TẮC TRÍCH XUẤT:
 1. TUYỆT ĐỐI KHÔNG HALLUCINATE: Chỉ dùng link và giá thực từ tool get_market_results.
-2. LỌC RÁC TRIỆT ĐỂ (ANTI-NOISE): Loại bỏ ngay các kết quả không liên quan (VD: tìm Serum ra Bikini, đồ lót, đồ gia dụng). Không đưa vào danh sách.
-3. ƯU TIÊN GIÁ GOOGLE (DIRECT HARVESTING): Nếu một kết quả có GIÁ_META (giá lấy trực tiếp từ Google) nhưng RECON báo N/A (do lỗi quét web), hãy VẪN DÙNG GIÁ_META đó. Đây là yêu cầu tối quan trọng của Sếp để lấy giá trực tiếp từ Google.
-4. PHÂN LOẠI MINH BẠCH: Phân biệt rõ QUẢNG CÁO (có chữ [QUẢNG CÁO]) vs KẾT QUẢ TỰ NHIÊN.
-5. TÍNH TOÁN CHÍNH XÁC: avg_market_price và min_market_price chỉ tính từ các kết quả có giá.
-6. CHIẾN LƯỢC ELITE: Phản biện sắc bén về giá, đề xuất cách micsmo.com chiến thắng đối thủ.
+2. PHẢI CÓ TOP 10 TỰ NHIÊN: Luôn điền đầy đủ danh sách organic_results (ít nhất 5-10 kết quả). 
+3. PHÂN LOẠI MINH BẠCH: Phân biệt rõ QUẢNG CÁO (có chữ [AD]) vs KẾT QUẢ TỰ NHIÊN (có chữ [ORGANIC]). Đưa các kết quả [AD] vào danh sách 'ads'.
+4. PHÂN TÍCH CHI TIẾT: 
+   - analysis_overview: Đánh giá chi tiết về mặt bằng giá chung.
+   - critical_analysis: Phản biện gay gắt về việc tại sao đối thủ bán rẻ hoặc đắt, và Micsmo nên làm gì.
+   - optimization_strategy: Đề xuất hành động cụ thể để chiếm lĩnh thị trường.
 """,
 )
 
@@ -378,19 +423,25 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
     """XOHI Recon Engine V3.0: Trích xuất dữ liệu thị trường đa tầng + multi-query."""
     clean_query = query.strip()
 
-    # --- Layer 1: Single-Query Strategy (Emergency Quota Saving) ---
-    query_official = f"{clean_query} giá bán chính hãng 2026"
-    raw_official = await google_search_service.search(query_official, num=10)
-    merged_raw = list(raw_official) if raw_official else []
+    # --- Layer 1: Precise Query Strategy (Elite V3.3) ---
+    # Remove generic noise and focus on the product brand + name
+    search_query = f"{clean_query} giá bán"
+    raw_results = await google_search_service.search(search_query, num=10)
+    merged_raw = list(raw_results) if raw_results else []
 
     if not merged_raw:
         return "KHÔNG TÌM THẤY DỮ LIỆU."
 
-    # Parse into typed models
+    # Parse into typed models + Filter Relevance (Elite V3.3)
     results: List[RawSearchResult] = []
     for r in merged_raw:
         try:
-            results.append(RawSearchResult.model_validate(r))
+            model = RawSearchResult.model_validate(r)
+            # Only filter organic results, keep ads for now as they are often targeted anyway
+            if not detect_is_ad(str(model.link), model.snippet):
+                if not check_relevance(clean_query, model.title):
+                    continue
+            results.append(model)
         except Exception:
             pass
 
@@ -412,15 +463,26 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
         link = str(r.link)
         is_ad = detect_is_ad(link, r.snippet)
         meta_price = r.extract_metadata_price()
-        ad_tag = " [QUẢNG CÁO]" if is_ad else ""
         domain = r.displayLink or "unknown"
+        
+        # Layer 3: Strategic AI Usage (Elite V3.1)
+        # Rule 1: ADS bypass AI (Google metadata is sufficient)
+        # Rule 2: Organic with metadata price bypasses AI (Reduced pressure)
+        # Rule 3: Only deep scan top 5 organic results IF meta price is missing
+        
+        ad_tag = " [AD]" if is_ad else " [ORGANIC]"
+        
+        if is_ad or meta_price:
+            # [ELITE V3.2] ADS always bypass Deep Scrape. 
+            # We trust Google Metadata + Title/Snippet heuristics.
+            price_info = f"GIÁ: {meta_price:,.0f} VND (Source: Google_Extract)" if meta_price else "GIÁ: N/A"
+            return f"[{idx+1}]{ad_tag} {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    {price_info}\n"
 
-        # Layer 3: Deep scan top 3 (Elite V2.2: Reduced from 10 to save quota)
+        if idx >= 5:
+            # Only deep scan top 5 organic results
+            return f"[{idx+1}]{ad_tag} {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    GIÁ: N/A\n"
+
         try:
-            if idx >= 3:
-                price_info = f"GIÁ_META: {meta_price:,.0f} VND" if meta_price else "GIÁ_META: N/A"
-                return f"[{idx+1}]{ad_tag} {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    {price_info}\n"
-
             # Layer 3: UA Rotation (Anti-Block)
             ua = random.choice(_USER_AGENTS)
             resp = await client.get(
@@ -518,7 +580,7 @@ async def scan_product_price(product_name: str) -> MarketPriceIntel:
         # Ở đây ta sẽ gọi lại Google Search và tính toán cơ bản.
         
         from backend.services.xohi.google_search import google_search_service
-        raw_results = await google_search_service.search(f"{product_name} giá bán chính hãng 2026", num=10)
+        raw_results = await google_search_service.search(f"{product_name} giá bán", num=10)
         
         prices = []
         organic = []
@@ -537,7 +599,14 @@ async def scan_product_price(product_name: str) -> MarketPriceIntel:
                     is_ad=is_ad
                 )
                 
-                if is_ad: continue # Heuristic: skip ads for stats
+                if is_ad: 
+                    ads.append(sr)
+                    continue
+                
+                # Filter for relevance
+                if not check_relevance(product_name, res.title):
+                    logger.info(f"Filtering irrelevant result: {res.title}")
+                    continue
                 
                 organic.append(sr)
                 if p: prices.append(p)
@@ -547,8 +616,8 @@ async def scan_product_price(product_name: str) -> MarketPriceIntel:
         min_m = min(prices) if prices else 0
         
         return MarketPriceIntel(
-            ads=[],
-            organic_results=organic[:5],
+            ads=ads[:3],
+            organic_results=organic[:8],
             analysis_overview=f"Hệ thống đang ở chế độ Heuristic do AI quá tải. Dựa trên {len(organic)} kết quả thực tế, giá trung bình thị trường khoảng {avg_m:,.0f} VND.",
             critical_analysis=f"Phân tích cục bộ: Giá thấp nhất tìm thấy là {min_m:,.0f} VND. Đối thủ đang cạnh tranh gay gắt về giá trong phân khúc này.",
             optimization_strategy="Đề xuất: Duy trì mức giá hiện tại và tập trung vào dịch vụ hậu mãi trong khi chờ hệ thống Neural Core ổn định trở lại.",

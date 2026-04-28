@@ -165,7 +165,8 @@ class ProductService:
                 ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
                 ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
                 ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-                ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
+                ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
+                ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
                 ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
                 Category.name.label("category_name")
             ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -229,7 +230,8 @@ class ProductService:
                     ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
                     ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
                     ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-                    ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
+                    ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
+                    ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
                     ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
                     Category.name.label("category_name")
                 ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -305,7 +307,8 @@ class ProductService:
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
+            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
+            ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
             ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -329,7 +332,8 @@ class ProductService:
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
+            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
+            ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
             ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
@@ -367,7 +371,8 @@ class ProductService:
             ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
             ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
             ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, ProductBase.product_metadata.label("metadata"),
+            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
+            ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
             ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
             Category.name.label("category_name")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(

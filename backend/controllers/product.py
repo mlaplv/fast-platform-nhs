@@ -153,4 +153,5 @@ class ProductController(Controller):
     ) -> SuccessResponse:
         """Trigger AI Market Price Sync (Elite V2.2: Price Intel)."""
         res_data = await product_service.sync_market_price(db_session, product_id)
+        await db_session.commit()
         return SuccessResponse(message="Thành công", data=res_data)

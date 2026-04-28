@@ -10,6 +10,7 @@
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import TrendingUp from "lucide-svelte/icons/trending-up";
   import ShieldCheck from "lucide-svelte/icons/shield-check";
+  import X from "lucide-svelte/icons/x";
   import { fade } from "svelte/transition";
   import { portal } from "$lib/core/actions/portal";
   import { useNanobot } from "$lib/state/nanobot.svelte";
@@ -47,6 +48,11 @@
 
   let syncingStates = $state<Record<string, boolean>>({});
   let fullViewMarketData = $state<Product["market_data"] | null>(null);
+  let isHoveringPopover = $state(false);
+  let activeIntelId = $state<string | null>(null);
+  let activeIntelPos = $state({ x: 0, y: 0, height: 0 });
+  let popoverPlacement = $state<'top' | 'bottom'>('top');
+  let activeIntelData = $state<any>(null);
 
   async function handleSync(id: string) {
     if (syncingStates[id]) return;
@@ -60,7 +66,21 @@
     }
   }
 
+  function closeMarketReport() {
+    fullViewMarketData = null;
+    activeIntelId = null;
+    activeIntelData = null;
+    isHoveringPopover = false;
+  }
+
   const isAllSelected = $derived(products.length > 0 && products.every(p => selectedIds.has(p.id)));
+
+  $effect(() => {
+    if (fullViewMarketData) {
+      activeIntelId = null;
+      isHoveringPopover = false;
+    }
+  });
 
   $effect(() => {
     const action = nanobot.commandAction;
@@ -118,11 +138,9 @@
         label: product.status,
         color: "#666",
       }}
-      <!-- Responsive List Item (Vertical card on Mobile, Grid row on Desktop) -->
       <div
         class="group relative flex flex-col md:grid md:grid-cols-[40px_minmax(250px,2fr)_1fr_1fr_1fr_1fr_100px] md:gap-4 md:items-center bg-[#0a0a0a] md:bg-transparent border border-white/5 md:border-none p-3 sm:p-4 rounded-xl md:rounded-none hover:bg-white/[0.03] transition-colors duration-300"
       >
-        <!-- Selection Checkbox -->
         <div class="absolute top-2 left-2 md:relative md:top-auto md:left-auto md:flex md:justify-center"
              style="z-index: var(--z-surface);">
           <button
@@ -133,14 +151,12 @@
           </button>
         </div>
 
-        <!-- Product Image & Basic Info (Title/Category) -->
         <div class="flex items-start md:items-center gap-4 md:pl-0 pl-6 w-full">
           <div
             class="w-14 h-14 md:w-12 md:h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center shrink-0 overflow-hidden relative group-hover:border-[#FFB800]/30 transition-all duration-300 shadow-[inset_0_0_15px_rgba(0,0,0,0.5)]"
           >
             {#if product.images && product.images.length > 0 && product.images[0].includes('/')}
               {#if isVideoUrl(product.images[0])}
-                <!-- Video thumbnail -->
                 <video
                   src={product.images[0]}
                   class="w-full h-full object-cover opacity-80 group-hover:opacity-100 pointer-events-none"
@@ -197,13 +213,10 @@
           </div>
         </div>
 
-        <!-- Desktop SKU -->
         <div class="hidden md:block text-[10px] font-mono text-gray-500 uppercase tracking-wider group-hover:text-gray-300 transition-colors truncate">
           {product.sku}
         </div>
 
-        <!-- Mobile: Grid for Stats / Desktop: Individual columns -->
-        <!-- Valuation -->
         <div class="pl-[72px] md:pl-0 mt-3 md:mt-0 flex md:flex-none items-center justify-between md:justify-start">
           <span class="md:hidden text-[9px] font-mono text-gray-500 tracking-widest uppercase">Price</span>
           <div class="flex flex-col items-start gap-1">
@@ -231,7 +244,7 @@
               </button>
             </div>
 
-            {#if product.market_data || product.marketData}
+            {#if (product.market_data && product.market_data.analysis_overview) || (product.marketData && product.marketData.analysis_overview)}
               {@const m = product.market_data || product.marketData}
               {@const allResults = [...(m.ads || []), ...(m.organic_results || [])]}
               {@const prices = allResults.map(r => r.price).filter(p => p && p > 0) as number[]}
@@ -239,103 +252,36 @@
               
               <div class="group/intel relative"
                    onmouseenter={(e) => {
+                     activeIntelId = product.id;
+                     activeIntelData = product.market_data || product.marketData;
                      const rect = e.currentTarget.getBoundingClientRect();
-                     e.currentTarget.style.setProperty('--popover-left', `${rect.left}px`);
-                     e.currentTarget.style.setProperty('--popover-top', `${rect.top}px`);
+                     activeIntelPos = { x: rect.left, y: rect.top, height: rect.height };
+                     popoverPlacement = rect.top > (window.innerHeight / 2) ? 'top' : 'bottom';
+                   }}
+                   onmouseleave={() => {
+                     setTimeout(() => {
+                       if (!isHoveringPopover) {
+                         activeIntelId = null;
+                         activeIntelData = null;
+                       }
+                     }, 100);
                    }}>
-                <div class="flex flex-col gap-1 px-2 py-1 rounded-lg bg-emerald-500/5 border border-emerald-500/20 hover:border-emerald-500/50 transition-all cursor-help shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+                <div class="flex flex-col gap-1 px-2 py-1 rounded-lg bg-emerald-500/5 border border-emerald-500/20 hover:border-emerald-500/50 transition-all cursor-help">
                   <div class="flex items-center gap-1.5">
                     <TrendingUp size={10} class="text-emerald-400 shrink-0" />
                     <span class="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Tình báo giá</span>
                   </div>
                   {#if bestPrice}
-                    <div class="text-[10px] font-mono text-emerald-300 font-bold">
-                      {formatCurrency(bestPrice)} <span class="text-[7px] opacity-50 uppercase ml-0.5">(Best)</span>
+                    <div class="flex items-center gap-2">
+                       <span class="text-[10px] font-mono font-black text-emerald-400">
+                         {formatCurrency(bestPrice)}
+                       </span>
+                       <span class="text-[7px] font-mono text-white/20 uppercase tracking-tighter">[Best]</span>
                     </div>
                   {/if}
                 </div>
-
-                <!-- Popover (Elite V2.2: Liquid Glass - Portaled to prevent clipping) -->
-                <div use:portal class="fixed w-[340px] pointer-events-none opacity-0 group-hover/intel:opacity-100 group-hover/intel:pointer-events-auto transition-all duration-300"
-                     style="z-index: {Z_INDEX_ADMIN.POPOVER}; left: var(--popover-left); top: var(--popover-top); transform: translateY(-100%) translateY(-10px);">
-                  <!-- Invisible bridge to prevent disappearing on hover -->
-                  <div class="absolute inset-x-0 bottom-0 h-4 translate-y-full"></div>
-                  
-                  <div class="p-4 rounded-2xl bg-black/95 border border-emerald-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-xl">
-                    <div class="flex flex-col gap-4">
-                    <div class="flex items-center justify-between border-b border-white/5 pb-2">
-                      <div class="flex flex-col">
-                        <span class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Dữ liệu trinh sát</span>
-                        <span class="text-[8px] font-mono text-white/20 uppercase">{allResults.length} kết quả</span>
-                      </div>
-                      <button 
-                        onclick={(e) => { e.stopPropagation(); fullViewMarketData = m; }}
-                        class="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase hover:bg-emerald-500/20 transition-all"
-                      >
-                        FULL VIEW
-                      </button>
-                    </div>
-
-                    <div class="flex flex-col gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
-                      <!-- Ads -->
-                      {#if m.ads && m.ads.length > 0}
-                        <div class="flex flex-col gap-1.5">
-                          <div class="text-[8px] font-black text-amber-400/60 uppercase">🔥 Quảng cáo (Ads)</div>
-                          {#each m.ads as ad}
-                            <a 
-                              href={ad.link} 
-                              target="_blank"
-                              onclick={(e) => e.stopPropagation()}
-                              class="flex items-center justify-between p-2 rounded-lg bg-amber-500/5 border border-amber-500/10 hover:border-amber-500/30 transition-all gap-3 group/link"
-                            >
-                              <div class="flex flex-col min-w-0">
-                                <span class="text-[9px] font-bold text-white/70 truncate group-hover/link:text-amber-400">{ad.title}</span>
-                                <span class="text-[7px] text-white/30 uppercase">{ad.platform}</span>
-                              </div>
-                              <div class="flex items-center gap-2 shrink-0">
-                                <span class="text-[9px] font-mono text-amber-400">{ad.price ? formatCurrency(ad.price) : 'N/A'}</span>
-                                <ExternalLink size={8} class="text-white/10 group-hover/link:text-amber-400" />
-                              </div>
-                            </a>
-                          {/each}
-                        </div>
-                      {/if}
-
-                      <!-- Organic -->
-                      {#if m.organic_results && m.organic_results.length > 0}
-                        <div class="flex flex-col gap-1.5">
-                          <div class="text-[8px] font-black text-emerald-400/60 uppercase">🌐 Top 10 Tự nhiên</div>
-                          {#each m.organic_results as res}
-                            <a 
-                              href={res.link} 
-                              target="_blank"
-                              onclick={(e) => e.stopPropagation()}
-                              class="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5 hover:border-emerald-500/30 transition-all gap-3 group/link"
-                            >
-                              <div class="flex flex-col min-w-0">
-                                <span class="text-[9px] font-bold text-white/60 truncate group-hover/link:text-emerald-400">{res.title}</span>
-                                <span class="text-[7px] text-white/20 uppercase">{res.platform}</span>
-                              </div>
-                              <div class="flex items-center gap-2 shrink-0">
-                                <span class="text-[9px] font-mono text-emerald-400">{res.price ? formatCurrency(res.price) : 'N/A'}</span>
-                                <ExternalLink size={8} class="text-white/10 group-hover/link:text-emerald-400" />
-                              </div>
-                            </a>
-                          {/each}
-                        </div>
-                      {/if}
-                    </div>
-
-                    <div class="pt-2 border-t border-white/5">
-                      <p class="text-[9px] text-white/50 leading-relaxed italic line-clamp-2">
-                         "{m.analysis_overview || m.analysis || 'AI đang tổng hợp dữ liệu...'}"
-                      </p>
-                    </div>
-                  </div>
-                </div>
               </div>
-            </div>
-          {/if}
+            {/if}
           </div>
         </div>
 
@@ -406,26 +352,23 @@
   </div>
 </div>
 
-<!-- Full View Modal (Elite V2.2) -->
+<!-- Intelligence Display Layer (Elite V2.2: Zero-Overlap Architecture) -->
 {#if fullViewMarketData}
-  <div use:portal class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-6" style="z-index: {Z_INDEX_ADMIN.MODAL};" transition:fade>
-    <div class="w-full max-w-4xl max-h-[80vh] bg-[#0a0a0a] border border-emerald-500/30 rounded-3xl overflow-hidden flex flex-col shadow-[0_0_100px_rgba(16,185,129,0.1)]">
+  <!-- Full View Modal (Elite V2.2) -->
+  <div class="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-8 pointer-events-auto" 
+       style="z-index: {Z_INDEX_ADMIN.SUPREME_POWER};"
+       onclick={(e) => { if (e.target === e.currentTarget) closeMarketReport(); }}>
+    <div class="w-full max-w-4xl max-h-[80vh] bg-[#0a0a0a] border border-emerald-500/30 rounded-3xl overflow-hidden flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]">
       <div class="flex items-center justify-between p-6 border-b border-white/5">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
             <TrendingUp size={20} class="text-emerald-400" />
           </div>
           <div class="flex flex-col">
-            <h2 class="text-xl font-black text-white uppercase tracking-wider">Báo cáo Trinh sát Thị trường</h2>
+            <h2 class="text-lg font-black text-white uppercase tracking-tight">BÁO CÁO TRINH SÁT THỊ TRƯỜNG</h2>
             <p class="text-[10px] font-mono text-white/40 uppercase tracking-[0.2em]">Deep Intel v2.2 | XoHi Neural Engine</p>
           </div>
         </div>
-        <button 
-          onclick={() => fullViewMarketData = null}
-          class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:bg-white/10 hover:text-white transition-all"
-        >
-          <Square size={20} />
-        </button>
       </div>
 
       <div class="flex-1 overflow-y-auto p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 custom-scrollbar">
@@ -529,13 +472,107 @@
         </div>
       </div>
       
-      <div class="p-6 border-t border-white/5 flex justify-end">
+      <div class="p-6 border-t border-white/5 flex justify-end relative z-20">
          <button 
-           onclick={() => fullViewMarketData = null}
-           class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black text-white/60 uppercase hover:bg-white/10 transition-all"
+           type="button"
+           onclick={(e) => { 
+             e.preventDefault();
+             e.stopPropagation();
+             closeMarketReport();
+           }}
+           class="px-8 py-3 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[11px] font-black text-emerald-400 uppercase hover:bg-emerald-500/30 hover:text-emerald-300 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.2)]"
          >
            ĐÓNG BÁO CÁO
          </button>
+      </div>
+    </div>
+  </div>
+{:else if activeIntelId && activeIntelData}
+  <!-- Singleton Intelligence Popover (Elite V2.2) -->
+  {@const m = activeIntelData}
+  {@const allResults = [...(m.ads || []), ...(m.organic_results || [])]}
+  <div class="fixed w-[340px] pointer-events-auto flex flex-col"
+       onmouseenter={() => isHoveringPopover = true}
+       onmouseleave={() => { isHoveringPopover = false; activeIntelId = null; activeIntelData = null; }}
+       style="z-index: {Z_INDEX_ADMIN.POPOVER}; 
+              left: {activeIntelPos.x}px; 
+              top: {popoverPlacement === 'top' ? activeIntelPos.y : activeIntelPos.y + activeIntelPos.height}px; 
+              max-height: {popoverPlacement === 'top' ? activeIntelPos.y - 20 : window.innerHeight - (activeIntelPos.y + activeIntelPos.height) - 20}px;
+              transform: {popoverPlacement === 'top' ? 'translateY(-100%) translateY(-10px)' : 'translateY(10px)'};">
+    <!-- Invisible bridge to prevent disappearing on hover -->
+    <div class="absolute inset-x-0 {popoverPlacement === 'top' ? 'bottom-0 translate-y-full' : 'top-0 -translate-y-full'} h-4"></div>
+    
+    <div class="p-4 rounded-2xl bg-black/95 border border-emerald-500/30 backdrop-blur-xl flex flex-col min-h-0">
+      <div class="flex flex-col gap-4">
+        <div class="flex items-center justify-between border-b border-white/5 pb-2">
+          <div class="flex flex-col">
+            <span class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Dữ liệu trinh sát</span>
+            <span class="text-[8px] font-mono text-white/20 uppercase">{allResults.length} kết quả</span>
+          </div>
+          <button 
+            onclick={(e) => { 
+              e.preventDefault();
+              e.stopPropagation(); 
+              fullViewMarketData = { ...activeIntelData };
+            }}
+            class="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase hover:bg-emerald-500/20 transition-all"
+          >
+            FULL VIEW
+          </button>
+        </div>
+
+        <div class="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 min-h-0">
+          <!-- Ads -->
+          {#if m.ads && m.ads.length > 0}
+            <div class="flex flex-col gap-1.5">
+              <div class="text-[8px] font-black text-amber-400/60 uppercase">🔥 Quảng cáo (Ads)</div>
+              {#each m.ads as ad}
+                <a href={ad.link} target="_blank" onclick={(e) => e.stopPropagation()}
+                   class="flex items-center justify-between p-2 rounded-lg bg-amber-500/5 border border-amber-500/10 hover:border-amber-500/40 transition-all group/link">
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-[9px] font-bold text-white/80 truncate group-hover/link:text-amber-400">{ad.title}</span>
+                    <span class="text-[7px] text-white/30 uppercase tracking-widest">{ad.platform}</span>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-[10px] font-mono text-amber-400 font-black">{ad.price ? formatCurrency(ad.price) : 'N/A'}</span>
+                    <ExternalLink size={10} class="text-white/10 group-hover/link:text-amber-400" />
+                  </div>
+                </a>
+              {/each}
+            </div>
+          {/if}
+
+          <!-- Analysis -->
+          <div class="flex flex-col gap-1.5">
+            <div class="text-[8px] font-black text-emerald-400/60 uppercase">💡 Phân tích từ XoHi</div>
+            <p class="text-[9px] text-white/70 leading-relaxed italic line-clamp-3">
+              "{m.analysis_overview}"
+            </p>
+          </div>
+
+          <!-- Organic -->
+          {#if m.organic_results && m.organic_results.length > 0}
+            <div class="flex flex-col gap-1.5">
+              <div class="text-[8px] font-black text-emerald-400/60 uppercase">🌐 Top 10 Tự nhiên</div>
+              {#each m.organic_results.slice(0, 3) as res}
+                <a href={res.link} target="_blank" onclick={(e) => e.stopPropagation()}
+                   class="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5 hover:border-emerald-500/40 transition-all group/link">
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-[9px] font-bold text-white/70 truncate group-hover/link:text-emerald-400">{res.title}</span>
+                    <span class="text-[7px] text-white/20 uppercase tracking-widest">{res.platform}</span>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-[10px] font-mono text-emerald-400 font-black">{res.price ? formatCurrency(res.price) : 'N/A'}</span>
+                    <ExternalLink size={10} class="text-white/10 group-hover/link:text-emerald-400" />
+                  </div>
+                </a>
+              {/each}
+              {#if m.organic_results.length > 3}
+                <span class="text-[7px] text-center text-white/20 uppercase">Và {m.organic_results.length - 3} kết quả khác...</span>
+              {/if}
+            </div>
+          {/if}
+        </div>
       </div>
     </div>
   </div>
