@@ -211,8 +211,43 @@ class SeoService:
                         "reviewBody": r.get("content", ""),
                     })
 
-            if review_nodes and count > 0:
+            # Elite 2026: AI Customer Sentiment Summary (Review Schema)
+            if product.metadata:
+                pos_notes = getattr(product.metadata, "positive_notes", [])
+                neg_notes = getattr(product.metadata, "negative_notes", [])
+                ai_summary = getattr(product.metadata, "customer_sentiment_summary", "")
+
+                if pos_notes or neg_notes or ai_summary:
+                    ai_review = {
+                        "@type": "Review",
+                        "author": {
+                            "@type": "Organization",
+                            "name": _SITE_NAME,
+                        },
+                        "reviewRating": {
+                            "@type": "Rating",
+                            "ratingValue": f"{total_rating / max(1, count):.1f}" if count > 0 else "5.0",
+                            "bestRating": "5",
+                        },
+                        "reviewBody": ai_summary or "Tổng hợp đánh giá khách hàng.",
+                    }
+                    if pos_notes:
+                        ai_review["positiveNotes"] = {
+                            "@type": "ItemList",
+                            "itemListElement": [{"@type": "ListItem", "position": i+1, "name": note} for i, note in enumerate(pos_notes)]
+                        }
+                    if neg_notes:
+                        ai_review["negativeNotes"] = {
+                            "@type": "ItemList",
+                            "itemListElement": [{"@type": "ListItem", "position": i+1, "name": note} for i, note in enumerate(neg_notes)]
+                        }
+                    # Đưa AI Summary lên top đầu review
+                    review_nodes.insert(0, ai_review)
+
+            if review_nodes:
                 schema["review"] = review_nodes
+            
+            if count > 0:
                 schema["aggregateRating"] = {
                     "@type": "AggregateRating",
                     "ratingValue": f"{total_rating / count:.1f}",
@@ -238,7 +273,7 @@ class SeoService:
                 "@type": "ListItem",
                 "position": 1,
                 "name": "Trang chủ",
-                "item": _SITE_URL,
+                "item": {"@id": _SITE_URL},
             }
         ]
 
@@ -247,20 +282,20 @@ class SeoService:
                 "@type": "ListItem",
                 "position": 2,
                 "name": product.category,
-                "item": f"{_SITE_URL}/{product.slug.split('-')[0]}/",
+                "item": {"@id": f"{_SITE_URL}/{product.slug.split('-')[0]}/"},
             })
             items.append({
                 "@type": "ListItem",
                 "position": 3,
                 "name": product.name,
-                "item": canonical_url,
+                "item": {"@id": canonical_url},
             })
         else:
             items.append({
                 "@type": "ListItem",
                 "position": 2,
                 "name": product.name,
-                "item": canonical_url,
+                "item": {"@id": canonical_url},
             })
 
         schema: dict = {
@@ -397,8 +432,8 @@ class SeoService:
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             "itemListElement": [
-                {"@type": "ListItem", "position": 1, "name": "Trang chủ", "item": _SITE_URL},
-                {"@type": "ListItem", "position": 2, "name": name, "item": canonical_url}
+                {"@type": "ListItem", "position": 1, "name": "Trang chủ", "item": {"@id": _SITE_URL}},
+                {"@type": "ListItem", "position": 2, "name": name, "item": {"@id": canonical_url}}
             ]
         }
 
@@ -467,9 +502,9 @@ class SeoService:
             "@context": "https://schema.org",
             "@type": "BreadcrumbList",
             "itemListElement": [
-                {"@type": "ListItem", "position": 1, "name": "Trang chủ", "item": _SITE_URL},
-                {"@type": "ListItem", "position": 2, "name": "Bài viết", "item": f"{_SITE_URL}/bai-viet"},
-                {"@type": "ListItem", "position": 3, "name": title, "item": canonical_url}
+                {"@type": "ListItem", "position": 1, "name": "Trang chủ", "item": {"@id": _SITE_URL}},
+                {"@type": "ListItem", "position": 2, "name": "Bài viết", "item": {"@id": f"{_SITE_URL}/bai-viet"}},
+                {"@type": "ListItem", "position": 3, "name": title, "item": {"@id": canonical_url}}
             ]
         }
 

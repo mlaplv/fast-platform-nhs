@@ -53,6 +53,11 @@ class ProductMetadata(BaseModel):
     show_reviews: Optional[bool] = Field(None, alias="show_reviews")
     video_url: Optional[str] = Field(None, alias="video_url")
 
+    # Elite 2026: AI Customer Sentiment Summary
+    customer_sentiment_summary: Optional[str] = Field(None, alias="customer_sentiment_summary")
+    positive_notes: List[str] = Field(default_factory=list, alias="positive_notes")
+    negative_notes: List[str] = Field(default_factory=list, alias="negative_notes")
+
     # Elite V2.2: Product FAQs (Tùy biến từ Admin → hiện trên Product Detail + Schema JSON-LD)
     faqs: List[FaqItem] = Field(default_factory=list, alias="faqs")
 

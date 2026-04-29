@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { Star, ThumbsUp, MoreHorizontal, Play, Camera, Send, CheckCircle2, Loader2, X } from 'lucide-svelte';
+  import { Star, ThumbsUp, MoreHorizontal, Play, Camera, Send, CheckCircle2, Loader2, X, Sparkles, MinusCircle } from 'lucide-svelte';
   import SimpleTiptap from '../ui/SimpleTiptap.svelte';
   import { apiClient } from '$lib/utils/apiClient';
   
@@ -30,6 +30,13 @@
   // Review Actions State
   let likedReviews = $state<Set<string>>(new Set());
   let activeDropdownId = $state<string | null>(null);
+
+  // AI Sentiment State
+  const meta = $derived((product as any)?.metadata || {});
+  const aiSummary = $derived(meta.customer_sentiment_summary);
+  const positiveNotes = $derived(meta.positive_notes || []);
+  const negativeNotes = $derived(meta.negative_notes || []);
+  const hasAiSentiment = $derived(aiSummary || positiveNotes.length > 0 || negativeNotes.length > 0);
 
   // Form State
   let newRating = $state(5);
@@ -383,6 +390,47 @@
       {/each}
     </div>
   </div>
+  {/if}
+
+  <!-- AI Sentiment Box (Desktop) -->
+  {#if hasAiSentiment}
+    <div class="mb-10 bg-gradient-to-r from-[#FFF9F6] to-white border border-[#ee4d2d]/10 p-8 flex flex-col md:flex-row gap-8 relative overflow-hidden">
+       <!-- Decorative background -->
+       <div class="absolute -top-10 -right-10 w-40 h-40 bg-[#ee4d2d]/5 rounded-full blur-3xl pointer-events-none"></div>
+
+       <div class="w-full md:w-1/3 shrink-0 relative z-10">
+         <div class="flex items-center gap-2 mb-3">
+           <Sparkles class="w-5 h-5 text-[#ee4d2d] fill-current" />
+           <h3 class="text-[13px] font-black uppercase tracking-[0.2em] text-[#ee4d2d]">AI Tổng Hợp Đánh Giá</h3>
+         </div>
+         {#if aiSummary}
+           <p class="text-[14px] text-gray-700 leading-relaxed font-medium">{aiSummary}</p>
+         {/if}
+       </div>
+
+       <div class="flex-1 flex flex-col sm:flex-row gap-6 relative z-10">
+          {#if positiveNotes.length > 0}
+            <div class="flex-1 bg-white/60 backdrop-blur-sm p-4 border border-green-500/10">
+              <span class="text-[11px] font-black uppercase tracking-widest text-[#00bfa5] mb-3 block border-b border-green-500/10 pb-2">Khách hàng ưng ý</span>
+              <ul class="space-y-2.5">
+                {#each positiveNotes as note}
+                  <li class="text-[13px] text-gray-600 flex items-start gap-2"><CheckCircle2 class="w-4 h-4 text-[#00bfa5] mt-0.5 shrink-0" /> <span class="leading-tight">{note}</span></li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+          {#if negativeNotes.length > 0}
+            <div class="flex-1 bg-white/60 backdrop-blur-sm p-4 border border-gray-200/50">
+              <span class="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-3 block border-b border-gray-100 pb-2">Điểm cần lưu ý</span>
+              <ul class="space-y-2.5">
+                {#each negativeNotes as note}
+                  <li class="text-[13px] text-gray-500 flex items-start gap-2"><MinusCircle class="w-4 h-4 text-gray-300 mt-0.5 shrink-0" /> <span class="leading-tight">{note}</span></li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+       </div>
+    </div>
   {/if}
 
   <!-- Review List -->

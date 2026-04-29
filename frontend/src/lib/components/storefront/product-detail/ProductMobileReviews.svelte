@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { ChevronRight, MessageCircleMore, Star, Loader2, Play, CheckCircle2, PenLine, MoreHorizontal, ThumbsUp } from 'lucide-svelte';
+  import { ChevronRight, MessageCircleMore, Star, Loader2, Play, CheckCircle2, PenLine, MoreHorizontal, ThumbsUp, Sparkles, MinusCircle } from 'lucide-svelte';
   import type { Product, Review, ReviewStats } from '$lib/types';
   import { apiClient } from '$lib/utils/apiClient';
 
@@ -83,6 +83,13 @@
   function isVideo(url: string) {
     return url.match(/\.(mp4|webm|mov)$/i) || url.includes('video');
   }
+
+  // Elite 2026: AI Customer Sentiment Summary
+  const meta = $derived((product as any)?.metadata || {});
+  const aiSummary = $derived(meta.customer_sentiment_summary);
+  const positiveNotes = $derived(meta.positive_notes || []);
+  const negativeNotes = $derived(meta.negative_notes || []);
+  const hasAiSentiment = $derived(aiSummary || positiveNotes.length > 0 || negativeNotes.length > 0);
 </script>
 
 <section id="reviews" class="content-section">
@@ -101,6 +108,40 @@
       </a>
     {/if}
   </div>
+
+  {#if hasAiSentiment}
+    <div class="ai-sentiment-box mb-4 p-4 rounded-lg bg-gradient-to-br from-[#FFF9F6] to-white border border-[#ee4d2d]/10 shadow-sm relative overflow-hidden">
+       <div class="flex items-center gap-2 mb-2 relative z-10">
+         <Sparkles size={16} class="text-[#ee4d2d] fill-current" />
+         <h3 class="text-[12px] font-black uppercase tracking-widest text-[#ee4d2d]">AI Tổng Hợp Đánh Giá</h3>
+       </div>
+       {#if aiSummary}
+         <p class="text-[13px] text-gray-700 leading-relaxed mb-3 font-medium relative z-10">{aiSummary}</p>
+       {/if}
+       <div class="flex flex-col gap-3 relative z-10">
+          {#if positiveNotes.length > 0}
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-widest text-[#00bfa5] mb-1.5 block">Khách hàng ưng ý</span>
+              <ul class="space-y-1.5">
+                {#each positiveNotes as note}
+                  <li class="text-[12px] text-gray-600 flex items-start gap-1.5"><CheckCircle2 size={14} class="text-[#00bfa5] mt-0.5 shrink-0" /> <span class="leading-tight">{note}</span></li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+          {#if negativeNotes.length > 0}
+            <div class="pt-2 border-t border-gray-100">
+              <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 block">Điểm cần lưu ý</span>
+              <ul class="space-y-1.5">
+                {#each negativeNotes as note}
+                  <li class="text-[12px] text-gray-500 flex items-start gap-1.5"><MinusCircle size={14} class="text-gray-300 mt-0.5 shrink-0" /> <span class="leading-tight">{note}</span></li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+       </div>
+    </div>
+  {/if}
 
   {#if isLoading}
     <div class="flex flex-col items-center justify-center py-10 text-gray-400">
