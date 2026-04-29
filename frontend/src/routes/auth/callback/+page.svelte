@@ -9,9 +9,13 @@
   const ui = getClientUi();
   let status = $state<'processing' | 'success' | 'error'>('processing');
   let errorMessage = $state('');
+  let returnUrl = $state('/');
 
-  onMount(() => {
+  onMount(async () => {
     // Wait for SvelteKit page store to initialize
+    returnUrl = sessionStorage.getItem('returnTo') || '/';
+    sessionStorage.removeItem('returnTo');
+
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const error = params.get('error');
@@ -20,7 +24,7 @@
       status = 'error';
       errorMessage = error;
       setTimeout(() => {
-        goto('/');
+        goto(returnUrl);
       }, 3000);
       return;
     }
@@ -29,7 +33,7 @@
       status = 'error';
       errorMessage = 'Không hợp lệ (Missing Token)';
       setTimeout(() => {
-        goto('/');
+        goto(returnUrl);
       }, 3000);
       return;
     }
@@ -60,14 +64,22 @@
       ui.closeModal();
       
       // Elite V3.0 SPA Navigation: maintain state (Toasts, Pulse notifications)
-      goto('/', { replaceState: true });
+      const returnScroll = sessionStorage.getItem('returnScroll');
+      await goto(returnUrl, { replaceState: true });
+      
+      if (returnScroll) {
+        setTimeout(() => {
+          window.scrollTo({ top: parseInt(returnScroll), behavior: 'instant' });
+          sessionStorage.removeItem('returnScroll');
+        }, 50); // Đợi 50ms để DOM render xong component
+      }
 
     } catch (err) {
       status = 'error';
       errorMessage = 'Token bị hỏng hoặc hết hạn';
       ui.showToast(errorMessage, 'error');
       setTimeout(() => {
-        goto('/');
+        goto(returnUrl);
       }, 2000);
     }
   });
@@ -96,7 +108,7 @@
                 </div>
                 <div class="space-y-1">
                     <h2 class="text-xl font-bold text-gray-900 tracking-tight">Đăng nhập thành công!</h2>
-                    <p class="text-sm text-gray-500">Đang chuyển hướng bạn về trang chủ...</p>
+                    <p class="text-sm text-gray-500">Đang chuyển hướng...</p>
                 </div>
             </div>
         {:else}
@@ -109,10 +121,10 @@
                     <p class="text-sm text-red-500">{errorMessage || 'Đã có lỗi xảy ra trong quá trình xác thực.'}</p>
                 </div>
                 <button
-                    onclick={() => goto('/')}
+                    onclick={() => goto(returnUrl)}
                     class="mt-4 px-6 py-2 bg-gray-900 text-white rounded-full text-sm font-bold hover:bg-gray-800 transition-colors"
                 >
-                    Quay lại trang chủ
+                    {returnUrl === '/' ? 'Quay lại trang chủ' : 'Quay lại trang trước'}
                 </button>
             </div>
         {/if}

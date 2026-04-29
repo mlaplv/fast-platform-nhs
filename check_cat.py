@@ -1,14 +1,5 @@
 import asyncio
 import os
-from dotenv import load_dotenv
-
-# Load .env before any database imports
-load_dotenv()
-
-# Elite V2.2: Resolve name resolution issue when running outside Docker
-if os.getenv("DATABASE_URL"):
-    os.environ["DATABASE_URL"] = os.getenv("DATABASE_URL").replace("@db:5432", "@localhost:5432")
-
 from sqlalchemy import select
 from backend.database import async_session_maker
 from backend.database.models.content import Category

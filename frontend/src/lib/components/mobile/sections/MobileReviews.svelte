@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import vnDivisions from '$lib/data/vn_divisions.json';
   import { fade, fly, scale, blur } from 'svelte/transition';
   import { cubicOut, elasticOut } from 'svelte/easing';
   import { Star, ShieldCheck, MessageSquarePlus, X, MapPin, Phone, User, Send, CheckCircle2 } from 'lucide-svelte';
@@ -8,9 +9,12 @@
   import { SHOP_CONFIG } from '$lib/constants/shop';
   import EditableWrapper from '../../admin/EditableWrapper.svelte';
   import type { Review } from '$lib/types';
+  import { authStore } from '$lib/state/authStore.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
 
   let { product: propProduct } = $props();
   const shopStore = getShopStore();
+  const ui = getClientUi();
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
 
@@ -56,6 +60,7 @@
   let ratingSelected = $state(5);
   let isLocationOpen = $state(false);
   let websiteUrl = $state(''); // Honeypot
+  let locationSearch = $state('');
 
   // Toast System
   let toastMessage = $state('');
@@ -64,16 +69,35 @@
   let successTimer: ReturnType<typeof setTimeout> | undefined;
 
   $effect(() => {
+    // Đóng form khi đăng xuất
+    if (!authStore.isAuthenticated && showFormModal) {
+      showFormModal = false;
+    }
+
     return () => {
       if (toastTimer) clearTimeout(toastTimer);
       if (successTimer) clearTimeout(successTimer);
     };
   });
 
-  const locations = [
-    "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ",
-    "Bình Dương", "Đồng Nai", "Khánh Hòa", "Lâm Đồng", "Quảng Ninh"
-  ];
+  const locations = (vnDivisions as any[]).slice(1).map(d => 
+    d.name.replace('Thành phố ', 'TP. ').replace('Tỉnh ', '').toUpperCase()
+  );
+
+  function normalize(str: string) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  }
+
+  const filteredLocations = $derived.by(() => {
+    let query = normalize(locationSearch);
+    if (query === 'hcm') query = 'ho chi minh';
+    if (query === 'hn') query = 'ha noi';
+    
+    return locations.filter(loc => {
+      const normalizedLoc = normalize(loc);
+      return normalizedLoc.includes(query) || (query === 'ho chi minh' && normalizedLoc.includes('hcm'));
+    });
+  });
 
   function triggerToast(msg: string) {
     toastMessage = msg;
@@ -82,23 +106,28 @@
     toastTimer = setTimeout(() => { showToast = false; }, 3000);
   }
 
+  import { apiClient } from '$lib/utils/apiClient';
+
   async function fetchReviews() {
     if (!product?.id) return;
     isLoading = true;
     try {
-      const res = await fetch(`/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED`);
-      if (res.ok) {
-        const data = await res.json();
-        realReviews = (data.items as ReviewApiResponse[] || []).map((r: ReviewApiResponse) => ({
-          id: r.id,
-          name: r.customer_name,
-          phone: r.customer_phone ? r.customer_phone.slice(0, 3) + '****' + r.customer_phone.slice(-3) : 'Ẩn danh',
-          location: r.customer_location || 'Việt Nam',
-          rating: r.rating,
-          content: r.content.replace(/^<p>/i, '').replace(/<\/p>$/i, ''),
-          initial: r.customer_name ? r.customer_name.charAt(0).toUpperCase() : '?'
-        }));
-      }
+      const data = await apiClient.get<{ items: ReviewApiResponse[] }>(`/client/reviews`, {
+        params: {
+          entity_type: 'PRODUCT',
+          entity_id: product.id,
+          status: 'APPROVED'
+        }
+      });
+      realReviews = (data.items || []).map((r: ReviewApiResponse) => ({
+        id: r.id,
+        name: r.customer_name,
+        phone: r.customer_phone ? r.customer_phone.slice(0, 3) + '****' + r.customer_phone.slice(-3) : 'Ẩn danh',
+        location: r.customer_location || 'Việt Nam',
+        rating: r.rating,
+        content: r.content.replace(/^<p>/i, '').replace(/<\/p>$/i, ''),
+        initial: r.customer_name ? r.customer_name.charAt(0).toUpperCase() : '?'
+      }));
     } catch (e) {
       console.error("Reviews Error:", e);
     } finally {
@@ -123,33 +152,25 @@
 
     isSubmitting = true;
     try {
-      const res = await fetch('/api/v1/client/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          entity_type: 'PRODUCT',
-          entity_id: product?.id || '',
-          customer_name: name,
-          customer_phone: phone,
-          customer_location: locationSelected,
-          rating: ratingSelected,
-          content: content
-        })
+      await apiClient.post('/client/reviews', {
+        entity_type: 'PRODUCT',
+        entity_id: product?.id || '',
+        customer_name: name,
+        customer_phone: phone,
+        customer_location: locationSelected,
+        rating: ratingSelected,
+        content: content
       });
 
-      if (res.ok) {
-        showSuccess = true;
-        if (successTimer) clearTimeout(successTimer);
-        successTimer = setTimeout(() => {
-          showFormModal = false;
-          showSuccess = false;
-          name = ''; phone = ''; content = ''; locationSelected = '';
-        }, 4000);
-      } else {
-        triggerToast("Lỗi hệ thống. Thử lại sau.");
-      }
+      showSuccess = true;
+      if (successTimer) clearTimeout(successTimer);
+      successTimer = setTimeout(() => {
+        showFormModal = false;
+        showSuccess = false;
+        name = ''; phone = ''; content = ''; locationSelected = '';
+      }, 4000);
     } catch (e) {
-      triggerToast("Mất kết nối máy chủ.");
+      triggerToast("Lỗi hệ thống hoặc mất kết nối.");
     } finally {
       isSubmitting = false;
     }
@@ -257,7 +278,13 @@
   <div class="mt-4 pb-6 px-[23px]">
     <EditableWrapper path="metadata.reviews_cta_write" label="SỬA NÚT CTA" class="w-full">
       <button 
-        onclick={() => showFormModal = true}
+        onclick={() => {
+          if (!authStore.isAuthenticated) {
+            ui.openLogin(() => showFormModal = true);
+          } else {
+            showFormModal = true;
+          }
+        }}
         class="w-full py-6 bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] rounded-[2.5rem] font-black text-[13px] tracking-[0.3em] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase italic shadow-[0_0_30px_rgba(255,183,197,0.15)]"
       >
         <MessageSquarePlus class="w-5 h-5" /> {labels.cta_write}
@@ -352,23 +379,50 @@
 
                 {#if isLocationOpen}
                   <div 
-                    class="absolute top-full left-0 right-0 mt-2 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-modal overflow-hidden"
+                    class="absolute top-full left-0 right-0 mt-2 bg-[#050505] border border-white/20 rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,1)] z-modal overflow-hidden flex flex-col"
                     in:fly={{ y: -10, duration: 200 }}
                     out:fade={{ duration: 150 }}
+                    onmouseleave={() => isLocationOpen = false}
                   >
-                    <div class="max-h-56 overflow-y-auto scrollbar-hide">
-                      {#each locations as loc}
-                        <button
-                          type="button"
-                          onclick={() => { locationSelected = loc; isLocationOpen = false; }}
-                          class="w-full px-4 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] transition-all border-b border-white/5 last:border-none flex items-center justify-between group {locationSelected === loc ? 'bg-[#FFB7C5]/10 text-[#FFB7C5]' : 'text-white/40 hover:bg-white/[0.03] hover:text-white'}"
-                        >
-                          {loc}
-                          {#if locationSelected === loc}
-                            <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_rgba(255,183,197,0.5)]"></div>
-                          {/if}
-                        </button>
-                      {/each}
+                    <!-- Search Header -->
+                    <div class="px-4 py-3 border-b border-white/10 bg-white/[0.02] flex items-center gap-3">
+                      <div class="flex-1 relative">
+                        <input
+                          type="text"
+                          bind:value={locationSearch}
+                          placeholder="TÌM KIẾM TỈNH THÀNH..."
+                          class="w-full bg-transparent text-[10px] font-black uppercase tracking-widest text-white outline-none placeholder:text-white/20"
+                          autofocus
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onclick={() => { isLocationOpen = false; locationSearch = ''; }}
+                        class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors"
+                      >
+                        <X class="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div class="max-h-72 overflow-y-auto scrollbar-hide">
+                      {#if filteredLocations.length > 0}
+                        {#each filteredLocations as loc}
+                          <button
+                            type="button"
+                            onclick={() => { locationSelected = loc; isLocationOpen = false; locationSearch = ''; }}
+                            class="w-full px-5 py-4 text-left text-[11px] font-black uppercase tracking-[0.2em] transition-all border-b border-white/5 last:border-none flex items-center justify-between group {locationSelected === loc ? 'bg-[#FFB7C5]/10 text-[#FFB7C5]' : 'text-white/60 hover:bg-white/[0.05] hover:text-white'}"
+                          >
+                            {loc}
+                            {#if locationSelected === loc}
+                              <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_12px_rgba(255,183,197,0.8)]"></div>
+                            {/if}
+                          </button>
+                        {/each}
+                      {:else}
+                        <div class="py-10 text-center text-[9px] font-black text-white/20 uppercase tracking-widest italic">
+                          Không tìm thấy kết quả
+                        </div>
+                      {/if}
                     </div>
                   </div>
                 {/if}

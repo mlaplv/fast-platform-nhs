@@ -92,10 +92,7 @@ logger = logging.getLogger("api-gateway")
 allowed_origins = [
     os.getenv("ADMIN_URL", "https://admin.micsmo.com"),
     os.getenv("API_URL", "https://api.micsmo.com"),
-    os.getenv("APP_URL", "https://micsmo.com"),
-    "https://smartshop.test",
-    "https://admin.smartshop.test",
-    "https://api.smartshop.test"
+    os.getenv("APP_URL", "https://micsmo.com")
 ]
 cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS")
 if cors_origins_str:

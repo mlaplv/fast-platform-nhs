@@ -30,17 +30,28 @@
   // Derived Values
   const selectedProvince = $derived(provinces.find(p => p.name === value.province));
   
+  function normalize(str: string) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  }
+
   const filteredProvinces = $derived.by(() => {
-    if (!searchQuery) return provinces;
-    const query = searchQuery.toLowerCase();
-    return provinces.filter(p => p.name.toLowerCase().includes(query));
+    let query = normalize(searchQuery);
+    if (query === 'hcm') query = 'ho chi minh';
+    if (query === 'hn') query = 'ha noi';
+    if (!query) return provinces;
+    
+    return provinces.filter(p => {
+        const normalizedP = normalize(p.name);
+        return normalizedP.includes(query);
+    });
   });
 
   const filteredWards = $derived.by(() => {
     if (!selectedProvince) return [];
-    if (!searchQuery) return selectedProvince.wards;
-    const query = searchQuery.toLowerCase();
-    return selectedProvince.wards.filter(w => w.toLowerCase().includes(query));
+    let query = normalize(searchQuery);
+    if (!query) return selectedProvince.wards;
+    
+    return selectedProvince.wards.filter(w => normalize(w).includes(query));
   });
 
   onMount(async () => {
@@ -110,22 +121,28 @@
   <!-- Dropdown Modal (Elite Glass) -->
   {#if isOpen}
     <div 
-      class="absolute top-[calc(100%+8px)] left-0 w-full z-[2000] border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[400px] {light ? 'bg-white border-slate-200' : 'bg-[#121212] border-white/10'}"
+      class="absolute top-[calc(100%+8px)] left-0 w-full z-[2000] border rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,1)] overflow-hidden flex flex-col max-h-[400px] {light ? 'bg-white border-slate-200' : 'bg-[#030303] border-white/20'}"
       transition:slide={{ duration: 300 }}
+      onmouseleave={() => isOpen = false}
     >
-      <!-- Search Bar -->
-      <div class="p-3 border-b flex items-center gap-2 {light ? 'bg-slate-50 border-slate-100' : 'bg-white/[0.02] border-white/10'}">
-        <Search class="w-4 h-4 {light ? 'text-slate-400' : 'text-white/40'}" />
+      <!-- Search Bar & Close -->
+      <div class="p-3 border-b flex items-center gap-2 {light ? 'bg-slate-50 border-slate-100' : 'bg-white/[0.03] border-white/10'}">
+        <Search class="w-4 h-4 {light ? 'text-slate-500' : 'text-[#FFB7C5]'}" />
         <input 
           type="text" 
           bind:value={searchQuery}
-          placeholder={step === 'province' ? 'Tìm Tỉnh/Thành phố...' : 'Tìm Phường/Xã...'}
-          class="flex-1 bg-transparent border-none outline-none text-[14px] {light ? 'text-slate-900 placeholder:text-slate-300' : 'text-white placeholder:text-white/20'}"
+          placeholder={step === 'province' ? 'TÌM TỈNH/THÀNH...' : 'TÌM PHƯỜNG/XÃ...'}
+          class="flex-1 bg-transparent border-none outline-none text-[12px] font-black uppercase tracking-wider {light ? 'text-slate-900 placeholder:text-slate-300' : 'text-white placeholder:text-white/10'}"
           autofocus
         />
-        {#if step === 'ward'}
-          <button onclick={reset} class="text-[10px] font-black {light ? 'text-sky-500' : 'text-[#FFB7C5]'} uppercase px-2 hover:opacity-80">Quay lại</button>
-        {/if}
+        <div class="flex items-center gap-1">
+          {#if step === 'ward'}
+            <button onclick={reset} class="text-[10px] font-black {light ? 'text-sky-600' : 'text-[#FFB7C5]'} uppercase px-2 py-1 bg-white/5 rounded-lg hover:opacity-80">Quay lại</button>
+          {/if}
+          <button onclick={() => isOpen = false} class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/20 hover:text-white transition-all">
+            <X class="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <!-- List Container -->

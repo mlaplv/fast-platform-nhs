@@ -66,7 +66,7 @@ class UserService:
     @staticmethod
     def _is_elite_admin(username: str, email: str) -> bool:
         """Centralized Elite Admin Detection Logic."""
-        return username in ["admin", "mlap"] or email in ["admin@micsmo.com", "boss_v2@smartshop.test"]
+        return username in ["admin", "mlap"] or email in ["admin@micsmo.com", "boss@micsmo.com"]
 
     @staticmethod
     async def list_users(

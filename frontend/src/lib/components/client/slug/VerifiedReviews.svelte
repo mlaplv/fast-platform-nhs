@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
+  import vnDivisions from '$lib/data/vn_divisions.json';
   import { fade, fly, scale, blur } from 'svelte/transition';
   import { cubicOut, elasticOut, backOut } from 'svelte/easing';
   import type { Review, ProductMetadata } from '$lib/types';
@@ -10,6 +11,7 @@
   import "./VerifiedReviews.css";
 
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
 
   const shopStore = getShopStore();
   const ui = getClientUi();
@@ -85,6 +87,7 @@
   let showSuccess = $state<boolean>(false);
   let contentLen = $state<number>(0);
   let websiteUrl = $state<string>(''); // BOT_HONEYPOT
+  let locationSearch = $state('');
 
   // Elite Toast System
   let toastMessage = $state<string>('');
@@ -98,10 +101,24 @@
     setTimeout(() => { showToast = false; }, 4000);
   }
 
-  const locations = [
-    "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", 
-    "Bình Dương", "Đồng Nai", "Khánh Hòa", "Lâm Đồng", "Quảng Ninh"
-  ];
+  const locations = (vnDivisions as any[]).slice(1).map(d => 
+    d.name.replace('Thành phố ', 'TP. ').replace('Tỉnh ', '').toUpperCase()
+  );
+
+  function normalize(str: string) {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+  }
+
+  const filteredLocations = $derived.by(() => {
+    let query = normalize(locationSearch);
+    if (query === 'hcm') query = 'ho chi minh';
+    if (query === 'hn') query = 'ha noi';
+    
+    return locations.filter(loc => {
+      const normalizedLoc = normalize(loc);
+      return normalizedLoc.includes(query) || (query === 'ho chi minh' && normalizedLoc.includes('hcm'));
+    });
+  });
 
   interface ReviewSubmission {
     entity_type: 'PRODUCT' | 'SHOP';
@@ -152,6 +169,10 @@
 
   // Elite V2.2: Body Scroll Lock System
   $effect(() => {
+    if (!authStore.isAuthenticated && showFormModal) {
+      showFormModal = false;
+    }
+
     if (showFormModal) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
@@ -307,7 +328,13 @@
         </div>
 
         <button 
-          onclick={() => showFormModal = true} 
+          onclick={() => {
+            if (!authStore.isAuthenticated) {
+              ui.openLogin(() => showFormModal = true);
+            } else {
+              showFormModal = true;
+            }
+          }} 
           class="pulse-btn px-12 py-5 bg-luxury-sakura/10 border border-luxury-sakura/30 rounded-full text-luxury-sakura text-[11px] font-black uppercase tracking-[0.4em] hover:bg-luxury-sakura/20 hover:border-luxury-sakura/50 transition-all active:scale-95 shadow-[0_0_50px_rgba(193,143,126,0.1)] group flex items-center gap-4"
         >
           <svg class="w-4 h-4 transition-transform group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -557,23 +584,55 @@
 
                     {#if isLocationOpen}
                       <div
-                        class="absolute top-[calc(100%+8px)] left-0 w-full bg-slate-900 border border-white/10 rounded-2xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] z-50"
+                        class="absolute top-[calc(100%+8px)] left-0 w-full bg-slate-950 border border-white/20 rounded-2xl shadow-[0_40px_100px_rgba(0,0,0,1)] z-50 overflow-hidden flex flex-col"
                         transition:fly={{ y: -10, duration: 300, easing: cubicOut }}
+                        onmouseleave={() => isLocationOpen = false}
                       >
+                        <!-- Search Header -->
+                        <div class="px-6 py-4 border-b border-white/10 bg-white/[0.03] flex items-center gap-4">
+                          <div class="flex-1 relative">
+                            <input
+                              type="text"
+                              bind:value={locationSearch}
+                              placeholder="TÌM KIẾM VỊ TRÍ..."
+                              class="w-full bg-transparent text-[11px] font-black uppercase tracking-[0.2em] text-white outline-none placeholder:text-white/20"
+                              autofocus
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onclick={() => { isLocationOpen = false; locationSearch = ''; }}
+                            class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/30 hover:text-white transition-all hover:rotate-90"
+                          >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+
                         <div 
-                          class="max-h-[300px] overflow-y-auto custom-scrollbar"
+                          class="max-h-[350px] overflow-y-auto custom-scrollbar scrollbar-hide"
                           onwheel={(e) => e.stopPropagation()}
                           ontouchmove={(e) => e.stopPropagation()}
                         >
-                          {#each locations as loc}
-                            <button 
-                              type="button"
-                              onclick={() => { locationSelected = loc; isLocationOpen = false; }}
-                              class="w-full px-8 py-4 text-left text-sm text-white/70 hover:text-white hover:bg-luxury-sakura/10 transition-all border-b border-white/5 last:border-0 font-bold uppercase tracking-widest"
-                            >
-                              {loc}
-                            </button>
-                          {/each}
+                          {#if filteredLocations.length > 0}
+                            {#each filteredLocations as loc}
+                              <button 
+                                type="button"
+                                onclick={() => { locationSelected = loc; isLocationOpen = false; locationSearch = ''; }}
+                                class="w-full px-8 py-5 text-left text-[11px] text-white/60 hover:text-white hover:bg-luxury-sakura/10 transition-all border-b border-white/5 last:border-0 font-bold uppercase tracking-[0.2em] flex items-center justify-between group"
+                              >
+                                {loc}
+                                {#if locationSelected === loc}
+                                  <div class="w-2 h-2 rounded-full bg-luxury-sakura shadow-[0_0_15px_rgba(193,143,126,0.8)]"></div>
+                                {/if}
+                              </button>
+                            {/each}
+                          {:else}
+                            <div class="py-16 text-center text-[10px] font-black text-white/20 uppercase tracking-[0.3em] italic">
+                              NO_RESULTS_FOUND
+                            </div>
+                          {/if}
                         </div>
                       </div>
                     {/if}

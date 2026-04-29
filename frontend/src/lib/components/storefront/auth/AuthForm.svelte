@@ -191,6 +191,8 @@
   function handleSocialLogin(provider: 'google' | 'facebook' | 'zalo') {
     isLoading = true;
     error = null;
+    sessionStorage.setItem('returnTo', window.location.pathname + window.location.search);
+    sessionStorage.setItem('returnScroll', window.scrollY.toString());
     window.location.href = `/api/v1/auth/oauth/login/${provider}`;
   }
 

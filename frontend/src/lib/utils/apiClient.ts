@@ -39,8 +39,7 @@ export const apiClient = {
     const { params, ...customConfig } = options;
 
     // 1. Build URL with query params
-    const isMicsmo = typeof window !== 'undefined' && window.location.hostname.includes('micsmo.com');
-    const apiBase = isMicsmo ? 'https://api.micsmo.com/api/v1' : (window.location.origin + '/api/v1');
+    const apiBase = typeof window !== 'undefined' ? (window.location.origin + '/api/v1') : 'http://api:8000/api/v1';
     
     // Normalize endpoint: if it starts with /api/v1, remove it if we are using apiBase
     let cleanEndpoint = endpoint;
@@ -206,8 +205,7 @@ export const apiClient = {
   ): Promise<T> {
     const { params, headers: customHeaders, ...rest } = options;
 
-    const isMicsmo = typeof window !== 'undefined' && window.location.hostname.includes('micsmo.com');
-    const apiBase = isMicsmo ? 'https://api.micsmo.com/api/v1' : (window.location.origin + '/api/v1');
+    const apiBase = typeof window !== 'undefined' ? (window.location.origin + '/api/v1') : 'http://api:8000/api/v1';
     
     let cleanEndpoint = endpoint;
     if (cleanEndpoint.startsWith('/api/v1')) cleanEndpoint = cleanEndpoint.substring(7);

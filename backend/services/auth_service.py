@@ -149,7 +149,7 @@ class AuthService:
         avatar = profile.get("avatar", "")
         # Nếu provider không cấp email (như Zalo), ta sinh email ảo
         if not email:
-            email = f"user_{uuid.uuid4().hex[:8]}@social.smartshop.test"
+            email = f"user_{uuid.uuid4().hex[:8]}@social.micsmo.com"
             
         stmt = (
             select(User)
@@ -307,7 +307,7 @@ class AuthService:
             user = User(
                 id=user_id,
                 username=identifier,
-                email=identifier if "@" in identifier else f"{identifier}@smartshop.test",
+                email=identifier if "@" in identifier else f"{identifier}@micsmo.com",
                 phone=identifier if "@" not in identifier else None,
                 name=str(data.get("name") or identifier.split("@")[0]),
                 status="ACTIVE",
