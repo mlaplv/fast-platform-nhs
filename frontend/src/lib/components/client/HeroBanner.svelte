@@ -369,29 +369,41 @@
       <div class="w-full md:w-1/2 flex flex-col relative justify-center">
          <div class="metrics-arc-container">
             {#each metrics as metric, i}
-                <div class="hud-metric-segment group relative pt-0 px-0 pb-0 transition-all duration-500" style:--idx={i}>
-                    <EditableWrapper path="metadata.hero_metrics.{i}.label" value={metric.label} label="SỬA NHÃN {i+1}">
-                      <span class="text-[10px] font-black uppercase tracking-[.2em] whitespace-nowrap transition-colors duration-500"
-                            class:text-luxury-copper={metric.color === 'copper'}
-                            class:text-luxury-gold={metric.color === 'gold'}
-                            class:text-luxury-peach={metric.color === 'peach'}
-                            class:text-sakura-pink={!metric.color || metric.color === 'sakura'}>{metric.label}</span>
-                    </EditableWrapper>
+                <div class="hud-metric-segment group relative pt-5 px-6 pb-5 -mx-6 transition-all duration-500 rounded-3xl border border-transparent hover:border-white/10 hover:bg-white/[0.02]" 
+                     style:--idx={i}
+                     onmousemove={(e) => {
+                       const rect = e.currentTarget.getBoundingClientRect();
+                       e.currentTarget.style.setProperty('--light-x', `${e.clientX - rect.left}px`);
+                       e.currentTarget.style.setProperty('--light-y', `${e.clientY - rect.top}px`);
+                     }}>
+                    <!-- Premium Flashlight Effect (Brightened) -->
+                    <div class="absolute inset-0 z-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500 overflow-hidden rounded-3xl"
+                         style="background: radial-gradient(400px circle at var(--light-x, 50%) var(--light-y, 50%), rgba(255, 183, 197, 0.25), transparent 80%);">
+                    </div>
                     
-                    <EditableWrapper path="metadata.hero_metrics.{i}.value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}">
-                      <h3 class="text-lg font-black tracking-normal text-white transition-colors duration-300 whitespace-nowrap"
-                          class:group-hover:text-luxury-copper={metric.color === 'copper'}
-                          class:group-hover:text-luxury-gold={metric.color === 'gold'}
-                          class:group-hover:text-luxury-peach={metric.color === 'peach'}
-                          class:group-hover:text-sakura-pink={!metric.color || metric.color === 'sakura'}>{metric.value}</h3>
-                    </EditableWrapper>
-
-                    <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">
-                      <EditableWrapper path="metadata.hero_metrics.{i}.desc" label="SỬA MÔ TẢ {i+1}" as="span">
-                        {metric.desc}
+                    <div class="relative z-10">
+                      <EditableWrapper path="metadata.hero_metrics.{i}.label" value={metric.label} label="SỬA NHÃN {i+1}">
+                        <span class="text-[10px] font-black uppercase tracking-[.2em] whitespace-nowrap transition-colors duration-500"
+                              class:text-luxury-copper={metric.color === 'copper'}
+                              class:text-luxury-gold={metric.color === 'gold'}
+                              class:text-luxury-peach={metric.color === 'peach'}
+                              class:text-sakura-pink={!metric.color || metric.color === 'sakura'}>{metric.label}</span>
                       </EditableWrapper>
-                    </p>
-                   <div class="absolute -inset-4 bg-radial-gradient from-luxury-copper/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                      
+                      <EditableWrapper path="metadata.hero_metrics.{i}.value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}">
+                        <h3 class="text-lg font-black tracking-normal text-white transition-colors duration-300 whitespace-nowrap"
+                            class:group-hover:text-luxury-copper={metric.color === 'copper'}
+                            class:group-hover:text-luxury-gold={metric.color === 'gold'}
+                            class:group-hover:text-luxury-peach={metric.color === 'peach'}
+                            class:group-hover:text-sakura-pink={!metric.color || metric.color === 'sakura'}>{metric.value}</h3>
+                      </EditableWrapper>
+
+                      <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">
+                        <EditableWrapper path="metadata.hero_metrics.{i}.desc" label="SỬA MÔ TẢ {i+1}" as="span">
+                          {metric.desc}
+                        </EditableWrapper>
+                      </p>
+                    </div>
                 </div>
             {/each}
          </div>

@@ -9,6 +9,21 @@
   import { ShoppingCart, ArrowRight, Zap, Sparkles, Ticket } from 'lucide-svelte';
   import OfferVoucherSheet from './OfferVoucherSheet.svelte';
 
+  interface MktLabels {
+    sub: string;
+    timer_prefix: string;
+    shipping_prefix: string;
+    savings_prefix: string;
+    booking_suffix: string;
+    trust_verified_by: string;
+    compliance_note: string;
+    label_activation: string;
+    label_full_treatment: string;
+    label_expert_choice: string;
+    cta_start: string;
+    cta_full: string;
+  }
+
   const { 
     variant, 
     idx, 
@@ -22,8 +37,8 @@
     idx: number;
     product: Product | null;
     variantsCount: number;
-    mkt: any;
-    productVouchers: any[];
+    mkt: MktLabels;
+    productVouchers: Voucher[];
     onOpenVouchers: (id: string) => void;
   }>();
 

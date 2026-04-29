@@ -7,9 +7,9 @@
   /* Z-Index inherited from Global +layout.svelte injection */
 
 
-  --standard-pt: calc(10vh + 10px);
-  --standard-pb: 10vh;
-  --section-pt: 10vh;
+  --standard-pt: clamp(90px, 10vh + 10px, 120px);
+  --standard-pb: clamp(80px, 10vh, 120px);
+  --section-pt: clamp(80px, 10vh, 120px);
   --fs-headline-titanic: clamp(2.5rem, 8.5vw, 6rem);
   --fs-headline-standard: clamp(2rem, 5.5vw, 3.8rem);
   --sacura-pink: #f472b6;

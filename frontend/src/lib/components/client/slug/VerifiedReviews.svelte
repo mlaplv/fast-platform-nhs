@@ -43,12 +43,26 @@
 
   // Elite V2.2: Live FOMO Pulse Logic
   let liveViewers = $state(Math.floor(Math.random() * (45 - 12 + 1)) + 12);
+  // Elite V2.2: Memory Leak Protection
+  const timers = new Set<any>();
+  function clearTimers() {
+    timers.forEach(t => {
+      clearTimeout(t);
+      clearInterval(t);
+    });
+    timers.clear();
+  }
+
   onMount(() => {
     const interval = setInterval(() => {
       const delta = Math.random() > 0.5 ? 1 : -1;
       liveViewers = Math.max(8, Math.min(64, liveViewers + delta));
     }, 5000);
-    return () => clearInterval(interval);
+    timers.add(interval);
+    
+    return () => {
+      clearTimers();
+    };
   });
 
   const labels = $derived({
@@ -98,10 +112,17 @@
     toastMessage = msg;
     toastType = type;
     showToast = true;
-    setTimeout(() => { showToast = false; }, 4000);
+    const t = setTimeout(() => { showToast = false; }, 4000);
+    timers.add(t);
   }
 
-  const locations = (vnDivisions as any[]).slice(1).map(d => 
+  interface VNDivision {
+    name: string;
+    code?: string;
+    id?: string;
+  }
+
+  const locations = (vnDivisions as VNDivision[]).slice(1).map(d => 
     d.name.replace('Thành phố ', 'TP. ').replace('Tỉnh ', '').toUpperCase()
   );
 
@@ -224,7 +245,7 @@
       if (res.ok) {
         showSuccess = true;
         // Confetti start here
-        setTimeout(() => {
+        const t = setTimeout(() => {
           showFormModal = false;
           showSuccess = false;
           if (nameRef) nameRef.value = '';
@@ -234,6 +255,7 @@
           locationSelected = '';
           ratingSelected = 5;
         }, 5000);
+        timers.add(t);
       } else {
         triggerToast("Hệ thống bận, vui lòng thử lại sau.", "error");
       }

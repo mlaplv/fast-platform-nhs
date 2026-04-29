@@ -30,9 +30,15 @@
     loading_label: 'Đang truy xuất cơ sở dữ liệu lâm sàng...'
   };
 
+  interface VNDivision {
+    name: string;
+    code?: string;
+    id?: string;
+  }
+
   const selectedAreaLabel = $derived(answers.find(ans => ans.q.includes('giải cứu'))?.a || '');
   
-  const levelOptions = $derived(() => {
+  const levelOptions = $derived.by(() => {
     const area = selectedAreaLabel.toLowerCase();
     if (area.includes('bikini')) return [
       { label: 'Sắc tố chưa đồng nhất', value: 'light', icon: 'Moon' },
@@ -63,7 +69,7 @@
   const metadata = $derived(propMetadata || product?.metadata || {});
   const questions = $derived(propQuestions || (metadata.quiz_questions as QuizQuestion[])?.map((q, i) => {
     if (q.id === 'level' || q.title?.includes('sắc tố thực tế')) {
-       return { ...q, options: levelOptions() };
+       return { ...q, options: levelOptions };
     }
     return {
       ...q,
@@ -83,7 +89,7 @@
     {
       id: 'level',
       title: 'Hiện trạng sắc tố thực tế?',
-      options: levelOptions()
+      options: levelOptions
     },
     {
       id: 'goal',

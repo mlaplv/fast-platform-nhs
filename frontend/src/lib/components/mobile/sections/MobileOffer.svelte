@@ -21,8 +21,13 @@
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
+  interface MobileOfferProps {
+    product?: Product;
+    onOpenDetails?: () => void;
+  }
+
   // --- Props & State (Runes) ---
-  let { product: propProduct, onOpenDetails } = $props();
+  let { product: propProduct, onOpenDetails } = $props<MobileOfferProps>();
   const shopStore = getShopStore();
   const cartStore = getCartStore();
   
