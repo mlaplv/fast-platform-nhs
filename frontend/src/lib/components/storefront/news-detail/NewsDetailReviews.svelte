@@ -26,6 +26,10 @@
   let fileInput = $state<HTMLInputElement | null>(null);
   let viewingMedia = $state<{url: string, type: string} | null>(null);
 
+  // Review Actions State
+  let likedReviews = $state<Set<string>>(new Set());
+  let activeDropdownId = $state<string | null>(null);
+
   // Form State
   let newRating = $state(5);
   let newContent = $state('');
@@ -168,6 +172,34 @@
     } finally {
       isSubmitting = false;
     }
+  }
+
+  async function handleLikeReview(reviewId: string) {
+    if (likedReviews.has(reviewId)) return;
+    
+    const idx = reviews.findIndex(r => r.id === reviewId);
+    if (idx !== -1) {
+      reviews[idx].likes_count = (reviews[idx].likes_count || 0) + 1;
+      likedReviews.add(reviewId);
+    }
+    
+    try {
+      const res = await apiClient.post<{new_count: number}>(`/client/reviews/${reviewId}/like`);
+      if (idx !== -1 && res.new_count !== undefined) {
+        reviews[idx].likes_count = res.new_count;
+      }
+    } catch (e) {
+      console.error("Lỗi like review:", e);
+      if (idx !== -1) {
+         reviews[idx].likes_count -= 1;
+         likedReviews.delete(reviewId);
+      }
+    }
+  }
+
+  async function handleReportReview(reviewId: string) {
+    activeDropdownId = null;
+    ui.openReportReview(reviewId);
   }
 
   const formatDate = (dateStr?: string) => {
@@ -347,6 +379,36 @@
                 {/each}
               </div>
             {/if}
+
+            <!-- Actions -->
+            <div class="flex items-center justify-between mt-4 border-t border-gray-100 pt-4">
+              <button 
+                onclick={() => handleLikeReview(review.id)}
+                class="flex items-center gap-1.5 group {likedReviews.has(review.id) ? 'pointer-events-none' : ''}">
+                <ThumbsUp class="w-4 h-4 {review.likes_count || likedReviews.has(review.id) ? 'text-[#C18F7E] fill-current' : 'text-gray-300'} transition-colors {likedReviews.has(review.id) ? '' : 'group-hover:text-[#C18F7E]'}" />
+                <span class="text-[13px] {likedReviews.has(review.id) ? 'text-[#C18F7E]' : 'text-gray-400'} font-medium group-hover:text-[#C18F7E]">{review.likes_count || ''}</span>
+              </button>
+              <div class="relative">
+                <button 
+                  onclick={() => activeDropdownId = activeDropdownId === review.id ? null : review.id}
+                  class="text-gray-300 hover:text-gray-600 transition-colors">
+                  <MoreHorizontal class="w-5 h-5" />
+                </button>
+                {#if activeDropdownId === review.id}
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div class="fixed inset-0 z-40" onclick={() => activeDropdownId = null}></div>
+                  <div class="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-100 shadow-xl z-50 py-1" in:fade={{ duration: 150 }}>
+                    <button 
+                      onclick={() => handleReportReview(review.id)}
+                      class="w-full px-4 py-2 text-left text-[12px] font-medium text-red-600 hover:bg-gray-50 flex items-center gap-2">
+                      <span class="text-base">🚩</span> Báo cáo vi phạm
+                    </button>
+                  </div>
+                {/if}
+              </div>
+            </div>
+
           </div>
         </div>
       {/each}

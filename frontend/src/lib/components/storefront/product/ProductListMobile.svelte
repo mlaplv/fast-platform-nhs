@@ -2,9 +2,10 @@
   import { goto } from '$app/navigation';
   import { trimProductName } from '$lib/utils/format';
   import ProductGrid from './ProductGrid.svelte';
+  import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { ChevronLeft, Search, Filter, MessageCircleQuestion } from 'lucide-svelte';
-  import type { Product, ProductFacets, Category } from '$lib/types';
+  import type { Product, ProductFacets, Category, ReviewStats } from '$lib/types';
   import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';
   import ProductMobileReviews from '../product-detail/ProductMobileReviews.svelte';
 
@@ -87,6 +88,18 @@
   function clearFilters() { selectedBrands = []; selectedOrigins = []; selectedServices = []; minPrice = null; maxPrice = null; }
 
   const faqs = $derived(category?.metadata?.faqs || category?.category_metadata?.faqs || []);
+  let stats = $state<ReviewStats | null>(null);
+
+  onMount(async () => {
+    if (category?.id) {
+      try {
+        const res = await fetch(`/api/v1/client/reviews/stats?entity_type=CATEGORY&entity_id=${category.id}`);
+        if (res.ok) stats = await res.json();
+      } catch (e) {
+        console.error('Failed to load category stats:', e);
+      }
+    }
+  });
 </script>
 
 <div class="min-h-screen bg-white pb-24 font-sans">
@@ -116,6 +129,18 @@
        </button>
     </div>
   </header>
+
+  <div class="px-4 py-3 flex items-center justify-between bg-gray-50/50">
+    <div class="flex items-center gap-2">
+      <div class="flex text-[#ffac33] text-[10px]">
+        {#each Array(5) as _, i}
+          <svg class="w-3.5 h-3.5 {i < Math.floor(stats?.average_rating || 5) ? 'fill-current' : 'fill-gray-200'}" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+        {/each}
+      </div>
+      <span class="text-[11px] text-blue-500 font-bold tracking-tight">{stats?.total_count || 0} đánh giá thực tế</span>
+    </div>
+    <div class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{products.length} sản phẩm</div>
+  </div>
 
   <div class="p-4">
     {#if filteredProducts().length > 0}

@@ -977,9 +977,9 @@
   }
 
   :global(.prose-micsmo img) {
-    border-radius: 8px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    margin: 2rem auto !important;
+    max-width: 100%;
+    height: auto !important;
+    margin: 1rem auto !important;
     display: block;
   }
 </style>

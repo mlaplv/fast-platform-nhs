@@ -27,6 +27,10 @@ const globalState = $state({
         onConfirm: () => void;
         onCancel: () => void;
     } | null,
+    reportModal: null as {
+        reviewId: string;
+        onSuccess?: () => void;
+    } | null,
     toasts: [] as { id: string; message: string; type: 'success' | 'error' | 'info' | 'warning'; duration: number }[]
 });
 
@@ -64,6 +68,7 @@ export function createClientUiState(): ClientUiState {
 
         get authModal() { return globalState.authModal; },
         get confirmModal() { return globalState.confirmModal; },
+        get reportModal() { return globalState.reportModal; },
         get toasts() { return globalState.toasts; },
 
         get isMobile() { return isMobile; },
@@ -120,6 +125,17 @@ export function createClientUiState(): ClientUiState {
                     }
                 };
             });
+        },
+
+        openReportReview(reviewId: string, onSuccess?: () => void) {
+            globalState.reportModal = {
+                reviewId,
+                onSuccess
+            };
+        },
+
+        closeReportModal() {
+            globalState.reportModal = null;
         },
 
         closeModal() {

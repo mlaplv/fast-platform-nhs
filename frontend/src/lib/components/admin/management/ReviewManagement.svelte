@@ -7,6 +7,7 @@
   import Trash2 from "lucide-svelte/icons/trash-2";
   import MessageSquare from "lucide-svelte/icons/message-square";
   import Edit2 from "lucide-svelte/icons/edit-2";
+  import ThumbsUp from "lucide-svelte/icons/thumbs-up";
   import Layers from "lucide-svelte/icons/layers";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import LayoutGrid from "lucide-svelte/icons/layout-grid";
@@ -34,6 +35,8 @@
     content: string;
     status: string;
     created_at: string;
+    likes_count?: number;
+    attachments?: {url: string, type: string}[];
   }
 
   let reviews = $state<Review[]>([]);
@@ -371,9 +374,15 @@
                 {/if}
                 
                 <div class="mt-auto flex justify-between items-center border-t border-white/5 pt-4">
-                  <span class="text-[9px] font-mono tracking-[0.2em] uppercase px-2 py-0.5 border rounded-sm {getStatusStyle(review.status)}">
-                    {review.status}
-                  </span>
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1 text-neon-cyan/60 font-mono text-[9px]">
+                      <ThumbsUp size={10} class="fill-neon-cyan/20" />
+                      <span>{review.likes_count || 0}</span>
+                    </div>
+                    <span class="text-[9px] font-mono tracking-[0.2em] uppercase px-2 py-0.5 border rounded-sm {getStatusStyle(review.status)}">
+                      {review.status}
+                    </span>
+                  </div>
                   <div class="flex gap-2" onclick={(e) => e.stopPropagation()}>
                     <div class="flex flex-col items-end">
                       {#if review.customer_location}
@@ -471,9 +480,14 @@
                     {/if}
                   </td>
                   <td class="p-4">
-                    <span class="text-[9px] font-mono tracking-[0.2em] uppercase px-2 py-0.5 border rounded-sm {getStatusStyle(review.status)}">
-                      {review.status}
-                    </span>
+                    <div class="flex flex-col gap-1">
+                      <span class="text-[9px] font-mono tracking-[0.2em] uppercase px-2 py-0.5 border rounded-sm {getStatusStyle(review.status)}">
+                        {review.status}
+                      </span>
+                      <div class="flex items-center gap-1 text-neon-cyan/50 font-mono text-[8px] justify-center">
+                        <ThumbsUp size={8} /> {review.likes_count || 0}
+                      </div>
+                    </div>
                   </td>
                   <td class="p-4 text-right align-top">
                     <div class="flex justify-end gap-1.5">

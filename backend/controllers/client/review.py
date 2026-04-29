@@ -123,3 +123,16 @@ class PublicReviewController(Controller):
             raise HTTPException(status_code=500, detail="Quy trình xử lý file thất bại")
         return MediaDetailResponse(status="success", data=MediaAssetResponse.model_validate(asset))
 
+    @post("/{review_id:str}/like", middleware=[RateLimitConfig(rate_limit=("minute", 20)).middleware])
+    async def like_review(self, review_id: str, review_service: ReviewService, db_session: AsyncSession) -> dict:
+        new_count = await review_service.increment_like(review_id)
+        await db_session.commit()
+        return {"status": "success", "new_count": new_count}
+
+    @post("/{review_id:str}/report", middleware=[RateLimitConfig(rate_limit=("minute", 5)).middleware])
+    async def report_review(self, review_id: str, data: dict[str, str], review_service: ReviewService, db_session: AsyncSession) -> dict:
+        reason = data.get("reason", "Vi phạm tiêu chuẩn cộng đồng")
+        await review_service.report_review(review_id, reason)
+        await db_session.commit()
+        return {"status": "success"}
+

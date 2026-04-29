@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { ChevronRight, MessageCircleMore, Star, Loader2, Play, CheckCircle2, PenLine } from 'lucide-svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { ChevronRight, MessageCircleMore, Star, Loader2, Play, CheckCircle2, PenLine, MoreHorizontal, ThumbsUp } from 'lucide-svelte';
   import type { Product, Review, ReviewStats } from '$lib/types';
   import { apiClient } from '$lib/utils/apiClient';
 
@@ -14,6 +15,30 @@
   let reviews = $state<Review[]>([]);
   let stats = $state<ReviewStats | null>(null);
   let isLoading = $state(true);
+  let activeDropdownId = $state<string | null>(null);
+
+  const ui = getClientUi();
+
+  async function handleLike(review: any) {
+    if (review._isLiked) return;
+    review.likes_count = (review.likes_count || 0) + 1;
+    review._isLiked = true;
+    try {
+      const res = await apiClient.post<{new_count: number}>(`/client/reviews/${review.id}/like`);
+      if (res.new_count !== undefined) {
+        review.likes_count = res.new_count;
+      }
+    } catch (e) {
+      review.likes_count -= 1;
+      review._isLiked = false;
+      ui.showToast('Lỗi khi thích đánh giá', 'error');
+    }
+  }
+
+  function handleReportReview(reviewId: string) {
+    activeDropdownId = null;
+    ui.openReportReview(reviewId);
+  }
 
   async function fetchStats() {
     try {
@@ -107,6 +132,32 @@
           </div>
         </div>
         <div class="review-date-mini">{new Date(review.created_at).toLocaleDateString('vi-VN')}</div>
+        <div class="ml-auto flex items-center gap-3 relative">
+          <button 
+            onclick={() => activeDropdownId = activeDropdownId === review.id ? null : review.id}
+            class="text-gray-300 hover:text-gray-600 transition-colors">
+            <MoreHorizontal size={16} />
+          </button>
+          
+          {#if activeDropdownId === review.id}
+            <div class="absolute right-0 bottom-full mb-2 w-32 bg-white border border-gray-100 shadow-xl z-50 py-1 rounded-lg overflow-hidden">
+              <button 
+                onclick={() => handleReportReview(review.id)}
+                class="w-full text-left px-4 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 transition-colors uppercase tracking-widest"
+              >
+                Báo cáo
+              </button>
+            </div>
+          {/if}
+
+          <button 
+            onclick={() => handleLike(review)}
+            class="flex items-center gap-1 {review._isLiked ? 'text-luxury-copper' : 'text-gray-300'} transition-all"
+          >
+            <ThumbsUp size={16} fill={review._isLiked ? "currentColor" : "none"} />
+            <span class="text-xs font-bold">{review.likes_count || 0}</span>
+          </button>
+        </div>
       </div>
 
       <div class="review-content prose-micsmo-mini">

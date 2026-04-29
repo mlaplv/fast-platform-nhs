@@ -79,9 +79,16 @@
       color: "#00F3FF", // neon-cyan
       children: [
         { label: "Sản phẩm", widget: "PRODUCT_MANAGEMENT" },
-        { label: "Danh mục", widget: "CATEGORY_MANAGEMENT" },
-        { label: "Quản trị Đánh giá", widget: "REVIEW_MANAGEMENT" }
+        { label: "Danh mục", widget: "CATEGORY_MANAGEMENT" }
       ]
+    },
+    {
+      id: "reviews",
+      label: "Đánh giá",
+      sublabel: "Moderation & Viral Like",
+      icon: Star,
+      color: "#FFB800",
+      widget: "REVIEW_MANAGEMENT",
     },
     {
       id: "campaigns",

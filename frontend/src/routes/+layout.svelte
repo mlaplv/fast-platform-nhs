@@ -9,6 +9,7 @@
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import ToastProvider from "$lib/components/storefront/ui/ToastProvider.svelte";
   import GlobalConfirmModal from "$lib/components/storefront/ui/GlobalConfirmModal.svelte";
+  import ReportReviewModal from "$lib/components/storefront/reviews/ReportReviewModal.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
   import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
   import SupportAgentFAB from "$lib/components/client/support/SupportAgentFAB.svelte";
@@ -111,6 +112,7 @@
 
     <ToastProvider />
     <GlobalConfirmModal />
+    <ReportReviewModal />
 
     <SupportAgentFAB isMobile={ui.isMobile} />
     {#if ui.isMobile}

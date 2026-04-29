@@ -4,9 +4,11 @@
   import ProductGrid from './ProductGrid.svelte';
   import CategoryBanner from './CategoryBanner.svelte';
   import type { Product, ProductFacets, Category } from '$lib/types';
+  import { onMount } from 'svelte';
   import { scale } from 'svelte/transition';
   import { MessageCircleQuestion } from 'lucide-svelte';
   import ProductDetailReviews from '../product-detail/ProductDetailReviews.svelte';
+  import type { ReviewStats } from '$lib/types';
 
 
   interface Props {
@@ -173,6 +175,18 @@
   const displayProducts = $derived.by(() => isSearchMode ? filteredProducts.slice(0, pageSize) : filteredProducts.slice(1, 1 + pageSize));
   
   const faqs = $derived(category?.metadata?.faqs || category?.category_metadata?.faqs || []);
+  let stats = $state<ReviewStats | null>(null);
+
+  onMount(async () => {
+    if (!isSearchMode && category?.id) {
+      try {
+        const res = await fetch(`/api/v1/client/reviews/stats?entity_type=CATEGORY&entity_id=${category.id}`);
+        if (res.ok) stats = await res.json();
+      } catch (e) {
+        console.error('Failed to load category stats:', e);
+      }
+    }
+  });
 </script>
 
 <div class="bg-[#F5F5F5] min-h-screen pb-20">
@@ -189,11 +203,11 @@
         {#if !isSearchMode}
         <div class="flex items-center gap-2 pt-1">
           <div class="flex text-[#ffac33] text-sm">
-            {#each Array(5) as _}
-              <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+            {#each Array(5) as _, i}
+              <svg class="w-4 h-4 {i < Math.floor(stats?.average_rating || 5) ? 'fill-current' : 'fill-gray-200'}" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
             {/each}
           </div>
-          <span class="text-[13px] text-blue-500 font-medium whitespace-nowrap">339 đánh giá</span>
+          <span class="text-[13px] text-blue-500 font-medium whitespace-nowrap">{stats?.total_count || 0} đánh giá</span>
         </div>
         {/if}
       </div>

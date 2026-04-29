@@ -11,7 +11,7 @@
     Play,
     Camera,
     Clock,
-    SlidersHorizontal,
+    MoreHorizontal,
     CheckCircle2,
     Send,
     X,
@@ -20,6 +20,7 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
+  import { apiClient } from '$lib/utils/apiClient';
 
   let { data } = $props();
   const entity = $derived(data.entity);
@@ -37,6 +38,7 @@
   let activeFilter = $state<string>('all');
   let sortMode = $state<'newest' | 'highest'>('newest');
   let lightboxSrc = $state<string | null>(null);
+  let activeDropdownId = $state<string | null>(null);
 
   // --- Write Review State ---
   let showWriteSheet = $state(false);
@@ -139,6 +141,31 @@
   function formatDate(iso: string): string {
     const d = new Date(iso);
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  async function handleLike(review: any) {
+    if (review._isLiked) return;
+    
+    // Optimistic UI
+    review.likes_count = (review.likes_count || 0) + 1;
+    review._isLiked = true;
+
+    try {
+      const res = await apiClient.post<{new_count: number}>(`/client/reviews/${review.id}/like`);
+      if (res.new_count !== undefined) {
+        review.likes_count = res.new_count;
+      }
+    } catch (e) {
+      // Revert if error
+      review.likes_count -= 1;
+      review._isLiked = false;
+      ui.showToast('Có lỗi xảy ra khi thích đánh giá', 'error');
+    }
+  }
+
+  function handleReportReview(reviewId: string) {
+    activeDropdownId = null;
+    ui.openReportReview(reviewId);
   }
 
   function renderStars(html: string): string {
@@ -425,11 +452,32 @@
             {:else}
               <span class="rv-cat-dot">· Mỹ phẩm</span>
             {/if}
-            <div class="rv-footer-actions">
-              <span class="rv-more">···</span>
-              <button class="rv-like-btn" aria-label="Thích">
-                <ThumbsUp size={16} />
-                <span>{rev.likes_count || 0}</span>
+            <div class="rv-footer-actions relative">
+              <button 
+                class="rv-more-btn p-1 text-gray-300 hover:text-gray-600 transition-colors"
+                onclick={() => activeDropdownId = activeDropdownId === rev.id ? null : rev.id}
+              >
+                <MoreHorizontal size={18} />
+              </button>
+
+              {#if activeDropdownId === rev.id}
+                <div class="absolute right-0 bottom-full mb-2 w-32 bg-white border border-gray-100 shadow-xl z-50 py-1 rounded-lg overflow-hidden">
+                  <button 
+                    onclick={() => handleReportReview(rev.id)}
+                    class="w-full text-left px-4 py-2 text-[11px] font-bold text-red-500 hover:bg-red-50 transition-colors uppercase tracking-widest"
+                  >
+                    Báo cáo
+                  </button>
+                </div>
+              {/if}
+
+              <button 
+                class="rv-like-btn {rev._isLiked ? 'text-luxury-copper scale-110' : 'text-gray-400'} transition-all flex items-center gap-1.5" 
+                aria-label="Thích"
+                onclick={() => handleLike(rev)}
+              >
+                <ThumbsUp size={16} fill={rev._isLiked ? "currentColor" : "none"} />
+                <span class="text-xs font-bold">{rev.likes_count || 0}</span>
               </button>
             </div>
           </div>
@@ -1096,10 +1144,12 @@
     align-items: center;
     gap: 12px;
   }
-  .rv-more {
-    font-size: 16px;
-    color: #bbb;
-    letter-spacing: 1px;
+  .rv-more-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
     cursor: pointer;
   }
   .rv-like-btn {

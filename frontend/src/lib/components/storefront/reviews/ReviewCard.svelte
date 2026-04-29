@@ -1,7 +1,11 @@
 <script lang="ts">
   import type { Review } from '$lib/types/commerce/review';
-  import { Star, ThumbsUp, CheckCircle2, Play } from 'lucide-svelte';
+  import { Star, ThumbsUp, CheckCircle2, Play, MoreHorizontal } from 'lucide-svelte';
   import { fade } from 'svelte/transition';
+  import { apiClient } from '$lib/utils/apiClient';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+
+  const ui = getClientUi();
 
   interface Props {
     review: Review;
@@ -17,10 +21,26 @@
 
   let isLiked = $state(false);
   let likes = $state(review.likes_count || 0);
+  let activeDropdownId = $state<string | null>(null);
 
-  function toggleLike() {
-    isLiked = !isLiked;
-    likes += isLiked ? 1 : -1;
+  async function toggleLike() {
+    if (isLiked) return;
+    isLiked = true;
+    likes += 1;
+    try {
+      const res = await apiClient.post<{new_count: number}>(`/client/reviews/${review.id}/like`);
+      if (res.new_count !== undefined) {
+        review.likes_count = res.new_count;
+      }
+    } catch (e) {
+      isLiked = false;
+      likes -= 1;
+    }
+  }
+
+  async function handleReportReview() {
+    activeDropdownId = null;
+    ui.openReportReview(review.id);
   }
 </script>
 
@@ -75,10 +95,29 @@
   </div>
 
   <div class="review-footer">
-    <button class="like-btn {isLiked ? 'active' : ''}" onclick={toggleLike}>
+    <button class="like-btn {isLiked ? 'active' : ''} {isLiked ? 'pointer-events-none' : ''}" onclick={toggleLike}>
       <ThumbsUp size={14} />
       <span>Hữu ích ({likes})</span>
     </button>
+    <div class="relative">
+      <button 
+        onclick={() => activeDropdownId = activeDropdownId === review.id ? null : review.id}
+        class="text-gray-300 hover:text-gray-600 transition-colors" style="background: transparent; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px;">
+        <MoreHorizontal size={20} />
+      </button>
+      {#if activeDropdownId === review.id}
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="fixed inset-0 z-40" onclick={() => activeDropdownId = null}></div>
+        <div class="absolute right-0 top-full mt-1 w-40 bg-white border border-gray-100 shadow-xl z-50 py-1 rounded-sm" in:fade={{ duration: 150 }}>
+          <button 
+            onclick={handleReportReview}
+            class="w-full px-4 py-2 text-left text-[12px] font-medium text-red-600 hover:bg-gray-50 flex items-center gap-2" style="background: transparent; border: none; cursor: pointer;">
+            <span class="text-base">🚩</span> Báo cáo vi phạm
+          </button>
+        </div>
+      {/if}
+    </div>
   </div>
 </div>
 
@@ -213,6 +252,9 @@
     margin-top: 1.25rem;
     padding-top: 1rem;
     border-top: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .like-btn {

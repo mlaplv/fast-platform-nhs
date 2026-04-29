@@ -61,11 +61,12 @@ class ReviewService:
             filters.append(SystemReview.status == status)
         
         if kwargs.get("has_media"):
-            # Elite V2.2: Defensive JSONB Check for optimized Postgres Performance
-            from sqlalchemy import func
-            filters.append(SystemReview.attachments.isnot(None))
-            filters.append(func.jsonb_typeof(SystemReview.attachments) == 'array')
-            filters.append(func.jsonb_array_length(SystemReview.attachments) > 0)
+            # Elite V2.2: Defensive JSONB Check using CASE to prevent scalar evaluation
+            from sqlalchemy import func, case
+            filters.append(case(
+                (func.jsonb_typeof(SystemReview.attachments) == 'array', func.jsonb_array_length(SystemReview.attachments)),
+                else_=0
+            ) > 0)
         if kwargs.get("rating"):
             filters.append(SystemReview.rating == int(kwargs.get("rating")))
             
@@ -207,14 +208,16 @@ class ReviewService:
         for r, c in breakdown_res:
             rating_breakdown[r] = c
 
-        # 3. Has Media (Elite V2.2: Defensive JSONB check for optimized performance)
+        # 3. Has Media (Elite V2.2: Defensive JSONB check using CASE to avoid scalar errors)
+        from sqlalchemy import case
         stmt_media = select(func.count(SystemReview.id)).where(and_(
             SystemReview.entity_type == entity_type,
             SystemReview.entity_id == entity_id,
             SystemReview.status == "APPROVED",
-            SystemReview.attachments.isnot(None),
-            func.jsonb_typeof(SystemReview.attachments) == 'array',
-            func.jsonb_array_length(SystemReview.attachments) > 0
+            case(
+                (func.jsonb_typeof(SystemReview.attachments) == 'array', func.jsonb_array_length(SystemReview.attachments)),
+                else_=0
+            ) > 0
         ))
         media_count = await self.review_repo.session.scalar(stmt_media) or 0
 
@@ -233,6 +236,31 @@ class ReviewService:
             "has_content_count": content_count,
             "has_media_count": media_count
         }
+
+    async def increment_like(self, review_id: str) -> int:
+        from sqlalchemy import update, func, select
+        stmt = update(SystemReview).where(SystemReview.id == review_id).values(
+            likes_count=func.coalesce(SystemReview.likes_count, 0) + 1
+        ).returning(SystemReview.likes_count)
+        
+        res = await self.review_repo.session.execute(stmt)
+        new_count = res.scalar()
+        return new_count or 0
+
+    async def report_review(self, review_id: str, reason: str) -> None:
+        try:
+            review = await self.review_repo.get(review_id)
+            from backend.database.models.system import Notification
+            import uuid
+            noti = Notification(
+                id=str(uuid.uuid4()),
+                type="REPORT",
+                message=f"Báo cáo đánh giá {review_id} (Entity: {review.entity_type} {review.entity_id}): {reason}",
+                user_id=None # System wide admin notification
+            )
+            self.review_repo.session.add(noti)
+        except NotFoundError:
+            raise ValueError(f"Review {review_id} not found")
 
 async def provide_review_service(review_repo: SystemReviewRepository) -> ReviewService:
     return ReviewService(review_repo)
