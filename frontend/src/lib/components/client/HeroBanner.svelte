@@ -169,10 +169,13 @@
       return () => videoEl?.removeEventListener('loadedmetadata', onMeta);
     }
   });
-  // Elite V2.2: Pause video during live editing to save GPU/CPU and prevent jitter/crashes
+  // Elite V2.2: Reactive derived state so Svelte 5 $effect accurately tracks it
+  const isEditing = $derived(liveEditStore.activePath !== null);
+
+  // Pause video during live editing to save GPU/CPU and prevent jitter/crashes
   $effect(() => {
     if (!videoEl) return;
-    if (liveEditStore.activePath !== null) {
+    if (isEditing) {
       videoEl.pause();
     } else {
       videoEl.play().catch(() => {});
@@ -230,7 +233,7 @@
   style:--mx="{springMouse.x}px" style:--my="{springMouse.y}px" style:--hero-accent="#C18F7E" style:--hero-glass-blur="64px"
 >
   <div class="absolute inset-0 overflow-hidden pointer-events-none" style="z-index: var(--z-base);">
-    <div style:display={liveEditStore.activePath !== null ? 'none' : 'block'} class="absolute inset-0">
+    <div style:display={isEditing ? 'none' : 'block'} class="absolute inset-0">
       {#if videoMode === 'local'}
         <video
           bind:this={videoEl}
@@ -252,11 +255,11 @@
         ></iframe>
       {/if}
     </div>
-    {#if liveEditStore.activePath !== null}
+    {#if isEditing}
       <div class="elite-video-bg bg-[#0d1117] fade-in"></div>
     {/if}
 
-    <div class="video-dim-overlay {liveEditStore.activePath !== null ? 'opacity-100 bg-black/90' : ''} transition-all duration-700"></div>
+    <div class="video-dim-overlay {isEditing ? 'opacity-100 bg-black/90' : ''} transition-all duration-700"></div>
     <div class="video-vignette-top"></div>
     <div class="video-vignette-bottom"></div>
     <div class="video-vignette-radial"></div>

@@ -2,7 +2,6 @@
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
   import { Edit, Image as ImageIcon, Settings2, Check, Eye, EyeOff } from "lucide-svelte";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/zIndex";
-  import { portal } from "$lib/core/actions/portal";
 
   interface Props {
     path: string;
@@ -31,6 +30,13 @@
   const isTargetOfFocus = $derived(activePath === path);
   const shouldHideHUD = $derived(activePath !== null && !isTargetOfFocus);
 
+  // Auto-close if another wrapper is focused
+  $effect(() => {
+    if (isInlineEditing && activePath !== path) {
+        isInlineEditing = false;
+    }
+  });
+
   /* Elite V2.2: Global Disable Intelligence */
   const currentValue = $derived(getValue(path, explicitValue || ""));
   const isDisabled = $derived(String(currentValue).startsWith('[OFF]'));
@@ -50,7 +56,8 @@
             current = (current as Record<string, unknown>)[key];
         }
         return (current as string) ?? fallback;
-    } catch {
+    } catch (err) {
+        console.warn(`[EditableWrapper] Lỗi khi lấy giá trị đường dẫn ${p}:`, err);
         return fallback;
     }
   };
@@ -64,7 +71,7 @@
 
   function handleEditClick(e: MouseEvent | TouchEvent) {
     if (!isEditMode) return;
-    if (isInlineEditing || isCooldown) {
+    if (isInlineEditing || isCooldown || (typeof window !== 'undefined' && (window as any)._agEditLock)) {
         e.stopPropagation();
         return;
     }
@@ -138,6 +145,10 @@
     } finally {
         isInlineEditing = false;
         liveEditStore.activePath = null;
+        if (typeof window !== 'undefined') {
+            (window as any)._agEditLock = true;
+            setTimeout(() => { (window as any)._agEditLock = false; }, 400);
+        }
         isCooldown = true;
         setTimeout(() => { isCooldown = false; }, 300);
     }
@@ -147,6 +158,10 @@
     isCancelling = true;
     isInlineEditing = false;
     liveEditStore.activePath = null;
+    if (typeof window !== 'undefined') {
+        (window as any)._agEditLock = true;
+        setTimeout(() => { (window as any)._agEditLock = false; }, 400);
+    }
     isCooldown = true;
     setTimeout(() => { isCooldown = false; }, 300);
   }
@@ -205,34 +220,19 @@
   <svelte:element
     this={as}
     bind:this={wrapperRef}
-    class="editable-wrapper relative group/editable cursor-pointer {isDisabled ? 'is-disabled' : ''} {showSuccessFlash ? 'success-flash' : ''} {as === 'span' ? 'inline' : 'block'} {props.class || ''}"
+    class="editable-wrapper group/editable cursor-pointer {isDisabled ? 'is-disabled' : ''} {showSuccessFlash ? 'success-flash' : ''} {as === 'span' ? 'inline' : 'block'} {props.class || ''}"
+    style="position: relative; z-index: {isInlineEditing ? 999999 : 'auto'};"
     onclick={handleEditClick}
     ontouchend={handleEditClick}
     role="presentation"
   >
     {#if isInlineEditing}
-        <div use:portal onclick={(e) => e.stopPropagation()} ontouchend={(e) => e.stopPropagation()} onpointerdown={(e) => e.stopPropagation()} role="presentation">
-            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-md animate-fade-in" style:z-index={Z_INDEX_ADMIN.BACKDROP} onclick={(e) => { e.stopPropagation(); saveInline(); }} ontouchend={(e) => { e.stopPropagation(); e.preventDefault(); saveInline(); }} role="presentation"></div>
-            <div class="fixed inset-0 flex items-end md:items-center justify-center md:pb-6 pointer-events-none" style:z-index={Z_INDEX_ADMIN.EDITOR}>
-                <div class="relative w-full md:max-w-3xl h-[85dvh] md:h-auto bg-black md:bg-[#0d1117] rounded-t-[40px] md:rounded-[40px] shadow-[0_-15px_60px_rgba(0,0,0,0.9)] md:shadow-[0_40px_120px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col pointer-events-auto animate-editor-reveal">
-                    <div class="md:hidden w-full flex justify-center pt-5 pb-3">
-                        <div class="w-10 h-1 bg-white/20 rounded-full"></div>
-                    </div>
-                    <div class="flex items-center justify-between px-8 py-4 md:border-b border-white/5 bg-transparent md:bg-slate-900/50 backdrop-blur-sm">
-                        <span class="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] italic">{label}</span>
-                        <div class="flex items-center gap-4">
-                            <button class="text-white/40 text-[10px] font-black uppercase tracking-widest hover:text-white transition-colors" onclick={(e) => { e.stopPropagation(); triggerHaptic(5); cancelInline(); }} ontouchend={(e) => e.stopPropagation()} onpointerdown={(e) => e.stopPropagation()}>HỦY</button>
-                            <button class="bg-blue-600 text-white text-[10px] font-black px-8 py-3 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.5)] active:scale-95 flex items-center gap-2 uppercase tracking-widest" onclick={(e) => { e.stopPropagation(); triggerHaptic(20); saveInline(); }} ontouchend={(e) => e.stopPropagation()} onpointerdown={(e) => e.stopPropagation()}>
-                                <Check size={14} strokeWidth={4} />
-                                XONG
-                            </button>
-                        </div>
-                    </div>
-                    <div class="flex-1 p-8 md:p-14 overflow-y-auto">
-                        <textarea bind:this={taRef} use:initResize autofocus onkeydown={handleKeydown} oninput={(e) => autoResize(e.currentTarget as HTMLTextAreaElement)} class="inline-edit-ta w-full h-full bg-transparent text-white outline-none font-sans resize-none placeholder:text-white/5" style="font-size: 1.25rem; line-height: 1.5; font-weight: 500; text-align: left;" placeholder="Chạm để bắt đầu nhập..."></textarea>
-                    </div>
-                    <div class="h-10 md:hidden bg-transparent"></div>
-                </div>
+        <div class="relative w-full h-full pointer-events-auto flex flex-col" style="z-index: 999999;" onclick={(e) => e.stopPropagation()} ontouchend={(e) => e.stopPropagation()} onpointerdown={(e) => e.stopPropagation()} role="presentation">
+            <textarea bind:this={taRef} use:initResize autofocus onkeydown={handleKeydown} oninput={(e) => autoResize(e.currentTarget as HTMLTextAreaElement)} class="w-full bg-transparent text-white outline-none font-sans resize-none placeholder:text-white/20 p-0 m-0 border-none transition-colors relative z-[999999]" style="font-size: inherit; line-height: inherit; font-weight: inherit; text-align: inherit; min-height: 1.5em; overflow: hidden;" placeholder="Nhập văn bản..."></textarea>
+            
+            <div class="absolute top-full right-0 mt-2 flex items-center gap-1 p-1 bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-lg shadow-xl animate-fade-in w-max z-[999999]">
+                <button class="text-white/60 hover:text-white text-[10px] font-bold px-3 py-1.5 transition-colors" onclick={(e) => { e.stopPropagation(); cancelInline(); }} ontouchend={(e) => e.stopPropagation()} onpointerdown={(e) => e.stopPropagation()}>HỦY</button>
+                <button class="bg-blue-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-md flex items-center gap-1 active:scale-95 transition-transform" onclick={(e) => { e.stopPropagation(); saveInline(); }} ontouchend={(e) => e.stopPropagation()} onpointerdown={(e) => e.stopPropagation()}><Check size={12} strokeWidth={4} /> XONG</button>
             </div>
         </div>
     {:else if !shouldHideHUD}
@@ -261,7 +261,7 @@
         <div class="absolute inset-0 bg-blue-500/5 opacity-100 md:opacity-0 md:group-hover/editable:opacity-100 transition-opacity rounded-lg pointer-events-none"></div>
     {/if}
 
-    <svelte:element this={as} class="content-container w-full h-full {isInlineEditing ? 'opacity-20 blur-sm pointer-events-none' : ''} transition-all duration-300 relative" style:display={as === 'span' ? 'contents' : 'block'}>
+    <svelte:element this={as} class="content-container w-full h-full transition-all duration-300 relative" style:display={isInlineEditing ? 'none' : (as === 'span' ? 'contents' : 'block')}>
       {@render children?.()}
     </svelte:element>
   </svelte:element>
@@ -282,10 +282,6 @@
     100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
   }
 
-  .animate-editor-reveal {
-    animation: editor-reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-
   /* Elite V2.2: Hover Bridge - Prevents the HUD from disappearing when moving mouse to it */
   :global(.hud-label-bridge)::before {
     content: '';
@@ -295,11 +291,6 @@
     width: 100%;
     height: 15px;
     background: transparent;
-  }
-
-  @keyframes editor-reveal {
-    from { opacity: 0; transform: translateY(100%); }
-    to { opacity: 1; transform: translateY(0); }
   }
 
   .animate-fade-in {

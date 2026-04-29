@@ -3,7 +3,7 @@
   import { fade, fly, scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { 
-    Sparkles, ArrowRight, ShieldCheck, RefreshCw, Cpu, Database, Activity, 
+    Trash2, GripVertical, Plus, Sparkles, ArrowRight, ShieldCheck, RefreshCw, Cpu, Database, Activity, 
     Circle, Zap, Timer, Calendar, Dna, PlusCircle, ShieldX, Flame, Sun, 
     Droplets, Moon, CloudMoon, ShieldAlert, Target, Heart, Wind, Shield, Layers 
   } from 'lucide-svelte';
@@ -84,6 +84,49 @@
   });
 
   let currentStep = $state(0);
+  const isEditable = $derived(liveEditStore.isEditMode && liveEditStore.isAdmin);
+  let draggingIdx = $state<number | null>(null);
+
+  function addQuestion() {
+    const newQuestion = {
+      id: `q_${Date.now()}`,
+      title: "Câu hỏi mới?",
+      subtitle: "Mô tả ngắn để khách hàng hiểu ngữ cảnh...",
+      options: [
+        { label: "Lựa chọn 1", value: `v1_${Date.now()}`, score: 0, icon: "Circle" },
+        { label: "Lựa chọn 2", value: `v2_${Date.now()}`, score: 0, icon: "Circle" },
+        { label: "Lựa chọn 3", value: `v3_${Date.now()}`, score: 0, icon: "Circle" }
+      ]
+    };
+    const newQuestions = [newQuestion, ...questions];
+    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+  }
+
+  function handleDragStart(idx: number) { draggingIdx = idx; }
+  function handleDragOver(e: DragEvent, idx: number) { e.preventDefault(); }
+  function handleDrop(targetIdx: number) {
+    if (draggingIdx === null || draggingIdx === targetIdx) return;
+    const newQuestions = JSON.parse(JSON.stringify(questions));
+    const [movedItem] = newQuestions.splice(draggingIdx, 1);
+    newQuestions.splice(targetIdx, 0, movedItem);
+    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+    draggingIdx = null;
+  }
+  function removeQuestion(idx: number) {
+    const newQuestions = questions.filter((_, i) => i !== idx);
+    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+  }
+  function addOption(qIdx: number) {
+    const newQuestions = JSON.parse(JSON.stringify(questions));
+    newQuestions[qIdx].options.push({ label: "Lựa chọn mới", value: `v_${Date.now()}`, score: 0, icon: "Circle" });
+    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+  }
+  function removeOption(qIdx: number, oIdx: number) {
+    const newQuestions = JSON.parse(JSON.stringify(questions));
+    newQuestions[qIdx].options.splice(oIdx, 1);
+    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+  }
+
   let answers = $state<Array<{q: string, a: string}>>([]);
   let analysisStatus = $state("Đang phân tích tập dữ liệu lâm sàng...");
   let binaryData = $state("0 1 0 1 1 1 0 0 1");
@@ -412,85 +455,177 @@
           </div>
         </div>
       {:else}
-        <EditableWrapper path="metadata.quiz_questions" label="QUẢN LÝ BỘ CÂU HỎI" type="quiz" class="flex-1 flex flex-col min-h-0">
-          <div class="grid grid-cols-1 grid-rows-1 flex-1 overflow-hidden h-full">
-            {#key currentStep}
-              <div 
-                class="col-start-1 row-start-1 flex flex-col w-full h-full" 
-                in:fly={{ x: 20, duration: 600, easing: cubicOut }} 
-                out:fade={{ duration: 300 }}
-              >
-                <div class="flex items-center justify-between mb-4 bg-white/[0.03] p-3 rounded-2xl border border-white/10 backdrop-blur-3xl shadow-lg relative overflow-hidden group">
-                  <div class="absolute inset-0 bg-[#FFB7C5]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  
-                  <div class="flex items-center gap-3 relative z-surface">
-                    {#if currentStep > 0}
-                      <button 
-                        onclick={prevStep}
-                        class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#FFB7C5] active:scale-90 transition-all hover:bg-[#FFB7C5]/10"
-                        aria-label="Quay lại bước trước"
+        {#if isEditable}
+          <div class="edit-mode-container flex-1 flex flex-col min-h-0 relative z-surface animate-reveal py-4">
+              <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+                  <div class="flex items-center gap-2">
+                      <div class="w-2 h-2 rounded-full bg-[#FFB7C5] animate-pulse"></div>
+                      <h3 class="text-[10px] font-bold text-white uppercase tracking-widest">QUIZ DIRECT ENGINE</h3>
+                  </div>
+                  <button 
+                      onclick={addQuestion}
+                      class="flex items-center gap-1 px-3 py-2 bg-[#FFB7C5] text-slate-900 text-[9px] font-bold uppercase rounded-lg shadow-xl active:scale-95 transition-all"
+                  >
+                      <Plus size={12} /> THÊM CÂU
+                  </button>
+              </div>
+
+              <div class="flex-1 space-y-6 overflow-y-auto px-1 pb-32 hide-scrollbar relative z-10 touch-pan-y">
+                  {#each questions as question, qIdx (question.id)}
+                      <div 
+                          class="bg-white/[0.02] border border-white/10 rounded-2xl p-4 relative group/q transition-all duration-300 {draggingIdx === qIdx ? 'opacity-20 scale-95 border-blue-500/50' : ''}"
+                          draggable="true"
+                          ondragstart={() => handleDragStart(qIdx)}
+                          ondragover={(e) => handleDragOver(e, qIdx)}
+                          ondrop={() => handleDrop(qIdx)}
+                          ondragend={() => draggingIdx = null}
                       >
-                        <ArrowRight class="w-4 h-4 rotate-180" />
-                      </button>
-                    {/if}
-                    <div class="flex flex-col">
-                      <span class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-black">AI_PHASE_SEQUENCE</span>
-                      <p class="text-[10px] text-[#FFB7C5] uppercase tracking-[0.2em] font-black italic mt-0.5">Step {currentStep + 1} <span class="text-white/10">//</span> {questions.length}</p>
+                          <div class="absolute -left-2 top-1/2 -translate-y-1/2 p-2 text-white/20 active:text-blue-400">
+                              <GripVertical size={16} />
+                          </div>
+
+                          <button 
+                              onclick={() => removeQuestion(qIdx)}
+                              class="absolute -top-2 -right-2 w-6 h-6 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center border border-red-500/20 active:bg-red-500 active:text-white"
+                          >
+                              <Trash2 size={10} />
+                          </button>
+
+                          <div class="pl-4 space-y-4">
+                              <div class="space-y-1">
+                                  <label class="text-[7px] font-bold text-white/30 uppercase tracking-widest">Câu hỏi</label>
+                                  <input 
+                                      bind:value={question.title}
+                                      class="w-full bg-transparent border-b border-white/10 focus:border-[#FFB7C5] py-1 text-sm font-bold text-white outline-none transition-all"
+                                      oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.title`, question.title)}
+                                  />
+                              </div>
+                              <div class="space-y-1">
+                                  <label class="text-[7px] font-bold text-white/30 uppercase tracking-widest">Mô tả (Subtitle)</label>
+                                  <input 
+                                      bind:value={question.subtitle}
+                                      class="w-full bg-transparent border-b border-white/5 focus:border-[#FFB7C5]/50 py-1 text-[10px] text-white/50 outline-none transition-all"
+                                      oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.subtitle`, question.subtitle)}
+                                  />
+                              </div>
+
+                              <div class="space-y-2 pt-2">
+                                  <div class="flex items-center justify-between">
+                                      <span class="text-[7px] font-bold text-[#FFB7C5]/60 uppercase tracking-widest">Các Lựa chọn</span>
+                                      <button onclick={() => addOption(qIdx)} class="text-[8px] font-bold text-white/40 active:text-[#FFB7C5] uppercase tracking-widest flex items-center gap-1 bg-white/5 px-2 py-1 rounded">
+                                          <PlusCircle size={8} /> THÊM
+                                      </button>
+                                  </div>
+                                  <div class="grid grid-cols-1 gap-2">
+                                      {#each question.options as option, oIdx}
+                                          <div class="flex items-center gap-2 p-2 bg-black/20 border border-white/5 rounded-lg">
+                                              <input 
+                                                  bind:value={option.label}
+                                                  class="flex-1 bg-transparent text-[10px] font-medium text-white outline-none"
+                                                  oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.options.${oIdx}.label`, option.label)}
+                                              />
+                                              <div class="flex items-center gap-1 bg-white/5 px-1 py-1 rounded border border-white/5">
+                                                  <Target size={8} class="text-white/20" />
+                                                  <input 
+                                                      type="number" 
+                                                      bind:value={option.score}
+                                                      class="w-5 bg-transparent text-[9px] font-bold text-[#FFB7C5] text-center outline-none"
+                                                      oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.options.${oIdx}.score`, option.score)}
+                                                  />
+                                              </div>
+                                              <button onclick={() => removeOption(qIdx, oIdx)} class="text-red-500/40 active:text-red-400 p-1">
+                                                  <Trash2 size={10} />
+                                              </button>
+                                          </div>
+                                      {/each}
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  {/each}
+              </div>
+          </div>
+        {:else}
+          <div class="flex-1 flex flex-col min-h-0">
+            <div class="grid grid-cols-1 grid-rows-1 flex-1 overflow-hidden h-full">
+              {#key currentStep}
+                <div 
+                  class="col-start-1 row-start-1 flex flex-col w-full h-full" 
+                  in:fly={{ x: 20, duration: 600, easing: cubicOut }} 
+                  out:fade={{ duration: 300 }}
+                >
+                  <div class="flex items-center justify-between mb-4 bg-white/[0.03] p-3 rounded-2xl border border-white/10 backdrop-blur-3xl shadow-lg relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-[#FFB7C5]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    
+                    <div class="flex items-center gap-3 relative z-surface">
+                      {#if currentStep > 0}
+                        <button 
+                          onclick={prevStep}
+                          class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#FFB7C5] active:scale-90 transition-all hover:bg-[#FFB7C5]/10"
+                          aria-label="Quay lại bước trước"
+                        >
+                          <ArrowRight class="w-4 h-4 rotate-180" />
+                        </button>
+                      {/if}
+                      <div class="flex flex-col">
+                        <span class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-black">AI_PHASE_SEQUENCE</span>
+                        <p class="text-[10px] text-[#FFB7C5] uppercase tracking-[0.2em] font-black italic mt-0.5">Step {currentStep + 1} <span class="text-white/10">//</span> {questions.length}</p>
+                      </div>
+                    </div>
+                    <div class="relative w-20 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                      <div class="absolute inset-0 bg-[#FFB7C5]/10 animate-pulse"></div>
+                      <div class="absolute top-0 left-0 h-full bg-[#FFB7C5] transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1) progress-fill shadow-[0_0_10px_rgba(255,183,197,0.6)]" style:--progress="{((currentStep + 1) / questions.length) * 100}%"></div>
                     </div>
                   </div>
-                  <div class="relative w-20 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                    <div class="absolute inset-0 bg-[#FFB7C5]/10 animate-pulse"></div>
-                    <div class="absolute top-0 left-0 h-full bg-[#FFB7C5] transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1) progress-fill shadow-[0_0_10px_rgba(255,183,197,0.6)]" style:--progress="{((currentStep + 1) / questions.length) * 100}%"></div>
+                  
+                  <h3 class="text-xl font-bold text-white mb-6 leading-tight uppercase italic tracking-tight drop-shadow-sm">
+                    {#if typeof questions[currentStep].title === 'string'}
+                      {@html questions[currentStep].title}
+                    {:else}
+                      Đang tải phác đồ...
+                    {/if}
+                  </h3>
+                  
+                  <div class="grid gap-3 content-start overflow-y-auto pb-8 hide-scrollbar">
+                    {#each questions[currentStep].options as opt, idx}
+                      <button 
+                        onclick={() => nextStep(opt.value, opt.label)}
+                        class="w-full py-4 px-5 bg-white/[0.04] border border-white/10 rounded-2xl text-left flex items-center gap-4 group active:scale-[0.97] transition-all duration-300 hover:bg-white/[0.08] hover:border-blue-500/30"
+                      >
+                        <!-- Option Icon: Viral Bio-Pulse (Elite V2.2) -->
+                        <div class="relative w-11 h-11 shrink-0">
+                          <div class="absolute inset-0 bg-[#FFB7C5]/10 rounded-full blur-[8px] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                          <div class="relative w-full h-full bg-white/5 rounded-full flex items-center justify-center text-lg font-black group-hover:bg-[#FFB7C5]/20 group-hover:text-[#FFB7C5] transition-all border border-white/5 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] overflow-hidden">
+                            {#if opt.icon && iconMap[opt.icon]}
+                              {@const IconComp = iconMap[opt.icon]}
+                              <IconComp size={18} strokeWidth={2} class="drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                            {:else if opt.icon && opt.icon.length <= 2}
+                              <span class="drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">{opt.icon}</span>
+                            {:else}
+                              <span class="text-[14px] text-white/40 group-hover:text-blue-400">{idx + 1}</span>
+                            {/if}
+                          </div>
+                        </div>
+                        <div class="flex flex-col overflow-hidden">
+                          <span class="text-white/90 font-bold text-xs uppercase tracking-tight truncate">
+                            {#if typeof opt.label === 'string'}
+                              {@html opt.label}
+                            {:else}
+                              Lưu trữ...
+                            {/if}
+                          </span>
+                          <span class="text-[10px] text-white/30 tracking-wide font-medium mt-1 group-hover:text-[#FFB7C5]/50 transition-colors">
+                            {getStepSubtitle(currentStep, idx)}
+                          </span>
+                        </div>
+                      </button>
+                    {/each}
                   </div>
                 </div>
-                
-                <h3 class="text-xl font-bold text-white mb-6 leading-tight uppercase italic tracking-tight drop-shadow-sm">
-                  {#if typeof questions[currentStep].title === 'string'}
-                    {@html questions[currentStep].title}
-                  {:else}
-                    Đang tải phác đồ...
-                  {/if}
-                </h3>
-                
-                <div class="grid gap-3 content-start overflow-y-auto pb-8 hide-scrollbar">
-                  {#each questions[currentStep].options as opt, idx}
-                    <button 
-                      onclick={() => nextStep(opt.value, opt.label)}
-                      class="w-full py-4 px-5 bg-white/[0.04] border border-white/10 rounded-2xl text-left flex items-center gap-4 group active:scale-[0.97] transition-all duration-300 hover:bg-white/[0.08] hover:border-blue-500/30"
-                    >
-                      <!-- Option Icon: Viral Bio-Pulse (Elite V2.2) -->
-                      <div class="relative w-11 h-11 shrink-0">
-                        <div class="absolute inset-0 bg-[#FFB7C5]/10 rounded-full blur-[8px] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div class="relative w-full h-full bg-white/5 rounded-full flex items-center justify-center text-lg font-black group-hover:bg-[#FFB7C5]/20 group-hover:text-[#FFB7C5] transition-all border border-white/5 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] overflow-hidden">
-                          {#if opt.icon && iconMap[opt.icon]}
-                            {@const IconComp = iconMap[opt.icon]}
-                            <IconComp size={18} strokeWidth={2} class="drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                          {:else if opt.icon && opt.icon.length <= 2}
-                            <span class="drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">{opt.icon}</span>
-                          {:else}
-                            <span class="text-[14px] text-white/40 group-hover:text-blue-400">{idx + 1}</span>
-                          {/if}
-                        </div>
-                      </div>
-                      <div class="flex flex-col overflow-hidden">
-                        <span class="text-white/90 font-bold text-xs uppercase tracking-tight truncate">
-                          {#if typeof opt.label === 'string'}
-                            {@html opt.label}
-                          {:else}
-                            Lưu trữ...
-                          {/if}
-                        </span>
-                        <span class="text-[10px] text-white/30 tracking-wide font-medium mt-1 group-hover:text-[#FFB7C5]/50 transition-colors">
-                          {getStepSubtitle(currentStep, idx)}
-                        </span>
-                      </div>
-                    </button>
-                  {/each}
-                </div>
-              </div>
-            {/key}
+              {/key}
+            </div>
           </div>
-        </EditableWrapper>
+        {/if}
       {/if}
     {:else}
       <div class="flex-1 flex flex-col items-center justify-center gap-6" in:fade>

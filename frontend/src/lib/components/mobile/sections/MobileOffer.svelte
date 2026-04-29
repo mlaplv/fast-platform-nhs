@@ -147,7 +147,10 @@
        <div class="bg-[#FFB7C5]/20 backdrop-blur-md border border-[#FFB7C5]/30 rounded-full px-3 py-0.5 flex items-center gap-2">
           <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] animate-pulse shadow-[0_0_8px_rgba(255,183,197,0.8)]"></div>
           <span class="text-[10px] font-bold text-white/90 uppercase tracking-tight italic">
-            <span class="text-[#FFB7C5]">{viralViewers.toLocaleString()}</span> ĐANG XEM
+            <span class="text-[#FFB7C5]">{viralViewers.toLocaleString()}</span> 
+            <EditableWrapper path="metadata.offer_viewers_suffix" type="text" label="SỬA NHÃN" class="inline" as="span">
+              {metadata.offer_viewers_suffix || 'ĐANG XEM'}
+            </EditableWrapper>
           </span>
        </div>
     </div>
@@ -165,11 +168,15 @@
     <div class="flex items-center justify-center gap-4 mt-2">
         <div class="flex items-center gap-1.5">
            <ShoppingBag class="w-2.5 h-2.5 text-[#FFB7C5]" />
-           <span class="text-[10px] text-white/40 font-bold uppercase tracking-widest italic">{fomoStore.totalSales || '8,421'} ĐÃ BÁN</span>
+           <EditableWrapper path="metadata.offer_sales_label" type="text" label="SỬA NHÃN BÁN HÀNG" class="inline" as="span">
+             <span class="text-[10px] text-white/40 font-bold uppercase tracking-widest italic">{fomoStore.totalSales || '8,421'} {metadata.offer_sales_label || 'ĐÃ BÁN'}</span>
+           </EditableWrapper>
         </div>
         <div class="flex items-center gap-1.5">
            <Star class="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-           <span class="text-[10px] text-white/40 font-bold uppercase tracking-widest italic">4.9/5 RATING</span>
+           <EditableWrapper path="metadata.offer_rating_label" type="text" label="SỬA NHÃN RATING" class="inline" as="span">
+             <span class="text-[10px] text-white/40 font-bold uppercase tracking-widest italic">{metadata.offer_rating_label || '4.9/5 RATING'}</span>
+           </EditableWrapper>
         </div>
     </div>
   </div>
@@ -359,7 +366,9 @@
                 <span class="text-white text-[11px] font-black uppercase italic">CHỌN COMBO X{selectedVariant?.attributes?.combo_qty || 1}</span>
                 <div class="flex items-center gap-1.5 mt-0.5">
                    <span class="text-[10px] text-[#FFB7C5] font-bold uppercase tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20">TÍCH +{Math.floor(shopStore.totalAmount / 100000)} PTS</span>
-                   <span class="text-[10px] text-white/30 font-bold uppercase tracking-widest italic">• SHIP 0đ</span>
+                   <EditableWrapper path="metadata.offer_shipping_label" type="text" label="SỬA NHÃN SHIP" class="inline" as="span">
+                     <span class="text-[10px] text-white/30 font-bold uppercase tracking-widest italic">• {metadata.offer_shipping_label || 'SHIP 0đ'}</span>
+                   </EditableWrapper>
                 </div>
               </div>
               <div class="flex items-center gap-3 ml-auto">

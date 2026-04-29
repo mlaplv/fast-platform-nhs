@@ -340,7 +340,9 @@
           <svg class="w-4 h-4 transition-transform group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
-          <span class="relative" style="z-index: var(--z-surface);">{labels.cta_write}</span>
+          <EditableWrapper path="metadata.reviews_cta_write" type="text" label="SỬA NÚT CTA" class="inline" as="span">
+            <span class="relative" style="z-index: var(--z-surface);">{labels.cta_write}</span>
+          </EditableWrapper>
           <div class="absolute inset-0 bg-luxury-sakura/5 blur-2xl group-hover:blur-3xl transition-all"></div>
         </button>
       </div>
@@ -354,7 +356,9 @@
                 <div class="elite-dot-container">
                    <span class="elite-status-dot"></span>
                 </div>
-                <span class="text-luxury-sakura uppercase tracking-widest">{labels.hud_feedback.replace('//', '•')}</span>
+                <EditableWrapper path="metadata.reviews_hud_feedback" type="text" label="SỬA NHÃN HUD" class="inline" as="span">
+                  <span class="text-luxury-sakura uppercase tracking-widest">{labels.hud_feedback.replace('//', '•')}</span>
+                </EditableWrapper>
             </div>
 
             <!-- iPad Mini / Tablet Navigation Controls (Elite Delicate) -->
@@ -440,7 +444,9 @@
                 <div class="clinical-verify mt-auto pt-4 flex items-center justify-between border-t border-white/5 mt-5">
                   <div class="compliance-tag flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full border border-white/20"></div>
-                    <span class="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">{labels.label_compliant}</span>
+                    <EditableWrapper path="metadata.reviews_label_compliant" type="text" label="SỬA TAG COMPLIANT" class="inline" as="span">
+                      <span class="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">{labels.label_compliant}</span>
+                    </EditableWrapper>
                   </div>
                   <div class="buy-check flex items-center gap-2.5 px-3.5 py-2 bg-luxury-sakura/10 rounded-xl border border-luxury-sakura/20 shadow-[0_0_15px_rgba(193,143,126,0.1)] transition-all hover:border-luxury-sakura/40">
                     <div class="relative">
@@ -451,7 +457,9 @@
                     </div>
                     <div class="flex flex-col">
                       <span class="text-[7px] font-black text-luxury-sakura/50 uppercase tracking-[0.2em] leading-none mb-0.5">AUTH_STATUS</span>
-                      <span class="text-[9px] font-black text-luxury-sakura uppercase tracking-widest leading-none">{labels.label_store_verified}</span>
+                      <EditableWrapper path="metadata.reviews_label_store_verified" type="text" label="SỬA TAG VERIFIED" class="inline" as="span">
+                        <span class="text-[9px] font-black text-luxury-sakura uppercase tracking-widest leading-none">{labels.label_store_verified}</span>
+                      </EditableWrapper>
                     </div>
                   </div>
                 </div>

@@ -135,9 +135,16 @@
          class="absolute top-[75%] left-0 w-full h-full object-cover scale-y-[-1] opacity-30 blur-lg grayscale pointer-events-none"
       />
       <div class="absolute top-6 left-6 z-20">
-        <p class="text-[8px] font-black {idx >= 1 ? 'text-luxury-sakura' : 'text-slate-200'} uppercase tracking-[0.4em] px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
-           {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
-        </p>
+        <EditableWrapper 
+          path={idx === 0 ? "metadata.offer_label_activation" : "metadata.offer_label_full_treatment"} 
+          type="text" 
+          label="SỬA NHÃN"
+          class="block"
+        >
+          <p class="text-[8px] font-black {idx >= 1 ? 'text-luxury-sakura' : 'text-slate-200'} uppercase tracking-[0.4em] px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+             {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
+          </p>
+        </EditableWrapper>
       </div>
       <!-- 🧪 ELITE V2.2: LIQUID SPECULAR GLASS -->
       <div class="liquid-specular-highlight"></div>
@@ -199,7 +206,9 @@
             <div class="mt-[3px] flex items-center gap-2">
                  <div class="ultimate-savings-box metallic-shimmer text-[8px] text-black font-black uppercase tracking-wider flex items-center gap-1.5 bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] px-2.5 py-1 rounded-full border border-white/20 shadow-lg transform active:scale-95 transition-all">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-led-red-pulse shadow-[0_0_8px_#ff0000]"></span>
-                    <span>{mkt.savings_prefix}</span>
+                    <EditableWrapper path="metadata.offer_savings_prefix" type="text" label="SỬA TIỀN TỐ" class="inline" as="span">
+                      <span>{mkt.savings_prefix}</span>
+                    </EditableWrapper>
                     <span class="tabular-nums">{(totalSavings).toLocaleString()}đ</span>
                  </div>
 
@@ -213,7 +222,15 @@
        </div>
 
        <p class="flex items-center gap-2 text-[8px] font-bold uppercase tracking-[0.1em] text-white/40 border-t border-white/5 pt-2">
-          <span class="text-luxury-sakura">●</span> SPECS: {product?.metadata?.weight || "30G"} - {product?.metadata?.origin || "JAPAN"} | MÃ VẠCH: {variant.sku || product?.sku || 'N/A'}
+          <span class="text-luxury-sakura">●</span> SPECS: 
+          <EditableWrapper path="metadata.weight" type="text" label="SỬA TRỌNG LƯỢNG" class="inline" as="span">
+            {product?.metadata?.weight || "30G"}
+          </EditableWrapper>
+          <span class="mx-1">-</span>
+          <EditableWrapper path="metadata.origin" type="text" label="SỬA XUẤT XỨ" class="inline" as="span">
+            {product?.metadata?.origin || "JAPAN"}
+          </EditableWrapper>
+          <span class="mx-1">|</span> MÃ VẠCH: {variant.sku || product?.sku || 'N/A'}
        </p>
 
       <ul class="bullet-list space-y-3 mb-6 mt-4">
@@ -227,15 +244,19 @@
         {/each}
         <li class="flex items-start gap-3">
           <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
-          <a href="/chinh-sach-kiem-hang" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-widest text-luxury-sakura hover:underline leading-relaxed flex-1">
-            Kiểm tra hàng trước nhận
-          </a>
+          <EditableWrapper path="metadata.policy_check_label" type="text" label="SỬA CAM KẾT 1" class="flex-1 block" as="div">
+            <a href="/chinh-sach-kiem-hang" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-widest text-luxury-sakura hover:underline leading-relaxed block w-full">
+              {product?.metadata?.policy_check_label || "Kiểm tra hàng trước nhận"}
+            </a>
+          </EditableWrapper>
         </li>
         <li class="flex items-start gap-3">
           <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
-          <a href="/chinh-sach-doi-tra-hoan-tien" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-widest text-luxury-sakura hover:underline leading-relaxed flex-1">
-            Đổi trả 7 ngày
-          </a>
+          <EditableWrapper path="metadata.policy_return_label" type="text" label="SỬA CAM KẾT 2" class="flex-1 block" as="div">
+            <a href="/chinh-sach-doi-tra-hoan-tien" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-widest text-luxury-sakura hover:underline leading-relaxed block w-full">
+              {product?.metadata?.policy_return_label || "Đổi trả 7 ngày"}
+            </a>
+          </EditableWrapper>
         </li>
       </ul>
 

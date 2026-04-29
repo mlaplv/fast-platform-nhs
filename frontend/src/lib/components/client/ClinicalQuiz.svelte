@@ -8,7 +8,7 @@
   import "./slug/LiquidEffects.css";
 
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
-  import { Plus, Trash2, PlusCircle, Target, RefreshCcw, GripVertical } from 'lucide-svelte';
+  import { Plus, Trash2, PlusCircle, Target, RefreshCcw, GripVertical, ArrowLeft } from 'lucide-svelte';
 
   let { 
     product, 
@@ -175,6 +175,13 @@
     }
   }
 
+  function prevStep() {
+    if (currentStep > 0) {
+      currentStep--;
+      answers.pop();
+    }
+  }
+
   function restart() {
     currentStep = 0;
     answers = [];
@@ -314,6 +321,27 @@
   {:else if questions.length > 0}
     {#if currentStep < questions.length}
       <div id="s{currentStep + 1}" class="step-container relative z-surface" in:fly={{ y: 30, duration: 800, easing: quintOut }}>
+        <!-- Step Header with Back Button -->
+        <div class="flex items-center gap-6 mb-8 md:mb-12 animate-fade-in">
+          {#if currentStep > 0}
+            <button 
+              onclick={prevStep}
+              class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-luxury-copper hover:bg-luxury-copper/10 hover:border-luxury-copper/30 transition-all active:scale-90 group/back"
+              aria-label="Quay lại"
+            >
+              <ArrowLeft size={20} class="group-hover/back:-translate-x-1 transition-transform" />
+            </button>
+          {/if}
+          <div class="flex flex-col">
+            <span class="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] font-mono">AI_SEQUENCE_PHASE</span>
+            <div class="flex items-center gap-2 mt-1">
+               <span class="text-xs font-black text-luxury-copper italic uppercase tracking-widest">BƯỚC {currentStep + 1} // {questions.length}</span>
+               <div class="h-px w-12 bg-white/5"></div>
+               <span class="text-[9px] font-bold text-white/10 uppercase tracking-widest">{Math.round(((currentStep + 1) / questions.length) * 100)}% COMPLETE</span>
+            </div>
+          </div>
+        </div>
+
         <div class="mb-8 md:mb-10 text-left">
           <h3 class="text-4xl md:text-5xl font-semibold text-white mb-3 tracking-[-0.04em] leading-tight">
             {@html questions[currentStep].title}
