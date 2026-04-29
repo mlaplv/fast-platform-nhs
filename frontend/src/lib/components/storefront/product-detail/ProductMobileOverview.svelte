@@ -3,6 +3,7 @@
   import type { Product } from '$lib/types';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
+  import { formatCurrency } from '$lib/utils/format';
   
   interface Props {
     product: Product;
@@ -10,9 +11,10 @@
     selectedVariant?: ProductVariant | null;
     selectedQty?: number;
     onOpenSelector?: () => void;
+    stats?: import('$lib/types').ReviewStats | null;
   }
 
-  let { product, timeLeft, selectedVariant, selectedQty = 1, onOpenSelector }: Props = $props();
+  let { product, timeLeft, selectedVariant, selectedQty = 1, onOpenSelector, stats }: Props = $props();
   const cartStore = getCartStore();
 
   const pVariants = $derived(product.variants || []);
@@ -42,7 +44,7 @@
     return cartStore.vouchers.map(v => ({
       id: v.id,
       label: v.title || v.id,
-      sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${v.value.toLocaleString()}đ`),
+      sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${formatCurrency(v.value)}`),
       type: (v.type === 'SHIPPING' || v.type === 'ship') ? 'ship' : 'discount'
     }));
   });
@@ -154,9 +156,9 @@
       </div>
       <div class="price-container">
         <span class="price-label">Từ</span>
-        <span class="price-value">{formatPrice(displaySalePrice)}đ</span>
+        <span class="price-value">{formatCurrency(displaySalePrice)}</span>
       </div>
-      <div class="original-price">{formatPrice(displayOriginalPrice)}đ</div>
+      <div class="original-price">{formatCurrency(displayOriginalPrice)}</div>
     </div>
     
     <div class="fs-right">
@@ -264,17 +266,17 @@
 
     <div class="product-stats-row">
       <div class="rating-box">
-        <span class="scoreText">{product.metadata?.rating || '5.0'}</span>
+        <span class="scoreText">{stats?.average_rating || product.metadata?.rating || '5.0'}</span>
         <div class="stars">
           {#each Array(5) as _, i}
-            <svg class="w-2.5 h-2.5 {i < (Number(product.metadata?.rating) || 5) ? 'text-luxury-copper' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="w-2.5 h-2.5 {i < Math.floor(stats?.average_rating || Number(product.metadata?.rating) || 5) ? 'text-luxury-copper' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
           {/each}
         </div>
       </div>
       <div class="divider"></div>
-      <div class="sold-count">{product.order_count_text || `Đã bán ${product.order_count || 0}`}</div>
+      <div class="sold-count">{product.order_count_text || `Đã bán ${product.orderCount || 0}`}</div>
       <div class="trust-badge text-luxury-copper font-bold bg-luxury-peach/10">{product.metadata?.brand_type || 'Micsmo Mall'}</div>
     </div>
   </section>

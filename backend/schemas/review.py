@@ -57,3 +57,4 @@ class ReviewStatsResponse(BaseModel):
     rating_breakdown: dict[int, int] # {5: 425, 4: 19, ...}
     has_content_count: int
     has_media_count: int
+    order_count: int = 0

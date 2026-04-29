@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { trimProductName } from '$lib/utils/format';
+  import { trimProductName, formatCurrency } from '$lib/utils/format';
   import type { Product } from '$lib/types';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
@@ -65,11 +65,11 @@
 
     <div class="price-section">
       <div class="price-row">
-        <span class="current-price text-black">
-          <span class="symbol text-[#C18F7E] mr-0.5">đ</span>{finalPrice.toLocaleString('vi-VN')}
+        <span class="current-price">
+          {formatCurrency(finalPrice)}
         </span>
         {#if oldPrice > 0}
-          <span class="old-price">đ{oldPrice.toLocaleString('vi-VN')}</span>
+          <span class="old-price">{formatCurrency(oldPrice)}</span>
         {/if}
       </div>
     </div>
@@ -202,6 +202,7 @@
   .current-price {
     font-size: 16px;
     font-weight: 900;
+    color: #ee4d2d;
   }
   .symbol { font-size: 12px; text-decoration: underline; font-weight: 900; }
 

@@ -7,6 +7,7 @@
   import type { ProductVariant } from '$lib/types';
   import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
   import MobileVariantTabs from '../MobileVariantTabs.svelte';
+  import { formatCurrency } from '$lib/utils/format';
 
   let { product: propProduct } = $props();
   const shopStore = getShopStore();
@@ -91,9 +92,6 @@
     image?: string;
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
-  };
 
   const iconMap: Record<string, typeof Zap> = { blue: Zap, indigo: ShieldCheck, emerald: Droplets };
 </script>

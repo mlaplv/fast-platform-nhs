@@ -3,7 +3,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
-  import { slugify } from '$lib/utils/format';
+  import { slugify, formatCurrency } from '$lib/utils/format';
 
   import type { Product } from '$lib/types';
 
@@ -33,10 +33,12 @@
           discountPct,
           discountLabel: Math.round(discountPct * 100),
           image: p.images?.[0] || '',
-          // R00 Compliance: Use DB orderCountText if available
-          soldText: p.metadata?.reviews_count_text || 'Sắp cháy hàng', 
-          isHot: (p.metadata?.scarcity_seconds || 0) > 0 || (p.discountPrice && p.discountPrice / p.price < 0.5),
-          isFreeShip: p.metadata?.is_freeship !== false
+          // R00 Compliance: Use boosted orderCount for real-time FOMO
+          soldCount: p.orderCount || p.order_count || 0,
+          soldText: p.orderCountText || p.order_count_text || p.metadata?.reviews_count_text || '0', 
+          isHot: (p.metadata?.scarcity_seconds || 0) > 0 || (p.discountPrice && p.discountPrice / p.price < 0.5) || (p.orderCount || 0) > 100,
+          isFreeShip: p.metadata?.is_freeship !== false,
+          progress: Math.min(95, Math.max(20, (p.orderCount || 0) % 100))
         };
       })
       .sort((a, b) => b.discountPct - a.discountPct)
@@ -135,9 +137,9 @@
 
           <!-- Progress Pill Overlapping Bottom of Image -->
           <div class="progress-wrap">
-            <div class="progress-fill" style="width: {deal.isHot ? 90 : 65}%"></div>
+            <div class="progress-fill" style="width: {deal.progress}%"></div>
             <span class="progress-text {deal.isHot ? 'fomo-pulse' : ''}">
-              {#if deal.isHot}
+              {#if deal.isHot && deal.progress > 80}
                 🔥 Sắp cháy hàng
               {:else}
                 Đã bán {deal.soldText}
@@ -148,12 +150,12 @@
 
         <!-- Prices -->
         <div class="price-info">
-          <div class="current-price">
-            {deal.finalPrice?.toLocaleString('vi-VN')}<span class="unit">đ</span>
-          </div>
+          <span class="current-price">
+            {formatCurrency(deal.finalPrice)}
+          </span>
           {#if deal.oldPrice}
             <div class="old-price">
-              {deal.oldPrice.toLocaleString('vi-VN')}đ
+              {formatCurrency(deal.oldPrice)}
             </div>
           {/if}
         </div>
@@ -380,7 +382,7 @@
   .current-price {
     font-size: 15px;
     font-weight: 900;
-    color: #ff2b54;
+    color: #ee4d2d;
     line-height: 1;
     letter-spacing: -0.4px;
   }

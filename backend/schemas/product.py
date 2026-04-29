@@ -1,3 +1,4 @@
+import os
 from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator, model_validator
 from typing import Optional, List, Dict, Union
 # Elite 2026: Strict JSON Type (Rule R00)
@@ -246,7 +247,7 @@ class ProductResponse(BaseModel):
     variants: List[ProductVariantSchema] = Field(default_factory=list)
     
     orderCount: int = Field(0, alias="order_count")
-    orderCountText: str = Field("2,140+ LƯỢT MUA", alias="order_count_text")
+    orderCountText: Optional[str] = Field(None, alias="order_count_text")
 
     # Market Price Intel (V2026)
     marketData: Optional[Dict[str, object]] = Field(None, alias="market_data")
@@ -289,6 +290,24 @@ class ProductResponse(BaseModel):
     @classmethod
     def validate_sku(cls, v: object) -> str:
         return str(v) if v is not None else ""
+
+    @model_validator(mode="after")
+    def generate_order_count_text(self) -> "ProductResponse":
+        # Elite V2.2: Zero-Hardcode dynamic text generation
+        # Marketing Offset is now handled in Service Layer for consistency.
+        
+        total_count = self.orderCount
+        dummy = "2,140+ LƯỢT MUA"
+        
+        if not self.orderCountText or self.orderCountText == dummy:
+            if total_count > 0:
+                if total_count >= 1000:
+                    self.orderCountText = f"{total_count:,}+ LƯỢT MUA"
+                else:
+                    self.orderCountText = f"ĐÃ BÁN {total_count}"
+            else:
+                self.orderCountText = ""
+        return self
 
     @computed_field
     @property

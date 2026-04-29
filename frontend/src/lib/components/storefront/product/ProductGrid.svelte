@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { trimProductName } from '$lib/utils/format';
+  import { trimProductName, formatCurrency } from '$lib/utils/format';
   import { fly } from 'svelte/transition';
   import type { Product } from '$lib/types';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
@@ -72,18 +72,17 @@
         <div class="mt-auto">
           <!-- Price Section -->
           <div class="flex items-baseline gap-1">
-             <span class="text-[var(--color-brand-primary)] font-black text-[16px] tabular-nums">
-               <span class="text-[12px] mr-1">đ</span>{(product.discountPrice ?? product.price).toLocaleString('vi-VN')}
+             <span class="text-[#ee4d2d] font-black text-[16px] tabular-nums">
+               {formatCurrency(product.discountPrice ?? product.price)}
              </span>
           </div>
 
           <!-- Marketplace Meta Footer -->
           <div class="mt-2 flex items-center justify-between">
-             <!-- Sold Stats -->
              <div class="flex items-center gap-0.5 text-[#ffac33]">
                 <svg class="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                 <span class="text-[10px] text-gray-400 font-bold ml-0.5">
-                  {product.metadata?.reviews_count_text || ''}
+                  Đã bán {product.order_count_text || product.orderCountText || '0'}
                 </span>
              </div>
 

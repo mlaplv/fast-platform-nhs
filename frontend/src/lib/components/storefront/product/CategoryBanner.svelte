@@ -1,8 +1,10 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { slugify } from '$lib/utils/format';
+  import { slugify, formatCurrency, trimProductName } from '$lib/utils/format';
+  import { onMount } from 'svelte';
   import { fly, fade, scale } from 'svelte/transition';
   import { backOut } from 'svelte/easing';
+  import type { ReviewStats } from '$lib/types';
 
   import type { Product as RealProduct } from '$lib/types';
   
@@ -21,13 +23,27 @@
 
   let { product = null }: Props = $props();
 
+  let stats = $state<ReviewStats | null>(null);
+
+  onMount(async () => {
+    if (product?.id) {
+      try {
+        const res = await fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`);
+        if (res.ok) stats = await res.json();
+      } catch (e) {
+        console.error('Failed to load banner stats:', e);
+      }
+    }
+  });
+
   // Giá gốc tính toán nếu không có (Elite V2.2)
   const displayProduct = $derived(() => {
     if (!product) return null;
     return {
       ...product,
+      name: trimProductName(product.name),
       originalPrice: product.originalPrice || product.price * 1.55,
-      sales: product.sales || 1200,
+      sales: product.orderCount || product.sales || 0,
       metadata: product.metadata || {}
     };
   });
@@ -40,7 +56,7 @@
     return [
       { 
         label: 'Đánh Giá AI', 
-        value: p.metadata?.reviews_trust_score || '9.8/10', 
+        value: stats ? `${stats.average_rating.toFixed(1)}/5` : (p.metadata?.reviews_trust_score || '4.9/5'), 
         color: 'text-orange-500' 
       },
       { 
@@ -85,7 +101,7 @@
         </div>
         
         <div in:fade={{duration: 800, delay: 300}} class="flex flex-col">
-            <h2 class="text-2xl md:text-4xl font-black leading-tight uppercase tracking-tight line-clamp-2 bg-gradient-to-br from-black via-gray-700 to-[#C18F7E] bg-clip-text text-transparent italic">
+            <h2 class="text-2xl md:text-4xl font-black leading-tight tracking-tight line-clamp-2 bg-gradient-to-br from-black via-gray-700 to-[#C18F7E] bg-clip-text text-transparent italic">
                 {slide.name}
             </h2>
         </div>
@@ -94,12 +110,12 @@
             <div class="flex flex-col">
                 <div class="flex items-center gap-3 mb-1">
                     <span class="text-sm font-bold text-gray-300 line-through tabular-nums decoration-gray-400/20">
-                        đ{Math.round(slide.originalPrice!).toLocaleString('vi-VN')}
+                        {formatCurrency(Math.round(slide.originalPrice!))}
                     </span>
                     <span class="text-[9px] text-[#ee4d2d] font-black uppercase tracking-widest animate-pulse">−55%</span>
                 </div>
-                <span class="text-black text-3xl font-black tabular-nums tracking-tighter flex items-end gap-1">
-                    <span class="text-[#C18F7E] text-xl mb-1">đ</span>{slide.price.toLocaleString('vi-VN')}
+                <span class="text-[#ee4d2d] text-3xl font-black tabular-nums tracking-tighter flex items-end gap-1">
+                    {formatCurrency(slide.price)}
                 </span>
             </div>
             <div class="w-px h-8 bg-black/5"></div>

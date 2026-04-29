@@ -229,12 +229,52 @@ class ReviewService:
         ))
         content_count = await self.review_repo.session.scalar(stmt_content) or 0
 
+        # 4. Product Sales (Elite V2.2: Marketing Boost Integration)
+        order_count = 0
+        if entity_type == "PRODUCT":
+            from backend.database.models import ProductBase
+            from sqlalchemy import select
+            stmt_sales = select(ProductBase.order_count, ProductBase.product_metadata).where(ProductBase.id == entity_id)
+            p_row = (await self.review_repo.session.execute(stmt_sales)).fetchone()
+            if p_row:
+                raw_count = p_row.order_count or 0
+                metadata = p_row.product_metadata or {}
+                
+                # Use standard display logic for consistency
+                import os
+                from datetime import datetime
+                try:
+                    g_by_count = int(os.getenv("G_BY_COUNT", "0"))
+                except:
+                    g_by_count = 0
+                
+                # 🎯 Elite FOMO Logic: Hourly Growth + Unique Product Offset (Consistent with ProductService)
+                now = datetime.now()
+                hour_factor = now.hour * 2
+                min_factor = now.minute // 15
+                
+                # Unique deterministic offset per product (Same seed as ProductService)
+                unique_offset = (abs(hash(str(entity_id))) % 150) * 50
+                fomo_boost = hour_factor + min_factor + unique_offset
+                
+                # Base from metadata + real orders + marketing boost + fomo
+                from backend.services.commerce.product import RE_ORDER_COUNT
+                base_text = str(metadata.get("reviews_count_text", "0"))
+                match = RE_ORDER_COUNT.search(base_text)
+                base_num = 0
+                if match:
+                    clean_num = match.group(1).replace(",", "").replace(".", "")
+                    base_num = int(clean_num) if clean_num.isdigit() else 0
+                
+                order_count = base_num + raw_count + g_by_count + fomo_boost
+
         return {
             "total_count": total_count,
             "average_rating": round(avg_rating, 1),
             "rating_breakdown": rating_breakdown,
             "has_content_count": content_count,
-            "has_media_count": media_count
+            "has_media_count": media_count,
+            "order_count": order_count
         }
 
     async def increment_like(self, review_id: str) -> int:

@@ -16,6 +16,7 @@
     ShoppingCart, Clock, Zap, Check, Gift, Truck, 
     ShieldCheck, Eye, Sparkles, Flame, Star, ShoppingBag, ArrowRight, Info
   } from 'lucide-svelte';
+  import { formatCurrency } from '$lib/utils/format';
   import { fade, fly, scale } from 'svelte/transition';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { onMount } from 'svelte';
@@ -76,7 +77,7 @@
     return rawVouchers.map((v) => ({
       id: v.id,
       label: v.title || v.id || 'ƯU ĐÃI',
-      sub: v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : (v.type === 'PERCENT' ? `GIẢM ${v.value}%` : `GIẢM ${v.value?.toLocaleString()}đ`),
+      sub: v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : (v.type === 'PERCENT' ? `GIẢM ${v.value}%` : `GIẢM ${formatCurrency(v.value || 0)}`),
       type: v.type === 'SHIPPING' ? 'ship' : 'discount',
       value: v.value || 0,
       type_raw: v.type
@@ -241,14 +242,14 @@
                 
                 <div class="flex items-end gap-2.5 my-1.5">
                     <div class="flex flex-col">
-                       <span class="font-black text-[23px] italic tracking-tighter leading-none transition-colors duration-300 {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{vPrice.toLocaleString()}đ</span>
+                       <span class="font-black text-[23px] italic tracking-tighter leading-none transition-colors duration-300 {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{formatCurrency(vPrice)}</span>
                        <div class="flex items-center gap-1 mt-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1.5 py-0.5 rounded-full w-fit transition-all duration-300 transform-gpu origin-left {isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}">
                           <Sparkles class="w-2 h-2 text-[#FFB7C5] {isActive ? 'animate-pulse' : ''}" />
                           <span class="text-[10px] font-bold text-[#FFB7C5] uppercase tracking-widest">+{Math.floor(vPrice / 100000)} PTS</span>
                        </div>
                     </div>
                    {#if variant.price > vPrice}
-                     <span class="text-[13px] text-white/20 line-through font-bold mb-1">{(variant.price).toLocaleString()}đ</span>
+                     <span class="text-[13px] text-white/20 line-through font-bold mb-1">{formatCurrency(variant.price)}</span>
                    {/if}
                 </div>
 
@@ -372,16 +373,16 @@
                 <div class="flex items-center gap-1.5 mt-0.5">
                    <span class="text-[10px] text-[#FFB7C5] font-bold uppercase tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20">TÍCH +{Math.floor(shopStore.totalAmount / 100000)} PTS</span>
                    <EditableWrapper path="metadata.offer_shipping_label" type="text" label="SỬA NHÃN SHIP" class="inline" as="span">
-                     <span class="text-[10px] text-white/30 font-bold uppercase tracking-widest italic">• {metadata.offer_shipping_label || 'SHIP 0đ'}</span>
+                     <span class="text-[10px] text-white/30 font-bold uppercase tracking-widest italic">• {metadata.offer_shipping_label || 'SHIP đ0'}</span>
                    </EditableWrapper>
                 </div>
               </div>
               <div class="flex items-center gap-3 ml-auto">
                  <div class="flex flex-col items-end leading-none">
                     {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount}
-                      <span class="text-[9px] text-white/20 line-through font-bold">{(shopStore.originalPrice * shopStore.quantity).toLocaleString()}đ</span>
+                      <span class="text-[9px] text-white/20 line-through font-bold">{formatCurrency(shopStore.originalPrice * shopStore.quantity)}</span>
                     {/if}
-                    <span class="text-[#FFB7C5] text-[20px] font-black drop-shadow-[0_0_10px_rgba(255,183,197,0.4)]">{shopStore.totalAmount.toLocaleString()}đ</span>
+                    <span class="text-[#FFB7C5] text-[20px] font-black drop-shadow-[0_0_10px_rgba(255,183,197,0.4)]">{formatCurrency(shopStore.totalAmount)}</span>
                  </div>
                  <div class="w-10 h-10 rounded-2xl bg-[#FFB7C5]/20 flex items-center justify-center border border-[#FFB7C5]/30">
                     <ShoppingCart class="w-5 h-5 text-[#FFB7C5]" />

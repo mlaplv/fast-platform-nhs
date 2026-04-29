@@ -61,9 +61,17 @@ class EntropySettings(BaseModel):
     lexical_sanitizer_enabled: bool = True
 
 
+class CurrencySettings(BaseModel):
+    symbol: str = "₫"
+    position: str = "suffix" # "prefix" or "suffix"
+    decimal_separator: str = "."
+    thousand_separator: str = "."
+    show_symbol: bool = True
+
 class SystemSettingsPayload(BaseModel):
     basic_info: BasicInfo = Field(default_factory=BasicInfo)
     contact_info: ContactInfo = Field(default_factory=ContactInfo)
+    currency: CurrencySettings = Field(default_factory=CurrencySettings)
     social_media: List[SocialMediaItem] = Field(default_factory=list)
     seo_analytics: SeoAnalytics = Field(default_factory=SeoAnalytics)
     google_maps: GoogleMaps = Field(default_factory=GoogleMaps)

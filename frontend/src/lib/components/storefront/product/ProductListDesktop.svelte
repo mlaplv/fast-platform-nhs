@@ -285,7 +285,7 @@
                   style="left: calc({getPercent(minPrice)}% - 8px)"
                >
                   <div class="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-black text-white text-[9px] font-black rounded opacity-0 group-hover/handle:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
-                    {minPrice === 0 ? '0đ' : (minPrice < 1000 ? minPrice : Math.round(minPrice / 1000) + 'k')}
+                    {minPrice === 0 ? '0₫' : (minPrice < 1000 ? minPrice + '₫' : Math.round(minPrice / 1000) + 'k')}
                     <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-black rotate-45"></div>
                   </div>
                   <div class="w-1 h-1 bg-[#C18F7E] rounded-full animate-pulse"></div>
@@ -298,7 +298,7 @@
                   style="left: calc({getPercent(maxPrice)}% - 8px)"
                >
                   <div class="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-black text-white text-[9px] font-black rounded opacity-0 group-hover/handle:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
-                    {maxPrice === 0 ? '0đ' : (maxPrice < 1000 ? maxPrice : Math.round(maxPrice / 1000) + 'k')}
+                    {maxPrice === 0 ? '0₫' : (maxPrice < 1000 ? maxPrice + '₫' : Math.round(maxPrice / 1000) + 'k')}
                     <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-black rotate-45"></div>
                   </div>
                   <div class="w-1 h-1 bg-[#C18F7E] rounded-full animate-pulse"></div>

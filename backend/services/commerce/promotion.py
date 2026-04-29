@@ -179,29 +179,4 @@ class PromotionService:
         # No full commit here, we let the CheckoutService handle the transaction commit
         return voucher
 
-    @staticmethod
-    async def ensure_default_vouchers(db_session: AsyncSession):
-        """Seed default vouchers if they don't exist (Backward Compatibility)."""
-        defaults = [
-            {"id": "SHIP0", "type": "SHIPPING", "value": 30000, "min_spend": 0, "name": "Miễn phí vận chuyển"},
-            {"id": "SALE30K", "type": "FIXED", "value": 30000, "min_spend": 150000, "name": "Giảm 30.000đ"},
-            {"id": "SALE60K", "type": "FIXED", "value": 60000, "min_spend": 300000, "name": "Giảm 60.000đ"},
-        ]
-        
-        tenant = current_tenant_id.get() or "default"
-        
-        for d in defaults:
-            check_stmt = select(Voucher).where(and_(Voucher.id == d["id"], Voucher.tenant_id == tenant))
-            exists = (await db_session.execute(check_stmt)).scalar_one_or_none()
-            if not exists:
-                v = Voucher(
-                    id=d["id"],
-                    type=d["type"],
-                    value=d["value"],
-                    min_spend=d["min_spend"],
-                    tenant_id=tenant,
-                    is_active=True
-                )
-                db_session.add(v)
-        
-        await db_session.flush()
+

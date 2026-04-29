@@ -103,7 +103,7 @@ async def search_knowledge_base(ctx: RunContext[SupportAgentDeps], query: str) -
     service = SupportKnowledgeService(repo=repo)
     return await service.search_relevant_knowledge(ctx.deps.db, query)
 
-async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> Tuple[str, Optional[SupportProductInfo]]:
+async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency_settings: Dict[str, str]) -> Tuple[str, Optional[SupportProductInfo]]:
     """Fetch product info via SQLAlchemy 2.0 Scalar projection."""
     if not slug: return "", None
     if any(p in slug for p in ["chinh-sach", "gioi-thieu", "tuyen-dung", "dieu-khoan", "thanh-toan", "kiem-hang", "bao-hanh"]):
@@ -127,11 +127,18 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str]) -> Tuple
         p_row = res.first()
         if not p_row: return "", None
         img_url = p_row.images[0] if p_row.images and len(p_row.images) > 0 else None
+        # Use dynamic formatting helper (simulated for standalone function)
+        def fmt(amt):
+            formatted = f"{int(amt):,}".replace(",", currency_settings["thousand_sep"])
+            if currency_settings["position"] == "prefix":
+                return f"{currency_settings['symbol']}{formatted}"
+            return f"{formatted}{currency_settings['symbol']}"
+
         p_info = SupportProductInfo(
             id=str(p_row.id), 
             name=p_row.name, 
             price=float(p_row.price or 0), 
-            price_display=f"{int(p_row.discount_price or p_row.price or 0):,}đ".replace(",", "."), 
+            price_display=fmt(p_row.discount_price or p_row.price or 0), 
             slug=p_row.slug or "",
             image_url=img_url,
             stock=p_row.stock
@@ -279,7 +286,8 @@ class SupportAgentOperative(BaseAgentOperative):
         session_id = request.session_id or str(uuid.uuid4())
         await event_bus.emit("SUPPORT_THOUGHT", {"session_id": session_id, "think": "Đang chuẩn bị context Senior Beauty Architect..."})
         
-        ctx_text, p_info = await _fetch_product_context(db, request.product_slug)
+        cur_settings = await self._get_currency_settings()
+        ctx_text, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
         hist_text = await self._fetch_chat_context(db, session_id)
         dna = await self._fetch_neural_dna(db, session_id, lead_phone=request.customer_phone, user_id=request.user_id)
         
@@ -314,11 +322,12 @@ class SupportAgentOperative(BaseAgentOperative):
 
         # Render Reports
         pb = await self._prepare_pricing_breakdown(db, request, dna)
-        cart_text = self._render_cart_report(request, p_map, v_map, pb, ctx_text)
+        cur_settings = await self._get_currency_settings()
+        cart_text = self._render_cart_report(request, p_map, v_map, pb, ctx_text, cur_settings)
         
         # FOMO & Upsell
         all_vouchers = (await db.execute(select(Voucher).where(Voucher.is_active == True))).scalars().all()
-        fomo_text = await self._generate_fomo_instructions(pb, all_vouchers)
+        fomo_text = await self._generate_fomo_instructions(pb, all_vouchers, cur_settings)
         if fomo_text: cart_text += fomo_text
 
         # 1.2 Integration Settings
@@ -406,7 +415,22 @@ class SupportAgentOperative(BaseAgentOperative):
         res["is_fallback"] = True
         return res
 
-    def _render_cart_report(self, request: SupportRequest, p_map: Dict[str, ProductBase], v_map: Dict[str, ProductVariant], pb: Dict[str, object], ctx_text: str) -> str:
+    async def _get_currency_settings(self) -> Dict[str, str]:
+        try:
+            symbol = await xohi_memory.client.get("system:currency:symbol") or "₫"
+            position = await xohi_memory.client.get("system:currency:position") or "suffix"
+            thousand_sep = await xohi_memory.client.get("system:currency:thousand_sep") or "."
+            return {"symbol": symbol, "position": position, "thousand_sep": thousand_sep}
+        except:
+            return {"symbol": "₫", "position": "suffix", "thousand_sep": "."}
+
+    def _format_price(self, amount: float, settings: Dict[str, str]) -> str:
+        formatted = f"{int(amount):,}".replace(",", settings["thousand_sep"])
+        if settings["position"] == "prefix":
+            return f"{settings['symbol']}{formatted}"
+        return f"{formatted}{settings['symbol']}"
+
+    def _render_cart_report(self, request: SupportRequest, p_map: Dict[str, ProductBase], v_map: Dict[str, ProductVariant], pb: Dict[str, object], ctx_text: str, currency_settings: Dict[str, str]) -> str:
         cart_lines = []
         if request.cart_items:
             for item in request.cart_items:
@@ -420,7 +444,9 @@ class SupportAgentOperative(BaseAgentOperative):
                 p_name = p_db.name
                 v_label = v_raw.get("name") or v_raw.get("label")
                 if v_label: p_name += f" ({v_label})"
-                cart_lines.append(f"- {p_name}: {qty} x {int(p_price):,}đ = {int(p_price * qty):,}đ".replace(",", "."))
+                formatted_price = self._format_price(p_price, currency_settings)
+                formatted_total = self._format_price(p_price * qty, currency_settings)
+                cart_lines.append(f"- {p_name}: {qty} x {formatted_price} = {formatted_total}")
 
         current_product_text = f"\n[SẢN PHẨM KHÁCH ĐANG XEM TẠI TRANG HIỆN TẠI]:\n{ctx_text}\n" if request.product_slug and ctx_text else ""
         cart_lines_text = "\n".join(cart_lines) if cart_lines else "[GIỎ HÀNG THỰC]: Trống."
@@ -429,23 +455,26 @@ class SupportAgentOperative(BaseAgentOperative):
         if float(pb.get("subtotal", 0)) > 0:
             cart_text += f"\n[GIỎ HÀNG ĐIỆN TỬ - GROUND TRUTH]\n"
             if pb.get("is_fallback"): cart_text += "⚠️ [LƯU Ý]: Đang dùng logic dự phòng. Hãy nhắc khách kiểm tra lại tại Checkout.\n"
-            cart_text += f"1. Tổng tạm tính: {int(pb['subtotal']):,}đ\n".replace(",", ".")
-            if pb.get("combo_discount", 0) > 0: cart_text += f"2. Chiết khấu Combo: -{int(pb['combo_discount']):,}đ\n".replace(",", ".")
+            cart_text += f"1. Tổng tạm tính: {self._format_price(pb['subtotal'], currency_settings)}\n"
+            if pb.get("combo_discount", 0) > 0: 
+                cart_text += f"2. Chiết khấu Combo: -{self._format_price(pb['combo_discount'], currency_settings)}\n"
             if pb.get("voucher_discount", 0) > 0:
                 applied_v = pb.get("applied_voucher_ids") or []
                 v_label = f"(mã {', '.join(applied_v)})" if applied_v else ""
-                cart_text += f"3. Giảm giá Voucher {v_label}: -{int(pb['voucher_discount']):,}đ\n".replace(",", ".")
+                cart_text += f"3. Giảm giá Voucher {v_label}: -{self._format_price(pb['voucher_discount'], currency_settings)}\n"
             if float(pb.get("final_shipping_fee", 0)) > 0:
-                cart_text += f"4. Phí vận chuyển: {int(pb.get('base_shipping_fee', pb['final_shipping_fee'])):,}đ\n".replace(",", ".")
-                if pb.get("shipping_discount", 0) > 0: cart_text += f"   - Đã giảm phí ship: -{int(pb['shipping_discount']):,}đ\n".replace(",", ".")
-            else: cart_text += f"4. Phí vận chuyển: 0đ (Miễn phí)\n"
-            if pb.get("point_discount_amount", 0) > 0: cart_text += f"5. Giảm giá điểm thưởng ({pb.get('points_redeemed', 0)} pts): -{int(pb['point_discount_amount']):,}đ\n".replace(",", ".")
-            cart_text += f"\n👉 TỔNG THANH TOÁN CUỐI CÙNG: {int(pb['final_payable']):,}đ\n"
+                cart_text += f"4. Phí vận chuyển: {self._format_price(pb.get('base_shipping_fee', pb['final_shipping_fee']), currency_settings)}\n"
+                if pb.get("shipping_discount", 0) > 0: 
+                    cart_text += f"   - Đã giảm phí ship: -{self._format_price(pb['shipping_discount'], currency_settings)}\n"
+            else: cart_text += f"4. Phí vận chuyển: {self._format_price(0, currency_settings)} (Miễn phí)\n"
+            if pb.get("point_discount_amount", 0) > 0: 
+                cart_text += f"5. Giảm giá điểm thưởng ({pb.get('points_redeemed', 0)} pts): -{self._format_price(pb['point_discount_amount'], currency_settings)}\n"
+            cart_text += f"\n👉 TỔNG THANH TOÁN CUỐI CÙNG: {self._format_price(pb['final_payable'], currency_settings)}\n"
             cart_text += f"👉 DỰ KIẾN TÍCH LŨY: +{pb.get('points_to_earn', 0)} điểm.\n"
             cart_text += f"--------------------------------\n"
         return cart_text
 
-    async def _generate_fomo_instructions(self, pb: Dict[str, object], all_vouchers: List[Voucher]) -> str:
+    async def _generate_fomo_instructions(self, pb: Dict[str, object], all_vouchers: List[Voucher], currency_settings: Dict[str, str]) -> str:
         subtotal = float(pb.get("subtotal", 0))
         if subtotal <= 0: return ""
         best_v, max_sav = None, 0.0
@@ -456,14 +485,14 @@ class SupportAgentOperative(BaseAgentOperative):
             if sav > max_sav: max_sav, best_v = sav, v
         fomo_text = ""
         if best_v:
-            fomo_text += f"\n[CHỈ THỊ FOMO CHO HELEN]:\n- Mã ưu đãi TỐT NHẤT hiện tại: '{best_v.id}' (Giảm ~{int(max_sav):,}đ)\n"
+            fomo_text += f"\n[CHỈ THỊ FOMO CHO HELEN]:\n- Mã ưu đãi TỐT NHẤT hiện tại: '{best_v.id}' (Giảm ~{self._format_price(max_sav, currency_settings)})\n"
             if float(pb.get("voucher_discount", 0)) < (max_sav - 1000):
                 fomo_text += f"- [CẢNH BÁO]: Khách chưa dùng mã tốt nhất. HÃY THUYẾT PHỤC KHÁCH DÙNG MÃ '{best_v.id}'!\n"
             else: fomo_text += f"- [XÁC NHẬN]: Khách đã dùng mã tối ưu. Khen khách thông thái và chốt đơn ngay.\n"
         next_v = next((v for v in all_vouchers if (v.min_spend or 0) > subtotal), None)
         if next_v:
             gap = next_v.min_spend - subtotal
-            if gap < 300000: fomo_text += f"- Gợi ý mua thêm: Chỉ thiếu {int(gap):,}đ nữa là dùng được mã '{next_v.id}' (Giảm cực sâu).\n"
+            if gap < 300000: fomo_text += f"- Gợi ý mua thêm: Chỉ thiếu {self._format_price(gap, currency_settings)} nữa là dùng được mã '{next_v.id}' (Giảm cực sâu).\n"
         return fomo_text + "--------------------------------\n" if fomo_text else ""
 
     async def chat(self, request: Union[SupportRequest, dict], **kwargs: object) -> SupportResponse:
@@ -490,8 +519,9 @@ class SupportAgentOperative(BaseAgentOperative):
         if takeover_val == "0": return SupportResponse(ok=True, reply="Dược sĩ đang hỗ trợ...", intent=SupportIntent.UNKNOWN, session_id=session_id, status="DONE")
         
         try:
+            cur_settings = await self._get_currency_settings()
             masked_msg = await self._mask_sensitive_medical_terms(request.message)
-            _, p_info_fast = await _fetch_product_context(db, request.product_slug)
+            _, p_info_fast = await _fetch_product_context(db, request.product_slug, cur_settings)
             fast_res = await asyncio.wait_for(trinity_bridge.run(_fast_intent_agent, masked_msg, deps=FastIntentDeps(customer_name=c_name, product_name=p_info_fast.name if p_info_fast else None), role=trinity_bridge.ROLE_FAST, timeout=2.0), timeout=4.0)
             f_data = cast(FastIntentResponse, fast_res)
             if f_data.intent == "GREETING" and f_data.quick_reply and not request.cart_items:
@@ -500,7 +530,8 @@ class SupportAgentOperative(BaseAgentOperative):
                 return SupportResponse(ok=True, reply=f_data.quick_reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
         except Exception: pass
 
-        _, p_info = await _fetch_product_context(db, request.product_slug)
+        cur_settings = await self._get_currency_settings()
+        _, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
         heuristic_res = await self._try_heuristic_sync(request, db, session_id, p_info, c_name)
         if heuristic_res: return heuristic_res
 
@@ -511,6 +542,7 @@ class SupportAgentOperative(BaseAgentOperative):
     async def _try_heuristic_sync(self, request: SupportRequest, db: AsyncSession, session_id: str, p_info: Optional[SupportProductInfo] = None, customer_name: Optional[str] = None) -> Optional[SupportResponse]:
         msg_norm = request.message.lower().strip()
         if any(kw in msg_norm for kw in ["thành phần", "chiết xuất", "ship", "phí"]): return None
+        cur_settings = await self._get_currency_settings()
         if any(kw in msg_norm for kw in ["giá", "bao nhiêu"]) and p_info and not request.cart_items:
             final_reply = f"Dạ liệu trình **{p_info.name}** giá từ **{p_info.price_display}** ạ. 🌸"
             await self._save_history(db, session_id, request.message, final_reply, SupportIntent.PRICE_QUERY, request.product_slug, customer_name)

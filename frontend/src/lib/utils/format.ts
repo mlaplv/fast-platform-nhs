@@ -1,5 +1,26 @@
+import { getClientUi } from '$lib/state/commerce/ui.svelte';
+
 export function formatCurrency(n: number): string {
-  return new Intl.NumberFormat("vi-VN").format(n) + "đ";
+  const ui = getClientUi();
+  const settings = ui.settings?.currency;
+  
+  if (!settings) {
+    // Default: Shopee-style (suffix)
+    return new Intl.NumberFormat("vi-VN").format(n) + "₫";
+  }
+
+  // Manual formatting to respect custom separators
+  const parts = Math.round(n).toString().split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, settings.thousand_separator || ".");
+  const formatted = parts.join(settings.decimal_separator || ",");
+
+  const symbol = settings.show_symbol ? settings.symbol : '';
+  
+  if (settings.position === 'prefix') {
+    return symbol + formatted;
+  } else {
+    return formatted + symbol;
+  }
 }
 
 export function formatDate(iso: string): string {
@@ -45,5 +66,14 @@ export function trimProductName(name: string): string {
     .replace(/\s+[\-\.\|\/]+\s+/g, ' ') // Replace " - ", " | ", etc with space
     .replace(/[^a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]+$/, '') // Multi-language alphanumeric strip
     .replace(/\s+/g, ' ')
-    .trim();
+    .trim()
+    .split(' ')
+    .map(word => {
+      // Nếu từ đó toàn là chữ hoa và dài hơn 1 ký tự, chuyển về Capitalized
+      if (word.length > 1 && word === word.toUpperCase() && /[A-Z]/.test(word)) {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }
+      return word;
+    })
+    .join(' ');
 }

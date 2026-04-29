@@ -436,7 +436,9 @@ export interface Product {
   category_ids?: string[];
   categories?: { id: string; name: string }[];
   order_count?: number;
+  orderCount?: number;
   order_count_text?: string;
+  orderCountText?: string;
   rating?: number | string;
   rating_text?: string;
   createdAt: string;
@@ -633,6 +635,14 @@ export interface BannerForm {
 }
 
 // Elite V2.2: Shop Config Type
+export interface CurrencySettings {
+  symbol: string;
+  position: 'prefix' | 'suffix';
+  decimal_separator: string;
+  thousand_separator: string;
+  show_symbol: boolean;
+}
+
 export interface ShopInfo {
   name: string;
   slogan?: string;
@@ -655,6 +665,7 @@ export interface ShopInfo {
     tax_id?: string;
     business_license?: string;
   };
+  currency?: CurrencySettings;
   social_links?: {
     facebook?: string;
     tiktok?: string;

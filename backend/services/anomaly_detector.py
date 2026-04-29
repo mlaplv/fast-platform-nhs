@@ -218,7 +218,7 @@ class AnomalyDetector:
             return AnomalyAlert(
                 type="revenue_drop",
                 severity="WARNING",
-                message=f"📉 Doanh thu hôm nay ({today_rev:,.0f}đ) thấp hơn 70% so với cùng giờ hôm qua ({yesterday_rev:,.0f}đ).",
+                message=f"📉 Doanh thu hôm nay (đ{today_rev:,.0f}) thấp hơn 70% so với cùng giờ hôm qua (đ{yesterday_rev:,.0f}).",
                 data={"today": float(today_rev), "yesterday": float(yesterday_rev)}
             )
         return None

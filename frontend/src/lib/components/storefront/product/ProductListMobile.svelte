@@ -211,9 +211,15 @@
      <section>
         <h4 class="text-[14px] font-bold text-gray-800 mb-4 px-1">Khoảng giá</h4>
         <div class="flex items-center gap-3 px-1">
-          <div class="flex-1 bg-gray-50 rounded-xl flex items-center px-4 py-3 border border-transparent"><input type="number" placeholder="Từ" bind:value={minPrice} class="w-full text-[13px] font-bold bg-transparent outline-none" /><span class="text-gray-400 text-[13px] ml-1">₫</span></div>
+          <div class="flex-1 bg-gray-50 rounded-xl flex items-center px-4 py-3 border border-transparent">
+            <span class="text-gray-400 text-[13px] mr-1">đ</span>
+            <input type="number" placeholder="Từ" bind:value={minPrice} class="w-full text-[13px] font-bold bg-transparent outline-none" />
+          </div>
           <div class="w-3 h-0.5 bg-gray-200"></div>
-          <div class="flex-1 bg-gray-50 rounded-xl flex items-center px-4 py-3 border border-transparent"><input type="number" placeholder="Đến" bind:value={maxPrice} class="w-full text-[13px] font-bold bg-transparent outline-none" /><span class="text-gray-400 text-[13px] ml-1">₫</span></div>
+          <div class="flex-1 bg-gray-50 rounded-xl flex items-center px-4 py-3 border border-transparent">
+            <span class="text-gray-400 text-[13px] mr-1">đ</span>
+            <input type="number" placeholder="Đến" bind:value={maxPrice} class="w-full text-[13px] font-bold bg-transparent outline-none" />
+          </div>
         </div>
      </section>
      {#if availableBrands().length > 0}

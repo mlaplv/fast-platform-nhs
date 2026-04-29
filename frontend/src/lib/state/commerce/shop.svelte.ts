@@ -163,7 +163,7 @@ export class ShopStore {
         let mapped = raw.map((v: Voucher) => ({
             id: v.id,
             label: v.id || v.title || 'ƯU ĐÃI',
-            sub: v.type === 'SHIPPING' ? 'SHIPPING 0Đ' : (v.type === 'PERCENT' ? `${v.value}%` : `${v.value?.toLocaleString()}đ`),
+            sub: v.type === 'SHIPPING' ? 'FREESHIP đ0' : (v.type === 'PERCENT' ? `${v.value}%` : `đ${v.value?.toLocaleString()}`),
             type: v.type === 'SHIPPING' ? 'ship' : 'discount',
             value: v.value || 0
         }));

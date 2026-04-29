@@ -4,6 +4,7 @@
   import type { Product, ProductVariant } from '$lib/types';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
+  import { formatCurrency } from '$lib/utils/format';
   import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
 
@@ -68,7 +69,6 @@
   });
 
   // --- HELEN AI PRICE INTELLIGENCE (MOBILE VERSION) ---
-  const formatVnd = (val: number) => val.toLocaleString('vi-VN');
   const helenAdvice = $derived.by(() => {
     const comboVariants = pVariants.filter(cv => cv.attributes && cv.attributes.combo_qty);
     if (comboVariants.length === 0) return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền.";
@@ -84,7 +84,7 @@
       const tierName = nextTier.tierIndex.map((idx, i) => variations?.[i]?.options?.[idx] || '').filter(Boolean).join(' ') || "Combo tiếp theo";
       
       if (savingsPerUnit > 0) {
-        return `Thêm ${gap} sp để nâng cấp lên "${tierName}" (giảm ₫${formatVnd(savingsPerUnit)}/sp)!`;
+        return `Thêm ${gap} sp để nâng cấp lên "${tierName}" (giảm ${formatCurrency(savingsPerUnit)}/sp)!`;
       }
       return `Chỉ thêm ${gap} sp để nhận trọn bộ quà tặng "${tierName}"!`;
     }
@@ -162,11 +162,11 @@
       </div>
       <div class="flex flex-col justify-end pb-1 pr-8">
         <div class="flex items-baseline gap-1.5">
-           <span class="text-[#ee4d2d] text-xl font-black">₫{currentPrice.toLocaleString('vi-VN')}</span>
+           <span class="text-[#ee4d2d] text-xl font-black">{formatCurrency(currentPrice)}</span>
            <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">/ sp</span>
         </div>
         {#if quantity > 1}
-          <div class="text-[12px] text-[#ee4d2d] font-black mt-1">Tổng: ₫{totalPrice.toLocaleString('vi-VN')}</div>
+          <div class="text-[12px] text-[#ee4d2d] font-black mt-1">Tổng: {formatCurrency(totalPrice)}</div>
         {/if}
         <div class="text-[11px] text-gray-500 font-medium mt-1">Kho: {currentStock || 0} sản phẩm</div>
         

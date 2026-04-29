@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { slugify, trimProductName } from '$lib/utils/format';
+  import { slugify, trimProductName, formatCurrency } from '$lib/utils/format';
   import { onMount } from 'svelte';
   import { fly, fade, scale } from 'svelte/transition';
   import { cubicOut, backOut } from 'svelte/easing';
@@ -48,8 +48,8 @@
     const hasDiscount = !!p.discountPrice && p.discountPrice < p.price;
     const sellingPrice = hasDiscount ? p.discountPrice : p.price;
     const originalPrice = hasDiscount ? p.price : (p.price * 1.4);
-    const realSales = p.sales || p.metadata?.reviews_count_text || 0;
-    const displaySales = realSales;
+    const realSalesCount = p.orderCount || p.order_count || 0;
+    const displaySales = p.orderCountText || p.order_count_text || p.metadata?.reviews_count_text || (realSalesCount > 0 ? `${realSalesCount.toLocaleString()}+` : "0");
     
     // Elite V4.0: Robust Image & Discount logic
     const imgCandidates = [
@@ -104,7 +104,7 @@
 
   // Synthesize floating specs for Viral 2.3
   const specs = [
-    { label: 'Đánh Giá AI', value: '9.9/10', color: 'text-orange-500' },
+    { label: 'Đánh Giá AI', value: '4.9/5', color: 'text-orange-500' },
     { label: 'Đã Xác Thực', value: 'Trợ Lý Cao Cấp', color: 'text-blue-500' },
     { label: 'Tình Trạng', value: 'Loại A+', color: 'text-emerald-500' }
   ];
@@ -175,7 +175,7 @@
             </div>
             
             <div in:fade={{duration: 1200, delay: 400}} class="flex flex-col">
-                <h2 class="text-3xl md:text-4xl lg:text-5xl font-extrabold leading-[1.3] uppercase tracking-tight line-clamp-3 bg-gradient-to-br from-[#1A1A1A] via-[#333333] to-[#C18F7E] bg-clip-text text-transparent">
+                <h2 class="text-3xl md:text-4xl lg:text-5xl font-extrabold leading-[1.3] tracking-tight line-clamp-3 bg-gradient-to-br from-[#1A1A1A] via-[#333333] to-[#C18F7E] bg-clip-text text-transparent">
                     {slide.name}
                 </h2>
             </div>
@@ -187,19 +187,19 @@
                         {#if slide.originalPrice}
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-bold text-gray-300 line-through tabular-nums decoration-gray-400/30">
-                                    đ{Math.round(slide.originalPrice).toLocaleString('vi-VN')}
+                                    {formatCurrency(Math.round(slide.originalPrice))}
                                 </span>
                             </div>
                         {/if}
                     </div>
-                    <span class="text-black text-4xl font-black tabular-nums tracking-tighter flex items-end gap-2">
-                        <span class="text-[#C18F7E] text-2xl mb-1">đ</span>{(slide.price || 0).toLocaleString('vi-VN')}
+                    <span class="text-[#ee4d2d] text-4xl font-black tabular-nums tracking-tighter flex items-end gap-2">
+                        {formatCurrency(slide.price || 0)}
                         <span class="text-[10px] text-[#C18F7E] font-bold uppercase tracking-widest mb-1.5 animate-pulse">−{slide.discountPercent}% GIỚI HẠN</span>
                     </span>
                 </div>
                 <div class="flex flex-col">
                     <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20 mb-1">Cộng đồng</span>
-                    <span class="text-black text-xl font-black italic">+{(slide.sales || 0).toLocaleString()} <span class="text-[9px] opacity-30 not-italic uppercase ml-1">Tin dùng</span></span>
+                    <span class="text-black text-xl font-black italic">+{slide.sales || 0} <span class="text-[9px] opacity-30 not-italic uppercase ml-1">Tin dùng</span></span>
                 </div>
             </div>
             
@@ -297,7 +297,7 @@
         </div>
 
         <div class="p-6 flex flex-col flex-1 bg-white relative">
-          <h3 class="text-black text-[14px] font-black uppercase tracking-tight line-clamp-2 h-[42px] leading-[21px] mb-5 group-hover/card:text-[#C18F7E] transition-colors">{product.name}</h3>
+          <h3 class="text-black text-[14px] font-black tracking-tight line-clamp-2 h-[42px] leading-[21px] mb-5 group-hover/card:text-[#C18F7E] transition-colors">{product.name}</h3>
 
           <div class="mt-auto pt-4 border-t border-black/[0.03] space-y-3">
             <div class="flex flex-col gap-1">
@@ -305,7 +305,7 @@
                     <div class="flex items-center gap-2">
                         {#if product.originalPrice}
                             <span class="text-[11px] font-bold text-gray-300 line-through tabular-nums decoration-gray-400/20">
-                                đ{Math.round(product.originalPrice).toLocaleString('vi-VN')}
+                                {formatCurrency(Math.round(product.originalPrice))}
                             </span>
                         {/if}
                         <span class="text-[10px] font-black text-[#C18F7E] bg-[#C18F7E]/10 px-1.5 py-0.5 rounded-sm">-{product.discountPercent}%</span>
@@ -314,8 +314,8 @@
                         <div class="w-1 h-1 rounded-full bg-[#C18F7E]"></div> ĐANG CHÁY HÀNG
                     </span>
                 </div>
-                <p class="text-black font-black text-2xl tracking-tighter tabular-nums flex items-end gap-1 group-hover/card:text-[#C18F7E] transition-colors">
-                    <span class="text-[#C18F7E] text-sm mb-1">đ</span>{product.price.toLocaleString('vi-VN')}
+                <p class="text-[#ee4d2d] font-black text-2xl tracking-tighter tabular-nums flex items-end gap-1 group-hover/card:text-[#C18F7E] transition-colors">
+                    {formatCurrency(product.price)}
                 </p>
             </div>
 

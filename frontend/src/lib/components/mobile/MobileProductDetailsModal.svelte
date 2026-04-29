@@ -4,6 +4,11 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
+  import { ShoppingCart, ArrowRight } from 'lucide-svelte';
+  import { formatCurrency } from '$lib/utils/format';
+  import { fly, fade } from 'svelte/transition';
 
   function isJson(str: string) {
     if (typeof str !== 'string') return false;
@@ -22,6 +27,17 @@
   let isDragging = $state(false);
   let startY = 0;
   let contentRef = $state<HTMLElement | null>(null);
+  let isAtBottom = $state(false);
+  
+  const shopStore = getShopStore();
+  const cartStore = getCartStore();
+
+  function handleScroll(e: Event) {
+    if (!contentRef) return;
+    const target = e.target as HTMLElement;
+    // Check if within 100px of bottom
+    isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
+  }
 
   // Elite V2.2: Reset scroll position when opening to ensure starting at top
   $effect(() => {
@@ -317,6 +333,7 @@
     <!-- Scrollable Description Body -->
     <div 
       bind:this={contentRef}
+      onscroll={handleScroll}
       class="pl-[10px] pr-2.5 pt-2 pb-10 overflow-y-auto custom-scrollbar flex-1 relative elite-prose select-text"
     >
       {#if product?.description}
@@ -335,7 +352,30 @@
     </div>
 
     <!-- Footer sticky -->
-    <div class="shrink-0 flex items-center justify-center px-4 py-4 border-t border-white/5 bg-[#0a0a0a]">
+    <div class="shrink-0 flex flex-col items-center justify-center px-4 py-4 border-t border-white/5 bg-[#0a0a0a] relative">
+      {#if isAtBottom}
+        <div class="absolute -top-16 left-0 right-0 px-4 pointer-events-none" in:fly={{ y: 20 }}>
+           <button
+             onclick={() => {
+               active = false;
+               shopStore.openCheckout(cartStore, product);
+             }}
+             class="w-full h-12 bg-gradient-to-r from-[#FFB7C5] to-[#E8D5B0] rounded-full flex items-center justify-between px-6 shadow-[0_0_30px_rgba(255,183,197,0.4)] pointer-events-auto active:scale-95 transition-all group"
+           >
+             <div class="flex flex-col items-start leading-none">
+                <span class="text-[10px] font-black text-red-600 uppercase tracking-widest italic animate-pulse">Sắp hết suất ưu đãi</span>
+                <span class="text-[14px] font-black text-black uppercase tracking-tight">NHẬN ƯU ĐÃI NGAY</span>
+             </div>
+             <div class="flex items-center gap-2">
+                <span class="text-[14px] font-black text-black">{formatCurrency(shopStore.totalAmount)}</span>
+                <div class="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center">
+                   <ArrowRight size={16} class="text-black group-hover:translate-x-1 transition-transform" />
+                </div>
+             </div>
+           </button>
+        </div>
+      {/if}
+
       <div class="flex items-center gap-2 text-[10px] font-bold text-white/30 uppercase tracking-[0.25em] italic">
         <ShieldCheck class="w-3.5 h-3.5 text-blue-500/80" />
         <span class="text-transparent bg-clip-text bg-gradient-to-r from-white/60 to-white/30">Hệ thống thông tin chính hãng</span>

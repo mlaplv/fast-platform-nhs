@@ -10,6 +10,7 @@
   import { Hash, ChevronRight, Droplet, Sparkles, Eye, Leaf, Smile, Waves, Pill } from 'lucide-svelte';
   import { browser } from '$app/environment';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
+  import { formatCurrency } from '$lib/utils/format';
 
   const ui = getClientUi();
   const cartStore = getCartStore();
@@ -283,7 +284,7 @@
                       </div>
                       <span class="tbn-cat-title text-left !font-bold pt-1">{prod.name}</span>
                       <span class="text-[10px] font-black text-luxury-copper mt-0.5">
-                        {(prod.discountPrice || prod.discount_price || prod.price || 0).toLocaleString('vi-VN')}₫
+                        {formatCurrency(prod.discountPrice || prod.discount_price || prod.price || 0)}
                       </span>
                     </a>
                   {/each}
@@ -349,7 +350,7 @@
         </button>
         <button class="tbn-action-split tbn-action-split--buy" aria-label="Mua ngay" onclick={() => onBuyNow?.()}>
           <span class="buy-text">Mua ngay</span>
-          <span class="buy-sub">{(product.discount_price || product.price || 0).toLocaleString('vi-VN')}₫ {hasFreeship ? '| Freeship' : ''}</span>
+          <span class="buy-sub">{formatCurrency(product.discount_price || product.price || 0)} {hasFreeship ? '| Freeship' : ''}</span>
         </button>
       </div>
     {/if}

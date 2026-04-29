@@ -3,7 +3,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
-  import { trimProductName } from '$lib/utils/format';
+  import { trimProductName, formatCurrency } from '$lib/utils/format';
   import { isAdminDomain } from '$lib/state/nanobot/env';
   import { fade, fly, slide } from 'svelte/transition';
   import { Z_INDEX_CLIENT, Z_INDEX_ADMIN } from '$lib/core/constants/zIndex';
@@ -223,14 +223,14 @@
                         <span class="text-[13px] font-bold text-gray-700 group-hover:text-[#fe2c55] line-clamp-1 transition-colors leading-tight">
                           {trimProductName(p.name)}
                         </span>
-                        <div class="flex items-center gap-2">
-                           <span class="text-[11px] text-black font-black">
-                             <span class="text-[#C18F7E]">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
-                           </span>
-                           {#if p.discountPrice}
-                             <span class="text-[9px] text-gray-300 line-through font-bold">đ{p.price.toLocaleString('vi-VN')}</span>
-                           {/if}
-                        </div>
+                         <div class="flex items-center gap-2">
+                            <span class="text-[11px] text-black font-black">
+                              {formatCurrency(p.discountPrice ?? p.price)}
+                            </span>
+                            {#if p.discountPrice}
+                              <span class="text-[9px] text-gray-300 line-through font-bold">{formatCurrency(p.price)}</span>
+                            {/if}
+                         </div>
                       </div>
                       {#if p.metadata?.is_bestseller || p.orderCount > 50}
                         <span class="shrink-0 text-[8px] bg-[#fe2c55] text-white px-1 py-0.5 font-black uppercase tracking-tighter rounded-xs shadow-sm ml-1">Bán chạy</span>
@@ -295,7 +295,7 @@
                       <div class="flex flex-col flex-grow min-w-0">
                         <h4 class="text-[15px] font-bold text-gray-800 line-clamp-1 mb-1">{trimProductName(p.name)}</h4>
                         <div class="text-[14px] font-black text-black tabular-nums">
-                          <span class="text-[#C18F7E] mr-0.5">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
+                          {formatCurrency(p.discountPrice ?? p.price)}
                         </div>
                       </div>
                     </a>
@@ -454,7 +454,7 @@
            <div class="flex flex-col min-w-0">
               <h4 class="text-[14px] font-black text-gray-900 uppercase italic line-clamp-2 leading-tight mb-1">{p.name}</h4>
               <div class="text-[16px] font-black text-black">
-                <span class="text-[#C18F7E]">đ</span>{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}
+                {formatCurrency(p.discountPrice ?? p.price)}
               </div>
            </div>
         </a>

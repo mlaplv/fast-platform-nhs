@@ -103,9 +103,42 @@ class ProductService:
         row_dict["order_count"] = actual_orders
         row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), actual_orders)
 
+    def _inject_marketing_boost(self, row_dict: ProductRowDict) -> None:
+        # Elite V2.2: Marketing Boost (G_BY_COUNT) + Deterministic FOMO Growth
+        import os
+        from datetime import datetime
+        try:
+            g_by_count = int(os.getenv("G_BY_COUNT", "0"))
+        except:
+            g_by_count = 0
+            
+        # 🎯 Elite FOMO Logic: Hourly Growth + Unique Product Offset
+        now = datetime.now()
+        hour_factor = now.hour * 2
+        min_factor = now.minute // 15
+        
+        # Unique deterministic offset per product (500 to 8000 range)
+        # This prevents all products from having the same sales number
+        pid_str = str(row_dict.get("id", ""))
+        unique_offset = (abs(hash(pid_str)) % 150) * 50 # Variates by up to 7500
+        
+        fomo_boost = hour_factor + min_factor + unique_offset
+        
+        raw_count = int(row_dict.get("order_count") or 0)
+        total_boosted_count = raw_count + g_by_count + fomo_boost
+        
+        row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), raw_count + fomo_boost)
+        row_dict["order_count"] = total_boosted_count
+
     def _get_display_order_count_text(self, metadata: Dict[str, object], actual_count: int) -> str:
         """Combine real orders with social proof base from metadata (Vietnamese Format)."""
-        base_text = str(metadata.get("reviews_count_text", "2.140+ LƯỢT MUA"))
+        import os
+        try:
+            g_by_count = int(os.getenv("G_BY_COUNT", "0"))
+        except (ValueError, TypeError):
+            g_by_count = 0
+
+        base_text = str(metadata.get("reviews_count_text", "2,140+ LƯỢT MUA"))
         match = RE_ORDER_COUNT.search(base_text)
         
         base_num = 0
@@ -114,9 +147,15 @@ class ProductService:
             clean_num = match.group(1).replace(",", "").replace(".", "")
             base_num = int(clean_num) if clean_num.isdigit() else 0
         
-        display_total = base_num + actual_count
-        # format with comma, then swap to dots for VN standard
-        return f"{display_total:,}+ LƯỢT MUA".replace(",", ".")
+        display_total = base_num + actual_count + g_by_count
+        
+        if display_total > 0:
+            if display_total >= 1000:
+                # Elite V2.2: Clean numeric display only, prefix/suffix handled by UI
+                return f"{display_total:,}".replace(",", ".")
+            else:
+                return str(display_total)
+        return ""
 
     async def list_products(
         self,
@@ -263,7 +302,7 @@ class ProductService:
             for row_mapping in subset:
                 row_dict: ProductRowDict = dict(row_mapping) # type: ignore
                 row_dict["variants"] = []
-                row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), row_dict["order_count"])
+                self._inject_marketing_boost(row_dict)
                 data.append(ProductResponse.model_validate(row_dict))
 
             # --- LAYER 6: COMPUTE FACETS (Elite V2.2 Dynamic Filters) ---
@@ -320,7 +359,7 @@ class ProductService:
         for row in result:
             row_dict: ProductRowDict = dict(row._mapping) # type: ignore
             row_dict["variants"] = []
-            row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), row_dict["order_count"])
+            self._inject_marketing_boost(row_dict)
             data.append(ProductResponse.model_validate(row_dict))
 
         return ProductListResponse(data=data, total=total)
@@ -354,8 +393,8 @@ class ProductService:
         row_dict: ProductRowDict = dict(row._mapping) # type: ignore
         row_dict["variants"] = list(variants)
 
-        # Elite Dynamic Counting (O(1) from Denormalized Field)
-        row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), row_dict["order_count"])
+        # Elite Dynamic Counting & Marketing Boost
+        self._inject_marketing_boost(row_dict)
 
         return ProductResponse.model_validate(row_dict)
 
@@ -416,8 +455,8 @@ class ProductService:
         row_dict: ProductRowDict = dict(row._mapping) # type: ignore
         row_dict["variants"] = list(variants)
 
-        # Elite Dynamic Counting (O(1) from Denormalized Field)
-        row_dict["order_count_text"] = self._get_display_order_count_text(row_dict.get("metadata", {}), row_dict["order_count"])
+        # Elite Dynamic Counting & Marketing Boost
+        self._inject_marketing_boost(row_dict)
 
         return ProductResponse.model_validate(row_dict)
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
-  import { trimProductName } from '$lib/utils/format';
+  import { trimProductName, formatCurrency } from '$lib/utils/format';
   import { fade } from 'svelte/transition';
   import { ChevronLeft, Search, Filter } from 'lucide-svelte';
   import type { Product, ProductFacets } from '$lib/types';
@@ -169,7 +169,7 @@
             <div class="p-3">
               <h3 class="text-[13px] font-bold text-gray-800 line-clamp-2 leading-tight mb-2 min-h-[34px]">{trimProductName(p.name)}</h3>
               <div class="flex items-end justify-between">
-                <span class="text-[15px] font-black text-luxury-copper">đ{(p.discountPrice ?? p.price).toLocaleString('vi-VN')}</span>
+                <span class="text-[15px] font-black text-[#ee4d2d]">{formatCurrency(p.discountPrice ?? p.price)}</span>
               </div>
             </div>
           </a>
@@ -209,10 +209,10 @@
         <h4 class="text-[14px] font-bold text-gray-800 mb-3 px-1">Khoảng giá</h4>
         <div class="grid grid-cols-2 gap-2 px-1 mb-4">
            {#each [
-             { label: 'Dưới 100Kđ', min: null, max: 100000 },
-             { label: '100Kđ - 200Kđ', min: 100000, max: 200000 },
-             { label: '200Kđ - 350Kđ', min: 200000, max: 350000 },
-             { label: 'Trên 350Kđ', min: 350000, max: null },
+             { label: 'Dưới 100K', min: null, max: 100000 },
+             { label: '100K - 200K', min: 100000, max: 200000 },
+             { label: '200K - 350K', min: 200000, max: 350000 },
+             { label: 'Trên 350K', min: 350000, max: null },
            ] as range}
              <button
                 onclick={() => setPriceRange(range.min, range.max)}
@@ -224,13 +224,13 @@
         </div>
         <div class="flex items-center gap-3 px-1">
           <div class="flex-1 bg-gray-50 rounded-md flex items-center px-3 py-2 border border-transparent focus-within:border-[var(--color-brand-primary)]">
+            <span class="text-gray-400 text-[13px] mr-1">đ</span>
             <input type="number" placeholder="Tối thiểu" bind:value={minPrice} class="w-full text-[13px] bg-transparent outline-none text-gray-800" />
-            <span class="text-gray-400 text-[13px] ml-1">₫</span>
           </div>
           <div class="w-3 h-[1px] bg-gray-400"></div>
           <div class="flex-1 bg-gray-50 rounded-md flex items-center px-3 py-2 border border-transparent focus-within:border-[var(--color-brand-primary)]">
+            <span class="text-gray-400 text-[13px] mr-1">đ</span>
             <input type="number" placeholder="Tối đa" bind:value={maxPrice} class="w-full text-[13px] bg-transparent outline-none text-gray-800" />
-            <span class="text-gray-400 text-[13px] ml-1">₫</span>
           </div>
         </div>
       </div>

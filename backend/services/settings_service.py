@@ -273,6 +273,12 @@ class SettingsService:
         await xohi_memory.client.set("system:zalo_enabled", "1" if data.support_bot.zalo_integration_enabled else "0")
         await xohi_memory.client.set("system:messenger_enabled", "1" if data.support_bot.messenger_integration_enabled else "0")
         await xohi_memory.client.set("system:fomo_enabled", "1" if data.conversions.fomo_enabled else "0")
+        
+        # Elite V2.2: Sync Currency
+        await xohi_memory.client.set("system:currency:symbol", data.currency.symbol)
+        await xohi_memory.client.set("system:currency:position", data.currency.position)
+        await xohi_memory.client.set("system:currency:thousand_sep", data.currency.thousand_separator)
+        await xohi_memory.client.set("system:currency:decimal_sep", data.currency.decimal_separator)
 
         # SGE Shield V1.0: Sync Entropy Settings vào Redis
         import json as _json

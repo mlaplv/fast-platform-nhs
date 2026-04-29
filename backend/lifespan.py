@@ -56,6 +56,7 @@ async def lifespan(app: Litestar):
             # [Elite V2.2] Auto-Sync RBAC on Boot
             from backend.services.user_service import user_service
             await user_service.sync_rbac(session)
+            await session.commit()
 
             # R76: Return only necessary columns to reduce RAM hydration
             stmt = select(

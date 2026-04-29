@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { goto } from '$app/navigation';
@@ -10,6 +11,8 @@
   import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
+  import type { ReviewStats } from '$lib/types';
+  import { formatCurrency } from '$lib/utils/format';
 
   function isJson(str: string) {
     if (typeof str !== 'string') return false;
@@ -82,6 +85,19 @@
     product: Product;
   }
   let { product }: Props = $props();
+
+  let stats = $state<ReviewStats | null>(null);
+
+  onMount(async () => {
+    if (product?.id) {
+      try {
+        const res = await fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`);
+        if (res.ok) stats = await res.json();
+      } catch (e) {
+        console.error('Failed to load product stats:', e);
+      }
+    }
+  });
 
   const variations = $derived(product.tier_variations || product.tierVariations || []);
   let selectedIndices = $state<number[]>([]);
@@ -234,7 +250,7 @@
     return cartStore.vouchers.map(v => ({
       id: v.id,
       label: v.title || v.id,
-      sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${v.value.toLocaleString()}đ`),
+      sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${formatCurrency(v.value)}`),
       type: v.type === 'SHIPPING' ? 'ship' : 'discount'
     }));
   });
@@ -343,7 +359,7 @@
       const tierName = nextTier.tierIndex.map((idx, i) => variations?.[i]?.options?.[idx] || '').filter(Boolean).join(' ') || "Combo tiếp theo";
       
       if (savingsPerUnit > 0) {
-        return `Nâng cấp ngay lên bộ "${tierName}" (thêm ${gap} sp) để chạm ngưỡng tiết kiệm ₫${formatVnd(nextUnitPrice)}/sp. Bạn sẽ giảm thêm ₫${formatVnd(savingsPerUnit)} trên mỗi sản phẩm!`;
+        return `Nâng cấp ngay lên bộ "${tierName}" (thêm ${gap} sp) để chạm ngưỡng tiết kiệm ${formatCurrency(nextUnitPrice)}/sp. Bạn sẽ giảm thêm ${formatCurrency(savingsPerUnit)} trên mỗi sản phẩm!`;
       }
       return `Chỉ thêm ${gap} sản phẩm để kích hoạt bộ "${tierName}" và nhận trọn vẹn đặc quyền quà tặng đi kèm!`;
     }
@@ -539,10 +555,10 @@
       <!-- Stats Row -->
       <div class="flex items-center gap-6 text-[14px] mb-6 mt-1">
         <div class="flex items-center gap-1 text-[#ee4d2d] border-b border-[#ee4d2d]/20 pb-0.5">
-          <span class="font-bold border-b border-[#ee4d2d] leading-none mb-[-2px]">{product.metadata?.rating || '5.0'}</span>
+          <span class="font-bold border-b border-[#ee4d2d] leading-none mb-[-2px]">{stats?.average_rating || product.metadata?.rating || '5.0'}</span>
           <div class="flex pt-0.5 gap-0.5 ml-1">
              {#each Array(5) as _, i}
-                <svg class="w-3 h-3 {i < (Number(product.metadata?.rating) || 5) ? 'text-orange-400' : 'text-gray-300'} fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                <svg class="w-3 h-3 {i < Math.floor(stats?.average_rating || Number(product.metadata?.rating) || 5) ? 'text-orange-400' : 'text-gray-300'} fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
              {/each}
           </div>
         </div>
@@ -550,16 +566,15 @@
         <button 
           onclick={() => document.getElementById('product-reviews')?.scrollIntoView({ behavior: 'smooth' })}
           class="flex items-center gap-1 group cursor-pointer border-none bg-transparent">
-          <span class="text-black font-bold border-b border-black leading-none mb-[-2px]">{product.metadata?.reviews?.length || 0}</span>
+          <span class="text-black font-bold border-b border-black leading-none mb-[-2px]">{stats?.total_count ?? (product.metadata?.reviews?.length || 0)}</span>
           <span class="text-gray-500 font-medium">Đánh Giá</span>
         </button>
         <div class="w-px h-4 bg-gray-200"></div>
         <div class="flex items-center gap-1">
-          <span class="text-black font-bold">{product.order_count_text || product.order_count || 0}</span>
+          <span class="text-black font-bold">{product.order_count_text || product.orderCount || 0}</span>
           {#if !product.order_count_text}
             <span class="text-gray-500 font-medium">Đã Bán</span>
           {/if}
-          <svg class="w-3.5 h-3.5 opacity-30 cursor-help" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         </div>
         <div class="ml-auto">
            <button onclick={triggerWriteReview} class="text-[13px] text-gray-400 font-medium hover:text-[#ee4d2d] transition-colors">Tố cáo</button>
@@ -570,15 +585,15 @@
       <div class="bg-[#f6f6f6] px-5 py-2.5 flex items-center justify-between mb-3 relative overflow-hidden group border-y border-gray-100/50">
         <div class="flex flex-col">
             <div class="flex items-center gap-3 mb-0.5">
-               <span class="text-[14px] text-gray-400 line-through">₫{formatVnd(activePrices.original)}</span>
+               <span class="text-[14px] text-gray-400 line-through">{formatCurrency(activePrices.original)}</span>
                {#if activePrices.original > activePrices.sale}
                   <span class="text-[11px] font-black text-[#00bfa5] uppercase tracking-widest bg-[#e6f9f6] px-1.5 py-0.5">
-                      Tiết kiệm {formatVnd(Number(activePrices.original) - Number(activePrices.sale))}₫
+                      Tiết kiệm {formatCurrency(Number(activePrices.original) - Number(activePrices.sale))}
                   </span>
                {/if}
             </div>
             <div class="flex items-baseline gap-4">
-                <span class="text-[32px] font-black text-[#d0011b] tracking-tighter leading-none">₫{formatVnd(activePrices.sale)}</span>
+                <span class="text-[32px] font-black text-[#d0011b] tracking-tighter leading-none">{formatCurrency(activePrices.sale)}</span>
             </div>
 
             {#if pVariants.some(v => v.attributes?.combo_qty && v.attributes.combo_qty > 1)}
@@ -662,7 +677,7 @@
                   <svg class="w-3.5 h-3.5 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7-7" /></svg>
                </div>
                <div class="text-[14px]">
-                  <span class="text-[#00bfa5] font-black">Phí ship ₫0</span>
+                  <span class="text-[#00bfa5] font-black">Phí ship 0₫</span>
                   <p class="text-[12px] text-gray-400 mt-1">Giao hàng toàn quốc từ 2-4 ngày làm việc.</p>
                </div>
             </div>

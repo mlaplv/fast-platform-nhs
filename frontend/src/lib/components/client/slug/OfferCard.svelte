@@ -6,8 +6,9 @@
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import type { Product, ProductVariant } from '$lib/types';
   import { SHOP_CONFIG } from '$lib/constants/shop';
-  import { ShoppingCart, ArrowRight, Zap, Sparkles, Ticket } from 'lucide-svelte';
   import OfferVoucherSheet from './OfferVoucherSheet.svelte';
+  import { formatCurrency } from '$lib/utils/format';
+  import { Ticket, Sparkles, Zap, ArrowRight, ShoppingCart } from 'lucide-svelte';
 
   interface MktLabels {
     sub: string;
@@ -69,6 +70,14 @@
   const selectedVouchers = $derived((shopStore.vouchers || []).filter(v => shopStore.selectedVoucherIds.includes(v.id)));
   const shippingVoucher = $derived(selectedVouchers.find(v => v.type === 'SHIPPING'));
   const discountVoucher = $derived(selectedVouchers.find(v => v.type !== 'SHIPPING'));
+
+  // Elite V2.2: Realistic FOMO - Deterministic stock based on variant ID
+  const displayStock = $derived.by(() => {
+    if (variant.stock && variant.stock < 10) return variant.stock;
+    const hash = [...String(variant.id)].reduce((a, b) => a + b.charCodeAt(0), 0);
+    return (hash % 6) + 3;
+  });
+
 
   // --- MEMOIZED FEATURES (ELITE V2.2: NO FUNCTION-IN-RENDER) ---
   const features = $derived.by(() => {
@@ -175,20 +184,20 @@
            {/if}
           <h5 class="text-[15px] font-black text-white italic tracking-tighter text-center md:text-left leading-none mb-1">{getVariantTitle(variant)}</h5>
           <div class="flex items-baseline gap-2 leading-none mt-1">
-             <span class="text-3xl font-black text-white tabular-nums leading-none tracking-tighter">{(finalUnitPrice).toLocaleString()}đ</span>
+             <span class="text-3xl font-black text-white tabular-nums leading-none tracking-tighter">{formatCurrency(finalUnitPrice)}</span>
              <span class="text-[10px] font-bold text-white/40 uppercase tracking-widest">/ SẢN PHẨM</span>
           </div>
           
           {#if comboQty > 1}
             <div class="flex items-center gap-2 mt-1 mb-1">
-               <span class="text-[11px] font-bold text-luxury-sakura/80 tabular-nums">Tổng gói: {(totalPackagePrice).toLocaleString()}đ</span>
+               <span class="text-[11px] font-bold text-luxury-sakura/80 tabular-nums">Tổng gói: {formatCurrency(totalPackagePrice)}</span>
                {#if totalOriginalPackagePrice > totalPackagePrice}
-                  <span class="text-[10px] text-white/20 line-through tabular-nums decoration-white/20">{(totalOriginalPackagePrice).toLocaleString()}đ</span>
+                  <span class="text-[10px] text-white/20 line-through tabular-nums decoration-white/20">{formatCurrency(totalOriginalPackagePrice)}</span>
                {/if}
             </div>
           {:else if unitOriginalPrice > finalUnitPrice}
              <div class="mt-1 mb-1">
-                <span class="text-[11px] text-white/20 line-through tabular-nums decoration-white/20">{(unitOriginalPrice).toLocaleString()}đ</span>
+                <span class="text-[11px] text-white/20 line-through tabular-nums decoration-white/20">{formatCurrency(unitOriginalPrice)}</span>
              </div>
           {/if}
           
@@ -210,7 +219,7 @@
                         <span class="text-[6px] font-black text-luxury-gold uppercase tracking-tighter">DISCOUNT</span>
                      </div>
                      <div class="px-1.5 h-full flex items-center">
-                        <span class="text-[6px] font-bold text-white/80 tabular-nums">-{discountVoucher.value?.toLocaleString()}đ</span>
+                        <span class="text-[6px] font-bold text-white/80 tabular-nums">-{formatCurrency(discountVoucher.value || 0)}</span>
                      </div>
                   </div>
                {/if}
@@ -224,7 +233,7 @@
                     <EditableWrapper path="metadata.offer_savings_prefix" type="text" label="SỬA TIỀN TỐ" class="inline" as="span">
                       <span>{mkt.savings_prefix}</span>
                     </EditableWrapper>
-                    <span class="tabular-nums">{(totalSavings).toLocaleString()}đ</span>
+                    <span class="tabular-nums">{formatCurrency(totalSavings)}</span>
                  </div>
 
                  <!-- 🧧 [ELITE V2.2] LOYALTY REWARD BADGE -->
@@ -300,15 +309,27 @@
              {#if (productVouchers.filter(v => shopStore.selectedVoucherIds.includes(v.id))).length > 0}
                {#each productVouchers.filter(v => shopStore.selectedVoucherIds.includes(v.id)) as v}
                  <div class="sticker-mini-preview flex items-center gap-1.5 bg-luxury-sakura/10 px-2 py-1.5 rounded-xl border border-luxury-sakura/20">
-                   <span class="text-[9px] font-black text-luxury-sakura uppercase leading-none">{v.label}</span>
-                   <span class="text-[10px] text-white uppercase font-black truncate leading-none">{v.sub}</span>
+                   <span class="text-[9px] font-black text-luxury-sakura uppercase leading-none">
+                     {v.label.toLowerCase().includes('freeship') && v.sub.toLowerCase().includes('freeship') 
+                       ? 'GIẢM ' + v.label.replace(/FREESHIP/gi, '').trim() + (isNaN(Number(v.label.replace(/FREESHIP/gi, ''))) ? '' : 'K')
+                       : v.label}
+                   </span>
+                    <span class="text-[10px] text-white uppercase font-black truncate leading-none">
+                      {v.sub.replace(/FREESHIP\s*[đĐ]0/gi, 'FREESHIP').replace(/^[đĐ]/, '') + (v.sub.match(/^[đĐ]/) ? '₫' : '')}
+                    </span>
                  </div>
                {/each}
              {:else if productVouchers.length > 0}
                {@const bestV = productVouchers[0]}
                <div class="sticker-mini-preview flex items-center gap-1.5 bg-white/5 px-2 py-1.5 rounded-xl border border-white/10">
-                 <span class="text-[9px] font-black text-luxury-sakura uppercase leading-none">{bestV.label}</span>
-                 <span class="text-[10px] text-white uppercase font-black truncate leading-none">{bestV.sub}</span>
+                 <span class="text-[9px] font-black text-luxury-sakura uppercase leading-none">
+                   {bestV.label.toLowerCase().includes('freeship') && bestV.sub.toLowerCase().includes('freeship')
+                     ? 'GIẢM ' + bestV.label.replace(/FREESHIP/gi, '').trim() + (isNaN(Number(bestV.label.replace(/FREESHIP/gi, ''))) ? '' : 'K')
+                     : bestV.label}
+                 </span>
+                  <span class="text-[10px] text-white uppercase font-black truncate leading-none">
+                    {bestV.sub.replace(/FREESHIP\s*[đĐ]0/gi, 'FREESHIP').replace(/^[đĐ]/, '') + (bestV.sub.match(/^[đĐ]/) ? '₫' : '')}
+                  </span>
                </div>
              {/if}
           </div>
@@ -331,7 +352,7 @@
          <div class="fomo-header-viral text-[7px] font-black tracking-[0.3em] text-white/60 mb-1 flex items-center justify-center gap-3 uppercase w-full">
             <div class="flex items-center gap-1">
                <Zap size={8} class="text-yellow-300/80 fill-yellow-300/80" />
-               CHỈ CÒN {variant.stock || 5} SUẤT
+               CHỈ CÒN {displayStock} SUẤT
             </div>
             <span class="w-1 h-1 rounded-full bg-white/20"></span>
             <div class="flex items-center gap-1">
@@ -350,7 +371,7 @@
                     MUA NGAY
                  </span>
                   <span class="text-[9px] text-white/80 uppercase font-bold tracking-[0.1em]">
-                     Sở hữu ngay • {totalPackagePrice.toLocaleString()}đ
+                     Sở hữu ngay • {formatCurrency(totalPackagePrice)}
                   </span>
               </div>
            </div>

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
-  import { slugify, trimProductName } from '$lib/utils/format';
+  import { slugify, trimProductName, formatCurrency } from '$lib/utils/format';
   import type { Product } from '$lib/types';
   import { ChevronLeft, ChevronRight, Truck } from 'lucide-svelte';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
@@ -36,9 +36,10 @@
           discountPct,
           discountLabel: Math.round(discountPct * 100),
           image: p.images?.[0] || '/images/placeholder-product.webp',
-          soldCount: parseInt(p.metadata?.sold_count?.toString() || '0'),
+          soldCount: p.orderCount || p.order_count || parseInt(p.metadata?.sold_count?.toString() || '0'),
+          soldText: p.orderCountText || p.order_count_text || p.metadata?.reviews_count_text || 'ĐÃ BÁN 0',
           isHot: (p.metadata?.scarcity_seconds || 0) > 0 || (p.discountPrice && p.discountPrice / p.price < 0.5),
-          progress: parseInt(p.metadata?.flash_sale_progress?.toString() || '0')
+          progress: parseInt(p.metadata?.flash_sale_progress?.toString() || '0') || Math.min(95, Math.floor(((p.orderCount || 0) % 100)))
         };
       })
       .sort((a, b) => b.discountPct - a.discountPct)
@@ -174,11 +175,11 @@
             <!-- Price Block -->
             <div class="price-container">
               <p class="final-price">
-                <span class="currency text-[#C18F7E] decoration-[#C18F7E]">đ</span>{deal.finalPrice.toLocaleString('vi-VN')}
+                {formatCurrency(deal.finalPrice)}
               </p>
               {#if deal.oldPrice}
                 <p class="old-price">
-                  đ{deal.oldPrice.toLocaleString('vi-VN')}
+                  {formatCurrency(deal.oldPrice)}
                 </p>
               {/if}
             </div>
@@ -195,7 +196,7 @@
                 {#if deal.progress > 85}
                   🔥 SẮP CHÁY HÀNG
                 {:else}
-                  ĐÃ BÁN {deal.soldCount}{deal.soldCount > 1000 ? '+' : ''}
+                  ĐÃ BÁN {deal.soldText}
                 {/if}
               </span>
             </div>

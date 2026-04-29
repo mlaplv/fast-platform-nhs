@@ -1,12 +1,10 @@
 <script lang="ts">
-  import type { Product } from '$lib/types';
-
+  import { formatCurrency, trimProductName } from '$lib/utils/format';
   interface Props {
     relatedProducts: Product[];
   }
 
   let { relatedProducts }: Props = $props();
-  const formatPrice = (p: number) => p.toLocaleString('vi-VN');
 </script>
 
 <section id="recommendations" class="content-section">
@@ -18,8 +16,8 @@
           <img src={p.images?.[0] || 'https://via.placeholder.com/150'} alt={p.name} />
         </div>
         <div class="info-wrap">
-          <h3 class="related-name">{p.name}</h3>
-          <div class="related-price">{formatPrice(p.discountPrice || p.discount_price || p.price)}đ</div>
+          <h3 class="related-name">{trimProductName(p.name)}</h3>
+          <div class="related-price">{formatCurrency(p.discountPrice || p.discount_price || p.price)}</div>
         </div>
       </a>
     {/each}
@@ -36,5 +34,5 @@
   .img-wrap img { width: 100%; height: 100%; object-fit: cover; }
   .info-wrap { padding: 10px; }
   .related-name { font-size: 12px; font-weight: 600; color: #333; line-height: 1.4; height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin: 0 0 6px 0; }
-  .related-price { font-size: 15px; font-weight: 900; color: var(--color-luxury-copper, #C18F7E); letter-spacing: -0.02em; }
+  .related-price { font-size: 15px; font-weight: 900; color: #ee4d2d; letter-spacing: -0.02em; }
 </style>

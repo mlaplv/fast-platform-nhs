@@ -126,8 +126,7 @@ class CheckoutService:
         for item in payload.items:
             total_qty_by_product[item.product_id] = total_qty_by_product.get(item.product_id, 0) + item.quantity
 
-        # Ensure compatibility layer (Seed defaults if needed)
-        await PromotionService.ensure_default_vouchers(db_session)
+        # [ELITE V2.2] Price protection & tier resolution logic...
 
         for item in payload.items:
             product_stmt = select(ProductBase).where(ProductBase.id == item.product_id).options(sa.orm.selectinload(ProductBase.variants))

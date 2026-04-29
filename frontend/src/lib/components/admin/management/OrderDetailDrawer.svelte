@@ -665,7 +665,7 @@
               </div>
               <div class="flex items-center justify-between pb-3 mb-3 border-b border-white/5">
                 <span class="text-xs text-gray-400">Tax & Fees</span>
-                <span class="text-xs font-mono text-white">0đ</span>
+                <span class="text-xs font-mono text-white">đ0</span>
               </div>
 
               {#if orderData.points_earned > 0 || orderData.points_redeemed > 0}

@@ -19,6 +19,7 @@
   import Upload from "lucide-svelte/icons/upload";
   import Sparkles from "lucide-svelte/icons/sparkles";
   import ShieldCheck from "lucide-svelte/icons/shield-check";
+  import Coins from "lucide-svelte/icons/coins";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import type { MediaAsset } from "$lib/state/types";
 
@@ -78,6 +79,14 @@
     fomo_enabled: boolean;
   }
 
+  interface CurrencySettings {
+    symbol: string;
+    position: "prefix" | "suffix";
+    decimal_separator: string;
+    thousand_separator: string;
+    show_symbol: boolean;
+  }
+
   interface EntropySettings {
     enabled: boolean;
     tone_override: string | null;
@@ -95,6 +104,7 @@
     maintenance: MaintenanceMode;
     support_bot: SupportBotSettings;
     conversions: ConversionSettings;
+    currency: CurrencySettings;
     entropy: EntropySettings;
   }
 
@@ -113,6 +123,13 @@
     },
     conversions: {
       fomo_enabled: true
+    },
+    currency: {
+      symbol: "₫",
+      position: "suffix",
+      decimal_separator: ".",
+      thousand_separator: ".",
+      show_symbol: true
     },
     entropy: {
       enabled: true,
@@ -133,7 +150,7 @@
   let currentPickType = $state<'basic' | 'social'>('basic');
   let currentSocialIndex = $state<number | null>(null);
 
-  type TabId = "basic" | "contact" | "social" | "seo" | "maps" | "maintenance" | "helen" | "conversion" | "entropy";
+  type TabId = "basic" | "contact" | "currency" | "social" | "seo" | "maps" | "maintenance" | "helen" | "conversion" | "entropy";
 
   interface TabDefinition {
     id: TabId;
@@ -144,6 +161,7 @@
   const tabs: TabDefinition[] = [
     { id: "basic", label: "Thông tin cơ bản", icon: Globe },
     { id: "contact", label: "Liên hệ", icon: Phone },
+    { id: "currency", label: "Tiền tệ", icon: Coins },
     { id: "social", label: "Mạng xã hội", icon: Share2 },
     { id: "seo", label: "SEO & Analytics", icon: Search },
     { id: "maps", label: "Google Maps", icon: MapPin },
@@ -362,6 +380,61 @@
                 <div class="space-y-1 md:col-span-2">
                   <label for="address" class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Địa chỉ</label>
                   <input id="address" bind:value={settings.contact_info.address} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="Số 1, Đường ABC, Quận XYZ..." />
+                </div>
+              </div>
+            </div>
+
+          {:else if activeTab === 'currency'}
+            <div class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h3 class="text-sm font-black text-cyan-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                <Coins size={16} /> Cấu hình Tiền tệ
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-950/40 border border-white/5 rounded-2xl p-6">
+                <div class="space-y-1">
+                  <label for="currency_symbol" class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Ký hiệu tiền tệ</label>
+                  <input id="currency_symbol" bind:value={settings.currency.symbol} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="e.g. ₫, $, €" />
+                </div>
+                <div class="space-y-1">
+                  <label class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Vị trí hiển thị</label>
+                  <select bind:value={settings.currency.position} class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors">
+                    <option value="prefix">Trước giá trị (e.g. ₫378.000)</option>
+                    <option value="suffix">Sau giá trị (e.g. 378.000₫)</option>
+                  </select>
+                </div>
+                <div class="space-y-1">
+                  <label for="thousand_sep" class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Phân cách hàng nghìn</label>
+                  <input id="thousand_sep" bind:value={settings.currency.thousand_separator} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="e.g. . or ," />
+                </div>
+                <div class="space-y-1">
+                  <label for="decimal_sep" class="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Phân cách thập phân</label>
+                  <input id="decimal_sep" bind:value={settings.currency.decimal_separator} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="e.g. , or ." />
+                </div>
+                <div class="flex items-center justify-between md:col-span-2 p-4 bg-black/20 rounded-xl border border-white/5">
+                  <div>
+                    <h4 class="text-xs font-bold text-white uppercase tracking-wider">Hiển thị ký hiệu</h4>
+                    <p class="text-[9px] text-zinc-500 font-mono">Bật/tắt hiển thị ký hiệu tiền tệ trên toàn hệ thống</p>
+                  </div>
+                  <button 
+                    onclick={() => settings.currency.show_symbol = !settings.currency.show_symbol}
+                    class="relative w-10 h-5 rounded-full transition-colors duration-300 {settings.currency.show_symbol ? 'bg-cyan-500' : 'bg-zinc-800'}"
+                  >
+                    <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-300 {settings.currency.show_symbol ? 'translate-x-5' : 'translate-x-0'}"></div>
+                  </button>
+                </div>
+              </div>
+
+              <div class="bg-cyan-500/5 border border-cyan-500/20 rounded-2xl p-6">
+                <h4 class="text-[10px] font-black text-cyan-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                  <Sparkles size={14} /> Xem trước hiển thị
+                </h4>
+                <div class="flex items-center justify-center py-8">
+                  <div class="text-4xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-500">
+                    {#if settings.currency.position === 'prefix'}
+                      {settings.currency.show_symbol ? settings.currency.symbol : ''}378{settings.currency.thousand_separator}000
+                    {:else}
+                      378{settings.currency.thousand_separator}000{settings.currency.show_symbol ? settings.currency.symbol : ''}
+                    {/if}
+                  </div>
                 </div>
               </div>
             </div>
