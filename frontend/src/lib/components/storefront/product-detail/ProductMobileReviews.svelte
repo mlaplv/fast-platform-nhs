@@ -1,145 +1,38 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { ChevronRight, MessageCircleMore, Star, Loader2, Play, CheckCircle2, PenLine } from 'lucide-svelte';
-  import type { Product, Review, ReviewStats } from '$lib/types';
-  import { apiClient } from '$lib/utils/apiClient';
-
+  import EliteReviewSystem from './reviews/EliteReviewSystem.svelte';
+  
   interface Props {
-    product: Product | Category;
+    product: { id: string; name: string; slug: string };
     entityType?: 'PRODUCT' | 'CATEGORY' | 'NEWS';
   }
-
   let { product, entityType = 'PRODUCT' }: Props = $props();
-
-  let reviews = $state<Review[]>([]);
-  let stats = $state<ReviewStats | null>(null);
-  let isLoading = $state(true);
-
-  async function fetchStats() {
-    try {
-      stats = await apiClient.get<ReviewStats>(`/client/reviews/stats`, {
-        params: {
-          entity_type: entityType,
-          entity_id: product.id
-        }
-      });
-    } catch (e) {
-      console.error("Lỗi fetch stats:", e);
-    }
-  }
-
-  async function fetchReviews() {
-    isLoading = true;
-    try {
-      const data = await apiClient.get<{ items: Review[] }>(`/client/reviews`, {
-        params: {
-          entity_type: entityType,
-          entity_id: product.id,
-          status: 'APPROVED',
-          limit: '1'
-        }
-      });
-      reviews = data.items;
-    } catch (e) {
-      console.error("Lỗi fetch reviews:", e);
-    } finally {
-      isLoading = false;
-    }
-  }
-
-  onMount(() => {
-    fetchStats();
-    fetchReviews();
-  });
-
-  const averageRating = $derived(stats?.average_rating || (product as any).metadata?.rating || '5.0');
-  const reviewCount = $derived(stats?.total_count || 0);
-
-  function isVideo(url: string) {
-    return url.match(/\.(mp4|webm|mov)$/i) || url.includes('video');
-  }
 </script>
 
-<section id="reviews" class="content-section">
-  <div class="section-header">
-    <div class="flex items-center gap-2">
-      <h2 class="section-title">Đánh giá khách hàng</h2>
-      {#if reviewCount > 0}
-        <span class="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded-full text-gray-500 font-bold">{reviewCount}</span>
-      {/if}
-    </div>
-    {#if reviewCount > 0}
-      <a href="/{product.slug}/reviews" class="view-all text-luxury-copper">Xem tất cả <ChevronRight size={14} /></a>
-    {:else}
-      <a href="/{product.slug}/reviews?write=true" class="view-all text-luxury-copper">
-        <PenLine size={14} class="mr-1" /> Viết <ChevronRight size={14} />
-      </a>
-    {/if}
+<section id="reviews" class="content-section bg-white p-4">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-sm font-black text-gray-900 uppercase tracking-tight">Cảm nhận thực tế</h2>
+    <a href="/{product.slug}/reviews" class="text-xs font-bold text-luxury-copper flex items-center gap-1">
+      Xem tất cả
+    </a>
   </div>
 
-  {#if isLoading}
-    <div class="flex flex-col items-center justify-center py-10 text-gray-400">
-      <Loader2 size={24} class="animate-spin mb-2" />
-      <p class="text-xs uppercase tracking-widest font-bold">Đang tải đánh giá...</p>
-    </div>
-  {:else if reviews.length === 0}
-    <div class="empty-reviews-state">
-      <div class="score-big">{averageRating}<span>/5</span></div>
-      <div class="flex flex-col items-center justify-center py-6 text-gray-400">
-        <MessageCircleMore size={40} class="mb-2 opacity-20" />
-        <p class="text-sm">Chưa có đánh giá cho sản phẩm này</p>
-      </div>
-    </div>
-  {:else}
-    {@const review = reviews[0]}
-    <div class="viral-review-card">
-      <div class="user-row">
-        <div class="avatar">{(review.customer_name || 'U').charAt(0).toUpperCase()}</div>
-        <div class="user-meta">
-          <div class="flex items-center gap-1.5">
-            <span class="username">{review.customer_name || 'Khách hàng'}</span>
-            <span class="verified-badge"><CheckCircle2 size={10} fill="currentColor" class="text-luxury-copper" /></span>
-          </div>
-          <div class="stars-row flex gap-0.5">
-            {#each Array(5) as _, i}
-              <Star size={10} class="{i < review.rating ? 'text-luxury-copper fill-current' : 'text-gray-200'}" />
-            {/each}
-          </div>
-        </div>
-        <div class="review-date-mini">{new Date(review.created_at).toLocaleDateString('vi-VN')}</div>
-      </div>
+  <EliteReviewSystem 
+    entityId={product.id} 
+    {entityType} 
+    mode="snippet" 
+  />
 
-      <div class="review-content prose-micsmo-mini">
-        {@html review.content}
+  <div class="fomo-footer mt-6 p-4 bg-luxury-peach/5 rounded-2xl border border-luxury-peach/10">
+    <div class="flex items-center justify-between">
+      <div>
+        <span class="block text-[10px] font-black text-luxury-copper uppercase tracking-tighter">Độ tin cậy 100%</span>
+        <span class="text-[9px] text-gray-400 font-bold uppercase mt-0.5">Xác thực từ người mua hàng</span>
       </div>
-
-      {#if review.attachments && review.attachments.length > 0}
-        <div class="media-grid">
-          {#each review.attachments.slice(0, 3) as media}
-            <div class="media-item">
-              {#if isVideo(media.url)}
-                <video src={media.url} muted playsinline class="media-preview"></video>
-                <div class="play-overlay"><Play size={16} fill="white" class="text-white" /></div>
-              {:else}
-                <img src={media.url} alt="Review" class="media-preview" />
-              {/if}
-            </div>
-          {/each}
-          {#if review.attachments.length > 3}
-            <div class="media-more">+{review.attachments.length - 3}</div>
-          {/if}
-        </div>
-      {/if}
-
-      <div class="fomo-footer mt-4 p-3 bg-luxury-peach/10 rounded-lg flex items-center justify-between border border-luxury-peach/20">
-        <div class="flex flex-col">
-          <span class="text-[11px] font-black text-luxury-copper uppercase tracking-tighter italic">Cảm nhận thực tế</span>
-          <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Đã có {reviewCount * 12 + 89} người tin dùng</span>
-        </div>
-        <a href="/{product.slug}/reviews" class="btn-discover bg-luxury-copper">Khám phá ngay</a>
-      </div>
+      <a href="/{product.slug}/reviews" class="px-4 py-2 bg-luxury-copper text-white text-[10px] font-black rounded-lg uppercase">
+        Khám phá
+      </a>
     </div>
-  {/if}
+  </div>
 </section>
 
 <style>
