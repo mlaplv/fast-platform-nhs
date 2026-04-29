@@ -345,6 +345,7 @@ export interface AnalysisCache {
   copyright?: { data: CopyrightResult; hash?: string; at?: string };
   seo?: { data: SEOResult; hash?: string; at?: string };
   ai_inspect?: { data: AIInspectResult; hash?: string; at?: string };
+  enrich?: { data: AnalysisAnnotation[]; hash?: string; at?: string };
   [key: string]: { data: unknown; hash?: string; at?: string } | undefined;
 }
 

@@ -248,7 +248,7 @@ class ContentController(Controller):
                 report = dict(campaign.analysis_report or {})
                 now_iso = datetime.now(timezone.utc).isoformat()
                 for report_type, report_data in reports.items():
-                    if report_type in ("copyright", "seo", "ai_inspect", "surgeon"):
+                    if report_type in ("copyright", "seo", "ai_inspect", "surgeon", "enrich", "rewrite"):
                         report[report_type] = {
                             "data": report_data,
                             "updated_at": now_iso,

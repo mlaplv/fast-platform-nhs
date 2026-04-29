@@ -6,9 +6,11 @@ import type {
     CopyrightResult, 
     SEOResult, 
     AIInspectResult,
-    EnrichmentItem,
     CleanOptions
 } from "$lib/state/types";
+
+// Re-export CleanOptions so components can import it from here (backward compat)
+export type { CleanOptions } from "$lib/state/types";
 
 
 
@@ -138,9 +140,9 @@ export const xohiActions = {
         const res = await apiClient.post<GenericResponse<{ 
             new_content: string, 
             logs?: string[], 
-            items?: EnrichmentItem[],
+            items?: Record<string, unknown>[],
             annotations?: AnalysisAnnotation[]
-        }>>(`/api/v1/content/campaigns/${cid}/analyze/enrich`);
+        }>>(`/api/v1/content/campaigns/${cid}/analyze/enrich`, {});
         return res;
     },
 
@@ -150,7 +152,7 @@ export const xohiActions = {
      */
     async batchSave(
         cid: string,
-        reports: Partial<Record<'copyright' | 'seo' | 'ai_inspect' | 'surgeon', unknown>>,
+        reports: Partial<Record<'copyright' | 'seo' | 'ai_inspect' | 'surgeon' | 'enrich' | 'rewrite', unknown>>,
         evidence: Partial<Record<string, { score: number; timestamp: string; data: unknown }>>
     ) {
         const res = await apiClient.post<GenericResponse>(

@@ -166,7 +166,7 @@ export function createAnalysisController(config: {
         if (!config.onUpdate) return;
         // Trigger on any result change
         // CNS V87.5: Trigger reactivity for persistent sync
-        const _trigger = [copyrightResult, seoResult, aiReadyResult];
+        const _trigger = [copyrightResult, seoResult, aiReadyResult, boosterAnnotations];
         
         untrack(() => {
             const cache: AnalysisCache = { ...resolve(config.analysis_cache) };
@@ -186,6 +186,9 @@ export function createAnalysisController(config: {
                 cache.ai_inspect = { hash: contentHash, at: now, data: $state.snapshot(aiReadyResult) };
                 metrics.ai_ready_score = aiReadyResult.geo_score;
             }
+            if (boosterAnnotations && boosterAnnotations.length > 0) {
+                cache.enrich = { hash: contentHash, at: now, data: $state.snapshot(boosterAnnotations) };
+            }
             
             config.onUpdate?.(cache, metrics);
         });
@@ -199,7 +202,7 @@ export function createAnalysisController(config: {
         await apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: currentText });
     }
 
-    async function saveAnalysisEvidence(category: string, data: Record<string, unknown>) {
+    async function saveAnalysisEvidence(category: string, data: Record<string, unknown> | unknown[]) {
         try {
             const cid = resolve(config.campaign_id);
             if (!cid || cid === 'adhoc') return;
@@ -207,13 +210,16 @@ export function createAnalysisController(config: {
             // [CNS V90.0] Batch Save: gộp save-report + metadata thành 1 HTTP call
             // Trước: 2 POST (save-report + metadata) = 2 RTT
             // Sau: 1 POST (batch-save) = 1 RTT — giảm 50% DB calls per analysis
+            const dataObj = Array.isArray(data) ? {} as Record<string, unknown> : data;
             const score = category === 'copyright'
-                ? (data.uniqueness_score as number)
+                ? (dataObj.uniqueness_score as number || 0)
                 : category === 'seo'
-                ? (data.total_score as number)
-                : (data.geo_score as number);
+                ? (dataObj.total_score as number || 0)
+                : category === 'ai_inspect'
+                ? (dataObj.geo_score as number || 0)
+                : 0;
 
-            const reportKey = category as 'copyright' | 'seo' | 'ai_inspect';
+            const reportKey = category as 'copyright' | 'seo' | 'ai_inspect' | 'enrich' | 'rewrite';
             await xohiActions.batchSave(
                 cid,
                 { [reportKey]: data },
@@ -623,7 +629,8 @@ export function createAnalysisController(config: {
                         else seoResult = { ...seoResult, seo_annotations: [...(seoResult.seo_annotations || []), ...ann] };
                     }
                     activeTab = 'seo';
-                    // [CNS V90.0] Đã xóa runSeoAnalysis(force=true) — tiết kiệm 1 Google + 1 LLM call
+                    // [CNS V91.2] Save enriched seoResult to DB immediately
+                    if (seoResult) await saveAnalysisEvidence('seo', $state.snapshot(seoResult));
                     bulkFixStatus = "Hoàn tất ✅";
                     bulkFixLogs = [...bulkFixLogs, "🎯 AI Booster hoàn tất. Nội dung đã được làm giàu."];
                     nanobot.showToast("AI Booster đã làm giàu nội dung!", "success");
@@ -667,6 +674,7 @@ export function createAnalysisController(config: {
                         ];
                         nanobot.showToast(`Surgeon Booster đã tối ưu ${applied.length} đoạn văn`, 'success');
                         bulkFixStatus = "Hoàn tất ✅";
+                        await saveAnalysisEvidence('enrich', boosterAnnotations);
                     } else {
                         bulkFixLogs = [...bulkFixLogs, "⚠️ Không tìm thấy điểm nào cần phẫu thuật thêm."];
                         bulkFixStatus = "Hoàn tất ✅";
@@ -738,6 +746,9 @@ export function createAnalysisController(config: {
 
                 bulkFixLogs = [...bulkFixLogs, "✅ Hoàn tất phẫu thuật sáng tạo!", "✨ Bài viết mới đã được cập nhật."];
                 bulkFixStatus = "Hoàn tất ✅";
+
+                // [CNS V91.2] Save rewrite evidence so dashboard knows this content was AI-rewritten
+                await saveAnalysisEvidence('rewrite', { rewritten_at: new Date().toISOString(), topic });
                 
                 // CNS V91.0: Invalidate stale results after rewrite
                 copyrightResult = null;
@@ -801,11 +812,17 @@ export function createAnalysisController(config: {
                 aiReadyResult = ar as AIInspectResult;
             }
 
+            const en = getD('enrich');
+            if (en && (!boosterAnnotations || boosterAnnotations.length === 0)) {
+                boosterAnnotations = en as AnalysisAnnotation[];
+            }
+
             // Tự động chọn tab nếu chưa có
             if (activeTab === null) {
                 if (copyrightResult?.annotations?.length) activeTab = 'copyright';
                 else if (seoResult?.seo_annotations?.length) activeTab = 'seo';
                 else if (aiReadyResult?.ai_annotations?.length) activeTab = 'ai';
+                else if (boosterAnnotations?.length) activeTab = 'enrich';
             }
 
             // Đánh dấu đã hydrate xong — không bao giờ chạy lại
