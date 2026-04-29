@@ -219,7 +219,7 @@
     // Contextual Fix All: Only show if critical issues exist in the active tab
     ...(analysis.activeTab === 'copyright' && (analysis.copyrightResult?.annotations?.filter(a => a.type !== 'fixed-area').length || 0) > 0 ? [{
       id: 'copyright-fix',
-      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || 'FIXING...') : '✨ FIX ALL COPYRIGHT',
+      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || 'ĐANG PHẪU THUẬT...') : '✨ PHẪU THUẬT BẢN QUYỀN',
       icon: ShieldCheck,
       onclick: () => analysis.runBulkFix(),
       loading: analysis.isBulkFixing,
@@ -227,7 +227,7 @@
     }] : []),
     ...(analysis.activeTab === 'seo' && (analysis.seoResult?.seo_annotations?.filter(a => a.type !== 'fixed-area' && a.severity !== 'info').length || 0) > 0 ? [{
       id: 'seo-fix',
-      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || 'OPTIMIZING...') : '✨ OPTIMIZE ALL SEO',
+      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || 'ĐANG PHẪU THUẬT...') : '✨ PHẪU THUẬT SEO',
       icon: BarChart2,
       onclick: () => analysis.runBulkFix(),
       loading: analysis.isBulkFixing,
@@ -235,7 +235,7 @@
     }] : []),
     ...(analysis.activeTab === 'ai' && (analysis.aiReadyResult?.ai_annotations?.filter(a => a.type !== 'fixed-area' && a.severity === 'high').length || 0) > 0 ? [{
       id: 'ai-fix',
-      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || 'BOOSTING...') : '✨ BOOST VIRAL EDGE',
+      label: analysis.isBulkFixing ? (analysis.bulkFixStatus || 'ĐANG PHẪU THUẬT...') : '✨ PHẪU THUẬT CẤU TRÚC (VIRAL)',
       icon: Sparkles,
       onclick: () => analysis.runBulkFix(),
       loading: analysis.isBulkFixing,

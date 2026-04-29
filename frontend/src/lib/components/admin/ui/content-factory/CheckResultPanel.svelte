@@ -1,12 +1,13 @@
 <script lang="ts">
   import { onDestroy } from "svelte";
-  import type { CopyrightResult, SEOResult, AIInspectResult } from "$lib/state/types";
+  import type { CopyrightResult, SEOResult, AIInspectResult, AnalysisAnnotation } from "$lib/state/types";
   import { createPhaseController } from "$lib/state/xohiAnalysisPhases.svelte";
   import AnalysisLoading from "./AnalysisLoading.svelte";
   import AnalysisResultCopyright from "./AnalysisResultCopyright.svelte";
   import AnalysisResultSEO from "./AnalysisResultSEO.svelte";
   import AnalysisResultAI from "./AnalysisResultAI.svelte";
-import AnalysisLocked from "./AnalysisLocked.svelte";
+  import AnalysisLocked from "./AnalysisLocked.svelte";
+  import CheckCircle2 from "lucide-svelte/icons/check-circle-2";
 
   let {
     activeTab, copyrightResult, isCopyrightLoading, seoResult, isSeoLoading,
@@ -20,6 +21,7 @@ import AnalysisLocked from "./AnalysisLocked.svelte";
     runNeuralRewrite,
     userPlanNote = $bindable(''),
     currentAnalysisStep = null,
+    boosterAnnotations = [],
   }: {
     activeTab: 'copyright' | 'seo' | 'ai' | 'enrich' | null;
     copyrightResult: CopyrightResult | null; isCopyrightLoading: boolean;
@@ -37,6 +39,7 @@ import AnalysisLocked from "./AnalysisLocked.svelte";
     runNeuralRewrite?: () => Promise<void>;
     userPlanNote?: string;
     currentAnalysisStep?: number | null;
+    boosterAnnotations?: AnalysisAnnotation[];
   } = $props();
 
   let isFixing = $state<string | null>(null);
@@ -99,7 +102,6 @@ import AnalysisLocked from "./AnalysisLocked.svelte";
 </script>
 
 <div class="shrink-0 flex flex-col">
-
 
   <!-- ── Panel Content ── -->
   {#if isLoading}
@@ -175,22 +177,72 @@ import AnalysisLocked from "./AnalysisLocked.svelte";
       </button>
     {/if}
   {:else if activeTab === 'enrich'}
-    <div class="px-3 py-4 rounded-2xl border border-pink-500/10 bg-pink-500/[0.03] flex flex-col gap-3">
-       <div class="flex items-center gap-2">
-          <div class="p-1.5 rounded-lg bg-pink-500/10 text-pink-400">
-             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .52 8.588A5.002 5.002 0 0 0 12 22a5 5 0 0 0 8-4.017s1.398-.24 2.128-1.57A4 4 0 0 0 21 11a4 4 0 0 0-3-3.95V7a3 3 0 0 0-6-2Z"/><path d="M12 12h.01"/><path d="M9 12h.01"/><path d="M15 12h.01"/></svg>
+    <div class="flex flex-col">
+      <!-- Header: Booster Status -->
+      <div class="relative pt-3 pb-1 overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-32 h-32 blur-[50px] opacity-15 bg-pink-500"></div>
+        <div class="relative z-10 flex items-center gap-3 px-3">
+          <div class="p-2 rounded-xl bg-pink-500/10 border border-pink-500/20 shadow-[0_0_15px_rgba(236,72,153,0.15)]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-pink-400"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .52 8.588A5.002 5.002 0 0 0 12 22a5 5 0 0 0 8-4.017s1.398-.24 2.128-1.57A4 4 0 0 0 21 11a4 4 0 0 0-3-3.95V7a3 3 0 0 0-6-2Z"/><path d="M12 12h.01"/><path d="M9 12h.01"/><path d="M15 12h.01"/></svg>
           </div>
-          <span class="text-[11px] font-black uppercase tracking-widest text-pink-400">Surgeon Booster™ Status</span>
-       </div>
-       <p class="text-[9px] text-white/50 leading-relaxed">
-          Hệ thống đang phẫu thuật nội dung. Các thay đổi được highlight <span class="text-pink-400 font-bold">Hồng Neon</span> trong văn bản.
-       </p>
-       <div class="flex items-center gap-2 mt-1">
-          <div class="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
-             <div class="h-full bg-pink-500 {isBoosting ? 'animate-pulse' : ''}" style="width: {isBoosting ? '100%' : '0%'}"></div>
+          <div class="flex flex-col gap-1">
+            <span class="text-sm font-black uppercase tracking-[0.1em] text-pink-400">
+              🔪 Surgeon Booster™
+            </span>
+            <div class="flex items-center gap-1.5 opacity-30">
+              <span class="text-[9px] font-black uppercase tracking-[0.3em]">Protocol_EEAT_Boost_V2.2</span>
+            </div>
           </div>
-          <span class="text-[8px] font-bold text-pink-400/60 uppercase tracking-tighter">{isBoosting ? 'Operating' : 'System Ready'}</span>
-       </div>
+        </div>
+      </div>
+
+      {#if boosterAnnotations.length > 0}
+        <!-- Summary Verdict -->
+        <div class="px-4 py-3 bg-black/40 border-b border-white/5 shadow-inner">
+          <div class="flex items-center gap-2 mb-2 opacity-30">
+            <div class="w-1.5 h-1.5 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.6)]"></div>
+            <span class="text-[10px] font-black uppercase tracking-[0.2em]">Neural_Boost_Verdict</span>
+          </div>
+          <p class="text-[13px] text-white/90 leading-[1.6] font-medium tracking-tight">
+            ✅ Đã phẫu thuật thành công <span class="text-pink-400 font-black">{boosterAnnotations.length}</span> đoạn văn. Các điểm cải tiến được highlight <span class="text-pink-400 font-bold">Hồng Neon</span> trong văn bản.
+          </p>
+        </div>
+
+        <!-- Badge -->
+        <div class="px-3 py-2 flex items-center gap-3 border-b border-white/5">
+          <span class="text-[7px] font-black text-white/20 uppercase tracking-widest">Patches ({boosterAnnotations.length})</span>
+          <span class="px-2 py-0.5 rounded-full text-[8px] font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">{boosterAnnotations.length} APPLIED</span>
+        </div>
+
+        <!-- Annotation List -->
+        <div class="flex flex-col">
+          {#each boosterAnnotations as ann, i}
+            <div class="px-3 py-3 border-b bg-white/[0.01] flex flex-col gap-1.5 transition-all hover:bg-white/[0.02]" style="border-color: rgba(236,72,153,0.1)">
+              <div class="flex items-start justify-between gap-2">
+                <span class="text-[7px] font-black px-1 py-0.5 rounded uppercase bg-pink-500/20 text-pink-400">✨ PATCH #{i + 1}</span>
+                <CheckCircle2 size={12} class="text-emerald-400 shrink-0 mt-0.5" />
+              </div>
+              <p class="text-[12px] text-white/80 leading-relaxed tracking-tight">
+                {#if ann.text}<span class="text-white/40 font-mono italic text-[10px] truncate block max-w-full">"{ann.text.slice(0, 120)}{ann.text.length > 120 ? '...' : ''}"</span>{/if}
+                <span class="text-pink-200/90 mt-1 block text-[11px]">{ann.message || ''}</span>
+              </p>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <!-- Static Status (no patches yet) -->
+        <div class="px-3 py-4 bg-pink-500/[0.03] flex flex-col gap-3">
+           <p class="text-[9px] text-white/50 leading-relaxed">
+              Hệ thống sẵn sàng phẫu thuật nội dung. Nhấn <span class="text-pink-400 font-bold">AI BOOSTER</span> để bắt đầu.
+           </p>
+           <div class="flex items-center gap-2 mt-1">
+              <div class="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
+                 <div class="h-full bg-pink-500 {isBoosting ? 'animate-pulse' : ''}" style="width: {isBoosting ? '100%' : '0%'}"></div>
+              </div>
+              <span class="text-[8px] font-bold text-pink-400/60 uppercase tracking-tighter">{isBoosting ? 'Operating' : 'System Ready'}</span>
+           </div>
+        </div>
+      {/if}
     </div>
   {/if}
 </div>

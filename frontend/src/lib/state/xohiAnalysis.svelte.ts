@@ -864,6 +864,7 @@ export function createAnalysisController(config: {
         get seoLocked() { return seoLocked; },
         get aiLocked() { return aiLocked; },
         get editorAnnotations() { return editorAnnotations; },
+        get boosterAnnotations() { return boosterAnnotations; },
         // CNS V87.0: expose streaming state cho UI typewriter effect
         get streamingText() { return streamingText; },
         get streamingTarget() { return streamingTarget; },

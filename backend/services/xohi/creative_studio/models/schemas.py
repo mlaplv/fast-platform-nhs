@@ -58,7 +58,7 @@ class VisualSearchPlan(BaseModel):
 
 class AiAnnotation(BaseModel):
     model_config = ConfigDict(strict=True)
-    type: str      # "search_intent" | "eeat_missing" | "geo_stats" | "ai_overview" | "snippet_ready" | "entity_gap" | "geo_fluff" | "citation_weak" | "geo_quotes"
+    type: str      # "search_intent" | "eeat_missing" | "geo_stats" | "ai_overview" | "snippet_ready" | "entity_gap" | "geo_fluff" | "citation_weak" | "geo_quotes" | "seo_gap" | "copyright_risk"
     text: str      # Exact substring from the article to highlight
     message: str   # Vietnamese tip shown in tooltip
     severity: str  # "high" | "warning" | "info"

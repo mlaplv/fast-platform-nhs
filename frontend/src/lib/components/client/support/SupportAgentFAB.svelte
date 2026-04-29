@@ -1,6 +1,6 @@
 <script lang="ts">
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
-  import { Sparkles, ScanSearch, ShoppingCart, CreditCard, Home, PackageSearch } from 'lucide-svelte';
+  import { Sparkles, ShoppingCart, CreditCard, Home, PackageSearch } from 'lucide-svelte';
   import HelenIcon from './HelenIcon.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
@@ -33,13 +33,6 @@
     supportAgent.toggle();
   }
 
-  function scrollToDiagnostics() {
-    supportAgent.vibrate(10);
-    const el = document.getElementById('diagnostics-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
-  }
 
   // Scroll detection for shrinking
   function handleScroll() {
@@ -67,37 +60,6 @@
   });
 </script>
 
-<!-- Diagnostic Quick Access Mini-FAB -->
-{#if !supportAgent.isOpen}
-  <button
-    class="diagnostic-mini-fab fixed flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group"
-    style="
-      --theme-color: {contextUI.color};
-      z-index: {Z_INDEX_CLIENT.FAB};
-      bottom: {isScrolled ? 'calc(' + (isMobile ? SUPPORT_AGENT_UI.MOBILE_FAB_BOTTOM : SUPPORT_AGENT_UI.DESKTOP_FAB_BOTTOM) + ' + 60px)' : 'calc(' + (isMobile ? SUPPORT_AGENT_UI.MOBILE_FAB_BOTTOM : SUPPORT_AGENT_UI.DESKTOP_FAB_BOTTOM) + ' + 80px)'};
-      right: {isMobile ? SUPPORT_AGENT_UI.MOBILE_FAB_RIGHT : SUPPORT_AGENT_UI.DESKTOP_FAB_RIGHT};
-      width: 44px;
-      height: 44px;
-      opacity: {isScrolled ? '1' : '0'};
-      transform: {isScrolled ? 'scale(1) translateY(0)' : 'scale(0.5) translateY(40px)'};
-      pointer-events: {isScrolled ? 'auto' : 'none'};
-      filter: blur({isScrolled ? '0' : '10px'});
-    "
-    onclick={scrollToDiagnostics}
-    aria-label="Chẩn đoán nhanh"
-    title="Chẩn đoán nhanh"
-  >
-    <div class="absolute inset-0 rounded-full bg-[var(--theme-color)] blur-[15px] opacity-20 group-hover:opacity-40 transition-opacity"></div>
-    <div class="relative w-full h-full rounded-full flex items-center justify-center bg-black/40 backdrop-blur-xl border border-white/10 shadow-lg hover:border-[var(--theme-color)]/60 hover:bg-black/60 transition-all active:scale-90 group">
-      <ScanSearch size={20} class="text-[var(--theme-color)] group-hover:scale-110 transition-transform" />
-    </div>
-    
-    <!-- Mini Tooltip on Hover -->
-    <div class="absolute right-full mr-4 px-3 py-1.5 bg-black/80 backdrop-blur-md rounded-lg text-[11px] font-bold text-white uppercase tracking-widest opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap border border-white/5 shadow-xl">
-      System health
-    </div>
-  </button>
-{/if}
 
 <button
   id="support-agent-fab"

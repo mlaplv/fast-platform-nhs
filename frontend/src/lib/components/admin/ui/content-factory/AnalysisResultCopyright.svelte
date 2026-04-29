@@ -242,11 +242,11 @@
             <div class="relative z-10 flex flex-col items-center justify-center gap-1 bg-black/40 px-2 py-2.5 rounded-[11px] transition-all group-hover:bg-emerald-500 group-hover:text-black h-full">
               {#if isBulkFixing && !isRewriting}
                 <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                <span class="text-[7px] font-black uppercase tracking-widest animate-pulse">FIXING...</span>
+                <span class="text-[7px] font-black uppercase tracking-widest animate-pulse">ĐANG PHẪU THUẬT...</span>
               {:else}
                 <div class="flex items-center gap-2">
                    <CheckCircle2 size={14} class="group-hover:text-black transition-colors" />
-                   <span class="text-[10px] font-black uppercase tracking-widest leading-none transition-colors">FIX ALL ({copyrightResult.annotations.filter(a => a.type !== 'fixed-area').length})</span>
+                   <span class="text-[10px] font-black uppercase tracking-widest leading-none transition-colors">PHẪU THUẬT TOÀN DIỆN ({copyrightResult.annotations.filter(a => a.type !== 'fixed-area').length})</span>
                 </div>
                 <span class="text-[6px] font-bold opacity-60 uppercase tracking-[0.2em] group-hover:text-black/60">Auto_Repair_Active</span>
               {/if}
@@ -282,9 +282,9 @@
                 {#if streamingTarget === ann.text}
                   <span class="text-[8px] text-white/80 font-mono leading-relaxed">{streamingText}<span class="inline-block w-1 h-2.5 bg-orange-400 animate-pulse ml-0.5 -mb-0.5"></span></span>
                 {:else if isFixing === ann.text}
-                  <span class="w-2 h-2 border border-white/30 border-t-white rounded-full animate-spin"></span> FIXING...
+                  <span class="w-2 h-2 border border-white/30 border-t-white rounded-full animate-spin"></span> ĐANG PHẪU THUẬT...
                 {:else}
-                  <Sparkles size={8} class="text-yellow-400" /> SỬA LỖI
+                  <Sparkles size={8} class="text-yellow-400" /> PHẪU THUẬT
                 {/if}
               </button>
             </div>

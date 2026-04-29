@@ -226,6 +226,7 @@
              runNeuralRewrite={analysisData?.runNeuralRewrite}
              bind:userPlanNote={userPlanNote}
              currentAnalysisStep={currentAnalysisStep}
+             boosterAnnotations={analysisData?.boosterAnnotations ?? []}
           />
         </div>
      </div>

@@ -88,16 +88,18 @@
 }
 
 /* 🚀 AI Booster (Enrich) - Liquid Magenta Glass */
-.xohi-annotation.type-enrich {
-  background: rgba(236, 72, 153, 0.10);
-  border-bottom: 2px solid rgba(236, 72, 153, 0.5);
-  color: rgba(254, 215, 226, 0.95);
-  cursor: help;
-  animation: enrich-pulse 1.8s ease-in-out infinite;
+.xohi-annotation.type-enrich,
+.xohi-annotation[class*="severity-"].type-enrich {
+  background-color: rgba(236, 72, 153, 0.15) !important;
+  border-bottom: 2px solid rgba(236, 72, 153, 0.6) !important;
+  color: rgba(254, 215, 226, 1) !important;
+  cursor: help !important;
+  animation: enrich-pulse 1.8s ease-in-out infinite !important;
 }
-.xohi-annotation.type-enrich:hover {
-  background: rgba(236, 72, 153, 0.20);
-  border-bottom-color: rgba(244, 114, 182, 0.8);
+.xohi-annotation.type-enrich:hover,
+.xohi-annotation[class*="severity-"].type-enrich:hover {
+  background-color: rgba(236, 72, 153, 0.25) !important;
+  border-bottom-color: rgba(244, 114, 182, 0.9) !important;
 }
 
 /* --- KEYFRAMES --- */

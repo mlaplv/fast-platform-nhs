@@ -238,6 +238,7 @@ export interface NeuralAnalysisController {
   readonly seoLocked: boolean;
   readonly aiLocked: boolean;
   readonly editorAnnotations: AnalysisAnnotation[];
+  readonly boosterAnnotations: AnalysisAnnotation[];
   readonly streamingText: string;
   readonly streamingTarget: string | null;
   runCopyrightCheck: (force?: boolean, skipSave?: boolean) => Promise<void>;

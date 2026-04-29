@@ -207,11 +207,6 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
     };
 
     const getAttrs = (type: string, severity: string, suffix: string = ''): Record<string, string | number | boolean | undefined> => {
-      let inlineStyle = '';
-      if (severity === 'high') inlineStyle = 'background-color: rgba(239, 68, 68, 0.45) !important; border-bottom: 3px solid #ef4444 !important; color: #fff !important;';
-      else if (severity === 'medium') inlineStyle = 'background-color: rgba(245, 158, 11, 0.35) !important; border-bottom: 3px solid #f59e0b !important; color: #fff !important;';
-      else inlineStyle = 'background-color: rgba(16, 185, 129, 0.25) !important; border-bottom: 2px solid #10b981 !important;';
-
       const startPos = posMap[startIdx] || 0; // fallback just for ID
       return {
         class: `xohi-annotation type-${type} severity-${severity}`,
@@ -219,8 +214,7 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
         'data-annotation-type': type,
         'data-annotation-message': ann.message,
         'data-annotation-source': ann.source || '',
-        'data-annotation-severity': severity,
-        style: inlineStyle
+        'data-annotation-severity': severity
       };
     };
 

@@ -366,8 +366,11 @@
                 <span class="text-[10px] font-black text-red-600 uppercase tracking-widest italic animate-pulse">Sắp hết suất ưu đãi</span>
                 <span class="text-[14px] font-black text-black uppercase tracking-tight">NHẬN ƯU ĐÃI NGAY</span>
              </div>
-             <div class="flex items-center gap-2">
-                <span class="text-[14px] font-black text-black">{formatCurrency(shopStore.totalAmount)}</span>
+             <div class="flex items-center gap-3">
+                <div class="flex flex-col items-end">
+                   <span class="text-[14px] font-black text-black leading-none">{formatCurrency(shopStore.totalAmount)}</span>
+                   <span class="text-[8px] font-black text-black/40 uppercase tracking-tighter mt-0.5">Freeship</span>
+                </div>
                 <div class="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center">
                    <ArrowRight size={16} class="text-black group-hover:translate-x-1 transition-transform" />
                 </div>

@@ -250,8 +250,9 @@ DRAFT:
             logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phân tích SEO hoàn tất! {len(getattr(report, 'seo_annotations', []))} điểm cải tiến chiến thuật. ĐÃ XỬ LÝ XONG")
             await self._emit_progress(campaign, logs[-1])
             logger.warning(f"✅ [SeoAnalyzer] [QUANTUM] Completed. Score: {report.total_score}")
-            # Elite V2.2: Prepend report timestamp to summary for traceability
-            report_time = datetime.now(timezone.utc).strftime('%H:%M:%S %d/%m/%Y')
+            # Elite V2.2: Prepend report timestamp to summary for traceability (UTC+7)
+            from datetime import timedelta
+            report_time = (datetime.now(timezone.utc) + timedelta(hours=7)).strftime('%H:%M:%S %d/%m/%Y')
             time_badge = f"> [!IMPORTANT]\n> **THỜI GIAN LẬP BÁO CÁO:** {report_time}\n\n"
             
             if hasattr(report, 'summary'):

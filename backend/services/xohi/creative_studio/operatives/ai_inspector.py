@@ -128,11 +128,12 @@ class AiInspector(BaseAgentOperative):
                 raw = raw.data
                 
             self.current_step = 3
-            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Kiểm tra cấu trúc hoàn tất! Phát hiện {len(getattr(raw, 'annotations', []))} điểm tối ưu hóa. ĐÃ XỬ LÝ XONG")
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Kiểm tra cấu trúc hoàn tất! Phát hiện {len(getattr(raw, 'ai_annotations', []))} điểm tối ưu hóa. ĐÃ XỬ LÝ XONG")
             await self._emit_log(campaign, logs[-1])
             logger.warning(f"✅ [AiInspector] [QUANTUM] Completed. Score: {raw.geo_score}")
-            # Elite V2.2: Prepend report timestamp to summary for traceability
-            report_time = datetime.now(timezone.utc).strftime('%H:%M:%S %d/%m/%Y')
+            # Elite V2.2: Prepend report timestamp to summary for traceability (UTC+7)
+            from datetime import timedelta
+            report_time = (datetime.now(timezone.utc) + timedelta(hours=7)).strftime('%H:%M:%S %d/%m/%Y')
             time_badge = f"> [!IMPORTANT]\n> **THỜI GIAN LẬP BÁO CÁO:** {report_time}\n\n"
             
             if hasattr(raw, 'summary'):
