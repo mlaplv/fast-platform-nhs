@@ -154,6 +154,30 @@
 
   let videoEl: HTMLVideoElement | null = $state(null);
 
+  $effect(() => {
+    if (videoEl && videoMode === 'local' && videoUrl) {
+      videoEl.load();
+      
+      const onMeta = () => {
+        if (videoEl) {
+          videoEl.currentTime = videoStartTime;
+          videoEl.play().catch(() => {});
+        }
+      };
+      
+      videoEl.addEventListener('loadedmetadata', onMeta, { once: true });
+      return () => videoEl?.removeEventListener('loadedmetadata', onMeta);
+    }
+  });
+  // Elite V2.2: Pause video during live editing to save GPU/CPU and prevent jitter/crashes
+  $effect(() => {
+    if (!videoEl) return;
+    if (liveEditStore.activePath !== null) {
+      videoEl.pause();
+    } else {
+      videoEl.play().catch(() => {});
+    }
+  });
   function handleTimeUpdate() {
     if (!videoEl) return;
     if (videoEndTime !== null && videoEl.currentTime >= videoEndTime) {
@@ -167,23 +191,6 @@
     videoEl.currentTime = videoStartTime;
     videoEl.play().catch(() => {});
   }
-
-  $effect(() => {
-    const el = videoEl;
-    const currentUrl = videoUrl;
-    const start = videoStartTime;
-    const mode = videoMode;
-
-    if (el && mode === 'local' && currentUrl) {
-      el.load();
-      const onMeta = () => {
-        el.currentTime = start;
-        el.play().catch(() => {});
-      };
-      el.addEventListener('loadedmetadata', onMeta, { once: true });
-      return () => el.removeEventListener('loadedmetadata', onMeta);
-    }
-  });
 
   const iframeEmbedUrl = $derived.by((): string | null => {
     if (!videoUrl) return null;
@@ -223,27 +230,33 @@
   style:--mx="{springMouse.x}px" style:--my="{springMouse.y}px" style:--hero-accent="#C18F7E" style:--hero-glass-blur="64px"
 >
   <div class="absolute inset-0 overflow-hidden pointer-events-none" style="z-index: var(--z-base);">
-    {#if videoMode === 'local'}
-      <video
-        bind:this={videoEl}
-        ontimeupdate={handleTimeUpdate}
-        onended={handleVideoEnded}
-        autoplay muted preload="auto" poster={mainImage} loop={videoEndTime === null && videoStartTime === 0} playsinline
-        class="elite-video-bg"
-        src={videoUrl}
-      ></video>
-    {:else if videoMode === 'youtube' || videoMode === 'tiktok'}
-      <iframe
-        class="elite-video-bg pointer-events-none"
-        src={iframeEmbedUrl}
-        title="Hero Video"
-        allow="autoplay; fullscreen; picture-in-picture"
-        allowfullscreen
-        frameborder="0"
-      ></iframe>
+    <div style:display={liveEditStore.activePath !== null ? 'none' : 'block'} class="absolute inset-0">
+      {#if videoMode === 'local'}
+        <video
+          bind:this={videoEl}
+          ontimeupdate={handleTimeUpdate}
+          onended={handleVideoEnded}
+          autoplay muted preload="auto" playsinline
+          loop={videoEndTime === null}
+          class="elite-video-bg fade-in"
+          src={videoUrl}
+        ></video>
+      {:else if videoMode === 'youtube' || videoMode === 'tiktok'}
+        <iframe
+          class="elite-video-bg pointer-events-none fade-in"
+          src={iframeEmbedUrl}
+          title="Hero Video"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowfullscreen
+          frameborder="0"
+        ></iframe>
+      {/if}
+    </div>
+    {#if liveEditStore.activePath !== null}
+      <div class="elite-video-bg bg-[#0d1117] fade-in"></div>
     {/if}
 
-    <div class="video-dim-overlay"></div>
+    <div class="video-dim-overlay {liveEditStore.activePath !== null ? 'opacity-100 bg-black/90' : ''} transition-all duration-700"></div>
     <div class="video-vignette-top"></div>
     <div class="video-vignette-bottom"></div>
     <div class="video-vignette-radial"></div>
@@ -290,14 +303,15 @@
 
       {#if product?.shortDescription}
          <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">
-              <div class="section-description hero-description text-slate-300 max-w-3xl font-medium mx-auto mt-4">
+              <div class="section-description hero-description text-slate-200 max-w-3xl mx-auto mt-4 md:mt-6">
                 {@html product.shortDescription || `
-                  <p class="text-center mb-4 text-[16px] md:text-[18px]">Giải pháp chuyên biệt dưỡng sáng hồng vùng nhạy cảm (<strong>Nách, Nhũ hoa, Bikini</strong>) với công nghệ thẩm thấu đa tầng.</p>
-                  <ul class="list-disc pl-6 space-y-2 text-[14px] md:text-[15px] opacity-90 mx-auto w-fit text-left">
-                    <li><strong>Công nghệ Nano:</strong> Thẩm thấu sâu gấp 3 lần, ức chế Melanin từ gốc.</li>
-                    <li><strong>Cam kết y khoa:</strong> Không Paraben, duy trì độ pH lý tưởng, an toàn tuyệt đối.</li>
-                    <li><strong>Hiệu quả thực chứng:</strong> Bật tông rõ rệt sau 14 ngày, tỷ lệ hài lòng đạt 98% (5000+ users).</li>
-                  </ul>
+                  <p class="text-center mb-3 text-[15px] md:text-[17px] font-light leading-relaxed tracking-wide">
+                    Bật tông trắng sáng cùng <strong class="font-medium text-white">Beppin Body Virgin White Serum</strong> trẻ hóa da cấp độ tế bào - Tinh chất dưỡng sáng hồng vùng nhạy cảm (Nách, Nhũ hoa, Bikini).
+                  </p>
+                  <p class="text-center text-[14px] md:text-[15px] font-light leading-relaxed opacity-80 mx-auto max-w-2xl">
+                    Giải pháp thẩm thấu sâu đa tầng, giúp tế bào kích hoạt độ bóng, trong, trắng sáng.
+                    <span class="block mt-3 text-[12px] md:text-[13px] text-luxury-copper font-medium tracking-widest uppercase">An toàn - Hiệu quả mọi loại da - Không bết dính</span>
+                  </p>
                 `}
              </div>
          </EditableWrapper>

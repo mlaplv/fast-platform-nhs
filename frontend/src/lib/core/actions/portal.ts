@@ -1,61 +1,57 @@
-/**
- * ELITE V2.2 PORTAL ACTION (Svelte 5 Runes Ready)
- * Di chuyển element ra khỏi Stacking Context hiện tại để vào body (mặc định).
- */
 export function portal(node: HTMLElement, target: string | HTMLElement | boolean = 'body') {
-	let targetEl: HTMLElement | null;
-	let originalParent: HTMLElement | null = node.parentElement;
-	let placeholder: Comment | null = null;
+	let targetEl: HTMLElement | null = null;
+    let placeholder: Comment | null = null;
+    let hasMoved = false;
 
-	async function update(newTarget: string | HTMLElement | boolean) {
-		target = newTarget;
-
-		// CNS V2.2: Support boolean toggle (true = portal to body, false = return home)
-		if (target === false) {
-			if (placeholder && placeholder.parentNode && originalParent) {
+	async function performPortal(newTarget: string | HTMLElement | boolean) {
+		if (newTarget === false) {
+			if (hasMoved && placeholder && placeholder.parentNode) {
 				placeholder.parentNode.replaceChild(node, placeholder);
-				placeholder = null;
+				hasMoved = false;
 			}
 			return;
 		}
 
-		const selector = target === true || target === undefined ? 'body' : target;
-
+		const selector = newTarget === true || newTarget === undefined ? 'body' : newTarget;
+		
 		if (typeof selector === 'string') {
 			targetEl = document.querySelector(selector);
-			if (targetEl === null) {
-				await new Promise((resolve) => setTimeout(resolve, 0));
+			if (!targetEl) {
+				await new Promise(r => setTimeout(r, 0));
 				targetEl = document.querySelector(selector);
 			}
 		} else {
 			targetEl = selector as HTMLElement;
 		}
 
-		if (targetEl && node.parentElement !== targetEl) {
-			// Save original location
-			if (!placeholder) {
-				placeholder = document.createComment('portal-placeholder');
-				node.parentNode?.replaceChild(placeholder, node);
-			}
+        if (!node.parentNode) {
+            await new Promise(r => setTimeout(r, 0));
+        }
+
+		if (targetEl && node.parentNode && node.parentNode !== targetEl) {
+            if (!placeholder) {
+                placeholder = document.createComment('portal-placeholder');
+            }
+            if (!hasMoved) {
+                node.parentNode.insertBefore(placeholder, node);
+            }
 			targetEl.appendChild(node);
+            hasMoved = true;
 			node.hidden = false;
 		}
 	}
 
-	// CNS V2.2: Capture parent on next tick if not available yet
-	if (!originalParent) {
-		setTimeout(() => {
-			originalParent = node.parentElement;
-			update(target);
-		}, 0);
-	} else {
-		update(target);
-	}
+	setTimeout(() => performPortal(target), 0);
 
 	return {
-		update,
+		update(newTarget: string | HTMLElement | boolean) {
+            performPortal(newTarget);
+        },
 		destroy() {
-			if (placeholder && placeholder.parentNode) {
+			if (hasMoved && placeholder && placeholder.parentNode) {
+                if (node.parentNode) {
+                    node.parentNode.removeChild(node);
+                }
 				placeholder.parentNode.replaceChild(node, placeholder);
 			} else if (node.parentNode) {
 				node.parentNode.removeChild(node);
