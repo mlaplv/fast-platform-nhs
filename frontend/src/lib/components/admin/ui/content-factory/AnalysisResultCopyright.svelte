@@ -20,37 +20,85 @@
   let { copyrightResult, isFixing, runCopyrightCheck, handleInternalFix, runBulkFix, isBulkFixing = false, isRewriting = false, runNeuralRewrite, streamingText = '', streamingTarget = null, userPlanNote = $bindable('') }: Props = $props();
 
   let lineNotes = $state<Record<string, string>>({});
+  let editingLines = $state<Record<string, boolean>>({});
 
-  // CNS V90.1: Surgical Plan Parser — Identifies headers and plan steps for individual annotation
+  // CNS V91.0: Surgical Plan Parser — Fixed multi-line Bước 3 rendering
+  // Root cause fix: Old regex split Bước 3 into separate blocks, losing isPlanActive state.
+  // New approach: Split ONLY on real section headers (###), group all content within a section.
   const verdictBlocks = $derived.by(() => {
     if (!copyrightResult.verdict) return [];
-    const raw = copyrightResult.verdict.split(/\n\n|(?=\n#{1,6}\s)|(?=\n-\s?\[?[A-ZÀ-Ỹ]{4,})/);
+
+    const lines = copyrightResult.verdict.split('\n');
+    const blocks: { text: string; isHeader: boolean; isPlan: boolean }[] = [];
     let isPlanActive = false;
-    
-    return raw.map(section => {
-      const trimmed = section.trim();
-      if (!trimmed) return null;
-      
-      const isHeader = trimmed.startsWith('#') || trimmed.includes('**[LUẬN ĐIỂM') || trimmed.includes('**[CHỨNG CỨ') || trimmed.includes('**[PHƯƠNG ÁN') || trimmed.includes('[1.') || trimmed.includes('[2.') || trimmed.includes('[3.') || (trimmed.startsWith('-') && trimmed.includes(':') && trimmed.length < 60);
-      
-      if (isHeader) {
-        isPlanActive = trimmed.includes('PHƯƠNG ÁN');
+    let currentBlock: string[] = [];
+    let currentIsHeader = false;
+    let currentIsPlan = false;
+
+    const flushBlock = () => {
+      const text = currentBlock.join('\n').trim();
+      if (text) blocks.push({ text, isHeader: currentIsHeader, isPlan: currentIsPlan });
+      currentBlock = [];
+    };
+
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t) {
+        // Empty line: flush only if we have content
+        if (currentBlock.length > 0) {
+          // Only flush on empty line if current block is a header
+          if (currentIsHeader) flushBlock();
+          else currentBlock.push(line); // keep empty lines inside plan blocks for spacing
+        }
+        continue;
       }
 
-      return { text: trimmed, isHeader, isPlan: isPlanActive };
-    }).filter(Boolean);
+      // Detect section header lines: markdown headings or known section markers
+      const isSectionHeader =
+        t.startsWith('###') || t.startsWith('####') ||
+        t.includes('[1. LUẬN ĐIỂM') || t.includes('[2. HỒ SƠ') || t.includes('[3. PHƯƠNG ÁN') ||
+        t.includes('[LUẬN ĐIỂM PHẢN BIỆN') || t.includes('[HỒ SƠ CHỨNG CỨ') || t.includes('[PHƯƠNG ÁN PHẪU THUẬT') ||
+        t.includes('刀') || t.includes('🔍') || t.includes('🔗');
+
+      if (isSectionHeader) {
+        flushBlock();
+        const entersPlan = t.includes('PHƯƠNG ÁN') || t.includes('刀');
+        if (entersPlan) isPlanActive = true;
+        // Bước 1/2 headers are inside the plan block — keep isPlanActive
+        currentIsHeader = true;
+        currentIsPlan = isPlanActive;
+        currentBlock = [line];
+        // Immediately flush single-line section headers
+        flushBlock();
+        currentIsHeader = false;
+        currentIsPlan = isPlanActive;
+      } else {
+        currentBlock.push(line);
+        currentIsHeader = false;
+        currentIsPlan = isPlanActive;
+      }
+    }
+    flushBlock(); // flush remaining
+    return blocks;
   });
 
   // CNS V90.1: Aggregator — Combines per-line notes into a single prompt injection
+  let aggregatorTimer: ReturnType<typeof setTimeout> | null = null;
   $effect(() => {
-    const aggregated = Object.entries(lineNotes)
-      .filter(([_, note]) => note.trim())
-      .map(([line, note]) => `[ĐỐI VỚI: ${line.substring(0, 50)}...]: ${note}`)
-      .join('\n');
+    // Read dependencies synchronously
+    const entries = Object.entries(lineNotes);
     
-    if (aggregated !== userPlanNote) {
-      userPlanNote = aggregated;
-    }
+    if (aggregatorTimer) clearTimeout(aggregatorTimer);
+    aggregatorTimer = setTimeout(() => {
+      const aggregated = entries
+        .filter(([_, note]) => note.trim())
+        .map(([line, note]) => `[ĐỐI VỚI: ${line.substring(0, 50)}...]: ${note}`)
+        .join('\n');
+      
+      if (aggregated !== userPlanNote) {
+        userPlanNote = aggregated;
+      }
+    }, 400);
   });
 
   const pct = $derived(Math.round(copyrightResult.uniqueness_score * 100));
@@ -122,38 +170,51 @@
                 {@const lTrim = line.trim()}
                 {#if lTrim}
                   <div class="group/line relative">
-                    <div class="flex items-start gap-2 {lineNotes[lTrim] !== undefined ? 'bg-blue-500/10 -mx-2 px-2 py-1 rounded-sm' : ''}">
-                      <span class="text-[12px] {lineNotes[lTrim] !== undefined ? 'text-blue-300' : 'text-white/70'} leading-relaxed">
-                        {line}
-                      </span>
-                      <button 
-                        onclick={() => {
-                          if (lineNotes[lTrim] === undefined) {
-                            lineNotes[lTrim] = "";
-                          } else {
-                            delete lineNotes[lTrim];
-                            lineNotes = { ...lineNotes };
-                          }
-                        }}
-                        class="mt-1 p-0.5 rounded-sm bg-transparent text-blue-500/50 hover:text-blue-400 transition-all opacity-0 group-hover/line:opacity-100 {lineNotes[lTrim] !== undefined ? 'opacity-100 text-blue-400' : ''}"
-                        title="Thêm chỉ đạo chiến lược"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-square"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
-                      </button>
+                    <div class="flex items-start gap-2 {lineNotes[lTrim] ? 'bg-blue-500/10 -mx-2 px-2 py-1 rounded-sm' : ''}">
+                      <div class="flex flex-col gap-1 w-full">
+                        <div class="flex items-start justify-between w-full">
+                          <span class="text-[12px] {lineNotes[lTrim] ? 'text-blue-300' : 'text-white/70'} leading-relaxed">
+                            {line}
+                          </span>
+                          <button 
+                            onclick={() => {
+                              if (!editingLines[lTrim]) {
+                                editingLines[lTrim] = true;
+                                if (lineNotes[lTrim] === undefined) lineNotes[lTrim] = "";
+                              } else {
+                                editingLines[lTrim] = false;
+                              }
+                            }}
+                            class="mt-1 p-0.5 rounded-sm bg-transparent text-blue-500/50 hover:text-blue-400 transition-all opacity-0 group-hover/line:opacity-100 {lineNotes[lTrim] ? 'opacity-100 text-blue-400' : ''}"
+                            title="Thêm/Sửa ghi chú chiến lược"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-3"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                          </button>
+                        </div>
+                        {#if lineNotes[lTrim] && !editingLines[lTrim]}
+                          <div class="flex items-start gap-1.5 mt-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400 mt-0.5 shrink-0 lucide lucide-corner-down-right"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>
+                            <span class="text-[11px] text-blue-200/80 font-medium tracking-tight bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{lineNotes[lTrim]}</span>
+                          </div>
+                        {/if}
+                      </div>
                     </div>
 
-                    {#if lineNotes[lTrim] !== undefined}
+                    {#if editingLines[lTrim]}
                       <div class="mt-2 p-3 bg-[#161b22] border border-[#30363d] rounded-lg shadow-2xl animate-in zoom-in-95 duration-150 z-20 relative max-w-[440px]">
                         <textarea 
                           bind:value={lineNotes[lTrim]}
                           placeholder="Ghi chú chiến lược..."
-                          class="w-full bg-[#0d1117] border border-[#30363d] rounded-md text-[13px] text-[#c9d1d9] placeholder:text-[#484f58] focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none p-3 resize-none min-h-[90px] leading-relaxed mb-3 transition-all"
+                          class="w-full bg-[#0d1117] border border-[#30363d] rounded-md text-[13px] text-[#c9d1d9] placeholder:text-[#484f58] focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none p-3 resize-none min-h-[90px] leading-relaxed mb-3 transition-all custom-scrollbar"
                         ></textarea>
                         <div class="flex justify-end items-center gap-2">
                           <button 
                             onclick={() => { 
-                              delete lineNotes[lTrim];
-                              lineNotes = { ...lineNotes };
+                              if (!lineNotes[lTrim]?.trim()) {
+                                delete lineNotes[lTrim];
+                                lineNotes = { ...lineNotes };
+                              }
+                              editingLines[lTrim] = false;
                             }}
                             class="px-4 py-1.5 rounded-md bg-transparent hover:bg-[#30363d] text-[13px] font-semibold text-[#c9d1d9] transition-all"
                           >
@@ -161,12 +222,13 @@
                           </button>
                           <button 
                             onclick={() => { 
-                              if (!lineNotes[lTrim]) {
+                              if (!lineNotes[lTrim]?.trim()) {
                                 delete lineNotes[lTrim];
                                 lineNotes = { ...lineNotes };
                               }
+                              editingLines[lTrim] = false;
                             }}
-                            class="px-4 py-1.5 rounded-md bg-[#21262d] border border-[#30363d] hover:bg-[#30363d] hover:border-[#8b949e] disabled:opacity-50 disabled:cursor-not-allowed text-[13px] font-semibold text-[#c9d1d9] transition-all"
+                            class="px-4 py-1.5 rounded-md bg-[#21262d] border border-[#30363d] hover:bg-[#30363d] hover:border-[#8b949e] disabled:opacity-50 disabled:cursor-not-allowed text-[13px] font-semibold text-[#c9d1d9] transition-all shadow-sm"
                             disabled={!lineNotes[lTrim]?.trim()}
                           >
                             Xác nhận ghi chú
@@ -209,7 +271,21 @@
         
         <!-- Neural Rewrite Activation -->
         <button 
-          onclick={() => runNeuralRewrite?.()}
+          onclick={() => {
+            // Force flush the aggregator before executing to avoid 400ms debounce race condition
+            const aggregated = Object.entries(lineNotes)
+              .filter(([_, note]) => note.trim())
+              .map(([line, note]) => `[ĐỐI VỚI: ${line.substring(0, 50)}...]: ${note}`)
+              .join('\n');
+            if (aggregated !== userPlanNote) {
+              userPlanNote = aggregated;
+            }
+            
+            // Allow state to propagate then run
+            setTimeout(() => {
+              if (runNeuralRewrite) runNeuralRewrite();
+            }, 50);
+          }}
           disabled={isBulkFixing || isRewriting}
           class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 p-[1px] transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(99,102,241,0.4)] active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
         >

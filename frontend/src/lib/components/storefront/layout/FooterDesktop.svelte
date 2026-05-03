@@ -104,7 +104,7 @@
             <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
           </div>
           <p class="text-[11px] font-black uppercase tracking-widest text-[#C18F7E]">
-            <span class="tabular-nums">{activeViewers}</span> Elite Members Shopping Now
+            <span class="tabular-nums">{activeViewers}</span> thành viên
           </p>
         </div>
 
@@ -178,7 +178,7 @@
 
           <div class="pt-4 border-t border-white/5 flex items-center justify-between">
             <div class="flex flex-col">
-               <span class="text-[8px] uppercase tracking-[0.2em] text-slate-500 font-bold mb-1">Elite Hotline 24/7</span>
+               <span class="text-[8px] uppercase tracking-[0.2em] text-slate-500 font-bold mb-1">Hotline 24/7</span>
                <a href="tel:{shopInfo.hotline.replace(/-/g, '')}" class="text-xl font-black tracking-tighter text-white hover:text-[#C18F7E] transition-colors tabular-nums">
                  {shopInfo.hotline}
                </a>
@@ -259,7 +259,7 @@
              {/each}
           </div>
           <div class="flex items-center gap-2 group cursor-default">
-             <span class="text-[9px] font-black uppercase tracking-widest text-slate-700 group-hover:text-slate-500 transition-colors">Crafted with AI 2026 Tech</span>
+             <span class="text-[9px] font-black uppercase tracking-widest text-slate-700 group-hover:text-slate-500 transition-colors">by lapiweb</span>
              <div class="w-1 h-1 rounded-full bg-[#C18F7E] animate-ping"></div>
           </div>
         </div>

@@ -61,82 +61,80 @@
 </script>
 
 
-<button
-  id="support-agent-fab"
-  class="agent-fab hidden md:flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] 
-    {supportAgent.isOpen ? 'rotate-[135deg] scale-75 opacity-0 pointer-events-none' : 'rotate-0 opacity-100 !important'}
-    {supportAgent.aiPulse ? 'neural-pulse-active' : ''}"
+<!-- Elite V2.2: FAB Wrapper — fixed positioning hoisted to wrapper, pill is sibling of button -->
+<div
+  id="support-agent-fab-wrapper"
+  class="agent-fab-wrapper hidden md:flex items-center gap-0"
   style="
     --theme-color: {contextUI.color};
     z-index: {Z_INDEX_CLIENT.FAB};
     bottom: {isMobile ? SUPPORT_AGENT_UI.MOBILE_FAB_BOTTOM : SUPPORT_AGENT_UI.DESKTOP_FAB_BOTTOM};
     right: {isMobile ? SUPPORT_AGENT_UI.MOBILE_FAB_RIGHT : SUPPORT_AGENT_UI.DESKTOP_FAB_RIGHT};
-    width: {isScrolled ? (isMobile ? '40px' : '48px') : (isMobile ? '56px' : '64px')};
-    height: {isScrolled ? (isMobile ? '40px' : '48px') : (isMobile ? '56px' : '64px')};
     transform: {isScrolled ? 'translateY(8px)' : 'translateY(0)'};
-    opacity: {supportAgent.isOpen ? '0' : '1 !important'};
+    transition: transform 0.7s cubic-bezier(0.16,1,0.3,1), opacity 0.7s cubic-bezier(0.16,1,0.3,1);
+    opacity: {supportAgent.isOpen ? '0' : '1'};
+    pointer-events: {supportAgent.isOpen ? 'none' : 'auto'};
   "
-  onclick={toggleAgent}
-  aria-label={contextUI.label}
 >
-  <!-- Stealth Glow: Viral Liquid Aura -->
-  <div 
-    class="absolute inset-[-15px] rounded-full blur-[30px] transition-all duration-1000"
+  <!-- FAB Button -->
+  <button
+    id="support-agent-fab"
+    class="fab-btn relative flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
+      {supportAgent.aiPulse ? 'neural-pulse-active' : ''}"
     style="
-      background: radial-gradient(circle, var(--theme-color) 0%, transparent 70%);
-      opacity: {supportAgent.aiPulse ? '0.2' : (isScrolled ? '0.02' : '0.1')};
-      transform: scale({supportAgent.aiPulse ? '1.5' : '1'});
+      width: {isScrolled ? (isMobile ? '40px' : '48px') : (isMobile ? '56px' : '64px')};
+      height: {isScrolled ? (isMobile ? '40px' : '48px') : (isMobile ? '56px' : '64px')};
+      flex-shrink: 0;
     "
-  ></div>
-  
-  <!-- Dark Liquid Drop Structure -->
-  <div class="relative w-full h-full rounded-[40%] flex items-center justify-center overflow-hidden apple-glass-dark-drop transition-all duration-500 {isScrolled ? 'hover:scale-110' : 'hover:scale-105'} active:scale-90 group shadow-2xl">
-    <!-- Fluid morphing gradient background for Dark Mode -->
+    onclick={toggleAgent}
+    aria-label={contextUI.label}
+  >
+    <!-- Stealth Glow: Viral Liquid Aura -->
     <div 
-      class="absolute inset-0 transition-colors duration-1000 saturate-200"
-      style="background: linear-gradient(135deg, #000000 0%, #1e111a 50%, var(--theme-color) 150%);"
+      class="absolute inset-[-15px] rounded-full blur-[30px] transition-all duration-1000 pointer-events-none"
+      style="
+        background: radial-gradient(circle, var(--theme-color) 0%, transparent 70%);
+        opacity: {supportAgent.aiPulse ? '0.2' : (isScrolled ? '0.02' : '0.1')};
+        transform: scale({supportAgent.aiPulse ? '1.5' : '1'});
+      "
     ></div>
     
-    <!-- Caustic highlight (Glass reflection) -->
-    <div class="absolute top-0 left-0 right-0 h-[50%] bg-gradient-to-b from-white/20 to-transparent rounded-t-[40%]"></div>
-    
-    <!-- Inner shadow edge & High-end stroke -->
-    <div class="absolute inset-0 rounded-[40%] shadow-[inset_0_-4px_12px_rgba(0,0,0,0.5),inset_0_1px_2px_rgba(255,255,255,0.25)] border border-white/10 group-hover:border-white/20 transition-colors"></div>
+    <!-- Dark Liquid Drop Structure -->
+    <div class="relative w-full h-full rounded-[40%] flex items-center justify-center overflow-hidden apple-glass-dark-drop transition-all duration-500 {isScrolled ? 'hover:scale-110' : 'hover:scale-105'} active:scale-90 group shadow-2xl">
+      <!-- Fluid morphing gradient background for Dark Mode -->
+      <div 
+        class="absolute inset-0 transition-colors duration-1000 saturate-200"
+        style="background: linear-gradient(135deg, #000000 0%, #1e111a 50%, var(--theme-color) 150%);"
+      ></div>
+      
+      <!-- Caustic highlight (Glass reflection) -->
+      <div class="absolute top-0 left-0 right-0 h-[50%] bg-gradient-to-b from-white/20 to-transparent rounded-t-[40%]"></div>
+      
+      <!-- Inner shadow edge & High-end stroke -->
+      <div class="absolute inset-0 rounded-[40%] shadow-[inset_0_-4px_12px_rgba(0,0,0,0.5),inset_0_1px_2px_rgba(255,255,255,0.25)] border border-white/10 group-hover:border-white/20 transition-colors"></div>
 
-    <!-- Liquid Ripple Effect on Hover -->
-    <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors duration-500"></div>
+      <!-- Liquid Ripple Effect on Hover -->
+      <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors duration-500"></div>
 
-    <!-- Iconography -->
-    <svelte:component 
-      this={contextUI.icon}
-      size={isScrolled ? (isMobile ? 18 : 22) : (isMobile ? 26 : 32)} 
-      class="relative z-10 transition-all duration-700 group-hover:rotate-12 group-active:scale-110" 
-      style="
-        color: var(--theme-color);
-        filter: drop-shadow(0 0 12px var(--theme-color));
-      "
-      color={contextUI.color}
-      strokeWidth={contextUI.icon !== HelenIcon ? (isScrolled ? 2 : 1.5) : undefined} 
-    />
-  </div>
-
-  {#if !supportAgent.isOpen && supportAgent.messages.length <= 1 && !isMobile && !isScrolled}
-    <div 
-      class="absolute right-[calc(100%+24px)] elite-status-pill tooltip-float flex items-center gap-3 transition-all animate-in fade-in slide-in-from-right-8"
-      style="--status-color: var(--theme-color);"
-    >
-      <div class="elite-dot-container">
-        <span class="elite-status-dot"></span>
-      </div>
-      <span class="elite-status-text">
-        {supportAgent.helenEnabled ? contextUI.label : 'Nhân viên đang trực tuyến'}
-      </span>
+      <!-- Iconography -->
+      <svelte:component 
+        this={contextUI.icon}
+        size={isScrolled ? (isMobile ? 18 : 22) : (isMobile ? 26 : 32)} 
+        class="relative z-10 transition-all duration-700 group-hover:rotate-12 group-active:scale-110" 
+        style="
+          color: var(--theme-color);
+          filter: drop-shadow(0 0 12px var(--theme-color));
+        "
+        color={contextUI.color}
+        strokeWidth={contextUI.icon !== HelenIcon ? (isScrolled ? 2 : 1.5) : undefined} 
+      />
     </div>
-  {/if}
-</button>
+  </button>
+</div>
 
 <style>
-  .agent-fab {
+  /* Wrapper đảm nhận position:fixed thay cho button, tránh overflow-hidden clip pill */
+  .agent-fab-wrapper {
     position: fixed;
   }
 

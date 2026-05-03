@@ -229,15 +229,23 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                 system_prompt = composer.compose("copyright_analysis", context=context, extra_components=[shield.id])
                 
                 logger.warning("📡 [PlagiarismCop] Sending to Neural Core (Brain)...")
-                prompt = f"""
-[BÀI VIẾT CỦA BẠN]:
-{('\n'.join(deduped))[:50000]}
-
-[ĐỐI THỦ CẠNH TRANH]:
-{'\n'.join(comps)}
-"""
-                logger.warning("📡 [PlagiarismCop] Awaiting Brain Response (Bridge)...")
-                res = await self.bridge.run(self._agent, prompt, system_prompt=system_prompt, force=force, role="brain", timeout=180.0)
+                # CNS V91.2: Reduce input pressure — 50k→25k chars to free output token budget
+                # Gemini context window is shared between input+output. Large input = compressed output = truncated verdict
+                content_input = ('\n'.join(deduped))[:25000]
+                # Cap competitor snippets: each MAX_SNIPPET_CHARS=3000, max 5 comps = 15000 chars max
+                comps_input = '\n'.join(c[:MAX_SNIPPET_CHARS] for c in comps[:MAX_COMPETITOR_FETCH])
+                prompt = f"""[BÀI VIẾT CỦA BẠN]:\n{content_input}\n\n[ĐỐI THỦ CẠNH TRANH]:\n{comps_input}"""
+                logger.warning(f"📡 [PlagiarismCop] Prompt size: {len(prompt)} chars. Awaiting Brain Response...")
+                res = await self.bridge.run(
+                    self._agent, prompt,
+                    system_prompt=system_prompt,
+                    force=force,
+                    role="brain",
+                    timeout=180.0,
+                    # CNS V91.2: CRITICAL FIX — key was 'max_output_tokens' (WRONG/ignored), must be 'max_tokens'
+                    # PydanticAI ModelSettings TypedDict only has 'max_tokens' field, others are silently ignored
+                    model_settings={"max_tokens": 8192}
+                )
                 raw = res
                 logger.warning(f"✅ [PlagiarismCop] Brain returned. Type: {type(raw).__name__}")
 

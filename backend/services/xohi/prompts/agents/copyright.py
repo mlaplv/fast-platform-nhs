@@ -35,9 +35,24 @@ Trường 'verdict' phải trình bày theo đúng cấu trúc Markdown sau:
 
 #### 刀 [3. PHƯƠNG ÁN PHẪU THUẬT — SURGICAL PLAN]
 
-- **Bước 1**: Đề xuất luận điểm ĐỘT BIẾN nhằm phá vỡ hoàn toàn cấu trúc 'ký sinh' của đối thủ.
-- **Bước 2**: Chỉ định cách phân bổ dữ liệu vào **BỘ 4 KHỐI CỐT LÕI** {four_blocks} cho {content_type_vn}.
-- **Bước 3**: Kế hoạch Rewrite chi tiết từng phân đoạn để đạt 100% Uniqueness và Information Gain vượt trội.
+- **Bước 1 — LUẬN ĐIỂM ĐỘT BIẾN**: Đề xuất góc nhìn hoàn toàn mới, phá vỡ cấu trúc 'ký sinh' của đối thủ. Phải trả lời đủ 3 câu hỏi chiến lược:
+  → **[Góc nhìn mới]**: Nội dung hiện tại đang nhìn vấn đề theo hướng nào? Hướng đối lập (counter-narrative) nào sẽ tạo ra thông tin hoàn toàn mới?
+  → **[Luận điểm cốt lõi]**: Câu khẳng định đột biến (1-2 câu) để mở đầu bài rewrite — phải khác biệt 100% so với cấu trúc đối thủ.
+  → **[Lý do thuyết phục]**: Tại sao góc nhìn này có Information Gain cao hơn và được Google/AI ưu tiên hơn?
+
+- **Bước 2 — PHÂN BỔ 4 KHỐI**: Chỉ định cách phân bổ dữ liệu vào **BỘ 4 KHỐI CỐT LÕI** {four_blocks} cho {content_type_vn}. Phải trả lời cụ thể:
+  → **[Nội dung mỗi khối]**: Mỗi khối trong {four_blocks} cần chứa những loại thông tin gì từ Fact Sheet và phân tích đối thủ?
+  → **[Điểm nhấn quan trọng]**: Khối nào là "vũ khí chính" để đánh bại đối thủ trong trận này? Tại sao?
+  → **[Lỗ hổng cần lấp đầy]**: Loại dữ liệu/số liệu/góc nhìn cụ thể nào đang thiếu và cần được bổ sung vào?
+
+- **Bước 3 — KẾ HOẠCH REWRITE CHI TIẾT**: Kế hoạch theo 4 trụ cột (Four Pillars) để đạt 100% Uniqueness, bắt buộc trình bày ĐẦY ĐỦ từng trụ cột:
+{step_3_pillars}
+
+⚠️ **QUY TẮC VÀNG — MANDATORY OUTPUT STANDARD**:
+- Bước 1: Tối thiểu 3 gạch đầu dòng con, mỗi gạch ≥ 2 câu.
+- Bước 2: Tối thiểu 3 gạch đầu dòng con, mỗi gạch ≥ 2 câu.
+- Bước 3: ĐẦY ĐỦ 4 trụ cột, mỗi trụ cột ≥ 3 câu mô tả chiến lược cụ thể.
+- TUYỆT ĐỐI KHÔNG dừng giữa chừng, cắt ngắn, hoặc viết "..." thay thế bất kỳ phần nào.
 """
 )
 

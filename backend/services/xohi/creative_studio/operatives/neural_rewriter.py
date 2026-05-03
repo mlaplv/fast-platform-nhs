@@ -133,6 +133,8 @@ class NeuralRewriter(BaseAgentOperative):
             return "Nội dung trống, không thể viết lại."
 
         prompt = f"[TIÊU ĐIỂM]: {topic}\n\n[NỘI DUNG GỐC]:\n{content[:15000]}\n\n[PHẢN BIỆN & YÊU CẦU]:\n{feedback}"
+        if user_note:
+            prompt += f"\n\n[GHI CHÚ CHIẾN LƯỢC TỪ SẾP - ƯU TIÊN TỐI THƯỢNG]:\n{user_note}"
 
         try:
             self.current_step = 1
@@ -148,12 +150,14 @@ class NeuralRewriter(BaseAgentOperative):
             start_time = time.time()
             
             # ELITE V2.2: Restoration of Tiptap-Ready HTML (Sếp's Order)
+            # CNS V91.1: max_output_tokens=16384 to prevent mid-article truncation
             response = await trinity_bridge.run(
                 self._agent, 
                 prompt, 
                 system_prompt=system_prompt,
                 role="pro", 
-                timeout=150.0
+                timeout=150.0,
+                model_settings={"max_tokens": 16384}  # CNS V91.2: FIXED key (was max_output_tokens, silently ignored)
             )
             duration = time.time() - start_time
             

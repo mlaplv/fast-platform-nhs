@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { slugify, trimProductName, formatCurrency } from '$lib/utils/format';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { fly, fade, scale } from 'svelte/transition';
   import { cubicOut, backOut } from 'svelte/easing';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
@@ -111,6 +111,43 @@
 
   /* Carousel Logic Retired as per Elite V2.2 directive (Only 1 item) */
   let currentSlide = $state(0);
+  let timeLeft = $state({ h: '00', m: '00', s: '00' });
+
+  // Elite V2.2: Shopee-style Flash Sale Sessions (Fixed hours)
+  const SALE_SESSIONS = [0, 9, 12, 15, 18, 21];
+
+  function updateCountdown() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    // Find next session hour to calculate remaining time of current slot
+    let nextSessionHour = SALE_SESSIONS.find(h => h > currentHour);
+    let targetDate = new Date(now);
+    
+    if (nextSessionHour === undefined) {
+      nextSessionHour = 0;
+      targetDate.setDate(targetDate.getDate() + 1);
+    }
+    
+    targetDate.setHours(nextSessionHour, 0, 0, 0);
+    
+    const diff = Math.max(0, targetDate.getTime() - now.getTime());
+    timeLeft = {
+      h: Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0'),
+      m: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0'),
+      s: Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0')
+    };
+  }
+
+  let interval: any;
+  onMount(() => {
+    updateCountdown();
+    interval = setInterval(updateCountdown, 1000);
+  });
+
+  onDestroy(() => {
+    if (interval) clearInterval(interval);
+  });
 </script>
 
 <section class="home-product-grid-section relative mb-[5px] overflow-visible">
@@ -272,14 +309,28 @@
     {#each currentProducts as product (product.id)}
       <button
         onclick={() => goto(`/${product.originalSlug || product.slug || slugify(product.name)}`)}
-        class="group/card relative flex-shrink-0 w-[calc((100%-6px)/2)] md:w-[calc((100%-6px)/4)] lg:w-[calc((100%-6px)/4)] bg-white border border-black/5 hover:border-black transition-all duration-700 cursor-pointer text-left flex flex-col active:scale-[0.98] shadow-sm hover:shadow-2xl"
+        class="group/card relative flex-shrink-0 w-[calc((100%-6px)/2)] md:w-[calc((100%-6px)/4)] lg:w-[calc((100%-6px)/4)] bg-white border border-black/5 transition-all duration-700 cursor-pointer text-left flex flex-col active:scale-[0.98] shadow-sm hover:shadow-2xl"
       >
         <div class="aspect-square w-full relative overflow-hidden bg-[#fafafa]">
           {#if product.isAiPick}
-            <div class="absolute top-3 left-3 z-20">
-                <span class="bg-gradient-to-r from-[#ff4d4d] via-[#f9cb28] to-[#ff4d4d] text-black text-[9px] font-black px-3 py-1.5 uppercase tracking-widest shadow-[0_8px_16px_rgba(255,77,77,0.4)] flex items-center gap-2 border border-white/20">
-                    <span class="animate-pulse">🔥</span> CỰC HỜI -{product.discountPercent}%
-                </span>
+            <div class="absolute top-2 left-2 z-20 flex flex-col gap-0.5">
+                <!-- Main FOMO Badge -->
+                <div class="bg-[#ee4d2d] text-white flex items-center shadow-[0_4px_12px_rgba(238,77,45,0.4)] overflow-hidden rounded-[2px] animate-shivering">
+                    <div class="bg-black text-[8px] font-black px-1.5 py-1 flex items-center justify-center uppercase tracking-tighter italic border-r border-white/10">
+                        SẮP CHÁY HÀNG
+                    </div>
+                    <div class="flex items-center gap-0.5 px-2 py-1 font-mono text-[10px] font-black bg-[#ee4d2d]">
+                        <span class="w-4 text-center">{timeLeft.h}</span>
+                        <span class="animate-pulse">:</span>
+                        <span class="w-4 text-center">{timeLeft.m}</span>
+                        <span class="animate-pulse">:</span>
+                        <span class="w-4 text-center">{timeLeft.s}</span>
+                    </div>
+                </div>
+                <!-- Secondary Scarcity Info -->
+                <div class="bg-white/95 backdrop-blur-md border border-[#ee4d2d]/20 text-[7px] font-black text-[#ee4d2d] px-1.5 py-0.5 w-fit uppercase tracking-[0.15em] rounded-[1px] shadow-sm">
+                    Chỉ còn {Math.abs((product.id.length % 7) + 2)} suất cuối
+                </div>
             </div>
             <!-- Neural Spectral Glow (Viral 2.8) -->
             <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#A855F7] via-[#3B82F6] to-[#14B8A6] z-10 opacity-70"></div>
@@ -381,7 +432,14 @@
     from { transform: translateX(-100%) skewX(-20deg); }
     to { transform: translateX(400%) skewX(-20deg); }
   }
-  .animate-gliding-light { animation: glidingLight 3s infinite linear; }
+  /* Shivering Urgency Animation */
+  @keyframes shivering {
+    0%, 100% { transform: scale(1); }
+    10%, 20% { transform: scale(0.98) rotate(-1deg); }
+    30%, 50%, 70%, 90% { transform: scale(1.02) rotate(1deg); }
+    40%, 60%, 80% { transform: scale(1.02) rotate(-1deg); }
+  }
+  .animate-shivering { animation: shivering 0.8s infinite cubic-bezier(.36,.07,.19,.97); }
 
   .atmospheric-image-container {
     perspective: 1000px;

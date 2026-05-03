@@ -246,12 +246,27 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         }
         
         # Specific mixins for different modes
-        if mode in ("ai_inspect", "booster"):
+        if mode in ("ai_inspect", "booster", "copyright"):
             context.update({
                 "four_blocks": "[FOMO - SCIENCE - RITUAL - CONNECTION]" if is_product else "[HOOK - EVIDENCE - STRATEGY - CONNECTION]",
                 "block_1": "FOMO" if is_product else "HOOK",
                 "block_3": "RITUAL" if is_product else "STRATEGY"
             })
+            
+            if is_product:
+                context["step_3_pillars"] = (
+                    "  + **VỊ THẾ ĐỘC BẢN (The FOMO)**: Lời mở đầu thôi miên, khẳng định vị thế đẳng cấp và đánh trúng khao khát/nỗi đau của khách hàng là gì?\n"
+                    "  + **TINH HOA CÔNG NGHỆ (The Science)**: Thành phần, công nghệ cốt lõi hoặc minh chứng lâm sàng nào chứng minh sức mạnh của sản phẩm?\n"
+                    "  + **NGHI THỨC TRẢI NGHIỆM (The Ritual)**: Hướng dẫn sử dụng chi tiết, mang tính nghi thức sang trọng để tối ưu hóa hiệu quả là gì?\n"
+                    "  + **KẾT NỐI & ĐẶC QUYỀN (The Connection)**: Cam kết, đặc quyền hoặc lời mời gọi trải nghiệm nào khiến khách hàng không thể chối từ?"
+                )
+            else:
+                context["step_3_pillars"] = (
+                    "  + **ĐIỂM CHẠM (The Hook)**: Lời mở đầu gây ấn tượng mạnh, đánh trúng nỗi đau hoặc sự tò mò của độc giả là gì?\n"
+                    "  + **BẰNG CHỨNG (The Evidence)**: Dữ liệu thực tế, số liệu, nghiên cứu hoặc ví dụ cụ thể nào chứng minh cho luận điểm chuyên gia?\n"
+                    "  + **GIẢI PHÁP (The Strategy)**: Phương pháp, hướng đi mới hoặc giải pháp cốt lõi giải quyết vấn đề một cách thuyết phục nhất là gì?\n"
+                    "  + **KẾT NỐI (The Connection)**: Cách ứng dụng thực tế, lời kêu gọi hành động (CTA), hoặc sự liên kết giá trị sâu sắc với khách hàng là gì?"
+                )
             
         return context
 
