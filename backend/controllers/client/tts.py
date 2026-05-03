@@ -6,7 +6,10 @@ from litestar import Controller, get, post, Request
 from litestar.response import Stream
 from litestar.exceptions import PermissionDeniedException, TooManyRequestsException
 from pydantic import BaseModel, Field, ConfigDict
+import uuid
+import json
 from backend.services.client_tts import stream_tts_public
+from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
@@ -14,26 +17,38 @@ logger = logging.getLogger("api-gateway")
 RATE_LIMIT_STORE: Dict[str, List[float]] = {}
 MAX_STORED_IPS: Final[int] = 1000
 LIMIT_WINDOW: Final[int] = 60
-LIMIT_MAX_REQUESTS: Final[int] = 5
+LIMIT_MAX_REQUESTS: Final[int] = 20
 
 class TTSRequest(BaseModel):
     model_config = ConfigDict(frozen=True)
-    text: str = Field(..., min_length=1, max_length=3000)
+    text: str = Field(..., min_length=1, max_length=20000)
 
 class PublicTTSController(Controller):
     path: Final[str] = "/api/v1/client/tts"
 
     @get("/stream")
-    async def get_public_tts_stream_get(self, request: Request, text: Optional[str] = None) -> Stream:
-        """Standardized TTS GET Entry."""
+    async def get_public_tts_stream_get(self, request: Request, text: Optional[str] = None, id: Optional[str] = None) -> Stream:
+        """Standardized TTS GET Entry. Elite V7.3 Native Streaming."""
         self._validate_request(request)
-        return self._create_tts_stream(text or "")
+        
+        target_text = text or ""
+        if id and xohi_memory.client:
+            stored = await xohi_memory.client.get(f"tts:req:{id}")
+            if stored:
+                target_text = stored
+        
+        return self._create_tts_stream(target_text)
 
-    @post("/stream")
-    async def get_public_tts_stream_post(self, request: Request, data: TTSRequest) -> Stream:
-        """Standardized TTS POST Entry."""
+    @post("/prepare")
+    async def prepare_tts_stream(self, request: Request, data: TTSRequest) -> dict[str, str]:
+        """Elite V7.3: Saves text to Redis and returns an ID for GET streaming."""
         self._validate_request(request)
-        return self._create_tts_stream(data.text)
+        
+        req_id = str(uuid.uuid4())
+        if xohi_memory.client:
+            await xohi_memory.client.set(f"tts:req:{req_id}", data.text, ex=600) # 10 minutes TTL
+            
+        return {"id": req_id}
 
     def _validate_request(self, request: Request) -> None:
         """Lockdown Defense V5.1: Security & RAM Guard."""
@@ -73,4 +88,4 @@ class PublicTTSController(Controller):
             "Connection": "keep-alive",
             "X-RateLimit-Limit": str(LIMIT_MAX_REQUESTS),
         }
-        return Stream(stream_tts_public(input_text[:3000]), headers=headers)
+        return Stream(stream_tts_public(input_text[:20000]), headers=headers)

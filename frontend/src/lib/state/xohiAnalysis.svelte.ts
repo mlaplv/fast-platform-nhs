@@ -562,16 +562,25 @@ export function createAnalysisController(config: {
                     else remaining.push({ ...a, message: `[CHƯA SỬA] ${a.message || a.reason}` });
                 }
                 if (activeTab === 'copyright') {
+                    // Update annotations temporarily to show "Đã sửa" status
                     copyrightResult = { ...copyrightResult!, annotations: [...fixed, ...remaining] };
                     await saveAnalysisEvidence('copyright', $state.snapshot(copyrightResult));
+                    
+                    // CNS V96: Auto-trigger Copyright Check to update the score and verdict
+                    bulkFixLogs = [...bulkFixLogs, "⏳ Đang chạy lại kiểm định bản quyền để cập nhật báo cáo..."];
+                    setTimeout(() => {
+                        runCopyrightCheck(true);
+                    }, 500);
                 }
                 else if (activeTab === 'seo') {
                     seoResult = { ...seoResult!, seo_annotations: [...fixed, ...remaining] };
                     await saveAnalysisEvidence('seo', $state.snapshot(seoResult));
+                    setTimeout(() => { runSeoCheck(true); }, 500);
                 }
                 else {
                     aiReadyResult = { ...aiReadyResult!, ai_annotations: [...fixed, ...remaining] };
                     await saveAnalysisEvidence('ai_inspect', $state.snapshot(aiReadyResult));
+                    setTimeout(() => { runAiInspect(true); }, 500);
                 }
                 bulkFixLogs = [...bulkFixLogs, "✅ Phẫu thuật hoàn tất. Dữ liệu Neural Intelligence đã được cập nhật."];
                 bulkFixStatus = "Hoàn tất ✅";

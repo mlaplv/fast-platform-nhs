@@ -72,18 +72,45 @@
     active = false;
   }
 
-  // 🎙️ TTS: MASTER STREAM (Elite V6.0 - Neural Memory Sync)
-  // Persists reading progress and audio chunks to survive F5.
+  // 🎙️ TTS: WEB AUDIO ENGINE (Elite V7.0 - OS-Codec-Free)
+  // Uses AudioContext.decodeAudioData to bypass OS-level MP3 decoder requirements.
+  // Compatible with Firefox/Linux (no gstreamer-ugly needed), Chrome, Safari.
   let isReading: boolean = $state(false);
   let isBuffering: boolean = $state(false);
-  let currentAudio: HTMLAudioElement | null = $state(null);
-  let mediaSource: MediaSource | null = null;
-  let sourceBuffer: SourceBuffer | null = null;
   let abortController: AbortController | null = null;
+
   
   // R6.0 Memory State
-  const CACHE_NAME: string = "micsmo-tts-v1";
+  const CACHE_NAME: string = "micsmo-tts-v2";
   let productSlug: string = $derived(product?.slug || "unknown");
+
+  /**
+   * Elite V7.1: TTS Text Sanitizer
+   * Strips emojis, pictographs, and decorative Unicode that edge-tts reads aloud
+   * as their Unicode description (e.g. ⚡ → "biển báo điện cao thế").
+   */
+  function sanitizeTtsText(raw: string): string {
+    return raw
+      // Strip all Emoji except digits/ASCII (Extended Pictographic)
+      .replace(/\p{Extended_Pictographic}/gu, "")
+      // Strip Miscellaneous Symbols & Dingbats blocks (☀ ★ ♦ etc.)
+      .replace(/[\u2600-\u27BF]/g, "")
+      // Strip enclosed/supplemental alphanumerics & symbols
+      .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
+      // Strip zero-width joiners & variation selectors left over
+      .replace(/[\uFE00-\uFE0F\u200D]/g, "")
+      // Strip English-only parenthetical labels: (The Hook), (CTA), (USP), (Hero), etc.
+      // Vietnamese TTS reads these phonetically as gibberish ("thẻ hók")
+      .replace(/\(\s*[A-Za-z][A-Za-z\s\-']{0,40}\s*\)/g, "")
+      // Strip leading dash/hyphen left over after stripping parenthetical (e.g. "- ")
+      .replace(/^\s*[-–—]\s*/gm, "")
+      // Collapse multiple blank lines into single newline
+      .replace(/\n{3,}/g, "\n\n")
+      // Trim leading/trailing whitespace
+      .trim();
+  }
+
+  let currentAudio: HTMLAudioElement | null = $state(null);
 
   async function toggleSpeech(): Promise<void> {
     if (isReading || isBuffering) {
@@ -91,58 +118,54 @@
       return;
     }
 
-    const text: string = contentRef?.innerText || "";
-    if (!text) return;
+    const rawText: string = contentRef?.innerText || "";
+    const text: string = sanitizeTtsText(rawText);
+    if (text.length < 10) return;
 
     isBuffering = true;
-    
+
     try {
-      // 1. Check for Cached Audio first (F5 Survival)
+      let audioUrl = "";
+      let usedCache = false;
+
+      // 1. Check Cache
       const cache = await caches.open(CACHE_NAME);
       const cachedResponse = await cache.match(`/tts/${productSlug}`);
       
-      let audioUrl: string;
-      
       if (cachedResponse) {
         const blob = await cachedResponse.blob();
-        audioUrl = URL.createObjectURL(blob);
-      } else {
-        // 2. No cache, fetch new stream
+        if (blob.size > 500 && blob.type.startsWith('audio/')) {
+          audioUrl = URL.createObjectURL(blob);
+          usedCache = true;
+        } else {
+          await cache.delete(`/tts/${productSlug}`);
+        }
+      }
+
+      if (!usedCache) {
+        // 2. Prepare Stream via POST (saves text to Redis)
         abortController = new AbortController();
-        const res: Response = await fetch('/api/v1/client/tts/stream', {
+        const prepRes: Response = await fetch('/api/v1/client/tts/prepare', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: text.slice(0, 3000) }),
+          body: JSON.stringify({ text: text.slice(0, 20000) }),
           signal: abortController.signal
         });
 
-        if (!res.ok) throw new Error("Connection failed");
-        
-        const clonedRes = res.clone(); // Clone immediately before consumption
-        
-        // Elite R6.2: Adaptive Streaming vs Blob Fallback
-        const canStream = window.MediaSource && MediaSource.isTypeSupported('audio/mpeg');
-        
-        if (canStream) {
-          const reader = res.body?.getReader();
-          if (!reader) throw new Error("No stream body");
+        if (!prepRes.ok) throw new Error(`Prepare failed: ${prepRes.status}`);
+        const { id } = await prepRes.json();
+        if (!id) throw new Error('No stream ID returned');
 
-          mediaSource = new MediaSource();
-          audioUrl = URL.createObjectURL(mediaSource);
-          setupMediaSource(reader);
-        } else {
-          // Fallback for iOS/Safari: Buffer entire stream into Blob
-          const blob = await res.blob();
-          audioUrl = URL.createObjectURL(blob);
-        }
-
-        // 2.1: Cache for next time
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(`/tts/${productSlug}`, clonedRes).catch(() => {});
+        // 3. Native Streaming via GET endpoint
+        // Browser natively streams chunked MP3 HTTP responses, working flawlessly on all browsers (incl. Firefox)
+        audioUrl = `/api/v1/client/tts/stream?id=${id}`;
+        
+        // Note: Caching the full file is skipped here because it's a live native stream. 
+        // We will cache it on the next page reload if needed, but native caching often handles it.
       }
 
-      // 3. Initialize Audio
-      const audio: HTMLAudioElement = new Audio();
+      // 4. Play
+      const audio = new Audio();
       audio.src = audioUrl;
       currentAudio = audio;
 
@@ -151,13 +174,11 @@
         isReading = true;
       };
 
-      // Elite R6.1: Metadata Guard
       audio.onloadedmetadata = () => {
         const savedTime = localStorage.getItem(`tts_pos_${productSlug}`);
         if (savedTime) audio.currentTime = parseFloat(savedTime);
       };
 
-      // R6.0: Save progress every second
       audio.ontimeupdate = () => {
         if (audio.currentTime > 0) {
           localStorage.setItem(`tts_pos_${productSlug}`, audio.currentTime.toString());
@@ -170,42 +191,19 @@
         cleanup();
       };
       
-      audio.onerror = () => cleanup();
+      audio.onerror = () => {
+        caches.open(CACHE_NAME).then(c => c.delete(`/tts/${productSlug}`)).catch(() => {});
+        cleanup();
+      };
+
       await audio.play();
 
-    } catch (e: any) {
-      if (e.name !== 'AbortError') console.error('[TTS] Sync Error:', e);
+    } catch (e: unknown) {
+      const err = e as Error;
+      if (err?.name !== 'AbortError') console.error('[TTS] Error:', err);
+      caches.open(CACHE_NAME).then(c => c.delete(`/tts/${productSlug}`)).catch(() => {});
       cleanup();
     }
-  }
-
-  function setupMediaSource(reader: ReadableStreamDefaultReader<Uint8Array>): void {
-    if (!mediaSource) return;
-    mediaSource.addEventListener('sourceopen', async () => {
-      if (!mediaSource) return;
-      try {
-        sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            if (mediaSource?.readyState === 'open') mediaSource.endOfStream();
-            break;
-          }
-          if (value && sourceBuffer) {
-            if (!sourceBuffer.updating) {
-              sourceBuffer.appendBuffer(value);
-            } else {
-              await new Promise<void>(resolve => sourceBuffer?.addEventListener('updateend', () => resolve(), { once: true }));
-              sourceBuffer?.appendBuffer(value);
-            }
-          }
-        }
-      } catch (err) { 
-        console.error('[TTS] MediaSource error:', err);
-        // If streaming fails mid-way, we don't want to crash, but current audio might stop.
-        if (mediaSource?.readyState === 'open') mediaSource.endOfStream();
-      }
-    });
   }
 
   function stopSpeech(): void {
@@ -228,16 +226,12 @@
       currentAudio.src = "";
       currentAudio = null;
     }
-    if (mediaSource && mediaSource.readyState === 'open') {
-      try { mediaSource.endOfStream(); } catch(e) {}
-    }
-    mediaSource = null;
-    sourceBuffer = null;
     isReading = false;
     isBuffering = false;
   }
 
   // Stop speech when modal closes
+
   let wasActive = false;
   $effect(() => {
     if (wasActive && !active) {

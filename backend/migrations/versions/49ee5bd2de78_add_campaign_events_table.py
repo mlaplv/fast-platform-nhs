@@ -36,8 +36,10 @@ def upgrade() -> None:
     op.create_index(op.f('ix_campaign_events_event_type'), 'campaign_events', ['event_type'], unique=False)
     op.create_index('ix_campaign_events_tenant', 'campaign_events', ['tenant_id'], unique=False)
     op.create_index(op.f('ix_campaign_events_tenant_id'), 'campaign_events', ['tenant_id'], unique=False)
-    op.drop_index(op.f('ix_chat_messages_session_id_created_at_desc'), table_name='chat_messages')
-    op.drop_index(op.f('ix_chat_messages_user_id_created_at_desc'), table_name='chat_messages')
+    # [Elite V2.2 Fix] v567 đã được neutralize (pass) → indexes này có thể không tồn tại
+    # khi upgrade từ DB trắng. Dùng IF EXISTS để an toàn.
+    op.execute('DROP INDEX IF EXISTS ix_chat_messages_session_id_created_at_desc')
+    op.execute('DROP INDEX IF EXISTS ix_chat_messages_user_id_created_at_desc')
     op.drop_index(op.f('ix_campaigns_user_id'), table_name='content_campaigns')
     op.drop_column('content_campaigns', 'error_logs')
     # ### end Alembic commands ###

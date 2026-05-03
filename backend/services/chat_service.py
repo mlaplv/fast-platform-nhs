@@ -1,9 +1,10 @@
 import uuid
+import base64
 import logging
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Union, TypedDict
 
-from sqlalchemy import select
+from sqlalchemy import select, delete as sql_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import HTTPException
 
@@ -15,6 +16,11 @@ from backend.schemas.signal import SignalSchema, SignalSeverity
 from backend.services.signal_center import signal_center
 from backend.services.xohi_memory import xohi_memory
 from backend.services.event_bus import event_bus
+
+# [Elite V2.2] Hard cap: bảo vệ khỏi requests lạm dụng ?limit=99999
+CHAT_MAX_LIMIT: int = 50
+# Default Redis cache size — match với add_chat_to_cache default
+CHAT_CACHE_SIZE: int = 20
 
 logger = logging.getLogger("api-gateway")
 
@@ -66,7 +72,7 @@ class ChatService:
             "created_at": created_at.isoformat()
         }
         if user_id:
-            cache_limit = chat_settings.get("cache_limit", 10)
+            cache_limit = chat_settings.get("cache_limit", CHAT_CACHE_SIZE)
             await xohi_memory.add_chat_to_cache(user_id, msg_dict, limit=cache_limit)
 
         # ═══ R30/R74: SELECTIVE PERSISTENCE ═══
@@ -129,6 +135,26 @@ class ChatService:
         return SuccessResponse(ok=True, id=msg_id, data={"persisted": False})
 
     @staticmethod
+    def _encode_cursor(created_at: datetime, msg_id: str) -> str:
+        """
+        [Bug #7 Fix] Opaque Base64 cursor — Zalo/Messenger standard.
+        Encode timestamp + id thành cursor string, decode không cần extra DB query.
+        """
+        raw = f"{created_at.isoformat()}|{msg_id}"
+        return base64.urlsafe_b64encode(raw.encode()).decode()
+
+    @staticmethod
+    def _decode_cursor(cursor: str) -> Optional[tuple[datetime, str]]:
+        """Decode opaque cursor. Return None nếu cursor cũ (ID format) hoặc invalid."""
+        try:
+            raw = base64.urlsafe_b64decode(cursor.encode()).decode()
+            ts_str, msg_id = raw.split("|", 1)
+            return datetime.fromisoformat(ts_str), msg_id
+        except Exception:
+            # Backwards compat: cursor cũ là UUID thuần — trả None để fallback DB lookup
+            return None
+
+    @staticmethod
     async def get_history(
         db_session: AsyncSession,
         session_id: str,
@@ -139,7 +165,14 @@ class ChatService:
         user_id_query: Optional[str] = None,
         since_id: Optional[str] = None
     ) -> ChatHistoryResponse:
-        """Moves logic from ChatController.get_chat_history. Implements Scalar Projection (Rule 1.5)."""
+        """[Bug #1 #4 #7 Fix] Keyset Pagination chuẩn Zalo/Messenger.
+        - DB-level LIMIT (không load toàn bộ vào RAM)
+        - Opaque Base64 cursor (không cần extra DB query)
+        - Cache-hit không phụ thuộc limit (initial load = no cursor)
+        """
+        # [Bug #1 Hard-cap] Bảo vệ khỏi ?limit=99999
+        limit = min(limit, CHAT_MAX_LIMIT)
+
         is_super_admin: bool = "SUPER_ADMIN" in roles
         target_user_id: Optional[str] = user_id
 
@@ -152,16 +185,22 @@ class ChatService:
                 "message": f"GOD-MODE ACCESS: System logs for user_id '{user_id_query}' accessed by {user_id}"
             })
 
-        # ═══ CACHE BYPASS / REDIS CHECK ═══
-        if session_id == "account" and not cursor and limit <= 10 and target_user_id:
-            cached_data: List[CachedChatMsg] = await xohi_memory.get_recent_chat(target_user_id) # type: ignore
+        # ═══ [Bug #4 Fix] CACHE HIT: Initial page load (no cursor, no since_id) ═══
+        # Không ràng buộc limit<=10 nữa — cache hit bất cứ khi nào là initial load
+        if session_id == "account" and not cursor and not since_id and target_user_id:
+            cached_data: List[CachedChatMsg] = await xohi_memory.get_recent_chat(
+                target_user_id, limit=limit  # type: ignore
+            )
             if cached_data:
-                # Elite V2.2: Ensure precise type handling for indexing
                 last_msg: CachedChatMsg = cached_data[-1]
+                next_cur = ChatService._encode_cursor(
+                    datetime.fromisoformat(str(last_msg["created_at"])),
+                    str(last_msg["id"])
+                )
                 return ChatHistoryResponse(
                     session_id=session_id,
                     has_more=True,
-                    next_cursor=str(last_msg["id"]),
+                    next_cursor=next_cur,
                     messages=[ChatMessageSchema(**m) for m in reversed(cached_data)]
                 )
 
@@ -173,25 +212,36 @@ class ChatService:
             if owner_id and str(owner_id) != target_user_id:
                 raise HTTPException(status_code=403, detail="[SECURITY] Access Denied: Identity mismatch.")
 
-        # ═══ DB QUERY: SCALAR PROJECTION (V56.0) ═══
+        # ═══ DB QUERY: SCALAR PROJECTION + KEYSET PAGINATION ═══
         cols = [
             ChatMessage.id, ChatMessage.session_id, ChatMessage.user_id,
             ChatMessage.role, ChatMessage.content, ChatMessage.modality,
             ChatMessage.created_at
         ]
-        stmt = select(*cols).where(ChatMessage.deleted_at == None)
+        stmt = select(*cols).where(ChatMessage.deleted_at == None)  # noqa: E711
 
         if session_id == "account" and target_user_id:
             stmt = stmt.where(ChatMessage.user_id == target_user_id)
         else:
             stmt = stmt.where(ChatMessage.session_id == session_id)
 
+        # ═══ [Bug #7 Fix] OPAQUE CURSOR — không cần extra DB round-trip ═══
         if cursor:
-            cursor_stmt = select(ChatMessage.created_at).where(ChatMessage.id == cursor)
-            cursor_res = await db_session.execute(cursor_stmt)
-            cursor_time = cursor_res.scalar()
-            if cursor_time:
-                stmt = stmt.where(ChatMessage.created_at < cursor_time)
+            decoded = ChatService._decode_cursor(cursor)
+            if decoded:
+                # New opaque cursor: decode trực tiếp
+                cursor_time, cursor_id = decoded
+                stmt = stmt.where(
+                    (ChatMessage.created_at < cursor_time) |
+                    ((ChatMessage.created_at == cursor_time) & (ChatMessage.id < cursor_id))
+                )
+            else:
+                # Backwards compat: cursor cũ là UUID — 1 lần DB lookup rồi thôi
+                cursor_stmt = select(ChatMessage.created_at).where(ChatMessage.id == cursor)
+                cursor_res = await db_session.execute(cursor_stmt)
+                cursor_time_legacy = cursor_res.scalar()
+                if cursor_time_legacy:
+                    stmt = stmt.where(ChatMessage.created_at < cursor_time_legacy)
 
         if since_id:
             since_stmt = select(ChatMessage.created_at).where(ChatMessage.id == since_id)
@@ -205,6 +255,9 @@ class ChatService:
         else:
             stmt = stmt.order_by(ChatMessage.created_at.desc())
 
+        # ═══ [Bug #1 Fix] DB-LEVEL LIMIT — Không load toàn bộ N rows vào RAM ═══
+        stmt = stmt.limit(limit + 1)  # +1 để detect has_more mà không cần count(*)
+
         res = await db_session.execute(stmt)
         rows = res.all()
 
@@ -212,8 +265,15 @@ class ChatService:
         if has_more:
             rows = rows[:limit]
 
-        messages_list: List[ChatMessageSchema] = [ChatMessageSchema.model_validate(dict(r._mapping)) for r in rows]
-        next_cursor: Optional[str] = str(messages_list[-1].id) if messages_list and not since_id else None
+        messages_list: List[ChatMessageSchema] = [
+            ChatMessageSchema.model_validate(dict(r._mapping)) for r in rows
+        ]
+
+        # Build opaque cursor từ last message
+        next_cursor: Optional[str] = None
+        if messages_list and has_more and not since_id:
+            last = messages_list[-1]
+            next_cursor = ChatService._encode_cursor(last.createdAt, str(last.id))
 
         if not since_id:
             messages_list.reverse()
@@ -235,11 +295,9 @@ class ChatService:
         user_id_query: Optional[str] = None
     ) -> SuccessResponse:
         """
-        [NUCLEAR PURGE] Absolute cleanup (DB + Redis + Logs).
+        [Bug #2 Fix] NUCLEAR PURGE — Dùng sqlalchemy.delete() thay vì delete_where() không tồn tại.
         Rule: "Sạch kin kít" - No audit trails left for this session.
-        Uses Repositories to handle tenant-aware hard deletes.
         """
-        from backend.database.repositories import ChatMessageRepository, NotificationRepository
         is_super_admin: bool = "SUPER_ADMIN" in roles
         target_user_id: Optional[str] = user_id
 
@@ -253,24 +311,24 @@ class ChatService:
                 raise HTTPException(status_code=403, detail="[SECURITY] Unauthorized: Identity mismatch for account purge.")
 
         # ═══ PHASE 1: DB PURGE (ChatMessage) ═══
-        chat_repo = ChatMessageRepository(session=db_session)
         if session_id == "account" and target_user_id:
-            # Delete all messages for user across all sessions
-            await chat_repo.delete_where(user_id=target_user_id)
+            stmt_chat = sql_delete(ChatMessage).where(ChatMessage.user_id == target_user_id)
             deleted_count = "ALL"
         else:
-            await chat_repo.delete_where(session_id=session_id)
+            stmt_chat = sql_delete(ChatMessage).where(ChatMessage.session_id == session_id)
             deleted_count = "SESSION"
+        await db_session.execute(stmt_chat)
 
         # ═══ PHASE 2: DB PURGE (Notifications) ═══
+        from backend.database.models import Notification
         if target_user_id:
-            notif_repo = NotificationRepository(session=db_session)
-            await notif_repo.delete_where(user_id=target_user_id)
+            stmt_notif = sql_delete(Notification).where(Notification.user_id == target_user_id)
+            await db_session.execute(stmt_notif)
 
         # ═══ PHASE 3: REDIS PURGE ═══
         if target_user_id:
             await xohi_memory.delete_pattern(f"xohi:chat:{target_user_id}")
-        
+
         logger.info(f"💣 [NuclearPurge] Swept {deleted_count} messages and all notifications for target={target_user_id}")
 
         # transient SSE event for the UI toast

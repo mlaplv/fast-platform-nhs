@@ -123,6 +123,9 @@
     getEditor: () => editor
   });
   let isInternalUpdating = $state(false);
+  // CNS V89: Annotation loop guard — track last dispatched key to prevent redundant SET_ANNOTATIONS
+  // CNS V93: Plain let — loop guard for annotation dispatch (plugin self-heals on doc change)
+  let _lastAnnotationKey = '';
 
   // Image Menu tracking
   let imageMenuVisible = $state(false);
@@ -197,7 +200,12 @@
       editable,
       extensions: getEditorExtensions(placeholder),
       editorProps,
-      onUpdate: () => {
+      onUpdate: ({ transaction }) => {
+        // [CNS V94 ROOT FIX] SET_ANNOTATIONS only changes decorations, NOT the doc.
+        // If doc didn't change, content couldn't have changed — skip entirely.
+        // This is the root cause of the loop: annotation dispatch triggered onUpdate
+        // which detected a "diff" due to stripMarks normalization → loop.
+        if (!transaction.docChanged) return;
         if (isInternalUpdating || isSyncLocked) return;
         const html = editor?.getHTML() ?? '';
         const cleaned = stripMarks(html);
@@ -282,14 +290,30 @@
             
             // CNS V88.6: Use setContent with emitUpdate: false to prevent feedback loops
             editor!.commands.setContent(normalizedContent, false);
-            
-            // Re-sync annotations
-            editor!.view.dispatch(
-              editor!.state.tr.setMeta(AnnotationPluginKey, {
-                type: "SET_ANNOTATIONS",
-                annotations: annotations || []
-              })
-            );
+
+            // [CNS V94 ROOT LOOP FIX] After setContent, Tiptap re-serializes HTML slightly
+            // differently (Typography, whitespace normalization). If we don't sync `content`
+            // to match what Tiptap actually stored, normalizeHTML will keep differing on
+            // every re-run → infinite setContent loop (the 253x bug).
+            // Sync content binding to Tiptap's actual output to break the loop.
+            // NOTE: Do NOT call onChange here. Content sync is Parent→Editor direction.
+            // onChange is handled exclusively by onUpdate (Editor→Parent direction).
+            const actualHTML = stripMarks(editor!.getHTML());
+            content = actualHTML;
+
+            // [CNS V94 FINAL] Re-apply annotations on new doc immediately.
+            // onUpdate has !transaction.docChanged guard → SET_ANNOTATIONS dispatch is safe.
+            const currentAnnotations = annotations || [];
+            if (currentAnnotations.length > 0) {
+              const annKey = JSON.stringify(currentAnnotations.map(a => ({ id: a.id, text: a.text?.slice(0, 50), type: a.type })));
+              _lastAnnotationKey = annKey;
+              editor!.view.dispatch(
+                editor!.state.tr.setMeta(AnnotationPluginKey, {
+                  type: 'SET_ANNOTATIONS',
+                  annotations: currentAnnotations
+                })
+              );
+            }
 
             // Re-sync selection if valid
             try { 
@@ -361,26 +385,31 @@
   });
 
   // Cerberus NEURAL XOHI: Sustainable Highlighting Sync
+  // [CNS V94] isInternalUpdating removed from here — it caused content sync to re-run
+  // every time annotations were dispatched. onUpdate checks HTML equality instead.
   $effect(() => {
     if (!editor || editor.isDestroyed) return;
-    
-    // Read annotations to establish reactive dependency
+
     const currentAnnotations = annotations || [];
-    
-    // CNS V2.2: Explicitly block onUpdate during meta-transactions
+    const newKey = JSON.stringify(currentAnnotations.map(a => ({ id: a.id, text: a.text?.slice(0, 50), type: a.type })));
+
+    console.log(`[Neural Editor] Evaluating SET_ANNOTATIONS. Annotations count: ${currentAnnotations.length}, newKey: ${newKey.substring(0, 50)}...`);
+
+    // [LOOP GUARD] Skip dispatch if annotations haven't actually changed
+    if (newKey === _lastAnnotationKey) {
+      console.log("[Neural Editor] SET_ANNOTATIONS skipped (no change).");
+      return;
+    }
+
     untrack(() => {
-      isInternalUpdating = true;
-      try {
-        editor!.view.dispatch(
-          editor!.state.tr.setMeta(AnnotationPluginKey, {
-            type: 'SET_ANNOTATIONS',
-            annotations: annotations || []
-          })
-        );
-      } finally {
-        // CNS V2.2: Immediate reset as dispatch is synchronous
-        isInternalUpdating = false;
-      }
+      console.log(`[Neural Editor] Dispatching SET_ANNOTATIONS with ${currentAnnotations.length} items.`);
+      _lastAnnotationKey = newKey;
+      editor!.view.dispatch(
+        editor!.state.tr.setMeta(AnnotationPluginKey, {
+          type: 'SET_ANNOTATIONS',
+          annotations: currentAnnotations
+        })
+      );
     });
   });
 

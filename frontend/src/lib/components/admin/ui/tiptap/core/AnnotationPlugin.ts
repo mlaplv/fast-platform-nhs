@@ -3,6 +3,7 @@ import type { EditorState, Transaction } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import type { EditorView } from '@tiptap/pm/view';
 import { Extension } from '@tiptap/core';
+import { ReplaceStep } from '@tiptap/pm/transform';
 import type { EditorAnnotation } from '$lib/types';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 
@@ -35,9 +36,7 @@ export const AnnotationPlugin = () => {
             decorations: createDecorations(newState.doc as ProseMirrorNode, meta.annotations),
           };
         }
-
-        // CNS V87.5: Rely on SET_ANNOTATIONS for full re-scans 
-        // and tr.mapping for incremental typing updates. 
+        // Map positions for typing/selection. setContent triggers SET_ANNOTATIONS from content sync.
         return {
           ...value,
           decorations: value.decorations.map(tr.mapping, tr.doc),
@@ -121,49 +120,46 @@ export const AnnotationExtension = Extension.create({
 
 /**
  * Creates DecorationSet by scanning the document for all annotation occurrences.
+ * CNS V93: Ultra-stable 1:1 Position Mapping & Overlap Merging.
  */
 function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]): DecorationSet {
   const decorations: Decoration[] = [];
   if (!annotations.length) return DecorationSet.empty;
 
-  // Rule R82.45: Position-Safe Normalization
-  // CNS V87.1: Ultra-robust matching — Normalize to NFD and strip marks to avoid Vietnamese accent mismatches
-  const isAlphaNum = (c: string) => /\p{L}|\p{N}/u.test(c);
-  const isMark = (c: string) => /\p{M}/u.test(c);
-  
-  const robustNormalize = (text: string) => {
-    return text.normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Strip all combining marks
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}]/gu, ''); // Keep only letters and numbers
+  // Simple normalization that preserves character length (essential for 1:1 map)
+  const normalizeForSearch = (text: string) => {
+    return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   };
 
-  // Elite V2.2: Build alphanumeric buffer & position map for ultra-fast scanning
+  console.log(`[AnnotationPlugin] createDecorations called with ${annotations.length} annotations.`);
+
   let searchBuffer = '';
   const posMap: number[] = [];
 
-  // 1. Build the alphanumeric buffer & position map
+  // 1. Build Search Buffer & Position Map (Ignoring Whitespace for Robust Matching)
+  // [CNS V95] Map only non-whitespace characters to ignore formatting differences.
   doc.descendants((node: ProseMirrorNode, pos: number) => {
     if (node.isText && node.text) {
       const text = node.text;
+      const normalizedText = normalizeForSearch(text);
       for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        if (isAlphaNum(char) || isMark(char)) {
-          const cleanChar = char.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-          if (cleanChar) {
-            searchBuffer += cleanChar;
-            posMap.push(pos + i);
-          }
+        // Only index non-whitespace characters
+        if (!/^\s*$/.test(normalizedText[i])) {
+          searchBuffer += normalizedText[i];
+          posMap.push(pos + i);
         }
       }
+    } else if (node.isBlock || node.type.name === 'hardBreak') {
+      // Use a special boundary character that won't match any normal word
+      searchBuffer += ' '; 
+      // Push the pos so posMap stays aligned with searchBuffer length
+      posMap.push(pos);
     }
   });
 
-  // 2. Scan for each annotation
   for (const ann of annotations) {
     if (!ann.text || ann.text.length < 3) continue;
 
-    // CNS V88.5: AI Prefix Stripping (Handles "Các mục: ", "Đoạn văn: ", etc.)
     let plainPattern = ann.text.replace(/<[^>]+>/g, '');
     const aiPrefixes = [
       /^các mục:\s*/i, /^đoạn văn:\s*/i, /^nội dung:\s*/i, /^phần:\s*/i,
@@ -173,138 +169,62 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
       plainPattern = plainPattern.replace(prefix, '');
     }
 
-    const normalizedPattern = robustNormalize(plainPattern);
-
-    if (normalizedPattern.length < 4) {
-       console.warn(`[Neural Annotation] Pattern too short: "${ann.text.slice(0, 20)}..."`);
-       continue;
-    }
+    // Strip whitespace from pattern to match the stripped buffer
+    const normalizedPattern = normalizeForSearch(plainPattern).replace(/\s/g, '');
+    if (normalizedPattern.length < 4) continue;
 
     let matchCount = 0;
     let startIdx = 0;
 
-    const pushBlockSafeDecorations = (startIdx: number, endIdx: number, baseAttrs: Record<string, string | number | boolean | undefined>) => {
-      if (startIdx > endIdx || startIdx >= posMap.length) return;
+    // Exact Match Scan using 1:1 buffer
+    while ((startIdx = searchBuffer.indexOf(normalizedPattern, startIdx)) !== -1) {
+      const endIdx = startIdx + normalizedPattern.length - 1;
       const totalFrom = posMap[startIdx];
       const totalTo = posMap[Math.min(posMap.length - 1, endIdx)] + 1;
       
-      // Elite V2.2: Use nodesBetween to correctly span across blocks without dropping
+      const severity = (ann.severity || 'medium').toLowerCase();
+      const type = (ann.type || 'unknown').toLowerCase();
+
+      const baseAttrs = {
+        class: `xohi-annotation type-${type} severity-${severity}`,
+        'data-annotation-id': `deco-${type}-${totalFrom}-${matchCount}`,
+        'data-annotation-type': type,
+        'data-annotation-message': ann.message,
+        'data-annotation-source': ann.source || '',
+        'data-annotation-severity': severity,
+        'data-from': totalFrom,
+        'data-to': totalTo
+      };
+
       doc.nodesBetween(totalFrom, totalTo, (node, pos) => {
         if (node.isText) {
           const start = Math.max(totalFrom, pos);
           const end = Math.min(totalTo, pos + node.nodeSize);
           if (start < end) {
-            // Each segment needs the FULL match range for the "Fix" feature to work
-            const attrs = {
-              ...baseAttrs,
-              'data-from': totalFrom,
-              'data-to': totalTo
-            };
-            decorations.push(Decoration.inline(start, end, attrs));
+            decorations.push(Decoration.inline(start, end, baseAttrs));
           }
         }
       });
-    };
 
-    const getAttrs = (type: string, severity: string, suffix: string = ''): Record<string, string | number | boolean | undefined> => {
-      const startPos = posMap[startIdx] || 0; // fallback just for ID
-      return {
-        class: `xohi-annotation type-${type} severity-${severity}`,
-        'data-annotation-id': `deco-${type}-${startPos}-${matchCount}${suffix}`,
-        'data-annotation-type': type,
-        'data-annotation-message': ann.message,
-        'data-annotation-source': ann.source || '',
-        'data-annotation-severity': severity
-      };
-    };
-
-    // 1. Exact Match Scan
-    while ((startIdx = searchBuffer.indexOf(normalizedPattern, startIdx)) !== -1) {
-      console.log(`[Neural Annotation] Match found for: "${ann.text.slice(0, 30)}..." at buffer index ${startIdx}`);
-      const endIdx = startIdx + normalizedPattern.length - 1;
-      const severity = (ann.severity || 'medium').toLowerCase();
-      const type = (ann.type || 'unknown').toLowerCase();
-      
-      pushBlockSafeDecorations(startIdx, endIdx, getAttrs(type, severity));
       matchCount++;
       startIdx += 1;
     }
-
-    // 2. Fuzzy/Anchor Scan (Only if no exact matches found)
-    if (matchCount === 0) {
-      console.warn(`[Neural Annotation] Failed to match pattern exactly: "${ann.text.slice(0, 30)}..." - Trying fuzzy mode.`);
-      const anchorSize = Math.min(60, Math.floor(normalizedPattern.length * 0.7));
-      const anchors = [
-        normalizedPattern.slice(0, anchorSize),
-        normalizedPattern.slice(-anchorSize),
-        normalizedPattern.slice(Math.floor(normalizedPattern.length/2) - 20, Math.floor(normalizedPattern.length/2) + 20)
-      ].filter(a => a.length >= 10);
-
-      for (const anchor of anchors) {
-        if (matchCount > 0) break;
-        let anchorIdx = 0;
-        while ((anchorIdx = searchBuffer.indexOf(anchor, anchorIdx)) !== -1) {
-          let matchLen = 0;
-          while (anchorIdx + matchLen < searchBuffer.length && matchLen < normalizedPattern.length) {
-            if (searchBuffer[anchorIdx + matchLen] === normalizedPattern[matchLen]) matchLen++;
-            else break;
-          }
-          
-          if (matchLen < anchor.length) { anchorIdx += 1; continue; }
-
-          const endIdx = anchorIdx + matchLen - 1;
-          const severity = (ann.severity || 'medium').toLowerCase();
-          const type = (ann.type || 'unknown').toLowerCase();
-          
-          startIdx = anchorIdx; 
-          pushBlockSafeDecorations(anchorIdx, endIdx, getAttrs(type, severity, '-fuzzy'));
-          matchCount++;
-          anchorIdx += 1;
-        }
-      }
-    }
-
-    // CNS V87.6: Anchor-based Recovery Fallback + Smart Endpoint Detection
-    if (matchCount === 0 && normalizedPattern.length > 20) {
-      // Attempt matching with smaller chunks of the pattern (Sliding Anchor)
-      const anchorSize = Math.min(60, Math.floor(normalizedPattern.length * 0.7));
-      const anchors = [
-        normalizedPattern.slice(0, anchorSize),
-        normalizedPattern.slice(-anchorSize),
-        normalizedPattern.slice(Math.floor(normalizedPattern.length/2) - 20, Math.floor(normalizedPattern.length/2) + 20)
-      ].filter(a => a.length >= 10);
-
-      for (const anchor of anchors) {
-        if (matchCount > 0) break;
-        let anchorIdx = 0;
-        while ((anchorIdx = searchBuffer.indexOf(anchor, anchorIdx)) !== -1) {
-          // Smart Endpoint: match character by character until mismatch
-          let matchLen = 0;
-          while (anchorIdx + matchLen < searchBuffer.length && matchLen < normalizedPattern.length) {
-            if (searchBuffer[anchorIdx + matchLen] === normalizedPattern[matchLen]) matchLen++;
-            else break;
-          }
-          
-          if (matchLen < anchor.length) { anchorIdx += 1; continue; }
-
-          const endIdx = anchorIdx + matchLen - 1;
-          const severity = (ann.severity || 'medium').toLowerCase();
-          const type = (ann.type || 'unknown').toLowerCase();
-          
-          startIdx = anchorIdx; 
-          pushBlockSafeDecorations(anchorIdx, endIdx, getAttrs(type, severity, '-fuzzy'));
-          matchCount++;
-          anchorIdx += 1;
-        }
-      }
-    }
   }
 
-  // 3. Rule R82.46: Canonical Sorting
+  // 2. Canonical Sort & Filter (CRITICAL: ProseMirror fails on invalid overlaps)
   decorations.sort((a, b) => {
     if (a.from !== b.from) return a.from - b.from;
     return a.to - b.to;
   });
 
-  return DecorationSet.create(doc, decorations);
+  // Filter out exact duplicates to prevent rendering errors
+  const finalDecorations = decorations.filter((deco, idx, self) => {
+    if (idx === 0) return true;
+    const prev = self[idx - 1];
+    return !(deco.from === prev.from && deco.to === prev.to && (deco.spec as any).class === (prev.spec as any).class);
+  });
+
+  console.log(`[Neural Annotation] Applied ${finalDecorations.length} total highlights.`);
+  return DecorationSet.create(doc, finalDecorations);
 }
+

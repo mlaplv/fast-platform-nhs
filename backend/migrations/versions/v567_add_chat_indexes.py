@@ -1,4 +1,9 @@
-"""add_chat_composite_indexes
+"""add_chat_composite_indexes — NEUTRALIZED (superseded by 386bdee21636)
+
+[Elite V2.2] Các indexes cũ dạng DESC expression đã được thay thế hoàn toàn
+bởi migration 386bdee21636 (ix_chat_user_time, ix_chat_session_time, ix_chat_deleted_at).
+Cú pháp sa.text('created_at DESC') không tương thích PostgreSQL 16 + asyncpg.
+Chain được giữ nguyên (revision/down_revision không đổi).
 
 Revision ID: v567_add_chat_indexes
 Revises: 4b451126979c
@@ -14,22 +19,14 @@ down_revision = '4b451126979c'
 branch_labels = None
 depends_on = None
 
+
 def upgrade() -> None:
-    # Composite Index for User History (account tab)
-    op.create_index(
-        'ix_chat_messages_user_id_created_at_desc',
-        'chat_messages',
-        ['user_id', sa.text('created_at DESC')],
-        postgresql_using='btree'
-    )
-    # Composite Index for Session History (widget context)
-    op.create_index(
-        'ix_chat_messages_session_id_created_at_desc',
-        'chat_messages',
-        ['session_id', sa.text('created_at DESC')],
-        postgresql_using='btree'
-    )
+    # [NEUTRALIZED] Superseded by migration 386bdee21636_add_chat_message_indexes.
+    # Indexes (ix_chat_user_time, ix_chat_session_time, ix_chat_deleted_at) are
+    # created by the authoritative migration at the end of the chain.
+    pass
+
 
 def downgrade() -> None:
-    op.drop_index('ix_chat_messages_user_id_created_at_desc', table_name='chat_messages')
-    op.drop_index('ix_chat_messages_session_id_created_at_desc', table_name='chat_messages')
+    # [NEUTRALIZED] Nothing to drop.
+    pass

@@ -104,21 +104,25 @@ class XoHiMemory(STTMemoryMixin, SystemMemoryMixin):
             logger.error(f"[XoHiMemory] Atomic Fetch Failed: {e}")
             return {"profile": {}, "ctx": {}, "stt": {}, "intent_map": {}}
 
-    async def get_recent_chat(self, user_id: str) -> List[Dict[str, JsonValue]]:
+    async def get_recent_chat(self, user_id: str, limit: int = 20) -> List[Dict[str, JsonValue]]:
+        """[Bug #6 Fix] Nhận tham số limit thay vì hardcode 10."""
         key = f"xohi:chat:{user_id}"
         try:
             if self._use_redis:
-                data = await self.client.lrange(key, 0, 9)
+                data = await self.client.lrange(key, 0, limit - 1)
                 if data: return [json.loads(m) for m in data]
         except Exception as e: logger.debug(f"[XoHiMemory] Redis chat get failed: {e}")
         return []
 
-    async def add_chat_to_cache(self, user_id: str, message: Dict[str, JsonValue], limit: int = 10):
+    async def add_chat_to_cache(self, user_id: str, message: Dict[str, JsonValue], limit: int = 20):
+        """[Bug #5 Fix] Dùng Redis pipeline — 1 round-trip thay vì 2."""
         key = f"xohi:chat:{user_id}"
         try:
             if self._use_redis:
-                await self.client.lpush(key, json.dumps(message, ensure_ascii=False))
-                await self.client.ltrim(key, 0, max(0, limit - 1))
+                async with self.client.pipeline(transaction=False) as pipe:
+                    pipe.lpush(key, json.dumps(message, ensure_ascii=False))
+                    pipe.ltrim(key, 0, max(0, limit - 1))
+                    await pipe.execute()
         except Exception as e: logger.debug(f"[XoHiMemory] Redis chat push failed: {e}")
 
     async def delete_pattern(self, pattern: str):

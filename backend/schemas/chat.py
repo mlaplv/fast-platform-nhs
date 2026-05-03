@@ -18,6 +18,18 @@ class ChatMessageSchema(BaseModel):
     def stringify_ids(cls, v):
         return str(v) if v is not None else None
 
+    @field_validator("createdAt", "updatedAt", mode="before")
+    @classmethod
+    def parse_datetime(cls, v):
+        if isinstance(v, str):
+            try:
+                if v.endswith('Z'):
+                    v = v[:-1] + '+00:00'
+                return datetime.fromisoformat(v)
+            except ValueError:
+                pass
+        return v
+
 class CreateChatMessageRequest(BaseModel):
     model_config = ConfigDict(strict=True)
     role: str  # "user" | "assistant"

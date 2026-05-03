@@ -5,6 +5,7 @@ import re
 import json
 import random
 from typing import List, Optional, Dict, Tuple
+from urllib.parse import urlparse, parse_qs, unquote, urlunparse, urlencode
 from pydantic import BaseModel, Field, field_validator, HttpUrl, JsonValue
 from pydantic_ai import Agent, RunContext
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -51,10 +52,18 @@ _AD_SNIPPET_KEYWORDS: List[str] = [
     "quảng cáo", "được tài trợ", "sponsored", "ad ·",
 ]
 _TRUSTED_ECOMMERCE: List[str] = [
+    # Tier 1: Major marketplaces
     "shopee.vn", "lazada.vn", "tiki.vn", "sendo.vn",
+    "shop.tiktok.com", "tiktokshop.com",
+    # Tier 2: Health & Beauty specialists
     "hasaki.vn", "guardian.com.vn", "watsons.vn",
+    "nhathuoclongchau.com.vn", "medicare.vn",
+    # Tier 3: General retail chains
+    "bachhoaxanh.com", "dienmayxanh.com", "thegioididong.com",
+    # Tier 4: Brand & niche stores
     "miccosmo.vn", "haligroup.vn", "maihan.vn", "sieuthilamdep.com",
-    "chotinhcuaboo.com", "xachtaynhat.net", "domy.vn"
+    "chotinhcuaboo.com", "xachtaynhat.net", "domy.vn",
+    "concung.com", "juno.vn",
 ]
 
 # [V3.3] Poison keywords that indicate the price might not be the product price
@@ -63,6 +72,18 @@ _POISON_PHRASES: List[str] = [
     "tặng kèm", "quà", "ưu đãi", "hoàn tiền", "cashback", "coupon",
     "giảm thêm", "ship chỉ"
 ]
+
+# [V3.5] Stopwords for relevance filtering (generic words that cause false matches)
+_RELEVANCE_STOPWORDS: set[str] = {
+    "giá", "bán", "mua", "chính", "hãng", "hàng", "shop", "bao", "nhiêu",
+    "tại", "việt", "nam", "online", "review", "đánh", "the", "and", "for",
+    "với", "của", "trong", "này", "sale", "hot", "deal", "best", "new",
+    "free", "ship", "nhất", "rẻ", "tốt", "2024", "2025", "2026",
+}
+
+# [V3.5] Max results per domain (allows price range discovery within same marketplace)
+_DOMAIN_QUOTA: int = 3
+
 
 def is_poisoned_context(text: str, start_idx: int, end_idx: int) -> bool:
     """[V3.3] Kiểm tra xem giá tìm thấy có nằm gần từ khóa gây nhiễu không.
@@ -103,7 +124,8 @@ def normalize_vn_price(raw: str, prefer_higher: bool = True) -> Optional[float]:
             price = float(num_str) * 1_000_000
             if not is_poisoned_context(text, m.start(), m.end()):
                 valid_prices.append(price)
-        except ValueError: pass
+        except ValueError:
+            logger.debug(f"[PriceAgent] Skipped unparseable triệu price: {m.group(0)}")
 
     for m in _VN_PRICE_BARE_LARGE.finditer(text):
         price = _parse_vn_number(m.group(1))
@@ -151,29 +173,43 @@ def _parse_vn_number(num_str: str) -> Optional[float]:
 
 
 def check_relevance(product_name: str, result_title: str) -> bool:
-    """[ELITE V3.3] Heuristic relevance check."""
+    """[ELITE V3.5] Weighted relevance check — NO hardcoded brands.
+    Uses token overlap scoring with stopword filtering and brand-length heuristics.
+    """
     p_name = product_name.lower()
     r_title = result_title.lower()
-    
-    brands = ["miccosmo", "white label", "hurry harry", "beppin body", "okurabito"]
-    for brand in brands:
-        if brand in p_name and brand in r_title:
-            return True
-            
+
+    # Quick pass: substring match (exact product name in result title)
+    if p_name in r_title:
+        return True
+
+    # Category mismatch filter (skincare context)
     skincare_keywords = ["kem", "cream", "serum", "gel", "tẩy", "dưỡng", "body", "neck", "mặt", "face"]
-    skincare_product = any(k in p_name for k in skincare_keywords)
-    
-    if skincare_product:
-        irrelevant = ["bikini", "quần", "áo", "giày", "túi", "đồ lót"]
+    if any(k in p_name for k in skincare_keywords):
+        irrelevant = ["bikini", "quần", "áo", "giày", "túi", "đồ lót", "điện thoại", "laptop", "tủ lạnh"]
         if any(irr in r_title for irr in irrelevant):
             return False
-            
-    p_words = set(re.findall(r'\w+', p_name))
-    r_words = set(re.findall(r'\w+', r_title))
-    overlap = p_words.intersection(r_words)
-    
-    significant_overlap = [w for w in overlap if len(w) > 3]
-    return len(significant_overlap) >= 1
+
+    # Token-based weighted overlap (stopword-filtered)
+    p_words = set(re.findall(r'\w+', p_name)) - _RELEVANCE_STOPWORDS
+    r_words = set(re.findall(r'\w+', r_title)) - _RELEVANCE_STOPWORDS
+
+    # Significant tokens: length > 2 chars (captures brands like "3CE", sizes like "30g")
+    p_sig = {w for w in p_words if len(w) > 2}
+    r_sig = {w for w in r_words if len(w) > 2}
+
+    if not p_sig:
+        return True  # Can't filter if product name has no significant tokens
+
+    overlap = p_sig & r_sig
+
+    # Brand-like token: >5 chars, likely a unique brand/product identifier
+    brand_overlap = [w for w in overlap if len(w) > 5]
+    if brand_overlap:
+        return True  # 1 brand-like match is sufficient
+
+    # For shorter tokens, require at least 2 matches
+    return len(overlap) >= 2
 
 def detect_ad_type(link: str, snippet: str, pagemap: Dict) -> Tuple[bool, Optional[str], str]:
     """[ELITE V3.4] Phân loại quảng cáo & Universal Tracking Cleanup.
@@ -184,8 +220,6 @@ def detect_ad_type(link: str, snippet: str, pagemap: Dict) -> Tuple[bool, Option
     link_str = str(link)
     link_lower = link_str.lower()
     snippet_lower = snippet.lower()
-    
-    from urllib.parse import urlparse, parse_qs, unquote, urlunparse, urlencode
     
     # 1. First, check if it's a Google Redirect (aclk)
     target_url = link_str
@@ -209,15 +243,10 @@ def detect_ad_type(link: str, snippet: str, pagemap: Dict) -> Tuple[bool, Option
         # Define tracking/noise parameters
         tracking_params = ['gad', 'gclid', 'gbraid', 'wbraid', 'utm_', 'gads_t_sig', 'fbclid']
         
-        # If the link HAS tracking params, it's very likely an ad (or from a campaign)
-        has_tracking = any(
-            any(tp in k.lower() for tp in tracking_params) 
-            for k in u_qs.keys()
-        )
-        
-        if has_tracking:
-            is_ad = True
-            if not ad_type: ad_type = "SHOPPING_AD" # Default for direct links with tracking
+        # [V3.5 FIX] Tracking params alone do NOT confirm ad status.
+        # Google Custom Search API returns organic results only.
+        # UTM/gclid in URLs are campaign artifacts from the destination site,
+        # not indicators of a SERP ad placement. We still clean them below.
 
         # Filter out tracking junk
         clean_qs = {
@@ -290,7 +319,7 @@ class RawSearchResult(BaseModel):
                                 normalized = normalize_vn_price(str(val))
                                 if normalized: return normalized
 
-            normalized = normalize_vn_price(self.snippet, prefer_higher=True)
+            normalized = normalize_vn_price(self.snippet, prefer_higher=False)
             if normalized:
                 return normalized
 
@@ -467,7 +496,7 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
         return "KHÔNG TÌM THẤY DỮ LIỆU."
 
     results: List[RawSearchResult] = []
-    seen_domains: set = set()
+    domain_counts: Dict[str, int] = {}
 
     for r in merged_raw:
         try:
@@ -478,14 +507,14 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
             is_ad, ad_type, unmasked_link = detect_ad_type(str(model.link), model.snippet, model.pagemap)
             
             if not is_ad:
-                # [ELITE V3.5] DOMAIN DIVERSITY FILTER (Anti-Redundancy)
-                if domain in seen_domains:
+                # [ELITE V3.5] DOMAIN QUOTA FILTER (allows multiple results per marketplace)
+                if domain_counts.get(domain, 0) >= _DOMAIN_QUOTA:
                     continue
                 
                 if not check_relevance(clean_query, model.title):
                     continue
                 
-                seen_domains.add(domain)
+                domain_counts[domain] = domain_counts.get(domain, 0) + 1
             
             results.append(model)
         except Exception:
@@ -518,7 +547,10 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
         if meta_price:
             return f"[{idx+1}] {category} | {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    GIÁ: {meta_price:,.0f} VND (Source: Google_Extract)\n"
 
-        if idx >= 5:
+        # [V3.5] Smart scrape: always deep-scrape trusted ecommerce, budget for others
+        domain_lower = (r.displayLink or "").lower()
+        is_trusted_domain = any(t in domain_lower for t in _TRUSTED_ECOMMERCE)
+        if idx >= 7 and not is_trusted_domain:
             return f"[{idx+1}] {category} | {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    GIÁ: N/A\n"
 
         try:
@@ -578,7 +610,7 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
             price_info = f"GIÁ_META: {meta_price:,.0f} VND" if meta_price else "GIÁ_META: N/A"
             return f"[{idx+1}] {category} | {r.title}\n    DOMAIN: {domain}\n    LINK: {link}\n    {price_info} (scrape_error: {str(e)[:80]})\n"
 
-    sem = asyncio.Semaphore(2)
+    sem = asyncio.Semaphore(4)
     async def limited_verify(r, i, cl):
         async with sem:
             return await neural_verify(r, i, cl)
@@ -587,7 +619,8 @@ async def get_market_results(ctx: RunContext[None], query: str) -> str:
         tasks = [limited_verify(r, i, client) for i, r in enumerate(results)]
         scan_reports = await asyncio.gather(*tasks)
 
-    valid_prices = [r.extract_metadata_price() for r in results if r.extract_metadata_price()]
+    # [V3.5 FIX] Cache extract result to avoid double parsing per result
+    valid_prices = [p for p in (r.extract_metadata_price() for r in results) if p is not None]
     avg_p = sum(valid_prices) / len(valid_prices) if valid_prices else 0
     min_p = min(valid_prices) if valid_prices else 0
     
@@ -607,10 +640,10 @@ async def scan_product_price(product_name: str) -> MarketPriceIntel:
         
         raw_results = await google_search_service.search(f"{product_name} giá bán", num=10)
         
-        prices = []
-        organic = []
-        ads = []
-        seen_domains: set = set()
+        prices: List[float] = []
+        organic: List[SearchResult] = []
+        ads: List[SearchResult] = []
+        domain_counts: Dict[str, int] = {}
 
         for r in raw_results:
             try:
@@ -634,14 +667,14 @@ async def scan_product_price(product_name: str) -> MarketPriceIntel:
                     ads.append(sr)
                     continue
                 
-                # [ELITE V3.5] DOMAIN DIVERSITY FILTER (Heuristic Mode)
-                if domain in seen_domains:
+                # [ELITE V3.5] DOMAIN QUOTA FILTER (Heuristic Mode)
+                if domain_counts.get(domain, 0) >= _DOMAIN_QUOTA:
                     continue
                 
                 if not check_relevance(product_name, res.title):
                     continue
                 
-                seen_domains.add(domain)
+                domain_counts[domain] = domain_counts.get(domain, 0) + 1
                 organic.append(sr)
                 if p: prices.append(p)
             except Exception as e:

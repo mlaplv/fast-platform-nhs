@@ -15,7 +15,7 @@ async def test_price_agent_real_reconnaissance():
         intel = await scan_product_price(product_name)
         
         assert isinstance(intel, MarketPriceIntel)
-        assert len(intel.analysis) > 20
+        assert len(intel.analysis_overview) > 20
         
         all_results = intel.ads + intel.organic_results
         

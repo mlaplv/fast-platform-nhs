@@ -23,7 +23,8 @@ fi
 # R4.1: Synchronize Database Schema
 if [ "$SKIP_MIGRATE" != "true" ]; then
     echo "🧬 [Trinity Boot] Synchronizing neural schema (Alembic)..."
-    /opt/venv/bin/alembic -c backend/alembic.ini upgrade head || echo "⚠️ Migration failed, but proceeding..."
+    # R4.1 Fix: alembic.ini ở /app/backend, phải cd vào đó trước
+    cd /app/backend && /opt/venv/bin/alembic upgrade head && cd /app || echo "⚠️ Migration failed, but proceeding..."
 else
     echo "⏭️ [Trinity Boot] Skipping migration (Already synced by Master/XOHI OS)."
 fi
@@ -53,5 +54,14 @@ if [ "$#" -eq 0 ]; then
         $RELOAD_FLAG
 else
     echo "⚡ [Trinity Boot] Executing custom command: $@"
+    # [Elite V2.2 Fix] Alembic cần chạy từ /app/backend (nơi có alembic.ini + migrations/)
+    # Detect: nếu command có 'alembic' thì cd vào /app/backend và bỏ flag '-c backend/alembic.ini'
+    if echo "$1" | grep -q "alembic"; then
+        cd /app/backend
+        # Strip '-c backend/alembic.ini' khỏi args nếu Sefsếp truyền vào
+        # vì sau khi cd, alembic.ini ở ngay CWD, không cần -c nữa
+        CLEAN_ARGS=$(echo "$@" | sed 's|-c backend/alembic.ini||g' | sed 's|-c ./backend/alembic.ini||g' | xargs)
+        exec $CLEAN_ARGS
+    fi
     exec "$@"
 fi

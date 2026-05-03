@@ -41,6 +41,14 @@ class ChatMessage(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     content: Mapped[dict[str, object]] = mapped_column(JSON)
     modality: Mapped[str] = mapped_column(String, default="text")
 
+    # [Elite V2.2 — Bug #3 Fix] Composite indexes for O(log n) history queries
+    # Pattern: Zalo/Messenger keyset pagination standard
+    __table_args__ = (
+        Index("ix_chat_user_time", "user_id", "created_at"),      # /sessions/account/messages
+        Index("ix_chat_session_time", "session_id", "created_at"), # /sessions/{id}/messages
+        Index("ix_chat_deleted_at", "deleted_at"),                 # WHERE deleted_at IS NULL
+    )
+
 class Notification(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'notifications'
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))

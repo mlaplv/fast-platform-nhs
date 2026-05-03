@@ -1,30 +1,37 @@
 import logging
 import re
 from typing import AsyncGenerator
+import importlib
+import inspect
 import edge_tts
+
+
 
 logger = logging.getLogger("api-gateway")
 
 
 async def stream_tts_public(text: str) -> AsyncGenerator[bytes, None]:
     """
-    Elite Master Stream (V4.0 - Professional Mastery)
-    Provides a single, continuous audio stream for the entire text.
-    Zero-gap, zero-fragmentation.
+    Elite Master Stream (V4.1 - Guarded Output)
+    Provides a single, continuous audio stream. Raises on empty output.
     """
     sanitized_text: str = _sanitize_text(text)
     if not sanitized_text:
+        logger.warning("[TTS-Public] Empty text after sanitization — skipping.")
         return
 
-    # Process everything in one high-performance stream
-    # R4.0: Zero-Hydration safety, direct binary stream
     communicate = edge_tts.Communicate(sanitized_text, "vi-VN-HoaiMyNeural")
+    audio_yielded: bool = False
     try:
         async for data in communicate.stream():
             if data["type"] == "audio":
+                audio_yielded = True
                 yield data["data"]
     except Exception as e:
         logger.error(f"[TTS-Public] Master Stream failed: {e}")
+
+    if not audio_yielded:
+        logger.error("[TTS-Public] No audio bytes received from edge-tts (Microsoft service may be unavailable).")
 
 
 def _sanitize_text(text: str) -> str:
@@ -42,8 +49,8 @@ def _sanitize_text(text: str) -> str:
     text = re.sub(r'<[^>]*>', '', text)
     
     # 2. Hard-cap text length (RAM protection)
-    # 3000 chars is approx 10 min of audio, safe for 4GB RAM environment.
-    text = text[:3000]
+    # 20000 chars is enough for long SEO articles, safe for streaming architecture.
+    text = text[:20000]
     
     # 3. Fix number-unit concatenation (e.g. '30g' -> '30 g')
     text = re.sub(r'(\d+)([a-zA-Z]+)', r'\1 \2', text)
