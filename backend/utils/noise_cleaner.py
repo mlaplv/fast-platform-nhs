@@ -90,8 +90,16 @@ class NoiseCleaner:
         3. Fuzzy Keywords (RapidFuzz)
         4. Semantic Audit (AI)
         """
+        # Phase 0: Validate
         if not text:
             return ""
+
+        # DEBUG DUMP
+        try:
+            with open('/app/backend/scratch/noise_clean_input.html', 'w', encoding='utf-8') as f:
+                f.write(text)
+        except Exception:
+            pass
 
         # --- LAYER 0: ARTIFACT STRIPPING ---
         text = RE_MARKDOWN_FENCES.sub('', text)
@@ -121,14 +129,81 @@ class NoiseCleaner:
         # Replacing legacy regex loops with high-performance DOM pruning
         # Run in thread to avoid blocking event loop on large HTML (Optimization R23)
         if not strip_html and ('<' in cleaned_text and '>' in cleaned_text):
+            cleaned_text = self._global_artifact_dedup(cleaned_text)
             cleaned_text = await asyncio.to_thread(self._structural_tree_pruning, cleaned_text, options)
 
         # Phase 76.96: Newline Normalization
         if strip_html:
             cleaned_text = re.sub(r'\n\s*\n', '\n\n', cleaned_text)
+        else:
+            # Collapse consecutive <br> tags left by pruning
+            cleaned_text = re.sub(r'(?i)(<br\s*/?>\s*){2,}', '<br>', cleaned_text)
 
         logger.debug(f"[Noise Shield] Finished Expert polish in {time.time() - start_time:.4f}s")
         return unicodedata.normalize('NFC', cleaned_text.strip())
+
+    def _global_artifact_dedup(self, html_str: str) -> str:
+        """
+        Phase 88.7: Global DOM-Level Artifact Deduplication (Elite V2.3).
+        Uses lxml DOM traversal to accurately find and drop duplicate text blocks
+        regardless of their wrapping tag (figcaption, p, div, etc.).
+        Media elements (img, video, iframe) are NEVER removed.
+        """
+        BLOCK_TAGS = {'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                      'li', 'blockquote', 'figcaption', 'td', 'th', 'dt', 'dd', 'figure'}
+        MEDIA_TAGS = {'img', 'video', 'audio', 'iframe', 'canvas', 'svg', 'picture'}
+
+        def _has_media(el) -> bool:
+            for tag in MEDIA_TAGS:
+                if el.find('.//' + tag) is not None:
+                    return True
+            return False
+
+        def _extract_text(el) -> str:
+            return re.sub(r'\s+', ' ', ''.join(el.itertext())).strip().lower()
+
+        try:
+            # Wrap in a div to ensure we can iterate over top-level fragments
+            root = html.fragment_fromstring(f"<div>{html_str}</div>", create_parent=False)
+        except Exception:
+            return html_str
+
+        seen: set = set()
+        to_drop: list = []
+
+        # Iterate ONLY over top-level children of our wrapper
+        for el in root.getchildren():
+            # Never touch elements containing media at this level
+            if _has_media(el):
+                # Still register their text to catch downstream duplicates
+                txt = _extract_text(el)
+                if len(txt) > 30:
+                    seen.add(txt)
+                continue
+
+            tag = el.tag if isinstance(el.tag, str) else ''
+            if tag not in BLOCK_TAGS:
+                continue
+
+            txt = _extract_text(el)
+            if len(txt) <= 30:
+                continue
+
+            if txt in seen:
+                logger.info(f"🛡️ [Noise Shield] Dropping DOM artifact: {txt[:60]}...")
+                to_drop.append(el)
+            else:
+                seen.add(txt)
+
+        for el in to_drop:
+            parent = el.getparent()
+            if parent is not None:
+                parent.remove(el)
+
+        result = html.tostring(root, encoding='unicode')
+        # Strip the wrapper <div> we added
+        result = re.sub(r'^<div>(.*)</div>$', r'\1', result, flags=re.DOTALL)
+        return result
 
     def _structural_tree_pruning(self, html_content: str, options: Optional[Dict] = None) -> str:
         """
@@ -154,9 +229,10 @@ class NoiseCleaner:
             # Tags that always count as content (void tags or media)
             whitelisted = {
                 'img', 'iframe', 'embed', 'video', 'audio', 'canvas', 'svg',
-                'input', 'button', 'hr'
+                'input', 'button', 'hr', 'br'
             }
-            # Note: 'br' is removed from whitelisted because we want to prune containers that only have <br>
+            # Note: 'br' is now in whitelisted to prevent line breaks from being stripped, 
+            # but we explicitly ignore it when checking if a container is effectively empty.
 
             # Wrap in a div to handle fragments correctly
             fragment = html.fragment_fromstring(f"<div>{html_content}</div>", create_parent=False)
@@ -218,14 +294,7 @@ class NoiseCleaner:
                             if child.tag in whitelisted or child.tag in containers:
                                 has_content = True
                                 break
-                            # BR is special: keep it only if it's a direct child of the root (standalone line)
-                            if child.tag == 'br' and element.getparent() == fragment:
-                                has_content = True
-                                break
                     elif tag in whitelisted:
-                        has_content = True
-                    elif tag == 'br' and element.getparent() == fragment:
-                        # Keep standalone BRs at top level
                         has_content = True
 
                 # 3. Aggressive Container Guard: If it's a container, and it ONLY contains <br> or whitespace, prune it.
@@ -241,9 +310,14 @@ class NoiseCleaner:
                     # Children check
                     if is_effectively_empty:
                         for child in element:
-                            if child.tag in whitelisted or (child.tag in containers and child.getparent() == element):
+                            if child.tag in whitelisted and child.tag != 'br':
+                                is_effectively_empty = False
+                                break
+                            elif child.tag in containers and child.getparent() == element:
                                 # If the child is a container, it must have survived pruning (meaning it has content)
-                                # UNLESS it was a BR.
+                                is_effectively_empty = False
+                                break
+                            if child.tail and re.sub(r'\s+', '', child.tail.replace('\u00A0', '').replace('\u200B', '').replace('\uFEFF', '').replace('&nbsp;', '')):
                                 is_effectively_empty = False
                                 break
 
@@ -262,9 +336,36 @@ class NoiseCleaner:
                                 parent.text = (parent.text or "") + element.tail
                         parent.remove(element)
 
+            # 3.5 Intra-Block Duplicate Child Pruner (Fix for 5x copies of inline tags)
+            if dedup:
+                for block in fragment.iter():
+                    if block.tag in ('p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'figure', 'figcaption'):
+                        to_remove = []
+                        last_child = None
+                        for child in block:
+                            if child.tag == 'br': continue
+                            
+                            if last_child is not None and child.tag == last_child.tag and child.tag not in ('img', 'iframe', 'video', 'audio'):
+                                curr_text = "".join(child.itertext()).strip()
+                                prev_text = "".join(last_child.itertext()).strip()
+                                
+                                if len(curr_text) > 30 and curr_text == prev_text:
+                                    to_remove.append(child)
+                                    # Find any <br> between last_child and child
+                                    prev = child.getprevious()
+                                    while prev is not None and prev != last_child:
+                                        if prev.tag == 'br': to_remove.append(prev)
+                                        prev = prev.getprevious()
+                                    continue
+                            last_child = child
+                            
+                        for el in to_remove:
+                            if el.getparent() is not None:
+                                el.drop_tree()
+
             # 4. Neural Deduplication (Checklist)
             if dedup:
-                dedup_tags = ('p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li')
+                dedup_tags = ('p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'div', 'blockquote', 'figure', 'figcaption')
                 all_blocks = [el for el in list(fragment.iter()) if el.tag in dedup_tags]
                 
                 blocks = []
