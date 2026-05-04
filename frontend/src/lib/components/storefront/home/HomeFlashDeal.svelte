@@ -435,13 +435,13 @@
   }
 
   @keyframes hot-pulse {
-    from { box-shadow: 0 0 2px #EE4D2D; }
-    to { box-shadow: 0 0 8px #EE4D2D; }
+    from { box-shadow: 0 0 4px #EE4D2D, inset 0 0 0 transparent; }
+    to { box-shadow: 0 0 12px #EE4D2D, inset 0 0 8px rgba(255,255,255,0.2); }
   }
 
   .sold-text.is-hot-text {
-    color: #EE4D2D;
-    text-shadow: none;
+    color: white; /* Elite V2.2: Keep white for maximum contrast on dark orange bar */
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4), 0 0 12px rgba(255,255,255,0.3);
     animation: shiver-text 0.2s infinite;
   }
 

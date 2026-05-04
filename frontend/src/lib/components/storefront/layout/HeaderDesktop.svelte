@@ -38,7 +38,7 @@
 
 <header class="sticky top-0 w-full z-[var(--z-header)] bg-white border-b border-gray-100 shadow-[0_4px_30px_rgba(0,0,0,0.02)]">
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0">
-    <!-- Top Navbar - Micsmo Elite 2026 -->
+    <!-- Top Navbar - osmo Elite 2026 -->
     <div class="flex items-center justify-between h-[28px] text-[11px] text-gray-500 border-b border-gray-50 bg-gray-50/30 -mx-4 px-4 xl:-mx-0 xl:px-0">
       <div class="flex items-center space-x-3">
         <a href="/track" class="hover:text-luxury-copper transition-colors font-medium">Kiểm tra đơn</a>
@@ -122,7 +122,7 @@
         <div class="flex shrink-0 items-center">
           <a href="/" class="flex flex-col group transition-all active:scale-95">
             <span class="text-2xl font-black tracking-[0.22em] uppercase leading-none bg-gradient-to-r from-luxury-copper via-luxury-peach to-luxury-copper bg-clip-text text-transparent drop-shadow-sm group-hover:tracking-[0.25em] transition-all duration-700">
-                MICSMO
+                osmo
             </span>
             <span class="text-[9px] font-black tracking-[0.11em] text-gray-400 uppercase mt-1.5 px-0.5 whitespace-nowrap border-t border-gray-100/50 pt-1">
                 Bật tông trắng sáng

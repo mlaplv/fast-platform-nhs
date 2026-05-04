@@ -389,7 +389,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6">
               <div>
                 <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-semibold text-white tracking-tighter uppercase mb-2 whitespace-nowrap pt-2">PHÁC ĐỒ ĐIỀU TRỊ</h3>
-                <p class="text-luxury-copper/60 font-semibold text-[10px] tracking-[0.4em] uppercase">Kiến tạo bởi Trí tuệ Nhân tạo MICSMO 2026</p>
+                <p class="text-luxury-copper/60 font-semibold text-[10px] tracking-[0.4em] uppercase">Kiến tạo bởi Trí tuệ Nhân tạo osmo 2026</p>
               </div>
               <div class="flex items-center gap-4">
                 <div class="text-right hidden md:block">
@@ -463,7 +463,7 @@
         </div>
       </div>
       <h4 class="text-xl font-semibold text-white mb-2 tracking-[0.2em] uppercase italic opacity-80">ĐANG QUÉT SINH HỌC</h4>
-      <p class="text-luxury-copper/30 font-medium uppercase tracking-[0.4em] text-[10px] animate-pulse">KHỞI TẠO TRÍ TUỆ MICSMO 2026...</p>
+      <p class="text-luxury-copper/30 font-medium uppercase tracking-[0.4em] text-[10px] animate-pulse">KHỞI TẠO TRÍ TUỆ osmo 2026...</p>
     </div>
   {/if}
 </div>

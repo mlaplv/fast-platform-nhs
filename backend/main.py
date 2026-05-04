@@ -90,9 +90,9 @@ logger = logging.getLogger("api-gateway")
 
 # CORS configs (Rule R4: Zero-Trust)
 allowed_origins = [
-    os.getenv("ADMIN_URL", "https://admin.micsmo.com"),
-    os.getenv("API_URL", "https://api.micsmo.com"),
-    os.getenv("APP_URL", "https://micsmo.com")
+    os.getenv("ADMIN_URL", "https://admin.osmo.vn"),
+    os.getenv("API_URL", "https://api.osmo.vn"),
+    os.getenv("APP_URL", "https://osmo.vn")
 ]
 cors_origins_str = os.getenv("BACKEND_CORS_ORIGINS")
 if cors_origins_str:

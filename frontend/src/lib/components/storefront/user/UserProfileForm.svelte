@@ -336,7 +336,7 @@
         {isSaving ? 'Đang lưu hồ sơ...' : 'Lưu thay đổi'}
       </span>
     </button>
-    <p class="text-[9px] text-stone-300 uppercase tracking-widest">Mọi thông tin được bảo mật bởi Micsmo Elite</p>
+    <p class="text-[9px] text-stone-300 uppercase tracking-widest">Mọi thông tin được bảo mật bởi osmo Elite</p>
   </div>
 </div>
 

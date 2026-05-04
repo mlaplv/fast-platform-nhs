@@ -32,7 +32,6 @@ from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative
 from backend.constants.infra import HELEN_FOLLOW_UP_TRIGGER
 from backend.database.alchemy_config import alchemy_config
-from backend.services.commerce.constants.support_config import support_cfg
 from backend.services.event_bus import event_bus
 from backend.services.xohi_memory import xohi_memory
 from backend.utils.security import GeminiSecurity
@@ -65,7 +64,7 @@ _support_ai_agent: Agent[SupportAgentDeps, AgenticSupportResponse] = Agent(
     output_type=AgenticSupportResponse,
     retries=1, 
     system_prompt=(
-        "Bạn là Helen - Senior Beauty Architect tại Micsmo.\n"
+        "Bạn là Helen - Senior Beauty Architect tại osmo.\n"
         "BẢN SẮC & PHONG THÁI:\n"
         "1. KIẾN TRÚC SƯ SẮC ĐẸP: Bạn không bán hàng, bạn thiết kế giải pháp chăm sóc da khoa học. Luôn dùng kiến thức chuyên môn (thành phần, cơ chế) để thuyết phục.\n"
         "   - ĐẶC BIỆT: Với dòng Beppin, hãy nhấn mạnh **Công nghệ Nano-penetration (thẩm thấu vi hạt)** giúp không bết dính và hiệu quả trắng sáng sau 14 ngày.\n"

@@ -22,7 +22,7 @@ from backend.services.signal_center import signal_center
 
 logger = logging.getLogger("api-gateway")
 
-SECRET_KEY = os.environ.get("ENCRYPTION_SALT", "Micsmo_Elite_Standard_Salt_2026") # R00: Consistent SSOT Key
+SECRET_KEY = os.environ.get("ENCRYPTION_SALT", "osmo_Elite_Standard_Salt_2026") # R00: Consistent SSOT Key
 ALGORITHM = "HS256"
 
 class AuthService:
@@ -149,7 +149,7 @@ class AuthService:
         avatar = profile.get("avatar", "")
         # Nếu provider không cấp email (như Zalo), ta sinh email ảo
         if not email:
-            email = f"user_{uuid.uuid4().hex[:8]}@social.micsmo.com"
+            email = f"user_{uuid.uuid4().hex[:8]}@social.osmo"
             
         stmt = (
             select(User)
@@ -307,7 +307,7 @@ class AuthService:
             user = User(
                 id=user_id,
                 username=identifier,
-                email=identifier if "@" in identifier else f"{identifier}@micsmo.com",
+                email=identifier if "@" in identifier else f"{identifier}@osmo",
                 phone=identifier if "@" not in identifier else None,
                 name=str(data.get("name") or identifier.split("@")[0]),
                 status="ACTIVE",

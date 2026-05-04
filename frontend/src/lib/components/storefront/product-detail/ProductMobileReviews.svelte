@@ -201,7 +201,7 @@
         </div>
       </div>
 
-      <div class="review-content prose-micsmo-mini">
+      <div class="review-content prose-osmo-mini">
         {@html review.content}
       </div>
 
@@ -260,5 +260,5 @@
 
   .btn-discover { color: white; font-size: 10px; font-weight: 900; padding: 6px 12px; border-radius: 4px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(193, 143, 126, 0.2); }
 
-  :global(.prose-micsmo-mini p) { margin: 0 !important; }
+  :global(.prose-osmo-mini p) { margin: 0 !important; }
 </style>

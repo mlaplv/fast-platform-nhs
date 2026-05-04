@@ -129,7 +129,7 @@
         <div class="flex items-center justify-center gap-2 mt-8 opacity-60">
           <div class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
           <p class="text-[10px] text-gray-400 text-center font-bold tracking-widest uppercase">
-            Micsmo Intelligence // Đảm bảo mọi đánh giá đều trung thực
+            osmo Intelligence // Đảm bảo mọi đánh giá đều trung thực
           </p>
         </div>
       </div>

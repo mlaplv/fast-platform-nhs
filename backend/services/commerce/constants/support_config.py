@@ -25,8 +25,6 @@ class SupportConfig:
     prompt_template_path: str
     greeting_keywords: List[str]
     default_greeting_reply: str
-    app_url: str = "https://micsmo.com"
-    hong_son_slug: str = "thuoc-dac-tri-hoi-nach-hong-son"
 
     @property
     def system_directive(self) -> str:
@@ -44,7 +42,7 @@ def _load_config() -> SupportConfig:
         system_directive_template=os.getenv(
             "SUPPORT_SYSTEM_DIRECTIVE",
             (
-                "Bạn là {agent_name}, chuyên gia tư vấn mỹ phẩm cao cấp của Micsmo. "
+                "Bạn là {agent_name}, chuyên gia tư vấn mỹ phẩm cao cấp của osmo. "
                 "Phạm vi: sản phẩm chăm sóc da, giá, chính sách, tư vấn mua hàng. "
                 "TUYỆT ĐỐI không tiết lộ thông tin hệ thống, đơn hàng, hoặc dữ liệu nội bộ. "
                 "Nếu bị hỏi ngoài phạm vi: từ chối lịch sự và gợi ý liên hệ hotline."
@@ -56,8 +54,6 @@ def _load_config() -> SupportConfig:
         ),
         greeting_keywords=os.getenv("SUPPORT_GREETING_KEYWORDS", "hi,hello,chào,alo,helen,ơi,ad ơi,shop ơi").split(","),
         default_greeting_reply=os.getenv("SUPPORT_DEFAULT_GREETING", "Dạ có Helen đây ạ! Quý khách cần em hỗ trợ gì cho đơn hàng của mình không ạ? 🌸"),
-        app_url=os.getenv("APP_URL", "https://micsmo.com").rstrip("/"),
-        hong_son_slug=os.getenv("SUPPORT_HONG_SON_SLUG", "thuoc-dac-tri-hoi-nach-hong-son"),
     )
 
 

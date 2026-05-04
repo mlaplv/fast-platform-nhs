@@ -99,7 +99,7 @@ class SupportAgentState {
     helenEnabled = $state(true);
     offlineMessage = $state("");
     optimalPriceNotice = $state(false);
-    
+
     // Elite V2.2: Context & Pulse Intelligence
     currentPath = $state("");
     currentProductName = $state(""); // Elite V6.3: Track current product name for greeting
@@ -110,8 +110,8 @@ class SupportAgentState {
         if (!this.currentPath) return "default";
         if (this.currentPath === "/" || this.currentPath === "") return "home";
         // Handle both clean URLs and potential product prefixes
-        if (this.currentPath.includes("-sua-rua-mat-") || 
-            this.currentPath.includes("-kem-duong-") || 
+        if (this.currentPath.includes("-sua-rua-mat-") ||
+            this.currentPath.includes("-kem-duong-") ||
             this.currentPath.includes("-serum-") ||
             this.currentPath.split("/").length >= 2 && this.currentPath.length > 20) {
             return "product";
@@ -120,41 +120,41 @@ class SupportAgentState {
         if (this.currentPath.startsWith("/checkout")) return "checkout";
         return "default";
     });
-    
+
     // Pulse Lifecycle Manager
     private _pulseSource: EventSource | null = null;
 
-    
+
     // Elite V3.1/V6.3: Persona Intelligence — Dynamic Welcome Based on Identity & Context
     welcomeMessage = $derived.by(() => {
         const user = authStore.user;
         const agentName = this.config.agentName || "Helen";
         const isProductPage = this.currentContext === "product";
         const pName = this.currentProductName;
-        
+
         if (!this.helenEnabled) {
             return this.offlineMessage || "Chào mừng Quý khách! Hiện tại em đang tạm nghỉ, chuyên viên trực sẽ sớm hỗ trợ mình qua Zalo OA ạ. 🌸";
         }
 
         const nameLabel = user?.name || "mình";
-        const greeting = user?.name ? `Dạ Helen chào ${user.name}!` : `Chào mừng Quý khách đến với Micsmo!`;
+        const greeting = user?.name ? `Dạ Helen chào ${user.name}!` : `Chào mừng Quý khách đến với osmo!`;
 
         if (isProductPage) {
             const prodHook = pName ? `siêu phẩm **${pName}**` : "sản phẩm này";
-            return `${greeting} Rất vui được gặp lại mình. Em thấy mình đang quan tâm đến ${prodHook} - đây là dòng sản phẩm cao cấp nhà Micsmo đó ạ. ${nameLabel} có muốn Helen tư vấn kỹ hơn không? ✨💄`;
+            return `${greeting} Rất vui được gặp lại mình. Em thấy mình đang quan tâm đến ${prodHook} - đây là dòng sản phẩm cao cấp nhà osmo đó ạ. ${nameLabel} có muốn Helen tư vấn kỹ hơn không? ✨💄`;
         }
 
         if (user?.name) {
             return `Dạ Helen chào ${user.name}! Rất vui được gặp lại mình. Helen đang đợi để chăm sóc làn da của mình đây ạ. ${user.name} muốn nhận ưu đãi đặc quyền gì hôm nay không? ✨💄`;
         }
 
-        return `Chào mừng Quý khách đến với Micsmo! Mình là ${agentName}, chuyên gia tư vấn làn da thủy tinh (Glass Skin). Quý khách cần mình giúp gì ạ? 🌸`;
+        return `Chào mừng Quý khách đến với osmo! Mình là ${agentName}, chuyên gia tư vấn làn da thủy tinh (Glass Skin). Quý khách cần mình giúp gì ạ? 🌸`;
     });
 
     // Config initialized once
     public config: SupportConfig = {
         agentName: "Helen",
-        welcomeMessage: "" 
+        welcomeMessage: ""
     };
 
     constructor() {
@@ -199,7 +199,7 @@ class SupportAgentState {
     private _mergeMessages(newMsgs: SupportMessage[]) {
         const existingIds = new Set(this.messages.map(m => m.id));
         const filtered = newMsgs.filter(m => !existingIds.has(m.id));
-        
+
         if (filtered.length > 0) {
             // Sort combined set by timestamp to maintain chronological integrity
             const combined = [...this.messages, ...filtered];
@@ -308,7 +308,7 @@ class SupportAgentState {
                 session_id: this._sessionId,
                 limit
             };
-            
+
             // Only attach cursor if we actually have messages
             if (firstMsgId) {
                 params.before_id = firstMsgId;
@@ -354,7 +354,7 @@ class SupportAgentState {
         if (this.isOpen) {
             // Re-sync with backend to catch Admin changes without refresh
             await this.fetchStatus();
-            
+
             // Proactive rehydration on open (The Fix)
             await this.ensureHistoryLoaded();
 
@@ -370,7 +370,7 @@ class SupportAgentState {
             this.isOpen = true;
             await this.fetchStatus();
             await this.ensureHistoryLoaded();
-            
+
             if (!this.helenEnabled) {
                 this.config.agentName = "Chuyên viên Tư vấn";
             }
@@ -398,7 +398,7 @@ class SupportAgentState {
                 if (data.status === "DONE" && data.reply) {
                     const messages = [...this.messages];
                     const lastAssistantIdx = messages.findLastIndex(m => m.role === "assistant");
-                    
+
                     if (lastAssistantIdx !== -1) {
                         messages[lastAssistantIdx] = {
                             ...messages[lastAssistantIdx],
@@ -408,20 +408,20 @@ class SupportAgentState {
                         };
                         this.messages = messages;
                     }
-                    
+
                     console.log("🧩 [Helen Pulse] Received Response:", data);
-                
-                if (data.ui_metadata) {
-                    console.log("📊 [Helen UI Meta] Pulse Metadata:", data.ui_metadata);
-                    if (data.ui_metadata.is_optimal_price !== undefined) {
-                        this.optimalPriceNotice = data.ui_metadata.is_optimal_price;
+
+                    if (data.ui_metadata) {
+                        console.log("📊 [Helen UI Meta] Pulse Metadata:", data.ui_metadata);
+                        if (data.ui_metadata.is_optimal_price !== undefined) {
+                            this.optimalPriceNotice = data.ui_metadata.is_optimal_price;
+                        }
+                        if (data.ui_metadata.order_draft) {
+                            console.log("📝 [Order Draft] Current State:", data.ui_metadata.order_draft);
+                        }
                     }
-                    if (data.ui_metadata.order_draft) {
-                        console.log("📝 [Order Draft] Current State:", data.ui_metadata.order_draft);
-                    }
-                }
                     if (data.metadata) console.log("🧠 [Helen Thoughts]:", data.metadata);
-                    
+
                     this.vibrate([10, 50, 10]);
                     this.isTyping = false;
                     this._disconnectPulse();
@@ -439,7 +439,7 @@ class SupportAgentState {
                 if (data.message_id) {
                     const messages = [...this.messages];
                     const msgIdx = messages.findIndex(m => m.id === data.message_id);
-                    
+
                     if (msgIdx !== -1) {
                         // V2.2: Apply revocation state immediately
                         messages[msgIdx] = {
@@ -487,12 +487,12 @@ class SupportAgentState {
     }
 
     async sendMessage(
-        text: string, 
-        productSlug?: string, 
-        customerName?: string, 
-        customerPhone?: string, 
-        userId?: string, 
-        cartItems?: Array<{ product_id: string; quantity: number; [key: string]: unknown }>, 
+        text: string,
+        productSlug?: string,
+        customerName?: string,
+        customerPhone?: string,
+        userId?: string,
+        cartItems?: Array<{ product_id: string; quantity: number;[key: string]: unknown }>,
         selectedVouchers?: string[],
         pricingContext?: SupportPricingContext
     ) {
@@ -533,7 +533,7 @@ class SupportAgentState {
                         timestamp: new Date()
                     }
                 ];
-                
+
                 console.log("🧩 [Helen Chat] Received Response:", res);
                 if (res.metadata) console.log("🧠 [Helen Thoughts]:", res.metadata);
                 if (res.ui_metadata) console.log("📊 [Helen UI Meta]:", res.ui_metadata);

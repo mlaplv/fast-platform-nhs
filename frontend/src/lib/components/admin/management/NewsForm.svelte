@@ -132,7 +132,7 @@
   let socialPreviewTab = $state<'facebook' | 'twitter'>('facebook');
   const ogTitle = $derived(formSeoTitle || formTitle || 'Tiêu đề bài viết');
   const ogDesc = $derived(formSeoDescription || formExcerpt || 'Mô tả ngắn gọn về bài viết...');
-  const ogUrl = $derived(`micsmo.com/${formSlug || 'slug-bai-viet'}.p${editingId || 'pid'}`);
+  const ogUrl = $derived(`osmo/${formSlug || 'slug-bai-viet'}.p${editingId || 'pid'}`);
   const ogImg = $derived(formSeoOgImage ? resolveMediaUrl(formSeoOgImage) : (formFeaturedImage ? resolveMediaUrl(formFeaturedImage) : null));
   const isSlugLocked = $derived(formStatus === 'PUBLISHED' && !!editingId);
 
@@ -570,7 +570,7 @@
                   </div>
                 {/if}
                 <div class="p-4 flex flex-col gap-1">
-                  <span class="text-[9px] text-[#b0b3b8] uppercase tracking-widest truncate">micsmo.com</span>
+                  <span class="text-[9px] text-[#b0b3b8] uppercase tracking-widest truncate">osmo</span>
                   <div class="text-sm font-bold text-[#e4e6eb] line-clamp-2 leading-snug">{ogTitle}</div>
                   <div class="text-[11px] text-[#b0b3b8] line-clamp-2">{ogDesc}</div>
                 </div>

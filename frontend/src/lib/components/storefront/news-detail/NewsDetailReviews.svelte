@@ -149,7 +149,7 @@
       await apiClient.post('/client/reviews', {
         entity_type: 'NEWS',
         entity_id: articleId,
-        customer_name: authStore.user?.name || 'Khách Micsmo',
+        customer_name: authStore.user?.name || 'Khách osmo',
         rating: newRating,
         content: newContent,
         attributes: Object.fromEntries(Object.entries(newAttributes).filter(([k, v]) => v !== '')),

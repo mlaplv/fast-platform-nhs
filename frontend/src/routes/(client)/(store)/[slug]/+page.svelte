@@ -26,7 +26,7 @@
   let { data }: { data: PageData } = $props();
   const ui = getClientUi();
 
-  const siteUrl = "https://micsmo.com";
+  const siteUrl = "https://osmo";
 
   // Elite V2.2: Dynamic Layout Sync (Viral 2026 Protocol)
   $effect.pre(() => {
@@ -83,8 +83,8 @@
   const categoryCanonical = $derived(`${siteUrl}/${data.categorySlug}/`);
   const categoryDescription = $derived(
     data.type === 'category'
-      ? `Khám phá ${data.categoryName} chính hãng tại Micsmo Elite. ${data.serverTotal || data.items?.length || 0} sản phẩm, cam kết chất lượng.`
-      : `${data.categoryName} - Hướng dẫn và kiến thức sức khỏe tại Micsmo Elite.`
+      ? `Khám phá ${data.categoryName} chính hãng tại osmo Elite. ${data.serverTotal || data.items?.length || 0} sản phẩm, cam kết chất lượng.`
+      : `${data.categoryName} - Hướng dẫn và kiến thức sức khỏe tại osmo Elite.`
   );
   const categoryBreadcrumbLd = $derived(
     (data.type === 'category' || data.type === 'news')
@@ -119,8 +119,8 @@
           url: `${siteUrl}/${data.article.slug}`,
           image: data.article.featured_image || "",
           datePublished: data.article.created_at || new Date().toISOString(),
-          author: data.article.author || "Micsmo Elite",
-          publisherName: "Micsmo Elite",
+          author: data.article.author || "osmo Elite",
+          publisherName: "osmo Elite",
         })
       : ""
   );
@@ -148,7 +148,7 @@
       canonical={categorySeoMeta.canonical_url}
       ogImage={data.category?.image || ""}
       keywords={categorySeoMeta.keywords}
-      siteName="Micsmo Elite"
+      siteName="osmo Elite"
       jsonLdScripts={[
         categorySeoMeta.json_ld_string,
         categorySeoMeta.breadcrumb_ld_string,
@@ -157,10 +157,10 @@
     />
   {:else}
     <SeoHead
-      title="{data.categoryName} | Micsmo Elite"
+      title="{data.categoryName} | osmo Elite"
       description={categoryDescription}
       canonical={categoryCanonical}
-      siteName="Micsmo Elite"
+      siteName="osmo Elite"
       jsonLdScripts={[
         categoryBreadcrumbLd, 
         categoryLd,
@@ -179,7 +179,7 @@
       ogImage={data.article.featured_image || ""}
       ogImageAlt={data.article.title}
       keywords={articleSeoMeta.keywords}
-      siteName="Micsmo Elite"
+      siteName="osmo Elite"
       jsonLdScripts={[
         articleSeoMeta.json_ld_string,
         articleSeoMeta.breadcrumb_ld_string,
@@ -188,13 +188,13 @@
     />
   {:else}
     <SeoHead
-      title="{data.article.title} | Micsmo Elite"
+      title="{data.article.title} | osmo Elite"
       description={truncateDescription(data.article.excerpt || "")}
       canonical="{siteUrl}/{data.article.slug}"
       ogType="article"
       ogImage={data.article.featured_image || ""}
       ogImageAlt={data.article.title}
-      siteName="Micsmo Elite"
+      siteName="osmo Elite"
       jsonLdScripts={[articleLd, articleBreadcrumbLd]}
     />
   {/if}
@@ -209,7 +209,7 @@
     ogImage={data.product?.images?.[0] || ""}
     ogImageAlt={productSeoMeta.title}
     keywords={productSeoMeta.keywords}
-    siteName="Micsmo Elite"
+    siteName="osmo Elite"
     jsonLdScripts={[
       productSeoMeta.json_ld_string,
       productSeoMeta.breadcrumb_ld_string,
@@ -220,10 +220,10 @@
 {:else if isStandardProduct}
   <!-- Product Detail fallback (no seoMeta from backend) -->
   <SeoHead
-    title="{data.product?.name || 'Sản phẩm'} | Micsmo"
-    description={data.product?.short_description || data.product?.name || "Sản phẩm chính hãng tại Micsmo Elite."}
+    title="{data.product?.name || 'Sản phẩm'} | osmo"
+    description={data.product?.short_description || data.product?.name || "Sản phẩm chính hãng tại osmo Elite."}
     canonical="{siteUrl}/{data.product?.slug || ''}"
-    siteName="Micsmo Elite"
+    siteName="osmo Elite"
   />
 
 {:else if data.type === 'product'}

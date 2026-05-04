@@ -35,18 +35,18 @@ function parseJwt(token: string): JwtPayload | null {
 
 export const handle: Handle = async ({ event, resolve }) => {
   const userAgent = event.request.headers.get("user-agent") || "";
-  
+
   // Elite V2.2: Defense-in-depth hostname resolution.
   // Ưu tiên X-Forwarded-Host (do Caddy set) > Host header > event.url.hostname (raw).
   // Mục đích: Đảm bảo tenant detection đúng ngay cả khi SvelteKit nhận hostname container nội bộ.
   const rawHostname =
     (event.request.headers.get("x-forwarded-host") || event.request.headers.get("host") || event.url.hostname)
-      .split(":")[0] // Strip port nếu có (e.g. "admin.micsmo.com:3000" → "admin.micsmo.com")
+      .split(":")[0] // Strip port nếu có (e.g. "admin.osmo:3000" → "admin.osmo")
       .toLowerCase()
       .trim();
   const hostname = rawHostname;
   const adminDomain = ServerEnv.ADMIN_DOMAIN;
-  
+
   // 1. Identify Tenant (STRICT Matching for Elite V2.2)
   // Logic: Exactly equals admin domain OR starts with admin. if on local/internal proxy
   const isAdminHost = hostname === adminDomain || (ServerEnv.isLocal(hostname) && event.url.searchParams.has('admin'));
@@ -99,7 +99,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         throw redirect(308, `https://${targetHost}${event.url.pathname}${event.url.search}`);
       }
       // Security Fix: /login KHÔNG thuộc storefront. Redirect sang admin domain.
-      // micsmo.com/login phải → admin.micsmo.com/login (không được render admin UI trên storefront domain)
+      // osmo/login phải → admin.osmo/login (không được render admin UI trên storefront domain)
       if (event.url.pathname === "/login") {
         throw redirect(308, `https://${adminDomain}/login`);
       }
@@ -108,8 +108,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   // Protection logic: Admin tenant ONLY (Storefront is ALWAYS PUBLIC)
   if (event.locals.tenant === "admin" && event.url.pathname !== "/login") {
-    const isAdmin = event.locals.user?.roles?.some((r: string) => ["ADMIN", "SUPER_ADMIN"].includes(r)) || 
-                    event.locals.user?.role === "ADMIN";
+    const isAdmin = event.locals.user?.roles?.some((r: string) => ["ADMIN", "SUPER_ADMIN"].includes(r)) ||
+      event.locals.user?.role === "ADMIN";
     if (!isAdmin) throw redirect(303, "/login");
   }
 
@@ -119,7 +119,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   // R12 - Security & Protocol Defaults
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
-  
+
   // Elite V2.2: Vary cache by User-Agent for Adaptive Layouts
   response.headers.set("Vary", "Origin, User-Agent");
 

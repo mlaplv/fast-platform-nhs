@@ -23,9 +23,9 @@ class DomainGuardMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
         # Elite V2.2: Hardened domain cleaning (strip https/http and trailing slashes R51)
-        self.admin_url: str = os.getenv("ADMIN_URL", "admin.micsmo.com").lower().replace("https://", "").replace("http://", "").rstrip("/").split(":")[0]
-        self.api_url: str = os.getenv("API_URL", "api.micsmo.com").lower().replace("https://", "").replace("http://", "").rstrip("/").split(":")[0]
-        self.app_url: str = os.getenv("APP_URL", "micsmo.com").lower().replace("https://", "").replace("http://", "").rstrip("/").split(":")[0]
+        self.admin_url: str = os.getenv("ADMIN_URL", "admin.osmo").lower().replace("https://", "").replace("http://", "").rstrip("/").split(":")[0]
+        self.api_url: str = os.getenv("API_URL", "api.osmo").lower().replace("https://", "").replace("http://", "").rstrip("/").split(":")[0]
+        self.app_url: str = os.getenv("APP_URL", "osmo").lower().replace("https://", "").replace("http://", "").rstrip("/").split(":")[0]
         self.debug: bool = os.getenv("DEBUG", "false").lower() == "true"
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:

@@ -6,7 +6,7 @@ logger = logging.getLogger("api-gateway")
 
 class GreetingHandler(BaseHandler):
     """
-    ZONE 1: Persona Greeting Specialist (Micsmo Elite V2.6).
+    ZONE 1: Persona Greeting Specialist (osmo Elite V2.6).
     Priority: Build rapport, set Vibe, and plant a sales hook.
     """
 
@@ -49,7 +49,7 @@ class GreetingHandler(BaseHandler):
                 pts_msg = f" Hiện mình đang có **{ctx.dna.available_points} điểm** tích lũy đặc quyền (~{money}đ) đó ạ. "
 
             if ctx.dna.segment == "VIP":
-                prefix = f"{debug_prefix}Dạ Helen thân chào {c_name} - khách quý của Micsmo! 🌟 Chúc mình một {time_greet} ạ. Thật tuyệt vời khi được gặp lại mình!{pts_msg}"
+                prefix = f"{debug_prefix}Dạ Helen thân chào {c_name} - khách quý của osmo! 🌟 Chúc mình một {time_greet} ạ. Thật tuyệt vời khi được gặp lại mình!{pts_msg}"
             elif ctx.dna.segment == "REGULAR":
                 prefix = f"{debug_prefix}Dạ Helen chào {c_name}, em rất vui được gặp lại mình trong {time_greet} hôm nay!{pts_msg}"
             else:
@@ -59,7 +59,7 @@ class GreetingHandler(BaseHandler):
             if ctx.p_info:
                 # Đang ở trang sản phẩm cụ thể - Chốt FOMO & Ưu đãi
                 price_tag = f" (**{ctx.p_info.price_display}**)" if ctx.p_info.price_display else ""
-                prefix += f"Em thấy mình đang quan tâm đến siêu phẩm **{ctx.p_info.name}**{price_tag} - đây hiện đang là dòng 'best-seller' thăng hạng nhan sắc nhà Micsmo đó ạ! ✨ "
+                prefix += f"Em thấy mình đang quan tâm đến siêu phẩm **{ctx.p_info.name}**{price_tag} - đây hiện đang là dòng 'best-seller' thăng hạng nhan sắc nhà osmo đó ạ! ✨ "
                 
                 # Add a punchy Sales Hook
                 ctx.replies.append(prefix)
@@ -71,7 +71,7 @@ class GreetingHandler(BaseHandler):
                 # Ở Homepage / Category / Cart — Smart Hook
                 ctx.replies.append(prefix)
                 ctx.replies.append(
-                    "Bên Micsmo đang có rất nhiều siêu phẩm chăm sóc da và chương trình ưu đãi đặc quyền lên đến 50% dành cho mình đó ạ! ✨ "
+                    "Bên osmo đang có rất nhiều siêu phẩm chăm sóc da và chương trình ưu đãi đặc quyền lên đến 50% dành cho mình đó ạ! ✨ "
                     "Anh/Chị đang quan tâm dòng sản phẩm nào (Trắng da, Trị nám, Chống lão hóa...) để Helen gửi mình mã giảm giá hời nhất nhé! 🌸"
                 )
 

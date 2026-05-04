@@ -71,7 +71,7 @@
                   {article.category || 'TẠP CHÍ ELITE'}
                 </span>
                 <div class="flex items-center gap-2 text-[11px] font-black text-gray-500 uppercase tracking-widest">
-                  <span>{article.author === 'Xohi' || article.author === 'System' ? 'Ban biên tập Micsmo' : article.author}</span>
+                  <span>{article.author === 'Xohi' || article.author === 'System' ? 'Ban biên tập osmo' : article.author}</span>
                   <div class="w-1 h-1 bg-gray-300 rounded-full"></div>
                   <span>{article.publishedAt}</span>
                 </div>

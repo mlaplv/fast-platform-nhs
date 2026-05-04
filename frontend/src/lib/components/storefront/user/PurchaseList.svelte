@@ -333,7 +333,7 @@
                   <span class="text-[12px] text-white font-black italic">M</span>
                </div>
                <div class="flex flex-col">
-                 <span class="text-[11px] font-black text-stone-900 uppercase tracking-[0.1em]">Micsmo Official</span>
+                 <span class="text-[11px] font-black text-stone-900 uppercase tracking-[0.1em]">osmo Official</span>
                  <span class="text-[9px] font-bold text-stone-300 uppercase tracking-tighter italic">Order Record: #{order.id.slice(-8).toUpperCase()}</span>
                </div>
              </div>

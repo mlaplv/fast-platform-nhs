@@ -158,7 +158,7 @@
         body: JSON.stringify({
           entity_type: 'NEWS',
           entity_id: articleId,
-          customer_name: authStore.user?.name || 'Khách Micsmo',
+          customer_name: authStore.user?.name || 'Khách osmo',
           rating: newRating,
           content: newContent,
           attributes: {}, // Optional for mobile

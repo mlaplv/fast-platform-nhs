@@ -9,7 +9,7 @@ export const SHOP_CONFIG = {
         address: "Trung tâm Phân phối Toàn quốc",
         phone: "Hotline Hỗ trợ",
         zalo: "Zalo Official",
-        license: "GPKD: Đang cập nhật | MICSMO.COM"
+        license: "GPKD: Đang cập nhật | osmo"
     },
     shipping: {
         fixed_cost: 30000,

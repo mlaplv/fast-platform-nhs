@@ -76,7 +76,7 @@
 </script>
 
 <svelte:head>
-  <title>Kho Voucher | Micsmo Elite</title>
+  <title>Kho Voucher | osmo Elite</title>
 </svelte:head>
 
 {#if browser}
@@ -87,7 +87,7 @@
         <div class="border-b border-stone-100 pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Kho Voucher</h1>
-            <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Săn ưu đãi độc quyền từ Micsmo</p>
+            <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Săn ưu đãi độc quyền từ osmo</p>
           </div>
           
           <div class="bg-stone-50 px-6 py-3 rounded-xl border border-stone-100 flex items-center gap-4">

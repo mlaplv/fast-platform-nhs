@@ -117,7 +117,7 @@
     class="description-wrapper {(!isExpanded && hasMore) ? 'collapsed' : ''}"
     style:max-height={isExpanded ? (containerRef?.scrollHeight + 'px') : (hasMore ? truncatedHeight + 'px' : 'none')}
   >
-    <div bind:this={containerRef} class="prose-micsmo pb-4">
+    <div bind:this={containerRef} class="prose-osmo pb-4">
       {#if isJson(product.short_description || product.description)}
          <InteractiveDashboard data={product.short_description || product.description} compact={true} />
       {:else}
@@ -208,29 +208,29 @@
   }
 
   /* Elite V2.2: Mobile Premium Prose System */
-  :global(.prose-micsmo) {
+  :global(.prose-osmo) {
     font-size: 15px !important;
     line-height: 1.8 !important;
     color: #333 !important;
     font-family: inherit !important;
   }
 
-  :global(.prose-micsmo p) {
+  :global(.prose-osmo p) {
     margin-bottom: 0.75rem !important;
     font-family: inherit !important;
   }
 
-  :global(.prose-micsmo li p) {
+  :global(.prose-osmo li p) {
     margin-bottom: 0 !important;
   }
 
-  :global(.prose-micsmo span) {
+  :global(.prose-osmo span) {
     font-family: inherit !important;
     font-size: inherit !important;
     line-height: inherit !important;
   }
 
-  :global(.prose-micsmo h2, .prose-micsmo h3) {
+  :global(.prose-osmo h2, .prose-osmo h3) {
     color: var(--color-luxury-copper, #C18F7E) !important;
     font-weight: 900 !important;
     margin-top: 1.25rem !important;
@@ -240,21 +240,21 @@
     letter-spacing: 0.02em;
   }
 
-  :global(.prose-micsmo h2) { font-size: 17px !important; }
-  :global(.prose-micsmo h3) { font-size: 16px !important; }
+  :global(.prose-osmo h2) { font-size: 17px !important; }
+  :global(.prose-osmo h3) { font-size: 16px !important; }
 
-  :global(.prose-micsmo ul, .prose-micsmo ol) {
+  :global(.prose-osmo ul, .prose-osmo ol) {
     margin-bottom: 1rem !important;
     padding-left: 1.25rem !important;
   }
 
-  :global(.prose-micsmo li) {
+  :global(.prose-osmo li) {
     margin-bottom: 0.25rem !important;
     list-style-type: disc;
     color: #444;
   }
 
-  :global(.prose-micsmo img) {
+  :global(.prose-osmo img) {
     border-radius: 8px;
     margin: 1.5rem 0 !important;
     width: 100% !important;

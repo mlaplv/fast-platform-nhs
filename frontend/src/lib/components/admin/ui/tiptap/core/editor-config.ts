@@ -9,7 +9,7 @@ import Color from '@tiptap/extension-color';
 import FontFamily from '@tiptap/extension-font-family';
 import CharacterCount from '@tiptap/extension-character-count';
 import Typography from '@tiptap/extension-typography';
-import { ListItem } from '@tiptap/extension-list';
+import { BulletList, ListItem, OrderedList } from '@tiptap/extension-list';
 import { AnnotationExtension } from './AnnotationPlugin';
 import { Div } from './DivExtension';
 import { Span } from './SpanExtension';
@@ -20,7 +20,7 @@ import { neuralCleanPastedHTML } from '../utils/editorUtils';
  * This directly addresses the "li > p" noise issue.
  */
 const NeuralListItem = ListItem.extend({
-  content: 'inline*',
+  content: 'paragraph block*',
 });
 
 export const getEditorExtensions = (placeholderText: string = 'Start writing...') => [
@@ -35,9 +35,13 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
     },
     link: false,
     underline: false,
-    listItem: false, // Disable default to use our Neural version
+    listItem: false,    // Disable default → dùng NeuralListItem
+    bulletList: false,  // Disable default → import riêng từ @tiptap/extension-list (Tiptap v3)
+    orderedList: false, // Disable default → import riêng từ @tiptap/extension-list (Tiptap v3)
   }),
   NeuralListItem,
+  BulletList,
+  OrderedList,
   Typography,
   Underline,
   Link.configure({

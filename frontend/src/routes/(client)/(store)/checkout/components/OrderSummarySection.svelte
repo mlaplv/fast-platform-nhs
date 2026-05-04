@@ -139,7 +139,7 @@
                   🔥 <span class="text-luxury-copper italic">Viral Tip:</span> Sếp ơi, đơn này tích được thêm <span class="text-white">+{Math.floor(finalTotal / 100000)} Pts</span>. Mua thêm combo để <span class="bg-luxury-copper text-stone-900 px-1 ml-1 rounded-sm">X2 TÍCH LŨY</span> ngay!
                 </p>
                 <p class="text-[9px] text-stone-400 italic mt-2 text-right">
-                  #StayElite #MicsmoAI
+                  #StayElite #osmoAI
                 </p>
               </div>
             </div>
@@ -189,7 +189,7 @@
       </div>
     {/if}
     
-    <!-- SECURE PACKAGING (MICSMO THEME) -->
+    <!-- SECURE PACKAGING (osmo THEME) -->
     <div class="w-full mt-6 bg-[#fff4f1] border border-orange-100 p-4 transition-all duration-300">
       <div class="flex items-start gap-3">
         <div class="w-8 h-8 shrink-0 rounded-lg bg-[#ee4d2d] text-white flex items-center justify-center shadow-lg shadow-orange-500/20">

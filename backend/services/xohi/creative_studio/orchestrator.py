@@ -122,6 +122,10 @@ class ContentOrchestrator:
     async def get_active_campaign(self, campaign_repo: ContentCampaignRepository, user_id: Optional[str] = None, tenant_id: str = "default", query: Optional[str] = None) -> Optional[ContentCampaign]:
         return await self.voice_handler.get_active_campaign(campaign_repo, user_id, tenant_id, query=query)
 
+    def format_resume_greeting(self, campaign: ContentCampaign) -> str:
+        """Delegated to VoiceHandler (V2.2)."""
+        return self.voice_handler.format_resume_greeting(campaign)
+
     async def approve_step(self, campaign_id: str, data: Dict[str, Union[str, int, float, bool, Dict[str, object], List[object]]], campaign_repo: ContentCampaignRepository) -> GenericResponse:
         return await self.action_handler.approve_step(campaign_id, data, campaign_repo)
 

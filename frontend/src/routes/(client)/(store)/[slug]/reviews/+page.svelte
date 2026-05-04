@@ -546,7 +546,7 @@
             {/if}
             <div class="rv-product-ref-info">
               <span class="rv-product-ref-name">{entity.name}</span>
-              <span class="rv-product-ref-avail">Mỹ phẩm Micsmo</span>
+              <span class="rv-product-ref-avail">Mỹ phẩm osmo</span>
             </div>
           </div>
 

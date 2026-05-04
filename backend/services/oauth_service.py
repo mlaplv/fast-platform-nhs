@@ -13,17 +13,17 @@ logger = logging.getLogger("api-gateway")
 class OAuth2Service:
     @property
     def frontend_url(self) -> str:
-        app_domain = os.getenv("APP_DOMAIN", "micsmo.com")
+        app_domain = os.getenv("APP_DOMAIN", "osmo")
         # Tuân thủ luật SSOT từ .env: APP_URL thay vì hardcode localhost
         return os.getenv("APP_URL", f"https://{app_domain}").rstrip('/')
         
     def _get_redirect_uri(self, provider: str) -> str:
-        # Sử dụng API_URL thay vì APP_URL vì Controller Auth nằm ở Backend (api.micsmo.com)
+        # Sử dụng API_URL thay vì APP_URL vì Controller Auth nằm ở Backend (api.osmo)
         # Tuân thủ SSOT: Facebook/Google sẽ callback về đúng Endpoint xử lý code.
         api_url = os.getenv("API_URL", "").rstrip('/')
         if not api_url:
             # Fallback nếu API_URL chưa set thì dùng FRONTEND_URL/api...
-            base_url = os.getenv("FRONTEND_URL", "https://micsmo.com").rstrip('/')
+            base_url = os.getenv("FRONTEND_URL", "https://osmo").rstrip('/')
             return f"{base_url}/api/v1/auth/oauth/callback/{provider}"
         return f"{api_url}/api/v1/auth/oauth/callback/{provider}"
 

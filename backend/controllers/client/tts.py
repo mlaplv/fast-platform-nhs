@@ -57,7 +57,7 @@ class PublicTTSController(Controller):
         referer: str = request.headers.get("referer", "").lower()
         host: str = request.headers.get("host", "").lower()
         
-        if not any("micsmo.com" in h for h in [origin, referer, host]):
+        if not any("osmo" in h for h in [origin, referer, host]):
             raise PermissionDeniedException("⛔ Lockdown: Domain unauthorized.")
 
         # 2. RAM-Safe Rate Limiting

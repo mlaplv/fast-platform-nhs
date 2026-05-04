@@ -139,7 +139,7 @@
                 id="url"
                 bind:value={banner.link_url}
                 type="text" 
-                placeholder="https://micsmo.com/promo..."
+                placeholder="https://osmo/promo..."
                 class="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-6 py-4 text-sm font-bold text-white placeholder:text-white/5 focus:outline-none focus:border-cyan-500/30 transition-all shadow-inner pr-12"
               />
               <ExternalLink size={14} class="absolute right-5 top-1/2 -translate-y-1/2 text-white/10" />

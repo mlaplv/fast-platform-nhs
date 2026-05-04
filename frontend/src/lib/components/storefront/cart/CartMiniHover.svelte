@@ -46,7 +46,7 @@
           >
             <div class="w-10 h-10 shrink-0 border border-gray-100 rounded-sm overflow-hidden bg-white">
               <img
-                src={item.product.image || item.product.images?.[0] || '/uploads/img/micsmo/sp1.png'}
+                src={item.product.image || item.product.images?.[0] || '/uploads/img/osmo/sp1.png'}
                 alt={item.product.name}
                 class="w-full h-full object-cover"
               />

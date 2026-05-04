@@ -45,7 +45,7 @@ class GuardrailHandler(BaseHandler):
         # 1. Micro-Heuristics (<2ms) - Keyword Match
         if any(kw in msg for kw in self.BLOCKED_KEYWORDS):
             reply = (
-                "Dạ thành thật xin lỗi Anh/Chị! Hiện tại hệ thống Trí tuệ Nhân tạo Helen chuyên hỗ trợ kiến thức chăm sóc da chuyên sâu, phục hồi màng bảo vệ da và các dòng mỹ phẩm cao cấp từ **thương hiệu Micsmo**. 🌸\n\n"
+                "Dạ thành thật xin lỗi Anh/Chị! Hiện tại hệ thống Trí tuệ Nhân tạo Helen chuyên hỗ trợ kiến thức chăm sóc da chuyên sâu, phục hồi màng bảo vệ da và các dòng mỹ phẩm cao cấp từ **thương hiệu osmo**. 🌸\n\n"
                 "Vấn đề Anh/Chị vừa đề cập hiện nằm ngoài danh mục tư vấn chuyên môn của em. Rất mong Anh/Chị thông cảm và tham khảo các dòng sản phẩm làm đẹp của shop nhé!"
             )
             ctx.replies.append(reply)

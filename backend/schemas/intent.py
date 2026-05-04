@@ -17,6 +17,7 @@ class RouterTier(str, Enum):
     TIER_1_HEURISTIC = "1"
     TIER_2_SEMANTIC = "2"
     TIER_3_REASONING = "3"
+    TIER_3_CLOUD = "3"  # Alias for T3 Cloud path (tier3_cloud.py)
 
 class IntentRequest(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -39,8 +40,9 @@ class IntentResponse(BaseModel):
     vui_context: Optional[Dict[str, object]] = Field(default_factory=dict)
 
     cost_tokens: float = Field(default=0.0)
+    requires_confirmation: bool = Field(default=False)
 
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=False)
 
 class IntentMapUpdate(BaseModel):
     model_config = ConfigDict(strict=True)

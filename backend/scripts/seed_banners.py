@@ -23,7 +23,7 @@ async def seed_banners():
             },
             {
                 "id": "m2",
-                "title": "Micsmo Live",
+                "title": "osmo Live",
                 "image_url": "/uploads/img/banner/vn-11134258-81ztc-mmiz6tc047peb7@resize_w797_nl.webp",
                 "link_url": "miccosmo-white-label-premium-placenta-pack-130g",
                 "position": "home_main",
@@ -39,7 +39,7 @@ async def seed_banners():
             },
             {
                 "id": "s1",
-                "title": "Micsmo Xử Lý",
+                "title": "osmo Xử Lý",
                 "image_url": "/uploads/img/banner/sg-11134258-81ztz-mmr7ei1zauiwc3@resize_w398_nl.webp",
                 "link_url": "miccosmo-white-label-premium-placenta-essence-180ml",
                 "position": "home_main",

@@ -236,7 +236,7 @@
 </script>
 
 <svelte:head>
-  <title>{isTrackingMode ? 'Tra cứu đơn hàng' : 'Đặt hàng thành công'} | Micsmo.com</title>
+  <title>{isTrackingMode ? 'Tra cứu đơn hàng' : 'Đặt hàng thành công'} | osmo</title>
 </svelte:head>
 
 {#if browser}

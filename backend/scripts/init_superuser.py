@@ -83,7 +83,7 @@ async def init_superuser():
 
             # 3. Ensure Admin User exists
             print("👤 Checking Admin User...")
-            admin_email = os.getenv("ADMIN_EMAIL", "admin@micsmo.com")
+            admin_email = os.getenv("ADMIN_EMAIL", "admin@osmo")
             admin_username = os.getenv("ADMIN_USERNAME", "admin")
             admin_pwd = os.getenv("ADMIN_PASSWORD", "admin@123A3%StrongPassword")
             
@@ -101,7 +101,7 @@ async def init_superuser():
                     id="user_admin",
                     email=admin_email,
                     username=admin_username,
-                    name="Micsmo Admin",
+                    name="osmo Admin",
                     password=hpwd,
                     status="ACTIVE",
                     tenant_id=TENANT_ID

@@ -277,7 +277,7 @@
       </div>
       <div class="divider"></div>
       <div class="sold-count">{product.order_count_text || `Đã bán ${product.orderCount || 0}`}</div>
-      <div class="trust-badge text-luxury-copper font-bold bg-luxury-peach/10">{product.metadata?.brand_type || 'Micsmo Mall'}</div>
+      <div class="trust-badge text-luxury-copper font-bold bg-luxury-peach/10">{product.metadata?.brand_type || 'osmo Mall'}</div>
     </div>
   </section>
 </section>

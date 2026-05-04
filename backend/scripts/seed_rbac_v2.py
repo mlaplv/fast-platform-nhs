@@ -18,7 +18,7 @@ from backend.database.models import Role, Permission, Base
 from backend.constants.permissions import PermissionEnum
 
 # Resolve Tenant ID from environment
-TENANT_ID = os.getenv("APP_DOMAIN", "micsmo.com")
+TENANT_ID = os.getenv("APP_DOMAIN", "osmo")
 
 async def seed_rbac_v2():
     print(f"🔐 Starting Elite RBAC V2.2 Seeding for Tenant: {TENANT_ID}...")

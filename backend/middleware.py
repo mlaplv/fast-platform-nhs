@@ -19,7 +19,7 @@ class UserPayload(TypedDict, total=False):
     stamp: str
     name: str
 
-SECRET_KEY = os.environ.get("ENCRYPTION_SALT", "Micsmo_Elite_Standard_Salt_2026")  # R00: Consistent SSOT Key
+SECRET_KEY = os.environ.get("ENCRYPTION_SALT", "osmo_Elite_Standard_Salt_2026")  # R00: Consistent SSOT Key
 ALGORITHM = "HS256"
 logger = logging.getLogger("api-gateway.auth")
 

@@ -28,9 +28,9 @@ from backend.utils.schema_mutator import mutate_json_ld
 logger = logging.getLogger("api-gateway")
 
 # ── Config từ Env để tránh hardcode ────────────────────────────────────────────
-_BASE_DOMAIN: str = os.getenv("APP_DOMAIN", "micsmo.com")
-_SITE_NAME: str = os.getenv("SEO_SITE_NAME", "Micsmo Elite")
-_BRAND_NAME: str = os.getenv("SEO_BRAND_NAME", "Micsmo")
+_BASE_DOMAIN: str = os.getenv("APP_DOMAIN", "osmo")
+_SITE_NAME: str = os.getenv("SEO_SITE_NAME", "osmo Elite")
+_BRAND_NAME: str = os.getenv("SEO_BRAND_NAME", "osmo")
 _SITE_URL: str = f"https://{_BASE_DOMAIN}"
 
 # ── Layout: Google Title 50-60, Desc 150-160, ít nhất 8 từ khóa đuôi dài ─────

@@ -242,14 +242,14 @@ async def send_otp_email(ctx: Dict[str, object], email: str, code: str, request_
 
     await emit_progress("Đã tiếp nhận. Đang khởi tạo kết nối SMTP...")
     
-    subject = f"Mã xác nhận Micsmo: {code}"
-    body_text = f"Xin chào,\n\nMã xác nhận của bạn là: {code}\n\nMã này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.\n\nTrân trọng,\nMicsmo Team"
+    subject = f"Mã xác nhận osmo: {code}"
+    body_text = f"Xin chào,\n\nMã xác nhận của bạn là: {code}\n\nMã này có hiệu lực trong 5 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.\n\nTrân trọng,\nosmo Team"
     
     # Premium Branding HTML
     body_html = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #f0f0f0;">
         <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #ee4d2d; margin: 0;">MICSMO</h1>
+            <h1 style="color: #ee4d2d; margin: 0;">osmo</h1>
             <p style="color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Elite Storefront</p>
         </div>
         <div style="background: #fdf2f0; padding: 30px; text-align: center;">
@@ -260,7 +260,7 @@ async def send_otp_email(ctx: Dict[str, object], email: str, code: str, request_
         <div style="margin-top: 30px; font-size: 12px; color: #888; text-align: center;">
             <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.</p>
             <hr style="border: none; border-top: 1px solid #f0f0f0; margin: 20px 0;">
-            <p>&copy; 2026 Micsmo. All rights reserved.</p>
+            <p>&copy; 2026 osmo. All rights reserved.</p>
         </div>
     </div>
     """

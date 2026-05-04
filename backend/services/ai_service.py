@@ -378,7 +378,7 @@ class AIService:
             # 4. Elite V2.2: Inclusive CNS Priority Force-Sync
             # We ensure ALL discovered models are included in the waterfall.
             # Order: High Priority > Healthy Probed > Others (Failed/Legacy)
-            priority_pool = ["gemini-1.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
+            priority_pool = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"]
             final_winners: list[str] = []
             
             # Phase A: High Priority Models (Force Top)
@@ -402,7 +402,7 @@ class AIService:
             winners = final_winners[:6]
             
             if not winners:
-                winners = ["gemini-1.5-flash", "gemini-2.5-flash-lite"]
+                winners = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
             
             # Persist to VoiceProfile (Current Scalar Projection Rule)
             from backend.database.models import VoiceProfile

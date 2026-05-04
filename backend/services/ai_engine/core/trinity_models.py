@@ -146,7 +146,7 @@ class TrinityModels:
                         models.append(short)
                     
                     # Elite V2.2: Hard-inject CNS models if missing from Google API list
-                    cns_models = [self.default_model, self.fallback_model, "gemini-1.5-flash"]
+                    cns_models = [self.default_model, self.fallback_model, "gemini-2.0-flash", "gemini-1.5-flash"]
                     for cns in cns_models:
                         if cns not in [m.get("name", "").replace("models/", "") for m in all_models]:
                             if any(hbl in cns for hbl in HARD_BLACKLIST): continue
@@ -194,9 +194,9 @@ class TrinityModels:
         
         # Elite V2.2: Free Tier Prioritization (Sếp's Order - CNS V89.5)
         # Ưu tiên các model có Quota lớn hoặc là 'Điểm ngọt' trước để tiết kiệm Pro Quota.
-        if "gemini-1.5-flash" in m: score += 7000       # "Bao la" nhất (1500/day) - Rank 1
-        elif "gemini-2.5-flash-lite" in m: score += 5500 # "Điểm ngọt" (1000/day) - Rank 2
-        elif "gemini-2.5-flash" in m: score += 4500      # Ổn định (250/day) - Rank 3
+        if "gemini-2.0-flash" in m: score += 7000       # "Bao la" nhất (2026 Rank 1)
+        elif "gemini-1.5-flash" in m: score += 6000    # Ổn định (Rank 2)
+        elif "gemini-1.5-pro" in m: score += 5000      # Mạnh nhưng tốn quota
         
         # 2. Model Grade (Brain vs Fast)
         if "pro" in m: score += 200

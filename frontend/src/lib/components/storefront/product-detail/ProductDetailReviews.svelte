@@ -482,7 +482,7 @@
               </div>
             {/if}
 
-            <div class="text-[13px] text-gray-800 leading-relaxed mb-4 prose-micsmo">
+            <div class="text-[13px] text-gray-800 leading-relaxed mb-4 prose-osmo">
               {@html review.content}
             </div>
 

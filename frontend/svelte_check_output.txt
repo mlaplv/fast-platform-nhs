@@ -8870,7 +8870,7 @@ Error: Argument of type 'string | null' is not assignable to parameter of type '
 /home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/home/HomeBanner.svelte:41:31
 Error: Argument of type 'string | null' is not assignable to parameter of type 'string | undefined'.
   Type 'null' is not assignable to type 'string | undefined'. (ts)
-      <!-- Micsmo style hover effect -->
+      <!-- osmo style hover effect -->
       <a href={getProductLink(banner.link_url)} class="flex-1 relative rounded-[2px] overflow-hidden group block bg-[#eee]">
         <img src={banner.image_url} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90" />
 
@@ -9134,7 +9134,7 @@ Error: EACCES: permission denied, open '/home/lv/Desktop/fast-platform-core/fron
 /home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/cart/CartMiniHover.svelte:49:35
 Error: Property 'image' does not exist on type 'Product'. Did you mean 'images'? (ts)
               <img
-                src={item.product.image || item.product.images?.[0] || '/uploads/img/micsmo/sp1.png'}
+                src={item.product.image || item.product.images?.[0] || '/uploads/img/osmo/sp1.png'}
                 alt={item.product.name}
 
 /home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/layout/HeaderDesktop.svelte:94:15
@@ -9223,8 +9223,8 @@ Error: EACCES: permission denied, open '/home/lv/Desktop/fast-platform-core/fron
 /home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/StorefrontHome.svelte:18:87
 Error: Property 'phone' does not exist on type '{ company_name?: string | undefined; hotline?: string | undefined; email?: string | undefined; address?: string | undefined; tax_id?: string | undefined; business_license?: string | undefined; }'. (ts)
         description: data.settings?.basic_info?.description || "Hệ thống bán hàng AI thế hệ mới",
-        hotline: data.settings?.contact_info?.hotline || data.settings?.contact_info?.phone || "1800-MICSMO",
-        email: data.settings?.contact_info?.email || "contact@micsmo.com",
+        hotline: data.settings?.contact_info?.hotline || data.settings?.contact_info?.phone || "1800-osmo",
+        email: data.settings?.contact_info?.email || "contact@osmo",
 
 /home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/StorefrontHome.svelte:30:9
 Error: Type 'VideoAsset[]' is not assignable to type '{ id: string; url: string; title: string; likes: number; image: string; }[]'.
@@ -9670,7 +9670,7 @@ Error: 'nextTier.attributes' is possibly 'null' or 'undefined'. (ts)
 /home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/ProductDetailDesktop.svelte:875:23
 Error: Argument of type 'string | null' is not assignable to parameter of type 'string'.
   Type 'null' is not assignable to type 'string'. (ts)
-       <div class="px-0 prose-micsmo">
+       <div class="px-0 prose-osmo">
           {#if isJson(product.description)}
              <div class="bg-black text-white p-4 rounded-xl">
 
@@ -9791,7 +9791,7 @@ Error: EACCES: permission denied, open '/home/lv/Desktop/fast-platform-core/fron
 /home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/ProductMobileSpecs.svelte:121:19
 Error: Argument of type 'string | null' is not assignable to parameter of type 'string'.
   Type 'null' is not assignable to type 'string'. (ts)
-    <div bind:this={containerRef} class="prose-micsmo pb-4">
+    <div bind:this={containerRef} class="prose-osmo pb-4">
       {#if isJson(product.short_description || product.description)}
          <InteractiveDashboard data={product.short_description || product.description} compact={true} />
 
@@ -10279,7 +10279,7 @@ Error: Argument of type '() => Promise<(() => void) | undefined>' is not assigna
 /home/lv/Desktop/fast-platform-core/frontend/src/routes/+layout.svelte:62:61
 Error: Property 'site_name' does not exist on type 'ShopInfo'. (ts)
     ? "Xohi Admin Dashboard" 
-    : (ui?.settings?.basic_info?.site_name || ui?.settings?.site_name || "Micsmo Elite")
+    : (ui?.settings?.basic_info?.site_name || ui?.settings?.site_name || "osmo Elite")
   );
 
 /home/lv/Desktop/fast-platform-core/frontend/src/routes/+layout.svelte:115:32
@@ -10473,13 +10473,13 @@ Error: Property 'seo_meta' does not exist on type 'Article'. (ts)
 Error: Property 'created_at' does not exist on type 'Article'. (ts)
           image: data.article.featured_image || "",
           datePublished: data.article.created_at || new Date().toISOString(),
-          author: data.article.author || "Micsmo Elite",
+          author: data.article.author || "osmo Elite",
 
 /home/lv/Desktop/fast-platform-core/frontend/src/routes/(client)/(store)/[slug]/+page.svelte:122:32
 Error: Property 'author' does not exist on type 'Article'. (ts)
           datePublished: data.article.created_at || new Date().toISOString(),
-          author: data.article.author || "Micsmo Elite",
-          publisherName: "Micsmo Elite",
+          author: data.article.author || "osmo Elite",
+          publisherName: "osmo Elite",
 
 /home/lv/Desktop/fast-platform-core/frontend/src/routes/(client)/(store)/[slug]/+page.svelte:237:10
 Error: Property 'isDetermined' does not exist on type 'ClientUiState'. (ts)
@@ -10693,7 +10693,7 @@ Warn: Also define the standard property 'appearance' for compatibility (css)
 /home/lv/Desktop/fast-platform-core/frontend/src/routes/(client)/(store)/checkout/components/CheckoutItems.svelte:60:35
 Error: Property 'image' does not exist on type 'Product'. Did you mean 'images'? (ts)
               <img 
-                src={item.product.image || item.product.images?.[0] || '/uploads/img/micsmo/sp1.png'} 
+                src={item.product.image || item.product.images?.[0] || '/uploads/img/osmo/sp1.png'} 
                 alt={item.product.name}
 
 /home/lv/Desktop/fast-platform-core/frontend/src/routes/(client)/(store)/checkout/components/OrderSummarySection.svelte:276:8
@@ -10948,7 +10948,7 @@ Error: Type '(voucher: Voucher) => void' is not assignable to type '(v: Voucher)
 /home/lv/Desktop/fast-platform-core/frontend/src/routes/(client)/(store)/checkout/+page.svelte:674:42
 Error: Property 'image' does not exist on type 'Product'. Did you mean 'images'? (ts)
                 <div class="w-[88px] h-[88px] bg-gray-50 rounded-lg overflow-hidden shrink-0 border border-gray-100">
-                  <img src={item.product.image || item.product.images?.[0] || '/uploads/img/micsmo/sp1.png'} alt={item.product.name} class="w-full h-full object-cover" />
+                  <img src={item.product.image || item.product.images?.[0] || '/uploads/img/osmo/sp1.png'} alt={item.product.name} class="w-full h-full object-cover" />
                 </div>
 
 /home/lv/Desktop/fast-platform-core/frontend/src/routes/(client)/(store)/checkout/+page.svelte:870:81

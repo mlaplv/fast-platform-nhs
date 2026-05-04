@@ -275,7 +275,7 @@
        </div>
 
        <a href="tel:{SHOP_CONFIG.pharmacy.phone.replace(/\s+/g, '')}" class="block w-full py-4 bg-slate-900 text-white font-black uppercase italic tracking-widest text-center shadow-xl">GỌI XÁC NHẬN NGAY →</a>
-       <p class="text-[10px] font-bold text-slate-400 uppercase italic">Hệ thống Micsmo Elite đang xử lý yêu cầu...</p>
+       <p class="text-[10px] font-bold text-slate-400 uppercase italic">Hệ thống osmo Elite đang xử lý yêu cầu...</p>
     </div>
   </div>
 </div>

@@ -3,7 +3,7 @@ Elite V2.2: Security Constants.
 Centralized location for restricted zones and mutation rules.
 """
 
-# Prefixes that are only accessible from the Admin Domain (*.admin.micsmo.com)
+# Prefixes that are only accessible from the Admin Domain (*.admin.osmo)
 ADMIN_ONLY_PREFIXES: list[str] = [
     "/api/v1/users",
     "/api/v1/settings",

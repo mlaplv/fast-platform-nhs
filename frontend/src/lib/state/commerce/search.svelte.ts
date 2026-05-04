@@ -45,7 +45,7 @@ export class SearchState {
   }
   loadHistory() {
     if (!browser) return;
-    const history = localStorage.getItem('micsmo_search_history');
+    const history = localStorage.getItem('osmo_search_history');
     if (history) {
       try {
         this.recentSearches = JSON.parse(history);
@@ -57,7 +57,7 @@ export class SearchState {
 
   saveHistory() {
     if (!browser) return;
-    localStorage.setItem('micsmo_search_history', JSON.stringify(this.recentSearches));
+    localStorage.setItem('osmo_search_history', JSON.stringify(this.recentSearches));
   }
 
   addSearch(term: string) {

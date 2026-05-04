@@ -71,12 +71,17 @@ export function createPhaseController() {
     }
 
     function jumpToPhase(idx: number, type: keyof typeof PHASES) {
+        const phases = PHASES[type];
+        // Guard: stop recursion when idx is out of bounds (all phases complete)
+        if (idx >= phases.length) {
+            phaseProgress = 100;
+            return;
+        }
         if (idx === phaseIndex) return;
         clearTimers();
         phaseIndex = idx;
         phaseProgress = 0;
         
-        const phases = PHASES[type];
         const dur = phases[idx].duration;
         const step = 16;
         

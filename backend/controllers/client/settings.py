@@ -23,13 +23,13 @@ class ClientSettingsController(Controller):
         # 2. Fallback nếu chưa có dữ liệu (Elite V2.2)
         return SystemSettingsPayload(
             basic_info=BasicInfo(
-                site_name="Micsmo Elite",
+                site_name="osmo Elite",
                 description="Nền tảng mỹ phẩm Elite hàng đầu Việt Nam."
             ),
             contact_info=ContactInfo(
-                hotline="1800-MICSMO",
+                hotline="1800-osmo",
                 phone="0949 901 122",
-                email="legal@micsmo.com",
+                email="legal@osmo",
                 address="Bitexco Financial Tower, Quận 1, TP. Hồ Chí Minh"
             )
         )

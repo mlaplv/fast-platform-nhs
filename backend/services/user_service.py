@@ -50,7 +50,7 @@ class UserService:
         sa_role = (await db_session.execute(stmt)).scalar_one_or_none()
         
         if not sa_role:
-            sa_role = Role(id="role_superadmin", name="Super Admin", code="SUPER_ADMIN", tenant_id="micsmo.com")
+            sa_role = Role(id="role_superadmin", name="Super Admin", code="SUPER_ADMIN", tenant_id="osmo")
             db_session.add(sa_role)
         
         sa_role.permissions = list(existing_perms.values())
@@ -58,7 +58,7 @@ class UserService:
         # Ensure CUSTOMER role exists
         cust_stmt = select(Role).where(Role.code == "CUSTOMER")
         if not (await db_session.execute(cust_stmt)).scalar_one_or_none():
-            db_session.add(Role(id="role_customer", name="Customer", code="CUSTOMER", tenant_id="micsmo.com"))
+            db_session.add(Role(id="role_customer", name="Customer", code="CUSTOMER", tenant_id="osmo"))
             
         await db_session.commit()
         logger.info("✅ [RBAC Sync] Permissions and System Roles are now Elite V2.2 compliant.")
@@ -66,7 +66,7 @@ class UserService:
     @staticmethod
     def _is_elite_admin(username: str, email: str) -> bool:
         """Centralized Elite Admin Detection Logic."""
-        return username in ["admin", "mlap"] or email in ["admin@micsmo.com", "boss@micsmo.com"]
+        return username in ["admin", "mlap"] or email in ["admin@osmo", "boss@osmo"]
 
     @staticmethod
     async def list_users(
@@ -403,7 +403,7 @@ class UserService:
         new_id = str(uuid.uuid4())
         # Use phone as username/email fallback to satisfy NOT NULL constraints
         username = phone
-        email = f"{phone}@micsmo.com"
+        email = f"{phone}@osmo"
         
         new_user = User(
             id=new_id,

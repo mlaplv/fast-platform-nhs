@@ -3,7 +3,8 @@
 @import "tailwindcss";
 
 /* 🚀 ELITE V2.2: TYPOGRAPHY (Inter - The Tech Standard) */
-html, body {
+html,
+body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -20,8 +21,8 @@ html, body {
   --color-sakura-pink: #FFB7C5;
   --color-sakura-glow: #FF8FA3;
   --color-surface-glass: rgba(15, 23, 42, 0.4);
-  
-  /* Elite V2.2: Hardened Brand Colors (Micsmo Standard) */
+
+  /* Elite V2.2: Hardened Brand Colors (osmo Standard) */
   --color-luxury-copper: #C18F7E;
   --color-luxury-peach: #E3B5A4;
   --color-brand-primary: var(--color-luxury-copper);
@@ -34,15 +35,16 @@ html, body {
 */
 
 :root {
-  --bg-canvas: #010101; /* Vantablack */
+  --bg-canvas: #010101;
+  /* Vantablack */
   --text-base: #ffffff;
   --fs-body: 14px;
   --fs-ui: 12px;
-  
+
   /* Elite V2.2: Standard Glass tokens */
   --glass-blur: 24px;
   --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-reflection: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+  --glass-reflection: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
 
   /* Elite V2.6: TikTok Aesthetic Tokens */
   --radius-tiktok: 32px;
@@ -97,8 +99,13 @@ body {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 
@@ -123,7 +130,8 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(193, 143, 126, 0.6); /* Micsmo Brand Copper on hover */
+  background: rgba(193, 143, 126, 0.6);
+  /* osmo Brand Copper on hover */
 }
 
 /* For Firefox */
@@ -131,4 +139,3 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
-

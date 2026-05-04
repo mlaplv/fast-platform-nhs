@@ -37,13 +37,13 @@
   // GEO 2026: SEO Meta
   const seoTitle = $derived(
     data.searchQuery
-      ? `Tìm kiếm "${data.searchQuery}" | Micsmo Elite`
-      : "Tất cả sản phẩm | Micsmo Elite"
+      ? `Tìm kiếm "${data.searchQuery}" | osmo Elite`
+      : "Tất cả sản phẩm | osmo Elite"
   );
   const seoDescription = $derived(
     data.searchQuery
-      ? `Kết quả tìm kiếm "${data.searchQuery}" - ${data.total} sản phẩm chính hãng tại Micsmo Elite.`
-      : "Khám phá toàn bộ sản phẩm chăm sóc sức khỏe chính hãng tại Micsmo Elite. Cam kết chất lượng, hỗ trợ 24/7."
+      ? `Kết quả tìm kiếm "${data.searchQuery}" - ${data.total} sản phẩm chính hãng tại osmo Elite.`
+      : "Khám phá toàn bộ sản phẩm chăm sóc sức khỏe chính hãng tại osmo Elite. Cam kết chất lượng, hỗ trợ 24/7."
   );
   const seoRobots = $derived(data.searchQuery ? "noindex, follow" : "index, follow");
 </script>
@@ -51,7 +51,7 @@
 <SeoHead
   title={seoTitle}
   description={seoDescription}
-  canonical="https://micsmo.com/products"
+  canonical="https://osmo/products"
   robots={seoRobots}
 />
 

@@ -70,7 +70,7 @@
   <!-- Article Info -->
   <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/30">
       <div class="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest overflow-hidden">
-        <span class="text-[#C18F7E] shrink-0">{article.author === 'Xohi' || article.author === 'System' ? 'Ban biên tập Micsmo' : article.author}</span>
+        <span class="text-[#C18F7E] shrink-0">{article.author === 'Xohi' || article.author === 'System' ? 'Ban biên tập osmo' : article.author}</span>
         <div class="w-1 h-1 bg-gray-200 rounded-full shrink-0"></div>
         <span class="truncate">{article.publishedAt}</span>
       </div>

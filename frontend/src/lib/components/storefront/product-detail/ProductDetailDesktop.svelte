@@ -408,7 +408,7 @@
        try {
           await navigator.share({
              title: product.name,
-             text: `Xem ngay ${product.name} trên Micsmo!`,
+             text: `Xem ngay ${product.name} trên osmo!`,
              url: window.location.href
           });
        } catch (e) {
@@ -434,7 +434,7 @@
   <!-- VIRAL 2026: PROFESSIONAL BREADCRUMB -->
   <div class="bg-[#f5f5f5] py-4">
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-2 text-[13px] text-gray-600 font-medium">
-    <a href="/" class="hover:text-[#ee4d2d]">Micsmo</a>
+    <a href="/" class="hover:text-[#ee4d2d]">osmo</a>
     <svg class="w-3 h-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
     <span class="truncate max-w-[400px] text-gray-400">{product.name}</span>
   </div>
@@ -861,7 +861,7 @@
               <div class="flex items-center">
                  <span class="w-[180px] shrink-0 text-gray-400 font-medium tracking-tight">Danh Mục</span>
                  <div class="flex items-center gap-2 text-[#0384ff] font-black uppercase text-[12px] tracking-tighter">
-                    <a href="/" class="hover:underline">Micsmo</a> 
+                    <a href="/" class="hover:underline">osmo</a> 
                     <svg class="w-2.5 h-2.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
                     <a href="/" class="hover:underline">{product.category || 'CHĂM SÓC DA'}</a>
                  </div>
@@ -886,7 +886,7 @@
        <div class="bg-gray-50/50 px-0 py-4 border-b border-gray-100 mb-6">
           <h2 class="text-[18px] font-black text-gray-800 uppercase tracking-tight">Mô tả sản phẩm</h2>
        </div>
-       <div class="px-0 prose-micsmo">
+       <div class="px-0 prose-osmo">
           {#if isJson(product.description)}
              <div class="bg-black text-white p-4 rounded-xl">
                <InteractiveDashboard data={product.description} compact={false} />
@@ -922,30 +922,30 @@
 </svelte:element>
 <style>
   /* Elite V2.2: Premium Prose System */
-  :global(.prose-micsmo) {
+  :global(.prose-osmo) {
     font-family: inherit !important;
     font-size: 16px !important;
     line-height: 1.8 !important;
     color: #374151 !important; /* text-gray-700 */
   }
 
-  :global(.prose-micsmo p) {
+  :global(.prose-osmo p) {
     margin-bottom: 1rem !important;
     font-family: inherit !important;
   }
 
   /* Khử margin cho p bên trong li để list items khít nhau */
-  :global(.prose-micsmo li p) {
+  :global(.prose-osmo li p) {
     margin-bottom: 0 !important;
   }
 
-  :global(.prose-micsmo span) {
+  :global(.prose-osmo span) {
     font-family: inherit !important;
     font-size: inherit !important;
     line-height: inherit !important;
   }
 
-  :global(.prose-micsmo h2, .prose-micsmo h3) {
+  :global(.prose-osmo h2, .prose-osmo h3) {
     color: #111827 !important;
     font-weight: 800 !important;
     margin-top: 2rem !important;
@@ -955,31 +955,31 @@
     letter-spacing: -0.025em;
   }
 
-  :global(.prose-micsmo h2) { font-size: 20px !important; }
-  :global(.prose-micsmo h3) { font-size: 18px !important; }
+  :global(.prose-osmo h2) { font-size: 20px !important; }
+  :global(.prose-osmo h3) { font-size: 18px !important; }
 
-  :global(.prose-micsmo ul, .prose-micsmo ol) {
+  :global(.prose-osmo ul, .prose-osmo ol) {
     margin-bottom: 1.5rem !important;
     padding-left: 1.75rem !important;
   }
 
   /* Aggressive suppression of default bullets */
-  :global(.prose-micsmo ul),
-  :global(.prose-micsmo ul li) {
+  :global(.prose-osmo ul),
+  :global(.prose-osmo ul li) {
     list-style: none !important;
     list-style-type: none !important;
   }
 
-  :global(.prose-micsmo ul li::marker) {
+  :global(.prose-osmo ul li::marker) {
     content: none !important;
   }
 
-  :global(.prose-micsmo li) {
+  :global(.prose-osmo li) {
     position: relative !important;
     margin-bottom: 0.5rem !important;
   }
 
-  :global(.prose-micsmo ul li::before) {
+  :global(.prose-osmo ul li::before) {
     content: "" !important;
     position: absolute !important;
     left: -0.8rem !important;
@@ -991,7 +991,7 @@
     opacity: 0.5 !important;
   }
 
-  :global(.prose-micsmo img) {
+  :global(.prose-osmo img) {
     max-width: 100%;
     height: auto !important;
     margin: 1rem auto !important;

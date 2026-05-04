@@ -20,7 +20,7 @@ from backend.utils.text import slugify
 async def fix_data():
     # Elite V2.2: Dynamic Tenant Resolution
     # Match the logic in frontend/src/lib/server/env.ts
-    target_tenant = os.getenv("APP_DOMAIN", "micsmo.com")
+    target_tenant = os.getenv("APP_DOMAIN", "osmo")
     print(f"🚀 Starting SAFE Migration: Setting Tenant ID to '{target_tenant}' and auto-generating slugs...")
 
     async with async_session_maker() as session:

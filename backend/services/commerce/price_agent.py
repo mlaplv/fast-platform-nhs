@@ -362,7 +362,7 @@ class MarketPriceIntel(BaseModel):
     organic_results: List[SearchResult] = Field(default_factory=list)
     analysis_overview: str = Field(min_length=50, description="Tổng quan thị trường và đánh giá giá trị sản phẩm.")
     critical_analysis: str = Field(min_length=50, description="Phản biện về giá của đối thủ và rủi ro.")
-    optimization_strategy: str = Field(min_length=50, description="Chiến lược tối ưu giá để micsmo.com chiến thắng.")
+    optimization_strategy: str = Field(min_length=50, description="Chiến lược tối ưu giá để osmo chiến thắng.")
     viral_hook: str = Field(min_length=30, description="Câu hook truyền thông thu hút khách hàng.")
     avg_market_price: Optional[float] = None
     min_market_price: Optional[float] = None

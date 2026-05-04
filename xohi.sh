@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 export PYTHONPATH="${PWD}"
 
-# XOHI OS - PROJECT MANAGEMENT COMMANDER v3.0 (Lean Monorepo)
+# XOHI OS - PROJECT MANAGEMENT COMMANDER v3.2 (LOCKDOWN)
 # Optimized for UV (Backend) & Vite/NPM (Frontend)
 # No PNPM, No Turbo.
 
@@ -347,7 +347,7 @@ function init_deploy() {
     chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
     
     echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! (Đã tối ưu RAM) ===${NC}"
-    echo -e "${CYAN}Truy cập: https://admin.micsmo.com${NC}"
+    echo -e "${CYAN}Truy cập: https://admin.osmo.vn${NC}"
     view_logs
 }
 
@@ -828,11 +828,28 @@ function mount_sas() {
 
 
 
+function migrate_tenant_id() {
+    echo -e "${CYAN}[TENANT] Đang khởi động quy trình di cư dữ liệu (Domain Migration)...${NC}"
+    echo -e "${YELLOW}-> Mục tiêu: Đồng bộ dữ liệu cũ sang domain hiện tại trong .env${NC}"
+    
+    # Kiểm tra Container API có đang chạy không
+    if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
+        docker exec -t fast_platform_api /opt/venv/bin/python3 -m backend.scripts.tenant_migration
+    else
+        echo -e "${YELLOW}[INFO] Container API chưa chạy. Khởi động môi trường tạm thời...${NC}"
+        docker compose run --rm api /opt/venv/bin/python3 -m backend.scripts.tenant_migration
+    fi
+    
+    echo -e "${GREEN}[OK] Đã hoàn tất quy trình di cư dữ liệu Tenant.${NC}"
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
+
 while true; do
     clear
     echo -e "${CYAN}"
     echo "------------------------------------------------"
-    echo "   XOHI OS - COMMANDER v4.0 (LOCKDOWN)          "
+    echo "   XOHI OS - COMMANDER v3.2 (TENANT SYNC)       "
     echo "------------------------------------------------"
     echo -e "${NC}"
 
@@ -857,6 +874,7 @@ while true; do
     echo "15) KHỞI TẠO SIÊU ADMIN (Login cho DB Trắng)"
     echo "16) LÀM SẠCH DỮ LIỆU HELEN (Purge Logs & Memory)"
     echo "17) ROTATE ENCRYPTION SALT (Vô hiệu hóa toàn bộ session)"
+    echo "18) DI CƯ TENANT (Đổi Domain -> Update DB)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -929,6 +947,9 @@ while true; do
         17)
             rotate_encryption_key
             read -p "Nhấn Enter để quay lại menu..."
+            ;;
+        18)
+            migrate_tenant_id
             ;;
         0)
             exit 0

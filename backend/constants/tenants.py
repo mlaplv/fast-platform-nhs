@@ -5,9 +5,9 @@ Expanded mapping to include admin and api subdomains.
 import os
 
 # Rule R00: APP_DOMAIN is the single source of truth for the primary tenant
-APP_DOMAIN = os.getenv("APP_DOMAIN", "micsmo.com").lower().replace("https://", "").replace("http://", "").rstrip("/")
-ADMIN_DOMAIN = os.getenv("ADMIN_DOMAIN", "admin.micsmo.com").lower().replace("https://", "").replace("http://", "").rstrip("/")
-API_DOMAIN = os.getenv("API_DOMAIN", "api.micsmo.com").lower().replace("https://", "").replace("http://", "").rstrip("/")
+APP_DOMAIN = os.getenv("APP_DOMAIN", "osmo.vn").lower().replace("https://", "").replace("http://", "").rstrip("/")
+ADMIN_DOMAIN = os.getenv("ADMIN_DOMAIN", "admin.osmo.vn").lower().replace("https://", "").replace("http://", "").rstrip("/")
+API_DOMAIN = os.getenv("API_DOMAIN", "api.osmo.vn").lower().replace("https://", "").replace("http://", "").rstrip("/")
 
 # Mapping of public domains to tenant codes (Dynamic)
 # Elite V2.2: Grouping all subdomains under the primary tenant
@@ -15,10 +15,10 @@ DOMAIN_TENANT_MAP: dict[str, str] = {
     APP_DOMAIN: APP_DOMAIN,
     ADMIN_DOMAIN: APP_DOMAIN,
     API_DOMAIN: APP_DOMAIN,
-    "micsmo.com": APP_DOMAIN,
-    "admin.micsmo.com": APP_DOMAIN,
-    "api.micsmo.com": APP_DOMAIN,
-    "localhost": APP_DOMAIN, # Dev fallback to primary data
+    "osmo.vn": APP_DOMAIN,
+    "admin.osmo.vn": APP_DOMAIN,
+    "api.osmo.vn": APP_DOMAIN,
+    #"localhost": APP_DOMAIN, # Dev fallback to primary data
 }
 
 DEFAULT_TENANT_ID = APP_DOMAIN

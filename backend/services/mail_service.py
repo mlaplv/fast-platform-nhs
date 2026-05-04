@@ -18,7 +18,7 @@ class MailService:
         self.password = os.getenv("EMAIL_HOST_PASSWORD")
         self.use_tls = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
         self.default_from = os.getenv("DEFAULT_FROM_EMAIL", self.user)
-        self.from_name = os.getenv("EMAILS_FROM_NAME", "Micsmo")
+        self.from_name = os.getenv("EMAILS_FROM_NAME", "osmo")
 
     async def send_email(
         self, 

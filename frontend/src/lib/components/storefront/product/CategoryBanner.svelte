@@ -61,7 +61,7 @@
       },
       { 
         label: 'Đã Xác Thực', 
-        value: p.metadata?.offer_trust_verified_by || 'Chuyên Gia Micsmo', 
+        value: p.metadata?.offer_trust_verified_by || 'Chuyên Gia osmo', 
         color: 'text-blue-500' 
       },
       { 

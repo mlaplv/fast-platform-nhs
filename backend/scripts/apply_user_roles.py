@@ -40,7 +40,7 @@ async def apply_roles_to_users():
             user_role_codes = [r.code for r in user.roles]
             
             # Elite Admin Detection
-            is_admin = user.username in ["admin", "mlap"] or user.email in ["admin@micsmo.com", "boss@micsmo.com"]
+            is_admin = user.username in ["admin", "mlap"] or user.email in ["admin@osmo", "boss@osmo"]
             
             if is_admin:
                 if "SUPER_ADMIN" not in user_role_codes:
@@ -50,7 +50,7 @@ async def apply_roles_to_users():
                     print(f"✅ {user.email} already is SUPER_ADMIN")
             
             # Specialty Roles
-            if user.email == "agent@micsmo.com" and "AI_TRAINER" not in user_role_codes:
+            if user.email == "agent@osmo" and "AI_TRAINER" not in user_role_codes:
                 print(f"🤖 Assigning AI_TRAINER to {user.email}")
                 user.roles.append(roles["AI_TRAINER"])
             

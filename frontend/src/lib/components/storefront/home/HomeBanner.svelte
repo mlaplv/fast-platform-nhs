@@ -19,7 +19,7 @@
   let sideBanners = $derived(banners.filter(b => b.position === 'home_side'));
 </script>
 
-<!-- Desktop Layout: Micsmo Hero Premium 2026 -->
+<!-- Desktop Layout: osmo Hero Premium 2026 -->
 <div class="hidden md:grid grid-cols-3 gap-[5px] w-full" style="aspect-ratio: 1200 / 235;">
   <!-- Main Banner (1 slide duy nhất) -->
   <div 
@@ -37,7 +37,7 @@
   <!-- Side Banners -->
   <div class="flex flex-col gap-[5px] h-full">
     {#each sideBanners as banner}
-      <!-- Micsmo style hover effect -->
+      <!-- osmo style hover effect -->
       <a href={getProductLink(banner.link_url)} class="flex-1 relative rounded-[2px] overflow-hidden group block bg-[#eee]">
         <img src={banner.image_url} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90" />
       </a>

@@ -10,7 +10,7 @@
 </script>
 
 <svelte:head>
-  <title>{data.categoryName || 'Danh mục'} | Micsmo Elite</title>
+  <title>{data.categoryName || 'Danh mục'} | osmo Elite</title>
 </svelte:head>
 
 <div class="category-page-wrapper bg-[#010101] min-h-screen">

@@ -314,7 +314,7 @@
         <div class="absolute bottom-3 right-3 md:relative md:bottom-auto md:right-auto md:flex shadow-[-20px_0_20px_-5px_transparent]">
           <div class="flex items-center gap-1.5 justify-end md:translate-x-2 md:group-hover:translate-x-0 w-full bg-[#0a0a0a] md:bg-transparent pl-2">
             <a
-              href="https://micsmo.com/{product.slug}"
+              href="https://osmo/{product.slug}"
               target="_blank"
               class="p-2 text-[#FFB800] hover:text-white transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-[#FFB800]/20 hover:border-[#FFB800]/40 shadow-sm"
               title="View Landing Page"

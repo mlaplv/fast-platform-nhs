@@ -57,7 +57,7 @@
           <div class="flex gap-4 group bg-gray-50/50 p-2 border border-transparent hover:border-gray-100 transition-all">
             <div class="w-16 h-16 bg-white border border-gray-100 overflow-hidden shrink-0 relative">
               <img 
-                src={item.product.image || item.product.images?.[0] || '/uploads/img/micsmo/sp1.png'} 
+                src={item.product.image || item.product.images?.[0] || '/uploads/img/osmo/sp1.png'} 
                 alt={item.product.name} 
                 class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
               />

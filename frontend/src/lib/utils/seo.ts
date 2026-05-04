@@ -246,19 +246,19 @@ export function truncateDescription(text: string, maxLen: number = 160): string 
 }
 
 /**
- * Micsmo Elite V2.2: @graph Builder (AI-First)
+ * osmo Elite V2.2: @graph Builder (AI-First)
  * Hợp nhất nhiều JSON-LD strings thành một siêu cấu trúc @graph duy nhất.
  * Giảm phân mảnh, tăng tốc độ phân tích cho Google AI Review.
  */
 export function buildGraphLd(scripts: (string | null | undefined)[]): string {
     const validScripts = scripts.filter(Boolean) as string[];
     if (validScripts.length === 0) return "";
-    
+
     // Nếu chỉ có 1 script, không cần @graph
     if (validScripts.length === 1) return validScripts[0];
 
     const graphEntities: unknown[] = [];
-    
+
     for (const script of validScripts) {
         try {
             const parsed = JSON.parse(script);

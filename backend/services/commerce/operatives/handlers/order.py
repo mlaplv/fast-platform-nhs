@@ -79,7 +79,7 @@ class OrderHandler(BaseHandler):
             elif recent_order.status == "SHIPPING":
                 ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} hiện **Đang trên đường giao**. Dự kiến 1-2 ngày tới shipper sẽ gọi, Anh/Chị để ý điện thoại nha! 🌸")
             elif recent_order.status == "COMPLETED":
-                ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} đã **Giao thành công** rồi ạ. Cảm ơn Anh/Chị đã luôn tin tưởng và đồng hành cùng Micsmo! ✨")
+                ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} đã **Giao thành công** rồi ạ. Cảm ơn Anh/Chị đã luôn tin tưởng và đồng hành cùng osmo! ✨")
             elif recent_order.status == "CANCELLED":
                 ctx.replies.append(f"{debug_prefix}Dạ đơn hàng của SĐT {masked_phone} đã bị **Hủy** trước đó rồi ạ. Nếu cần mua lại, Anh/Chị cứ báo em nhé! 🌸")
             else:

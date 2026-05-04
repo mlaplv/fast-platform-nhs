@@ -54,7 +54,7 @@
   <div class="relative h-full flex flex-col justify-between">
     <div class="flex justify-between items-start">
       <div class="space-y-0.5">
-        <p class="text-[9px] uppercase tracking-[2px] opacity-70 font-medium">MICSMO.COM</p>
+        <p class="text-[9px] uppercase tracking-[2px] opacity-70 font-medium">osmo</p>
         <h3 class="text-lg font-serif italic tracking-wide">{tierName[tier as keyof typeof tierName]}</h3>
       </div>
       <div class="px-2 py-0.5 bg-white/20 backdrop-blur-sm rounded-md flex items-center justify-center border border-white/20 shadow-sm">

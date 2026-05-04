@@ -190,7 +190,7 @@
             <div class="message-preview-card" in:fade>
                 <div class="preview-sticker">Elite Premium</div>
                 <p class="preview-text">{form.message}</p>
-                <div class="preview-footer">Gói quà bởi Micsmo.com</div>
+                <div class="preview-footer">Gói quà bởi osmo</div>
             </div>
         {/if}
 

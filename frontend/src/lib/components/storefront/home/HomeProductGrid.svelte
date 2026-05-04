@@ -183,7 +183,7 @@
       {/each}
     </div>
 
-    <!-- Micsmo Brand Indicator -->
+    <!-- osmo Brand Indicator -->
     <div class="hidden xl:flex items-center gap-3 px-6 py-2 bg-white/50 backdrop-blur-md rounded-full border border-gray-100 mr-6 group/engine pointer-events-auto">
       <span class="text-[9px] font-black uppercase tracking-[0.3em] text-[#C18F7E]">Bộ sưu tập Thượng lưu 2026</span>
     </div>
@@ -207,7 +207,7 @@
           <!-- Content Left -->
           <div class="relative z-10 flex flex-col gap-6 max-w-[60%]">
             <div in:fly={{y: 20, duration: 1500, delay: 400}} class="flex items-center gap-4">
-                <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[9px] font-black px-3 py-1.5 uppercase tracking-widest border border-[#C18F7E]/20">Lựa chọn Tinh hoa Micsmo</span>
+                <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[9px] font-black px-3 py-1.5 uppercase tracking-widest border border-[#C18F7E]/20">Lựa chọn Tinh hoa osmo</span>
                 <span class="text-black/20 text-[8px] font-black uppercase tracking-[0.4em]">Số lượng giới hạn</span>
             </div>
             
@@ -220,7 +220,7 @@
             <div in:fly={{y: 40, duration: 1500, delay: 800}} class="flex items-center gap-10">
                 <div class="flex flex-col">
                     <div class="flex items-center gap-4 mb-1">
-                        <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20">Đặc quyền Micsmo</span>
+                        <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20">Đặc quyền osmo</span>
                         {#if slide.originalPrice}
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-bold text-gray-300 line-through tabular-nums decoration-gray-400/30">

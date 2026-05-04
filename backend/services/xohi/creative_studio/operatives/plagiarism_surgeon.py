@@ -31,6 +31,16 @@ class PlagiarismSurgeon(XoHiProgressMixin):
             retries=2
         )
 
+    def clean_ai_html(self, html: str) -> str:
+        """CNS V82.0: Clean AI artifacts (Markdown blocks) from HTML output."""
+        if not html:
+            return ""
+        import re
+        clean = re.sub(r'```html\s*', '', html, flags=re.IGNORECASE)
+        clean = re.sub(r'```\s*', '', clean)
+        return clean.strip()
+
+
     async def _emit_log(self, campaign: ContentCampaign, msg: str) -> None:
         """Helper to emit logs to the SSE stream."""
         await self._emit_progress(campaign, msg)

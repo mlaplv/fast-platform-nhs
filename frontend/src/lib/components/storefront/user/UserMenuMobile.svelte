@@ -59,7 +59,7 @@
               <Sparkles class="w-5 h-5 text-luxury-copper" />
            </div>
            <div>
-             <h2 class="text-[13px] font-black uppercase tracking-[3px] text-stone-900">Micsmo Elite</h2>
+             <h2 class="text-[13px] font-black uppercase tracking-[3px] text-stone-900">osmo Elite</h2>
              <p class="text-[9px] text-stone-400 uppercase tracking-widest mt-0.5">Luxury Experience</p>
            </div>
         </div>
@@ -137,7 +137,7 @@
         </button>
 
         <p class="text-[9px] text-center text-stone-300 uppercase tracking-[2px] mt-8">
-          Elite Member Experience • Micsmo 2026
+          Elite Member Experience • osmo 2026
         </p>
       </div>
     </div>

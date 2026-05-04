@@ -81,7 +81,7 @@
 
   
   // R6.0 Memory State
-  const CACHE_NAME: string = "micsmo-tts-v2";
+  const CACHE_NAME: string = "osmo-tts-v2";
   let productSlug: string = $derived(product?.slug || "unknown");
 
   /**

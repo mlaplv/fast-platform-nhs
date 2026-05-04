@@ -237,7 +237,7 @@
         {:else if orderData}
           {@const statusInfo = ORDER_STATUS_MAP[orderData.status.toLowerCase()] || { label: orderData.status, color: "text-gray-400", border: "border-gray-400" }}
           
-          <!-- V4 Status LifeCycle Stepper (Micsmo-Elite Integrated) -->
+          <!-- V4 Status LifeCycle Stepper (osmo-Elite Integrated) -->
           <div class="mb-10" in:fly={{ y: -20, duration: 600 }}>
             <StatusStepper 
               currentStatus={orderData.status} 

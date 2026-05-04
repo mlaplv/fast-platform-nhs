@@ -18,7 +18,7 @@ def base_request():
     return SupportRequest(
         message="Hello",
         session_id="test_session",
-        product_slug="hong-son"
+        product_slug="test-beauty-product"
     )
 
 @pytest.fixture

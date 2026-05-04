@@ -16,7 +16,7 @@ SUB_CATEGORY_DEFS = []
 
 PRODUCT_DEFS = [
     {
-        "images": ["img/micsmo/virgin_white_viral_2026.png"],
+        "images": ["img/osmo/virgin_white_viral_2026.png"],
         "id": "prod_miccosmo_virgin_white",
         "name": "Miccosmo Beppin Body Virgin White Serum 30g",
         "slug": "miccosmo-beppin-body-virgin-white-serum",
@@ -434,7 +434,7 @@ ARTICLE_TITLES = [article["title"] for article in ARTICLE_DEFS]
 SUPPORT_KNOWLEDGE_DEFS = [
     {
         "category": "POLICY",
-        "question": "Quy trình xử lý đơn hàng của Micsmo diễn ra như thế nào?",
+        "question": "Quy trình xử lý đơn hàng của osmo diễn ra như thế nào?",
         "answer": "Sau khi Sếp đặt hàng, AI sẽ tự động xác thực và chuyển sang kho đóng gói trong vòng 30 phút. Đơn hàng sẽ được giao hỏa tốc từ 1-3 ngày làm việc.",
         "priority": 10
     },
@@ -446,7 +446,7 @@ SUPPORT_KNOWLEDGE_DEFS = [
     },
     {
         "category": "SHIPPING",
-        "question": "Micsmo có miễn phí vận chuyển không?",
+        "question": "osmo có miễn phí vận chuyển không?",
         "answer": "Dạ có thưa Sếp! Mọi đơn hàng trên 500.000 VNĐ đều được hưởng chính sách 'Neural Express' - Miễn phí vận chuyển toàn quốc.",
         "priority": 8
     },
@@ -470,7 +470,7 @@ BANNER_DEFS = [
     },
     {
         "id": "banner_viral_2",
-        "title": "Micsmo Live - Phục Hồi Chuyên Sâu",
+        "title": "osmo Live - Phục Hồi Chuyên Sâu",
         "image_url": "/uploads/img/banner/vn-11134258-81ztc-mmiz6tc047peb7@resize_w797_nl.webp",
         "link_url": "miccosmo-white-label-premium-placenta-pack-130g",
         "position": "home_main",
@@ -510,7 +510,7 @@ VOUCHER_DEFS = [
 # System Settings (Elite V2.2)
 SYSTEM_SETTINGS_DEF = {
     "basic_info": {
-        "site_name": "Micsmo.com",
+        "site_name": "osmo",
         "description": "Hệ thống bán hàng AI thế hệ mới 2026",
         "logo_desktop": None,
         "logo_mobile": None,
@@ -522,18 +522,18 @@ SYSTEM_SETTINGS_DEF = {
         "business_license": "",
         "phone": "094990112",
         "hotline": "0978785079",
-        "email": "contact@micsmo.com",
+        "email": "contact@osmo",
         "address": "336/28/19 Nguyễn Văn Luông, Phú Lâm, HCM",
         "working_hours": "8:00 - 22:00"
     },
     "social_media": [
-        {"platform": "Facebook", "url": "https://facebook.com/micsmo", "icon_url": None},
-        {"platform": "Zalo", "url": "https://zalo.me/micsmo", "icon_url": None},
-        {"platform": "TikTok", "url": "https://tiktok.com/@micsmo", "icon_url": None}
+        {"platform": "Facebook", "url": "https://facebook.com/osmo", "icon_url": None},
+        {"platform": "Zalo", "url": "https://zalo.me/osmo", "icon_url": None},
+        {"platform": "TikTok", "url": "https://tiktok.com/@osmo", "icon_url": None}
     ],
     "seo_analytics": {
-        "meta_title": "Micsmo.com - Mua sắm thông minh cùng AI",
-        "meta_keywords": "AI, shopping, smartshop, micsmo",
+        "meta_title": "osmo - Mua sắm thông minh cùng AI",
+        "meta_keywords": "AI, shopping, smartshop, osmo",
         "google_analytics_id": "G-XXXXXXXXXX",
         "facebook_pixel_id": "XXXXXXXXXXXXXXX"
     },

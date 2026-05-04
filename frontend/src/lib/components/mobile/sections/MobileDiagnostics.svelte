@@ -357,7 +357,7 @@
                 <h3 class="text-xl font-black text-white tracking-tighter uppercase mb-1 drop-shadow-[0_0_15px_rgba(255,183,197,0.5)] italic">
                   PHÁC ĐỒ ĐIỀU TRỊ
                 </h3>
-                <p class="text-[7px] text-[#FFB7C5] font-bold uppercase tracking-[0.3em]">AI MICSMO 2026</p>
+                <p class="text-[7px] text-[#FFB7C5] font-bold uppercase tracking-[0.3em]">AI osmo 2026</p>
               </div>
               <div class="flex items-center gap-2 shrink-0">
                <div class="text-right">

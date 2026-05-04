@@ -33,7 +33,7 @@
 </script>
 
 <div class="min-h-screen bg-[#F7F8F9] pb-24">
-  <!-- 1. Synchronized Header (Standard Micsmo Pattern) -->
+  <!-- 1. Synchronized Header (Standard osmo Pattern) -->
   <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-gray-100 flex flex-col shadow-sm">
     <!-- Row 1: Back + Search (System Trigger) -->
     <div class="px-2 py-1 flex items-center gap-2 h-14">
@@ -68,7 +68,7 @@
         >
           <div class="aspect-[16/10] relative overflow-hidden">
              <ImageWithFallback 
-                src={news.featuredImage || "/home/lv/.gemini/antigravity/brain/9ea17a17-8f07-46fd-b120-9823cc68a3a5/micsmo_news_hero_placeholder_1776682173691.png"} 
+                src={news.featuredImage || "/home/lv/.gemini/antigravity/brain/9ea17a17-8f07-46fd-b120-9823cc68a3a5/osmo_news_hero_placeholder_1776682173691.png"} 
                 alt={news.title} 
                 aspectRatio="aspect-video" 
                 class="w-full h-full object-cover scale-105 group-hover:scale-100 transition-transform duration-[8s]" 
@@ -77,7 +77,7 @@
           </div>
           <div class="absolute bottom-0 inset-x-0 p-6 space-y-2">
             <div class="flex items-center gap-3">
-                <span class="bg-[#C18F7E] text-white px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] italic">Micsmo News</span>
+                <span class="bg-[#C18F7E] text-white px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] italic">osmo News</span>
                 <span class="text-[9px] text-white/60 font-medium">Trending now</span>
             </div>
             <h3 class="text-2xl font-black text-white leading-tight tracking-tighter uppercase italic">{news.title}</h3>

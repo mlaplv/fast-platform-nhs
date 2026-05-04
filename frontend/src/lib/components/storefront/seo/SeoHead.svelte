@@ -6,7 +6,7 @@
     <SeoHead
       title="Product Name | Brand"
       description="..."
-      canonical="https://micsmo.com/slug"
+      canonical="https://osmo/slug"
       ogType="product"
       ogImage="https://..."
       jsonLdScripts={[productLd, breadcrumbLd]}
@@ -33,7 +33,7 @@
     ogType = "website",
     ogImage = "",
     ogImageAlt = "",
-    siteName = "Micsmo Elite",
+    siteName = "osmo Elite",
     keywords = "",
     robots = "index, follow, max-image-preview:large",
     jsonLdScripts = [],

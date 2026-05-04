@@ -49,7 +49,7 @@ def get_env_gemini_keys() -> list[str]:
 GEMINI_KEYS = get_env_gemini_keys()
 
 # Resolve Tenant ID from environment to match live deployment
-TENANT_ID = os.getenv("APP_DOMAIN", "micsmo.com")
+TENANT_ID = os.getenv("APP_DOMAIN", "osmo")
 def utcnow(): return datetime.now(timezone.utc)
 
 async def clear_data(session):
@@ -108,7 +108,7 @@ async def seed_users(session, admin_role):
     print("👤 Creating users...")
     pwd = os.getenv("ADMIN_PASSWORD", "admin@123A3%StrongPassword")
     hpwd = bcrypt.hashpw(hashlib.sha256(pwd.encode()).hexdigest().encode(), bcrypt.gensalt()).decode()
-    admin = User(id="user_admin", email=os.getenv("ADMIN_EMAIL", "admin@micsmo.com"), username=os.getenv("ADMIN_USERNAME", "admin"), name="Micsmo", password=hpwd, status="ACTIVE", tenant_id=TENANT_ID)
+    admin = User(id="user_admin", email=os.getenv("ADMIN_EMAIL", "admin@osmo"), username=os.getenv("ADMIN_USERNAME", "admin"), name="osmo", password=hpwd, status="ACTIVE", tenant_id=TENANT_ID)
     admin.roles.append(admin_role); session.add(admin)
     vp = VoiceProfile(id=str(uuid.uuid4()), user_id=admin.id, wake_words=["hey so hi"], sleep_words=["cút"], greeting_template="Bố đây.", capabilities={"READ":True,"COUNT":True,"MUTATE":True,"ANALYZE":True}, gemini_keys_enc=GeminiSecurity.encrypt(GEMINI_KEYS), primary_model="gemini-1.5-pro", ai_models=["gemini-1.5-flash"])
     session.add(vp); await session.flush(); return admin

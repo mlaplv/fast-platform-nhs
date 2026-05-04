@@ -57,7 +57,25 @@ class KeyLoaderMixin:
         from sqlalchemy import select
         async with alchemy_config.create_session_maker()() as session:
             profiles = (await session.execute(select(VoiceProfile).where(VoiceProfile.gemini_keys_enc != None))).scalars().all()
-            recovered = [k for p in profiles for k in (GeminiSecurity.decrypt(p.gemini_keys_enc) or [])]
+            recovered = []
+            for p in profiles:
+                decrypted = GeminiSecurity.decrypt(p.gemini_keys_enc)
+                if isinstance(decrypted, list):
+                    recovered.extend([str(k).strip() for k in decrypted if k])
+                elif isinstance(decrypted, str):
+                    clean_k = decrypted.strip()
+                    # Elite V2.2: Guard against character-level iteration
+                    # Only accept if it looks like a real Gemini key (starts with AIza)
+                    if clean_k.startswith("AIza") and len(clean_k) > 20:
+                        recovered.append(clean_k)
+                    elif clean_k == p.gemini_keys_enc:
+                        # Decryption failed (returned same string) - typical of salt mismatch
+                        # Log as debug to avoid terminal spam
+                        logger.debug(f"[KeyLoader] Skipping un-decryptable key blob (Legacy/Salt mismatch) for User: {p.user_id}")
+                    else:
+                        # Successfully decrypted (or plain text) but NOT a valid Gemini key format
+                        logger.warning(f"⚠️ [KeyLoader] Skipping invalid Gemini key format from DB (User: {p.user_id})")
+            
             return list(set(recovered))
 
     def _get_key_id(self, key: Optional[str]) -> str:

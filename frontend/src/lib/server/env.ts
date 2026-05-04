@@ -1,8 +1,8 @@
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 
-const APP_DOMAIN = env.APP_DOMAIN || 'micsmo.com';
-const ADMIN_DOMAIN = env.ADMIN_DOMAIN || 'admin.micsmo.com';
+const APP_DOMAIN = env.APP_DOMAIN || 'osmo';
+const ADMIN_DOMAIN = env.ADMIN_DOMAIN || 'admin.osmo';
 
 /**
  * ServerEnv (Elite V2.2)
@@ -13,7 +13,7 @@ export const ServerEnv = {
     /** environment: development | production */
     isDev: dev,
 
-    /** Domain for Admin Portal detection (e.g. admin.micsmo.com) */
+    /** Domain for Admin Portal detection (e.g. admin.osmo) */
     ADMIN_DOMAIN,
 
     /** Internal URL for Backend API communication (Container-to-Container) */

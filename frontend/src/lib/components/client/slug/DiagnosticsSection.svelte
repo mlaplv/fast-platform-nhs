@@ -17,7 +17,7 @@
   const questions = $derived(metadata?.quiz_questions || []);
 
   const labels = $derived({
-    disclaimer: metadata.diagnostics_disclaimer || `Micsmo - Gemini là AI và có thể mắc sai sót.`
+    disclaimer: metadata.diagnostics_disclaimer || `osmo - Gemini là AI và có thể mắc sai sót.`
   });
 </script>
 

@@ -6,7 +6,7 @@ Mỗi request nhận một persona (giọng điệu) + structure (cấu trúc vi
 khiến output AI không bao giờ theo cùng 1 pattern.
 
 Architecture:
-- TONE_SEEDS: 8 persona phù hợp ngành y tế/skincare micsmo.com
+- TONE_SEEDS: 8 persona phù hợp ngành y tế/skincare osmo
 - STRUCTURE_SEEDS: 6 cấu trúc viết khác nhau
 - get_dynamic_prompt_context(): Random chọn tone + structure
 - get_deterministic_context(): Hash-based chọn (cho reproducible output)
@@ -23,7 +23,7 @@ logger = logging.getLogger("api-gateway")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TONE SEEDS — Persona cho ngành y tế/skincare (Micsmo Elite)
+# TONE SEEDS — Persona cho ngành y tế/skincare (osmo Elite)
 # Mỗi seed là một system prompt fragment mô tả giọng điệu viết.
 # ═══════════════════════════════════════════════════════════════════════════════
 

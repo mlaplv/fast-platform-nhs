@@ -118,7 +118,7 @@ async def test_order_redemption_with_cap():
         
         data = OrderCreateRequest(
             customer_name="Test User",
-            customer_email="test@micsmo.com",
+            customer_email="test@osmo",
             total_amount=1000000, 
             items=[],
             points_to_redeem=5000 

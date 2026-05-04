@@ -1,4 +1,4 @@
-# HELEN INTELLIGENT PIPELINE (IP) - ARCHITECT'S BLUEPRINT (MICSMO ELITE V4.2)
+# HELEN INTELLIGENT PIPELINE (IP) - ARCHITECT'S BLUEPRINT (osmo ELITE V4.2)
 
 > **CHỈ THỊ TỐI CAO:** Helen là một **Autonomous Sales Engine** — chuyên gia tư vấn mỹ phẩm cao cấp và chăm sóc da chuyên sâu. Hệ thống tích hợp **Loyalty Intelligence** và **Military-Grade Security** để chốt đơn tự động, bảo vệ dữ liệu tuyệt đối và tối ưu hóa trải nghiệm khách hàng thân thiết.
 
@@ -105,6 +105,6 @@ Mọi phiên chat có ý định mua hàng phải đi qua 3 trạm kiểm soát 
 | Tool | Nguồn DB | Mô tả Tính năng |
 |---|---|---|
 
-**Phiên bản:** Micsmo Elite V4.4 (Persistent Assassin Engine)
+**Phiên bản:** osmo Elite V4.4 (Persistent Assassin Engine)
 **Cập nhật cuối:** 2026-04-22
 **Tác giả:** Trinity Neural Core via Antigravity Agent

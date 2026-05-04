@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 BASE_PATH = "/app/frontend/static/uploads/img"
 SOURCE_FILE = "logo.webp"
 OUTPUT_FILE = "logo_transparent.webp"
-TENANT_ID = "micsmo.com"
+TENANT_ID = "osmo"
 DB_URL = "postgresql://postgres:postgres@db:5432/fast_platform"
 
 def remove_background(input_path, output_path):

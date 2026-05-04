@@ -60,7 +60,7 @@
   const siteName = $derived(
     isAdmin 
     ? "Xohi Admin Dashboard" 
-    : (ui?.settings?.basic_info?.site_name || ui?.settings?.site_name || "Micsmo Elite")
+    : (ui?.settings?.basic_info?.site_name || ui?.settings?.site_name || "osmo Elite")
   );
   const metaDescription = $derived(
     isAdmin

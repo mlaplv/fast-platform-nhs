@@ -54,6 +54,6 @@ Hệ thống sử dụng kiến trúc **Hybrid Persistence** để đảm bảo 
 3.  **Ambiguity Guard:** Khi gặp địa chỉ trùng tên ở nhiều tỉnh, phải dừng lại hỏi rõ Tỉnh/Thành phố thay vì mặc định sai lệch.
 
 ---
-**Phiên bản:** Micsmo Elite V5.3 (Order Draft Intelligence)
+**Phiên bản:** osmo Elite V5.3 (Order Draft Intelligence)
 **Cập nhật cuối:** 2026-04-22
 **Tác giả:** Trinity Neural Core via Antigravity Agent

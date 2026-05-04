@@ -22,19 +22,19 @@
       title: "KIÊU SA TRONG TIỆC TỐI",
       result: "Tự tin diện những mẫu đầm hở lưng quyến rũ nhất.",
       caption: "Không còn lo ngại các vùng da thâm sạm, bạn là tâm điểm của sự chú ý.",
-      image: "https://micsmo.com/wp-content/uploads/2024/03/h6-img-1.jpg" // Placeholder for luxury image
+      image: "https://osmo/wp-content/uploads/2024/03/h6-img-1.jpg" // Placeholder for luxury image
     },
     {
       title: "RẠNG RỠ TRÊN BIỂN XANH",
       result: "Tự do phô diễn đường cong cùng bộ Bikini yêu thích.",
       caption: "Làn da trắng mịn không tì vết giúp bạn tỏa sáng dưới ánh nắng mặt trời.",
-      image: "https://micsmo.com/wp-content/uploads/2024/03/h6-img-2.jpg"
+      image: "https://osmo/wp-content/uploads/2024/03/h6-img-2.jpg"
     },
     {
       title: "CẢM GIÁC CHẠM ĐẦY MÊ HOẶC",
       result: "Làn da mướt mịn đánh thức mọi giác quan.",
       caption: "Xóa tan mọi rào cản, tự tin trong những khoảnh khắc gần gũi nhất.",
-      image: "https://micsmo.com/wp-content/uploads/2024/03/h6-img-3.jpg"
+      image: "https://osmo/wp-content/uploads/2024/03/h6-img-3.jpg"
     }
   ];
 

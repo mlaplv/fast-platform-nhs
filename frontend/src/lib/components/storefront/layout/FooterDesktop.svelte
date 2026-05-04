@@ -157,7 +157,7 @@
 
       <!-- Contact & Social Connect -->
       <div class="lg:col-span-4 space-y-6">
-        <h4 class="text-white font-black uppercase text-[10px] tracking-[0.4em] pl-2">Kết nối Micsmo</h4>
+        <h4 class="text-white font-black uppercase text-[10px] tracking-[0.4em] pl-2">Kết nối osmo</h4>
         
         <div class="bg-white/[0.02] border border-white/5 p-5 rounded-xl backdrop-blur-3xl space-y-5 hover:border-[#C18F7E]/20 transition-all group">
           <div class="flex items-center gap-4">

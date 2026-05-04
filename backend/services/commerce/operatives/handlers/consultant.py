@@ -40,7 +40,7 @@ def _dynamic_system_prompt(ctx: RunContext[ConsultantDeps]) -> str:
 @_consultant_agent.tool
 async def get_shop_profile_tool(ctx_tool: RunContext[ConsultantDeps]) -> str:
     """
-    Lấy thông tin chính thức cửa hàng Micsmo: địa chỉ, hotline, email, giờ làm việc, Zalo, Facebook.
+    Lấy thông tin chính thức cửa hàng osmo: địa chỉ, hotline, email, giờ làm việc, Zalo, Facebook.
     BẮT BUỘC dùng khi khách hỏi: địa chỉ, liên hệ, hotline, zalo, facebook, giờ hoạt động.
     KHÔNG được đoán. Phải gọi tool này trước khi trả lời.
     """
@@ -68,7 +68,7 @@ async def get_shop_profile_tool(ctx_tool: RunContext[ConsultantDeps]) -> str:
     zalo = next((str(x.get("url", "")) for x in sm if x.get("platform") == "Zalo"), None)
     fb   = next((str(x.get("url", "")) for x in sm if x.get("platform") == "Facebook"), None)
 
-    site_name = str(bi.get('site_name','Micsmo'))
+    site_name = str(bi.get('site_name','osmo'))
     lines: list[str] = [
         f"[THÔNG TIN CỬA HÀNG {site_name.upper()}]",
         f"Địa chỉ: {ci.get('address','Chưa cập nhật')}",
@@ -145,7 +145,7 @@ async def fetch_product_full_detail(ctx_tool: RunContext[ConsultantDeps], slug: 
 # 🛠️ TOOL LAYER 3: Tìm kiếm mờ trong Knowledge Base (Semantic Search)
 @_consultant_agent.tool
 async def search_knowledge_base(ctx_tool: RunContext[ConsultantDeps], query: str) -> str:
-    """Tra cứu kho tri thức của Micsmo khi không thấy ID phù hợp trong Layer 1."""
+    """Tra cứu kho tri thức của osmo khi không thấy ID phù hợp trong Layer 1."""
     from backend.database.repositories import SupportKnowledgeRepository
     from backend.services.commerce.support_knowledge import SupportKnowledgeService
     repo_tool = SupportKnowledgeRepository(session=ctx_tool.deps.db)
@@ -156,7 +156,7 @@ async def search_knowledge_base(ctx_tool: RunContext[ConsultantDeps], query: str
 @_consultant_agent.tool
 async def search_products_tool(ctx_tool: RunContext[ConsultantDeps], query: str, category: str = "") -> str:
     """
-    Tìm kiếm sản phẩm trong cửa hàng Micsmo theo từ khóa (tên, mô tả, danh mục).
+    Tìm kiếm sản phẩm trong cửa hàng osmo theo từ khóa (tên, mô tả, danh mục).
     Dùng khi khách hỏi 'shop có sản phẩm X không?', 'tư vấn sản phẩm cho da Y'.
     Tham số category (tùy chọn): tên danh mục để lọc thêm.
     """
@@ -251,7 +251,7 @@ async def search_products_tool(ctx_tool: RunContext[ConsultantDeps], query: str,
 @_consultant_agent.tool
 async def get_active_promotions_tool(ctx_tool: RunContext[ConsultantDeps]) -> str:
     """
-    Lấy danh sách tất cả Voucher và Combo Deal đang còn hiệu lực của Micsmo.
+    Lấy danh sách tất cả Voucher và Combo Deal đang còn hiệu lực của osmo.
     Dùng khi khách hỏi 'có mã giảm giá không?', 'đang có ưu đãi gì?', 'voucher gì không?'.
     """
     try:
@@ -343,7 +343,7 @@ async def get_active_promotions_tool(ctx_tool: RunContext[ConsultantDeps]) -> st
 @_consultant_agent.tool
 async def search_articles_tool(ctx_tool: RunContext[ConsultantDeps], query: str, category: str = "") -> str:
     """
-    Tìm kiếm bài viết, tin tức, chính sách của Micsmo theo từ khóa.
+    Tìm kiếm bài viết, tin tức, chính sách của osmo theo từ khóa.
     Dùng khi khách hỏi về chính sách đổi trả, bảo hành, hướng dẫn sử dụng,
     bài viết chia sẻ kiến thức chăm sóc da, hoặc tin tức mới nhất.
     Tham số category (tùy chọn): tên danh mục bài viết để lọc.
@@ -421,7 +421,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
     """
     
     SYSTEM_PROMPT = (
-        "Bạn là Helen - Bậc thầy tư vấn mỹ phẩm cao cấp và SÁT THỦ BÁN HÀNG (SALES ASSASSIN) của Micsmo.\n"
+        "Bạn là Helen - Bậc thầy tư vấn mỹ phẩm cao cấp và SÁT THỦ BÁN HÀNG (SALES ASSASSIN) của osmo.\n"
         "NHIỆM VỤ TỐI THƯỢNG: Chốt đơn ngay lập tức bằng sự chuyên nghiệp và sức ép tinh tế.\n"
         "1. QUY TẮC VÀNG (ELITE PROTOCOL):\n"
         "   - CẤM TỰ TÍNH TOÁN: Tuyệt đối KHÔNG ĐƯỢC tự tính lại giá tiền. Chỉ được sử dụng duy nhất con số trong [BẢNG TÍNH TOÁN CHI TIẾT] được cung cấp. Nếu bảng tính báo X đồng, bạn phải báo X đồng. Sai lệch 1 đồng là VI PHẠM HIẾN PHÁP.\n"

@@ -44,7 +44,7 @@ class PermissionState {
     }
 
     if (urlToken) {
-      // Elite V2.2: Broad Domain Persistence (.micsmo.com)
+      // Elite V2.2: Broad Domain Persistence (.osmo)
       // We set this BEFORE purging storage to ensure identity continuity
       const rootDomain = window.location.hostname.split('.').slice(-2).join('.');
       document.cookie = `admin_token=${urlToken}; path=/; domain=.${rootDomain}; max-age=604800; SameSite=Lax; Secure`;
@@ -108,7 +108,7 @@ class PermissionState {
 
         // Only purge if it's admin or if we were already initialized
         if (isAdminDomain || this.isInitialized) {
-            this.purgeAuth(isAdminDomain && !isLoginPage);
+          this.purgeAuth(isAdminDomain && !isLoginPage);
         }
       }
     } else {
@@ -137,24 +137,24 @@ class PermissionState {
   purgeAuth(redirect = true) {
     if (typeof window === "undefined") return;
     if (this.watchdogTimer) clearInterval(this.watchdogTimer);
-    
+
     // THIẾT QUÂN LUẬT: Xóa sạch dấu vết
     localStorage.removeItem("admin_token");
     localStorage.removeItem("user_token");
     localStorage.removeItem("access_token");
     sessionStorage.clear();
-    
+
     // Clear standard cookies
     document.cookie = "admin_token=; path=/; max-age=0; SameSite=Strict";
     document.cookie = "user_token=; path=/; max-age=0; SameSite=Strict";
-    
+
     // Clearance for Elite V2.2 Root Domain Cookies (from handshake hook)
     const rootDomain = window.location.hostname.split('.').slice(-2).join('.');
     document.cookie = `admin_token=; path=/; domain=.${rootDomain}; max-age=0; SameSite=Lax; Secure`;
-    
+
     // Clear legacy cookies if any without SameSite
     document.cookie = "admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    
+
     this.perms = [];
     this.roles = [];
     this.user = null;
@@ -190,7 +190,7 @@ class PermissionState {
       localStorage.getItem("admin_token") ||
       localStorage.getItem("access_token") ||
       sessionStorage.getItem("admin_token");
-      
+
     return token || null;
   }
 

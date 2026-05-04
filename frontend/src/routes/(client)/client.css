@@ -27,7 +27,8 @@
 
   /* Tablet Refinement (768px - 1024px) */
   @media (min-width: 768px) and (max-width: 1024px) {
-    --standard-pt: calc(6vh + 20px); /* Elite V2.2: Compact top for iPad */
+    --standard-pt: calc(6vh + 20px);
+    /* Elite V2.2: Compact top for iPad */
     --fs-hero: clamp(2rem, 6vw, 3.5rem);
     --fs-title: clamp(1.5rem, 4vw, 2.5rem);
     --fs-headline-titanic: clamp(1.8rem, 6vw, 3.2rem);
@@ -42,10 +43,11 @@
   --liquid-blur: 0px !important;
   --glass-blur: 0px !important;
 
-  /* Brand Identity: MICSMO COPPER & HONEY GOLD (Elite V7.3) */
-  --luxury-sakura: #C18F7E; /* MICSMO Brand Copper */
+  /* Brand Identity: osmo COPPER & HONEY GOLD (Elite V7.3) */
+  --luxury-sakura: #C18F7E;
+  /* osmo Brand Copper */
   --luxury-gold: #E8D5B0;
-  --luxury-copper: #C18F7E; 
+  --luxury-copper: #C18F7E;
   --luxury-peach: #FFF0F0;
   --luxury-accent-bright: #FFFFFF;
 
@@ -59,9 +61,13 @@
   color-scheme: light;
   --bg-canvas: #010101;
   --text-base: #FFFFFF;
-  
+
   /* Elite V2.2 Typo Logic */
-  --font-main: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-main: 'Be Vietnam Pro',
+  'Inter',
+  system-ui,
+  -apple-system,
+  sans-serif;
 }
 
 /* ZERO-SHIFT RESPONSIVE UTILITIES (Elite V2.2) */
@@ -150,15 +156,15 @@ body {
 
 /* Elite V2.2: Universal Content Disable System - GLOBAL SCOPE */
 .is-disabled .content-container {
-    transition: all 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 /* For Admins: Blur, Strike-through and Opacity */
 body.live-edit-mode .is-disabled .content-container {
-    opacity: 0.25 !important;
-    filter: blur(1.5px) grayscale(1);
-    text-decoration: line-through;
-    pointer-events: auto;
+  opacity: 0.25 !important;
+  filter: blur(1.5px) grayscale(1);
+  text-decoration: line-through;
+  pointer-events: auto;
 }
 
 .client-layout h1,
@@ -289,14 +295,15 @@ body.live-edit-mode .is-disabled .content-container {
 /* ELITE V2.2: EMERGENCY EDIT MODE VISIBILITY - OPTIMIZED */
 body.live-edit-mode .elite-hero-headline,
 body.live-edit-mode .elite-session-headline {
-    -webkit-text-fill-color: #FFFFFF !important;
-    color: #FFFFFF !important;
-    background-image: none !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  color: #FFFFFF !important;
+  background-image: none !important;
 }
 
 body.live-edit-mode .editable-wrapper.is-disabled {
-    opacity: 0.4;
+  opacity: 0.4;
 }
+
 /* ELITE V2.2: Unified Status Indicator System */
 .elite-status-pill {
   display: inline-flex;
@@ -341,7 +348,9 @@ body.live-edit-mode .editable-wrapper.is-disabled {
 }
 
 @keyframes elite-ping {
-  75%, 100% {
+
+  75%,
+  100% {
     transform: scale(3.5);
     opacity: 0;
   }
@@ -351,65 +360,67 @@ body.live-edit-mode .editable-wrapper.is-disabled {
   background: none !important;
   -webkit-text-fill-color: #FFFFFF !important;
   color: #FFFFFF !important;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 
 /* 🧬 SPEC BENTO (Elite V2.2 - Neural Lightning Stream) */
 .spec-bento-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 0 !important;
-    margin: 2.5rem 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  margin: 2.5rem 0 !important;
 }
 
 .spec-card {
-    background: transparent !important;
-    padding: 1.25rem 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 0.15rem !important;
-    position: relative !important;
-    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1) !important;
-    width: 100% !important;
-    align-items: flex-start !important; /* Forced Left Alignment */
+  background: transparent !important;
+  padding: 1.25rem 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.15rem !important;
+  position: relative !important;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1) !important;
+  width: 100% !important;
+  align-items: flex-start !important;
+  /* Forced Left Alignment */
 }
 
 /* Horizontal Lightning Line */
 .spec-card::after {
-    content: '' !important;
-    position: absolute !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 1px !important;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, transparent 90%) !important;
-    transition: all 0.6s ease !important;
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, transparent 90%) !important;
+  transition: all 0.6s ease !important;
 }
 
 .spec-card:hover {
-    background: rgba(193, 143, 126, 0.02) !important;
-    padding-left: 1rem !important; /* Subtle kinetic shift */
+  background: rgba(193, 143, 126, 0.02) !important;
+  padding-left: 1rem !important;
+  /* Subtle kinetic shift */
 }
 
 .spec-card:hover::after {
-    background: linear-gradient(90deg, #C18F7E 0%, transparent 90%) !important;
-    box-shadow: -5px 0 15px rgba(193, 143, 126, 0.2) !important;
+  background: linear-gradient(90deg, #C18F7E 0%, transparent 90%) !important;
+  box-shadow: -5px 0 15px rgba(193, 143, 126, 0.2) !important;
 }
 
 .spec-label {
-    font-size: 9px !important;
-    font-weight: 900 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.2em !important;
-    color: rgba(255, 255, 255, 0.2) !important;
-    margin: 0 !important;
-    line-height: 1 !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.2em !important;
+  color: rgba(255, 255, 255, 0.2) !important;
+  margin: 0 !important;
+  line-height: 1 !important;
 }
 
 .spec-value {
-    font-size: 14px !important;
-    font-weight: 700 !important;
-    color: rgba(255, 255, 255, 0.9) !important;
-    line-height: 1.4 !important;
-    margin: 0 !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
 }

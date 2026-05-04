@@ -14,7 +14,7 @@
   // Elite V2.2: Derive SEO data from shop settings
   const shopSettings = $derived(data.shopInfo || ui.settings);
   const seoSiteName = $derived(
-    shopSettings?.basic_info?.site_name || shopSettings?.site_name || "Micsmo Elite"
+    shopSettings?.basic_info?.site_name || shopSettings?.site_name || "osmo Elite"
   );
   const seoDescription = $derived(
     shopSettings?.basic_info?.description ||
@@ -29,7 +29,7 @@
   );
 
   // GEO 2026: JSON-LD for Homepage
-  const siteUrl = "https://micsmo.com";
+  const siteUrl = "https://osmo";
   const webSiteLd = $derived(buildWebSiteLd(seoSiteName, siteUrl));
   const organizationLd = $derived(buildOrganizationLd({
     name: shopSettings?.contact_info?.company_name || seoSiteName,

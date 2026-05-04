@@ -22,7 +22,7 @@
     // Elite V2.2: Independent Fomo Initialization (Zero-Latency)
     // Only initialize if settings are available and enabled
     if (!isAdmin && ui.settings?.conversions?.fomo_enabled) {
-        fomoStore.init('micsmo-elite');
+        fomoStore.init('osmo-elite');
     }
     return ui.initObservers();
   });
@@ -30,7 +30,7 @@
   // Re-check initialization if settings update
   $effect(() => {
     if (!isAdmin && ui.settings?.conversions?.fomo_enabled && !fomoStore.isInitialized) {
-        fomoStore.init('micsmo-elite');
+        fomoStore.init('osmo-elite');
     } else if (!isAdmin && ui.settings?.conversions?.fomo_enabled === false) {
         fomoStore.dispose();
     }
@@ -63,12 +63,12 @@
 
   // Map backend settings to UI structure (Elite V2.2: Deep Mapping)
   const footerShopInfo = $derived({
-      name: data.shopInfo?.basic_info?.site_name || data.shopInfo?.site_name || "MICSMO ELITE",
-      companyName: data.shopInfo?.contact_info?.company_name || data.shopInfo?.contact?.name || data.shopInfo?.basic_info?.site_name || "Hệ thống Micsmo",
+      name: data.shopInfo?.basic_info?.site_name || data.shopInfo?.site_name || "osmo ELITE",
+      companyName: data.shopInfo?.contact_info?.company_name || data.shopInfo?.contact?.name || data.shopInfo?.basic_info?.site_name || "Hệ thống osmo",
       slogan: data.shopInfo?.basic_info?.slogan || data.shopInfo?.slogan || "Bật tông trắng sáng",
       description: data.shopInfo?.basic_info?.description || data.shopInfo?.description || "Hệ thống mỹ phẩm Elite 2026.",
-      hotline: data.shopInfo?.contact_info?.hotline || data.shopInfo?.contact?.hotline || "1800-MICSMO",
-      email: data.shopInfo?.contact_info?.email || data.shopInfo?.contact?.email || "legal@micsmo.com",
+      hotline: data.shopInfo?.contact_info?.hotline || data.shopInfo?.contact?.hotline || "1800-osmo",
+      email: data.shopInfo?.contact_info?.email || data.shopInfo?.contact?.email || "legal@osmo",
       address: data.shopInfo?.contact_info?.address || data.shopInfo?.contact?.address || "Bitexco Financial Tower, Quận 1, TP. HCM",
       taxId: data.shopInfo?.contact_info?.tax_id || data.shopInfo?.tax_id || "",
       businessLicense: data.shopInfo?.contact_info?.business_license || data.shopInfo?.business_license || ""

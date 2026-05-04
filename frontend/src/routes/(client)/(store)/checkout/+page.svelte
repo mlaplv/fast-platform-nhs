@@ -519,7 +519,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
 </script>
 
 <svelte:head>
-  <title>Thanh toán bảo mật | Micsmo.com</title>
+  <title>Thanh toán bảo mật | osmo</title>
 </svelte:head>
 
 {#if browser}
@@ -671,7 +671,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
                 
                 <!-- Image -->
                 <div class="w-[88px] h-[88px] bg-gray-50 rounded-lg overflow-hidden shrink-0 border border-gray-100">
-                  <img src={item.product.image || item.product.images?.[0] || '/uploads/img/micsmo/sp1.png'} alt={item.product.name} class="w-full h-full object-cover" />
+                  <img src={item.product.image || item.product.images?.[0] || '/uploads/img/osmo/sp1.png'} alt={item.product.name} class="w-full h-full object-cover" />
                 </div>
                 
                 <!-- Info -->
@@ -877,7 +877,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
 
         <!-- Terms and Conditions -->
         <div class="px-3 pb-2 pt-2 text-[10.5px] leading-snug text-gray-400 text-center">
-          Bằng cách đặt đơn hàng, bạn đồng ý với <a href="/terms" class="font-bold text-gray-700 hover:underline">Điều khoản sử dụng và bán hàng của micsmo.com</a> và đồng ý rằng dữ liệu của bạn sẽ được xử lý theo <a href="/privacy" class="font-bold text-gray-700 hover:underline">Chính sách quyền riêng tư của micsmo.com</a>.
+          Bằng cách đặt đơn hàng, bạn đồng ý với <a href="/terms" class="font-bold text-gray-700 hover:underline">Điều khoản sử dụng và bán hàng của osmo</a> và đồng ý rằng dữ liệu của bạn sẽ được xử lý theo <a href="/privacy" class="font-bold text-gray-700 hover:underline">Chính sách quyền riêng tư của osmo</a>.
         </div>
 
         {#if errorMsg}
