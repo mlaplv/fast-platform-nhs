@@ -1,9 +1,16 @@
 <script lang="ts">
-  import { ChevronLeft, ChevronRight, Zap, Bookmark, Gift, Sparkles, Package } from 'lucide-svelte';
+  import { ChevronLeft, ChevronRight, Zap, Bookmark, Gift, Sparkles, Package, Volume2, VolumeX } from 'lucide-svelte';
   import type { Product } from '$lib/types';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { formatCurrency } from '$lib/utils/format';
+
+  /** Detect video URL: mp4, webm, mov, ogg … (mirrored from Desktop) */
+  function isVideoUrl(url: string | undefined | null): boolean {
+    if (!url) return false;
+    const clean = url.split('?')[0].toLowerCase();
+    return /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(clean);
+  }
   
   interface Props {
     product: Product;
@@ -23,6 +30,51 @@
   // Carousel State
   let activeImageIndex = $state(0);
   let carouselRef: HTMLElement | null = $state(null);
+
+  // ─── Shopee-style Video State (Mobile) ───────────────────────────
+  let videoEl = $state<HTMLVideoElement | null>(null);
+  let videoMuted = $state(true);
+
+  const videoStartTime = $derived(
+    typeof product.metadata?.video_start_time === 'number'
+      ? product.metadata.video_start_time
+      : 0
+  );
+  const videoEndTime = $derived(
+    typeof product.metadata?.video_end_time === 'number'
+      ? product.metadata.video_end_time
+      : null
+  );
+
+  function handleTimeUpdate() {
+    if (!videoEl) return;
+    if (videoEndTime !== null && videoEl.currentTime >= videoEndTime) {
+      videoEl.currentTime = videoStartTime;
+      videoEl.play().catch(() => {});
+    }
+  }
+
+  /** Auto-play video when carousel scrolls to a video slide */
+  $effect(() => {
+    const currentUrl = displayImages[activeImageIndex];
+    if (videoEl && isVideoUrl(currentUrl)) {
+      videoEl.load();
+      videoEl.muted = videoMuted;
+      const onMeta = () => {
+        if (videoEl) {
+          videoEl.currentTime = videoStartTime;
+          videoEl.play().catch(() => {});
+        }
+      };
+      videoEl.addEventListener('loadedmetadata', onMeta, { once: true });
+      return () => videoEl?.removeEventListener('loadedmetadata', onMeta);
+    }
+  });
+
+  function toggleMute() {
+    videoMuted = !videoMuted;
+    if (videoEl) videoEl.muted = videoMuted;
+  }
   
   // Voucher State
   let vouchersListRef: HTMLElement | null = $state(null);
@@ -116,27 +168,78 @@
   <!-- MEDIA CAROUSEL -->
   <section class="media-section">
     <div class="carousel-container" bind:this={carouselRef} onscroll={handleCarouselScroll}>
-      {#each displayImages as img}
+      {#each displayImages as img, i}
         <div class="carousel-slide">
-          <img src={img} alt={product.name} />
+          {#if isVideoUrl(img)}
+            {#if activeImageIndex === i}
+              <!-- Active slide: bind ref for programmatic control -->
+              <video
+                bind:this={videoEl}
+                src={img}
+                class="slide-media"
+                autoplay
+                muted={videoMuted}
+                loop={videoEndTime === null}
+                playsinline
+                preload="auto"
+                ontimeupdate={handleTimeUpdate}
+              ></video>
+              <button
+                onclick={toggleMute}
+                class="mute-btn"
+                title={videoMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
+              >
+                {#if videoMuted}
+                  <VolumeX size={14} />
+                {:else}
+                  <Volume2 size={14} />
+                {/if}
+              </button>
+            {:else}
+              <!-- Non-active slides: plain video, no bind needed -->
+              <video
+                src={img}
+                class="slide-media"
+                muted
+                playsinline
+                preload="metadata"
+              ></video>
+            {/if}
+          {:else}
+            <img src={img} alt={product.name} class="slide-media" />
+          {/if}
         </div>
       {/each}
     </div>
     <div class="image-counter">{activeImageIndex + 1}/{displayImages.length}</div>
 
-    <!-- Thumbnails (Hình thuib) -->
+    <!-- Thumbnails -->
     <div class="thumbnails-track mt-2 px-4 flex gap-2 overflow-x-auto no-scrollbar">
       {#each displayImages as img, i}
         <button 
           type="button"
-          class="w-12 h-12 rounded-sm border-2 overflow-hidden shrink-0 transition-all {activeImageIndex === i ? 'border-[#ee4d2d]' : 'border-transparent opacity-60'} p-0"
+          class="thumb-btn {activeImageIndex === i ? 'border-[#ee4d2d]' : 'border-transparent opacity-60'}"
           onclick={() => {
             activeImageIndex = i;
             carouselRef?.scrollTo({ left: i * carouselRef.clientWidth, behavior: 'smooth' });
           }}
           aria-label="Xem ảnh nhỏ {i + 1}"
         >
-          <img src={img} alt="thumb" class="w-full h-full object-cover" />
+          {#if isVideoUrl(img)}
+            <video
+              src={img}
+              class="w-full h-full object-cover pointer-events-none"
+              muted
+              playsinline
+              preload="metadata"
+            ></video>
+            <!-- Play icon overlay -->
+            <div class="thumb-play-overlay">
+              <svg class="w-3.5 h-3.5 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          {:else}
+            <img src={img} alt="thumb" class="w-full h-full object-cover" />
+          {/if}
         </button>
       {/each}
     </div>
@@ -286,11 +389,52 @@
   .media-section { position: relative; background: white; aspect-ratio: 1/1; overflow: hidden; }
   .carousel-container { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; height: 100%; }
   .carousel-container::-webkit-scrollbar { display: none; }
-  .carousel-slide { flex: 0 0 100%; height: 100%; scroll-snap-align: start; }
-  .carousel-slide img { width: 100%; height: 100%; object-fit: cover; }
-  .image-counter { position: absolute; bottom: 64px; right: 12px; background: rgba(0, 0, 0, 0.4); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+  .carousel-slide { flex: 0 0 100%; height: 100%; scroll-snap-align: start; position: relative; }
+  .slide-media { width: 100%; height: 100%; object-fit: cover; }
+  .image-counter { position: absolute; bottom: 64px; right: 12px; background: rgba(0, 0, 0, 0.4); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; z-index: 5; }
+  .mute-btn {
+    position: absolute;
+    bottom: 72px;
+    left: 12px;
+    z-index: 10;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mute-btn:active { background: rgba(0, 0, 0, 0.7); }
   .thumbnails-track { scrollbar-width: none; -ms-overflow-style: none; }
   .thumbnails-track::-webkit-scrollbar { display: none; }
+  .thumb-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 2px;
+    border-width: 2px;
+    border-style: solid;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    padding: 0;
+    position: relative;
+    background: none;
+  }
+  .thumb-play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.25);
+  }
 
   .flash-sale-banner { background: var(--color-luxury-copper, #C18F7E); color: white; display: flex; padding: 4px 8px; justify-content: space-between; align-items: center; position: relative; overflow: hidden; }
   .fs-left { flex: 1; z-index: var(--z-base); }
