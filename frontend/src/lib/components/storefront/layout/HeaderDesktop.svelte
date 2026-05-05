@@ -1,12 +1,18 @@
 <script lang="ts">
-  import { getCartStore } from '$lib/state/commerce/cart.svelte';
+  // Core & Utils
   import { fly, fade } from 'svelte/transition';
-  import SmartSearch from '../product/SmartSearch.svelte';
-  import { getSearchStore } from '$lib/state/commerce/search.svelte';
+  
+  // State Management
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { getCartStore } from '$lib/state/commerce/cart.svelte';
+  import { getSearchStore } from '$lib/state/commerce/search.svelte';
+
+  // Components
+  import SmartSearch from '../product/SmartSearch.svelte';
   import NotificationBell from './NotificationBell.svelte';
   import CartMiniHover from '../cart/CartMiniHover.svelte';
+  import QuickSupportViral from './QuickSupportViral.svelte';
   
   const ui = getClientUi();
   const cartStore = getCartStore();
@@ -14,6 +20,7 @@
   let showAccountMenu = $state(false);
   let isHoveringCart = $state(false);
   let menuContainer = $state<HTMLElement>();
+  let showSupportModal = $state(false);
 
   function toggleAccountMenu(e: MouseEvent) {
     e.stopPropagation();
@@ -44,14 +51,6 @@
         <a href="/track" class="hover:text-luxury-copper transition-colors font-medium">Kiểm tra đơn</a>
         <span class="w-[1px] h-3 bg-gray-200"></span> 
         <a href="/bai-viet" class="hover:text-luxury-copper transition-colors">Hướng dẫn - kiến thức</a>
-        <!--
-        <span class="w-[1px] h-3 bg-gray-200"></span>
-        <div class="flex items-center gap-1">
-          <span>Kết nối</span>
-          <button type="button" class="hover:text-luxury-copper transition-colors text-lg italic">f</button>
-          <button type="button" class="hover:text-luxury-copper transition-colors text-lg italic">in</button>
-        </div> 
-        -->
       </div>
       <div class="flex items-center space-x-4">
         {#if authStore.isAuthenticated}
@@ -59,9 +58,16 @@
             <NotificationBell />
           </div>
         {/if}
-        <button type="button" class="flex items-center gap-1 hover:text-luxury-copper transition-colors">
+        
+        <!-- Viral Modal Trigger -->
+        <button 
+          onclick={() => showSupportModal = true}
+          type="button" 
+          class="flex items-center gap-1 hover:text-luxury-copper transition-colors"
+        >
           <span>❔</span> Hỗ Trợ
         </button>
+
         <button class="flex items-center gap-1 hover:text-luxury-copper transition-colors uppercase font-bold tracking-tighter">
           🌐 Tiếng Việt
         </button>
@@ -142,7 +148,6 @@
             <a href="tel:0949901122" class="text-[13px] font-bold tracking-tight hover:text-[#C18F7E] transition-colors tabular-nums">0949 901 122</a>
           </div>
 
-
           <!-- Cart Section -->
           <div 
             class="flex items-center h-full relative"
@@ -172,3 +177,8 @@
     </div>
   </div>
 </header>
+
+<QuickSupportViral 
+  isOpen={showSupportModal} 
+  onClose={() => showSupportModal = false} 
+/>

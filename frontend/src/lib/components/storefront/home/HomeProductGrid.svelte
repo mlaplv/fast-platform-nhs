@@ -155,8 +155,8 @@
   <!-- ELITE V2.2: Optimized Background (No heavy blurs for 4GB RAM) -->
   <div class="absolute inset-0 bg-gradient-to-b from-[#ee4d2d]/5 to-transparent pointer-events-none"></div>
 
-  <!-- Minimalist Tab Header (Sticky Glass) -->
-  <div class="sticky top-0 mb-2 py-1 px-1 bg-[#f5f5f5]/80 backdrop-blur-[30px] border-b border-black/[0.03] flex items-center justify-between transition-all duration-700" style:z-index={Z_INDEX_CLIENT.HEADER}>
+  <!-- Minimalist Tab Header (Relative Glass - No Sticky to avoid Header overlap) -->
+  <div class="relative mb-2 py-1 px-1 bg-[#f5f5f5]/80 backdrop-blur-[30px] border-b border-black/[0.03] flex items-center justify-between transition-all duration-700">
     <div class="flex flex-1 items-center justify-center md:justify-start md:gap-16 overflow-x-auto no-scrollbar scroll-smooth">
       {#each tabs as tab}
         <button
@@ -203,7 +203,6 @@
             class="absolute inset-0 flex items-center justify-between px-8 md:px-12 transition-all"
             style:z-index={Z_INDEX_CLIENT.CONTENT}
         >
-          <!-- Content Left -->
           <!-- Content Left -->
           <div class="relative z-10 flex flex-col gap-6 max-w-[60%]">
             <div in:fly={{y: 20, duration: 1500, delay: 400}} class="flex items-center gap-4">
@@ -261,7 +260,7 @@
             </div>
           </div>
           
-          <!-- IMAGE RIGHT: Floating Tech Badges (Viral 2.3) -->
+          <!-- IMAGE RIGHT -->
           <div class="absolute right-0 top-0 w-[50%] h-full flex items-center justify-center pointer-events-none">
             <div 
                 in:scale={{duration: 2000, start: 0.9, easing: backOut, delay: 400}}
@@ -299,10 +298,7 @@
         </div>
       {/if}
     {/each}
-
-    <!-- Slide Indicators - Removed as per Elite V2.2 (Only 1 item) -->
   </div>
-
 
   <!-- VIRAL SLIDER V2.7: Single Row Carousel -->
   <div class="flex overflow-x-auto no-scrollbar scroll-smooth gap-2 px-1 md:px-0 pb-10">
@@ -336,7 +332,7 @@
             <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#A855F7] via-[#3B82F6] to-[#14B8A6] z-10 opacity-70"></div>
           {/if}
 
-          <!-- Glass Refraction Overlay (Viral 2.3) -->
+          <!-- Glass Refraction Overlay -->
           <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent -translate-x-full group-hover/card:translate-x-full transition-transform duration-1000 z-10 pointer-events-none"></div>
 
           <img
@@ -370,14 +366,13 @@
                 </p>
             </div>
 
-            <!-- STOCK PROGRESS: FOMO Max -->
+            <!-- STOCK PROGRESS -->
             <div class="relative w-full h-4 bg-[#C18F7E]/5 rounded-full overflow-hidden flex items-center justify-center border border-[#C18F7E]/10">
                 <div class="absolute inset-0 bg-gradient-to-r from-[#C18F7E] via-[#E2B1A2] to-[#C18F7E] transition-all duration-1000" style="width: {product.stockPercent}%"></div>
                 <span class="relative z-10 text-[8px] font-black text-[#C18F7E] mix-blend-multiply uppercase tracking-widest flex items-center gap-1">
                     <svg class="w-2 h-2" fill="currentColor" viewBox="0 0 20 20"><path d="M12 2a1 1 0 01.894.553L17.382 11H13v6a1 1 0 01-1.894.447l-5-10A1 1 0 017 6h4V2z"/></svg>
                     Đã bán {product.sales}
                 </span>
-                <!-- Progress Glitch Effect -->
                 <div class="absolute inset-0 bg-white/20 w-1/3 skew-x-[-20deg] animate-gliding-light pointer-events-none"></div>
             </div>
           </div>
@@ -386,7 +381,7 @@
     {/each}
   </div>
 
-  <!-- ULTIMATE BRAND FLOOR (Viral 2.6 Refined) -->
+  <!-- ULTIMATE BRAND FLOOR -->
   <div class="mt-[8px] mb-1 flex flex-col items-center">
     <button 
         onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -396,7 +391,6 @@
             Xem thêm
             <svg class="w-4 h-4 opacity-20 group-hover/foot:opacity-100 group-hover/foot:translate-x-2 transition-all duration-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
         </span>
-        <!-- Subtle Underline Ghost -->
         <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[1px] bg-black/10 group-hover/foot:w-full transition-all duration-1000"></div>
     </button>
   </div>
@@ -406,33 +400,28 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* 3D Floating Product */
   @keyframes float3d {
     0%, 100% { transform: translateY(0) rotate(0deg) scale(1.02); }
     50% { transform: translateY(-30px) rotate(3deg) scale(1); }
   }
   .animate-float-3d { animation: float3d 8s infinite ease-in-out; }
 
-  /* Floating Spec Cards */
   @keyframes floatSpec {
     0%, 100% { transform: translate(0, 0); }
     50% { transform: translate(10px, -15px); }
   }
   .animate-float-spec { animation: floatSpec 6s infinite ease-in-out; }
 
-  /* Energy Mesh Glow */
   @keyframes energyMesh {
     0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
     50% { transform: translate(-50px, 30px) scale(1.2); opacity: 0.8; }
   }
   .animate-energy-mesh { animation: energyMesh 25s infinite ease-in-out; }
 
-  /* Gliding Light Effect */
   @keyframes glidingLight {
     from { transform: translateX(-100%) skewX(-20deg); }
     to { transform: translateX(400%) skewX(-20deg); }
   }
-  /* Shivering Urgency Animation */
   @keyframes shivering {
     0%, 100% { transform: scale(1); }
     10%, 20% { transform: scale(0.98) rotate(-1deg); }
