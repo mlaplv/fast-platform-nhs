@@ -59,8 +59,8 @@ class AlchemyConfig:
             if self._url.startswith("postgresql"):
                 # [Elite V2.2] Optimized pooling for 2GB RAM VPS
                 engine_kwargs.update({
-                    "pool_size": 5,
-                    "max_overflow": 5,
+                    "pool_size": 8,
+                    "max_overflow": 10,
                     "pool_timeout": 30,
                     "pool_pre_ping": True,
                     "pool_recycle": 300,

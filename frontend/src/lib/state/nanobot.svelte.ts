@@ -156,13 +156,8 @@ export function createNanobotState() {
     $effect.root(() => {
       if (!isAdminDomain()) return;
 
-      $effect(() => {
-        if (permissionState.isInitialized) untrack(() => {
-          if (window.location.pathname.includes("/login") || (state.isHydrated && log.activityLogs.length > 0)) return;
-          state.isHydrated = true;
-          sync.initHydration();
-        });
-      });
+      // $effect for automatic hydration removed for P1 Optimization (Lazy Load)
+      // Hydration is now explicitly called via nanobot.forceHydration() in Shell components (DesktopLayout / MobileShell)
 
       $effect(() => {
         const isBusy = state.isBusy || state.nanoBotStatus !== "IDLE" || state.isCampaignMode || voice.isVuiActive;

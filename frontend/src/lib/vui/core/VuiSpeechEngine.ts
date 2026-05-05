@@ -17,7 +17,7 @@ export class VuiSpeechEngine {
       this.recognition.interimResults = true;
       this.recognition.lang = 'vi-VN';
     } else {
-      console.warn("[VuiSpeechEngine] Web Speech API not supported in this browser.");
+      console.debug("[VuiSpeechEngine] Web Speech API not supported in this browser. Fallback to server-side transcription.");
     }
   }
 

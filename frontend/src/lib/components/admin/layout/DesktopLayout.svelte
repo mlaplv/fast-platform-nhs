@@ -19,8 +19,14 @@
   import CurrentSessionStatus from "./HUD/CurrentSessionStatus.svelte";
   import NeuralMasterControl from "../management/ai/NeuralMasterControl.svelte";
   import TechStackFooter from "./TechStackFooter.svelte";
+  import { onMount } from "svelte";
 
   let { children } = $props();
+
+  onMount(() => {
+    // Tối ưu P1: Trì hoãn 4 network requests cho đến khi shell tải xong
+    nanobot.forceHydration();
+  });
 </script>
 
 <div

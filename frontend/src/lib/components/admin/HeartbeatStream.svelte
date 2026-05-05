@@ -101,7 +101,8 @@
   $effect(() => {
     if (isSuperAdmin && availableUsers.length === 0 && !isLoadingUsers && !hasAttemptedFetchUsers) {
       hasAttemptedFetchUsers = true;
-      fetchUsers();
+      // Tối ưu P1: Trì hoãn việc tải danh sách user 3s để không tranh chấp connection với hydration
+      setTimeout(() => fetchUsers(), 3000);
     }
   });
 

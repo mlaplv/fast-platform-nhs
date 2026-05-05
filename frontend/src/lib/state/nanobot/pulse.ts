@@ -148,11 +148,10 @@ export function createPulseManager(
         }
 
         if (eventName === "MEDIA_ANALYZED") {
-          // @ts-ignore
-          import("$lib/state/media.svelte.ts").then((module) => {
-            if (module && module.mediaStore) {
-                // @ts-ignore
-                module.mediaStore.handleMediaAnalyzed(payload);
+          import("$lib/state/media.svelte.ts").then((module: unknown) => {
+            const m = module as { mediaStore?: { handleMediaAnalyzed: (p: unknown) => void } };
+            if (m && m.mediaStore) {
+                m.mediaStore.handleMediaAnalyzed(payload);
             }
           }).catch((err) => {
              console.error("[Pulse] Media Analyzed forward error:", err);

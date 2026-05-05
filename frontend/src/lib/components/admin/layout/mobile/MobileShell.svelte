@@ -9,8 +9,14 @@
   import MobileQuickTips from "./MobileQuickTips.svelte";
   import ConfirmationModal from "../../ui/ConfirmationModal.svelte";
   import VaultModal from "../../VaultModal.svelte";
+  import { onMount } from "svelte";
 
   let { children } = $props();
+
+  onMount(() => {
+    // Tối ưu P1: Trì hoãn 4 network requests cho đến khi shell tải xong
+    nanobot.forceHydration();
+  });
 </script>
 
 <div class="admin-layout fixed inset-0 flex flex-col overflow-hidden bg-[#020202] text-gray-100 font-sans">
