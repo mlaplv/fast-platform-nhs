@@ -54,6 +54,7 @@ class BannerService:
             title=data.title,
             description=data.description,
             image_url=data.image_url,
+            mobile_image_url=data.mobile_image_url,
             link_url=data.link_url,
             position=data.position,
             order_index=data.order_index,
@@ -64,7 +65,7 @@ class BannerService:
         await db_session.commit()
         
         # Elite V2.2: Sync Media
-        await BannerService._sync_media_links(new_id, data.image_url)
+        await BannerService._sync_media_links(new_id, data.image_url, data.mobile_image_url)
         
         return SuccessResponse(ok=True, id=new_id)
 
@@ -81,6 +82,7 @@ class BannerService:
         if data.title is not None: banner.title = data.title
         if data.description is not None: banner.description = data.description
         if data.image_url is not None: banner.image_url = data.image_url
+        if data.mobile_image_url is not None: banner.mobile_image_url = data.mobile_image_url
         if data.link_url is not None: banner.link_url = data.link_url
         if data.position is not None: banner.position = data.position
         if data.order_index is not None: banner.order_index = data.order_index
@@ -91,7 +93,7 @@ class BannerService:
         await db_session.commit()
 
         # Elite V2.2: Sync Media
-        await BannerService._sync_media_links(banner_id, banner.image_url)
+        await BannerService._sync_media_links(banner_id, banner.image_url, banner.mobile_image_url)
 
         return SuccessResponse(ok=True, id=banner_id)
 
@@ -110,13 +112,14 @@ class BannerService:
         return SuccessResponse(ok=True, id=banner_id)
 
     @staticmethod
-    async def _sync_media_links(banner_id: str, image_url: Optional[str]) -> None:
+    async def _sync_media_links(banner_id: str, image_url: Optional[str], mobile_image_url: Optional[str] = None) -> None:
         """
         Elite V2.2: Neural Media Sync for Banners.
         Đảm bảo ảnh Banner được bảo vệ.
         """
         try:
-            urls = extract_media_urls(image_url)
+            combined_urls = (image_url or "") + " " + (mobile_image_url or "")
+            urls = extract_media_urls(combined_urls)
             if urls:
                 await event_bus.emit("MEDIA_SYNC_REQUIRED", {
                     "entity_id": str(banner_id),

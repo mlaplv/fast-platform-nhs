@@ -6,6 +6,7 @@ class BannerBase(BaseModel):
     title: str
     description: Optional[str] = None
     image_url: str
+    mobile_image_url: Optional[str] = None
     link_url: Optional[str] = None
     position: str = "home_main"
     order_index: int = 0
@@ -19,6 +20,7 @@ class UpdateBannerRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     image_url: Optional[str] = None
+    mobile_image_url: Optional[str] = None
     link_url: Optional[str] = None
     position: Optional[str] = None
     order_index: Optional[int] = None

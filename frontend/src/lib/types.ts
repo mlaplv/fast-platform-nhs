@@ -614,6 +614,7 @@ export interface Banner {
   title: string;
   description: string | null;
   image_url: string;
+  mobile_image_url: string | null;
   link_url: string | null;
   position: string;
   order_index: number;
@@ -627,6 +628,7 @@ export interface BannerForm {
   title: string;
   description: string;
   image_url: string;
+  mobile_image_url: string;
   link_url: string;
   position: string;
   order_index: number;

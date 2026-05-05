@@ -14,6 +14,7 @@ class Banner(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     title: Mapped[str] = mapped_column(String)
     description: Mapped[Optional[str]] = mapped_column(Text)
     image_url: Mapped[str] = mapped_column(String)
+    mobile_image_url: Mapped[Optional[str]] = mapped_column(String)
     link_url: Mapped[Optional[str]] = mapped_column(String)
     position: Mapped[str] = mapped_column(String, default="home_main") # e.g., home_main, sidebar, popup
     order_index: Mapped[int] = mapped_column(Integer, default=0)

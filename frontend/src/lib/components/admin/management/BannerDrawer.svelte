@@ -25,7 +25,7 @@
   }>();
 
   let isSaving = $state(false);
-  let showMediaVault = $state(false);
+  let showMediaVault: 'desktop' | 'mobile' | false = $state(false);
 
   const POSITIONS = [
     { id: "home_main", label: "Home Main Slider" },
@@ -41,8 +41,8 @@
   ];
 
   async function handleSave() {
-    if (!banner.title || !banner.image_url) {
-      nanobot.showToast("Vui lòng nhập tiêu đề và chọn ảnh.", "warning");
+    if (!banner.title || (!banner.image_url && !banner.mobile_image_url)) {
+      nanobot.showToast("Vui lòng nhập tiêu đề và chọn ít nhất 1 ảnh.", "warning");
       return;
     }
 
@@ -67,7 +67,11 @@
 
   function handleMediaSelect(assets: MediaAsset[]) {
     if (assets.length > 0) {
-      banner.image_url = assets[0].file_path;
+      if (showMediaVault === 'desktop') {
+        banner.image_url = assets[0].file_path;
+      } else if (showMediaVault === 'mobile') {
+        banner.mobile_image_url = assets[0].file_path;
+      }
     }
     showMediaVault = false;
   }
@@ -149,26 +153,50 @@
 
         <!-- Visual Asset -->
         <div class="space-y-4">
-          <label class="block text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Visual Asset</label>
-          <button
-            class="w-full aspect-[21/9] rounded-2xl border border-dashed border-white/10 bg-white/[0.02] flex flex-col items-center justify-center gap-4 relative overflow-hidden group/picker transition-all hover:border-cyan-500/30"
-            onclick={() => showMediaVault = true}
-          >
-            {#if banner.image_url}
-              <img src={banner.image_url} alt="Preview" class="w-full h-full object-cover" />
-              <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/picker:opacity-100 flex items-center justify-center transition-all backdrop-blur-sm">
-                 <div class="px-6 py-3 bg-white text-black text-[10px] font-black uppercase rounded-lg shadow-xl">Update Visual</div>
-              </div>
-            {:else}
-              <div class="w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover/picker:scale-110 transition-transform">
-                <Upload size={20} />
-              </div>
-              <div class="text-center">
-                <p class="text-[9px] font-black uppercase text-zinc-400">Sync with Media Library</p>
-                <p class="text-[7px] text-zinc-600 mt-1 uppercase font-mono tracking-widest">Optimal: 1920 x 800 PX</p>
-              </div>
-            {/if}
-          </button>
+          <label class="block text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Visual Assets</label>
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Desktop -->
+            <button
+              class="w-full aspect-[21/9] rounded-2xl border border-dashed border-white/10 bg-white/[0.02] flex flex-col items-center justify-center gap-4 relative overflow-hidden group/picker transition-all hover:border-cyan-500/30"
+              onclick={() => showMediaVault = 'desktop'}
+            >
+              {#if banner.image_url}
+                <img src={banner.image_url} alt="Desktop Preview" class="w-full h-full object-cover" />
+                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/picker:opacity-100 flex items-center justify-center transition-all backdrop-blur-sm">
+                   <div class="px-4 py-2 bg-white text-black text-[9px] font-black uppercase rounded-lg shadow-xl">Update Desktop</div>
+                </div>
+              {:else}
+                <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover/picker:scale-110 transition-transform">
+                  <Monitor size={16} />
+                </div>
+                <div class="text-center">
+                  <p class="text-[8px] font-black uppercase text-zinc-400">Desktop Image</p>
+                  <p class="text-[6px] text-zinc-600 mt-1 uppercase font-mono tracking-widest">1920x800 PX</p>
+                </div>
+              {/if}
+            </button>
+            
+            <!-- Mobile -->
+            <button
+              class="w-full aspect-[9/16] max-h-32 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] flex flex-col items-center justify-center gap-4 relative overflow-hidden group/picker transition-all hover:border-cyan-500/30 mx-auto"
+              onclick={() => showMediaVault = 'mobile'}
+            >
+              {#if banner.mobile_image_url}
+                <img src={banner.mobile_image_url} alt="Mobile Preview" class="w-full h-full object-cover" />
+                <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/picker:opacity-100 flex items-center justify-center transition-all backdrop-blur-sm">
+                   <div class="px-4 py-2 bg-white text-black text-[9px] font-black uppercase rounded-lg shadow-xl">Update Mobile</div>
+                </div>
+              {:else}
+                <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover/picker:scale-110 transition-transform">
+                  <Smartphone size={16} />
+                </div>
+                <div class="text-center">
+                  <p class="text-[8px] font-black uppercase text-zinc-400">Mobile Image</p>
+                  <p class="text-[6px] text-zinc-600 mt-1 uppercase font-mono tracking-widest">1080x1920 PX</p>
+                </div>
+              {/if}
+            </button>
+          </div>
         </div>
 
         <!-- Configuration Grid -->

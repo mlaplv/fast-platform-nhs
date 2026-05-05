@@ -7,6 +7,7 @@
   interface Banner {
     id: string;
     image_url: string;
+    mobile_image_url?: string | null;
     link_url?: string;
     title?: string;
     position?: string;
@@ -64,7 +65,7 @@
     {#each homeBanners as banner}
       <a href={getProductLink(banner.link_url)} class="banner-slide">
         <img
-          src={banner.image_url}
+          src={banner.mobile_image_url || banner.image_url}
           alt={banner.title || "Banner"}
           class="w-full h-full object-cover select-none"
           loading="eager"
@@ -129,7 +130,7 @@
 
   .banner-badge-row {
     position: absolute;
-    top: 12px;
+    top: 2px;
     left: 12px;
     display: flex;
     align-items: center;
