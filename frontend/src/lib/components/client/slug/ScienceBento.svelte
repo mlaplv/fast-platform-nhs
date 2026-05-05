@@ -20,7 +20,7 @@
 
   const labels = $derived({
     subheadline: metadata.science_subheadline || '"Không chỉ đơn thuần là dưỡng da, Beppin Body thấu hiểu sự tinh tế của nàng. Tinh chất thẩm thấu sâu, giải quyết triệt để các đốm nâu cứng đầu nhất, trả lại sự mịn màng như lụa để bạn tự tin trong mọi khoảnh khắc."',
-    image: metadata.science_image || '/uploads/img/co--che.png',
+    image: metadata.science_image || '/uploads/img/co--che.webp',
     card1_title: metadata.science_card1_title || 'TÁC ĐỘNG SÂU - HIỆU QUẢ NHANH',
     card1_desc: metadata.science_card1_desc || '"Công nghệ dẫn truyền Nano vượt trội giúp tinh chất Placenta Nhật Bản thẩm thấu sâu hơn 3 lần. Giai đoạn 1: Phá vỡ chuỗi melanin tối màu ngay dưới bề mặt biểu bì."',
     card2_title: metadata.science_card2_title || 'PHỤC HỒI & TRẺ HÓA TỨC THÌ',
