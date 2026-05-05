@@ -1,6 +1,13 @@
 <script lang="ts">
+  /**
+   * HEADER DESKTOP - ELITE V2.2 OPTIMIZED
+   * Architecture: Clean State Management
+   * Compliance: Svelte 5 Runes
+   */
+  
   // Core & Utils
   import { fly, fade } from 'svelte/transition';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   
   // State Management
   import { authStore } from '$lib/state/authStore.svelte';
@@ -17,12 +24,21 @@
   const ui = getClientUi();
   const cartStore = getCartStore();
   const searchStore = getSearchStore();
-  let showAccountMenu = $state(false);
-  let isHoveringCart = $state(false);
-  let menuContainer = $state<HTMLElement>();
-  let showSupportModal = $state(false);
+  
+  let showAccountMenu: boolean = $state(false);
+  let isHoveringCart: boolean = $state(false);
+  let menuContainer: HTMLElement | undefined = $state();
+  
+  // Modal State - Centralized
+  let showSupportModal: boolean = $state(false);
 
-  function toggleAccountMenu(e: MouseEvent) {
+  function handleOpenSupport(e: MouseEvent): void {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!showSupportModal) showSupportModal = true;
+  }
+
+  function toggleAccountMenu(e: MouseEvent): void {
     e.stopPropagation();
     if (!authStore.isAuthenticated) {
       ui.openLogin();
@@ -43,9 +59,12 @@
   });
 </script>
 
-<header class="sticky top-0 w-full z-[var(--z-header)] bg-white border-b border-gray-100 shadow-[0_4px_30px_rgba(0,0,0,0.02)]">
+<header 
+  class="sticky top-0 w-full bg-white border-b border-gray-100 shadow-[0_4px_30px_rgba(0,0,0,0.02)]"
+  style:z-index={Z_INDEX_CLIENT.HEADER}
+>
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0">
-    <!-- Top Navbar - osmo Elite 2026 -->
+    <!-- Top Navbar -->
     <div class="flex items-center justify-between h-[28px] text-[11px] text-gray-500 border-b border-gray-50 bg-gray-50/30 -mx-4 px-4 xl:-mx-0 xl:px-0">
       <div class="flex items-center space-x-3">
         <a href="/track" class="hover:text-luxury-copper transition-colors font-medium">Kiểm tra đơn</a>
@@ -59,9 +78,8 @@
           </div>
         {/if}
         
-        <!-- Viral Modal Trigger -->
         <button 
-          onclick={() => showSupportModal = true}
+          onmouseup={handleOpenSupport}
           type="button" 
           class="flex items-center gap-1 hover:text-luxury-copper transition-colors"
         >
@@ -102,9 +120,10 @@
                 out:fade={{ duration: 200 }} 
                 class="absolute right-0 top-[100%] mt-1 w-44 z-[var(--z-popup)] origin-top-right shadow-[0_1px_20px_0_rgba(0,0,0,0.12)] bg-white ring-1 ring-black/5" 
                 onclick={(e) => e.stopPropagation()}
+                style:z-index={Z_INDEX_CLIENT.DROPDOWN}
               >
-                <div class="absolute -top-1 right-[22px] w-3 h-3 bg-white rotate-45 z-[var(--z-popup-indicator)] border-t border-l border-black/5"></div>
-                <div class="flex flex-col text-left py-1 relative z-[var(--z-popup)]">
+                <div class="absolute -top-1 right-[22px] w-3 h-3 bg-white rotate-45 z-[var(--z-popup-indicator)] border-t border-l border-black/5" style:z-index={Z_INDEX_CLIENT.POPUP_INDICATOR}></div>
+                <div class="flex flex-col text-left py-1 relative shadow-xl bg-white border border-gray-100">
                   <a href="/user/profile" class="px-4 py-2.5 text-[13px] text-gray-700 hover:text-luxury-copper hover:bg-gray-50 transition-colors font-medium">Hồ sơ của tôi</a>
                   <a href="/user/purchase" class="px-4 py-2.5 text-[13px] text-gray-700 hover:text-luxury-copper hover:bg-gray-50 transition-colors font-medium">Đơn mua</a>
                   <button 
@@ -122,9 +141,7 @@
     </div>
 
     <div class="flex flex-col pt-4 pb-2">
-      <!-- Top Row: Main Interaction -->
       <div class="flex items-center gap-6">
-        <!-- Logo Section -->
         <div class="flex shrink-0 items-center">
           <a href="/" class="flex flex-col group transition-all active:scale-95">
             <span class="text-2xl font-black tracking-[0.22em] uppercase leading-none bg-gradient-to-r from-luxury-copper via-luxury-peach to-luxury-copper bg-clip-text text-transparent drop-shadow-sm group-hover:tracking-[0.25em] transition-all duration-700">
@@ -140,19 +157,16 @@
           <SmartSearch variant="desktop" />
         </div>
 
-        <!-- Actions Section -->
         <div class="flex items-center gap-6 shrink-0 h-[48px]">
-          <!-- Hotline -->
           <div class="hidden lg:flex flex-col items-end text-gray-700 justify-center">
             <span class="text-[9px] uppercase tracking-[0.1em] font-black opacity-30 leading-none mb-1">Hotline</span>
             <a href="tel:0949901122" class="text-[13px] font-bold tracking-tight hover:text-[#C18F7E] transition-colors tabular-nums">0949 901 122</a>
           </div>
 
-          <!-- Cart Section -->
           <div 
             class="flex items-center h-full relative"
-            onmouseenter={() => isHoveringCart = true}
-            onmouseleave={() => isHoveringCart = false}
+            onmouseenter={() => (isHoveringCart = true)}
+            onmouseleave={() => (isHoveringCart = false)}
           >
             <a href="/checkout" class="relative flex flex-col items-center justify-center gap-1 group transition-all active:scale-95 min-w-[60px]">
               <div class="text-gray-700 group-hover:text-luxury-copper transition-colors">
@@ -180,5 +194,5 @@
 
 <QuickSupportViral 
   isOpen={showSupportModal} 
-  onClose={() => showSupportModal = false} 
+  onClose={() => (showSupportModal = false)} 
 />

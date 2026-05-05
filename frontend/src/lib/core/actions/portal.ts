@@ -48,14 +48,12 @@ export function portal(node: HTMLElement, target: string | HTMLElement | boolean
             performPortal(newTarget);
         },
 		destroy() {
-			if (hasMoved && placeholder && placeholder.parentNode) {
-                if (node.parentNode) {
-                    node.parentNode.removeChild(node);
-                }
-				placeholder.parentNode.replaceChild(node, placeholder);
-			} else if (node.parentNode) {
-				node.parentNode.removeChild(node);
-			}
+            if (node.parentNode) {
+                node.parentNode.removeChild(node);
+            }
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.removeChild(placeholder);
+            }
 		}
 	};
 }

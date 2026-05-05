@@ -1,25 +1,45 @@
 <script lang="ts">
+  /**
+   * HOME PRODUCT GRID - ELITE V2.2 OPTIMIZED
+   * Compliance: Svelte 5 Runes, Static Typing 100%, No Sticky Tab (UX Fix)
+   */
   import { goto } from '$app/navigation';
   import { slugify, trimProductName, formatCurrency } from '$lib/utils/format';
   import { onMount, onDestroy } from 'svelte';
   import { fly, fade, scale } from 'svelte/transition';
   import { cubicOut, backOut } from 'svelte/easing';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
-  import type { Product as GlobalProduct } from '$lib/types';
 
+  /**
+   * INTERFACES (Elite Static Typing)
+   */
   interface Product {
     id: string;
     name: string;
     price: number;
     image: string;
     slug?: string;
-    sales?: number;
+    sales?: string | number;
     tags?: string[];
     isAiPick?: boolean;
     createdAt?: Date;
     originalPrice?: number;
     originalSlug?: string;
     discountPercent?: number;
+    stock?: number;
+    stockPercent?: number;
+    // Tầng dữ liệu thô từ API
+    discountPrice?: number;
+    orderCount?: number;
+    order_count?: number;
+    orderCountText?: string;
+    order_count_text?: string;
+    metadata?: {
+      image_url?: string;
+      reviews_count_text?: string;
+    };
+    images?: string[];
+    isAiFeatured?: boolean;
   }
 
   interface Props {
@@ -29,12 +49,11 @@
 
   let { products = [], productsAi = [] }: Props = $props();
 
-  // Year Logic
-  const currentYear = new Date().getFullYear();
-
-  // Tab State
+  /**
+   * TAB LOGIC
+   */
   type TabType = 'ai' | 'latest' | 'popular' | 'bestseller';
-  let activeTab = $state<TabType>('ai');
+  let activeTab: TabType = $state('ai');
 
   const tabs = [
     { id: 'ai', label: 'Gợi ý AI', icon: '✨' },
@@ -43,26 +62,25 @@
     { id: 'bestseller', label: 'Bán chạy', icon: '🏆' }
   ] as const;
 
-  // Elite V2.2: Shared Data Normalizer
-  const normalizeProduct = (p: Product, tabId: string, index: number) => {
-    const hasDiscount = !!p.discountPrice && p.discountPrice < p.price;
-    const sellingPrice = hasDiscount ? p.discountPrice : p.price;
-    const originalPrice = hasDiscount ? p.price : (p.price * 1.4);
-    const realSalesCount = p.orderCount || p.order_count || 0;
-    const displaySales = p.orderCountText || p.order_count_text || p.metadata?.reviews_count_text || (realSalesCount > 0 ? `${realSalesCount.toLocaleString()}+` : "0");
+  /**
+   * ELITE NORMALIZER - Chuyển đổi dữ liệu thô sang chuẩn Elite UI
+   */
+  const normalizeProduct = (p: Product, tabId: string): Product => {
+    const hasDiscount: boolean = !!p.discountPrice && p.discountPrice < p.price;
+    const sellingPrice: number = hasDiscount ? p.discountPrice! : p.price;
+    const originalPrice: number = hasDiscount ? p.price : (p.price * 1.4);
+    const realSalesCount: number = p.orderCount || p.order_count || 0;
+    const displaySales: string = p.orderCountText || p.order_count_text || p.metadata?.reviews_count_text || (realSalesCount > 0 ? `${realSalesCount.toLocaleString()}+` : "0");
     
-    // Elite V4.0: Robust Image & Discount logic
-    const imgCandidates = [
+    const imgCandidates: (string | undefined)[] = [
         ...(Array.isArray(p.images) ? p.images : []),
         p.metadata?.image_url,
         '/placeholder_video.webp'
     ];
-    const primaryImage = imgCandidates.find(img => img && typeof img === 'string' && img.length > 0) || '/placeholder_video.webp';
+    const primaryImage: string = imgCandidates.find(img => img && typeof img === 'string' && img.length > 0) || '/placeholder_video.webp';
     
-    const discountPercent = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice!) / originalPrice) * 100) : 0;
-    
-    // Elite V2.2: Universal Sanitization
-    const cleanName = trimProductName(p.name);
+    const discountPercent: number = originalPrice > 0 ? Math.round(((originalPrice - sellingPrice) / originalPrice) * 100) : 0;
+    const cleanName: string = trimProductName(p.name);
 
     return {
       ...p,
@@ -73,56 +91,51 @@
       originalPrice: originalPrice,
       discountPercent: discountPercent,
       sales: displaySales,
-      stockPercent: p.stock > 0 ? 100 : 0,
+      stockPercent: (p.stock ?? 0) > 0 ? 100 : 0,
       isAiPick: tabId === 'ai',
       originalSlug: p.slug
-    } as Product;
+    };
   };
 
-  // Synthesis Extended Data - Refactored for Svelte 5 Reactivity
-  const extendedCatalog = $derived(
+  /**
+   * REACTIVE CATALOG (Svelte 5 $derived)
+   */
+  const extendedCatalog: Product[] = $derived(
     tabs.flatMap((tab) => {
       if (tab.id === 'ai' && productsAi.length > 0) {
-        // AI Tab: Skip cái đầu tiên vì đã cho lên FEATURED SLIDE
-        return productsAi.slice(1, 11).map((p, i) => normalizeProduct(p, 'ai', i));
+        return productsAi.slice(1, 11).map((p) => normalizeProduct(p, 'ai'));
       } else if (products.length > 0) {
-        // Các tab khác: Skip cái đầu tiên
-        return products.slice(1, 11).map((p, i) => normalizeProduct(p, tab.id, i));
+        return products.slice(1, 11).map((p) => normalizeProduct(p, tab.id));
       }
       return [];
     })
   );
 
-  // Filtered Products
-  const currentProducts = $derived(extendedCatalog.filter(p => p.id.startsWith(activeTab)));
+  const currentProducts: Product[] = $derived(extendedCatalog.filter(p => p.id.startsWith(activeTab)));
 
-  // Elite V2.2: Featured Slides strictly 1 single product (No Carousel)
-  const featuredSlides = $derived(
+  const featuredSlides: Product[] = $derived(
     (productsAi.length > 0 ? [productsAi[0]] : products.filter(p => p.isAiFeatured).slice(0, 1))
-    .map((p, i) => normalizeProduct(p, 'featured', i))
+    .map((p) => normalizeProduct(p, 'featured'))
   );
 
-  // Synthesize floating specs for Viral 2.3
   const specs = [
     { label: 'Đánh Giá AI', value: '4.9/5', color: 'text-orange-500' },
     { label: 'Đã Xác Thực', value: 'Trợ Lý Cao Cấp', color: 'text-blue-500' },
     { label: 'Tình Trạng', value: 'Loại A+', color: 'text-emerald-500' }
-  ];
+  ] as const;
 
-  /* Carousel Logic Retired as per Elite V2.2 directive (Only 1 item) */
-  let currentSlide = $state(0);
+  /**
+   * COUNTDOWN & FOMO LOGIC
+   */
   let timeLeft = $state({ h: '00', m: '00', s: '00' });
+  const SALE_SESSIONS: number[] = [0, 9, 12, 15, 18, 21];
 
-  // Elite V2.2: Shopee-style Flash Sale Sessions (Fixed hours)
-  const SALE_SESSIONS = [0, 9, 12, 15, 18, 21];
-
-  function updateCountdown() {
-    const now = new Date();
-    const currentHour = now.getHours();
+  function updateCountdown(): void {
+    const now: Date = new Date();
+    const currentHour: number = now.getHours();
     
-    // Find next session hour to calculate remaining time of current slot
-    let nextSessionHour = SALE_SESSIONS.find(h => h > currentHour);
-    let targetDate = new Date(now);
+    let nextSessionHour: number | undefined = SALE_SESSIONS.find(h => h > currentHour);
+    let targetDate: Date = new Date(now);
     
     if (nextSessionHour === undefined) {
       nextSessionHour = 0;
@@ -131,7 +144,7 @@
     
     targetDate.setHours(nextSessionHour, 0, 0, 0);
     
-    const diff = Math.max(0, targetDate.getTime() - now.getTime());
+    const diff: number = Math.max(0, targetDate.getTime() - now.getTime());
     timeLeft = {
       h: Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0'),
       m: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0'),
@@ -139,24 +152,25 @@
     };
   }
 
-  let interval: any;
+  let timerInterval: ReturnType<typeof setInterval> | undefined;
+
   onMount(() => {
     updateCountdown();
-    interval = setInterval(updateCountdown, 1000);
+    timerInterval = setInterval(updateCountdown, 1000);
   });
 
   onDestroy(() => {
-    if (interval) clearInterval(interval);
+    if (timerInterval) clearInterval(timerInterval);
   });
 </script>
 
 <section class="home-product-grid-section relative mb-[5px] overflow-visible">
 
-  <!-- ELITE V2.2: Optimized Background (No heavy blurs for 4GB RAM) -->
+  <!-- Optimized Background -->
   <div class="absolute inset-0 bg-gradient-to-b from-[#ee4d2d]/5 to-transparent pointer-events-none"></div>
 
-  <!-- Minimalist Tab Header (Relative Glass - No Sticky to avoid Header overlap) -->
-  <div class="relative mb-2 py-1 px-1 bg-[#f5f5f5]/80 backdrop-blur-[30px] border-b border-black/[0.03] flex items-center justify-between transition-all duration-700">
+  <!-- Tab Header: Non-Sticky Fix (Elite UX) -->
+  <nav class="relative mb-2 py-1 px-1 bg-[#f5f5f5]/80 backdrop-blur-[30px] border-b border-black/[0.03] flex items-center justify-between transition-all duration-700">
     <div class="flex flex-1 items-center justify-center md:justify-start md:gap-16 overflow-x-auto no-scrollbar scroll-smooth">
       {#each tabs as tab}
         <button
@@ -183,124 +197,111 @@
       {/each}
     </div>
 
-    <!-- osmo Brand Indicator -->
-    <div class="hidden xl:flex items-center gap-3 px-6 py-2 bg-white/50 backdrop-blur-md rounded-full border border-gray-100 mr-6 group/engine pointer-events-auto">
+    <!-- Elite Brand Indicator -->
+    <div class="hidden xl:flex items-center gap-3 px-6 py-2 bg-white/50 backdrop-blur-md border border-gray-100 mr-6 pointer-events-none">
       <span class="text-[9px] font-black uppercase tracking-[0.3em] text-[#C18F7E]">Bộ sưu tập Thượng lưu 2026</span>
     </div>
-  </div>
+  </nav>
 
-  <!-- FEATURED SLIDE: Viral 2.3 Immersive Max-out -->
-  <div class="mb-6 relative group/slide h-[450px] md:h-[500px] overflow-hidden rounded-none shadow-[0_60px_100px_-20px_rgba(0,0,0,0.08)] bg-white/50 backdrop-blur-3xl ring-1 ring-black/[0.02]">
+  <!-- FEATURED SLIDE -->
+  <div class="mb-6 relative group/slide h-[450px] md:h-[500px] overflow-hidden shadow-[0_60px_100px_-20px_rgba(0,0,0,0.08)] bg-white/50 backdrop-blur-3xl ring-1 ring-black/[0.02]">
     
     <div class="absolute inset-0 bg-gradient-to-br from-[#C18F7E]/5 via-white to-white pointer-events-none"></div>
 
-    <!-- Slides Stack -->
-    {#each featuredSlides as slide, i}
-      {#if currentSlide === i}
-        <div 
-            in:fade={{duration: 800}} 
-            out:fade={{duration: 600}}
-            class="absolute inset-0 flex items-center justify-between px-8 md:px-12 transition-all"
-            style:z-index={Z_INDEX_CLIENT.CONTENT}
-        >
-          <!-- Content Left -->
-          <div class="relative z-10 flex flex-col gap-6 max-w-[60%]">
-            <div in:fly={{y: 20, duration: 1500, delay: 400}} class="flex items-center gap-4">
-                <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[9px] font-black px-3 py-1.5 uppercase tracking-widest border border-[#C18F7E]/20">Lựa chọn Tinh hoa osmo</span>
-                <span class="text-black/20 text-[8px] font-black uppercase tracking-[0.4em]">Số lượng giới hạn</span>
-            </div>
-            
-            <div in:fade={{duration: 1200, delay: 400}} class="flex flex-col">
-                <h2 class="text-3xl md:text-4xl lg:text-5xl font-extrabold leading-[1.3] tracking-tight line-clamp-3 bg-gradient-to-br from-[#1A1A1A] via-[#333333] to-[#C18F7E] bg-clip-text text-transparent">
-                    {slide.name}
-                </h2>
-            </div>
- 
-            <div in:fly={{y: 40, duration: 1500, delay: 800}} class="flex items-center gap-10">
-                <div class="flex flex-col">
-                    <div class="flex items-center gap-4 mb-1">
-                        <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20">Đặc quyền osmo</span>
-                        {#if slide.originalPrice}
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm font-bold text-gray-300 line-through tabular-nums decoration-gray-400/30">
-                                    {formatCurrency(Math.round(slide.originalPrice))}
-                                </span>
-                            </div>
-                        {/if}
-                    </div>
-                    <span class="text-[#ee4d2d] text-4xl font-black tabular-nums tracking-tighter flex items-end gap-2">
-                        {formatCurrency(slide.price || 0)}
-                        <span class="text-[10px] text-[#C18F7E] font-bold uppercase tracking-widest mb-1.5 animate-pulse">−{slide.discountPercent}% GIỚI HẠN</span>
-                    </span>
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20 mb-1">Cộng đồng</span>
-                    <span class="text-black text-xl font-black italic">+{slide.sales || 0} <span class="text-[9px] opacity-30 not-italic uppercase ml-1">Tin dùng</span></span>
-                </div>
-            </div>
-            
-            <div in:fly={{y: 50, duration: 1500, delay: 1000}} class="flex flex-col gap-4">
-                <button 
-                    onclick={() => goto(`/${slide.originalSlug || slide.slug || slugify(slide.name)}`)}
-                    class="group/btn relative w-fit px-20 py-6 bg-black text-white text-[11px] font-black uppercase tracking-[0.4em] overflow-hidden transition-all active:scale-95 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] hover:shadow-[0_40px_80px_-15px_rgba(193,143,126,0.4)]"
-                >
-                    <span class="relative z-10 transition-colors group-hover/btn:text-white">Sở Hữu Ngay</span>
-                    
-                    <!-- FOMO Shine Effect -->
-                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:animate-shivering pointer-events-none"></div>
-                    
-                    <!-- Elite Background Fill -->
-                    <div class="absolute inset-0 bg-[#C18F7E] translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500 ease-out"></div>
-                </button>
-                
-                <div class="flex items-center gap-2 animate-pulse">
-                    <div class="h-1 w-1 rounded-full bg-[#C18F7E]"></div>
-                    <span class="text-[8px] font-bold uppercase tracking-widest text-black/40">Chỉ còn 12 suất ưu đãi trong hôm nay</span>
-                </div>
-            </div>
+    {#each featuredSlides as slide}
+      <div 
+          in:fade={{duration: 800}} 
+          class="absolute inset-0 flex items-center justify-between px-8 md:px-12 transition-all"
+          style:z-index={Z_INDEX_CLIENT.CONTENT}
+      >
+        <!-- Content Left -->
+        <div class="relative z-10 flex flex-col gap-6 max-w-[60%]">
+          <div in:fly={{y: 20, duration: 1500, delay: 400}} class="flex items-center gap-4">
+              <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[9px] font-black px-3 py-1.5 uppercase tracking-widest border border-[#C18F7E]/20">Lựa chọn Tinh hoa osmo</span>
+              <span class="text-black/20 text-[8px] font-black uppercase tracking-[0.4em]">Số lượng giới hạn</span>
           </div>
           
-          <!-- IMAGE RIGHT -->
-          <div class="absolute right-0 top-0 w-[50%] h-full flex items-center justify-center pointer-events-none">
-            <div 
-                in:scale={{duration: 2000, start: 0.9, easing: backOut, delay: 400}}
-                class="relative h-[80%] w-[80%] flex items-center justify-center atmospheric-image-container"
-            >
-                <!-- Energy Pulse Glow -->
-                <div class="absolute inset-0 bg-[#ee4d2d]/10 blur-[100px] rounded-full animate-pulse opacity-50"></div>
-                
-                <!-- Floating Glass Spec Cards -->
-                {#each specs as spec, idx}
-                    <div in:fly={{x: 50, duration: 1500, delay: 1200 + (idx * 300)}} 
-                         class="absolute z-20 px-4 py-2 bg-white/90 backdrop-blur-xl border border-white shadow-2xl flex flex-col gap-0.5 animate-float-spec" 
-                         style="top: {15 + (idx * 25)}%; right: {5 + (idx % 2 * 10)}%; animation-delay: {idx * 2}s">
-                        <span class="text-[8px] font-black uppercase tracking-[0.2em] text-black/30">{spec.label}</span>
-                        <span class="text-[11px] font-black {spec.color}">{spec.value}</span>
-                    </div>
-                {/each}
+          <div in:fade={{duration: 1200, delay: 400}} class="flex flex-col">
+              <h2 class="text-3xl md:text-4xl lg:text-5xl font-extrabold leading-[1.3] tracking-tight line-clamp-3 bg-gradient-to-br from-[#1A1A1A] via-[#333333] to-[#C18F7E] bg-clip-text text-transparent">
+                  {slide.name}
+              </h2>
+          </div>
 
-                <div in:fly={{x: -50, duration: 1500, delay: 1800}} 
-                     class="absolute z-20 bottom-[15%] left-[5%] px-4 py-3 bg-black text-white flex items-center gap-3 shadow-2xl">
-                    <div class="h-2 w-2 rounded-full bg-green-500"></div>
-                    <span class="text-[9px] font-black uppercase tracking-[0.3em]">Xác nhận Chính hãng</span>
-                </div>
-
-                <img 
-                    src={slide.image} 
-                    alt={slide.name} 
-                    class="relative z-10 max-h-full object-contain filter drop-shadow-[0_40px_100px_rgba(0,0,0,0.15)] animate-float-3d" 
-                />
-                
-                <!-- Floor Projection -->
-                <div class="absolute bottom-[-5%] w-[120%] h-[15%] bg-black/[0.05] blur-[40px] rounded-full scale-y-[0.3]"></div>
-            </div>
+          <div in:fly={{y: 40, duration: 1500, delay: 800}} class="flex items-center gap-10">
+              <div class="flex flex-col">
+                  <div class="flex items-center gap-4 mb-1">
+                      <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20">Đặc quyền osmo</span>
+                      {#if slide.originalPrice}
+                          <span class="text-sm font-bold text-gray-300 line-through tabular-nums decoration-gray-400/30">
+                              {formatCurrency(Math.round(slide.originalPrice))}
+                          </span>
+                      {/if}
+                  </div>
+                  <span class="text-[#ee4d2d] text-4xl font-black tabular-nums tracking-tighter flex items-end gap-2">
+                      {formatCurrency(slide.price || 0)}
+                      <span class="text-[10px] text-[#C18F7E] font-bold uppercase tracking-widest mb-1.5 animate-pulse">−{slide.discountPercent}% GIỚI HẠN</span>
+                  </span>
+              </div>
+              <div class="flex flex-col">
+                  <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20 mb-1">Cộng đồng</span>
+                  <span class="text-black text-xl font-black italic">+{slide.sales || 0} <span class="text-[9px] opacity-30 not-italic uppercase ml-1">Tin dùng</span></span>
+              </div>
+          </div>
+          
+          <div in:fly={{y: 50, duration: 1500, delay: 1000}} class="flex flex-col gap-4">
+              <button 
+                  onclick={() => goto(`/${slide.originalSlug || slide.slug || slugify(slide.name)}`)}
+                  class="group/btn relative w-fit px-20 py-6 bg-black text-white text-[11px] font-black uppercase tracking-[0.4em] overflow-hidden transition-all active:scale-95 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] hover:shadow-[0_40px_80px_-15px_rgba(193,143,126,0.4)]"
+              >
+                  <span class="relative z-10 transition-colors group-hover/btn:text-white">Sở Hữu Ngay</span>
+                  <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:animate-shivering pointer-events-none"></div>
+                  <div class="absolute inset-0 bg-[#C18F7E] translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500 ease-out"></div>
+              </button>
+              
+              <div class="flex items-center gap-2 animate-pulse">
+                  <div class="h-1 w-1 rounded-full bg-[#C18F7E]"></div>
+                  <span class="text-[8px] font-bold uppercase tracking-widest text-black/40">Chỉ còn 12 suất ưu đãi trong hôm nay</span>
+              </div>
           </div>
         </div>
-      {/if}
+        
+        <!-- IMAGE RIGHT -->
+        <div class="absolute right-0 top-0 w-[50%] h-full flex items-center justify-center pointer-events-none">
+          <div 
+              in:scale={{duration: 2000, start: 0.9, easing: backOut, delay: 400}}
+              class="relative h-[80%] w-[80%] flex items-center justify-center"
+              style="perspective: 1000px"
+          >
+              <div class="absolute inset-0 bg-[#ee4d2d]/10 blur-[100px] rounded-full animate-pulse opacity-50"></div>
+              
+              {#each specs as spec, idx}
+                  <div in:fly={{x: 50, duration: 1500, delay: 1200 + (idx * 300)}} 
+                       class="absolute z-20 px-4 py-2 bg-white/90 backdrop-blur-xl border border-white shadow-2xl flex flex-col gap-0.5 animate-float-spec" 
+                       style="top: {15 + (idx * 25)}%; right: {5 + (idx % 2 * 10)}%; animation-delay: {idx * 2}s">
+                      <span class="text-[8px] font-black uppercase tracking-[0.2em] text-black/30">{spec.label}</span>
+                      <span class="text-[11px] font-black {spec.color}">{spec.value}</span>
+                  </div>
+              {/each}
+
+              <div in:fly={{x: -50, duration: 1500, delay: 1800}} 
+                   class="absolute z-20 bottom-[15%] left-[5%] px-4 py-3 bg-black text-white flex items-center gap-3 shadow-2xl">
+                  <div class="h-2 w-2 rounded-full bg-green-500"></div>
+                  <span class="text-[9px] font-black uppercase tracking-[0.3em]">Xác nhận Chính hãng</span>
+              </div>
+
+              <img 
+                  src={slide.image} 
+                  alt={slide.name} 
+                  class="relative z-10 max-h-full object-contain filter drop-shadow-[0_40px_100px_rgba(0,0,0,0.15)] animate-float-3d" 
+              />
+              <div class="absolute bottom-[-5%] w-[120%] h-[15%] bg-black/[0.05] blur-[40px] rounded-full scale-y-[0.3]"></div>
+          </div>
+        </div>
+      </div>
     {/each}
   </div>
 
-  <!-- VIRAL SLIDER V2.7: Single Row Carousel -->
+  <!-- PRODUCT LIST -->
   <div class="flex overflow-x-auto no-scrollbar scroll-smooth gap-2 px-1 md:px-0 pb-10">
     {#each currentProducts as product (product.id)}
       <button
@@ -310,8 +311,7 @@
         <div class="aspect-square w-full relative overflow-hidden bg-[#fafafa]">
           {#if product.isAiPick}
             <div class="absolute top-2 left-2 z-20 flex flex-col gap-0.5">
-                <!-- Main FOMO Badge -->
-                <div class="bg-[#ee4d2d] text-white flex items-center shadow-[0_4px_12px_rgba(238,77,45,0.4)] overflow-hidden rounded-[2px] animate-shivering">
+                <div class="bg-[#ee4d2d] text-white flex items-center shadow-[0_4px_12px_rgba(238,77,45,0.4)] overflow-hidden animate-shivering">
                     <div class="bg-black text-[8px] font-black px-1.5 py-1 flex items-center justify-center uppercase tracking-tighter italic border-r border-white/10">
                         SẮP CHÁY HÀNG
                     </div>
@@ -323,16 +323,13 @@
                         <span class="w-4 text-center">{timeLeft.s}</span>
                     </div>
                 </div>
-                <!-- Secondary Scarcity Info -->
-                <div class="bg-white/95 backdrop-blur-md border border-[#ee4d2d]/20 text-[7px] font-black text-[#ee4d2d] px-1.5 py-0.5 w-fit uppercase tracking-[0.15em] rounded-[1px] shadow-sm">
+                <div class="bg-white/95 backdrop-blur-md border border-[#ee4d2d]/20 text-[7px] font-black text-[#ee4d2d] px-1.5 py-0.5 w-fit uppercase tracking-[0.15em] shadow-sm">
                     Chỉ còn {Math.abs((product.id.length % 7) + 2)} suất cuối
                 </div>
             </div>
-            <!-- Neural Spectral Glow (Viral 2.8) -->
             <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#A855F7] via-[#3B82F6] to-[#14B8A6] z-10 opacity-70"></div>
           {/if}
 
-          <!-- Glass Refraction Overlay -->
           <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent -translate-x-full group-hover/card:translate-x-full transition-transform duration-1000 z-10 pointer-events-none"></div>
 
           <img
@@ -355,7 +352,7 @@
                                 {formatCurrency(Math.round(product.originalPrice))}
                             </span>
                         {/if}
-                        <span class="text-[10px] font-black text-[#C18F7E] bg-[#C18F7E]/10 px-1.5 py-0.5 rounded-sm">-{product.discountPercent}%</span>
+                        <span class="text-[10px] font-black text-[#C18F7E] bg-[#C18F7E]/10 px-1.5 py-0.5">-{product.discountPercent}%</span>
                     </div>
                     <span class="text-[9px] font-black text-[#C18F7E] animate-pulse flex items-center gap-1">
                         <div class="w-1 h-1 rounded-full bg-[#C18F7E]"></div> ĐANG CHÁY HÀNG
@@ -366,8 +363,7 @@
                 </p>
             </div>
 
-            <!-- STOCK PROGRESS -->
-            <div class="relative w-full h-4 bg-[#C18F7E]/5 rounded-full overflow-hidden flex items-center justify-center border border-[#C18F7E]/10">
+            <div class="relative w-full h-4 bg-[#C18F7E]/5 overflow-hidden flex items-center justify-center border border-[#C18F7E]/10">
                 <div class="absolute inset-0 bg-gradient-to-r from-[#C18F7E] via-[#E2B1A2] to-[#C18F7E] transition-all duration-1000" style="width: {product.stockPercent}%"></div>
                 <span class="relative z-10 text-[8px] font-black text-[#C18F7E] mix-blend-multiply uppercase tracking-widest flex items-center gap-1">
                     <svg class="w-2 h-2" fill="currentColor" viewBox="0 0 20 20"><path d="M12 2a1 1 0 01.894.553L17.382 11H13v6a1 1 0 01-1.894.447l-5-10A1 1 0 017 6h4V2z"/></svg>
@@ -381,8 +377,8 @@
     {/each}
   </div>
 
-  <!-- ULTIMATE BRAND FLOOR -->
-  <div class="mt-[8px] mb-1 flex flex-col items-center">
+  <!-- BRAND FLOOR -->
+  <footer class="mt-[8px] mb-1 flex flex-col items-center">
     <button 
         onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         class="group/foot relative py-1 px-6 overflow-hidden active:scale-95 transition-all"
@@ -393,7 +389,7 @@
         </span>
         <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[1px] bg-black/10 group-hover/foot:w-full transition-all duration-1000"></div>
     </button>
-  </div>
+  </footer>
 </section>
 
 <style>
@@ -412,12 +408,6 @@
   }
   .animate-float-spec { animation: floatSpec 6s infinite ease-in-out; }
 
-  @keyframes energyMesh {
-    0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
-    50% { transform: translate(-50px, 30px) scale(1.2); opacity: 0.8; }
-  }
-  .animate-energy-mesh { animation: energyMesh 25s infinite ease-in-out; }
-
   @keyframes glidingLight {
     from { transform: translateX(-100%) skewX(-20deg); }
     to { transform: translateX(400%) skewX(-20deg); }
@@ -429,8 +419,4 @@
     40%, 60%, 80% { transform: scale(1.02) rotate(-1deg); }
   }
   .animate-shivering { animation: shivering 0.8s infinite cubic-bezier(.36,.07,.19,.97); }
-
-  .atmospheric-image-container {
-    perspective: 1000px;
-  }
 </style>
