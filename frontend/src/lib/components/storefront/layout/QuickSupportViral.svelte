@@ -55,7 +55,17 @@
 
     isSubmitting = true;
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('/api/v1/client/support/urgent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: phone.trim(),
+          source_url: typeof window !== 'undefined' ? window.location.href : ''
+        })
+      });
+      
+      if (!response.ok) throw new Error('API Error');
+
       showSuccess = true;
       phone = '';
       ui.showToast('Yêu cầu khẩn cấp đã được gửi. Chuyên viên đang kết nối!', 'success');

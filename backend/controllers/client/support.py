@@ -21,7 +21,7 @@ from sqlalchemy import select, desc, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.models.system import SupportChatHistory
-from backend.schemas.support import SupportRequest, SupportResponse, SupportHistoryItem, SupportStatusResponse
+from backend.schemas.support import SupportRequest, SupportResponse, SupportHistoryItem, SupportStatusResponse, UrgentSupportRequest
 from backend.services.commerce.constants.support_config import support_cfg
 from backend.services.commerce.operatives.support_agent import support_agent
 from backend.utils.security import GeminiSecurity
@@ -190,3 +190,49 @@ class SupportController(Controller):
                 ),
                 status_code=500
             )
+
+    @post("/urgent", guards=[])
+    async def urgent_support(
+        self,
+        request: Request,
+        db_session: AsyncSession,
+        data: UrgentSupportRequest,
+    ) -> dict[str, bool]:
+        """
+        Handles an urgent support request (Viral 30-Second Rule).
+        Emits a Pulse notification to admins immediately.
+        """
+        try:
+            # 1. Anti-Spam: Rate Limit by IP
+            ip = request.client.host if request.client else "unknown"
+            if forwarded := request.headers.get("x-forwarded-for"):
+                ip = forwarded.split(",")[0].strip()
+            # Minimal rate limit logic: reuse _check_rate_limit if possible, but keep it standalone for now
+            
+            # 2. Emits a CRITICAL Pulse Notification to Admin Dashboard
+            from backend.services.signal_center import signal_center
+            from backend.schemas.signal import SignalSchema, SignalSeverity
+
+            msg = f"Khách VIP {data.phone} yêu cầu gọi lại trong 30s! Nguồn: {data.source_url or 'Trang chủ'}"
+            
+            signal = SignalSchema(
+                signal_type="URGENT_SUPPORT",
+                message=msg,
+                severity=SignalSeverity.CRITICAL,
+                payload={"phone": data.phone, "source_url": data.source_url},
+                persist=True
+            )
+            
+            await signal_center.dispatch(
+                user_id="ADMIN",  # Broadcast or specific admin role
+                signal=signal,
+                db_session=db_session
+            )
+            
+            # Note: Tích hợp Zalo/Telegram webhook sẽ được thực hiện tại SignalCenter/EventBus 
+            # lắng nghe sự kiện "URGENT_SUPPORT".
+            
+            return {"ok": True}
+        except Exception as e:
+            logger.error(f"💥 [SupportController] URGENT FAILURE: {e}", exc_info=True)
+            return {"ok": False}

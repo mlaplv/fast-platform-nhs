@@ -16,41 +16,41 @@ async def seed_banners():
             {
                 "id": "m1",
                 "title": "Bạn mới tặng 80k",
-                "image_url": "/uploads/img/banner/vn-11134258-81ztc-mm7801vsbw94c6@resize_w797_nl.webp",
-                "link_url": "miccosmo-white-label-platinum-placenta-whitening-cream-20g",
+                "image_url": "/uploads/2026/04/713b7e0d-a566-48b0-8271-a5959b452090.webp",
+                "link_url": "miccosmo-white-label-platinum-placenta-whitening-cream-20g-kem-duong-da-nam",
                 "position": "home_main",
                 "order_index": 1
             },
             {
                 "id": "m2",
                 "title": "osmo Live",
-                "image_url": "/uploads/img/banner/vn-11134258-81ztc-mmiz6tc047peb7@resize_w797_nl.webp",
-                "link_url": "miccosmo-white-label-premium-placenta-pack-130g",
+                "image_url": "/uploads/2026/04/0a761945-d9ca-4cf1-8cc5-c57bfa9727db.webp",
+                "link_url": "miccosmo-white-label-premium-placenta-pack-130g-mat-na-rua-troi-ho-tro-duong-sang",
                 "position": "home_main",
                 "order_index": 2
             },
             {
                 "id": "m3",
                 "title": "Dyson Slide",
-                "image_url": "/uploads/img/banner/sg-11134258-81zu3-mmr6osj4nb41df@resize_w797_nl.webp",
-                "link_url": "miccosmo-white-label-premium-placenta-rich-gold-eye-cream-25g",
+                "image_url": "/uploads/2026/04/713b7e0d-a566-48b0-8271-a5959b452090.webp",
+                "link_url": "miccosmo-white-label-premium-placenta-rich-gold-eye-cream-25g-kem-mat-ho-tro-mo-tham-duong-sang",
                 "position": "home_main",
                 "order_index": 3
             },
             {
                 "id": "s1",
                 "title": "osmo Xử Lý",
-                "image_url": "/uploads/img/banner/sg-11134258-81ztz-mmr7ei1zauiwc3@resize_w398_nl.webp",
-                "link_url": "miccosmo-white-label-premium-placenta-essence-180ml",
-                "position": "home_main",
+                "image_url": "/uploads/2026/04/c6ba1a76-527b-4f06-9f16-a2883d526131.webp",
+                "link_url": "miccosmo-white-label-premium-placenta-essence-180ml-tinh-chat-cap-am-lam-diu-da",
+                "position": "home_side",
                 "order_index": 4
             },
             {
                 "id": "s2",
                 "title": "Voucher 50%",
-                "image_url": "/uploads/img/banner/sg-11134258-81zw1-mmr7ejh867lucb@resize_w398_nl.webp",
-                "link_url": "miccosmo-white-label-placenta-rich-gold-cream-60g",
-                "position": "home_main",
+                "image_url": "/uploads/2026/04/bee054dc-7531-40cd-a56c-51e0f732cd4f.webp",
+                "link_url": "miccosmo-white-label-placenta-rich-gold-cream-60g-kem-ho-tro-duong-sang-ngua-lao-hoa",
+                "position": "home_side",
                 "order_index": 5
             }
         ]

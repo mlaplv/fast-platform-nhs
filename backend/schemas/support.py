@@ -96,6 +96,13 @@ class SupportRequest(BaseModel):
         return s if s.replace("-", "").isalnum() and len(s) <= 64 else None
 
 
+class UrgentSupportRequest(BaseModel):
+    """Viral 30-Second Rule: Urgent support request (Zero-Auth)."""
+    model_config = ConfigDict(strict=True)
+    phone: str = Field(..., min_length=10, max_length=15, description="Client phone number")
+    source_url: Optional[str] = Field(default=None, max_length=255, description="URL where the panic button was clicked")
+
+
 class SupportResponse(BaseModel):
     """Outbound response from the support operative."""
     model_config = ConfigDict(strict=True)
