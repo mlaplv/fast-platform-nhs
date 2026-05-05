@@ -1,7 +1,11 @@
-from typing import Optional
+from typing import Optional, Union
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 from backend.database.models.system import ReviewEntityType
+
+# Strict Union type cho dynamic attributes và attachments — thậy thế 'object' wildcard
+ReviewAttributeValue = Union[str, int, float, bool]
+ReviewAttachment = dict[str, Union[str, int, bool]]
 
 class CreateReviewRequest(BaseModel):
     """Payload tạo Review đa hình từ Client."""
@@ -14,8 +18,8 @@ class CreateReviewRequest(BaseModel):
     customer_location: Optional[str] = Field(None, max_length=255)
     rating: int = Field(..., ge=1, le=5)
     content: str = Field(..., min_length=5, max_length=5000)
-    attributes: Optional[dict[str, object]] = Field(None, description="Dynamic attributes like 'Thấm thấu'")
-    attachments: Optional[list[dict[str, object]]] = Field(None, description="Media attachments URL and type")
+    attributes: Optional[dict[str, ReviewAttributeValue]] = Field(None, description="Dynamic attributes like 'Thấm thấu', 'Mùi hương'")
+    attachments: Optional[list[ReviewAttachment]] = Field(None, description="Media attachments URL and type")
     website_url: Optional[str] = Field(None, description="Honeypot field for bot detection")
 
 class UpdateReviewStatusRequest(BaseModel):
@@ -29,7 +33,7 @@ class UpdateReviewRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     
     content: str = Field(..., min_length=5, max_length=5000)
-    attachments: Optional[list[dict[str, object]]] = Field(None, description="Media attachments URL and type")
+    attachments: Optional[list[ReviewAttachment]] = Field(None, description="Media attachments URL and type")
 
 class ReviewResponse(BaseModel):
     """Payload trả về thông tin Review."""
@@ -43,8 +47,8 @@ class ReviewResponse(BaseModel):
     customer_location: Optional[str]
     rating: int
     content: str
-    attributes: Optional[dict[str, object]]
-    attachments: Optional[list[dict[str, object]]]
+    attributes: Optional[dict[str, ReviewAttributeValue]]
+    attachments: Optional[list[ReviewAttachment]]
     likes_count: int
     status: str
     created_at: datetime
@@ -54,7 +58,11 @@ class ReviewStatsResponse(BaseModel):
     """Payload thống kê Review."""
     total_count: int
     average_rating: float
-    rating_breakdown: dict[int, int] # {5: 425, 4: 19, ...}
+    rating_breakdown: dict[int, int]  # {5: 425, 4: 19, ...}
     has_content_count: int
     has_media_count: int
     order_count: int = 0
+    attribute_summary: Optional[dict[str, dict[str, int]]] = None
+    """Dict[attribute_name, Dict[value, count]] — e.g. {'Thấm thấu': {'Tốt': 87, 'Rất tốt': 12}}
+    Phục vụ Copyright Analyst lấy Social Proof thực tế từ khách hàng.
+    """

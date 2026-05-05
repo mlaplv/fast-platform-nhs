@@ -29,8 +29,9 @@ from backend.services.xohi.prompts.shields.service import shield_service
 # ══════════════════════════════════════════════════════════════
 # ELITE V2.2 CONSTANTS — Copyright Logic
 # ══════════════════════════════════════════════════════════════
-UNIQUENESS_THRESHOLD_HIGH = 0.65
-UNIQUENESS_THRESHOLD_LOW = 0.90
+# Ngưỡng rủi ro: score < RISK_HIGH_THRESHOLD → HIGH risk; score < RISK_MEDIUM_THRESHOLD → MEDIUM risk
+RISK_HIGH_THRESHOLD = 0.65
+RISK_MEDIUM_THRESHOLD = 0.90
 INTERNAL_DEDUP_PENALTY = 0.02
 MAX_COMPETITOR_FETCH = 5
 MAX_PARAGRAPHS_ANALYZE = 1000
@@ -264,7 +265,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                         raw.uniqueness_score = max(0.0, raw.uniqueness_score - INTERNAL_DEDUP_PENALTY)
                         annots.append(ian)
                     raw.annotations = annots
-                    raw.risk_level = "HIGH" if raw.uniqueness_score < UNIQUENESS_THRESHOLD_HIGH else ("MEDIUM" if raw.uniqueness_score < UNIQUENESS_THRESHOLD_LOW else "LOW")
+                    raw.risk_level = "HIGH" if raw.uniqueness_score < RISK_HIGH_THRESHOLD else ("MEDIUM" if raw.uniqueness_score < RISK_MEDIUM_THRESHOLD else "LOW")
                 
                 import time
                 duration = time.time() - start_time
@@ -332,11 +333,26 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
         score = max(0.0, 1.0 - (matched_chars / (total_chars or 1)))
         return PlagiarismResult(
             uniqueness_score=score,
-            risk_level="HIGH" if score < UNIQUENESS_THRESHOLD_HIGH else ("MEDIUM" if score < UNIQUENESS_THRESHOLD_LOW else "LOW"),
+            risk_level="HIGH" if score < RISK_HIGH_THRESHOLD else ("MEDIUM" if score < RISK_MEDIUM_THRESHOLD else "LOW"),
             flagged_sentences=[],
             annotations=h_annots,
             similar_sources=[],
-            verdict=f"### 🛡️ ⚔️ BẢN TRÌNH BÁO CHIẾN LƯỢC BẢN QUYỀN (HEURISTIC)\n---\n#### 🔍 [1. LUẬN ĐIỂM PHẢN BIỆN]\n- Kết quả sơ bộ từ hệ thống trinh sát cục bộ (Local Heuristic).\n- Hệ thống AI đang bận, đã kích hoạt chế độ dự phòng để đảm bảo tiến độ.\n\n#### 🔗 [2. HỒ SƠ CHỨNG CỨ]\n- Đã phát hiện {len(h_annots)} đoạn trùng khớp dựa trên phân tích Heuristic.\n\n#### 刀 [3. PHƯƠNG ÁN PHẪU THUẬT]\n- Cần kiểm tra kỹ các đoạn được đánh dấu màu đỏ trong bài viết."
+            verdict=(
+                f"### 🛡️ ⚔️ BẢN TRÌNH BÁO CHIẾN LƯỢC BẢN QUYỀN (HEURISTIC MODE)\n"
+                f"---\n\n"
+                f"#### 🔍 [1. LUẬN ĐIỂM PHẢN BIỆN — CRITICAL GAP]\n\n"
+                f"- Hệ thống AI Neural đang tạm thời bận — đã kích hoạt chế độ trinh sát cục bộ (Local Heuristic) để đảm bảo tiến độ không gián đoạn.\n"
+                f"- Kết quả sơ bộ dựa trên so sánh từ vựng (Jaccard + Token Overlap) với nội dung đối thủ đã thu thập.\n"
+                f"- Phát hiện {len(h_annots)} đoạn có mức độ trùng lặp cao (>85% token overlap). Cần xem xét lại cấu trúc và ngôn ngữ.\n\n"
+                f"#### 🔗 [2. HỒ SƠ CHỨNG CỨ — EVIDENCE FILE]\n\n"
+                f"- Tổng số đoạn phân tích: {len(deduped)} đoạn độc lập.\n"
+                f"- Đoạn trùng lặp nội bộ: {len(i_annots)} đoạn (penalized -0.02/đoạn).\n"
+                f"- Đoạn trùng lặp với đối thủ: {len(h_annots) - len(i_annots)} đoạn (Heuristic detection).\n\n"
+                f"#### 刀 [3. PHƯƠNG ÁN PHẪU THUẬT — SURGICAL PLAN]\n\n"
+                f"- **Bước 1 — LUẬN ĐIỂM ĐỘT BIẾN**: Xem xét lại góc tiếp cận tổng thể. Tránh dùng cấu trúc mô tả tuyến tính (công dụng → thành phần → hướng dẫn) — đây là cấu trúc phổ biến nhất của đối thủ. Thay vào đó, hãy mở đầu bằng vấn đề thực tế của người dùng (Pain Point) rồi mới giới thiệu giải pháp.\n"
+                f"- **Bước 2 — PHÂN BỔ 4 KHỐI**: Phân bổ lại nội dung theo 4 trụ cột (Vị thế độc bản / Công nghệ & Hoạt chất / Nghi thức Tuyệt mỹ / Kết nối & Đặc quyền). Đảm bảo mỗi khối có ít nhất một điểm khác biệt so với đối thủ.\n"
+                f"- **Bước 3 — KẾ HOẠCH REWRITE**: (1) Thay thế toàn bộ các đoạn bị đánh dấu bằng ngôn ngữ gốc từ trải nghiệm thực tế. (2) Bổ sung dẫn chứng khoa học hoặc số liệu cụ thể. (3) Sử dụng giọng văn thương hiệu nhất quán thay vì ngôn ngữ generic. (4) Kiểm tra lại sau khi sửa bằng công cụ Neural Copyright để xác nhận điểm Uniqueness đạt >0.85."
+            )
         )
 
     async def _fetch_competitor_snippets(self, campaign: ContentCampaign, keyword: str, logs: Optional[list[str]] = None) -> list[str]:
@@ -374,7 +390,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                             if not url.startswith("http"): return it.get("snippet", "")
                             try:
                                 logger.warning(f"📡 [PlagiarismCop] Scrape Start [{idx+1}/5]: {url[:50]}...")
-                                r = await client.get(url, timeout=COMPETITOR_TIMEOUT_SECONDS)
+                                r = await client.get(url, timeout=COMPETITOR_TIMEOUT_SECONDS, follow_redirects=True)
                                 if r.status_code == 200:
                                     logger.warning(f"✅ [PlagiarismCop] Scrape Success: {url[:50]}")
                                     b = re.sub(r'<(script|style)[^>]*>.*?</\1>', ' ', r.text, flags=re.IGNORECASE|re.DOTALL)
