@@ -167,7 +167,9 @@ class ProductService:
         featured_only: bool = False,
         category_slug: Optional[str] = None,
         category_id: Optional[str] = None,
+        product_ids: Optional[List[str]] = None,
     ) -> ProductListResponse:
+
         """
         Elite V3.0: Hybrid Viral Search Engine.
         Combines Keyword Recall + Semantic Intent + Social Proof (Heat Ranking).
@@ -193,6 +195,9 @@ class ProductService:
             conditions.append(Category.slug == category_slug)
         if category_id:
             conditions.append(ProductBase.category_id == category_id)
+        if product_ids:
+            conditions.append(ProductBase.id.in_(product_ids))
+
 
         # 🎯 CASE 1: SEARCH OVERRIDE (Hybrid Strategy)
         if search:

@@ -30,8 +30,11 @@ class PublicProductController(Controller):
         search: Optional[str] = None,
         featured_only: bool = False,
         category_slug: Optional[str] = None,
+        category_id: Optional[str] = None,
+        ids: Optional[str] = None,
     ) -> ProductListResponse:
-        """PUBLIC: List products. Supports filter by category_slug."""
+        """PUBLIC: List products. Supports filter by category_slug, category_id and IDs."""
+        product_ids = ids.split(",") if ids else None
         return await product_service.list_products(
             db_session,
             limit=limit,
@@ -40,7 +43,10 @@ class PublicProductController(Controller):
             search=search,
             featured_only=featured_only,
             category_slug=category_slug,
+            category_id=category_id,
+            product_ids=product_ids,
         )
+
 
     @get("/slug/{slug:str}")
     async def get_product_by_slug(

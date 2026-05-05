@@ -9,8 +9,9 @@
   import ProductMobileOverview from './ProductMobileOverview.svelte';
   import ProductMobileReviews from './ProductMobileReviews.svelte';
   import ProductMobileSpecs from './ProductMobileSpecs.svelte';
-  import ProductMobileRecommendations from './ProductMobileRecommendations.svelte';
+  import ProductDetailRelated from './ProductDetailRelated.svelte';
   import ProductMobileVariantSelector from './ProductMobileVariantSelector.svelte';
+
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import MobileBottomNav from '../home/MobileBottomNav.svelte';
   import type { ProductVariant, ReviewStats } from '$lib/types';
@@ -156,8 +157,9 @@
     <div class="section-divider"></div>
 
     <div id="recommendations">
-      <ProductMobileRecommendations {relatedProducts} />
+      <ProductDetailRelated {product} isMobile={true} />
     </div>
+
   </svelte:element>
 
   <!-- 5. STICKY BOTTOM NAV -->

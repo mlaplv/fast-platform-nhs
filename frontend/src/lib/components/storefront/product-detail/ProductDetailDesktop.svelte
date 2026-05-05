@@ -4,7 +4,7 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { goto } from '$app/navigation';
   import type { Product, ProductVariant } from '$lib/types';
-  import { ShoppingCart, Minus, Plus, Star, Gift, Package, Sparkles } from 'lucide-svelte';
+  import { ShoppingCart, Minus, Plus, Star, Gift, Package, Sparkles, Diamond } from 'lucide-svelte';
   import { Volume2, VolumeX } from 'lucide-svelte';
   import ProductDetailReviews from './ProductDetailReviews.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
@@ -13,6 +13,8 @@
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
   import type { ReviewStats } from '$lib/types';
   import { formatCurrency } from '$lib/utils/format';
+  import ProductDetailRelated from './ProductDetailRelated.svelte';
+
 
   function isJson(str: string) {
     if (typeof str !== 'string') return false;
@@ -433,18 +435,21 @@
 <svelte:element this={outerWrapper} class="bg-[#f6f6f6] min-h-screen">
   <!-- VIRAL 2026: PROFESSIONAL BREADCRUMB -->
   <div class="bg-[#f5f5f5] py-4">
-  <div class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-2 text-[13px] text-gray-600 font-medium">
-    <a href="/" class="hover:text-[#ee4d2d]">osmo</a>
-    <svg class="w-3 h-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-    <span class="truncate max-w-[400px] text-gray-400">{product.name}</span>
+  <div class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-3 text-[11px] text-gray-500 font-bold uppercase tracking-wider">
+    <a href="/" class="flex items-center gap-2 bg-[#ee4d2d] text-white px-2 py-1 hover:brightness-110 transition-all">
+      <Diamond size={10} fill="currentColor" />
+      <span class="text-[9px] font-black tracking-[0.25em]">OSMO</span>
+    </a>
+    <span class="opacity-20">/</span>
+    <span class="text-gray-400 normal-case tracking-normal font-medium">{product.name}</span>
   </div>
 </div>
 
-<svelte:element this={contentWrapper} class="max-w-[1200px] mx-auto bg-white shadow-sm my-4 rounded-none p-5">
+<svelte:element this={contentWrapper} class="max-w-[1200px] mx-auto bg-white shadow-sm mt-0 mb-[20px] rounded-none p-5">
   <div class="flex flex-col md:flex-row gap-8">
     <!-- LEFT: IMAGES & SOCIAL (Viral 2026) -->
     <div class="w-full md:w-[450px] shrink-0">
-      <div class="aspect-square w-full rounded-none overflow-hidden relative border border-gray-50 flex items-center justify-center bg-black group">
+      <div class="aspect-square w-full rounded-none overflow-hidden relative border border-gray-100 flex items-center justify-center bg-white group">
         {#if isVideoUrl(currentImage)}
           <!-- SHOPEE-STYLE: autoplay muted loop, full-fill -->
           <video
@@ -828,7 +833,7 @@
 </svelte:element>
 
 <!-- Bottom Sections (Professional Layout) -->
-<div class="max-w-[1200px] mx-auto flex flex-col gap-4 mb-0">
+<div class="max-w-[1200px] mx-auto flex flex-col gap-[20px] mb-0">
     <!-- CHI TIẾT SẢN PHẨM -->
     <div class="bg-white p-5 shadow-sm">
        <div class="bg-gray-50/50 px-0 py-4 border-b border-gray-100 mb-6 flex items-center justify-between">
@@ -888,7 +893,7 @@
        </div>
        <div class="px-0 prose-osmo">
           {#if isJson(product.description)}
-             <div class="bg-black text-white p-4 rounded-xl">
+             <div class="bg-slate-900 text-white p-4 rounded-none">
                <InteractiveDashboard data={product.description} compact={false} />
              </div>
           {:else}
@@ -915,10 +920,14 @@
     {/if}
 
     <!-- ĐÁNH GIÁ SẢN PHẨM -->
-    <div id="product-reviews" class="mt-8">
+    <div id="product-reviews" class="mt-0">
        <ProductDetailReviews {product} />
     </div>
+
+    <!-- SẢN PHẨM LIÊN QUAN (Viral 2026) -->
+    <ProductDetailRelated {product} />
   </div>
+
 </svelte:element>
 <style>
   /* Elite V2.2: Premium Prose System */

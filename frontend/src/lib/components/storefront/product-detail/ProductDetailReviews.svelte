@@ -240,7 +240,7 @@
   };
 </script>
 
-<div class="bg-white p-6 md:p-10 mt-0 rounded-none relative overflow-hidden mb-24">
+<div class="bg-white p-6 md:p-10 mt-0 rounded-none relative overflow-hidden mb-0">
   <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 pb-6 border-b border-gray-50">
     <div>
       <h2 class="text-2xl font-black text-[#1a1a1a] tracking-tight leading-none mb-2">Đánh Giá {entityType === 'CATEGORY' ? 'Danh Mục ' + (product?.name || '') : 'Sản Phẩm'}</h2>
