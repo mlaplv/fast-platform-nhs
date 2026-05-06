@@ -77,17 +77,23 @@
 <svelte:head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
-  <title>{siteName}</title>
-  <meta name="description" content={metaDescription} />
-  <meta name="theme-color" content="#020202" />
-  <meta name="robots" content="index, follow, max-image-preview:large" />
-
-  <!-- OpenGraph (GEO 2026) -->
-  <meta property="og:title" content={siteName} />
-  <meta property="og:description" content={metaDescription} />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content={siteName} />
-  <meta property="og:locale" content="vi_VN" />
+  
+  {#if isAdmin}
+    <title>{siteName}</title>
+    <meta name="description" content={metaDescription} />
+    <meta name="theme-color" content="#020202" />
+    <meta name="robots" content="noindex, nofollow" />
+    
+    <!-- OpenGraph (Admin Only) -->
+    <meta property="og:title" content={siteName} />
+    <meta property="og:description" content={metaDescription} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:locale" content="vi_VN" />
+  {:else}
+    <!-- Root layout SEO tags removed for Storefront to allow SeoHead to control it without hydration conflicts -->
+    <meta name="theme-color" content="#f5f5f5" />
+  {/if}
 
   <link rel="icon" href="/favicon.svg" />
 </svelte:head>
