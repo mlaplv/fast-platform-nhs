@@ -15,6 +15,7 @@
   import type { ProductMetadata } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
+  import { getIngredientIcon } from "$lib/utils/product";
 
   const nanobot = useNanobot();
 
@@ -27,6 +28,44 @@
   onMount(() => {
     if (!formMetadata) formMetadata = { landing_type: 'standard' };
     if (!formMetadata.landing_type) formMetadata.landing_type = 'standard';
+  });
+
+  /** Viral Intelligence: Auto-suggest icons for ingredients */
+  const viralIcons = [
+    { icon: '💧', label: 'Cấp ẩm / HA' },
+    { icon: '🍋', label: 'Vitamin C / Làm sáng' },
+    { icon: '🛡️', label: 'Niacinamide / Bảo vệ' },
+    { icon: '🌙', label: 'Retinol / Tái tạo' },
+    { icon: '🌿', label: 'Trà xanh / Thảo mộc' },
+    { icon: '🧬', label: 'Collagen / Ceramide' },
+    { icon: '✨', label: 'Sáng da / Glow' },
+    { icon: '☀️', label: 'Chống nắng / SPF' },
+    { icon: '🧪', label: 'Acid / AHA / BHA' },
+    { icon: '🌱', label: 'Rau má / Cica' },
+    { icon: '🍎', label: 'Lựu / Chống oxy hóa' },
+    { icon: '🌹', label: 'Hoa hồng / Dịu nhẹ' },
+    { icon: '🍯', label: 'Mật ong / Sát khuẩn' },
+    { icon: '🫗', label: 'Dầu dưỡng / Olive' },
+    { icon: '🌑', label: 'Than hoạt tính / Đất sét' },
+    { icon: '🪵', label: 'Cam thảo / Rễ cây' },
+    { icon: '🧴', label: 'Lotion / Dưỡng thể' },
+    { icon: '🩹', label: 'Phục hồi / Cấp cứu' },
+    { icon: '🧼', label: 'Làm sạch / Cleanser' },
+    { icon: '💊', label: 'Dược mỹ phẩm / Đặc trị' }
+  ];
+  let activeIconPicker = $state<number | null>(null);
+
+  $effect(() => {
+    if (formMetadata.featured_ingredients) {
+      formMetadata.featured_ingredients.forEach(item => {
+        if (item.name && (!item.icon || item.icon === '🧬')) {
+          const smartIcon = getIngredientIcon(item.name);
+          if (smartIcon !== '🧬') {
+            item.icon = smartIcon;
+          }
+        }
+      });
+    }
   });
 
   const landingTypes = [
@@ -444,16 +483,43 @@
             </button>
 
             <div class="grid grid-cols-[56px_1fr] gap-2 pr-8">
-              <!-- Icon / Emoji -->
-              <div class="flex flex-col gap-1">
+              <!-- Icon / Emoji Picker -->
+              <div class="flex flex-col gap-1 relative">
                 <label class="text-[8px] font-bold text-white/30 uppercase tracking-wider">Icon</label>
                 <input
                   type="text"
                   bind:value={item.icon}
+                  onclick={() => activeIconPicker = i}
                   placeholder="🧬"
                   maxlength="4"
-                  class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-[18px] text-center focus:outline-none focus:border-teal-500/50 transition-colors leading-none"
+                  readonly
+                  class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-[18px] text-center focus:outline-none focus:border-teal-500/50 transition-colors cursor-pointer hover:bg-white/5"
                 />
+                
+                {#if activeIconPicker === i}
+                  <!-- svelte-ignore a11y_click_events_have_key_events -->
+                  <!-- svelte-ignore a11y_no_static_element_interactions -->
+                  <div 
+                    class="fixed inset-0 z-[60]" 
+                    onclick={(e) => { e.stopPropagation(); activeIconPicker = null; }}
+                  ></div>
+                  <div class="absolute z-[70] top-full left-0 mt-2 p-2 bg-[#1a1a1a] border border-white/10 rounded-xl grid grid-cols-5 gap-1 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] min-w-[180px]">
+                    {#each viralIcons as vIcon}
+                      <button
+                        type="button"
+                        title={vIcon.label}
+                        onclick={(e) => {
+                          e.stopPropagation();
+                          item.icon = vIcon.icon;
+                          activeIconPicker = null;
+                        }}
+                        class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-[16px]"
+                      >
+                        {vIcon.icon}
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
               </div>
               <!-- Tên thành phần -->
               <div class="flex flex-col gap-1">

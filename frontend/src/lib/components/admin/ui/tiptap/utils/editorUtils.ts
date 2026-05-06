@@ -126,8 +126,8 @@ export const neuralCleanPastedHTML = (htmlStr: string): string => {
       }
 
       // 2.5 Prune Empty Nodes
-      const containers = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'strong', 'b', 'em', 'i', 'span', 'u', 's', 'del', 'a'];
-      const whitelisted = ['img', 'br', 'hr'];
+      const containers = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'strong', 'b', 'em', 'i', 'span', 'u', 's', 'del', 'a', 'figure', 'figcaption'];
+      const whitelisted = ['img', 'br', 'hr', 'figure', 'figcaption'];
       
       if (containers.includes(tag)) {
         const hasRealText = el.textContent?.replace(/\u00A0|\u200B|\uFEFF/g, '').trim().length > 0;

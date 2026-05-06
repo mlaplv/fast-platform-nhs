@@ -98,17 +98,20 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
     },
     parseHTML() {
       return [
-        { tag: 'figure.image-figure', getAttrs: (node: HTMLElement) => {
-          const img = node.querySelector('img');
-          if (!img) return false;
-          const caption = node.querySelector('figcaption')?.textContent || null;
-          return { 
-            src: img.getAttribute('src'),
-            alt: img.getAttribute('alt'),
-            class: img.getAttribute('class'),
-            title: caption,
-          };
-        }},
+        { 
+          tag: 'figure', 
+          getAttrs: (node: HTMLElement) => {
+            const img = node.querySelector('img');
+            if (!img) return false;
+            const caption = node.querySelector('figcaption')?.textContent || null;
+            return { 
+              src: img.getAttribute('src'),
+              alt: img.getAttribute('alt'),
+              class: img.getAttribute('class') || node.getAttribute('class'),
+              title: caption,
+            };
+          }
+        },
         { tag: 'img[src]' },
       ];
     },

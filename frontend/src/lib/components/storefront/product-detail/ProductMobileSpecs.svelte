@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getIngredientIcon } from '$lib/utils/product';
   import { onMount, tick } from 'svelte';
   import { ChevronDown, ChevronUp, Sparkles, Beaker, FlaskConical, Info } from 'lucide-svelte';
   import type { Product } from '$lib/types';
@@ -112,7 +113,7 @@
         {#each product.metadata.featured_ingredients as ing}
           <div class="flex gap-3 bg-[#fdf2f2]/50 border border-[#ee4d2d]/5 p-3 rounded-xl">
             <div class="w-10 h-10 shrink-0 bg-white border border-[#ee4d2d]/10 rounded-full flex items-center justify-center text-[18px]">
-              {ing.icon || '🧬'}
+              {ing.icon || getIngredientIcon(ing.name)}
             </div>
             <div class="flex flex-col">
               <span class="text-[13px] font-black text-gray-900 leading-none mb-1">{ing.name}</span>

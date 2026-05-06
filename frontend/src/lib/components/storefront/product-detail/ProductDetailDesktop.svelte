@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { getIngredientIcon } from '$lib/utils/product';
   import { onMount } from 'svelte';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
@@ -298,6 +299,19 @@
     salePrice: pDiscountPrice || product.price || 0
   });
 
+  const visibleAttributes = $derived(
+    product.attributes ? Object.entries(product.attributes).filter(([key, value]) => {
+      const k = key.toLowerCase().replace(/_/g, " ").trim();
+      const brand = productInfo.brand;
+      const origin = productInfo.origin;
+      const weight = productInfo.weight;
+      return !( ((k === "xuất xứ" || k === "origin") && origin) || 
+                ((k === "trọng lượng" || k === "quy cách" || k === "weight") && weight) || 
+                ((k === "mã vạch" || k === "barcode") && productInfo.barcode && productInfo.barcode !== "N/A") || 
+                (k === "thương hiệu" || k === "brand") );
+    }) : []
+  );
+
   const activePrices = $derived({
     sale: displayPrice.discountPrice || displayPrice.price,
     original: displayPrice.discountPrice ? displayPrice.price : (typeof displayPrice.price === 'number' ? displayPrice.price * 1.55 : displayPrice.price)
@@ -445,7 +459,7 @@
   </div>
 </div>
 
-<svelte:element this={contentWrapper} class="max-w-[1200px] mx-auto bg-white shadow-sm mt-0 mb-[20px] rounded-none p-5">
+<svelte:element this={contentWrapper} class="max-w-[1200px] mx-auto bg-white shadow-sm mt-0  rounded-none p-5">
   <div class="flex flex-col md:flex-row gap-8">
     <!-- LEFT: IMAGES & SOCIAL (Viral 2026) -->
     <div class="w-full md:w-[450px] shrink-0">
@@ -835,17 +849,65 @@
 <!-- Bottom Sections (Professional Layout) -->
 <div class="max-w-[1200px] mx-auto flex flex-col gap-[20px] mb-0">
     <!-- CHI TIẾT SẢN PHẨM -->
-    <div class="bg-white p-5 shadow-sm">
-       <div class="bg-gray-50/50 px-0 py-4 border-b border-gray-100 mb-6 flex items-center justify-between">
-          <h2 class="text-[18px] font-black text-gray-800 uppercase tracking-tight">Chi tiết sản phẩm</h2>
-          <div class="flex items-center gap-2">
-             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Mã vạch:</span>
-             <span class="text-[11px] font-black text-black tracking-widest bg-gray-100 px-2 py-0.5">{productInfo.barcode}</span>
+    <div class="bg-white p-6 shadow-[0_2px_20px_-5px_rgba(0,0,0,0.05)] border border-gray-50 ">
+       <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
+          <div class="flex items-center gap-3">
+             <div class="w-1.5 h-6 bg-[#ee4d2d]"></div>
+             <h2 class="text-[20px] font-black text-gray-900 uppercase tracking-tight">Chi tiết sản phẩm</h2>
+          </div>
+          <div class="flex items-center gap-4">
+             <div class="flex flex-col items-end">
+                <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Serial / SKU</span>
+                <span class="text-[12px] font-black text-black tracking-widest">{product.sku || 'N/A'}</span>
+             </div>
           </div>
        </div>
-       <div class="px-0 text-[14px] space-y-6">
-          <div class="grid grid-cols-1 gap-4 max-w-4xl">
 
+       <!-- Viral 2026: Liquid Spec Bar (Desktop) -->
+       <div class="flex items-stretch bg-gray-50/50 border border-gray-100 divide-x divide-gray-100 rounded-none mb-10 overflow-hidden">
+          {#if productInfo.brand}
+            <div class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all group/spec cursor-default">
+              <span class="text-[9px] text-gray-400 font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-2">
+                <div class="w-1 h-1 rounded-full bg-amber-400 animate-pulse"></div> Thương hiệu
+              </span>
+              <a href="/products?brand={encodeURIComponent(productInfo.brand)}" class="text-[14px] font-black text-[#ee4d2d] hover:underline flex items-center gap-1.5 uppercase tracking-tight">
+                {productInfo.brand}
+                <svg class="w-3.5 h-3.5 opacity-0 group-hover/spec:opacity-100 transition-all translate-x-[-5px] group-hover/spec:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" /></svg>
+              </a>
+            </div>
+          {/if}
+          {#if productInfo.origin}
+            <div class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all">
+              <span class="text-[9px] text-gray-400 font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-2">
+                <div class="w-1 h-1 rounded-full bg-blue-400"></div> Xuất xứ
+              </span>
+              <span class="text-[14px] font-black text-gray-800 uppercase tracking-tighter">{productInfo.origin}</span>
+            </div>
+          {/if}
+          {#if productInfo.weight}
+            <div class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all">
+              <span class="text-[9px] text-gray-400 font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-2">
+                <div class="w-1 h-1 rounded-full bg-emerald-400"></div> Quy cách
+              </span>
+              <span class="text-[14px] font-black text-gray-800">{productInfo.weight}</span>
+            </div>
+          {/if}
+          <div class="flex-[1.5] px-8 py-5 flex flex-col justify-center hover:bg-white transition-all">
+            <span class="text-[9px] text-gray-400 font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-2">
+               <div class="w-1 h-1 rounded-full bg-indigo-400"></div> Danh mục
+            </span>
+            <div class="flex items-center gap-2 text-[13px] font-bold uppercase tracking-tighter">
+               <a href="/products" class="text-gray-400 hover:text-gray-900 transition-colors">osmo</a>
+               <svg class="w-3 h-3 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" /></svg>
+               <a href="/{product.categorySlug || 'products'}/" class="text-[#0384ff] hover:underline truncate">
+                  {product.category || 'CHĂM SÓC DA'}
+               </a>
+            </div>
+          </div>
+       </div>
+
+       <div class="px-0 text-[14px] space-y-10">
+          <div class="grid grid-cols-1 gap-6 w-full">
                <!-- Elite V2.2: Featured Ingredients (Viral 2026 UI) -->
                {#if product.metadata?.featured_ingredients && product.metadata.featured_ingredients.length > 0}
                <div class="flex flex-col gap-3 py-2">
@@ -856,7 +918,7 @@
                     {#each product.metadata.featured_ingredients as ing}
                       <div class="flex gap-3 bg-[#fdf2f2]/50 border border-[#ee4d2d]/5 p-3 rounded-xl hover:bg-white hover:shadow-xl hover:shadow-[#ee4d2d]/5 transition-all group/ing">
                         <div class="w-10 h-10 shrink-0 bg-white border border-[#ee4d2d]/10 rounded-full flex items-center justify-center text-[18px] group-hover/ing:scale-110 transition-transform shadow-sm">
-                          {ing.icon || '🧬'}
+                          {ing.icon || getIngredientIcon(ing.name)}
                         </div>
                         <div class="flex flex-col">
                           <span class="text-[13px] font-black text-gray-900 leading-none mb-1">{ing.name}</span>
@@ -888,54 +950,27 @@
                   </div>
                </div>
                {/if}
-              {#if productInfo.origin}
-              <div class="flex items-center">
-                 <span class="w-[180px] shrink-0 text-gray-400 font-medium">Xuất xứ</span>
-                 <span class="text-gray-900 font-bold">{productInfo.origin}</span>
-              </div>
-              {/if}
-              {#if productInfo.weight}
-              <div class="flex items-center">
-                 <span class="w-[180px] shrink-0 text-gray-400 font-medium">Trọng Lượng</span>
-                 <span class="text-gray-900 font-bold">{productInfo.weight}</span>
-              </div>
-              {/if}
-              <div class="flex items-center">
-                 <span class="w-[180px] shrink-0 text-gray-400 font-medium tracking-tight">Danh Mục</span>
-                 <div class="flex items-center gap-2 text-[#0384ff] font-black uppercase text-[12px] tracking-tighter">
-                    <a href="/products" class="hover:underline text-gray-400">osmo</a> 
-                    <svg class="w-2.5 h-2.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                    <a href="/{product.categorySlug || 'products'}/" class="hover:underline">{product.category || 'CHĂM SÓC DA'}</a>
-                 </div>
-              </div>
-             {#if product.attributes}
-               {#each Object.entries(product.attributes) as [key, value]}
-                 {@const k = key.toLowerCase().replace(/_/g, ' ').trim()}
-                 {@const brand = productInfo.brand}
-                 {@const origin = productInfo.origin}
-                 {@const weight = productInfo.weight}
-                 {#if !( ((k === 'xuất xứ' || k === 'origin') && origin) || ((k === 'trọng lượng' || k === 'quy cách' || k === 'weight') && weight) || ((k === 'mã vạch' || k === 'barcode') && productInfo.barcode && productInfo.barcode !== 'N/A') )}
-                 <div class="flex items-center">
-                    <span class="w-[180px] shrink-0 text-gray-400 font-medium capitalize">{key.replace(/_/g, ' ')}</span>
-                    <span class="text-gray-900 font-medium">
-                      {#if k === 'thương hiệu' || k === 'brand'}
-                        <a href="/products?brand={encodeURIComponent(String(value))}" class="text-[#ee4d2d] font-bold hover:underline">{value}</a>
-                      {:else}
-                        {value}
-                      {/if}
-                    </span>
-                 </div>
-                 {/if}
-               {/each}
-             {/if}
+{#if visibleAttributes.length > 0}
+                  <div class="grid grid-cols-2 gap-4 pt-4 mt-4 border-t border-gray-50">
+                    {#each visibleAttributes as [key, value]}
+                      <div class="flex items-center justify-between p-3 bg-gray-50/30 rounded-lg">
+                        <span class="text-gray-400 font-medium capitalize">{key.replace(/_/g, " ")}</span>
+                        <span class="text-gray-900 font-bold">{value}</span>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
           </div>
        </div>
     </div>
 
      <!-- MÔ TẢ SẢN PHẨM -->
-    <div class="bg-white p-5 shadow-sm">
-       <div class="bg-gray-50/50 px-0 py-4 border-b border-gray-100 mb-6">
-          <h2 class="text-[18px] font-black text-gray-800 uppercase tracking-tight">Mô tả sản phẩm</h2>
+    <div class="bg-white p-6 shadow-[0_2px_20px_-5px_rgba(0,0,0,0.05)] border border-gray-50 ">
+       <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
+          <div class="flex items-center gap-3">
+             <div class="w-1.5 h-6 bg-[#ee4d2d]"></div>
+             <h2 class="text-[20px] font-black text-gray-900 uppercase tracking-tight">Mô tả sản phẩm</h2>
+          </div>
        </div>
        <div class="px-0 prose-osmo">
           {#if isJson(product.description)}
@@ -950,15 +985,18 @@
 
     <!-- GEO 2026: Desktop FAQ Section -->
     {#if product.metadata?.faqs && product.metadata.faqs.length > 0}
-    <div class="bg-white p-5 shadow-sm">
-       <div class="bg-gray-50/50 px-0 py-4 border-b border-gray-100 mb-6">
-          <h2 class="text-[18px] font-black text-gray-800 uppercase tracking-tight">Câu hỏi thường gặp</h2>
+    <div class="bg-white p-6 shadow-[0_2px_20px_-5px_rgba(0,0,0,0.05)] border border-gray-50 ">
+       <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
+          <div class="flex items-center gap-3">
+             <div class="w-1.5 h-6 bg-[#ee4d2d]"></div>
+             <h2 class="text-[20px] font-black text-gray-900 uppercase tracking-tight">Câu hỏi thường gặp</h2>
+          </div>
        </div>
        <div class="px-0 flex flex-col gap-4">
           {#each product.metadata.faqs as faq}
             <div class="border border-gray-100 p-4 rounded-md bg-gray-50/30">
               <h3 class="text-[15px] font-bold text-gray-900 mb-2">{faq.question}</h3>
-              <p class="text-[14px] text-gray-600 leading-relaxed max-w-4xl">{faq.answer}</p>
+              <p class="text-[14px] text-gray-600 leading-relaxed w-full">{faq.answer}</p>
             </div>
           {/each}
        </div>

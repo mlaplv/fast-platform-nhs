@@ -82,7 +82,7 @@
   $effect(() => { 
     untrack(() => {
       // CNS V2.2: Use a safer comparison to avoid reactive loops while typing
-      if (content && content !== editBuffer && content.length !== editBuffer.length) {
+      if (content !== undefined && content !== editBuffer) {
         editBuffer = content; 
       }
     });
