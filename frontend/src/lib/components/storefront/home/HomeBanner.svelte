@@ -19,19 +19,7 @@
   let sideBanners = $derived(banners.filter(b => b.position === 'home_side'));
 
   let currentIndex = $state(0);
-  let timer: ReturnType<typeof setInterval>;
-
-  function startTimer() {
-    if (mainBanners.length > 1) {
-      timer = setInterval(() => {
-        nextSlide();
-      }, 6000); // 6s per slide for Elite V2.2
-    }
-  }
-
-  function clearTimer() {
-    if (timer) clearInterval(timer);
-  }
+  let isHovered = $state(false);
 
   function nextSlide() {
     currentIndex = (currentIndex + 1) % mainBanners.length;
@@ -46,8 +34,13 @@
   }
 
   $effect(() => {
-    startTimer();
-    return () => clearTimer();
+    if (mainBanners.length <= 1 || isHovered) return;
+    
+    const timer = setInterval(() => {
+      nextSlide();
+    }, 6000); // 6s per slide for Elite V2.2
+    
+    return () => clearInterval(timer);
   });
 </script>
 
@@ -57,8 +50,8 @@
   <!-- Main Banner (Carousel) -->
   <div 
     class="col-span-2 relative h-full rounded-[2px] overflow-hidden group bg-[#eee]"
-    onmouseenter={clearTimer}
-    onmouseleave={startTimer}
+    onmouseenter={() => isHovered = true}
+    onmouseleave={() => isHovered = false}
     role="region"
     aria-label="banner-carousel"
   >
@@ -74,8 +67,8 @@
         {/each}
       </div>
 
-      <!-- Navigation Arrows -->
       {#if mainBanners.length > 1}
+        <!-- Navigation Arrows -->
         <button 
           class="absolute left-0 top-1/2 -translate-y-1/2 bg-black/10 hover:bg-black/30 text-white w-9 h-14 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
           onclick={prevSlide}
@@ -91,10 +84,8 @@
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
         </button>
-      {/if}
 
-      <!-- Dots Indicators -->
-      {#if mainBanners.length > 1}
+        <!-- Dots Indicators -->
         <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 items-center">
           {#each mainBanners as _, i}
             <button 
