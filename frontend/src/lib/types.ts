@@ -315,6 +315,10 @@ export interface ProductMetadata {
   is_mall?: boolean;
   brand_type?: string;
 
+  // Elite V2.2: Ingredients & Featured Ingredients
+  ingredients?: string;
+  featured_ingredients?: { name: string; benefit: string; icon?: string }[];
+
   analysis_cache?: AnalysisCache;
   analysis_metrics?: CampaignMetrics;
 

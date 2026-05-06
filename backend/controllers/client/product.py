@@ -31,6 +31,8 @@ class PublicProductController(Controller):
         featured_only: bool = False,
         category_slug: Optional[str] = None,
         category_id: Optional[str] = None,
+        brand: Optional[str] = None,
+        origin: Optional[str] = None,
         ids: Optional[str] = None,
     ) -> ProductListResponse:
         """PUBLIC: List products. Supports filter by category_slug, category_id and IDs."""
@@ -44,6 +46,8 @@ class PublicProductController(Controller):
             featured_only=featured_only,
             category_slug=category_slug,
             category_id=category_id,
+            brand=brand,
+            origin=origin,
             product_ids=product_ids,
         )
 

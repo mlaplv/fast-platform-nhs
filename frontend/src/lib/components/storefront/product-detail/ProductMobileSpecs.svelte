@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { ChevronDown, ChevronUp } from 'lucide-svelte';
+  import { ChevronDown, ChevronUp, Sparkles, Beaker, FlaskConical, Info } from 'lucide-svelte';
   import type { Product } from '$lib/types';
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
 
@@ -19,8 +19,10 @@
   }
 
   let { product }: Props = $props();
+  const brand = $derived(product.metadata?.brand || product.attributes?.['brand'] || product.attributes?.['Thương hiệu']);
 
   let isExpanded = $state(false);
+  let isIngredientsExpanded = $state(false);
   let truncatedHeight = $state(450); // Mặc định nếu không tính được
   let containerRef = $state<HTMLElement>();
   let hasMore = $state(false);
@@ -67,12 +69,6 @@
 <section id="description" class="content-section">
   <h2 class="section-title">Chi tiết sản phẩm</h2>
   <div class="spec-infographic">
-    {#if product.metadata?.brand}
-      <div class="info-tag">
-        <span class="tag-label">Thương hiệu</span>
-        <span class="tag-val text-[#ee4d2d]">{product.metadata.brand}</span>
-      </div>
-    {/if}
     {#if product.metadata?.origin}
       <div class="info-tag">
         <span class="tag-label">Xuất xứ</span>
@@ -85,23 +81,91 @@
         <span class="tag-val">{product.metadata.weight}</span>
       </div>
     {/if}
-    <div class="info-tag">
+    <a href="/{product.categorySlug || 'products'}/" class="info-tag">
       <span class="tag-label">Danh mục</span>
       <span class="tag-val text-[#0384ff]">{product.category || 'Chăm sóc da'}</span>
-    </div>
+    </a>
+    {#if brand}
+      <div class="info-tag">
+        <span class="tag-label">Thương hiệu</span>
+        <a href="/products?brand={encodeURIComponent(String(brand))}" class="tag-val text-[#ee4d2d] flex items-center gap-1">
+          {brand}
+          <svg class="w-2.5 h-2.5 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" /></svg>
+        </a>
+      </div>
+    {/if}
     {#if product.sku && product.sku !== 'N/A'}
-      <div class="info-tag col-span-2">
+      <div class="info-tag {!brand ? 'col-span-2' : ''}">
         <span class="tag-label">Mã vạch (Barcode)</span>
         <span class="tag-val tracking-widest">{product.sku}</span>
       </div>
     {/if}
   </div>
 
+  <!-- Elite V2.2: Featured Ingredients (Viral 2026 Mobile) -->
+  {#if product.metadata?.featured_ingredients && product.metadata.featured_ingredients.length > 0}
+    <div class="mt-4 flex flex-col gap-3">
+      <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+        <Sparkles size={12} class="text-amber-500" /> Thành phần nổi bật
+      </div>
+      <div class="flex flex-col gap-2">
+        {#each product.metadata.featured_ingredients as ing}
+          <div class="flex gap-3 bg-[#fdf2f2]/50 border border-[#ee4d2d]/5 p-3 rounded-xl">
+            <div class="w-10 h-10 shrink-0 bg-white border border-[#ee4d2d]/10 rounded-full flex items-center justify-center text-[18px]">
+              {ing.icon || '🧬'}
+            </div>
+            <div class="flex flex-col">
+              <span class="text-[13px] font-black text-gray-900 leading-none mb-1">{ing.name}</span>
+              <span class="text-[11px] text-gray-500 leading-relaxed font-medium">{ing.benefit}</span>
+            </div>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Elite V2.2: Full Ingredients (Mobile Transparency) -->
+  {#if product.metadata?.ingredients}
+    <div class="mt-4 flex flex-col gap-2">
+      <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+        <Beaker size={12} class="text-teal-500" /> Bảng thành phần (Full INCI)
+      </div>
+      <button 
+        class="bg-gray-50/50 border border-gray-100 p-4 rounded-xl text-left relative overflow-hidden transition-all duration-500"
+        onclick={() => isIngredientsExpanded = !isIngredientsExpanded}
+        style:max-height={isIngredientsExpanded ? 'none' : '100px'}
+      >
+        <p class="text-[11px] text-gray-600 font-mono leading-relaxed tracking-tight {!isIngredientsExpanded ? 'line-clamp-3' : ''}">
+          {product.metadata.ingredients}
+        </p>
+        {#if !isIngredientsExpanded}
+          <div class="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-gray-50/95 to-transparent flex items-end justify-center pb-1">
+            <div class="flex items-center gap-1 text-gray-400 font-sans">
+              <span class="text-[11px] font-medium">Xem thêm</span>
+              <ChevronDown size={12} />
+            </div>
+          </div>
+        {:else}
+          <div class="mt-2 flex justify-center">
+             <div class="flex items-center gap-1 text-gray-400 font-sans">
+                <span class="text-[11px] font-medium">Thu gọn</span>
+                <ChevronUp size={12} />
+             </div>
+          </div>
+        {/if}
+        <div class="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+          <Info size={10} class="text-blue-500" />
+          <span class="text-[9px] text-gray-400 font-bold italic">Bảng thành phần công bố</span>
+        </div>
+      </button>
+    </div>
+  {/if}
+
   {#if product.attributes && Object.keys(product.attributes).length > 0}
     <div class="mt-4 grid grid-cols-2 gap-2">
       {#each Object.entries(product.attributes) as [key, val]}
         {@const k = key.toLowerCase().replace(/_/g, ' ').trim()}
-        {#if !( ((k === 'thương hiệu' || k === 'brand') && product.metadata?.brand) || ((k === 'xuất xứ' || k === 'origin') && product.metadata?.origin) || ((k === 'trọng lượng' || k === 'quy cách' || k === 'weight') && product.metadata?.weight) || ((k === 'mã vạch' || k === 'barcode') && product.sku) )}
+        {#if !( ((k === 'thương hiệu' || k === 'brand' || k === 'thương hiệu (brand)') && brand) || ((k === 'xuất xứ' || k === 'origin') && product.metadata?.origin) || ((k === 'trọng lượng' || k === 'quy cách' || k === 'weight') && product.metadata?.weight) || ((k === 'mã vạch' || k === 'barcode') && product.sku) )}
           <div class="flex flex-col p-2 bg-gray-50/50 rounded-lg">
             <span class="text-[10px] text-gray-400 uppercase font-bold">{key.replace(/_/g, ' ')}</span>
             <span class="text-[12px] text-gray-800 font-medium">{val}</span>

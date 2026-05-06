@@ -167,6 +167,8 @@ class ProductService:
         featured_only: bool = False,
         category_slug: Optional[str] = None,
         category_id: Optional[str] = None,
+        brand: Optional[str] = None,
+        origin: Optional[str] = None,
         product_ids: Optional[List[str]] = None,
     ) -> ProductListResponse:
 
@@ -195,6 +197,20 @@ class ProductService:
             conditions.append(Category.slug == category_slug)
         if category_id:
             conditions.append(ProductBase.category_id == category_id)
+        if brand:
+            brand_safe = escape_like(brand)
+            conditions.append(or_(
+                ProductBase.product_metadata["brand"].astext.ilike(f"%{brand_safe}%"),
+                ProductBase.attributes["brand"].astext.ilike(f"%{brand_safe}%"),
+                ProductBase.attributes["Thương hiệu"].astext.ilike(f"%{brand_safe}%")
+            ))
+        if origin:
+            origin_safe = escape_like(origin)
+            conditions.append(or_(
+                ProductBase.product_metadata["origin"].astext.ilike(f"%{origin_safe}%"),
+                ProductBase.attributes["origin"].astext.ilike(f"%{origin_safe}%"),
+                ProductBase.attributes["Xuất xứ"].astext.ilike(f"%{origin_safe}%")
+            ))
         if product_ids:
             conditions.append(ProductBase.id.in_(product_ids))
 
@@ -212,7 +228,7 @@ class ProductService:
                 ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
                 ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
                 ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
-                Category.name.label("category_name")
+                Category.name.label("category_name"), Category.slug.label("category_slug")
             ).outerjoin(Category, ProductBase.category_id == Category.id).where(
                 and_(*conditions),
                 or_(
@@ -277,7 +293,7 @@ class ProductService:
                     ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
                     ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
                     ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
-                    Category.name.label("category_name")
+                    Category.name.label("category_name"), Category.slug.label("category_slug")
                 ).outerjoin(Category, ProductBase.category_id == Category.id).where(
                     ProductBase.id.in_(semantic_only_ids)
                 )
@@ -354,7 +370,7 @@ class ProductService:
             ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
             ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
             ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
-            Category.name.label("category_name")
+            Category.name.label("category_name"), Category.slug.label("category_slug")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
             and_(*conditions)
         ).limit(limit).offset(offset).order_by(ProductBase.created_at.desc())
@@ -379,7 +395,7 @@ class ProductService:
             ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
             ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
             ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
-            Category.name.label("category_name")
+            Category.name.label("category_name"), Category.slug.label("category_slug")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
             ProductBase.id == product_id,
             ProductBase.deleted_at == None
@@ -418,7 +434,7 @@ class ProductService:
             ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
             ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
             ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
-            Category.name.label("category_name")
+            Category.name.label("category_name"), Category.slug.label("category_slug"), Category.slug.label("category_slug")
         ).outerjoin(Category, ProductBase.category_id == Category.id).where(
             ProductBase.deleted_at == sa.null()
         )

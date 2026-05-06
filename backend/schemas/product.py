@@ -229,6 +229,7 @@ class ProductResponse(BaseModel):
     stock: int
     status: str
     category: Optional[str] = Field("", alias="category_name")
+    categorySlug: Optional[str] = Field("", alias="category_slug")
     categoryId: Optional[str] = Field(None, alias="category_id")
     shortDescription: Optional[str] = Field(None, alias="short_description")
     description: Optional[str] = None

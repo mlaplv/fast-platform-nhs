@@ -6,9 +6,13 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
   const apiUrl = ServerEnv.INTERNAL_API_URL;
   const tenantId = ServerEnv.TENANT_ID;
   const query = url.searchParams.get('q') ?? '';
+  const brand = url.searchParams.get('brand') ?? '';
+  const origin = url.searchParams.get('origin') ?? '';
 
   const params = new URLSearchParams();
   if (query) params.set('search', query);
+  if (brand) params.set('brand', brand);
+  if (origin) params.set('origin', origin);
 
   const targetUrl = `${apiUrl}/api/v1/client/products?${params.toString()}`;
 

@@ -4,7 +4,7 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { goto } from '$app/navigation';
   import type { Product, ProductVariant } from '$lib/types';
-  import { ShoppingCart, Minus, Plus, Star, Gift, Package, Sparkles, Diamond } from 'lucide-svelte';
+  import { ShoppingCart, Minus, Plus, Star, Gift, Package, Sparkles, Diamond, Beaker, FlaskConical, Info } from 'lucide-svelte';
   import { Volume2, VolumeX } from 'lucide-svelte';
   import ProductDetailReviews from './ProductDetailReviews.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
@@ -291,9 +291,9 @@
   
   const productInfo = $derived({
     barcode: product.sku || 'N/A',
-    brand: product.metadata?.brand || '',
-    origin: product.metadata?.origin || '',
-    weight: product.metadata?.weight || '',
+    brand: product.metadata?.brand || product.attributes?.brand || product.attributes?.['Thương hiệu'] || product.attributes?.['Thương Hiệu'] || product.attributes?.['thương hiệu'] || '',
+    origin: product.metadata?.origin || product.attributes?.origin || product.attributes?.['Xuất xứ'] || '',
+    weight: product.metadata?.weight || product.attributes?.weight || product.attributes?.['Trọng lượng'] || product.attributes?.['Quy cách'] || '',
     originalPrice: pDiscountPrice ? (product.price || product.base_price || 0) : (product.price || 0) * 1.55,
     salePrice: pDiscountPrice || product.price || 0
   });
@@ -845,12 +845,49 @@
        </div>
        <div class="px-0 text-[14px] space-y-6">
           <div class="grid grid-cols-1 gap-4 max-w-4xl">
-              {#if productInfo.brand}
-              <div class="flex items-center">
-                 <span class="w-[180px] shrink-0 text-gray-400 font-medium">Thương hiệu</span>
-                 <span class="text-[#ee4d2d] font-black">{productInfo.brand}</span>
-              </div>
-              {/if}
+
+               <!-- Elite V2.2: Featured Ingredients (Viral 2026 UI) -->
+               {#if product.metadata?.featured_ingredients && product.metadata.featured_ingredients.length > 0}
+               <div class="flex flex-col gap-3 py-2">
+                  <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    <Sparkles size={12} class="text-amber-500" /> Thành phần nổi bật (Featured)
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {#each product.metadata.featured_ingredients as ing}
+                      <div class="flex gap-3 bg-[#fdf2f2]/50 border border-[#ee4d2d]/5 p-3 rounded-xl hover:bg-white hover:shadow-xl hover:shadow-[#ee4d2d]/5 transition-all group/ing">
+                        <div class="w-10 h-10 shrink-0 bg-white border border-[#ee4d2d]/10 rounded-full flex items-center justify-center text-[18px] group-hover/ing:scale-110 transition-transform shadow-sm">
+                          {ing.icon || '🧬'}
+                        </div>
+                        <div class="flex flex-col">
+                          <span class="text-[13px] font-black text-gray-900 leading-none mb-1">{ing.name}</span>
+                          <span class="text-[11px] text-gray-500 leading-relaxed font-medium">{ing.benefit}</span>
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
+               </div>
+               {/if}
+
+               <!-- Elite V2.2: Full Ingredients (SGE Shield & Technical Transparency) -->
+               {#if product.metadata?.ingredients}
+               <div class="flex flex-col gap-2 py-1">
+                  <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    <Beaker size={12} class="text-teal-500" /> Bảng thành phần (Full INCI)
+                  </div>
+                  <div class="bg-gray-50/50 border border-gray-100 p-4 rounded-xl relative overflow-hidden group/inci">
+                    <div class="absolute top-0 right-0 p-2 opacity-10 group-hover/inci:opacity-30 transition-opacity">
+                      <FlaskConical size={40} />
+                    </div>
+                    <p class="text-[11px] text-gray-600 font-mono leading-relaxed tracking-tight relative z-10">
+                      {product.metadata.ingredients}
+                    </p>
+                    <div class="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
+                      <Info size={10} class="text-blue-500" />
+                      <span class="text-[9px] text-gray-400 font-bold italic">Bảng thành phần công bố</span>
+                    </div>
+                  </div>
+               </div>
+               {/if}
               {#if productInfo.origin}
               <div class="flex items-center">
                  <span class="w-[180px] shrink-0 text-gray-400 font-medium">Xuất xứ</span>
@@ -866,18 +903,27 @@
               <div class="flex items-center">
                  <span class="w-[180px] shrink-0 text-gray-400 font-medium tracking-tight">Danh Mục</span>
                  <div class="flex items-center gap-2 text-[#0384ff] font-black uppercase text-[12px] tracking-tighter">
-                    <a href="/" class="hover:underline">osmo</a> 
+                    <a href="/products" class="hover:underline text-gray-400">osmo</a> 
                     <svg class="w-2.5 h-2.5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" /></svg>
-                    <a href="/" class="hover:underline">{product.category || 'CHĂM SÓC DA'}</a>
+                    <a href="/{product.categorySlug || 'products'}/" class="hover:underline">{product.category || 'CHĂM SÓC DA'}</a>
                  </div>
               </div>
              {#if product.attributes}
                {#each Object.entries(product.attributes) as [key, value]}
                  {@const k = key.toLowerCase().replace(/_/g, ' ').trim()}
-                 {#if !( ((k === 'thương hiệu' || k === 'brand') && productInfo.brand) || ((k === 'xuất xứ' || k === 'origin') && productInfo.origin) || ((k === 'trọng lượng' || k === 'quy cách' || k === 'weight') && productInfo.weight) || ((k === 'mã vạch' || k === 'barcode') && productInfo.barcode && productInfo.barcode !== 'N/A') )}
+                 {@const brand = productInfo.brand}
+                 {@const origin = productInfo.origin}
+                 {@const weight = productInfo.weight}
+                 {#if !( ((k === 'xuất xứ' || k === 'origin') && origin) || ((k === 'trọng lượng' || k === 'quy cách' || k === 'weight') && weight) || ((k === 'mã vạch' || k === 'barcode') && productInfo.barcode && productInfo.barcode !== 'N/A') )}
                  <div class="flex items-center">
                     <span class="w-[180px] shrink-0 text-gray-400 font-medium capitalize">{key.replace(/_/g, ' ')}</span>
-                    <span class="text-gray-900 font-medium">{value}</span>
+                    <span class="text-gray-900 font-medium">
+                      {#if k === 'thương hiệu' || k === 'brand'}
+                        <a href="/products?brand={encodeURIComponent(String(value))}" class="text-[#ee4d2d] font-bold hover:underline">{value}</a>
+                      {:else}
+                        {value}
+                      {/if}
+                    </span>
                  </div>
                  {/if}
                {/each}

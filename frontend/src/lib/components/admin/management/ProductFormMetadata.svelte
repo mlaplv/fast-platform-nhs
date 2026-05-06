@@ -10,6 +10,8 @@
   import Tag from "lucide-svelte/icons/tag";
   import RefreshCw from "lucide-svelte/icons/refresh-cw";
   import Sparkles from "lucide-svelte/icons/sparkles";
+  import Beaker from "lucide-svelte/icons/beaker";
+  import Star from "lucide-svelte/icons/star";
   import type { ProductMetadata } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
@@ -94,6 +96,21 @@
     if (!formMetadata.faqs) return;
     formMetadata.faqs.splice(index, 1);
     formMetadata.faqs = [...formMetadata.faqs];
+  }
+
+  // ─── Featured Ingredients Management ────────────────────────────
+  function addFeaturedIngredient() {
+    if (!formMetadata.featured_ingredients) formMetadata.featured_ingredients = [];
+    formMetadata.featured_ingredients = [
+      ...formMetadata.featured_ingredients,
+      { name: '', benefit: '', icon: '' }
+    ];
+  }
+
+  function removeFeaturedIngredient(index: number) {
+    if (!formMetadata.featured_ingredients) return;
+    formMetadata.featured_ingredients.splice(index, 1);
+    formMetadata.featured_ingredients = [...formMetadata.featured_ingredients];
   }
 
   let isSuggestingFaqs = $state(false);
@@ -371,6 +388,102 @@
       <div class="flex items-center justify-center p-6 rounded-2xl border border-dashed border-white/10 bg-white/[0.01]">
         <span class="text-[10px] text-white/20 uppercase font-black tracking-widest text-center">
           Chưa có câu hỏi FAQ.<br/>Thêm FAQ để tăng cường thứ hạng trên AI Search.
+        </span>
+      </div>
+    {/if}
+  </div>
+
+  <!-- ─── SECTION: THÀNH PHẦN ──────────────────────────────────────── -->
+  <div class="flex flex-col gap-4">
+    <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+      <Beaker size={11} class="text-teal-400/60" />
+      Thành phần (Ingredients)
+    </div>
+    <div class="flex flex-col gap-1.5">
+      <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Bảng thành phần đầy đủ</label>
+      <textarea
+        bind:value={formMetadata.ingredients}
+        placeholder="VD: Aqua, Niacinamide, Glycerin, Vitamin C (Ascorbic Acid) 10%, Tocopherol (Vitamin E), Allantoin, Panthenol..."
+        rows="5"
+        class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-white/80 focus:outline-none focus:border-teal-500/50 transition-colors resize-none leading-relaxed font-mono"
+      ></textarea>
+      <p class="text-[8px] text-white/20 leading-relaxed">
+        Nhập đầy đủ INCI list hoặc danh sách thành phần. Dữ liệu này được Helen AI đọc để tư vấn khách hàng.
+      </p>
+    </div>
+  </div>
+
+  <!-- ─── SECTION: THÀNH PHẦN NỔI BẬT ─────────────────────────────── -->
+  <div class="flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+        <Star size={11} class="text-amber-400/60" />
+        Thành phần nổi bật
+      </div>
+      <button
+        type="button"
+        onclick={addFeaturedIngredient}
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400 hover:bg-teal-500/20 hover:text-teal-300 transition-all text-[9px] font-black uppercase tracking-wider"
+      >
+        <Plus size={12} strokeWidth={3} />
+        Thêm
+      </button>
+    </div>
+
+    {#if formMetadata.featured_ingredients && formMetadata.featured_ingredients.length > 0}
+      <div class="flex flex-col gap-3">
+        {#each formMetadata.featured_ingredients as item, i}
+          <div class="flex flex-col gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 relative group">
+            <button
+              type="button"
+              onclick={() => removeFeaturedIngredient(i)}
+              class="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500/10 text-red-400/50 hover:text-red-400 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-all"
+              title="Xóa thành phần"
+            >
+              <Trash2 size={12} />
+            </button>
+
+            <div class="grid grid-cols-[56px_1fr] gap-2 pr-8">
+              <!-- Icon / Emoji -->
+              <div class="flex flex-col gap-1">
+                <label class="text-[8px] font-bold text-white/30 uppercase tracking-wider">Icon</label>
+                <input
+                  type="text"
+                  bind:value={item.icon}
+                  placeholder="🧬"
+                  maxlength="4"
+                  class="w-full bg-black/40 border border-white/10 rounded-lg px-2 py-2 text-[18px] text-center focus:outline-none focus:border-teal-500/50 transition-colors leading-none"
+                />
+              </div>
+              <!-- Tên thành phần -->
+              <div class="flex flex-col gap-1">
+                <label class="text-[8px] font-bold text-white/30 uppercase tracking-wider">Tên thành phần {i + 1}</label>
+                <input
+                  type="text"
+                  bind:value={item.name}
+                  placeholder="VD: Niacinamide 10%"
+                  class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-teal-500/50 transition-colors font-semibold"
+                />
+              </div>
+            </div>
+
+            <!-- Lợi ích -->
+            <div class="flex flex-col gap-1">
+              <label class="text-[8px] font-bold text-white/30 uppercase tracking-wider">Lợi ích / Cơ chế tác động</label>
+              <textarea
+                bind:value={item.benefit}
+                placeholder="VD: Làm mờ thâm nám, đều màu da, ức chế sắc tố melanin hiệu quả lên tới 68%..."
+                rows="2"
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white/80 focus:outline-none focus:border-teal-500/50 transition-colors resize-none leading-relaxed"
+              ></textarea>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <div class="flex items-center justify-center p-6 rounded-2xl border border-dashed border-white/10 bg-white/[0.01]">
+        <span class="text-[10px] text-white/20 uppercase font-black tracking-widest text-center">
+          Chưa có thành phần nổi bật.<br/>Thêm để highlight trên trang sản phẩm.
         </span>
       </div>
     {/if}
