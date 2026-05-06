@@ -29,7 +29,7 @@
   );
 
   // GEO 2026: JSON-LD for Homepage
-  const siteUrl = "https://osmo";
+  const siteUrl = "https://osmo.vn";
   const webSiteLd = $derived(buildWebSiteLd(seoSiteName, siteUrl));
   const organizationLd = $derived(buildOrganizationLd({
     name: shopSettings?.contact_info?.company_name || seoSiteName,
@@ -44,6 +44,7 @@
 </script>
 
 <SeoHead
+  pageType="home"
   title={seoTitle}
   description={seoDescription}
   canonical="{siteUrl}/home"

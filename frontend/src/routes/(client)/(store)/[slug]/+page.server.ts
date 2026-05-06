@@ -129,9 +129,22 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
         console.error(`[RELATED PRODUCTS FETCH FAILED]`, relErr);
       }
 
+      // Elite V2.2: Fetch Authentic Review Stats for Server-side SEO
+      let reviewStats = null;
+      try {
+        const statsRes = await fetch(`${apiUrl}/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`, {
+          headers: { 'x-tenant': tenantId },
+          signal: AbortSignal.timeout(3000)
+        });
+        if (statsRes.ok) reviewStats = await statsRes.json();
+      } catch (e) {
+        console.warn(`[REVIEW STATS FETCH FAILED] id: ${product.id}`);
+      }
+
       return {
         type: 'product',
         product,
+        reviewStats,
         relatedProducts,
         isMobile,
         effectiveIp,

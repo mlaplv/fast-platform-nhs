@@ -567,7 +567,7 @@
             <span class="relative z-10 whitespace-nowrap">{product.metadata?.is_mall ? 'Mall' : 'Shop'}</span>
           </div>
          <h1 class="text-[20px] font-medium text-gray-900 leading-snug tracking-tight">
-            {product.name}
+            {product.name.replace(/40gr/g, '40g')}
          </h1>
       </div>
 

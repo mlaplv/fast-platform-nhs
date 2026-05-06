@@ -54,7 +54,62 @@ export interface FaqItem {
     answer: string;
 }
 
+export interface ProductLdConfig {
+    name: string;
+    image: string[];
+    description?: string;
+    brand: string;
+    sku?: string;
+    mpn?: string;
+    url: string;
+    price: number;
+    priceCurrency: string;
+    availability: string;
+    ratingValue?: number;
+    reviewCount?: number;
+}
+
 // ── Builders ──────────────────────────────────────────────────────────────────
+
+/**
+ * Product JSON-LD.
+ * Critical for AI Search (SGE) to extract price, availability, and social proof (rating).
+ */
+export function buildProductLd(config: ProductLdConfig): string {
+    const product: Record<string, unknown> = {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        "name": config.name,
+        "image": Array.isArray(config.image) ? config.image[0] : config.image,
+        "description": config.description || config.name,
+        "brand": {
+            "@type": "Brand",
+            "name": config.brand
+        },
+        "offers": {
+            "@type": "Offer",
+            "url": config.url,
+            "priceCurrency": config.priceCurrency || "VND",
+            "price": String(config.price),
+            "availability": config.availability.includes("InStock") ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            "itemCondition": "https://schema.org/NewCondition"
+        }
+    };
+
+    if (config.sku) product.sku = config.sku;
+
+    if (config.ratingValue) {
+        product.aggregateRating = {
+            "@type": "AggregateRating",
+            "ratingValue": String(config.ratingValue),
+            "reviewCount": String(config.reviewCount),
+            "bestRating": "5",
+            "worstRating": "1"
+        };
+    }
+
+    return JSON.stringify(product);
+}
 
 /**
  * BreadcrumbList JSON-LD.
