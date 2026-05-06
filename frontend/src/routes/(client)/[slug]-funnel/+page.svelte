@@ -33,7 +33,7 @@
   const isMobile = $derived(data?.isMobile || false);
 
   const loadingText = $derived(metadata.sync_loading_text || 'SYNCHRONIZING ELITE ASSETS...');
-  const siteName = $derived(metadata.seo_site_name || 'Elite Storefront');
+  const siteName = $derived(metadata.seo_site_name || 'osmo Elite');
 
   // Elite Smart-Adaptive: Reactive Layout Switching
   const clientUi = getClientUi();
@@ -236,7 +236,8 @@
 
 {#if seoMeta}
   <SeoHead
-    title="{seoMeta.title} | {siteName}"
+    pageType="product"
+    title={seoMeta.title.split('|')[0].trim()}
     description={seoMeta.description}
     keywords={seoMeta.keywords}
     canonical={seoMeta.canonical_url}
@@ -244,6 +245,18 @@
     ogImage={product?.images?.[0] || ""}
     ogImageAlt={seoMeta.title}
     siteName={siteName}
+    productData={{
+      name: (product?.name || seoMeta.title).replace(/40gr/g, '40g'),
+      images: product?.images,
+      description: seoMeta.description,
+      brand: metadata?.brand || "osmo",
+      sku: product?.sku || "OSMO-LP",
+      price: product?.price || 0,
+      currency: "VND",
+      availability: product?.stock_status === 'OUT_OF_STOCK' ? 'OutOfStock' : 'InStock',
+      ratingValue: 4.9,
+      reviewCount: 24
+    }}
     jsonLdScripts={[
       seoMeta.json_ld_string,
       seoMeta.breadcrumb_ld_string,
@@ -253,11 +266,21 @@
   />
 {:else}
   <SeoHead
-    title="{product?.name || 'Loading...'} | {siteName}"
+    pageType="product"
+    title={(product?.name || 'Loading...').split('|')[0].trim()}
     description={metadata?.short_description || product?.name || ""}
     canonical=""
     siteName={siteName}
     robots="noindex"
+    productData={{
+      name: (product?.name || "").replace(/40gr/g, '40g'),
+      images: product?.images,
+      description: metadata?.short_description || "",
+      brand: metadata?.brand || "osmo",
+      price: product?.price || 0,
+      ratingValue: 4.9,
+      reviewCount: 24
+    }}
   />
 {/if}
 

@@ -155,7 +155,7 @@
       />
       <img 
          src="{product?.images?.[idx] || product?.images?.[0] ? resolveMediaUrl(product.images[idx] || product.images[0]) : ''}" 
-         alt="" 
+         alt={getVariantTitle(variant)} 
          class="absolute top-[75%] left-0 w-full h-full object-cover scale-y-[-1] opacity-30 blur-lg grayscale pointer-events-none"
       />
       <div class="absolute top-6 left-6 z-20">

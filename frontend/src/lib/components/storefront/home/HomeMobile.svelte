@@ -22,6 +22,10 @@
 
 <!-- Wrapper: full page scroll, padding-bottom cho bottom nav -->
 <div class="mobile-home-root">
+  <!-- SGE & AI Search: Mandatory H1 Signal for Mobile (Visually hidden) -->
+  <h1 style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0;">
+    osmo Elite - Bật tông trắng sáng
+  </h1>
 
   <!-- Sticky header: search + quick links (đã tích hợp chung) -->
   <MobileSearchHeader />

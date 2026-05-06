@@ -128,7 +128,7 @@
            <div class="flex items-center gap-4 p-5 rounded-[2.5rem] bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-all">
              <div class="w-14 h-14 rounded-2xl overflow-hidden shrink-0 bg-black/60 flex items-center justify-center border border-white/10">
                {#if gift.image}
-                 <img src={resolveMediaUrl(gift.image)} alt="" class="w-full h-full object-cover" />
+                 <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
                {:else}
                   <div class="w-6 h-6 border-2 border-luxury-sakura/20 rounded-full animate-pulse"></div>
                {/if}

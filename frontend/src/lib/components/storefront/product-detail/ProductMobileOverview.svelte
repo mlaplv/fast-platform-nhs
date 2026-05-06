@@ -310,6 +310,13 @@
     </div>
 
     <!-- Title & Stats -->
+    <div class="title-row mt-2">
+      <h1 class="product-title">{product.name.replace(/40gr/g, '40g')}</h1>
+      <button class="bookmark-btn" aria-label="Lưu sản phẩm">
+        <Bookmark size={20} />
+      </button>
+    </div>
+
     <!-- Selection Row (Shopee Viral Style) -->
     {#if variations.length > 0}
       <button 
