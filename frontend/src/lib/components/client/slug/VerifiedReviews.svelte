@@ -292,13 +292,12 @@
       </div>
       
       <div class="max-w-4xl mx-auto text-center" style:margin-bottom="calc(var(--headline-mb) * 0.5)">
-        <h2 class="elite-session-headline mb-8 text-center">
+        <h2 class="elite-session-headline mb-8 text-center flex flex-col items-center">
           <EditableWrapper path="metadata.reviews_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
-            {h1}
+            <span class="block text-[11px] md:text-[12px] font-black uppercase tracking-[0.4em] text-white/40 mb-4">{h1}</span>
           </EditableWrapper>
-          <br class="hidden md:block"/> 
           <EditableWrapper path="metadata.reviews_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
-            {h2}
+            <span class="block">{h2}</span>
           </EditableWrapper>
         </h2>
       </div>

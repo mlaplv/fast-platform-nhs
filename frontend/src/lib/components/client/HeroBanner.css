@@ -110,28 +110,35 @@ html {
   }
 
   & .hero-description {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-weight: 450 !important;
-    color: rgba(255, 255, 255, 0.8);
+    font-family: var(--font-main);
+    font-weight: 300 !important;
+    color: rgba(255, 255, 255, 0.85) !important;
     text-align: center;
-    line-height: 1.75 !important;
-    letter-spacing: 0.01em !important;
+    line-height: 1.85 !important;
+    letter-spacing: 0.02em !important;
     font-size: var(--fs-sub) !important;
-    max-width: 65ch;
+    max-width: 70ch;
     margin: 0 auto !important;
     padding: 0 1.5rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    text-wrap: balance;
 
     @media (max-width: 1024px) {
-      font-size: 1.4rem !important;
-      /* To thêm tí nữa theo ý Sếp */
-      line-height: 1.6 !important;
+      font-size: 1.25rem !important;
+      line-height: 1.7 !important;
     }
 
     @media (max-width: 768px) {
-      font-size: 1rem !important;
+      font-size: 0.95rem !important;
+      line-height: 1.6 !important;
+      font-weight: 400 !important;
+    }
+
+    & strong, & h1 {
+      font-weight: 600 !important;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
     }
   }
-
   /* --- ELITE HEADLINE SYSTEM --- */
   & .elite-hero-headline {
     letter-spacing: -0.02em !important; /* Tighter for more impact */
@@ -178,31 +185,28 @@ html {
 
   & .section-description {
     font-size: var(--fs-sub);
-    color: rgba(255, 255, 255, 0.4);
-    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.8;
     letter-spacing: 0.02em;
     margin-bottom: 2.5rem;
+    text-wrap: balance;
 
     @media (max-width: 1024px) {
-      font-size: 1.4rem !important;
-      /* To thêm tí nữa */
-      line-height: 1.5 !important;
+      font-size: 1.25rem !important;
+      line-height: 1.7 !important;
       margin-bottom: 2rem !important;
     }
 
     @media (max-width: 768px) {
-      font-size: 1rem !important;
+      font-size: 0.95rem !important;
       margin-bottom: 1.25rem !important;
     }
 
-    & strong {
-      color: var(--color-luxury-copper);
-      font-weight: 700;
-      filter: drop-shadow(0 0 8px rgba(232, 213, 176, 0.3));
-      /* Luxury glow */
+    & strong, & h1 {
+      font-weight: 600;
+      filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.1));
     }
   }
-
   /* --- PRODUCT SHOWCASE & HUD --- */
   & .hero-product-display {
     min-height: auto;

@@ -111,7 +111,7 @@
 
   const fallbackDesc = `
     <p class="text-center mb-3 text-[15px] md:text-[17px] font-light leading-relaxed tracking-wide">
-      Bật tông trắng sáng cùng <h1 class="inline-block text-[inherit] font-medium">Miccosmo Beppin Body Virgin White Serum</h1> trẻ hóa da cấp độ tế bào - Tinh chất dưỡng sáng hồng vùng nhạy cảm (Nách, Nhũ hoa, Bikini).
+      Bật tông trắng sáng cùng <h1 class="inline-block text-[inherit] font-semibold">Miccosmo Beppin Body Virgin White Serum</h1> trẻ hóa da cấp độ tế bào - Tinh chất dưỡng sáng hồng vùng nhạy cảm (Nách, Nhũ hoa, Bikini).
     </p>
     <p class="text-center text-[14px] md:text-[15px] font-light leading-relaxed opacity-80 mx-auto max-w-2xl">
       Giải pháp thẩm thấu sâu đa tầng, giúp tế bào kích hoạt độ bóng, trong, trắng sáng. An toàn - Hiệu quả cho mọi loại da kể cả da nhạy cảm. Không bết dính.
@@ -123,7 +123,7 @@
     const keyword = "Beppin Body Virgin White Serum";
     // Check if keyword is already wrapped in h1
     if (desc.includes(keyword) && !desc.includes('<h1')) {
-      return desc.replace(keyword, `<h1 class="inline-block text-[inherit] font-medium">${keyword}</h1>`);
+      return desc.replace(keyword, `<h1 class="inline-block text-[inherit] font-semibold">${keyword}</h1>`);
     }
     return desc;
   });

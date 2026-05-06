@@ -65,7 +65,7 @@
             </span>
         </h2>
 
-        <p class="section-description text-white/40 text-base md:text-lg max-w-3xl mx-auto leading-relaxed -mt-4 mb-12 text-center">
+        <p class="section-description text-white/50 text-[11px] md:text-[12px] max-w-xl mx-auto leading-relaxed tracking-[0.1em] uppercase -mt-6 mb-12 text-center font-medium">
             <EditableWrapper path="metadata.science_subheadline" type="text" label="SỬA MÔ TẢ" as="span">
                 {product?.metadata?.science_subheadline || labels.subheadline}
             </EditableWrapper>
@@ -272,6 +272,14 @@
   /* Resilience Logic: Force spans to behave like block rows if present */
   .bento-headline :global(span) {
     display: block;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.15rem;
+  }
+  
+  .bento-headline :global(span:last-child) {
+    font-size: 0.65em !important;
+    opacity: 0.8;
+    letter-spacing: 0.05em !important;
+    font-weight: 500 !important;
+    -webkit-text-fill-color: white !important; /* Force hiển thị rõ ràng */
   }
 </style>
