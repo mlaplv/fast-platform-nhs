@@ -52,7 +52,8 @@
 </script>
 
 <!-- Desktop Layout: osmo Hero Premium 2026 -->
-<div class="hidden md:grid grid-cols-3 gap-[5px] w-full" style="aspect-ratio: 1200 / 235;">
+<!-- Tách bạch giao diện: Xóa hoàn toàn Mobile Layout ẩn giấu (tránh vi phạm SEO "Ẩn Link") -->
+<div class="grid grid-cols-3 gap-[5px] w-full" style="aspect-ratio: 1200 / 235;">
   <!-- Main Banner (Carousel) -->
   <div 
     class="col-span-2 relative h-full rounded-[2px] overflow-hidden group bg-[#eee]"
@@ -67,8 +68,8 @@
         style="transform: translateX(-{currentIndex * 100}%)"
       >
         {#each mainBanners as banner}
-          <a href={getProductLink(banner.link_url)} class="w-full h-full shrink-0">
-            <img src={banner.image_url} alt={banner.title || "Main Banner"} class="w-full h-full object-cover" />
+          <a href={getProductLink(banner.link_url)} class="w-full h-full shrink-0 block">
+            <img src={banner.image_url} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" />
           </a>
         {/each}
       </div>
@@ -111,33 +112,8 @@
   <div class="flex flex-col gap-[5px] h-full">
     {#each sideBanners as banner}
       <a href={getProductLink(banner.link_url)} class="flex-1 relative rounded-[2px] overflow-hidden group block bg-[#eee]">
-        <img src={banner.image_url} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90" />
+        <img src={banner.image_url} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90 block" />
       </a>
     {/each}
   </div>
-</div>
-
-<!-- Mobile Layout: Carousel -->
-<div class="md:hidden relative h-[90px] w-full mb-4 rounded-none overflow-hidden bg-white shadow-sm">
-  {#if mainBanners.length > 0}
-    <div 
-      class="w-full h-full flex transition-transform duration-500 ease-out" 
-      style="transform: translateX(-{currentIndex * 100}%)"
-    >
-      {#each mainBanners as banner}
-        <a href={getProductLink(banner.link_url)} class="w-full h-full shrink-0">
-          <img src={banner.mobile_image_url || banner.image_url} alt={banner.title || "Banner"} class="w-full h-full object-cover" />
-        </a>
-      {/each}
-    </div>
-    
-    <!-- Dots for mobile -->
-    {#if mainBanners.length > 1}
-      <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1.5">
-        {#each mainBanners as _, i}
-          <div class="h-1 rounded-full transition-all {i === currentIndex ? 'w-3 bg-white' : 'w-1.5 bg-white/50'}"></div>
-        {/each}
-      </div>
-    {/if}
-  {/if}
 </div>

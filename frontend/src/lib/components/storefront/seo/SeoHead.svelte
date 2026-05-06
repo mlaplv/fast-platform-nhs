@@ -125,7 +125,7 @@
     // Build specialized Product Schema
     if (pageType === 'product' && productData) {
       // Clean up 40gr -> 40g for SEO consistency
-      const cleanName = (productData.name || title).replace(/40gr/g, '40g');
+      const cleanName = (productData.name || title || '').replace(/40gr/g, '40g');
       
       productScript = buildProductLd({
         name: cleanName,
@@ -156,12 +156,12 @@
       case 'category':
         if (categoryData) {
           categoryScript = buildCategoryLd({
-            name: (categoryData.name || title).replace(/40gr/g, '40g'),
+            name: (categoryData.name || title || '').replace(/40gr/g, '40g'),
             url: canonical ? toAbsSeo(canonical) : absCanonical,
             description: finalDescription,
             numberOfItems: categoryData.items?.length || 0,
             items: categoryData.items?.map((it: any) => ({
-              name: it.name.replace(/40gr/g, '40g'),
+              name: (it.name || '').replace(/40gr/g, '40g'),
               url: toAbsSeo(it.url)
             }))
           });
@@ -171,7 +171,7 @@
       case 'article':
         if (articleData) {
           articleScript = buildArticleLd({
-            headline: (articleData.headline || title).replace(/40gr/g, '40g'),
+            headline: (articleData.headline || title || '').replace(/40gr/g, '40g'),
             description: finalDescription,
             url: canonical ? toAbsSeo(canonical) : absCanonical,
             image: toAbsSeo(articleData.image || image),
