@@ -62,13 +62,14 @@
     bind:this={carouselRef}
     onscroll={handleScroll}
   >
-    {#each homeBanners as banner}
+    {#each homeBanners as banner, i}
       <a href={getProductLink(banner.link_url)} class="banner-slide">
         <img
           src={banner.mobile_image_url || banner.image_url}
           alt={banner.title || "Banner"}
           class="w-full h-full object-cover select-none"
-          loading="eager"
+          loading={i === 0 ? "eager" : "lazy"}
+          fetchpriority={i === 0 ? "high" : "auto"}
         />
       </a>
     {/each}

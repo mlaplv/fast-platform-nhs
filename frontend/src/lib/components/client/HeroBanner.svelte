@@ -299,7 +299,7 @@
                 speed: 40,
                 onComplete: () => isTypingComplete = true 
             }}
-          ></span>
+          >{@html rawHeadline}</span>
         {:else}
           {#if !rawH1.startsWith('[OFF]') || liveEditStore.isEditMode}
             <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
@@ -356,6 +356,7 @@
                         <img
                           src="{mainImage}"
                           alt="{productName}"
+                          loading="eager"
                           fetchpriority="high"
                           decoding="async"
                           class="relative z-10 w-full h-auto object-contain transition-transform duration-700 group-hover:scale-[1.03] cinematic-grading rounded-[2px]"

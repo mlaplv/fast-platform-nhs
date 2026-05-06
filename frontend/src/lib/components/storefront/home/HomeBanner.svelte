@@ -67,9 +67,9 @@
         class="w-full h-full flex transition-transform duration-700 ease-in-out" 
         style="transform: translateX(-{currentIndex * 100}%)"
       >
-        {#each mainBanners as banner}
+        {#each mainBanners as banner, i}
           <a href={getProductLink(banner.link_url)} class="w-full h-full shrink-0 block">
-            <img src={banner.image_url} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" />
+            <img src={banner.image_url} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
           </a>
         {/each}
       </div>
