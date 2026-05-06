@@ -46,18 +46,19 @@
     jsonLdScripts = []
   }: SeoHeadProps = $props();
 
-  // ── Requirement 1: Absolute URL Normalization ────────────────────────────────
-  const origin = $derived($page.url.origin || 'https://osmo.vn');
+  // ── Requirement 1: Absolute URL Normalization (GEO 2026: Force Production) ────
+  const seoOrigin = 'https://osmo.vn';
+  const origin = $derived(seoOrigin);
   
   const toAbsolute = (url: string | undefined) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
     const cleanPath = url.startsWith('/') ? url : `/${url}`;
-    return `${origin}${cleanPath}`;
+    return `${seoOrigin}${cleanPath}`;
   };
 
-  const absImage = $derived(toAbsolute(image));
-  const absCanonical = $derived(canonical ? toAbsolute(canonical) : $page.url.href);
+  const absImage = $derived(toAbsolute(image || '/images/default-og.png'));
+  const absCanonical = $derived(canonical ? toAbsolute(canonical) : `${seoOrigin}${$page.url.pathname}`);
 
   // ── Requirement 2: Dynamic Human-like Description ─────────────────────────
   const finalDescription = $derived.by(() => {
@@ -96,15 +97,25 @@
 
     let rawScripts: (string | null | undefined)[] = jsonLdScripts.map(processLd);
     let productScript: string | null = null;
+    let articleScript: string | null = null;
+    let organizationScript: string | null = null;
+    let websiteScript: string | null = null;
+    let categoryScript: string | null = null;
     
     // Elite V2.2: Intelligent Deep Filtering
     const scripts = rawScripts.filter(s => {
       if (!s) return false;
       try {
         const parsed = JSON.parse(s);
-        if (parsed["@type"] === 'Product') return false;
+        const typesToSplit = ['Product', 'Article', 'Organization', 'WebSite', 'CollectionPage'];
+        if (typesToSplit.includes(parsed["@type"])) {
+           if (parsed["@type"] === 'Organization') organizationScript = s;
+           if (parsed["@type"] === 'WebSite') websiteScript = s;
+           if (parsed["@type"] === 'CollectionPage') categoryScript = s;
+           return false;
+        }
         if (parsed["@graph"]) {
-          parsed["@graph"] = parsed["@graph"].filter((e: any) => e["@type"] !== 'Product');
+          parsed["@graph"] = parsed["@graph"].filter((e: any) => !typesToSplit.includes(e["@type"]));
           return parsed["@graph"].length > 0;
         }
         return true;
@@ -133,18 +144,18 @@
 
     switch (pageType) {
       case 'home':
-        scripts.push(buildWebSiteLd(siteName, seoOrigin));
-        scripts.push(buildOrganizationLd({
+        websiteScript = buildWebSiteLd(siteName, seoOrigin);
+        organizationScript = buildOrganizationLd({
           name: siteName,
           url: seoOrigin,
           logo: toAbsSeo('/favicon.svg'),
           description: finalDescription
-        }));
+        });
         break;
         
       case 'category':
         if (categoryData) {
-          scripts.push(buildCategoryLd({
+          categoryScript = buildCategoryLd({
             name: (categoryData.name || title).replace(/40gr/g, '40g'),
             url: canonical ? toAbsSeo(canonical) : absCanonical,
             description: finalDescription,
@@ -153,13 +164,13 @@
               name: it.name.replace(/40gr/g, '40g'),
               url: toAbsSeo(it.url)
             }))
-          }));
+          });
         }
         break;
         
       case 'article':
         if (articleData) {
-          scripts.push(buildArticleLd({
+          articleScript = buildArticleLd({
             headline: (articleData.headline || title).replace(/40gr/g, '40g'),
             description: finalDescription,
             url: canonical ? toAbsSeo(canonical) : absCanonical,
@@ -168,12 +179,19 @@
             author: articleData.author || "osmo Elite",
             publisherName: "osmo Elite",
             publisherLogo: toAbsSeo('/favicon.svg')
-          }));
+          });
         }
         break;
     }
     
-    return { graph: buildGraphLd(scripts), product: productScript };
+    return { 
+      graph: buildGraphLd(scripts), 
+      product: productScript, 
+      article: articleScript,
+      organization: organizationScript,
+      website: websiteScript,
+      category: categoryScript
+    };
   });
 
   const seoData = $derived(generatedScripts);
@@ -181,17 +199,33 @@
   // ── SEO DEBUG HUB (Elite V2.2) ─────────────────────────────────────────────
   import { browser } from '$app/environment';
   $effect(() => {
-    if (browser && pageType === 'product') {
-      console.group('🚀 [GEO/SGE DEBUG] - PRODUCT SCHEMA');
+    if (browser && pageType !== 'other') {
+      console.group(`🚀 [GEO/SGE DEBUG] - ${pageType.toUpperCase()} SCHEMA`);
       console.log('• Page Type:', pageType);
-      console.log('• Product Data:', productData);
-      console.log('• Rating/Review:', {
-        rating: productData?.ratingValue,
-        count: productData?.reviewCount
-      });
-      console.log('• Final JSON-LD String (Product):');
-      console.log(seoData.product);
-      console.log('• Final JSON-LD String (Graph):');
+      if (pageType === 'product') {
+        console.log('• Product Data:', productData);
+        console.log('• Rating/Review:', {
+          rating: productData?.ratingValue,
+          count: productData?.reviewCount
+        });
+      }
+      if (seoData.product) {
+         console.log('• Final JSON-LD String (PRODUCT):');
+         console.log(seoData.product);
+      }
+      if (seoData.article) {
+         console.log('• Final JSON-LD String (ARTICLE):');
+         console.log(seoData.article);
+      }
+      if (seoData.organization) {
+         console.log('• Final JSON-LD String (ORGANIZATION):');
+         console.log(seoData.organization);
+      }
+      if (seoData.category) {
+         console.log('• Final JSON-LD String (CATEGORY):');
+         console.log(seoData.category);
+      }
+      console.log('• Final JSON-LD String (GRAPH):');
       console.log(seoData.graph);
       console.groupEnd();
     }
@@ -210,6 +244,22 @@
     {@html `<script type="application/ld+json">${seoData.product}</script>`}
   {/if}
 
+  {#if seoData.article}
+    {@html `<script type="application/ld+json">${seoData.article}</script>`}
+  {/if}
+
+  {#if seoData.organization}
+    {@html `<script type="application/ld+json">${seoData.organization}</script>`}
+  {/if}
+
+  {#if seoData.website}
+    {@html `<script type="application/ld+json">${seoData.website}</script>`}
+  {/if}
+
+  {#if seoData.category}
+    {@html `<script type="application/ld+json">${seoData.category}</script>`}
+  {/if}
+
   <meta name="description" content={finalDescription} />
   {#if keywords}
     <meta name="keywords" content={keywords} />
@@ -219,7 +269,7 @@
   
   <!-- Requirement 3: Global Copyright & Author -->
   <meta name="copyright" content="Bản quyền thuộc về osmo Elite / Miccosmo Việt Nam" />
-  <meta name="author" content="osmo Elite" />
+  <meta name="author" content={articleData?.author || "osmo Elite"} />
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content={pageType === 'article' ? 'article' : (pageType === 'product' ? 'product' : 'website')} />

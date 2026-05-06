@@ -32,6 +32,9 @@
   // Modal State - Centralized
   let showSupportModal: boolean = $state(false);
 
+  import { page } from '$app/stores';
+  const isHome = $derived($page.url.pathname === '/' || $page.url.pathname === '/home');
+
   function handleOpenSupport(e: MouseEvent): void {
     e.preventDefault();
     e.stopPropagation();
@@ -140,16 +143,20 @@
       </div>
     </div>
 
-    <div class="flex flex-col pt-4 pb-2">
+    <div class="flex flex-col pt-2 pb-2">
       <div class="flex items-center gap-6">
         <div class="flex shrink-0 items-center">
           <a href="/" class="flex flex-col group transition-all active:scale-95">
             <span class="text-2xl font-black tracking-[0.22em] uppercase leading-none bg-gradient-to-r from-luxury-copper via-luxury-peach to-luxury-copper bg-clip-text text-transparent drop-shadow-sm group-hover:tracking-[0.25em] transition-all duration-700">
                 osmo
             </span>
-            <span class="text-[9px] font-black tracking-[0.11em] text-gray-400 uppercase mt-1.5 px-0.5 whitespace-nowrap border-t border-gray-100/50 pt-1">
+            <svelte:element 
+              this={isHome ? 'h1' : 'span'} 
+              class="text-[9px] font-black tracking-[0.11em] text-gray-400 uppercase mt-1.5 px-0.5 whitespace-nowrap border-t border-gray-100/50 pt-1"
+              style="margin: 0; display: block;"
+            >
                 Bật tông trắng sáng
-            </span>
+            </svelte:element>
           </a>
         </div>
 

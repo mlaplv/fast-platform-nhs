@@ -156,7 +156,10 @@
       keywords={categorySeoMeta.keywords}
       categoryData={{
         name: data.category?.name,
-        items: [] // Can be populated if items are available in data
+        items: (data.items || []).slice(0, 15).map((p: any) => ({
+          name: p.name,
+          url: `${siteUrl}/${p.slug}`
+        }))
       }}
       jsonLdScripts={[
         categorySeoMeta.json_ld_string,
@@ -172,7 +175,10 @@
       canonical={categoryCanonical}
       categoryData={{
         name: data.categoryName,
-        items: []
+        items: (data.items || []).slice(0, 15).map((p: any) => ({
+          name: p.name,
+          url: `${siteUrl}/${p.slug}`
+        }))
       }}
       jsonLdScripts={[
         categoryBreadcrumbLd, 
