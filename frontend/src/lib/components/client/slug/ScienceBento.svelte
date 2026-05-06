@@ -41,10 +41,6 @@
     isModalOpen = true;
   }
 
-  $effect(() => {
-    console.log("🔍 [SEO DEBUG] SCIENCE HEADLINE (H2):", { h1, h2 });
-  });
-
   function closeFaq() {
     isModalOpen = false;
   }

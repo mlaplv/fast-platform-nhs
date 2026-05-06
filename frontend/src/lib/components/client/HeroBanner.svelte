@@ -77,7 +77,6 @@
 
   const labels = $derived({
     product_name: product?.name || metadata.hero_product_name_fallback || '',
-    headline: metadata.hero_headline || 'TỰ TIN RẠNG RỠ VỚI<br/><span class="text-luxury-copper">LÀN DA SÁNG HỒNG</span>',
     video_url: (metadata.video_url as string) || (metadata.hero_video_url as string) || (metadata.hero_video as string) || '/uploads/video/HN_TikTok.mp4',
     cta_text: metadata.hero_cta_text || 'Khám phá bí quyết sau 14 ngày',
     aria_hero: metadata.hero_aria_label || 'Hero Spotlight Area',
@@ -127,11 +126,6 @@
       return desc.replace(keyword, `<h1 class="inline-block text-[inherit] font-medium">${keyword}</h1>`);
     }
     return desc;
-  });
-
-  $effect(() => {
-    console.log("🔍 [SEO DEBUG] HERO HEADLINE:", { h1, h2, rawHeadline });
-    console.log("🔍 [SEO DEBUG] PROCESSED DESCRIPTION (H1):", processedDescription);
   });
 
   const clean = (s: unknown) => {
@@ -263,7 +257,7 @@
           bind:this={videoEl}
           ontimeupdate={handleTimeUpdate}
           onended={handleVideoEnded}
-          autoplay muted preload="auto" playsinline
+          autoplay muted preload="metadata" playsinline
           loop={videoEndTime === null}
           class="elite-video-bg fade-in"
           src={videoUrl}
@@ -363,7 +357,7 @@
                           src="{mainImage}"
                           alt="{productName}"
                           fetchpriority="high"
-                          decoding="sync"
+                          decoding="async"
                           class="relative z-10 w-full h-auto object-contain transition-transform duration-700 group-hover:scale-[1.03] cinematic-grading rounded-[2px]"
                         />
                         <div class="absolute inset-0 z-20 pointer-events-none film-grain-mask"></div>

@@ -277,9 +277,6 @@
       scrollContainer.scrollBy({ left: -scrollContainer.clientWidth, behavior: 'smooth' });
     }
   };
-  $effect(() => {
-    console.log("🔍 [SEO DEBUG] REVIEWS HEADLINE (H2):", { h1, h2 });
-  });
 </script>
 
 <section class="snap-session snap-session-standard reviews-viewport relative overflow-visible" style:padding-top="var(--standard-pt)">
