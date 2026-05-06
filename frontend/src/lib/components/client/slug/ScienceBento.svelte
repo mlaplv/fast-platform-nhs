@@ -15,8 +15,8 @@
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.science_headline?.split('</span><span>') || []);
-  const h1 = $derived(metadata.science_headline_1 || stripTags(legacyParts[0]) || "BÍ QUYẾT TÁI SINH");
-  const h2 = $derived(metadata.science_headline_2 || stripTags(legacyParts[1]) || "VÙNG DA SÁNG HỒNG QUYẾN RŨ");
+  const h1 = $derived(metadata.science_headline_1 || stripTags(legacyParts[0]) || "CƠ CHẾ KHOA HỌC");
+  const h2 = $derived(metadata.science_headline_2 || stripTags(legacyParts[1]) || "Miccosmo Beppin Body Virgin White Serum");
 
   const labels = $derived({
     subheadline: metadata.science_subheadline || '"Không chỉ đơn thuần là dưỡng da, Beppin Body thấu hiểu sự tinh tế của nàng. Tinh chất thẩm thấu sâu, giải quyết triệt để các đốm nâu cứng đầu nhất, trả lại sự mịn màng như lụa để bạn tự tin trong mọi khoảnh khắc."',
@@ -40,6 +40,10 @@
     selectedFaqIndex = index;
     isModalOpen = true;
   }
+
+  $effect(() => {
+    console.log("🔍 [SEO DEBUG] SCIENCE HEADLINE (H2):", { h1, h2 });
+  });
 
   function closeFaq() {
     isModalOpen = false;

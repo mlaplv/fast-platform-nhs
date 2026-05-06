@@ -182,7 +182,7 @@
                  <span class="text-[9px] font-black text-luxury-sakura uppercase tracking-[0.2em]">SỐ LƯỢNG: {variant.attributes.combo_qty} SẢN PHẨM</span>
               </div>
            {/if}
-          <h5 class="text-[15px] font-black text-white italic tracking-tighter text-center md:text-left leading-none mb-1">{getVariantTitle(variant)}</h5>
+          <h2 class="text-[15px] font-black text-white italic tracking-tighter text-center md:text-left leading-none mb-1">{getVariantTitle(variant)}</h2>
           <div class="flex items-baseline gap-2 leading-none mt-1">
              <span class="text-3xl font-black text-white tabular-nums leading-none tracking-tighter">{formatCurrency(finalUnitPrice)}</span>
              <span class="text-[10px] font-bold text-white/40 uppercase tracking-widest">/ SẢN PHẨM</span>
@@ -262,7 +262,7 @@
            <li class="flex items-start gap-3">
              <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
              <EditableWrapper path="variants.{idx}.attributes.features.{featureIdx}" type="text" label="SỬA ĐẶC TÍNH" class="block" as="div">
-                <span class="text-[11px] font-black uppercase tracking-widest text-white/90 leading-relaxed block">{feature.replace(/^[+!*-]/, '').trim()}</span>
+                {#if featureIdx === 0}<h2 class="text-[11px] font-black uppercase tracking-widest text-white/90 leading-relaxed block">{feature.replace(/^[+!*-]/, '').trim()}</h2>{:else}<span class="text-[11px] font-black uppercase tracking-widest text-white/90 leading-relaxed block">{feature.replace(/^[+!*-]/, '').trim()}</span>{/if}
              </EditableWrapper>
            </li>
         {/each}

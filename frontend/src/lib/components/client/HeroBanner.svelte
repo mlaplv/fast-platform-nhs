@@ -95,11 +95,11 @@
   
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.hero_headline?.split('<br/>') || []);
-  const h1 = $derived(clean(metadata.hero_headline_1 || stripTags(legacyParts[0]) || "TỰ TIN RẠNG RỠ VỚI"));
-  const h2 = $derived(clean(metadata.hero_headline_2 || stripTags(legacyParts[1]) || "LÀN DA SÁNG HỒNG"));
+  const h1 = $derived(clean(metadata.hero_headline_1 || stripTags(legacyParts[0]) || "Miccosmo Beppin Body"));
+  const h2 = $derived(clean(metadata.hero_headline_2 || stripTags(legacyParts[1]) || "Virgin White Serum"));
   
-  const rawH1 = $derived(metadata.hero_headline_1 || stripTags(legacyParts[0]) || "TỰ TIN RẠNG RỠ VỚI");
-  const rawH2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || "LÀN DA SÁNG HỒNG");
+  const rawH1 = $derived(metadata.hero_headline_1 || stripTags(legacyParts[0]) || "Miccosmo Beppin Body");
+  const rawH2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || "Virgin White Serum");
 
   const rawHeadline = $derived.by(() => {
     const isH1Off = rawH1.startsWith('[OFF]');
@@ -107,7 +107,31 @@
     if (isH1Off && isH2Off) return '';
     if (isH1Off) return `<span class="text-luxury-copper">${h2}</span>`;
     if (isH2Off) return h1;
-    return `${h1}<br/><span class="text-luxury-copper">${h2}</span>`;
+    return `<span class="text-[1.2em] block leading-none mb-2">${h1}</span><span class="text-luxury-copper">${h2}</span>`;
+  });
+
+  const fallbackDesc = `
+    <p class="text-center mb-3 text-[15px] md:text-[17px] font-light leading-relaxed tracking-wide">
+      Bật tông trắng sáng cùng <h1 class="inline-block text-[inherit] font-medium">Miccosmo Beppin Body Virgin White Serum</h1> trẻ hóa da cấp độ tế bào - Tinh chất dưỡng sáng hồng vùng nhạy cảm (Nách, Nhũ hoa, Bikini).
+    </p>
+    <p class="text-center text-[14px] md:text-[15px] font-light leading-relaxed opacity-80 mx-auto max-w-2xl">
+      Giải pháp thẩm thấu sâu đa tầng, giúp tế bào kích hoạt độ bóng, trong, trắng sáng. An toàn - Hiệu quả cho mọi loại da kể cả da nhạy cảm. Không bết dính.
+    </p>
+  `;
+
+  const processedDescription = $derived.by(() => {
+    let desc = product?.shortDescription || fallbackDesc;
+    const keyword = "Beppin Body Virgin White Serum";
+    // Check if keyword is already wrapped in h1
+    if (desc.includes(keyword) && !desc.includes('<h1')) {
+      return desc.replace(keyword, `<h1 class="inline-block text-[inherit] font-medium">${keyword}</h1>`);
+    }
+    return desc;
+  });
+
+  $effect(() => {
+    console.log("🔍 [SEO DEBUG] HERO HEADLINE:", { h1, h2, rawHeadline });
+    console.log("🔍 [SEO DEBUG] PROCESSED DESCRIPTION (H1):", processedDescription);
   });
 
   const clean = (s: unknown) => {
@@ -273,7 +297,7 @@
 
   <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface">
     <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
-      <h1 class="elite-hero-headline typing-headline text-center">
+      <div class="elite-hero-headline typing-headline text-center font-bold">
         {#if !liveEditStore.isEditMode}
           <span 
             use:typewriter={{ 
@@ -302,20 +326,12 @@
           {/if}
         {/if}
         <span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-luxury-copper"></span>
-      </h1>
+      </div>
 
-      {#if product?.shortDescription}
+      {#if processedDescription}
          <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">
               <div class="section-description hero-description text-slate-200 max-w-3xl mx-auto mt-4 md:mt-6">
-                {@html product.shortDescription || `
-                  <p class="text-center mb-3 text-[15px] md:text-[17px] font-light leading-relaxed tracking-wide">
-                    Bật tông trắng sáng cùng <strong class="font-medium text-white">Beppin Body Virgin White Serum</strong> trẻ hóa da cấp độ tế bào - Tinh chất dưỡng sáng hồng vùng nhạy cảm (Nách, Nhũ hoa, Bikini).
-                  </p>
-                  <p class="text-center text-[14px] md:text-[15px] font-light leading-relaxed opacity-80 mx-auto max-w-2xl">
-                    Giải pháp thẩm thấu sâu đa tầng, giúp tế bào kích hoạt độ bóng, trong, trắng sáng.
-                    <span class="block mt-3 text-[12px] md:text-[13px] text-luxury-copper font-medium tracking-widest uppercase">An toàn - Hiệu quả mọi loại da - Không bết dính</span>
-                  </p>
-                `}
+                {@html processedDescription}
              </div>
          </EditableWrapper>
       {/if}

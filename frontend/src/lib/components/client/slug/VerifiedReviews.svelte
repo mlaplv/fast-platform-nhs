@@ -34,8 +34,8 @@
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.reviews_headline?.split('//') || []);
-  const h1 = $derived(metadata.reviews_headline_1 || stripTags(legacyParts[0]) || "KHÁCH HÀNG");
-  const h2 = $derived(metadata.reviews_headline_2 || stripTags(legacyParts[1]) || "NÓI GÌ VỀ CHÚNG TÔI?");
+  const h1 = $derived(metadata.reviews_headline_1 || stripTags(legacyParts[0]) || "ĐÁNH GIÁ THỰC TẾ");
+  const h2 = $derived(metadata.reviews_headline_2 || stripTags(legacyParts[1]) || "Miccosmo Beppin Body Virgin White Serum");
 
   const subheadline = $derived(metadata?.reviews_subheadline || 'Kiểm chứng công thức số 1 từ Nhật Bản. Thấm nhanh, không bết dính. Hiệu quả rõ rệt sau 2 tuần. Đừng bỏ lỡ siêu phẩm Best-seller!');
   const trustScore = $derived(metadata?.reviews_trust_score || '4.9/5');
@@ -277,6 +277,9 @@
       scrollContainer.scrollBy({ left: -scrollContainer.clientWidth, behavior: 'smooth' });
     }
   };
+  $effect(() => {
+    console.log("🔍 [SEO DEBUG] REVIEWS HEADLINE (H2):", { h1, h2 });
+  });
 </script>
 
 <section class="snap-session snap-session-standard reviews-viewport relative overflow-visible" style:padding-top="var(--standard-pt)">

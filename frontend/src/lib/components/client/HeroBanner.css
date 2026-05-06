@@ -134,10 +134,30 @@ html {
 
   /* --- ELITE HEADLINE SYSTEM --- */
   & .elite-hero-headline {
-    letter-spacing: 0.03em !important;
-    font-weight: 900 !important;
-    line-height: 1.05 !important;
+    letter-spacing: -0.02em !important; /* Tighter for more impact */
+    font-weight: 700 !important;
+    line-height: 1 !important;
     margin-top: 0 !important;
+    text-transform: uppercase;
+    
+    /* Thickness without aliasing */
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
+    paint-order: stroke fill;
+
+    /* Viral Shine Effect */
+    background: linear-gradient(
+      120deg, 
+      #fff 0%, 
+      #fff 40%, 
+      var(--color-luxury-copper) 50%, 
+      #fff 60%, 
+      #fff 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: viral-shine 4s linear infinite;
+    filter: drop-shadow(0 0 15px rgba(193, 143, 126, 0.3));
 
     @media (max-width: 1024px) {
       margin-top: 15px !important;
@@ -151,6 +171,8 @@ html {
 
     & .text-luxury-copper {
       display: inline-block;
+      -webkit-text-fill-color: var(--color-luxury-copper);
+      filter: drop-shadow(0 0 10px rgba(193, 143, 126, 0.5));
     }
   }
 
@@ -428,5 +450,13 @@ html {
   50% {
     opacity: 0;
     transform: scaleY(0.85);
+  }
+}
+@keyframes viral-shine {
+  from {
+    background-position: 200% center;
+  }
+  to {
+    background-position: -200% center;
   }
 }
