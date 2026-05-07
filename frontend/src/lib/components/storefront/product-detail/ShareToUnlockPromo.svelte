@@ -10,10 +10,11 @@
   interface Props {
     product: Product;
     compact?: boolean;
+    variant?: 'bar' | 'floating';
     onUnlock?: () => void;
   }
 
-  let { product, compact = false, onUnlock }: Props = $props();
+  let { product, compact = false, variant = 'bar', onUnlock }: Props = $props();
   const clientUi = getClientUi();
 
   /**
@@ -224,6 +225,11 @@
     showFlyGhost = true;
     setTimeout(() => { showFlyGhost = false; }, 1000);
   }
+
+  function formatCount(count: number): string {
+    if (count >= 1000) return (count / 1000).toFixed(1).replace('.0', '') + 'k';
+    return count.toString();
+  }
 </script>
 
 {#if showFlyGhost}
@@ -235,68 +241,72 @@
 {/if}
 
 {#if isEnabled && step !== 'revealed'}
-  <div class="stu-root" class:stu-compact={compact}>
+  <div class="stu-root {variant === 'floating' ? 'stu-floating' : ''}" class:stu-compact={compact}>
     <!-- ── STEP: idle / error ── -->
     {#if step === 'idle' || step === 'error'}
-      <div class="stu-content-row stp-bar">
-        <div class="stu-info">
-          <div class="stp-gift-icon"><Gift size={compact ? 20 : 24} /></div>
-          <div class="stu-text-col">
-            <div class="stp-info">
-              <div class="stp-title-wrap flex items-center gap-2">
-                <span class="stp-title">CƠ HỘI CUỐI: CHIA SẺ NHẬN 50K</span>
-                <span class="text-[#ee4d2d] bg-white border border-[#ee4d2d] text-[8px] px-1 py-0.5 rounded font-black">
-                  GIẢM 50K
-                </span>
-                <span class="text-[10px] text-orange-500 font-bold flex items-center gap-1 animate-pulse">
-                   🔥 {shareCount}+ đã nhận
-                </span>
-              </div>
-              <p class="stp-desc">Duy nhất hôm nay: Nhận Voucher osmo Mall 50.000đ khi lan tỏa sản phẩm</p>
+      <div class="stu-content-row {variant === 'floating' ? 'stu-float-minimal' : 'stp-bar'}">
+        {#if variant === 'floating'}
+          <div class="stu-viral-main">
+            <h4 class="stu-viral-title">CHIA SẺ NHẬN 50K</h4>
+            <p class="stu-viral-sub">Nhận Voucher 50.000đ ngay!</p>
+            <div class="stu-viral-fomo-tag">
+               <span class="stu-fomo-fire">🔥</span> {formatCount(shareCount)}+ ĐÃ NHẬN
             </div>
-            {#if step === 'error'}
-              <span class="stu-desc stu-error-text">{errorMsg}</span>
-            {/if}
+            <button class="stu-viral-btn-minimal" onclick={handleShare} id="btn-viral-share-{product.id}">
+               <span>NHẬN</span>
+            </button>
           </div>
-        </div>
-        <button class="stu-share-btn" onclick={handleShare} id="btn-viral-share-{product.id}">
-          <ExternalLink size={14} /><span>{step === 'error' ? 'Thử lại' : 'Chia sẻ ngay'}</span>
-        </button>
+        {:else}
+          <div class="stu-info">
+            <div class="stp-gift-icon"><Gift size={compact ? 20 : 24} /></div>
+            <div class="stu-text-col">
+              <div class="stp-info">
+                <div class="stp-title-wrap flex items-center gap-1">
+                  <span class="stp-title">CƠ HỘI CUỐI: CHIA SẺ NHẬN 50K</span>
+                </div>
+                <p class="stp-desc">Duy nhất hôm nay: Nhận Voucher osmo Mall 50.000đ khi lan tỏa sản phẩm</p>
+              </div>
+            </div>
+          </div>
+          <button class="stu-share-btn" onclick={handleShare} id="btn-viral-share-{product.id}">
+            <ExternalLink size={14} /><span>{step === 'error' ? 'Thử lại' : 'Chia sẻ ngay'}</span>
+          </button>
+        {/if}
       </div>
 
     <!-- ── STEP: sharing / verifying ── -->
     {:else if step === 'sharing' || step === 'verifying'}
-      <div class="stu-content-row stu-center">
+      <div class="stu-content-row stu-center {variant === 'floating' ? 'stu-float-card' : ''}">
         <Loader size={16} class="stu-spin text-luxury-sakura" style="color: #ffb7c5;" />
-        <span class="stu-loading-text">{step === 'sharing' ? 'Đang chuẩn bị...' : 'Đang xác minh...'}</span>
+        <span class="stu-loading-text text-[10px]">{step === 'sharing' ? 'ĐANG CHUẨN BỊ...' : 'ĐANG XÁC MINH...'}</span>
       </div>
 
     <!-- ── STEP: awaiting_confirm ── -->
     {:else if step === 'awaiting_confirm'}
-      <div class="stu-content-row">
+      <div class="stu-content-row {variant === 'floating' ? 'stu-float-card flex-col gap-2' : ''}">
          <div class="stu-info">
-           <span class="stu-confirm-text">Đã chia sẻ xong?</span>
+           <span class="stu-confirm-text {variant === 'floating' ? 'text-[10px]' : ''}">Đã chia sẻ?</span>
          </div>
-         <div class="stu-actions-row">
-            <button class="stu-cancel-btn" onclick={resetToIdle}>Hủy</button>
-            <button class="stu-verify-btn" onclick={handleVerify} id="btn-viral-verify-{product.id}">
-              <Check size={14} /><span>Nhận mã</span>
+         <div class="stu-actions-row {variant === 'floating' ? 'justify-center' : ''}">
+            <button class="stu-cancel-btn {variant === 'floating' ? 'h-7 text-[9px] px-2' : ''}" onclick={resetToIdle}>Hủy</button>
+            <button class="stu-verify-btn {variant === 'floating' ? 'h-7 text-[9px] px-2' : ''}" onclick={handleVerify} id="btn-viral-verify-{product.id}">
+              <Check size={12} /><span>XÁC NHẬN</span>
             </button>
          </div>
       </div>
 
     <!-- ── STEP: revealed ── -->
     {:else if step === 'revealed' && voucherCode}
-      <div class="stu-revealed-card">
+      <div class="stu-revealed-card {variant === 'floating' ? 'stu-float-card' : ''}">
         <div class="stu-voucher-info">
           <span class="stu-voucher-label">{voucherLabel}</span>
-          <span class="stu-voucher-code">{voucherCode}</span>
+          <span class="stu-voucher-code {variant === 'floating' ? 'text-lg' : ''}">{voucherCode}</span>
         </div>
-        <button class="stu-copy-btn" onclick={copyCode} id="btn-viral-copy-{product.id}">
+        <button class="stu-copy-btn {variant === 'floating' ? 'text-[9px] px-2' : ''}" onclick={copyCode} id="btn-viral-copy-{product.id}">
           {#if codeCopied}
-            <Check size={12} /><span>Đã chép</span>
+            <Check size={10} /><span>Xong</span>
           {:else}
-            <Copy size={12} /><span>Sao chép</span>
+            <Copy size={10} /><span>Copy</span>
           {/if}
         </button>
       </div>
@@ -438,6 +448,122 @@
     cursor: pointer; transition: all 0.2s;
   }
   .stu-cancel-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+  /* ═══ VIRAL 2026: WRAPPER ═══ */
+  .stu-floating {
+    position: relative;
+    z-index: 100;
+    pointer-events: auto;
+    max-width: 200px;
+  }
+
+  /* ═══ TIKTOK PRO 2026: SHARP & DYNAMIC ═══ */
+  .stu-float-minimal {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: white;
+    padding: 0;
+    pointer-events: auto;
+    animation: stu-pro-entry 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+
+  @keyframes stu-pro-entry {
+    0% { transform: translateX(-80px) scale(0.8); opacity: 0; }
+    100% { transform: translateX(0) scale(1); opacity: 1; }
+  }
+
+  .stu-viral-title {
+    font-size: 18px;
+    font-weight: 1000;
+    margin: 0;
+    color: #fff;
+    /* TikTok 3D Sharp Stroke */
+    -webkit-text-stroke: 1px rgba(0,0,0,0.5);
+    text-shadow: 
+      0 2px 10px rgba(0,0,0,0.5),
+      0 0 20px rgba(0,0,0,0.2);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .stu-viral-sub {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 4px 0 0;
+    font-weight: 700;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    letter-spacing: 0.01em;
+  }
+
+  .stu-viral-fomo-tag {
+    font-size: 12px;
+    font-weight: 900;
+    color: #ff9500; 
+    text-transform: uppercase;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+
+  .stu-fomo-fire {
+    display: inline-block;
+    animation: stu-fire-wiggle 1s infinite alternate ease-in-out;
+  }
+
+  @keyframes stu-fire-wiggle {
+    from { transform: rotate(-10deg) scale(1); }
+    to { transform: rotate(10deg) scale(1.2); }
+  }
+
+  .stu-viral-btn-minimal {
+    margin-top: 14px;
+    background: linear-gradient(180deg, #ff453a 0%, #ff3b30 100%);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 7px 24px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 1000;
+    width: max-content;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(255, 59, 48, 0.4);
+    position: relative;
+    overflow: hidden;
+    animation: stu-btn-pulse 2s infinite;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  /* Liquid Glass Shine */
+  .stu-viral-btn-minimal::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(
+      45deg,
+      transparent 0%,
+      rgba(255,255,255,0.1) 45%,
+      rgba(255,255,255,0.5) 50%,
+      rgba(255,255,255,0.1) 55%,
+      transparent 100%
+    );
+    transform: rotate(45deg);
+    animation: stu-liquid-shine 3s infinite;
+  }
+
+  @keyframes stu-liquid-shine {
+    0% { transform: translateX(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) rotate(45deg); }
+  }
+
+  .stu-viral-btn-minimal:active {
+    transform: scale(0.9);
+    filter: brightness(1.2);
+  }
 
   /* ── Revealed Card ── */
   .stu-revealed-card {

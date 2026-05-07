@@ -285,6 +285,11 @@
     </div>
     <div class="image-counter">{activeImageIndex + 1}/{displayImages.length}</div>
 
+    <!-- Elite V2.2: Floating Share Promo (Bottom Right of Image) -->
+    <div class="media-promo-anchor">
+       <ShareToUnlockPromo {product} variant="floating" onUnlock={triggerViralFly} />
+    </div>
+
     <!-- Thumbnails -->
     <div class="thumbnails-track mt-2 px-4 flex gap-2 overflow-x-auto no-scrollbar">
       {#each displayImages as img, i}
@@ -464,10 +469,6 @@
         />
       </div>
 
-    <!-- Elite V2.2: Share-to-Unlock Mobile Placement -->
-    <div class="px-4 mb-4">
-      <ShareToUnlockPromo {product} compact={true} onUnlock={triggerViralFly} />
-    </div>
 
     <div class="product-stats-row">
       <div class="rating-box">
@@ -494,6 +495,14 @@
   .carousel-slide { flex: 0 0 100%; height: 100%; scroll-snap-align: start; position: relative; }
   .slide-media { width: 100%; height: 100%; object-fit: cover; }
   .image-counter { position: absolute; bottom: 64px; right: 12px; background: rgba(0, 0, 0, 0.4); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; z-index: 5; }
+
+  /* Elite V2.2: Promo Anchor in Media Section */
+  .media-promo-anchor {
+    position: absolute;
+    bottom: 8px; 
+    left: 8px;
+    z-index: 10;
+  }
   .mute-btn {
     position: absolute;
     bottom: 72px;
