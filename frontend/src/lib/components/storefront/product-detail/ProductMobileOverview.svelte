@@ -16,8 +16,8 @@
   import { formatCurrency } from '$lib/utils/format';
   
   // Components
-  import ViralShareBar from './ViralShareBar.svelte';
-  import ShareToUnlockPromo from './ShareToUnlockPromo.svelte';
+  import ViralShareBarMobile from './ViralShareBarMobile.svelte';
+  import ShareToUnlockPromoMobile from './ShareToUnlockPromoMobile.svelte';
 
   /** Detect video URL: mp4, webm, mov, ogg … (mirrored from Desktop) */
   function isVideoUrl(url: string | undefined | null): boolean {
@@ -287,7 +287,7 @@
 
     <!-- Elite V2.2: Floating Share Promo (Bottom Right of Image) -->
     <div class="media-promo-anchor">
-       <ShareToUnlockPromo {product} variant="floating" onUnlock={triggerViralFly} />
+       <ShareToUnlockPromoMobile {product} variant="floating" onUnlock={triggerViralFly} />
     </div>
 
     <!-- Thumbnails -->
@@ -462,8 +462,8 @@
 
     <!-- VIRAL SHARE BAR (Mobile) -->
       <div class="mt-4 px-4 pb-2">
-        <ViralShareBar 
-          product={product} 
+        <ViralShareBarMobile 
+          {product} 
           variant="mobile" 
           likeCount={likeCount}
         />

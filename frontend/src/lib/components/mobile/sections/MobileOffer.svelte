@@ -21,8 +21,7 @@
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
-  import ViralShareBar from '$lib/components/storefront/product-detail/ViralShareBar.svelte';
-  import ShareToUnlockPromo from '$lib/components/storefront/product-detail/ShareToUnlockPromo.svelte';
+  import ShareToUnlockPromoMobile from '$lib/components/storefront/product-detail/ShareToUnlockPromoMobile.svelte';
 
   interface MobileOfferProps {
     product?: Product;
@@ -194,7 +193,7 @@
     <!-- 🔥 Viral Share Bar (Inline variant for Funnel) -->
     {#if product}
       <div class="px-4">
-        <ShareToUnlockPromo
+        <ShareToUnlockPromoMobile
           product={product}
           variant="funnel"
         />

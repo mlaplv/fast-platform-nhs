@@ -1,0 +1,375 @@
+<script lang="ts">
+  import { 
+    Facebook, Copy, Heart, Zap, Gift, ExternalLink, 
+    Check, Loader, Sparkles 
+  } from 'lucide-svelte';
+  import type { Product } from '$lib/types';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
+  import { 
+    formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
+  } from '$lib/utils/commerce/viral';
+  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
+
+  interface Props {
+    product: Product;
+    timer_prefix?: string;
+    onUnlock?: () => void;
+  }
+
+  let { product, timer_prefix = "Ưu đãi lột xác kết thúc sau:", onUnlock }: Props = $props();
+  const clientUi = getClientUi();
+  const shopStore = getShopStore();
+  const timeLeft = $derived(shopStore.timeLeft);
+
+  const formatTime = (s: number): string => {
+    const mins = Math.floor(s / 60);
+    const secs = (s % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+  };
+
+  const viralSuite = $derived(product.metadata?.viral_suite ?? null);
+  const promoConfig = $derived(
+    viralSuite?.share_promotion ?? 
+    product.metadata?.share_promotion ?? 
+    null
+  );
+  
+  const shareCount = $derived(
+    viralSuite?.share_count ?? (typeof product.metadata?.share_count === 'number' ? product.metadata.share_count : 0)
+  );
+  const shareTarget = $derived(
+    viralSuite?.share_target ?? (typeof product.metadata?.share_target === 'number' ? product.metadata.share_target : 0)
+  );
+  const shareProgress = $derived(
+    shareTarget > 0 ? Math.min((shareCount / shareTarget) * 100, 100) : 50 // Default 50% if no target for demo
+  );
+
+  const displayRewardLabel = $derived(
+    viralSuite?.share_reward_label || product.metadata?.share_reward_label || 
+    'CHIẾN DỊCH LAN TỎA NHẬN VOUCHER 50K'
+  );
+
+  // ── State Machine ──────────────────────────────────────────────────────────
+  type Step = 'idle' | 'sharing' | 'awaiting_confirm' | 'verifying' | 'revealed' | 'error';
+  let step = $state<Step>('idle');
+  let isLiked = $state(false);
+  let localLikeCount = $state(0);
+  let errorMsg = $state('');
+  let voucherCode = $state<string | null>(null);
+  let voucherLabel = $state<string | null>(null);
+  let codeCopied = $state(false);
+
+  let _token = $state<string | null>(null);
+  let _fingerprint = $state<string | null>(null);
+  let shareStartTime = $state<number>(0);
+  let windowLostFocus = $state<boolean>(false);
+
+  $effect(() => {
+    if (product) {
+      localLikeCount = Number(viralSuite?.likes_count || product.metadata?.likes || 0);
+    }
+  });
+
+  $effect(() => {
+    const onBlur = () => { windowLostFocus = true; };
+    window.addEventListener('blur', onBlur);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          voucherCode = data.code;
+          voucherLabel = data.label;
+          step = 'revealed';
+        } catch { localStorage.removeItem(`viral_unlocked_${product.id}`); }
+      }
+    }
+    return () => window.removeEventListener('blur', onBlur);
+  });
+
+  function handleLike(e: MouseEvent) {
+    e.preventDefault();
+    isLiked = !isLiked;
+    if (isLiked) {
+      localLikeCount++;
+      createHeartConfetti(e.clientX, e.clientY);
+    } else {
+      localLikeCount = Math.max(0, localLikeCount - 1);
+    }
+  }
+
+  const viralActions = {
+    async share(platform: string) {
+      if (step !== 'idle' && step !== 'error') {
+         await shareToPlatform(platform, window.location.href, product.name);
+         return;
+      }
+      step = 'sharing';
+      try {
+        const res = await fetch('/api/v1/client/viral/share-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: product.id }),
+        });
+        if (!res.ok) throw new Error('Yêu cầu thất bại');
+        const data = await res.json();
+        _token = data.token;
+        _fingerprint = data.fingerprint;
+        
+        await shareToPlatform(platform, window.location.href, product.name);
+        
+        shareStartTime = Date.now();
+        windowLostFocus = false;
+        step = 'awaiting_confirm';
+      } catch (e: any) {
+        errorMsg = e.message;
+        step = 'error';
+      }
+    },
+    async verify() {
+      if (!_token || !_fingerprint || !promoConfig) return;
+      if (Date.now() - shareStartTime < 3000 || !windowLostFocus) {
+        errorMsg = 'Vui lòng hoàn tất chia sẻ!';
+        step = 'error';
+        return;
+      }
+      step = 'verifying';
+      try {
+        const res = await fetch('/api/v1/client/viral/verify-share', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            product_id: product.id, 
+            fingerprint: _fingerprint, 
+            token: _token, 
+            voucher_id: promoConfig.voucher_id 
+          }),
+        });
+        if (!res.ok) throw new Error('Xác minh thất bại');
+        const data = await res.json();
+        voucherCode = data.voucher_code;
+        voucherLabel = data.voucher_label;
+        step = 'revealed';
+        localStorage.setItem(`viral_unlocked_${product.id}`, JSON.stringify({ code: voucherCode, label: voucherLabel, unlocked_at: Date.now() }));
+        onUnlock?.();
+        createHeartConfetti(window.innerWidth / 2, window.innerHeight / 2);
+        clientUi.showToast('🎉 Đã mở khóa!', 'success');
+      } catch (e: any) {
+        errorMsg = e.message;
+        step = 'error';
+      }
+    }
+  };
+
+  async function copyLink() {
+    await copyViralLink(window.location.href);
+  }
+</script>
+
+<div class="vfl-root">
+  <!-- 🚀 Elite Viral Header (Master Row) -->
+  <div class="vfl-master-row">
+    <div class="vfl-socials">
+      <button onclick={() => viralActions.share('facebook')} class="vfl-social-btn fb" title="Chia sẻ Facebook">
+        <Facebook size={12} fill="currentColor" />
+      </button>
+      <button onclick={() => viralActions.share('zalo')} class="vfl-social-btn zalo" title="Chia sẻ Zalo">
+        <span class="text-[8px] font-bold">Zalo</span>
+      </button>
+      <button onclick={copyLink} class="vfl-social-btn copy" title="Sao chép link">
+        <Copy size={12} />
+      </button>
+    </div>
+
+    <div class="vfl-progress-area">
+       <div class="vfl-progress-header">
+         <Zap size={10} class="text-[#ee4d2d] fill-current animate-pulse" />
+         <span class="vfl-reward-text">{displayRewardLabel}</span>
+       </div>
+       <div class="vfl-progress-track">
+         <div class="vfl-progress-bar" style="width: {shareProgress}%">
+           <div class="vfl-progress-glow"></div>
+         </div>
+       </div>
+    </div>
+
+    <button onclick={handleLike} class="vfl-like-pill" class:liked={isLiked}>
+      <Heart size={12} fill={isLiked ? '#ee4d2d' : 'none'} color={isLiked ? '#ee4d2d' : '#fff'} />
+      <span class="vfl-like-count">{formatViralCount(localLikeCount)}</span>
+    </button>
+  </div>
+
+  <!-- 🎫 Viral Redemption Funnel -->
+  <div class="vfl-redemption">
+    <div class="vfl-ticket-box" class:revealed={step === 'revealed'}>
+      <!-- Ticket Notches -->
+      <div class="ticket-notch notch-l"></div>
+      <div class="ticket-notch notch-r"></div>
+
+      {#if step === 'idle' || step === 'error'}
+        <div class="ticket-inner">
+          <div class="flex items-center gap-2">
+            <Gift size={16} class="text-[#ee4d2d]" />
+            <span class="ticket-msg">NHẬN VOUCHER 50K</span>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <div class="vfl-timer-tag">
+              <span class="font-black">{formatTime(timeLeft)}</span>
+            </div>
+            <button class="ticket-btn-primary" onclick={() => viralActions.share('facebook')}>
+              <span>NHẬN</span>
+              <ExternalLink size={12} />
+            </button>
+          </div>
+        </div>
+        {#if errorMsg}
+          <div class="vfl-error-msg">{errorMsg}</div>
+        {/if}
+      {:else if step === 'sharing' || step === 'verifying'}
+        <div class="vfl-center py-2">
+          <Loader size={14} class="animate-spin text-[#ee4d2d]" />
+          <span class="vfl-status-text">{step === 'sharing' ? 'ĐANG CHUẨN BỊ...' : 'ĐANG XÁC MINH...'}</span>
+        </div>
+      {:else if step === 'awaiting_confirm'}
+        <div class="vfl-confirm-overlay">
+           <span class="vfl-confirm-msg">BẠN ĐÃ CHIA SẺ CHƯA?</span>
+           <div class="flex gap-2">
+              <button class="vfl-btn-secondary" onclick={() => step = 'idle'}>CHƯA</button>
+              <button class="vfl-btn-primary" onclick={viralActions.verify}>RỒI</button>
+           </div>
+        </div>
+      {:else if step === 'revealed'}
+        <div class="ticket-inner revealed">
+          <div class="flex items-center gap-3">
+            <Sparkles size={16} class="text-amber-400" />
+            <div class="flex flex-col">
+              <span class="text-[8px] text-white/40 font-black uppercase tracking-widest">{voucherLabel}</span>
+              <span class="text-lg font-black text-[#ee4d2d] tabular-nums tracking-wider">{voucherCode}</span>
+            </div>
+          </div>
+          <button class="vfl-copy-pill" onclick={() => { copyViralLink(voucherCode || ''); codeCopied = true; setTimeout(()=>codeCopied=false, 2000); }}>
+            {#if codeCopied}<Check size={14} />{:else}<Copy size={14} />{/if}
+            <span>{codeCopied ? 'XONG' : 'COPY'}</span>
+          </button>
+        </div>
+      {/if}
+    </div>
+  </div>
+</div>
+
+<style>
+  .vfl-root {
+    width: 100%;
+    max-width: 580px;
+    background: #0a0a0a;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* --- Master Action Row --- */
+  .vfl-master-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 4px;
+  }
+  
+  .vfl-socials { display: flex; gap: 6px; }
+  .vfl-social-btn {
+    width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white; cursor: pointer; transition: all 0.2s;
+  }
+  .vfl-social-btn:hover { background: rgba(255, 255, 255, 0.15); transform: translateY(-1px); }
+  .vfl-social-btn.fb { color: #1877f2; }
+  .vfl-social-btn.zalo { color: #0068ff; }
+  
+  .vfl-progress-area { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .vfl-progress-header { display: flex; align-items: center; gap: 4px; }
+  .vfl-reward-text { 
+    font-size: 8px; font-weight: 900; color: rgba(255, 255, 255, 0.5); 
+    text-transform: uppercase; letter-spacing: 0.05em; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+    max-width: 180px;
+  }
+  
+  .vfl-progress-track { height: 3px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; overflow: hidden; position: relative; }
+  .vfl-progress-bar { 
+    height: 100%; background: linear-gradient(90deg, #ee4d2d, #ff8c00); 
+    border-radius: 10px; transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+  }
+  .vfl-progress-glow {
+    position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: vfl-shimmer 2s infinite linear;
+  }
+  @keyframes vfl-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+
+  .vfl-like-pill {
+    display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 100px;
+    color: white; cursor: pointer;
+  }
+  .vfl-like-pill.liked { border-color: rgba(238, 77, 45, 0.4); background: rgba(238, 77, 45, 0.1); }
+  .vfl-like-count { font-size: 11px; font-weight: 900; }
+
+  /* --- Ticket Redemption Area --- */
+  .vfl-ticket-box {
+    width: 100%; height: 54px; position: relative; background: rgba(255, 255, 255, 0.02);
+    border: 1.5px dashed rgba(238, 77, 45, 0.3); border-radius: 8px;
+    display: flex; align-items: center; overflow: visible;
+  }
+  .vfl-ticket-box.revealed { border-style: solid; border-color: #ee4d2d; background: rgba(238, 77, 45, 0.05); }
+
+  .ticket-notch {
+    position: absolute; top: 50%; width: 12px; height: 12px; background: #000;
+    border-radius: 50%; transform: translateY(-50%); z-index: 10;
+    border: 1.5px dashed rgba(238, 77, 45, 0.3);
+  }
+  .notch-l { left: -7px; }
+  .notch-r { right: -7px; }
+
+  .ticket-inner { width: 100%; height: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+  .ticket-msg { font-size: 13px; font-weight: 1000; color: white; text-transform: uppercase; }
+  
+  .vfl-timer-tag {
+    background: #ee4d2d; color: white; padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 900; tabular-nums: true;
+    box-shadow: 0 4px 10px rgba(238, 77, 45, 0.4);
+  }
+
+  .ticket-btn-primary {
+    background: #ee4d2d; color: white; padding: 6px 14px; border-radius: 6px;
+    font-size: 11px; font-weight: 1000; border: none; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; transition: all 0.2s;
+  }
+  .ticket-btn-primary:active { transform: scale(0.95); }
+
+  /* --- Revealed State --- */
+  .vfl-copy-pill {
+    background: #fff; color: #000; padding: 6px 14px; border-radius: 6px;
+    font-size: 10px; font-weight: 1000; display: flex; align-items: center; gap: 6px; border: none;
+  }
+
+  /* --- Status Overlays --- */
+  .vfl-center { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .vfl-status-text { font-size: 10px; font-weight: 900; color: #ee4d2d; letter-spacing: 0.1em; }
+
+  .vfl-confirm-overlay { width: 100%; height: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+  .vfl-confirm-msg { font-size: 11px; font-weight: 1000; color: white; letter-spacing: 0.05em; }
+  
+  .vfl-btn-secondary { height: 28px; padding: 0 12px; background: rgba(255,255,255,0.05); color: #999; border: none; border-radius: 4px; font-size: 10px; font-weight: 800; cursor: pointer; }
+  .vfl-btn-primary { height: 28px; padding: 0 12px; background: #ee4d2d; color: white; border: none; border-radius: 4px; font-size: 10px; font-weight: 1000; cursor: pointer; }
+
+  .vfl-error-msg { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 8px; color: #ef4444; font-weight: 800; white-space: nowrap; }
+</style>

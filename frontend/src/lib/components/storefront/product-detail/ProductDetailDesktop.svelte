@@ -22,8 +22,8 @@
   // Components
   import ProductDetailReviews from './ProductDetailReviews.svelte';
   import ProductDetailRelated from './ProductDetailRelated.svelte';
-  import ViralShareBar from './ViralShareBar.svelte';
-  import ShareToUnlockPromo from './ShareToUnlockPromo.svelte';
+  import ViralShareBarDesktop from './ViralShareBarDesktop.svelte';
+  import ShareToUnlockPromoDesktop from './ShareToUnlockPromoDesktop.svelte';
   import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
 
@@ -593,9 +593,8 @@
 
       <!-- Social & Like (Viral 2026 — ViralShareBar) -->
       <div class="mt-8 px-2">
-        <ViralShareBar 
+        <ViralShareBarDesktop 
           {product} 
-          variant="desktop" 
           likeCount={likeCount}
           hideLikes={false}
         />
@@ -732,7 +731,7 @@
       
       <!-- Elite V2.2: Share-to-Unlock (Minimalist Placement) -->
       <div class="px-5 mb-4">
-        <ShareToUnlockPromo {product} compact={true} onUnlock={triggerViralFly} />
+        <ShareToUnlockPromoDesktop {product} compact={true} onUnlock={triggerViralFly} />
       </div>
 
       <!-- Shipping Block -->

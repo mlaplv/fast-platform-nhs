@@ -9,8 +9,7 @@
   
   import OfferCard from './OfferCard.svelte';
   import OfferVoucherSheet from './OfferVoucherSheet.svelte';
-  import OfferFomoTimer from './OfferFomoTimer.svelte';
-  import ShareToUnlockPromo from '$lib/components/storefront/product-detail/ShareToUnlockPromo.svelte';
+  import ViralFunnelLanding from './ViralFunnelLanding.svelte';
   import "./OfferGrid.css";
   
   const shopStore = getShopStore();
@@ -48,9 +47,9 @@
     cta_full: metadata.offer_cta_full || "SỞ HỮU SỰ KIÊU SA"
   });
 
-  const mark1 = $derived(metadata.offer_trust_verified_by || "TIÊU CHUẨN Y KHOA NHẬT BẢN");
-  const mark2 = $derived(metadata.offer_trust_mark_2 || "HIỆU QUẢ KIỂM CHỨNG");
-  const mark3 = $derived(metadata.offer_trust_mark_3 || "DƯỢC MỸ PHẨM CAO CẤP");
+  const mark1 = $derived((metadata.offer_trust_verified_by as string) || "TIÊU CHUẨN Y KHOA NHẬT BẢN");
+  const mark2 = $derived((metadata.offer_trust_mark_2 as string) || "HIỆU QUẢ KIỂM CHỨNG");
+  const mark3 = $derived((metadata.offer_trust_mark_3 as string) || "DƯỢC MỸ PHẨM CAO CẤP");
 
   let isDetailsOpen = $state(false);
 
@@ -132,12 +131,12 @@
       </div>
     </div>
 
-    <div class="max-w-2xl mx-auto mb-8 mt-4 relative z-surface flex flex-col items-center gap-[6px]">
-      <OfferFomoTimer {...mkt} />
+    <div class="max-w-2xl mx-auto mb-8 mt-4 relative z-surface">
       {#if product}
-        <div class="w-full">
-          <ShareToUnlockPromo {product} compact={true} />
-        </div>
+        <ViralFunnelLanding 
+          {product} 
+          timer_prefix={mkt.timer_prefix}
+        />
       {/if}
     </div>
 
