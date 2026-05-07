@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Gift, ExternalLink, Check, Copy, Loader, Shield } from 'lucide-svelte';
+  import { Gift, ExternalLink, Check, Copy, Loader, Shield, Heart, Facebook } from 'lucide-svelte';
   
   // Types
   import type { Product } from '$lib/types';
@@ -10,7 +10,7 @@
   interface Props {
     product: Product;
     compact?: boolean;
-    variant?: 'bar' | 'floating';
+    variant?: 'bar' | 'floating' | 'funnel';
     onUnlock?: () => void;
   }
 
@@ -185,6 +185,30 @@
             <div class="stu-f-fomo">🔥 {formatCount(shareCount)}+ ĐÃ NHẬN</div>
             <button class="stu-f-btn" onclick={viralActions.share}>NHẬN</button>
           </div>
+        {:else if variant === 'funnel'}
+          <div class="stp-funnel-wrapper">
+            <!-- Row 1: Unified Social Actions -->
+            <div class="stp-f-social">
+              <button class="stp-f-heart"><Heart size={16} class="fill-current" /><span>{formatCount(shareCount * 12)}</span></button>
+              <div class="stp-f-divider"></div>
+              <button class="stp-f-social-btn" onclick={viralActions.share}><Facebook size={16} /></button>
+              <button class="stp-f-social-btn" onclick={viralActions.share}><span class="text-[9px] font-black italic">Zalo</span></button>
+              <button class="stp-f-social-btn" onclick={viralActions.share}><span class="text-[9px] font-black italic">TikTok</span></button>
+              <button class="stp-f-social-btn" onclick={copyCode}><Copy size={14} /></button>
+            </div>
+            <!-- Row 2: Campaign Progress -->
+            <div class="stp-funnel-row">
+              <div class="stp-f-msg">
+                <span class="stp-f-t">CHIẾN DỊCH LAN TỎA NHẬN VOUCHER 50K</span>
+                <div class="stp-f-progress">
+                  <div class="stp-f-bar" style="width: 50%"></div>
+                </div>
+              </div>
+              <button class="stp-f-btn" onclick={viralActions.share}>
+                <span>NHẬN NGAY</span>
+              </button>
+            </div>
+          </div>
         {:else}
           <div class="stp-one-line">
             <div class="stp-icon-box"><Gift size={18} /></div>
@@ -253,6 +277,30 @@
     padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 1000; border: none; cursor: pointer;
     text-transform: uppercase;
   }
+
+  /* --- Funnel Variant (Optimized Header) --- */
+  .stu-view-funnel { width: 100%; padding: 0; }
+  .stp-funnel-wrapper { display: flex; flex-direction: column; gap: 4px; }
+  .stp-f-social { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+  .stp-f-heart { display: flex; align-items: center; gap: 4px; color: #ffb7c5; background: none; border: none; font-size: 11px; font-weight: 1000; }
+  .stp-f-divider { width: 1px; height: 10px; background: rgba(255,255,255,0.1); }
+  .stp-f-social-btn { 
+    width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.06); 
+    border: 1px solid rgba(255,255,255,0.08); color: #fff; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .stp-f-social-btn:hover { background: rgba(255,255,255,0.2); border-color: #ffb7c5; }
+  
+  .stp-funnel-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.1); }
+  .stp-f-msg { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .stp-f-t { font-size: 9px; font-weight: 900; color: #ffb7c5; text-transform: uppercase; letter-spacing: 0.1em; }
+  .stp-f-progress { height: 4px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+  .stp-f-bar { height: 100%; background: linear-gradient(90deg, #ffb7c5, #ee4d2d); border-radius: 10px; }
+  .stp-f-btn { 
+    background: #ee4d2d; color: #fff; padding: 6px 16px; border-radius: 4px; font-size: 11px; font-weight: 1000; border: none; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.2); transition: all 0.2s;
+  }
+  .stp-f-btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
 
   /* --- Floating Variant (Storefront Optimized) --- */
   .stu-view-floating { position: relative; max-width: 200px; animation: stu-fade-in 0.6s ease; }

@@ -150,11 +150,11 @@
   </div>
 
   <!-- 🚀 COMPACT HEADER -->
-  <div class="mt-8 mb-4 text-center w-full !px-4 z-surface shrink-0">
-    <div class="flex items-center justify-center gap-2 mb-3" in:fly={{ y: -10 }}>
+  <div class="mt-4 mb-2 text-center w-full !px-4 z-surface shrink-0">
+    <div class="flex items-center justify-center gap-2 mb-2" in:fly={{ y: -10 }}>
        <div class="bg-[#FFB7C5]/20 backdrop-blur-md border border-[#FFB7C5]/30 rounded-full px-3 py-0.5 flex items-center gap-2">
-          <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] animate-pulse shadow-[0_0_8px_rgba(255,183,197,0.8)]"></div>
-          <span class="text-[10px] font-bold text-white/90 uppercase tracking-tight italic">
+          <div class="w-1 h-1 rounded-full bg-[#FFB7C5] animate-pulse shadow-[0_0_8px_rgba(255,183,197,0.8)]"></div>
+          <span class="text-[9px] font-bold text-white/90 uppercase tracking-tight italic">
             <span class="text-[#FFB7C5]">{viralViewers.toLocaleString()}</span> 
             <EditableWrapper path="metadata.offer_viewers_suffix" type="text" label="SỬA NHÃN" class="inline" as="span">
               {metadata.offer_viewers_suffix || 'ĐANG XEM'}
@@ -163,7 +163,7 @@
        </div>
     </div>
 
-    <h3 class="text-2xl font-black text-center italic tracking-tighter uppercase leading-tight mb-2">
+    <h3 class="text-4xl font-black text-center italic tracking-tighter uppercase leading-tight mb-2">
       <span class="bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-white/40">
         <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">{h1}</EditableWrapper>
       </span>
@@ -193,12 +193,10 @@
   <div class="flex-1 flex flex-col z-[var(--z-surface)] overflow-y-auto no-scrollbar pb-10 !px-0 gap-2">
     <!-- 🔥 Viral Share Bar (Inline variant for Funnel) -->
     {#if product}
-      <div class="px-4 pt-2 pb-1">
-        <ViralShareBar
+      <div class="px-4">
+        <ShareToUnlockPromo
           product={product}
           variant="funnel"
-          dark={true}
-          likeCount={Number(product.metadata?.likes || 0)}
         />
       </div>
     {/if}
@@ -210,25 +208,25 @@
          {@const vPrice = priceData.final}
          {@const isActive = selectedIndex === i}
          
-          <div 
+           <div 
             role="button"
             tabindex="0"
             onclick={() => handleSelect(i)}
             onkeydown={(e) => e.key === 'Enter' && handleSelect(i)}
-            class="relative w-full text-left transition-all duration-500 h-[145px] flex items-center overflow-hidden cursor-pointer {isActive ? 'bg-white/[0.08] border-y border-white/20 z-surface z-10 shadow-[0_0_40px_rgba(255,183,197,0.1)]' : 'bg-transparent border-y border-white/5 opacity-40 hover:opacity-100'}"
+            class="relative w-full text-left transition-all duration-500 h-[125px] flex items-center overflow-hidden cursor-pointer {isActive ? 'bg-white/[0.08] border-b border-white/20 z-10' : 'bg-transparent border-b border-white/5 opacity-40'}"
           >
              <div class="absolute inset-0 bg-gradient-to-r from-[#FFB7C5]/15 via-transparent to-[#E8D5B0]/10 pointer-events-none transition-opacity duration-500 {isActive ? 'opacity-100' : 'opacity-0'}"></div>
              
              <!-- 🖼️ FULL HEIGHT EDGE IMAGE -->
-             <div class="w-[125px] h-full shrink-0 relative bg-white/5 overflow-hidden">
+             <div class="w-[100px] h-full shrink-0 relative bg-white/5 overflow-hidden">
                 {#if variantImages[i]}
                   <img 
                     src={variantImages[i]} 
                     alt={getVariantTitle(variant)} 
                     loading="lazy"
                     decoding="async"
-                    width="125"
-                    height="145"
+                    width="100"
+                    height="125"
                     class="w-full h-full object-cover transition-all {isActive ? 'brightness-110' : 'grayscale-[40%]'}" 
                   />
                 {:else}
@@ -239,7 +237,7 @@
                 <div class="absolute inset-0 ring-4 ring-inset ring-[#FFB7C5]/20 shadow-[inset_0_0_40px_rgba(255,183,197,0.2)] transition-opacity duration-500 {isActive ? 'opacity-100' : 'opacity-0'}"></div>
              </div>
 
-             <div class="flex-1 flex flex-col justify-center px-6 py-4 min-w-0">
+             <div class="flex-1 flex flex-col justify-center px-5 py-2 min-w-0">
                 <div class="flex items-center gap-2 mb-2">
                    {#if i === 1}
                       <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-sm font-bold text-[10px] uppercase tracking-widest flex items-center gap-1 shadow-md shadow-amber-500/10">
@@ -308,12 +306,7 @@
        {/each}
     </div>
 
-     <!-- 🎁 Share-to-Unlock Promo (Promotion Section) -->
-     {#if product}
-       <div class="px-4 mt-6">
-         <ShareToUnlockPromo product={product} compact={false} />
-       </div>
-     {/if}
+
 
      <!-- 🎫 PIXEL-PERFECT VOUCHER 1:1 (Redemption Version) -->
      {#if productVouchers.length > 0}
@@ -323,12 +316,12 @@
               Mã giảm giá ưu đãi
            </span>
         </div>
-       <div class="flex flex-row gap-2 overflow-x-auto no-scrollbar py-1 -mx-4 px-3">
+       <div class="flex flex-row gap-2 overflow-x-auto no-scrollbar pt-4 pb-2 -mx-4 px-3">
           {#each productVouchers as v}
              {@const isApplied = shopStore.selectedVoucherIds.includes(v.id)}
              <button 
                onclick={() => handleVoucherClick(v)}
-               class="flex-shrink-0 relative w-fit min-w-[140px] h-[75px] transition-all duration-300 transform active:scale-[0.97] overflow-visible group"
+               class="flex-shrink-0 relative w-fit min-w-[120px] h-[60px] transition-all duration-300 transform active:scale-[0.97] overflow-visible group"
              >
                 <!-- 📦 Postage Stamp Body (Advanced Composite Mask) -->
                 <div 
@@ -394,7 +387,7 @@
                 <div class="flex items-center gap-1.5 mt-0.5">
                    <span class="text-[10px] text-[#FFB7C5] font-bold uppercase tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20">TÍCH +{Math.floor(shopStore.totalAmount / 100000)} PTS</span>
                    <EditableWrapper path="metadata.offer_shipping_label" type="text" label="SỬA NHÃN SHIP" class="inline" as="span">
-                     <span class="text-[10px] text-white/30 font-bold uppercase tracking-widest italic">• {metadata.offer_shipping_label || 'SHIP đ0'}</span>
+                     <span class="text-[10px] text-white/30 font-bold uppercase tracking-widest italic">• {metadata.offer_shipping_label || 'FREESHIP'}</span>
                    </EditableWrapper>
                 </div>
               </div>
