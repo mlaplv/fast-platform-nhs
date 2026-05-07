@@ -308,14 +308,21 @@
        {/each}
     </div>
 
-    <!-- 🎫 PIXEL-PERFECT VOUCHER 1:1 (Redemption Version) -->
-    {#if productVouchers.length > 0}
-    <div class="px-4 mt-4 mb-2 z-surface shrink-0" in:fade>
-       <div class="flex items-center justify-between mb-1.5 px-1">
-          <span class="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] italic flex items-center gap-2">
-             Mã giảm giá ưu đãi
-          </span>
+     <!-- 🎁 Share-to-Unlock Promo (Promotion Section) -->
+     {#if product}
+       <div class="px-4 mt-6">
+         <ShareToUnlockPromo product={product} compact={false} />
        </div>
+     {/if}
+
+     <!-- 🎫 PIXEL-PERFECT VOUCHER 1:1 (Redemption Version) -->
+     {#if productVouchers.length > 0}
+     <div class="px-4 mt-4 mb-2 z-surface shrink-0" in:fade>
+        <div class="flex items-center justify-between mb-1.5 px-1">
+           <span class="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] italic flex items-center gap-2">
+              Mã giảm giá ưu đãi
+           </span>
+        </div>
        <div class="flex flex-row gap-2 overflow-x-auto no-scrollbar py-1 -mx-4 px-3">
           {#each productVouchers as v}
              {@const isApplied = shopStore.selectedVoucherIds.includes(v.id)}
@@ -371,12 +378,7 @@
   
   <!-- 🛰️ CTA HUD -->
   <div class="mt-auto pt-2 pb-2 relative bg-gradient-to-t from-black via-black/95 to-transparent shrink-0" style="z-index: {Z_INDEX_CLIENT.OVERLAY};">
-    <!-- 🎁 Share-to-Unlock Promo (trước nút mua — conversion peak point) -->
-    {#if product}
-      <div class="px-3 pb-2">
-        <ShareToUnlockPromo product={product} compact={true} />
-      </div>
-    {/if}
+
       <div class="px-3 pb-2">
         <button
            onclick={() => { 
