@@ -1,30 +1,39 @@
 <script lang="ts">
-  import { getIngredientIcon } from '$lib/utils/product';
   import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
+  import { 
+    Minus, Plus, ShoppingCart, Star, Gift, Package, Sparkles, 
+    Diamond, Beaker, FlaskConical, Info, Volume2, VolumeX 
+  } from 'lucide-svelte';
+  
+  // Types
+  import type { Product, ProductVariant, ReviewStats } from '$lib/types';
+  
+  // State & Stores
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { goto } from '$app/navigation';
-  import type { Product, ProductVariant } from '$lib/types';
-  import { ShoppingCart, Minus, Plus, Star, Gift, Package, Sparkles, Diamond, Beaker, FlaskConical, Info } from 'lucide-svelte';
-  import { Volume2, VolumeX } from 'lucide-svelte';
-  import ProductDetailReviews from './ProductDetailReviews.svelte';
-  import { resolveMediaUrl } from '$lib/state/utils';
-  import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
-  import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
-  import type { ReviewStats } from '$lib/types';
+  
+  // Utils
+  import { getIngredientIcon } from '$lib/utils/product';
+  import { resolveMediaUrl } from '$lib/state/utils';
   import { formatCurrency } from '$lib/utils/format';
+  
+  // Components
+  import ProductDetailReviews from './ProductDetailReviews.svelte';
   import ProductDetailRelated from './ProductDetailRelated.svelte';
   import ViralShareBar from './ViralShareBar.svelte';
   import ShareToUnlockPromo from './ShareToUnlockPromo.svelte';
+  import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
+  import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
 
 
-  function isJson(str: string) {
-    if (typeof str !== 'string') return false;
+  function isJson(str: string): boolean {
+    if (typeof str !== 'string' || !str) return false;
     try {
-      const parsed = JSON.parse(str);
+      const parsed: Record<string, unknown> = JSON.parse(str);
       return typeof parsed === 'object' && parsed !== null && ('hero_headline' in parsed || 'spec_bento' in parsed);
-    } catch (e) {
+    } catch {
       return false;
     }
   }
@@ -250,24 +259,55 @@
   );
   let timeLeft = $state({ hours: 0, minutes: 0, seconds: 0 });
   
+  /**
+   * Elite V2.2: Theo dõi trạng thái mở khóa Viral để kích hoạt hiệu ứng bay
+   */
+  let isViralUnlocked = $state(false);
+  $effect(() => {
+    if (typeof window !== 'undefined') {
+       isViralUnlocked = !!localStorage.getItem(`viral_unlocked_${product.id}`);
+    }
+  });
+
   // Voucher State
   let selectedVouchers = $state<string[]>([]);
   
   // Use DB vouchers if available
   const productVouchers = $derived.by(() => {
+    let vouchers = [];
+    
     // 1. Check if product has specific override vouchers in metadata
     if (Array.isArray(product.metadata?.vouchers) && product.metadata.vouchers.length > 0) {
-      return product.metadata.vouchers;
+      vouchers = product.metadata.vouchers;
+    } else {
+      // 2. Fallback to global active vouchers from CartStore (Elite V2.2)
+      vouchers = cartStore.vouchers.map(v => ({
+        id: v.id,
+        label: v.title || v.id,
+        sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${formatCurrency(v.value)}`),
+        type: v.type === 'SHIPPING' ? 'ship' : 'discount'
+      }));
     }
-    
-    // 2. Fallback to global active vouchers from CartStore (Elite V2.2)
-    return cartStore.vouchers.map(v => ({
-      id: v.id,
-      label: v.title || v.id,
-      sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${formatCurrency(v.value)}`),
-      type: v.type === 'SHIPPING' ? 'ship' : 'discount'
-    }));
+
+    /**
+     * Elite V2.2: Intelligent Filtering
+     * Lọc bỏ các Voucher Viral để tránh hiện ở khối chung khi CHƯA chia sẻ.
+     * Nếu ĐÃ mở khóa (isViralUnlocked), mã sẽ được hiển thị như một phần của hệ thống.
+     */
+    return vouchers.filter((v: { id: string; label?: string }) => {
+      const isViral = v.id.includes('VIRAL') || (v.label || '').toUpperCase().includes('VIRAL');
+      if (!isViral) return true;
+      return isViralUnlocked;
+    });
   });
+
+  /**
+   * Elite V2.2: Hiệu ứng bay vào Box giảm giá
+   */
+  function triggerViralFly() {
+     isViralUnlocked = true; // Cập nhật state để Svelte render voucher vào box ngay
+     // Logic hiệu ứng bay sẽ được component con kích hoạt
+  }
 
   function toggleVoucher(id: string) {
     const voucher = productVouchers.find(v => v.id === id);
@@ -307,12 +347,12 @@
   const pDiscountPrice = $derived(product.discountPrice || product.discount_price);
   
   const productInfo = $derived({
-    barcode: product.sku || 'N/A',
-    brand: product.metadata?.brand || product.attributes?.brand || product.attributes?.['Thương hiệu'] || product.attributes?.['Thương Hiệu'] || product.attributes?.['thương hiệu'] || '',
-    origin: product.metadata?.origin || product.attributes?.origin || product.attributes?.['Xuất xứ'] || '',
-    weight: product.metadata?.weight || product.attributes?.weight || product.attributes?.['Trọng lượng'] || product.attributes?.['Quy cách'] || '',
+    barcode: (product.sku as string) || 'N/A',
+    brand: (product.metadata?.brand as string) || (product.attributes?.brand as string) || (product.attributes?.['Thương hiệu'] as string) || '',
+    origin: (product.metadata?.origin as string) || (product.attributes?.origin as string) || (product.attributes?.['Xuất xứ'] as string) || '',
+    weight: (product.metadata?.weight as string) || (product.attributes?.weight as string) || (product.attributes?.['Trọng lượng'] as string) || '',
     originalPrice: pDiscountPrice ? (product.price || product.base_price || 0) : (product.price || 0) * 1.55,
-    salePrice: pDiscountPrice || product.price || 0
+    salePrice: (pDiscountPrice as number) || (product.price as number) || 0
   });
 
   const visibleAttributes = $derived(
@@ -359,7 +399,7 @@
   $effect(() => {
     if (product) {
       isLiked = false; // Reset when switching products
-      likeCount = product.metadata?.likes ? Number(product.metadata.likes) : 0;
+      likeCount = Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0);
     }
   });
 
@@ -552,21 +592,13 @@
       </div>
 
       <!-- Social & Like (Viral 2026 — ViralShareBar) -->
-      <div class="mt-8 flex items-center justify-between px-2">
+      <div class="mt-8 px-2">
         <ViralShareBar 
           {product} 
           variant="desktop" 
           likeCount={likeCount}
+          hideLikes={false}
         />
-        <div class="w-px h-5 bg-gray-100"></div>
-        <button onclick={toggleLike} class="flex items-center gap-2 group cursor-pointer hover:bg-[#ff424f]/5 px-2 py-1 -mr-2 rounded-lg transition-colors select-none outline-none">
-           <svg 
-              class="w-6 h-6 transition-all duration-300 {isLiked ? 'text-[#ff424f] fill-current drop-shadow-[0_2px_4px_rgba(255,66,79,0.3)] border-transparent' : 'text-gray-400 fill-transparent stroke-current group-hover:text-[#ff424f]/60'} {likeAnimating ? 'scale-125' : 'scale-100'}" 
-              viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-           <span class="text-sm font-medium transition-colors {isLiked ? 'text-[#ff424f]' : 'text-gray-700 group-hover:text-[#ff424f]'}">
-              {isLiked ? 'Đã thích' : 'Yêu thích'}{likeCount > 0 ? ` (${formatCount(likeCount)})` : ''}
-           </span>
-        </button>
       </div>
     </div>
 
@@ -603,7 +635,7 @@
         <div class="flex items-center gap-1">
           <span class="text-black font-bold">{product.order_count_text || product.orderCount || 0}</span>
           {#if !product.order_count_text}
-            <span class="text-gray-500 font-medium">Đã Bán</span>
+            <span class="text-gray-500 font-medium">Đã bán</span>
           {/if}
         </div>
         <div class="ml-auto">
@@ -696,6 +728,11 @@
                {/each}
             </div>
          </div>
+      </div>
+      
+      <!-- Elite V2.2: Share-to-Unlock (Minimalist Placement) -->
+      <div class="px-5 mb-4">
+        <ShareToUnlockPromo {product} compact={true} onUnlock={triggerViralFly} />
       </div>
 
       <!-- Shipping Block -->
@@ -839,11 +876,6 @@
           </div>
         </div>
       {/if}
-
-      <!-- SHARE-TO-UNLOCK PROMO (Viral 2026) -->
-      <div class="px-5 mb-4">
-        <ShareToUnlockPromo {product} />
-      </div>
 
       <!-- CTA BUTTONS (Elite V2.2 Sharp) -->
       <div class="px-5 flex gap-4 mt-auto pb-4">

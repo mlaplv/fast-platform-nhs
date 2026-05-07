@@ -132,15 +132,14 @@
       </div>
     </div>
 
-    <div class="flex justify-center mb-6 mt-4 relative z-surface">
+    <div class="max-w-2xl mx-auto mb-8 mt-4 relative z-surface flex flex-col items-center gap-[6px]">
       <OfferFomoTimer {...mkt} />
+      {#if product}
+        <div class="w-full">
+          <ShareToUnlockPromo {product} compact={true} />
+        </div>
+      {/if}
     </div>
-
-    {#if product}
-      <div class="max-w-2xl mx-auto mb-8 relative z-surface">
-        <ShareToUnlockPromo {product} />
-      </div>
-    {/if}
 
     <div class="package-grid pt-8 {gridClass} gap-6 items-stretch">
       {#each variants as variant, idx (variant.id)}

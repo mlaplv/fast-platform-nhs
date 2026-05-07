@@ -1,10 +1,21 @@
 <script lang="ts">
-  import { ChevronLeft, ChevronRight, Zap, Bookmark, Gift, Sparkles, Package, Volume2, VolumeX, Heart } from 'lucide-svelte';
-  import type { Product } from '$lib/types';
+  import { 
+    ChevronLeft, ChevronRight, Zap, Bookmark, Gift, Sparkles, 
+    Package, Volume2, VolumeX, Heart 
+  } from 'lucide-svelte';
+  
+  // Types
+  import type { Product, ProductVariant, ReviewStats } from '$lib/types';
+  
+  // State & Stores
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  
+  // Utils
   import { resolveMediaUrl } from '$lib/state/utils';
   import { formatCurrency } from '$lib/utils/format';
+  
+  // Components
   import ViralShareBar from './ViralShareBar.svelte';
   import ShareToUnlockPromo from './ShareToUnlockPromo.svelte';
 
@@ -31,13 +42,23 @@
   // --- LIKE / BOOKMARK STATE ---
   let isLiked = $state(false);
   let likeAnimating = $state(false);
+  let likeCount = $state(0);
+
+  $effect(() => {
+    if (product) {
+      likeCount = Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0);
+    }
+  });
 
   function toggleLike() {
     isLiked = !isLiked;
     if (isLiked) {
+      likeCount++;
       clientUi.showToast('Đã thêm sản phẩm vào mục Yêu thích', 'success');
       likeAnimating = true;
       setTimeout(() => { likeAnimating = false; }, 300);
+    } else {
+      likeCount--;
     }
   }
 
@@ -108,24 +129,48 @@
   let isAtStart = $state(true);
   let isAtEnd = $state(false);
   let selectedVouchers = $state<string[]>([]);
+  
+  /**
+   * Elite V2.2: Theo dõi trạng thái mở khóa Viral trên Mobile
+   */
+  let isViralUnlocked = $state(false);
+  $effect(() => {
+    if (typeof window !== 'undefined') {
+      isViralUnlocked = !!localStorage.getItem(`viral_unlocked_${product.id}`);
+    }
+  });
+
+  function triggerViralFly() {
+    isViralUnlocked = true;
+  }
+
+  function formatCount(count: number): string {
+    if (count >= 1000) return (count / 1000).toFixed(1).replace('.0', '') + 'k';
+    return count.toString();
+  }
 
   const formatPrice = (p: number) => p.toLocaleString('vi-VN');
   
   const displayImages = $derived(product.images?.length > 0 ? product.images : [product.images?.[0] || '']);
   
   const vouchers = $derived.by(() => {
-    // 1. Check if product has specific override vouchers
-    if (Array.isArray(product.metadata?.vouchers) && product.metadata.vouchers.length > 0) {
-      return product.metadata.vouchers;
-    }
-    
-    // 2. Fallback to global active vouchers from CartStore (Elite V2.2)
-    return cartStore.vouchers.map(v => ({
-      id: v.id,
-      label: v.title || v.id,
-      sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${formatCurrency(v.value)}`),
-      type: (v.type === 'SHIPPING' || v.type === 'ship') ? 'ship' : 'discount'
-    }));
+    const list: Array<{ id: string; label: string; sub: string; type: string }> = 
+      Array.isArray(product.metadata?.vouchers) && product.metadata.vouchers.length > 0
+        ? product.metadata.vouchers
+        : cartStore.vouchers.map(v => ({
+            id: v.id,
+            label: v.title || v.id,
+            sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${formatCurrency(v.value)}`),
+            type: (v.type === 'SHIPPING' || v.type === 'ship') ? 'ship' : 'discount'
+          }));
+
+    /**
+     * Elite V2.2: Intelligent Filtering for Mobile
+     */
+    return list.filter((v: { id: string; label?: string }) => {
+      const isViral = v.id.includes('VIRAL') || (v.label || '').toUpperCase().includes('VIRAL');
+      return !isViral || isViralUnlocked;
+    });
   });
 
   const activeVariant = $derived(selectedVariant || pVariants?.[0]);
@@ -342,11 +387,14 @@
     <div class="title-row mt-2">
       <h1 class="product-title">{product.name.replace(/40gr/g, '40g')}</h1>
       <button class="bookmark-btn {isLiked ? 'bookmark-active' : ''}" aria-label="Lưu sản phẩm" onclick={toggleLike}>
-        {#if isLiked}
-          <Heart size={20} fill="currentColor" class="{likeAnimating ? 'scale-125' : 'scale-100'} transition-transform" />
-        {:else}
-          <Bookmark size={20} />
-        {/if}
+        <div class="flex flex-col items-center gap-0.5">
+          {#if isLiked}
+            <Heart size={20} fill="currentColor" class="{likeAnimating ? 'scale-125' : 'scale-100'} transition-transform" />
+          {:else}
+            <Bookmark size={20} />
+          {/if}
+          <span class="text-[10px] font-bold">{likeCount > 0 ? formatCount(likeCount) : 'Thích'}</span>
+        </div>
       </button>
     </div>
 
@@ -412,13 +460,13 @@
         <ViralShareBar 
           product={product} 
           variant="mobile" 
-          likeCount={Number(product.metadata?.likes || 0)}
+          likeCount={likeCount}
         />
       </div>
 
-    <!-- SHARE-TO-UNLOCK PROMO (Mobile Compact) -->
-    <div class="px-3 pb-3">
-      <ShareToUnlockPromo {product} compact={true} />
+    <!-- Elite V2.2: Share-to-Unlock Mobile Placement -->
+    <div class="px-4 mb-4">
+      <ShareToUnlockPromo {product} compact={true} onUnlock={triggerViralFly} />
     </div>
 
     <div class="product-stats-row">

@@ -508,8 +508,27 @@ class ProductService:
             mobile_images=data.mobileImages,
             attributes=data.attributes,
             tier_variations=[tv.model_dump() for tv in data.tierVariations] if data.tierVariations else [],
-            product_metadata=data.metadata.model_dump() if data.metadata else {},
         )
+
+        # Elite V2.2: Default Viral Suite (Voucher 50k)
+        # Ensure every product has the viral campaign enabled by default
+        base_metadata = data.metadata.model_dump() if data.metadata else {}
+        if "viral_suite" not in base_metadata:
+            base_metadata["viral_suite"] = {
+                "likes_count": 0,
+                "share_count": 0,
+                "share_target": 1000,
+                "primary_campaign": "VOUCHER_UNLOCK",
+                "share_promotion": {
+                    "enabled": True,
+                    "voucher_id": "VIRAL50K",
+                    "voucher_label": "Giảm 50.000₫",
+                    "cta_text": "Chia sẻ để nhận mã",
+                    "share_text": f"Bí quyết tỏa sáng cùng {data.name}! Cùng chia sẻ để nhận ưu đãi 50K nhé! 🌸"
+                }
+            }
+        product.product_metadata = base_metadata
+        
         db_session.add(product)
 
         # Add variants

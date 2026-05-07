@@ -783,3 +783,14 @@
   transform: translateY(-1px) scale(1.05);
   box-shadow: 0 8px 25px rgba(255, 183, 197, 0.6);
 }
+
+/* ── ELITE TYPOGRAPHY ADJUSTMENT (Offer Grid Headline) ── */
+.offer-grid-headline {
+  /* Override the massive global .elite-session-headline font size */
+  font-size: clamp(24px, 5vw, 42px) !important;
+  line-height: 1.25 !important;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+  letter-spacing: -0.02em !important;
+}
