@@ -106,7 +106,7 @@
     if (isH1Off && isH2Off) return '';
     if (isH1Off) return `<span class="text-luxury-copper">${h2}</span>`;
     if (isH2Off) return h1;
-    return `<span class="text-[1.2em] block leading-none mb-2">${h1}</span><span class="text-luxury-copper">${h2}</span>`;
+    return `<span class="text-[1.2em] block leading-[1.4] mb-[-0.35em]">${h1}</span><span class="text-luxury-copper">${h2}</span>`;
   });
 
   const fallbackDesc = `

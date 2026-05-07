@@ -134,33 +134,37 @@ html {
       font-weight: 400 !important;
     }
 
-    & strong, & h1 {
+    & strong,
+    & h1 {
       font-weight: 600 !important;
       text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
     }
   }
+
   /* --- ELITE HEADLINE SYSTEM --- */
   & .elite-hero-headline {
-    letter-spacing: -0.02em !important; /* Tighter for more impact */
-    font-weight: 700 !important;
-    line-height: 1 !important;
+    letter-spacing: -0.02em !important;
+    /* Tighter for more impact */
+    font-weight: 900 !important;
+    line-height: 1.4 !important;
+    padding: 0.2em 0 !important;
+    overflow: visible !important;
     margin-top: 0 !important;
     text-transform: uppercase;
-    
-    /* Thickness without aliasing */
-    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
-    paint-order: stroke fill;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+
+    /* Thickness without aliasing - removed stroke for accent clarity */
+    paint-order: fill stroke;
 
     /* Viral Shine Effect */
-    background: linear-gradient(
-      120deg, 
-      #fff 0%, 
-      #fff 40%, 
-      var(--color-luxury-copper) 50%, 
-      #fff 60%, 
-      #fff 100%
-    );
-    background-size: 200% auto;
+    background: linear-gradient(120deg,
+        #fff 0%,
+        #fff 40%,
+        var(--color-luxury-copper) 50%,
+        #fff 60%,
+        #fff 100%);
+    background-size: 200% 100%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     animation: viral-shine 4s linear infinite;
@@ -202,11 +206,13 @@ html {
       margin-bottom: 1.25rem !important;
     }
 
-    & strong, & h1 {
+    & strong,
+    & h1 {
       font-weight: 600;
       filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.1));
     }
   }
+
   /* --- PRODUCT SHOWCASE & HUD --- */
   & .hero-product-display {
     min-height: auto;
@@ -456,10 +462,12 @@ html {
     transform: scaleY(0.85);
   }
 }
+
 @keyframes viral-shine {
   from {
     background-position: 200% center;
   }
+
   to {
     background-position: -200% center;
   }
