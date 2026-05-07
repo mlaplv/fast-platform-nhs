@@ -37,14 +37,14 @@
 
 <!-- 🎭 ELITE V2.2: LOCAL CONTEXT OVERLAY (INSIDE ITEM) -->
 <div 
-  class="absolute inset-0 z-[190] bg-black/60 backdrop-blur-sm pointer-events-auto rounded-[inherit]"
+  class="absolute inset-0 z-[190] backdrop-blur-md pointer-events-auto rounded-3xl"
   in:fade={{ duration: 300 }}
   out:fade={{ duration: 200 }}
   onclick={onClose}
 ></div>
 
 <div 
-  class="absolute inset-x-0 bottom-0 z-[200] flex flex-col bg-[#0b0b0b] backdrop-blur-3xl rounded-[inherit] border-t border-white/10 shadow-[0_-20px_80px_rgba(0,0,0,1)] overflow-hidden h-auto max-h-[92%] transition-all"
+  class="absolute inset-x-0 bottom-0 z-[200] flex flex-col bg-[#0b0b0b] backdrop-blur-3xl rounded-3xl border-t border-white/10 shadow-[0_-20px_80px_rgba(0,0,0,1)] overflow-hidden h-auto max-h-[92%] transition-all pointer-events-auto"
   in:fly={{ y: '100%', duration: 600, easing: cubicOut }}
   out:fly={{ y: '100%', duration: 400, easing: cubicIn }}
   onclick={(e) => e.stopPropagation()}
@@ -99,10 +99,10 @@
        <div class="flex flex-col gap-4 py-1">
          {#each productVouchers as v}
            {@const isApplied = shopStore.selectedVoucherIds.includes(v.id)}
-           <div class="voucher-notch-container relative h-[78px] flex items-center bg-white/[0.03] rounded-2xl border border-white/5 overflow-hidden transition-all {isApplied ? 'bg-luxury-sakura/5 border-luxury-sakura/20 shadow-[0_0_20px_rgba(255,183,197,0.05)]' : 'hover:bg-white/[0.06]'} group cursor-pointer" onclick={() => onVoucherClick(v)}>
-              <!-- 🎫 NOTCHES (TikTok Style) -->
-              <div class="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#0b0b0b] z-10"></div>
-              <div class="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#0b0b0b] z-10"></div>
+            <div class="voucher-notch-container relative h-[78px] flex items-center bg-white/[0.03] rounded-2xl border border-white/5 transition-all {isApplied ? 'bg-luxury-sakura/5 border-luxury-sakura/20 shadow-[0_0_20px_rgba(255,183,197,0.05)]' : 'hover:bg-white/[0.06]'} group cursor-pointer" onclick={() => onVoucherClick(v)}>
+               <!-- 🎫 NOTCHES (TikTok Style) -->
+               <div class="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#0b0b0b] z-20 shadow-[inset_-1px_0_1px_rgba(255,255,255,0.1)]"></div>
+               <div class="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#0b0b0b] z-20 shadow-[inset_1px_0_1px_rgba(255,255,255,0.1)]"></div>
               
               <div class="w-16 h-full bg-white/[0.02] flex items-center justify-center border-r border-dashed border-white/10 shrink-0 relative">
                  <Ticket class="{isApplied ? 'text-luxury-sakura' : 'text-white/10'} transition-all scale-110" size={20} />

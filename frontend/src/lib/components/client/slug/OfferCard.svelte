@@ -385,6 +385,7 @@
 
   <!-- 🌙 VOUCHER BOTTOM SHEET (OUTSIDE CONTENT BOX TO FIX CLIPPING) -->
   {#if liveEditStore.openPopoverId === variant.id}
+    <div class="absolute inset-0 z-[100] {isCardActive ? 'scale-[1.03] -translate-y-2' : ''} transition-all duration-700 pointer-events-none">
       <OfferVoucherSheet 
         {variant} 
         idx={idx} 
@@ -396,5 +397,6 @@
         onVoucherClick={(v) => shopStore.toggleVoucher(v.id)}
         onSetTab={(i, tab) => shopStore.setOfferTab(i, tab)}
       />
+    </div>
   {/if}
 </div>
