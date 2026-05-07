@@ -271,7 +271,8 @@
     description={metadata?.short_description || product?.name || ""}
     canonical=""
     siteName={siteName}
-    robots="noindex"
+    ogType="product"
+    image={product?.images?.[0] || ""}
     productData={{
       name: (product?.name || "").replace(/40gr/g, '40g'),
       images: product?.images,

@@ -12,6 +12,10 @@
   import Sparkles from "lucide-svelte/icons/sparkles";
   import Beaker from "lucide-svelte/icons/beaker";
   import Star from "lucide-svelte/icons/star";
+  import Share2 from "lucide-svelte/icons/share-2";
+  import Heart from "lucide-svelte/icons/heart";
+  import Clock from "lucide-svelte/icons/clock";
+  import Ticket from "lucide-svelte/icons/ticket";
   import type { ProductMetadata } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
@@ -177,6 +181,21 @@
       nanobot.showToast("Lỗi kết nối tới hệ thống AI XOHI.", "error");
     } finally {
       isSuggestingFaqs = false;
+    }
+  }
+
+  function toggleSharePromo() {
+    if (!formMetadata.share_promotion) {
+      formMetadata.share_promotion = {
+        enabled: true,
+        voucher_id: '',
+        voucher_label: 'Giảm 50.000₫',
+        voucher_condition: 'Cho đơn từ 0đ',
+        cta_text: 'Chia sẻ nhận khuyến mãi',
+        share_text: ''
+      };
+    } else {
+      formMetadata.share_promotion.enabled = !formMetadata.share_promotion.enabled;
     }
   }
 </script>
@@ -353,6 +372,155 @@
           placeholder="SmartShop.vn"
           class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-amber-500/50 transition-colors"
         />
+      </div>
+    </div>
+  </div>
+
+  <!-- VIRAL & ENGAGEMENT SECTION -->
+  <div class="flex flex-col gap-4">
+    <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+      <Share2 size={11} class="text-pink-400/60" />
+      Lan truyền & Tương tác (Viral 2026)
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+      <!-- Flash Sale End Time -->
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center justify-between">
+          <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Thời gian Flash Sale kết thúc</label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" bind:checked={formMetadata.is_flash_sale} class="sr-only peer" />
+            <div class="w-7 h-4 bg-white/10 rounded-full peer peer-checked:bg-pink-500 transition-all relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-3"></div>
+            <span class="text-[8px] font-black text-white/30 uppercase tracking-widest">Kích hoạt</span>
+          </label>
+        </div>
+        <input
+          type="datetime-local"
+          bind:value={formMetadata.flash_sale_end}
+          class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
+        />
+        <p class="text-[8px] text-white/20 leading-tight">Thiết lập thời điểm kết thúc để hiển thị đồng hồ đếm ngược (Countdown) tạo sự khẩn cấp.</p>
+      </div>
+
+      <!-- Initial Likes -->
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Lượt thích ban đầu (Social Proof)</label>
+        <div class="relative">
+          <input
+            type="number"
+            bind:value={formMetadata.likes}
+            placeholder="0"
+            class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors pl-9"
+          />
+          <Heart size={12} class="absolute left-3 top-1/2 -translate-y-1/2 text-pink-500/60" />
+        </div>
+        <p class="text-[8px] text-white/20 leading-tight">Số lượt tim hiển thị trên thanh ViralBar. Giúp tăng uy tín sản phẩm từ cái nhìn đầu tiên.</p>
+      </div>
+
+      <!-- Share Target & Reward -->
+      <div class="flex flex-col gap-1.5 md:col-span-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Mục tiêu chia sẻ (Gamification)</label>
+            <input
+              type="number"
+              bind:value={formMetadata.share_count}
+              placeholder="Hiện tại"
+              class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
+            />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Mốc mục tiêu (Target)</label>
+            <input
+              type="number"
+              bind:value={formMetadata.share_target}
+              placeholder="VD: 1000"
+              class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
+            />
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5 mt-2">
+          <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Nhãn phần thưởng khi đạt mốc</label>
+          <input
+            type="text"
+            bind:value={formMetadata.share_reward_label}
+            placeholder="VD: Đạt 1k share mở khóa đại tiệc quà tặng!"
+            class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
+          />
+          <p class="text-[8px] text-white/20 leading-tight italic">Thông điệp này sẽ xuất hiện khi thanh tiến trình (Progress Bar) đạt 100%.</p>
+        </div>
+      </div>
+
+      <!-- SHARE TO UNLOCK PROMOTION -->
+      <div class="md:col-span-2 mt-4 p-4 rounded-xl bg-pink-500/[0.03] border border-pink-500/15">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <Ticket size={14} class="text-pink-400" />
+            <span class="text-[10px] font-black text-white/80 uppercase tracking-widest">Chiến dịch Share-to-Unlock</span>
+          </div>
+          <button
+            type="button"
+            onclick={toggleSharePromo}
+            class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all {formMetadata.share_promotion?.enabled ? 'bg-pink-500/20 text-pink-400 border border-pink-500/30' : 'bg-white/5 text-white/30 border border-white/10'}"
+          >
+            {formMetadata.share_promotion?.enabled ? 'Đang bật' : 'Đang tắt'}
+          </button>
+        </div>
+
+        {#if formMetadata.share_promotion?.enabled}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">ID Voucher trong DB (Liên kết bảo mật)</label>
+              <input
+                type="text"
+                bind:value={formMetadata.share_promotion.voucher_id}
+                placeholder="VD: OSMO50K (phải tồn tại trong hệ thống Voucher)"
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors font-mono"
+              />
+              <p class="text-[8px] text-pink-400/60">⚠️ Nhập đúng ID Voucher đã tạo trong mục Khuyến mãi. Hệ thống sẽ đọc từ DB — không expose trong HTML.</p>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Tiêu đề Voucher (Label)</label>
+              <input
+                type="text"
+                bind:value={formMetadata.share_promotion.voucher_label}
+                placeholder="VD: Giảm 50.000₫"
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
+              />
+              <p class="text-[8px] text-white/20 mt-1">VD: GIẢM 50.000₫. Hiển thị trên tem Voucher sau khi mở khóa.</p>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Điều kiện (Condition)</label>
+              <input
+                type="text"
+                bind:value={formMetadata.share_promotion.voucher_condition}
+                placeholder="VD: Cho đơn từ 0đ"
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
+              />
+              <p class="text-[8px] text-white/20 mt-1">Dòng chú thích nhỏ dưới Voucher. VD: Áp dụng cho đơn từ 200k.</p>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Lời kêu gọi (CTA Text)</label>
+              <input
+                type="text"
+                bind:value={formMetadata.share_promotion.cta_text}
+                placeholder="Chia sẻ nhận khuyến mãi"
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
+              />
+              <p class="text-[8px] text-white/20 mt-1">Dòng chữ trên nút bấm chia sẻ. VD: Share để nhận ngay.</p>
+            </div>
+            <div class="flex flex-col gap-1.5 md:col-span-2">
+              <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Nội dung mẫu khi chia sẻ (Share Text)</label>
+              <textarea
+                bind:value={formMetadata.share_promotion.share_text}
+                placeholder="VD: Sản phẩm này tuyệt vời quá, các bạn xem thử nhé!"
+                rows="2"
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white/80 focus:outline-none focus:border-pink-500/50 transition-colors resize-none"
+              ></textarea>
+              <p class="text-[8px] text-white/20 mt-1">Nội dung sẽ tự động điền vào cửa sổ chia sẻ (Zalo, FB...). Đây là mồi nhử giúp lan truyền tự nhiên.</p>
+            </div>
+          </div>
+        {/if}
       </div>
     </div>
   </div>

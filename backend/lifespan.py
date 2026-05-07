@@ -21,6 +21,7 @@ from backend.services.xohi.creative_studio.orchestrator import content_factory
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.http_client import SharedHttpClient
 from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
+from backend.services.viral_share_service import viral_share_service as _viral_svc
 
 logger = logging.getLogger("api-gateway")
 
@@ -42,6 +43,10 @@ async def lifespan(app: Litestar):
         trinity_bridge.initialize(),
         warmup_encoder()
     )
+
+    # Bind shared Redis client to viral_share_service (lazy init pattern)
+    _viral_svc._redis = xohi_memory.client
+    logger.info("🔐 [ViralEngine] Redis bound to ViralShareService.")
 
     gc_task = None
     heartbeat_task = None

@@ -122,12 +122,28 @@
   const seedLength = $derived(product?.name ? product.name.length : 10);
   const outerWrapper = $derived(wrapperTags[seedLength % wrapperTags.length]);
   const mainWrapper = $derived(['div', 'main', 'section'][(seedLength + 3) % 3]);
+
+  async function shareProduct() {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Xem ngay ${product.name}!`,
+          url: window.location.href
+        });
+      } catch (_e) {
+        // User cancelled
+      }
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(window.location.href);
+    }
+  }
 </script>
 
 <svelte:element this={outerWrapper} class="product-mobile-root">
 
   <!-- 1. STICKY HEADER -->
-  <ProductMobileHeader {product} {showTabs} {activeTab} onScrollToSection={scrollToSection} />
+  <ProductMobileHeader {product} {showTabs} {activeTab} onScrollToSection={scrollToSection} onShare={shareProduct} />
 
   <!-- 2. MAIN CONTENT SECTIONS -->
   <svelte:element this={mainWrapper} class="content-body">

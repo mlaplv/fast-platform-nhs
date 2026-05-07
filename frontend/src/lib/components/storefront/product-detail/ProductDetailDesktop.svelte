@@ -15,6 +15,8 @@
   import type { ReviewStats } from '$lib/types';
   import { formatCurrency } from '$lib/utils/format';
   import ProductDetailRelated from './ProductDetailRelated.svelte';
+  import ViralShareBar from './ViralShareBar.svelte';
+  import ShareToUnlockPromo from './ShareToUnlockPromo.svelte';
 
 
   function isJson(str: string) {
@@ -237,7 +239,16 @@
   }
 
   // --- SALES ASSASSIN FOMO & VOUCHER LOGIC ---
-  let timeLeft = $state({ hours: 0, minutes: 43, seconds: 33 });
+  // Elite V2.2: Derive countdown from DB (product.metadata.flash_sale_end)
+  const flashSaleEnd = $derived(
+    product.metadata?.flash_sale_end
+      ? new Date(product.metadata.flash_sale_end).getTime()
+      : null
+  );
+  const isFlashSaleActive = $derived(
+    flashSaleEnd !== null && flashSaleEnd > Date.now()
+  );
+  let timeLeft = $state({ hours: 0, minutes: 0, seconds: 0 });
   
   // Voucher State
   let selectedVouchers = $state<string[]>([]);
@@ -272,12 +283,17 @@
   }
 
   $effect(() => {
-    const timer = setInterval(() => {
-      if (timeLeft.seconds > 0) timeLeft.seconds--;
-      else if (timeLeft.minutes > 0) { timeLeft.minutes--; timeLeft.seconds = 59; }
-      else if (timeLeft.hours > 0) { timeLeft.hours--; timeLeft.minutes = 59; timeLeft.seconds = 59; }
-    }, 1000);
+    if (!flashSaleEnd) return;
 
+    function updateCountdown() {
+      const diff = Math.max(0, flashSaleEnd! - Date.now());
+      timeLeft.hours = Math.floor(diff / 3600000);
+      timeLeft.minutes = Math.floor((diff % 3600000) / 60000);
+      timeLeft.seconds = Math.floor((diff % 60000) / 1000);
+    }
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
   });
 
@@ -343,7 +359,7 @@
   $effect(() => {
     if (product) {
       isLiked = false; // Reset when switching products
-      likeCount = product.metadata?.likes ? Number(product.metadata.likes) : 1700;
+      likeCount = product.metadata?.likes ? Number(product.metadata.likes) : 0;
     }
   });
 
@@ -493,10 +509,12 @@
           <img src={currentImage} alt={product.name} class="w-full h-full object-contain transition-transform duration-700 group-hover:scale-150 bg-white" />
         {/if}
         
-        <!-- Flash Sale Label -->
-        <div class="absolute top-0 left-0 bg-[#ee4d2d] text-white px-3 py-1.5 text-[11px] font-black uppercase tracking-widest shadow-lg">
-          Flash Sale
-        </div>
+        <!-- Flash Sale Label (Conditional: only when active) -->
+        {#if isFlashSaleActive}
+          <div class="absolute top-0 left-0 bg-[#ee4d2d] text-white px-3 py-1.5 text-[11px] font-black uppercase tracking-widest shadow-lg">
+            Flash Sale
+          </div>
+        {/if}
 
         {#if !isVideoUrl(currentImage) && productInfo.salePrice < productInfo.originalPrice}
           <div class="absolute top-2 right-2 bg-[#ffe97a] px-2 py-1 text-[12px] font-black text-[#ee4d2d] shadow-sm">
@@ -533,27 +551,20 @@
         {/each}
       </div>
 
-      <!-- Social & Like (Viral 2026 UI) -->
+      <!-- Social & Like (Viral 2026 — ViralShareBar) -->
       <div class="mt-8 flex items-center justify-between px-2">
-        <div class="flex items-center gap-3">
-          <span class="text-sm font-medium text-gray-800">Chia sẻ:</span>
-          <div class="flex gap-1.5 font-bold">
-            <button onclick={() => share('facebook')} class="w-6 h-6 rounded-full bg-[#0384ff] text-white text-[10px] flex items-center justify-center hover:-translate-y-0.5 transition-transform" aria-label="Share on Facebook">f</button>
-            <button onclick={() => share('zalo')} class="w-6 h-6 rounded-full bg-[#38adff] text-white text-[10px] flex items-center justify-center hover:-translate-y-0.5 transition-transform" aria-label="Share on Zalo">z</button>
-            <button onclick={() => share('pinterest')} class="w-6 h-6 rounded-full bg-[#ff4500] text-white text-[10px] flex items-center justify-center hover:-translate-y-0.5 transition-transform" aria-label="Share on Pinterest">p</button>
-            <button onclick={() => share('twitter')} class="w-6 h-6 rounded-full bg-black text-white text-[10px] flex items-center justify-center hover:-translate-y-0.5 transition-transform" aria-label="Share on Twitter/X">𝕏</button>
-            <button onclick={shareNative} class="w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-[10px] flex items-center justify-center hover:-translate-y-0.5 hover:bg-gray-200 transition-all shrink-0 ml-1" title="Tùy chọn khác">
-               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-            </button>
-          </div>
-        </div>
+        <ViralShareBar 
+          {product} 
+          variant="desktop" 
+          likeCount={likeCount}
+        />
         <div class="w-px h-5 bg-gray-100"></div>
         <button onclick={toggleLike} class="flex items-center gap-2 group cursor-pointer hover:bg-[#ff424f]/5 px-2 py-1 -mr-2 rounded-lg transition-colors select-none outline-none">
            <svg 
               class="w-6 h-6 transition-all duration-300 {isLiked ? 'text-[#ff424f] fill-current drop-shadow-[0_2px_4px_rgba(255,66,79,0.3)] border-transparent' : 'text-gray-400 fill-transparent stroke-current group-hover:text-[#ff424f]/60'} {likeAnimating ? 'scale-125' : 'scale-100'}" 
               viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
            <span class="text-sm font-medium transition-colors {isLiked ? 'text-[#ff424f]' : 'text-gray-700 group-hover:text-[#ff424f]'}">
-              {isLiked ? 'Đã thích' : 'Yêu thích'} ({formatCount(likeCount)})
+              {isLiked ? 'Đã thích' : 'Yêu thích'}{likeCount > 0 ? ` (${formatCount(likeCount)})` : ''}
            </span>
         </button>
       </div>
@@ -638,20 +649,22 @@
             {/if}
         </div>
 
-        <!-- Minimalist Timer (Soft Version) -->
-        <div class="flex flex-col items-end">
-           <div class="flex items-center gap-2 mb-1">
-              <div class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full animate-pulse shadow-[0_0_8px_#ee4d2d]"></div>
-              <span class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] opacity-80">Kết thúc sau</span>
-           </div>
-           <div class="flex gap-1 text-gray-800 font-black text-[17px] font-mono tabular-nums select-none">
-              <div class="bg-gray-200/50 px-1.5 py-0.5 min-w-[30px] text-center rounded-sm">0</div>
-              <span class="opacity-30 self-center w-1.5 text-center text-[12px]">:</span>
-              <div class="bg-gray-200/50 px-1.5 py-0.5 min-w-[30px] text-center rounded-sm">{timeLeft.minutes < 10 ? '0' + timeLeft.minutes : timeLeft.minutes}</div>
-              <span class="opacity-30 self-center w-1.5 text-center text-[12px]">:</span>
-              <div class="bg-gray-200/50 px-1.5 py-0.5 min-w-[30px] text-center rounded-sm">{timeLeft.seconds < 10 ? '0' + timeLeft.seconds : timeLeft.seconds}</div>
-           </div>
-        </div>
+        <!-- Minimalist Timer (Conditional: only when flash sale is active) -->
+        {#if isFlashSaleActive}
+          <div class="flex flex-col items-end">
+             <div class="flex items-center gap-2 mb-1">
+                <div class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full animate-pulse shadow-[0_0_8px_#ee4d2d]"></div>
+                <span class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] opacity-80">Kết thúc sau</span>
+             </div>
+             <div class="flex gap-1 text-gray-800 font-black text-[17px] font-mono tabular-nums select-none">
+                <div class="bg-gray-200/50 px-1.5 py-0.5 min-w-[30px] text-center rounded-sm">{timeLeft.hours < 10 ? '0' + timeLeft.hours : timeLeft.hours}</div>
+                <span class="opacity-30 self-center w-1.5 text-center text-[12px]">:</span>
+                <div class="bg-gray-200/50 px-1.5 py-0.5 min-w-[30px] text-center rounded-sm">{timeLeft.minutes < 10 ? '0' + timeLeft.minutes : timeLeft.minutes}</div>
+                <span class="opacity-30 self-center w-1.5 text-center text-[12px]">:</span>
+                <div class="bg-gray-200/50 px-1.5 py-0.5 min-w-[30px] text-center rounded-sm">{timeLeft.seconds < 10 ? '0' + timeLeft.seconds : timeLeft.seconds}</div>
+             </div>
+          </div>
+        {/if}
       </div>
 
       <!-- Voucher Selection (Interactive FOMO) -->
@@ -826,6 +839,11 @@
           </div>
         </div>
       {/if}
+
+      <!-- SHARE-TO-UNLOCK PROMO (Viral 2026) -->
+      <div class="px-5 mb-4">
+        <ShareToUnlockPromo {product} />
+      </div>
 
       <!-- CTA BUTTONS (Elite V2.2 Sharp) -->
       <div class="px-5 flex gap-4 mt-auto pb-4">

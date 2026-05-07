@@ -21,6 +21,8 @@
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import ViralShareBar from '$lib/components/storefront/product-detail/ViralShareBar.svelte';
+  import ShareToUnlockPromo from '$lib/components/storefront/product-detail/ShareToUnlockPromo.svelte';
 
   interface MobileOfferProps {
     product?: Product;
@@ -189,6 +191,16 @@
 
   <!-- 📜 MAIN SCROLLABLE CONTENT -->
   <div class="flex-1 flex flex-col z-[var(--z-surface)] overflow-y-auto no-scrollbar pb-10 !px-0 gap-2">
+    <!-- 🔥 Viral Share Bar (compact — trước variant selector) -->
+    {#if product}
+      <div class="px-4 pt-2 pb-1">
+        <ViralShareBar
+          product={product}
+          variant="mobile"
+          likeCount={Number(product.metadata?.likes || 0)}
+        />
+      </div>
+    {/if}
     <!-- 🎛️ VARIANT SELECTOR -->
     <div class="flex flex-col">
       {#each variants as variant, i (variant.id || i)}
@@ -358,6 +370,12 @@
   
   <!-- 🛰️ CTA HUD -->
   <div class="mt-auto pt-2 pb-2 relative bg-gradient-to-t from-black via-black/95 to-transparent shrink-0" style="z-index: {Z_INDEX_CLIENT.OVERLAY};">
+    <!-- 🎁 Share-to-Unlock Promo (trước nút mua — conversion peak point) -->
+    {#if product}
+      <div class="px-3 pb-2">
+        <ShareToUnlockPromo product={product} compact={true} />
+      </div>
+    {/if}
       <div class="px-3 pb-2">
         <button
            onclick={() => { 

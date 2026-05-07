@@ -1,9 +1,12 @@
 <script lang="ts">
-  import { ChevronLeft, ChevronRight, Zap, Bookmark, Gift, Sparkles, Package, Volume2, VolumeX } from 'lucide-svelte';
+  import { ChevronLeft, ChevronRight, Zap, Bookmark, Gift, Sparkles, Package, Volume2, VolumeX, Heart } from 'lucide-svelte';
   import type { Product } from '$lib/types';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { formatCurrency } from '$lib/utils/format';
+  import ViralShareBar from './ViralShareBar.svelte';
+  import ShareToUnlockPromo from './ShareToUnlockPromo.svelte';
 
   /** Detect video URL: mp4, webm, mov, ogg … (mirrored from Desktop) */
   function isVideoUrl(url: string | undefined | null): boolean {
@@ -23,6 +26,30 @@
 
   let { product, timeLeft, selectedVariant, selectedQty = 1, onOpenSelector, stats }: Props = $props();
   const cartStore = getCartStore();
+  const clientUi = getClientUi();
+
+  // --- LIKE / BOOKMARK STATE ---
+  let isLiked = $state(false);
+  let likeAnimating = $state(false);
+
+  function toggleLike() {
+    isLiked = !isLiked;
+    if (isLiked) {
+      clientUi.showToast('Đã thêm sản phẩm vào mục Yêu thích', 'success');
+      likeAnimating = true;
+      setTimeout(() => { likeAnimating = false; }, 300);
+    }
+  }
+
+  // --- FLASH SALE CONDITIONAL ---
+  const flashSaleEnd = $derived(
+    product.metadata?.flash_sale_end
+      ? new Date(product.metadata.flash_sale_end).getTime()
+      : null
+  );
+  const isFlashSaleActive = $derived(
+    flashSaleEnd !== null && flashSaleEnd > Date.now()
+  );
 
   const pVariants = $derived(product.variants || []);
   const variations = $derived(product.tier_variations || product.tierVariations || product.attributes?.tier_variations || product.metadata?.tier_variations || []);
@@ -245,8 +272,9 @@
     </div>
   </section>
 
-  <!-- FLASH SALE BANNER -->
-  <section class="flash-sale-banner">
+  <!-- FLASH SALE BANNER (Conditional) -->
+  {#if isFlashSaleActive}
+    <section class="flash-sale-banner">
     <div class="fs-left">
       <div class="flex items-center gap-1.5">
         <div class="discount-percent">-{displayDiscountPercent}%</div>
@@ -278,6 +306,7 @@
       </div>
     </div>
   </section>
+  {/if}
 
   <!-- INFO SECTION -->
   <section class="info-content">
@@ -312,8 +341,12 @@
     <!-- Title & Stats -->
     <div class="title-row mt-2">
       <h1 class="product-title">{product.name.replace(/40gr/g, '40g')}</h1>
-      <button class="bookmark-btn" aria-label="Lưu sản phẩm">
-        <Bookmark size={20} />
+      <button class="bookmark-btn {isLiked ? 'bookmark-active' : ''}" aria-label="Lưu sản phẩm" onclick={toggleLike}>
+        {#if isLiked}
+          <Heart size={20} fill="currentColor" class="{likeAnimating ? 'scale-125' : 'scale-100'} transition-transform" />
+        {:else}
+          <Bookmark size={20} />
+        {/if}
       </button>
     </div>
 
@@ -373,6 +406,20 @@
          {/if}
       </div>
     {/if}
+
+    <!-- VIRAL SHARE BAR (Mobile) -->
+      <div class="mt-4 px-4 pb-2">
+        <ViralShareBar 
+          product={product} 
+          variant="mobile" 
+          likeCount={Number(product.metadata?.likes || 0)}
+        />
+      </div>
+
+    <!-- SHARE-TO-UNLOCK PROMO (Mobile Compact) -->
+    <div class="px-3 pb-3">
+      <ShareToUnlockPromo {product} compact={true} />
+    </div>
 
     <div class="product-stats-row">
       <div class="rating-box">
@@ -504,6 +551,7 @@
   .product-title { font-size: 16px; font-weight: 800; line-height: 1.4; color: #222; flex: 1; margin: 0; text-transform: capitalize; }
   .bookmark-btn { background: none; border: none; color: #666; padding: 0; transition: color 0.3s; }
   .bookmark-btn:active { color: var(--color-luxury-copper, #C18F7E); }
+  .bookmark-active { color: #ff424f !important; }
 
   .product-stats-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; }
   .rating-box { display: flex; align-items: center; gap: 4px; color: #222; font-weight: 900; }

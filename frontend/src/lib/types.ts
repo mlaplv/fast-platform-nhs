@@ -322,6 +322,29 @@ export interface ProductMetadata {
   analysis_cache?: AnalysisCache;
   analysis_metrics?: CampaignMetrics;
 
+  // Elite V2.2: Flash Sale & FOMO
+  flash_sale_end?: string;
+  is_flash_sale?: boolean;
+  likes?: number | string;
+  combo_qty?: number;
+  gifts?: { name: string; qty: number; image?: string }[];
+  faqs?: { question: string; answer: string }[];
+
+  // Viral 2026: Share & Promotion Engine
+  share_count?: number;
+  share_target?: number;
+  share_reward_label?: string;
+  share_promotion?: {
+    enabled: boolean;
+    /** ID of the Voucher record in DB — NOT the raw code (bảo mật) */
+    voucher_id: string;
+    /** Display label shown in UI before unlock (e.g. "Giảm 50.000₫") */
+    voucher_label?: string;
+    voucher_condition?: string;
+    cta_text?: string;
+    share_text?: string;
+  };
+
   [key: string]: unknown;
 }
 

@@ -10,6 +10,7 @@
   import OfferCard from './OfferCard.svelte';
   import OfferVoucherSheet from './OfferVoucherSheet.svelte';
   import OfferFomoTimer from './OfferFomoTimer.svelte';
+  import ShareToUnlockPromo from '$lib/components/storefront/product-detail/ShareToUnlockPromo.svelte';
   import "./OfferGrid.css";
   
   const shopStore = getShopStore();
@@ -134,6 +135,12 @@
     <div class="flex justify-center mb-6 mt-4 relative z-surface">
       <OfferFomoTimer {...mkt} />
     </div>
+
+    {#if product}
+      <div class="max-w-2xl mx-auto mb-8 relative z-surface">
+        <ShareToUnlockPromo {product} />
+      </div>
+    {/if}
 
     <div class="package-grid pt-8 {gridClass} gap-6 items-stretch">
       {#each variants as variant, idx (variant.id)}

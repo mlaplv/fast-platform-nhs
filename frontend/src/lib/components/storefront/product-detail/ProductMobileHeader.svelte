@@ -12,11 +12,33 @@
     showTabs: boolean;
     activeTab: string;
     onScrollToSection: (id: string) => void;
+    onShare?: () => void;
   }
 
-  let { product, showTabs, activeTab, onScrollToSection }: Props = $props();
+  let { product, showTabs, activeTab, onScrollToSection, onShare }: Props = $props();
   const cartStore = getCartStore();
   const searchStore = getSearchStore();
+
+  async function handleShare() {
+    if (onShare) {
+      onShare();
+      return;
+    }
+    // Fallback: Native Share API
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Xem ngay ${product.name}!`,
+          url: window.location.href
+        });
+      } catch (_e) {
+        // User cancelled
+      }
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(window.location.href);
+    }
+  }
 </script>
 
 <header class="detail-header" style="z-index: var(--z-header, 100);">
@@ -35,7 +57,7 @@
     </div>
 
     <div class="header-actions">
-      <button type="button" class="icon-btn" aria-label="Chia sẻ">
+      <button type="button" class="icon-btn" aria-label="Chia sẻ" onclick={handleShare}>
         <Share2 size={24} />
       </button>
       <button type="button" class="icon-btn relative" onclick={() => goto('/checkout')} aria-label="Giỏ hàng">
