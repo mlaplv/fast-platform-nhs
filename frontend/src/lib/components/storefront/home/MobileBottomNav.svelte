@@ -349,8 +349,9 @@
           </svg>
         </button>
         <button class="tbn-action-split tbn-action-split--buy" aria-label="Mua ngay" onclick={() => onBuyNow?.()}>
-          <span class="buy-text">Mua ngay</span>
+          <span class="buy-text">MUA NGAY</span>
           <span class="buy-sub">{formatCurrency(product.discount_price || product.price || 0)} {hasFreeship ? '| Freeship' : ''}</span>
+          <div class="tbn-btn-shine"></div>
         </button>
       </div>
     {/if}
@@ -554,13 +555,35 @@
   @keyframes floatTooltip { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 
   /* FUSED CAPSULE (ACTION GROUP) */
-  .tbn-action-group { display: flex; flex: 1; height: 100%; margin-left: 8px; margin-right: -6px; border-radius: 0 18px 18px 0; overflow: hidden; background: #000; }
-  .tbn-action-split { display: flex; flex-direction: column; align-items: center; justify-content: center; border: none; cursor: pointer; transition: opacity 0.2s ease; }
-  .tbn-action-split:active { opacity: 0.8; }
-  .tbn-action-split--cart { width: 50px; background: #222; color: #FFF; border-right: 1px solid #333; }
-  .tbn-action-split--buy { flex: 1; background: #000; color: #FFF; padding: 0 16px; }
-  .buy-text { font-size: 13px; font-weight: 900; text-transform: uppercase; }
-  .buy-sub { font-size: 9px; font-weight: 600; opacity: 0.7; }
+  .tbn-action-group { 
+    display: flex; flex: 1; height: 100%; margin-left: 8px; margin-right: -6px; 
+    border-radius: 0 18px 18px 0; overflow: hidden; 
+    background: #fff; border-left: 1px solid #f5f5f5;
+  }
+  .tbn-action-split { display: flex; flex-direction: column; align-items: center; justify-content: center; border: none; cursor: pointer; transition: all 0.2s ease; }
+  .tbn-action-split:active { opacity: 0.7; transform: scale(0.95); }
+  
+  .tbn-action-split--cart { 
+    width: 52px; background: #fff; color: #ee4d2d; border-right: 1px solid #f5f5f5; 
+  }
+  .tbn-action-split--buy { 
+    flex: 1; position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #ee4d2d, #ff7337); color: #FFF; padding: 0 20px; 
+  }
+  .buy-text { font-size: 13px; font-weight: 1000; text-transform: uppercase; letter-spacing: 0.05em; }
+  .buy-sub { font-size: 9px; font-weight: 800; opacity: 0.9; margin-top: 1px; }
+
+  .tbn-btn-shine {
+    position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transform: skewX(-25deg);
+    animation: tbn-shine 4s infinite;
+  }
+  @keyframes tbn-shine {
+    0% { left: -100%; }
+    15% { left: 200%; }
+    100% { left: 200%; }
+  }
 
   :global(.text-luxury-copper) { color: #c18f7e; }
 </style>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { 
-    Gift, ExternalLink, Check, Copy, Loader, Heart, Facebook 
+    Gift, ExternalLink, Check, Copy, Loader, Heart, Facebook, Sparkles
   } from 'lucide-svelte';
   import type { Product, ProductMetadata } from '$lib/types';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
@@ -163,7 +163,13 @@
           <div class="stu-f-content">
             <h4 class="stu-f-title">CHIA SẺ NHẬN 50K</h4>
             <div class="stu-f-fomo">🔥 {formatViralCount(shareCount)}+ ĐÃ NHẬN</div>
-            <button class="stu-f-btn" onclick={viralActions.share}>NHẬN</button>
+            <button class="stu-f-btn" onclick={viralActions.share}>
+               <div class="stu-f-btn-inner">
+                  <Sparkles size={12} strokeWidth={3} class="stu-f-btn-icon" />
+                  <span>NHẬN QUÀ</span>
+               </div>
+               <div class="stu-f-btn-shine"></div>
+            </button>
           </div>
         {:else}
           <div class="stp-funnel-wrapper">
@@ -184,6 +190,7 @@
               </div>
               <button class="stp-f-btn" onclick={viralActions.share}>
                 <span>NHẬN NGAY</span>
+                <div class="stu-f-btn-shine"></div>
               </button>
             </div>
           </div>
@@ -245,20 +252,71 @@
   .stp-f-progress { height: 4px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
   .stp-f-bar { height: 100%; background: linear-gradient(90deg, #ffb7c5, #ee4d2d); border-radius: 10px; }
   .stp-f-btn { 
-    background: #ee4d2d; color: #fff; padding: 6px 16px; border-radius: 4px; font-size: 11px; font-weight: 1000; border: none; cursor: pointer;
-    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.2); transition: all 0.2s;
+    position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #ee4d2d, #ff7337); color: #fff; 
+    padding: 8px 20px; border-radius: 6px; font-size: 11px; font-weight: 1000; border: none; cursor: pointer;
+    box-shadow: 0 4px 15px rgba(238, 77, 45, 0.25); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-transform: uppercase; letter-spacing: 0.05em;
   }
-  .stp-f-btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+  .stp-f-btn:active { transform: scale(0.92); }
 
   /* --- Floating Variant --- */
   .stu-view-floating { position: relative; max-width: 200px; animation: stu-fade-in 0.6s ease; }
   .stu-f-content { display: flex; flex-direction: column; gap: 4px; color: #fff; }
-  .stu-f-title { font-size: 18px; font-weight: 1000; -webkit-text-stroke: 1px rgba(0,0,0,0.5); text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-  .stu-f-fomo { font-size: 12px; font-weight: 900; color: #ff9500; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+  .stu-f-title { font-size: 14px; font-weight: 1000; -webkit-text-stroke: 0.5px rgba(0,0,0,0.3); text-shadow: 0 1px 5px rgba(0,0,0,0.4); letter-spacing: 0.05em; }
+  .stu-f-fomo { font-size: 10px; font-weight: 900; color: #ff9500; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
   .stu-f-btn { 
-    margin-top: 10px; background: linear-gradient(180deg, #ff453a, #ff3b30); color: #fff;
-    padding: 8px 24px; border-radius: 100px; font-size: 13px; font-weight: 1000; border: none;
-    box-shadow: 0 4px 15px rgba(255, 59, 48, 0.4); cursor: pointer;
+    position: relative; overflow: hidden;
+    margin-top: 6px;
+    background: linear-gradient(135deg, #FF2D55 0%, #D70015 100%);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      0 8px 20px rgba(215, 0, 21, 0.3),
+      inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .stu-f-btn:active { transform: scale(0.95); }
+  
+  .stu-f-btn-inner {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 1000;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    z-index: 2; position: relative;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+  }
+
+  :global(.stu-f-btn-icon) { 
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5)); 
+    animation: stu-sparkle-pulse 2s infinite ease-in-out;
+  }
+  @keyframes stu-sparkle-pulse {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.8; }
+    50% { transform: scale(1.2) rotate(15deg); opacity: 1; }
+  }
+
+  /* Viral Shine: Liquid Light Effect */
+  .stu-f-btn-shine {
+    position: absolute; top: 0; left: -150%; width: 60%; height: 100%;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 255, 255, 0.2) 20%, 
+      rgba(255, 255, 255, 0.6) 50%, 
+      rgba(255, 255, 255, 0.2) 80%, 
+      transparent
+    );
+    transform: skewX(-35deg);
+    animation: stu-liquid-shine 3s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+  }
+  @keyframes stu-liquid-shine {
+    0% { left: -150%; }
+    30% { left: 250%; }
+    100% { left: 250%; }
   }
 
   .stu-center { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; }

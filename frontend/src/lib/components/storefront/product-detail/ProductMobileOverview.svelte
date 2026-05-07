@@ -33,9 +33,10 @@
     selectedQty?: number;
     onOpenSelector?: () => void;
     stats?: import('$lib/types').ReviewStats | null;
+    isViralUnlocked?: boolean;
   }
 
-  let { product, timeLeft, selectedVariant, selectedQty = 1, onOpenSelector, stats }: Props = $props();
+  let { product, timeLeft, selectedVariant, selectedQty = 1, onOpenSelector, stats, isViralUnlocked = $bindable() }: Props = $props();
   const cartStore = getCartStore();
   const clientUi = getClientUi();
 
@@ -130,15 +131,7 @@
   let isAtEnd = $state(false);
   let selectedVouchers = $state<string[]>([]);
   
-  /**
-   * Elite V2.2: Theo dõi trạng thái mở khóa Viral trên Mobile
-   */
-  let isViralUnlocked = $state(false);
-  $effect(() => {
-    if (typeof window !== 'undefined') {
-      isViralUnlocked = !!localStorage.getItem(`viral_unlocked_${product.id}`);
-    }
-  });
+  // Elite V2.2: Removed local state to use root-elevated prop
 
   function triggerViralFly() {
     isViralUnlocked = true;
@@ -291,7 +284,7 @@
     </div>
 
     <!-- Thumbnails -->
-    <div class="thumbnails-track mt-2 px-4 flex gap-2 overflow-x-auto no-scrollbar">
+    <div class="thumbnails-track mt-2 px-2 flex gap-2 overflow-x-auto no-scrollbar">
       {#each displayImages as img, i}
         <button 
           type="button"
@@ -461,7 +454,7 @@
     {/if}
 
     <!-- VIRAL SHARE BAR (Mobile) -->
-      <div class="mt-4 px-4 pb-2">
+      <div class="mt-4 px-2 pb-2">
         <ViralShareBarMobile 
           {product} 
           variant="mobile" 
@@ -494,7 +487,7 @@
   .carousel-container::-webkit-scrollbar { display: none; }
   .carousel-slide { flex: 0 0 100%; height: 100%; scroll-snap-align: start; position: relative; }
   .slide-media { width: 100%; height: 100%; object-fit: cover; }
-  .image-counter { position: absolute; bottom: 64px; right: 12px; background: rgba(0, 0, 0, 0.4); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; z-index: 5; }
+  .image-counter { position: absolute; top: 12px; right: 12px; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); color: white; padding: 2px 10px; border-radius: 100px; font-size: 10px; font-weight: 1000; z-index: 5; border: 1px solid rgba(255,255,255,0.1); }
 
   /* Elite V2.2: Promo Anchor in Media Section */
   .media-promo-anchor {
@@ -547,7 +540,10 @@
     background: rgba(0, 0, 0, 0.25);
   }
 
-  .flash-sale-banner { background: var(--color-luxury-copper, #C18F7E); color: white; display: flex; padding: 4px 8px; justify-content: space-between; align-items: center; position: relative; overflow: hidden; }
+  .flash-sale-banner { 
+    background: linear-gradient(90deg, #ee4d2d, #ff7337); color: white; display: flex; padding: 6px 12px; justify-content: space-between; align-items: center; position: relative; overflow: hidden;
+    box-shadow: 0 4px 15px rgba(238, 77, 45, 0.2);
+  }
   .fs-left { flex: 1; z-index: var(--z-base); }
   .discount-percent { background: white; color: var(--color-luxury-copper, #C18F7E); border: 1px solid white; width: max-content; padding: 0 4px; font-size: 11px; font-weight: 900; border-radius: 2px; }
   .freeship-fomo { background: var(--color-luxury-peach, #E3B5A4); color: white; font-size: 10px; font-weight: 900; padding: 0 4px; border-radius: 2px; display: flex; align-items: center; gap: 2px; height: 16px; }
@@ -559,18 +555,18 @@
   .fs-title { display: flex; align-items: center; gap: 4px; font-weight: 900; font-size: 16px; text-transform: uppercase; font-style: italic; }
   .fs-countdown { font-size: 11px; display: flex; align-items: center; gap: 4px; font-weight: 700; }
   .time-box { display: flex; gap: 2px; align-items: center; }
-  .time-box span { background: rgba(0,0,0,0.2); color: white; padding: 1px 4px; border-radius: 2px; font-weight: 900; border: 1px solid rgba(255,255,255,0.2); min-width: 24px; text-align: center; }
-  .time-box .separator { background: none; border: none; padding: 0; min-width: 8px; opacity: 0.6; text-align: center; }
+  .time-box span { background: rgba(0,0,0,0.3); color: white; padding: 2px 6px; border-radius: 4px; font-weight: 1000; border: 1px solid rgba(255,255,255,0.2); min-width: 28px; text-align: center; font-size: 13px; }
+  .time-box .separator { background: none; border: none; padding: 0; min-width: 4px; opacity: 0.8; text-align: center; font-weight: 1000; }
 
-  .info-content { background: white; padding: 12px; }
+  .info-content { background: white; padding: 10px; }
   .vouchers-outer { position: relative; margin-bottom: 12px; margin-left: -12px; margin-right: -12px; }
   .vouchers-list {
     display: flex;
     gap: 8px;
     overflow-x: auto;
     scrollbar-width: none;
-    padding: 0 24px;
-    scroll-padding: 0 24px;
+    padding: 0 12px;
+    scroll-padding: 0 12px;
   }
   .vouchers-list::-webkit-scrollbar { display: none; }
   .ticket { background: #fffaf9; border: 1px dashed var(--color-luxury-copper, #C18F7E); color: var(--color-luxury-copper, #C18F7E); padding: 4px 10px; border-radius: 4px; font-size: 11px; white-space: nowrap; font-weight: 700; }

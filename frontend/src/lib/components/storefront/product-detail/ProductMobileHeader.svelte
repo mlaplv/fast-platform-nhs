@@ -94,10 +94,13 @@
     top: 0;
     left: 0;
     right: 0;
-    background: white;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     display: flex;
     flex-direction: column;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    border-bottom: 0.5px solid rgba(0,0,0,0.05);
   }
 
   .header-main {
@@ -182,15 +185,16 @@
   .search-bar-wrapper {
     flex: 1;
     min-width: 0;
-    background: #f0f0f0;
-    height: 36px;
-    border-radius: 4px;
+    background: rgba(0,0,0,0.04);
+    height: 34px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     padding: 0 12px;
     gap: 8px;
     color: #888;
     overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.02);
   }
 
   .placeholder {
