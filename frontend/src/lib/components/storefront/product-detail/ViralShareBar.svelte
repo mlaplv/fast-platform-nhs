@@ -9,9 +9,18 @@
     onShareComplete?: () => void;
     likeCount?: number;
     hideLikes?: boolean;
+    /** Enable dark mode for funnel pages */
+    dark?: boolean;
   }
 
-  let { product, variant = 'desktop', onShareComplete, likeCount = 0, hideLikes = false }: Props = $props();
+  let { 
+    product, 
+    variant = 'desktop', 
+    onShareComplete, 
+    likeCount = 0, 
+    hideLikes = false,
+    dark = false
+  }: Props = $props();
   const clientUi = getClientUi();
 
   // --- Elite V2.2: Unified Viral Suite ---
@@ -163,7 +172,7 @@
 <svelte:window onscroll={handleScroll} />
 
 {#if isDesktop}
-  <div class="vsb-desktop">
+  <div class="vsb-desktop" class:vsb-dark={dark}>
     <div class="vsb-section">
       <div class="vsb-main-interaction">
          <div class="vsb-buttons">
@@ -282,6 +291,11 @@
     border-top: 1px solid #f3f4f6;
     padding-top: 12px;
     margin-top: 4px;
+    transition: border-color 0.3s;
+  }
+
+  .vsb-desktop.vsb-dark {
+    border-top-color: rgba(255, 255, 255, 0.1);
   }
 
   .vsb-section {
@@ -334,7 +348,14 @@
     margin-left: 2px;
   }
 
+  .vsb-dark .vsb-tool-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+  }
+
   .vsb-tool-btn:hover { background: #fff; border-color: #ee4d2d; color: #ee4d2d; }
+  .vsb-dark .vsb-tool-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: #ee4d2d; color: #ee4d2d; }
 
   /* ══ META & STATS ══ */
   .vsb-meta-row {
@@ -360,7 +381,9 @@
   }
 
   .vsb-stat-value { font-size: 14px; font-weight: 900; color: #111; }
+  .vsb-dark .vsb-stat-value { color: #fff; }
   .vsb-stat-label { font-size: 10px; font-weight: 700; color: #9ca3af; margin-top: 1px; }
+  .vsb-dark .vsb-stat-label { color: rgba(255, 255, 255, 0.4); }
 
   .vsb-pop { transform: scale(1.1); }
 
@@ -445,6 +468,13 @@
     font-weight: 800;
     color: #111;
     font-family: 'Inter', sans-serif;
+  }
+
+  .vsb-dark .vsb-like-number { color: #fff; }
+
+  .vsb-dark .vsb-like-pill {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   .vsb-liked {
