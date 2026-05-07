@@ -21,7 +21,6 @@
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
-  import ViralShareBar from '$lib/components/storefront/product-detail/ViralShareBar.svelte';
   import ShareToUnlockPromo from '$lib/components/storefront/product-detail/ShareToUnlockPromo.svelte';
 
   interface MobileOfferProps {
@@ -191,19 +190,8 @@
 
   <!-- 📜 MAIN SCROLLABLE CONTENT -->
   <div class="flex-1 flex flex-col z-[var(--z-surface)] overflow-y-auto no-scrollbar pb-10 !px-0 gap-2">
-    <!-- 🔥 Viral Share Bar (Inline variant for Funnel) -->
-    {#if product}
-      <div class="px-4 pt-2 pb-1">
-        <ViralShareBar
-          product={product}
-          variant="desktop"
-          dark={true}
-          likeCount={Number(product.metadata?.likes || 0)}
-        />
-      </div>
-    {/if}
     <!-- 🎛️ VARIANT SELECTOR -->
-    <div class="flex flex-col">
+    <div class="flex flex-col mt-2">
       {#each variants as variant, i (variant.id || i)}
          {@const cQty = variant.attributes?.combo_qty || 1}
          {@const priceData = shopStore.calculateAdjustedPrice(variant, 1)}

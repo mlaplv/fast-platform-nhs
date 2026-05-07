@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { ShoppingCart, Star, Info, MessageSquare, ShieldCheck } from 'lucide-svelte';
+  import { ShoppingCart, Star, Info, MessageSquare, ShieldCheck, Heart, Share2 } from 'lucide-svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { onMount } from 'svelte';
   import type { Product } from '$lib/types';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
 
@@ -35,21 +36,80 @@
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  // --- Like & Share Logic (Elite V2.2) ---
+  let isLiked = $state(false);
+  let localLikeCount = $state(Number(product?.metadata?.likes || 0));
+  let localShareCount = $state(Number(product?.metadata?.share_count || 0));
+
+  onMount(() => {
+    isLiked = !!localStorage.getItem(`liked_${product.id}`);
+  });
+
+  const handleLike = () => {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
+    isLiked = !isLiked;
+    if (isLiked) {
+      localLikeCount++;
+      localStorage.setItem(`liked_${product.id}`, 'true');
+    } else {
+      localLikeCount--;
+      localStorage.removeItem(`liked_${product.id}`);
+    }
+  };
+
+  const handleShare = async () => {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: product.shortDescription,
+          url: window.location.href
+        });
+        localShareCount++;
+      } catch (e) {
+        // Fallback or ignore
+      }
+    } else {
+      // Copy link fallback
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Đã sao chép liên kết!');
+        localShareCount++;
+      } catch (e) {
+        // Ignore
+      }
+    }
+  };
 </script>
 
 <div
   class="mobile-action-stack"
   class:HUD-hidden={isScrollingDown}
 >
-  <!-- 6. Tra cứu (Top-most utility) -->
-  <a
-    href="/track"
+  <!-- 5. Like (Elite Viral Integration) -->
+  <button
     class="action-btn-mini group"
-    aria-label="Tra cứu đơn hàng"
+    onclick={handleLike}
+    aria-label="Thích sản phẩm"
   >
-    <ShieldCheck class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
-    <span class="btn-label-mini">Tra cứu</span>
-  </a>
+    <Heart 
+      class="w-6 h-6 drop-shadow-xl group-active:scale-90 transition-all {isLiked ? 'text-red-500 fill-red-500' : 'text-white'}" 
+    />
+    <span class="btn-stat-mini">{localLikeCount}</span>
+    <span class="btn-label-mini">Thích</span>
+  </button>
+
+  <!-- 4. Share (Elite Viral Integration) -->
+  <button
+    class="action-btn-mini group"
+    onclick={handleShare}
+    aria-label="Chia sẻ sản phẩm"
+  >
+    <Share2 class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
+    <span class="btn-stat-mini">{localShareCount}</span>
+    <span class="btn-label-mini">Chia sẻ</span>
+  </button>
 
   <!-- 5. Chat (Viral AI Helen Integration) -->
   <button
@@ -73,24 +133,9 @@
     <span class="btn-label-mini">Chi tiết</span>
   </button>
 
-  <!-- 3. Đánh giá -->
-  <button
-    class="action-btn-mini group"
-    onclick={() => scrollToSection('reviews')}
-    aria-label="Đánh giá"
-  >
-    <Star class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" fill="white" />
-    <span class="btn-label-mini">Đánh giá</span>
-  </button>
-
-  <!-- MIỄN PHÍ SHIP Badge (Centered between Star and Cart) -->
-  <div class="bg-[#FFB7C5] text-slate-950 text-[7px] font-black px-2 py-0.5 rounded shadow-[0_4px_12px_rgba(255,183,197,0.4)] animate-bounce whitespace-nowrap z-surface uppercase tracking-wider relative translate-y-[8px]">
-    FREESHIP
-  </div>
-
   <!-- 1. Giỏ hàng (Mini Stack) -->
   <button
-    class="relative group/buy active:scale-90 transition-all outline-none"
+    class="relative group/buy active:scale-90 transition-all outline-none mt-2"
     onclick={onPurchase}
     aria-label={labels.label_purchase}
   >
@@ -106,6 +151,19 @@
 </div>
 
 <style lang="postcss">
+  .mobile-action-stack {
+    position: fixed;
+    right: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px; /* Increased gap for breathability */
+    transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+    padding-bottom: 32px;
+    z-index: var(--z-surface);
+    bottom: calc(var(--mobile-bottom-space) + env(safe-area-inset-bottom, 20px));
+  }
+
   .action-btn-mini {
     position: relative;
     display: flex;
@@ -128,6 +186,14 @@
     opacity: 0.8;
     text-shadow: 0 2px 8px rgba(0,0,0,1);
     white-space: nowrap;
+  }
+
+  .btn-stat-mini {
+    font-size: 10px;
+    font-weight: 900;
+    color: white;
+    margin-top: 1px;
+    text-shadow: 0 2px 8px rgba(0,0,0,1);
   }
 
   /* Tiktok-style Shadow for icons */
