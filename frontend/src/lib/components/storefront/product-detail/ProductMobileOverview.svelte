@@ -18,6 +18,9 @@
   // Components
   import ViralShareBarMobile from './ViralShareBarMobile.svelte';
   import ShareToUnlockPromoMobile from './ShareToUnlockPromoMobile.svelte';
+  import ProductMobileMedia from './ProductMobileMedia.svelte';
+  import ProductMobileFlashSale from './ProductMobileFlashSale.svelte';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
   /** Detect video URL: mp4, webm, mov, ogg … (mirrored from Desktop) */
   function isVideoUrl(url: string | undefined | null): boolean {
@@ -43,23 +46,19 @@
   // --- LIKE / BOOKMARK STATE ---
   let isLiked = $state(false);
   let likeAnimating = $state(false);
-  let likeCount = $state(0);
-
-  $effect(() => {
-    if (product) {
-      likeCount = Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0);
-    }
-  });
+  const baseLikeCount = $derived(Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0));
+  let localLikeAdjust = $state(0);
+  const likeCount = $derived(baseLikeCount + localLikeAdjust);
 
   function toggleLike() {
     isLiked = !isLiked;
     if (isLiked) {
-      likeCount++;
+      localLikeAdjust++;
       clientUi.showToast('Đã thêm sản phẩm vào mục Yêu thích', 'success');
       likeAnimating = true;
       setTimeout(() => { likeAnimating = false; }, 300);
     } else {
-      likeCount--;
+      localLikeAdjust--;
     }
   }
 
@@ -230,126 +229,34 @@
 </script>
 
 <section id="overview" class="overview-section">
-  <!-- MEDIA CAROUSEL -->
-  <section class="media-section">
-    <div class="carousel-container" bind:this={carouselRef} onscroll={handleCarouselScroll}>
-      {#each displayImages as img, i}
-        <div class="carousel-slide">
-          {#if isVideoUrl(img)}
-            {#if activeImageIndex === i}
-              <!-- Active slide: bind ref for programmatic control -->
-              <video
-                bind:this={videoEl}
-                src={img}
-                class="slide-media"
-                autoplay
-                muted={videoMuted}
-                loop={videoEndTime === null}
-                playsinline
-                preload="auto"
-                ontimeupdate={handleTimeUpdate}
-              ></video>
-              <button
-                onclick={toggleMute}
-                class="mute-btn"
-                title={videoMuted ? 'Bật âm thanh' : 'Tắt âm thanh'}
-              >
-                {#if videoMuted}
-                  <VolumeX size={14} />
-                {:else}
-                  <Volume2 size={14} />
-                {/if}
-              </button>
-            {:else}
-              <!-- Non-active slides: plain video, no bind needed -->
-              <video
-                src={img}
-                class="slide-media"
-                muted
-                playsinline
-                preload="metadata"
-              ></video>
-            {/if}
-          {:else}
-            <img src={img} alt={product.name} class="slide-media" />
-          {/if}
-        </div>
-      {/each}
-    </div>
-    <div class="image-counter">{activeImageIndex + 1}/{displayImages.length}</div>
+  <!-- MEDIA SECTION (Extracted) -->
+  <ProductMobileMedia
+    {product}
+    {displayImages}
+    {activeImageIndex}
+    bind:videoEl
+    {videoMuted}
+    {videoEndTime}
+    {handleTimeUpdate}
+    {toggleMute}
+    {handleCarouselScroll}
+    {triggerViralFly}
+    onThumbClick={(i) => {
+      activeImageIndex = i;
+      carouselRef?.scrollTo({ left: i * carouselRef.clientWidth, behavior: 'smooth' });
+    }}
+    bind:carouselRef
+    {isVideoUrl}
+  />
 
-    <!-- Elite V2.2: Floating Share Promo (Bottom Right of Image) -->
-    <div class="media-promo-anchor">
-       <ShareToUnlockPromoMobile {product} variant="floating" onUnlock={triggerViralFly} />
-    </div>
-
-    <!-- Thumbnails -->
-    <div class="thumbnails-track mt-2 px-2 flex gap-2 overflow-x-auto no-scrollbar">
-      {#each displayImages as img, i}
-        <button 
-          type="button"
-          class="thumb-btn {activeImageIndex === i ? 'border-[#ee4d2d]' : 'border-transparent opacity-60'}"
-          onclick={() => {
-            activeImageIndex = i;
-            carouselRef?.scrollTo({ left: i * carouselRef.clientWidth, behavior: 'smooth' });
-          }}
-          aria-label="Xem ảnh nhỏ {i + 1}"
-        >
-          {#if isVideoUrl(img)}
-            <video
-              src={img}
-              class="w-full h-full object-cover pointer-events-none"
-              muted
-              playsinline
-              preload="metadata"
-            ></video>
-            <!-- Play icon overlay -->
-            <div class="thumb-play-overlay">
-              <svg class="w-3.5 h-3.5 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            </div>
-          {:else}
-            <img src={img} alt="thumb" class="w-full h-full object-cover" />
-          {/if}
-        </button>
-      {/each}
-    </div>
-  </section>
-
-  <!-- FLASH SALE BANNER (Conditional) -->
-  {#if isFlashSaleActive}
-    <section class="flash-sale-banner">
-    <div class="fs-left">
-      <div class="flex items-center gap-1.5">
-        <div class="discount-percent">-{displayDiscountPercent}%</div>
-        <div class="freeship-fomo">
-          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
-          FREE SHIP
-        </div>
-      </div>
-      <div class="price-container">
-        <span class="price-label">Từ</span>
-        <span class="price-value">{formatCurrency(displaySalePrice)}</span>
-      </div>
-      <div class="original-price">{formatCurrency(displayOriginalPrice)}</div>
-    </div>
-    
-    <div class="fs-right">
-      <div class="fs-title"><Zap size={18} fill="white" /><span>Flash Sale</span></div>
-      <div class="fs-countdown">
-        <span>Kết thúc sau</span>
-        <div class="time-box font-mono tabular-nums">
-          <span>{timeLeft.hours.toString().padStart(2, '0')}</span>
-          <span class="separator">:</span>
-          <span>{timeLeft.minutes.toString().padStart(2, '0')}</span>
-          <span class="separator">:</span>
-          <span>{timeLeft.seconds.toString().padStart(2, '0')}</span>
-        </div>
-      </div>
-    </div>
-  </section>
-  {/if}
+  <!-- FLASH SALE BANNER (Extracted) -->
+  <ProductMobileFlashSale
+    {isFlashSaleActive}
+    {displayDiscountPercent}
+    {displaySalePrice}
+    {displayOriginalPrice}
+    {timeLeft}
+  />
 
   <!-- INFO SECTION -->
   <section class="info-content">
@@ -482,82 +389,6 @@
 </section>
 
 <style>
-  .media-section { position: relative; background: white; aspect-ratio: 1/1; overflow: hidden; }
-  .carousel-container { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; height: 100%; }
-  .carousel-container::-webkit-scrollbar { display: none; }
-  .carousel-slide { flex: 0 0 100%; height: 100%; scroll-snap-align: start; position: relative; }
-  .slide-media { width: 100%; height: 100%; object-fit: cover; }
-  .image-counter { position: absolute; top: 12px; right: 12px; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); color: white; padding: 2px 10px; border-radius: 100px; font-size: 10px; font-weight: 1000; z-index: 5; border: 1px solid rgba(255,255,255,0.1); }
-
-  /* Elite V2.2: Promo Anchor in Media Section */
-  .media-promo-anchor {
-    position: absolute;
-    bottom: 8px; 
-    left: 8px;
-    z-index: 10;
-  }
-  .mute-btn {
-    position: absolute;
-    bottom: 72px;
-    left: 12px;
-    z-index: 10;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: background 0.2s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .mute-btn:active { background: rgba(0, 0, 0, 0.7); }
-  .thumbnails-track { scrollbar-width: none; -ms-overflow-style: none; }
-  .thumbnails-track::-webkit-scrollbar { display: none; }
-  .thumb-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: 2px;
-    border-width: 2px;
-    border-style: solid;
-    overflow: hidden;
-    flex-shrink: 0;
-    transition: all 0.2s;
-    padding: 0;
-    position: relative;
-    background: none;
-  }
-  .thumb-play-overlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.25);
-  }
-
-  .flash-sale-banner { 
-    background: linear-gradient(90deg, #ee4d2d, #ff7337); color: white; display: flex; padding: 6px 12px; justify-content: space-between; align-items: center; position: relative; overflow: hidden;
-    box-shadow: 0 4px 15px rgba(238, 77, 45, 0.2);
-  }
-  .fs-left { flex: 1; z-index: var(--z-base); }
-  .discount-percent { background: white; color: var(--color-luxury-copper, #C18F7E); border: 1px solid white; width: max-content; padding: 0 4px; font-size: 11px; font-weight: 900; border-radius: 2px; }
-  .freeship-fomo { background: var(--color-luxury-peach, #E3B5A4); color: white; font-size: 10px; font-weight: 900; padding: 0 4px; border-radius: 2px; display: flex; align-items: center; gap: 2px; height: 16px; }
-  .price-container { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
-  .price-label { font-size: 13px; color: white; opacity: 0.9; }
-  .price-value { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
-  .original-price { font-size: 11px; text-decoration: line-through; color: rgba(255,255,255,0.7); }
-  .fs-right { text-align: right; z-index: var(--z-base); display: flex; flex-direction: column; align-items: flex-end; }
-  .fs-title { display: flex; align-items: center; gap: 4px; font-weight: 900; font-size: 16px; text-transform: uppercase; font-style: italic; }
-  .fs-countdown { font-size: 11px; display: flex; align-items: center; gap: 4px; font-weight: 700; }
-  .time-box { display: flex; gap: 2px; align-items: center; }
-  .time-box span { background: rgba(0,0,0,0.3); color: white; padding: 2px 6px; border-radius: 4px; font-weight: 1000; border: 1px solid rgba(255,255,255,0.2); min-width: 28px; text-align: center; font-size: 13px; }
-  .time-box .separator { background: none; border: none; padding: 0; min-width: 4px; opacity: 0.8; text-align: center; font-weight: 1000; }
-
   .info-content { background: white; padding: 10px; }
   .vouchers-outer { position: relative; margin-bottom: 12px; margin-left: -12px; margin-right: -12px; }
   .vouchers-list {
@@ -574,36 +405,17 @@
   .ticket-wrapper { position: relative; background: none; border: none; padding: 0; }
   .active-badge { position: absolute; top: -4px; right: -4px; background: var(--color-luxury-peach, #E3B5A4); color: white; border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
   .scroll-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    color: var(--color-luxury-copper, #C18F7E);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    -webkit-tap-highlight-color: transparent;
+    position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.05); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: var(--color-luxury-copper, #C18F7E); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); -webkit-tap-highlight-color: transparent;
   }
-  .scroll-btn:active {
-    scale: 0.85;
-    background: white;
-  }
+  .scroll-btn:active { scale: 0.85; background: white; }
   .scroll-btn.prev { left: 4px; }
   .scroll-btn.next { right: 4px; }
 
   .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
   .product-title { font-size: 16px; font-weight: 800; line-height: 1.4; color: #222; flex: 1; margin: 0; text-transform: capitalize; }
   .bookmark-btn { background: none; border: none; color: #666; padding: 0; transition: color 0.3s; }
-  .bookmark-btn:active { color: var(--color-luxury-copper, #C18F7E); }
   .bookmark-active { color: #ff424f !important; }
 
   .product-stats-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; }
@@ -611,4 +423,7 @@
   .stars { display: flex; align-items: center; gap: 1px; }
   .divider { width: 1px; height: 10px; background: #eee; }
   .trust-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* CSS Variables for global sync */
+  .overview-section { --z-media-promo: var(--z-index-media-promo, 10); }
 </style>

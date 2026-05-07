@@ -331,7 +331,7 @@
       {/if}
     </header>
 
-    <div class="hero-product-display relative w-full mt-6 md:mt-8 lg:mt-12 pb-0 flex flex-col md:flex-row items-center justify-center gap-2 lg:gap-4 z-surface">
+    <div class="hero-product-display relative w-full mt-4 md:mt-6 lg:mt-8 pb-0 flex flex-col md:flex-row items-center justify-center gap-2 lg:gap-4 z-surface">
           <div class="relative w-full md:w-1/2 flex justify-center parallax-layer">
               <div class="group relative flex items-center justify-center w-full max-w-md float-anim cinematic-frame">
                 <div class="absolute -inset-2 z-20 pointer-events-none opacity-60 transition-opacity group-hover:opacity-100">

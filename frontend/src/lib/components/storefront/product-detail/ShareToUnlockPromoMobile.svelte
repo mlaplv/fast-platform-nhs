@@ -8,6 +8,24 @@
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
 
+  /**
+   * Elite V2.2: Proper Typing for Viral Suite
+   */
+  interface PromoConfig {
+    enabled: boolean;
+    voucher_id: string;
+    reward_text?: string;
+  }
+
+  interface ViralSuiteMetadata {
+    share_promotion?: PromoConfig;
+    share_count?: number;
+    likes_count?: number;
+    stats?: {
+      redeemed_count?: number;
+    };
+  }
+
   interface Props {
     product: Product;
     compact?: boolean;
@@ -18,11 +36,11 @@
   let { product, compact = false, variant = 'floating', onUnlock }: Props = $props();
   const clientUi = getClientUi();
 
-  const viralSuite = $derived(product.metadata?.viral_suite ?? null);
+  const viralSuite = $derived(product.metadata?.viral_suite as (ViralSuiteMetadata | undefined) ?? null);
   
   const promoConfig = $derived(
     viralSuite?.share_promotion ?? 
-    (product.metadata as any)['share_promotion'] ?? 
+    (product.metadata as ProductMetadata)?.share_promotion ?? 
     null
   );
   const isEnabled = $derived(
@@ -30,7 +48,7 @@
   );
 
   const shareCount = $derived(
-    viralSuite?.share_count ?? (typeof (product.metadata as any)['share_count'] === 'number' ? (product.metadata as any)['share_count'] : 0)
+    viralSuite?.share_count ?? (typeof (product.metadata as ProductMetadata)?.share_count === 'number' ? (product.metadata as ProductMetadata).share_count : 0)
   );
 
   // ── State Machine ──────────────────────────────────────────────────────────
