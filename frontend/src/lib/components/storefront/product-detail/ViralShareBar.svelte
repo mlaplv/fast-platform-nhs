@@ -4,8 +4,8 @@
 
   interface Props {
     product: Product;
-    /** 'desktop' = full bar with labels, 'mobile' = compact inline */
-    variant?: 'desktop' | 'mobile';
+    /** 'desktop' = full bar with labels, 'mobile' = compact inline (floating), 'funnel' = sleek inline for funnel */
+    variant?: 'desktop' | 'mobile' | 'funnel';
     onShareComplete?: () => void;
     likeCount?: number;
     hideLikes?: boolean;
@@ -163,6 +163,7 @@
   }
 
   const isDesktop = $derived(variant === 'desktop');
+  const isFunnel = $derived(variant === 'funnel');
   
   // --- Mobile Expandable Logic ---
   let mExpanded = $state(false);
@@ -224,6 +225,63 @@
          {/if}
       </div>
     </div>
+  </div>
+{:else if isFunnel}
+  <div class="vsb-funnel">
+    <div class="vsb-funnel-main">
+      <!-- Like Section -->
+      <button onclick={handleLike} class="vsb-funnel-pill vsb-funnel-like {isLiked ? 'liked' : ''}">
+        <div class="relative">
+          <svg class="w-5 h-5 {isLiked ? 'text-[#FFB7C5] fill-current' : 'text-white/60'}" viewBox="0 0 24 24" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2">
+             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          {#if justShared}
+            <div class="absolute -top-1 -right-1 w-2 h-2 bg-[#FFB7C5] rounded-full animate-ping"></div>
+          {/if}
+        </div>
+        <span class="font-black text-xs {isLiked ? 'text-[#FFB7C5]' : 'text-white/80'}">{formatCount(localLikeCount)}</span>
+      </button>
+
+      <div class="h-6 w-px bg-white/10 mx-2"></div>
+
+      <!-- Share Icons -->
+      <div class="flex items-center gap-3">
+        <button onclick={() => share('facebook')} class="vsb-funnel-icon fb" aria-label="Share on Facebook">
+           <svg viewBox="0 0 24 24" class="w-4 h-4 fill-current"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        </button>
+        <button onclick={() => share('zalo')} class="vsb-funnel-icon zalo" aria-label="Share on Zalo">
+           <span class="text-[9px] font-black italic">Zalo</span>
+        </button>
+        <button onclick={() => share('tiktok')} class="vsb-funnel-icon tiktok" aria-label="Share on TikTok">
+           <svg viewBox="0 0 24 24" class="w-4 h-4 fill-current"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.03 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.9-.32-1.98-.23-2.81.33-.85.51-1.44 1.43-1.58 2.41-.14.99.11 2.07.71 2.86.69.9 1.74 1.49 2.87 1.62 1.14.16 2.37-.14 3.23-.92.83-.71 1.34-1.74 1.38-2.83.05-4.1.01-8.2.02-12.3z"/></svg>
+        </button>
+        <button onclick={copyLink} class="vsb-funnel-icon copy" aria-label="Copy Link">
+           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+        </button>
+      </div>
+
+      <div class="ml-auto flex flex-col items-end">
+        <span class="text-[9px] font-black text-white/50 uppercase tracking-tighter">Đã chia sẻ</span>
+        <span class="text-[14px] font-black text-[#FFB7C5] leading-none tracking-tighter">{formatCount(shareCount)}</span>
+      </div>
+    </div>
+
+    {#if showProgressBar}
+      <div class="mt-3">
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-[9px] font-black text-[#FFB7C5] uppercase tracking-widest">{displayRewardLabel}</span>
+          <span class="text-[10px] font-black text-white/70">{Math.round(shareProgress)}%</span>
+        </div>
+        <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
+           <div 
+             class="h-full bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] rounded-full transition-all duration-1000 relative z-10" 
+             style="width: {shareProgress}%"
+           >
+              <div class="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+           </div>
+        </div>
+      </div>
+    {/if}
   </div>
 
 {:else}
@@ -636,5 +694,71 @@
   @keyframes heart-fly {
     0% { transform: translate(0,0) scale(0.5); opacity: 1; }
     100% { transform: translate(calc(cos(calc(var(--i) * 45deg)) * 60px), calc(sin(calc(var(--i) * 45deg)) * 60px)) scale(1.2); opacity: 0; }
+  }
+  .vsb-funnel {
+    width: 100%;
+    padding: 16px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .vsb-funnel-main {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 4px;
+  }
+
+  .vsb-funnel-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .vsb-funnel-pill.liked {
+    background: rgba(255, 183, 197, 0.15);
+    border-color: rgba(255, 183, 197, 0.4);
+    box-shadow: 0 0 15px rgba(255, 183, 197, 0.1);
+  }
+
+  .vsb-funnel-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .vsb-funnel-icon:hover { 
+    background: rgba(255, 255, 255, 0.15); 
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-2px);
+  }
+
+  .vsb-funnel-icon:active { transform: scale(0.9); }
+
+  .vsb-funnel-icon.fb:hover { background: #1877f2; color: white; border-color: #1877f2; }
+  .vsb-funnel-icon.zalo:hover { background: #0068ff; color: white; border-color: #0068ff; }
+  .vsb-funnel-icon.tiktok:hover { background: #fff; color: #000; border-color: #fff; }
+  .vsb-funnel-icon.copy:hover { background: #fff; color: #000; border-color: #fff; }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite linear;
   }
 </style>
