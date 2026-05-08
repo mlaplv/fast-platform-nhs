@@ -17,72 +17,80 @@ export const load: PageServerLoad = async ({
     // R00: NO MOCK, NO SILENT FALLBACK. Let it fail clearly if API is down.
     const apiUrl = ServerEnv.INTERNAL_API_URL;
     const tenantId = ServerEnv.TENANT_ID;
-    const targetUrl = `${apiUrl}/api/v1/client/products/slug/${slug}`;
     
-    let res;
     try {
-        res = await fetch(targetUrl, {
-            headers: { 'x-tenant': tenantId },
-            signal: AbortSignal.timeout(5000)
-        });
-    } catch (err: unknown) {
-        const e = err as Error;
-        const isTimeout = e.name === 'TimeoutError' || e.message?.includes('timeout');
-        console.error(`[FUNNEL FETCH FAILED] ${isTimeout ? 'TIMEOUT' : 'CONNECTION ERROR'}`);
+        // Step 1: Fetch Product & Shop Settings in Parallel
+        const [prodRes, settingsRes] = await Promise.all([
+            fetch(`${apiUrl}/api/v1/client/products/slug/${slug}`, {
+                headers: { 'x-tenant': tenantId },
+                signal: AbortSignal.timeout(4000)
+            }),
+            fetch(`${apiUrl}/api/v1/client/settings/primary`, {
+                headers: { 'x-tenant': tenantId },
+                signal: AbortSignal.timeout(3000)
+            }).catch(() => null)
+        ]);
+
+        if (!prodRes.ok) {
+            throw error(prodRes.status, { 
+                message: `API Error: ${prodRes.statusText} (${prodRes.status})`,
+                details: `Failed to fetch product with slug: ${slug}`
+            });
+        }
+
+        const product = await prodRes.json() as import('$lib/types').Product;
+        const shopInfo = settingsRes && settingsRes.ok ? await settingsRes.json() : null;
+
+        // Step 2: Fetch Supplemental Data (Reviews, Stats, Related) in Parallel
+        // This ensures the landing page modules (VerifiedReviews, OfferGrid) have data immediately
+        const [statsRes, reviewsRes, relatedRes] = await Promise.all([
+            fetch(`${apiUrl}/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`, {
+                headers: { 'x-tenant': tenantId },
+                signal: AbortSignal.timeout(2000)
+            }).catch(() => null),
+            fetch(`${apiUrl}/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED&limit=20`, {
+                headers: { 'x-tenant': tenantId },
+                signal: AbortSignal.timeout(2000)
+            }).catch(() => null),
+            fetch(`${apiUrl}/api/v1/client/products/?limit=9`, {
+                headers: { 'x-tenant': tenantId },
+                signal: AbortSignal.timeout(2000)
+            }).catch(() => null)
+        ]);
+
+        // Parse Supplemental Data
+        const reviewStats = statsRes && statsRes.ok ? await statsRes.json() : null;
+        const reviewsData = reviewsRes && reviewsRes.ok ? await reviewsRes.json() : { items: [] };
         
-        throw error(isTimeout ? 504 : 503, {
-            message: isTimeout 
-                ? "Hệ thống đang phản hồi chậm (Backend Timeout)" 
-                : "Dịch vụ tạm thời không khả dụng (Backend Connection Failed)",
-            details: isTimeout 
-                ? "Vui lòng chờ giây lát và thử lại (Request timed out after 5s)."
-                : `Failed to reach API for funnel ${params.slug}.`
-        });
-    }
-
-    if (!res.ok) {
-        // Broad error exposure for development!
-        throw error(res.status, { 
-            message: `API Error: ${res.statusText} (${res.status})`,
-            details: `Failed to fetch product with slug: ${slug} from ${targetUrl}`
-        });
-    }
-
-    const product = await res.json() as import('$lib/types').Product;
-
-    // ELITE V2.2: Global Settings Synchronization
-    // Fetch primary shop metadata to replace hardcoded fallback values in child components
-    let shopInfo = null;
-    try {
-        const settingsRes = await fetch(`${apiUrl}/api/v1/client/settings/primary`, {
-            headers: { 'x-tenant': tenantId },
-            signal: AbortSignal.timeout(3000)
-        });
-        if (settingsRes.ok) {
-            shopInfo = await settingsRes.json();
+        let relatedProducts = [];
+        if (relatedRes && relatedRes.ok) {
+            const relData = await relatedRes.json();
+            relatedProducts = (relData.data || [])
+                .filter((p: any) => p.id !== product.id)
+                .slice(0, 8);
         }
-    } catch (e) {
-        console.error("[SHOP INFO FETCH FAILED]", e);
-        // We don't throw here to allow the product page to load even if global settings are down
+
+        const userAgent = request.headers.get('user-agent') || '';
+        const isMobile = isMobileDevice(userAgent);
+        const effectiveIp = request.headers.get('cf-connecting-ip') || '127.0.0.1';
+
+        return {
+            product,
+            shopInfo,
+            reviewStats,
+            reviews: reviewsData.items || [],
+            relatedProducts,
+            isMobile,
+            effectiveIp,
+            metadata: {
+                timestamp: new Date().toISOString(),
+                userAgent,
+                isMobile
+            }
+        };
+    } catch (err: any) {
+        if (err.status) throw err;
+        console.error(`[FUNNEL LOAD FAILED]`, err);
+        throw error(503, { message: "Dịch vụ tạm thời không khả dụng" });
     }
-
-    // Tối ưu lấy IP thực tế (Elite V2.2 Protocol)
-    const effectiveIp = request.headers.get('cf-connecting-ip') ||
-                      request.headers.get('x-real-ip') ||
-                      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-                      '127.0.0.1';
-
-    const userAgent = request.headers.get('user-agent') || '';
-    const isMobile = isMobileDevice(userAgent);
-
-    return {
-        product,
-        shopInfo,
-        effectiveIp,
-        metadata: {
-            timestamp: new Date().toISOString(),
-            userAgent,
-            isMobile
-        }
-    };
 };

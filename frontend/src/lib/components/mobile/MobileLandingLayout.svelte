@@ -27,6 +27,14 @@
   let isDetailsModalOpen = $state(false);
   let loadJIT = $state(false);
 
+  interface Props {
+    product: any;
+    reviewStats?: any;
+    reviews?: any[];
+    relatedProducts?: any[];
+  }
+  let { product: propProduct, reviewStats, reviews = [], relatedProducts = [] }: Props = $props();
+
   // Check both `video_url` (admin field) and `hero_video_url` (desktop fallback) for compatibility
   const hasVideo = $derived(
     !!(product?.metadata?.video_url || product?.metadata?.hero_video_url || product?.metadata?.hero_video)
@@ -150,10 +158,10 @@
   </section>
 
   <!-- SECTION 4: NATIVE REVIEWS -->
-  <section id="reviews" class="mobile-snap-section" data-section-idx={hasVideo ? 4 : 3}>
+  <section id="reviews" class="snap-snap-section" data-section-idx={hasVideo ? 4 : 3}>
     {#if loadJIT}
       {#await import('./sections/MobileReviews.svelte') then { default: MobileReviews }}
-        <MobileReviews {product} />
+        <MobileReviews {product} initialReviews={reviews} />
       {/await}
     {:else}
       <div class="w-full min-h-[50vh] bg-black animate-pulse"></div>
@@ -164,7 +172,7 @@
   <section id="offers" class="mobile-snap-section" data-section-idx={hasVideo ? 5 : 4}>
     {#if loadJIT}
       {#await import('./sections/MobileOffer.svelte') then { default: MobileOffer }}
-        <MobileOffer {product} onOpenDetails={() => isDetailsModalOpen = true} />
+        <MobileOffer {product} onOpenDetails={() => isDetailsModalOpen = true} {relatedProducts} {reviewStats} />
       {/await}
     {:else}
       <div class="w-full min-h-[100vh] bg-black animate-pulse"></div>

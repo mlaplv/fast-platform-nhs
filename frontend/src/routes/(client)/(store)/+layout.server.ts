@@ -3,10 +3,16 @@ import { error } from '@sveltejs/kit';
 import { ServerEnv } from '$lib/server/env';
 import { isMobileDevice } from '$lib/utils/device';
 
-export const load: LayoutServerLoad = async ({ fetch, request }) => {
+export const load: LayoutServerLoad = async ({ fetch, request, setHeaders }) => {
     const apiUrl = ServerEnv.INTERNAL_API_URL;
     const userAgent = request.headers.get('user-agent') || '';
     const isMobile = isMobileDevice(userAgent);
+
+    // Elite Performance Fix P2.1: Cache layout data for 60s
+    // Tránh re-fetch shopInfo + vouchers trên mỗi lần click sản phẩm
+    setHeaders({
+        'cache-control': 'public, max-age=60, s-maxage=60'
+    });
 
     try {
         // Elite V2.2: Parallel Fetch for Zero-Hydration Performance

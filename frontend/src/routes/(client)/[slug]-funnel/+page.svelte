@@ -287,7 +287,12 @@
 
 {#if useMobileLayout}
   {#if product}
-    <MobileLandingLayout {product} />
+    <MobileLandingLayout 
+      {product} 
+      reviewStats={data.reviewStats} 
+      reviews={data.reviews} 
+      relatedProducts={data.relatedProducts} 
+    />
   {/if}
 {:else}
   <div class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll" use:initScrollObserver>
@@ -327,7 +332,7 @@
     <section id="reviews" class="snap-session">
       {#if loadJIT}
         {#await import('$lib/components/client/slug/VerifiedReviews.svelte') then { default: VerifiedReviews }}
-          <VerifiedReviews />
+          <VerifiedReviews initialReviews={data.reviews} />
         {/await}
       {:else}
         <div class="w-full h-full bg-[#010101] animate-pulse"></div>

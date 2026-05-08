@@ -102,13 +102,19 @@
     fetchReviews();
   });
 
+  // Elite Performance Fix P1.3: Chỉ re-fetch khi tab THỰC SỰ thay đổi, không chạy lúc mount
+  // Tách biệt với auth logic để tránh $effect dependency pollution
+  let _prevTab = $state<typeof activeTab>('all');
   $effect(() => {
-    // Re-fetch reviews when tab changes
-    if (activeTab) {
-       fetchReviews();
+    const currentTab = activeTab;
+    if (currentTab !== _prevTab) {
+      _prevTab = currentTab;
+      fetchReviews();
     }
-    
-    // Đóng form khi đăng xuất
+  });
+
+  // Auth guard: Đóng form khi đăng xuất (tách riêng để không trigger fetchReviews)
+  $effect(() => {
     if (!authStore.isAuthenticated && showWriteForm) {
       showWriteForm = false;
     }

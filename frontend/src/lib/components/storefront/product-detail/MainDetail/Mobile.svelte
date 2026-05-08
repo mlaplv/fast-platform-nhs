@@ -21,8 +21,9 @@
   interface Props {
     product: Product;
     relatedProducts?: Product[];
+    reviewStats?: ReviewStats | null;
   }
-  let { product, relatedProducts = [] }: Props = $props();
+  let { product, relatedProducts = [], reviewStats = null }: Props = $props();
 
   const cartStore = getCartStore();
 
@@ -42,7 +43,15 @@
 
   // State: Flash Sale Countdown
   let timeLeft = $state({ hours: 14, minutes: 9, seconds: 9 });
-  let stats = $state<ReviewStats | null>(null);
+  // Elite Performance Fix P1.2: Khởi tạo từ server-prefetched data — KHÔNG fetch lại trong onMount
+  let stats = $state<ReviewStats | null>(reviewStats);
+
+  // Sync stats khi server data thay đổi (navigate giữa các product)
+  $effect(() => {
+    if (reviewStats !== undefined) {
+      stats = reviewStats;
+    }
+  });
 
   // Elite V2.2: Global Viral State & Share Engine
   let isViralUnlocked = $state(false);
@@ -65,14 +74,7 @@
       else if (timeLeft.hours > 0) { timeLeft.hours--; timeLeft.minutes = 59; timeLeft.seconds = 59; }
     }, 1000);
 
-    // 1.5 Fetch Real Stats (Elite V2.2)
-    if (product?.id) {
-      fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`)
-        .then(res => res.ok ? res.json() : null)
-        .then(data => { if (data) stats = data; })
-        .catch(e => console.error('Failed to load mobile product stats:', e));
-    }
-
+    // 1.5 Stats: Đã được server prefetch và truyền qua prop reviewStats — KHÔNG cần fetch ở đây nữa
     // 2. Scroll Observer for Tabs
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
@@ -262,7 +264,7 @@
     <div class="section-divider"></div>
 
     <div id="recommendations">
-      <RelatedProducts {product} isMobile={true} />
+      <RelatedProducts {product} isMobile={true} initialProducts={relatedProducts} />
     </div>
 
   </svelte:element>

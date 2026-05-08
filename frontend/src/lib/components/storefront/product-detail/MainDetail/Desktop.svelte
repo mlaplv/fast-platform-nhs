@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import Diamond from "@lucide/svelte/icons/diamond";
   
@@ -33,10 +32,12 @@
   interface Props {
     product: Product;
     relatedProducts?: Product[];
+    reviewStats?: ReviewStats | null;
   }
-  let { product, relatedProducts = [] }: Props = $props();
+  let { product, relatedProducts = [], reviewStats = null }: Props = $props();
 
-  let stats = $state<ReviewStats | null>(null);
+  // Elite Performance Fix P1.2: Khởi tạo từ server-prefetched data — KHÔNG fetch lại trong onMount
+  let stats = $state<ReviewStats | null>(reviewStats);
   let likeCount = $state(0);
 
   // Sync like state with product (Elite V2.2)
@@ -46,14 +47,10 @@
     }
   });
 
-  onMount(async () => {
-    if (product?.id) {
-      try {
-        const res = await fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`);
-        if (res.ok) stats = await res.json();
-      } catch (e) {
-        console.error('Failed to load product stats:', e);
-      }
+  // Sync stats if server data changes (e.g. navigation between products)
+  $effect(() => {
+    if (reviewStats !== undefined) {
+      stats = reviewStats;
     }
   });
 
@@ -419,7 +416,7 @@
 
   <!-- RELATED PRODUCTS -->
   <div class="max-w-[1200px] mx-auto mt-6 mb-12">
-    <RelatedProducts {product} />
+    <RelatedProducts {product} initialProducts={relatedProducts} />
   </div>
 
 </svelte:element>

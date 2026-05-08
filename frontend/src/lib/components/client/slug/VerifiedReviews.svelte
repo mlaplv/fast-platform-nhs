@@ -16,6 +16,11 @@
   const shopStore = getShopStore();
   const ui = getClientUi();
 
+  interface Props {
+    initialReviews?: Review[];
+  }
+  let { initialReviews = [] }: Props = $props();
+
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
   const metadata = $derived(product?.metadata || {});
   
@@ -29,8 +34,8 @@
     created_at: string;
   }
 
-  let realReviews = $state<Review[]>([]);
-  let isLoading = $state(true);
+  let realReviews = $state<Review[]>(initialReviews.length > 0 ? initialReviews : []);
+  let isLoading = $state(initialReviews.length === 0);
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.reviews_headline?.split('//') || []);
@@ -183,7 +188,7 @@
   }
 
   onMount(() => {
-    if (product?.id) {
+    if (product?.id && realReviews.length === 0) {
        fetchRealReviews();
     }
   });

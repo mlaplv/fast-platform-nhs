@@ -20,7 +20,11 @@
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
 
-  let { product: propProduct } = $props();
+  interface Props {
+    product: any;
+    initialReviews?: Review[];
+  }
+  let { product: propProduct, initialReviews = [] }: Props = $props();
   const shopStore = getShopStore();
   const ui = getClientUi();
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
@@ -40,8 +44,8 @@
     content: string;
     created_at: string;
   }
-  let realReviews = $state<Review[]>([]);
-  let isLoading = $state(true);
+  let realReviews = $state<Review[]>(initialReviews.length > 0 ? initialReviews : []);
+  let isLoading = $state(initialReviews.length === 0);
 
   const labels = $derived({
     headline: metadata?.reviews_headline || 'KHÁCH HÀNG NÓI GÌ?',
@@ -144,7 +148,9 @@
   }
 
   onMount(() => {
-    fetchReviews();
+    if (realReviews.length === 0) {
+      fetchReviews();
+    }
   });
 
   async function handleSubmit(e: Event) {

@@ -136,9 +136,9 @@
     <FunnelPage {data} />
   {:else}
     {#if ui.isMobile}
-      <ProductDetailMobile product={data.product} relatedProducts={data.relatedProducts} />
+      <ProductDetailMobile product={data.product} relatedProducts={data.relatedProducts} reviewStats={data.reviewStats} />
     {:else}
-      <ProductDetailDesktop product={data.product} relatedProducts={data.relatedProducts} />
+      <ProductDetailDesktop product={data.product} relatedProducts={data.relatedProducts} reviewStats={data.reviewStats} />
     {/if}
     
 

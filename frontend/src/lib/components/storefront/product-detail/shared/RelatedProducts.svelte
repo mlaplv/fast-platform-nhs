@@ -12,17 +12,16 @@
   interface Props {
     product: Product;
     isMobile?: boolean;
+    initialProducts?: Product[];
   }
-  let { product, isMobile = false }: Props = $props();
+  let { product, isMobile = false, initialProducts = [] }: Props = $props();
 
-  const recentlyViewed = getRecentlyViewedStore();
-
-  let activeTab = $state('');
-  let categoryProducts = $state<Product[]>([]);
+  // Elite Performance Fix P2.2: Dùng dữ liệu từ server nếu có
+  let categoryProducts = $state<Product[]>(initialProducts);
   let brandProducts = $state<Product[]>([]);
   let recentProducts = $state<Product[]>([]);
-  let isLoading = $state(true);
-  let isInitialized = $state(false);
+  let isLoading = $state(initialProducts.length === 0);
+  let isInitialized = $state(initialProducts.length > 0);
 
   // Elite V2.2: Intelligent Tab Discovery - Sharp & Professional Liquid Glass
   const availableTabs = $derived.by(() => {
@@ -97,6 +96,7 @@
 
   onMount(() => {
     recentlyViewed.addProduct(product.id);
+    // Chỉ fetch nếu chưa có dữ liệu hoặc để cập nhật brand/recent
     fetchAllRelated();
   });
 

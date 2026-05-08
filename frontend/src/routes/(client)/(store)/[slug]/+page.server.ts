@@ -117,34 +117,47 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
       const isMobile = isMobileDevice(userAgent);
       const effectiveIp = request.headers.get('cf-connecting-ip') || '127.0.0.1';
 
-      // Load newest products for recommendation section
-      let relatedProducts = [];
-      try {
-        const relRes = await fetch(relatedUrl, {
+      // Elite Performance Fix: Chạy related + reviewStats SONG SONG (parallel) thay vì tuần tự
+      // Tiết kiệm 200–500ms so với sequential waterfall cũ
+      const [relRes, statsRes] = await Promise.all([
+        fetch(relatedUrl, {
           headers: { 'x-tenant': tenantId },
-          signal: AbortSignal.timeout(3000)
-        });
-        if (relRes.ok) {
+          signal: AbortSignal.timeout(2000)
+        }).catch((relErr) => {
+          console.error(`[RELATED PRODUCTS FETCH FAILED]`, relErr);
+          return null;
+        }),
+        fetch(`${apiUrl}/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`, {
+          headers: { 'x-tenant': tenantId },
+          signal: AbortSignal.timeout(2000)
+        }).catch((e) => {
+          console.warn(`[REVIEW STATS FETCH FAILED] id: ${product.id}`, e);
+          return null;
+        })
+      ]);
+
+      // Parse related products
+      let relatedProducts: { id: string }[] = [];
+      if (relRes && relRes.ok) {
+        try {
           const relData = await relRes.json();
           // Remove current product and take exact 8 items
           relatedProducts = (relData.data || [])
             .filter((p: { id: string }) => p.id !== product.id)
             .slice(0, 8);
+        } catch (e) {
+          console.error(`[RELATED PRODUCTS PARSE FAILED]`, e);
         }
-      } catch (relErr) {
-        console.error(`[RELATED PRODUCTS FETCH FAILED]`, relErr);
       }
 
-      // Elite V2.2: Fetch Authentic Review Stats for Server-side SEO
+      // Parse review stats
       let reviewStats = null;
-      try {
-        const statsRes = await fetch(`${apiUrl}/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`, {
-          headers: { 'x-tenant': tenantId },
-          signal: AbortSignal.timeout(3000)
-        });
-        if (statsRes.ok) reviewStats = await statsRes.json();
-      } catch (e) {
-        console.warn(`[REVIEW STATS FETCH FAILED] id: ${product.id}`);
+      if (statsRes && statsRes.ok) {
+        try {
+          reviewStats = await statsRes.json();
+        } catch (e) {
+          console.warn(`[REVIEW STATS PARSE FAILED] id: ${product.id}`);
+        }
       }
 
       return {

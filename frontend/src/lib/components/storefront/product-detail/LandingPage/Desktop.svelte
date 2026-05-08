@@ -24,11 +24,20 @@
   interface Props {
     product: Product;
     relatedProducts?: Product[];
+    reviewStats?: ReviewStats | null;
   }
-  let { product, relatedProducts = [] }: Props = $props();
+  let { product, relatedProducts = [], reviewStats = null }: Props = $props();
 
-  let stats = $state<ReviewStats | null>(null);
+  // Elite Performance Fix P1.2: Khởi tạo từ server-prefetched data
+  let stats = $state<ReviewStats | null>(reviewStats);
   let likeCount = $state(0);
+
+  // Sync stats khi server data thay đổi
+  $effect(() => {
+    if (reviewStats !== undefined) {
+      stats = reviewStats;
+    }
+  });
 
   // Sync like state with product (Elite V2.2)
   $effect(() => {
@@ -37,16 +46,6 @@
     }
   });
 
-  onMount(async () => {
-    if (product?.id) {
-      try {
-        const res = await fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`);
-        if (res.ok) stats = await res.json();
-      } catch (e) {
-        console.error('Failed to load product stats:', e);
-      }
-    }
-  });
 
   const variations = $derived(product.tier_variations || product.tierVariations || []);
   let selectedIndices = $state<number[]>([]);
@@ -274,13 +273,9 @@
   const activeComboQty = $derived(effectiveTier?.attributes?.combo_qty || effectiveTier?.attributes?.comboQty || 0);
   const activeGifts = $derived(effectiveTier?.attributes?.gifts || []);
 
-  const wrapperTags = ['div', 'article', 'section', 'main'];
-  const seedLength = $derived(product?.name ? product.name.length : 10);
-  const outerWrapper = $derived(wrapperTags[seedLength % wrapperTags.length]);
-  const contentWrapper = $derived(wrapperTags[(seedLength + 3) % wrapperTags.length]);
 </script>
 
-<svelte:element this={outerWrapper} class="bg-[#f6f6f6] min-h-screen">
+<div class="bg-[#f6f6f6] min-h-screen">
   <!-- BREADCRUMB -->
   <div class="bg-[#f5f5f5] py-4">
     <div class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-3 text-[11px] text-gray-500 font-bold uppercase tracking-wider">
@@ -293,7 +288,7 @@
     </div>
   </div>
 
-  <svelte:element this={contentWrapper} class="max-w-[1200px] mx-auto bg-white shadow-sm mt-0 p-5">
+  <main class="max-w-[1200px] mx-auto bg-white shadow-sm mt-0 p-5">
     <div class="flex flex-col md:flex-row gap-8">
       <ProductGallery 
         {product} 
@@ -347,10 +342,10 @@
     </div>
 
     <div class="max-w-[1200px] mx-auto mt-6 mb-12">
-      <RelatedProducts {product} />
+      <RelatedProducts {product} initialProducts={relatedProducts} />
     </div>
-  </svelte:element>
-</svelte:element>
+  </main>
+</div>
 
 <style>
   :global(.prose-osmo) {

@@ -61,7 +61,8 @@ class ClientHomeController(Controller):
         system_settings = await settings_service.get_general_settings(db_session)
         
         # 2. Fetch actual products (Active only)
-        all_products = await product_service.list_products(db_session, limit=100, offset=0, status="ACTIVE")
+        # Elite Performance Fix P3.1: Giảm limit từ 100 xuống 24 để tối ưu tốc độ load home
+        all_products = await product_service.list_products(db_session, limit=24, offset=0, status="ACTIVE")
         categories_resp = await category_service.list_categories(db_session)
         
         # Elite V2.2: Device-aware category filtering
