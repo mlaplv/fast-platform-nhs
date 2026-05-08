@@ -7,7 +7,7 @@
   import { goto } from '$app/navigation';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
-  import SmartSearch from '../product/SmartSearch.svelte';
+  import SmartSearch from '../../../product/SmartSearch.svelte';
   import type { Product } from '$lib/types';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
@@ -57,7 +57,7 @@
       onclick={() => searchStore.isOverlayOpen = true}
     >
       <Search size={16} class="search-icon shrink-0" />
-      <span class="placeholder">{product.name}</span>
+      <span class="placeholder">Tìm "{product.name}"...</span>
     </div>
 
     <div class="header-actions">

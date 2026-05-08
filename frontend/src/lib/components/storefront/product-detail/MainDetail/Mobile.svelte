@@ -5,12 +5,12 @@
   import type { Product } from '$lib/types';
 
   // Sub-components (Elite V2.2 Refactored for < 500 lines)
-  import ProductMobileHeader from '../ProductMobileHeader.svelte';
-  import ProductMobileOverview from '../ProductMobileOverview.svelte';
-  import ProductMobileReviews from '../ProductMobileReviews.svelte';
-  import ProductMobileSpecs from '../ProductMobileSpecs.svelte';
-  import ProductDetailRelated from '../shared/ProductDetailRelated.svelte';
-  import ProductMobileVariantSelector from '../ProductMobileVariantSelector.svelte';
+  import ProductMobileHeader from './modules/ProductMobileHeader.svelte';
+  import ProductMobileOverview from './modules/ProductMobileOverview.svelte';
+  import ProductMobileReviews from './modules/ProductMobileReviews.svelte';
+  import ProductMobileSpecs from './modules/ProductMobileSpecs.svelte';
+  import RelatedProducts from '../shared/RelatedProducts.svelte';
+  import ProductMobileVariantSelector from './modules/ProductMobileVariantSelector.svelte';
 
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
@@ -262,7 +262,7 @@
     <div class="section-divider"></div>
 
     <div id="recommendations">
-      <ProductDetailRelated {product} isMobile={true} />
+      <RelatedProducts {product} isMobile={true} />
     </div>
 
   </svelte:element>

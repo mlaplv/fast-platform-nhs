@@ -2,7 +2,7 @@
   import type { Product } from '$lib/types';
   import Volume2 from "@lucide/svelte/icons/volume-2";
   import VolumeX from "@lucide/svelte/icons/volume-x";
-  import ViralShareBarDesktop from '../ViralShareBarDesktop.svelte';
+  import ViralShareBarDesktop from '../../shared/ViralShareBarDesktop.svelte';
 
   interface Props {
     product: Product;

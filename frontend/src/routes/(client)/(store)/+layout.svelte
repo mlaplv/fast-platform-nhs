@@ -54,7 +54,7 @@
 
   // Global header: chỉ hiện trên DESKTOP (Hydrated + Not Hidden)
   const showGlobalHeader = $derived(
-    ui.isHydrated && !ui.isHeaderHidden && !ui.isMobile
+    !ui.isHeaderHidden && !ui.isMobile && !isFunnelPage
   );
 
   const isFunnelPage = $derived(
@@ -64,7 +64,7 @@
 
   // Global footer: chỉ hiện trên DESKTOP + không phải funnel
   const showGlobalFooter = $derived(
-    ui.isHydrated && !ui.isFooterHidden && !isFunnelPage && !ui.isMobile
+    !ui.isFooterHidden && !isFunnelPage && !ui.isMobile
   );
 
   // Map backend settings to UI structure (Elite V2.2: Deep Mapping)

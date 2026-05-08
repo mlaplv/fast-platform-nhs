@@ -1,5 +1,6 @@
 <script lang="ts">
   import AuthForm from '$lib/components/storefront/auth/AuthForm.svelte';
+  import X from "@lucide/svelte/icons/x";
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';

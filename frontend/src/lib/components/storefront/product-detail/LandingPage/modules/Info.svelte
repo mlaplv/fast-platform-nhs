@@ -10,7 +10,7 @@
   import Plus from "@lucide/svelte/icons/plus";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
-  import ShareToUnlockPromoDesktop from '../ShareToUnlockPromoDesktop.svelte';
+  import ShareToUnlock from '../../shared/ShareToUnlock.svelte';
 
   interface VoucherUI {
     id: string;
@@ -171,7 +171,7 @@
 
   <!-- Share Promo -->
   <div class="section-row promo-row">
-    <ShareToUnlockPromoDesktop {product} compact={true} onUnlock={onViralUnlock} />
+    <ShareToUnlock {product} compact={true} onUnlock={onViralUnlock} />
   </div>
 
   <!-- Shipping -->

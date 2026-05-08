@@ -8,7 +8,7 @@
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   
   import MobileBottomMenu from './MobileBottomMenu.svelte';
-  import ProductMobileActions from '../product-detail/ProductMobileActions.svelte';
+  import ProductMobileActions from '../product-detail/MainDetail/modules/ProductMobileActions.svelte';
 
   const ui = getClientUi();
   const cartStore = getCartStore();

@@ -22,8 +22,8 @@
   import { formatCurrency } from '$lib/utils/format';
   
   // Components
-  import ViralShareBarMobile from './shared/ViralShareBarMobile.svelte';
-  import ShareToUnlockPromoMobile from './shared/ShareToUnlockPromoMobile.svelte';
+  import ViralShareBarMobile from '../../shared/ViralShareBarMobile.svelte';
+  import ShareToUnlockPromoMobile from '../../shared/ShareToUnlockPromoMobile.svelte';
   import ProductMobileMedia from './ProductMobileMedia.svelte';
   import ProductMobileFlashSale from './ProductMobileFlashSale.svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';

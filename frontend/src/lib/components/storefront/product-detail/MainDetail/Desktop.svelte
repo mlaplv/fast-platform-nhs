@@ -16,11 +16,11 @@
   import { formatCurrency } from '$lib/utils/format';
   
   // Components
-  import ProductDetailReviews from '../shared/ProductDetailReviews.svelte';
-  import ProductDetailRelated from '../shared/ProductDetailRelated.svelte';
-  import ProductGallery from '../modules/ProductGallery.svelte';
-  import ProductPrimaryInfo from '../modules/ProductPrimaryInfo.svelte';
-  import ProductDetailSections from '../modules/ProductDetailSections.svelte';
+  import ProductReviews from '../shared/ProductReviews.svelte';
+  import RelatedProducts from '../shared/RelatedProducts.svelte';
+  import ProductGallery from './modules/Gallery.svelte';
+  import ProductPrimaryInfo from './modules/Info.svelte';
+  import ProductDetailSections from './modules/Sections.svelte';
 
 
 
@@ -414,12 +414,12 @@
 
   <!-- REVIEWS SECTION -->
   <div id="product-reviews" class="max-w-[1200px] mx-auto mt-6">
-     <ProductDetailReviews {product} />
+     <ProductReviews {product} />
   </div>
 
   <!-- RELATED PRODUCTS -->
   <div class="max-w-[1200px] mx-auto mt-6 mb-12">
-    <ProductDetailRelated {product} />
+    <RelatedProducts {product} />
   </div>
 
 </svelte:element>

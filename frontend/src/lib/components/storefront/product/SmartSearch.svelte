@@ -16,6 +16,11 @@
   const isNewsContext = $derived($page.data.type === 'news' || $page.url.pathname.includes('/bai-viet') || $page.url.pathname.includes('/tin-tuc'));
 
   const searchStore = getSearchStore();
+  const contextPlaceholder = $derived(
+    $page.data.product?.name 
+      ? `Tìm "${$page.data.product.name}"...` 
+      : searchStore.searchPlaceholder
+  );
 
   let isFocused = $state(false);
   let containerElement = $state<HTMLElement>();
@@ -140,7 +145,7 @@
         onfocus={() => isFocused = true}
         onclick={(e) => { e.stopPropagation(); isFocused = true; }}
         onkeydown={handleKeyDown}
-        placeholder={searchStore.searchPlaceholder}
+        placeholder={contextPlaceholder}
         class="flex-grow h-[42px] pl-[15px] pr-10 text-[15px] text-gray-800 bg-transparent focus:outline-none placeholder:text-gray-300 font-bold pointer-events-auto relative transition-all"
         style:z-index={Z_INDEX_CLIENT.HEADER + 3}
       />
@@ -382,7 +387,7 @@
             bind:value={localQuery}
             type="text"
             onkeydown={handleKeyDown}
-            placeholder={searchStore.searchPlaceholder}
+            placeholder={contextPlaceholder}
             class="search-input-mobile"
           />
           {#if localQuery}

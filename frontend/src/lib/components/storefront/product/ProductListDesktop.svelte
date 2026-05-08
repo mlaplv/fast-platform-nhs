@@ -9,7 +9,7 @@
   import { onMount } from 'svelte';
   import { scale } from 'svelte/transition';
   import MessageCircleQuestion from "@lucide/svelte/icons/message-circle-question";
-  import ProductDetailReviews from '../product-detail/shared/ProductDetailReviews.svelte';
+  import ProductReviews from '../product-detail/shared/ProductReviews.svelte';
   import type { ReviewStats } from '$lib/types';
 
 
@@ -436,7 +436,7 @@
       
       {#if !isSearchMode && category}
         <div class="mt-8">
-          <ProductDetailReviews product={category} entityType="CATEGORY" />
+          <ProductReviews product={category} entityType="CATEGORY" />
         </div>
       {/if}
     </main>

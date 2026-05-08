@@ -8,7 +8,7 @@
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
   import { formatCurrency } from '$lib/utils/format';
-  import ShareToUnlockPromoDesktop from '../shared/ShareToUnlockPromoDesktop.svelte';
+  import ShareToUnlock from '../../shared/ShareToUnlock.svelte';
 
   interface Props {
     product: Product;
@@ -190,7 +190,7 @@
   </div>
 
   <div class="px-5 mb-4">
-    <ShareToUnlockPromoDesktop {product} compact={true} onUnlock={onTriggerViralFly} />
+    <ShareToUnlock {product} compact={true} onUnlock={onTriggerViralFly} />
   </div>
 
   <!-- Shipping -->

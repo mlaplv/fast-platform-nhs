@@ -2,7 +2,7 @@
     import Volume2 from "@lucide/svelte/icons/volume-2";
   import VolumeX from "@lucide/svelte/icons/volume-x";
   import type { Product } from '$lib/types';
-  import ShareToUnlockPromoMobile from './shared/ShareToUnlockPromoMobile.svelte';
+  import ShareToUnlockPromoMobile from '../../shared/ShareToUnlockPromoMobile.svelte';
 
   interface Props {
     product: Product;

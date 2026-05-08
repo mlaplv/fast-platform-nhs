@@ -10,7 +10,7 @@
   import MessageCircleQuestion from "@lucide/svelte/icons/message-circle-question";
   import type { Product, ProductFacets, Category, ReviewStats } from '$lib/types';
   import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';
-  import ProductMobileReviews from '../product-detail/ProductMobileReviews.svelte';
+  import ProductMobileReviews from '../product-detail/MainDetail/modules/ProductMobileReviews.svelte';
 
 
   interface Props {
