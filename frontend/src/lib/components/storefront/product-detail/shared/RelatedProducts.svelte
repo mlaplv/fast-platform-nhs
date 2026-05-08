@@ -22,6 +22,9 @@
   let recentProducts = $state<Product[]>([]);
   let isLoading = $state(initialProducts.length === 0);
   let isInitialized = $state(initialProducts.length > 0);
+  let activeTab = $state<string | null>(null);
+
+  const recentlyViewed = getRecentlyViewedStore();
 
   // Elite V2.2: Intelligent Tab Discovery - Sharp & Professional Liquid Glass
   const availableTabs = $derived.by(() => {
