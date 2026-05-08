@@ -809,3 +809,29 @@ export interface Voucher {
   is_default: boolean;
   priority: number;
 }
+
+export interface ProductFormState {
+  name: string;
+  sku: string;
+  price: number;
+  discountPrice?: number;
+  stock: number;
+  category: string;
+  status: "active" | "draft" | "archived";
+  shortDescription: string;
+  description: string;
+  slug: string;
+  seoTitle: string;
+  seoDescription: string;
+  seoKeywords: string;
+  images: string[];
+  mobileImages: string[];
+  attributes: Record<string, string | number | boolean | null>;
+  metadata: ProductMetadata;
+  tierVariations: TierVariation[];
+  variants: ProductVariant[];
+  isAiFeatured: boolean;
+  analysisReport: Record<string, unknown>;
+  marketData: MarketPriceIntel;
+  lastMarketSync?: string;
+}

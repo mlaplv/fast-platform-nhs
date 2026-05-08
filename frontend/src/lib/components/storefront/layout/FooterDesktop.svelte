@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import Facebook from "@lucide/svelte/icons/facebook";
   import Linkedin from "@lucide/svelte/icons/linkedin";
   import Instagram from "@lucide/svelte/icons/instagram";

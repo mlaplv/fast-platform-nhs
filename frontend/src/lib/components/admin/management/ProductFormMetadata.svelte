@@ -16,22 +16,24 @@
   import Heart from "@lucide/svelte/icons/heart";
   import Clock from "@lucide/svelte/icons/clock";
   import Ticket from "@lucide/svelte/icons/ticket";
-  import type { ProductMetadata } from "$lib/types";
+  import type { ProductFormState } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { getIngredientIcon } from "$lib/utils/product";
 
   const nanobot = useNanobot();
 
-  let { formMetadata = $bindable(), formName = "", formDescription = "" } = $props<{
-    formMetadata: ProductMetadata;
-    formName?: string;
-    formDescription?: string;
+  let { formState = $bindable() } = $props<{
+    formState: ProductFormState;
   }>();
 
   onMount(() => {
-    if (!formMetadata) formMetadata = { landing_type: 'standard' };
-    if (!formMetadata.landing_type) formMetadata.landing_type = 'standard';
+    if (!formState.metadata) {
+      formState.metadata = { landing_type: 'standard' };
+    }
+    if (!formState.metadata.landing_type) {
+      formState.metadata.landing_type = 'standard';
+    }
   });
 
   /** Viral Intelligence: Auto-suggest icons for ingredients */
@@ -60,8 +62,8 @@
   let activeIconPicker = $state<number | null>(null);
 
   $effect(() => {
-    if (formMetadata.featured_ingredients) {
-      formMetadata.featured_ingredients.forEach(item => {
+    if (formState.metadata.featured_ingredients) {
+      formState.metadata.featured_ingredients.forEach(item => {
         if (item.name && (!item.icon || item.icon === '🧬')) {
           const smartIcon = getIngredientIcon(item.name);
           if (smartIcon !== '🧬') {
@@ -107,15 +109,15 @@
   }
 
   async function autoDetectEndTime(url?: string) {
-    const target = url ?? formMetadata?.video_url;
+    const target = url ?? formState.metadata?.video_url;
     if (!target || !isVideoFile(target)) return;
     isDetectingDuration = true;
     detectError = null;
     try {
       const dur = await detectVideoDuration(target);
       if (dur !== null) {
-        formMetadata.video_end_time = dur;
-        formMetadata.video_start_time = formMetadata.video_start_time ?? 0;
+        formState.metadata.video_end_time = dur;
+        formState.metadata.video_start_time = formState.metadata.video_start_time ?? 0;
       } else {
         detectError = 'Không đọc được thời lượng';
       }
@@ -131,47 +133,42 @@
 
   // ─── FAQ Management (GEO 2026) ──────────────────────────────────
   function addFaq() {
-    if (!formMetadata.faqs) formMetadata.faqs = [];
-    formMetadata.faqs = [...formMetadata.faqs, { question: '', answer: '' }];
+    if (!formState.metadata.faqs) formState.metadata.faqs = [];
+    formState.metadata.faqs.push({ question: '', answer: '' });
   }
 
   function removeFaq(index: number) {
-    if (!formMetadata.faqs) return;
-    formMetadata.faqs.splice(index, 1);
-    formMetadata.faqs = [...formMetadata.faqs];
+    if (!formState.metadata.faqs) return;
+    formState.metadata.faqs.splice(index, 1);
   }
 
   // ─── Featured Ingredients Management ────────────────────────────
   function addFeaturedIngredient() {
-    if (!formMetadata.featured_ingredients) formMetadata.featured_ingredients = [];
-    formMetadata.featured_ingredients = [
-      ...formMetadata.featured_ingredients,
-      { name: '', benefit: '', icon: '' }
-    ];
+    if (!formState.metadata.featured_ingredients) formState.metadata.featured_ingredients = [];
+    formState.metadata.featured_ingredients.push({ name: '', benefit: '', icon: '' });
   }
 
   function removeFeaturedIngredient(index: number) {
-    if (!formMetadata.featured_ingredients) return;
-    formMetadata.featured_ingredients.splice(index, 1);
-    formMetadata.featured_ingredients = [...formMetadata.featured_ingredients];
+    if (!formState.metadata.featured_ingredients) return;
+    formState.metadata.featured_ingredients.splice(index, 1);
   }
 
   let isSuggestingFaqs = $state(false);
 
   async function handleAiSuggestFaqs() {
-    if (!formName) {
+    if (!formState.name) {
       nanobot.showToast("Vui lòng nhập tên sản phẩm trước khi gọi XOHI.", "warning");
       return;
     }
     isSuggestingFaqs = true;
     try {
       const res = await apiClient.post<{ data: { question: string, answer: string }[] }>('/api/v1/products/faq-suggest', {
-        name: formName,
-        description: formDescription || ''
+        name: formState.name,
+        description: formState.description || ''
       });
       if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        if (!formMetadata.faqs) formMetadata.faqs = [];
-        formMetadata.faqs = [...formMetadata.faqs, ...res.data];
+        if (!formState.metadata.faqs) formState.metadata.faqs = [];
+        formState.metadata.faqs.push(...res.data);
         nanobot.showToast("XOHI đã tự động tạo thành công bộ câu hỏi FAQ.", "success");
       } else {
         nanobot.showToast("XOHI không thể tạo thêm câu hỏi. Vui lòng thử lại.", "error");
@@ -185,8 +182,8 @@
   }
 
   function toggleSharePromo() {
-    if (!formMetadata.share_promotion) {
-      formMetadata.share_promotion = {
+    if (!formState.metadata.share_promotion) {
+      formState.metadata.share_promotion = {
         enabled: true,
         voucher_id: '',
         voucher_label: 'Giảm 50.000₫',
@@ -195,7 +192,7 @@
         share_text: ''
       };
     } else {
-      formMetadata.share_promotion.enabled = !formMetadata.share_promotion.enabled;
+      formState.metadata.share_promotion.enabled = !formState.metadata.share_promotion.enabled;
     }
   }
 </script>
@@ -212,10 +209,10 @@
       {#each landingTypes as type}
         <button
           type="button"
-          onclick={() => formMetadata.landing_type = type.value as ProductMetadata['landing_type']}
-          class="flex flex-col gap-1 p-3 rounded-xl border transition-all text-left {formMetadata.landing_type === type.value ? 'bg-amber-500/10 border-amber-500/50' : 'bg-white/5 border-white/5 hover:border-white/10'}"
+          onclick={() => formState.metadata.landing_type = type.value as ProductMetadata['landing_type']}
+          class="flex flex-col gap-1 p-3 rounded-xl border transition-all text-left {formState.metadata.landing_type === type.value ? 'bg-amber-500/10 border-amber-500/50' : 'bg-white/5 border-white/5 hover:border-white/10'}"
         >
-          <span class="text-[10px] font-bold {formMetadata.landing_type === type.value ? 'text-amber-400' : 'text-white/60'}">{type.label}</span>
+          <span class="text-[10px] font-bold {formState.metadata.landing_type === type.value ? 'text-amber-400' : 'text-white/60'}">{type.label}</span>
           <span class="text-[8px] text-white/30 leading-tight">{type.desc}</span>
         </button>
       {/each}
@@ -226,12 +223,12 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
 
     <!-- Scarcity Timer (Stealth/TikTok) -->
-    {#if formMetadata.landing_type !== 'standard'}
+    {#if formState.metadata.landing_type !== 'standard'}
       <div class="flex flex-col gap-1.5">
         <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Thời gian khan hiếm (Giây)</label>
         <input
           type="number"
-          bind:value={formMetadata.scarcity_seconds}
+          bind:value={formState.metadata.scarcity_seconds}
           placeholder="600"
           class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-amber-500/50 transition-colors"
         />
@@ -243,9 +240,9 @@
       <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Video URL (TikTok/YouTube hoặc đường dẫn nội bộ, ví dụ: /static/video/HN_TikTok.mp4)</label>
       <input
         type="text"
-        bind:value={formMetadata.video_url}
+        bind:value={formState.metadata.video_url}
         onchange={() => {
-          const url = formMetadata.video_url;
+          const url = formState.metadata.video_url;
           if (url && isVideoFile(url)) {
             autoDetectEndTime(url);
           }
@@ -273,7 +270,7 @@
           </div>
         {:else if detectError}
           <span class="text-[8px] text-red-400/70 font-mono">{detectError}</span>
-        {:else if formMetadata.video_end_time}
+        {:else if formState.metadata.video_end_time}
           <div class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-500/10 border border-green-500/20">
             <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-green-400"><polyline points="20 6 9 17 4 12"/></svg>
             <span class="text-[8px] text-green-400 font-mono">Đã detect</span>
@@ -288,7 +285,7 @@
               type="number"
               min="0"
               step="0.5"
-              bind:value={formMetadata.video_start_time}
+              bind:value={formState.metadata.video_start_time}
               placeholder="0"
               class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-amber-300 font-mono focus:outline-none focus:border-amber-500/50 transition-colors pr-10"
             />
@@ -304,7 +301,7 @@
                 type="number"
                 min="0"
                 step="0.5"
-                bind:value={formMetadata.video_end_time}
+                bind:value={formState.metadata.video_end_time}
                 placeholder={isDetectingDuration ? 'Đang detect...' : 'Toàn bộ'}
                 disabled={isDetectingDuration}
                 class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-amber-300 font-mono focus:outline-none focus:border-amber-500/50 transition-colors pr-10 disabled:opacity-50"
@@ -319,7 +316,7 @@
             <button
               type="button"
               onclick={() => autoDetectEndTime()}
-              disabled={isDetectingDuration || !formMetadata?.video_url}
+              disabled={isDetectingDuration || !formState.metadata?.video_url}
               title="Tự động đọc thời lượng video"
               class="px-2 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400/70 hover:bg-amber-500/20 hover:text-amber-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-[8px] font-black uppercase tracking-wider whitespace-nowrap shrink-0"
             >
@@ -330,14 +327,14 @@
         </div>
       </div>
       <!-- Preview range -->
-      {#if formMetadata.video_start_time != null || formMetadata.video_end_time != null}
+      {#if formState.metadata.video_start_time != null || formState.metadata.video_end_time != null}
         <div class="flex items-center gap-2 mt-1 px-2 py-1 rounded-md bg-black/30 border border-white/5">
           <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-amber-400/50"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <span class="text-[9px] font-mono text-amber-300/70">
-            Phát từ <strong>{formMetadata.video_start_time ?? 0}s</strong>
-            {#if formMetadata.video_end_time}
-              → kết thúc lúc <strong>{formMetadata.video_end_time}s</strong>
-              &nbsp;(dài {((formMetadata.video_end_time ?? 0) - (formMetadata.video_start_time ?? 0)).toFixed(1)}s)
+            Phát từ <strong>{formState.metadata.video_start_time ?? 0}s</strong>
+            {#if formState.metadata.video_end_time}
+              → kết thúc lúc <strong>{formState.metadata.video_end_time}s</strong>
+              &nbsp;(dài {((formState.metadata.video_end_time ?? 0) - (formState.metadata.video_start_time ?? 0)).toFixed(1)}s)
             {:else}
               → phát hết
             {/if}
@@ -359,7 +356,7 @@
         <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Text Loading Sync</label>
         <input
           type="text"
-          bind:value={formMetadata.sync_loading_text}
+          bind:value={formState.metadata.sync_loading_text}
           placeholder="Đang phân tích dữ liệu AI..."
           class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-amber-500/50 transition-colors"
         />
@@ -368,7 +365,7 @@
         <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Tên Website (SEO)</label>
         <input
           type="text"
-          bind:value={formMetadata.seo_site_name}
+          bind:value={formState.metadata.seo_site_name}
           placeholder="SmartShop.vn"
           class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-amber-500/50 transition-colors"
         />
@@ -389,14 +386,14 @@
         <div class="flex items-center justify-between">
           <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Thời gian Flash Sale kết thúc</label>
           <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" bind:checked={formMetadata.is_flash_sale} class="sr-only peer" />
+            <input type="checkbox" bind:checked={formState.metadata.is_flash_sale} class="sr-only peer" />
             <div class="w-7 h-4 bg-white/10 rounded-full peer peer-checked:bg-pink-500 transition-all relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-3"></div>
             <span class="text-[8px] font-black text-white/30 uppercase tracking-widest">Kích hoạt</span>
           </label>
         </div>
         <input
           type="datetime-local"
-          bind:value={formMetadata.flash_sale_end}
+          bind:value={formState.metadata.flash_sale_end}
           class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
         />
         <p class="text-[8px] text-white/20 leading-tight">Thiết lập thời điểm kết thúc để hiển thị đồng hồ đếm ngược (Countdown) tạo sự khẩn cấp.</p>
@@ -408,7 +405,7 @@
         <div class="relative">
           <input
             type="number"
-            bind:value={formMetadata.likes}
+            bind:value={formState.metadata.likes}
             placeholder="0"
             class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors pl-9"
           />
@@ -424,7 +421,7 @@
             <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Mục tiêu chia sẻ (Gamification)</label>
             <input
               type="number"
-              bind:value={formMetadata.share_count}
+              bind:value={formState.metadata.share_count}
               placeholder="Hiện tại"
               class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
             />
@@ -433,7 +430,7 @@
             <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Mốc mục tiêu (Target)</label>
             <input
               type="number"
-              bind:value={formMetadata.share_target}
+              bind:value={formState.metadata.share_target}
               placeholder="VD: 1000"
               class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
             />
@@ -443,7 +440,7 @@
           <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Nhãn phần thưởng khi đạt mốc</label>
           <input
             type="text"
-            bind:value={formMetadata.share_reward_label}
+            bind:value={formState.metadata.share_reward_label}
             placeholder="VD: Đạt 1k share mở khóa đại tiệc quà tặng!"
             class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
           />
@@ -461,19 +458,19 @@
           <button
             type="button"
             onclick={toggleSharePromo}
-            class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all {formMetadata.share_promotion?.enabled ? 'bg-pink-500/20 text-pink-400 border border-pink-500/30' : 'bg-white/5 text-white/30 border border-white/10'}"
+            class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all {formState.metadata.share_promotion?.enabled ? 'bg-pink-500/20 text-pink-400 border border-pink-500/30' : 'bg-white/5 text-white/30 border border-white/10'}"
           >
-            {formMetadata.share_promotion?.enabled ? 'Đang bật' : 'Đang tắt'}
+            {formState.metadata.share_promotion?.enabled ? 'Đang bật' : 'Đang tắt'}
           </button>
         </div>
 
-        {#if formMetadata.share_promotion?.enabled}
+        {#if formState.metadata.share_promotion?.enabled}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1.5">
               <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">ID Voucher trong DB (Liên kết bảo mật)</label>
               <input
                 type="text"
-                bind:value={formMetadata.share_promotion.voucher_id}
+                bind:value={formState.metadata.share_promotion.voucher_id}
                 placeholder="VD: OSMO50K (phải tồn tại trong hệ thống Voucher)"
                 class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors font-mono"
               />
@@ -483,7 +480,7 @@
               <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Tiêu đề Voucher (Label)</label>
               <input
                 type="text"
-                bind:value={formMetadata.share_promotion.voucher_label}
+                bind:value={formState.metadata.share_promotion.voucher_label}
                 placeholder="VD: Giảm 50.000₫"
                 class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
               />
@@ -493,7 +490,7 @@
               <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Điều kiện (Condition)</label>
               <input
                 type="text"
-                bind:value={formMetadata.share_promotion.voucher_condition}
+                bind:value={formState.metadata.share_promotion.voucher_condition}
                 placeholder="VD: Cho đơn từ 0đ"
                 class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
               />
@@ -503,7 +500,7 @@
               <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Lời kêu gọi (CTA Text)</label>
               <input
                 type="text"
-                bind:value={formMetadata.share_promotion.cta_text}
+                bind:value={formState.metadata.share_promotion.cta_text}
                 placeholder="Chia sẻ nhận khuyến mãi"
                 class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors"
               />
@@ -512,7 +509,7 @@
             <div class="flex flex-col gap-1.5 md:col-span-2">
               <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Nội dung mẫu khi chia sẻ (Share Text)</label>
               <textarea
-                bind:value={formMetadata.share_promotion.share_text}
+                bind:value={formState.metadata.share_promotion.share_text}
                 placeholder="VD: Sản phẩm này tuyệt vời quá, các bạn xem thử nhé!"
                 rows="2"
                 class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white/80 focus:outline-none focus:border-pink-500/50 transition-colors resize-none"
@@ -558,9 +555,9 @@
       </div>
     </div>
 
-    {#if formMetadata.faqs && formMetadata.faqs.length > 0}
+    {#if formState.metadata.faqs && formState.metadata.faqs.length > 0}
       <div class="flex flex-col gap-3">
-        {#each formMetadata.faqs as faq, i}
+        {#each formState.metadata.faqs as faq, i}
           <div class="flex flex-col gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 relative group">
             <button
               type="button"
@@ -609,7 +606,7 @@
     <div class="flex flex-col gap-1.5">
       <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Bảng thành phần đầy đủ</label>
       <textarea
-        bind:value={formMetadata.ingredients}
+        bind:value={formState.metadata.ingredients}
         placeholder="VD: Aqua, Niacinamide, Glycerin, Vitamin C (Ascorbic Acid) 10%, Tocopherol (Vitamin E), Allantoin, Panthenol..."
         rows="5"
         class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-white/80 focus:outline-none focus:border-teal-500/50 transition-colors resize-none leading-relaxed font-mono"
@@ -637,9 +634,9 @@
       </button>
     </div>
 
-    {#if formMetadata.featured_ingredients && formMetadata.featured_ingredients.length > 0}
+    {#if formState.metadata.featured_ingredients && formState.metadata.featured_ingredients.length > 0}
       <div class="flex flex-col gap-3">
-        {#each formMetadata.featured_ingredients as item, i}
+        {#each formState.metadata.featured_ingredients as item, i}
           <div class="flex flex-col gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 relative group">
             <button
               type="button"

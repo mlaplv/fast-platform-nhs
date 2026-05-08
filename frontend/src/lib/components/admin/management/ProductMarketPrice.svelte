@@ -8,7 +8,7 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import Zap from "@lucide/svelte/icons/zap";
   import Globe from "@lucide/svelte/icons/globe";
-  import type { MarketPriceIntel } from "$lib/types";
+  import type { ProductFormState } from "$lib/types";
   import { formatCurrency } from "$lib/utils/format";
   import { apiClient } from "$lib/utils/apiClient";
   import { useNanobot } from "$lib/state/nanobot.svelte";
@@ -16,10 +16,9 @@
 
   const nanobot = useNanobot();
 
-  let { product_id, market_data = $bindable(), last_sync } = $props<{
+  let { product_id, formState = $bindable() } = $props<{
     product_id?: string;
-    market_data?: MarketPriceIntel;
-    last_sync?: string;
+    formState: ProductFormState;
   }>();
 
   let isSyncing = $state(false);
@@ -30,7 +29,8 @@
     isSyncing = true;
     try {
       const res = await apiClient.post<MarketPriceIntel>(`/api/v1/products/${product_id}/sync-market`);
-      market_data = res;
+      formState.marketData = res;
+      formState.lastMarketSync = new Date().toISOString();
       nanobot.showToast("Đã cập nhật tình báo giá mới nhất", "success");
     } catch (e) {
       nanobot.showToast("Đồng bộ giá thất bại", "error");
@@ -58,8 +58,8 @@
         <TrendingUp size={12} class="animate-pulse" />
         Deep Intel V2.2
       </div>
-      {#if last_sync}
-        <span class="text-[8px] font-mono text-white/20 uppercase">Last Sync: {new Date(last_sync).toLocaleString('vi-VN')}</span>
+      {#if formState.lastMarketSync}
+        <span class="text-[8px] font-mono text-white/20 uppercase">Last Sync: {new Date(formState.lastMarketSync).toLocaleString('vi-VN')}</span>
       {/if}
     </div>
 
@@ -74,28 +74,28 @@
     </button>
   </div>
 
-  {#if market_data}
+  {#if formState.marketData}
     <div transition:fade class="flex flex-col gap-4 relative z-10">
       <!-- Fast Metrics -->
       <div class="grid grid-cols-3 gap-2">
         <div class="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
           <span class="text-[8px] text-white/30 uppercase font-mono tracking-wider">Avg Price</span>
-          <span class="text-[11px] font-black text-white/80">{market_data.avg_market_price ? formatCurrency(market_data.avg_market_price) : 'N/A'}</span>
+          <span class="text-[11px] font-black text-white/80">{formState.marketData.avg_market_price ? formatCurrency(formState.marketData.avg_market_price) : 'N/A'}</span>
         </div>
         <div class="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
           <span class="text-[8px] text-white/30 uppercase font-mono tracking-wider">Competitors</span>
-          <span class="text-[11px] font-black text-white/80">{market_data.competitor_count || 0}</span>
+          <span class="text-[11px] font-black text-white/80">{formState.marketData.competitor_count || 0}</span>
         </div>
         <div class="p-3 rounded-xl bg-emerald-500/[0.03] border border-emerald-500/10 flex flex-col gap-1">
           <span class="text-[8px] text-emerald-400/50 uppercase font-mono tracking-wider">Ads Count</span>
-          <span class="text-[11px] font-black text-emerald-400">{market_data.ads?.length || 0}</span>
+          <span class="text-[11px] font-black text-emerald-400">{formState.marketData.ads?.length || 0}</span>
         </div>
       </div>
 
       <!-- Quick Analysis -->
       <div class="p-4 rounded-xl bg-white/[0.01] border border-dashed border-white/10">
         <p class="text-[10px] text-white/50 leading-relaxed line-clamp-2">
-          {market_data.analysis_overview || market_data.analysis || 'Chưa có phân tích dữ liệu...'}
+          {formState.marketData.analysis_overview || formState.marketData.analysis || 'Chưa có phân tích dữ liệu...'}
         </p>
       </div>
 
@@ -128,7 +128,7 @@
   headerIcon={TrendingUp}
   maxWidth="max-w-6xl"
 >
-  {#if market_data}
+  {#if formState.marketData}
     <div class="flex flex-col lg:flex-row gap-8 min-h-[600px]">
       <!-- Left Panel: Strategic Analysis & Metrics -->
       <div class="w-full lg:w-[400px] flex flex-col gap-6 shrink-0">
@@ -153,7 +153,7 @@
                  Tổng quan
                </h4>
                <p class="text-[12px] text-white/70 leading-relaxed italic border-l-2 border-emerald-500/20 pl-4 py-1">
-                 "{market_data.analysis_overview || 'AI đang tổng hợp dữ liệu...'}"
+                 "{formState.marketData.analysis_overview || 'AI đang tổng hợp dữ liệu...'}"
                </p>
             </div>
 
@@ -163,7 +163,7 @@
                  Phản biện sắc bén
                </h4>
                <p class="text-[12px] text-white/70 leading-relaxed italic border-l-2 border-amber-500/20 pl-4 py-1">
-                 "{market_data.critical_analysis || 'Đang bóc tách đối thủ...'}"
+                 "{formState.marketData.critical_analysis || 'Đang bóc tách đối thủ...'}"
                </p>
             </div>
 
@@ -173,7 +173,7 @@
                  Chiến lược tối ưu
                </h4>
                <p class="text-[12px] text-white/70 leading-relaxed italic border-l-2 border-cyan-500/20 pl-4 py-1">
-                 "{market_data.optimization_strategy || 'Đang tính toán Sweet Spot...'}"
+                 "{formState.marketData.optimization_strategy || 'Đang tính toán Sweet Spot...'}"
                </p>
             </div>
             
@@ -183,7 +183,7 @@
                  Góc nhìn Viral
                </h4>
                <p class="text-[12px] text-white/70 leading-relaxed italic border-l-2 border-indigo-500/20 pl-4 py-1">
-                 "{market_data.viral_hook || 'Đang tìm kiếm Market Gap...'}"
+                 "{formState.marketData.viral_hook || 'Đang tìm kiếm Market Gap...'}"
                </p>
             </div>
           </div>
@@ -193,11 +193,11 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1 group hover:border-emerald-500/20 transition-all">
             <span class="text-[9px] font-black text-white/20 uppercase tracking-widest">Ads Count</span>
-            <span class="text-2xl font-black text-emerald-400 group-hover:scale-110 transition-transform origin-left">{market_data.ads?.length || 0}</span>
+            <span class="text-2xl font-black text-emerald-400 group-hover:scale-110 transition-transform origin-left">{formState.marketData.ads?.length || 0}</span>
           </div>
           <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1 group hover:border-emerald-500/20 transition-all">
             <span class="text-[9px] font-black text-white/20 uppercase tracking-widest">Organic Results</span>
-            <span class="text-2xl font-black text-white/80 group-hover:scale-110 transition-transform origin-left">{market_data.organic_results?.length || 0}</span>
+            <span class="text-2xl font-black text-white/80 group-hover:scale-110 transition-transform origin-left">{formState.marketData.organic_results?.length || 0}</span>
           </div>
         </div>
 
@@ -205,15 +205,15 @@
         <div class="p-5 rounded-2xl bg-white/[0.01] border border-dashed border-white/10 flex flex-col gap-4">
            <div class="flex items-center justify-between">
               <span class="text-[9px] font-black text-white/30 uppercase tracking-widest">Price Spectrum</span>
-              <span class="text-[10px] font-mono text-emerald-400/60">AVG: {market_data.avg_market_price ? formatCurrency(market_data.avg_market_price) : 'N/A'}</span>
+              <span class="text-[10px] font-mono text-emerald-400/60">AVG: {formState.marketData.avg_market_price ? formatCurrency(formState.marketData.avg_market_price) : 'N/A'}</span>
            </div>
            <div class="h-1.5 w-full bg-white/5 rounded-full relative overflow-hidden">
               <div class="absolute inset-y-0 left-0 bg-emerald-500/40 w-1/3"></div>
               <div class="absolute inset-y-0 left-1/3 bg-emerald-400 w-1/4"></div>
            </div>
            <div class="flex justify-between text-[8px] font-mono text-white/20 uppercase">
-              <span>Min: {market_data.min_market_price ? formatCurrency(market_data.min_market_price) : 'N/A'}</span>
-              <span>{market_data.competitor_count} Competitors</span>
+              <span>Min: {formState.marketData.min_market_price ? formatCurrency(formState.marketData.min_market_price) : 'N/A'}</span>
+              <span>{formState.marketData.competitor_count} Competitors</span>
            </div>
         </div>
       </div>
@@ -236,8 +236,8 @@
           </div>
           
           <div class="grid grid-cols-1 gap-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
-            {#if market_data.ads && market_data.ads.length > 0}
-              {#each market_data.ads as ad}
+            {#if formState.marketData.ads && formState.marketData.ads.length > 0}
+              {#each formState.marketData.ads as ad}
                 <a
                   href={ad.link}
                   target="_blank"
@@ -283,8 +283,8 @@
           </div>
 
           <div class="flex flex-col gap-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-            {#if market_data.organic_results && market_data.organic_results.length > 0}
-              {#each market_data.organic_results as res, i}
+            {#if formState.marketData.organic_results && formState.marketData.organic_results.length > 0}
+              {#each formState.marketData.organic_results as res, i}
                 <a
                   href={res.link}
                   target="_blank"

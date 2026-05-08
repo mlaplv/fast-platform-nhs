@@ -3,21 +3,13 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import { resolveMediaUrl } from "$lib/state/utils";
 
+  import type { ProductFormState } from "$lib/types";
+
   let {
-    formName,
-    formSlug = $bindable(),
-    formSeoTitle = $bindable(),
-    formSeoDescription = $bindable(),
-    formSeoKeywords = $bindable(),
-    formImages,
+    formState = $bindable(),
     generateSlug
   } = $props<{
-    formName: string;
-    formSlug: string;
-    formSeoTitle: string;
-    formSeoDescription: string;
-    formSeoKeywords: string;
-    formImages: string[];
+    formState: ProductFormState;
     generateSlug: (name: string) => string;
   }>();
 
@@ -26,21 +18,21 @@
   let isAiLoading = $state(false);
 
   async function handleAiSuggest() {
-    if (!formName) return;
+    if (!formState.name) return;
     isAiLoading = true;
     try {
       // Elite V2.2: R00 AI Suggest Call
       const res = await fetch('/api/v1/products/seo-suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: formName, description: formSeoDescription || '' })
+        body: JSON.stringify({ name: formState.name, description: formState.seoDescription || '' })
       });
       const json = (await res.json()) as { data?: { title?: string; description?: string; keywords?: string; } };
       if (json && json.data) {
         // Fallback or explicit overwrite
-        formSeoTitle = json.data.title || formSeoTitle;
-        formSeoDescription = json.data.description || formSeoDescription;
-        formSeoKeywords = json.data.keywords || formSeoKeywords;
+        formState.seoTitle = json.data.title || formState.seoTitle;
+        formState.seoDescription = json.data.description || formState.seoDescription;
+        formState.seoKeywords = json.data.keywords || formState.seoKeywords;
       }
     } catch (e) {
       console.error('AI Suggest failed:', e);
@@ -49,12 +41,12 @@
     }
   }
 
-  const seoTitleLen = $derived(formSeoTitle?.length ?? 0);
-  const seoDescLen = $derived(formSeoDescription?.length ?? 0);
-  const ogTitle = $derived(formSeoTitle || formName || 'Tên sản phẩm');
-  const ogDesc = $derived(formSeoDescription || 'Mô tả ngắn gọn về sản phẩm...');
-  const ogUrl = $derived(`osmo/${formSlug || 'slug-san-pham'}`);
-  const ogImg = $derived(formImages && formImages.length > 0 ? resolveMediaUrl(formImages[0]) : null);
+  const seoTitleLen = $derived(formState.seoTitle?.length ?? 0);
+  const seoDescLen = $derived(formState.seoDescription?.length ?? 0);
+  const ogTitle = $derived(formState.seoTitle || formState.name || 'Tên sản phẩm');
+  const ogDesc = $derived(formState.seoDescription || 'Mô tả ngắn gọn về sản phẩm...');
+  const ogUrl = $derived(`osmo/${formState.slug || 'slug-san-pham'}`);
+  const ogImg = $derived(formState.images && formState.images.length > 0 ? resolveMediaUrl(formState.images[0]) : null);
 </script>
 
 <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -84,14 +76,14 @@
           <div class="relative flex-1">
             <input
               type="text"
-              bind:value={formSlug}
+              bind:value={formState.slug}
               placeholder="duong-dan-san-pham"
               class="field-input border-b-amber-500/30 font-mono text-sm text-amber-400/80"
             />
             <div class="field-line bg-amber-500/60"></div>
           </div>
           <button
-            onclick={() => { formSlug = generateSlug(formName); }}
+            onclick={() => { formState.slug = generateSlug(formState.name); }}
             title="Tạo lại slug từ tên sản phẩm"
             class="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider cursor-pointer bg-white/5 border border-white/10 text-white/40 hover:text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/5"
           >
@@ -108,7 +100,7 @@
           <span class="ml-auto {seoTitleLen > 60 ? 'text-red-400' : 'text-amber-500/60'}">{seoTitleLen}/60</span>
         </label>
         <div class="relative">
-          <input type="text" bind:value={formSeoTitle}
+          <input type="text" bind:value={formState.seoTitle}
             placeholder="Tiêu đề SEO (50-60 ký tự)..."
             class="field-input text-sm border-b-amber-500/30"
           />
@@ -120,7 +112,7 @@
       <div class="field-group">
         <label class="field-label">SEO Keywords</label>
         <div class="relative">
-          <input type="text" bind:value={formSeoKeywords}
+          <input type="text" bind:value={formState.seoKeywords}
             placeholder="Các từ khóa SEO cách nhau bởi dấu phẩy..."
             class="field-input text-sm border-b-amber-500/30"
           />
@@ -134,7 +126,7 @@
           SEO Meta Description
           <span class="ml-auto {seoDescLen > 160 ? 'text-red-400' : 'text-amber-500/60'}">{seoDescLen}/160</span>
         </label>
-        <textarea bind:value={formSeoDescription} rows="4"
+        <textarea bind:value={formState.seoDescription} rows="4"
           placeholder="Mô tả chuẩn SEO (150-160 ký tự)..."
           class="w-full bg-white/[0.02] border border-white/8 rounded-xl p-3 text-sm text-white/60 placeholder:text-white/15 outline-none focus:border-amber-500/30 resize-y min-h-[100px] shadow-inner"
           style="field-sizing: content;"

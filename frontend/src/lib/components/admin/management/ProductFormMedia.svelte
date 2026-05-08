@@ -13,13 +13,13 @@
     return /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(clean);
   }
 
+  import type { ProductFormState } from "$lib/types";
+
   let {
-    formImages = $bindable(),
-    formMobileImages = $bindable(),
+    formState = $bindable(),
     onOpenVault
   } = $props<{
-    formImages: string[];
-    formMobileImages: string[];
+    formState: ProductFormState;
     onOpenVault: (isMobile: boolean, index?: number | null) => void;
   }>();
 
@@ -32,29 +32,29 @@
 
   function removeImage(index: number, isMobile = false) {
     if (isMobile) {
-      formMobileImages = formMobileImages.filter((_, i) => i !== index);
+      formState.mobileImages = formState.mobileImages.filter((_, i) => i !== index);
     } else {
-      formImages = formImages.filter((_, i) => i !== index);
+      formState.images = formState.images.filter((_, i) => i !== index);
     }
   }
 
   // Clear broken state when images change (e.g. replaced)
   $effect(() => {
-    formImages;
-    formMobileImages;
+    formState.images;
+    formState.mobileImages;
     brokenImages = new Set();
   });
 
   function setAsPrimary(index: number, isMobile = false) {
     if (index === 0) return;
     if (isMobile) {
-      const img = formMobileImages[index];
-      formMobileImages.splice(index, 1);
-      formMobileImages = [img, ...formMobileImages];
+      const img = formState.mobileImages[index];
+      formState.mobileImages.splice(index, 1);
+      formState.mobileImages = [img, ...formState.mobileImages];
     } else {
-      const img = formImages[index];
-      formImages.splice(index, 1);
-      formImages = [img, ...formImages];
+      const img = formState.images[index];
+      formState.images.splice(index, 1);
+      formState.images = [img, ...formState.images];
     }
   }
 
@@ -63,7 +63,7 @@
   let dropTargetIndex = $state<number | null>(null);
 
   function handleDragStart(e: DragEvent, index: number, isMobile: boolean) {
-    const arr = isMobile ? formMobileImages : formImages;
+    const arr = isMobile ? formState.mobileImages : formState.images;
     if (!arr[index]) return;
     draggedIndex = index;
     dragSourceIsMobile = isMobile;
@@ -92,15 +92,15 @@
     }
     
     if (targetIsMobile) {
-      const newImages = [...formMobileImages];
+      const newImages = [...formState.mobileImages];
       const [movedImage] = newImages.splice(draggedIndex, 1);
       newImages.splice(index, 0, movedImage);
-      formMobileImages = newImages;
+      formState.mobileImages = newImages;
     } else {
-      const newImages = [...formImages];
+      const newImages = [...formState.images];
       const [movedImage] = newImages.splice(draggedIndex, 1);
       newImages.splice(index, 0, movedImage);
-      formImages = newImages;
+      formState.images = newImages;
     }
 
     draggedIndex = null;
@@ -121,10 +121,10 @@
   <div class="flex flex-col gap-3">
     <div class="flex items-center justify-between">
       <span class="text-[8px] font-black uppercase tracking-widest text-white/40">Ảnh Desktop (4:5 / 1:1)</span>
-      <span class="text-[8px] font-bold text-amber-500/50">{formImages.length} items</span>
+      <span class="text-[8px] font-bold text-amber-500/50">{formState.images.length} items</span>
     </div>
     <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-3">
-      {#each formImages.filter(img => img && (img.includes('/') || img.startsWith('blob:'))) as img, i}
+      {#each formState.images.filter(img => img && (img.includes('/') || img.startsWith('blob:'))) as img, i}
         {@const resolved = resolveMediaUrl(img)}
         {@const isBroken = brokenImages.has(resolved)}
         <div
@@ -201,10 +201,10 @@
         <span class="text-[8px] font-black uppercase tracking-widest text-cyan-400">Ảnh Mobile (9:16)</span>
         <div class="px-1.5 py-0.5 rounded bg-cyan-400/10 text-cyan-400 text-[6px] font-black uppercase">Elite Hero v2.2</div>
       </div>
-      <span class="text-[8px] font-bold text-cyan-500/50">{formMobileImages.length} items</span>
+      <span class="text-[8px] font-bold text-cyan-500/50">{formState.mobileImages.length} items</span>
     </div>
     <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-3">
-      {#each formMobileImages.filter(img => img && (img.includes('/') || img.startsWith('blob:'))) as img, i}
+      {#each formState.mobileImages.filter(img => img && (img.includes('/') || img.startsWith('blob:'))) as img, i}
         {@const resolved = resolveMediaUrl(img)}
         {@const isBroken = brokenImages.has(resolved)}
         <div 

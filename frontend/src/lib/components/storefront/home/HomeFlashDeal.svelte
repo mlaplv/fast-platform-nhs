@@ -1,9 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
-  import { slugify } from '$lib/utils/slug';
-  import { trimProductName } from '$lib/utils/product';
-  import { formatCurrency } from '$lib/utils/format';
+  import { slugify, formatCurrency, trimProductName } from '$lib/utils/format';
   import type { Product } from '$lib/types';
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";

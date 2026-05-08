@@ -5,7 +5,7 @@
   import CategoryBanner from './CategoryBanner.svelte';
   import type { Product } from '$lib/types';
   import type { ProductFacets } from '$lib/types';
-  import { Category } from '$lib/types';
+  import type { Category } from '$lib/types';
   import { onMount } from 'svelte';
   import { scale } from 'svelte/transition';
   import MessageCircleQuestion from "@lucide/svelte/icons/message-circle-question";

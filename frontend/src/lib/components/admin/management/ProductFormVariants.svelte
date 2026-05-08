@@ -10,18 +10,14 @@
   import Pencil from "@lucide/svelte/icons/pencil";
   import AlertTriangle from "@lucide/svelte/icons/triangle-alert";
   import { resolveMediaUrl } from "$lib/state/utils";
-  import type { Product } from "$lib/types";
+  import type { Product, ProductFormState } from "$lib/types";
 
   let {
-    formTierVariations = $bindable(),
-    formVariants = $bindable(),
-    formSku = "",
+    formState = $bindable(),
     onOpenVault,
     onOpenVaultForGift
   } = $props<{
-    formTierVariations: Product['tierVariations'];
-    formVariants: Product['variants'];
-    formSku?: string;
+    formState: ProductFormState;
     onOpenVault: (tierIndex: number, optionIndex: number, isMobile?: boolean) => void;
     onOpenVaultForGift: (vIndex: number, gIndex: number) => void;
   }>();
@@ -38,23 +34,23 @@
   let editingValue = $state("");
   
   // R102 Validation Rune: Track invalid price combinations
-  const variantValidation = $derived(formVariants.map(v => ({
+  const variantValidation = $derived(formState.variants.map(v => ({
     isInvalid: v.discountPrice > 0 && Number(v.discountPrice) >= Number(v.price)
   })));
 
   // Svelte 5 init
   $effect(() => {
-    if (formTierVariations === undefined) formTierVariations = [];
-    if (formVariants === undefined) formVariants = [];
+    if (formState.tierVariations === undefined) formState.tierVariations = [];
+    if (formState.variants === undefined) formState.variants = [];
 
-    if (formTierVariations.length > 0 && formTierVariations[0].images?.some(img => img)) {
+    if (formState.tierVariations.length > 0 && formState.tierVariations[0].images?.some(img => img)) {
       hasCustomImages = true;
     }
   });
 
   // Clear broken state when images change
   $effect(() => {
-    formTierVariations;
+    formState.tierVariations;
     brokenVariantImages = new Set();
   });
 
@@ -64,9 +60,9 @@
     let structuralChange = false;
     
     // Track if we have any default selected
-    const hasAnyDefault = formVariants.some(v => v.is_default);
+    const hasAnyDefault = formState.variants.some(v => v.is_default);
     
-    formVariants.forEach((v, i) => {
+    formState.variants.forEach((v, i) => {
       // Attributes normalization
       if (!v.attributes) {
         v.attributes = { combo_qty: null, gifts: [] };
@@ -90,53 +86,41 @@
     });
     
     // R102: If variants exist but none are marked default, auto-select the first one
-    if (formVariants.length > 0 && !hasAnyDefault) {
-      if (formVariants[0]) {
-        formVariants[0].is_default = true;
+    if (formState.variants.length > 0 && !hasAnyDefault) {
+      if (formState.variants[0]) {
+        formState.variants[0].is_default = true;
         structuralChange = true;
       }
-    }
-    
-    // Only trigger re-assignment if we added missing nodes or corrected is_default
-    if (structuralChange) {
-      formVariants = [...formVariants];
     }
   });
 
   // R00 Auto-SKU Generator: Sync with main SKU pattern
   $effect(() => {
-    if (!formSku) return;
+    if (!formState.sku) return;
     
-    let changed = false;
-    formVariants.forEach((v, idx) => {
+    formState.variants.forEach((v, idx) => {
       // Auto-fill if SKU is empty
       const isEmpty = !v.sku || v.sku.trim() === "";
       
       if (isEmpty) {
-        v.sku = `${formSku}-${idx + 1}`;
-        changed = true;
+        v.sku = `${formState.sku}-${idx + 1}`;
       }
     });
-
-    if (changed) {
-      formVariants = [...formVariants];
-    }
   });
 
   function addTier() {
-    if (formTierVariations.length >= 2) return;
-    formTierVariations = [...formTierVariations, { 
-      name: formTierVariations.length === 0 ? "Màu sắc" : "Kích cỡ", 
+    if (formState.tierVariations.length >= 2) return;
+    formState.tierVariations.push({ 
+      name: formState.tierVariations.length === 0 ? "Màu sắc" : "Kích cỡ", 
       options: [], 
       images: [],
       mobile_images: []
-    }];
+    });
     rebuildMatrix();
   }
 
   function removeTier(tIndex: number) {
-    formTierVariations.splice(tIndex, 1);
-    formTierVariations = [...formTierVariations];
+    formState.tierVariations.splice(tIndex, 1);
     
     // If we removed Tier 1 and there is a Tier 2, Tier 2 becomes Tier 1
     if (tIndex === 0 && hasCustomImages) {
@@ -148,24 +132,22 @@
 
   function addOption(tIndex: number, value: string) {
     if (!value.trim()) return;
-    if (formTierVariations[tIndex].options.includes(value.trim())) return;
+    if (formState.tierVariations[tIndex].options.includes(value.trim())) return;
     
-    formTierVariations[tIndex].options.push(value.trim());
-    formTierVariations[tIndex].images.push(null);
-    if (!formTierVariations[tIndex].mobile_images) formTierVariations[tIndex].mobile_images = [];
-    formTierVariations[tIndex].mobile_images.push(null);
-    formTierVariations = [...formTierVariations];
+    formState.tierVariations[tIndex].options.push(value.trim());
+    formState.tierVariations[tIndex].images.push(null);
+    if (!formState.tierVariations[tIndex].mobile_images) formState.tierVariations[tIndex].mobile_images = [];
+    formState.tierVariations[tIndex].mobile_images.push(null);
     rebuildMatrix();
   }
 
   function removeOption(tIndex: number, oIndex: number) {
-    formTierVariations[tIndex].options.splice(oIndex, 1);
-    formTierVariations[tIndex].images.splice(oIndex, 1);
-    if (formTierVariations[tIndex].mobile_images) formTierVariations[tIndex].mobile_images.splice(oIndex, 1);
-    formTierVariations = [...formTierVariations];
+    formState.tierVariations[tIndex].options.splice(oIndex, 1);
+    formState.tierVariations[tIndex].images.splice(oIndex, 1);
+    if (formState.tierVariations[tIndex].mobile_images) formState.tierVariations[tIndex].mobile_images.splice(oIndex, 1);
     
     // Cleanup empty tiers
-    if (formTierVariations[tIndex].options.length === 0) {
+    if (formState.tierVariations[tIndex].options.length === 0) {
        removeTier(tIndex);
        return;
     }
@@ -174,25 +156,25 @@
 
   function toggleCustomImages() {
     hasCustomImages = !hasCustomImages;
-    if (!hasCustomImages && formTierVariations.length > 0) {
-      formTierVariations[0].images = formTierVariations[0].options.map(() => null);
-      formTierVariations[0].mobile_images = formTierVariations[0].options.map(() => null);
+    if (!hasCustomImages && formState.tierVariations.length > 0) {
+      formState.tierVariations[0].images = formState.tierVariations[0].options.map(() => null);
+      formState.tierVariations[0].mobile_images = formState.tierVariations[0].options.map(() => null);
     }
   }
 
   function rebuildMatrix() {
-    if (formTierVariations.length === 0) {
-      formVariants = [];
+    if (formState.tierVariations.length === 0) {
+      formState.variants = [];
       return;
     }
 
-    const t1 = formTierVariations[0].options;
-    const t2 = formTierVariations.length > 1 ? formTierVariations[1].options : [];
+    const t1 = formState.tierVariations[0].options;
+    const t2 = formState.tierVariations.length > 1 ? formState.tierVariations[1].options : [];
 
     const newVariants: Product['variants'] = [];
 
     if (t1.length === 0) {
-      formVariants = [];
+      formState.variants = [];
       return;
     }
 
@@ -202,7 +184,7 @@
           const tIdx = [i, j];
           const existing = findExistingVariant(tIdx);
           const newIdx = newVariants.length + 1;
-          const generatedSku = formSku ? `${formSku}-${newIdx}` : "";
+          const generatedSku = formState.sku ? `${formState.sku}-${newIdx}` : "";
           newVariants.push(existing || { 
             tierIndex: tIdx, 
             sku: generatedSku, 
@@ -218,7 +200,7 @@
         const tIdx = [i];
         const existing = findExistingVariant(tIdx);
         const newIdx = newVariants.length + 1;
-        const generatedSku = formSku ? `${formSku}-${newIdx}` : "";
+        const generatedSku = formState.sku ? `${formState.sku}-${newIdx}` : "";
         newVariants.push(existing || { 
           tierIndex: tIdx, 
           sku: generatedSku, 
@@ -232,28 +214,27 @@
       }
     }
 
-    formVariants = newVariants;
+    formState.variants = newVariants;
   }
 
   function startEdit(tIndex: number, oIndex: number) {
     editingOption = { tIndex, oIndex };
-    editingValue = formTierVariations[tIndex].options[oIndex];
+    editingValue = formState.tierVariations[tIndex].options[oIndex];
   }
 
   function saveEdit() {
     if (!editingOption) return;
     const { tIndex, oIndex } = editingOption;
     const newVal = editingValue.trim();
-    if (newVal && (newVal === formTierVariations[tIndex].options[oIndex] || !formTierVariations[tIndex].options.includes(newVal))) {
-      formTierVariations[tIndex].options[oIndex] = newVal;
-      formTierVariations = [...formTierVariations];
+    if (newVal && (newVal === formState.tierVariations[tIndex].options[oIndex] || !formState.tierVariations[tIndex].options.includes(newVal))) {
+      formState.tierVariations[tIndex].options[oIndex] = newVal;
       rebuildMatrix();
     }
     editingOption = null;
   }
 
   function findExistingVariant(targetIndex: number[]): Product['variants'][number] | undefined {
-    return formVariants.find(v => 
+    return formState.variants.find(v => 
       v.tierIndex.length === targetIndex.length && 
       v.tierIndex.every((val, idx) => val === targetIndex[idx])
     );
@@ -272,7 +253,7 @@
   }
 
   function applyBatch() {
-    formVariants = formVariants.map(v => {
+    formState.variants = formState.variants.map(v => {
       let finalPrice = batchPrice > 0 ? batchPrice : v.price;
       let finalDiscountPrice = v.discountPrice;
 
@@ -294,7 +275,7 @@
   }
 
   function setDefault(vIndex: number) {
-    formVariants = formVariants.map((v, i) => ({
+    formState.variants = formState.variants.map((v, i) => ({
       ...v,
       is_default: i === vIndex
     }));
@@ -309,12 +290,12 @@
   }
 
   function removeImage(oIndex: number, isMobile = false) {
-    if (formTierVariations.length > 0) {
+    if (formState.tierVariations.length > 0) {
       if (isMobile) {
-        if (!formTierVariations[0].mobile_images) formTierVariations[0].mobile_images = [];
-        formTierVariations[0].mobile_images[oIndex] = null;
+        if (!formState.tierVariations[0].mobile_images) formState.tierVariations[0].mobile_images = [];
+        formState.tierVariations[0].mobile_images[oIndex] = null;
       } else {
-        formTierVariations[0].images[oIndex] = null;
+        formState.tierVariations[0].images[oIndex] = null;
       }
     }
   }
@@ -324,20 +305,18 @@
   }
 
   function ensureAttributes(vIndex: number) {
-    if (!formVariants[vIndex].attributes) formVariants[vIndex].attributes = { combo_qty: null, gifts: [] };
-    if (!formVariants[vIndex].attributes.gifts) formVariants[vIndex].attributes.gifts = [];
+    if (!formState.variants[vIndex].attributes) formState.variants[vIndex].attributes = { combo_qty: null, gifts: [] };
+    if (!formState.variants[vIndex].attributes.gifts) formState.variants[vIndex].attributes.gifts = [];
   }
 
   function addGift(vIndex: number) {
     ensureAttributes(vIndex);
-    formVariants[vIndex].attributes!.gifts!.push({ name: '', qty: 1, image: '' });
-    formVariants = [...formVariants];
+    formState.variants[vIndex].attributes!.gifts!.push({ name: '', qty: 1, image: '' });
   }
 
   function removeGift(vIndex: number, gIndex: number) {
-    if (formVariants[vIndex].attributes?.gifts) {
-      formVariants[vIndex].attributes!.gifts!.splice(gIndex, 1);
-      formVariants = [...formVariants];
+    if (formState.variants[vIndex].attributes?.gifts) {
+      formState.variants[vIndex].attributes!.gifts!.splice(gIndex, 1);
     }
   }
 </script>
@@ -355,7 +334,7 @@
       </div>
     </div>
     
-    {#if formTierVariations.length < 2}
+    {#if formState.tierVariations.length < 2}
       <button 
         onclick={addTier}
         class="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-bold uppercase tracking-wider text-white/40 hover:text-white transition-colors"
@@ -365,7 +344,7 @@
     {/if}
   </div>
 
-  {#if formTierVariations.length === 0}
+  {#if formState.tierVariations.length === 0}
     <div class="flex flex-col items-center justify-center py-6 gap-2 opacity-50">
       <ListTree size={24} class="text-white/20" />
       <div class="text-[10px] text-white/30 uppercase tracking-widest font-black">Chưa có phân loại nào</div>
@@ -373,7 +352,7 @@
   {:else}
     
     <div class="flex flex-col gap-6">
-      {#each formTierVariations as tier, tIndex}
+      {#each formState.tierVariations as tier, tIndex}
         <div class="flex flex-col gap-3 relative p-4 border border-white/5 rounded-xl bg-black/40">
           <button 
             onclick={() => removeTier(tIndex)}
@@ -524,7 +503,7 @@
     </div>
 
     <!-- MA TRẬN VARIANT TABLE -->
-    {#if formVariants.length > 0}
+    {#if formState.variants.length > 0}
       <div class="flex flex-col gap-3 mt-4">
         <!-- BATCH APPLY TOOL -->
         <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20 rounded-xl">
@@ -549,7 +528,7 @@
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-white/5 border-b border-white/5">
-                {#each formTierVariations as tier}
+                {#each formState.tierVariations as tier}
                   <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 whitespace-nowrap">{tier.name}</th>
                 {/each}
                 <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-12 text-center border-l border-white/5 whitespace-nowrap">Mặc định</th>
@@ -562,14 +541,14 @@
               </tr>
             </thead>
             <tbody>
-              {#each formVariants as variant, vIndex}
+              {#each formState.variants as variant, vIndex}
                 <tr class="border-b border-white/[0.02] hover:bg-white/[0.02] transition-colors group">
                   <!-- Tier Options Display -->
                   {#each variant.tierIndex as tIdx, i}
                     <!-- ONLY SHOW TIER 1 IF IT IS THE FIRST IN ITS GROUP TO AVOID ROWSPAN COMPLEXITY (Like Shopee) -->
                     <!-- For simplicity and robustness, we just print it every time but dim repeats -->
                     <td class="py-2 px-4 text-[11px] font-medium text-white/80 whitespace-nowrap border-r border-white/5">
-                      {formTierVariations[i].options[tIdx]}
+                      {formState.tierVariations[i].options[tIdx]}
                     </td>
                   {/each}
 
@@ -593,7 +572,6 @@
                         } else if (variant.discountPrice > 0) {
                           variant.discountPercent = calculateDiscountPercent(Number(variant.price), Number(variant.discountPrice));
                         }
-                        formVariants = [...formVariants];
                       }}
                       class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-amber-500/50 !outline-none px-3 py-2 text-xs text-amber-400 font-mono text-right rounded" 
                       placeholder="0" 
@@ -606,7 +584,6 @@
                       bind:value={variant.discountPercent} 
                       oninput={() => {
                         variant.discountPrice = calculateDiscountPrice(Number(variant.price), Number(variant.discountPercent));
-                        formVariants = [...formVariants];
                       }}
                       class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-rose-500/50 !outline-none px-2 py-2 text-xs text-rose-400/70 font-mono text-center rounded" 
                       placeholder="0" 
@@ -621,7 +598,6 @@
                         bind:value={variant.discountPrice} 
                         oninput={() => {
                           variant.discountPercent = calculateDiscountPercent(Number(variant.price), Number(variant.discountPrice));
-                          formVariants = [...formVariants];
                         }}
                         class="w-full bg-transparent border !outline-none px-3 py-2 text-xs font-mono text-right rounded transition-all 
                           {variantValidation[vIndex]?.isInvalid 
@@ -650,7 +626,6 @@
                          <input 
                            type="number" 
                            bind:value={variant.attributes.combo_qty} 
-                           oninput={() => formVariants = [...formVariants]}
                            class="flex-1 bg-black/40 border border-white/10 focus:border-cyan-500/50 outline-none px-2 py-1 text-[10px] text-cyan-400 font-mono rounded placeholder:text-cyan-900" 
                            placeholder="1 (Gói lẻ)" 
                          />
@@ -671,8 +646,8 @@
                            </button>
 
                            <div class="flex flex-1 gap-1 items-start">
-                             <input type="text" bind:value={gift.name} oninput={() => formVariants = [...formVariants]} placeholder="Tên quà (VD: Mặt nạ)" class="flex-1 min-w-[80px] bg-transparent border-b border-white/10 outline-none text-[9px] text-white px-1" />
-                             <input type="number" bind:value={gift.qty} oninput={() => formVariants = [...formVariants]} placeholder="SL" class="w-10 bg-transparent border-b border-white/10 outline-none text-[9px] text-center text-rose-400 font-bold px-1" />
+                             <input type="text" bind:value={gift.name} placeholder="Tên quà (VD: Mặt nạ)" class="flex-1 min-w-[80px] bg-transparent border-b border-white/10 outline-none text-[9px] text-white px-1" />
+                             <input type="number" bind:value={gift.qty} placeholder="SL" class="w-10 bg-transparent border-b border-white/10 outline-none text-[9px] text-center text-rose-400 font-bold px-1" />
                            </div>
                            
                            <button onclick={() => removeGift(vIndex, gIdx)} class="text-white/20 hover:text-red-400 opacity-0 group-hover/gift:opacity-100 transition-opacity p-0.5"><X size={10}/></button>

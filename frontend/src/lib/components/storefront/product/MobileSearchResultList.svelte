@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
-  import { formatCurrency } from '$lib/utils/format';
+  import { formatCurrency, trimProductName } from '$lib/utils/format';
   import { fade } from 'svelte/transition';
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import Search from "@lucide/svelte/icons/search";

@@ -1,32 +1,17 @@
 <script lang="ts">
+  import type { ProductFormState } from "$lib/types";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
 
   let {
     editingId,
-    formName = $bindable(),
-    formSku = $bindable(),
-    formPrice = $bindable(),
-    formDiscountPrice = $bindable(),
-    formStock = $bindable(),
-    formCategory = $bindable(),
-    formStatus = $bindable(),
-    formShortDescription = $bindable(),
-    formIsAiFeatured = $bindable(),
+    formState = $bindable(),
     categories,
     generateSlug,
     onNameInput,
     errors,
   } = $props<{
     editingId: string | null;
-    formName: string;
-    formSku: string;
-    formPrice: number;
-    formDiscountPrice?: number;
-    formStock: number;
-    formCategory: string;
-    formStatus: "active" | "draft" | "archived";
-    formShortDescription: string;
-    formIsAiFeatured: boolean;
+    formState: ProductFormState;
     categories: { id: string; name: string }[];
     generateSlug: (name: string) => string;
     onNameInput: () => void;
@@ -35,10 +20,10 @@
 
   // R102 Validation Rune: Track invalid price combinations
   const isDiscountInvalid = $derived(
-    formDiscountPrice !== undefined && 
-    formDiscountPrice !== null && 
-    Number(formDiscountPrice) > 0 && 
-    Number(formDiscountPrice) >= Number(formPrice)
+    formState.discountPrice !== undefined && 
+    formState.discountPrice !== null && 
+    Number(formState.discountPrice) > 0 && 
+    Number(formState.discountPrice) >= Number(formState.price)
   );
 </script>
 
@@ -53,7 +38,7 @@
     <div class="relative">
       <input
         type="text"
-        bind:value={formName}
+        bind:value={formState.name}
         oninput={onNameInput}
         placeholder="Nhập tên sản phẩm..."
         class="field-input border-b-amber-500/30 focus:border-amber-500 text-xl font-bold"
@@ -72,7 +57,7 @@
     </label>
     <div class="relative">
       <textarea
-        bind:value={formShortDescription}
+        bind:value={formState.shortDescription}
         placeholder="Nhập mô tả ngắn cho banner..."
         rows="2"
         class="field-input border-b-amber-500/30 focus:border-amber-500 text-sm italic text-white/70"
@@ -88,7 +73,7 @@
       <div class="relative">
         <input
           type="text"
-          bind:value={formSku}
+          bind:value={formState.sku}
           placeholder="SKU-XXXX..."
           class="field-input border-b-amber-500/30 font-mono text-sm text-amber-400 uppercase tracking-wider"
         />
@@ -101,13 +86,13 @@
       <label class="field-label">Danh mục kết nối</label>
       <div class="relative">
         <select 
-          value={formCategory} 
-          onchange={(e) => formCategory = e.currentTarget.value}
+          value={formState.category} 
+          onchange={(e) => formState.category = e.currentTarget.value}
           class="field-select border border-white/8 appearance-none bg-black/40"
         >
           <option value="" class="bg-[#0f0f0f]">Chưa phân loại</option>
           {#each categories as c}
-            <option value={c.id} selected={c.id === formCategory} class="bg-[#0f0f0f]">{c.name}</option>
+            <option value={c.id} selected={c.id === formState.category} class="bg-[#0f0f0f]">{c.name}</option>
           {/each}
         </select>
         <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/20">
@@ -124,7 +109,7 @@
       <div class="relative flex items-center">
         <input
           type="number"
-          bind:value={formPrice}
+          bind:value={formState.price}
           placeholder="0"
           class="field-input border-b-amber-500/30 text-sm font-mono tracking-wider w-full pr-12"
         />
@@ -144,7 +129,7 @@
       <div class="relative flex items-center">
         <input
           type="number"
-          bind:value={formDiscountPrice}
+          bind:value={formState.discountPrice}
           placeholder="0"
           class="field-input transition-all !outline-none text-sm font-mono tracking-wider w-full pr-12 
             {isDiscountInvalid 
@@ -162,7 +147,7 @@
       <div class="relative flex items-center">
         <input
           type="number"
-          bind:value={formStock}
+          bind:value={formState.stock}
           placeholder="0"
           class="field-input border-b-amber-500/30 text-sm font-mono tracking-wider w-full pr-12"
         />
@@ -177,9 +162,9 @@
       <div class="flex items-center gap-1 p-0.5 bg-black/40 rounded-xl border border-white/5 h-full">
         {#each [['active','H.Động'], ['draft','Thảo'], ['archived','Lưu']] as [val, lbl]}
            <button
-             onclick={() => formStatus = val as "active"|"draft"|"archived"}
+             onclick={() => formState.status = val as "active"|"draft"|"archived"}
              class="flex-1 h-full flex items-center justify-center text-[8px] font-black uppercase tracking-tight rounded-lg
-               {formStatus === val ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-inner' : 'text-gray-600 hover:text-white border border-transparent'}"
+               {formState.status === val ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-inner' : 'text-gray-600 hover:text-white border border-transparent'}"
            >{lbl}</button>
         {/each}
       </div>
@@ -189,16 +174,16 @@
     <div class="field-group lg:col-span-1">
       <label class="field-label">Elite Integration</label>
       <button
-        onclick={() => formIsAiFeatured = !formIsAiFeatured}
+        onclick={() => formState.isAiFeatured = !formState.isAiFeatured}
         class="flex items-center justify-between gap-3 px-4 py-3 bg-black/40 rounded-xl border transition-all duration-500 group/ai
-          {formIsAiFeatured ? 'border-[#00FFFF]/40 shadow-[0_0_15px_rgba(0,255,255,0.1)]' : 'border-white/5 grayscale opacity-50'}"
+          {formState.isAiFeatured ? 'border-[#00FFFF]/40 shadow-[0_0_15px_rgba(0,255,255,0.1)]' : 'border-white/5 grayscale opacity-50'}"
       >
         <div class="flex flex-col items-start gap-0.5">
-          <span class="text-[8px] font-black uppercase tracking-tighter {formIsAiFeatured ? 'text-[#00FFFF]' : 'text-gray-500'}">AI Featured v2.2</span>
-          <span class="text-[7px] text-white/20 uppercase tracking-widest">{formIsAiFeatured ? 'Enabled' : 'Disabled'}</span>
+          <span class="text-[8px] font-black uppercase tracking-tighter {formState.isAiFeatured ? 'text-[#00FFFF]' : 'text-gray-500'}">AI Featured v2.2</span>
+          <span class="text-[7px] text-white/20 uppercase tracking-widest">{formState.isAiFeatured ? 'Enabled' : 'Disabled'}</span>
         </div>
-        <div class="relative w-8 h-4 bg-white/5 rounded-full p-0.5 transition-colors {formIsAiFeatured ? 'bg-[#00FFFF]/20' : ''}">
-          <div class="w-3 h-3 rounded-full transition-all duration-500 {formIsAiFeatured ? 'translate-x-4 bg-[#00FFFF]' : 'bg-[#666]' }"></div>
+        <div class="relative w-8 h-4 bg-white/5 rounded-full p-0.5 transition-colors {formState.isAiFeatured ? 'bg-[#00FFFF]/20' : ''}">
+          <div class="w-3 h-3 rounded-full transition-all duration-500 {formState.isAiFeatured ? 'translate-x-4 bg-[#00FFFF]' : 'bg-[#666]' }"></div>
         </div>
       </button>
     </div>

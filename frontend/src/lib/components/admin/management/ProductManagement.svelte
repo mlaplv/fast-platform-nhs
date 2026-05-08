@@ -36,29 +36,34 @@
   let selectedIds = $state<Set<string>>(new Set());
   let isSaving = $state(false);
 
-  let formName = $state("");
-  let formSku = $state("");
-  let formPrice = $state(0);
-  let formDiscountPrice = $state(0);
-  let formStock = $state(0);
-  let formCategory = $state("");
-  let formStatus = $state<"active" | "draft">("draft");
-  let formShortDescription = $state("");
-  let formDescription = $state("");
-  let formSlug = $state("");
-  let formSeoTitle = $state("");
-  let formSeoDescription = $state("");
-  let formSeoKeywords = $state("");
-  let formImages = $state<string[]>([]);
-  let formMobileImages = $state<string[]>([]);
-  let formAttributes = $state<Record<string, string | number | boolean | null>>({});
-  let formMetadata = $state<Product["metadata"]>({ landing_type: 'standard', analysis_cache: {}, analysis_metrics: {} });
-  let formTierVariations = $state<Product["tierVariations"]>([]);
-  let formVariants = $state<Product["variants"]>([]);
-  let formIsAiFeatured = $state(false);
-  let formAnalysisReport = $state<Record<string, unknown>>({});
-  let formMarketData = $state<Product["market_data"]>({ ads: [], organic_results: [], analysis: "" });
-  let formLastMarketSync = $state<string | undefined>(undefined);
+  import type { ProductFormState } from "$lib/types";
+
+  let formState = $state<ProductFormState>({
+    name: "",
+    sku: "",
+    price: 0,
+    discountPrice: 0,
+    stock: 0,
+    category: "",
+    status: "draft",
+    shortDescription: "",
+    description: "",
+    slug: "",
+    seoTitle: "",
+    seoDescription: "",
+    seoKeywords: "",
+    images: [],
+    mobileImages: [],
+    attributes: {},
+    metadata: { landing_type: 'standard', analysis_cache: {}, analysis_metrics: {} },
+    tierVariations: [],
+    variants: [],
+    isAiFeatured: false,
+    analysisReport: {},
+    marketData: { ads: [], organic_results: [], analysis: "" },
+    lastMarketSync: undefined
+  });
+
   let generateSlug = (n: string) => slugify(n);
 
   let pageSize = $state(50);
@@ -139,15 +144,15 @@
 
   function openCreate() {
     editingId = null;
-    formName = ""; formSku = ""; formPrice = 0; formDiscountPrice = 0; formStock = 0; formCategory = ""; formStatus = "draft";
-    formShortDescription = ""; formDescription = ""; formSlug = ""; formSeoTitle = ""; formSeoDescription = ""; formSeoKeywords = "";
-    formImages = []; formMobileImages = []; formAttributes = {};
-    formMetadata = { landing_type: 'standard', analysis_cache: {}, analysis_metrics: {} };
-    formTierVariations = []; formVariants = [];
-    formIsAiFeatured = false;
-    formAnalysisReport = {};
-    formMarketData = { ads: [], organic_results: [], analysis: "" };
-    formLastMarketSync = undefined;
+    formState.name = ""; formState.sku = ""; formState.price = 0; formState.discountPrice = 0; formState.stock = 0; formState.category = ""; formState.status = "draft";
+    formState.shortDescription = ""; formState.description = ""; formState.slug = ""; formState.seoTitle = ""; formState.seoDescription = ""; formState.seoKeywords = "";
+    formState.images = []; formState.mobileImages = []; formState.attributes = {};
+    formState.metadata = { landing_type: 'standard', analysis_cache: {}, analysis_metrics: {} };
+    formState.tierVariations = []; formState.variants = [];
+    formState.isAiFeatured = false;
+    formState.analysisReport = {};
+    formState.marketData = { ads: [], organic_results: [], analysis: "" };
+    formState.lastMarketSync = undefined;
     showForm = true;
   }
 
@@ -161,39 +166,40 @@
       if (!p) throw new Error("Không nhận được phản hồi từ máy chủ");
       console.log(`[ProductManagement] Fresh description for ${id}. Len: ${p.description?.length}`);
       editingId = p.id;
-      formName = p.name || "";
-      formSku = p.sku || "";
-      formPrice = Number(p.price || 0);
-      formDiscountPrice = Number(p.discountPrice ?? p.discount_price ?? 0);
-      formStock = Number(p.stock || 0);
-      formCategory = p.categoryId ?? p.category_id ?? "";
-      formStatus = (p.status || "draft").toLowerCase() as "active" | "draft";
-      if ((formStatus as string) === "archived") formStatus = "draft";
-      formShortDescription = p.shortDescription ?? p.short_description ?? "";
-      formDescription = p.description || "";
-      formSlug = p.slug || "";
-      formSeoTitle = p.seoTitle ?? p.seo_title ?? "";
-      formSeoDescription = p.seoDescription ?? p.seo_description ?? "";
-      formSeoKeywords = p.seoKeywords ?? p.seo_keywords ?? "";
-      formImages = p.images || [];
-      formMobileImages = p.mobileImages ?? p.mobile_images ?? [];
-      formAttributes = p.attributes || {};
-      formMetadata = p.metadata || { landing_type: 'standard', analysis_cache: {}, analysis_metrics: {} };
-      if (!formMetadata.analysis_cache) formMetadata.analysis_cache = {};
-      if (!formMetadata.analysis_metrics) formMetadata.analysis_metrics = {};
-      formIsAiFeatured = p.isAiFeatured ?? p.is_ai_featured ?? false;
-      formAnalysisReport = p.analysis_report || {};
-      formMarketData = p.marketData ?? p.market_data ?? { ads: [], organic_results: [], analysis: "" };
-      formLastMarketSync = p.lastMarketSync ?? p.last_market_sync;
+      formState.name = p.name || "";
+      formState.sku = p.sku || "";
+      formState.price = Number(p.price || 0);
+      formState.discountPrice = Number(p.discountPrice ?? p.discount_price ?? 0);
+      formState.stock = Number(p.stock || 0);
+      formState.category = p.categoryId ?? p.category_id ?? "";
+      let status = (p.status || "draft").toLowerCase() as "active" | "draft" | "archived";
+      if (status === "archived") status = "draft";
+      formState.status = status;
+      formState.shortDescription = p.shortDescription ?? p.short_description ?? "";
+      formState.description = p.description || "";
+      formState.slug = p.slug || "";
+      formState.seoTitle = p.seoTitle ?? p.seo_title ?? "";
+      formState.seoDescription = p.seoDescription ?? p.seo_description ?? "";
+      formState.seoKeywords = p.seoKeywords ?? p.seo_keywords ?? "";
+      formState.images = p.images || [];
+      formState.mobileImages = p.mobileImages ?? p.mobile_images ?? [];
+      formState.attributes = p.attributes || {};
+      formState.metadata = p.metadata || { landing_type: 'standard', analysis_cache: {}, analysis_metrics: {} };
+      if (!formState.metadata.analysis_cache) formState.metadata.analysis_cache = {};
+      if (!formState.metadata.analysis_metrics) formState.metadata.analysis_metrics = {};
+      formState.isAiFeatured = p.isAiFeatured ?? p.is_ai_featured ?? false;
+      formState.analysisReport = p.analysis_report || {};
+      formState.marketData = p.marketData ?? p.market_data ?? { ads: [], organic_results: [], analysis: "" };
+      formState.lastMarketSync = p.lastMarketSync ?? p.last_market_sync;
       const rawTierVariations = p.tierVariations ?? p.tier_variations ?? [];
-      formTierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map(tv => ({
+      formState.tierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map(tv => ({
         name: tv.name || "",
         options: Array.isArray(tv.options) ? tv.options : [],
         images: Array.isArray(tv.images) ? tv.images : [],
         mobile_images: Array.isArray(tv.mobile_images) ? tv.mobile_images : (Array.isArray(tv.mobileImages) ? tv.mobileImages : [])
       })) : [];
       const rawVariants = p.variants ?? [];
-      formVariants = Array.isArray(rawVariants) ? rawVariants.map((v: ProductVariant) => ({
+      formState.variants = Array.isArray(rawVariants) ? rawVariants.map((v: ProductVariant) => ({
         ...v,
         id: v.id,
         sku: v.sku || "",
@@ -278,39 +284,39 @@
   }
 
   async function save() {
-    if (!formName.trim()) return;
-    if (formDiscountPrice && Number(formDiscountPrice) >= Number(formPrice)) {
+    if (!formState.name.trim()) return;
+    if (formState.discountPrice && Number(formState.discountPrice) >= Number(formState.price)) {
       nanobot.showToast("Giá khuyến mãi phải nhỏ hơn giá bán gốc", "error"); return;
     }
     isSaving = true;
-    console.log(`[ProductManagement] Saving product ${editingId}. Description len: ${formDescription?.length}`);
+    console.log(`[ProductManagement] Saving product ${editingId}. Description len: ${formState.description?.length}`);
     const payload = {
-      name: formName.trim(),
-      sku: formSku || `SKU-${Date.now()}`,
-      price: Number(formPrice),
-      discount_price: formDiscountPrice ? Number(formDiscountPrice) : null,
-      discount_percent: (formVariants.length === 0 && formPrice > 0 && formDiscountPrice > 0) 
-        ? Math.round(((formPrice - formDiscountPrice) / formPrice) * 10000) / 100 
+      name: formState.name.trim(),
+      sku: formState.sku || `SKU-${Date.now()}`,
+      price: Number(formState.price),
+      discount_price: formState.discountPrice ? Number(formState.discountPrice) : null,
+      discount_percent: (formState.variants.length === 0 && formState.price > 0 && formState.discountPrice && formState.discountPrice > 0) 
+        ? Math.round(((formState.price - formState.discountPrice) / formState.price) * 10000) / 100 
         : null,
-      stock: Number(formStock),
-      categoryId: formCategory || null,
-      status: (formStatus || "draft").toUpperCase(),
-      is_ai_featured: formIsAiFeatured,
-      shortDescription: formShortDescription,
-      description: formDescription,
-      slug: formSlug || generateSlug(formName),
-      seoTitle: formSeoTitle,
-      seoDescription: formSeoDescription,
-      seoKeywords: formSeoKeywords,
-      images: formImages || [],
-      mobile_images: formMobileImages || [],
-      attributes: formAttributes || {},
-      metadata: formMetadata || {},
-      analysis_report: formAnalysisReport || {},
-      tier_variations: (formTierVariations || []).map(tv => ({
+      stock: Number(formState.stock),
+      categoryId: formState.category || null,
+      status: (formState.status || "draft").toUpperCase(),
+      is_ai_featured: formState.isAiFeatured,
+      shortDescription: formState.shortDescription,
+      description: formState.description,
+      slug: formState.slug || generateSlug(formState.name),
+      seoTitle: formState.seoTitle,
+      seoDescription: formState.seoDescription,
+      seoKeywords: formState.seoKeywords,
+      images: formState.images || [],
+      mobile_images: formState.mobileImages || [],
+      attributes: formState.attributes || {},
+      metadata: formState.metadata || {},
+      analysis_report: formState.analysisReport || {},
+      tier_variations: (formState.tierVariations || []).map(tv => ({
         name: tv.name, options: tv.options, images: tv.images || null, mobile_images: tv.mobile_images || null
       })),
-      variants: (formVariants || []).map(v => ({
+      variants: (formState.variants || []).map(v => ({
         id: v.id || null, 
         sku: v.sku || "", 
         price: Number(v.price), 
@@ -445,10 +451,7 @@
   <ProductForm
     {editingId}
     isOpen={showForm}
-    bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus
-    bind:formShortDescription bind:formDescription bind:formSlug bind:formSeoTitle bind:formSeoDescription bind:formSeoKeywords
-    bind:formImages bind:formMobileImages bind:formAttributes bind:formMetadata bind:formTierVariations bind:formVariants
-    bind:formIsAiFeatured bind:formAnalysisReport bind:formMarketData bind:formLastMarketSync
+    bind:formState={formState}
     {categories}
     onSave={save}
     onClose={() => { showForm = false; nanobot.toggleExpand(false); }}

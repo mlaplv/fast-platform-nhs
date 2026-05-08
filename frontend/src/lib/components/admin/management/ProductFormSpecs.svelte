@@ -3,10 +3,12 @@
   import Trash2 from "@lucide/svelte/icons/trash-2";
   import Package from "@lucide/svelte/icons/package";
 
+  import type { ProductFormState } from "$lib/types";
+
   let {
-    formAttributes = $bindable()
+    formState = $bindable()
   } = $props<{
-    formAttributes: Record<string, string | number | boolean | null>;
+    formState: ProductFormState;
   }>();
 
   let newAttrKey = $state("");
@@ -14,16 +16,14 @@
 
   function addAttribute() {
     if (newAttrKey.trim() && newAttrValue.trim()) {
-      formAttributes = { ...formAttributes, [newAttrKey.trim()]: newAttrValue.trim() };
+      formState.attributes[newAttrKey.trim()] = newAttrValue.trim();
       newAttrKey = "";
       newAttrValue = "";
     }
   }
 
   function removeAttribute(key: string) {
-    const updated = { ...formAttributes };
-    delete updated[key];
-    formAttributes = updated;
+    delete formState.attributes[key];
   }
 </script>
 
@@ -40,7 +40,7 @@
   </div>
 
   <div class="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-    {#each Object.entries(formAttributes) as [key, val]}
+    {#each Object.entries(formState.attributes) as [key, val]}
       <div class="flex items-center justify-between p-2.5 bg-white/[0.02] border border-white/5 rounded-xl group hover:border-purple-500/20 transition-colors">
         <div class="flex flex-col gap-0.5">
           <span class="text-[8px] font-black text-purple-400 uppercase tracking-widest">{key}</span>
@@ -52,7 +52,7 @@
       </div>
     {/each}
     
-    {#if Object.keys(formAttributes).length === 0}
+    {#if Object.keys(formState.attributes).length === 0}
       <div class="py-12 border border-dashed border-white/5 rounded-xl flex flex-col items-center justify-center opacity-30 mt-2 bg-black/40">
         <Package size={24} class="mb-2 text-purple-400/50" />
         <div class="text-[8px] font-black uppercase tracking-[0.2em] text-center w-[80%]">Sản phẩm chưa có thông số hệ thống</div>

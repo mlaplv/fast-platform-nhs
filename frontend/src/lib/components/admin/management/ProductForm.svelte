@@ -14,74 +14,30 @@
   import ProductFormSpecs from "./ProductFormSpecs.svelte";
   import ProductFormVariants from "./ProductFormVariants.svelte";
   import ProductMarketPrice from "./ProductMarketPrice.svelte";
-  import type { Product } from "$lib/types";
+  import type { Product, ProductFormState } from "$lib/types";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { portal } from "$lib/core/actions/portal";
 
   let {
     isOpen = false,
     editingId,
-    formName = $bindable(),
-    formSku = $bindable(),
-    formPrice = $bindable(),
-    formDiscountPrice = $bindable(),
-    formStock = $bindable(),
-    formCategory = $bindable(),
-    formStatus = $bindable(),
-    formShortDescription = $bindable(),
-    formDescription = $bindable(),
-    formSlug = $bindable(),
-    formSeoTitle = $bindable(),
-    formSeoDescription = $bindable(),
-    formSeoKeywords = $bindable(),
-    formImages = $bindable(),
-    formMobileImages = $bindable(),
-    formAttributes = $bindable(),
-    formMetadata = $bindable(),
-    formTierVariations = $bindable(),
-    formVariants = $bindable(),
+    formState = $bindable(),
     categories = [],
     onSave,
     onClose,
     generateSlug,
     isSaving = false,
     errors = {},
-    formIsAiFeatured = $bindable(),
-    formAnalysisReport = $bindable(),
-    formMarketData = $bindable(),
-    formLastMarketSync = $bindable(),
   } = $props<{
     isOpen?: boolean;
     editingId: string | null;
-    formName: string;
-    formSku: string;
-    formPrice: number;
-    formDiscountPrice?: number;
-    formStock: number;
-    formCategory: string;
-    formStatus: "active" | "draft" | "archived";
-    formShortDescription: string;
-    formDescription: string;
-    formSlug: string;
-    formSeoTitle: string;
-    formSeoDescription: string;
-    formSeoKeywords: string;
-    formImages: string[];
-    formMobileImages: string[];
-    formAttributes: Record<string, string | number | boolean | null>;
-    formMetadata: Product['metadata'];
-    formTierVariations: Product['tierVariations'];
-    formVariants: Product['variants'];
+    formState: ProductFormState;
     categories: { id: string; name: string }[];
     onSave: () => void;
     onClose: () => void;
     generateSlug: (name: string) => string;
     isSaving?: boolean;
     errors?: Record<string, string>;
-    formIsAiFeatured: boolean;
-    formAnalysisReport?: Record<string, unknown>;
-    formMarketData?: Product['market_data'];
-    formLastMarketSync?: string;
   }>();
 
   let showMediaModal = $state(false);
@@ -98,12 +54,11 @@
 
   function handleVariantImageSelect(url: string) {
     if (variantEditTierIndex !== null && variantEditOptionIndex !== null) {
-      const tier = formTierVariations[variantEditTierIndex];
+      const tier = formState.tierVariations[variantEditTierIndex];
       if (tier) {
         const key = variantEditIsMobile ? 'mobile_images' : 'images';
         if (!tier[key]) tier[key] = [];
         tier[key][variantEditOptionIndex] = url;
-        formTierVariations = [...formTierVariations];
       }
     }
     variantEditTierIndex = null;
@@ -117,11 +72,9 @@
   function handleAlbumImageSelect(url: string) {
     if (albumReplaceIndex !== null) {
       if (isVaultForMobile) {
-        formMobileImages[albumReplaceIndex] = url;
-        formMobileImages = [...formMobileImages];
+        formState.mobileImages[albumReplaceIndex] = url;
       } else {
-        formImages[albumReplaceIndex] = url;
-        formImages = [...formImages];
+        formState.images[albumReplaceIndex] = url;
       }
     } else {
       // Standard append handled by bind:assets in MediaVaultModal
@@ -133,9 +86,8 @@
 
   function handleGiftImageSelect(url: string) {
     if (giftEditVariantIndex !== null && giftEditGiftIndex !== null) {
-      if (formVariants[giftEditVariantIndex].attributes?.gifts?.[giftEditGiftIndex]) {
-        formVariants[giftEditVariantIndex].attributes.gifts[giftEditGiftIndex].image = url;
-        formVariants = [...formVariants];
+      if (formState.variants[giftEditVariantIndex].attributes?.gifts?.[giftEditGiftIndex]) {
+        formState.variants[giftEditVariantIndex].attributes.gifts[giftEditGiftIndex].image = url;
       }
     }
     giftEditVariantIndex = null;
@@ -196,19 +148,16 @@
           </div>
           <ProductFormBase
             {editingId}
-            bind:formName bind:formSku bind:formPrice bind:formDiscountPrice bind:formStock bind:formCategory bind:formStatus bind:formShortDescription
-            bind:formIsAiFeatured
+            bind:formState={formState}
             {categories} {generateSlug} {errors}
-            onNameInput={() => { if (!editingId) formSlug = generateSlug(formName); }}
+            onNameInput={() => { if (!editingId) formState.slug = generateSlug(formState.name); }}
           />
         </div>
 
         <!-- NEW: Section 1.5 (Variants / Matrix) -->
         <div class="flex flex-col">
           <ProductFormVariants
-            bind:formTierVariations={formTierVariations}
-            bind:formVariants={formVariants}
-            {formSku}
+            bind:formState={formState}
             onOpenVault={openVaultForVariant}
             onOpenVaultForGift={openVaultForGift}
           />
@@ -229,24 +178,24 @@
           </div>
           <div class="border border-white/5 rounded-2xl overflow-hidden bg-black/40 min-h-[500px] flex flex-col">
             <NeuralEditor
-              bind:content={formDescription}
-              topic={formName}
+              bind:content={formState.description}
+              topic={formState.name}
               editable={true}
               placeholder="Mô tả kỹ thuật, câu chuyện thiết kế của sản phẩm..."
               contentType="product"
               getMetadata={() => ({
-                short_description: formShortDescription,
-                sku: formSku,
-                price: formPrice,
-                brand: formMetadata.brand,
-                origin: formMetadata.origin,
-                attributes: formAttributes,
-                science_claims: formMetadata.science_claims,
-                faqs: formMetadata.faqs || []
+                short_description: formState.shortDescription,
+                sku: formState.sku,
+                price: formState.price,
+                brand: formState.metadata.brand,
+                origin: formState.metadata.origin,
+                attributes: formState.attributes,
+                science_claims: formState.metadata.science_claims,
+                faqs: formState.metadata.faqs || []
               })}
-              bind:analysisCache={formMetadata.analysis_cache}
-              bind:analysisMetrics={formMetadata.analysis_metrics}
-              bind:analysisReport={formAnalysisReport}
+              bind:analysisCache={formState.metadata.analysis_cache}
+              bind:analysisMetrics={formState.metadata.analysis_metrics}
+              bind:analysisReport={formState.analysisReport}
               bind:fullScreen={isEditorFullScreen}
             />
           </div>
@@ -255,12 +204,7 @@
         <!-- Section 3 (SEO) -->
         <div class="flex flex-col pt-2">
           <ProductFormSeo
-            {formName}
-            bind:formSlug
-            bind:formSeoTitle
-            bind:formSeoDescription
-            bind:formSeoKeywords
-            {formImages}
+            bind:formState={formState}
             {generateSlug}
           />
         </div>
@@ -275,27 +219,26 @@
           <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
             <Image size={11} class="text-amber-400/60" />
             Album hiển thị
-            <span class="text-amber-500 ml-auto bg-amber-500/10 px-1.5 py-0.5 rounded text-[8px]">{formImages?.length || 0}</span>
+            <span class="text-amber-500 ml-auto bg-amber-500/10 px-1.5 py-0.5 rounded text-[8px]">{formState.images?.length || 0}</span>
           </div>
-          <ProductFormMedia bind:formImages bind:formMobileImages onOpenVault={openVaultForGeneral} />
+          <ProductFormMedia bind:formState={formState} onOpenVault={openVaultForGeneral} />
         </div>
 
         <!-- Product Metadata (Contextual) -->
         <div class="flex flex-col pt-2">
-          <ProductFormMetadata bind:formMetadata={formMetadata} {formName} formDescription={formShortDescription || formDescription} />
+          <ProductFormMetadata bind:formState={formState} />
         </div>
 
         <!-- Specs -->
         <div class="flex flex-col pt-2">
-          <ProductFormSpecs bind:formAttributes />
+          <ProductFormSpecs bind:formState={formState} />
         </div>
 
         <!-- Market Price Intel -->
         <div class="flex flex-col pt-2">
           <ProductMarketPrice 
-            product_id={editingId} 
-            bind:market_data={formMarketData} 
-            last_sync={formLastMarketSync} 
+            product_id={editingId || undefined} 
+            bind:formState={formState} 
           />
         </div>
 
@@ -338,7 +281,7 @@
     isOpen={showMediaModal}
     onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; isVaultForMobile = false; variantEditIsMobile = false; }}
     onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : undefined}
-    bind:assets={formMobileImages}
+    bind:assets={formState.mobileImages}
     bind:reserve_assets
     bind:selectedAvatarUrl
     bind:selectedAssetIndex
@@ -348,7 +291,7 @@
     isOpen={showMediaModal}
     onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; isVaultForMobile = false; variantEditIsMobile = false; albumReplaceIndex = null; giftEditVariantIndex = null; giftEditGiftIndex = null; }}
     onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : (albumReplaceIndex !== null ? handleAlbumImageSelect : (giftEditGiftIndex !== null ? handleGiftImageSelect : undefined))}
-    bind:assets={formImages}
+    bind:assets={formState.images}
     bind:reserve_assets
     bind:selectedAvatarUrl
     bind:selectedAssetIndex
