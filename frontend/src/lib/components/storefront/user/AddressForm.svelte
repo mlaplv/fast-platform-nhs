@@ -1,6 +1,6 @@
 <script lang="ts">
   import { apiClient } from '$lib/utils/apiClient';
-  import type UserAddress } from '$lib/state/authStore.svelte';
+  import { authStore, type UserAddress } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import Plus from "@lucide/svelte/icons/plus";
   import MapPin from "@lucide/svelte/icons/map-pin";
@@ -193,7 +193,7 @@
 
   <div class="pt-4">
     <label class="flex items-center gap-3 cursor-pointer group/check w-fit">
-      <div class="w-5 h-5 rounded-md border border-stone-200 flex items-center justify-center transition-all group-hover/check:border-luxury-copper {isDefault ? 'bg-stone-900 border-stone-900 shadow-sm' : ''}">
+      <div class="w-5 h-5 rounded-md border border-stone-200 flex items-center justify-center transition-all group-hover/check:border-luxury-copper {isDefault ? 'bg-stone-800 border-stone-800 shadow-sm' : ''}">
         {#if isDefault}
           <div in:fade>
             <CheckCircle2 class="w-3.5 h-3.5 text-white" />
@@ -201,7 +201,7 @@
         {/if}
       </div>
       <input type="checkbox" bind:checked={isDefault} class="hidden" />
-      <span class="text-[12px] font-bold text-stone-600 uppercase tracking-widest group-hover/check:text-stone-900 transition-colors">Đặt làm địa chỉ mặc định</span>
+      <span class="text-[12px] font-bold text-stone-600 uppercase tracking-widest group-hover/check:text-stone-800 transition-colors">Đặt làm địa chỉ mặc định</span>
     </label>
   </div>
 
@@ -209,7 +209,7 @@
     <button
       onclick={handleSave}
       disabled={isSaving}
-      class="w-full md:w-auto md:px-16 py-4 bg-stone-900 text-white relative group overflow-hidden transition-all duration-700 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] disabled:opacity-50"
+      class="w-full md:w-auto md:px-16 py-4 bg-stone-800 text-white relative group overflow-hidden transition-all duration-700 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] disabled:opacity-50"
     >
       <div class="absolute inset-0 bg-luxury-copper translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-700 ease-out"></div>
       <span class="relative z-10 text-[11px] uppercase tracking-[5px] font-black">

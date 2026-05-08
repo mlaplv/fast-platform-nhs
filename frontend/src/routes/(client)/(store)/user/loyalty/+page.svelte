@@ -178,7 +178,7 @@
                                       {/if}
                                   </div>
                                   <div class="flex flex-col">
-                                      <span class="text-[13px] font-bold text-stone-800 group-hover:text-stone-900 transition-colors uppercase tracking-tight">{tx.notes || 'Giao dịch điểm'}</span>
+                                      <span class="text-[13px] font-bold text-stone-800 group-hover:text-stone-800 transition-colors uppercase tracking-tight">{tx.notes || 'Giao dịch điểm'}</span>
                                       <span class="text-[10px] text-stone-400 font-mono mt-0.5">{formatDate(tx.created_at)}</span>
                                   </div>
                               </div>
@@ -229,7 +229,7 @@
              <span class="text-[8px] font-black text-stone-400 uppercase tracking-widest">Tổng chi tiêu</span>
              <span class="text-sm font-black text-stone-800">{formatCurrency(loyaltyStore.data.total_spent)}</span>
           </div>
-          <div class="p-4 bg-stone-900 text-white rounded-2xl flex flex-col gap-1">
+          <div class="p-4 bg-stone-800 text-white rounded-2xl flex flex-col gap-1">
             <span class="text-[8px] font-black text-stone-500 uppercase tracking-widest">Hạng hiện tại</span>
             <span class="text-sm font-black text-luxury-copper uppercase italic">{loyaltyStore.tierName}</span>
          </div>

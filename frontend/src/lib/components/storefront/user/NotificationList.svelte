@@ -10,6 +10,18 @@
   import { fade, fly } from 'svelte/transition';
 
   const notifStore = getNotificationState();
+  let isLoading = $derived(notifStore.isLoading);
+
+  // Elite V3.2: Filter out technical/admin metrics from storefront view
+  const userNotifications = $derived(
+    notifStore.notifications.filter(n => {
+      const msg = n.message.toLowerCase();
+      const isTechnical = msg.includes('độ trễ') || msg.includes('latency') || msg.includes('tăng cao');
+      return !isTechnical;
+    })
+  );
+
+  const unreadCount = $derived(userNotifications.filter(n => !n.isRead).length);
 
   const getIcon = (type: string) => {
     switch(type) {
@@ -21,7 +33,7 @@
   };
 
   async function markAllAsRead() {
-    const unreadIds = notifStore.notifications.filter(n => !n.isRead).map(n => n.id);
+    const unreadIds = userNotifications.filter(n => !n.isRead).map(n => n.id);
     for (const id of unreadIds) {
       await notifStore.markNotificationAsRead(id);
     }
@@ -32,8 +44,6 @@
       notifStore.fetchNotifications();
     });
   });
-
-  let isLoading = $derived(notifStore.isLoading);
 </script>
 
 <div class="space-y-8" in:fade={{ duration: 400 }}>
@@ -42,10 +52,10 @@
       <div class="w-1.5 h-1.5 rounded-full bg-luxury-copper animate-pulse"></div>
       <h2 class="text-[12px] font-black uppercase tracking-[3px] text-stone-800">Thông báo của Quý khách</h2>
     </div>
-    {#if notifStore.unreadCount > 0}
+    {#if unreadCount > 0}
       <button
         onclick={markAllAsRead}
-        class="text-[10px] font-bold uppercase tracking-widest text-luxury-copper hover:text-stone-900 transition-colors"
+        class="text-[10px] font-bold uppercase tracking-widest text-luxury-copper hover:text-stone-800 transition-colors"
       >
         Đánh dấu tất cả đã đọc
       </button>
@@ -58,7 +68,7 @@
       <p class="text-[10px] text-stone-400 uppercase tracking-widest animate-pulse">Đang truy xuất thông báo...</p>
     </div>
   {:else}
-    {#if notifStore.notifications.length === 0}
+    {#if userNotifications.length === 0}
       <div class="py-20 text-center border-2 border-dashed border-stone-50 rounded-2xl" in:fade>
         <div class="w-16 h-16 bg-stone-50 rounded-full flex items-center justify-center mx-auto mb-4">
           <Bell class="w-8 h-8 text-stone-200" />
@@ -67,7 +77,7 @@
       </div>
     {:else}
       <div class="space-y-4">
-        {#each notifStore.notifications as notif, i (notif.id)}
+        {#each userNotifications as notif, i (notif.id)}
           {@const Icon = getIcon(notif.type)}
           <div
             class="group relative flex gap-5 p-5 transition-all duration-500 hover:bg-stone-50/50 rounded-xl {notif.isRead ? 'opacity-50 grayscale-[0.5]' : 'bg-white shadow-[0_4px_20px_rgba(0,0,0,0.02)]'}"
@@ -100,7 +110,7 @@
   {/if}
 
   <div class="pt-10 flex items-center justify-center opacity-10">
-     <div class="h-px w-24 bg-stone-900"></div>
+     <div class="h-px w-24 bg-stone-800"></div>
   </div>
 </div>
 

@@ -14,6 +14,7 @@
   import Bell from "@lucide/svelte/icons/bell";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Ticket from "@lucide/svelte/icons/ticket";
+  import X from "@lucide/svelte/icons/x";
 
   interface Props {
     active: boolean;
@@ -68,14 +69,14 @@
               <Sparkles class="w-5 h-5 text-luxury-copper" />
            </div>
            <div>
-             <h2 class="text-[13px] font-black uppercase tracking-[3px] text-stone-900">osmo Elite</h2>
+             <h2 class="text-[13px] font-black uppercase tracking-[3px] text-stone-800">osmo Elite</h2>
              <p class="text-[9px] text-stone-400 uppercase tracking-widest mt-0.5">Luxury Experience</p>
            </div>
         </div>
 
         <button
           onclick={onClose}
-          class="w-10 h-10 flex items-center justify-center rounded-full bg-stone-50 text-stone-900 active:scale-90 transition-transform"
+          class="w-10 h-10 flex items-center justify-center rounded-full bg-stone-50 text-stone-800 active:scale-90 transition-transform"
         >
           <X class="w-6 h-6" />
         </button>
@@ -97,7 +98,7 @@
                     <div class="w-10 h-10 rounded-full flex items-center justify-center transition-all {page.url.pathname === link.href ? 'bg-luxury-copper text-white' : 'bg-stone-50 text-stone-400 group-active:text-luxury-copper'}">
                        <link.icon class="w-4 h-4" />
                     </div>
-                    <span class="text-xl font-serif italic tracking-wide transition-colors {page.url.pathname === link.href ? 'text-stone-900' : 'text-stone-500 group-active:text-stone-900'}">
+                    <span class="text-xl font-serif italic tracking-wide transition-colors {page.url.pathname === link.href ? 'text-stone-800' : 'text-stone-500 group-active:text-stone-800'}">
                       {link.label}
                     </span>
                   </div>
@@ -125,7 +126,7 @@
               <div class="w-10 h-10 rounded-full bg-stone-50 text-stone-400 flex items-center justify-center transition-all group-active:text-luxury-copper">
                  <Home class="w-4 h-4" />
               </div>
-              <span class="text-lg font-serif italic text-stone-500 group-active:text-stone-900">Về trang chủ</span>
+              <span class="text-lg font-serif italic text-stone-500 group-active:text-stone-800">Về trang chủ</span>
            </a>
         </div>
       </div>

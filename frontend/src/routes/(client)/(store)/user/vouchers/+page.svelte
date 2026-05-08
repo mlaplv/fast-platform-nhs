@@ -109,7 +109,7 @@
             <button
               onclick={() => activeTab = tab.id}
               class="px-6 py-2 text-[11px] font-black uppercase tracking-widest rounded-lg transition-all
-              {activeTab === tab.id ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-400 hover:text-stone-600'}"
+              {activeTab === tab.id ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-400 hover:text-stone-600'}"
             >
               {tab.label}
             </button>
@@ -150,7 +150,7 @@
       style="padding-top: calc(env(safe-area-inset-top) + 80px);"
     >
       <!-- Mobile Stats Card -->
-      <div class="bg-gradient-to-br from-stone-900 to-stone-800 p-6 rounded-2xl shadow-xl shadow-stone-200/50 relative overflow-hidden group">
+      <div class="bg-gradient-to-br from-stone-800 to-stone-800 p-6 rounded-2xl shadow-xl shadow-stone-200/50 relative overflow-hidden group">
          <div class="relative z-10 space-y-4">
             <div class="flex items-center gap-2">
                <div class="p-1.5 bg-luxury-copper/20 rounded-lg text-luxury-copper backdrop-blur-sm border border-luxury-copper/20">
@@ -174,7 +174,7 @@
             <button
               onclick={() => activeTab = tab.id}
               class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all
-              {activeTab === tab.id ? 'bg-white text-stone-900 shadow-lg' : 'text-stone-400'}"
+              {activeTab === tab.id ? 'bg-white text-stone-800 shadow-lg' : 'text-stone-400'}"
             >
               {tab.label}
             </button>

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { apiClient } from '$lib/utils/apiClient';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { fade, fly } from 'svelte/transition';
+  import { fade, fly, scale } from 'svelte/transition';
   import { untrack } from 'svelte';
-  import { formatDate } from '$lib/utils/format';
+  import { formatCurrency, formatDate } from '$lib/utils/format';
   import Package from "@lucide/svelte/icons/package";
   import Truck from "@lucide/svelte/icons/truck";
   import CheckCircle from "@lucide/svelte/icons/check-circle";
@@ -25,6 +25,7 @@
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import type { Product } from '$lib/types';
   import { resolveMediaUrl } from '$lib/state/utils';
+  import { authStore } from '$lib/state/authStore.svelte';
 
   const ui = getClientUi();
   const cartStore = getCartStore();
@@ -51,6 +52,12 @@
   ];
 
   async function fetchOrders(isLoadMore = false, tab = activeTab) {
+    if (!authStore.isAuthenticated) {
+      isLoading = false;
+      orders = [];
+      return;
+    }
+
     if (isLoadMore) {
       isLoadingMore = true;
     } else {
@@ -254,43 +261,56 @@
     class="bg-white/95 backdrop-blur-3xl sticky z-[40] border-b border-stone-100 transition-all duration-300"
     style={ui.isMobile ? `top: calc(52px + env(safe-area-inset-top));` : 'top: 0;'}
   >
-    <!-- Icon Navigation Rack (Far Left Align) -->
-    <div class="relative pt-5 pb-4 overflow-x-auto no-scrollbar scroll-smooth bg-white/80 backdrop-blur-md border-b border-stone-100/50">
-      <!-- Connecting Line (Under Icon Style) -->
-      <div class="absolute top-[64px] left-0 right-0 h-[1.5px] bg-stone-50 z-0">
-         <div 
-           class="h-full bg-gradient-to-r from-luxury-copper to-transparent transition-all duration-1000 origin-left"
-           style="width: {((tabs.findIndex(t => t.id === activeTab) + 1) / tabs.length) * 100}%"
-         ></div>
-      </div>
-
-      <div class="flex items-start justify-start px-4 gap-6 relative z-10">
+    <!-- Icon Navigation Rack (Ultra-Compact Horizontal Scroller) -->
+    <div class="relative pt-4 pb-3 overflow-x-auto no-scrollbar scroll-smooth bg-white/40 backdrop-blur-3xl border-b border-stone-100/30">
+      <div class="flex items-center justify-start px-5 gap-6 relative z-10">
         {#each tabs as tab}
+          {@const isActive = activeTab === tab.id}
           <button
             onclick={() => activeTab = tab.id}
-            class="group flex flex-col items-center gap-3 transition-all duration-500 {activeTab === tab.id ? 'scale-105' : 'opacity-30 hover:opacity-100 grayscale'}"
+            class="group relative flex flex-col items-center gap-2 transition-all duration-700 outline-none shrink-0"
           >
-            <!-- Circular Icon Container (Glassmorphic) -->
-            <div class="h-10 w-10 md:h-12 md:w-12 rounded-full border flex items-center justify-center transition-all duration-700
-              {activeTab === tab.id 
-                ? 'border-luxury-copper bg-white text-luxury-copper shadow-[0_10px_25px_rgba(193,143,126,0.3)]' 
-                : 'border-stone-50 bg-stone-50/50 text-stone-400'}">
-                <div class="{activeTab === tab.id ? 'animate-pulse' : ''}">
-                   <tab.icon size={activeTab === tab.id ? 19 : 17} strokeWidth={1.5} />
-                </div>
+            <!-- 🪐 Compact Icon Portal -->
+            <div class="relative h-10 w-10 md:h-11 md:w-11 flex items-center justify-center transition-all duration-1000
+              {isActive ? 'scale-105' : 'scale-90 opacity-20 grayscale hover:opacity-100 hover:grayscale-0'}">
+              
+              <!-- Active Halo (Subtle) -->
+              {#if isActive}
+                <div 
+                  class="absolute inset-0 bg-luxury-copper/5 rounded-full animate-pulse"
+                  in:fade
+                ></div>
+              {/if}
+
+              <div class="relative z-10 w-full h-full rounded-full border flex items-center justify-center transition-all duration-700
+                {isActive 
+                  ? 'border-luxury-copper/50 bg-white text-luxury-copper shadow-[0_10px_25px_-10px_rgba(193,143,126,0.3)]' 
+                  : 'border-stone-50 bg-stone-50/20 text-stone-400'}">
+                  
+                  <div class="transition-transform duration-700 {isActive ? 'scale-105' : 'group-hover:rotate-6'}">
+                     <tab.icon size={isActive ? 16 : 14} strokeWidth={isActive ? 2.5 : 1.5} />
+                  </div>
+              </div>
             </div>
             
-            <!-- Label (Sleek Typography) -->
-            <span class="text-[7px] md:text-[9px] font-black uppercase tracking-[0.2em] transition-colors
-              {activeTab === tab.id ? 'text-stone-900' : 'text-stone-400'}">
-              {tab.label}
-            </span>
+            <!-- 🏷️ Label (Nano Typography) -->
+            <div class="relative flex flex-col items-center">
+              <span class="text-[7px] md:text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-700
+                {isActive ? 'text-stone-800' : 'text-stone-300'}">
+                {tab.label}
+              </span>
+              
+              {#if isActive}
+                <div 
+                  class="mt-1 w-1 h-1 bg-luxury-copper rounded-full"
+                  in:fade
+                ></div>
+              {/if}
+            </div>
           </button>
         {/each}
       </div>
     </div>
-
-
 
     <!-- Nano-Search Rack -->
     <div class="relative group h-11 bg-white">
@@ -301,7 +321,7 @@
         type="text"
         bind:value={searchQuery}
         placeholder="Tìm kiếm nhanh đơn hàng..."
-        class="w-full h-full pl-10 pr-4 bg-transparent outline-none text-[12px] text-stone-900 transition-all placeholder:text-stone-300 font-bold"
+        class="w-full h-full pl-10 pr-4 bg-transparent outline-none text-[12px] text-stone-800 transition-all placeholder:text-stone-300 font-bold"
       />
       <!-- Specular Highlight -->
       <div class="absolute bottom-0 left-0 w-full h-[0.5px] bg-stone-200/40"></div>
@@ -310,20 +330,20 @@
   </div>
 
   <!-- 📦 Order Content Stream (Full Width) -->
-  <div class="divide-y divide-stone-100 bg-white">
+  <div class="divide-y divide-stone-100 bg-[#fbfbfb]">
     {#if isLoading}
-      <div class="py-32 flex flex-col items-center justify-center space-y-5 bg-[#f9f8f6]">
+      <div class="py-32 flex flex-col items-center justify-center space-y-5 bg-[#fbfbfb]">
         <div class="w-10 h-10 border-[3px] border-luxury-copper/10 border-t-luxury-copper animate-spin rounded-full"></div>
         <p class="text-[10px] text-stone-400 font-black uppercase tracking-[0.4em] animate-pulse">Syncing Records...</p>
       </div>
     {:else if filteredOrders.length === 0}
-      <div class="py-32 text-center bg-[#f9f8f6]" in:fade>
+      <div class="py-32 text-center bg-[#fbfbfb]" in:fade>
         <div class="w-20 h-20 bg-white rounded-full shadow-inner flex items-center justify-center mx-auto mb-8 opacity-40">
           <ShoppingBag class="w-10 h-10 text-stone-200" strokeWidth={1} />
         </div>
         <p class="text-stone-400 text-[13px] font-bold uppercase tracking-widest">Lịch sử trống</p>
         {#if !searchQuery && activeTab === 'all'}
-          <a href="/" class="inline-block mt-10 px-12 py-4 bg-stone-900 text-white text-[10px] uppercase tracking-[0.3em] font-black rounded-full hover:scale-105 transition-all shadow-2xl shadow-stone-900/20 active:scale-95">
+          <a href="/" class="inline-block mt-10 px-12 py-4 bg-luxury-copper text-white text-[10px] uppercase tracking-[0.3em] font-black rounded-full hover:scale-105 transition-all shadow-2xl shadow-stone-800/20 active:scale-95">
             Mua sắm ngay
           </a>
         {/if}
@@ -331,53 +351,80 @@
     {:else}
       {#each filteredOrders as order (order.id)}
         {@const status = getStatusStyle(order.status)}
-        {@const brandColor = status.color === 'text-[#fe2c55]' ? 'text-luxury-copper' : status.color}
-        {@const brandBg = status.bg === 'bg-[#fe2c55]/5' ? 'bg-luxury-copper/5' : status.bg}
+        {@const activeStep = getActiveStepIndex(order.status)}
         
         <div
-          class="bg-white overflow-hidden transition-all duration-300 group {ui.isMobile ? 'pb-8 pt-8' : 'hover:bg-stone-50/50 pt-12 pb-12 px-8'}"
-          in:fly={{ y: 0, duration: 400 }}
+          class="bg-white overflow-hidden transition-all duration-500 group border-b border-stone-50 {ui.isMobile ? 'pb-10 pt-10' : 'hover:bg-stone-50/30 pt-14 pb-14 px-10'}"
+          in:fly={{ y: 0, duration: 600 }}
         >
           <!-- 🔝 Order Meta Header -->
-          <div class="px-4 md:px-0 mb-6 flex items-center justify-between">
-             <div class="flex items-center gap-3">
-               <div class="w-8 h-8 md:w-10 md:h-10 bg-stone-900 rounded-xl flex items-center justify-center shadow-lg shadow-stone-900/20">
-                  <span class="text-[12px] text-white font-black italic">M</span>
+          <div class="px-5 md:px-0 mb-8 flex items-center justify-between">
+             <div class="flex items-center gap-4">
+               <div class="w-10 h-10 bg-luxury-copper rounded-2xl flex items-center justify-center shadow-xl shadow-luxury-copper/20 group-hover:scale-110 transition-transform">
+                  <span class="text-[14px] text-white font-black italic">M</span>
                </div>
-               <div class="flex flex-col">
-                 <span class="text-[11px] font-black text-stone-900 uppercase tracking-[0.1em]">osmo Official</span>
-                 <span class="text-[9px] font-bold text-stone-300 uppercase tracking-tighter italic">Order Record: #{order.id.slice(-8).toUpperCase()}</span>
-               </div>
+               <a href={`/checkout/success/${order.id}${authStore.user?.phone ? `?phone=${authStore.user.phone}` : ''}`} class="flex flex-col">
+                 <span class="text-[12px] font-black text-stone-800 uppercase tracking-[0.1em]">osmo Official</span>
+                 <span class="text-[9px] font-bold text-stone-300 uppercase tracking-tighter italic">#{order.id.slice(-8).toUpperCase()}</span>
+               </a>
              </div>
-             <div class="flex items-center gap-2 px-3 py-1.5 rounded-full {brandBg} border border-current/10">
-                <span class="text-[9px] font-black {brandColor} uppercase tracking-[0.1em]">{status.label}</span>
+             <div class="flex items-center gap-2 px-4 py-2 rounded-full {status.bg} border border-current/5">
+                <span class="text-[9px] font-black {status.color} uppercase tracking-[0.2em]">{status.label}</span>
              </div>
           </div>
 
+          <!-- 🛰️ Status Tracker (Progress Bar) -->
+          {#if order.status !== 'CANCELLED'}
+            <div class="px-5 md:px-0 mb-10">
+              <div class="relative flex justify-between">
+                <!-- Progress Line Background -->
+                <div class="absolute top-4 left-4 right-4 h-[2px] bg-stone-100 z-0"></div>
+                <!-- Progress Line Active -->
+                <div 
+                  class="absolute top-4 left-4 h-[2px] bg-luxury-copper z-0 transition-all duration-1000"
+                  style="width: calc((100% - 2rem) * {activeStep / (trackerSteps.length - 1)})"
+                ></div>
+
+                {#each trackerSteps as step, idx}
+                  <div class="relative z-10 flex flex-col items-center gap-3">
+                    <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center bg-white transition-all duration-700
+                      {idx <= activeStep ? 'border-luxury-copper text-luxury-copper scale-110 shadow-lg shadow-luxury-copper/20' : 'border-stone-100 text-stone-200'}">
+                      <step.icon size={14} strokeWidth={idx <= activeStep ? 2.5 : 1.5} />
+                    </div>
+                    <span class="text-[7px] md:text-[8px] font-black uppercase tracking-widest
+                      {idx <= activeStep ? 'text-stone-800' : 'text-stone-300'}">
+                      {step.label}
+                    </span>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+
           <!-- 👕 Order Items Stream (Full Width Scan) -->
-          <div class="space-y-px bg-stone-50/20">
+          <div class="space-y-px bg-stone-50/30 rounded-2xl overflow-hidden border border-stone-100/50">
             {#if order.items && Array.isArray(order.items)}
               {#each order.items as item}
                 {@const itemImage = item.image || item.image_url}
-                <div class="flex gap-4 items-center bg-white px-4 py-5 group/item transition-colors hover:bg-stone-50/30">
-                  <div class="w-16 h-16 bg-stone-50 border border-stone-100 shrink-0 p-1 rounded-lg overflow-hidden relative shadow-sm transition-all group-hover/item:shadow-lg">
+                <div class="flex gap-5 items-center bg-white px-5 py-6 group/item transition-all hover:bg-stone-50/50">
+                  <div class="w-20 h-20 bg-stone-50 border border-stone-100 shrink-0 p-1.5 rounded-xl overflow-hidden relative shadow-sm transition-all group-hover/item:shadow-xl group-hover/item:-translate-y-1">
                     {#if itemImage}
-                      <img src={resolveMediaUrl(itemImage)} alt={item.name} class="w-full h-full object-cover rounded-md group-hover/item:scale-105 transition-transform" />
+                      <img src={resolveMediaUrl(itemImage)} alt={item.name} class="w-full h-full object-cover rounded-lg group-hover/item:scale-110 transition-transform duration-700" />
                     {:else}
                       <div class="w-full h-full flex items-center justify-center text-stone-200">
-                         <ShoppingBag class="w-6 h-6" strokeWidth={1} />
+                         <ShoppingBag class="w-8 h-8" strokeWidth={1} />
                       </div>
                     {/if}
-                    <div class="absolute bottom-1 right-1 bg-stone-900/90 text-white text-[8px] px-1.5 py-0.5 rounded font-black backdrop-blur-md">x{item.qty || item.quantity}</div>
+                    <div class="absolute bottom-2 right-2 bg-luxury-copper/95 text-white text-[9px] px-2 py-0.5 rounded-lg font-black backdrop-blur-md shadow-lg border border-white/10">x{item.qty || item.quantity}</div>
                   </div>
-                  <div class="flex-1 min-w-0 pr-2">
-                    <h3 class="text-[12px] md:text-[15px] font-serif italic text-stone-800 leading-tight mb-1 line-clamp-2">{item.name}</h3>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-[13px] md:text-[16px] font-serif italic text-stone-800 leading-snug mb-2 line-clamp-2">{item.name}</h3>
                     {#if getVariantName(item)}
-                      <span class="text-[8px] font-black text-stone-400 uppercase tracking-widest bg-stone-50 px-1.5 py-0.5 rounded border border-stone-100">{getVariantName(item)}</span>
+                      <span class="text-[8px] font-black text-stone-400 uppercase tracking-widest bg-stone-50/80 px-2 py-1 rounded-md border border-stone-100">{getVariantName(item)}</span>
                     {/if}
                   </div>
-                  <div class="text-right">
-                     <span class="text-[11px] md:text-[14px] font-black text-stone-900 tabular-nums italic tracking-tighter opacity-40">{formatCurrency(item.unit_price || (item as unknown as { price: number }).price || 0)}</span>
+                  <div class="text-right shrink-0">
+                     <span class="text-[12px] md:text-[15px] font-black text-stone-500 tabular-nums italic tracking-tighter">{formatCurrency(item.unit_price || (item as unknown as { price: number }).price || 0)}</span>
                   </div>
                 </div>
               {/each}
@@ -385,51 +432,53 @@
           </div>
 
           <!-- 💎 Final Calculation Surface (Dramatic Lean) -->
-          <div class="px-4 md:px-0 mt-5 flex flex-col items-end gap-3">
-            <div class="w-full flex items-center justify-between">
+          <div class="px-5 md:px-0 mt-8 flex flex-col items-end gap-6">
+            <div class="w-full flex items-center justify-between border-t border-stone-50 pt-6">
                {#if getOrderSavings(order) > 0}
-                  <div class="flex items-center gap-1 text-luxury-copper bg-luxury-copper/5 px-2 py-1 rounded border border-luxury-copper/10">
-                    <Sparkles size={9} />
-                    <span class="text-[8px] font-black uppercase tracking-tighter">-{formatCurrency(getOrderSavings(order))}</span>
+                  <div class="flex items-center gap-2 text-luxury-copper bg-luxury-copper/5 px-3 py-1.5 rounded-lg border border-luxury-copper/10 animate-bounce">
+                    <Sparkles size={10} />
+                    <span class="text-[9px] font-black uppercase tracking-widest">Tiết kiệm {formatCurrency(getOrderSavings(order))}</span>
                   </div>
                {:else}
                   <div></div>
                {/if}
 
-               <div class="flex items-baseline gap-2">
-                  <span class="text-[8px] text-stone-300 font-black uppercase tracking-[0.2em] italic">Total</span>
-                  <span class="text-2xl md:text-5xl font-black text-stone-900 tracking-tighter tabular-nums">{formatCurrency(order.total || order.total_amount || 0)}</span>
+               <div class="flex flex-col items-end gap-1">
+                  <span class="text-[9px] text-stone-300 font-black uppercase tracking-[0.3em] italic">Total Amount</span>
+                  <span class="text-3xl md:text-5xl font-bold text-stone-700 tracking-tighter tabular-nums">
+                    {formatCurrency(order.total || order.total_amount || 0).replace('₫', '')}<span class="text-[0.5em] align-top md:mt-2 inline-block opacity-60">₫</span>
+                  </span>
                </div>
             </div>
 
 
             <!-- Agentic Actions (Elite Tactical Viral - Ultra Lean) -->
-            <div class="grid grid-cols-3 gap-2 w-full px-4 md:px-0 mt-2">
+            <div class="grid grid-cols-3 gap-3 w-full mt-2">
 
               {#if order.status === 'PENDING' || order.status === 'PACKED'}
                  <button
                     onclick={() => handleCancelOrder(order.id)}
-                    class="h-9 bg-white border border-stone-100 rounded-xl text-[8px] font-black text-red-500/60 hover:text-red-600 hover:bg-red-50/30 transition-all uppercase tracking-widest flex items-center justify-center gap-1.5"
+                    class="h-11 bg-white border border-stone-100 rounded-2xl text-[9px] font-black text-red-500/60 hover:text-red-600 hover:bg-red-50/50 transition-all uppercase tracking-[0.2em] flex items-center justify-center gap-2 group/btn"
                   >
-                    <X size={10} strokeWidth={3} />
-                    HỦY
+                    <X size={12} strokeWidth={3} class="group-hover/btn:rotate-90 transition-transform" />
+                    HỦY ĐƠN
                   </button>
               {/if}
 
               <a
-                href="/checkout/success/{order.id}"
-                class="col-span-{ (order.status === 'PENDING' || order.status === 'PACKED') ? '1' : '2' } h-9 flex items-center justify-center bg-stone-50/50 backdrop-blur-md border border-stone-100/30 rounded-xl text-[8px] font-black text-stone-500 hover:bg-white transition-all uppercase tracking-widest whitespace-nowrap active:scale-95 gap-1.5"
+                href="/checkout/success/{order.id}{authStore.user?.phone ? '?phone=' + authStore.user.phone : ''}"
+                class="col-span-{ (order.status === 'PENDING' || order.status === 'PACKED') ? '1' : '2' } h-11 flex items-center justify-center bg-stone-50/80 backdrop-blur-md border border-stone-100/50 rounded-2xl text-[9px] font-black text-stone-500 hover:bg-white hover:text-stone-800 hover:shadow-lg transition-all uppercase tracking-[0.2em] active:scale-95 gap-2"
               >
-                CHI TIẾT
-                <ChevronRight size={10} />
+                XEM CHI TIẾT
+                <ChevronRight size={12} />
               </a>
 
               <button
                 onclick={() => handleReorder(order)}
                 disabled={isReordering}
-                class="h-9 bg-stone-900 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-stone-800 transition-all shadow-lg active:scale-95 disabled:opacity-50 overflow-hidden relative flex items-center justify-center gap-1.5"
+                class="h-11 bg-luxury-copper text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:shadow-2xl hover:shadow-luxury-copper/40 transition-all active:scale-95 disabled:opacity-50 overflow-hidden relative flex items-center justify-center gap-2 group/reorder"
               >
-                 <div class="w-1 h-1 bg-luxury-copper rounded-full animate-pulse"></div>
+                 <div class="w-1.5 h-1.5 bg-luxury-copper rounded-full animate-pulse group-hover/reorder:scale-150 transition-transform"></div>
                  MUA LẠI
               </button>
             </div>
@@ -462,12 +511,14 @@
 
   <!-- 🔱 Cinematic Branding -->
   <div class="pt-20 text-center pb-12">
-     <div class="flex items-center justify-center gap-5 mb-3 opacity-10">
-        <div class="h-[0.5px] w-24 bg-stone-800"></div>
-        <span class="text-[11px] font-serif italic uppercase tracking-[0.6em] text-stone-800">VIRAL 2026</span>
-        <div class="h-[0.5px] w-24 bg-stone-800"></div>
-     </div>
-     <p class="text-[9px] text-stone-300 font-black uppercase tracking-[0.4em] opacity-40">Elite Transaction Shield • AES-256</p>
+      <div class="mt-32 pb-20 flex flex-col items-center gap-4 opacity-30">
+        <div class="flex items-center gap-6">
+           <div class="h-[0.5px] w-24 bg-luxury-copper/30"></div>
+           <span class="text-[11px] font-serif italic uppercase tracking-[0.6em] text-luxury-copper/20">VIRAL 2026</span>
+           <div class="h-[0.5px] w-24 bg-luxury-copper/30"></div>
+        </div>
+        <p class="text-[8px] font-black uppercase tracking-[0.4em] text-stone-400">osmo Member Exclusive</p>
+      </div>
   </div>
 </div>
 
@@ -478,5 +529,10 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
   }
 </style>

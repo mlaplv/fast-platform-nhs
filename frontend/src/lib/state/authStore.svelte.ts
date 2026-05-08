@@ -90,6 +90,13 @@ class AuthStore {
       });
 
       getClientUi().showToast(`Hẹn gặp lại ${name}!`, 'info');
+
+      // Elite V2.2: Privacy Protocol - Purge order tracking persistence
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('order_verify_')) {
+          localStorage.removeItem(key);
+        }
+      });
     }
   }
 

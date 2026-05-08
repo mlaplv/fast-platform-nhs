@@ -141,10 +141,6 @@
       <ProductDetailDesktop product={data.product} relatedProducts={data.relatedProducts} />
     {/if}
     
-    {#if import.meta.env.DEV}
-      <div class="fixed bottom-0 left-0 bg-black/80 text-green-400 p-2 text-xs z-50">
-        [DEBUG] Landing Type: {landingType}
-      </div>
-    {/if}
+
   {/if}
 {/if}

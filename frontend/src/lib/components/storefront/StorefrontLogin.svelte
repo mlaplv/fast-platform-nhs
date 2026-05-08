@@ -11,6 +11,7 @@
   import LucideEyeOff from "@lucide/svelte/icons/eye-off";
   import { apiClient } from "$lib/utils/apiClient";
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";
+  import { authStore } from '$lib/state/authStore.svelte';
 
   import LoginForm from "./LoginForm.svelte";
 

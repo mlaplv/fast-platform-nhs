@@ -78,7 +78,7 @@
         <div class="space-y-4">
           <a
             href={item.href}
-            class="flex items-center gap-3 text-[12px] uppercase tracking-[2px] font-bold transition-all {currentPath.startsWith(item.href) ? 'text-stone-900' : 'text-stone-400 hover:text-stone-600'}"
+            class="flex items-center gap-3 text-[12px] uppercase tracking-[2px] font-bold transition-all {currentPath.startsWith(item.href) ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
           >
             <span class="{currentPath.startsWith(item.href) ? 'text-luxury-copper' : 'text-stone-300'}">
               <item.icon class="w-4 h-4" />

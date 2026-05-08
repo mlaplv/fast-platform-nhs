@@ -27,18 +27,26 @@ export function formatCurrency(n: number): string {
   }
 }
 
-export function formatDate(iso: string): string {
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "N/A";
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return "N/A";
+  
   return new Intl.DateTimeFormat("vi-VN", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(iso));
+  }).format(date);
 }
 
-export function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+export function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return "N/A";
+  const date = new Date(iso);
+  if (isNaN(date.getTime())) return "N/A";
+
+  const diff = Date.now() - date.getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 60) return `${mins}m trước`;
   const hrs = Math.floor(mins / 60);

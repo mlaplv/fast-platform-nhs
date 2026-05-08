@@ -56,7 +56,7 @@
         <button
           onclick={() => data.skinType = type.id}
           class="flex-1 min-w-[90px] md:min-w-0 flex flex-col items-center justify-center py-4 px-2 rounded-xl transition-all duration-500 relative group
-          {data.skinType === type.id ? 'bg-white shadow-[0_10px_20px_rgba(0,0,0,0.05)] text-stone-900' : 'text-stone-400 hover:text-stone-600'}"
+          {data.skinType === type.id ? 'bg-white shadow-[0_10px_20px_rgba(0,0,0,0.05)] text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
         >
           <type.icon class="w-5 h-5 mb-2 transition-transform duration-500 group-hover:scale-110 {data.skinType === type.id ? 'text-luxury-copper' : 'opacity-40'}" />
           <span class="text-[11px] font-bold uppercase tracking-wider">{type.label}</span>
@@ -105,7 +105,7 @@
           onclick={() => toggleConcern(concern)}
           class="px-5 py-3 rounded-full border text-[11px] font-bold uppercase tracking-widest transition-all duration-500
           {data.concerns.includes(concern)
-            ? 'bg-stone-900 text-white border-stone-900 shadow-[0_5px_15px_rgba(0,0,0,0.1)] scale-105'
+            ? 'bg-stone-800 text-white border-stone-800 shadow-[0_5px_15px_rgba(0,0,0,0.1)] scale-105'
             : 'bg-white text-stone-400 border-stone-100 hover:border-stone-200 hover:text-stone-600'}"
         >
           {concern}

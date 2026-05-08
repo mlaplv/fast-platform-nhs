@@ -10,6 +10,7 @@
   import { getNotificationState } from '$lib/state/notification.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import { browser } from '$app/environment';
+  import { formatDate } from '$lib/utils/format';
 
   import { untrack } from 'svelte';
 
@@ -52,6 +53,17 @@
       default: return Bell;
     }
   };
+
+  // Elite V3.2: Filter out technical/admin metrics from storefront view
+  const userNotifications = $derived(
+    notifStore.notifications.filter(n => {
+      const msg = n.message.toLowerCase();
+      const isTechnical = msg.includes('độ trễ') || msg.includes('latency') || msg.includes('tăng cao');
+      return !isTechnical;
+    })
+  );
+
+  const unreadCount = $derived(userNotifications.filter(n => !n.isRead).length);
 </script>
 
 <div class="relative flex items-center h-full" bind:this={bellContainer}>
@@ -60,10 +72,10 @@
     class="flex items-center gap-1 group transition-all duration-300 px-2 py-1 hover:text-luxury-copper"
   >
     <div class="relative flex items-center justify-center">
-      {#if notifStore.unreadCount > 0}
+      {#if unreadCount > 0}
         <BellRing class="w-[18px] h-[18px] text-luxury-copper animate-pulse" />
         <span class="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] px-0.5 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center border border-white pointer-events-none shadow-sm ring-1 ring-red-500/10">
-          {notifStore.unreadCount > 99 ? '99+' : notifStore.unreadCount}
+          {unreadCount > 99 ? '99+' : unreadCount}
         </span>
       {:else}
         <Bell class="w-[18px] h-[18px] text-gray-500 group-hover:text-luxury-copper transition-colors" />
@@ -95,9 +107,9 @@
         </div>
 
         <div class="max-h-[360px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
-          {#if notifStore.notifications.length > 0}
+          {#if userNotifications.length > 0}
             <div class="flex flex-col divide-y divide-gray-50">
-              {#each notifStore.notifications as notif (notif.id)}
+              {#each userNotifications as notif (notif.id)}
                 {@const Icon = getIcon(notif.type)}
                 <button 
                   onclick={() => {
@@ -113,7 +125,7 @@
                       {notif.message}
                     </p>
                     <span class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
-                      {new Date(notif.created_at).toLocaleString('vi-VN')}
+                      {formatDate(notif.created_at)}
                     </span>
                   </div>
                   {#if !notif.isRead}

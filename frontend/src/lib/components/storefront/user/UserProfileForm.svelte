@@ -181,7 +181,7 @@
       <button
         onclick={() => activeTab = 'basic'}
         class="px-6 md:px-10 py-2.5 rounded-full text-[11px] uppercase tracking-widest font-bold transition-all duration-500 flex items-center gap-2
-        {activeTab === 'basic' ? 'bg-white text-stone-900 shadow-sm ring-1 ring-stone-200/50' : 'text-stone-400 hover:text-stone-600'}"
+        {activeTab === 'basic' ? 'bg-white text-stone-800 shadow-sm ring-1 ring-stone-200/50' : 'text-stone-400 hover:text-stone-600'}"
       >
         <User class="w-3.5 h-3.5" />
         Thông tin
@@ -189,7 +189,7 @@
       <button
         onclick={() => activeTab = 'beauty'}
         class="px-6 md:px-10 py-2.5 rounded-full text-[11px] uppercase tracking-widest font-bold transition-all duration-500 flex items-center gap-2
-        {activeTab === 'beauty' ? 'bg-white text-stone-900 shadow-sm ring-1 ring-stone-200/50' : 'text-stone-400 hover:text-stone-600'}"
+        {activeTab === 'beauty' ? 'bg-white text-stone-800 shadow-sm ring-1 ring-stone-200/50' : 'text-stone-400 hover:text-stone-600'}"
       >
         <Heart class="w-3.5 h-3.5" />
         Vẻ đẹp
@@ -242,7 +242,7 @@
                       {/if}
                     </div>
                     <input type="radio" bind:group={gender} value={val} class="hidden" />
-                    <span class="text-[13px] text-stone-600 group-hover/radio:text-stone-900 transition-colors">{label}</span>
+                    <span class="text-[13px] text-stone-600 group-hover/radio:text-stone-800 transition-colors">{label}</span>
                   </label>
                 {/each}
               </div>
@@ -335,7 +335,7 @@
     <button
       onclick={handleSave}
       disabled={isSaving}
-      class="group relative px-16 py-4 bg-stone-900 text-white overflow-hidden transition-all duration-700 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] disabled:opacity-50"
+      class="group relative px-16 py-4 bg-stone-800 text-white overflow-hidden transition-all duration-700 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] disabled:opacity-50"
     >
       <div class="absolute inset-0 bg-luxury-copper translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-700 ease-out"></div>
       <span class="relative z-10 text-[11px] uppercase tracking-[5px] font-black">

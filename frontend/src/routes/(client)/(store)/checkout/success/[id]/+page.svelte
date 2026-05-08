@@ -14,6 +14,7 @@
   import SearchableCheckoutSelect from '$lib/components/storefront/ui/SearchableCheckoutSelect.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { browser } from '$app/environment';
+  import { authStore } from '$lib/state/authStore.svelte';
 
   let { data } = $props<{ data: { isMobile: boolean } }>();
   const ui = getClientUi();
@@ -63,7 +64,8 @@
   }
 
   // Elite V2.2: Retrieve phone from URL or LocalStorage to persist unlock!
-  const phoneParam = page.url.searchParams.get('phone') || (typeof localStorage !== 'undefined' ? localStorage.getItem(`order_verify_${orderId}`) : null);
+  const phoneParam = page.url.searchParams.get('phone') || 
+    (!authStore.isAuthenticated && typeof localStorage !== 'undefined' ? localStorage.getItem(`order_verify_${orderId}`) : null);
   const isTrackingMode = !!phoneParam;
 
   let order = $state<OrderDetail | null>(null);
@@ -152,7 +154,7 @@
 
   async function fetchOrder(overridePhone?: string) {
     isLoading = true;
-    const phoneToUse = overridePhone || phoneParam;
+    const phoneToUse = overridePhone || phoneParam || (authStore.isAuthenticated ? authStore.user?.phone : null);
     
     try {
       const res = await apiClient.get<OrderDetail>(`/api/v1/client/orders/${orderId}`, {
@@ -181,6 +183,12 @@
     } catch (err: unknown) {
       const e = err as { status?: number; message?: string };
       if (e.status === 400 && e.message?.toLowerCase().includes('số điện thoại')) {
+        // Elite V2.2: Intelligent Auth Bridge
+        // If logged in and has phone, try automatic unlock once!
+        if (authStore.isAuthenticated && authStore.user?.phone && !overridePhone) {
+            await fetchOrder(authStore.user.phone);
+            return;
+        }
         isLocked = true;
       } else {
         showToast(e.message || "Lỗi tải dữ liệu", "error");

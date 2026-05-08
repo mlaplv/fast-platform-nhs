@@ -29,7 +29,7 @@
   in:scale={{ duration: 400, start: 0.98 }}
 >
   <!-- 🎫 LEFT STUB (PREMIUM METALLIC GRADIENT) -->
-  <div class="w-[90px] md:w-[110px] h-full flex flex-col items-center justify-center relative border-r border-dashed border-stone-200/50 {isShipping ? 'bg-stone-900' : 'bg-luxury-copper'}">
+  <div class="w-[90px] md:w-[110px] h-full flex flex-col items-center justify-center relative border-r border-dashed border-stone-200/50 {isShipping ? 'bg-stone-800' : 'bg-luxury-copper'}">
     <!-- 🟢 Perforated Ticket Notches -->
     <div class="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#f9f8f6] z-10 border border-stone-100"></div>
     <div class="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-[#f9f8f6] z-10 border border-stone-100"></div>
@@ -51,7 +51,7 @@
       <div class="flex items-center justify-between gap-2">
          <h3 class="text-sm md:text-base font-serif italic text-stone-800 truncate tracking-wide">{mainLabel}</h3>
          {#if voucher.is_default}
-           <span class="px-2 py-0.5 bg-stone-900 text-white text-[8px] font-black uppercase rounded-full border border-stone-800 shadow-lg shadow-stone-900/10">ELITE</span>
+           <span class="px-2 py-0.5 bg-stone-800 text-white text-[8px] font-black uppercase rounded-full border border-stone-800 shadow-lg shadow-stone-800/10">ELITE</span>
          {/if}
       </div>
       <p class="text-[10px] md:text-[11px] font-black text-stone-400 uppercase tracking-widest truncate">{subLabel}</p>
@@ -69,7 +69,7 @@
        {#if voucher.usage_limit}
          <div class="h-1 w-full bg-stone-50 rounded-full overflow-hidden">
             <div 
-              class="h-full bg-stone-900 transition-all duration-1000 ease-out" 
+              class="h-full bg-stone-800 transition-all duration-1000 ease-out" 
               style="width: {usagePercent}%"
             ></div>
          </div>

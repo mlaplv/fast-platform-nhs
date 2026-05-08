@@ -99,7 +99,7 @@
     {:else}
       <button
         type="button"
-        class="absolute bottom-0 right-0 w-8 h-8 bg-stone-900 rounded-full flex items-center justify-center text-white border-2 border-white shadow-md hover:bg-luxury-copper transition-colors z-10"
+        class="absolute bottom-0 right-0 w-8 h-8 bg-stone-800 rounded-full flex items-center justify-center text-white border-2 border-white shadow-md hover:bg-luxury-copper transition-colors z-10"
         onclick={() => fileInput.click()}
         disabled={isUploading}
       >

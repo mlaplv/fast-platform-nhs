@@ -44,7 +44,7 @@
                 <UserIcon class="w-3.5 h-3.5 text-stone-400" />
              </div>
              <div>
-               <h3 class="text-[13px] font-bold text-stone-900 uppercase tracking-wider">{addr.name}</h3>
+               <h3 class="text-[13px] font-bold text-stone-800 uppercase tracking-wider">{addr.name}</h3>
                <div class="flex items-center gap-1.5 mt-0.5">
                   <Phone class="w-3 h-3 text-luxury-copper" />
                   <span class="text-[12px] text-stone-500 font-medium">{addr.phone}</span>

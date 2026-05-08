@@ -1,6 +1,6 @@
 <script lang="ts">
   import { apiClient } from '$lib/utils/apiClient';
-  import type UserAddress } from '$lib/state/authStore.svelte';
+  import { authStore, type UserAddress } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { onMount } from 'svelte';
   import Plus from "@lucide/svelte/icons/plus";
@@ -78,7 +78,7 @@
       </div>
       <button
         onclick={handleAddNew}
-        class="group relative px-8 py-3 bg-stone-900 text-white overflow-hidden transition-all duration-500 hover:shadow-lg"
+        class="group relative px-8 py-3 bg-stone-800 text-white overflow-hidden transition-all duration-500 hover:shadow-lg"
       >
         <div class="absolute inset-0 bg-luxury-copper translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
         <div class="relative z-10 flex items-center gap-2">

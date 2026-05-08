@@ -17,13 +17,13 @@
 </script>
 
 <header
-  class="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-2xl border-b border-stone-100/40 transition-all duration-300"
+  class="fixed top-0 left-0 w-full bg-white border-b border-stone-100/40 transition-all duration-300"
   style="z-index: {Z_INDEX_CLIENT.HEADER}; padding-top: env(safe-area-inset-top);"
 >
   <div class="flex items-center justify-between px-2 h-[52px]">
     <button 
       onclick={() => goto('/')} 
-      class="w-10 h-10 flex items-center justify-center active:scale-90 transition-transform text-stone-900"
+      class="w-10 h-10 flex items-center justify-center active:scale-90 transition-transform text-stone-800"
       aria-label="Quay lại"
     >
         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -32,7 +32,7 @@
     </button>
 
     <div class="flex-1 flex flex-col items-center justify-center overflow-hidden px-2">
-        <h1 class="text-[14px] font-serif italic text-stone-900 truncate w-full text-center tracking-tight font-bold">
+        <h1 class="text-[14px] font-serif italic text-stone-800 truncate w-full text-center tracking-tight font-bold">
           {title}
         </h1>
         <div class="flex items-center justify-center gap-1.5 opacity-60">
@@ -49,10 +49,10 @@
     <!-- Menu Button -->
     <button 
       onclick={() => isMenuOpen = true} 
-      class="w-10 h-10 flex items-center justify-center active:scale-90 transition-transform text-stone-900"
+      class="w-10 h-10 flex items-center justify-center active:scale-90 transition-transform text-stone-800"
       aria-label="Mở menu"
     >
-        <Menu class="w-5 h-5 text-stone-900" strokeWidth={2} />
+        <Menu class="w-5 h-5 text-stone-800" strokeWidth={2} />
     </button>
   </div>
 </header>
