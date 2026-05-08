@@ -14,6 +14,32 @@
     truncateDescription 
   } from '$lib/utils/seo';
 
+  interface SeoProduct {
+    name: string;
+    images?: string[];
+    description?: string;
+    brand?: string;
+    sku?: string;
+    price: number;
+    currency?: string;
+    availability?: string;
+    ratingValue?: number;
+    reviewCount?: number;
+  }
+
+  interface SeoArticle {
+    headline: string;
+    description?: string;
+    image?: string;
+    datePublished?: string;
+    author?: string;
+  }
+
+  interface SeoCategory {
+    name: string;
+    items?: { name: string; url: string }[];
+  }
+
   interface SeoHeadProps {
     pageType?: 'home' | 'category' | 'article' | 'product' | 'default';
     title: string;
@@ -24,12 +50,13 @@
     siteName?: string;
     robots?: string;
     // Data objects for Schema Factory
-    articleData?: any;
-    productData?: any;
-    categoryData?: any;
+    articleData?: SeoArticle | null;
+    productData?: SeoProduct | null;
+    categoryData?: SeoCategory | null;
     // Manual scripts if needed
     jsonLdScripts?: (string | null | undefined)[];
   }
+
 
   let {
     pageType = 'default',
@@ -115,7 +142,7 @@
            return false;
         }
         if (parsed["@graph"]) {
-          parsed["@graph"] = parsed["@graph"].filter((e: any) => !typesToSplit.includes(e["@type"]));
+          parsed["@graph"] = parsed["@graph"].filter((e: Record<string, unknown>) => !typesToSplit.includes(e["@type"] as string));
           return parsed["@graph"].length > 0;
         }
         return true;
@@ -160,7 +187,7 @@
             url: canonical ? toAbsSeo(canonical) : absCanonical,
             description: finalDescription,
             numberOfItems: categoryData.items?.length || 0,
-            items: categoryData.items?.map((it: any) => ({
+            items: categoryData.items?.map((it: { name: string; url: string }) => ({
               name: (it.name || '').replace(/40gr/g, '40g'),
               url: toAbsSeo(it.url)
             }))

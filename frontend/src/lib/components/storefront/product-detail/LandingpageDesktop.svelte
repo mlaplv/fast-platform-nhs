@@ -22,6 +22,20 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   
+  interface VoucherUI {
+    id: string;
+    label: string;
+    sub: string;
+    type: 'ship' | 'discount';
+  }
+
+  interface AttributeEntry {
+    key: string;
+    value: string | number | boolean | null; 
+  }
+
+
+  
   // Utils
   import { getIngredientIcon } from '$lib/utils/product';
   import { resolveMediaUrl } from '$lib/state/utils';
@@ -109,14 +123,10 @@
   let { product }: Props = $props();
 
   let stats = $state<ReviewStats | null>(null);
-  let likeCount = $state(0);
+  
+  // Elite V2.2: Intelligent Reactivity (Derived from metadata)
+  const likeCount = $derived(Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0));
 
-  // Sync like state with product (Elite V2.2)
-  $effect(() => {
-    if (product) {
-      likeCount = Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0);
-    }
-  });
 
   onMount(async () => {
     if (product?.id) {
@@ -158,7 +168,7 @@
       return variations[0].images[selectedIndices[0]];
     }
     const pImages = product.images || [];
-    return pImages[activeImageIndex] || pImages[0] || '/placeholder.png';
+    return pImages[activeImageIndex] || pImages[0] || (product.metadata?.image_url as string) || '';
   });
 
   const effectiveTier = $derived.by(() => {
@@ -278,11 +288,11 @@
    * Elite V2.2: Theo dõi trạng thái mở khóa Viral để kích hoạt hiệu ứng bay
    */
   let isViralUnlocked = $state(false);
-  $effect(() => {
-    if (typeof window !== 'undefined') {
-       isViralUnlocked = !!localStorage.getItem(`viral_unlocked_${product.id}`);
-    }
+  
+  onMount(() => {
+    isViralUnlocked = !!localStorage.getItem(`viral_unlocked_${product.id}`);
   });
+
 
   // Voucher State
   let selectedVouchers = $state<string[]>([]);
@@ -301,7 +311,7 @@
         label: v.title || v.id,
         sub: v.subtitle || (v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : `Giảm ${formatCurrency(v.value)}`),
         type: v.type === 'SHIPPING' ? 'ship' : 'discount'
-      }));
+      } as VoucherUI));
     }
 
     /**
@@ -309,7 +319,7 @@
      * Lọc bỏ các Voucher Viral để tránh hiện ở khối chung khi CHƯA chia sẻ.
      * Nếu ĐÃ mở khóa (isViralUnlocked), mã sẽ được hiển thị như một phần của hệ thống.
      */
-    return vouchers.filter((v: { id: string; label?: string }) => {
+    return (vouchers as VoucherUI[]).filter(v => {
       const isViral = v.id.includes('VIRAL') || (v.label || '').toUpperCase().includes('VIRAL');
       if (!isViral) return true;
       return isViralUnlocked;
@@ -356,7 +366,7 @@
   const pDiscountPrice = $derived(product.discountPrice || product.discount_price);
   
   const productInfo = $derived({
-    barcode: (product.sku as string) || 'N/A',
+    barcode: (product.sku as string) || '',
     brand: (product.metadata?.brand as string) || (product.attributes?.brand as string) || (product.attributes?.['Thương hiệu'] as string) || '',
     origin: (product.metadata?.origin as string) || (product.attributes?.origin as string) || (product.attributes?.['Xuất xứ'] as string) || '',
     weight: (product.metadata?.weight as string) || (product.attributes?.weight as string) || (product.attributes?.['Trọng lượng'] as string) || '',
@@ -372,9 +382,9 @@
       const weight = productInfo.weight;
       return !( ((k === "xuất xứ" || k === "origin") && origin) || 
                 ((k === "trọng lượng" || k === "quy cách" || k === "weight") && weight) || 
-                ((k === "mã vạch" || k === "barcode") && productInfo.barcode && productInfo.barcode !== "N/A") || 
+                ((k === "mã vạch" || k === "barcode") && productInfo.barcode) || 
                 (k === "thương hiệu" || k === "brand") );
-    }) : []
+    }) as [string, string | number | boolean | null][] : []
   );
 
   const activePrices = $derived({
@@ -399,10 +409,13 @@
     }
   }
 
-  // --- HELEN AI PRICE INTELLIGENCE (VIRAL 2026) ---
+  // Helen AI Advice Engine (Elite V2.2)
+  const ADVICE_FALLBACK = "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền. Hãy chọn số lượng phù hợp để tối ưu kết quả.";
+  
   const helenAdvice = $derived.by(() => {
     const comboVariants = pVariants.filter(cv => cv.attributes && cv.attributes.combo_qty);
-    if (comboVariants.length === 0) return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền. Hãy chọn số lượng phù hợp để tối ưu kết quả.";
+    if (comboVariants.length === 0) return ADVICE_FALLBACK;
+
     
     const sortedTiers = [...comboVariants].sort((a, b) => Number(a.attributes.combo_qty) - Number(b.attributes.combo_qty));
     const nextTier = sortedTiers.find(t => Number(t.attributes.combo_qty) > quantity);

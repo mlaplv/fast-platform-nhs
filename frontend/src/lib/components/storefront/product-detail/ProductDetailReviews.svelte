@@ -20,10 +20,11 @@
   import { fade, fly, scale } from 'svelte/transition';
 
   interface Props {
-    product: any;
+    product: Product;
     entityType?: 'PRODUCT' | 'CATEGORY' | 'SHOP';
   }
   let { product, entityType = 'PRODUCT' }: Props = $props();
+
 
   let reviews = $state<Review[]>([]);
   let stats = $state<ReviewStats | null>(null);
@@ -42,10 +43,11 @@
   let activeDropdownId = $state<string | null>(null);
 
   // AI Sentiment State
-  const meta = $derived((product as any)?.metadata || {});
+  const meta = $derived(product?.metadata || {});
   const aiSummary = $derived(meta.customer_sentiment_summary);
   const positiveNotes = $derived(meta.positive_notes || []);
   const negativeNotes = $derived(meta.negative_notes || []);
+
   const hasAiSentiment = $derived(aiSummary || positiveNotes.length > 0 || negativeNotes.length > 0);
 
   // Form State
