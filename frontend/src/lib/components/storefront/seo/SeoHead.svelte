@@ -194,42 +194,9 @@
     };
   });
 
+  // SEO Data derived from scripts
   const seoData = $derived(generatedScripts);
 
-  // ── SEO DEBUG HUB (Elite V2.2) ─────────────────────────────────────────────
-  import { browser } from '$app/environment';
-  $effect(() => {
-    if (browser && pageType !== 'other') {
-      console.group(`🚀 [GEO/SGE DEBUG] - ${pageType.toUpperCase()} SCHEMA`);
-      console.log('• Page Type:', pageType);
-      if (pageType === 'product') {
-        console.log('• Product Data:', productData);
-        console.log('• Rating/Review:', {
-          rating: productData?.ratingValue,
-          count: productData?.reviewCount
-        });
-      }
-      if (seoData.product) {
-         console.log('• Final JSON-LD String (PRODUCT):');
-         console.log(seoData.product);
-      }
-      if (seoData.article) {
-         console.log('• Final JSON-LD String (ARTICLE):');
-         console.log(seoData.article);
-      }
-      if (seoData.organization) {
-         console.log('• Final JSON-LD String (ORGANIZATION):');
-         console.log(seoData.organization);
-      }
-      if (seoData.category) {
-         console.log('• Final JSON-LD String (CATEGORY):');
-         console.log(seoData.category);
-      }
-      console.log('• Final JSON-LD String (GRAPH):');
-      console.log(seoData.graph);
-      console.groupEnd();
-    }
-  });
 </script>
 
 <svelte:head>

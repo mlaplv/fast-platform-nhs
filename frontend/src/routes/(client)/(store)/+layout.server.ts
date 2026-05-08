@@ -1,9 +1,13 @@
 import type { LayoutServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { ServerEnv } from '$lib/server/env';
+import { isMobileDevice } from '$lib/utils/device';
 
-export const load: LayoutServerLoad = async ({ fetch }) => {
+export const load: LayoutServerLoad = async ({ fetch, request }) => {
     const apiUrl = ServerEnv.INTERNAL_API_URL;
+    const userAgent = request.headers.get('user-agent') || '';
+    const isMobile = isMobileDevice(userAgent);
+
     try {
         // Elite V2.2: Parallel Fetch for Zero-Hydration Performance
         const [shopResp, voucherResp] = await Promise.all([
@@ -23,10 +27,12 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 
         return {
             shopInfo,
-            vouchers: vouchersData.data || []
+            vouchers: vouchersData.data || [],
+            isMobile
         };
-    } catch (e: any) {
-        if (e.status) throw e; // Pass through SvelteKit errors
+    } catch (e: unknown) {
+        const err = e as { status?: number; message?: string };
+        if (err.status) throw e; // Pass through SvelteKit errors
         throw error(503, {
             message: "Dịch vụ tạm thời không khả dụng",
             details: "Không thể kết nối tới Backend Service."

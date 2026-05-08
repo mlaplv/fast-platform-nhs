@@ -1,10 +1,7 @@
 <script lang="ts">
-    import Music from "@lucide/svelte/icons/music";
-  import Zap from "@lucide/svelte/icons/zap";
+    import Zap from "@lucide/svelte/icons/zap";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import Droplets from "@lucide/svelte/icons/droplets";
-  import Eye from "@lucide/svelte/icons/eye";
-  import Clock from "@lucide/svelte/icons/clock";
   import Flame from "@lucide/svelte/icons/flame";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import Star from "@lucide/svelte/icons/star";

@@ -17,5 +17,5 @@ def update_file(path):
     with open(path, 'wb') as f:
         f.write(content.encode('utf-8'))
 
-update_file('/home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/ProductDetailDesktop.svelte')
+update_file('/home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/LandingpageDesktop.svelte')
 update_file('/home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/ProductMobileSpecs.svelte')

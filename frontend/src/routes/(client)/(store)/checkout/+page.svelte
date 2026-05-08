@@ -226,15 +226,15 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
   });
 
   // ELITE V2.2: Dynamic Tier Notification System
-  let prevTierMap = new Map<string, number>();
+  let prevTierMap = new Map<string, string>();
   $effect.pre(() => {
     for (const item of cartStore.items) {
       if (!item.selected) continue;
-      const comboVariants = item.product?.variants?.filter((v: any) => v.attributes && v.attributes.combo_qty) || [];
+      const comboVariants = item.product?.variants?.filter(v => v.attributes && v.attributes.combo_qty) || [];
       if (comboVariants.length === 0) continue;
 
-      const sortedTiers = [...comboVariants].sort((a: any, b: any) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty));
-      const reachedTier = sortedTiers.find((v: any) => Number(v.attributes.combo_qty) <= item.quantity);
+      const sortedTiers = [...comboVariants].sort((a, b) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty));
+      const reachedTier = sortedTiers.find(v => Number(v.attributes.combo_qty) <= item.quantity);
       const tierId = reachedTier?.id || 'base';
 
       const lastId = prevTierMap.get(item.id);
@@ -276,8 +276,8 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
   }
 
   const normalize = (s: string) => s.normalize('NFC').toLowerCase().trim();
-  const validProvinces = $derived(vnDivisions.filter((p: any) => 'id' in p));
-  const selectedProvinceData = $derived(validProvinces.find((p: any) => p.name === form.province));
+  const validProvinces = $derived((vnDivisions as any[]).filter(p => 'id' in p));
+  const selectedProvinceData = $derived(validProvinces.find(p => p.name === form.province));
 
   const canExpress = $derived.by(() => {
     if (!selectedProvinceData?.has_express || !form.ward) return false;
@@ -337,8 +337,8 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
 
   const originalSubtotal = $derived.by(() => {
     return cartStore.items
-      .filter((i: any) => i.selected)
-      .reduce((acc: number, item: any) => acc + ((item.variant?.price ?? item.product.price ?? 0) * item.quantity), 0);
+      .filter(i => i.selected)
+      .reduce((acc: number, item) => acc + ((item.variant?.price ?? item.product.price ?? 0) * item.quantity), 0);
   });
 
   const productSavings = $derived(originalSubtotal - cartStore.totalAmountWithoutDiscount);
@@ -372,7 +372,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
 
   // --- HELEN AI PRICE INTELLIGENCE (CHECKOUT CONTEXT) ---
   const helenAdvice = $derived.by(() => {
-    const selectedItems = cartStore.items.filter((i: any) => i.selected);
+    const selectedItems = cartStore.items.filter(i => i.selected);
     if (selectedItems.length === 0) return "";
 
     const advices: { gravity: number; text: string }[] = [];
@@ -648,7 +648,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
           <!-- Items list -->
           <div class="bg-white rounded-xl shadow-sm mb-3 mt-1 overflow-hidden mx-2">
             <!-- Gift Banner -->
-            {#if cartStore.items.some((i: any) => i.product.discountPrice)}
+            {#if cartStore.items.some(i => i.product.discountPrice)}
               <div class="bg-[#fff0f1] text-[#fe2c55] text-[13px] font-medium px-3 py-3 flex items-center justify-between border-b border-[#ffe1e3]">
                 <div class="flex items-center gap-1.5">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>

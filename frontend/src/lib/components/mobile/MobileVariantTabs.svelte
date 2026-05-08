@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { scale } from 'svelte/transition';
+
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
 
   interface MobileVariantTabsProps {

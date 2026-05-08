@@ -64,7 +64,11 @@ export function createClientUiState(): ClientUiState {
         get isHydrated() { return globalState.isHydrated; },
         get isDetermined() { return globalState.isDetermined; },
         get settings() { return globalState.settings; },
-        set settings(val: ShopInfo | null) { globalState.settings = val; },
+        set settings(val: ShopInfo | null) { 
+            // Elite V2.2: Redundancy Guard - prevent double updates during hydration/navigation
+            if (JSON.stringify(globalState.settings) === JSON.stringify(val)) return;
+            globalState.settings = val; 
+        },
 
         get authModal() { return globalState.authModal; },
         get confirmModal() { return globalState.confirmModal; },
@@ -155,6 +159,12 @@ export function createClientUiState(): ClientUiState {
             return () => {
                 window.removeEventListener('resize', handleResize);
             };
+        },
+
+        forceMobile(mobile: boolean) {
+            // Rule 2.2: Force state for zero-hydration performance
+            globalState.screenWidth = mobile ? 375 : 1440;
+            globalState.isDetermined = true;
         },
 
         showToast(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info', duration = 4000) {

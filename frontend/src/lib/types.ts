@@ -791,14 +791,15 @@ export interface ClientUiState extends ScreenState {
   closeModal(): void;
   showToast(message: string, type?: ToastType, duration?: number): void;
   initObservers(): (() => void) | undefined;
+  forceMobile(mobile: boolean): void;
 }
 
 export interface Voucher {
   id: string;
   type: 'FIXED' | 'PERCENT' | 'SHIPPING';
-  title?: string;
+  title: string;
   subtitle?: string;
-  desc?: string;
+  desc: string;
   value: number;
   min_spend: number;
   max_discount?: number;

@@ -4,7 +4,6 @@
   import Minus from "@lucide/svelte/icons/minus";
   import Plus from "@lucide/svelte/icons/plus";
   import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
-  import Star from "@lucide/svelte/icons/star";
   import Gift from "@lucide/svelte/icons/gift";
   import Package from "@lucide/svelte/icons/package";
   import Sparkles from "@lucide/svelte/icons/sparkles";
@@ -110,6 +109,14 @@
   let { product }: Props = $props();
 
   let stats = $state<ReviewStats | null>(null);
+  let likeCount = $state(0);
+
+  // Sync like state with product (Elite V2.2)
+  $effect(() => {
+    if (product) {
+      likeCount = Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0);
+    }
+  });
 
   onMount(async () => {
     if (product?.id) {
@@ -210,7 +217,6 @@
     }
     selectedIndices = newSelected;
     
-    // Sync quantity with combo_qty
     // Sync quantity with combo_qty (Elite V2.2)
     const nextVariant = pVariants.find(v => 
       v.tierIndex.length === selectedIndices.length && 
@@ -346,12 +352,6 @@
     return () => clearInterval(timer);
   });
 
-  // Viral 2026: Format currency standard
-  const formatVnd = (val: number | string) => {
-    if (typeof val === 'string') return val;
-    return val.toLocaleString('vi-VN');
-  };
-
   // Extract product details (Dynamic from DB)
   const pDiscountPrice = $derived(product.discountPrice || product.discount_price);
   
@@ -399,31 +399,6 @@
     }
   }
 
-  // --- SOCIAL & LIKES LOGIC (VIRAL 2026) ---
-  let isLiked = $state(false);
-  let likeCount = $state(1700);
-  let likeAnimating = $state(false);
-
-  // Sync like state with product (Elite V2.2)
-  $effect(() => {
-    if (product) {
-      isLiked = false; // Reset when switching products
-      likeCount = Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0);
-    }
-  });
-
-  function toggleLike() {
-    isLiked = !isLiked;
-    if (isLiked) {
-      likeCount++;
-      clientUi.showToast('Đã thêm sản phẩm vào mục Yêu thích', 'success');
-      likeAnimating = true;
-      setTimeout(() => { likeAnimating = false; }, 300);
-    } else {
-      likeCount--;
-    }
-  }
-
   // --- HELEN AI PRICE INTELLIGENCE (VIRAL 2026) ---
   const helenAdvice = $derived.by(() => {
     const comboVariants = pVariants.filter(cv => cv.attributes && cv.attributes.combo_qty);
@@ -450,58 +425,6 @@
 
   const activeComboQty = $derived(effectiveTier?.attributes?.combo_qty || effectiveTier?.attributes?.comboQty || 0);
   const activeGifts = $derived(effectiveTier?.attributes?.gifts || []);
-  function formatCount(count: number) {
-    if (count >= 1000) {
-      return (count / 1000).toFixed(1).replace('.0', '') + 'k';
-    }
-    return count.toString();
-  }
-
-  function share(platform: string) {
-    if (typeof window === 'undefined') return;
-    const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`Xem ngay: ${product.name}`);
-    const media = encodeURIComponent(currentImage || '');
-    
-    let shareUrl = '';
-    switch (platform) {
-      case 'facebook':
-        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
-        break;
-      case 'zalo':
-        shareUrl = `https://sp.zalo.me/plugins/share?url=${url}`;
-        break;
-      case 'pinterest':
-        shareUrl = `https://pinterest.com/pin/create/button/?url=${url}&media=${media}&description=${text}`;
-        break;
-      case 'twitter':
-        shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
-        break;
-    }
-    if (shareUrl) {
-      window.open(shareUrl, '_blank', 'width=600,height=400');
-    }
-  }
-
-  async function shareNative() {
-    if (typeof navigator === 'undefined') return;
-    if (navigator.share) {
-       try {
-          await navigator.share({
-             title: product.name,
-             text: `Xem ngay ${product.name} trên osmo!`,
-             url: window.location.href
-          });
-       } catch (e) {
-          // User cancelled or failed
-       }
-    } else {
-       if (navigator.clipboard) {
-          await navigator.clipboard.writeText(window.location.href);
-          clientUi.showToast('Đã sao chép đường dẫn', 'success');
-       }
-    }
-  }
 
   // SGE Shield V1.0: Deterministic DOM Entropy (Product Detail)
   const wrapperTags = ['div', 'article', 'section', 'main'];

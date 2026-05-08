@@ -18,9 +18,13 @@
   const cart = getCartStore();
   const searchStore = getSearchStore();
 
+  // Elite V2.2: Zero-Latency State Sync (Sync before mount to prevent CLS)
+  if (data.isMobile !== undefined) {
+    ui.forceMobile(data.isMobile);
+  }
+
   onMount(() => {
     // Elite V2.2: Independent Fomo Initialization (Zero-Latency)
-    // Only initialize if settings are available and enabled
     if (!isAdmin && ui.settings?.conversions?.fomo_enabled) {
         fomoStore.init('osmo-elite');
     }
@@ -28,19 +32,21 @@
   });
 
   // Re-check initialization if settings update
+  // Elite V2.2: Unitary State Sync (Prop-driven reactivity)
   $effect(() => {
-    if (!isAdmin && ui.settings?.conversions?.fomo_enabled && !fomoStore.isInitialized) {
-        fomoStore.init('osmo-elite');
-    } else if (!isAdmin && ui.settings?.conversions?.fomo_enabled === false) {
-        fomoStore.dispose();
+    if (data.shopInfo && JSON.stringify(ui.settings) !== JSON.stringify(data.shopInfo)) {
+        ui.settings = data.shopInfo;
     }
-  });
-
-  // Elite V2.2: Global Data Sync
-  $effect(() => {
-    if (data.shopInfo) ui.settings = data.shopInfo;
     if (data.vouchers) {
-      cart.setVouchers(data.vouchers);
+        cart.setVouchers(data.vouchers);
+    }
+    
+    // Fomo State Machine (Elite V2.6)
+    const fomoEnabled = !isAdmin && ui.settings?.conversions?.fomo_enabled;
+    if (fomoEnabled && !fomoStore.isInitialized) {
+        fomoStore.init('osmo-elite');
+    } else if (!fomoEnabled && fomoStore.isInitialized) {
+        fomoStore.dispose();
     }
   });
   

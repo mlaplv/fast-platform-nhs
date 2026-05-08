@@ -1,6 +1,6 @@
 import os
 
-file_path = '/home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/ProductDetailDesktop.svelte'
+file_path = '/home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/LandingpageDesktop.svelte'
 
 with open(file_path, 'rb') as f:
     content = f.read().decode('utf-8')

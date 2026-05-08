@@ -572,12 +572,6 @@
     color: white;
   }
 
-  :global(.elite-prose th) {
-    background: rgba(255,255,255,0.05);
-    font-weight: 700;
-    color: white;
-  }
-
   /* 🎙️ Neural Voice Animations */
   @keyframes voice-bar {
     0%, 100% { height: 4px; }

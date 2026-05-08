@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Music from "@lucide/svelte/icons/music";
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import MobileActionStack from './MobileActionStack.svelte';
@@ -23,17 +22,11 @@
   // Elite V2.2: Reactive switching between live data and edited data
   const product = $derived(isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
 
-  // ── SEO Derived State (Elite V2.2 – Mobile Parity) ──────────────────────────
-  const seoMeta = $derived(product?.seoMeta ?? product?.seo_meta ?? null);
-  const siteName = $derived(product?.metadata?.seo_site_name ?? 'Elite Storefront');
-  const ogImage = $derived(product?.images?.[0] ?? '');
-
   // Active section index tracked via IntersectionObserver (O(1) – no scroll listeners)
   let activeSectionIndex = $state(0);
   let isDetailsModalOpen = $state(false);
   let loadJIT = $state(false);
 
-  // Variant tabs should be hidden when user is on the video banner (section 0)
   // Check both `video_url` (admin field) and `hero_video_url` (desktop fallback) for compatibility
   const hasVideo = $derived(
     !!(product?.metadata?.video_url || product?.metadata?.hero_video_url || product?.metadata?.hero_video)
@@ -45,8 +38,6 @@
   });
 
   const isTikTokActive = $derived(activeSectionIndex === 0 && isTikTokVideo);
-
-  const heroIndex = $derived(hasVideo ? 1 : 0);
 
   // 🚀 ELITE MOBILE SCROLL COORDINATOR (O(1))
   let isScrollingDown = $state(false);
@@ -195,8 +186,4 @@
   </nav>
 </div>
 
-<style lang="postcss">
-  :root {
-    --z-mobile-tabs: 1000;
-  }
-</style>
+

@@ -37,11 +37,11 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
       const [prodRes, catDetailRes] = await Promise.all([
         fetch(productsUrl, {
           headers: { 'x-tenant': tenantId },
-          signal: AbortSignal.timeout(5000)
+          signal: AbortSignal.timeout(3000)
         }),
         fetch(categoryDetailUrl, {
           headers: { 'x-tenant': tenantId },
-          signal: AbortSignal.timeout(5000)
+          signal: AbortSignal.timeout(3000)
         }).catch(e => {
           console.error(`[CATEGORY DETAIL FETCH FAILED] slug: ${slug}`, e);
           return null;
@@ -53,7 +53,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
         const items = (prodData.data || []) as unknown[];
         const total = prodData.total || items.length;
 
-        let category: any = null;
+        let category: Category | null = null;
         if (catDetailRes && catDetailRes.ok) {
           category = await catDetailRes.json();
         }
@@ -80,7 +80,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
     try {
       const newsRes = await fetch(newsUrl, {
         headers: { 'x-tenant': tenantId },
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(3000)
       });
       if (newsRes.ok) {
         const data = await newsRes.json();
@@ -103,7 +103,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
   try {
     const prodRes = await fetch(productUrl, {
       headers: { 'x-tenant': tenantId },
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(3000)
     });
     if (prodRes.ok) {
       const product = await prodRes.json();
@@ -116,7 +116,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
       try {
         const relRes = await fetch(relatedUrl, {
           headers: { 'x-tenant': tenantId },
-          signal: AbortSignal.timeout(5000)
+          signal: AbortSignal.timeout(3000)
         });
         if (relRes.ok) {
           const relData = await relRes.json();
@@ -161,13 +161,14 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
     if (prodRes.status !== 404) {
       const errorData = await prodRes.text();
       console.error(`[PRODUCT FETCH ERROR] status: ${prodRes.status}, slug: ${slug}, data: ${errorData}`);
-      throw error(prodRes.status as any, { 
+      throw error(prodRes.status, { 
         message: `Lỗi hệ thống khi tải sản phẩm: ${slug} (${prodRes.status})` 
       });
     }
 
-  } catch (e: any) {
-    if (e.status) throw e; // Re-throw SvelteKit errors
+  } catch (e: unknown) {
+    const err = e as { status?: number };
+    if (err.status) throw e; // Re-throw SvelteKit errors
     console.error(`[PRODUCT FETCH SYSTEM ERROR] slug: ${slug}`, e);
   }
 
@@ -176,7 +177,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
   try {
     const artRes = await fetch(articleUrl, {
       headers: { 'x-tenant': tenantId },
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(3000)
     });
     if (artRes.ok) {
       const article = (await artRes.json()) as Article;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ProductDetailDesktop from '$lib/components/storefront/product-detail/ProductDetailDesktop.svelte';
+  import LandingpageDesktop from '$lib/components/storefront/product-detail/LandingpageDesktop.svelte';
   import ProductDetailMobile from '$lib/components/storefront/product-detail/ProductDetailMobile.svelte';
   import ProductListDesktop from '$lib/components/storefront/product/ProductListDesktop.svelte';
   import ProductGrid from '$lib/components/storefront/product/ProductGrid.svelte';
@@ -156,7 +156,7 @@
       keywords={categorySeoMeta.keywords}
       categoryData={{
         name: data.category?.name,
-        items: (data.items || []).slice(0, 15).map((p: any) => ({
+        items: (data.items || []).slice(0, 15).map((p: { name: string; slug: string }) => ({
           name: p.name,
           url: `${siteUrl}/${p.slug}`
         }))
@@ -175,7 +175,7 @@
       canonical={categoryCanonical}
       categoryData={{
         name: data.categoryName,
-        items: (data.items || []).slice(0, 15).map((p: any) => ({
+        items: (data.items || []).slice(0, 15).map((p: { name: string; slug: string }) => ({
           name: p.name,
           url: `${siteUrl}/${p.slug}`
         }))
@@ -230,22 +230,22 @@
   <!-- Product Detail (Standard) — Full SEO from backend seoMeta -->
   <SeoHead
     pageType="product"
-    title="Miccosmo Hurry Harry Premium Rich Neck Cream 40g - Kem Dưỡng Sáng Cổ"
-    description="Trải nghiệm sự sang trọng với Kem dưỡng vùng cổ Miccosmo Hurry Harry Premium Rich Neck Cream 40g. Công thức chuyên sâu giúp làm sáng, săn chắc và dưỡng ẩm sâu."
+    title={productSeoMeta.title || data.product.name}
+    description={productSeoMeta.description || data.product.short_description || data.product.description || ""}
     canonical={productSeoMeta.canonical_url}
     image={data.product?.images?.[0] || ""}
     keywords={productSeoMeta.keywords}
     productData={{
-      name: "Miccosmo Hurry Harry Premium Rich Neck Cream 40g - Kem Dưỡng Sáng Cổ",
+      name: data.product.name,
       images: data.product?.images,
-      description: "Trải nghiệm sự sang trọng với Kem dưỡng vùng cổ Miccosmo Hurry Harry Premium Rich Neck Cream 40g. Công thức chuyên sâu giúp làm sáng, săn chắc và dưỡng ẩm sâu.",
-      brand: "Miccosmo",
-      sku: "MICCOSMO-NECK-40G",
-      price: data.product?.price || 650000,
+      description: data.product.short_description || data.product.description || "",
+      brand: (data.product.attributes?.brand as string) || "osmo Elite",
+      sku: data.product.sku,
+      price: data.product?.price || 0,
       currency: "VND",
-      availability: data.product?.stock_status === 'OUT_OF_STOCK' ? 'OutOfStock' : 'InStock',
-      ratingValue: 4.9,
-      reviewCount: 24
+      availability: data.product?.stock === 0 ? 'OutOfStock' : 'InStock',
+      ratingValue: typeof data.product.rating === 'number' ? data.product.rating : 5,
+      reviewCount: data.product.orderCount || 0
     }}
     jsonLdScripts={[
       productSeoMeta.json_ld_string,
@@ -258,21 +258,21 @@
   <!-- Product Detail fallback (no seoMeta from backend) -->
   <SeoHead
     pageType="product"
-    title="Miccosmo Hurry Harry Premium Rich Neck Cream 40g - Kem Dưỡng Sáng Cổ"
-    description="Trải nghiệm sự sang trọng với Kem dưỡng vùng cổ Miccosmo Hurry Harry Premium Rich Neck Cream 40g. Công thức chuyên sâu giúp làm sáng, săn chắc và dưỡng ẩm sâu."
+    title="{data.product.name} | osmo Elite"
+    description={data.product.short_description || data.product.description || ""}
     canonical="{siteUrl}/{data.product?.slug || ''}"
     image={data.product?.images?.[0] || ""}
     productData={{
-      name: "Miccosmo Hurry Harry Premium Rich Neck Cream 40g - Kem Dưỡng Sáng Cổ",
+      name: data.product.name,
       images: data.product?.images,
-      description: "Trải nghiệm sự sang trọng với Kem dưỡng vùng cổ Miccosmo Hurry Harry Premium Rich Neck Cream 40g. Công thức chuyên sâu giúp làm sáng, săn chắc và dưỡng ẩm sâu.",
-      brand: "Miccosmo",
-      sku: "MICCOSMO-NECK-40G",
-      price: data.product?.price || 650000,
+      description: data.product.short_description || data.product.description || "",
+      brand: (data.product.attributes?.brand as string) || "osmo Elite",
+      sku: data.product.sku,
+      price: data.product?.price || 0,
       currency: "VND",
-      availability: data.product?.stock_status === 'OUT_OF_STOCK' ? 'OutOfStock' : 'InStock',
-      ratingValue: 4.9,
-      reviewCount: 24
+      availability: data.product?.stock === 0 ? 'OutOfStock' : 'InStock',
+      ratingValue: typeof data.product.rating === 'number' ? data.product.rating : 5,
+      reviewCount: data.product.orderCount || 0
     }}
   />
 
@@ -333,7 +333,7 @@
       {#if ui.isMobile}
         <ProductDetailMobile product={data.product} relatedProducts={data.relatedProducts} />
       {:else}
-        <ProductDetailDesktop product={data.product} relatedProducts={data.relatedProducts} />
+        <LandingpageDesktop product={data.product} relatedProducts={data.relatedProducts} />
       {/if}
     {/if}
   {/if}

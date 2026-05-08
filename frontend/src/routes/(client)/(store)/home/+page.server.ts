@@ -15,8 +15,9 @@ export const load: PageServerLoad = async ({ fetch }) => {
             headers: { 'x-tenant': tenantId },
             signal: AbortSignal.timeout(5000)
         });
-    } catch (e: any) {
-        const isTimeout = e.name === 'TimeoutError' || e.message?.includes('timeout');
+    } catch (e: unknown) {
+        const err = e as { name?: string; message?: string };
+        const isTimeout = err.name === 'TimeoutError' || err.message?.includes('timeout');
         console.error(`[HOME FETCH FAILED] ${isTimeout ? 'TIMEOUT' : 'CONNECTION ERROR'}`);
         console.error(`URL: ${targetUrl}`);
         

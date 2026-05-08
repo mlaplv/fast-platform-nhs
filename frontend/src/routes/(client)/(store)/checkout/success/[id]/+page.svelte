@@ -106,7 +106,10 @@
 
   const validProvinces = (vnDivisions as unknown as VnDivision[]).filter(p => p.id);
   const unifiedOptions = validProvinces.flatMap(p => 
-    (p.wards || []).map((w: any) => `${w.name || w}, ${p.name}`)
+    (p.wards || []).map(w => {
+      const wardName = typeof w === 'string' ? w : (w as { name: string }).name;
+      return `${wardName}, ${p.name}`;
+    })
   ).sort((a, b) => a.localeCompare(b, 'vi'));
 
   let unifiedValue = $state(editForm.ward && editForm.province ? `${editForm.ward}, ${editForm.province}` : '');
@@ -162,9 +165,9 @@
         if (phoneToUse && typeof localStorage !== 'undefined') {
           localStorage.setItem(`order_verify_${orderId}`, phoneToUse);
         }
-        const cName = order.customer_name || (order as any).customerName || (order as any).name_masked || '';
-        const cPhone = order.customer_phone || (order as any).customerPhone || '';
-        const cAddress = order.customer_address || (order as any).customerAddress || (order as any).address_masked || '';
+        const cName = order.customer_name || (order as unknown as { name_masked: string }).name_masked || '';
+        const cPhone = order.customer_phone || '';
+        const cAddress = order.customer_address || (order as unknown as { address_masked: string }).address_masked || '';
         
         const addrParts = parseAddress(cAddress);
         editForm = {
@@ -230,7 +233,7 @@
   let isConfirmCancelOpen = $state(false);
 
   // Elite V2.2: Reactive Financial Computations
-  const subtotal = $derived(order?.items?.reduce((acc: number, it: any) => acc + (it.total_price || 0), 0) ?? 0);
+  const subtotal = $derived(order?.items?.reduce((acc, it) => acc + (it.total_price || 0), 0) ?? 0);
   const voucherDiscount = $derived(Number(order?.order_metadata?.voucher_discount || 0));
   const comboDiscount = $derived(Number(order?.order_metadata?.combo_discount || 0));
   const totalSavings = $derived(voucherDiscount + comboDiscount);

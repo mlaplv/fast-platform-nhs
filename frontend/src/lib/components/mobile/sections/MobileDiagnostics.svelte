@@ -18,7 +18,6 @@
   import Calendar from "@lucide/svelte/icons/calendar";
   import Dna from "@lucide/svelte/icons/dna";
   import PlusCircle from "@lucide/svelte/icons/plus-circle";
-  import ShieldX from "@lucide/svelte/icons/shield-x";
   import Flame from "@lucide/svelte/icons/flame";
   import Sun from "@lucide/svelte/icons/sun";
   import Droplets from "@lucide/svelte/icons/droplets";
@@ -41,7 +40,7 @@
   const metadata = $derived(product?.metadata || {});
   const selectedAreaLabel = $derived(answers.find(ans => ans.q.includes('giải cứu'))?.a || '');
   
-  const levelOptions = $derived(() => {
+  const currentLevelOptions = $derived.by(() => {
     const area = selectedAreaLabel.toLowerCase();
     if (area.includes('bikini')) return [
       { label: 'Sắc tố chưa đồng nhất', value: 'light', icon: 'Moon' },
@@ -83,7 +82,7 @@
     {
       id: 'level',
       title: 'Hiện trạng sắc tố thực tế?',
-      options: levelOptions()
+      options: currentLevelOptions
     },
     {
       id: 'goal',

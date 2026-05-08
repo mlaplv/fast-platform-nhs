@@ -3,11 +3,9 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import Facebook from "@lucide/svelte/icons/facebook";
   import Linkedin from "@lucide/svelte/icons/linkedin";
-  import Instagram from "@lucide/svelte/icons/instagram";
   import Youtube from "@lucide/svelte/icons/youtube";
-  import Phone from "@lucide/svelte/icons/phone";
-  import Mail from "@lucide/svelte/icons/mail";
   import MapPin from "@lucide/svelte/icons/map-pin";
+  import Mail from "@lucide/svelte/icons/mail";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import Zap from "@lucide/svelte/icons/zap";
   import Clock from "@lucide/svelte/icons/clock";
@@ -15,7 +13,6 @@
   import Lock from "@lucide/svelte/icons/lock";
   import CreditCard from "@lucide/svelte/icons/credit-card";
   import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
-  import Users from "@lucide/svelte/icons/users";
 
   interface Props {
     shopInfo: {

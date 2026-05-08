@@ -7,10 +7,6 @@
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
 
-  interface MobileVideoBannerProps {
-    product: Product | null;
-  }
-
   let { product: propProduct } = $props<{ product: Product | null }>();
   const shopStore = getShopStore();
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
@@ -34,8 +30,6 @@
   });
 
   const videoUrl = $derived(rawUrl);
-  const trimmedUrl = $derived(videoUrl); 
-
   type VideoMode = 'youtube' | 'tiktok' | 'local' | null;
 
   function getYoutubeId(url: string): string | null {
@@ -126,8 +120,6 @@
   });
 
   const handle = $derived(metadata.mobile_handle as string || '@osmo');
-  const headline = $derived(metadata.hero_headline as string || '<span>ĐÁNH BAY</span> <br/> <span class="headline-shift">THÂM SẠM</span>');
-  const shortDescription = $derived(product?.shortDescription || '');
   const metrics = $derived.by(() => {
     const raw = metadata.hero_metrics || [];
     const fallbacks = [
@@ -151,7 +143,7 @@
             bind:this={videoEl}
             ontimeupdate={handleTimeUpdate}
             class="video-element video-local absolute inset-0"
-            src={trimmedUrl}
+            src={videoUrl}
             autoplay
             muted
             loop
