@@ -191,7 +191,7 @@
         type: v.type === 'SHIPPING' ? 'ship' : 'discount'
       }));
     }
-    return vouchers.filter((v: any) => {
+    return vouchers.filter((v: { id: string; label?: string }) => {
       const isViral = v.id.includes('VIRAL') || (v.label || '').toUpperCase().includes('VIRAL');
       if (!isViral) return true;
       return isViralUnlocked;

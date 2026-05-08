@@ -9,8 +9,15 @@
 
   interface Props {
     product: Product;
-    productInfo: any;
-    visibleAttributes: [string, any][];
+    productInfo: {
+      barcode: string;
+      brand: string;
+      origin: string;
+      weight: string;
+      originalPrice: number;
+      salePrice: number;
+    };
+    visibleAttributes: [string, string | number | object][];
   }
 
   let { product, productInfo, visibleAttributes }: Props = $props();

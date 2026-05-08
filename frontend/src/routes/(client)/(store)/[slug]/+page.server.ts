@@ -107,6 +107,12 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
     });
     if (prodRes.ok) {
       const product = await prodRes.json();
+      
+      // Elite V2.2: Server-side Data Normalization (Zero-Hydration)
+      if (product?.name) {
+        product.name = product.name.replace(/40gr/g, '40g');
+      }
+
       const userAgent = request.headers.get('user-agent') || '';
       const isMobile = isMobileDevice(userAgent);
       const effectiveIp = request.headers.get('cf-connecting-ip') || '127.0.0.1';
