@@ -4,6 +4,10 @@ export function formatCurrency(n: number): string {
   const ui = getClientUi();
   const settings = ui.settings?.currency;
   
+  if (!n || isNaN(n)) {
+    return "Liên hệ";
+  }
+
   if (!settings) {
     // Default: Shopee-style (suffix)
     return new Intl.NumberFormat("vi-VN").format(n) + "₫";

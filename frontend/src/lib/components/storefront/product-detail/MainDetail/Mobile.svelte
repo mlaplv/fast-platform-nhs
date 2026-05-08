@@ -5,17 +5,17 @@
   import type { Product } from '$lib/types';
 
   // Sub-components (Elite V2.2 Refactored for < 500 lines)
-  import ProductMobileHeader from './ProductMobileHeader.svelte';
-  import ProductMobileOverview from './ProductMobileOverview.svelte';
-  import ProductMobileReviews from './ProductMobileReviews.svelte';
-  import ProductMobileSpecs from './ProductMobileSpecs.svelte';
-  import ProductDetailRelated from './shared/ProductDetailRelated.svelte';
-  import ProductMobileVariantSelector from './ProductMobileVariantSelector.svelte';
+  import ProductMobileHeader from '../ProductMobileHeader.svelte';
+  import ProductMobileOverview from '../ProductMobileOverview.svelte';
+  import ProductMobileReviews from '../ProductMobileReviews.svelte';
+  import ProductMobileSpecs from '../ProductMobileSpecs.svelte';
+  import ProductDetailRelated from '../shared/ProductDetailRelated.svelte';
+  import ProductMobileVariantSelector from '../ProductMobileVariantSelector.svelte';
 
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { shareToPlatform } from '$lib/utils/commerce/viral';
-  import MobileBottomNav from '../home/MobileBottomNav.svelte';
+  import MobileBottomNav from '../../home/MobileBottomNav.svelte';
   import type { ProductVariant, ReviewStats } from '$lib/types';
 
   interface Props {
