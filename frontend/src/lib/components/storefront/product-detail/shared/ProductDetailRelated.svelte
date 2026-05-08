@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { Product } from '$lib/types';
-  import ProductGrid from '../product/ProductGrid.svelte';
+  import ProductGrid from '../../product/ProductGrid.svelte';
   import { getRecentlyViewedStore } from '$lib/state/commerce/recentlyViewed.svelte';
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import Flame from "@lucide/svelte/icons/flame";

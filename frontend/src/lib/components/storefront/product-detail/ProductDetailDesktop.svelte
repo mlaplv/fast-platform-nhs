@@ -20,9 +20,12 @@
   import LandingProductSpecs from './modules/LandingProductSpecs.svelte';
   import LandingProductDescription from './modules/LandingProductDescription.svelte';
   
-  // Global Components
-  import ProductDetailReviews from './ProductDetailReviews.svelte';
-  import ProductDetailRelated from './ProductDetailRelated.svelte';
+  // Components
+  import ProductDetailReviews from './shared/ProductDetailReviews.svelte';
+  import ProductDetailRelated from './shared/ProductDetailRelated.svelte';
+  import ViralShareBarDesktop from './shared/ViralShareBarDesktop.svelte';
+  import ShareToUnlockPromoDesktop from './shared/ShareToUnlockPromoDesktop.svelte';
+  import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
   
   // Utils

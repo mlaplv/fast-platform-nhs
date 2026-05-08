@@ -13,7 +13,7 @@
   import X from "@lucide/svelte/icons/x";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import MinusCircle from "@lucide/svelte/icons/minus-circle";
-  import SimpleTiptap from '../ui/SimpleTiptap.svelte';
+  import SimpleTiptap from '../../ui/SimpleTiptap.svelte';
   import { apiClient } from '$lib/utils/apiClient';
   import type { Product, Review, ReviewStats } from '$lib/types';
   

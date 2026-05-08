@@ -9,7 +9,7 @@
   import ProductMobileOverview from './ProductMobileOverview.svelte';
   import ProductMobileReviews from './ProductMobileReviews.svelte';
   import ProductMobileSpecs from './ProductMobileSpecs.svelte';
-  import ProductDetailRelated from './ProductDetailRelated.svelte';
+  import ProductDetailRelated from './shared/ProductDetailRelated.svelte';
   import ProductMobileVariantSelector from './ProductMobileVariantSelector.svelte';
 
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';

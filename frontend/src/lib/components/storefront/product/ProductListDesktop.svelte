@@ -9,7 +9,7 @@
   import { onMount } from 'svelte';
   import { scale } from 'svelte/transition';
   import MessageCircleQuestion from "@lucide/svelte/icons/message-circle-question";
-  import ProductDetailReviews from '../product-detail/ProductDetailReviews.svelte';
+  import ProductDetailReviews from '../product-detail/shared/ProductDetailReviews.svelte';
   import type { ReviewStats } from '$lib/types';
 
 

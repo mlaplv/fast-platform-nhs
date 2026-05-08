@@ -1,5 +1,5 @@
 <script lang="ts">
-  import LandingpageDesktop from '$lib/components/storefront/product-detail/LandingpageDesktop.svelte';
+  import ProductDetailDesktop from '$lib/components/storefront/product-detail/ProductDetailDesktop.svelte';
   import ProductDetailMobile from '$lib/components/storefront/product-detail/ProductDetailMobile.svelte';
   import ProductListDesktop from '$lib/components/storefront/product/ProductListDesktop.svelte';
   import ProductGrid from '$lib/components/storefront/product/ProductGrid.svelte';
@@ -333,7 +333,7 @@
       {#if ui.isMobile}
         <ProductDetailMobile product={data.product} relatedProducts={data.relatedProducts} />
       {:else}
-        <LandingpageDesktop product={data.product} relatedProducts={data.relatedProducts} />
+        <ProductDetailDesktop product={data.product} relatedProducts={data.relatedProducts} />
       {/if}
     {/if}
   {/if}

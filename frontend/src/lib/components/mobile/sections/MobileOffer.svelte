@@ -25,7 +25,7 @@
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
-  import ShareToUnlockPromoMobile from '$lib/components/storefront/product-detail/ShareToUnlockPromoMobile.svelte';
+  import ShareToUnlockPromoMobile from '$lib/components/storefront/product-detail/shared/ShareToUnlockPromoMobile.svelte';
 
   interface MobileOfferProps {
     product?: Product;
