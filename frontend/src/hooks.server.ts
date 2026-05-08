@@ -39,12 +39,11 @@ export const handle: Handle = async ({ event, resolve }) => {
   // Elite V2.2: Defense-in-depth hostname resolution.
   // Ưu tiên X-Forwarded-Host (do Caddy set) > Host header > event.url.hostname (raw).
   // Mục đích: Đảm bảo tenant detection đúng ngay cả khi SvelteKit nhận hostname container nội bộ.
-  const rawHostname =
+  const hostname =
     (event.request.headers.get("x-forwarded-host") || event.request.headers.get("host") || event.url.hostname)
       .split(":")[0] // Strip port nếu có (e.g. "admin.osmo:3000" → "admin.osmo")
       .toLowerCase()
       .trim();
-  const hostname = rawHostname;
   const adminDomain = ServerEnv.ADMIN_DOMAIN;
 
   // 1. Identify Tenant (STRICT Matching for Elite V2.2)
@@ -60,10 +59,27 @@ export const handle: Handle = async ({ event, resolve }) => {
     const token = event.cookies.get("admin_token");
     if (token) {
       const payload = parseJwt(token);
-      if (payload && payload.exp * 1000 > Date.now()) {
+      if (payload && payload.exp && payload.exp * 1000 > Date.now()) {
         event.locals.user = {
           email: payload.sub,
-          role: payload.role || (payload.roles ? payload.roles[0] : null),
+          role: payload.roles?.[0] || "ADMIN",
+          roles: payload.roles || [],
+          perms: payload.perms || [],
+        };
+        event.locals.token = token;
+      }
+    }
+  } else {
+    // Elite V2.2: Storefront Secure Auth (Military Grade)
+    const token = event.cookies.get("access_token");
+    if (token) {
+      const payload = parseJwt(token);
+      if (payload && payload.exp && payload.exp * 1000 > Date.now()) {
+        event.locals.user = {
+          id: payload.id,
+          email: payload.sub,
+          name: payload.name,
+          role: payload.roles?.[0] || "CUSTOMER",
           roles: payload.roles || [],
           perms: payload.perms || [],
         };
@@ -106,11 +122,19 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
-  // Protection logic: Admin tenant ONLY (Storefront is ALWAYS PUBLIC)
+  // Protection logic: Admin tenant
   if (event.locals.tenant === "admin" && event.url.pathname !== "/login") {
-    const isAdmin = event.locals.user?.roles?.some((r: string) => ["ADMIN", "SUPER_ADMIN"].includes(r)) ||
-      event.locals.user?.role === "ADMIN";
+    const isAdmin = event.locals.user?.roles?.some((r: string) => ["ADMIN", "SUPER_ADMIN"].includes(r));
     if (!isAdmin) throw redirect(303, "/login");
+  }
+
+  // Elite V2.2: Storefront Territory Protection
+  // Bọc kín toàn bộ Sidebar (/user/*) bằng lớp giáp SSR
+  if (event.locals.tenant === "storefront" && event.url.pathname.startsWith("/user")) {
+    if (!event.locals.user) {
+      console.warn(`[SECURITY] Unauthorized SSR access attempt to ${event.url.pathname} from ${event.getClientAddress()}`);
+      throw redirect(303, "/");
+    }
   }
 
   // Process the request

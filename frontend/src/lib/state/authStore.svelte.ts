@@ -38,22 +38,22 @@ export interface User {
 
 class AuthStore {
   user = $state<User | null>(null);
-  token = $state<string | null>(null);
-  isAuthenticated = $derived(!!this.token);
+  token = $state<string | null>(null); // CNS V2.2: Phụ thuộc vào Cookie, token state chỉ để tương thích ngược
+  isAuthenticated = $derived(!!this.user); // R00: Elite - Xác thực dựa trên Profile thực
 
   constructor() {
     if (browser) {
-      const savedToken = localStorage.getItem('access_token');
       const savedUser = localStorage.getItem('user_info');
-      if (savedToken) {
-        this.token = savedToken;
-      }
       if (savedUser) {
         try {
           this.user = JSON.parse(savedUser);
         } catch (e) {
-          console.error("Failed to parse user info", e);
+          localStorage.removeItem('user_info');
+          console.error("[AuthStore] Corrupted user_info purged.", e);
         }
+        // Chỉ re-verify khi đã có user cache — tránh API call vô ích
+        // cho khách vãng lai và tránh cross-territory session pickup.
+        this.fetchCurrentUser();
       }
     }
   }
@@ -62,13 +62,13 @@ class AuthStore {
     this.token = token;
     this.user = user;
     if (browser) {
-      localStorage.setItem('access_token', token);
+      // R00: Chỉ lưu User Info để hiển thị nhanh, Token nằm trong HttpOnly Cookie
       localStorage.setItem('user_info', JSON.stringify(user));
 
       // Elite V2.2: Sync with permissionState immediately
       permissionState.syncFromToken();
 
-      // Elite V3.0: Delayed sync message — wait for hydration to ensure Bell is ready
+      // Elite V3.0: Delayed sync message
       setTimeout(() => {
           getClientUi().showToast(`Chào mừng ${user.name} đã quay trở lại!`, 'success');
       }, 800);
@@ -80,23 +80,26 @@ class AuthStore {
     this.token = null;
     this.user = null;
     if (browser) {
+      // Purge legacy localStorage tokens
       localStorage.removeItem('access_token');
       localStorage.removeItem('user_info');
       localStorage.removeItem('admin_token');
       
-      // Elite V3.0: Clear local notification state on logout to prevent mixed data
+      // Privacy Protocol: Purge order tracking persistence
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('order_verify_')) localStorage.removeItem(key);
+      });
+
+      // Clear local notification state
       import('./notification.svelte').then(({ getNotificationState }) => {
           getNotificationState().setNotifications([]);
       });
 
       getClientUi().showToast(`Hẹn gặp lại ${name}!`, 'info');
 
-      // Elite V2.2: Privacy Protocol - Purge order tracking persistence
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('order_verify_')) {
-          localStorage.removeItem(key);
-        }
-      });
+      // R00: Emit logout event — components listen and handle navigation.
+      // Store chỉ quản lý state, KHÔNG tự navigate (Zero-Hydration principle).
+      window.dispatchEvent(new CustomEvent('auth:logout'));
     }
   }
 
@@ -129,19 +132,11 @@ class AuthStore {
           ...partialMeta.skin_profile
         };
       }
-      
-      // Elite V2.2: Silent sync for better UX
-      this.notifyProgress?.();
     }
 
-    // Update other top-level fields
-    const keys = Object.keys(partial) as Array<keyof User>;
-    keys.forEach(key => {
-      if (key !== 'extra_metadata' && partial[key] !== undefined) {
-        // @ts-expect-error - Elite V3.1: Runtime sync for Svelte state
-        this.user[key] = partial[key];
-      }
-    });
+    // Update other top-level fields (type-safe via Object.assign)
+    const { extra_metadata: _, ...rest } = partial;
+    Object.assign(this.user, rest);
 
     if (browser) {
       localStorage.setItem('user_info', JSON.stringify(this.user));
@@ -149,8 +144,23 @@ class AuthStore {
   }
 
   async fetchCurrentUser() {
-    if (!this.token) return null;
-    return this.user;
+    try {
+      const user = await import('../utils/apiClient').then(m => 
+        m.apiClient.get<User>('/client/user/profile')
+      );
+      this.user = user;
+      if (browser) {
+        localStorage.setItem('user_info', JSON.stringify(user));
+      }
+      return user;
+    } catch (e) {
+      // CNS V2.2: Nếu fetch profile lỗi (401), clear local user state
+      if (this.user) {
+        this.user = null;
+        if (browser) localStorage.removeItem('user_info');
+      }
+      return null;
+    }
   }
 }
 

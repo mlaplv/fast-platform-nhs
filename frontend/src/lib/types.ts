@@ -569,10 +569,15 @@ export interface MediaSseEvent {
 }
 
 export interface JwtPayload {
-  sub: string;
+  sub: string;      // email
+  id?: string;      // user UUID
   name?: string;
   roles?: string[];
   perms?: string[];
+  tenant_id?: string;
+  stamp?: string;
+  hpw?: boolean;    // has_password
+  rem?: boolean;    // remember_me
   exp?: number;
   iat?: number;
 }

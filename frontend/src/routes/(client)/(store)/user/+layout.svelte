@@ -1,30 +1,28 @@
 <script lang="ts">
-  import { browser } from '$app/environment';
   import { authStore } from '$lib/state/authStore.svelte';
   import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
 
   let { children } = $props();
   let isChecking = $state(true);
 
+  // SSR đã chặn pre-render trong hooks.server.ts.
+  // Guard này xử lý SPA navigation (khi user logout trong lúc đang ở /user/*)
   $effect(() => {
-    if (browser) {
-      if (!authStore.isAuthenticated) {
-        goto('/');
-      } else {
-        isChecking = false;
-      }
-    }
-  });
-
-  onMount(() => {
-    // Final safety check after hydration
     if (!authStore.isAuthenticated) {
       goto('/');
     } else {
       isChecking = false;
     }
+  });
+
+  // R00: Lắng nghe sự kiện auth:logout từ authStore để navigate.
+  // Store không được tự navigate (Zero-Hydration principle).
+  // Dùng $effect để đảm bảo chỉ chạy ở Client và tự động cleanup.
+  $effect(() => {
+    const handleLogout = () => goto('/');
+    window.addEventListener('auth:logout', handleLogout);
+    return () => window.removeEventListener('auth:logout', handleLogout);
   });
 </script>
 

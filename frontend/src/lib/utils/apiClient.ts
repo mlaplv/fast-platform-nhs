@@ -31,6 +31,27 @@ function getTenantIdFromHost(): string {
   return relevantParts.length > 0 ? relevantParts.join(".") : "default";
 }
 
+/**
+ * R00: Territory-Isolated Token Resolution.
+ * Admin domain → chỉ đọc admin_token.
+ * Storefront → chỉ đọc access_token (HttpOnly Cookie xử lý tự động qua credentials:include).
+ * CẤM lằn lộn giữa 2 territory.
+ */
+function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const isAdmin = window.location.hostname.split(".")[0] === "admin";
+  if (isAdmin) {
+    return (
+      localStorage.getItem("admin_token") ||
+      sessionStorage.getItem("admin_token") ||
+      null
+    );
+  }
+  // Storefront: access_token chỉ dùng làm fallback cho máy chưa migrate sang HttpOnly Cookie.
+  // HttpOnly Cookie được gửi tự động qua credentials: "include".
+  return localStorage.getItem("access_token") || null;
+}
+
 export const apiClient = {
   /**
    * Core request handler
@@ -57,8 +78,8 @@ export const apiClient = {
       Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
     }
 
-    // Add robust Bearer token fallback (CNS V2 - Resilient Auth)
-    const token = typeof window !== "undefined" ? (localStorage.getItem("admin_token") || localStorage.getItem("access_token") || sessionStorage.getItem("admin_token")) : null;
+    // R00: Territory-isolated token. getAuthToken() KHÔNG bao giờ trả về admin_token trên storefront.
+    const token = getAuthToken();
 
     // 2. Set default headers (JSON)
     const config: RequestInit = {
@@ -217,7 +238,8 @@ export const apiClient = {
       Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
     }
 
-    const token = typeof window !== "undefined" ? (localStorage.getItem("admin_token") || localStorage.getItem("access_token") || sessionStorage.getItem("admin_token")) : null;
+    // R00: Territory-isolated token.
+    const token = getAuthToken();
 
     // Explicitly exclude Content-Type so browser sets multipart boundary
     const config: RequestInit = {
