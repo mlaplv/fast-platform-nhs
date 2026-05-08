@@ -15,6 +15,7 @@
   import MinusCircle from "@lucide/svelte/icons/minus-circle";
   import SimpleTiptap from '../ui/SimpleTiptap.svelte';
   import { apiClient } from '$lib/utils/apiClient';
+  import type { Product, Review, ReviewStats } from '$lib/types';
   
   const ui = getClientUi();
   import { fade, fly, scale } from 'svelte/transition';

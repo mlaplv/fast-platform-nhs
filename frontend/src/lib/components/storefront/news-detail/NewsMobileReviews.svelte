@@ -31,7 +31,7 @@
   let isLoading = $state(true);
   let activeDropdownId = $state<string | null>(null);
 
-  async function handleLike(review: any) {
+  async function handleLike(review: Review & { _isLiked?: boolean }) {
     if (review._isLiked) return;
     review.likes_count = (review.likes_count || 0) + 1;
     review._isLiked = true;

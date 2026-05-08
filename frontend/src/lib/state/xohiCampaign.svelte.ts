@@ -18,7 +18,7 @@ export function createCampaignController(config: {
     selectedAssetIndex: number;
     analysis_metrics: CampaignMetrics;
     analysis_cache: AnalysisCache;
-    analysis_report?: Record<string, any>;
+    analysis_report?: Record<string, unknown>;
 }) {
     let isLoading = $state(false);
     let isPublishing = $state(false);

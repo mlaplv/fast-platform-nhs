@@ -140,7 +140,7 @@
 
   async function shareProduct() {
     // Elite V2.2: Intelligence Share Flow (Share-to-Unlock Integrated)
-    const viralSuite = product.metadata?.viral_suite || (product.metadata as any)?.share_promotion;
+    const viralSuite = product.metadata?.viral_suite || (product.metadata as Record<string, unknown>)?.share_promotion;
     const isViralEnabled = viralSuite?.enabled === true || !!viralSuite?.voucher_id;
 
     if (isViralEnabled && !isViralUnlocked) {
@@ -164,8 +164,8 @@
 
         await shareToPlatform('facebook', window.location.href, product.name);
         viralStep = 'awaiting_confirm';
-      } catch (e: any) {
-        clientUi.showToast(e.message || 'Lỗi khởi tạo chia sẻ', 'error');
+      } catch (e: unknown) {
+        clientUi.showToast(e instanceof Error ? e.message : 'Lỗi khởi tạo chia sẻ', 'error');
         viralStep = 'idle';
       }
       return;
@@ -192,7 +192,7 @@
       return;
     }
     const { token, fingerprint } = JSON.parse(savedIntent);
-    const viralSuite = product.metadata?.viral_suite || (product.metadata as any)?.share_promotion;
+    const viralSuite = product.metadata?.viral_suite || (product.metadata as Record<string, unknown>)?.share_promotion;
     const voucherId = viralSuite?.share_promotion?.voucher_id || viralSuite?.voucher_id;
 
     viralStep = 'verifying';
@@ -221,8 +221,8 @@
 
       clientUi.showToast('🎉 Đã mở khóa quà tặng!', 'success');
       sessionStorage.removeItem(`viral_intent_${product.id}`);
-    } catch (e: any) {
-      clientUi.showToast(e.message || 'Xác minh thất bại', 'error');
+    } catch (e: unknown) {
+      clientUi.showToast(e instanceof Error ? e.message : 'Xác minh thất bại', 'error');
       viralStep = 'idle';
     }
   }

@@ -377,7 +377,7 @@
                     {/if}
                   </div>
                   <div class="text-right">
-                     <span class="text-[11px] md:text-[14px] font-black text-stone-900 tabular-nums italic tracking-tighter opacity-40">{formatCurrency(item.unit_price || (item as any).price || 0)}</span>
+                     <span class="text-[11px] md:text-[14px] font-black text-stone-900 tabular-nums italic tracking-tighter opacity-40">{formatCurrency(item.unit_price || (item as unknown as { price: number }).price || 0)}</span>
                   </div>
                 </div>
               {/each}

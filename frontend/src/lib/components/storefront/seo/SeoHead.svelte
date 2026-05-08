@@ -5,6 +5,9 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { 
+    type ProductLdConfig,
+    type ArticleLdConfig,
+    type CategoryLdConfig,
     buildGraphLd, 
     buildWebSiteLd, 
     buildOrganizationLd, 
@@ -13,32 +16,6 @@
     buildProductLd,
     truncateDescription 
   } from '$lib/utils/seo';
-
-  interface SeoProduct {
-    name: string;
-    images?: string[];
-    description?: string;
-    brand?: string;
-    sku?: string;
-    price: number;
-    currency?: string;
-    availability?: string;
-    ratingValue?: number;
-    reviewCount?: number;
-  }
-
-  interface SeoArticle {
-    headline: string;
-    description?: string;
-    image?: string;
-    datePublished?: string;
-    author?: string;
-  }
-
-  interface SeoCategory {
-    name: string;
-    items?: { name: string; url: string }[];
-  }
 
   interface SeoHeadProps {
     pageType?: 'home' | 'category' | 'article' | 'product' | 'default';
@@ -50,9 +27,9 @@
     siteName?: string;
     robots?: string;
     // Data objects for Schema Factory
-    articleData?: SeoArticle | null;
-    productData?: SeoProduct | null;
-    categoryData?: SeoCategory | null;
+    articleData?: Partial<ArticleLdConfig> | null;
+    productData?: Partial<ProductLdConfig> & { currency?: string; availability?: string; ratingValue?: number; reviewCount?: number; images?: string[] } | null;
+    categoryData?: Partial<CategoryLdConfig> & { items?: { name: string; url: string }[] } | null;
     // Manual scripts if needed
     jsonLdScripts?: (string | null | undefined)[];
   }

@@ -12,7 +12,7 @@
   import ThumbsUp from "@lucide/svelte/icons/thumbs-up";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import MinusCircle from "@lucide/svelte/icons/minus-circle";
-  import type { Product, Review, ReviewStats } from '$lib/types';
+  import type { Product, Category, Review, ReviewStats } from '$lib/types';
   import { apiClient } from '$lib/utils/apiClient';
 
   interface Props {
@@ -29,7 +29,7 @@
 
   const ui = getClientUi();
 
-  async function handleLike(review: any) {
+  async function handleLike(review: Review & { _isLiked?: boolean }) {
     if (review._isLiked) return;
     review.likes_count = (review.likes_count || 0) + 1;
     review._isLiked = true;

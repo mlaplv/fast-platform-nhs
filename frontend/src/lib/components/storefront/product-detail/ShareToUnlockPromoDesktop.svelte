@@ -99,8 +99,8 @@
         shareStartTime = Date.now();
         windowLostFocus = false;
         step = 'awaiting_confirm';
-      } catch (e: any) {
-        errorMsg = e.message;
+      } catch (e: unknown) {
+        errorMsg = e instanceof Error ? e.message : String(e);
         step = 'error';
       }
     },
@@ -133,8 +133,8 @@
         triggerFlyAnimation();
         createHeartConfetti(window.innerWidth / 2, window.innerHeight / 2);
         clientUi.showToast('🎉 Đã mở khóa!', 'success');
-      } catch (e: any) {
-        errorMsg = e.message;
+      } catch (e: unknown) {
+        errorMsg = e instanceof Error ? e.message : String(e);
         step = 'error';
       }
     }
