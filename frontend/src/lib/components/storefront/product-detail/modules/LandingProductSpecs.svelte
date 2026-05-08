@@ -1,0 +1,231 @@
+<script lang="ts">
+  import type { Product } from '$lib/types';
+  import { getIngredientIcon } from '$lib/utils/product';
+
+  interface Props {
+    product: Product;
+    visibleAttributes: [string, string | number | boolean | null][];
+    productInfo: {
+      brand: string;
+      origin: string;
+      weight: string;
+      barcode: string;
+    };
+    onViewFullIngredients: () => void;
+  }
+
+  let { product, visibleAttributes, productInfo, onViewFullIngredients }: Props = $props();
+
+  const featuredIngredients = $derived(
+    (product.metadata?.featured_ingredients || product.metadata?.ingredients || [])
+    .slice(0, 4) as { name: string; icon?: string }[]
+  );
+</script>
+
+<div class="specs-container">
+  <!-- Liquid Spec Bar (Elite V2.2) -->
+  <div class="spec-bar">
+    <div class="spec-item">
+      <span class="spec-label">Thương Hiệu</span>
+      <span class="spec-value">{productInfo.brand || 'Osmo Elite'}</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-label">Xuất Xứ</span>
+      <span class="spec-value">{productInfo.origin || 'Nhật Bản'}</span>
+    </div>
+    <div class="spec-item">
+      <span class="spec-label">Quy Cách</span>
+      <span class="spec-value">{productInfo.weight || '30g / Tuýp'}</span>
+    </div>
+    {#if productInfo.barcode}
+      <div class="spec-item">
+        <span class="spec-label">Mã Vạch</span>
+        <span class="spec-value">{productInfo.barcode}</span>
+      </div>
+    {/if}
+  </div>
+
+  <!-- Detailed Attributes -->
+  <div class="attributes-section">
+    <h3 class="section-title">CHI TIẾT SẢN PHẨM</h3>
+    <div class="attributes-grid">
+      {#each visibleAttributes as [key, value]}
+        <div class="attribute-row">
+          <span class="attr-key">{key}</span>
+          <span class="attr-val">{value}</span>
+        </div>
+      {/each}
+    </div>
+  </div>
+
+  <!-- Ingredients Featured -->
+  {#if featuredIngredients.length > 0}
+    <div class="ingredients-section">
+      <h3 class="section-title">THÀNH PHẦN NỔI BẬT</h3>
+      <div class="ingredients-grid">
+        {#each featuredIngredients as ing}
+          <div class="ing-card">
+            <div class="ing-icon">
+              {@html getIngredientIcon(ing.name)}
+            </div>
+            <span class="ing-name">{ing.name}</span>
+          </div>
+        {/each}
+      </div>
+      <button class="view-full-btn" onclick={onViewFullIngredients}>
+        Xem toàn bộ bảng thành phần
+      </button>
+    </div>
+  {/if}
+</div>
+
+<style>
+  .specs-container {
+    margin-top: 2rem;
+    padding: 0 1.25rem;
+  }
+
+  .spec-bar {
+    background: #010101;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: 1.5rem 0.75rem;
+    margin-bottom: 2.5rem;
+    position: relative;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .spec-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    position: relative;
+  }
+
+  .spec-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 20%;
+    height: 60%;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, rgba(193, 143, 126, 0.3), transparent);
+  }
+
+  .spec-label {
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .spec-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #E8D5B0;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #111827;
+    margin-bottom: 1.25rem;
+    padding-left: 0.75rem;
+    border-left: 3px solid #d0011b;
+  }
+
+  .attributes-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .attribute-row {
+    display: flex;
+    padding: 0.5rem 0.75rem;
+    font-size: 14px;
+  }
+
+  .attribute-row:nth-child(odd) {
+    background: #f9fafb;
+  }
+
+  .attr-key {
+    width: 150px;
+    flex-shrink: 0;
+    color: #6b7280;
+  }
+
+  .attr-val {
+    flex: 1;
+    color: #111827;
+    font-weight: 500;
+  }
+
+  .ingredients-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .ing-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 0.5rem;
+    background: #f9fafb;
+    border: 1px solid #f3f4f6;
+    transition: all 0.3s;
+  }
+
+  .ing-card:hover {
+    border-color: #d0011b;
+    background: white;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .ing-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    color: #d0011b;
+  }
+
+  .ing-name {
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+  }
+
+  .view-full-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .view-full-btn:hover {
+    background: #f9fafb;
+    color: #111827;
+    border-color: #d1d5db;
+  }
+</style>

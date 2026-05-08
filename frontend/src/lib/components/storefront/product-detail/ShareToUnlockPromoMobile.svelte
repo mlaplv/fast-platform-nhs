@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Gift from "@lucide/svelte/icons/gift";
+  import Gift from "@lucide/svelte/icons/gift";
   import ExternalLink from "@lucide/svelte/icons/external-link";
   import Check from "@lucide/svelte/icons/check";
   import Copy from "@lucide/svelte/icons/copy";
@@ -13,9 +13,6 @@
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
 
-  /**
-   * Elite V2.2: Proper Typing for Viral Suite
-   */
   interface PromoConfig {
     enabled: boolean;
     voucher_id: string;
@@ -56,7 +53,6 @@
     viralSuite?.share_count ?? (typeof (product.metadata as ProductMetadata)?.share_count === 'number' ? (product.metadata as ProductMetadata).share_count : 0)
   );
 
-  // ── State Machine ──────────────────────────────────────────────────────────
   type Step = 'idle' | 'sharing' | 'awaiting_confirm' | 'verifying' | 'revealed' | 'error';
   let step = $state<Step>('idle');
 
@@ -257,7 +253,6 @@
   .stu-mobile-root { position: relative; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
   
   /* --- Funnel Variant --- */
-  .stu-view-funnel { width: 100%; padding: 0; }
   .stp-funnel-wrapper { display: flex; flex-direction: column; gap: 4px; }
   .stp-f-social { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
   .stp-f-heart { display: flex; align-items: center; gap: 4px; color: #ffb7c5; background: none; border: none; font-size: 11px; font-weight: 1000; }
@@ -284,7 +279,6 @@
   .stp-f-btn:active { transform: scale(0.92); }
 
   /* --- Floating Variant --- */
-  .stu-view-floating { position: relative; max-width: 200px; animation: stu-fade-in 0.6s ease; }
   .stu-f-content { display: flex; flex-direction: column; gap: 4px; color: #fff; }
   .stu-f-title { font-size: 14px; font-weight: 1000; -webkit-text-stroke: 0.5px rgba(0,0,0,0.3); text-shadow: 0 1px 5px rgba(0,0,0,0.4); letter-spacing: 0.05em; }
   .stu-f-fomo { font-size: 10px; font-weight: 900; color: #ff9500; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
@@ -322,7 +316,6 @@
     50% { transform: scale(1.2) rotate(15deg); opacity: 1; }
   }
 
-  /* Viral Shine: Liquid Light Effect */
   .stu-f-btn-shine {
     position: absolute; top: 0; left: -150%; width: 60%; height: 100%;
     background: linear-gradient(90deg, 
