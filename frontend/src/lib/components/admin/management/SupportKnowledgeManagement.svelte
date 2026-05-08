@@ -5,17 +5,17 @@
     import { useNanobot } from '$lib/state/nanobot.svelte';
   const nanobot = useNanobot();
     import XohiLogo from '$lib/components/admin/XohiLogo.svelte';
-    import Search from "lucide-svelte/icons/search";
-    import Plus from "lucide-svelte/icons/plus";
-    import Trash2 from "lucide-svelte/icons/trash-2";
-    import Edit3 from "lucide-svelte/icons/edit-3";
-    import Star from "lucide-svelte/icons/star";
-    import CheckSquare from "lucide-svelte/icons/check-square";
-    import Square from "lucide-svelte/icons/square";
-    import HelpCircle from "lucide-svelte/icons/help-circle";
-    import LayoutGrid from "lucide-svelte/icons/layout-grid";
-    import List from "lucide-svelte/icons/list";
-    import RefreshCw from "lucide-svelte/icons/refresh-cw";
+    import Search from "@lucide/svelte/icons/search";
+    import Plus from "@lucide/svelte/icons/plus";
+    import Trash2 from "@lucide/svelte/icons/trash-2";
+    import Edit3 from "@lucide/svelte/icons/edit-3";
+    import Star from "@lucide/svelte/icons/star";
+    import CheckSquare from "@lucide/svelte/icons/check-square";
+    import Square from "@lucide/svelte/icons/square";
+    import HelpCircle from "@lucide/svelte/icons/help-circle";
+    import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+    import List from "@lucide/svelte/icons/list";
+    import RefreshCw from "@lucide/svelte/icons/refresh-cw";
     import SupportKnowledgeBulkActions from './SupportKnowledgeBulkActions.svelte';
     import SupportKnowledgeDrawer from './SupportKnowledgeDrawer.svelte';
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import CheckCircle2 from "lucide-svelte/icons/check-circle-2";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
   import type { SEOResult } from "$lib/state/types";
 
   interface Props {

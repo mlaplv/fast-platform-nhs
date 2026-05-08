@@ -1,6 +1,16 @@
 <script lang="ts">
-  import { fade, fly, scale } from "svelte/transition";
-  import { ShieldCheck, Lock, Mail, ArrowRight, Fingerprint, Phone, Chrome, Facebook, MessageCircle, Eye, EyeOff } from "lucide-svelte";
+  import { fade, fly, scale } from 'svelte/transition';
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Mail from "@lucide/svelte/icons/mail";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import Fingerprint from "@lucide/svelte/icons/fingerprint";
+  import Phone from "@lucide/svelte/icons/phone";
+  import Chrome from "@lucide/svelte/icons/chrome";
+  import Facebook from "@lucide/svelte/icons/facebook";
+  import MessageCircle from "@lucide/svelte/icons/message-circle";
+  import Eye from "@lucide/svelte/icons/eye";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
   import { permissionState } from "$lib/state/permissions.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";

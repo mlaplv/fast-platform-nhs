@@ -1,7 +1,7 @@
 <script lang="ts">
-  import FileText from 'lucide-svelte/icons/file-text';
-  import Type from 'lucide-svelte/icons/type';
-  import Clock from 'lucide-svelte/icons/clock';
+  import FileText from "@lucide/svelte/icons/file-text";
+  import Type from "@lucide/svelte/icons/type";
+  import Clock from "@lucide/svelte/icons/clock";
 
   let { wordCount, charCount, isFocused, readTime }: {
     wordCount: number;

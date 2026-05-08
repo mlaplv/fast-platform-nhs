@@ -4,7 +4,16 @@
   import { page } from '$app/state';
   import { authStore } from '$lib/state/authStore.svelte';
   import { goto } from '$app/navigation';
-  import { X, LogOut, ChevronRight, Home, User as UserIcon, Package, MapPin, Key, Bell, Sparkles, Ticket } from 'lucide-svelte';
+  import LogOut from "@lucide/svelte/icons/log-out";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Home from "@lucide/svelte/icons/home";
+  import UserIcon from "@lucide/svelte/icons/user";
+  import Package from "@lucide/svelte/icons/package";
+  import MapPin from "@lucide/svelte/icons/map-pin";
+  import Key from "@lucide/svelte/icons/key";
+  import Bell from "@lucide/svelte/icons/bell";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Ticket from "@lucide/svelte/icons/ticket";
 
   interface Props {
     active: boolean;

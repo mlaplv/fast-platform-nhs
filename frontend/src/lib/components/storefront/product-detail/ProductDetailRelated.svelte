@@ -3,7 +3,11 @@
   import type { Product } from '$lib/types';
   import ProductGrid from '../product/ProductGrid.svelte';
   import { getRecentlyViewedStore } from '$lib/state/commerce/recentlyViewed.svelte';
-  import { ChevronRight, Flame, ShieldCheck, History, Sparkles } from 'lucide-svelte';
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Flame from "@lucide/svelte/icons/flame";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import History from "@lucide/svelte/icons/history";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
 
   interface Props {
     product: Product;

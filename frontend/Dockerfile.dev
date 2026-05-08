@@ -6,7 +6,7 @@ WORKDIR /app/frontend
 ARG PNPM_CONCURRENCY=4
 RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm config set network-concurrency $PNPM_CONCURRENCY && pnpm install --no-frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 # Copy the rest of the code
 COPY . .

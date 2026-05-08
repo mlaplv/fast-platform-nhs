@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { ChevronLeft, Search, Share2, ShoppingCart, MoreHorizontal, Home } from 'lucide-svelte';
+    import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import Search from "@lucide/svelte/icons/search";
+  import Share2 from "@lucide/svelte/icons/share-2";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
+  import Home from "@lucide/svelte/icons/home";
   import { goto } from '$app/navigation';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';

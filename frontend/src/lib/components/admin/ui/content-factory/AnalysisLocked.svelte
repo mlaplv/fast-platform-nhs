@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Lock from "lucide-svelte/icons/lock";
-  import AlertCircle from "lucide-svelte/icons/alert-circle";
+  import Lock from "@lucide/svelte/icons/lock";
+  import AlertCircle from "@lucide/svelte/icons/alert-circle";
 
   interface Props {
     title: string;

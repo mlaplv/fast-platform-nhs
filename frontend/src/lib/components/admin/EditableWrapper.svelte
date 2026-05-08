@@ -1,6 +1,11 @@
 <script lang="ts">
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
-  import { Edit, Image as ImageIcon, Settings2, Check, Eye, EyeOff } from "lucide-svelte";
+  import Edit from "@lucide/svelte/icons/edit";
+  import ImageIcon from "@lucide/svelte/icons/image";
+  import Settings2 from "@lucide/svelte/icons/settings-2";
+  import Check from "@lucide/svelte/icons/check";
+  import Eye from "@lucide/svelte/icons/eye";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/zIndex";
 
   interface Props {

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
-  import X from "lucide-svelte/icons/x";
-  import Gift from "lucide-svelte/icons/gift";
-  import Save from "lucide-svelte/icons/save";
+  import X from "@lucide/svelte/icons/x";
+  import Gift from "@lucide/svelte/icons/gift";
+  import Save from "@lucide/svelte/icons/save";
   import { apiClient } from "$lib/utils/apiClient";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();

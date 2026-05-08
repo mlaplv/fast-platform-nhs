@@ -5,12 +5,12 @@
   import { permissionState } from "$lib/state/permissions.svelte";
   import type { WidgetType } from "$lib/state/types";
   import { spring } from "svelte/motion";
-  import ShoppingCart from "lucide-svelte/icons/shopping-cart";
-  import Package from "lucide-svelte/icons/package";
-  import Newspaper from "lucide-svelte/icons/newspaper";
-  import Users from "lucide-svelte/icons/users";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Megaphone from "lucide-svelte/icons/megaphone";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import Package from "@lucide/svelte/icons/package";
+  import Newspaper from "@lucide/svelte/icons/newspaper";
+  import Users from "@lucide/svelte/icons/users";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Megaphone from "@lucide/svelte/icons/megaphone";
   import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
 
   interface QuickAction {

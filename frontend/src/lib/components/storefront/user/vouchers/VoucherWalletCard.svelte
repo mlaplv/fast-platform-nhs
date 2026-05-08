@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { Ticket, Sparkles, Clock, Info } from 'lucide-svelte';
+    import Ticket from "@lucide/svelte/icons/ticket";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Clock from "@lucide/svelte/icons/clock";
+  import Info from "@lucide/svelte/icons/info";
   import { formatCurrency } from '$lib/utils/format';
   import type { Voucher } from '$lib/types/commerce/checkout';
   import { fade, scale } from 'svelte/transition';

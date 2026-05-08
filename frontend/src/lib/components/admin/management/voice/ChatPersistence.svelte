@@ -1,10 +1,10 @@
 <script lang="ts">
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
-  import Database from "lucide-svelte/icons/database";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import History from "lucide-svelte/icons/history";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
+  import Database from "@lucide/svelte/icons/database";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import History from "@lucide/svelte/icons/history";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
 
   import { onMount } from "svelte";
 

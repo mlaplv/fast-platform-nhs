@@ -1,9 +1,9 @@
 <script lang="ts">
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Archive from "lucide-svelte/icons/archive";
-  import X from "lucide-svelte/icons/x";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Archive from "@lucide/svelte/icons/archive";
+  import X from "@lucide/svelte/icons/x";
   import StatusDropdown from "./StatusDropdown.svelte";
   import { fade, fly } from "svelte/transition";
   import { CAMPAIGN_STATUS_MAP } from "$lib/constants/campaign";

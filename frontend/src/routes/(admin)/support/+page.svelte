@@ -4,8 +4,8 @@
   const nanobot = useNanobot();
   import SupportKnowledgeManagement from "$lib/components/admin/management/SupportKnowledgeManagement.svelte";
   import SupportInbox from "$lib/components/admin/management/SupportInbox.svelte";
-  import Database from "lucide-svelte/icons/database";
-  import MessageSquare from "lucide-svelte/icons/message-square";
+  import Database from "@lucide/svelte/icons/database";
+  import MessageSquare from "@lucide/svelte/icons/message-square";
 
   let activeTab = $state("inbox"); // Default to Inbox to see what Helen is doing
 

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import Brain from "lucide-svelte/icons/brain";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
-  import BarChart2 from "lucide-svelte/icons/bar-chart-2";
-  import Sparkles from "lucide-svelte/icons/sparkles";
+  import Brain from "@lucide/svelte/icons/brain";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import BarChart2 from "@lucide/svelte/icons/bar-chart-2";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import NeuralEditor from "../tiptap/NeuralEditor.svelte";
   import UltraPremiumLoading from "./UltraPremiumLoading.svelte";
   import { processContentImages } from "$lib/state/utils";

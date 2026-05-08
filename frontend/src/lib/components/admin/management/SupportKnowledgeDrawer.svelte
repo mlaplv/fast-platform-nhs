@@ -1,8 +1,12 @@
 <script lang="ts">
-    import { fade, fly } from "svelte/transition";
-    import { 
-        X, Save, RefreshCw, Activity, HelpCircle, Star, Power, PowerOff
-    } from "lucide-svelte";
+  import { fade, fly } from 'svelte/transition';
+  import Save from "@lucide/svelte/icons/save";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Activity from "@lucide/svelte/icons/activity";
+  import HelpCircle from "@lucide/svelte/icons/help-circle";
+  import Star from "@lucide/svelte/icons/star";
+  import Power from "@lucide/svelte/icons/power";
+  import PowerOff from "@lucide/svelte/icons/power-off";
     import { supportKbAdmin as kb } from '$lib/state/admin/supportKnowledge.svelte';
     import { portal } from "$lib/core/actions/portal";
     import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";

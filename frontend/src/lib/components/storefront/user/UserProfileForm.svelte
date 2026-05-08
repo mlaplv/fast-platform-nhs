@@ -8,7 +8,13 @@
   import SkinProfile from './SkinProfile.svelte';
   import Avatar from './Avatar.svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
-  import { User, Mail, Phone, Calendar, Heart, Fingerprint, Sparkles } from 'lucide-svelte';
+  import User from "@lucide/svelte/icons/user";
+  import Mail from "@lucide/svelte/icons/mail";
+  import Phone from "@lucide/svelte/icons/phone";
+  import Calendar from "@lucide/svelte/icons/calendar";
+  import Heart from "@lucide/svelte/icons/heart";
+  import Fingerprint from "@lucide/svelte/icons/fingerprint";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
 
   const ui = getClientUi();
 

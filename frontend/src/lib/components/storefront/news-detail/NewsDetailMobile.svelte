@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { fade } from 'svelte/transition';
+
   import ImageWithFallback from '../ui/ImageWithFallback.svelte';
   import NewsMobileReviews from './NewsMobileReviews.svelte';
   interface Props {

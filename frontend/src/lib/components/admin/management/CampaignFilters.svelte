@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Search from "lucide-svelte/icons/search";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import Search from "@lucide/svelte/icons/search";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import { onMount } from "svelte";
-  import PlusCircle from "lucide-svelte/icons/plus-circle";
-  import BarChart3 from "lucide-svelte/icons/bar-chart-3";
-  import Sparkles from "lucide-svelte/icons/sparkles";
+  import PlusCircle from "@lucide/svelte/icons/plus-circle";
+  import BarChart3 from "@lucide/svelte/icons/bar-chart-3";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import { CAMPAIGN_STATUS_MAP, CAMPAIGN_CATEGORY_MAP } from "$lib/constants/campaign";
 
   let {

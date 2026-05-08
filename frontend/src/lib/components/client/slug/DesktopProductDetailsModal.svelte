@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Product } from '$lib/types';
-  import { X, ShieldCheck, Info } from 'lucide-svelte';
+    import X from "@lucide/svelte/icons/x";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Info from "@lucide/svelte/icons/info";
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
   import { fade, scale } from 'svelte/transition';

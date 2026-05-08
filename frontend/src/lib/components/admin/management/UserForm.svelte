@@ -1,17 +1,17 @@
 <script lang="ts">
   // Transitions removed for zero-lag
-  import X from "lucide-svelte/icons/x";
-  import UserCircle from "lucide-svelte/icons/user-circle";
-  import Mail from "lucide-svelte/icons/mail";
-  import Phone from "lucide-svelte/icons/phone";
-  import Calendar from "lucide-svelte/icons/calendar";
-  import Hash from "lucide-svelte/icons/hash";
-  import Shield from "lucide-svelte/icons/shield";
-  import CheckCircle from "lucide-svelte/icons/check-circle";
-  import AlertCircle from "lucide-svelte/icons/alert-circle";
-  import Coins from "lucide-svelte/icons/coins";
-  import Plus from "lucide-svelte/icons/plus";
-  import History from "lucide-svelte/icons/history";
+  import X from "@lucide/svelte/icons/x";
+  import UserCircle from "@lucide/svelte/icons/user-circle";
+  import Mail from "@lucide/svelte/icons/mail";
+  import Phone from "@lucide/svelte/icons/phone";
+  import Calendar from "@lucide/svelte/icons/calendar";
+  import Hash from "@lucide/svelte/icons/hash";
+  import Shield from "@lucide/svelte/icons/shield";
+  import CheckCircle from "@lucide/svelte/icons/check-circle";
+  import AlertCircle from "@lucide/svelte/icons/alert-circle";
+  import Coins from "@lucide/svelte/icons/coins";
+  import Plus from "@lucide/svelte/icons/plus";
+  import History from "@lucide/svelte/icons/history";
   import { apiClient } from "$lib/utils/apiClient";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();

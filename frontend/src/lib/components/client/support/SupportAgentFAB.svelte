@@ -1,6 +1,10 @@
 <script lang="ts">
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
-  import { Sparkles, ShoppingCart, CreditCard, Home, PackageSearch } from 'lucide-svelte';
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import CreditCard from "@lucide/svelte/icons/credit-card";
+  import Home from "@lucide/svelte/icons/home";
+  import PackageSearch from "@lucide/svelte/icons/package-search";
   import HelenIcon from './HelenIcon.svelte';
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';

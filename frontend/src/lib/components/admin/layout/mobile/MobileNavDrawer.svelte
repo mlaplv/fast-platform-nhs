@@ -3,15 +3,15 @@
   const nanobot = useNanobot();
   import type { WidgetType } from "$lib/state/types";
   import { fade, fly } from "svelte/transition";
-  import X from "lucide-svelte/icons/x";
-  import Package from "lucide-svelte/icons/package";
-  import Users from "lucide-svelte/icons/users";
-  import Newspaper from "lucide-svelte/icons/newspaper";
-  import ShoppingCart from "lucide-svelte/icons/shopping-cart";
-  import Shield from "lucide-svelte/icons/shield";
-  import Settings from "lucide-svelte/icons/settings";
-  import Home from "lucide-svelte/icons/home";
-  import Megaphone from "lucide-svelte/icons/megaphone";
+  import X from "@lucide/svelte/icons/x";
+  import Package from "@lucide/svelte/icons/package";
+  import Users from "@lucide/svelte/icons/users";
+  import Newspaper from "@lucide/svelte/icons/newspaper";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import Shield from "@lucide/svelte/icons/shield";
+  import Settings from "@lucide/svelte/icons/settings";
+  import Home from "@lucide/svelte/icons/home";
+  import Megaphone from "@lucide/svelte/icons/megaphone";
   
   interface MenuItem {
     id: WidgetType;

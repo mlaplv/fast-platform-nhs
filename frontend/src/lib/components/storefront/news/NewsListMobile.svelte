@@ -1,7 +1,9 @@
 <script lang="ts">
   import { fade, fly } from 'svelte/transition';
   import { goto } from '$app/navigation';
-  import { ChevronLeft, Search, X } from 'lucide-svelte';
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import Search from "@lucide/svelte/icons/search";
+  import X from "@lucide/svelte/icons/x";
   import ImageWithFallback from '../ui/ImageWithFallback.svelte';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
 

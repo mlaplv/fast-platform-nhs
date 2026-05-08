@@ -2,16 +2,15 @@
   import { onMount } from "svelte";
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
-  import { fade, fly } from "svelte/transition";
-  import { 
-    Edit3, 
-    Save, 
-    X, 
-    ShieldCheck, 
-    RefreshCcw,
-    MousePointer2,
-    GripVertical
-  } from "lucide-svelte";
+  import { fade, fly } from 'svelte/transition';
+  import { fly } from "svelte/transition";
+  import Edit3 from "@lucide/svelte/icons/edit-3";
+  import Save from "@lucide/svelte/icons/save";
+  import X from "@lucide/svelte/icons/x";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import RefreshCcw from "@lucide/svelte/icons/refresh-ccw";
+  import MousePointer2 from "@lucide/svelte/icons/mouse-pointer-2";
+  import GripVertical from "@lucide/svelte/icons/grip-vertical";
 
   const isEditMode = $derived(liveEditStore.isEditMode);
   

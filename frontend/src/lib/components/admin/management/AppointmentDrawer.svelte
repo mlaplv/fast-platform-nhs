@@ -1,6 +1,10 @@
 <script lang="ts">
-  import { fade, fly } from "svelte/transition";
-  import { X, Calendar, Clock, Activity, ChevronRight, Target } from "lucide-svelte";
+  import { fade, fly } from 'svelte/transition';
+  import Calendar from "@lucide/svelte/icons/calendar";
+  import Clock from "@lucide/svelte/icons/clock";
+  import Activity from "@lucide/svelte/icons/activity";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Target from "@lucide/svelte/icons/target";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";

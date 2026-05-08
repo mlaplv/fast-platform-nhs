@@ -1,6 +1,7 @@
 <script lang="ts">
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
-  import { Check, RotateCcw } from "lucide-svelte";
+  import Check from "@lucide/svelte/icons/check";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
   import type { Product } from '$lib/types';
 
   let { path, type, onSave } = $props<{

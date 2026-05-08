@@ -1,15 +1,15 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
   import { tick } from "svelte";
-  import FolderTree from "lucide-svelte/icons/folder-tree";
-  import Plus from "lucide-svelte/icons/plus";
-  import Search from "lucide-svelte/icons/search";
-  import Layers from "lucide-svelte/icons/layers";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import CheckSquare from "lucide-svelte/icons/check-square";
-  import Square from "lucide-svelte/icons/square";
-  import Eye from "lucide-svelte/icons/eye";
-  import EyeOff from "lucide-svelte/icons/eye-off";
+  import FolderTree from "@lucide/svelte/icons/folder-tree";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Search from "@lucide/svelte/icons/search";
+  import Layers from "@lucide/svelte/icons/layers";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import CheckSquare from "@lucide/svelte/icons/check-square";
+  import Square from "@lucide/svelte/icons/square";
+  import Eye from "@lucide/svelte/icons/eye";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";

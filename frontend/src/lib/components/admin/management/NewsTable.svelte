@@ -1,12 +1,12 @@
 <script lang="ts">
-  import FileText from "lucide-svelte/icons/file-text";
-  import Pencil from "lucide-svelte/icons/pencil";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import CheckSquare from "lucide-svelte/icons/check-square";
-  import Square from "lucide-svelte/icons/square";
-  import ExternalLink from "lucide-svelte/icons/external-link";
-  import Eye from "lucide-svelte/icons/eye";
-  import Calendar from "lucide-svelte/icons/calendar";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import CheckSquare from "@lucide/svelte/icons/check-square";
+  import Square from "@lucide/svelte/icons/square";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import Eye from "@lucide/svelte/icons/eye";
+  import Calendar from "@lucide/svelte/icons/calendar";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import type { Article } from "$lib/types";

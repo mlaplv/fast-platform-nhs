@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
-  import { Tag, Sparkles } from 'lucide-svelte';
+  import Tag from "@lucide/svelte/icons/tag";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { scale } from 'svelte/transition';
   import { spring } from 'svelte/motion';

@@ -1,14 +1,14 @@
 <script lang="ts">
-  import Search from "lucide-svelte/icons/search";
-  import Eye from "lucide-svelte/icons/eye";
-  import EyeOff from "lucide-svelte/icons/eye-off";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import Plus from "lucide-svelte/icons/plus";
-  import ChevronUp from "lucide-svelte/icons/chevron-up";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Tag from "lucide-svelte/icons/tag";
+  import Search from "@lucide/svelte/icons/search";
+  import Eye from "@lucide/svelte/icons/eye";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Plus from "@lucide/svelte/icons/plus";
+  import ChevronUp from "@lucide/svelte/icons/chevron-up";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Tag from "@lucide/svelte/icons/tag";
 
   let {
     searchInput,

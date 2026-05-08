@@ -1,10 +1,10 @@
 <script lang="ts">
-  import Search from "lucide-svelte/icons/search";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import Plus from "lucide-svelte/icons/plus";
-  import ChevronUp from "lucide-svelte/icons/chevron-up";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import Newspaper from "lucide-svelte/icons/newspaper";
+  import Search from "@lucide/svelte/icons/search";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Plus from "@lucide/svelte/icons/plus";
+  import ChevronUp from "@lucide/svelte/icons/chevron-up";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import Newspaper from "@lucide/svelte/icons/newspaper";
 
   let {
     searchInput,

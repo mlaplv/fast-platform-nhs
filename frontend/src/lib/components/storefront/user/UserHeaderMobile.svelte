@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Menu } from 'lucide-svelte';
+    import Menu from "@lucide/svelte/icons/menu";
   import { goto } from '$app/navigation';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';

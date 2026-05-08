@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Filter from "lucide-svelte/icons/filter";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Plus from "lucide-svelte/icons/plus";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Filter from "@lucide/svelte/icons/filter";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Plus from "@lucide/svelte/icons/plus";
   import { apiClient } from "$lib/utils/apiClient";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();

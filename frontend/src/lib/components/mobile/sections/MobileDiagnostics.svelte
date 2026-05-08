@@ -2,11 +2,34 @@
   import { onMount, tick } from 'svelte';
   import { fade, fly, scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { 
-    Trash2, GripVertical, Plus, Sparkles, ArrowRight, ShieldCheck, RefreshCw, Cpu, Database, Activity, 
-    Circle, Zap, Timer, Calendar, Dna, PlusCircle, ShieldX, Flame, Sun, 
-    Droplets, Moon, CloudMoon, ShieldAlert, Target, Heart, Wind, Shield, Layers 
-  } from 'lucide-svelte';
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import GripVertical from "@lucide/svelte/icons/grip-vertical";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Cpu from "@lucide/svelte/icons/cpu";
+  import Database from "@lucide/svelte/icons/database";
+  import Activity from "@lucide/svelte/icons/activity";
+  import Circle from "@lucide/svelte/icons/circle";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Timer from "@lucide/svelte/icons/timer";
+  import Calendar from "@lucide/svelte/icons/calendar";
+  import Dna from "@lucide/svelte/icons/dna";
+  import PlusCircle from "@lucide/svelte/icons/plus-circle";
+  import ShieldX from "@lucide/svelte/icons/shield-x";
+  import Flame from "@lucide/svelte/icons/flame";
+  import Sun from "@lucide/svelte/icons/sun";
+  import Droplets from "@lucide/svelte/icons/droplets";
+  import Moon from "@lucide/svelte/icons/moon";
+  import CloudMoon from "@lucide/svelte/icons/cloud-moon";
+  import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+  import Target from "@lucide/svelte/icons/target";
+  import Heart from "@lucide/svelte/icons/heart";
+  import Wind from "@lucide/svelte/icons/wind";
+  import Shield from "@lucide/svelte/icons/shield";
+  import Layers from "@lucide/svelte/icons/layers";
   import { SHOP_CONFIG } from '$lib/constants/shop';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';

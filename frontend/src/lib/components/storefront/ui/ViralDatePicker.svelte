@@ -1,7 +1,11 @@
 <script lang="ts">
-  import { fade, fly, scale } from 'svelte/transition';
+  import { fly, scale } from 'svelte/transition';
   import { cn } from '$lib/utils/cn';
-  import { ChevronLeft, ChevronRight, Clock, Calendar as CalendarIcon, Check } from 'lucide-svelte';
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Clock from "@lucide/svelte/icons/clock";
+  import CalendarIcon from "@lucide/svelte/icons/calendar";
+  import Check from "@lucide/svelte/icons/check";
 
   let { 
     value = $bindable(''), 

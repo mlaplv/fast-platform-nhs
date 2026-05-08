@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { MediaAsset } from "$lib/state/types";
   import FileManager from "$lib/components/media/FileManager.svelte";
-  import AlertTriangle from "lucide-svelte/icons/triangle-alert";
+  import AlertTriangle from "@lucide/svelte/icons/triangle-alert";
 
   import { onMount } from "svelte";
   import { portal } from "$lib/core/actions/portal";

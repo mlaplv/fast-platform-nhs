@@ -3,10 +3,10 @@
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { spring } from "svelte/motion";
-  import ArrowUp from "lucide-svelte/icons/arrow-up";
-  import Mic from "lucide-svelte/icons/mic";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Menu from "lucide-svelte/icons/menu";
+  import ArrowUp from "@lucide/svelte/icons/arrow-up";
+  import Mic from "@lucide/svelte/icons/mic";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Menu from "@lucide/svelte/icons/menu";
   import { playTick } from "$lib/utils/sfx";
 
   function handleKeydown(e: KeyboardEvent) {

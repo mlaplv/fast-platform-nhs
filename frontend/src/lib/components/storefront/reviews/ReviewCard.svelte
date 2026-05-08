@@ -1,6 +1,10 @@
 <script lang="ts">
   import type { Review } from '$lib/types/commerce/review';
-  import { Star, ThumbsUp, CheckCircle2, Play, MoreHorizontal } from 'lucide-svelte';
+  import Star from "@lucide/svelte/icons/star";
+  import ThumbsUp from "@lucide/svelte/icons/thumbs-up";
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
+  import Play from "@lucide/svelte/icons/play";
+  import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
   import { fade } from 'svelte/transition';
   import { apiClient } from '$lib/utils/apiClient';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';

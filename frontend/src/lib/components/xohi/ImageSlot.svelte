@@ -1,8 +1,17 @@
 <script lang="ts">
   import { xohiImageStore } from "$lib/state/xohiImage.svelte";
   import type { MediaAsset } from "$lib/state/types";
-  import { fade, scale } from "svelte/transition";
-  import { Star, Trash2, Check, Crop, Square, Layout, Smartphone, Tablet, Sparkles, Flame } from "lucide-svelte";
+  import { fade, scale } from 'svelte/transition';
+  import Star from "@lucide/svelte/icons/star";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Check from "@lucide/svelte/icons/check";
+  import Crop from "@lucide/svelte/icons/crop";
+  import Square from "@lucide/svelte/icons/square";
+  import Layout from "@lucide/svelte/icons/layout";
+  import Smartphone from "@lucide/svelte/icons/smartphone";
+  import Tablet from "@lucide/svelte/icons/tablet";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Flame from "@lucide/svelte/icons/flame";
   import { resolveMediaUrl } from "$lib/state/utils";
   import { vuiController } from "$lib/vui";
 

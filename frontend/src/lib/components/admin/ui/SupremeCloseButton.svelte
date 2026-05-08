@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { X, Zap } from "lucide-svelte";
+  import X from "@lucide/svelte/icons/x";
+  import Zap from "@lucide/svelte/icons/zap";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";

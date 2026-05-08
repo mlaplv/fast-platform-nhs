@@ -1,10 +1,10 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
   import type { Snippet, Component } from "svelte";
-  import X from "lucide-svelte/icons/x";
-  import Activity from "lucide-svelte/icons/activity";
-  import Cpu from "lucide-svelte/icons/cpu";
-  import Terminal from "lucide-svelte/icons/terminal";
+  import X from "@lucide/svelte/icons/x";
+  import Activity from "@lucide/svelte/icons/activity";
+  import Cpu from "@lucide/svelte/icons/cpu";
+  import Terminal from "@lucide/svelte/icons/terminal";
 
   interface Props {
     title: string;

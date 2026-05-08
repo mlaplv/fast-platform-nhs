@@ -4,7 +4,10 @@
   import { quintOut } from "svelte/easing";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import { apiClient } from "$lib/utils/apiClient";
-  import { Flag, X, Send, Loader2 } from "lucide-svelte";
+  import Flag from "@lucide/svelte/icons/flag";
+  import X from "@lucide/svelte/icons/x";
+  import Send from "@lucide/svelte/icons/send";
+  import Loader2 from "@lucide/svelte/icons/loader-2";
 
   const ui = getClientUi();
   const modal = $derived(ui.reportModal);

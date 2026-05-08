@@ -1,8 +1,14 @@
 <script lang="ts">
-  import { 
-    ChevronLeft, ChevronRight, Zap, Bookmark, Gift, Sparkles, 
-    Package, Volume2, VolumeX, Heart 
-  } from 'lucide-svelte';
+    import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Bookmark from "@lucide/svelte/icons/bookmark";
+  import Gift from "@lucide/svelte/icons/gift";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Package from "@lucide/svelte/icons/package";
+  import Volume2 from "@lucide/svelte/icons/volume-2";
+  import VolumeX from "@lucide/svelte/icons/volume-x";
+  import Heart from "@lucide/svelte/icons/heart";
   
   // Types
   import type { Product, ProductVariant, ReviewStats } from '$lib/types';

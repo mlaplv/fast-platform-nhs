@@ -5,14 +5,14 @@
   import { VUI_CONFIG } from "$lib/vui/core/VuiConstants";
   import { fade, scale } from "svelte/transition";
   import { typewriter } from "$lib/actions/typewriter";
-  import Copy from "lucide-svelte/icons/copy";
-  import ThumbsUp from "lucide-svelte/icons/thumbs-up";
-  import ThumbsDown from "lucide-svelte/icons/thumbs-down";
-  import Share2 from "lucide-svelte/icons/share-2";
-  import MoreHorizontal from "lucide-svelte/icons/more-horizontal";
-  import Mic from "lucide-svelte/icons/mic";
-  import Plus from "lucide-svelte/icons/plus";
-  import Trash2 from "lucide-svelte/icons/trash-2";
+  import Copy from "@lucide/svelte/icons/copy";
+  import ThumbsUp from "@lucide/svelte/icons/thumbs-up";
+  import ThumbsDown from "@lucide/svelte/icons/thumbs-down";
+  import Share2 from "@lucide/svelte/icons/share-2";
+  import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
+  import Mic from "@lucide/svelte/icons/mic";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import { onMount, tick } from "svelte";
 
   let { phase } = $props();

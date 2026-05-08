@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade, slide, scale } from "svelte/transition";
-  import LucideBell from "lucide-svelte/icons/bell";
-  import LucideActivity from "lucide-svelte/icons/activity";
+  import LucideBell from "@lucide/svelte/icons/bell";
+  import LucideActivity from "@lucide/svelte/icons/activity";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
 

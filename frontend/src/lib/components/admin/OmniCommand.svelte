@@ -2,9 +2,9 @@
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { vuiState } from "$lib/vui";
-  import Plus from "lucide-svelte/icons/plus";
-  import ArrowUp from "lucide-svelte/icons/arrow-up";
-  import Mic from "lucide-svelte/icons/mic";
+  import Plus from "@lucide/svelte/icons/plus";
+  import ArrowUp from "@lucide/svelte/icons/arrow-up";
+  import Mic from "@lucide/svelte/icons/mic";
   import CategoryMenu from "./CategoryMenu.svelte";
   import { playTick } from "$lib/utils/sfx";
 

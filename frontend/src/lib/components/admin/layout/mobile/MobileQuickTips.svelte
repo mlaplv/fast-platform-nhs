@@ -3,8 +3,8 @@
   const nanobot = useNanobot();
   import { vuiController } from "$lib/vui";
   import { fade, fly } from "svelte/transition";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import X from "lucide-svelte/icons/x";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import X from "@lucide/svelte/icons/x";
   import { playTick } from "$lib/utils/sfx";
 
   function selectTip(command: string) {

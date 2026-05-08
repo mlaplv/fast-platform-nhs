@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { fade, scale } from 'svelte/transition';
-    import { RotateCcw, Trash2 } from 'lucide-svelte';
+  import { scale } from 'svelte/transition';
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
     import type { MediaAsset } from '$lib/state/types';
     import { mediaStore } from '$lib/state/media.svelte';
     import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';

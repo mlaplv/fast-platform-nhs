@@ -1,7 +1,11 @@
 <script lang="ts">
-  import { fly, fade } from 'svelte/transition';
+  import { fade, fly } from 'svelte/transition';
   import { onMount } from 'svelte';
-  import { Bell, BellRing, Package, User, LogIn } from 'lucide-svelte';
+  import Bell from "@lucide/svelte/icons/bell";
+  import BellRing from "@lucide/svelte/icons/bell-ring";
+  import Package from "@lucide/svelte/icons/package";
+  import User from "@lucide/svelte/icons/user";
+  import LogIn from "@lucide/svelte/icons/log-in";
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getNotificationState } from '$lib/state/notification.svelte';
   import { authStore } from '$lib/state/authStore.svelte';

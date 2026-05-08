@@ -1,8 +1,14 @@
 <script lang="ts">
   import { apiClient } from '$lib/utils/apiClient';
-  import { authStore, type UserAddress } from '$lib/state/authStore.svelte';
+  import type UserAddress } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { Plus, MapPin, Phone, User, Trash2, Edit3, CheckCircle2 } from 'lucide-svelte';
+  import Plus from "@lucide/svelte/icons/plus";
+  import MapPin from "@lucide/svelte/icons/map-pin";
+  import Phone from "@lucide/svelte/icons/phone";
+  import User from "@lucide/svelte/icons/user";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Edit3 from "@lucide/svelte/icons/edit-3";
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
   import divisionsRaw from '$lib/data/vn_divisions.json';
   import type { ProvinceData } from '$lib/types/commerce/checkout';
   import SearchableDropdown from './SearchableDropdown.svelte';

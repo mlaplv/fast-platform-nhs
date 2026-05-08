@@ -1,7 +1,14 @@
 <script lang="ts">
   import { authStore } from '$lib/state/authStore.svelte';
   import { page } from '$app/stores';
-  import { Bell, User as UserIcon, ShoppingBag, MapPin, Lock, LogOut, Ticket, Star } from 'lucide-svelte';
+  import Bell from "@lucide/svelte/icons/bell";
+  import UserIcon from "@lucide/svelte/icons/user";
+  import ShoppingBag from "@lucide/svelte/icons/shopping-bag";
+  import MapPin from "@lucide/svelte/icons/map-pin";
+  import Lock from "@lucide/svelte/icons/lock";
+  import LogOut from "@lucide/svelte/icons/log-out";
+  import Ticket from "@lucide/svelte/icons/ticket";
+  import Star from "@lucide/svelte/icons/star";
   import { goto } from '$app/navigation';
   import Avatar from './Avatar.svelte';
 

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { ShieldAlert, RefreshCw } from "lucide-svelte";
+    import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
 

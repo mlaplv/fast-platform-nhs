@@ -1,18 +1,16 @@
 <script lang="ts">
-  import { 
-    Calendar as CalendarIcon, 
-    Clock, 
-    User, 
-    ChevronLeft, 
-    ChevronRight, 
-    Plus, 
-    LayoutDashboard,
-    Search,
-    Filter,
-    MoreVertical,
-    RefreshCw,
-    ChevronDown
-  } from "lucide-svelte";
+    import CalendarIcon from "@lucide/svelte/icons/calendar";
+  import Clock from "@lucide/svelte/icons/clock";
+  import User from "@lucide/svelte/icons/user";
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Plus from "@lucide/svelte/icons/plus";
+  import LayoutDashboard from "@lucide/svelte/icons/layout-dashboard";
+  import Search from "@lucide/svelte/icons/search";
+  import Filter from "@lucide/svelte/icons/filter";
+  import MoreVertical from "@lucide/svelte/icons/more-vertical";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import { onMount } from "svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { useNanobot } from "$lib/state/nanobot.svelte";

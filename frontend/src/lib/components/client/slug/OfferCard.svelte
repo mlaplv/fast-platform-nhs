@@ -4,11 +4,15 @@
   import { resolveMediaUrl } from '$lib/state/utils';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
-  import type { Product, ProductVariant } from '$lib/types';
+  import type { Product, ProductVariant, Voucher } from '$lib/types';
   import { SHOP_CONFIG } from '$lib/constants/shop';
   import OfferVoucherSheet from './OfferVoucherSheet.svelte';
   import { formatCurrency } from '$lib/utils/format';
-  import { Ticket, Sparkles, Zap, ArrowRight, ShoppingCart } from 'lucide-svelte';
+  import Ticket from "@lucide/svelte/icons/ticket";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Zap from "@lucide/svelte/icons/zap";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
 
   interface MktLabels {
     sub: string;

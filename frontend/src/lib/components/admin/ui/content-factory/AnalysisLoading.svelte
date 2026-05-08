@@ -1,8 +1,8 @@
 <script lang="ts">
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
-  import BarChart2 from "lucide-svelte/icons/bar-chart-2";
-  import Brain from "lucide-svelte/icons/brain";
-  import Sparkles from "lucide-svelte/icons/sparkles";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import BarChart2 from "@lucide/svelte/icons/bar-chart-2";
+  import Brain from "@lucide/svelte/icons/brain";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import { PHASES } from "$lib/state/xohiAnalysisPhases.svelte";
 
   interface Props {

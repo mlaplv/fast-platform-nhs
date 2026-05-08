@@ -1,5 +1,14 @@
 <script lang="ts">
-  import { Music, Zap, ShieldCheck, Droplets, Eye, Clock, Flame, ArrowRight, Star, StarHalf } from 'lucide-svelte';
+    import Music from "@lucide/svelte/icons/music";
+  import Zap from "@lucide/svelte/icons/zap";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Droplets from "@lucide/svelte/icons/droplets";
+  import Eye from "@lucide/svelte/icons/eye";
+  import Clock from "@lucide/svelte/icons/clock";
+  import Flame from "@lucide/svelte/icons/flame";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import Star from "@lucide/svelte/icons/star";
+  import StarHalf from "@lucide/svelte/icons/star-half";
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import './MobileHero.css';
   import { resolveMediaUrl } from '$lib/state/utils';

@@ -7,7 +7,7 @@
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import VoiceStatusCaption from "./vui/VoiceStatusCaption.svelte";
   import ContentReviewCard from "./ui/ContentReviewCard.svelte";
-  import X from "lucide-svelte/icons/x";
+  import X from "@lucide/svelte/icons/x";
   import { onMount } from "svelte";
 
   let holdProgress = $state(0);

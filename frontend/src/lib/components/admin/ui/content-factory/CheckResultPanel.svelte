@@ -7,7 +7,7 @@
   import AnalysisResultSEO from "./AnalysisResultSEO.svelte";
   import AnalysisResultAI from "./AnalysisResultAI.svelte";
   import AnalysisLocked from "./AnalysisLocked.svelte";
-  import CheckCircle2 from "lucide-svelte/icons/check-circle-2";
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
 
   let {
     activeTab, copyrightResult, isCopyrightLoading, seoResult, isSeoLoading,

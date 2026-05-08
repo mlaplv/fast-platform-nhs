@@ -1,9 +1,12 @@
 <script lang="ts">
-    import { mediaStore } from '$lib/state/media.svelte';
-    import type { MediaAsset } from '$lib/state/types';
-    import { resolveThumbnailUrl } from '$lib/state/utils';
-    import { fade, scale } from 'svelte/transition';
-    import { Eye, Check, Star, Info } from 'lucide-svelte';
+  import { mediaStore } from '$lib/state/media.svelte';
+  import type { MediaAsset } from '$lib/state/types';
+  import { resolveThumbnailUrl } from '$lib/state/utils';
+  import { fade, scale } from 'svelte/transition';
+  import Eye from "@lucide/svelte/icons/eye";
+  import Check from "@lucide/svelte/icons/check";
+  import Star from "@lucide/svelte/icons/star";
+  import Info from "@lucide/svelte/icons/info";
     import TrashActions from './TrashActions.svelte';
     import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
 

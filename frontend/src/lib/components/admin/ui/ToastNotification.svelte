@@ -4,11 +4,11 @@
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { fade, fly, slide } from "svelte/transition";
   import { flip } from "svelte/animate";
-  import CheckCircle from "lucide-svelte/icons/check-circle";
-  import AlertCircle from "lucide-svelte/icons/alert-circle";
-  import Info from "lucide-svelte/icons/info";
-  import X from "lucide-svelte/icons/x";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
+  import CheckCircle from "@lucide/svelte/icons/check-circle";
+  import AlertCircle from "@lucide/svelte/icons/alert-circle";
+  import Info from "@lucide/svelte/icons/info";
+  import X from "@lucide/svelte/icons/x";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
 
   const toasts = $derived(nanobot.toasts);
 

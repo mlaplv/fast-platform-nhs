@@ -1,19 +1,19 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fade, slide } from "svelte/transition";
-  import Plus from "lucide-svelte/icons/plus";
-  import Search from "lucide-svelte/icons/search";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Edit3 from "lucide-svelte/icons/edit-3";
-  import Globe from "lucide-svelte/icons/globe";
-  import Monitor from "lucide-svelte/icons/monitor";
-  import Smartphone from "lucide-svelte/icons/smartphone";
-  import Layout from "lucide-svelte/icons/layout";
-  import Save from "lucide-svelte/icons/save";
-  import X from "lucide-svelte/icons/x";
-  import Upload from "lucide-svelte/icons/upload";
-  import ExternalLink from "lucide-svelte/icons/external-link";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Search from "@lucide/svelte/icons/search";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Edit3 from "@lucide/svelte/icons/edit-3";
+  import Globe from "@lucide/svelte/icons/globe";
+  import Monitor from "@lucide/svelte/icons/monitor";
+  import Smartphone from "@lucide/svelte/icons/smartphone";
+  import Layout from "@lucide/svelte/icons/layout";
+  import Save from "@lucide/svelte/icons/save";
+  import X from "@lucide/svelte/icons/x";
+  import Upload from "@lucide/svelte/icons/upload";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();

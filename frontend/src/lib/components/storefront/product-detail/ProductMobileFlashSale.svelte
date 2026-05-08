@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Zap } from 'lucide-svelte';
+    import Zap from "@lucide/svelte/icons/zap";
   import { formatCurrency } from '$lib/utils/format';
 
   interface Props {

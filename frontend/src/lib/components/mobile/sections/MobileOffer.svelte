@@ -12,10 +12,20 @@
   import { SHOP_CONFIG, OFFER_CONSTANTS, PRIVACY_CONSTANTS } from '$lib/constants/shop';
   import { resolveMediaUrl } from '$lib/state/utils';
   import type { ProductVariant, Product, Voucher } from '$lib/types';
-  import { 
-    ShoppingCart, Clock, Zap, Check, Gift, Truck, 
-    ShieldCheck, Eye, Sparkles, Flame, Star, ShoppingBag, ArrowRight, Info
-  } from 'lucide-svelte';
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import Clock from "@lucide/svelte/icons/clock";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Check from "@lucide/svelte/icons/check";
+  import Gift from "@lucide/svelte/icons/gift";
+  import Truck from "@lucide/svelte/icons/truck";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Eye from "@lucide/svelte/icons/eye";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Flame from "@lucide/svelte/icons/flame";
+  import Star from "@lucide/svelte/icons/star";
+  import ShoppingBag from "@lucide/svelte/icons/shopping-bag";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import Info from "@lucide/svelte/icons/info";
   import { formatCurrency } from '$lib/utils/format';
   import { fade, fly, scale } from 'svelte/transition';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';

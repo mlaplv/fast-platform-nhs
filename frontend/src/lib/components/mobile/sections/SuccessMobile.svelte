@@ -1,6 +1,16 @@
 <script lang="ts">
-  import { fade, fly, scale, slide } from 'svelte/transition';
-  import { FileText, ShieldCheck, ShoppingCart, MessageSquare, Package, Truck, Phone, Gift, Home, Sparkles, Edit3 } from 'lucide-svelte';
+  import { fly, slide } from 'svelte/transition';
+  import FileText from "@lucide/svelte/icons/file-text";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import MessageSquare from "@lucide/svelte/icons/message-square";
+  import Package from "@lucide/svelte/icons/package";
+  import Truck from "@lucide/svelte/icons/truck";
+  import Phone from "@lucide/svelte/icons/phone";
+  import Gift from "@lucide/svelte/icons/gift";
+  import Home from "@lucide/svelte/icons/home";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Edit3 from "@lucide/svelte/icons/edit-3";
   import { formatCurrency, formatDate } from '$lib/utils/format.ts';
   import { goto } from '$app/navigation';
   import { SHOP_CONFIG } from '$lib/constants/shop';

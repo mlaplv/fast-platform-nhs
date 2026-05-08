@@ -1,11 +1,9 @@
 <script lang="ts">
   import type { Editor } from '@tiptap/core';
-  import {
-    Edit3,
-    Unlink,
-    ExternalLink,
-    Globe
-  } from 'lucide-svelte';
+    import Edit3 from "@lucide/svelte/icons/edit-3";
+  import Unlink from "@lucide/svelte/icons/unlink";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import Globe from "@lucide/svelte/icons/globe";
 
   let { editor, onEdit, onClose }: { 
     editor: Editor; 

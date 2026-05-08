@@ -1,7 +1,7 @@
 <script lang="ts">
-    import ChevronRight from "lucide-svelte/icons/chevron-right";
-    import Check from "lucide-svelte/icons/check";
-    import Lock from "lucide-svelte/icons/lock";
+    import ChevronRight from "@lucide/svelte/icons/chevron-right";
+    import Check from "@lucide/svelte/icons/check";
+    import Lock from "@lucide/svelte/icons/lock";
     import type { Permission } from "$lib/types";
 
     let { group, perms, getGroupIcon, getGroupLabel, roleHasPerm } = $props<{

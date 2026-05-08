@@ -1,10 +1,10 @@
 <script lang="ts">
   import { fly, fade, scale } from "svelte/transition";
-  import FileText from "lucide-svelte/icons/file-text";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
-  import Truck from "lucide-svelte/icons/truck";
-  import PackageCheck from "lucide-svelte/icons/package-check";
-  import Check from "lucide-svelte/icons/check";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Truck from "@lucide/svelte/icons/truck";
+  import PackageCheck from "@lucide/svelte/icons/package-check";
+  import Check from "@lucide/svelte/icons/check";
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
   let { 

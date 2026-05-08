@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { slide, fade } from 'svelte/transition';
-  import { Sparkles } from 'lucide-svelte';
+  import { fade, slide } from 'svelte/transition';
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import { formatCurrency } from '$lib/utils/format';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
 

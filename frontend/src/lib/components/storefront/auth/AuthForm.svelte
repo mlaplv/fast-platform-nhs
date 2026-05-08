@@ -1,7 +1,17 @@
 <script lang="ts">
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { X, Mail, ShieldCheck, ArrowRight, Loader2, KeyRound, UserPlus, Lock, Eye, EyeOff, ChevronRight } from 'lucide-svelte';
+  import X from "@lucide/svelte/icons/x";
+  import Mail from "@lucide/svelte/icons/mail";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import Loader2 from "@lucide/svelte/icons/loader-2";
+  import KeyRound from "@lucide/svelte/icons/key-round";
+  import UserPlus from "@lucide/svelte/icons/user-plus";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Eye from "@lucide/svelte/icons/eye";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import { fallbackSha256 } from '$lib/utils/cryptoFallback';
   import { apiClient } from '$lib/utils/apiClient';
   import { fade, fly, scale, slide } from 'svelte/transition';

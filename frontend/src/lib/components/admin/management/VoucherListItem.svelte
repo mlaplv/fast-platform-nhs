@@ -1,14 +1,14 @@
 <script lang="ts">
-  import Gift from "lucide-svelte/icons/gift";
-  import Clock from "lucide-svelte/icons/clock";
-  import Check from "lucide-svelte/icons/check";
-  import Tag from "lucide-svelte/icons/tag";
-  import Percent from "lucide-svelte/icons/percent";
-  import Truck from "lucide-svelte/icons/truck";
-  import Calendar from "lucide-svelte/icons/calendar";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Edit from "lucide-svelte/icons/edit";
-  import Sparkles from "lucide-svelte/icons/sparkles";
+  import Gift from "@lucide/svelte/icons/gift";
+  import Clock from "@lucide/svelte/icons/clock";
+  import Check from "@lucide/svelte/icons/check";
+  import Tag from "@lucide/svelte/icons/tag";
+  import Percent from "@lucide/svelte/icons/percent";
+  import Truck from "@lucide/svelte/icons/truck";
+  import Calendar from "@lucide/svelte/icons/calendar";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Edit from "@lucide/svelte/icons/edit";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import { formatCurrency, formatDate, timeAgo } from "$lib/utils/format";
   
   export interface Voucher {

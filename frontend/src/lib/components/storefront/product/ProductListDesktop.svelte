@@ -3,10 +3,12 @@
   import { slugify } from '$lib/utils/format';
   import ProductGrid from './ProductGrid.svelte';
   import CategoryBanner from './CategoryBanner.svelte';
-  import type { Product, ProductFacets, Category } from '$lib/types';
+  import type { Product } from '$lib/types';
+  import type { ProductFacets } from '$lib/types';
+  import { Category } from '$lib/types';
   import { onMount } from 'svelte';
   import { scale } from 'svelte/transition';
-  import { MessageCircleQuestion } from 'lucide-svelte';
+  import MessageCircleQuestion from "@lucide/svelte/icons/message-circle-question";
   import ProductDetailReviews from '../product-detail/ProductDetailReviews.svelte';
   import type { ReviewStats } from '$lib/types';
 

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Pencil, Sparkles } from "lucide-svelte";
+    import Pencil from "@lucide/svelte/icons/pencil";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import { onMount } from "svelte";
   import TiptapEditor from "../tiptap/TiptapEditor.svelte";
   import type { CampaignKeywords, MediaAsset, AnalysisCache } from "$lib/state/types";

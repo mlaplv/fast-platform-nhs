@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { X } from "lucide-svelte";
+    import X from "@lucide/svelte/icons/x";
   import { fade, scale } from "svelte/transition";
   import { onMount } from "svelte";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";

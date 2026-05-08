@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Globe from "lucide-svelte/icons/globe";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import Globe from "@lucide/svelte/icons/globe";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import { resolveMediaUrl } from "$lib/state/utils";
 
   let {

@@ -1,13 +1,13 @@
 <script lang="ts">
   // Transitions removed for speed
-  import Shield from "lucide-svelte/icons/shield";
-  import MoreVertical from "lucide-svelte/icons/more-vertical";
-  import Check from "lucide-svelte/icons/check";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import Lock from "lucide-svelte/icons/lock";
-  import Unlock from "lucide-svelte/icons/unlock";
-  import Edit2 from "lucide-svelte/icons/edit-2";
-  import Trash2 from "lucide-svelte/icons/trash-2";
+  import Shield from "@lucide/svelte/icons/shield";
+  import MoreVertical from "@lucide/svelte/icons/more-vertical";
+  import Check from "@lucide/svelte/icons/check";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Unlock from "@lucide/svelte/icons/unlock";
+  import Edit2 from "@lucide/svelte/icons/edit-2";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import type { User, Role, Permission } from "$lib/types";
 
   let {

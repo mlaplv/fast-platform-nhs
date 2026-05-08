@@ -2,7 +2,8 @@
   import FileManager from "$lib/components/media/FileManager.svelte";
   import type { MediaAsset } from "$lib/state/types";
   import { resolveMediaUrl } from "$lib/state/utils";
-  import { Check, X } from "lucide-svelte";
+  import Check from "@lucide/svelte/icons/check";
+  import X from "@lucide/svelte/icons/x";
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
 
   import type { Product } from '$lib/types';

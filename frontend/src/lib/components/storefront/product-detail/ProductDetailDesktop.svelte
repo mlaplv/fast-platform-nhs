@@ -1,10 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { 
-    Minus, Plus, ShoppingCart, Star, Gift, Package, Sparkles, 
-    Diamond, Beaker, FlaskConical, Info, Volume2, VolumeX 
-  } from 'lucide-svelte';
+  import Minus from "@lucide/svelte/icons/minus";
+  import Plus from "@lucide/svelte/icons/plus";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import Star from "@lucide/svelte/icons/star";
+  import Gift from "@lucide/svelte/icons/gift";
+  import Package from "@lucide/svelte/icons/package";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Diamond from "@lucide/svelte/icons/diamond";
+  import Beaker from "@lucide/svelte/icons/beaker";
+  import FlaskConical from "@lucide/svelte/icons/flask-conical";
+  import Info from "@lucide/svelte/icons/info";
+  import Volume2 from "@lucide/svelte/icons/volume-2";
+  import VolumeX from "@lucide/svelte/icons/volume-x";
   
   // Types
   import type { Product, ProductVariant, ReviewStats } from '$lib/types';

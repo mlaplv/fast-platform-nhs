@@ -5,12 +5,12 @@
   const nanobot = useNanobot();
   import type { AIKeyStat, GenericAIResponse } from "$lib/state/types";
   import { fade, scale } from "svelte/transition";
-  import X from "lucide-svelte/icons/x";
-  import Activity from "lucide-svelte/icons/activity";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
-  import AlertTriangle from "lucide-svelte/icons/alert-triangle";
-  import Skull from "lucide-svelte/icons/skull";
+  import X from "@lucide/svelte/icons/x";
+  import Activity from "@lucide/svelte/icons/activity";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
+  import Skull from "@lucide/svelte/icons/skull";
 
   let { show = false, onClose } = $props<{
     show?: boolean;

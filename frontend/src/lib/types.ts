@@ -763,6 +763,7 @@ export interface ScreenState {
 }
 
 export interface ClientUiState extends ScreenState {
+  isDetermined: boolean;
   isHeaderHidden: boolean;
   isFooterHidden: boolean;
   settings: ShopInfo | null;
@@ -797,6 +798,7 @@ export interface Voucher {
   type: 'FIXED' | 'PERCENT' | 'SHIPPING';
   title?: string;
   subtitle?: string;
+  desc?: string;
   value: number;
   min_spend: number;
   max_discount?: number;

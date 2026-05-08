@@ -1,9 +1,22 @@
 <script lang="ts">
-    import { mediaStore } from '$lib/state/media.svelte';
-    import type { MediaAsset } from '$lib/state/types';
-    import { resolveThumbnailUrl, formatBytes, formatDate } from '$lib/state/utils';
-    import { fade, scale } from 'svelte/transition';
-    import { Check, Trash2, RotateCcw, FileText, Image as ImageIcon, FileCode, Film, Music, MoreHorizontal, Calendar, Database, HardDrive, Tag, Eye } from 'lucide-svelte';
+  import { mediaStore } from '$lib/state/media.svelte';
+  import type { MediaAsset } from '$lib/state/types';
+  import { formatDate } from '$lib/state/utils';
+  import { fade, scale } from 'svelte/transition';
+  import Check from "@lucide/svelte/icons/check";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import ImageIcon from "@lucide/svelte/icons/image";
+  import FileCode from "@lucide/svelte/icons/file-code";
+  import Film from "@lucide/svelte/icons/film";
+  import Music from "@lucide/svelte/icons/music";
+  import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
+  import Calendar from "@lucide/svelte/icons/calendar";
+  import Database from "@lucide/svelte/icons/database";
+  import HardDrive from "@lucide/svelte/icons/hard-drive";
+  import Tag from "@lucide/svelte/icons/tag";
+  import Eye from "@lucide/svelte/icons/eye";
     import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
 
     interface Props {

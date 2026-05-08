@@ -1,7 +1,10 @@
 <script lang="ts">
-  import { 
-    Gift, ExternalLink, Check, Copy, Loader, Facebook 
-  } from 'lucide-svelte';
+    import Gift from "@lucide/svelte/icons/gift";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import Check from "@lucide/svelte/icons/check";
+  import Copy from "@lucide/svelte/icons/copy";
+  import Loader from "@lucide/svelte/icons/loader";
+  import Facebook from "@lucide/svelte/icons/facebook";
   
   // Types
   import type { Product } from '$lib/types';

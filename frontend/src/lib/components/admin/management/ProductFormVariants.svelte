@@ -1,6 +1,14 @@
 <script lang="ts">
-  import { Plus, X, ImagePlus, Trash2, ListTree, Zap, ChevronRight, Check, Pencil } from "lucide-svelte";
-  import AlertTriangle from "lucide-svelte/icons/triangle-alert";
+    import Plus from "@lucide/svelte/icons/plus";
+  import X from "@lucide/svelte/icons/x";
+  import ImagePlus from "@lucide/svelte/icons/image-plus";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import ListTree from "@lucide/svelte/icons/list-tree";
+  import Zap from "@lucide/svelte/icons/zap";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Check from "@lucide/svelte/icons/check";
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import AlertTriangle from "@lucide/svelte/icons/triangle-alert";
   import { resolveMediaUrl } from "$lib/state/utils";
   import type { Product } from "$lib/types";
 

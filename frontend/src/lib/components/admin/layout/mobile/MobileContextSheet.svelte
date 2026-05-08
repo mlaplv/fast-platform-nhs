@@ -5,8 +5,8 @@
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
   import type { BaseWidgetProps } from "$lib/types";
-  import ChevronLeft from "lucide-svelte/icons/chevron-left";
-  import Terminal from "lucide-svelte/icons/terminal";
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import Terminal from "@lucide/svelte/icons/terminal";
 
   // Import all management components
   import RevenueChart from "../../widgets/RevenueChart.svelte";

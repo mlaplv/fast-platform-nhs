@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { Edit3, Trash2, MapPin, Phone, User as UserIcon, Check } from 'lucide-svelte';
+    import Edit3 from "@lucide/svelte/icons/edit-3";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import MapPin from "@lucide/svelte/icons/map-pin";
+  import Phone from "@lucide/svelte/icons/phone";
+  import UserIcon from "@lucide/svelte/icons/user";
+  import Check from "@lucide/svelte/icons/check";
   import { fade, fly } from 'svelte/transition';
   import type { UserAddress } from '$lib/state/authStore.svelte';
 

@@ -2,7 +2,17 @@
   import { onMount } from 'svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { Star, ThumbsUp, MoreHorizontal, Play, Camera, Send, CheckCircle2, Loader2, X, Sparkles, MinusCircle } from 'lucide-svelte';
+  import Star from "@lucide/svelte/icons/star";
+  import ThumbsUp from "@lucide/svelte/icons/thumbs-up";
+  import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
+  import Play from "@lucide/svelte/icons/play";
+  import Camera from "@lucide/svelte/icons/camera";
+  import Send from "@lucide/svelte/icons/send";
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
+  import Loader2 from "@lucide/svelte/icons/loader-2";
+  import X from "@lucide/svelte/icons/x";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import MinusCircle from "@lucide/svelte/icons/minus-circle";
   import SimpleTiptap from '../ui/SimpleTiptap.svelte';
   import { apiClient } from '$lib/utils/apiClient';
   

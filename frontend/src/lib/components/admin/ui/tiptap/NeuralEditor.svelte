@@ -8,8 +8,10 @@
    *
    * Rules: SvelteKit 5 Runes, strict typing, no anys, no TODO, no mock data
    */
-  import { onMount, untrack } from "svelte";
-  import { ShieldCheck, BarChart2, Sparkles } from "lucide-svelte";
+  import { untrack, onMount } from "svelte";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import BarChart2 from "@lucide/svelte/icons/bar-chart-2";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import TiptapEditor from "./TiptapEditor.svelte";
   import { createAnalysisController } from "$lib/state/xohiAnalysis.svelte";
   import { portal } from "$lib/core/actions/portal";

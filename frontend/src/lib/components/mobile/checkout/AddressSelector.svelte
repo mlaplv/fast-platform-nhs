@@ -1,7 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fade, slide, fly } from 'svelte/transition';
-  import { MapPin, Search, ChevronRight, Check, X } from 'lucide-svelte';
+  import MapPin from "@lucide/svelte/icons/map-pin";
+  import Search from "@lucide/svelte/icons/search";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Check from "@lucide/svelte/icons/check";
+  import X from "@lucide/svelte/icons/x";
 
   interface Ward {
     name: string;

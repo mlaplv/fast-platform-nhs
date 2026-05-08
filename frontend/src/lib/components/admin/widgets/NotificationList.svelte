@@ -2,10 +2,10 @@
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { fade, slide } from "svelte/transition";
-  import LucideBell from "lucide-svelte/icons/bell";
-  import LucideActivity from "lucide-svelte/icons/activity";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
-  import Info from "lucide-svelte/icons/info";
+  import LucideBell from "@lucide/svelte/icons/bell";
+  import LucideActivity from "@lucide/svelte/icons/activity";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Info from "@lucide/svelte/icons/info";
   import type { BaseWidgetProps } from "$lib/types";
 
   let { data = {} } = $props<BaseWidgetProps>();

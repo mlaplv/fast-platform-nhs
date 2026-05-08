@@ -1,8 +1,14 @@
 <script lang="ts">
-  import {
-    Sparkles, Image as ImageIcon, FileText, Check, Rocket,
-    RotateCcw, Pencil, X, Terminal, ChevronDown
-  } from "lucide-svelte";
+    import Sparkles from "@lucide/svelte/icons/sparkles";
+  import ImageIcon from "@lucide/svelte/icons/image";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import Check from "@lucide/svelte/icons/check";
+  import Rocket from "@lucide/svelte/icons/rocket";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import X from "@lucide/svelte/icons/x";
+  import Terminal from "@lucide/svelte/icons/terminal";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import SupremeCloseButton from "../SupremeCloseButton.svelte";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();

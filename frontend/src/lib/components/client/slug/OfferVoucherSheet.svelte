@@ -1,10 +1,13 @@
 <script lang="ts">
-  import { fly, fade } from 'svelte/transition';
-  import { cubicOut, cubicIn } from 'svelte/easing';
+  import { fade, fly } from 'svelte/transition';
+  import { cubicIn } from 'svelte/easing';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
-  import { Ticket, ArrowUpDown, ArrowDownNarrowWide, ArrowUpWideNarrow } from 'lucide-svelte';
+  import Ticket from "@lucide/svelte/icons/ticket";
+  import ArrowUpDown from "@lucide/svelte/icons/arrow-up-down";
+  import ArrowDownNarrowWide from "@lucide/svelte/icons/arrow-down-narrow-wide";
+  import ArrowUpWideNarrow from "@lucide/svelte/icons/arrow-up-wide-narrow";
   import type { ProductVariant } from '$lib/types';
 
   let { 

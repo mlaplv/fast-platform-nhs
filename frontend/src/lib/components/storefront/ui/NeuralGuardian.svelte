@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { Shield, Sparkles, Terminal } from 'lucide-svelte';
+    import Shield from "@lucide/svelte/icons/shield";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Terminal from "@lucide/svelte/icons/terminal";
   import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import { slide, fade } from 'svelte/transition';

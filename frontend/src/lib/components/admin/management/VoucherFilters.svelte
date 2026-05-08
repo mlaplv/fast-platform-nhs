@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Search from "lucide-svelte/icons/search";
-  import Filter from "lucide-svelte/icons/filter";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import Plus from "lucide-svelte/icons/plus";
-  import Check from "lucide-svelte/icons/check";
+  import Search from "@lucide/svelte/icons/search";
+  import Filter from "@lucide/svelte/icons/filter";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Check from "@lucide/svelte/icons/check";
 
   let { 
     searchInput = $bindable(), 

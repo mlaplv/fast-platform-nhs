@@ -3,7 +3,11 @@
   import { createReviewStore } from '$lib/state/commerce/reviewStore.svelte';
   import type { ReviewEntityType } from '$lib/types/commerce/review';
   import ReviewCard from './ReviewCard.svelte';
-  import { Star, MessageSquare, Image, Loader2, ChevronDown } from 'lucide-svelte';
+  import Star from "@lucide/svelte/icons/star";
+  import MessageSquare from "@lucide/svelte/icons/message-square";
+  import Image from "@lucide/svelte/icons/image";
+  import Loader2 from "@lucide/svelte/icons/loader-2";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import { fade, fly } from 'svelte/transition';
 
   interface Props {

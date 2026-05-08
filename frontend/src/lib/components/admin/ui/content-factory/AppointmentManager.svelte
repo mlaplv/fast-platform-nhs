@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { Calendar as CalendarIcon, Plus, ChevronRight, Clock, User } from "lucide-svelte";
+    import CalendarIcon from "@lucide/svelte/icons/calendar";
+  import Plus from "@lucide/svelte/icons/plus";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Clock from "@lucide/svelte/icons/clock";
+  import User from "@lucide/svelte/icons/user";
   import { onMount } from "svelte";
 
   interface Appointment {

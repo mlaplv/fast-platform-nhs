@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { ChevronDown, Search, Check } from 'lucide-svelte';
+    import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import Search from "@lucide/svelte/icons/search";
+  import Check from "@lucide/svelte/icons/check";
   import { fade, fly } from 'svelte/transition';
   import { onMount } from 'svelte';
 

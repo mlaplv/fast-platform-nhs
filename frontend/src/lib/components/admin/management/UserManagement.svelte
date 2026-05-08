@@ -1,18 +1,18 @@
 <script lang="ts">
   // Transitions removed for zero-lag performance
-  import Users from "lucide-svelte/icons/users";
-  import Shield from "lucide-svelte/icons/shield";
-  import MoreVertical from "lucide-svelte/icons/more-vertical";
-  import Check from "lucide-svelte/icons/check";
-  import Search from "lucide-svelte/icons/search";
-  import Info from "lucide-svelte/icons/info";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import Lock from "lucide-svelte/icons/lock";
-  import Unlock from "lucide-svelte/icons/unlock";
-  import UserPlus from "lucide-svelte/icons/user-plus";
-  import Edit2 from "lucide-svelte/icons/edit-2";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import Users from "@lucide/svelte/icons/users";
+  import Shield from "@lucide/svelte/icons/shield";
+  import MoreVertical from "@lucide/svelte/icons/more-vertical";
+  import Check from "@lucide/svelte/icons/check";
+  import Search from "@lucide/svelte/icons/search";
+  import Info from "@lucide/svelte/icons/info";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Unlock from "@lucide/svelte/icons/unlock";
+  import UserPlus from "@lucide/svelte/icons/user-plus";
+  import Edit2 from "@lucide/svelte/icons/edit-2";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import type { User, Role, BaseWidgetProps } from "$lib/types";

@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import Mic from "lucide-svelte/icons/mic";
-  import Zap from "lucide-svelte/icons/zap";
-  import Plus from "lucide-svelte/icons/plus";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Moon from "lucide-svelte/icons/moon";
+  import Mic from "@lucide/svelte/icons/mic";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Moon from "@lucide/svelte/icons/moon";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
 

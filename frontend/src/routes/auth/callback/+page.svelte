@@ -3,7 +3,9 @@
   import { goto } from '$app/navigation';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { Loader2, ShieldCheck, CheckCircle2 } from 'lucide-svelte';
+  import Loader2 from "@lucide/svelte/icons/loader-2";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
   import { fly } from 'svelte/transition';
 
   const ui = getClientUi();

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { formatCurrency } from '$lib/utils/format';
-  import { fly, fade } from 'svelte/transition';
-  import { ShoppingCart } from 'lucide-svelte';
+  import { fade, fly } from 'svelte/transition';
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
   import { goto } from '$app/navigation';
 
   const cartStore = getCartStore();

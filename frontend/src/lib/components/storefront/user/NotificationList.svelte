@@ -1,7 +1,11 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
   import { getNotificationState } from '$lib/state/notification.svelte';
-  import { Bell, Package, User, LogIn, Check } from 'lucide-svelte';
+  import Bell from "@lucide/svelte/icons/bell";
+  import Package from "@lucide/svelte/icons/package";
+  import User from "@lucide/svelte/icons/user";
+  import LogIn from "@lucide/svelte/icons/log-in";
+  import Check from "@lucide/svelte/icons/check";
   import { formatDate } from '$lib/utils/format';
   import { fade, fly } from 'svelte/transition';
 

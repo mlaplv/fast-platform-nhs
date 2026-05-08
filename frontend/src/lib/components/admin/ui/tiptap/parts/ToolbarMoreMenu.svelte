@@ -5,22 +5,22 @@
    * Elite V2.7: Strictly typed, no any, high-performance logic.
    */
   import type { Editor } from '@tiptap/core';
-  import ListIcon from 'lucide-svelte/icons/list';
-  import ListOrderedIcon from 'lucide-svelte/icons/list-ordered';
-  import AlignLeftIcon from 'lucide-svelte/icons/align-left';
-  import AlignCenterIcon from 'lucide-svelte/icons/align-center';
-  import AlignRightIcon from 'lucide-svelte/icons/align-right';
-  import AlignJustifyIcon from 'lucide-svelte/icons/align-justify';
-  import QuoteIcon from 'lucide-svelte/icons/quote';
-  import CodeIcon from 'lucide-svelte/icons/code';
-  import MinusIcon from 'lucide-svelte/icons/minus';
-  import StrikethroughIcon from 'lucide-svelte/icons/strikethrough';
-  import BoldIcon from 'lucide-svelte/icons/bold';
-  import ItalicIcon from 'lucide-svelte/icons/italic';
-  import UnderlineIcon from 'lucide-svelte/icons/underline';
-  import ImageIcon from 'lucide-svelte/icons/image';
-  import Link2Icon from 'lucide-svelte/icons/link-2';
-  import SparklesIcon from 'lucide-svelte/icons/sparkles';
+  import ListIcon from "@lucide/svelte/icons/list";
+  import ListOrderedIcon from "@lucide/svelte/icons/list-ordered";
+  import AlignLeftIcon from "@lucide/svelte/icons/align-left";
+  import AlignCenterIcon from "@lucide/svelte/icons/align-center";
+  import AlignRightIcon from "@lucide/svelte/icons/align-right";
+  import AlignJustifyIcon from "@lucide/svelte/icons/align-justify";
+  import QuoteIcon from "@lucide/svelte/icons/quote";
+  import CodeIcon from "@lucide/svelte/icons/code";
+  import MinusIcon from "@lucide/svelte/icons/minus";
+  import StrikethroughIcon from "@lucide/svelte/icons/strikethrough";
+  import BoldIcon from "@lucide/svelte/icons/bold";
+  import ItalicIcon from "@lucide/svelte/icons/italic";
+  import UnderlineIcon from "@lucide/svelte/icons/underline";
+  import ImageIcon from "@lucide/svelte/icons/image";
+  import Link2Icon from "@lucide/svelte/icons/link-2";
+  import SparklesIcon from "@lucide/svelte/icons/sparkles";
   import { fade } from 'svelte/transition';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";

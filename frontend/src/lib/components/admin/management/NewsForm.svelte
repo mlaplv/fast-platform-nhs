@@ -1,16 +1,16 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import Globe from "lucide-svelte/icons/globe";
-  import FileText from "lucide-svelte/icons/file-text";
-  import Image from "lucide-svelte/icons/image";
-  import Settings from "lucide-svelte/icons/settings";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import ImagePlus from "lucide-svelte/icons/image-plus";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import Lock from "lucide-svelte/icons/lock";
-  import Newspaper from "lucide-svelte/icons/newspaper";
-  import AlertTriangle from "lucide-svelte/icons/triangle-alert";
+  import Globe from "@lucide/svelte/icons/globe";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import Image from "@lucide/svelte/icons/image";
+  import Settings from "@lucide/svelte/icons/settings";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import ImagePlus from "@lucide/svelte/icons/image-plus";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Newspaper from "@lucide/svelte/icons/newspaper";
+  import AlertTriangle from "@lucide/svelte/icons/triangle-alert";
   import MissionControlShell from "../ui/MissionControlShell.svelte";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import NeuralEditor from "../ui/tiptap/NeuralEditor.svelte";
@@ -18,8 +18,8 @@
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { apiClient } from "$lib/utils/apiClient";
   import { useNanobot } from "$lib/state/nanobot.svelte";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Plus from "lucide-svelte/icons/plus";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Plus from "@lucide/svelte/icons/plus";
   import type { MediaAsset } from "$lib/types";
   import type { AnalysisCache, CampaignMetrics } from "$lib/state/types";
 

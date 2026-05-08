@@ -1,15 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import {
-    Image as ImageIcon,
-    Link as LinkIcon,
-    Plus,
-    Trash2,
-    RotateCcw,
-    LayoutGrid,
-    Upload,
-    Library
-  } from "lucide-svelte";
+  import Image from "@lucide/svelte/icons/image";
+  import ImageIcon from "@lucide/svelte/icons/image";
+  import LinkIcon from "@lucide/svelte/icons/link";
+  import Plus from "@lucide/svelte/icons/plus";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+  import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+  import Upload from "@lucide/svelte/icons/upload";
+  import Library from "@lucide/svelte/icons/library";
   import { fade } from "svelte/transition";
   import { vuiController } from "$lib/vui";
   import ImageGrid from "$lib/components/xohi/ImageGrid.svelte";

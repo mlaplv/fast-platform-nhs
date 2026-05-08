@@ -3,9 +3,9 @@
   const nanobot = useNanobot();
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import type { FormField } from "$lib/state/types";
-  import Check from "lucide-svelte/icons/check";
+  import Check from "@lucide/svelte/icons/check";
   import MissionControlShell from "./MissionControlShell.svelte";
-  import AlertTriangle from "lucide-svelte/icons/alert-triangle";
+  import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
   import { portal } from "$lib/core/actions/portal";
 
   const dialog = $derived(nanobot.confirmDialog);

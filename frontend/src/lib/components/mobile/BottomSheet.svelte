@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
-  import { X } from 'lucide-svelte';
+  import X from "@lucide/svelte/icons/x";
   import { portal } from '$lib/core/actions/portal';
   import { fade, fly } from 'svelte/transition';
   import type { Snippet } from 'svelte';

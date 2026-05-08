@@ -1,12 +1,10 @@
 <script lang="ts">
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
-  import { fade, fly } from "svelte/transition";
-  import { 
-    CheckCircle2, 
-    AlertCircle, 
-    Info, 
-    X 
-  } from "lucide-svelte";
+  import { fade, fly } from 'svelte/transition';
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
+  import AlertCircle from "@lucide/svelte/icons/alert-circle";
+  import Info from "@lucide/svelte/icons/info";
+  import X from "@lucide/svelte/icons/x";
 
   import { Z_INDEX_ADMIN } from "$lib/core/constants/zIndex";
   const notification = $derived(liveEditStore.notification);

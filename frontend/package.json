@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Fast Platform Monorepo - Token Saver & A2A Edition",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=1024' vite dev --host 0.0.0.0",
     "build": "NODE_OPTIONS='--max-old-space-size=1024' vite build",
@@ -43,8 +44,6 @@
     "@tiptap/starter-kit": "^3.20.4",
     "clsx": "^2.1.1",
     "idb-keyval": "^6.2.2",
-    "lucide": "^0.577.0",
-    "lucide-svelte": "^0.577.0",
     "onnxruntime-web": "^1.24.3",
     "svelte-dnd-action": "^0.9.69",
     "tailwind-merge": "^3.5.0"
@@ -55,6 +54,7 @@
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/vite": "latest",
     "@testing-library/svelte": "^5.3.1",
+    "@types/node": "^25.6.2",
     "jsdom": "^28.1.0",
     "openapi-typescript": "^7.13.0",
     "svelte": "^5.53.8",

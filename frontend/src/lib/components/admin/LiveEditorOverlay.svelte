@@ -1,8 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { fade, fly } from "svelte/transition";
+  import { fade, fly } from 'svelte/transition';
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
-  import { X, Save, RefreshCcw } from "lucide-svelte";
+  import Save from "@lucide/svelte/icons/save";
+  import RefreshCcw from "@lucide/svelte/icons/refresh-ccw";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/zIndex";
   
   // Dynamic Editors

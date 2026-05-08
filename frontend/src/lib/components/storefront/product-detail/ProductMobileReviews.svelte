@@ -1,7 +1,17 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { ChevronRight, MessageCircleMore, Star, Loader2, Play, CheckCircle2, PenLine, MoreHorizontal, ThumbsUp, Sparkles, MinusCircle } from 'lucide-svelte';
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import MessageCircleMore from "@lucide/svelte/icons/message-circle-more";
+  import Star from "@lucide/svelte/icons/star";
+  import Loader2 from "@lucide/svelte/icons/loader-2";
+  import Play from "@lucide/svelte/icons/play";
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
+  import PenLine from "@lucide/svelte/icons/pen-line";
+  import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
+  import ThumbsUp from "@lucide/svelte/icons/thumbs-up";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import MinusCircle from "@lucide/svelte/icons/minus-circle";
   import type { Product, Review, ReviewStats } from '$lib/types';
   import { apiClient } from '$lib/utils/apiClient';
 

@@ -3,12 +3,24 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { fade, fly } from 'svelte/transition';
   import { untrack } from 'svelte';
-  import { formatCurrency, formatDate } from '$lib/utils/format';
-  import { 
-    Package, Truck, CheckCircle, XCircle, Clock, ShoppingBag, Search, MessageSquare,
-    FileText, ShieldCheck, Gift, Sparkles, AlertCircle, LayoutGrid,
-    X, ChevronRight, RefreshCw
-  } from 'lucide-svelte';
+  import { formatDate } from '$lib/utils/format';
+  import Package from "@lucide/svelte/icons/package";
+  import Truck from "@lucide/svelte/icons/truck";
+  import CheckCircle from "@lucide/svelte/icons/check-circle";
+  import XCircle from "@lucide/svelte/icons/x-circle";
+  import Clock from "@lucide/svelte/icons/clock";
+  import ShoppingBag from "@lucide/svelte/icons/shopping-bag";
+  import Search from "@lucide/svelte/icons/search";
+  import MessageSquare from "@lucide/svelte/icons/message-square";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Gift from "@lucide/svelte/icons/gift";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import AlertCircle from "@lucide/svelte/icons/alert-circle";
+  import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+  import X from "@lucide/svelte/icons/x";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import type { Order, OrderStatus } from '$lib/types/commerce/order';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import type { Product } from '$lib/types';

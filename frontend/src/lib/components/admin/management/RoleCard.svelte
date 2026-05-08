@@ -1,6 +1,6 @@
 <script lang="ts">
-  import CircleCheck from "lucide-svelte/icons/circle-check";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
+  import CircleCheck from "@lucide/svelte/icons/circle-check";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
 
   import type { Role } from "$lib/types";
 

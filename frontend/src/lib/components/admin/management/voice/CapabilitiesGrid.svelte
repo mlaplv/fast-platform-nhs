@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import Brain from "lucide-svelte/icons/brain";
+  import Brain from "@lucide/svelte/icons/brain";
 
   interface Capability {
     id: string;

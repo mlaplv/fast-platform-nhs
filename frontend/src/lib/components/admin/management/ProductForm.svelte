@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Settings from "lucide-svelte/icons/settings";
-  import Image from "lucide-svelte/icons/image";
-  import FileText from "lucide-svelte/icons/file-text";
-  import ShoppingCart from "lucide-svelte/icons/shopping-cart";
-  import Sparkles from "lucide-svelte/icons/sparkles";
+  import Settings from "@lucide/svelte/icons/settings";
+  import Image from "@lucide/svelte/icons/image";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import MissionControlShell from "../ui/MissionControlShell.svelte";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import NeuralEditor from "../ui/tiptap/NeuralEditor.svelte";

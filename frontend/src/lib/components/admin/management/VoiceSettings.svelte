@@ -6,8 +6,8 @@
   import { vuiController } from "$lib/vui";
   import type { BaseWidgetProps } from "$lib/types";
 
-  import Save from "lucide-svelte/icons/save";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import Save from "@lucide/svelte/icons/save";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 
   import TriggersGrid from "./voice/TriggersGrid.svelte";
   import LexiconControl from "./voice/LexiconControl.svelte";

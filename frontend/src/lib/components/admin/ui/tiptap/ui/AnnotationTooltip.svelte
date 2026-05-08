@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Sparkles from 'lucide-svelte/icons/sparkles';
-  import Check from 'lucide-svelte/icons/check';
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Check from "@lucide/svelte/icons/check";
 
   import { onMount } from "svelte";
 

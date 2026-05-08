@@ -1,6 +1,13 @@
 <script lang="ts">
-  import { fade, slide, fly } from 'svelte/transition';
-  import { Sparkles, ShieldCheck, Zap, Droplets, Wind, Layers, Heart, Smile } from 'lucide-svelte';
+  import { fade, fly } from 'svelte/transition';
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Droplets from "@lucide/svelte/icons/droplets";
+  import Wind from "@lucide/svelte/icons/wind";
+  import Layers from "@lucide/svelte/icons/layers";
+  import Heart from "@lucide/svelte/icons/heart";
+  import Smile from "@lucide/svelte/icons/smile";
 
   interface SkinData {
     skinType: string;

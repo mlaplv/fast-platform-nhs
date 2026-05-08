@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Search from "lucide-svelte/icons/search";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import Check from "lucide-svelte/icons/check";
+  import Search from "@lucide/svelte/icons/search";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Check from "@lucide/svelte/icons/check";
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
 
   let {

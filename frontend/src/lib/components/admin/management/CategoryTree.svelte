@@ -1,16 +1,16 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
-  import FolderTree from "lucide-svelte/icons/folder-tree";
-  import Plus from "lucide-svelte/icons/plus";
-  import ChevronRight from "lucide-svelte/icons/chevron-right";
-  import Pencil from "lucide-svelte/icons/pencil";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import CheckSquare from "lucide-svelte/icons/check-square";
-  import Square from "lucide-svelte/icons/square";
-  import Layers from "lucide-svelte/icons/layers";
-  import GripVertical from "lucide-svelte/icons/grip-vertical";
-  import Monitor from "lucide-svelte/icons/monitor";
-  import Smartphone from "lucide-svelte/icons/smartphone";
+  import FolderTree from "@lucide/svelte/icons/folder-tree";
+  import Plus from "@lucide/svelte/icons/plus";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import CheckSquare from "@lucide/svelte/icons/check-square";
+  import Square from "@lucide/svelte/icons/square";
+  import Layers from "@lucide/svelte/icons/layers";
+  import GripVertical from "@lucide/svelte/icons/grip-vertical";
+  import Monitor from "@lucide/svelte/icons/monitor";
+  import Smartphone from "@lucide/svelte/icons/smartphone";
   import { dndzone } from "svelte-dnd-action";
 
   import type { Category } from "$lib/types";

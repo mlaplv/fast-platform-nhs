@@ -2,13 +2,18 @@
   import { fade, fly, scale } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import type { QuizQuestion, ProductMetadata, Product } from '$lib/types';
+  import type { QuizQuestion, Product, ProductMetadata } from '$lib/types';
   import QuizIcon from './QuizIcon.svelte';
   import DiagnosticScanner from './slug/DiagnosticScanner.svelte';
   import "./slug/LiquidEffects.css";
-
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
-  import { Plus, Trash2, PlusCircle, Target, RefreshCcw, GripVertical, ArrowLeft } from 'lucide-svelte';
+  import Plus from "@lucide/svelte/icons/plus";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import PlusCircle from "@lucide/svelte/icons/plus-circle";
+  import Target from "@lucide/svelte/icons/target";
+  import RefreshCcw from "@lucide/svelte/icons/refresh-ccw";
+  import GripVertical from "@lucide/svelte/icons/grip-vertical";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 
   let { 
     product, 

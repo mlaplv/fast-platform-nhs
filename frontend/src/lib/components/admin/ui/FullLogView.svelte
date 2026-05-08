@@ -2,11 +2,11 @@
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { fade, fly, scale } from "svelte/transition";
-  import X from "lucide-svelte/icons/x";
-  import Terminal from "lucide-svelte/icons/terminal";
-  import Cpu from "lucide-svelte/icons/cpu";
-  import Activity from "lucide-svelte/icons/activity";
-  import Play from "lucide-svelte/icons/play";
+  import X from "@lucide/svelte/icons/x";
+  import Terminal from "@lucide/svelte/icons/terminal";
+  import Cpu from "@lucide/svelte/icons/cpu";
+  import Activity from "@lucide/svelte/icons/activity";
+  import Play from "@lucide/svelte/icons/play";
 
   import MissionControlShell from "./MissionControlShell.svelte";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";

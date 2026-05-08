@@ -1,19 +1,17 @@
 <script lang="ts">
-  import {
-    Sparkles,
-    MessageSquare,
-    FileText,
-    Search,
-    ShieldCheck,
-    ShieldAlert,
-    Globe,
-    TrendingUp,
-    Calendar as CalendarIcon,
-    ChevronRight,
-    Zap
-  } from "lucide-svelte";
+    import Sparkles from "@lucide/svelte/icons/sparkles";
+  import MessageSquare from "@lucide/svelte/icons/message-square";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import Search from "@lucide/svelte/icons/search";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+  import Globe from "@lucide/svelte/icons/globe";
+  import TrendingUp from "@lucide/svelte/icons/trending-up";
+  import CalendarIcon from "@lucide/svelte/icons/calendar";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Zap from "@lucide/svelte/icons/zap";
   import { onMount } from "svelte";
-  import { ChevronDown } from "lucide-svelte";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import type { CampaignKeywords } from "$lib/state/types";
   import { createIdeaController } from "$lib/state/xohiIdea.svelte";
   import { useNanobot } from "$lib/state/nanobot.svelte";

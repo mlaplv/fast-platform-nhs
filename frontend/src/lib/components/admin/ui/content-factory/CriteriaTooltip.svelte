@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { ShieldCheck, BarChart2, Sparkles } from "lucide-svelte";
+    import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import BarChart2 from "@lucide/svelte/icons/bar-chart-2";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
 
   interface Props {
     type: 'copyright' | 'seo' | 'ai';

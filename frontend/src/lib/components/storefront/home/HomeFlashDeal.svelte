@@ -1,9 +1,13 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
-  import { slugify, trimProductName, formatCurrency } from '$lib/utils/format';
+  import { slugify } from '$lib/utils/slug';
+  import { trimProductName } from '$lib/utils/product';
+  import { formatCurrency } from '$lib/utils/format';
   import type { Product } from '$lib/types';
-  import { ChevronLeft, ChevronRight, Truck } from 'lucide-svelte';
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Truck from "@lucide/svelte/icons/truck";
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 

@@ -1,13 +1,13 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import ExternalLink from "lucide-svelte/icons/external-link";
-  import TrendingUp from "lucide-svelte/icons/trending-up";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
-  import ShieldAlert from "lucide-svelte/icons/shield-alert";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import Zap from "lucide-svelte/icons/zap";
-  import Globe from "lucide-svelte/icons/globe";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import TrendingUp from "@lucide/svelte/icons/trending-up";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Globe from "@lucide/svelte/icons/globe";
   import type { MarketPriceIntel } from "$lib/types";
   import { formatCurrency } from "$lib/utils/format";
   import { apiClient } from "$lib/utils/apiClient";

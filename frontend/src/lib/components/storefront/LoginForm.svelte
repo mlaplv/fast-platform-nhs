@@ -1,11 +1,11 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
-  import LucideLock from "lucide-svelte/icons/lock";
-  import LucideMail from "lucide-svelte/icons/mail";
-  import LucideArrowRight from "lucide-svelte/icons/arrow-right";
-  import LucideEye from "lucide-svelte/icons/eye";
-  import LucideEyeOff from "lucide-svelte/icons/eye-off";
-  import LucideFingerprint from "lucide-svelte/icons/fingerprint";
+  import LucideLock from "@lucide/svelte/icons/lock";
+  import LucideMail from "@lucide/svelte/icons/mail";
+  import LucideArrowRight from "@lucide/svelte/icons/arrow-right";
+  import LucideEye from "@lucide/svelte/icons/eye";
+  import LucideEyeOff from "@lucide/svelte/icons/eye-off";
+  import LucideFingerprint from "@lucide/svelte/icons/fingerprint";
 
   let { onLogin, isLoading, error } = $props<{
     onLogin: (email: string, password: string, rememberMe: boolean) => void;

@@ -4,7 +4,10 @@
   import ProductGrid from './ProductGrid.svelte';
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import { ChevronLeft, Search, Filter, MessageCircleQuestion } from 'lucide-svelte';
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import Search from "@lucide/svelte/icons/search";
+  import Filter from "@lucide/svelte/icons/filter";
+  import MessageCircleQuestion from "@lucide/svelte/icons/message-circle-question";
   import type { Product, ProductFacets, Category, ReviewStats } from '$lib/types';
   import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';
   import ProductMobileReviews from '../product-detail/ProductMobileReviews.svelte';

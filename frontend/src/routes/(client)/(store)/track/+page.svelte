@@ -4,11 +4,11 @@
   import { apiClient } from '$lib/utils/apiClient';
   import { goto } from '$app/navigation';
   import TrackMobile from '$lib/components/mobile/sections/TrackMobile.svelte';
-  import Search from 'lucide-svelte/icons/search';
-  import Hash from 'lucide-svelte/icons/hash';
-  import Phone from 'lucide-svelte/icons/phone';
-  import ArrowRight from 'lucide-svelte/icons/arrow-right';
-  import ArrowLeft from 'lucide-svelte/icons/arrow-left';
+  import Search from "@lucide/svelte/icons/search";
+  import Hash from "@lucide/svelte/icons/hash";
+  import Phone from "@lucide/svelte/icons/phone";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
 
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';

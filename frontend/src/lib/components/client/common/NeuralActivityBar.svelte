@@ -1,9 +1,11 @@
 <script lang="ts">
   import { fomoStore } from '$lib/state/commerce/fomo.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { fly, fade } from 'svelte/transition';
+  import { fade, fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { ShoppingBag, Users, Zap } from 'lucide-svelte';
+  import ShoppingBag from "@lucide/svelte/icons/shopping-bag";
+  import Users from "@lucide/svelte/icons/users";
+  import Zap from "@lucide/svelte/icons/zap";
   import { onDestroy } from 'svelte';
   import { browser } from '$app/environment';
 

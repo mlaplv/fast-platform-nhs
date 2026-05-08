@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import MissionControlShell from "$lib/components/admin/ui/MissionControlShell.svelte";
-  import Globe from "lucide-svelte/icons/globe";
-  import ExternalLink from "lucide-svelte/icons/external-link";
-  import Shield from "lucide-svelte/icons/shield";
-  import Type from "lucide-svelte/icons/type";
+  import Globe from "@lucide/svelte/icons/globe";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import Shield from "@lucide/svelte/icons/shield";
+  import Type from "@lucide/svelte/icons/type";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   interface LinkData {

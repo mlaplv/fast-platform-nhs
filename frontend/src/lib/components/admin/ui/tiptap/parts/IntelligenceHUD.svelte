@@ -6,10 +6,10 @@
    * Elite V2.7: Strictly typed, no any, high-performance logic.
    */
   import { fly, fade } from 'svelte/transition';
-  import TrendingUpIcon from 'lucide-svelte/icons/trending-up';
-  import XIcon from 'lucide-svelte/icons/x';
-  import Maximize2Icon from 'lucide-svelte/icons/maximize-2';
-  import Minimize2Icon from 'lucide-svelte/icons/minimize-2';
+  import TrendingUpIcon from "@lucide/svelte/icons/trending-up";
+  import XIcon from "@lucide/svelte/icons/x";
+  import Maximize2Icon from "@lucide/svelte/icons/maximize-2";
+  import Minimize2Icon from "@lucide/svelte/icons/minimize-2";
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import type { CopyrightResult, SEOResult, AIInspectResult, ToolbarAction, NeuralAnalysisController } from '$lib/state/types';

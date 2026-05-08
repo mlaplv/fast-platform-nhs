@@ -1,12 +1,17 @@
 <script lang="ts">
   import type { Product } from '$lib/types';
-  import { X, ShieldCheck, Info, AudioLines, VolumeX } from 'lucide-svelte';
+    import X from "@lucide/svelte/icons/x";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Info from "@lucide/svelte/icons/info";
+  import AudioLines from "@lucide/svelte/icons/audio-lines";
+  import VolumeX from "@lucide/svelte/icons/volume-x";
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { portal } from '$lib/core/actions/portal';
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
-  import { ShoppingCart, ArrowRight } from 'lucide-svelte';
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import { formatCurrency } from '$lib/utils/format';
   import { fly, fade } from 'svelte/transition';
 

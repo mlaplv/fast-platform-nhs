@@ -1,9 +1,10 @@
 <script lang="ts">
   import { apiClient } from '$lib/utils/apiClient';
-  import { authStore, type UserAddress } from '$lib/state/authStore.svelte';
+  import type UserAddress } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { onMount } from 'svelte';
-  import { Plus, MapPin } from 'lucide-svelte';
+  import Plus from "@lucide/svelte/icons/plus";
+  import MapPin from "@lucide/svelte/icons/map-pin";
   import AddressList from './AddressList.svelte';
   import AddressForm from './AddressForm.svelte';
   import { fade } from 'svelte/transition';

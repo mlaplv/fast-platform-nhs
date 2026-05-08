@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { AlertTriangle, X, Eye } from "lucide-svelte";
+    import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
+  import X from "@lucide/svelte/icons/x";
+  import Eye from "@lucide/svelte/icons/eye";
 
   let {
     blockers,

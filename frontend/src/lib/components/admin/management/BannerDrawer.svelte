@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { fade, fly } from "svelte/transition";
-  import { 
-    X, Plus, Save, Upload, ExternalLink, RefreshCw, 
-    Globe, Monitor, Smartphone, Activity 
-  } from "lucide-svelte";
+  import { fade, fly } from 'svelte/transition';
+  import Plus from "@lucide/svelte/icons/plus";
+  import Save from "@lucide/svelte/icons/save";
+  import Upload from "@lucide/svelte/icons/upload";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Globe from "@lucide/svelte/icons/globe";
+  import Monitor from "@lucide/svelte/icons/monitor";
+  import Smartphone from "@lucide/svelte/icons/smartphone";
+  import Activity from "@lucide/svelte/icons/activity";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";

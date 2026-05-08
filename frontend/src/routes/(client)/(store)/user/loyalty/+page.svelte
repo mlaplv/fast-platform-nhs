@@ -2,7 +2,13 @@
   import { onMount } from 'svelte';
   import { loyaltyStore } from '$lib/state/commerce/loyalty.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
-  import { Star, TrendingUp, History, Info, ChevronRight, Gift, Wallet } from 'lucide-svelte';
+  import Star from "@lucide/svelte/icons/star";
+  import TrendingUp from "@lucide/svelte/icons/trending-up";
+  import History from "@lucide/svelte/icons/history";
+  import Info from "@lucide/svelte/icons/info";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Gift from "@lucide/svelte/icons/gift";
+  import Wallet from "@lucide/svelte/icons/wallet";
   import { fade, fly } from 'svelte/transition';
   import UserLayout from '$lib/components/storefront/user/UserLayout.svelte';
   import MemberCard from '$lib/components/storefront/user/MemberCard.svelte';

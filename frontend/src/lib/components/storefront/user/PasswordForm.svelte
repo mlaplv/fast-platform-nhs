@@ -4,7 +4,8 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { fallbackSha256 } from '$lib/utils/cryptoFallback';
   import { fade, slide } from 'svelte/transition';
-  import { Eye, EyeOff } from 'lucide-svelte';
+  import Eye from "@lucide/svelte/icons/eye";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
 
   const ui = getClientUi();
 

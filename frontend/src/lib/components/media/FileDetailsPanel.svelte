@@ -1,7 +1,20 @@
 <script lang="ts">
-    import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
-    import { fade, slide, scale } from 'svelte/transition';
-    import { X, Trash2, RotateCcw, Edit3, Link, Wand2, Maximize2, ShieldCheck, Tag, Hash, Activity, Clock, HardDrive, Image as ImageIcon, Eye } from 'lucide-svelte';
+  import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
+  import { fade, scale, slide } from 'svelte/transition';
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+  import Edit3 from "@lucide/svelte/icons/edit-3";
+  import Link from "@lucide/svelte/icons/link";
+  import Wand2 from "@lucide/svelte/icons/wand-2";
+  import Maximize2 from "@lucide/svelte/icons/maximize-2";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Tag from "@lucide/svelte/icons/tag";
+  import Hash from "@lucide/svelte/icons/hash";
+  import Activity from "@lucide/svelte/icons/activity";
+  import Clock from "@lucide/svelte/icons/clock";
+  import HardDrive from "@lucide/svelte/icons/hard-drive";
+  import ImageIcon from "@lucide/svelte/icons/image";
+  import Eye from "@lucide/svelte/icons/eye";
     import type { MediaAsset } from '$lib/state/types';
     import { mediaStore } from '$lib/state/media.svelte';
     import { resolveMediaUrl, resolveThumbnailUrl, formatBytes, formatDate } from '$lib/state/utils';

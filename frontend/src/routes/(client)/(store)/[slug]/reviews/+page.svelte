@@ -1,22 +1,20 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import {
-    ChevronLeft,
-    Star,
-    ThumbsUp,
-    MessageCircle,
-    Share2,
-    ShoppingCart,
-    Loader2,
-    Play,
-    Camera,
-    Clock,
-    MoreHorizontal,
-    CheckCircle2,
-    Send,
-    X,
-    PenLine
-  } from 'lucide-svelte';
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import Star from "@lucide/svelte/icons/star";
+  import ThumbsUp from "@lucide/svelte/icons/thumbs-up";
+  import MessageCircle from "@lucide/svelte/icons/message-circle";
+  import Share2 from "@lucide/svelte/icons/share-2";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import Loader2 from "@lucide/svelte/icons/loader-2";
+  import Play from "@lucide/svelte/icons/play";
+  import Camera from "@lucide/svelte/icons/camera";
+  import Clock from "@lucide/svelte/icons/clock";
+  import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
+  import Send from "@lucide/svelte/icons/send";
+  import X from "@lucide/svelte/icons/x";
+  import PenLine from "@lucide/svelte/icons/pen-line";
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { authStore } from '$lib/state/authStore.svelte';

@@ -3,11 +3,11 @@
     import { fade } from 'svelte/transition';
     import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
-    import Activity from "lucide-svelte/icons/activity";
-    import Zap from "lucide-svelte/icons/zap";
-    import ShieldAlert from "lucide-svelte/icons/shield-alert";
-    import Brain from "lucide-svelte/icons/brain";
-    import ChevronRight from "lucide-svelte/icons/chevron-right";
+    import Activity from "@lucide/svelte/icons/activity";
+    import Zap from "@lucide/svelte/icons/zap";
+    import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+    import Brain from "@lucide/svelte/icons/brain";
+    import ChevronRight from "@lucide/svelte/icons/chevron-right";
 
     let status = $state(null);
     let loading = $state(true);

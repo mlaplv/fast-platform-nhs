@@ -1,11 +1,11 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
   import { untrack } from "svelte";
-  import ShoppingCart from "lucide-svelte/icons/shopping-cart";
-  import Search from "lucide-svelte/icons/search";
-  import Package from "lucide-svelte/icons/package";
-  import TrendingUp from "lucide-svelte/icons/trending-up";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import Search from "@lucide/svelte/icons/search";
+  import Package from "@lucide/svelte/icons/package";
+  import TrendingUp from "@lucide/svelte/icons/trending-up";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import type { Order, BaseWidgetProps } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();

@@ -1,26 +1,36 @@
 <script lang="ts">
   import type { RewriteResult } from '$lib/state/types';
-  import { ShieldCheck, Info, Sparkles, Droplet, Star, CheckCircle2, Zap } from 'lucide-svelte';
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Info from "@lucide/svelte/icons/info";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Droplet from "@lucide/svelte/icons/droplet";
+  import Star from "@lucide/svelte/icons/star";
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
+  import Zap from "@lucide/svelte/icons/zap";
 
-  export let data: RewriteResult;
-  export let compact: boolean = false; // To adapt for mobile or admin
+  let { 
+    data, 
+    compact = false 
+  }: { 
+    data: RewriteResult; 
+    compact?: boolean 
+  } = $props();
 
-  // Reactive parsing logic in case data is passed as a JSON string
-  let parsedData: RewriteResult | null = null;
-  $: {
+  // Elite V2.2: Zero-Latency reactive parsing using $derived
+  const parsedData = $derived.by(() => {
+    if (!data) return null;
     if (typeof data === 'string') {
       try {
-        parsedData = JSON.parse(data);
+        return JSON.parse(data) as RewriteResult;
       } catch (e) {
         console.error("InteractiveDashboard: Failed to parse JSON data", e);
-        parsedData = null;
+        return null;
       }
-    } else {
-      parsedData = data;
     }
-  }
+    return data;
+  });
 
-  let activeTab: 'ingredients' | 'benefits' | 'routine' = 'benefits';
+  let activeTab = $state<'ingredients' | 'benefits' | 'routine'>('benefits');
 </script>
 
 {#if parsedData}
@@ -48,13 +58,13 @@
   <!-- INTERACTIVE TABS -->
   <div class="interactive-tabs">
     <div class="tab-headers">
-      <button class:active={activeTab === 'benefits'} on:click={() => activeTab = 'benefits'}>
+      <button class:active={activeTab === 'benefits'} onclick={() => activeTab = 'benefits'}>
         <Star size={16} /> Hiệu quả
       </button>
-      <button class:active={activeTab === 'ingredients'} on:click={() => activeTab = 'ingredients'}>
+      <button class:active={activeTab === 'ingredients'} onclick={() => activeTab = 'ingredients'}>
         <Droplet size={16} /> Thành phần
       </button>
-      <button class:active={activeTab === 'routine'} on:click={() => activeTab = 'routine'}>
+      <button class:active={activeTab === 'routine'} onclick={() => activeTab = 'routine'}>
         <CheckCircle2 size={16} /> Cách dùng
       </button>
     </div>

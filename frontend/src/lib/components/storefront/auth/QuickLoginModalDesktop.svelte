@@ -3,7 +3,6 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
-  import { X } from 'lucide-svelte';
   import { fade, scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
 

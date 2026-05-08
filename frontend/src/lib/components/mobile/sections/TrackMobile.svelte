@@ -1,6 +1,12 @@
 <script lang="ts">
   import { fade, fly, scale } from 'svelte/transition';
-  import { Search, Phone, Hash, ArrowLeft, Loader2, Sparkles, Navigation } from 'lucide-svelte';
+  import Search from "@lucide/svelte/icons/search";
+  import Phone from "@lucide/svelte/icons/phone";
+  import Hash from "@lucide/svelte/icons/hash";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import Loader2 from "@lucide/svelte/icons/loader-2";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Navigation from "@lucide/svelte/icons/navigation";
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { useNanobot } from '$lib/state/nanobot.svelte';

@@ -6,10 +6,10 @@
   import type { AuditorAnalysis } from "$lib/state/types";
   import MissionControlShell from "./ui/MissionControlShell.svelte";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
-  import ShieldAlert from "lucide-svelte/icons/shield-alert";
-  import Check from "lucide-svelte/icons/check";
-  import X from "lucide-svelte/icons/x";
-  import Search from "lucide-svelte/icons/search";
+  import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+  import Check from "@lucide/svelte/icons/check";
+  import X from "@lucide/svelte/icons/x";
+  import Search from "@lucide/svelte/icons/search";
 
   let analysis = $state<AuditorAnalysis | null>(null);
   let isAuditing = $state(false);

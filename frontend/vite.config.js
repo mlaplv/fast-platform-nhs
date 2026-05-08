@@ -37,6 +37,6 @@ export default defineConfig({
 		allowedHosts: true
 	},
 	optimizeDeps: {
-		include: ['lucide-svelte', 'idb-keyval', 'clsx', 'tailwind-merge', '@ricky0123/vad-web', 'onnxruntime-web']
+		include: ['idb-keyval', 'clsx', 'tailwind-merge', '@ricky0123/vad-web', 'onnxruntime-web']
 	}
 });

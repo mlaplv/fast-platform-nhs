@@ -1,13 +1,13 @@
 <script lang="ts">
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
-  import HelpCircle from "lucide-svelte/icons/help-circle";
-  import Inbox from "lucide-svelte/icons/inbox";
-  import Settings from "lucide-svelte/icons/settings";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Brain from "lucide-svelte/icons/brain";
-  import Gift from "lucide-svelte/icons/gift";
-  import ArrowUpRight from "lucide-svelte/icons/arrow-up-right";
+  import HelpCircle from "@lucide/svelte/icons/help-circle";
+  import Inbox from "@lucide/svelte/icons/inbox";
+  import Settings from "@lucide/svelte/icons/settings";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Brain from "@lucide/svelte/icons/brain";
+  import Gift from "@lucide/svelte/icons/gift";
+  import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
   import { fade, fly } from "svelte/transition";
 
   const actions = [

@@ -5,8 +5,8 @@
   import { mediaStore } from "$lib/state/media.svelte";
   import { resolveMediaUrl } from "$lib/state/utils";
   import MissionControlShell from "$lib/components/admin/ui/MissionControlShell.svelte";
-  import ImagePlus from "lucide-svelte/icons/image-plus";
-  import Play from "lucide-svelte/icons/play";
+  import ImagePlus from "@lucide/svelte/icons/image-plus";
+  import Play from "@lucide/svelte/icons/play";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   function isVideoUrl(url: string): boolean {

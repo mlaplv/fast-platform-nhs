@@ -4,7 +4,10 @@
   import ImageSlot from "./ImageSlot.svelte";
   import { dndzone } from "svelte-dnd-action";
   import { flip } from "svelte/animate";
-  import { Sparkles, LayoutGrid, Upload, RotateCcw } from "lucide-svelte";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+  import Upload from "@lucide/svelte/icons/upload";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
   import { untrack } from "svelte";
 
   let {

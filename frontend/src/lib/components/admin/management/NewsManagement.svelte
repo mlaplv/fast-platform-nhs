@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Newspaper from "lucide-svelte/icons/newspaper";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Newspaper from "@lucide/svelte/icons/newspaper";
   import type { Article, BaseWidgetProps } from "$lib/types";
   import type { AnalysisCache, CampaignMetrics } from "$lib/state/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";

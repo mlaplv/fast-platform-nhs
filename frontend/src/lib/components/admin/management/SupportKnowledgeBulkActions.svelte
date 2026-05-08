@@ -1,9 +1,9 @@
 <script lang="ts">
     import { supportKbAdmin as kb } from '$lib/state/admin/supportKnowledge.svelte';
-    import Trash2 from "lucide-svelte/icons/trash-2";
-    import Power from "lucide-svelte/icons/power";
-    import PowerOff from "lucide-svelte/icons/power-off";
-    import X from "lucide-svelte/icons/x";
+    import Trash2 from "@lucide/svelte/icons/trash-2";
+    import Power from "@lucide/svelte/icons/power";
+    import PowerOff from "@lucide/svelte/icons/power-off";
+    import X from "@lucide/svelte/icons/x";
     import { fade, fly } from "svelte/transition";
 
     let selectedCount = $derived(kb.selectedIds.length);

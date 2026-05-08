@@ -1,6 +1,12 @@
 <script lang="ts">
   import { fade, scale } from 'svelte/transition';
-  import { X, Check, Maximize2, Move, Type, Image as ImageIcon, Trash2, RotateCcw } from 'lucide-svelte';
+  import Check from "@lucide/svelte/icons/check";
+  import Maximize2 from "@lucide/svelte/icons/maximize-2";
+  import Move from "@lucide/svelte/icons/move";
+  import Type from "@lucide/svelte/icons/type";
+  import ImageIcon from "@lucide/svelte/icons/image";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
   import { mediaStore } from '$lib/state/media.svelte';
   import type { MediaAsset } from '$lib/state/types';
   import { resolveMediaUrl, resolveThumbnailUrl } from '$lib/state/utils';

@@ -6,7 +6,7 @@
   import { fade, scale } from 'svelte/transition';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
-  import { X, HelpCircle } from 'lucide-svelte';
+  import HelpCircle from "@lucide/svelte/icons/help-circle";
   import "./ScienceBento.css";
 
   const shopStore = getShopStore();

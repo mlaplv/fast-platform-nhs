@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ScanFace } from "lucide-svelte";
+    import ScanFace from "@lucide/svelte/icons/scan-face";
   import { onMount } from "svelte";
 
   let {

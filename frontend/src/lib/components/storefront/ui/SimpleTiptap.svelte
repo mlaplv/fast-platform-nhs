@@ -4,7 +4,9 @@
   import StarterKit from '@tiptap/starter-kit';
   import Placeholder from '@tiptap/extension-placeholder';
   import CharacterCount from '@tiptap/extension-character-count';
-  import { Bold, Italic, List } from 'lucide-svelte';
+  import Bold from "@lucide/svelte/icons/bold";
+  import Italic from "@lucide/svelte/icons/italic";
+  import List from "@lucide/svelte/icons/list";
 
   interface Props {
     content?: string;

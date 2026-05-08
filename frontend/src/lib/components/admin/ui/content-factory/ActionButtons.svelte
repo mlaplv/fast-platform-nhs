@@ -1,12 +1,12 @@
 <script lang="ts">
-  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
-  import Save from "lucide-svelte/icons/save";
-  import Check from "lucide-svelte/icons/check";
-  import ArrowLeft from "lucide-svelte/icons/arrow-left";
-  import ArrowRight from "lucide-svelte/icons/arrow-right";
-  import ChevronRight from "lucide-svelte/icons/chevron-right";
-  import Loader2 from "lucide-svelte/icons/loader-2";
-  import Play from "lucide-svelte/icons/play";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+  import Save from "@lucide/svelte/icons/save";
+  import Check from "@lucide/svelte/icons/check";
+  import ArrowLeft from "@lucide/svelte/icons/arrow-left";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Loader2 from "@lucide/svelte/icons/loader-2";
+  import Play from "@lucide/svelte/icons/play";
   import { onMount } from "svelte";
   import type { CampaignStatus } from "$lib/state/types";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";

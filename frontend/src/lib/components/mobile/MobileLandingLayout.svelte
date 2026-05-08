@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Music } from 'lucide-svelte';
+  import Music from "@lucide/svelte/icons/music";
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import MobileActionStack from './MobileActionStack.svelte';

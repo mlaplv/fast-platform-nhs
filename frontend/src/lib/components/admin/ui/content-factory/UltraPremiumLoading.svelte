@@ -2,11 +2,11 @@
   import { onMount } from "svelte";
   import { fade, scale, fly } from "svelte/transition";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Cpu from "lucide-svelte/icons/cpu";
-  import Zap from "lucide-svelte/icons/zap";
-  import Activity from "lucide-svelte/icons/activity";
-  import Brain from "lucide-svelte/icons/brain";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Cpu from "@lucide/svelte/icons/cpu";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Activity from "@lucide/svelte/icons/activity";
+  import Brain from "@lucide/svelte/icons/brain";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
 

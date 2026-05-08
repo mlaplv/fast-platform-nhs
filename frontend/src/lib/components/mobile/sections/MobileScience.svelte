@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { ShieldCheck, Zap, Droplets, HelpCircle } from 'lucide-svelte';
+    import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Droplets from "@lucide/svelte/icons/droplets";
+  import HelpCircle from "@lucide/svelte/icons/help-circle";
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import './MobileScience.css';

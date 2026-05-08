@@ -5,21 +5,21 @@
     import NeuralPulse from '../widgets/NeuralPulse.svelte';
     
     // Icons
-    import Brain from "lucide-svelte/icons/brain";
-    import RefreshCw from "lucide-svelte/icons/refresh-cw";
-    import Trash2 from "lucide-svelte/icons/trash-2";
-    import AlertTriangle from "lucide-svelte/icons/alert-triangle";
-    import CheckCircle2 from "lucide-svelte/icons/check-circle-2";
-    import Activity from "lucide-svelte/icons/activity";
-    import ShieldCheck from "lucide-svelte/icons/shield-check";
-    import Database from "lucide-svelte/icons/database";
-    import Cpu from "lucide-svelte/icons/cpu";
-    import History from "lucide-svelte/icons/history";
-    import BookOpen from "lucide-svelte/icons/book-open";
-    import Zap from "lucide-svelte/icons/zap";
-    import ChevronRight from "lucide-svelte/icons/chevron-right";
-    import Info from "lucide-svelte/icons/info";
-    import Terminal from "lucide-svelte/icons/terminal";
+    import Brain from "@lucide/svelte/icons/brain";
+    import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+    import Trash2 from "@lucide/svelte/icons/trash-2";
+    import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
+    import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
+    import Activity from "@lucide/svelte/icons/activity";
+    import ShieldCheck from "@lucide/svelte/icons/shield-check";
+    import Database from "@lucide/svelte/icons/database";
+    import Cpu from "@lucide/svelte/icons/cpu";
+    import History from "@lucide/svelte/icons/history";
+    import BookOpen from "@lucide/svelte/icons/book-open";
+    import Zap from "@lucide/svelte/icons/zap";
+    import ChevronRight from "@lucide/svelte/icons/chevron-right";
+    import Info from "@lucide/svelte/icons/info";
+    import Terminal from "@lucide/svelte/icons/terminal";
 
     let { isWidget = false } = $props();
     import { useNanobot } from "$lib/state/nanobot.svelte";

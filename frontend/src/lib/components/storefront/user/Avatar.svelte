@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Camera } from 'lucide-svelte';
+    import Camera from "@lucide/svelte/icons/camera";
   import { apiClient } from '$lib/utils/apiClient';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';

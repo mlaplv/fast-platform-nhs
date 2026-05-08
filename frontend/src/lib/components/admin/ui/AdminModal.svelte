@@ -1,8 +1,8 @@
 <script lang="ts">
   import { fade, fly, scale } from "svelte/transition";
   import { onMount, type Snippet, type Component } from "svelte";
-  import X from "lucide-svelte/icons/x";
-  import Terminal from "lucide-svelte/icons/terminal";
+  import X from "@lucide/svelte/icons/x";
+  import Terminal from "@lucide/svelte/icons/terminal";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import SupremeCloseButton from "./SupremeCloseButton.svelte";
 

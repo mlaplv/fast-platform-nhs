@@ -1,9 +1,11 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
-  import { trimProductName, formatCurrency } from '$lib/utils/format';
+  import { formatCurrency } from '$lib/utils/format';
   import { fade } from 'svelte/transition';
-  import { ChevronLeft, Search, Filter } from 'lucide-svelte';
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import Search from "@lucide/svelte/icons/search";
+  import Filter from "@lucide/svelte/icons/filter";
   import type { Product, ProductFacets } from '$lib/types';
 
   import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';

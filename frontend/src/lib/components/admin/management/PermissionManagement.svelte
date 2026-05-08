@@ -1,13 +1,13 @@
 <script lang="ts">
   import { fade, slide } from "svelte/transition";
-  import Check from "lucide-svelte/icons/check";
-  import X from "lucide-svelte/icons/x";
-  import Search from "lucide-svelte/icons/search";
-  import Pencil from "lucide-svelte/icons/pencil";
-  import Shield from "lucide-svelte/icons/shield";
-  import LayoutGrid from "lucide-svelte/icons/layout-grid";
-  import List from "lucide-svelte/icons/list";
-  import CircleCheck from "lucide-svelte/icons/circle-check";
+  import Check from "@lucide/svelte/icons/check";
+  import X from "@lucide/svelte/icons/x";
+  import Search from "@lucide/svelte/icons/search";
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import Shield from "@lucide/svelte/icons/shield";
+  import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+  import List from "@lucide/svelte/icons/list";
+  import CircleCheck from "@lucide/svelte/icons/circle-check";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";

@@ -1,14 +1,14 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
-  import LucideShieldCheck from "lucide-svelte/icons/shield-check";
-  import LucideLock from "lucide-svelte/icons/lock";
-  import LucideMail from "lucide-svelte/icons/mail";
-  import LucideArrowRight from "lucide-svelte/icons/arrow-right";
-  import LucidePhone from "lucide-svelte/icons/phone";
-  import LucideGithub from "lucide-svelte/icons/github";
-  import LucideFingerprint from "lucide-svelte/icons/fingerprint";
-  import LucideEye from "lucide-svelte/icons/eye";
-  import LucideEyeOff from "lucide-svelte/icons/eye-off";
+  import LucideShieldCheck from "@lucide/svelte/icons/shield-check";
+  import LucideLock from "@lucide/svelte/icons/lock";
+  import LucideMail from "@lucide/svelte/icons/mail";
+  import LucideArrowRight from "@lucide/svelte/icons/arrow-right";
+  import LucidePhone from "@lucide/svelte/icons/phone";
+  import LucideGithub from "@lucide/svelte/icons/github";
+  import LucideFingerprint from "@lucide/svelte/icons/fingerprint";
+  import LucideEye from "@lucide/svelte/icons/eye";
+  import LucideEyeOff from "@lucide/svelte/icons/eye-off";
   import { apiClient } from "$lib/utils/apiClient";
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";
 

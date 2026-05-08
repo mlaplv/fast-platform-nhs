@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { Search, ChevronLeft, ShoppingCart, Share2, MoreHorizontal } from 'lucide-svelte';
+    import Search from "@lucide/svelte/icons/search";
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import Share2 from "@lucide/svelte/icons/share-2";
+  import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
 
   let { variant = 'grid' } = $props<{
     variant?: 'grid' | 'home' | 'detail';

@@ -6,15 +6,15 @@
   const nanobot = useNanobot();
   
   import AdminModal from "../../ui/AdminModal.svelte";
-  import Cpu from "lucide-svelte/icons/cpu";
-  import Activity from "lucide-svelte/icons/activity";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import Zap from "lucide-svelte/icons/zap";
-  import Shield from "lucide-svelte/icons/shield";
-  import AlertTriangle from "lucide-svelte/icons/alert-triangle";
-  import CheckCircle from "lucide-svelte/icons/check-circle";
-  import Key from "lucide-svelte/icons/key";
-  import Layers from "lucide-svelte/icons/layers";
+  import Cpu from "@lucide/svelte/icons/cpu";
+  import Activity from "@lucide/svelte/icons/activity";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Shield from "@lucide/svelte/icons/shield";
+  import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
+  import CheckCircle from "@lucide/svelte/icons/check-circle";
+  import Key from "@lucide/svelte/icons/key";
+  import Layers from "@lucide/svelte/icons/layers";
 
   interface KeyStats {
     index: number;

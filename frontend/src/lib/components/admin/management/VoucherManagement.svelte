@@ -1,10 +1,10 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
   import { untrack } from "svelte";
-  import Gift from "lucide-svelte/icons/gift";
-  import Search from "lucide-svelte/icons/search";
-  import Ticket from "lucide-svelte/icons/ticket";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import Gift from "@lucide/svelte/icons/gift";
+  import Search from "@lucide/svelte/icons/search";
+  import Ticket from "@lucide/svelte/icons/ticket";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import type { BaseWidgetProps, Voucher } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();

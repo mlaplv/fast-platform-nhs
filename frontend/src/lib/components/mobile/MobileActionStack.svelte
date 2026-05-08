@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { ShoppingCart, Star, Info, MessageSquare, ShieldCheck } from 'lucide-svelte';
+    import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import Star from "@lucide/svelte/icons/star";
+  import Info from "@lucide/svelte/icons/info";
+  import MessageSquare from "@lucide/svelte/icons/message-square";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import type { Product } from '$lib/types';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';

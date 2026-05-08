@@ -1,7 +1,8 @@
 <script lang="ts">
   import { fade, fly } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { ChevronRight, Sparkles } from 'lucide-svelte';
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import type { Product, Category } from '$lib/types';
   import { formatCurrency } from '$lib/utils/format';
 

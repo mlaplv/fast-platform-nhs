@@ -5,21 +5,21 @@
   const nanobot = useNanobot();
   import type { BaseWidgetProps } from "$lib/types";
 
-  import Save from "lucide-svelte/icons/save";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import Globe from "lucide-svelte/icons/globe";
-  import Phone from "lucide-svelte/icons/phone";
-  import Share2 from "lucide-svelte/icons/share-2";
-  import Search from "lucide-svelte/icons/search";
-  import MapPin from "lucide-svelte/icons/map-pin";
-  import Tool from "lucide-svelte/icons/wrench";
-  import Plus from "lucide-svelte/icons/plus";
-  import TrendingUp from "lucide-svelte/icons/trending-up";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Upload from "lucide-svelte/icons/upload";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
-  import Coins from "lucide-svelte/icons/coins";
+  import Save from "@lucide/svelte/icons/save";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Globe from "@lucide/svelte/icons/globe";
+  import Phone from "@lucide/svelte/icons/phone";
+  import Share2 from "@lucide/svelte/icons/share-2";
+  import Search from "@lucide/svelte/icons/search";
+  import MapPin from "@lucide/svelte/icons/map-pin";
+  import Tool from "@lucide/svelte/icons/wrench";
+  import Plus from "@lucide/svelte/icons/plus";
+  import TrendingUp from "@lucide/svelte/icons/trending-up";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Upload from "@lucide/svelte/icons/upload";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Coins from "@lucide/svelte/icons/coins";
   import MediaVaultModal from "../../media/MediaVaultModal.svelte";
   import type { MediaAsset } from "$lib/state/types";
 

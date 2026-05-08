@@ -1,8 +1,8 @@
 <script lang="ts">
   import { fade, fly } from "svelte/transition";
-  import ChevronDown from "lucide-svelte/icons/chevron-down";
-  import Activity from "lucide-svelte/icons/activity";
-  import Command from "lucide-svelte/icons/command";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import Activity from "@lucide/svelte/icons/activity";
+  import Command from "@lucide/svelte/icons/command";
   import { ORDER_STATUS_MAP } from "$lib/constants/order";
   import { portal } from "$lib/core/actions/portal";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";

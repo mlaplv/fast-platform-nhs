@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Phone from "lucide-svelte/icons/phone";
-  import MessageCircle from "lucide-svelte/icons/message-circle";
+  import Phone from "@lucide/svelte/icons/phone";
+  import MessageCircle from "@lucide/svelte/icons/message-circle";
   
   export interface SessionSummary {
     session_id: string;

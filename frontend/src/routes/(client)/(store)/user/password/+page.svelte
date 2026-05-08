@@ -3,7 +3,8 @@
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
   import { fade, slide } from 'svelte/transition';
-  import { Eye, EyeOff } from 'lucide-svelte';
+  import Eye from "@lucide/svelte/icons/eye";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
   import { apiClient } from '$lib/utils/apiClient';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { authStore } from '$lib/state/authStore.svelte';

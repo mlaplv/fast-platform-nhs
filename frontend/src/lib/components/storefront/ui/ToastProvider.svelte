@@ -1,13 +1,11 @@
 <script lang="ts">
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { fly, fade } from 'svelte/transition';
-  import { 
-    CheckCircle2, 
-    AlertCircle, 
-    Info, 
-    XCircle,
-    X
-  } from 'lucide-svelte';
+  import { fade, fly } from 'svelte/transition';
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
+  import AlertCircle from "@lucide/svelte/icons/alert-circle";
+  import Info from "@lucide/svelte/icons/info";
+  import XCircle from "@lucide/svelte/icons/x-circle";
+  import X from "@lucide/svelte/icons/x";
 
   const ui = getClientUi();
 

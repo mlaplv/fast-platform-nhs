@@ -1,23 +1,21 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
-  import { 
-    Facebook, 
-    Linkedin, 
-    Instagram, 
-    Youtube, 
-    Phone, 
-    Mail, 
-    MapPin, 
-    ShieldCheck, 
-    Zap,
-    Clock,
-    ArrowRight,
-    Lock,
-    CreditCard,
-    CheckCircle2,
-    Users
-  } from 'lucide-svelte';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/z_index_client';
+  import Facebook from "@lucide/svelte/icons/facebook";
+  import Linkedin from "@lucide/svelte/icons/linkedin";
+  import Instagram from "@lucide/svelte/icons/instagram";
+  import Youtube from "@lucide/svelte/icons/youtube";
+  import Phone from "@lucide/svelte/icons/phone";
+  import Mail from "@lucide/svelte/icons/mail";
+  import MapPin from "@lucide/svelte/icons/map-pin";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Clock from "@lucide/svelte/icons/clock";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import Lock from "@lucide/svelte/icons/lock";
+  import CreditCard from "@lucide/svelte/icons/credit-card";
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
+  import Users from "@lucide/svelte/icons/users";
 
   interface Props {
     shopInfo: {

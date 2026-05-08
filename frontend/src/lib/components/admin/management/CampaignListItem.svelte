@@ -1,17 +1,17 @@
 <script lang="ts">
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Image from "lucide-svelte/icons/image";
-  import FileText from "lucide-svelte/icons/file-text";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
-  import CheckCircle from "lucide-svelte/icons/check-circle";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Play from "lucide-svelte/icons/play";
-  import BarChart3 from "lucide-svelte/icons/bar-chart-3";
-  import Clock from "lucide-svelte/icons/clock";
-  import Megaphone from "lucide-svelte/icons/megaphone";
-  import Loader2 from "lucide-svelte/icons/loader-2";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Image from "@lucide/svelte/icons/image";
+  import FileText from "@lucide/svelte/icons/file-text";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import CheckCircle from "@lucide/svelte/icons/check-circle";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Play from "@lucide/svelte/icons/play";
+  import BarChart3 from "@lucide/svelte/icons/bar-chart-3";
+  import Clock from "@lucide/svelte/icons/clock";
+  import Megaphone from "@lucide/svelte/icons/megaphone";
+  import Loader2 from "@lucide/svelte/icons/loader-2";
   import type { CampaignData } from "$lib/state/types";
   import type { Component } from "svelte";
 

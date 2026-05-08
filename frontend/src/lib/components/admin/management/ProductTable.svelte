@@ -1,16 +1,16 @@
 <script lang="ts">
-  import Package from "lucide-svelte/icons/package";
-  import Pencil from "lucide-svelte/icons/pencil";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import CheckSquare from "lucide-svelte/icons/check-square";
-  import Square from "lucide-svelte/icons/square";
-  import ExternalLink from "lucide-svelte/icons/external-link";
-  import Sparkles from "lucide-svelte/icons/sparkles";
-  import Play from "lucide-svelte/icons/play";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import TrendingUp from "lucide-svelte/icons/trending-up";
-  import ShieldCheck from "lucide-svelte/icons/shield-check";
-  import X from "lucide-svelte/icons/x";
+  import Package from "@lucide/svelte/icons/package";
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import CheckSquare from "@lucide/svelte/icons/check-square";
+  import Square from "@lucide/svelte/icons/square";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Play from "@lucide/svelte/icons/play";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import TrendingUp from "@lucide/svelte/icons/trending-up";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import X from "@lucide/svelte/icons/x";
   import { fade } from "svelte/transition";
   import { portal } from "$lib/core/actions/portal";
   import { useNanobot } from "$lib/state/nanobot.svelte";

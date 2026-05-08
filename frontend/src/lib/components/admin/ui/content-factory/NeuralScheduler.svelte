@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Clock, Calendar, Repeat, Zap, ChevronDown, Bell, Globe } from "lucide-svelte";
+    import Clock from "@lucide/svelte/icons/clock";
+  import Calendar from "@lucide/svelte/icons/calendar";
+  import Repeat from "@lucide/svelte/icons/repeat";
+  import Zap from "@lucide/svelte/icons/zap";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import Bell from "@lucide/svelte/icons/bell";
+  import Globe from "@lucide/svelte/icons/globe";
 
   interface SchedulingConfig {
     is_active: boolean;

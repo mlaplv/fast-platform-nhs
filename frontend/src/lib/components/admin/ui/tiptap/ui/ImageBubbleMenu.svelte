@@ -1,14 +1,12 @@
 <script lang="ts">
   import type { Editor } from '@tiptap/core';
-  import {
-    AlignLeft,
-    AlignCenter,
-    AlignRight,
-    Trash2,
-    ImagePlus,
-    Check,
-    X
-  } from 'lucide-svelte';
+    import AlignLeft from "@lucide/svelte/icons/align-left";
+  import AlignCenter from "@lucide/svelte/icons/align-center";
+  import AlignRight from "@lucide/svelte/icons/align-right";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import ImagePlus from "@lucide/svelte/icons/image-plus";
+  import Check from "@lucide/svelte/icons/check";
+  import X from "@lucide/svelte/icons/x";
 
   let { editor, onReplace, onClose }: { editor: Editor; onReplace: () => void; onClose: () => void } = $props();
 

@@ -1,11 +1,11 @@
 <script lang="ts">
   import { fade, fly, draw } from "svelte/transition";
   import { quintOut } from "svelte/easing";
-  import BarChart3 from "lucide-svelte/icons/bar-chart-3";
-  import TrendingUp from "lucide-svelte/icons/trending-up";
-  import DollarSign from "lucide-svelte/icons/dollar-sign";
-  import ShoppingCart from "lucide-svelte/icons/shopping-cart";
-  import Calendar from "lucide-svelte/icons/calendar";
+  import BarChart3 from "@lucide/svelte/icons/bar-chart-3";
+  import TrendingUp from "@lucide/svelte/icons/trending-up";
+  import DollarSign from "@lucide/svelte/icons/dollar-sign";
+  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import Calendar from "@lucide/svelte/icons/calendar";
 
   let { data } = $props();
 

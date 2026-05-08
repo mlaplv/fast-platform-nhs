@@ -1,7 +1,10 @@
 <script lang="ts">
-  import { 
-    Heart, Facebook, Copy, Zap, MoreHorizontal, Send 
-  } from 'lucide-svelte';
+    import Heart from "@lucide/svelte/icons/heart";
+  import Facebook from "@lucide/svelte/icons/facebook";
+  import Copy from "@lucide/svelte/icons/copy";
+  import Zap from "@lucide/svelte/icons/zap";
+  import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
+  import Send from "@lucide/svelte/icons/send";
   import type { Product } from '$lib/types';
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 

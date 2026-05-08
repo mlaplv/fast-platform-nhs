@@ -4,8 +4,8 @@
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
   import { fade } from "svelte/transition";
-  import Megaphone from "lucide-svelte/icons/megaphone";
-  import CheckCircle from "lucide-svelte/icons/check-circle";
+  import Megaphone from "@lucide/svelte/icons/megaphone";
+  import CheckCircle from "@lucide/svelte/icons/check-circle";
   import CampaignFilters from "./CampaignFilters.svelte";
   import CampaignListItem from "./CampaignListItem.svelte";
   import BulkActionBar from "./BulkActionBar.svelte";

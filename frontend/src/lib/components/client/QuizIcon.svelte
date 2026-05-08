@@ -1,29 +1,27 @@
 <script lang="ts">
-  import { 
-    Sparkles, 
-    Waves, 
-    Zap, 
-    Timer, 
-    Calendar, 
-    Dna, 
-    PlusCircle, 
-    ShieldAlert,
-    Activity,
-    ShieldX,
-    Wind,
-    Shield,
-    Sun,
-    Layers,
-    Moon,
-    CloudMoon,
-    ShieldCheck,
-    Target,
-    Heart,
-    Flame,
-    Droplets,
-    RefreshCw,
-    Circle
-  } from 'lucide-svelte';
+    import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Waves from "@lucide/svelte/icons/waves";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Timer from "@lucide/svelte/icons/timer";
+  import Calendar from "@lucide/svelte/icons/calendar";
+  import Dna from "@lucide/svelte/icons/dna";
+  import PlusCircle from "@lucide/svelte/icons/plus-circle";
+  import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+  import Activity from "@lucide/svelte/icons/activity";
+  import ShieldX from "@lucide/svelte/icons/shield-x";
+  import Wind from "@lucide/svelte/icons/wind";
+  import Shield from "@lucide/svelte/icons/shield";
+  import Sun from "@lucide/svelte/icons/sun";
+  import Layers from "@lucide/svelte/icons/layers";
+  import Moon from "@lucide/svelte/icons/moon";
+  import CloudMoon from "@lucide/svelte/icons/cloud-moon";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import Target from "@lucide/svelte/icons/target";
+  import Heart from "@lucide/svelte/icons/heart";
+  import Flame from "@lucide/svelte/icons/flame";
+  import Droplets from "@lucide/svelte/icons/droplets";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Circle from "@lucide/svelte/icons/circle";
 
   let { icon } = $props<{ icon: string }>();
 

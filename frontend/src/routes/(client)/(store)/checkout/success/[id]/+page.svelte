@@ -1,11 +1,13 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { fade, fly, scale, slide } from 'svelte/transition';
-  import { Gift, MessageSquare, Sparkles } from 'lucide-svelte';
+  import Gift from "@lucide/svelte/icons/gift";
+  import MessageSquare from "@lucide/svelte/icons/message-square";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import { onMount, tick } from 'svelte';
   import { apiClient } from '$lib/utils/apiClient';
-  import { formatCurrency, formatDate } from '$lib/utils/format.ts';
+  import { formatCurrency, formatDate } from '$lib/utils/format';
   import SuccessMobile from '$lib/components/mobile/sections/SuccessMobile.svelte';
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import vnDivisions from '$lib/data/vn_divisions.json';
@@ -232,7 +234,7 @@
   const voucherDiscount = $derived(Number(order?.order_metadata?.voucher_discount || 0));
   const comboDiscount = $derived(Number(order?.order_metadata?.combo_discount || 0));
   const totalSavings = $derived(voucherDiscount + comboDiscount);
-  const finalTotal = $derived(order?.total ?? order?.total_amount ?? 0);
+  const finalTotal = $derived(order?.total_amount ?? 0);
 </script>
 
 <svelte:head>

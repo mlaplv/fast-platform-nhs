@@ -1,8 +1,13 @@
 <script lang="ts">
-  import { 
-    Facebook, Copy, Heart, Zap, Gift, ExternalLink, 
-    Check, Loader, Sparkles 
-  } from 'lucide-svelte';
+    import Facebook from "@lucide/svelte/icons/facebook";
+  import Copy from "@lucide/svelte/icons/copy";
+  import Heart from "@lucide/svelte/icons/heart";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Gift from "@lucide/svelte/icons/gift";
+  import ExternalLink from "@lucide/svelte/icons/external-link";
+  import Check from "@lucide/svelte/icons/check";
+  import Loader from "@lucide/svelte/icons/loader";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
   import type { Product } from '$lib/types';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';

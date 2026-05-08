@@ -1,7 +1,7 @@
 <script lang="ts">
-  import Tag from "lucide-svelte/icons/tag";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import Package from "lucide-svelte/icons/package";
+  import Tag from "@lucide/svelte/icons/tag";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Package from "@lucide/svelte/icons/package";
 
   let {
     formAttributes = $bindable()

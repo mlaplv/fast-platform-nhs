@@ -4,11 +4,11 @@
   import { vuiState } from "$lib/vui";
   import { globalLatency } from "$lib/utils/telemetry.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
-  import Activity from "lucide-svelte/icons/activity";
-  import Power from "lucide-svelte/icons/power";
-  import Cpu from "lucide-svelte/icons/cpu";
-  import ShieldAlert from "lucide-svelte/icons/shield-alert";
-  import Mic from "lucide-svelte/icons/mic";
+  import Activity from "@lucide/svelte/icons/activity";
+  import Power from "@lucide/svelte/icons/power";
+  import Cpu from "@lucide/svelte/icons/cpu";
+  import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+  import Mic from "@lucide/svelte/icons/mic";
 
   let status = $derived(nanobot.isVuiActive ? "ACTIVE" : "IDLE");
   let themeColor = $derived(

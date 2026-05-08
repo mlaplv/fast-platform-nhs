@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Volume2, VolumeX } from 'lucide-svelte';
+    import Volume2 from "@lucide/svelte/icons/volume-2";
+  import VolumeX from "@lucide/svelte/icons/volume-x";
   import type { Product } from '$lib/types';
   import ShareToUnlockPromoMobile from './ShareToUnlockPromoMobile.svelte';
 

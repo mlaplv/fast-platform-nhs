@@ -1,15 +1,17 @@
 <script lang="ts">
   import UserLayout from '$lib/components/storefront/user/UserLayout.svelte';
-  import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { browser } from '$app/environment';
   import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import { fade, fly } from 'svelte/transition';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { apiClient } from '$lib/utils/apiClient';
   import type { Voucher } from '$lib/types';
   import VoucherWalletCard from '$lib/components/storefront/user/vouchers/VoucherWalletCard.svelte';
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
   import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
-  import { Ticket, Sparkles, Loader2 } from 'lucide-svelte';
+  import Ticket from "@lucide/svelte/icons/ticket";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Loader2 from "@lucide/svelte/icons/loader-2";
   import { formatCurrency } from '$lib/utils/format';
 
   const ui = getClientUi();

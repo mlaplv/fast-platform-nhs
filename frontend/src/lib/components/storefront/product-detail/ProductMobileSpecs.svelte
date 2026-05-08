@@ -1,7 +1,12 @@
 <script lang="ts">
   import { getIngredientIcon } from '$lib/utils/product';
-  import { onMount, tick } from 'svelte';
-  import { ChevronDown, ChevronUp, Sparkles, Beaker, FlaskConical, Info } from 'lucide-svelte';
+  import { tick, onMount } from 'svelte';
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import ChevronUp from "@lucide/svelte/icons/chevron-up";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Beaker from "@lucide/svelte/icons/beaker";
+  import FlaskConical from "@lucide/svelte/icons/flask-conical";
+  import Info from "@lucide/svelte/icons/info";
   import type { Product } from '$lib/types';
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
 

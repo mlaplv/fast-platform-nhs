@@ -1,9 +1,17 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import vnDivisions from '$lib/data/vn_divisions.json';
-  import { fade, fly, scale, blur } from 'svelte/transition';
-  import { cubicOut, elasticOut } from 'svelte/easing';
-  import { Star, ShieldCheck, MessageSquarePlus, X, MapPin, Phone, User, Send, CheckCircle2 } from 'lucide-svelte';
+  import { blur, fade, fly, scale } from 'svelte/transition';
+  import { elasticOut } from 'svelte/easing';
+  import Star from "@lucide/svelte/icons/star";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import MessageSquarePlus from "@lucide/svelte/icons/message-square-plus";
+  import X from "@lucide/svelte/icons/x";
+  import MapPin from "@lucide/svelte/icons/map-pin";
+  import Phone from "@lucide/svelte/icons/phone";
+  import User from "@lucide/svelte/icons/user";
+  import Send from "@lucide/svelte/icons/send";
+  import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { SHOP_CONFIG } from '$lib/constants/shop';

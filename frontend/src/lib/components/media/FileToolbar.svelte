@@ -1,9 +1,18 @@
 <script lang="ts">
   import type { MediaAsset } from '$lib/state/types';
-  import {
-    Search, Upload, Link, LayoutGrid, List, BarChart3, Filter, FileEdit, RefreshCw,
-    Brain, Check, X, Trash2
-  } from 'lucide-svelte';
+    import Search from "@lucide/svelte/icons/search";
+  import Upload from "@lucide/svelte/icons/upload";
+  import Link from "@lucide/svelte/icons/link";
+  import LayoutGrid from "@lucide/svelte/icons/layout-grid";
+  import List from "@lucide/svelte/icons/list";
+  import BarChart3 from "@lucide/svelte/icons/bar-chart-3";
+  import Filter from "@lucide/svelte/icons/filter";
+  import FileEdit from "@lucide/svelte/icons/file-edit";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Brain from "@lucide/svelte/icons/brain";
+  import Check from "@lucide/svelte/icons/check";
+  import X from "@lucide/svelte/icons/x";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
   import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
 
   interface Props {

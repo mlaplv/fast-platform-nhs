@@ -2,7 +2,15 @@
   import type { ComponentType, SvelteComponent } from 'svelte';
   import { onMount, tick } from 'svelte';
   import { fade, fly } from 'svelte/transition';
-  import { Send, X, ShieldCheck, PhoneCall, PackageSearch, Sparkles, UserRound, ScanSearch, Lock } from 'lucide-svelte';
+  import Send from "@lucide/svelte/icons/send";
+  import X from "@lucide/svelte/icons/x";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import PhoneCall from "@lucide/svelte/icons/phone-call";
+  import PackageSearch from "@lucide/svelte/icons/package-search";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import UserRound from "@lucide/svelte/icons/user-round";
+  import ScanSearch from "@lucide/svelte/icons/scan-search";
+  import Lock from "@lucide/svelte/icons/lock";
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
   import { authStore } from '$lib/state/authStore.svelte.ts';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';

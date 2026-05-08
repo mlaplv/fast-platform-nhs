@@ -2,9 +2,9 @@
   import { onMount } from "svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { useNanobot } from "$lib/state/nanobot.svelte";
-  import MessageCircle from "lucide-svelte/icons/message-circle";
-  import Search from "lucide-svelte/icons/search";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
+  import MessageCircle from "@lucide/svelte/icons/message-circle";
+  import Search from "@lucide/svelte/icons/search";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 
   // Sub-components (Elite V2.2 Refactored < 500 lines)
   import SupportChatList from "./SupportChatList.svelte";

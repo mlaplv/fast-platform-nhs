@@ -1,8 +1,8 @@
 <script lang="ts">
-  import ImagePlus from "lucide-svelte/icons/image-plus";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import AlertTriangle from "lucide-svelte/icons/triangle-alert";
-  import Play from "lucide-svelte/icons/play";
+  import ImagePlus from "@lucide/svelte/icons/image-plus";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import AlertTriangle from "@lucide/svelte/icons/triangle-alert";
+  import Play from "@lucide/svelte/icons/play";
   import { resolveMediaUrl } from "$lib/state/utils";
   import ImagePreviewModal from "../ui/ImagePreviewModal.svelte";
 

@@ -1,11 +1,11 @@
 <script lang="ts">
   import { fade, scale } from "svelte/transition";
-  import LucideUser from "lucide-svelte/icons/user";
-  import LucideSettings from "lucide-svelte/icons/settings";
-  import LucideLogOut from "lucide-svelte/icons/log-out";
-  import LucideShield from "lucide-svelte/icons/shield";
-  import LucideGlobe from "lucide-svelte/icons/globe";
-import LucideLayout from "lucide-svelte/icons/layout";
+  import LucideUser from "@lucide/svelte/icons/user";
+  import LucideSettings from "@lucide/svelte/icons/settings";
+  import LucideLogOut from "@lucide/svelte/icons/log-out";
+  import LucideShield from "@lucide/svelte/icons/shield";
+  import LucideGlobe from "@lucide/svelte/icons/globe";
+import LucideLayout from "@lucide/svelte/icons/layout";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { permissionState } from "$lib/state/permissions.svelte";

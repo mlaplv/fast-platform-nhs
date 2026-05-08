@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Library, X, Flame } from "lucide-svelte";
+  import Library from "@lucide/svelte/icons/library";
+  import X from "@lucide/svelte/icons/x";
+  import Flame from "@lucide/svelte/icons/flame";
   import { fade, scale } from "svelte/transition";
   import FileManager from "$lib/components/media/FileManager.svelte";
   import { resolveMediaUrl } from "$lib/state/utils";

@@ -1,18 +1,18 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
-  import Phone from "lucide-svelte/icons/phone";
-  import Tag from "lucide-svelte/icons/tag";
-  import Lock from "lucide-svelte/icons/lock";
-  import Unlock from "lucide-svelte/icons/unlock";
-  import Send from "lucide-svelte/icons/send";
-  import ShieldAlert from "lucide-svelte/icons/shield-alert";
-  import Trash2 from "lucide-svelte/icons/trash-2";
-  import RotateCcw from "lucide-svelte/icons/rotate-ccw";
-  import Copy from "lucide-svelte/icons/copy";
-  import Quote from "lucide-svelte/icons/quote";
-  import X from "lucide-svelte/icons/x";
-  import RefreshCw from "lucide-svelte/icons/refresh-cw";
-  import MessageCircle from "lucide-svelte/icons/message-circle";
+  import Phone from "@lucide/svelte/icons/phone";
+  import Tag from "@lucide/svelte/icons/tag";
+  import Lock from "@lucide/svelte/icons/lock";
+  import Unlock from "@lucide/svelte/icons/unlock";
+  import Send from "@lucide/svelte/icons/send";
+  import ShieldAlert from "@lucide/svelte/icons/shield-alert";
+  import Trash2 from "@lucide/svelte/icons/trash-2";
+  import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+  import Copy from "@lucide/svelte/icons/copy";
+  import Quote from "@lucide/svelte/icons/quote";
+  import X from "@lucide/svelte/icons/x";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import MessageCircle from "@lucide/svelte/icons/message-circle";
   
   interface MessageView {
     id: string; role: "user" | "assistant"; content: string; intent: string | null; created_at: string | null; is_revoked?: boolean;

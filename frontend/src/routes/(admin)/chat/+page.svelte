@@ -5,7 +5,7 @@
   import OmniCommand from "$lib/components/admin/OmniCommand.svelte";
   import { fade } from "svelte/transition";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
-  import LoaderCircle from "lucide-svelte/icons/loader-circle";
+  import LoaderCircle from "@lucide/svelte/icons/loader-circle";
 
   let scrollContainer = $state<HTMLDivElement>();
   let history = $derived(nanobot.chatHistory);
