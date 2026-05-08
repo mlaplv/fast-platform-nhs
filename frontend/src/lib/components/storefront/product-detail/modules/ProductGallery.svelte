@@ -13,7 +13,11 @@
       originalPrice: number;
     };
     selectedIndices: number[];
-    variations: any[];
+    variations: Array<{
+      name: string;
+      options: string[];
+      images?: string[];
+    }>;
   }
 
   let { 

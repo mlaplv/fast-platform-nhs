@@ -8,17 +8,9 @@
   import NewsDetailDesktop from '$lib/components/storefront/news-detail/NewsDetailDesktop.svelte';
   import NewsDetailMobile from '$lib/components/storefront/news-detail/NewsDetailMobile.svelte';
   import FunnelPage from '../../[slug]-funnel/+page.svelte';
-  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';
   import { onMount, untrack } from 'svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
-  import {
-    buildBreadcrumbLd,
-    buildCategoryLd,
-    buildArticleLd,
-    truncateDescription,
-  } from '$lib/utils/seo';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();

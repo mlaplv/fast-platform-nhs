@@ -1,18 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import Minus from "@lucide/svelte/icons/minus";
-  import Plus from "@lucide/svelte/icons/plus";
-  import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
-  import Gift from "@lucide/svelte/icons/gift";
-  import Package from "@lucide/svelte/icons/package";
-  import Sparkles from "@lucide/svelte/icons/sparkles";
   import Diamond from "@lucide/svelte/icons/diamond";
-  import Beaker from "@lucide/svelte/icons/beaker";
-  import FlaskConical from "@lucide/svelte/icons/flask-conical";
-  import Info from "@lucide/svelte/icons/info";
-  import Volume2 from "@lucide/svelte/icons/volume-2";
-  import VolumeX from "@lucide/svelte/icons/volume-x";
   
   // Types
   import type { Product, ProductVariant, ReviewStats } from '$lib/types';
@@ -23,20 +12,15 @@
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   
   // Utils
-  import { getIngredientIcon } from '$lib/utils/product';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { formatCurrency } from '$lib/utils/format';
   
   // Components
   import ProductDetailReviews from '../shared/ProductDetailReviews.svelte';
   import ProductDetailRelated from '../shared/ProductDetailRelated.svelte';
-  import ViralShareBarDesktop from '../shared/ViralShareBarDesktop.svelte';
-  import ShareToUnlockPromoDesktop from '../shared/ShareToUnlockPromoDesktop.svelte';
   import ProductGallery from '../modules/ProductGallery.svelte';
   import ProductPrimaryInfo from '../modules/ProductPrimaryInfo.svelte';
   import ProductDetailSections from '../modules/ProductDetailSections.svelte';
-  import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
-  import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
 
 
 

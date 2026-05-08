@@ -13,17 +13,37 @@
   interface Props {
     product: Product;
     stats: ReviewStats | null;
-    displayPrice: any;
-    activePrices: any;
+    displayPrice: {
+      price: number | string;
+      discountPrice?: number | string;
+    };
+    activePrices: {
+      sale: number | string;
+      original: number | string;
+    };
     helenAdvice: string;
-    productVouchers: any[];
+    productVouchers: Array<{
+      id: string;
+      label: string;
+      sub?: string;
+      type: 'ship' | 'discount';
+    }>;
     selectedVouchers: string[];
-    variations: any[];
+    variations: Array<{
+      name: string;
+      options: string[];
+      images?: string[];
+    }>;
     selectedIndices: number[];
     quantity: number;
     currentStock: number;
     activeComboQty: number;
-    activeGifts: any[];
+    activeGifts: Array<{
+      id?: string;
+      name: string;
+      image?: string;
+      qty: number;
+    }>;
     isFlashSaleActive: boolean;
     timeLeft: { hours: number; minutes: number; seconds: number };
     isViralUnlocked: boolean;
