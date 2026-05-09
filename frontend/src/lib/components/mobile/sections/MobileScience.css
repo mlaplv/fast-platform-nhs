@@ -214,6 +214,7 @@
     font-weight: 900;
     color: #fff;
     letter-spacing: 0.05em;
+    line-height: 1.4;
 }
 
 .faq-desc-min {
@@ -221,6 +222,8 @@
     font-weight: 600;
     color: rgba(255,255,255,0.3);
     letter-spacing: 0.08em;
+    line-height: 1.4;
+    padding-top: 2px;
 }
 
 .faq-grid-mobile {

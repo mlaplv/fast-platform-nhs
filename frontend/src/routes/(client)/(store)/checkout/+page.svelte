@@ -24,6 +24,7 @@
 
   import Countdown from '$lib/components/storefront/ui/Countdown.svelte';
 import GiftModal from '$lib/components/storefront/ui/GiftModal.svelte';
+import MobileGiftModal from '$lib/components/storefront/ui/MobileGiftModal.svelte';
 import NeuralGuardian from '$lib/components/storefront/ui/NeuralGuardian.svelte';
 import { checkoutState } from '$lib/state/commerce/checkout.svelte';
 
@@ -954,4 +955,8 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
     scrollbar-width: none;
   }
 </style>
-<GiftModal />
+{#if clientUi.isMobile}
+  <MobileGiftModal />
+{:else}
+  <GiftModal />
+{/if}

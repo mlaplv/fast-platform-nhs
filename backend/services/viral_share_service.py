@@ -146,22 +146,23 @@ class ViralShareService:
         token: str,
         db_session: AsyncSession,
         voucher_id: str,
-    ) -> dict[str, str | bool] | None:
+        telemetry_data: dict | None = None,
+    ) -> dict[str, str | bool | float] | None:
         """
-        Verify HMAC token, fetch voucher from DB (NOT metadata), delete token (OTT).
+        Viral 2026: Verify HMAC token + AI behavioral analysis.
 
         Anti-fraud guarantees:
           1. Token must exist in Redis (not forged, not expired)
           2. Token must match HMAC (unbreakable without secret key)
           3. Token is deleted after first successful verify (replay-proof)
-          4. Voucher is fetched from DB — invisible in page source
+          4. PydanticAI Agent analyzes behavioral telemetry
+          5. Voucher is fetched from DB — invisible in page source
 
         Returns:
-            { "valid": True, "voucher_code": str, "voucher_label": str }
-            None if any check fails (invalid token, expired, voucher not found)
+            { "valid": True, "voucher_code": str, ..., "trust_score": float }
+            None if any check fails
         """
         if not self._redis:
-            # Fallback: skip Redis check — only HMAC validation
             logger.warning("[ViralShare] Redis unavailable — HMAC-only mode")
         else:
             r = cast(_redis.Redis, self._redis)
@@ -183,6 +184,31 @@ class ViralShareService:
             except Exception as e:
                 logger.error(f"[ViralShare] Redis GET/DEL error: {e}")
                 return None
+
+        # ── Viral 2026: PydanticAI Behavioral Analysis ──
+        trust_score = 75.0  # Default: benefit of the doubt
+        try:
+            from backend.services.viral_fraud_agent import (
+                analyze_share_behavior, ShareTelemetry
+            )
+            if telemetry_data:
+                telemetry = ShareTelemetry(**telemetry_data)
+                verdict = await analyze_share_behavior(telemetry)
+                trust_score = verdict.trust_score
+
+                if verdict.verdict == "DENY":
+                    logger.warning(
+                        f"[ViralShare] AI DENIED share for product={product_id}: "
+                        f"{verdict.reasoning} (score={trust_score:.0f})"
+                    )
+                    return None
+
+                logger.info(
+                    f"[ViralShare] AI verdict={verdict.verdict} "
+                    f"score={trust_score:.0f} for product={product_id}"
+                )
+        except Exception as e:
+            logger.error(f"[ViralShare] AI analysis error (graceful degradation): {e}")
 
         # ── Fetch Voucher from DB (not metadata — bảo mật tuyệt đối) ──
         now = datetime.now(timezone.utc)
@@ -211,6 +237,7 @@ class ViralShareService:
             "voucher_value": voucher.value,
             "voucher_type": voucher.type,
             "min_spend": voucher.min_spend,
+            "trust_score": trust_score,
         }
 
 

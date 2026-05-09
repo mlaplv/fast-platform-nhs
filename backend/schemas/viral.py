@@ -38,12 +38,24 @@ class ShareIntentResponse(BaseModel):
     expires_at: int = Field(..., description="Unix timestamp (UTC) — token expires at")
 
 
+class ShareTelemetryPayload(BaseModel):
+    """Viral 2026: Behavioral signals collected during share flow."""
+    time_on_page_ms: int = Field(0, ge=0)
+    share_duration_ms: int = Field(0, ge=0)
+    visibility_changes: int = Field(0, ge=0)
+    scroll_depth_pct: float = Field(0.0, ge=0.0, le=100.0)
+    interaction_count: int = Field(0, ge=0)
+    share_method: str = Field("unknown")
+    popup_was_blocked: bool = Field(False)
+
+
 class VerifyShareRequest(BaseModel):
     """Body for POST /api/v1/client/viral/verify-share"""
     product_id: str = Field(..., min_length=1, max_length=64)
     fingerprint: str = Field(..., min_length=64, max_length=64, description="Device fingerprint from share-intent")
     token: str = Field(..., min_length=64, max_length=64, description="HMAC token from share-intent")
     voucher_id: str = Field(..., min_length=1, max_length=64, description="Voucher code configured in product metadata")
+    telemetry: Optional[ShareTelemetryPayload] = Field(None, description="Viral 2026: Behavioral telemetry for AI verification")
 
     @field_validator("fingerprint", "token")
     @classmethod
@@ -67,6 +79,7 @@ class VerifyShareResponse(BaseModel):
     voucher_value: float = Field(..., description="Numeric discount value")
     voucher_type: VoucherType = Field(..., description="Fixed or Percent")
     min_spend: float = Field(0.0, description="Min order value to use")
+    trust_score: float = Field(0.0, description="Viral 2026: AI trust score (0-100)")
     expires_at: Optional[int] = Field(None, description="Voucher expiry timestamp")
 
 

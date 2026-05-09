@@ -117,6 +117,7 @@ class ViralController(Controller):
             token=data.token,
             db_session=db_session,
             voucher_id=data.voucher_id,
+            telemetry_data=data.telemetry.model_dump() if data.telemetry else None,
         )
 
         if result is None:
@@ -134,4 +135,5 @@ class ViralController(Controller):
             voucher_value=float(result["voucher_value"]),
             voucher_type=str(result["voucher_type"]),
             min_spend=float(result["min_spend"]),
+            trust_score=float(result.get("trust_score", 0.0)),
         )

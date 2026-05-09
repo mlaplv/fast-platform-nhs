@@ -24,7 +24,7 @@
   const tech = $derived([
     {
       icon: ShieldCheck,
-      title: typeof claims[0].label === 'string' ? claims[0].label : 'CƠ CHẾ PHÁ VỠ HẮC SẮC TỐ',
+      title: typeof claims[0].label === 'string' ? claims[0].label : 'Cơ chế phá vỡ hắc sắc tố',
       desc: typeof claims[0].content === 'string' ? claims[0].content : 'Ức chế Melanin từ tinh chất Sakura.'
     },
     {
@@ -34,7 +34,7 @@
     },
     {
       icon: Droplets,
-      title: typeof claims[1].label === 'string' ? claims[1].label : 'AN TOÀN CHUẨN NHẬT',
+      title: typeof claims[1].label === 'string' ? claims[1].label : 'An toàn chuẩn Nhật',
       desc: typeof claims[1].content === 'string' ? claims[1].content : 'Cam kết 3 KHÔNG: Không cồn, không Paraben, không hóa chất lột tẩy.'
     }
   ]);
@@ -77,7 +77,7 @@
   <div class="science-header">
     <h2 class="science-headline">
       <EditableWrapper path="metadata.science_headline" type="text" label="SỬA TIÊU ĐỀ" as="span">
-        {metadata.science_headline || 'TẠI SAO LẠI HIỆU QUẢ VƯỢT TRỘI?'}
+        {metadata.science_headline || 'Tại sao lại hiệu quả vượt trội?'}
       </EditableWrapper>
     </h2>
     
@@ -122,8 +122,8 @@
           <HelpCircle class="w-5 h-5 text-luxury-sakura" />
         </div>
         <div class="flex flex-col">
-          <span class="faq-title-min">CÂU HỎI THƯỜNG GẶP</span>
-          <span class="faq-desc-min">CLICK ĐỂ XEM GIẢI ĐÁP CHUYÊN SÂU</span>
+          <span class="faq-title-min">Câu hỏi thường gặp</span>
+          <span class="faq-desc-min">Click để xem giải đáp chuyên sâu</span>
         </div>
       </div>
 
@@ -147,8 +147,8 @@
   <div class="science-footer">
     <div class="footer-inner">
       <div class="footer-text">
-        <span class="footer-top-label">BẢO CHỨNG AN TOÀN</span>
-        <span class="footer-main-label">& CHẤT LƯỢNG QUỐC TẾ</span>
+        <span class="footer-top-label">Bảo chứng an toàn</span>
+        <span class="footer-main-label">& Chất lượng quốc tế</span>
       </div>
       <div class="footer-badges">
         <div class="footer-badge badge-sakura">

@@ -98,28 +98,28 @@
 
 <div class="viral-datepicker-container">
   <!-- Header: Month/Year -->
-  <div class="flex items-center justify-between p-4 border-b border-white/5">
+  <div class="flex items-center justify-between p-4 border-b border-gray-100">
     <div class="flex items-center gap-3">
         <button 
             type="button"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-xs font-bold text-white uppercase italic"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-xs font-bold text-gray-700 uppercase italic"
             onclick={() => showTime = !showTime}
         >
             {#if showTime}
-                <CalendarIcon class="w-3.5 h-3.5 text-pink-400" />
-                Dịp Ngày
+                <CalendarIcon class="w-3.5 h-3.5 text-luxury-peach" />
+                Dịp ngày
             {:else}
-                <Clock class="w-3.5 h-3.5 text-sky-400" />
-                Giờ Giao
+                <Clock class="w-3.5 h-3.5 text-luxury-copper" />
+                Giờ giao
             {/if}
         </button>
-        <div class="text-sm font-black text-white uppercase tracking-tighter">
+        <div class="text-sm font-black text-gray-900 uppercase tracking-tighter">
             {months[viewDate.getMonth()]} {viewDate.getFullYear()}
         </div>
     </div>
     <div class="flex items-center gap-1">
-      <button type="button" onclick={() => changeMonth(-1)} class="nav-btn"><ChevronLeft class="w-4 h-4" /></button>
-      <button type="button" onclick={() => changeMonth(1)} class="nav-btn"><ChevronRight class="w-4 h-4" /></button>
+      <button type="button" onclick={() => changeMonth(-1)} class="nav-btn"><ChevronLeft class="w-4 h-4 text-gray-400" /></button>
+      <button type="button" onclick={() => changeMonth(1)} class="nav-btn"><ChevronRight class="w-4 h-4 text-gray-400" /></button>
     </div>
   </div>
 
@@ -143,13 +143,13 @@
             onclick={() => selectDay(day, month)}
             class={cn(
               "relative h-9 rounded-lg text-xs font-bold transition-all flex items-center justify-center group",
-              current ? "text-slate-200" : "text-slate-600",
-              isSelected ? "bg-sky-500 text-white shadow-[0_0_15px_rgba(14,165,233,0.4)] z-10" : "hover:bg-white/10"
+              current ? "text-gray-800" : "text-gray-300",
+              isSelected ? "bg-luxury-copper text-white shadow-md shadow-luxury-copper/20 z-10" : "hover:bg-gray-100"
             )}
           >
             {day}
             {#if isToday && !isSelected}
-                <div class="absolute bottom-1 w-1 h-1 bg-pink-500 rounded-full"></div>
+                <div class="absolute bottom-1 w-1 h-1 bg-luxury-peach rounded-full"></div>
             {/if}
           </button>
         {/each}
@@ -166,18 +166,18 @@
                 <div class="text-[10px] font-black text-slate-500 uppercase italic">Giờ</div>
                 <div class="flex flex-col gap-1 items-center">
                     <button type="button" class="time-nav" onclick={() => handleTimeChange('h', (hours + 1) % 24)}>▲</button>
-                    <div class="text-4xl font-black text-white px-4 py-2 bg-white/5 rounded-xl border border-white/10">
+                    <div class="text-4xl font-black text-gray-900 px-4 py-2 bg-gray-100 rounded-xl border border-gray-200">
                         {displayHour.toString().padStart(2, '0')}
                     </div>
                     <button type="button" class="time-nav" onclick={() => handleTimeChange('h', (hours + 23) % 24)}>▼</button>
                 </div>
             </div>
-            <div class="text-4xl font-black text-sky-500 pt-6">:</div>
+            <div class="text-4xl font-black text-luxury-copper pt-6">:</div>
             <div class="flex flex-col items-center gap-2">
                 <div class="text-[10px] font-black text-slate-500 uppercase italic">Phút</div>
                 <div class="flex flex-col gap-1 items-center">
                     <button type="button" class="time-nav" onclick={() => handleTimeChange('m', (mins + 5) % 60)}>▲</button>
-                    <div class="text-4xl font-black text-white px-4 py-2 bg-white/5 rounded-xl border border-white/10">
+                    <div class="text-4xl font-black text-gray-900 px-4 py-2 bg-gray-100 rounded-xl border border-gray-200">
                         {mins.toString().padStart(2, '0')}
                     </div>
                     <button type="button" class="time-nav" onclick={() => handleTimeChange('m', (mins + 55) % 60)}>▼</button>
@@ -188,7 +188,7 @@
                 <button 
                     type="button"
                     onclick={() => handleTimeChange('h', isPM ? hours - 12 : hours + 12)}
-                    class="h-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-lg font-black text-white hover:bg-sky-500/20 transition-all"
+                    class="h-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-xl text-lg font-black text-gray-900 hover:bg-luxury-copper/10 transition-all"
                 >
                     {isPM ? 'PM' : 'AM'}
                 </button>
@@ -198,9 +198,9 @@
         <button 
             type="button" 
             onclick={() => showTime = false}
-            class="flex items-center gap-2 px-6 py-2 bg-sky-500 text-white rounded-full font-black text-[10px] tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all"
+            class="flex items-center gap-2 px-6 py-2 bg-luxury-copper text-white rounded-full font-black text-[10px] tracking-widest shadow-lg hover:scale-105 active:scale-95 transition-all"
         >
-            <Check class="w-3 h-3" /> XÁC NHẬN GIỜ
+            <Check class="w-3 h-3" /> Xác nhận giờ
         </button>
       </div>
     {/if}
@@ -211,10 +211,9 @@
   @reference "../../../../routes/layout.css";
 
   .viral-datepicker-container {
-    background: rgba(15, 23, 42, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #FFFFFF;
+    border: 1px solid #F0F0F0;
     border-radius: 16px;
-    backdrop-filter: blur(12px);
     overflow: hidden;
   }
 
@@ -223,7 +222,7 @@
   }
 
   .time-nav {
-    @apply text-slate-600 hover:text-sky-400 transition-colors text-xs font-black p-1;
+    @apply text-slate-600 hover:text-luxury-copper transition-colors text-xs font-black p-1;
   }
 
   /* Utility if needed */

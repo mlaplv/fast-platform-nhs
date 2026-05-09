@@ -65,7 +65,7 @@
         in:fly={{y: 40, duration: 1000}}
       >
         <!-- Hero Section -->
-        <div class="p-0">
+        <div class="pl-[10px]">
             <div class="flex items-center gap-4 mb-0">
                 <span class="bg-black text-white px-3 py-1 text-[10px] font-black uppercase tracking-widest">
                   {article.category || 'TẠP CHÍ ELITE'}
@@ -90,7 +90,7 @@
         {/if}
 
         <!-- Content Body (Elite Prose) -->
-        <svelte:element this={proseWrapper} class="py-0 px-10 elite-prose">
+        <svelte:element this={proseWrapper} class="pt-5 pb-0 px-10 elite-prose">
             {@html article.content}
         </svelte:element>
 

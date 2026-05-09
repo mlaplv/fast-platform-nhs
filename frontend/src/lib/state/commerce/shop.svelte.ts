@@ -236,9 +236,9 @@ export class ShopStore {
         untrack(() => {
             // 🛡️ Stealth Vault: Hide viral voucher until unlocked via Server HTTP-Only cookie
             const viralVoucherId = this.product?.metadata?.viral_suite?.share_promotion?.voucher_id 
-                                || (this.product?.metadata as any)?.share_promotion?.voucher_id;
+                                || (this.product?.metadata as ProductMetadata)?.share_promotion?.voucher_id;
 
-            const isUnlocked = viralVoucherId && this.unlockedVoucherIds.includes(viralVoucherId);
+            const isUnlocked = viralVoucherId && this.product?.id && this.unlockedVoucherIds.includes(`${this.product.id}_${viralVoucherId}`);
             
             let newVouchers = data ? [...data] : [];
             

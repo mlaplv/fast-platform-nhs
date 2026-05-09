@@ -37,6 +37,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress, cookies 
                 fingerprint: body.fingerprint,
                 token: body.token,
                 voucher_id: body.voucher_id,
+                telemetry: body.telemetry || null,
             }),
         });
 
@@ -48,9 +49,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress, cookies 
         }
 
         // 🛡️ Military-Grade: Set HTTP-Only cookie at SvelteKit server level
+        // Bound to BOTH product_id and voucher_id to prevent domain-wide unlocks
         // This is tamper-proof — JS cannot read/write this cookie
-        // Survives F5, page reload, and browser restart (30-day TTL)
-        cookies.set(`elite_viral_${body.voucher_id}`, '1', {
+        cookies.set(`elite_viral_${body.product_id}_${body.voucher_id}`, '1', {
             path: '/',
             httpOnly: true,
             secure: false, // osmo.vn currently runs HTTP

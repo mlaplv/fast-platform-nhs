@@ -56,7 +56,7 @@
   );
 
   // ── State Machine ──────────────────────────────────────────────────────────
-  type Step = 'idle' | 'sharing' | 'awaiting_confirm' | 'verifying' | 'revealed' | 'error';
+  type Step = 'idle' | 'sharing' | 'verifying' | 'revealed' | 'error';
   let step = $state<Step>('idle');
   let isLiked = $state(false);
   let localLikeCount = $state(0);
@@ -67,8 +67,17 @@
 
   let _token = $state<string | null>(null);
   let _fingerprint = $state<string | null>(null);
+  
+  // Viral 2026 Telemetry State
   let shareStartTime = $state<number>(0);
-  let windowLostFocus = $state<boolean>(false);
+  let timeOnPageMs = $state<number>(0);
+  let visibilityChanges = $state<number>(0);
+  let maxScrollY = $state<number>(0);
+  let interactionCount = $state<number>(0);
+  let shareMethod = $state<'native' | 'popup' | 'clipboard'>('unknown');
+  let popupWasBlocked = $state<boolean>(false);
+  
+  const initTime = Date.now();
 
   const isVoucherApplied = $derived(
     promoConfig?.voucher_id && shopStore.selectedVoucherIds.includes(promoConfig.voucher_id)
@@ -82,11 +91,21 @@
 
   // 🛡️ Military-Grade: Restore state from HTTP-Only cookie (via SSR unlockedVoucherIds)
   $effect(() => {
-    const onBlur = () => { windowLostFocus = true; };
-    window.addEventListener('blur', onBlur);
+    const onVisibilityChange = () => { 
+      if (document.hidden) visibilityChanges++; 
+    };
+    const onClick = () => interactionCount++;
+    const onScroll = () => {
+        const scrolled = window.scrollY;
+        if (scrolled > maxScrollY) maxScrollY = scrolled;
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    document.addEventListener('click', onClick);
+    window.addEventListener('scroll', onScroll, { passive: true });
     
-    // Check if voucher was already unlocked (cookie-backed, server-injected)
-    if (promoConfig?.voucher_id && shopStore.unlockedVoucherIds.includes(promoConfig.voucher_id)) {
+    // Check if voucher was already unlocked (cookie-backed, server-injected, bound to product)
+    if (promoConfig?.voucher_id && product?.id && shopStore.unlockedVoucherIds.includes(`${product.id}_${promoConfig.voucher_id}`)) {
       const existingVoucher = shopStore.vouchers.find(v => v.id === promoConfig.voucher_id);
       if (existingVoucher) {
         voucherCode = existingVoucher.code || existingVoucher.id;
@@ -95,7 +114,11 @@
       }
     }
     
-    return () => window.removeEventListener('blur', onBlur);
+    return () => {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+        document.removeEventListener('click', onClick);
+        window.removeEventListener('scroll', onScroll);
+    };
   });
 
   function handleLike(e: MouseEvent) {
@@ -111,11 +134,9 @@
 
   const viralActions = {
     async share(platform: string) {
-      if (step !== 'idle' && step !== 'error') {
-         await shareToPlatform(platform, window.location.href, product.name);
-         return;
-      }
+      if (step !== 'idle' && step !== 'error') return;
       step = 'sharing';
+      
       try {
         const res = await fetch('/_viral/share-intent', {
           method: 'POST',
@@ -127,23 +148,98 @@
         _token = data.token;
         _fingerprint = data.fingerprint;
         
-        await shareToPlatform(platform, window.location.href, product.name);
-        
         shareStartTime = Date.now();
-        windowLostFocus = false;
-        step = 'awaiting_confirm';
-      } catch (e: any) {
-        errorMsg = e.message;
+        timeOnPageMs = shareStartTime - initTime;
+
+        // Viral 2026: Auto-detect share method
+        if (navigator.share && /mobile|android|iphone/i.test(navigator.userAgent)) {
+            shareMethod = 'native';
+            try {
+                await navigator.share({
+                    title: product.name,
+                    text: `Xem ngay ưu đãi ${voucherLabel || ''} tại Osmo!`,
+                    url: window.location.href
+                });
+                // Promise resolved = user picked an app. Auto verify!
+                await viralActions.verify();
+            } catch (err: unknown) {
+                if (err.name === 'AbortError') {
+                    throw new Error('Bạn đã hủy chia sẻ');
+                }
+                throw err; // Fallback
+            }
+        } else {
+            shareMethod = 'popup';
+            // Desktop fallback: Open popup and detect when they come back
+            const w = 600;
+            const h = 400;
+            const left = (window.innerWidth / 2) - (w / 2);
+            const top = (window.innerHeight / 2) - (h / 2);
+            const cleanUrl = window.location.origin + window.location.pathname;
+            const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(cleanUrl)}`;
+            
+            const popup = window.open(shareUrl, 'Share', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${top}, left=${left}`);
+            
+            if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                popupWasBlocked = true;
+                // If popup blocked, let's just try to verify anyway, AI will handle
+                setTimeout(() => viralActions.verify(), 2000);
+            } else {
+                let verifyAttempts = 0;
+                let isVerifying = false;
+
+                const attemptVerify = async () => {
+                    if (isVerifying || step === 'revealed' || verifyAttempts >= 3) return;
+                    const elapsed = Date.now() - shareStartTime;
+                    if (elapsed < 4000) return; // Too fast to be a real share
+                    
+                    isVerifying = true;
+                    verifyAttempts++;
+                    try {
+                        await viralActions.verify();
+                    } catch (e) {
+                        // Failed, let them try again by focusing
+                    } finally {
+                        isVerifying = false;
+                    }
+                };
+
+                const handleFocus = () => {
+                    if (step !== 'revealed') attemptVerify();
+                };
+
+                // Poll popup closure
+                const pollTimer = setInterval(() => {
+                    if (popup.closed) {
+                        clearInterval(pollTimer);
+                        const elapsed = Date.now() - shareStartTime;
+                        if (elapsed < 1500) {
+                            // Firefox isolation detected. Popup is actually still open.
+                            // Rely strictly on focus events when they return to the main window.
+                            window.addEventListener('focus', handleFocus);
+                            document.addEventListener('visibilitychange', () => {
+                                if (!document.hidden) handleFocus();
+                            });
+                        } else {
+                            // Normal browser, popup legitimately closed.
+                            attemptVerify();
+                        }
+                    }
+                }, 500);
+            }
+        }
+      } catch (e: unknown) {
+        errorMsg = e instanceof Error ? e.message : 'Lỗi chia sẻ';
         step = 'error';
       }
     },
     async verify() {
       if (!_token || !_fingerprint || !promoConfig) return;
-      if (Date.now() - shareStartTime < 3000 || !windowLostFocus) {
-        errorMsg = 'Vui lòng hoàn tất chia sẻ!';
-        step = 'error';
-        return;
-      }
+      if (step === 'revealed') return;
+      
+      const shareDurationMs = Date.now() - shareStartTime;
+      const scrollDepthPct = Math.min(100, Math.round((maxScrollY / (document.documentElement.scrollHeight - window.innerHeight || 1)) * 100));
+
       step = 'verifying';
       try {
         const res = await fetch('/_viral/verify-share', {
@@ -153,10 +249,22 @@
             product_id: product.id, 
             fingerprint: _fingerprint, 
             token: _token, 
-            voucher_id: promoConfig.voucher_id 
+            voucher_id: promoConfig.voucher_id,
+            telemetry: {
+                time_on_page_ms: timeOnPageMs,
+                share_duration_ms: shareDurationMs,
+                visibility_changes: visibilityChanges,
+                scroll_depth_pct: scrollDepthPct,
+                interaction_count: interactionCount,
+                share_method: shareMethod,
+                popup_was_blocked: popupWasBlocked
+            }
           }),
         });
-        if (!res.ok) throw new Error('Xác minh thất bại');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || errData.error || 'Hệ thống phát hiện bất thường. Vui lòng chia sẻ lại!');
+        }
         const data = await res.json();
         voucherCode = data.voucher_code;
         voucherLabel = data.voucher_label;
@@ -190,8 +298,8 @@
         onUnlock?.();
         createHeartConfetti(window.innerWidth / 2, window.innerHeight / 2);
         clientUi.showToast(`🎉 Đã áp dụng mã ${voucherCode}!`, 'success');
-      } catch (e: any) {
-        errorMsg = e.message;
+      } catch (e: unknown) {
+        errorMsg = e instanceof Error ? e.message : String(e);
         step = 'error';
       }
     }
@@ -273,15 +381,7 @@
       {:else if step === 'sharing' || step === 'verifying'}
         <div class="vfl-center py-2">
           <Loader size={14} class="animate-spin text-[#ee4d2d]" />
-          <span class="vfl-status-text">{step === 'sharing' ? 'ĐANG CHUẨN BỊ...' : 'ĐANG XÁC MINH...'}</span>
-        </div>
-      {:else if step === 'awaiting_confirm'}
-        <div class="vfl-confirm-overlay">
-           <span class="vfl-confirm-msg">BẠN ĐÃ CHIA SẺ CHƯA?</span>
-           <div class="flex gap-2">
-              <button class="vfl-btn-secondary" onclick={() => step = 'idle'}>CHƯA</button>
-              <button class="vfl-btn-primary" onclick={viralActions.verify}>RỒI</button>
-           </div>
+          <span class="vfl-status-text">{step === 'sharing' ? 'ĐANG KẾT NỐI...' : 'AI ĐANG XÁC MINH...'}</span>
         </div>
       {:else if step === 'revealed'}
         <div class="ticket-inner revealed">
