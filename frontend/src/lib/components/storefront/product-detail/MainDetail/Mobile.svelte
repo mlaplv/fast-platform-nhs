@@ -290,7 +290,7 @@
     <div class="global-viral-overlay">
       <div class="global-confirm-card">
         <span class="confirm-title">Đã chia sẻ thành công?</span>
-        <p class="confirm-sub">Xác nhận để mở khóa voucher {product.metadata?.viral_suite?.reward_value_label || '50K'}</p>
+        <p class="confirm-sub">Xác nhận để mở khóa {product.metadata?.viral_suite?.share_reward_label || 'phần quà đặc quyền'}</p>
         <div class="confirm-btns">
           <button class="btn-cancel" onclick={() => viralStep = 'idle'}>Hủy</button>
           <button class="btn-verify" onclick={verifyShare}>XÁC NHẬN NGAY</button>

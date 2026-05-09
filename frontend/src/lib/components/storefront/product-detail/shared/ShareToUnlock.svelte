@@ -280,6 +280,15 @@
     _token = null;
     _fingerprint = null;
   }
+  const displayRewardLabel = $derived(
+    viralSuite?.share_reward_label || 
+    viralSuite?.share_cta ||
+    ''
+  );
+
+  const ctaText = $derived(
+    viralSuite?.share_cta || 'NHẬN'
+  );
 </script>
 
 {#if showFlyGhost}
@@ -297,11 +306,11 @@
         <div class="stp-one-line">
           <div class="stp-icon-box"><Gift size={18} /></div>
           <div class="stp-msg">
-            <span class="stp-t">CHIA SẺ NHẬN VOUCHER 50K</span>
+            <span class="stp-t">{displayRewardLabel}</span>
             {#if errorMsg}<span class="text-[10px] text-red-500 font-bold">{errorMsg}</span>{/if}
           </div>
           <button class="stp-go" onclick={viralActions.share}>
-            <span>NHẬN</span><ExternalLink size={12} />
+            <span>{ctaText}</span><ExternalLink size={12} />
           </button>
         </div>
       </div>

@@ -285,12 +285,17 @@
     setTimeout(() => { codeCopied = false; }, 2000);
   }
 
-  function resetToIdle() {
-    step = 'idle';
-    errorMsg = '';
-    _token = null;
-    _fingerprint = null;
-  }
+  const displayRewardLabel = $derived(
+    viralSuite?.share_reward_label || 
+    viralSuite?.share_cta ||
+    ''
+  );
+
+  const ctaText = $derived(
+    viralSuite?.share_cta || 'NHẬN QUÀ'
+  );
+
+  const stats = $derived(viralSuite?.stats ?? { redeemed_count: 0 });
 </script>
 
 {#if showFlyGhost}
@@ -307,12 +312,12 @@
       <div class="stu-view">
         {#if variant === 'floating'}
           <div class="stu-f-content">
-            <h4 class="stu-f-title">CHIA SẺ NHẬN 50K</h4>
+            <h4 class="stu-f-title">{displayRewardLabel}</h4>
             <div class="stu-f-fomo">🔥 {formatViralCount(shareCount)}+ ĐÃ NHẬN</div>
             <button class="stu-f-btn" onclick={viralActions.share}>
                <div class="stu-f-btn-inner">
                   <Sparkles size={12} strokeWidth={3} class="stu-f-btn-icon" />
-                  <span>NHẬN QUÀ</span>
+                  <span>{ctaText}</span>
                </div>
                <div class="stu-f-btn-shine"></div>
             </button>
@@ -329,13 +334,13 @@
             </div>
             <div class="stp-funnel-row">
               <div class="stp-f-msg">
-                <span class="stp-f-t">CHIẾN DỊCH LAN TỎA NHẬN VOUCHER 50K</span>
+                <span class="stp-f-t">{displayRewardLabel}</span>
                 <div class="stp-f-progress">
                   <div class="stp-f-bar" style="width: 50%"></div>
                 </div>
               </div>
               <button class="stp-f-btn" onclick={viralActions.share}>
-                <span>NHẬN NGAY</span>
+                <span>{ctaText}</span>
                 <div class="stu-f-btn-shine"></div>
               </button>
             </div>

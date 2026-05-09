@@ -8,6 +8,8 @@
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
 
+  import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
+
   interface Props {
     product: Product;
     onShareComplete?: () => void;
@@ -43,27 +45,19 @@
     (viralSuite?.primary_campaign === 'VOUCHER_UNLOCK' ? 'Chiến dịch lan tỏa nhận Voucher 50K' : 'Đạt mốc để mở khóa quà tặng')
   );
 
-  let localLikeCount = $state(likeCount);
-  let isLiked = $state(false);
-
-  $effect(() => {
-    if (product?.id) {
-      isLiked = localStorage.getItem(`vfl_liked_${product.id}`) === 'true';
-    }
-  });
+  // Elite V2.2: Centralized Favorite Management
+  const isLiked = $derived(wishlistStore.isLiked(product.id));
+  const localLikeCount = $derived(likeCount + (isLiked ? 1 : 0));
 
   function handleLike(e: MouseEvent) {
     e.preventDefault();
     if (!product?.id) return;
     
-    isLiked = !isLiked;
-    localStorage.setItem(`vfl_liked_${product.id}`, String(isLiked));
+    const wasLiked = isLiked;
+    wishlistStore.toggle(product.id);
     
-    if (isLiked) {
-      localLikeCount++;
+    if (!wasLiked) {
       createHeartConfetti(e.clientX, e.clientY);
-    } else {
-      localLikeCount = Math.max(0, localLikeCount - 1);
     }
   }
 

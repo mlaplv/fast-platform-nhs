@@ -16,6 +16,8 @@
   } from '$lib/utils/commerce/viral';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
 
+  import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
+
   interface Props {
     product: Product;
     timer_prefix?: string;
@@ -51,19 +53,27 @@
   );
 
   const displayRewardLabel = $derived(
-    viralSuite?.share_reward_label || product.metadata?.share_reward_label || 
-    'CHIẾN DỊCH LAN TỎA NHẬN VOUCHER 50K'
+    viralSuite?.share_reward_label || 
+    viralSuite?.share_cta ||
+    ''
+  );
+
+  const ctaText = $derived(
+    viralSuite?.share_cta || 'NHẬN'
   );
 
   // ── State Machine ──────────────────────────────────────────────────────────
   type Step = 'idle' | 'sharing' | 'verifying' | 'revealed' | 'error';
   let step = $state<Step>('idle');
-  let isLiked = $state(false);
-  let localLikeCount = $state(0);
   let errorMsg = $state('');
   let voucherCode = $state<string | null>(null);
   let voucherLabel = $state<string | null>(null);
   let codeCopied = $state(false);
+
+  // Elite V2.2: Centralized Favorite Management
+  const isLiked = $derived(wishlistStore.isLiked(product.id));
+  const baseLikeCount = $derived(Number(viralSuite?.likes_count || product.metadata?.likes || 0));
+  const localLikeCount = $derived(baseLikeCount + (isLiked ? 1 : 0));
 
   let _token = $state<string | null>(null);
   let _fingerprint = $state<string | null>(null);
@@ -82,12 +92,6 @@
   const isVoucherApplied = $derived(
     promoConfig?.voucher_id && shopStore.selectedVoucherIds.includes(promoConfig.voucher_id)
   );
-
-  $effect(() => {
-    if (product) {
-      localLikeCount = Number(viralSuite?.likes_count || product.metadata?.likes || 0);
-    }
-  });
 
   // 🛡️ Military-Grade: Restore state from HTTP-Only cookie (via SSR unlockedVoucherIds)
   $effect(() => {
@@ -121,24 +125,15 @@
     };
   });
 
-  $effect(() => {
-    if (product?.id) {
-      isLiked = localStorage.getItem(`vfl_liked_${product.id}`) === 'true';
-    }
-  });
-
   function handleLike(e: MouseEvent) {
     e.preventDefault();
     if (!product?.id) return;
 
-    isLiked = !isLiked;
-    localStorage.setItem(`vfl_liked_${product.id}`, String(isLiked));
+    const wasLiked = isLiked;
+    wishlistStore.toggle(product.id);
 
-    if (isLiked) {
-      localLikeCount++;
+    if (!wasLiked) {
       createHeartConfetti(e.clientX, e.clientY);
-    } else {
-      localLikeCount = Math.max(0, localLikeCount - 1);
     }
   }
 
@@ -372,7 +367,7 @@
         <div class="ticket-inner">
           <div class="flex items-center gap-2">
             <Gift size={16} class="text-[#ee4d2d]" />
-            <span class="ticket-msg">NHẬN VOUCHER 50K</span>
+            <span class="ticket-msg">{displayRewardLabel}</span>
           </div>
           
           <div class="flex items-center gap-3">
@@ -380,7 +375,7 @@
               <span class="font-black">{formatTime(timeLeft)}</span>
             </div>
             <button class="ticket-btn-primary" onclick={() => viralActions.share('facebook')}>
-              <span>NHẬN</span>
+              <span>{ctaText}</span>
               <ExternalLink size={12} />
             </button>
           </div>

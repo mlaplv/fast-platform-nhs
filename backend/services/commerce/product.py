@@ -157,6 +157,63 @@ class ProductService:
                 return str(display_total)
         return ""
 
+    async def _hydrate_viral_config(self, db_session: AsyncSession, row_dict: ProductRowDict) -> None:
+        """
+        Elite V2.2: dynamic hydration from promotion.py
+        If product links to a voucher, fetch viral config from voucher.metadata_json
+        """
+        metadata = row_dict.get("metadata", {})
+        share_promo = metadata.get("share_promotion")
+        
+        if not isinstance(share_promo, dict) or not share_promo.get("enabled"):
+            return
+            
+        voucher_id = share_promo.get("voucher_id")
+        if not voucher_id:
+            return
+            
+        from backend.database.models.promotion import Voucher
+        stmt = select(Voucher).where(Voucher.id == voucher_id)
+        res = await db_session.execute(stmt)
+        voucher = res.scalar_one_or_none()
+        
+        if voucher and voucher.metadata_json:
+            v_config = voucher.metadata_json.get("viral_suite")
+            if isinstance(v_config, dict):
+                # Elite V2.2: The "Config chính thống" - Zero Hardcode
+                metadata["viral_suite"] = {
+                    "enabled": v_config.get("enabled", False),
+                    "voucher_id": voucher_id,
+                    "share_target": v_config.get("share_target", 10),
+                    "share_reward_label": v_config.get("voucher_label", ""),
+                    "share_cta": v_config.get("cta_text", ""),
+                    "share_text": v_config.get("share_text", ""),
+                    "share_count": metadata.get("share_count", 0),
+                    "likes_count": metadata.get("likes", 0)
+                }
+                
+                # Override share_promotion fields
+                share_promo.update({
+                    "voucher_label": v_config.get("voucher_label", share_promo.get("voucher_label")),
+                    "cta_text": v_config.get("cta_text", share_promo.get("cta_text")),
+                    "share_text": v_config.get("share_text", share_promo.get("share_text")),
+                })
+                
+                # Override top-level target/reward for progress bar
+                if "share_target" in v_config:
+                    metadata["share_target"] = v_config["share_target"]
+                if "reward_label" in v_config:
+                    metadata["share_reward_label"] = v_config["reward_label"]
+
+                # Compatibility with legacy 'viral_suite' object if present
+                if "viral_suite" in metadata and isinstance(metadata["viral_suite"], dict):
+                    metadata["viral_suite"].update({
+                        "share_target": v_config.get("share_target", metadata["viral_suite"].get("share_target")),
+                        "share_reward_label": v_config.get("reward_label", metadata["viral_suite"].get("share_reward_label")),
+                    })
+                    if "share_promotion" in metadata["viral_suite"]:
+                         metadata["viral_suite"]["share_promotion"].update(share_promo)
+
     async def list_products(
         self,
         db_session: AsyncSession,
@@ -324,6 +381,7 @@ class ProductService:
                 row_dict: ProductRowDict = dict(row_mapping) # type: ignore
                 row_dict["variants"] = []
                 self._inject_marketing_boost(row_dict)
+                await self._hydrate_viral_config(db_session, row_dict)
                 data.append(ProductResponse.model_validate(row_dict))
 
             # --- LAYER 6: COMPUTE FACETS (Elite V2.2 Dynamic Filters) ---
@@ -381,6 +439,7 @@ class ProductService:
             row_dict: ProductRowDict = dict(row._mapping) # type: ignore
             row_dict["variants"] = []
             self._inject_marketing_boost(row_dict)
+            await self._hydrate_viral_config(db_session, row_dict)
             data.append(ProductResponse.model_validate(row_dict))
 
         return ProductListResponse(data=data, total=total)
@@ -416,6 +475,7 @@ class ProductService:
 
         # Elite Dynamic Counting & Marketing Boost
         self._inject_marketing_boost(row_dict)
+        await self._hydrate_viral_config(db_session, row_dict)
 
         return ProductResponse.model_validate(row_dict)
 
@@ -478,6 +538,7 @@ class ProductService:
 
         # Elite Dynamic Counting & Marketing Boost
         self._inject_marketing_boost(row_dict)
+        await self._hydrate_viral_config(db_session, row_dict)
 
         return ProductResponse.model_validate(row_dict)
 
@@ -510,24 +571,9 @@ class ProductService:
             tier_variations=[tv.model_dump() for tv in data.tierVariations] if data.tierVariations else [],
         )
 
-        # Elite V2.2: Default Viral Suite (Voucher 50k)
-        # Ensure every product has the viral campaign enabled by default
-        base_metadata = data.metadata.model_dump() if data.metadata else {}
-        if "viral_suite" not in base_metadata:
-            base_metadata["viral_suite"] = {
-                "likes_count": 0,
-                "share_count": 0,
-                "share_target": 1000,
-                "primary_campaign": "VOUCHER_UNLOCK",
-                "share_promotion": {
-                    "enabled": True,
-                    "voucher_id": "VIRAL50K",
-                    "voucher_label": "Giảm 50.000₫",
-                    "cta_text": "Chia sẻ để nhận mã",
-                    "share_text": f"Bí quyết tỏa sáng cùng {data.name}! Cùng chia sẻ để nhận ưu đãi 50K nhé! 🌸"
-                }
-            }
-        product.product_metadata = base_metadata
+        # R00 Compliance: Viral settings are now managed via Promotions (Vouchers)
+        # only SKU-specific metadata like social proof or flash sale should be here
+        product.product_metadata = data.metadata.model_dump() if data.metadata else {}
         
         db_session.add(product)
 

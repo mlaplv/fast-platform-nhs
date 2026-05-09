@@ -18,6 +18,7 @@ class VoucherBase(BaseModel):
     category: str = Field("DISCOUNT")
     is_default: bool = Field(False)
     priority: int = Field(0)
+    metadata_json: Optional[dict] = Field(default_factory=dict, alias="metadata_json")
 
 class CreateVoucherRequest(VoucherBase):
     pass
@@ -36,6 +37,7 @@ class UpdateVoucherRequest(BaseModel):
     category: Optional[str] = None
     is_default: Optional[bool] = None
     priority: Optional[int] = None
+    metadata_json: Optional[dict] = None
     id: Optional[str] = Field(None, description="New Voucher Code if renaming")
 
 class VoucherResponse(VoucherBase):

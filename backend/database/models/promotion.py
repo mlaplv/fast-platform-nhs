@@ -39,6 +39,7 @@ class Voucher(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     category: Mapped[str] = mapped_column(String, default="DISCOUNT") # DISCOUNT, SHIPPING, GIFT
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     priority: Mapped[int] = mapped_column(Integer, default=0)
+    metadata_json: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default={})
 
 class ComboDeal(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'combo_deals'

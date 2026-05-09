@@ -10,6 +10,8 @@
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
 
+  import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
+
   interface Props {
     product: Product;
     variant?: 'mobile' | 'funnel';
@@ -30,12 +32,10 @@
   
   const viralSuite = $derived(product.metadata?.viral_suite ?? null);
   
-  const shareCount = $derived(
-    viralSuite?.share_count ?? (typeof product.metadata.share_count === 'number' ? product.metadata.share_count : 0)
-  );
+  // Elite V2.2: Centralized Favorite Management
+  const isLiked = $derived(wishlistStore.isLiked(product.id));
+  const localLikeCount = $derived(likeCount + (isLiked ? 1 : 0));
 
-  let localLikeCount = $state(likeCount);
-  let isLiked = $state(false);
   let scrollY = $state(0);
   
   const isCollapsed = $derived(scrollY >= 100 && scrollY < 400);
@@ -47,12 +47,13 @@
 
   function handleLike(e: MouseEvent) {
     e.preventDefault();
-    isLiked = !isLiked;
-    if (isLiked) {
-      localLikeCount++;
+    if (!product?.id) return;
+
+    const wasLiked = isLiked;
+    wishlistStore.toggle(product.id);
+    
+    if (!wasLiked) {
       createHeartConfetti(e.clientX, e.clientY);
-    } else {
-      localLikeCount = Math.max(0, localLikeCount - 1);
     }
   }
 

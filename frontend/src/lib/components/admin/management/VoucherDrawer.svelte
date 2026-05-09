@@ -36,7 +36,16 @@
     is_default: false,
     priority: 0,
     title: "",
-    subtitle: ""
+    subtitle: "",
+    metadata_json: {
+      viral_suite: {
+        enabled: false,
+        share_target: 1000,
+        voucher_label: "",
+        cta_text: "",
+        share_text: ""
+      }
+    }
   });
 
   // [ELITE V2.2] Auto-Sync Category selection with Voucher Type
@@ -78,7 +87,17 @@
           is_default: voucher.is_default || false,
           priority: voucher.priority || 0,
           title: voucher.title || "",
-          subtitle: voucher.subtitle || ""
+          subtitle: voucher.subtitle || "",
+          metadata_json: {
+            viral_suite: {
+              enabled: false,
+              share_target: 1000,
+              voucher_label: "",
+              cta_text: "",
+              share_text: "",
+              ...(voucher.metadata_json?.viral_suite || {})
+            }
+          }
         };
       }
     } catch (error: unknown) {
@@ -103,7 +122,16 @@
       is_default: false,
       priority: 0,
       title: "",
-      subtitle: ""
+      subtitle: "",
+      metadata_json: {
+        viral_suite: {
+          enabled: false,
+          share_target: 1000,
+          voucher_label: "",
+          cta_text: "",
+          share_text: ""
+        }
+      }
     };
   }
 
@@ -335,6 +363,73 @@
                 class="w-full bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-cyan/50 text-sm font-mono"
               />
             </div>
+          </div>
+
+          <!-- Viral Configuration (Elite V2.2) -->
+          <div class="p-5 bg-pink-500/5 border border-pink-500/10 rounded-2xl space-y-5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-pink-500"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                </div>
+                <div>
+                  <span class="block text-[11px] font-black text-pink-400 tracking-[0.2em] uppercase">Chiến dịch Lan tỏa</span>
+                  <span class="text-[9px] text-gray-500 uppercase tracking-tighter">Elite Viral Engine 2026</span>
+                </div>
+              </div>
+              <button
+                onclick={() => (form.metadata_json.viral_suite.enabled = !form.metadata_json.viral_suite.enabled)}
+                class="w-12 h-6 rounded-full transition-all relative {form.metadata_json.viral_suite.enabled ? 'bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.3)]' : 'bg-gray-800'}"
+                role="switch"
+                aria-checked={form.metadata_json.viral_suite.enabled}
+              >
+                <div class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all {form.metadata_json.viral_suite.enabled ? 'left-7' : 'left-1'}"></div>
+              </button>
+            </div>
+
+            {#if form.metadata_json.viral_suite.enabled}
+              <div class="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Mục tiêu (Share)</label>
+                    <input
+                      type="number"
+                      bind:value={form.metadata_json.viral_suite.share_target}
+                      class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-500/50 text-sm font-mono"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Nhãn phần thưởng</label>
+                    <input
+                      type="text"
+                      bind:value={form.metadata_json.viral_suite.voucher_label}
+                      placeholder="VD: Giảm 50.000₫"
+                      class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-500/50 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Nút hành động (CTA)</label>
+                  <input
+                    type="text"
+                    bind:value={form.metadata_json.viral_suite.cta_text}
+                    placeholder="VD: Chia sẻ để nhận mã"
+                    class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-500/50 text-sm"
+                  />
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Nội dung chia sẻ (Mồi)</label>
+                  <textarea
+                    bind:value={form.metadata_json.viral_suite.share_text}
+                    placeholder="Nội dung khách sẽ share lên MXH..."
+                    rows="3"
+                    class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-500/50 text-sm custom-scrollbar"
+                  ></textarea>
+                </div>
+              </div>
+            {/if}
           </div>
 
           <!-- Status Toggle -->

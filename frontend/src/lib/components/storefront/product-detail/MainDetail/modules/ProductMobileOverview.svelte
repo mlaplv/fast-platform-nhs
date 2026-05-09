@@ -10,6 +10,8 @@
   import VolumeX from "@lucide/svelte/icons/volume-x";
   import Heart from "@lucide/svelte/icons/heart";
   
+  import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
+  
   // Types
   import type { Product, ProductVariant, ReviewStats } from '$lib/types';
   
@@ -50,21 +52,19 @@
   const clientUi = getClientUi();
 
   // --- LIKE / BOOKMARK STATE ---
-  let isLiked = $state(false);
   let likeAnimating = $state(false);
+  const isLiked = $derived(wishlistStore.isLiked(product.id));
   const baseLikeCount = $derived(Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0));
-  let localLikeAdjust = $state(0);
-  const likeCount = $derived(baseLikeCount + localLikeAdjust);
+  const likeCount = $derived(baseLikeCount + (isLiked ? 1 : 0));
 
   function toggleLike() {
-    isLiked = !isLiked;
-    if (isLiked) {
-      localLikeAdjust++;
+    const wasLiked = isLiked;
+    wishlistStore.toggle(product.id);
+    
+    if (!wasLiked) {
       clientUi.showToast('Đã thêm sản phẩm vào mục Yêu thích', 'success');
       likeAnimating = true;
       setTimeout(() => { likeAnimating = false; }, 300);
-    } else {
-      localLikeAdjust--;
     }
   }
 
@@ -264,6 +264,8 @@
     {timeLeft}
   />
 
+  <ShareToUnlockPromoMobile {product} />
+
   <!-- INFO SECTION -->
   <section class="info-content">
     <!-- Vouchers -->
@@ -371,7 +373,7 @@
         <ViralShareBarMobile 
           {product} 
           variant="mobile" 
-          likeCount={likeCount}
+          likeCount={baseLikeCount}
         />
       </div>
 
