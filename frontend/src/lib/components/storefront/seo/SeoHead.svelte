@@ -232,6 +232,7 @@
   {/if}
 
   <meta name="description" content={finalDescription} />
+  <meta name="google" content="notranslate" />
   {#if keywords}
     <meta name="keywords" content={keywords} />
   {/if}

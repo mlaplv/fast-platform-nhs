@@ -81,7 +81,7 @@
   });
 </script>
 
-<div class="client-layout min-h-screen flex flex-col {ui.isMobile && isAccountPage ? '!bg-white' : ''}">
+<div class="client-layout min-h-screen flex flex-col {ui.isMobile && isAccountPage ? '!bg-white' : ''}" translate="no">
   {#if showGlobalHeader}
     <HeaderDesktop />
   {/if}

@@ -110,7 +110,7 @@
   });
 </script>
 
-<div class="mobile-snap-container relative h-screen overflow-y-auto" onscroll={handleScroll}>
+<div class="mobile-snap-container relative h-screen overflow-y-auto" translate="no" onscroll={handleScroll}>
   <!-- PERSISTENT OVERLAYS -->
   <MobileActionStack 
     {product} 

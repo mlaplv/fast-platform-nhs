@@ -298,7 +298,7 @@
     />
   {/if}
 {:else}
-  <div class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll" use:initScrollObserver>
+  <div class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll" translate="no" use:initScrollObserver>
 
   {#if product?.id}
     <LiquidHeader {product} {themeMode} {applyTheme} scrollToQuiz={scrollToQuiz} {activeId} />
