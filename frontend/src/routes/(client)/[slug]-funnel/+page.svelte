@@ -45,6 +45,9 @@
   
   if (product?.id && !isInitialized) {
     shopStore.init(product);
+    if (data.unlockedVoucherIds) {
+      shopStore.setUnlockedVouchers(data.unlockedVoucherIds);
+    }
     isInitialized = true;
   }
 

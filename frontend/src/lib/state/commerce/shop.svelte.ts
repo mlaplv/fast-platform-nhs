@@ -56,6 +56,7 @@ export class ShopStore {
     // Vouchers (Elite V2.2)
     vouchers = $state<Voucher[]>([]);
     selectedVoucherIds = $state<string[]>([]);
+    unlockedVoucherIds = $state<string[]>([]);
     
     // ⚡ Elite V2.2: Mini-Sheet Transient State
     voucherSortOrder = $state<'none' | 'desc' | 'asc'>('none');
@@ -221,21 +222,29 @@ export class ShopStore {
         }
     }
 
+    setUnlockedVouchers(ids: string[]): void {
+        this.unlockedVoucherIds = ids || [];
+    }
+
+    unlockVoucher(id: string): void {
+        if (!this.unlockedVoucherIds.includes(id)) {
+            this.unlockedVoucherIds = [...this.unlockedVoucherIds, id];
+        }
+    }
+
     setVouchers(data: Voucher[]): void {
         untrack(() => {
-            // 🛡️ Stealth Vault: Hide viral voucher until unlocked
+            // 🛡️ Stealth Vault: Hide viral voucher until unlocked via Server HTTP-Only cookie
             const viralVoucherId = this.product?.metadata?.viral_suite?.share_promotion?.voucher_id 
                                 || (this.product?.metadata as any)?.share_promotion?.voucher_id;
 
-            const injectedViral = viralVoucherId ? this.vouchers.find(v => v.id === viralVoucherId) : null;
+            const isUnlocked = viralVoucherId && this.unlockedVoucherIds.includes(viralVoucherId);
             
             let newVouchers = data ? [...data] : [];
-            if (viralVoucherId) {
-                newVouchers = newVouchers.filter(v => v.id !== viralVoucherId);
-            }
             
-            if (injectedViral) {
-                newVouchers.push(injectedViral);
+            // If it's the viral voucher and it's NOT unlocked, remove it!
+            if (viralVoucherId && !isUnlocked) {
+                newVouchers = newVouchers.filter(v => v.id !== viralVoucherId);
             }
 
             this.vouchers = newVouchers;

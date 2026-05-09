@@ -80,23 +80,21 @@
     }
   });
 
+  // 🛡️ Military-Grade: Restore state from HTTP-Only cookie (via SSR unlockedVoucherIds)
   $effect(() => {
     const onBlur = () => { windowLostFocus = true; };
     window.addEventListener('blur', onBlur);
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          voucherCode = data.code;
-          voucherLabel = data.label;
-          if (data.voucher && !shopStore.vouchers.find(v => v.id === data.voucher.id)) {
-            shopStore.vouchers = [...shopStore.vouchers, data.voucher];
-          }
-          step = 'revealed';
-        } catch { localStorage.removeItem(`viral_unlocked_${product.id}`); }
+    
+    // Check if voucher was already unlocked (cookie-backed, server-injected)
+    if (promoConfig?.voucher_id && shopStore.unlockedVoucherIds.includes(promoConfig.voucher_id)) {
+      const existingVoucher = shopStore.vouchers.find(v => v.id === promoConfig.voucher_id);
+      if (existingVoucher) {
+        voucherCode = existingVoucher.code || existingVoucher.id;
+        voucherLabel = existingVoucher.title || 'MÃ QUÀ TẶNG VIRAL';
+        step = 'revealed';
       }
     }
+    
     return () => window.removeEventListener('blur', onBlur);
   });
 
@@ -119,7 +117,7 @@
       }
       step = 'sharing';
       try {
-        const res = await fetch('/api/v1/client/viral/share-intent', {
+        const res = await fetch('/_viral/share-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ product_id: product.id }),
@@ -148,7 +146,7 @@
       }
       step = 'verifying';
       try {
-        const res = await fetch('/api/v1/client/viral/verify-share', {
+        const res = await fetch('/_viral/verify-share', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -178,12 +176,11 @@
         }
 
         step = 'revealed';
-        localStorage.setItem(`viral_unlocked_${product.id}`, JSON.stringify({ 
-            code: voucherCode, 
-            label: voucherLabel, 
-            voucher: newVoucher,
-            unlocked_at: Date.now() 
-        }));
+        
+        // 🛡️ Military-Grade: Mark as unlocked in ShopStore (cookie already set by server response)
+        shopStore.unlockVoucher(newVoucher.id);
+        // Re-trigger setVouchers to include the viral voucher now that it's unlocked
+        shopStore.setVouchers(shopStore.vouchers);
         
         // 🔥 AUTO-APPLY TỨC THÌ
         if (!shopStore.selectedVoucherIds.includes(newVoucher.id)) {

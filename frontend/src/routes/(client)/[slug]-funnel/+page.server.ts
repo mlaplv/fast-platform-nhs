@@ -6,11 +6,13 @@ import { isMobileDevice } from '$lib/utils/device';
 export const load: PageServerLoad = async ({ 
     params, 
     fetch, 
-    request 
+    request,
+    cookies
 }: { 
     params: Record<string, string>, 
     fetch: typeof globalThis.fetch, 
-    request: Request 
+    request: Request,
+    cookies: import('@sveltejs/kit').Cookies
 }) => {
     const { slug } = params;
     
@@ -74,12 +76,18 @@ export const load: PageServerLoad = async ({
         const isMobile = isMobileDevice(userAgent);
         const effectiveIp = request.headers.get('cf-connecting-ip') || '127.0.0.1';
 
+        // Elite V2.2: Military-Grade Security - Read HTTP-Only Cookies for unlocked vouchers
+        const unlockedVoucherIds = cookies.getAll()
+            .filter(c => c.name.startsWith('elite_viral_') && c.value === '1')
+            .map(c => c.name.replace('elite_viral_', ''));
+
         return {
             product,
             shopInfo,
             reviewStats,
             reviews: reviewsData.items || [],
             relatedProducts,
+            unlockedVoucherIds,
             isMobile,
             effectiveIp,
             metadata: {

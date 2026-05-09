@@ -3,7 +3,7 @@ import { error } from '@sveltejs/kit';
 import { ServerEnv } from '$lib/server/env';
 import { isMobileDevice } from '$lib/utils/device';
 
-export const load: LayoutServerLoad = async ({ fetch, request, setHeaders }) => {
+export const load: LayoutServerLoad = async ({ fetch, request, setHeaders, cookies }) => {
     const apiUrl = ServerEnv.INTERNAL_API_URL;
     const userAgent = request.headers.get('user-agent') || '';
     const isMobile = isMobileDevice(userAgent);
@@ -31,9 +31,15 @@ export const load: LayoutServerLoad = async ({ fetch, request, setHeaders }) => 
         const shopInfo = await shopResp.json();
         const vouchersData = voucherResp.ok ? await voucherResp.json() : { data: [] };
 
+        // Elite V2.2: Military-Grade Security - Read HTTP-Only Cookies for unlocked vouchers
+        const unlockedVoucherIds = cookies.getAll()
+            .filter(c => c.name.startsWith('elite_viral_') && c.value === '1')
+            .map(c => c.name.replace('elite_viral_', ''));
+
         return {
             shopInfo,
             vouchers: vouchersData.data || [],
+            unlockedVoucherIds,
             isMobile
         };
     } catch (e: unknown) {
