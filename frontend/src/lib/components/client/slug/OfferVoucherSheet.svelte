@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fade, fly } from 'svelte/transition';
-  import { cubicIn } from 'svelte/easing';
+  import { cubicIn, cubicOut } from 'svelte/easing';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';

@@ -1,4 +1,4 @@
-import { setContext, getContext } from 'svelte';
+import { setContext, getContext, untrack } from 'svelte';
 import { browser } from '$app/environment';
 import { apiClient, ApiError } from '$lib/utils/apiClient';
 import type { Product, ProductVariant, PromotionDeal, Voucher } from '$lib/types';
@@ -222,18 +222,35 @@ export class ShopStore {
     }
 
     setVouchers(data: Voucher[]): void {
-        this.vouchers = data || [];
-        
-        // 🚀 ELITE V2.2: Use Real 'is_default' Flag (Rule R00 Alignment)
-        if (this.selectedVoucherIds.length === 0 && this.vouchers.length > 0) {
-            const defaultVoucherIds = this.vouchers
-                .filter(v => v.is_default)
-                .map(v => v.id);
+        untrack(() => {
+            // 🛡️ Stealth Vault: Hide viral voucher until unlocked
+            const viralVoucherId = this.product?.metadata?.viral_suite?.share_promotion?.voucher_id 
+                                || (this.product?.metadata as any)?.share_promotion?.voucher_id;
+
+            const injectedViral = viralVoucherId ? this.vouchers.find(v => v.id === viralVoucherId) : null;
             
-            if (defaultVoucherIds.length > 0) {
-                this.selectedVoucherIds = defaultVoucherIds;
+            let newVouchers = data ? [...data] : [];
+            if (viralVoucherId) {
+                newVouchers = newVouchers.filter(v => v.id !== viralVoucherId);
             }
-        }
+            
+            if (injectedViral) {
+                newVouchers.push(injectedViral);
+            }
+
+            this.vouchers = newVouchers;
+            
+            // 🚀 ELITE V2.2: Use Real 'is_default' Flag (Rule R00 Alignment)
+            if (this.selectedVoucherIds.length === 0 && this.vouchers.length > 0) {
+                const defaultVoucherIds = this.vouchers
+                    .filter(v => v.is_default)
+                    .map(v => v.id);
+                
+                if (defaultVoucherIds.length > 0) {
+                    this.selectedVoucherIds = defaultVoucherIds;
+                }
+            }
+        });
     }
 
     startTimer(): void {

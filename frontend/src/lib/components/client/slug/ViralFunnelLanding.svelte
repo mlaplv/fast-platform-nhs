@@ -8,7 +8,7 @@
   import Check from "@lucide/svelte/icons/check";
   import Loader from "@lucide/svelte/icons/loader";
   import Sparkles from "@lucide/svelte/icons/sparkles";
-  import type { Product } from '$lib/types';
+  import type { Product, Voucher } from '$lib/types';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import { 
@@ -70,6 +70,10 @@
   let shareStartTime = $state<number>(0);
   let windowLostFocus = $state<boolean>(false);
 
+  const isVoucherApplied = $derived(
+    promoConfig?.voucher_id && shopStore.selectedVoucherIds.includes(promoConfig.voucher_id)
+  );
+
   $effect(() => {
     if (product) {
       localLikeCount = Number(viralSuite?.likes_count || product.metadata?.likes || 0);
@@ -86,6 +90,9 @@
           const data = JSON.parse(saved);
           voucherCode = data.code;
           voucherLabel = data.label;
+          if (data.voucher && !shopStore.vouchers.find(v => v.id === data.voucher.id)) {
+            shopStore.vouchers = [...shopStore.vouchers, data.voucher];
+          }
           step = 'revealed';
         } catch { localStorage.removeItem(`viral_unlocked_${product.id}`); }
       }
@@ -155,11 +162,37 @@
         const data = await res.json();
         voucherCode = data.voucher_code;
         voucherLabel = data.voucher_label;
+        
+        const newVoucher: Voucher = {
+            id: promoConfig.voucher_id,
+            code: voucherCode || '',
+            title: voucherLabel || '',
+            value: data.voucher_value,
+            type: data.voucher_type,
+            min_spend: data.min_spend,
+            is_default: false
+        };
+        
+        if (!shopStore.vouchers.find(v => v.id === newVoucher.id)) {
+            shopStore.vouchers = [...shopStore.vouchers, newVoucher];
+        }
+
         step = 'revealed';
-        localStorage.setItem(`viral_unlocked_${product.id}`, JSON.stringify({ code: voucherCode, label: voucherLabel, unlocked_at: Date.now() }));
+        localStorage.setItem(`viral_unlocked_${product.id}`, JSON.stringify({ 
+            code: voucherCode, 
+            label: voucherLabel, 
+            voucher: newVoucher,
+            unlocked_at: Date.now() 
+        }));
+        
+        // 🔥 AUTO-APPLY TỨC THÌ
+        if (!shopStore.selectedVoucherIds.includes(newVoucher.id)) {
+            shopStore.toggleVoucher(newVoucher.id);
+        }
+
         onUnlock?.();
         createHeartConfetti(window.innerWidth / 2, window.innerHeight / 2);
-        clientUi.showToast('🎉 Đã mở khóa!', 'success');
+        clientUi.showToast(`🎉 Đã áp dụng mã ${voucherCode}!`, 'success');
       } catch (e: any) {
         errorMsg = e.message;
         step = 'error';
@@ -169,6 +202,14 @@
 
   async function copyLink() {
     await copyViralLink(window.location.href);
+  }
+
+  function applyVoucher() {
+    if (!promoConfig?.voucher_id) return;
+    if (!shopStore.selectedVoucherIds.includes(promoConfig.voucher_id)) {
+        shopStore.toggleVoucher(promoConfig.voucher_id);
+        clientUi.showToast(`🎉 Đã áp dụng mã ${voucherCode} thành công!`, 'success');
+    }
   }
 </script>
 
@@ -254,9 +295,14 @@
               <span class="text-lg font-black text-[#ee4d2d] tabular-nums tracking-wider">{voucherCode}</span>
             </div>
           </div>
-          <button class="vfl-copy-pill" onclick={() => { copyViralLink(voucherCode || ''); codeCopied = true; setTimeout(()=>codeCopied=false, 2000); }}>
-            {#if codeCopied}<Check size={14} />{:else}<Copy size={14} />{/if}
-            <span>{codeCopied ? 'XONG' : 'COPY'}</span>
+          <button class="vfl-apply-pill" onclick={applyVoucher} disabled={isVoucherApplied}>
+            {#if isVoucherApplied}
+              <Check size={14} />
+              <span>ĐÃ ÁP DỤNG</span>
+            {:else}
+              <Zap size={14} fill="currentColor" />
+              <span>SỬ DỤNG NGAY</span>
+            {/if}
           </button>
         </div>
       {/if}
@@ -361,10 +407,13 @@
   .ticket-btn-primary:active { transform: scale(0.95); }
 
   /* --- Revealed State --- */
-  .vfl-copy-pill {
-    background: #fff; color: #000; padding: 6px 14px; border-radius: 6px;
+  .vfl-apply-pill {
+    background: #ee4d2d; color: #fff; padding: 6px 14px; border-radius: 6px;
     font-size: 10px; font-weight: 1000; display: flex; align-items: center; gap: 6px; border: none;
+    cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 10px rgba(238, 77, 45, 0.4);
   }
+  .vfl-apply-pill:active { transform: scale(0.95); }
+  .vfl-apply-pill:disabled { background: #4caf50; cursor: default; transform: none; box-shadow: none; opacity: 1; color: white; }
 
   /* --- Status Overlays --- */
   .vfl-center { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
