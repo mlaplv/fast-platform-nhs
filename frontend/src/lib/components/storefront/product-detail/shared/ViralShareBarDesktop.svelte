@@ -46,9 +46,19 @@
   let localLikeCount = $state(likeCount);
   let isLiked = $state(false);
 
+  $effect(() => {
+    if (product?.id) {
+      isLiked = localStorage.getItem(`vfl_liked_${product.id}`) === 'true';
+    }
+  });
+
   function handleLike(e: MouseEvent) {
     e.preventDefault();
+    if (!product?.id) return;
+    
     isLiked = !isLiked;
+    localStorage.setItem(`vfl_liked_${product.id}`, String(isLiked));
+    
     if (isLiked) {
       localLikeCount++;
       createHeartConfetti(e.clientX, e.clientY);
@@ -94,19 +104,15 @@
 
     {#if shareTarget > 0}
       <div class="vsb-reward-panel">
-        <div class="vsb-reward-header">
-          <Zap size={12} class="text-amber-500 fill-current" />
-          <span class="vsb-reward-text">{displayRewardLabel}</span>
-        </div>
         <div class="vsb-progress-container">
+          <div class="vsb-progress-info">
+            <span class="vsb-reward-text">{displayRewardLabel}</span>
+            <span class="vsb-progress-val">{Math.round(shareProgress)}%</span>
+          </div>
           <div class="vsb-progress-track">
             <div class="vsb-progress-bar" style="width: {shareProgress}%">
               <div class="vsb-progress-glow"></div>
             </div>
-          </div>
-          <div class="vsb-progress-meta">
-            <span class="vsb-progress-label">TIẾN TRÌNH LAN TỎA</span>
-            <span class="vsb-progress-val">{Math.round(shareProgress)}%</span>
           </div>
         </div>
       </div>
@@ -150,24 +156,36 @@
   .vsb-like-count { font-size: 14px; font-weight: 800; color: #1e293b; }
 
   .vsb-reward-panel { 
-    background: linear-gradient(145deg, #ffffff, #f8fafc); border: 1px solid #e2e8f0; 
-    border-radius: 12px; padding: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 10px; padding: 10px 12px;
   }
-  .vsb-reward-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
-  .vsb-reward-text { font-size: 11px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 0.02em; }
   
-  .vsb-progress-track { height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden; margin-bottom: 6px; }
-  .vsb-progress-bar { height: 100%; background: linear-gradient(90deg, #f59e0b, #ef4444); position: relative; border-radius: 10px; transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .vsb-progress-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .vsb-reward-text { font-size: 11px; font-weight: 600; color: #475569; }
+  .vsb-progress-val { font-size: 11px; font-weight: 800; color: #ef4444; }
+
+  .vsb-progress-track { 
+    height: 4px; 
+    background: rgba(0, 0, 0, 0.03); 
+    border-radius: 100px; 
+    overflow: hidden; 
+    position: relative;
+  }
+  .vsb-progress-bar { 
+    height: 100%; 
+    background: linear-gradient(90deg, #f59e0b, #ef4444); 
+    position: relative; 
+    border-radius: 100px; 
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); 
+  }
   .vsb-progress-glow {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    position: absolute; inset: 0;
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
     animation: vsb-shimmer 2s infinite linear;
   }
   @keyframes vsb-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
-
-  .vsb-progress-meta { display: flex; justify-content: space-between; align-items: center; }
-  .vsb-progress-label { font-size: 9px; font-weight: 800; color: #94a3b8; letter-spacing: 0.05em; }
-  .vsb-progress-val { font-size: 10px; font-weight: 900; color: #ef4444; }
 
   :global(.vsb-heart-burst) { position: fixed; pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); }
   :global(.vsb-heart-particle) { position: absolute; font-size: 14px; animation: heart-fly 0.8s ease-out forwards; opacity: 0; }

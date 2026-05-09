@@ -5,6 +5,7 @@
   import Activity from "@lucide/svelte/icons/activity";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import Target from "@lucide/svelte/icons/target";
+import X from "@lucide/svelte/icons/x";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";

@@ -15,8 +15,7 @@
     import HelpCircle from "@lucide/svelte/icons/help-circle";
     import LayoutGrid from "@lucide/svelte/icons/layout-grid";
     import List from "@lucide/svelte/icons/list";
-    import RefreshCw from "@lucide/svelte/icons/refresh-cw";
-    import SupportKnowledgeBulkActions from './SupportKnowledgeBulkActions.svelte';
+    import RefreshCw from "@lucide/svelte/icons/refresh-cw";    import SupportKnowledgeBulkActions from './SupportKnowledgeBulkActions.svelte';
     import SupportKnowledgeDrawer from './SupportKnowledgeDrawer.svelte';
 
     const categories = ["all", "GENERAL", "POLICY", "SHIPPING", "PRODUCT", "PROMO"];

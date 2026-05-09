@@ -7,6 +7,7 @@
   import Star from "@lucide/svelte/icons/star";
   import Power from "@lucide/svelte/icons/power";
   import PowerOff from "@lucide/svelte/icons/power-off";
+import X from "@lucide/svelte/icons/x";
     import { supportKbAdmin as kb } from '$lib/state/admin/supportKnowledge.svelte';
     import { portal } from "$lib/core/actions/portal";
     import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";

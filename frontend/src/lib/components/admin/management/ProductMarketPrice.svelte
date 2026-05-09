@@ -8,6 +8,7 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import Zap from "@lucide/svelte/icons/zap";
   import Globe from "@lucide/svelte/icons/globe";
+import X from "@lucide/svelte/icons/x";
   import type { ProductFormState } from "$lib/types";
   import { formatCurrency } from "$lib/utils/format";
   import { apiClient } from "$lib/utils/apiClient";

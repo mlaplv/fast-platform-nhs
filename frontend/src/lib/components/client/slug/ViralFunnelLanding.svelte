@@ -121,9 +121,19 @@
     };
   });
 
+  $effect(() => {
+    if (product?.id) {
+      isLiked = localStorage.getItem(`vfl_liked_${product.id}`) === 'true';
+    }
+  });
+
   function handleLike(e: MouseEvent) {
     e.preventDefault();
+    if (!product?.id) return;
+
     isLiked = !isLiked;
+    localStorage.setItem(`vfl_liked_${product.id}`, String(isLiked));
+
     if (isLiked) {
       localLikeCount++;
       createHeartConfetti(e.clientX, e.clientY);
@@ -333,17 +343,17 @@
       </button>
     </div>
 
-    <div class="vfl-progress-area">
-       <div class="vfl-progress-header">
-         <Zap size={10} class="text-[#ee4d2d] fill-current animate-pulse" />
-         <span class="vfl-reward-text">{displayRewardLabel}</span>
-       </div>
-       <div class="vfl-progress-track">
-         <div class="vfl-progress-bar" style="width: {shareProgress}%">
-           <div class="vfl-progress-glow"></div>
-         </div>
-       </div>
-    </div>
+        <div class="vfl-progress-area">
+           <div class="vfl-progress-info">
+             <span class="vfl-reward-text">{displayRewardLabel}</span>
+             <span class="vfl-progress-val">{Math.round(shareProgress)}%</span>
+           </div>
+           <div class="vfl-progress-track">
+             <div class="vfl-progress-bar" style="width: {shareProgress}%">
+               <div class="vfl-progress-glow"></div>
+             </div>
+           </div>
+        </div>
 
     <button onclick={handleLike} class="vfl-like-pill" class:liked={isLiked}>
       <Heart size={12} fill={isLiked ? '#ee4d2d' : 'none'} color={isLiked ? '#ee4d2d' : '#fff'} />
@@ -443,22 +453,28 @@
   .vfl-social-btn.zalo { color: #0068ff; }
   
   .vfl-progress-area { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-  .vfl-progress-header { display: flex; align-items: center; gap: 4px; }
+  .vfl-progress-info { display: flex; justify-content: space-between; align-items: center; }
   .vfl-reward-text { 
-    font-size: 8px; font-weight: 900; color: rgba(255, 255, 255, 0.5); 
-    text-transform: uppercase; letter-spacing: 0.05em; 
+    font-size: 10px; font-weight: 700; color: rgba(255, 255, 255, 0.6); 
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-    max-width: 180px;
+    max-width: 160px;
   }
+  .vfl-progress-val { font-size: 10px; font-weight: 900; color: #ee4d2d; }
   
-  .vfl-progress-track { height: 3px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; overflow: hidden; position: relative; }
+  .vfl-progress-track { 
+    height: 4px; 
+    background: rgba(255, 255, 255, 0.05); 
+    border-radius: 100px; 
+    overflow: hidden; 
+    position: relative; 
+  }
   .vfl-progress-bar { 
     height: 100%; background: linear-gradient(90deg, #ee4d2d, #ff8c00); 
-    border-radius: 10px; transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: 100px; transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
   }
   .vfl-progress-glow {
-    position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
     animation: vfl-shimmer 2s infinite linear;
   }
   @keyframes vfl-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }

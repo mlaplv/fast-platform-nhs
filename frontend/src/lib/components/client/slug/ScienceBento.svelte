@@ -7,6 +7,7 @@
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import HelpCircle from "@lucide/svelte/icons/help-circle";
+import X from "@lucide/svelte/icons/x";
   import "./ScienceBento.css";
 
   const shopStore = getShopStore();

@@ -9,8 +9,7 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import User from "@lucide/svelte/icons/user";
   import Sparkles from "@lucide/svelte/icons/sparkles";
-  import Play from "@lucide/svelte/icons/play";
-  import { fade, fly } from "svelte/transition";
+  import Play from "@lucide/svelte/icons/play";  import { fade, fly } from "svelte/transition";
   import ContentReviewCard from "./ui/ContentReviewCard.svelte";
   import XohiLogo from "./XohiLogo.svelte";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";

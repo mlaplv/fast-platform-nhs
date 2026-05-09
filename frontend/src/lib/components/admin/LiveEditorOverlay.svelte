@@ -4,6 +4,7 @@
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
   import Save from "@lucide/svelte/icons/save";
   import RefreshCcw from "@lucide/svelte/icons/refresh-ccw";
+import X from "@lucide/svelte/icons/x";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/zIndex";
   
   // Dynamic Editors

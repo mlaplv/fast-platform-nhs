@@ -20,7 +20,6 @@
     import ChevronRight from "@lucide/svelte/icons/chevron-right";
     import Info from "@lucide/svelte/icons/info";
     import Terminal from "@lucide/svelte/icons/terminal";
-
     let { isWidget = false } = $props();
     import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();

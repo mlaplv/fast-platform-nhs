@@ -7,6 +7,7 @@
   import ImageIcon from "@lucide/svelte/icons/image";
   import Trash2 from "@lucide/svelte/icons/trash-2";
   import RotateCcw from "@lucide/svelte/icons/rotate-ccw";
+import X from "@lucide/svelte/icons/x";
   import { mediaStore } from '$lib/state/media.svelte';
   import type { MediaAsset } from '$lib/state/types';
   import { resolveMediaUrl, resolveThumbnailUrl } from '$lib/state/utils';

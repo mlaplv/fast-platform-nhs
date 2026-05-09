@@ -9,6 +9,7 @@
   import Monitor from "@lucide/svelte/icons/monitor";
   import Smartphone from "@lucide/svelte/icons/smartphone";
   import Activity from "@lucide/svelte/icons/activity";
+import X from "@lucide/svelte/icons/x";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";

@@ -10,8 +10,7 @@
   import Facebook from "@lucide/svelte/icons/facebook";
   import MessageCircle from "@lucide/svelte/icons/message-circle";
   import Eye from "@lucide/svelte/icons/eye";
-  import EyeOff from "@lucide/svelte/icons/eye-off";
-  import { permissionState } from "$lib/state/permissions.svelte";
+  import EyeOff from "@lucide/svelte/icons/eye-off";  import { permissionState } from "$lib/state/permissions.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";
 

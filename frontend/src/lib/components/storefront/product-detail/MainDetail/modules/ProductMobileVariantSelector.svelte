@@ -4,6 +4,7 @@
   import Plus from "@lucide/svelte/icons/plus";
   import Check from "@lucide/svelte/icons/check";
   import Zap from "@lucide/svelte/icons/zap";
+import X from "@lucide/svelte/icons/x";
   import type { Product, ProductVariant } from '$lib/types';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';

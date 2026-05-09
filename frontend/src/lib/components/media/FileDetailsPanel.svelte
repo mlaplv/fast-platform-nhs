@@ -15,6 +15,7 @@
   import HardDrive from "@lucide/svelte/icons/hard-drive";
   import ImageIcon from "@lucide/svelte/icons/image";
   import Eye from "@lucide/svelte/icons/eye";
+  import X from "@lucide/svelte/icons/x";
     import type { MediaAsset } from '$lib/state/types';
     import { mediaStore } from '$lib/state/media.svelte';
     import { resolveMediaUrl, resolveThumbnailUrl, formatBytes, formatDate } from '$lib/state/utils';
