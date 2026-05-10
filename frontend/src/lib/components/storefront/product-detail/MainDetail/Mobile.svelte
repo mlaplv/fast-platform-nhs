@@ -64,6 +64,27 @@
     }
   });
 
+  let campaignData = $state<any>(null);
+  let isCampaignLoaded = $state(false);
+
+  $effect(() => {
+    const vId = product.metadata?.viral_suite?.share_promotion?.voucher_id || (product.metadata as any)?.share_promotion?.voucher_id;
+    if (vId && !isCampaignLoaded) {
+      isCampaignLoaded = true;
+      fetch(`/api/v1/client/viral/campaign/${vId}`)
+        .then(res => res.json())
+        .then(data => { campaignData = data; })
+        .catch(() => {});
+    }
+  });
+
+  const displayRewardLabel = $derived(
+    campaignData?.voucher_label || 
+    product.metadata?.viral_suite?.share_reward_label || 
+    'phần quà đặc quyền'
+  );
+
+
   const clientUi = getClientUi();
 
   onMount(() => {
@@ -290,7 +311,7 @@
     <div class="global-viral-overlay">
       <div class="global-confirm-card">
         <span class="confirm-title">Đã chia sẻ thành công?</span>
-        <p class="confirm-sub">Xác nhận để mở khóa {product.metadata?.viral_suite?.share_reward_label || 'phần quà đặc quyền'}</p>
+        <p class="confirm-sub">Xác nhận để mở khóa {displayRewardLabel}</p>
         <div class="confirm-btns">
           <button class="btn-cancel" onclick={() => viralStep = 'idle'}>Hủy</button>
           <button class="btn-verify" onclick={verifyShare}>XÁC NHẬN NGAY</button>

@@ -49,18 +49,46 @@
     viralSuite?.share_target ?? (typeof product.metadata?.share_target === 'number' ? product.metadata.share_target : 0)
   );
   const shareProgress = $derived(
-    shareTarget > 0 ? Math.min((shareCount / shareTarget) * 100, 100) : 50 // Default 50% if no target for demo
+    shareTarget > 0 ? Math.min((shareCount / shareTarget) * 100, 100) : (shareCount > 0 ? 100 : 0)
   );
 
+  let campaignData = $state<any>(null);
+  let isCampaignLoaded = $state(false);
+
+  $effect(() => {
+    const vId = promoConfig?.voucher_id;
+    if (vId && !isCampaignLoaded) {
+      isCampaignLoaded = true;
+      fetch(`/api/v1/client/viral/campaign/${vId}`)
+        .then(res => res.json())
+        .then(data => { campaignData = data; })
+        .catch(() => {});
+    }
+  });
+
   const displayRewardLabel = $derived(
+    campaignData?.voucher_label || 
     viralSuite?.share_reward_label || 
-    viralSuite?.share_cta ||
+    promoConfig?.voucher_label ||
+    promoConfig?.reward_label ||
+    'ƯU ĐÃI LAN TỎA'
+  );
+
+  const subDescription = $derived(
+    campaignData?.voucher_subtitle || 
+    campaignData?.share_text || 
+    promoConfig?.voucher_subtitle || 
+    promoConfig?.share_text || 
     ''
   );
 
   const ctaText = $derived(
-    viralSuite?.share_cta || 'NHẬN'
+    campaignData?.cta_text || 
+    viralSuite?.share_cta || 
+    promoConfig?.cta_text ||
+    'NHẬN'
   );
+
 
   // ── State Machine ──────────────────────────────────────────────────────────
   type Step = 'idle' | 'sharing' | 'verifying' | 'revealed' | 'error';
@@ -340,7 +368,12 @@
 
         <div class="vfl-progress-area">
            <div class="vfl-progress-info">
-             <span class="vfl-reward-text">{displayRewardLabel}</span>
+             <div class="flex flex-col">
+               <span class="vfl-reward-text">{displayRewardLabel}</span>
+               {#if subDescription}
+                 <span class="text-[8px] text-white/40 font-bold uppercase tracking-tight">{subDescription}</span>
+               {/if}
+             </div>
              <span class="vfl-progress-val">{Math.round(shareProgress)}%</span>
            </div>
            <div class="vfl-progress-track">
@@ -365,9 +398,14 @@
 
       {#if step === 'idle' || step === 'error'}
         <div class="ticket-inner">
-          <div class="flex items-center gap-2">
-            <Gift size={16} class="text-[#ee4d2d]" />
-            <span class="ticket-msg">{displayRewardLabel}</span>
+          <div class="flex flex-col gap-0.5">
+            <div class="flex items-center gap-2">
+              <Gift size={16} class="text-[#ee4d2d]" />
+              <span class="ticket-msg">{displayRewardLabel}</span>
+            </div>
+            {#if subDescription}
+              <span class="text-[8px] text-white/30 font-bold uppercase ml-6">{subDescription}</span>
+            {/if}
           </div>
           
           <div class="flex items-center gap-3">

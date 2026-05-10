@@ -76,7 +76,6 @@
   <div class="media-promo-anchor">
      <ShareToUnlockPromoMobile {product} variant="floating" onUnlock={triggerViralFly} />
   </div>
-
   <div class="thumbnails-track mt-2 px-2 flex gap-2 overflow-x-auto no-scrollbar">
     {#each displayImages as img, i}
       <button 

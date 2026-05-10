@@ -264,7 +264,7 @@
     {timeLeft}
   />
 
-  <ShareToUnlockPromoMobile {product} />
+
 
   <!-- INFO SECTION -->
   <section class="info-content">
@@ -299,16 +299,7 @@
     <!-- Title & Stats -->
     <div class="title-row mt-2">
       <h1 class="product-title">{product.name.replace(/40gr/g, '40g')}</h1>
-      <button class="bookmark-btn {isLiked ? 'bookmark-active' : ''}" aria-label="Lưu sản phẩm" onclick={toggleLike}>
-        <div class="flex flex-col items-center gap-0.5">
-          {#if isLiked}
-            <Heart size={20} fill="currentColor" class="{likeAnimating ? 'scale-125' : 'scale-100'} transition-transform" />
-          {:else}
-            <Bookmark size={20} />
-          {/if}
-          <span class="text-[10px] font-bold">{likeCount > 0 ? formatCount(likeCount) : 'Thích'}</span>
-        </div>
-      </button>
+
     </div>
 
     <!-- Selection Row (Shopee Viral Style) -->
@@ -368,15 +359,15 @@
       </div>
     {/if}
 
-    <!-- VIRAL SHARE BAR (Mobile) -->
-      <div class="mt-4 px-2 pb-2">
-        <ViralShareBarMobile 
-          {product} 
-          variant="mobile" 
-          likeCount={baseLikeCount}
-        />
-      </div>
 
+
+
+    <!-- VIRAL SHARE BAR (Mobile Floating) -->
+    <ViralShareBarMobile 
+      {product} 
+      variant="mobile" 
+      likeCount={baseLikeCount}
+    />
 
     <div class="product-stats-row">
       <div class="rating-box">
@@ -397,7 +388,7 @@
 </section>
 
 <style>
-  .info-content { background: white; padding: 10px; }
+  .info-content { background: white; padding: 10px 6px; }
   .vouchers-outer { position: relative; margin-bottom: 12px; margin-left: -12px; margin-right: -12px; }
   .vouchers-list {
     display: flex;

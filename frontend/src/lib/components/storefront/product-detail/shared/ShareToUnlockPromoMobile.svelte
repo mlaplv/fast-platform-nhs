@@ -7,6 +7,7 @@
   import Heart from "@lucide/svelte/icons/heart";
   import Facebook from "@lucide/svelte/icons/facebook";
   import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Share2 from "@lucide/svelte/icons/share-2";
   import type { Product, ProductMetadata } from '$lib/types';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
@@ -77,6 +78,46 @@
   let popupWasBlocked = $state<boolean>(false);
   
   const initTime = Date.now();
+
+  let campaignData = $state<any>(null);
+  let isCampaignLoaded = $state(false);
+
+  $effect(() => {
+    const vId = promoConfig?.voucher_id;
+    if (vId && !isCampaignLoaded) {
+      isCampaignLoaded = true;
+      fetch(`/api/v1/client/viral/campaign/${vId}`)
+        .then(res => res.json())
+        .then(data => { campaignData = data; })
+        .catch(() => {});
+    }
+  });
+
+  const displayRewardLabel = $derived(
+    campaignData?.voucher_label || 
+    viralSuite?.share_reward_label || 
+    promoConfig?.voucher_label ||
+    promoConfig?.reward_label ||
+    ''
+  );
+
+  const subDescription = $derived(
+    campaignData?.voucher_subtitle || 
+    campaignData?.share_text || 
+    promoConfig?.voucher_subtitle || 
+    promoConfig?.share_text || 
+    ''
+  );
+
+  const ctaText = $derived(
+    campaignData?.cta_text || 
+    viralSuite?.share_cta || 
+    promoConfig?.cta_text ||
+    'NHẬN QUÀ'
+  );
+
+  const stats = $derived(viralSuite?.stats ?? { redeemed_count: 0 });
+
 
   $effect(() => {
     const onVisibilityChange = () => { 
@@ -285,20 +326,6 @@
     setTimeout(() => { codeCopied = false; }, 2000);
   }
 
-  const displayRewardLabel = $derived(
-    viralSuite?.share_reward_label || 
-    promoConfig?.voucher_label ||
-    promoConfig?.reward_label ||
-    ''
-  );
-
-  const ctaText = $derived(
-    viralSuite?.share_cta || 
-    promoConfig?.cta_text ||
-    'NHẬN QUÀ'
-  );
-
-  const stats = $derived(viralSuite?.stats ?? { redeemed_count: 0 });
 </script>
 
 {#if showFlyGhost}
@@ -314,18 +341,17 @@
     {#if step === 'idle' || step === 'error'}
       <div class="stu-view">
         {#if variant === 'floating'}
-          <div class="stu-f-content">
-            <h4 class="stu-f-title">{displayRewardLabel}</h4>
-            {#if promoConfig?.voucher_subtitle}
-              <div class="text-[9px] text-white/70 font-bold uppercase tracking-tight -mt-1">{promoConfig.voucher_subtitle}</div>
-            {/if}
-            <div class="stu-f-fomo">🔥 {formatViralCount(shareCount)}+ ĐÃ NHẬN</div>
-            <button class="stu-f-btn" onclick={viralActions.share}>
-               <div class="stu-f-btn-inner">
-                  <Sparkles size={12} strokeWidth={3} class="stu-f-btn-icon" />
-                  <span>{ctaText}</span>
-               </div>
-               <div class="stu-f-btn-shine"></div>
+          <div class="stu-ios-container">
+            <div class="stu-ios-content">
+              <h4 class="stu-ios-title">{displayRewardLabel}</h4>
+              {#if subDescription}
+                <span class="stu-ios-sub">{subDescription}</span>
+              {/if}
+            </div>
+            <button class="stu-ios-btn" onclick={viralActions.share}>
+               <span>{ctaText}</span>
+               <ExternalLink size={12} class="ml-1.5" />
+               <div class="stu-ios-btn-shimmer"></div>
             </button>
           </div>
         {:else}
@@ -341,8 +367,8 @@
             <div class="stp-funnel-row">
               <div class="stp-f-msg">
                 <span class="stp-f-t">{displayRewardLabel}</span>
-                {#if promoConfig?.voucher_subtitle}
-                  <span class="text-[8px] text-[#ffb7c5]/60 font-medium leading-none mb-1">{promoConfig.voucher_subtitle}</span>
+                {#if subDescription}
+                  <span class="text-[8px] text-[#ffb7c5]/60 font-medium leading-none mb-1">{subDescription}</span>
                 {/if}
                 <div class="stp-f-progress">
                   <div class="stp-f-bar" style="width: 50%"></div>
@@ -410,26 +436,47 @@
   }
   .stp-f-btn:active { transform: scale(0.92); }
 
-  /* --- Floating Variant --- */
-  .stu-f-content { display: flex; flex-direction: column; gap: 4px; color: #fff; }
-  .stu-f-title { font-size: 14px; font-weight: 1000; -webkit-text-stroke: 0.5px rgba(0,0,0,0.3); text-shadow: 0 1px 5px rgba(0,0,0,0.4); letter-spacing: 0.05em; }
-  .stu-f-fomo { font-size: 10px; font-weight: 900; color: #ff9500; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
-  .stu-f-btn { 
-    position: relative; overflow: hidden;
-    margin-top: 6px;
-    background: linear-gradient(135deg, #FF2D55 0%, #D70015 100%);
-    color: #fff;
-    padding: 6px 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 
-      0 8px 20px rgba(215, 0, 21, 0.3),
-      inset 0 1px 2px rgba(255, 255, 255, 0.3);
-    cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    display: flex; align-items: center; justify-content: center;
+  /* --- Floating Variant (iOS 26 x TikTok) --- */
+  .stu-ios-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 4px;
   }
-  .stu-f-btn:active { transform: scale(0.95); }
+  .stu-ios-content { display: flex; flex-direction: column; gap: 0; }
+  .stu-ios-title { 
+    font-size: 18px; font-weight: 1000; color: #fff; 
+    text-shadow: 0 2px 15px rgba(0,0,0,0.8), 0 1px 2px rgba(0,0,0,0.9);
+    letter-spacing: -0.02em; line-height: 1;
+  }
+  .stu-ios-sub { 
+    font-size: 10px; font-weight: 800; color: rgba(255, 255, 255, 0.9); 
+    text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+  }
+  
+  .stu-ios-btn { 
+    position: relative; overflow: hidden;
+    background: rgba(255, 45, 85, 0.85);
+    color: #fff;
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 11px; font-weight: 1000; text-transform: uppercase; letter-spacing: 0.1em;
+    display: flex; align-items: center; justify-content: center;
+    width: fit-content;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .stu-ios-btn:active { transform: scale(0.94); }
+  .stu-ios-btn-shimmer {
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 45, 85, 0.4), transparent);
+    transform: translateX(-100%);
+    animation: stu-ios-shimmer 2.5s infinite;
+  }
+  @keyframes stu-ios-shimmer { 0% { transform: translateX(-100%); } 30%, 100% { transform: translateX(100%); } }
   
   .stu-f-btn-inner {
     display: flex; align-items: center; gap: 6px;
