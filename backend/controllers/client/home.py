@@ -43,7 +43,7 @@ class ClientHomeController(Controller):
         promotion_service: PromotionAdminService
     ) -> VoucherListResponse:
         """PUBLIC: Get active vouchers for global store synchronization."""
-        return await promotion_service.list_vouchers(db_session, is_active=True, limit=50)
+        return await promotion_service.list_vouchers(db_session, is_active=True, exclude_viral=True, limit=50)
 
     @get("/")
     async def get_home_data(
@@ -79,7 +79,7 @@ class ClientHomeController(Controller):
             filtered_cats = []
 
         banners = await banner_service.list_banners(db_session, active_only=True)
-        vouchers_resp = await promotion_service.list_vouchers(db_session, is_active=True, limit=20)
+        vouchers_resp = await promotion_service.list_vouchers(db_session, is_active=True, exclude_viral=True, limit=20)
 
         # Elite V2.2: Optimized AI Featured fetch (R76)
         ai_products_resp = await product_service.list_products(db_session, limit=10, offset=0, status="ACTIVE", featured_only=True)

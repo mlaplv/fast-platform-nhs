@@ -145,7 +145,7 @@
             </div>
           {:else}
             <div class="text-center bg-white/5 backdrop-blur-md p-3 rounded-xl border border-rose-500/30 animate-bounce-subtle">
-              <div class="text-[11px] font-black text-rose-400 mb-2 tracking-widest uppercase">🎉 Mục tiêu đã đạt!</div>
+              <div class="text-[11px] font-black text-rose-400 mb-2 tracking-widest">🎉 Mục tiêu đã đạt!</div>
               <div class="flex items-center justify-between bg-black/20 rounded-lg px-3 py-2 border border-white/10">
                 <span class="font-mono text-lg font-black text-white tracking-wider">{voucherCode}</span>
                 <button onclick={() => voucherCode && navigator.clipboard.writeText(voucherCode)} class="text-[10px] font-black bg-rose-500 text-white px-3 py-1.5 rounded-md shadow-lg active:scale-95 transition-transform">Copy</button>

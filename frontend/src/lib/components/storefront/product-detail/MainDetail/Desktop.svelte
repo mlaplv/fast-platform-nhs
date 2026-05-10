@@ -226,11 +226,34 @@
      * Lọc bỏ các Voucher Viral để tránh hiện ở khối chung khi CHƯA chia sẻ.
      * Nếu ĐÃ mở khóa (isViralUnlocked), mã sẽ được hiển thị như một phần của hệ thống.
      */
-    return vouchers.filter((v: { id: string; label?: string }) => {
-      const isViral = v.id.includes('VIRAL') || (v.label || '').toUpperCase().includes('VIRAL');
-      if (!isViral) return true;
-      return isViralUnlocked;
+    const vList = vouchers.filter((v: { id: string; label?: string }) => {
+      const promoVId = product.metadata?.viral_suite?.share_promotion?.voucher_id || (product.metadata as any)?.share_promotion?.voucher_id;
+      const isViral = v.id.includes('VIRAL') || 
+                      (v.label || '').toUpperCase().includes('VIRAL') || 
+                      (v.label || '').toUpperCase().includes('LAN TỎA') ||
+                      (promoVId && v.id === promoVId);
+      return !isViral || isViralUnlocked;
     });
+
+    // Elite V2.2 Re-injection: Phục hồi voucher từ session local nếu đã mở khóa
+    if (typeof window !== 'undefined' && isViralUnlocked) {
+      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          const exists = vList.find(v => v.id === data.code);
+          if (!exists) {
+            vList.push({
+              id: data.code,
+              label: data.label || 'VOUCHER LAN TỎA',
+              sub: 'Đã mở khóa từ chiến dịch',
+              type: 'discount'
+            });
+          }
+        } catch (e) {}
+      }
+    }
+    return vList;
   });
 
   /**

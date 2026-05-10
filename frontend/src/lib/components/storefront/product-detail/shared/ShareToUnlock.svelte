@@ -317,6 +317,7 @@
     promoConfig?.share_text || 
     ''
   );
+
 </script>
 
 {#if showFlyGhost}
@@ -346,7 +347,6 @@
           </div>
           <button class="stp-go group/cta" onclick={viralActions.share}>
             <span>{ctaText}</span>
-            <div class="cta-shimmer"></div>
             <ExternalLink size={12} class="group-hover/cta:translate-x-0.5 transition-transform" />
           </button>
         </div>
@@ -378,7 +378,7 @@
 {/if}
 
 <style>
-  .stu-desktop-root { position: relative; margin: 8px 0; }
+  .stu-desktop-root { position: relative; margin: 0; }
   
   .stu-view-bar {
     padding: 0; 
@@ -407,7 +407,7 @@
     50%, 100% { transform: translateX(100%); }
   }
 
-  .stp-one-line { display: flex; align-items: center; gap: 12px; padding: 10px 0; min-height: 52px; }
+  .stp-one-line { display: flex; align-items: center; gap: 12px; padding: 0; min-height: 0; }
   
   .stp-icon-box { 
     position: relative;
@@ -436,34 +436,25 @@
   }
 
   .stp-msg { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-  .stp-t { font-size: 13px; font-weight: 800; color: #111; letter-spacing: -0.01em; }
-  .stp-sub { font-size: 11px; color: #666; font-weight: 500; line-height: 1.2; margin-top: 1px; }
+  .stp-t { font-size: 13px; font-weight: 800; color: #111; letter-spacing: -0.01em; display: inline-block !important; text-transform: lowercase !important; }
+  .stp-t::first-letter { text-transform: uppercase !important; }
+  .stp-sub { font-size: 11px; color: #666; font-weight: 500; line-height: 1.2; margin-top: 1px; display: inline-block !important; text-transform: lowercase !important; }
+  .stp-sub::first-letter { text-transform: uppercase !important; }
   
   .stp-go { 
     position: relative;
     display: flex; align-items: center; gap: 6px; color: #fff; 
-    background: linear-gradient(135deg, #ee4d2d, #ff6b6b);
-    padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 900; 
+    background: #ee4d2d;
+    padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: 900; 
     border: none; cursor: pointer;
     overflow: hidden;
-    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.2);
-    transition: all 0.3s;
+    transition: all 0.2s;
+    outline: none;
   }
+  .stp-go span { display: inline-block !important; text-transform: lowercase !important; }
+  .stp-go span::first-letter { text-transform: uppercase !important; }
 
-  .stp-go:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(238, 77, 45, 0.3); }
-
-  .cta-shimmer {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transform: translateX(-100%);
-    animation: cta-shimmer 2s infinite;
-  }
-
-  @keyframes cta-shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
+  .stp-go:hover { transform: translateY(-1px); opacity: 0.9; }
 
   .stu-center { 
     display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; 
@@ -490,7 +481,7 @@
   .stu-copy-btn { 
     display: flex; align-items: center; gap: 6px;
     padding: 8px 16px; background: #ee4d2d; color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 900; cursor: pointer;
-    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.2);
+    box-shadow: none;
   }
 
   @keyframes stu-reveal { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }

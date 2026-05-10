@@ -451,7 +451,7 @@
   }
   .stu-ios-sub { 
     font-size: 10px; font-weight: 800; color: rgba(255, 255, 255, 0.9); 
-    text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;
+    letter-spacing: 0.05em; margin-top: 4px;
     text-shadow: 0 2px 10px rgba(0,0,0,0.8);
   }
   
@@ -464,7 +464,7 @@
     border-radius: 8px;
     border: none;
     cursor: pointer;
-    font-size: 11px; font-weight: 1000; text-transform: uppercase; letter-spacing: 0.1em;
+    font-size: 11px; font-weight: 1000;letter-spacing: 0.1em;
     display: flex; align-items: center; justify-content: center;
     width: fit-content;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);

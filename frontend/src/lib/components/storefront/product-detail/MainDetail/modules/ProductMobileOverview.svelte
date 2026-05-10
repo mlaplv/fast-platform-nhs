@@ -165,10 +165,34 @@
     /**
      * Elite V2.2: Intelligent Filtering for Mobile
      */
-    return list.filter((v: { id: string; label?: string }) => {
-      const isViral = v.id.includes('VIRAL') || (v.label || '').toUpperCase().includes('VIRAL');
+    const vouchersList = list.filter((v: { id: string; label?: string }) => {
+      const promoVId = product.metadata?.viral_suite?.share_promotion?.voucher_id || (product.metadata as any)?.share_promotion?.voucher_id;
+      const isViral = v.id.includes('VIRAL') || 
+                      (v.label || '').toUpperCase().includes('VIRAL') || 
+                      (v.label || '').toUpperCase().includes('LAN TỎA') ||
+                      (promoVId && v.id === promoVId);
       return !isViral || isViralUnlocked;
     });
+
+    // Elite V2.2 Re-injection: Nếu đã mở khóa, đảm bảo voucher xuất hiện dù backend đã lọc
+    if (typeof window !== 'undefined' && isViralUnlocked) {
+      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          const exists = vouchersList.find(v => v.id === data.code);
+          if (!exists) {
+             vouchersList.push({
+               id: data.code,
+               label: data.label || 'VOUCHER LAN TỎA',
+               sub: 'Đã mở khóa từ chiến dịch',
+               type: 'discount'
+             });
+          }
+        } catch (e) {}
+      }
+    }
+    return vouchersList;
   });
 
   const activeVariant = $derived(selectedVariant || pVariants?.[0]);

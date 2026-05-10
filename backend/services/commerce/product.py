@@ -214,6 +214,41 @@ class ProductService:
                     if "share_promotion" in metadata["viral_suite"]:
                          metadata["viral_suite"]["share_promotion"].update(share_promo)
 
+    def _sanitize_vouchers(self, row_dict: ProductRowDict) -> None:
+        """
+        Elite V2.2: Anti-Leakage Protocol.
+        Lọc bỏ các Voucher Viral khỏi metadata công khai để tránh người dùng 'soi' được mã khi chưa share.
+        Các mã này chỉ được tiết lộ qua luồng verify-share chính thống.
+        """
+        metadata = row_dict.get("metadata")
+        if not isinstance(metadata, dict):
+            return
+            
+        vouchers = metadata.get("vouchers")
+        if not isinstance(vouchers, list):
+            return
+            
+        share_promo = metadata.get("share_promotion")
+        promo_v_id = share_promo.get("voucher_id") if isinstance(share_promo, dict) else None
+        
+        filtered = []
+        for v in vouchers:
+            v_id = str(v.get("id", "")).upper()
+            v_label = str(v.get("label", "")).upper()
+            
+            # Kiểm tra ID hoặc Nhãn chứa từ khóa nhạy cảm
+            is_viral = (promo_v_id and str(v.get("id", "")) == promo_v_id) or \
+                       "VIRAL" in v_id or \
+                       "LAN TOA" in v_id or \
+                       "LAN TỎA" in v_id or \
+                       "LAN TOA" in v_label or \
+                       "LAN TỎA" in v_label
+            
+            if not is_viral:
+                filtered.append(v)
+        
+        metadata["vouchers"] = filtered
+
     async def list_products(
         self,
         db_session: AsyncSession,
@@ -382,6 +417,7 @@ class ProductService:
                 row_dict["variants"] = []
                 self._inject_marketing_boost(row_dict)
                 await self._hydrate_viral_config(db_session, row_dict)
+                self._sanitize_vouchers(row_dict)
                 data.append(ProductResponse.model_validate(row_dict))
 
             # --- LAYER 6: COMPUTE FACETS (Elite V2.2 Dynamic Filters) ---
@@ -440,6 +476,7 @@ class ProductService:
             row_dict["variants"] = []
             self._inject_marketing_boost(row_dict)
             await self._hydrate_viral_config(db_session, row_dict)
+            self._sanitize_vouchers(row_dict)
             data.append(ProductResponse.model_validate(row_dict))
 
         return ProductListResponse(data=data, total=total)
@@ -476,6 +513,7 @@ class ProductService:
         # Elite Dynamic Counting & Marketing Boost
         self._inject_marketing_boost(row_dict)
         await self._hydrate_viral_config(db_session, row_dict)
+        self._sanitize_vouchers(row_dict)
 
         return ProductResponse.model_validate(row_dict)
 
@@ -539,6 +577,7 @@ class ProductService:
         # Elite Dynamic Counting & Marketing Boost
         self._inject_marketing_boost(row_dict)
         await self._hydrate_viral_config(db_session, row_dict)
+        self._sanitize_vouchers(row_dict)
 
         return ProductResponse.model_validate(row_dict)
 

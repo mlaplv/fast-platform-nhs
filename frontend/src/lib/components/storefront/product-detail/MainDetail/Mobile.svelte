@@ -311,10 +311,10 @@
     <div class="global-viral-overlay">
       <div class="global-confirm-card">
         <span class="confirm-title">Đã chia sẻ thành công?</span>
-        <p class="confirm-sub">Xác nhận để mở khóa {displayRewardLabel}</p>
+        <p class="confirm-sub">Xác nhận để mở khóa <span class="reward-label">{displayRewardLabel}</span></p>
         <div class="confirm-btns">
           <button class="btn-cancel" onclick={() => viralStep = 'idle'}>Hủy</button>
-          <button class="btn-verify" onclick={verifyShare}>XÁC NHẬN NGAY</button>
+          <button class="btn-verify" onclick={verifyShare}>Xác nhận ngay</button>
         </div>
       </div>
     </div>
@@ -374,6 +374,8 @@
 
   .confirm-title { font-size: 18px; font-weight: 1000; color: #000; margin-bottom: 8px; }
   .confirm-sub { font-size: 13px; color: #666; margin-bottom: 24px; }
+  .reward-label { display: inline-block !important; text-transform: lowercase !important; }
+  .reward-label::first-letter { text-transform: uppercase !important; }
   .confirm-btns { display: flex; gap: 12px; width: 100%; }
   
   .btn-cancel { flex: 1; height: 44px; border-radius: 8px; background: #f5f5f5; color: #666; border: none; font-weight: 800; font-size: 13px; }

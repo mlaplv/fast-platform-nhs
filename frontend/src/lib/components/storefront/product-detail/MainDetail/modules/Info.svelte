@@ -69,14 +69,14 @@
 </script>
 
 <div class="flex-1 flex flex-col pt-0">
-  <div class="flex items-start gap-4 mb-4">
+  <div class="flex items-start gap-4 mb-2">
     <h1 class="text-[24px] font-bold text-gray-900 leading-[1.2] tracking-tight">
       {product.name.replace(/40gr/g, '40g')}
     </h1>
   </div>
 
   <!-- Stats Row -->
-  <div class="flex items-center gap-6 text-[15px] mb-8">
+  <div class="flex items-center gap-6 text-[15px] mb-2">
     <div class="flex items-center gap-2 text-[#ee4d2d] group cursor-default">
       <span class="text-[16px] font-black border-b-2 border-[#ee4d2d] leading-none pb-0.5">{stats?.average_rating || product.metadata?.rating || '5.0'}</span>
       <div class="flex gap-0.5">
@@ -106,12 +106,12 @@
     </div>
   </div>
   
-  <div class="mb-4">
+  <div class="mb-2">
     <ShareToUnlock {product} compact={true} onUnlock={onTriggerViralFly} />
   </div>
 
   <!-- Price Bar -->
-  <div class="bg-[#f6f6f6] px-5 py-2.5 flex items-center justify-between mb-3 relative overflow-hidden group border-y border-gray-100/50">
+  <div class="bg-[#f6f6f6] px-5 py-1.5 flex items-center justify-between mb-2 relative overflow-hidden group border-y border-gray-100/50">
     <div class="flex flex-col">
         <div class="flex items-center gap-3 mb-0.5">
            <span class="text-[14px] text-gray-400 line-through">{formatCurrency(activePrices.original)}</span>
@@ -164,7 +164,7 @@
   </div>
 
   <!-- Vouchers -->
-  <div class="mb-4">
+  <div class="mb-2">
      <div class="flex items-start">
         <span class="w-[70px] shrink-0 text-[14px] text-gray-500 mt-2">Mã giảm giá</span>
         <div class="flex flex-wrap gap-3">
@@ -193,7 +193,7 @@
 
 
   <!-- Shipping -->
-  <div class="space-y-2 mb-4">
+  <div class="space-y-2 mb-2">
      <div class="flex items-start">
         <span class="w-[70px] shrink-0 text-[14px] text-gray-500">Vận chuyển</span>
         <div class="space-y-2">
@@ -212,7 +212,7 @@
 
   <!-- Variations -->
   {#if variations.length > 0}
-    <div class="space-y-5 mb-5 mt-2">
+    <div class="space-y-5 mb-3 mt-1">
       {#each variations as tier, tIdx}
         <div class="flex items-start">
           <span class="w-[70px] shrink-0 text-[14px] text-gray-500 mt-2 capitalize">{tier.name}</span>
@@ -242,7 +242,7 @@
   {/if}
 
   <!-- Quantity -->
-  <div class="flex items-center mb-4">
+  <div class="flex items-center mb-2">
      <span class="w-[70px] shrink-0 text-[12px] font-bold text-gray-400 tracking-widest">Số lượng</span>
      <div class="flex items-center gap-8">
         <div class="flex items-center border border-gray-100 rounded-none h-9 group overflow-hidden bg-white shadow-sm">
@@ -327,7 +327,7 @@
   {/if}
 
   <!-- CTA Buttons -->
-  <div class="flex gap-4 mt-auto pb-4">
+  <div class="flex gap-4 mt-4 pb-4">
       <button 
          onclick={onAddToCart}
          class="h-[52px] min-w-[210px] border border-[#d0011b] bg-[#ffeee8]/60 text-[#d0011b] font-medium flex items-center justify-center gap-2.5 hover:bg-[#ffeee8] transition-all rounded-none">

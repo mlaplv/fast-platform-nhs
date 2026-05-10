@@ -14,6 +14,7 @@ class PromotionAdminService:
         search: Optional[str] = None,
         is_active: Optional[bool] = None,
         category: Optional[str] = None,
+        exclude_viral: bool = False,
         limit: int = 100, 
         offset: int = 0
     ) -> VoucherListResponse:
@@ -26,6 +27,20 @@ class PromotionAdminService:
             stmt = stmt.where(Voucher.is_active == is_active)
         if category:
             stmt = stmt.where(Voucher.category == category)
+            
+        if exclude_viral:
+            # Elite V2.2: Lọc bỏ các Voucher Viral khỏi danh sách công khai (Home/Cart Sync)
+            # Chấp nhận tiêu chí ID hoặc Title chứa từ khóa nhạy cảm
+            stmt = stmt.where(and_(
+                ~Voucher.id.ilike("%VIRAL%"),
+                ~Voucher.id.ilike("%LAN TOA%"),
+                ~Voucher.id.ilike("%LAN TỎA%"),
+                or_(Voucher.title == None, and_(
+                    ~Voucher.title.ilike("%VIRAL%"),
+                    ~Voucher.title.ilike("%LAN TOA%"),
+                    ~Voucher.title.ilike("%LAN TỎA%")
+                ))
+            ))
             
         # Count total
         count_stmt = select(func.count()).select_from(stmt.subquery())

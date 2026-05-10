@@ -76,10 +76,19 @@
     (product?.tierVariations?.[0]?.images?.[v.tierIndex?.[0]])
   )));
 
+  // Elite V2.2: Secure Viral State (Reactive Sync)
+  let isViralUnlocked = $state(false);
+  
+  $effect(() => {
+    if (product?.id && typeof window !== 'undefined') {
+      isViralUnlocked = localStorage.getItem(`viral_unlocked_${product.id}`) !== null;
+    }
+  });
+
   const productVouchers = $derived.by(() => {
     const rawVouchers = (cartStore.vouchers && cartStore.vouchers.length > 0 ? cartStore.vouchers : []) as Voucher[];
 
-    return rawVouchers.map((v) => ({
+    const list = rawVouchers.map((v) => ({
       id: v.id,
       label: v.title || v.id || 'ƯU ĐÃI',
       sub: v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : (v.type === 'PERCENT' ? `GIẢM ${v.value}%` : `GIẢM ${formatCurrency(v.value || 0)}`),
@@ -87,6 +96,29 @@
       value: v.value || 0,
       type_raw: v.type
     }));
+
+    // Elite V2.2 Re-injection: Phục hồi voucher từ session local nếu đã mở khóa
+    if (typeof window !== 'undefined' && isViralUnlocked && product?.id) {
+      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          const exists = list.find(v => v.id === data.code);
+          if (!exists) {
+            list.unshift({
+              id: data.code,
+              label: data.label || 'VOUCHER LAN TỎA',
+              sub: 'Đã mở khóa từ chiến dịch',
+              type: 'discount',
+              value: 0,
+              type_raw: 'FIXED'
+            });
+          }
+        } catch (e) {}
+      }
+    }
+
+    return list;
   });
 
   // --- FOMO Simulation (Elite V2.2) ---
@@ -200,6 +232,7 @@
         <ShareToUnlockPromoMobile
           product={product}
           variant="funnel"
+          onUnlock={() => isViralUnlocked = true}
         />
       </div>
     {/if}
