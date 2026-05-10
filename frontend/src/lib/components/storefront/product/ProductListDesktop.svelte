@@ -9,6 +9,8 @@
   import { onMount } from 'svelte';
   import { scale } from 'svelte/transition';
   import MessageCircleQuestion from "@lucide/svelte/icons/message-circle-question";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import ArrowUpDown from "@lucide/svelte/icons/arrow-up-down";
   import ProductReviews from '../product-detail/shared/ProductReviews.svelte';
   import type { ReviewStats } from '$lib/types';
 
@@ -194,7 +196,7 @@
 <div class="bg-[#F5F5F5] min-h-screen pb-20">
   <div class="bg-white border-b border-gray-100">
     <div class="max-w-[1200px] mx-auto px-4 xl:px-0 py-6">
-      <nav class="flex items-center gap-2 text-[12px] text-gray-400 mb-4 font-medium uppercase tracking-wider">
+      <nav class="flex items-center gap-2 text-[12px] text-gray-400 mb-4 font-medium tracking-wider">
         <a href="/" class="hover:text-[#ee4d2d] transition-colors">Trang chủ</a>
         <span>/</span>
         <span class="text-gray-900">{isSearchMode ? "Tìm kiếm" : categoryName}</span>
@@ -225,19 +227,20 @@
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 mt-6 flex gap-6">
     {#if !isSearchMode}
     <aside class="w-[240px] shrink-0 space-y-6">
-      <div class="bg-black text-white p-5 shadow-xl relative group">
-        <h2 class="text-[14px] font-black uppercase tracking-[0.2em] relative z-10 flex items-center gap-3">
-           <div class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full animate-pulse"></div>
-           Bộ lọc
+      <div class="bg-zinc-900 text-white p-5 shadow-2xl relative group overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
+        <h2 class="text-[12px] font-black tracking-[0.2em] relative z-10 flex items-center gap-3 italic">
+           <div class="w-1.5 h-1.5 bg-[#C18F7E] rounded-full animate-pulse shadow-[0_0_10px_rgba(193,143,126,0.8)]"></div>
+           Bộ lọc tối ưu
         </h2>
       </div>
 
       <div class="bg-white/70 backdrop-blur-xl border border-white px-0 py-4 space-y-6 shadow-sm">
         <div class="space-y-4 px-2">
            <div class="flex items-center justify-between">
-              <h4 class="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+              <h4 class="text-[9px] font-black text-gray-400 tracking-widest flex items-center gap-1.5">
                  <div class="w-1 h-1 bg-[#C18F7E] rounded-full"></div>
-                 KHOẢNG GIÁ
+                 Khoảng giá
               </h4>
               <span class="text-[10px] font-mono text-[#C18F7E] font-bold">VND</span>
            </div>
@@ -273,7 +276,7 @@
                   {#each [0, 500000, 1000000, 1500000, 2000000] as mark}
                      <div class="relative flex flex-col items-center">
                         <div class="w-1 h-1 rounded-full {mark >= minPrice && mark <= maxPrice ? 'bg-[#C18F7E]' : 'bg-gray-200'} transition-colors"></div>
-                        <span class="absolute top-3 text-[7px] font-black text-gray-300 uppercase tracking-tighter">
+                        <span class="absolute top-3 text-[7px] font-black text-gray-300 tracking-tighter">
                            {mark === 0 ? '0' : (mark / 1000000) + 'M'}
                         </span>
                      </div>
@@ -311,7 +314,7 @@
 
         {#if brands().length > 0}
         <div class="space-y-6 pt-4 px-2">
-          <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Thương Hiệu</h4>
+          <h4 class="text-[11px] font-black text-gray-400 tracking-widest">Thương hiệu</h4>
           <div class="flex flex-col gap-4">
             {#each brands() as brand}
               <button onclick={() => toggleBrand(brand)} class="flex items-center justify-between group w-full text-left">
@@ -325,7 +328,7 @@
 
         {#if origins().length > 0}
         <div class="space-y-6 pt-4 px-2">
-          <h4 class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Xuất Xứ</h4>
+          <h4 class="text-[11px] font-black text-gray-400 tracking-widest">Xuất xứ</h4>
           <div class="flex flex-col gap-4">
             {#each origins() as country}
               <button onclick={() => toggleOrigin(country)} class="flex items-center justify-between group w-full text-left">
@@ -341,7 +344,7 @@
         <div class="space-y-3 pt-6 border-t border-gray-100 px-2">
            <div class="flex items-center gap-2 mb-2">
               <div class="w-1 h-4 bg-orange-500/40 rounded-full"></div>
-              <h4 class="text-[10px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-1.5">
+              <h4 class="text-[10px] font-black text-gray-900 tracking-widest flex items-center gap-1.5">
                  <MessageCircleQuestion size={11} class="text-orange-500" /> FAQ_CORE
               </h4>
            </div>
@@ -374,32 +377,41 @@
       <div class="bg-white border border-gray-100 shadow-sm p-8">
         {#if !isSearchMode}
         <div class="border-b border-gray-50 pb-2 mb-8 flex flex-col gap-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
+            <div class="flex items-center gap-6 bg-white/50 backdrop-blur-md p-2 rounded-none border border-gray-50 shadow-sm">
+              <div class="flex items-center bg-gray-50/50 p-1 rounded-none border border-gray-50">
                 {#each ['popular', 'sales', 'latest'] as sort}
                   <button 
                     onclick={() => activeSort = sort}
-                    class="px-6 py-3 text-[12px] font-black tracking-tighter transition-all relative {activeSort === sort ? 'text-[#ee4d2d]' : 'text-gray-400'}">
-                    {sort === 'popular' ? 'PHỔ BIẾN' : sort === 'sales' ? 'BÁN CHẠY' : 'MỚI NHẤT'}
-                    {#if activeSort === sort}
-                      <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-[#ee4d2d] rounded-full"></div>
-                    {/if}
+                    class="px-8 py-2.5 text-[11px] font-black tracking-widest transition-all relative rounded-none {activeSort === sort ? 'bg-zinc-900 text-white shadow-lg' : 'text-gray-400 hover:text-gray-900'}">
+                    {sort === 'popular' ? 'Phổ biến' : sort === 'sales' ? 'Bán chạy' : 'Mới nhất'}
                   </button>
                 {/each}
               </div>
-              <div class="relative group/sort">
-                 <button class="bg-gray-50 border px-5 py-2.5 text-[11px] font-black text-gray-800 flex items-center justify-between w-[200px] uppercase tracking-tighter">
-                    <span>{activeSort === 'price-asc' ? 'GIÁ: THẤP ĐẾN CAO' : activeSort === 'price-desc' ? 'GIÁ: CAO ĐẾN THẤP' : 'SẮP XẾP THEO GIÁ'}</span>
+
+              <div class="ml-auto relative group/sort">
+                 <button class="bg-white/80 backdrop-blur-sm border-b-2 border-luxury-copper/20 px-6 py-2.5 text-[11px] font-black text-gray-800 flex items-center justify-between w-[220px] tracking-widest hover:border-luxury-copper hover:bg-white transition-all shadow-sm">
+                    <div class="flex items-center gap-3">
+                       <ArrowUpDown size={14} class="text-luxury-copper/60 group-hover/sort:text-luxury-copper transition-colors" />
+                       <span class="opacity-80 group-hover/sort:opacity-100 transition-opacity">{activeSort === 'price-asc' ? 'Giá: Thấp đến cao' : activeSort === 'price-desc' ? 'Giá: Cao đến thấp' : 'Sắp xếp theo giá'}</span>
+                    </div>
+                    <ChevronDown size={14} class="text-gray-300 group-hover/sort:rotate-180 transition-transform duration-500" />
                  </button>
-                 <div class="absolute top-full right-0 w-full bg-white border shadow-2xl opacity-0 group-hover/sort:opacity-100 invisible group-hover/sort:visible transition-all py-1 z-50">
-                    <button onclick={() => activeSort = 'price-asc'} class="w-full text-left px-5 py-3.5 text-[11px] font-black text-gray-500 hover:text-[#ee4d2d] hover:bg-gray-50">GIÁ: THẤP ĐẾN CAO</button>
-                    <button onclick={() => activeSort = 'price-desc'} class="w-full text-left px-5 py-3.5 text-[11px] font-black text-gray-500 hover:text-[#ee4d2d] hover:bg-gray-50">GIÁ: CAO ĐẾN THẤP</button>
+                 <div class="absolute top-[calc(100%+4px)] right-0 w-full bg-white/95 backdrop-blur-xl border border-gray-100 shadow-[0_20px_50px_rgba(0,0,0,0.06)] opacity-0 translate-y-2 group-hover/sort:opacity-100 group-hover/sort:translate-y-0 invisible group-hover/sort:visible transition-all duration-300 py-2 z-50 rounded-none">
+                    <button onclick={() => activeSort = 'price-asc'} class="w-full text-left px-6 py-4 text-[10px] font-black text-gray-500 hover:text-luxury-copper hover:bg-gray-50/50 flex items-center justify-between tracking-widest transition-colors">
+                       Giá: Thấp đến cao
+                       {#if activeSort === 'price-asc'}<div class="w-1.5 h-1.5 bg-luxury-copper rounded-full shadow-[0_0_8px_rgba(193,143,126,0.4)]"></div>{/if}
+                    </button>
+                    <div class="mx-4 h-px bg-gray-50"></div>
+                    <button onclick={() => activeSort = 'price-desc'} class="w-full text-left px-6 py-4 text-[10px] font-black text-gray-500 hover:text-luxury-copper hover:bg-gray-50/50 flex items-center justify-between tracking-widest transition-colors">
+                       Giá: Cao đến thấp
+                       {#if activeSort === 'price-desc'}<div class="w-1.5 h-1.5 bg-luxury-copper rounded-full shadow-[0_0_8px_rgba(193,143,126,0.4)]"></div>{/if}
+                    </button>
                  </div>
               </div>
             </div>
             {#if hasActiveFilters()}
               <div class="px-4 py-2 border-t border-gray-50 flex flex-wrap items-center gap-2">
-                 <button onclick={clearAllFilters} class="text-[#ee4d2d] hover:underline text-[10px] font-black uppercase tracking-tighter">Xóa tất cả bộ lọc</button>
+                 <button onclick={clearAllFilters} class="text-[#ee4d2d] hover:underline text-[10px] font-black tracking-tighter">Xóa tất cả bộ lọc</button>
               </div>
             {/if}
         </div>
@@ -410,22 +422,22 @@
           <ProductGrid products={displayProducts} />
         {:else}
           <div class="bg-white border-2 border-dashed border-gray-200 py-32 flex flex-col items-center justify-center text-center">
-             <h3 class="text-xl font-black text-gray-900 mb-3 tracking-tight uppercase">Không tìm thấy sản phẩm!</h3>
-             <button onclick={() => goto('/')} class="px-8 py-3.5 bg-black text-white text-[11px] font-black uppercase tracking-[0.2em]">Về trang chủ</button>
+             <h3 class="text-xl font-black text-gray-900 mb-3 tracking-tight">Không tìm thấy sản phẩm!</h3>
+             <button onclick={() => goto('/')} class="px-8 py-3.5 bg-black text-white text-[11px] font-black tracking-[0.1em]">Về trang chủ</button>
           </div>
         {/if}
       </div>
 
       {#if (allProducts.length < serverTotal || displayProducts.length < filteredProducts.length - 1) && filteredProducts.length > 0}
         <div class="mt-12 flex flex-col items-center gap-4 py-10" use:setupInfiniteScroll>
-          <div class="text-[12px] text-gray-400 font-black uppercase tracking-widest">Đã tải <span class="text-black">{displayProducts.length + 1}</span> / {serverTotal} sản phẩm</div>
+          <div class="text-[12px] text-gray-400 font-black tracking-widest">Đã tải <span class="text-black">{displayProducts.length + 1}</span> / {serverTotal} sản phẩm</div>
           {#if isLoading}
-            <div class="text-[11px] font-black text-[#ee4d2d] animate-pulse uppercase">Đang tải thêm...</div>
+            <div class="text-[11px] font-black text-[#ee4d2d] animate-pulse">Đang tải thêm...</div>
           {/if}
         </div>
         {:else if serverTotal > 0}
           <div class="mt-12 text-center py-6 border-t border-gray-50">
-             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest opacity-60 flex items-center justify-center gap-3">
+             <span class="text-[10px] font-bold text-gray-400 tracking-widest opacity-60 flex items-center justify-center gap-3">
                <div class="w-8 h-px bg-gray-200"></div>
                Đã hiển thị toàn bộ {serverTotal} sản phẩm
                <div class="w-8 h-px bg-gray-200"></div>

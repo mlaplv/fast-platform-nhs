@@ -82,7 +82,7 @@
           </span>
           <div class="flex items-center gap-2 mt-4">
              <div class="h-[1px] w-12 bg-gradient-to-r from-[#C18F7E] to-transparent"></div>
-             <span class="text-[10px] font-black tracking-[0.4em] text-white/40 uppercase">
+             <span class="text-[10px] font-black tracking-[0.4em] text-white/40 capitalize">
                {shopInfo.slogan}
              </span>
           </div>
@@ -98,7 +98,7 @@
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
           </div>
-          <p class="text-[11px] font-black uppercase tracking-widest text-[#C18F7E]">
+          <p class="text-[11px] font-black tracking-widest text-[#C18F7E]">
             <span class="tabular-nums">{activeViewers}</span> thành viên
           </p>
         </div>
@@ -107,22 +107,22 @@
         <div class="flex flex-wrap gap-2">
           <div class="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full backdrop-blur-md hover:bg-white/10 transition-all cursor-default group">
             <ShieldCheck size={12} class="text-[#C18F7E] group-hover:scale-110 transition-transform" />
-            <span class="text-[8px] font-black uppercase tracking-widest text-white/80">AI Guarded</span>
+            <span class="text-[8px] font-black tracking-widest text-white/80">AI Guarded</span>
           </div>
           <div class="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full backdrop-blur-md hover:bg-white/10 transition-all cursor-default group">
             <Zap size={12} class="text-[#C18F7E] group-hover:scale-110 transition-transform" />
-            <span class="text-[8px] font-black uppercase tracking-widest text-white/80">Instant Sync</span>
+            <span class="text-[8px] font-black tracking-widest text-white/80">Instant Sync</span>
           </div>
           <div class="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full backdrop-blur-md hover:bg-white/10 transition-all cursor-default group">
             <Clock size={12} class="text-[#C18F7E] group-hover:scale-110 transition-transform" />
-            <span class="text-[8px] font-black uppercase tracking-widest text-white/80">24/7 Agent</span>
+            <span class="text-[8px] font-black tracking-widest text-white/80">24/7 Agent</span>
           </div>
         </div>
       </div>
 
       <!-- Links Column 1: Ecosystem -->
       <div class="lg:col-span-2 space-y-6">
-        <h4 class="text-white font-black uppercase text-[10px] tracking-[0.4em] pl-2">Hệ sinh thái</h4>
+        <h4 class="text-white font-black text-[10px] tracking-[0.4em] pl-2">Hệ sinh thái</h4>
         <ul class="space-y-3">
           {#each ecosystemLinks as link}
             <li>
@@ -137,7 +137,7 @@
 
       <!-- Links Column 2: Support -->
       <div class="lg:col-span-2 space-y-6">
-        <h4 class="text-white font-black uppercase text-[10px] tracking-[0.4em] pl-2">Khách hàng</h4>
+        <h4 class="text-white font-black text-[10px] tracking-[0.4em] pl-2">Khách hàng</h4>
         <ul class="space-y-3">
           {#each customerLinks as link}
             <li>
@@ -152,7 +152,7 @@
 
       <!-- Contact & Social Connect -->
       <div class="lg:col-span-4 space-y-6">
-        <h4 class="text-white font-black uppercase text-[10px] tracking-[0.4em] pl-2">Kết nối osmo</h4>
+        <h4 class="text-white font-black text-[10px] tracking-[0.4em] pl-2">Kết nối</h4>
         
         <div class="bg-white/[0.02] border border-white/5 p-5 rounded-xl backdrop-blur-3xl space-y-5 hover:border-[#C18F7E]/20 transition-all group">
           <div class="flex items-center gap-4">
@@ -173,7 +173,7 @@
 
           <div class="pt-4 border-t border-white/5 flex items-center justify-between">
             <div class="flex flex-col">
-               <span class="text-[8px] uppercase tracking-[0.2em] text-slate-500 font-bold mb-1">Hotline 24/7</span>
+               <span class="text-[8px] tracking-[0.2em] text-slate-500 font-bold mb-1">Hotline 24/7</span>
                <a href="tel:{shopInfo.hotline.replace(/-/g, '')}" class="text-xl font-black tracking-tighter text-white hover:text-[#C18F7E] transition-colors tabular-nums">
                  {shopInfo.hotline}
                </a>
@@ -187,7 +187,7 @@
         <!-- Trust Badges & Payments -->
         <div class="bg-zinc-950/40 border border-white/5 p-4 rounded-xl flex items-center justify-between gap-4">
           <div class="flex flex-col gap-2">
-            <span class="text-[8px] font-black uppercase tracking-widest text-slate-500">Security & Payments</span>
+            <span class="text-[8px] font-black tracking-widest text-slate-500">Security & Payments</span>
             <div class="flex items-center gap-3 opacity-60">
               <CreditCard size={14} class="text-slate-300" />
               <Lock size={14} class="text-slate-300" />
@@ -217,11 +217,11 @@
             <p>© {currentYear} <span class="text-white font-bold">{shopInfo.name}</span></p>
             <span class="w-1 h-1 rounded-full bg-white/10"></span>
             {#if shopInfo.companyName}
-              <p class="font-bold text-slate-300 uppercase tracking-widest text-[8px]">{shopInfo.companyName}</p>
+              <p class="font-bold text-slate-300 tracking-widest text-[8px]">{shopInfo.companyName}</p>
             {/if}
           </div>
           
-          <div class="flex flex-wrap items-center gap-4 text-[9px] font-mono text-slate-600 uppercase tracking-widest leading-relaxed">
+          <div class="flex flex-wrap items-center gap-4 text-[9px] font-mono text-slate-600 tracking-widest leading-relaxed">
             {#if shopInfo.taxId}
               <div class="flex items-center gap-1.5 border-r border-white/5 pr-4 last:border-0 last:pr-0">
                 <span class="text-slate-800 font-black">MST:</span>
@@ -254,7 +254,7 @@
              {/each}
           </div>
           <div class="flex items-center gap-2 group cursor-default">
-             <span class="text-[9px] font-black uppercase tracking-widest text-slate-700 group-hover:text-slate-500 transition-colors">by lapiweb</span>
+             <span class="text-[9px] font-black tracking-widest text-slate-700 group-hover:text-slate-500 transition-colors">by lapiweb</span>
              <div class="w-1 h-1 rounded-full bg-[#C18F7E] animate-ping"></div>
           </div>
         </div>

@@ -191,7 +191,7 @@
             {#if searchStore.recentSearches.length > 0}
               <section>
                 <div class="flex items-center justify-between mb-3">
-                  <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Lịch sử tìm kiếm</span>
+                  <span class="text-[10px] font-black tracking-widest text-gray-400">Lịch sử tìm kiếm</span>
                   <button onclick={() => searchStore.clearHistory()} class="text-[10px] font-bold text-luxury-copper hover:underline">Xóa tất cả</button>
                 </div>
                 <div class="flex flex-wrap gap-2">
@@ -211,7 +211,7 @@
               <section>
                 <div class="flex items-center gap-2 mb-4 px-2">
                   <span class="w-1.5 h-1.5 bg-[#fe2c55] rounded-full animate-pulse"></span>
-                  <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Xu hướng tìm kiếm</span>
+                  <span class="text-[10px] font-black tracking-widest text-gray-400">Xu hướng tìm kiếm</span>
                 </div>
                 <div class="grid grid-cols-2 gap-x-6 gap-y-0.5 px-0">
                   {#each searchStore.featuredProducts as p, i}
@@ -238,7 +238,7 @@
                          </div>
                       </div>
                       {#if p.metadata?.is_bestseller || p.orderCount > 50}
-                        <span class="shrink-0 text-[8px] bg-[#fe2c55] text-white px-1 py-0.5 font-black uppercase tracking-tighter rounded-xs shadow-sm ml-1">Bán chạy</span>
+                        <span class="shrink-0 text-[8px] bg-[#fe2c55] text-white px-1 py-0.5 font-black tracking-tighter rounded-xs shadow-sm ml-1">Bán chạy</span>
                       {/if}
                     </button>
                   {/each}
@@ -250,14 +250,14 @@
               {#if searchStore.isSearching}
                  <div class="py-10 text-center flex flex-col items-center gap-3">
                     <div class="w-6 h-6 border-2 border-luxury-copper/20 border-t-luxury-copper rounded-full animate-spin"></div>
-                    <span class="text-gray-400 text-[11px] font-bold uppercase tracking-widest">Đang trích xuất dữ liệu...</span>
+                    <span class="text-gray-400 text-[11px] font-bold tracking-widest">Đang trích xuất dữ liệu...</span>
                  </div>
               {:else}
                 <!-- Dynamic Re-ordering -->
                 {#if isNewsContext}
                    {#if searchStore.searchArticleResults.length === 0 && searchStore.searchQuery}
                       <div class="px-4 py-8 text-center bg-gray-50/50 border border-dashed border-gray-200 rounded-none mb-4">
-                         <div class="text-[11px] font-black uppercase tracking-[0.2em] text-luxury-copper opacity-60 mb-2">Thông tin bối cảnh</div>
+                         <div class="text-[11px] font-black tracking-[0.2em] text-luxury-copper opacity-60 mb-2">Thông tin bối cảnh</div>
                          <div class="text-[14px] font-bold text-gray-400 italic">Không tìm thấy kiến thức phù hợp với từ khóa của bạn.</div>
                       </div>
                    {/if}
@@ -270,7 +270,7 @@
 
                 {#if searchStore.searchResults.length === 0 && searchStore.searchArticleResults.length === 0}
                   <div class="py-20 text-center px-10">
-                    <span class="text-gray-300 font-bold uppercase tracking-widest text-[13px]">Không tìm thấy kết quả phù hợp.</span>
+                    <span class="text-gray-300 font-bold tracking-widest text-[13px]">Không tìm thấy kết quả phù hợp.</span>
                   </div>
                 {/if}
               {/if}
@@ -281,7 +281,7 @@
           {#snippet productResults()}
              {#if searchStore.searchResults.length > 0}
                 <div class="flex flex-col gap-1">
-                  <div class="text-[10px] font-black uppercase tracking-widest text-[#C18F7E] mb-2 px-2">{isNewsContext ? 'Sản phẩm liên quan' : 'Sản phẩm dành cho bạn'}</div>
+                  <div class="text-[10px] font-black tracking-widest text-[#C18F7E] mb-2 px-2">{isNewsContext ? 'Sản phẩm liên quan' : 'Sản phẩm dành cho bạn'}</div>
                   {#each searchStore.searchResults as p}
                     <a 
                       href="/{p.slug}"
@@ -312,7 +312,7 @@
           {#snippet articleResults()}
              {#if searchStore.searchArticleResults.length > 0}
                 <div class="flex flex-col gap-1">
-                  <div class="text-[10px] font-black uppercase tracking-widest text-[#C18F7E] mb-2 px-2">{isNewsContext ? 'Kết quả kiến thức hàng đầu' : 'Kiến thức chuyên sâu'}</div>
+                  <div class="text-[10px] font-black tracking-widest text-[#C18F7E] mb-2 px-2">{isNewsContext ? 'Kết quả kiến thức hàng đầu' : 'Kiến thức chuyên sâu'}</div>
                   {#each searchStore.searchArticleResults as art}
                     <a 
                       href="/{art.slug}"
@@ -330,12 +330,12 @@
                       </div>
                       <div class="flex flex-col flex-grow min-w-0">
                         <div class="flex items-center justify-between mb-1.5">
-                           <span class="text-[9px] font-black text-[#C18F7E] uppercase tracking-wider">{art.category}</span>
+                           <span class="text-[9px] font-black text-[#C18F7E] tracking-wider">{art.category}</span>
                            {#if art.match_score}
                               <span class="text-[9px] font-bold text-green-500 bg-green-50 px-1.5 py-0.5 rounded-none">{Math.round(art.match_score * 100)}% Match</span>
                            {/if}
                         </div>
-                        <h4 class="text-[16px] font-bold text-gray-900 group-hover:text-luxury-copper transition-colors uppercase italic leading-snug line-clamp-2">{art.title}</h4>
+                        <h4 class="text-[16px] font-bold text-gray-900 group-hover:text-luxury-copper transition-colors italic leading-snug line-clamp-2">{art.title}</h4>
                       </div>
                     </a>
                   {/each}
@@ -346,7 +346,7 @@
           <!-- Visual Product Preview (Elite Touch) — chỉ hiện khi không search -->
           {#if !searchStore.searchQuery && searchStore.featuredProducts.length > 0}
             <section class="border-t border-gray-50 pt-4">
-              <div class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Có thể bạn quan tâm</div>
+              <div class="text-[10px] font-black tracking-widest text-gray-400 mb-3">Có thể bạn quan tâm</div>
               <div class="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar">
                 {#each searchStore.featuredProducts.slice(0, 4) as p}
                   <a href="/{p.slug}" class="min-w-[120px] max-w-[120px] flex flex-col gap-2 group cursor-pointer" onclick={() => searchStore.isOverlayOpen = false}>
@@ -417,7 +417,7 @@
           {#if searchStore.isSearching}
              <div class="py-20 text-center flex flex-col items-center gap-3">
                 <div class="w-8 h-8 border-2 border-luxury-copper/20 border-t-luxury-copper rounded-full animate-spin"></div>
-                <span class="text-gray-400 text-[13px] font-black uppercase tracking-widest">Neural Scanning...</span>
+                <span class="text-gray-400 text-[13px] font-black tracking-widest">Neural Scanning...</span>
              </div>
           {:else}
              {#if isNewsContext}
@@ -435,7 +435,7 @@
              {/if}
 
              {#if searchStore.searchResults.length === 0 && searchStore.searchArticleResults.length === 0}
-                <div class="py-20 text-center px-10 text-gray-300 font-bold uppercase tracking-widest text-[13px]">Không tìm thấy kỳ quan nào.</div>
+                <div class="py-20 text-center px-10 text-gray-300 font-bold tracking-widest text-[13px]">Không tìm thấy kỳ quan nào.</div>
              {/if}
           {/if}
         </div>
@@ -448,7 +448,7 @@
 {#snippet mobileProducts()}
   {#if searchStore.searchResults.length > 0}
     <div class="flex flex-col">
-       <h3 class="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 bg-gray-50/20">{isNewsContext ? 'Sản phẩm tham khảo' : 'Sản phẩm Elite'}</h3>
+       <h3 class="px-4 py-4 text-[10px] font-black text-gray-400 tracking-widest border-b border-gray-50 bg-gray-50/20">{isNewsContext ? 'Sản phẩm tham khảo' : 'Sản phẩm Elite'}</h3>
        {#each searchStore.searchResults as p}
         <a href="/{p.slug}" onclick={() => { searchStore.addSearch(p.name); searchStore.isOverlayOpen = false; }} class="flex items-center gap-4 px-4 py-4 border-b border-gray-100 active:bg-gray-50">
            <div class="w-20 h-20 shrink-0 bg-white border border-gray-100 rounded-sm overflow-hidden p-1">
@@ -457,7 +457,7 @@
              {/if}
            </div>
            <div class="flex flex-col min-w-0">
-              <h4 class="text-[14px] font-black text-gray-900 uppercase italic line-clamp-2 leading-tight mb-1">{p.name}</h4>
+              <h4 class="text-[14px] font-black text-gray-900 italic line-clamp-2 leading-tight mb-1">{p.name}</h4>
               <div class="text-[16px] font-black text-black">
                 {formatCurrency(p.discountPrice ?? p.price)}
               </div>
@@ -471,7 +471,7 @@
 {#snippet mobileArticles()}
   {#if searchStore.searchArticleResults.length > 0}
     <div class="flex flex-col">
-       <h3 class="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-50 bg-gray-50/20">{isNewsContext ? 'Kết quả hàng đầu' : 'Kiến thức & Tin tức'}</h3>
+       <h3 class="px-4 py-4 text-[10px] font-black text-gray-400 tracking-widest border-b border-gray-50 bg-gray-50/20">{isNewsContext ? 'Kết quả hàng đầu' : 'Kiến thức & Tin tức'}</h3>
        {#each searchStore.searchArticleResults as art}
         <a href="/{art.slug}" onclick={() => { searchStore.addSearch(art.title); searchStore.isOverlayOpen = false; }} class="flex flex-col gap-3 px-4 py-5 border-b border-gray-100 active:bg-gray-50">
            <div class="flex items-center gap-4">
@@ -481,10 +481,10 @@
                 {/if}
               </div>
               <div class="flex flex-col min-w-0">
-                 <div class="text-[9px] font-black text-[#C18F7E] uppercase tracking-widest mb-1">{art.category}</div>
-                 <h4 class="text-[15px] font-black text-gray-900 uppercase italic leading-snug line-clamp-2">{art.title}</h4>
+                 <div class="text-[9px] font-black text-[#C18F7E] tracking-widest mb-1">{art.category}</div>
+                 <h4 class="text-[15px] font-black text-gray-900 italic leading-snug line-clamp-2">{art.title}</h4>
                  {#if art.match_score}
-                    <div class="mt-2 text-[10px] font-bold text-green-500 uppercase">Độ phù hợp: {Math.round(art.match_score * 100)}%</div>
+                    <div class="mt-2 text-[10px] font-bold text-green-500">Độ phù hợp: {Math.round(art.match_score * 100)}%</div>
                  {/if}
               </div>
            </div>

@@ -107,23 +107,33 @@
 
 <div class="min-h-screen bg-white pb-24 font-sans">
   <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-gray-100 flex flex-col">
-    <div class="px-2 py-1 flex items-center gap-2 h-14">
+    <div class="flex items-center justify-between px-4 pt-3 pb-1">
+      <div class="flex flex-col">
+        <h1 class="text-xl font-black tracking-widest text-black uppercase">OSMO</h1>
+        <span class="text-[8px] font-bold text-gray-400 capitalize tracking-widest">Bật tông trắng sáng</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="p-2 text-gray-900"><Search size={20} /></button>
+      </div>
+    </div>
+
+    <div class="px-2 py-1 flex items-center gap-2 h-12">
        <button onclick={() => goto('/')} class="p-2 text-gray-900 flex-shrink-0"><ChevronLeft size={24} /></button>
-       <div onclick={() => goto('/')} role="presentation" class="flex-1 min-w-0 h-[42px] bg-gray-100 rounded-xl flex items-center px-4 gap-2 border border-gray-100 cursor-pointer">
-          <Search size={18} class="text-gray-400 flex-shrink-0" />
-          <span class="text-[14px] text-gray-400 font-bold truncate">{searchQuery || "Tìm kiếm sản phẩm..."}</span>
+       <div onclick={() => searchStore.isOverlayOpen = true} role="presentation" class="flex-1 min-w-0 h-[38px] bg-gray-100 rounded-xl flex items-center px-4 gap-2 border border-gray-100 cursor-pointer">
+          <Search size={16} class="text-gray-400 flex-shrink-0" />
+          <span class="text-[13px] text-gray-400 font-medium truncate">{searchQuery || "Tìm kiếm sản phẩm..."}</span>
        </div>
     </div>
 
-    <div class="flex items-center px-3 pb-2 gap-2 overflow-hidden">
-       <div class="flex-1 flex gap-1 overflow-x-auto no-scrollbar">
+    <div class="flex items-center px-3 pb-2 gap-2 min-w-0">
+       <div class="flex-1 flex gap-1 overflow-x-auto no-scrollbar min-w-0">
           {#each [
             { id: 'CATEGORY', label: categoryName },
             { id: 'TOP_RATED', label: 'Đánh giá cao' },
             { id: 'BEST_SELLER', label: 'Bán chạy' },
             { id: 'LATEST', label: 'Mới nhất' }
           ] as tab}
-            <button onclick={() => activeTab = tab.id} class="px-4 py-2 text-[12px] font-bold rounded-full transition-all whitespace-nowrap {activeTab === tab.id ? 'bg-[var(--color-brand-primary)] text-white' : 'bg-transparent text-gray-600 font-medium'}">{tab.label}</button>
+            <button onclick={() => activeTab = tab.id} class="px-4 py-2 text-[12px] font-bold rounded-full transition-all whitespace-nowrap {activeTab === tab.id ? 'bg-[var(--color-brand-primary)] text-white' : 'bg-transparent text-gray-600'}">{tab.label}</button>
           {/each}
        </div>
        <button onclick={() => isFilterDrawerOpen = true} class="p-2 text-gray-700 relative border-l border-gray-100 ml-1">
@@ -142,7 +152,7 @@
       </div>
       <span class="text-[11px] text-blue-500 font-bold tracking-tight">{stats?.total_count || 0} đánh giá thực tế</span>
     </div>
-    <div class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{products.length} sản phẩm</div>
+    <div class="text-[10px] text-gray-400 font-bold tracking-widest">{products.length} sản phẩm</div>
   </div>
 
   <div class="p-4">
@@ -151,12 +161,12 @@
     {:else}
       <div class="flex flex-col items-center justify-center py-24 px-10 text-center" in:fade>
         <h3 class="text-lg font-bold text-gray-900 mb-2">Không tìm thấy kết quả</h3>
-        <button onclick={clearFilters} class="mt-8 px-8 py-3 bg-black text-white text-[13px] font-black uppercase tracking-widest rounded-full">Xoá bộ lọc</button>
+        <button onclick={clearFilters} class="mt-8 px-8 py-3 bg-black text-white text-[13px] font-black tracking-widest rounded-full">Xoá bộ lọc</button>
       </div>
     {/if}
 
     <div class="mt-8 text-center py-4 bg-white border border-gray-100 shadow-sm rounded-2xl mb-4">
-       <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest opacity-60 flex items-center justify-center gap-3">
+       <span class="text-[9px] font-bold text-gray-400 tracking-widest opacity-60 flex items-center justify-center gap-3">
          <div class="w-6 h-px bg-gray-200"></div>
          Đã hiển thị toàn bộ {products.length} sản phẩm
          <div class="w-6 h-px bg-gray-200"></div>
@@ -170,8 +180,8 @@
                <MessageCircleQuestion size={20} class="text-orange-500" />
             </div>
             <div class="flex flex-col">
-               <h4 class="text-[14px] font-black uppercase tracking-widest text-gray-900 leading-tight">FAQ_SCHEMA_CORE</h4>
-               <span class="text-[8px] text-gray-400 font-bold uppercase tracking-widest">Hỗ trợ trích dẫn bởi AI Search 2026</span>
+               <h4 class="text-[14px] font-black tracking-widest text-gray-900 leading-tight">FAQ_SCHEMA_CORE</h4>
+               <span class="text-[8px] text-gray-400 font-bold tracking-widest">Hỗ trợ trích dẫn bởi AI Search 2026</span>
             </div>
          </div>
          <div class="space-y-3">
@@ -237,8 +247,8 @@
      {/if}
   </div>
   <div class="mt-auto pt-4 pb-0 flex items-center gap-4 bg-white sticky bottom-0 z-10 border-t border-gray-100">
-    <button onclick={clearFilters} class="flex-1 py-4 bg-gray-50 text-gray-600 text-[14px] font-black uppercase tracking-widest rounded-2xl">Xóa</button>
-    <button onclick={() => isFilterDrawerOpen = false} class="flex-2 w-[65%] py-4 bg-black text-white text-[14px] font-black uppercase tracking-widest rounded-2xl shadow-xl">Áp dụng</button>
+    <button onclick={clearFilters} class="flex-1 py-4 bg-gray-50 text-gray-600 text-[14px] font-black tracking-widest rounded-2xl">Xóa</button>
+    <button onclick={() => isFilterDrawerOpen = false} class="flex-2 w-[65%] py-4 bg-black text-white text-[14px] font-black tracking-widest rounded-2xl shadow-xl">Áp dụng</button>
   </div>
 </BottomSheet>
 

@@ -86,18 +86,18 @@
           type="button" 
           class="flex items-center gap-1 hover:text-luxury-copper transition-colors"
         >
-          <span>❔</span> Hỗ Trợ
+          <span>❔</span> Hỗ trợ
         </button>
 
-        <button class="flex items-center gap-1 hover:text-luxury-copper transition-colors uppercase font-bold tracking-tighter">
+        <button class="flex items-center gap-1 hover:text-luxury-copper transition-colors font-bold tracking-tighter">
           🌐 Tiếng Việt
         </button>
         <span class="w-[1px] h-3 bg-gray-200"></span>
         
         {#if !authStore.isAuthenticated}
-          <button onclick={() => ui.openRegister()} type="button" class="hover:text-luxury-copper font-bold uppercase transition-colors tracking-tighter">Đăng Ký</button>
+          <button onclick={() => ui.openRegister()} type="button" class="hover:text-luxury-copper font-bold transition-colors tracking-tighter">Đăng ký</button>
           <span class="w-[1px] h-3 bg-gray-200"></span>
-          <button onclick={() => ui.openLogin()} type="button" class="hover:text-luxury-copper font-bold uppercase transition-colors tracking-tighter">Đăng Nhập</button>
+          <button onclick={() => ui.openLogin()} type="button" class="hover:text-luxury-copper font-bold transition-colors tracking-tighter">Đăng nhập</button>
         {:else}
           <div class="relative flex items-center group/topacc" bind:this={menuContainer}>
             <button 
@@ -167,7 +167,7 @@
 
             <svelte:element 
               this={isHome ? 'h1' : 'span'} 
-              class="text-[9px] font-black tracking-[0.14em] text-gray-400 uppercase whitespace-nowrap text-left group-hover:text-luxury-copper transition-all duration-500"
+              class="text-[9px] font-black tracking-[0.14em] text-gray-400 capitalize whitespace-nowrap text-left group-hover:text-luxury-copper transition-all duration-500"
               style="margin: 0; display: block;"
             >
                 {ui.settings?.slogan || ui.settings?.basic_info?.slogan || 'Bật tông trắng sáng'}
@@ -181,7 +181,7 @@
 
         <div class="flex items-center gap-6 shrink-0 h-[48px]">
           <div class="hidden lg:flex flex-col items-end text-gray-700 justify-center">
-            <span class="text-[9px] uppercase tracking-[0.1em] font-black opacity-30 leading-none mb-1">Hotline</span>
+            <span class="text-[9px] tracking-[0.1em] font-black opacity-30 leading-none mb-1">Hotline</span>
             <a href="tel:0949901122" class="text-[13px] font-bold tracking-tight hover:text-[#C18F7E] transition-colors tabular-nums">0949 901 122</a>
           </div>
 
@@ -199,7 +199,7 @@
                   </span>
                 {/if}
               </div>
-              <span class="text-[9px] text-gray-400 font-black uppercase tracking-tighter group-hover:text-luxury-copper transition-colors">Giỏ hàng</span>
+              <span class="text-[9px] text-gray-400 font-black tracking-tighter group-hover:text-luxury-copper transition-colors">Giỏ hàng</span>
             </a>
 
             {#if isHoveringCart}

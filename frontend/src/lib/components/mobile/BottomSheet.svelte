@@ -83,7 +83,7 @@
       </button>
 
       <div class="relative flex items-center justify-center px-6 pt-2 pb-4 border-b border-gray-100">
-        <h2 class="text-[13px] font-black uppercase tracking-[0.25em] italic text-gray-900">
+        <h2 class="text-[13px] font-black tracking-[0.25em] italic text-gray-900">
           {title}
         </h2>
       </div>

@@ -123,7 +123,7 @@
     <div class="ai-sentiment-box mb-4 p-4 rounded-lg bg-gradient-to-br from-[#FFF9F6] to-white border border-[#ee4d2d]/10 shadow-sm relative overflow-hidden">
        <div class="flex items-center gap-2 mb-2 relative z-10">
          <Sparkles size={16} class="text-[#ee4d2d] fill-current" />
-         <h3 class="text-[12px] font-black tracking-widest text-[#ee4d2d]">AI Tổng Hợp Đánh Giá</h3>
+         <h3 class="text-[12px] font-black tracking-widest text-[#ee4d2d]">AI Tổng hợp đánh giá</h3>
        </div>
        {#if aiSummary}
          <p class="text-[13px] text-gray-700 leading-relaxed mb-3 font-medium relative z-10">{aiSummary}</p>
@@ -156,7 +156,7 @@
   {#if isLoading}
     <div class="flex flex-col items-center justify-center py-10 text-gray-400">
       <Loader2 size={24} class="animate-spin mb-2" />
-      <p class="text-xs uppercase tracking-widest font-bold">Đang tải đánh giá...</p>
+      <p class="text-xs tracking-widest font-bold text-gray-400">Đang tải đánh giá...</p>
     </div>
   {:else if reviews.length === 0}
     <div class="empty-reviews-state">
@@ -235,8 +235,8 @@
 
       <div class="fomo-footer mt-4 p-3 bg-luxury-peach/10 rounded-lg flex items-center justify-between border border-luxury-peach/20">
         <div class="flex flex-col">
-          <span class="text-[11px] font-black text-luxury-copper uppercase tracking-tighter italic">Cảm nhận thực tế</span>
-          <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Đã có {reviewCount * 12 + 89} người tin dùng</span>
+          <span class="text-[11px] font-black text-luxury-copper tracking-tighter italic">Cảm nhận thực tế</span>
+          <span class="text-[9px] text-gray-400 font-bold tracking-widest mt-0.5">Đã có {reviewCount * 12 + 89} người tin dùng</span>
         </div>
         <a href="/{product.slug}/reviews" class="btn-discover bg-luxury-copper">Khám phá ngay</a>
       </div>
@@ -247,7 +247,7 @@
 <style>
   .content-section { background: white; padding: 16px; }
   .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .section-title { font-size: 14px; font-weight: 800; color: #222; margin: 0; text-transform: uppercase; letter-spacing: -0.01em; }
+  .section-title { font-size: 14px; font-weight: 800; color: #222; margin: 0; letter-spacing: -0.01em; }
   .view-all { font-size: 12px; display: flex; align-items: center; gap: 4px; font-weight: 600; text-decoration: none; }
 
   .score-big { font-size: 24px; font-weight: 900; color: #333; display: flex; align-items: baseline; gap: 2px; }
@@ -268,7 +268,7 @@
   .play-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); }
   .media-more { position: absolute; bottom: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.6); color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; }
 
-  .btn-discover { color: white; font-size: 10px; font-weight: 900; padding: 6px 12px; border-radius: 4px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(193, 143, 126, 0.2); }
+  .btn-discover { color: white; font-size: 10px; font-weight: 900; padding: 6px 12px; border-radius: 4px; text-decoration: none; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(193, 143, 126, 0.2); }
 
   :global(.prose-osmo-mini p) { margin: 0 !important; }
 </style>

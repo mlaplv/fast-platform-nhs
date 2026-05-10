@@ -262,7 +262,7 @@
 <div class="bg-white p-6 md:p-10 mt-0 rounded-none relative overflow-hidden mb-0">
   <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 pb-6 border-b border-gray-50">
     <div>
-      <h2 class="text-2xl font-black text-[#1a1a1a] tracking-tight leading-none mb-2">Đánh Giá {entityType === 'CATEGORY' ? 'Danh Mục ' + (product?.name || '') : 'Sản Phẩm'}</h2>
+      <h2 class="text-2xl font-black text-[#1a1a1a] tracking-tight leading-none mb-2">Đánh giá {entityType === 'CATEGORY' ? 'danh mục ' + (product?.name || '') : 'sản phẩm'}</h2>
       <p class="text-gray-400 text-xs font-medium tracking-[0.2em]">Trải nghiệm thực tế từ người dùng</p>
     </div>
     <button 
@@ -295,19 +295,19 @@
                 </button>
               {/each}
             </div>
-            <span class="text-xs font-bold text-[#ee4d2d] uppercase tracking-widest">{['Rất tệ', 'Tệ', 'Bình thường', 'Hài lòng', 'Tuyệt vời'][newRating - 1]}</span>
+            <span class="text-xs font-bold text-[#ee4d2d] tracking-widest">{['Rất tệ', 'Tệ', 'Bình thường', 'Hài lòng', 'Tuyệt vời'][newRating - 1]}</span>
           </div>
 
           <!-- Quick Attributes -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             {#each Object.keys(newAttributes) as attr}
               <div class="space-y-2">
-                <span class="text-[11px] font-black text-gray-400 uppercase tracking-widest">{attr}</span>
+                <span class="text-[11px] font-black text-gray-400 tracking-widest">{attr}</span>
                 <div class="flex flex-wrap gap-2">
                   {#each (attr === 'Thấm thấu' ? ['Tham nhanh', 'Hơi dính', 'Bết'] : attr === 'Mùi thơm' ? ['Thơm dịu', 'Nồng', 'Không mùi'] : ['Săn chắc', 'Mịn màng', 'Dưỡng ẩm']) as opt}
                     <button 
                       onclick={() => newAttributes[attr] = opt}
-                      class="px-4 py-2 text-[10px] font-black border-2 transition-all uppercase tracking-widest {newAttributes[attr] === opt ? 'bg-black text-white border-black' : 'bg-white text-gray-400 border-gray-100 hover:border-black'}">
+                      class="px-4 py-2 text-[10px] font-black border-2 transition-all tracking-widest {newAttributes[attr] === opt ? 'bg-black text-white border-black' : 'bg-white text-gray-400 border-gray-100 hover:border-black'}">
                       {opt}
                     </button>
                     {/each}
@@ -356,10 +356,10 @@
               >
                 {#if isUploadingMedia}
                     <Loader2 class="w-6 h-6 animate-spin" />
-                    <span class="text-[9px] font-black uppercase tracking-[0.2em]">ĐANG TẢI LÊN</span>
+                    <span class="text-[9px] font-black tracking-[0.2em]">Đang tải lên</span>
                 {:else}
                     <Camera class="w-6 h-6" />
-                    <span class="text-[9px] font-black uppercase tracking-[0.2em]">THÊM ẢNH/VIDEO</span>
+                    <span class="text-[9px] font-black tracking-[0.2em]">Thêm ảnh/video</span>
                 {/if}
               </button>
             {/if}
@@ -390,7 +390,7 @@
     <div class="flex flex-col items-center">
       <div class="flex items-baseline gap-1 text-black">
         <span class="text-5xl font-black tracking-tighter">{stats.average_rating}</span>
-        <span class="text-sm font-black uppercase tracking-widest text-gray-400">/ 5</span>
+        <span class="text-sm font-black tracking-widest text-gray-400">/ 5</span>
       </div>
       <div class="flex gap-1.5 mt-2">
         {#each Array(5) as _, i}
@@ -420,7 +420,7 @@
        <div class="w-full md:w-1/3 shrink-0 relative z-10">
          <div class="flex items-center gap-2 mb-3">
            <Sparkles class="w-5 h-5 text-[#ee4d2d] fill-current" />
-           <h3 class="text-[13px] font-black tracking-[0.2em] text-[#ee4d2d]">AI Tổng Hợp Đánh Giá</h3>
+           <h3 class="text-[13px] font-black tracking-[0.2em] text-[#ee4d2d]">AI Tổng hợp đánh giá</h3>
          </div>
          {#if aiSummary}
            <p class="text-[14px] text-gray-700 leading-relaxed font-medium">{aiSummary}</p>
@@ -457,7 +457,7 @@
     {#if isLoading}
       <div class="py-20 flex flex-col items-center justify-center gap-4">
         <div class="w-8 h-8 border-2 border-[#ee4d2d] border-t-transparent rounded-full animate-spin"></div>
-        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Đang tải đánh giá...</span>
+        <span class="text-xs font-bold text-gray-400 tracking-widest">Đang tải đánh giá...</span>
       </div>
     {:else if reviews.length === 0}
       <div class="py-20 flex flex-col items-center justify-center text-gray-400">

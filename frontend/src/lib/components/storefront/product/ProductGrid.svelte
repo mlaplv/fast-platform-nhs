@@ -31,8 +31,8 @@
         <!-- Mall / New Badge (Elite V2.2) -->
         {#if product.type === 'MALL'}
           <div class="absolute top-2 left-2" style:z-index={Z_INDEX_CLIENT.CONTENT}>
-            <div class="bg-black text-white text-[8px] font-black px-1.5 py-0.5 uppercase flex flex-col items-center leading-none rounded-sm shadow-md">
-              <span>MALL</span>
+            <div class="bg-black text-white text-[8px] font-black px-1.5 py-0.5 flex flex-col items-center leading-none rounded-sm shadow-md">
+              <span>Mall</span>
             </div>
           </div>
         {/if}
@@ -56,8 +56,8 @@
         <!-- Freeship Xtra Badge (Floating Bottom) -->
         {#if product.metadata?.is_freeship !== false}
           <div class="absolute bottom-2 left-2" style:z-index={Z_INDEX_CLIENT.CONTENT}>
-            <div class="bg-[#00bfa5] text-white text-[8px] font-black px-1.5 py-0.5 uppercase tracking-tighter flex items-center gap-1 shadow-md rounded-[2px]">
-               <span>FREESHIP</span>
+            <div class="bg-[#00bfa5] text-white text-[8px] font-black px-1.5 py-0.5 tracking-tighter flex items-center gap-1 shadow-md rounded-[2px]">
+               <span>Freeship</span>
             </div>
           </div>
         {/if}
@@ -88,7 +88,7 @@
 
              <!-- Points Reward (Elite V2.2 Marketing) -->
              <div class="flex items-center gap-1 bg-amber-50/50 px-1.5 py-0.5 rounded-[4px] border border-amber-100/30">
-               <span class="text-[9px] font-black text-amber-600 uppercase tracking-tighter">+{Math.floor((product.discountPrice || product.price) / 100000)} PTS</span>
+               <span class="text-[9px] font-black text-amber-600 tracking-tighter">+{Math.floor((product.discountPrice || product.price) / 100000)} pts</span>
              </div>
              
              <!-- Location -->
