@@ -280,7 +280,23 @@
     _token = null;
     _fingerprint = null;
   }
+
+  let campaignData = $state<any>(null);
+  let isCampaignLoaded = $state(false);
+
+  $effect(() => {
+    const vId = promoConfig?.voucher_id;
+    if (vId && !isCampaignLoaded) {
+      isCampaignLoaded = true;
+      fetch(`/api/v1/client/viral/campaign/${vId}`)
+        .then(res => res.json())
+        .then(data => { campaignData = data; })
+        .catch(() => {});
+    }
+  });
+
   const displayRewardLabel = $derived(
+    campaignData?.voucher_label || 
     viralSuite?.share_reward_label || 
     promoConfig?.voucher_label ||
     promoConfig?.reward_label ||
@@ -288,9 +304,18 @@
   );
 
   const ctaText = $derived(
+    campaignData?.cta_text || 
     viralSuite?.share_cta || 
     promoConfig?.cta_text ||
     'NHẬN'
+  );
+
+  const subDescription = $derived(
+    campaignData?.voucher_subtitle || 
+    campaignData?.share_text || 
+    promoConfig?.voucher_subtitle || 
+    promoConfig?.share_text || 
+    ''
   );
 </script>
 
@@ -310,8 +335,8 @@
           <div class="stp-icon-box"><Gift size={18} /></div>
           <div class="stp-msg">
             <span class="stp-t">{displayRewardLabel}</span>
-            {#if promoConfig?.voucher_subtitle}
-              <span class="text-[10px] text-gray-500 font-medium leading-none mt-0.5">{promoConfig.voucher_subtitle}</span>
+            {#if subDescription}
+              <span class="stp-sub">{subDescription}</span>
             {/if}
             {#if errorMsg}<span class="text-[10px] text-red-500 font-bold">{errorMsg}</span>{/if}
           </div>
@@ -349,32 +374,30 @@
   .stu-desktop-root { position: relative; margin: 8px 0; }
   
   .stu-view-bar {
-    padding: 0; background: #fff; position: relative; border-radius: 4px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden;
-    border: 1px dashed #ee4d2d;
-    mask-image: radial-gradient(circle at 0 50%, transparent 5px, black 6px), radial-gradient(circle at 100% 50%, transparent 5px, black 6px);
-    mask-composite: intersect;
+    padding: 0; background: transparent; position: relative;
+    overflow: hidden;
   }
-  .stp-one-line { display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-height: 44px; }
+  .stp-one-line { display: flex; align-items: center; gap: 10px; padding: 4px 0; min-height: 44px; }
   .stp-icon-box { color: #ee4d2d; display: flex; align-items: center; justify-content: center; }
   .stp-msg { flex: 1; display: flex; flex-direction: column; justify-content: center; }
   .stp-t { font-size: 13px; font-weight: 1000; color: #111; text-transform: uppercase; letter-spacing: -0.01em; }
+  .stp-sub { font-size: 10px; color: #666; font-weight: 500; line-height: 1.2; margin-top: 2px; }
   .stp-go { 
     display: flex; align-items: center; gap: 6px; color: #fff; background: #ee4d2d;
     padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 1000; border: none; cursor: pointer;
     text-transform: uppercase;
   }
 
-  .stu-center { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border: 1px dashed #ee4d2d; border-radius: 4px; }
+  .stu-center { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border: none; background: transparent; }
   .stu-loading-text { font-size: 11px; font-weight: 800; color: #ee4d2d; text-transform: uppercase; }
   
-  .stu-confirm-view { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; background: #fff; border: 1.5px dashed #ee4d2d; border-radius: 4px; }
+  .stu-confirm-view { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; background: transparent; border: none; }
   .stu-confirm-txt { font-size: 14px; font-weight: 1000; color: #000; text-transform: uppercase; }
   .stu-confirm-btns { display: flex; gap: 8px; width: 100%; }
   .stu-btn-alt { flex: 1; height: 36px; background: #f5f5f5; color: #666; border: none; border-radius: 6px; font-size: 12px; font-weight: 800; cursor: pointer; }
   .stu-btn-prim { flex: 1; height: 36px; background: #ee4d2d; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 1000; cursor: pointer; }
 
-  .stu-revealed-card { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #fffcfc; border: 1.5px dashed #ee4d2d; border-radius: 4px; animation: stu-reveal 0.5s ease; }
+  .stu-revealed-card { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; background: transparent; border: none; animation: stu-reveal 0.5s ease; }
   .stu-voucher-info { display: flex; flex-direction: column; }
   .stu-voucher-label { font-size: 10px; font-weight: 800; color: #999; text-transform: uppercase; }
   .stu-voucher-code { font-size: 18px; font-weight: 1000; color: #ee4d2d; font-family: monospace; }

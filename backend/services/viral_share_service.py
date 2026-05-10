@@ -268,6 +268,7 @@ class ViralShareService:
         return {
             "voucher_id": voucher.id,
             "voucher_label": viral_suite.get("voucher_label") or voucher.title,
+            "voucher_subtitle": voucher.subtitle,
             "share_target": viral_suite.get("share_target", 1000),
             "cta_text": viral_suite.get("cta_text"),
             "share_text": viral_suite.get("share_text"),

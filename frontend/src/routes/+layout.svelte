@@ -84,14 +84,12 @@
     <meta name="theme-color" content="#020202" />
     <meta name="robots" content="noindex, nofollow" />
     
-    <!-- OpenGraph (Admin Only) -->
     <meta property="og:title" content={siteName} />
     <meta property="og:description" content={metaDescription} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={siteName} />
     <meta property="og:locale" content="vi_VN" />
   {:else}
-    <!-- Root layout SEO tags removed for Storefront to allow SeoHead to control it without hydration conflicts -->
     <meta name="theme-color" content="#f5f5f5" />
   {/if}
 

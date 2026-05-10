@@ -34,7 +34,7 @@
     };
   });
 
-  const orderId = page.params.id;
+  const orderId = page.params.id || '';
   const cartStore = getCartStore();
 
   // Elite V2.2: Order Status Roadmap
@@ -114,7 +114,7 @@
     })
   ).sort((a, b) => a.localeCompare(b, 'vi'));
 
-  let unifiedValue = $state(editForm.ward && editForm.province ? `${editForm.ward}, ${editForm.province}` : '');
+  let unifiedValue = $state('');
 
   $effect(() => {
     if (editForm.ward && editForm.province) {

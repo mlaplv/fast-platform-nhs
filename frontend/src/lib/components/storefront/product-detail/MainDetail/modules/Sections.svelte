@@ -33,7 +33,7 @@
   }
 </script>
 
-<div class="max-w-[1200px] mx-auto flex flex-col gap-[20px] mb-0">
+<div class="max-w-[1200px] mx-auto flex flex-col gap-[20px] mb-0 pt-[20px]">
   <!-- CHI TIẾT SẢN PHẨM -->
   <div class="bg-white p-6 shadow-[0_2px_20px_-5px_rgba(0,0,0,0.05)] border border-gray-50 ">
      <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
