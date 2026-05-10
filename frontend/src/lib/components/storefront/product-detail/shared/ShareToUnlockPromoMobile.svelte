@@ -287,12 +287,15 @@
 
   const displayRewardLabel = $derived(
     viralSuite?.share_reward_label || 
-    viralSuite?.share_cta ||
+    promoConfig?.voucher_label ||
+    promoConfig?.reward_label ||
     ''
   );
 
   const ctaText = $derived(
-    viralSuite?.share_cta || 'NHẬN QUÀ'
+    viralSuite?.share_cta || 
+    promoConfig?.cta_text ||
+    'NHẬN QUÀ'
   );
 
   const stats = $derived(viralSuite?.stats ?? { redeemed_count: 0 });
@@ -313,6 +316,9 @@
         {#if variant === 'floating'}
           <div class="stu-f-content">
             <h4 class="stu-f-title">{displayRewardLabel}</h4>
+            {#if promoConfig?.voucher_subtitle}
+              <div class="text-[9px] text-white/70 font-bold uppercase tracking-tight -mt-1">{promoConfig.voucher_subtitle}</div>
+            {/if}
             <div class="stu-f-fomo">🔥 {formatViralCount(shareCount)}+ ĐÃ NHẬN</div>
             <button class="stu-f-btn" onclick={viralActions.share}>
                <div class="stu-f-btn-inner">
@@ -335,6 +341,9 @@
             <div class="stp-funnel-row">
               <div class="stp-f-msg">
                 <span class="stp-f-t">{displayRewardLabel}</span>
+                {#if promoConfig?.voucher_subtitle}
+                  <span class="text-[8px] text-[#ffb7c5]/60 font-medium leading-none mb-1">{promoConfig.voucher_subtitle}</span>
+                {/if}
                 <div class="stp-f-progress">
                   <div class="stp-f-bar" style="width: 50%"></div>
                 </div>
@@ -387,7 +396,7 @@
   }
   .stp-f-social-btn:hover { background: rgba(255,255,255,0.2); border-color: #ffb7c5; }
   
-  .stp-funnel-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.1); }
+  .stp-funnel-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,0.1); min-height: 52px; }
   .stp-f-msg { flex: 1; display: flex; flex-direction: column; gap: 4px; }
   .stp-f-t { font-size: 9px; font-weight: 900; color: #ffb7c5; text-transform: uppercase; letter-spacing: 0.1em; }
   .stp-f-progress { height: 4px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }

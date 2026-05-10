@@ -40,9 +40,17 @@
     shareTarget > 0 ? Math.min((shareCount / shareTarget) * 100, 100) : 0
   );
 
+  const promoConfig = $derived(
+    viralSuite?.share_promotion ?? 
+    product.metadata?.share_promotion ?? 
+    null
+  );
+
   const displayRewardLabel = $derived(
-    viralSuite?.share_reward_label || product.metadata.share_reward_label || 
-    (viralSuite?.primary_campaign === 'VOUCHER_UNLOCK' ? 'Chiến dịch lan tỏa nhận Voucher 50K' : 'Đạt mốc để mở khóa quà tặng')
+    viralSuite?.share_reward_label || 
+    product.metadata?.share_reward_label || 
+    promoConfig?.voucher_label ||
+    (viralSuite?.primary_campaign === 'VOUCHER_UNLOCK' ? 'Chiến dịch lan tỏa nhận Voucher' : 'Đạt mốc để mở khóa quà tặng')
   );
 
   // Elite V2.2: Centralized Favorite Management

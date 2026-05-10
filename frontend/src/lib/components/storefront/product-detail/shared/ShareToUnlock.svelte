@@ -282,12 +282,15 @@
   }
   const displayRewardLabel = $derived(
     viralSuite?.share_reward_label || 
-    viralSuite?.share_cta ||
+    promoConfig?.voucher_label ||
+    promoConfig?.reward_label ||
     ''
   );
 
   const ctaText = $derived(
-    viralSuite?.share_cta || 'NHẬN'
+    viralSuite?.share_cta || 
+    promoConfig?.cta_text ||
+    'NHẬN'
   );
 </script>
 
@@ -307,6 +310,9 @@
           <div class="stp-icon-box"><Gift size={18} /></div>
           <div class="stp-msg">
             <span class="stp-t">{displayRewardLabel}</span>
+            {#if promoConfig?.voucher_subtitle}
+              <span class="text-[10px] text-gray-500 font-medium leading-none mt-0.5">{promoConfig.voucher_subtitle}</span>
+            {/if}
             {#if errorMsg}<span class="text-[10px] text-red-500 font-bold">{errorMsg}</span>{/if}
           </div>
           <button class="stp-go" onclick={viralActions.share}>
@@ -349,7 +355,7 @@
     mask-image: radial-gradient(circle at 0 50%, transparent 5px, black 6px), radial-gradient(circle at 100% 50%, transparent 5px, black 6px);
     mask-composite: intersect;
   }
-  .stp-one-line { display: flex; align-items: center; gap: 10px; padding: 8px 12px; height: 44px; }
+  .stp-one-line { display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-height: 44px; }
   .stp-icon-box { color: #ee4d2d; display: flex; align-items: center; justify-content: center; }
   .stp-msg { flex: 1; display: flex; flex-direction: column; justify-content: center; }
   .stp-t { font-size: 13px; font-weight: 1000; color: #111; text-transform: uppercase; letter-spacing: -0.01em; }
