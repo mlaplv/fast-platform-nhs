@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from litestar import Controller, post
+from litestar import Controller, get, post
 from litestar.connection import Request
 from litestar.exceptions import TooManyRequestsException, NotFoundException, ValidationException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -137,3 +137,18 @@ class ViralController(Controller):
             min_spend=float(result["min_spend"]),
             trust_score=float(result.get("trust_score", 0.0)),
         )
+
+    @get("/campaign/{voucher_id:str}")
+    async def get_campaign(
+        self,
+        db_session: AsyncSession,
+        voucher_id: str,
+    ) -> dict:
+        """
+        Public endpoint to get viral campaign metadata for a voucher.
+        Used by the community progress bar to show goals/messages.
+        """
+        result = await viral_share_service.get_campaign_details(voucher_id, db_session)
+        if not result:
+            raise NotFoundException("Không tìm thấy chiến dịch lan tỏa cho mã này.")
+        return result

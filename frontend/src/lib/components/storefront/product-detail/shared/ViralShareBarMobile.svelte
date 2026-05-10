@@ -1,10 +1,11 @@
 <script lang="ts">
     import Heart from "@lucide/svelte/icons/heart";
+  import Instagram from "@lucide/svelte/icons/instagram";
+  import Send from "@lucide/svelte/icons/send";
+  import Twitter from "@lucide/svelte/icons/twitter";
   import Facebook from "@lucide/svelte/icons/facebook";
   import Copy from "@lucide/svelte/icons/copy";
   import Zap from "@lucide/svelte/icons/zap";
-  import MoreHorizontal from "@lucide/svelte/icons/more-horizontal";
-  import Send from "@lucide/svelte/icons/send";
   import type { Product } from '$lib/types';
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
@@ -32,6 +33,40 @@
   
   const viralSuite = $derived(product.metadata?.viral_suite ?? null);
   
+  const shareCount = $derived(
+    viralSuite?.share_count ?? (typeof product.metadata.share_count === 'number' ? product.metadata.share_count : 0)
+  );
+  const shareTarget = $derived(
+    viralSuite?.share_target ?? (typeof product.metadata.share_target === 'number' ? product.metadata.share_target : 0)
+  );
+  const shareProgress = $derived(
+    shareTarget > 0 ? Math.max(80, Math.min((shareCount / shareTarget) * 100, 100)) : 80
+  );
+  
+  const promoConfig = $derived(
+    viralSuite?.share_promotion ?? 
+    product.metadata?.share_promotion ?? 
+    null
+  );
+
+  let campaignData = $state<any>(null);
+  let isCampaignLoaded = $state(false);
+
+  $effect(() => {
+    const vId = viralSuite?.share_promotion?.voucher_id;
+    if (vId && !isCampaignLoaded) {
+      isCampaignLoaded = true;
+      fetch(`/api/v1/client/viral/campaign/${vId}`)
+        .then(res => res.json())
+        .then(data => { campaignData = data; })
+        .catch(() => {});
+    }
+  });
+
+  const activationMsg = $derived(campaignData?.cta_text || 'Cùng nhau chia sẻ!');
+  const displayRewardLabel = $derived(campaignData?.voucher_label || 'ƯU ĐÃI LAN TỎA');
+  const voucherCode = $derived(shareProgress >= 100 ? (campaignData?.voucher_id || 'OPEN') : null);
+
   // Elite V2.2: Centralized Favorite Management
   const isLiked = $derived(wishlistStore.isLiked(product.id));
   const localLikeCount = $derived(likeCount + (isLiked ? 1 : 0));
@@ -79,8 +114,40 @@
           </button>
           <button onclick={() => share('facebook')} class="vsb-funnel-icon fb" aria-label="Share on Facebook"><Facebook size={18} fill="currentColor" /></button>
           <button onclick={() => share('zalo')} class="vsb-funnel-icon zalo" aria-label="Share on Zalo"><span class="text-[9px] font-black italic">Zalo</span></button>
+          <button onclick={() => share('x')} class="vsb-funnel-icon x" aria-label="Share on X"><Twitter size={16} fill="currentColor" /></button>
+          <button onclick={() => share('instagram')} class="vsb-funnel-icon ins" aria-label="Share on Instagram"><Instagram size={16} /></button>
+          <button onclick={() => share('telegram')} class="vsb-funnel-icon tele" aria-label="Share on Telegram"><Send size={16} /></button>
           <button onclick={copyLink} class="vsb-funnel-icon copy" aria-label="Copy link"><Copy size={16} /></button>
        </div>
+
+       {#if shareTarget > 0}
+         <div class="vsb-f-reward-box" class:achieved={shareProgress >= 100}>
+            {#if shareProgress < 100}
+               <div class="vsb-f-progress-wrap">
+                  <div class="vsb-f-info">
+                     <span class="vsb-f-label">Cùng cộng đồng lan tỏa để nhận mã giảm giá đặc biệt!</span>
+                     <span class="vsb-f-val">{Math.round(shareProgress)}%</span>
+                  </div>
+                  <div class="vsb-f-track">
+                     <div class="vsb-f-bar" style="width: {shareProgress}%">
+                        <div class="vsb-f-liquid"></div>
+                     </div>
+                  </div>
+               </div>
+            {:else}
+               <div class="vsb-f-reveal">
+                  <div class="vsb-f-reveal-t">🎊 MỤC TIÊU ĐÃ ĐẠT!</div>
+                  <div class="vsb-f-code-row">
+                     <span class="vsb-f-code">{voucherCode}</span>
+                     <button class="vsb-f-copy" onclick={() => {
+                        if (voucherCode) navigator.clipboard.writeText(voucherCode);
+                        onShareComplete?.();
+                     }}>COPY</button>
+                  </div>
+               </div>
+            {/if}
+         </div>
+       {/if}
     </div>
   {:else}
     <div class="vsb-tiktok-wrap" class:scrolled={isCollapsed} class:hidden={isHidden}>
@@ -153,6 +220,25 @@
     transition: all 0.2s;
   }
   .vsb-funnel-icon:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
+
+  /* Reward Box Mobile */
+  .vsb-f-reward-box { margin-top: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px; transition: all 0.5s; }
+  .vsb-f-reward-box.achieved { background: rgba(236, 72, 153, 0.1); border-color: rgba(236, 72, 153, 0.3); }
+
+  .vsb-f-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+  .vsb-f-label { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.7); font-style: italic; }
+  .vsb-f-val { font-size: 10px; font-weight: 900; color: #fb7185; }
+
+  .vsb-f-track { height: 4px; background: rgba(255,255,255,0.05); border-radius: 100px; overflow: hidden; position: relative; }
+  .vsb-f-bar { height: 100%; background: linear-gradient(90deg, #f59e0b, #ec4899); border-radius: 100px; position: relative; transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+  .vsb-f-liquid { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: vsb-f-liquid-anim 1.5s infinite linear; }
+  @keyframes vsb-f-liquid-anim { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+
+  .vsb-f-reveal { text-align: center; }
+  .vsb-f-reveal-t { font-size: 10px; font-weight: 900; color: #f472b6; margin-bottom: 8px; }
+  .vsb-f-code-row { display: flex; align-items: center; justify-content: space-between; background: #000; border-radius: 8px; padding: 4px 4px 4px 12px; }
+  .vsb-f-code { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 900; color: #fff; }
+  .vsb-f-copy { background: #fff; color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-size: 9px; font-weight: 900; }
 
   :global(.vsb-heart-burst) { position: fixed; pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); }
   :global(.vsb-heart-particle) { position: absolute; font-size: 14px; animation: heart-fly 0.8s ease-out forwards; opacity: 0; }

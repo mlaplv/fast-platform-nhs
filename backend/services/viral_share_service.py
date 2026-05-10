@@ -240,6 +240,40 @@ class ViralShareService:
             "trust_score": trust_score,
         }
 
+    async def get_campaign_details(
+        self,
+        voucher_id: str,
+        db_session: AsyncSession,
+    ) -> dict | None:
+        """
+        Public lookup for viral campaign metadata from a voucher.
+        """
+        tenant = current_tenant_id.get() or "default"
+        stmt = select(Voucher).where(
+            and_(
+                Voucher.id == voucher_id,
+                Voucher.tenant_id == tenant,
+            )
+        )
+        res = await db_session.execute(stmt)
+        voucher: Optional[Voucher] = res.scalar_one_or_none()
+        
+        if not voucher or not voucher.metadata_json:
+            return None
+            
+        viral_suite = voucher.metadata_json.get("viral_suite")
+        if not viral_suite or not viral_suite.get("enabled"):
+            return None
+            
+        return {
+            "voucher_id": voucher.id,
+            "voucher_label": viral_suite.get("voucher_label") or voucher.title,
+            "share_target": viral_suite.get("share_target", 1000),
+            "cta_text": viral_suite.get("cta_text"),
+            "share_text": viral_suite.get("share_text"),
+            "is_active": voucher.is_active
+        }
+
 
 # ── Singleton (lazy Redis binding in lifespan) ────────────────────────────────
 viral_share_service = ViralShareService()
