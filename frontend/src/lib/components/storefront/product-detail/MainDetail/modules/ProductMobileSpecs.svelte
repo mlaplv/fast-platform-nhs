@@ -161,7 +161,7 @@
         {/if}
         <div class="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
           <Info size={10} class="text-blue-500" />
-          <span class="text-[9px] text-gray-400 font-bold italic">Bảng thành phần công bố</span>
+          <span class="text-[9px] text-gray-400 font-bold italic">Bảng thành phần công bố(chi tiết có trên hộp / tem nhãn sản phẩm chính hãng)</span>
         </div>
       </button>
     </div>

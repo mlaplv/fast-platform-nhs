@@ -380,7 +380,7 @@
   .stp-one-line { display: flex; align-items: center; gap: 10px; padding: 4px 0; min-height: 44px; }
   .stp-icon-box { color: #ee4d2d; display: flex; align-items: center; justify-content: center; }
   .stp-msg { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-  .stp-t { font-size: 13px; font-weight: 1000; color: #111; text-transform: uppercase; letter-spacing: -0.01em; }
+  .stp-t { font-size: 13px; font-weight: 1000; color: #111; text-transform: capitalize; letter-spacing: -0.01em; }
   .stp-sub { font-size: 10px; color: #666; font-weight: 500; line-height: 1.2; margin-top: 2px; }
   .stp-go { 
     display: flex; align-items: center; gap: 6px; color: #fff; background: #ee4d2d;

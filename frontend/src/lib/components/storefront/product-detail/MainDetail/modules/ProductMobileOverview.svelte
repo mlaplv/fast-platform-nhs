@@ -328,11 +328,11 @@
          <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
                <Gift size={16} class="text-[#ee4d2d]" />
-               <span class="text-[11px] font-black uppercase text-gray-800 tracking-wider">Quà tặng đi kèm</span>
+               <span class="text-[11px] font-black text-gray-800 tracking-wider">Quà tặng đi kèm</span>
             </div>
             {#if activeComboQty > 1}
                <div class="bg-[#ee4d2d]/10 text-[#ee4d2d] text-[9px] font-black px-2 py-0.5 rounded-full border border-[#ee4d2d]/20 flex items-center gap-1">
-                  <Package size={10} /> COMBO X{activeComboQty}
+                  <Package size={10} /> Combo x{activeComboQty}
                </div>
             {/if}
          </div>
@@ -413,7 +413,7 @@
   .scroll-btn.next { right: 4px; }
 
   .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
-  .product-title { font-size: 16px; font-weight: 800; line-height: 1.4; color: #222; flex: 1; margin: 0; text-transform: capitalize; }
+  .product-title { font-size: 16px; font-weight: 800; line-height: 1.4; color: #222; flex: 1; margin: 0; }
   .bookmark-btn { background: none; border: none; color: #666; padding: 0; transition: color 0.3s; }
   .bookmark-active { color: #ff424f !important; }
 
@@ -421,7 +421,7 @@
   .rating-box { display: flex; align-items: center; gap: 4px; color: #222; font-weight: 900; }
   .stars { display: flex; align-items: center; gap: 1px; }
   .divider { width: 1px; height: 10px; background: #eee; }
-  .trust-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .trust-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; letter-spacing: 0.05em; }
 
   /* CSS Variables for global sync */
   .overview-section { --z-media-promo: var(--z-index-media-promo, 10); }

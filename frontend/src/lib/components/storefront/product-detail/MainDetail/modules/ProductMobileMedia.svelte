@@ -151,7 +151,7 @@
     background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
     color: black; font-size: 7px; font-weight: 1000;
     padding: 1px 5px; border-radius: 4px;
-    text-transform: uppercase; letter-spacing: 0.5px;
+    letter-spacing: 0.5px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 </style>

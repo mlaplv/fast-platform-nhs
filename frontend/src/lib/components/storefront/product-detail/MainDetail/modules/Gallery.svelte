@@ -121,7 +121,7 @@
     {/if}
     
     {#if isFlashSaleActive}
-      <div class="absolute top-0 left-0 bg-[#ee4d2d] text-white px-3 py-1.5 text-[11px] font-black uppercase tracking-widest shadow-lg">
+      <div class="absolute top-0 left-0 bg-[#ee4d2d] text-white px-3 py-1.5 text-[11px] font-black tracking-widest shadow-lg">
         Flash Sale
       </div>
     {/if}
@@ -157,7 +157,7 @@
               <svg class="w-3.5 h-3.5 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
             </div>
           </div>
-          <div class="absolute top-1.5 left-1.5 bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black text-[7px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-tighter">
+          <div class="absolute top-1.5 left-1.5 bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black text-[7px] font-black px-1.5 py-0.5 rounded shadow-sm tracking-tighter">
             Viral
           </div>
         {:else}

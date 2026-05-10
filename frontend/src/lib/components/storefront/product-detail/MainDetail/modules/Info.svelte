@@ -132,7 +132,7 @@
                 {/if}
                 <div class="flex items-center gap-1.5 group/ai cursor-default">
                     <HelenIcon size={12} color="#3b82f6" />
-                    <span class="text-[8px] text-blue-500 font-mono font-black tracking-[0.2em]">HELEN</span>
+                    <span class="text-[8px] text-blue-500 font-mono font-black tracking-[0.2em]">Helen</span>
                     <div class="w-0.5 h-0.5 bg-blue-400 rounded-full animate-pulse"></div>
                 </div>
             </div>
@@ -244,7 +244,7 @@
 
   <!-- Quantity -->
   <div class="px-5 flex items-center mb-4">
-     <span class="w-[110px] shrink-0 text-[12px] font-bold text-gray-400 tracking-widest">Số Lượng</span>
+     <span class="w-[110px] shrink-0 text-[12px] font-bold text-gray-400 tracking-widest">Số lượng</span>
      <div class="flex items-center gap-8">
         <div class="flex items-center border border-gray-100 rounded-none h-9 group overflow-hidden bg-white shadow-sm">
            <button 
@@ -267,7 +267,7 @@
         </div>
         
         <div class="flex flex-col gap-0.5">
-           <span class="text-[12px] text-gray-900 font-black tracking-tighter italic">SỐ LƯỢNG CÓ HẠN</span>
+           <span class="text-[12px] text-gray-900 font-black tracking-tighter italic">Số lượng có hạn</span>
            {#if currentStock < 10}
              <span class="text-[11px] font-bold text-[#ee4d2d] flex items-center gap-1">
                 <span class="w-1 h-1 bg-[#ee4d2d] rounded-full animate-ping"></span>
@@ -295,7 +295,7 @@
                 <h3 class="text-[14px] font-black tracking-widest text-gray-800">Ưu đãi độc quyền</h3>
                 {#if activeComboQty > 1}
                   <div class="bg-[#d0011b] text-white text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-md">
-                    <Package size={10} /> COMBO X{activeComboQty}
+                    <Package size={10} /> Combo x{activeComboQty}
                   </div>
                 {/if}
               </div>
@@ -333,7 +333,7 @@
         onclick={onAddToCart}
         class="h-[52px] min-w-[210px] border border-[#d0011b] bg-[#ffeee8]/60 text-[#d0011b] font-medium flex items-center justify-center gap-2.5 hover:bg-[#ffeee8] transition-all rounded-none">
         <ShoppingCart class="w-5 h-5" />
-        <span class="text-[14px] font-black">Thêm Vào Giỏ Hàng</span>
+        <span class="text-[14px] font-black">Thêm vào giỏ hàng</span>
      </button>
      <button 
         onclick={onBuyNow}

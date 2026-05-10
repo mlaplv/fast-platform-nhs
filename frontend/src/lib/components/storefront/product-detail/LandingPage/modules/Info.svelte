@@ -108,7 +108,7 @@
           <div class="helen-header">
             {#if activeComboQty > 1}
               <div class="combo-pill">
-                <Package size={10} /> {activeComboQty} SP ĐÃ ÁP DỤNG
+                <Package size={10} /> {activeComboQty} sp đã áp dụng
               </div>
             {/if}
             <div class="helen-tag">
@@ -222,7 +222,7 @@
 
   <!-- Quantity -->
   <div class="section-row quantity-row">
-    <span class="row-label uppercase tracking-widest">Số Lượng</span>
+    <span class="row-label tracking-widest">Số lượng</span>
     <div class="quantity-controls">
       <div class="stepper">
         <button class="step-btn" onclick={() => onQuantityChange(-1)} disabled={quantity <= 1}>
@@ -234,7 +234,7 @@
         </button>
       </div>
       <div class="stock-info">
-        <span class="stock-status-title">SỐ LƯỢNG CÓ HẠN</span>
+        <span class="stock-status-title">Số lượng có hạn</span>
         {#if currentStock < 10}
           <span class="stock-warning">
             <span class="ping-dot-red"></span>
@@ -259,7 +259,7 @@
             <h3 class="gifts-title">Ưu đãi độc quyền</h3>
             {#if activeComboQty > 1}
               <div class="combo-tag">
-                <Package size={10} /> COMBO X{activeComboQty}
+                <Package size={10} /> Combo x{activeComboQty}
               </div>
             {/if}
           </div>
@@ -292,7 +292,7 @@
   <div class="cta-row">
     <button onclick={onAddToCart} class="add-to-cart-btn">
       <ShoppingCart size={20} />
-      <span>Thêm Vào Giỏ Hàng</span>
+      <span>Thêm vào giỏ hàng</span>
     </button>
     <button onclick={onBuyNow} class="buy-now-btn">Mua Ngay</button>
   </div>
@@ -319,7 +319,6 @@
     padding: 0.125rem 0.375rem;
     font-size: 10px;
     font-weight: 900;
-    text-transform: uppercase;
     letter-spacing: 0.1em;
     position: relative;
     overflow: hidden;
@@ -459,7 +458,7 @@
     font-size: 11px;
     font-weight: 900;
     color: #00bfa5;
-    text-transform: uppercase;
+    font-weight: 900;
     background: #e6f9f6;
     padding: 0.125rem 0.375rem;
   }
@@ -491,7 +490,6 @@
     font-weight: 900;
     padding: 0.125rem 0.375rem;
     border-radius: 2px;
-    text-transform: uppercase;
     display: flex;
     align-items: center;
     gap: 0.25rem;
@@ -508,7 +506,7 @@
     color: #3b82f6;
     font-family: monospace;
     font-weight: 900;
-    text-transform: uppercase;
+    font-weight: 900;
     letter-spacing: 0.2em;
   }
 
@@ -559,7 +557,7 @@
     font-size: 10px;
     font-weight: 900;
     color: #6b7280;
-    text-transform: uppercase;
+    font-weight: 900;
     letter-spacing: 0.2em;
     opacity: 0.8;
   }
@@ -662,7 +660,7 @@
     font-size: 9px;
     color: #9ca3af;
     font-weight: 700;
-    text-transform: uppercase;
+    font-weight: 700;
     margin-top: 0.25rem;
     letter-spacing: -0.025em;
   }
