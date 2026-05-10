@@ -132,7 +132,7 @@
 {#if variant === 'desktop'}
   <div bind:this={containerElement} class="w-full relative group" style:z-index={Z_INDEX_CLIENT.HEADER + 1}>
     <div 
-      class="w-full flex items-center bg-white rounded-none border border-gray-200 relative focus-within:border-luxury-copper transition-all shadow-sm focus-within:shadow-md"
+      class="w-full flex items-center bg-white border border-gray-100 transition-all duration-300 overflow-hidden relative group/s-bar"
       style:z-index={Z_INDEX_CLIENT.HEADER + 2}
     >
       <input
@@ -146,7 +146,7 @@
         onclick={(e) => { e.stopPropagation(); isFocused = true; }}
         onkeydown={handleKeyDown}
         placeholder={contextPlaceholder}
-        class="flex-grow h-[42px] pl-[15px] pr-10 text-[15px] text-gray-800 bg-transparent focus:outline-none placeholder:text-gray-300 font-bold pointer-events-auto relative transition-all"
+        class="flex-grow h-[40px] pl-[18px] pr-10 text-[14px] text-gray-800 bg-transparent focus:outline-none placeholder:text-gray-400/40 font-medium transition-all"
         style:z-index={Z_INDEX_CLIENT.HEADER + 3}
       />
       {#if localQuery}
@@ -156,18 +156,18 @@
             searchStore.searchQuery = ''; 
             inputElement?.focus(); 
           }}
-          class="absolute right-[88px] top-1/2 -translate-y-1/2 text-gray-300 hover:text-[#fe2c55] transition-colors p-1 group/clear"
+          class="absolute right-[62px] top-1/2 -translate-y-1/2 text-gray-300 hover:text-luxury-copper transition-colors p-1 group/clear"
           style:z-index={Z_INDEX_CLIENT.HEADER + 4}
         >
-          <svg class="w-[18px] h-[18px] bg-gray-200 group-hover/clear:bg-[#fe2c55] text-white rounded-full p-[3px] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+          <svg class="w-[16px] h-[16px] bg-gray-200 group-hover/clear:bg-luxury-copper text-white rounded-full p-[3px] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       {/if}
       <button 
         onclick={() => commitSearch(localQuery)}
-        class="bg-gradient-to-br from-luxury-copper to-luxury-peach min-w-[80px] h-[42px] flex items-center justify-center rounded-none hover:brightness-110 active:scale-95 transition-all shadow-lg"
+        class="bg-luxury-copper w-[48px] h-[38px] flex items-center justify-center text-white hover:bg-luxury-peach transition-all shrink-0 mr-[1px] rounded-[1px] shadow-sm"
         aria-label="Tìm kiếm"
       >
-        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
       </button>
     </div>
 

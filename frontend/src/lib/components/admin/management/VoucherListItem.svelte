@@ -85,24 +85,24 @@
       class="w-10 h-10 sm:w-12 sm:h-12 rounded bg-black border border-white/5 flex items-center justify-center shrink-0 relative overflow-hidden group-hover:border-neon-cyan/30 transition-colors"
     >
       <div class="absolute inset-0 bg-gradient-to-br from-neon-cyan/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-      <Gift size={20} class="text-neon-cyan group-hover:scale-110 transition-transform duration-500" />
+      <Icon size={20} class="text-neon-cyan group-hover:scale-110 transition-transform duration-500" />
     </div>
 
     <!-- Core Data -->
-    <div class="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 xl:gap-8">
+    <div class="flex-1 min-w-0 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6 xl:gap-8">
       <!-- Identity & Code -->
-      <div class="min-w-[150px] flex flex-col gap-1">
+      <div class="min-w-0 lg:min-w-[180px] flex flex-col gap-1">
         <div class="text-[9px] font-mono text-gray-500 uppercase tracking-[0.3em] flex items-center gap-2">
           <span>CODE_ID</span>
           {#if !props.voucher.is_active}
              <span class="px-1.5 py-0.5 rounded-sm bg-red-500/10 text-red-400 border border-red-500/20 text-[7px] font-bold">INACTIVE</span>
           {/if}
         </div>
-        <div class="text-[15px] font-black text-white tracking-widest uppercase group-hover:text-neon-cyan transition-colors flex items-center gap-3">
-          {props.voucher.title || props.voucher.id}
+        <div class="text-[14px] sm:text-[15px] font-black text-white tracking-widest uppercase group-hover:text-neon-cyan transition-colors flex flex-wrap items-center gap-2 sm:gap-3">
+          <span class="truncate max-w-[150px] sm:max-w-none">{props.voucher.title || props.voucher.id}</span>
           
           {#if props.voucher.title}
-            <span class="text-[10px] text-gray-500 font-mono lowercase tracking-tighter">
+            <span class="text-[9px] text-gray-500 font-mono lowercase tracking-tighter shrink-0">
               <span class="opacity-30">CODE:</span> {props.voucher.id}
             </span>
           {/if}
@@ -110,7 +110,7 @@
           <!-- Elite V2.2: AUTO-STICK Badge -->
           {#if props.voucher.is_default}
             <div 
-              class="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500 text-black text-[8px] font-black tracking-widest animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.6)]"
+              class="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500 text-black text-[8px] font-black tracking-widest animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.6)] shrink-0"
               title="Automatically applied in Checkout"
             >
               <Sparkles size={8} />
@@ -119,23 +119,25 @@
           {:else}
             <button
               onclick={(e) => { e.stopPropagation(); props.onSetDefault?.(props.voucher.id); }}
-              class="px-2 py-0.5 rounded border border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-gray-600 hover:text-emerald-400 transition-all text-[8px] font-mono uppercase tracking-tighter"
+              class="px-2 py-0.5 rounded border border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-gray-600 hover:text-emerald-400 transition-all text-[8px] font-mono uppercase tracking-tighter shrink-0"
             >
               Set_Default
             </button>
           {/if}
         </div>
-        <div class="flex items-center gap-2 text-[10px] text-gray-500 font-mono italic">
+        <div class="flex flex-wrap items-center gap-2 text-[10px] text-gray-500 font-mono italic">
           {#if props.voucher.subtitle}
-             <span class="text-emerald-400/80 font-bold mr-2">« {props.voucher.subtitle} »</span>
+             <span class="text-emerald-400/80 font-bold mr-2 truncate max-w-[200px]">« {props.voucher.subtitle} »</span>
           {/if}
-          <Icon size={10} class="text-neon-cyan/60" />
-          <span class="text-neon-cyan/80 font-bold">{props.voucher.category}</span>
+          <div class="flex items-center gap-1 shrink-0">
+            <Icon size={10} class="text-neon-cyan/60" />
+            <span class="text-neon-cyan/80 font-bold uppercase">{props.voucher.category}</span>
+          </div>
           <span class="text-white/20">|</span>
-          <span>{props.voucher.type}</span>
+          <span class="shrink-0">{props.voucher.type}</span>
           {#if props.voucher.priority > 0}
             <span class="text-white/20">|</span>
-            <span class="text-amber-400/80">P{props.voucher.priority}</span>
+            <span class="text-amber-400/80 shrink-0">P{props.voucher.priority}</span>
           {/if}
         </div>
       </div>

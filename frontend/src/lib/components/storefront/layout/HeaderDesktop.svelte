@@ -146,16 +146,31 @@
     <div class="flex flex-col pt-2 pb-2">
       <div class="flex items-center gap-6">
         <div class="flex shrink-0 items-center">
-          <a href="/" class="flex flex-col group transition-all active:scale-95">
-            <span class="text-2xl font-black tracking-[0.22em] uppercase leading-none bg-gradient-to-r from-luxury-copper via-luxury-peach to-luxury-copper bg-clip-text text-transparent drop-shadow-sm group-hover:tracking-[0.25em] transition-all duration-700">
-                osmo
-            </span>
+          <a href="/" class="flex flex-col group items-start transition-all active:scale-95">
+            <div class="relative flex items-center">
+              <span class="text-2xl font-black tracking-[0.22em] uppercase leading-none bg-gradient-to-r from-luxury-copper via-luxury-peach to-luxury-copper bg-clip-text text-transparent drop-shadow-[0_0_5px_rgba(193,143,126,0.1)] group-hover:tracking-[0.25em] transition-all duration-700 relative">
+                  osmo
+                  <!-- Inner light shimmer: Ánh sáng tinh tế -->
+                  <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"></div>
+              </span>
+            </div>
+
+            <!-- Tapered Glowing Line (Nhọn siêu sâu về phía phải, bắt đầu từ 55%) -->
+            <div class="w-full h-[1px] relative mt-2 mb-1.5 overflow-visible">
+                <!-- Main Line: Nhọn cực sâu (55% taper start) -->
+                <div class="absolute inset-0 bg-gradient-to-r from-luxury-copper via-luxury-copper/90 to-transparent" style="clip-path: polygon(0 0, 55% 0, 100% 50%, 55% 100%, 0 100%);"></div>
+                <!-- Light beam core -->
+                <div class="absolute inset-0 bg-gradient-to-r from-white/40 via-luxury-copper/10 to-transparent blur-[0.5px]"></div>
+                <!-- Outer Glow -->
+                <div class="absolute inset-0 bg-gradient-to-r from-luxury-copper/30 to-transparent blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+            </div>
+
             <svelte:element 
               this={isHome ? 'h1' : 'span'} 
-              class="text-[9px] font-black tracking-[0.11em] text-gray-400 uppercase mt-1.5 px-0.5 whitespace-nowrap border-t border-gray-100/50 pt-1"
+              class="text-[9px] font-black tracking-[0.14em] text-gray-400 uppercase whitespace-nowrap text-left group-hover:text-luxury-copper transition-all duration-500"
               style="margin: 0; display: block;"
             >
-                Bật tông trắng sáng
+                {ui.settings?.slogan || ui.settings?.basic_info?.slogan || 'Bật tông trắng sáng'}
             </svelte:element>
           </a>
         </div>

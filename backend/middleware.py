@@ -48,18 +48,26 @@ class AuthMiddleware:
             from backend.constants.tenants import DOMAIN_TENANT_MAP, DEFAULT_TENANT_ID
             
             tenant_id: Optional[str] = headers.get("x-tenant")
+            tenant_source = "header"
             
             # Elite V2.2: Dynamic Domain-to-Tenant Resolution (Rule R03)
             if not tenant_id:
                 host: str = headers.get("host", "").split(":")[0].lower()
                 tenant_id = DOMAIN_TENANT_MAP.get(host)
+                tenant_source = "host_map"
 
-            token_ctx = current_tenant_id.set(tenant_id or DEFAULT_TENANT_ID)
+            final_tenant = tenant_id or DEFAULT_TENANT_ID
+            if not tenant_id:
+                tenant_source = "default"
+                
+            logger.info(f"🌐 [Tenant] Identified: {final_tenant} via {tenant_source} (Host: {headers.get('host')})")
+            token_ctx = current_tenant_id.set(final_tenant)
 
             query_params: Dict[str, List[str]] = parse_qs(scope.get("query_string", b"").decode("utf-8", errors="replace"))
             if not tenant_id and "tenant" in query_params:
                 tenant_id = query_params["tenant"][0]
                 current_tenant_id.set(tenant_id)
+                logger.info(f"🌐 [Tenant] Overridden by query: {tenant_id}")
 
             # R00: Elite Resilient Auth — Collect all token candidates
             candidates: List[Optional[str]] = []

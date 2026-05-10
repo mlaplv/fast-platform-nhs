@@ -74,7 +74,7 @@
 
   // Reset page when filter or search changes
   $effect(() => {
-    if (activeFilter || searchTerm) {
+    if (activeFilter || searchTerm || categoryFilter) {
       untrack(() => {
         currentPage = 1;
       });
@@ -217,14 +217,14 @@
     onAddNew={() => openDrawer()}
   />
 
-  <div class="flex-1 overflow-y-scroll custom-scrollbar p-4 sm:p-6">
+  <div class="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 flex flex-col">
     {#if isLoading}
-      <div class="h-full flex flex-col items-center justify-center gap-4">
+      <div class="flex-1 flex flex-col items-center justify-center gap-4">
         <div class="w-12 h-12 border-2 border-neon-cyan/10 border-t-neon-cyan rounded-full animate-spin"></div>
         <span class="text-[10px] font-mono text-neon-cyan/50 uppercase tracking-[0.4em]">QUERYING_VOUCHERS...</span>
       </div>
     {:else if vouchers.length === 0}
-      <div class="h-full flex flex-col items-center justify-center gap-4 text-gray-500">
+      <div class="flex-1 flex flex-col items-center justify-center gap-4 text-gray-500">
         <div class="w-16 h-16 rounded-full border border-gray-800 bg-white/[0.02] flex items-center justify-center">
           <Gift size={24} class="opacity-30" />
         </div>

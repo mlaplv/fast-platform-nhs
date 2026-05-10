@@ -26,7 +26,14 @@ class PromotionController(Controller):
         offset: int = 0
     ) -> VoucherListResponse:
         """List all vouchers with optional filters."""
-        return await promotion_admin_service.list_vouchers(db_session, search, is_active, category, limit, offset)
+        return await promotion_admin_service.list_vouchers(
+            db_session=db_session, 
+            search=search, 
+            is_active=is_active, 
+            category=category, 
+            limit=limit, 
+            offset=offset
+        )
 
     @post("/")
     async def create_voucher(self, db_session: AsyncSession, data: CreateVoucherRequest) -> SuccessResponse:

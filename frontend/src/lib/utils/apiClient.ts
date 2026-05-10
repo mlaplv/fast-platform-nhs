@@ -25,10 +25,24 @@ interface ApiOptions extends RequestInit {
 
 function getTenantIdFromHost(): string {
   if (typeof window === "undefined") return "default";
-  const parts = window.location.hostname.split(".");
+  const hostname = window.location.hostname;
+  
+  // Handle local development
+  if (hostname === "localhost" || hostname === "127.0.0.1") return "osmo.vn";
+  
+  const parts = hostname.split(".");
   const systemSubdomains = new Set(["admin", "api", "www", "portal"]);
   const relevantParts = parts.filter((p) => !systemSubdomains.has(p));
-  return relevantParts.length > 0 ? relevantParts.join(".") : "default";
+  
+  // Elite V2.2: If we have a clear tenant part (e.g. shopname.osmo.vn), use it.
+  // Otherwise, default to osmo.vn if we are on the main domain or admin domain.
+  if (relevantParts.length > 0) {
+    const tenant = relevantParts.join(".");
+    // If it's just "osmo.vn" or similar, that's our primary tenant
+    return tenant;
+  }
+  
+  return "osmo.vn"; // Default to primary tenant
 }
 
 /**

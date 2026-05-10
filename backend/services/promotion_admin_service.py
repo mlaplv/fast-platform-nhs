@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, List
 from sqlalchemy import select, func, and_, or_, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +7,8 @@ from backend.schemas.promotion import CreateVoucherRequest, UpdateVoucherRequest
 from backend.schemas.common import SuccessResponse
 from backend.database import current_tenant_id
 from litestar.exceptions import NotFoundException, ClientException
+
+logger = logging.getLogger("api-gateway.promotion")
 
 class PromotionAdminService:
     async def list_vouchers(
