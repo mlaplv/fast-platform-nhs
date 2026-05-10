@@ -160,8 +160,19 @@
   }
 
   /* ELITE V2.2: Viral 2026 Professional Highlights (Luxury Copper) */
-  :global(.elite-prose-mobile [style*="background-color"]),
-  :global(.elite-prose-mobile [style*="background: rgb(226, 244, 255)"]) {
+  :global(.elite-prose-mobile span[style*="background-color"]),
+  :global(.elite-prose-mobile span[style*="background: rgb(226, 244, 255)"]) {
+    background-color: #FFF0F0 !important;
+    padding: 2px 4px !important;
+    border-radius: 4px !important;
+    font-weight: 600 !important;
+    color: #C18F7E !important;
+  }
+
+  /* Specific callout blocks should use div */
+  :global(.elite-prose-mobile div[style*="background-color"]),
+  :global(.elite-prose-mobile div[style*="background: rgb(226, 244, 255)"]),
+  :global(.elite-prose-mobile section[style*="background-color"]) {
     padding: 1.5rem !important;
     border-radius: 0 !important;
     border-left: 6px solid #C18F7E !important;
@@ -172,14 +183,10 @@
     line-height: 1.3 !important;
     letter-spacing: -0.02em !important;
     box-shadow: 10px 10px 30px rgba(193, 143, 126, 0.08) !important;
-    text-transform: uppercase;
   }
 
   :global(.elite-prose-mobile [style*="background-color"] *) {
     color: inherit !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: transparent !important;
   }
 
   :global(.elite-prose-mobile img) {

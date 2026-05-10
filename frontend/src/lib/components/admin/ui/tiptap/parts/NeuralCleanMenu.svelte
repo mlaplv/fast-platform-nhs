@@ -54,6 +54,10 @@
         <input type="checkbox" bind:checked={cleanOptions.deduplicateContent} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" aria-label="Neural Deduplication" />
         <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors">Neural Deduplication</span>
       </label>
+      <label class="flex items-center gap-3 cursor-pointer group">
+        <input type="checkbox" bind:checked={cleanOptions.stripLinks} class="w-3 h-3 rounded border-white/10 bg-white/5 text-orange-500 focus:ring-0" aria-label="Remove All Links" />
+        <span class="text-[9px] font-bold text-white/60 group-hover:text-white transition-colors text-rose-400">Strip All Hyperlinks</span>
+      </label>
     </div>
 
     <button 

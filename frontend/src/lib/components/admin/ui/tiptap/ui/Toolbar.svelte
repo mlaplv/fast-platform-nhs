@@ -13,6 +13,8 @@
   import PaletteIcon from "@lucide/svelte/icons/palette";
   import ImageIcon from "@lucide/svelte/icons/image";
   import Link2Icon from "@lucide/svelte/icons/link-2";
+  import UnlinkIcon from "@lucide/svelte/icons/unlink";
+  import EraserIcon from "@lucide/svelte/icons/eraser";
   import CodeIcon from "@lucide/svelte/icons/code";
   import Maximize2Icon from "@lucide/svelte/icons/maximize-2";
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
@@ -38,6 +40,7 @@
     annotations = [],
     onOpenImage,
     onOpenLink,
+    onClearHighlights = null,
     onClean = null,
     fullScreen = false,
     onToggleFullScreen = null,
@@ -64,6 +67,7 @@
     annotations?: EditorAnnotation[];
     onOpenImage: () => void;
     onOpenLink: () => void;
+    onClearHighlights?: (() => void) | null;
     onClean?: ((options?: CleanOptions, rawContent?: string) => Promise<string | null>) | null;
     fullScreen?: boolean;
     onToggleFullScreen?: (() => void) | null;
@@ -231,6 +235,7 @@
       alignCenter: editor.isActive({ textAlign: 'center' }),
       alignRight: editor.isActive({ textAlign: 'right' }),
       alignJustify: editor.isActive({ textAlign: 'justify' }),
+      link: editor.isActive('link') || (editor.state.selection.from !== editor.state.selection.to && editor.state.doc.rangeHasMark(editor.state.selection.from, editor.state.selection.to, editor.schema.marks.link)),
     };
   });
 
@@ -331,7 +336,21 @@
   {#if !isSuperCompact}
     <div class="tb-platter shrink-0 border-cyan-500/10 bg-cyan-500/[0.02]">
       <button onclick={onOpenImage} class="tb-btn text-cyan-400/60 hover:text-cyan-400" title="Image"><ImageIcon size={12} /></button>
-      <button onclick={onOpenLink} class="tb-btn text-cyan-400/60 hover:text-cyan-400" title="Link"><Link2Icon size={12} /></button>
+      <button onclick={onOpenLink} class="tb-btn {active.link ? 'active-neural' : 'text-cyan-400/60 hover:text-cyan-400'}" title="Link"><Link2Icon size={12} /></button>
+      <button 
+        onclick={() => editor?.chain().focus().unsetAllLinks().run()} 
+        class="tb-btn text-rose-400/80 hover:text-rose-400 hover:bg-rose-500/10" 
+        title="Remove All Links in Selection (Ctrl+Shift+K)"
+      >
+        <UnlinkIcon size={12} />
+      </button>
+      <button 
+        onclick={onClearHighlights} 
+        class="tb-btn text-amber-400/60 hover:text-amber-400" 
+        title="Clear AI Highlights"
+      >
+        <EraserIcon size={12} />
+      </button>
     </div>
   {/if}
 
@@ -430,6 +449,12 @@
                   left: Math.round(Math.min(rect.left, window.innerWidth - 440))
                 };
               }
+
+              // [Elite V2.2] Local Strip Links support
+              if (options.stripLinks && editor) {
+                editor.chain().focus().unsetAllLinks().run();
+              }
+
               await onClean(options, editor?.getHTML());
             }
           }}

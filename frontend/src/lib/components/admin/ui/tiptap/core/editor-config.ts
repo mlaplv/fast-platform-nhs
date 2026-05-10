@@ -38,13 +38,46 @@ export const getEditorExtensions = (placeholderText: string = 'Start writing...'
     listItem: false,    // Disable default → dùng NeuralListItem
     bulletList: false,  // Disable default → import riêng từ @tiptap/extension-list (Tiptap v3)
     orderedList: false, // Disable default → import riêng từ @tiptap/extension-list (Tiptap v3)
+  }).extend({
+    addKeyboardShortcuts() {
+      return {
+        'Mod-\\': () => this.editor.commands.unsetAllMarks(),
+        'Mod-Shift-Backspace': () => this.editor.commands.clearNodes(),
+      }
+    }
   }),
   NeuralListItem,
   BulletList,
   OrderedList,
   Typography,
   Underline,
-  Link.configure({
+  Link.extend({
+    addKeyboardShortcuts() {
+      return {
+        'Mod-Shift-k': () => this.editor.commands.unsetLink(),
+      }
+    },
+    addCommands() {
+      return {
+        ...this.parent?.(),
+        unsetAllLinks: () => ({ tr, dispatch }) => {
+          if (dispatch) {
+            const { from, to } = tr.selection;
+            const hasSelection = from !== to;
+            const start = hasSelection ? from : 0;
+            const end = hasSelection ? to : tr.doc.content.size;
+            
+            const linkType = tr.doc.type.schema.marks.link;
+            if (linkType) {
+              tr.removeMark(start, end, linkType);
+            }
+          }
+          return true;
+        },
+      }
+    },
+  }).configure({
+    autolink: false,
     openOnClick: false,
     HTMLAttributes: { class: 'text-blue-400 underline hover:text-blue-300 transition-colors cursor-pointer' },
   }),

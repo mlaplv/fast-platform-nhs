@@ -32,7 +32,7 @@ async def migrate():
         old_tenants = [row[0] for row in res_old.fetchall() if row[0] != new_tenant]
         
         # Always add 'default' and 'smartshop' to candidates
-        for t in ['default', 'smartshop', 'micsmo.com', 'micsmo']:
+        for t in ['default', 'osmo.vn', 'osmo']:
             if t != new_tenant and t not in old_tenants:
                 old_tenants.append(t)
         

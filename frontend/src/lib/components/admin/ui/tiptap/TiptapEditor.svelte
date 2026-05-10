@@ -435,7 +435,7 @@
         }; 
         showLinkDialog = true; 
       }}
-      onClearHighlights={() => editor?.commands.clearAllAnnotations()}
+      onClearHighlights={() => annotations = []}
       onClean={onClean}
       bind:showSource={showSource}
       fullScreen={fullScreen}

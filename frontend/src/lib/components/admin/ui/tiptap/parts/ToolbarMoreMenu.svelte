@@ -20,6 +20,8 @@
   import UnderlineIcon from "@lucide/svelte/icons/underline";
   import ImageIcon from "@lucide/svelte/icons/image";
   import Link2Icon from "@lucide/svelte/icons/link-2";
+  import UnlinkIcon from "@lucide/svelte/icons/unlink";
+  import RemoveFormattingIcon from "@lucide/svelte/icons/remove-formatting";
   import SparklesIcon from "@lucide/svelte/icons/sparkles";
   import { fade } from 'svelte/transition';
   import { portal } from '$lib/core/actions/portal';
@@ -39,6 +41,7 @@
     alignRight?: boolean;
     alignJustify?: boolean;
     strike?: boolean;
+    link?: boolean;
   }
 
   let {
@@ -109,7 +112,23 @@
     <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
        <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Extra Formatting</span>
        <div class="flex gap-1.5">
-         <button onclick={() => { editor?.chain().focus().toggleStrike().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.strike ? 'active-neural' : ''}"><StrikethroughIcon size={12}/></button>
+         <button onclick={() => { editor?.chain().focus().toggleStrike().run(); showMore = false; }} class="tb-btn !h-8 !w-8 {active.strike ? 'active-neural' : ''}" title="Strikethrough">
+           <StrikethroughIcon size={12}/>
+         </button>
+         <button 
+           onclick={() => { editor?.chain().focus().unsetAllLinks().run(); showMore = false; }} 
+           class="tb-btn !h-8 !w-8 text-rose-500 hover:bg-rose-500/20" 
+           title="Strip All Hyperlinks"
+         >
+           <UnlinkIcon size={12}/>
+         </button>
+         <button 
+           onclick={() => { editor?.chain().focus().unsetAllMarks().clearNodes().run(); showMore = false; }} 
+           class="tb-btn !h-8 !w-8 text-amber-500 hover:bg-amber-500/20" 
+           title="Clear All Formatting (Ctrl+\)"
+         >
+           <RemoveFormattingIcon size={12}/>
+         </button>
        </div>
     </div>
 
@@ -133,8 +152,15 @@
          <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Media & Views</span>
          <div class="flex items-center justify-between">
             <div class="flex gap-1">
-              <button onclick={onOpenImage} class="tb-btn !h-8 !w-8"><ImageIcon size={12}/></button>
-              <button onclick={onOpenLink} class="tb-btn !h-8 !w-8"><Link2Icon size={12}/></button>
+              <button onclick={onOpenImage} class="tb-btn !h-8 !w-8" title="Image"><ImageIcon size={12}/></button>
+              <button onclick={onOpenLink} class="tb-btn !h-8 !w-8 {active.link ? 'active-neural' : ''}" title="Link"><Link2Icon size={12}/></button>
+              <button 
+                onclick={() => { editor?.chain().focus().unsetLink().run(); showMore = false; }} 
+                class="tb-btn !h-8 !w-8 text-rose-400" 
+                title="Remove Link"
+              >
+                <UnlinkIcon size={12}/>
+              </button>
             </div>
             <div class="w-px h-6 bg-white/10 mx-2"></div>
             <button onclick={onToggleFullScreen} class="tb-btn !h-8 !w-8 {fullScreen ? 'text-amber-500' : ''}"><SparklesIcon size={12}/></button>

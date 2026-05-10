@@ -460,6 +460,7 @@ export interface CleanOptions {
   stripRedundantWrappers?: boolean;
   stripEmpty?: boolean;
   deduplicateContent?: boolean;
+  stripLinks?: boolean;
 }
 
 export interface ComponentData {

@@ -27,8 +27,7 @@ export const normalizeHTML = (html: string, stripMarksFn: (h: string) => string)
   // CNS V2.2: Strip temporary marks for comparison to prevent sync loops
   const clean = stripMarksFn(html)
       .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+      .replace(/\s+/g, ' ');
       
   div.innerHTML = clean;
 
@@ -185,8 +184,8 @@ export const beautifyHTML = (html: string): string => {
   
   const walk = (node: Node, level: number) => {
     if (node.nodeType === 3) {
-      // Text node
-      const text = node.textContent?.trim();
+      // Text node: CNS V96: Preserve spaces to prevent merging words like "đến vớiOsmo.vn"
+      const text = node.textContent;
       if (text) result += text;
       return;
     }
