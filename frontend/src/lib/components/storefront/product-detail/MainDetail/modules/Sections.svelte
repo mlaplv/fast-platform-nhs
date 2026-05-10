@@ -39,10 +39,10 @@
      <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
         <div class="flex items-center gap-3">
            <div class="w-1.5 h-6 bg-[#ee4d2d]"></div>
-           <h2 class="text-[20px] font-black text-gray-900 uppercase tracking-tight">Chi tiết sản phẩm</h2>
+           <h2 class="text-[20px] font-black text-gray-900 tracking-tight">Chi tiết sản phẩm</h2>
         </div>
         <div class="flex flex-col items-end">
-           <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Serial / SKU</span>
+           <span class="text-[9px] font-black text-gray-400 tracking-widest">Serial / SKU</span>
            <span class="text-[12px] font-black text-black tracking-widest">{product.sku || 'N/A'}</span>
         </div>
      </div>
@@ -50,10 +50,10 @@
      <div class="flex items-stretch bg-gray-50/50 border border-gray-100 divide-x divide-gray-100 rounded-none mb-10 overflow-hidden">
         {#if productInfo.brand}
           <div class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all group/spec cursor-default">
-            <span class="text-[9px] text-gray-400 font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-2">
+            <span class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2">
               <div class="w-1 h-1 rounded-full bg-amber-400 animate-pulse"></div> Thương hiệu
             </span>
-            <a href="/products?brand={encodeURIComponent(productInfo.brand)}" class="text-[14px] font-black text-[#ee4d2d] hover:underline flex items-center gap-1.5 uppercase tracking-tight">
+            <a href="/products?brand={encodeURIComponent(productInfo.brand)}" class="text-[14px] font-black text-[#ee4d2d] hover:underline flex items-center gap-1.5 tracking-tight">
               {productInfo.brand}
               <svg class="w-3.5 h-3.5 opacity-0 group-hover/spec:opacity-100 transition-all translate-x-[-5px] group-hover/spec:translate-x-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" /></svg>
             </a>
@@ -61,25 +61,25 @@
         {/if}
         {#if productInfo.origin}
           <div class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all">
-            <span class="text-[9px] text-gray-400 font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-2">
+            <span class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2">
               <div class="w-1 h-1 rounded-full bg-blue-400"></div> Xuất xứ
             </span>
-            <span class="text-[14px] font-black text-gray-800 uppercase tracking-tighter">{productInfo.origin}</span>
+            <span class="text-[14px] font-black text-gray-800 tracking-tighter">{productInfo.origin}</span>
           </div>
         {/if}
         {#if productInfo.weight}
           <div class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all">
-            <span class="text-[9px] text-gray-400 font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-2">
+            <span class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2">
               <div class="w-1 h-1 rounded-full bg-emerald-400"></div> Quy cách
             </span>
             <span class="text-[14px] font-black text-gray-800">{productInfo.weight}</span>
           </div>
         {/if}
         <div class="flex-[1.5] px-8 py-5 flex flex-col justify-center hover:bg-white transition-all">
-          <span class="text-[9px] text-gray-400 font-black uppercase tracking-[0.25em] mb-2 flex items-center gap-2">
+          <span class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2">
              <div class="w-1 h-1 rounded-full bg-indigo-400"></div> Danh mục
           </span>
-          <div class="flex items-center gap-2 text-[13px] font-bold uppercase tracking-tighter">
+          <div class="flex items-center gap-2 text-[13px] font-bold tracking-tighter">
              <a href="/products" class="text-gray-400 hover:text-gray-900 transition-colors">osmo</a>
              <svg class="w-3 h-3 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" /></svg>
              <a href="/{product.categorySlug || 'products'}/" class="text-[#0384ff] hover:underline truncate">
@@ -93,7 +93,7 @@
         <div class="grid grid-cols-1 gap-6 w-full">
              {#if product.metadata?.featured_ingredients && product.metadata.featured_ingredients.length > 0}
              <div class="flex flex-col gap-3 py-2">
-                <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 tracking-widest">
                   <Sparkles size={12} class="text-amber-500" /> Thành phần nổi bật (Featured)
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -114,7 +114,7 @@
 
              {#if product.metadata?.ingredients}
              <div class="flex flex-col gap-2 py-1">
-                <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 tracking-widest">
                   <Beaker size={12} class="text-teal-500" /> Bảng thành phần (Full INCI)
                 </div>
                 <div class="bg-gray-50/50 border border-gray-100 p-4 rounded-xl relative overflow-hidden group/inci">
@@ -151,7 +151,7 @@
      <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
         <div class="flex items-center gap-3">
            <div class="w-1.5 h-6 bg-[#ee4d2d]"></div>
-           <h2 class="text-[20px] font-black text-gray-900 uppercase tracking-tight">Mô tả sản phẩm</h2>
+           <h2 class="text-[20px] font-black text-gray-900 tracking-tight">Mô tả sản phẩm</h2>
         </div>
      </div>
      <div class="px-0 prose-osmo">
@@ -171,7 +171,7 @@
      <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
         <div class="flex items-center gap-3">
            <div class="w-1.5 h-6 bg-[#ee4d2d]"></div>
-           <h2 class="text-[20px] font-black text-gray-900 uppercase tracking-tight">Câu hỏi thường gặp</h2>
+           <h2 class="text-[20px] font-black text-gray-900 tracking-tight">Câu hỏi thường gặp</h2>
         </div>
      </div>
      <div class="px-0 flex flex-col gap-4">

@@ -70,7 +70,7 @@
 
 <div class="flex-1 flex flex-col pt-1">
   <div class="flex items-start gap-3 mb-2">
-    <div class="flex items-center gap-1.5 bg-[#d0011b] text-white px-1.5 py-0.5 text-[10px] font-black uppercase tracking-widest shadow-sm group relative overflow-hidden mt-1 shrink-0">
+    <div class="flex items-center gap-1.5 bg-[#d0011b] text-white px-1.5 py-0.5 text-[10px] font-black tracking-widest shadow-sm group relative overflow-hidden mt-1 shrink-0">
       <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
       <span class="relative z-10 whitespace-nowrap">{product.metadata?.is_mall ? 'Mall' : 'Shop'}</span>
     </div>
@@ -114,7 +114,7 @@
         <div class="flex items-center gap-3 mb-0.5">
            <span class="text-[14px] text-gray-400 line-through">{formatCurrency(activePrices.original)}</span>
            {#if activePrices.original > activePrices.sale}
-              <span class="text-[11px] font-black text-[#00bfa5] uppercase tracking-widest bg-[#e6f9f6] px-1.5 py-0.5">
+              <span class="text-[11px] font-black text-[#00bfa5] tracking-widest bg-[#e6f9f6] px-1.5 py-0.5">
                   Tiết kiệm {formatCurrency(Number(activePrices.original) - Number(activePrices.sale))}
               </span>
            {/if}
@@ -126,13 +126,13 @@
         <div class="mt-1 flex flex-col gap-2">
             <div class="flex items-center gap-2.5">
                 {#if activeComboQty > 1}
-                   <div class="bg-slate-900 text-white text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-widest flex items-center gap-1">
+                   <div class="bg-slate-900 text-white text-[8px] font-black px-1.5 py-0.5 rounded-sm tracking-widest flex items-center gap-1">
                        <Package size={10} class="text-white/70" /> {activeComboQty} SP ĐÃ ÁP DỤNG
                    </div>
                 {/if}
                 <div class="flex items-center gap-1.5 group/ai cursor-default">
                     <HelenIcon size={12} color="#3b82f6" />
-                    <span class="text-[8px] text-blue-500 font-mono font-black uppercase tracking-[0.2em]">HELEN</span>
+                    <span class="text-[8px] text-blue-500 font-mono font-black tracking-[0.2em]">HELEN</span>
                     <div class="w-0.5 h-0.5 bg-blue-400 rounded-full animate-pulse"></div>
                 </div>
             </div>
@@ -148,7 +148,7 @@
       <div class="flex flex-col items-end">
          <div class="flex items-center gap-2 mb-1">
             <div class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full animate-pulse shadow-[0_0_8px_#ee4d2d]"></div>
-            <span class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] opacity-80">Kết thúc sau</span>
+            <span class="text-[10px] font-black text-gray-500 tracking-[0.2em] opacity-80">Kết thúc sau</span>
          </div>
          <div class="flex gap-1 text-gray-800 font-black text-[17px] font-mono tabular-nums select-none">
             <div class="bg-gray-200/50 px-1.5 py-0.5 min-w-[30px] text-center rounded-sm">{timeLeft.hours < 10 ? '0' + timeLeft.hours : timeLeft.hours}</div>
@@ -176,7 +176,7 @@
                 <div class="w-px h-6 bg-[#ee4d2d]/20 border-dashed border-l mx-1"></div>
                 <div class="flex flex-col items-start translate-x-1">
                    <span class="text-[12px] font-black text-[#ee4d2d] leading-none">{v.label}</span>
-                   <span class="text-[9px] text-gray-400 font-bold uppercase mt-1 tracking-tighter">{v.sub || ''}</span>
+                   <span class="text-[9px] text-gray-400 font-bold mt-1 tracking-tighter">{v.sub || ''}</span>
                 </div>
                 {#if isApplied}
                   <div class="absolute -top-2 -right-2 bg-[#ee4d2d] text-white rounded-full p-0.5 shadow-md">
@@ -244,7 +244,7 @@
 
   <!-- Quantity -->
   <div class="px-5 flex items-center mb-4">
-     <span class="w-[110px] shrink-0 text-[12px] font-bold text-gray-400 uppercase tracking-widest">Số Lượng</span>
+     <span class="w-[110px] shrink-0 text-[12px] font-bold text-gray-400 tracking-widest">Số Lượng</span>
      <div class="flex items-center gap-8">
         <div class="flex items-center border border-gray-100 rounded-none h-9 group overflow-hidden bg-white shadow-sm">
            <button 
@@ -267,14 +267,14 @@
         </div>
         
         <div class="flex flex-col gap-0.5">
-           <span class="text-[12px] text-gray-900 font-black uppercase tracking-tighter italic">SỐ LƯỢNG CÓ HẠN</span>
+           <span class="text-[12px] text-gray-900 font-black tracking-tighter italic">SỐ LƯỢNG CÓ HẠN</span>
            {#if currentStock < 10}
              <span class="text-[11px] font-bold text-[#ee4d2d] flex items-center gap-1">
                 <span class="w-1 h-1 bg-[#ee4d2d] rounded-full animate-ping"></span>
                 Hàng hiếm, chỉ còn {currentStock} bộ trong kho
              </span>
            {:else}
-             <span class="text-[11px] text-[#00bfa5] font-black uppercase tracking-tight italic">Đang có sẵn tại kho Mall chính hãng</span>
+             <span class="text-[11px] text-[#00bfa5] font-black tracking-tight italic">Đang có sẵn tại kho Mall chính hãng</span>
            {/if}
         </div>
      </div>
@@ -292,7 +292,7 @@
             </div>
             <div class="flex-1 space-y-3">
               <div class="flex items-center justify-between">
-                <h3 class="text-[14px] font-black uppercase tracking-widest text-gray-800">Ưu đãi độc quyền</h3>
+                <h3 class="text-[14px] font-black tracking-widest text-gray-800">Ưu đãi độc quyền</h3>
                 {#if activeComboQty > 1}
                   <div class="bg-[#d0011b] text-white text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-md">
                     <Package size={10} /> COMBO X{activeComboQty}
@@ -333,11 +333,11 @@
         onclick={onAddToCart}
         class="h-[52px] min-w-[210px] border border-[#d0011b] bg-[#ffeee8]/60 text-[#d0011b] font-medium flex items-center justify-center gap-2.5 hover:bg-[#ffeee8] transition-all rounded-none">
         <ShoppingCart class="w-5 h-5" />
-        <span class="text-[14px] font-black uppercase">Thêm Vào Giỏ Hàng</span>
+        <span class="text-[14px] font-black">Thêm Vào Giỏ Hàng</span>
      </button>
      <button 
         onclick={onBuyNow}
-        class="h-[52px] min-w-[180px] bg-[#d0011b] text-white font-black text-[14px] uppercase hover:brightness-110 transition-all rounded-none">
+        class="h-[52px] min-w-[180px] bg-[#d0011b] text-white font-black text-[14px] hover:brightness-110 transition-all rounded-none">
         Mua Ngay
      </button>
   </div>

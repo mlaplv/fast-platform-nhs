@@ -87,7 +87,7 @@
         <svg class="lightning pulse-fast" viewBox="0 0 24 24" fill="#ff2b54">
           <path d="M13 2L4 14h7l-1 8 9-12h-7z"/>
         </svg>
-        <span class="title-rest">ash Sale</span>
+        <span class="title-rest">lash Sale</span>
       </div>
       {#if maxDiscount > 0}
         <span class="flash-fomo-badge fomo-pulse">Bấm Săn Deal - {maxDiscount}%</span>
@@ -146,6 +146,11 @@
               {/if}
             </span>
           </div>
+        </div>
+
+        <!-- Product Name -->
+        <div class="product-name-wrap">
+          <h3 class="product-name">{deal.name}</h3>
         </div>
 
         <!-- Prices -->
@@ -358,25 +363,44 @@
     top: 0; left: 0; right: 0; bottom: 0;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     color: #fff;
     font-size: 9px;
     font-weight: 800;
     white-space: nowrap;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     pointer-events: none;
-    padding: 0 4px;
+    padding: 0 10px;
     letter-spacing: -0.2px;
+  }
+
+  .product-name-wrap {
+    padding: 0 10px;
+    margin-top: 8px;
+    height: 2.8em;
+    overflow: hidden;
+  }
+
+  .product-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.4;
+    text-align: left;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .price-info {
     display: flex;
     flex-direction: row;
     align-items: baseline;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 3px;
     margin-top: 6px;
-    padding: 0 4px;
+    padding: 0 10px;
   }
 
   .current-price {
@@ -385,6 +409,8 @@
     color: #ee4d2d;
     line-height: 1;
     letter-spacing: -0.4px;
+    width: 100%;
+    text-align: left;
   }
 
   .unit {

@@ -89,7 +89,7 @@
           <svg class="w-6 h-6 fill-[#ff2b54] animate-pulse drop-shadow-[0_0_8px_rgba(255,43,84,0.6)]" viewBox="0 0 24 24">
             <path d="M13 2L4 14h7l-1 8 9-12h-7z"/>
           </svg>
-          <span class="bg-gradient-to-r from-[#ee4d2d] to-[#ff6a00] bg-clip-text text-transparent">ash Sale</span>
+          <span class="bg-gradient-to-r from-[#ee4d2d] to-[#ff6a00] bg-clip-text text-transparent">lash Sale</span>
         </h2>
       </div>
 
@@ -334,6 +334,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    align-items: flex-start;
   }
 
   .product-name-wrapper {
@@ -341,9 +342,9 @@
     overflow: hidden;
     position: relative;
     margin-bottom: 0.5rem;
-    padding: 0 0.5rem;
+    padding: 0 0.25rem;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: flex-start;
   }
 
@@ -357,7 +358,7 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     font-weight: 600;
-    text-align: center;
+    text-align: left;
     transition: color 0.3s ease;
   }
 
@@ -369,8 +370,9 @@
     display: flex;
     flex-direction: row;
     align-items: baseline;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 0.4rem;
+    margin-top: 0.5rem;
   }
 
   .final-price {
@@ -405,7 +407,8 @@
     overflow: hidden;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    padding: 0 0.75rem;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
   }
 

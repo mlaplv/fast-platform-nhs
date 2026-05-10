@@ -76,11 +76,12 @@
   <div class="media-promo-anchor">
      <ShareToUnlockPromoMobile {product} variant="floating" onUnlock={triggerViralFly} />
   </div>
-  <div class="thumbnails-track mt-2 px-2 flex gap-2 overflow-x-auto no-scrollbar">
+  <div class="thumbnails-track mt-4 px-4 flex gap-3 overflow-x-auto no-scrollbar">
     {#each displayImages as img, i}
+      {@const isActive = activeImageIndex === i}
       <button 
         type="button"
-        class="thumb-btn {activeImageIndex === i ? 'border-[#ee4d2d]' : 'border-transparent opacity-60'}"
+        class="thumb-btn {isActive ? 'active' : 'opacity-70'}"
         onclick={() => onThumbClick(i)}
         aria-label="Xem ảnh nhỏ {i + 1}"
       >
@@ -90,11 +91,16 @@
             class="w-full h-full object-cover pointer-events-none"
             muted
             playsinline
+            loop
+            autoplay={isActive}
             preload="metadata"
           ></video>
           <div class="thumb-play-overlay">
-            <svg class="w-3.5 h-3.5 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+             <div class="glass-play">
+                <svg class="w-3 h-3 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+             </div>
           </div>
+          <div class="viral-badge">Viral</div>
         {:else}
           <img src={img} alt="thumb" class="w-full h-full object-cover" />
         {/if}
@@ -118,6 +124,34 @@
   }
   .thumbnails-track { scrollbar-width: none; -ms-overflow-style: none; }
   .thumbnails-track::-webkit-scrollbar { display: none; }
-  .thumb-btn { width: 48px; height: 48px; border-radius: 2px; border: 2px solid transparent; overflow: hidden; flex-shrink: 0; transition: all 0.2s; padding: 0; position: relative; background: none; }
-  .thumb-play-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.25); }
+  .thumb-btn { 
+    width: 56px; height: 56px; border-radius: 12px; border: 2.5px solid transparent; 
+    overflow: hidden; flex-shrink: 0; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+    padding: 0; position: relative; background: #f0f0f0; 
+  }
+  .thumb-btn.active { 
+    border-color: #ffaa00; 
+    transform: scale(1.1) translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 170, 0, 0.25);
+    z-index: 2;
+  }
+  .thumb-play-overlay { 
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; 
+    background: rgba(0, 0, 0, 0.15); 
+  }
+  .glass-play {
+    width: 28px; height: 28px; background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .viral-badge {
+    position: absolute; top: 4px; left: 4px;
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+    color: black; font-size: 7px; font-weight: 1000;
+    padding: 1px 5px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
 </style>

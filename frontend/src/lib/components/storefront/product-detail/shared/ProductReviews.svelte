@@ -263,13 +263,13 @@
   <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 pb-6 border-b border-gray-50">
     <div>
       <h2 class="text-2xl font-black text-[#1a1a1a] tracking-tight leading-none mb-2">Đánh Giá {entityType === 'CATEGORY' ? 'Danh Mục ' + (product?.name || '') : 'Sản Phẩm'}</h2>
-      <p class="text-gray-400 text-xs font-medium uppercase tracking-[0.2em]">Trải nghiệm thực tế từ người dùng</p>
+      <p class="text-gray-400 text-xs font-medium tracking-[0.2em]">Trải nghiệm thực tế từ người dùng</p>
     </div>
     <button 
       id="btn-write-review"
       onclick={handleWriteReview}
       class="px-10 py-5 bg-gradient-to-r from-luxury-copper to-luxury-peach text-white font-black rounded-none text-[11px] tracking-[0.3em] hover:opacity-90 hover:shadow-lg hover:shadow-luxury-copper/20 hover:-translate-y-1 transition-all border border-white/20">
-      VIẾT ĐÁNH GIÁ NGAY
+      Viết đánh giá ngay
     </button>
   </div>
 
@@ -366,7 +366,7 @@
           </div>
 
           <div class="flex justify-end gap-6 pt-10 border-t border-gray-50">
-            <button onclick={() => showWriteForm = false} class="px-8 py-5 text-[10px] font-black text-gray-400 hover:text-black tracking-[0.3em] uppercase transition-colors">HỦY BỎ</button>
+            <button onclick={() => showWriteForm = false} class="px-6 py-4 text-[11px] font-black text-gray-400 tracking-widest transition-colors">Hủy bỏ</button>
             <button 
               onclick={submitReview}
               disabled={isSubmitting || newContent.length < 5}
@@ -375,7 +375,7 @@
               {#if isSubmitting}
                 <Loader2 class="w-5 h-5 animate-spin" />
               {:else}
-                GỬI ĐÁNH GIÁ <Send class="w-4 h-4" />
+                Gửi đánh giá <Send class="w-4 h-4" />
               {/if}
             </button>
           </div>
@@ -403,7 +403,7 @@
       {#each ratingTabs as tab}
         <button 
           onclick={() => activeTab = tab.key as typeof activeTab}
-          class="px-6 py-3 text-[11px] font-black border-2 transition-all uppercase tracking-widest {activeTab === tab.key ? 'border-black bg-black text-white' : 'border-gray-100 bg-white text-gray-400 hover:border-black hover:text-black'}">
+          class="px-6 py-3 text-[11px] font-black border-2 transition-all tracking-widest {activeTab === tab.key ? 'border-black bg-black text-white' : 'border-gray-100 bg-white text-gray-400 hover:border-black hover:text-black'}">
           {tab.label} {getTabCount(tab.key)}
         </button>
       {/each}
@@ -420,7 +420,7 @@
        <div class="w-full md:w-1/3 shrink-0 relative z-10">
          <div class="flex items-center gap-2 mb-3">
            <Sparkles class="w-5 h-5 text-[#ee4d2d] fill-current" />
-           <h3 class="text-[13px] font-black uppercase tracking-[0.2em] text-[#ee4d2d]">AI Tổng Hợp Đánh Giá</h3>
+           <h3 class="text-[13px] font-black tracking-[0.2em] text-[#ee4d2d]">AI Tổng Hợp Đánh Giá</h3>
          </div>
          {#if aiSummary}
            <p class="text-[14px] text-gray-700 leading-relaxed font-medium">{aiSummary}</p>
@@ -430,7 +430,7 @@
        <div class="flex-1 flex flex-col sm:flex-row gap-6 relative z-10">
           {#if positiveNotes.length > 0}
             <div class="flex-1 bg-white/60 backdrop-blur-sm p-4 border border-green-500/10">
-              <span class="text-[11px] font-black uppercase tracking-widest text-[#00bfa5] mb-3 block border-b border-green-500/10 pb-2">Khách hàng ưng ý</span>
+              <span class="text-[11px] font-black tracking-widest text-[#00bfa5] mb-3 block border-b border-green-500/10 pb-2">Khách hàng ưng ý</span>
               <ul class="space-y-2.5">
                 {#each positiveNotes as note}
                   <li class="text-[13px] text-gray-600 flex items-start gap-2"><CheckCircle2 class="w-4 h-4 text-[#00bfa5] mt-0.5 shrink-0" /> <span class="leading-tight">{note}</span></li>
@@ -440,7 +440,7 @@
           {/if}
           {#if negativeNotes.length > 0}
             <div class="flex-1 bg-white/60 backdrop-blur-sm p-4 border border-gray-200/50">
-              <span class="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-3 block border-b border-gray-100 pb-2">Điểm cần lưu ý</span>
+              <span class="text-[11px] font-black tracking-widest text-gray-400 mb-3 block border-b border-gray-100 pb-2">Điểm cần lưu ý</span>
               <ul class="space-y-2.5">
                 {#each negativeNotes as note}
                   <li class="text-[13px] text-gray-500 flex items-start gap-2"><MinusCircle class="w-4 h-4 text-gray-300 mt-0.5 shrink-0" /> <span class="leading-tight">{note}</span></li>

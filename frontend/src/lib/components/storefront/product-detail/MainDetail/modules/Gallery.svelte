@@ -133,11 +133,12 @@
     {/if}
   </div>
   
-  <div class="mt-4 grid grid-cols-5 gap-2 px-1">
+  <div class="mt-6 grid grid-cols-5 gap-3 px-1">
     {#each (product.images || []).slice(0, 5) as img, i}
+      {@const isActive = activeImageIndex === i}
       <button 
         type="button"
-        class="aspect-square border-2 cursor-pointer transition-all {activeImageIndex === i ? 'border-[#ee4d2d]' : 'border-transparent hover:border-[#ee4d2d]'} relative overflow-hidden bg-gray-50 p-0"
+        class="aspect-square border-2 cursor-pointer transition-all duration-300 rounded-lg overflow-hidden relative group {isActive ? 'border-[#ffaa00] scale-105 shadow-lg z-10' : 'border-transparent opacity-70 hover:opacity-100 hover:border-[#ffaa00]/50'} bg-gray-50 p-0"
         onclick={() => activeImageIndex = i}
         aria-label="Xem ảnh {i + 1}"
       >
@@ -147,10 +148,17 @@
             class="w-full h-full object-cover pointer-events-none"
             muted
             playsinline
+            loop
+            autoplay={isActive}
             preload="metadata"
           ></video>
-          <div class="absolute inset-0 flex items-center justify-center bg-black/20">
-            <svg class="w-4 h-4 text-white drop-shadow" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <div class="absolute inset-0 flex items-center justify-center bg-black/10 group-hover:bg-black/20 transition-colors">
+            <div class="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white shadow-xl">
+              <svg class="w-3.5 h-3.5 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+          </div>
+          <div class="absolute top-1.5 left-1.5 bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black text-[7px] font-black px-1.5 py-0.5 rounded shadow-sm uppercase tracking-tighter">
+            Viral
           </div>
         {:else}
           <img src={img} alt="Thumb" class="w-full h-full object-cover" />
@@ -167,3 +175,13 @@
     />
   </div>
 </div>
+
+<style>
+  /* Custom glass effect for high-end desktop experience */
+  button :global(video) {
+    transition: transform 0.5s ease;
+  }
+  button:hover :global(video) {
+    transform: scale(1.1);
+  }
+</style>

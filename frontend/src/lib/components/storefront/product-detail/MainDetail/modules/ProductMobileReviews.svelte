@@ -123,7 +123,7 @@
     <div class="ai-sentiment-box mb-4 p-4 rounded-lg bg-gradient-to-br from-[#FFF9F6] to-white border border-[#ee4d2d]/10 shadow-sm relative overflow-hidden">
        <div class="flex items-center gap-2 mb-2 relative z-10">
          <Sparkles size={16} class="text-[#ee4d2d] fill-current" />
-         <h3 class="text-[12px] font-black uppercase tracking-widest text-[#ee4d2d]">AI Tổng Hợp Đánh Giá</h3>
+         <h3 class="text-[12px] font-black tracking-widest text-[#ee4d2d]">AI Tổng Hợp Đánh Giá</h3>
        </div>
        {#if aiSummary}
          <p class="text-[13px] text-gray-700 leading-relaxed mb-3 font-medium relative z-10">{aiSummary}</p>
@@ -131,7 +131,7 @@
        <div class="flex flex-col gap-3 relative z-10">
           {#if positiveNotes.length > 0}
             <div>
-              <span class="text-[10px] font-black uppercase tracking-widest text-[#00bfa5] mb-1.5 block">Khách hàng ưng ý</span>
+              <span class="text-[10px] font-black tracking-widest text-[#00bfa5] mb-1.5 block">Khách hàng ưng ý</span>
               <ul class="space-y-1.5">
                 {#each positiveNotes as note}
                   <li class="text-[12px] text-gray-600 flex items-start gap-1.5"><CheckCircle2 size={14} class="text-[#00bfa5] mt-0.5 shrink-0" /> <span class="leading-tight">{note}</span></li>
@@ -141,7 +141,7 @@
           {/if}
           {#if negativeNotes.length > 0}
             <div class="pt-2 border-t border-gray-100">
-              <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 block">Điểm cần lưu ý</span>
+              <span class="text-[10px] font-black tracking-widest text-gray-400 mb-1.5 block">Điểm cần lưu ý</span>
               <ul class="space-y-1.5">
                 {#each negativeNotes as note}
                   <li class="text-[12px] text-gray-500 flex items-start gap-1.5"><MinusCircle size={14} class="text-gray-300 mt-0.5 shrink-0" /> <span class="leading-tight">{note}</span></li>
@@ -194,7 +194,7 @@
             <div class="absolute right-0 bottom-full mb-2 w-32 bg-white border border-gray-100 shadow-xl z-50 py-1 rounded-lg overflow-hidden">
               <button 
                 onclick={() => handleReportReview(review.id)}
-                class="w-full text-left px-4 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 transition-colors uppercase tracking-widest"
+                class="w-full text-left px-4 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 transition-colors tracking-widest"
               >
                 Báo cáo
               </button>
