@@ -65,7 +65,7 @@
 
   const activationMsg = $derived(campaignData?.cta_text || 'Cùng nhau chia sẻ!');
   const campaignDesc = $derived(campaignData?.share_text || 'Cùng cộng đồng lan tỏa để nhận mã giảm giá đặc biệt!');
-  const displayRewardLabel = $derived(campaignData?.voucher_label || 'ƯU ĐÃI LAN TỎA');
+  const displayRewardLabel = $derived(campaignData?.voucher_label || 'Ưu đãi lan tỏa');
   const voucherCode = $derived(shareProgress >= 100 ? (campaignData?.voucher_id || 'OPEN') : null);
 
   // Elite V2.2: Centralized Favorite Management
@@ -109,50 +109,46 @@
 <div class="w-full font-sans relative group z-10" class:opacity-60={isCollapsed} class:opacity-0={isHidden} class:pointer-events-none={isHidden}>
   {#if variant === 'funnel'}
     <div class="flex flex-col w-full relative z-10 transition-all duration-300">
-
-
-
-      <!-- Actions Row (Minimalist) -->
-      <div class="relative z-10 flex items-center justify-between overflow-x-auto pb-1 mt-2 mb-2 scrollbar-hide">
+      <!-- Actions Row (Premium Glass) -->
+      <div class="relative z-10 flex items-center justify-between gap-2 mt-3 mb-2">
         <!-- Like Pill -->
-        <button onclick={handleLike} class="flex items-center gap-1.5 px-3 py-2 rounded-full transition-all active:scale-95 shrink-0 {isLiked ? 'bg-rose-500/20 text-rose-400' : 'text-white/80'}">
+        <button onclick={handleLike} class="flex items-center gap-1.5 px-4 py-2 rounded-xl transition-all active:scale-95 shrink-0 backdrop-blur-md {isLiked ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'bg-white/10 text-white/90 border border-white/10'}">
           <Heart size={14} class={isLiked ? 'fill-current' : ''} />
-          <span class="text-xs font-black">{formatViralCount(localLikeCount)}</span>
+          <span class="text-xs font-bold">{formatViralCount(localLikeCount)}</span>
         </button>
 
-        <div class="w-[1px] h-4 bg-white/20 mx-2 shrink-0"></div>
-
-        <!-- Social Icons Group (Flat) -->
-        <div class="flex items-center gap-4 shrink-0 px-2">
-          <button onclick={() => share('facebook')} class="text-white hover:text-white/70 transition-all active:scale-95" aria-label="FB"><Facebook size={16} class="fill-current" /></button>
-          <button onclick={() => share('zalo')} class="text-white hover:text-white/70 transition-all active:scale-95 font-black text-[11px] tracking-tight" aria-label="Zalo">Zalo</button>
-          <button onclick={() => share('x')} class="text-white hover:text-white/70 transition-all active:scale-95" aria-label="X"><Twitter size={16} class="fill-current" /></button>
-          <button onclick={() => share('instagram')} class="text-white hover:text-white/70 transition-all active:scale-95" aria-label="IG"><Instagram size={16} /></button>
-          <button onclick={() => share('telegram')} class="text-white hover:text-white/70 transition-all active:scale-95" aria-label="TG"><Send size={16} /></button>
-          <button onclick={copyLink} class="text-white hover:text-white/70 transition-all active:scale-95" aria-label="Copy"><Copy size={16} /></button>
+        <!-- Social Icons Group (Liquid Glass) -->
+        <div class="flex-1 flex items-center justify-around gap-2 px-3 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl overflow-x-auto scrollbar-hide">
+          <button onclick={() => share('facebook')} class="text-white/80 hover:text-white transition-all active:scale-90" aria-label="FB"><Facebook size={18} class="fill-current" /></button>
+          <button onclick={() => share('zalo')} class="text-white/80 hover:text-white transition-all active:scale-90 font-bold text-[12px]" aria-label="Zalo">Zalo</button>
+          <button onclick={() => share('x')} class="text-white/80 hover:text-white transition-all active:scale-90" aria-label="X"><Twitter size={18} class="fill-current" /></button>
+          <button onclick={() => share('instagram')} class="text-white/80 hover:text-white transition-all active:scale-90" aria-label="IG"><Instagram size={18} /></button>
+          <button onclick={copyLink} class="text-white/80 hover:text-white transition-all active:scale-90" aria-label="Copy"><Copy size={18} /></button>
         </div>
       </div>
 
-      <!-- FOMO Progress Minimalist -->
+      <!-- FOMO Progress (Neon Standard) -->
       {#if shareTarget > 0}
-        <div class="relative z-10 mt-1">
+        <div class="relative z-10 mt-2 px-1">
           {#if shareProgress < 100}
-            <div class="flex items-center justify-between mb-1.5">
+            <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
-                <div class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse shadow-[0_0_8px_rgba(251,113,133,0.8)]"></div>
-                <span class="text-[10px] text-white/80 line-clamp-1">{campaignDesc}</span>
+                <div class="w-2 h-2 rounded-full bg-rose-400 animate-pulse shadow-[0_0_10px_#fb7185]"></div>
+                <span class="text-[11px] text-white/90 font-medium line-clamp-1">{campaignDesc}</span>
               </div>
-              <span class="text-[11px] font-bold text-rose-400">{Math.round(shareProgress)}%</span>
+              <span class="text-[12px] font-black text-rose-400">{Math.round(shareProgress)}%</span>
             </div>
-            <div class="h-1 w-full bg-black/60 rounded-full overflow-hidden">
-              <div class="h-full rounded-full bg-rose-500 transition-all duration-1000" style="width: {shareProgress}%"></div>
+            <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden backdrop-blur-sm p-[1px]">
+              <div class="h-full rounded-full bg-gradient-to-r from-rose-500 to-pink-500 transition-all duration-1000 relative" style="width: {shareProgress}%">
+                <div class="absolute inset-0 bg-white/20 animate-shimmer-fast"></div>
+              </div>
             </div>
           {:else}
-            <div class="text-center bg-black/20 p-2 rounded-lg border border-white/10">
-              <div class="text-[10px] font-black text-pink-400 mb-2">🎉 MỤC TIÊU ĐÃ ĐẠT!</div>
-              <div class="flex items-center justify-between bg-black/40 rounded px-2 py-1.5 border border-white/10">
-                <span class="font-mono text-sm font-black text-white">{voucherCode}</span>
-                <button onclick={() => voucherCode && navigator.clipboard.writeText(voucherCode)} class="text-[9px] font-black bg-white text-black px-2 py-1 rounded">COPY</button>
+            <div class="text-center bg-white/5 backdrop-blur-md p-3 rounded-xl border border-rose-500/30 animate-bounce-subtle">
+              <div class="text-[11px] font-black text-rose-400 mb-2 tracking-widest uppercase">🎉 Mục tiêu đã đạt!</div>
+              <div class="flex items-center justify-between bg-black/20 rounded-lg px-3 py-2 border border-white/10">
+                <span class="font-mono text-lg font-black text-white tracking-wider">{voucherCode}</span>
+                <button onclick={() => voucherCode && navigator.clipboard.writeText(voucherCode)} class="text-[10px] font-black bg-rose-500 text-white px-3 py-1.5 rounded-md shadow-lg active:scale-95 transition-transform">Copy</button>
               </div>
             </div>
           {/if}
@@ -188,13 +184,25 @@
   @keyframes shimmer {
     100% { transform: translateX(150%); }
   }
+  @keyframes shimmer-fast {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  @keyframes bounce-subtle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+  .animate-shimmer-fast { animation: shimmer-fast 1.5s linear infinite; }
+  .animate-bounce-subtle { animation: bounce-subtle 3s ease-in-out infinite; }
+  
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   
   :global(.vsb-heart-burst) { position: fixed; pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); }
-  :global(.vsb-heart-particle) { position: absolute; font-size: 14px; animation: heart-fly 0.8s ease-out forwards; opacity: 0; }
+  :global(.vsb-heart-particle) { position: absolute; font-size: 16px; animation: heart-fly 1s cubic-bezier(0.12, 0, 0.39, 0) forwards; opacity: 0; animation-delay: var(--delay, 0s); }
   @keyframes heart-fly {
-    0% { transform: translate(0,0) scale(0.5); opacity: 1; }
-    100% { transform: translate(calc(cos(calc(var(--i) * 45deg)) * 60px), calc(sin(calc(var(--i) * 45deg)) * 60px)) scale(1.2); opacity: 0; }
+    0% { transform: translate(0,0) scale(0); opacity: 0; }
+    20% { opacity: 1; transform: translate(0,0) scale(1.2); }
+    100% { transform: translate(calc(cos(calc(var(--i) * 30deg)) * 100px), calc(sin(calc(var(--i) * 30deg)) * -80px - 40px)) scale(0.8); opacity: 0; }
   }
 </style>

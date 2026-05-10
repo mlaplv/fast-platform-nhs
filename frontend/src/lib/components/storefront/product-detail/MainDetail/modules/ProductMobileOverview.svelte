@@ -21,7 +21,7 @@
   
   // Utils
   import { resolveMediaUrl } from '$lib/state/utils';
-  import { formatCurrency } from '$lib/utils/format';
+  import { formatCurrency, formatNumber } from '$lib/utils/format';
   
   // Components
   import ViralShareBarMobile from '../../shared/ViralShareBarMobile.svelte';
@@ -381,8 +381,7 @@
         </div>
       </div>
       <div class="divider"></div>
-      <div class="sold-count">{product.order_count_text || `Đã bán ${product.orderCount || 0}`}</div>
-      <div class="trust-badge text-luxury-copper font-bold bg-luxury-peach/10">{product.metadata?.brand_type || 'osmo Mall'}</div>
+      <div class="sold-count">{product.order_count_text || `Đã bán ${formatNumber(product.orderCount) || 0}`}</div>
     </div>
   </section>
 </section>

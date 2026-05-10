@@ -343,18 +343,17 @@
 <svelte:element this={outerWrapper} class="bg-[#f6f6f6] min-h-screen">
   <!-- VIRAL 2026: PROFESSIONAL BREADCRUMB -->
   <div class="bg-[#f5f5f5] py-4">
-  <div class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-3 text-[11px] text-gray-500 font-bold uppercase tracking-wider">
-    <a href="/" class="flex items-center gap-2 bg-[#ee4d2d] text-white px-2 py-1 hover:brightness-110 transition-all">
-      <Diamond size={10} fill="currentColor" />
-      <span class="text-[9px] font-black tracking-[0.25em]">OSMO</span>
+  <div class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-3 text-[12px] text-gray-400 font-medium">
+    <a href="/" class="text-gray-400 hover:text-[#ee4d2d] transition-all font-black tracking-widest text-[11px]">
+      OSMO
     </a>
-    <span class="opacity-20">/</span>
-    <span class="text-gray-400 normal-case tracking-normal font-medium">{product.name}</span>
+    <span class="opacity-30">/</span>
+    <span class="text-gray-500 font-medium">{product.name}</span>
   </div>
 </div>
 
 <svelte:element this={contentWrapper} class="max-w-[1200px] mx-auto bg-white shadow-sm mt-0  rounded-none p-5">
-  <div class="flex flex-col md:flex-row gap-8">
+  <div class="flex flex-col md:flex-row gap-4">
     <!-- LEFT: IMAGES & SOCIAL (ProductGallery Module) -->
     <ProductGallery 
       {product} 

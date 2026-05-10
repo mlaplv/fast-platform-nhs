@@ -47,11 +47,13 @@ export function createHeartConfetti(clientX: number, clientY: number) {
   container.style.top = `${clientY}px`;
   document.body.appendChild(container);
   
-  for (let i = 0; i < 8; i++) {
+  const emojis = ['❤️', '💖', '✨', '🌸', '🔥'];
+  for (let i = 0; i < 12; i++) {
     const p = document.createElement('div');
     p.className = 'vsb-heart-particle';
     p.style.setProperty('--i', i.toString());
-    p.innerHTML = '❤️';
+    p.style.setProperty('--delay', (Math.random() * 0.2).toString() + 's');
+    p.innerHTML = emojis[Math.floor(Math.random() * emojis.length)];
     container.appendChild(p);
   }
   

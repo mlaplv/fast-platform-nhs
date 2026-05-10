@@ -7,7 +7,7 @@
   import Package from "@lucide/svelte/icons/package";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
-  import { formatCurrency } from '$lib/utils/format';
+  import { formatCurrency, formatNumber } from '$lib/utils/format';
   import ShareToUnlock from '../../shared/ShareToUnlock.svelte';
 
   interface Props {
@@ -68,44 +68,46 @@
 
 </script>
 
-<div class="flex-1 flex flex-col pt-1">
-  <div class="flex items-start gap-3 mb-2">
-    <div class="flex items-center gap-1.5 bg-[#d0011b] text-white px-1.5 py-0.5 text-[10px] font-black tracking-widest shadow-sm group relative overflow-hidden mt-1 shrink-0">
-      <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-      <span class="relative z-10 whitespace-nowrap">{product.metadata?.is_mall ? 'Mall' : 'Shop'}</span>
-    </div>
-    <h1 class="text-[20px] font-medium text-gray-900 leading-snug tracking-tight">
+<div class="flex-1 flex flex-col pt-0">
+  <div class="flex items-start gap-4 mb-4">
+    <h1 class="text-[24px] font-bold text-gray-900 leading-[1.2] tracking-tight">
       {product.name.replace(/40gr/g, '40g')}
     </h1>
   </div>
 
   <!-- Stats Row -->
-  <div class="flex items-center gap-6 text-[14px] mb-6 mt-1">
-    <div class="flex items-center gap-1 text-[#ee4d2d] border-b border-[#ee4d2d]/20 pb-0.5">
-      <span class="font-bold border-b border-[#ee4d2d] leading-none mb-[-2px]">{stats?.average_rating || product.metadata?.rating || '5.0'}</span>
-      <div class="flex pt-0.5 gap-0.5 ml-1">
+  <div class="flex items-center gap-6 text-[15px] mb-8">
+    <div class="flex items-center gap-2 text-[#ee4d2d] group cursor-default">
+      <span class="text-[16px] font-black border-b-2 border-[#ee4d2d] leading-none pb-0.5">{stats?.average_rating || product.metadata?.rating || '5.0'}</span>
+      <div class="flex gap-0.5">
          {#each Array(5) as _, i}
-            <svg class="w-3 h-3 {i < Math.floor(stats?.average_rating || Number(product.metadata?.rating) || 5) ? 'text-orange-400' : 'text-gray-300'} fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+            <svg class="w-3.5 h-3.5 {i < Math.floor(stats?.average_rating || Number(product.metadata?.rating) || 5) ? 'text-orange-400' : 'text-gray-200'} fill-current drop-shadow-sm" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
          {/each}
       </div>
     </div>
-    <div class="w-px h-4 bg-gray-200"></div>
+    <div class="w-[1.5px] h-4 bg-gray-200"></div>
     <button 
       onclick={onTriggerWriteReview}
-      class="flex items-center gap-1 group cursor-pointer border-none bg-transparent">
-      <span class="text-black font-bold border-b border-black leading-none mb-[-2px]">{stats?.total_count ?? (product.metadata?.reviews?.length || 0)}</span>
-      <span class="text-gray-500 font-medium">Đánh Giá</span>
+      class="flex items-center gap-1.5 group cursor-pointer border-none bg-transparent hover:opacity-80 transition-opacity">
+      <span class="text-black font-black border-b-2 border-black leading-none pb-0.5">{formatNumber(stats?.total_count ?? (product.metadata?.reviews?.length || 0))}</span>
+      <span class="text-gray-500 font-bold text-[14px]">đánh giá</span>
     </button>
-    <div class="w-px h-4 bg-gray-200"></div>
-    <div class="flex items-center gap-1">
-      <span class="text-black font-bold">{product.order_count_text || product.orderCount || 0}</span>
+    <div class="w-[1.5px] h-4 bg-gray-200"></div>
+    <div class="flex items-center gap-1.5">
+      <span class="text-black font-black text-[16px]">{product.order_count_text || formatNumber(product.orderCount) || 0}</span>
       {#if !product.order_count_text}
-        <span class="text-gray-500 font-medium">Đã bán</span>
+        <span class="text-gray-500 font-bold text-[14px]">đã bán</span>
       {/if}
     </div>
     <div class="ml-auto">
-       <button onclick={onTriggerWriteReview} class="text-[13px] text-gray-400 font-medium hover:text-[#ee4d2d] transition-colors">Tố cáo</button>
+       <button onclick={onTriggerWriteReview} class="text-[13px] text-gray-400 font-bold hover:text-[#ee4d2d] transition-colors flex items-center gap-1">
+         Tố cáo
+       </button>
     </div>
+  </div>
+  
+  <div class="mb-4">
+    <ShareToUnlock {product} compact={true} onUnlock={onTriggerViralFly} />
   </div>
 
   <!-- Price Bar -->
@@ -127,7 +129,7 @@
             <div class="flex items-center gap-2.5">
                 {#if activeComboQty > 1}
                    <div class="bg-slate-900 text-white text-[8px] font-black px-1.5 py-0.5 rounded-sm tracking-widest flex items-center gap-1">
-                       <Package size={10} class="text-white/70" /> {activeComboQty} SP ĐÃ ÁP DỤNG
+                       <Package size={10} class="text-white/70" /> {activeComboQty} sp đã áp dụng
                    </div>
                 {/if}
                 <div class="flex items-center gap-1.5 group/ai cursor-default">
@@ -162,9 +164,9 @@
   </div>
 
   <!-- Vouchers -->
-  <div class="px-5 mb-4">
+  <div class="mb-4">
      <div class="flex items-start">
-        <span class="w-[110px] shrink-0 text-[14px] text-gray-500 mt-2">Mã Giảm Giá</span>
+        <span class="w-[70px] shrink-0 text-[14px] text-gray-500 mt-2">Mã giảm giá</span>
         <div class="flex flex-wrap gap-3">
            {#each productVouchers as v}
              {@const isApplied = selectedVouchers.includes(v.id)}
@@ -189,14 +191,11 @@
      </div>
   </div>
 
-  <div class="px-5 mb-4">
-    <ShareToUnlock {product} compact={true} onUnlock={onTriggerViralFly} />
-  </div>
 
   <!-- Shipping -->
-  <div class="px-5 space-y-2 mb-4">
+  <div class="space-y-2 mb-4">
      <div class="flex items-start">
-        <span class="w-[110px] shrink-0 text-[14px] text-gray-500">Vận Chuyển</span>
+        <span class="w-[70px] shrink-0 text-[14px] text-gray-500">Vận chuyển</span>
         <div class="space-y-2">
            <div class="flex items-center gap-2">
               <svg class="w-5 h-5 text-[#00bfa5]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
@@ -213,10 +212,10 @@
 
   <!-- Variations -->
   {#if variations.length > 0}
-    <div class="px-5 space-y-5 mb-5 mt-2">
+    <div class="space-y-5 mb-5 mt-2">
       {#each variations as tier, tIdx}
         <div class="flex items-start">
-          <span class="w-[110px] shrink-0 text-[14px] text-gray-500 mt-2 capitalize">{tier.name}</span>
+          <span class="w-[70px] shrink-0 text-[14px] text-gray-500 mt-2 capitalize">{tier.name}</span>
           <div class="flex flex-wrap gap-2.5">
             {#each tier.options as option, oIdx}
               {@const isSelected = selectedIndices[tIdx] === oIdx}
@@ -243,8 +242,8 @@
   {/if}
 
   <!-- Quantity -->
-  <div class="px-5 flex items-center mb-4">
-     <span class="w-[110px] shrink-0 text-[12px] font-bold text-gray-400 tracking-widest">Số lượng</span>
+  <div class="flex items-center mb-4">
+     <span class="w-[70px] shrink-0 text-[12px] font-bold text-gray-400 tracking-widest">Số lượng</span>
      <div class="flex items-center gap-8">
         <div class="flex items-center border border-gray-100 rounded-none h-9 group overflow-hidden bg-white shadow-sm">
            <button 
@@ -282,7 +281,7 @@
 
   <!-- Gifts -->
   {#if activeGifts.length > 0}
-    <div class="px-5 mb-6">
+    <div class="mb-6">
       <div class="bg-gradient-to-br from-[#fdf2f2] to-[#fff] border-2 border-[#ee4d2d]/10 p-5 relative overflow-hidden group/combo-box shadow-sm">
           <div class="flex items-start gap-4 relative z-10">
             <div class="mt-1">
@@ -328,17 +327,17 @@
   {/if}
 
   <!-- CTA Buttons -->
-  <div class="px-5 flex gap-4 mt-auto pb-4">
-     <button 
-        onclick={onAddToCart}
-        class="h-[52px] min-w-[210px] border border-[#d0011b] bg-[#ffeee8]/60 text-[#d0011b] font-medium flex items-center justify-center gap-2.5 hover:bg-[#ffeee8] transition-all rounded-none">
-        <ShoppingCart class="w-5 h-5" />
-        <span class="text-[14px] font-black">Thêm vào giỏ hàng</span>
-     </button>
-     <button 
-        onclick={onBuyNow}
-        class="h-[52px] min-w-[180px] bg-[#d0011b] text-white font-black text-[14px] hover:brightness-110 transition-all rounded-none">
-        Mua Ngay
-     </button>
+  <div class="flex gap-4 mt-auto pb-4">
+      <button 
+         onclick={onAddToCart}
+         class="h-[52px] min-w-[210px] border border-[#d0011b] bg-[#ffeee8]/60 text-[#d0011b] font-medium flex items-center justify-center gap-2.5 hover:bg-[#ffeee8] transition-all rounded-none">
+         <ShoppingCart class="w-5 h-5" />
+         <span class="text-[14px] font-bold">Thêm vào giỏ hàng</span>
+      </button>
+      <button 
+         onclick={onBuyNow}
+         class="h-[52px] min-w-[180px] bg-[#d0011b] text-white font-bold text-[15px] hover:brightness-110 transition-all rounded-none">
+         Mua ngay
+      </button>
   </div>
 </div>

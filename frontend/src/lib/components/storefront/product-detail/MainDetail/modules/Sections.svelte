@@ -83,7 +83,7 @@
              <a href="/products" class="text-gray-400 hover:text-gray-900 transition-colors">osmo</a>
              <svg class="w-3 h-3 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" /></svg>
              <a href="/{product.categorySlug || 'products'}/" class="text-[#0384ff] hover:underline truncate">
-                {product.category || 'CHĂM SÓC DA'}
+                {product.category || 'Chăm sóc da'}
              </a>
           </div>
         </div>
