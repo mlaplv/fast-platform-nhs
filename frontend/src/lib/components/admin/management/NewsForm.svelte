@@ -93,6 +93,16 @@
     }
   });
 
+  // CNS V2.2: Neural Slug Synchronization
+  // Auto-generate slug from title ONLY for new articles (to avoid breaking SEO on existing ones)
+  $effect(() => {
+    if (!editingId && formTitle && formTitle.trim()) {
+      untrack(() => {
+        formSlug = generateSlug(formTitle);
+      });
+    }
+  });
+
   // Seed featured image into modal context — one-time only
   $effect(() => {
     const img = formFeaturedImage;
@@ -242,7 +252,10 @@
             <input
               type="text"
               bind:value={formTitle}
-              oninput={() => { if (!editingId) formSlug = generateSlug(formTitle); }}
+              oninput={(e) => { 
+                const val = e.currentTarget.value;
+                if (!editingId && val) formSlug = generateSlug(val); 
+              }}
               placeholder="Nhập tiêu đề Bài viết..."
               class="field-input text-xl font-bold"
             />
@@ -253,47 +266,8 @@
           {/if}
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-          <!-- Slug -->
-          <div class="field-group">
-            <label class="field-label">Đường dẫn (Slug)</label>
-            <div class="relative flex items-center gap-2">
-              <div class="relative flex-1">
-                <input
-                  type="text"
-                  bind:value={formSlug}
-                  placeholder="duong-dan-bai-viet"
-                  disabled={isSlugLocked}
-                  class="field-input font-mono text-sm text-cyan-400/80 {isSlugLocked ? 'opacity-50 cursor-not-allowed' : ''}"
-                />
-                <div class="field-line"></div>
-              </div>
-              <button
-                onclick={() => { if (!isSlugLocked) formSlug = generateSlug(formTitle); }}
-                disabled={isSlugLocked}
-                title={isSlugLocked ? 'Slug bị khóa — bài viết đã Published, thay đổi slug sẽ làm mất link trên Search Engine' : 'Tạo lại slug từ tiêu đề'}
-                class="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider cursor-pointer
-                  {isSlugLocked
-                    ? 'bg-red-500/10 border border-red-500/20 text-red-400/60 cursor-not-allowed'
-                    : 'bg-white/5 border border-white/10 text-white/40 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-cyan-500/5'}"
-              >
-                {#if isSlugLocked}
-                  <Lock size={10} />
-                  Khóa
-                {:else}
-                  <RefreshCw size={10} />
-                  Tạo lại
-                {/if}
-              </button>
-            </div>
-            {#if isSlugLocked}
-              <p class="text-[8px] text-red-400/50 italic">⚠ Slug đã khóa — bài viết đang Published. Đổi slug = mất link trên Google.</p>
-            {/if}
-          </div>
-
-          <!-- Category + Status side by side -->
-          <div class="grid grid-cols-2 gap-5">
+        <!-- Category + Status side by side -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <!-- Chuyên mục -->
             <div class="field-group">
               <label class="field-label">Chuyên mục</label>
@@ -324,7 +298,6 @@
                       {formStatus === val ? 'bg-white/10 text-cyan-400 border border-white/10' : 'text-gray-600 hover:text-white'}"
                   >{lbl}</button>
                 {/each}
-              </div>
             </div>
           </div>
         </div>
@@ -476,7 +449,16 @@
                 <div class="field-line"></div>
               </div>
               <button
-                onclick={() => { if (!isSlugLocked) formSlug = generateSlug(formTitle); }}
+                onclick={() => { 
+                  if (isSlugLocked) return;
+                  const newSlug = generateSlug(formTitle || "");
+                  if (newSlug === formSlug) {
+                    nanobot.showToast("Đường dẫn đã tối ưu theo tiêu đề.", "info");
+                  } else {
+                    formSlug = newSlug;
+                    nanobot.showToast("Đã cập nhật đường dẫn SEO.", "success");
+                  }
+                }}
                 disabled={isSlugLocked}
                 class="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-wider text-white/40 hover:text-cyan-400 hover:border-cyan-500/30 transition-all cursor-pointer"
               >
@@ -484,6 +466,9 @@
                 TẠO LẠI
               </button>
             </div>
+            {#if isSlugLocked}
+              <p class="text-[8px] text-red-400/50 italic mt-1.5">⚠ Slug đã khóa — bài viết đang Published. Đổi slug = mất link trên Google.</p>
+            {/if}
           </div>
 
           <!-- SEO Title -->

@@ -182,7 +182,7 @@
               </div>
               {#each (bulkFixLogs || []).slice(-15) as log}
                  <div class="flex gap-2 text-[10px] font-mono tracking-tight py-0.5 border-b border-white/[0.02]" in:fade>
-                    <span class="text-cyan-500/40 shrink-0">[{new Date().toLocaleTimeString([], {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'})}]</span>
+                    
                     <span class="text-white/80 leading-relaxed font-semibold">{log}</span>
                  </div>
               {/each}

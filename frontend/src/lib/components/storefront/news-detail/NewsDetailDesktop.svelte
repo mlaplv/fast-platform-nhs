@@ -3,8 +3,18 @@
   import NewsDetailReviews from './NewsDetailReviews.svelte';
   import ImageWithFallback from '../ui/ImageWithFallback.svelte';
 
+  interface NewsItem {
+    id: string;
+    title: string;
+    slug: string;
+    featuredImage?: string;
+    featured_image?: string;
+    category?: string;
+  }
+
   interface Props {
     article: { 
+      id: string;
       title: string; 
       author: string; 
       publishedAt: string; 
@@ -15,16 +25,20 @@
         faqs?: { question: string; answer: string }[];
       };
     };
+    relatedNews?: NewsItem[];
   }
 
-  let { article }: Props = $props();
+  let { article, relatedNews = [] }: Props = $props();
 
-  // ELITE V2.2: Dynamic Sidebar (Avoid Mock Data where possible)
-  const relatedNews = [
-    { title: "Bí kíp chăm sóc da mùa khô 2026", category: "BEAUTY", image: article.featuredImage },
-    { title: "Top 5 serum đáng mua nhất năm", category: "TRENDS", image: article.featuredImage },
-    { title: "Cách tối ưu hóa vận hành AI cho shop", category: "TECH", image: article.featuredImage }
-  ];
+  // ELITE V2.2: Dynamic Sidebar (Zero-Hydration Sync)
+  const normalizedRelatedNews = $derived(() => {
+    return relatedNews.map((news, i) => ({
+      title: news.title,
+      category: news.category || (i % 2 === 0 ? 'LÀM ĐẸP' : 'XU HƯỚNG'),
+      image: news.featuredImage || news.featured_image || article.featuredImage,
+      slug: news.slug
+    }));
+  });
 
   // SGE Shield V1.0: Deterministic DOM Entropy
   const wrapperTags = ['div', 'article', 'section', 'main'];
@@ -71,13 +85,13 @@
                   {article.category || 'TẠP CHÍ ELITE'}
                 </span>
                 <div class="flex items-center gap-2 text-[11px] font-black text-gray-500 uppercase tracking-widest">
-                  <span>{article.author === 'Xohi' || article.author === 'System' ? 'Ban biên tập osmo' : article.author}</span>
+                  <span class="text-[#C18F7E] shrink-0">{article.author === 'Xohi' || article.author === 'System' || article.author === 'Micsmo' ? 'Ban biên tập osmo' : article.author}</span>
                   <div class="w-1 h-1 bg-gray-300 rounded-full"></div>
                   <span>{article.publishedAt}</span>
                 </div>
             </div>
 
-            <h1 class="text-4xl md:text-5xl font-black text-gray-900 mb-0 mt-5 tracking-tighter leading-[1.1] uppercase italic">
+            <h1 class="text-4xl md:text-5xl font-black text-gray-900 mb-0 mt-5 tracking-tighter leading-[1.1]">
               {article.title}
             </h1>
         </div>
@@ -164,8 +178,8 @@
             </h2>
             
             <div class="space-y-8">
-                {#each relatedNews as news}
-                    <a href="#" class="group block space-y-3">
+                {#each normalizedRelatedNews() as news}
+                    <a href="/{news.slug}" class="group block space-y-3">
                         <ImageWithFallback src={news.image} alt={news.title} aspectRatio="aspect-video" class="border border-gray-100" />
                         <div>
                             <span class="text-[9px] font-black text-[#C18F7E] uppercase tracking-widest">{news.category}</span>
@@ -207,6 +221,15 @@
     letter-spacing: -0.011em;
   }
 
+  :global(.elite-prose h1) {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #111827 !important;
+    margin: 2.5rem 0 1rem 0;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+
   :global(.elite-prose h2) {
     font-size: 1.5rem;
     font-weight: 850;
@@ -217,6 +240,12 @@
     border-left: 4px solid #C18F7E;
     padding-left: 1rem;
     line-height: 1.2;
+  }
+
+  :global(.elite-prose strong),
+  :global(.elite-prose b) {
+    color: #111827 !important;
+    font-weight: 800;
   }
 
   :global(.elite-prose h3) {

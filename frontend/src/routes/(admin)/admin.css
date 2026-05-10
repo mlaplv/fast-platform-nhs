@@ -28,12 +28,13 @@
   --z-media-overlay: 600000;
   --z-system: 995000;
   --z-vui-exit: 110000;
-  --z-admin-tiptap-fullscreen: 600000;
-  --z-admin-tiptap-link-bubble: 610000;
-  --z-admin-tiptap-bubble-menu: 620000;
-  --z-admin-tiptap-toolbar-overlay: 630000;
-  --z-admin-tiptap-toolbar-dropdown: 640000;
-  --z-neural-hud: 700000;
+  --z-admin-tiptap-fullscreen: 800000;
+  --z-admin-tiptap-link-bubble: 810000;
+  --z-admin-tiptap-bubble-menu: 820000;
+  --z-admin-tiptap-toolbar-overlay: 830000;
+  --z-admin-tiptap-toolbar-dropdown: 840000;
+  --z-admin-tiptap-modal: 850000;
+  --z-neural-hud: 900000;
   --z-supreme-power: 999999;
 
   /* Elite V2.2: Consistent Mapping Aliases */

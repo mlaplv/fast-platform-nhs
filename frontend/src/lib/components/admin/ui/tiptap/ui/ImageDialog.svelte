@@ -5,6 +5,7 @@
 
   import { onMount } from "svelte";
   import { portal } from "$lib/core/actions/portal";
+  import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   let {
     show = $bindable(),
@@ -55,7 +56,7 @@
 {#if show}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div use:portal class="fixed inset-0 z-[var(--z-admin-image-dialog)] flex items-center justify-center bg-[#09090b]/80 backdrop-blur-xl transition-all duration-500" onclick={() => show = false}>
+  <div use:portal class="fixed inset-0 flex items-center justify-center bg-[#09090b]/80 backdrop-blur-xl transition-all duration-500" style="z-index: {Z_INDEX_ADMIN.TIPTAP_MODAL}" onclick={() => show = false}>
     <div 
         class="bg-[#18181b] border border-white/5 p-8 shadow-[0_0_50px_-12px_rgba(59,130,246,0.3)] w-[95%] max-w-[900px] rounded-[2rem] relative overflow-hidden group" 
         onclick={(e) => e.stopPropagation()}
@@ -178,7 +179,7 @@
   </div>
 
   {#if showMediaLibrary}
-    <div use:portal class="fixed inset-0 z-[1050] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8" onclick={() => showMediaLibrary = false}>
+    <div use:portal class="fixed inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 md:p-8" style="z-index: {Z_INDEX_ADMIN.TIPTAP_MODAL + 10}" onclick={() => showMediaLibrary = false}>
       <div class="w-full h-full max-w-7xl max-h-[85vh] bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col relative border border-white/10" onclick={(e) => e.stopPropagation()}>
         <button onclick={() => showMediaLibrary = false} class="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-black text-white/50 hover:text-white rounded-lg transition-all backdrop-blur-md border border-white/10">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>

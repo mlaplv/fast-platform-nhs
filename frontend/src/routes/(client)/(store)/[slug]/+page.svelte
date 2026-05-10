@@ -127,7 +127,7 @@
     {#if ui.isMobile}
       <NewsDetailMobile article={data.article} />
     {:else}
-      <NewsDetailDesktop article={data.article} />
+      <NewsDetailDesktop article={data.article} relatedNews={data.relatedNews} />
     {/if}
   </div>
 {:else}

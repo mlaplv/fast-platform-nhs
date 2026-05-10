@@ -219,13 +219,13 @@
 <div class="bg-gray-50/50 p-10 mt-10 rounded-none border-t border-gray-100">
   <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 pb-6 border-b border-gray-100">
     <div>
-      <h2 class="text-2xl font-black text-[#0f172a] uppercase tracking-tighter italic">Phản hồi từ độc giả</h2>
-      <p class="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em]">Xác thực trải nghiệm người dùng</p>
+      <h2 class="text-2xl font-black text-[#0f172a] tracking-tighter">Phản hồi từ độc giả</h2>
+      <p class="text-gray-400 text-[10px] font-black tracking-[0.3em]">Xác thực trải nghiệm người dùng</p>
     </div>
     <button 
       onclick={handleWriteReview}
-      class="px-10 py-5 bg-[#C18F7E] text-white font-black text-[11px] tracking-[0.3em] uppercase hover:bg-[#0f172a] transition-all">
-      VIẾT CẢM NHẬN NGAY
+      class="px-10 py-5 bg-[#C18F7E] text-white font-black text-[11px] tracking-[0.3em] hover:bg-[#0f172a] transition-all">
+      Viết cảm nhận ngay
     </button>
   </div>
 
@@ -240,7 +240,7 @@
       {:else}
         <div class="space-y-6">
           <div class="flex items-center gap-4">
-            <span class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Đánh giá sao:</span>
+            <span class="text-[11px] font-black text-gray-400 tracking-widest">Đánh giá sao:</span>
             <div class="flex gap-1">
               {#each Array(5) as _, i}
                 <button onclick={() => newRating = i + 1} class="transition-transform hover:scale-125">
@@ -253,12 +253,12 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             {#each Object.keys(newAttributes) as attr}
               <div class="space-y-3">
-                <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">{attr}</span>
+                <span class="text-[9px] font-black text-gray-400 tracking-widest">{attr}</span>
                 <div class="flex flex-wrap gap-2">
                   {#each (attr === 'Độ hữu ích' ? ['Rất cao', 'Trung bình', 'Thấp'] : attr === 'Dễ hiểu' ? ['Dễ hiểu', 'Hơi khó', 'Rất khó'] : ['Áp dụng ngay', 'Cần thêm HD', 'Khó áp dụng']) as opt}
                     <button 
                       onclick={() => newAttributes[attr] = opt}
-                      class="px-4 py-2 text-[9px] font-black border transition-all uppercase tracking-widest {newAttributes[attr] === opt ? 'bg-[#0f172a] text-white border-[#0f172a]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#C18F7E]'}">
+                      class="px-4 py-2 text-[9px] font-black border transition-all tracking-widest {newAttributes[attr] === opt ? 'bg-[#0f172a] text-white border-[#0f172a]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#C18F7E]'}">
                       {opt}
                     </button>
                     {/each}
@@ -285,18 +285,18 @@
             {#if attachedPhotos.length < 5}
               <button onclick={() => fileInput?.click()} disabled={isUploadingMedia} class="w-24 h-24 border-2 border-dashed border-gray-100 flex flex-col items-center justify-center gap-2 text-gray-300 hover:border-[#C18F7E] hover:text-[#C18F7E] transition-all">
                 <Camera class="w-6 h-6" />
-                <span class="text-[8px] font-black uppercase">THÊM ẢNH/VIDEO</span>
+                <span class="text-[8px] font-black">THÊM ẢNH/VIDEO</span>
               </button>
             {/if}
           </div>
 
           <div class="flex justify-end gap-6 pt-10 border-t border-gray-100">
-            <button onclick={() => showWriteForm = false} class="text-[10px] font-black text-gray-400 hover:text-black tracking-[0.3em] uppercase">HỦY BỎ</button>
+            <button onclick={() => showWriteForm = false} class="text-[10px] font-black text-gray-400 hover:text-black tracking-[0.3em]">Hủy bỏ</button>
             <button 
               onclick={submitReview}
               disabled={isSubmitting || newContent.length < 5}
-              class="px-20 py-5 bg-[#C18F7E] text-white font-black text-[11px] tracking-[0.3em] uppercase flex items-center gap-3">
-              {isSubmitting ? 'ĐANG GỬI...' : 'XÁC NHẬN GỬI'}
+              class="px-20 py-5 bg-[#C18F7E] text-white font-black text-[11px] tracking-[0.3em] flex items-center gap-3">
+              {isSubmitting ? 'ĐANG GỬI...' : 'Xác nhận gửi'}
               <Send class="w-4 h-4" />
             </button>
           </div>
@@ -323,7 +323,7 @@
       {#each ratingTabs as tab}
         <button 
           onclick={() => activeTab = tab.key as 'all' | number | 'media'}
-          class="px-6 py-3 text-[10px] font-black border transition-all uppercase tracking-widest {activeTab === tab.key ? 'bg-[#0f172a] text-white border-[#0f172a]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#C18F7E]'}">
+          class="px-6 py-3 text-[10px] font-black border transition-all tracking-widest {activeTab === tab.key ? 'bg-[#0f172a] text-white border-[#0f172a]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#C18F7E]'}">
           {tab.label} {getTabCount(tab.key)}
         </button>
       {/each}
@@ -335,12 +335,12 @@
     {#if isLoading}
       <div class="py-20 flex flex-col items-center justify-center gap-4">
         <Loader2 class="w-10 h-10 animate-spin text-[#C18F7E]" />
-        <span class="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300">Syncing_Reader_Voices...</span>
+        <span class="text-[10px] font-black tracking-[0.4em] text-gray-300">Syncing_Reader_Voices...</span>
       </div>
     {:else if reviews.length === 0}
       <div class="py-20 text-center text-gray-300 space-y-4">
         <div class="text-6xl font-black opacity-10">404</div>
-        <p class="text-xs uppercase tracking-widest font-black">Chưa có phản hồi nào cho bài viết này.</p>
+        <p class="text-xs tracking-widest font-black">Chưa có phản hồi nào cho bài viết này.</p>
       </div>
     {:else}
       {#each reviews as review}
@@ -351,7 +351,7 @@
 
           <div class="flex-1">
             <div class="flex items-center gap-3 mb-2">
-              <span class="text-sm font-black text-[#0f172a] uppercase">{review.name}</span>
+              <span class="text-sm font-black text-[#0f172a]">{review.name}</span>
               <div class="flex gap-0.5">
                 {#each Array(5) as _, i}
                   <Star class="w-3 h-3 {i < review.rating ? 'text-[#C18F7E] fill-current' : 'text-gray-200'}" />
@@ -364,7 +364,7 @@
               <div class="flex flex-wrap gap-4 mb-4">
                 {#each Object.entries(review.attributes) as [key, val]}
                   <div class="text-[11px] font-bold">
-                    <span class="text-gray-400 uppercase tracking-widest">{key}:</span>
+                    <span class="text-gray-400 tracking-widest">{key}:</span>
                     <span class="text-[#C18F7E]">{val}</span>
                   </div>
                 {/each}

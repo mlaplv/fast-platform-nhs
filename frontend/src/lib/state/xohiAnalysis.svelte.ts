@@ -109,13 +109,17 @@ export function createAnalysisController(config: {
 
         untrack(() => {
             if (config.getIsProcessing?.() || isBulkFixing || isCopyrightLoading || isSeoLoading || isAiLoading) {
-                if (!bulkFixLogs.some(l => l.includes(msg) || msg.includes(l))) {
-                    bulkFixLogs = [...bulkFixLogs, msg];
+                // CNS V90.5: Internal log helper to prevent duplicate messages and maintain order
+                const timestamp = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                const fullMsg = `[${timestamp}] ${msg}`;
+                
+                if (!bulkFixLogs.some(l => l.includes(msg))) {
+                    bulkFixLogs = [...bulkFixLogs, fullMsg];
                 }
+                
                 // Always update status to reflect current step, ensuring HUD doesn't feel 'stuck'
                 bulkFixStatus = msg;
                 if (typeof data.step === 'number') {
-                    // Only progress forward to avoid UI flicker if SSE packets arrive out of order
                     if (currentAnalysisStep === null || data.step > currentAnalysisStep) {
                         currentAnalysisStep = data.step;
                     }
@@ -123,6 +127,15 @@ export function createAnalysisController(config: {
             }
         });
     });
+
+    /**
+     * CNS V90.5: Unified Terminal Logger
+     * Prepends stable timestamp to ensure terminal logs don't 'drift' on re-render.
+     */
+    function addTerminalLog(msg: string) {
+        const timestamp = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        bulkFixLogs = [...bulkFixLogs, `[${timestamp}] ${msg}`];
+    }
 
     let copyrightScore = $derived(copyrightResult ? Math.round(copyrightResult.uniqueness_score * 100) : null);
     let seoScore = $derived(seoResult ? seoResult.total_score : null);
@@ -273,7 +286,10 @@ export function createAnalysisController(config: {
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isCopyrightLoading = true; isBulkFixing = true; bulkFixStatus = "Đang quét..."; activeTab = 'copyright';
         boosterAnnotations = []; currentAnalysisStep = 0;
-        bulkFixLogs = [...bulkFixLogs, "--- NEW SCAN: COPYRIGHT ---", "🧠 Đang khởi động Neural Engine...", "🔍 Đang trinh sát dữ liệu..."];
+        bulkFixLogs = [];
+        addTerminalLog("--- NEW SCAN: COPYRIGHT ---");
+        addTerminalLog("🧠 Đang khởi động Neural Engine...");
+        addTerminalLog("🔍 Đang trinh sát dữ liệu...");
         startThinkingLogs('copyright');
         let status: 'success' | 'accepted' | 'error' = 'error';
         try {
@@ -316,7 +332,10 @@ export function createAnalysisController(config: {
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isSeoLoading = true; isBulkFixing = true; bulkFixStatus = "Đang phân tích SEO..."; activeTab = 'seo';
         boosterAnnotations = []; currentAnalysisStep = 0;
-        bulkFixLogs = [...bulkFixLogs, "--- NEW SCAN: SEO ---", "🚀 Đang nạp bộ lọc SEO...", "📊 Đang đánh giá tín hiệu..."];
+        bulkFixLogs = [];
+        addTerminalLog("--- NEW SCAN: SEO ---");
+        addTerminalLog("🚀 Đang nạp bộ lọc SEO...");
+        addTerminalLog("📊 Đang đánh giá tín hiệu...");
         startThinkingLogs('seo');
         let status: 'success' | 'accepted' | 'error' = 'error';
         try {
@@ -359,7 +378,10 @@ export function createAnalysisController(config: {
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         isAiLoading = true; isBulkFixing = true; bulkFixStatus = "Đang kiểm định AI..."; activeTab = 'ai';
         boosterAnnotations = []; currentAnalysisStep = 0;
-        bulkFixLogs = [...bulkFixLogs, "--- NEW SCAN: VIRAL ---", "🧠 Đang mở cổng Neural AI...", "⚡ Đang kiểm tra Viral Edge..."];
+        bulkFixLogs = [];
+        addTerminalLog("--- NEW SCAN: VIRAL ---");
+        addTerminalLog("🧠 Đang mở cổng Neural AI...");
+        addTerminalLog("⚡ Đang kiểm tra Viral Edge...");
         startThinkingLogs('ai');
         let status: 'success' | 'accepted' | 'error' = 'error';
         try {
@@ -403,7 +425,9 @@ export function createAnalysisController(config: {
         if (_bulkFixRunning) return null;
         _bulkFixRunning = true;
         isBulkFixing = true; bulkFixStatus = "Đang dọn dẹp...";
-        bulkFixLogs = ["🧹 Đang khởi động Neural Clean...", "🧠 Đang dọn dẹp artifacts..."];
+        bulkFixLogs = [];
+        addTerminalLog("🚀 Đang khởi động Neural clean...");
+        addTerminalLog("🧠 Đang dọn dẹp artifacts...");
         try {
             // Prefer rawContent (from editor) over editBuffer to avoid stale state
             const content = rawContent ?? (config.getContent ?? config.getEditedDraft)?.() ?? '';
@@ -413,16 +437,17 @@ export function createAnalysisController(config: {
                 // Always sync editBuffer/content for persistence — TiptapEditor applies to editor separately
                 if (resolve(config.isEditing)) config.setEditedDraft(cleaned);
                 else config.setDraftContent(cleaned);
-                bulkFixLogs = [...bulkFixLogs, "🎯 Đã dọn dẹp xong ✅"];
+                addTerminalLog("🎯 Đã dọn dẹp & tối ưu cấu trúc thành công ✅");
                 nanobot.showToast("Đã dọn dẹp & tối ưu cấu trúc thành công!", "success");
             } else {
-                // [Elite V2.2] Silent success
+                addTerminalLog("✨ Nội dung đã ở trạng thái tối ưu, không cần dọn dẹp thêm.");
+                nanobot.showToast("Nội dung đã ở trạng thái tối ưu.", "info");
             }
             bulkFixStatus = "Hoàn tất ✅";
             return cleaned; // TiptapEditor's handleClean uses this return value to applyContentToEditor
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
-            bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
+            addTerminalLog(`❌ Lỗi: ${msg}`);
             bulkFixStatus = "Thất bại ❌";
             nanobot.showToast(`Lỗi dọn dẹp: ${msg}`, 'error');
             return null;
@@ -531,7 +556,9 @@ export function createAnalysisController(config: {
         _bulkFixRunning = true; // CNS V88.3: Guard chặn double-click
         isBulkFixing = true; bulkFixStatus = "Đang phẫu thuật..."; currentAnalysisStep = 0;
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
-        bulkFixLogs = ["Đang khởi tạo Neural Engine...", "Đang phân tích cấu trúc..."];
+        bulkFixLogs = [];
+        addTerminalLog("Đang khởi tạo Neural Engine...");
+        addTerminalLog("Đang phân tích cấu trúc...");
         console.log(`[Neural Engine] Starting Bulk Fix for category: ${category}, Ad-hoc: ${isAdhoc}`);
 
         try {
@@ -582,7 +609,7 @@ export function createAnalysisController(config: {
                     await saveAnalysisEvidence('ai_inspect', $state.snapshot(aiReadyResult));
                     setTimeout(() => { runAiInspect(true); }, 500);
                 }
-                bulkFixLogs = [...bulkFixLogs, "✅ Phẫu thuật hoàn tất. Dữ liệu Neural Intelligence đã được cập nhật."];
+                addTerminalLog("✅ Phẫu thuật hoàn tất. Dữ liệu Neural Intelligence đã được cập nhật.");
                 bulkFixStatus = "Hoàn tất ✅";
             } else {
                 const msg = (res as { message?: string })?.message || "Không thể thực hiện phẫu thuật hàng loạt";
@@ -620,7 +647,9 @@ export function createAnalysisController(config: {
         const content = (config.getContent ?? config.getEditedDraft)?.() ?? '';
         const topic = resolve(config.topic) ?? '';
         isBoosting = true; isBulkFixing = true; bulkFixStatus = "Đang phẫu thuật..."; activeTab = 'enrich'; currentAnalysisStep = 0;
-        bulkFixLogs = ["🚀 Surgeon Booster khởi động...", "🧠 Đang phân tích cấu trúc nội dung..."];
+        bulkFixLogs = [];
+        addTerminalLog("🚀 Surgeon Booster khởi động...");
+        addTerminalLog("🧠 Đang phân tích cấu trúc nội dung...");
 
         try {
             if (!isAdhoc && cid) {
@@ -726,11 +755,10 @@ export function createAnalysisController(config: {
         isRewriting = true;
         isBulkFixing = true;
         bulkFixStatus = "Đang múa bút...";
-        bulkFixLogs = [
-            "🔥 Kích hoạt Xohi Creative Rewrite...",
-            "🧠 Đang nạp luận điểm phản biện...",
-            "🖋️ Đang tái cấu trúc nội dung sáng tạo..."
-        ];
+        bulkFixLogs = [];
+        addTerminalLog("🔥 Kích hoạt Xohi Creative Rewrite...");
+        addTerminalLog("🧠 Đang nạp luận điểm phản biện...");
+        addTerminalLog("🖋️ Đang tái cấu trúc nội dung sáng tạo...");
 
         try {
             const payload = { 

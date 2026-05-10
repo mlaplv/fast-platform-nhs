@@ -12,6 +12,7 @@
   import ImageBubbleMenu from '../ui/ImageBubbleMenu.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { stripMarks } from '../utils/editorUtils';
+  import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
   import type { Editor } from '@tiptap/core';
   import type { MediaAsset } from '$lib/state/types';
 
@@ -152,8 +153,8 @@
 {#if linkMenuVisible && editor && !blockClicks}
   <div
     use:portal
-    class="fixed z-[var(--z-admin-tiptap-link-bubble)] pointer-events-auto link-bubble-menu"
-    style="left: {linkMenuX}px; top: {linkMenuY}px; transform: translate(-50%, -100%);"
+    class="fixed pointer-events-auto link-bubble-menu"
+    style="left: {linkMenuX}px; top: {linkMenuY}px; transform: translate(-50%, -100%); z-index: {Z_INDEX_ADMIN.TIPTAP_LINK_BUBBLE};"
     role="tooltip"
   >
     <LinkBubbleMenu
@@ -167,8 +168,8 @@
 {#if editor && editable && imageMenuVisible && !blockClicks && !showMediaVault && !showLinkDialog}
 <div
   use:portal
-  class="fixed z-[var(--z-admin-tiptap-bubble-menu)] -translate-x-1/2 -translate-y-full pointer-events-auto transition-all duration-75 ease-out image-bubble-menu"
-  style="left: {imageMenuX}px; top: {imageMenuY}px;"
+  class="fixed -translate-x-1/2 -translate-y-full pointer-events-auto transition-all duration-75 ease-out image-bubble-menu"
+  style="left: {imageMenuX}px; top: {imageMenuY}px; z-index: {Z_INDEX_ADMIN.TIPTAP_BUBBLE_MENU};"
 >
   <ImageBubbleMenu
     {editor}

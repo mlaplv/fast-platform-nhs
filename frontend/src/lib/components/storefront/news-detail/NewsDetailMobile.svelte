@@ -5,6 +5,7 @@
   import NewsMobileReviews from './NewsMobileReviews.svelte';
   interface Props {
     article: { 
+      id: string;
       title: string; 
       author: string; 
       publishedAt: string; 
@@ -49,7 +50,7 @@
         <span class="bg-[#C18F7E] text-white px-2 py-0.5 text-[9px] font-black uppercase tracking-widest mb-3 inline-block">
           Hướng dẫn chuyên môn
         </span>
-        <h1 class="text-3xl font-black text-gray-900 leading-tight tracking-tighter uppercase italic drop-shadow-sm mb-0">
+        <h1 class="text-3xl font-black text-gray-900 leading-tight tracking-tighter drop-shadow-sm mb-0">
           {article.title}
         </h1>
     </div>
@@ -61,7 +62,7 @@
         <button onclick={() => history.back()} class="w-8 h-8 flex items-center justify-center text-gray-900">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" /></svg>
         </button>
-        <h1 class="text-lg font-black text-gray-900 uppercase italic tracking-tight truncate flex-1">
+        <h1 class="text-lg font-black text-gray-900 tracking-tight truncate flex-1">
           {article.title}
         </h1>
     </div>
@@ -72,7 +73,7 @@
   <!-- Article Info -->
   <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/30">
       <div class="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest overflow-hidden">
-        <span class="text-[#C18F7E] shrink-0">{article.author === 'Xohi' || article.author === 'System' ? 'Ban biên tập osmo' : article.author}</span>
+        <span class="text-[#C18F7E] shrink-0">{article.author === 'Xohi' || article.author === 'System' || article.author === 'Micsmo' ? 'Ban biên tập osmo' : article.author}</span>
         <div class="w-1 h-1 bg-gray-200 rounded-full shrink-0"></div>
         <span class="truncate">{article.publishedAt}</span>
       </div>
@@ -139,6 +140,15 @@
     font-weight: 400;
   }
 
+  :global(.elite-prose-mobile h1) {
+    font-size: 1.75rem;
+    font-weight: 950;
+    color: #111827 !important;
+    margin: 2rem 0 0.75rem 0;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+
   :global(.elite-prose-mobile h2) {
     font-size: 1.35rem;
     font-weight: 950;
@@ -149,6 +159,12 @@
     border-left: 4px solid #C18F7E;
     padding-left: 0.75rem;
     line-height: 1.2;
+  }
+
+  :global(.elite-prose-mobile strong),
+  :global(.elite-prose-mobile b) {
+    color: #111827 !important;
+    font-weight: 850;
   }
 
   :global(.elite-prose-mobile h3) {

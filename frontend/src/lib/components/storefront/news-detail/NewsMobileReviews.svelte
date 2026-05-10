@@ -201,7 +201,7 @@
   <!-- Professional Header -->
   <div class="flex items-center justify-between mb-8 pb-6 border-b border-gray-50">
     <div class="space-y-1.5">
-      <h2 class="text-[13px] font-black text-[#0f172a] uppercase tracking-[0.2em] italic leading-none">Phản hồi từ độc giả</h2>
+      <h2 class="text-[13px] font-black text-[#0f172a] tracking-[0.2em] leading-none">Phản hồi từ độc giả</h2>
       <div class="flex items-center gap-2.5">
         <div class="flex gap-0.5">
           {#each Array(5) as _, i}
@@ -210,11 +210,11 @@
         </div>
         <div class="flex items-baseline gap-1">
           <span class="text-sm font-black text-[#C18F7E]">{averageRating}</span>
-          <span class="text-[9px] font-bold text-gray-300 uppercase">({reviewCount} lượt)</span>
+          <span class="text-[9px] font-bold text-gray-300">({reviewCount} lượt)</span>
         </div>
       </div>
     </div>
-    <button onclick={handleWriteReview} class="px-6 py-3 bg-[#C18F7E] text-white text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-[#C18F7E]/20">
+    <button onclick={handleWriteReview} class="px-6 py-3 bg-[#C18F7E] text-white text-[10px] font-black tracking-widest active:scale-95 transition-all shadow-xl shadow-[#C18F7E]/20">
         Viết ngay
     </button>
   </div>
@@ -224,13 +224,13 @@
         {#if submitSuccess}
             <div class="py-6 flex flex-col items-center justify-center text-center" in:scale>
                 <CheckCircle2 class="w-12 h-12 text-[#C18F7E] mb-3" />
-                <p class="text-sm font-black text-[#0f172a] uppercase tracking-tight">Gửi thành công!</p>
+                <p class="text-sm font-black text-[#0f172a] tracking-tight">Gửi thành công!</p>
             </div>
         {:else}
             <div class="space-y-6">
                 <!-- Rating -->
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Đánh giá của bạn</span>
+                    <span class="text-[10px] font-black text-gray-400 tracking-widest">Đánh giá của bạn</span>
                     <div class="flex gap-2">
                         {#each Array(5) as _, i}
                             <button onclick={() => newRating = i + 1}>
@@ -266,12 +266,12 @@
 
                 <!-- Footer -->
                 <div class="flex items-center justify-end gap-6 pt-4 border-t border-gray-200">
-                    <button onclick={() => showWriteForm = false} class="text-[10px] font-black text-gray-400 uppercase">Hủy</button>
+                    <button onclick={() => showWriteForm = false} class="text-[10px] font-black text-gray-400">Hủy</button>
                     <button 
                         onclick={submitReview}
                         disabled={isSubmitting || newContent.length < 5} 
-                        class="px-8 py-3 bg-[#0f172a] text-white text-[10px] font-black uppercase flex items-center gap-2 active:scale-95 transition-all disabled:opacity-30">
-                        {isSubmitting ? 'ĐANG GỬI' : 'XÁC NHẬN'} <Send size={12} />
+                        class="px-8 py-3 bg-[#0f172a] text-white text-[10px] font-black flex items-center gap-2 active:scale-95 transition-all disabled:opacity-30">
+                        {isSubmitting ? 'Đang gửi' : 'Xác nhận'} <Send size={12} />
                     </button>
                 </div>
             </div>
@@ -286,7 +286,7 @@
   {:else if reviews.length === 0 && !showWriteForm}
     <div class="flex flex-col items-center py-10 text-center opacity-30">
       <MessageCircleMore size={40} class="mb-4" />
-      <p class="text-[10px] font-black uppercase tracking-widest">Đang chờ ý kiến từ độc giả...</p>
+      <p class="text-[10px] font-black tracking-widest">Đang chờ ý kiến từ độc giả...</p>
     </div>
   {:else if reviews.length > 0}
     {@const review = reviews[0]}
@@ -297,7 +297,7 @@
         </div>
         <div class="flex-1">
           <div class="flex items-center gap-1">
-            <span class="text-xs font-black text-[#0f172a] uppercase">{review.customer_name || 'Khách hàng'}</span>
+            <span class="text-xs font-black text-[#0f172a]">{review.customer_name || 'Khách hàng'}</span>
             <CheckCircle2 size={12} fill="currentColor" class="text-green-500" />
           </div>
           <div class="flex gap-0.5">
@@ -317,7 +317,7 @@
             <div class="absolute right-0 bottom-full mb-2 w-32 bg-white border border-gray-100 shadow-xl z-50 py-1 rounded-lg overflow-hidden">
               <button 
                 onclick={() => handleReportReview(review.id)}
-                class="w-full text-left px-4 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 transition-colors uppercase tracking-widest"
+                class="w-full text-left px-4 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 transition-colors tracking-widest"
               >
                 Báo cáo
               </button>
@@ -332,7 +332,7 @@
             <span class="text-xs font-bold">{review.likes_count || 0}</span>
           </button>
         </div>
-        <span class="text-[9px] font-black text-gray-300 uppercase shrink-0">BÀI VIẾT HÀNG ĐẦU</span>
+        <span class="text-[9px] font-black text-gray-300 shrink-0">BÀI VIẾT HÀNG ĐẦU</span>
       </div>
 
       <div class="text-sm text-gray-700 leading-relaxed italic line-clamp-3 mb-4 font-medium">
@@ -353,11 +353,11 @@
       {/if}
 
       <div class="mt-6 flex items-center justify-between">
-        <div class="text-[9px] font-black uppercase tracking-widest text-gray-300">
+        <div class="text-[9px] font-black tracking-widest text-gray-300">
            {reviewCount * 14 + 120}+ Độc giả tin dùng
         </div>
-        <div class="px-6 py-3 bg-[#C18F7E] text-white text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all">
-          TẤT CẢ CẢM NHẬN
+        <div class="px-6 py-3 bg-[#C18F7E] text-white text-[9px] font-black tracking-widest active:scale-95 transition-all">
+          Tất cả cảm nhận
         </div>
       </div>
     </div>

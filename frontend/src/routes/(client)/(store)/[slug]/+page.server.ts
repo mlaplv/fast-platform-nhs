@@ -199,10 +199,39 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
       signal: AbortSignal.timeout(3000)
     });
     if (artRes.ok) {
-      const article = (await artRes.json()) as Article;
+      // Phase 2026: Parallel fetch for related news (Elite V2.2 Performance)
+      const newsUrl = `${apiUrl}/api/v1/client/news`;
+      const [artData, newsRes] = await Promise.all([
+        artRes.json(),
+        fetch(newsUrl, {
+          headers: { 'x-tenant': tenantId },
+          signal: AbortSignal.timeout(3000)
+        }).catch(e => {
+          console.error(`[RELATED NEWS FETCH FAILED]`, e);
+          return null;
+        })
+      ]);
+
+      const article = artData as Article;
+      let relatedNews: Article[] = [];
+      
+      if (newsRes && newsRes.ok) {
+        try {
+          const newsData = await newsRes.json();
+          const allNews = (Array.isArray(newsData) ? newsData : (newsData.data || newsData.items || [])) as Article[];
+          // Filter out current article and take 3
+          relatedNews = allNews
+            .filter((n: Article) => n.id !== article.id)
+            .slice(0, 3);
+        } catch (e) {
+          console.error(`[RELATED NEWS PARSE FAILED]`, e);
+        }
+      }
+
       return {
         type: 'article',
         article,
+        relatedNews,
         metadata: {
           timestamp: new Date().toISOString()
         }
