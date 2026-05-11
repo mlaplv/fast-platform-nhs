@@ -23,6 +23,7 @@ from backend.services.event_bus import event_bus
 from backend.utils.media import extract_media_urls
 from backend.services.lexical_sanitizer import sanitize_ai_text
 from backend.services.prompt_entropy import build_entropy_system_prompt
+from backend.database import current_tenant_id
 
 logger = logging.getLogger("api-gateway")
 
@@ -278,13 +279,16 @@ class ArticleService:
             seo_keywords=data.seo_keywords,
             seo_og_image=data.seo_og_image,
             status=data.status.upper(),
-            category=data.category,
+            category=data.category if isinstance(data.category, str) else data.category.value,
             author_id=data.authorId,
+            tenant_id=current_tenant_id.get() or "default",
             featured_image=data.featured_image,
+
             article_metadata=data.metadata.model_dump() if data.metadata else {},
             analysis_report=data.analysis_report or {},
         )
         db_session.add(article)
+        await db_session.flush() # Elite V2.2: Force flush to DB so raw SQL FK check passes
 
         # RAG Upsert
         await self.vector_service.upsert_article_embedding(
@@ -327,7 +331,8 @@ class ArticleService:
         if data.seo_keywords is not None: article.seo_keywords = data.seo_keywords
         if data.seo_og_image is not None: article.seo_og_image = data.seo_og_image
         if data.status is not None: article.status = data.status.upper()
-        if data.category is not None: article.category = data.category
+        if data.category is not None:
+            article.category = data.category if isinstance(data.category, str) else data.category.value
         if data.featured_image is not None: article.featured_image = data.featured_image
 
         # GEO 2026: Merge metadata (FAQs etc.)

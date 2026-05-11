@@ -24,7 +24,8 @@ class ArticleSeoMeta(BaseModel):
 
 
 class CreateArticleRequest(BaseModel):
-    model_config = ConfigDict(strict=True)
+    # CNS V95: strict=False for category to allow string coercion from query/form
+    model_config = ConfigDict(strict=False, populate_by_name=True)
     title: str = Field(..., min_length=1, max_length=500)
     slug: Optional[str] = Field(None, max_length=500)
     excerpt: Optional[str] = Field(None, max_length=1000)
@@ -34,15 +35,26 @@ class CreateArticleRequest(BaseModel):
     seo_keywords: Optional[str] = Field(None, max_length=1000)
     seo_og_image: Optional[str] = Field(None, max_length=500)
     status: str = Field("DRAFT", pattern=r"^(DRAFT|PUBLISHED|ARCHIVED)$")
-    category: CategoryEnum = Field(CategoryEnum.TIN_TUC)
+    category: str = Field(CategoryEnum.TIN_TUC.value)
     featured_image: Optional[str] = Field(None, alias="featured_image")
     metadata: Optional[ArticleMetadata] = None
     authorId: Optional[str] = None
     analysis_report: Optional[dict] = Field(None, alias="analysis_report")
 
+    @field_validator("category", mode="before")
+    @classmethod
+    def normalize_category(cls, v: object) -> str:
+        """Coerce CategoryEnum or arbitrary string to its .value safely."""
+        if isinstance(v, CategoryEnum):
+            return v.value
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+        return CategoryEnum.TIN_TUC.value
+
 
 class UpdateArticleRequest(BaseModel):
-    model_config = ConfigDict(strict=True)
+    # CNS V95: strict=False for category to allow string coercion
+    model_config = ConfigDict(strict=False, populate_by_name=True)
     title: Optional[str] = Field(None, min_length=1, max_length=500)
     slug: Optional[str] = Field(None, max_length=500)
     excerpt: Optional[str] = Field(None, max_length=1000)
@@ -52,10 +64,22 @@ class UpdateArticleRequest(BaseModel):
     seo_keywords: Optional[str] = Field(None, max_length=1000)
     seo_og_image: Optional[str] = Field(None, max_length=500)
     status: Optional[str] = Field(None, pattern=r"^(DRAFT|PUBLISHED|ARCHIVED)$")
-    category: Optional[CategoryEnum] = Field(None)
+    category: Optional[str] = Field(None)
     featured_image: Optional[str] = Field(None, alias="featured_image")
     metadata: Optional[ArticleMetadata] = None
     analysis_report: Optional[dict] = Field(None, alias="analysis_report")
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def normalize_category(cls, v: object) -> Optional[str]:
+        """Coerce CategoryEnum or arbitrary string to its .value safely."""
+        if v is None:
+            return None
+        if isinstance(v, CategoryEnum):
+            return v.value
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+        return None
 
 
 class ArticleResponse(BaseModel):
@@ -81,10 +105,37 @@ class ArticleResponse(BaseModel):
     authorId: Optional[str] = Field(None, alias="author_id")
     createdAt: datetime = Field(alias="created_at")
 
+    @field_validator("author", mode="before")
+    @classmethod
+    def coerce_author(cls, v: object) -> str:
+        """Handle None author from scalar projection when outer join fails."""
+        if not v:
+            return "System"
+        return str(v)
+
+
     @field_validator("id", "authorId", mode="before")
     @classmethod
-    def stringify_ids(cls, v):
+    def stringify_ids(cls, v: object) -> Optional[str]:
         return str(v) if v is not None else None
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def stringify_category(cls, v: object) -> str:
+        """Handle CategoryEnum objects from ORM or raw strings from scalar projections."""
+        if isinstance(v, CategoryEnum):
+            return v.value
+        if v is None:
+            return CategoryEnum.TIN_TUC.value
+        return str(v)
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def coerce_metadata(cls, v: object) -> object:
+        """Safely handle None or empty dict from scalar projection."""
+        if v is None:
+            return {}
+        return v
 
     @computed_field
     @property

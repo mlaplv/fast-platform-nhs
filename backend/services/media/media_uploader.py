@@ -121,9 +121,20 @@ class MediaUploaderMixin:
             logger.error(f"[MediaUploader] Upload failed: {e}"); return None
 
     async def fetch_remote_asset(self, repo: MediaRegistryRepository, url: str, campaign_id: Optional[str] = None, owner_id: Optional[str] = None) -> Optional[MediaRegistry]:
-        """Tải ảnh từ URL và lưu vào hệ thống."""
+        """Tải ảnh từ URL và lưu vào hệ thống.
+        
+        Elite V2.2 Article Standard:
+        - Max width: 750px (height auto, aspect-ratio preserved)
+        - Format: WebP quality=88
+        - Filename: SEO-clean (lowercase, hyphens only)
+        - Security: SSRF protected + magic byte validation via upload pipeline
+        """
         from backend.utils.http_client import SharedHttpClient
-        asset_id = str(uuid.uuid4()); folder = datetime.now().strftime("%Y/%m")
+        import re as _re
+        asset_id = str(uuid.uuid4())
+        folder = datetime.now().strftime("%Y/%m")
+        ARTICLE_MAX_WIDTH = 750
+
         try:
             if not url.startswith("http"):
                 local_path = next((p for base in ["frontend/static", "."] if os.path.isfile(p := os.path.join(base, url.lstrip("/")))), None)
@@ -131,39 +142,84 @@ class MediaUploaderMixin:
                 with open(local_path, "rb") as f: content = f.read()
                 content_type = mimetypes.guess_type(local_path)[0] or "image/jpeg"
             else:
-                # [Elite Security] R55.5: SSRF Protection
+                # [Elite Security] R55.5: SSRF Protection (DNS + IP range check)
                 if not is_safe_url(url):
                     logger.error(f"[Security] SSRF Attempt Blocked: {url}")
                     return None
-
                 client = await SharedHttpClient.get_client()
                 resp = await client.get(url, timeout=10.0, follow_redirects=True, headers={"User-Agent": "Mozilla/5.0"})
-                resp.raise_for_status(); content = resp.content; content_type = resp.headers.get("Content-Type", "")
+                resp.raise_for_status()
+                content = resp.content
+                content_type = resp.headers.get("Content-Type", "")
 
-            if not content_type.startswith("image/"): return None
+            if not content_type.startswith("image/"):
+                logger.warning(f"[Auto-Leach] Non-image content skipped: {content_type}")
+                return None
+
+            # [Elite SEO] Clean filename: strip query, hash, extension → lowercase-hyphens
+            raw_name = url.split("/")[-1].split("?")[0].split("#")[0]
+            base_name = os.path.splitext(raw_name)[0] or f"article-image-{asset_id[:8]}"
+            seo_name = _re.sub(r"[^a-z0-9\-]", "-", base_name.lower()).strip("-") or f"article-image-{asset_id[:8]}"
+            final_filename = f"{seo_name}.webp"
+
             ext = mimetypes.guess_extension(content_type) or ".jpg"
-            temp_p, webp_p = f"/tmp/{asset_id}{ext}", f"/tmp/{asset_id}.webp"
-            with open(temp_p, "wb") as f: f.write(content)
-            
-            with Image.open(temp_p) as img:
-                dims = f"{img.width}x{img.height}"
-                processed = img.convert('RGBA') if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info) else img.convert('RGB')
-                processed.save(webp_p, "WEBP", quality=90, optimize=True)
-            
-            final_url = await storage.upload(webp_p, f"uploads/{folder}/{asset_id}.webp")
-            actual_size = os.path.getsize(webp_p)
-            for p in [temp_p, webp_p]: 
-                if os.path.exists(p): os.remove(p)
+            temp_p = f"/tmp/{asset_id}{ext}"
+            webp_p = f"/tmp/{asset_id}.webp"
+
+            try:
+                with open(temp_p, "wb") as f: f.write(content)
+
+                # [Elite V2.2] Article Image Standard: 750px max-width, height auto, LANCZOS quality
+                with Image.open(temp_p) as img:
+                    if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+                        processed = img.convert('RGBA')
+                    else:
+                        processed = img.convert('RGB')
+
+                    if processed.width > ARTICLE_MAX_WIDTH:
+                        ratio = ARTICLE_MAX_WIDTH / processed.width
+                        new_h = max(1, int(processed.height * ratio))
+                        processed = processed.resize((ARTICLE_MAX_WIDTH, new_h), Image.Resampling.LANCZOS)
+
+                    dims = f"{processed.width}x{processed.height}"
+                    processed.save(webp_p, "WEBP", quality=88, optimize=True)
+
+                final_url = await storage.upload(webp_p, f"uploads/{folder}/{asset_id}.webp")
+                actual_size = os.path.getsize(webp_p)
+
+            finally:
+                for p in [temp_p, webp_p]:
+                    if os.path.exists(p): os.remove(p)
 
             v_cid = campaign_id if campaign_id and (await repo.session.execute(select(ContentCampaign.id).where(ContentCampaign.id == campaign_id))).scalar() else None
             v_oid = owner_id if owner_id and (await repo.session.execute(select(User.id).where(User.id == owner_id))).scalar() else None
 
             from backend.services.xohi_memory import xohi_memory
             ai_vision = await xohi_memory.client.get("ai:vision:enabled") if xohi_memory._use_redis else "0"
-            asset = MediaRegistry(id=asset_id, filename=(url.split("/")[-1].split("?")[0] or f"remote_{asset_id[:8]}").split(".")[0] + ".webp", file_path=final_url, file_size=actual_size, mime_type="image/webp", dimensions=dims, campaign_id=v_cid, owner_id=v_oid, provider=str(os.getenv("STORAGE_PROVIDER", "local")), media_metadata={"status": "ready" if ai_vision != "1" else "processing", "focal_point": {"x": 0.5, "y": 0.5}} if ai_vision != "1" else {})
-            repo.session.add(asset); await repo.session.commit()
+
+            asset = MediaRegistry(
+                id=asset_id,
+                filename=final_filename,
+                file_path=final_url,
+                file_size=actual_size,
+                mime_type="image/webp",
+                dimensions=dims,
+                campaign_id=v_cid,
+                owner_id=v_oid,
+                provider=str(os.getenv("STORAGE_PROVIDER", "local")),
+                media_metadata={
+                    "status": "ready" if ai_vision != "1" else "processing",
+                    "focal_point": {"x": 0.5, "y": 0.5},
+                    "original_source": url,
+                }
+            )
+            repo.session.add(asset)
+            await repo.session.commit()
             from backend.services.event_bus import event_bus
             await event_bus.emit("MEDIA_UPLOADED", {"id": asset_id, "file_path": final_url, "campaign_id": v_cid})
+            logger.info(f"[Auto-Leach] Saved: {final_filename} @ {dims} ({actual_size // 1024}KB)")
             return asset
+
         except Exception as e:
-            logger.exception(f"[MediaUploader] Remote fetch failed: {e}"); return None
+            logger.exception(f"[MediaUploader] Remote fetch failed: {e}")
+            return None

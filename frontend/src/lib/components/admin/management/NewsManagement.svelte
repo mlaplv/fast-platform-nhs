@@ -184,7 +184,7 @@
       formSeoKeywords = fullArticle.seoKeywords || "";
       formSeoOgImage = fullArticle.seoOgImage || null;
       formFeaturedImage = fullArticle.featuredImage || null;
-      const meta = (fullArticle as any).metadata || {};
+      const meta = fullArticle.metadata || {};
       formFaqs = meta.faqs || [];
       // CNS V86.5: Hydrate analysis cache để khôi phục highlights sau F5
       formAnalysisCache = meta.analysis_cache || {};
@@ -278,7 +278,7 @@
       nanobot.showToast(`Cập nhật thành công ${ids.length} bài viết.`, "success");
       await loadArticles();
     } catch (err: unknown) {
-      const detail = err instanceof ApiError ? (err.data as any)?.detail : "Cập nhật hàng loạt thất bại";
+      const detail = err instanceof ApiError ? (err.data as Record<string, unknown>)?.detail : "Cập nhật hàng loạt thất bại";
       nanobot.showToast(`Neural sync failed. ${detail}`, "error");
     } finally { isSaving = false; }
   }
@@ -293,7 +293,7 @@
       nanobot.showToast("Đã tiêu hủy dữ liệu thành công.", "success");
       await loadArticles();
     } catch (err: unknown) {
-      const detail = err instanceof ApiError ? (err.data as any)?.detail : "Tiêu hủy thất bại";
+      const detail = err instanceof ApiError ? (err.data as Record<string, unknown>)?.detail : "Tiêu hủy thất bại";
       nanobot.showToast(`Neural link failed. ${detail}`, "error");
     } finally { isSaving = false; }
   }

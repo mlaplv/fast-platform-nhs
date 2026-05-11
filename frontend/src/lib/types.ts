@@ -169,6 +169,13 @@ export interface OrderDetail extends Order {
   cancellationReason?: string;
 }
 
+export interface ArticleMetadata {
+  faqs?: { question: string; answer: string }[];
+  analysis_cache?: import('./state/types').AnalysisCache;
+  analysis_metrics?: import('./state/types').CampaignMetrics;
+  [key: string]: unknown;
+}
+
 export interface Article {
   id: string;
   title: string;
@@ -187,6 +194,7 @@ export interface Article {
   authorId: string | null;
   createdAt: string;
   analysis_report?: Record<string, unknown>;
+  metadata?: ArticleMetadata;
 }
 
 export interface PromotionDeal {

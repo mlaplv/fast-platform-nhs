@@ -24,6 +24,7 @@
   import AlignJustifyIcon from "@lucide/svelte/icons/align-justify";
   import TrendingUpIcon from "@lucide/svelte/icons/trending-up";
   import MoreHorizontalIcon from "@lucide/svelte/icons/more-horizontal";
+  import CloudDownloadIcon from "@lucide/svelte/icons/cloud-download";
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import type { CleanOptions } from '$lib/state/xohiActions';
@@ -61,6 +62,8 @@
     // CNS V87.0: SSE streaming
     streamingText = '',
     streamingTarget = null,
+    onAutoLeach = null,
+    isLeaching = false,
   }: {
     editor: Editor | null;
     toolbarActions?: ToolbarAction[];
@@ -86,6 +89,8 @@
     bulkFixLogs?: string[];
     streamingText?: string;
     streamingTarget?: string | null;
+    onAutoLeach?: (() => void) | null;
+    isLeaching?: boolean;
   } = $props();
 
   const FONTS = ['Inter', 'Roboto', 'Georgia', 'Times New Roman', 'Courier New', 'Arial'];
@@ -360,6 +365,19 @@
         title="Clear Formatting & AI Highlights"
       >
         <EraserIcon size={12} />
+      </button>
+      <div class="w-px h-3 bg-white/5 mx-1"></div>
+      <button 
+        onclick={onAutoLeach} 
+        class="tb-btn {isLeaching ? 'animate-pulse text-amber-400' : 'text-emerald-400/60 hover:text-emerald-400'}" 
+        title="Auto-Leach: Cào ảnh ngoại về local"
+        disabled={isLeaching}
+      >
+        {#if isLeaching}
+          <div class="w-3 h-3 border-2 border-amber-400/20 border-t-amber-400 rounded-full animate-spin"></div>
+        {:else}
+          <CloudDownloadIcon size={12} />
+        {/if}
       </button>
     </div>
   {/if}

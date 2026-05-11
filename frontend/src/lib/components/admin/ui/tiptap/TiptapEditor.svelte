@@ -9,10 +9,11 @@
   import EditorOverlays from './parts/EditorOverlays.svelte';
   import StatusBar from './ui/StatusBar.svelte';
   import type { MediaAsset } from '$lib/state/types';
-  import { resolveMediaUrl } from '$lib/state/utils';
   import { xohiActions, type CleanOptions } from '$lib/state/xohiActions';
   import type { CopyrightResult, SEOResult, AIInspectResult, NeuralAnalysisController } from '$lib/state/types';
-  import { tokenize, jaccard, normalizeHTML, stripMarks, generateStableId, beautifyHTML } from './utils/editorUtils';
+  import { normalizeHTML, stripMarks, beautifyHTML } from './utils/editorUtils';
+  import { apiClient } from '$lib/utils/apiClient';
+  import { getNanobot } from '$lib/state/nanobot.svelte';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
   import { createAnnotationManager } from './parts/AnnotationManager.svelte.ts';
@@ -126,6 +127,129 @@
   // CNS V89: Annotation loop guard — track last dispatched key to prevent redundant SET_ANNOTATIONS
   // CNS V93: Plain let — loop guard for annotation dispatch (plugin self-heals on doc change)
   let _lastAnnotationKey = '';
+
+  // --- Elite V2.2 Auto-Leach Queue ---
+  let leachQueue = $state<string[]>([]);
+  let isLeaching = $state(false);
+
+  async function runAutoLeach() {
+    if (isLeaching || !editor || editor.isDestroyed) return;
+    
+    const externalFound = new Set<string>();
+    const currentHostname = typeof window !== 'undefined' ? window.location.hostname : 'smartshop.test';
+
+    const isSafeUrl = (url: string): boolean => {
+      try {
+        if (!url.startsWith('http')) return false;
+        const parsed = new URL(url);
+        // CNS V95: SSRF & Loopback Protection
+        const blocked = ['localhost', '127.0.0.1', '0.0.0.0', '::1', currentHostname, 'smartshop.test', 'api.osmo.vn', 'admin.osmo.vn'];
+        if (blocked.some(b => parsed.hostname.includes(b))) return false;
+        // Private IP Ranges (RFC1918)
+        if (/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)/.test(parsed.hostname)) return false;
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    // Phase 1: Intelligent Scan (ProseMirror AST traversal is 10x faster than regex)
+    editor.view.state.doc.descendants((node) => {
+      if (node.type.name === 'image') {
+        const src = node.attrs.src;
+        if (src && isSafeUrl(src)) {
+          externalFound.add(src);
+        }
+      }
+    });
+
+    if (externalFound.size === 0) {
+      getNanobot().showToast("Dạ sếp, không tìm thấy ảnh ngoại cần cào.", "info");
+      return;
+    }
+
+    const targets = Array.from(externalFound);
+    leachQueue = [...targets];
+    isLeaching = true;
+    const nanobot = getNanobot();
+
+    // Store full asset metadata for SEO attribute injection
+    interface LeachResult { src: string; width: number; height: number; alt: string; }
+    const resultMap = new Map<string, LeachResult>();
+
+    try {
+      // Phase 2: Concurrent Neural Fetching (Elite V2.2 Parallelism)
+      while (leachQueue.length > 0) {
+        const batch = leachQueue.splice(0, 3);
+        await Promise.allSettled(batch.map(async (url) => {
+          try {
+            const res = await apiClient.post('/api/v1/media/fetch-remote', {
+              url,
+              campaign_id: campaignId || undefined
+            });
+
+            if (res.status === 'success' && res.data?.file_path) {
+              // Parse dimensions returned from backend (format: "750x422")
+              const dims = (res.data.dimensions as string | undefined) || '750x0';
+              const [w, h] = dims.split('x').map(Number);
+              // Derive SEO alt from filename: strip extension, replace hyphens
+              const rawFilename = (res.data.filename as string | undefined) || 'article-image';
+              const altText = rawFilename.replace(/\.webp$/i, '').replace(/-/g, ' ');
+
+              resultMap.set(url, {
+                src: res.data.file_path as string,
+                width: w || 750,
+                height: h || 0,
+                alt: altText,
+              });
+
+              if (campaignId) {
+                await apiClient.post('/api/v1/media/link-to-post', {
+                  asset_ids: [res.data.id],
+                  post_id: campaignId,
+                  post_type: 'article'
+                }).catch(e => console.error("[Auto-Leach] Link failed", e));
+              }
+            }
+          } catch (error) {
+            console.error("[Auto-Leach] Lỗi cào ảnh:", url, error);
+          }
+        }));
+      }
+
+      // Phase 3: Atomic Transaction — O(N) one-pass, inject full SEO attrs
+      if (resultMap.size > 0 && editor && !editor.isDestroyed) {
+        let tr = editor.view.state.tr;
+        editor.view.state.doc.descendants((node, pos) => {
+          if (node.type.name === 'image' && resultMap.has(node.attrs.src)) {
+            const result = resultMap.get(node.attrs.src)!;
+            tr = tr.setNodeMarkup(pos, null, {
+              ...node.attrs,
+              src: result.src,
+              // SEO: explicit dimensions prevent layout shift (CLS = 0)
+              width: result.width,
+              height: result.height > 0 ? result.height : null,
+              // SEO: alt text from clean filename (inherit existing if already set)
+              alt: node.attrs.alt || result.alt,
+              // Performance: native lazy load + async decode
+              loading: 'lazy',
+              decoding: 'async',
+              // Layout safety: never overflow container
+              style: 'max-width: 100%; height: auto;',
+            });
+          }
+        });
+
+        if (tr.docChanged) {
+          editor.view.dispatch(tr);
+          nanobot.showToast(`Đã cào thành công ${resultMap.size} ảnh về hệ thống sếp ơi!`, "success");
+        }
+      }
+    } finally {
+      isLeaching = false;
+      leachQueue = [];
+    }
+  }
 
   // Image Menu tracking
   let imageMenuVisible = $state(false);
@@ -452,6 +576,8 @@
       isRewriting={isRewriting}
       runBulkFix={runBulkFix}
       bulkFixLogs={bulkFixLogs}
+      onAutoLeach={runAutoLeach}
+      isLeaching={isLeaching}
     />
   {/if}
 
