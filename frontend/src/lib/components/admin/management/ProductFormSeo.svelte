@@ -55,7 +55,7 @@
     <div class="flex items-center justify-between mb-3">
       <div class="section-label mb-0">
         <Globe size={11} />
-        SEO Search Engine
+        CẤU HÌNH SEO
       </div>
       <button type="button" onclick={handleAiSuggest} disabled={isAiLoading} class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors disabled:opacity-50">
         {#if isAiLoading}
@@ -63,7 +63,7 @@
           Đang phân tích...
         {:else}
           <Globe size={10} />
-          AI Suggest
+          AI GỢI Ý
         {/if}
       </button>
     </div>
@@ -137,7 +137,7 @@
 
   <!-- Preview Column -->
   <div class="flex flex-col gap-4 mt-6 xl:mt-0">
-    <div class="section-label italic text-white/20 mb-0">Visual Preview</div>
+    <div class="section-label italic text-white/20 mb-0">XEM TRƯỚC HIỂN THỊ</div>
     
     <div class="flex flex-col gap-4">
       <!-- Google Snippet Preview -->
@@ -145,9 +145,9 @@
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
             <div class="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[8px] font-black text-white/30">G</div>
-            <span class="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Google Search Preview</span>
+            <span class="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">XEM TRƯỚC GOOGLE</span>
           </div>
-          <span class="text-[7px] font-mono text-white/20 px-1.5 py-0.5 border border-white/5 rounded">Auto-Synced</span>
+          <span class="text-[7px] font-mono text-white/20 px-1.5 py-0.5 border border-white/5 rounded">Đồng bộ tự động</span>
         </div>
         <div class="text-[13px] text-[#8ab4f8] truncate font-medium cursor-pointer hover:underline">{ogTitle}</div>
         <div class="flex items-center gap-1.5 text-[10px] text-[#bdc1c6] truncate">

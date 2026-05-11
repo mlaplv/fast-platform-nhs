@@ -75,9 +75,9 @@
   });
 
   const landingTypes = [
-    { value: 'standard', label: 'Standard (E-commerce)', desc: 'Giao diện truyền thống' },
-    { value: 'stealth', label: 'Stealth Funnel', desc: 'Tối ưu chuyển đổi nhanh (CPA)' },
-    { value: 'tiktok', label: 'TikTok Shop Clone', desc: 'Trải nghiệm như TikTok' }
+    { value: 'standard', label: 'Tiêu chuẩn (E-commerce)', desc: 'Giao diện truyền thống' },
+    { value: 'stealth', label: 'Phễu chuyển đổi (Stealth)', desc: 'Tối ưu chuyển đổi nhanh (CPA)' },
+    { value: 'tiktok', label: 'Phong cách TikTok', desc: 'Trải nghiệm video như TikTok' }
   ];
 
   // ─── Auto-detect video duration ─────────────────────────────────
@@ -191,7 +191,7 @@
   <div class="flex flex-col gap-3">
     <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
       <Layout size={11} class="text-amber-400/60" />
-      Loại hình phễu (Landing Type)
+      Loại hình trang đích (Landing Type)
     </div>
 
     <div class="grid grid-cols-3 gap-2">
@@ -245,7 +245,7 @@
       <div class="flex items-center justify-between mb-1">
         <div class="flex items-center gap-1.5">
           <Clock size={10} class="text-amber-400/70" />
-          <span class="text-[9px] font-black text-amber-400/60 uppercase tracking-[0.25em]">Trim Video</span>
+          <span class="text-[9px] font-black text-amber-400/60 uppercase tracking-[0.25em]">Cắt ghép Video</span>
         </div>
         {#if isDetectingDuration}
           <div class="flex items-center gap-1.5 text-amber-400/60">
@@ -307,7 +307,7 @@
   <div class="flex flex-col gap-4">
     <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
       <Share2 size={11} class="text-pink-400/60" />
-      Lan truyền & Tương tác (Viral 2026)
+      Lan truyền & Tương tác
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
@@ -404,7 +404,7 @@
   <div class="flex flex-col gap-4">
     <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
       <Beaker size={11} class="text-teal-400/60" />
-      Thành phần (Ingredients)
+      Bảng thành phần
     </div>
     <textarea bind:value={formState.metadata.ingredients} placeholder="Bảng thành phần đầy đủ..." rows="5" class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-white/80 resize-none"></textarea>
   </div>

@@ -173,7 +173,7 @@
 
     <div class="meta-overlay">
       <div class="content-overlay">
-      <h1 class="headline">
+      <h2 class="headline">
         <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
           {h1}
         </EditableWrapper>
@@ -183,7 +183,7 @@
             {h2}
           </EditableWrapper>
         </span>
-      </h1>
+      </h2>
         
         {#if product?.shortDescription}
           <p class="description tiktok-shadow">

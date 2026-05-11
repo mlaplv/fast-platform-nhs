@@ -432,12 +432,13 @@ class ArticleService:
 
         # SGE Shield V1.0: Dynamic Prompting — inject entropy với admin config
         base_seo_prompt = (
-            "You are an SEO expert. Given an article title and content, suggest optimized SEO metadata.\n"
-            "Constraints:\n"
-            "1. SEO Title: Max 60 characters, catchy but professional.\n"
-            "2. SEO Description: Max 160 characters, concise and engaging.\n"
-            "3. Keywords: 5-7 keywords separated by commas.\n"
-            "Return ONLY exact valid JSON object: {\"seo_title\": \"...\", \"seo_description\": \"...\", \"seo_keywords\": \"...\"}"
+            "Bạn là chuyên gia SEO bài viết hàng đầu Việt Nam. Hãy gợi ý metadata SEO tối ưu cho bài báo này.\n"
+            "QUY TẮC TỐI CAO: Dù tiêu đề hoặc nội dung đầu vào là tiếng Anh, toàn bộ kết quả BẮT BUỘC phải là tiếng Việt thuần 100%.\n"
+            "Yêu cầu:\n"
+            "1. Tiêu đề SEO: Tối đa 60 ký tự, hấp dẫn, chuyên nghiệp.\n"
+            "2. Mô tả SEO: Tối đa 160 ký tự, súc tích và lôi cuốn.\n"
+            "3. Từ khóa: 5-7 từ khóa cách nhau bởi dấu phẩy.\n"
+            "Chỉ trả về JSON hợp lệ: {\"seo_title\": \"...\", \"seo_description\": \"...\", \"seo_keywords\": \"...\"}"
         )
         sge_cfg_seo = await _get_sge_config_async()
         system_prompt = build_entropy_system_prompt(
@@ -483,10 +484,11 @@ class ArticleService:
 
         # SGE Shield V1.0: Dynamic Prompting — inject entropy vào system prompt
         base_faq_prompt = (
-            "You are an expert content advisor. Given an article title and content excerpt, "
-            "generate 3 to 5 frequently asked questions and short, helpful answers in Vietnamese. "
-            "Return ONLY exact valid JSON array of objects without markdown wrapping or backticks, "
-            "like this: [{\"question\": \"...\", \"answer\": \"...\"}]"
+            "Bạn là chuyên gia cố vấn nội dung. Dựa trên tiêu đề và nội dung bài viết, "
+            "hãy tạo 3 đến 5 câu hỏi thường gặp và câu trả lời ngắn gọn, hữu ích bằng tiếng Việt. "
+            "QUY TẮC TỐI CAO: Bất kể ngôn ngữ đầu vào là gì, đầu ra phải là tiếng Việt thuần 100%. "
+            "Chỉ trả về mảng JSON chính xác, không có markdown: "
+            "[{\"question\": \"...\", \"answer\": \"...\"}]"
         )
         sge_cfg_faq = await _get_sge_config_async()
         system_prompt = build_entropy_system_prompt(
@@ -529,6 +531,7 @@ class ArticleService:
 
         base_prompt = (
             "Bạn là chuyên gia viết tóm tắt bài báo tiếng Việt. "
+            "QUY TẮC TỐI CAO: Dù tiêu đề đầu vào là tiếng Anh, bạn BẮT BUỘC phải viết tóm tắt hoàn toàn bằng tiếng Việt thuần 100%. "
             "Dựa vào tiêu đề và chuyên mục, hãy viết 1-2 câu tóm tắt súc tích (tối đa 300 ký tự), "
             "hấp dẫn, chứa từ khóa chính. Chỉ trả về đoạn văn thuần túy, KHÔNG dùng markdown, "
             "KHÔNG giải thích thêm."
@@ -560,6 +563,7 @@ class ArticleService:
 
         base_prompt = (
             "Bạn là nhà báo/chuyên gia nội dung EEAT tiêu chuẩn 2026. "
+            "QUY TẮC TỐI CAO: Dù tiêu đề hoặc tóm tắt đầu vào là tiếng Anh, bạn BẮT BUỘC phải viết bài hoàn toàn bằng tiếng Việt thuần 100%. "
             "Viết bài viết HTML hoàn chỉnh bằng tiếng Việt dựa trên tiêu đề, chuyên mục và tóm tắt được cung cấp. "
             "Yêu cầu cấu trúc:\n"
             "- Dùng <h2> cho các luận điểm chính (chứa từ khóa), <h3> cho luận điểm phụ.\n"

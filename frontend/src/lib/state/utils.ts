@@ -166,12 +166,20 @@ export function processContentImages(html: string | null | undefined, assets: (M
         let idx = 0;
         const locals = assetList.map(a => resolveMediaUrl(typeof a === 'string' ? a : (a.file_path || a.url || '')));
         base = base.replace(/<img([^>]+)src=["']([^"']+)["']([^>]*)>/gi, (full, pre, src, post) => {
-            // R100: Skip replacement if the user manually inserted an internal media URL
             if (src.includes('/api/v1/media/') || src.includes('/uploads/') || src.startsWith('data:')) {
+                if (!full.includes('alt=') || full.includes('alt=""') || full.includes("alt=''")) {
+                    let cleaned = full.replace('alt=""', '').replace("alt=''", '');
+                    return cleaned.replace('<img', '<img alt="product content image" ');
+                }
                 return full;
             }
-            // For external links or AI-generated dummy links, replace them sequentially
-            return idx < locals.length ? `<img${pre}src="${locals[idx++]}"${post}>` : full;
+            const newSrc = idx < locals.length ? locals[idx++] : src;
+            let result = `<img${pre}src="${newSrc}"${post}>`;
+            if (!result.includes('alt=') || result.includes('alt=""') || result.includes("alt=''")) {
+                result = result.replace('alt=""', '').replace("alt=''", '');
+                result = result.replace('<img', '<img alt="product detail image" ');
+            }
+            return result;
         });
     }
 

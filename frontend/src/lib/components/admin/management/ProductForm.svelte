@@ -127,7 +127,7 @@
 </script>
 
 <MissionControlShell
-  title={editingId ? `Inventory_Registry // EDIT_${String(editingId).slice(0, 8)}` : "Inventory_Registry // NEW_ENTRY"}
+  title={editingId ? `QUẢN TRỊ KHO // CHỈNH SỬA_${String(editingId).slice(0, 8)}` : "QUẢN TRỊ KHO // THÊM MỚI"}
   variant="cyan"
   {isOpen}
   {onClose}
@@ -264,7 +264,7 @@
             {#if isSaving}
               <div class="flex items-center gap-3">
                 <div class="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
-                <span>Syncing...</span>
+                <span>Đang đồng bộ...</span>
               </div>
             {:else}
               {editingId ? "Ghi đè thay đổi" : "Xuất bản Inventory"}

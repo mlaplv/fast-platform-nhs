@@ -258,7 +258,7 @@
                 {#if variantImages[i]}
                   <img 
                     src={variantImages[i]} 
-                    alt={getVariantTitle(variant)} 
+                    alt={getVariantTitle(variant) || (product?.name || "Sản phẩm")} 
                     loading="lazy"
                     decoding="async"
                     width="100"
@@ -307,7 +307,7 @@
                          <div class="flex items-center gap-2 bg-white/10 border border-white/10 px-2 py-1 rounded-sm">
                             <div class="w-4 h-4 rounded-none overflow-hidden bg-black/40">
                                {#if gift.image}
-                                  <img src={resolveMediaUrl(gift.image)} alt={gift.name} loading="lazy" decoding="async" width="16" height="16" class="w-full h-full object-cover" />
+                                  <img src={resolveMediaUrl(gift.image)} alt={gift.name || "Quà tặng đặc quyền"} loading="lazy" decoding="async" width="16" height="16" class="w-full h-full object-cover" />
                                {:else}
                                   <Gift class="w-full h-full p-0.5 text-[#FFB7C5]" />
                                {/if}

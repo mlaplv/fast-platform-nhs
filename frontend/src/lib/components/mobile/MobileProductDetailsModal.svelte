@@ -348,14 +348,14 @@
                       <!-- 🌫️ Blurred background layer -->
                       <img
                         src={resolveMediaUrl(img)}
-                        alt=""
+                        alt="Phông nền sản phẩm - {product.name}"
                         aria-hidden="true"
                         class="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-40 z-0 pointer-events-none"
                       />
                       <!-- 📸 Main product image -->
                       <img 
                         src={resolveMediaUrl(img)} 
-                        alt={product.name} 
+                        alt={product.name || "Miccosmo Beppin Body Virgin White Serum"} 
                         class="relative block w-full h-auto z-10 transition-transform duration-700 {currentImageIndex === i ? 'scale-100 opacity-100' : 'scale-95 opacity-40 blur-sm'}"
                       />
                    </div>
@@ -364,9 +364,9 @@
 
              <!-- 🏷️ BRAND NAME: Bottom Left -->
              <div class="absolute bottom-4 left-4 z-20 pointer-events-none max-w-[65%]">
-                <h1 class="text-lg font-black !text-white leading-tight drop-shadow-[0_1px_12px_rgba(0,0,0,0.9)]">
+                <div class="text-lg font-black !text-white leading-tight drop-shadow-[0_1px_12px_rgba(0,0,0,0.9)]">
                   {product.name}
-                </h1>
+                </div>
              </div>
 
              <!-- 📊 INFO PILL: Bottom Right (viewer + image count) -->

@@ -804,9 +804,15 @@ class ProductService:
     async def suggest_seo(self, name: str, description: str) -> Dict[str, str]:
         """Elite V2.2: AI SEO Suggestion (C.O.R.E Engine)."""
         agent = Agent(
-            system_prompt="You are an SEO Expert. Optimize SEO metadata for a product. Return ONLY concise valid JSON without markdown wrapping: {\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\"}"
+            system_prompt=(
+                "Bạn là chuyên gia SEO hàng đầu Việt Nam. Hãy tối ưu tiêu đề, mô tả và từ khóa SEO cho sản phẩm này. "
+                "QUY TẮC TỐI CAO: Dù tên sản phẩm hoặc mô tả đầu vào là tiếng Anh, bạn BẮT BUỘC phải phản hồi nội dung hoàn toàn bằng tiếng Việt thuần 100%. "
+                "Nội dung phải súc tích, hấp dẫn và chuẩn SEO. "
+                "Chỉ trả về JSON hợp lệ, không có markdown: "
+                "{\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\"}"
+            )
         )
-        prompt = f"Product Name: {name}\nProduct Desc: {description}"
+        prompt = f"Tên sản phẩm: {name}\nMô tả: {description}"
         
         try:
             result = await trinity_bridge.run(
@@ -831,9 +837,14 @@ class ProductService:
     async def suggest_faqs(self, name: str, description: str) -> List[Dict[str, str]]:
         """Elite V2.2: XOHI Auto FAQ Generator."""
         agent = Agent(
-            system_prompt="You are an expert product advisor. Given a product name and description, generate 3 to 5 frequently asked questions and short, helpful answers in Vietnamese. Return ONLY exact valid JSON array of objects without markdown wrapping or backticks, like this: [{\"question\": \"...\", \"answer\": \"...\"}]"
+            system_prompt=(
+                "Bạn là chuyên gia tư vấn sản phẩm. Dựa trên tên và mô tả sản phẩm, hãy tạo từ 3 đến 5 câu hỏi thường gặp và câu trả lời ngắn gọn, hữu ích bằng tiếng Việt. "
+                "QUY TẮC TỐI CAO: Dù tên sản phẩm đầu vào là tiếng Anh, toàn bộ câu hỏi và câu trả lời phải là tiếng Việt thuần 100%. "
+                "Chỉ trả về mảng JSON chính xác các đối tượng, không có markdown: "
+                "[{\"question\": \"...\", \"answer\": \"...\"}]"
+            )
         )
-        prompt = f"Product Name: {name}\nProduct Desc: {description}"
+        prompt = f"Tên sản phẩm: {name}\nMô tả: {description}"
 
         try:
             result = await trinity_bridge.run(

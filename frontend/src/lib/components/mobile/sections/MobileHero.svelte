@@ -146,7 +146,7 @@
          >
            <img
              src={resolveMediaUrl(mobileImg || product?.tierVariations?.[0]?.images?.[i] || (product?.images?.length ? product.images[0] : ''))}
-             alt="{product?.name} - {opt}"
+             alt="{product?.name || "Sản phẩm"} - {opt}"
              width="390"
              height="844"
              class="w-full h-full object-cover select-none"
@@ -189,16 +189,29 @@
             </EditableWrapper>
 
             <!-- Title & Variant (Elite Dynamic Content) -->
-            <h1 class="text-3xl font-extrabold text-white tracking-tighter mb-4 italic leading-none">
-              <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.hero_headline_1` : 'metadata.hero_headline_1'} type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
-                  {variantH1}
-              </EditableWrapper>
-              <span class="block text-gradient-indigo">
+            <div class="mb-4">
+              <span class="text-[10px] font-black text-[#FFB7C5] uppercase tracking-[0.2em] mb-1 block italic drop-shadow-sm">
+                <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.hero_headline_1` : 'metadata.hero_headline_1'} type="text" label="SỬA SLOGAN" class="inline" as="span">
+                    {variantH1}
+                </EditableWrapper>
+              </span>
+              
+              {#if i === 0}
+                <h1 class="text-3xl font-extrabold text-white tracking-tighter italic leading-tight uppercase bg-clip-text">
+                  Miccosmo Beppin Body Virgin White Serum
+                </h1>
+              {:else}
+                <div class="text-3xl font-extrabold text-white tracking-tighter italic leading-tight uppercase bg-clip-text">
+                  Miccosmo Beppin Body Virgin White Serum
+                </div>
+              {/if}
+
+              <span class="block text-gradient-indigo text-lg font-bold mt-1">
                   <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.hero_headline_2` : 'metadata.hero_headline_2'} type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
                       {variantH2}
                   </EditableWrapper>
               </span>
-            </h1>
+            </div>
 
             <!-- Trust / Review Badge (Elite R00 Compliant) -->
             <div class="flex items-center gap-1.5 mt-0.5 mb-1.5 pr-14">
@@ -255,7 +268,7 @@
                            <div class="w-11 h-11 rounded-lg overflow-hidden bg-white/10 border border-white/10 shrink-0 shadow-inner">
                               <img 
                                  src={resolveMediaUrl((v.attributes.gifts[0] as GiftItem).image || product?.mobileImages?.[0] || product?.images?.[0])} 
-                                 alt="Quà tặng" 
+                                 alt="Quà tặng đặc quyền - {product?.name || "Miccosmo"} " 
                                  loading="lazy"
                                  decoding="async"
                                  width="44"
