@@ -111,18 +111,18 @@ export const xohiActions = {
         return controller;
     },
 
-    // CNS V87.0: Surgeon Boost — phẫu thuật toàn bộ content, trả về ContentPatch list
-    async runSurgeonBoost(content: string, topic: string) {
+    // CNS V87.0: Neural Boost — tinh chỉnh toàn bộ content, trả về ContentPatch list
+    async runNeuralBoost(content: string, topic: string) {
         type Patch = { search_string: string; replacement_string: string; rationale: string };
         type Report = { patches: Patch[]; summary: string; logs: string[] };
-        const res = await apiClient.post<GenericResponse<Report>>(`/api/v1/content/analyze/surgeon-boost`, {
+        const res = await apiClient.post<GenericResponse<Report>>(`/api/v1/content/analyze/neural-boost`, {
             content,
             topic,
         });
         return res;
     },
 
-    async saveAnalysisReport(cid: string, type: 'copyright' | 'seo' | 'ai_inspect' | 'surgeon', data: unknown) {
+    async saveAnalysisReport(cid: string, type: 'copyright' | 'seo' | 'ai_inspect' | 'refinement', data: unknown) {
         const res = await apiClient.post<GenericResponse>(`/api/v1/content/campaigns/${cid}/analyze/save-report`, {
             report_type: type,
             data,
@@ -152,7 +152,7 @@ export const xohiActions = {
      */
     async batchSave(
         cid: string,
-        reports: Partial<Record<'copyright' | 'seo' | 'ai_inspect' | 'surgeon' | 'enrich' | 'rewrite', unknown>>,
+        reports: Partial<Record<'copyright' | 'seo' | 'ai_inspect' | 'refinement' | 'enrich' | 'rewrite', unknown>>,
         evidence: Partial<Record<string, { score: number; timestamp: string; data: unknown }>>
     ) {
         const res = await apiClient.post<GenericResponse>(

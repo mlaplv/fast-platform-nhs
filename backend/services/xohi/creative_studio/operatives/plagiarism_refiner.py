@@ -6,13 +6,13 @@ from typing import List, Dict, Optional, Tuple, cast, Set
 from pydantic_ai import Agent
 from backend.database.models import ContentCampaign
 from backend.services.xohi.creative_studio.models.schemas import (
-    BulkFixRequest, BulkFixResponse, AtomicFixResponse, SurgicalSnippetFix
+    BulkFixRequest, BulkFixResponse, AtomicFixResponse, SnippetRefinement
 )
 from backend.services.ai_engine.core.agent_base import XoHiProgressMixin
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.utils.text import normalize_vn
-from backend.services.xohi.creative_studio.utils.stitcher import surgical_stitch
+from backend.services.xohi.creative_studio.utils.stitcher import refinement_stitch
 from backend.services.xohi.prompts import composer
 from backend.services.xohi.prompts.shields.service import shield_service
 
@@ -20,7 +20,7 @@ logger = logging.getLogger("api-gateway")
 
 RE_DIGIT = re.compile(r'\d+')
 
-class PlagiarismSurgeon(XoHiProgressMixin):
+class PlagiarismRefiner(XoHiProgressMixin):
     """
     Handles deterministic deduplication and AI-powered surgical fixes for Copyright.
     Elite V2.2: Context-Aware with Neural Prompt Orchestration (NPO).
@@ -35,7 +35,6 @@ class PlagiarismSurgeon(XoHiProgressMixin):
         """CNS V82.0: Clean AI artifacts (Markdown blocks) from HTML output."""
         if not html:
             return ""
-        import re
         clean = re.sub(r'```html\s*', '', html, flags=re.IGNORECASE)
         clean = re.sub(r'```\s*', '', clean)
         return clean.strip()
@@ -64,9 +63,9 @@ class PlagiarismSurgeon(XoHiProgressMixin):
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
         self.current_step = 0
         now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
-        logs = [f"🚀 [{now_str}] [SURGEON] Initializing Neural Surgical Engine (Elite V2.2)..."]
+        logs = [f"🚀 [{now_str}] [REFINER] Initializing Neural Refinement Engine (Elite V2.2)..."]
         await self._emit_log(campaign, logs[-1])
-        logger.warning(f"🚀 [PlagiarismSurgeon] Initializing [SURGEON] Phase 0: Patch Preparation...")
+        logger.warning(f"🚀 [PlagiarismRefiner] Initializing [REFINER] Phase 0: Patch Preparation...")
         
         draft = campaign.draft_content or ""
         cleaned_draft = draft
@@ -86,13 +85,13 @@ class PlagiarismSurgeon(XoHiProgressMixin):
         if not valid_items:
             return BulkFixResponse(new_content=cleaned_draft, logs=logs)
 
-        logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [SCAN] Ingesting {len(valid_items)} violation points into AI Surgeon...")
+        logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [SCAN] Ingesting {len(valid_items)} violation points into AI Refiner...")
         await self._emit_log(campaign, logs[-1])
         self.current_step = 1
-        logger.warning(f"🔍 [PlagiarismSurgeon] Phase 1: [SCAN] Context Ingestion complete.")
+        logger.warning(f"🔍 [PlagiarismRefiner] Phase 1: [SCAN] Context Ingestion complete.")
         
         self.current_step = 2
-        logger.warning(f"🧠 [PlagiarismSurgeon] Phase 2: [BRAIN] Surgery processing pending...")
+        logger.warning(f"🧠 [PlagiarismRefiner] Phase 2: [BRAIN] Refinement processing pending...")
         
         gold = dict(campaign.gold_metadata or {})
         cache = dict(gold.get("analysis_cache", {}))
@@ -107,7 +106,7 @@ class PlagiarismSurgeon(XoHiProgressMixin):
         composer.register_component(shield)
         
         # ELITE V2.2: Use extra_components to maintain thread-safety
-        system_prompt = composer.compose("copyright_surgeon", extra_components=[shield.id])
+        system_prompt = composer.compose("copyright_refiner", extra_components=[shield.id])
 
         bulk_prompt = f"{source_context}\n\n[DANH SÁCH CẦN SỬA]\n{snippet_list}"
         
@@ -131,20 +130,20 @@ class PlagiarismSurgeon(XoHiProgressMixin):
                     if orig_item and fix.new_text:
                         old_txt = orig_item["old_text"]
                         new_txt = await noise_cleaner.clean(fix.new_text, mode="light", strip_html=False)
-                        new_content = surgical_stitch(final_content, old_txt, new_txt, label="PlagiarismSurgeon")
+                        new_content = refinement_stitch(final_content, old_txt, new_txt, label="PlagiarismRefiner")
                         if new_content != final_content:
                             final_content = new_content
                             replacements_made += 1
                             replacements_log.append({"old_text": old_txt, "new_text": new_txt})
-                            logs.append(f"✅ [SURGEON] Successfully patched: \"{old_txt[:40]}...\"")
+                            logs.append(f"✅ [REFINER] Successfully patched: \"{old_txt[:40]}...\"")
                             await self._emit_log(campaign, logs[-1])
             
             self.current_step = 3
             logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Bulk fix complete. Successfully optimized {replacements_made}/{len(valid_items)} segments. ĐÃ XỬ LÝ XONG")
             await self._emit_log(campaign, logs[-1])
-            logger.warning(f"✅ [PlagiarismSurgeon] [QUANTUM] Bulk fix complete.")
+            logger.warning(f"✅ [PlagiarismRefiner] [QUANTUM] Bulk fix complete.")
             final_content = self.clean_ai_html(final_content)
             return BulkFixResponse(new_content=final_content, logs=logs, replacements=replacements_log)
         except Exception as e:
-            logger.error(f"[PlagiarismSurgeon] AI Bulk Fix failed: {e}")
+            logger.error(f"[PlagiarismRefiner] AI Bulk Fix failed: {e}")
             return BulkFixResponse(new_content=cleaned_draft, logs=logs)

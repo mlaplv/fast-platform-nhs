@@ -12,17 +12,30 @@
   import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
   import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
+  import Droplet from "@lucide/svelte/icons/droplet";
   import { formatCurrency } from '$lib/utils/format';
+  import { resolveMediaUrl, processContentImages } from '$lib/state/utils';
   import { fly, fade } from 'svelte/transition';
 
   function isJson(str: string) {
     if (typeof str !== 'string') return false;
     try {
       const parsed = JSON.parse(str);
-      return typeof parsed === 'object' && parsed !== null && ('hero_headline' in parsed || 'spec_bento' in parsed);
+      return typeof parsed === 'object' && parsed !== null;
     } catch (e) {
       return false;
     }
+  }
+
+  let scrollContainer: HTMLDivElement | undefined = $state();
+  let currentImageIndex = $state(0);
+
+  function handleImageScroll(e: Event) {
+    const el = e.target as HTMLDivElement;
+    if (!el) return;
+    const width = el.offsetWidth || el.clientWidth || 300;
+    const index = Math.round(el.scrollLeft / width);
+    if (currentImageIndex !== index) currentImageIndex = index;
   }
 
   let { active = $bindable(), product }: { active: boolean, product: Product } = $props();
@@ -265,123 +278,183 @@
     role="dialog"
     aria-modal="true"
   >
-    <!-- 🚀 COMPACT HEADER (Elite V2.6) -->
-    <div class="sticky top-0 w-full z-header bg-[#0a0a0a] border-b border-white/5 shrink-0">
+    <!-- 🚀 FLOATING CINEMATIC HEADER (Elite V2.6) -->
+    <div class="absolute top-0 left-0 w-full z-[9999] pointer-events-none">
       <!-- Minimalist Drag Handle -->
       <div 
-        class="w-full flex justify-center pt-2.5 pb-1 touch-none cursor-grab active:cursor-grabbing"
+        class="w-full flex justify-center pt-1.5 pb-0 touch-none cursor-grab active:cursor-grabbing pointer-events-auto"
         onpointerdown={onPointerDown}
         onpointermove={onPointerMove}
         onpointerup={onPointerUp}
         onpointercancel={onPointerUp}
       >
-        <div class="w-8 h-[2px] bg-white/10 rounded-full"></div>
+        <div class="w-12 h-[3px] bg-white/40 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.5)]"></div>
       </div>
 
-      <!-- 🎙️ NEURAL VOICE CAPSULE (Elite V6.4 Lite) -->
-      <button
-        onclick={toggleSpeech}
-        class="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full transition-all duration-500 active:scale-90 {isReading || isBuffering ? 'bg-[#FFB7C5]/30 border-[#FFB7C5]/50 text-[#FFB7C5] shadow-[0_0_20px_rgba(255,183,197,0.4)]' : 'bg-white/10 border-white/20 text-white/80 shadow-[0_0_10px_rgba(255,255,255,0.05)]'} border backdrop-blur-md"
-        aria-label={isReading ? "Dừng đọc" : "Đọc thông tin"}
-      >
-        {#if isBuffering}
-          <div class="relative w-3 h-3">
-            <div class="absolute inset-0 border-[1.5px] border-[#FFB7C5]/30 rounded-full"></div>
-            <div class="absolute inset-0 border-[1.5px] border-[#FFB7C5] border-t-transparent rounded-full animate-spin"></div>
-          </div>
-          <span class="text-[7.5px] font-bold uppercase tracking-[0.2em] italic leading-none opacity-80">Wait</span>
-        {:else if isReading}
-          <div class="flex items-end gap-[1.5px] h-2.5 mb-[0.5px]">
-            <div class="w-[1.5px] bg-[#FFB7C5] shadow-[0_0_5px_#FFB7C5] animate-voice-bar-1"></div>
-            <div class="w-[1.5px] bg-[#FFB7C5] shadow-[0_0_5px_#FFB7C5] animate-voice-bar-2"></div>
-            <div class="w-[1.5px] bg-[#FFB7C5] shadow-[0_0_5px_#FFB7C5] animate-voice-bar-3"></div>
-          </div>
-          <span class="text-[7.5px] font-black uppercase tracking-[0.2em] italic leading-none">Stop</span>
-        {:else}
-          <AudioLines size={12} class="text-white drop-shadow-[0_0_3px_rgba(255,255,255,0.5)]" />
-          <span class="text-[7.5px] font-bold uppercase tracking-[0.2em] italic leading-none">
-            {#if typeof window !== 'undefined' && localStorage.getItem(`tts_pos_${productSlug}`)}
-              Resume
-            {:else if typeof window !== 'undefined' && localStorage.getItem(`tts_done_${productSlug}`)}
-              Replay
-            {:else}
-              Listen
-            {/if}
-          </span>
-        {/if}
-      </button>
+      <div class="flex items-center justify-between px-3 h-12">
+        <!-- 🎙️ NEURAL VOICE CAPSULE (Elite V6.4 Lite) -->
+        <button
+          onclick={toggleSpeech}
+          class="flex items-center gap-1.5 px-3 py-2 rounded-full transition-all duration-500 active:scale-90 pointer-events-auto {isReading || isBuffering ? 'bg-pink-500/90 text-white shadow-[0_0_20px_rgba(236,72,153,0.5)]' : 'bg-black/50 text-white shadow-[0_0_12px_rgba(0,0,0,0.4)]'} border border-white/15"
+          aria-label={isReading ? "Dừng đọc" : "Đọc thông tin"}
+        >
+          {#if isBuffering}
+            <div class="relative w-3.5 h-3.5">
+              <div class="absolute inset-0 border-[1.5px] border-white/30 rounded-full"></div>
+              <div class="absolute inset-0 border-[1.5px] border-white border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          {:else if isReading}
+            <div class="flex items-end gap-[2px] h-3.5">
+              <div class="w-[2.5px] bg-white animate-voice-bar-1"></div>
+              <div class="w-[2.5px] bg-white animate-voice-bar-2"></div>
+              <div class="w-[2.5px] bg-white animate-voice-bar-3"></div>
+            </div>
+          {:else}
+            <AudioLines size={14} class="text-white" />
+          {/if}
+          <span class="text-[10px] font-black uppercase tracking-wider leading-none">{isBuffering ? '...' : isReading ? 'Stop' : 'Listen'}</span>
+        </button>
 
-      <!-- Compact Header Title Row -->
-      <div class="flex items-center justify-center px-4 pb-2.5 pt-0">
-        <h2 class="text-[10px] font-black uppercase tracking-[0.25em] italic text-transparent bg-clip-text bg-gradient-to-r from-[#FFB7C5] to-[#E8D5B0] flex items-center gap-1.5 py-1">
-          <Info class="w-3 h-3 text-[#FFB7C5]" />
-          Thông tin sản phẩm
-        </h2>
+        <!-- Close Button (Elegant Integrated X) -->
+        <button
+          onclick={close}
+          class="text-white transition-all p-2 active:scale-75 outline-none border-none bg-black/50 rounded-full border border-white/15 pointer-events-auto"
+          aria-label="Đóng"
+        >
+          <X size={18} strokeWidth={3} />
+        </button>
       </div>
-
-      <!-- Close Button (Elegant Integrated X) -->
-      <button
-        onclick={close}
-        class="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-all p-2 active:scale-75 outline-none border-none bg-transparent"
-        aria-label="Đóng"
-      >
-        <X size={18} strokeWidth={2} />
-      </button>
     </div>
 
     <!-- Scrollable Description Body -->
     <div 
       bind:this={contentRef}
       onscroll={handleScroll}
-      class="pl-[10px] pr-2.5 pt-2 pb-10 overflow-y-auto custom-scrollbar flex-1 relative elite-prose select-text"
+      class="overflow-y-auto custom-scrollbar flex-1 relative select-text elite-prose !pt-0 !mt-0"
     >
-      {#if product?.description}
-        {#if isJson(product.description)}
-          <InteractiveDashboard data={product.description} compact={true} />
-        {:else}
-          <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-          {@html product.description}
+      {#if product}
+        <!-- 🖼️ PRODUCT MEDIA GALLERY (Viral 2026 Pro) -->
+        {#if (product.images && product.images.length > 0) || (product.mobile_images && product.mobile_images.length > 0)}
+          {@const galleryImages = product.mobile_images?.length ? product.mobile_images : product.images}
+          <div class="gallery-viewport !mx-0 !mt-0 !mb-0 bg-black overflow-hidden relative group rounded-t-[40px]">
+             <div 
+               bind:this={scrollContainer}
+               onscroll={handleImageScroll}
+               class="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar" style="scrollbar-width: none; -ms-overflow-style: none;"
+             >
+                {#each galleryImages as img, i}
+                   <div class="w-full shrink-0 snap-center relative overflow-hidden bg-black">
+                      <!-- 📸 CINEMATIC PRODUCT IMAGE -->
+                      <!-- 🌫️ Blurred background layer -->
+                      <img
+                        src={resolveMediaUrl(img)}
+                        alt=""
+                        aria-hidden="true"
+                        class="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-40 z-0 pointer-events-none"
+                      />
+                      <!-- 📸 Main product image -->
+                      <img 
+                        src={resolveMediaUrl(img)} 
+                        alt={product.name} 
+                        class="relative block w-full h-auto z-10 transition-transform duration-700 {currentImageIndex === i ? 'scale-100 opacity-100' : 'scale-95 opacity-40 blur-sm'}"
+                      />
+                   </div>
+                {/each}
+             </div>
+
+             <!-- 🏷️ BRAND NAME: Bottom Left -->
+             <div class="absolute bottom-4 left-4 z-20 pointer-events-none max-w-[65%]">
+                <h1 class="text-lg font-black !text-white leading-tight drop-shadow-[0_1px_12px_rgba(0,0,0,0.9)]">
+                  {product.name}
+                </h1>
+             </div>
+
+             <!-- 📊 INFO PILL: Bottom Right (viewer + image count) -->
+             <div class="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-1.5">
+               <div class="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-full">
+                 <div class="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]"></div>
+                 <span class="text-[9px] font-bold text-white/80 leading-none">1.2K+ đang xem</span>
+               </div>
+               {#if galleryImages.length > 1}
+                 <div class="flex items-center gap-1 bg-black/40 px-2.5 py-1 rounded-full">
+                   <span class="text-[10px] font-bold text-white/90 font-mono">{currentImageIndex + 1}</span>
+                   <span class="text-[10px] text-white/30 font-mono">/</span>
+                   <span class="text-[10px] text-white/30 font-mono">{galleryImages.length}</span>
+                 </div>
+               {/if}
+             </div>
+
+             <!-- Subtle Bottom Vignette -->
+             <div class="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none bg-gradient-to-t from-black/70 to-transparent z-10"></div>
+          </div>
         {/if}
-      {:else}
-        <div class="flex flex-col items-center justify-center h-full text-white/30 space-y-4 pb-20">
-          <ShieldCheck class="w-12 h-12 opacity-50" />
-          <p class="text-xs uppercase tracking-widest font-bold">Chưa có thông tin mô tả chi tiết</p>
+
+        <!-- 📊 PRODUCT INFO (Elite V3.0 Clean) -->
+        <div class="px-[5px] pt-5 pb-2">
+          <!-- Specs: Clean inline list -->
+          {#if product.metadata}
+            {@const specs = [
+              product.metadata?.brand && { label: 'Thương hiệu', value: product.metadata.brand },
+              product.metadata?.origin && { label: 'Xuất xứ', value: product.metadata.origin },
+              product.metadata?.weight && { label: 'Trọng lượng', value: product.metadata.weight },
+              product.sku && { label: 'SKU', value: product.sku }
+            ].filter(Boolean)}
+            {#if specs.length > 0}
+              <div class="flex flex-wrap gap-x-6 gap-y-3 mb-5">
+                {#each specs as spec}
+                  <div class="flex flex-col">
+                    <span class="text-[9px] font-semibold text-white/35 uppercase tracking-widest leading-none mb-1">{spec.label}</span>
+                    <span class="text-[13px] font-bold text-white/90">{spec.value}</span>
+                  </div>
+                {/each}
+              </div>
+              <div class="w-full h-px bg-white/8 mb-5"></div>
+            {/if}
+          {/if}
+
+          <!-- 🧪 INGREDIENTS -->
+          {#if product.metadata?.featured_ingredients?.length > 0 || product.metadata?.ingredients}
+            <div class="mb-5">
+              <h2 class="text-[13px] font-bold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <Droplet class="w-3.5 h-3.5 text-pink-300/70" />
+                Thành phần & Công dụng
+              </h2>
+              
+              {#if product.metadata?.featured_ingredients?.length > 0}
+                <div class="space-y-2 mb-3">
+                  {#each product.metadata.featured_ingredients as ing}
+                    <div class="pl-3 border-l-2 border-pink-400/40 py-1">
+                      <span class="text-[13px] font-bold text-white/90">{ing.name}</span>
+                      <p class="text-[11px] text-white/50 leading-relaxed mt-0.5">{ing.benefit}</p>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+
+              {#if product.metadata?.ingredients}
+                <p class="text-[11px] text-white/40 leading-relaxed">{product.metadata.ingredients}</p>
+              {/if}
+            </div>
+            <div class="w-full h-px bg-white/8 mb-5"></div>
+          {/if}
+        </div>
+
+        <div class="px-[5px]">
+          {#if product.description}
+            {#if isJson(product.description)}
+              <InteractiveDashboard data={product.description} compact={true} assets={product.images || []} />
+            {:else}
+              <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+              {@html processContentImages(product.description, product.images || [])}
+            {/if}
+          {:else}
+            <div class="flex flex-col items-center justify-center h-full text-white/30 space-y-4 pb-20">
+              <ShieldCheck class="w-12 h-12 opacity-50" />
+              <p class="text-xs uppercase tracking-widest font-bold">Chưa có thông tin mô tả chi tiết</p>
+            </div>
+          {/if}
         </div>
       {/if}
-    </div>
-
-    <!-- Footer sticky -->
-    <div class="shrink-0 flex flex-col items-center justify-center px-4 py-4 border-t border-white/5 bg-[#0a0a0a] relative">
-      {#if isAtBottom}
-        <div class="absolute -top-16 left-0 right-0 px-4 pointer-events-none" in:fly={{ y: 20 }}>
-           <button
-             onclick={() => {
-               active = false;
-               shopStore.openCheckout(cartStore, product);
-             }}
-             class="w-full h-12 bg-gradient-to-r from-[#FFB7C5] to-[#E8D5B0] rounded-full flex items-center justify-between px-6 shadow-[0_0_30px_rgba(255,183,197,0.4)] pointer-events-auto active:scale-95 transition-all group"
-           >
-             <div class="flex flex-col items-start leading-none">
-                <span class="text-[10px] font-black text-red-600 uppercase tracking-widest italic animate-pulse">Sắp hết suất ưu đãi</span>
-                <span class="text-[14px] font-black text-black uppercase tracking-tight">NHẬN ƯU ĐÃI NGAY</span>
-             </div>
-             <div class="flex items-center gap-3">
-                <div class="flex flex-col items-end">
-                   <span class="text-[14px] font-black text-black leading-none">{formatCurrency(shopStore.totalAmount)}</span>
-                   <span class="text-[8px] font-black text-black/40 uppercase tracking-tighter mt-0.5">Freeship</span>
-                </div>
-                <div class="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center">
-                   <ArrowRight size={16} class="text-black group-hover:translate-x-1 transition-transform" />
-                </div>
-             </div>
-           </button>
-        </div>
-      {/if}
-
-      <div class="flex items-center gap-2 text-[10px] font-bold text-white/30 uppercase tracking-[0.25em] italic">
-        <ShieldCheck class="w-3.5 h-3.5 text-blue-500/80" />
-        <span class="text-transparent bg-clip-text bg-gradient-to-r from-white/60 to-white/30">Hệ thống thông tin chính hãng</span>
-      </div>
     </div>
   </div>
 </div>
@@ -430,23 +503,22 @@
     color: white;
     font-weight: 800;
     line-height: 1.2;
-    margin-top: 1.25rem; /* Reduced from 1.75rem */
-    margin-bottom: 0.5rem;
-    letter-spacing: -0.03em;
-    text-transform: uppercase;
+    margin-top: 1rem;
     position: relative;
+    padding-bottom: 0.5rem;
+    color: #fff;
+    letter-spacing: -0.02em;
     width: fit-content;
   }
   
   :global(.elite-prose h2) { 
-    font-size: 1.05rem;
+    font-size: 1.15rem;
     color: #fff;
     border-left: 3px solid #FFB7C5;
     padding-left: 12px;
-    margin-left: -15px;
-    background: linear-gradient(90deg, rgba(255, 183, 197, 0.1) 0%, transparent 100%);
-    padding-top: 6px;
-    padding-bottom: 6px;
+    margin: 2rem 0 1rem 0;
+    font-weight: 800;
+    letter-spacing: -0.01em;
   }
   
   :global(.elite-prose h3) { 
@@ -457,7 +529,7 @@
   }
 
   :global(.elite-prose p) {
-    margin-bottom: 0.4rem; /* Tightened for specs-style layout */
+    margin-bottom: 0.8rem; /* Relaxed for readability */
     opacity: 1;
   }
 
@@ -471,36 +543,41 @@
   }
 
   :global(.elite-prose strong, .elite-prose b) {
-    color: #fff;
+    color: #fff !important;
     font-weight: 800;
   }
 
+  /* 🛡️ R1.5: Fix AI Color Leaks - Forces white for any spans with dark inline styles */
+  :global(.elite-prose span) {
+    color: inherit !important;
+  }
+
   /* Viral Glowy Bullets - ULTRA TIGHT RESET */
-  :global(.elite-prose ul) {
+  :global(.elite-prose ul), :global(.elite-prose ol) {
     list-style-type: none !important;
     padding-left: 0 !important;
     margin-left: 0 !important;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
   }
 
   :global(.elite-prose li) {
     position: relative;
-    padding-left: 14px !important; /* Đủ rộng để chứa dấu chấm và một chút khoảng hở */
-    margin-bottom: 0.3rem;
-    line-height: 1.5;
+    padding-left: 20px !important; 
+    margin-bottom: 0.6rem;
+    line-height: 1.6;
     list-style: none !important;
   }
 
   :global(.elite-prose li::before) {
     content: '';
     position: absolute;
-    left: 0; /* Đưa dấu chấm về lại bên trong để chắc chắn hiển thị */
-    top: 0.55em;
-    width: 3.5px;
-    height: 3.5px;
+    left: 4px;
+    top: 0.6em;
+    width: 5px;
+    height: 5px;
     background: #FFB7C5;
     border-radius: 50%;
-    box-shadow: 0 0 5px rgba(255, 183, 197, 0.5);
+    box-shadow: 0 0 8px rgba(255, 183, 197, 0.6);
   }
 
   /* 🧪 iPhone Minimalist Scrollbar (Scoped to Modal) */
@@ -541,6 +618,14 @@
     margin: 0.25rem 0 0.5rem 0; /* Tight bottom margin */
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* 🖼️ Cinematic Gallery Reset (Elite V2.6) */
+  .gallery-viewport img {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
   }
   
   :global(.elite-prose blockquote) {

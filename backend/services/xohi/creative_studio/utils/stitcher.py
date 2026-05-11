@@ -11,7 +11,7 @@ RE_HTML = re.compile(r'<[^>]+>')
 
 def _strip(text: str) -> str:
     """
-    Elite V2.2: Universal Surgical Stripper.
+    Elite V2.2: Universal Refinement Stripper.
     Strips HTML and keeps ONLY alphanumeric characters for robust fuzzy matching.
     """
     if not text: return ""
@@ -24,9 +24,9 @@ def _strip(text: str) -> str:
 
 import unicodedata
 
-def surgical_stitch(content: str, old_text: str, new_text: str, label: str = "Stitcher") -> str:
+def refinement_stitch(content: str, old_text: str, new_text: str, label: str = "Stitcher") -> str:
     """
-    R1.9/V82.75: Advanced Neural Surgical Stitching Utility.
+    R1.9/V82.75: Advanced Neural Refinement Stitching Utility.
     Strategy: 3-phase matching (Exact → HTML-aware Fuzzy → Anchor Recovery)
     
     CRITICAL FIX V87.1: Annotations từ AI luôn là plain text, nhưng bài viết là HTML.
@@ -44,7 +44,7 @@ def surgical_stitch(content: str, old_text: str, new_text: str, label: str = "St
             def _stitch_recursive(obj: object, stitched_count: list) -> object:
                 # We allow multiple stitches in JSON mode to ensure all instances in different keys are handled
                 if isinstance(obj, str):
-                    new_str = surgical_stitch(obj, old_text, new_text, f"{label} [Inner]") 
+                    new_str = refinement_stitch(obj, old_text, new_text, f"{label} [Inner]") 
                     if new_str != obj:
                         stitched_count[0] += 1
                         return new_str
@@ -77,10 +77,10 @@ def surgical_stitch(content: str, old_text: str, new_text: str, label: str = "St
     # Annotation text là plain text, ta tìm nó trong phiên bản stripped của content
     norm_old = _strip(old_text)
     if len(norm_old) < 10:
-        logger.warning(f"[{label}] Surgical match failed: Snippet too short ({len(norm_old)} chars).")
+        logger.warning(f"[{label}] Refinement match failed: Snippet too short ({len(norm_old)} chars).")
         return content
 
-    # Tìm anchor (chuỗi ~20 ký tự đầu tiên) để xác định "vùng phẫu thuật" trong HTML gốc
+    # Tìm anchor (chuỗi ~20 ký tự đầu tiên) để xác định "vùng tinh chỉnh" trong HTML gốc
     # Sử dụng kỹ thuật "Sliding Window" trên plain text → ánh xạ về HTML
     content_stripped = _strip(content)
     
@@ -126,7 +126,7 @@ def surgical_stitch(content: str, old_text: str, new_text: str, label: str = "St
                 logger.info(f"[{label}] Neural fuzzy match successful (Score: {match.size}/{len(norm_old)}, Ratio: {ratio:.2f}).")
                 return content[:html_start] + new_text + content[html_end:]
 
-    logger.warning(f"[{label}] Surgical match failed: Snippet not found even with Neural Fuzzy Logic.")
+    logger.warning(f"[{label}] Refinement match failed: Snippet not found even with Neural Fuzzy Logic.")
     return content
 
 

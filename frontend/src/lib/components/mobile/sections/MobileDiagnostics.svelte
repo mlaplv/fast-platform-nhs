@@ -297,7 +297,7 @@
         <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] animate-pulse"></div>
         <span class="text-[10px] uppercase tracking-[0.2em] text-[#FFB7C5] font-bold italic">System v2.6+</span>
       </div>
-        <h2 class="text-2xl font-extrabold text-white leading-relaxed uppercase tracking-tighter italic tiktok-shadow">
+        <h2 class="text-2xl font-extrabold text-white leading-relaxed tracking-tighter italic tiktok-shadow">
           <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ">
             {@html (product?.metadata?.diagnostics_headline || 'CHẨN ĐOÁN PHỤC HỒI <span class="text-blue-500">SẮC TỐ GỐC</span>').replace('SẮC TỐ GỐC', '<br/>SẮC TỐ GỐC')}
           </EditableWrapper>

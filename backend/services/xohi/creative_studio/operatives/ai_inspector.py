@@ -14,9 +14,9 @@ from backend.database.repositories import ContentCampaignRepository
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.xohi.creative_studio.models.schemas import (
     AiReadyReport, AutoFixResponse, BulkFixResponse, BulkFixRequest,
-    GoldMetadata, AiAnnotation, AtomicFixResponse, SurgicalSnippetFix
+    GoldMetadata, AiAnnotation, AtomicFixResponse, SnippetRefinement
 )
-from backend.services.xohi.creative_studio.utils.stitcher import surgical_stitch
+from backend.services.xohi.creative_studio.utils.stitcher import refinement_stitch
 from backend.utils.text import extract_readable_text, is_json
 
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
@@ -45,8 +45,8 @@ class AiInspector(BaseAgentOperative):
     def __init__(self, **kwargs: object):
         super().__init__(agent_id="ai_inspector")
         self._agent = Agent(output_type=AiReadyReport, retries=3)
-        self._surgeon_agent = Agent(output_type=AutoFixResponse, retries=2)
-        self._atomic_surgeon_agent = Agent(output_type=AtomicFixResponse, retries=2)
+        self._refiner_agent = Agent(output_type=AutoFixResponse, retries=2)
+        self._atomic_refiner_agent = Agent(output_type=AtomicFixResponse, retries=2)
 
     async def _emit_log(self, campaign: ContentCampaign, msg: str) -> None:
         """Backward-compat alias → delegates to Heritage _emit_progress."""
@@ -97,7 +97,7 @@ class AiInspector(BaseAgentOperative):
         logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [GEO] Structural Scan: {word_count} words. Analyzing NLP Entity Density & Information Gain...")
         await self._emit_log(campaign, logs[-1])
         self.current_step = 1
-        logger.warning(f"🔍 [AiInspector] Running [SURGEON] NLP Entity Density analysis...")
+        logger.warning(f"🔍 [AiInspector] Running [REFINER] NLP Entity Density analysis...")
         
         # [CNS-V89] Resolve Context via Centralized Intelligence
         context = await self._resolve_xohi_context(campaign, draft, "ai_inspect")
@@ -152,11 +152,11 @@ class AiInspector(BaseAgentOperative):
         shield = shield_service.get_shield_component(seed=campaign.id)
         composer.register_component(shield)
         
-        system_prompt = composer.compose("inspector_surgeon", extra_components=[shield.id])
+        system_prompt = composer.compose("inspector_refiner", extra_components=[shield.id])
         
         prompt = f"[BÀI VIẾT]\n{content[:5000]}\n\n[ĐOẠN LỖI]\n{snippet}\n\n[LÝ DO]\n{issue}"
         try:
-            res = await trinity_bridge.run(self._surgeon_agent, prompt, system_prompt=system_prompt, role="fast", safety_none=True)
+            res = await trinity_bridge.run(self._refiner_agent, prompt, system_prompt=system_prompt, role="fast", safety_none=True)
             raw = res
             if hasattr(raw, 'data') and not hasattr(raw, 'new_text'):
                 raw = raw.data
@@ -168,9 +168,9 @@ class AiInspector(BaseAgentOperative):
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
         now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
         self.current_step = 0
-        logs = [f"🚀 [{now_str}] [SURGEON] Initializing Neural AI-Ready Surgeon (Elite V2.2)..."]
+        logs = [f"🚀 [{now_str}] [REFINER] Initializing Neural AI-Ready Refiner (Elite V2.2)..."]
         await self._emit_log(campaign, logs[-1])
-        logger.warning(f"🚀 [AiInspector] Initializing [SURGEON] Bulk Fix Phase 0...")
+        logger.warning(f"🚀 [AiInspector] Initializing [REFINER] Bulk Fix Phase 0...")
         
         original_draft = campaign.draft_content or ""
         if not is_json(original_draft):
@@ -190,13 +190,13 @@ class AiInspector(BaseAgentOperative):
 
         if not valid_items: return BulkFixResponse(new_content=draft, logs=logs)
 
-        logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [SCAN] Ingesting {len(valid_items)} structural weaknesses into AI Surgeon...")
+        logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [SCAN] Ingesting {len(valid_items)} structural weaknesses into AI Refiner...")
         await self._emit_log(campaign, logs[-1])
         self.current_step = 1
         logger.warning(f"🔍 [AiInspector] Phase 1: [SCAN] Structural analysis start.")
         
         self.current_step = 2
-        logger.warning(f"🧠 [AiInspector] Phase 2: [BRAIN] AI Surgery pending...")
+        logger.warning(f"🧠 [AiInspector] Phase 2: [BRAIN] AI Refinement pending...")
         
         # ELITE V2.2: Identify content type (Military-grade safety)
         is_product = getattr(campaign, "category", "") == "PRODUCT_CATALOG" or \
@@ -214,12 +214,12 @@ class AiInspector(BaseAgentOperative):
         composer.register_component(shield)
         
         # ELITE V2.2: Use extra_components to maintain thread-safety
-        system_prompt = composer.compose("inspector_surgeon", context=context, extra_components=[shield.id])
+        system_prompt = composer.compose("inspector_refiner", context=context, extra_components=[shield.id])
 
         prompt = f"[CẦN SỬA]\n{snippet_list}"
         
         try:
-            res = await trinity_bridge.run(self._atomic_surgeon_agent, prompt, system_prompt=system_prompt, role="fast", timeout=120.0, safety_none=True)
+            res = await trinity_bridge.run(self._atomic_refiner_agent, prompt, system_prompt=system_prompt, role="fast", timeout=120.0, safety_none=True)
             raw = res
             if hasattr(raw, 'data') and not hasattr(raw, 'replacements'):
                 raw = raw.data
@@ -232,14 +232,14 @@ class AiInspector(BaseAgentOperative):
                     orig = next((v for v in valid_items if v["id"] == fix.id), None)
                     if orig and fix.new_text:
                         old, new = orig["old_text"], await noise_cleaner.clean(fix.new_text, mode="light", strip_html=False)
-                        new_c = surgical_stitch(final_content, old, new, label="AiInspector")
+                        new_c = refinement_stitch(final_content, old, new, label="AiInspector")
                         if new_c != final_content:
                             final_content, replacements_made = new_c, replacements_made + 1
                             replacements_log.append({"old_text": old, "new_text": new})
-                            logs.append(f"✅ [SURGEON] Optimized: \"{old[:40]}...\"")
+                            logs.append(f"✅ [REFINER] Optimized: \"{old[:40]}...\"")
                             await self._emit_log(campaign, logs[-1])
             self.current_step = 3
-            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phẫu thuật cấu trúc hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn. ĐÃ XỬ LÝ XONG")
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Tinh chỉnh cấu trúc hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn. ĐÃ XỬ LÝ XONG")
             await self._emit_log(campaign, logs[-1])
             logger.warning(f"✅ [AiInspector] [QUANTUM] Bulk fix complete.")
             final_content = self.clean_ai_html(final_content)

@@ -204,7 +204,7 @@
     </div>
     
     <div class="header-content text-center mb-8 relative">
-        <h2 class="text-2xl font-black text-white tracking-tighter mb-4 italic uppercase">
+        <h2 class="text-2xl font-black text-white tracking-tighter mb-4 italic">
           <EditableWrapper path="metadata.reviews_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
             {h1}
           </EditableWrapper>

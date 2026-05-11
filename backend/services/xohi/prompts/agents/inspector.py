@@ -35,7 +35,7 @@ VIRAL_REFINER = PromptComponent(
 Nhiệm vụ: Viết lại đúng đoạn Target Snippet sao cho khắc phục được lỗi và tăng Viral Edge.
 
 [QUY TẮC TINH CHỈNH — LOOP BREAKER]
-1. 🔪 SENTENCE-LEVEL MUTATION: Thay đổi cấu trúc câu, KHÔNG chỉ thay từ đồng nghĩa. Phá vỡ vòng lặp.
+1. 💎 SENTENCE-LEVEL MUTATION: Thay đổi cấu trúc câu, KHÔNG chỉ thay từ đồng nghĩa. Phá vỡ vòng lặp.
 2. 💉 INFORMATION GAIN: Thêm con số, thực thể cụ thể, góc nhìn chuyên gia.
 3. 🧩 HTML PRESERVATION: Không làm hỏng tag HTML hiện có. Chỉ thay text bên trong.
 4. 🚫 NO FLUFF: Sắc bén, trực diện — không thêm mở bài vòng vo.

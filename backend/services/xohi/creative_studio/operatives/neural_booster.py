@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timezone
 from pydantic_ai import Agent
-from backend.services.xohi.creative_studio.models.schemas import SurgeonBoosterReport
+from backend.services.xohi.creative_studio.models.schemas import NeuralBoosterReport
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative
 from backend.utils.text import extract_readable_text
@@ -11,21 +11,21 @@ from backend.services.xohi.prompts.shields.service import shield_service
 logger = logging.getLogger("api-gateway")
 
 
-class SurgeonBooster(BaseAgentOperative):
+class NeuralBooster(BaseAgentOperative):
     """
-    CNS V87.0: Surgeon Booster Operative.
-    Elite V2.2: Performs ad-hoc content enrichment and phẫu thuật with NPO.
+    CNS V87.0: Neural Booster Operative.
+    Elite V2.2: Performs ad-hoc content enrichment and refinement with NPO.
     """
-    agent_id_class = "surgeon_booster"
+    agent_id_class = "neural_booster"
 
-    def __init__(self, **kwargs: object):
-        super().__init__(agent_id="surgeon_booster")
+    def __init__(self) -> None:
+        super().__init__(agent_id="neural_booster")
         self._agent = Agent(
-            output_type=SurgeonBoosterReport,
+            output_type=NeuralBoosterReport,
             retries=2
         )
 
-    async def chat(self, request: object, **kwargs: object) -> SurgeonBoosterReport:
+    async def chat(self, request: object, **kwargs: object) -> NeuralBoosterReport:
         """Standard Heritage Entry."""
         content_raw = str(getattr(request, "draft_content", "")) or str(kwargs.get("content", ""))
         content = extract_readable_text(content_raw)
@@ -38,7 +38,7 @@ class SurgeonBooster(BaseAgentOperative):
         await self._emit_progress(campaign_id, logs[-1])
 
         if not content or len(content.strip()) < 50:
-            return SurgeonBoosterReport(
+            return NeuralBoosterReport(
                 patches=[],
                 summary="Nội dung quá ngắn để tinh chỉnh.",
                 logs=logs
@@ -72,7 +72,7 @@ class SurgeonBooster(BaseAgentOperative):
             composer.register_component(shield)
             
             # ELITE V2.2: Use extra_components to maintain thread-safety
-            system_prompt = composer.compose("booster_surgeon", context=context, extra_components=[shield.id])
+            system_prompt = composer.compose("booster_refiner", context=context, extra_components=[shield.id])
             
             logs.append(f"📡 [CONNECT] Kết nối Neural Bridge (Role: PRO)...")
             await self._emit_progress(campaign_id, logs[-1])
@@ -91,16 +91,16 @@ class SurgeonBooster(BaseAgentOperative):
             result.logs = logs
             return result
         except Exception as exc:
-            logger.error(f"[SurgeonBooster] Lỗi tinh chỉnh: {exc}", exc_info=True)
+            logger.error(f"[NeuralBooster] Lỗi tinh chỉnh: {exc}", exc_info=True)
             err_msg = f"❌ Lỗi tinh chỉnh: {str(exc)[:100]}"
             await self._emit_progress(campaign_id, err_msg, status="FAILED")
-            return SurgeonBoosterReport(
+            return NeuralBoosterReport(
                 patches=[],
                 summary=f"Tinh chỉnh thất bại: {str(exc)[:100]}",
                 logs=[*logs, err_msg]
             )
 
 # Heritage Backdoor for legacy calls
-async def run_surgeon_boost(content: str, topic: str = "") -> SurgeonBoosterReport:
-    booster = SurgeonBooster()
+async def run_neural_boost(content: str, topic: str = "") -> NeuralBoosterReport:
+    booster = NeuralBooster()
     return await booster.chat(None, content=content, topic=topic)

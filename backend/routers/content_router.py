@@ -185,12 +185,14 @@ class ContentController(Controller):
             },
         )
 
-    @post("/analyze/surgeon-boost", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
-    async def analyze_surgeon_boost(self, data: SurgeonBoostRequest) -> GenericResponse:
-        """CNS V87.0: Surgeon Boost — phẫu thuật nội dung, trả về ContentPatch list."""
-        return await content_factory.analyst.surgeon_boost(
+    @post("/analyze/neural-boost", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
+    async def analyze_neural_boost(self, data: SurgeonBoostRequest) -> GenericResponse:
+        """CNS V87.0: Neural Boost (Refinement)"""
+        return await content_factory.analyst.neural_boost(
             content=data.content,
             topic=data.topic,
+            campaign_id=data.campaign_id,
+            campaign_repo=self.repo
         )
 
     @post("/analyze/neural-rewrite", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])

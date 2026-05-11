@@ -58,17 +58,14 @@
   font-weight: 900;
   color: #fff;
   line-height: 1.1;
-  text-transform: uppercase;
   letter-spacing: -0.03em;
   font-style: italic;
-  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .science-subheadline {
   margin-top: 0.75rem;
   color: rgba(255, 255, 255, 0.4);
   font-size: 11px;
-  text-transform: uppercase;
   letter-spacing: 0.12rem;
   font-weight: 800;
   line-height: 1.4;
@@ -146,8 +143,7 @@
 .claim-title {
   color: #fff;
   font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   font-size: 0.8125rem;
   line-height: 1.2;
   margin-bottom: 0.5rem;
@@ -296,7 +292,6 @@
   color: rgba(255, 255, 255, 0.2);
   font-weight: 800;
   letter-spacing: 0.2em;
-  text-transform: uppercase;
   margin-bottom: 0.125rem;
 }
 
@@ -305,7 +300,6 @@
   color: rgba(255, 255, 255, 0.8);
   font-weight: 800;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
   font-style: italic;
 }
 

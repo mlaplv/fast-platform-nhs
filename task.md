@@ -1,6 +1,16 @@
-# Kế hoạch sửa lỗi cắt chữ (Truncation) ở phần SURGICAL PLAN (Bản quyền)
+# Kế hoạch sửa lỗi hiển thị hình ảnh, Header và Dữ liệu sản phẩm Landing Mobile
 
-- [x] Phân tích log và báo cáo UI bị đứt ngang chữ "Cuộc chiến chống lại".
-- [x] Xác định nguyên nhân: Không phải do timeout, không phải max_tokens, mà do **Gemini Safety Filter** bị kích hoạt bởi cụm từ nhạy cảm ("Cuộc chiến chống lại", "vũ khí", "phẫu thuật") -> Model dừng tạo text đột ngột và PydanticAI tự đóng JSON.
-- [x] Áp dụng `safety_none=True` vào `trinity_bridge.run` trong `plagiarism_cop.py` để vô hiệu hóa Safety Filter.
-- [x] Áp dụng phòng ngừa tương tự cho `ai_inspector.py` và `neural_rewriter.py` (vì cũng là các agent phẫu thuật/sáng tạo dễ dùng từ ngữ "mạnh").
+- [x] Phân tích báo cáo "lỗi hiển thị - hình" và ảnh chụp màn hình.
+- [x] Sửa lỗi modal chi tiết sản phẩm:
+    - [x] Thêm Product Gallery Carousel.
+    - [x] Tích hợp `processContentImages`.
+    - [x] Fix typography (force white color for AI text).
+- [x] Sửa lỗi Header và Background:
+    - [x] Loại bỏ `text-transform: uppercase` khỏi Header.
+    - [x] Loại bỏ các nền gradient "tệ" phía sau Header.
+- [x] Bổ sung Dữ liệu kỹ thuật (Yêu cầu mới):
+    - [x] Bổ sung khối "Thông số kỹ thuật" (Thương hiệu, Xuất xứ, Trọng lượng, SKU) vào Modal.
+    - [x] Bổ sung khối "Thành phần & Công dụng" (Featured Ingredients) vào Modal.
+    - [x] Tạo mới section `MobileSpecs.svelte` cho Landing Page để hiển thị trực tiếp Specs/Ingredients khi scroll.
+    - [x] Đảm bảo "Chức năng" (Claims) được hiển thị rõ ràng thông qua `MobileScience`.
+- [x] Kiểm tra chéo toàn bộ Landing Page.

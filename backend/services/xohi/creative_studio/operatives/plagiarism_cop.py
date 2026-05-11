@@ -23,7 +23,7 @@ from backend.services.xohi.creative_studio.models.schemas import (
 )
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.utils.text import normalize_vn, extract_readable_text, is_json
-from .plagiarism_surgeon import PlagiarismSurgeon
+from .plagiarism_refiner import PlagiarismRefiner
 # [CNS V90.0] Shared Search Cache — tiết kiệm 50% Google quota với SEO
 from .shared_search_cache import get_or_fetch as _cached_search
 from backend.services.xohi.prompts import composer
@@ -61,7 +61,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
         super().__init__(agent_id=agent_id)
         self.threshold = threshold
         self._agent = Agent(output_type=PlagiarismResult, retries=3)
-        self._surgeon = PlagiarismSurgeon()
+        self._refiner = PlagiarismRefiner()
 
     async def chat(self, request: object, **kwargs: object) -> Union[PlagiarismResult, AgentResponse]:
         """Standardized Heritage Entry (V2.2). Maps to self.analyze."""
@@ -103,7 +103,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
         return result
 
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
-        return await self._surgeon.bulk_fix(campaign, req)
+        return await self._refiner.bulk_fix(campaign, req)
 
     async def execute(self, campaign_id: str, repo: ContentCampaignRepository, **kwargs: object) -> AgentResponse:
         campaign = await repo.get(campaign_id)
@@ -172,7 +172,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
             
             logger.warning("📡 [PlagiarismCop] Starting Internal Deduplication...")
             seen, deduped, i_annots = set(), [], []
-            for para in self._surgeon._split_into_paragraphs(plain)[:MAX_PARAGRAPHS_ANALYZE]:
+            for para in self._refiner._split_into_paragraphs(plain)[:MAX_PARAGRAPHS_ANALYZE]:
                 norm = normalize_vn(para)
                 if len(norm) < 10: deduped.append(para); continue
                 if norm not in seen: seen.add(norm); deduped.append(para)

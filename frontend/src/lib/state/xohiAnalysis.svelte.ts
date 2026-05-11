@@ -2,7 +2,7 @@ import { apiClient } from "$lib/utils/apiClient";
 import { useNanobot } from "./nanobot.svelte";
 import { tick, untrack } from "svelte";
 import { xohiActions } from "./xohiActions";
-import { robustNormalize, surgicalStitch } from "./xohiAnalysisLogic";
+import { robustNormalize, refinementStitch } from "./xohiAnalysisLogic";
 import type {
     CopyrightResult,
     SEOResult,
@@ -484,7 +484,7 @@ export function createAnalysisController(config: {
                 if (newText) {
                     // CNS V88.2: Surgical apply với Neural Stitching (HTML-Aware)
                     const currentContent = (config.getContent ?? config.getEditedDraft)?.() ?? '';
-                    const updated = surgicalStitch(currentContent, target, newText);
+                    const updated = refinementStitch(currentContent, target, newText);
                     
                     if (updated !== currentContent) {
                         if (resolve(config.isEditing)) config.setEditedDraft(updated);
@@ -554,7 +554,7 @@ export function createAnalysisController(config: {
         }
 
         _bulkFixRunning = true; // CNS V88.3: Guard chặn double-click
-        isBulkFixing = true; bulkFixStatus = "Đang phẫu thuật..."; currentAnalysisStep = 0;
+        isBulkFixing = true; bulkFixStatus = "Đang tinh chỉnh..."; currentAnalysisStep = 0;
         if (isAdhoc) nanobot.updateCurrentData({ campaign_id: 'adhoc' });
         bulkFixLogs = [];
         addTerminalLog("Đang khởi tạo Neural Engine...");
@@ -609,10 +609,10 @@ export function createAnalysisController(config: {
                     await saveAnalysisEvidence('ai_inspect', $state.snapshot(aiReadyResult));
                     setTimeout(() => { runAiInspect(true); }, 500);
                 }
-                addTerminalLog("✅ Phẫu thuật hoàn tất. Dữ liệu Neural Intelligence đã được cập nhật.");
+                addTerminalLog("✅ Tinh chỉnh hoàn tất. Dữ liệu Neural Intelligence đã được cập nhật.");
                 bulkFixStatus = "Hoàn tất ✅";
             } else {
-                const msg = (res as { message?: string })?.message || "Không thể thực hiện phẫu thuật hàng loạt";
+                const msg = (res as { message?: string })?.message || "Không thể thực hiện tinh chỉnh hàng loạt";
                 console.error("[Neural Engine] Bulk Fix Error:", res);
                 bulkFixLogs = [...bulkFixLogs, `❌ Lỗi: ${msg}`];
                 bulkFixStatus = "Thất bại ❌";
@@ -646,9 +646,9 @@ export function createAnalysisController(config: {
         const cid = resolve(config.campaign_id);
         const content = (config.getContent ?? config.getEditedDraft)?.() ?? '';
         const topic = resolve(config.topic) ?? '';
-        isBoosting = true; isBulkFixing = true; bulkFixStatus = "Đang phẫu thuật..."; activeTab = 'enrich'; currentAnalysisStep = 0;
+        isBoosting = true; isBulkFixing = true; bulkFixStatus = "Đang tinh chỉnh..."; activeTab = 'enrich'; currentAnalysisStep = 0;
         bulkFixLogs = [];
-        addTerminalLog("🚀 Surgeon Booster khởi động...");
+        addTerminalLog("🚀 Neural Booster khởi động...");
         addTerminalLog("🧠 Đang phân tích cấu trúc nội dung...");
 
         try {
@@ -680,9 +680,9 @@ export function createAnalysisController(config: {
                 }
             } else {
                 // [CNS V90.0 Plan B] Ad-hoc mode — Surgeon Booster (không cần Google Search)
-                const res = await xohiActions.runSurgeonBoost(content, topic);
-                if (res?.status === 'success' && res.data?.patches?.length) {
-                    if (res.data.logs?.length) bulkFixLogs = [...bulkFixLogs, ...res.data.logs];
+                const res = await xohiActions.runNeuralBoost(content, topic);
+                if (res?.status === 'success' && res.data?.patches) {
+                    bulkFixLogs = [...bulkFixLogs, `✅ Hoàn tất! Đã tìm thấy ${res.data.patches.length} điểm tinh chỉnh.`, ...res.data.logs];
                     // Áp dụng patches tuần tự: tìm và thay thế từng search_string
                     let updatedContent = content;
                     const applied: string[] = [];
@@ -708,13 +708,13 @@ export function createAnalysisController(config: {
                         activeTab = 'enrich';
                         
                         bulkFixLogs = [...bulkFixLogs, ...applied,
-                            `🏅 Hoàn tất! Đã phẫu thuật ${applied.length}/${res.data.patches.length} điểm.`
+                            `🏅 Hoàn tất! Đã tinh chỉnh ${applied.length}/${res.data.patches.length} điểm.`
                         ];
-                        nanobot.showToast(`Surgeon Booster đã tối ưu ${applied.length} đoạn văn`, 'success');
+                        nanobot.showToast(`Neural Booster đã tối ưu ${applied.length} đoạn văn`, 'success');
                         bulkFixStatus = "Hoàn tất ✅";
                         await saveAnalysisEvidence('enrich', boosterAnnotations);
                     } else {
-                        bulkFixLogs = [...bulkFixLogs, "⚠️ Không tìm thấy điểm nào cần phẫu thuật thêm."];
+                        bulkFixLogs = [...bulkFixLogs, "⚠️ Không tìm thấy điểm nào cần tinh chỉnh thêm."];
                         bulkFixStatus = "Hoàn tất ✅";
                     }
                 } else {
@@ -781,7 +781,7 @@ export function createAnalysisController(config: {
                 if (resolve(config.isEditing)) config.setEditedDraft(newHtml);
                 else config.setDraftContent(newHtml);
 
-                bulkFixLogs = [...bulkFixLogs, "✅ Hoàn tất phẫu thuật sáng tạo!", "✨ Bài viết mới đã được cập nhật."];
+                bulkFixLogs = [...bulkFixLogs, "✅ Hoàn tất tinh chỉnh sáng tạo!", "✨ Bài viết mới đã được cập nhật."];
                 bulkFixStatus = "Hoàn tất ✅";
 
                 // [CNS V91.2] Save rewrite evidence so dashboard knows this content was AI-rewritten

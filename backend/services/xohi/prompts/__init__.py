@@ -45,8 +45,8 @@ composer.register_template(PromptTemplate(
 ))
 
 composer.register_template(PromptTemplate(
-    name="copyright_surgeon",
-    components=["core_constitution", "agent_copyright_surgeon"]
+    name="copyright_refiner",
+    components=["core_constitution", "agent_copyright_refiner"]
 ))
 
 # SEO Templates
@@ -56,8 +56,8 @@ composer.register_template(PromptTemplate(
 ))
 
 composer.register_template(PromptTemplate(
-    name="seo_surgeon",
-    components=["core_constitution", "agent_seo_surgeon"]
+    name="seo_refiner",
+    components=["core_constitution", "agent_seo_refiner"]
 ))
 
 # Inspector Templates
@@ -67,8 +67,8 @@ composer.register_template(PromptTemplate(
 ))
 
 composer.register_template(PromptTemplate(
-    name="inspector_surgeon",
-    components=["core_constitution", "agent_viral_surgeon"]
+    name="inspector_refiner",
+    components=["core_constitution", "agent_viral_refiner"]
 ))
 
 # Creative Pen Templates
@@ -99,8 +99,8 @@ composer.register_template(PromptTemplate(
 ))
 
 composer.register_template(PromptTemplate(
-    name="booster_surgeon",
-    components=["core_constitution", "agent_surgeon_booster"]
+    name="booster_refiner",
+    components=["core_constitution", "agent_neural_booster"]
 ))
 
 # Vision & Insight Templates

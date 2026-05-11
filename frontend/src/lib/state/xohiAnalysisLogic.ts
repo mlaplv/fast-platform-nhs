@@ -1,6 +1,8 @@
 /**
  * CNS V88.2: Neural Surgical Stitching (Logic Layer)
  * Ports of backend algorithms for local DOM synchronization.
+ * Elite V2.2: Neural Refinement Stitching (Frontend Shim)
+ * Mirrors backend stitcher.py logic for consistent ad-hoc fixes.
  */
 
 export function robustNormalize(text: string): string {
@@ -12,7 +14,7 @@ export function robustNormalize(text: string): string {
         .toLowerCase();
 }
 
-export function surgicalStitch(content: string, oldText: string, newText: string): string {
+export function refinementStitch(content: string, oldText: string, newText: string): string {
     content = content.normalize('NFC');
     oldText = oldText.normalize('NFC');
     newText = newText.normalize('NFC');

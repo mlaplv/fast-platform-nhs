@@ -170,7 +170,7 @@ class AnalystHandler:
         stream_agent: Agent[None, str] = Agent(
             output_type=str,
             system_prompt=(
-                "Bạn là Neural Surgeon. Viết lại đoạn văn theo yêu cầu. "
+                "Bạn là Neural Refiner. Viết lại đoạn văn theo yêu cầu. "
                 "Sắc bén, thêm số liệu thực, giữ nguyên HTML tag. Chỉ trả về đoạn văn đã sửa."
             ),
             retries=1
@@ -179,9 +179,9 @@ class AnalystHandler:
         full_text = ""
         try:
             word_count = len(content.split())
-            yield f"data: {json.dumps({'chunk': f'[NFC] Normalizing {word_count} words for surgical alignment...\\n'}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'chunk': f'[NFC] Normalizing {word_count} words for refinement alignment...\\n'}, ensure_ascii=False)}\n\n"
             await asyncio.sleep(0.1)
-            yield f"data: {json.dumps({'chunk': '[JUDGE] Decoding error context & initiating Neural Surgeon...\\n'}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'chunk': '[JUDGE] Decoding error context & initiating Neural Refiner...\\n'}, ensure_ascii=False)}\n\n"
             await asyncio.sleep(0.1)
             yield f"data: {json.dumps({'chunk': '--- [REASONING START] ---\\n'}, ensure_ascii=False)}\n\n"
             async with trinity_bridge.run_stream(stream_agent, stream_prompt, role="fast") as stream:
@@ -193,15 +193,15 @@ class AnalystHandler:
             logger.error(f"[AnalystHandler] stream_auto_fix error: {exc}", exc_info=True)
             yield f"data: {json.dumps({'error': str(exc)[:100]})}\n\n"
 
-    async def surgeon_boost(
+    async def neural_boost(
         self, content: str, topic: str = "", campaign_id: Optional[str] = None,
         campaign_repo: Optional[ContentCampaignRepository] = None
     ) -> GenericResponse:
         """
-        CNS V87.0: Surgeon Boost — phẫu thuật content, trả về ContentPatch list.
+        CNS V87.0: Neural Boost — tinh chỉnh content, trả về ContentPatch list.
         Hỗ trợ cả ad-hoc (content trực tiếp) và campaign mode.
         """
-        from backend.services.xohi.creative_studio.operatives.surgeon_booster import run_surgeon_boost
+        from backend.services.xohi.creative_studio.operatives.neural_booster import run_neural_boost
 
         raw_content = content
         if campaign_id and campaign_repo and not raw_content:
@@ -211,13 +211,13 @@ class AnalystHandler:
             raw_content = campaign.draft_content or ""
 
         if not raw_content:
-            return GenericResponse(status="error", message="Chưa có nội dung để phẫu thuật.")
+            return GenericResponse(status="error", message="Chưa có nội dung để tinh chỉnh.")
 
         try:
-            result = await run_surgeon_boost(raw_content, topic)
+            result = await run_neural_boost(raw_content, topic)
             return GenericResponse(status="success", data=result.model_dump())
         except Exception as exc:
-            logger.error(f"[AnalystHandler] surgeon_boost failed: {exc}", exc_info=True)
+            logger.error(f"[AnalystHandler] neural_boost failed: {exc}", exc_info=True)
             return GenericResponse(status="error", message=str(exc))
 
     async def neural_rewrite(
@@ -282,7 +282,7 @@ class AnalystHandler:
         # Khởi tạo report nếu chưa có
         report = dict(campaign.analysis_report or {})
         
-        # Cập nhật slot dữ liệu tương ứng (copyright, seo, ai_inspect, surgeon)
+        # Cập nhật slot dữ liệu tương ứng (copyright, seo, ai_inspect, refinement)
         report[report_type] = {
             "data": data,
             "updated_at": datetime.now(timezone.utc).isoformat(),

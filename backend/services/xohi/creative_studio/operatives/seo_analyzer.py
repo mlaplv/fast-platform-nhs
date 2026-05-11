@@ -4,8 +4,8 @@ import hashlib
 import os
 import re
 import copy
-from typing import List, Dict, Union, Optional
-from datetime import datetime, timezone
+from typing import List, Dict, Union, Optional, cast
+from datetime import datetime, timezone, timedelta
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
@@ -15,7 +15,7 @@ from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.ai_engine.core.agent_base import BaseAgentOperative, SearchKeyMixin
 from backend.services.xohi.creative_studio.models.schemas import SeoReport, SeoSignal, SeoAnnotation, BulkFixRequest, BulkFixResponse, AtomicFixResponse
-from backend.services.xohi.creative_studio.utils.stitcher import surgical_stitch
+from backend.services.xohi.creative_studio.utils.stitcher import refinement_stitch
 from backend.database.repositories import ContentCampaignRepository
 from backend.database.models.content import ContentCampaign
 from backend.utils.config import get_env_json
@@ -66,7 +66,6 @@ class SeoAnalyzer(BaseAgentOperative, SearchKeyMixin):
         """Standardized Heritage Entry (V2.2). Maps to self.analyze."""
         if isinstance(request, ContentCampaign):
             return await self.analyze(request, force=bool(kwargs.get("force", False)))
-        from typing import cast
         return await self.analyze(cast(ContentCampaign, request), **kwargs)  # type: ignore
 
     def get_schema(self) -> Optional[type]:
@@ -247,11 +246,10 @@ DRAFT:
                     report['seo_annotations'].extend(extra_annotations)
             
             self.current_step = 3
-            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phân tích SEO hoàn tất! {len(getattr(report, 'seo_annotations', []))} điểm cải tiến chiến thuật. ĐÃ XỬ LÝ XONG")
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Tinh chỉnh SEO hoàn tất! {len(getattr(report, 'seo_annotations', []))} điểm cải tiến chiến thuật. ĐÃ XỬ LÝ XONG")
             await self._emit_progress(campaign, logs[-1])
             logger.warning(f"✅ [SeoAnalyzer] [QUANTUM] Completed. Score: {report.total_score}")
             # Elite V2.2: Prepend report timestamp to summary for traceability (UTC+7)
-            from datetime import timedelta
             report_time = (datetime.now(timezone.utc) + timedelta(hours=7)).strftime('%H:%M:%S %d/%m/%Y')
             time_badge = f"> [!IMPORTANT]\n> **THỜI GIAN LẬP BÁO CÁO:** {report_time}\n\n"
             
@@ -306,9 +304,9 @@ DRAFT:
     async def bulk_fix(self, campaign: ContentCampaign, req: BulkFixRequest) -> BulkFixResponse:
         now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')
         self.current_step = 0
-        logs = [f"🚀 [{now_str}] [SEO SURGEON] Initializing Neural SEO Surgeon (Elite V2.2)..."]
+        logs = [f"🚀 [{now_str}] [SEO REFINER] Initializing Neural SEO Refiner (Elite V2.2)..."]
         await self._emit_progress(campaign, logs[-1])
-        logger.warning(f"🚀 [SeoAnalyzer] Initializing [SEO SURGEON] Phase 0...")
+        logger.warning(f"🚀 [SeoAnalyzer] Initializing [SEO REFINER] Phase 0...")
         
         original_draft = campaign.draft_content or ""
         if not is_json(original_draft):
@@ -329,19 +327,19 @@ DRAFT:
 
         if not valid_items: return BulkFixResponse(new_content=draft, logs=logs)
 
-        logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [SCAN] Ingesting {len(valid_items)} SEO weaknesses into AI Surgeon...")
+        logs.append(f"🔍 [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [SCAN] Ingesting {len(valid_items)} SEO weaknesses into AI Refiner...")
         await self._emit_progress(campaign, logs[-1])
         self.current_step = 1
         logger.warning(f"🔍 [SeoAnalyzer] Phase 1: [SCAN] SEO Weakness ingestion complete.")
         
         self.current_step = 2
-        logger.warning(f"🧠 [SeoAnalyzer] Phase 2: [BRAIN] SEO Surgery pending...")
+        logger.warning(f"🧠 [SeoAnalyzer] Phase 2: [BRAIN] SEO Refinement pending...")
         
         shield = shield_service.get_shield_component(seed=campaign.id)
         composer.register_component(shield)
         
         # ELITE V2.2: Use extra_components to maintain thread-safety
-        system_prompt = composer.compose("seo_surgeon", extra_components=[shield.id])
+        system_prompt = composer.compose("seo_refiner", extra_components=[shield.id])
 
         prompt = f"[CẦN SỬA]\n{snippet_list}"
         
@@ -359,14 +357,14 @@ DRAFT:
                     orig = next((v for v in valid_items if v["id"] == fix.id), None)
                     if orig and fix.new_text:
                         old, new = orig["old_text"], await noise_cleaner.clean(fix.new_text, mode="light", strip_html=False)
-                        new_c = surgical_stitch(final_content, old, new, label="SeoAnalyzer")
+                        new_c = refinement_stitch(final_content, old, new, label="SeoAnalyzer")
                         if new_c != final_content:
                             final_content, replacements_made = new_c, replacements_made + 1
                             replacements_log.append({"old_text": old, "new_text": new})
-                            logs.append(f"✅ [SEO SURGEON] Optimized: \"{old[:40]}...\"")
+                            logs.append(f"✅ [SEO REFINER] Optimized: \"{old[:40]}...\"")
                             await self._emit_progress(campaign, logs[-1])
             self.current_step = 3
-            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phẫu thuật SEO hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn. ĐÃ XỬ LÝ XONG")
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Tinh chỉnh SEO hoàn tất! Đã tối ưu {replacements_made}/{len(valid_items)} phân đoạn. ĐÃ XỬ LÝ XONG")
             await self._emit_progress(campaign, logs[-1])
             logger.warning(f"✅ [SeoAnalyzer] [QUANTUM] Bulk fix complete.")
             final_content = self.clean_ai_html(final_content)

@@ -7,13 +7,16 @@
   import Star from "@lucide/svelte/icons/star";
   import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
   import Zap from "@lucide/svelte/icons/zap";
+  import { processContentImages } from "$lib/state/utils";
 
   let { 
     data, 
-    compact = false 
+    compact = false,
+    assets = []
   }: { 
-    data: RewriteResult; 
-    compact?: boolean 
+    data: RewriteResult | string; 
+    compact?: boolean;
+    assets?: any[]
   } = $props();
 
   // Elite V2.2: Zero-Latency reactive parsing using $derived
@@ -142,7 +145,7 @@
   <!-- Fallback for non-JSON content -->
   <div class="raw-content-fallback">
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-    {@html typeof data === 'string' ? data : ''}
+    {@html processContentImages(typeof data === 'string' ? data : '', assets)}
   </div>
 {/if}
 
@@ -178,8 +181,7 @@
     gap: 0.5rem;
     font-size: 0.65rem;
     font-weight: 800;
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
+    letter-spacing: 0.15em;
     color: #FFB7C5;
     background: rgba(255, 183, 197, 0.1);
     backdrop-filter: blur(10px);
@@ -244,8 +246,7 @@
 
   .bento-label {
     font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     color: rgba(255,255,255,0.4);
     font-weight: 700;
   }

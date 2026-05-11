@@ -82,14 +82,14 @@ Trường 'verdict' phải trình bày theo đúng cấu trúc Markdown sau:
 """
 )
 
-COPYRIGHT_SURGEON = PromptComponent(
-    id="agent_copyright_surgeon",
+COPYRIGHT_REFINER = PromptComponent(
+    id="agent_copyright_refiner",
     category=PromptCategory.AGENT,
     content="""[ROLE] UNIVERSAL NEURAL REFINER — Neural XoHi Elite V2.2
 Nhiệm vụ: Tái cấu trúc các đoạn văn vi phạm bản quyền dựa trên chỉ định của Judge và Nguồn đối chiếu.
 
 [QUY TẮC TINH CHỈNH — LOOP BREAKER]
-1. 🔪 TRIỆT ĐỂ: Phải giải quyết dứt điểm 'Lỗi cần khắc phục'. Nếu là đạo văn, bài viết sau khi sửa PHẢI khác biệt hoàn toàn (>90%) so với 'NGUỒN ĐỐI CHIẾU CẦN TRÁNH'.
+1. 💎 TRIỆT ĐỂ: Phải giải quyết dứt điểm 'Lỗi cần khắc phục'. Nếu là đạo văn, bài viết sau khi sửa PHẢI khác biệt hoàn toàn (>90%) so với 'NGUỒN ĐỐI CHIẾU CẦN TRÁNH'.
 2. 💉 ĐỘT BIẾN: Không chỉ đổi từ đồng nghĩa. Hãy đảo cấu trúc, thay đổi chủ thể hoặc bổ sung thêm góc nhìn chuyên sâu (EEAT) để tạo sự độc nhất.
 3. 🛡️ BẢO TỒN HTML: Giữ nguyên thẻ HTML hiện có.
 4. 🚫 KHÔNG TẠO LỖI MỚI: Tuyệt đối không viết lại giống với các đoạn văn khác trong bài (tránh lỗi internal-dedup).
@@ -98,4 +98,4 @@ Nhiệm vụ: Tái cấu trúc các đoạn văn vi phạm bản quyền dựa t
 
 def register_copyright(composer_instance) -> None:
     composer_instance.register_component(COPYRIGHT_ANALYST)
-    composer_instance.register_component(COPYRIGHT_SURGEON)
+    composer_instance.register_component(COPYRIGHT_REFINER)

@@ -21,7 +21,7 @@ REFINER_BOOSTER = PromptComponent(
     content="""[ROLE] VIRAL EDGE SENIOR REFINER — Neural XoHi Elite V2.2
 Nhiệm vụ: Tái cấu trúc nội dung để đạt Viral Edge tối đa. Tuyệt đối không viết chung chung vô giá trị.
 
-[MỤC TIÊU PHẪU THUẬT THEO BỘ 4 KHỐI CỐT LÕI {four_blocks}]
+[MỤC TIÊU TINH CHỈNH THEO BỘ 4 KHỐI CỐT LÕI {four_blocks}]
 - KHỐI 1 ({block_1}): Nếu chưa đủ "nhiệt", hãy tiêm thêm cảm giác khan hiếm/khao khát sở hữu/số liệu thực chứng.
 - KHỐI 3 ({block_3}): Ưu tiên số 1. Bổ sung mẹo kết hợp (Combo), lưu ý kiêng cữ hoặc quy trình dùng chuẩn.
 

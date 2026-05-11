@@ -3,7 +3,7 @@ from backend.database.models.auth import User, VoiceProfile, Role, Permission, u
 from backend.database.models.content import Category, Article, ArticleEmbedding, ContentCampaign, CampaignEvent, Appointment, ContentScout
 from backend.database.models.media import MediaRegistry, MediaUsage
 from backend.database.models.commerce import Order, ProductBase, ProductVariant, RentalContract, ProductEmbedding
-from backend.database.models.system import Draft, Notification, AgentTelemetryLog, ChatMessage, SystemSetting, SystemReview, SupportKnowledge, SupportKnowledgeCategory
+from backend.database.models.system import Draft, Notification, AgentTelemetryLog, ChatMessage, SystemSetting, SystemReview, SupportKnowledge, SupportKnowledgeCategory, UnifiedAgentTask
 from backend.database.models.system_otp import SystemOTP
 from backend.database.models.promotion import Banner, Voucher, ComboDeal
 
@@ -44,4 +44,5 @@ __all__ = [
     "SystemOTP",
     "Voucher",
     "ComboDeal",
+    "UnifiedAgentTask",
 ]
