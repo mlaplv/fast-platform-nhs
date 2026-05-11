@@ -157,19 +157,8 @@
     {/if}
   </section>
 
-  <!-- SECTION 4: PRODUCT SPECS & INGREDIENTS (New) -->
-  <section id="specs" class="mobile-snap-section" data-section-idx={hasVideo ? 4 : 3}>
-    {#if loadJIT}
-      {#await import('./sections/MobileSpecs.svelte') then { default: MobileSpecs }}
-        <MobileSpecs {product} />
-      {/await}
-    {:else}
-      <div class="w-full min-h-[50vh] bg-black animate-pulse"></div>
-    {/if}
-  </section>
-
-  <!-- SECTION 5: NATIVE REVIEWS -->
-  <section id="reviews" class="snap-snap-section" data-section-idx={hasVideo ? 5 : 4}>
+  <!-- SECTION 4: NATIVE REVIEWS -->
+  <section id="reviews" class="snap-snap-section" data-section-idx={hasVideo ? 4 : 3}>
     {#if loadJIT}
       {#await import('./sections/MobileReviews.svelte') then { default: MobileReviews }}
         <MobileReviews {product} initialReviews={reviews} />
@@ -179,8 +168,8 @@
     {/if}
   </section>
 
-  <!-- SECTION 6: NATIVE OFFER -->
-  <section id="offers" class="mobile-snap-section" data-section-idx={hasVideo ? 6 : 5}>
+  <!-- SECTION 5: NATIVE OFFER -->
+  <section id="offers" class="mobile-snap-section" data-section-idx={hasVideo ? 5 : 4}>
     {#if loadJIT}
       {#await import('./sections/MobileOffer.svelte') then { default: MobileOffer }}
         <MobileOffer {product} onOpenDetails={() => isDetailsModalOpen = true} {relatedProducts} {reviewStats} />

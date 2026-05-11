@@ -8,7 +8,6 @@
   import ProductMobileHeader from './modules/ProductMobileHeader.svelte';
   import ProductMobileOverview from './modules/ProductMobileOverview.svelte';
   import ProductMobileReviews from './modules/ProductMobileReviews.svelte';
-  import ProductMobileSpecs from './modules/ProductMobileSpecs.svelte';
   import RelatedProducts from '../shared/RelatedProducts.svelte';
   import ProductMobileVariantSelector from './modules/ProductMobileVariantSelector.svelte';
 
@@ -103,7 +102,7 @@
       });
     }, { rootMargin: '-110px 0px -80% 0px' });
 
-    ['overview', 'reviews', 'description', 'recommendations'].forEach(id => {
+    ['overview', 'reviews', 'recommendations'].forEach(id => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
@@ -274,12 +273,6 @@
 
     <div id="reviews">
       <ProductMobileReviews {product} />
-    </div>
-
-    <div class="section-divider"></div>
-
-    <div id="description">
-      <ProductMobileSpecs {product} />
     </div>
 
     <div class="section-divider"></div>
