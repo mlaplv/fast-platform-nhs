@@ -167,9 +167,9 @@
         if (phoneToUse && typeof localStorage !== 'undefined') {
           localStorage.setItem(`order_verify_${orderId}`, phoneToUse);
         }
-        const cName = order.customer_name || (order as unknown as { name_masked: string }).name_masked || '';
-        const cPhone = order.customer_phone || '';
-        const cAddress = order.customer_address || (order as unknown as { address_masked: string }).address_masked || '';
+        const cName = res.customer_name || res.name_masked || '';
+        const cPhone = res.customer_phone || '';
+        const cAddress = res.customer_address || res.address_masked || '';
         
         const addrParts = parseAddress(cAddress);
         editForm = {
@@ -535,7 +535,11 @@
 {/if}
 
 {#if isConfirmCancelOpen}
-  <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-6 z-[2000]" transition:fade>
+  <div 
+    class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-6" 
+    style:z-index={Z_INDEX_CLIENT.MODAL_OVERLAY}
+    transition:fade
+  >
     <div class="w-full max-w-sm bg-white shadow-2xl border-t-4 border-red-500 p-10 text-center space-y-6" in:scale>
       <h3 class="text-xl font-black uppercase italic">Xác nhận hủy đơn?</h3>
       <div class="flex flex-col gap-3">

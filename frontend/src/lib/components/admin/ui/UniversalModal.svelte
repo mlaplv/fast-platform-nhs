@@ -35,6 +35,7 @@ import SupportInbox from "../management/SupportInbox.svelte";
 import BrainManagerWidget from "../management/BrainManagerWidget.svelte";
 import VideoFullView from "../../widgets/VideoFullView.svelte";
 import VoucherManagement from "../management/VoucherManagement.svelte";
+import AdsFraudDashboard from "../AdsFraudDashboard.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -65,6 +66,7 @@ import VoucherManagement from "../management/VoucherManagement.svelte";
     BRAIN_MANAGEMENT: BrainManagerWidget,
     VIDEO_FULLVIEW: VideoFullView,
     VOUCHER_MANAGEMENT: VoucherManagement,
+    ADS_PROTECTION: AdsFraudDashboard,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -90,6 +92,7 @@ import VoucherManagement from "../management/VoucherManagement.svelte";
     BRAIN_MANAGEMENT: "HELEN BRAIN — QUẢN TRỊ TRI THỨC",
     VIDEO_FULLVIEW: "XEM VIDEO",
     VOUCHER_MANAGEMENT: "QUẢN LÝ VOUCHER & KHUYẾN MÃI",
+    ADS_PROTECTION: "ADS FRAUD PROTECTION & CLICK SHIELD",
   };
 
   let open = $derived(nanobot.universalModalOpen);
@@ -137,7 +140,7 @@ import VoucherManagement from "../management/VoucherManagement.svelte";
       style="z-index: {Z_INDEX_ADMIN.SURFACE};"
     >
       <!-- Header -->
-      {#if nanobot.activeWidget !== 'CONTENT_REVIEW'}
+      {#if !['CONTENT_REVIEW', 'ADS_PROTECTION'].includes(nanobot.activeWidget)}
       <div class="flex items-center justify-between px-5 py-3 border-b border-cyan-500/20 bg-black md:bg-black/80 md:backdrop-blur-md shrink-0">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 rounded-md bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
@@ -232,7 +235,7 @@ import VoucherManagement from "../management/VoucherManagement.svelte";
       {/if}
 
       <!-- Widget Content (scrollable container managed by widget internally for CONTENT_REVIEW) -->
-      <div class="flex-1 {['CONTENT_REVIEW', 'APPOINTMENTS', 'SUPPORT_INBOX', 'BRAIN_MANAGEMENT', 'ORDER_MANAGEMENT', 'PRODUCT_MANAGEMENT', 'VOUCHER_MANAGEMENT', 'NEWS_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT'].includes(nanobot.activeWidget) ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
+      <div class="flex-1 {['CONTENT_REVIEW', 'ADS_PROTECTION', 'APPOINTMENTS', 'SUPPORT_INBOX', 'BRAIN_MANAGEMENT', 'ORDER_MANAGEMENT', 'PRODUCT_MANAGEMENT', 'VOUCHER_MANAGEMENT', 'NEWS_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT'].includes(nanobot.activeWidget) ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
         <ActiveWidget data={WidgetData} isWidget={true} />
       </div>
 

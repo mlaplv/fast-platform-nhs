@@ -97,7 +97,8 @@
       icon: Megaphone,
       color: "#FF33FF", // vibrant-purple
       children: [
-        { label: "Content Factory", widget: "CAMPAIGNS" }
+        { label: "Content Factory", widget: "CAMPAIGNS" },
+        { label: "Ads Protection", widget: "ADS_PROTECTION" }
       ]
     },
     {

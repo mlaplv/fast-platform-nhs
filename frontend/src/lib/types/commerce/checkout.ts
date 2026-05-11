@@ -16,6 +16,7 @@ export interface Voucher {
   type: 'FIXED' | 'PERCENT' | 'SHIPPING';
   value: number;
   min_spend: number;
+  max_discount?: number;
   subtitle?: string;
   category: string;
   is_default: boolean;

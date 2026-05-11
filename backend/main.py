@@ -73,6 +73,7 @@ from backend.routers.intent_map import IntentMapController
 from backend.routers.scheduler_router import SchedulerController
 from backend.controllers.client.fomo import FomoController
 from backend.controllers.client.viral import ViralController
+from backend.controllers.ads_protection import AdsProtectionController
 
 from backend.middleware import AuthMiddleware
 from backend.body_limit import BodyLimitMiddleware
@@ -123,6 +124,7 @@ app = Litestar(
         FomoController,
         PublicTTSController,
         ViralController,
+        AdsProtectionController,
     ],
     middleware=[StallDetectorMiddleware, BodyLimitMiddleware, rate_limit_config.middleware, AuthMiddleware, DomainGuardMiddleware, AuditMiddleware],
     cors_config=cors_config,

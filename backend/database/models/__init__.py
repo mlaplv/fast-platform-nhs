@@ -6,6 +6,7 @@ from backend.database.models.commerce import Order, ProductBase, ProductVariant,
 from backend.database.models.system import Draft, Notification, AgentTelemetryLog, ChatMessage, SystemSetting, SystemReview, SupportKnowledge, SupportKnowledgeCategory, UnifiedAgentTask
 from backend.database.models.system_otp import SystemOTP
 from backend.database.models.promotion import Banner, Voucher, ComboDeal
+from backend.database.models.ads import ClickFraudEvent, GoogleAdsCampaignLog, IPBlacklist, NegativeKeyword
 
 __all__ = [
     "Base",
@@ -45,4 +46,8 @@ __all__ = [
     "Voucher",
     "ComboDeal",
     "UnifiedAgentTask",
+    "ClickFraudEvent",
+    "GoogleAdsCampaignLog",
+    "IPBlacklist",
+    "NegativeKeyword",
 ]

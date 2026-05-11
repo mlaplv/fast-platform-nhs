@@ -32,6 +32,7 @@ class StallDetectorMiddleware:
             "/api/v1/pulse",
             "/api/v1/tts/stream",
             "/api/v1/client/tts/stream",
+            "/api/v1/ads-protection/stream",
             # AI-heavy — self-managed timeouts (R.C.1/R.C.2 in analyst.py)
             "/api/v1/content/scout",
             "/api/v1/content/analyze",

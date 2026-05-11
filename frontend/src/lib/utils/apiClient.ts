@@ -74,20 +74,25 @@ export const apiClient = {
     const { params, ...customConfig } = options;
 
     // 1. Build URL with query params
-    const apiBase = typeof window !== 'undefined' ? (window.location.origin + '/api/v1') : 'http://api:8000/api/v1';
-    
-    // Normalize endpoint: if it starts with /api/v1, remove it if we are using apiBase
-    let cleanEndpoint = endpoint;
-    if (cleanEndpoint.startsWith('/api/v1')) {
-        cleanEndpoint = cleanEndpoint.substring(7);
-    } else if (cleanEndpoint.startsWith('api/v1')) {
-        cleanEndpoint = cleanEndpoint.substring(6);
-    }
-    
-    // Ensure cleanEndpoint starts with /
-    if (!cleanEndpoint.startsWith('/')) cleanEndpoint = '/' + cleanEndpoint;
+    const isAbsolute = endpoint.startsWith('http://') || endpoint.startsWith('https://');
+    let url: URL;
 
-    const url = new URL(apiBase + cleanEndpoint);
+    if (isAbsolute) {
+        url = new URL(endpoint);
+    } else {
+        const apiBase = typeof window !== 'undefined' ? (window.location.origin + '/api/v1') : 'http://api:8000/api/v1';
+        
+        // Normalize endpoint
+        let cleanEndpoint = endpoint;
+        if (cleanEndpoint.startsWith('/api/v1')) {
+            cleanEndpoint = cleanEndpoint.substring(7);
+        } else if (cleanEndpoint.startsWith('api/v1')) {
+            cleanEndpoint = cleanEndpoint.substring(6);
+        }
+        
+        if (!cleanEndpoint.startsWith('/')) cleanEndpoint = '/' + cleanEndpoint;
+        url = new URL(apiBase + cleanEndpoint);
+    }
     if (params) {
       Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
     }
@@ -240,14 +245,21 @@ export const apiClient = {
   ): Promise<T> {
     const { params, headers: customHeaders, ...rest } = options;
 
-    const apiBase = typeof window !== 'undefined' ? (window.location.origin + '/api/v1') : 'http://api:8000/api/v1';
-    
-    let cleanEndpoint = endpoint;
-    if (cleanEndpoint.startsWith('/api/v1')) cleanEndpoint = cleanEndpoint.substring(7);
-    else if (cleanEndpoint.startsWith('api/v1')) cleanEndpoint = cleanEndpoint.substring(6);
-    if (!cleanEndpoint.startsWith('/')) cleanEndpoint = '/' + cleanEndpoint;
+    const isAbsolute = endpoint.startsWith('http://') || endpoint.startsWith('https://');
+    let url: URL;
 
-    const url = new URL(apiBase + cleanEndpoint);
+    if (isAbsolute) {
+        url = new URL(endpoint);
+    } else {
+        const apiBase = typeof window !== 'undefined' ? (window.location.origin + '/api/v1') : 'http://api:8000/api/v1';
+        
+        let cleanEndpoint = endpoint;
+        if (cleanEndpoint.startsWith('/api/v1')) cleanEndpoint = cleanEndpoint.substring(7);
+        else if (cleanEndpoint.startsWith('api/v1')) cleanEndpoint = cleanEndpoint.substring(6);
+        if (!cleanEndpoint.startsWith('/')) cleanEndpoint = '/' + cleanEndpoint;
+
+        url = new URL(apiBase + cleanEndpoint);
+    }
     if (params) {
       Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
     }
