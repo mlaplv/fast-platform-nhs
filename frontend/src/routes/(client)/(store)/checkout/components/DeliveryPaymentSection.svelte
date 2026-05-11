@@ -31,7 +31,7 @@
         <div class="flex items-center gap-2.5">
           <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
           <div>
-            <div class="text-[10px] font-bold uppercase text-emerald-600">Thời gian giao hàng dự kiến</div>
+            <div class="text-[10px] font-bold text-emerald-600">Thời gian giao hàng dự kiến</div>
             <div class="text-[12px] font-semibold text-gray-800">Nhận hàng vào: {deliveryEstimate}</div>
           </div>
         </div>
@@ -41,7 +41,7 @@
       <div class="flex items-center justify-between px-3 py-2 bg-gray-50 rounded border border-gray-100">
         <div class="flex items-center gap-1.5">
           <svg class="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <span class="text-[11px] font-bold text-gray-800 uppercase">Được đồng kiểm</span>
+          <span class="text-[11px] font-bold text-gray-800">Được đồng kiểm</span>
           <button type="button" onclick={() => showCoInspectionModal = true} class="text-gray-400 hover:text-blue-500 transition-colors ml-1">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           </button>
@@ -53,7 +53,7 @@
 
   <!-- SHIPPING METHOD SELECTION -->
   <div class="pt-2">
-    <h2 class="text-sm font-bold uppercase text-gray-800 flex items-center gap-2 mb-2 border-b border-gray-50 pb-2">
+    <h2 class="text-sm font-bold text-gray-800 flex items-center gap-2 mb-2 border-b border-gray-50 pb-2">
       <svg class="w-4 h-4 text-[#fe2c55]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 011 1v2a1 1 0 01-1 1h-1m-4-14H5a1 1 0 00-1 1v9a1 1 0 001 1h3m3 3H5a1 1 0 01-1-1v-2a1 1 0 011-1h6" /></svg>
       Phương thức vận chuyển
     </h2>
@@ -65,7 +65,7 @@
       >
         <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
         <div class="text-left leading-tight">
-          <span class="block font-bold text-[12px]">TIÊU CHUẨN</span>
+          <span class="block font-bold text-[12px]">Tiêu chuẩn</span>
           <span class="block text-[9px] font-medium {form.shippingMethod === 'standard' ? 'text-[#fe2c55]/80' : 'text-gray-400'}">Miễn phí toàn quốc</span>
         </div>
         {#if form.shippingMethod === 'standard'}
@@ -83,7 +83,7 @@
         >
           <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
           <div class="text-left leading-tight">
-            <span class="block font-bold text-[12px]">HỎA TỐC 2H</span>
+            <span class="block font-bold text-[12px]">Hỏa tốc 2h</span>
             <span class="block text-[9px] font-medium {form.shippingMethod === 'express' ? 'text-[#fe2c55]/80' : 'text-gray-400'}">Duy nhất tại HN/HCM</span>
           </div>
           {#if form.shippingMethod === 'express'}
@@ -102,7 +102,7 @@
 
   <!-- PAYMENT METHOD -->
   <div class="pt-2">
-    <h2 class="text-sm font-bold uppercase text-gray-800 flex items-center gap-2 mb-2 border-b border-gray-50 pb-2">
+    <h2 class="text-sm font-bold text-gray-800 flex items-center gap-2 mb-2 border-b border-gray-50 pb-2">
       <svg class="w-4 h-4 text-[#fe2c55]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
       Phương thức thanh toán
     </h2>
@@ -114,7 +114,7 @@
       >
         <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
         <div class="text-left leading-tight">
-          <span class="block font-bold text-[12px]">COD</span>
+          <span class="block font-bold text-[12px]">Cod</span>
           <span class="block text-[9px] font-medium {form.paymentMethod === 'cod' ? 'text-[#fe2c55]/80' : 'text-gray-400'}">Thanh toán nhận hàng</span>
         </div>
         {#if form.paymentMethod === 'cod'}
@@ -129,7 +129,7 @@
       >
         <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
         <div class="text-left leading-tight">
-          <span class="block font-bold text-[12px]">BANKING</span>
+          <span class="block font-bold text-[12px]">Banking</span>
           <span class="block text-[9px] font-medium {form.paymentMethod === 'bank' ? 'text-[#fe2c55]/80' : 'text-gray-400'}">Chuyển khoản an toàn</span>
         </div>
         {#if form.paymentMethod === 'bank'}

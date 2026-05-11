@@ -26,20 +26,20 @@
 
 <div class="lg:col-span-12">
   <div class="bg-white p-6 shadow-sm border border-gray-100">
-    <h2 class="text-lg font-black uppercase text-gray-900 mb-6 pb-4 border-b border-gray-100 flex items-center justify-between">
+    <h2 class="text-lg font-black text-gray-900 mb-6 pb-4 border-b border-gray-100 flex items-center justify-between">
       <div class="flex items-center gap-2">
         <svg class="w-5 h-5 text-[#ee4d2d]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-        <span class="italic">GIỎ HÀNG</span>
+        <span class="italic">Giỏ hàng</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="text-[10px] bg-gray-50 px-2 py-1 text-gray-400 font-bold uppercase tracking-widest">{cartStore.items.filter(i => i.selected).length} SẢN PHẨM</span>
+        <span class="text-[10px] bg-gray-50 px-2 py-1 text-gray-400 font-bold tracking-widest">{cartStore.items.filter(i => i.selected).length} sản phẩm</span>
         <button 
           onclick={async () => { 
             const confirmed = await clientUi.openConfirm({
-              title: 'DỌN DẸP GIỎ HÀNG',
+              title: 'Dọn dẹp giỏ hàng',
               message: 'Bạn có chắc chắn muốn xóa giỏ hàng không? Hành động này không thể hoàn tác.',
-              confirmLabel: 'XÓA GIỎ HÀNG',
-              cancelLabel: 'ĐỂ LẠI'
+              confirmLabel: 'Xóa giỏ hàng',
+              cancelLabel: 'Để lại'
             });
             if (confirmed) cartStore.clearCart(); 
           }} 
@@ -65,11 +65,11 @@
             </div>
             <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
               <div class="space-y-0.5">
-                <h4 class="text-[10px] font-bold text-gray-800 leading-tight uppercase italic line-clamp-2 antialiased">{item.product.name}</h4>
+                <h4 class="text-[10px] font-bold text-gray-800 leading-tight italic line-clamp-2 antialiased">{item.product.name}</h4>
                 {#if item.variant}
                   <div class="flex items-center gap-1.5 mt-1">
-                    <span class="text-[7px] font-black text-white bg-gray-400 px-1.5 py-0.5 uppercase tracking-tighter">PHÂN LOẠI</span>
-                    <span class="text-[8px] font-bold text-gray-500 uppercase">{item.variant.sku}</span>
+                    <span class="text-[7px] font-black text-white bg-gray-400 px-1.5 py-0.5 tracking-tighter">Phân loại</span>
+                    <span class="text-[8px] font-bold text-gray-500">{item.variant.sku}</span>
                   </div>
                 {/if}
               </div>
@@ -124,7 +124,7 @@
               {#if item.variant?.attributes?.gifts && item.variant.attributes.gifts.length > 0}
                 <div class="mt-2 bg-orange-50/50 border border-orange-100 p-2.5 flex flex-col gap-2 rounded-sm relative overflow-hidden">
                   <div class="absolute inset-0 bg-gradient-to-r from-orange-100/30 to-transparent"></div>
-                  <span class="text-[9px] font-black text-orange-600 uppercase flex items-center gap-1 relative z-10 mb-1">
+                  <span class="text-[9px] font-black text-orange-600 flex items-center gap-1 relative z-10 mb-1">
                     <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
                     Quà Tặng Combo:
                   </span>
@@ -157,9 +157,9 @@
 
       {#if customItems.length > 0}
         <div class="mt-4 pt-4 border-t border-dashed border-gray-200 space-y-3" in:slide>
-          <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest italic flex items-center gap-2">
+          <h3 class="text-[10px] font-black text-gray-400 tracking-widest italic flex items-center gap-2">
             <svg class="w-3.5 h-3.5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            YÊU CẦU THÊM (CHỜ BÁO GIÁ)
+            Yêu cầu thêm (Chờ báo giá)
           </h3>
           {#each customItems as item, idx}
             <div class="flex gap-4 bg-orange-50/40 p-2 border border-orange-100 relative group animate-pulse-subtle">
@@ -171,7 +171,7 @@
                 {/if}
               </div>
               <div class="flex-1 min-w-0 flex flex-col justify-center">
-                <h4 class="text-[9px] font-black text-gray-800 uppercase italic line-clamp-1">{item.name}</h4>
+                <h4 class="text-[9px] font-black text-gray-800 italic line-clamp-1">{item.name}</h4>
                 <div class="text-[8px] text-gray-400 font-bold">Số lượng: {item.quantity} · <span class="text-orange-500 italic">Đang chờ xử lý</span></div>
               </div>
               <button 
@@ -198,12 +198,12 @@
           <div class="w-6 h-6 rounded-full border border-current flex items-center justify-center group-hover:bg-[#ee4d2d] group-hover:text-white transition-colors">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
           </div>
-          <span class="text-[10px] font-black uppercase tracking-widest italic text-center">Yêu cầu thêm sản phẩm khác</span>
+          <span class="text-[10px] font-black tracking-widest italic text-center">Yêu cầu thêm sản phẩm khác</span>
         </button>
       {:else}
         <div class="p-5 bg-gray-50 border border-gray-100 space-y-4 shadow-inner" in:slide>
           <div class="flex items-center justify-between mb-2">
-            <span class="text-[10px] font-black text-gray-900 uppercase italic tracking-widest flex items-center gap-2">
+            <span class="text-[10px] font-black text-gray-900 italic tracking-widest flex items-center gap-2">
               <div class="w-1.5 h-1.5 bg-[#ee4d2d] rounded-full"></div>
               Mục sản phẩm bổ sung
             </span>
@@ -211,30 +211,30 @@
           </div>
           <div class="space-y-3">
             <div class="space-y-1">
-              <label class="text-[8px] font-black text-slate-500 uppercase ml-1">Tên sản phẩm</label>
+              <label class="text-[8px] font-black text-slate-500 ml-1">Tên sản phẩm</label>
               <input type="text" bind:value={newCustomItem.name} placeholder="VD: Sữa rửa mặt Cerave SA 473ml..." class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] transition-colors text-gray-900" />
             </div>
             <div class="grid grid-cols-2 gap-3">
                <div class="space-y-1">
-                 <label class="text-[8px] font-black text-slate-500 uppercase ml-1">Số lượng</label>
+                 <label class="text-[8px] font-black text-slate-500 ml-1">Số lượng</label>
                  <input type="number" bind:value={newCustomItem.quantity} class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] text-gray-900" />
                </div>
                <div class="space-y-1">
-                 <label class="text-[8px] font-black text-slate-500 uppercase ml-1">Giá dự kiến (VNĐ)</label>
+                 <label class="text-[8px] font-black text-slate-500 ml-1">Giá dự kiến (VNĐ)</label>
                  <input type="number" bind:value={newCustomItem.price} placeholder="0" class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] text-gray-900" />
                </div>
             </div>
             <div class="space-y-1">
-              <label class="text-[8px] font-black text-slate-500 uppercase ml-1">Hình ảnh / Mô tả</label>
+              <label class="text-[8px] font-black text-slate-500 ml-1">Hình ảnh / Mô tả</label>
               <input type="text" bind:value={newCustomItem.image} placeholder="Nhập Link ảnh hoặc yêu cầu màu sắc, kích thước..." class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] text-gray-900" />
             </div>
           </div>
           <button 
             type="button" 
             onclick={addCustomItem}
-            class="w-full py-3 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#ee4d2d] transition-all flex items-center justify-center gap-2 shadow-lg shadow-gray-200"
+            class="w-full py-3 bg-gray-900 text-white text-[10px] font-black tracking-widest hover:bg-[#ee4d2d] transition-all flex items-center justify-center gap-2 shadow-lg shadow-gray-200"
           >
-            XÁC NHẬN YÊU CẦU
+            Xác nhận yêu cầu
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
           </button>
         </div>

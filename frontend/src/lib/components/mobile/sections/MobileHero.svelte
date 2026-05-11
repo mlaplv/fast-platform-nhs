@@ -32,14 +32,28 @@
   const viewers = $derived(fomoStore.viewers);
   const stockLeft = $derived(fomoStore.stockLeft);
   const totalSales = $derived(fomoStore.totalSales);
+  const formattedSales = $derived((totalSales / 1000).toFixed(1) + "k");
   
-  let timerSeconds = $state(2 * 3600 + 45 * 60 + 12); // Flash sale count
-  const formattedSales = $derived((totalSales / 1000).toFixed(1) + 'k');
+  // Elite V2.2: Dynamic Countdown logic instead of hardcode
+  const flashSaleEnd = $derived(metadata.flash_sale_end ? new Date(metadata.flash_sale_end).getTime() : 0);
+  let timerSeconds = $state(0);
 
   $effect(() => {
-    const countdown = setInterval(() => {
-      if (timerSeconds > 0) timerSeconds--;
-    }, 1000);
+    const updateTimer = () => {
+        if (flashSaleEnd > 0) {
+            const now = Date.now();
+            const diff = Math.max(0, Math.floor((flashSaleEnd - now) / 1000));
+            timerSeconds = diff;
+        } else {
+            // Fallback: Nếu không có cấu hình, dùng một bộ đếm ngược ảo dựa trên ngày hiện tại
+            const now = new Date();
+            const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+            timerSeconds = Math.floor((endOfDay.getTime() - now.getTime()) / 1000);
+        }
+    };
+    
+    updateTimer();
+    const countdown = setInterval(updateTimer, 1000);
 
     return () => {
       clearInterval(countdown);
@@ -76,7 +90,8 @@
 
   function syncVariantOnScroll() {
     if (!variantScroller) return;
-    const index = Math.round(variantScroller.scrollLeft / window.innerWidth);
+    const width = variantScroller.clientWidth || window.innerWidth;
+    const index = Math.round(variantScroller.scrollLeft / width);
     if (currentVariant?.tierIndex[0] !== index) {
       shopStore.selectVariantByTier([index]);
     }
@@ -84,7 +99,8 @@
 
   $effect(() => {
     if (variantScroller && currentVariant) {
-      const targetX = currentVariant.tierIndex[0] * window.innerWidth;
+      const width = variantScroller.clientWidth || window.innerWidth;
+      const targetX = currentVariant.tierIndex[0] * width;
       if (Math.abs(variantScroller.scrollLeft - targetX) > 10) {
         variantScroller.scrollTo({ left: targetX, behavior: 'smooth' });
       }
@@ -112,6 +128,14 @@
     {#each variantOptions as opt, i}
       {@const v = product?.variants?.find((varItem: ProductVariant) => varItem.tierIndex[0] === i)}
       {@const mobileImg = (product?.tierVariations?.[0]?.mobile_images?.[i]) || (product?.mobileImages?.[i])}
+      
+      <!-- Elite V2.2: Pre-calculate dynamic content & rating for R00 compliance -->
+      {@const variantH1 = v?.attributes?.hero_headline_1 || h1}
+      {@const variantH2 = v?.attributes?.hero_headline_2 || h2}
+      {@const rating = product?.rating || 4.9}
+      {@const fullStars = Math.floor(rating)}
+      {@const hasHalfStar = rating % 1 >= 0.5}
+
       <div class="variant-slide relative">
          <!-- Main Content Image (Elite Adaptive Rendering) -->
          <EditableWrapper 
@@ -164,34 +188,35 @@
               </div>
             </EditableWrapper>
 
-            <!-- Title & Variant -->
+            <!-- Title & Variant (Elite Dynamic Content) -->
             <h1 class="text-3xl font-extrabold text-white tracking-tighter mb-4 italic leading-none">
-              <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
-                  {h1}
+              <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.hero_headline_1` : 'metadata.hero_headline_1'} type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+                  {variantH1}
               </EditableWrapper>
               <span class="block text-gradient-indigo">
-                  <EditableWrapper path="metadata.hero_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
-                      {h2}
+                  <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.hero_headline_2` : 'metadata.hero_headline_2'} type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+                      {variantH2}
                   </EditableWrapper>
               </span>
             </h1>
 
-            <!-- Trust / Review Badge -->
+            <!-- Trust / Review Badge (Elite R00 Compliant) -->
             <div class="flex items-center gap-1.5 mt-0.5 mb-1.5 pr-14">
                <div class="flex items-center gap-[2px]">
-                  <Star class="w-3.5 h-3.5 text-[#ffcc00] fill-[#ffcc00] drop-shadow-md" />
-                  <Star class="w-3.5 h-3.5 text-[#ffcc00] fill-[#ffcc00] drop-shadow-md" />
-                  <Star class="w-3.5 h-3.5 text-[#ffcc00] fill-[#ffcc00] drop-shadow-md" />
-                  <Star class="w-3.5 h-3.5 text-[#ffcc00] fill-[#ffcc00] drop-shadow-md" />
-                  <StarHalf class="w-3.5 h-3.5 text-[#ffcc00] fill-[#ffcc00] drop-shadow-md" />
+                  {#each Array(fullStars) as _}
+                    <Star class="w-3.5 h-3.5 text-[#ffcc00] fill-[#ffcc00] drop-shadow-md" />
+                  {/each}
+                  {#if hasHalfStar}
+                    <StarHalf class="w-3.5 h-3.5 text-[#ffcc00] fill-[#ffcc00] drop-shadow-md" />
+                  {/if}
                </div>
-               <span class="text-[11px] font-black text-white/95 tracking-wide drop-shadow-md">4.9/5</span>
+               <span class="text-[11px] font-black text-white/95 tracking-wide drop-shadow-md">{rating}/5</span>
                <span class="text-[10px] text-white/70 tracking-wide font-medium ml-1">· {formattedSales} đã bán</span>
             </div>
 
             <p class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium drop-shadow-sm">
-              <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN" as="span">
-                  {product?.shortDescription || 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.'}
+              <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.short_description` : 'shortDescription'} label="SỬA MÔ TẢ NGẮN" as="span">
+                  {v?.attributes?.short_description || product?.shortDescription || 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.'}
               </EditableWrapper>
             </p>
             

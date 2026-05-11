@@ -116,6 +116,8 @@
            if (parsed["@type"] === 'Organization') organizationScript = s;
            if (parsed["@type"] === 'WebSite') websiteScript = s;
            if (parsed["@type"] === 'CollectionPage') categoryScript = s;
+           if (parsed["@type"] === 'Article' && !articleScript) articleScript = s;
+           if (parsed["@type"] === 'Product' && !productScript) productScript = s;
            return false;
         }
         if (parsed["@graph"]) {
@@ -179,7 +181,8 @@
             description: finalDescription,
             url: canonical ? toAbsSeo(canonical) : absCanonical,
             image: toAbsSeo(articleData.image || image),
-            datePublished: articleData.datePublished || new Date().toISOString(),
+            // Elite V2.2: Deterministic fallback to prevent hydration mismatch
+            datePublished: articleData.datePublished || "2026-05-11T00:00:00Z",
             author: articleData.author || "osmo Elite",
             publisherName: "osmo Elite",
             publisherLogo: toAbsSeo('/favicon.svg')

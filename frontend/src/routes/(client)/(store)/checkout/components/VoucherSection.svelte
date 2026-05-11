@@ -27,9 +27,9 @@
 
 <div class="pt-2 space-y-4">
   <div class="flex items-center justify-between border-b border-gray-50 pb-2">
-    <h2 class="text-sm font-bold uppercase text-gray-800 flex items-center gap-2">
+    <h2 class="text-sm font-bold text-gray-800 flex items-center gap-2">
       <svg class="w-4 h-4 text-[#fe2c55]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
-      Kho Voucher
+      Kho voucher
     </h2>
     <span class="text-[10px] font-bold text-[#fe2c55] bg-[#fff0f1] px-2 py-0.5 rounded-full">Elite V2.2</span>
   </div>
@@ -47,7 +47,7 @@
            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d={cat.icon} /></svg>
         </div>
         <!-- Subtext -->
-        <span class="text-[9px] font-black uppercase tracking-tighter text-center leading-none {activeCategory === cat.id ? 'text-gray-900' : 'text-gray-400'}">
+        <span class="text-[9px] font-black tracking-tighter text-center leading-none {activeCategory === cat.id ? 'text-gray-900' : 'text-gray-400'}">
           {cat.label === 'Tất cả' ? 'Tất cả' : (cat.label === 'Vận chuyển' ? 'Ship' : (cat.label === 'Giảm giá' ? 'Giảm giá' : 'Quà tặng'))}
         </span>
       </button>
@@ -65,7 +65,7 @@
         <svg class="w-5 h-5 animate-pulse" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
       </div>
       <!-- AI Subtext -->
-      <span class="text-[9px] font-black uppercase tracking-tighter text-[#fe2c55] text-center leading-none">
+      <span class="text-[9px] font-black tracking-tighter text-[#fe2c55] text-center leading-none">
         AI Tối ưu
       </span>
     </button>
@@ -101,7 +101,7 @@
           <div class="flex flex-col justify-center w-full">
             <div class="flex items-center gap-1 mb-0.5">
               {#if isEligible}
-                 <span class="px-0.5 py-0.25 bg-[#fe2c55] text-white text-[7px] font-black uppercase rounded-[1px] leading-tight whitespace-nowrap">Độc Quyền</span>
+                 <span class="px-0.5 py-0.25 bg-[#fe2c55] text-white text-[7px] font-black rounded-[1px] leading-tight whitespace-nowrap">Độc quyền</span>
               {/if}
               <div class="text-[10px] font-black text-gray-900 leading-tight truncate">{v.title}</div>
             </div>
