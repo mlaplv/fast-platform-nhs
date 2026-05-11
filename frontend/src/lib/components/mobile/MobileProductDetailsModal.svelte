@@ -295,7 +295,7 @@
         <!-- 🎙️ NEURAL VOICE CAPSULE (Elite V6.4 Lite) -->
         <button
           onclick={toggleSpeech}
-          class="flex items-center gap-1.5 px-3 py-2 rounded-full transition-all duration-500 active:scale-90 pointer-events-auto {isReading || isBuffering ? 'bg-pink-500/90 text-white shadow-[0_0_20px_rgba(236,72,153,0.5)]' : 'bg-black/50 text-white shadow-[0_0_12px_rgba(0,0,0,0.4)]'} border border-white/15"
+          class="flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all duration-500 active:scale-95 pointer-events-auto border border-white/10 {isReading || isBuffering ? 'bg-pink-500/80 text-white' : 'bg-black/25 backdrop-blur-md text-white'}"
           aria-label={isReading ? "Dừng đọc" : "Đọc thông tin"}
         >
           {#if isBuffering}
@@ -304,24 +304,24 @@
               <div class="absolute inset-0 border-[1.5px] border-white border-t-transparent rounded-full animate-spin"></div>
             </div>
           {:else if isReading}
-            <div class="flex items-end gap-[2px] h-3.5">
-              <div class="w-[2.5px] bg-white animate-voice-bar-1"></div>
-              <div class="w-[2.5px] bg-white animate-voice-bar-2"></div>
-              <div class="w-[2.5px] bg-white animate-voice-bar-3"></div>
+            <div class="flex items-end gap-[2px] h-3">
+              <div class="w-[2px] bg-white animate-voice-bar-1"></div>
+              <div class="w-[2px] bg-white animate-voice-bar-2"></div>
+              <div class="w-[2px] bg-white animate-voice-bar-3"></div>
             </div>
           {:else}
-            <AudioLines size={14} class="text-white" />
+            <AudioLines size={14} strokeWidth={2} class="text-white" />
           {/if}
-          <span class="text-[10px] font-black uppercase tracking-wider leading-none">{isBuffering ? '...' : isReading ? 'Stop' : 'Listen'}</span>
+          <span class="text-[11px] font-medium tracking-tight leading-none">{isBuffering ? '...' : isReading ? 'Stop' : 'Listen'}</span>
         </button>
 
         <!-- Close Button (Elegant Integrated X) -->
         <button
           onclick={close}
-          class="text-white transition-all p-2 active:scale-75 outline-none border-none bg-black/50 rounded-full border border-white/15 pointer-events-auto"
+          class="text-white transition-all p-1 active:scale-90 outline-none border border-white/10 bg-black/30 backdrop-blur-md rounded-full pointer-events-auto"
           aria-label="Đóng"
         >
-          <X size={18} strokeWidth={3} />
+          <X size={10} strokeWidth={3} />
         </button>
       </div>
     </div>
@@ -330,7 +330,7 @@
     <div 
       bind:this={contentRef}
       onscroll={handleScroll}
-      class="overflow-y-auto custom-scrollbar flex-1 relative select-text elite-prose !pt-0 !mt-0"
+      class="overflow-y-auto custom-scrollbar flex-1 relative select-text !pt-0 !mt-0"
     >
       {#if product}
         <!-- 🖼️ PRODUCT MEDIA GALLERY (Viral 2026 Pro) -->
@@ -400,7 +400,7 @@
               product.sku && { label: 'SKU', value: product.sku }
             ].filter(Boolean)}
             {#if specs.length > 0}
-              <div class="flex flex-wrap gap-x-6 gap-y-3 mb-5">
+              <div class="flex flex-wrap gap-x-5 gap-y-2 mb-4">
                 {#each specs as spec}
                   <div class="flex flex-col">
                     <span class="text-[9px] font-semibold text-white/35 uppercase tracking-widest leading-none mb-1">{spec.label}</span>
@@ -408,22 +408,22 @@
                   </div>
                 {/each}
               </div>
-              <div class="w-full h-px bg-white/8 mb-5"></div>
+              <div class="w-full h-px bg-white/8 mb-4"></div>
             {/if}
           {/if}
 
           <!-- 🧪 INGREDIENTS -->
           {#if product.metadata?.featured_ingredients?.length > 0 || product.metadata?.ingredients}
-            <div class="mb-5">
-              <h2 class="text-[13px] font-bold text-white/50 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <div class="mb-4">
+              <h2 class="text-[12px] font-bold text-white/40 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Droplet class="w-3.5 h-3.5 text-pink-300/70" />
                 Thành phần & Công dụng
               </h2>
               
               {#if product.metadata?.featured_ingredients?.length > 0}
-                <div class="space-y-2 mb-3">
+                <div class="space-y-1 mb-2">
                   {#each product.metadata.featured_ingredients as ing}
-                    <div class="pl-3 border-l-2 border-pink-400/40 py-1">
+                    <div class="py-0.5">
                       <span class="text-[13px] font-bold text-white/90">{ing.name}</span>
                       <p class="text-[11px] text-white/50 leading-relaxed mt-0.5">{ing.benefit}</p>
                     </div>
@@ -435,11 +435,11 @@
                 <p class="text-[11px] text-white/40 leading-relaxed">{product.metadata.ingredients}</p>
               {/if}
             </div>
-            <div class="w-full h-px bg-white/8 mb-5"></div>
+            <div class="w-full h-px bg-white/8 mb-4"></div>
           {/if}
         </div>
 
-        <div class="px-[5px]">
+        <div class="px-[5px] elite-prose">
           {#if product.description}
             {#if isJson(product.description)}
               <InteractiveDashboard data={product.description} compact={true} assets={product.images || []} />
@@ -612,12 +612,16 @@
 
   :global(.elite-prose img) {
     display: block; /* Eliminate baseline gap */
-    max-width: 100%;
+    width: calc(100% + 10px) !important; /* Full-bleed via negative margin trick */
+    max-width: none !important;
+    margin-left: -5px !important;
+    margin-right: -5px !important;
     height: auto;
-    border-radius: 12px;
-    margin: 0.25rem 0 0.5rem 0; /* Tight bottom margin */
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0; /* Full-bleed look */
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+    box-shadow: none;
+    border: none;
   }
 
   /* 🖼️ Cinematic Gallery Reset (Elite V2.6) */
