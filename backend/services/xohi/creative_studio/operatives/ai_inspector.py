@@ -122,7 +122,7 @@ class AiInspector(BaseAgentOperative):
         logger.warning(f"🧠 [AiInspector] Entering [JUDGE] AI Readiness Phase (Brain response pending)...")
         
         try:
-            res = await trinity_bridge.run(self._agent, draft[:50000], system_prompt=system_prompt, role="pro") 
+            res = await trinity_bridge.run(self._agent, draft[:50000], system_prompt=system_prompt, role="pro", safety_none=True) 
             raw = res
             if hasattr(raw, 'data') and not hasattr(raw, 'geo_score'):
                 raw = raw.data
@@ -158,7 +158,7 @@ class AiInspector(BaseAgentOperative):
         
         prompt = f"[BÀI VIẾT]\n{content[:5000]}\n\n[ĐOẠN LỖI]\n{snippet}\n\n[LÝ DO]\n{issue}"
         try:
-            res = await trinity_bridge.run(self._surgeon_agent, prompt, system_prompt=system_prompt, role="fast")
+            res = await trinity_bridge.run(self._surgeon_agent, prompt, system_prompt=system_prompt, role="fast", safety_none=True)
             raw = res
             if hasattr(raw, 'data') and not hasattr(raw, 'new_text'):
                 raw = raw.data
@@ -221,7 +221,7 @@ class AiInspector(BaseAgentOperative):
         prompt = f"[CẦN SỬA]\n{snippet_list}"
         
         try:
-            res = await trinity_bridge.run(self._atomic_surgeon_agent, prompt, system_prompt=system_prompt, role="fast", timeout=120.0)
+            res = await trinity_bridge.run(self._atomic_surgeon_agent, prompt, system_prompt=system_prompt, role="fast", timeout=120.0, safety_none=True)
             raw = res
             if hasattr(raw, 'data') and not hasattr(raw, 'replacements'):
                 raw = raw.data

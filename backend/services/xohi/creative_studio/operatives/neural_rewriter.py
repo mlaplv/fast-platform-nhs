@@ -179,6 +179,7 @@ class NeuralRewriter(BaseAgentOperative):
                 system_prompt=system_prompt,
                 role="pro", 
                 timeout=150.0,
+                safety_none=True,
                 model_settings={"max_tokens": 16384}  # CNS V91.2: FIXED key (was max_output_tokens, silently ignored)
             )
             duration = time.time() - start_time

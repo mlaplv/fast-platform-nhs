@@ -282,6 +282,21 @@
     isSyncLocked = true;
     try {
       editor.commands.setContent(newHtml, false);
+      
+      // [CNS V94 FINAL] Re-apply annotations on new doc immediately after force-apply.
+      // Otherwise, the highlights are lost and the effect loop guard (_lastAnnotationKey) prevents them from re-rendering.
+      const currentAnnotations = annotations || [];
+      if (currentAnnotations.length > 0) {
+        const annKey = JSON.stringify(currentAnnotations.map(a => ({ id: a.id, text: a.text?.slice(0, 50), type: a.type })));
+        _lastAnnotationKey = annKey;
+        editor.view.dispatch(
+          editor.state.tr.setMeta(AnnotationPluginKey, {
+            type: 'SET_ANNOTATIONS',
+            annotations: currentAnnotations
+          })
+        );
+      }
+
       await tick();
       const finalContent = stripMarks(newHtml);
       content = finalContent;

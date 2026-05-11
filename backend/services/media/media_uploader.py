@@ -40,6 +40,35 @@ class MediaUploaderMixin:
         # Optional: default to False to block unknown binary structures
         return False
 
+    async def _resolve_campaign_context(self, repo, campaign_id: Optional[str]) -> tuple[Optional[str], str]:
+        """[Elite SEO & BugFix] Validates campaign_id and extracts slug from relevant entities.
+        Optimized: 5 queries combined into 1 UNION query (Zero-Hydration pattern)."""
+        if not campaign_id:
+            return None, ""
+        try:
+            from sqlalchemy import text
+            stmt = text("""
+                SELECT id, slug FROM articles WHERE id = :id
+                UNION ALL
+                SELECT id, slug FROM products WHERE id = :id
+                UNION ALL
+                SELECT id, slug FROM categories WHERE id = :id
+                UNION ALL
+                SELECT id, LOWER(code) as slug FROM vouchers WHERE id = :id
+                UNION ALL
+                SELECT id, '' as slug FROM content_campaigns WHERE id = :id
+                LIMIT 1
+            """)
+            res = await repo.session.execute(stmt, {"id": campaign_id})
+            row = res.fetchone()
+            if row:
+                return row[0], str(row[1]) if row[1] else ""
+        except Exception as e:
+            logger.warning(f"Failed to resolve campaign context for {campaign_id}: {e}")
+            
+        # Graceful fallback: return the ID to keep the link alive even if we couldn't find the table
+        return campaign_id, ""
+
     async def upload_asset(self, repo: MediaRegistryRepository, file_content: bytes, filename: str, content_type: str, campaign_id: Optional[str] = None, owner_id: Optional[str] = None, is_avatar: bool = False) -> Optional[MediaRegistry]:
         """Xử lý upload file trực tiếp, convert sang WEBP và lưu hệ thống."""
         asset_id = str(uuid.uuid4())
@@ -57,6 +86,8 @@ class MediaUploaderMixin:
                 logger.error(f"[Security] Kẻ xâm nhập bị chặn: Mismatched Magic Bytes for {filename} ({content_type})")
                 return None
 
+            v_cid, seo_slug = await self._resolve_campaign_context(repo, campaign_id)
+
             if content_type.startswith("image/"):
                 with Image.open(BytesIO(file_content)) as img:
                     # Avatar processing: Square crop
@@ -73,25 +104,33 @@ class MediaUploaderMixin:
                     processed = img.convert('RGBA') if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info) else img.convert('RGB')
                     buffer = BytesIO(); processed.save(buffer, "WEBP", quality=90, optimize=True); file_to_save = buffer.getvalue()
 
-                final_filename = os.path.splitext(filename)[0] + ".webp"
+                ext = ".webp"
                 mime_type = "image/webp"
             else:
                 dims = "0x0"
                 file_to_save = file_content
-                final_filename = filename
+                ext = os.path.splitext(filename)[1]
                 # If non-image and avatar requested, fail gracefully
                 if is_avatar: return None
-                remote_path = f"uploads/{folder}/{asset_id}{os.path.splitext(filename)[1]}"
+                remote_path = f"uploads/{folder}/{asset_id}{ext}"
                 mime_type = content_type
 
-            temp_path = f"/tmp/{asset_id}{os.path.splitext(final_filename)[1]}"
+            # [Elite SEO] Smart Slug Naming / Clean filename fallback
+            import re as _re
+            if seo_slug:
+                final_filename = f"{seo_slug}-{asset_id[:6]}{ext}"
+            else:
+                base_name = os.path.splitext(filename)[0] or f"image-{asset_id[:8]}"
+                seo_name = _re.sub(r"[^a-z0-9\-]", "-", base_name.lower()).strip("-") or f"image-{asset_id[:8]}"
+                final_filename = f"{seo_name}{ext}"
+
+            temp_path = f"/tmp/{asset_id}{ext}"
             with open(temp_path, "wb") as f: f.write(file_to_save)
             try: final_url = await storage.upload(temp_path, remote_path)
             finally:
                 if os.path.exists(temp_path): os.remove(temp_path)
 
-            v_cid = campaign_id if campaign_id and (await repo.session.execute(select(ContentCampaign.id).where(ContentCampaign.id == campaign_id))).scalar() else None
-            v_oid = owner_id if owner_id and (await repo.session.execute(select(User.id).where(User.id == owner_id))).scalar() else None
+            v_oid = owner_id  # Trust JWT context; let DB FK constraint handle invalid IDs
 
             from backend.services.xohi_memory import xohi_memory
             ai_vision = await xohi_memory.client.get("ai:vision:enabled") if xohi_memory._use_redis else "0"
@@ -156,11 +195,16 @@ class MediaUploaderMixin:
                 logger.warning(f"[Auto-Leach] Non-image content skipped: {content_type}")
                 return None
 
-            # [Elite SEO] Clean filename: strip query, hash, extension → lowercase-hyphens
-            raw_name = url.split("/")[-1].split("?")[0].split("#")[0]
-            base_name = os.path.splitext(raw_name)[0] or f"article-image-{asset_id[:8]}"
-            seo_name = _re.sub(r"[^a-z0-9\-]", "-", base_name.lower()).strip("-") or f"article-image-{asset_id[:8]}"
-            final_filename = f"{seo_name}.webp"
+            v_cid, seo_slug = await self._resolve_campaign_context(repo, campaign_id)
+
+            # [Elite SEO] Smart Slug Naming / Clean filename fallback
+            if seo_slug:
+                final_filename = f"{seo_slug}-{asset_id[:6]}.webp"
+            else:
+                raw_name = url.split("/")[-1].split("?")[0].split("#")[0]
+                base_name = os.path.splitext(raw_name)[0] or f"article-image-{asset_id[:8]}"
+                seo_name = _re.sub(r"[^a-z0-9\-]", "-", base_name.lower()).strip("-") or f"article-image-{asset_id[:8]}"
+                final_filename = f"{seo_name}.webp"
 
             ext = mimetypes.guess_extension(content_type) or ".jpg"
             temp_p = f"/tmp/{asset_id}{ext}"
@@ -191,8 +235,8 @@ class MediaUploaderMixin:
                 for p in [temp_p, webp_p]:
                     if os.path.exists(p): os.remove(p)
 
-            v_cid = campaign_id if campaign_id and (await repo.session.execute(select(ContentCampaign.id).where(ContentCampaign.id == campaign_id))).scalar() else None
-            v_oid = owner_id if owner_id and (await repo.session.execute(select(User.id).where(User.id == owner_id))).scalar() else None
+            v_oid = owner_id  # Trust JWT context; let DB FK constraint handle invalid IDs
+
 
             from backend.services.xohi_memory import xohi_memory
             ai_vision = await xohi_memory.client.get("ai:vision:enabled") if xohi_memory._use_redis else "0"
