@@ -482,43 +482,106 @@
   :global(.prose-osmo h2) { font-size: 20px !important; }
   :global(.prose-osmo h3) { font-size: 18px !important; }
 
-  :global(.prose-osmo ul, .prose-osmo ol) {
-    margin-bottom: 1.5rem !important;
-    padding-left: 1.75rem !important;
-  }
-
-  /* Aggressive suppression of default bullets */
+  /* Elite V2.2: Multi-level Viral Bullets */
   :global(.prose-osmo ul),
-  :global(.prose-osmo ul li) {
+  :global(.prose-osmo ol) {
     list-style: none !important;
-    list-style-type: none !important;
+    padding-left: 0 !important;
+    margin-bottom: 1.5rem !important;
   }
 
-  :global(.prose-osmo ul li::marker) {
+  :global(.prose-osmo ul li),
+  :global(.prose-osmo ol li) {
+    list-style-type: none !important;
+    position: relative !important;
+    margin-bottom: 0.75rem !important;
+    padding-left: 1.5rem !important;
+  }
+
+  :global(.prose-osmo ul li::marker),
+  :global(.prose-osmo ol li::marker) {
     content: none !important;
   }
 
-  :global(.prose-osmo li) {
-    position: relative !important;
+  /* Level 1 Bullet: Viral Sparkle */
+  :global(.prose-osmo ul > li::before) {
+    content: "✦" !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0.1em !important;
+    color: #ee4d2d !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+  }
+
+  /* Level 2 */
+  :global(.prose-osmo ul ul) {
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    padding-left: 0.5rem !important;
+  }
+  
+  :global(.prose-osmo ul ul > li) {
+    padding-left: 1.25rem !important;
     margin-bottom: 0.5rem !important;
   }
 
-  :global(.prose-osmo ul li::before) {
+  /* Level 2 Bullet: Hollow Dot */
+  :global(.prose-osmo ul ul > li::before) {
     content: "" !important;
     position: absolute !important;
-    left: -0.8rem !important;
-    top: 0.75em !important;
-    width: 3px !important;
-    height: 3px !important;
-    background-color: #94a3b8 !important;
+    left: 0 !important;
+    top: 0.65em !important;
+    width: 6px !important;
+    height: 6px !important;
+    background-color: transparent !important;
+    border: 2px solid #ff927b !important;
     border-radius: 50% !important;
-    opacity: 0.5 !important;
+  }
+
+  /* Level 3 */
+  :global(.prose-osmo ul ul ul) {
+    padding-left: 0.5rem !important;
+  }
+  
+  :global(.prose-osmo ul ul ul > li::before) {
+    content: "-" !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    color: #9ca3af !important;
+    font-weight: bold !important;
+    border: none !important;
+    background: transparent !important;
+    width: auto !important;
+    height: auto !important;
+    font-size: 16px !important;
+  }
+
+  /* Ordered Lists */
+  :global(.prose-osmo ol) {
+    counter-reset: osmo-counter;
+  }
+  :global(.prose-osmo ol > li) {
+    counter-increment: osmo-counter;
+  }
+  :global(.prose-osmo ol > li::before) {
+    content: counter(osmo-counter) "." !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    color: #ee4d2d !important;
+    font-weight: 900 !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
   }
 
   :global(.prose-osmo img) {
-    max-width: 100%;
+    max-width: 100% !important;
     height: auto !important;
-    margin: 1rem auto !important;
+    margin: 1.5rem auto !important;
     display: block;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
   }
 </style>

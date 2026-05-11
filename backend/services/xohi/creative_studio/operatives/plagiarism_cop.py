@@ -3,8 +3,11 @@ import logging
 import os
 import re
 import hashlib
+import time
+import gc
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Union, cast, Type
+from difflib import SequenceMatcher
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai import Agent
 from sqlalchemy.orm.attributes import flag_modified
@@ -62,7 +65,6 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
 
     async def chat(self, request: object, **kwargs: object) -> Union[PlagiarismResult, AgentResponse]:
         """Standardized Heritage Entry (V2.2). Maps to self.analyze."""
-        from backend.database.models import ContentCampaign
         if isinstance(request, ContentCampaign):
             return await self.analyze(request, force=bool(kwargs.get("force", False)))
         # Fallback for generic calls (duck typing)
@@ -130,7 +132,6 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
         if result.risk_level == "HIGH":
             return AgentResponse(signal=AgentSignal.REDO_PREVIOUS, message="🚨 Nguy cơ đạo văn cao.", data={"score": result.uniqueness_score, "risk_level": result.risk_level, "gold_metadata": gold})
         
-        import gc
         gc.collect()
         return AgentResponse(signal=AgentSignal.PROCEED_NEXT, message=f"✅ Hoàn tất — {result.verdict}", data={"score": result.uniqueness_score, "risk_level": result.risk_level, "annotations": [a.model_dump() for a in result.annotations], "verdict": result.verdict, "gold_metadata": gold})
 
@@ -139,8 +140,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
     async def analyze(self, campaign: ContentCampaign, force: bool = False) -> PlagiarismResult:
         logger.info(f"💓 [PlagiarismCop] Diving into copyright analysis for campaign {getattr(campaign, 'id', 'adhoc')}")
         async with self._plagiarism_semaphore:
-            import time
-            start_time = time.time()
+            start_time = time.perf_counter()
             
             # CNS V90.5: Trình sát bắt đầu
             logger.warning(f"🕵️ [PlagiarismCop] Phân tích bắt đầu cho Campaign: {getattr(campaign, 'id', 'adhoc')}")
@@ -197,9 +197,8 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
             await self._emit_progress(campaign, logs[-1])
             try:
                 self.current_step = 2
-                if logs is not None:
-                    logs.append("[SEMANTIC] Analyzing Information Gain & Structural Risks with Gemini AI...")
-                    await self._emit_progress(campaign, logs[-1])
+                logs.append("[SEMANTIC] Analyzing Information Gain & Structural Risks with Gemini AI...")
+                await self._emit_progress(campaign, logs[-1])
                 
                 # [CNS-V89] Resolve Context via Centralized Intelligence
                 context = await self._resolve_xohi_context(campaign, draft, "copyright")
@@ -268,8 +267,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                     raw.annotations = annots
                     raw.risk_level = "HIGH" if raw.uniqueness_score < RISK_HIGH_THRESHOLD else ("MEDIUM" if raw.uniqueness_score < RISK_MEDIUM_THRESHOLD else "LOW")
                 
-                import time
-                duration = time.time() - start_time
+                duration = time.perf_counter() - start_time
                 self.current_step = 3
                 msg = f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Kiểm tra tác quyền hoàn tất! ({duration:.1f}s) ĐÃ XỬ LÝ XONG"
                 logs.append(msg)
@@ -301,7 +299,6 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
 
     def _heuristic_analyze(self, deduped: list[str], comps: list[str], i_annots: list[CopyrightAnnotation]) -> PlagiarismResult:
         """R102: Heuristic Fallback — Phân tích cục bộ không dùng AI."""
-        from difflib import SequenceMatcher
         h_annots = list(i_annots)
         total_chars, matched_chars = sum(len(p) for p in deduped), 0
         comp_pool = normalize_vn("\n".join(comps))
@@ -349,9 +346,9 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                 f"- Tổng số đoạn phân tích: {len(deduped)} đoạn độc lập.\n"
                 f"- Đoạn trùng lặp nội bộ: {len(i_annots)} đoạn (penalized -0.02/đoạn).\n"
                 f"- Đoạn trùng lặp với đối thủ: {len(h_annots) - len(i_annots)} đoạn (Heuristic detection).\n\n"
-                f"#### 刀 [3. PHƯƠNG ÁN PHẪU THUẬT — SURGICAL PLAN]\n\n"
-                f"- **Bước 1 — LUẬN ĐIỂM ĐỘT BIẾN**: Xem xét lại góc tiếp cận tổng thể. Tránh dùng cấu trúc mô tả tuyến tính (công dụng → thành phần → hướng dẫn) — đây là cấu trúc phổ biến nhất của đối thủ. Thay vào đó, hãy mở đầu bằng vấn đề thực tế của người dùng (Pain Point) rồi mới giới thiệu giải pháp.\n"
-                f"- **Bước 2 — PHÂN BỔ 4 KHỐI**: Phân bổ lại nội dung theo 4 trụ cột (Vị thế độc bản / Công nghệ & Hoạt chất / Nghi thức Tuyệt mỹ / Kết nối & Đặc quyền). Đảm bảo mỗi khối có ít nhất một điểm khác biệt so với đối thủ.\n"
+                f"#### 💎 [3. CHIẾN LƯỢC TÁI CẤU TRÚC — RESTRUCTURING STRATEGY]\n\n"
+                f"- **Bước 1 — ĐỊNH VỊ CỐT LÕI**: Xem xét lại góc tiếp cận tổng thể. Tránh dùng cấu trúc mô tả tuyến tính (công dụng → thành phần → hướng dẫn) — đây là cấu trúc phổ biến nhất của đối thủ. Thay vào đó, hãy mở đầu bằng vấn đề thực tế của người dùng (Pain Point) rồi mới giới thiệu giải pháp.\n"
+                f"- **Bước 2 — PHÂN BỔ 4 KHỐI**: Phân bổ lại nội dung theo 4 trụ cột (Lợi điểm cốt lõi / Cơ chế & Hoạt chất / Phương pháp & Trải nghiệm / Cam kết & Đặc quyền). Đảm bảo mỗi khối có ít nhất một điểm khác biệt so với đối thủ.\n"
                 f"- **Bước 3 — KẾ HOẠCH REWRITE**: (1) Thay thế toàn bộ các đoạn bị đánh dấu bằng ngôn ngữ gốc từ trải nghiệm thực tế. (2) Bổ sung dẫn chứng khoa học hoặc số liệu cụ thể. (3) Sử dụng giọng văn thương hiệu nhất quán thay vì ngôn ngữ generic. (4) Kiểm tra lại sau khi sửa bằng công cụ Neural Copyright để xác nhận điểm Uniqueness đạt >0.85."
             )
         )

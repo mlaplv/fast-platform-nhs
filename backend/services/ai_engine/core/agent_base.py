@@ -1,20 +1,21 @@
-from __future__ import annotations
+import os
+import uuid
+import time
 import logging
 import asyncio
 import re
 import json
+from datetime import datetime, timezone, timedelta
 from typing import Optional, Union, cast, TYPE_CHECKING, Dict, Type
 from abc import ABC, abstractmethod
-from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-
-if TYPE_CHECKING:
-    from pydantic import BaseModel
-    from sqlalchemy.ext.asyncio import AsyncSession
-    from backend.database.models import ContentCampaign
-    from backend.services.xohi.creative_studio.models.schemas import SeoAnnotation
-
-from backend.database.models.system import UnifiedAgentTask
+from sqlalchemy.orm.attributes import flag_modified
+from backend.database.models import ContentCampaign, UnifiedAgentTask
 from backend.database.alchemy_config import alchemy_config
+from backend.database import current_tenant_id
+from backend.services.event_bus import event_bus
+from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+from backend.utils.config import get_env_json
+from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
@@ -32,10 +33,7 @@ class MedicalShieldMixin:
         Academic rewrite of sensitive Vietnamese medical slang/symptoms.
         Uses Redis-backed dynamic map with local hardcoded fallback.
         """
-        from backend.services.xohi_memory import xohi_memory
-        
         # 1. Fallback Static Map (R109 taxonomy)
-        # Refined for Elite V2.2: Avoid over-technical terms that trigger safety blocks
         mask_map: dict[str, str] = {
             "hôi nách": "xịt nách",
             "hôi chân": "xịt chân",
@@ -67,8 +65,6 @@ class SearchKeyMixin:
     _key_idx = 0
     
     def _ensure_search_keys(self) -> None:
-        from backend.utils.config import get_env_json
-        import os
         if hasattr(self, "search_keys") and getattr(self, "search_keys"): return
         setattr(self, "search_keys", [])
         search_keys = cast(list[dict[str, str]], getattr(self, "search_keys"))
@@ -98,10 +94,6 @@ class SearchKeyMixin:
 class XoHiProgressMixin:
     """Elite V2.2: Standardized progress reporting for XoHi campaigns."""
     async def _emit_progress(self, campaign: "ContentCampaign | str", msg: str, status: str = "PROCESSING") -> None:
-        from backend.services.event_bus import event_bus
-        from datetime import datetime, timezone
-        from backend.database.models import ContentCampaign
-        
         # CNS V2.2: Resilient ID extraction supporting both ORM models and AdHocContent shims
         c_id = getattr(campaign, "id", campaign)
         u_id = getattr(campaign, "user_id", None)
@@ -153,13 +145,10 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         """
         from backend.infra.arq_config import get_redis_settings
         from arq import create_pool
-        import uuid
-        from datetime import datetime, timezone
 
         task_id = str(uuid.uuid4())
         
         # 1. DB Persistence (Elite V2.2 Rule: No orphaned tasks)
-        from backend.database import current_tenant_id
         # Elite V2.2: Ensure we capture context if available, fallback to request payload
         target_tenant = current_tenant_id.get() or request_data.get("tenant_id") or "default"
 
@@ -230,7 +219,7 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
             "seo": ("Chuyên gia Tối ưu SEO", "🧠 Đang tính toán ma trận thực thể SEO..."),
             "ai_inspect": ("Kiểm định viên Cấu trúc", "🔍 Đang soi rọi cấu trúc Information Gain..."),
             "rewriter": ("Biên tập viên Cao cấp", "✍️ Đang tinh chỉnh phong cách Viral 2026..."),
-            "booster": ("Phẫu thuật viên EEAT", "🔪 Đang cấy ghép dữ liệu thực tế vào bài viết...")
+            "booster": ("Cố vấn EEAT", "💎 Đang tối ưu hóa dữ liệu thực tế cho bài viết...")
         }
         
         role_base, log_msg = role_map.get(mode, ("Chuyên gia Phân tích", "📡 Đang khởi động hệ thống..."))
@@ -248,17 +237,17 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         # Specific mixins for different modes
         if mode in ("ai_inspect", "booster", "copyright"):
             context.update({
-                "four_blocks": "[FOMO - SCIENCE - RITUAL - CONNECTION]" if is_product else "[HOOK - EVIDENCE - STRATEGY - CONNECTION]",
-                "block_1": "FOMO" if is_product else "HOOK",
-                "block_3": "RITUAL" if is_product else "STRATEGY"
+                "four_blocks": "[USP - SCIENCE - METHOD - TRUST]" if is_product else "[HOOK - EVIDENCE - STRATEGY - CONNECTION]",
+                "block_1": "USP" if is_product else "HOOK",
+                "block_3": "METHOD" if is_product else "STRATEGY"
             })
             
             if is_product:
                 context["step_3_pillars"] = (
-                    "  + **VỊ THẾ ĐỘC BẢN (The FOMO)**: Lời mở đầu thôi miên, khẳng định vị thế đẳng cấp và đánh trúng khao khát/nỗi đau của khách hàng là gì?\n"
-                    "  + **TINH HOA CÔNG NGHỆ (The Science)**: Thành phần, công nghệ cốt lõi hoặc minh chứng lâm sàng nào chứng minh sức mạnh của sản phẩm?\n"
-                    "  + **NGHI THỨC TRẢI NGHIỆM (The Ritual)**: Hướng dẫn sử dụng chi tiết, mang tính nghi thức sang trọng để tối ưu hóa hiệu quả là gì?\n"
-                    "  + **KẾT NỐI & ĐẶC QUYỀN (The Connection)**: Cam kết, đặc quyền hoặc lời mời gọi trải nghiệm nào khiến khách hàng không thể chối từ?"
+                    "  + **LỢI ĐIỂM CỐT LÕI (The USP)**: Lời mở đầu thôi miên, khẳng định vị thế đẳng cấp và đánh trúng khao khát/nỗi đau của khách hàng là gì?\n"
+                    "  + **CƠ CHẾ KHOA HỌC (The Science)**: Thành phần, công nghệ cốt lõi hoặc minh chứng lâm sàng nào chứng minh sức mạnh của sản phẩm?\n"
+                    "  + **PHƯƠNG PHÁP TRẢI NGHIỆM (The Method)**: Hướng dẫn sử dụng chi tiết, mang tính chuyên sâu để tối ưu hóa hiệu quả là gì?\n"
+                    "  + **CAM KẾT & ĐẶC QUYỀN (The Connection)**: Cam kết, đặc quyền hoặc lời mời gọi trải nghiệm nào khiến khách hàng không thể chối từ?"
                 )
             else:
                 context["step_3_pillars"] = (

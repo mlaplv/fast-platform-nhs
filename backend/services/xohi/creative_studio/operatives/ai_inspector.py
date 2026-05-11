@@ -2,8 +2,9 @@ import re
 import asyncio
 import logging
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Union, Optional, cast, Type
+from sqlalchemy.orm.attributes import flag_modified
 from pydantic import BaseModel, ConfigDict
 from pydantic_ai import Agent
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -78,7 +79,6 @@ class AiInspector(BaseAgentOperative):
         metrics["geo_score"] = result.geo_score
         gold["analysis_cache"], gold["analysis_metrics"] = cache, metrics
         campaign.gold_metadata = gold
-        from sqlalchemy.orm.attributes import flag_modified
         flag_modified(campaign, "gold_metadata")
         await repo.update(campaign)
         return result
@@ -131,8 +131,8 @@ class AiInspector(BaseAgentOperative):
             logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Kiểm tra cấu trúc hoàn tất! Phát hiện {len(getattr(raw, 'ai_annotations', []))} điểm tối ưu hóa. ĐÃ XỬ LÝ XONG")
             await self._emit_log(campaign, logs[-1])
             logger.warning(f"✅ [AiInspector] [QUANTUM] Completed. Score: {raw.geo_score}")
+            
             # Elite V2.2: Prepend report timestamp to summary for traceability (UTC+7)
-            from datetime import timedelta
             report_time = (datetime.now(timezone.utc) + timedelta(hours=7)).strftime('%H:%M:%S %d/%m/%Y')
             time_badge = f"> [!IMPORTANT]\n> **THỜI GIAN LẬP BÁO CÁO:** {report_time}\n\n"
             
@@ -147,8 +147,6 @@ class AiInspector(BaseAgentOperative):
 
     async def auto_fix(self, campaign: ContentCampaign, annotation: AiAnnotation) -> AutoFixResponse:
         content = extract_readable_text(campaign.draft_content or "")
-        snippet, issue = annotation.text, annotation.message
-        
         snippet, issue = annotation.text, annotation.message
         
         shield = shield_service.get_shield_component(seed=campaign.id)
@@ -205,11 +203,11 @@ class AiInspector(BaseAgentOperative):
                      (hasattr(campaign, "get_gold_val") and (campaign.get_gold_val("contentType") == "product" or campaign.get_gold_val("category") == "Sản phẩm"))
         
         context = {
-            "four_blocks": "[FOMO - SCIENCE - RITUAL - TRUST]" if is_product else "[HOOK - EVIDENCE - STRATEGY - CONNECTION]",
+            "four_blocks": "[USP - SCIENCE - METHOD - TRUST]" if is_product else "[HOOK - EVIDENCE - STRATEGY - CONNECTION]",
             "content_type_vn": "sản phẩm" if is_product else "bài viết",
-            "block_1": "FOMO" if is_product else "HOOK",
-            "block_3": "RITUAL" if is_product else "STRATEGY",
-            "role_assignment": "Phẫu thuật viên Viral Sản phẩm (Elite V2.2)" if is_product else "Phẫu thuật viên Viral Bài viết (Elite V2.2)"
+            "block_1": "USP" if is_product else "HOOK",
+            "block_3": "METHOD" if is_product else "STRATEGY",
+            "role_assignment": "Chuyên gia Tinh chỉnh Viral Sản phẩm (Elite V2.2)" if is_product else "Chuyên gia Tinh chỉnh Viral Bài viết (Elite V2.2)"
         }
         
         shield = shield_service.get_shield_component(seed=str(getattr(campaign, "id", "adhoc")))

@@ -33,25 +33,25 @@ class SurgeonBooster(BaseAgentOperative):
         campaign_id = getattr(request, "id", str(kwargs.get("campaign_id", "adhoc")))
         
         logs: list[str] = [
-            f"🚀 Surgeon Booster khởi động tại {datetime.now(timezone.utc).strftime('%H:%M:%S')}...",
+            f"🚀 Neural Booster khởi động tại {datetime.now(timezone.utc).strftime('%H:%M:%S')}...",
         ]
         await self._emit_progress(campaign_id, logs[-1])
 
         if not content or len(content.strip()) < 50:
             return SurgeonBoosterReport(
                 patches=[],
-                summary="Nội dung quá ngắn để phẫu thuật.",
+                summary="Nội dung quá ngắn để tinh chỉnh.",
                 logs=logs
             )
 
         topic_prefix = f"[CHỦ ĐỀ]: {topic}\n\n" if topic else ""
-        prompt = f"{topic_prefix}[NỘI DUNG CẦN PHẪU THUẬT]:\n{content[:10000]}"
+        prompt = f"{topic_prefix}[NỘI DUNG CẦN TINH CHỈNH]:\n{content[:10000]}"
 
         try:
             logs.append("🧠 Đang phân tích cấu trúc & tìm kiếm cơ hội tối ưu EEAT...")
             await self._emit_progress(campaign_id, logs[-1])
             
-            logs.append("🔪 Đang thực hiện phẫu thuật nội dung bằng Neural Booster...")
+            logs.append("💎 Đang thực hiện tinh chỉnh nội dung bằng Neural Booster...")
             await self._emit_progress(campaign_id, logs[-1])
             
             # [CNS-V89] Resolve Context via Centralized Intelligence
@@ -85,18 +85,18 @@ class SurgeonBooster(BaseAgentOperative):
                     if hasattr(patch, "new_text"):
                         patch.new_text = shield_service.sanitize(patch.new_text)
             
-            logs.append(f"✅ Hoàn tất! {len(result.patches)} thao tác phẫu thuật sẵn sàng.")
+            logs.append(f"✅ Hoàn tất! {len(result.patches)} phân đoạn tinh chỉnh sẵn sàng.")
             await self._emit_progress(campaign_id, logs[-1], status="DONE")
             
             result.logs = logs
             return result
         except Exception as exc:
-            logger.error(f"[SurgeonBooster] Lỗi phẫu thuật: {exc}", exc_info=True)
-            err_msg = f"❌ Lỗi phẫu thuật: {str(exc)[:100]}"
+            logger.error(f"[SurgeonBooster] Lỗi tinh chỉnh: {exc}", exc_info=True)
+            err_msg = f"❌ Lỗi tinh chỉnh: {str(exc)[:100]}"
             await self._emit_progress(campaign_id, err_msg, status="FAILED")
             return SurgeonBoosterReport(
                 patches=[],
-                summary=f"Phẫu thuật thất bại: {str(exc)[:100]}",
+                summary=f"Tinh chỉnh thất bại: {str(exc)[:100]}",
                 logs=[*logs, err_msg]
             )
 

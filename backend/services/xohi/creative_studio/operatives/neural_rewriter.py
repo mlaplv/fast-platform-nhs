@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
@@ -90,8 +91,6 @@ class NeuralRewriter(BaseAgentOperative):
         metadata = kwargs.get("metadata", {}) or {}
         user_note = str(kwargs.get("user_note", "") or "").strip()
         
-        user_note = str(kwargs.get("user_note", "") or "").strip()
-        
         shield = shield_service.get_shield_component(seed=campaign_id)
         composer.register_component(shield)
         
@@ -168,8 +167,7 @@ class NeuralRewriter(BaseAgentOperative):
             
             self.current_step = 2
             logger.warning(f"🧠 [NeuralRewriter] Phase 2: [CREATIVE] Brain processing pending...")
-            import time
-            start_time = time.time()
+            start_time = time.perf_counter()
             
             # ELITE V2.2: Restoration of Tiptap-Ready HTML (Sếp's Order)
             # CNS V91.1: max_output_tokens=16384 to prevent mid-article truncation
@@ -182,7 +180,7 @@ class NeuralRewriter(BaseAgentOperative):
                 safety_none=True,
                 model_settings={"max_tokens": 16384}  # CNS V91.2: FIXED key (was max_output_tokens, silently ignored)
             )
-            duration = time.time() - start_time
+            duration = time.perf_counter() - start_time
             
             # ELITE V2.2: Universal Sanitization (Tiptap Ready)
             content_raw = str(getattr(response, "data", response))
@@ -190,7 +188,7 @@ class NeuralRewriter(BaseAgentOperative):
             sanitized_content = shield_service.sanitize(sanitized_content)
             
             self.current_step = 3
-            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Phẫu thuật sáng tạo hoàn tất trong {duration:.1f}s! Đã cập nhật vào Tiptap. ĐÃ XỬ LÝ XONG")
+            logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Tinh chỉnh sáng tạo hoàn tất trong {duration:.1f}s! Đã cập nhật vào Tiptap. ĐÃ XỬ LÝ XONG")
             await self._emit_progress(campaign_id, logs[-1], status="DONE")
             logger.warning(f"✅ [NeuralRewriter] [QUANTUM] Creative Rewrite complete (HTML).")
             

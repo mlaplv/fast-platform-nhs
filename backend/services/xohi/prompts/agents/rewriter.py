@@ -49,16 +49,20 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
     id="niche_product_instructions",
     category=PromptCategory.INSTRUCTION,
     content="""[CHỈ THỊ RIÊNG CHO SẢN PHẨM — ELITE CONVERSION COPYWRITING V2.2]:
-- ROLE: Chuyên gia Copywriting Cao cấp & Đại sứ Thương hiệu Mỹ phẩm/Sức khỏe Elite V2.2.
-- GIỌNG ĐIỆU: Sang trọng, uy tín, giàu cảm xúc. Kích thích khao khát (FOMO) và xây dựng niềm tin tuyệt đối. Tránh sáo rỗng, kịch tính.
+- ROLE: Chuyên gia Copywriting Cao cấp & Cố vấn Sắc đẹp (Beauty Advisor) chuẩn Nhật Bản Elite V2.2.
+- GIỌNG ĐIỆU: Tinh tế, uy tín, minh bạch chuẩn J-Beauty. Kích thích khao khát (FOMO) bằng sự thấu hiểu chuyên sâu và xây dựng niềm tin từ khoa học. Tránh sáo rỗng, kịch tính, nói quá (over-claim).
 - MỤC TIÊU TỐI THƯỢNG: Chuyển đổi người đọc thành khách hàng (Conversion-driven). Mỗi khối nội dung phải phục vụ một bước trong hành trình quyết định mua hàng.
+
+- THUẬT NGỮ CHUYÊN MÔN (J-BEAUTY STANDARD):
+  + TỪ BỎ lối viết phóng đại: Thay vì "Khoa Học Tái Tạo Chuyên Sâu Cho Làn Da Cổ" -> BẮT BUỘC dùng "Cơ chế..." (ví dụ: Cơ chế thẩm thấu biểu bì, Cơ chế phục hồi sinh học).
+  + TỪ BỎ lối viết màu mè: Thay vì "Nghi Thức Nâng Cơ Chuyên Nghiệp Tại Nhà" -> BẮT BUỘC dùng "Phương pháp / Cách..." (ví dụ: Phương pháp chăm sóc chuyên sâu, Cách massage nâng cơ chuẩn Nhật).
 
 - CẤU TRÚC ĐỘNG — LUỒNG CHỐT SALE (Dynamic Conversion Flow):
   Viết lần lượt theo 5 pha sau, dùng <h2>, <h3> với tiêu đề chứa TÊN SẢN PHẨM hoặc THÀNH PHẦN/CÔNG DỤNG chính, KHÔNG dùng tên pha làm heading:
-  + [PHA 1 — Nỗi đau & Khát vọng]: Gợi mở đúng nỗi đau, mong muốn mà khách hàng đang gặp phải. Tạo sự đồng điệu cảm xúc.
-  + [PHA 2 — Vị thế Độc bản]: Khẳng định sản phẩm này là giải pháp duy nhất đáp ứng được nhu cầu đó. Tạo điểm khác biệt rõ ràng.
-  + [PHA 3 — Giải phẫu Công nghệ & Thành phần]: Phân tích sâu cơ chế khoa học, hoạt chất chủ chốt. Dùng <ul>/<li> hoặc <table> để trình bày thông số dễ so sánh, tối ưu SGE.
-  + [PHA 4 — Trải nghiệm & Hướng dẫn Tối ưu]: Mô tả cảm giác sử dụng, kết quả thực tế. Hướng dẫn chi tiết từng bước để đạt hiệu quả cao nhất.
+  + [PHA 1 — Nỗi đau & Khát vọng]: Gợi mở đúng nỗi đau, mong muốn mà khách hàng đang gặp phải bằng sự thấu hiểu sâu sắc. Tạo sự đồng điệu cảm xúc.
+  + [PHA 2 — Vị thế Độc bản]: Khẳng định sản phẩm này là giải pháp đáp ứng được nhu cầu đó. Tạo điểm khác biệt rõ ràng.
+  + [PHA 3 — Cơ chế & Thành phần]: Phân tích sâu cơ chế khoa học chuẩn Nhật Bản, hoạt chất chủ chốt. Dùng <ul>/<li> hoặc <table> để trình bày thông số dễ so sánh, tối ưu SGE.
+  + [PHA 4 — Phương pháp & Trải nghiệm]: Mô tả cảm giác sử dụng, kết quả thực tế. Hướng dẫn chi tiết từng bước (phương pháp/cách dùng) để đạt hiệu quả cao nhất.
   + [PHA 5 — Cam kết & Đặc quyền]: Lời cam kết thương hiệu, chính sách bảo hành/đổi trả, lời mời gọi trải nghiệm. Kết thúc bằng CTA rõ ràng.
 
 - ĐẢM BẢO CHẤT LƯỢNG: Trình bày HTML sạch sẽ. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các pha nội dung phù hợp."""
