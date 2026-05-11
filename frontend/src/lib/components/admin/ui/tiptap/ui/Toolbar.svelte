@@ -345,9 +345,19 @@
         <UnlinkIcon size={12} />
       </button>
       <button 
-        onclick={onClearHighlights} 
+        onclick={() => {
+          if (onClearHighlights) onClearHighlights();
+          if (editor) {
+            const { from, to } = editor.state.selection;
+            if (from !== to) {
+              editor.chain().focus().unsetAllMarks().run();
+            } else {
+              editor.chain().focus().selectAll().unsetAllMarks().setTextSelection(from).run();
+            }
+          }
+        }} 
         class="tb-btn text-amber-400/60 hover:text-amber-400" 
-        title="Clear AI Highlights"
+        title="Clear Formatting & AI Highlights"
       >
         <EraserIcon size={12} />
       </button>

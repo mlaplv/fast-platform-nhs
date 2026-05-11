@@ -579,7 +579,7 @@ class ArticleService:
 
         try:
             result = await trinity_bridge.run(
-                agent=agent, prompt=prompt, role="pro", timeout=120.0,
+                agent=agent, prompt=prompt, role="fast", timeout=50.0,
                 model_settings={"max_tokens": 8192}
             )
             if result:

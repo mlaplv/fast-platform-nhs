@@ -40,6 +40,14 @@ class StallDetectorMiddleware:
             "/api/v1/client/diagnostics",
             "/api/v1/products/",           # AI Market Sync / SEO Suggest (Slow)
             "/api/v1/admin/ai/models/auto-optimize", # Auto-optimize AI stack (Tests all models)
+            # Article AI Generation
+            "/api/v1/articles/content-suggest",
+            "/api/v1/articles/excerpt-suggest",
+            "/api/v1/articles/seo-suggest",
+            "/api/v1/articles/faq-suggest",
+            # Category AI Generation
+            "/api/v1/categories/seo-suggest",
+            "/api/v1/categories/faq-suggest",
         ]
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
