@@ -14,8 +14,6 @@ Tuân thủ kỷ luật:
 - Cấm 'any' type, cấm hardcode ngoài config
 - RAM safe: json.dumps(separators=...) loại bỏ whitespace thừa
 """
-from __future__ import annotations
-
 import json
 import logging
 import os
@@ -41,6 +39,22 @@ _DESC_TRIM = 157
 
 # ── Regex: Strip HTML tags ─────────────────────────────────────────────────────
 _RE_HTML = re.compile(r'<[^>]+>')
+
+# ── SGE Shield V1.0: In-process entropy cache — tránh async read trong sync context ──
+_entropy_cfg_cache: dict[str, object] = {
+    "enabled": True,
+    "tone_override": None,
+    "structure_override": None,
+    "schema_drop_probability": 0.2,
+    "lexical_sanitizer_enabled": True,
+}
+
+
+def update_entropy_cache(cfg: dict[str, object]) -> None:
+    """SGE Shield: Update in-process cache khi Admin lưu settings. Called by SettingsService."""
+    _entropy_cfg_cache.clear()
+    _entropy_cfg_cache.update(cfg)
+    logger.info("[SGE Shield] Entropy cache updated: enabled=%s", cfg.get("enabled"))
 
 
 class SeoService:
@@ -528,33 +542,12 @@ class SeoService:
         )
 
     @staticmethod
-    def _get_entropy_config() -> dict:
+    def _get_entropy_config() -> dict[str, object]:
         """
-        SGE Shield V1.0: Đọc entropy config từ Redis.
-        Fallback về defaults nếu Redis unavailable.
+        SGE Shield V1.0: Đọc entropy config từ in-process cache.
+        Cache được cập nhật realtime khi Admin lưu settings (zero async overhead).
         """
-        defaults: dict = {
-            "enabled": True,
-            "tone_override": None,
-            "structure_override": None,
-            "schema_drop_probability": 0.2,
-            "lexical_sanitizer_enabled": True,
-        }
-        try:
-            from backend.services.xohi_memory import xohi_memory
-            import asyncio
-
-            # Sync context: Dùng cache-first approach
-            # SeoService là staticmethod sync → không thể await.
-            # Đọc từ in-memory cache nếu có, fallback defaults.
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Đang trong async context nhưng gọi sync → dùng defaults
-                # Config sẽ được load khi admin cập nhật settings
-                return defaults
-        except Exception:
-            pass
-        return defaults
+        return _entropy_cfg_cache
 
     @staticmethod
     def generate_home_seo_meta(

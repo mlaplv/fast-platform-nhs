@@ -4,10 +4,10 @@ import time
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Union, Optional
-from sqlalchemy import text, update, select, func, and_, or_
+from typing import List, Dict, Optional
+from sqlalchemy import update, select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from litestar.exceptions import NotFoundException, HTTPException
+from litestar.exceptions import NotFoundException
 
 from backend.database.models import Article, User as UserModel
 from backend.schemas.article import (
@@ -25,6 +25,25 @@ from backend.services.lexical_sanitizer import sanitize_ai_text
 from backend.services.prompt_entropy import build_entropy_system_prompt
 
 logger = logging.getLogger("api-gateway")
+
+
+async def _get_sge_config_async() -> dict[str, object]:
+    """SGE Shield V1.0: Đọc entropy config từ Redis. Fallback defaults nếu unavailable."""
+    defaults: dict[str, object] = {
+        "enabled": True,
+        "lexical_sanitizer_enabled": True,
+        "tone_override": None,
+        "structure_override": None,
+        "schema_drop_probability": 0.2,
+    }
+    try:
+        raw = await xohi_memory.client.get("system:entropy_config")
+        if raw:
+            return json.loads(raw)  # type: ignore[return-value]
+    except Exception:
+        pass
+    return defaults
+
 
 class ArticleService:
     """Business Logic for Articles/News (Elite V2.2)."""
@@ -238,9 +257,11 @@ class ArticleService:
 
         new_id = str(uuid.uuid4())
 
-        # SGE Shield V1.0: Lexical Sanitizer — loại AI buzzwords TRƯỚC noise_cleaner
-        pre_content = sanitize_ai_text(data.content, seed=slug) if data.content else ""
-        pre_excerpt = sanitize_ai_text(data.excerpt, seed=f"{slug}:excerpt") if data.excerpt else ""
+        # SGE Shield V1.0: Lexical Sanitizer — tôn trọng flag admin
+        sge_cfg = await _get_sge_config_async()
+        lex_enabled: bool = bool(sge_cfg.get("enabled", True)) and bool(sge_cfg.get("lexical_sanitizer_enabled", True))
+        pre_content = sanitize_ai_text(data.content, seed=slug, enabled=lex_enabled) if data.content else ""
+        pre_excerpt = sanitize_ai_text(data.excerpt, seed=f"{slug}:excerpt", enabled=lex_enabled) if data.excerpt else ""
 
         # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
         cleaned_content = await noise_cleaner.clean(pre_content, strip_html=False) if pre_content else ""
@@ -261,6 +282,7 @@ class ArticleService:
             author_id=data.authorId,
             featured_image=data.featured_image,
             article_metadata=data.metadata.model_dump() if data.metadata else {},
+            analysis_report=data.analysis_report or {},
         )
         db_session.add(article)
 
@@ -290,12 +312,14 @@ class ArticleService:
         if data.title is not None: article.title = data.title
         if data.slug is not None: article.slug = data.slug
 
-        # SGE Shield V1.0: Lexical Sanitizer — loại AI buzzwords TRƯỚC noise_cleaner
+        # SGE Shield V1.0: Lexical Sanitizer — tôn trọng flag admin
+        sge_cfg = await _get_sge_config_async()
+        lex_enabled = bool(sge_cfg.get("enabled", True)) and bool(sge_cfg.get("lexical_sanitizer_enabled", True))
         if data.excerpt is not None:
-            pre_excerpt = sanitize_ai_text(data.excerpt, seed=f"{article.slug}:excerpt")
+            pre_excerpt = sanitize_ai_text(data.excerpt, seed=f"{article.slug}:excerpt", enabled=lex_enabled)
             article.excerpt = await noise_cleaner.clean(pre_excerpt, strip_html=True)
         if data.content is not None:
-            pre_content = sanitize_ai_text(data.content, seed=article.slug)
+            pre_content = sanitize_ai_text(data.content, seed=article.slug, enabled=lex_enabled)
             article.content = await noise_cleaner.clean(pre_content, strip_html=False)
 
         if data.seo_title is not None: article.seo_title = data.seo_title
@@ -310,8 +334,16 @@ class ArticleService:
         if data.metadata is not None:
             existing_meta = article.article_metadata or {}
             new_meta = data.metadata.model_dump()
-            existing_meta.update(new_meta)
-            article.article_metadata = existing_meta
+            article.article_metadata = {**existing_meta, **new_meta}
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(article, "article_metadata")
+
+        # CNS V87.0: Analysis Report Merge
+        if data.analysis_report is not None:
+            existing_analysis = article.analysis_report or {}
+            article.analysis_report = {**existing_analysis, **data.analysis_report}
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(article, "analysis_report")
 
         if data.title is not None or data.content is not None:
             await self.vector_service.upsert_article_embedding(
@@ -393,7 +425,7 @@ class ArticleService:
         from pydantic_ai import Agent
         from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
-        # SGE Shield V1.0: Dynamic Prompting — inject entropy vào system prompt
+        # SGE Shield V1.0: Dynamic Prompting — inject entropy với admin config
         base_seo_prompt = (
             "You are an SEO expert. Given an article title and content, suggest optimized SEO metadata.\n"
             "Constraints:\n"
@@ -402,7 +434,12 @@ class ArticleService:
             "3. Keywords: 5-7 keywords separated by commas.\n"
             "Return ONLY exact valid JSON object: {\"seo_title\": \"...\", \"seo_description\": \"...\", \"seo_keywords\": \"...\"}"
         )
-        system_prompt = build_entropy_system_prompt(base_seo_prompt)
+        sge_cfg_seo = await _get_sge_config_async()
+        system_prompt = build_entropy_system_prompt(
+            base_seo_prompt,
+            tone_override=str(sge_cfg_seo["tone_override"]) if sge_cfg_seo.get("tone_override") else None,
+            structure_override=str(sge_cfg_seo["structure_override"]) if sge_cfg_seo.get("structure_override") else None,
+        ) if sge_cfg_seo.get("enabled", True) else base_seo_prompt
 
         agent = Agent(system_prompt=system_prompt)
         content_excerpt = (content or "")[:2000]
@@ -446,7 +483,12 @@ class ArticleService:
             "Return ONLY exact valid JSON array of objects without markdown wrapping or backticks, "
             "like this: [{\"question\": \"...\", \"answer\": \"...\"}]"
         )
-        system_prompt = build_entropy_system_prompt(base_faq_prompt)
+        sge_cfg_faq = await _get_sge_config_async()
+        system_prompt = build_entropy_system_prompt(
+            base_faq_prompt,
+            tone_override=str(sge_cfg_faq["tone_override"]) if sge_cfg_faq.get("tone_override") else None,
+            structure_override=str(sge_cfg_faq["structure_override"]) if sge_cfg_faq.get("structure_override") else None,
+        ) if sge_cfg_faq.get("enabled", True) else base_faq_prompt
 
         agent = Agent(system_prompt=system_prompt)
         # Truncate content to first 2000 chars for prompt efficiency
@@ -474,6 +516,80 @@ class ArticleService:
         except Exception as e:
             logger.exception(f"[ArticleService] AI FAQ Suggestion Failed: {e}")
             return []
+
+    async def suggest_excerpt(self, title: str, category: str) -> str:
+        """GEO 2026: XOHI Auto Excerpt Generator — sinh tóm tắt 1-2 câu theo tiêu đề."""
+        from pydantic_ai import Agent
+        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+
+        base_prompt = (
+            "Bạn là chuyên gia viết tóm tắt bài báo tiếng Việt. "
+            "Dựa vào tiêu đề và chuyên mục, hãy viết 1-2 câu tóm tắt súc tích (tối đa 300 ký tự), "
+            "hấp dẫn, chứa từ khóa chính. Chỉ trả về đoạn văn thuần túy, KHÔNG dùng markdown, "
+            "KHÔNG giải thích thêm."
+        )
+        sge_cfg = await _get_sge_config_async()
+        system_prompt = build_entropy_system_prompt(
+            base_prompt,
+            tone_override=str(sge_cfg["tone_override"]) if sge_cfg.get("tone_override") else None,
+            structure_override=str(sge_cfg["structure_override"]) if sge_cfg.get("structure_override") else None,
+        ) if sge_cfg.get("enabled", True) else base_prompt
+
+        agent = Agent(system_prompt=system_prompt)
+        prompt = f"Tiêu đề: {title}\nChuyên mục: {category or 'Chung'}"
+
+        try:
+            result = await trinity_bridge.run(agent=agent, prompt=prompt, role="fast", timeout=30.0)
+            if result:
+                text = str(getattr(result, "data", getattr(result, "output", result))).strip()
+                return text[:300]
+            return ""
+        except Exception as e:
+            logger.exception(f"[ArticleService] AI Excerpt Suggestion Failed: {e}")
+            return ""
+
+    async def suggest_content(self, title: str, category: str, excerpt: str) -> str:
+        """GEO 2026: XOHI Auto Content Generator — sinh HTML bài viết hoàn chỉnh EEAT."""
+        from pydantic_ai import Agent
+        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+
+        base_prompt = (
+            "Bạn là nhà báo/chuyên gia nội dung EEAT tiêu chuẩn 2026. "
+            "Viết bài viết HTML hoàn chỉnh bằng tiếng Việt dựa trên tiêu đề, chuyên mục và tóm tắt được cung cấp. "
+            "Yêu cầu cấu trúc:\n"
+            "- Dùng <h2> cho các luận điểm chính (chứa từ khóa), <h3> cho luận điểm phụ.\n"
+            "- Dùng <p>, <ul>, <li>, <strong> để làm phong phú nội dung.\n"
+            "- Viết tối thiểu 600 từ, chia đều thành 3-5 phần logic.\n"
+            "- TUYỆT ĐỐI không dùng Markdown. Không JSON. Chỉ HTML thuần.\n"
+            "- Không có <!DOCTYPE>, <html>, <head>, <body> — chỉ nội dung bài viết."
+        )
+        sge_cfg = await _get_sge_config_async()
+        system_prompt = build_entropy_system_prompt(
+            base_prompt,
+            tone_override=str(sge_cfg["tone_override"]) if sge_cfg.get("tone_override") else None,
+            structure_override=str(sge_cfg["structure_override"]) if sge_cfg.get("structure_override") else None,
+        ) if sge_cfg.get("enabled", True) else base_prompt
+
+        agent = Agent(system_prompt=system_prompt, output_type=str, retries=2)
+        prompt = (
+            f"Tiêu đề: {title}\n"
+            f"Chuyên mục: {category or 'Chung'}\n"
+            f"Tóm tắt: {excerpt or ''}"
+        )
+
+        try:
+            result = await trinity_bridge.run(
+                agent=agent, prompt=prompt, role="pro", timeout=120.0,
+                model_settings={"max_tokens": 8192}
+            )
+            if result:
+                raw = str(getattr(result, "data", getattr(result, "output", result))).strip()
+                from backend.utils.noise_cleaner import noise_cleaner
+                return await noise_cleaner.clean(raw, strip_html=False)
+            return ""
+        except Exception as e:
+            logger.exception(f"[ArticleService] AI Content Generation Failed: {e}")
+            return ""
 
 # ==========================================
 # SERVICE PROVIDERS (V76.2 DI PATTERN)

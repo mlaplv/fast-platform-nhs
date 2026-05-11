@@ -1,6 +1,5 @@
-from __future__ import annotations
 import logging
-from typing import List, Dict, Union, Optional
+from typing import Dict, Optional, List
 from litestar import Controller, get, post, patch, delete
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -155,3 +154,28 @@ class ArticleController(Controller):
         content = data.get("content", "")
         seo = await article_service.suggest_seo(title, content)
         return {"data": seo}
+
+    @post("/excerpt-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
+    async def suggest_excerpt(
+        self,
+        article_service: ArticleService,
+        data: Dict[str, str],
+    ) -> Dict[str, object]:
+        """GEO 2026: XOHI Auto Excerpt Generator — sinh Tóm tắt theo tiêu đề."""
+        title = data.get("title", "")
+        category = data.get("category", "")
+        excerpt = await article_service.suggest_excerpt(title, category)
+        return {"data": excerpt}
+
+    @post("/content-suggest", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)], status_code=201)
+    async def suggest_content(
+        self,
+        article_service: ArticleService,
+        data: Dict[str, str],
+    ) -> Dict[str, object]:
+        """GEO 2026: XOHI Auto Content Generator — sinh HTML bài viết hoàn chỉnh."""
+        title = data.get("title", "")
+        category = data.get("category", "")
+        excerpt = data.get("excerpt", "")
+        content = await article_service.suggest_content(title, category, excerpt)
+        return {"data": content}

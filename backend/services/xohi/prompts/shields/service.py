@@ -1,5 +1,6 @@
+import re
 import random
-from typing import List, Dict, Optional
+from typing import Optional
 from ..schema import PromptComponent, PromptCategory
 
 class SgeShieldService:
@@ -43,7 +44,6 @@ class SgeShieldService:
 
     def sanitize(self, text: str) -> str:
         """Removes blacklisted AI buzzwords from the text."""
-        import re
         for word in self.GLOBAL_BLACKLIST:
             pattern = re.compile(re.escape(word), re.IGNORECASE)
             text = pattern.sub("", text)

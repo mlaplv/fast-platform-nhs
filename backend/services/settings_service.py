@@ -1,16 +1,15 @@
 import uuid
 import json
 import logging
-from typing import Dict, List, Optional, Union
-from sqlalchemy import select, update, and_
-from sqlalchemy.orm import selectinload
+from typing import Dict
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from litestar.exceptions import HTTPException, NotFoundException
+from litestar.exceptions import NotFoundException
 
 from backend.schemas.voice import (
     VoiceSettingsPayload, VoiceSettingsResponse, CapabilityMetadata,
-    CampaignModePayload, CampaignModeResponse,
-    LexiconOverridePayload, LexiconStopwordPayload,
+    CampaignModeResponse,
+    LexiconOverridePayload,
     LexiconOverridesResponse, LexiconStopwordsResponse
 )
 from backend.schemas.system_settings import SystemSettingsPayload, SystemSettingsResponse
@@ -280,12 +279,15 @@ class SettingsService:
         await xohi_memory.client.set("system:currency:thousand_sep", data.currency.thousand_separator)
         await xohi_memory.client.set("system:currency:decimal_sep", data.currency.decimal_separator)
 
-        # SGE Shield V1.0: Sync Entropy Settings vào Redis
+        # SGE Shield V1.0: Sync Entropy Settings vào Redis + in-process cache
         import json as _json
+        from backend.services.commerce.seo_service import update_entropy_cache
+        entropy_dict = data.entropy.model_dump()
         await xohi_memory.client.set(
             "system:entropy_config",
-            _json.dumps(data.entropy.model_dump()),
+            _json.dumps(entropy_dict),
         )
+        update_entropy_cache(entropy_dict)
         
         # Elite V2.2: Sync Media
         await SettingsService._sync_media_links(data_dict)

@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, List
@@ -7,6 +8,8 @@ from backend.services.ai_engine.core.agent_base import BaseAgentOperative
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from backend.services.xohi.prompts import composer
 from backend.services.xohi.prompts.shields.service import shield_service
+from backend.services.prompt_entropy import build_entropy_system_prompt
+from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
@@ -120,6 +123,25 @@ class NeuralRewriter(BaseAgentOperative):
         )
         if excluded_fields_section:
             system_prompt = excluded_fields_section + "\n" + system_prompt
+
+        # SGE Shield V1.0: Load admin tone/structure override từ Redis
+        try:
+            sge_raw = await xohi_memory.client.get("system:entropy_config")
+            sge_cfg: dict[str, object] = json.loads(sge_raw) if sge_raw else {}
+        except Exception:
+            sge_cfg = {}
+        if sge_cfg.get("enabled", True):
+            system_prompt = build_entropy_system_prompt(
+                system_prompt,
+                product_id=campaign_id,
+                tone_override=str(sge_cfg["tone_override"]) if sge_cfg.get("tone_override") else None,
+                structure_override=str(sge_cfg["structure_override"]) if sge_cfg.get("structure_override") else None,
+            )
+            logger.info(
+                "🛡️ [NeuralRewriter] [SHIELD] Entropy injected — tone=%s, structure=%s",
+                sge_cfg.get("tone_override", "random"),
+                sge_cfg.get("structure_override", "random"),
+            )
 
         self.current_step = 0
         now_str = datetime.now(timezone.utc).strftime('%H:%M:%S')

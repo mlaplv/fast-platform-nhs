@@ -132,8 +132,10 @@
     if (!formSlug) formSlug = "";
     if (!formSeoTitle) formSeoTitle = "";
     if (!formSeoDescription) formSeoDescription = "";
+    if (!formSeoKeywords) formSeoKeywords = "";
     if (formSeoOgImage === undefined) formSeoOgImage = null;
     if (formFeaturedImage === undefined) formFeaturedImage = null;
+    if (!formFaqs) formFaqs = [];
   });
 
   const seoTitleLen = $derived(formSeoTitle?.length ?? 0);
@@ -162,6 +164,8 @@
   // GEO 2026: XOHI FAQ State
   let isSuggestingFaqs = $state(false);
   let isSuggestingSeo = $state(false);
+  let isSuggestingExcerpt = $state(false);
+  let isSuggestingContent = $state(false);
 
   async function handleAiSuggestSeo() {
     if (!formTitle) {
@@ -219,6 +223,57 @@
 
   function removeFaq(index: number) {
     formFaqs = formFaqs.filter((_, i) => i !== index);
+  }
+
+  async function handleAiSuggestExcerpt() {
+    if (!formTitle) {
+      nanobot.showToast("Vui lòng nhập tiêu đề bài viết trước.", "warning");
+      return;
+    }
+    isSuggestingExcerpt = true;
+    try {
+      const res = await apiClient.post<{ data: string }>('/api/v1/articles/excerpt-suggest', {
+        title: formTitle,
+        category: formCategory || ''
+      });
+      if (res?.data && typeof res.data === 'string' && res.data.trim()) {
+        formExcerpt = res.data.trim();
+        nanobot.showToast("XOHI đã sinh tóm tắt thành công.", "success");
+      } else {
+        nanobot.showToast("XOHI chưa sinh được tóm tắt. Thử lại nhé.", "error");
+      }
+    } catch (e) {
+      console.error('XOHI Excerpt suggest failed:', e);
+      nanobot.showToast("Lỗi kết nối AI.", "error");
+    } finally {
+      isSuggestingExcerpt = false;
+    }
+  }
+
+  async function handleAiSuggestContent() {
+    if (!formTitle) {
+      nanobot.showToast("Vui lòng nhập tiêu đề bài viết trước.", "warning");
+      return;
+    }
+    isSuggestingContent = true;
+    try {
+      const res = await apiClient.post<{ data: string }>('/api/v1/articles/content-suggest', {
+        title: formTitle,
+        category: formCategory || '',
+        excerpt: formExcerpt || ''
+      });
+      if (res?.data && typeof res.data === 'string' && res.data.trim()) {
+        formContent = res.data.trim();
+        nanobot.showToast("XOHI đã sinh nội dung bài viết thành công.", "success");
+      } else {
+        nanobot.showToast("XOHI chưa sinh được nội dung. Thử lại nhé.", "error");
+      }
+    } catch (e) {
+      console.error('XOHI Content generate failed:', e);
+      nanobot.showToast("Lỗi kết nối AI.", "error");
+    } finally {
+      isSuggestingContent = false;
+    }
   }
 </script>
 
@@ -304,7 +359,22 @@
 
         <!-- Excerpt -->
         <div class="field-group">
-          <label class="field-label">Tóm tắt (Excerpt)</label>
+          <div class="flex items-center justify-between">
+            <label class="field-label">Tóm tắt (Excerpt)</label>
+            <button
+              onclick={handleAiSuggestExcerpt}
+              disabled={isSuggestingExcerpt || !formTitle}
+              class="flex items-center gap-1 px-3 py-1 bg-[#0a192f] border border-cyan-900/40 rounded-lg text-[8px] font-black uppercase tracking-widest text-cyan-400 hover:bg-[#112240] hover:border-cyan-400/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              {#if isSuggestingExcerpt}
+                <div class="w-2.5 h-2.5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                Đang sinh...
+              {:else}
+                <Sparkles size={9} />
+                XOHI sinh tóm tắt
+              {/if}
+            </button>
+          </div>
           <textarea
             bind:value={formExcerpt}
             rows="4"
@@ -384,12 +454,27 @@
 
   <!-- ── SECTION 2: Nội Dung Chính ──────────────────── -->
   <section class="relative px-5 pt-4 pb-0" style="z-index: {Z_INDEX_ADMIN.SURFACE}">
-    <div class="section-label">
-      <FileText size={11} />
-      Nội dung bài viết
+    <div class="flex items-center justify-between mb-3">
+      <div class="section-label">
+        <FileText size={11} />
+        Nội dung bài viết
+      </div>
+      <button
+        onclick={handleAiSuggestContent}
+        disabled={isSuggestingContent || !formTitle}
+        class="flex items-center gap-1.5 px-4 py-1.5 bg-[#0a192f] border border-cyan-900/50 rounded-lg text-[9px] font-black uppercase tracking-widest text-cyan-400 hover:bg-[#112240] hover:border-cyan-400/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shadow-[0_0_12px_rgba(34,211,238,0.08)]"
+      >
+        {#if isSuggestingContent}
+          <div class="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
+          XOHI_DRAFTING...
+        {:else}
+          <Sparkles size={10} class="animate-pulse" />
+          XOHI sinh nội dung
+        {/if}
+      </button>
     </div>
 
-    <div class="mt-3">
+    <div>
       <NeuralEditor
         bind:content={formContent}
         topic={formTitle}
