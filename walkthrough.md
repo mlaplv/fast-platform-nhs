@@ -18,5 +18,3 @@
 
 ## 4. Kết quả
 - Landing Page giờ đây cung cấp đầy đủ thông tin kỹ thuật cần thiết để chốt đơn.
-- Thông tin được trình bày khoa học theo phong cách Bento-grid hiện đại.
-- Đồng bộ trải nghiệm giữa trang chính và modal chi tiết.

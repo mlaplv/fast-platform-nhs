@@ -78,7 +78,7 @@
 
   <!-- ADVANCED STICKY TABS (TikTok Style: Hidden by default, slides down) -->
   <nav class="tabs-nav" class:visible={showTabs}>
-    {#each ['overview', 'reviews', 'recommendations'] as id}
+    {#each ['overview', 'description', 'reviews', 'recommendations'] as id}
       {@const label = id === 'overview' ? 'Tổng quan' : id === 'reviews' ? 'Đánh giá' : id === 'description' ? 'Mô tả' : 'Đề xuất'}
       <button type="button" class="tab-item" class:active={activeTab === id} onclick={() => onScrollToSection(id)}>
         {label}

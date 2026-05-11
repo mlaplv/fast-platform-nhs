@@ -16,7 +16,7 @@
   }: Props = $props();
 </script>
 
-{#if isFlashSaleActive}
+{#if isFlashSaleActive && timeLeft}
   <section class="flash-sale-banner">
     <div class="fs-left">
       <div class="flex items-center gap-1.5">

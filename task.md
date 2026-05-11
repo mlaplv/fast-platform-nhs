@@ -14,3 +14,8 @@
     - [x] Tạo mới section `MobileSpecs.svelte` cho Landing Page để hiển thị trực tiếp Specs/Ingredients khi scroll.
     - [x] Đảm bảo "Chức năng" (Claims) được hiển thị rõ ràng thông qua `MobileScience`.
 - [x] Kiểm tra chéo toàn bộ Landing Page.
+
+# Task: Fix TypeScript 'node' Type Definition Error
+- [ ] Kiểm tra tính toàn vẹn của `node_modules` trong frontend.
+- [ ] Chạy `pnpm install` để khôi phục `@types/node`.
+- [ ] Kiểm chứng bằng `pnpm check`.
