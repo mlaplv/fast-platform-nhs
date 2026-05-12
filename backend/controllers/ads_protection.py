@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from pathlib import Path
 from datetime import datetime, timedelta, UTC
 from typing import AsyncGenerator, Optional, Annotated
 
@@ -20,6 +21,7 @@ from backend.services.ads_protection.schemas import (
     ClickFraudResult,
     FraudSummary,
     OptimizationInsight,
+    InvestigationReportRequest,
     InvestigationReportResult,
     GoogleInvalidClickMetric,
     # Campaign Manager
@@ -201,11 +203,17 @@ class AdsProtectionController(Controller):
     # ------------------------------------------------------------------
     @get("/insights")
     async def get_insights(
-        self, db_session: AsyncSession
+        self, 
+        db_session: AsyncSession,
+        date_from: Annotated[Optional[str], Parameter(required=False)] = None,
+        date_to: Annotated[Optional[str], Parameter(required=False)] = None,
     ) -> list[OptimizationInsight]:
-        """Phân tích patterns 48h và đề xuất tối ưu campaign."""
+        """Phân tích patterns theo khoảng thời gian và đề xuất tối ưu campaign."""
         analytics = FraudAnalyticsService(db_session)
-        return await analytics.get_optimization_insights()
+        return await analytics.get_optimization_insights(
+            date_from=date_from, 
+            date_to=date_to
+        )
 
     # ------------------------------------------------------------------
     # 5. Generate Investigation Report (Manual refund request)
@@ -214,17 +222,52 @@ class AdsProtectionController(Controller):
     async def generate_investigation_report(
         self,
         db_session: AsyncSession,
-        avg_cpc_vnd: float = Parameter(default=5000.0, ge=100.0),
+        data: InvestigationReportRequest,
     ) -> InvestigationReportResult:
         """
-        Tổng hợp 7 ngày fraud events chưa báo cáo →
+        Tổng hợp fraud events theo khoảng thời gian →
         tạo CSV bằng chứng + email template gửi Google Ads Support.
-        Đánh dấu reported_to_google=True để tránh báo cáo trùng.
         """
         analytics = FraudAnalyticsService(db_session)
         return await analytics.build_weekly_investigation_package(
-            avg_cpc_vnd=avg_cpc_vnd
+            date_from=data.date_from,
+            date_to=data.date_to,
+            avg_cpc_vnd=data.avg_cpc_vnd,
+            force_rebuild=data.force
         )
+
+    @get("/investigation-reports")
+    async def list_investigation_reports(self) -> list[dict[str, str]]:
+        """Lấy danh sách các tệp báo cáo pháp y đã tạo trong quá khứ."""
+        report_dir = Path("reports/click_fraud")
+        if not report_dir.exists():
+            return []
+        
+        reports = []
+        # Chỉ lấy file .txt (investigation report summary)
+        for f in sorted(report_dir.glob("investigation_*.txt"), reverse=True):
+            reports.append({
+                "name": f.name,
+                "date": f.name.replace("investigation_", "").replace(".txt", ""),
+                "path": f"/reports/click_fraud/{f.name}"
+            })
+        return reports
+
+    @get("/investigation-report-content/{filename:str}")
+    async def get_investigation_report_content(self, filename: str) -> dict:
+        """Lấy nội dung chi tiết của một báo cáo cũ."""
+        file_path = Path("reports/click_fraud") / filename
+        if not file_path.exists():
+            return {"status": "not_found"}
+        
+        content = file_path.read_text()
+        return {
+            "status": "ready",
+            "support_message_preview": content,
+            "total_fraud_clicks": content.count("GCLID:"),
+            "csv_path": f"/reports/click_fraud/{filename.replace('.txt', '.csv')}",
+            "estimated_wasted_vnd": 0
+        }
 
     # ------------------------------------------------------------------
     # 6. Google Ads Invalid Click Metrics (cần env GOOGLE_ADS_* credentials)

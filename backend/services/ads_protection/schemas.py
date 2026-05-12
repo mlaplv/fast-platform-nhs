@@ -119,6 +119,13 @@ class OptimizationInsight(BaseModel):
     estimated_saving_pct: float
 
 
+class InvestigationReportRequest(BaseModel):
+    date_from: Optional[str] = None
+    date_to: Optional[str] = None
+    avg_cpc_vnd: float = 5000.0
+    force: bool = False
+
+
 class InvestigationReportResult(BaseModel):
     status: str
     date_from: Optional[str] = None

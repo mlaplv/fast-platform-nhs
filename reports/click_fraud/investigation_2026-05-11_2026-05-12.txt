@@ -1,7 +1,7 @@
 ============================================================
       GOOGLE ADS — INVALID CLICK MANUAL INVESTIGATION REQUEST
       ============================================================
-      Date Range  : 2026-05-05 → 2026-05-12
+      Date Range  : 2026-05-11 → 2026-05-12
       Customer ID : 8120678827
       Campaign    : 8120678827
       Landing URL : https://osmo.vn
@@ -10,7 +10,7 @@
       -------
       Total suspected invalid clicks : 4
       Estimated wasted spend         : 20,000 VND (~$0.80 USD)
-      Evidence CSV attached          : reports/click_fraud/invalid_clicks_2026-05-05_2026-05-12.csv
+      Evidence CSV attached          : reports/click_fraud/invalid_clicks_2026-05-11_2026-05-12.csv
 
       TOP FRAUD SIGNALS DETECTED
       --------------------------
@@ -19,10 +19,10 @@
 
       SUSPICIOUS IP ADDRESSES (sample, full list in CSV)
       ---------------------------------------------------
-        - 103.56.6.12
+        - 103.56.3.6
 - 103.56.0.0
+- 103.56.6.12
 - 103.56.9.18
-- 103.56.3.6
 
       DETECTION METHOD
       ----------------

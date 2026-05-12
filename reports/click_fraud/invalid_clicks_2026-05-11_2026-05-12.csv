@@ -1,0 +1,5 @@
+timestamp,gclid,ip_address,user_agent,fraud_score,signals,campaign_id,keyword
+2026-05-11T17:06:46.568840+00:00,gclid_mock_0,103.56.0.0,unknown,0.85,instant_bounce; zero_scroll,8120678827,
+2026-05-11T14:06:46.568887+00:00,gclid_mock_3,103.56.3.6,unknown,0.85,instant_bounce; zero_scroll,8120678827,
+2026-05-11T11:06:46.568909+00:00,gclid_mock_6,103.56.6.12,unknown,0.85,instant_bounce; zero_scroll,8120678827,
+2026-05-11T08:06:46.568928+00:00,gclid_mock_9,103.56.9.18,unknown,0.85,instant_bounce; zero_scroll,8120678827,

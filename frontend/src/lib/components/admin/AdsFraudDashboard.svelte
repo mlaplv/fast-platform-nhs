@@ -33,6 +33,11 @@
   onMount(() => {
     ads.fetchAll();
     ads.fetchCampaigns();
+    ads.initSSE();
+  });
+
+  onDestroy(() => {
+     ads.dispose();
   });
 
   function close() {
@@ -202,12 +207,12 @@
                                 const d2 = new Date(now.getFullYear(), now.getMonth(), 0);
                                 ads.dateFrom = fmt(d1);
                                 ads.dateTo = fmt(d2);
+                                ads.selectedHours = 720;
                              } else if (opt.id === 'all_time') {
-                                                                 const startD = new Date(); startD.setFullYear(startD.getFullYear() - 1);
+                                 const startD = new Date(); startD.setFullYear(startD.getFullYear() - 10);
                                  ads.dateFrom = fmt(startD);
-
-                                ads.dateTo = fmt(now);
-                                ads.selectedHours = 'all_time';
+                                 ads.dateTo = fmt(now);
+                                 ads.selectedHours = 87600; // ~10 years in hours
                              } else {
                                 ads.selectedHours = 168;
                                 ads.dateFrom = null;
@@ -360,7 +365,15 @@
               aiResult={ads.aiResult} 
             />
           {:else if ads.activeTab === 'investigation'}
-            <AdsInvestigation reportResult={ads.reportResult} reportLoading={ads.reportLoading} generateReport={ads.generateReport} fmt={ads.fmt} />
+            <AdsInvestigation 
+               reportResult={ads.reportResult} 
+               reportLoading={ads.reportLoading} 
+               generateReport={ads.generateReport} 
+               pastReports={ads.pastReports}
+               fetchPastReports={ads.fetchPastReports}
+               viewPastReport={ads.viewPastReport}
+               fmt={ads.fmt} 
+            />
           {:else if ads.activeTab === 'google'}
             <AdsGoogleMetrics {...ads} />
           {:else if ads.activeTab === 'campaigns'}

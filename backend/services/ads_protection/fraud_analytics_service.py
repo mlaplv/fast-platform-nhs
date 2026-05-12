@@ -174,7 +174,7 @@ class FraudAnalyticsService:
                 ),
                 top_offending_ips=top_ips,
                 hourly_breakdown=hourly_breakdown,
-                insights=await self.get_optimization_insights()
+                insights=await self.get_optimization_insights(date_from=date_from, date_to=date_to)
             )
         except Exception as e:
             logger.error("FAILED_GET_SUMMARY: %s", e, exc_info=True)
@@ -185,35 +185,62 @@ class FraudAnalyticsService:
     # -----------------------------------------------------------------------
 
     async def build_weekly_investigation_package(
-        self, avg_cpc_vnd: float = 5000.0
+        self, 
+        date_from: str | None = None, 
+        date_to: str | None = None,
+        avg_cpc_vnd: float = 5000.0, 
+        force_rebuild: bool = False
     ) -> InvestigationReportResult:
-        cutoff = datetime.now(UTC) - timedelta(days=7)
-        stmt = select(ClickFraudEvent).where(
-            ClickFraudEvent.verdict == "FRAUD",
-            ClickFraudEvent.created_at >= cutoff,
-            ClickFraudEvent.reported_to_google.is_(False),
-        )
+        """
+        Gom các event FRAUD theo khoảng thời gian.
+        Nếu không có date_from/to, mặc định lấy 7 ngày qua.
+        """
+        filters = [ClickFraudEvent.verdict == "FRAUD"]
+        
+        if date_from and date_to:
+            try:
+                dt_from = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=UTC)
+                dt_to = datetime.strptime(date_to, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=UTC)
+                filters.append(ClickFraudEvent.created_at.between(dt_from, dt_to))
+            except ValueError:
+                # Fallback to default if invalid date
+                cutoff = datetime.now(UTC) - timedelta(days=7)
+                filters.append(ClickFraudEvent.created_at >= cutoff)
+        else:
+            cutoff = datetime.now(UTC) - timedelta(days=7)
+            filters.append(ClickFraudEvent.created_at >= cutoff)
+
+        if not force_rebuild:
+            filters.append(ClickFraudEvent.reported_to_google.is_(False))
+
+        stmt = select(ClickFraudEvent).where(*filters).order_by(ClickFraudEvent.created_at.desc()).limit(2000)
         events = list((await self._session.execute(stmt)).scalars().all())
 
         if not events:
             return InvestigationReportResult(status="no_fraud_events_this_week")
 
-        records = [
-            InvalidClickRecord(
+        records = []
+        for e in events:
+            try:
+                sig_list = json.loads(e.triggered_signals or "[]")
+            except (json.JSONDecodeError, TypeError):
+                sig_list = []
+                
+            records.append(InvalidClickRecord(
                 gclid=e.gclid,
                 ip_address=e.ip_address,
                 user_agent=e.user_agent or "unknown",
                 timestamp=e.created_at.isoformat(),
                 fraud_score=e.fraud_score,
-                signals=json.loads(e.triggered_signals or "[]"),
+                signals=sig_list,
                 campaign_id=e.campaign_id,
                 keyword=e.keyword,
-            )
-            for e in events
-        ]
+            ))
 
-        date_from = cutoff.strftime("%Y-%m-%d")
-        date_to = datetime.now(UTC).strftime("%Y-%m-%d")
+        # Fallback strings for report if not provided
+        if not date_from or not date_to:
+            date_from = cutoff.strftime("%Y-%m-%d")
+            date_to = datetime.now(UTC).strftime("%Y-%m-%d")
 
         campaign_name = events[0].campaign_id or "Campaign Management"
         landing_url = events[0].landing_url or "https://osmo.vn"
@@ -247,9 +274,25 @@ class FraudAnalyticsService:
     # Optimization insights (DB-backed)
     # -----------------------------------------------------------------------
 
-    async def get_optimization_insights(self) -> list[OptimizationInsight]:
-        cutoff = datetime.now(UTC) - timedelta(hours=48)
-        stmt = select(ClickFraudEvent).where(ClickFraudEvent.created_at >= cutoff).limit(500)
+    async def get_optimization_insights(
+        self, date_from: str | None = None, date_to: str | None = None
+    ) -> list[OptimizationInsight]:
+        """
+        Phân tích patterns theo khoảng thời gian.
+        Nếu không có dates, mặc định 48h.
+        """
+        if date_from and date_to:
+            try:
+                dt_from = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=UTC)
+                dt_to = datetime.strptime(date_to, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=UTC)
+            except ValueError:
+                dt_from = datetime.now(UTC) - timedelta(hours=48)
+                dt_to = datetime.now(UTC)
+        else:
+            dt_from = datetime.now(UTC) - timedelta(hours=48)
+            dt_to = datetime.now(UTC)
+
+        stmt = select(ClickFraudEvent).where(ClickFraudEvent.created_at.between(dt_from, dt_to)).limit(500)
         events = list((await self._session.execute(stmt)).scalars().all())
 
         insights: list[OptimizationInsight] = []

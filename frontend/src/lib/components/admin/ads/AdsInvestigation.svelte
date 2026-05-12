@@ -1,35 +1,47 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { fade, scale } from 'svelte/transition';
   import Download from "@lucide/svelte/icons/download";
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import FileText from "@lucide/svelte/icons/file-text";
   import Search from "@lucide/svelte/icons/search";
+  import Clock from "@lucide/svelte/icons/clock";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Info from "@lucide/svelte/icons/info";
+  import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
 
   let { 
     reportResult = null,
     reportLoading = false,
     generateReport,
+    pastReports = [],
+    fetchPastReports,
+    viewPastReport,
     fmt
   } = $props();
+
+  onMount(() => {
+     fetchPastReports();
+  });
 </script>
 
-<div class="flex flex-col h-full gap-8" in:fade>
+<div class="flex flex-col h-full gap-8 font-sans" in:fade style="font-family: 'Outfit', sans-serif;">
    <!-- INVESTIGATION HEADER -->
    <div class="bg-white/[0.02] border border-white/5 rounded-none p-8 flex justify-between items-center shadow-2xl relative group overflow-hidden">
-      <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
+      <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-1000 pointer-events-none"></div>
 
       <div class="flex items-center gap-6 relative z-10">
-         <div class="p-4 bg-cyan-400/10 rounded-none border border-cyan-400/20 group-hover:scale-110 transition-transform">
+         <div class="p-4 bg-cyan-400/10 rounded-none border border-cyan-400/20 group-hover:scale-110 transition-transform shadow-[0_0_20px_rgba(6,182,212,0.1)]">
             <Search size={24} class="text-cyan-400" />
          </div>
          <div>
-            <h2 class="text-xl font-black text-white tracking-tighter tracking-[0.05em] mb-1">Cổng truy xuất pháp y dữ liệu</h2>
-            <p class="text-[10px] text-slate-500 font-mono font-bold tracking-widest">Thiết lập bằng chứng gian lận để khiếu nại Google Ads</p>
+            <h2 class="text-xl font-black text-white tracking-tighter uppercase mb-1">Cổng truy xuất pháp y dữ liệu</h2>
+            <p class="text-[10px] text-slate-500 font-mono font-bold tracking-widest uppercase opacity-60">Thiết lập bằng chứng gian lận để khiếu nại Google Ads</p>
          </div>
       </div>
       <button 
-         class="px-10 py-4 bg-white text-black text-[11px] font-black tracking-[0.2em] hover:bg-cyan-400 transition-all flex items-center gap-4 shadow-xl active:scale-95 rounded-none relative z-10 group/btn" 
+         class="px-10 py-4 bg-white text-black text-[11px] font-black tracking-[0.2em] hover:bg-cyan-400 transition-all flex items-center gap-4 shadow-[0_0_30px_rgba(255,255,255,0.1)] hover:shadow-[0_0_40px_rgba(34,211,238,0.4)] active:scale-95 rounded-none relative z-10 group/btn" 
          onclick={generateReport} 
          disabled={reportLoading}
       >
@@ -43,7 +55,7 @@
    </div>
 
    {#if reportResult}
-      <div class="flex-1 flex flex-col gap-8 overflow-hidden" in:fade={{duration: 600}}>
+      <div class="flex-1 flex flex-col gap-8" in:fade={{duration: 600}}>
          <!-- AUTOMATION & COMPLIANCE HUD -->
          <div class="flex flex-col md:flex-row gap-5">
             <div class="flex-1 bg-white/[0.03] border border-white/10 p-5 flex items-center justify-between group">
@@ -79,111 +91,142 @@
          </div>
 
          {#if reportResult.status === 'ready'}
-            <!-- MANUAL SUBMISSION GUIDE (Elite V2.6) -->
-            <div class="bg-amber-500/10 border border-amber-500/30 p-6 rounded-none flex flex-col gap-4" in:fade>
-               <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 bg-amber-500/20 flex items-center justify-center">
-                     <FileText size={16} class="text-amber-500" />
+            <!-- ELITE FORENSIC HUD (Elite v2.6 Refactored) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" in:fade>
+               <!-- STAT: EVIDENCE -->
+               <div class="bg-white/[0.02] border border-white/5 p-6 rounded-none flex items-center gap-5 group hover:bg-white/[0.04] transition-all">
+                  <div class="w-12 h-12 bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                     <ShieldCheck size={24} class="text-cyan-400" />
                   </div>
-                  <h3 class="text-[11px] font-black text-white uppercase tracking-widest">Hướng dẫn khiếu nại thủ công (Google Refund Request)</h3>
-               </div>
-               <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-[10px] text-slate-400 leading-relaxed">
-                  <div class="flex flex-col gap-2 p-4 bg-black/40 border border-white/5">
-                     <span class="text-amber-500 font-black">BƯỚC 1:</span>
-                     <p>Nhấn nút <b>"Tải xuống tệp CSV"</b> bên dưới để lấy danh sách GCLID vi phạm.</p>
-                  </div>
-                  <div class="flex flex-col gap-2 p-4 bg-black/40 border border-white/5">
-                     <span class="text-amber-500 font-black">BƯỚC 2:</span>
-                     <p>Nhấn <b>"Mở biểu mẫu"</b>. Lưu ý: Sếp cần đăng nhập tài khoản Google Ads quản lý trước.</p>
-                  </div>
-                  <div class="flex flex-col gap-2 p-4 bg-black/40 border border-white/5">
-                     <span class="text-amber-500 font-black">BƯỚC 3:</span>
-                     <p>Sao chép nội dung <b>Preview</b> bên dưới vào phần mô tả và đính kèm tệp CSV đã tải.</p>
+                  <div>
+                     <div class="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Click gian lận phát hiện</div>
+                     <div class="text-2xl font-black font-mono text-white tracking-tighter">{reportResult.total_fraud_clicks} <span class="text-[10px] text-slate-500 uppercase">Signals</span></div>
                   </div>
                </div>
-            </div>
-            <!-- SUMMARY STATS -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-               <div class="bg-black/60 border border-white/10 p-8 rounded-none relative overflow-hidden group shadow-xl">
-                  <div class="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-10 transition-all text-cyan-400 group-hover:scale-110">
-                    <ShieldCheck size={64} />
+
+               <!-- STAT: REFUND -->
+               <div class="bg-white/[0.02] border border-white/5 p-6 rounded-none flex items-center gap-5 group hover:bg-rose-500/[0.04] transition-all">
+                  <div class="w-12 h-12 bg-rose-500/10 border border-rose-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                     <FileText size={24} class="text-rose-500" />
                   </div>
-                  <span class="text-[9px] text-slate-500 font-mono font-black tracking-widest block mb-3">Tổng số click gian lận phát hiện</span>
-                  <div class="flex items-baseline gap-3">
-                    <span class="text-4xl font-black font-mono text-white tracking-tighter">{reportResult.total_fraud_clicks}</span>
-                    <span class="text-[10px] text-slate-500 font-black tracking-widest">Deployments</span>
+                  <div>
+                     <div class="text-[9px] text-rose-500/70 font-black uppercase tracking-widest mb-1">Ngân sách đòi lại (Dự kiến)</div>
+                     <div class="text-2xl font-black font-mono text-rose-500 tracking-tighter">{fmt(reportResult.estimated_wasted_vnd as number)}₫</div>
                   </div>
                </div>
-               <div class="bg-rose-500/[0.03] border border-rose-500/20 p-8 rounded-none relative overflow-hidden group shadow-xl">
-                  <div class="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-10 transition-all text-rose-500 group-hover:scale-110">
-                    <FileText size={64} />
+
+               <!-- ACTION HUD (Centrally Aligned CTA) -->
+               <div class="bg-white/[0.03] border border-cyan-500/20 p-6 rounded-none flex flex-col justify-center gap-4 relative">
+                  <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent pointer-events-none"></div>
+                  
+                  <div class="flex items-center justify-between relative z-10">
+                     <span class="text-[9px] text-cyan-400 font-black uppercase tracking-[0.2em]">Cổng tác chiến</span>
+                     <div class="group/tip relative cursor-help">
+                        <Info size={14} class="text-slate-500 hover:text-white transition-colors" />
+                        <!-- TOOLTIP (Elite Guidance) -->
+                        <div class="absolute bottom-full right-0 mb-3 w-72 p-5 bg-[#0a0a0a] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] opacity-0 translate-y-2 pointer-events-none group-hover/tip:opacity-100 group-hover/tip:translate-y-0 transition-all" style="z-index: {Z_INDEX_ADMIN.POPOVER}">
+                           <div class="text-[10px] font-black text-cyan-400 uppercase mb-3 border-b border-white/5 pb-2 tracking-widest">Mật lệnh cứu trợ 2026</div>
+                           <p class="text-[9px] text-slate-400 font-mono leading-relaxed mb-3">
+                              1. Gõ: <b class="text-white">"Invalid clicks investigation"</b> vào ô tìm kiếm hỗ trợ.<br/>
+                              2. Chọn "Khác" -> <b class="text-white">"Email"</b> để hiện Form khiếu nại sạch.<br/>
+                              3. Dán mẫu nội dung Preview & đính kèm tệp CSV vừa tải.
+                           </p>
+                           <div class="text-[8px] text-slate-600 italic">Lưu ý: Link trực tiếp đang lỗi, Sếp dùng Guided Help này là 100% OK.</div>
+                           <div class="absolute top-full right-4 w-3 h-3 bg-[#0a0a0a] border-r border-b border-white/10 rotate-45 -mt-1.5"></div>
+                        </div>
+                     </div>
                   </div>
-                  <span class="text-[9px] text-rose-500 font-mono font-black tracking-widest block mb-3">Giá trị yêu cầu hoàn tiền ước tính</span>
-                  <div class="flex items-baseline gap-3">
-                    <span class="text-4xl font-black font-mono text-rose-500 tracking-tighter">{fmt(reportResult.estimated_wasted_vnd as number)}₫</span>
-                    <span class="text-[10px] text-rose-500/50 font-black tracking-widest">Reclaimable</span>
+
+                  <div class="grid grid-cols-2 gap-3 relative z-10">
+                     <a href={reportResult.csv_path} download class="py-4 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-2">
+                        <Download size={16} /> Tải bằng chứng
+                     </a>
+                     <a href="https://support.google.com/google-ads/gethelp" target="_blank" class="py-4 bg-cyan-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-cyan-500 transition-all flex items-center justify-center gap-2 shadow-[0_5px_15px_rgba(6,182,212,0.3)]">
+                        <Zap size={16} /> Mở Portal
+                     </a>
                   </div>
                </div>
             </div>
             
             <!-- EVIDENCE TERMINAL -->
-            <div class="flex-1 bg-black border border-white/10 rounded-none flex flex-col overflow-hidden shadow-2xl relative">
-               <div class="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none"></div>
-               
+            <div class="flex-1 bg-black/40 border border-white/10 rounded-none flex flex-col flex-col shadow-2xl relative min-h-[400px]">
                <div class="bg-white/[0.05] px-8 py-5 text-[10px] font-mono flex justify-between items-center border-b border-white/10 relative z-10 backdrop-blur-md">
                   <div class="flex items-center gap-4">
                      <div class="flex items-center gap-2">
                         <span class="w-2 h-2 rounded-none bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></span>
-                        <span class="text-emerald-400 font-black tracking-widest">BẰNG CHỨNG PHÁP Y ĐÃ SẴN SÀNG</span>
+                        <span class="text-emerald-400 font-black tracking-widest uppercase">Mẫu nội dung (Preview)</span>
                      </div>
                      <div class="w-px h-4 bg-white/10 mx-2"></div>
-                     <span class="text-slate-500 tracking-tighter">ID: {reportResult.csv_path.split('/').pop()}</span>
+                     <span class="text-slate-600 tracking-tighter uppercase font-bold text-[8px]">Template v24.1 compliant</span>
                   </div>
-                  <div class="text-slate-500 font-black tracking-[0.2em] opacity-40">Forensic analysis v24.1</div>
+                  <div class="text-slate-500 font-black tracking-[0.2em] opacity-40 uppercase text-[8px]">Forensic analysis v2.6</div>
                </div>
                
-               <div class="flex-1 p-10 overflow-y-auto custom-scrollbar relative z-10">
-                  <div class="mb-6 p-4 bg-emerald-500/5 border-l-2 border-emerald-500 text-[10px] text-emerald-400 font-mono leading-relaxed">
-                     Hệ thống đã tự động cấu trúc báo cáo theo định dạng yêu cầu của Google Ads Support Team. 
-                     Mọi GCLID và IP đã được gán nhãn vi phạm dựa trên mô hình Neural v2.6.
-                  </div>
-                  <pre class="text-[13px] text-slate-300 font-mono leading-relaxed whitespace-pre-wrap selection:bg-cyan-500/30">{reportResult.support_message_preview}</pre>
-               </div>
-               
-               <div class="p-8 border-t border-white/10 flex flex-col items-center gap-6 bg-white/[0.02] relative z-10 backdrop-blur-md">
-                  <div class="flex flex-col md:flex-row gap-5 w-full justify-center">
-                     <a href={reportResult.csv_path} download class="px-12 py-5 bg-emerald-600 text-white text-[11px] font-black tracking-[0.2em] hover:bg-emerald-500 transition-all flex items-center justify-center gap-3 shadow-xl rounded-none group/dl">
-                        <Download size={18} class="group-hover/dl:translate-y-1 transition-transform" /> 
-                        Tải xuống tệp CSV bằng chứng
-                     </a>
-                     <div class="flex flex-col gap-2">
-                        <a href="https://support.google.com/google-ads/contact/click_quality?hl=vi" target="_blank" class="px-12 py-5 border border-white/20 text-white text-[11px] font-black tracking-[0.2em] hover:border-cyan-400 hover:text-cyan-400 transition-all flex items-center justify-center gap-3 rounded-none group/ext">
-                           Mở biểu mẫu khiếu nại (Chính)
-                        </a>
-                        <a href="https://support.google.com/google-ads/answer/2473030?hl=vi" target="_blank" class="text-[8px] text-slate-500 hover:text-cyan-400 text-center uppercase tracking-widest font-black">
-                           Link dự phòng 2: Trung tâm hỗ trợ
-                        </a>
+               <div class="flex-1 overflow-y-auto custom-scrollbar p-8 bg-black/20" style="font-family: 'JetBrains Mono', monospace;">
+                  {#if reportLoading}
+                     <div class="h-full flex flex-col items-center justify-center gap-4 opacity-50">
+                        <RefreshCw size={40} class="animate-spin text-cyan-500" />
+                        <span class="text-[10px] font-black tracking-[0.4em] text-cyan-400">ANALYZING_PACKETS...</span>
                      </div>
-                  </div>
+                  {:else if reportResult?.support_message_preview}
+                     <pre class="text-[11px] text-emerald-400/90 leading-relaxed whitespace-pre-wrap selection:bg-emerald-500/30 font-medium">
+                        {reportResult.support_message_preview}
+                     </pre>
+                  {/if}
+               </div>
+               
+               <div class="p-4 border-t border-white/5 bg-black/40 text-center relative z-10">
                   <p class="text-[9px] text-slate-600 font-mono italic tracking-widest font-bold">
-                     <span class="text-rose-500 not-italic">Notice:</span> Hệ thống Xohi AI đảm bảo tính minh bạch của bằng chứng theo tiêu chuẩn Google Ads Policy.
+                     <span class="text-rose-500 not-italic">Notice:</span> Mọi bằng chứng đã được mã hóa và chuẩn hóa theo tiêu chuẩn Google Ads Policy.
                   </p>
                </div>
             </div>
          {:else}
-            <div class="flex-1 flex flex-col items-center justify-center opacity-30 gap-10 py-20 bg-black/40 border border-dashed border-white/10">
-               <div class="relative">
-                  <ShieldCheck size={100} class="text-slate-500" />
-                  <div class="absolute inset-0 bg-white/5 blur-[60px] rounded-full"></div>
-               </div>
-               <div class="text-center">
-                  <h3 class="text-white font-black text-2xl tracking-tighter mb-2">Chưa có hồ sơ pháp y mới</h3>
-                  <p class="text-[10px] text-slate-500 font-mono font-black tracking-[0.4em] max-w-md mx-auto leading-relaxed">
-                     Hệ thống đang trinh sát luồng dữ liệu 7 ngày qua. Nhấn nút "Truy xuất" phía trên để cưỡng bức quét sâu toàn bộ GCLID nghi vấn.
-                  </p>
+            <!-- EMPTY STATE -->
+            <div class="flex-1 flex flex-col items-center justify-center p-20 bg-white/[0.02] border border-white/5 rounded-none relative overflow-hidden group">
+               <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-cyan-500/[0.03] via-transparent to-transparent"></div>
+               <div class="relative z-10 flex flex-col items-center text-center gap-6">
+                  <div class="p-8 bg-white/[0.02] border border-white/5 rounded-none group-hover:scale-110 transition-transform duration-1000">
+                     <ShieldCheck size={64} class="text-slate-700 group-hover:text-cyan-400 transition-colors" />
+                  </div>
+                  <div class="flex flex-col gap-2">
+                     <h3 class="text-white text-[11px] font-black uppercase tracking-[0.3em]">Hệ thống đã sẵn sàng trinh sát</h3>
+                     <p class="text-[10px] text-slate-500 font-mono font-black tracking-[0.4em] max-w-md mx-auto leading-relaxed">
+                        Hệ thống đang trinh sát luồng dữ liệu 7 ngày qua. Nhấn nút "Truy xuất" phía trên để cưỡng bức quét sâu toàn bộ GCLID nghi vấn.
+                     </p>
+                  </div>
                </div>
             </div>
          {/if}
+      </div>
+   {/if}
+
+   <!-- REPORT HISTORY (Elite Archive) -->
+   {#if pastReports.length > 0}
+      <div class="bg-white/[0.02] border border-white/5 rounded-none p-8 flex flex-col gap-6 shadow-2xl relative group overflow-hidden mt-8">
+         <div class="flex items-center gap-3 border-b border-white/5 pb-5">
+            <div class="p-2 bg-slate-500/10 border border-slate-500/20">
+               <Clock size={18} class="text-slate-400" />
+            </div>
+            <h3 class="text-[10px] font-black tracking-[0.2em] text-slate-400 font-mono uppercase">Lịch sử pháp y (Forensic Archive)</h3>
+         </div>
+
+         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {#each pastReports as report}
+               <button 
+                  class="bg-black/40 border border-white/5 p-4 flex justify-between items-center group/report hover:border-cyan-500/30 transition-all text-left w-full"
+                  onclick={() => viewPastReport(report.name)}
+               >
+                  <div class="flex flex-col gap-1">
+                     <span class="text-[10px] font-black text-white font-mono tracking-tighter">{report.date}</span>
+                     <span class="text-[8px] text-slate-500 uppercase tracking-widest">{report.name}</span>
+                  </div>
+                  <div class="p-2 text-slate-500 group-hover/report:text-cyan-400 transition-colors">
+                     <Clock size={16} />
+                  </div>
+               </button>
+            {/each}
+         </div>
       </div>
    {/if}
 </div>

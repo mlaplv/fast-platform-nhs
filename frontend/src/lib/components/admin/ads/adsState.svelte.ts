@@ -1,16 +1,48 @@
 import { apiClient } from '$lib/utils/apiClient';
 import { useNanobot } from "$lib/state/nanobot.svelte";
+import { onDestroy } from 'svelte';
 
 const API_BASE = '/api/v1';
 const ADS_API = `${API_BASE}/ads-protection`;
 
+// --- Type Definitions (Elite V2.6 Standard) ---
+export interface FraudSummary {
+  period_hours: number;
+  generated_at: string;
+  totals: {
+    all_clicks: number;
+    fraud: number;
+    suspicious: number;
+    clean: number;
+    fraud_rate_pct: number;
+    google_all_clicks: number;
+    google_invalid_clicks: number;
+  };
+  budget: {
+    avg_cpc_vnd: number;
+    estimated_wasted_vnd: number;
+    google_estimated_wasted_vnd: number;
+  };
+  top_offending_ips: Array<{ ip: string; click_count: number }>;
+  hourly_breakdown: Array<{ hour: string; fraud_rate: number; total_clicks: number }>;
+  insights: any[];
+}
+
+export interface GoogleMetric {
+  campaign_name: string;
+  clicks: number;
+  invalid_clicks: number;
+  invalid_click_rate: number;
+  cost_vnd: number;
+}
+
 export function createAdsState() {
   const nanobot = useNanobot();
 
-  let summary = $state<any>(null);
+  let summary = $state<FraudSummary | null>(null);
   let insights = $state<any[]>([]);
   let reportResult = $state<any>(null);
-  let googleMetrics = $state<any[]>([]);
+  let googleMetrics = $state<GoogleMetric[]>([]);
   let campaigns = $state<any[]>([]);
   let selectedCampaign = $state<any>(null);
   let adGroups = $state<any[]>([]);
@@ -24,7 +56,7 @@ export function createAdsState() {
   let newNegativeKeyword = $state('');
   let isGlobalNegative = $state(true);
   let isGlobalIP = $state(false);
-  let selectedHours = $state(24);
+  let selectedHours = $state<number | string>(24);
   let dateFrom = $state<string | null>(null);
   let dateTo = $state<string | null>(null);
   
@@ -39,6 +71,38 @@ export function createAdsState() {
   let negativeKeywordsLoading = $state(false);
   let activeTab = $state('overview');
   let campaignView = $state('list');
+
+  // --- Real-time Sync (SSE) ---
+  let sse: EventSource | null = null;
+
+  function initSSE() {
+    if (sse) sse.close();
+    sse = new EventSource(`${ADS_API}/stream`);
+    sse.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'NEW_CLICK' && data.verdict === 'FRAUD') {
+           nanobot.showToast(`Phát hiện Click Tặc: ${data.ip} (Score: ${data.score})`, 'warning');
+           // Tự động làm mới dữ liệu sau một khoảng trễ nhỏ để tránh spam
+           debounceFetch();
+        }
+      } catch (err) { console.error('SSE Error:', err); }
+    };
+  }
+
+  let debounceTimer: any;
+  function debounceFetch() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => fetchAll(), 5000);
+  }
+
+  function dispose() {
+    if (sse) {
+      sse.close();
+      sse = null;
+    }
+    clearTimeout(debounceTimer);
+  }
 
   // Period Label Derived
   const periodLabel = $derived.by(() => {
@@ -73,7 +137,7 @@ export function createAdsState() {
         
         const [s, i, b] = await Promise.all([
           apiClient.get(`${ADS_API}/summary`, { params }),
-          apiClient.get(`${ADS_API}/insights`),
+          apiClient.get(`${ADS_API}/insights`, { params }),
           apiClient.get(`${ADS_API}/blacklist`)
         ]);
         summary = s; 
@@ -87,18 +151,67 @@ export function createAdsState() {
       } finally { loading = false; }
     }
 
+  let pastReports = $state<any[]>([]);
+
+  function getDateRange() {
+    if (dateFrom && dateTo) return { from: dateFrom, to: dateTo };
+    const to = new Date(); const from = new Date();
+    from.setHours(from.getHours() - Number(selectedHours || 24));
+    const f = (d: Date) => d.toISOString().split('T')[0];
+    return { from: f(from), to: f(to) };
+  }
+
   async function generateReport() {
     reportLoading = true;
     try {
-      const res: any = await apiClient.post(`${ADS_API}/generate-investigation-report`, {});
+      const dates = getDateRange();
+      let res: any = await apiClient.post(`${ADS_API}/generate-investigation-report`, {
+         date_from: dates.from,
+         date_to: dates.to
+      });
+      
+      // Nếu không có dữ liệu mới, tự động truy xuất lại dữ liệu gần nhất (Force Rebuild)
+      if (res.status !== 'ready') {
+         res = await apiClient.post(`${ADS_API}/generate-investigation-report`, { 
+            date_from: dates.from,
+            date_to: dates.to,
+            force: true 
+         });
+      }
+
       if (res.status === 'ready') {
         reportResult = res;
         nanobot.showToast('Báo cáo pháp y đã sẵn sàng', 'success');
+        fetchPastReports(); 
       } else {
-        nanobot.showToast('Không có dữ liệu gian lận cần báo cáo', 'info');
+        nanobot.showToast('Không có dữ liệu gian lận trong 7 ngày qua', 'info');
       }
-    } catch { nanobot.showToast('Lỗi truy xuất báo cáo', 'error'); }
+    } catch (e: any) { 
+      const msg = e.response?.data?.detail || e.message || 'Lỗi truy xuất báo cáo';
+      nanobot.showToast(msg, 'error'); 
+      console.error("REPORT_GEN_ERROR:", e);
+    }
     finally { reportLoading = false; }
+  }
+
+  async function fetchPastReports() {
+     try {
+        pastReports = await apiClient.get(`${ADS_API}/investigation-reports`) || [];
+     } catch { pastReports = []; }
+  }
+
+  async function viewPastReport(name: string) {
+     reportLoading = true;
+     try {
+        const res: any = await apiClient.get(`${ADS_API}/investigation-report-content/${name}`);
+        if (res.status === 'ready') {
+           reportResult = res;
+           nanobot.showToast(`Đã tải hồ sơ: ${name}`, 'success');
+        } else {
+           nanobot.showToast('Không tìm thấy tệp hồ sơ', 'error');
+        }
+     } catch { nanobot.showToast('Không thể tải hồ sơ cũ', 'error'); }
+     finally { reportLoading = false; }
   }
 
    async function fetchGoogleMetrics() {
@@ -231,6 +344,7 @@ export function createAdsState() {
     get ads() { return ads }, get negativeKeywords() { return negativeKeywords },
     get blacklistedIPs() { return blacklistedIPs },
     get aiResult() { return aiResult },
+    get pastReports() { return pastReports },
     get loading() { return loading }, get activeTab() { return activeTab }, set activeTab(v) { activeTab = v },
     get campaignView() { return campaignView }, set campaignView(v) { campaignView = v },
     get isGlobalNegative() { return isGlobalNegative }, set isGlobalNegative(v) { isGlobalNegative = v },
@@ -248,13 +362,8 @@ export function createAdsState() {
     get googleTotalInvalid() { return googleTotalInvalid },
     get periodLabel() { return periodLabel },
     fmt, priorityColor, isBlacklisted, fetchAll, generateReport, fetchGoogleMetrics, fetchCampaigns, fetchAdGroups, fetchAds, 
-    updateCampaignStatus, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, blockIP, unblockIP, aiSuggest,
-    getDateRange: () => {
-      if (dateFrom && dateTo) return { from: dateFrom, to: dateTo };
-      const to = new Date(); const from = new Date();
-      from.setHours(from.getHours() - selectedHours);
-      const f = (d: Date) => d.toISOString().split('T')[0];
-      return { from: f(from), to: f(to) };
-    }
+    updateCampaignStatus, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
+    getDateRange,
+    initSSE, dispose
   };
 }
