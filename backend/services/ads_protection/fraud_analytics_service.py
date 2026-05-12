@@ -215,11 +215,16 @@ class FraudAnalyticsService:
         date_from = cutoff.strftime("%Y-%m-%d")
         date_to = datetime.now(UTC).strftime("%Y-%m-%d")
 
+        campaign_name = events[0].campaign_id or "Campaign Management"
+        landing_url = events[0].landing_url or "https://osmo.vn"
+
         report = await self._reporter.generate_investigation_report(
             records=records,
             date_from=date_from,
             date_to=date_to,
             avg_cpc_vnd=avg_cpc_vnd,
+            campaign_name=campaign_name,
+            landing_url=landing_url,
         )
 
         # Mark as reported

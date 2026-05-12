@@ -89,6 +89,8 @@ class GoogleAdsReporter:
         date_from: str,
         date_to: str,
         avg_cpc_vnd: float = 5000.0,
+        campaign_name: str = "Active Campaign",
+        landing_url: str = "https://osmo.vn",
     ) -> InvestigationReport:
         """
         Tạo InvestigationReport đầy đủ:
@@ -107,6 +109,8 @@ class GoogleAdsReporter:
             date_to=date_to,
             csv_filename=csv_path,
             avg_cpc_vnd=avg_cpc_vnd,
+            campaign_name=campaign_name,
+            landing_url=landing_url,
         )
 
         report = InvestigationReport(
@@ -307,13 +311,15 @@ class GoogleAdsReporter:
         filename.write_text(buf.getvalue(), encoding="utf-8")
         return str(filename)
 
-    @staticmethod
     def _build_support_message(
+        self,
         records: list[InvalidClickRecord],
         date_from: str,
         date_to: str,
         csv_filename: str,
         avg_cpc_vnd: float,
+        campaign_name: str = "Active Campaign",
+        landing_url: str = "https://osmo.vn",
     ) -> str:
         """Tạo email template tiếng Anh gửi Google Ads Support."""
         total = len(records)
@@ -337,9 +343,9 @@ class GoogleAdsReporter:
         GOOGLE ADS — INVALID CLICK MANUAL INVESTIGATION REQUEST
         ============================================================
         Date Range  : {date_from} → {date_to}
-        Customer ID : (your-customer-id — fill before sending)
-        Campaign    : Micsmo Beppin Body Virgin White Serum
-        Landing URL : https://osmo.vn/miccosmo-beppin-body-virgin-white-serum-30g
+        Customer ID : {self._CUSTOMER_ID or "(your-customer-id)"}
+        Campaign    : {campaign_name}
+        Landing URL : {landing_url}
 
         SUMMARY
         -------

@@ -24,6 +24,7 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import Zap from "@lucide/svelte/icons/zap";
   import Brain from "@lucide/svelte/icons/brain";
+  import AlertTriangle from "@lucide/svelte/icons/alert-triangle";
 
   const ads = createAdsState();
   let showTimeMenu = $state(false);
@@ -72,10 +73,18 @@
           <h1 class="text-3xl font-black tracking-tighter leading-none text-white">Quản trị Gian lận Quảng cáo</h1>
         </div>
         <div class="h-12 w-[1px] bg-white/10 mx-4"></div>
-        <div class="flex items-center gap-3 bg-emerald-500/5 px-5 py-2.5 rounded-none border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
-          <div class="w-2.5 h-2.5 rounded-none bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]"></div>
-          <span class="text-[10px] font-black text-emerald-400 tracking-[0.1em] uppercase">Bảo vệ: Đang hoạt động</span>
-        </div>
+        
+        {#if (ads.summary?.totals?.fraud_rate_pct || 0) > 30}
+          <div class="flex items-center gap-3 bg-rose-500/10 px-5 py-2.5 rounded-none border border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.2)] animate-pulse">
+            <AlertTriangle size={18} class="text-rose-500 animate-bounce" />
+            <span class="text-[10px] font-black text-rose-500 tracking-[0.1em] uppercase">CẢNH BÁO: ĐANG BỊ TẤN CÔNG ({ads.summary.totals.fraud_rate_pct}%)</span>
+          </div>
+        {:else}
+          <div class="flex items-center gap-3 bg-emerald-500/5 px-5 py-2.5 rounded-none border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+            <div class="w-2.5 h-2.5 rounded-none bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]"></div>
+            <span class="text-[10px] font-black text-emerald-400 tracking-[0.1em] uppercase">Bảo vệ: Đang hoạt động</span>
+          </div>
+        {/if}
 
         {#if ads.summary?.insights?.length > 0}
           <div class="h-10 w-[1px] bg-white/10 mx-2"></div>
@@ -112,12 +121,6 @@
                          onclick={() => {
                             ads.activeTab = 'insights';
                             showIntelDropdown = false;
-                            // Trigger AI analysis on the insights tab
-                            setTimeout(() => {
-                               // Assuming the component reacts to a global message or state
-                               // But for now, we just navigate to the tab.
-                               // In the future, we could auto-trigger the audit.
-                            }, 100);
                          }}
                       >
                          <span>"{ins.action}"</span>
