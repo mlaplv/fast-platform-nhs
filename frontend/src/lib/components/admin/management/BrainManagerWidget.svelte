@@ -157,7 +157,7 @@
 <div class="brain-elite-hud {isWidget ? 'h-full' : 'min-h-screen p-8'} bg-[#020202] text-white flex flex-col overflow-hidden relative">
     <!-- Scalar Scanline Overlay -->
     <div class="absolute inset-0 pointer-events-none z-50 opacity-[0.03] scanline-effect"></div>
-    <div class="absolute inset-0 pointer-events-none z-50 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.02]"></div>
+    <div class="absolute inset-0 pointer-events-none z-50 bg-[url('/images/patterns/carbon-fibre.png')] opacity-[0.02]"></div>
 
     {#if loading}
         <div class="flex-1 flex flex-col items-center justify-center space-y-6">

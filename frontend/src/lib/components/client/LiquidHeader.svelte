@@ -115,7 +115,7 @@
                <link.icon class="w-3.5 h-3.5 transition-transform duration-500 {activeId === link.id ? 'scale-110' : 'opacity-60'}" />
             {/if}
             
-             <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] font-inter whitespace-nowrap">
+             <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] whitespace-nowrap">
                 <EditableWrapper path={`metadata.nav_label_${link.id === 'hero' ? 'home' : link.id}`} type="text" label="SỬA ĐIỀU HƯỚNG" as="span">
                   {link.label}
                 </EditableWrapper>

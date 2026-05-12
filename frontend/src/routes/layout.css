@@ -3,14 +3,14 @@
 /* 🚀 ELITE V2.2: TYPOGRAPHY (Inter - The Tech Standard) */
 html,
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
 :root {
-  --font-main: 'Inter', system-ui, sans-serif;
+  --font-main: 'Be Vietnam Pro', system-ui, sans-serif;
 }
 
 @theme {
@@ -74,7 +74,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-family: 'Be Vietnam Pro', 'Inter', system-ui, sans-serif;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
 }
 
 .root-loading-container {

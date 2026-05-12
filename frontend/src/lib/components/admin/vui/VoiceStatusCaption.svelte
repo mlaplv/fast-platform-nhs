@@ -215,7 +215,7 @@
 
 <style>
   .scifi-text {
-    font-family: "Inter", -apple-system, sans-serif;
+    font-family: "Be Vietnam Pro", -apple-system, sans-serif;
     word-break: break-word;
   }
   .glass-text {

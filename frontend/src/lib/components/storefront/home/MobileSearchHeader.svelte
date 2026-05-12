@@ -170,7 +170,7 @@
     padding: 0 4px;
     line-height: 1;
     border: 1.5px solid #fff;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Be Vietnam Pro', sans-serif;
   }
 </style>
 

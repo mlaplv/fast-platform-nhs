@@ -40,7 +40,7 @@
     let isAllSelected = $derived(kb.items.length > 0 && kb.items.every(item => kb.selectedIds.includes(item.id)));
 </script>
 
-<div class="w-full h-full flex flex-col bg-[#020202] text-white font-['Inter'] relative overflow-hidden">
+<div class="w-full h-full flex flex-col bg-[#020202] text-white font-['Be Vietnam Pro'] relative overflow-hidden">
     <!-- Header: Strategic Control -->
     <div class="px-8 py-6 border-b border-cyan-500/10 bg-black/40 backdrop-blur-md flex justify-between items-center z-10">
         <div class="flex items-center gap-4">

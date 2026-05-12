@@ -83,7 +83,7 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
-    font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
+    font-family: 'Be Vietnam Pro', 'Be Vietnam Pro', sans-serif;
     color: var(--text-main);
     z-index: var(--z-fab);
     overflow: hidden;

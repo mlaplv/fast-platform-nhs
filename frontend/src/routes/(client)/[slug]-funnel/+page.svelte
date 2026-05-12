@@ -380,7 +380,7 @@
     antialiased: true;
     overflow-x: hidden;
     height: 100vh;
-    font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
+    font-family: 'Be Vietnam Pro', sans-serif;
     background-color: #010101; /* Viral 2026: Luxury Black foundation */
     color: var(--text-base);
   }

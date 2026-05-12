@@ -1,61 +1,76 @@
 /* 
-  ELITE V2.2: LOCAL FONT ENGINE 
-  Zero-dependency, high-performance typography for Fast Platform.
+  ELITE V2.2: PURE TYPOGRAPHY ENGINE
+  Standardized on Be Vietnam Pro. Local-First, Zero-Bloat.
 */
 
-/* --- Be Vietnam Pro (Brand Main) --- */
+/* --- Be Vietnam Pro (Regular 400) --- */
 @font-face {
   font-family: 'Be Vietnam Pro';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/be-vietnam-pro-vn.woff2') format('woff2'),
-       url('/fonts/be-vietnam-pro-latin.woff2') format('woff2');
+  src: url('/fonts/be-vietnam-pro-vn.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+01a0-01a1, U+01af-01b0, U+1ef2-1ef3, U+1ea0-1ef9, U+20ab;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/be-vietnam-pro-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* --- Be Vietnam Pro (Bold 700) --- */
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/be-vietnam-pro-700-vn.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+01a0-01a1, U+01af-01b0, U+1ef2-1ef3, U+1ea0-1ef9, U+20ab;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/be-vietnam-pro-700-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* --- Be Vietnam Pro (Italic 400) --- */
 @font-face {
   font-family: 'Be Vietnam Pro';
   font-style: italic;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/be-vietnam-pro-vn-italic.woff2') format('woff2'),
-       url('/fonts/be-vietnam-pro-latin-italic.woff2') format('woff2');
+  src: url('/fonts/be-vietnam-pro-vn-italic.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+01a0-01a1, U+01af-01b0, U+1ef2-1ef3, U+1ea0-1ef9, U+20ab;
 }
-
 @font-face {
   font-family: 'Be Vietnam Pro';
-  font-style: normal;
-  font-weight: 700;
+  font-style: italic;
+  font-weight: 400;
   font-display: swap;
-  src: url('/fonts/be-vietnam-pro-700-vn.woff2') format('woff2'),
-       url('/fonts/be-vietnam-pro-700-latin.woff2') format('woff2');
+  src: url('/fonts/be-vietnam-pro-latin-italic.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* --- Outfit (Viral Tech Aesthetic) --- */
-@font-face {
-  font-family: 'Outfit';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/outfit-vn.woff2') format('woff2'),
-       url('/fonts/outfit-latin.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Outfit';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/outfit-700-vn.woff2') format('woff2'),
-       url('/fonts/outfit-700-latin.woff2') format('woff2');
-}
-
-/* --- JetBrains Mono (Neural Logic & Dev Experience) --- */
+/* --- JetBrains Mono (Technical) --- */
 @font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;
-  font-weight: 100 800;
+  font-weight: 400;
   font-display: swap;
-  src: url('/fonts/jetbrains-mono/jetbrains-mono-vn.woff2') format('woff2'),
-       url('/fonts/jetbrains-mono/jetbrains-mono-latin.woff2') format('woff2');
+  src: url('/fonts/jetbrains-mono/jetbrains-mono-vn.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+01a0-01a1, U+01af-01b0, U+1ef2-1ef3, U+1ea0-1ef9, U+20ab;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono/jetbrains-mono-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
