@@ -173,7 +173,8 @@ class FraudAnalyticsService:
                     google_estimated_wasted_vnd=google_wasted,
                 ),
                 top_offending_ips=top_ips,
-                hourly_breakdown=hourly_breakdown
+                hourly_breakdown=hourly_breakdown,
+                insights=await self.get_optimization_insights()
             )
         except Exception as e:
             logger.error("FAILED_GET_SUMMARY: %s", e, exc_info=True)
@@ -252,38 +253,38 @@ class FraudAnalyticsService:
 
         total = len(events)
 
-        # Non-VN traffic
-        non_vn = [e for e in events if e.ip_country not in ("VN", "", None)]
-        if len(non_vn) / max(total, 1) > 0.10:
-            insights.append(OptimizationInsight(
-                type="geo_targeting", priority="HIGH",
-                title="Traffic ngoài Việt Nam đáng kể",
-                detail=f"{len(non_vn)}/{total} clicks từ non-VN IPs",
-                action="Vào Ads → Campaign settings → Locations → chọn 'People IN Vietnam'",
-                estimated_saving_pct=10.0,
-            ))
-
-        # Datacenter IPs
-        dc = [e for e in events if e.is_datacenter]
-        if len(dc) / max(total, 1) > 0.05:
-            insights.append(OptimizationInsight(
-                type="ip_exclusion", priority="MEDIUM",
-                title="Clicks từ datacenter IPs (bot/VPN)",
-                detail=f"{len(dc)} clicks từ AWS/GCP/Azure/VPN",
-                action="Upload IP CIDR list vào Google Ads → Campaign → IP Exclusions",
-                estimated_saving_pct=8.0,
-            ))
-
-        # Instant bounce
+        # 1. Instant bounce -> Quality Score & SGE Threat
         bounces = [e for e in events if e.session_duration_ms < 2500]
         bounce_rate = len(bounces) / max(total, 1)
         if bounce_rate > 0.30:
             insights.append(OptimizationInsight(
-                type="landing_page", priority="MEDIUM",
-                title=f"Tỷ lệ instant bounce cao ({bounce_rate:.0%})",
-                detail="Nhiều click thoát trong <2.5s — tốc độ trang hoặc relevance thấp",
-                action="Cải thiện LCP <2.5s. Đảm bảo H1 chứa keyword chính xác.",
-                estimated_saving_pct=5.0,
+                type="landing_page", priority="HIGH",
+                title=f"NGUY CƠ RỚT ĐIỂM CHẤT LƯỢNG ({bounce_rate:.0%})",
+                detail="Tỷ lệ thoát trang tức thì cao. Google Ads sẽ đánh tụt Quality Score và SGE ranking.",
+                action="Yêu cầu Xohi AI trinh sát trang đích ngay để tối ưu H1/LCP và đồng bộ SGE.",
+                estimated_saving_pct=15.0,
+            ))
+        
+        # 2. Datacenter / Bot traffic
+        dc = [e for e in events if e.is_datacenter]
+        if len(dc) / max(total, 1) > 0.05:
+            insights.append(OptimizationInsight(
+                type="ip_exclusion", priority="MEDIUM",
+                title="PHÁT HIỆN LƯU LƯỢNG BOT GIẢ MẠO",
+                detail=f"{len(dc)} clicks từ các Datacenter IPs không xác định (Bot/Scraper).",
+                action="Kích hoạt chặn dải IP Datacenter để bảo vệ ngân sách Google Ads.",
+                estimated_saving_pct=8.0,
+            ))
+
+        # 3. Non-VN traffic
+        non_vn = [e for e in events if e.ip_country not in ("VN", "", None)]
+        if len(non_vn) / max(total, 1) > 0.10:
+            insights.append(OptimizationInsight(
+                type="geo_targeting", priority="HIGH",
+                title="SAI LỆCH MỤC TIÊU ĐỊA LÝ",
+                detail=f"{len(non_vn)}/{total} clicks đến từ ngoài lãnh thổ Việt Nam.",
+                action="Điều chỉnh lại 'Location options' trong Google Ads: chọn 'Presence: People IN your locations'.",
+                estimated_saving_pct=10.0,
             ))
 
         return insights

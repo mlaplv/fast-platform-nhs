@@ -15,6 +15,7 @@
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import Database from "@lucide/svelte/icons/database";
   import Radio from "@lucide/svelte/icons/radio";
+  import { untrack } from 'svelte';
 
   let { 
     insights = [],
@@ -61,12 +62,23 @@
     { t: Date.now() - 1000, msg: '>> AWAITING_TACTICAL_ENCRYPTION...', type: 'system' }
   ]);
 
+  let lastAiLoading = $state(false);
+  let lastAiResult = $state(null);
+
   $effect(() => {
-    if (aiLoading) {
-       logs = [{ t: Date.now(), msg: '>> SCANNING_CAMPAIGN_VECTORS...', type: 'process' }, ...logs];
+    // Only log on state transitions to avoid loops and duplicate entries
+    if (aiLoading && !lastAiLoading) {
+       const newLog = { t: Date.now(), msg: '>> SCANNING_CAMPAIGN_VECTORS...', type: 'process' };
+       logs = [newLog, ...untrack(() => logs)];
+       lastAiLoading = true;
+    } else if (!aiLoading) {
+       lastAiLoading = false;
     }
-    if (aiResult) {
-       logs = [{ t: Date.now(), msg: '>> DECODING_COMPLETE: STRATEGY_READY', type: 'success' }, ...logs];
+
+    if (aiResult && aiResult !== lastAiResult) {
+       const newLog = { t: Date.now(), msg: '>> DECODING_COMPLETE: STRATEGY_READY', type: 'success' };
+       logs = [newLog, ...untrack(() => logs)];
+       lastAiResult = aiResult;
     }
   });
 </script>
@@ -135,39 +147,9 @@
    </header>
 
    <!-- MAIN GRID -->
-   <div class="grid grid-cols-12 gap-6 flex-1 min-h-0 relative z-10">
-      
-      <!-- LEFT: STRATEGIC INTELLIGENCE (Sidebar) -->
-      <aside class="col-span-12 lg:col-span-3 flex flex-col gap-5 overflow-y-auto custom-scrollbar pr-2 border-r border-white/5">
-         <div class="flex items-center gap-3 px-2">
-            <Globe size={14} class="text-slate-500" />
-            <h3 class="text-[9px] font-black tracking-[0.3em] text-slate-500 uppercase font-mono">Global_Matrix</h3>
-         </div>
-
-         <div class="flex flex-col gap-4">
-            {#each insights as ins}
-               <div class="bg-white/[0.03] border border-white/5 p-5 relative group/card hover:bg-white/[0.06] transition-all">
-                  <div class="absolute top-0 left-0 w-1 h-full" style="background-color: {priorityColor(ins.priority)}"></div>
-                  <div class="flex items-center justify-between mb-3">
-                     <span class="text-[7px] font-black font-mono tracking-widest uppercase opacity-60" style="color: {priorityColor(ins.priority)}">{ins.priority}</span>
-                     <Zap size={10} class="text-white/20 group-hover/card:text-cyan-400 transition-colors" />
-                  </div>
-                  <h4 class="text-[11px] font-black text-white mb-2 uppercase tracking-tight leading-tight">{ins.title}</h4>
-                  <div class="p-3 bg-black/40 border border-white/5 rounded-none mt-4 italic text-[10px] text-cyan-400 font-bold leading-relaxed">
-                     "{ins.action}"
-                  </div>
-               </div>
-            {:else}
-               <div class="py-20 flex flex-col items-center justify-center opacity-10 gap-5 text-center">
-                  <Activity size={48} />
-                  <span class="text-[9px] font-mono tracking-[0.5em] uppercase">No_Active_Threats</span>
-               </div>
-            {/each}
-         </div>
-      </aside>
-
-      <!-- CENTER/RIGHT: MISSION COMMAND (Main) -->
-      <main class="col-span-12 lg:col-span-9 flex flex-col gap-6">
+   <div class="flex flex-col flex-1 min-h-0 relative z-10 w-full">
+      <!-- MISSION COMMAND (Main) -->
+      <main class="flex-1 flex flex-col gap-6 w-full">
          
          {#if selectedCampaign}
             <div class="flex-1 flex flex-col gap-6 min-h-0 w-full">
@@ -206,47 +188,80 @@
 
                      <div class="grid grid-cols-3 gap-8 relative z-10">
                         <!-- SEO SCORE -->
-                        <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-cyan-500/50 transition-colors group/score">
+                        <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-emerald-500/50 transition-colors group/score">
                            <span class="text-[9px] text-slate-500 font-black tracking-widest uppercase">SEO_INDEX</span>
                            <div class="relative scale-110">
                               <svg class="w-20 h-20 -rotate-90">
                                  <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-white/5" />
-                                 <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-cyan-500 shadow-[0_0_15px_#06b6d4]" stroke-dasharray="226" stroke-dashoffset={226 - (226 * (aiResult?.seo_score || 0) / 100)} />
+                                 <circle 
+                                    cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" 
+                                    class="{aiLoading ? 'text-emerald-500/30 animate-pulse' : 'text-emerald-500'} transition-all duration-1000" 
+                                    stroke-dasharray="226" 
+                                    stroke-dashoffset={aiLoading ? 113 : (226 - (226 * (aiResult?.seo_score || 0) / 100))} 
+                                 />
                               </svg>
-                              <div class="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">{aiResult?.seo_score || '--'}</div>
+                              <div class="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">
+                                 {#if aiLoading}
+                                    <div class="w-4 h-4 border-2 border-emerald-500 border-t-transparent animate-spin"></div>
+                                 {:else}
+                                    {aiResult?.seo_score ?? '--'}
+                                 {/if}
+                              </div>
                            </div>
-                           <span class="text-[8px] {aiResult?.seo_score > 80 ? 'text-emerald-500' : 'text-slate-600'} font-mono uppercase tracking-widest">
-                              {aiResult?.seo_score ? (aiResult.seo_score > 80 ? 'Optimal' : 'Low_Impact') : 'Awaiting_Scan'}
+                           <span class="text-[8px] {(aiResult?.seo_score > 80) ? 'text-emerald-500' : 'text-slate-600'} font-mono uppercase tracking-widest">
+                              {aiLoading ? 'Analyzing...' : (aiResult?.seo_score ? (aiResult.seo_score > 80 ? 'Optimal' : 'Needs_Optimization') : 'Awaiting_Scan')}
                            </span>
                         </div>
-
+ 
                         <!-- SGE SCORE -->
-                        <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-amber-500/50 transition-colors">
+                        <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-amber-500/50 transition-colors group/score">
                            <span class="text-[9px] text-slate-500 font-black tracking-widest uppercase">SGE_RELEVANCE</span>
                            <div class="relative scale-110">
                               <svg class="w-20 h-20 -rotate-90">
                                  <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-white/5" />
-                                 <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-amber-500 shadow-[0_0_15px_#f59e0b]" stroke-dasharray="226" stroke-dashoffset={226 - (226 * (aiResult?.sge_score || 0) / 100)} />
+                                 <circle 
+                                    cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" 
+                                    class="{aiLoading ? 'text-amber-500/30 animate-pulse' : 'text-amber-500'} transition-all duration-1000" 
+                                    stroke-dasharray="226" 
+                                    stroke-dashoffset={aiLoading ? 113 : (226 - (226 * (aiResult?.sge_score || 0) / 100))} 
+                                 />
                               </svg>
-                              <div class="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">{aiResult?.sge_score || '--'}</div>
+                              <div class="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">
+                                 {#if aiLoading}
+                                    <div class="w-4 h-4 border-2 border-amber-500 border-t-transparent animate-spin"></div>
+                                 {:else}
+                                    {aiResult?.sge_score ?? '--'}
+                                 {/if}
+                              </div>
                            </div>
-                           <span class="text-[8px] {aiResult?.sge_score > 70 ? 'text-amber-400' : 'text-slate-600'} font-mono uppercase tracking-widest">
-                              {aiResult?.sge_score ? (aiResult.sge_score > 70 ? 'Generative_Ready' : 'Incompatible') : 'Awaiting_Scan'}
+                           <span class="text-[8px] {(aiResult?.sge_score > 70) ? 'text-amber-400' : 'text-slate-600'} font-mono uppercase tracking-widest">
+                              {aiLoading ? 'Synching...' : (aiResult?.sge_score ? (aiResult.sge_score > 70 ? 'Generative_Ready' : 'Incompatible') : 'Awaiting_Scan')}
                            </span>
                         </div>
-
+ 
                         <!-- QUALITY SCORE -->
-                        <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-rose-500/50 transition-colors">
+                        <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-rose-500/50 transition-colors group/score">
                            <span class="text-[9px] text-slate-500 font-black tracking-widest uppercase">ADS_QUALITY</span>
                            <div class="relative scale-110">
                               <svg class="w-20 h-20 -rotate-90">
                                  <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-white/5" />
-                                 <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-rose-500 shadow-[0_0_15px_#f43f5e]" stroke-dasharray="226" stroke-dashoffset={226 - (226 * (aiResult?.quality_score || 0) / 100)} />
+                                 <circle 
+                                    cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" 
+                                    class="{aiLoading ? 'text-rose-500/30 animate-pulse' : 'text-rose-500'} transition-all duration-1000" 
+                                    stroke-dasharray="226" 
+                                    stroke-dashoffset={aiLoading ? 113 : (226 - (226 * (aiResult?.quality_score || 0) * 22.6))} 
+                                 />
                               </svg>
-                              <div class="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">{aiResult?.quality_score || '--'}</div>
+                              <div class="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">
+                                 {#if aiLoading}
+                                    <div class="w-4 h-4 border-2 border-rose-500 border-t-transparent animate-spin"></div>
+                                 {:else}
+                                    {aiResult?.quality_score ?? '--'}
+                                 {/if}
+                              </div>
                            </div>
-                           <span class="text-[8px] {aiResult?.quality_score > 7 ? 'text-rose-400' : 'text-slate-600'} font-mono uppercase tracking-widest">
-                              {aiResult?.quality_score ? (aiResult.quality_score > 7 ? 'Elite_Score' : 'At_Risk') : 'Awaiting_Scan'}
+                           <span class="text-[8px] {(aiResult?.quality_score > 7) ? 'text-rose-400' : 'text-slate-600'} font-mono uppercase tracking-widest">
+                              {aiLoading ? 'Auditing...' : (aiResult?.quality_score ? (aiResult.quality_score > 7 ? 'Elite_Score' : 'At_Risk') : 'Awaiting_Scan')}
                            </span>
                         </div>
                      </div>

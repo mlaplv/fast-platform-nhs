@@ -89,23 +89,28 @@ class AIStrategist:
         else:
             competitor_context = "Không tìm thấy dữ liệu trinh sát trực tiếp."
 
-        # 2. Xây dựng Prompt chi tiết
+        # 2. Xây dựng Prompt Chiến thuật (Elite V2.6 Standard)
         prompt = f"""
-        TASK: {req.task}
-        MỤC TIÊU/NGỮ CẢNH: {req.context}
+        BÁO CÁO TRINH SÁT TÁC CHIẾN - THỰC THI NHIỆM VỤ: {req.task}
+        ĐỐI TƯỢNG PHÂN TÍCH: {req.context}
         
-        {f"DỮ LIỆU TRINH SÁT TRANG ĐÍCH ({target_url}):" if target_url else ""}
-        {page_content if target_url else ""}
+        {f"URL TRANG ĐÍCH: {target_url}" if target_url else ""}
+        {f"DỮ LIỆU NỘI DUNG:\n{page_content}" if target_url else ""}
 
-        DỮ LIỆU TRINH SÁT ĐỐI THỦ:
+        DỮ LIỆU ĐỐI THỦ CẠNH TRANH:
         {competitor_context}
         
-        YÊU CẦU:
-        Hãy đưa ra gợi ý {req.task} tối ưu nhất. 
-        Nếu là AUDIT_LANDING_PAGE, hãy:
-        1. Chấm điểm (0-100) cho các trường: seo_score, sge_score, và quality_score.
-        2. Đưa ra các hành động SỬA LỖI cụ thể trong phần 'message' để đạt điểm tối đa.
-        3. Phân tích xem trang đã sẵn sàng cho SGE (Search Generative Experience) chưa.
+        CHỈ THỊ TỪ SẾP:
+        Bạn phải trả về kết quả dưới định dạng JSON (AISuggestionResponse) với các yêu cầu sau:
+        1. THIẾT LẬP success = True (Trừ khi gặp lỗi kỹ thuật không thể phân tích).
+        2. QUẢN LÝ ĐIỂM SỐ (BẮT BUỘC): Điền giá trị từ 0-100 vào các trường: 
+           - seo_score: Đánh giá tối ưu công cụ tìm kiếm truyền thống.
+           - sge_score: Đánh giá khả năng hiển thị trên Google AI (SGE) 2026.
+           - quality_score: Đánh giá sự đồng bộ giữa quảng cáo và trang đích (0-10).
+        3. THÔNG ĐIỆP CHIẾN THUẬT (message): 
+           - KHÔNG dùng tiền tố 'INTERNAL_ERROR' hay 'SUCCESS'.
+           - Đưa ra các bước hành động cụ thể, ngắn gọn, quyết liệt để Sếp tối ưu ngay.
+           - Phân tích ngắn gọn kẽ hở của đối thủ so với trang của mình.
         """
 
         # 3. Gọi Trinity Bridge để thực hiện suy luận

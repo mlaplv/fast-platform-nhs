@@ -22,9 +22,12 @@
   import Activity from "@lucide/svelte/icons/activity";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Zap from "@lucide/svelte/icons/zap";
+  import Brain from "@lucide/svelte/icons/brain";
 
   const ads = createAdsState();
   let showTimeMenu = $state(false);
+  let showIntelDropdown = $state(false);
 
   onMount(() => {
     ads.fetchAll();
@@ -73,6 +76,59 @@
           <div class="w-2.5 h-2.5 rounded-none bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]"></div>
           <span class="text-[10px] font-black text-emerald-400 tracking-[0.1em] uppercase">Bảo vệ: Đang hoạt động</span>
         </div>
+
+        {#if ads.summary?.insights?.length > 0}
+          <div class="h-10 w-[1px] bg-white/10 mx-2"></div>
+          <div class="relative">
+            <button 
+               class="flex items-center gap-4 bg-amber-500/5 px-6 py-2.5 border border-amber-500/20 group/intel hover:bg-amber-500/10 transition-all relative overflow-hidden"
+               onclick={() => showIntelDropdown = !showIntelDropdown}
+            >
+               <div class="absolute inset-0 bg-amber-500/5 animate-pulse"></div>
+               <Zap size={16} class="text-amber-400 animate-bounce relative z-10" />
+               <div class="flex flex-col relative z-10">
+                  <span class="text-[7px] font-black text-amber-500 tracking-[0.2em] uppercase opacity-70">Mission_Intel</span>
+                  <span class="text-[10px] font-black text-white uppercase tracking-tighter">
+                     {ads.summary.insights.length} Tactical Threats
+                  </span>
+               </div>
+               <div class="ml-2 w-1.5 h-1.5 rounded-none bg-amber-500 animate-ping"></div>
+            </button>
+
+            {#if showIntelDropdown}
+              <div 
+                class="absolute top-full left-0 mt-3 w-80 bg-[#0a0a0a] border border-amber-500/30 shadow-[0_30px_90px_rgba(0,0,0,0.9)] z-[200] p-4 flex flex-col gap-3"
+                in:slide
+              >
+                <div class="flex items-center justify-between mb-2 border-b border-white/5 pb-2">
+                   <span class="text-[9px] font-black text-amber-500 uppercase tracking-widest font-mono">Live_Intelligence_Feed</span>
+                   <button class="text-white/20 hover:text-white" onclick={() => showIntelDropdown = false}><X size={14} /></button>
+                </div>
+                {#each ads.summary.insights as ins}
+                   <div class="bg-white/[0.03] border border-white/5 p-4 group/ins hover:border-amber-500/30 transition-all">
+                      <h4 class="text-[10px] font-black text-white mb-2 uppercase">{ins.title}</h4>
+                      <button 
+                         class="w-full text-left p-2.5 bg-amber-500/5 border border-amber-500/10 text-[9px] font-bold text-amber-400 italic hover:bg-amber-500/20 transition-all flex items-center justify-between group/act"
+                         onclick={() => {
+                            ads.activeTab = 'insights';
+                            showIntelDropdown = false;
+                            // Trigger AI analysis on the insights tab
+                            setTimeout(() => {
+                               // Assuming the component reacts to a global message or state
+                               // But for now, we just navigate to the tab.
+                               // In the future, we could auto-trigger the audit.
+                            }, 100);
+                         }}
+                      >
+                         <span>"{ins.action}"</span>
+                         <Brain size={12} class="text-amber-400 opacity-0 group-hover/act:opacity-100 transition-opacity" />
+                      </button>
+                   </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
       </div>
 
       <div class="flex items-center gap-4">

@@ -107,6 +107,7 @@ class FraudSummary(BaseModel):
     budget: FraudBudgetInfo
     top_offending_ips: list[OffendingIP]
     hourly_breakdown: list[HourlyFraudStat]
+    insights: list[OptimizationInsight] = []
 
 
 class OptimizationInsight(BaseModel):
