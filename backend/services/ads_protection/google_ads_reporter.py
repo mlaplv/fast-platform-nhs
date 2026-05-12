@@ -1,7 +1,7 @@
 """
 Google Ads Reporter
 Tự động báo cáo invalid clicks + tạo Manual Investigation Request
-Dùng Google Ads API v18 (google-ads Python client)
+Dùng Google Ads API v24 (google-ads Python client)
 """
 from __future__ import annotations
 
@@ -63,12 +63,19 @@ class GoogleAdsReporter:
       2. Manual Investigation Request — tạo CSV + template email
     """
 
-    _CUSTOMER_ID: str = os.getenv("GOOGLE_ADS_CUSTOMER_ID", "")
-    _LOGIN_CUSTOMER_ID: str = os.getenv("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "") or os.getenv("GOOGLE_ADS_CUSTOMER_ID", "")
-    _DEVELOPER_TOKEN: str = os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN", "")
-    _OAUTH_CLIENT_ID: str = os.getenv("GOOGLE_ADS_OAUTH_CLIENT_ID", "")
-    _OAUTH_CLIENT_SECRET: str = os.getenv("GOOGLE_ADS_OAUTH_CLIENT_SECRET", "")
-    _REFRESH_TOKEN: str = os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "")
+    # Aggressive cleaning: strip comments and non-digits
+    _raw_cid = os.getenv("GOOGLE_ADS_CUSTOMER_ID", "").split("#")[0].strip()
+    _raw_login_cid = os.getenv("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "").split("#")[0].strip()
+
+    _CUSTOMER_ID: str = "".join(filter(str.isdigit, _raw_cid))
+    _LOGIN_CUSTOMER_ID: str = "".join(filter(str.isdigit, _raw_login_cid)) or _CUSTOMER_ID
+    _DEVELOPER_TOKEN: str = os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN", "").strip()
+    _OAUTH_CLIENT_ID: str = os.getenv("GOOGLE_ADS_OAUTH_CLIENT_ID", "").strip()
+    _OAUTH_CLIENT_SECRET: str = os.getenv("GOOGLE_ADS_OAUTH_CLIENT_SECRET", "").strip()
+    _REFRESH_TOKEN: str = os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "").strip()
+
+    _API_VERSION = "v24"
+    _API_BASE = f"https://googleads.googleapis.com/{_API_VERSION}"
 
     REPORT_DIR = Path("reports/click_fraud")
 
@@ -130,72 +137,81 @@ class GoogleAdsReporter:
     async def fetch_invalid_click_metrics(
         self, date_from: str, date_to: str
     ) -> list[dict[str, Any]]:
-        """
-        Truy vấn Google Ads Reporting API lấy invalid click stats.
-        Trả về list campaigns với metrics.
-        Fallback: trả list rỗng nếu chưa có credentials.
-        """
-        if not self._has_credentials():
-            logger.warning("google_ads_credentials_missing — returning empty metrics")
-            return []
+        try:
+            if not self._has_credentials():
+                logger.warning("google_ads_credentials_missing — returning empty metrics")
+                return []
 
-        access_token = await self._get_access_token()
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "developer-token": self._DEVELOPER_TOKEN,
-            "login-customer-id": self._LOGIN_CUSTOMER_ID,
-        }
+            access_token = await self._get_access_token()
+            headers = {
+                "Authorization": f"Bearer {access_token}",
+                "developer-token": self._DEVELOPER_TOKEN,
+                "login-customer-id": self._LOGIN_CUSTOMER_ID,
+            }
 
-        query = """
-            SELECT
-                campaign.id,
-                campaign.name,
-                campaign.status,
-                metrics.clicks,
-                metrics.invalid_clicks,
-                metrics.invalid_click_rate,
-                metrics.cost_micros
-            FROM campaign
-            WHERE campaign.status = 'ENABLED'
-            LIMIT 50
-        """.strip()
+            query = f"""
+                SELECT
+                    campaign.id,
+                    campaign.name,
+                    campaign.status,
+                    metrics.clicks,
+                    metrics.invalid_clicks,
+                    metrics.invalid_click_rate,
+                    metrics.cost_micros
+                FROM campaign
+                WHERE campaign.status = 'ENABLED'
+                  AND segments.date BETWEEN '{date_from}' AND '{date_to}'
+                LIMIT 50
+            """.strip()
 
-        url = (
-            f"https://googleads.googleapis.com/v24/customers/"
-            f"{self._CUSTOMER_ID}/googleAds:searchStream"
-        )
+            url = f"{self._API_BASE}/customers/{self._CUSTOMER_ID}/googleAds:search"
 
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(
-                url,
-                headers=headers,
-                json={"query": query},
-            )
-            resp.raise_for_status()
-            data = resp.json()
-
-        rows: list[dict[str, Any]] = []
-        for batch in data:
-            for result in batch.get("results", []):
-                campaign = result.get("campaign", {})
-                metrics  = result.get("metrics", {})
-                # Tính toán ngân sách thất thoát ước tính: (Avg. CPC * Invalid Clicks)
-                total_clicks = int(metrics.get("clicks", 0))
-                total_cost_micros = int(metrics.get("costMicros", 0))
-                invalid_clicks = int(metrics.get("invalidClicks", 0))
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.post(
+                    url,
+                    headers=headers,
+                    json={"query": query},
+                )
+                if resp.status_code != 200:
+                    logger.error("GOOGLE_ADS_API_ERROR: status=%d body=%s", resp.status_code, resp.text)
+                    resp.raise_for_status()
                 
-                avg_cpc_micros = total_cost_micros / total_clicks if total_clicks > 0 else 0
-                wasted_micros = avg_cpc_micros * invalid_clicks
-                
-                rows.append({
-                    "campaign_name": campaign.get("name"),
-                    "clicks":         total_clicks,
-                    "invalid_clicks": invalid_clicks,
-                    "invalid_click_rate": float(metrics.get("invalidClickRate", 0)),
-                    "cost_vnd":       round(wasted_micros / 1_000_000),
-                })
+                data = resp.json()
 
-        return rows
+            rows: list[dict[str, Any]] = []
+            # data có thể là list (batches) hoặc dict tùy theo proxy/client
+            batches = data if isinstance(data, list) else [data]
+            
+            for batch in batches:
+                for result in batch.get("results", []):
+                    campaign = result.get("campaign", {})
+                    metrics  = result.get("metrics", {})
+                    
+                    # Google Ads API metrics are strings in REST JSON
+                    c = int(metrics.get("clicks", 0))
+                    ic = int(metrics.get("invalidClicks", 0))
+                    icr = float(metrics.get("invalidClickRate", 0))
+                    cm = int(metrics.get("costMicros", 0))
+                    
+                    # Calculate protected value (avg CPC * invalid clicks)
+                    # We use the same currency as account (assume VND for this project)
+                    avg_cpc_micros = cm / c if c > 0 else 0
+                    protected_micros = avg_cpc_micros * ic
+                    protected_vnd = round(protected_micros / 1_000_000)
+                    
+                    rows.append({
+                        "campaign_name": campaign.get("name", "Unknown"),
+                        "clicks":         c,
+                        "invalid_clicks": ic,
+                        "invalid_click_rate": icr,
+                        "cost_micros":    cm,
+                        "cost_vnd":       protected_vnd,
+                    })
+
+            return rows
+        except Exception as e:
+            logger.error("FAILED_FETCH_GOOGLE_METRICS: %s", e, exc_info=True)
+            return [] # Trả về list rỗng thay vì làm crash cả Dashboard
 
     # -----------------------------------------------------------------------
     # Public: upload offline conversion với status INVALID
@@ -215,7 +231,7 @@ class GoogleAdsReporter:
 
         access_token = await self._get_access_token()
         url = (
-            f"https://googleads.googleapis.com/v18/customers/"
+            f"https://googleads.googleapis.com/v24/customers/"
             f"{self._CUSTOMER_ID}:uploadClickConversions"
         )
 

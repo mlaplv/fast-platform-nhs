@@ -2,8 +2,10 @@
   import { onMount, onDestroy } from 'svelte';
   import { fade, scale, slide } from 'svelte/transition';
   import { createAdsState } from './ads/adsState.svelte';
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+  import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
 
-  // Sub-components
+  const nanobot = useNanobot();
   import AdsKpiGrid from './ads/AdsKpiGrid.svelte';
   import AdsOverview from './ads/AdsOverview.svelte';
   import AdsInsights from './ads/AdsInsights.svelte';
@@ -12,11 +14,14 @@
   import AdsCampaignManager from './ads/AdsCampaignManager.svelte';
   import AdsBlacklist from './ads/AdsBlacklist.svelte';
   import AdsNegativeKeywords from './ads/AdsNegativeKeywords.svelte';
+  import AdsDatePicker from './ads/AdsDatePicker.svelte';
 
   // Icons
   import X from "@lucide/svelte/icons/x";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import Activity from "@lucide/svelte/icons/activity";
+  import ShieldCheck from "@lucide/svelte/icons/shield-check";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 
   const ads = createAdsState();
   let showTimeMenu = $state(false);
@@ -26,102 +31,251 @@
     ads.fetchCampaigns();
   });
 
-  function close() { /* Logic close modal */ }
+  function close() {
+    nanobot.closeUniversalModal();
+  }
+
+  function fmtDateShort(dStr: string | null) {
+     if (!dStr) return '';
+     const parts = dStr.split('-');
+     if (parts.length !== 3) return dStr;
+     return `${parts[2]}/${parts[1]}`;
+  }
 </script>
 
-<div class="fixed inset-0 z-[9999] bg-black text-white font-sans overflow-hidden flex flex-col p-6 ads-premium-hud" in:fade>
-  <!-- HIỆU ỨNG NỀN TINH GIẢN -->
-  <div class="absolute inset-0 pointer-events-none opacity-10">
-    <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0); background-size: 30px 30px;"></div>
+<div class="relative w-full h-full text-white font-sans overflow-hidden flex flex-col ads-premium-hud bg-[#050505]">
+  <!-- HUD BACKGROUND EFFECTS (Elite V2.6 Standard) -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-500/10 blur-[150px] rounded-none animate-pulse"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 blur-[150px] rounded-none animate-pulse" style="animation-delay: 2s"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(0,243,255,0.03)_0%,transparent_70%)]"></div>
+    
+    <!-- SCANLINE EFFECT -->
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-[60] pointer-events-none bg-[length:100%_4px,3px_100%] opacity-20"></div>
   </div>
 
-  <div class="relative z-10 flex flex-col h-full w-full max-w-[1500px] mx-auto">
-    <!-- HEADER TINH GỌN -->
-    <header class="flex justify-between items-center border-b border-white/5 pb-4 mb-6">
-      <div class="flex items-center gap-5">
-        <div class="brand-box">
-          <div class="text-[9px] text-cyan-400 font-black tracking-[0.4em] uppercase mb-1 opacity-70">XOHI AI // PROTECTION</div>
-          <h1 class="text-2xl font-black tracking-tighter uppercase leading-none">TRUNG TÂM ĐIỀU HÀNH</h1>
+  <div class="relative z-10 flex flex-col h-full w-full p-5">
+    <!-- HEADER (Elite V2.6 Standard) -->
+    <header class="flex justify-between items-center border-b border-white/10 pb-6 mb-8 shrink-0 relative" style="z-index: {Z_INDEX_ADMIN.STICKY_HEADER}">
+      <div class="flex items-center gap-6">
+        <div class="relative group">
+          <div class="absolute inset-0 bg-cyan-400 blur-md opacity-20 animate-pulse group-hover:opacity-40 transition-opacity"></div>
+          <div class="w-14 h-14 rounded-none bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center relative z-10 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+            <ShieldCheck size={28} class="text-cyan-400 animate-pulse" />
+          </div>
         </div>
-        <div class="h-8 w-[1px] bg-white/10"></div>
-        <div class="flex items-center gap-3 bg-white/[0.03] px-3 py-1.5 rounded-full border border-white/5">
-          <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span class="text-[9px] font-bold text-emerald-400/80 tracking-widest uppercase">MÁY CHỦ: TRỰC TUYẾN</span>
+        <div class="brand-box">
+          <div class="text-[10px] text-cyan-400 font-mono font-black tracking-[0.4em] mb-1.5 opacity-70 uppercase">Hệ thống bảo vệ Xohi AI</div>
+          <h1 class="text-3xl font-black tracking-tighter leading-none text-white">Quản trị Gian lận Quảng cáo</h1>
+        </div>
+        <div class="h-12 w-[1px] bg-white/10 mx-4"></div>
+        <div class="flex items-center gap-3 bg-emerald-500/5 px-5 py-2.5 rounded-none border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
+          <div class="w-2.5 h-2.5 rounded-none bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]"></div>
+          <span class="text-[10px] font-black text-emerald-400 tracking-[0.1em] uppercase">Bảo vệ: Đang hoạt động</span>
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-4">
          <div class="relative">
             <button 
-              class="px-4 py-2 bg-black border border-white/10 text-[10px] font-mono flex items-center gap-3 hover:border-cyan-400/50 transition-all min-w-[160px] justify-between"
+              class="px-5 py-2.5 bg-white/[0.03] border border-white/10 rounded-none text-[10px] font-mono flex items-center gap-4 hover:border-cyan-400/50 transition-all min-w-[180px] justify-between group"
               onclick={() => showTimeMenu = !showTimeMenu}
             >
-               <span class="text-slate-500 uppercase tracking-tighter">Thời gian:</span>
-               <span class="text-white font-black">{ads.selectedHours >= 168 ? '7 NGÀY' : ads.selectedHours + ' GIỜ'}</span>
-               <ChevronDown size={12} class="text-cyan-400 {showTimeMenu ? 'rotate-180' : ''} transition-transform" />
+               <span class="text-slate-500 tracking-tighter group-hover:text-cyan-400/70 transition-colors">Thời gian:</span>
+               <span class="text-white font-black">
+                   {#if ads.selectedHours === 'all_time'}
+                      Toàn thời gian
+                   {:else if ads.dateFrom && ads.dateTo}
+                      {fmtDateShort(ads.dateFrom)} → {fmtDateShort(ads.dateTo)}
+                   {:else}
+                      {ads.selectedHours >= 168 ? '7 ngày' : ads.selectedHours + ' giờ'}
+                   {/if}
+                </span>
+                <ChevronDown size={14} class="text-cyan-400 {showTimeMenu ? 'rotate-180' : ''} transition-transform" />
             </button>
             
             {#if showTimeMenu}
-               <div class="absolute top-full right-0 mt-1 w-full bg-black border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[100] overflow-hidden" in:slide={{duration: 200}}>
-                  {#each [
-                     { v: 2, l: '2 GIỜ QUA' },
-                     { v: 6, l: '6 GIỜ QUA' },
-                     { v: 12, l: '12 GIỜ QUA' },
-                     { v: 24, l: '24 GIỜ QUA' },
-                     { v: 168, l: '7 NGÀY QUA' }
-                  ] as opt}
-                     <button 
-                       class="w-full text-left px-4 py-2.5 text-[9px] font-black uppercase tracking-widest hover:bg-cyan-400 hover:text-black transition-colors {ads.selectedHours === opt.v ? 'text-cyan-400 bg-white/5' : 'text-slate-500'}"
-                       onclick={() => { 
-                          ads.selectedHours = opt.v; 
-                          ads.fetchAll(); 
-                          if (ads.activeTab === 'google') ads.fetchGoogleMetrics();
-                          if (ads.activeTab === 'negative_keywords') ads.fetchNegativeKeywords();
-                          showTimeMenu = false;
-                       }}
-                     >
-                        {opt.l}
-                     </button>
-                  {/each}
+               <div class="absolute top-full right-0 mt-2 w-[480px] bg-[#0a0a0a]/98 border border-white/10 rounded-none shadow-[0_30px_100px_rgba(0,0,0,0.9)] flex h-[380px] backdrop-blur-3xl"
+                    style="z-index: {Z_INDEX_ADMIN.HUD_DROPDOWN}"
+                    in:slide={{duration: 250}}>
+                  
+                  <!-- LEFT: PRESETS -->
+                  <div class="w-1/2 border-r border-white/10 p-2 flex flex-col custom-scrollbar overflow-y-auto">
+                     <span class="text-[8px] text-slate-500 font-black uppercase tracking-[0.2em] p-3 mb-1">Mốc thời gian</span>
+                     {#each [
+                        { id: 'today', l: 'Hôm nay' },
+                        { id: 'yesterday', l: 'Hôm qua' },
+                        { id: 'last_7', l: '7 ngày qua' },
+                        { id: 'last_14', l: '14 ngày qua' },
+                        { id: 'last_30', l: '30 ngày qua' },
+                        { id: 'this_month', l: 'Tháng này' },
+                        { id: 'last_month', l: 'Tháng trước' },
+                        { id: 'all_time', l: 'Toàn thời gian' }
+                     ] as opt}
+                        <button 
+                          class="w-full text-left px-4 py-2.5 text-[10px] font-bold transition-all rounded-none flex items-center justify-between group/opt {ads.selectedHours === opt.id ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.3)]' : 'text-slate-400 hover:bg-white/5 hover:text-white'}"
+                          onclick={(e) => { 
+                             e.stopPropagation();
+                             const now = new Date();
+                             const fmt = (d: Date) => d.toISOString().split('T')[0];
+                             
+                             if (opt.id === 'today') {
+                                ads.dateFrom = fmt(now);
+                                ads.dateTo = fmt(now);
+                             } else if (opt.id === 'yesterday') {
+                                const d = new Date(); d.setDate(d.getDate() - 1);
+                                ads.dateFrom = fmt(d);
+                                ads.dateTo = fmt(d);
+                             } else if (opt.id === 'last_7') {
+                                const d = new Date(); d.setDate(d.getDate() - 7);
+                                ads.dateFrom = fmt(d);
+                                ads.dateTo = fmt(now);
+                             } else if (opt.id === 'last_30') {
+                                const d = new Date(); d.setDate(d.getDate() - 30);
+                                ads.dateFrom = fmt(d);
+                                ads.dateTo = fmt(now);
+                             } else if (opt.id === 'this_month') {
+                                const d = new Date(now.getFullYear(), now.getMonth(), 1);
+                                ads.dateFrom = fmt(d);
+                                ads.dateTo = fmt(now);
+                             } else if (opt.id === 'last_month') {
+                                const d1 = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                                const d2 = new Date(now.getFullYear(), now.getMonth(), 0);
+                                ads.dateFrom = fmt(d1);
+                                ads.dateTo = fmt(d2);
+                             } else if (opt.id === 'all_time') {
+                                ads.dateFrom = '2024-01-01'; // Mốc bắt đầu hệ thống
+                                ads.dateTo = fmt(now);
+                                ads.selectedHours = 'all_time';
+                             } else {
+                                ads.selectedHours = 168;
+                                ads.dateFrom = null;
+                                ads.dateTo = null;
+                             }
+                             
+                             ads.fetchAll(); 
+                             if (ads.activeTab === 'google') ads.fetchGoogleMetrics();
+                             showTimeMenu = false;
+                          }}
+                        >
+                           <span>{opt.l}</span>
+                           {#if ads.selectedHours === opt.id}
+                              <div class="w-1.5 h-1.5 rounded-none bg-black animate-pulse"></div>
+                           {/if}
+                        </button>
+                     {/each}
+
+                     <div class="mt-auto p-3 border-t border-white/5">
+                        <div class="flex items-center gap-3 text-cyan-400/40">
+                           <Activity size={14} />
+                           <span class="text-[8px] font-black uppercase tracking-widest">Real-time Sync Active</span>
+                        </div>
+                     </div>
+                  </div>
+                  
+                  <!-- RIGHT: CUSTOM RANGE & CALENDAR SIMULATION -->
+                  <div class="w-1/2 p-6 flex flex-col bg-white/[0.01]" onclick={(e) => e.stopPropagation()}>
+                     <span class="text-[8px] text-slate-500 font-black uppercase tracking-[0.2em] mb-6">Khoảng ngày tùy chỉnh</span>
+                     
+                     <div class="flex flex-col gap-5">
+                        <div class="field relative group">
+                           <AdsDatePicker bind:value={ads.dateFrom} label="Ngày bắt đầu" />
+                        </div>
+
+                        <div class="flex justify-center">
+                           <div class="w-px h-4 bg-white/10"></div>
+                        </div>
+
+                        <div class="field relative group">
+                           <AdsDatePicker bind:value={ads.dateTo} label="Ngày kết thúc" align="right" />
+                        </div>
+
+                        <div class="mt-8 flex flex-col gap-3">
+                           <button 
+                              class="w-full py-4 bg-cyan-600 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-none hover:bg-cyan-500 transition-all shadow-[0_10px_30px_rgba(6,182,212,0.2)] active:scale-95 disabled:opacity-20 disabled:grayscale"
+                              disabled={!ads.dateFrom || !ads.dateTo}
+                              onclick={() => {
+                                 ads.fetchAll();
+                                 if (ads.activeTab === 'google') ads.fetchGoogleMetrics();
+                                 showTimeMenu = false;
+                              }}
+                           >
+                              Áp dụng bộ lọc
+                           </button>
+                           
+                           <button 
+                              class="w-full py-3 border border-white/5 text-slate-600 text-[9px] font-black uppercase tracking-widest hover:text-slate-300 hover:border-white/20 transition-all rounded-none"
+                              onclick={() => {
+                                 ads.dateFrom = null;
+                                 ads.dateTo = null;
+                                 ads.selectedHours = 24;
+                                 ads.fetchAll();
+                                 showTimeMenu = false;
+                              }}
+                           >
+                              Đặt lại mặc định
+                           </button>
+                        </div>
+                     </div>
+
+                     <div class="mt-auto">
+                        <p class="text-[8px] text-slate-700 leading-relaxed italic font-mono">
+                           * Dữ liệu Google Ads có thể trễ tối đa 3 giờ so với thời gian thực tế.
+                        </p>
+                     </div>
+                  </div>
                </div>
             {/if}
          </div>
-         <button class="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-ruby transition-all group" onclick={close}>
+         <button class="w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-none hover:bg-rose-500 hover:border-rose-400 transition-all group shadow-lg" onclick={close}>
             <X size={20} class="group-hover:rotate-90 transition-transform" />
          </button>
       </div>
     </header>
 
-    {#if ads.loading}
-      <div class="flex-1 flex flex-col items-center justify-center gap-3 opacity-30">
-        <Activity size={32} class="animate-spin text-cyan-400" />
-        <span class="text-[9px] uppercase tracking-[0.6em] font-black">Khởi tạo luồng điều hành...</span>
+    {#if ads.loading && !ads.summary}
+      <div class="flex-1 flex flex-col items-center justify-center gap-4 opacity-50">
+        <div class="relative">
+          <Activity size={48} class="animate-spin text-cyan-400" />
+          <div class="absolute inset-0 blur-lg bg-cyan-400/20 animate-pulse rounded-none"></div>
+        </div>
+        <span class="text-[10px] tracking-[0.4em] font-black animate-pulse text-cyan-400 uppercase">Đang truy xuất dữ liệu bảo vệ...</span>
       </div>
     {:else}
-      <!-- KPI GRID TINH GỌN -->
-      <div class="mb-6">
+      <div class="relative flex-1 flex flex-col min-h-0 {ads.loading ? 'pointer-events-none' : ''}">
+        {#if ads.loading}
+           <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[1px] rounded-none" in:fade>
+              <div class="px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-none flex items-center gap-4 shadow-2xl">
+                 <RefreshCw size={14} class="animate-spin text-cyan-400" />
+                 <span class="text-[9px] font-black text-white tracking-widest uppercase">Đang cập nhật...</span>
+              </div>
+           </div>
+        {/if}
+      <!-- KPI GRID -->
+      <div class="mb-8" in:fade={{delay: 100}}>
         <AdsKpiGrid summary={ads.summary} fmt={ads.fmt} />
       </div>
 
-      <!-- NAVIGATION TINH GỌN -->
-      <nav class="flex justify-center mb-6">
-        <div class="inline-flex bg-white/[0.02] p-1 rounded-sm border border-white/5 backdrop-blur-md">
+      <!-- NAVIGATION (Elite V2.6 Standard) -->
+      <nav class="flex justify-center mb-10" in:fade={{delay: 200}}>
+        <div class="inline-flex bg-white/[0.03] p-2 rounded-none border border-white/10 backdrop-blur-2xl shadow-[0_10px_40px_rgba(0,0,0,0.4)] relative overflow-hidden group/nav">
+          <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-transparent to-rose-500/5 opacity-50"></div>
           {#each [
-            { id: 'overview', label: 'TỔNG QUAN', fetch: () => ads.fetchAll() },
-            { id: 'insights', label: 'CỐ VẤN AI' },
-            { id: 'investigation', label: 'PHÁP Y' },
-            { id: 'google', label: 'GOOGLE LIVE', fetch: () => ads.fetchGoogleMetrics() },
-            { id: 'campaigns', label: 'ĐIỀU PHỐI', fetch: () => ads.fetchCampaigns() },
-            { id: 'blacklist', label: 'DANH SÁCH ĐEN' },
-            { id: 'negative_keywords', label: 'TỪ KHÓA PHỦ ĐỊNH', fetch: () => ads.fetchNegativeKeywords() }
+            { id: 'overview', label: 'Tổng quan', fetch: () => ads.fetchAll() },
+            { id: 'insights', label: 'Cố vấn AI' },
+            { id: 'investigation', label: 'Pháp y' },
+            { id: 'google', label: 'Google Live', fetch: () => ads.fetchGoogleMetrics() },
+            { id: 'campaigns', label: 'Điều phối', fetch: () => ads.fetchCampaigns() },
+            { id: 'blacklist', label: 'Danh sách đen' },
+            { id: 'negative_keywords', label: 'Từ khóa phủ định', fetch: () => ads.fetchNegativeKeywords() }
           ] as tab}
             <button 
-              class="px-6 py-2.5 text-[10px] font-black uppercase tracking-[0.15em] transition-all relative {ads.activeTab === tab.id ? 'text-white bg-white/5' : 'text-slate-500 hover:text-slate-300'}"
+              class="px-7 py-3.5 text-[10px] font-black tracking-[0.15em] transition-all relative rounded-none uppercase {ads.activeTab === tab.id ? 'text-white bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/5' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}"
               onclick={() => { ads.activeTab = tab.id; if (tab.fetch) tab.fetch(); }}
             >
               {tab.label}
               {#if ads.activeTab === tab.id}
-                <div class="absolute bottom-0 left-0 w-full h-[1.5px] bg-cyan-400 shadow-[0_0_8px_#00f3ff]" in:scale></div>
+                <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-6 h-[2px] bg-cyan-400 shadow-[0_0_15px_#00f3ff] rounded-none" in:scale></div>
               {/if}
             </button>
           {/each}
@@ -129,12 +283,20 @@
       </nav>
 
       <!-- VIEWPORT AREA -->
-      <main class="flex-1 overflow-y-auto custom-scrollbar pr-1">
-        <div class="h-full">
+      <main class="flex-1 overflow-y-auto custom-scrollbar pr-2" in:fade={{delay: 300}}>
+        <div class="min-h-0">
           {#if ads.activeTab === 'overview'}
-            <AdsOverview summary={ads.summary} isBlacklisted={ads.isBlacklisted} blockIP={ads.blockIP} />
+            <AdsOverview summary={ads.summary} isBlacklisted={ads.isBlacklisted} blockIP={ads.blockIP} periodLabel={ads.periodLabel} />
           {:else if ads.activeTab === 'insights'}
-            <AdsInsights insights={ads.insights} selectedCampaign={ads.selectedCampaign} aiLoading={ads.aiLoading} priorityColor={ads.priorityColor} aiSuggest={ads.aiSuggest} />
+            <AdsInsights 
+              insights={ads.insights} 
+              campaigns={ads.campaigns}
+              bind:selectedCampaign={ads.selectedCampaign} 
+              aiLoading={ads.aiLoading} 
+              priorityColor={ads.priorityColor} 
+              aiSuggest={ads.aiSuggest} 
+              aiResult={ads.aiResult} 
+            />
           {:else if ads.activeTab === 'investigation'}
             <AdsInvestigation reportResult={ads.reportResult} reportLoading={ads.reportLoading} generateReport={ads.generateReport} fmt={ads.fmt} />
           {:else if ads.activeTab === 'google'}
@@ -146,6 +308,7 @@
           {:else if ads.activeTab === 'negative_keywords'}
             <AdsNegativeKeywords 
               negativeKeywords={ads.negativeKeywords} 
+              campaigns={ads.campaigns}
               selectedCampaign={ads.selectedCampaign}
               bind:isGlobalNegative={ads.isGlobalNegative}
               bind:newNegativeKeyword={ads.newNegativeKeyword}
@@ -156,6 +319,7 @@
           {/if}
         </div>
       </main>
+    </div>
     {/if}
   </div>
 </div>
@@ -163,7 +327,7 @@
 <style>
   .custom-scrollbar::-webkit-scrollbar { width: 3px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 10px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 0; }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,243,255,0.2); }
   
   :global(.ads-premium-hud *) {

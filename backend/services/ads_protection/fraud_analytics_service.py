@@ -73,87 +73,111 @@ class FraudAnalyticsService:
     # Dashboard summary
     # -----------------------------------------------------------------------
 
-    async def get_summary(self, hours: int = 24) -> FraudSummary:
-        cutoff = datetime.now(UTC) - timedelta(hours=hours)
+    async def get_summary(
+        self, 
+        hours: int = 24, 
+        date_from: str | None = None, 
+        date_to: str | None = None,
+        avg_cpc: float | None = None,
+        google_all: int = 0,
+        google_invalid: int = 0,
+        google_wasted: float = 0.0
+    ) -> FraudSummary:
+        try:
+            if date_from and date_to:
+                # Parse YYYY-MM-DD
+                start_dt = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=UTC)
+                # To end of day
+                end_dt = datetime.strptime(date_to, "%Y-%m-%d").replace(hour=23, minute=59, second=59, tzinfo=UTC)
+            else:
+                end_dt = datetime.now(UTC)
+                start_dt = end_dt - timedelta(hours=hours)
 
-        # Tổng counts theo verdict
-        stmt = (
-            select(ClickFraudEvent.verdict, func.count().label("cnt"))
-            .where(ClickFraudEvent.created_at >= cutoff)
-            .group_by(ClickFraudEvent.verdict)
-        )
-        rows = (await self._session.execute(stmt)).all()
-
-        totals_map: dict[str, int] = {"FRAUD": 0, "SUSPICIOUS": 0, "CLEAN": 0}
-        for row in rows:
-            verdict, cnt = row
-            if verdict in totals_map:
-                totals_map[verdict] = int(cnt)
-        
-        total_all = sum(totals_map.values())
-
-        # Top IPs
-        ip_stmt = (
-            select(ClickFraudEvent.ip_address, func.count().label("cnt"))
-            .where(
-                ClickFraudEvent.created_at >= cutoff,
-                ClickFraudEvent.verdict == "FRAUD",
+            # 1. Tổng counts theo verdict
+            stmt = (
+                select(ClickFraudEvent.verdict, func.count().label("cnt"))
+                .where(ClickFraudEvent.created_at.between(start_dt, end_dt))
+                .group_by(ClickFraudEvent.verdict)
             )
-            .group_by(ClickFraudEvent.ip_address)
-            .order_by(func.count().desc())
-            .limit(10)
-        )
-        top_ips = [
-            OffendingIP(ip=str(row[0]), click_count=int(row[1]))
-            for row in (await self._session.execute(ip_stmt)).all()
-        ]
+            rows = (await self._session.execute(stmt)).all()
 
-        # Budget estimate (avg CPC 5,000₫)
-        AVG_CPC = 5000.0
-        wasted = totals_map["FRAUD"] * AVG_CPC
+            totals_map: dict[str, int] = {"FRAUD": 0, "SUSPICIOUS": 0, "CLEAN": 0}
+            for row in rows:
+                verdict, cnt = row
+                if verdict in totals_map:
+                    totals_map[verdict] = int(cnt)
+            
+            total_all = sum(totals_map.values())
 
-        # Hourly breakdown for charts
-        hourly_stmt = (
-            select(
-                func.date_trunc("hour", ClickFraudEvent.created_at).label("hr"),
-                func.count(ClickFraudEvent.id).label("total"),
-                func.coalesce(func.sum(case([(ClickFraudEvent.verdict == "FRAUD", 1)], else_=0)), 0).label("fraud_cnt")
+            # 2. Top IPs
+            ip_stmt = (
+                select(ClickFraudEvent.ip_address, func.count().label("cnt"))
+                .where(
+                    ClickFraudEvent.created_at.between(start_dt, end_dt),
+                    ClickFraudEvent.verdict == "FRAUD",
+                )
+                .group_by(ClickFraudEvent.ip_address)
+                .order_by(func.count().desc())
+                .limit(10)
             )
-            .where(ClickFraudEvent.created_at >= cutoff)
-            .group_by(func.date_trunc("hour", ClickFraudEvent.created_at))
-            .order_by(text("hr"))
-        )
-        hourly_rows = (await self._session.execute(hourly_stmt)).all()
-        hourly_breakdown = [
-            HourlyFraudStat(
-                hour=row[0],
-                total_clicks=int(row[1]),
-                fraud_rate=round(int(row[2]) / max(int(row[1]), 1), 4)
-            )
-            for row in hourly_rows
-        ]
+            top_ips = [
+                OffendingIP(ip=str(row[0]), click_count=int(row[1]))
+                for row in (await self._session.execute(ip_stmt)).all()
+            ]
 
-        return FraudSummary(
-            period_hours=hours,
-            generated_at=datetime.now(UTC),
-            totals=FraudSummaryTotals(
-                all_clicks=total_all,
-                fraud=totals_map["FRAUD"],
-                suspicious=totals_map["SUSPICIOUS"],
-                clean=totals_map["CLEAN"],
-                fraud_rate_pct=round(totals_map["FRAUD"] / max(total_all, 1) * 100, 2),
-                suspected_rate_pct=round(
-                    (totals_map["FRAUD"] + totals_map["SUSPICIOUS"]) / max(total_all, 1) * 100, 2
+            # 3. Budget estimate (default 5,000₫ if not provided)
+            cpc_to_use = avg_cpc if avg_cpc and avg_cpc > 0 else 5000.0
+            wasted = totals_map["FRAUD"] * cpc_to_use
+
+            # 4. Hourly breakdown for charts
+            trunc_expr = func.date_trunc("hour", ClickFraudEvent.created_at)
+            hourly_stmt = (
+                select(
+                    trunc_expr.label("hr"),
+                    func.count(ClickFraudEvent.id).label("total"),
+                    func.coalesce(func.sum(case((ClickFraudEvent.verdict == "FRAUD", 1), else_=0)), 0).label("fraud_cnt")
+                )
+                .where(ClickFraudEvent.created_at.between(start_dt, end_dt))
+                .group_by(trunc_expr)
+                .order_by(trunc_expr)
+            )
+            hourly_rows = (await self._session.execute(hourly_stmt)).all()
+            hourly_breakdown = [
+                HourlyFraudStat(
+                    hour=row[0],
+                    total_clicks=int(row[1]),
+                    fraud_rate=round(int(row[2]) / max(int(row[1]), 1), 4)
+                )
+                for row in hourly_rows
+            ]
+
+            return FraudSummary(
+                period_hours=hours,
+                generated_at=datetime.now(UTC),
+                totals=FraudSummaryTotals(
+                    all_clicks=total_all,
+                    fraud=totals_map["FRAUD"],
+                    suspicious=totals_map["SUSPICIOUS"],
+                    clean=totals_map["CLEAN"],
+                    fraud_rate_pct=round(totals_map["FRAUD"] / max(total_all, 1) * 100, 2),
+                    suspected_rate_pct=round(
+                        (totals_map["FRAUD"] + totals_map["SUSPICIOUS"]) / max(total_all, 1) * 100, 2
+                    ),
+                    google_all_clicks=google_all,
+                    google_invalid_clicks=google_invalid,
                 ),
-            ),
-            budget=FraudBudgetInfo(
-                avg_cpc_vnd=AVG_CPC,
-                estimated_wasted_vnd=wasted,
-                estimated_wasted_usd=round(wasted / 25000, 2),
-            ),
-            top_offending_ips=top_ips,
-            hourly_breakdown=hourly_breakdown
-        )
+                budget=FraudBudgetInfo(
+                    avg_cpc_vnd=cpc_to_use,
+                    estimated_wasted_vnd=wasted,
+                    estimated_wasted_usd=round(wasted / 25000, 2),
+                    google_estimated_wasted_vnd=google_wasted,
+                ),
+                top_offending_ips=top_ips,
+                hourly_breakdown=hourly_breakdown
+            )
+        except Exception as e:
+            logger.error("FAILED_GET_SUMMARY: %s", e, exc_info=True)
+            raise
 
     # -----------------------------------------------------------------------
     # Weekly investigation package

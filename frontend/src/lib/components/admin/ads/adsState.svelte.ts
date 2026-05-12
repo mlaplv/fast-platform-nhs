@@ -18,12 +18,15 @@ export function createAdsState() {
   let ads = $state<any[]>([]);
   let blacklistedIPs = $state<any[]>([]);
   let negativeKeywords = $state<any[]>([]);
+  let aiResult = $state<any>(null);
   
   let manualIP = $state('');
   let newNegativeKeyword = $state('');
   let isGlobalNegative = $state(true);
   let isGlobalIP = $state(false);
   let selectedHours = $state(24);
+  let dateFrom = $state<string | null>(null);
+  let dateTo = $state<string | null>(null);
   
   let loading = $state(true);
   let reportLoading = $state(false);
@@ -33,26 +36,56 @@ export function createAdsState() {
   let adGroupLoading = $state(false);
   let adsLoading = $state(false);
   let aiLoading = $state(false);
+  let negativeKeywordsLoading = $state(false);
   let activeTab = $state('overview');
   let campaignView = $state('list');
 
+  // Period Label Derived
+  const periodLabel = $derived.by(() => {
+    if (dateFrom && dateTo) {
+      const d1 = dateFrom.split('-').reverse().join('/');
+      const d2 = dateTo.split('-').reverse().join('/');
+      return `${d1} - ${d2}`;
+    }
+    if (selectedHours === 24) return '24 giờ';
+    if (selectedHours === 168) return '7 ngày';
+    if (selectedHours === 720) return '30 ngày';
+    return `${selectedHours} giờ`;
+  });
+
   // Computed
-  const googleTotalInvalid = $derived(googleMetrics.reduce((s, m) => s + m.invalid_clicks, 0));
-  const googleTotalClicks = $derived(googleMetrics.reduce((s, m) => s + m.clicks, 0));
-  const googleTotalCost = $derived(googleMetrics.reduce((s, m) => s + m.cost_vnd, 0));
+  const googleTotalInvalid = $derived(googleMetrics.reduce((s, m) => s + (Number(m.invalid_clicks) || 0), 0));
+  const googleTotalClicks = $derived(googleMetrics.reduce((s, m) => s + (Number(m.clicks) || 0), 0));
+  const googleTotalCost = $derived(googleMetrics.reduce((s, m) => s + (Number(m.cost_vnd) || 0), 0));
   const googleAvgRate = $derived(googleTotalClicks > 0 ? (googleTotalInvalid / googleTotalClicks * 100) : 0);
 
   // Actions
-  async function fetchAll() {
-    try {
-      const [s, i, b] = await Promise.all([
-        apiClient.get(`${ADS_API}/summary`, { params: { hours: String(selectedHours) } }),
-        apiClient.get(`${ADS_API}/insights`),
-        apiClient.get(`${ADS_API}/blacklist`)
-      ]);
-      summary = s; insights = i || []; blacklistedIPs = b || [];
-    } finally { loading = false; }
-  }
+    async function fetchAll() {
+      loading = true;
+      try {
+        const params: any = {};
+        if (dateFrom && dateTo) {
+          params.date_from = dateFrom;
+          params.date_to = dateTo;
+        } else {
+          params.hours = String(selectedHours);
+        }
+        
+        const [s, i, b] = await Promise.all([
+          apiClient.get(`${ADS_API}/summary`, { params }),
+          apiClient.get(`${ADS_API}/insights`),
+          apiClient.get(`${ADS_API}/blacklist`)
+        ]);
+        summary = s; 
+        insights = i || []; 
+        blacklistedIPs = b || [];
+        
+        // Luôn đồng bộ dữ liệu Google Ads khi lọc để tránh lệch số liệu giữa các tab
+        await fetchGoogleMetrics();
+      } catch (e) {
+        console.error("Fetch error:", e);
+      } finally { loading = false; }
+    }
 
   async function generateReport() {
     reportLoading = true;
@@ -68,16 +101,24 @@ export function createAdsState() {
     finally { reportLoading = false; }
   }
 
-  async function fetchGoogleMetrics() {
-    googleLoading = true;
-    try {
-      const to = new Date(); const from = new Date();
-      from.setHours(from.getHours() - selectedHours);
-      const fmtD = (d: Date) => d.toISOString().split('T')[0];
-      googleMetrics = await apiClient.get(`${ADS_API}/google-metrics`, { params: { date_from: fmtD(from), date_to: fmtD(to) } }) ?? [];
-    } catch { googleError = 'Lỗi API Google'; }
-    finally { googleLoading = false; }
-  }
+   async function fetchGoogleMetrics() {
+     googleLoading = true;
+     try {
+       let from_str, to_str;
+       if (dateFrom && dateTo) {
+         from_str = dateFrom;
+         to_str = dateTo;
+       } else {
+         const to = new Date(); const from = new Date();
+         from.setHours(from.getHours() - selectedHours);
+         const fmtD = (d: Date) => d.toISOString().split('T')[0];
+         from_str = fmtD(from);
+         to_str = fmtD(to);
+       }
+       googleMetrics = await apiClient.get(`${ADS_API}/google-metrics`, { params: { date_from: from_str, date_to: to_str } }) ?? [];
+     } catch { googleError = 'Lỗi API Google'; }
+     finally { googleLoading = false; }
+   }
 
   async function fetchCampaigns() {
     campaignLoading = true;
@@ -109,16 +150,18 @@ export function createAdsState() {
     } catch { nanobot.showToast('Lỗi cập nhật', 'error'); }
   }
 
-  async function fetchNegativeKeywords() {
-    try {
-      const id = selectedCampaign?.resource_name.split('/').pop();
-      negativeKeywords = await apiClient.get(`${ADS_API}/negative-keywords`) ?? [];
-      if (id) {
-        const campK = await apiClient.get(`${ADS_API}/campaigns/${id}/negative-keywords`) ?? [];
-        negativeKeywords = [...negativeKeywords, ...campK];
-      }
-    } catch { negativeKeywords = []; }
-  }
+   async function fetchNegativeKeywords() {
+     negativeKeywordsLoading = true;
+     try {
+       const id = selectedCampaign?.resource_name.split('/').pop();
+       negativeKeywords = await apiClient.get(`${ADS_API}/negative-keywords`) ?? [];
+       if (id) {
+         const campK = await apiClient.get(`${ADS_API}/campaigns/${id}/negative-keywords`) ?? [];
+         negativeKeywords = [...negativeKeywords, ...campK];
+       }
+     } catch { negativeKeywords = []; }
+     finally { negativeKeywordsLoading = false; }
+   }
 
   async function addNegativeKeyword(text: string) {
     if (!text.trim()) return;
@@ -161,8 +204,17 @@ export function createAdsState() {
     aiLoading = true;
     try {
       const res: any = await apiClient.post(`${ADS_API}/ai-suggest`, { task, context });
-      if (res.success && task === 'NEGATIVE_KEYWORDS' && res.negative_keywords) newNegativeKeyword = res.negative_keywords.join('\n');
-      nanobot.showToast(res.message || 'Xohi đã gợi ý xong', 'success');
+      if (res.success) {
+         aiResult = res;
+         if (task === 'NEGATIVE_KEYWORDS' && res.negative_keywords) {
+            newNegativeKeyword = res.negative_keywords.join('\n');
+         }
+         nanobot.showToast(res.message || 'Xohi đã gợi ý xong', 'success');
+      } else {
+         nanobot.showToast(res.message || 'Lỗi phân tích AI', 'error');
+      }
+    } catch {
+       nanobot.showToast('Lỗi kết nối Trinity Bridge', 'error');
     } finally { aiLoading = false; }
   }
 
@@ -172,9 +224,13 @@ export function createAdsState() {
 
   return {
     get summary() { return summary }, get insights() { return insights }, get reportResult() { return reportResult },
-    get googleMetrics() { return googleMetrics }, get campaigns() { return campaigns }, get selectedCampaign() { return selectedCampaign },
-    get adGroups() { return adGroups }, get ads() { return ads }, get negativeKeywords() { return negativeKeywords },
+    get googleMetrics() { return googleMetrics }, get campaigns() { return campaigns }, 
+    get selectedCampaign() { return selectedCampaign }, set selectedCampaign(v) { selectedCampaign = v },
+    get adGroups() { return adGroups }, 
+    get selectedAdGroup() { return selectedAdGroup }, set selectedAdGroup(v) { selectedAdGroup = v },
+    get ads() { return ads }, get negativeKeywords() { return negativeKeywords },
     get blacklistedIPs() { return blacklistedIPs },
+    get aiResult() { return aiResult },
     get loading() { return loading }, get activeTab() { return activeTab }, set activeTab(v) { activeTab = v },
     get campaignView() { return campaignView }, set campaignView(v) { campaignView = v },
     get isGlobalNegative() { return isGlobalNegative }, set isGlobalNegative(v) { isGlobalNegative = v },
@@ -182,12 +238,19 @@ export function createAdsState() {
     get isGlobalIP() { return isGlobalIP }, set isGlobalIP(v) { isGlobalIP = v },
     get manualIP() { return manualIP }, set manualIP(v) { manualIP = v },
     get selectedHours() { return selectedHours }, set selectedHours(v) { selectedHours = v },
+    get dateFrom() { return dateFrom }, set dateFrom(v) { dateFrom = v },
+    get dateTo() { return dateTo }, set dateTo(v) { dateTo = v },
     get reportLoading() { return reportLoading }, get googleLoading() { return googleLoading }, get aiLoading() { return aiLoading },
-    get googleError() { return googleError }, get googleTotalInvalid() { return googleTotalInvalid }, get googleTotalClicks() { return googleTotalClicks },
-    get googleTotalCost() { return googleTotalCost }, get googleAvgRate() { return googleAvgRate },
+    get negativeKeywordsLoading() { return negativeKeywordsLoading },
+    get googleTotalCost() { return googleTotalCost }, 
+    get googleAvgRate() { return googleAvgRate },
+    get googleTotalClicks() { return googleTotalClicks },
+    get googleTotalInvalid() { return googleTotalInvalid },
+    get periodLabel() { return periodLabel },
     fmt, priorityColor, isBlacklisted, fetchAll, generateReport, fetchGoogleMetrics, fetchCampaigns, fetchAdGroups, fetchAds, 
     updateCampaignStatus, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, blockIP, unblockIP, aiSuggest,
     getDateRange: () => {
+      if (dateFrom && dateTo) return { from: dateFrom, to: dateTo };
       const to = new Date(); const from = new Date();
       from.setHours(from.getHours() - selectedHours);
       const f = (d: Date) => d.toISOString().split('T')[0];

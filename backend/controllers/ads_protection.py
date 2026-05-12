@@ -7,7 +7,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import AsyncGenerator
+from datetime import datetime, timedelta, UTC
+from typing import AsyncGenerator, Optional, Annotated
 
 from litestar import Controller, get, post, patch, delete
 from litestar.response import ServerSentEvent
@@ -145,11 +146,55 @@ class AdsProtectionController(Controller):
     async def get_summary(
         self,
         db_session: AsyncSession,
-        hours: int = Parameter(default=24, ge=1, le=720),
+        hours: Annotated[int, Parameter(ge=1, le=720)] = 24,
+        date_from: Annotated[Optional[str], Parameter(required=False)] = None,
+        date_to: Annotated[Optional[str], Parameter(required=False)] = None,
     ) -> FraudSummary:
-        """Thống kê fraud tổng hợp theo khoảng giờ. Dùng cho Admin Dashboard."""
-        analytics = FraudAnalyticsService(db_session)
-        return await analytics.get_summary(hours=hours)
+        """Thống kê fraud tổng hợp với CPC thực tế từ Google Ads."""
+        try:
+            # 1. Xác định khoảng thời gian cho Google Ads API
+            if not date_from or not date_to:
+                now = datetime.now(UTC)
+                dt_from = now - timedelta(hours=hours)
+                date_from = dt_from.strftime("%Y-%m-%d")
+                date_to = now.strftime("%Y-%m-%d")
+
+            # 2. Lấy Average CPC thực tế và Totals từ Google Ads
+            avg_cpc = 5000.0 # fallback
+            google_all = 0
+            google_invalid = 0
+            google_wasted = 0.0
+            
+            try:
+                google_metrics = await _reporter.fetch_invalid_click_metrics(
+                    date_from=date_from, date_to=date_to
+                )
+                if google_metrics:
+                    google_all = sum(m["clicks"] for m in google_metrics)
+                    google_invalid = sum(m["invalid_clicks"] for m in google_metrics)
+                    google_wasted = sum(m["cost_vnd"] for m in google_metrics)
+                    
+                    if google_invalid > 0:
+                        avg_cpc = google_wasted / google_invalid
+            except Exception as e:
+                logger.warning("FETCH_GOOGLE_TOTALS_FAILED: %s", e)
+
+            # 3. Trả về summary với real CPC và Google Totals
+            analytics = FraudAnalyticsService(db_session)
+            return await analytics.get_summary(
+                hours=hours, 
+                date_from=date_from, 
+                date_to=date_to,
+                avg_cpc=avg_cpc,
+                google_all=google_all,
+                google_invalid=google_invalid,
+                google_wasted=google_wasted
+            )
+        except Exception as e:
+            logger.error("GET_SUMMARY_CRITICAL_FAILURE: %s", e, exc_info=True)
+            # Fallback tối thượng để không bao giờ chết dashboard
+            analytics = FraudAnalyticsService(db_session)
+            return await analytics.get_summary(hours=hours)
 
     # ------------------------------------------------------------------
     # 4. Optimization insights
@@ -187,20 +232,24 @@ class AdsProtectionController(Controller):
     @get("/google-metrics")
     async def get_google_metrics(
         self,
-        date_from: str = Parameter(description="YYYY-MM-DD"),
-        date_to:   str = Parameter(description="YYYY-MM-DD"),
+        date_from: Annotated[str, Parameter(description="Từ ngày (YYYY-MM-DD)")],
+        date_to:   Annotated[str, Parameter(description="Đến ngày (YYYY-MM-DD)")],
     ) -> list[GoogleInvalidClickMetric]:
         """
-        Lấy invalid click metrics trực tiếp từ Google Ads Reporting API v18.
-        Trả list rỗng nếu chưa cấu hình GOOGLE_ADS_* env vars.
+        Lấy invalid click metrics trực tiếp từ Google Ads Reporting API v24.
+        Trả list rỗng nếu chưa cấu hình hoặc API lỗi.
         """
-        metrics = await _reporter.fetch_invalid_click_metrics(
-            date_from=date_from, date_to=date_to
-        )
-        return [GoogleInvalidClickMetric(**m) for m in metrics]
+        try:
+            metrics = await _reporter.fetch_invalid_click_metrics(
+                date_from=date_from, date_to=date_to
+            )
+            return [GoogleInvalidClickMetric(**m) for m in metrics]
+        except Exception as e:
+            logger.error("GET_GOOGLE_METRICS_CONTROLLER_FAILED: %s", e)
+            return []
 
     # ══════════════════════════════════════════════════════════════════
-    # CAMPAIGN MANAGER — Google Ads API v18
+    # CAMPAIGN MANAGER — Google Ads API v24
     # ══════════════════════════════════════════════════════════════════
 
     # ------------------------------------------------------------------

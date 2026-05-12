@@ -3,7 +3,6 @@
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
   import { permissionState } from "$lib/state/permissions.svelte";
   import { fade, fly } from 'svelte/transition';
-  import { fly } from "svelte/transition";
   import Edit3 from "@lucide/svelte/icons/edit-3";
   import Save from "@lucide/svelte/icons/save";
   import X from "@lucide/svelte/icons/x";

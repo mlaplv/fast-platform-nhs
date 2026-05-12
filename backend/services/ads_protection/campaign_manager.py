@@ -1,5 +1,5 @@
 """
-Campaign Manager — Google Ads API v18
+Campaign Manager — Google Ads API v24
 CRUD campaigns, ad groups, và responsive search ads.
 Dùng REST API (httpx) thay vì gRPC client để tránh phụ thuộc nặng.
 100% async, type-safe, không dùng Any.
@@ -30,35 +30,38 @@ from backend.services.ads_protection.policy_validator import PolicyValidator
 
 logger = logging.getLogger("ads_protection.campaign_manager")
 
-_VND_TO_MICROS = 25_000 * 1_000_000  # 1 USD = 25,000 VND, Google dùng micros (USD)
-_VND_PER_USD = 25_000.0
+
 
 
 def _vnd_to_micros(vnd: float) -> int:
-    """Chuyển đổi VNĐ → micros USD (đơn vị Google Ads sử dụng)."""
-    usd = vnd / _VND_PER_USD
-    return int(usd * 1_000_000)
+    """Chuyển đổi VNĐ → micros (đơn vị Google Ads sử dụng theo tiền tệ tài khoản)."""
+    return int(vnd * 1_000_000)
 
 
 def _micros_to_vnd(micros: int) -> float:
-    """Chuyển đổi micros USD → VNĐ."""
-    return (micros / 1_000_000) * _VND_PER_USD
+    """Chuyển đổi micros → VNĐ (giả định tài khoản dùng tiền tệ VNĐ)."""
+    return micros / 1_000_000
 
 
 class CampaignManager:
     """
-    Quản lý chiến dịch Google Ads qua REST API v18.
+    Quản lý chiến dịch Google Ads qua REST API v24.
     Cung cấp CRUD đầy đủ với policy validation tích hợp.
     """
 
-    _CUSTOMER_ID: str = os.getenv("GOOGLE_ADS_CUSTOMER_ID", "").replace("-", "")
-    _LOGIN_CUSTOMER_ID: str = os.getenv("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "").replace("-", "") or _CUSTOMER_ID
-    _DEVELOPER_TOKEN: str = os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN", "")
-    _OAUTH_CLIENT_ID: str = os.getenv("GOOGLE_ADS_OAUTH_CLIENT_ID", "")
-    _OAUTH_CLIENT_SECRET: str = os.getenv("GOOGLE_ADS_OAUTH_CLIENT_SECRET", "")
-    _REFRESH_TOKEN: str = os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "")
+    # Aggressive cleaning (Elite V2.2 Protocol)
+    _raw_cid = os.getenv("GOOGLE_ADS_CUSTOMER_ID", "").split("#")[0].strip()
+    _raw_login_cid = os.getenv("GOOGLE_ADS_LOGIN_CUSTOMER_ID", "").split("#")[0].strip()
 
-    _API_BASE = "https://googleads.googleapis.com/v24"
+    _CUSTOMER_ID: str = "".join(filter(str.isdigit, _raw_cid))
+    _LOGIN_CUSTOMER_ID: str = "".join(filter(str.isdigit, _raw_login_cid)) or _CUSTOMER_ID
+    _DEVELOPER_TOKEN: str = os.getenv("GOOGLE_ADS_DEVELOPER_TOKEN", "").strip()
+    _OAUTH_CLIENT_ID: str = os.getenv("GOOGLE_ADS_OAUTH_CLIENT_ID", "").strip()
+    _OAUTH_CLIENT_SECRET: str = os.getenv("GOOGLE_ADS_OAUTH_CLIENT_SECRET", "").strip()
+    _REFRESH_TOKEN: str = os.getenv("GOOGLE_ADS_REFRESH_TOKEN", "").strip()
+
+    _API_VERSION = "v24"
+    _API_BASE = f"https://googleads.googleapis.com/{_API_VERSION}"
     _OAUTH_URL = "https://oauth2.googleapis.com/token"
 
     def __init__(self) -> None:
@@ -487,35 +490,6 @@ class CampaignManager:
             logger.error("keyword_planner_failed status=%d", e.response.status_code)
             return []
 
-    async def add_negative_keyword(self, campaign_id: str, keyword_text: str, is_global: bool = False) -> bool:
-        """Thêm từ khóa phủ định (Cấp chiến dịch hoặc Toàn cầu)."""
-        if not is_global:
-            return await self._add_to_single_campaign(campaign_id, keyword_text)
-        
-        # Global Mode: Lấy danh sách toàn bộ chiến dịch và đẩy vào
-        campaigns = await self.list_campaigns()
-        success_count = 0
-        for camp in campaigns:
-            camp_id = camp['resource_name'].split('/')[-1]
-            if await self._add_to_single_campaign(camp_id, keyword_text):
-                success_count += 1
-        return success_count > 0
-
-    async def _add_to_single_campaign(self, campaign_id: str, keyword_text: str) -> bool:
-        """Hàm helper để đẩy từ khóa vào 1 chiến dịch cụ thể."""
-        token = await self._get_access_token()
-        operation = {
-            "create": {
-                "campaign": f"customers/{self._CUSTOMER_ID}/campaigns/{campaign_id}",
-                "negative": True,
-                "keyword": {
-                    "text": keyword_text,
-                    "matchType": "BROAD"
-                }
-            }
-        }
-        results = await self._mutate(token, "campaignCriteria", [operation])
-        return len(results) > 0
 
     # ─────────────────────────────────────────────────────────────────────────
     # PUBLIC: Fraud Mitigation (IP Blacklist & Negative Keywords)
@@ -630,59 +604,23 @@ class CampaignManager:
         except Exception as e:
             logger.error(f"Failed to fetch shared_criterion: {e}")
 
-        # Chiến thuật 2: Quét Account Level (customer_negative_criterion) - Chỉ lấy ID và Text nếu có
-        query_customer = """
-            SELECT
-                customer_negative_criterion.id,
-                customer_negative_criterion.keyword.text
-            FROM customer_negative_criterion
-        """
-        try:
-            rows_c = await self._search(token, query_customer)
-            for r in rows_c:
-                results.append({
-                    "id": str(r.get("customerNegativeCriterion", {}).get("id", "")),
-                    "text": r.get("customerNegativeCriterion", {}).get("keyword", {}).get("text", ""),
-                    "match_type": "EXACT",
-                    "set_name": "Account Level"
-                })
-        except Exception as e:
-            logger.error(f"Failed to fetch customer_negative_criterion: {e}")
-
         return results
 
     async def add_account_negative_keywords(self, keywords: list[str]) -> bool:
-        """Thêm từ khóa phủ định vào cấp TÀI KHOẢN (Account Level)."""
+        """
+        Thêm từ khóa phủ định vào toàn bộ chiến dịch (Thay thế cho Account Level do v24 schema change).
+        """
         if not self._has_credentials() or not keywords: return False
-        token = await self._get_access_token()
         
-        operations = []
+        campaigns = await self.list_campaigns()
+        total_success = 0
         for kw in keywords:
-            operations.append({
-                "create": {
-                    "type": "KEYWORD",
-                    "keyword": {
-                        "text": kw,
-                        "matchType": "BROAD" # Mặc định mở rộng để chặn triệt để
-                    }
-                }
-            })
-            
-        url = f"https://googleads.googleapis.com/v24/customers/{self._CUSTOMER_ID}/customerNegativeCriteria:mutate"
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "developer-token": self._DEVELOPER_TOKEN,
-            "login-customer-id": self._LOGIN_CUSTOMER_ID
-        }
+            for camp in campaigns:
+                if await self._add_single_negative_keyword(camp.resource_name, kw, "BROAD"):
+                    total_success += 1
         
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            resp = await client.post(url, headers=headers, json={"operations": operations})
-            if resp.status_code == 200:
-                logger.info(f"Successfully added {len(keywords)} account-level negative keywords")
-                return True
-            else:
-                logger.error(f"Failed to add negative keywords: {resp.text}")
-                return False
+        logger.info(f"Added {total_success} negative keyword entries across campaigns")
+        return total_success > 0
 
     async def list_all_blocked_ips(self) -> list[dict]:
         """Lấy toàn bộ IP bị chặn trên TẤT CẢ các chiến dịch."""

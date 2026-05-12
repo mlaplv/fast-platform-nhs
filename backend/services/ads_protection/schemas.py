@@ -74,12 +74,19 @@ class FraudSummaryTotals(BaseModel):
     clean: int
     fraud_rate_pct: float
     suspected_rate_pct: float
+    
+    # Google Ads API Data (Unified 2026)
+    google_all_clicks: int = 0
+    google_invalid_clicks: int = 0
 
 
 class FraudBudgetInfo(BaseModel):
     avg_cpc_vnd: float
     estimated_wasted_vnd: float
     estimated_wasted_usd: float
+    
+    # Google Ads API Data (Unified 2026)
+    google_estimated_wasted_vnd: float = 0.0
 
 
 class OffendingIP(BaseModel):
@@ -130,7 +137,7 @@ class GoogleInvalidClickMetric(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CAMPAIGN MANAGER SCHEMAS — Google Ads API v18
+# CAMPAIGN MANAGER SCHEMAS — Google Ads API v24
 # ─────────────────────────────────────────────────────────────────────────────
 
 class CampaignBudget(BaseModel):
