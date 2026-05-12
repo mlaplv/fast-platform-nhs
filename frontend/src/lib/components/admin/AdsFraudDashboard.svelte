@@ -15,6 +15,7 @@
   import AdsBlacklist from './ads/AdsBlacklist.svelte';
   import AdsNegativeKeywords from './ads/AdsNegativeKeywords.svelte';
   import AdsDatePicker from './ads/AdsDatePicker.svelte';
+  import AdsPowHud from "./ads/AdsPowHud.svelte";
 
   // Icons
   import X from "@lucide/svelte/icons/x";
@@ -34,6 +35,7 @@
     ads.fetchAll();
     ads.fetchCampaigns();
     ads.initSSE();
+    ads.initEdge();
   });
 
   onDestroy(() => {
@@ -63,86 +65,97 @@
     <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] z-[60] pointer-events-none bg-[length:100%_4px,3px_100%] opacity-20"></div>
   </div>
 
+  <div class="scanlines"></div>
   <div class="relative z-10 flex flex-col h-full w-full p-5">
-    <!-- HEADER (Elite V2.6 Standard) -->
-    <header class="flex justify-between items-center border-b border-white/10 pb-6 mb-8 shrink-0 relative" style="z-index: {Z_INDEX_ADMIN.STICKY_HEADER}">
-      <div class="flex items-center gap-6">
-        <div class="relative group">
-          <div class="absolute inset-0 bg-cyan-400 blur-md opacity-20 animate-pulse group-hover:opacity-40 transition-opacity"></div>
-          <div class="w-14 h-14 rounded-none bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center relative z-10 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
-            <ShieldCheck size={28} class="text-cyan-400 animate-pulse" />
+    <!-- HEADER (Elite V3.0 Simple Pro) -->
+    <header class="flex justify-between items-center border-b border-white/5 pb-5 mb-8 shrink-0 relative" style="z-index: {Z_INDEX_ADMIN.STICKY_HEADER}">
+      <div class="flex items-center gap-8">
+        <!-- Brand Core -->
+        <div class="flex items-center gap-4">
+          <div class="relative group">
+            <div class="absolute inset-0 bg-cyan-400 blur-xl opacity-10 group-hover:opacity-30 transition-all duration-1000"></div>
+            <ShieldCheck size={32} class="text-cyan-400 relative z-10 filter drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" />
+          </div>
+          <div>
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="text-[9px] text-cyan-400/60 font-black uppercase tracking-[0.3em]">Xohi AI Protection</span>
+              <span class="text-[7px] px-1.5 py-0.5 bg-cyan-400/10 text-cyan-400/80 border border-cyan-400/20 font-mono">V3.0_λ</span>
+            </div>
+            <h1 class="text-2xl font-black tracking-tighter text-white leading-none">Gian lận Quảng cáo</h1>
           </div>
         </div>
-        <div class="brand-box">
-          <div class="text-[10px] text-cyan-400 font-mono font-black tracking-[0.4em] mb-1.5 opacity-70 uppercase">Hệ thống bảo vệ Xohi AI</div>
-          <h1 class="text-3xl font-black tracking-tighter leading-none text-white">Quản trị Gian lận Quảng cáo</h1>
-        </div>
-        <div class="h-12 w-[1px] bg-white/10 mx-4"></div>
-        
-        {#if (ads.summary?.totals?.fraud_rate_pct || 0) > 30}
-          <div class="flex items-center gap-3 bg-rose-500/10 px-5 py-2.5 rounded-none border border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.2)] animate-pulse">
-            <AlertTriangle size={18} class="text-rose-500 animate-bounce" />
-            <span class="text-[10px] font-black text-rose-500 tracking-[0.1em] uppercase">CẢNH BÁO: ĐANG BỊ TẤN CÔNG ({ads.summary.totals.fraud_rate_pct}%)</span>
-          </div>
-        {:else}
-          <div class="flex items-center gap-3 bg-emerald-500/5 px-5 py-2.5 rounded-none border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.05)]">
-            <div class="w-2.5 h-2.5 rounded-none bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]"></div>
-            <span class="text-[10px] font-black text-emerald-400 tracking-[0.1em] uppercase">Bảo vệ: Đang hoạt động</span>
-          </div>
-        {/if}
 
+        <div class="h-8 w-[1px] bg-white/5"></div>
+
+        <!-- Security Pulse Status -->
+        <div class="flex items-center gap-4">
+          {#if (ads.summary?.totals?.fraud_rate_pct || 0) > 30}
+            <div class="flex items-center gap-3 bg-rose-500/5 px-4 py-1.5 border border-rose-500/20 group cursor-default">
+              <div class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></div>
+              <span class="text-[10px] font-black text-rose-500 uppercase tracking-widest">Threat Level: High ({ads.summary.totals.fraud_rate_pct}%)</span>
+            </div>
+          {:else}
+            <div class="flex items-center gap-3 bg-emerald-500/5 px-4 py-1.5 border border-emerald-500/20">
+              <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>
+              <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Shield Active</span>
+            </div>
+          {/if}
+
+          {#if ads.edgeStatus === 'ready'}
+            <div class="flex items-center gap-2 text-yellow-500/40 font-mono text-[9px] uppercase tracking-tighter">
+              <Zap size={12} class="animate-pulse" />
+              <span>Edge_Core_Online</span>
+            </div>
+          {/if}
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <!-- Tactical Intelligence -->
         {#if ads.summary?.insights?.length > 0}
-          <div class="h-10 w-[1px] bg-white/10 mx-2"></div>
           <div class="relative">
             <button 
-               class="flex items-center gap-4 bg-amber-500/5 px-6 py-2.5 border border-amber-500/20 group/intel hover:bg-amber-500/10 transition-all relative overflow-hidden"
-               onclick={() => showIntelDropdown = !showIntelDropdown}
+              class="flex items-center gap-3 bg-amber-500/5 px-4 py-2 border border-amber-500/10 hover:bg-amber-500/10 transition-all group"
+              onclick={() => showIntelDropdown = !showIntelDropdown}
             >
-               <div class="absolute inset-0 bg-amber-500/5 animate-pulse"></div>
-               <Zap size={16} class="text-amber-400 animate-bounce relative z-10" />
-               <div class="flex flex-col relative z-10">
-                  <span class="text-[7px] font-black text-amber-500 tracking-[0.2em] uppercase opacity-70">Mission_Intel</span>
-                  <span class="text-[10px] font-black text-white uppercase tracking-tighter">
-                     {ads.summary.insights.length} Tactical Threats
-                  </span>
-               </div>
-               <div class="ml-2 w-1.5 h-1.5 rounded-none bg-amber-500 animate-ping"></div>
+              <Brain size={16} class="text-amber-500 group-hover:scale-110 transition-transform" />
+              <div class="flex flex-col items-start leading-tight">
+                <span class="text-[10px] font-black text-white uppercase tracking-tighter">{ads.summary.insights.length} Mission Intel</span>
+                <span class="text-[7px] text-amber-500/60 uppercase font-bold">Tactical Priority</span>
+              </div>
+              <ChevronDown size={14} class="text-white/20 group-hover:text-white transition-colors {showIntelDropdown ? 'rotate-180' : ''}" />
             </button>
 
             {#if showIntelDropdown}
               <div 
-                class="absolute top-full left-0 mt-3 w-80 bg-[#0a0a0a] border border-amber-500/30 shadow-[0_30px_90px_rgba(0,0,0,0.9)] z-[200] p-4 flex flex-col gap-3"
+                class="absolute top-full right-0 mt-2 w-80 bg-[#080808]/95 backdrop-blur-2xl border border-white/10 shadow-2xl z-[200] p-4 flex flex-col gap-2"
                 in:slide
               >
                 <div class="flex items-center justify-between mb-2 border-b border-white/5 pb-2">
-                   <span class="text-[9px] font-black text-amber-500 uppercase tracking-widest font-mono">Live_Intelligence_Feed</span>
+                   <span class="text-[9px] font-black text-amber-500 uppercase tracking-widest">Live Intelligence Feed</span>
                    <button class="text-white/20 hover:text-white" onclick={() => showIntelDropdown = false}><X size={14} /></button>
                 </div>
-                {#each ads.summary.insights as ins}
-                   <div class="bg-white/[0.03] border border-white/5 p-4 group/ins hover:border-amber-500/30 transition-all">
-                      <h4 class="text-[10px] font-black text-white mb-2 uppercase">{ins.title}</h4>
-                      <button 
-                         class="w-full text-left p-2.5 bg-amber-500/5 border border-amber-500/10 text-[9px] font-bold text-amber-400 italic hover:bg-amber-500/20 transition-all flex items-center justify-between group/act"
-                         onclick={() => {
-                            ads.activeTab = 'insights';
-                            showIntelDropdown = false;
-                         }}
-                      >
-                         <span>"{ins.action}"</span>
-                         <Brain size={12} class="text-amber-400 opacity-0 group-hover/act:opacity-100 transition-opacity" />
-                      </button>
-                   </div>
-                {/each}
+                <div class="max-h-64 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-2">
+                  {#each ads.summary.insights as ins}
+                    <div class="bg-white/[0.02] border border-white/5 p-3 hover:border-amber-500/30 transition-all cursor-pointer" 
+                         onclick={() => { ads.activeTab = 'insights'; showIntelDropdown = false; }}>
+                        <h4 class="text-[10px] font-black text-white mb-1 uppercase">{ins.title}</h4>
+                        <p class="text-[9px] text-amber-500/70 italic">"{ins.action}"</p>
+                    </div>
+                  {/each}
+                </div>
               </div>
             {/if}
           </div>
         {/if}
-      </div>
 
-      <div class="flex items-center gap-4">
-         <div class="relative">
+        <div class="h-8 w-[1px] bg-white/5 mx-2"></div>
+
+        <!-- Global Controls -->
+        <div class="flex items-center gap-3">
+          <div class="relative">
             <button 
-              class="px-5 py-2.5 bg-white/[0.03] border border-white/10 rounded-none text-[10px] font-mono flex items-center gap-4 hover:border-cyan-400/50 transition-all min-w-[180px] justify-between group"
+              class="px-4 py-2 bg-white/5 border border-white/10 text-[10px] font-mono flex items-center gap-4 hover:border-cyan-400/50 transition-all min-w-[160px] justify-between group"
               onclick={() => showTimeMenu = !showTimeMenu}
             >
                <span class="text-slate-500 tracking-tighter group-hover:text-cyan-400/70 transition-colors">Thời gian:</span>
@@ -159,8 +172,7 @@
             </button>
             
             {#if showTimeMenu}
-               <div class="absolute top-full right-0 mt-2 w-[480px] bg-[#0a0a0a]/98 border border-white/10 rounded-none shadow-[0_30px_100px_rgba(0,0,0,0.9)] flex h-[380px] backdrop-blur-3xl"
-                    style="z-index: {Z_INDEX_ADMIN.HUD_DROPDOWN}"
+               <div class="absolute top-full right-0 mt-2 w-[480px] bg-[#0a0a0a]/98 border border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.9)] flex h-[380px] backdrop-blur-3xl z-[200]"
                     in:slide={{duration: 250}}>
                   
                   <!-- LEFT: PRESETS -->
@@ -212,7 +224,7 @@
                                  const startD = new Date(); startD.setFullYear(startD.getFullYear() - 10);
                                  ads.dateFrom = fmt(startD);
                                  ads.dateTo = fmt(now);
-                                 ads.selectedHours = 87600; // ~10 years in hours
+                                 ads.selectedHours = 87600; 
                              } else {
                                 ads.selectedHours = 168;
                                 ads.dateFrom = null;
@@ -220,7 +232,6 @@
                              }
                              
                              ads.fetchAll(); 
-                             if (ads.activeTab === 'google') ads.fetchGoogleMetrics();
                              showTimeMenu = false;
                           }}
                         >
@@ -230,75 +241,35 @@
                            {/if}
                         </button>
                      {/each}
-
-                     <div class="mt-auto p-3 border-t border-white/5">
-                        <div class="flex items-center gap-3 text-cyan-400/40">
-                           <Activity size={14} />
-                           <span class="text-[8px] font-black uppercase tracking-widest">Real-time Sync Active</span>
-                        </div>
-                     </div>
                   </div>
                   
-                  <!-- RIGHT: CUSTOM RANGE & CALENDAR SIMULATION -->
+                  <!-- RIGHT: CUSTOM RANGE -->
                   <div class="w-1/2 p-6 flex flex-col bg-white/[0.01]" onclick={(e) => e.stopPropagation()}>
                      <span class="text-[8px] text-slate-500 font-black uppercase tracking-[0.2em] mb-6">Khoảng ngày tùy chỉnh</span>
-                     
-                     <div class="flex flex-col gap-5">
-                        <div class="field relative group">
-                           <AdsDatePicker bind:value={ads.dateFrom} label="Ngày bắt đầu" />
-                        </div>
-
-                        <div class="flex justify-center">
-                           <div class="w-px h-4 bg-white/10"></div>
-                        </div>
-
-                        <div class="field relative group">
-                           <AdsDatePicker bind:value={ads.dateTo} label="Ngày kết thúc" align="right" />
-                        </div>
-
-                        <div class="mt-8 flex flex-col gap-3">
-                           <button 
-                              class="w-full py-4 bg-cyan-600 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-none hover:bg-cyan-500 transition-all shadow-[0_10px_30px_rgba(6,182,212,0.2)] active:scale-95 disabled:opacity-20 disabled:grayscale"
-                              disabled={!ads.dateFrom || !ads.dateTo}
-                              onclick={() => {
-                                 ads.fetchAll();
-                                 if (ads.activeTab === 'google') ads.fetchGoogleMetrics();
-                                 showTimeMenu = false;
-                              }}
-                           >
-                              Áp dụng bộ lọc
-                           </button>
-                           
-                           <button 
-                              class="w-full py-3 border border-white/5 text-slate-600 text-[9px] font-black uppercase tracking-widest hover:text-slate-300 hover:border-white/20 transition-all rounded-none"
-                              onclick={() => {
-                                 ads.dateFrom = null;
-                                 ads.dateTo = null;
-                                 ads.selectedHours = 24;
-                                 ads.fetchAll();
-                                 showTimeMenu = false;
-                              }}
-                           >
-                              Đặt lại mặc định
-                           </button>
-                        </div>
-                     </div>
-
-                     <div class="mt-auto">
-                        <p class="text-[8px] text-slate-700 leading-relaxed italic font-mono">
-                           * Dữ liệu Google Ads có thể trễ tối đa 3 giờ so với thời gian thực tế.
-                        </p>
+                     <div class="flex flex-col gap-4">
+                        <AdsDatePicker bind:value={ads.dateFrom} label="Ngày bắt đầu" align="right" />
+                        <AdsDatePicker bind:value={ads.dateTo} label="Ngày kết thúc" align="right" />
+                        <button 
+                           class="mt-4 w-full py-3 bg-cyan-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-cyan-500 transition-all"
+                           onclick={() => { ads.fetchAll(); showTimeMenu = false; }}
+                        >
+                           Áp dụng
+                        </button>
                      </div>
                   </div>
                </div>
             {/if}
-         </div>
-         <button class="w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-none hover:bg-rose-500 hover:border-rose-400 transition-all group shadow-lg" onclick={close}>
-            <X size={20} class="group-hover:rotate-90 transition-transform" />
-         </button>
+          </div>
+          
+          <button 
+            onclick={close}
+            class="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
+          >
+            <X size={20} class="text-white/40 group-hover:text-white group-hover:rotate-90 transition-all duration-500" />
+          </button>
+        </div>
       </div>
     </header>
-
     {#if ads.loading && !ads.summary}
       <div class="flex-1 flex flex-col items-center justify-center gap-4 opacity-50">
         <div class="relative">
@@ -399,6 +370,9 @@
   </div>
 </div>
 
+<!-- [Elite V3.0] PoW Shield HUD -->
+<AdsPowHud adsState={ads} />
+
 <style>
   .custom-scrollbar::-webkit-scrollbar { width: 3px; }
   .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -407,5 +381,23 @@
   
   :global(.ads-premium-hud *) {
     letter-spacing: 0.02em;
+  }
+
+  .scanlines {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(
+      rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.1) 50%
+    ), linear-gradient(
+      90deg,
+      rgba(255, 0, 0, 0.01),
+      rgba(0, 255, 0, 0.005),
+      rgba(0, 0, 255, 0.01)
+    );
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.3;
   }
 </style>

@@ -1,13 +1,12 @@
-import { MicVAD, utils } from "@ricky0123/vad-web";
+// [Elite V3.0] SSR Stealth: Dynamic imports to prevent server-side crash
+// We only load these heavy/non-SSR libraries in the browser context.
+let MicVAD: any;
+let utils: any;
+
 import { VUI_CONFIG } from "./VuiConstants";
 
-/**
- * VuiVadEngine 2026: Neural Voice Activity Detection
- * Wraps @ricky0123/vad-web (Silero VAD) to provide clean speech detection.
- * Replaces the old volume-based VAD completely.
- */
 export class VuiVadEngine {
-  private vad: MicVAD | null = null;
+  private vad: any = null;
   private _isSpeaking = false;
   private _probability = 0;
 
@@ -25,18 +24,46 @@ export class VuiVadEngine {
     onSpeechEnd: (audioBlob: Blob) => void,
     onFrameProcessed: (probability: number) => void
   ): Promise<void> {
+    // Lazy load the AI modules (Browser-only)
+    if (!MicVAD) {
+        const mod = await import("@ricky0123/vad-web");
+        MicVAD = mod.MicVAD;
+        utils = mod.utils;
+        
+        // [Elite V3.0] Neural Runtime Hardening
+        // We use the pre-loaded window.ort injected via app.html
+        if (typeof window !== 'undefined' && (window as any).ort) {
+            const ort = (window as any).ort;
+            const apiBase = `${window.location.protocol}//api.${window.location.hostname.split('.').slice(-2).join('.')}`;
+            const wasmBase = `${apiBase}/wasm`;
+            
+            ort.env.wasm.wasmPaths = {
+                'ort-wasm-simd-threaded.wasm': `${wasmBase}/ort-wasm-simd-threaded.wasm`,
+                'ort-wasm-simd-threaded.jsep.wasm': `${wasmBase}/ort-wasm-simd-threaded.jsep.wasm`,
+                'ort-wasm-simd.wasm': `${wasmBase}/ort-wasm-simd.wasm`,
+                'ort-wasm.wasm': `${wasmBase}/ort-wasm.wasm`,
+                'ort-wasm-simd-threaded.jsep.mjs': `${wasmBase}/ort-wasm-simd-threaded.jsep.mjs`,
+                'ort-wasm-simd-threaded.mjs': `${wasmBase}/ort-wasm-simd-threaded.mjs`,
+            };
+            ort.env.wasm.numThreads = 1;
+            ort.env.wasm.proxy = false;
+        }
+    }
+    
     await this.stop(); // Idempotency guard
+
+    const apiBase = `${window.location.protocol}//api.${window.location.hostname.split('.').slice(-2).join('.')}`;
 
     this.vad = await MicVAD.new({
       positiveSpeechThreshold: VUI_CONFIG.VAD.THRESHOLD,
       minSpeechMs: VUI_CONFIG.VAD.MIN_SPEECH_MS,
       redemptionMs: VUI_CONFIG.VAD.REDEMPTION_MS,
       preSpeechPadMs: VUI_CONFIG.VAD.PRE_SPEECH_PAD_MS,
-      // Use absolute URLs to prevent Vite from intercepting .mjs/wasm as dynamic imports
-      baseAssetPath: `${window.location.origin}/vad/`, 
-      onnxWASMBasePath: `${window.location.origin}/vad/`,
-      modelURL: `${window.location.origin}/vad/silero_vad_v5.onnx`,
-      workletURL: `${window.location.origin}/vad/vad.worklet.bundle.min.js`,
+      // Use API Gateway URLs for VAD-specific models (Silero)
+      baseAssetPath: `${apiBase}/vad/`, 
+      onnxWASMBasePath: `${apiBase}/wasm/`, // Force use the central WASM
+      modelURL: `${apiBase}/vad/silero_vad_v5.onnx`,
+      workletURL: `${apiBase}/vad/vad.worklet.bundle.min.js`,
       startOnLoad: true,
 
       onSpeechStart: () => {

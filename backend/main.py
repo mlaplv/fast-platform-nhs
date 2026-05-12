@@ -21,6 +21,7 @@ from litestar.openapi import OpenAPIConfig
 from litestar.openapi.spec import Components
 from litestar.stores.memory import MemoryStore
 from litestar.middleware.rate_limit import RateLimitConfig
+from litestar.static_files import create_static_files_router
 
 # Handlers and Plugins
 from backend.exceptions import global_exception_handler
@@ -112,6 +113,9 @@ rate_limit_config = RateLimitConfig(
 
 app = Litestar(
     route_handlers=[
+        create_static_files_router(path="/wasm", directories=["backend/static/wasm"], name="wasm"),
+        create_static_files_router(path="/vad", directories=["backend/static/vad"], name="vad"),
+        create_static_files_router(path="/models", directories=["backend/static/models"], name="models"),
         IntentController, IntentStreamController, PulseStreamController,
         HealthController, MCPController, AuthController,
         NotificationController, AuditorController, UserController,
@@ -136,5 +140,5 @@ app = Litestar(
     ),
     exception_handlers={Exception: global_exception_handler},
     lifespan=[lifespan],
-    plugins=[alchemy_plugin]
+    plugins=[alchemy_plugin],
 )

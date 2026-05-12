@@ -9,6 +9,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
+	define: {
+		global: 'window',
+	},
 	plugins: [
 		tailwindcss(), 
 		sveltekit(),
@@ -24,11 +27,11 @@ export default defineConfig({
 				},
 				{
 					src: 'node_modules/onnxruntime-web/dist/*.wasm',
-					dest: 'vad'
+					dest: 'wasm'
 				},
 				{
 					src: 'node_modules/onnxruntime-web/dist/*.mjs',
-					dest: 'vad'
+					dest: 'wasm'
 				}
 			]
 		})
@@ -37,6 +40,20 @@ export default defineConfig({
 		allowedHosts: true
 	},
 	optimizeDeps: {
-		include: ['idb-keyval', 'clsx', 'tailwind-merge', '@ricky0123/vad-web', 'onnxruntime-web']
+		include: ['idb-keyval', 'clsx', 'tailwind-merge'],
+		exclude: ['@ricky0123/vad-web']
+	},
+	ssr: {
+		external: ['@ricky0123/vad-web']
+	},
+	build: {
+		commonjsOptions: {
+			include: [/node_modules/],
+			dynamicRequireTargets: [
+				'node_modules/onnxruntime-web/dist/*.wasm',
+				'node_modules/onnxruntime-web/dist/*.mjs',
+				'node_modules/@ricky0123/vad-web/dist/*.wasm'
+			]
+		}
 	}
 });

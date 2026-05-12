@@ -46,6 +46,9 @@ from backend.services.ads_protection.schemas import AISuggestionRequest, AISugge
 from backend.database.models.ads import IPBlacklist, NegativeKeyword
 from sqlalchemy import select, delete as sa_delete
 
+from backend.services.xohi_memory import xohi_memory
+from backend.core.stream_handler import RedisStreamProducer
+
 logger = logging.getLogger("api-gateway")
 
 # Stateless singletons (chỉ khởi tạo một lần, không giữ state DB)
@@ -54,9 +57,35 @@ _reporter       = GoogleAdsReporter()
 _campaign_mgr   = CampaignManager()
 
 # HUB cho Real-time Analytics (SSE)
+_stream_producer = RedisStreamProducer(xohi_memory.client)
+
 class LiveStreamHub:
     def __init__(self):
         self._subscribers: list[asyncio.Queue] = []
+        self._redis = xohi_memory.client
+        self._channel = "ads:events"
+        self._listen_task: Optional[asyncio.Task] = None
+
+    async def start_listener(self):
+        """Lắng nghe sự kiện từ Redis để phát qua SSE (hỗ trợ đa tiến trình)."""
+        if self._listen_task: return
+        self._listen_task = asyncio.create_task(self._redis_listener())
+        logger.info("📡 [LiveStreamHub] Redis Listener Started.")
+
+    async def _redis_listener(self):
+        pubsub = self._redis.pubsub()
+        await pubsub.subscribe(self._channel)
+        try:
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    data = json.loads(message["data"])
+                    # Phát cho các subscribers tại tiến trình này
+                    for q in self._subscribers:
+                        await q.put(data)
+        except Exception as e:
+            logger.error(f"[LiveStreamHub] Listener Error: {e}")
+        finally:
+            await pubsub.unsubscribe(self._channel)
 
     def subscribe(self) -> asyncio.Queue:
         q = asyncio.Queue()
@@ -70,9 +99,8 @@ class LiveStreamHub:
             logger.info("🔌 ADS_DASHBOARD_DISCONNECTED (Total: %d)", len(self._subscribers))
 
     async def broadcast(self, data: dict):
-        # Đẩy message cho tất cả các dashboard đang mở
-        for q in self._subscribers:
-            await q.put(data)
+        """Phát tán sự kiện qua Redis (Global Broadcast)."""
+        await self._redis.publish(self._channel, json.dumps(data))
 
 _hub = LiveStreamHub()
 
@@ -98,6 +126,17 @@ class AdsProtectionController(Controller):
 
         analytics = FraudAnalyticsService(db_session)
         await analytics.record(result)
+
+        # [V3.0 Fast Path] Push to stream for Agentic Analysis (Slow Path)
+        await _stream_producer.produce(
+            data={
+                "gclid": result.gclid,
+                "ip": result.ip_address,
+                "score": result.fraud_score,
+                "verdict": result.verdict,
+                "fingerprint": result.session_fingerprint
+            }
+        )
 
         if result.verdict == "FRAUD":
             logger.warning(
@@ -125,6 +164,7 @@ class AdsProtectionController(Controller):
     @get("/stream")
     async def stream_analytics(self) -> ServerSentEvent:
         """Kênh truyền dữ liệu thời gian thực cho Admin Dashboard."""
+        await _hub.start_listener()
         q = _hub.subscribe()
 
         async def _gen() -> AsyncGenerator[str, None]:

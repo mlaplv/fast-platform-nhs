@@ -74,7 +74,7 @@
                     <div class="absolute inset-0 flex items-center justify-center">
                          <div class="w-8 h-8 border-[1px] border-[#C5A25D]/5 border-b-[#C5A25D] rounded-full animate-spin-reverse duration-[3s]"></div>
                     </div>
-                    <div class="text-[10px] font-serif italic text-[#C5A25D]/60 tracking-[0.5em] uppercase animate-pulse">osmo Elite Experience...</div>
+                    <div class="text-[10px] font-serif italic text-[#C5A25D]/60 tracking-[0.5em] uppercase animate-pulse">Loading...</div>
                 </div>
             </div>
         {:then mod}

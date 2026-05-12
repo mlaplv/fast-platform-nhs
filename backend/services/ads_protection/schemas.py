@@ -55,12 +55,17 @@ class ClickEvent(BaseModel):
     webdriver_detected: bool = False
     cookie_enabled: bool = True
 
+    # [V3.0 Agentic] Fast Path extensions
+    is_high_intent: bool = False
+    pow_solution: Optional[str] = None
+
 
 class ClickFraudResult(BaseModel):
     gclid: Optional[str]
     ip_address: str
     fraud_score: float
-    verdict: str  # "CLEAN" | "SUSPICIOUS" | "FRAUD"
+    verdict: str  # "CLEAN" | "CHALLENGE" | "SUSPICIOUS" | "FRAUD"
+    challenge_id: Optional[str] = None
     signals: list[FraudSignal]
     ip_report: IPReport
     timestamp: datetime

@@ -65,6 +65,9 @@ class ClickFraudEvent(Base, AuditMixin):
     triggered_signals: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True
     )  # JSON list of signal names
+    reasoning: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True
+    )  # [V3.0 Agentic] Deep reasoning logs from AI Agent
     session_fingerprint: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
 
     # --- Reporting status ---

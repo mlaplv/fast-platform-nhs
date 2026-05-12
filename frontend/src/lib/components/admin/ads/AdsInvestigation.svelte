@@ -10,9 +10,10 @@
   import Zap from "@lucide/svelte/icons/zap";
   import Info from "@lucide/svelte/icons/info";
   import { Z_INDEX_ADMIN } from '$lib/core/constants/z_index_admin';
+  import type { InvestigationReportResult } from './adsState.svelte';
 
   let { 
-    reportResult = null,
+    reportResult = null as InvestigationReportResult | null,
     reportLoading = false,
     generateReport,
     pastReports = [],
@@ -167,6 +168,33 @@
                      <div class="h-full flex flex-col items-center justify-center gap-4 opacity-50">
                         <RefreshCw size={40} class="animate-spin text-cyan-500" />
                         <span class="text-[10px] font-black tracking-[0.4em] text-cyan-400">ANALYZING_PACKETS...</span>
+                     </div>
+                  {:else if reportResult?.agentic_logs}
+                     <div class="flex flex-col gap-3">
+                        {#each reportResult.agentic_logs as log}
+                           <div class="flex gap-4 group/log border-l-2 border-white/5 pl-4 py-1 hover:border-cyan-500/50 transition-colors">
+                              <span class="text-[9px] text-slate-500 shrink-0 mt-1 uppercase font-bold">{log.time}</span>
+                              <div class="flex flex-col gap-1">
+                                 <div class="flex items-center gap-2">
+                                    <span class="text-[9px] font-black tracking-widest uppercase {log.type === 'AGENT' ? 'text-cyan-400' : 'text-yellow-400'}">
+                                       [{log.type}]
+                                    </span>
+                                    <span class="text-[11px] text-white/90 font-medium">{log.message}</span>
+                                 </div>
+                                 {#if log.detail}
+                                    <div class="text-[9px] text-slate-500 leading-relaxed italic opacity-80 group-hover/log:opacity-100 transition-opacity">
+                                       // {log.detail}
+                                    </div>
+                                 {/if}
+                              </div>
+                           </div>
+                        {/each}
+                        <div class="mt-6 pt-6 border-t border-white/10">
+                           <span class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-4 block">Bằng chứng pháp y Google Ads:</span>
+                           <pre class="text-[11px] text-emerald-400/70 leading-relaxed whitespace-pre-wrap selection:bg-emerald-500/30 font-medium">
+                              {reportResult.support_message_preview}
+                           </pre>
+                        </div>
                      </div>
                   {:else if reportResult?.support_message_preview}
                      <pre class="text-[11px] text-emerald-400/90 leading-relaxed whitespace-pre-wrap selection:bg-emerald-500/30 font-medium">

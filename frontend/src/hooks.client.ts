@@ -1,6 +1,3 @@
-import type { HandleClientError } from "@sveltejs/kit";
-import { dev } from "$app/environment";
-
 export const handleError: HandleClientError = ({ error, event }) => {
   console.error('[CLIENT ERROR]', error);
   

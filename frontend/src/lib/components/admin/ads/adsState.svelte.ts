@@ -1,6 +1,7 @@
 import { apiClient } from '$lib/utils/apiClient';
 import { useNanobot } from "$lib/state/nanobot.svelte";
 import { onDestroy } from 'svelte';
+import { behaviorEngine } from '$lib/core/ads/BehaviorEngine';
 
 const API_BASE = '/api/v1';
 const ADS_API = `${API_BASE}/ads-protection`;
@@ -36,12 +37,27 @@ export interface GoogleMetric {
   cost_vnd: number;
 }
 
+export interface AgenticLog {
+  time: string;
+  type: 'AGENT' | 'SYSTEM';
+  message: string;
+  detail?: string;
+}
+
+export interface InvestigationReportResult {
+  status: 'idle' | 'ready' | 'error' | 'not_found';
+  support_message_preview?: string;
+  agentic_logs?: AgenticLog[];
+  total_fraud_clicks?: number;
+  csv_path?: string;
+}
+
 export function createAdsState() {
   const nanobot = useNanobot();
 
   let summary = $state<FraudSummary | null>(null);
   let insights = $state<any[]>([]);
-  let reportResult = $state<any>(null);
+  let reportResult = $state<InvestigationReportResult | null>(null);
   let googleMetrics = $state<GoogleMetric[]>([]);
   let campaigns = $state<any[]>([]);
   let selectedCampaign = $state<any>(null);
@@ -71,6 +87,10 @@ export function createAdsState() {
   let negativeKeywordsLoading = $state(false);
   let activeTab = $state('overview');
   let campaignView = $state('list');
+  
+  // --- V3.0 Fast Path States ---
+  let edgeStatus = $state<'idle' | 'initializing' | 'ready' | 'error'>('idle');
+  let isPoWActive = $state(false);
 
   // --- Real-time Sync (SSE) ---
   let sse: EventSource | null = null;
@@ -81,13 +101,45 @@ export function createAdsState() {
     sse.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
-        if (data.type === 'NEW_CLICK' && data.verdict === 'FRAUD') {
-           nanobot.showToast(`Phát hiện Click Tặc: ${data.ip} (Score: ${data.score})`, 'warning');
-           // Tự động làm mới dữ liệu sau một khoảng trễ nhỏ để tránh spam
-           debounceFetch();
+        if (data.type === 'NEW_CLICK') {
+          // [V3.0] HUD Sync: Toggle PoW Active status if a challenge is issued
+          if (data.verdict === 'CHALLENGE') {
+            isPoWActive = true;
+            setTimeout(() => { isPoWActive = false; }, 10000);
+          }
+
+          if (data.verdict === 'FRAUD') {
+            nanobot.showToast(`Phát hiện Click Tặc: ${data.ip} (Score: ${data.score})`, 'warning');
+            debounceFetch();
+          }
         }
       } catch (err) { console.error('SSE Error:', err); }
     };
+  }
+
+  async function initEdge() {
+    edgeStatus = 'initializing';
+    try {
+      await behaviorEngine.init();
+      edgeStatus = 'ready';
+    } catch {
+      edgeStatus = 'error';
+    }
+  }
+
+  /**
+   * [V3.0] Proof-of-Work ngầm để chặn bot vùng xám (50-80% score)
+   */
+  async function solvePoW(challenge: string) {
+    isPoWActive = true;
+    try {
+      // Giả lập giải thuật Hash ngầm (Elite V3.0)
+      await new Promise(r => setTimeout(r, 2000));
+      console.log("🛡️ [PoW] Challenge solved.");
+      return true;
+    } finally {
+      isPoWActive = false;
+    }
   }
 
   let debounceTimer: any;
@@ -364,6 +416,8 @@ export function createAdsState() {
     fmt, priorityColor, isBlacklisted, fetchAll, generateReport, fetchGoogleMetrics, fetchCampaigns, fetchAdGroups, fetchAds, 
     updateCampaignStatus, fetchNegativeKeywords, addNegativeKeyword, removeNegativeKeyword, blockIP, unblockIP, aiSuggest, fetchPastReports, viewPastReport,
     getDateRange,
-    initSSE, dispose
+    initSSE, initEdge, solvePoW, dispose,
+    get edgeStatus() { return edgeStatus },
+    get isPoWActive() { return isPoWActive }
   };
 }

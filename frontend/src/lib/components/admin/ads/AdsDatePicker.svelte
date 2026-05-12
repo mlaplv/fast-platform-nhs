@@ -3,7 +3,7 @@
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
 
-  let { value = $bindable(), label = "", align = "left" } = $props();
+  let { value = $bindable(), label = "", align = "right" } = $props();
 
   let isOpen = $state(false);
   let viewDate = $state(value ? new Date(value) : new Date());

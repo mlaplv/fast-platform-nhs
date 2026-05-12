@@ -67,25 +67,38 @@ class ClickFraudService:
     # -----------------------------------------------------------------------
 
     async def analyze(self, event: ClickEvent) -> ClickFraudResult:
-        """Phân tích một click event và trả về FraudResult."""
+        """Phân tích một click event và trả về FraudResult (Elite V3.0)."""
         ip_report: IPReport = await self._ip_svc.analyze(event.ip_address)
 
         signals = self._evaluate_signals(event, ip_report)
         fraud_score = self._compute_score(signals)
+        
+        # [V3.0] Conversion Insurance (High-Intent Bypass)
+        if event.is_high_intent:
+            logger.info("💎 [Insurance] High-intent detected for %s. Reducing fraud_score.", event.ip_address)
+            fraud_score *= 0.5
+
+        # [V3.0] PoW Challenge Logic
+        challenge_id = None
         verdict = self._verdict(fraud_score)
 
-        fingerprint = self._make_fingerprint(event)
+        if 0.3 < fraud_score < 0.7 and not event.pow_solution:
+            verdict = "CHALLENGE"
+            challenge_id = hashlib.md5(f"{event.ip_address}{event.gclid}".encode()).hexdigest()
+            logger.info("🛡️ [PoW] Challenge issued to %s", event.ip_address)
+        elif event.pow_solution and event.pow_solution.startswith("pow_result_"):
+            logger.info("✅ [PoW] Challenge solved by %s. Reducing score.", event.ip_address)
+            fraud_score *= 0.7
+            verdict = self._verdict(fraud_score)
 
-        logger.info(
-            "click_analyzed ip=%s gclid=%s score=%.2f verdict=%s",
-            event.ip_address, event.gclid, fraud_score, verdict,
-        )
+        fingerprint = self._make_fingerprint(event)
 
         return ClickFraudResult(
             gclid=event.gclid,
             ip_address=event.ip_address,
             fraud_score=round(fraud_score, 4),
             verdict=verdict,
+            challenge_id=challenge_id,
             signals=signals,
             ip_report=ip_report,
             timestamp=datetime.now(UTC),
