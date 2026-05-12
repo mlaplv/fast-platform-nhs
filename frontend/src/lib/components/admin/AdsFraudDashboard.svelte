@@ -144,7 +144,9 @@
                                 ads.dateFrom = fmt(d1);
                                 ads.dateTo = fmt(d2);
                              } else if (opt.id === 'all_time') {
-                                ads.dateFrom = '2024-01-01'; // Mốc bắt đầu hệ thống
+                                                                 const startD = new Date(); startD.setFullYear(startD.getFullYear() - 1);
+                                 ads.dateFrom = fmt(startD);
+
                                 ads.dateTo = fmt(now);
                                 ads.selectedHours = 'all_time';
                              } else {
@@ -291,6 +293,7 @@
             <AdsInsights 
               insights={ads.insights} 
               campaigns={ads.campaigns}
+              googleMetrics={ads.googleMetrics}
               bind:selectedCampaign={ads.selectedCampaign} 
               aiLoading={ads.aiLoading} 
               priorityColor={ads.priorityColor} 

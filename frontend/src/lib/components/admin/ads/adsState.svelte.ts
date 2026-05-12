@@ -1,7 +1,7 @@
 import { apiClient } from '$lib/utils/apiClient';
 import { useNanobot } from "$lib/state/nanobot.svelte";
 
-const API_BASE = 'https://api.osmo.vn/api/v1';
+const API_BASE = '/api/v1';
 const ADS_API = `${API_BASE}/ads-protection`;
 
 export function createAdsState() {

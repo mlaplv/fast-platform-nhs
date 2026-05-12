@@ -12,6 +12,9 @@
   import BarChart3 from "@lucide/svelte/icons/bar-chart-3";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import X from "@lucide/svelte/icons/x";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import Database from "@lucide/svelte/icons/database";
+  import Radio from "@lucide/svelte/icons/radio";
 
   let { 
     insights = [],
@@ -38,249 +41,263 @@
   const totalClicks = $derived(campaignMetrics.reduce((s, m) => s + (Number(m.clicks) || 0), 0));
   const invalidRate = $derived(totalClicks > 0 ? (totalInvalid / totalClicks * 100) : 0);
   
-  // Chart Logic (SVG Line)
-  const chartData = $derived(campaignMetrics.slice(-10).map((m, i) => ({
-    x: i * 40,
-    y: 100 - (Math.min(100, (Number(m.invalid_clicks) / (Number(m.clicks) || 1)) * 500)),
-    val: m.invalid_clicks
-  })));
+  // Real Chart Data + Ghost Path for "Live" feel
+  const chartData = $derived(campaignMetrics.length > 0 
+    ? campaignMetrics.slice(-12).map((m, i) => ({
+        x: i * 32,
+        y: 100 - (Math.min(100, (Number(m.invalid_clicks) / (Number(m.clicks) || 1)) * 400)),
+        val: m.invalid_clicks
+      }))
+    : Array.from({length: 12}, (_, i) => ({ x: i * 32, y: 50 + Math.sin(i * 0.8) * 20 }))
+  );
 
   function copyText(text: string) {
     navigator.clipboard.writeText(text);
   }
+
+  // Terminal Log Simulator
+  let logs = $state([
+    { t: Date.now(), msg: '>> NEURAL_CORE_INITIALIZED', type: 'system' },
+    { t: Date.now() - 1000, msg: '>> AWAITING_TACTICAL_ENCRYPTION...', type: 'system' }
+  ]);
+
+  $effect(() => {
+    if (aiLoading) {
+       logs = [{ t: Date.now(), msg: '>> SCANNING_CAMPAIGN_VECTORS...', type: 'process' }, ...logs];
+    }
+    if (aiResult) {
+       logs = [{ t: Date.now(), msg: '>> DECODING_COMPLETE: STRATEGY_READY', type: 'success' }, ...logs];
+    }
+  });
 </script>
 
-<div class="flex flex-col gap-6 h-full" in:fade>
-   <!-- TOP BAR: STATUS & GLOBAL CONTROLS -->
-   <div class="flex items-center justify-between bg-white/[0.03] border border-white/5 p-4 backdrop-blur-xl">
-      <div class="flex items-center gap-6">
-         <div class="flex items-center gap-3 border-r border-white/10 pr-6">
-            <div class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_#22d3ee]"></div>
-            <span class="text-[10px] font-black text-white tracking-[0.2em] font-mono uppercase">Neural Engine Online</span>
+<div class="flex flex-col gap-6 h-full relative" in:fade>
+   <!-- DECORATIVE BACKGROUND GRID -->
+   <div class="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(34,211,238,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(34,211,238,0.1)_1px,transparent_1px)] bg-[length:40px_40px]"></div>
+
+   <!-- TOP HUD BAR -->
+   <header class="flex items-center justify-between bg-[#0a0a0a]/80 border border-white/5 p-5 backdrop-blur-3xl relative z-50 shadow-2xl">
+      <div class="flex items-center gap-8">
+         <div class="flex items-center gap-4 border-r border-white/10 pr-8">
+            <div class="relative">
+               <div class="w-10 h-10 rounded-none bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                  <Brain size={22} class="text-cyan-400 animate-pulse" />
+               </div>
+               <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-cyan-500 rounded-none border border-black animate-ping"></div>
+            </div>
+            <div>
+               <h2 class="text-[11px] font-black tracking-[0.4em] text-white uppercase font-mono leading-none mb-1.5">Xohi_Strategist_OS</h2>
+               <div class="flex items-center gap-2">
+                  <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                  <span class="text-[8px] text-emerald-500 font-mono font-black uppercase tracking-widest">Neural Link Active</span>
+               </div>
+            </div>
          </div>
-         <div class="flex items-center gap-4">
-            <span class="text-[9px] text-slate-500 font-mono uppercase tracking-widest">Active Insights:</span>
-            <span class="text-[10px] font-black text-cyan-400 font-mono">{insights.length} Patterns Detected</span>
+
+         <div class="flex items-center gap-6 text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+            <div class="flex items-center gap-2">
+               <Database size={12} />
+               <span>Patterns: <b class="text-white">{insights.length}</b></span>
+            </div>
+            <div class="flex items-center gap-2">
+               <Radio size={12} class="animate-pulse" />
+               <span>Live_Sync: <b class="text-cyan-400">Stable</b></span>
+            </div>
          </div>
       </div>
-      
-      {#if selectedCampaign}
-         <div class="flex items-center gap-4 bg-rose-500/10 px-4 py-2 border border-rose-500/20">
-            <Target size={14} class="text-rose-500" />
-            <span class="text-[9px] font-black text-white uppercase tracking-widest font-mono">Target: {selectedCampaign.name}</span>
-            <button 
-               class="ml-2 p-1 hover:text-rose-400 transition-colors" 
-               onclick={() => selectedCampaign = null}
-            >
-               <X size={12} />
-            </button>
-         </div>
-      {:else}
-         <div class="flex items-center gap-3 relative">
-            <span class="text-[9px] text-slate-500 font-mono uppercase tracking-widest">Target_Selection:</span>
-            
-            <!-- CUSTOM HUD DROPDOWN -->
-            <div class="relative min-w-[200px]">
+
+      <div class="flex items-center gap-4">
+         {#if selectedCampaign}
+            <div class="flex items-center gap-4 bg-rose-500/10 px-5 py-2.5 border border-rose-500/20 group/tag transition-all hover:bg-rose-500/20">
+               <Target size={14} class="text-rose-500 group-hover/tag:scale-110 transition-transform" />
+               <span class="text-[9px] font-black text-white uppercase tracking-widest font-mono">Target: {selectedCampaign.name}</span>
+               <button class="ml-2 text-slate-500 hover:text-white" onclick={() => selectedCampaign = null}><X size={14} /></button>
+            </div>
+         {:else}
+            <div class="relative">
                <button 
-                  class="w-full bg-black/60 border border-white/10 px-4 py-2 text-[9px] font-black text-cyan-400 font-mono flex items-center justify-between hover:border-cyan-500/50 transition-all uppercase tracking-widest group"
+                  class="bg-cyan-500/5 border border-cyan-500/20 px-6 py-2.5 text-[9px] font-black text-cyan-400 font-mono uppercase tracking-[0.2em] flex items-center gap-4 hover:bg-cyan-500/10 transition-all"
                   onclick={() => dropdownOpen = !dropdownOpen}
                >
-                  <span>{selectedCampaign?.name || 'Awaiting_Target...'}</span>
+                  <span>Select_Mission_Target</span>
                   <ChevronDown size={14} class="transition-transform {dropdownOpen ? 'rotate-180' : ''}" />
                </button>
-
                {#if dropdownOpen}
-                  <div 
-                     class="absolute top-full left-0 w-full mt-1 bg-[#0f0f0f] border border-cyan-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.8)] z-[2000] max-h-[300px] overflow-y-auto custom-scrollbar"
-                     in:slide={{duration: 200}}
-                  >
+                  <div class="absolute top-full right-0 mt-2 w-64 bg-[#0f0f0f] border border-cyan-500/30 shadow-[0_30px_60px_rgba(0,0,0,0.9)] z-[100] overflow-hidden" in:slide>
                      {#each campaigns as c}
-                        <button 
-                           class="w-full text-left px-5 py-3 text-[9px] font-black text-slate-400 font-mono hover:bg-cyan-500/10 hover:text-cyan-400 transition-all border-b border-white/5 last:border-none uppercase tracking-widest"
-                           onclick={() => {
-                              selectedCampaign = c;
-                              dropdownOpen = false;
-                           }}
-                        >
-                           {c.name}
-                        </button>
+                        <button class="w-full text-left p-4 text-[9px] font-black text-slate-400 font-mono hover:bg-cyan-500/10 hover:text-cyan-400 border-b border-white/5 uppercase" onclick={() => { selectedCampaign = c; dropdownOpen = false; }}>{c.name}</button>
                      {/each}
-                     {#if campaigns.length === 0}
-                        <div class="p-4 text-[8px] text-slate-600 font-mono text-center uppercase tracking-widest">No_Active_Campaigns</div>
-                     {/if}
                   </div>
                {/if}
             </div>
-         </div>
-      {/if}
-   </div>
+         {/if}
+      </div>
+   </header>
 
    <!-- MAIN GRID -->
-   <div class="grid grid-cols-12 gap-6 flex-1 min-h-0">
+   <div class="grid grid-cols-12 gap-6 flex-1 min-h-0 relative z-10">
       
-      <!-- LEFT: STRATEGIC MATRIX (Compact Sidebar) -->
-      <div class="col-span-12 lg:col-span-4 flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2 border-r border-white/5">
-         
-         <div class="bg-black/40 p-4 flex flex-col gap-4 relative overflow-hidden group">
-            <div class="flex items-center gap-3 mb-2">
-               <Globe size={14} class="text-cyan-400" />
-               <h3 class="text-[9px] font-black tracking-[0.2em] text-white uppercase font-mono">System Insights</h3>
-            </div>
-
-            <div class="flex flex-col gap-3">
-               {#each insights as ins}
-                  <div class="bg-white/[0.02] border border-white/5 p-4 hover:bg-white/[0.05] transition-all relative group/card">
-                     <div class="flex items-center gap-3 mb-2">
-                        <span class="w-1 h-3" style="background-color: {priorityColor(ins.priority)}"></span>
-                        <span class="text-[7px] font-black font-mono tracking-widest uppercase opacity-70" style="color: {priorityColor(ins.priority)}">
-                           {ins.priority}
-                        </span>
-                     </div>
-                     <h4 class="text-[11px] font-bold text-white mb-1 tracking-tight uppercase group-hover/card:text-cyan-400 transition-colors line-clamp-1">{ins.title}</h4>
-                     <p class="text-[9px] text-slate-500 line-clamp-2 leading-relaxed">{ins.detail}</p>
-                     
-                     <div class="mt-3 text-[9px] font-bold text-cyan-400/80 bg-cyan-400/5 p-2 border border-cyan-400/10 italic">
-                        "{ins.action}"
-                     </div>
-                  </div>
-               {:else}
-                  <div class="py-10 flex flex-col items-center justify-center opacity-20 gap-3">
-                     <Brain size={32} />
-                     <span class="text-[8px] font-mono tracking-[0.3em] uppercase">Scanning Matrix...</span>
-                  </div>
-               {/each}
-            </div>
+      <!-- LEFT: STRATEGIC INTELLIGENCE (Sidebar) -->
+      <aside class="col-span-12 lg:col-span-3 flex flex-col gap-5 overflow-y-auto custom-scrollbar pr-2 border-r border-white/5">
+         <div class="flex items-center gap-3 px-2">
+            <Globe size={14} class="text-slate-500" />
+            <h3 class="text-[9px] font-black tracking-[0.3em] text-slate-500 uppercase font-mono">Global_Matrix</h3>
          </div>
-      </div>
 
-      <!-- RIGHT: TACTICAL CONTROL CENTER (Main Workspace) -->
-      <div class="col-span-12 lg:col-span-8 flex flex-col gap-6">
+         <div class="flex flex-col gap-4">
+            {#each insights as ins}
+               <div class="bg-white/[0.03] border border-white/5 p-5 relative group/card hover:bg-white/[0.06] transition-all">
+                  <div class="absolute top-0 left-0 w-1 h-full" style="background-color: {priorityColor(ins.priority)}"></div>
+                  <div class="flex items-center justify-between mb-3">
+                     <span class="text-[7px] font-black font-mono tracking-widest uppercase opacity-60" style="color: {priorityColor(ins.priority)}">{ins.priority}</span>
+                     <Zap size={10} class="text-white/20 group-hover/card:text-cyan-400 transition-colors" />
+                  </div>
+                  <h4 class="text-[11px] font-black text-white mb-2 uppercase tracking-tight leading-tight">{ins.title}</h4>
+                  <div class="p-3 bg-black/40 border border-white/5 rounded-none mt-4 italic text-[10px] text-cyan-400 font-bold leading-relaxed">
+                     "{ins.action}"
+                  </div>
+               </div>
+            {:else}
+               <div class="py-20 flex flex-col items-center justify-center opacity-10 gap-5 text-center">
+                  <Activity size={48} />
+                  <span class="text-[9px] font-mono tracking-[0.5em] uppercase">No_Active_Threats</span>
+               </div>
+            {/each}
+         </div>
+      </aside>
+
+      <!-- CENTER/RIGHT: MISSION COMMAND (Main) -->
+      <main class="col-span-12 lg:col-span-9 flex flex-col gap-6">
          
          {#if selectedCampaign}
-            <!-- CAMPAIGN HUD -->
-            <div class="bg-[#0a0a0a] border border-rose-500/20 p-6 relative overflow-hidden group/hud">
-               <div class="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 blur-[50px] pointer-events-none"></div>
-               
-               <div class="flex items-center justify-between mb-6">
-                  <div class="flex items-center gap-3">
-                     <BarChart3 size={16} class="text-rose-500" />
-                     <h3 class="text-[10px] font-black tracking-[0.3em] text-rose-500 uppercase font-mono">Tactical HUD</h3>
-                  </div>
-                  <div class="text-[10px] font-black text-white font-mono opacity-40">#{selectedCampaign.resource_name.split('/').pop()}</div>
-               </div>
+            <div class="flex-1 flex flex-col gap-6 min-h-0 w-full">
+               <!-- MISSION COMMAND: STRATEGIC MATRIX -->
+               <div class="flex-1 flex flex-col gap-6 overflow-hidden w-full">
+                  <!-- NEURAL AUDIT HUD -->
+                  <div class="bg-white/[0.02] border border-white/5 p-8 relative overflow-hidden group shadow-2xl shrink-0">
+                     <div class="absolute top-0 left-0 w-1.5 h-full bg-cyan-500 shadow-[0_0_20px_#06b6d4]"></div>
+                     <div class="absolute -right-16 -bottom-16 w-64 h-64 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
-               <div class="text-2xl font-black text-white tracking-tighter uppercase mb-8 line-clamp-1 border-l-4 border-rose-600 pl-4">
-                  {selectedCampaign.name}
-               </div>
-
-               <div class="grid grid-cols-3 gap-6 mb-8">
-                  <div class="bg-white/5 p-4 border border-white/5">
-                     <div class="text-[8px] text-slate-500 font-black uppercase mb-1">Safety</div>
-                     <div class="text-lg font-black text-cyan-400 font-mono tracking-tighter">98.2%</div>
-                  </div>
-                  <div class="bg-white/5 p-4 border border-white/5">
-                     <div class="text-[8px] text-slate-500 font-black uppercase mb-1">Risk</div>
-                     <div class="text-lg font-black text-rose-500 font-mono tracking-tighter uppercase">Low</div>
-                  </div>
-                  <div class="bg-white/5 p-4 border border-white/5">
-                     <div class="text-[8px] text-slate-500 font-black uppercase mb-1">Budget</div>
-                     <div class="text-[11px] font-black text-white font-mono tracking-tighter">{fmt(selectedCampaign.daily_budget_vnd)}₫</div>
-                  </div>
-               </div>
-
-               <button 
-                  class="w-full py-5 bg-rose-600 hover:bg-rose-500 text-white font-black text-[11px] tracking-[0.3em] uppercase transition-all active:scale-95 flex items-center justify-center gap-4 shadow-[0_15px_40px_rgba(244,63,94,0.3)] relative overflow-hidden"
-                  onclick={() => aiSuggest('RSA', `Strategic analysis for: ${selectedCampaign.name}`)}
-                  disabled={aiLoading}
-               >
-                  {#if aiLoading}
-                     <RefreshCw size={18} class="animate-spin" />
-                     <span>DECODING_DATA...</span>
-                  {:else}
-                     <Brain size={18} />
-                     <span>Khởi chạy Xohi Strategist</span>
-                  {/if}
-                  <div class="absolute bottom-0 left-0 h-1 bg-white/20 {aiLoading ? 'w-full animate-pulse' : 'w-0'} transition-all"></div>
-               </button>
-            </div>
-
-            <!-- TERMINAL OUTPUT -->
-            <div class="flex-1 bg-black border border-white/10 p-6 flex flex-col font-mono relative min-h-[300px]">
-               <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
-                  <div class="flex items-center gap-3">
-                     <Terminal size={14} class="text-rose-500" />
-                     <span class="text-[9px] font-black text-rose-500 uppercase tracking-widest">Xohi_Strategist_Output</span>
-                  </div>
-                  <div class="flex gap-1">
-                     <div class="w-1.5 h-1.5 bg-rose-500/20"></div>
-                     <div class="w-1.5 h-1.5 bg-rose-500/40"></div>
-                     <div class="w-1.5 h-1.5 bg-rose-500 animate-pulse"></div>
-                  </div>
-               </div>
-
-               <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 text-[11px] leading-relaxed text-slate-400">
-                  {#if aiResult}
-                     <div in:fade>
-                        <p class="text-rose-400 font-black mb-4">>> ANALYSIS_COMPLETE</p>
-                        <p class="text-white mb-8 border-l-2 border-rose-500 pl-4">{aiResult.message}</p>
-                        
-                        {#if aiResult.headlines}
-                           <div class="mb-8">
-                              <div class="text-[9px] text-slate-600 font-black uppercase mb-3 border-b border-white/5 pb-1">Gợi ý Headlines (RSA):</div>
-                              <div class="grid gap-2">
-                                 {#each aiResult.headlines as h}
-                                    <div class="flex items-center justify-between group/line bg-white/5 p-2 border border-transparent hover:border-cyan-500/30 transition-colors">
-                                       <span class="text-white truncate">{h}</span>
-                                       <button class="opacity-0 group-hover/line:opacity-100 p-1 hover:text-cyan-400 transition-opacity" onclick={() => copyText(h)}>
-                                          <Copy size={12} />
-                                       </button>
-                                    </div>
-                                 {/each}
-                              </div>
+                     <div class="flex items-center justify-between mb-10 relative z-10">
+                        <div>
+                           <div class="flex items-center gap-3 mb-2">
+                              <ShieldCheck size={20} class="text-cyan-400" />
+                              <h3 class="text-[14px] font-black text-white uppercase tracking-[0.4em]">Elite_Compliance_Audit</h3>
                            </div>
-                        {/if}
+                           <p class="text-[10px] text-slate-500 font-mono uppercase tracking-[0.2em] leading-relaxed">
+                              Phân tích đa tầng: <span class="text-cyan-400/70">SEO</span> • <span class="text-amber-400/70">SGE_Compatibility</span> • <span class="text-rose-400/70">Ads_Quality_Score</span>
+                           </p>
+                        </div>
+                        <button 
+                           class="px-8 py-3.5 bg-cyan-600 text-white text-[11px] font-black uppercase tracking-[0.3em] hover:bg-cyan-500 transition-all shadow-[0_15px_40px_rgba(6,182,212,0.3)] disabled:opacity-30 flex items-center gap-4 relative overflow-hidden group/auditbtn"
+                           disabled={aiLoading || !selectedCampaign}
+                           onclick={() => aiSuggest('AUDIT_LANDING_PAGE', `Analyze Landing Page for Campaign: ${selectedCampaign.name}. URL: ${selectedCampaign.landing_page_url || (typeof window !== 'undefined' ? window.location.origin : '')}`)}
+                        >
+                           <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover/auditbtn:translate-x-full transition-transform duration-500 skew-x-12"></div>
+                           {#if aiLoading}
+                              <RefreshCw size={16} class="animate-spin" />
+                              RECON_IN_PROGRESS...
+                           {:else}
+                              <Radio size={16} />
+                              START_NEURAL_AUDIT
+                           {/if}
+                        </button>
+                     </div>
 
-                        {#if aiResult.descriptions}
-                           <div>
-                              <div class="text-[9px] text-slate-600 font-black uppercase mb-3 border-b border-white/5 pb-1">Gợi ý Descriptions:</div>
-                              <div class="grid gap-2">
-                                 {#each aiResult.descriptions as d}
-                                    <div class="flex items-center justify-between group/line bg-white/5 p-2 border border-transparent hover:border-rose-500/30 transition-colors italic">
-                                       <span class="text-slate-400 line-clamp-1">{d}</span>
-                                       <button class="opacity-0 group-hover/line:opacity-100 p-1 hover:text-rose-400 transition-opacity" onclick={() => copyText(d)}>
-                                          <Copy size={12} />
-                                       </button>
-                                    </div>
-                                 {/each}
-                              </div>
+                     <div class="grid grid-cols-3 gap-8 relative z-10">
+                        <!-- SEO SCORE -->
+                        <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-cyan-500/50 transition-colors group/score">
+                           <span class="text-[9px] text-slate-500 font-black tracking-widest uppercase">SEO_INDEX</span>
+                           <div class="relative scale-110">
+                              <svg class="w-20 h-20 -rotate-90">
+                                 <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-white/5" />
+                                 <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-cyan-500 shadow-[0_0_15px_#06b6d4]" stroke-dasharray="226" stroke-dashoffset={226 - (226 * (aiResult?.seo_score || 0) / 100)} />
+                              </svg>
+                              <div class="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">{aiResult?.seo_score || '--'}</div>
+                           </div>
+                           <span class="text-[8px] {aiResult?.seo_score > 80 ? 'text-emerald-500' : 'text-slate-600'} font-mono uppercase tracking-widest">
+                              {aiResult?.seo_score ? (aiResult.seo_score > 80 ? 'Optimal' : 'Low_Impact') : 'Awaiting_Scan'}
+                           </span>
+                        </div>
+
+                        <!-- SGE SCORE -->
+                        <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-amber-500/50 transition-colors">
+                           <span class="text-[9px] text-slate-500 font-black tracking-widest uppercase">SGE_RELEVANCE</span>
+                           <div class="relative scale-110">
+                              <svg class="w-20 h-20 -rotate-90">
+                                 <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-white/5" />
+                                 <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-amber-500 shadow-[0_0_15px_#f59e0b]" stroke-dasharray="226" stroke-dashoffset={226 - (226 * (aiResult?.sge_score || 0) / 100)} />
+                              </svg>
+                              <div class="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">{aiResult?.sge_score || '--'}</div>
+                           </div>
+                           <span class="text-[8px] {aiResult?.sge_score > 70 ? 'text-amber-400' : 'text-slate-600'} font-mono uppercase tracking-widest">
+                              {aiResult?.sge_score ? (aiResult.sge_score > 70 ? 'Generative_Ready' : 'Incompatible') : 'Awaiting_Scan'}
+                           </span>
+                        </div>
+
+                        <!-- QUALITY SCORE -->
+                        <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-rose-500/50 transition-colors">
+                           <span class="text-[9px] text-slate-500 font-black tracking-widest uppercase">ADS_QUALITY</span>
+                           <div class="relative scale-110">
+                              <svg class="w-20 h-20 -rotate-90">
+                                 <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-white/5" />
+                                 <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-rose-500 shadow-[0_0_15px_#f43f5e]" stroke-dasharray="226" stroke-dashoffset={226 - (226 * (aiResult?.quality_score || 0) / 100)} />
+                              </svg>
+                              <div class="absolute inset-0 flex items-center justify-center text-2xl font-black text-white">{aiResult?.quality_score || '--'}</div>
+                           </div>
+                           <span class="text-[8px] {aiResult?.quality_score > 7 ? 'text-rose-400' : 'text-slate-600'} font-mono uppercase tracking-widest">
+                              {aiResult?.quality_score ? (aiResult.quality_score > 7 ? 'Elite_Score' : 'At_Risk') : 'Awaiting_Scan'}
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+
+                  <!-- TERMINAL INTEGRATION -->
+                  <div class="flex-1 bg-black border border-white/10 p-6 flex flex-col relative overflow-hidden min-h-0">
+                     <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+                        <div class="flex items-center gap-3">
+                           <Terminal size={14} class="text-rose-500" />
+                           <span class="text-[9px] font-black text-rose-500 uppercase tracking-widest font-mono">Neural_Analysis_Stream</span>
+                        </div>
+                        <div class="flex gap-1">
+                           <div class="w-1 h-1 bg-rose-500 animate-pulse"></div>
+                           <div class="w-1 h-1 bg-rose-500/50"></div>
+                        </div>
+                     </div>
+                     
+                     <div class="flex-1 overflow-y-auto custom-scrollbar font-mono text-[11px] space-y-6">
+                        {#if aiResult}
+                           <div in:fade>
+                              <div class="text-rose-400 font-black mb-4">>> MISSION_DECODE_SUCCESS</div>
+                              <div class="text-slate-300 leading-relaxed pl-4 border-l border-rose-500/30 whitespace-pre-wrap">{aiResult.message}</div>
+                           </div>
+                        {:else}
+                           <div class="opacity-20 flex flex-col gap-4">
+                              <p class="animate-pulse">>> WAITING_FOR_COMMAND...</p>
+                              <p class="opacity-50">>> SYSTEM_IDLE: AWAITING_NEURAL_AUDIT_INPUT</p>
                            </div>
                         {/if}
                      </div>
-                  {:else}
-                     <div class="opacity-40">
-                        <p class="mb-2">>> SYSTEM_READY</p>
-                        <p class="mb-2">>> AWAITING_AI_STRATEGIST_EXECUTION...</p>
-                        <p>Xohi AI sẽ phân tích hành vi người dùng, đối soát trinh sát đối thủ và luật Google Ads 2026 để đưa ra gợi ý tối ưu nhất cho chiến dịch này.</p>
-                     </div>
-                  {/if}
+                  </div>
                </div>
             </div>
          {:else}
-            <!-- EMPTY STATE -->
-            <div class="flex-1 border border-dashed border-white/10 flex flex-col items-center justify-center p-12 text-center gap-8 opacity-40 hover:opacity-100 transition-opacity group/empty">
+            <div class="flex-1 flex flex-col items-center justify-center p-20 text-center gap-10 border border-dashed border-white/5 bg-white/[0.01]">
                <div class="relative">
-                  <Activity size={64} class="text-slate-600 group-hover/empty:text-rose-500 transition-colors" />
-                  <div class="absolute inset-0 bg-rose-500/10 blur-[40px] rounded-full animate-pulse opacity-0 group-hover/empty:opacity-100"></div>
+                  <div class="w-32 h-32 rounded-full border border-white/10 flex items-center justify-center animate-[pulse_4s_infinite]">
+                     <Activity size={64} class="text-slate-700" />
+                  </div>
+                  <div class="absolute inset-0 bg-cyan-500/5 blur-[60px] rounded-full"></div>
                </div>
-               <div class="max-w-[240px]">
-                  <h4 class="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-4">Hệ thống chờ mục tiêu</h4>
-                  <p class="text-[9px] text-slate-500 font-mono leading-relaxed">
-                     Chọn một chiến dịch mục tiêu tại thanh trạng thái phía trên hoặc tab Điều phối để kích hoạt trí tuệ chiến thuật.
+               <div class="max-w-md">
+                  <h3 class="text-xl font-black text-white uppercase tracking-[0.5em] mb-6">Awaiting_Mission_Command</h3>
+                  <p class="text-[11px] text-slate-500 font-mono leading-relaxed uppercase tracking-widest">
+                     Vui lòng chọn chiến dịch mục tiêu tại bảng điều khiển phía trên để kích hoạt luồng dữ liệu trinh sát AI.
                   </p>
                </div>
             </div>
          {/if}
-      </div>
+      </main>
    </div>
 </div>
 
@@ -289,4 +306,9 @@
    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); }
    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6,182,212,0.2); }
+
+   @keyframes scan {
+      from { transform: translateX(0); }
+      to { transform: translateX(360px); }
+   }
 </style>

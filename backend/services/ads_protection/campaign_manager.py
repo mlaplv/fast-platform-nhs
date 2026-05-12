@@ -72,12 +72,13 @@ class CampaignManager:
     # ─────────────────────────────────────────────────────────────────────────
 
     async def list_campaigns(self) -> list[CampaignInfo]:
-        """Lấy danh sách campaigns với metrics 30 ngày gần nhất."""
+        """Lấy danh sách campaigns với metrics và landing page URL."""
         if not self._has_credentials():
-            logger.warning("google_ads_credentials_missing")
             return []
 
         token = await self._get_access_token()
+        
+        # 1. Fetch Campaigns
         query = """
             SELECT
                 campaign.resource_name,
@@ -98,31 +99,79 @@ class CampaignManager:
             ORDER BY metrics.impressions DESC
             LIMIT 50
         """
-        rows = await self._search(token, query)
-        result: list[CampaignInfo] = []
-        for row in rows:
-            c = row.get("campaign", {})
-            m = row.get("metrics", {})
-            b = row.get("campaignBudget", {})
-            policy = c.get("primaryStatus", "ELIGIBLE")
-            result.append(CampaignInfo(
-                resource_name=c.get("resourceName", ""),
-                id=str(c.get("id", "")),
-                name=c.get("name", ""),
-                status=c.get("status", "UNKNOWN"),
-                daily_budget_vnd=_micros_to_vnd(int(b.get("amountMicros", 0))),
-                bidding_strategy=c.get("biddingStrategyType", "UNKNOWN"),
-                start_date="",
-                end_date=None,
-                impressions=int(m.get("impressions", 0)),
-                clicks=int(m.get("clicks", 0)),
-                ctr=float(m.get("ctr", 0)),
-                avg_cpc_vnd=_micros_to_vnd(int(m.get("averageCpc", 0))),
-                cost_vnd=_micros_to_vnd(int(m.get("costMicros", 0))),
-                conversions=float(m.get("conversions", 0)),
-                policy_status=policy,
-            ))
-        return result
+
+        # 2. Fetch ENABLED ads to map landing pages
+        ad_query = """
+            SELECT campaign.resource_name, ad_group_ad.ad.final_urls 
+            FROM ad_group_ad 
+            WHERE ad_group_ad.status = 'ENABLED'
+        """
+
+        try:
+            async with httpx.AsyncClient() as client:
+                headers = {
+                    "Authorization": f"Bearer {token}",
+                    "developer-token": self._DEVELOPER_TOKEN,
+                    "login-customer-id": self._LOGIN_CUSTOMER_ID
+                }
+                
+                # Campaigns
+                resp = await client.post(
+                    f"{self._API_BASE}/customers/{self._CUSTOMER_ID}/googleAds:search",
+                    headers=headers,
+                    json={"query": query}
+                )
+                
+                # Ads for mapping
+                ad_resp = await client.post(
+                    f"{self._API_BASE}/customers/{self._CUSTOMER_ID}/googleAds:search",
+                    headers=headers,
+                    json={"query": ad_query}
+                )
+
+                if resp.status_code != 200:
+                    logger.error("LIST_CAMPAIGNS_FAILED: %s", resp.text)
+                    return []
+
+                data = resp.json()
+                ad_data = ad_resp.json() if ad_resp.status_code == 200 else {"results": []}
+                
+                ad_map = {}
+                for row in ad_data.get("results", []):
+                    c_res = row["campaign"]["resourceName"]
+                    urls = row["adGroupAd"]["ad"].get("finalUrls", [])
+                    if urls and c_res not in ad_map:
+                        ad_map[c_res] = urls[0]
+
+                results: list[CampaignInfo] = []
+                for row in data.get("results", []):
+                    c = row["campaign"]
+                    m = row.get("metrics", {})
+                    b = row.get("campaignBudget", {})
+                    
+                    results.append(CampaignInfo(
+                        resource_name=c["resourceName"],
+                        id=c["id"],
+                        name=c["name"],
+                        status=c["status"],
+                        daily_budget_vnd=_micros_to_vnd(int(b.get("amountMicros", 0))),
+                        bidding_strategy=c.get("biddingStrategyType", "UNKNOWN"),
+                        start_date=c.get("startDate", ""),
+                        end_date=c.get("endDate"),
+                        impressions=int(m.get("impressions", 0)),
+                        clicks=int(m.get("clicks", 0)),
+                        ctr=float(m.get("ctr", 0)),
+                        avg_cpc_vnd=_micros_to_vnd(int(m.get("averageCpc", 0))),
+                        cost_vnd=_micros_to_vnd(int(m.get("costMicros", 0))),
+                        conversions=float(m.get("conversions", 0)),
+                        policy_status=c.get("primaryStatus", "ELIGIBLE"),
+                        landing_page_url=ad_map.get(c["resourceName"])
+                    ))
+                return results
+
+        except Exception as e:
+            logger.error("LIST_CAMPAIGNS_CRITICAL_FAILURE: %s", e)
+            return []
 
     async def create_campaign(
         self, req: CampaignCreateRequest

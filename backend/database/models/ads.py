@@ -102,6 +102,12 @@ class GoogleAdsCampaignLog(Base, AuditMixin):
     policy_score: Mapped[Optional[float]] = mapped_column(Float)
     is_compliant: Mapped[bool] = mapped_column(Boolean, default=True)
 
+    # Neural Audit v2.6
+    seo_score: Mapped[Optional[float]] = mapped_column(Float)
+    sge_score: Mapped[Optional[float]] = mapped_column(Float)
+    quality_score: Mapped[Optional[float]] = mapped_column(Float)
+    landing_page_url: Mapped[Optional[str]] = mapped_column(String(512))
+
     __table_args__ = (
         Index("ix_gacl_campaign_created", "campaign_id", "created_at"),
     )

@@ -4,6 +4,7 @@ Thực hiện trinh sát đối thủ, đối soát luật Google và đưa ra g
 """
 from __future__ import annotations
 import logging
+import httpx
 from typing import Optional
 
 from pydantic_ai import Agent
@@ -25,29 +26,60 @@ class AIStrategist:
     SYSTEM_PROMPT = (
         "Bạn là Xohi — Trợ lý AI Chiến lược cho Google Ads Elite V2.6.\n"
         "Nhiệm vụ của bạn là phân tích đối thủ và đưa ra gợi ý chiến dịch quảng cáo tối ưu nhất.\n\n"
-        "QUY TẮC CỐT LÕI 2026:\n"
-        "1. Google Ads AI Max: Yêu cầu tối thiểu 8-15 headlines và 4 descriptions.\n"
-        "2. Call-only ads ĐÃ BỊ LOẠI BỎ: Luôn đề xuất RSA với Call Assets.\n"
-        "3. Dữ liệu Google 2026: Tối ưu dựa trên 'Conversions' và 'AI Overviews'.\n"
-        "4. Thị trường VN 2026: Ưu tiên nội dung 'Mộc', chân thực, Brand-led Commerce.\n"
-        "5. Tuyệt đối không dùng từ cấm: 'Cam kết 100%', 'Tốt nhất thế giới', 'Hàng giả'...\n\n"
-        "Khi nhận dữ liệu trinh sát đối thủ, hãy tìm ra kẽ hở hoặc điểm khác biệt để Sếp thắng thế."
+        "QUY TẮC CỐT LÕI 2026 (SGE & SEO):\n"
+        "1. SGE Compliance: Nội dung phải trả lời trực tiếp câu hỏi của người dùng, có cấu trúc dữ liệu (Schema.org) rõ ràng.\n"
+        "2. Ads Quality Score: Landing Page phải khớp 100% với Keyword chủ đạo. H1 phải chứa Keyword.\n"
+        "3. Tốc độ & LCP: Phải dưới 2.5s để không bị đánh tụt điểm.\n"
+        "4. Google Ads AI Max: Yêu cầu tối thiểu 8-15 headlines và 4 descriptions.\n"
+        "5. Thị trường VN 2026: Ưu tiên nội dung 'Mộc', chân thực, Brand-led Commerce.\n\n"
+        "Khi nhận dữ liệu trinh sát đối thủ hoặc Landing Page, hãy tìm ra kẽ hở hoặc điểm cần tối ưu để Sếp thắng thế."
     )
 
     def __init__(self) -> None:
-        # Elite V2.2: Standard initialization matching system operatives
         self._agent = Agent(
             output_type=AISuggestionResponse,
             retries=2
         )
 
+    async def _fetch_page(self, url: str) -> str:
+        """Trinh sát nội dung Landing Page."""
+        try:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                resp = await client.get(url, headers={"User-Agent": "Xohi-Neural-Scout/1.0"})
+                if resp.status_code == 200:
+                    # Lấy text cơ bản từ HTML (rất thô sơ để AI dễ đọc)
+                    from lxml import html
+                    tree = html.fromstring(resp.content)
+                    # Xóa script/style
+                    for s in tree.xpath("//script|//style"):
+                        s.getparent().remove(s)
+                    
+                    title = tree.xpath("//title/text()")
+                    h1 = tree.xpath("//h1//text()")
+                    text = tree.text_content()
+                    return f"TITLE: {title}\nH1: {h1}\nCONTENT_PREVIEW: {text[:2000]}"
+                return f"Lỗi truy cập Landing Page (Status: {resp.status_code})"
+        except Exception as e:
+            return f"Lỗi kết nối trinh sát: {str(e)}"
+
     async def suggest(self, req: AISuggestionRequest) -> AISuggestionResponse:
         """Thực hiện trinh sát và đưa ra gợi ý."""
         logger.info("ai_suggest task=%s context=%s", req.task, req.context[:50])
 
+        target_url = ""
+        page_content = ""
+
+        # Nếu task là AUDIT hoặc có URL trong context, thực hiện trinh sát URL
+        if req.task == "AUDIT_LANDING_PAGE" or "http" in req.context:
+            import re
+            urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', req.context)
+            if urls:
+                target_url = urls[0]
+                page_content = await self._fetch_page(target_url)
+
         # 1. Trinh sát đối thủ (Competitor Research)
         search_query = f"quảng cáo google {req.context} đối thủ cạnh tranh việt nam 2026"
-        search_results = await google_search_service.search(search_query, num=5)
+        search_results = await google_search_service.search(search_query, num=3)
         
         competitor_context = ""
         if search_results:
@@ -55,26 +87,29 @@ class AIStrategist:
                 f"- {r.get('title')}: {r.get('snippet')}" for r in search_results
             ])
         else:
-            competitor_context = "Không tìm thấy dữ liệu trinh sát trực tiếp. Sử dụng tri thức nền về thị trường VN 2026."
+            competitor_context = "Không tìm thấy dữ liệu trinh sát trực tiếp."
 
         # 2. Xây dựng Prompt chi tiết
         prompt = f"""
         TASK: {req.task}
-        MỤC TIÊU CỦA SẾP: {req.context}
+        MỤC TIÊU/NGỮ CẢNH: {req.context}
         
+        {f"DỮ LIỆU TRINH SÁT TRANG ĐÍCH ({target_url}):" if target_url else ""}
+        {page_content if target_url else ""}
+
         DỮ LIỆU TRINH SÁT ĐỐI THỦ:
         {competitor_context}
         
         YÊU CẦU:
         Hãy đưa ra gợi ý {req.task} tối ưu nhất. 
-        Nếu là RSA, hãy viết đủ 15 headlines và 4 descriptions theo phong cách SmartShop 2026 (Premium, High-conversion).
-        Nếu là CAMPAIGN, hãy gợi ý ngân sách phù hợp thị trường và chiến lược giá thầu (Bidding Strategy).
-        Nếu là NEGATIVE_KEYWORDS, hãy tìm những từ khóa rác mà đối thủ thường bị dính phải để bảo vệ túi tiền của Sếp.
+        Nếu là AUDIT_LANDING_PAGE, hãy:
+        1. Chấm điểm (0-100) cho các trường: seo_score, sge_score, và quality_score.
+        2. Đưa ra các hành động SỬA LỖI cụ thể trong phần 'message' để đạt điểm tối đa.
+        3. Phân tích xem trang đã sẵn sàng cho SGE (Search Generative Experience) chưa.
         """
 
         # 3. Gọi Trinity Bridge để thực hiện suy luận
         try:
-            # Elite V2.2: Pass system_prompt directly to trinity_bridge.run
             result = await trinity_bridge.run(
                 self._agent, 
                 prompt, 

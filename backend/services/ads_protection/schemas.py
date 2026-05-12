@@ -238,6 +238,7 @@ class CampaignInfo(BaseModel):
     cost_vnd: float = 0.0
     conversions: float = 0.0
     policy_status: str = "ELIGIBLE"  # ELIGIBLE | LIMITED | DISAPPROVED
+    landing_page_url: Optional[str] = None
 
 
 class AdGroupInfo(BaseModel):
@@ -309,3 +310,8 @@ class AISuggestionResponse(BaseModel):
     
     competitor_analysis: Optional[str] = None  # Tóm tắt phân tích đối thủ
     policy_compliance_note: Optional[str] = None # Lưu ý về luật Google 2026
+
+    # Neural Audit Scores (v2.6)
+    seo_score: Optional[float] = None
+    sge_score: Optional[float] = None
+    quality_score: Optional[float] = None
