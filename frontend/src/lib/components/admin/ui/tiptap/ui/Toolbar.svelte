@@ -511,23 +511,6 @@
                     left: Math.round(Math.min(rect.left, window.innerWidth - 440))
                 };
             }}
-            onmouseenter={(e) => { 
-                const resultKey = action.id === 'ai' ? 'aiReadyResult' : (action.id + 'Result');
-                if (analysisData?.[resultKey] || action.loading) {
-                    activeIntelAction = action.id || null;
-                    
-                    // CNS V87.1: Sync highlights on hover to match HUD focus
-                    if (analysisData && action.id !== 'clean' && action.id !== 'enrich' && !action.id.includes('-fix')) {
-                      analysisData.activeTab = action.id;
-                    }
-
-                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                    intelPopoverPos = { 
-                        top: Math.round(rect.bottom + 8), 
-                        left: Math.round(Math.min(rect.left, window.innerWidth - 440))
-                    };
-                }
-            }}
             disabled={action.loading || action.disabled}
             title={action.title || action.label}
             class="tb-neural-action {action.loading ? 'loading' : action.disabled ? 'disabled' : ''} {(action.active || activeIntelAction === action.id) && !action.loading ? 'active-neural scale-105' : ''} {action.isPerfect ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : action.isLocked ? 'border-rose-500/30 bg-rose-500/5 text-rose-400/70' : action.colorClass || 'bg-cyan-500 text-black'} transition-all duration-300"

@@ -103,9 +103,20 @@ export function createAdsState() {
         const data = JSON.parse(e.data);
         if (data.type === 'NEW_CLICK') {
           // [V3.0] HUD Sync: Toggle PoW Active status if a challenge is issued
-          if (data.verdict === 'CHALLENGE') {
-            isPoWActive = true;
-            setTimeout(() => { isPoWActive = false; }, 10000);
+          if (data.verdict === 'CHALLENGE' && data.challenge) {
+            solvePoW(data.challenge, data.difficulty || 4).then(proof => {
+              if (proof) {
+                apiClient.post(`${ADS_API}/verify-pow`, {
+                  ip: data.ip,
+                  challenge: data.challenge,
+                  nonce: proof.nonce,
+                  hash: proof.hash
+                }).then(() => {
+                  nanobot.showToast(`🛡️ [Edge] PoW Verified for ${data.ip}`, 'success');
+                  debounceFetch();
+                });
+              }
+            });
           }
 
           if (data.verdict === 'FRAUD') {
@@ -128,15 +139,44 @@ export function createAdsState() {
   }
 
   /**
-   * [V3.0] Proof-of-Work ngầm để chặn bot vùng xám (50-80% score)
+   * [Elite V3.0] Real-world Proof-of-Work (PoW)
+   * Ép các IP nghi vấn phải giải toán Hash ngầm (SHA-256)
+   * Triệt tiêu tài nguyên của Botnet mà không làm phiền người dùng thật.
    */
-  async function solvePoW(challenge: string) {
+  async function solvePoW(challenge: string, difficulty: number = 4) {
     isPoWActive = true;
     try {
-      // Giả lập giải thuật Hash ngầm (Elite V3.0)
-      await new Promise(r => setTimeout(r, 2000));
-      console.log("🛡️ [PoW] Challenge solved.");
-      return true;
+      console.log(`🛡️ [PoW] Challenge received: ${challenge} (Difficulty: ${difficulty})`);
+      const encoder = new TextEncoder();
+      const prefix = '0'.repeat(difficulty);
+      let nonce = 0;
+      
+      const startTime = performance.now();
+      
+      // Hash puzzle loop
+      while (true) {
+        const data = encoder.encode(challenge + nonce);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        if (hashHex.startsWith(prefix)) {
+          const duration = (performance.now() - startTime).toFixed(0);
+          console.log(`🛡️ [PoW] Solved in ${duration}ms. Nonce: ${nonce}. Hash: ${hashHex}`);
+          return { nonce, hash: hashHex, duration: Number(duration) };
+        }
+        
+        nonce++;
+        // Safety break if it takes too long (> 5s)
+        if (performance.now() - startTime > 5000) {
+          console.warn("🛡️ [PoW] Timeout reached. Sending partial proof.");
+          break;
+        }
+      }
+      return null;
+    } catch (e) {
+      console.error("🛡️ [PoW] Error:", e);
+      return null;
     } finally {
       isPoWActive = false;
     }

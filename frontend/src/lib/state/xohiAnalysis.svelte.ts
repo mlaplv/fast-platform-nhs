@@ -524,6 +524,22 @@ export function createAnalysisController(config: {
                         copyrightResult.annotations = (copyrightResult.annotations || []).filter(a => !match(a));
                         saveAnalysisEvidence('copyright', $state.snapshot(copyrightResult));
                     }
+
+                    // CNS V96.0: Handle Booster Annotations (Lock button & Keep Highlight)
+                    if (boosterAnnotations.length > 0) {
+                        boosterAnnotations = boosterAnnotations.map(a => {
+                            if (match(a)) {
+                                return { 
+                                    ...a, 
+                                    is_applied: true, 
+                                    // Shift highlight to the NEW content in the editor
+                                    text: a.replacement_string || a.text 
+                                };
+                            }
+                            return a;
+                        });
+                        saveAnalysisEvidence('enrich', boosterAnnotations);
+                    }
                 }
                 resolve_p(newText);
             };
@@ -602,12 +618,12 @@ export function createAnalysisController(config: {
                 else if (activeTab === 'seo') {
                     seoResult = { ...seoResult!, seo_annotations: [...fixed, ...remaining] };
                     await saveAnalysisEvidence('seo', $state.snapshot(seoResult));
-                    setTimeout(() => { runSeoCheck(true); }, 500);
+                    setTimeout(() => { runSeoAnalysis(true); }, 500);
                 }
                 else {
                     aiReadyResult = { ...aiReadyResult!, ai_annotations: [...fixed, ...remaining] };
                     await saveAnalysisEvidence('ai_inspect', $state.snapshot(aiReadyResult));
-                    setTimeout(() => { runAiInspect(true); }, 500);
+                    setTimeout(() => { runAiAnalysis(true); }, 500);
                 }
                 addTerminalLog("✅ Tinh chỉnh hoàn tất. Dữ liệu Neural Intelligence đã được cập nhật.");
                 bulkFixStatus = "Hoàn tất ✅";
@@ -683,38 +699,32 @@ export function createAnalysisController(config: {
                 const res = await xohiActions.runNeuralBoost(content, topic);
                 if (res?.status === 'success' && res.data?.patches) {
                     bulkFixLogs = [...bulkFixLogs, `✅ Hoàn tất! Đã tìm thấy ${res.data.patches.length} điểm tinh chỉnh.`, ...res.data.logs];
-                    // Áp dụng patches tuần tự: tìm và thay thế từng search_string
-                    let updatedContent = content;
-                    const applied: string[] = [];
+                    
+                    // CNS V96.0: Stop auto-apply. Just store patches for user review ("Duyệt nới thêm vào")
                     const newAnnotations: AnalysisAnnotation[] = [];
                     
                     for (const patch of res.data.patches) {
-                        if (updatedContent.includes(patch.search_string)) {
-                            updatedContent = updatedContent.replace(patch.search_string, patch.replacement_string);
-                            applied.push(`✅ ${patch.rationale}`);
-                            
-                            // CNS V91.1: Generate annotations from patches for highlighting
-                            newAnnotations.push({
-                                text: patch.replacement_string, // Highlight the NEW text
-                                type: 'enrich',
-                                message: patch.rationale,
-                                severity: 'low'
-                            });
-                        }
+                        // Always add to annotations so user can see what AI suggested, 
+                        // but only highlight if it still exists in content
+                        newAnnotations.push({
+                            text: patch.search_string, // Anchor to original text
+                            type: 'enrich',
+                            message: patch.rationale,
+                            severity: 'low',
+                            search_string: patch.search_string,
+                            replacement_string: patch.replacement_string
+                        });
                     }
-                    if (applied.length > 0) {
-                        config.setEditedDraft(updatedContent);
+
+                    if (newAnnotations.length > 0) {
                         boosterAnnotations = newAnnotations;
                         activeTab = 'enrich';
                         
-                        bulkFixLogs = [...bulkFixLogs, ...applied,
-                            `🏅 Hoàn tất! Đã tinh chỉnh ${applied.length}/${res.data.patches.length} điểm.`
-                        ];
-                        nanobot.showToast(`Neural Booster đã tối ưu ${applied.length} đoạn văn`, 'success');
                         bulkFixStatus = "Hoàn tất ✅";
                         await saveAnalysisEvidence('enrich', boosterAnnotations);
+                        nanobot.showToast(`Phát hiện ${newAnnotations.length} cơ hội bổ sung dữ liệu`, 'success');
                     } else {
-                        bulkFixLogs = [...bulkFixLogs, "⚠️ Không tìm thấy điểm nào cần tinh chỉnh thêm."];
+                        bulkFixLogs = [...bulkFixLogs, "⚠️ Không tìm thấy cơ hội bổ sung dữ liệu nào."];
                         bulkFixStatus = "Hoàn tất ✅";
                     }
                 } else {
@@ -734,11 +744,70 @@ export function createAnalysisController(config: {
             isBoosting = false;
             setTimeout(() => { 
                 isBulkFixing = false; 
-                // [ELITE V2.2] Only clear status if successful. Keep failure visible.
                 if (bulkFixStatus === "Hoàn tất ✅") {
                     bulkFixStatus = ""; 
                 }
             }, 3500);
+        }
+    }
+
+    async function runBulkBoosterFix() {
+        if (isBulkFixing || boosterAnnotations.length === 0) return;
+        const pending = boosterAnnotations.filter(a => !a.is_applied);
+        if (pending.length === 0) {
+            nanobot.showToast("Tất cả đã được duyệt ✅", "info");
+            return;
+        }
+
+        isBulkFixing = true;
+        bulkFixStatus = "Đang phẫu thuật tổng thể...";
+        bulkFixLogs = [...bulkFixLogs, `🚀 Khởi động quy trình duyệt hàng loạt (${pending.length} điểm)...` ];
+
+        try {
+            let content = (config.getContent ?? config.getEditedDraft)?.() ?? '';
+            let appliedCount = 0;
+
+            // Deep clone annotations to update them reactively
+            const updatedAnnotations = boosterAnnotations.map(a => ({ ...a }));
+
+            for (const ann of updatedAnnotations) {
+                if (ann.is_applied) continue;
+
+                const target = ann.search_string || ann.text;
+                const replacement = ann.replacement_string || '';
+                
+                if (content.includes(target) || robustNormalize(content).includes(robustNormalize(target))) {
+                    content = refinementStitch(content, target, replacement);
+                    ann.is_applied = true;
+                    ann.text = replacement; // Shift highlight to new content
+                    appliedCount++;
+                    addTerminalLog(`✅ Đã phẫu thuật: ${ann.message?.slice(0, 30)}...`);
+                }
+            }
+
+            if (appliedCount > 0) {
+                if (resolve(config.isEditing)) config.setEditedDraft(content);
+                else config.setDraftContent(content);
+
+                boosterAnnotations = updatedAnnotations;
+                await saveAnalysisEvidence('enrich', boosterAnnotations);
+                
+                // Persistence
+                const cid = resolve(config.campaign_id);
+                if (cid && cid !== 'adhoc') {
+                    await apiClient.patch(`/api/v1/content/campaigns/${cid}`, { draft_content: content }).catch(e => {
+                        console.error("[Neural Vault] Persistence failed:", e);
+                    });
+                }
+
+                nanobot.showToast(`Đã duyệt & nối thêm ${appliedCount} đoạn văn thành công!`, "success");
+                bulkFixStatus = "Hoàn tất ✅";
+            }
+        } catch (e) {
+            console.error("[Neural Engine] Bulk Booster Error:", e);
+            bulkFixStatus = "Thất bại ❌";
+        } finally {
+            setTimeout(() => { isBulkFixing = false; bulkFixStatus = ""; }, 3000);
         }
     }
 
@@ -922,7 +991,7 @@ export function createAnalysisController(config: {
         // CNS V87.0: expose streaming state cho UI typewriter effect
         get streamingText() { return streamingText; },
         get streamingTarget() { return streamingTarget; },
-        runCopyrightCheck, runSeoAnalysis, runAiAnalysis, runAutoFix, runCleanContent, runBulkFix, runAiBooster, runNeuralRewrite, dispose: () => {
+        runCopyrightCheck, runSeoAnalysis, runAiAnalysis, runAutoFix, runCleanContent, runBulkFix, runAiBooster, runBulkBoosterFix, runNeuralRewrite, dispose: () => {
             // CLAUDE.md: dispose SSE resource khi component unmount
             _sseAbort?.abort(); _sseAbort = null;
             copyrightResult = null; seoResult = null; aiReadyResult = null; bulkFixStatus = ""; activeTab = null;

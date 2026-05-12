@@ -365,6 +365,61 @@
           {/if}
         </div>
       </main>
+    {#if ads.activeTab === 'overview'}
+    <!-- [Elite V3.0] System Status & Changelog Footer -->
+    <footer class="mt-12 pt-8 border-t border-white/5 flex flex-col gap-6 opacity-40 hover:opacity-100 transition-opacity duration-700">
+      <div class="flex justify-between items-start">
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-3">
+             <span class="text-[9px] font-black text-cyan-400 uppercase tracking-[0.3em]">System_Infrastructure_V3.0_λ</span>
+             <div class="h-px w-12 bg-cyan-400/20"></div>
+          </div>
+          <p class="text-[10px] text-slate-400 max-w-2xl leading-relaxed">
+            Hệ thống bảo vệ đa tầng tích hợp Edge Intelligence (Fast Path) và Agentic C.O.R.E (Slow Path). 
+            Tự động phản ứng với Botnet 2026 thông qua thử thách mật mã PoW và phân tích đặc vụ AI.
+          </p>
+        </div>
+        <div class="text-right">
+          <span class="text-[9px] font-mono text-slate-600 uppercase">Last_Deployment: 2026-05-12_18:40</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-4 gap-8">
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[8px] font-black text-white uppercase tracking-widest border-l-2 border-cyan-500 pl-2">Sprint 1: Edge Core</span>
+          <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
+            <li>• ONNX Runtime Wasm Behavior Scoring</li>
+            <li>• Cryptographic PoW (SHA-256) Integration</li>
+            <li>• Zero-latency client-side heuristics</li>
+          </ul>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[8px] font-black text-white uppercase tracking-widest border-l-2 border-amber-500 pl-2">Sprint 2: Agentic C.O.R.E</span>
+          <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
+            <li>• PydanticAI Forensic Investigation Agent</li>
+            <li>• Redis Streams Event-driven Architecture</li>
+            <li>• RAG Integration (Obsidian & GraphDB)</li>
+          </ul>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[8px] font-black text-white uppercase tracking-widest border-l-2 border-emerald-500 pl-2">Sprint 3: Elite HUD</span>
+          <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
+            <li>• AdsPowHud Real-time Mitigation Display</li>
+            <li>• Simple Pro Header Optimization</li>
+            <li>• Multi-layered Forensic Archive UI</li>
+          </ul>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[8px] font-black text-white uppercase tracking-widest border-l-2 border-rose-500 pl-2">Hygiene & Safety</span>
+          <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
+            <li>• LiteLLM Cost & Model Management</li>
+            <li>• SSR Stealth Asset Injection (CORS Fix)</li>
+            <li>• Real-time SSE Sync (Zero-noise Logging)</li>
+          </ul>
+        </div>
+      </div>
+      </footer>
+    {/if}
     </div>
     {/if}
   </div>

@@ -2,7 +2,8 @@ import asyncio
 import os
 import logging
 import time
-from typing import Callable, Union, Dict, List, AsyncGenerator
+import json
+from typing import Callable, Union, Dict, List, AsyncGenerator, Any
 from dataclasses import dataclass, field
 from contextlib import asynccontextmanager
 
@@ -129,9 +130,29 @@ class InternalBus:
 
         # Local distribution
         try:
+            if self.queue is None: self.queue = asyncio.Queue(maxsize=1000)
             self.queue.put_nowait(event)
         except asyncio.QueueFull:
             logger.error(f"❌ [EventBus] GLOBAL QUEUE FULL! Dropping event {event_name}")
+
+    async def stream_emit(self, stream_name: str, payload: Dict[str, Any]):
+        """
+        [Elite V3.0] Durable Event Streaming via Redis Streams (Slow Path).
+        Allows consumer groups and background forensic processing.
+        """
+        from backend.services.xohi_memory import xohi_memory
+        if not xohi_memory._use_redis or not xohi_memory.client:
+            logger.warning(f"⚠️ [EventBus] Redis not available for stream: {stream_name}")
+            return
+
+        try:
+            # Flatten payload for Redis Stream (Redis Streams store field-value pairs)
+            # We wrap the whole payload as a JSON string under a 'data' key for complexity
+            safe_payload = {"data": json.dumps(payload, ensure_ascii=False)}
+            await xohi_memory.client.xadd(f"stream:{stream_name}", safe_payload, maxlen=10000, approximate=True)
+            logger.info(f"📡 [StreamBus] Event added to {stream_name}")
+        except Exception as e:
+            logger.error(f"❌ [StreamBus] Failed to emit to stream {stream_name}: {e}")
 
 
     async def start(self):

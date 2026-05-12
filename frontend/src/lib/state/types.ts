@@ -186,6 +186,9 @@ export interface AnalysisAnnotation {
   reason?: string;
   source_url?: string;
   severity?: string;
+  search_string?: string;
+  replacement_string?: string;
+  is_applied?: boolean;
 }
 
 export interface CopyrightResult {
@@ -249,6 +252,7 @@ export interface NeuralAnalysisController {
   runCleanContent: (options?: CleanOptions, rawContent?: string) => Promise<string | null>;
   runBulkFix: () => Promise<void>;
   runAiBooster: () => Promise<void>;
+  runBulkBoosterFix: () => Promise<void>;
   runNeuralRewrite: () => Promise<void>;
   dispose: () => void;
 }

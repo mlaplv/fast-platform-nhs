@@ -100,7 +100,7 @@ composer.register_template(PromptTemplate(
 
 composer.register_template(PromptTemplate(
     name="booster_refiner",
-    components=["core_constitution", "agent_neural_booster"]
+    components=["core_constitution", "agent_refiner_booster"]
 ))
 
 # Vision & Insight Templates

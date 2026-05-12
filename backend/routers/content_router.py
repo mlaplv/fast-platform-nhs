@@ -186,13 +186,13 @@ class ContentController(Controller):
         )
 
     @post("/analyze/neural-boost", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])
-    async def analyze_neural_boost(self, data: SurgeonBoostRequest) -> GenericResponse:
+    async def analyze_neural_boost(self, data: SurgeonBoostRequest, campaign_repo: ContentCampaignRepository) -> GenericResponse:
         """CNS V87.0: Neural Boost (Refinement)"""
         return await content_factory.analyst.neural_boost(
             content=data.content,
             topic=data.topic,
             campaign_id=data.campaign_id,
-            campaign_repo=self.repo
+            campaign_repo=campaign_repo
         )
 
     @post("/analyze/neural-rewrite", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])

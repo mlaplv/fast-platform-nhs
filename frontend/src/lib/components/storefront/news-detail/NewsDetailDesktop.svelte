@@ -104,7 +104,7 @@
         {/if}
 
         <!-- Content Body (Elite Prose) -->
-        <svelte:element this={proseWrapper} class="pt-5 pb-0 px-10 elite-prose">
+        <svelte:element this={proseWrapper} class="pt-5 pb-0 px-10 news-article-prose">
             {@html article.content}
         </svelte:element>
 
@@ -207,7 +207,7 @@
 </svelte:element>
 
 <style>
-  :global(.elite-prose) {
+  :global(.news-article-prose) {
     font-size: 1.125rem;
     line-height: 1.6; /* Elite V2.2: Slightly tighter for compact feel */
     color: #374151;
@@ -215,13 +215,13 @@
     overflow-wrap: break-word;
   }
   
-  :global(.elite-prose p) {
+  :global(.news-article-prose p) {
     margin: 0.75rem 0;
     font-weight: 400;
     letter-spacing: -0.011em;
   }
 
-  :global(.elite-prose h1) {
+  :global(.news-article-prose h1) {
     font-size: 2rem;
     font-weight: 900;
     color: #111827 !important;
@@ -230,7 +230,7 @@
     line-height: 1.1;
   }
 
-  :global(.elite-prose h2) {
+  :global(.news-article-prose h2) {
     font-size: 1.5rem;
     font-weight: 850;
     color: #C18F7E !important;
@@ -242,13 +242,13 @@
     line-height: 1.2;
   }
 
-  :global(.elite-prose strong),
-  :global(.elite-prose b) {
+  :global(.news-article-prose strong),
+  :global(.news-article-prose b) {
     color: #111827 !important;
     font-weight: 800;
   }
 
-  :global(.elite-prose h3) {
+  :global(.news-article-prose h3) {
     font-size: 1.25rem;
     font-weight: 800;
     color: #C18F7E !important;
@@ -257,8 +257,8 @@
   }
 
   /* ELITE V2.2: Viral 2026 Professional Highlights (Luxury Copper) */
-  :global(.elite-prose span[style*="background-color"]),
-  :global(.elite-prose span[style*="background: rgb(226, 244, 255)"]) {
+  :global(.news-article-prose span[style*="background-color"]),
+  :global(.news-article-prose span[style*="background: rgb(226, 244, 255)"]) {
     background-color: #FFF0F0 !important;
     padding: 2px 4px !important;
     border-radius: 4px !important;
@@ -267,9 +267,9 @@
   }
 
   /* Specific callout blocks should use div */
-  :global(.elite-prose div[style*="background-color"]),
-  :global(.elite-prose div[style*="background: rgb(226, 244, 255)"]),
-  :global(.elite-prose section[style*="background-color"]) {
+  :global(.news-article-prose div[style*="background-color"]),
+  :global(.news-article-prose div[style*="background: rgb(226, 244, 255)"]),
+  :global(.news-article-prose section[style*="background-color"]) {
     padding: 2rem !important;
     border-radius: 0 !important;
     border-left: 8px solid #C18F7E !important;
@@ -282,22 +282,22 @@
     box-shadow: 15px 15px 40px rgba(193, 143, 126, 0.08) !important;
   }
 
-  :global(.elite-prose [style*="background-color"] *) {
+  :global(.news-article-prose [style*="background-color"] *) {
     color: inherit !important;
   }
 
-  :global(.elite-prose img) {
+  :global(.news-article-prose img) {
     border: none !important;
     outline: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    margin: 1rem auto !important; /* Elite V2.2: Professional guide spacing */
+    margin: 1.5rem auto !important; /* Elite V2.2: Professional guide spacing */
     max-width: 100% !important;
     height: auto !important;
     display: block !important;
   }
 
-  :global(.elite-prose blockquote) {
+  :global(.news-article-prose blockquote) {
     border-left: 6px solid #C18F7E;
     padding: 1.5rem 2rem; 
     font-style: italic;
@@ -308,20 +308,20 @@
     margin: 1.5rem 0;
   }
 
-  :global(.elite-prose ul) {
+  :global(.news-article-prose ul) {
     list-style-type: none;
     padding-left: 0;
     margin: 1.5rem 0;
   }
 
-  :global(.elite-prose li) {
+  :global(.news-article-prose li) {
     margin-bottom: 0.75rem;
     padding-left: 1.5rem;
     position: relative;
     font-weight: 500;
   }
 
-  :global(.elite-prose li::before) {
+  :global(.news-article-prose li::before) {
     content: "";
     position: absolute;
     left: 0;

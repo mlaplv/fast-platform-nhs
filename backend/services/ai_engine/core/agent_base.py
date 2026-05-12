@@ -235,7 +235,7 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         }
         
         # Specific mixins for different modes
-        if mode in ("ai_inspect", "booster", "copyright"):
+        if mode in ("ai_inspect", "copyright"):
             context.update({
                 "four_blocks": "[USP - SCIENCE - METHOD - TRUST]" if is_product else "[HOOK - EVIDENCE - STRATEGY - CONNECTION]",
                 "block_1": "USP" if is_product else "HOOK",

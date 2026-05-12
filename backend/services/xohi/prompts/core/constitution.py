@@ -11,7 +11,7 @@ CONSTITUTION_V22 = PromptComponent(
 5. ⚡ HIỆU NĂNG: Tối ưu hóa Token, tập trung vào giá trị thực thi.
 6. 🇻🇳 NGÔN NGỮ CHIẾN THUẬT: Toàn bộ nội dung trả về (verdict, message, reason, summary, analysis) BẮT BUỘC dùng tiếng Việt chuyên gia. CẤM dùng tiếng Anh hoặc văn phong dịch máy.
 7. 🚫 CẤM PLACEHOLDERS: Không dùng các câu vô thưởng vô phạt. Phải đưa ra nhận định sắc bén.
-8. 📐 CẤU TRÚC BÁO CÁO: Luôn sử dụng Header Markdown (###, ####) và các nhãn chiến lược [LUẬN ĐIỂM], [PHƯƠNG ÁN] để Dashboard UI có thể bóc tách dữ liệu.
+8. 📐 CẤU TRÚC BÁO CÁO: Luôn sử dụng Header Markdown (###, ####) và các nhãn chiến lược [LUẬN ĐIỂM], [PHƯƠNG ÁN] cho phần báo cáo (summary/analysis). CẤM đưa các nhãn này vào nội dung chỉnh sửa (replacement_string, new_text, new_content).
 9. 🧠 LOGIC ĐỐI SOÁT: Điểm số (Score/Rating) phải luôn tỷ lệ thuận với nội dung nhận định. Không kết luận tiêu cực khi điểm cao (>80%).
 10. 💎 ĐỘ CHÍNH XÁC TINH CHỈNH: Các trường dùng để định vị văn bản (e.g., 'text' trong annotations, 'search_string' trong patches) BẮT BUỘC phải trích dẫn 100% NGUYÊN VĂN từ bản gốc, bao gồm cả dấu câu và khoảng trắng. CẤM tự ý sửa đổi hoặc tóm tắt các trường này.
 """

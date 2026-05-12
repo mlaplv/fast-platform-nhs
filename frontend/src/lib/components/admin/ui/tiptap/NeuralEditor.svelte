@@ -153,11 +153,9 @@
         : 'Copyright',
       icon: ShieldCheck,
       onclick: () => {
-        if (analysis.activeTab === 'copyright') {
-          handleAction(analysis.runCopyrightCheck, true);
-        } else {
-          analysis.activeTab = 'copyright';
-          if (!analysis.copyrightResult && !analysis.isCopyrightLoading) handleAction(analysis.runCopyrightCheck);
+        analysis.activeTab = 'copyright';
+        if (!analysis.copyrightResult && !analysis.isCopyrightLoading) {
+          handleAction(analysis.runCopyrightCheck);
         }
       },
       loading: analysis.isCopyrightLoading,
@@ -175,10 +173,9 @@
       label: analysis.seoResult ? `SEO ${analysis.seoResult.total_score}/100` : 'SEO Scan',
       icon: BarChart2,
       onclick: () => {
-        if (analysis.activeTab === 'seo') handleAction(analysis.runSeoAnalysis, true);
-        else {
-          analysis.activeTab = 'seo';
-          if (!analysis.seoResult && !analysis.isSeoLoading) handleAction(analysis.runSeoAnalysis);
+        analysis.activeTab = 'seo';
+        if (!analysis.seoResult && !analysis.isSeoLoading) {
+          handleAction(analysis.runSeoAnalysis);
         }
       },
       loading: analysis.isSeoLoading,
@@ -194,10 +191,9 @@
       label: analysis.aiReadyResult ? `AI Mod ${analysis.aiReadyResult.geo_score}/100` : 'AI Mod',
       icon: Sparkles,
       onclick: () => {
-        if (analysis.activeTab === 'ai') handleAction(analysis.runAiAnalysis, true);
-        else {
-          analysis.activeTab = 'ai';
-          if (!analysis.aiReadyResult && !analysis.isAiLoading) handleAction(analysis.runAiAnalysis);
+        analysis.activeTab = 'ai';
+        if (!analysis.aiReadyResult && !analysis.isAiLoading) {
+          handleAction(analysis.runAiAnalysis);
         }
       },
       loading: analysis.isAiLoading,
@@ -213,7 +209,12 @@
       label: analysis.isBoosting ? '🚀 ENRICHING...' : '🚀 AI BOOSTER',
       loading: analysis.isBoosting,
       disabled: analysis.seoScore !== null && analysis.seoScore >= 95,
-      onclick: () => handleAction(analysis.runAiBooster),
+      onclick: () => {
+        analysis.activeTab = 'enrich';
+        if (analysis.boosterAnnotations.length === 0 && !analysis.isBoosting) {
+          handleAction(analysis.runAiBooster);
+        }
+      },
       active: analysis.activeTab === 'enrich',
       colorClass: 'bg-pink-500/10 text-pink-400 border-pink-500/20'
     }] : []),

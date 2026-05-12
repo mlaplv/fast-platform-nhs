@@ -149,11 +149,9 @@ function createDecorations(doc: ProseMirrorNode, annotations: EditorAnnotation[]
           posMap.push(pos + i);
         }
       }
-    } else if (node.isBlock || node.type.name === 'hardBreak') {
-      // Use a special boundary character that won't match any normal word
-      searchBuffer += ' '; 
-      // Push the pos so posMap stays aligned with searchBuffer length
-      posMap.push(pos);
+    } else if (node.type.name === 'hardBreak') {
+      // CNS V96: Don't add spaces for block boundaries to allow multi-block booster highlights
+      // searchBuffer stays continuous
     }
   });
 

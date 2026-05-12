@@ -19,6 +19,7 @@
     isBulkFixing = false,
     isRewriting = false,
     runNeuralRewrite,
+    runBulkBoosterFix,
     userPlanNote = $bindable(''),
     currentAnalysisStep = null,
     boosterAnnotations = [],
@@ -37,6 +38,7 @@
     isBulkFixing?: boolean;
     isRewriting?: boolean;
     runNeuralRewrite?: () => Promise<void>;
+    runBulkBoosterFix?: () => Promise<void>;
     userPlanNote?: string;
     currentAnalysisStep?: number | null;
     boosterAnnotations?: AnalysisAnnotation[];
@@ -193,6 +195,19 @@
               <span class="text-[9px] font-black uppercase tracking-[0.3em]">Protocol_EEAT_Boost_V2.2</span>
             </div>
           </div>
+          
+          {#if boosterAnnotations.some(a => !a.is_applied) && !isBoosting}
+            <div class="ml-auto pr-3">
+              <button 
+                onclick={runBulkBoosterFix}
+                disabled={isBulkFixing}
+                class="px-3 py-1.5 rounded-lg bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center gap-2"
+              >
+                <CheckCircle2 size={12} />
+                Duyệt tất cả
+              </button>
+            </div>
+          {/if}
         </div>
       </div>
 
@@ -211,7 +226,7 @@
         <!-- Badge -->
         <div class="px-3 py-2 flex items-center gap-3 border-b border-white/5">
           <span class="text-[7px] font-black text-white/20 uppercase tracking-widest">Patches ({boosterAnnotations.length})</span>
-          <span class="px-2 py-0.5 rounded-full text-[8px] font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">{boosterAnnotations.length} APPLIED</span>
+          <span class="px-2 py-0.5 rounded-full text-[8px] font-black bg-pink-500/10 text-pink-400 border border-pink-500/20 uppercase tracking-tighter">Review Required</span>
         </div>
 
         <!-- Annotation List -->
@@ -220,11 +235,34 @@
             <div class="px-3 py-3 border-b bg-white/[0.01] flex flex-col gap-1.5 transition-all hover:bg-white/[0.02]" style="border-color: rgba(236,72,153,0.1)">
               <div class="flex items-start justify-between gap-2">
                 <span class="text-[7px] font-black px-1 py-0.5 rounded uppercase bg-pink-500/20 text-pink-400">✨ PATCH #{i + 1}</span>
-                <CheckCircle2 size={12} class="text-emerald-400 shrink-0 mt-0.5" />
+                
+                {#if onfix}
+                  {#if ann.is_applied}
+                    <div class="flex items-center gap-1 px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-black text-emerald-400 uppercase tracking-widest">
+                      ĐÃ DUYỆT ✅
+                    </div>
+                  {:else}
+                    <button 
+                      onclick={() => handleInternalFix(ann.search_string || ann.text, 'enrich', ann.replacement_string || '')}
+                      disabled={isFixing === (ann.search_string || ann.text)}
+                      class="px-2 py-1 rounded bg-emerald-500/20 border border-emerald-500/30 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
+                    >
+                      {#if isFixing === (ann.search_string || ann.text)}
+                        PHẪU THUẬT...
+                      {:else}
+                        DUYỆT & NỐI THÊM
+                      {/if}
+                    </button>
+                  {/if}
+                {/if}
               </div>
               <p class="text-[12px] text-white/80 leading-relaxed tracking-tight">
-                {#if ann.text}<span class="text-white/40 font-mono italic text-[10px] truncate block max-w-full">"{ann.text.slice(0, 120)}{ann.text.length > 120 ? '...' : ''}"</span>{/if}
-                <span class="text-pink-200/90 mt-1 block text-[11px]">{ann.message || ''}</span>
+                {#if ann.replacement_string}
+                  <span class="text-white/40 font-mono italic text-[10px] truncate block max-w-full">
+                    Sẽ chèn/thay: "{ann.replacement_string.slice(0, 100)}..."
+                  </span>
+                {/if}
+                <span class="text-pink-200/90 mt-1 block text-[11px] font-bold">{ann.message || ''}</span>
               </p>
             </div>
           {/each}
