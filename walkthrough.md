@@ -1,17 +1,16 @@
-# Walkthrough: Fix Diagnostic Layout and Add Swipe Support
+# Walkthrough: Implement Persistent Diagnostic Counter in Database
 
 ## 1. Problem
-1. The status labels are jumping down a line due to a CSS conflict between Tailwind's `block` and the custom `inline-block` for Sentence Case.
-2. The results slider does not support manual swiping, making it feel "stuck" after autoplay was disabled.
+The diagnostic counter is currently derived from a static `.env` variable and only increments locally in the browser session. This means the progress is lost on page reload and not shared across users.
 
 ## 2. Solution
-- Refine CSS to ensure `sentence-case-target` doesn't override intended layout modes.
-- Implement `touchstart` and `touchend` event handlers in `MobileDiagnostics.svelte` to support manual swiping of the results slider.
+- **Backend**: Modify `DiagnosticAgent.analyze` to increment a persistent `diagnostics_count` field within the product's JSONB metadata in the database upon each successful analysis.
+- **Frontend**: Update `MobileDiagnostics.svelte` to display the count from `product.metadata.diagnostics_count`. If unavailable, it falls back to the legacy `.env` calculation.
 
 ## 3. Evidence
-Fixed diagnostic layout and added swipe interaction in `MobileDiagnostics.svelte`:
-- Refined CSS to prevent `sentence-case-target` from overriding Tailwind's `block` class on status labels, fixing the line-jumping issue.
-- Implemented `handleTouchStart` and `handleTouchEnd` functions to detect horizontal swipes.
-- Attached swipe listeners to the results slider container.
-- Now users can manually swipe left or right to switch between "Tổng quan lâm sàng" and "Liệu trình tối ưu" slides.
+Implemented a persistent, "honest" diagnostic counter:
+- **Backend**: Updated `DiagnosticAgent.py` to increment `diagnostics_count` in the product's JSONB metadata upon each successful AI analysis. If the field doesn't exist, it initializes using the `PUBLIC_G_BY_COUNT * 5` formula.
+- **Frontend**: Updated `MobileDiagnostics.svelte` to read directly from `metadata.diagnostics_count`.
+- **Real-time Feedback**: Kept the `sessionIncrement` logic to provide immediate visual feedback while the user is still on the page, before the next server-side data refresh.
+- **Persistence**: The count now persists across different users and sessions because it is stored in the database.
 

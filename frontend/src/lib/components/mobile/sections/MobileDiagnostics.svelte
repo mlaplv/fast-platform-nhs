@@ -154,6 +154,7 @@
   let answers = $state<Array<{q: string, a: string}>>([]);
   let analysisStatus = $state("Đang phân tích tập dữ liệu lâm sàng...");
   let binaryData = $state("0 1 0 1 1 1 0 0 1");
+  let sessionIncrement = $state(0);
   let activeSlide = $state(0);
 
   // Memory cleanup for async timers
@@ -212,6 +213,7 @@
       shopStore.analyzeDiagnostics(answers).then(() => {
         clearInterval(interval);
         timers.delete(interval);
+        sessionIncrement++;
       });
     }
   }
@@ -309,7 +311,7 @@
     <div class="mt-3 mb-2" transition:fade>
       <div class="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 rounded-full mb-2 backdrop-blur-md">
         <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] animate-pulse"></div>
-        <span class="text-[10px] tracking-[0.2em] text-[#FFB7C5] font-bold italic">đã chẩn đoán cho {(Number(PUBLIC_G_BY_COUNT) * 5).toLocaleString()} người</span>
+        <span class="text-[10px] tracking-[0.2em] text-[#FFB7C5] font-bold italic">đã chẩn đoán cho {(Number(metadata.diagnostics_count || (Number(PUBLIC_G_BY_COUNT) * 5)) + sessionIncrement).toLocaleString()} người</span>
       </div>
         <h2 class="text-2xl font-extrabold text-white leading-relaxed tracking-tighter italic tiktok-shadow">
           <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ">
