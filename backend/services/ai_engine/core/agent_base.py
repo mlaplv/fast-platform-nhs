@@ -200,7 +200,7 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         status = "SUCCESS" if not error else f"FAILED ({error})"
         self.logger.info(f"[{self.agent_id}] {task} {status} | Latency: {duration:.3f}s")
 
-    async def _resolve_xohi_context(self, campaign: object, draft: str, mode: str) -> dict:
+    async def _resolve_xohi_context(self, campaign: object, draft: str, mode: str, **kwargs: object) -> dict:
         """
         Elite V2.2: Centralized Context Resolution (CNS-V89).
         Determines the 'Combat Domain' and 'Expert Role' for the AI.
@@ -212,6 +212,13 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         elif hasattr(campaign, "get_gold_val"):
             if campaign.get_gold_val("contentType") == "product" or campaign.get_gold_val("category") == "Sản phẩm":
                 is_product = True
+
+        # [CNS-V91.6] Identify Review Context
+        is_review = False
+        if hasattr(campaign, "category") and getattr(campaign, "category") == "REVIEW":
+            is_review = True
+        elif kwargs.get("content_type") == "review":
+            is_review = True
         
         # 2. Assign Role & Log Message
         role_map = {
@@ -223,7 +230,12 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         }
         
         role_base, log_msg = role_map.get(mode, ("Chuyên gia Phân tích", "📡 Đang khởi động hệ thống..."))
-        entity_suffix = "Sản phẩm" if is_product else "Bài viết"
+        
+        if is_review:
+            entity_suffix = "Đánh giá"
+        else:
+            entity_suffix = "Sản phẩm" if is_product else "Bài viết"
+            
         role_assignment = f"{role_base} {entity_suffix} (Elite V2.2)"
         
         # 3. Dynamic Prompt Mixins (Elite V2.2 POS)

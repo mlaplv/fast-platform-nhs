@@ -92,7 +92,22 @@ class ReviewService:
     async def update_content(self, review_id: str, data: UpdateReviewRequest) -> SystemReview:
         try:
             review = await self.review_repo.get(review_id)
-            review.content = data.content
+            
+            # Elite V2.2: Universal Field Update
+            if data.content is not None:
+                review.content = data.content
+            if data.rating is not None:
+                review.rating = data.rating
+            if data.customer_name is not None:
+                review.customer_name = data.customer_name
+            if data.customer_phone is not None:
+                review.customer_phone = data.customer_phone
+            if data.customer_location is not None:
+                review.customer_location = data.customer_location
+            if data.entity_type is not None:
+                review.entity_type = data.entity_type
+            if data.entity_id is not None:
+                review.entity_id = data.entity_id
             
             # Smart Diff: Xóa vật lý những attachment bị loại bỏ khỏi danh sách khi edit
             if data.attachments is not None:

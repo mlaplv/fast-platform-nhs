@@ -410,7 +410,8 @@
     
     // [CRITICAL] If editor is focused, it IS the master. 
     // Do NOT sync back from props to avoid scroll/cursor resets during active editing.
-    if (isFocused) return;
+    // EXCEPTION: If we are in 'isRewriting' mode, the AI is the master.
+    if (isFocused && !isRewriting) return;
 
     const normalizedContent = content || "<p></p>";
 

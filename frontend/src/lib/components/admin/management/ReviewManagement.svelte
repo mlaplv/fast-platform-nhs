@@ -14,6 +14,11 @@
   import List from "@lucide/svelte/icons/list";
   import X from "@lucide/svelte/icons/x";
   import Play from "@lucide/svelte/icons/play";
+  import Sparkles from "@lucide/svelte/icons/sparkles";
+  import MapPin from "@lucide/svelte/icons/map-pin";
+  import User from "@lucide/svelte/icons/user";
+  import Phone from "@lucide/svelte/icons/phone";
+  import Box from "@lucide/svelte/icons/box";
   import NeuralEditor from "$lib/components/admin/ui/tiptap/NeuralEditor.svelte";
   import type { BaseWidgetProps } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
@@ -55,11 +60,77 @@
   let editingReviewId = $state<string | null>(null);
   let editContent = $state("");
   let editAttachments = $state<{url: string, type: string}[]>([]);
+  let isRewriting = $state(false);
+  
+  // Elite V2.2: Extended Edit States
+  let editEntityType = $state<"PRODUCT" | "CATEGORY" | "NEWS">("PRODUCT");
+  let editEntityId = $state("");
+  let editCustomerName = $state("");
+  let editCustomerPhone = $state("");
+  let editCustomerLocation = $state("");
+  let editRating = $state(5);
+  
+  // Entity Lists for Selection
+  let targetEntities = $state<{id: string, name: string}[]>([]);
+  let isTargetLoading = $state(false);
+  let isEntitiesExpanded = $state(false);
+  let isMoreEntitiesShown = $state(false);
 
-  function startEdit(review: Review) {
+  async function startEdit(review: Review) {
     editingReviewId = review.id;
     editContent = review.content;
     editAttachments = Array.isArray(review.attachments) ? JSON.parse(JSON.stringify(review.attachments)) : [];
+    
+    // Bind Extended Data
+    editEntityType = review.entity_type as any;
+    editEntityId = review.entity_id;
+    editCustomerName = review.customer_name;
+    editCustomerPhone = review.customer_phone || "";
+    editCustomerLocation = review.customer_location || "";
+    editRating = review.rating;
+    
+    await loadTargetEntities(editEntityType);
+  }
+
+  async function loadTargetEntities(type: string) {
+    isTargetLoading = true;
+    try {
+      let endpoint = "";
+      if (type === "PRODUCT") endpoint = "/api/v1/products?limit=200&status=PUBLISHED";
+      else if (type === "NEWS") endpoint = "/api/v1/articles?limit=200&status=PUBLISHED";
+      else if (type === "CATEGORY") endpoint = "/api/v1/categories?limit=200";
+      
+      if (!endpoint) {
+        targetEntities = [];
+        return;
+      }
+
+      const res = await apiClient.get<any>(endpoint);
+      console.log(`🧬 [Xohi AI] Dữ liệu tải về từ ${endpoint}:`, res);
+      
+      // Elite V2.2: Litestar returns { data: [...], total: ... }
+      const items = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []);
+      
+      const seenIds = new Set();
+      const rawList = items.map((i: any) => ({
+        id: i.id,
+        name: (type === "NEWS" ? i.title : i.name) || "Không tên"
+      }));
+
+      targetEntities = rawList.filter(item => {
+        if (!item.id || seenIds.has(item.id)) return false;
+        const nameLower = item.name.toLowerCase();
+        // Loại bỏ mục test, rác
+        if (nameLower.includes("test ") || nameLower.includes("faq save") || nameLower.includes("dummy")) return false;
+        seenIds.add(item.id);
+        return true;
+      });
+    } catch (e) {
+      console.error("Lỗi tải danh sách thực thể:", e);
+      targetEntities = [];
+    } finally {
+      isTargetLoading = false;
+    }
   }
 
   function cancelEdit() {
@@ -71,17 +142,57 @@
   async function saveEdit(id: string) {
     isLoading = true;
     try {
-      await apiClient.patch(`/api/v1/reviews/${id}/content`, { 
+      await apiClient.patch(`/api/v1/reviews/${id}`, { 
         content: editContent,
-        attachments: editAttachments
+        attachments: editAttachments,
+        entity_type: editEntityType,
+        entity_id: editEntityId,
+        customer_name: editCustomerName,
+        customer_phone: editCustomerPhone,
+        customer_location: editCustomerLocation,
+        rating: editRating
       });
-      nanobot.showToast("Đã cập nhật nội dung đánh giá", "success");
+      nanobot.showToast("Đã cập nhật đánh giá hệ thống", "success");
       cancelEdit();
       await loadReviews();
     } catch (e: unknown) {
       nanobot.showToast("Lỗi khi cập nhật đánh giá", "error");
     } finally {
       isLoading = false;
+    }
+  }
+
+  async function handleXohiRewrite() {
+    if (!editContent || isRewriting) return;
+    
+    isRewriting = true;
+    try {
+      // Tìm tên thực thể đang được chọn để cung cấp ngữ cảnh cho AI
+      const entityName = targetEntities.find(e => e.id === editEntityId)?.name || "sản phẩm/dịch vụ";
+      
+      console.log(`🧬 [Xohi AI] Gửi nội dung cho [${entityName}]:`, editContent);
+      // Gọi AI Rewrite chuyên dụng cho Review
+      const res = await apiClient.post<{new_content: string}>("/api/v1/content/analyze/neural-rewrite", {
+        content: editContent,
+        content_type: "review",
+        topic: entityName,
+        feedback: "Viết lại thật chân thật, bám sát trải nghiệm thực tế về đúng loại sản phẩm này. Tuyệt đối không dùng các từ mỹ miều sáo rỗng."
+      });
+      
+      console.log("🧬 [Xohi AI] Kết quả từ API:", res);
+      
+      if (res.data && res.data.new_content) {
+        editContent = res.data.new_content;
+        console.log("🧬 [Xohi AI] Đã cập nhật editContent thành:", editContent);
+        nanobot.showToast("Đã tối ưu đánh giá bằng Xohi Neural", "success");
+      } else {
+        console.warn("🧬 [Xohi AI] API không trả về new_content trong data:", res);
+      }
+    } catch (e: unknown) {
+      const err = e as Error;
+      nanobot.showToast("Lỗi Neural Engine: " + err.message, "error");
+    } finally {
+      isRewriting = false;
     }
   }
 
@@ -255,15 +366,15 @@
       </div>
     </div>
 
-    <div class="flex flex-wrap gap-6 items-center">
+    <div class="flex flex-wrap gap-4 sm:gap-8 items-center bg-white/[0.03] border-y border-white/5 p-4 sm:p-6">
       <!-- Status Filter -->
-      <div class="flex flex-col gap-2">
-        <span class="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Trạng thái</span>
-        <div class="flex items-center bg-white/[0.02] border border-white/5 p-1 rounded">
+      <div class="flex flex-col gap-3">
+        <span class="text-[9px] font-mono text-neon-cyan uppercase tracking-[0.3em] font-bold">Lọc Trạng thái</span>
+        <div class="flex items-center gap-1 bg-[#050505] border border-white/10 p-1 rounded-sm shadow-inner">
           {#each ["all", "pending", "approved", "rejected"] as f}
             <button
               onclick={() => activeFilter = f}
-              class="px-3 py-1 text-[9px] font-mono tracking-widest uppercase transition-all {activeFilter === f ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/20' : 'text-gray-500 hover:text-gray-300'}"
+              class="px-4 py-1.5 text-[10px] font-mono tracking-widest uppercase transition-all {activeFilter === f ? 'bg-neon-cyan text-black shadow-[0_0_10px_rgba(0,255,255,0.4)] font-bold' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}"
             >
               {f}
             </button>
@@ -271,14 +382,16 @@
         </div>
       </div>
 
+      <div class="hidden sm:block h-10 w-px bg-white/5"></div>
+
       <!-- Entity Type Filter -->
-      <div class="flex flex-col gap-2">
-        <span class="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Danh mục</span>
-        <div class="flex items-center bg-white/[0.02] border border-white/5 p-1 rounded">
+      <div class="flex flex-col gap-3">
+        <span class="text-[9px] font-mono text-purple-400 uppercase tracking-[0.3em] font-bold">Lọc Danh mục</span>
+        <div class="flex items-center gap-1 bg-[#050505] border border-white/10 p-1 rounded-sm shadow-inner">
           {#each ["all", "product", "category", "news"] as c}
             <button
               onclick={() => activeCategory = c}
-              class="px-3 py-1 text-[9px] font-mono tracking-widest uppercase transition-all {activeCategory === c ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'text-gray-500 hover:text-gray-300'}"
+              class="px-4 py-1.5 text-[10px] font-mono tracking-widest uppercase transition-all {activeCategory === c ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.4)] font-bold' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}"
             >
               {c}
             </button>
@@ -515,6 +628,48 @@
           </table>
         </div>
       {/if}
+
+      <!-- Pagination -->
+      {#if totalReviews > pageSize}
+        <div class="mt-12 flex items-center justify-between border-t border-white/5 pt-8 pb-12">
+          <div class="text-[10px] font-mono text-gray-600 uppercase tracking-widest">
+            Hiển thị <span class="text-neon-cyan">{(currentPage - 1) * pageSize + 1}</span> - <span class="text-neon-cyan">{Math.min(currentPage * pageSize, totalReviews)}</span> của <span class="text-white">{totalReviews}</span> đánh giá
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <button 
+              onclick={() => currentPage = Math.max(1, currentPage - 1)}
+              disabled={currentPage === 1 || isLoading}
+              class="px-4 py-2 border border-white/5 bg-white/[0.02] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] font-mono tracking-widest uppercase"
+            >
+              Trang trước
+            </button>
+            
+            <div class="flex items-center gap-1">
+              {#each Array(Math.ceil(totalReviews / pageSize)) as _, i}
+                {#if Math.abs(i + 1 - currentPage) < 3 || i === 0 || i === Math.ceil(totalReviews / pageSize) - 1}
+                  <button 
+                    onclick={() => currentPage = i + 1}
+                    class="w-8 h-8 flex items-center justify-center border {currentPage === i + 1 ? 'border-neon-cyan text-neon-cyan bg-neon-cyan/10' : 'border-white/5 text-gray-500 hover:border-white/20'} text-[10px] font-mono transition-all"
+                  >
+                    {i + 1}
+                  </button>
+                {:else if Math.abs(i + 1 - currentPage) === 3}
+                  <span class="text-gray-700 mx-1">...</span>
+                {/if}
+              {/each}
+            </div>
+
+            <button 
+              onclick={() => currentPage = Math.min(Math.ceil(totalReviews / pageSize), currentPage + 1)}
+              disabled={currentPage === Math.ceil(totalReviews / pageSize) || isLoading}
+              class="px-4 py-2 border border-white/5 bg-white/[0.02] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] font-mono tracking-widest uppercase"
+            >
+              Trang sau
+            </button>
+          </div>
+        </div>
+      {/if}
     {/if}
   </div>
 
@@ -605,12 +760,161 @@
         </div>
 
         <!-- Body -->
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 flex flex-col gap-8">
-          <!-- NeuralEditor -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 flex flex-col gap-10">
+          
+          <!-- Section 1: Context (Nguồn đánh giá) -->
+          <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-2">
+              <Box size={14} class="text-neon-cyan" />
+              <h3 class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Cấu hình nguồn đánh giá</h3>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="flex flex-col gap-2">
+                <label class="text-[8px] font-bold text-gray-500 uppercase ml-1">Loại thực thể</label>
+                <select 
+                  bind:value={editEntityType}
+                  onchange={() => loadTargetEntities(editEntityType)}
+                  class="w-full bg-[#0a0a0b] border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-neon-cyan/50 transition-colors custom-select"
+                >
+                  <option value="PRODUCT" class="bg-[#0a0a0b]">SẢN PHẨM</option>
+                  <option value="NEWS" class="bg-[#0a0a0b]">TIN TỨC / BÀI VIẾT</option>
+                  <option value="CATEGORY" class="bg-[#0a0a0b]">DANH MỤC</option>
+                </select>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label class="text-[8px] font-bold text-gray-500 uppercase ml-1">Đối tượng cụ thể</label>
+                <div class="relative">
+                  <button 
+                    onclick={() => isEntitiesExpanded = !isEntitiesExpanded}
+                    class="w-full bg-[#0a0a0b] border border-white/10 rounded-lg px-3 py-2 text-xs text-left text-white flex justify-between items-center focus:border-neon-cyan/50 transition-all {isTargetLoading ? 'opacity-50 cursor-wait' : ''}"
+                  >
+                    <span class="truncate">{targetEntities.find(e => e.id === editEntityId)?.name || "-- Chọn đối tượng --"}</span>
+                    <Layers size={10} class="text-white/30" />
+                  </button>
+
+                  {#if isEntitiesExpanded}
+                    <div class="absolute z-[100] left-0 right-0 mt-1 bg-[#0d0d0f] border border-white/10 shadow-2xl overflow-hidden max-h-[300px] flex flex-col">
+                      <div class="overflow-y-auto custom-scrollbar flex-1">
+                        {#each (isMoreEntitiesShown ? targetEntities : targetEntities.slice(0, 5)) as entity}
+                          <button 
+                            onclick={() => { editEntityId = entity.id; isEntitiesExpanded = false; isMoreEntitiesShown = false; }}
+                            class="w-full text-left px-3 py-2 text-[11px] hover:bg-neon-cyan/10 hover:text-neon-cyan transition-colors {editEntityId === entity.id ? 'bg-neon-cyan/5 text-neon-cyan font-bold' : 'text-gray-400'}"
+                          >
+                            {entity.name}
+                          </button>
+                        {/each}
+                        {#if targetEntities.length > 5 && !isMoreEntitiesShown}
+                          <button onclick={(e) => { e.stopPropagation(); isMoreEntitiesShown = true; }} class="w-full px-3 py-1.5 text-[9px] font-mono text-neon-cyan/60 hover:text-neon-cyan hover:bg-white/5 text-center border-t border-white/5">+ XEM THÊM {targetEntities.length - 5} MỤC KHÁC</button>
+                        {/if}
+                        {#if isMoreEntitiesShown}
+                          <button onclick={(e) => { e.stopPropagation(); isMoreEntitiesShown = false; }} class="w-full px-3 py-1.5 text-[9px] font-mono text-gray-600 hover:text-white hover:bg-white/5 text-center border-t border-white/5">THU GỌN</button>
+                        {/if}
+                      </div>
+                    </div>
+                    <div class="fixed inset-0 z-[90]" onclick={() => { isEntitiesExpanded = false; isMoreEntitiesShown = false; }}></div>
+                  {/if}
+                  {#if isTargetLoading}
+                    <div class="absolute right-8 top-2.5"><div class="w-3 h-3 border-2 border-neon-cyan/20 border-t-neon-cyan rounded-full animate-spin"></div></div>
+                  {/if}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Customer (Thông tin khách hàng) -->
+          <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-2">
+              <User size={14} class="text-neon-cyan" />
+              <h3 class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Thông tin định danh</h3>
+            </div>
+            <div class="grid grid-cols-3 gap-4">
+              <div class="flex flex-col gap-2">
+                <label class="text-[8px] font-bold text-gray-500 uppercase ml-1">Tên hiển thị</label>
+                <div class="relative group">
+                  <User size={10} class="absolute left-3 top-3 text-white/20 group-focus-within:text-neon-cyan transition-colors" />
+                  <input 
+                    type="text" 
+                    bind:value={editCustomerName}
+                    placeholder="Nguyễn Văn A"
+                    class="w-full bg-white/[0.03] border border-white/10 rounded-lg pl-8 pr-3 py-2 text-xs text-white outline-none focus:border-neon-cyan/50 transition-colors"
+                  />
+                </div>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label class="text-[8px] font-bold text-gray-500 uppercase ml-1">Số điện thoại</label>
+                <div class="relative group">
+                  <Phone size={10} class="absolute left-3 top-3 text-white/20 group-focus-within:text-neon-cyan transition-colors" />
+                  <input 
+                    type="text" 
+                    bind:value={editCustomerPhone}
+                    placeholder="09xxx..."
+                    class="w-full bg-white/[0.03] border border-white/10 rounded-lg pl-8 pr-3 py-2 text-xs text-white outline-none focus:border-neon-cyan/50 transition-colors"
+                  />
+                </div>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label class="text-[8px] font-bold text-gray-500 uppercase ml-1">Địa điểm</label>
+                <div class="relative group">
+                  <MapPin size={10} class="absolute left-3 top-3 text-white/20 group-focus-within:text-neon-cyan transition-colors" />
+                  <input 
+                    type="text" 
+                    bind:value={editCustomerLocation}
+                    placeholder="Hà Nội, VN"
+                    class="w-full bg-white/[0.03] border border-white/10 rounded-lg pl-8 pr-3 py-2 text-xs text-white outline-none focus:border-neon-cyan/50 transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Rating -->
+          <div class="flex flex-col gap-4">
+             <div class="flex items-center gap-2">
+              <Star size={14} class="text-neon-cyan" />
+              <h3 class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Đánh giá & Xếp hạng</h3>
+            </div>
+            <div class="flex items-center gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-xl">
+               <div class="flex gap-1">
+                {#each Array(5) as _, i}
+                  <button 
+                    onclick={() => editRating = i + 1}
+                    class="transition-all duration-300 {i < editRating ? 'text-yellow-400 scale-110 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]' : 'text-white/10 hover:text-white/30'}"
+                  >
+                    <Star size={20} fill={i < editRating ? 'currentColor' : 'none'} />
+                  </button>
+                {/each}
+              </div>
+              <div class="h-4 w-[1px] bg-white/10"></div>
+              <span class="text-[10px] font-mono text-neon-cyan uppercase tracking-widest">{editRating} / 5 SAO</span>
+            </div>
+          </div>
+
+          <!-- Section 4: Content (NeuralEditor) -->
           <div class="flex flex-col gap-3">
-            <div class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Nội dung đánh giá</div>
-            <div class="border border-white/5 bg-white/[0.02] rounded-xl overflow-hidden">
-              <NeuralEditor bind:content={editContent} />
+            <div class="flex justify-between items-end">
+              <div class="flex items-center gap-2 ml-1">
+                <Sparkles size={12} class="text-neon-cyan" />
+                <div class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Nội dung & Trí tuệ AI</div>
+              </div>
+              <button 
+                onclick={handleXohiRewrite}
+                disabled={isRewriting}
+                class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-neon-cyan/10 border border-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/20 transition-all group disabled:opacity-50 disabled:grayscale"
+              >
+                <Sparkles size={10} class={isRewriting ? 'animate-pulse' : 'group-hover:scale-125 transition-transform'} />
+                <span class="text-[9px] font-bold uppercase tracking-wider">{isRewriting ? 'NEURAL_PROCESSING...' : 'XOHI_REWRITE'}</span>
+              </button>
+            </div>
+            <div class="border border-white/5 bg-white/[0.02] rounded-xl overflow-hidden relative min-h-[300px]">
+              {#if isRewriting}
+                <div class="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px] flex items-center justify-center pointer-events-none">
+                  <div class="flex flex-col items-center gap-2">
+                    <div class="w-8 h-8 border-2 border-neon-cyan/20 border-t-neon-cyan rounded-full animate-spin"></div>
+                    <span class="text-[8px] font-mono text-neon-cyan tracking-[0.3em] animate-pulse">REWRITING...</span>
+                  </div>
+                </div>
+              {/if}
+              <NeuralEditor bind:content={editContent} {isRewriting} />
             </div>
           </div>
 

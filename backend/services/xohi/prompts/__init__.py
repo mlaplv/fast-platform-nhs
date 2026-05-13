@@ -7,6 +7,7 @@ from .agents.inspector import register_inspector
 from .agents.pen import register_pen
 from .agents.booster import register_booster
 from .agents.vision import register_vision
+from .agents.review_booster import register_review_booster
 from .shields.adapters import register_adapters
 from .niches.cosmetics import register_cosmetics
 from .niches.pharmaceuticals import register_pharma
@@ -20,6 +21,7 @@ register_inspector(composer)
 register_pen(composer)
 register_booster(composer)
 register_vision(composer)
+register_review_booster(composer)
 register_adapters(composer)
 register_cosmetics(composer)
 register_pharma(composer)
@@ -112,4 +114,10 @@ composer.register_template(PromptTemplate(
 composer.register_template(PromptTemplate(
     name="insight_discovery",
     components=["core_constitution", "agent_insight_strategist"]
+))
+
+# Review Templates
+composer.register_template(PromptTemplate(
+    name="review_rewrite",
+    components=["core_constitution", "agent_review_booster"]
 ))

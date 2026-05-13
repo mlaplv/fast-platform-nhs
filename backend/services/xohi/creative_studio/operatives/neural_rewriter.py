@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+import re
 from datetime import datetime, timezone
 from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
@@ -95,11 +96,19 @@ class NeuralRewriter(BaseAgentOperative):
         composer.register_component(shield)
         
         # [CNS-V89] Resolve Context via Centralized Intelligence
-        context = await self._resolve_xohi_context(metadata, content, "rewriter")
+        context = await self._resolve_xohi_context(metadata, content, "rewriter", content_type=content_type)
         role = context["role_assignment"]
         
-        template_name = "rewriter_product" if context["is_product"] else "rewriter_article"
+        # CNS V91.5: Template Selection Strategy
+        if content_type == "review":
+            template_name = "review_rewrite"
+        elif context["is_product"]:
+            template_name = "rewriter_product"
+        else:
+            template_name = "rewriter_article"
+            
         # ELITE V2.2: Use extra_components to maintain thread-safety
+        logger.info(f"🧬 [NeuralRewriter] Using template: {template_name} for content_type: {content_type}")
         system_prompt_base = composer.compose(template_name, extra_components=[shield.id])
         
         logger.info(f"🛡️ [NeuralRewriter] [ROLE] Đã xác nhận phân vai tác chiến: {role}")
@@ -118,7 +127,8 @@ class NeuralRewriter(BaseAgentOperative):
             content_foundation=content[:25000],  # Foundation limit: Increased to 25k for rich HTML preservation
             fact_sheet=fact_sheet,
             feedback=feedback,
-            user_note_section=user_note_section
+            user_note_section=user_note_section,
+            topic=topic # CNS V91.3: Mandatory Topic Injection for Context
         )
         if excluded_fields_section:
             system_prompt = excluded_fields_section + "\n" + system_prompt
@@ -170,7 +180,8 @@ class NeuralRewriter(BaseAgentOperative):
             start_time = time.perf_counter()
             
             # ELITE V2.2: Restoration of Tiptap-Ready HTML (Sếp's Order)
-            # CNS V91.1: max_output_tokens=16384 to prevent mid-article truncation
+            # CNS V91.1: max_output_tokens=16384 for articles, but for reviews we force shortness
+            max_tokens = 100 if content_type == "review" else 16384
             response = await trinity_bridge.run(
                 self._agent, 
                 prompt, 
@@ -178,7 +189,7 @@ class NeuralRewriter(BaseAgentOperative):
                 role="pro", 
                 timeout=150.0,
                 safety_none=True,
-                model_settings={"max_tokens": 16384}  # CNS V91.2: FIXED key (was max_output_tokens, silently ignored)
+                model_settings={"max_tokens": max_tokens}
             )
             duration = time.perf_counter() - start_time
             
@@ -198,6 +209,29 @@ class NeuralRewriter(BaseAgentOperative):
             err_msg = f"❌ Lỗi Neural Creative: {str(exc)[:100]}"
             await self._emit_progress(campaign_id, err_msg, status="FAILED")
             return content
+
+    def clean_ai_html(self, html: str) -> str:
+        """Elite V2.2: Ultra-Clean HTML (Post-processing for Neural Rewriter)."""
+        if not html: return ""
+        
+        # 1. Remove Markdown blocks (Inherited from Base)
+        clean = re.sub(r'```html\s*', '', html, flags=re.IGNORECASE)
+        clean = re.sub(r'```\s*', '', clean)
+        
+        # 2. Loại bỏ các nhãn phân đoạn dư thừa [LUẬN ĐIỂM], [PHƯƠNG ÁN], v.v.
+        clean = re.sub(r'\[.*?\]', '', clean)
+        
+        # 3. Loại bỏ các thẻ <p><br></p> hoặc <p>&nbsp;</p> rác (Sếp's Order)
+        clean = re.sub(r'<p>\s*(<br\s*/?>|&nbsp;)?\s*</p>', '', clean)
+        
+        # 4. Loại bỏ nhiều thẻ <br> liên tiếp dư thừa
+        clean = re.sub(r'(<br\s*/?>\s*){2,}', '<br/>', clean)
+
+        # 5. Elite V2.2: Triệt hạ Markdown Header (#) nếu AI cố tình sinh ra
+        clean = re.sub(r'#+\s*', '', clean)
+        
+        # 6. Trim khoảng trắng thừa
+        return clean.strip()
 
 # Heritage Backdoor for functional calls
 async def run_neural_rewrite(

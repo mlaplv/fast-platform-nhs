@@ -2,12 +2,14 @@
   import { onDestroy } from "svelte";
   import type { CopyrightResult, SEOResult, AIInspectResult, AnalysisAnnotation } from "$lib/state/types";
   import { createPhaseController } from "$lib/state/xohiAnalysisPhases.svelte";
+  import { stripBoostTags } from "$lib/state/xohiAnalysisLogic";
   import AnalysisLoading from "./AnalysisLoading.svelte";
   import AnalysisResultCopyright from "./AnalysisResultCopyright.svelte";
   import AnalysisResultSEO from "./AnalysisResultSEO.svelte";
   import AnalysisResultAI from "./AnalysisResultAI.svelte";
   import AnalysisLocked from "./AnalysisLocked.svelte";
   import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
 
   let {
     activeTab, copyrightResult, isCopyrightLoading, seoResult, isSeoLoading,
@@ -20,6 +22,7 @@
     isRewriting = false,
     runNeuralRewrite,
     runBulkBoosterFix,
+    runAiBooster,
     userPlanNote = $bindable(''),
     currentAnalysisStep = null,
     boosterAnnotations = [],
@@ -39,6 +42,7 @@
     isRewriting?: boolean;
     runNeuralRewrite?: () => Promise<void>;
     runBulkBoosterFix?: () => Promise<void>;
+    runAiBooster?: () => Promise<void>;
     userPlanNote?: string;
     currentAnalysisStep?: number | null;
     boosterAnnotations?: AnalysisAnnotation[];
@@ -187,14 +191,23 @@
           <div class="p-2 rounded-xl bg-pink-500/10 border border-pink-500/20 shadow-[0_0_15px_rgba(236,72,153,0.15)]">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-pink-400"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .52 8.588A5.002 5.002 0 0 0 12 22a5 5 0 0 0 8-4.017s1.398-.24 2.128-1.57A4 4 0 0 0 21 11a4 4 0 0 0-3-3.95V7a3 3 0 0 0-6-2Z"/><path d="M12 12h.01"/><path d="M9 12h.01"/><path d="M15 12h.01"/></svg>
           </div>
-          <div class="flex flex-col gap-1">
-            <span class="text-sm font-black uppercase tracking-[0.1em] text-pink-400">
-              🔪 Surgeon Booster™
-            </span>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-black uppercase tracking-[0.1em] text-pink-400">
+                🔪 Surgeon Booster™
+              </span>
+              {#if boosterAnnotations.length > 0 && !isBoosting}
+                <button 
+                  onclick={() => runAiBooster?.()}
+                  class="p-1.5 rounded-lg hover:bg-pink-500/10 text-pink-500/40 hover:text-pink-400 transition-all active:scale-90"
+                  title="Chạy lại Booster"
+                >
+                  <RefreshCw size={12} strokeWidth={3} />
+                </button>
+              {/if}
+            </div>
             <div class="flex items-center gap-1.5 opacity-30">
               <span class="text-[9px] font-black uppercase tracking-[0.3em]">Protocol_EEAT_Boost_V2.2</span>
             </div>
-          </div>
           
           {#if boosterAnnotations.some(a => !a.is_applied) && !isBoosting}
             <div class="ml-auto pr-3">
@@ -259,7 +272,7 @@
               <p class="text-[12px] text-white/80 leading-relaxed tracking-tight">
                 {#if ann.replacement_string}
                   <span class="text-white/40 font-mono italic text-[10px] truncate block max-w-full">
-                    Sẽ chèn/thay: "{ann.replacement_string.slice(0, 100)}..."
+                    Sẽ chèn/thay: "{stripBoostTags(ann.replacement_string).slice(0, 100)}..."
                   </span>
                 {/if}
                 <span class="text-pink-200/90 mt-1 block text-[11px] font-bold">{ann.message || ''}</span>

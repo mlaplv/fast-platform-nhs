@@ -32,8 +32,14 @@ class UpdateReviewRequest(BaseModel):
     """Payload Admin chỉnh sửa nội dung Review."""
     model_config = ConfigDict(extra='forbid')
     
-    content: str = Field(..., min_length=5, max_length=5000)
+    content: Optional[str] = Field(None, min_length=5, max_length=15000)
     attachments: Optional[list[ReviewAttachment]] = Field(None, description="Media attachments URL and type")
+    entity_type: Optional[ReviewEntityType] = None
+    entity_id: Optional[str] = None
+    customer_name: Optional[str] = Field(None, max_length=255)
+    customer_phone: Optional[str] = Field(None, max_length=20)
+    customer_location: Optional[str] = Field(None, max_length=255)
+    rating: Optional[int] = Field(None, ge=1, le=5)
 
 class ReviewResponse(BaseModel):
     """Payload trả về thông tin Review."""

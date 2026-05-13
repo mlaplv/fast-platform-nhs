@@ -224,6 +224,7 @@
              isRewriting={isRewriting}
              runNeuralRewrite={analysisData?.runNeuralRewrite}
              runBulkBoosterFix={analysisData?.runBulkBoosterFix}
+             runAiBooster={analysisData?.runAiBooster}
              bind:userPlanNote={userPlanNote}
              currentAnalysisStep={currentAnalysisStep}
              boosterAnnotations={analysisData?.boosterAnnotations ?? []}

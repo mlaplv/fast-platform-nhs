@@ -38,9 +38,9 @@ CẤM TUYỆT ĐỐI việc viết lại toàn bộ hoặc thay đổi văn phon
 
 [YÊU CẦU ĐẦU RA — OUTPUT SCHEMA]
 1. 🧩 PATCHES: Phải chứa danh sách các thay đổi cụ thể. Mỗi patch nhắm vào 1 đoạn văn.
-   - `search_string`: Trích dẫn NGUYÊN VĂN đoạn văn cũ (bao gồm cả tags nếu có).
-   - `replacement_string`: Bản gốc + Phần thông tin bổ sung (CẤM viết lại câu gốc).
-   - `rationale`: Giải thích ngắn gọn dữ liệu đã được cấy ghép.
+    - `search_string`: Trích dẫn NGUYÊN VĂN đoạn văn cũ (bao gồm cả tags nếu có).
+    - `replacement_string`: Bản gốc + Phần thông tin bổ sung. PHẦN BỔ SUNG PHẢI ĐƯỢC BỌC TRONG [[BOOST]]nội dung bổ sung[[/BOOST]] (CẤM viết lại câu gốc).
+    - `rationale`: Giải thích ngắn gọn dữ liệu đã được cấy ghép.
 2. 📝 SUMMARY: Chỉ đưa BÁO CÁO (theo định dạng bên dưới) vào trường này.
 
 [ĐỊNH DẠNG SUMMARY — BẮT BUỘC]

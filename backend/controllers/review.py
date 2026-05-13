@@ -50,6 +50,19 @@ class AdminReviewController(Controller):
         await db_session.commit()
         return ReviewResponse.model_validate(review)
 
+    @patch("/{review_id:str}")
+    async def update_review_full(
+        self,
+        review_id: str,
+        data: UpdateReviewRequest,
+        review_service: ReviewService,
+        db_session: AsyncSession
+    ) -> ReviewResponse:
+        """Elite V2.2: Universal Review Update (Content + Metadata)."""
+        review = await review_service.update_content(review_id, data)
+        await db_session.commit()
+        return ReviewResponse.model_validate(review)
+
     @patch("/{review_id:str}/content")
     async def update_content(
         self,

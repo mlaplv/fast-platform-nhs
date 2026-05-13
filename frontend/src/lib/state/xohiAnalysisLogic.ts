@@ -14,14 +14,27 @@ export function robustNormalize(text: string): string {
         .toLowerCase();
 }
 
+export function extractBoostedText(text: string): string {
+    if (!text) return "";
+    const match = text.match(/\[\[BOOST\]\]([\s\S]*?)\[\[\/BOOST\]\]/);
+    return match ? match[1] : text;
+}
+
+export function stripBoostTags(text: string): string {
+    if (!text) return "";
+    return text.replace(/\[\[BOOST\]\]/g, '').replace(/\[\[\/BOOST\]\]/g, '');
+}
+
 export function refinementStitch(content: string, oldText: string, newText: string): string {
     content = content.normalize('NFC');
     oldText = oldText.normalize('NFC');
     newText = newText.normalize('NFC');
 
+    const cleanNewText = stripBoostTags(newText);
+    
     // Phase 1: Exact Match (Fast Path)
     if (content.includes(oldText)) {
-        return content.replace(oldText, newText);
+        return content.replace(oldText, cleanNewText);
     }
 
     // Phase 2: Alphanumeric Mapping (HTML-Aware)
@@ -53,7 +66,7 @@ export function refinementStitch(content: string, oldText: string, newText: stri
         const startHtml = plainToHtmlMap[idx];
         const endHtmlIdx = idx + normOld.length - 1;
         const endHtml = plainToHtmlMap[endHtmlIdx] + 1;
-        return content.slice(0, startHtml) + newText + content.slice(endHtml);
+        return content.slice(0, startHtml) + stripBoostTags(newText) + content.slice(endHtml);
     }
     return content;
 }

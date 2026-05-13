@@ -2,7 +2,7 @@ import { apiClient } from "$lib/utils/apiClient";
 import { useNanobot } from "./nanobot.svelte";
 import { tick, untrack } from "svelte";
 import { xohiActions } from "./xohiActions";
-import { robustNormalize, refinementStitch } from "./xohiAnalysisLogic";
+import { robustNormalize, refinementStitch, extractBoostedText, stripBoostTags } from "./xohiAnalysisLogic";
 import type {
     CopyrightResult,
     SEOResult,
@@ -532,8 +532,8 @@ export function createAnalysisController(config: {
                                 return { 
                                     ...a, 
                                     is_applied: true, 
-                                    // Shift highlight to the NEW content in the editor
-                                    text: a.replacement_string || a.text 
+                                    // CNS V96.5: Surgical Highlight — only highlight the NEW part
+                                    text: extractBoostedText(a.replacement_string || a.text)
                                 };
                             }
                             return a;
@@ -676,9 +676,17 @@ export function createAnalysisController(config: {
                 const res = await xohiActions.runEnrich(cid);
                 if (res?.status === 'success' && res.data?.new_content) {
                     if (res.logs) bulkFixLogs = [...bulkFixLogs, ...res.logs];
-                    config.setEditedDraft(res.data.new_content);
+                    
+                    // CNS V96.5: Strip surgical tags from the final content before setting to editor
+                    const cleanHtml = stripBoostTags(res.data.new_content);
+                    config.setEditedDraft(cleanHtml);
+
                     if (res.data.annotations?.length) {
-                        const ann = res.data.annotations;
+                        const ann = res.data.annotations.map(a => ({
+                            ...a,
+                            // If backend already applied it, we ensure highlight is surgical
+                            text: extractBoostedText(a.replacement_string || a.text)
+                        }));
                         if (!seoResult) seoResult = { total_score: 0, grade: 'N/A', signals: [], summary: '', quick_wins: [], seo_annotations: ann, logs: [] };
                         else seoResult = { ...seoResult, seo_annotations: [...(seoResult.seo_annotations || []), ...ann] };
                     }
@@ -779,7 +787,8 @@ export function createAnalysisController(config: {
                 if (content.includes(target) || robustNormalize(content).includes(robustNormalize(target))) {
                     content = refinementStitch(content, target, replacement);
                     ann.is_applied = true;
-                    ann.text = replacement; // Shift highlight to new content
+                    // CNS V96.5: Surgical Highlight — only highlight the NEW part
+                    ann.text = extractBoostedText(replacement); 
                     appliedCount++;
                     addTerminalLog(`✅ Đã phẫu thuật: ${ann.message?.slice(0, 30)}...`);
                 }
