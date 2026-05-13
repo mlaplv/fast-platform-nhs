@@ -66,6 +66,8 @@
     onAddToCart, onBuyNow, onTriggerWriteReview, onTriggerViralFly
   }: Props = $props();
 
+  const soldStr = $derived(product.order_count_text || product.orderCountText || (product.orderCount || product.order_count ? `${product.orderCount || product.order_count}` : ''));
+
 </script>
 
 <div class="flex-1 flex flex-col pt-0">
@@ -94,8 +96,8 @@
     </button>
     <div class="w-[1.5px] h-4 bg-gray-200"></div>
     <div class="flex items-center gap-1.5">
-      <span class="text-black font-black text-[16px]">{product.order_count_text || formatNumber(product.orderCount) || 0}</span>
-      {#if !product.order_count_text}
+      {#if soldStr}
+        <span class="text-black font-black text-[16px]">{soldStr.includes('đã bán') || soldStr.includes('Đã bán') ? soldStr.replace(/[Đđ]ã bán\s*/g, '') : soldStr}</span>
         <span class="text-gray-500 font-bold text-[14px]">đã bán</span>
       {/if}
     </div>

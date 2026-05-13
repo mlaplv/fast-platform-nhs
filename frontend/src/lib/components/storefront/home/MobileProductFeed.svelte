@@ -66,7 +66,7 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 4px;
-    padding: 4px 8px;
+    padding: 4px 5px;
   }
 
   .empty-state {

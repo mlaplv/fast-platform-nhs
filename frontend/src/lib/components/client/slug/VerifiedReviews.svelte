@@ -39,12 +39,12 @@
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.reviews_headline?.split('//') || []);
-  const h1 = $derived(metadata.reviews_headline_1 || stripTags(legacyParts[0]) || "ĐÁNH GIÁ THỰC TẾ");
+  const h1 = $derived(metadata.reviews_headline_1 || stripTags(legacyParts[0]) || "Đánh giá thực tế");
   const h2 = $derived(metadata.reviews_headline_2 || stripTags(legacyParts[1]) || "Miccosmo Beppin Body Virgin White Serum");
 
   const subheadline = $derived(metadata?.reviews_subheadline || 'Kiểm chứng công thức số 1 từ Nhật Bản. Thấm nhanh, không bết dính. Hiệu quả rõ rệt sau 2 tuần. Đừng bỏ lỡ siêu phẩm Best-seller!');
   const trustScore = $derived(metadata?.reviews_trust_score || '4.9/5');
-  const countText = $derived(product?.orderCountText || metadata?.reviews_count_text || '2,140+ LƯỢT MUA');
+  const countText = $derived(product?.orderCountText || metadata?.reviews_count_text || (product?.orderCount || product?.order_count ? `${(product.orderCount || product.order_count).toLocaleString()}+ LƯỢT MUA` : ''));
 
   // Elite V2.2: Live FOMO Pulse Logic
   let liveViewers = $state(Math.floor(Math.random() * (45 - 12 + 1)) + 12);
@@ -72,23 +72,23 @@
 
   const labels = $derived({
     trust_score: (metadata.reviews_trust_score as string) || trustScore || '4.9/5',
-    count_text: (metadata.reviews_count_text as string) || countText || '2,140+ LƯỢT MUA',
-    hud_feedback: (metadata.reviews_hud_feedback as string) || 'HỆ THỐNG // PHẢN HỒI THỰC TẾ',
-    label_verified: (metadata.reviews_label_verified as string) || 'ĐÃ XÁC THỰC',
-    label_compliant: (metadata.reviews_label_compliant as string) || 'TIÊU CHUẨN ELITE',
+    count_text: (metadata.reviews_count_text as string) || countText || (product?.orderCount || product?.order_count ? `${(product.orderCount || product.order_count).toLocaleString()}+ lượt mua` : ''),
+    hud_feedback: (metadata.reviews_hud_feedback as string) || 'Hệ thống // Phản hồi thực tế',
+    label_verified: (metadata.reviews_label_verified as string) || 'Đã xác thực',
+    label_compliant: (metadata.reviews_label_compliant as string) || 'Tiêu chuẩn Elite',
     label_store_verified: (metadata.reviews_label_store_verified as string) || `Xác thực bởi ${ui.settings?.contact?.name || 'Cửa hàng'}`,
-    label_secure_encryption: (metadata.reviews_label_secure_encryption as string) || 'MÃ HÓA BẢO MẬT [AES-256]',
-    label_secure_gate: (metadata.reviews_label_secure_gate as string) || 'CỔNG BẢO MẬT // V2.2',
+    label_secure_encryption: (metadata.reviews_label_secure_encryption as string) || 'Mã hóa bảo mật [AES-256]',
+    label_secure_gate: (metadata.reviews_label_secure_gate as string) || 'Cổng bảo mật // V2.2',
     cta_write: (metadata.reviews_cta_write as string) || 'Viết đánh giá của bạn',
-    form_title: (metadata.reviews_form_title as string) || 'MODULE // REAL_VOICE_ANALYSIS_V2',
+    form_title: (metadata.reviews_form_title as string) || 'Module // Real_Voice_Analysis_V2',
     form_name: (metadata.reviews_form_name_label as string) || 'Danh tính',
     form_phone: (metadata.reviews_form_phone_label as string) || 'Liên hệ',
     form_location: (metadata.reviews_form_location_label as string) || 'Vị trí',
     form_rating: (metadata.reviews_form_rating_label as string) || 'Đánh giá sao',
     form_content: (metadata.reviews_form_content_label as string) || 'Trải nghiệm thực tế',
     form_placeholder: (metadata.reviews_form_placeholder_content as string) || 'Hãy cho chúng tôi biết cảm nhận của bạn... *',
-    form_cta: (metadata.reviews_form_cta_submit as string) || 'XÁC NHẬN GỬI ĐÁNH GIÁ',
-    success_title: (metadata.reviews_form_success_title as string) || 'GỬI ĐÁNH GIÁ THÀNH CÔNG!',
+    form_cta: (metadata.reviews_form_cta_submit as string) || 'Xác nhận gửi đánh giá',
+    success_title: (metadata.reviews_form_success_title as string) || 'Gửi đánh giá thành công!',
     success_msg: (metadata.reviews_form_success_msg || 'Hệ thống đã ghi nhận phản hồi của bạn. Đánh giá sẽ hiển thị sau khi được quản trị viên kiểm duyệt.') as string
   });
 

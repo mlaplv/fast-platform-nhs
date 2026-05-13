@@ -48,15 +48,15 @@
   let isLoading = $state(initialReviews.length === 0);
 
   const labels = $derived({
-    headline: metadata?.reviews_headline || 'KHÁCH HÀNG NÓI GÌ?',
+    headline: metadata?.reviews_headline || 'Khách hàng nói gì?',
     trust_score: metadata?.reviews_trust_score || '4.9/5',
-    count_text: product?.orderCountText || metadata?.reviews_count_text || '2,140+ LƯỢT MUA',
-    hud_feedback: metadata?.reviews_hud_feedback || 'HỆ THỐNG // PHẢN HỒI THỰC TẾ',
-    label_verified: metadata?.reviews_label_verified || 'ĐÃ XÁC THỰC',
+    count_text: product?.orderCountText || metadata?.reviews_count_text || (product?.orderCount || product?.order_count ? `${(product.orderCount || product.order_count).toLocaleString()}+ lượt mua` : ''),
+    hud_feedback: metadata?.reviews_hud_feedback || 'Hệ thống // Phản hồi thực tế',
+    label_verified: metadata?.reviews_label_verified || 'Đã xác thực',
     label_store_verified: metadata?.reviews_label_store_verified || 'Xác thực bởi Cửa hàng',
     cta_write: metadata?.reviews_cta_write || 'Viết đánh giá',
-    form_title: metadata?.reviews_form_title || 'GỬI ĐÁNH GIÁ MỚI',
-    success_title: metadata?.reviews_form_success_title || 'THÀNH CÔNG!',
+    form_title: metadata?.reviews_form_title || 'Gửi đánh giá mới',
+    success_title: metadata?.reviews_form_success_title || 'Thành công!',
     success_msg: metadata?.reviews_form_success_msg || 'Đánh giá của bạn đã được ghi nhận và đang chờ duyệt.'
   });
 
@@ -196,9 +196,9 @@
   <div class="mt-3 mb-8 px-[23px]">
     <div class="inline-flex items-center gap-2 px-3 py-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 rounded-full backdrop-blur-md mb-6">
       <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] animate-pulse shadow-[0_0_8px_rgba(255,183,197,0.6)]"></div>
-      <span class="text-[9px] uppercase tracking-[0.2em] text-[#FFB7C5] font-black italic">
+      <span class="text-[10px] tracking-[0.1em] text-[#FFB7C5] font-black italic">
         <EditableWrapper path="metadata.reviews_hud_feedback" label="SỬA NHÃN HỆ THỐNG" as="span">
-          {metadata.reviews_hud_feedback || 'HỆ THỐNG // PHẢN HỒI THỰC TẾ'}
+          {metadata.reviews_hud_feedback || 'Hệ thống // Phản hồi thực tế'}
         </EditableWrapper>
       </span>
     </div>
@@ -231,9 +231,9 @@
               {metadata.reviews_trust_score || '4.9/5'}
             </EditableWrapper>
           </span>
-          <span class="text-[9px] text-[#FFB7C5] font-black uppercase tracking-widest">
+          <span class="text-[10px] text-[#FFB7C5] font-black tracking-tight">
             <EditableWrapper path="metadata.reviews_count_text" label="SỬA SỐ LƯỢT MUA" as="span">
-              {product?.orderCountText || metadata.reviews_count_text || '2,140+ LƯỢT MUA'}
+              {product?.orderCountText || metadata.reviews_count_text || (product?.orderCount || product?.order_count ? `${(product.orderCount || product.order_count).toLocaleString()}+ lượt mua` : '')}
             </EditableWrapper>
           </span>
         </div>

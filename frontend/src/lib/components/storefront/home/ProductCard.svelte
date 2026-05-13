@@ -18,6 +18,8 @@
 
   // Elite V2.2: Universal Sanitization
   const cleanName = $derived(trimProductName(product.name));
+  
+  const soldStr = $derived(product.orderCountText || product.order_count_text || product.metadata?.reviews_count_text || (product.orderCount || product.order_count ? `${product.orderCount || product.order_count}` : ''));
 
   function navigateProduct(): void {
     goto(`/${product.slug || product.id}`);
@@ -68,16 +70,15 @@
         <span class="current-price">
           {formatCurrency(finalPrice)}
         </span>
-        {#if oldPrice > 0}
-          <span class="old-price">{formatCurrency(oldPrice)}</span>
+        {#if soldStr}
+          <span class="sold-count">
+            {soldStr.includes('Đã bán') ? soldStr : `Đã bán ${soldStr}`}
+          </span>
         {/if}
       </div>
     </div>
 
     <div class="product-footer">
-      <span class="sold-count">
-        {product.metadata?.reviews_count_text || ''}
-      </span>
       {#if product.metadata?.location}
         <div class="location-badge">
           {product.metadata.location}
@@ -174,7 +175,7 @@
   .star { color: #ffd839; font-size: 11px; }
 
   .product-info {
-    padding: 10px 8px;
+    padding: 10px 5px;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -196,6 +197,7 @@
   .price-row {
     display: flex;
     align-items: baseline;
+    justify-content: space-between;
     gap: 4px;
   }
 
@@ -206,11 +208,7 @@
   }
   .symbol { font-size: 12px; text-decoration: underline; font-weight: 900; }
 
-  .old-price {
-    font-size: 11px;
-    color: #bbb;
-    text-decoration: line-through;
-  }
+
 
   .product-footer {
     display: flex;

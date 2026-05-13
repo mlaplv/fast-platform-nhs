@@ -84,7 +84,7 @@
   <div class="flex flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
     <div class="flex items-center gap-4">
       <div class="flex items-center group cursor-default">
-        <h2 class="text-2xl font-black italic tracking-tighter uppercase flex items-center gap-1">
+        <h2 class="text-2xl font-black italic tracking-tighter flex items-center gap-1">
           <span class="bg-gradient-to-r from-[#ee4d2d] to-[#ff6a00] bg-clip-text text-transparent">F</span>
           <svg class="w-6 h-6 fill-[#ff2b54] animate-pulse drop-shadow-[0_0_8px_rgba(255,43,84,0.6)]" viewBox="0 0 24 24">
             <path d="M13 2L4 14h7l-1 8 9-12h-7z"/>
@@ -106,10 +106,10 @@
     <div class="flex items-center gap-3 px-4 py-1.5 bg-gradient-to-r from-[#ee4d2d]/10 via-[#ff6a00]/10 to-[#ee4d2d]/10 rounded-full border border-[#ee4d2d]/20 shadow-[0_2px_10px_rgba(238,77,45,0.05)] animate-pulse-slow">
         <Truck class="w-4 h-4 text-[#ee4d2d]" />
         <div class="flex flex-col">
-            <span class="text-[10px] font-black text-[#ee4d2d] leading-none uppercase tracking-tighter">
+            <span class="text-[10px] font-black text-[#ee4d2d] leading-none tracking-tighter">
                 {freeshipVoucher?.title || "Miễn Phí Vận Chuyển"}
             </span>
-            <span class="text-[8px] font-bold text-[#ff6a00] leading-none uppercase tracking-tighter mt-0.5">
+            <span class="text-[8px] font-bold text-[#ff6a00] leading-none tracking-tighter mt-0.5">
                 {freeshipVoucher?.subtitle || "Duy nhất phiên này"}
             </span>
         </div>
@@ -196,9 +196,9 @@
               </div>
               <span class="sold-text" class:is-hot-text={deal.progress > 85}>
                 {#if deal.progress > 85}
-                  🔥 SẮP CHÁY HÀNG
+                  🔥 Sắp cháy hàng
                 {:else}
-                  ĐÃ BÁN {deal.soldText}
+                  {deal.soldText.toString().includes('Đã bán') ? deal.soldText : `Đã bán ${deal.soldText}`}
                 {/if}
               </span>
             </div>

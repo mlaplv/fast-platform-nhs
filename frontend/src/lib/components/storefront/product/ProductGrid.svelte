@@ -21,6 +21,7 @@
 <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 px-0.5">
   {#each products as product (product.id)}
     {@const discount = getDiscountPercent(product)}
+    {@const soldStr = product.order_count_text || product.orderCountText || '0'}
     <a
       href={`/${product.slug}`}
       class="group/card relative bg-white rounded-2xl border border-gray-50 transition-all duration-300 cursor-pointer flex flex-col active:scale-[0.98] shadow-sm overflow-hidden no-underline"
@@ -82,7 +83,7 @@
              <div class="flex items-center gap-0.5 text-[#ffac33]">
                 <svg class="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                 <span class="text-[10px] text-gray-400 font-bold ml-0.5">
-                  Đã bán {product.order_count_text || product.orderCountText || '0'}
+                  {soldStr.includes('Đã bán') ? soldStr : `Đã bán ${soldStr}`}
                 </span>
              </div>
 

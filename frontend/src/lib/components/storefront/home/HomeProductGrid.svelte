@@ -181,7 +181,7 @@
             <span class="text-lg transition-all transform duration-700 {activeTab === tab.id ? 'scale-125 opacity-100 rotate-12' : 'opacity-20 scale-100 group-hover/tab:opacity-100 group-hover/tab:-rotate-12'}">
               {tab.icon}
             </span>
-            <span class="text-[12px] font-black uppercase tracking-[0.4em] transition-all duration-500
+            <span class="text-[12px] font-black tracking-[0.2em] transition-all duration-500
               {activeTab === tab.id ? 'text-black' : 'text-gray-400 group-hover/tab:text-gray-900'}">
               {tab.label}
             </span>
@@ -199,7 +199,7 @@
 
     <!-- Elite Brand Indicator -->
     <div class="hidden xl:flex items-center gap-3 px-6 py-2 bg-white/50 backdrop-blur-md border border-gray-100 mr-6 pointer-events-none">
-      <span class="text-[9px] font-black uppercase tracking-[0.3em] text-[#C18F7E]">Bộ sưu tập Thượng lưu 2026</span>
+      <span class="text-[10px] font-black tracking-[0.2em] text-[#C18F7E]">Bộ sưu tập Thượng lưu 2026</span>
     </div>
   </nav>
 
@@ -217,8 +217,8 @@
         <!-- Content Left -->
         <div class="relative z-10 flex flex-col gap-6 max-w-[60%]">
           <div in:fly={{y: 20, duration: 1500, delay: 400}} class="flex items-center gap-4">
-              <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[9px] font-black px-3 py-1.5 uppercase tracking-widest border border-[#C18F7E]/20">Lựa chọn Tinh hoa osmo</span>
-              <span class="text-black/20 text-[8px] font-black uppercase tracking-[0.4em]">Số lượng giới hạn</span>
+              <span class="bg-[#C18F7E]/10 text-[#C18F7E] text-[10px] font-black px-3 py-1.5 tracking-tight border border-[#C18F7E]/20">Lựa chọn Tinh hoa osmo</span>
+              <span class="text-black/20 text-[9px] font-black tracking-[0.2em]">Số lượng giới hạn</span>
           </div>
           
           <div in:fade={{duration: 1200, delay: 400}} class="flex flex-col">
@@ -230,7 +230,7 @@
           <div in:fly={{y: 40, duration: 1500, delay: 800}} class="flex items-center gap-10">
               <div class="flex flex-col">
                   <div class="flex items-center gap-4 mb-1">
-                      <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20">Đặc quyền osmo</span>
+                      <span class="text-[10px] font-black tracking-[0.1em] text-black/20">Đặc quyền osmo</span>
                       {#if slide.originalPrice}
                           <span class="text-sm font-bold text-gray-300 line-through tabular-nums decoration-gray-400/30">
                               {formatCurrency(Math.round(slide.originalPrice))}
@@ -239,19 +239,19 @@
                   </div>
                   <span class="text-[#ee4d2d] text-4xl font-black tabular-nums tracking-tighter flex items-end gap-2">
                       {formatCurrency(slide.price || 0)}
-                      <span class="text-[10px] text-[#C18F7E] font-bold uppercase tracking-widest mb-1.5 animate-pulse">−{slide.discountPercent}% GIỚI HẠN</span>
+                      <span class="text-[10px] text-[#C18F7E] font-bold tracking-tight mb-1.5 animate-pulse">−{slide.discountPercent}% Giới hạn</span>
                   </span>
               </div>
               <div class="flex flex-col">
-                  <span class="text-[9px] font-black uppercase tracking-[0.3em] text-black/20 mb-1">Cộng đồng</span>
-                  <span class="text-black text-xl font-black italic">+{slide.sales || 0} <span class="text-[9px] opacity-30 not-italic uppercase ml-1">Tin dùng</span></span>
+                  <span class="text-[10px] font-black tracking-[0.2em] text-black/20 mb-1">Cộng đồng</span>
+                  <span class="text-black text-xl font-black italic">+{slide.sales || 0} <span class="text-[10px] opacity-30 not-italic ml-1">Tin dùng</span></span>
               </div>
           </div>
           
           <div in:fly={{y: 50, duration: 1500, delay: 1000}} class="flex flex-col gap-4">
               <button 
                   onclick={() => goto(`/${slide.originalSlug || slide.slug || slugify(slide.name)}`)}
-                  class="group/btn relative w-fit px-20 py-6 bg-black text-white text-[11px] font-black uppercase tracking-[0.4em] overflow-hidden transition-all active:scale-95 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] hover:shadow-[0_40px_80px_-15px_rgba(193,143,126,0.4)]"
+                  class="group/btn relative w-fit px-20 py-6 bg-black text-white text-[12px] font-black tracking-[0.2em] overflow-hidden transition-all active:scale-95 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] hover:shadow-[0_40px_80px_-15px_rgba(193,143,126,0.4)]"
               >
                   <span class="relative z-10 transition-colors group-hover/btn:text-white">Sở Hữu Ngay</span>
                   <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:animate-shivering pointer-events-none"></div>
@@ -260,7 +260,7 @@
               
               <div class="flex items-center gap-2 animate-pulse">
                   <div class="h-1 w-1 rounded-full bg-[#C18F7E]"></div>
-                  <span class="text-[8px] font-bold uppercase tracking-widest text-black/40">Chỉ còn 12 suất ưu đãi trong hôm nay</span>
+                  <span class="text-[9px] font-bold tracking-tight text-black/40">Chỉ còn 12 suất ưu đãi trong hôm nay</span>
               </div>
           </div>
         </div>
@@ -365,9 +365,9 @@
 
             <div class="relative w-full h-4 bg-[#C18F7E]/5 overflow-hidden flex items-center justify-center border border-[#C18F7E]/10">
                 <div class="absolute inset-0 bg-gradient-to-r from-[#C18F7E] via-[#E2B1A2] to-[#C18F7E] transition-all duration-1000" style="width: {product.stockPercent}%"></div>
-                <span class="relative z-10 text-[8px] font-black text-[#C18F7E] mix-blend-multiply uppercase tracking-widest flex items-center gap-1">
+                <span class="relative z-10 text-[9px] font-black text-[#C18F7E] mix-blend-multiply flex items-center gap-1">
                     <svg class="w-2 h-2" fill="currentColor" viewBox="0 0 20 20"><path d="M12 2a1 1 0 01.894.553L17.382 11H13v6a1 1 0 01-1.894.447l-5-10A1 1 0 017 6h4V2z"/></svg>
-                    Đã bán {product.sales}
+                    {product.sales.toString().includes('Đã bán') ? product.sales : `Đã bán ${product.sales}`}
                 </span>
                 <div class="absolute inset-0 bg-white/20 w-1/3 skew-x-[-20deg] animate-gliding-light pointer-events-none"></div>
             </div>

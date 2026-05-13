@@ -142,7 +142,7 @@
               {#if deal.isHot && deal.progress > 80}
                 🔥 Sắp cháy hàng
               {:else}
-                Đã bán {deal.soldText}
+                {deal.soldText.toString().includes('Đã bán') ? deal.soldText : `Đã bán ${deal.soldText}`}
               {/if}
             </span>
           </div>
@@ -158,11 +158,6 @@
           <span class="current-price">
             {formatCurrency(deal.finalPrice)}
           </span>
-          {#if deal.oldPrice}
-            <div class="old-price">
-              {formatCurrency(deal.oldPrice)}
-            </div>
-          {/if}
         </div>
       </button>
     {/each}
@@ -255,7 +250,7 @@
     scrollbar-width: none;
     -ms-overflow-style: none;
     gap: 4px; /* Standardized high-density gap */
-    padding: 0 8px 16px;
+    padding: 0 5px 16px;
   }
   .flash-deals-track::-webkit-scrollbar { display: none; }
 
@@ -375,7 +370,7 @@
   }
 
   .product-name-wrap {
-    padding: 0 10px;
+    padding: 0 5px;
     margin-top: 8px;
     height: 2.8em;
     overflow: hidden;
@@ -400,7 +395,7 @@
     justify-content: flex-start;
     gap: 3px;
     margin-top: 6px;
-    padding: 0 10px;
+    padding: 0 5px;
   }
 
   .current-price {
@@ -418,14 +413,6 @@
     font-weight: 800;
     margin-left: 1px;
     text-decoration: underline;
-  }
-
-  .old-price {
-    font-size: 10.5px;
-    font-weight: 600;
-    color: #bbb;
-    text-decoration: line-through;
-    opacity: 0.9;
   }
 
   /* FOMO Animations */
