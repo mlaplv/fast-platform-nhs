@@ -75,9 +75,9 @@
   <div class="tech-grid"></div>
 
   <div class="science-header">
-    <h2 class="text-2xl font-black text-white italic tracking-tight">
+    <h2 class="text-2xl font-black text-white italic tracking-tight uppercase">
       <EditableWrapper path="metadata.science_headline" type="text" label="SỬA TIÊU ĐỀ" as="span">
-        {metadata.science_headline || 'Tại sao lại hiệu quả vượt trội?'}
+        {metadata.science_headline || 'TẠI SAO LẠI HIỆU QUẢ VƯỢT TRỘI?'}
       </EditableWrapper>
     </h2>
     

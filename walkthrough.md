@@ -1,16 +1,21 @@
-# Walkthrough: Implement Persistent Diagnostic Counter in Database
+# Walkthrough: MobileScience Spacing Optimization
 
-## 1. Problem
-The diagnostic counter is currently derived from a static `.env` variable and only increments locally in the browser session. This means the progress is lost on page reload and not shared across users.
+## 1. Requirement
+The USER identified excessive padding and requested optimization for a more compact, high-density layout.
 
-## 2. Solution
-- **Backend**: Modify `DiagnosticAgent.analyze` to increment a persistent `diagnostics_count` field within the product's JSONB metadata in the database upon each successful analysis.
-- **Frontend**: Update `MobileDiagnostics.svelte` to display the count from `product.metadata.diagnostics_count`. If unavailable, it falls back to the legacy `.env` calculation.
+## 2. Implementation
+- Reduced `science-root` side padding from `1rem` to `0.5rem`.
+- Reduced `.claim-card` internal padding from `1.125rem 1.25rem` to `0.75rem 0.875rem`.
+- Reduced vertical gaps between cards (`science-claims-stack gap`) and between sections (`science-content-container gap`).
+- Tightened up margins for titles and headers to maximize vertical screen real estate.
+- Optimized FAQ and footer padding for consistency.
 
-## 3. Evidence
-Implemented a persistent, "honest" diagnostic counter:
-- **Backend**: Updated `DiagnosticAgent.py` to increment `diagnostics_count` in the product's JSONB metadata upon each successful AI analysis. If the field doesn't exist, it initializes using the `PUBLIC_G_BY_COUNT * 5` formula.
-- **Frontend**: Updated `MobileDiagnostics.svelte` to read directly from `metadata.diagnostics_count`.
-- **Real-time Feedback**: Kept the `sessionIncrement` logic to provide immediate visual feedback while the user is still on the page, before the next server-side data refresh.
-- **Persistence**: The count now persists across different users and sessions because it is stored in the database.
+## 3. Verification
+- The layout is now much more compact, allowing more content to be visible without excessive scrolling.
+- "Ultra-Lean" standards are maintained by removing negative space redundancy.
 
+## 4. Evidence
+File: `frontend/src/lib/components/mobile/sections/MobileScience.css`
+- Root padding: `var(--mobile-top-space) 0.5rem`
+- Claim card padding: `0.75rem 0.875rem`
+- Section gap: `1.25rem`
