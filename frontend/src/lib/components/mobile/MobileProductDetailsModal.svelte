@@ -458,34 +458,40 @@
       {/if}
     </div>
 
-    <!-- 🛰️ ELITE V2.2: MODAL STICKY CTA (Conversion Booster) -->
-    <div class="mt-auto pt-2 pb-6 px-4 bg-gradient-to-t from-black via-black/95 to-transparent shrink-0 relative z-surface border-t border-white/5">
+    <!-- 🛰️ ELITE V2.2: FLOATING STICKY CTA (Conversion Booster) -->
+    {#if isAtBottom}
+    <div 
+      class="absolute bottom-10 left-0 w-full px-4 shrink-0 z-[var(--z-surface)] pointer-events-none"
+      transition:fly={{ y: 20, duration: 400 }}
+    >
         <button
            onclick={() => { 
              const variantToBuy = shopStore.variant || product.variants?.[0];
              if (variantToBuy) shopStore.selectVariant(variantToBuy);
              shopStore.openCheckout(cartStore, product); 
            }}
-           class="w-full h-[65px] rounded-[1.5rem] font-black text-[14px] uppercase tracking-[0.1em] flex items-center justify-between px-5 transition-all duration-500 italic active:scale-95 bg-[#FFB7C5] text-slate-950 shadow-[0_10px_40px_rgba(255,183,197,0.3)] relative group overflow-hidden"
+           class="w-full h-[65px] rounded-[1.5rem] font-black text-[14px] tracking-[0.1em] flex items-center justify-between px-5 transition-all duration-500 italic active:scale-95 bg-gradient-to-r from-[#ee4d2d] to-[#ff7337] text-white shadow-[0_20px_50px_rgba(238,77,45,0.4)] relative group overflow-hidden pointer-events-auto"
          >
+           <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
            <div class="flex flex-col text-left leading-tight">
-              <span class="text-[10px] font-black uppercase opacity-60">Đặt hàng ngay</span>
-              <span class="text-[13px] font-black uppercase">Chọn Combo x{shopStore.variant?.attributes?.combo_qty || 1}</span>
+              <span class="text-[10px] font-black opacity-60">Đặt hàng ngay</span>
+              <span class="text-[13px] font-black">Chọn Combo x{shopStore.variant?.attributes?.combo_qty || 1}</span>
            </div>
            
            <div class="flex items-center gap-3">
               <div class="flex flex-col items-end leading-none">
                  {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount}
-                   <span class="text-[9px] text-slate-950/40 line-through font-bold">{formatCurrency(shopStore.originalPrice * shopStore.quantity)}</span>
+                   <span class="text-[9px] text-white/40 line-through font-bold">{formatCurrency(shopStore.originalPrice * shopStore.quantity)}</span>
                  {/if}
-                 <span class="text-[19px] font-[1000] tracking-tighter">{formatCurrency(shopStore.totalAmount || (product.variants?.[0]?.price || 0))}</span>
+                 <span class="text-[19px] font-[1000] tracking-tighter drop-shadow-sm">{formatCurrency(shopStore.totalAmount || (product.variants?.[0]?.price || 0))}</span>
               </div>
-              <div class="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center border border-black/5">
-                 <ArrowRight class="w-5 h-5" />
+              <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center border border-white/10">
+                 <ArrowRight class="w-5 h-5 text-white" />
               </div>
            </div>
         </button>
     </div>
+    {/if}
   </div>
 </div>
 

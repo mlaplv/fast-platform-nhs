@@ -113,7 +113,7 @@
     campaignData?.cta_text || 
     viralSuite?.share_cta || 
     promoConfig?.cta_text ||
-    'NHẬN QUÀ'
+    'Nhận quà'
   );
 
   const stats = $derived(viralSuite?.stats ?? { redeemed_count: 0 });
@@ -142,7 +142,7 @@
         const existingVoucher = shopStore?.vouchers?.find(v => v.id === promoConfig.voucher_id);
         if (existingVoucher) {
             voucherCode = existingVoucher.code;
-            voucherLabel = existingVoucher.label || 'VOUCHER ĐẶC QUYỀN';
+            voucherLabel = existingVoucher.label || 'Voucher đặc quyền';
             step = 'revealed';
         }
       } else if (saved) {
@@ -386,7 +386,7 @@
     {:else if step === 'sharing' || step === 'verifying'}
       <div class="stu-center">
         <Loader size={16} class="stu-spin" style="color: #ee4d2d;" />
-        <span class="stu-loading-text">{step === 'sharing' ? 'ĐANG KẾT NỐI...' : 'AI ĐANG XÁC MINH...'}</span>
+        <span class="stu-loading-text">{step === 'sharing' ? 'Đang kết nối...' : 'AI đang xác minh...'}</span>
       </div>
 
     {:else if step === 'revealed' && voucherCode}
@@ -424,7 +424,7 @@
   
   .stp-funnel-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,0.1); min-height: 52px; }
   .stp-f-msg { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-  .stp-f-t { font-size: 9px; font-weight: 900; color: #ffb7c5; text-transform: uppercase; letter-spacing: 0.1em; }
+  .stp-f-t { font-size: 9px; font-weight: 900; color: #ffb7c5; letter-spacing: 0.1em; }
   .stp-f-progress { height: 4px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
   .stp-f-bar { height: 100%; background: linear-gradient(90deg, #ffb7c5, #ee4d2d); border-radius: 10px; }
   .stp-f-btn { 
@@ -432,7 +432,7 @@
     background: linear-gradient(135deg, #ee4d2d, #ff7337); color: #fff; 
     padding: 8px 20px; border-radius: 6px; font-size: 11px; font-weight: 1000; border: none; cursor: pointer;
     box-shadow: 0 4px 15px rgba(238, 77, 45, 0.25); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    text-transform: uppercase; letter-spacing: 0.05em;
+    letter-spacing: 0.05em;
   }
   .stp-f-btn:active { transform: scale(0.92); }
 
@@ -481,7 +481,7 @@
   .stu-f-btn-inner {
     display: flex; align-items: center; gap: 6px;
     font-size: 11px; font-weight: 1000;
-    text-transform: uppercase; letter-spacing: 0.12em;
+    letter-spacing: 0.12em;
     z-index: 2; position: relative;
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
   }
@@ -515,17 +515,17 @@
   }
 
   .stu-center { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; }
-  .stu-loading-text { font-size: 11px; font-weight: 800; color: #ee4d2d; text-transform: uppercase; }
+  .stu-loading-text { font-size: 11px; font-weight: 800; color: #ee4d2d; }
   
   .stu-confirm-view { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; background: #fff; border: 1.5px dashed #ee4d2d; border-radius: 4px; }
-  .stu-confirm-txt { font-size: 14px; font-weight: 1000; color: #000; text-transform: uppercase; }
+  .stu-confirm-txt { font-size: 14px; font-weight: 1000; color: #000; }
   .stu-confirm-btns { display: flex; gap: 8px; width: 100%; }
   .stu-btn-alt { flex: 1; height: 36px; background: #f5f5f5; color: #666; border: none; border-radius: 6px; font-size: 12px; font-weight: 800; }
   .stu-btn-prim { flex: 1; height: 36px; background: #ee4d2d; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 1000; }
 
   .stu-revealed-card { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #fffcfc; border: 1.5px dashed #ee4d2d; border-radius: 4px; animation: stu-reveal 0.5s ease; }
   .stu-voucher-info { display: flex; flex-direction: column; }
-  .stu-voucher-label { font-size: 10px; font-weight: 800; color: #999; text-transform: uppercase; }
+  .stu-voucher-label { font-size: 10px; font-weight: 800; color: #999; }
   .stu-voucher-code { font-size: 18px; font-weight: 1000; color: #ee4d2d; font-family: monospace; }
   .stu-copy-btn { padding: 6px 12px; background: #ee4d2d; color: #fff; border: none; border-radius: 6px; font-size: 11px; font-weight: 900; }
 

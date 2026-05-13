@@ -33,6 +33,8 @@
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import EditableWrapper from '../../admin/EditableWrapper.svelte';
+  import { PUBLIC_G_BY_COUNT } from '$env/static/public';
+
 
   let { product: propProduct } = $props();
   const shopStore = getShopStore();
@@ -167,16 +169,28 @@
   $effect(() => {
     return () => clearTimers();
   });
+  
+  // 🚀 Manual Swipe Support (Elite V2.2)
+  let touchStartX = 0;
+  let touchEndX = 0;
 
-  // 🚀 Auto-autoplay diagnostic results (Elite V2.2)
-  $effect(() => {
-    if (shopStore.diagnosticResult && !shopStore.isAnalyzing) {
-      const slideInterval = setInterval(() => {
-        activeSlide = (activeSlide + 1) % 2;
-      }, 5000);
-      return () => clearInterval(slideInterval);
+  function handleTouchStart(e: TouchEvent) {
+    touchStartX = e.changedTouches[0].screenX;
+  }
+
+  function handleTouchEnd(e: TouchEvent) {
+    touchEndX = e.changedTouches[0].screenX;
+    const threshold = 50;
+    if (touchEndX < touchStartX - threshold) {
+      if (activeSlide < 1) activeSlide++;
     }
-  });
+    if (touchEndX > touchStartX + threshold) {
+      if (activeSlide > 0) activeSlide--;
+    }
+  }
+
+
+
 
 
   function nextStep(value: string, label: string) {
@@ -295,7 +309,7 @@
     <div class="mt-3 mb-2" transition:fade>
       <div class="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 rounded-full mb-2 backdrop-blur-md">
         <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] animate-pulse"></div>
-        <span class="text-[10px] uppercase tracking-[0.2em] text-[#FFB7C5] font-bold italic">System v2.6+</span>
+        <span class="text-[10px] tracking-[0.2em] text-[#FFB7C5] font-bold italic">đã chẩn đoán cho {(Number(PUBLIC_G_BY_COUNT) * 5).toLocaleString()} người</span>
       </div>
         <h2 class="text-2xl font-extrabold text-white leading-relaxed tracking-tighter italic tiktok-shadow">
           <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ">
@@ -332,7 +346,7 @@
               ĐANG PHÂN TÍCH...
             </div>
             
-            <div class="text-[11px] text-[#FFB7C5] font-bold uppercase tracking-[0.2em] mb-12 h-4 animate-pulse">
+            <div class="text-[11px] text-[#FFB7C5] font-bold tracking-[0.2em] mb-12 h-4 animate-pulse">
               {analysisStatus}
             </div>
 
@@ -376,15 +390,15 @@
             <!-- Result Header HUD -->
             <div class="flex justify-between items-start mb-4 border-b border-white/10 pb-3 shrink-0">
               <div class="flex-1">
-                <h3 class="text-xl font-black text-white tracking-tighter uppercase mb-1 drop-shadow-[0_0_15px_rgba(255,183,197,0.5)] italic">
-                  PHÁC ĐỒ ĐIỀU TRỊ
+                <h3 class="text-xl font-black text-white tracking-tighter mb-1 drop-shadow-[0_0_15px_rgba(255,183,197,0.5)] italic sentence-case-target">
+                  Phác đồ điều trị
                 </h3>
                 <p class="text-[7px] text-[#FFB7C5] font-bold uppercase tracking-[0.3em]">AI osmo 2026</p>
               </div>
               <div class="flex items-center gap-2 shrink-0">
                <div class="text-right">
-                  <span class="block text-[6px] text-white/30 uppercase font-black">Hiệu lực</span>
-                  <span class="block text-[7px] text-emerald-400 uppercase font-bold italic tracking-tighter">An toàn tuyệt đối</span>
+                  <span class="block text-[6px] text-white/30 font-black sentence-case-target">Hiệu lực</span>
+                  <span class="block text-[7px] text-emerald-400 font-bold italic tracking-tighter sentence-case-target">An toàn tuyệt đối</span>
                </div>
                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                   <ShieldCheck class="w-5 h-5 text-emerald-400" />
@@ -395,8 +409,8 @@
             <div class="space-y-6">
               <div class="relative overflow-visible group">
                 <div class="flex items-center justify-between mb-2">
-                  <h4 class="text-[11px] font-black text-[#FFB7C5] group-hover:text-pink-300 transition-colors uppercase tracking-[0.2em] border-l-2 border-[#FFB7C5]/50 pl-2">
-                    PHÂN TÍCH CHUYÊN SÂU
+                  <h4 class="text-[11px] font-black text-[#FFB7C5] group-hover:text-pink-300 transition-colors tracking-[0.2em] border-l-2 border-[#FFB7C5]/50 pl-2 sentence-case-target">
+                    Phân tích chuyên sâu
                   </h4>
                   <span class="text-[10px] font-mono text-white/20">LOG_ID: A126-DX</span>
                 </div>
@@ -406,9 +420,11 @@
               </div>
 
               <!-- Info Slider: Tổng quan & Liệu trình -->
-              <div class="relative overflow-hidden cursor-grab active:cursor-grabbing" 
+              <div class="relative overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y" 
                    role="region" 
                    aria-label="Diagnostic Carousel"
+                   ontouchstart={handleTouchStart}
+                   ontouchend={handleTouchEnd}
               >
                  <div class="flex items-start transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]" 
                       style:transform="translateX(-{activeSlide * 100}%)"
@@ -417,7 +433,7 @@
                     <div class="w-full shrink-0 px-1">
                        <div class="flex flex-col gap-2 h-auto max-h-[32dvh] overflow-y-auto hide-scrollbar"
                             style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);">
-                          <h4 class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] border-l-2 border-white/20 pl-2">01. TỔNG QUAN LÂM SÀNG</h4>
+                          <h4 class="text-[10px] font-black text-white/40 tracking-[0.2em] border-l-2 border-white/20 pl-2 sentence-case-target">01. Tổng quan lâm sàng</h4>
                           <p class="text-white/80 text-[13px] font-medium leading-normal italic">{shopStore.diagnosticResult.reasoning}</p>
                           <div class="h-6"></div> <!-- Spacer for mask -->
                        </div>
@@ -428,7 +444,7 @@
                        <div class="flex flex-col gap-2 h-auto max-h-[32dvh] overflow-y-auto hide-scrollbar"
                             style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);">
                           <div class="flex items-center justify-between border-l-2 border-emerald-500/30 pl-2">
-                             <h4 class="text-[10px] font-black text-emerald-400/60 uppercase tracking-[0.2em]">02. LIỆU TRÌNH TỐI ƯU</h4>
+                             <h4 class="text-[10px] font-black text-emerald-400/60 tracking-[0.2em] sentence-case-target">02. Liễu trình tối ưu</h4>
                            </div>
                           <p class="text-emerald-400 text-[14px] font-bold leading-normal italic">{shopStore.diagnosticResult.recommendation}</p>
                           <div class="h-6"></div> <!-- Spacer for mask -->
@@ -461,17 +477,17 @@
                 }
                 document.getElementById('offers')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              class="w-full py-4 bg-[#FFB7C5]/90 rounded-2xl font-black text-slate-950 text-[13px] tracking-[0.3em] flex items-center justify-center gap-2 active:scale-95 transition-all uppercase italic shadow-[0_10px_30px_rgba(255,183,197,0.2)]"
+              class="w-full py-4 bg-[#FFB7C5]/90 rounded-2xl font-black text-slate-950 text-[13px] tracking-[0.3em] flex items-center justify-center gap-2 active:scale-95 transition-all italic shadow-[0_10px_30px_rgba(255,183,197,0.2)]"
             >
-              XEM LIỆU TRÌNH <ArrowRight class="w-4 h-4" />
+              <span class="sentence-case-target">Xem liệu trình</span> <ArrowRight class="w-4 h-4" />
             </button>
             <button 
               onclick={restart}
-              class="flex items-center gap-2 mx-auto py-1 text-[8px] font-bold text-white/30 uppercase tracking-[0.3em] hover:text-[#FFB7C5] transition-colors"
+              class="flex items-center gap-2 mx-auto py-1 text-[8px] font-bold text-white/30 tracking-[0.3em] hover:text-[#FFB7C5] transition-colors"
             >
               <RefreshCw class="w-2.5 h-2.5" /> 
               <EditableWrapper path="metadata.quiz_restart_label" label="SỬA CHỮ RESTART">
-                {product?.metadata?.quiz_restart_label || 'Thiết lập lại'}
+                <span class="sentence-case-target">{product?.metadata?.quiz_restart_label || 'Thiết lập lại'}</span>
               </EditableWrapper>
             </button>
           </div>
@@ -591,7 +607,7 @@
                       {/if}
                       <div class="flex flex-col">
                         <span class="diagnostic-phase-label text-[10px] text-white/30 tracking-[0.2em] font-black">Tiến trình chẩn đoán AI</span>
-                        <p class="text-[10px] text-[#FFB7C5] uppercase tracking-[0.2em] font-black italic mt-0.5">Bước {currentStep + 1} <span class="text-white/10">//</span> {questions.length}</p>
+                        <p class="text-[10px] text-[#FFB7C5] tracking-[0.2em] font-black italic mt-0.5">Bước {currentStep + 1} <span class="text-white/10">//</span> {questions.length}</p>
                       </div>
                     </div>
                     <div class="relative w-20 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
@@ -600,7 +616,7 @@
                     </div>
                   </div>
                   
-                  <h3 class="text-xl font-bold text-white mb-6 leading-tight uppercase italic tracking-tight drop-shadow-sm">
+                  <h3 class="text-xl font-bold text-white mb-6 leading-tight italic tracking-tight drop-shadow-sm sentence-case-target">
                     {#if typeof questions[currentStep].title === 'string'}
                       {@html questions[currentStep].title}
                     {:else}
@@ -697,11 +713,13 @@
     width: var(--progress, 0%);
   }
 
-  /* Elite V2.2: Diagnostics Sentence-Case Fix */
-  .option-label, .diagnostic-log-text {
+  .option-label, .diagnostic-log-text, .sentence-case-target {
     text-transform: lowercase;
   }
-  .option-label::first-letter, .diagnostic-log-text::first-letter {
+  .option-label, .sentence-case-target:not(.block) {
+    display: inline-block;
+  }
+  .option-label::first-letter, .diagnostic-log-text::first-letter, .sentence-case-target::first-letter {
     text-transform: uppercase;
   }
 

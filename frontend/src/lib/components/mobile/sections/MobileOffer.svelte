@@ -447,12 +447,12 @@
   }
 
   /* Elite V2.2: Offer Sentence-Case Fix */
-  .offer-status-label, .offer-meta-label, .offer-badge, .variant-title, 
+  .offer-status-label, .offer-meta-label, .variant-title, 
   .offer-gift-label, .offer-info-label, .voucher-sub-label,
   .cta-selection-label, .cta-ship-label {
     text-transform: lowercase;
   }
-  .offer-status-label::first-letter, .offer-meta-label::first-letter, .offer-badge::first-letter, 
+  .offer-status-label::first-letter, .offer-meta-label::first-letter, 
   .variant-title::first-letter, .offer-gift-label::first-letter, 
   .offer-info-label::first-letter, .voucher-sub-label::first-letter, .cta-selection-label::first-letter, 
   .cta-ship-label::first-letter {
