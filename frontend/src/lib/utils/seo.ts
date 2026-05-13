@@ -54,6 +54,15 @@ export interface FaqItem {
     answer: string;
 }
 
+export interface ProductVariantLd {
+    price: number;
+    discountPrice?: number;
+    sku?: string;
+    url?: string;
+    availability?: string;
+    name?: string;
+}
+
 export interface ProductLdConfig {
     name: string;
     image: string[];
@@ -63,10 +72,12 @@ export interface ProductLdConfig {
     mpn?: string;
     url: string;
     price: number;
+    discountPrice?: number;
     priceCurrency: string;
     availability: string;
     ratingValue?: number;
     reviewCount?: number;
+    variants?: ProductVariantLd[];
 }
 
 // ── Builders ──────────────────────────────────────────────────────────────────
@@ -76,25 +87,63 @@ export interface ProductLdConfig {
  * Critical for AI Search (SGE) to extract price, availability, and social proof (rating).
  */
 export function buildProductLd(config: ProductLdConfig): string {
+    const mainPrice = config.discountPrice || config.price;
+    const hasDiscount = !!config.discountPrice && config.discountPrice < config.price;
+
+    const offer: Record<string, unknown> = {
+        "@type": "Offer",
+        "url": config.url,
+        "priceCurrency": config.priceCurrency || "VND",
+        "price": String(mainPrice),
+        "availability": config.availability?.includes("InStock") ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "itemCondition": "https://schema.org/NewCondition"
+    };
+
+    if (hasDiscount) {
+        offer.priceSpecification = {
+            "@type": "PriceSpecification",
+            "price": String(mainPrice),
+            "priceCurrency": config.priceCurrency || "VND",
+            "valueAddedTaxIncluded": true
+        };
+    }
+
     const product: Record<string, unknown> = {
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": config.name,
-        "image": Array.isArray(config.image) ? config.image[0] : config.image,
+        "image": Array.isArray(config.image) ? config.image : [config.image],
         "description": config.description || config.name,
         "brand": {
             "@type": "Brand",
-            "name": config.brand
-        },
-        "offers": {
-            "@type": "Offer",
-            "url": config.url,
-            "priceCurrency": config.priceCurrency || "VND",
-            "price": String(config.price),
-            "availability": config.availability.includes("InStock") ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-            "itemCondition": "https://schema.org/NewCondition"
+            "name": config.brand || "osmo Elite"
         }
     };
+
+    // If variants exist, use AggregateOffer
+    if (config.variants && config.variants.length > 0) {
+        const prices = config.variants.map(v => v.discountPrice || v.price);
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+
+        product.offers = {
+            "@type": "AggregateOffer",
+            "lowPrice": String(minPrice),
+            "highPrice": String(maxPrice),
+            "priceCurrency": config.priceCurrency || "VND",
+            "offerCount": String(config.variants.length),
+            "offers": config.variants.map(v => ({
+                "@type": "Offer",
+                "name": v.name,
+                "sku": v.sku,
+                "price": String(v.discountPrice || v.price),
+                "priceCurrency": config.priceCurrency || "VND",
+                "availability": v.availability?.includes("InStock") ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+            }))
+        };
+    } else {
+        product.offers = offer;
+    }
 
     if (config.sku) product.sku = config.sku;
 

@@ -53,10 +53,28 @@
 
 .hero-info-overlay {
   position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   left: 0;
   right: 0;
   z-index: var(--z-surface);
   pointer-events: none;
-  padding-bottom: env(safe-area-inset-bottom, 20px);
-  bottom: calc(var(--mobile-bottom-space, 80px) + 12px); /* Tối ưu Safe Zone */
+  bottom: 0;
+  padding-bottom: calc(var(--mobile-bottom-space, 70px) + 0.5rem);
+  background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 40%, transparent 100%);
+}
+
+/* Elite V2.2: Pure CSS Sentence Case (No JS) */
+.hero-title {
+  text-transform: uppercase !important;
+}
+
+.metric-value, .cta-primary-text, .cta-secondary-text, .cta-timer-label {
+  text-transform: lowercase;
+}
+
+.metric-value::first-letter, .cta-primary-text::first-letter, .cta-secondary-text::first-letter, .cta-timer-label::first-letter {
+  text-transform: uppercase;
 }

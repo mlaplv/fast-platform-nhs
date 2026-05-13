@@ -18,8 +18,10 @@
     variant?: 'mobile' | 'funnel';
     likeCount?: number;
     hideLikes?: boolean;
-    dark?: boolean;
-    onShareComplete?: () => void;
+    scrolled?: boolean;
+    forceHidden?: boolean;
+    scrollRatio?: number;
+    hideRatio?: number;
   }
 
   let { 
@@ -28,7 +30,11 @@
     likeCount = 0, 
     hideLikes = false,
     dark = false,
-    onShareComplete
+    onShareComplete,
+    scrolled = false,
+    forceHidden = false,
+    scrollRatio = 0,
+    hideRatio = 0
   }: Props = $props();
   
   const viralSuite = $derived(product.metadata?.viral_suite ?? null);
@@ -75,8 +81,8 @@
 
   let scrollY = $state(0);
   
-  const isCollapsed = $derived(scrollY >= 100 && scrollY < 400);
-  const isHidden = $derived(scrollY >= 400);
+  const isCollapsed = $derived(scrolled || scrollRatio > 0.5 || (scrollY >= 100 && scrollY < 400));
+  const isHidden = $derived(forceHidden || hideRatio >= 1 || scrollY >= 400);
 
   function handleScroll() {
     if (typeof window !== 'undefined') scrollY = window.scrollY;
@@ -157,7 +163,17 @@
     </div>
   {:else}
     <!-- TikTok Vertical Floating Style -->
-    <div class="fixed right-2.5 top-[15vh] z-[1000] flex flex-col items-center gap-4 transition-all duration-500" class:translate-x-4={isCollapsed} class:scale-90={isCollapsed}>
+    <div 
+      class="fixed right-2.5 top-[15vh] z-[1000] flex flex-col items-center gap-4 transition-all duration-300" 
+      style="
+        opacity: {1 - hideRatio}; 
+        transform: 
+          translateX({scrollRatio * 16}px) 
+          translateY({hideRatio * 50}px) 
+          scale({1 - scrollRatio * 0.1 - hideRatio * 0.2});
+        pointer-events: {hideRatio > 0.8 ? 'none' : 'auto'};
+      "
+    >
       <button class="flex flex-col items-center gap-1 drop-shadow-md active:scale-90 transition-transform" onclick={handleLike}>
         <div class="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-colors {isLiked ? 'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)]' : 'bg-black/40 border border-white/20'}">
            <Heart size={18} class={isLiked ? 'fill-white text-white' : 'text-white'} />

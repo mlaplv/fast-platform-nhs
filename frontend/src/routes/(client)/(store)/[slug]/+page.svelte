@@ -60,6 +60,28 @@
   const productSeoMeta = $derived(data.product?.seoMeta || data.product?.seo_meta || null);
   const articleSeoMeta = $derived(data.article?.seoMeta || data.article?.seo_meta || null);
   const categorySeoMeta = $derived(data.category?.seoMeta || data.category?.seo_meta || null);
+
+  // Elite V2.2: Semantic Breadcrumb Logic (GEO 2026)
+  const breadcrumbItems = $derived.by(() => {
+    const items = [{ name: 'Trang chủ', url: '/' }];
+    
+    if (data.type === 'category') {
+      items.push({ name: data.categoryName, url: `/${data.categorySlug}/` });
+    } else if (data.type === 'article' && data.article) {
+      items.push({ name: 'Bài viết', url: '/bai-viet' });
+      items.push({ name: data.article.title, url: `/${data.article.slug}` });
+    } else if (data.type === 'product' && data.product) {
+      // If product has a primary category, we could inject it here
+      if (data.product.category_name && data.product.category_slug) {
+        items.push({ name: data.product.category_name, url: `/${data.product.category_slug}/` });
+      }
+      items.push({ name: data.product.name, url: `/${data.product.slug}` });
+    }
+    return items;
+  });
+
+  // Elite V2.2: FAQ Extraction for SGE
+  const pageFaqs = $derived(data.article?.metadata?.faqs || data.product?.metadata?.faqs || []);
 </script>
 
 <!-- SEO HEAD (SGE & AI SEARCH COMPLIANT) -->
@@ -69,6 +91,11 @@
     title={categorySeoMeta?.title || `${data.categoryName} | osmo Elite`}
     description={categorySeoMeta?.description || `${data.categoryName} - Sản phẩm chính hãng.`}
     canonical={categorySeoMeta?.canonical_url || `${siteUrl}/${data.categorySlug}/`}
+    {breadcrumbItems}
+    categoryData={{
+      name: data.categoryName,
+      items: data.items?.map((it: any) => ({ name: it.name, url: `/${it.slug}` }))
+    }}
     jsonLdScripts={[categorySeoMeta?.json_ld_string].filter(Boolean)}
   />
 {:else if data.type === 'article' && data.article}
@@ -77,6 +104,8 @@
     title={articleSeoMeta?.title || `${data.article.title} | osmo Elite`}
     description={articleSeoMeta?.description || data.article.excerpt}
     canonical={articleSeoMeta?.canonical_url || `${siteUrl}/${data.article.slug}`}
+    {breadcrumbItems}
+    faqs={pageFaqs}
     articleData={{
       headline: data.article.title,
       author: data.article.author_name || "osmo Elite",
@@ -92,15 +121,27 @@
     description={productSeoMeta?.description || data.product.short_description}
     canonical={productSeoMeta?.canonical_url || `${siteUrl}/${data.product.slug}`}
     image={data.product.images?.[0]}
+    {breadcrumbItems}
+    faqs={pageFaqs}
     productData={{
       name: data.product.name,
       images: data.product.images,
       description: data.product.short_description,
-      brand: (data.product.attributes?.brand as string) || "osmo Elite",
+      brand: (data.product.attributes?.brand as string) || (data.product.attributes?.['Thương hiệu'] as string) || "osmo Elite",
       sku: data.product.sku,
       price: data.product.price,
+      discountPrice: data.product.discountPrice || data.product.discount_price,
+      variants: data.product.variants?.map((v: any) => ({
+          name: v.sku || data.product.name,
+          price: v.price,
+          discountPrice: v.discountPrice || v.discount_price,
+          sku: v.sku,
+          availability: v.stock > 0 ? 'InStock' : 'OutOfStock'
+      })),
       currency: "VND",
-      availability: data.product.stock > 0 ? 'InStock' : 'OutOfStock'
+      availability: data.product.stock > 0 ? 'InStock' : 'OutOfStock',
+      ratingValue: data.reviewStats?.average_rating || 5,
+      reviewCount: data.reviewStats?.total_reviews || 1
     }}
     jsonLdScripts={[productSeoMeta?.json_ld_string].filter(Boolean)}
   />

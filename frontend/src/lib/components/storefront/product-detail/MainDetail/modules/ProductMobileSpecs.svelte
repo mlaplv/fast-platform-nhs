@@ -36,19 +36,38 @@
 </script>
 
 <section class="content-section">
+  {#if product.attributes && Object.entries(product.attributes).length > 0}
+    <div class="mb-6 grid grid-cols-2 gap-x-6 gap-y-1">
+      {#each Object.entries(product.attributes) as [key, val]}
+        <div class="flex flex-col py-1.5 border-b border-gray-50/50 overflow-hidden">
+          <span class="text-[10px] text-gray-400 font-medium truncate">{key.replace(/_/g, ' ')}</span>
+          <span class="text-[12px] text-gray-800 font-bold truncate">{val}</span>
+        </div>
+      {/each}
+      {#if product.sku || (product as any).metadata?.barcode}
+        <div class="flex flex-col py-1.5 border-b border-gray-50/50 overflow-hidden">
+          <span class="text-[10px] text-gray-400 font-medium">Mã sản phẩm</span>
+          <span class="text-[12px] text-gray-800 font-mono font-bold truncate">{product.sku || (product as any).metadata?.barcode}</span>
+        </div>
+      {/if}
+    </div>
+  {/if}
+
   <!-- Elite V2.2: Featured Ingredients (Viral Cards) -->
   {#if product.metadata?.featured_ingredients && product.metadata.featured_ingredients.length > 0}
     <div class="mb-6">
       <h2 class="section-title">Thành phần nổi bật</h2>
-      <div class="grid grid-cols-1 gap-3">
+      <div class="grid grid-cols-1 gap-2">
         {#each product.metadata.featured_ingredients as ing}
-          <div class="flex gap-3 bg-[#fdf2f2]/50 border border-[#ee4d2d]/5 p-3 rounded-xl">
-            <div class="w-10 h-10 shrink-0 bg-white border border-[#ee4d2d]/10 rounded-full flex items-center justify-center text-[18px]">
+          <div class="group bg-[#fdf2f2]/40 border border-[#ee4d2d]/10 p-2 rounded-xl flex items-center gap-3 transition-all hover:bg-white hover:shadow-md">
+            <div class="w-10 h-10 shrink-0 bg-white border border-[#ee4d2d]/10 rounded-xl flex items-center justify-center text-[20px] shadow-sm group-hover:scale-110 transition-transform">
               {ing.icon || getIngredientIcon(ing.name)}
             </div>
             <div class="flex flex-col">
-              <span class="text-[13px] font-black text-gray-900 leading-none mb-1">{ing.name}</span>
-              <span class="text-[11px] text-gray-500 leading-relaxed font-medium">{ing.benefit}</span>
+              <span class="text-[12px] font-black text-gray-900 leading-tight">{ing.name}</span>
+              <p class="text-[10px] text-gray-500 leading-tight font-medium mt-0.5 line-clamp-2">
+                {ing.benefit}
+              </p>
             </div>
           </div>
         {/each}
@@ -58,10 +77,10 @@
 
   <!-- Elite V2.2: Full Ingredients (Mobile Transparency) -->
   {#if product.metadata?.ingredients}
-    <div class="mt-4 flex flex-col gap-2">
-      <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 tracking-widest uppercase">
-        <Beaker size={12} class="text-teal-500" /> Bảng thành phần (Full INCI)
-      </div>
+    <div class="mt-4 mb-6 flex flex-col gap-2">
+      <h2 class="flex items-center gap-2 text-[11px] font-bold text-gray-400 tracking-wider">
+        <Beaker size={12} class="text-teal-500" /> Bảng thành phần {product.name}
+      </h2>
       <button 
         type="button"
         class="bg-gray-50/50 border border-gray-100 p-4 rounded-xl text-left relative overflow-hidden transition-all duration-500"
@@ -93,19 +112,8 @@
       </div>
     </div>
   {/if}
-
-  {#if product.attributes && Object.keys(product.attributes).length > 0}
-    <div class="mt-6 grid grid-cols-2 gap-2">
-      {#each Object.entries(product.attributes) as [key, val]}
-        <div class="flex flex-col p-2 bg-gray-50/50 rounded-lg">
-          <span class="text-[10px] text-gray-400 font-bold uppercase">{key.replace(/_/g, ' ')}</span>
-          <span class="text-[12px] text-gray-800 font-medium">{val}</span>
-        </div>
-      {/each}
-    </div>
-  {/if}
   
-  <h2 class="section-title mt-8">Mô tả sản phẩm</h2>
+  <h2 class="section-title mt-6">Chi tiết {product.name}</h2>
   
   <div 
     class="description-wrapper {(!isExpanded && hasMore) ? 'collapsed' : ''}"
@@ -137,7 +145,7 @@
   <!-- GEO 2026: Mobile FAQ Section -->
   {#if product.metadata?.faqs && product.metadata.faqs.length > 0}
     <div class="mt-8 border-t border-gray-100 pt-6">
-      <h2 class="section-title">Câu hỏi thường gặp</h2>
+      <h2 class="section-title">Câu hỏi về {product.name}</h2>
       <div class="flex flex-col gap-3 mt-4">
         {#each product.metadata.faqs as faq}
           <div class="bg-gray-50/50 border border-gray-100 rounded-lg p-3">
@@ -151,8 +159,8 @@
 </section>
 
 <style>
-  .content-section { background: white; padding: 20px; overflow: hidden; }
-  .section-title { font-size: 15px; font-weight: 900; color: #222; margin-bottom: 16px; letter-spacing: -0.01em; border-left: 4px solid #ee4d2d; padding-left: 12px; }
+  .content-section { padding: 8px 5px 16px 5px; background: white; margin-bottom: 8px; overflow: hidden; }
+  .section-title { font-size: 13px; font-weight: 800; color: #333; margin-bottom: 12px; border-left: 3px solid #ee4d2d; padding-left: 10px; text-transform: none; }
   
   /* Elite V2.2: Smooth Description Truncation */
   .description-wrapper {
@@ -173,20 +181,20 @@
   }
 
   .expand-btn-elite {
-    background: white;
-    border: 1px solid #f0f0f0;
+    background: transparent;
+    border: none;
     color: #ee4d2d;
-    font-size: 12px;
-    font-weight: 900;
+    font-size: 13px;
+    font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    margin-top: 16px;
-    padding: 12px;
-    gap: 6px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    margin-top: 12px;
+    padding: 10px;
+    gap: 4px;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   /* Elite V2.2: Mobile Premium Prose System (Viral Bullets) */

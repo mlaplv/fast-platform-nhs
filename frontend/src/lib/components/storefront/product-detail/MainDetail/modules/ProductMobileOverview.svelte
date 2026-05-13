@@ -18,6 +18,7 @@
   // State & Stores
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   
   // Utils
   import { resolveMediaUrl } from '$lib/state/utils';
@@ -27,7 +28,6 @@
   import ViralShareBarMobile from '../../shared/ViralShareBarMobile.svelte';
   import ShareToUnlockPromoMobile from '../../shared/ShareToUnlockPromoMobile.svelte';
   import ProductMobileMedia from './ProductMobileMedia.svelte';
-  import ProductMobileFlashSale from './ProductMobileFlashSale.svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
   /** Detect video URL: mp4, webm, mov, ogg … (mirrored from Desktop) */
@@ -45,9 +45,18 @@
     onOpenSelector?: () => void;
     stats?: import('$lib/types').ReviewStats | null;
     isViralUnlocked?: boolean;
+    isScrolled?: boolean;
+    isHidden?: boolean;
+    scrollRatio?: number;
+    hideRatio?: number;
   }
 
-  let { product, timeLeft, selectedVariant, selectedQty = 1, onOpenSelector, stats, isViralUnlocked = $bindable() }: Props = $props();
+  let { 
+    product, timeLeft, selectedVariant, selectedQty = 1, 
+    onOpenSelector, stats, isViralUnlocked = $bindable(), 
+    isScrolled = false, isHidden = false, 
+    scrollRatio = 0, hideRatio = 0 
+  }: Props = $props();
   const cartStore = getCartStore();
   const clientUi = getClientUi();
 
@@ -256,6 +265,28 @@
 
   const activeComboQty = $derived((selectedVariant || pVariants?.[0])?.attributes?.combo_qty || (selectedVariant || pVariants?.[0])?.attributes?.comboQty || product.metadata?.combo_qty || 0);
   const activeGifts = $derived((selectedVariant || pVariants?.[0])?.attributes?.gifts || product.metadata?.gifts || []);
+  const helenAdvice = $derived.by(() => {
+    const comboVariants = pVariants.filter(cv => cv.attributes && (cv.attributes.combo_qty || cv.attributes.comboQty));
+    if (comboVariants.length === 0) return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền. Hãy chọn số lượng phù hợp để tối ưu kết quả.";
+    
+    const sortedTiers = [...comboVariants].sort((a, b) => Number(a.attributes.combo_qty || a.attributes.comboQty) - Number(b.attributes.combo_qty || b.attributes.comboQty));
+    const currentQty = selectedQty;
+    const nextTier = sortedTiers.find(t => Number(t.attributes.combo_qty || t.attributes.comboQty) > currentQty);
+    
+    if (nextTier) {
+      const gap = Number(nextTier.attributes.combo_qty || nextTier.attributes.comboQty) - currentQty;
+      const nextUnitPrice = nextTier.discountPrice || nextTier.discount_price || nextTier.price;
+      const currentUnitPrice = effectiveUnitPrice;
+      const savingsPerUnit = currentUnitPrice - nextUnitPrice;
+      
+      if (savingsPerUnit > 0) {
+        return `Nâng cấp thêm ${gap} sp để giảm thêm ${formatCurrency(savingsPerUnit)}/sp!`;
+      }
+      return `Thêm ${gap} sản phẩm để nhận trọn vẹn quà tặng độc quyền!`;
+    }
+    
+    return `Tuyệt vời! Bạn đã nhận mức giá tối ưu nhất từ ${supportAgent.config.agentName}.`;
+  });
 </script>
 
 <section id="overview" class="overview-section">
@@ -279,14 +310,55 @@
     {isVideoUrl}
   />
 
-  <!-- FLASH SALE BANNER (Extracted) -->
-  <ProductMobileFlashSale
-    {isFlashSaleActive}
-    {displayDiscountPercent}
-    {displaySalePrice}
-    {displayOriginalPrice}
-    {timeLeft}
-  />
+  <!-- Elite V2.2: Unified Price & Flash Sale Banner (Single Code Base) -->
+  <section class="flash-sale-banner" class:is-flash={isFlashSaleActive}>
+    <div class="fs-left">
+      <div class="flex items-center gap-1.5">
+        {#if displayDiscountPercent > 0}
+          <div class="discount-percent">-{displayDiscountPercent}%</div>
+        {/if}
+        <div class="freeship-fomo">
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Freeship
+        </div>
+      </div>
+      <div class="price-container">
+        <span class="price-label">{isFlashSaleActive ? 'Từ' : 'Giá từ'}</span>
+        <span class="price-value">{formatCurrency(displaySalePrice)}</span>
+      </div>
+      {#if displayOriginalPrice > displaySalePrice}
+        <div class="original-price">{formatCurrency(displayOriginalPrice)}</div>
+      {/if}
+    </div>
+    
+    <div class="fs-right">
+      <div class="fs-title">
+        <Zap size={18} fill="white" />
+        <span>FLASH SALE</span>
+      </div>
+      <div class="fs-countdown">
+        <span>Kết thúc sau</span>
+        <div class="time-box font-mono tabular-nums">
+          {#if isFlashSaleActive && timeLeft}
+            <span>{timeLeft.hours.toString().padStart(2, '0')}</span>
+            <span class="separator">:</span>
+            <span>{timeLeft.minutes.toString().padStart(2, '0')}</span>
+            <span class="separator">:</span>
+            <span>{timeLeft.seconds.toString().padStart(2, '0')}</span>
+          {:else}
+            <!-- Elite V2.2: Daily Dynamic Countdown for Form Consistency -->
+            <span>{(23 - new Date().getHours()).toString().padStart(2, '0')}</span>
+            <span class="separator">:</span>
+            <span>{(59 - new Date().getMinutes()).toString().padStart(2, '0')}</span>
+            <span class="separator">:</span>
+            <span>{(59 - new Date().getSeconds()).toString().padStart(2, '0')}</span>
+          {/if}
+        </div>
+      </div>
+    </div>
+  </section>
 
 
 
@@ -323,77 +395,10 @@
     <!-- Title & Stats -->
     <div class="title-row mt-2">
       <h1 class="product-title">{product.name.replace(/40gr/g, '40g')}</h1>
-
     </div>
 
-    <!-- Selection Row (Shopee Viral Style) -->
-    {#if variations.length > 0}
-      <button 
-        onclick={onOpenSelector}
-        class="w-full flex items-center justify-between py-4 border-y border-gray-50 my-2 active:bg-gray-50 transition-colors"
-      >
-        <div class="flex items-center gap-4">
-          <span class="text-[13px] text-gray-500 w-[80px] text-left">Phân loại</span>
-          <span class="text-[13px] font-bold text-gray-900">
-            {#if selectedVariant}
-              {selectedVariant.tierIndex.map((idx, i) => variations?.[i]?.options?.[idx] || '').filter(Boolean).join(', ')}
-            {:else}
-              Chọn màu sắc, kích cỡ, combo...
-            {/if}
-          </span>
-        </div>
-        <ChevronRight size={16} class="text-gray-400" />
-      </button>
-    {/if}
-
-    <!-- COMBO & GIFTS MINI (Viral 2026) -->
-    {#if activeComboQty > 1 || activeGifts.length > 0}
-      <div class="mb-4 bg-gradient-to-br from-[#fdf2f2] to-white p-3 rounded-xl border border-[#ee4d2d]/10">
-         <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-2">
-               <Gift size={16} class="text-[#ee4d2d]" />
-               <span class="text-[11px] font-black text-gray-800 tracking-wider">Quà tặng đi kèm</span>
-            </div>
-            {#if activeComboQty > 1}
-               <div class="bg-[#ee4d2d]/10 text-[#ee4d2d] text-[9px] font-black px-2 py-0.5 rounded-full border border-[#ee4d2d]/20 flex items-center gap-1">
-                  <Package size={10} /> Combo x{activeComboQty}
-               </div>
-            {/if}
-         </div>
-         
-         {#if activeGifts.length > 0}
-            <div class="flex flex-col gap-2">
-               {#each activeGifts as gift}
-                  <div class="flex items-center gap-3">
-                     <div class="w-10 h-10 rounded-lg overflow-hidden bg-white border border-gray-100 shrink-0 shadow-sm">
-                        {#if gift.image}
-                           <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
-                        {:else}
-                           <div class="w-full h-full flex items-center justify-center text-gray-200"><Sparkles size={14} /></div>
-                        {/if}
-                     </div>
-                     <div class="flex flex-col">
-                        <span class="text-[12px] font-bold text-gray-900 leading-tight">{gift.name}</span>
-                        <span class="text-[10px] text-[#ee4d2d] font-black italic">Tặng kèm x{gift.qty}</span>
-                     </div>
-                  </div>
-               {/each}
-            </div>
-         {/if}
-      </div>
-    {/if}
-
-
-
-
-    <!-- VIRAL SHARE BAR (Mobile Floating) -->
-    <ViralShareBarMobile 
-      {product} 
-      variant="mobile" 
-      likeCount={baseLikeCount}
-    />
-
-    <div class="product-stats-row">
+    <!-- Rating & Sold count (Moved Up to match Image 1) -->
+    <div class="product-stats-row mb-2">
       <div class="rating-box">
         <span class="scoreText">{stats?.average_rating || product.metadata?.rating || '5.0'}</span>
         <div class="stars">
@@ -407,19 +412,140 @@
       <div class="divider"></div>
       <div class="sold-count">{product.order_count_text || `Đã bán ${formatNumber(product.orderCount) || 0}`}</div>
     </div>
+
+    <!-- VARIANT CHIPS (Elite V2.2: Instant Action) -->
+    {#if variations.length > 0}
+      <div class="w-full py-3 border-y border-gray-50 my-2">
+        <div class="flex items-center justify-between mb-2 px-1">
+          <span class="text-[12px] text-gray-400 font-bold tracking-wider">
+            {variations.length === 1 ? variations[0].name : 'Lựa chọn'}
+          </span>
+          {#if variations.length > 1}
+            <button onclick={onOpenSelector} class="text-[11px] text-[#ee4d2d] font-bold flex items-center gap-0.5">
+              Thay đổi <ChevronRight size={12} />
+            </button>
+          {/if}
+        </div>
+        
+        <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide no-scrollbar">
+          {#if variations.length === 1}
+            {#each variations[0].options as option, oIdx}
+               {@const isSelected = (selectedVariant?.tierIndex?.[0] ?? (selectedVariant as any)?.tier_index?.[0]) === oIdx}
+               <button 
+                 onclick={() => onOpenSelector()} 
+                 class="relative shrink-0 px-5 py-2.5 border-2 text-[12px] font-black tracking-tight transition-all
+                 {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#ee4d2d]/5' : 'bg-gray-50 border-gray-100 text-gray-500'}"
+               >
+                 {option}
+                 {#if isSelected}
+                    <div class="absolute top-[-2px] right-[-2px] w-0 h-0 border-t-[8px] border-t-[#ee4d2d] border-l-[8px] border-l-transparent"></div>
+                 {/if}
+               </button>
+            {/each}
+          {:else}
+            <button 
+              onclick={onOpenSelector}
+              class="w-full flex items-center justify-between bg-gray-50/50 p-3 rounded-xl border border-gray-100"
+            >
+              <span class="text-[13px] font-black text-gray-900">
+                {selectedVariant ? selectedVariant.tierIndex.map((idx, i) => variations?.[i]?.options?.[idx] || '').filter(Boolean).join(', ') : 'Chạm để chọn phân loại...'}
+              </span>
+              <ChevronRight size={16} class="text-gray-400" />
+            </button>
+          {/if}
+        </div>
+      </div>
+    {/if}
+
+    <!-- COMBO & GIFTS MINI (Elite V2.2: Ultra-Lean & Thuần Việt) -->
+    {#if activeComboQty > 1 || activeGifts.length > 0}
+      <div class="mb-4 relative overflow-hidden bg-white border border-[#ee4d2d]/10 rounded-xl p-3 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-full bg-[#ee4d2d] flex items-center justify-center text-white shrink-0">
+                <Gift size={14} />
+              </div>
+              <span class="text-[12px] font-black text-gray-900">Ưu đãi độc quyền</span>
+            </div>
+            
+            <div class="flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+               <div class="w-1 h-1 bg-blue-400 rounded-full animate-ping"></div>
+               <span class="text-[8px] text-blue-600 font-black tracking-tighter">Gợi ý từ Helen</span>
+            </div>
+          </div>
+
+          <div class="mb-3 px-1">
+             <p class="text-[11px] text-slate-500 font-medium leading-relaxed italic">
+                "{helenAdvice}"
+             </p>
+          </div>
+          
+          {#if activeGifts.length > 0}
+            <div class="flex flex-wrap gap-2">
+               {#each activeGifts as gift}
+                  <div class="flex items-center gap-2 bg-[#fdf2f2]/50 p-1.5 pr-3 rounded-lg border border-[#ee4d2d]/5">
+                     <div class="w-8 h-8 rounded-md overflow-hidden bg-white border border-gray-100 shrink-0">
+                        {#if gift.image}
+                           <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                        {:else}
+                           <div class="w-full h-full flex items-center justify-center text-gray-200"><Package size={12} /></div>
+                        {/if}
+                     </div>
+                     <div class="flex flex-col">
+                        <span class="text-[11px] font-bold text-gray-900 leading-tight truncate max-w-[1200px]">{gift.name}</span>
+                        <span class="text-[9px] text-[#ee4d2d] font-black italic">Tặng x{gift.qty}</span>
+                     </div>
+                  </div>
+               {/each}
+            </div>
+          {/if}
+      </div>
+    {/if}
+
+    <!-- VIRAL SHARE BAR (Mobile Floating) -->
+    <ViralShareBarMobile 
+      {product} 
+      variant="mobile" 
+      likeCount={baseLikeCount}
+      scrolled={isScrolled}
+      forceHidden={isHidden}
+      {scrollRatio}
+      {hideRatio}
+    />
   </section>
 </section>
 
 <style>
-  .info-content { background: white; padding: 10px 6px; }
-  .vouchers-outer { position: relative; margin-bottom: 12px; margin-left: -12px; margin-right: -12px; }
+  /* Elite V2.2: Unified Flash Sale Banner Styles */
+  .flash-sale-banner { 
+    background: linear-gradient(90deg, #ee4d2d, #ff7337); color: white; display: flex; padding: 6px 12px; justify-content: space-between; align-items: center; position: relative; overflow: hidden;
+    box-shadow: 0 4px 15px rgba(238, 77, 45, 0.2);
+  }
+
+  .fs-left { flex: 1; z-index: 1; }
+  .discount-percent { background: white; color: #ee4d2d; border: 1px solid white; width: max-content; padding: 0 4px; font-size: 11px; font-weight: 900; border-radius: 2px; }
+  .freeship-fomo { background: #E3B5A4; color: white; font-size: 10px; font-weight: 900; padding: 0 4px; border-radius: 2px; display: flex; align-items: center; gap: 2px; height: 16px; }
+  .price-container { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+  .price-label { font-size: 13px; color: white; opacity: 0.9; }
+  .price-value { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
+  .original-price { font-size: 11px; text-decoration: line-through; color: rgba(255,255,255,0.7); }
+  
+  .fs-right { text-align: right; z-index: 1; display: flex; flex-direction: column; align-items: flex-end; }
+  .fs-title { display: flex; align-items: center; gap: 4px; font-weight: 900; font-size: 16px; text-transform: uppercase; font-style: italic; }
+  .fs-countdown { font-size: 11px; display: flex; align-items: center; gap: 4px; font-weight: 700; }
+  .time-box { display: flex; gap: 2px; align-items: center; }
+  .time-box span { background: rgba(0,0,0,0.3); color: white; padding: 2px 6px; border-radius: 4px; font-weight: 1000; border: 1px solid rgba(255,255,255,0.2); min-width: 28px; text-align: center; font-size: 13px; }
+  .time-box .separator { background: none; border: none; padding: 0; min-width: 4px; opacity: 0.8; text-align: center; font-weight: 1000; }
+
+  .info-content { background: white; padding: 10px 5px 2px 5px; }
+  .vouchers-outer { position: relative; margin-bottom: 12px; margin-left: -5px; margin-right: -5px; }
   .vouchers-list {
     display: flex;
     gap: 8px;
     overflow-x: auto;
     scrollbar-width: none;
-    padding: 0 12px;
-    scroll-padding: 0 12px;
+    padding: 0 5px;
+    scroll-padding: 0 5px;
   }
   .vouchers-list::-webkit-scrollbar { display: none; }
   .ticket { background: #fffaf9; border: 1px dashed var(--color-luxury-copper, #C18F7E); color: var(--color-luxury-copper, #C18F7E); padding: 4px 10px; border-radius: 4px; font-size: 11px; white-space: nowrap; font-weight: 700; }

@@ -18,17 +18,19 @@
   interface Props {
     isProductMode?: boolean;
     product?: Product | null;
-    onAddToCart?: () => void;
-    onBuyNow?: () => void;
+    selectedVariant?: import('$lib/types').ProductVariant | null;
     onChatOpen?: () => void;
+    scrolled?: boolean;
   }
   
   let { 
     isProductMode = false, 
     product = null,
+    selectedVariant = null,
     onAddToCart,
     onBuyNow,
-    onChatOpen
+    onChatOpen,
+    scrolled = false
   }: Props = $props();
 
   let isShrunk = $state(false);
@@ -89,6 +91,12 @@
     if (browser) document.body.style.overflow = isMenuOpen ? 'hidden' : '';
   });
 
+  $effect(() => {
+    if (scrolled !== undefined) {
+      isShrunk = scrolled;
+    }
+  });
+
   onMount(() => {
     const scroller = document.querySelector('.page-container') || window;
     const handleScroll = () => {
@@ -125,7 +133,10 @@
   handleImgError={(id) => brokenImages[id] = true}
 />
 
-<nav class="tbn-nav {isShrunk ? 'tbn-nav--shrunk' : ''}" style="z-index: var(--z-mobile-tab-bar, 100);">
+<nav 
+  class="tbn-nav {isShrunk ? 'tbn-nav--shrunk' : ''}" 
+  style="z-index: var(--z-mobile-tab-bar, 100);"
+>
   <div class="tbn-nav-inner">
     {#if !isProductMode}
       <button class="tbn-item {isMenuOpen ? 'tbn-item--active' : ''}" aria-label="Menu" onclick={toggleMenu}>
@@ -154,7 +165,7 @@
     </button>
 
     {#if isProductMode && product}
-      <ProductMobileActions {product} {hasFreeship} {onAddToCart} {onBuyNow} />
+      <ProductMobileActions {product} {selectedVariant} {hasFreeship} {onAddToCart} {onBuyNow} />
     {/if}
 
     {#if !isProductMode}

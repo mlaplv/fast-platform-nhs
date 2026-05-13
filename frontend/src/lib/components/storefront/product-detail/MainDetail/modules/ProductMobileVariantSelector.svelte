@@ -5,6 +5,8 @@
   import Check from "@lucide/svelte/icons/check";
   import Zap from "@lucide/svelte/icons/zap";
 import X from "@lucide/svelte/icons/x";
+import Truck from "@lucide/svelte/icons/truck";
+import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import type { Product, ProductVariant } from '$lib/types';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { resolveMediaUrl } from '$lib/state/utils';
@@ -40,10 +42,12 @@ import X from "@lucide/svelte/icons/x";
 
   const currentVariant = $derived.by(() => {
     if (selectedIndices.some(idx => idx === -1)) return undefined;
-    return pVariants.find(v => 
-      v.tierIndex.length === selectedIndices.length && 
-      v.tierIndex.every((val, idx) => val === selectedIndices[idx])
-    );
+    return pVariants.find(v => {
+      const vIndices = v.tierIndex || (v as any).tier_index;
+      if (!vIndices) return false;
+      return vIndices.length === selectedIndices.length && 
+             vIndices.every((val: number, idx: number) => val === selectedIndices[idx]);
+    });
   });
   
   const activeComboQty = $derived((currentVariant)?.attributes?.combo_qty || (currentVariant)?.attributes?.comboQty || 0);
@@ -110,10 +114,12 @@ import X from "@lucide/svelte/icons/x";
     selectedIndices = newSelected;
     
     // Sync quantity with combo_qty (Elite V2.2)
-    const nextVariant = pVariants.find(v => 
-      v.tierIndex.length === selectedIndices.length && 
-      v.tierIndex.every((val, i) => val === selectedIndices[i])
-    );
+    const nextVariant = pVariants.find(v => {
+      const vIndices = v.tierIndex || (v as any).tier_index;
+      if (!vIndices) return false;
+      return vIndices.length === selectedIndices.length && 
+             vIndices.every((val: number, i: number) => val === selectedIndices[i]);
+    });
     if (nextVariant?.attributes?.combo_qty) {
       quantity = Number(nextVariant.attributes.combo_qty);
     } else if (quantity > (currentStock || 0)) {
@@ -127,9 +133,10 @@ import X from "@lucide/svelte/icons/x";
       quantity = newVal;
       
       // SYNC BACK: Auto-select variant matching this quantity (Elite V2.2)
-      const matchingVariant = pVariants.find(v => Number(v.attributes?.combo_qty || 0) === quantity);
-      if (matchingVariant && matchingVariant.tierIndex) {
-        selectedIndices = [...matchingVariant.tierIndex];
+      const matchingVariant = pVariants.find(v => Number(v.attributes?.combo_qty || v.attributes?.comboQty || 0) === quantity);
+      const mIndices = matchingVariant?.tierIndex || (matchingVariant as any)?.tier_index;
+      if (mIndices) {
+        selectedIndices = [...mIndices];
       }
     }
   }
@@ -155,63 +162,58 @@ import X from "@lucide/svelte/icons/x";
 
   <!-- Bottom Sheet -->
   <div 
-    class="fixed bottom-0 left-0 right-0 bg-white z-[101] rounded-t-2xl max-h-[85vh] overflow-hidden flex flex-col"
-    in:fly={{ y: 400, duration: 400 }}
-    out:fly={{ y: 400, duration: 300 }}
+    class="fixed bottom-0 left-0 right-0 bg-white z-[101] rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border-t border-gray-100"
+    in:fly={{ y: 400, duration: 400, opacity: 0 }}
+    out:fly={{ y: 400, duration: 300, opacity: 0 }}
   >
-    <!-- Header: Product Quick Info -->
-    <div class="px-4 py-4 flex gap-4 border-b border-gray-50 relative">
-      <div class="w-28 h-28 bg-gray-50 rounded-lg overflow-hidden border border-gray-100 shrink-0 shadow-sm">
+    <!-- Clean Header -->
+    <div class="px-4 py-4 flex gap-4 relative border-b border-gray-50">
+      <div class="w-24 h-24 bg-gray-50 rounded-lg overflow-hidden border border-gray-100 shrink-0">
         <img src={currentImage} alt={product.name} class="w-full h-full object-cover" />
       </div>
-      <div class="flex flex-col justify-end pb-1 pr-8">
-        <div class="flex items-baseline gap-1.5">
+      <div class="flex flex-col justify-end pb-1 pr-6">
+        <div class="flex items-baseline gap-1">
            <span class="text-[#ee4d2d] text-xl font-black">{formatCurrency(currentPrice)}</span>
-           <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">/ sp</span>
+           <span class="text-[9px] text-gray-400 font-bold uppercase">/ sp</span>
         </div>
         {#if quantity > 1}
-          <div class="text-[12px] text-[#ee4d2d] font-black mt-1">Tổng: {formatCurrency(totalPrice)}</div>
+          <div class="text-[12px] text-[#ee4d2d] font-bold mt-0.5">Tổng: {formatCurrency(totalPrice)}</div>
         {/if}
-        <div class="text-[11px] text-gray-500 font-medium mt-1">Kho: {currentStock || 0} sản phẩm</div>
-        
-        <!-- Agentic AI Advice (Mini) -->
-        <div class="flex items-center gap-2 mt-2 bg-blue-50/20 px-2 py-1 rounded-sm border border-blue-100/20">
-            <div class="flex items-center gap-1.5 shrink-0">
-                <HelenIcon size={12} color="#3b82f6" />
-                <span class="text-[8px] text-blue-500 font-mono font-black uppercase tracking-[0.2em]">{supportAgent.config.agentName}</span>
-                <div class="w-0.5 h-0.5 bg-blue-400 rounded-full animate-pulse"></div>
-            </div>
-            <span class="text-[10px] text-slate-600 font-medium tracking-tight line-clamp-1">{helenAdvice}</span>
+        <div class="flex items-center gap-1 mt-1 text-[10px] text-gray-500">
+           Kho: {currentStock || 0} sản phẩm
         </div>
-
-        <div class="text-[11px] text-gray-800 font-bold mt-1">
+        
+        <div class="text-[12px] text-gray-900 font-bold mt-2">
           {#if selectedIndices.every(idx => idx === -1)}
-            Vui lòng chọn phân loại
+            <span class="text-[#ee4d2d]">Vui lòng chọn phân loại</span>
           {:else}
-            Đã chọn: {variations.map((t, i) => selectedIndices[i] >= 0 ? t.options[selectedIndices[i]] : '').filter(Boolean).join(', ')}
+            <span>Đã chọn: {variations.map((t, i) => selectedIndices[i] >= 0 ? t.options[selectedIndices[i]] : '').filter(Boolean).join(', ')}</span>
           {/if}
         </div>
       </div>
-      <button onclick={onClose} class="absolute top-4 right-4 text-gray-400 hover:text-black transition-colors">
-        <X size={24} />
+      <button onclick={onClose} class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 active:scale-90 transition-all">
+        <X size={18} />
       </button>
     </div>
 
-    <!-- Body: Scrollable Variations -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-6 pb-20">
+    <!-- Body: Focused Selection -->
+    <div class="overflow-y-auto px-4 space-y-6 pt-4">
       {#if variations}
         {#each variations as tier, tIdx}
           <div class="space-y-3">
-            <h3 class="text-[14px] font-bold text-gray-900 capitalize">{tier.name}</h3>
-            <div class="flex flex-wrap gap-2">
+            <h3 class="text-[13px] font-bold text-gray-500 tracking-wider">{tier.name}</h3>
+            <div class="flex flex-wrap gap-3">
               {#each tier.options as option, oIdx}
                 {@const isSelected = selectedIndices[tIdx] === oIdx}
                 <button 
                   onclick={() => selectOption(tIdx, oIdx)}
-                  class="px-4 py-2 text-[13px] border transition-all rounded-sm
-                  {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#ee4d2d]/5' : 'border-gray-100 bg-gray-50 text-gray-800'}"
+                  class="relative px-5 py-2.5 text-[12px] font-black border-2 transition-all tracking-tight
+                  {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#ee4d2d]/5' : 'border-gray-100 bg-gray-50 text-gray-500'}"
                 >
                   {option}
+                  {#if isSelected}
+                    <div class="absolute top-[-2px] right-[-2px] w-0 h-0 border-t-[8px] border-t-[#ee4d2d] border-l-[8px] border-l-transparent"></div>
+                  {/if}
                 </button>
               {/each}
             </div>
@@ -219,25 +221,25 @@ import X from "@lucide/svelte/icons/x";
         {/each}
       {/if}
 
-      <!-- COMBO & GIFTS PREVIEW (Viral 2026 Logic) -->
+      <!-- COMBO & GIFTS: Simple Row -->
       {#if activeComboQty > 1 || activeGifts.length > 0}
-        <div class="mt-4 p-3 bg-gradient-to-br from-[#fdf2f2] to-white rounded-xl border border-[#ee4d2d]/10 space-y-3">
+        <div class="p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-black uppercase text-gray-800 flex items-center gap-1.5"><Zap size={12} class="text-[#ee4d2d]" /> Ưu đãi mẫu này</span>
+            <span class="text-[11px] font-bold text-gray-400 flex items-center gap-1.5"><Zap size={12} class="text-[#ee4d2d]" /> Ưu đãi</span>
             {#if activeComboQty > 1}
-              <span class="bg-[#ee4d2d] text-white text-[9px] font-black px-2 py-0.5 rounded-full">COMBO X{activeComboQty}</span>
+              <span class="bg-[#ee4d2d] text-white text-[9px] font-black px-2 py-0.5 rounded">Combo x{activeComboQty}</span>
             {/if}
           </div>
           {#if activeGifts.length > 0}
             <div class="flex flex-wrap gap-2">
               {#each activeGifts as gift}
-                <div class="flex items-center gap-2 bg-white/80 p-1.5 rounded-lg border border-[#ee4d2d]/5 shadow-sm">
+                <div class="flex items-center gap-2 bg-white p-1.5 rounded-lg border border-gray-100 shadow-sm">
                   <div class="w-8 h-8 rounded bg-gray-50 overflow-hidden border border-gray-100">
                     <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
                   </div>
                   <div class="flex flex-col">
                     <span class="text-[10px] font-bold text-gray-900 leading-tight">{gift.name}</span>
-                    <span class="text-[9px] text-[#ee4d2d] font-black italic">Tặng kèm x{gift.qty}</span>
+                    <span class="text-[9px] text-[#ee4d2d] font-bold italic">Tặng kèm x{gift.qty}</span>
                   </div>
                 </div>
               {/each}
@@ -248,35 +250,68 @@ import X from "@lucide/svelte/icons/x";
 
       <!-- Quantity -->
       <div class="flex items-center justify-between pt-4 border-t border-gray-50">
-        <span class="text-[14px] font-bold text-gray-900">Số lượng</span>
-        <div class="flex items-center border border-gray-200 rounded-sm">
+        <span class="text-[14px] font-bold text-gray-900">Số lượng mua</span>
+        <div class="flex items-center bg-gray-50 rounded-lg border border-gray-100">
           <button 
+            type="button"
             onclick={() => handleQuantity(-1)}
             disabled={quantity <= 1}
-            class="w-10 h-10 flex items-center justify-center text-gray-400 disabled:opacity-20"
+            class="w-10 h-10 flex items-center justify-center text-gray-400"
           >
             <Minus size={16} />
           </button>
-          <div class="w-12 text-center text-[15px] font-black text-gray-900">{quantity}</div>
+          <div class="w-10 text-center text-[15px] font-black text-gray-900">{quantity}</div>
           <button 
+            type="button"
             onclick={() => handleQuantity(1)}
             disabled={quantity >= (currentStock || 99)}
-            class="w-10 h-10 flex items-center justify-center text-gray-400 disabled:opacity-20"
+            class="w-10 h-10 flex items-center justify-center text-gray-400"
           >
             <Plus size={16} />
           </button>
         </div>
       </div>
+
+      <!-- Agentic AI Advice: Clean Helen Box -->
+      <div class="mt-4 flex items-center gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+          <div class="flex flex-col items-center shrink-0">
+              <HelenIcon size={20} color="#3b82f6" />
+              <span class="text-[7px] text-blue-500 font-black mt-1 tracking-tighter">{supportAgent.config.agentName}</span>
+          </div>
+          <div class="flex-1">
+              <p class="text-[12px] text-slate-700 font-bold leading-relaxed italic">
+                 "{helenAdvice}"
+              </p>
+          </div>
+      </div>
     </div>
 
-    <!-- Footer: Confirm Button -->
+    <!-- Footer: Clean Confirm with FOMO -->
     <div class="p-4 bg-white border-t border-gray-50">
+      <div class="flex items-center justify-between px-1 mb-3">
+         <div class="flex items-center gap-1.5 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100/50">
+            <Truck size={12} class="text-emerald-500" />
+            <span class="text-[10px] text-emerald-600 font-black tracking-tighter">Freeship</span>
+         </div>
+         <div class="flex items-center gap-1.5 bg-amber-50 px-2 py-1 rounded-md border border-amber-100/50">
+            <Zap size={12} class="text-amber-500" />
+            <span class="text-[10px] text-amber-600 font-black tracking-tighter">Giao nhanh 2h</span>
+         </div>
+         <div class="flex items-center gap-1.5 bg-blue-50 px-2 py-1 rounded-md border border-blue-100/50">
+            <ShieldCheck size={12} class="text-blue-500" />
+            <span class="text-[10px] text-blue-600 font-black tracking-tighter">Chính hãng</span>
+         </div>
+      </div>
+
       <button 
         onclick={handleConfirm}
-        class="w-full h-12 bg-[#ee4d2d] text-white font-black text-[15px] uppercase tracking-wider shadow-lg shadow-[#ee4d2d]/20 active:scale-[0.98] transition-all"
+        class="w-full h-12 bg-[#ee4d2d] text-white font-black text-[15px] tracking-wider rounded-xl shadow-lg shadow-[#ee4d2d]/20 active:scale-[0.98] transition-all"
       >
-        Xác nhận
+        Xác nhận lựa chọn
       </button>
+      <div class="text-center mt-3">
+         <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest opacity-60">Thanh toán an toàn • Bảo mật 100%</span>
+      </div>
     </div>
   </div>
 {/if}

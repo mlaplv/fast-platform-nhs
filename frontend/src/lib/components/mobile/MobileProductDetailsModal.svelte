@@ -10,6 +10,7 @@
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
+  import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
   import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import Droplet from "@lucide/svelte/icons/droplet";
@@ -373,7 +374,7 @@
              <div class="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-1.5">
                <div class="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-full">
                  <div class="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]"></div>
-                 <span class="text-[9px] font-bold text-white/80 leading-none">1.2K+ đang xem</span>
+                 <span class="text-[9px] font-bold text-white/80 leading-none">{fomoStore.viewers.toLocaleString()} đang xem</span>
                </div>
                {#if galleryImages.length > 1}
                  <div class="flex items-center gap-1 bg-black/40 px-2.5 py-1 rounded-full">
@@ -455,6 +456,35 @@
           {/if}
         </div>
       {/if}
+    </div>
+
+    <!-- 🛰️ ELITE V2.2: MODAL STICKY CTA (Conversion Booster) -->
+    <div class="mt-auto pt-2 pb-6 px-4 bg-gradient-to-t from-black via-black/95 to-transparent shrink-0 relative z-surface border-t border-white/5">
+        <button
+           onclick={() => { 
+             const variantToBuy = shopStore.variant || product.variants?.[0];
+             if (variantToBuy) shopStore.selectVariant(variantToBuy);
+             shopStore.openCheckout(cartStore, product); 
+           }}
+           class="w-full h-[65px] rounded-[1.5rem] font-black text-[14px] uppercase tracking-[0.1em] flex items-center justify-between px-5 transition-all duration-500 italic active:scale-95 bg-[#FFB7C5] text-slate-950 shadow-[0_10px_40px_rgba(255,183,197,0.3)] relative group overflow-hidden"
+         >
+           <div class="flex flex-col text-left leading-tight">
+              <span class="text-[10px] font-black uppercase opacity-60">Đặt hàng ngay</span>
+              <span class="text-[13px] font-black uppercase">Chọn Combo x{shopStore.variant?.attributes?.combo_qty || 1}</span>
+           </div>
+           
+           <div class="flex items-center gap-3">
+              <div class="flex flex-col items-end leading-none">
+                 {#if (shopStore.originalPrice * shopStore.quantity) > shopStore.totalAmount}
+                   <span class="text-[9px] text-slate-950/40 line-through font-bold">{formatCurrency(shopStore.originalPrice * shopStore.quantity)}</span>
+                 {/if}
+                 <span class="text-[19px] font-[1000] tracking-tighter">{formatCurrency(shopStore.totalAmount || (product.variants?.[0]?.price || 0))}</span>
+              </div>
+              <div class="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center border border-black/5">
+                 <ArrowRight class="w-5 h-5" />
+              </div>
+           </div>
+        </button>
     </div>
   </div>
 </div>

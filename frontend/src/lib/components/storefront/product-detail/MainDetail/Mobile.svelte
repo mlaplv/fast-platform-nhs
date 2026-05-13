@@ -34,12 +34,33 @@
   // --- TAB & SCROLL STATE ---
   let activeTab = $state('overview');
   let showTabs = $state(false);
+  let isScrolled = $state(false);
+  let isShrunk = $state(false);
+  let lastScrollY = 0;
+  let scrollRatio = $state(0);
+  let hideRatio = $state(0);
   let scrollContainer: HTMLElement | undefined = $state();
 
   function handleScroll() {
     if (!scrollContainer) return;
     const st = scrollContainer.scrollTop;
     showTabs = st > 400;
+    isScrolled = st > 50;
+    
+    // Directional scroll for Bottom Nav (Sync with Home)
+    const threshold = 15;
+    if (st > lastScrollY + threshold && st > 80) {
+      isShrunk = true;
+      lastScrollY = st;
+    } else if (st < lastScrollY - threshold || st <= 80) {
+      isShrunk = false;
+      lastScrollY = st;
+    }
+
+    // Shrink effect for Header: 0 to 1 over 100px
+    scrollRatio = Math.min(1, st / 100);
+    // Hide effect for Viral: 0 to 1 between 150px and 350px
+    hideRatio = Math.max(0, Math.min(1, (st - 150) / 200));
 
     const sections = ['overview', 'description', 'reviews', 'recommendations'];
     for (const id of sections.reverse()) {
@@ -110,6 +131,17 @@
     updateCountdown();
     const timer = setInterval(updateCountdown, 1000);
     return () => clearInterval(timer);
+  });
+
+  // Elite V2.2: Neural Variant Initialization (Sync with Desktop)
+  $effect(() => {
+    if (product && !selectedVariant && variations.length > 0) {
+      const pVariants = product.variants || [];
+      const defaultV = pVariants.find(v => v.is_default) || pVariants[0];
+      if (defaultV) {
+        selectedVariant = defaultV;
+      }
+    }
   });
 
   // --- VIRAL SHARING ---
@@ -204,6 +236,7 @@
   <ProductMobileHeader 
     {product} 
     {showTabs} 
+    {scrollRatio}
     {activeTab} 
     onScrollToSection={scrollToSection} 
     onShare={shareProduct} 
@@ -219,6 +252,10 @@
         {selectedVariant} 
         {selectedQty}
         bind:isViralUnlocked
+        {isScrolled}
+        isHidden={showTabs}
+        {scrollRatio}
+        {hideRatio}
         onOpenSelector={() => showVariantSelector = true} 
       />
     </section>
@@ -246,6 +283,8 @@
   <MobileBottomNav
     isProductMode={true}
     {product}
+    {selectedVariant}
+    scrolled={isShrunk}
     onAddToCart={addToCart}
     onBuyNow={buyNow}
     onChatOpen={() => supportAgent.open()}

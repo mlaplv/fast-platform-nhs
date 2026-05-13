@@ -343,9 +343,9 @@
 
           <!-- HUD Data Overlays -->
           <div class="absolute top-10 left-6 opacity-30 text-[10px] font-mono text-[#FFB7C5]/80 space-y-1 text-left">
-            <div class="flex items-center gap-1"><Cpu size={10} /> HỆ THỐNG: ỔN ĐỊNH</div>
-            <div class="flex items-center gap-1"><Activity size={10} /> ĐỘ TRỄ: 12ms</div>
-            <div class="flex items-center gap-1"><Database size={10} /> MÃ HÓA: QUANTUM_V3</div>
+            <div class="flex items-center gap-1"><Cpu size={10} /> Hệ thống: ổn định</div>
+            <div class="flex items-center gap-1"><Activity size={10} /> Độ trễ: 12ms</div>
+            <div class="flex items-center gap-1"><Database size={10} /> Mã hóa: quantum_v3</div>
           </div>
 
           <div class="absolute top-10 right-6 opacity-30 text-[7px] font-mono text-[#FFB7C5]/80 text-right">
@@ -361,7 +361,7 @@
           <div class="absolute bottom-10 left-6 right-6 opacity-20 text-[10px] font-mono text-[#FFB7C5]/80 flex justify-between">
             <div class="flex flex-col gap-1">
                 <div>AI_LOG_STREAM // ĐỒNG BỘ</div>
-                <div class="tracking-widest">{binaryData}</div>
+                <div class="diagnostic-log-text tracking-widest">{binaryData}</div>
             </div>
             <div class="text-right flex flex-col justify-end">
                 <div>MÃ HÓA SINH TRẮC HỌC</div>
@@ -590,8 +590,8 @@
                         </button>
                       {/if}
                       <div class="flex flex-col">
-                        <span class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-black">AI_PHASE_SEQUENCE</span>
-                        <p class="text-[10px] text-[#FFB7C5] uppercase tracking-[0.2em] font-black italic mt-0.5">Step {currentStep + 1} <span class="text-white/10">//</span> {questions.length}</p>
+                        <span class="diagnostic-phase-label text-[10px] text-white/30 tracking-[0.2em] font-black">Tiến trình chẩn đoán AI</span>
+                        <p class="text-[10px] text-[#FFB7C5] uppercase tracking-[0.2em] font-black italic mt-0.5">Bước {currentStep + 1} <span class="text-white/10">//</span> {questions.length}</p>
                       </div>
                     </div>
                     <div class="relative w-20 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
@@ -629,7 +629,7 @@
                           </div>
                         </div>
                         <div class="flex flex-col overflow-hidden">
-                          <span class="text-white/90 font-bold text-xs uppercase tracking-tight truncate">
+                          <span class="option-label text-white/90 font-bold text-xs tracking-tight truncate">
                             {#if typeof opt.label === 'string'}
                               {@html opt.label}
                             {:else}
@@ -695,6 +695,14 @@
 
   .progress-fill {
     width: var(--progress, 0%);
+  }
+
+  /* Elite V2.2: Diagnostics Sentence-Case Fix */
+  .option-label, .diagnostic-log-text {
+    text-transform: lowercase;
+  }
+  .option-label::first-letter, .diagnostic-log-text::first-letter {
+    text-transform: uppercase;
   }
 
   .animate-spin-slow {

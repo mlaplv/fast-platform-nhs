@@ -39,7 +39,7 @@
      <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
         <div class="flex items-center gap-3">
            <div class="w-1.5 h-6 bg-[#ee4d2d]"></div>
-           <h2 class="text-[20px] font-black text-gray-900 tracking-tight">Chi tiết sản phẩm</h2>
+           <h2 class="text-[20px] font-black text-gray-900 tracking-tight">Chi tiết về {product.name}</h2>
         </div>
         <div class="flex flex-col items-end">
            <span class="text-[9px] font-black text-gray-400 tracking-widest">Serial / SKU</span>
@@ -93,9 +93,9 @@
         <div class="grid grid-cols-1 gap-6 w-full">
              {#if product.metadata?.featured_ingredients && product.metadata.featured_ingredients.length > 0}
              <div class="flex flex-col gap-3 py-2">
-                <div class="flex items-center gap-2 text-[10px] font-black text-gray-400 tracking-widest">
-                  <Sparkles size={12} class="text-amber-500" /> Thành phần nổi bật (Featured)
-                </div>
+                <h2 class="flex items-center gap-2 text-[10px] font-black text-gray-400 tracking-widest uppercase">
+                  <Sparkles size={12} class="text-amber-500" /> THÀNH PHẦN {product.name} (FEATURED)
+                </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {#each product.metadata.featured_ingredients as ing}
                     <div class="flex gap-3 bg-[#fdf2f2]/50 border border-[#ee4d2d]/5 p-3 rounded-xl hover:bg-white hover:shadow-xl hover:shadow-[#ee4d2d]/5 transition-all group/ing">
@@ -151,7 +151,7 @@
      <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
         <div class="flex items-center gap-3">
            <div class="w-1.5 h-6 bg-[#ee4d2d]"></div>
-           <h2 class="text-[20px] font-black text-gray-900 tracking-tight">Mô tả sản phẩm</h2>
+           <h2 class="text-[20px] font-black text-gray-900 tracking-tight">Mô tả chi tiết {product.name}</h2>
         </div>
      </div>
      <div class="px-0 prose-osmo">

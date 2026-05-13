@@ -295,6 +295,20 @@ class ArticleService:
             db_session, new_id, data.title, cleaned_content
         )
 
+        # Elite V2.2: Knowledge Graph Generation (SGE Optimization)
+        # Tự động trích xuất thực thể để AI Search dễ dàng citation
+        from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
+        try:
+            kg_data = await generate_knowledge_graph(
+                content=cleaned_content,
+                topic=data.title
+            )
+            article.article_metadata["knowledge_graph"] = kg_data
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(article, "article_metadata")
+        except Exception as e:
+            logger.error(f"[ArticleService] KG Generation failed for {new_id}: {e}")
+
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
         
@@ -354,6 +368,21 @@ class ArticleService:
             await self.vector_service.upsert_article_embedding(
                 db_session, article_id, article.title, article.content
             )
+            
+            # Elite V2.2: Re-generate Knowledge Graph on content change
+            from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
+            try:
+                kg_data = await generate_knowledge_graph(
+                    content=article.content,
+                    topic=article.title
+                )
+                if not article.article_metadata:
+                    article.article_metadata = {}
+                article.article_metadata["knowledge_graph"] = kg_data
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(article, "article_metadata")
+            except Exception as e:
+                logger.error(f"[ArticleService] KG Refresh failed for {article_id}: {e}")
 
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()

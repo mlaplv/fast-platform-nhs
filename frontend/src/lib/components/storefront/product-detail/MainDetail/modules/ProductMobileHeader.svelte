@@ -14,12 +14,13 @@
   interface Props {
     product: Product;
     showTabs: boolean;
+    scrollRatio: number;
     activeTab: string;
     onScrollToSection: (id: string) => void;
     onShare?: () => void;
   }
 
-  let { product, showTabs, activeTab, onScrollToSection, onShare }: Props = $props();
+  let { product, showTabs, scrollRatio, activeTab, onScrollToSection, onShare }: Props = $props();
   const cartStore = getCartStore();
   const searchStore = getSearchStore();
 
@@ -45,7 +46,10 @@
   }
 </script>
 
-<header class="detail-header" style="z-index: var(--z-header, 100);">
+<header 
+  class="detail-header" 
+  style="z-index: var(--z-header, 100); background: rgba(255, 255, 255, {0.85 + scrollRatio * 0.15});"
+>
   <div class="header-main">
     <button type="button" class="icon-btn" onclick={() => history.back()} aria-label="Quay lại">
       <ChevronLeft size={24} />
@@ -61,18 +65,30 @@
     </div>
 
     <div class="header-actions">
-      <button type="button" class="icon-btn" aria-label="Chia sẻ" onclick={handleShare}>
-        <Share2 size={24} />
-      </button>
+      <div 
+        class="action-item-wrapper" 
+        style="opacity: {1 - scrollRatio}; width: {(1 - scrollRatio) * 32}px; transform: scale({1 - scrollRatio * 0.5});"
+      >
+        <button type="button" class="icon-btn" aria-label="Chia sẻ" onclick={handleShare}>
+          <Share2 size={24} />
+        </button>
+      </div>
+
       <button type="button" class="icon-btn relative" onclick={() => goto('/checkout')} aria-label="Giỏ hàng">
         <ShoppingCart size={24} />
         {#if cartStore.totalItems > 0}
           <span class="badge">{cartStore.totalItems}</span>
         {/if}
       </button>
-      <button type="button" class="icon-btn" aria-label="Thêm">
-        <MoreHorizontal size={24} />
-      </button>
+
+      <div 
+        class="action-item-wrapper" 
+        style="opacity: {1 - scrollRatio}; width: {(1 - scrollRatio) * 32}px; transform: scale({1 - scrollRatio * 0.5});"
+      >
+        <button type="button" class="icon-btn" aria-label="Thêm">
+          <MoreHorizontal size={24} />
+        </button>
+      </div>
     </div>
   </div>
 
@@ -211,5 +227,14 @@
   .header-actions {
     display: flex;
     gap: 4px;
+    align-items: center;
+  }
+
+  .action-item-wrapper {
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 </style>

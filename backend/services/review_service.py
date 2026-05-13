@@ -84,7 +84,26 @@ class ReviewService:
     async def update_status(self, review_id: str, data: UpdateReviewStatusRequest) -> SystemReview:
         try:
             review = await self.review_repo.get(review_id)
+            old_status = review.status
             review.status = data.status
+
+            # Elite V2.2: Knowledge Graph Generation (SGE Optimization)
+            # Khi duyệt đánh giá (Approved), tự động trích xuất thực thể để AI Search dễ dàng citation
+            if data.status == "APPROVED" and old_status != "APPROVED":
+                from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
+                try:
+                    kg_data = await generate_knowledge_graph(
+                        content=review.content,
+                        topic=f"Đánh giá từ {review.customer_name} cho {review.entity_type} {review.entity_id}"
+                    )
+                    if not review.attributes:
+                        review.attributes = {}
+                    review.attributes["knowledge_graph"] = kg_data
+                except Exception as e:
+                    # Non-blocking failure for KG generation
+                    import logging
+                    logging.getLogger("api-gateway").error(f"[ReviewService] KG Generation failed: {e}")
+
             return await self.review_repo.update(review)
         except NotFoundError:
             raise ValueError(f"Review {review_id} not found")

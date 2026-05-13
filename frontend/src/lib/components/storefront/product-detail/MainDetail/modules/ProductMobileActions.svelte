@@ -4,12 +4,19 @@
 
   interface Props {
     product: Product;
+    selectedVariant?: import('$lib/types').ProductVariant | null;
     hasFreeship: boolean;
     onAddToCart?: () => void;
     onBuyNow?: () => void;
   }
 
-  let { product, hasFreeship, onAddToCart, onBuyNow }: Props = $props();
+  let { product, selectedVariant, hasFreeship, onAddToCart, onBuyNow }: Props = $props();
+
+  const activePrice = $derived(
+    selectedVariant 
+      ? (selectedVariant.discountPrice || selectedVariant.discount_price || selectedVariant.price)
+      : (product.discountPrice || product.discount_price || product.price || 0)
+  );
 </script>
 
 <div class="tbn-action-group">
@@ -20,7 +27,7 @@
   </button>
   <button class="tbn-action-split tbn-action-split--buy" aria-label="Mua ngay" onclick={() => onBuyNow?.()}>
     <span class="buy-text">MUA NGAY</span>
-    <span class="buy-sub">{formatCurrency(product.discount_price || product.price || 0)} {hasFreeship ? '| Freeship' : ''}</span>
+    <span class="buy-sub">{formatCurrency(activePrice)} {hasFreeship ? '| Freeship' : ''}</span>
     <div class="tbn-btn-shine"></div>
   </button>
 </div>

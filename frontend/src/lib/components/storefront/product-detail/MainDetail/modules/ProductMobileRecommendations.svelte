@@ -25,7 +25,7 @@
 </section>
 
 <style>
-  .content-section { background: white; padding: 16px; }
+  .content-section { background: white; padding: 16px 5px; }
   .section-title { font-size: 14px; font-weight: 800; color: #222; margin-bottom: 12px; text-transform: uppercase; letter-spacing: -0.01em; }
   .recommendations-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .related-card { display: flex; flex-direction: column; background: white; border-radius: 12px; overflow: hidden; border: 1px solid #f5f5f5; text-decoration: none; color: inherit; transition: all 0.3s ease; }

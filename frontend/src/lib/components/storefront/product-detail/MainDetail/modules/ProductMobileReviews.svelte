@@ -245,7 +245,7 @@
 </section>
 
 <style>
-  .content-section { background: white; padding: 16px; }
+  .content-section { background: white; padding: 16px 5px; }
   .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .section-title { font-size: 14px; font-weight: 800; color: #222; margin: 0; letter-spacing: -0.01em; }
   .view-all { font-size: 12px; display: flex; align-items: center; gap: 4px; font-weight: 600; text-decoration: none; }

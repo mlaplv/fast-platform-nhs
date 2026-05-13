@@ -14,8 +14,8 @@
 
   const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
   const legacyParts = $derived(metadata.hero_headline?.split('<br/>') || []);
-  const h1 = $derived(metadata.hero_headline_1 || stripTags(legacyParts[0]) || 'ĐÁNH BAY');
-  const h2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || 'THÂM SẠM');
+  const h1 = $derived(metadata.hero_headline_1 || stripTags(legacyParts[0]) || 'Đánh bay');
+  const h2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || 'thâm sạm');
 
   const rawUrl = $derived.by((): string => {
     const v = (metadata.video_url as string | undefined)?.trim() ?? '';
@@ -119,13 +119,13 @@
     return null;
   });
 
-  const handle = $derived(metadata.mobile_handle as string || '@osmo');
+  const handle = $derived((metadata.mobile_handle as string || '@osmo').toLowerCase());
   const metrics = $derived.by(() => {
     const raw = metadata.hero_metrics || [];
     const fallbacks = [
-      { label: '[Khoa học]', value: 'LIPOSOME PHÁ GỐC THÂM', color: 'sakura' },
-      { label: '[Hiệu quả]', value: 'DỨT ĐIỂM HẮC SẾT TỐ', color: 'sakura' },
-      { label: '[Tiêu chuẩn]', value: 'SỐ 1 DƯỢC LIỆU NHẬT', color: 'sakura' }
+      { label: '[Khoa học]', value: 'Liposome phá gốc thâm', color: 'sakura' },
+      { label: '[Hiệu quả]', value: 'Dứt điểm hắc sắc tố', color: 'sakura' },
+      { label: '[Tiêu chuẩn]', value: 'Số 1 dược liệu Nhật', color: 'sakura' }
     ];
     return fallbacks.map((fb, i) => {
       const custom = raw[i];

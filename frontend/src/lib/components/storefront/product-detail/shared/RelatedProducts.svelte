@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { fade } from 'svelte/transition';
   import type { Product } from '$lib/types';
   import ProductGrid from '../../product/ProductGrid.svelte';
   import { getRecentlyViewedStore } from '$lib/state/commerce/recentlyViewed.svelte';
@@ -30,13 +31,32 @@
   const availableTabs = $derived.by(() => {
     const list = [];
     if (categoryProducts.length > 0) {
-      list.push({ id: 'category', label: 'Cùng danh mục', icon: Flame, color: '#ee4d2d' });
+      list.push({ 
+        id: 'category', 
+        label: 'Cùng danh mục', 
+        reasoning: `Dựa trên sở thích chăm sóc ${product.category_name || 'chuyên sâu'} của Sếp`,
+        icon: Flame, 
+        color: '#ee4d2d' 
+      });
     }
     if (brandProducts.length > 0) {
-      list.push({ id: 'brand', label: 'Thương hiệu', icon: ShieldCheck, color: '#1890ff' });
+      const brand = product.metadata?.brand || product.attributes?.brand || product.attributes?.['Thương hiệu'] || 'osmo Elite';
+      list.push({ 
+        id: 'brand', 
+        label: 'Thương hiệu', 
+        reasoning: `Khám phá hệ sinh thái sản phẩm ${brand}`,
+        icon: ShieldCheck, 
+        color: '#1890ff' 
+      });
     }
     if (recentProducts.length > 0) {
-      list.push({ id: 'recent', label: 'Vừa xem', icon: History, color: '#52c41a' });
+      list.push({ 
+        id: 'recent', 
+        label: 'Vừa xem', 
+        reasoning: 'Gợi ý dựa trên lịch sử trinh sát của Sếp',
+        icon: History, 
+        color: '#52c41a' 
+      });
     }
     return list;
   });
@@ -142,7 +162,12 @@
             <span class="icon-wrap" style="color: {activeTab === tab.id ? '#000' : tab.color}">
               <tab.icon size={18} strokeWidth={2.5} />
             </span>
-            <span class="label">{tab.label}</span>
+            <div class="flex flex-col items-start">
+              <span class="label">{tab.label}</span>
+              {#if activeTab === tab.id}
+                <span class="reasoning" in:fade>{tab.reasoning}</span>
+              {/if}
+            </div>
           </button>
         {/each}
       </div>
@@ -239,6 +264,15 @@
 
   .tab-sharp.active .label {
     color: #000;
+    margin-bottom: -2px;
+  }
+
+  .reasoning {
+    font-size: 10px;
+    color: rgba(0,0,0,0.5);
+    font-weight: 500;
+    white-space: nowrap;
+    margin-top: -2px;
   }
 
   .sharp-bg {

@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { env } from '$env/dynamic/public';
 
 /**
  * ELITE V2.2: ActivityItem Schema
@@ -18,9 +19,14 @@ export interface ActivityItem {
  */
 export class FomoStore {
     // ── Metric State (Deterministic/Real-time) ──────────────────────────
-    viewers = $state(0);
+    // ── Metric State (Deterministic/Real-time) ──────────────────────────
+    private _rawViewers = $state(0);
+    private _rawTotalSales = $state(0);
+    
+    // Elite V2.2: Dual-layer fallback (Dynamic Env -> Hardcoded Fallback)
+    viewers = $derived(this._rawViewers + parseInt(env.PUBLIC_G_BY_COUNT || '569'));
+    totalSales = $derived(this._rawTotalSales + (parseInt(env.PUBLIC_G_BY_COUNT || '569') * 12));
     stockLeft = $state(0);
-    totalSales = $state(0);
 
     // ── Activity State (Live Feed) ───────────────────────────────────
     activities = $state<ActivityItem[]>([]);
@@ -64,9 +70,9 @@ export class FomoStore {
             const { apiClient } = await import('$lib/utils/apiClient');
             const data = await apiClient.get<{viewers: number, stockLeft: number, totalSales: number}>(`/api/v1/client/fomo/metrics/${this._slug}`);
             if (data) {
-                this.viewers = data.viewers;
+                this._rawViewers = data.viewers;
                 this.stockLeft = data.stockLeft;
-                this.totalSales = data.totalSales;
+                this._rawTotalSales = data.totalSales;
             }
         } catch (error) {
             console.error('[FomoStore] Metrics sync failed', error);

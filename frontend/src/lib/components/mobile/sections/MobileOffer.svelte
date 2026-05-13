@@ -122,22 +122,15 @@
   });
 
   // --- FOMO Simulation (Elite V2.2) ---
-  let viralViewers = $state(Math.floor(Math.random() * (280 - 120 + 1)) + 120);
+  // Elite V2.2: Synchronized FOMO Metrics
+  const viralViewers = $derived(fomoStore.viewers);
   
   onMount(() => {
     if (product?.slug) {
       fomoStore.init(product.slug);
     }
-    
-    // 🚀 Viral Viewers Drift (Simulation)
-    const interval = setInterval(() => {
-      const drift = Math.floor(Math.random() * 5) - 2; // -2 to +2
-      viralViewers = Math.min(300, Math.max(100, viralViewers + drift));
-    }, 4000);
-
     return () => {
       fomoStore.dispose();
-      clearInterval(interval);
     };
   });
 
@@ -189,10 +182,10 @@
     <div class="flex items-center justify-center gap-2 mb-2" in:fly={{ y: -10 }}>
        <div class="bg-[#FFB7C5]/20 backdrop-blur-md border border-[#FFB7C5]/30 rounded-full px-3 py-0.5 flex items-center gap-2">
           <div class="w-1 h-1 rounded-full bg-[#FFB7C5] animate-pulse shadow-[0_0_8px_rgba(255,183,197,0.8)]"></div>
-          <span class="text-[9px] font-bold text-white/90 uppercase tracking-tight italic">
+          <span class="offer-status-label text-[9px] font-bold text-white/90 tracking-tight italic">
             <span class="text-[#FFB7C5]">{viralViewers.toLocaleString()}</span> 
             <EditableWrapper path="metadata.offer_viewers_suffix" type="text" label="SỬA NHÃN" class="inline" as="span">
-              {metadata.offer_viewers_suffix || 'ĐANG XEM'}
+              {metadata.offer_viewers_suffix || 'đang xem'}
             </EditableWrapper>
           </span>
        </div>
@@ -212,13 +205,13 @@
         <div class="flex items-center gap-1.5">
            <ShoppingBag class="w-2.5 h-2.5 text-[#FFB7C5]" />
            <EditableWrapper path="metadata.offer_sales_label" type="text" label="SỬA NHÃN BÁN HÀNG" class="inline" as="span">
-             <span class="text-[10px] text-white/40 font-bold uppercase tracking-widest italic">{fomoStore.totalSales || '8,421'} {metadata.offer_sales_label || 'ĐÃ BÁN'}</span>
+             <span class="offer-meta-label text-[10px] text-white/40 font-bold tracking-widest italic">{fomoStore.totalSales || '8,421'} {metadata.offer_sales_label || 'đã bán'}</span>
            </EditableWrapper>
         </div>
         <div class="flex items-center gap-1.5">
            <Star class="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
            <EditableWrapper path="metadata.offer_rating_label" type="text" label="SỬA NHÃN RATING" class="inline" as="span">
-             <span class="text-[10px] text-white/40 font-bold uppercase tracking-widest italic">{metadata.offer_rating_label || '4.9/5 RATING'}</span>
+             <span class="offer-meta-label text-[10px] text-white/40 font-bold tracking-widest italic">{metadata.offer_rating_label || '4.9/5 đánh giá'}</span>
            </EditableWrapper>
         </div>
     </div>
@@ -276,23 +269,23 @@
              <div class="flex-1 flex flex-col justify-center px-5 py-2 min-w-0">
                 <div class="flex items-center gap-2 mb-2">
                    {#if i === 1}
-                      <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-sm font-bold text-[10px] uppercase tracking-widest flex items-center gap-1 shadow-md shadow-amber-500/10">
-                        <Flame class="w-3 h-3 fill-black" /> BEST SELLER
+                      <div class="offer-badge best-seller bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-sm font-bold text-[10px] tracking-widest flex items-center gap-1 shadow-md shadow-amber-500/10">
+                        <Flame class="w-3 h-3 fill-black" /> Bán chạy
                       </div>
                    {/if}
                    {#if cQty > 1}
-                      <div class="bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] px-1.5 py-0.5 rounded-sm font-bold text-[10px] uppercase tracking-widest">Combo X{cQty}</div>
+                      <div class="offer-badge combo-badge bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] px-1.5 py-0.5 rounded-sm font-bold text-[10px] tracking-widest">Combo x{cQty}</div>
                    {/if}
                 </div>
 
-                <span class="font-black uppercase tracking-tight italic text-[20px] leading-tight transition-all truncate {isActive ? 'text-white drop-shadow-md' : 'text-white/40'}">{getVariantTitle(variant)}</span>
+                <span class="variant-title font-black tracking-tight italic text-[20px] leading-tight transition-all truncate {isActive ? 'text-white drop-shadow-md' : 'text-white/40'}">{getVariantTitle(variant)}</span>
                 
                 <div class="flex items-end gap-2.5 my-1.5">
                     <div class="flex flex-col">
                        <span class="font-black text-[23px] italic tracking-tighter leading-none transition-colors duration-300 {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{formatCurrency(vPrice)}</span>
                        <div class="flex items-center gap-1 mt-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1.5 py-0.5 rounded-full w-fit transition-all duration-300 transform-gpu origin-left {isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}">
                           <Sparkles class="w-2 h-2 text-[#FFB7C5] {isActive ? 'animate-pulse' : ''}" />
-                          <span class="text-[10px] font-bold text-[#FFB7C5] uppercase tracking-widest">+{Math.floor(vPrice / 100000)} PTS</span>
+                          <span class="offer-points-label text-[9px] font-bold text-[#FFB7C5] tracking-widest whitespace-nowrap">+{Math.floor(vPrice / 100000)} PTS</span>
                        </div>
                     </div>
                    {#if variant.price > vPrice}
@@ -312,7 +305,7 @@
                                   <Gift class="w-full h-full p-0.5 text-[#FFB7C5]" />
                                {/if}
                             </div>
-                            <span class="text-[10px] font-bold text-white/50 uppercase italic truncate max-w-[80px]">+{gift.qty} {gift.name}</span>
+                            <span class="offer-gift-label text-[10px] font-bold text-white/50 italic truncate max-w-[80px]">+{gift.qty} {gift.name}</span>
                          </div>
                       {/each}
                    </div>
@@ -334,7 +327,7 @@
                 <div class="w-6 h-6 rounded-full border border-white/40 flex items-center justify-center group-hover/info:border-white transition-colors">
                    <Info class="w-3.5 h-3.5 text-white/60 group-hover/info:text-white" />
                 </div>
-                <span class="text-[10px] font-bold text-white/30 uppercase tracking-widest group-hover/info:text-white/60">Chi tiết</span>
+                <span class="offer-info-label text-[10px] font-bold text-white/30 tracking-widest group-hover/info:text-white/60">Chi tiết</span>
              </button>
 
 
@@ -381,7 +374,7 @@
                       <div class="flex flex-col items-center leading-none mb-1">
                          <span class="text-[14px] font-[1000] text-[#111111] uppercase tracking-tighter whitespace-nowrap drop-shadow-sm">{v.label}</span>
                          <div class="w-10 h-[1.5px] bg-black/20 my-1 animate-pulse"></div>
-                         <span class="text-[10px] text-[#222222] font-black truncate uppercase tracking-tight italic">{v.sub}</span>
+                         <span class="voucher-sub-label text-[10px] text-[#222222] font-black truncate tracking-tight italic">{v.sub}</span>
                       </div>
                       
                       <!-- 🖋️ Postage Mark Detail -->
@@ -419,11 +412,11 @@
            <div class="absolute inset-0 bg-gradient-to-r from-[#FFB7C5]/20 via-transparent to-[#FFB7C5]/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
            <div class="relative z-10 flex items-center justify-between w-full px-4 gap-2">
               <div class="flex flex-col text-left leading-tight">
-                <span class="text-white text-[11px] font-black uppercase italic">CHỌN COMBO X{selectedVariant?.attributes?.combo_qty || 1}</span>
+                <span class="cta-selection-label text-white text-[11px] font-black italic">Chọn combo x{shopStore.variant?.attributes?.combo_qty || 1}</span>
                 <div class="flex items-center gap-1.5 mt-0.5">
-                   <span class="text-[10px] text-[#FFB7C5] font-bold uppercase tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20">TÍCH +{Math.floor(shopStore.totalAmount / 100000)} PTS</span>
+                   <span class="cta-points-label text-[9px] text-[#FFB7C5] font-bold tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20 whitespace-nowrap">Tích +{Math.floor(shopStore.totalAmount / 100000)} PTS</span>
                    <EditableWrapper path="metadata.offer_shipping_label" type="text" label="SỬA NHÃN SHIP" class="inline" as="span">
-                     <span class="text-[10px] text-white/30 font-bold uppercase tracking-widest italic">• {metadata.offer_shipping_label || 'FREESHIP'}</span>
+                     <span class="cta-ship-label text-[10px] text-white/30 font-bold tracking-widest italic">• {metadata.offer_shipping_label || 'Freeship'}</span>
                    </EditableWrapper>
                 </div>
               </div>
@@ -451,5 +444,18 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Elite V2.2: Offer Sentence-Case Fix */
+  .offer-status-label, .offer-meta-label, .offer-badge, .variant-title, 
+  .offer-gift-label, .offer-info-label, .voucher-sub-label,
+  .cta-selection-label, .cta-ship-label {
+    text-transform: lowercase;
+  }
+  .offer-status-label::first-letter, .offer-meta-label::first-letter, .offer-badge::first-letter, 
+  .variant-title::first-letter, .offer-gift-label::first-letter, 
+  .offer-info-label::first-letter, .voucher-sub-label::first-letter, .cta-selection-label::first-letter, 
+  .cta-ship-label::first-letter {
+    text-transform: uppercase;
   }
 </style>

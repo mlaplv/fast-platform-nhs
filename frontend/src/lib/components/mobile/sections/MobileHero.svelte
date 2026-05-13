@@ -40,15 +40,15 @@
 
   $effect(() => {
     const updateTimer = () => {
-        if (flashSaleEnd > 0) {
-            const now = Date.now();
+        const now = Date.now();
+        if (flashSaleEnd > now) {
             const diff = Math.max(0, Math.floor((flashSaleEnd - now) / 1000));
             timerSeconds = diff;
         } else {
-            // Fallback: Nếu không có cấu hình, dùng một bộ đếm ngược ảo dựa trên ngày hiện tại
-            const now = new Date();
-            const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-            timerSeconds = Math.floor((endOfDay.getTime() - now.getTime()) / 1000);
+            // Fallback: Nếu không có cấu hình hoặc đã hết hạn, đếm đến cuối ngày hôm nay
+            const nowDate = new Date();
+            const endOfDay = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate(), 23, 59, 59);
+            timerSeconds = Math.max(0, Math.floor((endOfDay.getTime() - nowDate.getTime()) / 1000));
         }
     };
     
@@ -190,27 +190,15 @@
 
             <!-- Title & Variant (Elite Dynamic Content) -->
             <div class="mb-4">
-              <span class="text-[10px] font-black text-[#FFB7C5] uppercase tracking-[0.2em] mb-1 block italic drop-shadow-sm">
-                <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.hero_headline_1` : 'metadata.hero_headline_1'} type="text" label="SỬA SLOGAN" class="inline" as="span">
-                    {variantH1}
-                </EditableWrapper>
-              </span>
+              <!-- Removed slogan slot as requested -->
               
               {#if i === 0}
-                <h1 class="text-3xl font-extrabold text-white tracking-tighter italic leading-tight uppercase bg-clip-text">
-                  Miccosmo Beppin Body Virgin White Serum
-                </h1>
-              {:else}
-                <div class="text-3xl font-extrabold text-white tracking-tighter italic leading-tight uppercase bg-clip-text">
+                <div class="hero-title text-3xl font-extrabold text-white tracking-tighter italic leading-tight bg-clip-text">
                   Miccosmo Beppin Body Virgin White Serum
                 </div>
               {/if}
 
-              <span class="block text-gradient-indigo text-lg font-bold mt-1">
-                  <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.hero_headline_2` : 'metadata.hero_headline_2'} type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
-                      {variantH2}
-                  </EditableWrapper>
-              </span>
+              <!-- Removed subtitle slot as requested -->
             </div>
 
             <!-- Trust / Review Badge (Elite R00 Compliant) -->
@@ -239,7 +227,7 @@
                 <div class="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 backdrop-blur-xl rounded-md border border-white/20 shadow-lg pointer-events-auto">
                     <Icon class="w-3 h-3 text-[#FFB7C5]" />
                     <EditableWrapper path="metadata.hero_metrics[{i}].value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}" as="span">
-                      <span class="text-[10px] font-bold text-white/90 uppercase tracking-tight">
+                      <span class="metric-value text-[10px] font-bold text-white/90 tracking-tight">
                         {metric.value}
                       </span>
                     </EditableWrapper>
@@ -325,16 +313,16 @@
                         <ArrowRight class="w-4 h-4 ml-[2px]" />
                      </div>
                      <div class="flex flex-col items-start justify-center mt-[1px]">
-                        <span class="text-[12px] font-bold text-white uppercase tracking-wider leading-[1.1] mb-[1.5px]">XEM LIỆU TRÌNH</span>
-                        <span class="text-[10px] font-bold text-[#FFB7C5] tracking-widest uppercase flex items-center gap-1 leading-none drop-shadow-md">
-                           <Zap class="w-2.5 h-2.5" /> FREESHIP HỎA TỐC
+                        <span class="cta-primary-text text-[12px] font-bold text-white tracking-wider leading-[1.1] mb-[1.5px]">Xem liệu trình</span>
+                        <span class="cta-secondary-text text-[10px] font-bold text-[#FFB7C5] tracking-widest flex items-center gap-1 leading-none drop-shadow-md">
+                           <Zap class="w-2.5 h-2.5" /> Freeship hỏa tốc
                         </span>
                      </div>
                   </div>
                   
                   <!-- Right: Countdown -->
                   <div class="flex flex-col items-end justify-center relative z-surface mt-[1px]">
-                     <span class="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-[1.5px]">KẾT THÚC SAU</span>
+                     <span class="cta-timer-label text-[10px] font-bold text-white/50 tracking-widest mb-[1.5px]">Kết thúc sau</span>
                      <span class="text-[11px] font-bold text-white font-mono tracking-tighter drop-shadow-md leading-none">{formattedTime}</span>
                   </div>
                </button>
