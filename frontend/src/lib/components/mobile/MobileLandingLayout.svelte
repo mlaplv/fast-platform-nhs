@@ -8,6 +8,10 @@
   import MobileVideoBanner from './sections/MobileVideoBanner.svelte';
   import MobileHero from './sections/MobileHero.svelte';
   import MobileProductDetailsModal from './MobileProductDetailsModal.svelte';
+  import ScannerHUD from '../storefront/product-detail/shared/ScannerHUD.svelte';
+  import MobileVerificationCenter from '../storefront/product-detail/shared/MobileVerificationCenter.svelte';
+  import BottomSheet from './BottomSheet.svelte';
+  import { fade } from 'svelte/transition';
 
   // Support Agent
   import SupportChatMobile from '$lib/components/client/support/SupportChatMobile.svelte';
@@ -26,6 +30,20 @@
   let activeSectionIndex = $state(0);
   let isDetailsModalOpen = $state(false);
   let loadJIT = $state(false);
+  let isScanning = $state(false);
+  let showVerification = $state(false);
+  let verificationData = $state(null);
+
+  function triggerScan() {
+    isScanning = true;
+    showVerification = false;
+  }
+
+  function handleScanComplete(event: any) {
+    isScanning = false;
+    verificationData = event.verificationData;
+    showVerification = true;
+  }
 
   interface Props {
     product: any;
@@ -121,6 +139,7 @@
     }} 
     onOpenDetails={() => isDetailsModalOpen = true}
     onChat={() => supportAgent.toggle()}
+    onVerify={triggerScan}
   />
   {#if hasVideo}
     <section id="video-banner" class="mobile-snap-section video-section" data-section-idx="0">
@@ -181,6 +200,16 @@
 
 
   <MobileProductDetailsModal bind:active={isDetailsModalOpen} {product} />
+
+  {#if isScanning}
+    <ScannerHUD barcode={product.metadata?.barcode || product.sku} oncomplete={handleScanComplete} />
+  {/if}
+
+  {#if showVerification}
+    <BottomSheet bind:active={showVerification} title="Verified" fullWidth={true} tight={true} extraStyle="padding-left: 5px !important; padding-right: 5px !important;">
+       <MobileVerificationCenter {product} {verificationData} />
+    </BottomSheet>
+  {/if}
 
   <!-- 🔍 SEO INTERNAL LINKING (Google Sitelinks Support) -->
   <nav class="sr-only" aria-label="Nội dung chính">

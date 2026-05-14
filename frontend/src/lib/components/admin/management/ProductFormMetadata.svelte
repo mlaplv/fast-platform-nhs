@@ -16,6 +16,7 @@
   import Heart from "@lucide/svelte/icons/heart";
   import Clock from "@lucide/svelte/icons/clock";
   import Ticket from "@lucide/svelte/icons/ticket";
+  import Shield from "@lucide/svelte/icons/shield";
   import type { ProductFormState, ProductMetadata } from "$lib/types";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
@@ -23,50 +24,92 @@
 
   const nanobot = useNanobot();
 
-  let { formState = $bindable() } = $props<{
+  let { formState = $bindable(), onOpenVault } = $props<{
     formState: ProductFormState;
+    onOpenVault?: (field: string) => void;
   }>();
+
+  let isScanning = $state(false);
+
+  async function scanComplianceImage() {
+    if (!formState.metadata.notification_doc) {
+      nanobot.showToast(
+        "Vui lòng chọn hoặc nhập URL ảnh phiếu công bố trước khi quét.",
+        "error",
+      );
+      return;
+    }
+
+    isScanning = true;
+    try {
+      nanobot.showToast("AI đang phân tích ảnh phiếu công bố...", "info");
+      const response = await apiClient.post("/admin/compliance/scan-image", {
+        image_url: formState.metadata.notification_doc,
+      });
+
+      if (response.success && response.data) {
+        formState.metadata.notification_no =
+          response.data.notification_no || formState.metadata.notification_no;
+        formState.metadata.notification_date =
+          response.data.notification_date ||
+          formState.metadata.notification_date;
+        formState.metadata.authority =
+          response.data.authority || formState.metadata.authority;
+        nanobot.showToast("Đã tự động điền thông tin từ ảnh!", "success");
+      } else {
+        nanobot.showToast(
+          "Không thể trích xuất dữ liệu. Vui lòng kiểm tra lại chất lượng ảnh.",
+          "error",
+        );
+      }
+    } catch (err) {
+      console.error("AI Scan Error:", err);
+      nanobot.showToast("Lỗi hệ thống khi quét ảnh.", "error");
+    } finally {
+      isScanning = false;
+    }
+  }
 
   onMount(() => {
     if (!formState.metadata) {
-      formState.metadata = { landing_type: 'standard' };
+      formState.metadata = { landing_type: "standard" };
     }
     if (!formState.metadata.landing_type) {
-      formState.metadata.landing_type = 'standard';
+      formState.metadata.landing_type = "standard";
     }
   });
 
   /** Viral Intelligence: Auto-suggest icons for ingredients */
   const viralIcons = [
-    { icon: '💧', label: 'Cấp ẩm / HA' },
-    { icon: '🍋', label: 'Vitamin C / Làm sáng' },
-    { icon: '🛡️', label: 'Niacinamide / Bảo vệ' },
-    { icon: '🌙', label: 'Retinol / Tái tạo' },
-    { icon: '🌿', label: 'Trà xanh / Thảo mộc' },
-    { icon: '🧬', label: 'Collagen / Ceramide' },
-    { icon: '✨', label: 'Sáng da / Glow' },
-    { icon: '☀️', label: 'Chống nắng / SPF' },
-    { icon: '🧪', label: 'Acid / AHA / BHA' },
-    { icon: '🌱', label: 'Rau má / Cica' },
-    { icon: '🍎', label: 'Lựu / Chống oxy hóa' },
-    { icon: '🌹', label: 'Hoa hồng / Dịu nhẹ' },
-    { icon: '🍯', label: 'Mật ong / Sát khuẩn' },
-    { icon: '🫗', label: 'Dầu dưỡng / Olive' },
-    { icon: '🌑', label: 'Than hoạt tính / Đất sét' },
-    { icon: '🪵', label: 'Cam thảo / Rễ cây' },
-    { icon: '🧴', label: 'Lotion / Dưỡng thể' },
-    { icon: '🩹', label: 'Phục hồi / Cấp cứu' },
-    { icon: '🧼', label: 'Làm sạch / Cleanser' },
-    { icon: '💊', label: 'Dược mỹ phẩm / Đặc trị' }
+    { icon: "💧", label: "Cấp ẩm / HA" },
+    { icon: "🍋", label: "Vitamin C / Làm sáng" },
+    { icon: "🛡️", label: "Niacinamide / Bảo vệ" },
+    { icon: "🌙", label: "Retinol / Tái tạo" },
+    { icon: "🌿", label: "Trà xanh / Thảo mộc" },
+    { icon: "🧬", label: "Collagen / Ceramide" },
+    { icon: "✨", label: "Sáng da / Glow" },
+    { icon: "☀️", label: "Chống nắng / SPF" },
+    { icon: "🧪", label: "Acid / AHA / BHA" },
+    { icon: "🌱", label: "Rau má / Cica" },
+    { icon: "🍎", label: "Lựu / Chống oxy hóa" },
+    { icon: "🌹", label: "Hoa hồng / Dịu nhẹ" },
+    { icon: "🍯", label: "Mật ong / Sát khuẩn" },
+    { icon: "🫗", label: "Dầu dưỡng / Olive" },
+    { icon: "🌑", label: "Than hoạt tính / Đất sét" },
+    { icon: "🪵", label: "Cam thảo / Rễ cây" },
+    { icon: "🧴", label: "Lotion / Dưỡng thể" },
+    { icon: "🩹", label: "Phục hồi / Cấp cứu" },
+    { icon: "🧼", label: "Làm sạch / Cleanser" },
+    { icon: "💊", label: "Dược mỹ phẩm / Đặc trị" },
   ];
   let activeIconPicker = $state<number | null>(null);
 
   $effect(() => {
     if (formState.metadata.featured_ingredients) {
-      formState.metadata.featured_ingredients.forEach(item => {
-        if (item.name && (!item.icon || item.icon === '🧬')) {
+      formState.metadata.featured_ingredients.forEach((item) => {
+        if (item.name && (!item.icon || item.icon === "🧬")) {
           const smartIcon = getIngredientIcon(item.name);
-          if (smartIcon !== '🧬') {
+          if (smartIcon !== "🧬") {
             item.icon = smartIcon;
           }
         }
@@ -75,9 +118,21 @@
   });
 
   const landingTypes = [
-    { value: 'standard', label: 'Tiêu chuẩn (E-commerce)', desc: 'Giao diện truyền thống' },
-    { value: 'stealth', label: 'Phễu chuyển đổi (Stealth)', desc: 'Tối ưu chuyển đổi nhanh (CPA)' },
-    { value: 'tiktok', label: 'Phong cách TikTok', desc: 'Trải nghiệm video như TikTok' }
+    {
+      value: "standard",
+      label: "Tiêu chuẩn (E-commerce)",
+      desc: "Giao diện truyền thống",
+    },
+    {
+      value: "stealth",
+      label: "Phễu chuyển đổi (Stealth)",
+      desc: "Tối ưu chuyển đổi nhanh (CPA)",
+    },
+    {
+      value: "tiktok",
+      label: "Phong cách TikTok",
+      desc: "Trải nghiệm video như TikTok",
+    },
   ];
 
   // ─── Auto-detect video duration ─────────────────────────────────
@@ -86,23 +141,34 @@
 
   function isVideoFile(url: string): boolean {
     if (!url) return false;
-    const clean = url.split('?')[0].toLowerCase();
+    const clean = url.split("?")[0].toLowerCase();
     return /\.(mp4|webm|mov|ogg|ogv|avi|mkv)$/.test(clean);
   }
 
   function detectVideoDuration(url: string): Promise<number | null> {
     return new Promise((resolve) => {
-      if (!url || !isVideoFile(url)) { resolve(null); return; }
-      const v = document.createElement('video');
-      v.preload = 'metadata';
+      if (!url || !isVideoFile(url)) {
+        resolve(null);
+        return;
+      }
+      const v = document.createElement("video");
+      v.preload = "metadata";
       v.src = url;
       v.onloadedmetadata = () => {
-        const dur = isFinite(v.duration) ? Math.round(v.duration * 10) / 10 : null;
-        v.src = ''; 
+        const dur = isFinite(v.duration)
+          ? Math.round(v.duration * 10) / 10
+          : null;
+        v.src = "";
         resolve(dur);
       };
-      v.onerror = () => { v.src = ''; resolve(null); };
-      setTimeout(() => { v.src = ''; resolve(null); }, 8000);
+      v.onerror = () => {
+        v.src = "";
+        resolve(null);
+      };
+      setTimeout(() => {
+        v.src = "";
+        resolve(null);
+      }, 8000);
     });
   }
 
@@ -115,9 +181,10 @@
       const dur = await detectVideoDuration(target);
       if (dur !== null) {
         formState.metadata.video_end_time = dur;
-        formState.metadata.video_start_time = formState.metadata.video_start_time ?? 0;
+        formState.metadata.video_start_time =
+          formState.metadata.video_start_time ?? 0;
       } else {
-        detectError = 'Không đọc được thời lượng';
+        detectError = "Không đọc được thời lượng";
       }
     } finally {
       isDetectingDuration = false;
@@ -127,7 +194,7 @@
   // ─── FAQ Management (GEO 2026) ──────────────────────────────────
   function addFaq() {
     if (!formState.metadata.faqs) formState.metadata.faqs = [];
-    formState.metadata.faqs.push({ question: '', answer: '' });
+    formState.metadata.faqs.push({ question: "", answer: "" });
   }
 
   function removeFaq(index: number) {
@@ -137,8 +204,13 @@
 
   // ─── Featured Ingredients Management ────────────────────────────
   function addFeaturedIngredient() {
-    if (!formState.metadata.featured_ingredients) formState.metadata.featured_ingredients = [];
-    formState.metadata.featured_ingredients.push({ name: '', benefit: '', icon: '' });
+    if (!formState.metadata.featured_ingredients)
+      formState.metadata.featured_ingredients = [];
+    formState.metadata.featured_ingredients.push({
+      name: "",
+      benefit: "",
+      icon: "",
+    });
   }
 
   function removeFeaturedIngredient(index: number) {
@@ -150,24 +222,35 @@
 
   async function handleAiSuggestFaqs() {
     if (!formState.name) {
-      nanobot.showToast("Vui lòng nhập tên sản phẩm trước khi gọi XOHI.", "warning");
+      nanobot.showToast(
+        "Vui lòng nhập tên sản phẩm trước khi gọi XOHI.",
+        "warning",
+      );
       return;
     }
     isSuggestingFaqs = true;
     try {
-      const res = await apiClient.post<{ data: { question: string, answer: string }[] }>('/api/v1/products/faq-suggest', {
+      const res = await apiClient.post<{
+        data: { question: string; answer: string }[];
+      }>("/api/v1/products/faq-suggest", {
         name: formState.name,
-        description: formState.description || ''
+        description: formState.description || "",
       });
       if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
         if (!formState.metadata.faqs) formState.metadata.faqs = [];
         formState.metadata.faqs.push(...res.data);
-        nanobot.showToast("XOHI đã tự động tạo thành công bộ câu hỏi FAQ.", "success");
+        nanobot.showToast(
+          "XOHI đã tự động tạo thành công bộ câu hỏi FAQ.",
+          "success",
+        );
       } else {
-        nanobot.showToast("XOHI không thể tạo thêm câu hỏi. Vui lòng thử lại.", "error");
+        nanobot.showToast(
+          "XOHI không thể tạo thêm câu hỏi. Vui lòng thử lại.",
+          "error",
+        );
       }
     } catch (e) {
-      console.error('XOHI FAQ Suggestion failed:', e);
+      console.error("XOHI FAQ Suggestion failed:", e);
       nanobot.showToast("Lỗi kết nối tới hệ thống AI XOHI.", "error");
     } finally {
       isSuggestingFaqs = false;
@@ -178,10 +261,11 @@
     if (!formState.metadata.share_promotion) {
       formState.metadata.share_promotion = {
         enabled: true,
-        voucher_id: ''
+        voucher_id: "",
       };
     } else {
-      formState.metadata.share_promotion.enabled = !formState.metadata.share_promotion.enabled;
+      formState.metadata.share_promotion.enabled =
+        !formState.metadata.share_promotion.enabled;
     }
   }
 </script>
@@ -189,7 +273,9 @@
 <div class="flex flex-col gap-6">
   <!-- LANDING TYPE SELECTOR -->
   <div class="flex flex-col gap-3">
-    <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+    <div
+      class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+    >
       <Layout size={11} class="text-amber-400/60" />
       Loại hình trang đích (Landing Type)
     </div>
@@ -198,22 +284,38 @@
       {#each landingTypes as type}
         <button
           type="button"
-          onclick={() => formState.metadata.landing_type = type.value as ProductMetadata['landing_type']}
-          class="flex flex-col gap-1 p-3 rounded-xl border transition-all text-left {formState.metadata.landing_type === type.value ? 'bg-amber-500/10 border-amber-500/50' : 'bg-white/5 border-white/5 hover:border-white/10'}"
+          onclick={() =>
+            (formState.metadata.landing_type =
+              type.value as ProductMetadata["landing_type"])}
+          class="flex flex-col gap-1 p-3 rounded-xl border transition-all text-left {formState
+            .metadata.landing_type === type.value
+            ? 'bg-amber-500/10 border-amber-500/50'
+            : 'bg-white/5 border-white/5 hover:border-white/10'}"
         >
-          <span class="text-[10px] font-bold {formState.metadata.landing_type === type.value ? 'text-amber-400' : 'text-white/60'}">{type.label}</span>
-          <span class="text-[8px] text-white/30 leading-tight">{type.desc}</span>
+          <span
+            class="text-[10px] font-bold {formState.metadata.landing_type ===
+            type.value
+              ? 'text-amber-400'
+              : 'text-white/60'}">{type.label}</span
+          >
+          <span class="text-[8px] text-white/30 leading-tight">{type.desc}</span
+          >
         </button>
       {/each}
     </div>
   </div>
 
   <!-- CONTEXTUAL FIELDS -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+  <div
+    class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5"
+  >
     <!-- Scarcity Timer (Stealth/TikTok) -->
-    {#if formState.metadata.landing_type !== 'standard'}
+    {#if formState.metadata.landing_type !== "standard"}
       <div class="flex flex-col gap-1.5">
-        <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Thời gian khan hiếm (Giây)</label>
+        <label
+          class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+          >Thời gian khan hiếm (Giây)</label
+        >
         <input
           type="number"
           bind:value={formState.metadata.scarcity_seconds}
@@ -225,7 +327,9 @@
 
     <!-- Video URL -->
     <div class="flex flex-col gap-1.5 md:col-span-2">
-      <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Video URL (TikTok/YouTube hoặc nội bộ)</label>
+      <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+        >Video URL (TikTok/YouTube hoặc nội bộ)</label
+      >
       <input
         type="text"
         bind:value={formState.metadata.video_url}
@@ -241,11 +345,16 @@
     </div>
 
     <!-- VIDEO PLAYBACK CONTROLS -->
-    <div class="md:col-span-2 flex flex-col gap-2 p-3 rounded-xl bg-amber-500/[0.04] border border-amber-500/15">
+    <div
+      class="md:col-span-2 flex flex-col gap-2 p-3 rounded-xl bg-amber-500/[0.04] border border-amber-500/15"
+    >
       <div class="flex items-center justify-between mb-1">
         <div class="flex items-center gap-1.5">
           <Clock size={10} class="text-amber-400/70" />
-          <span class="text-[9px] font-black text-amber-400/60 uppercase tracking-[0.25em]">Cắt ghép Video</span>
+          <span
+            class="text-[9px] font-black text-amber-400/60 uppercase tracking-[0.25em]"
+            >Cắt ghép Video</span
+          >
         </div>
         {#if isDetectingDuration}
           <div class="flex items-center gap-1.5 text-amber-400/60">
@@ -256,7 +365,10 @@
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div class="flex flex-col gap-1">
-          <label class="text-[8px] font-bold text-white/30 uppercase tracking-wider">Bắt đầu (s)</label>
+          <label
+            class="text-[8px] font-bold text-white/30 uppercase tracking-wider"
+            >Bắt đầu (s)</label
+          >
           <input
             type="number"
             bind:value={formState.metadata.video_start_time}
@@ -264,7 +376,10 @@
           />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-[8px] font-bold text-white/30 uppercase tracking-wider">Kết thúc (s)</label>
+          <label
+            class="text-[8px] font-bold text-white/30 uppercase tracking-wider"
+            >Kết thúc (s)</label
+          >
           <input
             type="number"
             bind:value={formState.metadata.video_end_time}
@@ -277,13 +392,18 @@
 
   <!-- R00 Compliance: UI Labels -->
   <div class="flex flex-col gap-4">
-    <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+    <div
+      class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+    >
       <Zap size={11} class="text-amber-400/60" />
       Cấu hình R00 (UI Strings)
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="flex flex-col gap-1.5">
-        <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Text Loading Sync</label>
+        <label
+          class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+          >Text Loading Sync</label
+        >
         <input
           type="text"
           bind:value={formState.metadata.sync_loading_text}
@@ -292,7 +412,10 @@
         />
       </div>
       <div class="flex flex-col gap-1.5">
-        <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Tên Website (SEO)</label>
+        <label
+          class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+          >Tên Website (SEO)</label
+        >
         <input
           type="text"
           bind:value={formState.metadata.seo_site_name}
@@ -305,19 +428,32 @@
 
   <!-- VIRAL & ENGAGEMENT SECTION -->
   <div class="flex flex-col gap-4">
-    <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+    <div
+      class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+    >
       <Share2 size={11} class="text-pink-400/60" />
       Lan truyền & Tương tác
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+    <div
+      class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/5"
+    >
       <!-- Flash Sale End Time -->
       <div class="flex flex-col gap-1.5">
         <div class="flex items-center justify-between">
-          <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Flash Sale kết thúc</label>
+          <label
+            class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+            >Flash Sale kết thúc</label
+          >
           <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" bind:checked={formState.metadata.is_flash_sale} class="sr-only peer" />
-            <div class="w-7 h-4 bg-white/10 rounded-full peer peer-checked:bg-pink-500 transition-all relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-3"></div>
+            <input
+              type="checkbox"
+              bind:checked={formState.metadata.is_flash_sale}
+              class="sr-only peer"
+            />
+            <div
+              class="w-7 h-4 bg-white/10 rounded-full peer peer-checked:bg-pink-500 transition-all relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-3"
+            ></div>
           </label>
         </div>
         <input
@@ -329,45 +465,75 @@
 
       <!-- Social Proof Boost -->
       <div class="flex flex-col gap-1.5">
-        <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">Social Proof Boost</label>
+        <label
+          class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+          >Social Proof Boost</label
+        >
         <div class="grid grid-cols-2 gap-3">
           <div class="relative">
-            <input type="number" bind:value={formState.metadata.likes} class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white pl-8" />
-            <Heart size={12} class="absolute left-2.5 top-1/2 -translate-y-1/2 text-pink-500/50" />
+            <input
+              type="number"
+              bind:value={formState.metadata.likes}
+              class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white pl-8"
+            />
+            <Heart
+              size={12}
+              class="absolute left-2.5 top-1/2 -translate-y-1/2 text-pink-500/50"
+            />
           </div>
           <div class="relative">
-            <input type="number" bind:value={formState.metadata.share_count} class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white pl-8" />
-            <Share2 size={12} class="absolute left-2.5 top-1/2 -translate-y-1/2 text-pink-500/50" />
+            <input
+              type="number"
+              bind:value={formState.metadata.share_count}
+              class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white pl-8"
+            />
+            <Share2
+              size={12}
+              class="absolute left-2.5 top-1/2 -translate-y-1/2 text-pink-500/50"
+            />
           </div>
         </div>
       </div>
 
       <!-- SHARE TO UNLOCK PROMOTION -->
-      <div class="md:col-span-2 mt-2 p-4 rounded-xl bg-pink-500/[0.03] border border-pink-500/15">
+      <div
+        class="md:col-span-2 mt-2 p-4 rounded-xl bg-pink-500/[0.03] border border-pink-500/15"
+      >
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
             <Ticket size={14} class="text-pink-400" />
-            <span class="text-[10px] font-black text-white/80 uppercase tracking-widest">Share-to-Unlock</span>
+            <span
+              class="text-[10px] font-black text-white/80 uppercase tracking-widest"
+              >Share-to-Unlock</span
+            >
           </div>
           <button
             type="button"
             onclick={toggleSharePromo}
-            class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all {formState.metadata.share_promotion?.enabled ? 'bg-pink-500/20 text-pink-400 border border-pink-500/30' : 'bg-white/5 text-white/30 border border-white/10'}"
+            class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all {formState
+              .metadata.share_promotion?.enabled
+              ? 'bg-pink-500/20 text-pink-400 border border-pink-500/30'
+              : 'bg-white/5 text-white/30 border border-white/10'}"
           >
-            {formState.metadata.share_promotion?.enabled ? 'BẬT' : 'TẮT'}
+            {formState.metadata.share_promotion?.enabled ? "BẬT" : "TẮT"}
           </button>
         </div>
 
         {#if formState.metadata.share_promotion?.enabled}
           <div class="flex flex-col gap-1.5">
-            <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider">ID Voucher / Chiến dịch</label>
+            <label
+              class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+              >ID Voucher / Chiến dịch</label
+            >
             <input
               type="text"
               bind:value={formState.metadata.share_promotion.voucher_id}
               placeholder="VD: OSMO50K"
               class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:outline-none focus:border-pink-500/50 transition-colors font-mono"
             />
-            <p class="text-[8px] text-pink-400/60 mt-1">Hệ thống tự tải cấu hình từ Voucher này.</p>
+            <p class="text-[8px] text-pink-400/60 mt-1">
+              Hệ thống tự tải cấu hình từ Voucher này.
+            </p>
           </div>
         {/if}
       </div>
@@ -377,67 +543,227 @@
   <!-- GEO 2026: Product FAQs -->
   <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+      <div
+        class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+      >
         <HelpCircle size={11} class="text-amber-400/60" />
         Hỏi đáp (FAQ)
       </div>
       <div class="flex items-center gap-2">
-        <button type="button" onclick={handleAiSuggestFaqs} class="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-black uppercase tracking-wider">XOHI AUTO</button>
-        <button type="button" onclick={addFaq} class="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black uppercase tracking-wider">Thêm tay</button>
+        <button
+          type="button"
+          onclick={handleAiSuggestFaqs}
+          class="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-black uppercase tracking-wider"
+          >XOHI AUTO</button
+        >
+        <button
+          type="button"
+          onclick={addFaq}
+          class="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black uppercase tracking-wider"
+          >Thêm tay</button
+        >
       </div>
     </div>
 
     {#if formState.metadata.faqs && formState.metadata.faqs.length > 0}
       <div class="flex flex-col gap-3">
         {#each formState.metadata.faqs as faq, i}
-          <div class="flex flex-col gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 relative group">
-            <button type="button" onclick={() => removeFaq(i)} class="absolute top-2 right-2 text-red-400/50 hover:text-red-400"><Trash2 size={12} /></button>
-            <input type="text" bind:value={faq.question} placeholder="Câu hỏi" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white" />
-            <textarea bind:value={faq.answer} placeholder="Câu trả lời" rows="2" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white/80 resize-none"></textarea>
+          <div
+            class="flex flex-col gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 relative group"
+          >
+            <button
+              type="button"
+              onclick={() => removeFaq(i)}
+              class="absolute top-2 right-2 text-red-400/50 hover:text-red-400"
+              ><Trash2 size={12} /></button
+            >
+            <input
+              type="text"
+              bind:value={faq.question}
+              placeholder="Câu hỏi"
+              class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white"
+            />
+            <textarea
+              bind:value={faq.answer}
+              placeholder="Câu trả lời"
+              rows="2"
+              class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white/80 resize-none"
+            ></textarea>
           </div>
         {/each}
       </div>
     {/if}
   </div>
 
-  <!-- Thành phần -->
   <div class="flex flex-col gap-4">
-    <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+    <div
+      class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+    >
+      <Shield size={11} class="text-blue-400/60" />
+      Hồ sơ pháp lý & Công bố (Regulatory)
+    </div>
+    <div
+      class="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 rounded-3xl bg-white/[0.02] border border-white/5 shadow-inner"
+    >
+      <div class="flex flex-col gap-1.5">
+        <label
+          class="text-[9px] font-bold text-white/40 uppercase tracking-widest"
+          >Số tiếp nhận phiếu công bố</label
+        >
+        <input
+          type="text"
+          bind:value={formState.metadata.notification_no}
+          placeholder="VD: 259062/24/CBMP-QLD"
+          class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-white focus:outline-none focus:border-blue-500/50 transition-colors font-mono"
+        />
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label
+          class="text-[9px] font-bold text-white/40 uppercase tracking-widest"
+          >Ngày cấp</label
+        >
+        <input
+          type="date"
+          bind:value={formState.metadata.notification_date}
+          class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+        />
+      </div>
+      <div class="md:col-span-2 flex flex-col gap-1.5">
+        <label
+          class="text-[9px] font-bold text-white/40 uppercase tracking-widest"
+          >Cơ quan cấp phép</label
+        >
+        <input
+          type="text"
+          bind:value={formState.metadata.authority}
+          placeholder="VD: Cục Quản lý Dược - Bộ Y tế"
+          class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+        />
+      </div>
+      <div class="md:col-span-2 flex flex-col gap-1.5">
+        <div class="flex items-center justify-between">
+          <label
+            class="text-[9px] font-bold text-white/40 uppercase tracking-widest"
+            >Ảnh phiếu công bố
+          </label>
+          <button
+            type="button"
+            onclick={scanComplianceImage}
+            class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[8px] font-black uppercase tracking-tighter hover:bg-blue-500/20 transition-all"
+          >
+            <RefreshCw size={10} class={isScanning ? "animate-spin" : ""} />
+            AI Intel Scan
+          </button>
+        </div>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            bind:value={formState.metadata.notification_doc}
+            placeholder="https://storage.smartshop.test/docs/notification-image.jpg"
+            class="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+          />
+          <button
+            type="button"
+            onclick={() => onOpenVault?.("notification_doc")}
+            class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-[10px] font-bold hover:bg-white/10 transition-all"
+          >
+            Chọn Ảnh
+          </button>
+        </div>
+
+        {#if formState.metadata.notification_doc}
+          <div
+            class="mt-3 relative group rounded-2xl overflow-hidden border border-white/10 bg-white/[0.02]"
+          >
+            <img
+              src={formState.metadata.notification_doc}
+              alt="Phiếu công bố"
+              class="w-full h-auto max-h-[300px] object-contain"
+            />
+            <div
+              class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]"
+            >
+              <button
+                type="button"
+                onclick={() => (formState.metadata.notification_doc = "")}
+                class="px-4 py-2 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-black uppercase tracking-widest hover:bg-red-500/40 transition-all"
+              >
+                Gỡ bỏ ảnh
+              </button>
+            </div>
+          </div>
+          <p class="text-[8px] text-blue-400/60 mt-1 italic">
+            Vui lòng kiểm tra lại ảnh trước khi nhấn AI Intel Scan để có kết quả
+            tốt nhất.
+          </p>
+        {/if}
+      </div>
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-4">
+    <div
+      class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+    >
       <Beaker size={11} class="text-teal-400/60" />
       Bảng thành phần
     </div>
-    <textarea bind:value={formState.metadata.ingredients} placeholder="Bảng thành phần đầy đủ..." rows="5" class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-white/80 resize-none"></textarea>
+    <textarea
+      bind:value={formState.metadata.ingredients}
+      placeholder="Bảng thành phần đầy đủ..."
+      rows="5"
+      class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-white/80 resize-none"
+    ></textarea>
   </div>
 
   <!-- Thành phần nổi bật -->
   <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+      <div
+        class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+      >
         <Star size={11} class="text-amber-400/60" />
         Thành phần nổi bật
       </div>
-      <button type="button" onclick={addFeaturedIngredient} class="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[9px] font-black uppercase tracking-wider">Thêm</button>
+      <button
+        type="button"
+        onclick={addFeaturedIngredient}
+        class="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[9px] font-black uppercase tracking-wider"
+        >Thêm</button
+      >
     </div>
 
     {#if formState.metadata.featured_ingredients && formState.metadata.featured_ingredients.length > 0}
       <div class="flex flex-col gap-3">
         {#each formState.metadata.featured_ingredients as item, i}
-          <div class="flex flex-col gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 relative group">
-            <button type="button" onclick={() => removeFeaturedIngredient(i)} class="absolute top-2 right-2 text-red-400/50 hover:text-red-400"><Trash2 size={12} /></button>
+          <div
+            class="flex flex-col gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/5 relative group"
+          >
+            <button
+              type="button"
+              onclick={() => removeFeaturedIngredient(i)}
+              class="absolute top-2 right-2 text-red-400/50 hover:text-red-400"
+              ><Trash2 size={12} /></button
+            >
             <div class="grid grid-cols-[56px_1fr] gap-2">
               <div class="relative">
-                <input 
-                  type="text" 
-                  bind:value={item.icon} 
-                  onclick={() => activeIconPicker = i} 
-                  readonly 
-                  class="w-full bg-black/40 border border-white/10 rounded-lg py-2 text-center text-[18px] cursor-pointer hover:bg-white/5 transition-colors" 
+                <input
+                  type="text"
+                  bind:value={item.icon}
+                  onclick={() => (activeIconPicker = i)}
+                  readonly
+                  class="w-full bg-black/40 border border-white/10 rounded-lg py-2 text-center text-[18px] cursor-pointer hover:bg-white/5 transition-colors"
                 />
                 {#if activeIconPicker === i}
                   <!-- svelte-ignore a11y_click_events_have_key_events -->
                   <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div class="fixed inset-0 z-[60]" onclick={() => activeIconPicker = null}></div>
-                  <div class="absolute z-[70] top-full left-0 mt-2 p-2 bg-[#1a1a1a] border border-white/10 rounded-xl grid grid-cols-5 gap-1 shadow-2xl min-w-[180px]">
+                  <div
+                    class="fixed inset-0 z-[60]"
+                    onclick={() => (activeIconPicker = null)}
+                  ></div>
+                  <div
+                    class="absolute z-[70] top-full left-0 mt-2 p-2 bg-[#1a1a1a] border border-white/10 rounded-xl grid grid-cols-5 gap-1 shadow-2xl min-w-[180px]"
+                  >
                     {#each viralIcons as vIcon}
                       <button
                         type="button"
@@ -454,9 +780,19 @@
                   </div>
                 {/if}
               </div>
-              <input type="text" bind:value={item.name} placeholder="Tên thành phần" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:border-teal-500/50 outline-none" />
+              <input
+                type="text"
+                bind:value={item.name}
+                placeholder="Tên thành phần"
+                class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white focus:border-teal-500/50 outline-none"
+              />
             </div>
-            <textarea bind:value={item.benefit} placeholder="Lợi ích..." rows="2" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white/80 resize-none"></textarea>
+            <textarea
+              bind:value={item.benefit}
+              placeholder="Lợi ích..."
+              rows="2"
+              class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-[11px] text-white/80 resize-none"
+            ></textarea>
           </div>
         {/each}
       </div>

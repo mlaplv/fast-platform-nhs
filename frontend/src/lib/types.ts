@@ -353,7 +353,53 @@ export interface ProductMetadata {
     share_text?: string;
   };
 
+  // Elite V2.2: Regulatory Transparency
+  notification_no?: string;
+  notification_date?: string;
+  notification_doc?: string;
+  authority?: string;
+
   [key: string]: unknown;
+}
+
+export interface BarcodeVerificationResponse {
+  barcode: string;
+  product_name: string;
+  brand: string;
+  origin: string;
+  verified: boolean;
+  batch_dna?: string;
+  mfg_date?: string;
+  expiry_date?: string;
+  scans_24h?: number;
+  factory?: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  certificates?: {
+    id: string;
+    name: string;
+    status: string;
+  }[];
+  recent_scans?: {
+    user: string;
+    location: string;
+    time: string;
+  }[];
+  import_journey?: {
+    step: string;
+    location: string;
+    date: string;
+    status: string;
+  }[];
+  brand_story?: string;
+  reward_label?: string;
+  reward_sub?: string;
+  is_estimated?: boolean;
+  notification_no?: string;
+  notification_date?: string;
+  notification_doc?: string;
 }
 
 export interface NavLink {

@@ -69,8 +69,13 @@
     showMediaModal = false;
   }
 
+  let metadataTargetField = $state<string | null>(null);
+
   function handleAlbumImageSelect(url: string) {
-    if (albumReplaceIndex !== null) {
+    if (metadataTargetField) {
+      (formState.metadata as any)[metadataTargetField] = url;
+      metadataTargetField = null;
+    } else if (albumReplaceIndex !== null) {
       if (isVaultForMobile) {
         formState.mobileImages[albumReplaceIndex] = url;
       } else {
@@ -78,7 +83,6 @@
       }
     } else {
       // Standard append handled by bind:assets in MediaVaultModal
-      // But we can ensure it here if needed. 
     }
     albumReplaceIndex = null;
     showMediaModal = false;
@@ -124,6 +128,12 @@
     showMediaModal = true;
   }
 
+  function openVaultForMetadata(field: string) {
+    metadataTargetField = field;
+    albumReplaceIndex = null;
+    isVaultForMobile = false;
+    showMediaModal = true;
+  }
 </script>
 
 <MissionControlShell
@@ -226,7 +236,10 @@
 
         <!-- Product Metadata (Contextual) -->
         <div class="flex flex-col pt-2">
-          <ProductFormMetadata bind:formState={formState} />
+          <ProductFormMetadata 
+            bind:formState={formState} 
+            onOpenVault={openVaultForMetadata}
+          />
         </div>
 
         <!-- Specs -->
@@ -289,8 +302,8 @@
 {:else}
   <MediaVaultModal
     isOpen={showMediaModal}
-    onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; isVaultForMobile = false; variantEditIsMobile = false; albumReplaceIndex = null; giftEditVariantIndex = null; giftEditGiftIndex = null; }}
-    onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : (albumReplaceIndex !== null ? handleAlbumImageSelect : (giftEditGiftIndex !== null ? handleGiftImageSelect : undefined))}
+    onClose={() => { showMediaModal = false; variantEditTierIndex = null; variantEditOptionIndex = null; isVaultForMobile = false; variantEditIsMobile = false; albumReplaceIndex = null; giftEditVariantIndex = null; giftEditGiftIndex = null; metadataTargetField = null; }}
+    onSelect={variantEditOptionIndex !== null ? handleVariantImageSelect : ((albumReplaceIndex !== null || metadataTargetField !== null) ? handleAlbumImageSelect : (giftEditGiftIndex !== null ? handleGiftImageSelect : undefined))}
     bind:assets={formState.images}
     bind:reserve_assets
     bind:selectedAvatarUrl

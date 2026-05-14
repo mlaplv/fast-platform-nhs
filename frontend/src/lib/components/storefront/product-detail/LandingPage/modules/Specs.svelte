@@ -1,6 +1,10 @@
 <script lang="ts">
   import type { Product } from '$lib/types';
   import { getIngredientIcon } from '$lib/utils/product';
+  import VerificationCenter from '../../shared/VerificationCenter.svelte';
+  import ScannerHUD from '../../shared/ScannerHUD.svelte';
+  import X from "@lucide/svelte/icons/x";
+  import { fly, fade, scale } from 'svelte/transition';
 
   interface Props {
     product: Product;
@@ -12,9 +16,13 @@
       barcode: string;
     };
     onViewFullIngredients: () => void;
+    onTriggerScan?: () => void;
   }
+ 
+  import { portal } from '$lib/core/actions/portal';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
-  let { product, visibleAttributes, productInfo, onViewFullIngredients }: Props = $props();
+  let { product, visibleAttributes, productInfo, onViewFullIngredients, onTriggerScan }: Props = $props();
 
   const featuredIngredients = $derived(
     (product.metadata?.featured_ingredients || product.metadata?.ingredients || [])
@@ -26,28 +34,31 @@
   <!-- Liquid Spec Bar (Elite V2.2) -->
   <div class="spec-bar">
     <div class="spec-item">
-      <span class="spec-label">Thương Hiệu</span>
+      <span class="spec-label">Thương hiệu</span>
       <span class="spec-value">{productInfo.brand || 'Osmo Elite'}</span>
     </div>
     <div class="spec-item">
-      <span class="spec-label">Xuất Xứ</span>
+      <span class="spec-label">Xuất xứ</span>
       <span class="spec-value">{productInfo.origin || 'Nhật Bản'}</span>
     </div>
     <div class="spec-item">
-      <span class="spec-label">Quy Cách</span>
+      <span class="spec-label">Quy cách</span>
       <span class="spec-value">{productInfo.weight || '30g / Tuýp'}</span>
     </div>
-    {#if productInfo.barcode}
-      <div class="spec-item">
-        <span class="spec-label">Mã Vạch</span>
-        <span class="spec-value">{productInfo.barcode}</span>
-      </div>
-    {/if}
+      <button 
+        class="spec-item group/barcode cursor-pointer hover:bg-white/5 transition-colors bg-transparent border-none p-0"
+        onclick={() => onTriggerScan?.()}
+      >
+        <span class="spec-label group-hover/barcode:text-green-400">Mã vạch (Verify)</span>
+        <span class="spec-value group-hover/barcode:text-white">{productInfo.barcode}</span>
+      </button>
   </div>
+
+  <!-- Removed local scanner/modal logic to use shared Desktop state -->
 
   <!-- Detailed Attributes -->
   <div class="attributes-section">
-    <h3 class="section-title">CHI TIẾT SẢN PHẨM</h3>
+    <h3 class="section-title">Chi tiết sản phẩm</h3>
     <div class="attributes-grid">
       {#each visibleAttributes as [key, value]}
         <div class="attribute-row">
@@ -61,7 +72,7 @@
   <!-- Ingredients Featured -->
   {#if featuredIngredients.length > 0}
     <div class="ingredients-section">
-      <h3 class="section-title">THÀNH PHẦN NỔI BẬT</h3>
+      <h3 class="section-title">Thành phần nổi bật</h3>
       <div class="ingredients-grid">
         {#each featuredIngredients as ing}
           <div class="ing-card">
@@ -118,7 +129,6 @@
   .spec-label {
     font-size: 8px;
     font-weight: 900;
-    text-transform: uppercase;
     letter-spacing: 0.2em;
     color: rgba(255, 255, 255, 0.3);
   }
@@ -134,7 +144,6 @@
   .section-title {
     font-size: 14px;
     font-weight: 900;
-    text-transform: uppercase;
     letter-spacing: 0.1em;
     color: #111827;
     margin-bottom: 1.25rem;
@@ -207,7 +216,6 @@
     font-weight: 700;
     text-align: center;
     color: #374151;
-    text-transform: uppercase;
     letter-spacing: -0.01em;
   }
 

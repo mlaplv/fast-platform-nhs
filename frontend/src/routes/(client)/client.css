@@ -211,7 +211,6 @@ body.live-edit-mode .is-disabled .content-container {
   margin: 0 !important;
   padding: 0.35em 0.1em 0.25em 0.1em !important;
   overflow: visible !important;
-  text-transform: uppercase !important;
   text-align: center !important;
   background: linear-gradient(to bottom, #fff 20%, rgba(255, 255, 255, 0.4) 100%);
   -webkit-background-clip: text;
@@ -408,7 +407,6 @@ body.live-edit-mode .editable-wrapper.is-disabled {
 .spec-label {
   font-size: 9px !important;
   font-weight: 900 !important;
-  text-transform: uppercase !important;
   letter-spacing: 0.2em !important;
   color: rgba(255, 255, 255, 0.2) !important;
   margin: 0 !important;

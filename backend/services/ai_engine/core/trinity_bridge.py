@@ -85,7 +85,7 @@ class TrinityBridge:
         
         self.discovered = await self.models_helper.discover_available()
 
-    async def run(self, agent: Agent, prompt: str, **kwargs: object) -> RunResult:
+    async def run(self, agent: Agent, prompt: Union[str, list], **kwargs: object) -> RunResult:
         val_t: object = kwargs.pop("timeout", 90.0)
         t: float = float(val_t) if isinstance(val_t, (int, float)) else 90.0
         

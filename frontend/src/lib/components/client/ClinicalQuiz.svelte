@@ -28,9 +28,9 @@
   const shopStore = getShopStore();
 
   const QUIZ_FALLBACKS = {
-    result_headline: 'PHÁC ĐỒ ĐIỀU TRỊ <br/><span class="text-luxury-copper">ĐỘC QUYỜN.</span>',
-    result_subheadline: '⚠️ CẢNH BÁO TỪ AI: Hiện trạng sắc tố của Sếp cần can thiệp ngay với ít nhất <span class="text-luxury-gold font-semibold">{quantity} đơn vị</span> để đạt liệu trình phục hồi tối đa.',
-    result_cta: 'KÍCH HOẠT LIỆU TRÌNH NGAY',
+    result_headline: 'Phác đồ điều trị <br/><span class="text-luxury-copper">độc quyền.</span>',
+    result_subheadline: '⚠️ Cảnh báo từ AI: Hiện trạng sắc tố của Sếp cần can thiệp ngay với ít nhất <span class="text-luxury-gold font-semibold">{quantity} đơn vị</span> để đạt liệu trình phục hồi tối đa.',
+    result_cta: 'Kích hoạt liệu trình ngay',
     restart_label: 'Thiết lập lại dữ liệu',
     loading_label: 'Đang truy xuất cơ sở dữ liệu lâm sàng...'
   };
@@ -199,6 +199,15 @@
     shopStore.diagnosticResult = null;
     shopStore.setQuantity(1);
   }
+
+  function toSentenceCase(str: string) {
+    if (!str) return '';
+    // Xử lý loại bỏ HTML tags nếu có để tránh lỗi capitalize nhầm tag
+    const cleanStr = str.replace(/<[^>]*>/g, '');
+    if (!cleanStr) return str;
+    const lower = str.toLowerCase();
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  }
 </script>
 
 <!-- SVG Filter for Liquid/Gooey Effect -->
@@ -237,13 +246,13 @@
         <div class="flex items-center justify-between mb-10 border-b border-white/5 pb-6">
             <div class="flex items-center gap-3">
                 <div class="w-2 h-2 rounded-full bg-luxury-copper animate-pulse shadow-[0_0_10px_var(--luxury-copper)]"></div>
-                <h3 class="text-sm font-semibold text-white uppercase tracking-[0.4em]">QUIZ_DIRECT_ENGINE // V2.2</h3>
+                <h3 class="text-sm font-semibold text-white tracking-[0.4em]">Quiz direct engine // V2.2</h3>
             </div>
             <button 
                 onclick={addQuestion}
-                class="flex items-center gap-2 px-6 py-3 bg-luxury-copper hover:bg-luxury-gold text-white text-[10px] font-semibold uppercase rounded-full shadow-xl active:scale-95 transition-all"
+                class="flex items-center gap-2 px-6 py-3 bg-luxury-copper hover:bg-luxury-gold text-white text-[10px] font-semibold rounded-full shadow-xl active:scale-95 transition-all"
             >
-                <Plus size={14} /> THÊM CÂU HỎI MỚI
+                <Plus size={14} /> Thêm câu hỏi mới
             </button>
         </div>
 
@@ -276,7 +285,7 @@
                         <div class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-white/20 font-semibold italic shrink-0">{qIdx + 1}</div>
                         <div class="flex-1 space-y-6 text-left">
                             <div class="space-y-2">
-                                <label class="text-[8px] font-semibold text-white/20 uppercase tracking-widest pl-1">Question Title</label>
+                                <label class="text-[8px] font-semibold text-white/20 tracking-widest pl-1">Question title</label>
                                 <input 
                                     bind:value={question.title}
                                     class="w-full bg-transparent border-b border-white/10 focus:border-luxury-copper py-1 text-2xl font-medium text-white outline-none transition-all"
@@ -284,7 +293,7 @@
                                 />
                             </div>
                             <div class="space-y-2">
-                                <label class="text-[8px] font-semibold text-white/20 uppercase tracking-widest pl-1">Context / Subtitle</label>
+                                <label class="text-[8px] font-semibold text-white/20 tracking-widest pl-1">Context / Subtitle</label>
                                 <input 
                                     bind:value={question.subtitle}
                                     class="w-full bg-transparent border-b border-white/5 focus:border-luxury-copper/40 py-1 text-sm text-white/50 outline-none transition-all"
@@ -294,9 +303,9 @@
 
                             <div class="space-y-4 pt-4">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-[8px] font-semibold text-luxury-copper/60 uppercase tracking-widest">Options Configuration</span>
-                                    <button onclick={() => addOption(qIdx)} class="text-[8px] font-semibold text-white/20 hover:text-luxury-gold uppercase tracking-widest flex items-center gap-1">
-                                        <PlusCircle size={10} /> ADD_OPTION
+                                    <span class="text-[8px] font-semibold text-luxury-copper/60 tracking-widest">Options configuration</span>
+                                    <button onclick={() => addOption(qIdx)} class="text-[8px] font-semibold text-white/20 hover:text-luxury-gold tracking-widest flex items-center gap-1">
+                                        <PlusCircle size={10} /> Add option
                                     </button>
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -344,18 +353,18 @@
             </button>
           {/if}
           <div class="flex flex-col">
-            <span class="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] font-mono">AI_SEQUENCE_PHASE</span>
+            <span class="text-[10px] font-black text-white/20 tracking-[0.4em] font-mono">Ai sequence phase</span>
             <div class="flex items-center gap-2 mt-1">
-               <span class="text-xs font-black text-luxury-copper italic uppercase tracking-widest">BƯỚC {currentStep + 1} // {questions.length}</span>
+               <span class="text-xs font-black text-luxury-copper italic tracking-widest">Bước {currentStep + 1} // {questions.length}</span>
                <div class="h-px w-12 bg-white/5"></div>
-               <span class="text-[9px] font-bold text-white/10 uppercase tracking-widest">{Math.round(((currentStep + 1) / questions.length) * 100)}% COMPLETE</span>
+               <span class="text-[9px] font-bold text-white/10 tracking-widest">{Math.round(((currentStep + 1) / questions.length) * 100)}% hoàn thành</span>
             </div>
           </div>
         </div>
 
         <div class="mb-8 md:mb-10 text-left">
-          <h3 class="text-4xl md:text-5xl font-semibold text-white mb-3 tracking-[-0.04em] leading-tight">
-            {@html questions[currentStep].title}
+          <h3 class="text-4xl md:text-5xl font-semibold text-white mb-3 tracking-[-0.04em] leading-tight" style:text-transform="none">
+            {@html toSentenceCase(questions[currentStep].title)}
           </h3>
           <p class="text-luxury-peach/40 font-medium text-lg leading-relaxed">{questions[currentStep].subtitle}</p>
         </div>
@@ -373,7 +382,7 @@
                 <QuizIcon icon={option.icon} />
               </div>
               <div class="flex-1 relative z-surface">
-                <span class="block text-xl font-medium text-white/90 group-hover:text-luxury-gold transition-colors uppercase tracking-tight">{@html option.label}</span>
+                <span class="block text-xl font-medium text-white/90 group-hover:text-luxury-gold transition-colors tracking-tight" style:text-transform="none">{@html toSentenceCase(option.label)}</span>
               </div>
               
               <div class="w-10 h-10 rounded-full border border-white/5 group-hover:border-luxury-gold/50 group-hover:bg-luxury-gold/20 flex items-center justify-center transition-all duration-500 relative z-surface">
@@ -393,13 +402,13 @@
           <div class="mb-0 md:mb-0 lg:mb-12 text-left relative overflow-hidden">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6">
               <div>
-                <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-semibold text-white tracking-tighter uppercase mb-2 whitespace-nowrap pt-2">PHÁC ĐỒ ĐIỀU TRỊ</h3>
-                <p class="text-luxury-copper/60 font-semibold text-[10px] tracking-[0.4em] uppercase">Kiến tạo bởi Trí tuệ Nhân tạo osmo 2026</p>
+                <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-semibold text-white tracking-tighter mb-2 whitespace-nowrap pt-2">Phác đồ điều trị</h3>
+                <p class="text-luxury-copper/60 font-semibold text-[10px] tracking-[0.4em]">Kiến tạo bởi Trí tuệ Nhân tạo osmo 2026</p>
               </div>
               <div class="flex items-center gap-4">
                 <div class="text-right hidden md:block">
-                  <div class="text-[10px] font-semibold text-white/30 uppercase tracking-widest">Hiệu lực</div>
-                  <div class="text-emerald-400 font-medium text-sm tracking-tighter uppercase">Chứng thực an toàn</div>
+                  <div class="text-[10px] font-semibold text-white/30 tracking-widest">Hiệu lực</div>
+                  <div class="text-emerald-400 font-medium text-sm tracking-tighter">Chứng thực an toàn</div>
                 </div>
                 <div class="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                   <svg class="w-8 h-8 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
@@ -443,12 +452,12 @@
               }}
               class="group relative w-full py-5 md:py-6 bg-luxury-copper text-white rounded-[2rem] font-semibold text-2xl md:text-2xl lg:text-3xl shadow-[0_20px_50px_rgba(193,143,126,0.4)] overflow-hidden active:scale-[0.98] transition-all duration-500"
             >
-              <span class="relative z-surface">XEM LIỆU TRÌNH</span>
+              <span class="relative z-surface">Xem liệu trình</span>
               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
             </button>
             <button
               onclick={restart}
-              class="text-[10px] font-semibold text-white/10 hover:text-luxury-copper/50 transition-colors uppercase tracking-[0.4em] py-2"
+              class="text-[10px] font-semibold text-white/10 hover:text-luxury-copper/50 transition-colors tracking-[0.4em] py-2"
             >
               Làm lại chẩn đoán
             </button>
@@ -467,8 +476,8 @@
           </svg>
         </div>
       </div>
-      <h4 class="text-xl font-semibold text-white mb-2 tracking-[0.2em] uppercase italic opacity-80">ĐANG QUÉT SINH HỌC</h4>
-      <p class="text-luxury-copper/30 font-medium uppercase tracking-[0.4em] text-[10px] animate-pulse">KHỞI TẠO TRÍ TUỆ osmo 2026...</p>
+      <h4 class="text-xl font-semibold text-white mb-2 tracking-[0.2em] italic opacity-80">Đang quét sinh học</h4>
+      <p class="text-luxury-copper/30 font-medium tracking-[0.4em] text-[10px] animate-pulse">Khởi tạo trí tuệ osmo 2026...</p>
     </div>
   {/if}
 </div>

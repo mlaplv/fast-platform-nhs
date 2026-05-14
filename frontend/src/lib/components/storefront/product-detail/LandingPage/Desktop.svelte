@@ -14,9 +14,13 @@
   import ProductDetailSections from './modules/Specs.svelte';
   import ProductDescription from './modules/Description.svelte';
   
-  // Shared Components
-  import ProductReviews from '../shared/ProductReviews.svelte';
   import RelatedProducts from '../shared/RelatedProducts.svelte';
+  import ScannerHUD from '../shared/ScannerHUD.svelte';
+  import VerificationCenter from '../shared/VerificationCenter.svelte';
+  import X from "@lucide/svelte/icons/x";
+  import { portal } from '$lib/core/actions/portal';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { fade, scale } from 'svelte/transition';
 
   const cartStore = getCartStore();
   const clientUi = getClientUi();
@@ -45,6 +49,22 @@
       likeCount = Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0);
     }
   });
+
+  // Verification System (Elite V2.2)
+  let isScanning = $state(false);
+  let showVerification = $state(false);
+  let verificationData = $state(null);
+
+  function triggerScan() {
+    isScanning = true;
+    showVerification = false;
+  }
+
+  function handleScanComplete(event: any) {
+    isScanning = false;
+    verificationData = event.verificationData;
+    showVerification = true;
+  }
 
 
   const variations = $derived(product.tier_variations || product.tierVariations || []);
@@ -323,12 +343,14 @@
         onBuyNow={buyNow}
         onTriggerWriteReview={triggerWriteReview}
         onTriggerViralFly={triggerViralFly}
+        onTriggerVerify={triggerScan}
       />
     </div>
 
     <ProductDetailSections 
       {product} 
       {productInfo} 
+      onTriggerScan={triggerScan}
       visibleAttributes={product.attributes ? Object.entries(product.attributes).filter(([key, value]) => {
         const k = key.toLowerCase().replace(/_/g, " ").trim();
         return !(k === "xuất xứ" || k === "origin" || k === "trọng lượng" || k === "quy cách" || k === "weight" || k === "mã vạch" || k === "barcode" || k === "thương hiệu" || k === "brand");
@@ -342,9 +364,51 @@
     </div>
 
     <div class="max-w-[1200px] mx-auto mt-6 mb-12">
-      <RelatedProducts {product} initialProducts={relatedProducts} />
+      RelatedProducts {product} initialProducts={relatedProducts} />
     </div>
   </main>
+
+  <!-- FLOATING VERIFY ACTION (Elite V2.2) -->
+  <div class="fixed left-8 bottom-8 z-[999]" transition:fade>
+     <button 
+       class="verify-floating-btn group"
+       onclick={triggerScan}
+       aria-label="Xác thực nguồn gốc"
+     >
+        <div class="pulse-ring"></div>
+        <div class="btn-inner">
+           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+              <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+              <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+              <line x1="7" y1="12" x2="17" y2="12" />
+           </svg>
+           <span class="btn-tooltip">Xác thực nguồn gốc</span>
+        </div>
+     </button>
+  </div>
+
+  {#if isScanning}
+    <ScannerHUD barcode={productInfo.barcode} oncomplete={handleScanComplete} />
+  {/if}
+
+  {#if showVerification}
+    <div use:portal transition:fade={{duration: 200}} class="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" style:z-index={Z_INDEX_CLIENT.MODAL + 100} onclick={() => showVerification = false}>
+      <div transition:scale={{duration: 300, start: 0.95}} class="bg-[#0a0a0a]/90 backdrop-blur-3xl w-full max-w-5xl p-0 shadow-[0_20px_100px_rgba(0,0,0,1)] border border-white/10 rounded-[5px] overflow-hidden relative" onclick={(e) => e.stopPropagation()}>
+         <button 
+           class="absolute top-0 right-0 text-white/40 hover:text-white z-20 transition-all w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-bl-[5px]"
+           onclick={() => showVerification = false}
+         >
+           <X size={18} />
+         </button>
+         
+         <div class="relative z-10 pt-10 px-10 pb-2 max-h-[90vh] overflow-y-auto custom-scrollbar">
+           <VerificationCenter {product} {verificationData} />
+         </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -363,9 +427,72 @@
     text-transform: uppercase;
   }
   :global(.prose-osmo img) {
-    max-width: 100%;
+    width: 100% !important;
     height: auto !important;
     margin: 1rem auto !important;
     display: block;
+  }
+
+  /* Elite V2.2: Floating Verify Button Styles */
+  .verify-floating-btn {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    background: #00bfa5;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(0, 191, 165, 0.4);
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .verify-floating-btn:hover {
+    transform: scale(1.1) translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 191, 165, 0.6);
+  }
+
+  .btn-inner {
+    position: relative;
+    z-index: 2;
+  }
+
+  .pulse-ring {
+    position: absolute;
+    inset: -4px;
+    border: 2px solid #00bfa5;
+    border-radius: 8px;
+    opacity: 0;
+    animation: verify-pulse 2s infinite;
+  }
+
+  @keyframes verify-pulse {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+
+  .btn-tooltip {
+    position: absolute;
+    left: 70px;
+    background: #0a0a0a;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s;
+    transform: translateX(-10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .verify-floating-btn:hover .btn-tooltip {
+    opacity: 1;
+    transform: translateX(0);
   }
 </style>

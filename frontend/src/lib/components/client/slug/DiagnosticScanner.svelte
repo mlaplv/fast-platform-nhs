@@ -35,16 +35,16 @@
       ĐANG PHÂN TÍCH...
     </div>
     
-    <div class="analysis-status animate-pulse uppercase tracking-[0.15em] font-bold text-center mt-4 text-blue-400/80 text-xs md:text-sm max-w-md mx-auto">
+    <div class="analysis-status animate-pulse tracking-[0.15em] font-bold text-center mt-4 text-blue-400/80 text-[10px] md:text-xs max-w-md mx-auto" style:text-transform="none">
       {status}
     </div>
   </div>
 
   <!-- Binary Data Flow Overlay! -->
-  <div class="data-stream absolute bottom-12 left-12 opacity-40 text-sm">
-    <div class="mb-2">HỆ THỐNG: ỔN ĐỊNH</div>
-    <div class="mb-2">ĐỒNG BỘ: {binaryData}</div>
-    <div class="mb-2">TRÍ TUỆ NHÂN TẠO: ĐANG HOẠT ĐỘNG</div>
+  <div class="data-stream absolute bottom-12 left-12 opacity-40 text-[10px]">
+    <div class="mb-2">Hệ thống: Ổn định</div>
+    <div class="mb-2">Đồng bộ: {binaryData}</div>
+    <div class="mb-2">Trí tuệ nhân tạo: Đang hoạt động</div>
   </div>
 
   <div class="absolute inset-0 bg-blue-500/5 pointer-events-none"></div>

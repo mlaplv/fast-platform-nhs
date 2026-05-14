@@ -8,7 +8,10 @@
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
   import { getIngredientIcon } from '$lib/utils/product';
 
-  let { product }: { product: Product } = $props();
+  let { product, onTriggerScan }: { 
+    product: Product,
+    onTriggerScan?: () => void
+  } = $props();
 
   let isExpanded = $state(false);
   let isIngredientsExpanded = $state(false);
@@ -45,10 +48,13 @@
         </div>
       {/each}
       {#if product.sku || (product as any).metadata?.barcode}
-        <div class="flex flex-col py-1.5 border-b border-gray-50/50 overflow-hidden">
-          <span class="text-[10px] text-gray-400 font-medium">Mã sản phẩm</span>
+        <button 
+          class="flex flex-col py-1.5 border-b border-gray-50/50 overflow-hidden text-left bg-transparent active:opacity-60 transition-opacity"
+          onclick={() => onTriggerScan?.()}
+        >
+          <span class="text-[10px] text-green-600 font-bold tracking-tight">Mã vạch (Verify)</span>
           <span class="text-[12px] text-gray-800 font-mono font-bold truncate">{product.sku || (product as any).metadata?.barcode}</span>
-        </div>
+        </button>
       {/if}
     </div>
   {/if}

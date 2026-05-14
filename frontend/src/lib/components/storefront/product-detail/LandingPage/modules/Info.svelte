@@ -41,13 +41,14 @@
     onBuyNow: () => void;
     onWriteReview: () => void;
     onViralUnlock: () => void;
+    onTriggerVerify?: () => void;
   }
 
   let { 
     product, stats, isFlashSaleActive, timeLeft, productVouchers, selectedVouchers,
     variations, selectedIndices, quantity, currentStock, activePrices,
     activeComboQty, activeGifts, helenAdvice,
-    onSelectOption, onQuantityChange, onToggleVoucher, onAddToCart, onBuyNow, onWriteReview, onViralUnlock
+    onSelectOption, onQuantityChange, onToggleVoucher, onAddToCart, onBuyNow, onWriteReview, onViralUnlock, onTriggerVerify
   }: Props = $props();
 
   const isMall = $derived(!!product.metadata?.is_mall);
@@ -59,6 +60,11 @@
     <div class="mall-badge group">
       <div class="shine-effect"></div>
       <span class="badge-text">{isMall ? 'Mall' : 'Shop'}</span>
+    </div>
+    <div class="verified-badge group">
+      <div class="shine-effect"></div>
+      <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+      <span class="badge-text">Verified</span>
     </div>
     <h1 class="product-title">
       {product.name.replace(/40gr/g, '40g')}
@@ -78,7 +84,7 @@
     <div class="divider"></div>
     <button class="stat-btn" onclick={() => document.getElementById('product-reviews')?.scrollIntoView({ behavior: 'smooth' })}>
       <span class="stat-value">{stats?.total_count ?? (product.metadata?.reviews?.length || 0)}</span>
-      <span class="stat-label">Đánh Giá</span>
+      <span class="stat-label">Đánh giá</span>
     </button>
     <div class="divider"></div>
     <div class="stat-item">
@@ -103,7 +109,7 @@
         <span class="sale-price">{formatCurrency(activePrices.sale)}</span>
       </div>
 
-      {#if variations.some(v => v.attributes?.combo_qty && v.attributes.combo_qty > 1)}
+      {#if helenAdvice}
         <div class="helen-intelligence">
           <div class="helen-header">
             {#if activeComboQty > 1}
@@ -119,6 +125,10 @@
           </div>
           <div class="helen-body">
             <p class="advice-text">{helenAdvice}</p>
+            <button class="helen-verify-btn" onclick={() => onTriggerVerify?.()}>
+               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><line x1="7" y1="12" x2="17" y2="12" /></svg>
+               Xác thực nguồn gốc
+            </button>
           </div>
         </div>
       {/if}
@@ -143,7 +153,7 @@
 
   <!-- Vouchers -->
   <div class="section-row">
-    <span class="row-label">Mã Giảm Giá</span>
+    <span class="row-label">Mã giảm giá</span>
     <div class="vouchers-list">
       {#each productVouchers as v}
         {@const isApplied = selectedVouchers.includes(v.id)}
@@ -176,7 +186,7 @@
 
   <!-- Shipping -->
   <div class="section-row">
-    <span class="row-label">Vận Chuyển</span>
+    <span class="row-label">Vận chuyển</span>
     <div class="shipping-info">
       <div class="ship-header">
         <svg class="check-icon-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
@@ -222,7 +232,7 @@
 
   <!-- Quantity -->
   <div class="section-row quantity-row">
-    <span class="row-label tracking-widest">Số lượng</span>
+    <span class="row-label">Số lượng</span>
     <div class="quantity-controls">
       <div class="stepper">
         <button class="step-btn" onclick={() => onQuantityChange(-1)} disabled={quantity <= 1}>
@@ -294,7 +304,7 @@
       <ShoppingCart size={20} />
       <span>Thêm vào giỏ hàng</span>
     </button>
-    <button onclick={onBuyNow} class="buy-now-btn">Mua Ngay</button>
+    <button onclick={onBuyNow} class="buy-now-btn">Mua ngay</button>
   </div>
 </div>
 
@@ -313,17 +323,25 @@
     margin-bottom: 0.5rem;
   }
 
-  .mall-badge {
+  .mall-badge, .verified-badge {
     background: #d0011b;
     color: white;
     padding: 0.125rem 0.375rem;
     font-size: 10px;
     font-weight: 900;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     position: relative;
     overflow: hidden;
     margin-top: 0.25rem;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .verified-badge {
+    background: #00bfa5;
+    padding: 0.125rem 0.5rem;
   }
 
   .shine-effect {
@@ -530,6 +548,29 @@
     line-height: 1.4;
     max-width: 580px;
     margin: 0;
+  }
+
+  .helen-verify-btn {
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    border: 1px solid #3b82f633;
+    padding: 0.375rem 0.75rem;
+    border-radius: 99px;
+    color: #3b82f6;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px #3b82f61a;
+  }
+
+  .helen-verify-btn:hover {
+    background: #3b82f60d;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px #3b82f626;
   }
 
   .timer-box {

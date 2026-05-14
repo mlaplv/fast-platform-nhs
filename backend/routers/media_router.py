@@ -38,7 +38,7 @@ class MediaController(Controller):
 
     @post("/", status_code=201, guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
     async def upload_media(self, request: Request, media_repo: MediaRegistryRepository, data: UploadFile = Body(media_type=RequestEncodingType.MULTI_PART), campaign_id: Optional[str] = None) -> MediaDetailResponse:
-        asset = await media_service.upload_asset(repo=media_repo, file_content=await data.read(), filename=data.filename, content_type=data.content_type, campaign_id=campaign_id, owner_id=request.state.get("user", {}).get("sub"))
+        asset = await media_service.upload_asset(repo=media_repo, file_content=await data.read(), filename=data.filename, content_type=data.content_type, campaign_id=campaign_id, owner_id=request.state.get("user", {}).get("id"))
         if not asset: raise HTTPException(status_code=500, detail="Upload failed")
         return MediaDetailResponse(status="success", data=MediaAssetResponse.model_validate(asset))
 
@@ -57,12 +57,12 @@ class MediaController(Controller):
 
     @patch("/{asset_id:str}", guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
     async def update_media(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository, data: MediaUpdateMetadata) -> GenericResponse:
-        ok = await media_service.update_metadata(media_repo, str(asset_id), data, owner_id=request.state.get("user", {}).get("sub"))
+        ok = await media_service.update_metadata(media_repo, str(asset_id), data, owner_id=request.state.get("user", {}).get("id"))
         return GenericResponse(status="success" if ok else "error", message="Metadata updated" if ok else "Unauthorized/Not Found")
 
     @delete("/{asset_id:str}", status_code=200, guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
     async def delete_media(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository, permanent: bool = False) -> GenericResponse:
-        ok = await media_service.delete_asset(media_repo, str(asset_id), permanent=permanent, owner_id=request.state.get("user", {}).get("sub"))
+        ok = await media_service.delete_asset(media_repo, str(asset_id), permanent=permanent, owner_id=request.state.get("user", {}).get("id"))
         return GenericResponse(status="success" if ok else "error", message="Deleted" if ok else "Failed")
 
     @post("/{asset_id:str}/restore", guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
@@ -72,12 +72,12 @@ class MediaController(Controller):
 
     @post("/bulk-delete", guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
     async def bulk_delete_media(self, request: Request, media_repo: MediaRegistryRepository, data: BulkDeleteRequest) -> GenericResponse:
-        ok = await media_service.bulk_delete(media_repo, data.ids, permanent=data.permanent, owner_id=request.state.get("user", {}).get("sub"))
+        ok = await media_service.bulk_delete(media_repo, data.ids, permanent=data.permanent, owner_id=request.state.get("user", {}).get("id"))
         return GenericResponse(status="success" if ok else "error", message=f"Processed {len(data.ids)} assets")
 
     @patch("/bulk-update", guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
     async def bulk_update_media(self, request: Request, media_repo: MediaRegistryRepository, data: BulkUpdateRequest) -> GenericResponse:
-        ok = await media_service.bulk_update(media_repo, data, owner_id=request.state.get("user", {}).get("sub"))
+        ok = await media_service.bulk_update(media_repo, data, owner_id=request.state.get("user", {}).get("id"))
         return GenericResponse(status="success" if ok else "error", message=f"Processed {len(data.updates)} metadata updates")
 
     @get("/{asset_id:str}/thumb")
@@ -89,23 +89,23 @@ class MediaController(Controller):
 
     @post("/{asset_id:str}/edit", guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
     async def quick_edit_media(self, asset_id: str, request: Request, media_repo: MediaRegistryRepository, data: QuickEditRequest) -> QuickEditResponse:
-        asset = await media_service.quick_edit(media_repo, str(asset_id), data.action, params=data.params, owner_id=request.state.get("user", {}).get("sub"), source_url=data.source_url, campaign_id=data.campaign_id)
+        asset = await media_service.quick_edit(media_repo, str(asset_id), data.action, params=data.params, owner_id=request.state.get("user", {}).get("id"), source_url=data.source_url, campaign_id=data.campaign_id)
         if not asset: raise HTTPException(status_code=500, detail="Edit failed")
         return QuickEditResponse(status="success", data=MediaAssetResponse.model_validate(asset))
 
     @post("/bulk-download")
     async def bulk_download_media(self, request: Request, media_repo: MediaRegistryRepository, data: BulkDownloadRequest) -> BulkDownloadResponse:
-        url = await media_service.create_bulk_zip(media_repo, data.ids, owner_id=request.state.get("user", {}).get("sub"))
+        url = await media_service.create_bulk_zip(media_repo, data.ids, owner_id=request.state.get("user", {}).get("id"))
         if not url: raise HTTPException(status_code=500, detail="ZIP creation failed")
         return BulkDownloadResponse(status="success", data=BulkDownloadResponseData(zip_url=url))
 
     @post("/fetch-remote", guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
     async def fetch_remote_media(self, request: Request, media_repo: MediaRegistryRepository, data: FetchRemoteRequest) -> MediaDetailResponse:
-        asset = await media_service.fetch_remote_asset(repo=media_repo, url=data.url, campaign_id=data.campaign_id, owner_id=request.state.get("user", {}).get("sub"))
+        asset = await media_service.fetch_remote_asset(repo=media_repo, url=data.url, campaign_id=data.campaign_id, owner_id=request.state.get("user", {}).get("id"))
         if not asset: raise HTTPException(status_code=500, detail="Remote fetch failed")
         return MediaDetailResponse(status="success", data=MediaAssetResponse.model_validate(asset))
 
     @post("/link-to-post", guards=[PermissionGuard(PermissionEnum.MEDIA_WRITE)])
     async def link_media_to_post(self, request: Request, media_repo: MediaRegistryRepository, data: MediaLinkToPostRequest) -> GenericResponse:
-        c = await media_service.link_to_post(repo=media_repo, asset_ids=data.asset_ids, post_id=data.post_id, post_type=data.post_type, owner_id=request.state.get("user", {}).get("sub"))
+        c = await media_service.link_to_post(repo=media_repo, asset_ids=data.asset_ids, post_id=data.post_id, post_type=data.post_type, owner_id=request.state.get("user", {}).get("id"))
         return GenericResponse(status="success", message=f"Linked {c} assets")

@@ -42,6 +42,14 @@
   const metadata = $derived(product?.metadata || {});
   const selectedAreaLabel = $derived(answers.find(ans => ans.q.includes('giải cứu'))?.a || '');
   
+  function toSentenceCase(str: string) {
+    if (!str) return '';
+    const cleanStr = str.replace(/<[^>]*>/g, '');
+    if (!cleanStr) return str;
+    const lower = str.toLowerCase();
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  }
+  
   const currentLevelOptions = $derived.by(() => {
     const area = selectedAreaLabel.toLowerCase();
     if (area.includes('bikini')) return [
@@ -99,11 +107,11 @@
   ]);
   
   const labels = $derived({
-    headline: metadata?.diagnostics_headline || 'CHẨN ĐOÁN PHỤC HỒI <br/><span class="text-blue-500">SẮC TỐ GỐC</span>',
+    headline: metadata?.diagnostics_headline || 'Chẩn đoán phục hồi <br/><span class="text-blue-500">Sắc tố gốc</span>',
     subheadline: metadata?.diagnostics_subheadline || `Để hệ thống chẩn đoán của ${SHOP_CONFIG.pharmacy.name} thiết lập liệu trình liều lượng chính xác nhất.`,
-    result_headline: metadata?.quiz_result_headline || 'LIỆU TRÌNH OPTIMAL.',
+    result_headline: metadata?.quiz_result_headline || 'Liệu trình Optimal.',
     result_subheadline: metadata?.quiz_result_subheadline || 'Hệ thống AI đề xuất: Bạn cần liệu trình {quantity} lọ để đạt hiệu quả tối ưu.',
-    result_cta: metadata?.quiz_result_cta || 'KÍCH HOẠT LIỆU TRÌNH',
+    result_cta: metadata?.quiz_result_cta || 'Kích hoạt liệu trình',
     restart_label: metadata?.quiz_restart_label || 'Thiết lập lại'
   });
 
@@ -314,8 +322,8 @@
         <span class="text-[10px] tracking-[0.2em] text-[#FFB7C5] font-bold italic">đã chẩn đoán cho {(Number(metadata.diagnostics_count || (Number(PUBLIC_G_BY_COUNT) * 5)) + sessionIncrement).toLocaleString()} người</span>
       </div>
         <h2 class="text-2xl font-extrabold text-white leading-relaxed tracking-tighter italic tiktok-shadow">
-          <EditableWrapper path="metadata.diagnostics_headline" type="text" label="SỬA TIÊU ĐỀ">
-            {@html (product?.metadata?.diagnostics_headline || 'CHẨN ĐOÁN PHỤC HỒI <span class="text-blue-500">SẮC TỐ GỐC</span>').replace('SẮC TỐ GỐC', '<br/>SẮC TỐ GỐC')}
+          <EditableWrapper path="metadata.diagnostics_headline" type="text" label="Sửa tiêu đề">
+            {@html (product?.metadata?.diagnostics_headline || 'Chẩn đoán phục hồi <span class="text-blue-500">Sắc tố gốc</span>').replace('Sắc tố gốc', '<br/>Sắc tố gốc')}
           </EditableWrapper>
         </h2>
     </div>
@@ -344,11 +352,11 @@
               </div>
             </div>
 
-            <div class="text-3xl font-black text-white mb-2 tracking-[0.25em] italic uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+            <div class="text-xl font-black text-white mb-2 tracking-widest italic uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] whitespace-nowrap">
               ĐANG PHÂN TÍCH...
             </div>
             
-            <div class="text-[11px] text-[#FFB7C5] font-bold tracking-[0.2em] mb-12 h-4 animate-pulse">
+            <div class="text-[9px] text-[#FFB7C5] font-bold tracking-wider mb-12 h-4 animate-pulse whitespace-nowrap">
               {analysisStatus}
             </div>
 
@@ -359,9 +367,9 @@
 
           <!-- HUD Data Overlays -->
           <div class="absolute top-10 left-6 opacity-30 text-[10px] font-mono text-[#FFB7C5]/80 space-y-1 text-left">
-            <div class="flex items-center gap-1"><Cpu size={10} /> Hệ thống: ổn định</div>
+            <div class="flex items-center gap-1"><Cpu size={10} /> Hệ thống: Ổn định</div>
             <div class="flex items-center gap-1"><Activity size={10} /> Độ trễ: 12ms</div>
-            <div class="flex items-center gap-1"><Database size={10} /> Mã hóa: quantum_v3</div>
+            <div class="flex items-center gap-1"><Database size={10} /> Mã hóa: Quantum_v3</div>
           </div>
 
           <div class="absolute top-10 right-6 opacity-30 text-[7px] font-mono text-[#FFB7C5]/80 text-right">
@@ -376,12 +384,12 @@
           <!-- Binary Streams -->
           <div class="absolute bottom-10 left-6 right-6 opacity-20 text-[10px] font-mono text-[#FFB7C5]/80 flex justify-between">
             <div class="flex flex-col gap-1">
-                <div>AI_LOG_STREAM // ĐỒNG BỘ</div>
+                <div>AI_LOG_STREAM // Đồng bộ</div>
                 <div class="diagnostic-log-text tracking-widest">{binaryData}</div>
             </div>
             <div class="text-right flex flex-col justify-end">
-                <div>MÃ HÓA SINH TRẮC HỌC</div>
-                <div>ĐỒNG BỘ HOÀN TẤT</div>
+                <div>Mã hóa sinh trắc học</div>
+                <div>Đồng bộ hoàn tất</div>
             </div>
           </div>
         </div>
@@ -618,9 +626,9 @@
                     </div>
                   </div>
                   
-                  <h3 class="text-xl font-bold text-white mb-6 leading-tight italic tracking-tight drop-shadow-sm sentence-case-target">
+                  <h3 class="text-xl font-bold text-white mb-6 leading-tight italic tracking-tight drop-shadow-sm sentence-case-target" style:text-transform="none">
                     {#if typeof questions[currentStep].title === 'string'}
-                      {@html questions[currentStep].title}
+                      {@html toSentenceCase(questions[currentStep].title)}
                     {:else}
                       Đang tải phác đồ...
                     {/if}
@@ -647,9 +655,9 @@
                           </div>
                         </div>
                         <div class="flex flex-col overflow-hidden">
-                          <span class="option-label text-white/90 font-bold text-xs tracking-tight truncate">
+                          <span class="option-label text-white/90 font-bold text-xs tracking-tight truncate" style:text-transform="none">
                             {#if typeof opt.label === 'string'}
-                              {@html opt.label}
+                              {@html toSentenceCase(opt.label)}
                             {:else}
                               Lưu trữ...
                             {/if}

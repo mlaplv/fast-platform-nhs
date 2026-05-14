@@ -13,6 +13,12 @@
   
   import MobileLandingLayout from '$lib/components/mobile/MobileLandingLayout.svelte';
   import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+  import ScannerHUD from '$lib/components/storefront/product-detail/shared/ScannerHUD.svelte';
+  import VerificationCenter from '$lib/components/storefront/product-detail/shared/VerificationCenter.svelte';
+  import X from "@lucide/svelte/icons/x";
+  import { portal } from '$lib/core/actions/portal';
+  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { fade, scale } from 'svelte/transition';
   
   import type { PageData } from './$types';
   
@@ -164,6 +170,22 @@
   let currentSessionIdx = $state(0);
   const activeId = $derived(sectionIds[currentSessionIdx]);
   let isWheelLocked = false;
+
+  // Verification System (Elite V2.2)
+  let isScanning = $state(false);
+  let showVerification = $state(false);
+  let verificationData = $state(null);
+
+  function triggerScan() {
+    isScanning = true;
+    showVerification = false;
+  }
+
+  function handleScanComplete(event: any) {
+    isScanning = false;
+    verificationData = event.verificationData;
+    showVerification = true;
+  }
 
   const onWheelObserver = (e: WheelEvent) => {
     // Escape limiters: Mobile layout, Server, or interacting with Checkout
@@ -359,6 +381,54 @@
        <p class="text-sm tracking-[0.2em] font-light animate-pulse text-blue-400">{loadingText}</p>
     </div>
   {/if}
+
+  <!-- FLOATING VERIFY ACTION (Elite V2.2 Viral - Precise Alignment) -->
+  <div class="fixed right-[40px] bottom-[140px] z-[999] flex flex-col items-center" transition:fade>
+     <button 
+       class="verify-floating-btn group"
+       onclick={triggerScan}
+       aria-label="Xác thực nguồn gốc"
+     >
+        <div class="pulse-ring ring-1"></div>
+        <div class="pulse-ring ring-2"></div>
+        <div class="btn-inner">
+           <svg class="w-5 h-5 icon-scanner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2" class="corner" />
+              <path d="M17 3h2a2 2 0 0 1 2 2v2" class="corner" />
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2" class="corner" />
+              <path d="M7 21H5a2 2 0 0 1-2-2v-2" class="corner" />
+              <line x1="6" y1="12" x2="18" y2="12" class="scan-line" />
+              <path d="M9 12l2 2 4-4" class="check-mark" />
+           </svg>
+           <div class="glow-effect"></div>
+           <span class="btn-tooltip-left">
+             <span class="text-emerald-400 mr-1">✦</span>
+             Xác thực chính hãng
+           </span>
+        </div>
+     </button>
+  </div>
+
+  {#if isScanning}
+    <ScannerHUD barcode={product?.sku || (product?.metadata as any)?.barcode} oncomplete={handleScanComplete} />
+  {/if}
+
+  {#if showVerification}
+    <div use:portal transition:fade={{duration: 200}} class="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" style:z-index={Z_INDEX_CLIENT.MODAL + 100} onclick={() => showVerification = false}>
+      <div transition:scale={{duration: 300, start: 0.95}} class="bg-[#0a0a0a]/90 backdrop-blur-3xl w-full max-w-5xl p-0 shadow-[0_20px_100px_rgba(0,0,0,1)] border border-white/10 rounded-[5px] overflow-hidden relative" onclick={(e) => e.stopPropagation()}>
+         <button 
+           class="absolute top-0 right-0 text-white/40 hover:text-white z-20 transition-all w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-bl-[5px]"
+           onclick={() => showVerification = false}
+         >
+           <X size={18} />
+         </button>
+         
+         <div class="relative z-10 pt-10 px-10 pb-2 max-h-[90vh] overflow-y-auto custom-scrollbar">
+           <VerificationCenter {product} {verificationData} />
+         </div>
+      </div>
+    </div>
+  {/if}
   </div>
 {/if}
 
@@ -408,5 +478,121 @@
   /* Ensure smooth transitions inside snap sessions */
   :global(section) {
     transition: opacity 0.8s ease;
+  }
+
+  /* Elite V2.2: Floating Verify Button Styles (Liquid Viral - Minimalist) */
+  .verify-floating-btn {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    color: #00bfa5;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    overflow: visible;
+  }
+
+  .verify-floating-btn:hover {
+    transform: scale(1.2);
+    color: #00d1b2;
+  }
+
+  .btn-inner {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+
+  .icon-scanner .scan-line {
+    stroke-dasharray: 12;
+    animation: scan-move 2s infinite ease-in-out;
+    opacity: 0.8;
+  }
+
+  .icon-scanner .check-mark {
+    opacity: 0;
+    transition: all 0.3s;
+    transform: scale(0.5);
+  }
+
+  .verify-floating-btn:hover .icon-scanner .check-mark {
+    opacity: 1;
+    transform: scale(1);
+    stroke: #ffffff;
+  }
+
+  .verify-floating-btn:hover .icon-scanner .scan-line,
+  .verify-floating-btn:hover .icon-scanner .corner {
+    opacity: 0.3;
+  }
+
+  @keyframes scan-move {
+    0%, 100% { transform: translateY(-4px); }
+    50% { transform: translateY(4px); }
+  }
+
+  .pulse-ring {
+    position: absolute;
+    inset: 4px;
+    border: 1px solid #00bfa5;
+    border-radius: 50%;
+    opacity: 0;
+  }
+
+  .ring-1 { animation: verify-pulse 3s infinite; }
+  .ring-2 { animation: verify-pulse 3s infinite 1.5s; }
+
+  @keyframes verify-pulse {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.6); opacity: 0; }
+  }
+
+  .glow-effect {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.4) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: inherit;
+  }
+
+  .verify-floating-btn:hover .glow-effect {
+    opacity: 1;
+  }
+
+  .btn-tooltip-left {
+    position: absolute;
+    right: 80px;
+    background: rgba(10, 10, 10, 0.9);
+    backdrop-filter: blur(12px);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: translateX(20px) scale(0.8);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+  }
+
+  .verify-floating-btn:hover .btn-tooltip-left {
+    opacity: 1;
+    transform: translateX(0) scale(1);
   }
 </style>

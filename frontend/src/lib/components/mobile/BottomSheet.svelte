@@ -9,10 +9,13 @@
     active: boolean;
     title: string;
     children: Snippet;
+    fullWidth?: boolean;
+    extraStyle?: string;
+    tight?: boolean;
     onClose?: () => void;
   }
 
-  let { active = $bindable(), title, children, onClose }: Props = $props();
+  let { active = $bindable(), title, children, fullWidth = false, extraStyle = "", tight = false, onClose }: Props = $props();
 
   // Drag-to-Close Logic
   let dragY = $state(0);
@@ -75,20 +78,26 @@
         onpointerup={onPointerUp}
         onpointercancel={onPointerUp}
       >
-        <div class="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+        <div class="w-12 h-1 bg-white/20 rounded-full"></div>
       </div>
 
-      <button onclick={close} class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-gray-500 hover:text-gray-900 transition-all active:scale-90" style:z-index={Z_INDEX_CLIENT.HEADER}>
-        <X class="w-5 h-5" strokeWidth={1.5} />
+      <button onclick={close} class="absolute right-0 top-0 w-12 h-12 flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-90" style:z-index={Z_INDEX_CLIENT.HEADER}>
+        <X class="w-5 h-5" strokeWidth={2} />
       </button>
 
-      <div class="relative flex items-center justify-center px-6 pt-2 pb-4 border-b border-gray-100">
-        <h2 class="text-[13px] font-black tracking-[0.25em] italic text-gray-900">
+      <div class="relative flex items-center justify-center px-6 pt-2 pb-4 border-b border-white/5">
+        <h2 class="text-[11px] font-black tracking-[0.25em] uppercase text-white/60">
           {title}
         </h2>
       </div>
 
-      <div class="px-6 py-4 overflow-y-auto custom-scrollbar flex flex-col h-auto max-h-[75dvh] flex-initial">
+      <div 
+        id="elite-bottom-sheet-content"
+        class="px-1 pt-4 overflow-y-auto custom-scrollbar flex flex-col h-auto max-h-[75dvh] flex-initial"
+        class:pb-4={!tight}
+        class:pb-1={tight}
+        style={extraStyle}
+      >
         {@render children()}
       </div>
     </div>
@@ -116,8 +125,10 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    background: white;
-    border-radius: 24px 24px 0 0;
+    background: #0a0a0a;
+    color: white;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px 5px 0 0;
     pointer-events: auto;
     transform: translateY(var(--drag-y, 0));
   }

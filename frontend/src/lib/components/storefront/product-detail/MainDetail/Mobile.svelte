@@ -1,24 +1,26 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
-  
-  // Types
-  import type { Product, ProductVariant, ReviewStats } from '$lib/types';
-  
-  // Stores
-  import { getCartStore } from '$lib/state/commerce/cart.svelte';
-  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
 
-  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
-  
+  // Types
+  import type { Product, ProductVariant, ReviewStats } from "$lib/types";
+
+  // Stores
+  import { getCartStore } from "$lib/state/commerce/cart.svelte";
+  import { getClientUi } from "$lib/state/commerce/ui.svelte";
+
+  import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
+
   // Components
-  import ProductMobileHeader from './modules/ProductMobileHeader.svelte';
-  import ProductMobileOverview from './modules/ProductMobileOverview.svelte';
-  import ProductMobileSpecs from './modules/ProductMobileSpecs.svelte';
-  import ProductMobileReviews from './modules/ProductMobileReviews.svelte';
-  import ProductMobileRecommendations from './modules/ProductMobileRecommendations.svelte';
-  import ProductMobileVariantSelector from './modules/ProductMobileVariantSelector.svelte';
-  import MobileBottomNav from '$lib/components/storefront/home/MobileBottomNav.svelte';
+  import ProductMobileHeader from "./modules/ProductMobileHeader.svelte";
+  import ProductMobileOverview from "./modules/ProductMobileOverview.svelte";
+  import ProductMobileSpecs from "./modules/ProductMobileSpecs.svelte";
+  import ProductMobileReviews from "./modules/ProductMobileReviews.svelte";
+  import ProductMobileRecommendations from "./modules/ProductMobileRecommendations.svelte";
+  import ProductMobileVariantSelector from "./modules/ProductMobileVariantSelector.svelte";
+  import MobileBottomNav from "$lib/components/storefront/home/MobileBottomNav.svelte";
+  import BottomSheet from "$lib/components/mobile/BottomSheet.svelte";
+  import X from "@lucide/svelte/icons/x";
 
   interface Props {
     product: Product;
@@ -32,7 +34,7 @@
   const clientUi = getClientUi();
 
   // --- TAB & SCROLL STATE ---
-  let activeTab = $state('overview');
+  let activeTab = $state("overview");
   let showTabs = $state(false);
   let isScrolled = $state(false);
   let isShrunk = $state(false);
@@ -46,7 +48,7 @@
     const st = scrollContainer.scrollTop;
     showTabs = st > 400;
     isScrolled = st > 50;
-    
+
     // Directional scroll for Bottom Nav (Sync with Home)
     const threshold = 15;
     if (st > lastScrollY + threshold && st > 80) {
@@ -62,7 +64,7 @@
     // Hide effect for Viral: 0 to 1 between 150px and 350px
     hideRatio = Math.max(0, Math.min(1, (st - 150) / 200));
 
-    const sections = ['overview', 'description', 'reviews', 'recommendations'];
+    const sections = ["overview", "description", "reviews", "recommendations"];
     for (const id of sections.reverse()) {
       const el = document.getElementById(id);
       if (el && el.offsetTop <= st + 100) {
@@ -77,7 +79,7 @@
     if (el && scrollContainer) {
       scrollContainer.scrollTo({
         top: el.offsetTop - 80,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
   }
@@ -87,7 +89,9 @@
   let selectedVariant = $state<ProductVariant | null>(null);
   let selectedQty = $state(1);
 
-  const variations = $derived(product.tier_variations || product.tierVariations || []);
+  const variations = $derived(
+    product.tier_variations || product.tierVariations || [],
+  );
 
   function handleVariantConfirm(variant: ProductVariant | null, qty: number) {
     selectedVariant = variant || null;
@@ -109,7 +113,7 @@
       return;
     }
     cartStore.addItem(product, selectedVariant || undefined, selectedQty);
-    goto('/checkout');
+    goto("/checkout");
   }
 
   // --- FLASH SALE COUNTDOWN ---
@@ -117,7 +121,7 @@
   const flashSaleEnd = $derived(
     product.metadata?.flash_sale_end
       ? new Date(product.metadata.flash_sale_end).getTime()
-      : null
+      : null,
   );
 
   $effect(() => {
@@ -133,11 +137,31 @@
     return () => clearInterval(timer);
   });
 
+  // --- VERIFICATION SYSTEM (Elite V2.2) ---
+  import ScannerHUD from "../shared/ScannerHUD.svelte";
+  import MobileVerificationCenter from "../shared/MobileVerificationCenter.svelte";
+  import { fade, scale } from "svelte/transition";
+
+  let isScanning = $state(false);
+  let showVerification = $state(false);
+  let verificationData = $state(null);
+
+  function triggerScan() {
+    isScanning = true;
+    showVerification = false;
+  }
+
+  function handleScanComplete(event: any) {
+    isScanning = false;
+    verificationData = event.verificationData;
+    showVerification = true;
+  }
+
   // Elite V2.2: Neural Variant Initialization (Sync with Desktop)
   $effect(() => {
     if (product && !selectedVariant && variations.length > 0) {
       const pVariants = product.variants || [];
-      const defaultV = pVariants.find(v => v.is_default) || pVariants[0];
+      const defaultV = pVariants.find((v) => v.is_default) || pVariants[0];
       if (defaultV) {
         selectedVariant = defaultV;
       }
@@ -145,42 +169,57 @@
   });
 
   // --- VIRAL SHARING ---
-  let viralStep = $state<'idle' | 'sharing' | 'awaiting_confirm' | 'verifying' | 'revealed'>('idle');
+  let viralStep = $state<
+    "idle" | "sharing" | "awaiting_confirm" | "verifying" | "revealed"
+  >("idle");
   let isViralUnlocked = $state(false);
-  let displayRewardLabel = $derived(product.metadata?.viral_suite?.share_promotion?.reward_label || (product.metadata as any)?.reward_label || 'Phần quà bí mật');
+  let displayRewardLabel = $derived(
+    product.metadata?.viral_suite?.share_promotion?.reward_label ||
+      (product.metadata as any)?.reward_label ||
+      "Phần quà bí mật",
+  );
 
   async function shareProduct() {
-    const viralSuite = product.metadata?.viral_suite || (product.metadata as any)?.share_promotion;
-    const isViralEnabled = viralSuite?.enabled === true || !!viralSuite?.voucher_id;
+    const viralSuite =
+      product.metadata?.viral_suite ||
+      (product.metadata as any)?.share_promotion;
+    const isViralEnabled =
+      viralSuite?.enabled === true || !!viralSuite?.voucher_id;
 
     if (isViralEnabled && !isViralUnlocked) {
-      viralStep = 'sharing';
+      viralStep = "sharing";
       try {
-        const res = await fetch('/api/v1/client/viral/share-intent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch("/api/v1/client/viral/share-intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ product_id: product.id }),
         });
-        if (!res.ok) throw new Error('Yêu cầu thất bại');
+        if (!res.ok) throw new Error("Yêu cầu thất bại");
         const data = await res.json();
-        
-        sessionStorage.setItem(`viral_intent_${product.id}`, JSON.stringify({
-          token: data.token,
-          fingerprint: data.fingerprint,
-          timestamp: Date.now()
-        }));
+
+        sessionStorage.setItem(
+          `viral_intent_${product.id}`,
+          JSON.stringify({
+            token: data.token,
+            fingerprint: data.fingerprint,
+            timestamp: Date.now(),
+          }),
+        );
 
         // Trigger native share or clipboard
         if (navigator.share) {
-          await navigator.share({ title: product.name, url: window.location.href });
+          await navigator.share({
+            title: product.name,
+            url: window.location.href,
+          });
         } else {
           await navigator.clipboard.writeText(window.location.href);
-          clientUi.showToast('Đã sao chép liên kết!', 'success');
+          clientUi.showToast("Đã sao chép liên kết!", "success");
         }
-        viralStep = 'awaiting_confirm';
+        viralStep = "awaiting_confirm";
       } catch (e: any) {
-        clientUi.showToast(e.message || 'Lỗi khởi tạo chia sẻ', 'error');
-        viralStep = 'idle';
+        clientUi.showToast(e.message || "Lỗi khởi tạo chia sẻ", "error");
+        viralStep = "idle";
       }
       return;
     }
@@ -189,81 +228,103 @@
       navigator.share({ title: product.name, url: window.location.href });
     } else {
       navigator.clipboard.writeText(window.location.href);
-      clientUi.showToast('Đã sao chép liên kết!', 'success');
+      clientUi.showToast("Đã sao chép liên kết!", "success");
     }
   }
 
   async function verifyShare() {
     const savedIntent = sessionStorage.getItem(`viral_intent_${product.id}`);
-    if (!savedIntent) { viralStep = 'idle'; return; }
-    
-    const { token, fingerprint } = JSON.parse(savedIntent);
-    const viralSuite = product.metadata?.viral_suite || (product.metadata as any)?.share_promotion;
-    const voucherId = viralSuite?.share_promotion?.voucher_id || viralSuite?.voucher_id;
+    if (!savedIntent) {
+      viralStep = "idle";
+      return;
+    }
 
-    viralStep = 'verifying';
+    const { token, fingerprint } = JSON.parse(savedIntent);
+    const viralSuite =
+      product.metadata?.viral_suite ||
+      (product.metadata as any)?.share_promotion;
+    const voucherId =
+      viralSuite?.share_promotion?.voucher_id || viralSuite?.voucher_id;
+
+    viralStep = "verifying";
     try {
-      const res = await fetch('/api/v1/client/viral/verify-share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: product.id, fingerprint, token, voucher_id: voucherId }),
+      const res = await fetch("/api/v1/client/viral/verify-share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_id: product.id,
+          fingerprint,
+          token,
+          voucher_id: voucherId,
+        }),
       });
-      if (!res.ok) throw new Error('Xác minh thất bại');
+      if (!res.ok) throw new Error("Xác minh thất bại");
       const data = await res.json();
-      
+
       isViralUnlocked = true;
-      viralStep = 'revealed';
-      localStorage.setItem(`viral_unlocked_${product.id}`, JSON.stringify({ 
-        code: data.voucher_code, label: data.voucher_label, unlocked_at: Date.now() 
-      }));
-      clientUi.showToast('🎉 Đã mở khóa quà tặng!', 'success');
+      viralStep = "revealed";
+      localStorage.setItem(
+        `viral_unlocked_${product.id}`,
+        JSON.stringify({
+          code: data.voucher_code,
+          label: data.voucher_label,
+          unlocked_at: Date.now(),
+        }),
+      );
+      clientUi.showToast("🎉 Đã mở khóa quà tặng!", "success");
     } catch (e: any) {
-      clientUi.showToast(e.message || 'Xác minh thất bại', 'error');
-      viralStep = 'idle';
+      clientUi.showToast(e.message || "Xác minh thất bại", "error");
+      viralStep = "idle";
     }
   }
 
   onMount(() => {
-    if (scrollContainer) scrollContainer.addEventListener('scroll', handleScroll);
+    if (scrollContainer)
+      scrollContainer.addEventListener("scroll", handleScroll);
     return () => {
-      if (scrollContainer) scrollContainer.removeEventListener('scroll', handleScroll);
+      if (scrollContainer)
+        scrollContainer.removeEventListener("scroll", handleScroll);
     };
   });
 </script>
 
-<svelte:element this="div" class="product-mobile-root" bind:this={scrollContainer}>
+<svelte:element
+  this="div"
+  class="product-mobile-root"
+  bind:this={scrollContainer}
+>
   <!-- 1. STICKY HEADER -->
-  <ProductMobileHeader 
-    {product} 
-    {showTabs} 
+  <ProductMobileHeader
+    {product}
+    {showTabs}
     {scrollRatio}
-    {activeTab} 
-    onScrollToSection={scrollToSection} 
-    onShare={shareProduct} 
+    {activeTab}
+    onScrollToSection={scrollToSection}
+    onShare={shareProduct}
   />
 
   <!-- 2. MAIN CONTENT -->
   <div class="content-body">
     <section id="overview">
-      <ProductMobileOverview 
-        {product} 
-        {timeLeft} 
+      <ProductMobileOverview
+        {product}
+        {timeLeft}
         stats={reviewStats}
-        {selectedVariant} 
+        {selectedVariant}
         {selectedQty}
         bind:isViralUnlocked
         {isScrolled}
         isHidden={showTabs}
         {scrollRatio}
         {hideRatio}
-        onOpenSelector={() => showVariantSelector = true} 
+        onOpenSelector={() => (showVariantSelector = true)}
       />
     </section>
 
     <div class="section-divider"></div>
 
     <section id="description">
-      <ProductMobileSpecs {product} />
+      <ProductMobileSpecs {product} onTriggerScan={triggerScan} />
     </section>
 
     <div class="section-divider"></div>
@@ -291,22 +352,43 @@
   />
 
   <!-- 4. VARIANT SELECTOR -->
-  <ProductMobileVariantSelector 
+  <ProductMobileVariantSelector
     {product}
     show={showVariantSelector}
-    onClose={() => showVariantSelector = false}
+    onClose={() => (showVariantSelector = false)}
     onConfirm={handleVariantConfirm}
   />
 
-  <!-- 5. VIRAL OVERLAY -->
-  {#if viralStep === 'awaiting_confirm'}
+  <!-- 5. VERIFICATION OVERLAYS -->
+  {#if isScanning}
+    <ScannerHUD
+      barcode={product.metadata?.barcode || product.sku}
+      oncomplete={handleScanComplete}
+    />
+  {/if}
+
+  <BottomSheet bind:active={showVerification} title="Verified">
+    <div class="py-2">
+      <MobileVerificationCenter {product} {verificationData} />
+    </div>
+  </BottomSheet>
+
+  <!-- 6. VIRAL OVERLAY -->
+  {#if viralStep === "awaiting_confirm"}
     <div class="global-viral-overlay">
       <div class="global-confirm-card">
         <span class="confirm-title">Đã chia sẻ thành công?</span>
-        <p class="confirm-sub">Xác nhận để mở khóa <span class="reward-label">{displayRewardLabel}</span></p>
+        <p class="confirm-sub">
+          Xác nhận để mở khóa <span class="reward-label"
+            >{displayRewardLabel}</span
+          >
+        </p>
         <div class="confirm-btns">
-          <button class="btn-cancel" onclick={() => viralStep = 'idle'}>Hủy</button>
-          <button class="btn-verify" onclick={verifyShare}>Xác nhận ngay</button>
+          <button class="btn-cancel" onclick={() => (viralStep = "idle")}
+            >Hủy</button
+          >
+          <button class="btn-verify" onclick={verifyShare}>Xác nhận ngay</button
+          >
         </div>
       </div>
     </div>
@@ -342,7 +424,7 @@
   .global-viral-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(8px);
     z-index: var(--z-overlay, 20000);
     display: flex;
@@ -362,18 +444,64 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(238, 77, 45, 0.2);
   }
 
-  .confirm-title { font-size: 18px; font-weight: 1000; color: #000; margin-bottom: 8px; }
-  .confirm-sub { font-size: 13px; color: #666; margin-bottom: 24px; }
-  .reward-label { display: inline-block !important; text-transform: lowercase !important; }
-  .reward-label::first-letter { text-transform: uppercase !important; }
-  .confirm-btns { display: flex; gap: 12px; width: 100%; }
-  
-  .btn-cancel { flex: 1; height: 44px; border-radius: 8px; background: #f5f5f5; color: #666; border: none; font-weight: 800; font-size: 13px; cursor: pointer; }
-  .btn-verify { flex: 1; height: 44px; border-radius: 8px; background: #ee4d2d; color: white; border: none; font-weight: 1000; font-size: 13px; box-shadow: 0 4px 12px rgba(238, 77, 45, 0.3); cursor: pointer; }
+  .confirm-title {
+    font-size: 18px;
+    font-weight: 1000;
+    color: #000;
+    margin-bottom: 8px;
+  }
+  .confirm-sub {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 24px;
+  }
+  .reward-label {
+    display: inline-block !important;
+    text-transform: lowercase !important;
+  }
+  .reward-label::first-letter {
+    text-transform: uppercase !important;
+  }
+  .confirm-btns {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+  }
 
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .btn-cancel {
+    flex: 1;
+    height: 44px;
+    border-radius: 8px;
+    background: #f5f5f5;
+    color: #666;
+    border: none;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn-verify {
+    flex: 1;
+    height: 44px;
+    border-radius: 8px;
+    background: #ee4d2d;
+    color: white;
+    border: none;
+    font-weight: 1000;
+    font-size: 13px;
+    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.3);
+    cursor: pointer;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 </style>
