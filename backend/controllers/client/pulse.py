@@ -2,7 +2,7 @@
 Client Support Pulse Controller (SSE)
 =====================================
 Streams AI response events to the specific client session.
-Route: GET /api/v1/client/support/pulse/{session_id}
+Route: GET /api/v1/client/support/pulse
 
 Architecture:
 - Real-time event delivery via native SSE.
@@ -29,18 +29,23 @@ class ClientPulseController(Controller):
     """
     path = "/api/v1/client/support/pulse"
 
-    @get("/{session_id:str}", guards=[])
-    async def stream_pulse(self, request: Request, session_id: str) -> Stream:
+    @get("", guards=[])
+    async def stream_pulse(self, request: Request) -> Stream:
         """
         Streams events for a specific support session.
         Uses InternalBus.subscribe_context() for lean, targeted listening.
         """
+        session_id = request.cookies.get("helen_session_id")
         
         async def event_generator() -> AsyncGenerator[bytes, None]:
             from backend.services.xohi_memory import xohi_memory
             
             # Initial keep-alive to establish connection
             yield b": link-success\n\n"
+            
+            if not session_id:
+                logger.error("[ClientPulse] Missing helen_session_id cookie.")
+                return
             
             if not xohi_memory._use_redis or not xohi_memory.client:
                 logger.error("[ClientPulse] Redis is offline. Cannot stream events.")

@@ -26,6 +26,8 @@ from backend.services.commerce.constants.support_config import support_cfg
 from backend.services.commerce.operatives.support_agent import support_agent
 from backend.utils.security import GeminiSecurity
 from backend.constants.infra import HELEN_FOLLOW_UP_TRIGGER
+from litestar.datastructures import Cookie
+import uuid
 
 logger = logging.getLogger("api-gateway")
 
@@ -72,11 +74,37 @@ class SupportController(Controller):
         except Exception as exc:
             logger.warning("[SupportController] Rate limit check failed (skipping): %s", exc)
 
+    @get("/init", guards=[])
+    async def init_session(self, request: Request) -> Response[dict]:
+        """
+        Creates a new HttpOnly Cookie for session tracking if one doesn't exist.
+        Bypasses Cloudflare cache to avoid Cache Poisoning.
+        """
+        session_id = request.cookies.get("helen_session_id")
+        if not session_id:
+            session_id = str(uuid.uuid4())
+            cookie = Cookie(
+                key="helen_session_id",
+                value=session_id,
+                httponly=True,
+                secure=True,
+                samesite="lax",
+                path="/"
+            )
+            # Important: Prevent caching
+            headers = {
+                "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            }
+            return Response({"ok": True}, cookies=[cookie], headers=headers)
+        return Response({"ok": True})
+
     @get("/history", guards=[])
     async def get_history(
         self,
+        request: Request,
         db_session: AsyncSession,
-        session_id: str,
         limit: int = 20,
         before_id: str | None = None,
     ) -> list[SupportHistoryItem]:
@@ -84,6 +112,10 @@ class SupportController(Controller):
         Retrieves paginated chat history for a session.
         Zalo-style: Loads recent segments first.
         """
+        session_id = request.cookies.get("helen_session_id")
+        if not session_id:
+            return []
+        
         try:
             stmt = (
                 select(SupportChatHistory)
@@ -169,7 +201,12 @@ class SupportController(Controller):
         - Synchronous Tier-1 Butler (Greetings/FAQ)
         - Asynchronous Tier-2/3 Brain (LLM/RAG via arq)
         """
-        session_id = data.session_id or "unknown"
+        session_id = request.cookies.get("helen_session_id")
+        if not session_id:
+             # Fallback if somehow /init failed
+             session_id = str(uuid.uuid4())
+             
+        data.session_id = session_id # Override with secure cookie session
         
         try:
             await self._check_rate_limit(request, session_id)

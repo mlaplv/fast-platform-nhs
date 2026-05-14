@@ -3,14 +3,6 @@ import { browser } from "$app/environment";
 import { getNotificationState } from "$lib/state/notification.svelte";
 import { authStore } from "$lib/state/authStore.svelte.ts";
 
-// Helper để render UUID native
-function randomId() {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-        return crypto.randomUUID();
-    }
-    return Math.random().toString(36).substring(2, 15);
-}
-
 export interface SupportProductInfo {
     id: string;
     name: string;
@@ -85,8 +77,6 @@ export interface SupportChatResponse {
     metadata?: Record<string, unknown>;
 }
 
-const STORAGE_KEY = "fp_helen_sid";
-
 class SupportAgentState {
     // Reactive State Variables (Svelte 5 Runes)
     isOpen = $state(false);
@@ -158,21 +148,7 @@ class SupportAgentState {
     };
 
     constructor() {
-        if (browser) {
-            const savedSid = localStorage.getItem(STORAGE_KEY);
-            if (savedSid) {
-                this._sessionId = savedSid;
-            } else {
-                this._sessionId = randomId();
-                localStorage.setItem(STORAGE_KEY, this._sessionId);
-            }
-        } else {
-            this._sessionId = randomId();
-        }
-    }
-
-    get sessionId() {
-        return this._sessionId;
+        // Elite V2.2: Removed localStorage. session_id is now managed by HttpOnly Cookie.
     }
 
     /**
@@ -223,6 +199,19 @@ class SupportAgentState {
      * Update current navigation path for context awareness
      */
     setPath(path: string) {
+        if (this.currentPath && this.currentPath !== path) {
+            // Elite V2.2: History Ghosting Fix - Context Segregation
+            const isProductToProduct = this.currentPath.length > 20 && path.length > 20;
+            if (isProductToProduct && this.messages.length > 0) {
+                this.messages = [...this.messages, {
+                    id: crypto.randomUUID(),
+                    role: "assistant",
+                    content: `*[Hệ thống: Khách vừa chuyển sang xem sản phẩm mới]*`,
+                    timestamp: new Date()
+                }];
+            }
+        }
+
         if (this.currentPath !== path) {
             this.currentPath = path;
             // Optionally trigger a subtle pulse on significant context changes (e.g. checkout)
@@ -268,7 +257,7 @@ class SupportAgentState {
             const self = this; // Capture context for getter
             this.messages = [
                 {
-                    id: randomId(),
+                    id: crypto.randomUUID(),
                     role: "assistant",
                     get content() { return self.welcomeMessage; },
                     timestamp: new Date()
@@ -284,6 +273,13 @@ class SupportAgentState {
      * Call this inside a root +layout.svelte or onMount to initialize config and load history
      */
     async init(envAgentName?: string) {
+        // Elite V2.2 (R03): Secure Cookie Initialization
+        try {
+            await apiClient.get("/api/v1/client/support/init", { withCredentials: true });
+        } catch(e) {
+            console.warn("[SupportAgent] Failed to init secure session cookie:", e);
+        }
+
         // Elite V2.2: Fetch global AI toggle state first
         await this.fetchStatus();
 
@@ -304,8 +300,7 @@ class SupportAgentState {
         this.isHistoryLoading = true;
         try {
             const firstMsgId = this.messages[0]?.id;
-            const params: { session_id: string; limit: number; before_id?: string } = {
-                session_id: this._sessionId,
+            const params: { limit: number; before_id?: string } = {
                 limit
             };
 
@@ -314,7 +309,7 @@ class SupportAgentState {
                 params.before_id = firstMsgId;
             }
 
-            const res = await apiClient.get<SupportHistoryItem[]>("/api/v1/client/support/history", { params });
+            const res = await apiClient.get<SupportHistoryItem[]>("/api/v1/client/support/history", { params, withCredentials: true });
 
             if (Array.isArray(res)) {
                 const history: SupportMessage[] = res.map((m: SupportHistoryItem) => ({
@@ -338,7 +333,7 @@ class SupportAgentState {
         } catch (error) {
             console.error("[SupportAgent] History load error:", error);
             getNotificationState().addPendingSignal({
-                id: randomId(),
+                id: crypto.randomUUID(),
                 message: "Không thể tải lịch sử trò chuyện. Vui lòng kiểm tra kết nối.",
                 severity: "warning",
                 isRead: false
@@ -386,10 +381,10 @@ class SupportAgentState {
      * Elite V2.2: Neural Sync - Unified Pulse Listener
      * Listens for AI responses and administrative updates (Revoke/Delete).
      */
-    private _connectPulse(sessionId: string) {
+    private _connectPulse() {
         if (!browser || this._pulseSource) return;
 
-        this._pulseSource = new EventSource(`/api/v1/client/support/pulse/${sessionId}`);
+        this._pulseSource = new EventSource(`/api/v1/client/support/pulse`, { withCredentials: true });
 
         // 🟢 1. AI Response Ready - Replaces 'typing' state with content
         this._pulseSource.addEventListener("SUPPORT_RESPONSE_READY", (event: MessageEvent) => {
@@ -499,7 +494,7 @@ class SupportAgentState {
         if (!text.trim() || this.isTyping) return;
 
         const userMsg: SupportMessage = {
-            id: randomId(),
+            id: crypto.randomUUID(),
             role: "user",
             content: text.trim(),
             timestamp: new Date()
@@ -511,7 +506,6 @@ class SupportAgentState {
         try {
             const res = await apiClient.post<SupportChatResponse>("/api/v1/client/support/chat", {
                 message: text.trim(),
-                session_id: this._sessionId,
                 product_slug: productSlug || null,
                 customer_name: customerName || "Khách ẩn danh",
                 customer_phone: customerPhone || null,
@@ -519,13 +513,13 @@ class SupportAgentState {
                 cart_items: cartItems || null,
                 selected_vouchers: selectedVouchers || null,
                 pricing_context: pricingContext || null
-            });
+            }, { withCredentials: true });
 
             if (res && typeof res.reply === "string") {
                 this.messages = [
                     ...this.messages,
                     {
-                        id: randomId(),
+                        id: crypto.randomUUID(),
                         role: "assistant",
                         content: res.reply || "Xin lỗi, mình tạm thời không phản hồi được ạ.",
                         intent: res.intent,
@@ -541,7 +535,7 @@ class SupportAgentState {
                 // Check for Async Protocol (Elite V2.2)
                 if (res.status === "PROCESSING") {
                     this.isTyping = true;
-                    this._connectPulse(this._sessionId);
+                    this._connectPulse();
                 } else {
                     this.isTyping = false;
                 }
@@ -558,7 +552,7 @@ class SupportAgentState {
             this.messages = [
                 ...this.messages,
                 {
-                    id: randomId(),
+                    id: crypto.randomUUID(),
                     role: "assistant",
                     content: userFriendlyMsg,
                     timestamp: new Date()
@@ -566,7 +560,7 @@ class SupportAgentState {
             ];
 
             getNotificationState().addPendingSignal({
-                id: randomId(),
+                id: crypto.randomUUID(),
                 message: "Lỗi kết nối Helen AI. Tin nhắn của bạn có thể chưa được lưu.",
                 severity: "error",
                 isRead: false

@@ -31,8 +31,7 @@ export class ChatState {
     reconnectAttempts = 0;
     maxReconnects = 3;
 
-    constructor(initialSessionId?: string) {
-        this.sessionId = initialSessionId || null;
+    constructor() {
     }
 
     async sendMessage(text: string, productSlug?: string) {
@@ -53,11 +52,8 @@ export class ChatState {
             // 2. Call the Triage API (Sync)
             const response = await apiClient.post<ChatResponse>('/api/v1/client/support/chat', {
                 message: text,
-                session_id: this.sessionId,
                 product_slug: productSlug
-            });
-
-            this.sessionId = response.session_id;
+            }, { withCredentials: true });
 
             // 3. Handle Immediate Response (Tier 1) vs Async (Tier 2/3)
             if (response.status === 'DONE') {
@@ -83,7 +79,7 @@ export class ChatState {
 
                 // 🚀 Tier 2/3: Elite Pulse Integration (V2.2 SSE Real-time)
                 // The actual update will come through the ClientPulseController.
-                this.connectPulse(this.sessionId!);
+                this.connectPulse();
             }
         } catch (error) {
             console.error('Chat error:', error);
@@ -99,13 +95,13 @@ export class ChatState {
     }
 
     // 🚀 Elite Pulse Integration: SSE Handler (Viral 2026 Proto)
-    connectPulse(sessionId: string) {
+    connectPulse() {
         if (this.pulseEventSource) {
             this.pulseEventSource.close();
         }
 
-        const url = `/api/v1/client/support/pulse/${sessionId}`;
-        this.pulseEventSource = new EventSource(url);
+        const url = `/api/v1/client/support/pulse`;
+        this.pulseEventSource = new EventSource(url, { withCredentials: true });
 
         this.pulseEventSource.onopen = () => {
             this.reconnectAttempts = 0; // Reset on success
@@ -132,7 +128,7 @@ export class ChatState {
             // 🚀 Auto-Reconnect Logic (R00/V2.2)
             if (this.reconnectAttempts < this.maxReconnects) {
                 this.reconnectAttempts++;
-                setTimeout(() => this.connectPulse(sessionId), 3000);
+                setTimeout(() => this.connectPulse(), 3000);
             } else {
                 console.warn('[Pulse] Max reconnect attempts reached.');
                 this.isTyping = false; // Stop spinner if we can't connect
@@ -161,8 +157,8 @@ export class ChatState {
 
 const CHAT_KEY = Symbol('CHAT_STATE');
 
-export function setChatContext(initialSessionId?: string) {
-    const state = new ChatState(initialSessionId);
+export function setChatContext() {
+    const state = new ChatState();
     setContext(CHAT_KEY, state);
     return state;
 }
