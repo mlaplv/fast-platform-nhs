@@ -8,9 +8,6 @@
   import { onMount } from 'svelte';
   import { slide, fade } from 'svelte/transition';
   import vnDivisions from '$lib/data/vn_divisions.json';
-  import Menu from "@lucide/svelte/icons/menu";
-  import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
-  import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
   import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';
   import { loyaltyStore } from '$lib/state/commerce/loyalty.svelte';
   import Wallet from "@lucide/svelte/icons/wallet";
@@ -41,7 +38,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
 
   const cartStore = getCartStore();
   const clientUi = getClientUi();
-  let isMenuOpen = $state(false);
+
 
   // Immersive layout management: Hide global header/footer on mobile
   $effect.pre(() => {

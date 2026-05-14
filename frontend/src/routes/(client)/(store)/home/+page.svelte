@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';
   import "$lib/components/storefront/home/home.css";

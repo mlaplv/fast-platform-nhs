@@ -39,9 +39,7 @@
     };
   });
 
-  onMount(() => {
-    return ui.initObservers();
-  });
+
 
   // Elite V6.3: Neural Product Sync (Reactive Name Only)
   $effect(() => {

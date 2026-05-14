@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import { trimProductName, formatCurrency } from '$lib/utils/format';
@@ -16,8 +16,8 @@
 
   const searchStore = getSearchStore();
   const contextPlaceholder = $derived(
-    $page.data.product?.name 
-      ? `Tìm "${$page.data.product.name}"...` 
+    page.data.product?.name 
+      ? `Tìm "${page.data.product.name}"...` 
       : searchStore.searchPlaceholder
   );
 

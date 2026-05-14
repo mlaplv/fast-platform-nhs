@@ -32,8 +32,8 @@
   // Modal State - Centralized
   let showSupportModal: boolean = $state(false);
 
-  import { page } from '$app/stores';
-  const isHome = $derived($page.url.pathname === '/' || $page.url.pathname === '/home');
+  import { page } from '$app/state';
+  const isHome = $derived(page.url.pathname === '/' || page.url.pathname === '/home');
 
   function handleOpenSupport(e: MouseEvent): void {
     e.preventDefault();

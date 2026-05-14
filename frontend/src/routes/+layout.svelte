@@ -5,7 +5,7 @@
   import QuickLoginModal from "$lib/components/storefront/auth/QuickLoginModal.svelte";
   import { setNanobotContext } from "$lib/state/nanobot.svelte";
   import { setCartStore } from "$lib/state/commerce/cart.svelte";
-  import { navigating, page } from "$app/stores";
+  import { navigating, page } from "$app/state";
   import { onMount, onDestroy, type Snippet } from "svelte";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import ToastProvider from "$lib/components/storefront/ui/ToastProvider.svelte";
@@ -25,7 +25,7 @@
 
   // Elite V6.3: Neural Path Synchronization
   $effect(() => {
-    const path = $page.url.pathname;
+    const path = page.url.pathname;
     untrack(() => {
         supportAgent.setPath(path);
         
@@ -115,7 +115,7 @@
 </svelte:head>
 
 <!-- Premium Navigation Progress Bar (Liquid Glass) -->
-{#if $navigating}
+{#if navigating}
     <div class="fixed top-0 left-0 right-0 h-[2px] z-[var(--z-admin-action-bar-progress)] pointer-events-none">
         <div class="h-full bg-gradient-to-r from-transparent via-[#00FFFF] to-transparent shadow-[0_0_10px_#00FFFF] animate-nav-progress"></div>
     </div>
@@ -138,10 +138,10 @@
 
     <SupportAgentFAB isMobile={ui.isMobile} />
     {#if ui.isMobile}
-      <SupportChatMobile productSlug={$page.params.slug} />
+      <SupportChatMobile productSlug={page.params.slug} />
       <SmartSearch variant="mobile-overlay" />
     {:else}
-      <SupportChatDesktop productSlug={$page.params.slug} />
+      <SupportChatDesktop productSlug={page.params.slug} />
     {/if}
   {/if}
 </div>

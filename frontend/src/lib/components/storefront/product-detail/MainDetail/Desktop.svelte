@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import Diamond from "@lucide/svelte/icons/diamond";
+
   
   // Types
   import type { Product, ProductVariant, ReviewStats } from '$lib/types';

@@ -21,7 +21,7 @@
   import BottomSheet from "$lib/components/mobile/BottomSheet.svelte";
   import ScannerHUD from "../shared/ScannerHUD.svelte";
   import MobileVerificationCenter from "../shared/MobileVerificationCenter.svelte";
-  import X from "@lucide/svelte/icons/x";
+
 
   interface Props {
     product: Product;

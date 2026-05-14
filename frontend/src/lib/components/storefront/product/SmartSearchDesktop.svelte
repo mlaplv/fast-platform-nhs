@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick, untrack } from 'svelte';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import { trimProductName, formatCurrency } from '$lib/utils/format';
@@ -8,10 +8,10 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
   const searchStore = getSearchStore();
-  const isNewsContext = $derived($page.data.type === 'news' || $page.url.pathname.includes('/tin-tuc'));
+  const isNewsContext = $derived(page.data.type === 'news' || page.url.pathname.includes('/tin-tuc'));
   const contextPlaceholder = $derived(
-    $page.data.product?.name 
-      ? `Tìm "${$page.data.product.name}"...` 
+    page.data.product?.name 
+      ? `Tìm "${page.data.product.name}"...` 
       : searchStore.searchPlaceholder
   );
 

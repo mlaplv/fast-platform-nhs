@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import HeaderDesktop from "$lib/components/storefront/layout/HeaderDesktop.svelte";
   import FooterDesktop from "$lib/components/storefront/layout/FooterDesktop.svelte";
@@ -50,7 +50,7 @@
     }
   });
   
-  const isAccountPage = $derived($page.url.pathname.startsWith('/user/'));
+  const isAccountPage = $derived(page.url.pathname.startsWith('/user/'));
 
   // Global header: chỉ hiện trên DESKTOP (Hydrated + Not Hidden)
   const showGlobalHeader = $derived(
@@ -58,8 +58,8 @@
   );
 
   const isFunnelPage = $derived(
-    $page.data.product?.metadata?.landing_type && 
-    $page.data.product.metadata.landing_type !== 'standard'
+    page.data.product?.metadata?.landing_type && 
+    page.data.product.metadata.landing_type !== 'standard'
   );
 
   // Global footer: chỉ hiện trên DESKTOP + không phải funnel

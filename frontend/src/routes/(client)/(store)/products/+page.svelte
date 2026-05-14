@@ -27,9 +27,7 @@
     }
   });
 
-  onMount(() => {
-    return ui.initObservers();
-  });
+
 
   // Elite V2.2: Search context - build proper props for category-oriented components
   const searchLabel = $derived(data.searchQuery ? `Kết quả tìm kiếm: "${data.searchQuery}"` : 'Tất cả sản phẩm');

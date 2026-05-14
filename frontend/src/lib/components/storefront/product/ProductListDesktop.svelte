@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { slugify } from '$lib/utils/format';
+
   import ProductGrid from './ProductGrid.svelte';
   import CategoryBanner from './CategoryBanner.svelte';
   import type { Product } from '$lib/types';
@@ -87,7 +87,7 @@
     if (allProducts.length >= serverTotal || !categorySlug) return;
     isLoading = true;
     try {
-      const res = await fetch(`/api/client/products?category_slug=${categorySlug}&limit=48&offset=${currentOffset}&status=ACTIVE`);
+      const res = await fetch(`/api/v1/client/products?category_slug=${categorySlug}&limit=48&offset=${currentOffset}&status=ACTIVE`);
       if (res.ok) {
         const data = await res.json();
         const newItems = (data.data || []) as Product[];

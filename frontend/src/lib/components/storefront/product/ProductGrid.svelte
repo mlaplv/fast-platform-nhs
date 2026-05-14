@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
   import { trimProductName, formatCurrency } from '$lib/utils/format';
   import { fly } from 'svelte/transition';
   import type { Product } from '$lib/types';

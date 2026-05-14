@@ -171,7 +171,7 @@
       step = 'sharing';
       
       try {
-        const res = await fetch('/_viral/share-intent', {
+        const res = await fetch('/api/v1/client/viral/share-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ product_id: product.id }),
@@ -275,7 +275,7 @@
 
       step = 'verifying';
       try {
-        const res = await fetch('/_viral/verify-share', {
+        const res = await fetch('/api/v1/client/viral/verify-share', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 

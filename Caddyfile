@@ -33,6 +33,10 @@
         import service_proxy
     }
 
+    handle /sitemap.xml {
+        import service_proxy
+    }
+
     handle /ws/* {
         import service_proxy
     }

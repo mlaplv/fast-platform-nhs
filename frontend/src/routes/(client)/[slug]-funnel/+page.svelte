@@ -1,7 +1,7 @@
 <script lang="ts">
   import '../client.css';
   import { onMount } from 'svelte';
-  import { setShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { setShopStore } from '$lib/state/commerce/shop.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import HeroBanner from '$lib/components/client/HeroBanner.svelte';
   import LiquidHeader from '$lib/components/client/LiquidHeader.svelte';

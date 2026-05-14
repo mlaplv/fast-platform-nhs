@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ComponentType, SvelteComponent } from 'svelte';
-  import { onMount, tick } from 'svelte';
+  import { tick } from 'svelte';
   import { scale, fly } from 'svelte/transition';
   import Send from "@lucide/svelte/icons/send";
   import X from "@lucide/svelte/icons/x";
@@ -11,10 +11,10 @@
   import Minimize2 from "@lucide/svelte/icons/minimize-2";
   import Beaker from "@lucide/svelte/icons/beaker";
   import Lock from "@lucide/svelte/icons/lock";
-  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
-  import { authStore } from '$lib/state/authStore.svelte.ts';
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
+  import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { checkoutState } from '$lib/state/commerce/checkout.svelte';
   import HelenIcon from './HelenIcon.svelte';

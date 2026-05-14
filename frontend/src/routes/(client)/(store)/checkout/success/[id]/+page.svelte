@@ -2,10 +2,9 @@
   import { page } from '$app/state';
   import { fade, fly, scale, slide } from 'svelte/transition';
   import Gift from "@lucide/svelte/icons/gift";
-  import MessageSquare from "@lucide/svelte/icons/message-square";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
-  import { onMount, tick } from 'svelte';
+  import { onMount } from 'svelte';
   import { apiClient } from '$lib/utils/apiClient';
   import { formatCurrency, formatDate } from '$lib/utils/format';
   import SuccessMobile from '$lib/components/mobile/sections/SuccessMobile.svelte';

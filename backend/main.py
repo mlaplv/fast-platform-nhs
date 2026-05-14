@@ -56,6 +56,7 @@ from backend.controllers.client.news import PublicNewsController
 from backend.controllers.client.user import ClientUserController
 from backend.controllers.client.settings import ClientSettingsController
 from backend.controllers.client.notifications import ClientNotificationController
+from backend.controllers.client.seo import PublicSeoController
 from backend.controllers.admin_support import AdminSupportController
 from backend.controllers.admin_support_inbox import AdminSupportInboxController
 from backend.controllers.review import AdminReviewController
@@ -133,6 +134,7 @@ app = Litestar(
         BarcodeController,
         AdsProtectionController,
         ComplianceController,
+        PublicSeoController,
     ],
     middleware=[StallDetectorMiddleware, BodyLimitMiddleware, rate_limit_config.middleware, AuthMiddleware, DomainGuardMiddleware, AuditMiddleware],
     cors_config=cors_config,

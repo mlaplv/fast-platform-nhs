@@ -149,6 +149,9 @@ export function createClientUiState(): ClientUiState {
         initObservers() {
             if (typeof window === 'undefined') return () => {};
             
+            // Elite V2.2: Redundancy Guard - prevent multiple resize listeners
+            if (globalState.isDetermined) return () => {};
+
             // Elite V2.2: Immediate determination
             globalState.screenWidth = window.innerWidth;
             globalState.screenHeight = window.innerHeight;
