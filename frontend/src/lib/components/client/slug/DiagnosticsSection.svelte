@@ -9,7 +9,7 @@
 
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
 
-  let { product: propProduct = $bindable() } = $props<{ product?: Product }>();
+  let { product: propProduct } = $props<{ product?: Product }>();
   const shopStore = getShopStore();
   
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));

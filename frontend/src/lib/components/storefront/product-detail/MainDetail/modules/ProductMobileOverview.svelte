@@ -175,7 +175,7 @@
      * Elite V2.2: Intelligent Filtering for Mobile
      */
     const vouchersList = list.filter((v: { id: string; label?: string }) => {
-      const promoVId = product.metadata?.viral_suite?.share_promotion?.voucher_id || (product.metadata as any)?.share_promotion?.voucher_id;
+      const promoVId = product.metadata?.share_promotion?.voucher_id;
       const isViral = v.id.includes('VIRAL') || 
                       (v.label || '').toUpperCase().includes('VIRAL') || 
                       (v.label || '').toUpperCase().includes('LAN TỎA') ||
@@ -430,7 +430,7 @@
         <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide no-scrollbar">
           {#if variations.length === 1}
             {#each variations[0].options as option, oIdx}
-               {@const isSelected = (selectedVariant?.tierIndex?.[0] ?? (selectedVariant as any)?.tier_index?.[0]) === oIdx}
+               {@const isSelected = (selectedVariant?.tierIndex?.[0] ?? selectedVariant?.tier_index?.[0]) === oIdx}
                <button 
                  onclick={() => onOpenSelector()} 
                  class="relative shrink-0 px-5 py-2.5 border-2 text-[12px] font-black tracking-tight transition-all

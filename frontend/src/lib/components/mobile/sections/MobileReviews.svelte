@@ -21,7 +21,7 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
 
   interface Props {
-    product: any;
+    product: Product;
     initialReviews?: Review[];
   }
   let { product: propProduct, initialReviews = [] }: Props = $props();
@@ -92,7 +92,7 @@
     };
   });
 
-  const locations = (vnDivisions as any[]).slice(1).map(d => 
+  const locations = (vnDivisions as Array<{ name: string }>).slice(1).map(d =>
     d.name.replace('Thành phố ', 'TP. ').replace('Tỉnh ', '').toUpperCase()
   );
 

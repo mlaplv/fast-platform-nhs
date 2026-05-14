@@ -10,12 +10,12 @@
   import './MobileHero.css';
   import { resolveMediaUrl } from '$lib/state/utils';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import type { ProductVariant } from '$lib/types';
+  import type { Product, ProductVariant } from '$lib/types';
   import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
   import MobileVariantTabs from '../MobileVariantTabs.svelte';
   import { formatCurrency } from '$lib/utils/format';
 
-  let { product: propProduct } = $props();
+  let { product: propProduct } = $props<{ product: Product | null }>();
   const shopStore = getShopStore();
   const currentVariant = $derived(shopStore.variant);
   
@@ -118,7 +118,7 @@
   const iconMap: Record<string, typeof Zap> = { blue: Zap, indigo: ShieldCheck, emerald: Droplets };
   const fallbackDesc = 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.';
 
-  function getProcessedDescription(vItem: any) {
+  function getProcessedDescription(vItem: ProductVariant | undefined) {
     let desc = vItem?.attributes?.short_description || product?.shortDescription || fallbackDesc;
     const keyword = "Beppin Body Virgin White Serum";
     

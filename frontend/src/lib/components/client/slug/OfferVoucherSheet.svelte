@@ -8,7 +8,7 @@
   import ArrowUpDown from "@lucide/svelte/icons/arrow-up-down";
   import ArrowDownNarrowWide from "@lucide/svelte/icons/arrow-down-narrow-wide";
   import ArrowUpWideNarrow from "@lucide/svelte/icons/arrow-up-wide-narrow";
-  import type { ProductVariant } from '$lib/types';
+  import type { ProductVariant, Voucher } from '$lib/types';
 
   let { 
     variant, 
@@ -23,12 +23,12 @@
   } = $props<{
     variant: ProductVariant;
     idx: number;
-    productVouchers: any[];
+    productVouchers: Voucher[];
     voucherSortOrder: 'none' | 'asc' | 'desc';
     activeOfferTab: Record<number, 'vouchers' | 'gifts'>;
     onClose: () => void;
     onToggleSort: () => void;
-    onVoucherClick: (v: any) => void;
+    onVoucherClick: (v: Voucher) => void;
     onSetTab: (idx: number, tab: 'vouchers' | 'gifts') => void;
   }>();
 

@@ -87,7 +87,7 @@
     fetchReviews();
   });
 
-  const averageRating = $derived(stats?.average_rating || (product as any).metadata?.rating || '5.0');
+  const averageRating = $derived(stats?.average_rating || ('metadata' in product ? (product.metadata as import('$lib/types').ProductMetadata)?.rating : undefined) || '5.0');
   const reviewCount = $derived(stats?.total_count || 0);
 
   function isVideo(url: string) {
@@ -95,10 +95,10 @@
   }
 
   // Elite 2026: AI Customer Sentiment Summary
-  const meta = $derived((product as any)?.metadata || {});
-  const aiSummary = $derived(meta.customer_sentiment_summary);
-  const positiveNotes = $derived(meta.positive_notes || []);
-  const negativeNotes = $derived(meta.negative_notes || []);
+  const meta = $derived('metadata' in product ? (product.metadata as import('$lib/types').ProductMetadata) : undefined);
+  const aiSummary = $derived((meta as Record<string, unknown> | undefined)?.customer_sentiment_summary as string | undefined);
+  const positiveNotes = $derived((meta as Record<string, unknown> | undefined)?.positive_notes as string[] || []);
+  const negativeNotes = $derived((meta as Record<string, unknown> | undefined)?.negative_notes as string[] || []);
   const hasAiSentiment = $derived(aiSummary || positiveNotes.length > 0 || negativeNotes.length > 0);
 </script>
 

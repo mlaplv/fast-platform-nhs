@@ -3,7 +3,7 @@
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
-  import { fade, scale } from 'svelte/transition';
+  import { scale } from 'svelte/transition';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import HelpCircle from "@lucide/svelte/icons/help-circle";

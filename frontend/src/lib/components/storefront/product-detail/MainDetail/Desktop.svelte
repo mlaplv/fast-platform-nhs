@@ -37,22 +37,12 @@
   }
   let { product, relatedProducts = [], reviewStats = null }: Props = $props();
 
-  // Elite Performance Fix P1.2: Khởi tạo từ server-prefetched data — KHÔNG fetch lại trong onMount
+  // Elite Performance Sync (V2.2)
   let stats = $state<ReviewStats | null>(reviewStats);
-  let likeCount = $state(0);
+  let likeCount = $derived(Number(product.metadata?.share_promotion?.likes_count || product.metadata?.['likes'] || 0));
 
-  // Sync like state with product (Elite V2.2)
   $effect(() => {
-    if (product) {
-      likeCount = Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0);
-    }
-  });
-
-  // Sync stats if server data changes (e.g. navigation between products)
-  $effect(() => {
-    if (reviewStats !== undefined) {
-      stats = reviewStats;
-    }
+    if (reviewStats !== undefined) stats = reviewStats;
   });
 
   const variations = $derived(product.tier_variations || product.tierVariations || []);
@@ -228,7 +218,7 @@
      * Nếu ĐÃ mở khóa (isViralUnlocked), mã sẽ được hiển thị như một phần của hệ thống.
      */
     const vList = vouchers.filter((v: { id: string; label?: string }) => {
-      const promoVId = product.metadata?.viral_suite?.share_promotion?.voucher_id || (product.metadata as any)?.share_promotion?.voucher_id;
+      const promoVId = product.metadata?.share_promotion?.voucher_id;
       const isViral = v.id.includes('VIRAL') || 
                       (v.label || '').toUpperCase().includes('VIRAL') || 
                       (v.label || '').toUpperCase().includes('LAN TỎA') ||
@@ -246,7 +236,7 @@
           if (!exists) {
             vList.push({
               id: data.code,
-              label: data.label || 'VOUCHER LAN TỎA',
+              label: data.label || 'Voucher lan tỏa',
               sub: 'Đã mở khóa từ chiến dịch',
               type: 'discount'
             });
@@ -298,9 +288,9 @@
   
   const productInfo = $derived({
     barcode: (product.sku as string) || 'N/A',
-    brand: (product.metadata?.brand as string) || (product.attributes?.brand as string) || (product.attributes?.['Thương hiệu'] as string) || '',
-    origin: (product.metadata?.origin as string) || (product.attributes?.origin as string) || (product.attributes?.['Xuất xứ'] as string) || '',
-    weight: (product.metadata?.weight as string) || (product.attributes?.weight as string) || (product.attributes?.['Trọng lượng'] as string) || '',
+    brand: (product.metadata?.brand as string) || (product.attributes?.['brand'] as string) || (product.attributes?.['Thương hiệu'] as string) || '',
+    origin: (product.metadata?.origin as string) || (product.attributes?.['origin'] as string) || (product.attributes?.['Xuất xứ'] as string) || '',
+    weight: (product.metadata?.weight as string) || (product.attributes?.['weight'] as string) || (product.attributes?.['Trọng lượng'] as string) || '',
     originalPrice: pDiscountPrice ? (product.price || product.base_price || 0) : (product.price || 0) * 1.55,
     salePrice: (pDiscountPrice as number) || (product.price as number) || 0
   });
@@ -488,7 +478,7 @@
     margin-top: 2rem !important;
     margin-bottom: 1rem !important;
     font-family: inherit !important;
-    text-transform: uppercase;
+    text-transform: none;
     letter-spacing: -0.025em;
   }
 

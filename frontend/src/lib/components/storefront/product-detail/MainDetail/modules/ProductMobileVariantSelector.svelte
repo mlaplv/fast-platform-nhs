@@ -43,7 +43,7 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
   const currentVariant = $derived.by(() => {
     if (selectedIndices.some(idx => idx === -1)) return undefined;
     return pVariants.find(v => {
-      const vIndices = v.tierIndex || (v as any).tier_index;
+      const vIndices = v.tierIndex || v.tier_index;
       if (!vIndices) return false;
       return vIndices.length === selectedIndices.length && 
              vIndices.every((val: number, idx: number) => val === selectedIndices[idx]);
@@ -115,7 +115,7 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
     
     // Sync quantity with combo_qty (Elite V2.2)
     const nextVariant = pVariants.find(v => {
-      const vIndices = v.tierIndex || (v as any).tier_index;
+      const vIndices = v.tierIndex || v.tier_index;
       if (!vIndices) return false;
       return vIndices.length === selectedIndices.length && 
              vIndices.every((val: number, i: number) => val === selectedIndices[i]);
@@ -134,7 +134,7 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
       
       // SYNC BACK: Auto-select variant matching this quantity (Elite V2.2)
       const matchingVariant = pVariants.find(v => Number(v.attributes?.combo_qty || v.attributes?.comboQty || 0) === quantity);
-      const mIndices = matchingVariant?.tierIndex || (matchingVariant as any)?.tier_index;
+      const mIndices = matchingVariant?.tierIndex || matchingVariant?.tier_index;
       if (mIndices) {
         selectedIndices = [...mIndices];
       }

@@ -49,7 +49,7 @@
   // Elite V2.2: Live FOMO Pulse Logic
   let liveViewers = $state(Math.floor(Math.random() * (45 - 12 + 1)) + 12);
   // Elite V2.2: Memory Leak Protection
-  const timers = new Set<any>();
+  const timers = new Set<ReturnType<typeof setTimeout>>();
   function clearTimers() {
     timers.forEach(t => {
       clearTimeout(t);

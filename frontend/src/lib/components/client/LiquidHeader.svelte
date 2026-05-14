@@ -4,7 +4,6 @@
   import Tag from "@lucide/svelte/icons/tag";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { scale } from 'svelte/transition';
   import { spring } from 'svelte/motion';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';

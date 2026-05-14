@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import type { Product } from '$lib/types';
   import MobileActionStack from './MobileActionStack.svelte';
 
   // Dedicated Mobile Sections
@@ -11,10 +11,7 @@
   import ScannerHUD from '../storefront/product-detail/shared/ScannerHUD.svelte';
   import MobileVerificationCenter from '../storefront/product-detail/shared/MobileVerificationCenter.svelte';
   import BottomSheet from './BottomSheet.svelte';
-  import { fade } from 'svelte/transition';
 
-  // Support Agent
-  import SupportChatMobile from '$lib/components/client/support/SupportChatMobile.svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
 
   import './mobile.css';
@@ -32,26 +29,26 @@
   let loadJIT = $state(false);
   let isScanning = $state(false);
   let showVerification = $state(false);
-  let verificationData = $state(null);
+  let verificationData: Record<string, unknown> | null = $state(null);
 
   function triggerScan() {
     isScanning = true;
     showVerification = false;
   }
 
-  function handleScanComplete(event: any) {
+  function handleScanComplete(event: { verificationData: Record<string, unknown> }) {
     isScanning = false;
     verificationData = event.verificationData;
     showVerification = true;
   }
 
   interface Props {
-    product: any;
-    reviewStats?: any;
-    reviews?: any[];
-    relatedProducts?: any[];
+    product: Product;
+    reviewStats?: Record<string, unknown>;
+    reviews?: Record<string, unknown>[];
+    relatedProducts?: Product[];
   }
-  let { product: propProduct, reviewStats, reviews = [], relatedProducts = [] }: Props = $props();
+  let { reviewStats, reviews = [], relatedProducts = [] }: Props = $props();
 
   // Check both `video_url` (admin field) and `hero_video_url` (desktop fallback) for compatibility
   const hasVideo = $derived(
@@ -65,7 +62,7 @@
 
   const isTikTokActive = $derived(activeSectionIndex === 0 && isTikTokVideo);
 
-  // 🚀 ELITE MOBILE SCROLL COORDINATOR (O(1))
+  // 🚀 ELITE MOBILE SCROLL COORDINATOR (O(1) – Non-reactive DOM mutation)
   let isScrollingDown = $state(false);
   let lastScrollTop = 0;
   let scrollTicking = false;
@@ -76,11 +73,19 @@
     
     requestAnimationFrame(() => {
       const container = e.target as HTMLElement;
-      if (!container) return;
+      if (!container) {
+        scrollTicking = false;
+        return;
+      }
       
       const currentScroll = container.scrollTop;
-      if (Math.abs(currentScroll - lastScrollTop) >= 10) {
-        isScrollingDown = currentScroll > lastScrollTop;
+      const delta = currentScroll - lastScrollTop;
+      if (Math.abs(delta) >= 10) {
+        const goingDown = delta > 0;
+        // Only trigger Svelte reactivity when direction actually changes
+        if (goingDown !== isScrollingDown) {
+          isScrollingDown = goingDown;
+        }
         lastScrollTop = currentScroll;
       }
       scrollTicking = false;
@@ -177,7 +182,7 @@
   </section>
 
   <!-- SECTION 4: NATIVE REVIEWS -->
-  <section id="reviews" class="snap-snap-section" data-section-idx={hasVideo ? 4 : 3}>
+  <section id="reviews" class="mobile-snap-section" data-section-idx={hasVideo ? 4 : 3}>
     {#if loadJIT}
       {#await import('./sections/MobileReviews.svelte') then { default: MobileReviews }}
         <MobileReviews {product} initialReviews={reviews} />

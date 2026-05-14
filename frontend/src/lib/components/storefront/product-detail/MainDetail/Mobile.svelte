@@ -3,12 +3,11 @@
   import { goto } from "$app/navigation";
 
   // Types
-  import type { Product, ProductVariant, ReviewStats } from "$lib/types";
+  import type { Product, ProductVariant, ReviewStats, BarcodeVerificationResponse } from "$lib/types";
 
   // Stores
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
-
   import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
 
   // Components
@@ -20,6 +19,8 @@
   import ProductMobileVariantSelector from "./modules/ProductMobileVariantSelector.svelte";
   import MobileBottomNav from "$lib/components/storefront/home/MobileBottomNav.svelte";
   import BottomSheet from "$lib/components/mobile/BottomSheet.svelte";
+  import ScannerHUD from "../shared/ScannerHUD.svelte";
+  import MobileVerificationCenter from "../shared/MobileVerificationCenter.svelte";
   import X from "@lucide/svelte/icons/x";
 
   interface Props {
@@ -65,7 +66,7 @@
     hideRatio = Math.max(0, Math.min(1, (st - 150) / 200));
 
     const sections = ["overview", "description", "reviews", "recommendations"];
-    for (const id of sections.reverse()) {
+    for (const id of [...sections].reverse()) {
       const el = document.getElementById(id);
       if (el && el.offsetTop <= st + 100) {
         activeTab = id;
@@ -138,20 +139,16 @@
   });
 
   // --- VERIFICATION SYSTEM (Elite V2.2) ---
-  import ScannerHUD from "../shared/ScannerHUD.svelte";
-  import MobileVerificationCenter from "../shared/MobileVerificationCenter.svelte";
-  import { fade, scale } from "svelte/transition";
-
   let isScanning = $state(false);
   let showVerification = $state(false);
-  let verificationData = $state(null);
+  let verificationData = $state<BarcodeVerificationResponse | undefined>(undefined);
 
   function triggerScan() {
     isScanning = true;
     showVerification = false;
   }
 
-  function handleScanComplete(event: any) {
+  function handleScanComplete(event: { barcode: string; verificationData?: BarcodeVerificationResponse }) {
     isScanning = false;
     verificationData = event.verificationData;
     showVerification = true;
@@ -174,17 +171,15 @@
   >("idle");
   let isViralUnlocked = $state(false);
   let displayRewardLabel = $derived(
-    product.metadata?.viral_suite?.share_promotion?.reward_label ||
-      (product.metadata as any)?.reward_label ||
+    product.metadata?.share_promotion?.reward_label ||
+      product.metadata?.share_reward_label ||
       "Phần quà bí mật",
   );
 
   async function shareProduct() {
-    const viralSuite =
-      product.metadata?.viral_suite ||
-      (product.metadata as any)?.share_promotion;
+    const sharePromotion = product.metadata?.share_promotion;
     const isViralEnabled =
-      viralSuite?.enabled === true || !!viralSuite?.voucher_id;
+      sharePromotion?.enabled === true || !!sharePromotion?.voucher_id;
 
     if (isViralEnabled && !isViralUnlocked) {
       viralStep = "sharing";
@@ -217,8 +212,9 @@
           clientUi.showToast("Đã sao chép liên kết!", "success");
         }
         viralStep = "awaiting_confirm";
-      } catch (e: any) {
-        clientUi.showToast(e.message || "Lỗi khởi tạo chia sẻ", "error");
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Lỗi khởi tạo chia sẻ";
+        clientUi.showToast(msg, "error");
         viralStep = "idle";
       }
       return;
@@ -240,11 +236,8 @@
     }
 
     const { token, fingerprint } = JSON.parse(savedIntent);
-    const viralSuite =
-      product.metadata?.viral_suite ||
-      (product.metadata as any)?.share_promotion;
-    const voucherId =
-      viralSuite?.share_promotion?.voucher_id || viralSuite?.voucher_id;
+    const sharePromotion = product.metadata?.share_promotion;
+    const voucherId = sharePromotion?.voucher_id;
 
     viralStep = "verifying";
     try {
@@ -272,8 +265,9 @@
         }),
       );
       clientUi.showToast("🎉 Đã mở khóa quà tặng!", "success");
-    } catch (e: any) {
-      clientUi.showToast(e.message || "Xác minh thất bại", "error");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Xác minh thất bại";
+      clientUi.showToast(msg, "error");
       viralStep = "idle";
     }
   }

@@ -117,7 +117,7 @@
         <div class="grid grid-cols-1 gap-6 w-full">
              {#if product.metadata?.featured_ingredients && product.metadata.featured_ingredients.length > 0}
              <div class="flex flex-col gap-3 py-2">
-                <h2 class="flex items-center gap-2 text-[10px] font-black text-gray-400 tracking-widest uppercase">
+                <h2 class="flex items-center gap-2 text-[10px] font-black text-gray-400 tracking-widest">
                   <Sparkles size={12} class="text-amber-500" /> THÀNH PHẦN {product.name} (FEATURED)
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -150,7 +150,7 @@
                   </p>
                   <div class="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
                     <Info size={10} class="text-blue-500" />
-                    <span class="text-[9px] text-gray-400 font-bold italic">Bảng thành phần công bố(chi tiết có trên hộp / tem nhãn sản phẩm chính hãng)</span>
+                    <span class="text-[9px] text-gray-400 font-bold italic">Bảng thành phần công bố (chi tiết có trên hộp / tem nhãn sản phẩm chính hãng)</span>
                   </div>
                 </div>
              </div>

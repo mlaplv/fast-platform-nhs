@@ -11,7 +11,7 @@
 
   const shopStore = getShopStore();
   const ui = getClientUi();
-  let { product: propProduct } = $props();
+  let { product: propProduct } = $props<{ product: import('$lib/types').Product | null }>();
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
   const metadata = $derived(product?.metadata || {});
   

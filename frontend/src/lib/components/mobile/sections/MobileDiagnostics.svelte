@@ -166,7 +166,7 @@
   let activeSlide = $state(0);
 
   // Memory cleanup for async timers
-  const timers = new Set<any>();
+  const timers = new Set<ReturnType<typeof setTimeout>>();
   function clearTimers() {
     timers.forEach(t => {
       clearTimeout(t);
@@ -227,7 +227,7 @@
   }
 
   // Elite V2.2: Icon Resolver for Quiz Options
-  const iconMap: Record<string, any> = {
+  const iconMap: Record<string, typeof Activity> = {
     'Circle': Circle,
     'Zap': Zap,
     'Sparkles': Sparkles,
