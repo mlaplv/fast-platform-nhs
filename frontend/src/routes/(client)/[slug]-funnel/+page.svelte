@@ -324,7 +324,7 @@
 
   {#if product?.id}
     <LiquidHeader {product} {themeMode} {applyTheme} scrollToQuiz={scrollToQuiz} {activeId} />
-    <HeroBanner {scrollToQuiz} />
+    <HeroBanner {scrollToQuiz} {triggerScan} />
 
     <!-- SECTIONS WITH INDEPENDENT JIT LOADING (Elite V2.2 Optimization) -->
     <!-- This preserves snap points while components are loading -->
@@ -367,7 +367,7 @@
     <section id="offers" class="snap-session">
       {#if loadJIT}
         {#await import('$lib/components/client/slug/OfferGrid.svelte') then { default: OfferGrid }}
-          <OfferGrid />
+          <OfferGrid onTriggerScan={triggerScan} />
         {/await}
       {:else}
         <div class="w-full h-full bg-[#010101] animate-pulse"></div>
@@ -382,32 +382,6 @@
     </div>
   {/if}
 
-  <!-- FLOATING VERIFY ACTION (Elite V2.2 Viral - Precise Alignment) -->
-  <div class="fixed right-[40px] bottom-[140px] z-[999] flex flex-col items-center" transition:fade>
-     <button 
-       class="verify-floating-btn group"
-       onclick={triggerScan}
-       aria-label="Xác thực nguồn gốc"
-     >
-        <div class="pulse-ring ring-1"></div>
-        <div class="pulse-ring ring-2"></div>
-        <div class="btn-inner">
-           <svg class="w-5 h-5 icon-scanner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M3 7V5a2 2 0 0 1 2-2h2" class="corner" />
-              <path d="M17 3h2a2 2 0 0 1 2 2v2" class="corner" />
-              <path d="M21 17v2a2 2 0 0 1-2 2h-2" class="corner" />
-              <path d="M7 21H5a2 2 0 0 1-2-2v-2" class="corner" />
-              <line x1="6" y1="12" x2="18" y2="12" class="scan-line" />
-              <path d="M9 12l2 2 4-4" class="check-mark" />
-           </svg>
-           <div class="glow-effect"></div>
-           <span class="btn-tooltip-left">
-             <span class="text-emerald-400 mr-1">✦</span>
-             Xác thực chính hãng
-           </span>
-        </div>
-     </button>
-  </div>
 
   {#if isScanning}
     <ScannerHUD barcode={product?.sku || (product?.metadata as any)?.barcode} oncomplete={handleScanComplete} />

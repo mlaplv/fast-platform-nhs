@@ -31,6 +31,13 @@
 
   // --- Gallery State ---
   let activeImageIndex = $state(0);
+  let overrideImageIndex = $state<number | null>(null);
+
+  $effect(() => {
+    // Reset override when variant changes
+    selectedIndices;
+    overrideImageIndex = null;
+  });
   
   // Detect video URL
   function isVideoUrl(url: string | undefined | null): boolean {
@@ -68,10 +75,13 @@
 
   // Derive current image based on variant selection or thumbnail index
   let currentImage = $derived.by(() => {
+    const pImages = product.images || [];
+    if (overrideImageIndex !== null) {
+      return pImages[overrideImageIndex] || pImages[0] || '/placeholder.png';
+    }
     if (selectedIndices[0] >= 0 && variations?.[0]?.images?.[selectedIndices[0]]) {
       return variations[0].images[selectedIndices[0]];
     }
-    const pImages = product.images || [];
     return pImages[activeImageIndex] || pImages[0] || '/placeholder.png';
   });
 
@@ -127,7 +137,7 @@
     {/if}
 
     {#if !isVideoUrl(currentImage) && productInfo.salePrice < productInfo.originalPrice}
-      <div class="absolute top-2 right-2 bg-[#ffe97a] px-2 py-1 text-[12px] font-black text-[#ee4d2d] shadow-sm">
+      <div class="absolute {isFlashSaleActive ? 'top-8' : 'top-0'} left-0 bg-[#ffe97a] px-2 py-1 text-[12px] font-black text-[#ee4d2d] shadow-sm z-10">
         -{Math.round((1 - productInfo.salePrice / productInfo.originalPrice) * 100)}%
       </div>
     {/if}
@@ -139,7 +149,7 @@
       <button 
         type="button"
         class="aspect-square border-2 cursor-pointer transition-all duration-300 rounded-lg overflow-hidden relative group {isActive ? 'border-[#ffaa00] scale-105 shadow-lg z-10' : 'border-transparent opacity-70 hover:opacity-100 hover:border-[#ffaa00]/50'} bg-gray-50 p-0"
-        onclick={() => activeImageIndex = i}
+        onclick={() => { activeImageIndex = i; overrideImageIndex = i; }}
         aria-label="Xem ảnh {i + 1}"
       >
         {#if isVideoUrl(img)}

@@ -15,6 +15,11 @@
   const shopStore = getShopStore();
   const ui = getClientUi();
   const cartStore = getCartStore();
+
+  interface Props {
+    onTriggerScan?: () => void;
+  }
+  let { onTriggerScan }: Props = $props();
   
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
   const variants = $derived(product?.variants || []);
@@ -150,6 +155,7 @@
             {mkt}
             productVouchers={shopStore.productVouchers || []}
             onOpenVouchers={(id) => liveEditStore.togglePopover(id)}
+            {onTriggerScan}
           />
       {/each}
     </div>

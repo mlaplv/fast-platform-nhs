@@ -5,6 +5,7 @@
   import "./HeroBanner.css";
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
+  import { SHOP_CONFIG } from '$lib/constants/shop';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import { typewriter } from '$lib/actions/typewriter';
   import { fade } from 'svelte/transition';
@@ -13,9 +14,10 @@
 
   interface HeroBannerProps {
     scrollToQuiz?: () => void;
+    triggerScan?: () => void;
   }
 
-  let { scrollToQuiz }: HeroBannerProps = $props();
+  let { scrollToQuiz, triggerScan }: HeroBannerProps = $props();
   const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
   const metadata = $derived(product?.metadata || {});
 
@@ -350,6 +352,10 @@
                       <span class="absolute bottom-2 right-2 text-[8px] font-mono tracking-widest text-white/50">ISO 100</span>
                    </div>
                 </div>
+
+                <button onclick={() => triggerScan?.()} class="absolute top-2 right-2 z-[99] w-14 h-14 cursor-pointer hover:scale-105 transition-transform drop-shadow-md bg-transparent border-none p-0 focus:outline-none pointer-events-auto">
+                    <img src="/01.Badge_52ad415e46.webp" alt="Verified" class="w-full h-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)]" />
+                 </button>
 
                 <EditableWrapper path="images.0" type="image" label="SỬA ẢNH CHIẾN DỊCH">
                     <div class="relative film-grain-container rounded-[2px] overflow-hidden">

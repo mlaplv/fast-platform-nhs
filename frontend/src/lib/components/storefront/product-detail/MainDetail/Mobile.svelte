@@ -281,9 +281,14 @@
   onMount(() => {
     if (scrollContainer)
       scrollContainer.addEventListener("scroll", handleScroll);
+    
+    const handleOpenVerification = () => triggerScan();
+    window.addEventListener("openVerificationCenter", handleOpenVerification);
+    
     return () => {
       if (scrollContainer)
         scrollContainer.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("openVerificationCenter", handleOpenVerification);
     };
   });
 </script>

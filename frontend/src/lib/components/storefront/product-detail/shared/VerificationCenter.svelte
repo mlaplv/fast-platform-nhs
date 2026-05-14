@@ -57,7 +57,7 @@
       notification_doc: product.metadata?.notification_doc,
       notification_no: product.metadata?.notification_no,
       notification_date: product.metadata?.notification_date,
-      reward_label: 'Xác thực thành công',
+      reward_label: 'Tra cứu chính hãng thành công',
       reward_sub: 'Sản phẩm chính ngạch được kiểm định bởi Osmo.'
     };
 
@@ -138,11 +138,8 @@
     <div class="absolute -left-32 -bottom-32 w-96 h-96 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none"></div>
     
     <div class="flex items-center gap-2 relative z-10">
-      <div class="w-16 h-16 bg-gradient-to-br from-blue-500/30 to-emerald-500/10 rounded-none flex items-center justify-center border border-blue-500/40 shadow-[0_0_30px_rgba(59,130,246,0.3)] backdrop-blur-md relative group">
-        <ShieldCheck class="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />
-        <div class="absolute -bottom-2 -right-2 w-6 h-6 bg-emerald-500 rounded-none border-2 border-black flex items-center justify-center shadow-[0_0_100px_rgba(16,185,129,0.5)]">
-          <CheckCircle class="w-3 h-3 text-white" />
-        </div>
+      <div class="w-16 h-16 rounded-none flex items-center justify-center relative group">
+        <img src="/01.Badge_52ad415e46.webp" alt="Verified Badge" class="w-full h-full object-contain group-hover:scale-110 transition-transform drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
       </div>
       <div>
         <h2 class="text-3xl sm:text-4xl font-black text-white leading-none mb-2 drop-shadow-lg flex items-center gap-3">
@@ -169,7 +166,7 @@
       <div class="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-blue-500"></div>
     </div>
     <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-white/80">
-      <div><span class="font-black text-white">{recentScans[0].user}</span> vừa xác thực thành công</div>
+      <div><span class="font-black text-white">{recentScans[0].user}</span> vừa tra cứu chính hãng thành công</div>
       <div class="flex items-center gap-2 mt-1 sm:mt-0">
         <span class="text-blue-400 font-bold flex items-center gap-1"><MapPin size={12} /> {recentScans[0].location}</span>
         <span class="text-xs opacity-50 ml-auto sm:ml-2 bg-black/40 px-2 py-1 rounded-none shrink-0">{recentScans[0].time}</span>
@@ -417,7 +414,7 @@
             <h3 class="text-white font-black text-2xl mb-2 tracking-tight">Phiếu công bố</h3>
             <div class="flex items-center gap-2">
               <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] animate-pulse"></div>
-              <p class="text-white/40 text-[10px] font-bold italic">Xác thực bởi bộ y tế</p>
+              <p class="text-white/40 text-[10px] font-bold italic">Tra cứu chính hãng bởi bộ y tế</p>
             </div>
           </div>
 

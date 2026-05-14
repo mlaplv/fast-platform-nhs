@@ -122,11 +122,8 @@
   <div class="bg-blue-500/5 border border-white/5 p-4 flex items-center justify-between rounded-[5px] relative overflow-hidden">
     <div class="absolute -right-20 -top-20 w-40 h-40 bg-blue-500/10 blur-[40px] rounded-full pointer-events-none"></div>
     <div class="flex items-center gap-3 relative z-10">
-      <div class="w-11 h-11 bg-gradient-to-br from-blue-500/30 to-emerald-500/10 rounded-none flex items-center justify-center border border-blue-500/40 relative">
-        <ShieldCheck size={22} class="text-blue-400" />
-        <div class="absolute -bottom-1.5 -right-1.5 w-5 h-5 bg-emerald-500 rounded-none flex items-center justify-center border-2 border-black shadow-[0_0_15px_rgba(16,185,129,0.5)]">
-          <CheckCircle size={10} class="text-white" />
-        </div>
+      <div class="w-12 h-12 flex items-center justify-center relative">
+        <img src="/01.Badge_52ad415e46.webp" alt="Verified Badge" class="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]" />
       </div>
       <div>
         <h2 class="text-xl font-black text-white tracking-tighter leading-none italic">Verified Osmo</h2>
@@ -150,7 +147,7 @@
         <div class="absolute top-0 right-0 w-2 h-2 rounded-full bg-blue-400 animate-ping"></div>
       </div>
       <p class="text-[11px] text-white/80 leading-tight relative z-10">
-        <span class="font-black text-white">{manufacturer.recent_scans[0].user}</span> vừa xác thực tại <span class="text-blue-400 font-bold">{manufacturer.recent_scans[0].location}</span>
+        <span class="font-black text-white">{manufacturer.recent_scans[0].user}</span> vừa tra cứu chính hãng tại <span class="text-blue-400 font-bold">{manufacturer.recent_scans[0].location}</span>
         <span class="block text-[9px] text-white/40 mt-0.5">{manufacturer.recent_scans[0].time}</span>
       </p>
     </div>
@@ -341,7 +338,7 @@
             <h3 class="text-white font-black text-xl mb-1 tracking-tight">Thông tin pháp lý</h3>
             <div class="flex items-center gap-2">
               <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></div>
-              <p class="text-white/40 text-[10px] font-medium italic">Xác thực bởi bộ y tế</p>
+              <p class="text-white/40 text-[10px] font-medium italic">Tra cứu chính hãng bởi bộ y tế</p>
             </div>
           </div>
 

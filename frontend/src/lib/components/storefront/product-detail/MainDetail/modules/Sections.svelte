@@ -62,6 +62,7 @@
            <h2 class="text-[20px] font-black text-gray-900 tracking-tight">Chi tiết về {product.name}</h2>
         </div>
         <button 
+           id="btn-verify-product"
            class="flex flex-col items-end group/sku cursor-pointer hover:scale-105 transition-transform bg-transparent border-none p-0"
            onclick={triggerScan}
          >

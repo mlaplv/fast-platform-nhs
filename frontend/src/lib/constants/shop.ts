@@ -58,7 +58,8 @@ export const SHOP_CONFIG = {
             { icon: "🛡️", label: "BẢO MẬT TUYỆT ĐỐI", color: "text-cyan-400" },
             { icon: "🚚", label: "THANH TOÁN KHI NHẬN", color: "text-emerald-400" }
         ]
-    }
+    },
+    default_badge_url: "/01.Badge_52ad415e46.webp"
 };
 
 export const OFFER_CONSTANTS = {

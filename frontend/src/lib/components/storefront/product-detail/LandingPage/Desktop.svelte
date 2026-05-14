@@ -9,6 +9,7 @@
   import Diamond from "@lucide/svelte/icons/diamond";
 
   // Modules
+  import { SHOP_CONFIG } from '$lib/constants/shop';
   import ProductGallery from './modules/Gallery.svelte';
   import ProductPrimaryInfo from './modules/Info.svelte';
   import ProductDetailSections from './modules/Specs.svelte';
@@ -310,14 +311,19 @@
 
   <main class="max-w-[1200px] mx-auto bg-white shadow-sm mt-0 p-5">
     <div class="flex flex-col md:flex-row gap-8">
-      <ProductGallery 
-        {product} 
-        {likeCount} 
-        {isFlashSaleActive} 
-        {productInfo} 
-        {selectedIndices} 
-        {variations} 
-      />
+      <div class="relative w-full md:w-[450px] shrink-0">
+        <button onclick={triggerScan} class="absolute top-2 right-2 z-20 w-14 h-14 cursor-pointer hover:scale-105 transition-transform drop-shadow-md bg-transparent border-none p-0 focus:outline-none">
+          <img src={product?.metadata?.verified_badge_url || SHOP_CONFIG.default_badge_url} alt="Verified" class="w-full h-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)]" />
+        </button>
+        <ProductGallery 
+          {product} 
+          {likeCount} 
+          {isFlashSaleActive} 
+          {productInfo} 
+          {selectedIndices} 
+          {variations} 
+        />
+      </div>
 
       <ProductPrimaryInfo 
         {product} 
@@ -367,27 +373,6 @@
       RelatedProducts {product} initialProducts={relatedProducts} />
     </div>
   </main>
-
-  <!-- FLOATING VERIFY ACTION (Elite V2.2) -->
-  <div class="fixed left-8 bottom-8 z-[999]" transition:fade>
-     <button 
-       class="verify-floating-btn group"
-       onclick={triggerScan}
-       aria-label="Xác thực nguồn gốc"
-     >
-        <div class="pulse-ring"></div>
-        <div class="btn-inner">
-           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-              <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-              <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-              <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-              <line x1="7" y1="12" x2="17" y2="12" />
-           </svg>
-           <span class="btn-tooltip">Xác thực nguồn gốc</span>
-        </div>
-     </button>
-  </div>
 
   {#if isScanning}
     <ScannerHUD barcode={productInfo.barcode} oncomplete={handleScanComplete} />

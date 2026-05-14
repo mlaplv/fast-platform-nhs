@@ -36,7 +36,8 @@
     variantsCount,
     mkt,
     productVouchers,
-    onOpenVouchers
+    onOpenVouchers,
+    onTriggerScan
   } = $props<{
     variant: ProductVariant;
     idx: number;
@@ -45,6 +46,7 @@
     mkt: MktLabels;
     productVouchers: Voucher[];
     onOpenVouchers: (id: string) => void;
+    onTriggerScan?: () => void;
   }>();
 
   const shopStore = getShopStore();
@@ -131,6 +133,11 @@
     }).filter(Boolean).join(' - ') || 'Combo';
     return title + qtySuffix;
   }
+
+  function handleTriggerVerify(e: MouseEvent) {
+    e.stopPropagation();
+    onTriggerScan?.();
+  }
 </script>
 
 <div class="relative h-full z-10 {variantsCount >= 3 ? 'min-w-[300px] md:min-w-[420px] lg:min-w-0 snap-center' : ''}">
@@ -174,6 +181,11 @@
           </p>
         </EditableWrapper>
       </div>
+
+      <button onclick={handleTriggerVerify} class="absolute top-4 right-4 z-30 w-12 h-12 cursor-pointer hover:scale-105 transition-transform drop-shadow-md bg-transparent border-none p-0 focus:outline-none pointer-events-auto">
+         <img src={product?.metadata?.verified_badge_url || SHOP_CONFIG.default_badge_url} alt="Verified" class="w-full h-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)]" />
+      </button>
+
       <!-- 🧪 ELITE V2.2: LIQUID SPECULAR GLASS -->
       <div class="liquid-specular-highlight"></div>
     </div>

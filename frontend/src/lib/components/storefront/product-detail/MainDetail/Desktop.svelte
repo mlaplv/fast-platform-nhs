@@ -17,6 +17,7 @@
   // Components
   import ProductReviews from '../shared/ProductReviews.svelte';
   import RelatedProducts from '../shared/RelatedProducts.svelte';
+  import { SHOP_CONFIG } from '$lib/constants/shop';
   import ProductGallery from './modules/Gallery.svelte';
   import ProductPrimaryInfo from './modules/Info.svelte';
   import ProductDetailSections from './modules/Sections.svelte';
@@ -328,6 +329,13 @@
     }
   }
 
+  function triggerVerify() {
+    const btn = document.getElementById('btn-verify-product');
+    if (btn) {
+       btn.click();
+    }
+  }
+
   // --- HELEN AI PRICE INTELLIGENCE (VIRAL 2026) ---
   const helenAdvice = $derived.by(() => {
     const comboVariants = pVariants.filter(cv => cv.attributes && cv.attributes.combo_qty);
@@ -378,14 +386,19 @@
 <svelte:element this={contentWrapper} class="max-w-[1200px] mx-auto bg-white shadow-sm mt-0  rounded-none p-5">
   <div class="flex flex-col md:flex-row gap-4">
     <!-- LEFT: IMAGES & SOCIAL (ProductGallery Module) -->
-    <ProductGallery 
-      {product} 
-      {likeCount} 
-      {isFlashSaleActive} 
-      {productInfo} 
-      {selectedIndices} 
-      {variations} 
-    />
+    <div class="relative w-full md:w-[450px] shrink-0">
+      <button onclick={triggerVerify} class="absolute top-2 right-2 z-20 w-14 h-14 cursor-pointer hover:scale-105 transition-transform drop-shadow-md bg-transparent border-none p-0 focus:outline-none">
+        <img src={product?.metadata?.verified_badge_url || SHOP_CONFIG.default_badge_url} alt="Verified" class="w-full h-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)]" />
+      </button>
+      <ProductGallery 
+        {product} 
+        {likeCount} 
+        {isFlashSaleActive} 
+        {productInfo} 
+        {selectedIndices} 
+        {variations} 
+      />
+    </div>
 
     <!-- RIGHT: PRODUCT INFO (ProductPrimaryInfo Module) -->
     <ProductPrimaryInfo 

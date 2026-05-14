@@ -10,6 +10,7 @@
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
+  import { SHOP_CONFIG } from '$lib/constants/shop';
 
   import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
 
@@ -108,6 +109,10 @@
     await copyViralLink(window.location.href);
     onShareComplete?.();
   }
+
+  function triggerVerify() {
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('openVerificationCenter'));
+  }
 </script>
 
 <svelte:window onscroll={handleScroll} />
@@ -174,6 +179,10 @@
         pointer-events: {hideRatio > 0.8 ? 'none' : 'auto'};
       "
     >
+      <button class="w-10 h-10 flex items-center justify-center relative active:scale-90 transition-transform drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)] focus:outline-none" onclick={triggerVerify}>
+        <img src={product?.metadata?.verified_badge_url || SHOP_CONFIG.default_badge_url} alt="Verified Badge" class="w-full h-full object-contain" />
+      </button>
+
       <button class="flex flex-col items-center gap-1 drop-shadow-md active:scale-90 transition-transform" onclick={handleLike}>
         <div class="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-colors {isLiked ? 'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)]' : 'bg-black/40 border border-white/20'}">
            <Heart size={18} class={isLiked ? 'fill-white text-white' : 'text-white'} />

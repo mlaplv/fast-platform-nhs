@@ -54,14 +54,16 @@
     aria-label="Tra cứu đơn hàng"
   >
     <ShieldCheck class="w-6 h-6 text-white drop-shadow-xl group-active:scale-90 transition-transform" />
-    <span class="btn-label-mini">Tra cứu</span>
+    <span class="btn-label-mini text-center leading-[1.1]" style="bottom: -1.2rem;">
+      Tra cứu<br/><span class="text-[6px] normal-case tracking-normal opacity-90">Đơn hàng</span>
+    </span>
   </a>
 
   <!-- 5.5 Xác thực (Elite V2.2 Scan) -->
   <button
     class="action-btn-mini group"
     onclick={() => onVerify?.()}
-    aria-label="Xác thực nguồn gốc"
+    aria-label="Tra cứu chính hãng"
   >
     <div class="relative">
       <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black animate-pulse"></div>
@@ -73,7 +75,9 @@
         <line x1="7" y1="12" x2="17" y2="12" />
       </svg>
     </div>
-    <span class="btn-label-mini">Xác thực</span>
+    <span class="btn-label-mini text-center leading-[1.1]" style="bottom: -1.2rem;">
+      Tra cứu<br/><span class="text-[6px] normal-case tracking-normal opacity-90">Chính hãng</span>
+    </span>
   </button>
 
   <!-- 5. Chat (Viral AI Helen Integration) -->
