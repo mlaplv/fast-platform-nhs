@@ -9,7 +9,7 @@
 
   let { product }: Props = $props();
 
-  let activeFaqIndex = $state<number | null>(null);
+  let activeFaqIndex = $state<number | null>(0);
 
   const faqItems = $derived(product.metadata?.faqs || [
     { q: "Sản phẩm có gây kích ứng da không?", a: "Sản phẩm đã được kiểm nghiệm da liễu, an toàn cho mọi loại da, kể cả da nhạy cảm." },

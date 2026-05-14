@@ -47,7 +47,7 @@
 
     <!-- Title Overlay -->
     <div class="absolute bottom-0 left-0 w-full p-6 z-20">
-        <span class="bg-[#C18F7E] text-white px-2 py-0.5 text-[9px] font-black uppercase tracking-widest mb-3 inline-block">
+        <span class="bg-[#C18F7E] text-white px-2 py-0.5 text-[9px] font-black tracking-widest mb-3 inline-block">
           Hướng dẫn chuyên môn
         </span>
         <h1 class="text-3xl font-black text-gray-900 leading-tight tracking-tighter drop-shadow-sm mb-0">
@@ -72,7 +72,7 @@
   {#if article.category !== 'Chính sách'}
   <!-- Article Info -->
   <div class="px-6 py-4 border-b border-gray-50 bg-gray-50/30">
-      <div class="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest overflow-hidden">
+      <div class="flex items-center gap-2 text-[10px] font-black text-gray-500 tracking-widest overflow-hidden">
         <span class="text-[#C18F7E] shrink-0">{article.author === 'Xohi' || article.author === 'System' || article.author === 'Micsmo' ? 'Ban biên tập osmo' : article.author}</span>
         <div class="w-1 h-1 bg-gray-200 rounded-full shrink-0"></div>
         <span class="truncate">{article.publishedAt}</span>
@@ -88,7 +88,7 @@
   <!-- GEO 2026: FAQ Section (Full Width Redesign) -->
   {#if article.metadata?.faqs && article.metadata.faqs.length > 0}
   <div class="py-10 border-t border-gray-100">
-    <h2 class="px-6 text-[12px] font-black uppercase tracking-[0.2em] text-[#0f172a] mb-6 flex items-center gap-3">
+    <h2 class="px-6 text-[12px] font-black tracking-[0.2em] text-[#0f172a] mb-6 flex items-center gap-3">
       <div class="w-1.5 h-1.5 bg-[#C18F7E] rounded-full"></div>
       Câu hỏi kỹ thuật
     </h2>
@@ -117,9 +117,9 @@
 
   <!-- Footer Navigation -->
   <div class="p-10 text-center border-t border-gray-100 bg-gray-50">
-      <span class="text-[10px] font-black text-gray-300 uppercase tracking-[0.4em]">Kết thúc bài viết</span>
+      <span class="text-[10px] font-black text-gray-300 tracking-[0.4em]">Kết thúc bài viết</span>
       <div class="mt-6">
-          <a href="/bai-viet" class="inline-block px-10 py-4 bg-[#0f172a] text-white text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl">
+          <a href="/bai-viet" class="inline-block px-10 py-4 bg-[#0f172a] text-white text-[10px] font-black tracking-widest active:scale-95 transition-all shadow-xl">
             Quay về kho tin
           </a>
       </div>
@@ -145,7 +145,7 @@
     font-weight: 950;
     color: #111827 !important;
     margin: 2rem 0 0.75rem 0;
-    text-transform: uppercase;
+    text-transform: none;
     line-height: 1.1;
   }
 
@@ -154,7 +154,7 @@
     font-weight: 950;
     color: #0f172a !important;
     margin: 1.5rem 0 0.5rem 0;
-    text-transform: uppercase;
+    text-transform: none;
     letter-spacing: -0.02em;
     border-left: 4px solid #C18F7E;
     padding-left: 0.75rem;
@@ -172,7 +172,7 @@
     font-weight: 900;
     color: #0f172a !important;
     margin: 1.25rem 0 0.5rem 0;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   /* ELITE V2.2: Viral 2026 Professional Highlights (Luxury Copper) */

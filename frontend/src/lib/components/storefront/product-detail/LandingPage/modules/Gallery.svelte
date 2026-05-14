@@ -204,7 +204,7 @@
     padding: 0.375rem 0.75rem;
     font-size: 11px;
     font-weight: 900;
-    text-transform: uppercase;
+    text-transform: none;
     letter-spacing: 0.1em;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   }

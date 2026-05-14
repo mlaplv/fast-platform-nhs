@@ -9,6 +9,7 @@
   import VerificationCenter from '../../shared/VerificationCenter.svelte';
   import ScannerHUD from '../../shared/ScannerHUD.svelte';
   import { fly, fade } from 'svelte/transition';
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
 
   interface Props {
     product: Product;
@@ -27,6 +28,7 @@
   let showVerification = $state(false);
   let isScanning = $state(false);
   let verificationData = $state<BarcodeVerificationResponse | null>(null);
+  let activeFaq = $state<number | null>(0);
 
   function triggerScan() {
     isScanning = true;
@@ -220,7 +222,7 @@
      </div>
   </div>
 
-  <!-- FAQ Section -->
+  <!-- FAQ Section (Elite V2.2 Accordion) -->
   {#if product.metadata?.faqs && product.metadata.faqs.length > 0}
   <div class="bg-white p-6 shadow-[0_2px_20px_-5px_rgba(0,0,0,0.05)] border border-gray-50 ">
      <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
@@ -229,14 +231,32 @@
            <h2 class="text-[20px] font-black text-gray-900 tracking-tight">Câu hỏi thường gặp về {product.name}</h2>
         </div>
      </div>
-     <div class="px-0 flex flex-col gap-4">
-        {#each product.metadata.faqs as faq}
-          <div class="border border-gray-100 p-4 rounded-none bg-gray-50/30">
-            <h3 class="text-[15px] font-bold text-gray-900 mb-2">{faq.question}</h3>
-            <p class="text-[14px] text-gray-600 leading-relaxed w-full">{faq.answer}</p>
+     <div class="px-0 flex flex-col gap-2">
+        {#each product.metadata.faqs as faq, i}
+          <div class="border border-gray-100 rounded-[5px] transition-all {activeFaq === i ? 'bg-white shadow-md border-[#ee4d2d]/30' : 'bg-gray-50/30'}">
+            <button 
+              class="w-full flex items-center justify-between p-4 text-left bg-transparent border-none cursor-pointer group"
+              onclick={() => activeFaq = activeFaq === i ? null : i}
+            >
+              <h3 class="text-[15px] font-bold text-gray-900 group-hover:text-[#ee4d2d] transition-colors">{faq.question}</h3>
+              <ChevronDown size={18} class="text-gray-400 transition-transform duration-300 {activeFaq === i ? 'rotate-180 text-[#ee4d2d]' : ''}" />
+            </button>
+            
+            {#if activeFaq === i}
+              <div class="px-4 pb-4 animate-[fadeIn_0.3s_ease-out]">
+                <p class="text-[14px] text-gray-600 leading-relaxed w-full border-t border-gray-100 pt-3">{faq.answer}</p>
+              </div>
+            {/if}
           </div>
         {/each}
      </div>
   </div>
   {/if}
 </div>
+
+<style>
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>

@@ -262,8 +262,8 @@
                   {#if v.attributes.combo_qty && v.attributes.combo_qty > 1}
                      <div class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] rounded-full shadow-[0_4px_12px_rgba(255,183,197,0.3)] animate-pulse-gentle">
                         <Flame class="w-2.5 h-2.5 text-white fill-white" />
-                        <span class="text-[10px] font-bold text-white uppercase tracking-widest italic leading-none">
-                           TIẾT KIỆM COMBO X{v.attributes.combo_qty}
+                        <span class="text-[10px] font-bold text-white tracking-widest italic leading-none">
+                           Tiết kiệm combo x{v.attributes.combo_qty}
                         </span>
                      </div>
                   {/if}
@@ -287,7 +287,7 @@
                            </div>
                            
                            <div class="flex-1 min-w-0">
-                              <div class="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mb-0.5 font-mono leading-none">Quà tặng đặc quyền</div>
+                              <div class="text-[10px] font-bold text-white/30 tracking-[0.15em] mb-0.5 font-mono leading-none">Quà tặng đặc quyền</div>
                               <div class="space-y-0.5">
                                  {#each (v.attributes.gifts as GiftItem[]) as gift}
                                     <div class="flex items-center justify-between gap-1.5">

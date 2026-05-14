@@ -366,7 +366,7 @@
   <div class="bg-[#f5f5f5] py-4">
   <div class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-3 text-[12px] text-gray-400 font-medium">
     <a href="/" class="text-gray-400 hover:text-[#ee4d2d] transition-all font-black tracking-widest text-[11px]">
-      OSMO
+      osmo
     </a>
     <span class="opacity-30">/</span>
     <span class="text-gray-500 font-medium">{product.name}</span>

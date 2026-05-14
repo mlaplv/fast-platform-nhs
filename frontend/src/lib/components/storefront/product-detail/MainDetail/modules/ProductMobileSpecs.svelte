@@ -17,6 +17,7 @@
   let isIngredientsExpanded = $state(false);
   let containerRef = $state<HTMLElement>();
   let hasMore = $state(false);
+  let activeMobileFaq = $state<number | null>(0);
   const truncatedHeight = 400;
 
   $effect(() => {
@@ -152,11 +153,21 @@
   {#if product.metadata?.faqs && product.metadata.faqs.length > 0}
     <div class="mt-8 border-t border-gray-100 pt-6">
       <h2 class="section-title">Câu hỏi về {product.name}</h2>
-      <div class="flex flex-col gap-3 mt-4">
-        {#each product.metadata.faqs as faq}
-          <div class="bg-gray-50/50 border border-gray-100 rounded-lg p-3">
-            <h3 class="text-[13px] font-bold text-gray-900 mb-1.5 leading-tight">{faq.question}</h3>
-            <p class="text-[12px] text-gray-600 leading-relaxed">{faq.answer}</p>
+      <div class="flex flex-col gap-2 mt-4">
+        {#each product.metadata.faqs as faq, i}
+          <div class="bg-gray-50/50 border border-gray-100 rounded-[5px] overflow-hidden transition-all {activeMobileFaq === i ? 'border-[#ee4d2d]/30 bg-white shadow-sm' : ''}">
+            <button 
+              class="w-full flex items-center justify-between p-3 text-left bg-transparent border-none"
+              onclick={() => activeMobileFaq = activeMobileFaq === i ? null : i}
+            >
+              <h3 class="text-[13px] font-bold text-gray-900 leading-tight pr-4">{faq.question}</h3>
+              <ChevronDown size={14} class="text-gray-400 transition-transform {activeMobileFaq === i ? 'rotate-180 text-[#ee4d2d]' : ''}" />
+            </button>
+            {#if activeMobileFaq === i}
+              <div class="px-3 pb-3 animate-[fadeIn_0.2s_ease-out]">
+                <p class="text-[12px] text-gray-600 leading-relaxed border-t border-gray-50 pt-2">{faq.answer}</p>
+              </div>
+            {/if}
           </div>
         {/each}
       </div>

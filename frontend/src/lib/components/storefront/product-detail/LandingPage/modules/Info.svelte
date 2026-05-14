@@ -26,13 +26,13 @@
     timeLeft: { hours: number; minutes: number; seconds: number };
     productVouchers: VoucherUI[];
     selectedVouchers: string[];
-    variations: any[];
+    variations: import('$lib/types').TierVariation[];
     selectedIndices: number[];
     quantity: number;
     currentStock: number;
     activePrices: { sale: number | string; original: number | string };
     activeComboQty: number;
-    activeGifts: any[];
+    activeGifts: { name: string; qty: number; image?: string }[];
     helenAdvice: string;
     onSelectOption: (tIdx: number, oIdx: number) => void;
     onQuantityChange: (delta: number) => void;

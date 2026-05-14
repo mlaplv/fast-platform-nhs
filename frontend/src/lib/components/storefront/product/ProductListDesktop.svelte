@@ -345,12 +345,12 @@
            <div class="flex items-center gap-2 mb-2">
               <div class="w-1 h-4 bg-orange-500/40 rounded-full"></div>
               <h4 class="text-[10px] font-black text-gray-900 tracking-widest flex items-center gap-1.5">
-                 <MessageCircleQuestion size={11} class="text-orange-500" /> FAQ_CORE
+                 <MessageCircleQuestion size={11} class="text-orange-500" /> Faq Core
               </h4>
            </div>
            <div class="space-y-2">
-              {#each faqs as faq}
-                 <details class="group bg-gray-50/40 rounded-xl border border-transparent hover:border-orange-500/10 hover:bg-white transition-all overflow-hidden">
+              {#each faqs as faq, i}
+                 <details open={i === 0} class="group bg-gray-50/40 rounded-[5px] border border-transparent hover:border-orange-500/10 hover:bg-white transition-all overflow-hidden">
                     <summary class="text-[11px] font-bold text-gray-700 list-none cursor-pointer py-2.5 px-3 pr-8 relative select-none leading-tight">
                        {faq.question}
                        <div class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-md bg-white border border-gray-100 flex items-center justify-center transition-transform group-open:rotate-180 group-open:bg-orange-500 group-open:border-orange-600 shadow-sm">
@@ -389,7 +389,7 @@
               </div>
 
               <div class="ml-auto relative group/sort">
-                 <button class="bg-white/80 backdrop-blur-sm border-b-2 border-luxury-copper/20 px-6 py-2.5 text-[11px] font-black text-gray-800 flex items-center justify-between w-[220px] tracking-widest hover:border-luxury-copper hover:bg-white transition-all shadow-sm">
+                 <button class="bg-white/80 backdrop-blur-sm border-b-2 border-luxury-copper/20 px-6 py-2.5 text-[11px] font-black text-gray-800 flex items-center justify-between w-[220px] hover:border-luxury-copper hover:bg-white transition-all shadow-sm">
                     <div class="flex items-center gap-3">
                        <ArrowUpDown size={14} class="text-luxury-copper/60 group-hover/sort:text-luxury-copper transition-colors" />
                        <span class="opacity-80 group-hover/sort:opacity-100 transition-opacity">{activeSort === 'price-asc' ? 'Giá: Thấp đến cao' : activeSort === 'price-desc' ? 'Giá: Cao đến thấp' : 'Sắp xếp theo giá'}</span>

@@ -52,10 +52,10 @@
 
     <!-- Row 2: Category Bubble Scroller -->
     <div class="px-4 pb-4 overflow-x-auto scrollbar-hide flex items-center gap-3 whitespace-nowrap pt-1">
-      <button class="px-5 py-1.5 rounded-none bg-[#C18F7E] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#C18F7E]/20 transition-all active:scale-95">Tất cả</button>
-      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest border border-gray-100 transition-all active:scale-95">Tư vấn</button>
-      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest border border-gray-100 transition-all active:scale-95">Chăm sóc da</button>
-      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest border border-gray-100 transition-all active:scale-95">Sự kiện</button>
+      <button class="px-5 py-1.5 rounded-none bg-[#C18F7E] text-white text-[10px] font-black tracking-widest shadow-lg shadow-[#C18F7E]/20 transition-all active:scale-95">Tất cả</button>
+      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black tracking-widest border border-gray-100 transition-all active:scale-95">Tư vấn</button>
+      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black tracking-widest border border-gray-100 transition-all active:scale-95">Chăm sóc da</button>
+      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black tracking-widest border border-gray-100 transition-all active:scale-95">Sự kiện</button>
     </div>
   </header>
 
@@ -79,10 +79,10 @@
           </div>
           <div class="absolute bottom-0 inset-x-0 p-6 space-y-2">
             <div class="flex items-center gap-3">
-                <span class="bg-[#C18F7E] text-white px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] italic">osmo News</span>
+                <span class="bg-[#C18F7E] text-white px-2.5 py-1 text-[8px] font-black tracking-[0.2em] italic">osmo News</span>
                 <span class="text-[9px] text-white/60 font-medium">Trending now</span>
             </div>
-            <h3 class="text-2xl font-black text-white leading-tight tracking-tighter uppercase italic">{news.title}</h3>
+            <h3 class="text-2xl font-black text-white leading-tight tracking-tighter italic">{news.title}</h3>
             <p class="text-[12px] text-white/70 line-clamp-2 leading-relaxed font-medium">{news.summary}</p>
           </div>
         </a>
@@ -101,14 +101,14 @@
             <div class="flex flex-col flex-1 justify-between py-1">
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between">
-                    <span class="text-[9px] font-black text-[#C18F7E] uppercase tracking-widest">{news.category || 'TIN TỨC'}</span>
+                    <span class="text-[9px] font-black text-[#C18F7E] tracking-widest">{news.category || 'Tin tức'}</span>
                     <span class="text-[8px] text-gray-300 font-bold">1H TRƯỚC</span>
                 </div>
-                <h3 class="text-[14px] font-black text-gray-900 leading-snug line-clamp-2 group-hover:text-[#C18F7E] transition-colors uppercase italic">{news.title}</h3>
+                <h3 class="text-[14px] font-black text-gray-900 leading-snug line-clamp-2 group-hover:text-[#C18F7E] transition-colors italic">{news.title}</h3>
               </div>
               <div class="flex items-center gap-4 pt-2 border-t border-gray-50">
-                <span class="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">4 min read</span>
-                <span class="text-[8px] text-gray-400 font-bold uppercase tracking-tighter">1.2k views</span>
+                <span class="text-[8px] text-gray-400 font-bold tracking-tighter">4 min read</span>
+                <span class="text-[8px] text-gray-400 font-bold tracking-tighter">1.2k views</span>
               </div>
             </div>
           </div>
@@ -121,8 +121,8 @@
           <div class="w-20 h-20 bg-white shadow-xl flex items-center justify-center mb-6">
              <svg class="w-10 h-10 text-[#C18F7E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2z" /></svg>
           </div>
-          <p class="text-[11px] font-black text-[#C18F7E] uppercase tracking-[0.3em]">Không tìm thấy bài viết nào...</p>
-          <button onclick={() => searchQuery = ""} class="mt-4 text-[10px] font-bold text-gray-400 underline uppercase tracking-widest">Xóa tìm kiếm</button>
+          <p class="text-[11px] font-black text-[#C18F7E] tracking-[0.3em]">Không tìm thấy bài viết nào...</p>
+          <button onclick={() => searchQuery = ""} class="mt-4 text-[10px] font-bold text-gray-400 underline tracking-widest">Xóa tìm kiếm</button>
        </div>
     {/if}
   </div>

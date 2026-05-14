@@ -109,7 +109,7 @@
   <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-gray-100 flex flex-col">
     <div class="flex items-center justify-between px-4 pt-3 pb-1">
       <div class="flex flex-col">
-        <h1 class="text-xl font-black tracking-widest text-black uppercase">OSMO</h1>
+        <h1 class="text-xl font-black tracking-widest text-black">osmo</h1>
         <span class="text-[8px] font-bold text-gray-400 capitalize tracking-widest">Bật tông trắng sáng</span>
       </div>
       <div class="flex items-center gap-3">
@@ -180,25 +180,31 @@
                <MessageCircleQuestion size={20} class="text-orange-500" />
             </div>
             <div class="flex flex-col">
-               <h4 class="text-[14px] font-black tracking-widest text-gray-900 leading-tight">FAQ_SCHEMA_CORE</h4>
+               <h4 class="text-[14px] font-black tracking-widest text-gray-900 leading-tight">Faq Schema Core</h4>
                <span class="text-[8px] text-gray-400 font-bold tracking-widest">Hỗ trợ trích dẫn bởi AI Search 2026</span>
             </div>
          </div>
          <div class="space-y-3">
             {#each faqs as faq, i}
-               <div 
-                 class="bg-gray-50/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-100/50 shadow-sm group active:scale-[0.98] transition-all"
+               <details 
+                 class="bg-gray-50/80 backdrop-blur-sm rounded-[5px] border border-gray-100/50 shadow-sm group overflow-hidden transition-all"
+                 open={i === 0}
                  in:fly={{ y: 20, delay: i * 100 }}
                >
-                  <div class="flex items-start gap-3">
-                     <span class="w-5 h-5 rounded-md bg-white border border-gray-100 flex items-center justify-center text-[9px] font-black text-orange-500 shrink-0 shadow-sm">{i + 1}</span>
-                     <div class="flex flex-col gap-2">
+                  <summary class="flex items-center justify-between p-4 cursor-pointer list-none select-none">
+                     <div class="flex items-center gap-3">
+                        <span class="w-5 h-5 rounded-md bg-white border border-gray-100 flex items-center justify-center text-[9px] font-black text-orange-500 shrink-0 shadow-sm">{i + 1}</span>
                         <p class="text-[13px] font-black text-gray-900 leading-tight">{faq.question}</p>
-                        <div class="h-px w-6 bg-orange-500/20"></div>
-                        <p class="text-[12px] text-gray-500 leading-relaxed font-medium">{faq.answer}</p>
                      </div>
+                     <div class="w-5 h-5 rounded-full bg-white border border-gray-100 flex items-center justify-center transition-transform group-open:rotate-180">
+                        <svg class="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                     </div>
+                  </summary>
+                  <div class="px-4 pb-4 pt-0">
+                     <div class="h-px w-full bg-orange-500/10 mb-3"></div>
+                     <p class="text-[12px] text-gray-500 leading-relaxed font-medium">{faq.answer}</p>
                   </div>
-               </div>
+               </details>
             {/each}
          </div>
       </div>
@@ -247,8 +253,8 @@
      {/if}
   </div>
   <div class="mt-auto pt-4 pb-0 flex items-center gap-4 bg-white sticky bottom-0 z-10 border-t border-gray-100">
-    <button onclick={clearFilters} class="flex-1 py-4 bg-gray-50 text-gray-600 text-[14px] font-black tracking-widest rounded-2xl">Xóa</button>
-    <button onclick={() => isFilterDrawerOpen = false} class="flex-2 w-[65%] py-4 bg-black text-white text-[14px] font-black tracking-widest rounded-2xl shadow-xl">Áp dụng</button>
+    <button onclick={clearFilters} class="flex-1 py-4 bg-gray-50 text-gray-600 text-[14px] font-black tracking-widest rounded-[5px]">Xóa</button>
+    <button onclick={() => isFilterDrawerOpen = false} class="flex-2 w-[65%] py-4 bg-black text-white text-[14px] font-black tracking-widest rounded-[5px] shadow-xl">Áp dụng</button>
   </div>
 </BottomSheet>
 

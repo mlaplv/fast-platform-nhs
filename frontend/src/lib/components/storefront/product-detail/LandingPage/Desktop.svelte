@@ -59,14 +59,14 @@
   // Verification System (Elite V2.2)
   let isScanning = $state(false);
   let showVerification = $state(false);
-  let verificationData = $state<any>(null);
+  let verificationData = $state<BarcodeVerificationResponse | null>(null);
 
   function triggerScan() {
     isScanning = true;
     showVerification = false;
   }
 
-  function handleScanComplete(event: { verificationData: any }) {
+  function handleScanComplete(event: { verificationData: BarcodeVerificationResponse }) {
     isScanning = false;
     verificationData = event.verificationData;
     showVerification = true;

@@ -64,16 +64,16 @@
       {#if isVerifying}
         <div class="barcode-preview" in:fade>
           <span class="text-luxury-gold font-mono text-xl font-black tracking-[0.2em]">{barcode}</span>
-          <p class="text-luxury-gold text-[10px] font-black uppercase mt-2 animate-pulse">VERIFYING WITH AI...</p>
+          <p class="text-luxury-gold text-[10px] font-black mt-2 animate-pulse">Đang xác thực với AI...</p>
         </div>
       {:else if isFound}
         <div class="barcode-preview" in:fly={{ y: 20 }}>
           <span class="text-luxury-gold font-mono text-xl font-black tracking-[0.2em]">{barcode}</span>
-          <p class="text-green-400 text-[10px] font-black uppercase mt-2">MATCH FOUND 100%</p>
+          <p class="text-green-400 text-[10px] font-black mt-2">Đã tìm thấy mã vạch 100%</p>
         </div>
       {:else}
         <Scan size={48} class="text-white/20 animate-pulse" />
-        <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest">Đang tìm mã vạch...</p>
+        <p class="text-white/40 text-[10px] font-bold tracking-widest">Đang tìm mã vạch...</p>
       {/if}
     </div>
   </div>
@@ -84,8 +84,8 @@
       <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden mb-4">
         <div class="h-full bg-gradient-to-r from-luxury-gold to-white transition-all duration-300" style:width="{progress}%"></div>
       </div>
-      <h2 class="text-white font-black text-xl mb-1 tracking-tight uppercase italic">Truy xuất nguồn gốc</h2>
-      <p class="text-white/40 text-[10px] font-bold uppercase tracking-widest italic">Hệ thống thẩm định AI đang bắt mã vạch...</p>
+      <h2 class="text-white font-black text-xl mb-1 tracking-tight italic">Truy xuất nguồn gốc</h2>
+      <p class="text-white/40 text-[10px] font-bold tracking-widest italic">Hệ thống thẩm định AI đang bắt mã vạch...</p>
     </div>
   </div>
 </div>

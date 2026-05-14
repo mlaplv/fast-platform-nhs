@@ -56,7 +56,7 @@
   <!-- BREADCRUMB & ELITE HEADER -->
   <div class="bg-white border-b border-gray-100 mb-8">
     <div class="max-w-[1200px] mx-auto px-4 xl:px-0 py-6">
-      <nav class="flex items-center gap-2 text-[12px] text-gray-400 mb-4 font-medium uppercase tracking-wider">
+      <nav class="flex items-center gap-2 text-[12px] text-gray-400 mb-4 font-medium tracking-wider">
         <a href="/" class="hover:text-[#ee4d2d] transition-colors">Trang chủ</a>
         <span>/</span>
         <a href="/bai-viet" class="hover:text-[#ee4d2d] transition-colors">Bài viết</a>
@@ -66,7 +66,7 @@
 
       <div class="flex items-center gap-6" in:fade={{duration: 800}}>
         <div class="h-px w-12 bg-[#C18F7E]" in:scale={{duration: 1000, start: 0}}></div>
-        <span class="text-[10px] font-black text-[#C18F7E] uppercase tracking-[0.3em] animate-pulse">Độc quyền Hướng dẫn chuyên môn</span>
+        <span class="text-[10px] font-black text-[#C18F7E] tracking-[0.3em] animate-pulse">Độc quyền Hướng dẫn chuyên môn</span>
       </div>
     </div>
   </div>
@@ -81,10 +81,10 @@
         <!-- Hero Section -->
         <div class="pl-[10px]">
             <div class="flex items-center gap-4 mb-0">
-                <span class="bg-black text-white px-3 py-1 text-[10px] font-black uppercase tracking-widest">
-                  {article.category || 'TẠP CHÍ ELITE'}
+                <span class="bg-black text-white px-3 py-1 text-[10px] font-black tracking-widest">
+                  {article.category || 'Tạp chí Elite'}
                 </span>
-                <div class="flex items-center gap-2 text-[11px] font-black text-gray-500 uppercase tracking-widest">
+                <div class="flex items-center gap-2 text-[11px] font-black text-gray-500 tracking-widest">
                   <span class="text-[#C18F7E] shrink-0">{article.author === 'Xohi' || article.author === 'System' || article.author === 'Micsmo' ? 'Ban biên tập osmo' : article.author}</span>
                   <div class="w-1 h-1 bg-gray-300 rounded-full"></div>
                   <span>{article.publishedAt}</span>
@@ -111,7 +111,7 @@
         <!-- Social Share Bar -->
         <div class="px-8 md:px-12 py-8 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Chia sẻ bài viết:</span>
+                <span class="text-[10px] font-black text-gray-400 tracking-widest">Chia sẻ bài viết:</span>
                 <div class="flex gap-2">
                     {#each ['FB', 'ZL', 'CP'] as btn}
                         <button class="w-10 h-10 bg-white border border-gray-100 flex items-center justify-center text-[10px] font-black hover:bg-black hover:text-white hover:border-black transition-all">
@@ -123,7 +123,7 @@
             
             <button 
               onclick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
-              class="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors flex items-center gap-2"
+              class="text-[10px] font-black tracking-widest text-gray-400 hover:text-black transition-colors flex items-center gap-2"
             >
                 Quay lên đầu
                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7" /></svg>
@@ -133,7 +133,7 @@
 
       <!-- Bottom Navigation -->
       <div class="mt-8 flex justify-between items-center mb-10 pb-6 border-b border-gray-100">
-          <a href="/bai-viet" class="text-[11px] font-black uppercase tracking-widest text-[#C18F7E] flex items-center gap-2 hover:gap-4 transition-all">
+          <a href="/bai-viet" class="text-[11px] font-black tracking-widest text-[#C18F7E] flex items-center gap-2 hover:gap-4 transition-all">
              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M7 16l-4-4m0 0l4-4m-4 4h18" /></svg>
              Quay về kho tin học thuật
           </a>
@@ -150,9 +150,9 @@
         <!-- GEO 2026: FAQ Section Relocated to Top Sidebar -->
         {#if article.metadata?.faqs && article.metadata.faqs.length > 0}
         <div class="bg-white border border-gray-100 p-8 shadow-sm">
-          <h2 class="text-[12px] font-black uppercase tracking-[0.2em] text-[#0f172a] mb-8 flex items-center gap-3">
+          <h2 class="text-[12px] font-black tracking-[0.2em] text-[#0f172a] mb-8 flex items-center gap-3">
             <div class="w-1.5 h-1.5 bg-[#C18F7E] rounded-full animate-pulse"></div>
-            CÂU HỎI THƯỜNG GẶP
+            Câu hỏi thường gặp
           </h2>
           <div class="space-y-4">
             {#each article.metadata.faqs as faq}
@@ -172,9 +172,9 @@
 
         <!-- Related News -->
         <div class="bg-white border border-gray-100 p-8">
-            <h2 class="text-[12px] font-black uppercase tracking-[0.2em] mb-8 flex items-center gap-3">
+            <h2 class="text-[12px] font-black tracking-[0.2em] mb-8 flex items-center gap-3">
               <div class="w-1.5 h-1.5 bg-[#C18F7E] rounded-full animate-pulse"></div>
-              KIẾN THỨC BỔ TRỢ
+              Kiến thức bổ trợ
             </h2>
             
             <div class="space-y-8">
@@ -182,7 +182,7 @@
                     <a href="/{news.slug}" class="group block space-y-3">
                         <ImageWithFallback src={news.image} alt={news.title} aspectRatio="aspect-video" class="border border-gray-100" />
                         <div>
-                            <span class="text-[9px] font-black text-[#C18F7E] uppercase tracking-widest">{news.category}</span>
+                            <span class="text-[9px] font-black text-[#C18F7E] tracking-widest">{news.category}</span>
                             <h3 class="text-[14px] font-bold text-[#0f172a] line-clamp-2 leading-snug group-hover:text-[#C18F7E] transition-colors">
                               {news.title}
                             </h3>
@@ -195,11 +195,11 @@
         <!-- Newsletter / Community -->
         <div class="bg-black text-white p-8 relative overflow-hidden group">
             <div class="absolute inset-0 bg-gradient-to-br from-red-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <h3 class="text-[11px] font-black uppercase tracking-[0.3em] mb-4 relative z-10">Cộng đồng Elite</h3>
+            <h3 class="text-[11px] font-black tracking-[0.3em] mb-4 relative z-10">Cộng đồng Elite</h3>
             <p class="text-[13px] text-gray-400 font-medium mb-6 relative z-10">Đăng ký nhận những tin bài chuyên sâu về chăm sóc da từ các chuyên gia AI.</p>
             <div class="relative z-10 space-y-2">
                 <input type="email" placeholder="Email của bạn..." class="w-full bg-white/10 border-none px-4 py-3 text-sm focus:ring-1 focus:ring-[#C18F7E] outline-none transition-all placeholder:text-gray-600" />
-                <button class="w-full bg-[#C18F7E] py-3 text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">Tham gia ngay</button>
+                <button class="w-full bg-[#C18F7E] py-3 text-[10px] font-black tracking-widest hover:bg-white hover:text-black transition-all">Tham gia ngay</button>
             </div>
         </div>
     </aside>
@@ -226,7 +226,7 @@
     font-weight: 900;
     color: #111827 !important;
     margin: 2.5rem 0 1rem 0;
-    text-transform: uppercase;
+    text-transform: none;
     line-height: 1.1;
   }
 
@@ -235,7 +235,7 @@
     font-weight: 850;
     color: #C18F7E !important;
     margin: 2rem 0 0.75rem 0;
-    text-transform: uppercase;
+    text-transform: none;
     letter-spacing: -0.02em;
     border-left: 4px solid #C18F7E;
     padding-left: 1rem;
@@ -253,7 +253,7 @@
     font-weight: 800;
     color: #C18F7E !important;
     margin: 1.5rem 0 0.5rem 0;
-    text-transform: uppercase;
+    text-transform: none;
   }
 
   /* ELITE V2.2: Viral 2026 Professional Highlights (Luxury Copper) */
