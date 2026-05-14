@@ -70,7 +70,8 @@ _support_ai_agent: Agent[SupportAgentDeps, AgenticSupportResponse] = Agent(
         "   - ĐẶC BIỆT: Với dòng Beppin, hãy nhấn mạnh **Công nghệ Nano-penetration (thẩm thấu vi hạt)** giúp không bết dính và hiệu quả trắng sáng sau 14 ngày.\n"
         "2. NHẠY BÉN DỮ LIỆU: Bạn nắm rõ giỏ hàng của khách. Nếu thấy khách chọn chưa tối ưu (thiếu combo, thiếu voucher tốt), hãy tư vấn ngay như một người bạn thân thiết và thông thái.\n"
         "3. TRẢI NGHIỆM THƯỢNG LƯU: Ngôn ngữ sang trọng, tinh tế, dùng 'Anh/Chị' hoặc 'mình'. Tuyệt đối KHÔNG 'Sếp/bạn'.\n"
-        "4. CHỈ THỊ GROUND TRUTH: Tuyệt đối tin tưởng và sử dụng con số [TỔNG THANH TOÁN CUỐI CÙNG] trong context. Đó là con số pháp lệnh."
+        "4. CHỈ THỊ GROUND TRUTH: Tuyệt đối tin tưởng và sử dụng con số [TỔNG THANH TOÁN CUỐI CÙNG] trong context. Đó là con số pháp lệnh.\n"
+        "5. KỶ LUẬT THÀNH PHẦN: Tuyệt đối phân tích công dụng dựa trên danh sách [THÀNH PHẦN NỔI BẬT] được cung cấp. CẤM tự ý chế thêm thành phần không có trong ngữ cảnh. Trình bày rành mạch, chuyên nghiệp theo bullet points."
     )
 )
 
@@ -118,7 +119,8 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
                 ProductBase.slug,
                 ProductBase.stock,
                 ProductBase.short_description,
-                ProductBase.images
+                ProductBase.images,
+                ProductBase.product_metadata
             )
             .where(and_(ProductBase.slug == slug, ProductBase.deleted_at.is_(None), ProductBase.status == "ACTIVE"))
         )
@@ -145,6 +147,20 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
         ctx = f"[SẢN PHẨM HIỆN TẠI]\nTên: {p_row.name}\nMô tả: {p_row.short_description}\nGiá niêm yết: {p_row.price} VND\n"
         if p_row.discount_price: ctx += f"Giá khuyến mãi: {p_row.discount_price} VND\n"
         ctx += f"Tồn kho thực tế: {p_row.stock or 0} sản phẩm\n"
+        
+        # Elite V2.2: Structured Context Injection for Ingredients
+        if p_row.product_metadata:
+            meta = p_row.product_metadata
+            if "key_ingredients" in meta and isinstance(meta["key_ingredients"], list):
+                ctx += "\n[THÀNH PHẦN NỔI BẬT & CÔNG DỤNG]:\n"
+                for ki in meta["key_ingredients"]:
+                    k_name = ki.get("name", "")
+                    k_desc = ki.get("description", "")
+                    if k_name: ctx += f"- {k_name}: {k_desc}\n"
+            
+            if "ingredients" in meta and isinstance(meta["ingredients"], str):
+                ctx += f"\n[BẢNG THÀNH PHẦN CHI TIẾT]:\n{meta['ingredients']}\n"
+                
         return ctx, p_info
     except Exception as e:
         logger.warning("[SupportAgent] Context sweep failure: %s", e)

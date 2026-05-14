@@ -282,9 +282,9 @@ class SupportAgentState {
         if (envAgentName) {
             this.config.agentName = envAgentName;
         }
-
-        // Proactive Rehydration
-        await this.ensureHistoryLoaded(20);
+        
+        // Elite V2.2: Removed proactive ensureHistoryLoaded to save RAM.
+        // History will ONLY load when the user actually opens the chat (Zero-Load policy).
     }
 
     /**
