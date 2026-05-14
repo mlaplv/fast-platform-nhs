@@ -25,6 +25,8 @@
     return () => {
       nanobot.ui.hideFooter = originalHideFooter;
     };
+  });
+
   $effect(() => {
     if (typeof document !== 'undefined') {
       const originalOverflow = document.body.style.overflow;

@@ -345,7 +345,7 @@
            <div class="flex items-center gap-2 mb-2">
               <div class="w-1 h-4 bg-orange-500/40 rounded-full"></div>
               <h4 class="text-[10px] font-black text-gray-900 tracking-widest flex items-center gap-1.5">
-                 <MessageCircleQuestion size={11} class="text-orange-500" /> Faq Core
+                 <MessageCircleQuestion size={11} class="text-orange-500" /> Câu hỏi thường gặp
               </h4>
            </div>
            <div class="space-y-2">

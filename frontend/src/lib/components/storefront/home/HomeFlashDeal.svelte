@@ -84,12 +84,12 @@
   <div class="flex flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
     <div class="flex items-center gap-4">
       <div class="flex items-center group cursor-default">
-        <h2 class="text-2xl font-black italic tracking-tighter flex items-center gap-1">
-          <span class="bg-gradient-to-r from-[#ee4d2d] to-[#ff6a00] bg-clip-text text-transparent">F</span>
-          <svg class="w-6 h-6 fill-[#ff2b54] animate-pulse drop-shadow-[0_0_8px_rgba(255,43,84,0.6)]" viewBox="0 0 24 24">
+        <h2 class="text-[28px] font-black tracking-tight flex items-center text-[#f05133]">
+          <span>F</span>
+          <svg class="w-5 h-7 fill-[#f05133] mx-[-2px]" viewBox="0 0 24 24">
             <path d="M13 2L4 14h7l-1 8 9-12h-7z"/>
           </svg>
-          <span class="bg-gradient-to-r from-[#ee4d2d] to-[#ff6a00] bg-clip-text text-transparent">lash Sale</span>
+          <span>ASH SALE</span>
         </h2>
       </div>
 
