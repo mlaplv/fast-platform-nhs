@@ -43,7 +43,7 @@
     {/if}
 </svelte:head>
 
-<div class="page-container h-dvh overflow-x-hidden overflow-y-auto bg-[#010101]">
+<div class="page-container md:h-auto md:overflow-visible h-dvh overflow-x-hidden overflow-y-auto bg-[#010101]">
     {#if data.tenant === 'admin'}
         {#await loadAdmin()}
             <!-- Liquid Loading State (Viral 2026) -->

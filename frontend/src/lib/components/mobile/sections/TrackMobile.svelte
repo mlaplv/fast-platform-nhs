@@ -25,6 +25,14 @@
     return () => {
       nanobot.ui.hideFooter = originalHideFooter;
     };
+  $effect(() => {
+    if (typeof document !== 'undefined') {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
   });
 </script>
 
@@ -125,6 +133,6 @@
 <style lang="postcss">
   :global(body) {
     background-color: #0a0a0a;
-    overflow: hidden;
   }
 </style>
+

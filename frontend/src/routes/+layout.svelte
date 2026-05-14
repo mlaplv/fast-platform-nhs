@@ -17,6 +17,8 @@
   import SupportChatDesktop from "$lib/components/client/support/SupportChatDesktop.svelte";
   import SupportChatMobile from "$lib/components/client/support/SupportChatMobile.svelte";
   import { untrack } from "svelte";
+  import { getSearchStore } from "$lib/state/commerce/search.svelte";
+  import SmartSearch from "$lib/components/storefront/product/SmartSearch.svelte";
 
   // Elite V2.2: Context initialization gated by tenant
   let { children, data } = $props();
@@ -26,6 +28,21 @@
     const path = $page.url.pathname;
     untrack(() => {
         supportAgent.setPath(path);
+        
+        // Elite V2.2: Global Navigation Guard (Scroll-Lock & Overlay Reset)
+        if (typeof document !== 'undefined') {
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+        }
+        
+        if (ui) {
+            ui.authModal.isOpen = false;
+        }
+        
+        try {
+            const searchStore = getSearchStore();
+            searchStore.isOverlayOpen = false;
+        } catch (e) {}
     });
   });
 
@@ -122,6 +139,7 @@
     <SupportAgentFAB isMobile={ui.isMobile} />
     {#if ui.isMobile}
       <SupportChatMobile productSlug={$page.params.slug} />
+      <SmartSearch variant="mobile-overlay" />
     {:else}
       <SupportChatDesktop productSlug={$page.params.slug} />
     {/if}

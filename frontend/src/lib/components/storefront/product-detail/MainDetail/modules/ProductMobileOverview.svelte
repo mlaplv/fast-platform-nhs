@@ -1,5 +1,6 @@
 <script lang="ts">
-    import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import { onMount } from 'svelte';
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import Zap from "@lucide/svelte/icons/zap";
   import Bookmark from "@lucide/svelte/icons/bookmark";
@@ -145,7 +146,8 @@
   let isAtEnd = $state(false);
   let selectedVouchers = $state<string[]>([]);
   
-  // Elite V2.2: Removed local state to use root-elevated prop
+  let mounted = $state(false);
+  onMount(() => { mounted = true; });
 
   function triggerViralFly() {
     isViralUnlocked = true;
@@ -171,20 +173,17 @@
             type: (v.type === 'SHIPPING' || v.type === 'ship') ? 'ship' : 'discount'
           }));
 
-    /**
-     * Elite V2.2: Intelligent Filtering for Mobile
-     */
     const vouchersList = list.filter((v: { id: string; label?: string }) => {
       const promoVId = product.metadata?.share_promotion?.voucher_id;
       const isViral = v.id.includes('VIRAL') || 
                       (v.label || '').toUpperCase().includes('VIRAL') || 
                       (v.label || '').toUpperCase().includes('LAN TỎA') ||
                       (promoVId && v.id === promoVId);
+      if (!mounted) return !isViral;
       return !isViral || isViralUnlocked;
     });
 
-    // Elite V2.2 Re-injection: Nếu đã mở khóa, đảm bảo voucher xuất hiện dù backend đã lọc
-    if (typeof window !== 'undefined' && isViralUnlocked) {
+    if (mounted && isViralUnlocked) {
       const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
       if (saved) {
         try {
@@ -210,7 +209,6 @@
     const v = activeVariant;
     if (!v) return product.discountPrice || product.discount_price || product.price || 0;
     
-    // Tier Resolution logic
     const comboVariants = pVariants.filter(cv => cv.attributes && cv.attributes.combo_qty);
     const qty = selectedQty;
     
@@ -310,7 +308,6 @@
     {isVideoUrl}
   />
 
-  <!-- Elite V2.2: Unified Price & Flash Sale Banner (Single Code Base) -->
   <section class="flash-sale-banner" class:is-flash={isFlashSaleActive}>
     <div class="fs-left">
       <div class="flex items-center gap-1.5">
@@ -348,19 +345,16 @@
             <span class="separator">:</span>
             <span>{timeLeft.seconds.toString().padStart(2, '0')}</span>
           {:else}
-            <!-- Elite V2.2: Daily Dynamic Countdown for Form Consistency -->
-            <span>{(23 - new Date().getHours()).toString().padStart(2, '0')}</span>
+            <span>{mounted ? (23 - new Date().getHours()).toString().padStart(2, '0') : '00'}</span>
             <span class="separator">:</span>
-            <span>{(59 - new Date().getMinutes()).toString().padStart(2, '0')}</span>
+            <span>{mounted ? (59 - new Date().getMinutes()).toString().padStart(2, '0') : '00'}</span>
             <span class="separator">:</span>
-            <span>{(59 - new Date().getSeconds()).toString().padStart(2, '0')}</span>
+            <span>{mounted ? (59 - new Date().getSeconds()).toString().padStart(2, '0') : '00'}</span>
           {/if}
         </div>
       </div>
     </div>
   </section>
-
-
 
   <!-- INFO SECTION -->
   <section class="info-content">
@@ -397,7 +391,6 @@
       <h1 class="product-title">{product.name.replace(/40gr/g, '40g')}</h1>
     </div>
 
-    <!-- Rating & Sold count (Moved Up to match Image 1) -->
     <div class="product-stats-row mb-2">
       <div class="rating-box">
         <span class="scoreText">{stats?.average_rating || product.metadata?.rating || '5.0'}</span>
@@ -413,7 +406,6 @@
       <div class="sold-count">{product.order_count_text || `Đã bán ${formatNumber(product.orderCount) || 0}`}</div>
     </div>
 
-    <!-- VARIANT CHIPS (Elite V2.2: Instant Action) -->
     {#if variations.length > 0}
       <div class="w-full py-3 border-y border-gray-50 my-2">
         <div class="flex items-center justify-between mb-2 px-1">
@@ -457,7 +449,6 @@
       </div>
     {/if}
 
-    <!-- COMBO & GIFTS MINI (Elite V2.2: Ultra-Lean & Thuần Việt) -->
     {#if activeComboQty > 1 || activeGifts.length > 0}
       <div class="mb-4 relative overflow-hidden bg-white border border-[#ee4d2d]/10 rounded-xl p-3 shadow-sm">
           <div class="flex items-center justify-between mb-2">

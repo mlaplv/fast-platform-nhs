@@ -28,7 +28,13 @@
   let showVerification = $state(false);
   let isScanning = $state(false);
   let verificationData = $state<BarcodeVerificationResponse | null>(null);
-  let activeFaq = $state<number | null>(0);
+  let activeFaq = $state<number | null>(null);
+  
+  $effect(() => {
+    if (activeFaq === null && product.metadata?.faqs?.length > 0) {
+      activeFaq = 0;
+    }
+  });
 
   function triggerScan() {
     isScanning = true;
@@ -108,7 +114,7 @@
           <div class="flex items-center gap-2 text-[13px] font-bold tracking-tighter">
              <a href="/products" class="text-gray-400 hover:text-gray-900 transition-colors">osmo</a>
              <svg class="w-3 h-3 text-gray-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" /></svg>
-             <a href="/{product.categorySlug || 'products'}/" class="text-[#0384ff] hover:underline truncate">
+             <a href="/{product.categorySlug || 'products'}/" class="text-gray-900 hover:text-[#ee4d2d] hover:underline transition-colors truncate">
                 {product.category || 'Chăm sóc da'}
              </a>
           </div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fade, fly, scale } from 'svelte/transition';
+  import { fade, fly, scale, slide } from 'svelte/transition';
   import NewsDetailReviews from './NewsDetailReviews.svelte';
   import ImageWithFallback from '../ui/ImageWithFallback.svelte';
 
@@ -50,6 +50,46 @@
   
   const proseTags = ['div', 'section'];
   const proseWrapper = $derived(proseTags[(seedLength + 7) % proseTags.length]);
+
+  // Elite V2.2: Simple Pro Sentence Case
+  const formattedTitle = $derived(
+    article.title 
+      ? article.title.charAt(0).toUpperCase() + article.title.slice(1).toLowerCase() 
+      : ''
+  );
+
+  // Elite V2.2: Professional Accordion State
+  let activeFaq = $state<number | null>(null);
+  let showScrollTop = $state(false);
+  
+  $effect(() => {
+    const handleScroll = () => {
+      showScrollTop = window.scrollY > 400;
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  });
+
+  $effect(() => {
+    if (activeFaq === null && article.metadata?.faqs?.length > 0) {
+      activeFaq = 0;
+    }
+  });
+
+  async function toggleFaq(i: number) {
+    if (activeFaq === i) {
+      activeFaq = null;
+      return;
+    }
+    
+    if (activeFaq !== null) {
+      activeFaq = null;
+      // Wait for closing slide transition (200ms) + small buffer
+      await new Promise(r => setTimeout(r, 210));
+    }
+    
+    activeFaq = i;
+  }
 </script>
 
 <svelte:element this={outerWrapper} class="news-detail-content pb-8 text-gray-900">
@@ -91,9 +131,9 @@
                 </div>
             </div>
 
-            <h1 class="text-4xl md:text-5xl font-black text-gray-900 mb-0 mt-5 tracking-tighter leading-[1.1]">
-              {article.title}
-            </h1>
+                <h1 class="text-4xl lg:text-5xl font-black text-gray-900 leading-[1.1] tracking-tight mb-6">
+                  {formattedTitle}
+                </h1>
         </div>
 
         <!-- Featured Image -->
@@ -155,16 +195,30 @@
             Câu hỏi thường gặp
           </h2>
           <div class="space-y-4">
-            {#each article.metadata.faqs as faq}
-              <details class="group border-b border-gray-50 pb-4 last:border-0 last:pb-0">
-                <summary class="flex items-center justify-between cursor-pointer select-none hover:text-[#C18F7E] transition-colors">
-                  <span class="text-[13px] font-bold text-[#0f172a] leading-snug pr-4">{faq.question}</span>
-                  <svg class="w-3 h-3 text-gray-300 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" /></svg>
-                </summary>
-                <div class="pt-3 text-[12px] text-gray-500 leading-relaxed italic">
-                  {faq.answer}
-                </div>
-              </details>
+            {#each article.metadata.faqs as faq, i}
+              <div class="border-b border-gray-50 pb-4 last:border-0 last:pb-0">
+                <button 
+                  class="w-full flex items-center justify-between cursor-pointer select-none hover:text-[#C18F7E] transition-colors bg-transparent border-none p-0 text-left group/faq"
+                  onclick={() => toggleFaq(i)}
+                >
+                  <span class="text-[13px] font-bold {activeFaq === i ? 'text-[#C18F7E]' : 'text-[#0f172a]'} leading-snug pr-4 transition-colors">{faq.question}</span>
+                  <svg 
+                    class="w-3 h-3 text-gray-300 transition-transform duration-300 {activeFaq === i ? 'rotate-180 text-[#C18F7E]' : ''}" 
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {#if activeFaq === i}
+                  <div 
+                    class="pt-3 text-[12px] text-gray-500 leading-relaxed italic"
+                    transition:slide={{ duration: 200 }}
+                  >
+                    {faq.answer}
+                  </div>
+                {/if}
+              </div>
             {/each}
           </div>
         </div>
@@ -204,6 +258,19 @@
         </div>
     </aside>
   </div>
+
+  {#if showScrollTop}
+    <button 
+      class="fixed bottom-10 right-10 w-14 h-14 bg-white/90 backdrop-blur-xl border border-gray-100 shadow-2xl rounded-full flex items-center justify-center text-[#C18F7E] z-50 hover:bg-black hover:text-white hover:scale-110 active:scale-90 transition-all group"
+      onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      in:fly={{ y: 20, duration: 400 }}
+      out:fade
+    >
+      <svg class="w-6 h-6 transform group-hover:-translate-y-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7" />
+      </svg>
+    </button>
+  {/if}
 </svelte:element>
 
 <style>

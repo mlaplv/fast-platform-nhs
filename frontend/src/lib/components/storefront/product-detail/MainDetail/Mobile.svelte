@@ -42,11 +42,9 @@
   let lastScrollY = 0;
   let scrollRatio = $state(0);
   let hideRatio = $state(0);
-  let scrollContainer: HTMLElement | undefined = $state();
 
   function handleScroll() {
-    if (!scrollContainer) return;
-    const st = scrollContainer.scrollTop;
+    const st = window.scrollY;
     showTabs = st > 400;
     isScrolled = st > 50;
 
@@ -68,7 +66,7 @@
     const sections = ["overview", "description", "reviews", "recommendations"];
     for (const id of [...sections].reverse()) {
       const el = document.getElementById(id);
-      if (el && el.offsetTop <= st + 100) {
+      if (el && el.offsetTop <= st + 120) {
         activeTab = id;
         break;
       }
@@ -77,8 +75,8 @@
 
   function scrollToSection(id: string) {
     const el = document.getElementById(id);
-    if (el && scrollContainer) {
-      scrollContainer.scrollTo({
+    if (el) {
+      window.scrollTo({
         top: el.offsetTop - 80,
         behavior: "smooth",
       });
@@ -273,25 +271,19 @@
   }
 
   onMount(() => {
-    if (scrollContainer)
-      scrollContainer.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     
     const handleOpenVerification = () => triggerScan();
     window.addEventListener("openVerificationCenter", handleOpenVerification);
     
     return () => {
-      if (scrollContainer)
-        scrollContainer.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("openVerificationCenter", handleOpenVerification);
     };
   });
 </script>
 
-<svelte:element
-  this="div"
-  class="product-mobile-root"
-  bind:this={scrollContainer}
->
+<div class="product-mobile-root" translate="no">
   <!-- 1. STICKY HEADER -->
   <ProductMobileHeader
     {product}
@@ -394,15 +386,14 @@
   {/if}
 
   <div class="h-20"></div>
-</svelte:element>
+</div>
 
 <style>
   .product-mobile-root {
     background: #f5f5f5;
-    height: 100vh;
+    min-height: 100dvh;
     width: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    position: relative;
   }
 
   .content-body {

@@ -206,11 +206,11 @@
       </h2>
         
         {#if processedDescription}
-          <p class="description tiktok-shadow">
-            <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ" as="span">
+          <div class="description tiktok-shadow">
+            <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ" as="div">
               {@html processedDescription}
             </EditableWrapper>
-          </p>
+          </div>
         {/if}
         
         <div class="metrics-grid">

@@ -11,6 +11,7 @@
   import type { Product, ProductFacets, Category, ReviewStats } from '$lib/types';
   import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';
   import ProductMobileReviews from '../product-detail/MainDetail/modules/ProductMobileReviews.svelte';
+  import { getSearchStore } from '$lib/state/commerce/search.svelte';
 
 
   interface Props {
@@ -23,6 +24,7 @@
 
   let { products = [], categoryName = "Danh mục", searchQuery, facets = null, category = null }: Props = $props();
 
+  const searchStore = getSearchStore();
   let activeTab = $state('CATEGORY');
   let isFilterDrawerOpen = $state(false);
   let selectedBrands = $state<string[]>([]);
@@ -107,17 +109,7 @@
 
 <div class="min-h-screen bg-white pb-24 font-sans">
   <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-gray-100 flex flex-col">
-    <div class="flex items-center justify-between px-4 pt-3 pb-1">
-      <div class="flex flex-col">
-        <h1 class="text-xl font-black tracking-widest text-black">osmo</h1>
-        <span class="text-[8px] font-bold text-gray-400 capitalize tracking-widest">Bật tông trắng sáng</span>
-      </div>
-      <div class="flex items-center gap-3">
-        <button class="p-2 text-gray-900"><Search size={20} /></button>
-      </div>
-    </div>
-
-    <div class="px-2 py-1 flex items-center gap-2 h-12">
+    <div class="px-2 py-2 flex items-center gap-2">
        <button onclick={() => goto('/')} class="p-2 text-gray-900 flex-shrink-0"><ChevronLeft size={24} /></button>
        <div onclick={() => searchStore.isOverlayOpen = true} role="presentation" class="flex-1 min-w-0 h-[38px] bg-gray-100 rounded-xl flex items-center px-4 gap-2 border border-gray-100 cursor-pointer">
           <Search size={16} class="text-gray-400 flex-shrink-0" />

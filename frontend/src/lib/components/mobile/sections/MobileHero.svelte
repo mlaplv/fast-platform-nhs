@@ -1,5 +1,6 @@
 <script lang="ts">
-    import Zap from "@lucide/svelte/icons/zap";
+  import { onMount } from 'svelte';
+  import Zap from "@lucide/svelte/icons/zap";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import Droplets from "@lucide/svelte/icons/droplets";
   import Flame from "@lucide/svelte/icons/flame";
@@ -37,6 +38,9 @@
   // Elite V2.2: Dynamic Countdown logic instead of hardcode
   const flashSaleEnd = $derived(metadata.flash_sale_end ? new Date(metadata.flash_sale_end).getTime() : 0);
   let timerSeconds = $state(0);
+  let mounted = $state(false);
+
+  onMount(() => { mounted = true; });
 
   $effect(() => {
     const updateTimer = () => {
@@ -236,11 +240,11 @@
                <span class="text-[10px] text-white/70 tracking-wide font-medium ml-1">· {formattedSales} đã bán</span>
             </div>
 
-            <p class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium drop-shadow-sm">
-              <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.short_description` : 'shortDescription'} label="SỬA MÔ TẢ NGẮN" as="span">
+            <div class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium drop-shadow-sm">
+              <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.short_description` : 'shortDescription'} label="SỬA MÔ TẢ NGẮN" as="div">
                   {@html getProcessedDescription(v)}
               </EditableWrapper>
-            </p>
+            </div>
             
             <div class="flex flex-wrap gap-2 mt-1 pr-14">
               {#each metrics.slice(0, 3) as metric, i}

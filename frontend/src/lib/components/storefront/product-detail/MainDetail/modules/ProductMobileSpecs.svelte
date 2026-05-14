@@ -18,7 +18,11 @@
   let containerRef = $state<HTMLElement>();
   let hasMore = $state(false);
   let activeMobileFaq = $state<number | null>(0);
+  let mounted = $state(false);
   const truncatedHeight = 400;
+
+  import { onMount } from 'svelte';
+  onMount(() => { mounted = true; });
 
   $effect(() => {
     if (containerRef) {
@@ -135,7 +139,7 @@
     </div>
   </div>
 
-  {#if hasMore}
+  {#if mounted && hasMore}
     <button 
       type="button"
       class="expand-btn-elite" 
