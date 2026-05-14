@@ -133,7 +133,7 @@
       </div>
     </div>
     <div class="text-right relative z-10">
-      <p class="text-[8px] text-white/30 font-bold mb-1">DNA BATCH</p>
+      <p class="text-[8px] text-white/30 font-bold mb-1">Batch DNA</p>
       <p class="text-sm font-mono text-luxury-copper font-black tracking-tight">{manufacturer.batch_dna}</p>
     </div>
   </div>
@@ -164,7 +164,7 @@
       </h3>
       {#if manufacturer.notification_no}
         <div class="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
-          <span class="text-[7px] font-black text-blue-400">Official Registration</span>
+          <span class="text-[7px] font-black text-blue-400">Official registration</span>
         </div>
       {/if}
     </div>
@@ -205,9 +205,9 @@
       <h3 class="text-[10px] font-black text-white/40 flex items-center gap-2">
         <MapPin size={12} class="text-luxury-copper" /> Nhà máy sản xuất
       </h3>
-      <div class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-luxury-copper/10 border border-luxury-copper/20">
+        <div class="flex items-center gap-1.5 px-2 py-1 rounded-full bg-luxury-copper/10 border border-luxury-copper/20">
         <div class="w-1 h-1 rounded-full bg-luxury-copper animate-pulse"></div>
-        <span class="text-[8px] font-black text-luxury-copper">{manufacturer.origin} Official Site</span>
+        <span class="text-[8px] font-black text-luxury-copper">{manufacturer.origin} Official site</span>
       </div>
     </div>
 
@@ -221,8 +221,8 @@
           <div class="absolute -inset-4 bg-red-500/20 rounded-full blur-md animate-pulse"></div>
           <div class="w-4 h-4 bg-red-500 border-2 border-white rounded-full shadow-[0_0_20px_rgba(239,68,68,0.8)] relative z-10"></div>
         </div>
-        <div class="mt-3 px-3 py-1 bg-black/80 backdrop-blur border border-white/10 rounded text-[8px] font-black text-white uppercase tracking-[0.2em] shadow-2xl">
-          Verified Location
+        <div class="mt-3 px-3 py-1 bg-black/80 backdrop-blur border border-white/10 rounded text-[8px] font-black text-white tracking-[0.2em] shadow-2xl">
+          Verified location
         </div>
       </div>
     </div>
@@ -292,7 +292,7 @@
         </div>
         <div>
           <p class="text-[9px] font-bold text-white leading-tight line-clamp-1">{cert.name}</p>
-          <p class="text-[7px] text-emerald-400 font-bold uppercase tracking-widest flex items-center gap-1">
+          <p class="text-[7px] text-emerald-400 font-bold tracking-widest flex items-center gap-1">
             <CheckCircle size={8} /> {cert.status}
           </p>
         </div>

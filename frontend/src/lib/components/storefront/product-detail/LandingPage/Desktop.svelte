@@ -59,14 +59,14 @@
   // Verification System (Elite V2.2)
   let isScanning = $state(false);
   let showVerification = $state(false);
-  let verificationData = $state(null);
+  let verificationData = $state<any>(null);
 
   function triggerScan() {
     isScanning = true;
     showVerification = false;
   }
 
-  function handleScanComplete(event: any) {
+  function handleScanComplete(event: { verificationData: any }) {
     isScanning = false;
     verificationData = event.verificationData;
     showVerification = true;
@@ -382,7 +382,7 @@
   <!-- BREADCRUMB -->
   <div class="bg-[#f5f5f5] py-4">
     <div
-      class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-3 text-[11px] text-gray-500 font-bold uppercase tracking-wider"
+      class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-3 text-[11px] text-gray-500 font-bold tracking-wider"
     >
       <a
         href="/"
@@ -532,7 +532,7 @@
     font-weight: 800 !important;
     margin-top: 2rem !important;
     margin-bottom: 1rem !important;
-    text-transform: uppercase;
+    text-transform: none;
   }
   :global(.prose-osmo img) {
     width: 100% !important;

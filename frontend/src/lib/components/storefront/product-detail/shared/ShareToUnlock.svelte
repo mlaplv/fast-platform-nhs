@@ -92,7 +92,7 @@
         const existingVoucher = shopStore?.vouchers?.find(v => v.id === promoConfig.voucher_id);
         if (existingVoucher) {
             voucherCode = existingVoucher.code;
-            voucherLabel = existingVoucher.label || 'VOUCHER ĐẶC QUYỀN';
+            voucherLabel = existingVoucher.label || 'Voucher đặc quyền';
             step = 'revealed';
         }
       } else if (saved) {
@@ -281,7 +281,7 @@
     _fingerprint = null;
   }
 
-  let campaignData = $state<any>(null);
+  let campaignData = $state<{ voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string } | null>(null);
   let isCampaignLoaded = $state(false);
 
   $effect(() => {
@@ -290,7 +290,7 @@
       isCampaignLoaded = true;
       fetch(`/api/v1/client/viral/campaign/${vId}`)
         .then(res => res.json())
-        .then(data => { campaignData = data; })
+        .then((data: any) => { campaignData = data; })
         .catch(() => {});
     }
   });
@@ -307,7 +307,7 @@
     campaignData?.cta_text || 
     viralSuite?.share_cta || 
     promoConfig?.cta_text ||
-    'NHẬN'
+    'Nhận'
   );
 
   const subDescription = $derived(

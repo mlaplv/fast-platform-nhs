@@ -216,7 +216,7 @@
           </div>
           <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-luxury-copper/10 border border-luxury-copper/20">
             <div class="w-1.5 h-1.5 rounded-full bg-luxury-copper animate-pulse"></div>
-            <span class="text-[10px] font-black text-luxury-copper">{manufacturer.origin} Official Site</span>
+            <span class="text-[10px] font-black text-luxury-copper">{manufacturer.origin} Official site</span>
           </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-center relative z-10">
@@ -231,7 +231,7 @@
                 <div class="w-4 h-4 bg-red-500 border-2 border-white rounded-full shadow-[0_0_15px_rgba(239,68,68,0.8)] relative z-10"></div>
               </div>
               <div class="mt-2 px-2 py-0.5 bg-black/60 backdrop-blur border border-white/10 rounded text-[8px] font-bold text-white tracking-wider">
-                Verified Location
+                Verified location
               </div>
             </div>
           </div>
@@ -353,7 +353,7 @@
                   </div>
                   <div class="flex-1">
                     <span class="block text-[11px] font-bold text-white/90 mb-0.5 leading-tight">{cert.name}</span>
-                    <span class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                    <span class="text-[9px] text-emerald-400 font-bold tracking-widest flex items-center gap-1">
                       <CheckCircle size={10} /> {cert.status}
                     </span>
                   </div>

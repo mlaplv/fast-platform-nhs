@@ -56,7 +56,7 @@
     null
   );
 
-  let campaignData = $state<any>(null);
+  let campaignData = $state<{ voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string } | null>(null);
   let isCampaignLoaded = $state(false);
 
   $effect(() => {
@@ -65,7 +65,7 @@
       isCampaignLoaded = true;
       fetch(`/api/v1/client/viral/campaign/${vId}`)
         .then(res => res.json())
-        .then(data => { campaignData = data; })
+        .then((data: any) => { campaignData = data; })
         .catch(() => {});
     }
   });

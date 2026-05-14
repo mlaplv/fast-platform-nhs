@@ -74,8 +74,8 @@
         fetchPromises.push(
           fetch(`/api/v1/client/products?category_id=${categoryId}&limit=11`)
             .then(res => res.json())
-            .then(data => {
-              categoryProducts = (data.data || []).filter((p: Product) => p.id !== product.id).slice(0, 10);
+            .then((data: { data?: Product[] }) => {
+              categoryProducts = (data.data || []).filter(p => p.id !== product.id).slice(0, 10);
             })
         );
       }
@@ -84,8 +84,8 @@
         fetchPromises.push(
           fetch(`/api/v1/client/products?search=${encodeURIComponent(String(brandName))}&limit=11`)
             .then(res => res.json())
-            .then(data => {
-              brandProducts = (data.data || []).filter((p: Product) => p.id !== product.id).slice(0, 10);
+            .then((data: { data?: Product[] }) => {
+              brandProducts = (data.data || []).filter(p => p.id !== product.id).slice(0, 10);
             })
         );
       }
@@ -94,10 +94,10 @@
         fetchPromises.push(
           fetch(`/api/v1/client/products?ids=${recentIds.join(',')}&limit=12`)
             .then(res => res.json())
-            .then(data => {
+            .then((data: { data?: Product[] }) => {
               const fetched = data.data || [];
               recentProducts = recentIds
-                .map(id => fetched.find((p: Product) => p.id === id))
+                .map(id => fetched.find(p => p.id === id))
                 .filter((p): p is Product => !!p && p.id !== product.id);
               recentlyViewed.products = recentProducts;
             })
@@ -181,7 +181,7 @@
       <div class="footer-actions">
         <a href={seeMoreLink} class="btn-sharp">
           <Sparkles size={16} class="mr-2" />
-          <span>XEM THÊM ƯU ĐÃI</span>
+          <span>Xem thêm ưu đãi</span>
           <ChevronRight size={18} class="ml-1" />
         </a>
       </div>

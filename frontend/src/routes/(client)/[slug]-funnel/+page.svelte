@@ -174,14 +174,14 @@
   // Verification System (Elite V2.2)
   let isScanning = $state(false);
   let showVerification = $state(false);
-  let verificationData = $state(null);
+  let verificationData = $state<any>(null);
 
   function triggerScan() {
     isScanning = true;
     showVerification = false;
   }
 
-  function handleScanComplete(event: any) {
+  function handleScanComplete(event: { verificationData: any }) {
     isScanning = false;
     verificationData = event.verificationData;
     showVerification = true;
@@ -384,7 +384,7 @@
 
 
   {#if isScanning}
-    <ScannerHUD barcode={product?.sku || (product?.metadata as any)?.barcode} oncomplete={handleScanComplete} />
+    <ScannerHUD barcode={product?.sku || (product?.metadata?.['barcode'] as string)} oncomplete={handleScanComplete} />
   {/if}
 
   {#if showVerification}
