@@ -39,7 +39,7 @@
   <div class="faq-section">
     <div class="section-header">
       <HelpCircle size={20} class="header-icon" />
-      <h3 class="section-title">HỎI ĐÁP VỀ SẢN PHẨM</h3>
+      <h2 class="section-title">HỎI ĐÁP VỀ {product.name.toUpperCase()}</h2>
     </div>
     
     <div class="faq-list">

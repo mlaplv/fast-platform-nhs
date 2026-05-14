@@ -262,7 +262,7 @@
 <div class="bg-white p-6 md:p-10 mt-0 rounded-none relative overflow-hidden mb-0">
   <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 pb-6 border-b border-gray-50">
     <div>
-      <h2 class="text-2xl font-black text-[#1a1a1a] tracking-tight leading-none mb-2">Đánh giá {entityType === 'CATEGORY' ? 'danh mục ' + (product?.name || '') : 'sản phẩm'}</h2>
+      <h2 class="text-2xl font-black text-[#1a1a1a] tracking-tight leading-none mb-2">Đánh giá {product.name}</h2>
       <p class="text-gray-400 text-xs font-medium tracking-[0.2em]">Trải nghiệm thực tế từ người dùng</p>
     </div>
     <button 
@@ -521,7 +521,7 @@
                         <Play class="w-4 h-4 text-white fill-current opacity-90" />
                       </div>
                     {:else}
-                      <img src={media.url} alt="Review media" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                      <img src={media.url} alt="Hình ảnh đánh giá thực tế {product.name}" class="w-full h-full object-cover transition-transform group-hover:scale-110" />
                     {/if}
                   </div>
                 {/each}

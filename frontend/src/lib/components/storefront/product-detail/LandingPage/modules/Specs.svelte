@@ -58,7 +58,7 @@
 
   <!-- Detailed Attributes -->
   <div class="attributes-section">
-    <h3 class="section-title">Chi tiết sản phẩm</h3>
+    <h2 class="section-title text-[14px]">Thông số kỹ thuật {product.name}</h2>
     <div class="attributes-grid">
       {#each visibleAttributes as [key, value]}
         <div class="attribute-row">

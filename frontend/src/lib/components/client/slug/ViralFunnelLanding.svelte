@@ -24,7 +24,7 @@
     onUnlock?: () => void;
   }
 
-  let { product, timer_prefix = "Ưu đãi lột xác kết thúc sau:", onUnlock }: Props = $props();
+  let { product, timer_prefix = "Ưu đãi đặc quyền kết thúc sau:", onUnlock }: Props = $props();
   const clientUi = getClientUi();
   const shopStore = getShopStore();
   const timeLeft = $derived(shopStore.timeLeft);

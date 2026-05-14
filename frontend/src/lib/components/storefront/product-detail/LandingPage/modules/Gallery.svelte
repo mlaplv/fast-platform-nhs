@@ -123,7 +123,7 @@
             <svg class="play-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
           </div>
         {:else}
-          <img src={img} alt="Thumb" class="thumb-img" />
+          <img src={img} alt="{product.name} - Hình ảnh {i + 1}" class="thumb-img" />
         {/if}
       </button>
     {/each}

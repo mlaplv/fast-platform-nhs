@@ -113,7 +113,7 @@
 
   const fallbackDesc = `
     <p class="text-center mb-3 text-[15px] md:text-[17px] font-light leading-relaxed tracking-wide">
-      Bật tông trắng sáng cùng <h1 class="inline-block text-[inherit] font-semibold">Miccosmo Beppin Body Virgin White Serum</h1> trẻ hóa da cấp độ tế bào - Tinh chất dưỡng sáng hồng vùng nhạy cảm (Nách, Nhũ hoa, Bikini).
+      Bật tông trắng sáng cùng <span class="font-semibold">Miccosmo Beppin Body Virgin White Serum</span> trẻ hóa da cấp độ tế bào - Tinh chất dưỡng sáng hồng vùng nhạy cảm (Nách, Nhũ hoa, Bikini).
     </p>
     <p class="text-center text-[14px] md:text-[15px] font-light leading-relaxed opacity-80 mx-auto max-w-2xl">
       Giải pháp thẩm thấu sâu đa tầng, giúp tế bào kích hoạt độ bóng, trong, trắng sáng. An toàn - Hiệu quả cho mọi loại da kể cả da nhạy cảm. Không bết dính.
@@ -123,10 +123,7 @@
   const processedDescription = $derived.by(() => {
     let desc = product?.shortDescription || fallbackDesc;
     const keyword = "Beppin Body Virgin White Serum";
-    // Check if keyword is already wrapped in h1
-    if (desc.includes(keyword) && !desc.includes('<h1')) {
-      return desc.replace(keyword, `<h1 class="inline-block text-[inherit] font-semibold">${keyword}</h1>`);
-    }
+    // SGE Fix: Ensure no hidden text, use visible H1 elsewhere
     return desc;
   });
 
@@ -293,7 +290,7 @@
 
   <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface">
     <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
-      <div class="elite-hero-headline typing-headline text-center font-bold">
+      <h1 class="elite-hero-headline typing-headline text-center font-bold">
         {#if !liveEditStore.isEditMode}
           <span 
             use:typewriter={{ 
@@ -312,7 +309,7 @@
           {#if (!rawH1.startsWith('[OFF]') && !rawH2.startsWith('[OFF]')) || liveEditStore.isEditMode}
             <br/>
           {/if}
-
+ 
           {#if !rawH2.startsWith('[OFF]') || liveEditStore.isEditMode}
             <span class="text-luxury-copper">
               <EditableWrapper path="metadata.hero_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
@@ -322,7 +319,7 @@
           {/if}
         {/if}
         <span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-luxury-copper"></span>
-      </div>
+      </h1>
 
       {#if processedDescription}
          <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">

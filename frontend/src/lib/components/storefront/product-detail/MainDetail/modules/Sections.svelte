@@ -226,7 +226,7 @@
      <div class="flex items-center justify-between mb-8 pb-4 border-b border-gray-50">
         <div class="flex items-center gap-3">
            <div class="w-1.5 h-6 bg-[#ee4d2d]"></div>
-           <h2 class="text-[20px] font-black text-gray-900 tracking-tight">Câu hỏi thường gặp</h2>
+           <h2 class="text-[20px] font-black text-gray-900 tracking-tight">Câu hỏi thường gặp về {product.name}</h2>
         </div>
      </div>
      <div class="px-0 flex flex-col gap-4">

@@ -1,6 +1,13 @@
-# Task: Redesign VerificationCenter for Ultra-Lean (Sharp Corners & Reduced Gaps)
+# Task: Elite V2.2 Landing Optimization (Performance, SEO & Semantics)
 
-- [x] Scout: Analyze `VerificationCenter.svelte` for existing `rounded-*`, `gap-*`, `mb-*`, and `p-*` classes.
-- [x] Propose: Replace all border radiuses with `rounded-none`, and reduce layout spacing significantly.
-- [x] Implement: Updated classes (`gap-6` -> `gap-2`, `mb-8` -> `mb-4`, `p-6` -> `p-4`, etc.).
-- [x] Verify: Ensure the modal and UI elements retain structural integrity but with a sharp, dense, industrial look.
+- [x] **Phase 1: Vietnamese Semantics**
+    - [x] Standardize terminology: Replace "lột xác" with "đặc quyền" and "thăng hạng nhan sắc" across all marketing components.
+    - [x] Fix sentence casing and professionalism in `OfferGrid`, `ViralFunnelLanding`.
+- [x] **Phase 2: Performance Optimization (< 1s)**
+    - [x] Implement JIT/Lazy loading for below-the-fold images in `OfferCard`.
+    - [x] Enable `decoding="async"` for all high-impact storefront images.
+    - [x] Cleanup legacy regex and unused reactivity in `HeroBanner`, `OfferGrid`.
+- [x] **Phase 3: SEO & AI SGE Protocol**
+    - [x] Remove hidden H1 tags (`clip: rect`) in `HomeMobile.svelte`.
+    - [x] Integrate visible H1 tags into the natural layout in `HeroBanner` (Desktop) and `MobileHero` (Mobile).
+    - [x] Optimize accessibility with `aria-hidden` for decorative elements.

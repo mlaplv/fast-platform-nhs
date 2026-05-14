@@ -25,10 +25,8 @@
   const variants = $derived(product?.variants || []);
   const metadata = $derived(product?.metadata || {});
 
-  const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
-  const legacyParts = $derived(metadata.offer_headline?.split("<span class='text-luxury-gold'>") || []);
-  const h1 = $derived(clean(metadata.offer_headline_1) || stripTags(legacyParts[0]) || "CHẠM NGƯỠNG ĐỈNH CAO CỦA");
-  const h2 = $derived(clean(metadata.offer_headline_2) || stripTags(legacyParts[1]) || "SỰ TỰ TIN TUYỆT ĐỐI");
+  const h1 = $derived(clean(metadata.offer_headline_1) || "CHẠM NGƯỠNG ĐỈNH CAO CỦA");
+  const h2 = $derived(clean(metadata.offer_headline_2) || "SỰ TỰ TIN TUYỆT ĐỐI");
   
   const clean = (s: unknown) => {
     if (!s) return "";
@@ -39,10 +37,10 @@
 
   const mkt = $derived({
     sub: metadata.offer_subheadline || "",
-    timer_prefix: clean(metadata.offer_timer_prefix || "Ưu đãi lột xác kết thúc sau:"),
+    timer_prefix: clean(metadata.offer_timer_prefix || "Ưu đãi đặc quyền kết thúc sau:"),
     shipping_prefix: clean(metadata.offer_shipping_prefix || "+ VẬN CHUYỂN:"),
     savings_prefix: clean(metadata.offer_savings_prefix || "TIẾT KIỆM NGAY:"),
-    booking_suffix: clean(metadata.offer_booking_suffix || "phụ nữ đã lột xác thành công tuần này"),
+    booking_suffix: clean(metadata.offer_booking_suffix || "phụ nữ đã thăng hạng nhan sắc tuần này"),
     trust_verified_by: clean(metadata.offer_trust_verified_by || "TIÊU CHUẨN Y KHOA NHẬT BẢN"),
     compliance_note: clean(metadata.offer_compliance_note || "* Giao hàng bảo mật, <br/> Đóng gói tinh tế như một món quà trang sức."),
     label_activation: metadata.offer_label_activation || "GIAI ĐOẠN ĐÁNH THỨC",
@@ -72,7 +70,6 @@
   let hasInitialized = $state(false);
   $effect(() => {
     if (variants.length > 0 && ui.isDetermined && !hasInitialized) {
-      // Elite V2.2: Force Item 2 (index 1) on Desktop as per design preference
       const defaultIdx = (ui.isDesktop && variants.length >= 2) ? 1 : 0;
       
       if (defaultIdx === 1) {

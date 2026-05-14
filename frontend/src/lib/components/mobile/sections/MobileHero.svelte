@@ -193,9 +193,9 @@
               <!-- Removed slogan slot as requested -->
               
               {#if i === 0}
-                <div class="hero-title text-3xl font-extrabold text-white tracking-tighter italic leading-tight bg-clip-text">
+                <h1 class="hero-title text-3xl font-extrabold text-white tracking-tighter italic leading-tight bg-clip-text">
                   Miccosmo Beppin Body Virgin White Serum
-                </div>
+                </h1>
               {/if}
 
               <!-- Removed subtitle slot as requested -->

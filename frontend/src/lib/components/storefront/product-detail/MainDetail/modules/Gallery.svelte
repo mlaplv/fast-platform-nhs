@@ -171,7 +171,7 @@
             Viral
           </div>
         {:else}
-          <img src={img} alt="Thumb" class="w-full h-full object-cover" />
+          <img src={img} alt="{product.name} - Hình ảnh {i + 1}" class="w-full h-full object-cover" />
         {/if}
       </button>
     {/each}

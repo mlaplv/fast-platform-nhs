@@ -162,11 +162,16 @@
       <img 
          src="{product?.images?.[idx] || product?.images?.[0] ? resolveMediaUrl(product.images[idx] || product.images[0]) : ''}" 
          alt={getVariantTitle(variant)} 
+         loading="lazy"
+         decoding="async"
          class="w-full h-full object-cover drop-shadow-[0_40px_30px_rgba(0,0,0,0.7)] transform hover:scale-110 transition-transform duration-1000 z-10 relative"
       />
       <img 
          src="{product?.images?.[idx] || product?.images?.[0] ? resolveMediaUrl(product.images[idx] || product.images[0]) : ''}" 
-         alt={getVariantTitle(variant)} 
+         alt="" 
+         aria-hidden="true"
+         loading="lazy"
+         decoding="async"
          class="absolute top-[75%] left-0 w-full h-full object-cover scale-y-[-1] opacity-30 blur-lg grayscale pointer-events-none"
       />
       <div class="absolute top-6 left-6 z-20">
