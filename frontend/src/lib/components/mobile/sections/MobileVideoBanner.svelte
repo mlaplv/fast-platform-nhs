@@ -133,6 +133,26 @@
       return { label: custom.label || fb.label, value: custom.value || fb.value, color: custom.color || fb.color };
     });
   });
+  const fallbackDesc = 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.';
+  const processedDescription = $derived.by(() => {
+    let desc = product?.shortDescription || fallbackDesc;
+    const keyword = "Beppin Body Virgin White Serum";
+    
+    if (desc.includes('<h1') && desc.includes(keyword)) return desc;
+
+    if (desc.includes('<span') && desc.includes(keyword)) {
+      desc = desc.replace(
+        /<span([^>]*)>(.*?Beppin Body Virgin White Serum.*?)<\/span>/gi,
+        '<h1 style="display:inline;font-size:inherit;font-weight:inherit;margin:0;padding:0;color:inherit">$2</h1>'
+      );
+      if (desc.includes('<h1')) return desc;
+    }
+
+    return desc.replace(
+      new RegExp(keyword, 'gi'),
+      `<h1 class="inline font-semibold" style="font-size:inherit;margin:0;padding:0;color:inherit">$&</h1>`
+    );
+  });
 </script>
 
 <div class="video-banner-root">
@@ -185,10 +205,10 @@
         </span>
       </h2>
         
-        {#if product?.shortDescription}
+        {#if processedDescription}
           <p class="description tiktok-shadow">
             <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ" as="span">
-              {product.shortDescription}
+              {@html processedDescription}
             </EditableWrapper>
           </p>
         {/if}

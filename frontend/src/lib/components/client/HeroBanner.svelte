@@ -112,9 +112,9 @@
   });
 
   const fallbackDesc = `
-    <p class="text-center mb-3 text-[15px] md:text-[17px] font-light leading-relaxed tracking-wide">
-      Bật tông trắng sáng cùng <span class="font-semibold">Miccosmo Beppin Body Virgin White Serum</span> trẻ hóa da cấp độ tế bào - Tinh chất dưỡng sáng hồng vùng nhạy cảm (Nách, Nhũ hoa, Bikini).
-    </p>
+    <div class="text-center mb-3 text-[15px] md:text-[17px] font-light leading-relaxed tracking-wide">
+      Bật tông trắng sáng cùng <h1 class="inline font-semibold" style="font-size:inherit;margin:0;padding:0;color:inherit">Beppin Body Virgin White Serum</h1> trẻ hóa da cấp độ tế bào - Tinh chất dưỡng sáng hồng vùng nhạy cảm (Nách, Nhũ hoa, Bikini).
+    </div>
     <p class="text-center text-[14px] md:text-[15px] font-light leading-relaxed opacity-80 mx-auto max-w-2xl">
       Giải pháp thẩm thấu sâu đa tầng, giúp tế bào kích hoạt độ bóng, trong, trắng sáng. An toàn - Hiệu quả cho mọi loại da kể cả da nhạy cảm. Không bết dính.
     </p>
@@ -123,8 +123,24 @@
   const processedDescription = $derived.by(() => {
     let desc = product?.shortDescription || fallbackDesc;
     const keyword = "Beppin Body Virgin White Serum";
-    // SGE Fix: Ensure no hidden text, use visible H1 elsewhere
-    return desc;
+    
+    // Nếu đã có thẻ h1 bọc từ khóa rồi thì trả về luôn
+    if (desc.includes('<h1') && desc.includes(keyword)) return desc;
+
+    // Ưu tiên thay thế nếu từ khóa đang nằm trong thẻ span (pattern cũ)
+    if (desc.includes('<span') && desc.includes(keyword)) {
+      desc = desc.replace(
+        /<span([^>]*)>(.*?Beppin Body Virgin White Serum.*?)<\/span>/gi,
+        '<h1 style="display:inline;font-size:inherit;font-weight:inherit;margin:0;padding:0;color:inherit">$2</h1>'
+      );
+      if (desc.includes('<h1')) return desc;
+    }
+
+    // Nếu là text thô, bọc trực tiếp
+    return desc.replace(
+      new RegExp(keyword, 'gi'),
+      `<h1 class="inline font-semibold" style="font-size:inherit;margin:0;padding:0;color:inherit">$&</h1>`
+    );
   });
 
   const clean = (s: unknown) => {
@@ -290,7 +306,7 @@
 
   <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface">
     <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
-      <h1 class="elite-hero-headline typing-headline text-center font-bold">
+      <div class="elite-hero-headline typing-headline text-center font-bold">
         {#if !liveEditStore.isEditMode}
           <span 
             use:typewriter={{ 
@@ -319,7 +335,7 @@
           {/if}
         {/if}
         <span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-luxury-copper"></span>
-      </h1>
+      </div>
 
       {#if processedDescription}
          <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">

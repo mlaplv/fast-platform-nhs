@@ -102,7 +102,7 @@
           </div>
           <div class="viral-badge">Viral</div>
         {:else}
-          <img src={img} alt="thumb" class="w-full h-full object-cover" />
+          <img src={img} alt="{product.name} - Thumbnail {i + 1}" class="w-full h-full object-cover" />
         {/if}
       </button>
     {/each}

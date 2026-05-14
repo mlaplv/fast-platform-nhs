@@ -343,7 +343,7 @@
                      <Play class="w-6 h-6 text-white fill-current opacity-80" />
                    </div>
                 {:else}
-                   <img src={photo} alt="" class="w-full h-full object-cover" />
+                   <img src={photo} alt="Xem trước ảnh đánh giá sản phẩm {product.name}" class="w-full h-full object-cover" />
                 {/if}
               </div>
             {/each}

@@ -254,7 +254,7 @@
                     <input type="file" multiple accept="image/*,video/*" bind:this={fileInput} onchange={handleFileSelect} class="hidden" />
                     {#each attachedPhotos as photo}
                         <div class="w-16 h-16 border border-gray-200 overflow-hidden bg-white">
-                            <img src={photo} alt="" class="w-full h-full object-cover" />
+                            <img src={photo} alt="Xem trước ảnh đánh giá" class="w-full h-full object-cover" />
                         </div>
                     {/each}
                     {#if attachedPhotos.length < 5}

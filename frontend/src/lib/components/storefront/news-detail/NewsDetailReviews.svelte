@@ -279,7 +279,7 @@
             <input type="file" multiple accept="image/*,video/*" bind:this={fileInput} onchange={handleFileSelect} class="hidden" />
             {#each attachedPhotos as photo}
               <div class="w-24 h-24 border border-gray-100 relative group bg-gray-50 overflow-hidden">
-                <img src={photo} alt="" class="w-full h-full object-cover" />
+                <img src={photo} alt="Xem trước ảnh đánh giá {articleId}" class="w-full h-full object-cover" />
               </div>
             {/each}
             {#if attachedPhotos.length < 5}
@@ -379,7 +379,7 @@
               <div class="flex flex-wrap gap-3">
                 {#each review.attachments as media}
                   <div class="w-24 h-24 bg-gray-50 border border-gray-100 overflow-hidden relative cursor-zoom-in" onclick={() => viewingMedia = {url: media.url, type: media.type}}>
-                    <img src={media.url} alt="" class="w-full h-full object-cover" />
+                    <img src={media.url} alt="Ảnh thực tế từ độc giả bài viết {articleId}" class="w-full h-full object-cover" />
                     {#if media.type === 'video'}
                       <div class="absolute inset-0 flex items-center justify-center bg-black/20"><Play class="w-6 h-6 text-white fill-current" /></div>
                     {/if}
@@ -433,7 +433,7 @@
       {#if viewingMedia.type === 'video'}
         <video src={viewingMedia.url} class="max-w-full max-h-[85vh]" controls autoplay></video>
       {:else}
-        <img src={viewingMedia.url} class="max-w-full max-h-[85vh] object-contain" alt="" />
+        <img src={viewingMedia.url} class="max-w-full max-h-[85vh] object-contain" alt="Phóng to ảnh đánh giá độc giả" />
       {/if}
     </div>
   </div>

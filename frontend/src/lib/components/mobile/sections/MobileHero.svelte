@@ -116,6 +116,27 @@
 
 
   const iconMap: Record<string, typeof Zap> = { blue: Zap, indigo: ShieldCheck, emerald: Droplets };
+  const fallbackDesc = 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.';
+
+  function getProcessedDescription(vItem: any) {
+    let desc = vItem?.attributes?.short_description || product?.shortDescription || fallbackDesc;
+    const keyword = "Beppin Body Virgin White Serum";
+    
+    if (desc.includes('<h1') && desc.includes(keyword)) return desc;
+
+    if (desc.includes('<span') && desc.includes(keyword)) {
+      desc = desc.replace(
+        /<span([^>]*)>(.*?Beppin Body Virgin White Serum.*?)<\/span>/gi,
+        '<h1 style="display:inline;font-size:inherit;font-weight:inherit;margin:0;padding:0;color:inherit">$2</h1>'
+      );
+      if (desc.includes('<h1')) return desc;
+    }
+
+    return desc.replace(
+      new RegExp(keyword, 'gi'),
+      `<h1 class="inline font-semibold" style="font-size:inherit;margin:0;padding:0;color:inherit">$&</h1>`
+    );
+  }
 </script>
 
 <div class="h-full w-full relative group">
@@ -193,9 +214,9 @@
               <!-- Removed slogan slot as requested -->
               
               {#if i === 0}
-                <h1 class="hero-title text-3xl font-extrabold text-white tracking-tighter italic leading-tight bg-clip-text">
+                <div class="hero-title text-3xl font-extrabold text-white tracking-tighter italic leading-tight bg-clip-text">
                   Miccosmo Beppin Body Virgin White Serum
-                </h1>
+                </div>
               {/if}
 
               <!-- Removed subtitle slot as requested -->
@@ -217,7 +238,7 @@
 
             <p class="text-[12px] text-white/90 line-clamp-2 leading-relaxed italic font-medium drop-shadow-sm">
               <EditableWrapper path={v ? `variants[${product.variants.indexOf(v)}].attributes.short_description` : 'shortDescription'} label="SỬA MÔ TẢ NGẮN" as="span">
-                  {v?.attributes?.short_description || product?.shortDescription || 'Phác đồ Liposome dứt điểm hắc sắc tố, tái sinh vùng da thâm sạm.'}
+                  {@html getProcessedDescription(v)}
               </EditableWrapper>
             </p>
             
