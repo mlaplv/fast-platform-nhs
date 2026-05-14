@@ -147,10 +147,6 @@ class SupportAgentState {
         welcomeMessage: ""
     };
 
-    constructor() {
-        // Elite V2.2: Removed localStorage. session_id is now managed by HttpOnly Cookie.
-    }
-
     /**
      * Elite V2.2: Haptic Feedback (Vibration API)
      */
