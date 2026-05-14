@@ -5,11 +5,9 @@
   import Send from "@lucide/svelte/icons/send";
   import X from "@lucide/svelte/icons/x";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
-  import PhoneCall from "@lucide/svelte/icons/phone-call";
-  import PackageSearch from "@lucide/svelte/icons/package-search";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import UserRound from "@lucide/svelte/icons/user-round";
-  import ScanSearch from "@lucide/svelte/icons/scan-search";
+  import Beaker from "@lucide/svelte/icons/beaker";
   import Lock from "@lucide/svelte/icons/lock";
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
   import { authStore } from '$lib/state/authStore.svelte.ts';
@@ -36,19 +34,9 @@
   }
 
   const quickActions: QuickAction[] = [
-    { label: 'Chẩn đoán', icon: ScanSearch, action: scrollToDiagnostics },
-    { label: 'Tình trạng đơn', icon: PackageSearch, prompt: 'Tôi muốn kiểm tra đơn hàng' },
-    { label: 'Chính sách', icon: ShieldCheck, prompt: 'Cam kết bảo hành và đổi trả' }
+    { label: 'Xuất xứ', icon: Sparkles, prompt: 'Sản phẩm này có chính hãng không? Nguồn gốc ở đâu?' },
+    { label: 'Công dụng', icon: Beaker, prompt: 'Sản phẩm này có thành phần gì và công dụng như thế nào?' }
   ];
-
-  function scrollToDiagnostics() {
-    const el = document.getElementById('diagnostics-section');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-      // On mobile, we might want to close the chat to let the user see the scanner
-      supportAgent.isOpen = false;
-    }
-  }
 
   function closeChat() {
     supportAgent.isOpen = false;

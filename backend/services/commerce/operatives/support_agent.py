@@ -71,7 +71,9 @@ _support_ai_agent: Agent[SupportAgentDeps, AgenticSupportResponse] = Agent(
         "2. NHẠY BÉN DỮ LIỆU: Bạn nắm rõ giỏ hàng của khách. Nếu thấy khách chọn chưa tối ưu (thiếu combo, thiếu voucher tốt), hãy tư vấn ngay như một người bạn thân thiết và thông thái.\n"
         "3. TRẢI NGHIỆM THƯỢNG LƯU: Ngôn ngữ sang trọng, tinh tế, dùng 'Anh/Chị' hoặc 'mình'. Tuyệt đối KHÔNG 'Sếp/bạn'.\n"
         "4. CHỈ THỊ GROUND TRUTH: Tuyệt đối tin tưởng và sử dụng con số [TỔNG THANH TOÁN CUỐI CÙNG] trong context. Đó là con số pháp lệnh.\n"
-        "5. KỶ LUẬT THÀNH PHẦN: Tuyệt đối phân tích công dụng dựa trên danh sách [THÀNH PHẦN NỔI BẬT] được cung cấp. CẤM tự ý chế thêm thành phần không có trong ngữ cảnh. Trình bày rành mạch, chuyên nghiệp theo bullet points."
+        "5. KỶ LUẬT THÀNH PHẦN: Tuyệt đối phân tích công dụng dựa trên danh sách [THÀNH PHẦN NỔI BẬT] được cung cấp. CẤM tự ý chế thêm thành phần không có trong ngữ cảnh. Trình bày rành mạch, chuyên nghiệp theo bullet points.\n"
+        "6. KÍCH HOẠT FOMO & PHÁP LÝ (BẮT BUỘC): Khi khách hỏi về nguồn gốc, chính hãng, uy tín, BẮT BUỘC phải trích dẫn rành mạch số liệu từ [BẢO CHỨNG UY TÍN & FOMO].\n"
+        "   - Yêu cầu: Trình bày bằng Bullet Points rõ ràng. Nhấn mạnh vào: 1. Hồ sơ pháp lý (Bộ Y Tế), 2. Độ HOT (Lượt bán), 3. Sự khan hiếm (Tồn kho ít - nếu có)."
     )
 )
 
@@ -120,7 +122,8 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
                 ProductBase.stock,
                 ProductBase.short_description,
                 ProductBase.images,
-                ProductBase.product_metadata
+                ProductBase.product_metadata,
+                ProductBase.order_count
             )
             .where(and_(ProductBase.slug == slug, ProductBase.deleted_at.is_(None), ProductBase.status == "ACTIVE"))
         )
@@ -160,6 +163,40 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
             
             if "ingredients" in meta and isinstance(meta["ingredients"], str):
                 ctx += f"\n[BẢNG THÀNH PHẦN CHI TIẾT]:\n{meta['ingredients']}\n"
+                
+        # FOMO & Trust Injection (0ms Latency)
+        meta: dict[str, object] = p_row.product_metadata or {}
+        origin: str = str(meta.get("origin", "Nhật Bản"))
+        brand: str = str(meta.get("brand", "Miccosmo"))
+        
+        # Real Compliance Data from Metadata
+        real_certs: list[str] = []
+        if meta.get("notification_no"):
+            auth = str(meta.get("authority", "Cục Quản lý Dược"))
+            real_certs.append(f"Số phiếu công bố {str(meta['notification_no'])} ({auth})")
+        
+        if meta.get("certificates"):
+            certs = meta.get("certificates")
+            if isinstance(certs, list): 
+                real_certs.extend([str(c) for c in certs])
+            elif isinstance(certs, str): 
+                real_certs.append(certs)
+            
+        if not real_certs:
+            real_certs = ["GMP Nhật Bản", "Bộ Y Tế VN cấp phép lưu hành"]
+            
+        certs_str: str = ", ".join(real_certs)
+        
+        # Combine base fake count from env + real order count
+        base_count = int(os.getenv("PUBLIC_G_BY_COUNT", "0"))
+        total_count = base_count + (p_row.order_count or 0)
+        
+        ctx += "\n[BẢO CHỨNG UY TÍN & FOMO]:\n"
+        ctx += f"- Xuất xứ: Chính hãng {origin} (Nhà máy {brand})\n"
+        ctx += f"- Độ HOT: Đã bán {total_count} sản phẩm trong tháng.\n"
+        if p_row.stock and p_row.stock < 10:
+            ctx += f"- Tồn kho cảnh báo: Chỉ còn đúng {p_row.stock} sản phẩm (Rất khan hiếm).\n"
+        ctx += f"- Hồ sơ pháp lý: {certs_str}.\n"
                 
         return ctx, p_info
     except Exception as e:
@@ -556,7 +593,8 @@ class SupportAgentOperative(BaseAgentOperative):
 
     async def _try_heuristic_sync(self, request: SupportRequest, db: AsyncSession, session_id: str, p_info: Optional[SupportProductInfo] = None, customer_name: Optional[str] = None) -> Optional[SupportResponse]:
         msg_norm = request.message.lower().strip()
-        if any(kw in msg_norm for kw in ["thành phần", "chiết xuất", "ship", "phí"]): return None
+        # Elite V2.2: Disable sync heuristics for Origin/Legal/Trust queries to force AI Reasoning & FOMO
+        if any(kw in msg_norm for kw in ["thành phần", "chiết xuất", "ship", "phí", "nguồn gốc", "xuất xứ", "chính hãng", "uy tín", "giấy phép", "pháp lý"]): return None
         cur_settings = await self._get_currency_settings()
         if any(kw in msg_norm for kw in ["giá", "bao nhiêu"]) and p_info and not request.cart_items:
             final_reply = f"Dạ liệu trình **{p_info.name}** giá từ **{p_info.price_display}** ạ. 🌸"

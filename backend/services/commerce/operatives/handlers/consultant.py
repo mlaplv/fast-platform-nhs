@@ -429,11 +429,13 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         "   - CHỐT FOMO: Sử dụng dữ liệu [TỒN KHO] và [ĐANG XEM] để tạo sự khan hiếm thực tế.\n"
         "2. HỆ THỐNG ĐIỂM & ƯU ĐÃI: Con số giảm giá (Voucher/Combo/Điểm) trong [BẢNG TÍNH TOÁN CHI TIẾT] là con số cuối cùng đã được hệ thống tối ưu hóa. Bạn chỉ việc liệt kê lại để khách thấy được hời như thế nào.\n"
         "3. PHONG THÁI CHUYÊN GIA: Xưng hô 'Helen' và gọi Tên riêng khách hàng nếu có. Tuyệt đối CẤM dùng từ 'bạn' hoặc 'Sếp'. Dùng 'Anh/Chị' hoặc 'Chị đẹp'. Phản hồi sang trọng, đẳng cấp ✨.\n"
-        "4. CẤU TRÚC PHẢN HỒI 'SÁT THỦ':\n"
+        "4. KÍCH HOẠT FOMO & PHÁP LÝ (BẮT BUỘC): Khi khách hỏi về nguồn gốc, chính hãng, uy tín, BẮT BUỘC phải trích dẫn rành mạch số liệu từ [BẢO CHỨNG UY TÍN & FOMO] trong ngữ cảnh PRODUCT.\n"
+        "   - Yêu cầu: Trình bày bằng Bullet Points rõ ràng. Nhấn mạnh vào: 1. Hồ sơ pháp lý (Bộ Y Tế), 2. Độ HOT (Lượt bán), 3. Sự khan hiếm (Tồn kho ít - nếu có).\n"
+        "5. CẤU TRÚC PHẢN HỒI 'SÁT THỦ':\n"
         "   - Bước 1: Khẳng định sự lựa chọn thông thái.\n"
-        "   - Bước 2: Liệt kê chi tiết từ [BẢNG TÍNH TOÁN CHI TIẾT] (Tạm tính -> Giảm giá -> Phí ship -> Tổng cuối).\n"
-        "   - Bước 3: Đưa ra con số CUỐI CÙNG (in đậm) và tạo sức ép FOMO.\n"
-        "5. DEBUG PROTOCOL: Bắt đầu câu trả lời bằng tiền tố '[z2] '.\n"
+        "   - Bước 2: Trả lời rành mạch các thông số Pháp lý/Xuất xứ/FOMO bằng Bullet Points.\n"
+        "   - Bước 3: Đưa ra con số CUỐI CÙNG (nếu có Cart) và tạo sức ép chốt đơn.\n"
+        "6. DỮ LIỆU GROUND TRUTH: Toàn bộ thông tin sản phẩm (bao gồm nguồn gốc, pháp lý, tồn kho, lượt bán) ĐÃ CÓ SẴN trong mục [PRODUCT]. BẮT BUỘC ưu tiên dữ liệu này tuyệt đối. KHÔNG ĐƯỢC gọi tool tìm kiếm sản phẩm nếu khách chỉ hỏi về sản phẩm hiện tại. Trình bày bằng Bullet Points rõ ràng cho các thông số pháp lý/xuất xứ."
     )
 
     async def handle(self, ctx: SupportContext) -> bool:
@@ -489,12 +491,18 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         repo: SupportKnowledgeRepository = SupportKnowledgeRepository(session=ctx.db)
         kb_service: SupportKnowledgeService = SupportKnowledgeService(repo=repo)
         
-        # 1. Semantic Match check (Adaptive threshold: 0.85 for short queries)
-        is_short_query = len(ctx.request.message.strip()) < 25
-        threshold = 0.85 if is_short_query else 0.92
+        raw_matches: list[dict[str, object]] = []
+        # Bypass L0 for specialist queries (Origin/Legal/Ingredients) to force AI context reasoning
+        specialist_keywords: list[str] = ["nguồn gốc", "xuất xứ", "chính hãng", "uy tín", "giấy phép", "pháp lý", "thành phần", "công dụng"]
+        is_specialist_query: bool = any(kw in msg_norm for kw in specialist_keywords)
         
-        # Returns list of matched knowledge dicts with explicit structure
-        raw_matches: list[dict[str, object]] = await kb_service.search_relevant_knowledge_raw(ctx.db, ctx.request.message, limit=1)
+        if not is_specialist_query:
+            # 1. Semantic Match check (Adaptive threshold: 0.85 for short queries)
+            is_short_query: bool = len(ctx.request.message.strip()) < 25
+            threshold: float = 0.85 if is_short_query else 0.92
+            
+            # Returns list of matched knowledge dicts with explicit structure
+            raw_matches = await kb_service.search_relevant_knowledge_raw(ctx.db, ctx.request.message, limit=1)
         
         if raw_matches and not ctx.request.cart_items:
             match: dict[str, object] = raw_matches[0]
@@ -547,6 +555,8 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             f"--- PRODUCT ---\n{ctx.product_ctx}\n"
         )
         
+
+            
         try:
             # Elite V2.2: Mask sensitive terms to bypass safety filters
             masked_msg = await self._mask_sensitive_medical_terms(ctx.request.message)
@@ -566,7 +576,12 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             res_data = cast(Optional[ConsultantResponse], res)
             
             if res_data and hasattr(res_data, 'reply') and res_data.reply:
-                ctx.replies.append(res_data.reply)
+                # Elite V2.7: Programmatic Prefix Enforcement (Deterministic & Token-Efficient)
+                final_reply: str = res_data.reply
+                if not final_reply.startswith("[z2]"):
+                    final_reply = f"[z2] {final_reply}"
+                    
+                ctx.replies.append(final_reply)
                 # Ensure intent matches SupportIntent enum values safely
                 valid_intents = {i.value for i in SupportIntent}
                 ctx.intent = SupportIntent(res_data.intent) if res_data.intent in valid_intents else SupportIntent.PRODUCT_QUERY
