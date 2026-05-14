@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -180,4 +181,32 @@ class UnifiedAgentTask(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __table_args__ = (
         Index("ix_unified_task_tenant_status", "tenant_id", "status"),
         Index("ix_unified_task_agent_status", "agent_id", "status"),
+    )
+
+class AuditLog(Base, TenantMixin):
+    """
+    Elite V2.2: Forensic Audit Trail.
+    Lưu vết mọi thao tác thay đổi dữ liệu nhạy cảm.
+    """
+    __tablename__ = 'audit_logs'
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    # Actor Info
+    actor_id: Mapped[Optional[str]] = mapped_column(String, index=True, nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Action Info
+    action: Mapped[str] = mapped_column(String(20), index=True) # INSERT, UPDATE, DELETE
+    target_table: Mapped[str] = mapped_column(String(50), index=True)
+    target_id: Mapped[str] = mapped_column(String(50), index=True)
+    
+    # Data Change (Old vs New)
+    changes: Mapped[dict[str, object]] = mapped_column(sa.dialects.postgresql.JSONB)
+    
+    created_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), server_default=sa.func.now(), index=True)
+
+    __table_args__ = (
+        Index("ix_audit_logs_target", "target_table", "target_id"),
+        Index("ix_audit_logs_actor_time", "actor_id", "created_at"),
     )

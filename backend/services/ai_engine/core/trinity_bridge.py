@@ -34,8 +34,8 @@ class TrinityBridge:
     """V65.0: Centralized AI Bridge. Modularized for Martial Law (<300 lines)."""
     def __init__(self) -> None:
         self.rotator: 'KeyRotator' = key_rotator
-        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-1.5-pro")
-        self.fallback_model: str = os.getenv("AI_FALLBACK_MODEL", "gemini-1.5-flash")
+        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-2.0-flash")
+        self.fallback_model: str = os.getenv("AI_FALLBACK_MODEL", "gemini-2.0-flash-lite")
         self.models_helper: TrinityModels = TrinityModels(self.rotator, self.primary_model, self.fallback_model)
         self.db_primary_model: Optional[str] = None
         self.db_waterfall: list[str] = []
@@ -79,7 +79,16 @@ class TrinityBridge:
                 p = (await s.execute(select(VoiceProfile).limit(1))).scalar_one_or_none()
                 if p: 
                     self.db_primary_model, self.db_waterfall = p.primary_model, p.ai_models or []
-                    logger.info(f"🧬 [TrinityBridge] Loaded VoiceProfile configuration: {self.db_primary_model}")
+                    
+                    # Elite V2.2: Hard-redirection for deprecated models
+                    if self.db_primary_model in ["gemini-1.5-flash", "gemini-1.5-pro"]:
+                        logger.info(f"🔄 [TrinityBridge] Redirecting legacy primary model {self.db_primary_model} -> gemini-2.0-flash")
+                        self.db_primary_model = "gemini-2.0-flash"
+                    
+                    # Sanitize waterfall: Purge all 1.5 references
+                    self.db_waterfall = [m for m in self.db_waterfall if "gemini-1.5" not in m]
+                        
+                    logger.info(f"🧬 [TrinityBridge] Loaded VoiceProfile configuration: {self.db_primary_model} (Waterfall: {len(self.db_waterfall)} models)")
         except Exception as e: 
             logger.warning(f"⚠️ [TrinityBridge] Failed to load VoiceProfile: {e}")
         

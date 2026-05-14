@@ -11,7 +11,8 @@ from backend.constants.permissions import PermissionEnum
 from backend.schemas.user import UserResponse, UserListResponse, RoleResponse, PermissionResponse, UserUpdatePayload, UserCreatePayload, LoyaltyResponse, PointAdjustmentRequest
 from backend.schemas.common import SuccessResponse
 from backend.services.user_service import user_service
-from litestar.exceptions import ClientException
+from backend.core.martial_law import martial_law_manager
+from litestar.exceptions import ClientException, PermissionDeniedException
 
 logger = logging.getLogger("api-gateway")
 
@@ -40,8 +41,21 @@ class UserController(Controller):
         return await user_service.list_permissions(db_session, limit, offset)
 
     @patch("/{user_id:str}/roles")
-    async def update_user_roles(self, db_session: "AsyncSession", user_id: str, data: List[str]) -> SuccessResponse:
+    async def update_user_roles(self, request: Request, db_session: "AsyncSession", user_id: str, data: List[str]) -> SuccessResponse:
         """Update roles for a specific user (Surgical Update)."""
+        user_state = getattr(request.state, "user", {})
+        actor_id = user_state.get("sub", "SYSTEM")
+        is_super = "SUPER_ADMIN" in user_state.get("roles", [])
+
+        # [THIẾT QUÂN LUẬT] Chặn và chuyển sang Draft
+        intercepted = await martial_law_manager.intercept_critical_action(
+            db_session, actor_id, "UPDATE_ROLES", "users", user_id, {"roles": data}, is_super
+        )
+        
+        if intercepted:
+            await db_session.commit()
+            return SuccessResponse(message="Yêu cầu thay đổi quyền đã được gửi vào hàng chờ Phê duyệt (Draft).")
+
         res = await user_service.update_roles(db_session, user_id, data)
         await db_session.commit()
         return res
@@ -71,8 +85,21 @@ class UserController(Controller):
             raise ClientException(status_code=400, detail="Identity creation failed due to unique constraint violation.")
 
     @patch("/{user_id:str}/delete")
-    async def delete_user(self, db_session: "AsyncSession", user_id: str) -> SuccessResponse:
+    async def delete_user(self, request: Request, db_session: "AsyncSession", user_id: str) -> SuccessResponse:
         """Soft delete a user."""
+        user_state = getattr(request.state, "user", {})
+        actor_id = user_state.get("sub", "SYSTEM")
+        is_super = "SUPER_ADMIN" in user_state.get("roles", [])
+
+        # [THIẾT QUÂN LUẬT] Chặn và chuyển sang Draft
+        intercepted = await martial_law_manager.intercept_critical_action(
+            db_session, actor_id, "DELETE", "users", user_id, {}, is_super
+        )
+        
+        if intercepted:
+            await db_session.commit()
+            return SuccessResponse(message="Yêu cầu xóa tài khoản đã được gửi vào hàng chờ Phê duyệt (Draft).")
+
         res = await user_service.delete_user(db_session, user_id)
         await db_session.commit()
         return res
@@ -95,3 +122,28 @@ class UserController(Controller):
         res = await user_service.adjust_points(db_session, user_id, data)
         await db_session.commit()
         return res
+
+    @post("/{user_id:str}/logout-all")
+    async def force_logout_user(self, request: Request, db_session: "AsyncSession", user_id: str) -> SuccessResponse:
+        """Force logout all devices for a user by rotating security stamp."""
+        user_state = getattr(request.state, "user", {})
+        actor_id = user_state.get("sub", "SYSTEM")
+        is_super = "SUPER_ADMIN" in user_state.get("roles", [])
+
+        # [THIẾT QUÂN LUẬT] Chặn và chuyển sang Draft nếu không phải Super Admin
+        intercepted = await martial_law_manager.intercept_critical_action(
+            db_session, actor_id, "FORCE_LOGOUT", "users", user_id, {}, is_super
+        )
+        
+        if intercepted:
+            await db_session.commit()
+            return SuccessResponse(message="Yêu cầu cưỡng bức đăng xuất đã được gửi vào hàng chờ Phê duyệt.")
+
+        # Rotate Stamp
+        import uuid
+        import sqlalchemy as sa
+        stmt = sa.update(User).where(User.id == user_id).values(security_stamp=str(uuid.uuid4()))
+        await db_session.execute(stmt)
+        await db_session.commit()
+        
+        return SuccessResponse(message=f"Đã thu hồi toàn bộ phiên làm việc của user {user_id}")

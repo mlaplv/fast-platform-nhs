@@ -3,12 +3,15 @@ import logging
 from typing import cast, Optional, Callable
 from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig as BaseSQLAlchemyAsyncConfig, AsyncSessionConfig
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession, AsyncEngine
-from sqlalchemy import event
+from sqlalchemy import event, select
+from backend.core.database import SYSTEM_READ_ONLY
+from litestar.exceptions import PermissionDeniedException
 from advanced_alchemy.extensions.litestar._utils import get_aa_scope_state, set_aa_scope_state
 from advanced_alchemy.routing.context import reset_routing_context
 from litestar.datastructures import State
 from litestar.types import Scope
 
+import time
 logger = logging.getLogger("api-gateway")
 
 class EliteSQLAlchemyAsyncConfig(BaseSQLAlchemyAsyncConfig):
@@ -89,3 +92,27 @@ class AlchemyConfig:
 
 # Singleton instance
 alchemy_config = AlchemyConfig()
+
+from sqlalchemy.engine import Engine
+
+@event.listens_for(Engine, "before_cursor_execute", retval=True)
+def before_cursor_execute(conn, cursor, statement, parameters, context, execmany):
+    # [THIẾT QUÂN LUẬT] Chặn Query mutation ở tầng driver nếu phong tỏa
+    if SYSTEM_READ_ONLY:
+        forbidden_words = ["INSERT", "UPDATE", "DELETE", "DROP", "TRUNCATE", "ALTER"]
+        stmt_upper = statement.upper()
+        if any(word in stmt_upper for word in forbidden_words):
+            allowed_tables = ["audit_logs", "drafts", "notifications", "chat_messages"]
+            if not any(tbl in statement.lower() for tbl in allowed_tables):
+                logger.error(f"🛑 [MARTIAL_LAW] Low-level block on statement: {statement[:100]}...")
+                raise PermissionDeniedException("Hệ thống đang trong trạng thái PHONG TỎA DB. Mọi truy vấn thay đổi bị cấm.")
+
+    context._query_start_time = time.perf_counter()
+    return statement, parameters
+
+@event.listens_for(Engine, "after_cursor_execute")
+def after_cursor_execute(conn, cursor, statement, parameters, context, execmany):
+    if hasattr(context, "_query_start_time"):
+        total = time.perf_counter() - context._query_start_time
+        if total > 1.0:
+            logger.warning(f"⚠️ [SLOW_QUERY] Duration: {total:.4f}s | SQL: {statement}")

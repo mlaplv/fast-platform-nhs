@@ -14,6 +14,10 @@ from backend.constants.security import (
 
 logger: logging.Logger = logging.getLogger("api-gateway")
 
+from backend.database.models.ads import IPBlacklist
+from sqlalchemy import select
+from backend.database.alchemy_config import alchemy_config
+
 class DomainGuardMiddleware:
     """
     Elite Domain Guard (V2.2): Cô lập Admin/Client và chặn truy cập chéo.
@@ -27,11 +31,40 @@ class DomainGuardMiddleware:
         self.api_url: str = os.getenv("API_URL", "api.osmo").lower().replace("https://", "").replace("http://", "").rstrip("/").split(":")[0]
         self.app_url: str = os.getenv("APP_URL", "osmo").lower().replace("https://", "").replace("http://", "").rstrip("/").split(":")[0]
         self.debug: bool = os.getenv("DEBUG", "false").lower() == "true"
+        self._blacklist_cache: set[str] = set()
+        self._last_cache_sync: float = 0
+
+    async def _check_ip_blacklist(self, ip_address: str) -> bool:
+        """Kiểm tra IP có bị chặn không (có cache 60s)."""
+        import time
+        now = time.time()
+        if now - self._last_cache_sync > 60:
+            try:
+                async with alchemy_config.create_session_maker()() as session:
+                    stmt = select(IPBlacklist.ip_address)
+                    result = await session.execute(stmt)
+                    self._blacklist_cache = set(result.scalars().all())
+                    self._last_cache_sync = now
+            except Exception as e:
+                logger.error(f"Failed to sync IP blacklist: {e}")
+        
+        return ip_address in self._blacklist_cache
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] not in ["http", "websocket"]:
             await self.app(scope, receive, send)
             return
+
+        # [SECURITY] IP Blacklist Check (Elite V2.2 Layer 0)
+        client = scope.get("client")
+        ip_address = client[0] if client else "unknown"
+        headers_dict = dict(scope.get("headers", []))
+        if b"x-forwarded-for" in headers_dict:
+            ip_address = headers_dict[b"x-forwarded-for"].decode("utf-8").split(",")[0]
+        
+        if await self._check_ip_blacklist(ip_address):
+            logger.warning(f"🚫 [DomainGuard] Access Denied: Blocked IP {ip_address}")
+            raise PermissionDeniedException(f"IP {ip_address} has been blacklisted for security reasons.")
 
         # [DIAGNOSTIC] Handshake entry log
         if scope["type"] == "websocket":

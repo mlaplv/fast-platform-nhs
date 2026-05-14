@@ -78,6 +78,7 @@ from backend.controllers.client.viral import ViralController
 from backend.controllers.client.barcode import BarcodeController
 from backend.controllers.compliance import ComplianceController
 from backend.controllers.ads_protection import AdsProtectionController
+from backend.controllers.security import SecurityController
 
 from backend.middleware import AuthMiddleware
 from backend.body_limit import BodyLimitMiddleware
@@ -135,6 +136,7 @@ app = Litestar(
         AdsProtectionController,
         ComplianceController,
         PublicSeoController,
+        SecurityController,
     ],
     middleware=[StallDetectorMiddleware, BodyLimitMiddleware, rate_limit_config.middleware, AuthMiddleware, DomainGuardMiddleware, AuditMiddleware],
     cors_config=cors_config,

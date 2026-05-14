@@ -156,6 +156,14 @@
       color: "#00F3FF",
       widget: "SYSTEM_SETTINGS",
     },
+    {
+      id: "security",
+      label: "An ninh",
+      sublabel: "SOC & AI Forensic",
+      icon: Shield,
+      color: "#FE2C55", // Red for security
+      widget: "SECURITY_SOC",
+    },
   ];
 
   let itemsRevealed = $state(0);

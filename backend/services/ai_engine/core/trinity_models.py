@@ -18,7 +18,7 @@ logger = logging.getLogger("api-gateway")
 HARD_BLACKLIST = [
     "gemma", "experimental", "alpha", "learnlm", "preview", "latest", 
     "exp", "-001", "-002", 
-    "flash-latest", "lite-latest"
+    "flash-latest", "lite-latest", "gemini-1.5"
 ]
 
 DEFAULT_AI_CONFIG = {
@@ -88,14 +88,18 @@ class TrinityModels:
             # Fallback: Get ANY healthy key just for discovery purposes
             logger.debug(f"[TrinityModels] Specific key discovery failed: {e}. Trying fallback model.")
             try:
-                # We try one of the known broad-quota models or just the default
-                key = await self.rotator.get_key(model_name="gemini-1.5-flash")
+                # Elite V2.2: Use 2.0 Flash for discovery as it has the widest quota
+                key = await self.rotator.get_key(model_name="gemini-2.0-flash")
             except Exception as e_inner:
                 logger.warning(f"[TrinityModels] Full key discovery failed: {e_inner}")
         
         if not key:
-            logger.warning("[TrinityModels] No keys available for discovery. AI services may be degraded.")
-            return []
+            # Elite V2.2: Emergency fallback to 2.0-flash-lite for discovery
+            try:
+                key = await self.rotator.get_key(model_name="gemini-2.0-flash-lite")
+            except:
+                logger.warning("[TrinityModels] No keys available for discovery. AI services may be degraded.")
+                return []
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
         try:
@@ -146,7 +150,7 @@ class TrinityModels:
                         models.append(short)
                     
                     # Elite V2.2: Hard-inject CNS models if missing from Google API list
-                    cns_models = [self.default_model, self.fallback_model, "gemini-2.0-flash", "gemini-1.5-flash"]
+                    cns_models = [self.default_model, self.fallback_model, "gemini-2.0-flash", "gemini-2.0-flash-lite"]
                     for cns in cns_models:
                         if cns not in [m.get("name", "").replace("models/", "") for m in all_models]:
                             if any(hbl in cns for hbl in HARD_BLACKLIST): continue
@@ -185,7 +189,6 @@ class TrinityModels:
         elif "3" in m: score += 2000
         elif "2.5" in m: score += 1500
         elif "2.0" in m: score += 1000
-        elif "1.5" in m: score += 800
 
         # Tier Differentiation
         if "-pro" in m: score += 300
@@ -195,8 +198,8 @@ class TrinityModels:
         # Elite V2.2: Free Tier Prioritization (Sếp's Order - CNS V89.5)
         # Ưu tiên các model có Quota lớn hoặc là 'Điểm ngọt' trước để tiết kiệm Pro Quota.
         if "gemini-2.0-flash" in m: score += 7000       # "Bao la" nhất (2026 Rank 1)
-        elif "gemini-1.5-flash" in m: score += 6000    # Ổn định (Rank 2)
-        elif "gemini-1.5-pro" in m: score += 5000      # Mạnh nhưng tốn quota
+        elif "gemini-2.0-pro" in m: score += 6000      # Mạnh nhất (Rank 2)
+        elif "gemini-2.0-flash-lite" in m: score += 5000 # Tiết kiệm (Rank 3)
         
         # 2. Model Grade (Brain vs Fast)
         if "pro" in m: score += 200
@@ -309,7 +312,7 @@ class TrinityModels:
         
         # Fail-safe: ensure we have AT LEAST the defaults (Force Hardcoded Stable)
         if not healthy:
-            for m in ["gemini-1.5-flash", "gemini-1.5-pro", self.default_model, self.fallback_model]:
+            for m in ["gemini-2.0-flash", "gemini-2.0-pro", self.default_model, self.fallback_model]:
                 if not await self.rotator.is_model_poisoned(m) and not self.is_blacklisted(m):
                     healthy.append(m)
 

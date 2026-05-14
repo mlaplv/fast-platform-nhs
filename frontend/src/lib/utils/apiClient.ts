@@ -66,6 +66,23 @@ function getAuthToken(): string | null {
   return localStorage.getItem("access_token") || null;
 }
 
+/**
+ * Elite V2.2: Device Fingerprinting Strategy.
+ * Tránh logout hàng loạt do thiếu header định danh thiết bị.
+ */
+function getDeviceFingerprint(): string {
+  if (typeof window === "undefined") return "server-node";
+  let fp = localStorage.getItem("xohi_device_fingerprint");
+  if (!fp) {
+    // Tạo vân tay ngẫu nhiên nhưng ổn định cho trình duyệt này
+    const randomPart = Math.random().toString(36).substring(2, 15);
+    const timePart = Date.now().toString(36);
+    fp = `fp_${timePart}_${randomPart}`;
+    localStorage.setItem("xohi_device_fingerprint", fp);
+  }
+  return fp;
+}
+
 export const apiClient = {
   /**
    * Core request handler
@@ -107,6 +124,7 @@ export const apiClient = {
       headers: {
         "Content-Type": "application/json",
         "x-tenant": getTenantIdFromHost(),
+        "x-device-fingerprint": getDeviceFingerprint(),
         ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         ...customConfig.headers,
       },
@@ -274,6 +292,7 @@ export const apiClient = {
       body: formData,
       headers: {
         "x-tenant": getTenantIdFromHost(),
+        "x-device-fingerprint": getDeviceFingerprint(),
         ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         ...customHeaders,
       },

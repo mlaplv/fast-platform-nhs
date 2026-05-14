@@ -1,0 +1,58 @@
+import logging
+from typing import Any, Dict, Optional
+from litestar.exceptions import PermissionDeniedException
+from sqlalchemy.ext.asyncio import AsyncSession
+from backend.database.models.system import Draft
+import json
+import uuid
+
+logger = logging.getLogger("api-gateway")
+
+class MartialLawManager:
+    """
+    Elite V2.2: Martial Law DB Operation Manager.
+    Enforces '4-Eyes Principle' for critical operations.
+    """
+    
+    CRITICAL_TABLES = ["users", "roles", "permissions", "system_settings", "products"]
+
+    @staticmethod
+    async def intercept_critical_action(
+        session: AsyncSession,
+        actor_id: str,
+        action: str,
+        target_table: str,
+        target_id: Optional[str],
+        payload: Dict[str, Any],
+        is_super_admin: bool = False
+    ) -> bool:
+        """
+        Intercepts critical actions. 
+        If not Super Admin, converts the action into a PENDING Draft.
+        Returns True if the action is intercepted (should NOT continue), False otherwise.
+        """
+        
+        # Super Admin has 'Direct Execution' power (unless System is locked down)
+        if is_super_admin:
+            return False
+
+        if target_table in MartialLawManager.CRITICAL_TABLES or action == "DELETE":
+            logger.warning(f"🎖️ [MARTIAL_LAW] Intercepted {action} on {target_table} by {actor_id}. Redirecting to Draft.")
+            
+            new_draft = Draft(
+                id=str(uuid.uuid4()),
+                proposed_by=actor_id,
+                target_model=target_table,
+                target_id=target_id,
+                action=action,
+                payload=payload,
+                status="PENDING"
+            )
+            session.add(new_draft)
+            # We don't commit here, let the controller handle it.
+            # But we must stop the original action.
+            return True
+            
+        return False
+
+martial_law_manager = MartialLawManager()

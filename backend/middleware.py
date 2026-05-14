@@ -33,6 +33,21 @@ class AuthMiddleware:
             return
 
         token_ctx = None # Standard resource cleanup placeholder
+        
+        # [THIẾT QUÂN LUẬT] Kiểm tra IP Blacklist (R00)
+        try:
+            client_ip = scope.get("client", ("0.0.0.0", 0))[0]
+            from backend.services.ai_engine.core.key_rotator import key_rotator
+            if key_rotator._use_redis and key_rotator.client:
+                # Elite V2.2: Fast path for security check
+                is_blacklisted = await key_rotator.client.get(f"security:blacklist:ip:{client_ip}")
+                if is_blacklisted:
+                    logger.error(f"🚫 [SECURITY_BLOCK] Connection denied for blacklisted IP: {client_ip}")
+                    raise NotAuthorizedException("Địa chỉ IP của bạn đã bị khóa do vi phạm an ninh.")
+        except NotAuthorizedException as e:
+            raise e
+        except Exception:
+            pass # Fail open for connectivity issues to avoid total lockout
 
         # ═══ MEGA-HARDEN: Try/Except to prevent 502/Crash ═══
         try:
@@ -102,22 +117,60 @@ class AuthMiddleware:
                         "name": str(payload_raw.get("name", ""))
                     }
                     
+                    # [THIẾT QUÂN LUẬT] Kiểm tra Device Fingerprint (dfp)
+                    jwt_dfp = payload_raw.get("dfp")
+                    client_dfp = headers.get("x-device-fingerprint")
+                    
+                    is_admin = any(role in ["ADMIN", "SUPER_ADMIN", "OPERATIVE"] for role in payload.get("roles", []))
+                    
+                    if jwt_dfp and client_dfp and str(jwt_dfp) != str(client_dfp):
+                        logger.warning(f"🚨 [SECURITY] Fingerprint Mismatch! User: {payload.get('sub')}")
+                        if is_admin:
+                            raise NotAuthorizedException("Thiết bị không hợp lệ (Security Fingerprint Mismatch).")
+
+                    # [THIẾT QUÂN LUẬT] Kiểm tra Session Revocation (Security Stamp)
+                    if is_admin:
+                        from backend.database import async_session_maker
+                        from sqlalchemy import select
+                        from backend.database.models import User
+                        
+                        async with async_session_maker() as session:
+                            user_stmt = select(User.security_stamp).where(User.id == payload["id"])
+                            user_res = await session.execute(user_stmt)
+                            db_stamp = user_res.scalar()
+                            
+                            token_stamp = payload.get("stamp")
+                            # Chỉ check nếu token có stamp (để hỗ trợ chuyển đổi từ legacy token)
+                            if db_stamp and token_stamp and token_stamp != "MISSING":
+                                if str(db_stamp) != str(token_stamp):
+                                    logger.error(f"🚫 [MARTIAL_LAW] Session Revoked for {payload['sub']}. Stamp mismatch.")
+                                    raise NotAuthorizedException("Phiên làm việc đã hết hạn hoặc bị thu hồi.")
+
                     if "state" not in scope:
                         scope["state"] = {} # type: ignore
                     scope["state"]["user"] = payload # type: ignore
                     
                     if scope["type"] == "websocket":
-                        logger.info(f"✅ [WS-Auth] Identified: {payload.get('email', 'unknown')} (Roles={payload.get('roles', [])})")
+                        logger.info(f"✅ [WS-Auth] Identified: {payload.get('email', 'unknown')}")
                     
                     jwt_tenant = payload.get("tenant_id")
                     if jwt_tenant:
                         current_tenant_id.set(jwt_tenant)
                     
-                    # R00: Success! Stop looking for other tokens
-                    break
-                except Exception as e:
-                    logger.debug(f"🔐 [Auth] JWT Decode failed: {e}")
+                    return await self.app(scope, receive, send)
+
+                except jwt.ExpiredSignatureError:
                     continue
+                except jwt.InvalidTokenError:
+                    continue
+                except NotAuthorizedException as e:
+                    # Elite V2.2: Ngắt kết nối ngay nếu vi phạm an ninh
+                    logger.error(f"🛡️ [SECURITY_DENIED] {e.detail}")
+                    raise e
+                except Exception as e:
+                    logger.error(f"🚨 [Auth-Critical] Unexpected failure: {e}", exc_info=True)
+                    continue
+
         except Exception as e:
             logger.error(f"🚨 [Auth-Critical] Unexpected failure: {e}", exc_info=True)
             pass

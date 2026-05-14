@@ -23,4 +23,7 @@ db_config: SQLAlchemyAsyncConfig = SQLAlchemyAsyncConfig(
     engine_config={"pool_pre_ping": True, "pool_size": 5, "max_overflow": 10}
 )
 
+# [THIẾT QUÂN LUẬT] Emergency Lockdown Flag
+SYSTEM_READ_ONLY: bool = os.getenv("MARTIAL_LAW_READ_ONLY", "false").lower() == "true"
+
 alchemy_plugin: SQLAlchemyPlugin = SQLAlchemyPlugin(config=db_config)

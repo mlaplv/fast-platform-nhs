@@ -13,6 +13,11 @@
   import EyeOff from "@lucide/svelte/icons/eye-off";  import { permissionState } from "$lib/state/permissions.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";
+  // Elite V2.2: Device fingerprinting hook
+  const getFp = () => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('xohi_device_fingerprint') || '';
+  };
 
   import { goto } from "$app/navigation";
   import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
@@ -73,6 +78,7 @@
         identifier: email,
         password: hashedPassword,
         remember_me: rememberMe,
+        fingerprint: getFp(),
       });
 
       if (!access_token) {

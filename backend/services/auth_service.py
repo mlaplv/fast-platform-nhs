@@ -124,7 +124,8 @@ class AuthService:
             "stamp": getattr(user, "security_stamp", "MISSING"),
             "name": user.name,
             "hpw": user.password is not None,
-            "rem": data.remember_me  # Mark for potential downstream logic
+            "rem": data.remember_me,  # Mark for potential downstream logic
+            "dfp": data.fingerprint    # [SECURITY] Device Fingerprint
         }
 
         access_token = AuthService.create_access_token(
