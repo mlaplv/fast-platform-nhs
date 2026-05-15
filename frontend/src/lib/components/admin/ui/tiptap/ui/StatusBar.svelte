@@ -11,7 +11,7 @@
   } = $props();
 </script>
 
-<div class="flex items-center gap-6 px-6 py-2.5 bg-black/20 border-t border-white/5 text-[9px] font-black uppercase tracking-[0.2em] text-white/20 shrink-0 shadow-2xl">
+<div class="flex items-center gap-6 px-6 py-2.5 bg-black/20 border-t border-white/5 text-[9px] font-black tracking-[0.2em] text-white/20 shrink-0 shadow-2xl">
   <div class="flex items-center gap-2">
     <FileText size={10} class="text-white/10" />
     <span>{wordCount} Words</span>

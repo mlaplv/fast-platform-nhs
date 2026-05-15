@@ -63,8 +63,8 @@
       class="w-14 h-14 !p-0.5 shadow-sm"
     />
     <div class="flex flex-col min-w-0">
-      <span class="text-[14px] font-bold text-stone-800 truncate uppercase tracking-wider">{authStore.user?.name || 'Quý khách'}</span>
-      <a href="/user/profile" class="text-[11px] text-stone-400 uppercase tracking-widest flex items-center gap-1.5 hover:text-luxury-copper transition-colors mt-1">
+      <span class="text-[14px] font-bold text-stone-800 truncate tracking-wider">{authStore.user?.name || 'Quý khách'}</span>
+      <a href="/user/profile" class="text-[11px] text-stone-400 tracking-widest flex items-center gap-1.5 hover:text-luxury-copper transition-colors mt-1">
         <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
         Tùy chỉnh
       </a>
@@ -78,7 +78,7 @@
         <div class="space-y-4">
           <a
             href={item.href}
-            class="flex items-center gap-3 text-[12px] uppercase tracking-[2px] font-bold transition-all {currentPath.startsWith(item.href) ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
+            class="flex items-center gap-3 text-[12px] tracking-[2px] font-bold transition-all {currentPath.startsWith(item.href) ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
           >
             <span class="{currentPath.startsWith(item.href) ? 'text-luxury-copper' : 'text-stone-300'}">
               <item.icon class="w-4 h-4" />
@@ -109,7 +109,7 @@
     <div class="pt-8 mt-8 border-t border-stone-100">
       <button
         onclick={handleLogout}
-        class="flex items-center gap-3 text-[12px] uppercase tracking-[2px] font-bold text-stone-400 hover:text-red-400 transition-all w-full text-left"
+        class="flex items-center gap-3 text-[12px] tracking-[2px] font-bold text-stone-400 hover:text-red-400 transition-all w-full text-left"
       >
         <LogOut class="w-4 h-4" />
         Đăng xuất

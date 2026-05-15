@@ -155,6 +155,7 @@
 
   <!-- 4. LEGAL DOCS (TOP PRIORITY) -->
   <div class="glass-morphism-mobile p-4 overflow-hidden relative">
+    <div class="corner-accents"></div>
     <div class="absolute -right-10 -bottom-10 opacity-5">
       <ShieldCheck size={120} class="text-blue-400" />
     </div>
@@ -200,7 +201,8 @@
   </div>
 
   <!-- 5. MANUFACTURING & FACTORY -->
-  <div class="glass-morphism-mobile p-4 flex flex-col gap-4">
+  <div class="glass-morphism-mobile p-4 flex flex-col gap-4 relative">
+    <div class="corner-accents"></div>
     <div class="flex items-center justify-between">
       <h3 class="text-[10px] font-black text-white/40 flex items-center gap-2">
         <MapPin size={12} class="text-luxury-copper" /> Nhà máy sản xuất
@@ -232,9 +234,9 @@
         <p class="text-[8px] font-bold text-white/30 mb-1">Đơn vị sản xuất</p>
         <p class="text-white text-xs font-black tracking-tight">{manufacturer.brand}</p>
       </div>
-      <div class="p-3 bg-white/[0.02] border border-white/5 col-span-2">
+      <div class="p-3 bg-white/[0.02] border border-white/5">
         <p class="text-[8px] font-bold text-white/30 mb-1">Địa chỉ</p>
-        <p class="text-white/60 text-[10px] leading-relaxed">{manufacturer.factory?.address}</p>
+        <p class="text-white/60 text-[10px] leading-relaxed line-clamp-1">{manufacturer.factory?.address}</p>
       </div>
       {#if manufacturer.mfg_date}
       <div class="p-3 bg-white/[0.02] border border-white/5">
@@ -327,7 +329,6 @@
         <div class="bg-[#e5e7eb] relative flex items-center justify-center p-0 overflow-hidden group min-h-[300px]">
           <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none mix-blend-multiply"></div>
           <img src={manufacturer.notification_doc} alt="Legal Doc" class="w-full h-auto drop-shadow-2xl relative z-10" />
-          <div class="absolute top-0 left-0 w-full h-1 bg-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.8)] z-30 animate-scan"></div>
           <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-20 mix-blend-overlay opacity-5">
             <ShieldCheck size={200} class="text-blue-900" />
           </div>
@@ -387,10 +388,56 @@
   }
 
   .glass-morphism-mobile {
-    background: rgba(10, 10, 10, 0.95);
+    background: rgba(10, 10, 10, 0.4);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(193, 143, 126, 0.15);
-    border-radius: 5px;
+    border: none;
+    border-radius: 0;
+  }
+
+  /* Industrial Reticle Accents */
+  .corner-accents {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .corner-accents::before, .corner-accents::after {
+    content: '';
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    border-color: #C18F7E;
+    border-style: solid;
+    opacity: 0.8;
+  }
+  /* Top Left & Top Right */
+  .corner-accents::before {
+    top: 0; left: 0;
+    border-width: 2px 0 0 2px;
+  }
+  /* Bottom Right & Bottom Left via container */
+  .glass-morphism-mobile::before, .glass-morphism-mobile::after {
+    content: '';
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    border-color: #C18F7E;
+    border-style: solid;
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .glass-morphism-mobile::before {
+    top: 0; right: 0;
+    border-width: 2px 2px 0 0;
+  }
+  .glass-morphism-mobile::after {
+    bottom: 0; left: 0;
+    border-width: 0 0 2px 2px;
+  }
+  .corner-accents::after {
+    bottom: 0; right: 0;
+    border-width: 0 2px 2px 0;
   }
 
   @keyframes scan-map {
@@ -400,9 +447,22 @@
     100% { top: 100%; opacity: 0; }
   }
 
-  @keyframes scan {
-    0% { top: 0; }
-    100% { top: 100%; }
+  .laser-scan-line-legal {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #3b82f6;
+    box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
+    z-index: 100;
+    animation: laser-scan-move 3s linear infinite;
+  }
+
+  @keyframes laser-scan-move {
+    0% { top: 0; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
   }
 
   @keyframes shimmer {

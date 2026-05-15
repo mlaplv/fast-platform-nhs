@@ -51,7 +51,7 @@
 </script>
 
 <div class="relative w-full group">
-  <span class="text-[8px] text-slate-600 font-black mb-2 block uppercase">{label}</span>
+  <span class="text-[8px] text-slate-600 font-black mb-2 block ">{label}</span>
   <button 
     class="w-full bg-black/60 border border-white/10 rounded-none p-4 text-[11px] font-black text-white text-left focus:border-cyan-400/50 outline-none transition-all shadow-inner flex justify-between items-center"
     onclick={toggle}
@@ -70,7 +70,7 @@
         <button class="p-1 hover:text-cyan-400" onclick={() => changeMonth(-1)}><ChevronLeft size={16} /></button>
         
         <div class="flex flex-col items-center">
-           <div class="text-[10px] font-black text-white uppercase tracking-widest">{months[viewDate.getMonth()]}</div>
+           <div class="text-[10px] font-black text-white tracking-widest">{months[viewDate.getMonth()]}</div>
            <select 
              class="bg-transparent text-[10px] text-slate-500 font-mono outline-none border-none cursor-pointer hover:text-white transition-colors"
              value={viewDate.getFullYear()}

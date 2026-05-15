@@ -343,10 +343,13 @@ class OrderService:
         res_dict: Dict[str, object] = dict(row._asdict())
         res_dict["insight"] = insight
 
-        # Elite V3.0: Cookie Session Gate
-        is_trusted: bool = bool(ox_cookie and ox_cookie == row.id)
+        # Elite V4.0: Cookie Session Gate (Fingerprint Binding)
+        stored_ox = (res_dict.get("order_metadata") or {}).get("ox_fingerprint")
+        is_trusted: bool = bool(ox_cookie and ox_cookie == stored_ox)
 
         res_dict["is_trusted_device"] = is_trusted
+        
+        # Elite V4.0: Masking is now handled at the Controller level for better granularity
         res_dict["name_masked"] = mask_string(row.customer_name or "")
         res_dict["address_masked"] = mask_string(row.customer_address or "", visible_prefix=4, visible_suffix=0)
 

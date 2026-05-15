@@ -440,7 +440,6 @@
     gap: 0.4rem;
     font-size: 0.6rem;
     font-weight: 800;
-    text-transform: uppercase;
     letter-spacing: 0.1em;
     color: rgba(255,255,255,0.3);
     background: rgba(255,255,255,0.03);

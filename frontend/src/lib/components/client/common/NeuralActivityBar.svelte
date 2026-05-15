@@ -149,7 +149,6 @@
     font-size: 9px;
     font-weight: 600;
     color: rgba(255, 255, 255, 0.3);
-    text-transform: uppercase;
     letter-spacing: 0.02em;
   }
 

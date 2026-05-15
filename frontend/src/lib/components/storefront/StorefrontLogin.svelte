@@ -129,7 +129,7 @@
         <!-- TABS -->
         <div class="flex border-b border-gray-100 mb-8">
           <button
-            class="flex-1 pb-4 text-xs font-bold tracking-widest uppercase transition-all {tab ===
+            class="flex-1 pb-4 text-xs font-bold tracking-widest transition-all {tab ===
             'EMAIL'
               ? 'text-black border-b-2 border-black'
               : 'text-gray-400 border-b-2 border-transparent hover:text-gray-600'}"
@@ -138,7 +138,7 @@
             Email
           </button>
           <button
-            class="flex-1 pb-4 text-xs font-bold tracking-widest uppercase transition-all {tab ===
+            class="flex-1 pb-4 text-xs font-bold tracking-widest transition-all {tab ===
             'PHONE'
               ? 'text-black border-b-2 border-black'
               : 'text-gray-400 border-b-2 border-transparent hover:text-gray-600'}"
@@ -147,7 +147,7 @@
             SĐT / OTP
           </button>
           <button
-            class="flex-1 pb-4 text-xs font-bold tracking-widest uppercase transition-all {tab ===
+            class="flex-1 pb-4 text-xs font-bold tracking-widest transition-all {tab ===
             'SOCIAL'
               ? 'text-black border-b-2 border-black'
               : 'text-gray-400 border-b-2 border-transparent hover:text-gray-600'}"
@@ -164,7 +164,7 @@
             <div class="space-y-1.5">
               <label
                 for="phone"
-                class="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1"
+                class="text-[11px] font-bold text-gray-400 tracking-widest ml-1"
                 >Số điện thoại</label
               >
               <div class="relative group">
@@ -229,7 +229,7 @@
             </button>
             <div class="py-2 flex items-center gap-4 text-gray-300">
               <div class="h-[1px] flex-1 bg-gray-100"></div>
-              <span class="text-[10px] uppercase font-bold tracking-widest"
+              <span class="text-[10px] font-bold tracking-widest"
                 >Hoặc nhanh hơn</span
               >
               <div class="h-[1px] flex-1 bg-gray-100"></div>
@@ -255,17 +255,17 @@
       </div>
 
       <div class="mt-20 flex justify-center gap-8">
-        <p class="text-[10px] text-gray-400 uppercase tracking-[0.2em]">
+        <p class="text-[10px] text-gray-400 tracking-[0.2em]">
           &copy; 2026 SmartShop Premium
         </p>
         <a
           href="/support"
-          class="text-[10px] text-gray-400 uppercase tracking-[0.2em] hover:text-black"
+          class="text-[10px] text-gray-400 tracking-[0.2em] hover:text-black"
           >Hỗ trợ</a
         >
         <a
           href="/privacy"
-          class="text-[10px] text-gray-400 uppercase tracking-[0.2em] hover:text-black"
+          class="text-[10px] text-gray-400 tracking-[0.2em] hover:text-black"
           >Bảo mật</a
         >
       </div>

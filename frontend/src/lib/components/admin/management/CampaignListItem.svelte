@@ -111,20 +111,20 @@
         <!-- Category Badge -->
         <div class="px-2 py-0.5 rounded border {cat.border} bg-white/[0.02] flex items-center gap-1.5 shrink-0">
           <cat.icon size={10} class={cat.color} />
-          <span class="text-[9px] font-mono font-black tracking-widest uppercase {cat.color}">{cat.label}</span>
+          <span class="text-[9px] font-mono font-black tracking-widest {cat.color}">{cat.label}</span>
         </div>
         
         <!-- Status Badge -->
         <div class="px-2 py-0.5 rounded border {status.border} bg-white/[0.02] flex items-center gap-1.5 shrink-0 {status.pulse ? 'animate-pulse' : ''}">
            <div class="w-1 h-1 rounded-full bg-current {status.color}"></div>
-           <span class="text-[9px] font-mono font-black tracking-widest uppercase {status.color}">{status.label}</span>
+           <span class="text-[9px] font-mono font-black tracking-widest {status.color}">{status.label}</span>
         </div>
 
         <div class="h-3 w-px bg-white/5 mx-1 hidden sm:block"></div>
         
         <div class="hidden sm:flex items-center gap-1.5 opacity-40 group-hover:opacity-60 transition-opacity">
            <Clock size={10} class="text-gray-400" />
-           <span class="text-[9px] font-mono text-gray-500 uppercase">{formatTime(campaign.created_at)}</span>
+           <span class="text-[9px] font-mono text-gray-500 ">{formatTime(campaign.created_at)}</span>
         </div>
       </div>
 
@@ -136,7 +136,7 @@
       <div class="mt-3 flex items-center gap-4 flex-wrap">
          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/5">
             <stepInfo.icon size={14} class="text-neon-cyan/60" />
-            <span class="text-[11px] font-mono font-bold text-gray-400 uppercase tracking-tighter">
+            <span class="text-[11px] font-mono font-bold text-gray-400 tracking-tighter">
                Phase_0{step}: <span class="text-gray-200">{stepInfo.label}</span>
             </span>
          </div>
@@ -158,7 +158,7 @@
     {#if campaign.status === 'WAITING_FOR_REVIEW' || campaign.status === 'PROCESSING'}
       <button
         onclick={() => onAction(campaign)}
-        class="flex items-center gap-2 px-5 py-2.5 bg-neon-cyan/10 hover:bg-neon-cyan text-neon-cyan hover:text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-xl border border-neon-cyan/30 hover:border-neon-cyan transition-all active:scale-95 shadow-lg group/btn"
+        class="flex items-center gap-2 px-5 py-2.5 bg-neon-cyan/10 hover:bg-neon-cyan text-neon-cyan hover:text-black font-black text-[10px] tracking-[0.2em] rounded-xl border border-neon-cyan/30 hover:border-neon-cyan transition-all active:scale-95 shadow-lg group/btn"
       >
         <Play size={14} class="group-hover/btn:fill-black" />
         Resume

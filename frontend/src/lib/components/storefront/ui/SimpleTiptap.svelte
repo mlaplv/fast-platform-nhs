@@ -80,7 +80,7 @@
 </script>
 
 <div 
-  class="w-full transition-all rounded-none overflow-hidden relative group {variant === 'dark' ? 'bg-black/40 border-2 border-white/10 focus-within:border-sky-500/50' : 'bg-white border-2 border-gray-100 focus-within:border-black'}"
+  class="w-full transition-all rounded-none overflow-hidden relative group {variant === 'dark' ? 'bg-black/40 border border-white/10' : 'bg-white border border-slate-100 focus-within:border-slate-200'}"
   data-variant={variant}
 >
   <!-- Elite Simple Toolbar -->

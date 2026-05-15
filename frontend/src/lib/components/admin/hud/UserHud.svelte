@@ -28,8 +28,8 @@ import LucideLayout from "@lucide/svelte/icons/layout";
     <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
 
     <div class="flex flex-col items-end mr-1">
-      <span class="text-[8px] font-mono text-gray-400 uppercase tracking-[0.2em] leading-tight opacity-70">Identity Verified</span>
-      <span class="text-[11px] font-black text-white group-hover:text-[#00FFFF] transition-colors tracking-tight uppercase">
+      <span class="text-[8px] font-mono text-gray-400 tracking-[0.2em] leading-tight opacity-70">Identity Verified</span>
+      <span class="text-[11px] font-black text-white group-hover:text-[#00FFFF] transition-colors tracking-tight ">
         {nanobot.userName || ""}
       </span>
     </div>
@@ -63,8 +63,8 @@ import LucideLayout from "@lucide/svelte/icons/layout";
               <div class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-black shadow-[0_0_8px_#22c55e]"></div>
             </div>
             <div>
-              <p class="text-[9px] font-mono text-cyan-500/60 uppercase tracking-[0.4em] mb-1">Authenticated Identity</p>
-              <h3 class="text-xl font-black text-white leading-none mb-1.5 tracking-tighter uppercase italic">
+              <p class="text-[9px] font-mono text-cyan-500/60 tracking-[0.4em] mb-1">Authenticated Identity</p>
+              <h3 class="text-xl font-black text-white leading-none mb-1.5 tracking-tighter italic">
                 {nanobot.userName || ""}
               </h3>
               <p class="text-[10px] font-mono text-gray-500 lowercase tracking-tight">{nanobot.userEmail || ""}</p>
@@ -78,22 +78,22 @@ import LucideLayout from "@lucide/svelte/icons/layout";
           
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
-              <span class="text-[10px] font-black text-white/90 uppercase tracking-widest">Access Level:</span>
-              <span class="px-2 py-0.5 bg-[#00FFFF]/10 border border-[#00FFFF]/30 rounded text-[9px] font-bold text-[#00FFFF] uppercase tracking-tighter">
+              <span class="text-[10px] font-black text-white/90 tracking-widest">Access Level:</span>
+              <span class="px-2 py-0.5 bg-[#00FFFF]/10 border border-[#00FFFF]/30 rounded text-[9px] font-bold text-[#00FFFF] tracking-tighter">
                 {permissionState.roles[0] || "USER"}
               </span>
             </div>
-            <span class="text-[8px] font-mono text-gray-600 uppercase">LVL_0{permissionState.roles.length}</span>
+            <span class="text-[8px] font-mono text-gray-600 ">LVL_0{permissionState.roles.length}</span>
           </div>
 
           <div class="grid grid-cols-2 gap-2">
             <div class="flex items-center gap-2 p-2 bg-black/40 border border-white/5 rounded-lg">
               <div class="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_5px_#22c55e]"></div>
-              <span class="text-[9px] font-black text-green-500 uppercase tracking-widest">GOD_MODE</span>
+              <span class="text-[9px] font-black text-green-500 tracking-widest">GOD_MODE</span>
             </div>
             <div class="flex items-center gap-2 p-2 bg-black/40 border border-white/5 rounded-lg opacity-60">
               <div class="w-1.5 h-1.5 bg-gray-500 rounded-full"></div>
-              <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest">ENCRYPTED</span>
+              <span class="text-[9px] font-black text-gray-500 tracking-widest">ENCRYPTED</span>
             </div>
           </div>
           
@@ -112,7 +112,7 @@ import LucideLayout from "@lucide/svelte/icons/layout";
           class="flex flex-col items-center justify-center p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-[#00FFFF]/5 hover:border-[#00FFFF]/30 transition-all group/btn"
         >
           <LucideSettings size={20} class="mb-2 text-gray-500 group-hover:text-[#00FFFF] group-hover:rotate-45 transition-all duration-500" />
-          <span class="text-[10px] font-black text-gray-400 group-hover:text-white uppercase tracking-widest">Management</span>
+          <span class="text-[10px] font-black text-gray-400 group-hover:text-white tracking-widest">Management</span>
           <span class="text-[7px] font-mono text-gray-600 mt-1">PROTO_MGR</span>
         </button>
 
@@ -121,7 +121,7 @@ import LucideLayout from "@lucide/svelte/icons/layout";
           class="flex flex-col items-center justify-center p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-red-500/5 hover:border-red-500/30 transition-all group/btn"
         >
           <LucideLogOut size={20} class="mb-2 text-gray-500 group-hover:text-red-500 group-hover:translate-x-1 transition-all duration-500" />
-          <span class="text-[10px] font-black text-gray-400 group-hover:text-white uppercase tracking-widest">Terminate</span>
+          <span class="text-[10px] font-black text-gray-400 group-hover:text-white tracking-widest">Terminate</span>
           <span class="text-[7px] font-mono text-gray-600 mt-1">EXIT_SHUTDOWN</span>
         </button>
       </div>
@@ -134,7 +134,7 @@ import LucideLayout from "@lucide/svelte/icons/layout";
               <div class="w-1 h-2 {i < 3 ? 'bg-cyan-500' : 'bg-white/10'} rounded-full"></div>
             {/each}
           </div>
-          <span class="text-[8px] font-mono text-gray-600 uppercase">SYS_LINK_STABLE</span>
+          <span class="text-[8px] font-mono text-gray-600 ">SYS_LINK_STABLE</span>
         </div>
         <span class="text-[8px] font-mono text-gray-700 tracking-tighter">REF: {nanobot.userName?.substring(0,8).toUpperCase() || "X-IDENT"}</span>
       </div>

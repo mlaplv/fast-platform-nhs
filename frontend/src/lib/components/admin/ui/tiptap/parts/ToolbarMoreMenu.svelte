@@ -87,7 +87,7 @@
   >
     <!-- Extra Tools (Always in More) -->
     <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-       <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Extended Tools</span>
+       <span class="text-[7px] font-black tracking-widest text-white/20 px-1">Extended Tools</span>
         <div class="flex gap-1.5">
            <button onclick={() => { editor?.chain().focus().toggleBulletList().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.bulletList ? 'active-neural' : ''}" title="Bullet List"><ListIcon size={12}/></button>
            <button onclick={() => { editor?.chain().focus().toggleOrderedList().run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.orderedList ? 'active-neural' : ''}" title="Ordered List"><ListOrderedIcon size={12}/></button>
@@ -99,7 +99,7 @@
 
     {#if isCompact}
       <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-         <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Text Alignment</span>
+         <span class="text-[7px] font-black tracking-widest text-white/20 px-1">Text Alignment</span>
          <div class="flex gap-1.5">
            <button onclick={() => { editor?.chain().focus().setTextAlign('left').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignLeft ? 'active-neural' : ''}"><AlignLeftIcon size={12}/></button>
            <button onclick={() => { editor?.chain().focus().setTextAlign('center').run(); showMore=false; }} class="tb-btn !h-8 !w-8 {active.alignCenter ? 'active-neural' : ''}"><AlignCenterIcon size={12}/></button>
@@ -110,7 +110,7 @@
     {/if}
 
     <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-       <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Extra Formatting</span>
+       <span class="text-[7px] font-black tracking-widest text-white/20 px-1">Extra Formatting</span>
        <div class="flex gap-1.5">
          <button onclick={() => { editor?.chain().focus().toggleStrike().run(); showMore = false; }} class="tb-btn !h-8 !w-8 {active.strike ? 'active-neural' : ''}" title="Strikethrough">
            <StrikethroughIcon size={12}/>
@@ -135,7 +135,7 @@
     <!-- Hidden Groups depending on width -->
     {#if isCompact}
        <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-         <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Formatting</span>
+         <span class="text-[7px] font-black tracking-widest text-white/20 px-1">Formatting</span>
          <div class="flex gap-1">
            {#if isSuperCompact}
               <button onclick={() => { editor?.chain().focus().toggleBold().run(); }} class="tb-btn !h-8 !w-8 {active.bold ? 'active-neural' : ''}"><BoldIcon size={12}/></button>
@@ -149,7 +149,7 @@
 
     {#if isSuperCompact}
       <div class="flex flex-col gap-2 p-2 bg-white/5 rounded-lg border border-white/5">
-         <span class="text-[7px] font-black uppercase tracking-widest text-white/20 px-1">Media & Views</span>
+         <span class="text-[7px] font-black tracking-widest text-white/20 px-1">Media & Views</span>
          <div class="flex items-center justify-between">
             <div class="flex gap-1">
               <button onclick={onOpenImage} class="tb-btn !h-8 !w-8" title="Image"><ImageIcon size={12}/></button>
@@ -172,13 +172,13 @@
     <!-- CNS V85.23: AI Booster & Extra Actions Overflow (Deduplicated) -->
     {#if overflowActions.length > 0}
       <div class="flex flex-col gap-2 p-2 bg-pink-500/5 rounded-lg border border-pink-500/10">
-         <span class="text-[7px] font-black uppercase tracking-widest text-pink-400/40 px-1 italic">Intelligence Actions</span>
+         <span class="text-[7px] font-black tracking-widest text-pink-400/40 px-1 italic">Intelligence Actions</span>
          <div class="flex flex-wrap gap-2">
             {#each overflowActions as action (action.id)}
               <button
                 onclick={() => { action.onclick(); showMore = false; }}
                 disabled={action.loading || action.disabled}
-                class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all {action.loading ? 'opacity-50' : action.disabled ? 'opacity-30 cursor-not-allowed' : 'bg-pink-500/10 text-pink-400 hover:bg-pink-500 hover:text-white border border-pink-500/20'}"
+                class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black tracking-wider transition-all {action.loading ? 'opacity-50' : action.disabled ? 'opacity-30 cursor-not-allowed' : 'bg-pink-500/10 text-pink-400 hover:bg-pink-500 hover:text-white border border-pink-500/20'}"
               >
                 {#if action.loading}<div class="w-2 h-2 border border-white/20 border-t-white rounded-full animate-spin"></div>{/if}
                 {action.label}

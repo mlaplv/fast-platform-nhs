@@ -17,6 +17,7 @@ class VoucherBase(BaseModel):
     is_active: bool = True
     category: str = Field("DISCOUNT")
     is_default: bool = Field(False)
+    is_viral: bool = Field(False, description="Enable viral share-to-unlock for this voucher")
     priority: int = Field(0)
     metadata_json: Optional[dict] = Field(default_factory=dict, alias="metadata_json")
 
@@ -36,6 +37,7 @@ class UpdateVoucherRequest(BaseModel):
     end_date: Optional[datetime] = None
     category: Optional[str] = None
     is_default: Optional[bool] = None
+    is_viral: Optional[bool] = None
     priority: Optional[int] = None
     metadata_json: Optional[dict] = None
     id: Optional[str] = Field(None, description="New Voucher Code if renaming")

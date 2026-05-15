@@ -876,7 +876,7 @@
 
   .gifts-content { flex: 1; display: flex; flex-direction: column; gap: 0.75rem; }
   .gifts-header { display: flex; align-items: center; justify-content: space-between; }
-  .gifts-title { font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #1f2937; margin: 0; }
+  .gifts-title { font-size: 14px; font-weight: 900; letter-spacing: 0.1em; color: #1f2937; margin: 0; }
   .combo-tag { background: #d0011b; color: white; font-size: 10px; font-weight: 900; padding: 0.25rem 0.625rem; border-radius: 9999px; display: flex; align-items: center; gap: 0.375rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
 
   .gifts-list { display: flex; flex-direction: column; gap: 0.625rem; }
@@ -898,7 +898,6 @@
     color: #d0011b;
     font-size: 14px;
     font-weight: 900;
-    text-transform: uppercase;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -915,7 +914,6 @@
     color: white;
     font-size: 14px;
     font-weight: 900;
-    text-transform: uppercase;
     border: none;
     cursor: pointer;
     transition: all 0.2s;

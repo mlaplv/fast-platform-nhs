@@ -97,7 +97,7 @@
       <div class="relative z-[1] bg-white/98 backdrop-blur-2xl border border-gray-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] rounded-xl overflow-hidden ring-1 ring-black/5">
         
         <div class="px-4 py-3 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
-          <h3 class="text-[11px] font-black uppercase tracking-widest text-gray-800">Thông báo mới nhận</h3>
+          <h3 class="text-[11px] font-black tracking-widest text-gray-800">Thông báo mới nhận</h3>
           <button 
             onclick={() => notifStore.fetchNotifications()}
             class="text-[10px] text-luxury-copper font-bold hover:underline"
@@ -124,7 +124,7 @@
                     <p class="text-[12px] text-gray-800 font-medium leading-[1.4] mb-1">
                       {notif.message}
                     </p>
-                    <span class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
+                    <span class="text-[9px] text-gray-400 font-bold tracking-tighter">
                       {formatDate(notif.created_at)}
                     </span>
                   </div>
@@ -139,7 +139,7 @@
               <div class="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
                 <Bell class="w-6 h-6 text-gray-200" />
               </div>
-              <p class="text-[11px] text-gray-400 font-medium uppercase tracking-widest leading-loose">
+              <p class="text-[11px] text-gray-400 font-medium tracking-widest leading-loose">
                 Hiện tại chưa có<br/>thông báo mới nào
               </p>
             </div>
@@ -147,7 +147,7 @@
         </div>
 
         <div class="px-4 py-3 bg-gray-50/50 border-t border-gray-100 text-center">
-          <a href="/user/notifications" class="text-[11px] font-black text-gray-500 hover:text-luxury-copper transition-colors uppercase tracking-widest block w-full">
+          <a href="/user/notifications" class="text-[11px] font-black text-gray-500 hover:text-luxury-copper transition-colors tracking-widest block w-full">
             Xem tất cả thông báo
           </a>
         </div>

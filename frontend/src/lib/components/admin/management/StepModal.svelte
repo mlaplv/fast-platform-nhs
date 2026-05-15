@@ -49,7 +49,7 @@
         <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
 
         <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-            <h2 class="text-xl font-black text-white flex items-center gap-3 tracking-tight uppercase">
+            <h2 class="text-xl font-black text-white flex items-center gap-3 tracking-tight ">
                 <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.5)]"></span>
                 <span class={stepInfo.color}>{stepInfo.title}</span>
             </h2>
@@ -58,7 +58,7 @@
 
         <div class="p-6">
             <div class="mb-4 flex items-baseline justify-between">
-                <div class="text-[10px] text-white/30 uppercase tracking-[0.2em] font-black font-mono">Input_Dataset_Alpha</div>
+                <div class="text-[10px] text-white/30 tracking-[0.2em] font-black font-mono">Input_Dataset_Alpha</div>
                 <div class="text-[9px] text-cyan-500/50 font-mono">STATUS: AWAITING_AUTHENTICATION</div>
             </div>
             
@@ -77,11 +77,11 @@
         </div>
 
         <div class="p-6 bg-white/[0.01] border-t border-white/5 flex justify-end gap-3 items-center">
-            <span class="text-[10px] font-mono text-white/20 uppercase mr-auto">Bypass_Safety_Check: [OFF]</span>
+            <span class="text-[10px] font-mono text-white/20 mr-auto">Bypass_Safety_Check: [OFF]</span>
             
             <button 
                 onclick={() => show = false}
-                class="px-5 py-2.5 rounded-xl text-xs font-black text-white/40 hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest"
+                class="px-5 py-2.5 rounded-xl text-xs font-black text-white/40 hover:text-white hover:bg-white/5 transition-all tracking-widest"
             >
                 Hủy bỏ
             </button>

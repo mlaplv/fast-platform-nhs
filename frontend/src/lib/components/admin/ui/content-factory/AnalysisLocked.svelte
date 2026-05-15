@@ -25,18 +25,18 @@
   </div>
 
   <div class="flex flex-col gap-1 z-10">
-    <h3 class="text-[13px] font-black uppercase tracking-[0.2em] text-white/90">{title}</h3>
+    <h3 class="text-[13px] font-black tracking-[0.2em] text-white/90">{title}</h3>
     <p class="text-[10px] text-white/40 font-medium px-4">{requirement}</p>
   </div>
 
   <div class="flex items-center gap-6 py-2 z-10">
     <div class="flex flex-col items-center">
-      <span class="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Hiện tại</span>
+      <span class="text-[8px] font-black text-white/20 tracking-widest mb-1">Hiện tại</span>
       <span class="text-[14px] font-mono font-bold {colorClass} opacity-60">{currentValue}</span>
     </div>
     <div class="h-8 w-px bg-white/10"></div>
     <div class="flex flex-col items-center">
-      <span class="text-[8px] font-black text-white/20 uppercase tracking-widest mb-1">Mục tiêu</span>
+      <span class="text-[8px] font-black text-white/20 tracking-widest mb-1">Mục tiêu</span>
       <span class="text-[14px] font-mono font-bold {colorClass}">{targetValue}+</span>
     </div>
   </div>
@@ -44,7 +44,7 @@
   {#if onAction}
     <button 
       onclick={onAction}
-      class="mt-2 px-6 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white transition-all flex items-center gap-2 group/btn z-10"
+      class="mt-2 px-6 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 text-[10px] font-black tracking-widest text-white/70 hover:text-white transition-all flex items-center gap-2 group/btn z-10"
     >
       <AlertCircle size={12} class="text-white/40 group-hover/btn:text-white" />
       {actionLabel || 'Quay lại bước trước'}

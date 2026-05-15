@@ -75,7 +75,7 @@
 
     {#if hasPassword}
       <div class="space-y-2" transition:slide>
-        <label for="old_pass" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Mật khẩu hiện tại</label>
+        <label for="old_pass" class="text-[11px] tracking-widest text-stone-400 font-bold">Mật khẩu hiện tại</label>
         <div class="relative group">
           <input
             id="old_pass"
@@ -97,7 +97,7 @@
     {/if}
 
     <div class="space-y-2">
-      <label for="new_pass" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Mật khẩu mới</label>
+      <label for="new_pass" class="text-[11px] tracking-widest text-stone-400 font-bold">Mật khẩu mới</label>
       <div class="relative group">
         <input
           id="new_pass"
@@ -118,7 +118,7 @@
     </div>
 
     <div class="space-y-2">
-      <label for="confirm_pass" class="text-[11px] uppercase tracking-widest text-stone-400 font-bold">Xác nhận mật khẩu mới</label>
+      <label for="confirm_pass" class="text-[11px] tracking-widest text-stone-400 font-bold">Xác nhận mật khẩu mới</label>
       <div class="relative group">
         <input
           id="confirm_pass"
@@ -145,7 +145,7 @@
         class="group relative px-16 py-4 bg-stone-800 text-white overflow-hidden transition-all duration-500 hover:shadow-[0_10px_30px_rgba(0,0,0,0.15)] disabled:opacity-50"
       >
         <div class="absolute inset-0 bg-luxury-copper translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-        <span class="relative z-10 text-[11px] uppercase tracking-[4px] font-black">
+        <span class="relative z-10 text-[11px] tracking-[4px] font-black">
           {isSaving ? 'Đang cập nhật...' : 'Xác nhận đổi'}
         </span>
       </button>

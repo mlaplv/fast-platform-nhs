@@ -165,7 +165,7 @@
                 <div class="absolute inset-0 rounded-full bg-indigo-500/20 blur-3xl animate-pulse"></div>
                 <XohiLogo variant="simple" size={100} />
             </div>
-            <p class="text-[10px] font-mono tracking-[0.5em] text-indigo-400 animate-pulse uppercase">Initializing Trinity Link...</p>
+            <p class="text-[10px] font-mono tracking-[0.5em] text-indigo-400 animate-pulse ">Initializing Trinity Link...</p>
         </div>
     {:else if brainStatus}
         <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
@@ -178,7 +178,7 @@
                         </div>
                         <div>
                             <h2 class="text-xl font-black italic tracking-tighter text-white">CORTEX CONTROL</h2>
-                            <p class="text-[8px] font-mono text-gray-500 tracking-[0.3em] uppercase">TRINITY_SYSTEM_V2.2</p>
+                            <p class="text-[8px] font-mono text-gray-500 tracking-[0.3em] ">TRINITY_SYSTEM_V2.2</p>
                         </div>
                     </div>
                 </div>
@@ -188,15 +188,15 @@
                     <NeuralPulse health={brainStatus.vector_health} active={!syncing} />
                     <div class="w-full mt-6 grid grid-cols-2 gap-4">
                         <div class="text-center">
-                            <span class="text-[9px] font-mono text-indigo-400 uppercase tracking-[0.4em] mb-1 block">Stability</span>
+                            <span class="text-[9px] font-mono text-indigo-400 tracking-[0.4em] mb-1 block">Stability</span>
                             <h3 class="text-2xl font-black italic tracking-tighter text-white">{brainStatus.stability_score}%</h3>
                         </div>
                         <div class="text-center">
-                            <span class="text-[9px] font-mono text-vibrant-purple uppercase tracking-[0.4em] mb-1 block">Coverage</span>
+                            <span class="text-[9px] font-mono text-vibrant-purple tracking-[0.4em] mb-1 block">Coverage</span>
                             <h3 class="text-2xl font-black italic tracking-tighter text-white">{nanobot.brainCoverage}%</h3>
                         </div>
                     </div>
-                    <div class="mt-4 flex items-center justify-center gap-4 text-[9px] font-mono text-gray-600 uppercase">
+                    <div class="mt-4 flex items-center justify-center gap-4 text-[9px] font-mono text-gray-600 ">
                         <div class="flex items-center gap-1.5"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> LIVE</div>
                         <div class="flex items-center gap-1.5"><div class="w-1.5 h-1.5 rounded-full bg-indigo-500/40"></div> ENCRYPTED</div>
                     </div>
@@ -208,21 +208,21 @@
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <History size={12} class="text-gray-500" />
-                                <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Uptime</span>
+                                <span class="text-[9px] font-mono text-gray-500 tracking-widest">Uptime</span>
                             </div>
                             <span class="text-[11px] font-bold font-mono text-white tracking-widest">{formatUptime(nanobot.brainUptime)}</span>
                         </div>
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <Zap size={12} class="text-gray-500" />
-                                <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Last Sync</span>
+                                <span class="text-[9px] font-mono text-gray-500 tracking-widest">Last Sync</span>
                             </div>
                             <span class="text-[11px] font-bold font-mono text-indigo-400 tracking-widest">{formatLastSync(nanobot.brainLastSync)}</span>
                         </div>
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <Database size={12} class="text-gray-500" />
-                                <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Storage</span>
+                                <span class="text-[9px] font-mono text-gray-500 tracking-widest">Storage</span>
                             </div>
                             <span class="text-[11px] font-bold font-mono text-white tracking-widest">{Math.round(nanobot.brainTotalNodes * 0.42)} KB</span>
                         </div>
@@ -234,7 +234,7 @@
                     >
                         <div class="flex items-center gap-3">
                             <BookOpen size={16} />
-                            <span class="text-[11px] font-black uppercase tracking-widest">Tactical Manual</span>
+                            <span class="text-[11px] font-black tracking-widest">Tactical Manual</span>
                         </div>
                         <ChevronRight size={14} class="group-hover:translate-x-1 transition-transform" />
                     </button>
@@ -247,17 +247,17 @@
                 <div class="p-8 border-b border-white/5 flex items-center justify-between">
                     <div class="flex items-center gap-4">
                         <div class="w-1 h-4 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.6)]"></div>
-                        <h3 class="text-[11px] font-black text-white uppercase tracking-[0.4em]">Audit Protocol — Active Matrix</h3>
+                        <h3 class="text-[11px] font-black text-white tracking-[0.4em]">Audit Protocol — Active Matrix</h3>
                         <div class="flex items-center gap-2 px-3 py-1 bg-white/[0.03] border border-white/5 rounded-full">
                             <div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-                            <span class="text-[9px] font-mono text-white/50 uppercase tracking-widest leading-none">Threshold: >92%</span>
+                            <span class="text-[9px] font-mono text-white/50 tracking-widest leading-none">Threshold: >92%</span>
                         </div>
                     </div>
                     
                     {#if message}
                         <div class="flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 animate-pulse" in:fade>
                             <Terminal size={10} class="text-indigo-400" />
-                            <span class="text-[9px] font-mono font-bold text-indigo-400 uppercase tracking-[0.2em]">{message}</span>
+                            <span class="text-[9px] font-mono font-bold text-indigo-400 tracking-[0.2em]">{message}</span>
                         </div>
                     {/if}
                 </div>
@@ -269,10 +269,10 @@
                             <table class="w-full text-left border-separate border-spacing-0">
                                 <thead>
                                     <tr class="bg-white/[0.02]">
-                                        <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest">Classification</th>
-                                        <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest">Subject Context</th>
-                                        <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest">Stability Metric</th>
-                                        <th class="p-6 text-[10px] font-black uppercase text-gray-500 tracking-widest text-right">Intervention</th>
+                                        <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Classification</th>
+                                        <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Subject Context</th>
+                                        <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest">Stability Metric</th>
+                                        <th class="p-6 text-[10px] font-black text-gray-500 tracking-widest text-right">Intervention</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -286,24 +286,24 @@
                                                     <div class="p-2 rounded bg-indigo-500/10 text-indigo-400">
                                                         <Activity size={14} />
                                                     </div>
-                                                    <span class="text-[10px] font-mono font-bold text-white uppercase tracking-widest">{d.type}</span>
+                                                    <span class="text-[10px] font-mono font-bold text-white tracking-widest">{d.type}</span>
                                                 </div>
                                             </td>
                                             <td class="p-6 border-t border-white/5">
-                                                <div class="text-sm font-bold text-gray-100 group-hover:text-indigo-300 transition-colors tracking-tight uppercase italic">{d.name}</div>
+                                                <div class="text-sm font-bold text-gray-100 group-hover:text-indigo-300 transition-colors tracking-tight italic">{d.name}</div>
                                                 <div class="text-[9px] text-gray-600 mt-1 font-mono tracking-[0.2em]">PATH://ROOT/NODE_{d.duplicate_id?.slice(0, 8)}</div>
                                             </td>
                                             <td class="p-6 border-t border-white/5">
                                                 <div class="flex items-center gap-3">
                                                     <div class="w-px h-6 bg-amber-500/20"></div>
                                                     <div>
-                                                        <span class="text-[10px] font-bold text-amber-500 uppercase tracking-widest">Collision Detected</span>
+                                                        <span class="text-[10px] font-bold text-amber-500 tracking-widest">Collision Detected</span>
                                                         <p class="text-[9px] text-gray-500 font-mono italic">{d.reason}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td class="p-6 border-t border-white/5 text-right">
-                                                <button class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-gray-500 hover:text-white hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all active:scale-95">Resolve Hub</button>
+                                                <button class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-[9px] font-black tracking-widest text-gray-500 hover:text-white hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all active:scale-95">Resolve Hub</button>
                                             </td>
                                         </tr>
                                     {/each}
@@ -322,13 +322,13 @@
                                 </div>
                             </div>
                             
-                            <h4 class="text-3xl font-black italic text-white tracking-widest uppercase mb-4">Neural Harmony Established</h4>
+                            <h4 class="text-3xl font-black italic text-white tracking-widest mb-4">Neural Harmony Established</h4>
                             <div class="flex items-center gap-4 mb-8">
                                 <div class="h-px w-12 bg-white/10"></div>
-                                <span class="text-[10px] font-mono text-emerald-400 uppercase tracking-[0.5em]">System Diagnostic: PURE</span>
+                                <span class="text-[10px] font-mono text-emerald-400 tracking-[0.5em]">System Diagnostic: PURE</span>
                                 <div class="h-px w-12 bg-white/10"></div>
                             </div>
-                            <p class="text-gray-500 text-[11px] font-medium italic uppercase tracking-[0.2em] max-w-sm leading-relaxed">
+                            <p class="text-gray-500 text-[11px] font-medium italic tracking-[0.2em] max-w-sm leading-relaxed">
                                 Brain Matrix is in pristine condition. <br/> 
                                 zero semantic collisions detected across <span class="text-white">{nanobot.brainTotalNodes} nodes</span>.
                             </p>
@@ -339,10 +339,10 @@
                 <!-- Bottom Status Bar -->
                 <footer class="p-5 border-t border-white/5 bg-black/40 text-[9px] font-mono text-gray-600 flex justify-between items-center">
                     <div class="flex gap-6">
-                        <span class="flex items-center gap-2 italic uppercase"><div class="w-1 h-1 bg-emerald-500 rounded-full"></div> Trinity_Bridge: Active</span>
-                        <span class="flex items-center gap-2 italic uppercase"><div class="w-1 h-1 bg-indigo-500 rounded-full"></div> Vector_Engine: Trinity_v2.2</span>
+                        <span class="flex items-center gap-2 italic "><div class="w-1 h-1 bg-emerald-500 rounded-full"></div> Trinity_Bridge: Active</span>
+                        <span class="flex items-center gap-2 italic "><div class="w-1 h-1 bg-indigo-500 rounded-full"></div> Vector_Engine: Trinity_v2.2</span>
                     </div>
-                    <div class="uppercase tracking-widest opacity-40">Administrative Clearance Level 1</div>
+                    <div class="tracking-widest opacity-40">Administrative Clearance Level 1</div>
                 </footer>
             </main>
         </div>
@@ -355,7 +355,7 @@
                 <header class="p-8 border-b border-white/5 flex justify-between items-start">
                     <div>
                         <h2 class="text-3xl font-black italic italic tracking-tighter text-white">TACTICAL MANUAL</h2>
-                        <p class="text-[10px] font-mono text-indigo-400 tracking-[0.3em] uppercase mt-1">Operational Guidance v2.2</p>
+                        <p class="text-[10px] font-mono text-indigo-400 tracking-[0.3em] mt-1">Operational Guidance v2.2</p>
                     </div>
                     <button 
                         onclick={() => nanobot.setBrainManualOpen(false)}
@@ -370,15 +370,15 @@
                         <section in:fly={{ x: -20, delay: i * 100 }}>
                             <div class="flex items-center gap-4 mb-4">
                                 <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center font-mono font-black text-indigo-400">0{i+1}</div>
-                                <h3 class="text-xl font-black italic tracking-tighter text-white uppercase">{item.title}</h3>
+                                <h3 class="text-xl font-black italic tracking-tighter text-white ">{item.title}</h3>
                             </div>
                             <div class="ml-14 space-y-4">
                                 <p class="text-sm text-gray-400 leading-relaxed font-medium">{item.desc}</p>
                                 <div class="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10 flex items-start gap-3">
                                     <Info size={14} class="text-indigo-400 mt-0.5" />
                                     <div>
-                                        <span class="text-[10px] font-mono text-indigo-400/80 uppercase tracking-widest font-black block mb-1">Operational Impact</span>
-                                        <p class="text-[11px] text-gray-500 italic uppercase tracking-wider">{item.impact}</p>
+                                        <span class="text-[10px] font-mono text-indigo-400/80 tracking-widest font-black block mb-1">Operational Impact</span>
+                                        <p class="text-[11px] text-gray-500 italic tracking-wider">{item.impact}</p>
                                     </div>
                                 </div>
                             </div>
@@ -389,7 +389,7 @@
                 <footer class="p-8 border-t border-white/5 flex justify-center">
                     <button 
                         onclick={() => nanobot.setBrainManualOpen(false)}
-                        class="px-12 py-4 rounded-full bg-white text-black text-xs font-black uppercase tracking-[0.4em] hover:scale-105 active:scale-95 transition-all"
+                        class="px-12 py-4 rounded-full bg-white text-black text-xs font-black tracking-[0.4em] hover:scale-105 active:scale-95 transition-all"
                     >
                         Acknowledged
                     </button>

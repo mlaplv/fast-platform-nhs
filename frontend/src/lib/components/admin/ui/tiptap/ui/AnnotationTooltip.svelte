@@ -66,7 +66,7 @@
       }">
       <div class="flex flex-col gap-2">
         <div class="flex items-start justify-between gap-3">
-          <span class="font-black uppercase tracking-widest opacity-40 shrink-0 text-[8px] mt-0.5">
+          <span class="font-black tracking-widest opacity-40 shrink-0 text-[8px] mt-0.5">
             {isFixed ? '✨ Hoàn tất' : type.replace(/_/g, ' ')}
           </span>
           {#if isFixed}

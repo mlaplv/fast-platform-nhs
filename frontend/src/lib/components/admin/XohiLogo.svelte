@@ -135,7 +135,7 @@
   {#if variant === "header" && localStatus !== "IDLE"}
     <div
       in:scale={{ duration: 200 }}
-      class="absolute -top-7 left-1/2 -translate-x-1/2 text-[7px] font-black tracking-widest uppercase whitespace-nowrap px-2 py-0.5 rounded-full bg-black/80 border border-white/10 {localStatus === 'ERROR' ? 'text-alert-red' : 'text-neon-cyan'} shadow-glow-sm"
+      class="absolute -top-7 left-1/2 -translate-x-1/2 text-[7px] font-black tracking-widest whitespace-nowrap px-2 py-0.5 rounded-full bg-black/80 border border-white/10 {localStatus === 'ERROR' ? 'text-alert-red' : 'text-neon-cyan'} shadow-glow-sm"
     >
       {localStatus}
     </div>

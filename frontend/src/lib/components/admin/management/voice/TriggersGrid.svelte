@@ -48,11 +48,11 @@
       <div class="p-3 bg-cyan-500/10 rounded-2xl ring-1 ring-cyan-500/20">
         <Mic size={24} />
       </div>
-      <h2 class="text-lg font-bold tracking-tight uppercase">Core Triggers</h2>
+      <h2 class="text-lg font-bold tracking-tight ">Core Triggers</h2>
     </div>
     <div class="px-4 py-2 bg-zinc-900 ring-1 ring-white/10 rounded-xl">
       <span
-        class="text-[10px] font-mono text-zinc-500 font-bold uppercase tracking-widest"
+        class="text-[10px] font-mono text-zinc-500 font-bold tracking-widest"
         >TIER 1 SYSTEM</span
       >
     </div>
@@ -67,7 +67,7 @@
             class="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(34,211,238,0.5)]"
           ></div>
           <span
-            class="text-[11px] font-mono text-zinc-500 uppercase tracking-[0.2em]"
+            class="text-[11px] font-mono text-zinc-500 tracking-[0.2em]"
             >Activation Protocol (Wake)</span
           >
         </div>
@@ -128,7 +128,7 @@
             class="w-1.5 h-1.5 rounded-full bg-red-500/60 shadow-[0_0_8px_rgba(239,68,68,0.5)]"
           ></div>
           <span
-            class="text-[11px] font-mono text-zinc-500 uppercase tracking-[0.2em]"
+            class="text-[11px] font-mono text-zinc-500 tracking-[0.2em]"
             >Termination Protocol (Sleep)</span
           >
         </div>

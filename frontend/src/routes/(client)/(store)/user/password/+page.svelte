@@ -38,7 +38,7 @@
       <div class="space-y-8" in:fade>
         <div class="border-b border-stone-100 pb-5">
           <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Đổi Mật Khẩu</h1>
-          <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu cho người khác</p>
+          <p class="text-[13px] text-stone-400 mt-1 tracking-widest">Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu cho người khác</p>
         </div>
 
         <div class="max-w-md">

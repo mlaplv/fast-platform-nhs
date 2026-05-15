@@ -152,7 +152,7 @@
         defaultValue: "Hết hàng",
         promptPlaceholder: "Lý do huỷ...",
         confirmLabel: "HUỶ ĐƠN",
-        cancelLabel: "QUAY LẠI",
+        cancelLabel: "Quay lại",
       });
       if (reason !== null && typeof reason === "string") {
         try {
@@ -176,7 +176,7 @@
           ? "Đánh dấu đơn hàng này là SPAM và chuyển vào khu vực cách ly?"
           : "Gỡ bỏ nhãn SPAM và cho phép xử lý đơn hàng này như bình thường?",
         confirmLabel: "XÁC NHẬN",
-        cancelLabel: "QUAY LẠI",
+        cancelLabel: "Quay lại",
       });
       if (confirm) {
         try {
@@ -201,7 +201,7 @@
         title: "XÁC NHẬN CHUYỂN TRẠNG THÁI",
         message: `Đổi trạng thái đơn hàng sang "${label.toUpperCase()}"?\nHành động này sẽ được lưu vào lịch sử hệ thống.`,
         confirmLabel: "XÁC NHẬN",
-        cancelLabel: "QUAY LẠI",
+        cancelLabel: "Quay lại",
       });
       if (confirm) {
         try {
@@ -277,7 +277,7 @@
     const label = ORDER_STATUS_MAP[newStatus.toLowerCase()]?.label || newStatus;
     
     const confirm = await nanobot.showConfirm({
-      title: "XÁC NHẬN CẬP NHẬT HÀNG LOẠT",
+      title: "Xác nhận cập nhật HÀNG LOẠT",
       message: `Chuyển trạng thái ${count} đơn hàng sang "${label.toUpperCase()}"?`,
       confirmLabel: "XÁC NHẬN",
       cancelLabel: "HỦY"
@@ -327,7 +327,7 @@
           class="w-12 h-12 border-2 border-neon-cyan/10 border-t-neon-cyan rounded-full animate-spin"
         ></div>
         <span
-          class="text-[10px] font-mono text-neon-cyan/50 uppercase tracking-[0.4em]"
+          class="text-[10px] font-mono text-neon-cyan/50 tracking-[0.4em]"
           >QUERYING_NEXUS...</span
         >
       </div>
@@ -340,7 +340,7 @@
         >
           <Package size={24} class="opacity-30" />
         </div>
-        <span class="text-[10px] font-mono uppercase tracking-[0.2em]"
+        <span class="text-[10px] font-mono tracking-[0.2em]"
           >NO_DATA_FOUND</span
         >
       </div>

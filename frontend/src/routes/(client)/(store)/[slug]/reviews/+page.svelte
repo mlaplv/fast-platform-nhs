@@ -462,7 +462,7 @@
                 <div class="absolute right-0 bottom-full mb-2 w-32 bg-white border border-gray-100 shadow-xl z-50 py-1 rounded-lg overflow-hidden">
                   <button 
                     onclick={() => handleReportReview(rev.id)}
-                    class="w-full text-left px-4 py-2 text-[11px] font-bold text-red-500 hover:bg-red-50 transition-colors uppercase tracking-widest"
+                    class="w-full text-left px-4 py-2 text-[11px] font-bold text-red-500 hover:bg-red-50 transition-colors tracking-widest"
                   >
                     Báo cáo
                   </button>
@@ -1224,7 +1224,6 @@
     cursor: pointer;
     text-align: center;
     line-height: 1.3;
-    text-transform: uppercase;
     letter-spacing: 0.3px;
     box-shadow: 0 4px 12px rgba(193,143,126,0.3);
     flex-shrink: 0;

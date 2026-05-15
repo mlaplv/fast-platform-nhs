@@ -357,8 +357,8 @@
       <div transition:fade={{ duration: 200 }} class="flex flex-col gap-4">
         <div class="flex items-center gap-3">
           <Newspaper size={20} class="text-cyan-500" />
-          <h2 class="text-lg font-black uppercase tracking-[0.3em] text-white/90">QUẢN_LÝ_TIN_TỨC</h2>
-          <span class="px-3 py-1 bg-cyan-400/10 border border-cyan-400/20 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest">{totalArticles} bài</span>
+          <h2 class="text-lg font-black tracking-[0.3em] text-white/90">QUẢN_LÝ_TIN_TỨC</h2>
+          <span class="px-3 py-1 bg-cyan-400/10 border border-cyan-400/20 rounded-full text-[10px] font-black text-cyan-400 tracking-widest">{totalArticles} bài</span>
         </div>
       </div>
     {/if}
@@ -385,7 +385,7 @@
   <div class="flex-1 overflow-y-auto custom-scrollbar relative bg-[#050505]/50">
     {#if isLoading}
       <div class="h-full flex items-center justify-center animate-pulse">
-        <span class="text-[9px] font-mono text-cyan-500/40 uppercase tracking-[0.3em]">Đang đồng bộ dữ liệu Neural...</span>
+        <span class="text-[9px] font-mono text-cyan-500/40 tracking-[0.3em]">Đang đồng bộ dữ liệu Neural...</span>
       </div>
     {:else}
       <div class="pl-6 border-l border-white/5 ml-4 my-2 mb-[80px]">
@@ -420,7 +420,7 @@
       >
         <div class="flex items-center gap-3 border-r border-white/10 pr-6">
           <div class="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs font-bold">{selectedIds.size}</div>
-          <span class="text-[10px] font-black uppercase tracking-widest text-white/60">Đã chọn</span>
+          <span class="text-[10px] font-black tracking-widest text-white/60">Đã chọn</span>
         </div>
 
         <div class="flex items-center gap-2">
@@ -468,17 +468,17 @@
             <Trash2 size={32} />
           </div>
           <div class="flex flex-col gap-2">
-            <h3 class="text-xl font-black uppercase tracking-widest text-white">Xác nhận xóa</h3>
+            <h3 class="text-xl font-black tracking-widest text-white">Xác nhận xóa</h3>
             <p class="text-sm text-gray-500 font-mono italic">Dữ liệu sẽ bị xóa vĩnh viễn. Sếp có chắc chắn không?</p>
           </div>
           <div class="flex items-center gap-4 w-full">
             <button
               onclick={() => (showPurgeConfirm = false)}
-              class="flex-1 px-6 py-3 rounded-xl border border-white/5 text-[10px] uppercase font-black tracking-widest text-gray-400 hover:bg-white/5 transition-all"
+              class="flex-1 px-6 py-3 rounded-xl border border-white/5 text-[10px] font-black tracking-widest text-gray-400 hover:bg-white/5 transition-all"
             >Hủy lệnh</button>
             <button
               onclick={executePurge}
-              class="flex-1 px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-[10px] uppercase font-black tracking-widest text-red-500 hover:bg-red-500/20 transition-all"
+              class="flex-1 px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-[10px] font-black tracking-widest text-red-500 hover:bg-red-500/20 transition-all"
             >Kích hoạt xóa</button>
           </div>
         </div>
@@ -496,12 +496,12 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.2); }
 
   .cmd-btn {
-    @apply px-3 py-1.5 text-[9px] font-black uppercase tracking-tighter text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all;
+    @apply px-3 py-1.5 text-[9px] font-black tracking-tighter text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-all;
   }
   .action-btn {
-    @apply px-4 py-1.5 text-[9px] font-black uppercase tracking-widest border border-white/5 rounded-full transition-all;
+    @apply px-4 py-1.5 text-[9px] font-black tracking-widest border border-white/5 rounded-full transition-all;
   }
   .drop-item {
-    @apply px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-white/40 border-b border-white/5 last:border-0 text-left transition-all;
+    @apply px-4 py-2.5 text-[9px] font-black tracking-widest text-white/40 border-b border-white/5 last:border-0 text-left transition-all;
   }
 </style>

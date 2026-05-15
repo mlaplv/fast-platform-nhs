@@ -70,7 +70,7 @@
         class="p-4 border-b border-white/5 flex items-center justify-between"
       >
         <h3
-          class="text-[10px] font-mono text-gray-500 uppercase tracking-widest flex items-center gap-2"
+          class="text-[10px] font-mono text-gray-500 tracking-widest flex items-center gap-2"
         >
           <LucideActivity size={12} class="text-[#00FFFF]" />
           System Notifications
@@ -93,7 +93,7 @@
             {/if}
             <div class="flex items-start justify-between mb-1">
               <span
-                class="text-[9px] font-bold tracking-tighter uppercase {note.type ===
+                class="text-[9px] font-bold tracking-tighter {note.type ===
                 'SECURITY'
                   ? 'text-amber-400'
                   : 'text-[#00FFFF]'}"
@@ -114,7 +114,7 @@
           </button>
         {:else}
           <div class="p-8 text-center">
-            <p class="text-[10px] font-mono text-gray-600 uppercase">
+            <p class="text-[10px] font-mono text-gray-600 ">
               No logs detected
             </p>
           </div>
@@ -130,7 +130,7 @@
           }
           nanobot.toggleHudPopup("NOTIFICATIONS");
         }}
-        class="w-full py-3 bg-white/5 text-[9px] font-mono text-[#00FFFF] uppercase tracking-[widest] hover:bg-[#00FFFF]/10 transition-all border-t border-white/5"
+        class="w-full py-3 bg-white/5 text-[9px] font-mono text-[#00FFFF] tracking-[widest] hover:bg-[#00FFFF]/10 transition-all border-t border-white/5"
       >
         View Full System Audit
       </button>

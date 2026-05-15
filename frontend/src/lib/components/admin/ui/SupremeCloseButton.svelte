@@ -94,7 +94,7 @@
         {/if}
       {/if}
       {#if label}
-        <span class="text-[10px] font-black uppercase tracking-widest {isHardKillReady ? 'text-white' : 'text-red-400/80 group-hover:text-red-300'}">{label}</span>
+        <span class="text-[10px] font-black tracking-widest {isHardKillReady ? 'text-white' : 'text-red-400/80 group-hover:text-red-300'}">{label}</span>
       {/if}
     </div>
 

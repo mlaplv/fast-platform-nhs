@@ -50,10 +50,10 @@ import X from "@lucide/svelte/icons/x";
                         <Activity size={18} class="text-cyan-400 animate-pulse" />
                     </div>
                     <div>
-                        <h2 class="text-base font-black text-cyan-400 tracking-tighter uppercase">
+                        <h2 class="text-base font-black text-cyan-400 tracking-tighter ">
                             Neural Sync
                         </h2>
-                        <p class="text-[9px] font-mono text-cyan-500/40 uppercase tracking-[0.2em]">Core Database Synchronization</p>
+                        <p class="text-[9px] font-mono text-cyan-500/40 tracking-[0.2em]">Core Database Synchronization</p>
                     </div>
                 </div>
                 <button 
@@ -70,12 +70,12 @@ import X from "@lucide/svelte/icons/x";
             <div class="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-10">
                 <div class="grid grid-cols-2 gap-6">
                     <div class="space-y-3">
-                        <label class="block text-[9px] font-mono font-black uppercase text-cyan-500/40 tracking-widest ml-1" for="category">Neural_Category</label>
+                        <label class="block text-[9px] font-mono font-black text-cyan-500/40 tracking-widest ml-1" for="category">Neural_Category</label>
                         <div class="relative group">
                             <select 
                                 id="category"
                                 bind:value={kb.editingItem.category}
-                                class="w-full bg-[#111]/80 border border-white/5 rounded-2xl px-6 py-4 text-[10px] font-mono font-black uppercase tracking-widest text-cyan-400 outline-none focus:border-cyan-500/30 transition-all shadow-inner cursor-pointer appearance-none group-hover:bg-[#111]"
+                                class="w-full bg-[#111]/80 border border-white/5 rounded-2xl px-6 py-4 text-[10px] font-mono font-black tracking-widest text-cyan-400 outline-none focus:border-cyan-500/30 transition-all shadow-inner cursor-pointer appearance-none group-hover:bg-[#111]"
                             >
                                 {#each categories as c}
                                     <option value={c}>{c}</option>
@@ -87,7 +87,7 @@ import X from "@lucide/svelte/icons/x";
                         </div>
                     </div>
                     <div class="space-y-3">
-                        <label class="block text-[9px] font-mono font-black uppercase text-cyan-500/40 tracking-widest ml-1" for="priority">Priority_Weight</label>
+                        <label class="block text-[9px] font-mono font-black text-cyan-500/40 tracking-widest ml-1" for="priority">Priority_Weight</label>
                         <input 
                             id="priority"
                             type="text" 
@@ -104,7 +104,7 @@ import X from "@lucide/svelte/icons/x";
                 </div>
 
                 <div class="space-y-3">
-                    <label class="block text-[9px] font-mono font-black uppercase text-cyan-500/40 tracking-widest ml-1" for="question">Neural_Input (Trigger Prompt / Question)</label>
+                    <label class="block text-[9px] font-mono font-black text-cyan-500/40 tracking-widest ml-1" for="question">Neural_Input (Trigger Prompt / Question)</label>
                     <input 
                         id="question"
                         bind:value={kb.editingItem.question}
@@ -115,7 +115,7 @@ import X from "@lucide/svelte/icons/x";
                 </div>
 
                 <div class="space-y-3">
-                    <label class="block text-[9px] font-mono font-black uppercase text-cyan-500/40 tracking-widest ml-1" for="answer">Neural_Output (Prepared Response / Knowledge)</label>
+                    <label class="block text-[9px] font-mono font-black text-cyan-500/40 tracking-widest ml-1" for="answer">Neural_Output (Prepared Response / Knowledge)</label>
                     <textarea 
                         id="answer"
                         bind:value={kb.editingItem.answer}
@@ -127,7 +127,7 @@ import X from "@lucide/svelte/icons/x";
 
                 <!-- Heartbeat Selection -->
                 <div class="space-y-4">
-                    <div class="text-[9px] font-mono font-black text-cyan-500/40 uppercase tracking-widest ml-1">Activation_Protocol</div>
+                    <div class="text-[9px] font-mono font-black text-cyan-500/40 tracking-widest ml-1">Activation_Protocol</div>
                     <button
                         onclick={() => kb.editingItem!.is_active = !kb.editingItem!.is_active}
                         class="w-full p-6 rounded-3xl bg-white/[0.02] border border-white/5 flex items-center justify-between group/status transition-all hover:bg-cyan-500/[0.02] hover:border-cyan-500/20"
@@ -136,7 +136,7 @@ import X from "@lucide/svelte/icons/x";
                             <div class="w-14 h-7 rounded-full transition-colors duration-500 relative {kb.editingItem.is_active ? 'bg-cyan-500' : 'bg-red-500/20'}">
                                 <div class="absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform duration-500 {kb.editingItem.is_active ? 'translate-x-7' : ''} shadow-lg shadow-black/50"></div>
                             </div>
-                            <span class="text-[11px] font-black uppercase tracking-[0.1em] {kb.editingItem.is_active ? 'text-cyan-400' : 'text-red-500'}">
+                            <span class="text-[11px] font-black tracking-[0.1em] {kb.editingItem.is_active ? 'text-cyan-400' : 'text-red-500'}">
                                 {kb.editingItem.is_active ? 'Neural_Active' : 'Neural_Offline'}
                             </span>
                         </div>
@@ -152,7 +152,7 @@ import X from "@lucide/svelte/icons/x";
                             onClose();
                         }}
                         disabled={kb.loading}
-                        class="flex-1 py-5 rounded-2xl bg-cyan-500 text-black text-[11px] font-black uppercase tracking-widest hover:bg-cyan-400 active:scale-[0.98] transition-all shadow-[0_15px_40px_-5px_rgba(8,145,178,0.4)] disabled:opacity-50 flex items-center justify-center relative group/save overflow-hidden"
+                        class="flex-1 py-5 rounded-2xl bg-cyan-500 text-black text-[11px] font-black tracking-widest hover:bg-cyan-400 active:scale-[0.98] transition-all shadow-[0_15px_40px_-5px_rgba(8,145,178,0.4)] disabled:opacity-50 flex items-center justify-center relative group/save overflow-hidden"
                     >
                         {#if kb.loading}
                             <RefreshCw size={18} class="animate-spin mr-3 font-black" strokeWidth={3} />
@@ -164,7 +164,7 @@ import X from "@lucide/svelte/icons/x";
                     </button>
                     <button 
                         onclick={onClose}
-                        class="px-8 py-5 rounded-2xl bg-white/5 border border-white/5 text-gray-500 hover:text-white hover:bg-white/10 hover:border-white/10 font-mono text-[10px] font-black uppercase tracking-widest transition-all"
+                        class="px-8 py-5 rounded-2xl bg-white/5 border border-white/5 text-gray-500 hover:text-white hover:bg-white/10 hover:border-white/10 font-mono text-[10px] font-black tracking-widest transition-all"
                     >
                         ABORT
                     </button>

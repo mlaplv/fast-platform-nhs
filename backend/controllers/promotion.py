@@ -62,4 +62,5 @@ class PromotionController(Controller):
         voucher_ids = data.get("ids", [])
         is_active = data.get("is_active")
         is_default = data.get("is_default")
-        return await promotion_admin_service.bulk_update_status(db_session, voucher_ids, is_active, is_default)
+        is_viral = data.get("is_viral")
+        return await promotion_admin_service.bulk_update_status(db_session, voucher_ids, is_active, is_default, is_viral)

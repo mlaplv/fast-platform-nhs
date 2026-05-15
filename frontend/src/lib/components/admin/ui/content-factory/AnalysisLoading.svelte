@@ -76,7 +76,7 @@
       </div>
     </div>
     <div>
-      <div class="text-[10px] font-black uppercase tracking-[0.15em]" style="color:{accent}">{labelMap[tab || 'copyright']}</div>
+      <div class="text-[10px] font-black tracking-[0.15em]" style="color:{accent}">{labelMap[tab || 'copyright']}</div>
       <div class="text-[8px] text-white/30">AI đang xử lý...</div>
     </div>
     <div class="ml-auto flex items-center gap-1">
@@ -127,7 +127,7 @@
 
   <div class="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
     <span class="text-[8px] text-white/20 italic">{estimateMap[tab || 'copyright']}</span>
-    <span class="text-[8px] font-black opacity-30 uppercase tracking-[0.1em]" style="color:{accent}">SYNC_ACTIVE</span>
+    <span class="text-[8px] font-black opacity-30 tracking-[0.1em]" style="color:{accent}">SYNC_ACTIVE</span>
   </div>
 </div>
 

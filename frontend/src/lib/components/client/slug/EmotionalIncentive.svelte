@@ -61,9 +61,9 @@
     <header class="text-center mb-16 md:mb-24">
       <div class="hud-tag inline-flex items-center gap-3 px-6 py-2 bg-luxury-sakura/5 border border-luxury-sakura/20 rounded-full mb-6">
         <span class="w-2 h-2 rounded-full bg-luxury-sakura animate-pulse shadow-[0_0_10px_rgba(193,143,126,0.8)]"></span>
-        <span class="text-[9px] font-black text-luxury-sakura uppercase tracking-[0.4em]">Imagine_The_Result</span>
+        <span class="text-[9px] font-black text-luxury-sakura tracking-[0.4em]">Imagine_The_Result</span>
       </div>
-      <h2 class="text-4xl md:text-7xl font-black text-white tracking-tighter leading-none mb-6 italic uppercase">
+      <h2 class="text-4xl md:text-7xl font-black text-white tracking-tighter leading-none mb-6 italic ">
         <EditableWrapper path="metadata.emotional_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
           {product?.metadata?.emotional_headline_1 || 'HÃY BẮT ĐẦU'}
         </EditableWrapper>
@@ -91,14 +91,14 @@
                 <div class="w-full h-full bg-slate-900 flex items-center justify-center relative inner-shadow-elite">
                    <div class="flex flex-col items-center gap-4 opacity-20 group-hover:opacity-100 transition-all duration-700">
                       <div class="w-20 h-px bg-luxury-sakura group-hover:w-32 transition-all duration-1000"></div>
-                      <span class="text-[10px] uppercase tracking-[1em] text-luxury-gold">SCENE_{i+1}</span>
+                      <span class="text-[10px] tracking-[1em] text-luxury-gold">SCENE_{i+1}</span>
                       <div class="w-20 h-px bg-luxury-sakura group-hover:w-32 transition-all duration-1000"></div>
                    </div>
                 </div>
               </div>
 
               <div class="content-frame">
-                <span class="text-[8px] font-black text-luxury-sakura/60 uppercase tracking-[0.3em] mb-2 block">
+                <span class="text-[8px] font-black text-luxury-sakura/60 tracking-[0.3em] mb-2 block">
                   <EditableWrapper path={`metadata.scenario_${i}_title`} type="text" label="NHÃN KỊCH BẢN">
                     {product?.metadata?.[`scenario_${i}_title`] || item.title}
                   </EditableWrapper>
@@ -134,7 +134,7 @@
         <div class="flex flex-wrap items-center justify-center gap-4 md:gap-8 opacity-60">
           <div class="flex items-center gap-2">
             <span class="w-1.5 h-1.5 bg-luxury-sakura rounded-full animate-ping"></span>
-            <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">
+            <span class="text-[10px] font-black text-white/40 tracking-widest">
               <EditableWrapper path="metadata.emotional_fomo_msg1" type="text" label="THÔNG BÁO 1">
                 {product?.metadata?.emotional_fomo_msg1 || 'Đang cháy hàng tại kho Nhật Bản'}
               </EditableWrapper>
@@ -142,7 +142,7 @@
           </div>
           <div class="flex items-center gap-2">
             <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-            <span class="text-[10px] font-black text-white/40 uppercase tracking-widest">
+            <span class="text-[10px] font-black text-white/40 tracking-widest">
                <EditableWrapper path="metadata.emotional_fomo_msg2" type="text" label="THÔNG BÁO 2">
                   {product?.metadata?.emotional_fomo_msg2 || 'Duy nhất 07 suất tặng ẩn cuối ngày'}
                </EditableWrapper>

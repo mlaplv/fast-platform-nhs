@@ -134,7 +134,7 @@
                 {:else}
                     <div class="tbn-cat-empty">
                        <Sparkles class="w-8 h-8 text-gray-200 mb-2" />
-                       <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Đang cập nhật</p>
+                       <p class="text-[10px] font-bold text-gray-400 tracking-widest">Đang cập nhật</p>
                     </div>
                 {/if}
              {/if}
@@ -164,7 +164,7 @@
   .tbn-cat-item.active .tbn-cat-name { color: #C18F7E; }
   .tbn-content { flex: 1; overflow-y: auto; padding: 20px 16px 140px 16px; background: #FFFFFF; scrollbar-width: none; }
   .tbn-content-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-  .tbn-content-title { font-size: 14px; font-weight: 900; color: #111; text-transform: uppercase; }
+  .tbn-content-title { font-size: 14px; font-weight: 900; color: #111; }
   .tbn-content-link { font-size: 11px; font-weight: 800; color: #c18f7e; display: flex; align-items: center; gap: 4px; }
   .tbn-content-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 12px; }
   .tbn-cat-card { display: flex; flex-direction: column; align-items: center; gap: 8px; text-decoration: none; }

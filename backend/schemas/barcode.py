@@ -29,7 +29,7 @@ class BarcodeVerificationResponse(BaseModel):
     origin: str
     verified: bool = True
     batch_dna: str
-    mfg_date: str
+    mfg_date: Optional[str] = None
     expiry_date: str
     scans_24h: int
     factory: FactoryLocation

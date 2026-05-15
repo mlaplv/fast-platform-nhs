@@ -52,7 +52,7 @@
       oninput={onSearchInput}
       type="text"
       placeholder="TÌM_KIẾM_TIN_TỨC..."
-      class="w-full bg-black/50 border border-white/5 rounded-xl py-3 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 transition-all uppercase tracking-widest shadow-inner shadow-black/50"
+      class="w-full bg-black/50 border border-white/5 rounded-xl py-3 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 transition-all tracking-widest shadow-inner shadow-black/50"
     />
   </div>
 
@@ -62,7 +62,7 @@
       <select
         value={activeCategoryFilter}
         onchange={(e) => onCategoryChange(e.currentTarget.value)}
-        class="appearance-none bg-black/50 border border-white/5 rounded-xl py-3 pl-4 pr-10 text-[10px] font-mono text-cyan-400 uppercase tracking-wider focus:outline-none focus:border-cyan-500/50 transition-all cursor-pointer min-w-[160px]"
+        class="appearance-none bg-black/50 border border-white/5 rounded-xl py-3 pl-4 pr-10 text-[10px] font-mono text-cyan-400 tracking-wider focus:outline-none focus:border-cyan-500/50 transition-all cursor-pointer min-w-[160px]"
       >
         <option value="all" class="bg-[#050505]">TẤT CẢ CHUYÊN MỤC</option>
         {#each categories as cat}
@@ -81,7 +81,7 @@
       {#each ["all", "published", "draft"] as t}
         <button
           onclick={() => onTabChange(t)}
-          class="px-4 py-2.5 text-[10px] font-mono uppercase tracking-[0.2em] rounded-xl transition-all duration-300 relative overflow-hidden group/btn font-bold flex-shrink-0
+          class="px-4 py-2.5 text-[10px] font-mono tracking-[0.2em] rounded-xl transition-all duration-300 relative overflow-hidden group/btn font-bold flex-shrink-0
               {activeTab === t
             ? 'text-cyan-400 bg-white/[0.05] ring-1 ring-cyan-400/30 shadow-sm'
             : 'text-gray-500 hover:text-white hover:bg-white/[0.05]'}"
@@ -94,7 +94,7 @@
     <!-- Actions -->
     <div class="flex items-center gap-2 sm:gap-3 xl:border-l xl:border-white/10 xl:pl-4 pr-1 sm:pr-2 flex-wrap sm:flex-nowrap justify-between sm:justify-start w-full sm:w-auto mt-2 sm:mt-0">
       <div class="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0">
-        <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest bg-black/40 sm:bg-transparent px-2 sm:px-0 py-1.5 sm:py-0 rounded-lg sm:rounded-none">
+        <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 tracking-widest bg-black/40 sm:bg-transparent px-2 sm:px-0 py-1.5 sm:py-0 rounded-lg sm:rounded-none">
           <span class="hidden sm:inline">Hiện</span>
           <select
             value={pageSize}
@@ -109,7 +109,7 @@
         </div>
 
         <button onclick={onOpenCreate}
-          class="flex items-center justify-center gap-2 p-2.5 sm:px-4 sm:py-2 text-[10px] font-bold tracking-widest font-mono uppercase bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 hover:text-white rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(6,182,212,0.1)]"
+          class="flex items-center justify-center gap-2 p-2.5 sm:px-4 sm:py-2 text-[10px] font-bold tracking-widest font-mono bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 hover:text-white rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(6,182,212,0.1)]"
           title="Thêm bài viết"
         >
           <Plus size={14} /> <span class="hidden sm:inline">Tạo bài mới</span>

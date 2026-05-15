@@ -102,7 +102,7 @@
       {#each STAGES as stage, i}
         <!-- Label cell — same fixed width as icon button -->
         <div class="shrink-0 w-10 flex flex-col items-center">
-          <span class="text-[9px] font-mono font-black tracking-[0.2em] uppercase transition-all duration-500
+          <span class="text-[9px] font-mono font-black tracking-[0.2em] transition-all duration-500
             {isActive(i) ? 'text-white' : isCompleted(i) ? 'text-neon-cyan/80' : 'text-gray-600'}">
             {stage.label}
           </span>

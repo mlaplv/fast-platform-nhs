@@ -39,7 +39,7 @@
     sub: metadata.offer_subheadline || "",
     timer_prefix: clean(metadata.offer_timer_prefix || "Ưu đãi đặc quyền kết thúc sau:"),
     shipping_prefix: clean(metadata.offer_shipping_prefix || "+ VẬN CHUYỂN:"),
-    savings_prefix: clean(metadata.offer_savings_prefix || "TIẾT KIỆM NGAY:"),
+    savings_prefix: clean(metadata.offer_savings_prefix || "Tiết kiệm NGAY:"),
     booking_suffix: clean(metadata.offer_booking_suffix || "phụ nữ đã thăng hạng nhan sắc tuần này"),
     trust_verified_by: clean(metadata.offer_trust_verified_by || "TIÊU CHUẨN Y KHOA NHẬT BẢN"),
     compliance_note: clean(metadata.offer_compliance_note || "* Giao hàng bảo mật, <br/> Đóng gói tinh tế như một món quà trang sức."),
@@ -112,7 +112,7 @@
 
       <div class="flex items-center justify-center gap-4 mt-2 opacity-60 grayscale hover:grayscale-0 transition-all duration-700">
          <EditableWrapper path="metadata.offer_trust_verified_by" type="text" label="SỬA CHỨNG NHẬN 1" class="inline" as="span">
-           <span class="text-[8px] uppercase tracking-[0.6em] font-medium text-slate-400">{clean(mark1)}</span>
+           <span class="text-[8px] tracking-[0.6em] font-medium text-slate-400">{clean(mark1)}</span>
          </EditableWrapper>
          
          {#if (!mark1.startsWith('[OFF]') && !mark2.startsWith('[OFF]')) || liveEditStore.isEditMode}
@@ -120,7 +120,7 @@
          {/if}
 
          <EditableWrapper path="metadata.offer_trust_mark_2" type="text" label="SỬA CHỨNG NHẬN 2" class="inline" as="span">
-           <span class="text-[9px] uppercase tracking-[0.3em] font-black text-luxury-sakura">{clean(mark2)}</span>
+           <span class="text-[9px] tracking-[0.3em] font-black text-luxury-sakura">{clean(mark2)}</span>
          </EditableWrapper>
          
          {#if (!mark2.startsWith('[OFF]') && !mark3.startsWith('[OFF]')) || liveEditStore.isEditMode}
@@ -128,7 +128,7 @@
          {/if}
 
          <EditableWrapper path="metadata.offer_trust_mark_3" type="text" label="SỬA CHỨNG NHẬN 3" class="inline" as="span">
-            <span class="text-[8px] uppercase tracking-[0.6em] font-medium text-slate-400">{clean(mark3)}</span>
+            <span class="text-[8px] tracking-[0.6em] font-medium text-slate-400">{clean(mark3)}</span>
          </EditableWrapper>
       </div>
     </div>

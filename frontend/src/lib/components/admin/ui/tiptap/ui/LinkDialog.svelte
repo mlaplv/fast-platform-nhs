@@ -115,7 +115,7 @@
       >
         <div class="flex items-center gap-3">
           <ExternalLink size={14} />
-          <span class="text-[10px] font-black uppercase tracking-widest">New Tab</span>
+          <span class="text-[10px] font-black tracking-widest">New Tab</span>
         </div>
         <div class="w-2 h-2 rounded-full {isTargetBlank ? 'bg-cyan-500 animate-pulse' : 'bg-white/10'}"></div>
       </button>
@@ -128,7 +128,7 @@
       >
         <div class="flex items-center gap-3">
           <Shield size={14} />
-          <span class="text-[10px] font-black uppercase tracking-widest">No Follow</span>
+          <span class="text-[10px] font-black tracking-widest">No Follow</span>
         </div>
         <div class="w-2 h-2 rounded-full {isNoFollow ? 'bg-orange-500 animate-pulse' : 'bg-white/10'}"></div>
       </button>
@@ -138,11 +138,11 @@
     <div class="flex gap-4 mt-4 pt-4 border-t border-white/5 justify-end">
       <button 
         onclick={() => show = false} 
-        class="px-6 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/20 hover:text-white transition-colors cursor-pointer"
+        class="px-6 py-2.5 text-[10px] font-black tracking-[0.2em] text-white/20 hover:text-white transition-colors cursor-pointer"
       >Discard</button>
       <button 
         onclick={handleApply} 
-        class="px-10 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-black text-[10px] font-black uppercase tracking-[0.25em] rounded-xl hover:brightness-110 active:scale-95 transition-all cursor-pointer box-shadow-cyan"
+        class="px-10 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-black text-[10px] font-black tracking-[0.25em] rounded-xl hover:brightness-110 active:scale-95 transition-all cursor-pointer box-shadow-cyan"
       >Inject Link</button>
     </div>
   </div>
@@ -160,7 +160,7 @@
   }
 
   .field-label {
-    @apply flex items-center gap-2 text-[9px] font-black text-white/30 uppercase tracking-[0.2em];
+    @apply flex items-center gap-2 text-[9px] font-black text-white/30 tracking-[0.2em];
   }
 
   .field-input {

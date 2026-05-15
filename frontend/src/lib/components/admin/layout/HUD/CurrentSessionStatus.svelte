@@ -47,7 +47,7 @@
       <div class="flex items-center gap-1.5 opacity-60">
         <!-- V45.0: Passive Latency -->
         <span
-          class="text-[10px] font-mono uppercase tracking-widest {latencyColor}"
+          class="text-[10px] font-mono tracking-widest {latencyColor}"
           >PING:{globalLatency.ms !== null
             ? `${globalLatency.ms}ms`
             : "--"}</span
@@ -68,7 +68,7 @@
           ></div>
           <Mic size={9} class="text-green-400" />
           <span
-            class="text-[10px] font-mono uppercase tracking-widest text-green-400 opacity-80"
+            class="text-[10px] font-mono tracking-widest text-green-400 opacity-80"
             >LISTENING</span
           >
         </div>
@@ -77,7 +77,7 @@
           <div class="w-1.5 h-1.5 bg-gray-600 rounded-full"></div>
           <Mic size={9} class="text-gray-600" />
           <span
-            class="text-[10px] font-mono uppercase tracking-widest text-gray-600 opacity-80"
+            class="text-[10px] font-mono tracking-widest text-gray-600 opacity-80"
             >IDLE</span
           >
         </div>
@@ -92,7 +92,7 @@
         class="flex items-center gap-1 px-1 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-500"
       >
         <ShieldAlert size={9} />
-        <span class="text-[10px] font-mono font-bold uppercase tracking-widest"
+        <span class="text-[10px] font-mono font-bold tracking-widest"
           >AUDIT</span
         >
       </div>
@@ -111,7 +111,7 @@
         class="text-gray-600 group-hover/link:text-[#00FFFF] transition-colors"
       />
       <span
-        class="text-[10px] font-mono uppercase tracking-widest text-gray-500 group-hover/link:text-gray-300 transition-colors opacity-80"
+        class="text-[10px] font-mono tracking-widest text-gray-500 group-hover/link:text-gray-300 transition-colors opacity-80"
         >Skills</span
       >
     </button>
@@ -126,7 +126,7 @@
         class="text-gray-600 group-hover/link:text-red-500 transition-colors"
       />
       <span
-        class="text-[10px] font-mono uppercase tracking-widest text-gray-400 group-hover/link:text-gray-200 transition-colors underline decoration-gray-700 opacity-80"
+        class="text-[10px] font-mono tracking-widest text-gray-400 group-hover/link:text-gray-200 transition-colors underline decoration-gray-700 opacity-80"
         >Halt</span
       >
     </button>

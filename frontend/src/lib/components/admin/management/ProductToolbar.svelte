@@ -68,7 +68,7 @@
       oninput={onSearchInput}
       type="text"
       placeholder="QUERY_CATALOG..."
-      class="w-full bg-black/50 border border-white/5 rounded-xl py-3 left-0 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-[#FFB800]/50 focus:ring-2 focus:ring-[#FFB800]/20 transition-all uppercase tracking-widest shadow-inner shadow-black/50"
+      class="w-full bg-black/50 border border-white/5 rounded-xl py-3 left-0 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-[#FFB800]/50 focus:ring-2 focus:ring-[#FFB800]/20 transition-all tracking-widest shadow-inner shadow-black/50"
     />
   </div>
 
@@ -78,7 +78,7 @@
       <select
         value={activeCategory}
         onchange={(e) => onCategoryChange(e.currentTarget.value)}
-        class="appearance-none bg-black/50 border border-white/5 rounded-xl py-3 pl-4 pr-10 text-[10px] font-mono text-[#FFB800] uppercase tracking-wider focus:outline-none focus:border-[#FFB800]/50 transition-all cursor-pointer min-w-[160px]"
+        class="appearance-none bg-black/50 border border-white/5 rounded-xl py-3 pl-4 pr-10 text-[10px] font-mono text-[#FFB800] tracking-wider focus:outline-none focus:border-[#FFB800]/50 transition-all cursor-pointer min-w-[160px]"
       >
         <option value="" class="bg-[#050505]">ALL_CATEGORIES</option>
         {#each categories as cat}
@@ -97,7 +97,7 @@
       {#each ["all", "active", "draft", "archived"] as f}
         <button
           onclick={() => onFilterChange(f)}
-          class="px-4 py-2.5 text-[10px] font-mono uppercase tracking-[0.2em] rounded-xl transition-all duration-300 relative overflow-hidden group/btn font-bold flex-shrink-0
+          class="px-4 py-2.5 text-[10px] font-mono tracking-[0.2em] rounded-xl transition-all duration-300 relative overflow-hidden group/btn font-bold flex-shrink-0
               {activeFilter === f
             ? 'text-[#FFB800] bg-white/[0.05] ring-1 ring-[#FFB800]/30 shadow-sm'
             : 'text-gray-500 hover:text-white hover:bg-white/[0.05]'}"
@@ -113,7 +113,7 @@
         {#if selectedIds.size > 0}
           <div class="flex items-center gap-1.5 border-r border-white/10 pr-2 mr-1">
             <button onclick={() => onBulkAiFeatured(true)}
-              class="px-3 py-2 text-[10px] font-mono uppercase bg-[#00FFFF]/10 border border-[#00FFFF]/30 text-[#00FFFF] rounded-xl hover:bg-[#00FFFF]/20 transition-all hidden sm:inline-block"
+              class="px-3 py-2 text-[10px] font-mono bg-[#00FFFF]/10 border border-[#00FFFF]/30 text-[#00FFFF] rounded-xl hover:bg-[#00FFFF]/20 transition-all hidden sm:inline-block"
               title="Bật AI Featured">
               <Sparkles size={12} class="inline mr-1" /> AI_ON
             </button>
@@ -121,13 +121,13 @@
               class="p-2.5 text-[#00FFFF] bg-[#00FFFF]/10 border border-[#00FFFF]/30 rounded-xl sm:hidden" title="Bật AI Featured"><Sparkles size={14}/></button>
 
             <button onclick={() => onBulkAiFeatured(false)}
-              class="px-3 py-2 text-[10px] font-mono uppercase bg-gray-500/10 border border-white/10 text-gray-400 rounded-xl hover:bg-white/5 transition-all hidden sm:inline-block"
+              class="px-3 py-2 text-[10px] font-mono bg-gray-500/10 border border-white/10 text-gray-400 rounded-xl hover:bg-white/5 transition-all hidden sm:inline-block"
               title="Tắt AI Featured">
               AI_OFF
             </button>
 
             <button onclick={onBulkDiscount}
-              class="px-3 py-2 text-[10px] font-mono uppercase bg-[#FFB800]/10 border border-[#FFB800]/30 text-[#FFB800] rounded-xl hover:bg-[#FFB800]/20 transition-all hidden sm:inline-block"
+              class="px-3 py-2 text-[10px] font-mono bg-[#FFB800]/10 border border-[#FFB800]/30 text-[#FFB800] rounded-xl hover:bg-[#FFB800]/20 transition-all hidden sm:inline-block"
               title="Cập nhật giá khuyến mãi">
               <Tag size={12} class="inline mr-1" /> DISCOUNT
             </button>
@@ -136,19 +136,19 @@
           </div>
 
           <button onclick={onBulkActivate}
-            class="px-3 py-2 text-[10px] font-mono uppercase bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] rounded-xl hover:bg-[#39FF14]/20 transition-all hidden sm:inline-block"
+            class="px-3 py-2 text-[10px] font-mono bg-[#39FF14]/10 border border-[#39FF14]/30 text-[#39FF14] rounded-xl hover:bg-[#39FF14]/20 transition-all hidden sm:inline-block"
             ><Eye size={12} class="inline mr-1" /> Kích hoạt</button>
           <button onclick={onBulkActivate}
             class="p-2.5 text-[#39FF14] bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-xl sm:hidden" title="Kích hoạt"><Eye size={14}/></button>
 
           <button onclick={onBulkDeactivate}
-            class="px-3 py-2 text-[10px] font-mono uppercase bg-[#FFB800]/10 border border-[#FFB800]/30 text-[#FFB800] rounded-xl hover:bg-[#FFB800]/20 transition-all hidden sm:inline-block"
+            class="px-3 py-2 text-[10px] font-mono bg-[#FFB800]/10 border border-[#FFB800]/30 text-[#FFB800] rounded-xl hover:bg-[#FFB800]/20 transition-all hidden sm:inline-block"
             ><EyeOff size={12} class="inline mr-1" /> Huỷ K.Hoạt</button>
           <button onclick={onBulkDeactivate}
             class="p-2.5 text-[#FFB800] bg-[#FFB800]/10 border border-[#FFB800]/30 rounded-xl sm:hidden" title="Huỷ K.Hoạt"><EyeOff size={14}/></button>
 
           <button onclick={onBulkDelete}
-            class="px-3 py-2 text-[10px] font-mono uppercase bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all hidden sm:inline-block"
+            class="px-3 py-2 text-[10px] font-mono bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all hidden sm:inline-block"
             ><Trash2 size={12} class="inline mr-1" /> Xoá ({selectedIds.size})</button>
           <button onclick={onBulkDelete}
             class="p-2.5 text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl sm:hidden" title="Xoá ({selectedIds.size})"><Trash2 size={14}/></button>
@@ -156,7 +156,7 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0">
-        <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest bg-black/40 sm:bg-transparent px-2 sm:px-0 py-1.5 sm:py-0 rounded-lg sm:rounded-none">
+        <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 tracking-widest bg-black/40 sm:bg-transparent px-2 sm:px-0 py-1.5 sm:py-0 rounded-lg sm:rounded-none">
           <span class="hidden sm:inline">Show</span>
           <select
             value={pageSize}
@@ -171,7 +171,7 @@
         </div>
 
         <button onclick={onOpenCreate}
-          class="flex items-center justify-center gap-2 p-2.5 sm:px-4 sm:py-2 text-[10px] font-bold tracking-widest font-mono uppercase bg-[#FFB800]/10 border border-[#FFB800]/30 text-[#FFB800] hover:bg-[#FFB800]/20 hover:text-white rounded-xl transition-all duration-300"
+          class="flex items-center justify-center gap-2 p-2.5 sm:px-4 sm:py-2 text-[10px] font-bold tracking-widest font-mono bg-[#FFB800]/10 border border-[#FFB800]/30 text-[#FFB800] hover:bg-[#FFB800]/20 hover:text-white rounded-xl transition-all duration-300"
           title="Add Product"
         >
           <Plus size={14} /> <span class="hidden sm:inline">Add_Product</span>

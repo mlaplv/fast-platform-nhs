@@ -122,13 +122,13 @@
         <Settings2 size={20} />
       </div>
       <div>
-        <h3 class="text-sm font-semibold text-white uppercase tracking-widest">QUẢN LÝ BỘ CÂU HỎI</h3>
+        <h3 class="text-sm font-semibold text-white tracking-widest">QUẢN LÝ BỘ CÂU HỎI</h3>
         <p class="text-[8px] text-blue-400 font-mono tracking-widest mt-1">SOURCE: {path.toUpperCase()} // SYNC_ACTIVE</p>
       </div>
     </div>
     <button 
       onclick={addQuestion}
-      class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-semibold uppercase tracking-widest transition-all"
+      class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-semibold tracking-widest transition-all"
     >
       <Plus size={14} /> THÊM CÂU HỎI
     </button>
@@ -161,8 +161,8 @@
         <!-- Options Manager -->
         <div class="p-6 space-y-4">
           <div class="flex items-center justify-between">
-            <h4 class="text-[9px] font-semibold text-white/30 uppercase tracking-[0.2em] italic">Danh sách lựa chọn</h4>
-            <button onclick={() => addOption(qIndex)} class="text-[9px] font-semibold text-blue-400/80 hover:text-blue-400 uppercase tracking-widest flex items-center gap-1 transition-all"><Plus size={12} /> THÊM OPTION</button>
+            <h4 class="text-[9px] font-semibold text-white/30 tracking-[0.2em] italic">Danh sách lựa chọn</h4>
+            <button onclick={() => addOption(qIndex)} class="text-[9px] font-semibold text-blue-400/80 hover:text-blue-400 tracking-widest flex items-center gap-1 transition-all"><Plus size={12} /> THÊM OPTION</button>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -173,7 +173,7 @@
                 </div>
                 <div class="flex-1 space-y-1">
                   <input bind:value={opt.label} class="w-full bg-transparent border-none text-[10px] font-medium text-white outline-none placeholder:text-white/5" placeholder="Tên lựa chọn" />
-                  <input bind:value={opt.value} class="w-full bg-transparent border-none text-[7px] font-mono text-white/20 outline-none uppercase tracking-widest" placeholder="Mã (value)" />
+                  <input bind:value={opt.value} class="w-full bg-transparent border-none text-[7px] font-mono text-white/20 outline-none tracking-widest" placeholder="Mã (value)" />
                 </div>
                 <button onclick={() => removeOption(qIndex, optIndex)} class="opacity-0 group-hover:opacity-100 p-2 text-red-400/40 hover:text-red-400 transition-all"><X size={12} /></button>
               </div>

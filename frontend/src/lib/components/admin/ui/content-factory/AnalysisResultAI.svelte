@@ -48,15 +48,15 @@
           </svg>
           <div class="absolute inset-0 flex flex-col items-center justify-center">
             <span class="text-[13px] font-black tracking-tighter" style="color:{aiColor}">{aiPct}%</span>
-            <span class="text-[6px] font-black opacity-30 uppercase tracking-[0.2em]">Edge</span>
+            <span class="text-[6px] font-black opacity-30 tracking-[0.2em]">Edge</span>
           </div>
         </div>
         <div class="flex flex-col gap-1.5">
-          <span class="text-sm font-black uppercase tracking-[0.1em]" style="color:{aiColor}">
+          <span class="text-sm font-black tracking-[0.1em]" style="color:{aiColor}">
             {aiPct >= 85 ? '✨ Viral Edge Elite' : aiPct >= 65 ? '⚡ AI-Ready Standard' : '🔴 Blacklist Risk'}
           </span>
           <div class="flex items-center gap-1.5 opacity-30">
-            <span class="text-[9px] font-black uppercase tracking-[0.3em]">Protocol_GEO_Viral_V2.2</span>
+            <span class="text-[9px] font-black tracking-[0.3em]">Protocol_GEO_Viral_V2.2</span>
           </div>
         </div>
       </div>
@@ -73,7 +73,7 @@
     <div class="px-4 py-4 bg-black/40 border-b border-white/5 shadow-inner">
       <div class="flex items-center gap-2 mb-3 opacity-30">
         <div class="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]"></div>
-        <span class="text-[10px] font-black uppercase tracking-[0.2em]">Neural_Viral_Verdict</span>
+        <span class="text-[10px] font-black tracking-[0.2em]">Neural_Viral_Verdict</span>
       </div>
       <p class="text-[13px] text-white/90 leading-[1.6] font-medium tracking-tight whitespace-pre-line">
         {aiReadyResult.summary.replace(/\*\*\*/g, '').trim()}
@@ -86,7 +86,7 @@
         <button 
           onclick={() => runBulkFix?.()}
           disabled={isBulkFixing}
-          class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500 hover:text-white hover:border-purple-400 text-purple-400 text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(168,85,247,0.1)] active:scale-95 disabled:opacity-50"
+          class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500 hover:text-white hover:border-purple-400 text-purple-400 text-[10px] font-black tracking-widest transition-all shadow-[0_0_20px_rgba(168,85,247,0.1)] active:scale-95 disabled:opacity-50"
         >
           {#if isBulkFixing}
             <div class="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -102,7 +102,7 @@
     <!-- Badge tổng lỗi -->
     {#if sortedAnnotations.length > 0}
       <div class="px-3 py-2 flex items-center gap-3 border-b border-white/5">
-        <span class="text-[7px] font-black text-white/20 uppercase tracking-widest">Phát hiện</span>
+        <span class="text-[7px] font-black text-white/20 tracking-widest">Phát hiện</span>
         {#if highCount > 0}<span class="px-2 py-0.5 rounded-full text-[8px] font-black bg-red-500/15 text-red-400 border border-red-500/20">{highCount} HIGH</span>{/if}
         {#if warnCount > 0}<span class="px-2 py-0.5 rounded-full text-[8px] font-black bg-amber-500/15 text-amber-400 border border-amber-500/20">{warnCount} WARN</span>{/if}
         {#if infoCount > 0}<span class="px-2 py-0.5 rounded-full text-[8px] font-black bg-purple-500/15 text-purple-400 border border-purple-500/20">{infoCount} INFO</span>{/if}
@@ -118,7 +118,7 @@
           <div class="px-3 py-2 border-b border-emerald-500/20 bg-emerald-500/[0.04] flex items-start gap-2">
             <CheckCircle2 size={10} class="text-emerald-400 mt-0.5 shrink-0" />
             <div class="min-w-0">
-              <span class="text-[7px] font-black text-emerald-400 uppercase">✅ ĐÃ SỬA</span>
+              <span class="text-[7px] font-black text-emerald-400 ">✅ ĐÃ SỬA</span>
               <p class="text-[8px] text-emerald-200/60 leading-relaxed mt-0.5 truncate italic">"{ann.text}"</p>
             </div>
           </div>
@@ -127,12 +127,12 @@
           {@const annLabel = ann.severity === 'high' ? '🔴 CRITICAL' : ann.severity === 'warning' ? '⚠️ WARNING' : '💡 INFO'}
           <div class="px-3 py-3 border-b bg-white/[0.01] flex flex-col gap-1.5 transition-all hover:bg-white/[0.02]" style="border-color: {annHex}15">
             <div class="flex items-start justify-between gap-2">
-              <span class="text-[7px] font-black px-1 py-0.5 rounded uppercase" style="background:{annHex}20; color:{annHex}">{annLabel} — {ann.type?.replace(/_/g,' ').toUpperCase()}</span>
+              <span class="text-[7px] font-black px-1 py-0.5 rounded " style="background:{annHex}20; color:{annHex}">{annLabel} — {ann.type?.replace(/_/g,' ').toUpperCase()}</span>
               {#if handleInternalFix}
                 <button
                   onclick={() => handleInternalFix!(ann.text, ann.type || 'ai', ann.message || '')}
                   disabled={!!isFixing}
-                  class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-purple-500/20 hover:border-purple-500/40 hover:text-purple-300 text-[7px] font-black uppercase transition-all disabled:opacity-40 cursor-pointer">
+                  class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-purple-500/20 hover:border-purple-500/40 hover:text-purple-300 text-[7px] font-black transition-all disabled:opacity-40 cursor-pointer">
                   {#if streamingTarget === ann.text}
                     <span class="text-[8px] text-white/80 font-mono leading-relaxed max-w-[160px] truncate">{streamingText}<span class="inline-block w-1 h-2.5 bg-purple-400 animate-pulse ml-0.5 -mb-0.5"></span></span>
                   {:else if isFixing === ann.text}

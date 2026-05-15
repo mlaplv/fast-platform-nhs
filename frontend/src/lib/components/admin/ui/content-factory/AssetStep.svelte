@@ -60,7 +60,7 @@
 <div class="flex-1 flex flex-col space-y-6 pt-2 pb-8 p-4 md:p-6 max-w-[1400px] mx-auto w-full">
   <div class="flex items-center gap-3 shrink-0 w-full px-1">
     <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
-    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">NEURAL XOHI · <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">STUDIO</span></h5>
+    <h5 class="hidden md:block text-[11px] font-black tracking-[0.2em] text-blue-400/60">NEURAL XOHI · <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">STUDIO</span></h5>
   </div>
 
   <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
@@ -68,8 +68,8 @@
       <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-inner"><LayoutGrid size={24} class="text-blue-400/80" /></div>
       {#if !isStandalone}
         <div class="flex flex-col">
-          <h3 class="text-lg font-bold text-white tracking-tight uppercase">TÙY CHỌN HÌNH ẢNH</h3>
-          <p class="text-[9px] text-white/30 font-bold uppercase tracking-[0.3em]">AI Generator & Web Upload</p>
+          <h3 class="text-lg font-bold text-white tracking-tight ">TÙY CHỌN HÌNH ẢNH</h3>
+          <p class="text-[9px] text-white/30 font-bold tracking-[0.3em]">AI Generator & Web Upload</p>
         </div>
       {/if}
     </div>
@@ -82,15 +82,15 @@
             <input type="url" placeholder="Dán link ảnh (URL) tại đây..." bind:value={customImageUrl} onkeydown={(e) => e.key === "Enter" && handleAddFromUrl()} class="bg-transparent border-none outline-none text-[12px] text-white placeholder:text-white/20 px-4 w-36 transition-all focus:w-64 font-medium" />
           </div>
           <label class="cursor-pointer group relative">
-            <div class="relative bg-blue-600 hover:bg-blue-500 border border-white/5 px-6 py-3.5 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl active:scale-95"><Upload size={14} class="text-white/80" /> Tải ảnh lên</div>
+            <div class="relative bg-blue-600 hover:bg-blue-500 border border-white/5 px-6 py-3.5 rounded-2xl text-[10px] font-black text-white tracking-widest transition-all flex items-center gap-2 shadow-xl active:scale-95"><Upload size={14} class="text-white/80" /> Tải ảnh lên</div>
             <input type="file" multiple accept="image/*" class="hidden" onchange={(e) => e.target.files && xohiImageStore.addImages(e.target.files)} />
           </label>
         </div>
       {/if}
       {#if !isStandalone}
-        <button onclick={() => ctrl.showLibrary = true} class="bg-indigo-600 hover:bg-indigo-500 border border-white/5 px-6 py-3.5 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest transition-all flex items-center gap-2 shadow-xl active:scale-95 group"><Library size={14} class="text-white/80 group-hover:rotate-12 transition-transform" /> Mở thư viện</button>
+        <button onclick={() => ctrl.showLibrary = true} class="bg-indigo-600 hover:bg-indigo-500 border border-white/5 px-6 py-3.5 rounded-2xl text-[10px] font-black text-white tracking-widest transition-all flex items-center gap-2 shadow-xl active:scale-95 group"><Library size={14} class="text-white/80 group-hover:rotate-12 transition-transform" /> Mở thư viện</button>
       {/if}
-      <div class="px-5 py-3.5 rounded-2xl bg-white/[0.04] border border-white/5 shadow-inner"><span class="text-[9px] text-white/40 font-black uppercase tracking-[0.2em]">Đã chọn // <span class="text-blue-400 ml-1">{xohiImageStore.assets.length}</span></span></div>
+      <div class="px-5 py-3.5 rounded-2xl bg-white/[0.04] border border-white/5 shadow-inner"><span class="text-[9px] text-white/40 font-black tracking-[0.2em]">Đã chọn // <span class="text-blue-400 ml-1">{xohiImageStore.assets.length}</span></span></div>
     </div>
   </div>
 
@@ -113,9 +113,9 @@
       <div class="flex items-center justify-between mb-3 px-1">
         <div class="flex items-center gap-3">
           <div class="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.6)]"></div>
-          <span class="text-[10px] text-amber-500/80 font-black tracking-[0.4em] uppercase">HÌNH ẢNH DỰ PHÒNG</span>
+          <span class="text-[10px] text-amber-500/80 font-black tracking-[0.4em] ">HÌNH ẢNH DỰ PHÒNG</span>
         </div>
-        <div class="text-[9px] text-white/10 font-bold uppercase tracking-widest">{reserve_assets.length} items available</div>
+        <div class="text-[9px] text-white/10 font-bold tracking-widest">{reserve_assets.length} items available</div>
       </div>
       <div class="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 pt-1 px-1 -mx-1 custom-scrollbar-horizontal snap-x snap-mandatory">
         {#each reserve_assets as item, i (typeof item === 'string' ? item : (item.id || i))}

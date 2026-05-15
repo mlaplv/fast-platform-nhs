@@ -172,7 +172,7 @@
   <!-- Header / Command Center Info -->
     <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div class="space-y-1 relative">
-        <h1 class="text-xl md:text-2xl font-black tracking-tighter bg-gradient-to-r from-white via-white to-white/30 bg-clip-text text-transparent uppercase">
+        <h1 class="text-xl md:text-2xl font-black tracking-tighter bg-gradient-to-r from-white via-white to-white/30 bg-clip-text text-transparent ">
           Appointment <span class="text-blue-500 italic">Manager</span>
         </h1>
         
@@ -183,7 +183,7 @@
               class="flex items-center gap-2 px-2 py-1 rounded-xl hover:bg-white/5 transition-all group/date-trigger"
             >
               <CalendarIcon size={12} class="text-blue-400" />
-              <span class="text-[10px] font-black uppercase tracking-widest text-white/90">{formatMonth(selectedDate)}</span>
+              <span class="text-[10px] font-black tracking-widest text-white/90">{formatMonth(selectedDate)}</span>
               <ChevronDown size={10} class="text-white/20 {showDatePicker ? 'rotate-180' : ''} transition-transform" />
             </button>
             <div class="flex gap-0.5 border-l border-white/10 pl-1">
@@ -192,7 +192,7 @@
             </div>
           </div>
           <div class="hidden sm:block h-3 w-px bg-white/10"></div>
-          <p class="text-gray-500 text-[9px] font-bold tracking-tight uppercase opacity-60">Neural Elite Registry</p>
+          <p class="text-gray-500 text-[9px] font-bold tracking-tight opacity-60">Neural Elite Registry</p>
         </div>
 
         {#if showDatePicker}
@@ -202,7 +202,7 @@
           >
             <div class="grid grid-cols-7 gap-1 text-center mb-2">
               {#each ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'] as day}
-                <span class="text-[7px] font-black text-white/10 uppercase py-1">{day}</span>
+                <span class="text-[7px] font-black text-white/10 py-1">{day}</span>
               {/each}
             </div>
             <div class="grid grid-cols-7 gap-1">
@@ -233,25 +233,25 @@
         <div class="flex items-center gap-1 bg-white/[0.03] border border-white/5 rounded-2xl p-1 overflow-x-auto no-scrollbar max-w-full">
           <button 
             onclick={() => filterStatus = 'ALL'}
-            class="whitespace-nowrap px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all {filterStatus === 'ALL' ? 'bg-blue-500 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'} flex items-center gap-2"
+            class="whitespace-nowrap px-3 py-1.5 rounded-xl text-[9px] font-black tracking-widest transition-all {filterStatus === 'ALL' ? 'bg-blue-500 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'} flex items-center gap-2"
           >
             All <span class="opacity-40">{counts.all}</span>
           </button>
           <button 
             onclick={() => filterStatus = 'UPCOMING'}
-            class="whitespace-nowrap px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all {filterStatus === 'UPCOMING' ? 'bg-blue-500 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'} flex items-center gap-2"
+            class="whitespace-nowrap px-3 py-1.5 rounded-xl text-[9px] font-black tracking-widest transition-all {filterStatus === 'UPCOMING' ? 'bg-blue-500 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'} flex items-center gap-2"
           >
             Upcoming <span class="opacity-40">{counts.upcoming}</span>
           </button>
           <button 
             onclick={() => filterStatus = 'ONGOING'}
-            class="whitespace-nowrap px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all {filterStatus === 'ONGOING' ? 'bg-blue-500 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'} flex items-center gap-2"
+            class="whitespace-nowrap px-3 py-1.5 rounded-xl text-[9px] font-black tracking-widest transition-all {filterStatus === 'ONGOING' ? 'bg-blue-500 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'} flex items-center gap-2"
           >
             Live <span class="opacity-40">{counts.ongoing}</span>
           </button>
           <button 
             onclick={() => filterStatus = 'COMPLETED'}
-            class="whitespace-nowrap px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all {filterStatus === 'COMPLETED' ? 'bg-blue-500 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'} flex items-center gap-2"
+            class="whitespace-nowrap px-3 py-1.5 rounded-xl text-[9px] font-black tracking-widest transition-all {filterStatus === 'COMPLETED' ? 'bg-blue-500 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'} flex items-center gap-2"
           >
             Done <span class="opacity-40">{counts.completed}</span>
           </button>
@@ -263,7 +263,7 @@
             <input 
               type="text" 
               placeholder="QUÉT DỮ LIỆU..."
-              class="w-full sm:w-32 bg-white/[0.03] border border-white/5 rounded-xl pl-9 pr-3 py-2 text-[10px] font-bold focus:outline-none focus:border-blue-500/30 transition-all uppercase placeholder:text-white/10"
+              class="w-full sm:w-32 bg-white/[0.03] border border-white/5 rounded-xl pl-9 pr-3 py-2 text-[10px] font-bold focus:outline-none focus:border-blue-500/30 transition-all placeholder:text-white/10"
             />
           </div>
           <button 
@@ -297,8 +297,8 @@
               <Search size={20} />
             </div>
             <div>
-              <h3 class="text-sm font-black uppercase tracking-[0.2em] text-white">Neural Scout <span class="text-purple-400 italic">v2.2</span></h3>
-              <p class="text-[9px] text-purple-300/60 font-bold uppercase tracking-widest mt-0.5">Trinh sát & Phân tích nội dung đối thủ</p>
+              <h3 class="text-sm font-black tracking-[0.2em] text-white">Neural Scout <span class="text-purple-400 italic">v2.2</span></h3>
+              <p class="text-[9px] text-purple-300/60 font-bold tracking-widest mt-0.5">Trinh sát & Phân tích nội dung đối thủ</p>
             </div>
           </div>
 
@@ -314,7 +314,7 @@
               <button 
                 onclick={runScout}
                 disabled={isScouting}
-                class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-purple-500 text-white text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-purple-500 text-white text-[9px] font-black tracking-widest hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
               >
                 {isScouting ? 'ĐANG QUÉT...' : 'TRINH SÁT'}
               </button>
@@ -322,7 +322,7 @@
 
             <div class="flex flex-wrap gap-2 pt-2">
               {#each ['Gợi ý tiêu đề', 'Từ khóa ngách', 'Cấu trúc bài viết', 'Lịch đăng tối ưu'] as tag}
-                <button class="px-3 py-1.5 rounded-full bg-white/5 border border-white/5 text-[8px] font-black uppercase tracking-widest text-white/40 hover:text-purple-400 hover:border-purple-500/30 transition-all cursor-default">
+                <button class="px-3 py-1.5 rounded-full bg-white/5 border border-white/5 text-[8px] font-black tracking-widest text-white/40 hover:text-purple-400 hover:border-purple-500/30 transition-all cursor-default">
                   {tag}
                 </button>
               {/each}
@@ -335,7 +335,7 @@
             {#if !scoutQuery && !isScouting}
               <div class="text-center opacity-20">
                 <LayoutDashboard size={40} class="mx-auto mb-3" />
-                <p class="text-[10px] font-black uppercase tracking-widest">Initial System State</p>
+                <p class="text-[10px] font-black tracking-widest">Initial System State</p>
                 <p class="text-[8px] mt-1 italic tracking-tight">Sẵn sàng thu thập dữ liệu chiến lược.</p>
               </div>
             {:else if isScouting}
@@ -344,22 +344,22 @@
                    <div class="absolute inset-0 border-2 border-purple-500/20 rounded-full"></div>
                    <div class="absolute inset-0 border-t-2 border-purple-500 rounded-full animate-spin"></div>
                 </div>
-                <p class="text-[9px] font-black uppercase tracking-[0.3em] text-purple-400 animate-pulse">Neural Scraper Active</p>
+                <p class="text-[9px] font-black tracking-[0.3em] text-purple-400 animate-pulse">Neural Scraper Active</p>
               </div>
             {:else}
                <div class="space-y-4 animate-in fade-in slide-in-from-right-10 duration-700">
                   <div class="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
-                    <span class="text-[8px] font-black text-purple-400 uppercase tracking-widest">Tiêu đề Gợi ý</span>
-                    <p class="text-[11px] font-bold text-white uppercase leading-tight">Top 5 Chiến lược Marketing AI 2026: Cách đối thủ của Sếp đang thống trị thị trường</p>
+                    <span class="text-[8px] font-black text-purple-400 tracking-widest">Tiêu đề Gợi ý</span>
+                    <p class="text-[11px] font-bold text-white leading-tight">Top 5 Chiến lược Marketing AI 2026: Cách đối thủ của Sếp đang thống trị thị trường</p>
                   </div>
                   <div class="flex gap-2">
                     <div class="flex-1 p-3 rounded-2xl bg-white/5 border border-white/5 text-center">
-                      <span class="block text-[7px] text-white/20 uppercase mb-1">Độ khó</span>
-                      <span class="text-xs font-black text-green-400 uppercase tracking-tighter">Thấp</span>
+                      <span class="block text-[7px] text-white/20 mb-1">Độ khó</span>
+                      <span class="text-xs font-black text-green-400 tracking-tighter">Thấp</span>
                     </div>
                     <div class="flex-1 p-3 rounded-2xl bg-white/5 border border-white/5 text-center">
-                      <span class="block text-[7px] text-white/20 uppercase mb-1">Traffic Gợi ý</span>
-                      <span class="text-xs font-black text-blue-400 uppercase tracking-tighter">1.2k/mo</span>
+                      <span class="block text-[7px] text-white/20 mb-1">Traffic Gợi ý</span>
+                      <span class="text-xs font-black text-blue-400 tracking-tighter">1.2k/mo</span>
                     </div>
                   </div>
                </div>
@@ -382,17 +382,17 @@
     <div class="flex flex-col gap-6">
       <div class="flex items-center justify-between px-4">
         <div class="flex items-center gap-4">
-          <button class="text-[11px] font-black uppercase tracking-widest border-b-2 border-blue-500 pb-1.5 text-white transition-all">Danh sách</button>
-          <button class="text-[11px] font-black uppercase tracking-widest text-white/20 pb-1.5 hover:text-white/60 transition-all">Timeline</button>
+          <button class="text-[11px] font-black tracking-widest border-b-2 border-blue-500 pb-1.5 text-white transition-all">Danh sách</button>
+          <button class="text-[11px] font-black tracking-widest text-white/20 pb-1.5 hover:text-white/60 transition-all">Timeline</button>
         </div>
-        <div class="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Schedules</div>
+        <div class="text-[10px] font-bold text-white/30 tracking-[0.2em]">Schedules</div>
       </div>
 
       <div class="space-y-4 pb-20">
         {#if isLoading}
           <div class="flex flex-col items-center justify-center py-20 opacity-40">
             <RefreshCw size={40} class="animate-spin mb-4" />
-            <span class="text-[10px] font-black uppercase tracking-widest">Synchronizing Neural Grid...</span>
+            <span class="text-[10px] font-black tracking-widest">Synchronizing Neural Grid...</span>
           </div>
         {:else if filteredAppointments.length > 0}
           {#each filteredAppointments as appt}
@@ -403,7 +403,7 @@
                   <span class="text-xl font-black text-white tracking-tighter">
                     {new Date(appt.start_time).getHours()}:{new Date(appt.start_time).getMinutes().toString().padStart(2, '0')}
                   </span>
-                  <span class="text-[9px] font-black text-blue-400 uppercase tracking-[0.2em] md:mt-1">
+                  <span class="text-[9px] font-black text-blue-400 tracking-[0.2em] md:mt-1">
                     {appt.recurring_type !== 'none' ? appt.recurring_type : 'ONE-TIME'}
                   </span>
                   <div class="hidden md:block w-6 h-[1px] bg-white/10 mt-3"></div>
@@ -413,13 +413,13 @@
                 <div class="flex-1 space-y-3">
                   <div class="flex items-start justify-between">
                     <div>
-                      <h2 class="text-lg font-black tracking-tight text-white mb-1 leading-tight uppercase">{appt.title}</h2>
+                      <h2 class="text-lg font-black tracking-tight text-white mb-1 leading-tight ">{appt.title}</h2>
                       <div class="flex flex-wrap gap-2">
-                        <span class="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[8px] font-black text-blue-400 uppercase tracking-widest">
+                        <span class="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[8px] font-black text-blue-400 tracking-widest">
                           {appt.status}
                         </span>
                         {#if appt.recurring_type === 'monthly'}
-                           <span class="px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-[8px] font-black text-purple-400 uppercase tracking-widest">
+                           <span class="px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-[8px] font-black text-purple-400 tracking-widest">
                              Monthly Recurring
                            </span>
                         {/if}
@@ -443,7 +443,7 @@
 
                   <div class="flex items-center justify-between pt-3 border-t border-white/5">
                     <p class="text-[11px] text-gray-500 font-medium line-clamp-1">{appt.description || 'No description provided.'}</p>
-                    <button class="px-4 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-[9px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
+                    <button class="px-4 py-2 rounded-xl bg-white/[0.03] border border-white/10 text-[9px] font-black tracking-widest hover:bg-white hover:text-black transition-all">
                       Details
                     </button>
                   </div>
@@ -457,8 +457,8 @@
         {#if !isLoading && filteredAppointments.length === 0}
           <div class="p-12 rounded-[2rem] border-2 border-dashed border-white/5 flex flex-col items-center justify-center text-center opacity-20 hover:opacity-40 transition-all duration-700 cursor-pointer">
             <CalendarIcon size={48} strokeWidth={1} class="mb-4" />
-            <h3 class="text-sm font-black uppercase tracking-[0.3em]">No more sessions</h3>
-            <p class="text-[8px] font-bold mt-2 tracking-widest uppercase">Click (+) to schedule a new Neural Operation</p>
+            <h3 class="text-sm font-black tracking-[0.3em]">No more sessions</h3>
+            <p class="text-[8px] font-bold mt-2 tracking-widest ">Click (+) to schedule a new Neural Operation</p>
           </div>
         {/if}
       </div>

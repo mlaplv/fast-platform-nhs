@@ -45,7 +45,7 @@
         <circle cx="9" cy="9" r="2" />
         <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
       </svg>
-      <span class="text-[8px] font-black uppercase tracking-[0.2em] opacity-30">No Image Available</span>
+      <span class="text-[8px] font-black tracking-[0.2em] opacity-30">Không có hình ảnh</span>
     </div>
   {/if}
 </div>

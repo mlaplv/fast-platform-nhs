@@ -186,7 +186,7 @@
   .tbn-item { display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; border: none; color: #666; transition: all 0.2s ease; height: 100%; min-width: 56px; padding: 0 8px; }
   .tbn-item--active { color: #000 !important; }
   .tbn-icon { width: 22px; height: 22px; margin-bottom: 2px; }
-  .tbn-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tbn-label { font-size: 10px; font-weight: 800; letter-spacing: 0.5px; }
   .tbn-nav--shrunk .tbn-label { display: none; }
   .tbn-nav--shrunk .tbn-icon { scale: 0.9; margin-bottom: 0; }
   .tbn-label--ai { background: linear-gradient(90deg, #C18F7E, #E3B5A4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }

@@ -187,29 +187,29 @@
           <div class="flex bg-white/[0.05] p-0.5 rounded-lg border border-white/[0.06] shrink-0">
             <button 
               onclick={() => switchTab('current')}
-              class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
+              class="px-4 py-1.5 rounded-md text-[10px] font-black tracking-wider transition-all bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
             >
               Ảnh bài này ({internalAssets.length})
             </button>
             <button 
               onclick={() => switchTab('library')}
-              class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all text-white/30 hover:text-white/60 hover:bg-white/[0.05]"
+              class="px-4 py-1.5 rounded-md text-[10px] font-black tracking-wider transition-all text-white/30 hover:text-white/60 hover:bg-white/[0.05]"
             >
               Thư viện
             </button>
             <button 
               onclick={() => switchTab('ai')}
-              class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all text-white/30 hover:text-white/60 hover:bg-white/[0.05]"
+              class="px-4 py-1.5 rounded-md text-[10px] font-black tracking-wider transition-all text-white/30 hover:text-white/60 hover:bg-white/[0.05]"
             >
               Phát sinh AI
             </button>
           </div>
           
           <div class="flex items-center gap-4">
-            <span class="text-[9px] font-mono text-white/20 uppercase tracking-[0.3em]">{internalAssets.length} items sync_locked</span>
+            <span class="text-[9px] font-mono text-white/20 tracking-[0.3em]">{internalAssets.length} items sync_locked</span>
             <button 
               onclick={onConfirm}
-              class="px-8 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-black rounded-lg text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all cursor-pointer"
+              class="px-8 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-black rounded-lg text-[10px] font-black tracking-widest hover:brightness-110 transition-all cursor-pointer"
             >
               Xác nhận
             </button>
@@ -222,10 +222,10 @@
               <div class="w-20 h-20 rounded-full border border-dashed border-white/20 flex items-center justify-center">
                 <ImagePlus size={32} class="opacity-20" />
               </div>
-              <p class="text-[10px] font-mono uppercase tracking-[0.3em]">No local assets detected for this protocol</p>
+              <p class="text-[10px] font-mono tracking-[0.3em]">No local assets detected for this protocol</p>
               <button 
                 onclick={() => switchTab('library')}
-                class="px-6 py-2 border border-cyan-500/30 text-cyan-400 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-cyan-500 hover:text-black transition-all"
+                class="px-6 py-2 border border-cyan-500/30 text-cyan-400 rounded-lg text-[10px] font-black tracking-widest hover:bg-cyan-500 hover:text-black transition-all"
               >
                 OPEN_INTELLIGENCE_VAULT
               </button>
@@ -242,7 +242,7 @@
                   </div>
 
                   {#if selectedAvatarUrl === getImageUrl(asset)}
-                    <div class="absolute top-2 right-2 px-2 py-0.5 rounded bg-cyan-500 text-black text-[9px] font-black uppercase tracking-tighter" style="z-index: {Z_INDEX_ADMIN.SIDEBAR_SUB};">
+                    <div class="absolute top-2 right-2 px-2 py-0.5 rounded bg-cyan-500 text-black text-[9px] font-black tracking-tighter" style="z-index: {Z_INDEX_ADMIN.SIDEBAR_SUB};">
                       PRIMARY
                     </div>
                   {/if}
@@ -272,12 +272,12 @@
                   {/if}
 
                   <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-4">
-                    <p class="text-[9px] font-mono text-cyan-400/80 truncate mb-3 uppercase tracking-wider">{getImageLabel(asset)}</p>
+                    <p class="text-[9px] font-mono text-cyan-400/80 truncate mb-3 tracking-wider">{getImageLabel(asset)}</p>
                     
                     {#if onSelect}
                       <button 
                         onclick={() => { onSelect?.(getImageUrl(asset)); onClose?.(); }}
-                        class="mb-3 w-full py-2 bg-cyan-500 text-black rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-cyan-500/20 transition-all active:scale-95 cursor-pointer"
+                        class="mb-3 w-full py-2 bg-cyan-500 text-black rounded-lg text-[10px] font-black tracking-widest shadow-lg shadow-cyan-500/20 transition-all active:scale-95 cursor-pointer"
                       >
                         ATTACH_ASSET
                       </button>
@@ -328,19 +328,19 @@
           <div class="flex bg-white/[0.05] p-0.5 rounded-lg border border-white/[0.06] shrink-0">
             <button 
               onclick={() => switchTab('current')}
-              class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all text-white/30 hover:text-white/60 hover:bg-white/[0.05]"
+              class="px-4 py-1.5 rounded-md text-[10px] font-black tracking-wider transition-all text-white/30 hover:text-white/60 hover:bg-white/[0.05]"
             >
               Ảnh bài này ({internalAssets.length})
             </button>
             <button 
               onclick={() => switchTab('library')}
-              class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all text-white/30 hover:text-white/60 hover:bg-white/[0.05]"
+              class="px-4 py-1.5 rounded-md text-[10px] font-black tracking-wider transition-all text-white/30 hover:text-white/60 hover:bg-white/[0.05]"
             >
               Thư viện
             </button>
             <button 
               onclick={() => switchTab('ai')}
-              class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
+              class="px-4 py-1.5 rounded-md text-[10px] font-black tracking-wider transition-all bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
             >
               Phát sinh AI
             </button>
@@ -348,7 +348,7 @@
           <div class="flex items-center gap-4">
             <button 
               onclick={onConfirm}
-              class="px-8 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-black rounded-lg text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all cursor-pointer"
+              class="px-8 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-black rounded-lg text-[10px] font-black tracking-widest hover:brightness-110 transition-all cursor-pointer"
             >
               Xác nhận
             </button>

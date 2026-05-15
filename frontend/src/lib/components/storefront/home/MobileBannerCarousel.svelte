@@ -76,7 +76,7 @@
 
     {#if homeBanners.length === 0}
       <div class="banner-slide bg-gray-100 flex items-center justify-center">
-        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Đang cập nhật khuyến mãi...</span>
+        <span class="text-[10px] font-bold text-gray-400 tracking-widest">Đang cập nhật khuyến mãi...</span>
       </div>
     {/if}
   </div>

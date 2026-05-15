@@ -73,8 +73,8 @@
   {:else}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-100 pb-6">
       <div class="space-y-1">
-        <h2 class="text-[12px] font-black uppercase tracking-[3px] text-stone-800">Sổ địa chỉ</h2>
-        <p class="text-[10px] text-stone-400 uppercase tracking-widest">Lưu tối đa 10 địa chỉ nhận hàng</p>
+        <h2 class="text-[12px] font-black tracking-[3px] text-stone-800">Sổ địa chỉ</h2>
+        <p class="text-[10px] text-stone-400 tracking-widest">Lưu tối đa 10 địa chỉ nhận hàng</p>
       </div>
       <button
         onclick={handleAddNew}
@@ -83,7 +83,7 @@
         <div class="absolute inset-0 bg-luxury-copper translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
         <div class="relative z-10 flex items-center gap-2">
           <Plus class="w-3.5 h-3.5" />
-          <span class="text-[10px] font-bold uppercase tracking-widest">Thêm địa chỉ</span>
+          <span class="text-[10px] font-bold tracking-widest">Thêm địa chỉ</span>
         </div>
       </button>
     </div>
@@ -91,7 +91,7 @@
     {#if isLoading}
         <div class="py-20 flex flex-col items-center justify-center space-y-4">
           <div class="w-8 h-8 border-2 border-luxury-copper border-t-transparent animate-spin rounded-full"></div>
-          <p class="text-[10px] text-stone-400 uppercase tracking-widest animate-pulse">Đang tải dữ liệu...</p>
+          <p class="text-[10px] text-stone-400 tracking-widest animate-pulse">Đang tải dữ liệu...</p>
         </div>
     {:else}
         <AddressList

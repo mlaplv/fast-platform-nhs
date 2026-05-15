@@ -156,10 +156,10 @@
            </div>
            <div class="flex flex-col">
               <div class="flex items-center gap-2">
-                 <span class="text-[12px] font-black tracking-[0.2em] text-white uppercase opacity-90">NEURAL TERMINAL</span>
-                 <div class="px-1.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[7px] font-black text-cyan-400 uppercase tracking-widest animate-pulse">Live</div>
+                 <span class="text-[12px] font-black tracking-[0.2em] text-white opacity-90">NEURAL TERMINAL</span>
+                 <div class="px-1.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[7px] font-black text-cyan-400 tracking-widest animate-pulse">Live</div>
               </div>
-              <span class="text-[8px] font-black text-white/20 uppercase tracking-[0.4em]">Elite Protocol V2.2 // Surgical AI</span>
+              <span class="text-[8px] font-black text-white/20 tracking-[0.4em]">Elite Protocol V2.2 // Surgical AI</span>
            </div>
         </div>
         <div class="flex items-center gap-1.5">
@@ -187,7 +187,7 @@
                  </div>
               {/each}
               {#if activeAction.loading}
-                 <div class="flex items-center gap-2 text-[9px] text-cyan-400 font-bold uppercase tracking-widest mt-1 animate-pulse">
+                 <div class="flex items-center gap-2 text-[9px] text-cyan-400 font-bold tracking-widest mt-1 animate-pulse">
                     <div class="flex gap-1">
                        <div class="w-1 h-3 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                        <div class="w-1 h-3 bg-cyan-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
@@ -235,10 +235,10 @@
 
      <!-- Footer Stats -->
      <div class="px-4 py-1.5 bg-white/5 border-t border-white/5 flex items-center justify-between">
-        <div class="text-[8px] font-mono text-white/20 uppercase tracking-tighter">Memory: 42.5MB // Latency: 12ms</div>
+        <div class="text-[8px] font-mono text-white/20 tracking-tighter">Memory: 42.5MB // Latency: 12ms</div>
         <div class="flex items-center gap-1">
            <div class="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>
-           <span class="text-[8px] font-bold text-cyan-500/80 uppercase tracking-widest">Neural_Sync_Active</span>
+           <span class="text-[8px] font-bold text-cyan-500/80 tracking-widest">Neural_Sync_Active</span>
         </div>
      </div>
   </div>

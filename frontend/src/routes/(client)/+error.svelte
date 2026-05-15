@@ -48,7 +48,7 @@
           class="btn-primary" 
           onclick={() => goto("/")}
         >
-          QUAY LẠI CỬA HÀNG
+          Quay lại CỬA HÀNG
         </button>
         
         <button 

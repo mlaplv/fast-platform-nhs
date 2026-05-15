@@ -86,7 +86,7 @@
       </button>
 
       <div class="relative flex items-center justify-center px-6 pt-2 pb-4 border-b border-white/5">
-        <h2 class="text-[11px] font-black tracking-[0.25em] uppercase text-white/60">
+        <h2 class="text-[11px] font-black tracking-[0.25em] text-white/60">
           {title}
         </h2>
       </div>

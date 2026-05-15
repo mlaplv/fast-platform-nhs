@@ -98,15 +98,15 @@
                <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-cyan-500 rounded-none border border-black animate-ping"></div>
             </div>
             <div>
-               <h2 class="text-[11px] font-black tracking-[0.4em] text-white uppercase font-mono leading-none mb-1.5">Xohi_Strategist_OS</h2>
+               <h2 class="text-[11px] font-black tracking-[0.4em] text-white font-mono leading-none mb-1.5">Xohi_Strategist_OS</h2>
                <div class="flex items-center gap-2">
                   <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                  <span class="text-[8px] text-emerald-500 font-mono font-black uppercase tracking-widest">Neural Link Active</span>
+                  <span class="text-[8px] text-emerald-500 font-mono font-black tracking-widest">Neural Link Active</span>
                </div>
             </div>
          </div>
 
-         <div class="flex items-center gap-6 text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+         <div class="flex items-center gap-6 text-[9px] font-mono text-slate-500 tracking-widest">
             <div class="flex items-center gap-2">
                <Database size={12} />
                <span>Patterns: <b class="text-white">{insights.length}</b></span>
@@ -122,13 +122,13 @@
          {#if selectedCampaign}
             <div class="flex items-center gap-4 bg-rose-500/10 px-5 py-2.5 border border-rose-500/20 group/tag transition-all hover:bg-rose-500/20">
                <Target size={14} class="text-rose-500 group-hover/tag:scale-110 transition-transform" />
-               <span class="text-[9px] font-black text-white uppercase tracking-widest font-mono">Target: {selectedCampaign.name}</span>
+               <span class="text-[9px] font-black text-white tracking-widest font-mono">Target: {selectedCampaign.name}</span>
                <button class="ml-2 text-slate-500 hover:text-white" onclick={() => selectedCampaign = null}><X size={14} /></button>
             </div>
          {:else}
             <div class="relative">
                <button 
-                  class="bg-cyan-500/5 border border-cyan-500/20 px-6 py-2.5 text-[9px] font-black text-cyan-400 font-mono uppercase tracking-[0.2em] flex items-center gap-4 hover:bg-cyan-500/10 transition-all"
+                  class="bg-cyan-500/5 border border-cyan-500/20 px-6 py-2.5 text-[9px] font-black text-cyan-400 font-mono tracking-[0.2em] flex items-center gap-4 hover:bg-cyan-500/10 transition-all"
                   onclick={() => dropdownOpen = !dropdownOpen}
                >
                   <span>Select_Mission_Target</span>
@@ -137,7 +137,7 @@
                {#if dropdownOpen}
                   <div class="absolute top-full right-0 mt-2 w-64 bg-[#0f0f0f] border border-cyan-500/30 shadow-[0_30px_60px_rgba(0,0,0,0.9)] z-[100] overflow-hidden" in:slide>
                      {#each campaigns as c}
-                        <button class="w-full text-left p-4 text-[9px] font-black text-slate-400 font-mono hover:bg-cyan-500/10 hover:text-cyan-400 border-b border-white/5 uppercase" onclick={() => { selectedCampaign = c; dropdownOpen = false; }}>{c.name}</button>
+                        <button class="w-full text-left p-4 text-[9px] font-black text-slate-400 font-mono hover:bg-cyan-500/10 hover:text-cyan-400 border-b border-white/5 " onclick={() => { selectedCampaign = c; dropdownOpen = false; }}>{c.name}</button>
                      {/each}
                   </div>
                {/if}
@@ -164,14 +164,14 @@
                         <div>
                            <div class="flex items-center gap-3 mb-2">
                               <ShieldCheck size={20} class="text-cyan-400" />
-                              <h3 class="text-[14px] font-black text-white uppercase tracking-[0.4em]">Elite_Compliance_Audit</h3>
+                              <h3 class="text-[14px] font-black text-white tracking-[0.4em]">Elite_Compliance_Audit</h3>
                            </div>
-                           <p class="text-[10px] text-slate-500 font-mono uppercase tracking-[0.2em] leading-relaxed">
+                           <p class="text-[10px] text-slate-500 font-mono tracking-[0.2em] leading-relaxed">
                               Phân tích đa tầng: <span class="text-cyan-400/70">SEO</span> • <span class="text-amber-400/70">SGE_Compatibility</span> • <span class="text-rose-400/70">Ads_Quality_Score</span>
                            </p>
                         </div>
                         <button 
-                           class="px-8 py-3.5 bg-cyan-600 text-white text-[11px] font-black uppercase tracking-[0.3em] hover:bg-cyan-500 transition-all shadow-[0_15px_40px_rgba(6,182,212,0.3)] disabled:opacity-30 flex items-center gap-4 relative overflow-hidden group/auditbtn"
+                           class="px-8 py-3.5 bg-cyan-600 text-white text-[11px] font-black tracking-[0.3em] hover:bg-cyan-500 transition-all shadow-[0_15px_40px_rgba(6,182,212,0.3)] disabled:opacity-30 flex items-center gap-4 relative overflow-hidden group/auditbtn"
                            disabled={aiLoading || !selectedCampaign}
                            onclick={() => aiSuggest('AUDIT_LANDING_PAGE', `Analyze Landing Page for Campaign: ${selectedCampaign.name}. URL: ${selectedCampaign.landing_page_url || (typeof window !== 'undefined' ? window.location.origin : '')}`)}
                         >
@@ -189,7 +189,7 @@
                      <div class="grid grid-cols-3 gap-8 relative z-10">
                         <!-- SEO SCORE -->
                         <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-emerald-500/50 transition-colors group/score">
-                           <span class="text-[9px] text-slate-500 font-black tracking-widest uppercase">SEO_INDEX</span>
+                           <span class="text-[9px] text-slate-500 font-black tracking-widest ">SEO_INDEX</span>
                            <div class="relative scale-110">
                               <svg class="w-20 h-20 -rotate-90">
                                  <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-white/5" />
@@ -208,14 +208,14 @@
                                  {/if}
                               </div>
                            </div>
-                           <span class="text-[8px] {(aiResult?.seo_score > 80) ? 'text-emerald-500' : 'text-slate-600'} font-mono uppercase tracking-widest">
+                           <span class="text-[8px] {(aiResult?.seo_score > 80) ? 'text-emerald-500' : 'text-slate-600'} font-mono tracking-widest">
                               {aiLoading ? 'Analyzing...' : (aiResult?.seo_score ? (aiResult.seo_score > 80 ? 'Optimal' : 'Needs_Optimization') : 'Awaiting_Scan')}
                            </span>
                         </div>
  
                         <!-- SGE SCORE -->
                         <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-amber-500/50 transition-colors group/score">
-                           <span class="text-[9px] text-slate-500 font-black tracking-widest uppercase">SGE_RELEVANCE</span>
+                           <span class="text-[9px] text-slate-500 font-black tracking-widest ">SGE_RELEVANCE</span>
                            <div class="relative scale-110">
                               <svg class="w-20 h-20 -rotate-90">
                                  <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-white/5" />
@@ -234,14 +234,14 @@
                                  {/if}
                               </div>
                            </div>
-                           <span class="text-[8px] {(aiResult?.sge_score > 70) ? 'text-amber-400' : 'text-slate-600'} font-mono uppercase tracking-widest">
+                           <span class="text-[8px] {(aiResult?.sge_score > 70) ? 'text-amber-400' : 'text-slate-600'} font-mono tracking-widest">
                               {aiLoading ? 'Synching...' : (aiResult?.sge_score ? (aiResult.sge_score > 70 ? 'Generative_Ready' : 'Incompatible') : 'Awaiting_Scan')}
                            </span>
                         </div>
  
                         <!-- QUALITY SCORE -->
                         <div class="border border-white/10 p-6 bg-black/40 flex flex-col items-center justify-center gap-4 hover:border-rose-500/50 transition-colors group/score">
-                           <span class="text-[9px] text-slate-500 font-black tracking-widest uppercase">ADS_QUALITY</span>
+                           <span class="text-[9px] text-slate-500 font-black tracking-widest ">ADS_QUALITY</span>
                            <div class="relative scale-110">
                               <svg class="w-20 h-20 -rotate-90">
                                  <circle cx="40" cy="40" r="36" fill="none" stroke="currentColor" stroke-width="3" class="text-white/5" />
@@ -260,7 +260,7 @@
                                  {/if}
                               </div>
                            </div>
-                           <span class="text-[8px] {(aiResult?.quality_score > 7) ? 'text-rose-400' : 'text-slate-600'} font-mono uppercase tracking-widest">
+                           <span class="text-[8px] {(aiResult?.quality_score > 7) ? 'text-rose-400' : 'text-slate-600'} font-mono tracking-widest">
                               {aiLoading ? 'Auditing...' : (aiResult?.quality_score ? (aiResult.quality_score > 7 ? 'Elite_Score' : 'At_Risk') : 'Awaiting_Scan')}
                            </span>
                         </div>
@@ -272,7 +272,7 @@
                      <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
                         <div class="flex items-center gap-3">
                            <Terminal size={14} class="text-rose-500" />
-                           <span class="text-[9px] font-black text-rose-500 uppercase tracking-widest font-mono">Neural_Analysis_Stream</span>
+                           <span class="text-[9px] font-black text-rose-500 tracking-widest font-mono">Neural_Analysis_Stream</span>
                         </div>
                         <div class="flex gap-1">
                            <div class="w-1 h-1 bg-rose-500 animate-pulse"></div>
@@ -305,8 +305,8 @@
                   <div class="absolute inset-0 bg-cyan-500/5 blur-[60px] rounded-full"></div>
                </div>
                <div class="max-w-md">
-                  <h3 class="text-xl font-black text-white uppercase tracking-[0.5em] mb-6">Awaiting_Mission_Command</h3>
-                  <p class="text-[11px] text-slate-500 font-mono leading-relaxed uppercase tracking-widest">
+                  <h3 class="text-xl font-black text-white tracking-[0.5em] mb-6">Awaiting_Mission_Command</h3>
+                  <p class="text-[11px] text-slate-500 font-mono leading-relaxed tracking-widest">
                      Vui lòng chọn chiến dịch mục tiêu tại bảng điều khiển phía trên để kích hoạt luồng dữ liệu trinh sát AI.
                   </p>
                </div>

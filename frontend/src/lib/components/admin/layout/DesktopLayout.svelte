@@ -57,12 +57,12 @@
             : "Thu gọn Heartbeat"}
         >
           <h1
-            class="text-xs font-mono tracking-[0.2em] uppercase text-[#00FFFF] opacity-80 group-hover/xohi:opacity-100 group-hover/xohi:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)] transition-all"
+            class="text-xs font-mono tracking-[0.2em] text-[#00FFFF] opacity-80 group-hover/xohi:opacity-100 group-hover/xohi:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)] transition-all"
           >
             &gt;_Xohi
           </h1>
           <p
-            class="text-[10px] font-mono text-gray-500 uppercase group-hover/xohi:text-gray-400 transition-colors"
+            class="text-[10px] font-mono text-gray-500 group-hover/xohi:text-gray-400 transition-colors"
           >
             Core // {nanobot.userEmail || "ADMIN_ACTIVE"}
           </p>

@@ -59,10 +59,10 @@
 
     <!-- Title Group -->
     <div class="text-center mb-12">
-      <h1 in:fly={{ y: 20, duration: 600, delay: 200 }} class="text-3xl font-black italic tracking-tighter uppercase mb-2">TRA CỨU ĐƠN</h1>
+      <h1 in:fly={{ y: 20, duration: 600, delay: 200 }} class="text-3xl font-black italic tracking-tighter mb-2">TRA CỨU ĐƠN</h1>
       <div in:fade={{ delay: 400 }} class="flex items-center justify-center gap-2">
          <span class="w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse"></span>
-         <p class="text-white/40 text-[9px] uppercase tracking-[0.4em] font-bold italic">Elite Radar Tracking V2.2</p>
+         <p class="text-white/40 text-[9px] tracking-[0.4em] font-bold italic">Elite Radar Tracking V2.2</p>
       </div>
     </div>
 
@@ -77,7 +77,7 @@
           type="text" 
           bind:value={orderId}
           placeholder="MÃ ĐƠN HÀNG (UUID)"
-          class="w-full pl-16 pr-6 py-5 bg-white/[0.03] border border-white/10 focus:border-sky-500/50 rounded-full outline-none text-white font-black text-sm uppercase placeholder:text-white/10 tracking-widest transition-all"
+          class="w-full pl-16 pr-6 py-5 bg-white/[0.03] border border-white/10 focus:border-sky-500/50 rounded-full outline-none text-white font-black text-sm placeholder:text-white/10 tracking-widest transition-all"
         />
       </div>
 
@@ -99,7 +99,7 @@
     <button 
       onclick={onTrack}
       disabled={isSubmitting}
-      class="w-full py-5 text-white font-black text-base uppercase tracking-widest rounded-full btn-primary-viral active:scale-95 transition-all overflow-hidden relative group disabled:opacity-50"
+      class="w-full py-5 text-white font-black text-base tracking-widest rounded-full btn-primary-viral active:scale-95 transition-all overflow-hidden relative group disabled:opacity-50"
     >
         <span class="relative z-surface flex items-center justify-center gap-3">
           {#if isSubmitting}
@@ -113,15 +113,15 @@
 
     <!-- Help Context -->
     <div in:fade={{ delay: 1000 }} class="mt-8 text-center flex flex-col items-center gap-4">
-      <p class="text-[9px] text-white/20 font-black uppercase tracking-[0.2em] leading-relaxed max-w-[200px]">
+      <p class="text-[9px] text-white/20 font-black tracking-[0.2em] leading-relaxed max-w-[200px]">
         Quý khách vui lòng nhập đúng thông tin để bảo mật dữ liệu đơn hàng
       </p>
       
       <a 
         href="/" 
-        class="flex items-center gap-2 text-[10px] font-black text-sky-400 uppercase tracking-widest hover:text-sky-300 transition- colors pt-4"
+        class="flex items-center gap-2 text-[10px] font-black text-sky-400 tracking-widest hover:text-sky-300 transition- colors pt-4"
       >
-        <ArrowLeft class="w-3 h-3" /> QUAY LẠI CỬA HÀNG
+        <ArrowLeft class="w-3 h-3" /> Quay lại CỬA HÀNG
       </a>
     </div>
   </div>

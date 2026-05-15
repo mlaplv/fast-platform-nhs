@@ -278,7 +278,7 @@
   }
 
   .divider-v { @apply h-px w-6 bg-black/5; }
-  .status-label { @apply text-black/30 text-[8px] font-black tracking-[0.2em] uppercase whitespace-nowrap; }
+  .status-label { @apply text-black/30 text-[8px] font-black tracking-[0.2em] whitespace-nowrap; }
 
   /* Typography */
   .product-title {

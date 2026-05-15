@@ -68,7 +68,7 @@
       oninput={onSearchInput}
       type="text"
       placeholder="ID..."
-      class="w-full h-6 bg-white/[0.02] border border-white/5 rounded-md pl-7 pr-2 text-[9px] font-mono text-gray-300 placeholder:text-gray-700 focus:outline-none focus:border-neon-cyan/40 focus:bg-white/[0.04] transition-all uppercase tracking-widest leading-none"
+      class="w-full h-6 bg-white/[0.02] border border-white/5 rounded-md pl-7 pr-2 text-[9px] font-mono text-gray-300 placeholder:text-gray-700 focus:outline-none focus:border-neon-cyan/40 focus:bg-white/[0.04] transition-all tracking-widest leading-none"
     />
   </div>
 
@@ -79,7 +79,7 @@
       {@const statusConfig = filter !== "all" ? ORDER_STATUS_MAP[filter] : null}
       <button
         onclick={() => (activeFilter = filter)}
-        class="px-2 py-1 text-[8.5px] font-mono font-black uppercase tracking-tighter rounded transition-all relative flex-shrink-0
+        class="px-2 py-1 text-[8.5px] font-mono font-black tracking-tighter rounded transition-all relative flex-shrink-0
           {isActive
           ? 'text-neon-cyan'
           : 'text-gray-600 hover:text-gray-300'}"
@@ -97,7 +97,7 @@
   <!-- 4. Global Metrics -->
   <div class="flex items-center gap-2 shrink-0 pr-1">
     <div class="hidden sm:flex items-center gap-1.5 px-2 py-0.5 bg-neon-cyan/5 border border-neon-cyan/10 rounded">
-      <span class="text-[7px] font-mono text-neon-cyan/40 uppercase">P</span>
+      <span class="text-[7px] font-mono text-neon-cyan/40 ">P</span>
       <span class="text-[9px] font-mono text-neon-cyan font-black">{totalOrders}</span>
     </div>
 

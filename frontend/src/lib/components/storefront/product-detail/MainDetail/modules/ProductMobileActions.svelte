@@ -48,7 +48,7 @@
     flex: 1; position: relative; overflow: hidden;
     background: linear-gradient(135deg, #ee4d2d, #ff7337); color: #FFF; padding: 0 20px; 
   }
-  .buy-text { font-size: 13px; font-weight: 1000; text-transform: uppercase; letter-spacing: 0.05em; }
+  .buy-text { font-size: 13px; font-weight: 1000; letter-spacing: 0.05em; }
   .buy-sub { font-size: 9px; font-weight: 800; opacity: 0.9; margin-top: 1px; }
 
   .tbn-btn-shine {

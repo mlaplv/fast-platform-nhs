@@ -825,7 +825,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
             </div>
           </div>
 
-          <!-- AGENTIC AI OVERSIGHT (MOBILE - TỔNG HỢP SAU GIỎ HÀNG) -->
+          <!-- AGENTIC AI OVERSIGHT (MOBILE - TỔNG HỢP SAU Giỏ hàng) -->
           <!-- [ELITE V2.2] Professional Loyalty Toggle Mobile -->
           {#if authStore.isAuthenticated && availablePoints > 0}
             <div class="px-2 mb-3 mt-1" in:slide>

@@ -52,12 +52,12 @@
 <div class="p-5 md:p-8 flex flex-col flex-1 min-h-0 overflow-hidden">
   <div class="flex items-center gap-3 shrink-0 mb-4">
     <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
-    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">NEURAL XOHI · <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">STUDIO</span></h5>
+    <h5 class="hidden md:block text-[11px] font-black tracking-[0.2em] text-blue-400/60">NEURAL XOHI · <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">STUDIO</span></h5>
   </div>
 
   <div class="shrink-0 flex items-center gap-3 p-3 border-b border-white/5 bg-black/20">
     {#if copyrightScore !== null || seoScore !== null}
-      <div class="hidden md:flex items-center gap-2 text-[8px] font-black uppercase">
+      <div class="hidden md:flex items-center gap-2 text-[8px] font-black ">
         {#if copyrightScore !== null}<span class="{copyrightScore >= 90 ? 'text-emerald-400' : 'text-yellow-400'}">COPYRIGHT {copyrightScore}%</span>{/if}
         {#if seoScore !== null}<span class="text-blue-400">SEO {seoScore}</span>{/if}
         {#if aiScore !== null}<span class="text-purple-400">AI {aiScore}%</span>{/if}
@@ -114,13 +114,13 @@
     role="presentation"
   >
     <div class="shrink-0 flex items-center justify-between px-3 py-1.5 bg-white/[0.02] border-b border-white/5">
-      <span class="text-[8px] font-black uppercase tracking-widest text-white/30">Nội dung bài viết</span>
-      {#if ctrl.editingField === 'content'}<button class="text-[8px] text-purple-400 font-black uppercase animate-pulse" onclick={ctrl.saveField}>● Lưu</button>{/if}
+      <span class="text-[8px] font-black tracking-widest text-white/30">Nội dung bài viết</span>
+      {#if ctrl.editingField === 'content'}<button class="text-[8px] text-purple-400 font-black animate-pulse" onclick={ctrl.saveField}>● Lưu</button>{/if}
     </div>
     {#if ctrl.editingField === 'content'}
       <div class="flex-1 min-h-0 flex flex-col bg-black/40">
         <TiptapEditor content={ctrl.displayContent} bind:assets bind:selectedAvatarUrl bind:selectedAssetIndex campaignId={campaign_id} onChange={(val) => { if (ctrl.editingField === 'content') finalHtml = val; }} editable={true} placeholder="Nội dung bài viết..." onblur={ctrl.saveField} flex={true} />
-        <div class="shrink-0 p-2 border-t border-white/5 flex justify-end"><button onclick={ctrl.saveField} class="px-3 py-1 bg-purple-500 text-[9px] font-black text-white hover:bg-purple-600 uppercase">Lưu nội dung</button></div>
+        <div class="shrink-0 p-2 border-t border-white/5 flex justify-end"><button onclick={ctrl.saveField} class="px-3 py-1 bg-purple-500 text-[9px] font-black text-white hover:bg-purple-600 ">Lưu nội dung</button></div>
       </div>
     {:else if ctrl.displayContent}
       <button 
@@ -140,7 +140,7 @@
         class="w-full text-left block"
         onclick={() => ctrl.editingField = 'category'}
       >
-        <p class="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Category</p>
+        <p class="text-[8px] font-black text-blue-400 tracking-widest mb-1">Category</p>
         {#if ctrl.editingField === 'category'}<input type="text" bind:value={keywords.category} onblur={ctrl.saveField} onkeydown={ctrl.handleKeydown} class="w-full bg-white/5 border border-blue-500/30 px-2 py-0.5 text-xs font-bold text-white focus:ring-0" />
         {:else}<div class="flex items-center justify-between cursor-text group"><span class="text-xs font-bold text-white">{keywords.category || 'Chưa phân loại'}</span><Pencil size={9} class="text-white/10 group-hover:text-blue-400" /></div>{/if}
       </button>
@@ -148,7 +148,7 @@
         class="w-full text-left block"
         onclick={() => { keywords.slug = keywords.slug || keywords.title?.toLowerCase().replace(/\s+/g,'-').replace(/[^\w-]/g,'') || 'article-url'; ctrl.editingField = 'slug'; }}
       >
-        <p class="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Slug</p>
+        <p class="text-[8px] font-black text-blue-400 tracking-widest mb-1">Slug</p>
         {#if ctrl.editingField === 'slug'}<div class="flex items-center gap-1 bg-white/5 border border-blue-500/30 px-2 h-6"><span class="text-[9px] text-white/20">/</span><input type="text" bind:value={keywords.slug} onblur={ctrl.saveField} onkeydown={ctrl.handleKeydown} class="bg-transparent border-none p-0 text-[10px] font-bold text-white focus:ring-0 w-full" /></div>
         {:else}<div class="flex items-center gap-1 cursor-text group"><span class="text-[9px] text-white/20">/</span><span class="text-[10px] font-bold text-white truncate">{keywords.slug || (keywords.title?.toLowerCase().replace(/\s+/g,'-').replace(/[^\w-]/g,'') || 'article-url')}</span><Pencil size={9} class="text-white/10 group-hover:text-blue-400 ml-auto shrink-0" /></div>{/if}
       </button>
@@ -157,7 +157,7 @@
       class="p-3 flex flex-col text-left" 
       onclick={() => ctrl.editingField = 'description'}
     >
-      <div class="flex items-center justify-between mb-1 shrink-0"><p class="text-[8px] font-black text-purple-400 uppercase tracking-widest">Meta SEO</p><span class="text-[8px] text-white/20">{(keywords.description || '').length}/160</span></div>
+      <div class="flex items-center justify-between mb-1 shrink-0"><p class="text-[8px] font-black text-purple-400 tracking-widest">Meta SEO</p><span class="text-[8px] text-white/20">{(keywords.description || '').length}/160</span></div>
       {#if ctrl.editingField === 'description'}<textarea bind:value={keywords.description} onblur={ctrl.saveField} rows="3" class="flex-1 bg-black/40 border border-purple-500/30 p-1.5 text-[10px] text-white focus:ring-0 resize-none italic leading-relaxed"></textarea>
       {:else}<p class="text-[10px] text-white/40 leading-relaxed italic line-clamp-3 cursor-text hover:text-white/60">{keywords.description || 'Chưa cập nhật mô tả SEO...'}</p>{/if}
     </button>

@@ -122,7 +122,7 @@
             <div class="flex items-center justify-between mb-3 px-1">
               <div class="flex items-center gap-2">
                 <div class="w-1.5 h-1.5 bg-[#FF3B30] rounded-full animate-pulse shadow-sm"></div>
-                <span class="text-[10px] font-black tracking-[0.2em] text-gray-400 uppercase">Xu hướng bùng nổ</span>
+                <span class="text-[10px] font-black tracking-[0.2em] text-gray-400 ">Xu hướng bùng nổ</span>
               </div>
               <TrendingUp size={12} class="text-luxury-copper" />
             </div>
@@ -168,7 +168,7 @@
               <div class="flex items-center justify-between mb-3 px-1">
                 <div class="flex items-center gap-2">
                   <History size={12} class="text-gray-400" />
-                  <span class="text-[10px] font-black tracking-[0.2em] text-gray-400 uppercase">Tìm kiếm gần đây</span>
+                  <span class="text-[10px] font-black tracking-[0.2em] text-gray-400 ">Tìm kiếm gần đây</span>
                 </div>
                 <button onclick={() => searchStore.clearHistory()} class="text-[10px] font-bold text-gray-300 hover:text-gray-900 transition-colors">Xóa sạch</button>
               </div>
@@ -191,7 +191,7 @@
               <section>
                 <div class="flex items-center gap-2 mb-3 px-1">
                    <div class="w-1.5 h-1.5 bg-luxury-copper rounded-full"></div>
-                   <span class="text-[10px] font-black tracking-[0.2em] text-gray-400 uppercase">Sản phẩm</span>
+                   <span class="text-[10px] font-black tracking-[0.2em] text-gray-400 ">Sản phẩm</span>
                 </div>
                 <div class="grid grid-cols-1 gap-px bg-gray-100 border border-gray-100">
                   {#each searchStore.searchResults as p}
@@ -219,7 +219,7 @@
               <section>
                 <div class="flex items-center gap-2 mb-3 px-1">
                    <div class="w-1.5 h-1.5 bg-[#4CD964] rounded-full"></div>
-                   <span class="text-[10px] font-black tracking-[0.2em] text-gray-400 uppercase">Kiến thức chuyên gia</span>
+                   <span class="text-[10px] font-black tracking-[0.2em] text-gray-400 ">Kiến thức chuyên gia</span>
                 </div>
                 <div class="flex flex-col gap-px bg-gray-100 border border-gray-100">
                   {#each searchStore.searchArticleResults as art}
@@ -235,7 +235,7 @@
                           {/if}
                         </div>
                         <div class="flex-grow min-w-0">
-                          <div class="text-[8px] font-black text-luxury-copper tracking-widest mb-0.5 uppercase">{art.category}</div>
+                          <div class="text-[8px] font-black text-luxury-copper tracking-widest mb-0.5 ">{art.category}</div>
                           <h4 class="text-[14px] font-bold text-gray-900 leading-snug line-clamp-2 italic">{art.title}</h4>
                         </div>
                       </div>
@@ -248,7 +248,7 @@
             {#if searchStore.searchResults.length === 0 && searchStore.searchArticleResults.length === 0 && !searchStore.isSearching}
               <div class="py-20 text-center flex flex-col items-center gap-3">
                 <Search size={24} class="text-gray-200" />
-                <span class="text-gray-300 font-black tracking-[0.2em] text-[10px] uppercase">Không tìm thấy kết quả</span>
+                <span class="text-gray-300 font-black tracking-[0.2em] text-[10px] ">Không tìm thấy kết quả</span>
               </div>
             {/if}
           </div>
@@ -259,7 +259,7 @@
     <!-- INDUSTRIAL TICKER -->
     <footer class="h-8 bg-gray-50 border-t border-gray-100 flex items-center overflow-hidden shrink-0">
        <div class="flex items-center gap-4 px-2 whitespace-nowrap animate-ticker">
-          <span class="text-[8px] font-black text-luxury-copper tracking-widest uppercase">Live Pulse</span>
+          <span class="text-[8px] font-black text-luxury-copper tracking-widest ">Live Pulse</span>
           <span class="text-[9px] font-bold text-gray-400">Cộng đồng đang quan tâm đến Kem dưỡng trắng da cổ Miccosmo...</span>
           <span class="text-[9px] font-bold text-gray-400">Vừa có lượt mua mới tại Hà Nội...</span>
        </div>

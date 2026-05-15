@@ -14,12 +14,12 @@
   }>();
 
   const messages = {
-    idle: 'Neural Link: Giao thức Stealth đang bảo vệ phiên bản.',
-    verifying: 'Syncing Neural Data...',
-    encoding: 'AES-256 Stealth Encoding...',
-    submitting: 'Finalizing Transaction DNA...',
-    success: 'Neural Integrity Verified.',
-    error: 'Neural Collision Detected.'
+    idle: 'Liên kết Neural: Giao thức Stealth đang bảo vệ phiên làm việc.',
+    verifying: 'Đang đồng bộ dữ liệu Neural...',
+    encoding: 'Mã hóa AES-256 Stealth...',
+    submitting: 'Đang hoàn tất DNA giao dịch...',
+    success: 'Đã xác minh tính toàn vẹn Neural.',
+    error: 'Phát hiện xung đột Neural.'
   };
 </script>
 
@@ -45,8 +45,8 @@
       <!-- Agentic Mono Header -->
       <div class="flex items-center gap-2 mb-1.5">
         <Terminal size={8} class="text-luxury-copper" />
-        <span class="text-[8px] font-mono font-bold uppercase tracking-[0.4em] text-stone-400 select-none">
-          {supportAgent.config.agentName}.AI Agentic Advisor
+        <span class="text-[8px] font-mono font-bold tracking-[0.4em] text-stone-400 select-none">
+          {supportAgent.config.agentName}.AI Cố vấn AI
         </span>
         {#if status !== 'idle' && status !== 'success'}
           <span class="w-1 h-3 bg-luxury-copper/40 animate-pulse rounded-full"></span>
@@ -75,7 +75,7 @@
     {#if status === 'success'}
       <div in:fade={{ delay: 300 }} class="shrink-0 flex flex-col items-center gap-1 opacity-60">
         <Shield size={14} class="text-luxury-copper" />
-        <span class="text-[7px] font-black uppercase text-luxury-copper tracking-tighter">SECURED</span>
+        <span class="text-[7px] font-black text-luxury-copper tracking-tighter">Đã bảo mật</span>
       </div>
     {/if}
   </div>

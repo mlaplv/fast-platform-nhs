@@ -72,7 +72,7 @@
           </div>
           <div class="text-right">
             <span
-              class="text-[10px] font-mono text-white/20 uppercase tracking-widest block"
+              class="text-[10px] font-mono text-white/20 tracking-widest block"
               >{new Date(note.createdAt).toLocaleDateString()}</span
             >
             <span class="text-[10px] font-mono text-white/40 tabular-nums"
@@ -87,7 +87,7 @@
       >
         <div class="w-12 h-1 bg-white/5 animate-pulse mb-4"></div>
         <p
-          class="text-[11px] font-mono text-gray-700 uppercase tracking-widest"
+          class="text-[11px] font-mono text-gray-700 tracking-widest"
         >
           No spectral traces detected in the audit stream
         </p>

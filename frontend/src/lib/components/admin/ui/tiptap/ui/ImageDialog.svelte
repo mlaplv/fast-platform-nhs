@@ -67,8 +67,8 @@
 
       <div class="relative flex items-center justify-between mb-8">
         <div class="flex flex-col">
-            <h3 class="text-xl font-black text-white tracking-tighter uppercase italic">Media Intelligence</h3>
-            <p class="text-[10px] text-zinc-500 font-mono tracking-[0.2em] uppercase">Visual Assets Command Center</p>
+            <h3 class="text-xl font-black text-white tracking-tighter italic">Media Intelligence</h3>
+            <p class="text-[10px] text-zinc-500 font-mono tracking-[0.2em] ">Visual Assets Command Center</p>
         </div>
         <button 
           onclick={() => show = false} 
@@ -113,7 +113,7 @@
             title="Tải ảnh mới"
         >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Tải lên</span>
+            <span class="text-[10px] font-bold tracking-wider">Tải lên</span>
         </button>
         <input type="file" bind:this={fileInput} accept="image/*" class="hidden" onchange={handleFileUpload} />
 
@@ -123,14 +123,14 @@
           class="h-11 px-6 flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white transition-all rounded-xl group/library shadow-lg shadow-blue-500/10 whitespace-nowrap"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-          <span class="text-[10px] font-black uppercase tracking-widest italic">AI Vault</span>
+          <span class="text-[10px] font-black tracking-widest italic">AI Vault</span>
         </button>
       </div>
 
       {#if assets && assets.length > 0}
          <div class="relative">
             <div class="flex items-center justify-between mb-4">
-                <div class="text-[10px] uppercase font-black text-blue-500 tracking-[0.3em] flex items-center gap-2">
+                <div class="text-[10px] font-black text-blue-500 tracking-[0.3em] flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
                     Recent Intelligence Assets
                 </div>
@@ -149,13 +149,13 @@
                       {#if brokenAssets.has(fullUrl)}
                         <div class="w-full h-full flex flex-col items-center justify-center gap-2 bg-red-500/5">
                           <AlertTriangle size={20} class="text-red-400/50" />
-                          <span class="text-[7px] font-black uppercase tracking-widest text-red-400/40">Lỗi ảnh</span>
+                          <span class="text-[7px] font-black tracking-widest text-red-400/40">Lỗi ảnh</span>
                         </div>
                       {:else}
                         <img src={fullUrl} alt="asset" class="w-full h-full object-cover grayscale-[0.5] group-hover/asset:grayscale-0 transition-all duration-500" onerror={() => handleImageError(fullUrl)} />
                       {/if}
                       <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/asset:opacity-100 transition-opacity flex items-end p-3">
-                          <span class="text-[9px] text-white font-mono truncate uppercase tracking-tighter">{assetUrl.split('/').pop()}</span>
+                          <span class="text-[9px] text-white font-mono truncate tracking-tighter">{assetUrl.split('/').pop()}</span>
                       </div>
                       <div class="absolute top-2 right-2 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center opacity-0 group-hover/asset:opacity-100 translate-y-2 group-hover/asset:translate-y-0 transition-all">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -167,11 +167,11 @@
       {/if}
 
       <div class="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-        <div class="flex items-center gap-4 text-[10px] text-zinc-600 uppercase font-mono tracking-widest">
+        <div class="flex items-center gap-4 text-[10px] text-zinc-600 font-mono tracking-widest">
             <span class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full bg-green-500"></span> AI Optimization Active</span>
             <span class="flex items-center gap-1.5"><span class="w-1 h-1 rounded-full bg-blue-500"></span> Auto-WebP Ready</span>
         </div>
-        <button onclick={() => show = false} class="px-8 py-3 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-white text-[11px] font-bold uppercase tracking-widest rounded-xl transition-all active:scale-95">
+        <button onclick={() => show = false} class="px-8 py-3 bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-white text-[11px] font-bold tracking-widest rounded-xl transition-all active:scale-95">
             Dismiss
         </button>
       </div>

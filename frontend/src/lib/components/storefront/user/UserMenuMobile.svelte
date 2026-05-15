@@ -69,8 +69,8 @@
               <Sparkles class="w-5 h-5 text-luxury-copper" />
            </div>
            <div>
-             <h2 class="text-[13px] font-black uppercase tracking-[3px] text-stone-800">osmo Elite</h2>
-             <p class="text-[9px] text-stone-400 uppercase tracking-widest mt-0.5">Luxury Experience</p>
+             <h2 class="text-[13px] font-black tracking-[3px] text-stone-800">osmo Elite</h2>
+             <p class="text-[9px] text-stone-400 tracking-widest mt-0.5">Luxury Experience</p>
            </div>
         </div>
 
@@ -85,7 +85,7 @@
       <!-- Navigation Links -->
       <div class="flex-1 space-y-12">
         <div class="space-y-6">
-          <p class="text-[10px] uppercase tracking-[5px] text-stone-400 font-bold opacity-60" in:fade={{ delay: 100 }}>Tài khoản của tôi</p>
+          <p class="text-[10px] tracking-[5px] text-stone-400 font-bold opacity-60" in:fade={{ delay: 100 }}>Tài khoản của tôi</p>
           <nav class="space-y-2">
             {#each links as link, i}
               <div in:fly={{ x: -20, delay: 100 + i * 50, duration: 600 }}>
@@ -117,7 +117,7 @@
         </div>
 
         <div class="space-y-6" in:fade={{ delay: 400 }}>
-           <p class="text-[10px] uppercase tracking-[5px] text-stone-400 font-bold opacity-60">Khám phá</p>
+           <p class="text-[10px] tracking-[5px] text-stone-400 font-bold opacity-60">Khám phá</p>
            <a
              href="/"
              onclick={onClose}
@@ -140,13 +140,13 @@
           <div class="absolute inset-0 bg-red-50 translate-x-[-100%] group-active:translate-x-0 transition-transform duration-500"></div>
           <div class="relative z-10 flex items-center justify-center gap-3">
             <LogOut class="w-4 h-4 text-stone-400 group-active:text-red-500" />
-            <span class="text-[11px] uppercase tracking-[4px] font-black text-stone-400 group-active:text-red-500">
+            <span class="text-[11px] tracking-[4px] font-black text-stone-400 group-active:text-red-500">
               Đăng xuất tài khoản
             </span>
           </div>
         </button>
 
-        <p class="text-[9px] text-center text-stone-300 uppercase tracking-[2px] mt-8">
+        <p class="text-[9px] text-center text-stone-300 tracking-[2px] mt-8">
           Elite Member Experience • osmo 2026
         </p>
       </div>

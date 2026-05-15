@@ -358,7 +358,7 @@
                 <span class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold">
                     {mediaStore.selectedIds.size}
                 </span>
-                <span class="text-[10px] font-bold uppercase tracking-wider">Đã chọn</span>
+                <span class="text-[10px] font-bold tracking-wider">Đã chọn</span>
             </div>
 
             <div class="flex items-center gap-3 text-zinc-400">
@@ -384,7 +384,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                 </button>
             </div>
-            <button onclick={() => mediaStore.clearSelection()} class="text-[10px] font-black uppercase text-zinc-500 hover:text-white ml-2 transition-colors">Đóng</button>
+            <button onclick={() => mediaStore.clearSelection()} class="text-[10px] font-black text-zinc-500 hover:text-white ml-2 transition-colors">Đóng</button>
         </div>
     {/if}
 

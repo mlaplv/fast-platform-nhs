@@ -78,10 +78,10 @@
            <Search size={32} class="relative" />
         </div>
         
-        <h1 class="text-2xl font-black tracking-tighter uppercase italic leading-tight mb-2 text-slate-900">
+        <h1 class="text-2xl font-black tracking-tighter italic leading-tight mb-2 text-slate-900">
           TRA CỨU ĐƠN
         </h1>
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Kiểm tra trạng thái & lịch trình</p>
+        <p class="text-[10px] font-bold text-slate-400 tracking-widest">Kiểm tra trạng thái & lịch trình</p>
       </div>
 
       <!-- Tracking Form -->
@@ -90,7 +90,7 @@
             type="text" 
             bind:value={orderId}
             placeholder="MÃ ĐƠN HÀNG (VD: 6CC...)"
-            class="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 focus:border-sky-500 focus:bg-white outline-none text-slate-900 font-black text-left text-sm uppercase placeholder:text-slate-400 transition-all rounded-none"
+            class="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 focus:border-sky-500 focus:bg-white outline-none text-slate-900 font-black text-left text-sm placeholder:text-slate-400 transition-all rounded-none"
             spellcheck="false"
         />
 
@@ -106,7 +106,7 @@
         <button 
           onclick={handleTrack}
           disabled={isSubmitting}
-          class="w-full !mt-6 py-4 bg-slate-900 hover:bg-sky-500 text-white font-black disabled:opacity-50 transition-all active:scale-95 uppercase text-xs tracking-[0.3em] italic"
+          class="w-full !mt-6 py-4 bg-slate-900 hover:bg-sky-500 text-white font-black disabled:opacity-50 transition-all active:scale-95 text-xs tracking-[0.3em] italic"
         >
           <div class="relative flex items-center justify-center gap-2">
             {#if isSubmitting}
@@ -120,7 +120,7 @@
       </div>
 
       <div class="mt-8 text-center">
-         <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest italic pt-4 border-t border-slate-100">
+         <p class="text-[9px] text-slate-400 font-bold tracking-widest italic pt-4 border-t border-slate-100">
            AN TOÀN • BẢO MẬT • RIÊNG TƯ
          </p>
       </div>
@@ -128,10 +128,10 @@
 
     <a 
       href="/" 
-      class="mt-10 group flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-[0.3em] bg-white px-6 py-3 shadow-sm border border-slate-100"
+      class="mt-10 group flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-slate-900 transition-colors tracking-[0.3em] bg-white px-6 py-3 shadow-sm border border-slate-100"
     >
       <ArrowLeft size={14} class="group-hover:-translate-x-1 transition-transform" />
-      <span>QUAY LẠI CỬA HÀNG</span>
+      <span>Quay lại CỬA HÀNG</span>
     </a>
   </div>
 {/if}

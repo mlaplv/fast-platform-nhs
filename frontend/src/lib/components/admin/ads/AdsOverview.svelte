@@ -20,7 +20,7 @@
          <div class="p-2 rounded-none bg-cyan-500/10 border border-cyan-500/20">
             <Activity size={18} class="text-cyan-400" />
          </div>
-         <h3 class="text-[10px] font-black tracking-[0.2em] text-slate-400 font-mono uppercase">Phân tích xu hướng gian lận ({periodLabel})</h3>
+         <h3 class="text-[10px] font-black tracking-[0.2em] text-slate-400 font-mono ">Phân tích xu hướng gian lận ({periodLabel})</h3>
       </div>
       
       <div class="mt-6">
@@ -156,7 +156,7 @@
           <div class="p-2 rounded-none bg-rose-500/10 border border-rose-500/20">
              <ShieldAlert size={18} class="text-rose-500" />
           </div>
-          <h3 class="text-[10px] font-black tracking-[0.2em] text-rose-500/80 font-mono uppercase">Mục tiêu nguy cơ cao</h3>
+          <h3 class="text-[10px] font-black tracking-[0.2em] text-rose-500/80 font-mono ">Mục tiêu nguy cơ cao</h3>
        </div>
 
        <div class="max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-4 pr-2 relative z-10">
@@ -170,10 +170,10 @@
                   </div>
                </div>
                 {#if isBlacklisted(item.ip)}
-                   <div class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-[8px] font-mono font-black tracking-widest rounded-none uppercase shadow-inner">Đã khóa</div>
+                   <div class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-[8px] font-mono font-black tracking-widest rounded-none shadow-inner">Đã khóa</div>
                 {:else}
                    <button 
-                      class="px-5 py-2.5 bg-gradient-to-r from-rose-600 to-rose-700 text-white text-[9px] font-black tracking-widest hover:from-rose-500 hover:to-rose-600 transition-all active:scale-[0.98] shadow-xl rounded-none border border-white/10 uppercase"
+                      class="px-5 py-2.5 bg-gradient-to-r from-rose-600 to-rose-700 text-white text-[9px] font-black tracking-widest hover:from-rose-500 hover:to-rose-600 transition-all active:scale-[0.98] shadow-xl rounded-none border border-white/10 "
                       onclick={() => blockIP(item.ip)}
                    >
                       Chặn IP

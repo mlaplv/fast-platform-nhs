@@ -36,11 +36,11 @@
           {title}
         </h1>
         <div class="flex items-center justify-center gap-1.5 opacity-60">
-          <span class="text-[7px] font-bold text-stone-500 uppercase tracking-[0.15em] truncate max-w-[100px]">
+          <span class="text-[7px] font-bold text-stone-500 tracking-[0.15em] truncate max-w-[100px]">
               {authStore.user?.name || 'Quý khách'}
           </span>
           <span class="text-[8px] font-black text-luxury-copper px-1 border-l border-stone-200">
-             {loyaltyStore.data?.available_points ?? (authStore.user?.extra_metadata?.points || 0)} PTS
+             {loyaltyStore.data?.available_points ?? (authStore.user?.extra_metadata?.points || 0)} điểm
           </span>
         </div>
 

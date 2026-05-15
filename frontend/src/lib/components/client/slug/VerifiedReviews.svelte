@@ -293,13 +293,13 @@
         <div class="elite-dot-container">
           <span class="elite-status-dot"></span>
         </div>
-        <span class="text-[10px] font-black text-red-500 uppercase tracking-[0.3em] font-mono whitespace-nowrap">LIVE_ACTIVITY: {liveViewers} KHÁCH ĐANG XEM ĐÁNH GIÁ</span>
+        <span class="text-[10px] font-black text-red-500 tracking-[0.3em] font-mono whitespace-nowrap">LIVE_ACTIVITY: {liveViewers} KHÁCH ĐANG XEM ĐÁNH GIÁ</span>
       </div>
       
       <div class="max-w-4xl mx-auto text-center" style:margin-bottom="calc(var(--headline-mb) * 0.5)">
         <h2 class="elite-session-headline mb-8 text-center flex flex-col items-center">
           <EditableWrapper path="metadata.reviews_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
-            <span class="block text-[11px] md:text-[12px] font-black uppercase tracking-[0.4em] text-white/40 mb-4">{h1}</span>
+            <span class="block text-[11px] md:text-[12px] font-black tracking-[0.4em] text-white/40 mb-4">{h1}</span>
           </EditableWrapper>
           <EditableWrapper path="metadata.reviews_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
             <span class="block">{h2}</span>
@@ -317,7 +317,7 @@
         <div class="trust-indicator-elite inline-flex flex-col sm:flex-row items-center gap-6 px-10 py-6 bg-white/[0.02] backdrop-blur-3xl rounded-[2rem] border border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5),inset_0_0_20px_rgba(255,255,255,0.02)]">
           <div class="flex items-center gap-6 border-b sm:border-b-0 sm:border-r border-white/10 pb-4 sm:pb-0 sm:pr-8">
             <div class="flex flex-col items-center sm:items-start gap-1">
-              <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] font-mono">PRECISION_RATING</span>
+              <span class="text-[9px] font-black text-white/30 tracking-[0.3em] font-mono">PRECISION_RATING</span>
               <div class="flex items-center gap-4">
                 <EditableWrapper path="metadata.reviews_trust_score" value={labels.trust_score} label="SỬA ĐIỂM TIN CẬY">
                   <span class="text-3xl font-black text-white tracking-tighter italic">{labels.trust_score}</span>
@@ -334,7 +334,7 @@
           </div>
 
           <div class="flex flex-col items-center sm:items-start gap-1">
-             <span class="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] font-mono">GLOBAL_VOLUME</span>
+             <span class="text-[9px] font-black text-white/30 tracking-[0.3em] font-mono">GLOBAL_VOLUME</span>
              <EditableWrapper path="metadata.reviews_count_text" value={labels.count_text} type="text" label="SỬA LƯỢT ĐÁNH GIÁ">
               <span class="text-xl font-bold text-white tracking-wider">{labels.count_text}</span>
              </EditableWrapper>
@@ -347,8 +347,8 @@
               <svg class="w-5 h-5 text-luxury-sakura" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
             </div>
             <div class="flex flex-col">
-              <span class="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">ELITE_PROTECTED</span>
-              <span class="text-[10px] font-black text-luxury-sakura uppercase tracking-widest">VERIFIED SERVICE</span>
+              <span class="text-[8px] font-black text-white/40 tracking-[0.2em]">ELITE_PROTECTED</span>
+              <span class="text-[10px] font-black text-luxury-sakura tracking-widest">VERIFIED SERVICE</span>
             </div>
           </div>
         </div>
@@ -361,7 +361,7 @@
               showFormModal = true;
             }
           }} 
-          class="pulse-btn px-12 py-5 bg-luxury-sakura/10 border border-luxury-sakura/30 rounded-full text-luxury-sakura text-[11px] font-black uppercase tracking-[0.4em] hover:bg-luxury-sakura/20 hover:border-luxury-sakura/50 transition-all active:scale-95 shadow-[0_0_50px_rgba(193,143,126,0.1)] group flex items-center gap-4"
+          class="pulse-btn px-12 py-5 bg-luxury-sakura/10 border border-luxury-sakura/30 rounded-full text-luxury-sakura text-[11px] font-black tracking-[0.4em] hover:bg-luxury-sakura/20 hover:border-luxury-sakura/50 transition-all active:scale-95 shadow-[0_0_50px_rgba(193,143,126,0.1)] group flex items-center gap-4"
         >
           <svg class="w-4 h-4 transition-transform group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -383,7 +383,7 @@
                    <span class="elite-status-dot"></span>
                 </div>
                 <EditableWrapper path="metadata.reviews_hud_feedback" type="text" label="SỬA NHÃN HUD" class="inline" as="span">
-                  <span class="text-luxury-sakura uppercase tracking-widest">{labels.hud_feedback.replace('//', '•')}</span>
+                  <span class="text-luxury-sakura tracking-widest">{labels.hud_feedback.replace('//', '•')}</span>
                 </EditableWrapper>
             </div>
 
@@ -417,12 +417,12 @@
           {#if isLoading && realReviews.length === 0}
             <div class="flex flex-col items-center justify-center p-24 gap-6">
               <div class="w-12 h-12 border-2 border-luxury-sakura/20 border-t-luxury-sakura rounded-full animate-spin"></div>
-              <span class="text-luxury-sakura/40 font-mono text-[10px] tracking-[0.4em] uppercase">Syncing_Real_Voices...</span>
+              <span class="text-luxury-sakura/40 font-mono text-[10px] tracking-[0.4em] ">Syncing_Real_Voices...</span>
             </div>
           {:else if realReviews.length === 0}
             <div class="flex flex-col items-center justify-center p-24 gap-4 opacity-30">
                <svg class="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-               <span class="text-[10px] font-mono tracking-widest uppercase">No_Signal_Detected</span>
+               <span class="text-[10px] font-mono tracking-widest ">No_Signal_Detected</span>
             </div>
           {:else}
             {#each realReviews as review, i}
@@ -444,7 +444,7 @@
                         </div>
                       </div>
                       <div class="flex items-center gap-2">
-                        <span class="text-[8px] text-white/30 uppercase tracking-[0.2em] font-black font-mono leading-none">{review.location}</span>
+                        <span class="text-[8px] text-white/30 tracking-[0.2em] font-black font-mono leading-none">{review.location}</span>
                       </div>
                       <div class="flex items-center gap-0.5 mt-1.5">
                         {#each [0, 1, 2, 3, 4] as starIdx}
@@ -471,7 +471,7 @@
                   <div class="compliance-tag flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full border border-white/20"></div>
                     <EditableWrapper path="metadata.reviews_label_compliant" type="text" label="SỬA TAG COMPLIANT" class="inline" as="span">
-                      <span class="text-[8px] font-black text-white/20 uppercase tracking-[0.3em]">{labels.label_compliant}</span>
+                      <span class="text-[8px] font-black text-white/20 tracking-[0.3em]">{labels.label_compliant}</span>
                     </EditableWrapper>
                   </div>
                   <div class="buy-check flex items-center gap-2.5 px-3.5 py-2 bg-luxury-sakura/10 rounded-xl border border-luxury-sakura/20 shadow-[0_0_15px_rgba(193,143,126,0.1)] transition-all hover:border-luxury-sakura/40">
@@ -482,9 +482,9 @@
                       <div class="absolute inset-0 bg-luxury-sakura blur-md opacity-20"></div>
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-[7px] font-black text-luxury-sakura/50 uppercase tracking-[0.2em] leading-none mb-0.5">AUTH_STATUS</span>
+                      <span class="text-[7px] font-black text-luxury-sakura/50 tracking-[0.2em] leading-none mb-0.5">AUTH_STATUS</span>
                       <EditableWrapper path="metadata.reviews_label_store_verified" type="text" label="SỬA TAG VERIFIED" class="inline" as="span">
-                        <span class="text-[9px] font-black text-luxury-sakura uppercase tracking-widest leading-none">{labels.label_store_verified}</span>
+                        <span class="text-[9px] font-black text-luxury-sakura tracking-widest leading-none">{labels.label_store_verified}</span>
                       </EditableWrapper>
                     </div>
                   </div>
@@ -566,8 +566,8 @@
               >
                 <svg class="w-16 h-16 text-luxury-sakura" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4" transition:fly={{ y: 20, duration: 600 }}><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
               </div>
-              <h4 class="text-5xl font-black text-white uppercase tracking-tighter mb-6 italic" in:fly={{ y: 20, duration: 800 }}>{labels.success_title}</h4>
-              <p class="text-white/60 text-sm max-w-md font-bold uppercase tracking-[0.2em] leading-relaxed" in:fly={{ y: 20, delay: 200, duration: 800 }}>{labels.success_msg}</p>
+              <h4 class="text-5xl font-black text-white tracking-tighter mb-6 italic" in:fly={{ y: 20, duration: 800 }}>{labels.success_title}</h4>
+              <p class="text-white/60 text-sm max-w-md font-bold tracking-[0.2em] leading-relaxed" in:fly={{ y: 20, delay: 200, duration: 800 }}>{labels.success_msg}</p>
               
               <div class="mt-12 w-full max-w-xs h-1 bg-white/5 rounded-full overflow-hidden">
                 <div class="h-full bg-luxury-sakura animate-progress"></div>
@@ -580,9 +580,9 @@
               <div class="elite-dot-container" style="--status-color: var(--luxury-gold);">
                 <span class="elite-status-dot"></span>
               </div>
-              <span class="text-[10px] font-black tracking-[0.2em] uppercase whitespace-nowrap">{labels.form_title}</span>
+              <span class="text-[10px] font-black tracking-[0.2em] whitespace-nowrap">{labels.form_title}</span>
             </div>
-            <div class="text-[8px] sm:text-[9px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/20 font-mono italic">{labels.label_secure_encryption}</div>
+            <div class="text-[8px] sm:text-[9px] font-black tracking-[0.1em] sm:tracking-[0.2em] text-white/20 font-mono italic">{labels.label_secure_encryption}</div>
           </div>
 
           <form onsubmit={submitReview} class="space-y-4 sm:space-y-8">
@@ -590,25 +590,25 @@
               <div class="space-y-4 sm:space-y-6">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div class="space-y-1.5">
-                    <label for="review-name" class="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_name}</label>
+                    <label for="review-name" class="text-[9px] font-black text-white/20 tracking-[0.2em] ml-2">{labels.form_name}</label>
                     <input id="review-name" type="text" bind:this={nameRef} placeholder="Họ và Tên *" class="input-liquid px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-luxury-sakura/50 transition-all outline-none" />
                   </div>
                   <div class="space-y-1.5">
-                    <label for="review-phone" class="text-[9px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">{labels.form_phone}</label>
+                    <label for="review-phone" class="text-[9px] font-black text-white/20 tracking-[0.2em] ml-2">{labels.form_phone}</label>
                     <input id="review-phone" type="tel" bind:this={phoneRef} placeholder="Số điện thoại *" class="input-liquid px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-luxury-sakura/50 transition-all outline-none" />
                   </div>
                 </div>
 
                 <div class="space-y-8">
                   <div class="space-y-3 relative">
-                    <label for="review-location" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_location}</label>
+                    <label for="review-location" class="text-[11px] font-black text-white/30 tracking-[0.3em] ml-4">{labels.form_location}</label>
                     <button
                       id="review-location"
                       type="button"
                       onclick={() => isLocationOpen = !isLocationOpen}
                       class="input-liquid flex items-center justify-between px-6 py-5 rounded-2xl bg-white/5 border border-white/10 text-white transition-all outline-none {isLocationOpen ? 'border-luxury-sakura/50' : ''}"
                     >
-                      <span class={locationSelected ? 'text-white font-bold' : 'text-white/20 uppercase text-[11px] font-bold tracking-[0.1em]'}>
+                      <span class={locationSelected ? 'text-white font-bold' : 'text-white/20 text-[11px] font-bold tracking-[0.1em]'}>
                         {locationSelected || 'Chọn Tỉnh/Thành'}
                       </span>
                       <svg class="w-5 h-5 text-white/30 transition-transform {isLocationOpen ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -629,7 +629,7 @@
                               type="text"
                               bind:value={locationSearch}
                               placeholder="TÌM KIẾM VỊ TRÍ..."
-                              class="w-full bg-transparent text-[11px] font-black uppercase tracking-[0.2em] text-white outline-none placeholder:text-white/20"
+                              class="w-full bg-transparent text-[11px] font-black tracking-[0.2em] text-white outline-none placeholder:text-white/20"
                               autofocus
                             />
                           </div>
@@ -654,7 +654,7 @@
                               <button 
                                 type="button"
                                 onclick={() => { locationSelected = loc; isLocationOpen = false; locationSearch = ''; }}
-                                class="w-full px-8 py-5 text-left text-[11px] text-white/60 hover:text-white hover:bg-luxury-sakura/10 transition-all border-b border-white/5 last:border-0 font-bold uppercase tracking-[0.2em] flex items-center justify-between group"
+                                class="w-full px-8 py-5 text-left text-[11px] text-white/60 hover:text-white hover:bg-luxury-sakura/10 transition-all border-b border-white/5 last:border-0 font-bold tracking-[0.2em] flex items-center justify-between group"
                               >
                                 {loc}
                                 {#if locationSelected === loc}
@@ -663,7 +663,7 @@
                               </button>
                             {/each}
                           {:else}
-                            <div class="py-16 text-center text-[10px] font-black text-white/20 uppercase tracking-[0.3em] italic">
+                            <div class="py-16 text-center text-[10px] font-black text-white/20 tracking-[0.3em] italic">
                               NO_RESULTS_FOUND
                             </div>
                           {/if}
@@ -674,7 +674,7 @@
 
                   <div class="space-y-4">
                     <div class="px-4">
-                      <label id="rating-label" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] whitespace-nowrap">{labels.form_rating}</label>
+                      <label id="rating-label" class="text-[11px] font-black text-white/30 tracking-[0.3em] whitespace-nowrap">{labels.form_rating}</label>
                     </div>
                     <div 
                       role="group" 
@@ -720,7 +720,7 @@
               </div>
 
               <div class="space-y-4">
-                <label for="review-content" class="text-[11px] font-black text-white/30 uppercase tracking-[0.3em] ml-4">{labels.form_content}</label>
+                <label for="review-content" class="text-[11px] font-black text-white/30 tracking-[0.3em] ml-4">{labels.form_content}</label>
                 <div class="relative h-full pb-0 sm:pb-4">
                   <textarea id="review-content" bind:this={contentRef} oninput={() => contentLen = contentRef?.value.length || 0} placeholder="{labels.form_placeholder}" class="input-liquid resize-none h-[120px] sm:h-[180px] lg:h-[calc(100%-40px)] w-full px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/10 focus:border-luxury-sakura/50 transition-all outline-none scrollbar-hide"></textarea>
                   <div class="char-counter absolute bottom-3 right-5 sm:bottom-8 sm:right-6 font-mono text-[8px] text-white/15 tracking-widest">{contentLen}/5000</div>
@@ -737,11 +737,11 @@
                 {#if isSubmitting}
                   <div class="flex items-center gap-3">
                     <div class="w-5 h-5 border-2 border-slate-950/20 border-t-slate-950 rounded-full animate-spin"></div>
-                    <span class="text-sm font-black uppercase tracking-[0.4em]">PROCESSING_DATA...</span>
+                    <span class="text-sm font-black tracking-[0.4em]">PROCESSING_DATA...</span>
                   </div>
                 {:else}
-                  <span class="text-xl font-black tracking-[0.5em] uppercase transition-transform group-hover/btn:scale-105 duration-700">{labels.form_cta}</span>
-                  <div class="text-[9px] font-black tracking-[0.2em] opacity-40 uppercase">{labels.label_secure_gate}</div>
+                  <span class="text-xl font-black tracking-[0.5em] transition-transform group-hover/btn:scale-105 duration-700">{labels.form_cta}</span>
+                  <div class="text-[9px] font-black tracking-[0.2em] opacity-40 ">{labels.label_secure_gate}</div>
                 {/if}
               </button>
             </div>
@@ -762,7 +762,7 @@
       {#if toastType === 'error'}
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
       {/if}
-      <span class="text-xs font-black uppercase tracking-widest">{toastMessage}</span>
+      <span class="text-xs font-black tracking-widest">{toastMessage}</span>
     </div>
   </div>
 {/if}

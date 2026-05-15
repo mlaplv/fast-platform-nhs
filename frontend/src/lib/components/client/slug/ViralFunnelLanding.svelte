@@ -371,7 +371,7 @@
              <div class="flex flex-col">
                <span class="vfl-reward-text">{displayRewardLabel}</span>
                {#if subDescription}
-                 <span class="text-[8px] text-white/40 font-bold uppercase tracking-tight">{subDescription}</span>
+                 <span class="text-[8px] text-white/40 font-bold tracking-tight">{subDescription}</span>
                {/if}
              </div>
              <span class="vfl-progress-val">{Math.round(shareProgress)}%</span>
@@ -404,7 +404,7 @@
               <span class="ticket-msg">{displayRewardLabel}</span>
             </div>
             {#if subDescription}
-              <span class="text-[8px] text-white/30 font-bold uppercase ml-6">{subDescription}</span>
+              <span class="text-[8px] text-white/30 font-bold ml-6">{subDescription}</span>
             {/if}
           </div>
           
@@ -431,7 +431,7 @@
           <div class="flex items-center gap-3">
             <Sparkles size={16} class="text-amber-400" />
             <div class="flex flex-col">
-              <span class="text-[8px] text-white/40 font-black uppercase tracking-widest">{voucherLabel}</span>
+              <span class="text-[8px] text-white/40 font-black tracking-widest">{voucherLabel}</span>
               <span class="text-lg font-black text-[#ee4d2d] tabular-nums tracking-wider">{voucherCode}</span>
             </div>
           </div>
@@ -537,7 +537,7 @@
   .notch-r { right: -7px; }
 
   .ticket-inner { width: 100%; height: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
-  .ticket-msg { font-size: 13px; font-weight: 1000; color: white; text-transform: uppercase; }
+  .ticket-msg { font-size: 13px; font-weight: 1000; color: white; }
   
   .vfl-timer-tag {
     background: #ee4d2d; color: white; padding: 2px 8px; border-radius: 4px;

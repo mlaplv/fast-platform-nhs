@@ -134,10 +134,10 @@
               {/if}
             </div>
             <div class="flex flex-col">
-              <h2 class="text-xs font-black text-white uppercase tracking-[0.3em] leading-tight">
+              <h2 class="text-xs font-black text-white tracking-[0.3em] leading-tight">
                 {title}
               </h2>
-              <span class="text-[8px] font-mono {theme.text} opacity-50 uppercase tracking-widest mt-1">
+              <span class="text-[8px] font-mono {theme.text} opacity-50 tracking-widest mt-1">
                 {subtitle}
               </span>
             </div>

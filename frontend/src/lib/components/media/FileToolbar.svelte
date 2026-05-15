@@ -172,13 +172,13 @@
             <div class={aiVisionEnabled ? 'animate-pulse' : ''}>
                 <Brain size={16} />
             </div>
-            <span class="text-[10px] font-black uppercase tracking-widest">{aiVisionEnabled ? 'AI VISION: ON' : 'AI VISION: OFF'}</span>
+            <span class="text-[10px] font-black tracking-widest">{aiVisionEnabled ? 'AI VISION: ON' : 'AI VISION: OFF'}</span>
         </button>
 
         {#if onPickConfirm}
             <button
                 onclick={onPickConfirm}
-                class="ml-2 flex items-center gap-2 px-6 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-blue-500/20"
+                class="ml-2 flex items-center gap-2 px-6 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-[10px] font-black tracking-widest hover:brightness-110 transition-all shadow-lg shadow-blue-500/20"
                 title="Xác nhận"
             >
                 <Check size={16} />
@@ -201,7 +201,7 @@
 {#if showPostFilter}
 <div class="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/30 border-b border-zinc-200 dark:border-zinc-700/50 flex flex-wrap items-center gap-4 animate-in slide-in-from-top-1 duration-200">
     <div class="flex items-center gap-2">
-        <label for="post-type" class="text-[10px] font-bold text-zinc-400 uppercase">Loại:</label>
+        <label for="post-type" class="text-[10px] font-bold text-zinc-400 ">Loại:</label>
         <select
             id="post-type"
             bind:value={filterPostType}
@@ -213,7 +213,7 @@
         </select>
     </div>
     <div class="flex items-center gap-2">
-        <label for="post-id" class="text-[10px] font-bold text-zinc-400 uppercase">ID/SKU:</label>
+        <label for="post-id" class="text-[10px] font-bold text-zinc-400 ">ID/SKU:</label>
         <input
             id="post-id"
             type="text"
@@ -227,7 +227,7 @@
             <input type="checkbox" bind:checked={showUnlinkedOnly} class="sr-only peer" />
             <div class="absolute left-1 top-1 w-2 h-2 bg-white rounded-full transition-transform peer-checked:translate-x-4 peer-checked:bg-blue-500"></div>
         </div>
-        <span class="text-[10px] font-bold text-zinc-500 uppercase">Chỉ ảnh chưa gắn link</span>
+        <span class="text-[10px] font-bold text-zinc-500 ">Chỉ ảnh chưa gắn link</span>
     </label>
 </div>
 {/if}

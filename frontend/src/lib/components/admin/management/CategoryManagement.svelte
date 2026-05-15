@@ -358,7 +358,7 @@
             bind:value={searchTerm}
             type="text"
             placeholder="QUERY_TAXONOMY..."
-            class="w-full bg-transparent border-none py-3 pl-8 pr-4 text-[10px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none uppercase tracking-widest leading-none outline-none"
+            class="w-full bg-transparent border-none py-3 pl-8 pr-4 text-[10px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none tracking-widest leading-none outline-none"
           />
         </div>
       </div>
@@ -370,7 +370,7 @@
             <div class="flex items-center gap-2 pr-2 mr-2 border-r border-white/10">
               <button
                 onclick={() => bulkStatusUpdate(true)}
-                class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl hover:bg-emerald-500/20 transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl hover:bg-emerald-500/20 transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
                 title="Kích hoạt tất cả"
               >
                 <Eye size={12} />
@@ -378,7 +378,7 @@
               </button>
               <button
                 onclick={() => bulkStatusUpdate(false)}
-                class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl hover:bg-amber-500/20 transition-all shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+                class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl hover:bg-amber-500/20 transition-all shadow-[0_0_15px_rgba(245,158,11,0.1)]"
                 title="Vô hiệu hóa tất cả"
               >
                 <EyeOff size={12} />
@@ -387,12 +387,12 @@
             </div>
             <button
               onclick={bulkDelete}
-              class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+              class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)]"
               ><Trash2 size={12} class="hidden sm:block"/><Trash2 size={14} class="sm:hidden"/><span class="hidden sm:inline">Purge ({selectedIds.size})</span><span class="sm:hidden">({selectedIds.size})</span></button
             >
           {/if}
           <div
-            class="flex sm:hidden items-center gap-2 px-3 py-2 bg-gradient-to-br from-neon-cyan/10 to-transparent border border-neon-cyan/30 rounded-xl text-[10px] font-mono text-neon-cyan uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(0,255,255,0.05)]"
+            class="flex sm:hidden items-center gap-2 px-3 py-2 bg-gradient-to-br from-neon-cyan/10 to-transparent border border-neon-cyan/30 rounded-xl text-[10px] font-mono text-neon-cyan tracking-[0.2em] shadow-[0_0_15px_rgba(0,255,255,0.05)]"
           >
             <Layers size={14} class="animate-pulse opacity-70" />
             <span class="font-bold">{categories.length}</span>
@@ -401,7 +401,7 @@
 
         <div class="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0">
           <div
-            class="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-neon-cyan/10 to-transparent border border-neon-cyan/30 rounded-xl text-[10px] font-mono text-neon-cyan uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(0,255,255,0.05)]"
+            class="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-neon-cyan/10 to-transparent border border-neon-cyan/30 rounded-xl text-[10px] font-mono text-neon-cyan tracking-[0.2em] shadow-[0_0_15px_rgba(0,255,255,0.05)]"
           >
             <Layers size={14} class="animate-pulse opacity-70" />
             <span class="font-bold">{categories.length}</span> Nodes
@@ -409,7 +409,7 @@
 
           <button
             onclick={() => openCreate()}
-            class="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2 text-[10px] w-full sm:w-auto justify-center font-bold tracking-widest font-mono uppercase bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:text-white rounded-xl transition-all duration-300"
+            class="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2 text-[10px] w-full sm:w-auto justify-center font-bold tracking-widest font-mono bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 hover:text-white rounded-xl transition-all duration-300"
           >
             <Plus size={14} class="sm:hidden" /><Plus size={12} class="hidden sm:block" /> <span class="hidden sm:inline">Init_Node</span>
           </button>
@@ -444,7 +444,7 @@
     {#if isLoading}
       <div class="h-full flex items-center justify-center animate-pulse">
         <span
-          class="text-[9px] font-mono text-[#00FFFF]/40 uppercase tracking-[0.3em]"
+          class="text-[9px] font-mono text-[#00FFFF]/40 tracking-[0.3em]"
           >Mapping Taxonomy...</span
         >
       </div>

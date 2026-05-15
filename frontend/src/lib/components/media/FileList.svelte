@@ -58,7 +58,7 @@
 <div class="w-full overflow-x-auto no-scrollbar pb-10">
     <table class="w-full text-left border-separate border-spacing-y-2">
         <thead>
-            <tr class="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.3em] px-4">
+            <tr class="text-[9px] font-black text-zinc-400 dark:text-zinc-500 tracking-[0.3em] px-4">
                 <th class="pb-4 pl-6 w-16">Preview</th>
                 <th class="pb-4">Filename / Metadata</th>
                 <th class="pb-4 w-28">Size <Database size={10} class="inline ml-1 opacity-40" /></th>
@@ -129,10 +129,10 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-[9px] font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded tracking-tighter">ID: {asset.id.slice(0, 12)}</span>
                                 {#if asset.is_primary}
-                                    <span class="text-[8px] font-black text-white bg-indigo-500 px-1.5 py-0.5 rounded uppercase tracking-tighter">Primary</span>
+                                    <span class="text-[8px] font-black text-white bg-indigo-500 px-1.5 py-0.5 rounded tracking-tighter">Primary</span>
                                 {/if}
                                 {#if !asset.is_linked && !asset.id?.startsWith('tmp_') && !mediaStore.isTrashMode}
-                                    <span class="text-[8px] font-black text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded uppercase tracking-tighter">Mồ côi</span>
+                                    <span class="text-[8px] font-black text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded tracking-tighter">Mồ côi</span>
                                 {/if}
                             </div>
                         </div>
@@ -147,7 +147,7 @@
 
                     <!-- Column: Type -->
                     <td class="py-4">
-                        <span class="text-[9px] font-black px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 uppercase tracking-widest border border-transparent group-hover:border-blue-500/10 transition-all">
+                        <span class="text-[9px] font-black px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-500 tracking-widest border border-transparent group-hover:border-blue-500/10 transition-all">
                             {asset.mime_type?.split('/')[1] || 'Unknown'}
                         </span>
                     </td>
@@ -200,7 +200,7 @@
     
     {#if assets.length === 0}
         <div class="flex flex-col items-center justify-center py-20 bg-zinc-50/50 dark:bg-white/[0.01] rounded-[2rem] border-2 border-dashed border-zinc-100 dark:border-zinc-800">
-            <span class="text-[10px] font-black text-zinc-300 dark:text-zinc-600 uppercase tracking-[0.4em]">Danh sách trống</span>
+            <span class="text-[10px] font-black text-zinc-300 dark:text-zinc-600 tracking-[0.4em]">Danh sách trống</span>
         </div>
     {/if}
 </div>

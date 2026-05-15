@@ -29,7 +29,7 @@
           <ShieldAlert class="w-8 h-8 text-red-500" />
         </div>
         <div>
-          <h2 class="text-xl font-bold text-white uppercase tracking-tighter">Bot Threat Detected</h2>
+          <h2 class="text-xl font-bold text-white tracking-tighter">Bot Threat Detected</h2>
           <p class="text-red-400/80 text-xs font-mono">Edge Mitigation Active: <span class="text-red-500 font-bold">FAST-PATH</span></p>
         </div>
       </div>
@@ -54,10 +54,10 @@
 
       <!-- Footer Action -->
       <div class="mt-8 text-center">
-        <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Hardened by Agentic AI Guard</div>
+        <div class="text-[10px] text-gray-500 tracking-widest mb-2">Hardened by Agentic AI Guard</div>
         <div class="inline-flex items-center gap-2 px-4 py-1 bg-white/5 rounded-full border border-white/10">
           <span class="w-2 h-2 bg-green-500 rounded-full animate-ping"></span>
-          <span class="text-[10px] text-green-500 font-bold uppercase italic">Thwarting Invalid Activity</span>
+          <span class="text-[10px] text-green-500 font-bold italic">Thwarting Invalid Activity</span>
         </div>
       </div>
     </div>

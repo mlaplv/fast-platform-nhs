@@ -121,7 +121,7 @@
           {#if searchStore.recentSearches.length > 0}
             <section>
               <div class="flex items-center justify-between mb-3">
-                <span class="text-[10px] font-black tracking-widest text-gray-400 uppercase">Lịch sử</span>
+                <span class="text-[10px] font-black tracking-widest text-gray-400 ">Lịch sử</span>
                 <button onclick={() => searchStore.clearHistory()} class="text-[10px] font-bold text-luxury-copper hover:underline">Xóa tất cả</button>
               </div>
               <div class="flex flex-wrap gap-2">
@@ -139,7 +139,7 @@
             <section>
               <div class="flex items-center gap-2 mb-3">
                 <span class="w-1.5 h-1.5 bg-[#fe2c55] rounded-full animate-pulse"></span>
-                <span class="text-[10px] font-black tracking-widest text-gray-400 uppercase">Xu hướng tìm kiếm</span>
+                <span class="text-[10px] font-black tracking-widest text-gray-400 ">Xu hướng tìm kiếm</span>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 {#each searchStore.featuredProducts as p}
@@ -160,7 +160,7 @@
           <!-- SEARCH RESULTS -->
           {#if searchStore.searchResults.length > 0}
             <section>
-              <div class="text-[10px] font-black tracking-widest text-luxury-copper mb-3 uppercase">Sản phẩm</div>
+              <div class="text-[10px] font-black tracking-widest text-luxury-copper mb-3 ">Sản phẩm</div>
               <div class="flex flex-col gap-1">
                 {#each searchStore.searchResults as p}
                   <a href="/{p.slug}" onclick={() => { searchStore.addSearch(p.name); isFocused = false; }} class="flex items-center gap-4 p-2 hover:bg-gray-50 transition-colors group">
@@ -179,7 +179,7 @@
 
           {#if searchStore.searchArticleResults.length > 0}
             <section>
-              <div class="text-[10px] font-black tracking-widest text-luxury-copper mb-3 uppercase">Kiến thức chuyên sâu</div>
+              <div class="text-[10px] font-black tracking-widest text-luxury-copper mb-3 ">Kiến thức chuyên sâu</div>
               <div class="flex flex-col gap-2">
                 {#each searchStore.searchArticleResults as art}
                   <a href="/{art.slug}" onclick={() => { searchStore.addSearch(art.title); isFocused = false; }} class="flex items-center gap-4 p-2 hover:bg-gray-50 transition-colors group">

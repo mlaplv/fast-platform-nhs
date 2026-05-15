@@ -285,7 +285,7 @@
 
   // Extract product details (Dynamic from DB)
   const pDiscountPrice = $derived(product.discountPrice || product.discount_price);
-  
+
   const productInfo = $derived({
     barcode: (product.sku as string) || 'N/A',
     brand: (product.metadata?.brand as string) || (product.attributes?.['brand'] as string) || (product.attributes?.['Thương hiệu'] as string) || '',

@@ -150,10 +150,10 @@ import SecuritySOC from "../management/SecuritySOC.svelte";
             <Terminal class="w-4 h-4 text-cyan-400" />
           </div>
           <div>
-            <h2 class="text-xs font-mono tracking-[0.15em] uppercase text-cyan-400">
+            <h2 class="text-xs font-mono tracking-[0.15em] text-cyan-400">
               {title}
             </h2>
-            <p class="text-[9px] font-mono text-gray-500 uppercase tracking-wider">
+            <p class="text-[9px] font-mono text-gray-500 tracking-wider">
               XOHI · TRINITY CORE
             </p>
           </div>
@@ -174,7 +174,7 @@ import SecuritySOC from "../management/SecuritySOC.svelte";
               </div>
               
               <div class="flex items-center gap-2 px-2 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-md">
-                <span class="text-[9px] font-mono text-cyan-400 uppercase tracking-tighter">
+                <span class="text-[9px] font-mono text-cyan-400 tracking-tighter">
                   {nanobot.activeSupportSessionCount} Sessions
                 </span>
               </div>
@@ -193,12 +193,12 @@ import SecuritySOC from "../management/SecuritySOC.svelte";
                <div class="hidden md:flex items-center gap-3 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg mr-2">
                  <div class="flex items-center gap-1.5">
                    <Activity class="w-3 h-3 text-emerald-400" />
-                   <span class="text-[9px] font-mono text-gray-400 uppercase">Health</span>
+                   <span class="text-[9px] font-mono text-gray-400 ">Health</span>
                    <span class="text-[10px] font-mono font-bold text-emerald-400">{nanobot.brainVectorHealth}%</span>
                  </div>
                  <div class="w-px h-3 bg-white/10"></div>
                  <div class="flex items-center gap-1.5">
-                   <span class="text-[9px] font-mono text-gray-400 uppercase">Nodes</span>
+                   <span class="text-[9px] font-mono text-gray-400 ">Nodes</span>
                    <span class="text-[10px] font-mono font-bold text-white">{nanobot.brainTotalNodes}</span>
                  </div>
                </div>
@@ -206,14 +206,14 @@ import SecuritySOC from "../management/SecuritySOC.svelte";
                <button 
                 onclick={() => { nanobot.brainActionTrigger = 'SYNC'; }}
                 disabled={nanobot.isBrainSyncing}
-                class="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-indigo-400 hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+                class="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/30 rounded-lg text-[9px] font-black tracking-widest text-indigo-400 hover:bg-indigo-500/20 transition-all disabled:opacity-50"
               >
                 <RefreshCw class="w-3 h-3 {nanobot.isBrainSyncing ? 'animate-spin' : ''}" />
                 {nanobot.isBrainSyncing ? 'Sync' : 'Sync'}
               </button>
                <button 
                 onclick={() => { nanobot.brainActionTrigger = 'PURGE'; }}
-                class="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/20 transition-all"
+                class="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg text-[9px] font-black tracking-widest text-red-500 hover:bg-red-500/20 transition-all"
               >
                 <Trash2 class="w-3 h-3" />
                 Purge
@@ -221,7 +221,7 @@ import SecuritySOC from "../management/SecuritySOC.svelte";
 
               <button 
                 onclick={() => { nanobot.setBrainManualOpen(true); }}
-                class="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-[9px] font-black uppercase tracking-widest text-cyan-400 hover:bg-cyan-500/20 transition-all"
+                class="flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/30 rounded-lg text-[9px] font-black tracking-widest text-cyan-400 hover:bg-cyan-500/20 transition-all"
               >
                 <BookOpen class="w-3 h-3" />
                 Manual

@@ -121,18 +121,18 @@
           </svg>
           <div class="absolute inset-0 flex flex-col items-center justify-center">
             <span class="text-[13px] font-black tracking-tighter" style="color:{riskColor}">{pct}%</span>
-            <span class="text-[6px] font-black opacity-30 uppercase tracking-[0.2em]">Rating</span>
+            <span class="text-[6px] font-black opacity-30 tracking-[0.2em]">Rating</span>
           </div>
         </div>
 
         <!-- Risk Level & Protocol -->
         <div class="flex flex-col gap-1.5 px-3">
           <div class="flex flex-col gap-1.5">
-            <span class="text-sm font-black uppercase tracking-[0.1em]" style="color:{riskColor}">
+            <span class="text-sm font-black tracking-[0.1em]" style="color:{riskColor}">
               {copyrightResult.risk_level === 'LOW' ? 'PROTECTED' : copyrightResult.risk_level === 'MEDIUM' ? 'STRICT CAUTION' : 'CRITICAL RISK'}
             </span>
             <div class="flex items-center gap-1.5 opacity-30">
-              <span class="text-[9px] font-black uppercase tracking-[0.3em]">Protocol_XoHi_System_V2.2</span>
+              <span class="text-[9px] font-black tracking-[0.3em]">Protocol_XoHi_System_V2.2</span>
             </div>
           </div>
         </div>
@@ -152,13 +152,13 @@
     <div class="px-4 py-4 bg-black/40 border-b border-white/5 shadow-inner">
       <div class="flex items-center gap-2 mb-3 opacity-30">
         <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
-        <span class="text-[10px] font-black uppercase tracking-[0.2em]">Neural_Legal_Verdict</span>
+        <span class="text-[10px] font-black tracking-[0.2em]">Neural_Legal_Verdict</span>
       </div>
       
       <div class="text-[13px] text-white/80 leading-[1.6] font-medium tracking-tight space-y-4">
         {#each verdictBlocks as block}
           {#if block.isHeader}
-            <div class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.2em] pt-3 border-b border-emerald-500/10 pb-1 flex items-center justify-between group/header">
+            <div class="text-[11px] font-black text-emerald-400 tracking-[0.2em] pt-3 border-b border-emerald-500/10 pb-1 flex items-center justify-between group/header">
                <div class="flex items-center gap-2">
                  <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
                  {block.text.replace(/#+\s?|\*\*|\[|\]/g, '').replace(':', '').trim()}
@@ -251,7 +251,7 @@
       <!-- High-Value Source List (Elite V2.2) -->
       {#if copyrightResult.similar_sources && copyrightResult.similar_sources.length > 0}
         <div class="mt-4 px-3 py-2 bg-blue-500/5 rounded-xl border border-blue-500/10 shadow-inner">
-          <div class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+          <div class="text-[9px] font-black text-blue-400 tracking-widest mb-2 flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg> TOP_REFERENCE_SOURCES
           </div>
           <div class="space-y-1.5">
@@ -292,16 +292,16 @@
           <div class="relative z-10 flex flex-col items-center justify-center gap-1 bg-black/40 px-2 py-2.5 rounded-[11px] transition-all group-hover:bg-transparent h-full">
             {#if isRewriting}
               <div class="w-4 h-4 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin"></div>
-              <span class="text-[7px] font-black text-indigo-300 uppercase tracking-widest animate-pulse">REWRITING...</span>
+              <span class="text-[7px] font-black text-indigo-300 tracking-widest animate-pulse">REWRITING...</span>
             {:else}
               <div class="flex items-center gap-2">
                 <div class="relative">
                   <Sparkles size={14} class="text-indigo-300 animate-pulse" />
                   <div class="absolute inset-0 bg-indigo-400 blur-sm opacity-50 animate-ping"></div>
                 </div>
-                <span class="text-[10px] font-black text-white uppercase tracking-widest leading-none">XOHI REWRITE</span>
+                <span class="text-[10px] font-black text-white tracking-widest leading-none">XOHI REWRITE</span>
               </div>
-              <span class="text-[6px] font-bold text-indigo-300/60 uppercase tracking-[0.2em]">Neural_Synthesis_V88</span>
+              <span class="text-[6px] font-bold text-indigo-300/60 tracking-[0.2em]">Neural_Synthesis_V88</span>
             {/if}
           </div>
           <!-- Scanning Glow -->
@@ -318,13 +318,13 @@
             <div class="relative z-10 flex flex-col items-center justify-center gap-1 bg-black/40 px-2 py-2.5 rounded-[11px] transition-all group-hover:bg-emerald-500 group-hover:text-black h-full">
               {#if isBulkFixing && !isRewriting}
                 <div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                <span class="text-[7px] font-black uppercase tracking-widest animate-pulse">ĐANG PHẪU THUẬT...</span>
+                <span class="text-[7px] font-black tracking-widest animate-pulse">ĐANG PHẪU THUẬT...</span>
               {:else}
                 <div class="flex items-center gap-2">
                    <CheckCircle2 size={14} class="group-hover:text-black transition-colors" />
-                   <span class="text-[10px] font-black uppercase tracking-widest leading-none transition-colors">PHẪU THUẬT TOÀN DIỆN ({copyrightResult.annotations.filter(a => a.type !== 'fixed-area').length})</span>
+                   <span class="text-[10px] font-black tracking-widest leading-none transition-colors">PHẪU THUẬT TOÀN DIỆN ({copyrightResult.annotations.filter(a => a.type !== 'fixed-area').length})</span>
                 </div>
-                <span class="text-[6px] font-bold opacity-60 uppercase tracking-[0.2em] group-hover:text-black/60">Auto_Repair_Active</span>
+                <span class="text-[6px] font-bold opacity-60 tracking-[0.2em] group-hover:text-black/60">Auto_Repair_Active</span>
               {/if}
             </div>
           </button>
@@ -342,7 +342,7 @@
           <div class="px-3 py-2 border-b border-emerald-500/20 bg-emerald-500/[0.04] flex items-start gap-2">
             <CheckCircle2 size={10} class="text-emerald-400 mt-0.5 shrink-0" />
             <div class="min-w-0">
-              <span class="text-[8px] font-black text-emerald-400 uppercase">✅ ĐÃ SỬA</span>
+              <span class="text-[8px] font-black text-emerald-400 ">✅ ĐÃ SỬA</span>
               <p class="text-[12px] text-white/80 leading-relaxed mt-0.5 tracking-tight">
                 <span class="text-white/40 font-mono italic">"{ann.text}"</span>
               </p>
@@ -353,8 +353,8 @@
           {@const annHex = ann.severity === 'high' ? '#ef4444' : ann.severity === 'medium' ? '#f59e0b' : '#eab308'}
           <div class="px-3 py-3 border-b bg-white/[0.01] flex flex-col gap-1.5 transition-all hover:bg-white/[0.02]" style="border-color: {annHex}15">
             <div class="flex items-start justify-between gap-2">
-              <span class="text-[7px] font-black px-1 py-0.5 rounded uppercase" style="background: {annHex}20; color: {annHex}">{isInternal ? '🔁 TRÙNG LẶP NỘI BỘ' : `🚨 COPYRIGHT ${ann.severity?.toUpperCase()}`}</span>
-              <button onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason || 'Cần kiểm tra COPYRIGHT')} disabled={!!isFixing} class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-white/10 text-[7px] font-black uppercase transition-all disabled:opacity-40">
+              <span class="text-[7px] font-black px-1 py-0.5 rounded " style="background: {annHex}20; color: {annHex}">{isInternal ? '🔁 TRÙNG LẶP NỘI BỘ' : `🚨 COPYRIGHT ${ann.severity?.toUpperCase()}`}</span>
+              <button onclick={() => handleInternalFix(ann.text, ann.type || 'copyright', ann.reason || 'Cần kiểm tra COPYRIGHT')} disabled={!!isFixing} class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-white/10 text-[7px] font-black transition-all disabled:opacity-40">
                 {#if streamingTarget === ann.text}
                   <span class="text-[8px] text-white/80 font-mono leading-relaxed">{streamingText}<span class="inline-block w-1 h-2.5 bg-orange-400 animate-pulse ml-0.5 -mb-0.5"></span></span>
                 {:else if isFixing === ann.text}

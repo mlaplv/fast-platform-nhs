@@ -4,17 +4,19 @@ export function formatCurrency(n: number): string {
   const ui = getClientUi();
   const settings = ui.settings?.currency;
   
-  if (!n || isNaN(n)) {
+  if (n === undefined || n === null || isNaN(Number(n))) {
     return "Liên hệ";
   }
+  
+  const num = Number(n);
 
   if (!settings) {
     // Default: Shopee-style (suffix)
-    return new Intl.NumberFormat("vi-VN").format(n) + "₫";
+    return new Intl.NumberFormat("vi-VN").format(num) + "₫";
   }
 
   // Manual formatting to respect custom separators
-  const parts = Math.round(n).toString().split('.');
+  const parts = Math.round(num).toString().split('.');
   parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, settings.thousand_separator || ".");
   const formatted = parts.join(settings.decimal_separator || ",");
 

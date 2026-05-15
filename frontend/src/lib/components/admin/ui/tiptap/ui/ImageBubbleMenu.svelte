@@ -94,7 +94,7 @@
       <div class="w-px h-4 bg-white/10 mx-0.5"></div>
 
       <!-- Sizing -->
-      <div class="flex items-center gap-0.5 bg-black/20 rounded-xl p-0.5 text-[10px] font-bold uppercase tracking-wider border border-white/5">
+      <div class="flex items-center gap-0.5 bg-black/20 rounded-xl p-0.5 text-[10px] font-bold tracking-wider border border-white/5">
         <button onclick={() => setSize('small')} class="px-2 py-1 rounded-lg transition-all active:scale-90 {currentSize === 'small' ? 'bg-white/15 text-white' : 'text-white/50 hover:text-white hover:bg-white/10'}" title="25%">S</button>
         <button onclick={() => setSize('medium')} class="px-2 py-1 rounded-lg transition-all active:scale-90 {currentSize === 'medium' ? 'bg-white/15 text-white' : 'text-white/50 hover:text-white hover:bg-white/10'}" title="50%">M</button>
         <button onclick={() => setSize('large')} class="px-2 py-1 rounded-lg transition-all active:scale-90 {currentSize === 'large' ? 'bg-white/15 text-white' : 'text-white/50 hover:text-white hover:bg-white/10'}" title="100%">L</button>
@@ -111,7 +111,7 @@
     <div class="flex flex-col gap-1.5 p-2">
       <!-- Alt Text -->
       <div class="flex items-center gap-2">
-        <span class="text-[9px] font-bold uppercase tracking-widest text-white/30 w-10 shrink-0">Alt</span>
+        <span class="text-[9px] font-bold tracking-widest text-white/30 w-10 shrink-0">Alt</span>
         <input 
           type="text" 
           bind:value={altText} 
@@ -123,7 +123,7 @@
       </div>
       <!-- Title / Caption -->
       <div class="flex items-center gap-2">
-        <span class="text-[9px] font-bold uppercase tracking-widest text-white/30 w-10 shrink-0">Title</span>
+        <span class="text-[9px] font-bold tracking-widest text-white/30 w-10 shrink-0">Title</span>
         <input 
           type="text" 
           bind:value={titleText} 

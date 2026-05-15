@@ -38,6 +38,7 @@ class Voucher(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     category: Mapped[str] = mapped_column(String, default="DISCOUNT") # DISCOUNT, SHIPPING, GIFT
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_viral: Mapped[bool] = mapped_column(Boolean, default=False) # Elite V2.2: Explicit Viral Control
     priority: Mapped[int] = mapped_column(Integer, default=0)
     metadata_json: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default={})
 

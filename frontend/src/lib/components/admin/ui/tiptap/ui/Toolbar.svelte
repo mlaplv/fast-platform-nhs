@@ -296,7 +296,7 @@
   {#if !isThin}
     <div class="tb-platter shrink-0 px-2 flex">
       <select 
-        class="tb-select font-black uppercase tracking-widest text-[8px] {active.format !== 'p' ? '!text-cyan-400 font-bold' : ''}" 
+        class="tb-select font-black tracking-widest text-[8px] {active.format !== 'p' ? '!text-cyan-400 font-bold' : ''}" 
         value={active.format}
         onchange={handleParagraphChange}
       >
@@ -307,7 +307,7 @@
       </select>
       <div class="w-px h-3 bg-white/5 mx-1"></div>
       <select 
-        class="tb-select font-mono text-[8px] uppercase tracking-wider" 
+        class="tb-select font-mono text-[8px] tracking-wider" 
         value={active.font}
         onchange={handleFontChange}
       >
@@ -402,8 +402,8 @@
            style="top: {colorPopupPos.top}px; left: {colorPopupPos.left}px; transform: translateX(-100%); z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_DROPDOWN}"
       >
         <div class="flex items-center justify-between px-1">
-          <span class="text-[8px] font-black uppercase tracking-widest text-white/30">Color Swatches</span>
-          <button onclick={() => { editor?.chain().focus().unsetColor().run(); showColorPicker = false; }} class="text-[8px] font-black uppercase text-rose-500/60 hover:text-rose-400">Reset</button>
+          <span class="text-[8px] font-black tracking-widest text-white/30">Color Swatches</span>
+          <button onclick={() => { editor?.chain().focus().unsetColor().run(); showColorPicker = false; }} class="text-[8px] font-black text-rose-500/60 hover:text-rose-400">Reset</button>
         </div>
         <div class="grid grid-cols-6 gap-2">
           {#each COLORS as color}
@@ -584,7 +584,7 @@
   }
 
   .tb-neural-action {
-    @apply flex items-center gap-1.5 px-4 py-2 rounded-lg text-[9px] uppercase tracking-[0.15em] transition-all duration-500 active:scale-95 border border-white/10 shadow-2xl;
+    @apply flex items-center gap-1.5 px-4 py-2 rounded-lg text-[9px] tracking-[0.15em] transition-all duration-500 active:scale-95 border border-white/10 shadow-2xl;
   }
 
   .tb-neural-action.loading { @apply bg-white/5 text-white/20 cursor-wait; }

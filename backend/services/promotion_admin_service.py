@@ -33,17 +33,8 @@ class PromotionAdminService:
             
         if exclude_viral:
             # Elite V2.2: Lọc bỏ các Voucher Viral khỏi danh sách công khai (Home/Cart Sync)
-            # Chấp nhận tiêu chí ID hoặc Title chứa từ khóa nhạy cảm
-            stmt = stmt.where(and_(
-                ~Voucher.id.ilike("%VIRAL%"),
-                ~Voucher.id.ilike("%LAN TOA%"),
-                ~Voucher.id.ilike("%LAN TỎA%"),
-                or_(Voucher.title == None, and_(
-                    ~Voucher.title.ilike("%VIRAL%"),
-                    ~Voucher.title.ilike("%LAN TOA%"),
-                    ~Voucher.title.ilike("%LAN TỎA%")
-                ))
-            ))
+            # Sử dụng trường is_viral chính thống thay vì lọc theo regex ID/Title
+            stmt = stmt.where(Voucher.is_viral == False)
             
         # Count total
         count_stmt = select(func.count()).select_from(stmt.subquery())
@@ -66,6 +57,12 @@ class PromotionAdminService:
         existing = await db_session.get(Voucher, data.id)
         if existing:
             raise ClientException(status_code=409, detail=f"Mã voucher '{data.id}' đã tồn tại.")
+        
+        if data.is_viral:
+            # Elite V2.2: Exclusive Viral - Chỉ cho phép duy nhất 1 Voucher Viral hoạt động
+            await db_session.execute(
+                update(Voucher).where(Voucher.tenant_id == tenant_id).values(is_viral=False)
+            )
         
         new_voucher = Voucher(
             **data.model_dump(),
@@ -112,11 +109,27 @@ class PromotionAdminService:
                 .values(is_default=False)
             )
 
+        is_setting_viral = update_data.get("is_viral", False)
+        if is_setting_viral:
+            tenant_id = voucher.tenant_id
+            # Elite V2.2: Exclusive Viral - Chuyển đổi trạng thái duy nhất
+            await db_session.execute(
+                update(Voucher)
+                .where(and_(Voucher.tenant_id == tenant_id, Voucher.id != (new_id or voucher_id)))
+                .values(is_viral=False)
+            )
+            logger.info(f"[Promotion] Viral switch: {new_id or voucher_id} is now the master viral voucher")
+
         for key, value in update_data.items():
             setattr(voucher, key, value)
             
         await db_session.commit()
-        return SuccessResponse(message=f"Đã cập nhật voucher {new_id or voucher_id} thành công.")
+        
+        msg = f"Đã cập nhật voucher {new_id or voucher_id} thành công."
+        if update_data.get("is_viral"):
+            msg = f"🚀 Đã kích hoạt {new_id or voucher_id} làm Voucher Viral duy nhất của hệ thống."
+            
+        return SuccessResponse(message=msg)
 
     async def delete_voucher(self, db_session: AsyncSession, voucher_id: str) -> SuccessResponse:
         voucher = await db_session.get(Voucher, voucher_id)
@@ -137,7 +150,7 @@ class PromotionAdminService:
         await db_session.commit()
         return SuccessResponse(message=f"Đã xoá {len(ids)} voucher thành công.")
 
-    async def bulk_update_status(self, db_session: AsyncSession, ids: List[str], is_active: Optional[bool] = None, is_default: Optional[bool] = None) -> SuccessResponse:
+    async def bulk_update_status(self, db_session: AsyncSession, ids: List[str], is_active: Optional[bool] = None, is_default: Optional[bool] = None, is_viral: Optional[bool] = None) -> SuccessResponse:
         if not ids:
             return SuccessResponse(message="Không có voucher nào được chọn.")
         
@@ -149,19 +162,28 @@ class PromotionAdminService:
             
         if is_default is True:
             # For bulk setting default, we pick the LAST one in the list to be the absolute default per category
-            # To be safe, we iterate through categories of selected vouchers
             stmt = select(Voucher).where(and_(Voucher.id.in_(ids), Voucher.tenant_id == tenant_id))
             vouchers = (await db_session.execute(stmt)).scalars().all()
             
             categories = set(v.category for v in vouchers)
             for cat in categories:
-                # Unset all in category
                 await db_session.execute(
                     update(Voucher).where(and_(Voucher.tenant_id == tenant_id, Voucher.category == cat)).values(is_default=False)
                 )
-                # Set the last one from our selection in this category to True
                 last_in_cat = [v for v in vouchers if v.category == cat][-1]
                 last_in_cat.is_default = True
+
+        if is_viral is True:
+            # Elite V2.2: Exclusive Viral - Chỉ cho phép duy nhất 1 Voucher Viral
+            # Unset all
+            await db_session.execute(
+                update(Voucher).where(Voucher.tenant_id == tenant_id).values(is_viral=False)
+            )
+            # Set only the LAST one from the selected list
+            last_id = ids[-1]
+            await db_session.execute(
+                update(Voucher).where(and_(Voucher.id == last_id, Voucher.tenant_id == tenant_id)).values(is_viral=True)
+            )
         
         await db_session.commit()
         return SuccessResponse(message=f"Đã cập nhật hàng loạt {len(ids)} voucher thành công.")

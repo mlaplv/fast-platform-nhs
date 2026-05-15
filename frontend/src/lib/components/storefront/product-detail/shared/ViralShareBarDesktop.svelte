@@ -146,7 +146,7 @@
         <!-- Reveal State Minimalist -->
         <div class="p-3 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-between">
            <div class="flex flex-col">
-             <span class="text-[10px] font-bold text-rose-600 uppercase mb-0.5">Mục tiêu đã đạt 🎉</span>
+             <span class="text-[10px] font-bold text-rose-600 mb-0.5">Mục tiêu đã đạt 🎉</span>
              <span class="text-[11px] text-slate-600">Mọi người đều có thể dùng mã này!</span>
            </div>
            <div class="flex items-center gap-2 bg-white px-2 py-1.5 rounded border border-rose-100">

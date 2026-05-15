@@ -116,9 +116,9 @@
           <div class="absolute inset-0 bg-blue-400 blur-md opacity-20"></div>
         </div>
         <div class="flex flex-col hidden md:flex">
-          <span class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] leading-none mb-0.5">AUTH_LEVEL</span>
+          <span class="text-[8px] font-black text-white/30 tracking-[0.2em] leading-none mb-0.5">AUTH_LEVEL</span>
           <div class="flex items-center gap-2">
-            <span class="text-[10px] font-black text-blue-400 uppercase tracking-widest leading-none">
+            <span class="text-[10px] font-black text-blue-400 tracking-widest leading-none">
               {permissionState.userName || 'UNAUTHORIZED'}
             </span>
           </div>
@@ -132,7 +132,7 @@
       class="flex items-center gap-2 md:gap-3 p-2.5 md:px-6 md:py-3 rounded-full transition-all duration-500 {liveEditStore.isEditMode ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.1)]' : 'hover:bg-white/5 text-white/60 hover:text-white'}"
     >
       <Edit3 size={15} />
-      <span class="text-[11px] font-black uppercase tracking-[0.2em] hidden md:inline">{liveEditStore.isEditMode ? 'DANG CHỈNH SỬA' : 'CHẾ ĐỘ CHỈNH SỬA'}</span>
+      <span class="text-[11px] font-black tracking-[0.2em] hidden md:inline">{liveEditStore.isEditMode ? 'DANG Chỉnh sửa' : 'CHẾ ĐỘ Chỉnh sửa'}</span>
     </button>
 
     {#if liveEditStore.isEditMode}
@@ -148,7 +148,7 @@
         {:else}
           <Save size={15} />
         {/if}
-        <span class="text-[11px] font-black uppercase tracking-[0.2em] hidden md:inline">{liveEditStore.isSaving ? 'DANG LƯU...' : 'LƯU THAY ĐỔI'}</span>
+        <span class="text-[11px] font-black tracking-[0.2em] hidden md:inline">{liveEditStore.isSaving ? 'DANG LƯU...' : 'LƯU THAY ĐỔI'}</span>
       </button>
 
       <!-- Discard Button -->
@@ -165,7 +165,7 @@
     <!-- Visual Hint -->
     {#if !liveEditStore.isEditMode}
       <div class="absolute -top-10 left-1/2 -translate-x-1/2 px-4 py-2 bg-blue-500/10 backdrop-blur-xl border border-blue-500/20 rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-        <span class="text-[9px] font-bold text-blue-400 tracking-widest uppercase">ENABLE LIVE_EDITOR_V2.2 TO SYNC ASSETS</span>
+        <span class="text-[9px] font-bold text-blue-400 tracking-widest ">ENABLE LIVE_EDITOR_V2.2 TO SYNC ASSETS</span>
       </div>
     {/if}
   </div>

@@ -495,7 +495,7 @@
                       class="text-[9px] font-semibold {spec.label === 'SKU' ||
                       spec.label === 'Mã vạch'
                         ? 'text-green-400'
-                        : 'text-white/35'} uppercase tracking-widest leading-none mb-1"
+                        : 'text-white/35'} tracking-widest leading-none mb-1"
                     >
                       {spec.label === "SKU" || spec.label === "Mã vạch"
                         ? `Mã vạch (Verify)`
@@ -515,7 +515,7 @@
           {#if product.metadata?.featured_ingredients?.length > 0 || product.metadata?.ingredients}
             <div class="mb-4">
               <h2
-                class="text-[12px] font-bold text-white/40 uppercase tracking-wider mb-2 flex items-center gap-1.5"
+                class="text-[12px] font-bold text-white/40 tracking-wider mb-2 flex items-center gap-1.5"
               >
                 <Droplet class="w-3.5 h-3.5 text-pink-300/70" />
                 Thành phần & Công dụng
@@ -590,7 +590,7 @@
               class="flex flex-col items-center justify-center h-full text-white/30 space-y-4 pb-20"
             >
               <ShieldCheck class="w-12 h-12 opacity-50" />
-              <p class="text-xs uppercase tracking-widest font-bold">
+              <p class="text-xs tracking-widest font-bold">
                 Chưa có thông tin mô tả chi tiết
               </p>
             </div>

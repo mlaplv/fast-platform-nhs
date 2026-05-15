@@ -48,8 +48,8 @@
                 <HelpCircle size={24} class="text-cyan-400" />
             </div>
             <div>
-                <h1 class="text-xl font-black tracking-tight uppercase text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-white/40">Helen Brain</h1>
-                <p class="text-[10px] text-cyan-500/60 font-mono font-bold tracking-widest uppercase">Neural Knowledge Base v2.2</p>
+                <h1 class="text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-200 to-white/40">Helen Brain</h1>
+                <p class="text-[10px] text-cyan-500/60 font-mono font-bold tracking-widest ">Neural Knowledge Base v2.2</p>
             </div>
         </div>
 
@@ -89,7 +89,7 @@
         <select 
             bind:value={category} 
             onchange={handleSearch}
-            class="bg-white/5 border border-white/10 rounded-xl px-5 py-3 outline-none focus:border-cyan-500/50 appearance-none text-[10px] font-mono font-black tracking-widest cursor-pointer pr-10 transition-all uppercase text-cyan-400"
+            class="bg-white/5 border border-white/10 rounded-xl px-5 py-3 outline-none focus:border-cyan-500/50 appearance-none text-[10px] font-mono font-black tracking-widest cursor-pointer pr-10 transition-all text-cyan-400"
         >
             {#each categories as cat}
                 <option value={cat}>{cat}</option>
@@ -133,14 +133,14 @@
         {#if kb.loading && kb.items.length === 0}
             <div class="h-full flex flex-col items-center justify-center opacity-50">
                 <XohiLogo variant="simple" size={60} />
-                <p class="mt-4 text-[10px] font-black tracking-[0.3em] uppercase animate-pulse">Syncing Helen Brain...</p>
+                <p class="mt-4 text-[10px] font-black tracking-[0.3em] animate-pulse">Syncing Helen Brain...</p>
             </div>
         {:else if kb.items.length === 0}
             <div class="h-full flex flex-col items-center justify-center text-cyan-500/20">
                 <div class="p-8 rounded-full bg-cyan-500/[0.02] border border-cyan-500/10 mb-6 group-hover:scale-110 transition-transform">
                     <HelpCircle size={64} strokeWidth={1} />
                 </div>
-                <p class="text-sm font-mono font-bold tracking-tight text-cyan-500/40 uppercase">Neural_Void: No knowledge sequences detected</p>
+                <p class="text-sm font-mono font-bold tracking-tight text-cyan-500/40 ">Neural_Void: No knowledge sequences detected</p>
             </div>
                 {:else}
             {#if kb.viewMode === 'grid'}
@@ -162,7 +162,7 @@
                                             <Square size={16} />
                                         {/if}
                                     </button>
-                                    <span class="px-2 py-0.5 rounded-full bg-cyan-500/10 text-[8px] font-mono font-black uppercase tracking-widest text-cyan-400/60 group-hover:text-cyan-400 transition-colors border border-cyan-500/20">
+                                    <span class="px-2 py-0.5 rounded-full bg-cyan-500/10 text-[8px] font-mono font-black tracking-widest text-cyan-400/60 group-hover:text-cyan-400 transition-colors border border-cyan-500/20">
                                         {item.category}
                                     </span>
                                     {#if item.priority > 0}
@@ -196,7 +196,7 @@
                                         <Trash2 size={14} />
                                     </button>
                                 </div>
-                                <span class="text-[8px] font-mono text-gray-700 uppercase tracking-tighter">{formatDate(item.created_at)}</span>
+                                <span class="text-[8px] font-mono text-gray-700 tracking-tighter">{formatDate(item.created_at)}</span>
                             </div>
                         </div>
                     {/each}
@@ -216,10 +216,10 @@
                                         {/if}
                                     </button>
                                 </th>
-                                <th class="p-5 text-[10px] font-mono font-black uppercase text-cyan-500/40 tracking-[0.2em]">Category</th>
-                                <th class="p-5 text-[10px] font-mono font-black uppercase text-cyan-500/40 tracking-[0.2em]">Neural_Pathway (Question)</th>
-                                <th class="p-5 text-[10px] font-mono font-black uppercase text-cyan-500/40 tracking-[0.2em]">Status</th>
-                                <th class="p-5 text-right text-[10px] font-mono font-black uppercase text-cyan-500/40 tracking-[0.2em]">Operations</th>
+                                <th class="p-5 text-[10px] font-mono font-black text-cyan-500/40 tracking-[0.2em]">Category</th>
+                                <th class="p-5 text-[10px] font-mono font-black text-cyan-500/40 tracking-[0.2em]">Neural_Pathway (Question)</th>
+                                <th class="p-5 text-[10px] font-mono font-black text-cyan-500/40 tracking-[0.2em]">Status</th>
+                                <th class="p-5 text-right text-[10px] font-mono font-black text-cyan-500/40 tracking-[0.2em]">Operations</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -235,7 +235,7 @@
                                         </button>
                                     </td>
                                     <td class="p-5">
-                                        <span class="px-2 py-1 rounded bg-cyan-500/10 text-[9px] font-black uppercase tracking-widest text-cyan-400 border border-cyan-500/20">
+                                        <span class="px-2 py-1 rounded bg-cyan-500/10 text-[9px] font-black tracking-widest text-cyan-400 border border-cyan-500/20">
                                             {item.category}
                                         </span>
                                     </td>
@@ -251,7 +251,7 @@
                                             class="flex items-center gap-2 group/status"
                                         >
                                             <div class="w-2 h-2 rounded-full {item.is_active ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,1)]' : 'bg-red-500/50'}"></div>
-                                            <span class="text-[9px] font-black uppercase tracking-widest {item.is_active ? 'text-cyan-500/60' : 'text-red-500/40'}">{item.is_active ? 'Active' : 'Offline'}</span>
+                                            <span class="text-[9px] font-black tracking-widest {item.is_active ? 'text-cyan-500/60' : 'text-red-500/40'}">{item.is_active ? 'Active' : 'Offline'}</span>
                                         </button>
                                     </td>
                                     <td class="p-5 text-right">

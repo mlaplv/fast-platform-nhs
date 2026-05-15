@@ -209,17 +209,17 @@
         <Layout size={20} class="text-black" />
       </div>
       <div>
-        <h1 class="text-lg font-black tracking-tighter uppercase italic text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-500">
+        <h1 class="text-lg font-black tracking-tighter italic text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-500">
           BANNER_VAULT
         </h1>
-        <p class="text-[8px] font-mono text-cyan-500 uppercase tracking-[0.4em]">Visual Promotion Protocol</p>
+        <p class="text-[8px] font-mono text-cyan-500 tracking-[0.4em]">Visual Promotion Protocol</p>
       </div>
     </div>
 
     <div class="flex items-center gap-4">
       <button
         onclick={openCreate}
-        class="h-10 px-6 bg-cyan-600 hover:bg-cyan-500 text-black font-black rounded-lg text-[10px] uppercase tracking-widest shadow-[0_0_20px_rgba(8,145,178,0.3)] transition-all flex items-center gap-2 group"
+        class="h-10 px-6 bg-cyan-600 hover:bg-cyan-500 text-black font-black rounded-lg text-[10px] tracking-widest shadow-[0_0_20px_rgba(8,145,178,0.3)] transition-all flex items-center gap-2 group"
       >
         <Plus size={14} class="group-hover:rotate-90 transition-transform duration-300" />
         New Deployment
@@ -267,7 +267,7 @@
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
-          <span class="text-[11px] font-black uppercase tracking-widest {selectedIds.size > 0 ? 'text-cyan-400' : 'text-zinc-500'}">
+          <span class="text-[11px] font-black tracking-widest {selectedIds.size > 0 ? 'text-cyan-400' : 'text-zinc-500'}">
             {selectedIds.size} Selected
           </span>
         </div>
@@ -275,20 +275,20 @@
         <div class="flex items-center gap-2 transition-all {selectedIds.size === 0 ? 'opacity-50 pointer-events-none' : 'opacity-100'}">
           <button 
             onclick={() => bulkToggleActive(true)}
-            class="h-8 px-4 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] font-black uppercase tracking-widest text-white transition-all flex items-center gap-2"
+            class="h-8 px-4 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] font-black tracking-widest text-white transition-all flex items-center gap-2"
           >
             <div class="w-2 h-2 rounded-full bg-cyan-500"></div> Activate
           </button>
           <button 
             onclick={() => bulkToggleActive(false)}
-            class="h-8 px-4 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] font-black uppercase tracking-widest text-white transition-all flex items-center gap-2"
+            class="h-8 px-4 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] font-black tracking-widest text-white transition-all flex items-center gap-2"
           >
             <div class="w-2 h-2 rounded-full bg-red-500"></div> Deactivate
           </button>
           <div class="w-px h-4 bg-white/20 mx-2"></div>
           <button 
             onclick={bulkDelete}
-            class="h-8 px-4 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/50 hover:border-red-500 text-[10px] font-black uppercase tracking-widest text-red-500 transition-all flex items-center gap-2"
+            class="h-8 px-4 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/50 hover:border-red-500 text-[10px] font-black tracking-widest text-red-500 transition-all flex items-center gap-2"
           >
             <Trash2 size={12} /> Delete
           </button>
@@ -299,7 +299,7 @@
     {#if isLoading}
       <div class="h-full flex flex-col items-center justify-center gap-6">
         <div class="w-16 h-16 border-2 border-cyan-500/10 border-t-cyan-500 rounded-full animate-spin"></div>
-        <p class="text-[10px] font-mono text-cyan-400 uppercase tracking-[0.5em] animate-pulse">Syncing Visual Assets...</p>
+        <p class="text-[10px] font-mono text-cyan-400 tracking-[0.5em] animate-pulse">Syncing Visual Assets...</p>
       </div>
     {:else if filteredBanners.length === 0}
       <div class="h-full flex flex-col items-center justify-center gap-8 opacity-40">
@@ -307,8 +307,8 @@
           <Layout size={40} />
         </div>
         <div class="text-center space-y-2">
-          <p class="text-xs font-mono uppercase tracking-[0.3em]">No Active Deployments Found</p>
-          <button onclick={openCreate} class="text-cyan-400 text-[10px] font-black uppercase hover:underline">Initialize First Banner</button>
+          <p class="text-xs font-mono tracking-[0.3em]">No Active Deployments Found</p>
+          <button onclick={openCreate} class="text-cyan-400 text-[10px] font-black hover:underline">Initialize First Banner</button>
         </div>
       </div>
     {:else}
@@ -331,17 +331,17 @@
               {#if b.image_url}
                 <div class="flex-1 relative h-full">
                   <img src={b.image_url} alt={b.title} class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 opacity-80 group-hover:opacity-100" />
-                  <div class="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 rounded text-[6px] font-black text-white/50 uppercase">Desktop</div>
+                  <div class="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 rounded text-[6px] font-black text-white/50 ">Desktop</div>
                 </div>
               {/if}
               {#if b.mobile_image_url}
                 <div class="w-16 border-l border-white/10 relative h-full bg-zinc-900">
                   <img src={b.mobile_image_url} alt={b.title} class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 opacity-80 group-hover:opacity-100" />
-                  <div class="absolute top-1 left-1 px-1 py-0.5 bg-black/60 rounded text-[6px] font-black text-white/50 uppercase">Mob</div>
+                  <div class="absolute top-1 left-1 px-1 py-0.5 bg-black/60 rounded text-[6px] font-black text-white/50 ">Mob</div>
                 </div>
               {/if}
               <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
-              <div class="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[7px] font-black text-cyan-400 uppercase tracking-widest border border-cyan-500/20">
+              <div class="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[7px] font-black text-cyan-400 tracking-widest border border-cyan-500/20">
                 {b.position}
               </div>
             </div>
@@ -349,7 +349,7 @@
             <!-- Content -->
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-3 mb-1">
-                <h3 class="text-sm font-black text-white group-hover:text-cyan-400 transition-colors uppercase tracking-tight truncate">
+                <h3 class="text-sm font-black text-white group-hover:text-cyan-400 transition-colors tracking-tight truncate">
                   {b.title}
                 </h3>
                 <div class="flex items-center gap-1.5">
@@ -368,12 +368,12 @@
 
               <div class="mt-4 flex items-center gap-6">
                 <div class="flex flex-col gap-0.5">
-                  <span class="text-[8px] font-mono text-zinc-600 uppercase">Rank</span>
+                  <span class="text-[8px] font-mono text-zinc-600 ">Rank</span>
                   <span class="text-xs font-black text-zinc-300">#{b.order_index}</span>
                 </div>
                 <div class="h-6 w-px bg-white/5"></div>
                 <div class="flex flex-col gap-1">
-                   <span class="text-[8px] font-mono text-zinc-600 uppercase">Protocol Status</span>
+                   <span class="text-[8px] font-mono text-zinc-600 ">Protocol Status</span>
                    <button
                     onclick={() => toggleActive(b)}
                     class="flex items-center gap-2 group/toggle"
@@ -381,7 +381,7 @@
                      <div class="w-8 h-4 rounded-full transition-colors duration-300 relative {b.is_active ? 'bg-cyan-500' : 'bg-red-500/20'}">
                         <div class="absolute top-1 left-1 w-2 h-2 rounded-full bg-white transition-transform duration-300 {b.is_active ? 'translate-x-4' : ''} shadow-[0_0_8px_rgba(0,255,255,0.4)]"></div>
                      </div>
-                     <span class="text-[9px] font-black uppercase tracking-widest {b.is_active ? 'text-cyan-400' : 'text-red-500'}">
+                     <span class="text-[9px] font-black tracking-widest {b.is_active ? 'text-cyan-400' : 'text-red-500'}">
                         {b.is_active ? 'ACTIVE' : 'OFFLINE'}
                      </span>
                    </button>

@@ -76,7 +76,7 @@
         <!-- Header -->
         <div class="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-white/[0.02] backdrop-blur-md sticky top-0" style="z-index: {Z_INDEX_ADMIN.SURFACE};">
             <div class="flex flex-col">
-                <h3 class="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 dark:text-zinc-500">Resource Analyst</h3>
+                <h3 class="text-[10px] font-black tracking-[0.3em] text-zinc-400 dark:text-zinc-500">Resource Analyst</h3>
                 <span class="text-[8px] font-bold text-blue-500 tracking-widest">{asset.id.slice(0, 16)}</span>
             </div>
             <button
@@ -137,7 +137,7 @@
                 <div class="flex flex-col gap-1.5">
                     <div class="flex items-center gap-2 opacity-40">
                         <Hash size={12} />
-                        <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Original Filename</span>
+                        <span class="text-[9px] font-black text-zinc-500 tracking-widest leading-none">Original Filename</span>
                     </div>
                     <span class="text-[12px] font-bold text-zinc-800 dark:text-zinc-200 break-all leading-tight">{asset.filename || 'unknown_payload'}</span>
                 </div>
@@ -146,14 +146,14 @@
                     <div class="flex flex-col gap-1.5">
                         <div class="flex items-center gap-2 opacity-40">
                             <HardDrive size={12} />
-                            <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Space Usage</span>
+                            <span class="text-[9px] font-black text-zinc-500 tracking-widest leading-none">Space Usage</span>
                         </div>
                         <span class="text-[11px] font-mono font-black text-zinc-600 dark:text-zinc-400">{formatBytes(asset.file_size)}</span>
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <div class="flex items-center gap-2 opacity-40">
                             <Clock size={12} />
-                            <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Ingested At</span>
+                            <span class="text-[9px] font-black text-zinc-500 tracking-widest leading-none">Ingested At</span>
                         </div>
                         <span class="text-[10px] font-bold text-zinc-600 dark:text-zinc-400 leading-none">{formatDate(asset.created_at)}</span>
                     </div>
@@ -169,10 +169,10 @@
                         <div class="p-1.5 bg-blue-500 text-white rounded-lg shadow-lg shadow-blue-500/20">
                             <Wand2 size={12} strokeWidth={3} />
                         </div>
-                        <span class="text-[10px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-[0.2em]">Neural Intelligence</span>
+                        <span class="text-[10px] font-black text-zinc-800 dark:text-zinc-200 tracking-[0.2em]">Neural Intelligence</span>
                     </div>
                     {#if asset.media_metadata?.ai_sentiment}
-                        <span class="px-2 py-0.5 rounded-full bg-blue-500 text-white text-[8px] font-black uppercase tracking-tighter shadow-lg shadow-blue-500/20">
+                        <span class="px-2 py-0.5 rounded-full bg-blue-500 text-white text-[8px] font-black tracking-tighter shadow-lg shadow-blue-500/20">
                             {asset.media_metadata.ai_sentiment}
                         </span>
                     {/if}
@@ -183,7 +183,7 @@
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2 opacity-60">
                             <Tag size={12} class="text-blue-500" />
-                            <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Semantic Alt-Text</span>
+                            <span class="text-[9px] font-black text-zinc-500 tracking-widest leading-none">Semantic Alt-Text</span>
                         </div>
                         <button onclick={() => isEditingAlt = !isEditingAlt} class="p-1.5 hover:bg-blue-500/10 text-blue-500 rounded-lg transition-all">
                             <Edit3 size={14} />
@@ -198,8 +198,8 @@
                                 placeholder="Mô tả nội dung ảnh để tối ưu SEO..."
                             ></textarea>
                             <div class="flex justify-end gap-2">
-                                <button onclick={() => isEditingAlt = false} class="px-4 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Huỷ</button>
-                                <button onclick={saveAlt} class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 active:scale-95 transition-all">Lưu kết quả</button>
+                                <button onclick={() => isEditingAlt = false} class="px-4 py-2 text-[10px] font-bold text-zinc-400 tracking-widest">Huỷ</button>
+                                <button onclick={saveAlt} class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-[10px] font-black tracking-widest shadow-xl shadow-blue-500/20 active:scale-95 transition-all">Lưu kết quả</button>
                             </div>
                         </div>
                     {:else}
@@ -216,7 +216,7 @@
                     <div class="space-y-3 relative" style="z-index: {Z_INDEX_ADMIN.SURFACE};">
                         <div class="flex items-center gap-2 opacity-60">
                             <Activity size={12} class="text-indigo-500" />
-                            <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-none">Detected Tags</span>
+                            <span class="text-[9px] font-black text-zinc-500 tracking-widest leading-none">Detected Tags</span>
                         </div>
                         <div class="flex flex-wrap gap-2">
                             {#each asset.media_metadata.ai_tags as tag}
@@ -234,7 +234,7 @@
                 {#if mode === 'pick' || onSelect}
                     <button 
                         onclick={() => onSelect?.([asset])} 
-                        class="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[1.5rem] text-[12px] font-black uppercase tracking-[0.2em] shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 border border-white/10"
+                        class="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[1.5rem] text-[12px] font-black tracking-[0.2em] shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 border border-white/10"
                     >
                         <Link size={16} />
                         {mode === 'pick' ? 'CHỌN TÀI NGUYÊN NÀY' : 'GẮN VÀO AGENT'}
@@ -243,24 +243,24 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     {#if mediaStore.isTrashMode}
-                        <button onclick={() => onRestore(asset.id)} class="flex flex-col items-center justify-center gap-2 py-4 bg-green-500/5 text-green-500 rounded-2xl text-[9px] font-black uppercase border border-green-500/10 hover:bg-green-500 hover:text-white transition-all group">
+                        <button onclick={() => onRestore(asset.id)} class="flex flex-col items-center justify-center gap-2 py-4 bg-green-500/5 text-green-500 rounded-2xl text-[9px] font-black border border-green-500/10 hover:bg-green-500 hover:text-white transition-all group">
                             <RotateCcw size={16} class="group-hover:rotate-[-45deg] transition-transform" />
                             RESTORE_VAL
                         </button>
-                        <button onclick={() => onDelete(asset.id)} class="flex flex-col items-center justify-center gap-2 py-4 bg-red-500/5 text-red-500 rounded-2xl text-[9px] font-black uppercase border border-red-500/10 hover:bg-red-500 hover:text-white transition-all group">
+                        <button onclick={() => onDelete(asset.id)} class="flex flex-col items-center justify-center gap-2 py-4 bg-red-500/5 text-red-500 rounded-2xl text-[9px] font-black border border-red-500/10 hover:bg-red-500 hover:text-white transition-all group">
                             <Trash2 size={16} class="group-hover:animate-bounce" />
                             PURGE_DATA
                         </button>
                     {:else}
-                        <button onclick={() => onQuickEdit('optimize-seo', null)} class="flex flex-col items-center justify-center gap-2 py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-2xl text-[9px] font-black uppercase hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all border border-transparent">
+                        <button onclick={() => onQuickEdit('optimize-seo', null)} class="flex flex-col items-center justify-center gap-2 py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-2xl text-[9px] font-black hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all border border-transparent">
                             <ShieldCheck size={16} class="text-blue-500" />
                             SEO_SYNC
                         </button>
-                        <button onclick={() => onQuickEdit('watermark', null)} class="flex flex-col items-center justify-center gap-2 py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-2xl text-[9px] font-black uppercase hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all border border-transparent">
+                        <button onclick={() => onQuickEdit('watermark', null)} class="flex flex-col items-center justify-center gap-2 py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-2xl text-[9px] font-black hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all border border-transparent">
                             <ShieldCheck size={16} class="text-indigo-500" />
                             WATERMARK
                         </button>
-                        <button onclick={() => onDelete(asset.id)} class="flex flex-col items-center justify-center gap-2 py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 rounded-2xl text-[9px] font-black uppercase hover:bg-red-500 hover:text-white transition-all border border-transparent">
+                        <button onclick={() => onDelete(asset.id)} class="flex flex-col items-center justify-center gap-2 py-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 rounded-2xl text-[9px] font-black hover:bg-red-500 hover:text-white transition-all border border-transparent">
                             <Trash2 size={16} class="text-red-500/60 group-hover:text-white" />
                             BIN_MOVE
                         </button>
@@ -273,7 +273,7 @@
         <div class="p-5 bg-zinc-50 dark:bg-black/40 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                <span class="text-[8px] font-mono text-zinc-400 uppercase tracking-widest">System Online</span>
+                <span class="text-[8px] font-mono text-zinc-400 tracking-widest">System Online</span>
             </div>
             <span class="text-[8px] font-mono text-zinc-300 dark:text-zinc-700">CORE v9.42_STABLE</span>
         </div>
@@ -289,8 +289,8 @@
                 <ImageIcon size={32} class="text-zinc-300 dark:text-zinc-700" />
             </div>
         </div>
-        <h4 class="text-[11px] font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-[0.4em] mb-2">Select Asset</h4>
-        <p class="text-[9px] text-zinc-400 font-medium leading-relaxed max-w-[150px] uppercase tracking-wider">
+        <h4 class="text-[11px] font-black text-zinc-800 dark:text-zinc-200 tracking-[0.4em] mb-2">Select Asset</h4>
+        <p class="text-[9px] text-zinc-400 font-medium leading-relaxed max-w-[150px] tracking-wider">
             Waiting for target selection to initialize neural analysis pipeline...
         </p>
     </div>

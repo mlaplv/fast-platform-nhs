@@ -139,10 +139,10 @@
       <!-- Header -->
       <div class="flex items-center justify-between p-6 pb-2 relative z-10">
         <div>
-          <h3 class="text-xl font-black text-white uppercase italic tracking-wider flex items-center gap-2">
+          <h3 class="text-xl font-black text-white italic tracking-wider flex items-center gap-2">
             <span class="text-2xl">🎁</span> BẠN LÀ NGƯỜI TẶNG QUÀ?
           </h3>
-          <p class="text-[10px] text-pink-400 font-bold uppercase tracking-widest mt-1 opacity-80">Elite Viral Sender Information</p>
+          <p class="text-[10px] text-pink-400 font-bold tracking-widest mt-1 opacity-80">Thông tin người gửi Elite</p>
         </div>
         <button onclick={close} class="text-slate-400 hover:text-white transition-all transform hover:rotate-90">
           <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -165,7 +165,7 @@
 
         <!-- Preset Messages -->
         <div class="space-y-2">
-            <span class="text-[9px] font-black uppercase text-pink-500/80 tracking-widest ml-1">Chọn mẫu lời nhắn nhanh</span>
+            <span class="text-[9px] font-black text-pink-500/80 tracking-widest ml-1">Chọn mẫu lời nhắn nhanh</span>
             <div class="flex flex-wrap gap-2">
               {#each giftPresets as preset}
                 <button 
@@ -199,7 +199,7 @@
         <!-- Scheduling Section -->
         <div class="space-y-6">
           <div class="flex items-center gap-2 mb-2">
-            <span class="text-[10px] font-black uppercase text-sky-400 tracking-widest">Hẹn giờ & Lặp lại (Đặc quyền)</span>
+            <span class="text-[10px] font-black text-sky-400 tracking-widest">Hẹn giờ & Lặp lại (Đặc quyền)</span>
             <div class="h-px flex-1 bg-white/5"></div>
           </div>
 
@@ -237,9 +237,9 @@
             <!-- Repeat Selection -->
             <div class="space-y-4">
                 <div class="flex items-center justify-between px-1">
-                    <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Tần suất lặp lại</span>
+                    <span class="text-[9px] font-black text-slate-500 tracking-widest">Tần suất lặp lại</span>
                     {#if form.recurringType !== 'none'}
-                        <span class="text-[8px] font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded uppercase animate-pulse">Đang kích hoạt</span>
+                        <span class="text-[8px] font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded animate-pulse">Đang kích hoạt</span>
                     {/if}
                 </div>
                 
@@ -258,7 +258,7 @@
                 <!-- 🛠️ RECURRING DETAILS -->
                 {#if form.recurringType === 'weekly'}
                     <div class="detail-panel" in:fly={{ y: 10 }}>
-                        <span class="text-[8px] font-black text-slate-500 uppercase mb-2 block">Chọn ngày trong tuần</span>
+                        <span class="text-[8px] font-black text-slate-500 mb-2 block">Chọn ngày trong tuần</span>
                         <div class="flex gap-2">
                             {#each ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'] as day, i}
                                 <button 
@@ -279,7 +279,7 @@
                     </div>
                 {:else if form.recurringType === 'monthly'}
                     <div class="detail-panel" in:fly={{ y: 10 }}>
-                        <span class="text-[8px] font-black text-slate-500 uppercase mb-3 block">Chọn ngày trong tháng</span>
+                        <span class="text-[8px] font-black text-slate-500 mb-3 block">Chọn ngày trong tháng</span>
                         <div class="grid grid-cols-7 gap-1">
                             {#each Array.from({length: 31}, (_, i) => i + 1) as d}
                                 <button 
@@ -302,9 +302,9 @@
       <div class="p-6 bg-white/5 border-t border-white/5 flex items-center justify-between relative z-10">
         <button 
             onclick={close} 
-            class="px-6 py-3 text-slate-400 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-colors"
+            class="px-6 py-3 text-slate-400 font-bold text-[10px] tracking-widest hover:text-white transition-colors"
         >
-            HỦY BỎ
+            Hủy bỏ
         </button>
         <button 
             onclick={save} 
@@ -349,7 +349,7 @@
     @apply border-sky-500 bg-sky-500/5 ring-4 ring-sky-500/10;
   }
   .field-label-viral {
-    @apply absolute left-4 top-2 text-[10px] font-black uppercase text-slate-500 tracking-wider pointer-events-none transition-all;
+    @apply absolute left-4 top-2 text-[10px] font-black text-slate-500 tracking-wider pointer-events-none transition-all;
   }
   .field-input-viral:focus + .field-label-viral {
     @apply text-sky-400;
@@ -369,13 +369,13 @@
     background: repeating-linear-gradient(45deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01) 10px, transparent 10px, transparent 20px);
   }
   .preview-sticker {
-    @apply absolute -top-1 -right-4 px-6 py-1 bg-amber-500 text-black text-[8px] font-black uppercase tracking-tighter rotate-12 shadow-lg;
+    @apply absolute -top-1 -right-4 px-6 py-1 bg-amber-500 text-black text-[8px] font-black tracking-tighter rotate-12 shadow-lg;
   }
   .preview-text {
     @apply text-sm text-slate-200 font-medium leading-relaxed italic;
   }
   .preview-footer {
-    @apply text-[8px] font-black text-slate-600 uppercase mt-4 text-right;
+    @apply text-[8px] font-black text-slate-600 mt-4 text-right;
   }
 
   .divider {
@@ -383,7 +383,7 @@
   }
 
   .save-btn-viral {
-    @apply px-8 py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-black uppercase text-[11px] tracking-widest shadow-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:grayscale;
+    @apply px-8 py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-black text-[11px] tracking-widest shadow-xl transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:grayscale;
     border-radius: 12px;
   }
 

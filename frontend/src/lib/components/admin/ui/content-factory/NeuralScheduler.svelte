@@ -96,10 +96,10 @@
         <Repeat size={22} class="text-white" />
       </div>
       <div>
-        <h4 class="text-sm font-black uppercase tracking-[0.2em] text-white">Neural Autopilot</h4>
+        <h4 class="text-sm font-black tracking-[0.2em] text-white">Neural Autopilot</h4>
         <div class="flex items-center gap-1.5 mt-1">
           <div class="w-1.5 h-1.5 rounded-full {sch.is_active ? 'bg-green-500 animate-pulse' : 'bg-white/20'}"></div>
-          <p class="text-[10px] text-white/40 font-bold uppercase tracking-widest">
+          <p class="text-[10px] text-white/40 font-bold tracking-widest">
             {sch.is_active ? 'Live Deployment Active' : 'Manual Mode'}
           </p>
         </div>
@@ -126,7 +126,7 @@
             class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all duration-500 {sch.frequency === freq.id ? 'bg-white/10 text-white shadow-lg' : 'text-white/30 hover:text-white/60'}"
           >
             <span class="text-xs">{freq.icon}</span>
-            <span class="text-[9px] font-black uppercase tracking-widest">{freq.label}</span>
+            <span class="text-[9px] font-black tracking-widest">{freq.label}</span>
           </button>
         {/each}
       </div>
@@ -137,7 +137,7 @@
         <div class="p-5 rounded-3xl bg-white/[0.02] border border-white/5 space-y-3 transition-all hover:bg-white/[0.05]">
           <div class="flex items-center gap-2 text-white/40">
             <Clock size={12} />
-            <span class="text-[9px] font-black uppercase tracking-[0.2em]">Khởi chạy lúc</span>
+            <span class="text-[9px] font-black tracking-[0.2em]">Khởi chạy lúc</span>
           </div>
           <div class="flex items-end gap-2">
             <input 
@@ -153,7 +153,7 @@
         <div class="p-5 rounded-3xl bg-white/[0.02] border border-white/5 space-y-3 transition-all hover:bg-white/[0.05]">
           <div class="flex items-center gap-2 text-white/40">
             <Bell size={12} />
-            <span class="text-[9px] font-black uppercase tracking-[0.2em]">Thông báo & Sync</span>
+            <span class="text-[9px] font-black tracking-[0.2em]">Thông báo & Sync</span>
           </div>
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-1.5">
@@ -173,7 +173,7 @@
       <!-- Weekly Selection -->
       {#if sch.frequency === 'weekly'}
         <div class="space-y-3 pt-2">
-          <label class="text-[9px] text-white/40 font-black uppercase tracking-[0.2em] ml-1">Lặp lại vào các thứ</label>
+          <label class="text-[9px] text-white/40 font-black tracking-[0.2em] ml-1">Lặp lại vào các thứ</label>
           <div class="flex gap-2">
             {#each weekDays as day, i}
               <button
@@ -191,7 +191,7 @@
       <!-- Monthly Selection -->
       {#if sch.frequency === 'monthly'}
         <div class="space-y-3 pt-2">
-          <label class="text-[9px] text-white/40 font-black uppercase tracking-[0.2em] ml-1">Vào ngày trong tháng</label>
+          <label class="text-[9px] text-white/40 font-black tracking-[0.2em] ml-1">Vào ngày trong tháng</label>
           <div class="grid grid-cols-7 gap-2">
             {#each Array(31).fill(0) as _, i}
               {@const dayNum = i + 1}
@@ -211,7 +211,7 @@
       <div class="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <Zap size={14} class="text-amber-400 animate-pulse" />
-          <span class="text-[10px] font-black uppercase tracking-[0.15em] text-white/60 underline decoration-blue-500/30">Next Session: Tomorrow 08:00 AM</span>
+          <span class="text-[10px] font-black tracking-[0.15em] text-white/60 underline decoration-blue-500/30">Next Session: Tomorrow 08:00 AM</span>
         </div>
         <ChevronDown size={14} class="text-white/20" />
       </div>
@@ -222,8 +222,8 @@
         <Calendar size={32} strokeWidth={1} />
       </div>
       <div class="text-center">
-        <p class="text-[10px] font-black uppercase tracking-[0.3em]">Autopilot Standby</p>
-        <p class="text-[8px] text-white/40 font-bold mt-1 uppercase">Ready for Elite Scheduling</p>
+        <p class="text-[10px] font-black tracking-[0.3em]">Autopilot Standby</p>
+        <p class="text-[8px] text-white/40 font-bold mt-1 ">Ready for Elite Scheduling</p>
       </div>
     </div>
   {/if}

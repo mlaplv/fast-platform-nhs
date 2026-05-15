@@ -78,7 +78,7 @@
           </div>
           <div>
             <div class="flex items-center gap-2 mb-0.5">
-              <span class="text-[9px] text-cyan-400/60 font-black uppercase tracking-[0.3em]">Xohi AI Protection</span>
+              <span class="text-[9px] text-cyan-400/60 font-black tracking-[0.3em]">Xohi AI Protection</span>
               <span class="text-[7px] px-1.5 py-0.5 bg-cyan-400/10 text-cyan-400/80 border border-cyan-400/20 font-mono">V3.0_λ</span>
             </div>
             <h1 class="text-2xl font-black tracking-tighter text-white leading-none">Gian lận Quảng cáo</h1>
@@ -92,17 +92,17 @@
           {#if (ads.summary?.totals?.fraud_rate_pct || 0) > 30}
             <div class="flex items-center gap-3 bg-rose-500/5 px-4 py-1.5 border border-rose-500/20 group cursor-default">
               <div class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></div>
-              <span class="text-[10px] font-black text-rose-500 uppercase tracking-widest">Threat Level: High ({ads.summary.totals.fraud_rate_pct}%)</span>
+              <span class="text-[10px] font-black text-rose-500 tracking-widest">Threat Level: High ({ads.summary.totals.fraud_rate_pct}%)</span>
             </div>
           {:else}
             <div class="flex items-center gap-3 bg-emerald-500/5 px-4 py-1.5 border border-emerald-500/20">
               <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></div>
-              <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Shield Active</span>
+              <span class="text-[10px] font-black text-emerald-400 tracking-widest">Shield Active</span>
             </div>
           {/if}
 
           {#if ads.edgeStatus === 'ready'}
-            <div class="flex items-center gap-2 text-yellow-500/40 font-mono text-[9px] uppercase tracking-tighter">
+            <div class="flex items-center gap-2 text-yellow-500/40 font-mono text-[9px] tracking-tighter">
               <Zap size={12} class="animate-pulse" />
               <span>Edge_Core_Online</span>
             </div>
@@ -120,8 +120,8 @@
             >
               <Brain size={16} class="text-amber-500 group-hover:scale-110 transition-transform" />
               <div class="flex flex-col items-start leading-tight">
-                <span class="text-[10px] font-black text-white uppercase tracking-tighter">{ads.summary.insights.length} Mission Intel</span>
-                <span class="text-[7px] text-amber-500/60 uppercase font-bold">Tactical Priority</span>
+                <span class="text-[10px] font-black text-white tracking-tighter">{ads.summary.insights.length} Mission Intel</span>
+                <span class="text-[7px] text-amber-500/60 font-bold">Tactical Priority</span>
               </div>
               <ChevronDown size={14} class="text-white/20 group-hover:text-white transition-colors {showIntelDropdown ? 'rotate-180' : ''}" />
             </button>
@@ -132,14 +132,14 @@
                 in:slide
               >
                 <div class="flex items-center justify-between mb-2 border-b border-white/5 pb-2">
-                   <span class="text-[9px] font-black text-amber-500 uppercase tracking-widest">Live Intelligence Feed</span>
+                   <span class="text-[9px] font-black text-amber-500 tracking-widest">Live Intelligence Feed</span>
                    <button class="text-white/20 hover:text-white" onclick={() => showIntelDropdown = false}><X size={14} /></button>
                 </div>
                 <div class="max-h-64 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-2">
                   {#each ads.summary.insights as ins}
                     <div class="bg-white/[0.02] border border-white/5 p-3 hover:border-amber-500/30 transition-all cursor-pointer" 
                          onclick={() => { ads.activeTab = 'insights'; showIntelDropdown = false; }}>
-                        <h4 class="text-[10px] font-black text-white mb-1 uppercase">{ins.title}</h4>
+                        <h4 class="text-[10px] font-black text-white mb-1 ">{ins.title}</h4>
                         <p class="text-[9px] text-amber-500/70 italic">"{ins.action}"</p>
                     </div>
                   {/each}
@@ -177,7 +177,7 @@
                   
                   <!-- LEFT: PRESETS -->
                   <div class="w-1/2 border-r border-white/10 p-2 flex flex-col custom-scrollbar overflow-y-auto">
-                     <span class="text-[8px] text-slate-500 font-black uppercase tracking-[0.2em] p-3 mb-1">Mốc thời gian</span>
+                     <span class="text-[8px] text-slate-500 font-black tracking-[0.2em] p-3 mb-1">Mốc thời gian</span>
                      {#each [
                         { id: 'today', l: 'Hôm nay' },
                         { id: 'yesterday', l: 'Hôm qua' },
@@ -245,12 +245,12 @@
                   
                   <!-- RIGHT: CUSTOM RANGE -->
                   <div class="w-1/2 p-6 flex flex-col bg-white/[0.01]" onclick={(e) => e.stopPropagation()}>
-                     <span class="text-[8px] text-slate-500 font-black uppercase tracking-[0.2em] mb-6">Khoảng ngày tùy chỉnh</span>
+                     <span class="text-[8px] text-slate-500 font-black tracking-[0.2em] mb-6">Khoảng ngày tùy chỉnh</span>
                      <div class="flex flex-col gap-4">
                         <AdsDatePicker bind:value={ads.dateFrom} label="Ngày bắt đầu" align="right" />
                         <AdsDatePicker bind:value={ads.dateTo} label="Ngày kết thúc" align="right" />
                         <button 
-                           class="mt-4 w-full py-3 bg-cyan-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-cyan-500 transition-all"
+                           class="mt-4 w-full py-3 bg-cyan-600 text-white text-[10px] font-black tracking-widest hover:bg-cyan-500 transition-all"
                            onclick={() => { ads.fetchAll(); showTimeMenu = false; }}
                         >
                            Áp dụng
@@ -276,7 +276,7 @@
           <Activity size={48} class="animate-spin text-cyan-400" />
           <div class="absolute inset-0 blur-lg bg-cyan-400/20 animate-pulse rounded-none"></div>
         </div>
-        <span class="text-[10px] tracking-[0.4em] font-black animate-pulse text-cyan-400 uppercase">Đang truy xuất dữ liệu bảo vệ...</span>
+        <span class="text-[10px] tracking-[0.4em] font-black animate-pulse text-cyan-400 ">Đang truy xuất dữ liệu bảo vệ...</span>
       </div>
     {:else}
       <div class="relative flex-1 flex flex-col min-h-0 {ads.loading ? 'pointer-events-none' : ''}">
@@ -284,7 +284,7 @@
            <div class="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[1px] rounded-none" in:fade>
               <div class="px-6 py-3 bg-[#0a0a0a] border border-white/10 rounded-none flex items-center gap-4 shadow-2xl">
                  <RefreshCw size={14} class="animate-spin text-cyan-400" />
-                 <span class="text-[9px] font-black text-white tracking-widest uppercase">Đang cập nhật...</span>
+                 <span class="text-[9px] font-black text-white tracking-widest ">Đang cập nhật...</span>
               </div>
            </div>
         {/if}
@@ -307,7 +307,7 @@
             { id: 'negative_keywords', label: 'Từ khóa phủ định', fetch: () => ads.fetchNegativeKeywords() }
           ] as tab}
             <button 
-              class="px-7 py-3.5 text-[10px] font-black tracking-[0.15em] transition-all relative rounded-none uppercase {ads.activeTab === tab.id ? 'text-white bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/5' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}"
+              class="px-7 py-3.5 text-[10px] font-black tracking-[0.15em] transition-all relative rounded-none {ads.activeTab === tab.id ? 'text-white bg-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/5' : 'text-slate-500 hover:text-slate-200 hover:bg-white/5'}"
               onclick={() => { ads.activeTab = tab.id; if (tab.fetch) tab.fetch(); }}
             >
               {tab.label}
@@ -371,7 +371,7 @@
       <div class="flex justify-between items-start">
         <div class="flex flex-col gap-2">
           <div class="flex items-center gap-3">
-             <span class="text-[9px] font-black text-cyan-400 uppercase tracking-[0.3em]">System_Infrastructure_V3.0_λ</span>
+             <span class="text-[9px] font-black text-cyan-400 tracking-[0.3em]">System_Infrastructure_V3.0_λ</span>
              <div class="h-px w-12 bg-cyan-400/20"></div>
           </div>
           <p class="text-[10px] text-slate-400 max-w-2xl leading-relaxed">
@@ -380,13 +380,13 @@
           </p>
         </div>
         <div class="text-right">
-          <span class="text-[9px] font-mono text-slate-600 uppercase">Last_Deployment: 2026-05-12_18:40</span>
+          <span class="text-[9px] font-mono text-slate-600 ">Last_Deployment: 2026-05-12_18:40</span>
         </div>
       </div>
 
       <div class="grid grid-cols-4 gap-8">
         <div class="flex flex-col gap-1.5">
-          <span class="text-[8px] font-black text-white uppercase tracking-widest border-l-2 border-cyan-500 pl-2">Sprint 1: Edge Core</span>
+          <span class="text-[8px] font-black text-white tracking-widest border-l-2 border-cyan-500 pl-2">Sprint 1: Edge Core</span>
           <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
             <li>• ONNX Runtime Wasm Behavior Scoring</li>
             <li>• Cryptographic PoW (SHA-256) Integration</li>
@@ -394,7 +394,7 @@
           </ul>
         </div>
         <div class="flex flex-col gap-1.5">
-          <span class="text-[8px] font-black text-white uppercase tracking-widest border-l-2 border-amber-500 pl-2">Sprint 2: Agentic C.O.R.E</span>
+          <span class="text-[8px] font-black text-white tracking-widest border-l-2 border-amber-500 pl-2">Sprint 2: Agentic C.O.R.E</span>
           <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
             <li>• PydanticAI Forensic Investigation Agent</li>
             <li>• Redis Streams Event-driven Architecture</li>
@@ -402,7 +402,7 @@
           </ul>
         </div>
         <div class="flex flex-col gap-1.5">
-          <span class="text-[8px] font-black text-white uppercase tracking-widest border-l-2 border-emerald-500 pl-2">Sprint 3: Elite HUD</span>
+          <span class="text-[8px] font-black text-white tracking-widest border-l-2 border-emerald-500 pl-2">Sprint 3: Elite HUD</span>
           <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
             <li>• AdsPowHud Real-time Mitigation Display</li>
             <li>• Simple Pro Header Optimization</li>
@@ -410,7 +410,7 @@
           </ul>
         </div>
         <div class="flex flex-col gap-1.5">
-          <span class="text-[8px] font-black text-white uppercase tracking-widest border-l-2 border-rose-500 pl-2">Hygiene & Safety</span>
+          <span class="text-[8px] font-black text-white tracking-widest border-l-2 border-rose-500 pl-2">Hygiene & Safety</span>
           <ul class="text-[9px] text-slate-500 flex flex-col gap-1 list-none pl-2">
             <li>• LiteLLM Cost & Model Management</li>
             <li>• SSR Stealth Asset Injection (CORS Fix)</li>

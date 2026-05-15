@@ -96,7 +96,7 @@
                 <span class="truncate">{opt}</span>
                 {#if getBadge && getBadge(opt)}
                   {@const badge = getBadge(opt)}
-                  <span class="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter rounded-sm {badge.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-stone-100 text-stone-400 border border-stone-200'}">
+                  <span class="px-1.5 py-0.5 text-[8px] font-black tracking-tighter rounded-sm {badge.type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-stone-100 text-stone-400 border border-stone-200'}">
                     {badge.text}
                   </span>
                 {/if}

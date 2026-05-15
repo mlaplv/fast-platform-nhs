@@ -252,7 +252,7 @@
             {:else}
                 <Edit size={12} class="text-white" />
             {/if}
-            <span class="text-[8px] font-black text-white uppercase tracking-widest px-1 min-w-[50px] inline-block">{label}</span>
+            <span class="text-[8px] font-black text-white tracking-widest px-1 min-w-[50px] inline-block">{label}</span>
             
             {#if type === 'text' || type === 'html'}
                 <button class="ml-2 pl-2 border-l border-white/20 text-white/60 hover:text-white transition-colors flex items-center gap-1 active:scale-90" onclick={(e) => { e.stopPropagation(); e.preventDefault(); triggerHaptic(15); window.dispatchEvent(new CustomEvent('open-editor', { detail: { path, type, label }, bubbles: true, composed: true })); }} ontouchend={(e) => { e.stopPropagation(); e.preventDefault(); triggerHaptic(15); window.dispatchEvent(new CustomEvent('open-editor', { detail: { path, type, label }, bubbles: true, composed: true })); }} title="Mở trình soạn thảo">

@@ -159,60 +159,77 @@ class ProductService:
 
     async def _hydrate_viral_config(self, db_session: AsyncSession, row_dict: ProductRowDict) -> None:
         """
-        Elite V2.2: dynamic hydration from promotion.py
-        If product links to a voucher, fetch viral config from voucher.metadata_json
+        Elite V2.2: Dynamic hydration from the Promotion system.
+        Uses the 'Single-Active-Viral' voucher as the Global Source of Truth (SSOT).
         """
         metadata = row_dict.get("metadata", {})
+        if not isinstance(metadata, dict):
+            metadata = {}
+            
         share_promo = metadata.get("share_promotion")
-        
+        # Respect the product-level toggle to enable viral bar for this specific landing
         if not isinstance(share_promo, dict) or not share_promo.get("enabled"):
             return
             
-        voucher_id = share_promo.get("voucher_id")
-        if not voucher_id:
-            return
-            
         from backend.database.models.promotion import Voucher
-        stmt = select(Voucher).where(Voucher.id == voucher_id)
+        # 🚀 ELITE V2.2: Master Protocol - Fetch the globally active viral voucher
+        tenant = current_tenant_id.get()
+        if not tenant:
+            tenant = str(row_dict.get("tenant_id", "osmo.vn"))
+            
+        stmt = select(Voucher).where(
+            Voucher.is_viral == True,
+            Voucher.is_active == True,
+            Voucher.tenant_id == tenant
+        ).limit(1)
         res = await db_session.execute(stmt)
         voucher = res.scalar_one_or_none()
         
-        if voucher and voucher.metadata_json:
-            v_config = voucher.metadata_json.get("viral_suite")
-            if isinstance(v_config, dict):
-                # Elite V2.2: The "Config chính thống" - Zero Hardcode
-                metadata["viral_suite"] = {
-                    "enabled": v_config.get("enabled", False),
-                    "voucher_id": voucher_id,
-                    "share_target": v_config.get("share_target", 10),
-                    "share_reward_label": v_config.get("voucher_label", ""),
-                    "share_cta": v_config.get("cta_text", ""),
-                    "share_text": v_config.get("share_text", ""),
-                    "share_count": metadata.get("share_count", 0),
-                    "likes_count": metadata.get("likes", 0)
-                }
-                
-                # Override share_promotion fields
-                share_promo.update({
-                    "voucher_label": v_config.get("voucher_label", share_promo.get("voucher_label")),
-                    "cta_text": v_config.get("cta_text", share_promo.get("cta_text")),
-                    "share_text": v_config.get("share_text", share_promo.get("share_text")),
-                })
-                
-                # Override top-level target/reward for progress bar
-                if "share_target" in v_config:
-                    metadata["share_target"] = v_config["share_target"]
-                if "reward_label" in v_config:
-                    metadata["share_reward_label"] = v_config["reward_label"]
+        if not voucher:
+            # Fallback: Find ANY master viral in the system
+            stmt = select(Voucher).where(Voucher.is_viral == True, Voucher.is_active == True).limit(1)
+            res = await db_session.execute(stmt)
+            voucher = res.scalar_one_or_none()
 
-                # Compatibility with legacy 'viral_suite' object if present
-                if "viral_suite" in metadata and isinstance(metadata["viral_suite"], dict):
-                    metadata["viral_suite"].update({
-                        "share_target": v_config.get("share_target", metadata["viral_suite"].get("share_target")),
-                        "share_reward_label": v_config.get("reward_label", metadata["viral_suite"].get("share_reward_label")),
-                    })
-                    if "share_promotion" in metadata["viral_suite"]:
-                         metadata["viral_suite"]["share_promotion"].update(share_promo)
+        if voucher and voucher.metadata_json:
+            v_config = voucher.metadata_json.get("viral_suite", {})
+            master_id = str(voucher.id)
+            
+            # 1. Update the authoritative viral_suite (Modern Config)
+            metadata["viral_suite"] = {
+                "enabled": True,
+                "voucher_id": master_id,
+                "share_target": v_config.get("share_target", 10),
+                "share_reward_label": v_config.get("voucher_label", voucher.title or "QUÀ TẶNG LAN TỎA"),
+                "share_cta": v_config.get("cta_text", "CHIA SẺ NHẬN QUÀ"),
+                "share_text": v_config.get("share_text", ""),
+                "share_count": metadata.get("share_count", 0),
+                "likes_count": metadata.get("likes", 0)
+            }
+            
+            # 2. Update the legacy share_promotion (For UI compatibility & legacy funnels)
+            if not isinstance(metadata.get("share_promotion"), dict):
+                metadata["share_promotion"] = {}
+                
+            metadata["share_promotion"].update({
+                "enabled": True,
+                "voucher_id": master_id,
+                "voucher_label": v_config.get("voucher_label", metadata["share_promotion"].get("voucher_label")),
+                "cta_text": v_config.get("cta_text", metadata["share_promotion"].get("cta_text")),
+                "share_text": v_config.get("share_text", metadata["share_promotion"].get("share_text")),
+            })
+            
+            # 3. 🚀 CRITICAL: Force update the nested share_promotion inside viral_suite 
+            # This was the loophole where stale DB data (VIRAL149K) was hiding.
+            metadata["viral_suite"]["share_promotion"] = metadata["share_promotion"]
+            
+            # 🚀 ABSOLUTE PERSISTENCE: Re-assign to row_dict and metadata to ensure serialization
+            row_dict["metadata"] = metadata
+            row_dict["_master_viral_id"] = master_id
+            
+            logger.info(f"🧬 [ProductService] ULTRA-HYDRATED master {master_id} for product {row_dict.get('id')}")
+        else:
+            logger.warning(f"⚠️ [ProductService] No active master viral voucher found for tenant {tenant}")
 
     def _sanitize_vouchers(self, row_dict: ProductRowDict) -> None:
         """

@@ -77,7 +77,7 @@
       <!-- Brand & AI Trust Section -->
       <div class="lg:col-span-4 space-y-8">
         <div class="flex flex-col group cursor-default">
-          <span class="text-4xl font-black tracking-[0.25em] uppercase leading-none bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(193,143,126,0.2)]">
+          <span class="text-4xl font-black tracking-[0.25em] leading-none bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(193,143,126,0.2)]">
             {shopInfo.name}
           </span>
           <div class="flex items-center gap-2 mt-4">

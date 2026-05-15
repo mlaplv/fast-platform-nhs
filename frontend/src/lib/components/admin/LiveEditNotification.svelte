@@ -45,7 +45,7 @@
 
     <!-- Content -->
     <div class="flex-1 pr-4">
-      <h4 class="text-[8px] font-black uppercase tracking-[0.3em] text-white/30 mb-1 leading-none">
+      <h4 class="text-[8px] font-black tracking-[0.3em] text-white/30 mb-1 leading-none">
         SYSTEM_FEEDBACK // V2.2
       </h4>
       <p class="text-sm font-medium text-white/90 leading-snug">

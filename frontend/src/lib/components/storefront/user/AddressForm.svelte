@@ -129,14 +129,14 @@
         {editingId ? 'Chỉnh sửa địa chỉ' : 'Địa chỉ mới'}
       </h3>
     </div>
-    <p class="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Shipping Address</p>
+    <p class="text-[9px] tracking-widest text-stone-400 font-bold">Shipping Address</p>
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
     <!-- Identity Group -->
     <div class="space-y-8">
       <div class="space-y-1.5 group">
-        <label for="name" class="text-[10px] uppercase tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Họ và tên người nhận</label>
+        <label for="name" class="text-[10px] tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Họ và tên người nhận</label>
         <div class="relative">
           <input
             id="name"
@@ -150,7 +150,7 @@
       </div>
 
       <div class="space-y-1.5 group">
-        <label for="phone" class="text-[10px] uppercase tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Số điện thoại liên hệ</label>
+        <label for="phone" class="text-[10px] tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Số điện thoại liên hệ</label>
         <div class="relative">
           <input
             id="phone"
@@ -168,18 +168,18 @@
     <div class="space-y-8">
       <div class="space-y-4">
         <div class="space-y-1.5 group">
-           <label class="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Tỉnh / Thành phố</label>
+           <label class="text-[10px] tracking-widest text-stone-400 font-bold">Tỉnh / Thành phố</label>
            <SearchableDropdown bind:value={city} options={divisions.map(d => d.name)} placeholder="Chọn tỉnh/thành..." />
         </div>
 
         <div class="space-y-1.5 group">
-           <label class="text-[10px] uppercase tracking-widest text-stone-400 font-bold">Quận / Huyện / Phường / Xã</label>
+           <label class="text-[10px] tracking-widest text-stone-400 font-bold">Quận / Huyện / Phường / Xã</label>
            <SearchableDropdown bind:value={ward} options={currentWards} placeholder="Chọn khu vực..." disabled={!city} />
         </div>
       </div>
 
       <div class="space-y-1.5 group">
-        <label for="address" class="text-[10px] uppercase tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Địa chỉ cụ thể (Số nhà, Tên đường)</label>
+        <label for="address" class="text-[10px] tracking-widest text-stone-400 font-bold group-focus-within:text-luxury-copper transition-colors">Địa chỉ cụ thể (Số nhà, Tên đường)</label>
         <input
           id="address"
           type="text"
@@ -201,7 +201,7 @@
         {/if}
       </div>
       <input type="checkbox" bind:checked={isDefault} class="hidden" />
-      <span class="text-[12px] font-bold text-stone-600 uppercase tracking-widest group-hover/check:text-stone-800 transition-colors">Đặt làm địa chỉ mặc định</span>
+      <span class="text-[12px] font-bold text-stone-600 tracking-widest group-hover/check:text-stone-800 transition-colors">Đặt làm địa chỉ mặc định</span>
     </label>
   </div>
 
@@ -212,14 +212,14 @@
       class="w-full md:w-auto md:px-16 py-4 bg-stone-800 text-white relative group overflow-hidden transition-all duration-700 hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] disabled:opacity-50"
     >
       <div class="absolute inset-0 bg-luxury-copper translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-700 ease-out"></div>
-      <span class="relative z-10 text-[11px] uppercase tracking-[5px] font-black">
+      <span class="relative z-10 text-[11px] tracking-[5px] font-black">
         {isSaving ? 'Đang lưu...' : 'Lưu địa chỉ'}
       </span>
     </button>
 
     <button
       onclick={onCancel}
-      class="w-full md:w-auto px-10 py-4 text-[11px] uppercase tracking-[3px] font-bold text-stone-400 hover:text-stone-800 transition-colors"
+      class="w-full md:w-auto px-10 py-4 text-[11px] tracking-[3px] font-bold text-stone-400 hover:text-stone-800 transition-colors"
     >
       Hủy bỏ
     </button>

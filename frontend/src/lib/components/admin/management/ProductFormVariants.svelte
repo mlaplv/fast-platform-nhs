@@ -329,7 +329,7 @@
         <ListTree size={12} />
       </div>
       <div class="flex flex-col">
-        <span class="text-[10px] font-black uppercase tracking-widest text-white/50">Phân loại hàng</span>
+        <span class="text-[10px] font-black tracking-widest text-white/50">Phân loại hàng</span>
         <span class="text-[9px] text-white/20 italic">Thiết lập biến thể (Màu sắc, Kích thước...)</span>
       </div>
     </div>
@@ -337,7 +337,7 @@
     {#if formState.tierVariations.length < 2}
       <button 
         onclick={addTier}
-        class="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-bold uppercase tracking-wider text-white/40 hover:text-white transition-colors"
+        class="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-bold tracking-wider text-white/40 hover:text-white transition-colors"
       >
         <Plus size={11} /> Thêm Nhóm Phân Loại
       </button>
@@ -347,7 +347,7 @@
   {#if formState.tierVariations.length === 0}
     <div class="flex flex-col items-center justify-center py-6 gap-2 opacity-50">
       <ListTree size={24} class="text-white/20" />
-      <div class="text-[10px] text-white/30 uppercase tracking-widest font-black">Chưa có phân loại nào</div>
+      <div class="text-[10px] text-white/30 tracking-widest font-black">Chưa có phân loại nào</div>
     </div>
   {:else}
     
@@ -362,7 +362,7 @@
           <!-- TIER HEADER -->
           <div class="flex items-center justify-between gap-4 pr-6">
             <div class="flex-1 max-w-[200px]">
-              <label class="text-[8px] font-black uppercase tracking-widest text-amber-500/60 ml-1 mb-1 block">Tên nhóm phân loại {tIndex + 1}</label>
+              <label class="text-[8px] font-black tracking-widest text-amber-500/60 ml-1 mb-1 block">Tên nhóm phân loại {tIndex + 1}</label>
               <input 
                 type="text" 
                 bind:value={tier.name}
@@ -373,7 +373,7 @@
 
             {#if tIndex === 0}
               <div class="flex items-center gap-2">
-                <span class="text-[9px] font-bold text-white/30 uppercase tracking-wider">Thêm hình ảnh?</span>
+                <span class="text-[9px] font-bold text-white/30 tracking-wider">Thêm hình ảnh?</span>
                 <!-- Custom Toggle Switch -->
                 <button 
                   onclick={toggleCustomImages}
@@ -387,7 +387,7 @@
 
           <!-- TIER OPTIONS -->
           <div class="flex flex-col gap-2 mt-2">
-            <label class="text-[8px] font-black uppercase tracking-widest text-white/30 ml-1">Các thuộc tính (Ấn Enter để tạo)</label>
+            <label class="text-[8px] font-black tracking-widest text-white/30 ml-1">Các thuộc tính (Ấn Enter để tạo)</label>
             <div class="flex flex-wrap gap-2 items-start">
               {#each tier.options as opt, oIndex}
                 <div class="flex flex-col gap-2">
@@ -509,7 +509,7 @@
         <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20 rounded-xl">
           <div class="flex items-center gap-1.5 text-amber-500 mr-2">
             <Zap size={14} />
-            <span class="text-[9px] font-black uppercase tracking-widest">Áp dụng Hàng Loạt</span>
+            <span class="text-[9px] font-black tracking-widest">Áp dụng Hàng Loạt</span>
             <ChevronRight size={12} class="text-amber-500/40" />
           </div>
           <input type="number" bind:value={batchPrice} placeholder="Giá bán..." class="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-amber-200 outline-none w-24 placeholder:text-white/20" />
@@ -518,8 +518,8 @@
             <input type="number" bind:value={batchDiscountPrice} placeholder="Giá KM..." class="w-24 bg-transparent px-2 py-1.5 text-xs text-rose-300 outline-none placeholder:text-white/20" />
           </div>
           <input type="number" bind:value={batchStock} placeholder="Tồn kho..." class="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-amber-200 outline-none w-24 placeholder:text-white/20" />
-          <input type="text" bind:value={batchSku} placeholder="Mã SKU chung..." class="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-amber-200 outline-none flex-1 placeholder:text-white/20 uppercase" />
-          <button onclick={applyBatch} class="px-3 py-1.5 bg-amber-500 text-black text-[9px] font-black uppercase tracking-wider rounded-lg hover:brightness-110 flex items-center gap-1">
+          <input type="text" bind:value={batchSku} placeholder="Mã SKU chung..." class="bg-black/40 border border-white/10 rounded px-2 py-1.5 text-xs text-amber-200 outline-none flex-1 placeholder:text-white/20 " />
+          <button onclick={applyBatch} class="px-3 py-1.5 bg-amber-500 text-black text-[9px] font-black tracking-wider rounded-lg hover:brightness-110 flex items-center gap-1">
             <Check size={11} /> Áp dụng
           </button>
         </div>
@@ -529,15 +529,15 @@
             <thead>
               <tr class="bg-white/5 border-b border-white/5">
                 {#each formState.tierVariations as tier}
-                  <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 whitespace-nowrap">{tier.name}</th>
+                  <th class="py-2.5 px-4 text-[9px] font-black tracking-widest text-white/30 whitespace-nowrap">{tier.name}</th>
                 {/each}
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-12 text-center border-l border-white/5 whitespace-nowrap">Mặc định</th>
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-amber-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Bán</th>
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-rose-500/40 w-16 border-l border-white/5 whitespace-nowrap text-center">Giảm %</th>
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-rose-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Khuyến Mãi / 1 sản phẩm</th>
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 w-20 border-l border-white/5 whitespace-nowrap">Kho Hàng</th>
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-cyan-400/60 min-w-[200px] border-l border-white/5">Thiết Lập Combo(Số lượng bắt buộc để áp dụng) & Quà(nếu có)</th>
-                <th class="py-2.5 px-4 text-[9px] font-black uppercase tracking-widest text-white/30 min-w-[120px] border-l border-white/5">SKU (Mã PL)</th>
+                <th class="py-2.5 px-4 text-[9px] font-black tracking-widest text-white/30 w-12 text-center border-l border-white/5 whitespace-nowrap">Mặc định</th>
+                <th class="py-2.5 px-4 text-[9px] font-black tracking-widest text-amber-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Bán</th>
+                <th class="py-2.5 px-4 text-[9px] font-black tracking-widest text-rose-500/40 w-16 border-l border-white/5 whitespace-nowrap text-center">Giảm %</th>
+                <th class="py-2.5 px-4 text-[9px] font-black tracking-widest text-rose-500/60 w-28 border-l border-white/5 whitespace-nowrap">Giá Khuyến Mãi / 1 sản phẩm</th>
+                <th class="py-2.5 px-4 text-[9px] font-black tracking-widest text-white/30 w-20 border-l border-white/5 whitespace-nowrap">Kho Hàng</th>
+                <th class="py-2.5 px-4 text-[9px] font-black tracking-widest text-cyan-400/60 min-w-[200px] border-l border-white/5">Thiết Lập Combo(Số lượng bắt buộc để áp dụng) & Quà(nếu có)</th>
+                <th class="py-2.5 px-4 text-[9px] font-black tracking-widest text-white/30 min-w-[120px] border-l border-white/5">SKU (Mã PL)</th>
               </tr>
             </thead>
             <tbody>
@@ -606,7 +606,7 @@
                         placeholder="0" 
                       />
                       {#if variantValidation[vIndex]?.isInvalid}
-                        <div class="absolute -bottom-6 right-0 whitespace-nowrap bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-lg z-50 pointer-events-none uppercase">
+                        <div class="absolute -bottom-6 right-0 whitespace-nowrap bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded shadow-lg z-50 pointer-events-none ">
                           Giá KM ≥ Giá bán
                         </div>
                       {/if}
@@ -622,7 +622,7 @@
                   <td class="p-2 border-l border-white/5 align-top">
                     <div class="flex flex-col gap-2">
                        <div class="flex items-center gap-2">
-                         <span class="text-[9px] font-black uppercase text-cyan-500/60 w-12 shrink-0">Số lượng</span>
+                         <span class="text-[9px] font-black text-cyan-500/60 w-12 shrink-0">Số lượng</span>
                          <input 
                            type="number" 
                            bind:value={variant.attributes.combo_qty} 
@@ -654,7 +654,7 @@
                          </div>
                        {/each}
                        
-                       <button onclick={() => addGift(vIndex)} class="self-start text-[9px] font-black text-cyan-500 hover:text-cyan-300 uppercase tracking-widest flex items-center gap-1 mt-1">
+                       <button onclick={() => addGift(vIndex)} class="self-start text-[9px] font-black text-cyan-500 hover:text-cyan-300 tracking-widest flex items-center gap-1 mt-1">
                           <Plus size={10} /> Quà Tặng ({variant.attributes.gifts?.length || 0})
                        </button>
                     </div>
@@ -662,7 +662,7 @@
 
                   <!-- SKU -->
                   <td class="p-1 border-l border-white/5 align-top">
-                    <input type="text" bind:value={variant.sku} class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-amber-500/50 !outline-none px-3 py-2 text-xs text-white/60 font-mono uppercase tracking-wider rounded" placeholder="SKU" />
+                    <input type="text" bind:value={variant.sku} class="w-full bg-transparent border border-transparent group-hover:bg-black/40 group-hover:border-white/10 focus:border-amber-500/50 !outline-none px-3 py-2 text-xs text-white/60 font-mono tracking-wider rounded" placeholder="SKU" />
                   </td>
                 </tr>
               {/each}

@@ -55,7 +55,7 @@
       <Database size={18} class="text-cyan-400" />
     </div>
     <div>
-      <h3 class="text-sm font-bold text-white uppercase tracking-wider">Resource Discipline</h3>
+      <h3 class="text-sm font-bold text-white tracking-wider">Resource Discipline</h3>
       <p class="text-[10px] text-zinc-500 font-mono">Chat Persistence & Storage Governance</p>
     </div>
   </div>
@@ -74,7 +74,7 @@
         <div class="flex-1 space-y-1 min-w-0">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="text-xs font-bold uppercase tracking-tight {chatSettings[opt.id] ? 'text-cyan-400' : 'text-zinc-400'}">{opt.label}</span>
+              <span class="text-xs font-bold tracking-tight {chatSettings[opt.id] ? 'text-cyan-400' : 'text-zinc-400'}">{opt.label}</span>
             </div>
             <!-- Toggle Switch -->
             <button
@@ -102,7 +102,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <n.icon size={16} class="text-zinc-500" />
-            <span class="text-[10px] font-bold uppercase text-zinc-400 tracking-wider">{n.label}</span>
+            <span class="text-[10px] font-bold text-zinc-400 tracking-wider">{n.label}</span>
           </div>
           <div class="flex items-center gap-2 bg-black/40 px-2 py-1 rounded-lg border border-white/5">
             <input 
@@ -110,7 +110,7 @@
               bind:value={chatSettings[n.id]}
               class="w-12 bg-transparent border-none text-xs font-mono text-cyan-400 focus:ring-0 p-0 text-center"
             />
-            <span class="text-[8px] text-zinc-600 font-bold uppercase">{n.unit}</span>
+            <span class="text-[8px] text-zinc-600 font-bold ">{n.unit}</span>
           </div>
         </div>
         <p class="text-[9px] text-zinc-500 leading-tight italic">{n.desc}</p>

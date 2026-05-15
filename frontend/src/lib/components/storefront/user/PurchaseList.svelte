@@ -176,7 +176,7 @@
       title: 'Xác nhận hủy đơn hàng',
       message: 'Sếp có chắc chắn muốn hủy đơn hàng này không? 😢',
       confirmLabel: 'ĐỒNG Ý HỦY',
-      cancelLabel: 'QUAY LẠI'
+      cancelLabel: 'Quay lại'
     });
     
     if (!isConfirmed) return;
@@ -295,7 +295,7 @@
             
             <!-- 🏷️ Label (Nano Typography) -->
             <div class="relative flex flex-col items-center">
-              <span class="text-[7px] md:text-[8px] font-black uppercase tracking-[0.2em] transition-all duration-700
+              <span class="text-[7px] md:text-[8px] font-black tracking-[0.2em] transition-all duration-700
                 {isActive ? 'text-stone-800' : 'text-stone-300'}">
                 {tab.label}
               </span>
@@ -334,16 +334,16 @@
     {#if isLoading}
       <div class="py-32 flex flex-col items-center justify-center space-y-5 bg-[#fbfbfb]">
         <div class="w-10 h-10 border-[3px] border-luxury-copper/10 border-t-luxury-copper animate-spin rounded-full"></div>
-        <p class="text-[10px] text-stone-400 font-black uppercase tracking-[0.4em] animate-pulse">Syncing Records...</p>
+        <p class="text-[10px] text-stone-400 font-black tracking-[0.4em] animate-pulse">Syncing Records...</p>
       </div>
     {:else if filteredOrders.length === 0}
       <div class="py-32 text-center bg-[#fbfbfb]" in:fade>
         <div class="w-20 h-20 bg-white rounded-full shadow-inner flex items-center justify-center mx-auto mb-8 opacity-40">
           <ShoppingBag class="w-10 h-10 text-stone-200" strokeWidth={1} />
         </div>
-        <p class="text-stone-400 text-[13px] font-bold uppercase tracking-widest">Lịch sử trống</p>
+        <p class="text-stone-400 text-[13px] font-bold tracking-widest">Lịch sử trống</p>
         {#if !searchQuery && activeTab === 'all'}
-          <a href="/" class="inline-block mt-10 px-12 py-4 bg-luxury-copper text-white text-[10px] uppercase tracking-[0.3em] font-black rounded-full hover:scale-105 transition-all shadow-2xl shadow-stone-800/20 active:scale-95">
+          <a href="/" class="inline-block mt-10 px-12 py-4 bg-luxury-copper text-white text-[10px] tracking-[0.3em] font-black rounded-full hover:scale-105 transition-all shadow-2xl shadow-stone-800/20 active:scale-95">
             Mua sắm ngay
           </a>
         {/if}
@@ -364,12 +364,12 @@
                   <span class="text-[14px] text-white font-black italic">M</span>
                </div>
                <a href={`/checkout/success/${order.id}${authStore.user?.phone ? `?phone=${authStore.user.phone}` : ''}`} class="flex flex-col">
-                 <span class="text-[12px] font-black text-stone-800 uppercase tracking-[0.1em]">osmo Official</span>
-                 <span class="text-[9px] font-bold text-stone-300 uppercase tracking-tighter italic">#{order.id.slice(-8).toUpperCase()}</span>
+                 <span class="text-[12px] font-black text-stone-800 tracking-[0.1em]">osmo Official</span>
+                 <span class="text-[9px] font-bold text-stone-300 tracking-tighter italic">#{order.id.slice(-8).toUpperCase()}</span>
                </a>
              </div>
              <div class="flex items-center gap-2 px-4 py-2 rounded-full {status.bg} border border-current/5">
-                <span class="text-[9px] font-black {status.color} uppercase tracking-[0.2em]">{status.label}</span>
+                <span class="text-[9px] font-black {status.color} tracking-[0.2em]">{status.label}</span>
              </div>
           </div>
 
@@ -391,7 +391,7 @@
                       {idx <= activeStep ? 'border-luxury-copper text-luxury-copper scale-110 shadow-lg shadow-luxury-copper/20' : 'border-stone-100 text-stone-200'}">
                       <step.icon size={14} strokeWidth={idx <= activeStep ? 2.5 : 1.5} />
                     </div>
-                    <span class="text-[7px] md:text-[8px] font-black uppercase tracking-widest
+                    <span class="text-[7px] md:text-[8px] font-black tracking-widest
                       {idx <= activeStep ? 'text-stone-800' : 'text-stone-300'}">
                       {step.label}
                     </span>
@@ -420,7 +420,7 @@
                   <div class="flex-1 min-w-0">
                     <h3 class="text-[13px] md:text-[16px] font-serif italic text-stone-800 leading-snug mb-2 line-clamp-2">{item.name}</h3>
                     {#if getVariantName(item)}
-                      <span class="text-[8px] font-black text-stone-400 uppercase tracking-widest bg-stone-50/80 px-2 py-1 rounded-md border border-stone-100">{getVariantName(item)}</span>
+                      <span class="text-[8px] font-black text-stone-400 tracking-widest bg-stone-50/80 px-2 py-1 rounded-md border border-stone-100">{getVariantName(item)}</span>
                     {/if}
                   </div>
                   <div class="text-right shrink-0">
@@ -437,14 +437,14 @@
                {#if getOrderSavings(order) > 0}
                   <div class="flex items-center gap-2 text-luxury-copper bg-luxury-copper/5 px-3 py-1.5 rounded-lg border border-luxury-copper/10 animate-bounce">
                     <Sparkles size={10} />
-                    <span class="text-[9px] font-black uppercase tracking-widest">Tiết kiệm {formatCurrency(getOrderSavings(order))}</span>
+                    <span class="text-[9px] font-black tracking-widest">Tiết kiệm {formatCurrency(getOrderSavings(order))}</span>
                   </div>
                {:else}
                   <div></div>
                {/if}
 
                <div class="flex flex-col items-end gap-1">
-                  <span class="text-[9px] text-stone-300 font-black uppercase tracking-[0.3em] italic">Total Amount</span>
+                  <span class="text-[9px] text-stone-300 font-black tracking-[0.3em] italic">Total Amount</span>
                   <span class="text-3xl md:text-5xl font-bold text-stone-700 tracking-tighter tabular-nums">
                     {formatCurrency(order.total || order.total_amount || 0).replace('₫', '')}<span class="text-[0.5em] align-top md:mt-2 inline-block opacity-60">₫</span>
                   </span>
@@ -458,7 +458,7 @@
               {#if order.status === 'PENDING' || order.status === 'PACKED'}
                  <button
                     onclick={() => handleCancelOrder(order.id)}
-                    class="h-11 bg-white border border-stone-100 rounded-2xl text-[9px] font-black text-red-500/60 hover:text-red-600 hover:bg-red-50/50 transition-all uppercase tracking-[0.2em] flex items-center justify-center gap-2 group/btn"
+                    class="h-11 bg-white border border-stone-100 rounded-2xl text-[9px] font-black text-red-500/60 hover:text-red-600 hover:bg-red-50/50 transition-all tracking-[0.2em] flex items-center justify-center gap-2 group/btn"
                   >
                     <X size={12} strokeWidth={3} class="group-hover/btn:rotate-90 transition-transform" />
                     HỦY ĐƠN
@@ -467,7 +467,7 @@
 
               <a
                 href="/checkout/success/{order.id}{authStore.user?.phone ? '?phone=' + authStore.user.phone : ''}"
-                class="col-span-{ (order.status === 'PENDING' || order.status === 'PACKED') ? '1' : '2' } h-11 flex items-center justify-center bg-stone-50/80 backdrop-blur-md border border-stone-100/50 rounded-2xl text-[9px] font-black text-stone-500 hover:bg-white hover:text-stone-800 hover:shadow-lg transition-all uppercase tracking-[0.2em] active:scale-95 gap-2"
+                class="col-span-{ (order.status === 'PENDING' || order.status === 'PACKED') ? '1' : '2' } h-11 flex items-center justify-center bg-stone-50/80 backdrop-blur-md border border-stone-100/50 rounded-2xl text-[9px] font-black text-stone-500 hover:bg-white hover:text-stone-800 hover:shadow-lg transition-all tracking-[0.2em] active:scale-95 gap-2"
               >
                 XEM CHI TIẾT
                 <ChevronRight size={12} />
@@ -476,7 +476,7 @@
               <button
                 onclick={() => handleReorder(order)}
                 disabled={isReordering}
-                class="h-11 bg-luxury-copper text-white text-[10px] font-black uppercase tracking-[0.3em] rounded-2xl hover:shadow-2xl hover:shadow-luxury-copper/40 transition-all active:scale-95 disabled:opacity-50 overflow-hidden relative flex items-center justify-center gap-2 group/reorder"
+                class="h-11 bg-luxury-copper text-white text-[10px] font-black tracking-[0.3em] rounded-2xl hover:shadow-2xl hover:shadow-luxury-copper/40 transition-all active:scale-95 disabled:opacity-50 overflow-hidden relative flex items-center justify-center gap-2 group/reorder"
               >
                  <div class="w-1.5 h-1.5 bg-luxury-copper rounded-full animate-pulse group-hover/reorder:scale-150 transition-transform"></div>
                  MUA LẠI
@@ -494,13 +494,13 @@
           {#if isLoadingMore}
             <div class="flex items-center gap-2 text-[#fe2c55]/80">
               <div class="w-5 h-5 border-2 border-[#fe2c55]/30 border-t-[#fe2c55] animate-spin rounded-full"></div>
-              <span class="text-[12px] font-bold uppercase tracking-wider">Đang tải thêm...</span>
+              <span class="text-[12px] font-bold tracking-wider">Đang tải thêm...</span>
             </div>
           {:else if !hasMore}
             <div class="flex items-center gap-2 text-stone-300">
               <div class="w-8 h-px bg-stone-200"></div>
               <Sparkles size={14} />
-              <span class="text-[11px] font-medium tracking-widest uppercase">Bạn đã xem hết đơn hàng</span>
+              <span class="text-[11px] font-medium tracking-widest ">Bạn đã xem hết đơn hàng</span>
               <div class="w-8 h-px bg-stone-200"></div>
             </div>
           {/if}
@@ -514,10 +514,10 @@
       <div class="mt-32 pb-20 flex flex-col items-center gap-4 opacity-30">
         <div class="flex items-center gap-6">
            <div class="h-[0.5px] w-24 bg-luxury-copper/30"></div>
-           <span class="text-[11px] font-serif italic uppercase tracking-[0.6em] text-luxury-copper/20">VIRAL 2026</span>
+           <span class="text-[11px] font-serif italic tracking-[0.6em] text-luxury-copper/20">VIRAL 2026</span>
            <div class="h-[0.5px] w-24 bg-luxury-copper/30"></div>
         </div>
-        <p class="text-[8px] font-black uppercase tracking-[0.4em] text-stone-400">osmo Member Exclusive</p>
+        <p class="text-[8px] font-black tracking-[0.4em] text-stone-400">osmo Member Exclusive</p>
       </div>
   </div>
 </div>

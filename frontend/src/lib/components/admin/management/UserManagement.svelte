@@ -242,7 +242,7 @@
         oninput={handleSearchInput}
         type="text"
         placeholder="QUERY_IDENTITY..."
-        class="w-full bg-black/50 border border-white/5 rounded-xl py-3 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-[#00FFFF]/50 focus:ring-2 focus:ring-[#00FFFF]/20 transition-all uppercase tracking-widest shadow-inner shadow-black/50"
+        class="w-full bg-black/50 border border-white/5 rounded-xl py-3 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-[#00FFFF]/50 focus:ring-2 focus:ring-[#00FFFF]/20 transition-all tracking-widest shadow-inner shadow-black/50"
       />
     </div>
 
@@ -251,7 +251,7 @@
         {#each ["ALL", "ACTIVE", "LOCKED"] as status}
           <button
             onclick={() => handleStatusChange(status as "ALL" | "ACTIVE" | "LOCKED")}
-            class="px-4 py-2 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest transition-all flex-shrink-0 {statusFilter === status
+            class="px-4 py-2 rounded-lg text-[9px] font-mono font-bold tracking-widest transition-all flex-shrink-0 {statusFilter === status
               ? status === 'LOCKED'
                 ? 'bg-red-500/20 text-red-500 border border-red-500/30 ring-1 ring-red-500/30'
                 : 'bg-[#00FFFF]/20 text-[#00FFFF] border border-[#00FFFF]/30 ring-1 ring-[#00FFFF]/30'
@@ -263,7 +263,7 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3 xl:border-l xl:border-white/10 xl:pl-4 pr-1 sm:pr-2 justify-between sm:justify-start">
-        <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 uppercase tracking-widest bg-black/40 sm:bg-transparent px-2 sm:px-0 py-1.5 sm:py-0 rounded-lg sm:rounded-none">
+        <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-500 tracking-widest bg-black/40 sm:bg-transparent px-2 sm:px-0 py-1.5 sm:py-0 rounded-lg sm:rounded-none">
           <span class="hidden sm:inline">Show</span>
           <select
             value={pageSize}
@@ -288,7 +288,7 @@
             class="p-2.5 sm:px-4 sm:py-2 text-[#00FFFF] hover:bg-[#00FFFF]/10 border border-[#00FFFF]/20 rounded-xl bg-black/40 transition-all flex items-center justify-center gap-2 group"
           >
             <UserPlus size={14} class="group-hover:scale-110 transition-transform" />
-            <span class="text-[10px] sm:text-[9px] font-mono font-bold uppercase tracking-widest hidden sm:inline">Add_Node</span>
+            <span class="text-[10px] sm:text-[9px] font-mono font-bold tracking-widest hidden sm:inline">Add_Node</span>
           </button>
         </div>
     </div>
@@ -299,14 +299,14 @@
   {#if isLoading}
     <div class="h-full flex flex-col items-center justify-center gap-4">
       <div class="w-8 h-8 border-2 border-[#00FFFF]/10 border-t-[#00FFFF] rounded-full animate-spin"></div>
-      <span class="text-[9px] font-mono text-[#00FFFF]/40 uppercase tracking-[0.3em]">Synchronizing Registry...</span>
+      <span class="text-[9px] font-mono text-[#00FFFF]/40 tracking-[0.3em]">Synchronizing Registry...</span>
     </div>
   {:else if error}
-    <div class="h-full flex items-center justify-center text-red-500 font-mono text-xs uppercase tracking-widest">
+    <div class="h-full flex items-center justify-center text-red-500 font-mono text-xs tracking-widest">
       Connection Failure: {error}
     </div>
   {:else if users.length === 0}
-    <div class="h-full flex flex-col items-center justify-center text-gray-600 font-mono text-[10px] uppercase tracking-widest gap-2">
+    <div class="h-full flex flex-col items-center justify-center text-gray-600 font-mono text-[10px] tracking-widest gap-2">
       <span>No matching entities found in current sector</span>
       <button onclick={() => { searchInput = ""; searchTerm = ""; currentPage = 1; }}
         class="text-[#00FFFF]/40 hover:text-[#00FFFF] transition-colors">[ RESET_FILTER ]</button>
@@ -319,18 +319,18 @@
         <div class="mb-4 p-4 bg-white/5 border border-[#00FFFF]/20 rounded-2xl flex items-center justify-between">
           <div class="flex items-center gap-4">
             <div class="px-3 py-1 bg-[#00FFFF]/10 rounded-lg border border-[#00FFFF]/30">
-              <span class="text-[#00FFFF] text-[10px] font-mono font-bold uppercase tracking-widest">{selectedIds.length} NODES_SELECTED</span>
+              <span class="text-[#00FFFF] text-[10px] font-mono font-bold tracking-widest">{selectedIds.length} NODES_SELECTED</span>
             </div>
-            <button onclick={() => selectedIds = []} class="text-gray-500 hover:text-white text-[9px] font-mono uppercase tracking-[0.2em] transition-colors">[ DESELECT_ALL ]</button>
+            <button onclick={() => selectedIds = []} class="text-gray-500 hover:text-white text-[9px] font-mono tracking-[0.2em] transition-colors">[ DESELECT_ALL ]</button>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick={() => bulkAction('UNLOCK')} class="px-3 py-1.5 rounded-lg border border-[#00FFFF]/30 bg-[#00FFFF]/10 text-[#00FFFF] text-[9px] font-mono font-bold uppercase tracking-widest hover:bg-[#00FFFF]/20 transition-all flex items-center gap-2">
+            <button onclick={() => bulkAction('UNLOCK')} class="px-3 py-1.5 rounded-lg border border-[#00FFFF]/30 bg-[#00FFFF]/10 text-[#00FFFF] text-[9px] font-mono font-bold tracking-widest hover:bg-[#00FFFF]/20 transition-all flex items-center gap-2">
               <Unlock size={12} /> ACTIVATE
             </button>
-            <button onclick={() => bulkAction('LOCK')} class="px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-500 text-[9px] font-mono font-bold uppercase tracking-widest hover:bg-red-500/20 transition-all flex items-center gap-2">
+            <button onclick={() => bulkAction('LOCK')} class="px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-500 text-[9px] font-mono font-bold tracking-widest hover:bg-red-500/20 transition-all flex items-center gap-2">
               <Lock size={12} /> LOCK_DOWN
             </button>
-            <button onclick={() => bulkAction('DELETE')} class="px-3 py-1.5 rounded-lg border border-red-500/50 bg-red-500/20 text-red-400 text-[9px] font-mono font-bold uppercase tracking-widest hover:bg-red-500/30 transition-all flex items-center gap-2">
+            <button onclick={() => bulkAction('DELETE')} class="px-3 py-1.5 rounded-lg border border-red-500/50 bg-red-500/20 text-red-400 text-[9px] font-mono font-bold tracking-widest hover:bg-red-500/30 transition-all flex items-center gap-2">
               <Trash2 size={12} /> REVOKE_ACCESS
             </button>
           </div>
@@ -338,7 +338,7 @@
       {/if}
 
       <!-- Professional Table Header -->
-      <div class="hidden md:grid grid-cols-[60px_60px_minmax(250px,2fr)_1fr_120px] gap-0 border-b border-white/10 bg-black/40 text-[9px] font-mono text-gray-500 uppercase tracking-widest font-bold items-center">
+      <div class="hidden md:grid grid-cols-[60px_60px_minmax(250px,2fr)_1fr_120px] gap-0 border-b border-white/10 bg-black/40 text-[9px] font-mono text-gray-500 tracking-widest font-bold items-center">
         <div class="flex items-center justify-center p-4">
           <button 
             onclick={toggleSelectAll}

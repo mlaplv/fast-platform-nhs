@@ -65,15 +65,15 @@
             </div>
           </div>
           <div class="flex flex-col">
-            <span class="text-[12px] font-black tracking-widest text-white uppercase opacity-80">NEURAL XOHI</span>
-            <span class="text-[10px] font-bold text-blue-400/80 uppercase tracking-tighter">Neural Surgeon v85.5</span>
+            <span class="text-[12px] font-black tracking-widest text-white opacity-80">NEURAL XOHI</span>
+            <span class="text-[10px] font-bold text-blue-400/80 tracking-tighter">Neural Surgeon v85.5</span>
           </div>
         </div>
         
         <div class="flex items-center gap-2">
           <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20">
             <div class="w-1.5 h-1.5 rounded-full bg-blue-400 {status.includes('✅') ? '' : 'animate-ping'}"></div>
-            <span class="text-[9px] font-black text-blue-300 uppercase tracking-widest">{status || 'Processing'}</span>
+            <span class="text-[9px] font-black text-blue-300 tracking-widest">{status || 'Processing'}</span>
           </div>
           
           {#if status.includes('✅') && onClose}
@@ -121,7 +121,7 @@
         {#if logs.length === 0}
             <div class="py-8 flex flex-col items-center justify-center opacity-20">
                 <Brain size={32} class="mb-2" />
-                <span class="text-[10px] font-black uppercase tracking-[0.2em]">Khởi động Neural Engine...</span>
+                <span class="text-[10px] font-black tracking-[0.2em]">Khởi động Neural Engine...</span>
             </div>
         {/if}
       </div>

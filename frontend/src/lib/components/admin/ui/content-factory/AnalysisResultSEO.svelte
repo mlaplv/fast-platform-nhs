@@ -51,15 +51,15 @@
           </svg>
           <div class="absolute inset-0 flex flex-col items-center justify-center">
             <span class="text-[13px] font-black tracking-tighter" style="color:{gradeColor}">{seoResult.grade}</span>
-            <span class="text-[6px] font-black opacity-30 uppercase tracking-[0.2em]">Quality</span>
+            <span class="text-[6px] font-black opacity-30 tracking-[0.2em]">Quality</span>
           </div>
         </div>
         <div class="flex flex-col gap-1.5">
-          <span class="text-sm font-black uppercase tracking-[0.1em]" style="color:{gradeColor}">
+          <span class="text-sm font-black tracking-[0.1em]" style="color:{gradeColor}">
             📊 Optimization — {seoResult.total_score}/100
           </span>
           <div class="flex items-center gap-1.5 opacity-30">
-            <span class="text-[9px] font-black uppercase tracking-[0.3em]">Protocol_SEO_Core_V2.2</span>
+            <span class="text-[9px] font-black tracking-[0.3em]">Protocol_SEO_Core_V2.2</span>
           </div>
         </div>
       </div>
@@ -76,7 +76,7 @@
     <div class="px-4 py-4 bg-black/40 border-b border-white/5 shadow-inner">
       <div class="flex items-center gap-2 mb-3 opacity-30">
         <div class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
-        <span class="text-[10px] font-black uppercase tracking-[0.2em]">Neural_SEO_Verdict</span>
+        <span class="text-[10px] font-black tracking-[0.2em]">Neural_SEO_Verdict</span>
       </div>
       <p class="text-[13px] text-white/90 leading-[1.6] font-medium tracking-tight whitespace-pre-line">
         {seoResult.summary.replace(/\*\*\*/g, '').trim()}
@@ -89,7 +89,7 @@
         <button 
           onclick={() => runBulkFix?.()}
           disabled={isBulkFixing}
-          class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500 hover:text-white hover:border-blue-400 text-blue-400 text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(59,130,246,0.1)] active:scale-95 disabled:opacity-50"
+          class="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500 hover:text-white hover:border-blue-400 text-blue-400 text-[10px] font-black tracking-widest transition-all shadow-[0_0_20px_rgba(59,130,246,0.1)] active:scale-95 disabled:opacity-50"
         >
           {#if isBulkFixing}
             <div class="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -106,12 +106,12 @@
   <!-- 7 Signals Grid -->
   {#if seoResult.signals?.length > 0}
     <div class="px-3 py-3 border-b border-white/5">
-      <span class="text-[7px] font-black uppercase tracking-widest text-white/20 block mb-2">7 Tín hiệu SEO</span>
+      <span class="text-[7px] font-black tracking-widest text-white/20 block mb-2">7 Tín hiệu SEO</span>
       <div class="grid grid-cols-1 gap-1.5">
         {#each seoResult.signals as signal}
           {@const c = signal.score >= 80 ? '#10b981' : signal.score >= 60 ? '#3b82f6' : signal.score >= 40 ? '#f59e0b' : '#ef4444'}
           <div class="flex items-center gap-2">
-            <span class="text-[8px] text-white/40 uppercase w-28 shrink-0 truncate">{signal.label.replace(/_/g,' ')}</span>
+            <span class="text-[8px] text-white/40 w-28 shrink-0 truncate">{signal.label.replace(/_/g,' ')}</span>
             <div class="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
               <div class="h-full rounded-full transition-all duration-700" style="width:{signal.score}%;background:{c}"></div>
             </div>
@@ -126,7 +126,7 @@
   <!-- Quick Wins — ALL of them -->
   {#if seoResult.quick_wins?.length > 0}
     <div class="px-3 py-2.5 border-b border-white/5 bg-blue-500/[0.03]">
-      <span class="text-[7px] font-black uppercase tracking-widest text-blue-400/50 block mb-1.5">⚡ Quick Wins ({seoResult.quick_wins.length})</span>
+      <span class="text-[7px] font-black tracking-widest text-blue-400/50 block mb-1.5">⚡ Quick Wins ({seoResult.quick_wins.length})</span>
       <div class="flex flex-col gap-1">
         {#each seoResult.quick_wins as win}
           <p class="text-[8px] text-blue-300/60 leading-relaxed">• {win}</p>
@@ -138,7 +138,7 @@
   <!-- Badge tổng lỗi -->
   {#if sortedAnnotations.length > 0}
     <div class="px-3 py-2 flex items-center gap-3 border-b border-white/5">
-      <span class="text-[7px] font-black text-white/20 uppercase tracking-widest">Annotations ({sortedAnnotations.length})</span>
+      <span class="text-[7px] font-black text-white/20 tracking-widest">Annotations ({sortedAnnotations.length})</span>
       {#if highCount > 0}<span class="px-2 py-0.5 rounded-full text-[8px] font-black bg-red-500/15 text-red-400 border border-red-500/20">{highCount} HIGH</span>{/if}
       {#if warnCount > 0}<span class="px-2 py-0.5 rounded-full text-[8px] font-black bg-amber-500/15 text-amber-400 border border-amber-500/20">{warnCount} WARN</span>{/if}
       {#if infoCount > 0}<span class="px-2 py-0.5 rounded-full text-[8px] font-black bg-blue-500/15 text-blue-400 border border-blue-500/20">{infoCount} INFO</span>{/if}
@@ -153,7 +153,7 @@
           <div class="px-3 py-2 border-b border-emerald-500/20 bg-emerald-500/[0.04] flex items-start gap-2">
             <CheckCircle2 size={10} class="text-emerald-400 mt-0.5 shrink-0" />
             <div class="min-w-0">
-              <span class="text-[7px] font-black text-emerald-400 uppercase">✅ ĐÃ SỬA</span>
+              <span class="text-[7px] font-black text-emerald-400 ">✅ ĐÃ SỬA</span>
               <p class="text-[8px] text-emerald-200/60 leading-relaxed mt-0.5 truncate italic">"{ann.text}"</p>
             </div>
           </div>
@@ -162,12 +162,12 @@
           {@const annLabel = ann.severity === 'high' ? '🔴 CRITICAL' : ann.severity === 'warning' ? '⚠️ WARNING' : '💡 INFO'}
           <div class="px-3 py-3 border-b bg-white/[0.01] flex flex-col gap-1.5 transition-all hover:bg-white/[0.02]" style="border-color: {annHex}15">
             <div class="flex items-start justify-between gap-2">
-              <span class="text-[7px] font-black px-1 py-0.5 rounded uppercase" style="background:{annHex}20; color:{annHex}">{annLabel}</span>
+              <span class="text-[7px] font-black px-1 py-0.5 rounded " style="background:{annHex}20; color:{annHex}">{annLabel}</span>
               {#if handleInternalFix}
                 <button
                   onclick={() => handleInternalFix!(ann.text, ann.type || 'seo', ann.message || ann.reason || '')}
                   disabled={!!isFixing}
-                  class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-blue-500/20 hover:border-blue-500/40 hover:text-blue-300 text-[7px] font-black uppercase transition-all disabled:opacity-40 cursor-pointer">
+                  class="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border border-white/10 hover:bg-blue-500/20 hover:border-blue-500/40 hover:text-blue-300 text-[7px] font-black transition-all disabled:opacity-40 cursor-pointer">
                   {#if streamingTarget === ann.text}
                     <span class="text-[8px] text-white/80 font-mono leading-relaxed max-w-[160px] truncate">{streamingText}<span class="inline-block w-1 h-2.5 bg-blue-400 animate-pulse ml-0.5 -mb-0.5"></span></span>
                   {:else if isFixing === ann.text}

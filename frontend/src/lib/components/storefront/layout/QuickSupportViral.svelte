@@ -135,17 +135,17 @@
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
                 </span>
-                <span class="text-[8px] font-black text-red-600 uppercase tracking-[0.2em]">Ưu Tiên Tuyệt Đối</span>
+                <span class="text-[8px] font-black text-red-600 tracking-[0.2em]">Ưu Tiên Tuyệt Đối</span>
             </div>
             <div class="h-px w-4 bg-gray-200"></div>
-            <span class="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Hệ Thống V2.2</span>
+            <span class="text-[8px] font-black text-gray-400 tracking-[0.2em]">Hệ Thống V2.2</span>
         </div>
 
-        <h2 class="text-xl font-black text-gray-900 tracking-[0.05em] uppercase italic leading-none mb-3">
+        <h2 class="text-xl font-black text-gray-900 tracking-[0.05em] italic leading-none mb-3">
             Hỗ Trợ <span class="text-luxury-copper">Khẩn Cấp</span>
         </h2>
         
-        <p class="text-[10px] text-gray-400 font-bold tracking-tight uppercase">
+        <p class="text-[10px] text-gray-400 font-bold tracking-tight ">
             Helen Elite đang xử lý <span class="text-gray-900">{visitorCount} tín hiệu</span>. 
             Cam kết phản hồi trong <span class="text-luxury-copper font-black underline underline-offset-4 decoration-luxury-copper/20">30 giây</span>.
         </p>
@@ -155,7 +155,7 @@
         {#if !showSuccess}
           <form onsubmit={handleSubmit} class="space-y-6">
             <div class="group/input relative">
-              <label for="support_phone" class="block text-[8px] font-black text-gray-400 uppercase tracking-[0.35em] mb-3 px-1 transition-colors {isInputFocused ? 'text-luxury-copper' : ''}">
+              <label for="support_phone" class="block text-[8px] font-black text-gray-400 tracking-[0.35em] mb-3 px-1 transition-colors {isInputFocused ? 'text-luxury-copper' : ''}">
                 Đường Dây Kết Nối Trực Tiếp
               </label>
               
@@ -188,9 +188,9 @@
               <div class="relative z-10 flex items-center justify-center gap-3">
                 {#if isSubmitting}
                     <div class="w-4 h-4 border-[2px] border-gray-400 border-t-white rounded-full animate-spin"></div>
-                    <span class="text-white text-[10px] font-black uppercase tracking-[0.4em]">Đang thiết lập...</span>
+                    <span class="text-white text-[10px] font-black tracking-[0.4em]">Đang thiết lập...</span>
                 {:else}
-                    <span class="text-[10px] font-black uppercase tracking-[0.4em] transition-all {phone.length >= 10 ? 'text-white group-hover/btn:tracking-[0.5em]' : 'text-gray-400'}">Gửi yêu cầu khẩn cấp</span>
+                    <span class="text-[10px] font-black tracking-[0.4em] transition-all {phone.length >= 10 ? 'text-white group-hover/btn:tracking-[0.5em]' : 'text-gray-400'}">Gửi yêu cầu khẩn cấp</span>
                     <svg class="w-4 h-4 transition-colors {phone.length >= 10 ? 'text-luxury-copper group-hover/btn:text-white' : 'text-gray-400'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 {/if}
               </div>
@@ -203,8 +203,8 @@
               <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
             </div>
             <div class="space-y-2">
-                <h3 class="text-lg font-black text-gray-900 uppercase tracking-tighter">Đã Bắt Tín Hiệu</h3>
-                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed px-4">
+                <h3 class="text-lg font-black text-gray-900 tracking-tighter">Đã Bắt Tín Hiệu</h3>
+                <p class="text-[10px] text-gray-500 font-bold tracking-widest leading-relaxed px-4">
                     Tín hiệu đã được tiếp nhận. Chuyên viên Elite sẽ gọi lại trong 30 giây.
                 </p>
             </div>
@@ -220,10 +220,10 @@
                <div class="w-4 h-4 border-[0.5px] border-white/10 bg-gray-900 grayscale opacity-40"></div>
              {/each}
            </div>
-           <span class="text-[7px] font-black text-white/20 uppercase tracking-[0.4em]">Phiên bản V2.2.0</span>
+           <span class="text-[7px] font-black text-white/20 tracking-[0.4em]">Phiên bản V2.2.0</span>
         </div>
         <div class="flex flex-col items-end">
-            <span class="text-[7px] font-black text-luxury-peach uppercase tracking-[0.2em] animate-pulse italic">Đường Truyền Mật</span>
+            <span class="text-[7px] font-black text-luxury-peach tracking-[0.2em] animate-pulse italic">Đường Truyền Mật</span>
         </div>
       </footer>
     </div>

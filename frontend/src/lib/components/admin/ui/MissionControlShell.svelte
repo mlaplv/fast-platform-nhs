@@ -132,13 +132,13 @@
             <div class="flex items-center gap-3 mb-1">
               <Activity size={14} class="{theme.textClass} animate-pulse" />
               <h2
-                class="text-xl font-bold text-white tracking-[0.4em] uppercase"
+                class="text-xl font-bold text-white tracking-[0.4em] "
               >
                 {title}
               </h2>
             </div>
             <div
-              class="flex items-center gap-4 text-[8px] font-mono text-white/20 uppercase tracking-[0.3em]"
+              class="flex items-center gap-4 text-[8px] font-mono text-white/20 tracking-[0.3em]"
             >
               <span>Node: {node}</span>
               <span class="w-1 h-1 rounded-full bg-white/10"></span>
@@ -150,11 +150,11 @@
         <div class="flex items-center gap-4">
           <div class="flex flex-col items-end mr-6 opacity-40">
             <span
-              class="text-[8px] font-mono text-white uppercase tracking-[0.5em]"
+              class="text-[8px] font-mono text-white tracking-[0.5em]"
               >System Display</span
             >
             <span
-              class="text-[10px] font-mono {theme.textClass} uppercase tracking-widest tabular-nums"
+              class="text-[10px] font-mono {theme.textClass} tracking-widest tabular-nums"
               >{currentTime}</span
             >
           </div>
@@ -184,7 +184,7 @@
         >
           <div class="flex flex-col">
             <span
-              class="text-[7px] font-mono text-white/20 uppercase tracking-[0.5em]"
+              class="text-[7px] font-mono text-white/20 tracking-[0.5em]"
               >System Status: Operational</span
             >
             <div class="flex gap-1 mt-1">
@@ -201,7 +201,7 @@
           <div class="flex items-center gap-4">
             <Cpu size={14} class="text-white/20" />
             <div
-              class="text-[9px] text-white/20 uppercase tracking-[0.8em] font-mono"
+              class="text-[9px] text-white/20 tracking-[0.8em] font-mono"
             >
               Mission Control Interface Active
             </div>

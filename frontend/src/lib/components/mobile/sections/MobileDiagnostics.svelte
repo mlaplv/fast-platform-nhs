@@ -352,7 +352,7 @@
               </div>
             </div>
 
-            <div class="text-xl font-black text-white mb-2 tracking-widest italic uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] whitespace-nowrap">
+            <div class="text-xl font-black text-white mb-2 tracking-widest italic drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] whitespace-nowrap">
               ĐANG PHÂN TÍCH...
             </div>
             
@@ -403,7 +403,7 @@
                 <h3 class="text-xl font-black text-white tracking-tighter mb-1 drop-shadow-[0_0_15px_rgba(255,183,197,0.5)] italic sentence-case-target">
                   Phác đồ điều trị
                 </h3>
-                <p class="text-[7px] text-[#FFB7C5] font-bold uppercase tracking-[0.3em]">AI osmo 2026</p>
+                <p class="text-[7px] text-[#FFB7C5] font-bold tracking-[0.3em]">AI osmo 2026</p>
               </div>
               <div class="flex items-center gap-2 shrink-0">
                <div class="text-right">
@@ -508,11 +508,11 @@
               <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
                   <div class="flex items-center gap-2">
                       <div class="w-2 h-2 rounded-full bg-[#FFB7C5] animate-pulse"></div>
-                      <h3 class="text-[10px] font-bold text-white uppercase tracking-widest">QUIZ DIRECT ENGINE</h3>
+                      <h3 class="text-[10px] font-bold text-white tracking-widest">QUIZ DIRECT ENGINE</h3>
                   </div>
                   <button 
                       onclick={addQuestion}
-                      class="flex items-center gap-1 px-3 py-2 bg-[#FFB7C5] text-slate-900 text-[9px] font-bold uppercase rounded-lg shadow-xl active:scale-95 transition-all"
+                      class="flex items-center gap-1 px-3 py-2 bg-[#FFB7C5] text-slate-900 text-[9px] font-bold rounded-lg shadow-xl active:scale-95 transition-all"
                   >
                       <Plus size={12} /> THÊM CÂU
                   </button>
@@ -541,7 +541,7 @@
 
                           <div class="pl-4 space-y-4">
                               <div class="space-y-1">
-                                  <label class="text-[7px] font-bold text-white/30 uppercase tracking-widest">Câu hỏi</label>
+                                  <label class="text-[7px] font-bold text-white/30 tracking-widest">Câu hỏi</label>
                                   <input 
                                       bind:value={question.title}
                                       class="w-full bg-transparent border-b border-white/10 focus:border-[#FFB7C5] py-1 text-sm font-bold text-white outline-none transition-all"
@@ -549,7 +549,7 @@
                                   />
                               </div>
                               <div class="space-y-1">
-                                  <label class="text-[7px] font-bold text-white/30 uppercase tracking-widest">Mô tả (Subtitle)</label>
+                                  <label class="text-[7px] font-bold text-white/30 tracking-widest">Mô tả (Subtitle)</label>
                                   <input 
                                       bind:value={question.subtitle}
                                       class="w-full bg-transparent border-b border-white/5 focus:border-[#FFB7C5]/50 py-1 text-[10px] text-white/50 outline-none transition-all"
@@ -559,8 +559,8 @@
 
                               <div class="space-y-2 pt-2">
                                   <div class="flex items-center justify-between">
-                                      <span class="text-[7px] font-bold text-[#FFB7C5]/60 uppercase tracking-widest">Các Lựa chọn</span>
-                                      <button onclick={() => addOption(qIdx)} class="text-[8px] font-bold text-white/40 active:text-[#FFB7C5] uppercase tracking-widest flex items-center gap-1 bg-white/5 px-2 py-1 rounded">
+                                      <span class="text-[7px] font-bold text-[#FFB7C5]/60 tracking-widest">Các Lựa chọn</span>
+                                      <button onclick={() => addOption(qIdx)} class="text-[8px] font-bold text-white/40 active:text-[#FFB7C5] tracking-widest flex items-center gap-1 bg-white/5 px-2 py-1 rounded">
                                           <PlusCircle size={8} /> THÊM
                                       </button>
                                   </div>
@@ -684,8 +684,8 @@
           </div>
         </div>
         <div class="text-center">
-          <p class="text-[10px] font-black text-white/30 uppercase tracking-[0.5em] animate-pulse">Syncing AI Core...</p>
-          <p class="text-[8px] text-[#FFB7C5]/40 uppercase tracking-widest mt-2 font-mono">Status: Secure_Protocol_Active</p>
+          <p class="text-[10px] font-black text-white/30 tracking-[0.5em] animate-pulse">Syncing AI Core...</p>
+          <p class="text-[8px] text-[#FFB7C5]/40 tracking-widest mt-2 font-mono">Status: Secure_Protocol_Active</p>
         </div>
       </div>
     {/if}
@@ -730,8 +730,7 @@
     display: inline-block;
   }
   .option-label::first-letter, .diagnostic-log-text::first-letter, .sentence-case-target::first-letter {
-    text-transform: uppercase;
-  }
+    }
 
   .animate-spin-slow {
     animation: spin 3s linear infinite;

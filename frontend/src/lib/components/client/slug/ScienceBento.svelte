@@ -66,7 +66,7 @@ import X from "@lucide/svelte/icons/x";
             </span>
         </h2>
 
-        <p class="section-description text-white/50 text-[11px] md:text-[12px] max-w-xl mx-auto leading-relaxed tracking-[0.1em] uppercase -mt-6 mb-12 text-center font-medium">
+        <p class="section-description text-white/50 text-[11px] md:text-[12px] max-w-xl mx-auto leading-relaxed tracking-[0.1em] -mt-6 mb-12 text-center font-medium">
             <EditableWrapper path="metadata.science_subheadline" type="text" label="SỬA MÔ TẢ" as="span">
                 {product?.metadata?.science_subheadline || labels.subheadline}
             </EditableWrapper>
@@ -105,7 +105,7 @@ import X from "@lucide/svelte/icons/x";
                         </svg>
                     </div>
 
-                    <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-luxury-sakura">
+                    <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight transition-colors group-hover:text-luxury-sakura">
                         <EditableWrapper path="metadata.science_card1_title" type="text" label="SỬA TIÊU ĐỀ THẺ 1" as="span">
                             {product?.metadata?.science_card1_title || labels.card1_title}
                         </EditableWrapper>
@@ -127,7 +127,7 @@ import X from "@lucide/svelte/icons/x";
                         </svg>
                     </div>
 
-                    <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight uppercase transition-colors group-hover:text-luxury-gold">
+                    <h3 class="text-white text-lg lg:text-2xl font-black mb-3 tracking-tight transition-colors group-hover:text-luxury-gold">
                         <EditableWrapper path="metadata.science_card2_title" type="text" label="SỬA TIÊU ĐỀ THẺ 2" as="span">
                             {product?.metadata?.science_card2_title || labels.card2_title}
                         </EditableWrapper>
@@ -154,12 +154,12 @@ import X from "@lucide/svelte/icons/x";
                         </div>
                         
                         <div class="flex flex-col">
-                            <h3 class="text-2xl lg:text-3xl font-black text-white tracking-tighter uppercase leading-none">
+                            <h3 class="text-2xl lg:text-3xl font-black text-white tracking-tighter leading-none">
                                 <EditableWrapper path="metadata.science_faq_title" type="text" label="SỬA TIÊU ĐỀ FAQ" as="span">
                                     {labels.faq_title}
                                 </EditableWrapper>
                             </h3>
-                            <p class="text-[10px] uppercase tracking-[0.3em] font-bold text-slate-500 mt-2 opacity-60">
+                            <p class="text-[10px] tracking-[0.3em] font-bold text-slate-500 mt-2 opacity-60">
                                 Click để xem giải đáp chuyên sâu
                             </p>
                         </div>
@@ -233,7 +233,7 @@ import X from "@lucide/svelte/icons/x";
 
                     <button 
                         onclick={closeFaq}
-                        class="mt-14 w-full py-5 bg-white text-black text-xs font-black uppercase tracking-[0.3em] rounded-2xl hover:bg-luxury-sakura hover:text-white transition-all transform hover:scale-[1.02] active:scale-95 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
+                        class="mt-14 w-full py-5 bg-white text-black text-xs font-black tracking-[0.3em] rounded-2xl hover:bg-luxury-sakura hover:text-white transition-all transform hover:scale-[1.02] active:scale-95 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
                     >
                         Tôi đã rõ
                     </button>

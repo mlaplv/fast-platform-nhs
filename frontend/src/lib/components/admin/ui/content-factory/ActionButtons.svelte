@@ -107,7 +107,7 @@
     <button
       onclick={viewingStep === 6 ? handlePublish : (viewingStep < step ? () => { viewingStep = step; isEditing = false; } : handleApprove)}
       disabled={isLoading || isPublishing || (isProcessing && viewingStep === step)}
-      class="group/primary relative h-9 px-4 flex items-center gap-2 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 font-black text-[10px] uppercase tracking-[0.15em] text-white shadow-[0_10px_25px_rgba(6,182,212,0.3)] hover:shadow-[0_15px_35px_rgba(6,182,212,0.5)] active:scale-95 transition-all overflow-hidden"
+      class="group/primary relative h-9 px-4 flex items-center gap-2 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 font-black text-[10px] tracking-[0.15em] text-white shadow-[0_10px_25px_rgba(6,182,212,0.3)] hover:shadow-[0_15px_35px_rgba(6,182,212,0.5)] active:scale-95 transition-all overflow-hidden"
     >
       <!-- Neural Shimmer -->
       <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/primary:animate-shimmer" aria-hidden="true"></div>

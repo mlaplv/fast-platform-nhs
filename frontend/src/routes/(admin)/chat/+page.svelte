@@ -95,7 +95,7 @@
     class="w-full max-w-2xl flex-1 overflow-y-auto px-8 pt-24 pb-32 scroll-smooth flex flex-col gap-6"
   >
     <h1
-      class="text-2xl font-light tracking-widest text-cyan-400 uppercase mb-4 border-b border-cyan-400/20 pb-4"
+      class="text-2xl font-light tracking-widest text-cyan-400 mb-4 border-b border-cyan-400/20 pb-4"
     >
       Giao thức kết nối
     </h1>
@@ -107,7 +107,7 @@
           <LoaderCircle size={20} />
         </div>
       {:else if !pagination.hasMore}
-        <span class="text-[10px] uppercase tracking-widest opacity-20">
+        <span class="text-[10px] tracking-widest opacity-20">
           Đầu lịch sử giao tiếp
         </span>
       {/if}
@@ -128,7 +128,7 @@
           transition:fade
         >
           <div
-            class="text-[10px] font-mono uppercase tracking-widest opacity-40"
+            class="text-[10px] font-mono tracking-widest opacity-40"
           >
             {msg.role} • {msg.timestamp.toLocaleTimeString()}
           </div>

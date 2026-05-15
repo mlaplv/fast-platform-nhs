@@ -30,7 +30,7 @@
 
         <!-- Branding Title -->
         <div class="flex flex-col items-center justify-center space-y-0 text-center">
-            <h2 class="text-[16px] font-black text-gray-400 tracking-[0.2em] uppercase italic leading-tight">
+            <h2 class="text-[16px] font-black text-gray-400 tracking-[0.2em] italic leading-tight">
               {mode === 'login' ? 'ĐĂNG NHẬP' : (mode === 'register' ? 'ĐĂNG KÝ' : 'TÀI KHOẢN')}
             </h2>
         </div>

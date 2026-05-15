@@ -75,7 +75,7 @@
     <div class="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm" transition:fade>
       <div class="flex flex-col items-center gap-3">
         <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <span class="text-[9px] font-black text-blue-400 uppercase tracking-widest animate-pulse">Đang xử lý...</span>
+        <span class="text-[9px] font-black text-blue-400 tracking-widest animate-pulse">Đang xử lý...</span>
       </div>
     </div>
   {/if}
@@ -105,19 +105,19 @@
                 >
                     <div class="relative z-10 flex items-center justify-center gap-1.5">
                         <Sparkles size={10} class="text-blue-200 group-hover:text-white" />
-                        <span class="text-[8px] font-black text-white uppercase tracking-wider">Cắt ảnh AI</span>
+                        <span class="text-[8px] font-black text-white tracking-wider">Cắt ảnh AI</span>
                     </div>
                 </button>
 
                 <button 
-                    class="bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 text-white/70 hover:text-white py-2 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all hover:scale-[1.03] active:scale-95"
+                    class="bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 text-white/70 hover:text-white py-2 rounded-xl text-[8px] font-black tracking-wider transition-all hover:scale-[1.03] active:scale-95"
                     onclick={() => { if (pendingPreset) handleSmartCrop(pendingPreset, 'normal'); }}
                 >
                     Cắt thường
                 </button>
 
                 <button 
-                    class="mt-0.5 text-[7px] text-white/30 hover:text-white/60 font-black uppercase tracking-widest transition-colors"
+                    class="mt-0.5 text-[7px] text-white/30 hover:text-white/60 font-black tracking-widest transition-colors"
                     onclick={() => pendingPreset = null}
                 >
                     Khác
@@ -135,14 +135,14 @@
             transition:scale
         >
             <div class="w-1 h-1 rounded-full bg-indigo-300 animate-pulse"></div>
-            <span class="text-[7px] font-black text-indigo-50 uppercase tracking-[0.15em]">Tối ưu AI</span>
+            <span class="text-[7px] font-black text-indigo-50 tracking-[0.15em]">Tối ưu AI</span>
         </div>
       {:else if asset.dimensions && !isCropping}
         <div 
             class="bg-black/30 backdrop-blur-2xl border border-white/10 px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow-md"
             transition:scale
         >
-            <span class="text-[7px] font-black text-white/50 uppercase tracking-[0.15em]">Chuẩn</span>
+            <span class="text-[7px] font-black text-white/50 tracking-[0.15em]">Chuẩn</span>
         </div>
       {/if}
   </div>
@@ -150,7 +150,7 @@
   <!-- Badge Ảnh Chính (Master Indicator) -->
   {#if isPrimary}
     <div
-      class="absolute top-3 left-3 flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[9px] font-black px-3 py-1.5 rounded-full shadow-[0_8px_20px_rgba(59,130,246,0.5)] uppercase tracking-[0.15em] border border-white/20"
+      class="absolute top-3 left-3 flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[9px] font-black px-3 py-1.5 rounded-full shadow-[0_8px_20px_rgba(59,130,246,0.5)] tracking-[0.15em] border border-white/20"
       transition:scale={{ duration: 300 }}
     >
       <Star size={10} fill="currentColor" class="text-blue-100" />
@@ -271,7 +271,7 @@
 
   <!-- Dimensions Indicator -->
   {#if asset.dimensions}
-    <div class="absolute bottom-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-2xl rounded-lg border border-white/10 text-[8px] text-white/50 font-black tracking-widest uppercase shadow-md pointer-events-none group-hover:opacity-0 transition-opacity">
+    <div class="absolute bottom-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-2xl rounded-lg border border-white/10 text-[8px] text-white/50 font-black tracking-widest shadow-md pointer-events-none group-hover:opacity-0 transition-opacity">
       {asset.dimensions}
     </div>
   {/if}

@@ -309,7 +309,7 @@
     if (confirmed) {
       await nanobot.clearChatLogs();
     } else {
-      nanobot.showToast("THAO TÁC ĐÃ ĐƯỢC HỦY BỎ AN TOÀN", "info", 3000);
+      nanobot.showToast("THAO TÁC ĐÃ ĐƯỢC Hủy bỏ AN TOÀN", "info", 3000);
     }
   }
 
@@ -346,7 +346,7 @@
         <div class="flex items-center gap-1.5">
           <div class="flex items-center gap-2">
             <XohiLogo size={14} class="text-neon-cyan opacity-80" />
-            <span class="text-[10px] font-black tracking-widest text-white/40 uppercase">Hearting Log</span>
+            <span class="text-[10px] font-black tracking-widest text-white/40 ">Hearting Log</span>
           </div>
 
           <div class="w-[1px] h-4 bg-white/10 mx-2"></div>
@@ -356,10 +356,10 @@
               <User size={12} class="text-neon-cyan/40 group-hover/usr:text-neon-cyan/80 transition-colors" />
               <select
                 onchange={handleUserChange}
-                class="bg-transparent border-none text-[9px] font-mono text-white/40 group-hover/usr:text-white/80 focus:ring-0 outline-none cursor-pointer uppercase tracking-tighter max-w-[90px]"
+                class="bg-transparent border-none text-[9px] font-mono text-white/40 group-hover/usr:text-white/80 focus:ring-0 outline-none cursor-pointer tracking-tighter max-w-[90px]"
                 value={nanobot.godModeUser || "self"}
               >
-                <option value="self" class="bg-black/95 text-neon-cyan font-bold uppercase">
+                <option value="self" class="bg-black/95 text-neon-cyan font-bold ">
                   {permissionState.userName || "Identity"}
                 </option>
                 {#each availableUsers as user}
@@ -414,8 +414,8 @@
       <div class="flex flex-col items-center justify-center h-full gap-4 text-center opacity-10">
         <Sparkles size={32} class="text-white" />
         <div class="space-y-1">
-          <p class="text-[11px] font-bold uppercase tracking-[0.2em]">Neural Silence</p>
-          <p class="text-[9px] uppercase tracking-tighter">Waiting for operative heartbeat...</p>
+          <p class="text-[11px] font-bold tracking-[0.2em]">Neural Silence</p>
+          <p class="text-[9px] tracking-tighter">Waiting for operative heartbeat...</p>
         </div>
       </div>
     {:else}
@@ -427,7 +427,7 @@
           >
             <div class="flex-1 min-w-0">
               <div class="flex items-baseline gap-2">
-                 <span class="text-[9px] font-black uppercase tracking-widest shrink-0 {isHumanSource(log) ? 'text-white/50' : 'text-neon-cyan/80'}">
+                 <span class="text-[9px] font-black tracking-widest shrink-0 {isHumanSource(log) ? 'text-white/50' : 'text-neon-cyan/80'}">
                     [{getDisplayName(log)}]
                  </span>
                  <p class="text-[11px] leading-relaxed text-gray-400 group-hover/log:text-white/80 transition-colors break-words inline">
@@ -444,11 +444,11 @@
                   <div class="mt-3 p-3 rounded border border-neon-cyan/20 bg-neon-cyan/5 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2">
                     <div class="flex items-center gap-2 min-w-0">
                       <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0"></div>
-                      <span class="text-[10px] font-bold text-neon-cyan truncate uppercase">Duyệt Bước: {log.data?.step || 1}</span>
+                      <span class="text-[10px] font-bold text-neon-cyan truncate ">Duyệt Bước: {log.data?.step || 1}</span>
                     </div>
                     <button
                       onclick={() => nanobot.resumeCampaign(log)}
-                      class="px-4 py-1.5 bg-neon-cyan text-black font-black text-[10px] rounded hover:bg-white transition-all active:scale-95 shadow-[0_0_15px_rgba(0,255,255,0.3)] uppercase tracking-tighter"
+                      class="px-4 py-1.5 bg-neon-cyan text-black font-black text-[10px] rounded hover:bg-white transition-all active:scale-95 shadow-[0_0_15px_rgba(0,255,255,0.3)] tracking-tighter"
                     >
                       Resume
                     </button>

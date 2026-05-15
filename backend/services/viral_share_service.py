@@ -218,6 +218,7 @@ class ViralShareService:
             and_(
                 Voucher.id == voucher_id,
                 Voucher.is_active == True,
+                Voucher.is_viral == True, # Elite V2.2: Must be explicitly viral
                 Voucher.tenant_id == tenant,
                 or_(Voucher.start_date == None, Voucher.start_date <= now),
                 or_(Voucher.end_date == None, Voucher.end_date >= now),
@@ -258,12 +259,10 @@ class ViralShareService:
         res = await db_session.execute(stmt)
         voucher: Optional[Voucher] = res.scalar_one_or_none()
         
-        if not voucher or not voucher.metadata_json:
+        if not voucher or not voucher.is_viral:
             return None
             
-        viral_suite = voucher.metadata_json.get("viral_suite")
-        if not viral_suite or not viral_suite.get("enabled"):
-            return None
+        viral_suite = (voucher.metadata_json or {}).get("viral_suite", {})
             
         return {
             "voucher_id": voucher.id,

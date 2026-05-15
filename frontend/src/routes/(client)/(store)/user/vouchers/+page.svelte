@@ -89,7 +89,7 @@
         <div class="border-b border-stone-100 pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Kho Voucher</h1>
-            <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Săn ưu đãi độc quyền từ osmo</p>
+            <p class="text-[13px] text-stone-400 mt-1 tracking-widest">Săn ưu đãi độc quyền từ osmo</p>
           </div>
           
           <div class="bg-stone-50 px-6 py-3 rounded-xl border border-stone-100 flex items-center gap-4">
@@ -97,7 +97,7 @@
                 <Sparkles size={20} />
              </div>
              <div>
-                <p class="text-[10px] font-black text-stone-400 uppercase tracking-widest leading-none mb-1">Tổng quyền lợi</p>
+                <p class="text-[10px] font-black text-stone-400 tracking-widest leading-none mb-1">Tổng quyền lợi</p>
                 <p class="text-lg font-black text-stone-800 italic">~ {formatCurrency(totalSavedValue)}</p>
              </div>
           </div>
@@ -108,7 +108,7 @@
           {#each tabs as tab}
             <button
               onclick={() => activeTab = tab.id}
-              class="px-6 py-2 text-[11px] font-black uppercase tracking-widest rounded-lg transition-all
+              class="px-6 py-2 text-[11px] font-black tracking-widest rounded-lg transition-all
               {activeTab === tab.id ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-400 hover:text-stone-600'}"
             >
               {tab.label}
@@ -120,7 +120,7 @@
         {#if isLoading}
           <div class="py-20 flex flex-col items-center justify-center gap-4">
              <Loader2 class="w-10 h-10 text-stone-200 animate-spin" />
-             <p class="text-[11px] font-black text-stone-300 uppercase tracking-widest italic">Đang tải kho báu...</p>
+             <p class="text-[11px] font-black text-stone-300 tracking-widest italic">Đang tải kho báu...</p>
           </div>
         {:else if filteredVouchers.length > 0}
           <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -134,8 +134,8 @@
                 <Ticket size={40} />
              </div>
              <div class="space-y-1">
-                <p class="text-sm font-black text-stone-800 uppercase italic">Chưa có mã nào ở đây</p>
-                <p class="text-[11px] text-stone-400 uppercase tracking-widest font-bold">Hãy quay lại sau khi sếp tung deal mới nhé!</p>
+                <p class="text-sm font-black text-stone-800 italic">Chưa có mã nào ở đây</p>
+                <p class="text-[11px] text-stone-400 tracking-widest font-bold">Hãy quay lại sau khi sếp tung deal mới nhé!</p>
              </div>
           </div>
         {/if}
@@ -156,11 +156,11 @@
                <div class="p-1.5 bg-luxury-copper/20 rounded-lg text-luxury-copper backdrop-blur-sm border border-luxury-copper/20">
                   <Ticket size={14} />
                </div>
-               <span class="text-[10px] font-black text-stone-400 uppercase tracking-[3px]">Elite Wallet</span>
+               <span class="text-[10px] font-black text-stone-400 tracking-[3px]">Elite Wallet</span>
             </div>
             <div>
                <h2 class="text-2xl font-black text-white italic tracking-tight">{formatCurrency(totalSavedValue)}</h2>
-               <p class="text-[9px] text-stone-500 uppercase font-black tracking-widest mt-1 italic">Ưu đãi lũy kế hệ thống</p>
+               <p class="text-[9px] text-stone-500 font-black tracking-widest mt-1 italic">Ưu đãi lũy kế hệ thống</p>
             </div>
          </div>
          <Sparkles class="absolute top-4 right-4 text-luxury-copper/20 group-active:scale-125 transition-transform" />
@@ -173,7 +173,7 @@
           {#each tabs as tab}
             <button
               onclick={() => activeTab = tab.id}
-              class="flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all
+              class="flex-1 py-3 text-[10px] font-black tracking-widest rounded-lg transition-all
               {activeTab === tab.id ? 'bg-white text-stone-800 shadow-lg' : 'text-stone-400'}"
             >
               {tab.label}
@@ -198,7 +198,7 @@
            <div class="text-stone-200 flex justify-center">
               <Ticket size={60} strokeWidth={1} />
            </div>
-           <p class="text-[11px] font-black text-stone-400 uppercase tracking-widest">Kho báu đang trống, hẹn gặp sếp ở đợt sale tới!</p>
+           <p class="text-[11px] font-black text-stone-400 tracking-widest">Kho báu đang trống, hẹn gặp sếp ở đợt sale tới!</p>
         </div>
       {/if}
     </div>

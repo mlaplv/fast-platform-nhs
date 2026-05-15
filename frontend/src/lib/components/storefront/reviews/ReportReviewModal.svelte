@@ -80,7 +80,7 @@
           </div>
           <div>
             <h3 class="text-xl font-bold text-white tracking-tight">Báo cáo vi phạm</h3>
-            <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-widest font-bold">Bảo vệ tính minh bạch của cộng đồng</p>
+            <p class="text-[10px] text-gray-400 mt-1 tracking-widest font-bold">Bảo vệ tính minh bạch của cộng đồng</p>
           </div>
         </div>
 
@@ -94,7 +94,7 @@
                   {reason === r.label ? 'border-red-500 bg-red-500/5 text-white' : 'border-white/5 bg-white/[0.02] text-gray-400 hover:border-white/20 hover:text-gray-300'}"
               >
                 <span class="text-xl">{r.icon}</span>
-                <span class="text-[11px] font-bold uppercase tracking-wider">{r.label}</span>
+                <span class="text-[11px] font-bold tracking-wider">{r.label}</span>
               </button>
             {/each}
           </div>
@@ -113,14 +113,14 @@
           <button 
             onclick={handleSubmit}
             disabled={!reason || isSubmitting}
-            class="w-full group relative overflow-hidden py-5 bg-white text-black font-black text-xs uppercase tracking-[0.2em] rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
+            class="w-full group relative overflow-hidden py-5 bg-white text-black font-black text-xs tracking-[0.2em] rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
           >
             <div class="absolute inset-0 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             
             <div class="relative z-10 flex items-center justify-center gap-3 group-hover:text-white transition-colors duration-300">
               {#if isSubmitting}
                 <Loader2 size={16} class="animate-spin" />
-                ĐANG XỬ LÝ...
+                Đang xử lý...
               {:else}
                 <Send size={16} />
                 GỬI BÁO CÁO NGAY
@@ -131,7 +131,7 @@
 
         <div class="flex items-center justify-center gap-2 mt-8 opacity-60">
           <div class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
-          <p class="text-[10px] text-gray-400 text-center font-bold tracking-widest uppercase">
+          <p class="text-[10px] text-gray-400 text-center font-bold tracking-widest ">
             osmo Intelligence // Đảm bảo mọi đánh giá đều trung thực
           </p>
         </div>

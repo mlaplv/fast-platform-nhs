@@ -23,8 +23,8 @@
             <span class="text-xs font-black text-cyan-400 relative z-10">{selectedCount}</span>
         </div>
         <div class="flex flex-col">
-            <span class="text-[10px] font-black text-white uppercase tracking-tighter">Neuron_Selected</span>
-            <span class="text-[8px] font-bold text-cyan-500/50 uppercase tracking-widest leading-none mt-0.5">Batch_Buffer_Active</span>
+            <span class="text-[10px] font-black text-white tracking-tighter">Neuron_Selected</span>
+            <span class="text-[8px] font-bold text-cyan-500/50 tracking-widest leading-none mt-0.5">Batch_Buffer_Active</span>
         </div>
       </div>
 
@@ -32,7 +32,7 @@
       <div class="flex items-center gap-3">
         <button
           onclick={() => kb.bulkToggleActive(true)}
-          class="flex items-center gap-2 px-4 py-2.5 hover:bg-cyan-500/10 text-gray-400 hover:text-cyan-400 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest group border border-transparent hover:border-cyan-500/20"
+          class="flex items-center gap-2 px-4 py-2.5 hover:bg-cyan-500/10 text-gray-400 hover:text-cyan-400 rounded-xl transition-all text-[10px] font-black tracking-widest group border border-transparent hover:border-cyan-500/20"
         >
           <Power size={14} class="opacity-50 group-hover:opacity-100 text-cyan-400" />
           Neural_On
@@ -40,7 +40,7 @@
 
         <button
           onclick={() => kb.bulkToggleActive(false)}
-          class="flex items-center gap-2 px-4 py-2.5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest group border border-transparent hover:border-red-500/20"
+          class="flex items-center gap-2 px-4 py-2.5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 rounded-xl transition-all text-[10px] font-black tracking-widest group border border-transparent hover:border-red-500/20"
         >
           <PowerOff size={14} class="opacity-50 group-hover:opacity-100 text-red-500" />
           Neural_Off
@@ -50,7 +50,7 @@
 
         <button
           onclick={kb.bulkDelete}
-          class="flex items-center gap-2 px-5 py-3 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white font-black text-[10px] uppercase tracking-widest rounded-xl border border-red-600/30 hover:border-red-600 transition-all shadow-[0_0_20px_rgba(220,38,38,0.2)] group"
+          class="flex items-center gap-2 px-5 py-3 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white font-black text-[10px] tracking-widest rounded-xl border border-red-600/30 hover:border-red-600 transition-all shadow-[0_0_20px_rgba(220,38,38,0.2)] group"
         >
           <Trash2 size={14} class="opacity-70 group-hover:opacity-100" />
           PURGE_NEURONS

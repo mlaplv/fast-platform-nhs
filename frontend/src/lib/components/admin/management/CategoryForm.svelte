@@ -147,12 +147,12 @@
     <!-- Header -->
     <div class="flex items-center justify-between border-b border-white/10 px-8 py-5 bg-white/[0.02]">
       <div class="flex flex-col gap-1">
-        <div class="text-[10px] font-bold text-[#00FFFF] uppercase tracking-[0.3em] flex items-center gap-2">
+        <div class="text-[10px] font-bold text-[#00FFFF] tracking-[0.3em] flex items-center gap-2">
           <div class="w-1.5 h-1.5 rounded-full bg-[#00FFFF] animate-pulse"></div>
           {editingId ? "Modify Taxonomy Node" : "Initialize Taxonomy Node"}
         </div>
         {#if formParentId}
-          <div class="text-gray-500 font-mono text-[9px] uppercase tracking-wider">
+          <div class="text-gray-500 font-mono text-[9px] tracking-wider">
             Inheriting from parent scope: <span class="text-[#00FFFF]/60">{formParentId}</span>
           </div>
         {/if}
@@ -161,15 +161,15 @@
       <div class="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
         <button 
           onclick={() => activeTab = "general"}
-          class="px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all {activeTab === 'general' ? 'bg-[#00FFFF]/20 text-[#00FFFF]' : 'text-gray-500 hover:text-gray-300'}"
+          class="px-4 py-1.5 text-[10px] font-bold tracking-widest rounded-lg transition-all {activeTab === 'general' ? 'bg-[#00FFFF]/20 text-[#00FFFF]' : 'text-gray-500 hover:text-gray-300'}"
         >General</button>
         <button 
           onclick={() => activeTab = "seo"}
-          class="px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all {activeTab === 'seo' ? 'bg-[#00FFFF]/20 text-[#00FFFF]' : 'text-gray-500 hover:text-gray-300'}"
+          class="px-4 py-1.5 text-[10px] font-bold tracking-widest rounded-lg transition-all {activeTab === 'seo' ? 'bg-[#00FFFF]/20 text-[#00FFFF]' : 'text-gray-500 hover:text-gray-300'}"
         >SEO_Engine</button>
         <button 
           onclick={() => activeTab = "faqs"}
-          class="px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all {activeTab === 'faqs' ? 'bg-orange-500/20 text-orange-400' : 'text-gray-500 hover:text-gray-300'}"
+          class="px-4 py-1.5 text-[10px] font-bold tracking-widest rounded-lg transition-all {activeTab === 'faqs' ? 'bg-orange-500/20 text-orange-400' : 'text-gray-500 hover:text-gray-300'}"
         >FAQs_Schema</button>
       </div>
     </div>
@@ -182,7 +182,7 @@
             <!-- Name & Slug -->
             <div class="flex flex-col gap-6">
               <div class="flex flex-col gap-2">
-                <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Name_Identifier</label>
+                <label class="text-[9px] font-bold text-gray-500 tracking-widest ml-1">Name_Identifier</label>
                 <div class="relative group bg-black/40 border border-white/5 hover:border-white/10 focus-within:border-[#00FFFF]/40 rounded-2xl transition-all shadow-inner">
                   <input
                     bind:value={formName}
@@ -194,7 +194,7 @@
               </div>
 
               <div class="flex flex-col gap-2">
-                <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1">Slug_Reference</label>
+                <label class="text-[9px] font-bold text-gray-500 tracking-widest ml-1">Slug_Reference</label>
                 <div class="relative group bg-black/40 border border-white/5 hover:border-white/10 focus-within:border-[#00FFFF]/40 rounded-2xl transition-all shadow-inner">
                   <div class="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] text-[#00FFFF]/40 font-mono">/</div>
                   <input
@@ -210,7 +210,7 @@
             <div class="flex flex-col gap-6">
               <div class="flex items-center gap-4">
                 <div class="flex-1 flex flex-col gap-2">
-                  <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <label class="text-[9px] font-bold text-gray-500 tracking-widest ml-1 flex items-center gap-2">
                     <ImageIcon size={10} /> Banner_Asset_URL
                   </label>
                   <div class="relative group bg-black/40 border border-white/5 hover:border-white/10 focus-within:border-[#00FFFF]/40 rounded-2xl transition-all shadow-inner">
@@ -231,7 +231,7 @@
               </div>
 
               <div class="flex flex-col gap-2">
-                <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                <label class="text-[9px] font-bold text-gray-500 tracking-widest ml-1 flex items-center gap-2">
                   <span>🖼️</span> Icon_Emoji_SVG
                 </label>
                 <div class="relative group bg-black/40 border border-white/5 hover:border-white/10 focus-within:border-[#00FFFF]/40 rounded-2xl transition-all shadow-inner">
@@ -247,19 +247,19 @@
             <!-- Visual Gate Controls -->
             <div class="md:col-span-2">
               <div class="p-4 bg-white/5 border border-white/10 rounded-2xl">
-                <label class="text-[9px] font-bold text-[#00FFFF] uppercase tracking-widest flex items-center gap-2 mb-4">
+                <label class="text-[9px] font-bold text-[#00FFFF] tracking-widest flex items-center gap-2 mb-4">
                   Display_Gate_Control
                 </label>
                 <div class="flex gap-4">
                   <label class="flex-1 flex items-center justify-between p-3 bg-black/20 border border-white/5 rounded-xl cursor-pointer group hover:border-[#00FFFF]/20 transition-all">
-                    <span class="text-xs text-gray-400 group-hover:text-white transition-colors uppercase tracking-tighter">Show on Mobile</span>
+                    <span class="text-xs text-gray-400 group-hover:text-white transition-colors tracking-tighter">Show on Mobile</span>
                     <input type="checkbox" bind:checked={formShowOnMobile} class="hidden" />
                     <div class="w-10 h-5 rounded-full relative transition-colors {formShowOnMobile ? 'bg-[#00FFFF]/40' : 'bg-gray-800'}">
                         <div class="absolute top-1 left-1 w-3 h-3 rounded-full bg-white transition-all {formShowOnMobile ? 'translate-x-5' : ''}"></div>
                     </div>
                   </label>
                   <label class="flex-1 flex items-center justify-between p-3 bg-black/20 border border-white/5 rounded-xl cursor-pointer group hover:border-[#00FFFF]/20 transition-all">
-                    <span class="text-xs text-gray-400 group-hover:text-white transition-colors uppercase tracking-tighter">Show on Desktop</span>
+                    <span class="text-xs text-gray-400 group-hover:text-white transition-colors tracking-tighter">Show on Desktop</span>
                     <input type="checkbox" bind:checked={formShowOnDesktop} class="hidden" />
                     <div class="w-10 h-5 rounded-full relative transition-colors {formShowOnDesktop ? 'bg-[#00FFFF]/40' : 'bg-gray-800'}">
                         <div class="absolute top-1 left-1 w-3 h-3 rounded-full bg-white transition-all {formShowOnDesktop ? 'translate-x-5' : ''}"></div>
@@ -271,7 +271,7 @@
 
             <!-- Description -->
             <div class="md:col-span-2 flex flex-col gap-2">
-              <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+              <label class="text-[9px] font-bold text-gray-500 tracking-widest ml-1 flex items-center gap-2">
                 <FileText size={10} /> Rich_Description
               </label>
               <div class="min-h-[300px] rounded-2xl overflow-hidden border border-white/5 focus-within:border-[#00FFFF]/20 transition-all bg-black/40">
@@ -288,13 +288,13 @@
         {#if activeTab === "seo"}
           <div class="flex flex-col gap-6" transition:fade>
             <div class="flex items-center justify-between">
-              <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2 text-blue-400">
+              <label class="text-[9px] font-bold text-gray-500 tracking-widest ml-1 flex items-center gap-2 text-blue-400">
                 <Globe size={10} /> Meta_Title_Override
               </label>
               <button 
                 onclick={suggestSeo}
                 disabled={isSuggestingSeo}
-                class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-lg text-[9px] font-bold text-blue-400 uppercase tracking-widest hover:bg-blue-500/20 disabled:opacity-50 transition-all"
+                class="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded-lg text-[9px] font-bold text-blue-400 tracking-widest hover:bg-blue-500/20 disabled:opacity-50 transition-all"
               >
                 <Sparkles size={10} class={isSuggestingSeo ? "animate-spin" : ""} />
                 {isSuggestingSeo ? "Analysing..." : "AI_Suggest"}
@@ -310,7 +310,7 @@
             </div>
 
             <div class="flex flex-col gap-2">
-              <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-2 text-purple-400">
+              <label class="text-[9px] font-bold text-gray-500 tracking-widest ml-1 flex items-center gap-2 text-purple-400">
                 Meta_Description_Snippet
               </label>
               <div class="relative group bg-black/40 border border-white/5 hover:border-white/10 focus-within:border-purple-500/40 rounded-2xl transition-all shadow-inner">
@@ -329,8 +329,8 @@
                 <Globe size={18} class="text-blue-500" />
               </div>
               <div class="flex flex-col gap-1">
-                <span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">SEO Optimization Engine</span>
-                <p class="text-[9px] text-gray-600 leading-relaxed uppercase tracking-tighter">AI will analyze your category name and description to generate optimal meta tags for search engine visibility.</p>
+                <span class="text-[10px] font-bold text-blue-500 tracking-widest">SEO Optimization Engine</span>
+                <p class="text-[9px] text-gray-600 leading-relaxed tracking-tighter">AI will analyze your category name and description to generate optimal meta tags for search engine visibility.</p>
               </div>
             </div>
           </div>
@@ -344,15 +344,15 @@
                   <MessageCircleQuestion size={20} class="text-orange-400" />
                 </div>
                 <div class="flex flex-col">
-                  <span class="text-xs font-black uppercase text-white tracking-widest">FAQ_Schema_Core</span>
-                  <span class="text-[9px] text-gray-500 uppercase tracking-wider">AI-Powered Structured Data Generation</span>
+                  <span class="text-xs font-black text-white tracking-widest">FAQ_Schema_Core</span>
+                  <span class="text-[9px] text-gray-500 tracking-wider">AI-Powered Structured Data Generation</span>
                 </div>
               </div>
               <div class="flex items-center gap-2">
                 <button 
                   onclick={suggestFaqs}
                   disabled={isSuggestingFaqs}
-                  class="flex items-center gap-2 px-4 py-2 bg-orange-500/20 border border-orange-500/30 rounded-xl text-[10px] font-bold text-orange-400 uppercase tracking-widest hover:bg-orange-500/30 disabled:opacity-50 transition-all"
+                  class="flex items-center gap-2 px-4 py-2 bg-orange-500/20 border border-orange-500/30 rounded-xl text-[10px] font-bold text-orange-400 tracking-widest hover:bg-orange-500/30 disabled:opacity-50 transition-all"
                 >
                   <Sparkles size={12} class={isSuggestingFaqs ? "animate-spin" : ""} />
                   {isSuggestingFaqs ? "Synthesizing..." : "AI_Suggest"}
@@ -400,10 +400,10 @@
               {#if formFaqs.length === 0}
                 <div class="py-16 border-2 border-dashed border-white/5 rounded-3xl flex flex-col items-center justify-center gap-3">
                   <MessageCircleQuestion size={32} class="text-gray-800" />
-                  <span class="text-[10px] font-bold text-gray-600 uppercase tracking-[0.2em]">No questions mapped to this node</span>
+                  <span class="text-[10px] font-bold text-gray-600 tracking-[0.2em]">No questions mapped to this node</span>
                   <button 
                     onclick={addFaq}
-                    class="text-[9px] font-black text-orange-500/60 uppercase tracking-widest hover:text-white transition-colors"
+                    class="text-[9px] font-black text-orange-500/60 tracking-widest hover:text-white transition-colors"
                   >Initialize_FAQ_Store</button>
                 </div>
               {/if}
@@ -417,11 +417,11 @@
     <div class="flex items-center justify-end gap-3 px-8 py-6 border-t border-white/10 bg-black/40">
       <button
         onclick={onClose}
-        class="px-6 py-3 text-gray-500 hover:text-white text-[10px] font-bold uppercase tracking-widest transition-all"
+        class="px-6 py-3 text-gray-500 hover:text-white text-[10px] font-bold tracking-widest transition-all"
       >Abort_Changes</button>
       <button
         onclick={onSave}
-        class="px-10 py-3 bg-[#00FFFF] text-black rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:shadow-[0_0_30px_rgba(0,255,255,0.4)] hover:scale-[1.02] active:scale-95 transition-all duration-300"
+        class="px-10 py-3 bg-[#00FFFF] text-black rounded-xl text-[10px] font-black tracking-[0.2em] hover:shadow-[0_0_30px_rgba(0,255,255,0.4)] hover:scale-[1.02] active:scale-95 transition-all duration-300"
       >
         {editingId ? "Sync_Node_State" : "Deploy_Taxonomy"}
       </button>

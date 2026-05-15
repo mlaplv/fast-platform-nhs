@@ -33,7 +33,7 @@
       <div class="space-y-8" in:fade>
         <div class="border-b border-stone-100 pb-5">
           <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Thông Báo</h1>
-          <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Cập nhật tin tức mới nhất từ hệ thống</p>
+          <p class="text-[13px] text-stone-400 mt-1 tracking-widest">Cập nhật tin tức mới nhất từ hệ thống</p>
         </div>
         <NotificationList />
       </div>

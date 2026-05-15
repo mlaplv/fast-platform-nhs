@@ -27,7 +27,7 @@
     <div class="relative flex flex-col items-center pt-4 pb-3 px-12 shrink-0 border-b border-gray-100">
         <!-- Branding Title -->
         <div class="flex flex-col items-center justify-center space-y-1 text-center">
-            <h2 class="text-[18px] font-black text-gray-400 tracking-[0.2em] uppercase leading-tight">
+            <h2 class="text-[18px] font-black text-gray-400 tracking-[0.2em] leading-tight">
               {mode === 'login' ? 'ĐĂNG NHẬP' : (mode === 'register' ? 'ĐĂNG KÝ' : 'TÀI KHOẢN')}
             </h2>
             <div class="w-4 h-0.5 bg-gray-100 mt-1"></div>

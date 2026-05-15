@@ -100,7 +100,7 @@
          {:else if googleMetrics.length > 0}
             <table class="w-full border-collapse">
                <thead class="sticky top-0 bg-black/90 backdrop-blur-xl z-10 border-b border-white/10">
-                  <tr class="text-[9px] text-slate-500 font-mono font-black tracking-widest text-left uppercase">
+                  <tr class="text-[9px] text-slate-500 font-mono font-black tracking-widest text-left ">
                      <th class="px-8 py-5">Chiến dịch / Mục tiêu</th>
                      <th class="px-8 py-5 text-right">Tổng Click</th>
                      <th class="px-8 py-5 text-right">Không hợp lệ</th>

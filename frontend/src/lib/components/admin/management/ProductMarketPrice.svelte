@@ -55,12 +55,12 @@ import X from "@lucide/svelte/icons/x";
 
   <div class="flex items-center justify-between relative z-10">
     <div class="flex flex-col gap-1">
-      <div class="flex items-center gap-2 text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em]">
+      <div class="flex items-center gap-2 text-[10px] font-black text-emerald-400 tracking-[0.3em]">
         <TrendingUp size={12} class="animate-pulse" />
         Deep Intel V2.2
       </div>
       {#if formState.lastMarketSync}
-        <span class="text-[8px] font-mono text-white/20 uppercase">Last Sync: {new Date(formState.lastMarketSync).toLocaleString('vi-VN')}</span>
+        <span class="text-[8px] font-mono text-white/20 ">Last Sync: {new Date(formState.lastMarketSync).toLocaleString('vi-VN')}</span>
       {/if}
     </div>
 
@@ -68,7 +68,7 @@ import X from "@lucide/svelte/icons/x";
       type="button"
       onclick={handleSync}
       disabled={isSyncing || !product_id}
-      class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition-all text-[9px] font-black uppercase tracking-wider disabled:opacity-30"
+      class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition-all text-[9px] font-black tracking-wider disabled:opacity-30"
     >
       <RefreshCw size={10} class={isSyncing ? "animate-spin" : ""} />
       {isSyncing ? "Scanning..." : "Recon"}
@@ -80,15 +80,15 @@ import X from "@lucide/svelte/icons/x";
       <!-- Fast Metrics -->
       <div class="grid grid-cols-3 gap-2">
         <div class="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
-          <span class="text-[8px] text-white/30 uppercase font-mono tracking-wider">Avg Price</span>
+          <span class="text-[8px] text-white/30 font-mono tracking-wider">Avg Price</span>
           <span class="text-[11px] font-black text-white/80">{formState.marketData.avg_market_price ? formatCurrency(formState.marketData.avg_market_price) : 'N/A'}</span>
         </div>
         <div class="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
-          <span class="text-[8px] text-white/30 uppercase font-mono tracking-wider">Competitors</span>
+          <span class="text-[8px] text-white/30 font-mono tracking-wider">Competitors</span>
           <span class="text-[11px] font-black text-white/80">{formState.marketData.competitor_count || 0}</span>
         </div>
         <div class="p-3 rounded-xl bg-emerald-500/[0.03] border border-emerald-500/10 flex flex-col gap-1">
-          <span class="text-[8px] text-emerald-400/50 uppercase font-mono tracking-wider">Ads Count</span>
+          <span class="text-[8px] text-emerald-400/50 font-mono tracking-wider">Ads Count</span>
           <span class="text-[11px] font-black text-emerald-400">{formState.marketData.ads?.length || 0}</span>
         </div>
       </div>
@@ -102,7 +102,7 @@ import X from "@lucide/svelte/icons/x";
 
       <button 
         onclick={() => showReport = true}
-        class="w-full py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-[9px] font-black uppercase tracking-[0.2em] text-white/60"
+        class="w-full py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-[9px] font-black tracking-[0.2em] text-white/60"
       >
         Xem báo cáo chi tiết
       </button>
@@ -112,7 +112,7 @@ import X from "@lucide/svelte/icons/x";
       <div class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
         <TrendingUp size={18} class="text-white/10" />
       </div>
-      <span class="text-[9px] text-white/20 uppercase font-black tracking-[0.2em] text-center">
+      <span class="text-[9px] text-white/20 font-black tracking-[0.2em] text-center">
         Dữ liệu trinh sát trống.<br/>Khởi động Recon để thu thập.
       </span>
     </div>
@@ -142,14 +142,14 @@ import X from "@lucide/svelte/icons/x";
               <Sparkles size={18} class="text-emerald-400" />
             </div>
             <div class="flex flex-col">
-              <span class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">Phân tích từ XOHI</span>
-              <span class="text-[8px] font-mono text-white/20 uppercase tracking-widest">Neural Insight Engine</span>
+              <span class="text-[10px] font-black text-emerald-400 tracking-[0.2em]">Phân tích từ XOHI</span>
+              <span class="text-[8px] font-mono text-white/20 tracking-widest">Neural Insight Engine</span>
             </div>
           </div>
 
           <div class="flex flex-col gap-6">
             <div class="flex flex-col gap-2">
-               <h4 class="text-[9px] font-black text-white/40 uppercase tracking-widest flex items-center gap-2">
+               <h4 class="text-[9px] font-black text-white/40 tracking-widest flex items-center gap-2">
                  <div class="w-1 h-1 rounded-full bg-emerald-500"></div>
                  Tổng quan
                </h4>
@@ -159,7 +159,7 @@ import X from "@lucide/svelte/icons/x";
             </div>
 
             <div class="flex flex-col gap-2">
-               <h4 class="text-[9px] font-black text-amber-400/60 uppercase tracking-widest flex items-center gap-2">
+               <h4 class="text-[9px] font-black text-amber-400/60 tracking-widest flex items-center gap-2">
                  <div class="w-1 h-1 rounded-full bg-amber-500"></div>
                  Phản biện sắc bén
                </h4>
@@ -169,7 +169,7 @@ import X from "@lucide/svelte/icons/x";
             </div>
 
             <div class="flex flex-col gap-2">
-               <h4 class="text-[9px] font-black text-cyan-400/60 uppercase tracking-widest flex items-center gap-2">
+               <h4 class="text-[9px] font-black text-cyan-400/60 tracking-widest flex items-center gap-2">
                  <div class="w-1 h-1 rounded-full bg-cyan-500"></div>
                  Chiến lược tối ưu
                </h4>
@@ -179,7 +179,7 @@ import X from "@lucide/svelte/icons/x";
             </div>
             
             <div class="flex flex-col gap-2">
-               <h4 class="text-[9px] font-black text-indigo-400/60 uppercase tracking-widest flex items-center gap-2">
+               <h4 class="text-[9px] font-black text-indigo-400/60 tracking-widest flex items-center gap-2">
                  <div class="w-1 h-1 rounded-full bg-indigo-500"></div>
                  Góc nhìn Viral
                </h4>
@@ -193,11 +193,11 @@ import X from "@lucide/svelte/icons/x";
         <!-- Quick Stats Cards -->
         <div class="grid grid-cols-2 gap-4">
           <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1 group hover:border-emerald-500/20 transition-all">
-            <span class="text-[9px] font-black text-white/20 uppercase tracking-widest">Ads Count</span>
+            <span class="text-[9px] font-black text-white/20 tracking-widest">Ads Count</span>
             <span class="text-2xl font-black text-emerald-400 group-hover:scale-110 transition-transform origin-left">{formState.marketData.ads?.length || 0}</span>
           </div>
           <div class="p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1 group hover:border-emerald-500/20 transition-all">
-            <span class="text-[9px] font-black text-white/20 uppercase tracking-widest">Organic Results</span>
+            <span class="text-[9px] font-black text-white/20 tracking-widest">Organic Results</span>
             <span class="text-2xl font-black text-white/80 group-hover:scale-110 transition-transform origin-left">{formState.marketData.organic_results?.length || 0}</span>
           </div>
         </div>
@@ -205,14 +205,14 @@ import X from "@lucide/svelte/icons/x";
         <!-- Price Range Visualizer -->
         <div class="p-5 rounded-2xl bg-white/[0.01] border border-dashed border-white/10 flex flex-col gap-4">
            <div class="flex items-center justify-between">
-              <span class="text-[9px] font-black text-white/30 uppercase tracking-widest">Price Spectrum</span>
+              <span class="text-[9px] font-black text-white/30 tracking-widest">Price Spectrum</span>
               <span class="text-[10px] font-mono text-emerald-400/60">AVG: {formState.marketData.avg_market_price ? formatCurrency(formState.marketData.avg_market_price) : 'N/A'}</span>
            </div>
            <div class="h-1.5 w-full bg-white/5 rounded-full relative overflow-hidden">
               <div class="absolute inset-y-0 left-0 bg-emerald-500/40 w-1/3"></div>
               <div class="absolute inset-y-0 left-1/3 bg-emerald-400 w-1/4"></div>
            </div>
-           <div class="flex justify-between text-[8px] font-mono text-white/20 uppercase">
+           <div class="flex justify-between text-[8px] font-mono text-white/20 ">
               <span>Min: {formState.marketData.min_market_price ? formatCurrency(formState.marketData.min_market_price) : 'N/A'}</span>
               <span>{formState.marketData.competitor_count} Competitors</span>
            </div>
@@ -229,11 +229,11 @@ import X from "@lucide/svelte/icons/x";
                  <Zap size={14} class="text-amber-400 animate-pulse" />
                </div>
                <div class="flex flex-col">
-                 <span class="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em]">Quảng cáo (Sponsored/Ads)</span>
-                 <span class="text-[8px] font-mono text-white/20 uppercase tracking-wider">High conversion landing pages</span>
+                 <span class="text-[10px] font-black text-amber-400 tracking-[0.2em]">Quảng cáo (Sponsored/Ads)</span>
+                 <span class="text-[8px] font-mono text-white/20 tracking-wider">High conversion landing pages</span>
                </div>
             </div>
-            <div class="text-[8px] font-mono text-amber-500/40 px-2 py-0.5 rounded border border-amber-500/20 uppercase">Live Trace</div>
+            <div class="text-[8px] font-mono text-amber-500/40 px-2 py-0.5 rounded border border-amber-500/20 ">Live Trace</div>
           </div>
           
           <div class="grid grid-cols-1 gap-2 max-h-[250px] overflow-y-auto custom-scrollbar pr-2">
@@ -247,7 +247,7 @@ import X from "@lucide/svelte/icons/x";
                 >
                   <div class="flex flex-col flex-1 min-w-0 gap-1">
                     <div class="flex items-center gap-2">
-                      <span class="text-[8px] font-black px-1.5 py-0.5 rounded bg-white/5 text-white/60 uppercase tracking-tighter" style="color: {getPlatformColor(ad.platform)}">
+                      <span class="text-[8px] font-black px-1.5 py-0.5 rounded bg-white/5 text-white/60 tracking-tighter" style="color: {getPlatformColor(ad.platform)}">
                         {ad.platform}
                       </span>
                       <div class="text-[11px] font-bold text-white/80 line-clamp-1 group-hover:text-white transition-colors">{ad.title}</div>
@@ -262,7 +262,7 @@ import X from "@lucide/svelte/icons/x";
             {:else}
                <div class="py-12 flex flex-col items-center justify-center border border-dashed border-white/5 rounded-2xl bg-white/[0.01] gap-2">
                   <Zap size={24} class="text-white/5" />
-                  <span class="text-[9px] text-white/20 uppercase font-mono tracking-widest italic">No Sponsored Content Detected</span>
+                  <span class="text-[9px] text-white/20 font-mono tracking-widest italic">No Sponsored Content Detected</span>
                </div>
             {/if}
           </div>
@@ -276,11 +276,11 @@ import X from "@lucide/svelte/icons/x";
                  <Globe size={14} class="text-emerald-400" />
                </div>
                <div class="flex flex-col">
-                 <span class="text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">Top 10 Kết quả tự nhiên</span>
-                 <span class="text-[8px] font-mono text-white/20 uppercase tracking-wider">Natural search intelligence</span>
+                 <span class="text-[10px] font-black text-emerald-400 tracking-[0.2em]">Top 10 Kết quả tự nhiên</span>
+                 <span class="text-[8px] font-mono text-white/20 tracking-wider">Natural search intelligence</span>
                </div>
             </div>
-            <div class="text-[8px] font-mono text-emerald-500/40 px-2 py-0.5 rounded border border-emerald-500/20 uppercase">Deep Recon</div>
+            <div class="text-[8px] font-mono text-emerald-500/40 px-2 py-0.5 rounded border border-emerald-500/20 ">Deep Recon</div>
           </div>
 
           <div class="flex flex-col gap-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
@@ -298,14 +298,14 @@ import X from "@lucide/svelte/icons/x";
                   <div class="flex flex-col flex-1 min-w-0">
                     <div class="flex items-center gap-2">
                        <div class="text-[11px] font-bold text-white/60 group-hover:text-white/90 transition-colors line-clamp-1">{res.title}</div>
-                       <div class="flex items-center gap-1 px-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-[7px] font-black text-emerald-400 uppercase tracking-tighter shrink-0">
+                       <div class="flex items-center gap-1 px-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-[7px] font-black text-emerald-400 tracking-tighter shrink-0">
                           <ShieldCheck size={8} />
                           Verified
                        </div>
                     </div>
                     <div class="flex items-center gap-2 mt-0.5">
                        <div class="w-1 h-1 rounded-full bg-emerald-500/40"></div>
-                       <span class="text-[8px] font-mono text-white/25 uppercase tracking-wider">{res.platform}</span>
+                       <span class="text-[8px] font-mono text-white/25 tracking-wider">{res.platform}</span>
                     </div>
                   </div>
                   <div class="text-[11px] font-mono font-bold text-emerald-400 group-hover:scale-105 transition-transform origin-right">{res.price ? formatCurrency(res.price) : 'N/A'}</div>
@@ -315,7 +315,7 @@ import X from "@lucide/svelte/icons/x";
             {:else}
               <div class="py-20 flex flex-col items-center justify-center border border-dashed border-white/5 rounded-2xl bg-white/[0.01] gap-2">
                   <Globe size={32} class="text-white/5 animate-spin-slow" />
-                  <span class="text-[9px] text-white/20 uppercase font-mono tracking-widest italic">Scanning Internet for Organic Results...</span>
+                  <span class="text-[9px] text-white/20 font-mono tracking-widest italic">Scanning Internet for Organic Results...</span>
                </div>
             {/if}
           </div>
@@ -334,11 +334,11 @@ import X from "@lucide/svelte/icons/x";
                 </div>
              {/each}
           </div>
-          <span class="text-[8px] font-mono text-white/30 uppercase tracking-widest">Verified by XOHI Neural Engine</span>
+          <span class="text-[8px] font-mono text-white/30 tracking-widest">Verified by XOHI Neural Engine</span>
        </div>
        <button 
          onclick={() => showReport = false}
-         class="px-10 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] text-white/60 hover:text-white transition-all active:scale-95 flex items-center gap-3 group"
+         class="px-10 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black tracking-[0.3em] text-white/60 hover:text-white transition-all active:scale-95 flex items-center gap-3 group"
        >
          Đóng báo cáo
          <X size={14} class="text-white/20 group-hover:text-red-400 transition-colors" />

@@ -192,7 +192,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-pink-400"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .52 8.588A5.002 5.002 0 0 0 12 22a5 5 0 0 0 8-4.017s1.398-.24 2.128-1.57A4 4 0 0 0 21 11a4 4 0 0 0-3-3.95V7a3 3 0 0 0-6-2Z"/><path d="M12 12h.01"/><path d="M9 12h.01"/><path d="M15 12h.01"/></svg>
           </div>
             <div class="flex items-center gap-2">
-              <span class="text-sm font-black uppercase tracking-[0.1em] text-pink-400">
+              <span class="text-sm font-black tracking-[0.1em] text-pink-400">
                 🔪 Surgeon Booster™
               </span>
               {#if boosterAnnotations.length > 0 && !isBoosting}
@@ -206,7 +206,7 @@
               {/if}
             </div>
             <div class="flex items-center gap-1.5 opacity-30">
-              <span class="text-[9px] font-black uppercase tracking-[0.3em]">Protocol_EEAT_Boost_V2.2</span>
+              <span class="text-[9px] font-black tracking-[0.3em]">Protocol_EEAT_Boost_V2.2</span>
             </div>
           
           {#if boosterAnnotations.some(a => !a.is_applied) && !isBoosting}
@@ -214,7 +214,7 @@
               <button 
                 onclick={runBulkBoosterFix}
                 disabled={isBulkFixing}
-                class="px-3 py-1.5 rounded-lg bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center gap-2"
+                class="px-3 py-1.5 rounded-lg bg-emerald-500 text-black text-[9px] font-black tracking-widest hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center gap-2"
               >
                 <CheckCircle2 size={12} />
                 Duyệt tất cả
@@ -229,7 +229,7 @@
         <div class="px-4 py-3 bg-black/40 border-b border-white/5 shadow-inner">
           <div class="flex items-center gap-2 mb-2 opacity-30">
             <div class="w-1.5 h-1.5 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.6)]"></div>
-            <span class="text-[10px] font-black uppercase tracking-[0.2em]">Neural_Boost_Verdict</span>
+            <span class="text-[10px] font-black tracking-[0.2em]">Neural_Boost_Verdict</span>
           </div>
           <p class="text-[13px] text-white/90 leading-[1.6] font-medium tracking-tight">
             ✅ Đã phẫu thuật thành công <span class="text-pink-400 font-black">{boosterAnnotations.length}</span> đoạn văn. Các điểm cải tiến được highlight <span class="text-pink-400 font-bold">Hồng Neon</span> trong văn bản.
@@ -238,8 +238,8 @@
 
         <!-- Badge -->
         <div class="px-3 py-2 flex items-center gap-3 border-b border-white/5">
-          <span class="text-[7px] font-black text-white/20 uppercase tracking-widest">Patches ({boosterAnnotations.length})</span>
-          <span class="px-2 py-0.5 rounded-full text-[8px] font-black bg-pink-500/10 text-pink-400 border border-pink-500/20 uppercase tracking-tighter">Review Required</span>
+          <span class="text-[7px] font-black text-white/20 tracking-widest">Patches ({boosterAnnotations.length})</span>
+          <span class="px-2 py-0.5 rounded-full text-[8px] font-black bg-pink-500/10 text-pink-400 border border-pink-500/20 tracking-tighter">Review Required</span>
         </div>
 
         <!-- Annotation List -->
@@ -247,18 +247,18 @@
           {#each boosterAnnotations as ann, i}
             <div class="px-3 py-3 border-b bg-white/[0.01] flex flex-col gap-1.5 transition-all hover:bg-white/[0.02]" style="border-color: rgba(236,72,153,0.1)">
               <div class="flex items-start justify-between gap-2">
-                <span class="text-[7px] font-black px-1 py-0.5 rounded uppercase bg-pink-500/20 text-pink-400">✨ PATCH #{i + 1}</span>
+                <span class="text-[7px] font-black px-1 py-0.5 rounded bg-pink-500/20 text-pink-400">✨ PATCH #{i + 1}</span>
                 
                 {#if onfix}
                   {#if ann.is_applied}
-                    <div class="flex items-center gap-1 px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-black text-emerald-400 uppercase tracking-widest">
+                    <div class="flex items-center gap-1 px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-[8px] font-black text-emerald-400 tracking-widest">
                       ĐÃ DUYỆT ✅
                     </div>
                   {:else}
                     <button 
                       onclick={() => handleInternalFix(ann.search_string || ann.text, 'enrich', ann.replacement_string || '')}
                       disabled={isFixing === (ann.search_string || ann.text)}
-                      class="px-2 py-1 rounded bg-emerald-500/20 border border-emerald-500/30 text-[8px] font-black text-emerald-400 uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
+                      class="px-2 py-1 rounded bg-emerald-500/20 border border-emerald-500/30 text-[8px] font-black text-emerald-400 tracking-widest hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
                     >
                       {#if isFixing === (ann.search_string || ann.text)}
                         PHẪU THUẬT...
@@ -290,7 +290,7 @@
               <div class="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
                  <div class="h-full bg-pink-500 {isBoosting ? 'animate-pulse' : ''}" style="width: {isBoosting ? '100%' : '0%'}"></div>
               </div>
-              <span class="text-[8px] font-bold text-pink-400/60 uppercase tracking-tighter">{isBoosting ? 'Operating' : 'System Ready'}</span>
+              <span class="text-[8px] font-bold text-pink-400/60 tracking-tighter">{isBoosting ? 'Operating' : 'System Ready'}</span>
            </div>
         </div>
       {/if}

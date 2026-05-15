@@ -169,7 +169,7 @@
         <div class="flex items-center justify-center gap-3 mt-2">
           <span class="h-[1px] w-8 bg-cyan-500/50"></span>
           <p
-            class="text-[10px] text-cyan-400 font-mono tracking-[0.4em] uppercase"
+            class="text-[10px] text-cyan-400 font-mono tracking-[0.4em] "
           >
             Security Level 10
           </p>
@@ -211,7 +211,7 @@
               <div class="space-y-2">
                 <label
                   for="email"
-                  class="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1"
+                  class="text-[10px] font-bold text-gray-500 tracking-widest ml-1"
                   >Identity Protocol</label
                 >
                 <div class="relative group">
@@ -237,7 +237,7 @@
               <div class="space-y-2">
                 <label
                   for="password"
-                  class="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1"
+                  class="text-[10px] font-bold text-gray-500 tracking-widest ml-1"
                   >Access Cipher</label
                 >
                 <div class="relative group">
@@ -298,7 +298,7 @@
                 </button>
                 <button
                   type="button"
-                  class="text-[10px] text-gray-400 font-bold uppercase tracking-widest cursor-pointer hover:text-white"
+                  class="text-[10px] text-gray-400 font-bold tracking-widest cursor-pointer hover:text-white"
                   onclick={() => {
                     rememberMe = !rememberMe;
                   }}
@@ -310,7 +310,7 @@
               <button
                 type="submit"
                 disabled={isLoading}
-                class="w-full h-16 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-700 text-white font-black text-xs uppercase tracking-[0.3em] rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative group overflow-hidden shadow-[0_0_30px_-5px_rgba(var(--color-neon-cyan-raw),0.5)] border border-white/10"
+                class="w-full h-16 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-700 text-white font-black text-xs tracking-[0.3em] rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative group overflow-hidden shadow-[0_0_30px_-5px_rgba(var(--color-neon-cyan-raw),0.5)] border border-white/10"
                 style="background-color: rgb(0, 145, 178);"
               >
                 <div
@@ -334,7 +334,7 @@
               <div class="space-y-2">
                 <label
                   for="phone"
-                  class="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1"
+                  class="text-[10px] font-bold text-gray-500 tracking-widest ml-1"
                   >Mobile Link</label
                 >
                 <div class="relative group">
@@ -353,7 +353,7 @@
                 </div>
               </div>
               <button
-                class="w-full h-16 bg-[#111] border border-white/10 text-gray-300 font-bold text-[10px] uppercase tracking-[0.2em] rounded-2xl hover:bg-white hover:text-black transition-all"
+                class="w-full h-16 bg-[#111] border border-white/10 text-gray-300 font-bold text-[10px] tracking-[0.2em] rounded-2xl hover:bg-white hover:text-black transition-all"
               >
                 Request Access Code
               </button>
@@ -365,7 +365,7 @@
               >
                 <Chrome size={20} class="text-red-500" />
                 <span
-                  class="text-[10px] font-bold tracking-widest uppercase flex-1 text-center"
+                  class="text-[10px] font-bold tracking-widest flex-1 text-center"
                   >Continue with Google</span
                 >
               </button>
@@ -374,7 +374,7 @@
               >
                 <Facebook size={20} class="text-blue-500" />
                 <span
-                  class="text-[10px] font-bold tracking-widest uppercase flex-1 text-center"
+                  class="text-[10px] font-bold tracking-widest flex-1 text-center"
                   >Link Facebook ID</span
                 >
               </button>
@@ -383,7 +383,7 @@
               >
                 <MessageCircle size={20} class="text-blue-400" />
                 <span
-                  class="text-[10px] font-bold tracking-widest uppercase flex-1 text-center"
+                  class="text-[10px] font-bold tracking-widest flex-1 text-center"
                   >Authenticate via Zalo</span
                 >
               </button>
@@ -394,7 +394,7 @@
           <div
             class="mt-10 pt-8 border-t border-white/5 flex flex-col items-center"
           >
-            <p class="text-[9px] text-gray-600 uppercase tracking-[0.3em] mb-6">
+            <p class="text-[9px] text-gray-600 tracking-[0.3em] mb-6">
               Neural Access Bypass
             </p>
             <button
@@ -417,7 +417,7 @@
       </div>
 
       <div class="mt-8 text-center space-y-2">
-        <p class="text-[9px] text-gray-700 uppercase tracking-[0.5em]">
+        <p class="text-[9px] text-gray-700 tracking-[0.5em]">
           &copy; 2026 XOHI SYSTEMS AGENTIC ENTITY
         </p>
       </div>

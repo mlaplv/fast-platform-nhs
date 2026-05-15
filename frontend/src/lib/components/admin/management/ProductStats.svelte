@@ -15,7 +15,7 @@
     ></div>
     <div class="flex items-center justify-between mb-3 relative z-[var(--z-surface)]">
       <span
-        class="text-[10px] font-bold font-mono text-gray-500 uppercase tracking-widest"
+        class="text-[10px] font-bold font-mono text-gray-500 tracking-widest"
         >Registry Depth</span
       >
       <div
@@ -27,7 +27,7 @@
         class="text-3xl font-black text-white tracking-widest leading-none drop-shadow-md"
         >{stats.total}</span
       >
-      <span class="text-[9px] font-bold font-mono text-gray-600 uppercase"
+      <span class="text-[9px] font-bold font-mono text-gray-600 "
         >Entries</span
       >
     </div>
@@ -45,7 +45,7 @@
     ></div>
     <div class="flex items-center justify-between mb-3 relative z-[var(--z-surface)]">
       <span
-        class="text-[10px] font-bold font-mono text-[#39FF14]/70 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]"
+        class="text-[10px] font-bold font-mono text-[#39FF14]/70 tracking-widest drop-shadow-[0_0_5px_rgba(57,255,20,0.5)]"
         >Live Supply</span
       >
       <div
@@ -57,7 +57,7 @@
         class="text-3xl font-black text-[#39FF14] tracking-widest leading-none drop-shadow-[0_0_8px_rgba(57,255,20,0.3)]"
         >{stats.active}</span
       >
-      <span class="text-[9px] font-bold font-mono text-[#39FF14]/40 uppercase"
+      <span class="text-[9px] font-bold font-mono text-[#39FF14]/40 "
         >Active</span
       >
     </div>
@@ -75,7 +75,7 @@
     ></div>
     <div class="flex items-center justify-between mb-3 relative z-[var(--z-surface)]">
       <span
-        class="text-[10px] font-bold font-mono text-[#FFB800]/70 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(255,184,0,0.5)]"
+        class="text-[10px] font-bold font-mono text-[#FFB800]/70 tracking-widest drop-shadow-[0_0_5px_rgba(255,184,0,0.5)]"
         >Staging Cache</span
       >
       <div
@@ -87,7 +87,7 @@
         class="text-3xl font-black text-[#FFB800] tracking-widest leading-none drop-shadow-[0_0_8px_rgba(255,184,0,0.3)]"
         >{stats.draft}</span
       >
-      <span class="text-[9px] font-bold font-mono text-[#FFB800]/40 uppercase"
+      <span class="text-[9px] font-bold font-mono text-[#FFB800]/40 "
         >Drafts</span
       >
     </div>
@@ -105,7 +105,7 @@
     ></div>
     <div class="flex items-center justify-between mb-3 relative z-[var(--z-surface)]">
       <span
-        class="text-[10px] font-bold font-mono text-[#00FFFF]/70 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(0,255,255,0.5)]"
+        class="text-[10px] font-bold font-mono text-[#00FFFF]/70 tracking-widest drop-shadow-[0_0_5px_rgba(0,255,255,0.5)]"
         >Inventory Mass</span
       >
       <div
@@ -118,7 +118,7 @@
         >{formatCurrency(stats.totalValue)}</span
       >
       <span
-        class="text-[9px] font-bold font-mono text-[#00FFFF]/40 uppercase mt-2"
+        class="text-[9px] font-bold font-mono text-[#00FFFF]/40 mt-2"
         >Certified Value</span
       >
     </div>

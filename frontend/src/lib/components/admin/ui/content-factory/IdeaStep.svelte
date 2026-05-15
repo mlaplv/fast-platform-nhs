@@ -208,14 +208,14 @@
     <!-- Studio Label -->
     <div class="flex items-center gap-3 shrink-0">
       <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
-      <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">
+      <h5 class="hidden md:block text-[11px] font-black tracking-[0.2em] text-blue-400/60">
         NEURAL XOHI ·
         <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">STUDIO</span>
       </h5>
     </div>
     <div class="space-y-4">
       <div class="group/input">
-        <label for="title-{campaign_id}" class="text-[10px] text-blue-300 uppercase font-black tracking-widest mb-1.5 ml-1 block">Tiêu đề (Headline) 🚀</label>
+        <label for="title-{campaign_id}" class="text-[10px] text-blue-300 font-black tracking-widest mb-1.5 ml-1 block">Tiêu đề (Headline) 🚀</label>
         <div class="relative group/field">
           <div class="absolute inset-0 bg-blue-500/10 rounded-xl blur-md opacity-0 group-focus-within/field:opacity-100 transition-opacity"></div>
           <MessageSquare size={14} class="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400/50 group-focus-within/field:text-blue-400 transition-colors" />
@@ -233,7 +233,7 @@
         <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-[50px] pointer-events-none"></div>
         
         <div class="group/field relative z-10">
-          <label for="primary-{campaign_id}" class="text-[10px] text-cyan-300 uppercase font-black tracking-widest mb-1.5 ml-1 flex items-center gap-1.5">
+          <label for="primary-{campaign_id}" class="text-[10px] text-cyan-300 font-black tracking-widest mb-1.5 ml-1 flex items-center gap-1.5">
             <Sparkles size={12} class="animate-pulse" /> Từ khóa chính (Focus Keyword)
           </label>
           <div class="relative">
@@ -246,7 +246,7 @@
           </div>
         </div>
         <div class="group/field relative z-10">
-          <label for="secondary-{campaign_id}" class="text-[10px] text-white/40 uppercase font-bold mb-1.5 ml-1 block">Từ khóa phụ (LSI / Semantic)</label>
+          <label for="secondary-{campaign_id}" class="text-[10px] text-white/40 font-bold mb-1.5 ml-1 block">Từ khóa phụ (LSI / Semantic)</label>
           <div class="flex flex-wrap gap-2 p-3 bg-black/40 border border-white/5 rounded-xl min-h-[50px] shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
             {#each (editedKeywords?.secondary_keywords || []) as kw, kwIdx}
               <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-white/80 hover:bg-white/10 hover:border-white/20 transition-all">
@@ -271,7 +271,7 @@
       </div>
 
       <div class="group/field">
-        <label for="desc-{campaign_id}" class="text-[10px] text-green-300/80 uppercase font-black tracking-widest mb-1.5 ml-1 flex items-center gap-1">
+        <label for="desc-{campaign_id}" class="text-[10px] text-green-300/80 font-black tracking-widest mb-1.5 ml-1 flex items-center gap-1">
           <FileText size={12} /> Meta Description (SEO)
         </label>
         <div class="relative">
@@ -290,7 +290,7 @@
         <div class="absolute top-0 right-0 w-24 h-24 bg-fuchsia-500/5 blur-[40px] pointer-events-none"></div>
         
         <div class="flex items-center justify-between px-1">
-          <label for="elite-category-{campaign_id}" class="text-[11px] font-black uppercase tracking-[0.2em] text-fuchsia-300 flex items-center gap-2">
+          <label for="elite-category-{campaign_id}" class="text-[11px] font-black tracking-[0.2em] text-fuchsia-300 flex items-center gap-2">
             {#if editedConfig.target_entity === 'product'}
               <Globe size={14} class="text-amber-400" /> Danh mục sản phẩm
             {:else}
@@ -301,7 +301,7 @@
           <button 
             type="button"
             onclick={() => editedConfig.target_entity = editedConfig.target_entity === 'product' ? 'article' : 'product'}
-            class="text-[8px] font-black px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/40 uppercase tracking-tighter hover:bg-white/10 hover:text-white transition-all"
+            class="text-[8px] font-black px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/40 tracking-tighter hover:bg-white/10 hover:text-white transition-all"
           >
             Chuyển sang: {editedConfig.target_entity === 'product' ? 'Bài viết' : 'Hàng hóa'}
           </button>
@@ -364,12 +364,12 @@
           <div class="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
             <Sparkles size={12} class="text-blue-400" />
           </div>
-          <span class="text-[11px] font-black uppercase tracking-[0.2em] text-white/80 bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">Cấu hình luồng AI Creative</span>
+          <span class="text-[11px] font-black tracking-[0.2em] text-white/80 bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">Cấu hình luồng AI Creative</span>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div class="group/field">
-            <label for="style-{campaign_id}" class="text-[9px] text-white/40 uppercase font-black tracking-widest mb-1.5 ml-1 block">Phong cách (Voice)</label>
+            <label for="style-{campaign_id}" class="text-[9px] text-white/40 font-black tracking-widest mb-1.5 ml-1 block">Phong cách (Voice)</label>
             <div class="relative">
               <select 
                 id="style-{campaign_id}"
@@ -394,7 +394,7 @@
           </div>
 
           <div class="group/field">
-            <label for="assets-{campaign_id}" class="text-[9px] text-white/40 uppercase font-black tracking-widest mb-1.5 ml-1 block">Hình ảnh (Max)</label>
+            <label for="assets-{campaign_id}" class="text-[9px] text-white/40 font-black tracking-widest mb-1.5 ml-1 block">Hình ảnh (Max)</label>
             <div class="relative">
               <select 
                 id="assets-{campaign_id}"
@@ -411,7 +411,7 @@
           </div>
 
           <div class="group/field">
-            <label for="words-{campaign_id}" class="text-[9px] text-white/40 uppercase font-black tracking-widest mb-1.5 ml-1 block">Độ dài chữ</label>
+            <label for="words-{campaign_id}" class="text-[9px] text-white/40 font-black tracking-widest mb-1.5 ml-1 block">Độ dài chữ</label>
             <div class="relative">
               <select 
                 id="words-{campaign_id}"
@@ -428,7 +428,7 @@
           </div>
 
           <div class="group/field">
-            <label for="sections-{campaign_id}" class="text-[9px] text-white/40 uppercase font-black tracking-widest mb-1.5 ml-1 block">Mật độ thẻ (H2/H3)</label>
+            <label for="sections-{campaign_id}" class="text-[9px] text-white/40 font-black tracking-widest mb-1.5 ml-1 block">Mật độ thẻ (H2/H3)</label>
             <div class="relative">
               <select 
                 id="sections-{campaign_id}"
@@ -457,8 +457,8 @@
                 <Search size={22} strokeWidth={1.5} />
               </div>
               <div>
-                <h4 class="text-sm font-black uppercase tracking-[0.2em] text-white">Neural Content Scout</h4>
-                <p class="text-[10px] text-indigo-300/40 font-bold uppercase tracking-widest">Trinh sát nội dung & Gợi ý từ đối thủ</p>
+                <h4 class="text-sm font-black tracking-[0.2em] text-white">Neural Content Scout</h4>
+                <p class="text-[10px] text-indigo-300/40 font-bold tracking-widest">Trinh sát nội dung & Gợi ý từ đối thủ</p>
               </div>
             </div>
 
@@ -472,7 +472,7 @@
                 }
               }}
               disabled={isScouting}
-              class="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 {editedConfig.scouting_active ? 'bg-indigo-500 text-white shadow-xl shadow-indigo-500/20' : 'bg-white/5 text-white/40 border border-white/10 hover:text-white hover:bg-white/10'} {isScouting ? 'animate-pulse cursor-wait' : ''}"
+              class="px-6 py-2.5 rounded-full text-[10px] font-black tracking-widest transition-all duration-500 {editedConfig.scouting_active ? 'bg-indigo-500 text-white shadow-xl shadow-indigo-500/20' : 'bg-white/5 text-white/40 border border-white/10 hover:text-white hover:bg-white/10'} {isScouting ? 'animate-pulse cursor-wait' : ''}"
             >
               {#if isScouting}
                 Đang trinh sát...
@@ -493,7 +493,7 @@
                       <Zap size={16} />
                     </div>
                   </div>
-                  <h5 class="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                  <h5 class="text-[11px] font-black text-indigo-400 tracking-[0.2em] mb-4 flex items-center gap-2">
                     <ShieldCheck size={14} /> Trình báo Chiến lược AI (Elite Strategy)
                   </h5>
                   <div class="prose prose-invert prose-sm max-w-none text-white/80 leading-relaxed font-medium text-[13px] whitespace-pre-wrap selection:bg-indigo-500/30">
@@ -502,7 +502,7 @@
                   
                   {#if scoutReport.ground_truth_summary}
                     <div class="mt-6 pt-6 border-t border-indigo-500/10">
-                      <p class="text-[10px] text-indigo-300/40 font-bold uppercase tracking-widest leading-loose">
+                      <p class="text-[10px] text-indigo-300/40 font-bold tracking-widest leading-loose">
                         <span class="text-indigo-400">Ground Truth:</span> {scoutReport.ground_truth_summary}
                       </p>
                     </div>
@@ -524,11 +524,11 @@
                 <!-- Headlines Suggestions -->
                 <div class="flex-1 p-6 rounded-3xl bg-black/40 border border-white/5 shadow-inner">
                   <div class="flex items-center justify-between mb-4">
-                    <span class="text-[10px] font-black text-white/40 uppercase tracking-widest flex items-center gap-2"><TrendingUp size={12} /> Gợi ý tiêu đề (ADS & TOP 10)</span>
+                    <span class="text-[10px] font-black text-white/40 tracking-widest flex items-center gap-2"><TrendingUp size={12} /> Gợi ý tiêu đề (ADS & TOP 10)</span>
                     <button 
                       onclick={performScout}
                       disabled={isScouting}
-                      class="text-[9px] font-black text-indigo-400 hover:underline uppercase tracking-tighter disabled:opacity-50"
+                      class="text-[9px] font-black text-indigo-400 hover:underline tracking-tighter disabled:opacity-50"
                     >
                       {isScouting ? 'Scanning...' : 'Manual Scan'}
                     </button>
@@ -541,7 +541,7 @@
                           class="w-full text-left p-3 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all group/h"
                         >
                           <div class="flex items-center justify-between mb-1">
-                            <span class="text-[8px] font-black uppercase tracking-tighter {suggestion.type === 'ADS' ? 'text-orange-400' : suggestion.type === 'TOP_10' ? 'text-green-400' : 'text-indigo-400'}">
+                            <span class="text-[8px] font-black tracking-tighter {suggestion.type === 'ADS' ? 'text-orange-400' : suggestion.type === 'TOP_10' ? 'text-green-400' : 'text-indigo-400'}">
                               {suggestion.type}
                             </span>
                           </div>
@@ -559,7 +559,7 @@
                 <!-- LSI Keywords -->
                 <div class="flex-1 p-6 rounded-3xl bg-black/40 border border-white/5 shadow-inner">
                   <div class="flex items-center justify-between mb-4">
-                    <span class="text-[10px] font-black text-white/40 uppercase tracking-widest flex items-center gap-2"><Globe size={12} /> Từ khóa Semantic (LSI)</span>
+                    <span class="text-[10px] font-black text-white/40 tracking-widest flex items-center gap-2"><Globe size={12} /> Từ khóa Semantic (LSI)</span>
                   </div>
                   <div class="flex flex-wrap gap-2">
                     {#if scoutReport?.semantic_keywords}
@@ -570,7 +570,7 @@
                               editedKeywords.secondary_keywords = [...(editedKeywords.secondary_keywords || []), lsi];
                             }
                           }}
-                          class="px-2.5 py-1.5 rounded-lg bg-indigo-400/5 border border-indigo-400/20 text-[10px] text-indigo-400 font-bold hover:bg-indigo-400/20 transition-all uppercase tracking-tighter"
+                          class="px-2.5 py-1.5 rounded-lg bg-indigo-400/5 border border-indigo-400/20 text-[10px] text-indigo-400 font-bold hover:bg-indigo-400/20 transition-all tracking-tighter"
                         >
                           + {lsi}
                         </button>
@@ -634,7 +634,7 @@
     <!-- Studio Label -->
     <div class="flex items-center gap-3 shrink-0">
       <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
-      <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">
+      <h5 class="hidden md:block text-[11px] font-black tracking-[0.2em] text-blue-400/60">
         NEURAL XOHI ·
         <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">STUDIO</span>
       </h5>
@@ -643,7 +643,7 @@
       <h4 class="text-lg font-bold text-white leading-snug tracking-tight">
         {keywords.title || 'Đang phân tích tiêu đề...'}
       </h4>
-      <p class="text-[11px] text-white/40 font-medium uppercase tracking-wider">Style: 
+      <p class="text-[11px] text-white/40 font-medium tracking-wider">Style: 
         <span class="text-white/70 italic">{keywords.persona || 'Chuyên gia phân tích'}</span>
         <span class="mx-2 opacity-30">|</span> Category:
         <span class="text-white/70 italic">{keywords.category || 'Uncategorized'}</span>
@@ -678,7 +678,7 @@
       <div class="p-3 rounded-xl bg-white/[0.03] border border-white/5 relative group/desc">
         <div class="flex items-center gap-2 mb-1 text-white/30 group-hover/desc:text-blue-400 transition-colors">
           <FileText size={10} />
-          <span class="text-[9px] font-black uppercase tracking-widest">SEO Meta Description</span>
+          <span class="text-[9px] font-black tracking-widest">SEO Meta Description</span>
         </div>
         <p class="text-[11px] text-white/60 leading-relaxed italic line-clamp-2">
           "{keywords.description}"

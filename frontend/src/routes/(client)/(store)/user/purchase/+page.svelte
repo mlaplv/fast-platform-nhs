@@ -33,7 +33,7 @@
         <!-- Header -->
         <div class="border-b border-stone-100 pb-5">
           <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Đơn Mua</h1>
-          <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Danh sách giao dịch</p>
+          <p class="text-[13px] text-stone-400 mt-1 tracking-widest">Danh sách giao dịch</p>
         </div>
 
         <PurchaseList />

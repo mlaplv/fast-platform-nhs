@@ -223,13 +223,13 @@
       class="flex-1 flex flex-col items-center justify-center gap-4 animate-pulse"
     >
       <span
-        class="text-[9px] font-mono text-fuchsia-400/40 uppercase tracking-[0.3em]"
+        class="text-[9px] font-mono text-fuchsia-400/40 tracking-[0.3em]"
         >Decrypting RBAC Registry...</span
       >
     </div>
   {:else if error}
     <div
-      class="flex-1 flex items-center justify-center text-red-400 font-mono text-xs uppercase tracking-widest"
+      class="flex-1 flex items-center justify-center text-red-400 font-mono text-xs tracking-widest"
     >
       Connection Failure: {error}
     </div>
@@ -241,7 +241,7 @@
             <Shield size={11} class="text-fuchsia-400" />
           </div>
           <span
-            class="text-[10px] font-mono text-fuchsia-400/80 uppercase tracking-[0.4em] font-bold"
+            class="text-[10px] font-mono text-fuchsia-400/80 tracking-[0.4em] font-bold"
             >Authority_Tiers</span
           >
           <div class="flex-1 h-px bg-gradient-to-r from-fuchsia-500/20 to-transparent"></div>
@@ -265,7 +265,7 @@
             <div class="flex items-center gap-3">
               <div class="w-1 h-5 rounded-full bg-fuchsia-500"></div>
               <h2 class="text-sm font-bold text-white tracking-wide">Quyền hạn</h2>
-              <span class="text-[9px] font-mono text-gray-600 uppercase truncate max-w-[120px] sm:max-w-none">// {selectedRole.name}</span>
+              <span class="text-[9px] font-mono text-gray-600 truncate max-w-[120px] sm:max-w-none">// {selectedRole.name}</span>
             </div>
             <div class="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto mt-2 sm:mt-0">
               <div class="flex items-center bg-white/5 rounded-lg p-0.5">
@@ -298,7 +298,7 @@
             <div class="flex items-center gap-2 overflow-x-auto pb-4 custom-scrollbar no-scrollbar scroll-smooth">
               <button 
                 onclick={() => activeGroupFilter = "all"}
-                class="px-4 py-2 rounded-xl text-[10px] font-mono uppercase tracking-widest transition-all shrink-0
+                class="px-4 py-2 rounded-xl text-[10px] font-mono tracking-widest transition-all shrink-0
                 {activeGroupFilter === 'all' ? 'bg-fuchsia-600 text-white shadow-[0_0_15px_rgba(217,70,239,0.3)]' : 'bg-white/5 text-gray-500 hover:text-white'}"
               >
                 ALL_SYSTEM
@@ -306,7 +306,7 @@
               {#each Object.entries(PERMISSION_GROUPS) as [key, group]}
                 <button 
                   onclick={() => activeGroupFilter = key}
-                  class="px-4 py-2 rounded-xl text-[10px] font-mono uppercase tracking-widest transition-all shrink-0 flex items-center gap-2
+                  class="px-4 py-2 rounded-xl text-[10px] font-mono tracking-widest transition-all shrink-0 flex items-center gap-2
                   {activeGroupFilter === key ? 'bg-fuchsia-600 text-white shadow-[0_0_15px_rgba(217,70,239,0.3)]' : 'bg-white/5 text-gray-500 hover:text-white'}"
                 >
                   <span class="opacity-70">{group.icon}</span>
@@ -331,7 +331,7 @@
                   bind:value={searchTerm}
                   type="text"
                   placeholder="QUERY_PERMISSION_SECTOR..."
-                  class="w-full bg-black/40 border border-white/5 rounded-xl py-3 pl-11 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-700 focus:outline-none focus:border-fuchsia-400/40 focus:ring-1 focus:ring-fuchsia-400/10 transition-all uppercase tracking-widest"
+                  class="w-full bg-black/40 border border-white/5 rounded-xl py-3 pl-11 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-700 focus:outline-none focus:border-fuchsia-400/40 focus:ring-1 focus:ring-fuchsia-400/10 transition-all tracking-widest"
                 />
               </div>
               <button
@@ -343,7 +343,7 @@
                   else targetCodes.forEach(c => next.add(c));
                   editPermissions = next;
                 }}
-                class="w-full sm:w-auto px-5 py-3 bg-fuchsia-500/10 border border-fuchsia-500/30 rounded-xl text-[10px] font-mono uppercase text-fuchsia-400 hover:bg-fuchsia-500/20 transition-all tracking-widest"
+                class="w-full sm:w-auto px-5 py-3 bg-fuchsia-500/10 border border-fuchsia-500/30 rounded-xl text-[10px] font-mono text-fuchsia-400 hover:bg-fuchsia-500/20 transition-all tracking-widest"
               >
                 Sync_Sector ({filteredPermissions.filter(p => editPermissions.has(p.code)).length}/{filteredPermissions.length})
               </button>
@@ -380,21 +380,21 @@
         <div class="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
           <div class="flex items-center gap-2">
             <div class="w-2 h-2 rounded-full {hasChanges ? 'bg-fuchsia-500 animate-pulse shadow-[0_0_10px_#d946ef]' : 'bg-gray-600'}"></div>
-            <span class="text-[10px] font-mono {hasChanges ? 'text-fuchsia-400' : 'text-gray-500'} uppercase tracking-widest font-bold hidden sm:inline">{hasChanges ? 'MODE: EDITS_PENDING' : 'MODE: NO_CHANGES'}</span>
-            <span class="text-[9px] font-mono {hasChanges ? 'text-fuchsia-400' : 'text-gray-500'} uppercase tracking-widest font-bold sm:hidden">{hasChanges ? 'EDITS_PENDING' : 'NO_CHANGES'}</span>
+            <span class="text-[10px] font-mono {hasChanges ? 'text-fuchsia-400' : 'text-gray-500'} tracking-widest font-bold hidden sm:inline">{hasChanges ? 'MODE: EDITS_PENDING' : 'MODE: NO_CHANGES'}</span>
+            <span class="text-[9px] font-mono {hasChanges ? 'text-fuchsia-400' : 'text-gray-500'} tracking-widest font-bold sm:hidden">{hasChanges ? 'EDITS_PENDING' : 'NO_CHANGES'}</span>
           </div>
         </div>
 
         <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onclick={() => (isEditing = false)}
-            class="flex-1 sm:flex-none justify-center flex items-center gap-2 px-3 sm:px-6 py-3 sm:py-2.5 rounded-xl border border-white/10 text-[10px] sm:text-[10px] font-mono uppercase tracking-widest text-gray-400 hover:text-white hover:bg-white/5 transition-all"
+            class="flex-1 sm:flex-none justify-center flex items-center gap-2 px-3 sm:px-6 py-3 sm:py-2.5 rounded-xl border border-white/10 text-[10px] sm:text-[10px] font-mono tracking-widest text-gray-400 hover:text-white hover:bg-white/5 transition-all"
             ><X size={14} /> <span class="hidden xs:inline">Huỷ bỏ</span><span class="xs:hidden">Hủy</span></button
           >
           <button
             onclick={savePermissions}
             disabled={!hasChanges}
-            class="flex-[2] sm:flex-none justify-center flex items-center gap-2 px-3 sm:px-6 py-3 sm:py-2.5 rounded-xl text-[10px] font-mono uppercase tracking-widest transition-all {hasChanges
+            class="flex-[2] sm:flex-none justify-center flex items-center gap-2 px-3 sm:px-6 py-3 sm:py-2.5 rounded-xl text-[10px] font-mono tracking-widest transition-all {hasChanges
               ? 'bg-fuchsia-600 text-white hover:bg-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.3)] hover:shadow-[0_0_25px_rgba(217,70,239,0.5)]'
               : 'bg-gray-800 text-gray-600 cursor-not-allowed'}"
             ><Check size={14} /> <span class="hidden xs:inline">Cập nhật thao tác</span><span class="xs:hidden">Cập nhật</span></button

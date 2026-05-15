@@ -53,7 +53,7 @@
             </div>
           <div class="flex flex-col">
                 <h3 class="text-sm font-black text-white tracking-[0.1em]">Danh sách đen</h3>
-                <p class="text-[10px] text-slate-500 font-mono mt-1 tracking-tighter font-bold uppercase">
+                <p class="text-[10px] text-slate-500 font-mono mt-1 tracking-tighter font-bold ">
                    TRUY VẤN DỮ LIỆU IP GIAN LẬN // CƠ SỞ DỮ LIỆU THỰC THI
                 </p>
              </div>
@@ -69,7 +69,7 @@
                    class="w-full bg-white/5 border border-white/10 rounded-none py-1.5 pl-9 pr-3 text-[10px] text-white focus:border-rose-500/50 outline-none transition-all font-mono"
                 />
              </div>
-             <span class="text-[10px] font-mono text-slate-500 font-bold uppercase">{filteredIPs.length} NODES_TERMINATED</span>
+             <span class="text-[10px] font-mono text-slate-500 font-bold ">{filteredIPs.length} NODES_TERMINATED</span>
           </div>
        </div>
 
@@ -88,10 +88,10 @@
                   <div class="flex items-center gap-2 self-center">
                      {#if item.is_global}
                         <Globe size={12} class="text-cyan-400" />
-                        <span class="text-[8px] text-cyan-400 font-black tracking-tighter uppercase">Global Core</span>
+                        <span class="text-[8px] text-cyan-400 font-black tracking-tighter ">Global Core</span>
                      {:else}
                         <Target size={12} class="text-amber-500" />
-                        <span class="text-[8px] text-amber-500 font-black tracking-tighter uppercase">Campaign Only</span>
+                        <span class="text-[8px] text-amber-500 font-black tracking-tighter ">Campaign Only</span>
                      {/if}
                   </div>
                   <div class="text-right self-center">
@@ -110,7 +110,7 @@
                      <ShieldAlert size={80} class="text-slate-400" />
                      <div class="absolute inset-0 bg-slate-500/10 blur-[40px] rounded-none animate-pulse"></div>
                   </div>
-                  <span class="text-[10px] tracking-[0.6em] font-black text-center uppercase">NO_ACTIVE_THREATS_TERMINATED</span>
+                  <span class="text-[10px] tracking-[0.6em] font-black text-center ">NO_ACTIVE_THREATS_TERMINATED</span>
                </div>
             {/each}
          </div>
@@ -118,7 +118,7 @@
           <!-- PAGINATION -->
           {#if totalPages > 1}
              <div class="p-4 border-t border-white/10 bg-white/[0.02] flex justify-between items-center">
-                <span class="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Trang {currentPage}/{totalPages}</span>
+                <span class="text-[9px] font-mono text-slate-500 tracking-widest">Trang {currentPage}/{totalPages}</span>
                 <div class="flex gap-2">
                    <button 
                       class="p-1.5 rounded-none bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-20"
@@ -149,12 +149,12 @@
          <div class="p-2 rounded-none bg-amber-500/10 border border-amber-500/20">
             <Zap size={18} class="text-amber-500" />
          </div>
-         <h3 class="text-[10px] font-black tracking-widest text-amber-500 font-mono uppercase">Điều phối lệnh chặn thủ công</h3>
+         <h3 class="text-[10px] font-black tracking-widest text-amber-500 font-mono ">Điều phối lệnh chặn thủ công</h3>
       </div>
 
       <div class="flex flex-col gap-8 relative z-10">
          <div class="field">
-            <label class="block text-[8px] text-slate-500 font-black mb-3 tracking-widest font-mono uppercase">Địa chỉ IP mục tiêu</label>
+            <label class="block text-[8px] text-slate-500 font-black mb-3 tracking-widest font-mono ">Địa chỉ IP mục tiêu</label>
             <input 
                type="text" 
                bind:value={manualIP}
@@ -166,8 +166,8 @@
          <div class="field">
             <div class="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-none">
                <div class="flex flex-col gap-1 flex-1">
-                  <span class="text-[8px] text-slate-500 font-black tracking-widest font-mono uppercase">Phạm vi thực thi</span>
-                  <span class="text-[10px] {isGlobalIP ? 'text-cyan-400' : 'text-amber-500'} font-bold uppercase">
+                  <span class="text-[8px] text-slate-500 font-black tracking-widest font-mono ">Phạm vi thực thi</span>
+                  <span class="text-[10px] {isGlobalIP ? 'text-cyan-400' : 'text-amber-500'} font-bold ">
                      {isGlobalIP ? 'TOÀN TÀI KHOẢN' : (selectedCampaign ? `CHIẾN DỊCH: ${selectedCampaign.name}` : 'CHƯA CHỌN CHIẾN DỊCH')}
                   </span>
                </div>
@@ -181,11 +181,11 @@
                <div class="mt-4" in:slide>
                   <select 
                      bind:value={selectedCampaign} 
-                     class="w-full bg-black/60 border border-white/10 rounded-none p-4 text-[11px] font-black text-white focus:border-amber-500/50 outline-none appearance-none transition-all shadow-inner uppercase"
+                     class="w-full bg-black/60 border border-white/10 rounded-none p-4 text-[11px] font-black text-white focus:border-amber-500/50 outline-none appearance-none transition-all shadow-inner "
                   >
                      <option value={null}>-- CHỌN CHIẾN DỊCH THỰC THI --</option>
                      {#each campaigns as c}
-                        <option value={c} class="bg-[#0a0a0a] text-white uppercase">{c.name}</option>
+                        <option value={c} class="bg-[#0a0a0a] text-white ">{c.name}</option>
                      {/each}
                   </select>
                </div>
@@ -193,7 +193,7 @@
          </div>
 
          <button 
-            class="w-full py-5 {isGlobalIP ? 'bg-gradient-to-r from-cyan-600 to-cyan-700' : 'bg-gradient-to-r from-amber-600 to-amber-700'} text-white font-black tracking-[0.2em] text-[11px] transition-all active:scale-[0.98] shadow-[0_10px_30px_rgba(0,0,0,0.3)] flex items-center justify-center gap-4 rounded-none group/btn border border-white/10 disabled:opacity-30 disabled:pointer-events-none uppercase"
+            class="w-full py-5 {isGlobalIP ? 'bg-gradient-to-r from-cyan-600 to-cyan-700' : 'bg-gradient-to-r from-amber-600 to-amber-700'} text-white font-black tracking-[0.2em] text-[11px] transition-all active:scale-[0.98] shadow-[0_10px_30px_rgba(0,0,0,0.3)] flex items-center justify-center gap-4 rounded-none group/btn border border-white/10 disabled:opacity-30 disabled:pointer-events-none "
             disabled={!manualIP || (!isGlobalIP && !selectedCampaign)}
             onclick={() => { if(manualIP) { blockIP(manualIP); manualIP = ''; } }}
          >
@@ -204,7 +204,7 @@
 
       <div class="mt-8 p-5 bg-black/40 border border-white/5 rounded-none shadow-inner">
          <p class="text-[9px] text-slate-500 leading-relaxed italic text-justify font-mono">
-            <span class="text-amber-500 font-bold uppercase">Mẹo:</span> Các địa chỉ IP bị chặn sẽ ngay lập tức được đồng bộ vào danh sách IP loại trừ của Google Ads. Dữ liệu sẽ có hiệu lực sau 2-5 phút.
+            <span class="text-amber-500 font-bold ">Mẹo:</span> Các địa chỉ IP bị chặn sẽ ngay lập tức được đồng bộ vào danh sách IP loại trừ của Google Ads. Dữ liệu sẽ có hiệu lực sau 2-5 phút.
          </p>
       </div>
    </div>

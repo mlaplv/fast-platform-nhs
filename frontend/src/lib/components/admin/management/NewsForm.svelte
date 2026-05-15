@@ -349,7 +349,7 @@
                 {#each [['PUBLISHED','Live'], ['DRAFT','Thảo'], ['ARCHIVED','Lưu']] as [val, lbl]}
                   <button
                     onclick={() => formStatus = val}
-                    class="flex-1 py-1.5 text-[8px] font-black uppercase tracking-tight rounded-lg
+                    class="flex-1 py-1.5 text-[8px] font-black tracking-tight rounded-lg
                       {formStatus === val ? 'bg-white/10 text-cyan-400 border border-white/10' : 'text-gray-600 hover:text-white'}"
                   >{lbl}</button>
                 {/each}
@@ -364,7 +364,7 @@
             <button
               onclick={handleAiSuggestExcerpt}
               disabled={isSuggestingExcerpt || !formTitle}
-              class="flex items-center gap-1 px-3 py-1 bg-[#0a192f] border border-cyan-900/40 rounded-lg text-[8px] font-black uppercase tracking-widest text-cyan-400 hover:bg-[#112240] hover:border-cyan-400/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+              class="flex items-center gap-1 px-3 py-1 bg-[#0a192f] border border-cyan-900/40 rounded-lg text-[8px] font-black tracking-widest text-cyan-400 hover:bg-[#112240] hover:border-cyan-400/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               {#if isSuggestingExcerpt}
                 <div class="w-2.5 h-2.5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
@@ -398,11 +398,11 @@
                 <!-- Broken Featured Image State -->
                 <div class="absolute inset-0 flex flex-col items-center justify-center gap-3">
                   <AlertTriangle size={28} class="text-red-400/60" />
-                  <span class="text-[9px] font-black uppercase tracking-widest text-red-400/60">Ảnh bị lỗi</span>
+                  <span class="text-[9px] font-black tracking-widest text-red-400/60">Ảnh bị lỗi</span>
                   <div class="flex items-center gap-3 z-20">
                     <button
                       onclick={(e) => { e.stopPropagation(); showMediaModal = true; }}
-                      class="px-4 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-cyan-400 transition-colors shadow-xl"
+                      class="px-4 py-1.5 bg-white text-black text-[9px] font-black tracking-wider rounded-lg hover:bg-cyan-400 transition-colors shadow-xl"
                     >Thay thế ảnh</button>
                     <button
                       onclick={(e) => { e.stopPropagation(); formFeaturedImage = null; }}
@@ -421,7 +421,7 @@
                 <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3">
                   <button
                     onclick={() => showMediaModal = true}
-                    class="px-4 py-1.5 bg-white text-black text-[9px] font-black uppercase tracking-wider rounded-lg"
+                    class="px-4 py-1.5 bg-white text-black text-[9px] font-black tracking-wider rounded-lg"
                   >Thay đổi</button>
                   <button
                     onclick={() => formFeaturedImage = null}
@@ -429,7 +429,7 @@
                   ><Trash2 size={14} /></button>
                 </div>
               {/if}
-              <div class="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 border border-white/10 rounded text-[7px] font-black text-cyan-400 uppercase tracking-wider">
+              <div class="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 border border-white/10 rounded text-[7px] font-black text-cyan-400 tracking-wider">
                 {formFeaturedImage.startsWith('http') ? 'External' : 'Local'}
               </div>
             </div>
@@ -442,7 +442,7 @@
                 <ImagePlus size={18} />
               </div>
               <div class="flex flex-col items-center gap-0.5">
-                <span class="text-[9px] font-black uppercase tracking-wider text-white/30 group-hover:text-cyan-400">Chọn ảnh</span>
+                <span class="text-[9px] font-black tracking-wider text-white/30 group-hover:text-cyan-400">Chọn ảnh</span>
                 <span class="text-[8px] text-white/10 italic">Recommend: 16:9</span>
               </div>
             </button>
@@ -462,7 +462,7 @@
       <button
         onclick={handleAiSuggestContent}
         disabled={isSuggestingContent || !formTitle}
-        class="flex items-center gap-1.5 px-4 py-1.5 bg-[#0a192f] border border-cyan-900/50 rounded-lg text-[9px] font-black uppercase tracking-widest text-cyan-400 hover:bg-[#112240] hover:border-cyan-400/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shadow-[0_0_12px_rgba(34,211,238,0.08)]"
+        class="flex items-center gap-1.5 px-4 py-1.5 bg-[#0a192f] border border-cyan-900/50 rounded-lg text-[9px] font-black tracking-widest text-cyan-400 hover:bg-[#112240] hover:border-cyan-400/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer shadow-[0_0_12px_rgba(34,211,238,0.08)]"
       >
         {#if isSuggestingContent}
           <div class="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
@@ -507,7 +507,7 @@
           <button
             onclick={handleAiSuggestSeo}
             disabled={isSuggestingSeo}
-            class="flex items-center gap-1.5 px-4 py-1.5 bg-[#0a192f] border border-cyan-900/50 rounded-lg text-[9px] font-black uppercase tracking-widest text-cyan-400 hover:bg-[#112240] hover:border-cyan-400/50 disabled:opacity-40 transition-all cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.1)]"
+            class="flex items-center gap-1.5 px-4 py-1.5 bg-[#0a192f] border border-cyan-900/50 rounded-lg text-[9px] font-black tracking-widest text-cyan-400 hover:bg-[#112240] hover:border-cyan-400/50 disabled:opacity-40 transition-all cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.1)]"
           >
             {#if isSuggestingSeo}
               <div class="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
@@ -545,7 +545,7 @@
                   }
                 }}
                 disabled={isSlugLocked}
-                class="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black uppercase tracking-wider text-white/40 hover:text-cyan-400 hover:border-cyan-500/30 transition-all cursor-pointer"
+                class="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black tracking-wider text-white/40 hover:text-cyan-400 hover:border-cyan-500/30 transition-all cursor-pointer"
               >
                 <RefreshCw size={10} />
                 TẠO LẠI
@@ -607,7 +607,7 @@
           <div class="bg-[#111] rounded-xl p-4 border border-white/5 flex flex-col gap-1">
             <div class="flex items-center gap-2 mb-2">
               <div class="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[8px] font-black text-white/30">G</div>
-              <span class="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">Google Search Preview</span>
+              <span class="text-[8px] font-black tracking-[0.3em] text-white/20">Google Search Preview</span>
             </div>
             <div class="text-[13px] text-[#8ab4f8] truncate font-medium cursor-pointer hover:underline">{ogTitle}</div>
             <div class="flex items-center gap-1.5 text-[10px] text-[#bdc1c6] truncate">
@@ -623,7 +623,7 @@
               {#each [['facebook', 'Facebook'], ['twitter', 'X / Twitter']] as [id, label]}
                 <button
                   onclick={() => socialPreviewTab = id as 'facebook' | 'twitter'}
-                  class="px-4 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all
+                  class="px-4 py-1.5 text-[8px] font-black tracking-widest rounded-lg transition-all
                     {socialPreviewTab === id ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}"
                 >{label}</button>
               {/each}
@@ -636,11 +636,11 @@
                   <img src={ogImg} alt="OG" class="w-full h-[180px] object-cover opacity-90" />
                 {:else}
                   <div class="w-full h-[160px] bg-[#3a3b3c] flex items-center justify-center">
-                    <span class="text-[9px] text-white/20 uppercase tracking-widest">Chưa có ảnh đại diện</span>
+                    <span class="text-[9px] text-white/20 tracking-widest">Chưa có ảnh đại diện</span>
                   </div>
                 {/if}
                 <div class="p-4 flex flex-col gap-1">
-                  <span class="text-[9px] text-[#b0b3b8] uppercase tracking-widest truncate">osmo</span>
+                  <span class="text-[9px] text-[#b0b3b8] tracking-widest truncate">osmo</span>
                   <div class="text-sm font-bold text-[#e4e6eb] line-clamp-2 leading-snug">{ogTitle}</div>
                   <div class="text-[11px] text-[#b0b3b8] line-clamp-2">{ogDesc}</div>
                 </div>
@@ -652,7 +652,7 @@
                   <img src={ogImg} alt="OG" class="w-full h-[180px] object-cover opacity-90" />
                 {:else}
                   <div class="w-full h-[150px] bg-white/5 flex items-center justify-center">
-                    <span class="text-[9px] text-white/20 uppercase tracking-widest">Chưa có ảnh đại diện</span>
+                    <span class="text-[9px] text-white/20 tracking-widest">Chưa có ảnh đại diện</span>
                   </div>
                 {/if}
                 <div class="p-4 flex flex-col gap-1.5">
@@ -681,7 +681,7 @@
         <button
           onclick={handleAiSuggestFaqs}
           disabled={isSuggestingFaqs}
-          class="flex items-center gap-1.5 px-4 py-2 bg-[#1a2742] border border-[#2a4a7f] rounded-lg text-[9px] font-black uppercase tracking-wider text-cyan-300 hover:bg-[#243860] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+          class="flex items-center gap-1.5 px-4 py-2 bg-[#1a2742] border border-[#2a4a7f] rounded-lg text-[9px] font-black tracking-wider text-cyan-300 hover:bg-[#243860] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
         >
           {#if isSuggestingFaqs}
             <div class="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
@@ -693,7 +693,7 @@
         </button>
         <button
           onclick={addFaqManual}
-          class="flex items-center gap-1 px-3 py-2 bg-white/5 border border-amber-500/30 rounded-lg text-[9px] font-black uppercase tracking-wider text-amber-400 hover:bg-amber-500/10 transition-all cursor-pointer"
+          class="flex items-center gap-1 px-3 py-2 bg-white/5 border border-amber-500/30 rounded-lg text-[9px] font-black tracking-wider text-amber-400 hover:bg-amber-500/10 transition-all cursor-pointer"
         >
           <Plus size={12} />
           Thêm tay
@@ -704,14 +704,14 @@
     <div class="mt-3 flex flex-col gap-3">
       {#if formFaqs.length === 0}
         <div class="text-center py-8 border border-dashed border-white/10 rounded-xl">
-          <p class="text-[10px] text-white/20 uppercase tracking-widest font-black">Chưa có câu hỏi FAQ.</p>
+          <p class="text-[10px] text-white/20 tracking-widest font-black">Chưa có câu hỏi FAQ.</p>
           <p class="text-[9px] text-white/10 italic mt-1">Thêm FAQ để tăng cường thứ hạng trên AI Search.</p>
         </div>
       {:else}
         {#each formFaqs as faq, i}
           <div class="bg-white/[0.02] border border-white/8 rounded-xl p-4 flex flex-col gap-2">
             <div class="flex items-center justify-between">
-              <span class="text-[8px] font-black uppercase tracking-widest text-white/20">Câu hỏi {i + 1}</span>
+              <span class="text-[8px] font-black tracking-widest text-white/20">Câu hỏi {i + 1}</span>
               <button onclick={() => removeFaq(i)} class="p-1 text-red-400/50 hover:text-red-400 transition-colors cursor-pointer">
                 <Trash2 size={12} />
               </button>
@@ -722,7 +722,7 @@
               placeholder="Nhập câu hỏi..."
               class="w-full bg-white/[0.03] border border-white/8 rounded-lg px-3 py-2 text-sm text-white/80 placeholder:text-white/15 outline-none focus:border-cyan-500/40"
             />
-            <span class="text-[8px] font-black uppercase tracking-widest text-white/15">Câu trả lời:</span>
+            <span class="text-[8px] font-black tracking-widest text-white/15">Câu trả lời:</span>
             <textarea
               bind:value={faq.answer}
               rows="2"
@@ -738,7 +738,7 @@
   <!-- ── ACTION BAR ─────────────────── -->
   <section class="relative px-5 pt-3" style="z-index: {Z_INDEX_ADMIN.LAYOUT_HEADER}">
     <div class="flex items-center justify-between gap-4 py-2">
-      <div class="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-white/20">
+      <div class="flex items-center gap-2 text-[9px] font-black tracking-widest text-white/20">
         <div class="w-1.5 h-1.5 rounded-full bg-cyan-400"></div>
         Hệ thống Neural LIVE đang đồng bộ
       </div>
@@ -746,13 +746,13 @@
       <div class="flex items-center gap-3">
         <button
           onclick={onClose}
-          class="px-5 py-2.5 text-[10px] font-black uppercase tracking-wider text-white/30 hover:text-white cursor-pointer"
+          class="px-5 py-2.5 text-[10px] font-black tracking-wider text-white/30 hover:text-white cursor-pointer"
         >Hủy bỏ</button>
 
         <button
           onclick={onSave}
           disabled={isSaving}
-          class="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-black rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed"
+          class="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-black rounded-xl text-[10px] font-black tracking-wider cursor-pointer hover:brightness-110 active:scale-95 disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed"
         >
           {#if isSaving}
             <div class="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin"></div>
@@ -789,7 +789,7 @@
 
   /* Section Label */
   .section-label {
-    @apply flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.35em] text-white/30;
+    @apply flex items-center gap-2 text-[9px] font-black tracking-[0.35em] text-white/30;
   }
 
   /* Section Divider */
@@ -804,7 +804,7 @@
 
   /* Field Label */
   .field-label {
-    @apply flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em];
+    @apply flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em];
   }
 
   /* Borderless Input */

@@ -41,7 +41,7 @@
       <div class="space-y-8" in:fade>
         <div class="border-b border-stone-100 pb-5">
           <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Hồ Sơ Của Tôi</h1>
-          <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Quản lý thông tin tài khoản</p>
+          <p class="text-[13px] text-stone-400 mt-1 tracking-widest">Quản lý thông tin tài khoản</p>
         </div>
         <UserProfileForm />
       </div>

@@ -24,13 +24,13 @@
       <div class="p-3 bg-purple-500/10 rounded-2xl ring-1 ring-purple-500/20">
         <ScanFace size={24} />
       </div>
-      <h2 class="text-lg font-bold tracking-tight uppercase">Neural Identity Protocols</h2>
+      <h2 class="text-lg font-bold tracking-tight ">Neural Identity Protocols</h2>
     </div>
     
     <div class="flex items-center gap-4 px-6 py-3 bg-zinc-900 ring-1 ring-white/10 rounded-2xl w-full sm:w-auto justify-between sm:justify-start">
       <div class="flex items-center gap-2">
         <div class="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
-        <span class="text-[10px] font-mono text-zinc-500 font-bold uppercase tracking-widest">Active ID: X-900</span>
+        <span class="text-[10px] font-mono text-zinc-500 font-bold tracking-widest">Active ID: X-900</span>
       </div>
       <div class="w-px h-4 bg-zinc-800 hidden sm:block"></div>
       <span class="text-[10px] font-mono text-zinc-400">PROBABILISTIC_MATCH: 99.8%</span>
@@ -42,7 +42,7 @@
     <div class="space-y-6">
       <div class="flex items-center gap-3">
         <div class="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
-        <span class="text-[11px] font-mono text-zinc-500 uppercase tracking-[0.3em]">Engagement Protocol (Greeting)</span>
+        <span class="text-[11px] font-mono text-zinc-500 tracking-[0.3em]">Engagement Protocol (Greeting)</span>
       </div>
       <div class="relative group">
         <div class="absolute -inset-1 bg-purple-500/10 rounded-[2rem] blur opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
@@ -57,7 +57,7 @@
     <div class="space-y-6">
       <div class="flex items-center gap-3">
         <div class="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(34,211,238,0.5)]"></div>
-        <span class="text-[11px] font-mono text-zinc-500 uppercase tracking-[0.3em]">Disengagement Identity (Farewell)</span>
+        <span class="text-[11px] font-mono text-zinc-500 tracking-[0.3em]">Disengagement Identity (Farewell)</span>
       </div>
       <div class="relative group">
         <div class="absolute -inset-1 bg-cyan-500/10 rounded-[2rem] blur opacity-0 group-hover:opacity-100 transition-all duration-500"></div>

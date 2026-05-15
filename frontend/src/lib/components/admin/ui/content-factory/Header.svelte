@@ -105,7 +105,7 @@
           transition:scale={{ start: 0.95, duration: 200 }}
         >
           <div class="px-4 py-3 border-b border-white/5 bg-white/5">
-            <span class="text-[10px] font-black uppercase tracking-widest text-cyan-400">Điều hướng Phase</span>
+            <span class="text-[10px] font-black tracking-widest text-cyan-400">Điều hướng Phase</span>
           </div>
           <div class="p-2 space-y-1">
             {#each PHASES as phase}
@@ -126,7 +126,7 @@
                 </div>
                 <div class="flex flex-col flex-1">
                   <span class="text-xs font-bold">{phase.label}</span>
-                  <span class="text-[9px] opacity-60 uppercase tracking-wider font-mono">Phase 0{phase.s} - {phase.desc}</span>
+                  <span class="text-[9px] opacity-60 tracking-wider font-mono">Phase 0{phase.s} - {phase.desc}</span>
                 </div>
                 {#if isCurrent}
                   <Pencil size={9} class="text-white/10 group-hover:text-blue-400" />
@@ -140,13 +140,13 @@
     
     <div class="flex flex-col justify-center">
       <div class="flex items-center gap-2">
-        <h2 class="text-sm font-black tracking-[0.2em] uppercase bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">
+        <h2 class="text-sm font-black tracking-[0.2em] bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]">
           PHASE {viewingStep}
         </h2>
         <div class="w-1 h-1 rounded-full bg-cyan-500/40"></div>
-        <span class="text-[9px] font-bold text-white/30 uppercase tracking-[0.1em]">{PHASES.find(p => p.s === viewingStep)?.label || ''}</span>
+        <span class="text-[9px] font-bold text-white/30 tracking-[0.1em]">{PHASES.find(p => p.s === viewingStep)?.label || ''}</span>
       </div>
-      <p class="text-[9px] font-medium text-gray-500 uppercase tracking-wider hidden md:block mt-0.5 opacity-80">
+      <p class="text-[9px] font-medium text-gray-500 tracking-wider hidden md:block mt-0.5 opacity-80">
         {subtitle}
       </p>
     </div>

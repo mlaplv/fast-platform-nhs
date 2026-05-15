@@ -245,11 +245,11 @@
     {#if isLoading && realReviews.length === 0}
       <div class="py-20 text-center">
         <div class="w-10 h-10 border-2 border-[#FFB7C5]/20 border-t-[#FFB7C5] rounded-full animate-spin mx-auto mb-4"></div>
-        <p class="text-[9px] font-black text-white/20 uppercase tracking-[0.4em]">Syncing_Voices...</p>
+        <p class="text-[9px] font-black text-white/20 tracking-[0.4em]">Syncing_Voices...</p>
       </div>
     {:else if realReviews.length === 0}
       <div class="py-20 text-center opacity-20">
-        <p class="text-[10px] font-black uppercase tracking-widest">No Feedback Detected</p>
+        <p class="text-[10px] font-black tracking-widest">No Feedback Detected</p>
       </div>
     {:else}
       {#each realReviews.slice(0, 8) as review, i}
@@ -260,11 +260,11 @@
                 {review.initial}
               </div>
               <div>
-                <h4 class="text-white font-black text-sm tracking-tight uppercase italic">{review.name}</h4>
+                <h4 class="text-white font-black text-sm tracking-tight italic">{review.name}</h4>
                 <div class="flex items-center gap-2">
-                  <span class="text-[8px] text-white/30 font-black uppercase tracking-[0.2em]">{review.location}</span>
+                  <span class="text-[8px] text-white/30 font-black tracking-[0.2em]">{review.location}</span>
                   <div class="w-1 h-1 rounded-full bg-[#FFB7C5]/40"></div>
-                  <span class="text-[8px] text-[#FFB7C5] font-black uppercase tracking-widest">{labels.label_verified}</span>
+                  <span class="text-[8px] text-[#FFB7C5] font-black tracking-widest">{labels.label_verified}</span>
                 </div>
               </div>
             </div>
@@ -299,7 +299,7 @@
             showFormModal = true;
           }
         }}
-        class="w-full py-6 bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] rounded-[2.5rem] font-black text-[13px] tracking-[0.3em] flex items-center justify-center gap-3 active:scale-95 transition-all uppercase italic shadow-[0_0_30px_rgba(255,183,197,0.15)]"
+        class="w-full py-6 bg-[#FFB7C5]/10 border border-[#FFB7C5]/30 text-[#FFB7C5] rounded-[2.5rem] font-black text-[13px] tracking-[0.3em] flex items-center justify-center gap-3 active:scale-95 transition-all italic shadow-[0_0_30px_rgba(255,183,197,0.15)]"
       >
         <MessageSquarePlus class="w-5 h-5" /> {labels.cta_write}
       </button>
@@ -326,10 +326,10 @@
           <ShieldCheck class="w-4 h-4 text-[#FFB7C5]" />
         </div>
         <div class="flex flex-col">
-          <div class="text-[9px] font-black text-[#FFB7C5] uppercase tracking-[0.3em] font-mono leading-none mb-1">
+          <div class="text-[9px] font-black text-[#FFB7C5] tracking-[0.3em] font-mono leading-none mb-1">
             {labels.label_store_verified}
           </div>
-          <div class="text-[7px] font-bold text-white/20 uppercase tracking-[0.5em] font-mono">
+          <div class="text-[7px] font-bold text-white/20 tracking-[0.5em] font-mono">
             SECURE_SYNC // VERIFIED_NODE
           </div>
         </div>
@@ -352,14 +352,14 @@
           <div class="w-24 h-24 bg-[#FFB7C5]/20 rounded-3xl flex items-center justify-center mb-8 border border-[#FFB7C5]/40">
             <CheckCircle2 class="w-12 h-12 text-[#FFB7C5]" />
           </div>
-          <h3 class="text-4xl font-black text-white italic uppercase tracking-tighter mb-4">{labels.success_title}</h3>
-          <p class="text-white/40 text-[11px] font-bold uppercase tracking-[0.2em] max-w-[240px] leading-relaxed">
+          <h3 class="text-4xl font-black text-white italic tracking-tighter mb-4">{labels.success_title}</h3>
+          <p class="text-white/40 text-[11px] font-bold tracking-[0.2em] max-w-[240px] leading-relaxed">
             {labels.success_msg}
           </p>
         </div>
       {:else}
         <div in:fly={{ y: 20 }}>
-          <h3 class="text-2xl font-black text-white uppercase italic tracking-tighter mb-8">{labels.form_title}</h3>
+          <h3 class="text-2xl font-black text-white italic tracking-tighter mb-8">{labels.form_title}</h3>
 
           <form onsubmit={handleSubmit} class="space-y-6 pb-12">
             <div class="space-y-4">
@@ -369,7 +369,7 @@
                   type="text"
                   bind:value={name}
                   placeholder="Danh tính của bạn"
-                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-white outline-none focus:border-[#FFB7C5]/50 transition-colors uppercase font-black text-xs tracking-widest placeholder:text-white/10"
+                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-white outline-none focus:border-[#FFB7C5]/50 transition-colors font-black text-xs tracking-widest placeholder:text-white/10"
                 />
               </div>
               <div class="relative">
@@ -386,7 +386,7 @@
                 <button
                   type="button"
                   onclick={() => isLocationOpen = !isLocationOpen}
-                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-left outline-none transition-all uppercase font-black text-xs tracking-widest {locationSelected ? 'text-white' : 'text-white/20'} {isLocationOpen ? 'border-[#FFB7C5]/50 bg-[#FFB7C5]/5 shadow-[0_0_20px_rgba(255,183,197,0.05)]' : ''}"
+                  class="w-full bg-white/[0.03] border border-white/10 px-12 py-5 rounded-2xl text-left outline-none transition-all font-black text-xs tracking-widest {locationSelected ? 'text-white' : 'text-white/20'} {isLocationOpen ? 'border-[#FFB7C5]/50 bg-[#FFB7C5]/5 shadow-[0_0_20px_rgba(255,183,197,0.05)]' : ''}"
                 >
                   {locationSelected || 'Chọn Vị trí'}
                 </button>
@@ -405,7 +405,7 @@
                           type="text"
                           bind:value={locationSearch}
                           placeholder="TÌM KIẾM TỈNH THÀNH..."
-                          class="w-full bg-transparent text-[10px] font-black uppercase tracking-widest text-white outline-none placeholder:text-white/20"
+                          class="w-full bg-transparent text-[10px] font-black tracking-widest text-white outline-none placeholder:text-white/20"
                           autofocus
                         />
                       </div>
@@ -424,7 +424,7 @@
                           <button
                             type="button"
                             onclick={() => { locationSelected = loc; isLocationOpen = false; locationSearch = ''; }}
-                            class="w-full px-5 py-4 text-left text-[11px] font-black uppercase tracking-[0.2em] transition-all border-b border-white/5 last:border-none flex items-center justify-between group {locationSelected === loc ? 'bg-[#FFB7C5]/10 text-[#FFB7C5]' : 'text-white/60 hover:bg-white/[0.05] hover:text-white'}"
+                            class="w-full px-5 py-4 text-left text-[11px] font-black tracking-[0.2em] transition-all border-b border-white/5 last:border-none flex items-center justify-between group {locationSelected === loc ? 'bg-[#FFB7C5]/10 text-[#FFB7C5]' : 'text-white/60 hover:bg-white/[0.05] hover:text-white'}"
                           >
                             {loc}
                             {#if locationSelected === loc}
@@ -433,7 +433,7 @@
                           </button>
                         {/each}
                       {:else}
-                        <div class="py-10 text-center text-[9px] font-black text-white/20 uppercase tracking-widest italic">
+                        <div class="py-10 text-center text-[9px] font-black text-white/20 tracking-widest italic">
                           Không tìm thấy kết quả
                         </div>
                       {/if}
@@ -444,7 +444,7 @@
             </div>
 
             <div class="py-6 border-y border-white/5 space-y-4">
-              <p class="text-center text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-4">Đánh giá hệ thống</p>
+              <p class="text-center text-[10px] font-black text-white/20 tracking-[0.4em] mb-4">Đánh giá hệ thống</p>
               <div class="flex justify-center gap-4">
                 {#each Array(5) as _, i}
                   <button
@@ -472,7 +472,7 @@
             <button
               type="submit"
               disabled={isSubmitting}
-              class="w-full py-6 bg-[#FFB7C5] rounded-3xl font-black text-slate-950 text-base tracking-[0.4em] uppercase flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98] transition-all"
+              class="w-full py-6 bg-[#FFB7C5] rounded-3xl font-black text-slate-950 text-base tracking-[0.4em] flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98] transition-all"
             >
               {#if isSubmitting}
                 <div class="w-5 h-5 border-2 border-slate-950/20 border-t-slate-950 rounded-full animate-spin"></div>
@@ -495,7 +495,7 @@
   >
     <div class="bg-red-500/20 border border-red-500/40 backdrop-blur-2xl px-4 py-4 rounded-2xl flex items-center gap-3">
       <div class="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></div>
-      <span class="text-xs font-black text-red-100 uppercase tracking-widest">{toastMessage}</span>
+      <span class="text-xs font-black text-red-100 tracking-widest">{toastMessage}</span>
     </div>
   </div>
 {/if}

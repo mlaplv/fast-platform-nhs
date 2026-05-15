@@ -33,7 +33,7 @@
         in:fly={{ y: 20, delay: i * 100 }}
       >
         {#if addr.isDefault}
-          <div class="absolute top-0 right-0 px-3 py-1 bg-luxury-copper text-white text-[8px] font-black uppercase tracking-[2px]">
+          <div class="absolute top-0 right-0 px-3 py-1 bg-luxury-copper text-white text-[8px] font-black tracking-[2px]">
             Mặc định
           </div>
         {/if}
@@ -44,7 +44,7 @@
                 <UserIcon class="w-3.5 h-3.5 text-stone-400" />
              </div>
              <div>
-               <h3 class="text-[13px] font-bold text-stone-800 uppercase tracking-wider">{addr.name}</h3>
+               <h3 class="text-[13px] font-bold text-stone-800 tracking-wider">{addr.name}</h3>
                <div class="flex items-center gap-1.5 mt-0.5">
                   <Phone class="w-3 h-3 text-luxury-copper" />
                   <span class="text-[12px] text-stone-500 font-medium">{addr.phone}</span>
@@ -76,7 +76,7 @@
           <MapPin class="w-4 h-4 text-luxury-copper shrink-0 mt-0.5" />
           <div class="space-y-1">
             <p class="text-[13px] text-stone-600 leading-relaxed font-medium">{addr.address}</p>
-            <p class="text-[12px] text-stone-400 font-bold uppercase tracking-widest">{addr.ward}, {addr.city}</p>
+            <p class="text-[12px] text-stone-400 font-bold tracking-widest">{addr.ward}, {addr.city}</p>
           </div>
         </div>
 
@@ -84,7 +84,7 @@
           <div class="mt-6 pt-5 border-t border-stone-50 flex justify-end">
             <button
               onclick={() => onSetDefault(addr.id)}
-              class="text-[10px] font-black uppercase tracking-[2px] text-stone-400 hover:text-luxury-copper flex items-center gap-2 group/btn py-2"
+              class="text-[10px] font-black tracking-[2px] text-stone-400 hover:text-luxury-copper flex items-center gap-2 group/btn py-2"
             >
               <div class="w-5 h-5 rounded-full border border-stone-200 flex items-center justify-center group-hover/btn:border-luxury-copper transition-colors">
                  <Check class="w-3 h-3 opacity-0 group-hover/btn:opacity-100 transition-opacity" />

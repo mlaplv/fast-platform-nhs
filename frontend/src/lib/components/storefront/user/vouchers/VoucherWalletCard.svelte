@@ -38,7 +38,7 @@
        <div class="w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 text-white shadow-xl group-hover:scale-110 transition-transform duration-500">
           <Ticket size={22} class="drop-shadow-lg" strokeWidth={1.5} />
        </div>
-       <span class="text-[8px] font-black text-white/50 uppercase tracking-[0.3em] font-mono">{voucher.category}</span>
+       <span class="text-[8px] font-black text-white/50 tracking-[0.3em] font-mono">{voucher.category}</span>
     </div>
     
     <!-- Premium Shimmer -->
@@ -51,15 +51,15 @@
       <div class="flex items-center justify-between gap-2">
          <h3 class="text-sm md:text-base font-serif italic text-stone-800 truncate tracking-wide">{mainLabel}</h3>
          {#if voucher.is_default}
-           <span class="px-2 py-0.5 bg-stone-800 text-white text-[8px] font-black uppercase rounded-full border border-stone-800 shadow-lg shadow-stone-800/10">ELITE</span>
+           <span class="px-2 py-0.5 bg-stone-800 text-white text-[8px] font-black rounded-full border border-stone-800 shadow-lg shadow-stone-800/10">ELITE</span>
          {/if}
       </div>
-      <p class="text-[10px] md:text-[11px] font-black text-stone-400 uppercase tracking-widest truncate">{subLabel}</p>
+      <p class="text-[10px] md:text-[11px] font-black text-stone-400 tracking-widest truncate">{subLabel}</p>
     </div>
 
     <!-- 📊 USAGE STATS (MINIMALIST) -->
     <div class="space-y-2">
-       <div class="flex items-center justify-between text-[8px] font-black uppercase tracking-[0.2em] text-stone-300">
+       <div class="flex items-center justify-between text-[8px] font-black tracking-[0.2em] text-stone-300">
           <span>PROGRESS: {usagePercent.toFixed(0)}%</span>
           {#if voucher.usage_limit}
             <span class="flex items-center gap-1"><Clock size={8} /> {voucher.usage_limit - voucher.used_count} Lượt còn lại</span>
@@ -83,7 +83,7 @@
         <div class="w-9 h-9 rounded-full bg-white border border-stone-100 flex items-center justify-center text-stone-300 group-hover/btn:text-luxury-copper group-hover/btn:border-luxury-copper group-hover/btn:shadow-lg transition-all active:scale-90">
            <Info size={18} />
         </div>
-        <span class="text-[8px] font-black text-stone-400 group-hover/btn:text-stone-800 uppercase tracking-widest transition-colors font-mono">DETAIL</span>
+        <span class="text-[8px] font-black text-stone-400 group-hover/btn:text-stone-800 tracking-widest transition-colors font-mono">DETAIL</span>
      </button>
   </div>
 </div>

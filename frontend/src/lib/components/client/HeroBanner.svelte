@@ -413,7 +413,7 @@
                     
                     <div class="relative z-10">
                       <EditableWrapper path="metadata.hero_metrics.{i}.label" value={metric.label} label="SỬA NHÃN {i+1}">
-                        <span class="text-[10px] font-black uppercase tracking-[.2em] whitespace-nowrap transition-colors duration-500"
+                        <span class="text-[10px] font-black tracking-[.2em] whitespace-nowrap transition-colors duration-500"
                               class:text-luxury-copper={metric.color === 'copper'}
                               class:text-luxury-gold={metric.color === 'gold'}
                               class:text-luxury-peach={metric.color === 'peach'}
@@ -448,7 +448,7 @@
            <div class="elite-dot-container">
               <span class="elite-status-dot" style="--status-color: #94a3b8;"></span>
            </div>
-           <span class="elite-status-text uppercase tracking-[0.2em]">{ctaText}</span>
+           <span class="elite-status-text tracking-[0.2em]">{ctaText}</span>
            <svg class="cta-icon ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
            </svg>

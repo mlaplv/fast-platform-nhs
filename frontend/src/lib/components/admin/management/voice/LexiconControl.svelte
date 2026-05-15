@@ -285,7 +285,7 @@
               ? "text-cyan-400"
               : "text-zinc-600"}
           />
-          <span class="truncate uppercase leading-none">NORMALIZE</span>
+          <span class="truncate leading-none">NORMALIZE</span>
         </button>
         <button
           onclick={() => (lexiconTab = "stopwords")}
@@ -300,7 +300,7 @@
               ? "text-cyan-400"
               : "text-zinc-600"}
           />
-          <span class="truncate uppercase leading-none">FILTER</span>
+          <span class="truncate leading-none">FILTER</span>
         </button>
       </div>
       <div class="flex-1"></div>
@@ -451,7 +451,7 @@
           <button
             onclick={ingestDefaultStopwords}
             disabled={isIngesting}
-            class="w-full mt-4 p-4 bg-emerald-600/10 border border-emerald-500/20 rounded-2xl text-emerald-400 font-bold text-[10px] uppercase tracking-[0.3em] hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+            class="w-full mt-4 p-4 bg-emerald-600/10 border border-emerald-500/20 rounded-2xl text-emerald-400 font-bold text-[10px] tracking-[0.3em] hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
           >
             <RefreshCw size={16} class={isIngesting ? "animate-spin" : ""} />
             {isIngesting

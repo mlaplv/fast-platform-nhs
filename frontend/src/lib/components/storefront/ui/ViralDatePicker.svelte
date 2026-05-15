@@ -102,7 +102,7 @@
     <div class="flex items-center gap-3">
         <button 
             type="button"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-xs font-bold text-gray-700 uppercase italic"
+            class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-xs font-bold text-gray-700 italic"
             onclick={() => showTime = !showTime}
         >
             {#if showTime}
@@ -113,7 +113,7 @@
                 Giờ giao
             {/if}
         </button>
-        <div class="text-sm font-black text-gray-900 uppercase tracking-tighter">
+        <div class="text-sm font-black text-gray-900 tracking-tighter">
             {months[viewDate.getMonth()]} {viewDate.getFullYear()}
         </div>
     </div>
@@ -163,7 +163,7 @@
       >
         <div class="flex items-center gap-4">
             <div class="flex flex-col items-center gap-2">
-                <div class="text-[10px] font-black text-slate-500 uppercase italic">Giờ</div>
+                <div class="text-[10px] font-black text-slate-500 italic">Giờ</div>
                 <div class="flex flex-col gap-1 items-center">
                     <button type="button" class="time-nav" onclick={() => handleTimeChange('h', (hours + 1) % 24)}>▲</button>
                     <div class="text-4xl font-black text-gray-900 px-4 py-2 bg-gray-100 rounded-xl border border-gray-200">
@@ -174,7 +174,7 @@
             </div>
             <div class="text-4xl font-black text-luxury-copper pt-6">:</div>
             <div class="flex flex-col items-center gap-2">
-                <div class="text-[10px] font-black text-slate-500 uppercase italic">Phút</div>
+                <div class="text-[10px] font-black text-slate-500 italic">Phút</div>
                 <div class="flex flex-col gap-1 items-center">
                     <button type="button" class="time-nav" onclick={() => handleTimeChange('m', (mins + 5) % 60)}>▲</button>
                     <div class="text-4xl font-black text-gray-900 px-4 py-2 bg-gray-100 rounded-xl border border-gray-200">
@@ -184,7 +184,7 @@
                 </div>
             </div>
             <div class="flex flex-col items-center gap-2 ml-4">
-                <div class="text-[10px] font-black text-slate-500 uppercase italic">AM/PM</div>
+                <div class="text-[10px] font-black text-slate-500 italic">AM/PM</div>
                 <button 
                     type="button"
                     onclick={() => handleTimeChange('h', isPM ? hours - 12 : hours + 12)}

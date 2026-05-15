@@ -101,7 +101,7 @@
               <div class="space-y-1.5">
                 <label
                   for="field-{field.key}"
-                  class="block text-[10px] font-mono font-bold uppercase tracking-[.2em]
+                  class="block text-[10px] font-mono font-bold tracking-[.2em]
                     {isFieldInvalid(field) ? 'text-red-400' : 'text-gray-400'}"
                 >
                   {field.label}
@@ -178,16 +178,14 @@
       <div class="flex border-t border-cyan-500/10">
         <button
           onclick={handleCancel}
-          class="flex-1 py-5 text-[11px] font-mono font-bold tracking-[.4em] uppercase
-            text-gray-500 hover:text-white border-r border-cyan-500/10
+          class="flex-1 py-5 text-[11px] font-mono font-bold tracking-[.4em] text-gray-500 hover:text-white border-r border-cyan-500/10
             bg-white/[0.01] hover:bg-white/[0.03] transition-all"
         >
           {dialog.cancelLabel || "HỦY"}
         </button>
         <button
           onclick={handleConfirm}
-          class="flex-1 py-5 text-[11px] font-mono font-bold tracking-[.4em] uppercase
-            text-cyan-400 bg-cyan-500/5 hover:bg-cyan-500 hover:text-black
+          class="flex-1 py-5 text-[11px] font-mono font-bold tracking-[.4em] text-cyan-400 bg-cyan-500/5 hover:bg-cyan-500 hover:text-black
             transition-all group overflow-hidden relative"
         >
           <div

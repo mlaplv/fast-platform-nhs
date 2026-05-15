@@ -81,7 +81,7 @@
       class="flex items-center gap-2.5 px-3 py-1.5 bg-black border {border}/40 hover:border-neon-cyan/60 transition-all duration-300 group {isOpen ? 'ring-1 ring-neon-cyan/20 border-neon-cyan' : ''}"
     >
       <span class="w-1.5 h-1.5 {color.replace('text-', 'bg-')} {isOpen ? 'animate-ping' : ''}"></span>
-      <span class="text-[9px] font-mono font-black tracking-[0.2em] uppercase {color}">
+      <span class="text-[9px] font-mono font-black tracking-[0.2em] {color}">
         {label || statusMap[currentStatus]?.label || statusMap[currentStatus.toLowerCase()]?.label || currentStatus}
       </span>
       <div class="w-px h-3 bg-white/10 mx-0.5"></div>
@@ -95,7 +95,7 @@
     >
       <div class="flex items-center gap-2 overflow-hidden">
         <Activity size={10} class="{isOpen ? 'text-neon-cyan animate-pulse' : 'text-gray-600'}" />
-        <span class="text-[10px] font-mono uppercase tracking-[0.15em] truncate {isOpen ? 'text-white font-black' : 'text-neon-cyan/80 font-bold'}">
+        <span class="text-[10px] font-mono tracking-[0.15em] truncate {isOpen ? 'text-white font-black' : 'text-neon-cyan/80 font-bold'}">
           {label || statusMap[currentStatus]?.label || currentStatus || placeholder}
         </span>
       </div>
@@ -115,7 +115,7 @@
       <div class="px-1 py-1 overflow-y-auto custom-scrollbar flex-1">
         <div class="flex flex-col">
           {#if options.length === 0}
-            <div class="px-3 py-2 text-[8px] font-mono text-gray-700 italic uppercase bg-black/20">End_Of_Life_Cycle</div>
+            <div class="px-3 py-2 text-[8px] font-mono text-gray-700 italic bg-black/20">End_Of_Life_Cycle</div>
           {:else}
             {#each options as statusKey, i}
               {@const val = statusMap[statusKey]}
@@ -124,7 +124,7 @@
                 class="flex items-center gap-3 w-full px-3 py-2 hover:bg-neon-cyan/10 text-left transition-all group/opt border border-transparent hover:border-neon-cyan/20"
               >
                 <div class="w-1 h-1 {val?.color ? val.color.replace('text-', 'bg-') : 'bg-gray-500'}"></div>
-                <span class="text-[9px] font-mono font-bold tracking-wider uppercase {val?.color || 'text-gray-400'} group-hover/opt:text-white">
+                <span class="text-[9px] font-mono font-bold tracking-wider {val?.color || 'text-gray-400'} group-hover/opt:text-white">
                   {val?.label || statusKey}
                 </span>
               </button>
@@ -144,7 +144,7 @@
                 <div class="text-gray-500 group-hover/util:text-white">
                   <action.icon size={12} fill={action.value === "TOGGLE_SPAM" ? "currentColor" : "none"} />
                 </div>
-                <span class="text-[8px] font-mono {action.color || 'text-gray-400'} group-hover/util:text-white uppercase tracking-tight">
+                <span class="text-[8px] font-mono {action.color || 'text-gray-400'} group-hover/util:text-white tracking-tight">
                   {action.label}
                 </span>
               </button>

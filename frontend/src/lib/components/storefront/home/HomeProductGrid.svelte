@@ -278,7 +278,7 @@
                   <div in:fly={{x: 50, duration: 1500, delay: 1200 + (idx * 300)}} 
                        class="absolute z-20 px-4 py-2 bg-white/90 backdrop-blur-xl border border-white shadow-2xl flex flex-col gap-0.5 animate-float-spec" 
                        style="top: {15 + (idx * 25)}%; right: {5 + (idx % 2 * 10)}%; animation-delay: {idx * 2}s">
-                      <span class="text-[8px] font-black uppercase tracking-[0.2em] text-black/30">{spec.label}</span>
+                      <span class="text-[8px] font-black tracking-[0.2em] text-black/30">{spec.label}</span>
                       <span class="text-[11px] font-black {spec.color}">{spec.value}</span>
                   </div>
               {/each}
@@ -286,7 +286,7 @@
               <div in:fly={{x: -50, duration: 1500, delay: 1800}} 
                    class="absolute z-20 bottom-[15%] left-[5%] px-4 py-3 bg-black text-white flex items-center gap-3 shadow-2xl">
                   <div class="h-2 w-2 rounded-full bg-green-500"></div>
-                  <span class="text-[9px] font-black uppercase tracking-[0.3em]">Xác nhận Chính hãng</span>
+                  <span class="text-[9px] font-black tracking-[0.3em]">Xác nhận Chính hãng</span>
               </div>
 
               <img 
@@ -312,7 +312,7 @@
           {#if product.isAiPick}
             <div class="absolute top-2 left-2 z-20 flex flex-col gap-0.5">
                 <div class="bg-[#ee4d2d] text-white flex items-center shadow-[0_4px_12px_rgba(238,77,45,0.4)] overflow-hidden animate-shivering">
-                    <div class="bg-black text-[8px] font-black px-1.5 py-1 flex items-center justify-center uppercase tracking-tighter italic border-r border-white/10">
+                    <div class="bg-black text-[8px] font-black px-1.5 py-1 flex items-center justify-center tracking-tighter italic border-r border-white/10">
                         SẮP CHÁY HÀNG
                     </div>
                     <div class="flex items-center gap-0.5 px-2 py-1 font-mono text-[10px] font-black bg-[#ee4d2d]">
@@ -323,7 +323,7 @@
                         <span class="w-4 text-center">{timeLeft.s}</span>
                     </div>
                 </div>
-                <div class="bg-white/95 backdrop-blur-md border border-[#ee4d2d]/20 text-[7px] font-black text-[#ee4d2d] px-1.5 py-0.5 w-fit uppercase tracking-[0.15em] shadow-sm">
+                <div class="bg-white/95 backdrop-blur-md border border-[#ee4d2d]/20 text-[7px] font-black text-[#ee4d2d] px-1.5 py-0.5 w-fit tracking-[0.15em] shadow-sm">
                     Chỉ còn {Math.abs((product.id.length % 7) + 2)} suất cuối
                 </div>
             </div>
@@ -383,7 +383,7 @@
         onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         class="group/foot relative py-1 px-6 overflow-hidden active:scale-95 transition-all"
     >
-        <span class="relative z-10 text-[11px] font-black uppercase tracking-[0.4em] text-black/40 group-hover/foot:text-black group-hover/foot:tracking-[0.5em] transition-all duration-700 flex items-center gap-4">
+        <span class="relative z-10 text-[11px] font-black tracking-[0.4em] text-black/40 group-hover/foot:text-black group-hover/foot:tracking-[0.5em] transition-all duration-700 flex items-center gap-4">
             Xem thêm
             <svg class="w-4 h-4 opacity-20 group-hover/foot:opacity-100 group-hover/foot:translate-x-2 transition-all duration-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
         </span>

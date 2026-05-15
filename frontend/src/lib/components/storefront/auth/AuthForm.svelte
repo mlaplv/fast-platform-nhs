@@ -265,7 +265,7 @@
 
             <div class="text-center">
                 <h3 class="text-xl font-black text-black tracking-tight italic">{authStore.user.name || 'Thành viên mới'}</h3>
-                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{authStore.user.email}</p>
+                <p class="text-[10px] text-gray-400 font-bold tracking-widest mt-1">{authStore.user.email}</p>
             </div>
 
             <div class="w-full space-y-3 pt-4">
@@ -284,7 +284,7 @@
                     <ChevronRight class="w-4 h-4 text-gray-300" />
                 </button>
                 <button 
-                    class="w-full p-4 bg-red-50/50 text-[#ff3b30] {r} font-black text-[10px] tracking-widest uppercase hover:bg-[#ff3b30]/10 transition-all mt-4"
+                    class="w-full p-4 bg-red-50/50 text-[#ff3b30] {r} font-black text-[10px] tracking-widest hover:bg-[#ff3b30]/10 transition-all mt-4"
                     onclick={() => { authStore.logout(); onClose?.(); }}
                 >
                     Đăng xuất
@@ -295,7 +295,7 @@
     <div class="space-y-3 pt-2">
         {#if mode === 'register'}
         <div class="group">
-            <label for="fullName" class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-2 block">HỌ VÀ TÊN</label>
+            <label for="fullName" class="text-[11px] font-black text-gray-400 tracking-widest mb-2 ml-2 block">HỌ VÀ TÊN</label>
             <input
             type="text"
             id="fullName"
@@ -307,7 +307,7 @@
         {/if}
 
         <div class="group">
-        <label for="email" class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-2 block">ĐỊA CHỈ EMAIL</label>
+        <label for="email" class="text-[11px] font-black text-gray-400 tracking-widest mb-2 ml-2 block">ĐỊA CHỈ EMAIL</label>
         <div class="relative">
             <input
             type="email"
@@ -323,7 +323,7 @@
 
         {#if authMethod === 'password' && mode === 'login'}
         <div class="group" in:slide>
-        <label for="password" class="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-2 block italic">MẬT KHẨU</label>
+        <label for="password" class="text-[11px] font-black text-gray-400 tracking-widest mb-2 ml-2 block italic">MẬT KHẨU</label>
         <div class="relative">
             <input
             type={showPassword ? 'text' : 'password'}
@@ -346,7 +346,7 @@
         {/if}
 
         {#if error}
-        <div class="text-[#ff3b30] text-[10px] font-black text-center uppercase tracking-widest bg-[#ff3b30]/10 p-3 rounded-xl border border-[#ff3b30]/20" in:scale>{error}</div>
+        <div class="text-[#ff3b30] text-[10px] font-black text-center tracking-widest bg-[#ff3b30]/10 p-3 rounded-xl border border-[#ff3b30]/20" in:scale>{error}</div>
         {/if}
 
         {#if isLoading && liveLogs.length > 0}
@@ -354,7 +354,7 @@
             {#each liveLogs as log, i}
             <div class="flex items-center gap-3" in:fly={{ x: -10, delay: i * 100 }}>
                 <div class="w-1.5 h-1.5 rounded-full {i === liveLogs.length - 1 ? 'bg-luxury-copper animate-pulse' : 'bg-gray-300'}"></div>
-                <span class="text-[10px] font-bold {i === liveLogs.length - 1 ? 'text-black italic' : 'text-gray-400'} uppercase tracking-wider">{log}</span>
+                <span class="text-[10px] font-bold {i === liveLogs.length - 1 ? 'text-black italic' : 'text-gray-400'} tracking-wider">{log}</span>
             </div>
             {/each}
         </div>
@@ -372,7 +372,7 @@
                 {#if isLoading && liveLogs.length === 0}
                 <Loader2 class="w-5 h-5 animate-spin" />
                 {:else if isLoading}
-                ĐANG XỬ LÝ...
+                Đang xử lý...
                 {:else}
                 {mode === 'login' ? 'ĐĂNG NHẬP' : 'ĐĂNG KÝ'} <ArrowRight class="w-5 h-5" />
                 {/if}
@@ -394,7 +394,7 @@
                 <div class="w-full border-t border-gray-100"></div>
             </div>
             <div class="relative flex justify-center text-center">
-                <span class="bg-white px-4 text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">
+                <span class="bg-white px-4 text-[10px] font-black text-gray-300 tracking-[0.2em]">
                 HOẶC TIẾP TỤC VỚI
                 </span>
             </div>
@@ -443,7 +443,7 @@
 
         <button
         onclick={() => ui.authModal.mode = ui.authModal.mode === 'login' ? 'register' : 'login'}
-        class="w-full text-center text-[9px] font-bold text-gray-300 hover:text-black transition-colors uppercase tracking-[0.1em] pt-2"
+        class="w-full text-center text-[9px] font-bold text-gray-300 hover:text-black transition-colors tracking-[0.1em] pt-2"
         >
         {mode === 'login' ? 'CHƯA CÓ TÀI KHOẢN? ĐĂNG KÝ' : 'ĐÃ LÀ THÀNH VIÊN? ĐĂNG NHẬP'}
         </button>
@@ -451,7 +451,7 @@
     {:else}
         <div class="space-y-8 text-center" in:scale>
         <div>
-            <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] italic">XÁC THỰC TRUY CẬP</p>
+            <p class="text-[11px] font-black text-gray-400 tracking-[0.3em] italic">XÁC THỰC TRUY CẬP</p>
             <p class="text-[13px] text-black font-semibold mt-3">
             Đã gửi mã đến <span class="font-black underline italic decoration-luxury-copper">{identifier}</span>
             </p>
@@ -474,7 +474,7 @@
         </div>
 
         {#if error}
-            <div class="text-[#ff3b30] text-[10px] font-black text-center uppercase tracking-widest bg-[#ff3b30]/10 p-3 rounded-xl border border-[#ff3b30]/20">{error}</div>
+            <div class="text-[#ff3b30] text-[10px] font-black text-center tracking-widest bg-[#ff3b30]/10 p-3 rounded-xl border border-[#ff3b30]/20">{error}</div>
         {/if}
 
         <div class="space-y-4">
@@ -491,7 +491,7 @@
             </button>
             <button
             onclick={() => step = 'input'}
-            class="text-[10px] font-bold text-gray-400 hover:text-black transition-colors uppercase tracking-[0.2em] italic"
+            class="text-[10px] font-bold text-gray-400 hover:text-black transition-colors tracking-[0.2em] italic"
             >
             THAY ĐỔI THÔNG TIN
             </button>

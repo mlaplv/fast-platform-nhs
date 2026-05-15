@@ -112,7 +112,7 @@
 </script>
 
 <!-- Responsive Table Header (Hidden on Mobile) -->
-<div class="hidden md:grid grid-cols-[40px_minmax(250px,2fr)_1fr_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-black/80 border-b border-[#FFB800]/20 uppercase tracking-widest text-[9px] font-extrabold font-mono text-[#FFB800] shadow-2xl"
+<div class="hidden md:grid grid-cols-[40px_minmax(250px,2fr)_1fr_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-black/80 border-b border-[#FFB800]/20 tracking-widest text-[9px] font-extrabold font-mono text-[#FFB800] shadow-2xl"
      style="z-index: {Z_INDEX_ADMIN.STICKY_HEADER}; backdrop-filter: blur(16px);">
   <div class="text-center flex justify-center items-center">
     <button
@@ -190,7 +190,7 @@
                 <Sparkles size={12} class="text-[#00FFFF] animate-pulse shrink-0" />
               {/if}
             </div>
-            <div class="text-[10px] font-mono text-gray-500 mt-1 uppercase tracking-[0.2em] flex items-center flex-wrap gap-2">
+            <div class="text-[10px] font-mono text-gray-500 mt-1 tracking-[0.2em] flex items-center flex-wrap gap-2">
               <span class="px-2 py-0.5 rounded-lg bg-white/5 border border-white/5 text-[8px] text-[#FFB800]/70">{product.category || "General_Node"}</span>
               
               {#if product.metadata?.analysis_metrics}
@@ -213,12 +213,12 @@
           </div>
         </div>
 
-        <div class="hidden md:block text-[10px] font-mono text-gray-500 uppercase tracking-wider group-hover:text-gray-300 transition-colors truncate">
+        <div class="hidden md:block text-[10px] font-mono text-gray-500 tracking-wider group-hover:text-gray-300 transition-colors truncate">
           {product.sku}
         </div>
 
         <div class="pl-[72px] md:pl-0 mt-3 md:mt-0 flex md:flex-none items-center justify-between md:justify-start">
-          <span class="md:hidden text-[9px] font-mono text-gray-500 tracking-widest uppercase">Price</span>
+          <span class="md:hidden text-[9px] font-mono text-gray-500 tracking-widest ">Price</span>
           <div class="flex flex-col items-start gap-1">
             <div class="flex items-center gap-2">
               {#if product.discount_price || product.discountPrice}
@@ -269,14 +269,14 @@
                 <div class="flex flex-col gap-1 px-2 py-1 rounded-lg bg-emerald-500/5 border border-emerald-500/20 hover:border-emerald-500/50 transition-all cursor-help">
                   <div class="flex items-center gap-1.5">
                     <TrendingUp size={10} class="text-emerald-400 shrink-0" />
-                    <span class="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Tình báo giá</span>
+                    <span class="text-[9px] font-black text-emerald-400 tracking-widest">Tình báo giá</span>
                   </div>
                   {#if bestPrice}
                     <div class="flex items-center gap-2">
                        <span class="text-[10px] font-mono font-black text-emerald-400">
                          {formatCurrency(bestPrice)}
                        </span>
-                       <span class="text-[7px] font-mono text-white/20 uppercase tracking-tighter">[Best]</span>
+                       <span class="text-[7px] font-mono text-white/20 tracking-tighter">[Best]</span>
                     </div>
                   {/if}
                 </div>
@@ -287,7 +287,7 @@
 
         <!-- Quantity -->
         <div class="pl-[72px] md:pl-0 mt-1 md:mt-0 flex md:flex-none items-center justify-between md:justify-start">
-          <span class="md:hidden text-[9px] font-mono text-gray-500 tracking-widest uppercase">Stock</span>
+          <span class="md:hidden text-[9px] font-mono text-gray-500 tracking-widest ">Stock</span>
           <span class="px-2.5 py-1 rounded bg-black/40 xl:bg-transparent xl:border-none md:px-0 md:py-0 border border-white/5 shadow-inner md:shadow-none text-[11px] font-mono font-bold {
             product.stock === 0 ? 'text-red-400 border-red-500/20' : 
             product.stock < 20 ? 'text-[#FFB800] border-[#FFB800]/20' : 
@@ -301,7 +301,7 @@
         <!-- System Status -->
         <div class="pl-[72px] md:pl-0 mt-3 md:mt-0 flex md:flex-none justify-start items-center">
           <span
-            class="px-3 py-1 md:py-1.5 rounded-lg text-[9px] font-bold font-mono uppercase tracking-widest shadow-inner inline-flex"
+            class="px-3 py-1 md:py-1.5 rounded-lg text-[9px] font-bold font-mono tracking-widest shadow-inner inline-flex"
             style:color={status.color}
             style:border="1px solid {status.color}40"
             style:background="{status.color}15"
@@ -365,8 +365,8 @@
             <TrendingUp size={20} class="text-emerald-400" />
           </div>
           <div class="flex flex-col">
-            <h2 class="text-lg font-black text-white uppercase tracking-tight">BÁO CÁO TRINH SÁT THỊ TRƯỜNG</h2>
-            <p class="text-[10px] font-mono text-white/40 uppercase tracking-[0.2em]">Deep Intel v2.2 | XoHi Neural Engine</p>
+            <h2 class="text-lg font-black text-white tracking-tight">BÁO CÁO TRINH SÁT THỊ TRƯỜNG</h2>
+            <p class="text-[10px] font-mono text-white/40 tracking-[0.2em]">Deep Intel v2.2 | XoHi Neural Engine</p>
           </div>
         </div>
       </div>
@@ -380,7 +380,7 @@
             </div>
             <div class="flex items-center gap-2 mb-4">
               <ShieldCheck size={16} class="text-emerald-400" />
-              <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Phân tích từ XOHI</span>
+              <span class="text-[10px] font-black text-emerald-400 tracking-widest">Phân tích từ XOHI</span>
             </div>
             <div class="flex flex-col gap-3">
               <p class="text-sm text-white/80 leading-relaxed italic font-serif">
@@ -388,13 +388,13 @@
               </p>
               {#if fullViewMarketData.critical_analysis}
                 <div class="mt-2 pt-2 border-t border-emerald-500/10">
-                  <span class="text-[9px] font-black text-amber-400/60 uppercase block mb-1">Phản biện:</span>
+                  <span class="text-[9px] font-black text-amber-400/60 block mb-1">Phản biện:</span>
                   <p class="text-xs text-white/60 italic leading-relaxed">{fullViewMarketData.critical_analysis}</p>
                 </div>
               {/if}
               {#if fullViewMarketData.optimization_strategy}
                 <div class="mt-2 pt-2 border-t border-emerald-500/10">
-                  <span class="text-[9px] font-black text-cyan-400/60 uppercase block mb-1">Chiến lược tối ưu:</span>
+                  <span class="text-[9px] font-black text-cyan-400/60 block mb-1">Chiến lược tối ưu:</span>
                   <p class="text-xs text-white/60 italic leading-relaxed">{fullViewMarketData.optimization_strategy}</p>
                 </div>
               {/if}
@@ -404,11 +404,11 @@
           <!-- Quick Stats -->
           <div class="grid grid-cols-2 gap-4">
              <div class="p-4 rounded-xl bg-white/5 border border-white/5">
-                <span class="text-[8px] text-white/30 uppercase font-black block mb-1">Ads Count</span>
+                <span class="text-[8px] text-white/30 font-black block mb-1">Ads Count</span>
                 <span class="text-2xl font-mono text-amber-400">{(fullViewMarketData.ads || []).length}</span>
              </div>
              <div class="p-4 rounded-xl bg-white/5 border border-white/5">
-                <span class="text-[8px] text-white/30 uppercase font-black block mb-1">Organic Results</span>
+                <span class="text-[8px] text-white/30 font-black block mb-1">Organic Results</span>
                 <span class="text-2xl font-mono text-emerald-400">{(fullViewMarketData.organic_results || []).length}</span>
              </div>
           </div>
@@ -419,7 +419,7 @@
           <!-- Sponsored -->
           {#if fullViewMarketData.ads && fullViewMarketData.ads.length > 0}
             <div class="flex flex-col gap-3">
-              <div class="flex items-center gap-2 text-[10px] font-black text-amber-400 uppercase tracking-[0.2em]">
+              <div class="flex items-center gap-2 text-[10px] font-black text-amber-400 tracking-[0.2em]">
                  🔥 Quảng cáo (Sponsored/Ads)
               </div>
               <div class="flex flex-col gap-2">
@@ -431,7 +431,7 @@
                    >
                      <div class="flex flex-col min-w-0">
                        <span class="text-xs font-bold text-white/80 truncate group-hover/link:text-amber-400">{ad.title}</span>
-                       <span class="text-[9px] text-white/30 uppercase tracking-widest">{ad.platform}</span>
+                       <span class="text-[9px] text-white/30 tracking-widest">{ad.platform}</span>
                      </div>
                      <div class="flex items-center gap-4 shrink-0">
                        <span class="text-sm font-mono text-amber-400 font-black">{ad.price ? formatCurrency(ad.price) : 'N/A'}</span>
@@ -446,7 +446,7 @@
           <!-- Organic -->
           {#if fullViewMarketData.organic_results && fullViewMarketData.organic_results.length > 0}
             <div class="flex flex-col gap-3">
-              <div class="flex items-center gap-2 text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em]">
+              <div class="flex items-center gap-2 text-[10px] font-black text-emerald-400 tracking-[0.2em]">
                  🌐 Top 10 Kết quả Tự nhiên
               </div>
               <div class="flex flex-col gap-2">
@@ -458,7 +458,7 @@
                    >
                      <div class="flex flex-col min-w-0">
                        <span class="text-xs font-bold text-white/70 truncate group-hover/link:text-emerald-400">{res.title}</span>
-                       <span class="text-[9px] text-white/20 uppercase tracking-widest">{res.platform}</span>
+                       <span class="text-[9px] text-white/20 tracking-widest">{res.platform}</span>
                      </div>
                      <div class="flex items-center gap-4 shrink-0">
                        <span class="text-sm font-mono text-emerald-400 font-black">{res.price ? formatCurrency(res.price) : 'N/A'}</span>
@@ -480,7 +480,7 @@
              e.stopPropagation();
              closeMarketReport();
            }}
-           class="px-8 py-3 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[11px] font-black text-emerald-400 uppercase hover:bg-emerald-500/30 hover:text-emerald-300 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+           class="px-8 py-3 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[11px] font-black text-emerald-400 hover:bg-emerald-500/30 hover:text-emerald-300 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.2)]"
          >
            ĐÓNG BÁO CÁO
          </button>
@@ -506,8 +506,8 @@
       <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between border-b border-white/5 pb-2">
           <div class="flex flex-col">
-            <span class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Dữ liệu trinh sát</span>
-            <span class="text-[8px] font-mono text-white/20 uppercase">{allResults.length} kết quả</span>
+            <span class="text-[10px] font-black text-white/40 tracking-[0.2em]">Dữ liệu trinh sát</span>
+            <span class="text-[8px] font-mono text-white/20 ">{allResults.length} kết quả</span>
           </div>
           <button 
             onclick={(e) => { 
@@ -515,7 +515,7 @@
               e.stopPropagation(); 
               fullViewMarketData = { ...activeIntelData };
             }}
-            class="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase hover:bg-emerald-500/20 transition-all"
+            class="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black hover:bg-emerald-500/20 transition-all"
           >
             FULL VIEW
           </button>
@@ -525,13 +525,13 @@
           <!-- Ads -->
           {#if m.ads && m.ads.length > 0}
             <div class="flex flex-col gap-1.5">
-              <div class="text-[8px] font-black text-amber-400/60 uppercase">🔥 Quảng cáo (Ads)</div>
+              <div class="text-[8px] font-black text-amber-400/60 ">🔥 Quảng cáo (Ads)</div>
               {#each m.ads as ad}
                 <a href={ad.link} target="_blank" onclick={(e) => e.stopPropagation()}
                    class="flex items-center justify-between p-2 rounded-lg bg-amber-500/5 border border-amber-500/10 hover:border-amber-500/40 transition-all group/link">
                   <div class="flex flex-col min-w-0">
                     <span class="text-[9px] font-bold text-white/80 truncate group-hover/link:text-amber-400">{ad.title}</span>
-                    <span class="text-[7px] text-white/30 uppercase tracking-widest">{ad.platform}</span>
+                    <span class="text-[7px] text-white/30 tracking-widest">{ad.platform}</span>
                   </div>
                   <div class="flex items-center gap-2 shrink-0">
                     <span class="text-[10px] font-mono text-amber-400 font-black">{ad.price ? formatCurrency(ad.price) : 'N/A'}</span>
@@ -544,7 +544,7 @@
 
           <!-- Analysis -->
           <div class="flex flex-col gap-1.5">
-            <div class="text-[8px] font-black text-emerald-400/60 uppercase">💡 Phân tích từ XoHi</div>
+            <div class="text-[8px] font-black text-emerald-400/60 ">💡 Phân tích từ XoHi</div>
             <p class="text-[9px] text-white/70 leading-relaxed italic line-clamp-3">
               "{m.analysis_overview}"
             </p>
@@ -553,13 +553,13 @@
           <!-- Organic -->
           {#if m.organic_results && m.organic_results.length > 0}
             <div class="flex flex-col gap-1.5">
-              <div class="text-[8px] font-black text-emerald-400/60 uppercase">🌐 Top 10 Tự nhiên</div>
+              <div class="text-[8px] font-black text-emerald-400/60 ">🌐 Top 10 Tự nhiên</div>
               {#each m.organic_results.slice(0, 3) as res}
                 <a href={res.link} target="_blank" onclick={(e) => e.stopPropagation()}
                    class="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5 hover:border-emerald-500/40 transition-all group/link">
                   <div class="flex flex-col min-w-0">
                     <span class="text-[9px] font-bold text-white/70 truncate group-hover/link:text-emerald-400">{res.title}</span>
-                    <span class="text-[7px] text-white/20 uppercase tracking-widest">{res.platform}</span>
+                    <span class="text-[7px] text-white/20 tracking-widest">{res.platform}</span>
                   </div>
                   <div class="flex items-center gap-2 shrink-0">
                     <span class="text-[10px] font-mono text-emerald-400 font-black">{res.price ? formatCurrency(res.price) : 'N/A'}</span>
@@ -568,7 +568,7 @@
                 </a>
               {/each}
               {#if m.organic_results.length > 3}
-                <span class="text-[7px] text-center text-white/20 uppercase">Và {m.organic_results.length - 3} kết quả khác...</span>
+                <span class="text-[7px] text-center text-white/20 ">Và {m.organic_results.length - 3} kết quả khác...</span>
               {/if}
             </div>
           {/if}

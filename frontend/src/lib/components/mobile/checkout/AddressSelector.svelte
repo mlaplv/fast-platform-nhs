@@ -110,12 +110,12 @@
       <MapPin class="w-4 h-4 {value.province ? (light ? 'text-sky-500' : 'text-[#FFB7C5]') : (light ? 'text-slate-300' : 'text-white/20')}" />
       <div class="flex flex-col items-start leading-tight">
         {#if value.province}
-          <span class="text-[8px] {light ? 'text-slate-400' : 'text-white/40'} font-black uppercase tracking-[0.15em]">Khu vực</span>
+          <span class="text-[8px] {light ? 'text-slate-400' : 'text-white/40'} font-black tracking-[0.15em]">Khu vực</span>
           <span class="{light ? 'text-slate-900' : 'text-white'} text-[13px] font-bold truncate tracking-tight">
             {value.province}{value.ward ? `, ${value.ward}` : ''}
           </span>
         {:else}
-          <span class="{light ? 'text-slate-400' : 'text-white/40'} text-[13px] font-bold uppercase tracking-wider italic">Chọn Khu Vực *</span>
+          <span class="{light ? 'text-slate-400' : 'text-white/40'} text-[13px] font-bold tracking-wider italic">Chọn Khu Vực *</span>
         {/if}
       </div>
     </div>
@@ -135,13 +135,13 @@
         <input 
           type="text" 
           bind:value={searchQuery}
-          placeholder={step === 'province' ? 'TÌM TỈNH/THÀNH...' : 'TÌM PHƯỜNG/XÃ...'}
-          class="flex-1 bg-transparent border-none outline-none text-[12px] font-black uppercase tracking-wider {light ? 'text-slate-900 placeholder:text-slate-300' : 'text-white placeholder:text-white/10'}"
+          placeholder={step === 'province' ? 'Tìm tỉnh/thành...' : 'Tìm phường/xã...'}
+          class="flex-1 bg-transparent border-none outline-none text-[12px] font-black tracking-wider {light ? 'text-slate-900 placeholder:text-slate-300' : 'text-white placeholder:text-white/10'}"
           autofocus
         />
         <div class="flex items-center gap-1">
           {#if step === 'ward'}
-            <button onclick={reset} class="text-[10px] font-black {light ? 'text-sky-600' : 'text-[#FFB7C5]'} uppercase px-2 py-1 bg-white/5 rounded-lg hover:opacity-80">Quay lại</button>
+            <button onclick={reset} class="text-[10px] font-black {light ? 'text-sky-600' : 'text-[#FFB7C5]'} px-2 py-1 bg-white/5 rounded-lg hover:opacity-80">Quay lại</button>
           {/if}
           <button onclick={() => isOpen = false} class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/20 hover:text-white transition-all">
             <X class="w-4 h-4" />
@@ -154,7 +154,7 @@
         {#if isLoading}
           <div class="p-8 flex flex-col items-center justify-center gap-3">
              <div class="w-6 h-6 border-2 border-[#FFB7C5]/20 border-t-[#FFB7C5] rounded-full animate-spin"></div>
-             <span class="text-[10px] text-white/40 uppercase font-black tracking-widest">Đang tải dữ liệu...</span>
+             <span class="text-[10px] text-white/40 font-black tracking-widest">Đang tải dữ liệu...</span>
           </div>
         {:else}
           {#if step === 'province'}

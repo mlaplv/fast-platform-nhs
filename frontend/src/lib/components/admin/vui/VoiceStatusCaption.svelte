@@ -133,7 +133,7 @@
     <div class="max-w-5xl mx-auto flex flex-col space-y-[var(--history-spacing)]">
       <!-- Elite 2026: Conversation Metadata -->
       <div class="w-full flex justify-between items-center mb-4 opacity-40 hover:opacity-100 transition-opacity duration-300">
-        <div class="text-[11px] font-mono tracking-[0.2em] text-white/50 uppercase">ELITE_CONVO_STREAM_v5.0</div>
+        <div class="text-[11px] font-mono tracking-[0.2em] text-white/50 ">ELITE_CONVO_STREAM_v5.0</div>
         <div class="flex items-center gap-4">
           <button onclick={() => vuiState.newChat()} class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all text-xs border border-white/10">
             <Plus size={14} /> <span>Elite Reset</span>

@@ -195,8 +195,7 @@
   }
 
   .service-label::first-letter {
-    text-transform: uppercase;
-  }
+    }
 </style>
 
 

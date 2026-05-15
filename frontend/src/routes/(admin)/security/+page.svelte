@@ -102,24 +102,24 @@
                 <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04kM12 21a9.003 9.003 0 008.367-5.657l-1.907-1.017a7 7 0 11-12.92 0l-1.907 1.017A9.003 9.003 0 0012 21z"></path></svg>
                 </div>
-                <h1 class="text-3xl font-black tracking-tighter uppercase italic">Security Operations Center</h1>
+                <h1 class="text-3xl font-black tracking-tighter italic">Security Operations Center</h1>
             </div>
             <p class="text-gray-500 font-medium">Hệ thống giám sát và phản ứng tự động Elite V2.2</p>
         </div>
         
         <div class="flex gap-4">
             <div class="stat-card bg-gray-900/40 border border-white/5 rounded-xl px-4 py-2">
-                <span class="text-[10px] text-gray-500 uppercase font-bold tracking-widest block">Trạng thái</span>
+                <span class="text-[10px] text-gray-500 font-bold tracking-widest block">Trạng thái</span>
                 <span class="text-sm font-bold {stats.status === 'SECURE' ? 'text-green-400' : 'text-red-400'}">{stats.status}</span>
             </div>
             {#if stats.emergency_lockdown}
                 <div class="stat-card bg-red-600/20 border border-red-500/50 rounded-xl px-4 py-2 animate-pulse shadow-[0_0_20px_rgba(220,38,38,0.2)]">
-                    <span class="text-[10px] text-red-400 uppercase font-black tracking-widest block">Thiết quân luật</span>
+                    <span class="text-[10px] text-red-400 font-black tracking-widest block">Thiết quân luật</span>
                     <span class="text-sm font-black text-red-500">READ-ONLY ACTIVE</span>
                 </div>
             {/if}
             <div class="stat-card bg-gray-900/40 border border-white/5 rounded-xl px-4 py-2">
-                <span class="text-[10px] text-gray-500 uppercase font-bold tracking-widest block">Cảnh báo (1k)</span>
+                <span class="text-[10px] text-gray-500 font-bold tracking-widest block">Cảnh báo (1k)</span>
                 <span class="text-sm font-bold text-orange-400">{stats.suspicious_events}</span>
             </div>
         </div>
@@ -145,7 +145,7 @@
                 <div class="max-h-[70vh] overflow-y-auto custom-scrollbar">
                     <table class="w-full text-left border-collapse">
                         <thead class="sticky top-0 bg-gray-950/80 backdrop-blur-md z-10">
-                            <tr class="text-[10px] uppercase tracking-widest text-gray-500 border-b border-white/5">
+                            <tr class="text-[10px] tracking-widest text-gray-500 border-b border-white/5">
                                 <th class="px-6 py-4">Thời gian</th>
                                 <th class="px-6 py-4">Action</th>
                                 <th class="px-6 py-4">IP / Actor</th>
@@ -202,7 +202,7 @@
                 <div class="ai-box bg-blue-600/5 border border-blue-500/20 rounded-2xl p-6 shadow-2xl shadow-blue-900/10" transition:slide>
                     <div class="flex items-center gap-3 mb-4">
                         <XohiLogo variant="simple" size={24} />
-                        <h3 class="text-sm font-black uppercase tracking-tighter text-blue-400">AI Forensic Report</h3>
+                        <h3 class="text-sm font-black tracking-tighter text-blue-400">AI Forensic Report</h3>
                     </div>
                     
                     {#if analyzing}
@@ -223,7 +223,7 @@
                             </div>
                             <p class="text-xs text-gray-300 leading-relaxed italic">"{analysisResult.reason}"</p>
                             <div class="pt-4 border-t border-white/5">
-                                <span class="text-[10px] text-gray-500 uppercase font-bold block mb-1">Khuyến nghị</span>
+                                <span class="text-[10px] text-gray-500 font-bold block mb-1">Khuyến nghị</span>
                                 <p class="text-xs font-bold text-blue-400">{analysisResult.recommended_action}</p>
                             </div>
                         </div>
@@ -234,7 +234,7 @@
             <!-- Pending Approvals (Martial Law) -->
             <div class="draft-box bg-orange-600/5 border border-orange-500/20 rounded-2xl p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-sm font-black uppercase tracking-tighter text-orange-500 italic">Hàng chờ Phê duyệt (4-Eyes)</h3>
+                    <h3 class="text-sm font-black tracking-tighter text-orange-500 italic">Hàng chờ Phê duyệt (4-Eyes)</h3>
                     <span class="text-[10px] font-mono text-gray-600">{drafts.length} Req</span>
                 </div>
 
@@ -243,7 +243,7 @@
                         <div class="p-4 rounded-xl bg-black/40 border border-white/5 space-y-3" transition:slide>
                             <div class="flex justify-between items-start">
                                 <div>
-                                    <span class="text-[10px] font-black text-orange-400 uppercase tracking-tighter block">{draft.action}</span>
+                                    <span class="text-[10px] font-black text-orange-400 tracking-tighter block">{draft.action}</span>
                                     <span class="text-[9px] text-gray-500 font-mono">By: {draft.proposed_by.slice(0,8)}...</span>
                                 </div>
                                 <span class="text-[9px] text-gray-600 italic">Target: {draft.target_model}</span>
@@ -252,13 +252,13 @@
                             <div class="flex gap-2">
                                 <button 
                                     onclick={() => handleDraft(draft.id, 'approve')}
-                                    class="flex-1 py-1.5 rounded bg-green-600/20 text-green-500 text-[10px] font-bold hover:bg-green-600 hover:text-white transition-all uppercase tracking-widest"
+                                    class="flex-1 py-1.5 rounded bg-green-600/20 text-green-500 text-[10px] font-bold hover:bg-green-600 hover:text-white transition-all tracking-widest"
                                 >
                                     Phê duyệt
                                 </button>
                                 <button 
                                     onclick={() => handleDraft(draft.id, 'reject')}
-                                    class="flex-1 py-1.5 rounded bg-red-600/20 text-red-500 text-[10px] font-bold hover:bg-red-600 hover:text-white transition-all uppercase tracking-widest"
+                                    class="flex-1 py-1.5 rounded bg-red-600/20 text-red-500 text-[10px] font-bold hover:bg-red-600 hover:text-white transition-all tracking-widest"
                                 >
                                     Từ chối
                                 </button>
@@ -273,7 +273,7 @@
             <!-- Active Blacklist -->
             <div class="blacklist-box bg-gray-900/40 border border-white/5 rounded-2xl p-6">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-sm font-black uppercase tracking-tighter text-red-500">Global Blacklist</h3>
+                    <h3 class="text-sm font-black tracking-tighter text-red-500">Global Blacklist</h3>
                     <span class="text-[10px] font-mono text-gray-600">{blacklist.length} IPs</span>
                 </div>
                 

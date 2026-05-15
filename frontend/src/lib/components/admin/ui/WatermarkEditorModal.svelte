@@ -131,8 +131,8 @@ import X from "@lucide/svelte/icons/x";
                     <Maximize2 size={18} />
                 </div>
                 <div>
-                  <h2 class="text-xs font-black uppercase tracking-[0.2em] text-white">Editor Phân Tầng</h2>
-                  <p class="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Logo & Văn bản Neural</p>
+                  <h2 class="text-xs font-black tracking-[0.2em] text-white">Editor Phân Tầng</h2>
+                  <p class="text-[9px] text-zinc-500 font-bold tracking-widest mt-1">Logo & Văn bản Neural</p>
                 </div>
             </div>
 
@@ -142,7 +142,7 @@ import X from "@lucide/svelte/icons/x";
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <ImageIcon size={14} class="text-indigo-400" />
-                            <span class="text-[10px] font-black uppercase tracking-wider text-zinc-300">Logo Thương Hiệu</span>
+                            <span class="text-[10px] font-black tracking-wider text-zinc-300">Logo Thương Hiệu</span>
                         </div>
                         <button 
                             onclick={() => nanobot.watermarkEditor.logoEnabled = !nanobot.watermarkEditor.logoEnabled}
@@ -154,7 +154,7 @@ import X from "@lucide/svelte/icons/x";
 
                     {#if nanobot.watermarkEditor.logoEnabled}
                     <div class="space-y-3 pl-2 border-l border-indigo-500/20" transition:fade>
-                        <div class="flex items-center justify-between text-[9px] font-bold text-zinc-500 uppercase">
+                        <div class="flex items-center justify-between text-[9px] font-bold text-zinc-500 ">
                             <span>Kích thước logo</span>
                             <span class="text-indigo-400 font-mono">{Math.round(logoScale * 100)}%</span>
                         </div>
@@ -168,7 +168,7 @@ import X from "@lucide/svelte/icons/x";
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <Type size={14} class="text-emerald-400" />
-                            <span class="text-[10px] font-black uppercase tracking-wider text-zinc-300">Văn bản Overlay</span>
+                            <span class="text-[10px] font-black tracking-wider text-zinc-300">Văn bản Overlay</span>
                         </div>
                         <button 
                             onclick={() => nanobot.watermarkEditor.textEnabled = !nanobot.watermarkEditor.textEnabled}
@@ -181,7 +181,7 @@ import X from "@lucide/svelte/icons/x";
                     {#if nanobot.watermarkEditor.textEnabled}
                     <div class="space-y-4 pl-2 border-l border-emerald-500/20" transition:fade>
                         <div class="space-y-2">
-                            <label class="text-[9px] font-bold text-zinc-500 uppercase">Nội dung (SĐT/Domain)</label>
+                            <label class="text-[9px] font-bold text-zinc-500 ">Nội dung (SĐT/Domain)</label>
                             <input 
                                 type="text" 
                                 bind:value={nanobot.watermarkEditor.text} 
@@ -191,7 +191,7 @@ import X from "@lucide/svelte/icons/x";
                         </div>
 
                         <div class="space-y-3">
-                            <div class="flex items-center justify-between text-[9px] font-bold text-zinc-500 uppercase">
+                            <div class="flex items-center justify-between text-[9px] font-bold text-zinc-500 ">
                                 <span>Cỡ chữ</span>
                                 <span class="text-emerald-400 font-mono">{Math.round(textScale * 1000)}pt</span>
                             </div>
@@ -199,7 +199,7 @@ import X from "@lucide/svelte/icons/x";
                         </div>
 
                         <div class="flex items-center justify-between">
-                            <span class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Màu sắc</span>
+                            <span class="text-[9px] font-bold text-zinc-500 tracking-widest">Màu sắc</span>
                             <div class="flex gap-2">
                                 {#each ['#FFFFFF', '#FFD700', '#FF3366', '#33FF66'] as color}
                                     <button 
@@ -219,7 +219,7 @@ import X from "@lucide/svelte/icons/x";
             <div class="p-6 border-t border-white/5">
                 <button 
                     onclick={resetAll}
-                    class="w-full py-3 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                    class="w-full py-3 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-xl text-[10px] font-black tracking-widest transition-all"
                 >
                     <RotateCcw size={14} />
                     Đặt lại mặc định
@@ -231,7 +231,7 @@ import X from "@lucide/svelte/icons/x";
         <div class="flex-1 flex flex-col relative bg-black">
             <!-- Canvas Header -->
             <div class="px-8 py-4 border-b border-white/5 flex items-center justify-between bg-black/40 backdrop-blur-md z-10">
-                <span class="text-[9px] font-mono text-zinc-500 uppercase tracking-[0.3em]">Neural Preview Engine // V2.2</span>
+                <span class="text-[9px] font-mono text-zinc-500 tracking-[0.3em]">Neural Preview Engine // V2.2</span>
                 <button onclick={onClose} class="text-zinc-500 hover:text-white transition-colors"><X size={18} /></button>
             </div>
 
@@ -305,21 +305,21 @@ import X from "@lucide/svelte/icons/x";
             <div class="px-8 py-6 bg-gradient-to-t from-black to-transparent flex items-center justify-between">
                 <div class="flex items-center gap-4">
                     <div class="flex flex-col">
-                        <span class="text-[9px] font-black text-indigo-400/80 uppercase tracking-widest">Tọa độ Neuron</span>
-                        <span class="text-[10px] font-mono text-zinc-500 uppercase tracking-tighter">X:{Math.round(logoX*100)} Y:{Math.round(logoY*100)} // T:{Math.round(textX*100)}:{Math.round(textY*100)}</span>
+                        <span class="text-[9px] font-black text-indigo-400/80 tracking-widest">Tọa độ Neuron</span>
+                        <span class="text-[10px] font-mono text-zinc-500 tracking-tighter">X:{Math.round(logoX*100)} Y:{Math.round(logoY*100)} // T:{Math.round(textX*100)}:{Math.round(textY*100)}</span>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <button 
                          onclick={onClose}
-                         class="px-8 py-4 text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] hover:text-white transition-all"
+                         class="px-8 py-4 text-[10px] font-black text-zinc-500 tracking-[0.2em] hover:text-white transition-all"
                     >
                         Hủy bỏ
                     </button>
                     <button 
                         onclick={confirm}
-                        class="px-10 py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] shadow-xl shadow-indigo-500/20 hover:scale-[1.05] active:scale-95 transition-all flex items-center gap-3"
+                        class="px-10 py-4 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white rounded-2xl text-[10px] font-black tracking-[0.3em] shadow-xl shadow-indigo-500/20 hover:scale-[1.05] active:scale-95 transition-all flex items-center gap-3"
                     >
                         <Check size={16} />
                         XÁC NHẬN ĐÓNG DẤU

@@ -420,18 +420,18 @@
             
             <div class="space-y-6">
               <div>
-                <h4 class="text-xs font-semibold text-luxury-copper/60 mb-2 uppercase tracking-[0.3em]">Phân tích chuyên sâu</h4>
+                <h4 class="text-xs font-semibold text-luxury-copper/60 mb-2 tracking-[0.3em]">Phân tích chuyên sâu</h4>
                 <p class="text-white text-2xl md:text-3xl lg:text-4xl font-medium leading-tight tracking-tight">{@html shopStore.diagnosticResult.analysis}</p>
               </div>
               
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
                 <div>
-                  <h4 class="text-[10px] font-semibold text-white/30 mb-3 uppercase tracking-[0.3em]">Tổng quan</h4>
+                  <h4 class="text-[10px] font-semibold text-white/30 mb-3 tracking-[0.3em]">Tổng quan</h4>
                   <p class="text-white/50 text-sm leading-relaxed">{shopStore.diagnosticResult.reasoning}</p>
                 </div>
                 <div>
                   <div class="flex items-center gap-3 mb-3">
-                    <h4 class="text-[10px] font-semibold text-emerald-400/60 uppercase tracking-[0.3em]">Liệu trình tối ưu</h4>
+                    <h4 class="text-[10px] font-semibold text-emerald-400/60 tracking-[0.3em]">Liệu trình tối ưu</h4>
                   </div>
                   <p class="text-emerald-500/80 text-sm font-medium leading-relaxed">{shopStore.diagnosticResult.recommendation}</p>
                 </div>

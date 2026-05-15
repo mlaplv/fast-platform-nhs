@@ -56,7 +56,7 @@
         <AlertTriangle size={18} class="text-red-400" />
       </div>
       <div class="flex-1">
-        <h3 class="text-[13px] font-black text-white uppercase tracking-wider">Không thể Duyệt & Tiếp tục</h3>
+        <h3 class="text-[13px] font-black text-white tracking-wider">Không thể Duyệt & Tiếp tục</h3>
         <p class="text-[10px] text-white/40 mt-0.5">Bài viết chưa đạt ngưỡng chất lượng bắt buộc.</p>
       </div>
       <button
@@ -74,7 +74,7 @@
         <div class="flex items-start gap-3 p-3 rounded-xl border {tabColor[blocker.tab]} border-opacity-30">
           <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between gap-2">
-              <span class="text-[10px] font-black uppercase tracking-wider">{blocker.label}</span>
+              <span class="text-[10px] font-black tracking-wider">{blocker.label}</span>
               <span class="text-[9px] font-bold opacity-70">{blocker.current} / cần {blocker.required}</span>
             </div>
             <div class="mt-2 flex flex-col gap-1">
@@ -102,7 +102,7 @@
     <div class="p-5 pt-4">
       <button
         onclick={onClose}
-        class="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all border border-white/10"
+        class="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-[10px] font-black tracking-widest transition-all border border-white/10"
       >
         Đã hiểu — Quay lại chỉnh sửa
       </button>

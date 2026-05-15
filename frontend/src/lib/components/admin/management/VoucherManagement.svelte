@@ -102,7 +102,7 @@
       title: "XÁC NHẬN XOÁ VOUCHER",
       message: `Bạn có chắc chắn muốn xoá vĩnh viễn voucher ${id}? Hành động này không thể hoàn tác.`,
       confirmLabel: "XOÁ NGAY",
-      cancelLabel: "QUAY LẠI",
+      cancelLabel: "Quay lại",
     });
     if (confirm) {
       try {
@@ -145,7 +145,7 @@
       title: "XÁC NHẬN XOÁ HÀNG LOẠT",
       message: `Bạn có chắc chắn muốn xoá ${selectedIds.length} voucher đã chọn? Hành động này không thể hoàn tác.`,
       confirmLabel: "XOÁ HẾT NGAY",
-      cancelLabel: "HỦY BỎ",
+      cancelLabel: "Hủy bỏ",
     });
     if (confirm) {
       try {
@@ -221,14 +221,14 @@
     {#if isLoading}
       <div class="flex-1 flex flex-col items-center justify-center gap-4">
         <div class="w-12 h-12 border-2 border-neon-cyan/10 border-t-neon-cyan rounded-full animate-spin"></div>
-        <span class="text-[10px] font-mono text-neon-cyan/50 uppercase tracking-[0.4em]">QUERYING_VOUCHERS...</span>
+        <span class="text-[10px] font-mono text-neon-cyan/50 tracking-[0.4em]">QUERYING_VOUCHERS...</span>
       </div>
     {:else if vouchers.length === 0}
       <div class="flex-1 flex flex-col items-center justify-center gap-4 text-gray-500">
         <div class="w-16 h-16 rounded-full border border-gray-800 bg-white/[0.02] flex items-center justify-center">
           <Gift size={24} class="opacity-30" />
         </div>
-        <span class="text-[10px] font-mono uppercase tracking-[0.2em]">NO_VOUCHERS_FOUND</span>
+        <span class="text-[10px] font-mono tracking-[0.2em]">NO_VOUCHERS_FOUND</span>
       </div>
     {:else}
       <div class="grid grid-cols-1 gap-3">

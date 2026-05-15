@@ -56,7 +56,7 @@
       </div>
       <div>
         <h3 class="text-lg font-black tracking-tight text-white leading-none mb-1">Elite Calendar</h3>
-        <p class="text-[10px] text-white/30 font-black uppercase tracking-[0.2em]">Neural Session Manager</p>
+        <p class="text-[10px] text-white/30 font-black tracking-[0.2em]">Neural Session Manager</p>
       </div>
     </div>
     
@@ -75,18 +75,18 @@
         <!-- Time Badge -->
         <div class="flex flex-col items-center justify-center px-3 py-2 rounded-2xl bg-black/40 border border-white/5 min-w-[60px]">
           <span class="text-[12px] font-black text-white leading-none">{formatTime(appt.start_time)}</span>
-          <span class="text-[8px] font-black text-fuchsia-400 uppercase tracking-tighter mt-1">Today</span>
+          <span class="text-[8px] font-black text-fuchsia-400 tracking-tighter mt-1">Today</span>
         </div>
 
         <div class="flex-1">
-          <h4 class="text-[13px] font-bold text-white/90 group-hover/item:text-white transition-colors uppercase tracking-tight">{appt.title}</h4>
+          <h4 class="text-[13px] font-bold text-white/90 group-hover/item:text-white transition-colors tracking-tight">{appt.title}</h4>
           <div class="flex items-center gap-3 mt-1.5">
             <div class="flex items-center gap-1 text-[10px] text-white/30">
               <User size={10} />
               <span>{appt.attendees.length} Attendees</span>
             </div>
             <div class="w-1 h-1 rounded-full bg-white/10"></div>
-            <div class="flex items-center gap-1 text-[10px] text-fuchsia-400/80 font-black uppercase tracking-widest">
+            <div class="flex items-center gap-1 text-[10px] text-fuchsia-400/80 font-black tracking-widest">
               <div class="w-1.5 h-1.5 rounded-full bg-fuchsia-500 animate-pulse"></div>
               {appt.type}
             </div>
@@ -102,7 +102,7 @@
   <div class="mt-8 pt-6 border-t border-white/5 flex items-center justify-between opacity-50 relative z-10">
     <div class="flex items-center gap-2">
       <Clock size={12} class="text-blue-400" />
-      <span class="text-[10px] font-bold text-white uppercase tracking-widest leading-none">Global Sync Active</span>
+      <span class="text-[10px] font-bold text-white tracking-widest leading-none">Global Sync Active</span>
     </div>
     <div class="flex gap-1">
       <div class="w-1 h-3 rounded-full bg-blue-500/40 animate-[pulse_1s_infinite]"></div>

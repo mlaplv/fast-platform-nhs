@@ -47,17 +47,17 @@
         {#if session.is_high_intent}
           <div class="absolute top-2 right-2 flex items-center gap-1.5 p-1 rounded-md bg-cyan-500/10 border border-cyan-500/20 anim-pulse-cyan">
              {#if session.is_takeover}
-               <span class="text-[7px] font-bold px-1 py-0.5 bg-yellow-500/20 text-yellow-500 rounded border border-yellow-500/30 uppercase tracking-tighter mr-1 anim-pulse">AI SILENCED</span>
+               <span class="text-[7px] font-bold px-1 py-0.5 bg-yellow-500/20 text-yellow-500 rounded border border-yellow-500/30 tracking-tighter mr-1 anim-pulse">AI SILENCED</span>
              {/if}
              <span class="flex h-2 w-2">
                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
              </span>
-             <span class="text-[8px] font-black text-cyan-400 uppercase tracking-widest leading-none">High Intent</span>
+             <span class="text-[8px] font-black text-cyan-400 tracking-widest leading-none">High Intent</span>
           </div>
         {:else if session.is_takeover}
           <div class="absolute top-2 right-2">
-            <span class="text-[7px] font-bold px-1 py-0.5 bg-yellow-500/20 text-yellow-500 rounded border border-yellow-500/30 uppercase tracking-tighter">AI SILENCED</span>
+            <span class="text-[7px] font-bold px-1 py-0.5 bg-yellow-500/20 text-yellow-500 rounded border border-yellow-500/30 tracking-tighter">AI SILENCED</span>
           </div>
         {/if}
         
@@ -78,7 +78,7 @@
         
         {#if session.last_intent}
           <div class="mt-2 flex gap-1">
-            <span class="text-[9px] px-1.5 py-0.5 bg-white/5 rounded border border-white/10 uppercase tracking-tighter text-white/60">{session.last_intent}</span>
+            <span class="text-[9px] px-1.5 py-0.5 bg-white/5 rounded border border-white/10 tracking-tighter text-white/60">{session.last_intent}</span>
           </div>
         {/if}
       </button>

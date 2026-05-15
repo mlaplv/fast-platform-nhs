@@ -42,12 +42,12 @@ class BarcodeAgent(BaseAgentOperative):
         if is_miccosmo:
             logger.info(f"🛡️ [BarcodeAgent] Flagship Brand Detected: Miccosmo. Forcing Truth Data.")
             _origin = (reg_info.get("origin") if reg_info else None) or "Japan"
-            res = self._get_dynamic_fallback(barcode, product_name, brand, origin=_origin)
+            res = self._get_dynamic_fallback(barcode, product_name, brand, origin=_origin, reg_info=reg_info)
             if reg_info:
                 if reg_info.get("notification_no"): res.notification_no = reg_info["notification_no"]
                 if reg_info.get("notification_date"): res.notification_date = reg_info["notification_date"]
                 if reg_info.get("notification_doc"): res.notification_doc = reg_info["notification_doc"]
-                if reg_info.get("mfg_date"): res.mfg_date = reg_info["mfg_date"]
+                res.mfg_date = None # Loại bỏ HSX
                 if reg_info.get("expiry_date"): res.expiry_date = reg_info["expiry_date"]
                 if reg_info.get("batch_dna"): res.batch_dna = reg_info["batch_dna"]
                 if reg_info.get("factory_address"):
@@ -95,7 +95,7 @@ class BarcodeAgent(BaseAgentOperative):
                 if reg_info.get("notification_no"): result.notification_no = reg_info["notification_no"]
                 if reg_info.get("notification_date"): result.notification_date = reg_info["notification_date"]
                 if reg_info.get("notification_doc"): result.notification_doc = reg_info["notification_doc"]
-                if reg_info.get("mfg_date"): result.mfg_date = reg_info["mfg_date"]
+                result.mfg_date = None # Loại bỏ HSX
                 if reg_info.get("expiry_date"): result.expiry_date = reg_info["expiry_date"]
                 if reg_info.get("batch_dna"): result.batch_dna = reg_info["batch_dna"]
                 if reg_info.get("factory_address") and result.factory:
@@ -107,19 +107,19 @@ class BarcodeAgent(BaseAgentOperative):
             logger.error(f"❌ [BarcodeAgent] AI failed: {e}")
             # Fallback to dynamic high-quality mockup if AI fails
             _origin = (reg_info.get("origin") if reg_info else None) or brand
-            res = self._get_dynamic_fallback(barcode, product_name, brand, origin=_origin)
+            res = self._get_dynamic_fallback(barcode, product_name, brand, origin=_origin, reg_info=reg_info)
             if reg_info:
                 if reg_info.get("notification_no"): res.notification_no = reg_info["notification_no"]
                 if reg_info.get("notification_date"): res.notification_date = reg_info["notification_date"]
                 if reg_info.get("notification_doc"): res.notification_doc = reg_info["notification_doc"]
-                if reg_info.get("mfg_date"): res.mfg_date = reg_info["mfg_date"]
+                res.mfg_date = None # Loại bỏ HSX
                 if reg_info.get("expiry_date"): res.expiry_date = reg_info["expiry_date"]
                 if reg_info.get("batch_dna"): res.batch_dna = reg_info["batch_dna"]
                 if reg_info.get("factory_address") and res.factory:
                     res.factory = FactoryLocation(lat=res.factory.lat, lng=res.factory.lng, address=reg_info["factory_address"])
             return res
 
-    def _get_dynamic_fallback(self, barcode: str, product_name: str, brand: str, origin: str) -> BarcodeVerificationResponse:
+    def _get_dynamic_fallback(self, barcode: str, product_name: str, brand: str, origin: str, reg_info: Optional[Dict] = None) -> BarcodeVerificationResponse:
         now = datetime.now()
         mfg = now - timedelta(days=random.randint(30, 200))
         exp = mfg + timedelta(days=365*3)
@@ -136,8 +136,8 @@ class BarcodeAgent(BaseAgentOperative):
                 origin="Japan",
                 verified=True,
                 batch_dna=f"MC-{now.year}-{random.randint(1000, 9999)}-JP",
-                mfg_date=mfg.strftime("%d/%m/%Y"),
-                expiry_date=exp.strftime("%d/%m/%Y"),
+                expiry_date=(reg_info.get("expiry_date") if reg_info and reg_info.get("expiry_date") else exp.strftime("%d/%m/%Y")),
+                mfg_date=None,
                 scans_24h=random.randint(1200, 3500),
                 factory=FactoryLocation(lat=34.6937, lng=135.5023, address="Miccosmo Co., Ltd. Osaka, Japan"),
                 certificates=[
@@ -163,8 +163,8 @@ class BarcodeAgent(BaseAgentOperative):
             origin=origin or "Japan",
             verified=True,
             batch_dna=f"TRUTH-{now.year}-{random.randint(1000, 9999)}",
-            mfg_date=mfg.strftime("%d/%m/%Y"),
-            expiry_date=exp.strftime("%d/%m/%Y"),
+            mfg_date=None, # Loại bỏ HSX
+            expiry_date=(reg_info.get("expiry_date") if reg_info and reg_info.get("expiry_date") else exp.strftime("%d/%m/%Y")),
             scans_24h=random.randint(500, 1500),
             factory=FactoryLocation(lat=35.6895, lng=139.6917, address=f"{brand} Manufacturing Facility, {origin or 'Japan'}"),
             certificates=[

@@ -238,7 +238,7 @@
           <Sparkles size={12} class="text-neon-cyan" />
         </div>
         <span
-          class="text-[9px] font-mono uppercase tracking-[0.3em] text-white/40"
+          class="text-[9px] font-mono tracking-[0.3em] text-white/40"
           >Matrix Quick Access</span
         >
       </div>
@@ -266,11 +266,11 @@
               </div>
               <div class="flex-1 text-left">
                 <span
-                  class="block text-[7px] font-mono text-white/20 uppercase tracking-widest leading-none mb-1"
+                  class="block text-[7px] font-mono text-white/20 tracking-widest leading-none mb-1"
                   >Node_0x{i + 1}</span
                 >
                 <div
-                  class="text-[13px] font-bold text-gray-200 group-hover:text-white tracking-widest uppercase"
+                  class="text-[13px] font-bold text-gray-200 group-hover:text-white tracking-widest "
                 >
                   {item.label}
                 </div>
@@ -298,7 +298,7 @@
                     onclick={() => handleSubSelect(sub)}
                     class="w-full py-2 px-3 text-[11px] font-mono text-gray-400 hover:text-neon-cyan hover:bg-neon-cyan/5 transition-all text-left flex items-center justify-between group/sub"
                   >
-                    <span class="tracking-widest uppercase">{sub.label}</span>
+                    <span class="tracking-widest ">{sub.label}</span>
                     <ChevronRight
                       size={10}
                       class="opacity-0 group-hover/sub:opacity-100 -translate-x-2 group-hover/sub:translate-x-0 transition-all"
@@ -316,7 +316,7 @@
         class="px-5 py-2 bg-white/[0.01] border-t border-white/5 flex justify-between items-center opacity-40"
       >
         <span
-          class="text-[7px] font-mono uppercase tracking-widest text-white/30"
+          class="text-[7px] font-mono tracking-widest text-white/30"
           >System Link Established</span
         >
         <div class="flex gap-1">

@@ -26,6 +26,7 @@
     is_active: boolean;
     category: string;
     is_default: boolean;
+    is_viral: boolean;
     priority: number;
     created_at: string;
   }
@@ -92,13 +93,13 @@
     <div class="flex-1 min-w-0 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6 xl:gap-8">
       <!-- Identity & Code -->
       <div class="min-w-0 lg:min-w-[180px] flex flex-col gap-1">
-        <div class="text-[9px] font-mono text-gray-500 uppercase tracking-[0.3em] flex items-center gap-2">
+        <div class="text-[9px] font-mono text-gray-500 tracking-[0.3em] flex items-center gap-2">
           <span>CODE_ID</span>
           {#if !props.voucher.is_active}
              <span class="px-1.5 py-0.5 rounded-sm bg-red-500/10 text-red-400 border border-red-500/20 text-[7px] font-bold">INACTIVE</span>
           {/if}
         </div>
-        <div class="text-[14px] sm:text-[15px] font-black text-white tracking-widest uppercase group-hover:text-neon-cyan transition-colors flex flex-wrap items-center gap-2 sm:gap-3">
+        <div class="text-[14px] sm:text-[15px] font-black text-white tracking-widest group-hover:text-neon-cyan transition-colors flex flex-wrap items-center gap-2 sm:gap-3">
           <span class="truncate max-w-[150px] sm:max-w-none">{props.voucher.title || props.voucher.id}</span>
           
           {#if props.voucher.title}
@@ -119,10 +120,21 @@
           {:else}
             <button
               onclick={(e) => { e.stopPropagation(); props.onSetDefault?.(props.voucher.id); }}
-              class="px-2 py-0.5 rounded border border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-gray-600 hover:text-emerald-400 transition-all text-[8px] font-mono uppercase tracking-tighter shrink-0"
+              class="px-2 py-0.5 rounded border border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-gray-600 hover:text-emerald-400 transition-all text-[8px] font-mono tracking-tighter shrink-0"
             >
               Set_Default
             </button>
+          {/if}
+
+          <!-- Elite V2.2: VIRAL MASTER Badge -->
+          {#if props.voucher.is_viral}
+            <div 
+              class="flex items-center gap-1 px-2 py-0.5 rounded bg-pink-500 text-white text-[8px] font-black tracking-widest animate-pulse shadow-[0_0_15px_rgba(236,72,153,0.6)] shrink-0"
+              title="Current active viral campaign"
+            >
+              <Gift size={8} />
+              VIRAL MASTER
+            </div>
           {/if}
         </div>
         <div class="flex flex-wrap items-center gap-2 text-[10px] text-gray-500 font-mono italic">
@@ -131,7 +143,7 @@
           {/if}
           <div class="flex items-center gap-1 shrink-0">
             <Icon size={10} class="text-neon-cyan/60" />
-            <span class="text-neon-cyan/80 font-bold uppercase">{props.voucher.category}</span>
+            <span class="text-neon-cyan/80 font-bold ">{props.voucher.category}</span>
           </div>
           <span class="text-white/20">|</span>
           <span class="shrink-0">{props.voucher.type}</span>
@@ -144,7 +156,7 @@
 
       <!-- Discount Value -->
       <div class="min-w-[120px]">
-        <div class="text-[9px] font-mono text-gray-500 uppercase tracking-widest mb-1">Benefit</div>
+        <div class="text-[9px] font-mono text-gray-500 tracking-widest mb-1">Benefit</div>
         <div class="text-[14px] font-bold text-emerald-400 flex items-center gap-1.5">
           {#if props.voucher.type === 'PERCENT'}
             <span class="bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">-{props.voucher.value}%</span>
@@ -156,7 +168,7 @@
 
       <!-- Usage Stats -->
       <div class="min-w-[100px]">
-        <div class="text-[9px] font-mono text-gray-500 uppercase tracking-widest mb-1">Consumption</div>
+        <div class="text-[9px] font-mono text-gray-500 tracking-widest mb-1">Consumption</div>
         <div class="flex flex-col gap-1">
           <div class="flex items-center justify-between text-[10px] font-mono">
             <span class="text-neon-cyan font-bold">{props.voucher.used_count}</span>

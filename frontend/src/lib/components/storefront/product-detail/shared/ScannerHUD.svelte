@@ -49,15 +49,14 @@
 
 <div class="scanner-hud fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 backdrop-blur-md" transition:fade>
   <!-- SCANNER FRAME -->
-  <div class="relative w-72 h-72 border-2 border-white/20 rounded-3xl overflow-hidden" in:scale={{ duration: 600 }}>
+  <div class="relative w-72 h-72 overflow-hidden" in:scale={{ duration: 600 }}>
     <!-- Corner Accents -->
     <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-luxury-gold rounded-tl-xl"></div>
     <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-luxury-gold rounded-tr-xl"></div>
     <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-luxury-gold rounded-bl-xl"></div>
     <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-luxury-gold rounded-br-xl"></div>
 
-    <!-- Scan Line Animation -->
-    <div class="scan-line" style:top="{progress}%"></div>
+    <!-- Still Frame HUD -->
 
     <!-- Simulation Overlay -->
     <div class="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gradient-to-b from-transparent via-white/5 to-transparent">
@@ -80,7 +79,7 @@
 
   <!-- STATUS TEXT -->
   <div class="absolute bottom-16 left-0 w-full text-center px-10">
-    <div class="glass-morphism-bar max-w-md mx-auto p-6 rounded-[32px] border border-white/10 backdrop-blur-2xl bg-black/20">
+    <div class="glass-morphism-bar max-w-md mx-auto p-6 rounded-[5px] backdrop-blur-2xl bg-black/40">
       <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden mb-4">
         <div class="h-full bg-gradient-to-r from-luxury-gold to-white transition-all duration-300" style:width="{progress}%"></div>
       </div>
@@ -91,29 +90,50 @@
 </div>
 
 <style>
+  .laser-scan-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #E8D5B0;
+    box-shadow: 0 0 10px #E8D5B0, 0 0 20px #E8D5B0;
+    z-index: 10;
+    transition: top 0.1s linear;
+  }
+
+  .laser-glow {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(to bottom, transparent, rgba(232, 213, 176, 0.1), transparent);
+  }
+
   .scanner-hud {
     user-select: none;
     font-family: var(--font-sans, sans-serif);
   }
 
-  .scan-line {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(to bottom, transparent, #E8D5B0, transparent);
-    box-shadow: 0 0 25px rgba(232, 213, 176, 0.8);
-    z-index: 10;
-    transition: top 0.1s linear;
-  }
-
   .barcode-preview {
     text-align: center;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(20px);
     padding: 16px 32px;
-    border-radius: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    border-radius: 0;
+    position: relative;
+    z-index: 30;
   }
+  
+  .barcode-preview::before, .barcode-preview::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-color: #E8D5B0;
+    border-style: solid;
+    opacity: 0.6;
+  }
+  .barcode-preview::before { top: 0; left: 0; border-width: 1px 0 0 1px; }
+  .barcode-preview::after { bottom: 0; right: 0; border-width: 0 1px 1px 0; }
 </style>

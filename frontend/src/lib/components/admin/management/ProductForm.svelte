@@ -137,7 +137,7 @@
 </script>
 
 <MissionControlShell
-  title={editingId ? `QUẢN TRỊ KHO // CHỈNH SỬA_${String(editingId).slice(0, 8)}` : "QUẢN TRỊ KHO // THÊM MỚI"}
+  title={editingId ? `QUẢN TRỊ KHO // Chỉnh sửa_${String(editingId).slice(0, 8)}` : "QUẢN TRỊ KHO // THÊM MỚI"}
   variant="cyan"
   {isOpen}
   {onClose}
@@ -183,7 +183,7 @@
             </div>
             <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#FFB800]/10 border border-[#FFB800]/20 shadow-[0_0_15px_rgba(255,184,0,0.1)]">
               <Sparkles size={10} class="text-[#FFB800] animate-pulse" />
-              <span class="text-[8px] font-black text-[#FFB800] uppercase tracking-widest">Tiêu chí vàng AI</span>
+              <span class="text-[8px] font-black text-[#FFB800] tracking-widest">Tiêu chí vàng AI</span>
             </div>
           </div>
           <div class="border border-white/5 rounded-2xl overflow-hidden bg-black/40 min-h-[500px] flex flex-col">
@@ -226,7 +226,7 @@
 
         <!-- Media Gallery -->
         <div class="flex flex-col gap-4">
-          <div class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]">
+          <div class="flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]">
             <Image size={11} class="text-amber-400/60" />
             Album hiển thị
             <span class="text-amber-500 ml-auto bg-amber-500/10 px-1.5 py-0.5 rounded text-[8px]">{formState.images?.length || 0}</span>
@@ -266,13 +266,13 @@
         <div class="flex items-center gap-4 pointer-events-auto">
           <button
             onclick={onClose}
-            class="px-8 py-3 bg-[#1a1a1a] text-white/60 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(0,0,0,0.5)] cursor-pointer active:scale-95 transition-all"
+            class="px-8 py-3 bg-[#1a1a1a] text-white/60 hover:text-white rounded-xl text-[10px] font-black tracking-[0.2em] shadow-[0_10px_30px_rgba(0,0,0,0.5)] cursor-pointer active:scale-95 transition-all"
           >Huỷ bỏ</button>
 
           <button
             onclick={onSave}
             disabled={isSaving}
-            class="px-10 py-3 bg-[#FFB800] text-black rounded-xl text-[10px] font-black uppercase tracking-[0.3em] shadow-[0_10px_40px_rgba(255,184,0,0.3)] disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all"
+            class="px-10 py-3 bg-[#FFB800] text-black rounded-xl text-[10px] font-black tracking-[0.3em] shadow-[0_10px_40px_rgba(255,184,0,0.3)] disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed cursor-pointer active:scale-95 transition-all"
           >
             {#if isSaving}
               <div class="flex items-center gap-3">
@@ -314,6 +314,6 @@
 <style>
   @reference "tailwindcss";
   .section-label {
-    @apply flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.35em] text-white/30;
+    @apply flex items-center gap-2 text-[9px] font-black tracking-[0.35em] text-white/30;
   }
 </style>

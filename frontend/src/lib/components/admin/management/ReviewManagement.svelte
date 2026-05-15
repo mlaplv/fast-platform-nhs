@@ -336,8 +336,8 @@
           <Star class="text-neon-cyan" size={20} />
         </div>
         <div>
-          <h2 class="text-white font-bold tracking-widest uppercase text-sm">Quản Trị Đánh Giá</h2>
-          <p class="text-[10px] text-gray-500 font-mono tracking-widest uppercase">{totalReviews} BLOCKS FOUND</p>
+          <h2 class="text-white font-bold tracking-widest text-sm">Quản Trị Đánh Giá</h2>
+          <p class="text-[10px] text-gray-500 font-mono tracking-widest ">{totalReviews} BLOCKS FOUND</p>
         </div>
       </div>
       
@@ -369,12 +369,12 @@
     <div class="flex flex-wrap gap-4 sm:gap-8 items-center bg-white/[0.03] border-y border-white/5 p-4 sm:p-6">
       <!-- Status Filter -->
       <div class="flex flex-col gap-3">
-        <span class="text-[9px] font-mono text-neon-cyan uppercase tracking-[0.3em] font-bold">Lọc Trạng thái</span>
+        <span class="text-[9px] font-mono text-neon-cyan tracking-[0.3em] font-bold">Lọc Trạng thái</span>
         <div class="flex items-center gap-1 bg-[#050505] border border-white/10 p-1 rounded-sm shadow-inner">
           {#each ["all", "pending", "approved", "rejected"] as f}
             <button
               onclick={() => activeFilter = f}
-              class="px-4 py-1.5 text-[10px] font-mono tracking-widest uppercase transition-all {activeFilter === f ? 'bg-neon-cyan text-black shadow-[0_0_10px_rgba(0,255,255,0.4)] font-bold' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}"
+              class="px-4 py-1.5 text-[10px] font-mono tracking-widest transition-all {activeFilter === f ? 'bg-neon-cyan text-black shadow-[0_0_10px_rgba(0,255,255,0.4)] font-bold' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}"
             >
               {f}
             </button>
@@ -386,12 +386,12 @@
 
       <!-- Entity Type Filter -->
       <div class="flex flex-col gap-3">
-        <span class="text-[9px] font-mono text-purple-400 uppercase tracking-[0.3em] font-bold">Lọc Danh mục</span>
+        <span class="text-[9px] font-mono text-purple-400 tracking-[0.3em] font-bold">Lọc Danh mục</span>
         <div class="flex items-center gap-1 bg-[#050505] border border-white/10 p-1 rounded-sm shadow-inner">
           {#each ["all", "product", "category", "news"] as c}
             <button
               onclick={() => activeCategory = c}
-              class="px-4 py-1.5 text-[10px] font-mono tracking-widest uppercase transition-all {activeCategory === c ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.4)] font-bold' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}"
+              class="px-4 py-1.5 text-[10px] font-mono tracking-widest transition-all {activeCategory === c ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.4)] font-bold' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}"
             >
               {c}
             </button>
@@ -403,7 +403,7 @@
       <div class="ml-auto mt-4 sm:mt-0">
         <button 
           onclick={toggleSelectAll}
-          class="flex items-center gap-2 px-3 py-1.5 border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all text-[10px] font-mono uppercase tracking-widest text-gray-400"
+          class="flex items-center gap-2 px-3 py-1.5 border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all text-[10px] font-mono tracking-widest text-gray-400"
         >
           <Layers size={14} class={selectedIds.length === reviews.length && reviews.length > 0 ? 'text-neon-cyan' : ''} />
           {selectedIds.length === reviews.length && reviews.length > 0 ? 'Bỏ chọn tất cả' : 'Chọn tất cả trên trang'}
@@ -415,7 +415,7 @@
   <!-- Content Area -->
   <div class="flex-1 overflow-y-auto p-4 sm:p-6 pb-32 custom-scrollbar">
     {#if isLoading && reviews.length === 0}
-       <div class="h-full flex flex-col gap-3 items-center justify-center text-neon-cyan/50 font-mono text-[10px] tracking-[0.3em] uppercase animate-pulse">
+       <div class="h-full flex flex-col gap-3 items-center justify-center text-neon-cyan/50 font-mono text-[10px] tracking-[0.3em] animate-pulse">
          <div class="w-10 h-10 border-2 border-neon-cyan/20 border-t-neon-cyan rounded-full animate-spin"></div>
          SYNCING_DATABANKS...
        </div>
@@ -424,7 +424,7 @@
          <div class="w-12 h-12 rounded-full border border-white/5 bg-white/[0.02] flex items-center justify-center">
            <MessageSquare size={20} class="opacity-30" />
          </div>
-         <p class="font-mono text-[10px] tracking-[0.2em] uppercase">NO_REVIEWS_FOUND</p>
+         <p class="font-mono text-[10px] tracking-[0.2em] ">NO_REVIEWS_FOUND</p>
        </div>
     {:else}
       {#if viewMode === 'grid'}
@@ -451,7 +451,7 @@
                   <div>
                     <h3 class="text-gray-200 text-sm font-bold tracking-wide">{review.customer_name}</h3>
                     <div class="flex items-center gap-2 mt-1.5">
-                      <span class="text-[9px] font-mono tracking-[0.2em] text-[#FFB800] bg-[#FFB800]/5 px-1.5 py-0.5 border border-[#FFB800]/20 uppercase">
+                      <span class="text-[9px] font-mono tracking-[0.2em] text-[#FFB800] bg-[#FFB800]/5 px-1.5 py-0.5 border border-[#FFB800]/20 ">
                         {review.entity_type}
                       </span>
                       <span class="text-[9px] text-gray-600 font-mono tracking-wider">{formatDate(review.created_at)}</span>
@@ -492,14 +492,14 @@
                       <ThumbsUp size={10} class="fill-neon-cyan/20" />
                       <span>{review.likes_count || 0}</span>
                     </div>
-                    <span class="text-[9px] font-mono tracking-[0.2em] uppercase px-2 py-0.5 border rounded-sm {getStatusStyle(review.status)}">
+                    <span class="text-[9px] font-mono tracking-[0.2em] px-2 py-0.5 border rounded-sm {getStatusStyle(review.status)}">
                       {review.status}
                     </span>
                   </div>
                   <div class="flex gap-2" onclick={(e) => e.stopPropagation()}>
                     <div class="flex flex-col items-end">
                       {#if review.customer_location}
-                        <span class="text-[8px] text-gray-500 font-mono uppercase tracking-widest mb-1">{review.customer_location}</span>
+                        <span class="text-[8px] text-gray-500 font-mono tracking-widest mb-1">{review.customer_location}</span>
                       {/if}
                       <div class="flex gap-2">
                         <button onclick={() => startEdit(review)} class="w-7 h-7 rounded bg-white/[0.02] border border-white/5 hover:bg-blue-500/20 hover:border-blue-500/30 flex items-center justify-center text-gray-500 hover:text-blue-400 transition-colors" title="Chỉnh sửa">
@@ -533,12 +533,12 @@
             <thead>
               <tr class="border-b border-white/5 bg-white/[0.02]">
                 <th class="w-10 p-4"></th>
-                <th class="text-[10px] font-mono text-gray-500 uppercase tracking-widest text-left p-4">Khách hàng</th>
-                <th class="text-[10px] font-mono text-gray-500 uppercase tracking-widest text-left p-4">Danh mục</th>
-                <th class="text-[10px] font-mono text-gray-500 uppercase tracking-widest text-left p-4">Đánh giá</th>
-                <th class="text-[10px] font-mono text-gray-500 uppercase tracking-widest text-left p-4">Nội dung</th>
-                <th class="text-[10px] font-mono text-gray-500 uppercase tracking-widest text-left p-4">Trạng thái</th>
-                <th class="text-[10px] font-mono text-gray-500 uppercase tracking-widest text-right p-4">Thao tác</th>
+                <th class="text-[10px] font-mono text-gray-500 tracking-widest text-left p-4">Khách hàng</th>
+                <th class="text-[10px] font-mono text-gray-500 tracking-widest text-left p-4">Danh mục</th>
+                <th class="text-[10px] font-mono text-gray-500 tracking-widest text-left p-4">Đánh giá</th>
+                <th class="text-[10px] font-mono text-gray-500 tracking-widest text-left p-4">Nội dung</th>
+                <th class="text-[10px] font-mono text-gray-500 tracking-widest text-left p-4">Trạng thái</th>
+                <th class="text-[10px] font-mono text-gray-500 tracking-widest text-right p-4">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -560,7 +560,7 @@
                     </div>
                   </td>
                   <td class="p-4">
-                    <span class="text-[9px] font-mono tracking-[0.2em] text-[#FFB800] bg-[#FFB800]/5 px-1.5 py-0.5 border border-[#FFB800]/20 uppercase">
+                    <span class="text-[9px] font-mono tracking-[0.2em] text-[#FFB800] bg-[#FFB800]/5 px-1.5 py-0.5 border border-[#FFB800]/20 ">
                       {review.entity_type}
                     </span>
                   </td>
@@ -594,7 +594,7 @@
                   </td>
                   <td class="p-4">
                     <div class="flex flex-col gap-1">
-                      <span class="text-[9px] font-mono tracking-[0.2em] uppercase px-2 py-0.5 border rounded-sm {getStatusStyle(review.status)}">
+                      <span class="text-[9px] font-mono tracking-[0.2em] px-2 py-0.5 border rounded-sm {getStatusStyle(review.status)}">
                         {review.status}
                       </span>
                       <div class="flex items-center gap-1 text-neon-cyan/50 font-mono text-[8px] justify-center">
@@ -632,7 +632,7 @@
       <!-- Pagination -->
       {#if totalReviews > pageSize}
         <div class="mt-12 flex items-center justify-between border-t border-white/5 pt-8 pb-12">
-          <div class="text-[10px] font-mono text-gray-600 uppercase tracking-widest">
+          <div class="text-[10px] font-mono text-gray-600 tracking-widest">
             Hiển thị <span class="text-neon-cyan">{(currentPage - 1) * pageSize + 1}</span> - <span class="text-neon-cyan">{Math.min(currentPage * pageSize, totalReviews)}</span> của <span class="text-white">{totalReviews}</span> đánh giá
           </div>
           
@@ -640,7 +640,7 @@
             <button 
               onclick={() => currentPage = Math.max(1, currentPage - 1)}
               disabled={currentPage === 1 || isLoading}
-              class="px-4 py-2 border border-white/5 bg-white/[0.02] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] font-mono tracking-widest uppercase"
+              class="px-4 py-2 border border-white/5 bg-white/[0.02] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] font-mono tracking-widest "
             >
               Trang trước
             </button>
@@ -663,7 +663,7 @@
             <button 
               onclick={() => currentPage = Math.min(Math.ceil(totalReviews / pageSize), currentPage + 1)}
               disabled={currentPage === Math.ceil(totalReviews / pageSize) || isLoading}
-              class="px-4 py-2 border border-white/5 bg-white/[0.02] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] font-mono tracking-widest uppercase"
+              class="px-4 py-2 border border-white/5 bg-white/[0.02] hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-[10px] font-mono tracking-widest "
             >
               Trang sau
             </button>
@@ -680,7 +680,7 @@
       transition:fade
     >
       <div class="flex flex-col shrink-0">
-        <span class="text-[8px] font-mono text-gray-500 tracking-widest uppercase">Kích hoạt tác vụ</span>
+        <span class="text-[8px] font-mono text-gray-500 tracking-widest ">Kích hoạt tác vụ</span>
         <span class="text-xs font-bold text-neon-cyan font-mono">{selectedIds.length} ITEMS SELECTED</span>
       </div>
       
@@ -689,19 +689,19 @@
       <div class="flex items-center gap-3">
         <button 
           onclick={() => handleBulkAction('APPROVE')} 
-          class="flex items-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-black border border-green-500/30 transition-all text-[10px] font-mono tracking-widest uppercase"
+          class="flex items-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-black border border-green-500/30 transition-all text-[10px] font-mono tracking-widest "
         >
           <CheckCircle size={14} /> DUYỆT
         </button>
         <button 
           onclick={() => handleBulkAction('REJECT')} 
-          class="flex items-center gap-2 px-4 py-2 bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-black border border-amber-500/30 transition-all text-[10px] font-mono tracking-widest uppercase"
+          class="flex items-center gap-2 px-4 py-2 bg-amber-500/10 hover:bg-amber-500 text-amber-500 hover:text-black border border-amber-500/30 transition-all text-[10px] font-mono tracking-widest "
         >
           <XCircle size={14} /> TỪ CHỐI
         </button>
         <button 
           onclick={() => handleBulkAction('DELETE')} 
-          class="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/30 transition-all text-[10px] font-mono tracking-widest uppercase"
+          class="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/30 transition-all text-[10px] font-mono tracking-widest "
         >
           <Trash2 size={14} /> XOÁ HÀNG LOẠT
         </button>
@@ -711,7 +711,7 @@
       
       <button 
         onclick={() => selectedIds = []}
-        class="text-[10px] font-mono text-gray-500 hover:text-white uppercase tracking-widest transition-colors"
+        class="text-[10px] font-mono text-gray-500 hover:text-white tracking-widest transition-colors"
       >
         HUỶ BỎ
       </button>
@@ -745,8 +745,8 @@
               <Edit2 size={14} class="text-neon-cyan" />
             </div>
             <div>
-              <h2 class="text-sm font-bold text-white tracking-widest uppercase">Chỉnh Sửa Đánh Giá</h2>
-              <div class="text-[9px] font-mono text-gray-500 uppercase">SYS_ID: {editingReviewId}</div>
+              <h2 class="text-sm font-bold text-white tracking-widest ">Chỉnh Sửa Đánh Giá</h2>
+              <div class="text-[9px] font-mono text-gray-500 ">SYS_ID: {editingReviewId}</div>
             </div>
           </div>
           <button
@@ -766,11 +766,11 @@
           <div class="flex flex-col gap-4">
             <div class="flex items-center gap-2">
               <Box size={14} class="text-neon-cyan" />
-              <h3 class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Cấu hình nguồn đánh giá</h3>
+              <h3 class="text-[10px] font-black text-white/40 tracking-[0.2em]">Cấu hình nguồn đánh giá</h3>
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div class="flex flex-col gap-2">
-                <label class="text-[8px] font-bold text-gray-500 uppercase ml-1">Loại thực thể</label>
+                <label class="text-[8px] font-bold text-gray-500 ml-1">Loại thực thể</label>
                 <select 
                   bind:value={editEntityType}
                   onchange={() => loadTargetEntities(editEntityType)}
@@ -782,7 +782,7 @@
                 </select>
               </div>
               <div class="flex flex-col gap-2">
-                <label class="text-[8px] font-bold text-gray-500 uppercase ml-1">Đối tượng cụ thể</label>
+                <label class="text-[8px] font-bold text-gray-500 ml-1">Đối tượng cụ thể</label>
                 <div class="relative">
                   <button 
                     onclick={() => isEntitiesExpanded = !isEntitiesExpanded}
@@ -825,11 +825,11 @@
           <div class="flex flex-col gap-4">
             <div class="flex items-center gap-2">
               <User size={14} class="text-neon-cyan" />
-              <h3 class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Thông tin định danh</h3>
+              <h3 class="text-[10px] font-black text-white/40 tracking-[0.2em]">Thông tin định danh</h3>
             </div>
             <div class="grid grid-cols-3 gap-4">
               <div class="flex flex-col gap-2">
-                <label class="text-[8px] font-bold text-gray-500 uppercase ml-1">Tên hiển thị</label>
+                <label class="text-[8px] font-bold text-gray-500 ml-1">Tên hiển thị</label>
                 <div class="relative group">
                   <User size={10} class="absolute left-3 top-3 text-white/20 group-focus-within:text-neon-cyan transition-colors" />
                   <input 
@@ -841,7 +841,7 @@
                 </div>
               </div>
               <div class="flex flex-col gap-2">
-                <label class="text-[8px] font-bold text-gray-500 uppercase ml-1">Số điện thoại</label>
+                <label class="text-[8px] font-bold text-gray-500 ml-1">Số điện thoại</label>
                 <div class="relative group">
                   <Phone size={10} class="absolute left-3 top-3 text-white/20 group-focus-within:text-neon-cyan transition-colors" />
                   <input 
@@ -853,7 +853,7 @@
                 </div>
               </div>
               <div class="flex flex-col gap-2">
-                <label class="text-[8px] font-bold text-gray-500 uppercase ml-1">Địa điểm</label>
+                <label class="text-[8px] font-bold text-gray-500 ml-1">Địa điểm</label>
                 <div class="relative group">
                   <MapPin size={10} class="absolute left-3 top-3 text-white/20 group-focus-within:text-neon-cyan transition-colors" />
                   <input 
@@ -871,7 +871,7 @@
           <div class="flex flex-col gap-4">
              <div class="flex items-center gap-2">
               <Star size={14} class="text-neon-cyan" />
-              <h3 class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Đánh giá & Xếp hạng</h3>
+              <h3 class="text-[10px] font-black text-white/40 tracking-[0.2em]">Đánh giá & Xếp hạng</h3>
             </div>
             <div class="flex items-center gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-xl">
                <div class="flex gap-1">
@@ -885,7 +885,7 @@
                 {/each}
               </div>
               <div class="h-4 w-[1px] bg-white/10"></div>
-              <span class="text-[10px] font-mono text-neon-cyan uppercase tracking-widest">{editRating} / 5 SAO</span>
+              <span class="text-[10px] font-mono text-neon-cyan tracking-widest">{editRating} / 5 SAO</span>
             </div>
           </div>
 
@@ -894,7 +894,7 @@
             <div class="flex justify-between items-end">
               <div class="flex items-center gap-2 ml-1">
                 <Sparkles size={12} class="text-neon-cyan" />
-                <div class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Nội dung & Trí tuệ AI</div>
+                <div class="text-[8px] font-black text-white/30 tracking-[0.2em]">Nội dung & Trí tuệ AI</div>
               </div>
               <button 
                 onclick={handleXohiRewrite}
@@ -902,7 +902,7 @@
                 class="flex items-center gap-1.5 px-2 py-1 rounded-md bg-neon-cyan/10 border border-neon-cyan/20 text-neon-cyan hover:bg-neon-cyan/20 transition-all group disabled:opacity-50 disabled:grayscale"
               >
                 <Sparkles size={10} class={isRewriting ? 'animate-pulse' : 'group-hover:scale-125 transition-transform'} />
-                <span class="text-[9px] font-bold uppercase tracking-wider">{isRewriting ? 'NEURAL_PROCESSING...' : 'XOHI_REWRITE'}</span>
+                <span class="text-[9px] font-bold tracking-wider">{isRewriting ? 'NEURAL_PROCESSING...' : 'XOHI_REWRITE'}</span>
               </button>
             </div>
             <div class="border border-white/5 bg-white/[0.02] rounded-xl overflow-hidden relative min-h-[300px]">
@@ -920,7 +920,7 @@
 
           <!-- Attachments -->
           <div class="flex flex-col gap-3">
-            <div class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
+            <div class="text-[8px] font-black text-white/30 tracking-[0.2em] ml-1 flex items-center gap-2">
               Tài nguyên đính kèm
               <span class="px-1.5 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 text-[8px] rounded-sm font-mono normal-case tracking-normal">Xóa vật lý</span>
             </div>
@@ -950,7 +950,7 @@
                       <X size={12} />
                     </button>
 
-                    <div class="absolute bottom-1 left-1 bg-black/70 px-1 py-0.5 text-[8px] font-mono text-white uppercase backdrop-blur-sm rounded-sm">
+                    <div class="absolute bottom-1 left-1 bg-black/70 px-1 py-0.5 text-[8px] font-mono text-white backdrop-blur-sm rounded-sm">
                       {media.type}
                     </div>
                   </div>
@@ -964,7 +964,7 @@
             <button
               onclick={() => saveEdit(editingReviewId!)}
               disabled={isLoading}
-              class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-500 text-black text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_30px_-5px_rgba(0,200,200,0.4)] disabled:opacity-50 flex items-center justify-center gap-2 relative overflow-hidden group"
+              class="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-500 text-black text-[11px] font-black tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_30px_-5px_rgba(0,200,200,0.4)] disabled:opacity-50 flex items-center justify-center gap-2 relative overflow-hidden group"
             >
               <!-- Sheen effect -->
               <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>

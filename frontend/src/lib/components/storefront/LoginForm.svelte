@@ -37,7 +37,7 @@
   <div class="space-y-1.5">
     <label
       for="email"
-      class="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1"
+      class="text-[11px] font-bold text-gray-400 tracking-widest ml-1"
       >Tài khoản Email</label
     >
     <div class="relative group">
@@ -60,7 +60,7 @@
   <div class="space-y-1.5">
     <label
       for="password"
-      class="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1"
+      class="text-[11px] font-bold text-gray-400 tracking-widest ml-1"
       >Mật khẩu bảo mật</label
     >
     <div class="relative group">
@@ -116,7 +116,7 @@
     </button>
     <button
       type="button"
-      class="text-[11px] text-gray-500 font-bold uppercase tracking-widest cursor-pointer hover:text-black"
+      class="text-[11px] text-gray-500 font-bold tracking-widest cursor-pointer hover:text-black"
       onclick={() => (rememberMe = !rememberMe)}
     >
       Lưu phiên mua sắm (7 ngày)

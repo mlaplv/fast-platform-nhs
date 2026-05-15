@@ -72,7 +72,7 @@
         onerror={() => imgError = true}
       />
     {:else}
-      <div class="w-full h-full flex items-center justify-center font-serif italic text-luxury-copper uppercase {size === 'lg' ? 'bg-stone-50' : ''}">
+      <div class="w-full h-full flex items-center justify-center font-serif italic text-luxury-copper {size === 'lg' ? 'bg-stone-50' : ''}">
         {name?.charAt(0) || 'U'}
       </div>
     {/if}

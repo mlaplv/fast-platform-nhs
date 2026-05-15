@@ -33,7 +33,7 @@
       <div class="space-y-8" in:fade>
         <div class="border-b border-stone-100 pb-5">
           <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Địa Chỉ</h1>
-          <p class="text-[13px] text-stone-400 mt-1 uppercase tracking-widest">Quản lý các địa chỉ nhận hàng của bạn</p>
+          <p class="text-[13px] text-stone-400 mt-1 tracking-widest">Quản lý các địa chỉ nhận hàng của bạn</p>
         </div>
         <AddressWrapper />
       </div>

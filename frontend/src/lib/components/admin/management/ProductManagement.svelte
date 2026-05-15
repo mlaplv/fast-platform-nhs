@@ -417,7 +417,7 @@
 
     {#if isLoading}
       <div class="h-[400px] flex items-center justify-center animate-pulse">
-        <span class="text-[9px] font-mono text-[#FFB800]/40 uppercase tracking-[0.3em]">Loading Catalog...</span>
+        <span class="text-[9px] font-mono text-[#FFB800]/40 tracking-[0.3em]">Loading Catalog...</span>
       </div>
     {:else}
       <div class="pl-6 border-l border-white/5 ml-4 my-2 mb-[80px]">

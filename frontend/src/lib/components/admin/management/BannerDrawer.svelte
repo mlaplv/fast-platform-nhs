@@ -110,11 +110,11 @@ import X from "@lucide/svelte/icons/x";
             <Activity size={14} class="text-cyan-500 animate-pulse" />
           </div>
           <div>
-            <h2 class="text-sm font-bold text-white tracking-widest uppercase">
+            <h2 class="text-sm font-bold text-white tracking-widest ">
               {banner.id ? 'Modify Deployment' : 'New Deployment'}
             </h2>
             {#if banner.id}
-              <div class="text-[9px] font-mono text-gray-500 uppercase">SYS_ID: {banner.id}</div>
+              <div class="text-[9px] font-mono text-gray-500 ">SYS_ID: {banner.id}</div>
             {/if}
           </div>
         </div>
@@ -133,7 +133,7 @@ import X from "@lucide/svelte/icons/x";
         <!-- Title & URL -->
         <div class="grid grid-cols-1 gap-6">
           <div class="space-y-3">
-            <label class="block text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1" for="title">Banner Title</label>
+            <label class="block text-[8px] font-black text-white/30 tracking-[0.2em] ml-1" for="title">Banner Title</label>
             <input 
               id="title"
               bind:value={banner.title}
@@ -143,7 +143,7 @@ import X from "@lucide/svelte/icons/x";
             />
           </div>
           <div class="space-y-3">
-            <label class="block text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1" for="url">Target URL</label>
+            <label class="block text-[8px] font-black text-white/30 tracking-[0.2em] ml-1" for="url">Target URL</label>
             <div class="relative">
               <input 
                 id="url"
@@ -159,7 +159,7 @@ import X from "@lucide/svelte/icons/x";
 
         <!-- Visual Asset -->
         <div class="space-y-4">
-          <label class="block text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Visual Assets</label>
+          <label class="block text-[8px] font-black text-white/30 tracking-[0.2em] ml-1">Visual Assets</label>
           <div class="grid grid-cols-2 gap-4">
             <!-- Desktop -->
             <button
@@ -169,15 +169,15 @@ import X from "@lucide/svelte/icons/x";
               {#if banner.image_url}
                 <img src={banner.image_url} alt="Desktop Preview" class="w-full h-full object-cover" />
                 <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/picker:opacity-100 flex items-center justify-center transition-all backdrop-blur-sm">
-                   <div class="px-4 py-2 bg-white text-black text-[9px] font-black uppercase rounded-lg shadow-xl">Update Desktop</div>
+                   <div class="px-4 py-2 bg-white text-black text-[9px] font-black rounded-lg shadow-xl">Update Desktop</div>
                 </div>
               {:else}
                 <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover/picker:scale-110 transition-transform">
                   <Monitor size={16} />
                 </div>
                 <div class="text-center">
-                  <p class="text-[8px] font-black uppercase text-zinc-400">Desktop Image</p>
-                  <p class="text-[6px] text-zinc-600 mt-1 uppercase font-mono tracking-widest">1920x800 PX</p>
+                  <p class="text-[8px] font-black text-zinc-400">Desktop Image</p>
+                  <p class="text-[6px] text-zinc-600 mt-1 font-mono tracking-widest">1920x800 PX</p>
                 </div>
               {/if}
             </button>
@@ -190,15 +190,15 @@ import X from "@lucide/svelte/icons/x";
               {#if banner.mobile_image_url}
                 <img src={banner.mobile_image_url} alt="Mobile Preview" class="w-full h-full object-cover" />
                 <div class="absolute inset-0 bg-black/60 opacity-0 group-hover/picker:opacity-100 flex items-center justify-center transition-all backdrop-blur-sm">
-                   <div class="px-4 py-2 bg-white text-black text-[9px] font-black uppercase rounded-lg shadow-xl">Update Mobile</div>
+                   <div class="px-4 py-2 bg-white text-black text-[9px] font-black rounded-lg shadow-xl">Update Mobile</div>
                 </div>
               {:else}
                 <div class="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover/picker:scale-110 transition-transform">
                   <Smartphone size={16} />
                 </div>
                 <div class="text-center">
-                  <p class="text-[8px] font-black uppercase text-zinc-400">Mobile Image</p>
-                  <p class="text-[6px] text-zinc-600 mt-1 uppercase font-mono tracking-widest">1080x1920 PX</p>
+                  <p class="text-[8px] font-black text-zinc-400">Mobile Image</p>
+                  <p class="text-[6px] text-zinc-600 mt-1 font-mono tracking-widest">1080x1920 PX</p>
                 </div>
               {/if}
             </button>
@@ -208,7 +208,7 @@ import X from "@lucide/svelte/icons/x";
         <!-- Configuration Grid -->
         <div class="grid grid-cols-2 gap-6">
           <div class="space-y-3">
-            <label class="block text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Placement</label>
+            <label class="block text-[8px] font-black text-white/30 tracking-[0.2em] ml-1">Placement</label>
             <select bind:value={banner.position} class="w-full bg-white/[0.03] border border-white/5 rounded-2xl px-4 py-4 text-[11px] font-bold text-white outline-none focus:border-cyan-500/30 transition-all custom-select">
               {#each POSITIONS as p}
                 <option value={p.id} class="bg-[#050505]">{p.label}</option>
@@ -216,7 +216,7 @@ import X from "@lucide/svelte/icons/x";
             </select>
           </div>
           <div class="space-y-3">
-            <label class="block text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Priority Index</label>
+            <label class="block text-[8px] font-black text-white/30 tracking-[0.2em] ml-1">Priority Index</label>
             <input 
               bind:value={banner.order_index} 
               type="number" 
@@ -227,7 +227,7 @@ import X from "@lucide/svelte/icons/x";
 
         <!-- Device Target -->
         <div class="space-y-4">
-          <label class="block text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Device Target</label>
+          <label class="block text-[8px] font-black text-white/30 tracking-[0.2em] ml-1">Device Target</label>
           <div class="flex p-1.5 bg-white/[0.02] border border-white/5 rounded-2xl">
             {#each DEVICES as d}
               {@const active = banner.device_type === d.id}
@@ -237,7 +237,7 @@ import X from "@lucide/svelte/icons/x";
                   {active ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20' : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'}"
               >
                 <d.icon size={14} />
-                <span class="text-[9px] font-black uppercase tracking-widest">{d.id}</span>
+                <span class="text-[9px] font-black tracking-widest">{d.id}</span>
               </button>
             {/each}
           </div>
@@ -245,7 +245,7 @@ import X from "@lucide/svelte/icons/x";
 
         <!-- Protocol Status -->
         <div class="space-y-4">
-          <div class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Protocol Status</div>
+          <div class="text-[8px] font-black text-white/30 tracking-[0.2em] ml-1">Protocol Status</div>
           <button
             onclick={() => banner.is_active = !banner.is_active}
             class="w-full p-5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between group/status transition-all hover:bg-white/[0.04]"
@@ -254,7 +254,7 @@ import X from "@lucide/svelte/icons/x";
               <div class="w-12 h-6 rounded-full transition-colors duration-500 relative {banner.is_active ? 'bg-cyan-500' : 'bg-red-500/20'}">
                 <div class="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-500 {banner.is_active ? 'translate-x-6' : ''} shadow-lg"></div>
               </div>
-              <span class="text-[10px] font-black uppercase tracking-[0.2em] {banner.is_active ? 'text-cyan-400' : 'text-red-500'}">
+              <span class="text-[10px] font-black tracking-[0.2em] {banner.is_active ? 'text-cyan-400' : 'text-red-500'}">
                 {banner.is_active ? 'Operational' : 'Decommissioned'}
               </span>
             </div>
@@ -267,7 +267,7 @@ import X from "@lucide/svelte/icons/x";
           <button 
             onclick={handleSave}
             disabled={isSaving}
-            class="w-full py-5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-black text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_30px_-5px_rgba(8,145,178,0.4)] disabled:opacity-50 flex items-center justify-center overflow-hidden relative group/save"
+            class="w-full py-5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-black text-[11px] font-black tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_30px_-5px_rgba(8,145,178,0.4)] disabled:opacity-50 flex items-center justify-center overflow-hidden relative group/save"
           >
             <div class="absolute inset-0 bg-white/30 -translate-x-full group-hover/save:translate-x-full transition-transform duration-1000"></div>
             

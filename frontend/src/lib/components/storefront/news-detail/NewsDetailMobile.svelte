@@ -106,7 +106,7 @@
             </div>
             <div class="flex flex-col">
                 <span class="text-[11px] font-black text-white tracking-widest">{article.author === 'Xohi' || article.author === 'System' || article.author === 'Micsmo' ? 'Ban biên tập osmo' : article.author}</span>
-                <span class="text-[9px] font-bold text-white/50 uppercase tracking-tighter">{article.publishedAt}</span>
+                <span class="text-[9px] font-bold text-white/50 tracking-tighter">{article.publishedAt}</span>
             </div>
         </div>
     </div>

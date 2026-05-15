@@ -106,12 +106,12 @@
       <!-- Identity & Contact Block -->
       <div class="min-w-[200px] flex flex-col gap-1">
         <div
-          class="text-[9px] font-mono text-gray-500 uppercase tracking-widest flex items-center gap-2"
+          class="text-[9px] font-mono text-gray-500 tracking-widest flex items-center gap-2"
         >
           <span>ID: {order.id.split("-")[0]}</span>
           {#if order.customerIp}
             <div class="flex items-center gap-1 bg-neon-cyan/10 border border-neon-cyan/30 px-1.5 py-0.5 rounded-sm">
-              <span class="text-[7px] text-neon-cyan/60 uppercase font-bold">IP</span>
+              <span class="text-[7px] text-neon-cyan/60 font-bold">IP</span>
               <span class="text-[8px] text-neon-cyan font-mono">{order.customerIp}</span>
             </div>
           {/if}
@@ -127,9 +127,9 @@
               {order.finalCustomerName}
             </div>
             {#if order.successfulOrdersCount >= 5}
-              <span class="text-[8px] bg-amber-400/20 text-amber-400 px-1 rounded-sm border border-amber-400/30 uppercase font-black tracking-tighter">VIP Elite</span>
+              <span class="text-[8px] bg-amber-400/20 text-amber-400 px-1 rounded-sm border border-amber-400/30 font-black tracking-tighter">VIP Elite</span>
             {:else if order.successfulOrdersCount === 0 && order.cancelledOrdersCount === 0}
-              <span class="text-[8px] bg-blue-500/20 text-blue-400 px-1 rounded-sm border border-blue-400/30 uppercase font-bold tracking-tighter">New</span>
+              <span class="text-[8px] bg-blue-500/20 text-blue-400 px-1 rounded-sm border border-blue-400/30 font-bold tracking-tighter">New</span>
             {/if}
           </div>
           
@@ -152,13 +152,13 @@
               {#if order.successfulOrdersCount > 0}
                 <div class="flex items-center gap-1 text-[9px] text-emerald-500 bg-emerald-500/5 px-1 rounded-sm border border-emerald-500/10">
                   <span class="font-bold">{order.successfulOrdersCount}</span>
-                  <span class="opacity-50 text-[7px] uppercase font-bold">Done</span>
+                  <span class="opacity-50 text-[7px] font-bold">Done</span>
                 </div>
               {/if}
               {#if order.cancelledOrdersCount > 0}
                 <div class="flex items-center gap-1 text-[9px] text-rose-500 bg-rose-500/5 px-1 rounded-sm border border-rose-500/10">
                   <span class="font-bold">{order.cancelledOrdersCount}</span>
-                  <span class="opacity-50 text-[7px] uppercase font-bold">Burn</span>
+                  <span class="opacity-50 text-[7px] font-bold">Burn</span>
                 </div>
               {/if}
             </div>
@@ -190,7 +190,7 @@
       <!-- Desktop Items Count -->
       <div class="hidden sm:block min-w-[60px]">
         <div
-          class="text-[9px] font-mono text-gray-500 uppercase tracking-widest mb-1"
+          class="text-[9px] font-mono text-gray-500 tracking-widest mb-1"
         >
           Payload
         </div>
@@ -222,7 +222,7 @@
 
         {#if order.planning?.priority && order.planning.priority !== 'NORMAL'}
           <div class="flex items-center gap-1.5 mt-0.5">
-            <span class="text-[7px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-widest border
+            <span class="text-[7px] px-1.5 py-0.5 rounded-full font-black tracking-widest border
               {order.planning.priority === 'URGENT' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 
                'bg-orange-500/10 text-orange-400 border-orange-500/20'}">
               {order.planning.priority}
@@ -234,7 +234,7 @@
       <!-- Desktop Financials -->
       <div class="hidden sm:block min-w-[120px]">
         <div
-          class="text-[9px] font-mono text-gray-500 uppercase tracking-widest mb-1"
+          class="text-[9px] font-mono text-gray-500 tracking-widest mb-1"
         >
           Capital Transfer
         </div>
@@ -256,7 +256,7 @@
           >
             <span class="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
             <span
-              class="text-[8px] sm:text-[9px] font-mono font-bold tracking-widest uppercase text-red-400"
+              class="text-[8px] sm:text-[9px] font-mono font-bold tracking-widest text-red-400"
               >SPAM ALERT</span
             >
             
@@ -273,7 +273,7 @@
           >
             <div class="flex flex-col shrink-0">
               <span
-                class="text-[7px] font-mono text-red-500/60 uppercase tracking-tighter"
+                class="text-[7px] font-mono text-red-500/60 tracking-tighter"
                 >Trace Mode</span
               >
               <span
@@ -287,7 +287,7 @@
             <div class="flex-1 flex items-center gap-4">
               <!-- Score -->
               <div class="flex flex-col gap-1 w-20">
-                <span class="text-[7px] font-mono text-gray-500 uppercase"
+                <span class="text-[7px] font-mono text-gray-500 "
                   >Suspicion</span
                 >
                 <div class="flex items-center gap-1.5">
@@ -307,7 +307,7 @@
 
               <!-- Target -->
               <div class="flex flex-col gap-0.5 min-w-[100px]">
-                <span class="text-[7px] font-mono text-gray-500 uppercase"
+                <span class="text-[7px] font-mono text-gray-500 "
                   >Target_Lock</span
                 >
                 <span class="text-[9px] font-mono text-gray-300 truncate">
@@ -317,7 +317,7 @@
 
               <!-- Reason -->
               <div class="flex flex-col gap-0.5 flex-1">
-                <span class="text-[7px] font-mono text-gray-500 uppercase"
+                <span class="text-[7px] font-mono text-gray-500 "
                   >Heuristics</span
                 >
                 <span
@@ -349,11 +349,11 @@
           actions={[
             ...(order.status === 'pending' ? [
               { label: 'XÁC NHẬN & ĐÓNG GÓI', value: 'PACKED', icon: ShieldCheck, color: 'text-cyan-400' },
-              { label: 'HỦY ĐƠN HÀNG', value: 'CANCELLED', icon: XCircle, color: 'text-red-400' }
+              { label: 'Hủy đơn hàng', value: 'CANCELLED', icon: XCircle, color: 'text-red-400' }
             ] : []),
             ...(order.status === 'packed' ? [
               { label: 'BÀN GIAO VẬN CHUYỂN', value: 'SHIPPING', icon: Truck, color: 'text-lime-400' },
-              { label: 'HỦY ĐƠN HÀNG', value: 'CANCELLED', icon: XCircle, color: 'text-red-400' }
+              { label: 'Hủy đơn hàng', value: 'CANCELLED', icon: XCircle, color: 'text-red-400' }
             ] : []),
             ...(order.status === 'shipping' ? [
               { label: 'XÁC NHẬN GIAO HÀNG', value: 'DELIVERED', icon: PackageCheck, color: 'text-emerald-400' }
@@ -409,7 +409,7 @@
     >
       <Clock size={12} class="text-neon-cyan mb-1.5 opacity-60" />
       <span
-        class="text-[10px] font-mono text-gray-500 uppercase text-right w-full"
+        class="text-[10px] font-mono text-gray-500 text-right w-full"
         >{timeAgo(order.createdAt)}</span
       >
     </div>

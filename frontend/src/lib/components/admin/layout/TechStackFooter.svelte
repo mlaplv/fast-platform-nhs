@@ -48,7 +48,7 @@
 >
   <!-- Desktop Mode -->
   <div
-    class="hidden md:flex items-center gap-2 text-[9px] font-mono text-[#00FFFF] uppercase tracking-widest whitespace-nowrap"
+    class="hidden md:flex items-center gap-2 text-[9px] font-mono text-[#00FFFF] tracking-widest whitespace-nowrap"
   >
     SV {versions.svelte} // TW {versions.tailwind} // SQLA {versions.sqlalchemy}
     // ALB {versions.alembic} // LITE {versions.litestar} // PAI {versions.pydantic_ai}
@@ -56,7 +56,7 @@
 
   <!-- Mobile Mode: Ultra Compact -->
   <div
-    class="flex md:hidden items-center gap-1.5 text-[7px] font-mono text-[#00FFFF] uppercase tracking-wider whitespace-nowrap mr-2"
+    class="flex md:hidden items-center gap-1.5 text-[7px] font-mono text-[#00FFFF] tracking-wider whitespace-nowrap mr-2"
   >
     <span>SV {versions.svelte.split(".").slice(0, 2).join(".")}</span>
     <span class="text-[#00FFFF]/20">/</span>
@@ -66,7 +66,7 @@
   <div class="h-3 w-[1px] bg-white/10 hidden md:block"></div>
 
   <div
-    class="text-[7px] md:text-[9px] font-mono text-gray-500 uppercase tracking-widest whitespace-nowrap"
+    class="text-[7px] md:text-[9px] font-mono text-gray-500 tracking-widest whitespace-nowrap"
   >
     <span class="hidden md:inline text-gray-600">SYS_TIME </span>{currentTime}
   </div>

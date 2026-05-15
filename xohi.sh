@@ -844,6 +844,35 @@ function migrate_tenant_id() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
+function purge_full_database() {
+    echo -e "${RED}[PURGE] GIAO THỨC LÀM SẠCH DATABASE (ELITE V2.2) !!!${NC}"
+    echo -e "${YELLOW}[INFO] Sếp có thể chọn làm sạch toàn bộ hoặc chỉ các bảng cụ thể.${NC}"
+    echo -e "${YELLOW}Cấu trúc (Schema) sẽ được giữ lại, nhưng dữ liệu trong bảng được chọn sẽ mất sạch.${NC}"
+    
+    # [SAFETY] Yêu cầu mật khẩu admin để xác thực trước khi show danh sách bảng
+    read -s -p "Nhập mã quản trị để xác nhận (Admin Password): " confirm_pass
+    echo ""
+    
+    if docker exec -i fast_platform_api /opt/venv/bin/python3 -m backend.scripts.verify_admin "$confirm_pass" | grep -q "MATCH"; then
+        echo -e "${CYAN}-> Xác thực thành công. Đang tải danh sách bảng...${NC}"
+        # Chạy script làm sạch (Sử dụng -it để tương tác chọn bảng)
+        if docker ps --format '{{.Names}}' | grep -q "fast_platform_api"; then
+            docker exec -it fast_platform_api /opt/venv/bin/python3 -m backend.scripts.clean_database
+        else
+            echo -e "${YELLOW}[INFO] Container API chưa chạy. Khởi động môi trường tạm thời...${NC}"
+            docker compose run --rm api /opt/venv/bin/python3 -m backend.scripts.clean_database
+        fi
+        
+        # [ELITE V2.2] Chỉ dọn Redis nếu Sếp dọn triệt để (hoặc nhắc Sếp tự dọn)
+        echo -e "${CYAN}-> Gợi ý: Sếp nên Restart API (Mục 8) sau khi làm sạch DB để làm mới cache.${NC}"
+        
+        echo -e "${GREEN}[OK] Đã hoàn tất quy trình xử lý Database.${NC}"
+    else
+        echo -e "${RED}[ERROR] Sai mật mã quản trị! Thao tác bị từ chối.${NC}"
+    fi
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
 
 while true; do
     clear
@@ -875,6 +904,7 @@ while true; do
     echo "16) LÀM SẠCH DỮ LIỆU HELEN (Purge Logs & Memory)"
     echo "17) ROTATE ENCRYPTION SALT (Vô hiệu hóa toàn bộ session)"
     echo "18) DI CƯ TENANT (Đổi Domain -> Update DB)"
+    echo "19) LÀM SẠCH DATABASE (Dọn sạch toàn bộ Table)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -950,6 +980,9 @@ while true; do
             ;;
         18)
             migrate_tenant_id
+            ;;
+        19)
+            purge_full_database
             ;;
         0)
             exit 0

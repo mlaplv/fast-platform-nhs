@@ -76,7 +76,7 @@
         oninput={onSearchInput}
         type="text"
         placeholder="SEARCH CAMPAIGNS, TOPICS OR INTENTS..."
-        class="w-full bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-neon-cyan/50 focus:bg-black/50 transition-all uppercase tracking-widest shadow-inner shadow-black/50"
+        class="w-full bg-white/[0.02] hover:bg-white/[0.05] border border-white/10 rounded-xl py-3.5 pl-12 pr-4 text-[11px] font-mono text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-neon-cyan/50 focus:bg-black/50 transition-all tracking-widest shadow-inner shadow-black/50"
       />
     </div>
 
@@ -86,7 +86,7 @@
         {#each categoryFilters as cat}
           <button
             onclick={() => activeCategory = cat.id}
-            class="flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest transition-all
+            class="flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] font-mono font-bold tracking-widest transition-all
               {activeCategory === cat.id 
                 ? 'bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30' 
                 : 'text-gray-500 hover:text-gray-300 hover:bg-white/5 border border-transparent'}"
@@ -108,7 +108,7 @@
 
       <button
         onclick={onCreateNew}
-        class="flex items-center gap-2 px-5 py-2.5 bg-neon-cyan text-black hover:bg-[#00E5FF] font-black text-[10px] uppercase tracking-[0.2em] rounded-xl transition-all active:scale-95 shadow-[0_0_20px_rgba(0,255,255,0.2)]"
+        class="flex items-center gap-2 px-5 py-2.5 bg-neon-cyan text-black hover:bg-[#00E5FF] font-black text-[10px] tracking-[0.2em] rounded-xl transition-all active:scale-95 shadow-[0_0_20px_rgba(0,255,255,0.2)]"
       >
         <PlusCircle size={14} strokeWidth={3} />
         Initialize
@@ -119,13 +119,13 @@
   <!-- Phase Pulse Synchronizer -->
   <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1 border-b border-white/[0.03]">
     <div class="px-3 shrink-0">
-       <span class="text-[9px] font-mono font-black text-neon-cyan/40 uppercase tracking-tighter">PHASE_GATE:</span>
+       <span class="text-[9px] font-mono font-black text-neon-cyan/40 tracking-tighter">PHASE_GATE:</span>
     </div>
     {#each stepFilters as phase}
       {@const isActive = activeStep === phase.id}
       <button
         onclick={() => activeStep = phase.id}
-        class="px-4 py-2 text-[9px] font-mono font-bold uppercase tracking-widest rounded-lg transition-all relative border shrink-0
+        class="px-4 py-2 text-[9px] font-mono font-bold tracking-widest rounded-lg transition-all relative border shrink-0
           {isActive
             ? 'bg-neon-cyan/10 text-neon-cyan border-neon-cyan/20'
             : 'text-gray-600 border-transparent hover:text-gray-400 hover:bg-white/[0.02]'}"
@@ -138,13 +138,13 @@
   <!-- Status Pulse Synchronizer -->
   <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
     <div class="px-3 shrink-0">
-       <span class="text-[9px] font-mono font-black text-gray-500 uppercase tracking-tighter">STATUS_GATE:</span>
+       <span class="text-[9px] font-mono font-black text-gray-500 tracking-tighter">STATUS_GATE:</span>
     </div>
     {#each statusFilters as status}
       {@const isActive = activeStatus === status.id}
       <button
         onclick={() => activeStatus = status.id}
-        class="px-5 py-2.5 text-[10px] font-mono font-bold uppercase tracking-widest rounded-lg transition-all relative border shrink-0
+        class="px-5 py-2.5 text-[10px] font-mono font-bold tracking-widest rounded-lg transition-all relative border shrink-0
           {isActive
             ? 'bg-white/10 text-white border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)]'
             : 'text-gray-600 border-transparent hover:text-gray-300 hover:bg-white/[0.03]'}"
@@ -155,7 +155,7 @@
         {/if}
       </button>
     {/each}
-    <div class="ml-auto flex items-center gap-2 px-3 font-mono text-[9px] text-gray-600 uppercase tracking-tighter shrink-0">
+    <div class="ml-auto flex items-center gap-2 px-3 font-mono text-[9px] text-gray-600 tracking-tighter shrink-0">
        <span class="text-neon-cyan/40">Entities:</span>
        <span class="text-gray-400 font-bold">{totalItems}</span>
     </div>

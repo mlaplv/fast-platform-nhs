@@ -148,7 +148,7 @@
   <div class="absolute inset-0 rounded-xl bg-cyan-500/10 blur-md opacity-0 group-hover:opacity-100 transition-opacity"></div>
   <div class="relative flex items-center gap-2">
     <div class="w-2 h-2 rounded-full {healthyKeys > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}"></div>
-    <span class="text-[10px] font-black text-zinc-400 group-hover:text-cyan-400 uppercase tracking-widest transition-colors">
+    <span class="text-[10px] font-black text-zinc-400 group-hover:text-cyan-400 tracking-widest transition-colors">
       Neural Center
     </span>
     <div class="px-1.5 py-0.5 rounded-md bg-white/5 text-[9px] font-mono text-zinc-500 group-hover:text-cyan-300 transition-colors">
@@ -177,14 +177,14 @@
             <Zap size={32} class="text-cyan-400 relative z-10" />
           </div>
           <div class="flex flex-col gap-1">
-            <h2 class="text-lg font-black text-white uppercase tracking-widest italic">Auto-Optimize Neural Stack</h2>
+            <h2 class="text-lg font-black text-white tracking-widest italic">Auto-Optimize Neural Stack</h2>
             <p class="text-xs text-zinc-400 font-medium max-w-md">Automatically scans all keys, verifies real-time quotas, and selects the top 5 supreme models for your stack.</p>
           </div>
         </div>
         <button 
           onclick={autoOptimize}
           disabled={isAutoOptimizing}
-          class="h-14 px-10 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white text-xs font-black uppercase tracking-[0.3em] rounded-2xl shadow-[0_20px_50px_rgba(6,182,212,0.3)] hover:shadow-[0_25px_60px_rgba(6,182,212,0.4)] transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:translate-y-0"
+          class="h-14 px-10 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white text-xs font-black tracking-[0.3em] rounded-2xl shadow-[0_20px_50px_rgba(6,182,212,0.3)] hover:shadow-[0_25px_60px_rgba(6,182,212,0.4)] transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:translate-y-0"
         >
           {isAutoOptimizing ? "Optimizing Neural Links..." : "Run Neural Optimization"}
         </button>
@@ -194,7 +194,7 @@
     <!-- Top Stats Bar -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex flex-col gap-1">
-        <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Lead Operative</span>
+        <span class="text-[9px] font-black text-zinc-500 tracking-widest">Lead Operative</span>
         <div class="flex items-center gap-2">
           <Zap size={14} class="text-amber-400" />
           <span class="text-xs font-mono font-bold text-zinc-100 truncate">
@@ -203,7 +203,7 @@
         </div>
       </div>
       <div class="bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex flex-col gap-1">
-        <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Cognitive Pool</span>
+        <span class="text-[9px] font-black text-zinc-500 tracking-widest">Cognitive Pool</span>
         <div class="flex items-center gap-2">
           <Key size={14} class="text-cyan-400" />
           <span class="text-xs font-mono font-bold text-zinc-100">
@@ -212,7 +212,7 @@
         </div>
       </div>
       <div class="bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex flex-col gap-1">
-        <span class="text-[9px] font-black text-zinc-500 uppercase tracking-widest">System Health</span>
+        <span class="text-[9px] font-black text-zinc-500 tracking-widest">System Health</span>
         <div class="flex items-center gap-2">
           <Activity size={14} class={healthyKeys > 3 ? "text-emerald-400" : "text-red-400"} />
           <span class="text-xs font-mono font-bold text-zinc-100">
@@ -225,7 +225,7 @@
     <!-- Keys Grid -->
     <div class="space-y-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-xs font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
+        <h3 class="text-xs font-black text-white tracking-[0.2em] flex items-center gap-2">
           <Shield size={14} class="text-cyan-500" />
           API Key Matrix (8 Slots)
         </h3>
@@ -233,7 +233,7 @@
           <button 
             onclick={deepCheck}
             disabled={isDeepChecking}
-            class="h-8 px-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-amber-500/20 transition-all flex items-center gap-2"
+            class="h-8 px-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 text-[10px] font-black tracking-widest rounded-lg border border-amber-500/20 transition-all flex items-center gap-2"
           >
             <RefreshCw size={12} class={isDeepChecking ? "animate-spin" : ""} />
             {isDeepChecking ? "Scanning Quotas..." : "Deep Quota Scan"}
@@ -241,7 +241,7 @@
           <button 
             onclick={resetPool}
             disabled={isResetting}
-            class="h-8 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-red-500/20 transition-all flex items-center gap-2"
+            class="h-8 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[10px] font-black tracking-widest rounded-lg border border-red-500/20 transition-all flex items-center gap-2"
           >
             <Zap size={12} class={isResetting ? "animate-pulse" : ""} />
             {isResetting ? "Purging..." : "Neural Purge"}
@@ -265,23 +265,23 @@
               {#if k}
                 <div class="flex flex-col gap-0.5">
                   <span class="text-[11px] font-mono text-zinc-300 truncate">{k.key_preview}</span>
-                  <span class="text-[8px] font-black uppercase tracking-tighter {k.status === 'ACTIVE' ? 'text-emerald-500' : k.status === 'COOLDOWN' ? 'text-amber-500' : 'text-red-500'}">
+                  <span class="text-[8px] font-black tracking-tighter {k.status === 'ACTIVE' ? 'text-emerald-500' : k.status === 'COOLDOWN' ? 'text-amber-500' : 'text-red-500'}">
                     {k.status}
                   </span>
                 </div>
                 <div class="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
                   <div class="flex flex-col">
-                    <span class="text-[8px] text-zinc-600 uppercase font-black">Fails</span>
+                    <span class="text-[8px] text-zinc-600 font-black">Fails</span>
                     <span class="text-[10px] font-mono text-zinc-400">{k.fail_count}</span>
                   </div>
                   <div class="flex flex-col items-end">
-                    <span class="text-[8px] text-zinc-600 uppercase font-black">Health</span>
+                    <span class="text-[8px] text-zinc-600 font-black">Health</span>
                     <span class="text-[10px] font-mono text-zinc-400">{k.health_score}%</span>
                   </div>
                 </div>
               {:else}
                 <div class="flex-1 flex items-center justify-center border border-dashed border-white/5 rounded-xl">
-                  <span class="text-[10px] font-black text-zinc-700 uppercase tracking-widest">Empty</span>
+                  <span class="text-[10px] font-black text-zinc-700 tracking-widest">Empty</span>
                 </div>
               {/if}
             </div>
@@ -293,14 +293,14 @@
     <!-- Waterfall Section -->
     <div class="space-y-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-xs font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
+        <h3 class="text-xs font-black text-white tracking-[0.2em] flex items-center gap-2">
           <Layers size={14} class="text-indigo-500" />
           Cognitive Fallback Stack (Click to Promote)
         </h3>
         <button 
           onclick={savePriority}
           disabled={isSaving || !modelStatus}
-          class="h-8 px-6 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:bg-indigo-400 transition-all disabled:opacity-50"
+          class="h-8 px-6 bg-indigo-500 text-white text-[10px] font-black tracking-widest rounded-lg shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:bg-indigo-400 transition-all disabled:opacity-50"
         >
           {isSaving ? "Syncing..." : "Save Priority to DB"}
         </button>
@@ -314,7 +314,7 @@
                 class="flex items-center hover:bg-white/[0.02] transition-colors group/mod"
               >
                 <div class="px-4 py-3 flex flex-col gap-0.5 min-w-[150px] border-r border-white/5 last:border-0">
-                  <span class="text-[8px] font-black {idx === 0 ? 'text-emerald-500' : 'text-zinc-600'} uppercase tracking-widest flex items-center gap-1">
+                  <span class="text-[8px] font-black {idx === 0 ? 'text-emerald-500' : 'text-zinc-600'} tracking-widest flex items-center gap-1">
                     {#if idx === 0}<Zap size={8} />{/if}
                     Rank {idx + 1}
                   </span>
@@ -331,7 +331,7 @@
       </div>
       {#if modelStatus?.updated_at}
         <div class="flex items-center justify-end px-2" in:fade>
-          <span class="text-[9px] font-mono text-zinc-600 uppercase tracking-widest flex items-center gap-1.5">
+          <span class="text-[9px] font-mono text-zinc-600 tracking-widest flex items-center gap-1.5">
             <div class="w-1 h-1 rounded-full bg-indigo-500/50"></div>
             Last Stack Sync: {new Date(modelStatus.updated_at * 1000).toLocaleString('vi-VN')}
           </span>
@@ -354,7 +354,7 @@
     <div class="flex-1"></div>
     <button 
       onclick={loadStats}
-      class="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"
+      class="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black tracking-widest rounded-xl transition-all flex items-center gap-2"
     >
       <RefreshCw size={14} class={isRefreshing ? "animate-spin" : ""} />
       Refresh Telemetry

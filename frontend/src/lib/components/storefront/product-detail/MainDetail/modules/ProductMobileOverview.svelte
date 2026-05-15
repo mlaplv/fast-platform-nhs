@@ -50,13 +50,15 @@
     isHidden?: boolean;
     scrollRatio?: number;
     hideRatio?: number;
+    onTriggerScan?: () => void;
   }
 
   let { 
     product, timeLeft, selectedVariant, selectedQty = 1, 
     onOpenSelector, stats, isViralUnlocked = $bindable(), 
     isScrolled = false, isHidden = false, 
-    scrollRatio = 0, hideRatio = 0 
+    scrollRatio = 0, hideRatio = 0,
+    onTriggerScan
   }: Props = $props();
   const cartStore = getCartStore();
   const clientUi = getClientUi();
@@ -404,6 +406,19 @@
       </div>
       <div class="divider"></div>
       <div class="sold-count">{product.order_count_text || `Đã bán ${formatNumber(product.orderCount) || 0}`}</div>
+      
+      {#if product.sku || product.metadata?.barcode}
+        <button 
+          onclick={() => onTriggerScan?.()}
+          class="ml-auto flex items-center gap-1.5 px-2 py-1 bg-green-50/50 rounded-lg border border-green-100/50 active:scale-95 transition-all transform translate-y-[-10px]"
+        >
+          <div class="flex flex-col items-end">
+            <span class="text-[7px] font-black text-green-600 tracking-[0.2em] uppercase leading-none mb-0.5">Mã vạch</span>
+            <span class="text-[10px] font-black text-gray-900 tracking-tighter leading-none">{product.sku || product.metadata?.barcode}</span>
+          </div>
+          <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping shrink-0"></div>
+        </button>
+      {/if}
     </div>
 
     {#if variations.length > 0}
@@ -522,7 +537,7 @@
   .original-price { font-size: 11px; text-decoration: line-through; color: rgba(255,255,255,0.7); }
   
   .fs-right { text-align: right; z-index: 1; display: flex; flex-direction: column; align-items: flex-end; }
-  .fs-title { display: flex; align-items: center; gap: 4px; font-weight: 900; font-size: 16px; text-transform: uppercase; font-style: italic; }
+  .fs-title { display: flex; align-items: center; gap: 4px; font-weight: 900; font-size: 16px; font-style: italic; }
   .fs-countdown { font-size: 11px; display: flex; align-items: center; gap: 4px; font-weight: 700; }
   .time-box { display: flex; gap: 2px; align-items: center; }
   .time-box span { background: rgba(0,0,0,0.3); color: white; padding: 2px 6px; border-radius: 4px; font-weight: 1000; border: 1px solid rgba(255,255,255,0.2); min-width: 28px; text-align: center; font-size: 13px; }

@@ -49,7 +49,7 @@
       <div class="flex items-center justify-between mb-8 pb-4 border-b border-white/10 relative z-10">
          <div class="flex items-center gap-3">
             <Globe size={18} class="text-cyan-400" />
-            <h3 class="text-xs font-black tracking-[0.1em] text-slate-400 uppercase">Kho từ khóa phủ định toàn cầu</h3>
+            <h3 class="text-xs font-black tracking-[0.1em] text-slate-400 ">Kho từ khóa phủ định toàn cầu</h3>
          </div>
          <div class="flex items-center gap-4">
             <div class="relative w-48">
@@ -61,12 +61,12 @@
                   class="w-full bg-white/5 border border-white/10 rounded-none py-1.5 pl-9 pr-3 text-[10px] text-white focus:border-cyan-400/50 outline-none transition-all font-mono"
                />
             </div>
-            <span class="text-[10px] font-mono text-slate-500 font-bold uppercase">{filteredGlobal.length} KEYWORDS</span>
+            <span class="text-[10px] font-mono text-slate-500 font-bold ">{filteredGlobal.length} KEYWORDS</span>
          </div>
       </div>
 
       <div class="flex-1 overflow-hidden flex flex-col border border-white/5 rounded-none bg-black/40 relative z-10 shadow-inner">
-         <div class="grid grid-cols-3 bg-white/5 p-4 text-[10px] font-black tracking-widest text-slate-500 uppercase border-b border-white/5">
+         <div class="grid grid-cols-3 bg-white/5 p-4 text-[10px] font-black tracking-widest text-slate-500 border-b border-white/5">
             <span>Từ khóa</span>
             <span>Loại đối khớp</span>
             <span>Phạm vi</span>
@@ -75,18 +75,18 @@
             {#each paginatedGlobal as nk}
                <div class="grid grid-cols-3 p-4 border-b border-white/[0.02] hover:bg-white/[0.02] transition-all group">
                   <span class="text-white font-bold tracking-tighter">{nk.text}</span>
-                  <span class="text-cyan-500/60 uppercase">{nk.match_type}</span>
-                  <span class="text-slate-600 uppercase">{nk.set_name || 'HỆ THỐNG'}</span>
+                  <span class="text-cyan-500/60 ">{nk.match_type}</span>
+                  <span class="text-slate-600 ">{nk.set_name || 'HỆ THỐNG'}</span>
                </div>
             {:else}
-               <div class="h-full flex items-center justify-center text-[10px] uppercase text-slate-700 tracking-[0.3em] font-black opacity-20">Chưa có dữ liệu phủ định toàn cục</div>
+               <div class="h-full flex items-center justify-center text-[10px] text-slate-700 tracking-[0.3em] font-black opacity-20">Chưa có dữ liệu phủ định toàn cục</div>
             {/each}
          </div>
 
          <!-- PAGINATION -->
          {#if totalPages > 1}
             <div class="p-4 border-t border-white/10 bg-white/[0.02] flex justify-between items-center">
-               <span class="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Trang {currentPage}/{totalPages}</span>
+               <span class="text-[9px] font-mono text-slate-500 tracking-widest">Trang {currentPage}/{totalPages}</span>
                <div class="flex gap-2">
                   <button 
                      class="p-1.5 rounded-none bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-20 transition-all"
@@ -118,7 +118,7 @@
             <div class="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
                <div class="flex items-center gap-3">
                   <Target size={18} class={isGlobalNegative ? 'text-cyan-400' : 'text-ruby'} />
-                  <h3 class="text-xs font-black uppercase tracking-widest {isGlobalNegative ? 'text-cyan-400' : 'text-ruby'}">
+                  <h3 class="text-xs font-black tracking-widest {isGlobalNegative ? 'text-cyan-400' : 'text-ruby'}">
                      Mục tiêu: {isGlobalNegative ? 'Toàn bộ Tài khoản' : 'Chiến dịch Cụ thể'}
                   </h3>
                </div>
@@ -130,7 +130,7 @@
 
             {#if !isGlobalNegative}
                <div class="mb-8" in:slide>
-                  <label class="block text-[8px] text-slate-500 font-black mb-3 tracking-widest font-mono uppercase">Lựa chọn mục tiêu thực thi</label>
+                  <label class="block text-[8px] text-slate-500 font-black mb-3 tracking-widest font-mono ">Lựa chọn mục tiêu thực thi</label>
                   <div class="relative">
                      <select 
                         bind:value={selectedCampaign} 
@@ -155,8 +155,8 @@
 
             <div class="flex flex-col gap-4 mb-8">
                <div class="flex justify-between items-center">
-                  <span class="text-[10px] text-slate-500 font-black uppercase">Nhập danh sách từ khóa</span>
-                  <button class="flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 text-[10px] font-black uppercase hover:bg-cyan-400 hover:text-black transition-all rounded-none" onclick={() => aiSuggest('NEGATIVE_KEYWORDS', 'Suggest high-risk keywords')}>
+                  <span class="text-[10px] text-slate-500 font-black ">Nhập danh sách từ khóa</span>
+                  <button class="flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 text-[10px] font-black hover:bg-cyan-400 hover:text-black transition-all rounded-none" onclick={() => aiSuggest('NEGATIVE_KEYWORDS', 'Suggest high-risk keywords')}>
                      <Brain size={14} /> <span>Gợi ý từ Xohi AI</span>
                   </button>
                </div>
@@ -181,7 +181,7 @@
             <div class="flex-1 bg-white/[0.02] border border-white/5 rounded-none p-6 flex flex-col overflow-hidden shadow-xl" in:fly={{y: 20}}>
                <div class="flex items-center gap-3 mb-4 text-ruby/80">
                   <div class="w-2 h-2 rounded-none bg-ruby animate-pulse shadow-[0_0_8px_#ff3e5e]"></div>
-                  <span class="text-[10px] font-black uppercase tracking-widest truncate">Đang áp dụng: {selectedCampaign.name}</span>
+                  <span class="text-[10px] font-black tracking-widest truncate">Đang áp dụng: {selectedCampaign.name}</span>
                </div>
                <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-2">
                   {#each negativeKeywords.filter(k => k.campaign_id === selectedCampaign.resource_name || k.ad_group_id === selectedCampaign.resource_name) as nk}
@@ -192,7 +192,7 @@
                         </button>
                      </div>
                   {:else}
-                     <div class="py-10 text-center text-[9px] text-slate-700 font-black uppercase tracking-widest opacity-30">Chưa có từ khóa phủ định riêng</div>
+                     <div class="py-10 text-center text-[9px] text-slate-700 font-black tracking-widest opacity-30">Chưa có từ khóa phủ định riêng</div>
                   {/each}
                </div>
             </div>

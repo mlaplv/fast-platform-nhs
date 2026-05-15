@@ -50,12 +50,12 @@
   <div class="flex items-center justify-between border-b border-stone-100 pb-4">
     <div class="flex items-center gap-2">
       <div class="w-1.5 h-1.5 rounded-full bg-luxury-copper animate-pulse"></div>
-      <h2 class="text-[12px] font-black uppercase tracking-[3px] text-stone-800">Thông báo của Quý khách</h2>
+      <h2 class="text-[12px] font-black tracking-[3px] text-stone-800">Thông báo của Quý khách</h2>
     </div>
     {#if unreadCount > 0}
       <button
         onclick={markAllAsRead}
-        class="text-[10px] font-bold uppercase tracking-widest text-luxury-copper hover:text-stone-800 transition-colors"
+        class="text-[10px] font-bold tracking-widest text-luxury-copper hover:text-stone-800 transition-colors"
       >
         Đánh dấu tất cả đã đọc
       </button>
@@ -65,7 +65,7 @@
   {#if isLoading}
     <div class="py-20 flex flex-col items-center justify-center space-y-4">
       <div class="w-8 h-8 border-2 border-luxury-copper border-t-transparent animate-spin rounded-full"></div>
-      <p class="text-[10px] text-stone-400 uppercase tracking-widest animate-pulse">Đang truy xuất thông báo...</p>
+      <p class="text-[10px] text-stone-400 tracking-widest animate-pulse">Đang truy xuất thông báo...</p>
     </div>
   {:else}
     {#if userNotifications.length === 0}
@@ -96,10 +96,10 @@
                 {notif.message}
               </p>
               <div class="flex items-center gap-3">
-                <span class="text-[9px] text-stone-400 font-black uppercase tracking-[2px]">{formatDate(notif.created_at)}</span>
+                <span class="text-[9px] text-stone-400 font-black tracking-[2px]">{formatDate(notif.created_at)}</span>
                 {#if !notif.isRead}
                   <span class="w-1 h-1 rounded-full bg-stone-200"></span>
-                  <span class="text-[9px] text-luxury-copper font-black uppercase tracking-[2px]">Mới</span>
+                  <span class="text-[9px] text-luxury-copper font-black tracking-[2px]">Mới</span>
                 {/if}
               </div>
             </div>

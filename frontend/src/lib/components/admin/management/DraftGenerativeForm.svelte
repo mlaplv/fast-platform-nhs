@@ -116,11 +116,11 @@
 <div class="draft-form-container">
   <div class="header relative">
     <div class="flex flex-col gap-1">
-      <h2 class="text-[#00FFFF] font-mono tracking-widest text-lg font-bold uppercase flex items-center gap-2">
+      <h2 class="text-[#00FFFF] font-mono tracking-widest text-lg font-bold flex items-center gap-2">
         <div class="w-2 h-2 rounded-full bg-[#00FFFF] animate-pulse"></div>
-        {editingId ? "CHỈNH SỬA BÀI VIẾT (LIVE)" : "SOẠN BÀI VIẾT (LOCAL DRAFT)"}
+        {editingId ? "Chỉnh sửa BÀI VIẾT (LIVE)" : "SOẠN BÀI VIẾT (LOCAL DRAFT)"}
       </h2>
-      <span class="text-[10px] uppercase font-mono tracking-widest text-gray-500">Mọi thao tác được lưu trữ mã hóa tự động tại máy khách.</span>
+      <span class="text-[10px] font-mono tracking-widest text-gray-500">Mọi thao tác được lưu trữ mã hóa tự động tại máy khách.</span>
     </div>
     <button onclick={onClose} class="text-gray-400 hover:text-white transition-colors text-2xl font-bold p-2 absolute top-0 right-0">&times;</button>
   </div>
@@ -208,7 +208,6 @@
     font-size: 0.75rem;
     font-weight: 600;
     font-family: monospace;
-    text-transform: uppercase;
     color: rgba(255, 255, 255, 0.4);
     letter-spacing: 0.05em;
   }

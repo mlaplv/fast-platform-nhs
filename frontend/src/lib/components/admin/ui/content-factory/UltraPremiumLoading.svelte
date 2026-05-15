@@ -106,7 +106,7 @@
            {:else}
              <Zap size={40} class="text-white animate-bounce-gentle drop-shadow-[0_0_20px_rgba(255,255,255,1)]" />
            {/if}
-           <div class="text-[11px] font-black tracking-[0.4em] uppercase text-white/50">NEURAL XOHI</div>
+           <div class="text-[11px] font-black tracking-[0.4em] text-white/50">NEURAL XOHI</div>
         </div>
         
         <!-- Scanning Effect -->
@@ -131,7 +131,7 @@
     <div class="w-full max-w-lg mt-8 space-y-3 px-4">
       <div class="flex items-center gap-2 mb-4">
         <div class="w-2 h-2 rounded-full bg-blue-500 animate-ping"></div>
-        <span class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Neural Xohi Execution Logs</span>
+        <span class="text-[10px] font-black tracking-[0.3em] text-white/40">Neural Xohi Execution Logs</span>
       </div>
 
       <div class="space-y-2 font-mono">
@@ -142,7 +142,7 @@
             <div class="flex items-center gap-3">
               <Activity size={16} class="text-blue-400 animate-pulse" />
               <div class="flex flex-col gap-0.5">
-                <span class="text-[8px] font-black uppercase tracking-widest text-blue-400/60">Executing Task</span>
+                <span class="text-[8px] font-black tracking-widest text-blue-400/60">Executing Task</span>
                 <span class="text-[14px] font-bold text-white leading-tight">
                   {progress_msg}
                 </span>
@@ -156,7 +156,7 @@
         <!-- Historical Feed (Claude/IDE Style) -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
           <div class="space-y-1.5 opacity-80 pl-1 border-r border-white/5 pr-4">
-            <span class="text-[8px] font-black uppercase text-white/20 tracking-widest block mb-2">Process Stack</span>
+            <span class="text-[8px] font-black text-white/20 tracking-widest block mb-2">Process Stack</span>
             {#each messageHistory.slice(1) as logMsg, i}
               <div 
                 class="flex items-center gap-3 py-1 px-2 rounded-lg hover:bg-white/5 transition-colors group/log"
@@ -168,7 +168,7 @@
                 <span class="text-[10px] text-white/40 group-hover/log:text-white/60 transition-colors truncate">
                   {logMsg}
                 </span>
-                <span class="ml-auto text-[7px] font-black text-green-500/30 uppercase tracking-tighter">Done</span>
+                <span class="ml-auto text-[7px] font-black text-green-500/30 tracking-tighter">Done</span>
               </div>
             {/each}
             {#if viewingStep === 3 && !isAnalysisMessage}
@@ -186,10 +186,10 @@
 
           <!-- CNS V85.2: Live Telemetry Dashboard -->
           <div class="space-y-3">
-             <span class="text-[8px] font-black uppercase text-white/20 tracking-widest block mb-2">Neural Telemetry</span>
+             <span class="text-[8px] font-black text-white/20 tracking-widest block mb-2">Neural Telemetry</span>
              <div class="grid grid-cols-2 gap-2">
                 <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
-                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-blue-400">
+                   <span class="text-[9px] font-black text-white/30 tracking-tighter transition-colors group-hover/tel:text-blue-400">
                      {viewingStep === 1 ? 'Nodes' : 'Words'}
                    </span>
                    <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
@@ -201,7 +201,7 @@
                    </span>
                 </div>
                 <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
-                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-cyan-400">
+                   <span class="text-[9px] font-black text-white/30 tracking-tighter transition-colors group-hover/tel:text-cyan-400">
                      {viewingStep === 1 ? 'Keywords' : 'Sentences'}
                    </span>
                    <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
@@ -213,13 +213,13 @@
                    </span>
                 </div>
                 <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
-                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-emerald-400">
+                   <span class="text-[9px] font-black text-white/30 tracking-tighter transition-colors group-hover/tel:text-emerald-400">
                      {viewingStep === 1 ? 'Sources' : 'Images'}
                    </span>
                    <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">{telemetry.images}</span>
                 </div>
                 <div class="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col items-center justify-center gap-1 group/tel">
-                   <span class="text-[9px] font-black text-white/30 uppercase tracking-tighter transition-colors group-hover/tel:text-purple-400">
+                   <span class="text-[9px] font-black text-white/30 tracking-tighter transition-colors group-hover/tel:text-purple-400">
                      {viewingStep === 1 ? 'Analysis %' : 'Sections'}
                    </span>
                    <span class="text-xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
@@ -253,7 +253,7 @@
 
   <!-- 4. Metadata Clusters (Subtle technical details) -->
   <div class="absolute bottom-32 left-10 md:left-20 z-10 flex flex-col gap-2 pointer-events-none opacity-40">
-    <div class="text-[8px] font-mono text-white/30 uppercase tracking-[0.2em] mb-2 font-black">Environment Specs</div>
+    <div class="text-[8px] font-mono text-white/30 tracking-[0.2em] mb-2 font-black">Environment Specs</div>
     <div class="flex items-center gap-2 px-2 py-1 bg-white/5 border border-white/10 rounded-md text-[9px] font-mono text-blue-300">
       <div class="w-1 h-1 rounded-full bg-blue-500"></div>
       ID: {campaign_id?.slice(0, 8) || 'SYSTEM'}
@@ -277,7 +277,7 @@
          </div>
        {/each}
     </div>
-    <div class="text-[8px] font-black text-white/20 uppercase tracking-[0.5em] animate-pulse">NEURAL PROCESSING UNIT · NEURAL XOHI ACTIVE</div>
+    <div class="text-[8px] font-black text-white/20 tracking-[0.5em] animate-pulse">NEURAL PROCESSING UNIT · NEURAL XOHI ACTIVE</div>
   </div>
 </div>
 

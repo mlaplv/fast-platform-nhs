@@ -300,7 +300,7 @@
   <!-- Header -->
   <div class="flex items-center justify-between">
     <div class="flex flex-col gap-1">
-      <h3 class="text-xs font-black text-emerald-400 uppercase tracking-[0.2em] flex items-center gap-2">
+      <h3 class="text-xs font-black text-emerald-400 tracking-[0.2em] flex items-center gap-2">
         <Cpu size={16} />
         Neural Order
       </h3>
@@ -309,14 +309,14 @@
     <div class="flex items-center gap-2">
       <button 
         onclick={() => showOrchestrationModal = true}
-        class="h-8 px-3 bg-zinc-900/50 hover:bg-zinc-900 text-[10px] uppercase tracking-widest font-black text-zinc-500 hover:text-amber-400 transition-all flex items-center gap-2 rounded-lg border border-white/5"
+        class="h-8 px-3 bg-zinc-900/50 hover:bg-zinc-900 text-[10px] tracking-widest font-black text-zinc-500 hover:text-amber-400 transition-all flex items-center gap-2 rounded-lg border border-white/5"
       >
         <Settings size={12} />
         Expert Rules
       </button>
       <button 
         onclick={onOpenDiagnostics}
-        class="h-8 px-3 bg-zinc-900/50 hover:bg-zinc-900 text-[10px] uppercase tracking-widest font-black text-zinc-400 hover:text-cyan-400 transition-all flex items-center gap-2 rounded-lg border border-white/5"
+        class="h-8 px-3 bg-zinc-900/50 hover:bg-zinc-900 text-[10px] tracking-widest font-black text-zinc-400 hover:text-cyan-400 transition-all flex items-center gap-2 rounded-lg border border-white/5"
       >
         <Activity size={12} />
         Diagnostics
@@ -337,7 +337,7 @@
               <Shield size={20} />
             </div>
             <div>
-              <h4 class="text-sm font-black text-zinc-100 uppercase tracking-widest">Neural Orchestration</h4>
+              <h4 class="text-sm font-black text-zinc-100 tracking-widest">Neural Orchestration</h4>
               <p class="text-[10px] text-zinc-500 font-medium">Global AI governance, blacklists & patterns.</p>
             </div>
           </div>
@@ -348,7 +348,7 @@
 
         <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
           <div class="space-y-2">
-            <label class="text-[10px] text-zinc-500 font-black uppercase tracking-widest flex items-center gap-2">
+            <label class="text-[10px] text-zinc-500 font-black tracking-widest flex items-center gap-2">
               <Database size={12} />
               JSON Configuration (Real DB)
             </label>
@@ -368,14 +368,14 @@
         <div class="p-6 bg-zinc-900/30 border-t border-white/5 flex items-center justify-end gap-3">
           <button 
             onclick={() => showOrchestrationModal = false}
-            class="px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+            class="px-5 py-2.5 text-[11px] font-black tracking-widest text-zinc-500 hover:text-white transition-colors"
           >
             Cancel
           </button>
           <button 
             onclick={saveOrchestration}
             disabled={isSavingOrchestration}
-            class="px-8 py-2.5 bg-amber-500 text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-amber-400 transition-all shadow-[0_10px_30px_rgba(245,158,11,0.2)] disabled:opacity-50"
+            class="px-8 py-2.5 bg-amber-500 text-black text-[11px] font-black tracking-widest rounded-xl hover:bg-amber-400 transition-all shadow-[0_10px_30px_rgba(245,158,11,0.2)] disabled:opacity-50"
           >
             {isSavingOrchestration ? 'Reloading...' : 'Apply Global Rules'}
           </button>
@@ -387,11 +387,11 @@
   <!-- Key Syncing -->
   <div class="space-y-3">
     <div class="flex items-center justify-between">
-      <label for="bulk-keys" class="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Cognitive Pool (Keys)</label>
+      <label for="bulk-keys" class="text-[10px] text-zinc-500 font-black tracking-widest">Cognitive Pool (Keys)</label>
       <button
         onclick={syncKeys}
         disabled={isSyncing || !bulkKeys}
-        class="h-7 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest rounded-md border border-emerald-500/10 transition-all disabled:opacity-30"
+        class="h-7 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[9px] font-black tracking-widest rounded-md border border-emerald-500/10 transition-all disabled:opacity-30"
       >
         {isSyncing ? 'Establishing...' : 'Sync Pool'}
       </button>
@@ -409,12 +409,12 @@
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <Layers size={14} class="text-cyan-400" />
-        <span class="text-xs font-black text-zinc-300 uppercase tracking-widest">Priority Stack</span>
+        <span class="text-xs font-black text-zinc-300 tracking-widest">Priority Stack</span>
       </div>
       <button 
         onclick={discoverModels}
         disabled={isDiscovering}
-        class="h-7 px-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-[9px] font-black uppercase tracking-widest rounded-md border border-cyan-500/10 transition-all disabled:opacity-30 flex items-center gap-2"
+        class="h-7 px-3 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-[9px] font-black tracking-widest rounded-md border border-cyan-500/10 transition-all disabled:opacity-30 flex items-center gap-2"
       >
         <RefreshCw size={10} class={isDiscovering ? "animate-spin" : ""} />
         Neural Discovery
@@ -452,9 +452,9 @@
                 {item.name}
               </span>
               {#if i === 0}
-                <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[8px] font-black rounded uppercase tracking-tighter">Leader</span>
+                <span class="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[8px] font-black rounded tracking-tighter">Leader</span>
               {:else}
-                <span class="px-1.5 py-0.5 bg-zinc-800 text-zinc-500 text-[8px] font-black rounded uppercase tracking-tighter">Backup</span>
+                <span class="px-1.5 py-0.5 bg-zinc-800 text-zinc-500 text-[8px] font-black rounded tracking-tighter">Backup</span>
               {/if}
             </div>
           </div>
@@ -484,7 +484,7 @@
       {#if items.length > 3}
         <button 
           onclick={() => showAll = !showAll}
-          class="w-full py-2 text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 hover:text-cyan-400 transition-colors flex items-center justify-center gap-2"
+          class="w-full py-2 text-[9px] font-black tracking-[0.2em] text-zinc-500 hover:text-cyan-400 transition-colors flex items-center justify-center gap-2"
         >
           {showAll ? 'Collapse Stack' : `Show All (${items.length - 3} more)`}
           <ArrowDown size={10} class={showAll ? "rotate-180 transition-transform" : "transition-transform"} />
@@ -499,7 +499,7 @@
         class="w-full p-3 border border-dashed border-white/5 hover:border-white/10 rounded-xl flex items-center justify-center gap-2 text-zinc-600 hover:text-zinc-400 transition-all group"
       >
         <Plus size={14} class="group-hover:rotate-90 transition-transform duration-300" />
-        <span class="text-[10px] font-black uppercase tracking-widest">Enlist New Operative</span>
+        <span class="text-[10px] font-black tracking-widest">Enlist New Operative</span>
       </button>
 
       {#if showDiscoveryDropdown && nanobot.discoveredModels.length}
@@ -511,7 +511,7 @@
           <div class="p-3 border-b border-white/5 mb-1 sticky top-0 bg-black/90 backdrop-blur-md flex items-center justify-between">
             <div class="flex items-center gap-2">
               <div class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></div>
-              <span class="text-[9px] font-black text-cyan-400 uppercase tracking-[0.2em]">Available Neural Models</span>
+              <span class="text-[9px] font-black text-cyan-400 tracking-[0.2em]">Available Neural Models</span>
             </div>
             <span class="text-[8px] font-mono text-zinc-600">{nanobot.discoveredModels.length} Active</span>
           </div>
@@ -537,12 +537,12 @@
   <div class="pt-4 border-t border-white/5 flex items-center justify-between">
     <div class="flex flex-col">
       {#if hasUnsavedChanges}
-        <span class="text-[9px] text-amber-400 font-black animate-pulse flex items-center gap-1 uppercase tracking-widest">
+        <span class="text-[9px] text-amber-400 font-black animate-pulse flex items-center gap-1 tracking-widest">
           <Activity size={10} />
           Unsaved Modifications
         </span>
       {:else if hasSavedOnce}
-        <span class="text-[9px] text-emerald-500 font-bold flex items-center gap-1 uppercase tracking-widest">
+        <span class="text-[9px] text-emerald-500 font-bold flex items-center gap-1 tracking-widest">
           <Check size={10} />
           Neural Sync: Active
         </span>
@@ -552,7 +552,7 @@
     <button
       onclick={savePriorityStack}
       disabled={isSavingModels || !hasUnsavedChanges}
-      class="h-10 px-6 {hasUnsavedChanges ? 'bg-amber-500' : 'bg-zinc-800'} text-zinc-950 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center gap-2"
+      class="h-10 px-6 {hasUnsavedChanges ? 'bg-amber-500' : 'bg-zinc-800'} text-zinc-950 text-[10px] font-black tracking-[0.2em] rounded-xl transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center gap-2"
     >
       {#if isSavingModels}
         <RefreshCw size={14} class="animate-spin text-zinc-950" />

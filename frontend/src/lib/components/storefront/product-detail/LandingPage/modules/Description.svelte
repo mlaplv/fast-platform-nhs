@@ -113,7 +113,6 @@
     color: #111827;
     margin-top: 2.5rem;
     margin-bottom: 1.25rem;
-    text-transform: uppercase;
     letter-spacing: -0.025em;
   }
 

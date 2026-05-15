@@ -234,20 +234,16 @@ export class ShopStore {
 
     setVouchers(data: Voucher[]): void {
         untrack(() => {
-            // 🛡️ Stealth Vault: Hide viral voucher until unlocked via Server HTTP-Only cookie
-            const viralVoucherId = this.product?.metadata?.viral_suite?.share_promotion?.voucher_id 
-                                || (this.product?.metadata as ProductMetadata)?.share_promotion?.voucher_id;
-
-            const isUnlocked = viralVoucherId && this.product?.id && this.unlockedVoucherIds.includes(`${this.product.id}_${viralVoucherId}`);
+            // 🛡️ Elite V2.2: Stealth Vault - Hide viral vouchers unless unlocked
+            const rawVouchers = data ? [...data] : [];
             
-            let newVouchers = data ? [...data] : [];
-            
-            // If it's the viral voucher and it's NOT unlocked, remove it!
-            if (viralVoucherId && !isUnlocked) {
-                newVouchers = newVouchers.filter(v => v.id !== viralVoucherId);
-            }
-
-            this.vouchers = newVouchers;
+            this.vouchers = rawVouchers.filter(v => {
+                if (!v.is_viral) return true;
+                
+                // If is_viral, check if it's in the unlocked list
+                const unlockKey = `${this.product?.id}_${v.id}`;
+                return this.unlockedVoucherIds.includes(unlockKey) || this.unlockedVoucherIds.includes(v.id);
+            });
             
             // 🚀 ELITE V2.2: Use Real 'is_default' Flag (Rule R00 Alignment)
             if (this.selectedVoucherIds.length === 0 && this.vouchers.length > 0) {

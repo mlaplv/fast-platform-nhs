@@ -67,7 +67,7 @@
        {#if hasVouchers}
          <button 
            onclick={(e) => { e.stopPropagation(); onSetTab(idx, 'vouchers'); }}
-           class="text-[11px] font-black uppercase tracking-[0.2em] transition-all {currentTab === 'vouchers' ? 'text-luxury-sakura' : 'text-white/20'}"
+           class="text-[11px] font-black tracking-[0.2em] transition-all {currentTab === 'vouchers' ? 'text-luxury-sakura' : 'text-white/20'}"
          >
            ƯU ĐÃI ĐẶC QUYỀN
          </button>
@@ -75,7 +75,7 @@
        {#if hasGifts}
          <button 
            onclick={(e) => { e.stopPropagation(); onSetTab(idx, 'gifts'); }}
-           class="text-[11px] font-black uppercase tracking-[0.2em] transition-all {currentTab === 'gifts' ? 'text-luxury-sakura' : 'text-white/20'}"
+           class="text-[11px] font-black tracking-[0.2em] transition-all {currentTab === 'gifts' ? 'text-luxury-sakura' : 'text-white/20'}"
          >
            QUÀ TẶNG
          </button>
@@ -112,8 +112,8 @@
               </div>
               <div class="flex-grow px-5 flex items-center justify-between gap-3 overflow-hidden">
                  <div class="flex flex-col text-left truncate">
-                    <span class="text-[13px] font-black text-white truncate leading-none uppercase tracking-widest {isApplied ? 'text-luxury-sakura' : ''}">{v.label}</span>
-                    <span class="text-[9px] font-bold text-white/30 uppercase truncate mt-1.5 tracking-tight">{v.sub}</span>
+                    <span class="text-[13px] font-black text-white truncate leading-none tracking-widest {isApplied ? 'text-luxury-sakura' : ''}">{v.label}</span>
+                    <span class="text-[9px] font-bold text-white/30 truncate mt-1.5 tracking-tight">{v.sub}</span>
                  </div>
                  <button 
                    onclick={(e) => { e.stopPropagation(); onVoucherClick(v); }}
@@ -137,8 +137,8 @@
                {/if}
              </div>
              <div class="flex flex-col">
-                <span class="text-[12px] text-white font-black truncate tracking-wide uppercase">{gift.name}</span>
-                <span class="text-[9px] text-luxury-sakura font-black uppercase tracking-[0.2em] mt-1">SỐ LƯỢNG: {gift.qty}</span>
+                <span class="text-[12px] text-white font-black truncate tracking-wide ">{gift.name}</span>
+                <span class="text-[9px] text-luxury-sakura font-black tracking-[0.2em] mt-1">SỐ LƯỢNG: {gift.qty}</span>
              </div>
            </div>
           {/each}
@@ -149,7 +149,7 @@
   <div class="px-6 pt-6 pb-10 bg-gradient-to-t from-[#0b0b0b] via-[#0b0b0b] to-transparent z-30 flex justify-center shrink-0 border-t border-white/5">
     <button 
       onclick={(e) => { e.stopPropagation(); onClose(); }}
-      class="liquid-done-btn-mini w-full py-5 rounded-[2.5rem] font-black text-[14px] uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-95 shadow-[0_15px_40px_rgba(255,183,197,0.3)]"
+      class="liquid-done-btn-mini w-full py-5 rounded-[2.5rem] font-black text-[14px] tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-95 shadow-[0_15px_40px_rgba(255,183,197,0.3)]"
     >
        XÁC NHẬN CHỌN
     </button>

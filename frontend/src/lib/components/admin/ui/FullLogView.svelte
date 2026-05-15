@@ -51,11 +51,11 @@
     return maskedText
       .replace(
         /### (.*)/g,
-        '<h3 class="text-neon-cyan font-bold mt-8 mb-3 uppercase tracking-[0.3em] text-xs flex items-center gap-2"><div class="w-1.5 h-1.5 bg-neon-cyan rotate-45"></div> $1</h3>',
+        '<h3 class="text-neon-cyan font-bold mt-8 mb-3 tracking-[0.3em] text-xs flex items-center gap-2"><div class="w-1.5 h-1.5 bg-neon-cyan rotate-45"></div> $1</h3>',
       )
       .replace(
         /## (.*)/g,
-        '<h2 class="text-white font-bold mt-10 mb-5 border-b border-white/10 pb-3 text-xl uppercase tracking-[0.2em] flex items-center gap-3"><span class="text-neon-cyan/40 text-xs font-mono">/SEC/</span> $1</h2>',
+        '<h2 class="text-white font-bold mt-10 mb-5 border-b border-white/10 pb-3 text-xl tracking-[0.2em] flex items-center gap-3"><span class="text-neon-cyan/40 text-xs font-mono">/SEC/</span> $1</h2>',
       )
       .replace(
         /\*\*(.*?)\*\*/g,
@@ -88,19 +88,19 @@
         >
           <div>
             <span
-              class="text-[9px] text-neon-cyan/60 uppercase font-mono block mb-1"
+              class="text-[9px] text-neon-cyan/60 font-mono block mb-1"
               >Decrypted Source</span
             >
-            <span class="text-lg font-bold text-white tracking-widest uppercase"
+            <span class="text-lg font-bold text-white tracking-widest "
               >{log.source}</span
             >
           </div>
           <div class="text-right">
             <span
-              class="text-[9px] text-neon-cyan/60 uppercase font-mono block mb-1"
+              class="text-[9px] text-neon-cyan/60 font-mono block mb-1"
               >Authentication</span
             >
-            <span class="text-[11px] font-mono text-[#39FF14] uppercase"
+            <span class="text-[11px] font-mono text-[#39FF14] "
               >Level 5 - Verified</span
             >
           </div>
@@ -117,7 +117,7 @@
                       <Play size={28} fill="currentColor" class="translate-x-0.5" />
                    </div>
                    <div class="flex flex-col gap-1">
-                      <h4 class="text-white font-bold text-lg tracking-tight uppercase">PHÁT HIỆN BẢN THẢO CHƯA XONG</h4>
+                      <h4 class="text-white font-bold text-lg tracking-tight ">PHÁT HIỆN BẢN THẢO CHƯA XONG</h4>
                       <p class="text-neon-cyan/60 text-xs font-mono tracking-widest leading-relaxed">
                         CAMPAIGN_ID: {log.data.campaign_id.slice(0,18)}...<br/>
                         NEURAL_STATUS: {log.data.status} // STEP_{log.data.step}
@@ -127,7 +127,7 @@
                 
                 <button 
                    onclick={() => nanobot.resumeCampaign(log)}
-                   class="px-10 py-5 rounded-[2rem] bg-neon-cyan text-[#050505] font-black text-sm uppercase tracking-[0.2em] shadow-[0_20px_40px_-10px_rgba(0,255,255,0.4)] hover:scale-105 active:scale-95 transition-all duration-500 hover:shadow-[0_25px_50px_-5px_rgba(0,255,255,0.5)] flex items-center gap-3 group/btn"
+                   class="px-10 py-5 rounded-[2rem] bg-neon-cyan text-[#050505] font-black text-sm tracking-[0.2em] shadow-[0_20px_40px_-10px_rgba(0,255,255,0.4)] hover:scale-105 active:scale-95 transition-all duration-500 hover:shadow-[0_25px_50px_-5px_rgba(0,255,255,0.5)] flex items-center gap-3 group/btn"
                 >
                    <span>Tiếp tục với XoHi</span>
                    <div class="w-1.5 h-1.5 bg-black rounded-full group-hover/btn:animate-ping"></div>

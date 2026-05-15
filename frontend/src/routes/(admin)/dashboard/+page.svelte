@@ -82,7 +82,7 @@
         </div>
         <div class="bg-blue-600/10 px-4 py-2 rounded-full border border-blue-500/20 flex items-center gap-2">
             <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-            <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Live Engine Active</span>
+            <span class="text-[10px] font-bold text-blue-400 tracking-widest">Live Engine Active</span>
         </div>
     </header>
 
@@ -106,7 +106,7 @@
                             </div>
                             <p class="text-sm text-gray-500 mt-1 line-clamp-1 italic">"{campaigns[i].source_input}"</p>
                         </div>
-                        <div class="text-right text-[10px] font-bold uppercase tracking-widest text-gray-600 group-hover:text-blue-400 transition-colors">
+                        <div class="text-right text-[10px] font-bold tracking-widest text-gray-600 group-hover:text-blue-400 transition-colors">
                             {campaigns[i].status}
                         </div>
                     </div>

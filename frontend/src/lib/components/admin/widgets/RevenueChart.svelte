@@ -105,14 +105,14 @@
     <div class="flex flex-col gap-1">
       <div class="flex items-center gap-3 mb-1">
         <h2
-          class="text-[10px] uppercase tracking-[0.2em] text-emerald-500 font-bold flex items-center gap-2"
+          class="text-[10px] tracking-[0.2em] text-emerald-500 font-bold flex items-center gap-2"
         >
           <BarChart3 size={12} />
           Biểu đồ diễn biến
         </h2>
         {#if reportedTotal !== undefined}
           <div
-            class="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-mono text-emerald-400 uppercase tracking-widest animate-pulse truncate max-w-[180px]"
+            class="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-mono text-emerald-400 tracking-widest animate-pulse truncate max-w-[180px]"
           >
             {periodLabel}: {reportedTotal.toLocaleString("vi-VN")}đ
           </div>
@@ -127,7 +127,7 @@
           <span class="text-lg text-emerald-500 font-bold">đ</span>
         </div>
         <span
-          class="text-[10px] text-zinc-500 font-medium uppercase tracking-widest"
+          class="text-[10px] text-zinc-500 font-medium tracking-widest"
         >
           {data?.revenue !== undefined || data?.injected_count !== undefined 
             ? (data?.period_label || "Doanh thu theo báo cáo")
@@ -249,7 +249,7 @@
         <div class="p-4 rounded-full bg-white/5 border border-white/10">
           <Calendar size={32} class="text-zinc-500" />
         </div>
-        <p class="text-xs font-mono uppercase tracking-[0.2em] text-zinc-400">
+        <p class="text-xs font-mono tracking-[0.2em] text-zinc-400">
           Không có dữ liệu cho {activeTab}
         </p>
       </div>
@@ -266,7 +266,7 @@
       </div>
       <div class="flex flex-col">
         <span
-          class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold"
+          class="text-[10px] tracking-widest text-zinc-500 font-bold"
           >TB Doanh thu</span
         >
         <span class="text-lg sm:text-xl font-bold text-white"
@@ -283,7 +283,7 @@
       </div>
       <div class="flex flex-col">
         <span
-          class="text-[10px] uppercase tracking-widest text-zinc-500 font-bold"
+          class="text-[10px] tracking-widest text-zinc-500 font-bold"
           >Số đơn hàng</span
         >
         <span class="text-lg sm:text-xl font-bold text-white">{totalOrders}</span>
@@ -305,7 +305,7 @@
       </div>
       <div class="flex flex-col">
         <span
-          class="text-[10px] uppercase tracking-widest {growth >= 0
+          class="text-[10px] tracking-widest {growth >= 0
             ? 'text-emerald-500/80'
             : 'text-red-500/80'} font-extrabold">Tăng trưởng</span
         >

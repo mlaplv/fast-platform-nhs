@@ -120,7 +120,7 @@
   <!-- DESKTOP IMAGES SECTION -->
   <div class="flex flex-col gap-3">
     <div class="flex items-center justify-between">
-      <span class="text-[8px] font-black uppercase tracking-widest text-white/40">Ảnh Desktop (4:5 / 1:1)</span>
+      <span class="text-[8px] font-black tracking-widest text-white/40">Ảnh Desktop (4:5 / 1:1)</span>
       <span class="text-[8px] font-bold text-amber-500/50">{formState.images.length} items</span>
     </div>
     <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-3">
@@ -142,11 +142,11 @@
           {#if isBroken}
             <div class="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <AlertTriangle size={24} class="text-red-400/60" />
-              <span class="text-[8px] font-black uppercase tracking-widest text-red-400/60">Ảnh bị lỗi</span>
+              <span class="text-[8px] font-black tracking-widest text-red-400/60">Ảnh bị lỗi</span>
               <div class="flex gap-2">
                 <button onclick={() => onOpenVault(false, i)} class="p-2 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all shadow-lg border border-white/30" title="Thay thế ảnh"><ImagePlus size={14} /></button>
                 {#if i !== 0}
-                  <button onclick={() => setAsPrimary(i, false)} class="px-2 py-1 bg-amber-500/90 text-black text-[9px] font-black uppercase tracking-wider rounded border border-amber-400/50 hover:bg-amber-400 transition-colors shadow-lg">Đại diện</button>
+                  <button onclick={() => setAsPrimary(i, false)} class="px-2 py-1 bg-amber-500/90 text-black text-[9px] font-black tracking-wider rounded border border-amber-400/50 hover:bg-amber-400 transition-colors shadow-lg">Đại diện</button>
                 {/if}
                 <button onclick={() => removeImage(i, false)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30"><Trash2 size={14} /></button>
               </div>
@@ -175,21 +175,21 @@
               <div class="pointer-events-auto flex gap-2">
                 <button onclick={() => onOpenVault(false, i)} class="p-2 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all shadow-lg border border-white/30" title="Thay thế"><ImagePlus size={14} /></button>
                 {#if i !== 0}
-                  <button onclick={() => setAsPrimary(i, false)} class="px-2 py-1 bg-amber-500/90 text-black text-[9px] font-black uppercase tracking-wider rounded border border-amber-400/50 hover:bg-amber-400 transition-colors shadow-lg">Đại diện</button>
+                  <button onclick={() => setAsPrimary(i, false)} class="px-2 py-1 bg-amber-500/90 text-black text-[9px] font-black tracking-wider rounded border border-amber-400/50 hover:bg-amber-400 transition-colors shadow-lg">Đại diện</button>
                 {/if}
                 <button onclick={() => removeImage(i, false)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30"><Trash2 size={14} /></button>
               </div>
             </div>
           {/if}
           {#if i === 0}
-            <div class="absolute top-1 left-1 px-1.5 py-0.5 bg-amber-500 text-black rounded text-[7px] font-black uppercase tracking-wider shadow-lg">Ảnh Đại Diện</div>
+            <div class="absolute top-1 left-1 px-1.5 py-0.5 bg-amber-500 text-black rounded text-[7px] font-black tracking-wider shadow-lg">Ảnh Đại Diện</div>
           {/if}
         </div>
       {/each}
 
       <button onclick={() => onOpenVault(false)} class="aspect-square rounded-xl border-2 border-dashed border-white/10 bg-white/[0.01] hover:bg-amber-500/[0.03] hover:border-amber-500/40 flex flex-col items-center justify-center gap-2 group transition-all shrink-0">
         <div class="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400/50 group-hover:text-amber-400 transition-colors"><ImagePlus size={16} /></div>
-        <div class="text-[8px] font-black uppercase tracking-widest text-white/30 group-hover:text-amber-400 text-center">Desktop<br>Media</div>
+        <div class="text-[8px] font-black tracking-widest text-white/30 group-hover:text-amber-400 text-center">Desktop<br>Media</div>
       </button>
     </div>
   </div>
@@ -198,8 +198,8 @@
   <div class="flex flex-col gap-3">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <span class="text-[8px] font-black uppercase tracking-widest text-cyan-400">Ảnh Mobile (9:16)</span>
-        <div class="px-1.5 py-0.5 rounded bg-cyan-400/10 text-cyan-400 text-[6px] font-black uppercase">Elite Hero v2.2</div>
+        <span class="text-[8px] font-black tracking-widest text-cyan-400">Ảnh Mobile (9:16)</span>
+        <div class="px-1.5 py-0.5 rounded bg-cyan-400/10 text-cyan-400 text-[6px] font-black ">Elite Hero v2.2</div>
       </div>
       <span class="text-[8px] font-bold text-cyan-500/50">{formState.mobileImages.length} items</span>
     </div>
@@ -223,7 +223,7 @@
             <!-- Broken Mobile Image State -->
             <div class="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <AlertTriangle size={24} class="text-red-400/60" />
-              <span class="text-[8px] font-black uppercase tracking-widest text-red-400/60">Ảnh bị lỗi</span>
+              <span class="text-[8px] font-black tracking-widest text-red-400/60">Ảnh bị lỗi</span>
               <div class="flex gap-2">
                 <button onclick={() => onOpenVault(true, i)} class="p-2 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all shadow-lg border border-white/30" title="Thay thế ảnh"><ImagePlus size={14} /></button>
                 <button onclick={() => removeImage(i, true)} class="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-lg border border-red-500/30"><Trash2 size={14} /></button>
@@ -260,7 +260,7 @@
 
       <button onclick={() => onOpenVault(true)} class="aspect-[9/16] rounded-xl border-2 border-dashed border-white/10 bg-white/[0.01] hover:bg-cyan-500/[0.03] hover:border-cyan-500/40 flex flex-col items-center justify-center gap-2 group transition-all shrink-0">
         <div class="w-8 h-8 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400/50 group-hover:text-cyan-400 transition-colors"><ImagePlus size={16} /></div>
-        <div class="text-[8px] font-black uppercase tracking-widest text-white/30 group-hover:text-cyan-400 text-center">Mobile<br>Media</div>
+        <div class="text-[8px] font-black tracking-widest text-white/30 group-hover:text-cyan-400 text-center">Mobile<br>Media</div>
       </button>
     </div>
   </div>

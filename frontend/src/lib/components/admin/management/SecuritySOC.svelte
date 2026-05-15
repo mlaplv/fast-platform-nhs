@@ -197,10 +197,10 @@
             TRINITY SOC <span class="text-[9px] px-1.5 py-0.5 border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 rounded">ELITE V2.2</span>
           </h1>
           <div class="flex items-center gap-4 mt-0.5">
-             <span class="text-[8px] text-gray-500 font-bold uppercase tracking-widest flex items-center gap-1">
+             <span class="text-[8px] text-gray-500 font-bold tracking-widest flex items-center gap-1">
                <div class="w-1 h-1 rounded-full bg-emerald-500"></div> System Healthy
              </span>
-             <span class="text-[8px] text-cyan-500/60 font-bold uppercase tracking-widest">Sector 7-G Node</span>
+             <span class="text-[8px] text-cyan-500/60 font-bold tracking-widest">Sector 7-G Node</span>
           </div>
         </div>
       </div>
@@ -215,8 +215,8 @@
             title={stat.tip}
             class="px-3 py-1.5 bg-white/[0.02] border border-white/5 rounded flex flex-col items-center min-w-[70px] cursor-help hover:border-cyan-500/30 transition-colors"
           >
-            <span class="text-[7px] text-gray-500 uppercase font-black">{stat.label}</span>
-            <span class="text-xs font-black {stat.color} uppercase tracking-tighter">{stat.val}</span>
+            <span class="text-[7px] text-gray-500 font-black">{stat.label}</span>
+            <span class="text-xs font-black {stat.color} tracking-tighter">{stat.val}</span>
           </div>
         {/each}
         <button 
@@ -225,8 +225,8 @@
           class="px-4 py-1.5 rounded border transition-all active:scale-95 flex flex-col items-center min-w-[90px]
                  {stats.is_read_only ? 'bg-rose-500/20 border-rose-500/40 text-rose-500' : 'bg-white/5 border-white/10 text-gray-400'}"
         >
-          <span class="text-[7px] uppercase font-black">Lockdown</span>
-          <span class="text-xs font-black uppercase tracking-tighter">{stats.is_read_only ? 'ACTIVE' : 'DISARMED'}</span>
+          <span class="text-[7px] font-black">Lockdown</span>
+          <span class="text-xs font-black tracking-tighter">{stats.is_read_only ? 'ACTIVE' : 'DISARMED'}</span>
         </button>
       </div>
     </div>
@@ -268,12 +268,12 @@
         class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-cyan-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-6 border border-cyan-400/50 backdrop-blur-md animate-in slide-in-from-bottom-4"
         style="z-index: {Z_INDEX_ADMIN.HUD_FLOATING};"
       >
-        <span class="text-xs font-black tracking-widest uppercase">{selectedLogs.size} Targets Locked</span>
+        <span class="text-xs font-black tracking-widest ">{selectedLogs.size} Targets Locked</span>
         <div class="flex gap-2">
-          <button onclick={() => bulkAction('BLACKLIST')} class="flex items-center gap-2 px-3 py-1 bg-black/20 hover:bg-black/40 rounded-full text-[10px] font-black uppercase transition-all">
+          <button onclick={() => bulkAction('BLACKLIST')} class="flex items-center gap-2 px-3 py-1 bg-black/20 hover:bg-black/40 rounded-full text-[10px] font-black transition-all">
             <Ban size={12} /> Blacklist
           </button>
-          <button onclick={() => bulkAction('REVOKE')} class="flex items-center gap-2 px-3 py-1 bg-black/20 hover:bg-black/40 rounded-full text-[10px] font-black uppercase transition-all">
+          <button onclick={() => bulkAction('REVOKE')} class="flex items-center gap-2 px-3 py-1 bg-black/20 hover:bg-black/40 rounded-full text-[10px] font-black transition-all">
             <Trash2 size={12} /> Revoke
           </button>
           <button onclick={() => selectedLogs = new Set()} class="p-1 hover:bg-white/10 rounded-full"><X size={14} /></button>
@@ -284,7 +284,7 @@
     <div class="flex-1 flex flex-col overflow-hidden">
       <div 
         title="Nhật ký truy vết các hành động thời gian thực của toàn bộ Admin và Hệ thống"
-        class="grid grid-cols-[40px_100px_1fr_200px_100px] gap-4 px-6 py-3 border-b border-white/5 bg-white/[0.02] text-[9px] font-black text-gray-500 uppercase tracking-widest cursor-help"
+        class="grid grid-cols-[40px_100px_1fr_200px_100px] gap-4 px-6 py-3 border-b border-white/5 bg-white/[0.02] text-[9px] font-black text-gray-500 tracking-widest cursor-help"
       >
         <div class="flex items-center">
           <input 
@@ -312,8 +312,8 @@
             </div>
             <div class="text-[10px] text-gray-600 font-mono">{new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}</div>
             <div class="flex flex-col min-w-0">
-              <span class="text-[11px] font-bold text-gray-200 truncate group-hover:text-cyan-400 transition-colors uppercase tracking-tight">{log.action}</span>
-              <span class="text-[8px] text-gray-600 uppercase font-black">{log.ms?.toFixed(1) || 0} MS</span>
+              <span class="text-[11px] font-bold text-gray-200 truncate group-hover:text-cyan-400 transition-colors tracking-tight">{log.action}</span>
+              <span class="text-[8px] text-gray-600 font-black">{log.ms?.toFixed(1) || 0} MS</span>
             </div>
             <div class="flex flex-col"><span class="text-[10px] font-black text-cyan-500/80 truncate">{log.actor}</span><span class="text-[9px] text-gray-600 font-mono italic">{log.ip}</span></div>
             <div class="flex justify-end items-center gap-3">
@@ -331,7 +331,7 @@
         title="Hàng đợi phê duyệt các thao tác nhạy cảm (Cần Lockdown: ACTIVE)"
         class="p-4 border-b border-white/5 flex items-center justify-between cursor-help hover:bg-white/[0.02] transition-colors"
       >
-        <span class="text-[10px] font-black uppercase tracking-widest text-white">Neural Queue</span>
+        <span class="text-[10px] font-black tracking-widest text-white">Neural Queue</span>
         <span class="text-[10px] px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded border border-purple-500/20">{drafts.length} PENDING</span>
       </div>
       <div class="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-mission">
@@ -339,11 +339,11 @@
           <div class="bg-white/[0.02] border border-white/10 p-4 rounded-xl group relative overflow-hidden">
              <div class="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity"><Fingerprint size={48} /></div>
              <div class="relative z-10">
-               <span class="text-[8px] text-purple-400 font-black uppercase mb-1 block">ID_{draft.id.slice(0,6)}</span>
-               <h4 class="text-[10px] font-black text-white uppercase mb-3 leading-tight">{draft.action_type}</h4>
+               <span class="text-[8px] text-purple-400 font-black mb-1 block">ID_{draft.id.slice(0,6)}</span>
+               <h4 class="text-[10px] font-black text-white mb-3 leading-tight">{draft.action_type}</h4>
                <div class="flex gap-2">
-                 <button onclick={() => handleDraft(draft.id, 'approve')} class="flex-1 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 text-[9px] font-black uppercase rounded transition-all">Confirm</button>
-                 <button onclick={() => handleDraft(draft.id, 'reject')} class="px-2 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 text-[9px] font-black uppercase rounded transition-all"><X size={12} /></button>
+                 <button onclick={() => handleDraft(draft.id, 'approve')} class="flex-1 py-1.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 text-[9px] font-black rounded transition-all">Confirm</button>
+                 <button onclick={() => handleDraft(draft.id, 'reject')} class="px-2 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 text-[9px] font-black rounded transition-all"><X size={12} /></button>
                </div>
              </div>
           </div>
@@ -361,22 +361,22 @@
     >
       <div class="w-full max-w-2xl bg-[#0a0c10] border border-cyan-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col" transition:scale={{ start: 0.95 }}>
         <div class="p-6 border-b border-white/5 flex justify-between items-center bg-cyan-500/[0.02]">
-           <div class="flex items-center gap-3"><Fingerprint size={20} class="text-cyan-400" /><div><h3 class="text-sm font-black text-white uppercase tracking-widest">Forensic Analysis</h3></div></div>
+           <div class="flex items-center gap-3"><Fingerprint size={20} class="text-cyan-400" /><div><h3 class="text-sm font-black text-white tracking-widest">Forensic Analysis</h3></div></div>
            <button onclick={() => detailLog = null} class="p-2 hover:bg-white/5 rounded-full"><X size={20} /></button>
         </div>
         <div class="p-6 space-y-6 overflow-y-auto">
            <div class="grid grid-cols-2 gap-4">
-             <div class="p-4 bg-white/[0.01] border border-white/5 rounded-xl"><span class="text-[8px] text-gray-500 font-black uppercase">Identity</span><p class="text-xs font-bold text-cyan-400 mt-1">{detailLog.actor}</p></div>
-             <div class="p-4 bg-white/[0.01] border border-white/5 rounded-xl"><span class="text-[8px] text-gray-500 font-black uppercase">IP</span><p class="text-xs font-bold text-cyan-400 mt-1">{detailLog.ip}</p></div>
+             <div class="p-4 bg-white/[0.01] border border-white/5 rounded-xl"><span class="text-[8px] text-gray-500 font-black ">Identity</span><p class="text-xs font-bold text-cyan-400 mt-1">{detailLog.actor}</p></div>
+             <div class="p-4 bg-white/[0.01] border border-white/5 rounded-xl"><span class="text-[8px] text-gray-500 font-black ">IP</span><p class="text-xs font-bold text-cyan-400 mt-1">{detailLog.ip}</p></div>
            </div>
            <div class="space-y-2">
-             <span class="text-[8px] text-gray-500 font-black uppercase">Payload JSON</span>
+             <span class="text-[8px] text-gray-500 font-black ">Payload JSON</span>
              <div class="p-4 bg-black rounded-xl border border-white/5 font-mono text-[9px] text-emerald-400/80 overflow-x-auto"><pre>{JSON.stringify(detailLog, null, 2)}</pre></div>
            </div>
         </div>
         <div class="p-6 border-t border-white/5 flex gap-3">
-           <button class="flex-1 py-3 bg-rose-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl">Exile Target</button>
-           <button onclick={() => detailLog = null} class="flex-1 py-3 bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase rounded-xl">Close</button>
+           <button class="flex-1 py-3 bg-rose-600 text-white text-[10px] font-black tracking-widest rounded-xl">Exile Target</button>
+           <button onclick={() => detailLog = null} class="flex-1 py-3 bg-white/5 border border-white/10 text-white text-[10px] font-black rounded-xl">Close</button>
         </div>
       </div>
     </div>

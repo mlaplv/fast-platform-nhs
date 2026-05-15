@@ -39,8 +39,8 @@
             <span class="text-xs font-mono font-black text-neon-cyan">{props.selectedCount}</span>
         </div>
         <div class="flex flex-col">
-            <span class="text-[10px] font-mono font-bold text-gray-200 uppercase tracking-tighter">Entities_Selected</span>
-            <span class="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Global_Buffer_Active</span>
+            <span class="text-[10px] font-mono font-bold text-gray-200 tracking-tighter">Entities_Selected</span>
+            <span class="text-[8px] font-mono text-gray-500 tracking-widest">Global_Buffer_Active</span>
         </div>
       </div>
 
@@ -48,7 +48,7 @@
       <div class="flex items-center gap-2">
         <button
           onclick={() => props.onArchiveBulk?.()}
-          class="flex items-center gap-2 px-4 py-2 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider group"
+          class="flex items-center gap-2 px-4 py-2 hover:bg-white/5 text-gray-400 hover:text-white rounded-lg transition-all text-[10px] font-bold tracking-wider group"
         >
           <Archive size={14} class="opacity-50 group-hover:opacity-100" />
           Archive
@@ -56,7 +56,7 @@
 
         <button
           onclick={() => props.onSetDefaultBulk?.()}
-          class="flex items-center gap-2 px-4 py-2 hover:bg-white/5 text-gray-400 hover:text-emerald-400 rounded-lg transition-all text-[10px] font-bold uppercase tracking-wider group"
+          class="flex items-center gap-2 px-4 py-2 hover:bg-white/5 text-gray-400 hover:text-emerald-400 rounded-lg transition-all text-[10px] font-bold tracking-wider group"
         >
           <div class="w-2 h-2 rounded-full bg-emerald-500/20 border border-emerald-500/50 group-hover:bg-emerald-500 group-hover:shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all"></div>
           Set_Default
@@ -64,7 +64,7 @@
 
         <button
           onclick={() => props.onDeleteBulk?.()}
-          class="flex items-center gap-2 px-5 py-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-black text-[10px] uppercase tracking-widest rounded-xl border border-red-500/20 hover:border-red-500 transition-all shadow-lg shadow-red-500/10 group"
+          class="flex items-center gap-2 px-5 py-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-black text-[10px] tracking-widest rounded-xl border border-red-500/20 hover:border-red-500 transition-all shadow-lg shadow-red-500/10 group"
         >
           <Trash2 size={14} class="opacity-70 group-hover:opacity-100" />
           Purge_Batch

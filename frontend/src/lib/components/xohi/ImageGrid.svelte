@@ -102,7 +102,7 @@
       <div class="flex items-center justify-between px-2">
         <div class="flex items-center gap-2">
           <span
-            class="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em]"
+            class="text-[10px] font-black text-blue-400 tracking-[0.3em]"
             >Ảnh đại diện chính</span
           >
           <div class="w-1 h-1 rounded-full bg-blue-500/50"></div>
@@ -117,7 +117,7 @@
         {/if}
       </div>
       <p
-        class="text-[7.5px] text-white/40 font-bold uppercase tracking-[0.2em] px-3 italic leading-relaxed"
+        class="text-[7.5px] text-white/40 font-bold tracking-[0.2em] px-3 italic leading-relaxed"
       >
         Primary focal point // Thumbnail selection
       </p>
@@ -128,11 +128,11 @@
       <div class="flex items-center justify-between px-2">
         <div class="flex items-center gap-2">
           <span
-            class="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]"
+            class="text-[10px] font-black text-white/40 tracking-[0.3em]"
             >Hình ảnh bổ sung</span
           >
           <span
-            class="text-[8px] font-black text-white/10 uppercase bg-white/5 px-2 py-0.5 rounded-full"
+            class="text-[8px] font-black text-white/10 bg-white/5 px-2 py-0.5 rounded-full"
             >Kéo để sắp xếp</span
           >
         </div>
@@ -170,7 +170,7 @@
             class="col-span-full flex flex-col items-center justify-center py-12 opacity-20 pointer-events-none gap-3"
           >
             <LayoutGrid size={32} />
-            <p class="text-[10px] font-black uppercase tracking-[0.4em]">
+            <p class="text-[10px] font-black tracking-[0.4em]">
               Danh sách trống
             </p>
           </div>
@@ -195,12 +195,12 @@
       />
     </div>
     <p
-      class="text-white/40 font-black text-[11px] uppercase tracking-[0.5em] mb-2 scale-x-110"
+      class="text-white/40 font-black text-[11px] tracking-[0.5em] mb-2 scale-x-110"
     >
       Chưa có hình ảnh
     </p>
     <p
-      class="text-[9px] text-white/10 font-mono uppercase tracking-[0.2em] italic mb-6"
+      class="text-[9px] text-white/10 font-mono tracking-[0.2em] italic mb-6"
     >
       Vùi lòng tải ảnh lên hoặc dán link ảnh...
     </p>
@@ -208,10 +208,10 @@
     {#if handleRetry}
       <div class="flex flex-col items-center gap-4 bg-white/[0.02] p-6 rounded-[2rem] border border-white/5 backdrop-blur-sm shadow-inner">
         <div class="text-center">
-            <p class="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Không tìm thấy ảnh phù hợp</p>
-            <p class="text-[8px] text-white/20 uppercase tracking-widest mt-1">Quota Google Search có thể đã hết, hoặc từ khóa quá ít phổ biến.</p>
+            <p class="text-[10px] font-black text-white/40 tracking-[0.2em]">Không tìm thấy ảnh phù hợp</p>
+            <p class="text-[8px] text-white/20 tracking-widest mt-1">Quota Google Search có thể đã hết, hoặc từ khóa quá ít phổ biến.</p>
         </div>
-        <button onclick={handleRetry} class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg group/retry">
+        <button onclick={handleRetry} class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-[9px] font-black tracking-widest transition-all active:scale-95 shadow-lg group/retry">
             <RotateCcw size={12} class="group-hover/retry:rotate-[-45deg] transition-transform" /> 
             Tìm lại ảnh
         </button>

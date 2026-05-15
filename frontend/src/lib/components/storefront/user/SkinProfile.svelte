@@ -48,7 +48,7 @@
         </div>
         <h3 class="text-xl font-serif italic text-stone-800 leading-none">Bản sắc làn da</h3>
       </div>
-      <p class="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Skin Identity</p>
+      <p class="text-[9px] tracking-widest text-stone-400 font-bold">Skin Identity</p>
     </div>
 
     <div class="relative bg-stone-50 p-1.5 rounded-2xl border border-stone-100 flex items-center gap-1 overflow-x-auto no-scrollbar scroll-smooth">
@@ -59,7 +59,7 @@
           {data.skinType === type.id ? 'bg-white shadow-[0_10px_20px_rgba(0,0,0,0.05)] text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
         >
           <type.icon class="w-5 h-5 mb-2 transition-transform duration-500 group-hover:scale-110 {data.skinType === type.id ? 'text-luxury-copper' : 'opacity-40'}" />
-          <span class="text-[11px] font-bold uppercase tracking-wider">{type.label}</span>
+          <span class="text-[11px] font-bold tracking-wider">{type.label}</span>
 
           {#if data.skinType === type.id}
             <div class="absolute bottom-1 w-1 h-1 bg-luxury-copper rounded-full" in:fade></div>
@@ -79,7 +79,7 @@
             <active.icon class="w-5 h-5 text-luxury-copper" />
           </div>
           <div>
-            <h4 class="text-[12px] font-bold text-stone-800 uppercase tracking-widest mb-1">Đặc tính {active.label}</h4>
+            <h4 class="text-[12px] font-bold text-stone-800 tracking-widest mb-1">Đặc tính {active.label}</h4>
             <p class="text-[13px] text-stone-500 leading-relaxed italic">{active.desc}</p>
           </div>
         </div>
@@ -96,14 +96,14 @@
         </div>
         <h3 class="text-xl font-serif italic text-stone-800 leading-none">Mục tiêu chăm sóc</h3>
       </div>
-      <p class="text-[9px] uppercase tracking-widest text-stone-400 font-bold">Skin Goals</p>
+      <p class="text-[9px] tracking-widest text-stone-400 font-bold">Skin Goals</p>
     </div>
 
     <div class="flex flex-wrap gap-2.5">
       {#each concernsList as concern}
         <button
           onclick={() => toggleConcern(concern)}
-          class="px-5 py-3 rounded-full border text-[11px] font-bold uppercase tracking-widest transition-all duration-500
+          class="px-5 py-3 rounded-full border text-[11px] font-bold tracking-widest transition-all duration-500
           {data.concerns.includes(concern)
             ? 'bg-stone-800 text-white border-stone-800 shadow-[0_5px_15px_rgba(0,0,0,0.1)] scale-105'
             : 'bg-white text-stone-400 border-stone-100 hover:border-stone-200 hover:text-stone-600'}"
@@ -125,7 +125,7 @@
       </div>
       <div class="flex items-baseline gap-1">
         <span class="text-2xl font-serif italic text-luxury-copper leading-none">{data.sensitivity}</span>
-        <span class="text-[9px] uppercase tracking-widest text-stone-300 font-bold">/ 10</span>
+        <span class="text-[9px] tracking-widest text-stone-300 font-bold">/ 10</span>
       </div>
     </div>
 
@@ -138,7 +138,7 @@
         class="luxury-slider w-full h-1.5 bg-stone-100 rounded-full appearance-none cursor-pointer outline-none transition-all"
         style="background: linear-gradient(to right, #c5a059 {((data.sensitivity - 1) / 9) * 100}%, #f5f5f4 {((data.sensitivity - 1) / 9) * 100}%);"
       />
-      <div class="absolute -bottom-6 left-0 right-0 flex justify-between text-[9px] text-stone-300 uppercase tracking-[4px] font-black italic">
+      <div class="absolute -bottom-6 left-0 right-0 flex justify-between text-[9px] text-stone-300 tracking-[4px] font-black italic">
         <span>Resilient</span>
         <span>Sensitive</span>
       </div>

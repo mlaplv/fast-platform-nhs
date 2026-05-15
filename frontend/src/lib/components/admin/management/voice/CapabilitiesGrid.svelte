@@ -28,7 +28,7 @@
 <section>
   <div class="flex items-center gap-3 text-zinc-400 mb-8 px-2">
     <Brain size={20} class="text-amber-500/80" />
-    <h2 class="text-xs font-mono font-bold uppercase tracking-[0.3em]">
+    <h2 class="text-xs font-mono font-bold tracking-[0.3em]">
       Neural Modules
     </h2>
   </div>
@@ -40,7 +40,7 @@
         class="w-full group p-5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-left transition-all duration-300 active:scale-[0.98] flex flex-col gap-3"
       >
         <div class="flex items-center justify-between">
-          <span class="text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest group-hover:text-amber-500/80 transition-colors">
+          <span class="text-[10px] font-mono font-bold text-zinc-500 tracking-widest group-hover:text-amber-500/80 transition-colors">
             {cap.id}
           </span>
           
@@ -51,7 +51,7 @@
         </div>
 
         <div>
-          <h3 class="text-sm font-bold text-zinc-200 uppercase tracking-tight mb-1 group-hover:text-white transition-colors">
+          <h3 class="text-sm font-bold text-zinc-200 tracking-tight mb-1 group-hover:text-white transition-colors">
             {cap.name}
           </h3>
           <p class="text-[10px] text-zinc-500 leading-relaxed font-sans">

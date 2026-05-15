@@ -50,7 +50,7 @@
       <!-- Intent Origin -->
       <div class="mb-10 relative">
         <div
-          class="text-[9px] text-white/40 font-mono uppercase tracking-[0.4em] mb-4 flex items-center gap-2"
+          class="text-[9px] text-white/40 font-mono tracking-[0.4em] mb-4 flex items-center gap-2"
         >
           <div class="w-1.5 h-1.5 bg-alert-red rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
           Origin: Agentic_Orchestrator
@@ -73,7 +73,7 @@
       <div class="relative">
         <div class="flex items-center justify-between mb-6">
           <div
-            class="text-[10px] text-[#00FFFF] font-mono uppercase tracking-[0.4em] flex items-center gap-3"
+            class="text-[10px] text-[#00FFFF] font-mono tracking-[0.4em] flex items-center gap-3"
           >
             <Search
               size={16}
@@ -111,7 +111,7 @@
                 ></div>
               </div>
               <span
-                class="text-[11px] font-mono text-neon-cyan/60 tracking-[0.5em] uppercase"
+                class="text-[11px] font-mono text-neon-cyan/60 tracking-[0.5em] "
                 >Booting Diagnostics...</span
               >
             </div>
@@ -151,7 +151,7 @@
               </ul>
               <div class="pt-6 border-t border-neon-cyan/10">
                 <span
-                  class="text-[9px] font-mono text-white/30 uppercase tracking-widest block mb-2"
+                  class="text-[9px] font-mono text-white/30 tracking-widest block mb-2"
                   >Primary Recommendation:</span
                 >
                 <div
@@ -165,7 +165,7 @@
             <div class="flex flex-col items-center py-6">
               <div class="w-8 h-1 bg-white/10 mb-4"></div>
               <p
-                class="text-[11px] text-gray-600 font-mono italic tracking-widest uppercase"
+                class="text-[11px] text-gray-600 font-mono italic tracking-widest "
               >
                 Awaiting diagnostic sequence...
               </p>
@@ -205,7 +205,7 @@
         <div class="flex items-center gap-2">
           <div class="w-1.5 h-1.5 bg-hacker-green rounded-full"></div>
           <span
-            class="text-[8px] text-white font-mono uppercase tracking-[0.3em]"
+            class="text-[8px] text-white font-mono tracking-[0.3em]"
             >Encrypted Session Active</span
           >
         </div>

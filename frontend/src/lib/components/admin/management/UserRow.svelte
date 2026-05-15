@@ -106,7 +106,7 @@
             <span class="text-[9px] font-mono font-bold bg-[#00FFFF]/10 text-[#00FFFF]/70 px-1.5 py-0.5 rounded border border-[#00FFFF]/20">@{user.username}</span>
           {/if}
           {#if user.status === "LOCKED"}
-            <span class="px-2 py-0.5 rounded text-[8px] font-mono font-bold bg-red-500/20 text-red-500 uppercase tracking-widest border border-red-500/30">LOCKED</span>
+            <span class="px-2 py-0.5 rounded text-[8px] font-mono font-bold bg-red-500/20 text-red-500 tracking-widest border border-red-500/30">LOCKED</span>
           {/if}
         </div>
         
@@ -119,7 +119,7 @@
               {user.phone}
             </span>
           {/if}
-          <span class="hidden lg:inline text-[9px] font-mono text-gray-600 border-l border-white/10 pl-3 uppercase">
+          <span class="hidden lg:inline text-[9px] font-mono text-gray-600 border-l border-white/10 pl-3 ">
             Joined: {new Date(user.createdAt).toLocaleDateString('vi-VN')}
           </span>
         </div>
@@ -132,7 +132,7 @@
     <div class="flex flex-wrap gap-2">
       {#each (user.roles || []) as role}
         <span
-          class="px-2.5 py-1 rounded-lg text-[9px] font-bold font-mono uppercase tracking-widest inline-flex border border-[#00FFFF]/30 bg-[#00FFFF]/5 text-[#00FFFF]/70"
+          class="px-2.5 py-1 rounded-lg text-[9px] font-bold font-mono tracking-widest inline-flex border border-[#00FFFF]/30 bg-[#00FFFF]/5 text-[#00FFFF]/70"
         >
           {role.code}
         </span>
@@ -166,7 +166,7 @@
           </div>
           
           <div class="px-4 py-2 bg-white/[0.02] border-b border-white/5">
-            <span class="text-[9px] font-mono font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+            <span class="text-[9px] font-mono font-bold text-gray-500 tracking-widest flex items-center gap-2">
               <Shield size={10} class="text-[#00FFFF]" /> Security Tiers
             </span>
           </div>
@@ -197,14 +197,14 @@
           <div class="flex items-center gap-3 border-b border-white/5 pb-3">
             <Shield size={14} class="text-[#00FFFF]/60" />
             <div class="flex flex-col">
-              <span class="text-[10px] font-mono text-white font-bold uppercase tracking-widest">Effective Permission Matrix</span>
-              <span class="text-[8px] font-mono text-gray-500 uppercase tracking-tight">Derived from assigned security tiers and overrides</span>
+              <span class="text-[10px] font-mono text-white font-bold tracking-widest">Effective Permission Matrix</span>
+              <span class="text-[8px] font-mono text-gray-500 tracking-tight">Derived from assigned security tiers and overrides</span>
             </div>
           </div>
           <div class="grid grid-cols-2 xs:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {#each effectivePermissions as perm}
               <div class="px-3 py-2 bg-white/[0.02] border border-white/5 rounded-lg flex items-center justify-center text-center hover:border-[#00FFFF]/20 transition-colors group/perm">
-                <span class="text-[8px] font-mono text-gray-500 group-hover/perm:text-[#00FFFF] uppercase break-all leading-tight transition-colors">{perm}</span>
+                <span class="text-[8px] font-mono text-gray-500 group-hover/perm:text-[#00FFFF] break-all leading-tight transition-colors">{perm}</span>
               </div>
             {/each}
           </div>

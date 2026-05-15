@@ -285,7 +285,7 @@
                        <span class="font-black text-[23px] italic tracking-tighter leading-none transition-colors duration-300 {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{formatCurrency(vPrice)}</span>
                        <div class="flex items-center gap-1 mt-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1.5 py-0.5 rounded-full w-fit transition-all duration-300 transform-gpu origin-left {isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}">
                           <Sparkles class="w-2 h-2 text-[#FFB7C5] {isActive ? 'animate-pulse' : ''}" />
-                          <span class="offer-points-label text-[9px] font-bold text-[#FFB7C5] tracking-widest whitespace-nowrap">+{Math.floor(vPrice / 100000)} PTS</span>
+                          <span class="offer-points-label text-[9px] font-bold text-[#FFB7C5] tracking-widest whitespace-nowrap">+{Math.floor(vPrice / 100000)} điểm</span>
                        </div>
                     </div>
                    {#if variant.price > vPrice}
@@ -341,7 +341,7 @@
      {#if productVouchers.length > 0}
      <div class="px-4 mt-4 mb-2 z-surface shrink-0" in:fade>
         <div class="flex items-center justify-between mb-1.5 px-1">
-           <span class="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] italic flex items-center gap-2">
+           <span class="text-[10px] font-black text-white/30 tracking-[0.2em] italic flex items-center gap-2">
               Mã giảm giá ưu đãi
            </span>
         </div>
@@ -372,7 +372,7 @@
                    <!-- 📝 Content (Stamp Center) -->
                    <div class="flex-1 flex flex-col items-center justify-center px-4 py-1.5 min-w-0 bg-white/20 backdrop-blur-[2px] m-1 border border-black/5">
                       <div class="flex flex-col items-center leading-none mb-1">
-                         <span class="text-[14px] font-[1000] text-[#111111] uppercase tracking-tighter whitespace-nowrap drop-shadow-sm">{v.label}</span>
+                         <span class="text-[14px] font-[1000] text-[#111111] tracking-tighter whitespace-nowrap drop-shadow-sm">{v.label}</span>
                          <div class="w-10 h-[1.5px] bg-black/20 my-1 animate-pulse"></div>
                          <span class="voucher-sub-label text-[10px] text-[#222222] font-black truncate tracking-tight italic">{v.sub}</span>
                       </div>
@@ -381,7 +381,7 @@
                       <div class="absolute top-1 right-2 opacity-30 rotate-12">
                          <Sparkles class="w-3.5 h-3.5 text-black" />
                       </div>
-                      <div class="absolute bottom-1.5 left-3 opacity-10 font-[serif] text-[7px] font-bold uppercase tracking-widest text-black">Miccosmo Elite</div>
+                      <div class="absolute bottom-1.5 left-3 opacity-10 font-[serif] text-[7px] font-bold tracking-widest text-black">Miccosmo Elite</div>
                    </div>
                 </div>
 
@@ -407,14 +407,14 @@
              if (!selectedVariant) return;
              shopStore.openCheckout(cartStore, product as Product); 
            }}
-           class="w-full h-[70px] rounded-[2rem] font-black text-[15px] uppercase tracking-[0.1em] flex items-center justify-center transition-all duration-700 italic active:scale-95 bg-white/10 backdrop-blur-3xl border border-white/20 shadow-2xl relative group overflow-hidden pointer-events-auto cursor-pointer"
+           class="w-full h-[70px] rounded-[2rem] font-black text-[15px] tracking-[0.1em] flex items-center justify-center transition-all duration-700 italic active:scale-95 bg-white/10 backdrop-blur-3xl border border-white/20 shadow-2xl relative group overflow-hidden pointer-events-auto cursor-pointer"
          >
            <div class="absolute inset-0 bg-gradient-to-r from-[#FFB7C5]/20 via-transparent to-[#FFB7C5]/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
            <div class="relative z-10 flex items-center justify-between w-full px-4 gap-2">
               <div class="flex flex-col text-left leading-tight">
                 <span class="cta-selection-label text-white text-[11px] font-black italic">Chọn combo x{shopStore.variant?.attributes?.combo_qty || 1}</span>
                 <div class="flex items-center gap-1.5 mt-0.5">
-                   <span class="cta-points-label text-[9px] text-[#FFB7C5] font-bold tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20 whitespace-nowrap">Tích +{Math.floor(shopStore.totalAmount / 100000)} PTS</span>
+                   <span class="cta-points-label text-[9px] text-[#FFB7C5] font-bold tracking-widest bg-[#FFB7C5]/10 px-1.5 py-0.5 rounded-full border border-[#FFB7C5]/20 whitespace-nowrap">Tích +{Math.floor(shopStore.totalAmount / 100000)} điểm</span>
                    <EditableWrapper path="metadata.offer_shipping_label" type="text" label="SỬA NHÃN SHIP" class="inline" as="span">
                      <span class="cta-ship-label text-[10px] text-white/30 font-bold tracking-widest italic">• {metadata.offer_shipping_label || 'Freeship'}</span>
                    </EditableWrapper>
@@ -456,6 +456,5 @@
   .variant-title::first-letter, .offer-gift-label::first-letter, 
   .offer-info-label::first-letter, .voucher-sub-label::first-letter, .cta-selection-label::first-letter, 
   .cta-ship-label::first-letter {
-    text-transform: uppercase;
-  }
+    }
 </style>

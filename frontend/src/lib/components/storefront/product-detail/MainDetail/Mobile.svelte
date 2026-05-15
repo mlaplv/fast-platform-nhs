@@ -306,9 +306,9 @@
         bind:isViralUnlocked
         {isScrolled}
         isHidden={showTabs}
-        {scrollRatio}
         {hideRatio}
         onOpenSelector={() => (showVariantSelector = true)}
+        onTriggerScan={triggerScan}
       />
     </section>
 
@@ -454,7 +454,7 @@
     text-transform: lowercase !important;
   }
   .reward-label::first-letter {
-    text-transform: uppercase !important;
+    text-transform: !important;
   }
   .confirm-btns {
     display: flex;

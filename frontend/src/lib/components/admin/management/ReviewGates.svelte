@@ -87,12 +87,12 @@
     <div class="absolute -top-6 left-2 flex items-center gap-4 px-2 py-0.5">
         <div class="flex items-center gap-2">
             <span class="w-1 h-1 bg-cyan-500 animate-pulse"></span>
-            <span class="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-500/60 font-mono">
+            <span class="text-[9px] font-black tracking-[0.2em] text-cyan-500/60 font-mono">
                 System // Review_Gates_V2.2
             </span>
         </div>
         <div class="h-px w-8 bg-white/10"></div>
-        <div class="text-[9px] font-bold uppercase tracking-[0.1em] text-white/30 font-mono italic">
+        <div class="text-[9px] font-bold tracking-[0.1em] text-white/30 font-mono italic">
             Secure_Channel_Active [AES-256]
         </div>
     </div>
@@ -137,7 +137,7 @@
                     {/if}
                 </div>
 
-                <span class="text-[9px] uppercase tracking-[0.15em] font-black transition-colors duration-500
+                <span class="text-[9px] tracking-[0.15em] font-black transition-colors duration-500
                     {status !== 'pending' ? 'text-white/80' : 'text-white/10'}">
                     {step.name}
                 </span>
@@ -175,7 +175,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
             </div>
-            <span class="text-[9px] uppercase tracking-[0.15em] font-black text-blue-400/60 group-hover/media:text-blue-400">Library</span>
+            <span class="text-[9px] tracking-[0.15em] font-black text-blue-400/60 group-hover/media:text-blue-400">Library</span>
         </button>
     </div>
 </div>

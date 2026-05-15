@@ -105,7 +105,7 @@ import X from "@lucide/svelte/icons/x";
               <RefreshCcw size={20} />
             </div>
             <div>
-              <h3 class="text-lg font-black text-white uppercase tracking-widest leading-none">{activeEditor.label}</h3>
+              <h3 class="text-lg font-black text-white tracking-widest leading-none">{activeEditor.label}</h3>
               <p class="text-[8px] text-white/20 font-mono mt-1.5 tracking-widest">{activeEditor.path.toUpperCase()}</p>
             </div>
           </div>
@@ -143,7 +143,7 @@ import X from "@lucide/svelte/icons/x";
 
       <!-- Footer HUD (Hidden for Pure Media Picker) -->
       {#if activeEditor.type !== 'image' && activeEditor.type !== 'video'}
-        <div class="px-8 py-4 bg-black/40 border-t border-white/5 flex items-center justify-between text-[7px] font-mono text-white/10 uppercase tracking-[0.3em]">
+        <div class="px-8 py-4 bg-black/40 border-t border-white/5 flex items-center justify-between text-[7px] font-mono text-white/10 tracking-[0.3em]">
           <span>ELITE_CORE_EDITOR // V2.2</span>
           <span>PRESS ESC TO DISCARD. CLICK_OUTSIDE TO CANCEL.</span>
         </div>

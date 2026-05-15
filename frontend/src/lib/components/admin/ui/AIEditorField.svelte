@@ -250,7 +250,6 @@
     font-size: 0.65rem;
     font-family: monospace;
     font-weight: bold;
-    text-transform: uppercase;
     z-index: 3;
     pointer-events: none;
   }

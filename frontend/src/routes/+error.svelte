@@ -47,7 +47,7 @@
         <div class="h-[1px] w-12 bg-gradient-to-r from-transparent via-white/30 to-transparent mx-auto"></div>
         
         <div class="space-y-2">
-            <p class="text-[10px] text-[#00FFFF]/70 font-mono tracking-[0.3em] uppercase">System Interruption Identified</p>
+            <p class="text-[10px] text-[#00FFFF]/70 font-mono tracking-[0.3em] ">System Interruption Identified</p>
             <p class="text-xs text-gray-400 max-w-[280px] mx-auto leading-relaxed font-mono tracking-wider italic">
             "{message}"
             </p>
@@ -66,14 +66,14 @@
         class="group/btn relative px-10 py-4 w-full rounded-xl transition-all duration-300 overflow-hidden border border-[#00FFFF]/20 bg-[#00FFFF]/5 hover:bg-[#00FFFF]/10 active:scale-[0.98]"
       >
         <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700"></div>
-        <span class="relative z-10 text-[10px] font-mono tracking-[0.4em] text-white uppercase font-bold">
+        <span class="relative z-10 text-[10px] font-mono tracking-[0.4em] text-white font-bold">
            Re-establish Core Connection
         </span>
       </button>
 
       <!-- Meta Info -->
       <div class="mt-10 flex flex-col gap-1 items-center">
-        <div class="text-[8px] font-mono text-gray-600 tracking-[0.5em] uppercase">
+        <div class="text-[8px] font-mono text-gray-600 tracking-[0.5em] ">
              TraceID-Hash: <span class="text-[#00FFFF]/40">{errorHash}</span>
         </div>
         <div class="w-1 h-1 bg-[#00FFFF]/30 rounded-full animate-ping"></div>

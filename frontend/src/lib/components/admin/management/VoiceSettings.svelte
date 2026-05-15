@@ -167,7 +167,7 @@
         ></div>
       </div>
       <h2
-        class="text-xs font-mono text-cyan-400 uppercase tracking-[0.6em] animate-pulse"
+        class="text-xs font-mono text-cyan-400 tracking-[0.6em] animate-pulse"
       >
         Initializing Neuro-Link
       </h2>
@@ -190,7 +190,7 @@
               class="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"
             ></div>
             <span
-              class="text-[8px] font-mono text-emerald-500 uppercase tracking-widest"
+              class="text-[8px] font-mono text-emerald-500 tracking-widest"
               >Neural Link Active</span
             >
           </div>
@@ -211,7 +211,7 @@
               class="group-hover:scale-110 transition-transform"
             />
           {/if}
-          <span class="text-[10px] uppercase tracking-[0.15em] font-black"
+          <span class="text-[10px] tracking-[0.15em] font-black"
             >{isSaving ? "Syncing..." : "Commit Matrix"}</span
           >
         </button>
@@ -243,7 +243,7 @@
             />
             <!-- STT Engine Tuning Block -->
             <div class="bg-zinc-950/40 border border-white/5 rounded-xl p-5 space-y-4 lg:col-span-2">
-              <h3 class="text-sm font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+              <h3 class="text-sm font-black text-cyan-400 tracking-widest flex items-center gap-2">
                 STT Engine Tuning
               </h3>
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

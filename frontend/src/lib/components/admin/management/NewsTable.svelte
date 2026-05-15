@@ -58,7 +58,7 @@
 </script>
 
 <!-- News Table Header -->
-<div class="hidden md:grid grid-cols-[40px_minmax(300px,2fr)_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-black/80 border-b border-cyan-500/20 uppercase tracking-widest text-[9px] font-extrabold font-mono text-cyan-400 shadow-2xl"
+<div class="hidden md:grid grid-cols-[40px_minmax(300px,2fr)_1fr_1fr_1fr_100px] gap-4 px-4 py-4 sticky top-0 bg-black/80 border-b border-cyan-500/20 tracking-widest text-[9px] font-extrabold font-mono text-cyan-400 shadow-2xl"
      style="z-index: {Z_INDEX_ADMIN.STICKY_HEADER}; backdrop-filter: blur(16px);">
   <div class="text-center flex justify-center items-center">
     <button
@@ -114,20 +114,20 @@
             <div class="text-[14px] md:text-[13px] font-bold text-gray-100 truncate group-hover:text-cyan-400 transition-colors tracking-wide">
               {article.title}
             </div>
-            <div class="md:hidden text-[9px] font-mono text-gray-500 mt-1 uppercase tracking-widest">
+            <div class="md:hidden text-[9px] font-mono text-gray-500 mt-1 tracking-widest">
               {article.category || "Chung"}
             </div>
           </div>
         </div>
 
         <!-- Category -->
-        <div class="hidden md:block text-[10px] font-mono text-gray-500 uppercase tracking-widest group-hover:text-gray-300 transition-colors">
+        <div class="hidden md:block text-[10px] font-mono text-gray-500 tracking-widest group-hover:text-gray-300 transition-colors">
           {article.category || "Chung"}
         </div>
 
         <!-- Author / Views -->
         <div class="hidden md:flex flex-col">
-          <div class="text-[10px] font-mono text-gray-400 uppercase tracking-widest">
+          <div class="text-[10px] font-mono text-gray-400 tracking-widest">
             {article.authorName || article.author || "SYSTEM_CORE"}
           </div>
           <div class="flex items-center gap-1.5 text-[9px] font-mono text-gray-600 mt-0.5">
@@ -138,7 +138,7 @@
         <!-- Status -->
         <div class="pl-[72px] md:pl-0 mt-2 md:mt-0">
           <span
-            class="px-2.5 py-1 rounded-lg text-[9px] font-bold font-mono uppercase tracking-widest inline-flex border {article.status.toLowerCase() === 'published' ? 'text-[#39FF14] border-[#39FF14]/30 bg-[#39FF14]/10' : 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10'}"
+            class="px-2.5 py-1 rounded-lg text-[9px] font-bold font-mono tracking-widest inline-flex border {article.status.toLowerCase() === 'published' ? 'text-[#39FF14] border-[#39FF14]/30 bg-[#39FF14]/10' : 'text-cyan-400 border-cyan-500/30 bg-cyan-500/10'}"
           >
             {article.status.toLowerCase() === 'published' ? 'ĐÃ ĐĂNG' : 'BẢN NHÁP'}
           </span>

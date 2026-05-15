@@ -89,11 +89,11 @@ import X from "@lucide/svelte/icons/x";
             <Activity size={14} class="text-blue-500 animate-pulse" />
           </div>
           <div>
-            <h2 class="text-sm font-bold text-white tracking-widest uppercase">
+            <h2 class="text-sm font-bold text-white tracking-widest ">
               {appointment.id ? 'Edit Appointment' : 'New Appointment'}
             </h2>
             {#if appointment.id}
-              <div class="text-[9px] font-mono text-gray-500 uppercase">SYS_ID: {appointment.id}</div>
+              <div class="text-[9px] font-mono text-gray-500 ">SYS_ID: {appointment.id}</div>
             {/if}
           </div>
         </div>
@@ -112,7 +112,7 @@ import X from "@lucide/svelte/icons/x";
       <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
         <!-- Title Field -->
         <div class="space-y-3">
-          <label class="block text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1" for="title">Title</label>
+          <label class="block text-[8px] font-black text-white/30 tracking-[0.2em] ml-1" for="title">Title</label>
           <input 
             id="title"
             bind:value={appointment.title}
@@ -125,7 +125,7 @@ import X from "@lucide/svelte/icons/x";
         <!-- Date Range Nexus -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-3">
-            <label class="block text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1" for="start">Start Time</label>
+            <label class="block text-[8px] font-black text-white/30 tracking-[0.2em] ml-1" for="start">Start Time</label>
             <div class="relative">
               <input 
                 id="start"
@@ -137,7 +137,7 @@ import X from "@lucide/svelte/icons/x";
             </div>
           </div>
           <div class="space-y-3">
-            <label class="block text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1" for="end">End Time</label>
+            <label class="block text-[8px] font-black text-white/30 tracking-[0.2em] ml-1" for="end">End Time</label>
             <div class="relative">
               <input 
                 id="end"
@@ -154,13 +154,13 @@ import X from "@lucide/svelte/icons/x";
         <div class="space-y-8">
           <!-- Recurring Type -->
           <div class="space-y-4">
-            <div class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Recurring Type</div>
+            <div class="text-[8px] font-black text-white/30 tracking-[0.2em] ml-1">Recurring Type</div>
             <div class="flex flex-wrap gap-2.5">
               {#each recurringTypes as type}
                 {@const active = appointment.recurring_type === type}
                 <button 
                   onclick={() => appointment.recurring_type = type}
-                  class="px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all
+                  class="px-6 py-3 rounded-xl text-[9px] font-black tracking-widest transition-all
                   {active ? 'bg-blue-500 text-white shadow-[0_0_30px_rgba(59,130,246,0.4)] scale-105' : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.08] hover:text-white/60'}"
                 >
                   {type}
@@ -171,13 +171,13 @@ import X from "@lucide/svelte/icons/x";
 
           <!-- Operation Type -->
           <div class="space-y-4">
-            <div class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Operation Type</div>
+            <div class="text-[8px] font-black text-white/30 tracking-[0.2em] ml-1">Operation Type</div>
             <div class="flex flex-wrap gap-2.5">
               {#each operationTypes as type}
                 {@const active = appointment.type === type}
                 <button 
                   onclick={() => appointment.type = type}
-                  class="px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all
+                  class="px-6 py-3 rounded-xl text-[9px] font-black tracking-widest transition-all
                   {active ? 'bg-[#a855f7] text-white shadow-[0_0_30px_rgba(168,85,247,0.4)] scale-105' : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.08] hover:text-white/60'}"
                 >
                   {type}
@@ -188,13 +188,13 @@ import X from "@lucide/svelte/icons/x";
 
           <!-- Stage Status -->
           <div class="space-y-4">
-            <div class="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Stage Status</div>
+            <div class="text-[8px] font-black text-white/30 tracking-[0.2em] ml-1">Stage Status</div>
             <div class="flex flex-wrap gap-2.5">
               {#each stageStatuses as status}
                 {@const active = appointment.status === status}
                 <button 
                   onclick={() => appointment.status = status}
-                  class="px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all
+                  class="px-6 py-3 rounded-xl text-[9px] font-black tracking-widest transition-all
                   {active ? 'bg-[#10b981] text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] scale-105' : 'bg-white/[0.04] text-white/30 hover:bg-white/[0.08] hover:text-white/60'}"
                 >
                   {status}
@@ -209,7 +209,7 @@ import X from "@lucide/svelte/icons/x";
           <button 
             onclick={handleSave}
             disabled={isLoading}
-            class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_30px_-5px_rgba(37,99,235,0.4)] disabled:opacity-50 flex items-center justify-center overflow-hidden relative group"
+            class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[11px] font-black tracking-[0.2em] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_10px_30px_-5px_rgba(37,99,235,0.4)] disabled:opacity-50 flex items-center justify-center overflow-hidden relative group"
           >
             <!-- Hover sheen effect -->
             <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>

@@ -23,7 +23,6 @@
     hero: product?.metadata?.nav_label_home || 'Trang chủ',
     diagnostics: product?.metadata?.nav_label_diagnostics || 'Chẩn đoán',
     science: product?.metadata?.nav_label_science || 'Cơ chế',
-
     reviews: product?.metadata?.nav_label_reviews || 'Đánh giá',
     offers: product?.metadata?.nav_label_offers || 'Ưu đãi'
   });
@@ -32,7 +31,6 @@
     { id: 'hero', label: navLabels['hero'], href: '#hero', icon: Sparkles },
     { id: 'diagnostics', label: navLabels['diagnostics'], href: '#diagnostics' },
     { id: 'science', label: navLabels['science'], href: '#science' },
-
     { id: 'reviews', label: navLabels['reviews'], href: '#reviews' },
     { id: 'offers', label: navLabels['offers'], href: '#offers', icon: Tag }
   ]);
@@ -45,12 +43,26 @@
   const highlighterPos = spring({ left: 0, width: 0 }, { stiffness: 0.08, damping: 0.4 });
 
   const updateHighlighter = (id: string | null) => {
-    if (!id || !navElements[id]) return;
+    if (!browser || !id) return;
     const el = navElements[id];
+    if (!el) return;
     highlighterPos.set({
       left: el.offsetLeft,
       width: el.offsetWidth
     });
+  };
+
+  const registerNavElement = (node: HTMLElement, id: string) => {
+    navElements[id] = node;
+    // Elite V2.2: Initial highlighter sync if this is the active one
+    if (id === activeId) {
+      requestAnimationFrame(() => updateHighlighter(id));
+    }
+    return {
+      destroy() {
+        delete navElements[id];
+      }
+    };
   };
 
   $effect(() => {
@@ -60,15 +72,15 @@
     }
   });
 
+  let isMounted = $state(false);
   onMount(() => {
-    if (browser) {
-      const handleScroll = () => { scrolled = window.scrollY > 50; };
-      window.addEventListener('scroll', handleScroll, { passive: true });
-      handleScroll();
-      // Initial pos
-      setTimeout(() => updateHighlighter(activeId), 100);
-      return () => window.removeEventListener('scroll', handleScroll);
-    }
+    isMounted = true;
+    const handleScroll = () => { scrolled = window.scrollY > 50; };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    // Initial pos
+    setTimeout(() => updateHighlighter(activeId), 100);
+    return () => window.removeEventListener('scroll', handleScroll);
   });
 
   const headerClass = $derived(`liquid-header-wrapper ${scrolled ? 'is-collapsed' : 'is-expanded'}`);
@@ -82,49 +94,49 @@
       <div class="liquid-glare absolute inset-0 pointer-events-none opacity-20 bg-gradient-to-r from-transparent via-white to-transparent -translate-x-full animate-shine"></div>
 
       <!-- Sliding Highlighter (The "Liquid" Core) -->
-      {#if $highlighterPos.width > 0}
+      {#if browser && $highlighterPos.width > 0}
         <div 
           class="sliding-highlighter absolute top-1.5 bottom-1.5 rounded-full bg-white/10 border border-white/10 shadow-[0_0_30px_rgba(255,255,255,0.1)] z-0"
           style:left="{$highlighterPos.left}px"
           style:width="{$highlighterPos.width}px"
         >
-          <!-- Internal Glow Edge (Liquid Light) -->
           <div class="absolute inset-x-4 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
-          <!-- Bottom Indicator Bar (Sleek replacement for the dot) -->
           <div class="absolute inset-x-1/2 -translate-x-1/2 bottom-[2px] w-6 h-[1.5px] bg-white rounded-full shadow-[0_0_12px_white]"></div>
         </div>
       {/if}
 
       <div class="island-content relative z-10 px-2 py-1.5 flex items-center gap-0.5">
-        {#each navLinks as link}
-          <a
-            href={link.href}
-            bind:this={navElements[link.id]}
-            class="island-link relative flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 {activeId === link.id ? 'is-active text-white' : 'text-white/40 hover:text-white/80'}"
-            onmouseenter={() => hoverId = link.id}
-            onmouseleave={() => hoverId = null}
-            onclick={(e) => {
-              if (link.href.startsWith('#')) {
-                e.preventDefault();
-                document.getElementById(link.id)?.scrollIntoView({ behavior: 'smooth' });
-              }
-            }}
-          >
-            {#if link.icon}
-               <link.icon class="w-3.5 h-3.5 transition-transform duration-500 {activeId === link.id ? 'scale-110' : 'opacity-60'}" />
-            {/if}
-            
-             <span class="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.2em] whitespace-nowrap">
-                <EditableWrapper path={`metadata.nav_label_${link.id === 'hero' ? 'home' : link.id}`} type="text" label="SỬA ĐIỀU HƯỚNG" as="span">
-                  {link.label}
-                </EditableWrapper>
-             </span>
-            
-            {#if activeId === link.id}
-               <!-- Elite V2.2: Removed the ugly dot, using highlighter glow instead -->
-            {/if}
-          </a>
-        {/each}
+        {#if isMounted}
+          {#each navLinks as link (link.id)}
+            <a
+              href={link.href}
+              use:registerNavElement={link.id}
+              class="island-link relative flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 {activeId === link.id ? 'is-active text-white' : 'text-white/40 hover:text-white/80'}"
+              onmouseenter={() => hoverId = link.id}
+              onmouseleave={() => hoverId = null}
+              onclick={(e) => {
+                if (link.href.startsWith('#')) {
+                  e.preventDefault();
+                  document.getElementById(link.id)?.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+            >
+              {#if link.icon}
+                 <link.icon class="w-3.5 h-3.5 transition-transform duration-500 {activeId === link.id ? 'scale-110' : 'opacity-60'}" />
+              {/if}
+              
+               <span class="text-[10px] md:text-[11px] font-bold tracking-[0.2em] whitespace-nowrap">
+                  <EditableWrapper path={`metadata.nav_label_${link.id === 'hero' ? 'home' : link.id}`} type="text" label="SỬA ĐIỀU HƯỚNG" as="span">{link.label}</EditableWrapper>
+               </span>
+            </a>
+          {/each}
+        {:else}
+           {#each navLinks as link}
+             <div class="island-link relative flex items-center gap-2 px-4 py-2 rounded-full text-white/40 opacity-0">
+               <span class="text-[10px] md:text-[11px] font-bold tracking-[0.2em]">{link.label}</span>
+             </div>
+           {/each}
+        {/if}
       </div>
     </div>
   </nav>

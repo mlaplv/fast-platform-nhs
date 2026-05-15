@@ -180,6 +180,7 @@
     <div class="lg:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-2">
       <!-- PRODUCT IDENTITY -->
       <div class="glass-morphism p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden group">
+        <div class="corner-accents"></div>
         <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-[30px] group-hover:bg-white/10 transition-colors"></div>
         <div>
           <div class="flex items-center justify-between mb-2 relative z-10">
@@ -207,6 +208,7 @@
 
       <!-- FACTORY & ORIGIN -->
       <div class="glass-morphism p-4 sm:p-5 lg:col-span-2 relative overflow-hidden">
+        <div class="corner-accents"></div>
         <div class="flex items-center justify-between mb-2 relative z-10">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-luxury-copper/20 flex items-center justify-center border border-luxury-copper/30">
@@ -253,6 +255,7 @@
     <div class="lg:col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-2">
       <!-- JOURNEY -->
       <div class="glass-morphism p-4 sm:p-5 lg:col-span-1 relative overflow-hidden group">
+        <div class="corner-accents"></div>
         <div class="absolute -right-20 -bottom-20 w-40 h-40 bg-emerald-500/10 blur-[40px] rounded-full pointer-events-none transition-opacity group-hover:opacity-100 opacity-50"></div>
         <div class="flex items-center gap-3 mb-4 relative z-10">
           <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
@@ -290,6 +293,7 @@
 
       <!-- LEGAL -->
       <div class="glass-morphism p-4 sm:p-5 lg:col-span-2 relative overflow-hidden">
+        <div class="corner-accents"></div>
         <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[50px] pointer-events-none"></div>
         <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4 relative z-10">
           <div class="flex items-center gap-3">
@@ -401,8 +405,6 @@
           <ShieldCheck size={300} class="text-blue-900" />
         </div>
 
-        <!-- Scanning line animation -->
-        <div class="absolute top-0 left-0 w-full h-1 bg-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.8)] z-30 animate-scan"></div>
       </div>
 
       <!-- Sidebar / Info Panel -->
@@ -468,11 +470,56 @@
   }
 
   .glass-morphism {
-    background: rgba(10, 10, 10, 0.95);
+    background: rgba(10, 10, 10, 0.6);
     backdrop-filter: blur(50px) saturate(200%);
-    border: 1px solid rgba(193, 143, 126, 0.2);
+    border: none;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
     border-radius: 0px;
+    position: relative;
+  }
+
+  /* Industrial Reticle Accents */
+  .corner-accents {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .corner-accents::before, .corner-accents::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: #C18F7E;
+    border-style: solid;
+    opacity: 0.8;
+  }
+  .corner-accents::before {
+    top: 0; left: 0;
+    border-width: 2px 0 0 2px;
+  }
+  .glass-morphism::before, .glass-morphism::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: #C18F7E;
+    border-style: solid;
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .glass-morphism::before {
+    top: 0; right: 0;
+    border-width: 2px 2px 0 0;
+  }
+  .glass-morphism::after {
+    bottom: 0; left: 0;
+    border-width: 0 0 2px 2px;
+  }
+  .corner-accents::after {
+    bottom: 0; right: 0;
+    border-width: 0 2px 2px 0;
   }
 
   .truth-header {
@@ -494,8 +541,19 @@
     to { opacity: 1; transform: translateY(0); filter: blur(0); }
   }
 
-  @keyframes scan {
-    0% { top: -10px; opacity: 0; }
+  .laser-scan-line-legal {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #3b82f6;
+    box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
+    z-index: 100;
+    animation: laser-scan-move 3s linear infinite;
+  }
+
+  @keyframes laser-scan-move {
+    0% { top: 0; opacity: 0; }
     10% { opacity: 1; }
     90% { opacity: 1; }
     100% { top: 100%; opacity: 0; }

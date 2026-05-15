@@ -37,9 +37,10 @@
     priority: 0,
     title: "",
     subtitle: "",
+    is_viral: false,
     metadata_json: {
       viral_suite: {
-        enabled: false,
+        enabled: true, // Internal flag for the engine section, but is_viral is the master
         share_target: 1000,
         voucher_label: "",
         cta_text: "",
@@ -88,6 +89,7 @@
           priority: voucher.priority || 0,
           title: voucher.title || "",
           subtitle: voucher.subtitle || "",
+          is_viral: voucher.is_viral || false,
           metadata_json: {
             viral_suite: {
               enabled: false,
@@ -123,9 +125,10 @@
       priority: 0,
       title: "",
       subtitle: "",
+      is_viral: false,
       metadata_json: {
         viral_suite: {
-          enabled: false,
+          enabled: true,
           share_target: 1000,
           voucher_label: "",
           cta_text: "",
@@ -194,7 +197,7 @@
           <Gift size={18} class="text-neon-cyan" />
         </div>
         <div>
-          <h2 class="text-sm font-bold text-white tracking-widest uppercase">{voucherId ? 'CHỈNH SỬA VOUCHER' : 'TẠO VOUCHER MỚI'}</h2>
+          <h2 class="text-sm font-bold text-white tracking-widest ">{voucherId ? 'Chỉnh sửa VOUCHER' : 'TẠO VOUCHER MỚI'}</h2>
           <p class="text-[10px] text-gray-500 font-mono tracking-wider">{voucherId || 'Elite V2.2 Promotion Engine'}</p>
         </div>
       </div>
@@ -217,20 +220,20 @@
         <div class="space-y-6">
           <!-- Code Section -->
           <div class="space-y-2">
-            <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-code">Mã Voucher</label>
+            <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-code">Mã Voucher</label>
             <input
               id="v-code"
               type="text"
               bind:value={form.id}
               placeholder="VD: SALE30K..."
-              class="w-full bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-cyan/50 text-sm font-bold tracking-widest uppercase disabled:opacity-50"
+              class="w-full bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon-cyan/50 text-sm font-bold tracking-widest disabled:opacity-50"
             />
           </div>
 
           <!-- Title & Subtitle -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
-              <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-title">Tiêu đề (Hiển thị)</label>
+              <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-title">Tiêu đề (Hiển thị)</label>
               <input
                 id="v-title"
                 type="text"
@@ -240,7 +243,7 @@
               />
             </div>
             <div class="space-y-2">
-              <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-subtitle">Mô tả phụ</label>
+              <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-subtitle">Mô tả phụ</label>
               <input
                 id="v-subtitle"
                 type="text"
@@ -254,7 +257,7 @@
           <!-- Type & Value -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
-              <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-type">Loại</label>
+              <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-type">Loại</label>
               <select
                 id="v-type"
                 bind:value={form.type}
@@ -266,7 +269,7 @@
               </select>
             </div>
             <div class="space-y-2">
-              <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-value">Giá trị</label>
+              <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-value">Giá trị</label>
               <input
                 id="v-value"
                 type="number"
@@ -280,8 +283,8 @@
           <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl space-y-4">
             <div class="flex items-center justify-between">
               <div>
-                <span class="block text-[11px] font-black text-emerald-400 tracking-widest uppercase">Thiết lập mặc định</span>
-                <span class="text-[9px] text-gray-500 uppercase tracking-tighter">Elite Auto-Stick Engine</span>
+                <span class="block text-[11px] font-black text-emerald-400 tracking-widest ">Thiết lập mặc định</span>
+                <span class="text-[9px] text-gray-500 tracking-tighter">Elite Auto-Stick Engine</span>
               </div>
               <button
                 onclick={() => (form.is_default = !form.is_default)}
@@ -296,7 +299,7 @@
 
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
-                <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-category">Phân loại (Tab)</label>
+                <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-category">Phân loại (Tab)</label>
                 <select
                   id="v-category"
                   bind:value={form.category}
@@ -309,7 +312,7 @@
                 </select>
               </div>
               <div class="space-y-2">
-                <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-priority">Độ ưu tiên</label>
+                <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-priority">Độ ưu tiên</label>
                 <input
                   id="v-priority"
                   type="number"
@@ -323,7 +326,7 @@
           <!-- Limits -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
-              <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-limit">Giới hạn dùng</label>
+              <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-limit">Giới hạn dùng</label>
               <input
                 id="v-limit"
                 type="number"
@@ -333,7 +336,7 @@
               />
             </div>
             <div class="space-y-2">
-              <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-min">Đơn tối thiểu</label>
+              <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-min">Đơn tối thiểu</label>
               <input
                 id="v-min"
                 type="number"
@@ -346,7 +349,7 @@
           <!-- Dates -->
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
-              <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-start">Ngày bắt đầu</label>
+              <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-start">Ngày bắt đầu</label>
               <input
                 id="v-start"
                 type="date"
@@ -355,7 +358,7 @@
               />
             </div>
             <div class="space-y-2">
-              <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest" for="v-end">Ngày kết thúc</label>
+              <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-end">Ngày kết thúc</label>
               <input
                 id="v-end"
                 type="date"
@@ -373,25 +376,28 @@
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-pink-500"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
                 </div>
                 <div>
-                  <span class="block text-[11px] font-black text-pink-400 tracking-[0.2em] uppercase">Chiến dịch Lan tỏa</span>
-                  <span class="text-[9px] text-gray-500 uppercase tracking-tighter">Elite Viral Engine 2026</span>
+                  <span class="block text-[11px] font-black text-pink-400 tracking-[0.2em] ">Chiến dịch Lan tỏa</span>
+                  <span class="text-[9px] text-gray-500 tracking-tighter">Elite Viral Engine 2026</span>
                 </div>
               </div>
               <button
-                onclick={() => (form.metadata_json.viral_suite.enabled = !form.metadata_json.viral_suite.enabled)}
-                class="w-12 h-6 rounded-full transition-all relative {form.metadata_json.viral_suite.enabled ? 'bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.3)]' : 'bg-gray-800'}"
+                onclick={() => {
+                  if (!form.is_viral && !confirm("Kích hoạt mã này làm Voucher Viral DUY NHẤT toàn sàn? Các mã Viral cũ sẽ bị hủy kích hoạt.")) return;
+                  form.is_viral = !form.is_viral;
+                }}
+                class="w-12 h-6 rounded-full transition-all relative {form.is_viral ? 'bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.3)]' : 'bg-gray-800'}"
                 role="switch"
-                aria-checked={form.metadata_json.viral_suite.enabled}
+                aria-checked={form.is_viral}
               >
-                <div class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all {form.metadata_json.viral_suite.enabled ? 'left-7' : 'left-1'}"></div>
+                <div class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all {form.is_viral ? 'left-7' : 'left-1'}"></div>
               </button>
             </div>
 
-            {#if form.metadata_json.viral_suite.enabled}
+            {#if form.is_viral}
               <div class="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div class="grid grid-cols-2 gap-4">
                   <div class="space-y-2">
-                    <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Mục tiêu (Share)</label>
+                    <label class="text-[10px] font-mono text-gray-500 tracking-widest">Mục tiêu (Share)</label>
                     <input
                       type="number"
                       bind:value={form.metadata_json.viral_suite.share_target}
@@ -399,7 +405,7 @@
                     />
                   </div>
                   <div class="space-y-2">
-                    <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Nhãn phần thưởng</label>
+                    <label class="text-[10px] font-mono text-gray-500 tracking-widest">Nhãn phần thưởng</label>
                     <input
                       type="text"
                       bind:value={form.metadata_json.viral_suite.voucher_label}
@@ -410,7 +416,7 @@
                 </div>
 
                 <div class="space-y-2">
-                  <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Nút hành động (CTA)</label>
+                  <label class="text-[10px] font-mono text-gray-500 tracking-widest">Nút hành động (CTA)</label>
                   <input
                     type="text"
                     bind:value={form.metadata_json.viral_suite.cta_text}
@@ -420,7 +426,7 @@
                 </div>
 
                 <div class="space-y-2">
-                  <label class="text-[10px] font-mono text-gray-500 uppercase tracking-widest">Nội dung chia sẻ (Mồi)</label>
+                  <label class="text-[10px] font-mono text-gray-500 tracking-widest">Nội dung chia sẻ (Mồi)</label>
                   <textarea
                     bind:value={form.metadata_json.viral_suite.share_text}
                     placeholder="Nội dung khách sẽ share lên MXH..."
@@ -465,7 +471,7 @@
           <div class="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>
         {:else}
           <Save size={18} />
-          <span class="tracking-widest uppercase">LƯU CẤU HÌNH</span>
+          <span class="tracking-widest ">LƯU CẤU HÌNH</span>
         {/if}
       </button>
     </div>

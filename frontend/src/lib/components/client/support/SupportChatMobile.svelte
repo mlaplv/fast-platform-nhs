@@ -165,16 +165,16 @@
           <div class="absolute bottom-0 right-0 w-4 h-4 bg-[#FFB7C5] rounded-full ring-[3px] ring-[#0a0a0a] shadow-[0_0_12px_#FFB7C5]"></div>
         </div>
         <div>
-          <h3 class="font-black text-white tracking-[-0.02em] leading-tight text-[21px] flex items-center gap-3 uppercase">
+          <h3 class="font-black text-white tracking-[-0.02em] leading-tight text-[21px] flex items-center gap-3 ">
             {supportAgent.config.agentName}
             <div class="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 border border-white/10 rounded-md">
               <Lock size={10} class="text-white/30" />
-              <span class="text-[8px] text-white/40 font-black uppercase tracking-widest">AES_256</span>
+              <span class="text-[8px] text-white/40 font-black tracking-widest">AES_256</span>
             </div>
           </h3>
           <div class="flex items-center gap-2 mt-1.5">
              <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"></div>
-             <p class="text-[11px] text-[#FFB7C5] font-black uppercase tracking-[0.3em] opacity-90">
+             <p class="text-[11px] text-[#FFB7C5] font-black tracking-[0.3em] opacity-90">
                {supportAgent.helenEnabled ? 'ĐANG HOẠT ĐỘNG' : 'CHUYÊN VIÊN TRỰC'}
              </p>
           </div>
@@ -201,7 +201,7 @@
               <Sparkles size={16} class="text-slate-950" />
             </div>
             <div class="flex flex-col">
-              <p class="text-[12px] text-white font-black uppercase tracking-tight">
+              <p class="text-[12px] text-white font-black tracking-tight">
                 Mức giá tối ưu cho liệu trình
               </p>
               <p class="text-[11px] text-white/80 leading-tight font-medium mt-0.5">
@@ -222,7 +222,7 @@
         <div class="flex flex-col items-center justify-center mb-10 opacity-30">
           <div class="flex items-center gap-2.5 px-5 py-2 bg-black/40 border border-white/10 rounded-full">
              <ShieldCheck size={14} class="text-[#FFB7C5]" />
-             <span class="text-[10px] text-white/60 tracking-[0.2em] uppercase font-black">Hệ thống chuyên gia Helen v3.2</span>
+             <span class="text-[10px] text-white/60 tracking-[0.2em] font-black">Hệ thống chuyên gia Helen v3.2</span>
           </div>
         </div>
       {/if}
@@ -233,7 +233,7 @@
           <button 
             onclick={() => supportAgent.loadHistory()}
             disabled={supportAgent.isHistoryLoading}
-            class="px-8 py-3 bg-white/5 active:bg-[#FFB7C5]/10 border border-white/5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-[#FFB7C5] transition-all active:scale-95 disabled:opacity-30"
+            class="px-8 py-3 bg-white/5 active:bg-[#FFB7C5]/10 border border-white/5 rounded-full text-[10px] font-black tracking-[0.2em] text-[#FFB7C5] transition-all active:scale-95 disabled:opacity-30"
           >
             {supportAgent.isHistoryLoading ? 'ĐANG TẢI...' : 'TẢI THÊM TIN NHẮN CŨ'}
           </button>
@@ -243,7 +243,7 @@
       {#if supportAgent.messages.length === 0 && supportAgent.isHistoryLoading}
         <div class="flex flex-col items-center justify-center py-20 opacity-40 animate-pulse">
           <div class="w-12 h-12 rounded-full border-2 border-t-[#FFB7C5] border-white/5 animate-spin"></div>
-          <p class="text-[11px] font-black uppercase tracking-[0.2em] text-white mt-6">Đang đồng bộ dữ liệu...</p>
+          <p class="text-[11px] font-black tracking-[0.2em] text-white mt-6">Đang đồng bộ dữ liệu...</p>
         </div>
       {/if}
 
@@ -254,7 +254,7 @@
         >
           <!-- Name Label (Elite V3.1: Professional Identity) -->
           <div class="flex items-center gap-2 mb-2 px-12 {msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}">
-            <span class="text-[10px] font-black uppercase tracking-[0.2em] {msg.role === 'user' ? 'text-[#FFB7C5]' : 'text-white/40'}">
+            <span class="text-[10px] font-black tracking-[0.2em] {msg.role === 'user' ? 'text-[#FFB7C5]' : 'text-white/40'}">
               {msg.role === 'assistant' ? supportAgent.config.agentName : (authStore.user?.name || 'Quý khách')}
             </span>
             {#if msg.role === 'assistant'}
@@ -293,7 +293,7 @@
                   [Tin nhắn đã bị thu hồi]
                 </div>
               {:else if msg.role === 'assistant' && msg.intent === 'ORDER_STATUS'}
-                <div class="inline-flex items-center gap-3 px-4 py-2 mb-4 bg-[#FFB7C5]/10 text-[#FFB7C5] rounded-2xl border border-[#FFB7C5]/20 font-black text-[15px] uppercase tracking-wider">
+                <div class="inline-flex items-center gap-3 px-4 py-2 mb-4 bg-[#FFB7C5]/10 text-[#FFB7C5] rounded-2xl border border-[#FFB7C5]/20 font-black text-[15px] tracking-wider">
                   <PackageSearch size={18} /> Tra cứu vận đơn
                 </div>
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -312,7 +312,7 @@
                 
                 <button 
                   onclick={() => shopStore?.openCheckout(cartStore, shopStore.product!)}
-                  class="mt-6 w-full py-5 bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 text-[16px] font-black rounded-[24px] shadow-[0_12px_32px_rgba(255,183,197,0.4)] active:scale-[0.98] transition-all uppercase tracking-wider animate-pulse-subtle"
+                  class="mt-6 w-full py-5 bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 text-[16px] font-black rounded-[24px] shadow-[0_12px_32px_rgba(255,183,197,0.4)] active:scale-[0.98] transition-all tracking-wider animate-pulse-subtle"
                 >
                    NHẬN ƯU ĐÃI NGAY →
                 </button>
@@ -332,7 +332,7 @@
               {/if}
             </div>
             
-            <div class="text-[10px] text-white/10 mt-3 px-2 font-black uppercase tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all duration-300">
+            <div class="text-[10px] text-white/10 mt-3 px-2 font-black tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all duration-300">
               {msg.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
@@ -460,7 +460,6 @@
     background: linear-gradient(135deg, #FFB7C5 0%, #FF8FA3 100%);
     color: #000 !important;
     font-weight: 900;
-    text-transform: uppercase;
     letter-spacing: 0.1em;
     border-radius: 9999px;
     box-shadow: 0 10px 25px rgba(255, 183, 197, 0.3);

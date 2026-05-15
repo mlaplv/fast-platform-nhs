@@ -309,7 +309,7 @@
     {#if isLoading && allCampaigns.length === 0}
       <div class="h-full flex flex-col items-center justify-center gap-4">
           <div class="w-12 h-12 border-2 border-neon-cyan/10 border-t-neon-cyan rounded-full animate-spin"></div>
-          <span class="text-[10px] font-mono text-neon-cyan/50 uppercase tracking-[0.4em]">SYNCHRONIZING_ARCHIVES...</span>
+          <span class="text-[10px] font-mono text-neon-cyan/50 tracking-[0.4em]">SYNCHRONIZING_ARCHIVES...</span>
       </div>
     {:else if filteredCampaigns().length === 0}
       <div class="h-full flex flex-col items-center justify-center gap-6 opacity-40">
@@ -317,12 +317,12 @@
            <Megaphone size={32} class="text-gray-600" />
         </div>
         <div class="text-center">
-           <p class="text-[11px] font-mono uppercase tracking-[0.3em] text-white/60 mb-2">ZERO_MATCH_FOUND</p>
+           <p class="text-[11px] font-mono tracking-[0.3em] text-white/60 mb-2">ZERO_MATCH_FOUND</p>
            <p class="text-[10px] font-mono text-gray-700 italic">No campaign entities found matching current filter profile.</p>
         </div>
         <button 
            onclick={() => { searchInput = ""; activeStatus = "all"; activeCategory = "all"; }}
-           class="px-4 py-2 border border-white/10 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest hover:border-white/20 hover:text-white transition-all"
+           class="px-4 py-2 border border-white/10 rounded-lg text-[9px] font-mono font-bold tracking-widest hover:border-white/20 hover:text-white transition-all"
         >
            Reset Filters
         </button>
@@ -343,7 +343,7 @@
                     <div class="w-2 h-0.5 bg-neon-cyan rounded-full"></div>
                   {/if}
                </div>
-               <span class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest group-hover/all:text-gray-300 transition-colors">Select_All_Visible</span>
+               <span class="text-[10px] font-mono font-bold text-gray-500 tracking-widest group-hover/all:text-gray-300 transition-colors">Select_All_Visible</span>
             </button>
          </div>
       </div>
@@ -371,11 +371,11 @@
              {#if isLoadingMore}
                <div class="flex items-center gap-3">
                   <div class="w-4 h-4 border-2 border-neon-cyan/20 border-t-neon-cyan rounded-full animate-spin"></div>
-                  <span class="text-[10px] font-mono text-neon-cyan uppercase tracking-[0.2em]">FETCHING_RESOURCES...</span>
+                  <span class="text-[10px] font-mono text-neon-cyan tracking-[0.2em]">FETCHING_RESOURCES...</span>
                </div>
              {:else}
                <div class="flex flex-col items-center">
-                  <span class="text-[10px] font-mono font-black text-gray-400 group-hover:text-neon-cyan uppercase tracking-[0.3em] transition-colors">LOAD_MORE_RESOURCES</span>
+                  <span class="text-[10px] font-mono font-black text-gray-400 group-hover:text-neon-cyan tracking-[0.3em] transition-colors">LOAD_MORE_RESOURCES</span>
                   <div class="w-full h-[1px] bg-white/5 mt-1 relative overflow-hidden">
                      <div class="absolute inset-0 bg-neon-cyan/50 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                   </div>
@@ -392,10 +392,10 @@
      <div class="flex items-center gap-4">
         <div class="flex items-center gap-1.5">
            <div class="w-1.5 h-1.5 rounded-full bg-green-500/60 shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
-           <span class="text-[9px] font-mono text-gray-500 uppercase tracking-tighter">Nexus_Stable</span>
+           <span class="text-[9px] font-mono text-gray-500 tracking-tighter">Nexus_Stable</span>
         </div>
         <div class="w-[1px] h-3 bg-white/5"></div>
-        <span class="text-[9px] font-mono text-gray-600 uppercase tracking-tighter">Admin_Active: {nanobot.userEmail || "SYSTEM"}</span>
+        <span class="text-[9px] font-mono text-gray-600 tracking-tighter">Admin_Active: {nanobot.userEmail || "SYSTEM"}</span>
      </div>
      <div class="flex items-center gap-4">
         <span class="text-[9px] font-mono text-gray-600">V69.1_TRINITY</span>

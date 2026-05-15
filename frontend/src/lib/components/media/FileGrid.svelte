@@ -107,13 +107,13 @@
             {#if asset.is_primary}
                 <div class="absolute top-3 right-3 px-2 py-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg flex items-center gap-1 shadow-xl" style="z-index: {Z_INDEX_ADMIN.GRID_HOVER};">
                     <Star size={10} class="fill-amber-400 text-amber-400" />
-                    <span class="text-[8px] font-black text-white uppercase tracking-tighter">Primary</span>
+                    <span class="text-[8px] font-black text-white tracking-tighter">Primary</span>
                 </div>
             {:else if !asset.is_linked && !asset.id?.startsWith('tmp_') && !mediaStore.isTrashMode}
                 <!-- Orphaned Marker (Elite V2.2) -->
                 <div class="absolute top-3 right-3 px-2 py-1 bg-amber-500/10 backdrop-blur-md border border-amber-500/20 rounded-lg flex items-center gap-1 shadow-xl" style="z-index: {Z_INDEX_ADMIN.GRID_HOVER};" transition:fade>
                     <Info size={10} class="text-amber-500" />
-                    <span class="text-[8px] font-black text-amber-500 uppercase tracking-tighter">Mồ côi</span>
+                    <span class="text-[8px] font-black text-amber-500 tracking-tighter">Mồ côi</span>
                 </div>
             {/if}
 
@@ -121,7 +121,7 @@
             <div class="absolute bottom-0 inset-x-0 p-3 flex flex-col gap-0.5 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
                 <span class="text-[10px] font-bold text-white truncate drop-shadow-md">{asset.filename || 'unnamedfile'}</span>
                 <div class="flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-75">
-                    <span class="text-[8px] font-black text-blue-300 uppercase tracking-widest leading-none">
+                    <span class="text-[8px] font-black text-blue-300 tracking-widest leading-none">
                         {asset.mime_type?.split('/')[1] || 'FILE'}
                     </span>
                     <span class="text-[8px] font-mono text-white/40">
@@ -140,7 +140,7 @@
                 <div class="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center" style="z-index: {Z_INDEX_ADMIN.OVERLAY};">
                     <div class="flex flex-col items-center gap-2">
                         <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                        <span class="text-[8px] font-black text-white uppercase tracking-[0.2em] animate-pulse">Uploading...</span>
+                        <span class="text-[8px] font-black text-white tracking-[0.2em] animate-pulse">Uploading...</span>
                     </div>
                 </div>
             {/if}

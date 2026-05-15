@@ -112,8 +112,8 @@
     <span class="btn-label-mini">Đánh giá</span>
   </button>
 
-  <!-- MIỄN PHÍ SHIP Badge (Centered between Star and Cart) -->
-  <div class="bg-[#FFB7C5] text-slate-950 text-[7px] font-black px-2 py-0.5 rounded shadow-[0_4px_12px_rgba(255,183,197,0.4)] animate-bounce whitespace-nowrap z-surface uppercase tracking-wider relative translate-y-[8px]">
+  <!-- Miễn phí ship Badge (Centered between Star and Cart) -->
+  <div class="bg-[#FFB7C5] text-slate-950 text-[7px] font-black px-2 py-0.5 rounded shadow-[0_4px_12px_rgba(255,183,197,0.4)] animate-bounce whitespace-nowrap z-surface tracking-wider relative translate-y-[8px]">
     FREESHIP
   </div>
 
@@ -156,7 +156,6 @@
     font-size: 8px;
     font-weight: 800;
     color: white;
-    text-transform: uppercase;
     letter-spacing: 0.05em;
     opacity: 0.8;
     text-shadow: 0 2px 8px rgba(0,0,0,1);

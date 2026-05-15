@@ -148,7 +148,7 @@
         <div class="flex shrink-0 items-center">
           <a href="/" class="flex flex-col group items-start transition-all active:scale-95">
             <div class="relative flex items-center">
-              <span class="text-2xl font-black tracking-[0.22em] uppercase leading-none bg-gradient-to-r from-luxury-copper via-luxury-peach to-luxury-copper bg-clip-text text-transparent drop-shadow-[0_0_5px_rgba(193,143,126,0.1)] group-hover:tracking-[0.25em] transition-all duration-700 relative">
+              <span class="text-2xl font-black tracking-[0.22em] leading-none bg-gradient-to-r from-luxury-copper via-luxury-peach to-luxury-copper bg-clip-text text-transparent drop-shadow-[0_0_5px_rgba(193,143,126,0.1)] group-hover:tracking-[0.25em] transition-all duration-700 relative">
                   osmo
                   <!-- Inner light shimmer: Ánh sáng tinh tế -->
                   <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"></div>

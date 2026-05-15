@@ -143,7 +143,7 @@
 <div class="relative h-full z-10 {variantsCount >= 3 ? 'min-w-[300px] md:min-w-[420px] lg:min-w-0 snap-center' : ''}">
   <div class="absolute -top-4 left-1/2 -translate-x-1/2 flex flex-wrap gap-2 justify-center w-[120%] z-[60] pointer-events-none mt-1">
     {#if idx === 1 && !isCardActive}
-       <div class="px-5 py-2 expert-choice-ribbon text-white font-black text-[9px] uppercase tracking-[0.4em] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
+       <div class="px-5 py-2 expert-choice-ribbon text-white font-black text-[9px] tracking-[0.4em] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
           {mkt.label_expert_choice}
        </div>
     {/if}
@@ -181,7 +181,7 @@
           label="SỬA NHÃN"
           class="block"
         >
-          <p class="text-[8px] font-black {idx >= 1 ? 'text-luxury-sakura' : 'text-slate-200'} uppercase tracking-[0.4em] px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+          <p class="text-[8px] font-black {idx >= 1 ? 'text-luxury-sakura' : 'text-slate-200'} tracking-[0.4em] px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
              {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
           </p>
         </EditableWrapper>
@@ -200,13 +200,13 @@
            {#if variant.attributes?.combo_qty && variant.attributes.combo_qty > 1}
               <div class="combo-volume-badge mb-1.5 flex items-center gap-1 px-2.5 py-1 rounded-md bg-luxury-sakura/10 border border-luxury-sakura/20">
                  <Ticket class="w-2.5 h-2.5 text-luxury-sakura" />
-                 <span class="text-[9px] font-black text-luxury-sakura uppercase tracking-[0.2em]">SỐ LƯỢNG: {variant.attributes.combo_qty} SẢN PHẨM</span>
+                 <span class="text-[9px] font-black text-luxury-sakura tracking-[0.2em]">SỐ LƯỢNG: {variant.attributes.combo_qty} SẢN PHẨM</span>
               </div>
            {/if}
           <h2 class="text-[15px] font-black text-white italic tracking-tighter text-center md:text-left leading-none mb-1">{getVariantTitle(variant)}</h2>
           <div class="flex items-baseline gap-2 leading-none mt-1">
              <span class="text-3xl font-black text-white tabular-nums leading-none tracking-tighter">{formatCurrency(finalUnitPrice)}</span>
-             <span class="text-[10px] font-bold text-white/40 uppercase tracking-widest">/ SẢN PHẨM</span>
+             <span class="text-[10px] font-bold text-white/40 tracking-widest">/ SẢN PHẨM</span>
           </div>
           
           {#if comboQty > 1}
@@ -227,17 +227,17 @@
                {#if shippingVoucher}
                   <div class="elite-voucher-sticker freeship flex items-center h-4 rounded-full bg-black/40 border border-luxury-sakura/20 overflow-hidden shadow-sm">
                      <div class="px-1.5 bg-luxury-sakura/20 h-full flex items-center">
-                        <span class="text-[6px] font-black text-luxury-sakura uppercase tracking-tighter">FREE</span>
+                        <span class="text-[6px] font-black text-luxury-sakura tracking-tighter">FREE</span>
                       </div>
                       <div class="px-1.5 h-full flex items-center">
-                        <span class="text-[5px] font-bold text-white/40 uppercase">SHIP</span>
+                        <span class="text-[5px] font-bold text-white/40 ">SHIP</span>
                       </div>
                   </div>
                {/if}
                {#if discountVoucher}
                   <div class="elite-voucher-sticker discount flex items-center h-4 rounded-full bg-black/40 border border-luxury-gold/20 overflow-hidden shadow-sm">
                      <div class="px-1.5 bg-luxury-gold/20 h-full flex items-center">
-                        <span class="text-[6px] font-black text-luxury-gold uppercase tracking-tighter">DISCOUNT</span>
+                        <span class="text-[6px] font-black text-luxury-gold tracking-tighter">DISCOUNT</span>
                      </div>
                      <div class="px-1.5 h-full flex items-center">
                         <span class="text-[6px] font-bold text-white/80 tabular-nums">-{formatCurrency(discountVoucher.value || 0)}</span>
@@ -249,7 +249,7 @@
 
           {#if totalSavings > 0}
             <div class="mt-[3px] flex items-center gap-2">
-                 <div class="ultimate-savings-box metallic-shimmer text-[8px] text-black font-black uppercase tracking-wider flex items-center gap-1.5 bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] px-2.5 py-1 rounded-full border border-white/20 shadow-lg transform active:scale-95 transition-all">
+                 <div class="ultimate-savings-box metallic-shimmer text-[8px] text-black font-black tracking-wider flex items-center gap-1.5 bg-gradient-to-r from-[#FFD700] via-[#FDB931] to-[#FFD700] px-2.5 py-1 rounded-full border border-white/20 shadow-lg transform active:scale-95 transition-all">
                     <span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-led-red-pulse shadow-[0_0_8px_#ff0000]"></span>
                     <EditableWrapper path="metadata.offer_savings_prefix" type="text" label="SỬA TIỀN TỐ" class="inline" as="span">
                       <span>{mkt.savings_prefix}</span>
@@ -260,13 +260,13 @@
                  <!-- 🧧 [ELITE V2.2] LOYALTY REWARD BADGE -->
                  <div class="flex items-center gap-1.5 bg-luxury-sakura/10 border border-luxury-sakura/30 px-2 py-0.5 rounded-full shadow-[0_0_15px_rgba(255,183,197,0.1)]">
                     <Sparkles class="w-2 h-2 text-luxury-sakura animate-pulse" />
-                    <span class="text-[8px] font-black text-luxury-sakura uppercase tracking-widest leading-none">+{Math.floor(totalPackagePrice / 100000)} PTS</span>
+                    <span class="text-[8px] font-black text-luxury-sakura tracking-widest leading-none">+{Math.floor(totalPackagePrice / 100000)} điểm</span>
                  </div>
             </div>
           {/if}
        </div>
 
-       <p class="flex items-center gap-2 text-[8px] font-bold uppercase tracking-[0.1em] text-white/40 border-t border-white/5 pt-2">
+       <p class="flex items-center gap-2 text-[8px] font-bold tracking-[0.1em] text-white/40 border-t border-white/5 pt-2">
           <span class="text-luxury-sakura">●</span> SPECS: 
           <EditableWrapper path="metadata.weight" type="text" label="SỬA TRỌNG LƯỢNG" class="inline" as="span">
             {product?.metadata?.weight || "30G"}
@@ -283,14 +283,14 @@
            <li class="flex items-start gap-3">
              <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
              <EditableWrapper path="variants.{idx}.attributes.features.{featureIdx}" type="text" label="SỬA ĐẶC TÍNH" class="block" as="div">
-                {#if featureIdx === 0}<h2 class="text-[11px] font-black uppercase tracking-widest text-white/90 leading-relaxed block">{feature.replace(/^[+!*-]/, '').trim()}</h2>{:else}<span class="text-[11px] font-black uppercase tracking-widest text-white/90 leading-relaxed block">{feature.replace(/^[+!*-]/, '').trim()}</span>{/if}
+                {#if featureIdx === 0}<h2 class="text-[11px] font-black tracking-widest text-white/90 leading-relaxed block">{feature.replace(/^[+!*-]/, '').trim()}</h2>{:else}<span class="text-[11px] font-black tracking-widest text-white/90 leading-relaxed block">{feature.replace(/^[+!*-]/, '').trim()}</span>{/if}
              </EditableWrapper>
            </li>
         {/each}
         <li class="flex items-start gap-3">
           <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
           <EditableWrapper path="metadata.policy_check_label" type="text" label="SỬA CAM KẾT 1" class="flex-1 block" as="div">
-            <a href="/chinh-sach-kiem-hang" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-widest text-luxury-sakura hover:underline leading-relaxed block w-full">
+            <a href="/chinh-sach-kiem-hang" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black tracking-widest text-luxury-sakura hover:underline leading-relaxed block w-full">
               {product?.metadata?.policy_check_label || "Kiểm tra hàng trước nhận"}
             </a>
           </EditableWrapper>
@@ -298,7 +298,7 @@
         <li class="flex items-start gap-3">
           <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
           <EditableWrapper path="metadata.policy_return_label" type="text" label="SỬA CAM KẾT 2" class="flex-1 block" as="div">
-            <a href="/chinh-sach-doi-tra-hoan-tien" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black uppercase tracking-widest text-luxury-sakura hover:underline leading-relaxed block w-full">
+            <a href="/chinh-sach-doi-tra-hoan-tien" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black tracking-widest text-luxury-sakura hover:underline leading-relaxed block w-full">
               {product?.metadata?.policy_return_label || "Đổi trả 7 ngày"}
             </a>
           </EditableWrapper>
@@ -317,7 +317,7 @@
           <div class="absolute inset-0 rounded-[inherit] pointer-events-none bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover/offer-box:opacity-100 transition-opacity duration-700"></div>
 
           <div class="flex items-center justify-between mb-2 relative z-10">
-             <span class="text-[9px] text-luxury-sakura font-black uppercase tracking-[0.2em] flex items-center gap-2">
+             <span class="text-[9px] text-luxury-sakura font-black tracking-[0.2em] flex items-center gap-2">
                 <span class="w-1.5 h-1.5 rounded-full bg-luxury-sakura shadow-[0_0_8px_var(--luxury-sakura)] animate-pulse"></span>
                 {productVouchers.length > 0 ? (variant.attributes?.gifts?.length ? 'Ưu đãi & Quà tặng' : 'Mã giảm giá') : 'Quà tặng độc quyền'}
              </span>
@@ -330,12 +330,12 @@
              {#if (productVouchers.filter(v => shopStore.selectedVoucherIds.includes(v.id))).length > 0}
                {#each productVouchers.filter(v => shopStore.selectedVoucherIds.includes(v.id)) as v}
                  <div class="sticker-mini-preview flex items-center gap-1.5 bg-luxury-sakura/10 px-2 py-1.5 rounded-xl border border-luxury-sakura/20">
-                   <span class="text-[9px] font-black text-luxury-sakura uppercase leading-none">
+                   <span class="text-[9px] font-black text-luxury-sakura leading-none">
                      {v.label.toLowerCase().includes('freeship') && v.sub.toLowerCase().includes('freeship') 
                        ? 'GIẢM ' + v.label.replace(/FREESHIP/gi, '').trim() + (isNaN(Number(v.label.replace(/FREESHIP/gi, ''))) ? '' : 'K')
                        : v.label}
                    </span>
-                    <span class="text-[10px] text-white uppercase font-black truncate leading-none">
+                    <span class="text-[10px] text-white font-black truncate leading-none">
                       {v.sub.replace(/FREESHIP\s*[đĐ]0/gi, 'FREESHIP').replace(/^[đĐ]/, '') + (v.sub.match(/^[đĐ]/) ? '₫' : '')}
                     </span>
                  </div>
@@ -343,19 +343,19 @@
              {:else if productVouchers.length > 0}
                {@const bestV = productVouchers[0]}
                <div class="sticker-mini-preview flex items-center gap-1.5 bg-white/5 px-2 py-1.5 rounded-xl border border-white/10">
-                 <span class="text-[9px] font-black text-luxury-sakura uppercase leading-none">
+                 <span class="text-[9px] font-black text-luxury-sakura leading-none">
                    {bestV.label.toLowerCase().includes('freeship') && bestV.sub.toLowerCase().includes('freeship')
                      ? 'GIẢM ' + bestV.label.replace(/FREESHIP/gi, '').trim() + (isNaN(Number(bestV.label.replace(/FREESHIP/gi, ''))) ? '' : 'K')
                      : bestV.label}
                  </span>
-                  <span class="text-[10px] text-white uppercase font-black truncate leading-none">
+                  <span class="text-[10px] text-white font-black truncate leading-none">
                     {bestV.sub.replace(/FREESHIP\s*[đĐ]0/gi, 'FREESHIP').replace(/^[đĐ]/, '') + (bestV.sub.match(/^[đĐ]/) ? '₫' : '')}
                   </span>
                </div>
              {/if}
           </div>
 
-          <p class="text-[7.5px] text-white/20 uppercase font-black tracking-[0.2em] mt-4 flex items-center gap-2 pointer-events-none relative z-10">
+          <p class="text-[7.5px] text-white/20 font-black tracking-[0.2em] mt-4 flex items-center gap-2 pointer-events-none relative z-10">
             VIEW DETAILS & BONUSES
           </p>
         </div>
@@ -370,7 +370,7 @@
                <div class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
             </div>
          {/if}
-         <div class="fomo-header-viral text-[7px] font-black tracking-[0.3em] text-white/60 mb-1 flex items-center justify-center gap-3 uppercase w-full">
+         <div class="fomo-header-viral text-[7px] font-black tracking-[0.3em] text-white/60 mb-1 flex items-center justify-center gap-3 w-full">
             <div class="flex items-center gap-1">
                <Zap size={8} class="text-yellow-300/80 fill-yellow-300/80" />
                CHỈ CÒN {displayStock} SUẤT
@@ -378,7 +378,7 @@
             <span class="w-1 h-1 rounded-full bg-white/20"></span>
             <div class="flex items-center gap-1">
                <Sparkles size={8} class="text-blue-200/80" />
-               {shippingVoucher ? 'MIỄN PHÍ VẬN CHUYỂN' : 'GIAO HÀNG BẢO MẬT'}
+               {shippingVoucher ? 'Miễn phí vận chuyển' : 'GIAO HÀNG BẢO MẬT'}
             </div>
          </div>
 
@@ -388,10 +388,10 @@
                  <ShoppingCart class="w-6 h-6 text-white drop-shadow-md" strokeWidth={2} />
               </div>
               <div class="flex flex-col justify-center">
-                 <span class="text-[14px] font-black uppercase tracking-[0.2em] text-white leading-none mb-1 text-shadow-sm">
+                 <span class="text-[14px] font-black tracking-[0.2em] text-white leading-none mb-1 text-shadow-sm">
                     MUA NGAY
                  </span>
-                  <span class="text-[9px] text-white/80 uppercase font-bold tracking-[0.1em]">
+                  <span class="text-[9px] text-white/80 font-bold tracking-[0.1em]">
                      Sở hữu ngay • {formatCurrency(totalPackagePrice)}
                   </span>
               </div>

@@ -274,7 +274,7 @@
   <!-- LANDING TYPE SELECTOR -->
   <div class="flex flex-col gap-3">
     <div
-      class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+      class="flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]"
     >
       <Layout size={11} class="text-amber-400/60" />
       Loại hình trang đích (Landing Type)
@@ -313,7 +313,7 @@
     {#if formState.metadata.landing_type !== "standard"}
       <div class="flex flex-col gap-1.5">
         <label
-          class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+          class="text-[9px] font-bold text-white/40 tracking-wider"
           >Thời gian khan hiếm (Giây)</label
         >
         <input
@@ -327,7 +327,7 @@
 
     <!-- Video URL -->
     <div class="flex flex-col gap-1.5 md:col-span-2">
-      <label class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+      <label class="text-[9px] font-bold text-white/40 tracking-wider"
         >Video URL (TikTok/YouTube hoặc nội bộ)</label
       >
       <input
@@ -352,7 +352,7 @@
         <div class="flex items-center gap-1.5">
           <Clock size={10} class="text-amber-400/70" />
           <span
-            class="text-[9px] font-black text-amber-400/60 uppercase tracking-[0.25em]"
+            class="text-[9px] font-black text-amber-400/60 tracking-[0.25em]"
             >Cắt ghép Video</span
           >
         </div>
@@ -366,7 +366,7 @@
       <div class="grid grid-cols-2 gap-3">
         <div class="flex flex-col gap-1">
           <label
-            class="text-[8px] font-bold text-white/30 uppercase tracking-wider"
+            class="text-[8px] font-bold text-white/30 tracking-wider"
             >Bắt đầu (s)</label
           >
           <input
@@ -377,7 +377,7 @@
         </div>
         <div class="flex flex-col gap-1">
           <label
-            class="text-[8px] font-bold text-white/30 uppercase tracking-wider"
+            class="text-[8px] font-bold text-white/30 tracking-wider"
             >Kết thúc (s)</label
           >
           <input
@@ -393,7 +393,7 @@
   <!-- R00 Compliance: UI Labels -->
   <div class="flex flex-col gap-4">
     <div
-      class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+      class="flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]"
     >
       <Zap size={11} class="text-amber-400/60" />
       Cấu hình R00 (UI Strings)
@@ -401,7 +401,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="flex flex-col gap-1.5">
         <label
-          class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+          class="text-[9px] font-bold text-white/40 tracking-wider"
           >Text Loading Sync</label
         >
         <input
@@ -413,7 +413,7 @@
       </div>
       <div class="flex flex-col gap-1.5">
         <label
-          class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+          class="text-[9px] font-bold text-white/40 tracking-wider"
           >Tên Website (SEO)</label
         >
         <input
@@ -429,7 +429,7 @@
   <!-- VIRAL & ENGAGEMENT SECTION -->
   <div class="flex flex-col gap-4">
     <div
-      class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+      class="flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]"
     >
       <Share2 size={11} class="text-pink-400/60" />
       Lan truyền & Tương tác
@@ -442,7 +442,7 @@
       <div class="flex flex-col gap-1.5">
         <div class="flex items-center justify-between">
           <label
-            class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+            class="text-[9px] font-bold text-white/40 tracking-wider"
             >Flash Sale kết thúc</label
           >
           <label class="flex items-center gap-2 cursor-pointer">
@@ -466,7 +466,7 @@
       <!-- Social Proof Boost -->
       <div class="flex flex-col gap-1.5">
         <label
-          class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+          class="text-[9px] font-bold text-white/40 tracking-wider"
           >Social Proof Boost</label
         >
         <div class="grid grid-cols-2 gap-3">
@@ -503,14 +503,14 @@
           <div class="flex items-center gap-2">
             <Ticket size={14} class="text-pink-400" />
             <span
-              class="text-[10px] font-black text-white/80 uppercase tracking-widest"
+              class="text-[10px] font-black text-white/80 tracking-widest"
               >Share-to-Unlock</span
             >
           </div>
           <button
             type="button"
             onclick={toggleSharePromo}
-            class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all {formState
+            class="px-3 py-1.5 rounded-lg text-[9px] font-black tracking-wider transition-all {formState
               .metadata.share_promotion?.enabled
               ? 'bg-pink-500/20 text-pink-400 border border-pink-500/30'
               : 'bg-white/5 text-white/30 border border-white/10'}"
@@ -522,7 +522,7 @@
         {#if formState.metadata.share_promotion?.enabled}
           <div class="flex flex-col gap-1.5">
             <label
-              class="text-[9px] font-bold text-white/40 uppercase tracking-wider"
+              class="text-[9px] font-bold text-white/40 tracking-wider"
               >ID Voucher / Chiến dịch</label
             >
             <input
@@ -544,7 +544,7 @@
   <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
       <div
-        class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+        class="flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]"
       >
         <HelpCircle size={11} class="text-amber-400/60" />
         Hỏi đáp (FAQ)
@@ -553,13 +553,13 @@
         <button
           type="button"
           onclick={handleAiSuggestFaqs}
-          class="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-black uppercase tracking-wider"
+          class="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-black tracking-wider"
           >XOHI AUTO</button
         >
         <button
           type="button"
           onclick={addFaq}
-          class="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black uppercase tracking-wider"
+          class="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-black tracking-wider"
           >Thêm tay</button
         >
       </div>
@@ -597,7 +597,7 @@
 
   <div class="flex flex-col gap-4">
     <div
-      class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+      class="flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]"
     >
       <Shield size={11} class="text-blue-400/60" />
       Hồ sơ pháp lý & Công bố (Regulatory)
@@ -607,7 +607,7 @@
     >
       <div class="flex flex-col gap-1.5">
         <label
-          class="text-[9px] font-bold text-white/40 uppercase tracking-widest"
+          class="text-[9px] font-bold text-white/40 tracking-widest"
           >Số tiếp nhận phiếu công bố</label
         >
         <input
@@ -619,7 +619,7 @@
       </div>
       <div class="flex flex-col gap-1.5">
         <label
-          class="text-[9px] font-bold text-white/40 uppercase tracking-widest"
+          class="text-[9px] font-bold text-white/40 tracking-widest"
           >Ngày cấp</label
         >
         <input
@@ -630,7 +630,7 @@
       </div>
       <div class="md:col-span-2 flex flex-col gap-1.5">
         <label
-          class="text-[9px] font-bold text-white/40 uppercase tracking-widest"
+          class="text-[9px] font-bold text-white/40 tracking-widest"
           >Cơ quan cấp phép</label
         >
         <input
@@ -643,13 +643,13 @@
       <div class="md:col-span-2 flex flex-col gap-1.5">
         <div class="flex items-center justify-between">
           <label
-            class="text-[9px] font-bold text-white/40 uppercase tracking-widest"
+            class="text-[9px] font-bold text-white/40 tracking-widest"
             >Ảnh phiếu công bố
           </label>
           <button
             type="button"
             onclick={scanComplianceImage}
-            class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[8px] font-black uppercase tracking-tighter hover:bg-blue-500/20 transition-all"
+            class="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[8px] font-black tracking-tighter hover:bg-blue-500/20 transition-all"
           >
             <RefreshCw size={10} class={isScanning ? "animate-spin" : ""} />
             AI Intel Scan
@@ -686,7 +686,7 @@
               <button
                 type="button"
                 onclick={() => (formState.metadata.notification_doc = "")}
-                class="px-4 py-2 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-black uppercase tracking-widest hover:bg-red-500/40 transition-all"
+                class="px-4 py-2 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-black tracking-widest hover:bg-red-500/40 transition-all"
               >
                 Gỡ bỏ ảnh
               </button>
@@ -703,7 +703,7 @@
 
   <div class="flex flex-col gap-4">
     <div
-      class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+      class="flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]"
     >
       <Beaker size={11} class="text-teal-400/60" />
       Bảng thành phần
@@ -720,7 +720,7 @@
   <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
       <div
-        class="flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]"
+        class="flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]"
       >
         <Star size={11} class="text-amber-400/60" />
         Thành phần nổi bật
@@ -728,7 +728,7 @@
       <button
         type="button"
         onclick={addFeaturedIngredient}
-        class="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[9px] font-black uppercase tracking-wider"
+        class="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[9px] font-black tracking-wider"
         >Thêm</button
       >
     </div>

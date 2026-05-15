@@ -151,8 +151,8 @@
           <UserCircle size={20} class="text-[#00FFFF]" />
         </div>
         <div>
-          <h2 class="text-sm font-bold font-mono text-white uppercase tracking-[0.2em]">Identity_Config_Panel</h2>
-          <p class="text-[9px] font-mono text-[#00FFFF]/50 tracking-widest mt-0.5 uppercase">Sector: User_Management_V2.2</p>
+          <h2 class="text-sm font-bold font-mono text-white tracking-[0.2em]">Identity_Config_Panel</h2>
+          <p class="text-[9px] font-mono text-[#00FFFF]/50 tracking-widest mt-0.5 ">Sector: User_Management_V2.2</p>
         </div>
       </div>
       <button
@@ -169,7 +169,7 @@
         <div class="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3">
           <AlertCircle size={16} class="text-red-500 mt-0.5" />
           <div class="flex-1">
-            <span class="text-red-500 text-[10px] font-mono font-bold uppercase tracking-widest block">Core_Exceptions_Detected</span>
+            <span class="text-red-500 text-[10px] font-mono font-bold tracking-widest block">Core_Exceptions_Detected</span>
             <p class="text-red-400/70 text-[9px] font-mono mt-1">{error}</p>
           </div>
         </div>
@@ -181,12 +181,12 @@
         <div class="flex flex-col gap-6">
           <div class="flex items-center gap-2 border-b border-white/5 pb-2 mb-2">
             <Hash size={12} class="text-[#00FFFF]/50" />
-            <span class="text-[9px] font-mono text-gray-400 uppercase tracking-widest font-bold">Core_Identity</span>
+            <span class="text-[9px] font-mono text-gray-400 tracking-widest font-bold">Core_Identity</span>
           </div>
 
           <!-- Email -->
           <div class="flex flex-col gap-2 relative group">
-            <label for="f-email" class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Primary_Email <span class="text-red-500/50">*</span></label>
+            <label for="f-email" class="text-[9px] font-mono text-gray-500 tracking-widest">Primary_Email <span class="text-red-500/50">*</span></label>
             <div class="relative">
               <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none"><Mail size={14} class="text-gray-600 group-focus-within:text-[#00FFFF] transition-colors" /></div>
               <input id="f-email" type="email" bind:value={formData.email} disabled={!!editingId} required placeholder="SYSTEM@SHADOW.NODE"
@@ -197,7 +197,7 @@
 
           <!-- Username -->
           <div class="flex flex-col gap-2 relative group">
-            <label for="f-username" class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Login_Alias</label>
+            <label for="f-username" class="text-[9px] font-mono text-gray-500 tracking-widest">Login_Alias</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none"><UserCircle size={14} class="text-gray-600 group-focus-within:text-[#00FFFF] transition-colors" /></div>
               <input id="f-username" bind:value={formData.username} type="text" placeholder="SHADOW_AGENT_01"
@@ -208,7 +208,7 @@
 
           <!-- Name -->
           <div class="flex flex-col gap-2 relative group">
-            <label for="f-name" class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Entity_Signature <span class="text-red-500/50">*</span></label>
+            <label for="f-name" class="text-[9px] font-mono text-gray-500 tracking-widest">Entity_Signature <span class="text-red-500/50">*</span></label>
             <div class="relative">
               <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none"><UserCircle size={14} class="text-gray-600 group-focus-within:text-[#00FFFF] transition-colors" /></div>
               <input id="f-name" bind:value={formData.name} type="text" required placeholder="NEXUS_CORE"
@@ -222,12 +222,12 @@
         <div class="flex flex-col gap-6">
           <div class="flex items-center gap-2 border-b border-white/5 pb-2 mb-2">
             <UserCircle size={12} class="text-[#00FFFF]/50" />
-            <span class="text-[9px] font-mono text-gray-400 uppercase tracking-widest font-bold">Profile_Matrix</span>
+            <span class="text-[9px] font-mono text-gray-400 tracking-widest font-bold">Profile_Matrix</span>
           </div>
 
           <!-- Phone -->
           <div class="flex flex-col gap-2 relative group">
-            <label for="f-phone" class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Comms_Channel</label>
+            <label for="f-phone" class="text-[9px] font-mono text-gray-500 tracking-widest">Comms_Channel</label>
             <div class="relative">
               <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none"><Phone size={14} class="text-gray-600 group-focus-within:text-[#00FFFF] transition-colors" /></div>
               <input id="f-phone" bind:value={formData.phone} type="text" placeholder="+84 XXX XXX XXX"
@@ -239,7 +239,7 @@
           <!-- Gender & DOB Grid -->
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-2 relative group">
-              <label for="f-gender" class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Biological_ID</label>
+              <label for="f-gender" class="text-[9px] font-mono text-gray-500 tracking-widest">Biological_ID</label>
               <select id="f-gender" bind:value={formData.gender}
                 class="w-full bg-black/60 border border-white/5 rounded-xl py-3.5 px-4 text-[11px] font-mono text-gray-200 focus:outline-none focus:border-[#00FFFF]/40 focus:ring-4 focus:ring-[#00FFFF]/5 transition-all appearance-none cursor-pointer"
               >
@@ -249,7 +249,7 @@
               </select>
             </div>
             <div class="flex flex-col gap-2 relative group">
-              <label for="f-dob" class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Origin_Date</label>
+              <label for="f-dob" class="text-[9px] font-mono text-gray-500 tracking-widest">Origin_Date</label>
               <div class="relative">
                 <input id="f-dob" bind:value={formData.dob} type="date"
                   class="w-full bg-black/60 border border-white/5 rounded-xl py-3.5 px-4 text-[11px] font-mono text-gray-200 focus:outline-none focus:border-[#00FFFF]/40 focus:ring-4 focus:ring-[#00FFFF]/5 transition-all"
@@ -260,11 +260,11 @@
 
           <!-- Status Toggle -->
           <div class="flex flex-col gap-3">
-             <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest">Operational_Status</span>
+             <span class="text-[9px] font-mono text-gray-500 tracking-widest">Operational_Status</span>
              <div class="flex gap-2">
                {#each ["ACTIVE", "LOCKED"] as s}
                  <button type="button" onclick={() => formData.status = s}
-                  class="flex-1 py-2.5 rounded-xl border font-mono text-[9px] font-bold uppercase tracking-widest transition-all {formData.status === s ? 
+                  class="flex-1 py-2.5 rounded-xl border font-mono text-[9px] font-bold tracking-widest transition-all {formData.status === s ? 
                     (s === 'ACTIVE' ? 'bg-[#00FFFF]/20 border-[#00FFFF]/40 text-[#00FFFF]' : 'bg-red-500/20 border-red-500/40 text-red-500') : 
                     'bg-white/5 border-transparent text-gray-500 hover:bg-white/10'}"
                  >
@@ -279,7 +279,7 @@
         <div class="md:col-span-2 flex flex-col gap-4">
           <div class="flex items-center gap-2 border-b border-white/5 pb-2 mb-2">
             <Shield size={12} class="text-[#00FFFF]/50" />
-            <span class="text-[9px] font-mono text-gray-400 uppercase tracking-widest font-bold">Assigned_Security_Tiers</span>
+            <span class="text-[9px] font-mono text-gray-400 tracking-widest font-bold">Assigned_Security_Tiers</span>
           </div>
           
           <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -302,17 +302,17 @@
           <div class="flex items-center justify-between border-b border-white/5 pb-2">
             <div class="flex items-center gap-2">
               <Coins size={12} class="text-amber-400" />
-              <span class="text-[9px] font-mono text-gray-400 uppercase tracking-widest font-bold">Loyalty_Rewards_Matrix</span>
+              <span class="text-[9px] font-mono text-gray-400 tracking-widest font-bold">Loyalty_Rewards_Matrix</span>
             </div>
             {#if loyaltyData}
               <div class="flex items-center gap-3">
                 <div class="flex flex-col items-end">
-                   <span class="text-[8px] font-mono text-gray-500 uppercase">Current_Balance</span>
-                   <span class="text-xs font-mono font-bold text-amber-400">{loyaltyData.available_points} PTS</span>
+                   <span class="text-[8px] font-mono text-gray-500 ">Current_Balance</span>
+                   <span class="text-xs font-mono font-bold text-amber-400">{loyaltyData.available_points} điểm</span>
                 </div>
                 <div class="w-px h-6 bg-white/10"></div>
                 <div class="flex flex-col items-end">
-                   <span class="text-[8px] font-mono text-gray-500 uppercase">User_Tier</span>
+                   <span class="text-[8px] font-mono text-gray-500 ">User_Tier</span>
                    <span class="text-[10px] font-mono font-bold text-white tracking-widest">{loyaltyData.tier}</span>
                 </div>
               </div>
@@ -322,24 +322,24 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Point Adjustment -->
             <div class="space-y-4 bg-white/[0.02] p-4 rounded-xl border border-white/5">
-               <span class="text-[9px] font-mono text-gray-500 uppercase tracking-widest block mb-2">Manual_Adjustment</span>
+               <span class="text-[9px] font-mono text-gray-500 tracking-widest block mb-2">Manual_Adjustment</span>
                <div class="flex flex-col gap-3">
                  <div class="flex gap-4">
                     <div class="flex-1">
-                      <label class="text-[8px] font-mono text-gray-600 uppercase mb-1 block">Points_Delta</label>
+                      <label class="text-[8px] font-mono text-gray-600 mb-1 block">Points_Delta</label>
                       <input type="number" bind:value={adjustAmount} placeholder="+/- Amount"
                         class="w-full bg-black/40 border border-white/10 rounded-lg py-2 px-3 text-[11px] font-mono text-white focus:outline-none focus:border-amber-500/50"
                       />
                     </div>
                     <div class="flex-[2]">
-                      <label class="text-[8px] font-mono text-gray-600 uppercase mb-1 block">Adjustment_Reason</label>
+                      <label class="text-[8px] font-mono text-gray-600 mb-1 block">Adjustment_Reason</label>
                       <input type="text" bind:value={adjustNotes} placeholder="Reason for change..."
                         class="w-full bg-black/40 border border-white/10 rounded-lg py-2 px-3 text-[11px] font-mono text-white focus:outline-none focus:border-amber-500/50"
                       />
                     </div>
                  </div>
                  <button type="button" onclick={handleAdjustPoints} disabled={isAdjusting || adjustAmount === 0 || !adjustNotes}
-                   class="w-full py-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest transition-all disabled:opacity-30 flex items-center justify-center gap-2"
+                   class="w-full py-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 rounded-lg text-[9px] font-mono font-bold tracking-widest transition-all disabled:opacity-30 flex items-center justify-center gap-2"
                  >
                    <Plus size={12} /> Commit_Adjustment
                  </button>
@@ -350,14 +350,14 @@
             <div class="space-y-3">
               <div class="flex items-center gap-2 mb-1">
                 <History size={10} class="text-gray-500" />
-                <span class="text-[8px] font-mono text-gray-500 uppercase tracking-widest">Recent_Activity_Ledger</span>
+                <span class="text-[8px] font-mono text-gray-500 tracking-widest">Recent_Activity_Ledger</span>
               </div>
               <div class="max-h-[120px] overflow-y-auto custom-scrollbar space-y-2 pr-2">
                 {#if loyaltyData?.history?.length > 0}
                   {#each loyaltyData.history.slice(0, 5) as tx}
                     <div class="flex items-center justify-between text-[9px] font-mono p-2 bg-white/5 rounded-lg border border-white/5">
                       <div class="flex flex-col">
-                        <span class="text-gray-400 uppercase tracking-tighter">{tx.transaction_type}</span>
+                        <span class="text-gray-400 tracking-tighter">{tx.transaction_type}</span>
                         <span class="text-[8px] text-gray-600">{tx.notes || 'No notes'}</span>
                       </div>
                       <span class={tx.amount > 0 ? "text-green-400" : "text-red-400"}>
@@ -379,17 +379,17 @@
 
     <!-- Footer -->
     <div class="p-6 border-t border-white/5 bg-black/60 flex items-center justify-between relative z-10">
-      <div class="flex items-center gap-2 text-[9px] font-mono text-gray-600 uppercase tracking-widest">
+      <div class="flex items-center gap-2 text-[9px] font-mono text-gray-600 tracking-widest">
         <CheckCircle size={12} /> Auto_Validate: Enabled
       </div>
       <div class="flex items-center gap-3">
         <button type="button" onclick={onClose} disabled={isLoading}
-          class="px-6 py-3 rounded-xl text-[10px] font-mono text-gray-500 hover:text-white bg-white/5 hover:bg-white/10 transition-colors uppercase tracking-[0.2em]"
+          class="px-6 py-3 rounded-xl text-[10px] font-mono text-gray-500 hover:text-white bg-white/5 hover:bg-white/10 transition-colors tracking-[0.2em]"
         >
           [ ABORT ]
         </button>
         <button type="submit" form="user-config-form" disabled={isLoading}
-          class="px-10 py-3 rounded-xl text-[10px] font-bold font-mono text-[#00FFFF] bg-black border border-[#00FFFF]/50 hover:border-[#00FFFF] hover:shadow-[0_0_30px_rgba(0,255,255,0.2)] transition-all uppercase tracking-[0.3em] relative group disabled:opacity-50"
+          class="px-10 py-3 rounded-xl text-[10px] font-bold font-mono text-[#00FFFF] bg-black border border-[#00FFFF]/50 hover:border-[#00FFFF] hover:shadow-[0_0_30px_rgba(0,255,255,0.2)] transition-all tracking-[0.3em] relative group disabled:opacity-50"
         >
           <span class="relative z-10">{isLoading ? "SYNCING..." : "COMMIT_IDENTITY"}</span>
         </button>

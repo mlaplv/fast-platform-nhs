@@ -147,7 +147,7 @@
             </div>
             <div>
                 <h3 class="text-xl font-bold text-gray-900 tracking-tight italic">Quà Tặng Elite</h3>
-                <p class="text-[10px] font-black text-[#C18F7E] uppercase tracking-[0.3em] leading-none mt-1">osmo Premium Protocol</p>
+                <p class="text-[10px] font-black text-[#C18F7E] tracking-[0.3em] leading-none mt-1">Quy trình osmo Premium</p>
             </div>
         </div>
         <button onclick={close} class="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full text-gray-400">
@@ -175,7 +175,7 @@
             <div class="collapsible-section">
                 <button 
                     onclick={() => isMessageExpanded = !isMessageExpanded}
-                    class="flex items-center justify-between w-full py-2 text-sm font-bold text-gray-800 uppercase tracking-widest"
+                    class="flex items-center justify-between w-full py-2 text-sm font-bold text-gray-800 tracking-widest"
                 >
                     <div class="flex items-center gap-3">
                         <MessageSquare size={16} class="text-[#C18F7E]" />
@@ -218,7 +218,7 @@
             <div class="collapsible-section">
                 <button 
                     onclick={() => isScheduleExpanded = !isScheduleExpanded}
-                    class="flex items-center justify-between w-full py-2 text-sm font-bold text-gray-800 uppercase tracking-widest"
+                    class="flex items-center justify-between w-full py-2 text-sm font-bold text-gray-800 tracking-widest"
                 >
                     <div class="flex items-center gap-3">
                         <Clock size={16} class="text-[#C18F7E]" />
@@ -249,7 +249,7 @@
                         </div>
 
                         <div class="space-y-4">
-                            <span class="text-[11px] font-black text-gray-400 uppercase tracking-widest block px-1">Tần suất lặp lại</span>
+                            <span class="text-[11px] font-black text-gray-400 tracking-widest block px-1">Tần suất lặp lại</span>
                             <div class="flex flex-wrap gap-2">
                                 {#each repeatOptions as opt}
                                     <button 
@@ -313,7 +313,7 @@
     @apply border-[#C18F7E] bg-white shadow-xl shadow-[#C18F7E]/5;
   }
   .field-label-elite {
-    @apply absolute left-5 top-3 text-[10px] font-black uppercase text-gray-400 tracking-wider pointer-events-none transition-all;
+    @apply absolute left-5 top-3 text-[10px] font-black text-gray-400 tracking-wider pointer-events-none transition-all;
   }
   .field-input-elite:focus + .field-label-elite {
     @apply text-[#C18F7E];
@@ -345,7 +345,7 @@
     font-family: 'Times New Roman', serif;
   }
   .preview-footer {
-    @apply text-[9px] font-black text-[#C18F7E] uppercase mt-6 tracking-[0.3em] opacity-60;
+    @apply text-[9px] font-black text-[#C18F7E] mt-6 tracking-[0.3em] opacity-60;
   }
 
   /* 💎 ULTIMATE CTA POSITIONING & STYLE */

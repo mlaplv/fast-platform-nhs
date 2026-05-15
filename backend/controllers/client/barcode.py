@@ -59,16 +59,27 @@ class BarcodeController(Controller):
                 else:
                     brand = brand or "Thương hiệu quốc tế"
 
-        # 2. Extract Regulatory Data from DB Metadata (Elite V2.2 Truth Source)
+        # 2. Extract Regulatory Data from DB (Elite V2.2 Truth Source)
+        # Quét thông minh mọi biến thể của HSD trong attributes
+        hsd_value = None
+        for k, v in attributes.items():
+            k_upper = k.upper()
+            if "HSD" in k_upper or "HẠN SỬ DỤNG" in k_upper:
+                hsd_value = v
+                break
+        
+        if not hsd_value:
+            hsd_value = metadata.get("expiry_date")
+        
         reg_info = {
             "notification_no": metadata.get("notification_no"),
             "notification_date": metadata.get("notification_date"),
             "notification_doc": metadata.get("notification_doc"),
-            "mfg_date": metadata.get("mfg_date"),
-            "expiry_date": metadata.get("expiry_date"),
+            "mfg_date": None, # Loại bỏ HSX theo yêu cầu của Sếp
+            "expiry_date": hsd_value,
             "batch_dna": metadata.get("batch_dna"),
             "factory_address": metadata.get("factory_address"),
-            "origin": metadata.get("origin"),
+            "origin": metadata.get("origin") or attributes.get("Xuất xứ") or attributes.get("origin"),
         }
 
         # 3. Gọi Agent để thẩm định nguồn gốc

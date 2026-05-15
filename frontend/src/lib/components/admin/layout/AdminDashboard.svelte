@@ -55,7 +55,7 @@
     <div class="flex flex-col items-center gap-4">
       <XohiLogo size="lg" status="THINKING" />
       <span
-        class="text-[10px] font-mono text-[#00FFFF]/40 uppercase tracking-[0.5em] animate-pulse"
+        class="text-[10px] font-mono text-[#00FFFF]/40 tracking-[0.5em] animate-pulse"
         >Initializing Xohi OS...</span
       >
     </div>

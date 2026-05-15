@@ -47,7 +47,7 @@
   <!-- Studio Label -->
   <div class="flex items-center gap-3 shrink-0 w-full">
     <div class="hidden md:block w-8 h-px bg-gradient-to-r from-transparent to-blue-500/50"></div>
-    <h5 class="hidden md:block text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/60">
+    <h5 class="hidden md:block text-[11px] font-black tracking-[0.2em] text-blue-400/60">
       NEURAL XOHI ·
       <span class="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(99,179,237,0.6)]">STUDIO</span>
     </h5>
@@ -84,7 +84,7 @@
        <div class="transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] {ctrl.previewMode === 'mobile' ? 'w-[375px] max-w-full min-h-[812px] bg-white text-black shadow-2xl p-6 border-[8px] border-zinc-800' : 'w-full max-w-3xl bg-white text-black shadow-xl p-8 md:p-12'}">
           <!-- Mock Header like VNExpress -->
           <div class="border-b-2 border-red-600 pb-4 mb-8 flex justify-between items-end">
-             <div class="text-3xl font-black text-red-600 tracking-tighter uppercase">BAOMOI.COM</div>
+             <div class="text-3xl font-black text-red-600 tracking-tighter ">BAOMOI.COM</div>
              <div class="text-xs font-bold text-gray-500">{new Date().toLocaleDateString('vi-VN')}</div>
           </div>
 
@@ -106,24 +106,24 @@
     <div class="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 border border-purple-500/30 p-6 relative overflow-hidden group shrink-0">
       <div class="absolute -right-10 -top-10 w-40 h-40 bg-purple-500/20 blur-3xl rounded-full"></div>
       
-      <h3 class="text-sm font-black text-purple-300 uppercase tracking-widest mb-4 flex items-center gap-2">
+      <h3 class="text-sm font-black text-purple-300 tracking-widest mb-4 flex items-center gap-2">
         <span class="text-lg">🛡️</span> Chứng Nhận Thuật Toán
       </h3>
       
       <div class="grid grid-cols-3 gap-3">
         <div class="bg-black/50 border border-emerald-500/30 p-4 flex flex-col items-center justify-center text-center gap-1 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
            <span class="text-2xl">✨</span>
-           <span class="text-[10px] text-emerald-400/80 font-bold uppercase tracking-wider">COPYRIGHT</span>
+           <span class="text-[10px] text-emerald-400/80 font-bold tracking-wider">COPYRIGHT</span>
            <span class="text-xl font-black text-emerald-400">{copyrightScore ?? '--'}%</span>
         </div>
         <div class="bg-black/50 border border-blue-500/30 p-4 flex flex-col items-center justify-center text-center gap-1 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
            <span class="text-2xl">⚡</span>
-           <span class="text-[10px] text-blue-400/80 font-bold uppercase tracking-wider">Chuẩn SEO</span>
+           <span class="text-[10px] text-blue-400/80 font-bold tracking-wider">Chuẩn SEO</span>
            <span class="text-xl font-black text-blue-400">{seoScore ?? '--'}</span>
         </div>
         <div class="bg-black/50 border border-fuchsia-500/30 p-4 flex flex-col items-center justify-center text-center gap-1 shadow-[0_0_15px_rgba(217,70,239,0.1)]">
            <span class="text-2xl">🤖</span>
-           <span class="text-[10px] text-fuchsia-400/80 font-bold uppercase tracking-wider">AI MOD</span>
+           <span class="text-[10px] text-fuchsia-400/80 font-bold tracking-wider">AI MOD</span>
            <span class="text-xl font-black text-fuchsia-400">{aiScore ?? '--'}%</span>
         </div>
       </div>
@@ -138,7 +138,7 @@
 
     <!-- 2. GOOGLE SERP SIMULATOR -->
     <div class="bg-white p-6 shadow-xl border border-gray-100 flex flex-col gap-3 shrink-0">
-       <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+       <h3 class="text-xs font-black text-gray-400 tracking-widest flex items-center gap-2 mb-2">
          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
          Google Search Preview
        </h3>
@@ -163,7 +163,7 @@
     {#if analysis_cache?.seo?.data?.signals || ctrl.title.length > 5}
     <div class="bg-gradient-to-b from-[#e8f0fe] to-white p-6 shadow-xl border border-blue-100 flex flex-col gap-3 relative overflow-hidden shrink-0">
        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-purple-400 to-red-400"></div>
-       <h3 class="text-xs font-black text-gray-500 uppercase flex items-center gap-2 mb-2">
+       <h3 class="text-xs font-black text-gray-500 flex items-center gap-2 mb-2">
          ✨ AI Overview Simulator
        </h3>
        <div class="text-sm text-gray-800 leading-relaxed font-sans">
@@ -187,13 +187,13 @@
     <div class="bg-white outline outline-1 outline-gray-200 shadow-xl overflow-hidden flex flex-col font-sans shrink-0">
        <div class="p-4 border-b border-gray-100 flex items-center gap-2 bg-gray-50">
           <div class="w-2 h-2 rounded-full bg-blue-600"></div>
-          <h3 class="text-xs font-black text-gray-400 uppercase">Facebook / Zalo Share Preview</h3>
+          <h3 class="text-xs font-black text-gray-400 ">Facebook / Zalo Share Preview</h3>
        </div>
        <div class="w-full h-48 bg-gray-100 relative">
           <img src={ctrl.thumbnail} alt="Social Thumbnail" class="w-full h-full object-cover" />
        </div>
        <div class="p-4 bg-[#f2f3f5]">
-          <div class="text-[12px] text-gray-500 uppercase tracking-wide font-semibold mb-1">YOUR-DOMAIN.COM</div>
+          <div class="text-[12px] text-gray-500 tracking-wide font-semibold mb-1">YOUR-DOMAIN.COM</div>
           <div class="text-[16px] font-bold text-black leading-tight mb-1">{ctrl.title}</div>
           <div class="text-[14px] text-gray-600 leading-snug line-clamp-1">{ctrl.description}</div>
        </div>

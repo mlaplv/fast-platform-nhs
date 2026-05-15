@@ -58,6 +58,12 @@ class ProductMetadata(BaseModel):
     positive_notes: List[str] = Field(default_factory=list, alias="positive_notes")
     negative_notes: List[str] = Field(default_factory=list, alias="negative_notes")
 
+    # Elite V2.2: Viral Infrastructure (Config chính thống)
+    share_promotion: Optional[Dict[str, JSONType]] = Field(default_factory=dict, alias="share_promotion")
+    viral_suite: Optional[Dict[str, JSONType]] = Field(default_factory=dict, alias="viral_suite")
+    share_count: int = Field(0, alias="share_count")
+    likes: int = Field(0, alias="likes")
+
     # Elite V2.2: Product FAQs (Tùy biến từ Admin → hiện trên Product Detail + Schema JSON-LD)
     faqs: List[FaqItem] = Field(default_factory=list, alias="faqs")
 

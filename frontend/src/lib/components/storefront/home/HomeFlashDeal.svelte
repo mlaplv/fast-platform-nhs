@@ -211,7 +211,7 @@
             <svg class="w-16 h-16 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span class="text-lg font-black text-gray-300 uppercase tracking-[0.2em]">Hết phiên Flash Sale</span>
+            <span class="text-lg font-black text-gray-300 tracking-[0.2em]">Hết phiên Flash Sale</span>
         </div>
       {/if}
     </div>
@@ -327,8 +327,7 @@
     padding: 0 0.25rem;
     border-radius: 1px;
     margin-top: 0.1rem;
-    text-transform: uppercase;
-  }
+    }
 
   .item-info {
     display: flex;
@@ -428,7 +427,6 @@
     color: white;
     font-size: 10px;
     font-weight: 900;
-    text-transform: uppercase;
     letter-spacing: 0.05em;
     text-shadow: 0 1px 2px rgba(0,0,0,0.2);
   }

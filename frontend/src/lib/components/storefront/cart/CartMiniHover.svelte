@@ -56,7 +56,7 @@
                 {item.product.name}
               </h4>
               {#if item.variant}
-                <p class="text-[11px] text-gray-400 mt-0.5 truncate uppercase font-bold tracking-tighter">
+                <p class="text-[11px] text-gray-400 mt-0.5 truncate font-bold tracking-tighter">
                   {item.variant.sku}
                 </p>
               {/if}
@@ -77,7 +77,7 @@
         </span>
         <a
           href="/checkout"
-          class="px-5 py-2.5 bg-[#ee4d2d] hover:bg-[#d0011b] text-white text-[14px] font-bold rounded-sm shadow-sm active:scale-[0.98] transition-all uppercase tracking-tight inline-block text-center"
+          class="px-5 py-2.5 bg-[#ee4d2d] hover:bg-[#d0011b] text-white text-[14px] font-bold rounded-sm shadow-sm active:scale-[0.98] transition-all tracking-tight inline-block text-center"
         >
           Xem Giỏ Hàng
         </a>

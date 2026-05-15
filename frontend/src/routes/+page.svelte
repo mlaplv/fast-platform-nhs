@@ -50,7 +50,7 @@
             <div class="fixed inset-0 flex items-center justify-center bg-[#010101] z-[var(--z-modal-overlay)]">
                 <div class="relative flex flex-col items-center gap-4">
                     <div class="w-12 h-12 border-2 border-[#00FFFF]/20 border-t-[#00FFFF] rounded-full animate-spin shadow-[0_0_15px_rgba(0,255,255,0.1)]"></div>
-                    <div class="text-[9px] font-mono text-[#00FFFF]/50 tracking-[0.4em] uppercase animate-pulse">Initializing Neural Link...</div>
+                    <div class="text-[9px] font-mono text-[#00FFFF]/50 tracking-[0.4em] animate-pulse">Initializing Neural Link...</div>
                 </div>
             </div>
         {:then mod}
@@ -74,7 +74,7 @@
                     <div class="absolute inset-0 flex items-center justify-center">
                          <div class="w-8 h-8 border-[1px] border-[#C5A25D]/5 border-b-[#C5A25D] rounded-full animate-spin-reverse duration-[3s]"></div>
                     </div>
-                    <div class="text-[10px] font-serif italic text-[#C5A25D]/60 tracking-[0.5em] uppercase animate-pulse">Loading...</div>
+                    <div class="text-[10px] font-serif italic text-[#C5A25D]/60 tracking-[0.5em] animate-pulse">Loading...</div>
                 </div>
             </div>
         {:then mod}

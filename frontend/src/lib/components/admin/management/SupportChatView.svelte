@@ -91,12 +91,12 @@
         <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full">
           <div class="max-w-[80%] group relative">
             <div class="{msg.role === 'user' ? 'bg-cyan-600/20 border border-cyan-500/30 rounded-tr-none' : 'bg-white/10 border border-white/10 rounded-tl-none'} transition-all p-4 rounded-2xl {msg.is_revoked ? 'opacity-40 grayscale' : ''}">
-              <div class="text-[9px] uppercase tracking-widest text-white/30 mb-1 flex justify-between gap-10">
+              <div class="text-[9px] tracking-widest text-white/30 mb-1 flex justify-between gap-10">
                 <span>{msg.role === 'user' ? 'KHÁCH HÀNG' : 'HELEN AI'}</span>
                 <span>{msg.is_revoked ? '[ĐÃ THU HỒI]' : ''} {formatDate(msg.created_at)}</span>
               </div>
               <p class="text-sm leading-relaxed whitespace-pre-wrap {msg.is_revoked ? 'italic line-through' : ''}">{msg.content}</p>
-              {#if msg.intent}<div class="mt-2 text-[8px] text-cyan-400/50 uppercase font-mono">INTENT: {msg.intent}</div>{/if}
+              {#if msg.intent}<div class="mt-2 text-[8px] text-cyan-400/50 font-mono">INTENT: {msg.intent}</div>{/if}
             </div>
             
             <div class="absolute {msg.role === 'user' ? 'right-full mr-2' : 'left-full ml-2'} bottom-0 opacity-0 group-hover:opacity-100 transition-all z-20">
@@ -117,7 +117,7 @@
       {#if quotedMessage}
         <div transition:slide={{ axis: 'y' }} class="absolute bottom-full left-0 right-0 bg-white/5 backdrop-blur-2xl border-t border-white/10 p-3 flex items-center justify-between z-10">
           <div class="flex items-center gap-3"><div class="w-1 h-8 bg-cyan-500 rounded-full"></div><div>
-            <span class="text-[10px] font-bold text-cyan-400 uppercase">Trả lời {quotedMessage.role === 'assistant' ? 'Helen AI' : 'Khách'}</span>
+            <span class="text-[10px] font-bold text-cyan-400 ">Trả lời {quotedMessage.role === 'assistant' ? 'Helen AI' : 'Khách'}</span>
             <p class="text-xs text-white/50 truncate max-w-md">{quotedMessage.content}</p>
           </div></div>
           <button onclick={onClearQuote} class="p-2 text-white/40 hover:text-white"><X class="w-4 h-4" /></button>

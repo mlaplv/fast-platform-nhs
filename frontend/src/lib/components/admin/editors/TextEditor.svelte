@@ -47,7 +47,7 @@
   <div class="flex items-center gap-3">
     <button 
       onclick={save}
-      class="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[11px] font-black uppercase tracking-[.3em] transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
+      class="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[11px] font-black tracking-[.3em] transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
     >
       <Check size={16} />
       CẬP NHẬT

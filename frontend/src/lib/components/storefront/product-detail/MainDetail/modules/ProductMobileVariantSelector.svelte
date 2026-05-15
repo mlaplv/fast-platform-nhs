@@ -174,7 +174,7 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
       <div class="flex flex-col justify-end pb-1 pr-6">
         <div class="flex items-baseline gap-1">
            <span class="text-[#ee4d2d] text-xl font-black">{formatCurrency(currentPrice)}</span>
-           <span class="text-[9px] text-gray-400 font-bold uppercase">/ sp</span>
+           <span class="text-[9px] text-gray-400 font-bold ">/ sp</span>
         </div>
         {#if quantity > 1}
           <div class="text-[12px] text-[#ee4d2d] font-bold mt-0.5">Tổng: {formatCurrency(totalPrice)}</div>
@@ -310,7 +310,7 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
         Xác nhận lựa chọn
       </button>
       <div class="text-center mt-3">
-         <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest opacity-60">Thanh toán an toàn • Bảo mật 100%</span>
+         <span class="text-[9px] text-gray-400 font-bold tracking-widest opacity-60">Thanh toán an toàn • Bảo mật 100%</span>
       </div>
     </div>
   </div>

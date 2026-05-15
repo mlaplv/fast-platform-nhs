@@ -33,7 +33,7 @@
       <div class="flex items-center gap-2">
         <Sparkles size={14} class="text-neon-cyan" />
         <span
-          class="text-[11px] font-bold uppercase tracking-widest text-white/70"
+          class="text-[11px] font-bold tracking-widest text-white/70"
           >Gợi ý nhanh</span
         >
       </div>
@@ -57,7 +57,7 @@
             {suggestion.label}
           </div>
           <div
-            class="text-[10px] font-mono text-white/20 mt-1 uppercase tracking-tighter"
+            class="text-[10px] font-mono text-white/20 mt-1 tracking-tighter"
           >
             {suggestion.command}
           </div>
@@ -67,7 +67,7 @@
 
     <div class="px-5 py-3 bg-neon-cyan/5 border-t border-neon-cyan/10">
       <div
-        class="text-[9px] font-mono text-neon-cyan/40 text-center uppercase tracking-widest leading-relaxed"
+        class="text-[9px] font-mono text-neon-cyan/40 text-center tracking-widest leading-relaxed"
       >
         Hệ thống hỗ trợ sếp tối đa<br />Trí tuệ XoHi Core
       </div>

@@ -29,7 +29,7 @@
        style="top: {cleanPopupPos.top}px; left: {cleanPopupPos.left}px; transform: translateX(-100%); z-index: {Z_INDEX_ADMIN.TIPTAP_TOOLBAR_DROPDOWN}"
   >
     <div class="flex flex-col gap-1">
-      <span class="text-[10px] font-black uppercase tracking-widest text-orange-500">Neural Clean</span>
+      <span class="text-[10px] font-black tracking-widest text-orange-500">Neural Clean</span>
       <span class="text-[8px] text-white/40">Select optimization parameters</span>
     </div>
 
@@ -62,7 +62,7 @@
 
     <button 
       onclick={() => { onClean?.(cleanOptions); showCleanOptions = false; }}
-      class="w-full py-2 bg-orange-500 text-black text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-orange-400 transition-all active:scale-95 shadow-lg shadow-orange-500/20"
+      class="w-full py-2 bg-orange-500 text-black text-[9px] font-black tracking-widest rounded-lg hover:bg-orange-400 transition-all active:scale-95 shadow-lg shadow-orange-500/20"
     >
       Execute Neural Clean
     </button>

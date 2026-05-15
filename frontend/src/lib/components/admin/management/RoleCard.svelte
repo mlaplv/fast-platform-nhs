@@ -49,7 +49,7 @@
         <ShieldCheck size={10} /> FULL ACCESS
       </span>
     {:else}
-      <span class="text-gray-500 tracking-wider uppercase">Limited</span>
+      <span class="text-gray-500 tracking-wider ">Limited</span>
     {/if}
   </span>
 

@@ -72,8 +72,8 @@
           <HelpCircle size={24} class="text-white group-hover:text-cyan-400 transition-colors" />
         </div>
         <div>
-          <h2 class="text-xl font-black tracking-tighter text-white uppercase italic">Quick Command</h2>
-          <p class="text-[10px] font-mono text-gray-500 tracking-[0.3em] uppercase">Control Center v2.2</p>
+          <h2 class="text-xl font-black tracking-tighter text-white italic">Quick Command</h2>
+          <p class="text-[10px] font-mono text-gray-500 tracking-[0.3em] ">Control Center v2.2</p>
         </div>
       </div>
       <div class="flex gap-1">
@@ -100,8 +100,8 @@
           </div>
 
           <div>
-            <div class="text-[13px] font-black text-white tracking-widest uppercase mb-1">{action.label}</div>
-            <div class="text-[9px] font-mono text-gray-500 group-hover/btn:text-gray-300 transition-colors uppercase tracking-wider">{action.sub}</div>
+            <div class="text-[13px] font-black text-white tracking-widest mb-1">{action.label}</div>
+            <div class="text-[9px] font-mono text-gray-500 group-hover/btn:text-gray-300 transition-colors tracking-wider">{action.sub}</div>
           </div>
         </button>
       {/each}

@@ -87,7 +87,7 @@
         </button>
       </div>
       <div>
-        <div class="text-[10px] font-mono text-neon-cyan uppercase tracking-widest mb-1">Trinity Core</div>
+        <div class="text-[10px] font-mono text-neon-cyan tracking-widest mb-1">Trinity Core</div>
         <div class="text-sm font-bold text-white truncate">{nanobot.userEmail || 'ADMINISTRATOR'}</div>
       </div>
     </div>
@@ -111,7 +111,7 @@
 
     <!-- Footer -->
     <div class="p-5 border-t border-white/5 bg-[#050505]">
-      <div class="text-[9px] font-mono text-gray-600 uppercase tracking-[0.2em] text-center">Xohi OS • System Online</div>
+      <div class="text-[9px] font-mono text-gray-600 tracking-[0.2em] text-center">Xohi OS • System Online</div>
       <div class="flex justify-center gap-1.5 mt-2">
         <div class="w-1.5 h-1.5 rounded-full bg-neon-cyan/40 animate-pulse"></div>
         <div class="w-1.5 h-1.5 rounded-full bg-neon-cyan/40 animate-pulse" style="animation-delay: 200ms"></div>

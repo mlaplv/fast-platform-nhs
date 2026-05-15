@@ -16,7 +16,7 @@
   <div class="flex items-center gap-2">
     {#if timer_prefix}
       <EditableWrapper path="metadata.offer_timer_prefix" type="text" label="SỬA TIỀN TỐ HẸN GIỜ" class="inline" as="span">
-        <span class="text-[9px] uppercase tracking-[0.2em] text-white/50 font-medium">{timer_prefix}</span>
+        <span class="text-[9px] tracking-[0.2em] text-white/50 font-medium">{timer_prefix}</span>
       </EditableWrapper>
     {/if}
     <span class="font-black tabular-nums text-[#ffb7c5] text-[11px] tracking-[0.1em] drop-shadow-[0_0_8px_rgba(255,183,197,0.4)]">{formatTime(timeLeft)}</span>

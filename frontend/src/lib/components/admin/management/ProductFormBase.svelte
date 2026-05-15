@@ -75,7 +75,7 @@
           type="text"
           bind:value={formState.sku}
           placeholder="SKU-XXXX..."
-          class="field-input border-b-amber-500/30 font-mono text-sm text-amber-400 uppercase tracking-wider"
+          class="field-input border-b-amber-500/30 font-mono text-sm text-amber-400 tracking-wider"
         />
         <div class="field-line bg-amber-500/60"></div>
       </div>
@@ -114,13 +114,13 @@
           class="field-input border-b-amber-500/30 text-sm font-mono tracking-wider w-full pr-12"
         />
         <div class="field-line bg-amber-500/60"></div>
-        <span class="absolute right-2 text-[9px] font-black uppercase text-amber-500/50">VND</span>
+        <span class="absolute right-2 text-[9px] font-black text-amber-500/50">VND</span>
       </div>
     </div>
 
     <!-- Giá khuyến mãi -->
     <div class="field-group">
-      <label class="field-label flex items-center gap-2 {isDiscountInvalid ? 'text-red-500' : 'text-rose-500/60'} uppercase tracking-widest">
+      <label class="field-label flex items-center gap-2 {isDiscountInvalid ? 'text-red-500' : 'text-rose-500/60'} tracking-widest">
         Giá khuyến mãi
         {#if isDiscountInvalid}
            <span class="text-[8px] font-bold text-red-500 normal-case">(Phải nhỏ hơn Giá bán)</span>
@@ -137,7 +137,7 @@
                : 'border-b-rose-500/30 text-rose-400'}"
         />
         <div class="field-line {isDiscountInvalid ? 'bg-red-500' : 'bg-rose-500/60'}"></div>
-        <span class="absolute right-2 text-[9px] font-black uppercase {isDiscountInvalid ? 'text-red-500/50' : 'text-rose-500/50'}">VND</span>
+        <span class="absolute right-2 text-[9px] font-black {isDiscountInvalid ? 'text-red-500/50' : 'text-rose-500/50'}">VND</span>
       </div>
     </div>
 
@@ -152,7 +152,7 @@
           class="field-input border-b-amber-500/30 text-sm font-mono tracking-wider w-full pr-12"
         />
         <div class="field-line bg-amber-500/60"></div>
-        <span class="absolute right-2 text-[9px] font-black uppercase text-amber-500/50">Unit</span>
+        <span class="absolute right-2 text-[9px] font-black text-amber-500/50">Unit</span>
       </div>
     </div>
 
@@ -163,7 +163,7 @@
         {#each [['active','H.Động'], ['draft','Thảo'], ['archived','Lưu']] as [val, lbl]}
            <button
              onclick={() => formState.status = val as "active"|"draft"|"archived"}
-             class="flex-1 h-full flex items-center justify-center text-[8px] font-black uppercase tracking-tight rounded-lg
+             class="flex-1 h-full flex items-center justify-center text-[8px] font-black tracking-tight rounded-lg
                {formState.status === val ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-inner' : 'text-gray-600 hover:text-white border border-transparent'}"
            >{lbl}</button>
         {/each}
@@ -179,8 +179,8 @@
           {formState.isAiFeatured ? 'border-[#00FFFF]/40 shadow-[0_0_15px_rgba(0,255,255,0.1)]' : 'border-white/5 grayscale opacity-50'}"
       >
         <div class="flex flex-col items-start gap-0.5">
-          <span class="text-[8px] font-black uppercase tracking-tighter {formState.isAiFeatured ? 'text-[#00FFFF]' : 'text-gray-500'}">AI Featured v2.2</span>
-          <span class="text-[7px] text-white/20 uppercase tracking-widest">{formState.isAiFeatured ? 'Enabled' : 'Disabled'}</span>
+          <span class="text-[8px] font-black tracking-tighter {formState.isAiFeatured ? 'text-[#00FFFF]' : 'text-gray-500'}">AI Featured v2.2</span>
+          <span class="text-[7px] text-white/20 tracking-widest">{formState.isAiFeatured ? 'Enabled' : 'Disabled'}</span>
         </div>
         <div class="relative w-8 h-4 bg-white/5 rounded-full p-0.5 transition-colors {formState.isAiFeatured ? 'bg-[#00FFFF]/20' : ''}">
           <div class="w-3 h-3 rounded-full transition-all duration-500 {formState.isAiFeatured ? 'translate-x-4 bg-[#00FFFF]' : 'bg-[#666]' }"></div>
@@ -194,7 +194,7 @@
   @reference "tailwindcss";
   
   .field-group { @apply flex flex-col gap-2; }
-  .field-label { @apply flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]; }
+  .field-label { @apply flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]; }
   .field-input { @apply w-full bg-transparent border-b border-white/8 px-1 py-1.5 text-white placeholder:text-white/15 outline-none transition-colors; }
   .field-select { @apply w-full bg-transparent border-b border-white/8 px-1 py-[7px] text-white text-sm outline-none cursor-pointer; }
   .field-line { @apply absolute bottom-0 left-0 w-0 h-[1px] bg-amber-500/60 transition-all duration-300; }

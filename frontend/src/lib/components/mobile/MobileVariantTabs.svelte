@@ -39,7 +39,7 @@
         class="relative px-6 py-2.5 rounded-full transition-all duration-500 z-10 {activeIndex === i ? 'text-white' : 'text-white/30 hover:text-white/60'}"
         onclick={() => selectVariant(i)}
       >
-        <span class="text-[10px] font-black uppercase tracking-[0.25em] italic whitespace-nowrap drop-shadow-sm">
+        <span class="text-[10px] font-black tracking-[0.25em] italic whitespace-nowrap drop-shadow-sm">
           {variant}
         </span>
       </button>

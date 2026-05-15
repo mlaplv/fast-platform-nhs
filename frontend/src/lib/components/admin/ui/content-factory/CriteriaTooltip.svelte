@@ -17,7 +17,7 @@
   <div class="criteria-tooltip opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto absolute bottom-full left-0 mb-2 w-72 bg-gradient-to-br from-orange-950/95 via-slate-950/95 to-slate-900/95 backdrop-blur-2xl border border-orange-500/20 shadow-2xl shadow-orange-500/5 p-4 z-50 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
     <div class="flex items-center gap-2 mb-3">
       <div class="w-6 h-6 rounded-md bg-orange-500/20 flex items-center justify-center"><ShieldCheck size={12} class="text-orange-400" /></div>
-      <span class="text-[10px] font-black uppercase tracking-[0.15em] text-orange-400">Plagiarism Cop™</span>
+      <span class="text-[10px] font-black tracking-[0.15em] text-orange-400">Plagiarism Cop™</span>
     </div>
     <div class="space-y-2 text-[9px] leading-relaxed text-white/70">
       <div class="flex items-start gap-2"><span class="text-orange-400 font-black mt-px">01</span><span><b class="text-white/90">Duplicate Detection</b> — So sánh từng câu với Top 10 Google, phát hiện trùng lặp ≥5 từ liên tiếp</span></div>
@@ -38,7 +38,7 @@
     {/if}
     <div class="flex items-center gap-2 mb-3">
       <div class="w-6 h-6 rounded-md bg-blue-500/20 flex items-center justify-center"><BarChart2 size={12} class="text-blue-400" /></div>
-      <span class="text-[10px] font-black uppercase tracking-[0.15em] text-blue-400">SEO Strategist™</span>
+      <span class="text-[10px] font-black tracking-[0.15em] text-blue-400">SEO Strategist™</span>
     </div>
     <div class="space-y-1.5 text-[9px] leading-relaxed text-white/70">
       <div class="flex items-start gap-2"><span class="text-blue-400 font-black shrink-0 w-8">20%</span><span><b class="text-white/90">Search Intent</b> — Giải quyết nỗi đau user tốt hơn đối thủ</span></div>
@@ -63,7 +63,7 @@
     <div class="flex items-center gap-2 mb-3">
       <div class="w-6 h-6 rounded-md bg-purple-500/20 flex items-center justify-center"><Sparkles size={12} class="text-purple-400" /></div>
       <div>
-        <span class="text-[10px] font-black uppercase tracking-[0.15em] text-purple-400">Viral Edge™</span>
+        <span class="text-[10px] font-black tracking-[0.15em] text-purple-400">Viral Edge™</span>
         <span class="text-[7px] text-white/30 ml-1">AI Search Optimization</span>
       </div>
     </div>

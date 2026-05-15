@@ -91,7 +91,7 @@
                   <h3 class="text-sm font-black tracking-widest text-white tracking-[0.1em] font-mono">Điều phối chiến dịch quảng cáo</h3>
                   {#if campaignView !== 'list'}
                      <ChevronRight size={16} class="text-slate-600" />
-                     <span class="text-[9px] font-black text-cyan-400 uppercase tracking-widest bg-cyan-400/10 px-4 py-1.5 rounded-none border border-cyan-400/20 font-mono">
+                     <span class="text-[9px] font-black text-cyan-400 tracking-widest bg-cyan-400/10 px-4 py-1.5 rounded-none border border-cyan-400/20 font-mono">
                         {campaignView === 'create_campaign' ? 'CREATE_DEPLOYMENT' : campaignView === 'ad_groups' ? 'AD_GROUPS_MATRIX' : 'AD_ASSETS'}
                      </span>
                   {/if}
@@ -130,7 +130,7 @@
                </div>
                
                <div class="flex items-center gap-2 bg-white/[0.03] p-1 rounded-none border border-white/10">
-                  <div class="px-3 text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                  <div class="px-3 text-[9px] font-black text-slate-500 tracking-widest flex items-center gap-2">
                      <Filter size={12} /> Trạng thái:
                   </div>
                   {#each [
@@ -224,7 +224,7 @@
             <!-- PAGINATION -->
             {#if totalPages > 1}
                <div class="mt-6 flex justify-between items-center bg-white/[0.03] p-4 rounded-none border border-white/5">
-                  <div class="text-[10px] text-slate-500 font-mono font-black uppercase tracking-widest">
+                  <div class="text-[10px] text-slate-500 font-mono font-black tracking-widest">
                      Trang {currentPage} / {totalPages}
                   </div>
                   <div class="flex items-center gap-2">
@@ -319,7 +319,7 @@
             <div class="space-y-8" in:fade>
                <div class="bg-cyan-500/5 border border-cyan-400/20 p-8 rounded-none flex flex-col md:flex-row justify-between items-center gap-6 shadow-lg relative overflow-hidden group">
                   <div class="absolute inset-0 bg-gradient-to-r from-cyan-400/5 to-transparent pointer-events-none"></div>
-                  <div class="flex items-center gap-5 text-cyan-400 font-black uppercase text-sm tracking-tighter relative z-10 font-mono">
+                  <div class="flex items-center gap-5 text-cyan-400 font-black text-sm tracking-tighter relative z-10 font-mono">
                      <div class="p-2 bg-cyan-400/10 rounded-none">
                         <Activity size={20} />
                      </div>
@@ -337,23 +337,23 @@
                            }}
                         />
                      </div>
-                     <div class="text-[9px] text-slate-500 font-mono font-black uppercase tracking-[0.2em]">INFRA_LEVEL: 02 // AD_GROUPS</div>
+                     <div class="text-[9px] text-slate-500 font-mono font-black tracking-[0.2em]">INFRA_LEVEL: 02 // AD_GROUPS</div>
                   </div>
                </div>
                
                {#if adGroupLoading}
                   <div class="py-32 flex flex-col items-center gap-6">
                      <RefreshCw size={48} class="animate-spin text-cyan-400 opacity-30" />
-                     <span class="text-[9px] font-mono font-black text-slate-500 uppercase tracking-[0.4em]">SYNCHRONIZING_GROUPS...</span>
+                     <span class="text-[9px] font-mono font-black text-slate-500 tracking-[0.4em]">SYNCHRONIZING_GROUPS...</span>
                   </div>
                {:else}
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                      {#each adGroups as ag}
                         <div class="bg-white/[0.03] border border-white/10 p-8 rounded-none hover:border-cyan-400/40 transition-all group/ag relative overflow-hidden shadow-xl flex flex-col cursor-pointer" onclick={() => fetchAds(ag)}>
                            <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-400/5 blur-[50px] rounded-none transition-opacity opacity-50 group-hover/ag:opacity-100"></div>
-                           <h5 class="text-white font-black text-lg tracking-tighter mb-6 group-hover/ag:text-cyan-400 transition-colors relative z-10 uppercase">{ag.name}</h5>
+                           <h5 class="text-white font-black text-lg tracking-tighter mb-6 group-hover/ag:text-cyan-400 transition-colors relative z-10 ">{ag.name}</h5>
                            <div class="mt-auto flex justify-between items-center pt-6 border-t border-white/5 relative z-10">
-                              <span class="text-[9px] text-slate-500 font-mono font-black uppercase tracking-widest">CPC_BID_VND</span>
+                              <span class="text-[9px] text-slate-500 font-mono font-black tracking-widest">CPC_BID_VND</span>
                               <span class="text-white font-mono font-black text-sm">{fmt(ag.cpc_bid_vnd)}₫</span>
                            </div>
                         </div>
@@ -362,7 +362,7 @@
                         <div class="w-12 h-12 rounded-none border border-white/10 flex items-center justify-center group-hover/add:border-cyan-400/50 transition-all">
                            <Plus size={24} class="text-slate-600 group-hover/add:text-cyan-400 group-hover/add:rotate-90 transition-all" />
                         </div>
-                        <span class="text-[9px] text-slate-500 font-mono font-black uppercase tracking-[0.2em]">ADD_NEW_AD_GROUP</span>
+                        <span class="text-[9px] text-slate-500 font-mono font-black tracking-[0.2em]">ADD_NEW_AD_GROUP</span>
                      </button>
                   </div>
                {/if}
@@ -370,19 +370,19 @@
          {:else if campaignView === 'ads'}
             <div class="space-y-8" in:fade>
                <div class="bg-emerald-500/5 border border-emerald-500/20 p-8 rounded-none flex justify-between items-center shadow-lg relative overflow-hidden">
-                  <div class="flex items-center gap-5 text-emerald-400 font-black uppercase text-sm tracking-tighter relative z-10 font-mono">
+                  <div class="flex items-center gap-5 text-emerald-400 font-black text-sm tracking-tighter relative z-10 font-mono">
                      <div class="p-2 bg-emerald-500/10 rounded-none">
                         <Target size={20} />
                      </div>
                      <span>QUẢNG CÁO TRONG NHÓM: {selectedAdGroup?.name}</span>
                   </div>
-                  <div class="text-[9px] text-slate-500 font-mono font-black uppercase tracking-[0.2em] relative z-10">INFRA_LEVEL: 03 // AD_ASSETS</div>
+                  <div class="text-[9px] text-slate-500 font-mono font-black tracking-[0.2em] relative z-10">INFRA_LEVEL: 03 // AD_ASSETS</div>
                </div>
 
                {#if adsLoading}
                   <div class="py-32 flex flex-col items-center gap-6">
                      <RefreshCw size={48} class="animate-spin text-emerald-400 opacity-30" />
-                     <span class="text-[9px] font-mono font-black text-slate-500 uppercase tracking-[0.4em]">DEPLOYING_ASSETS...</span>
+                     <span class="text-[9px] font-mono font-black text-slate-500 tracking-[0.4em]">DEPLOYING_ASSETS...</span>
                   </div>
                {:else}
                   <div class="overflow-hidden border border-white/10 rounded-none bg-black/20 shadow-inner">
@@ -401,7 +401,7 @@
                                  <td class="px-8 py-6">
                                     <div class="flex flex-col gap-1">
                                        <span class="text-white font-black text-sm tracking-tighter">{ad.name || 'Responsive Search Ad'}</span>
-                                       <span class="text-[9px] text-slate-600 font-black tracking-widest uppercase">{ad.type || 'RSA'}</span>
+                                       <span class="text-[9px] text-slate-600 font-black tracking-widest ">{ad.type || 'RSA'}</span>
                                     </div>
                                  </td>
                                  <td class="px-8 py-6">
@@ -423,7 +423,7 @@
                                </tr>
                            {:else}
                               <tr>
-                                 <td colspan="4" class="px-8 py-12 text-center text-[10px] text-slate-600 font-black uppercase tracking-[0.2em]">Không tìm thấy mẫu quảng cáo nào</td>
+                                 <td colspan="4" class="px-8 py-12 text-center text-[10px] text-slate-600 font-black tracking-[0.2em]">Không tìm thấy mẫu quảng cáo nào</td>
                               </tr>
                            {/each}
                         </tbody>

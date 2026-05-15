@@ -54,7 +54,7 @@
   <div class="relative h-full flex flex-col justify-between">
     <div class="flex justify-between items-start">
       <div class="space-y-0.5">
-        <p class="text-[9px] uppercase tracking-[2px] opacity-70 font-medium">osmo</p>
+        <p class="text-[9px] tracking-[2px] opacity-70 font-medium">osmo</p>
         <h3 class="text-lg font-serif italic tracking-wide">{tierName[tier as keyof typeof tierName]}</h3>
       </div>
       <div class="px-2 py-0.5 bg-white/20 backdrop-blur-sm rounded-md flex items-center justify-center border border-white/20 shadow-sm">
@@ -72,15 +72,15 @@
     <div class="space-y-4">
       <div class="flex items-end justify-between">
         <div class="space-y-0.5">
-          <p class="text-[9px] uppercase tracking-wider opacity-60 font-bold">Chủ thẻ</p>
-          <p class="text-sm font-medium tracking-[2.5px] truncate max-w-[200px] uppercase">
+          <p class="text-[9px] tracking-wider opacity-60 font-bold">Chủ thẻ</p>
+          <p class="text-sm font-medium tracking-[2.5px] truncate max-w-[200px] ">
             {user?.name || user?.username || 'GUEST'}
           </p>
         </div>
         <div class="text-right">
-          <p class="text-[9px] uppercase tracking-wider opacity-60 font-bold">Tích lũy</p>
+          <p class="text-[9px] tracking-wider opacity-60 font-bold">Tích lũy</p>
           <p class="text-xl font-black italic tracking-tighter">
-            {points} <span class="text-[10px] not-italic font-bold opacity-80 uppercase tracking-tighter">Pts</span>
+            {points} <span class="text-[10px] not-italic font-bold opacity-80 tracking-tighter">Pts</span>
             {#if pending > 0}
                <span class="text-[10px] not-italic font-bold text-white/70 ml-1">(+{pending})</span>
             {/if}

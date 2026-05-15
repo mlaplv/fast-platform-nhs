@@ -79,7 +79,7 @@
          </button>
      </div>
 
-     <div class="flex items-stretch bg-gray-50/50 border border-gray-100 divide-x divide-gray-100 rounded-none mb-10 overflow-hidden">
+     <div class="flex items-stretch bg-gray-50/50 border border-gray-100 divide-x divide-gray-100 rounded-none mb-6 overflow-hidden">
         {#if productInfo.brand}
           <div class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all group/spec cursor-default">
             <span class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2">
@@ -119,6 +119,26 @@
              </a>
           </div>
         </div>
+
+        <!-- THÔNG SỐ KỸ THUẬT KHÁC (Hợp nhất vào 1 hàng) -->
+        {#each visibleAttributes as [key, value]}
+          <div class="flex-1 px-8 py-5 flex flex-col justify-center hover:bg-white transition-all">
+            <span class="text-[9px] text-gray-400 font-black tracking-[0.25em] uppercase mb-2 flex items-center gap-2">
+              <div class="w-1 h-1 rounded-full bg-gray-300"></div> {key.replace(/_/g, " ")}
+            </span>
+            {#if key.toLowerCase().includes('sku') || key.toLowerCase().includes('serial') || key.toLowerCase().includes('barcode')}
+              <button 
+                class="text-[14px] text-[#ee4d2d] font-black hover:underline cursor-pointer bg-transparent border-none p-0 flex items-center gap-1 text-left"
+                onclick={triggerScan}
+              >
+                {value}
+                <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></div>
+              </button>
+            {:else}
+              <span class="text-[14px] font-black text-gray-800 tracking-tighter">{value}</span>
+            {/if}
+          </div>
+        {/each}
      </div>
 
      <div class="text-[14px] space-y-10">
@@ -164,26 +184,6 @@
              </div>
              {/if}
 
-             {#if visibleAttributes.length > 0}
-                <div class="grid grid-cols-2 gap-4 pt-4 mt-4 border-t border-gray-50">
-                  {#each visibleAttributes as [key, value]}
-                    <div class="flex items-center justify-between p-3 bg-gray-50/30 rounded-none">
-                      <span class="text-gray-400 font-medium capitalize">{key.replace(/_/g, " ")}</span>
-                      {#if key.toLowerCase().includes('sku') || key.toLowerCase().includes('serial') || key.toLowerCase().includes('barcode')}
-                        <button 
-                          class="text-[#ee4d2d] font-black hover:underline cursor-pointer bg-transparent border-none p-0 flex items-center gap-1"
-                          onclick={triggerScan}
-                        >
-                          {value}
-                          <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping"></div>
-                        </button>
-                      {:else}
-                        <span class="text-gray-900 font-bold">{value}</span>
-                      {/if}
-                    </div>
-                  {/each}
-                </div>
-              {/if}
         </div>
       </div>
    </div>

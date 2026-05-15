@@ -57,7 +57,7 @@
         <Globe size={11} />
         CẤU HÌNH SEO
       </div>
-      <button type="button" onclick={handleAiSuggest} disabled={isAiLoading} class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider cursor-pointer bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors disabled:opacity-50">
+      <button type="button" onclick={handleAiSuggest} disabled={isAiLoading} class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black tracking-wider cursor-pointer bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-600 hover:text-white transition-colors disabled:opacity-50">
         {#if isAiLoading}
           <RefreshCw size={10} class="animate-spin" />
           Đang phân tích...
@@ -85,7 +85,7 @@
           <button
             onclick={() => { formState.slug = generateSlug(formState.name); }}
             title="Tạo lại slug từ tên sản phẩm"
-            class="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider cursor-pointer bg-white/5 border border-white/10 text-white/40 hover:text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/5"
+            class="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[8px] font-black tracking-wider cursor-pointer bg-white/5 border border-white/10 text-white/40 hover:text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/5"
           >
             <RefreshCw size={10} />
             Tạo lại
@@ -145,7 +145,7 @@
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
             <div class="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center text-[8px] font-black text-white/30">G</div>
-            <span class="text-[8px] font-black uppercase tracking-[0.3em] text-white/20">XEM TRƯỚC GOOGLE</span>
+            <span class="text-[8px] font-black tracking-[0.3em] text-white/20">XEM TRƯỚC GOOGLE</span>
           </div>
           <span class="text-[7px] font-mono text-white/20 px-1.5 py-0.5 border border-white/5 rounded">Đồng bộ tự động</span>
         </div>
@@ -164,7 +164,7 @@
             {#each [['facebook', 'Facebook'], ['twitter', 'X / Twitter']] as [id, label]}
               <button
                 onclick={() => socialPreviewTab = id as 'facebook' | 'twitter'}
-                class="px-4 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg transition-all
+                class="px-4 py-1.5 text-[8px] font-black tracking-widest rounded-lg transition-all
                   {socialPreviewTab === id ? 'bg-white/10 text-white border border-white/10' : 'text-white/30 hover:text-white/60'}"
               >{label}</button>
             {/each}
@@ -181,11 +181,11 @@
               {#if ogImg}
                 <img src={ogImg} alt="OG" class="w-full h-full object-cover opacity-90" />
               {:else}
-                <span class="text-[9px] text-white/20 uppercase tracking-widest">Không có Avatar SEO</span>
+                <span class="text-[9px] text-white/20 tracking-widest">Không có Avatar SEO</span>
               {/if}
             </div>
             <div class="p-3 flex flex-col gap-1 bg-[#242526]">
-              <span class="text-[9px] text-[#b0b3b8] uppercase tracking-widest truncate">osmo</span>
+              <span class="text-[9px] text-[#b0b3b8] tracking-widest truncate">osmo</span>
               <div class="text-sm font-bold text-[#e4e6eb] line-clamp-2 leading-snug">{ogTitle}</div>
               <div class="text-[11px] text-[#b0b3b8] line-clamp-2 mt-0.5">{ogDesc}</div>
             </div>
@@ -198,9 +198,9 @@
 
 <style>
   @reference "tailwindcss";
-  .section-label { @apply flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.35em] text-white/30; }
+  .section-label { @apply flex items-center gap-2 text-[9px] font-black tracking-[0.35em] text-white/30; }
   .field-group { @apply flex flex-col gap-2; }
-  .field-label { @apply flex items-center gap-2 text-[9px] font-black text-white/25 uppercase tracking-[0.25em]; }
+  .field-label { @apply flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]; }
   .field-input { @apply w-full bg-transparent border-b border-white/8 px-1 py-1.5 text-white placeholder:text-white/15 outline-none transition-colors; }
   .field-line { @apply absolute bottom-0 left-0 w-0 h-[1px] bg-amber-500/60 transition-all duration-300; }
   :global(.field-group:focus-within .field-line) { @apply w-full; }
