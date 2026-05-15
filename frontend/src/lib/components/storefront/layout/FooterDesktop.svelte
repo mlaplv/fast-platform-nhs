@@ -77,12 +77,12 @@
       <!-- Brand & AI Trust Section -->
       <div class="lg:col-span-4 space-y-8">
         <div class="flex flex-col group cursor-default">
-          <span class="text-4xl font-black tracking-[0.25em] leading-none bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(193,143,126,0.2)]">
+          <span class="text-4xl font-black tracking-[0.25em] leading-none bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(193,143,126,0.2)] uppercase">
             {shopInfo.name}
           </span>
           <div class="flex items-center gap-2 mt-4">
              <div class="h-[1px] w-12 bg-gradient-to-r from-[#C18F7E] to-transparent"></div>
-             <span class="text-[10px] font-black tracking-[0.4em] text-white/40 capitalize">
+             <span class="text-[10px] font-black tracking-[0.4em] text-white/40 uppercase">
                {shopInfo.slogan}
              </span>
           </div>
@@ -214,7 +214,7 @@
       <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div class="space-y-3">
           <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 italic">
-            <p>© {currentYear} <span class="text-white font-bold">{shopInfo.name}</span></p>
+            <p>© {currentYear} <span class="text-white font-bold uppercase">{shopInfo.name}</span></p>
             <span class="w-1 h-1 rounded-full bg-white/10"></span>
             {#if shopInfo.companyName}
               <p class="font-bold text-slate-300 tracking-widest text-[8px]">{shopInfo.companyName}</p>

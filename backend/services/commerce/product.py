@@ -22,6 +22,10 @@ import json
 from pydantic_ai import Agent
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
+import hashlib
+import math
+import os
+
 logger = logging.getLogger("api-gateway")
 RE_ORDER_COUNT = re.compile(r"([\d,.]+)")
 
@@ -105,22 +109,21 @@ class ProductService:
 
     def _inject_marketing_boost(self, row_dict: ProductRowDict) -> None:
         # Elite V2.2: Marketing Boost (G_BY_COUNT) + Deterministic FOMO Growth
-        import os
-        from datetime import datetime
         try:
             g_by_count = int(os.getenv("G_BY_COUNT", "0"))
-        except:
+        except (ValueError, TypeError):
             g_by_count = 0
             
         # 🎯 Elite FOMO Logic: Hourly Growth + Unique Product Offset
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         hour_factor = now.hour * 2
         min_factor = now.minute // 15
         
         # Unique deterministic offset per product (500 to 8000 range)
-        # This prevents all products from having the same sales number
+        # Using MD5 instead of hash() to ensure persistence across process restarts
         pid_str = str(row_dict.get("id", ""))
-        unique_offset = (abs(hash(pid_str)) % 150) * 50 # Variates by up to 7500
+        pid_hash = int(hashlib.md5(pid_str.encode()).hexdigest(), 16)
+        unique_offset = (pid_hash % 150) * 50 # Variates by up to 7500
         
         fomo_boost = hour_factor + min_factor + unique_offset
         
@@ -132,7 +135,6 @@ class ProductService:
 
     def _get_display_order_count_text(self, metadata: Dict[str, object], actual_count: int) -> str:
         """Combine real orders with social proof base from metadata (Vietnamese Format)."""
-        import os
         try:
             g_by_count = int(os.getenv("G_BY_COUNT", "0"))
         except (ValueError, TypeError):
@@ -412,7 +414,6 @@ class ProductService:
                     final_map[pid] = {**full_r, "score": semantic_score_map.get(pid, 0.5)}
 
             # --- LAYER 4: VIRAL BOOST SCORING ---
-            import math
             ranked_list = []
             for pid, p in final_map.items():
                 order_count = int(p.get("order_count") or 0)
@@ -430,7 +431,7 @@ class ProductService:
             
             data: List[ProductResponse] = []
             for row_mapping in subset:
-                row_dict: ProductRowDict = dict(row_mapping) # type: ignore
+                row_dict: ProductRowDict = dict(row_mapping)
                 row_dict["variants"] = []
                 self._inject_marketing_boost(row_dict)
                 await self._hydrate_viral_config(db_session, row_dict)
@@ -489,7 +490,7 @@ class ProductService:
         result = await db_session.execute(stmt)
         data = []
         for row in result:
-            row_dict: ProductRowDict = dict(row._mapping) # type: ignore
+            row_dict: ProductRowDict = dict(row._mapping)
             row_dict["variants"] = []
             self._inject_marketing_boost(row_dict)
             await self._hydrate_viral_config(db_session, row_dict)
@@ -524,7 +525,7 @@ class ProductService:
         v_stmt = select(ProductVariant).where(ProductVariant.product_base_id == product_id, ProductVariant.deleted_at == None)
         variants = (await db_session.execute(v_stmt)).scalars().all()
 
-        row_dict: ProductRowDict = dict(row._mapping) # type: ignore
+        row_dict: ProductRowDict = dict(row._mapping)
         row_dict["variants"] = list(variants)
 
         # Elite Dynamic Counting & Marketing Boost
@@ -588,7 +589,7 @@ class ProductService:
         v_stmt = select(ProductVariant).where(ProductVariant.product_base_id == product_id, ProductVariant.deleted_at == None)
         variants = (await db_session.execute(v_stmt)).scalars().all()
 
-        row_dict: ProductRowDict = dict(row._mapping) # type: ignore
+        row_dict: ProductRowDict = dict(row._mapping)
         row_dict["variants"] = list(variants)
 
         # Elite Dynamic Counting & Marketing Boost

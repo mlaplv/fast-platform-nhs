@@ -9,6 +9,12 @@ from backend.services.commerce.logic.location_resolver import location_resolver
 from backend.services.xohi_memory import xohi_memory
 from backend.schemas.support import SupportIntent
 from backend.schemas.order import OrderDraft
+import os
+import re
+import traceback
+from datetime import datetime, timezone
+from sqlalchemy import and_, or_
+from backend.database.models.promotion import Voucher
 
 logger = logging.getLogger("api-gateway")
 
@@ -26,15 +32,10 @@ class OrderHandler(BaseHandler):
         
         # 🚀 Elite V5.6: Deep Diagnostic Entry Log (Anti-Dementia)
         if ctx.order_draft:
-            print(f"DEBUG_CONSOLE: 🔍 [OrderHandler] ENTRY STATE: items_count={len(ctx.order_draft.items)}, phone={ctx.order_draft.customer_phone}, addr={ctx.order_draft.customer_address}")
+            logger.debug(f"🔍 [OrderHandler] ENTRY STATE: items_count={len(ctx.order_draft.items)}, phone={ctx.order_draft.customer_phone}, addr={ctx.order_draft.customer_address}")
         else:
-            print(f"DEBUG_CONSOLE: 🔍 [OrderHandler] ENTRY STATE: order_draft=None for SID={session_id}")
+            logger.debug(f"🔍 [OrderHandler] ENTRY STATE: order_draft=None for SID={session_id}")
         
-        import os
-        import re
-        from backend.database.models.promotion import Voucher
-        from sqlalchemy import and_, or_
-        from datetime import datetime, timezone
         
         debug_prefix = "[z3] " if os.getenv("HELEN_DEBUG", "0") == "1" else ""
 
@@ -197,7 +198,7 @@ class OrderHandler(BaseHandler):
                         try:
                             lead_items = [LeadOrderItem(**it) for it in ctx.order_draft.items]
                         except Exception as item_err:
-                            print(f"DEBUG_CONSOLE: ❌ [OrderHandler] LeadOrderItem CONSTRUCTION FAILED: {item_err}")
+                            logger.error(f"❌ [OrderHandler] LeadOrderItem CONSTRUCTION FAILED: {item_err}")
                             logger.error(f"❌ [OrderHandler] LeadOrderItem(**it) failed: {item_err}. Raw items: {ctx.order_draft.items[:2]}")
                             # Fallback: Build from raw dict safely
                             lead_items = [
@@ -220,14 +221,13 @@ class OrderHandler(BaseHandler):
                         )
                         ctx.lead_data = lead_data
                         
-                        print(f"DEBUG_CONSOLE: ✅ [OrderHandler] 🧩 DRAFT UPDATE: Phone={lead_data.customer_phone}, Address={'SET' if lead_data.customer_address else 'MISSING'}, Items={len(lead_data.items)}")
+                        print_msg = f"✅ [OrderHandler] 🧩 DRAFT UPDATE: Phone={lead_data.customer_phone}, Address={'SET' if lead_data.customer_address else 'MISSING'}, Items={len(lead_data.items)}"
+                        logger.info(print_msg)
                         logger.info(f"✅ [OrderHandler] 🧩 DRAFT UPDATE: Phone={lead_data.customer_phone}, Address={'SET' if lead_data.customer_address else 'MISSING'}, Items={len(lead_data.items)}")
                         logger.info(f"✅ [OrderHandler] V4.1 Draft-First Synthesis Complete for SID: {session_id}")
                 except Exception as dfe:
-                    print(f"DEBUG_CONSOLE: ❌ [OrderHandler] Draft-First CRITICAL: {dfe}")
                     logger.error(f"❌ [OrderHandler] Draft-First Critical Error: {dfe}")
-                    import traceback
-                    traceback.print_exc()
+                    logger.exception("Draft-First Traceback:")
 
         # 🚀 2. ATOMIC EXTRACTION (Only if Draft-First didn't handle it)
         if not draft_filled and (is_strong_intent or is_staff_order):
@@ -265,7 +265,6 @@ class OrderHandler(BaseHandler):
         # 🚀 Elite V5.5: Real-time Draft Monitoring for Sếp
         if ctx.order_draft:
             _items_str = ", ".join([f"{it.get('name', 'SP')} x{it.get('quantity', 1)}" for it in ctx.order_draft.items])
-            print(f"DEBUG_CONSOLE: 📦 [OrderDraft] SID: {ctx.session_id} | SPXSL: [{_items_str}] | SĐT: {ctx.order_draft.customer_phone} | ĐỊA CHỈ: {ctx.order_draft.customer_address}")
             logger.info(f"📦 [OrderDraft] SID: {ctx.session_id} Sync: {_items_str} | {ctx.order_draft.customer_phone} | {ctx.order_draft.customer_address}")
 
         # 🚀 3. DECISION ENGINE (Shadow Checkout & Upsell)

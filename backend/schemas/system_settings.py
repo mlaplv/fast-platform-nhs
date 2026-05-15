@@ -3,6 +3,7 @@ from typing import List, Optional
 
 class BasicInfo(BaseModel):
     site_name: str = "SmartShop"
+    slogan: str = ""
     description: str = ""
     logo_desktop: Optional[str] = None
     logo_mobile: Optional[str] = None

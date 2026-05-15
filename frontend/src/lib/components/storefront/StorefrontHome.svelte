@@ -13,7 +13,7 @@
         companyName: data.settings?.contact_info?.company_name || "",
         taxId: data.settings?.contact_info?.tax_id || "",
         businessLicense: data.settings?.contact_info?.business_license || "",
-        slogan: "Agentic AI Commerce 2026", // Specific slogan for Elite V2.2
+        slogan: data.settings?.basic_info?.slogan || "Agentic AI Commerce 2026", // Dynamic from Settings V2.2
         description: data.settings?.basic_info?.description || "Hệ thống bán hàng AI thế hệ mới",
         hotline: data.settings?.contact_info?.hotline || data.settings?.contact_info?.phone || "1800-osmo",
         email: data.settings?.contact_info?.email || "contact@osmo",

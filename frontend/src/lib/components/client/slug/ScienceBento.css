@@ -12,6 +12,7 @@
         linear-gradient(90deg, rgba(193, 143, 126, 0.05) 1px, transparent 1px);
     background-size: 50px 50px;
     mask-image: radial-gradient(circle at 50% 50%, black, transparent 80%);
+    pointer-events: none !important;
 }
 
 .mechanism-image-wrapper {
@@ -200,7 +201,8 @@
 }
 
 .faq-item-card:hover .question-text {
-    color: #fff;
+    color: #fff !important;
+    text-shadow: 0 0 10px rgba(255,255,255,0.3);
 }
 
 .faq-arrow-indicator {
@@ -220,11 +222,16 @@
     background: transparent;
 }
 
-.faq-viral-modal > div {
+.modal-content {
     backdrop-filter: blur(40px);
     box-shadow: 
         0 50px 100px rgba(0,0,0,0.9),
         inset 0 0 0 1px rgba(255,255,255,0.05);
+    pointer-events: auto !important;
+}
+
+.modal-backdrop {
+    pointer-events: auto !important;
 }
 
 .faq-viral-modal h2 {

@@ -3,7 +3,7 @@
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
-  import { scale } from 'svelte/transition';
+  import { scale, fade } from 'svelte/transition';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import HelpCircle from "@lucide/svelte/icons/help-circle";
@@ -44,12 +44,14 @@ import X from "@lucide/svelte/icons/x";
 
   function closeFaq() {
     isModalOpen = false;
+    selectedFaqIndex = -1;
   }
 </script>
 
 <section id="science-mechanism" class="snap-session snap-session-standard science-section relative w-full overflow-hidden" style:padding-top="var(--standard-pt)">
     <!-- 150px Coordinate Grid Overlay -->
-    <div class="tech-grid opacity-30"></div>
+    <!-- 150px Coordinate Grid Overlay -->
+    <div class="tech-grid opacity-30 pointer-events-none"></div>
 
     <div class="container mx-auto px-6 max-w-6xl text-center relative z-surface">
         
@@ -169,7 +171,7 @@ import X from "@lucide/svelte/icons/x";
                     <div class="faq-grid w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {#each faqs.slice(0, 4) as faq, i}
                             <button 
-                                class="faq-item-card group relative bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-left transition-all duration-500 hover:bg-white/[0.04] hover:border-luxury-sakura/30 hover:-translate-y-1 h-full"
+                                class="faq-item-card group relative bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-left transition-all duration-500 hover:bg-white/[0.04] hover:border-luxury-sakura/30 hover:-translate-y-1 h-full z-10"
                                 onclick={() => openFaq(i)}
                             >
                                 <div class="flex items-center justify-between gap-4 w-full h-full">
@@ -194,20 +196,23 @@ import X from "@lucide/svelte/icons/x";
         {#if isModalOpen && selectedFaq}
         <div use:portal class="faq-viral-modal fixed inset-0 flex items-center justify-center p-6" style:z-index={Z_INDEX_CLIENT.MODAL}>
             <!-- Backdrop -->
-            <button
+            <div
                 transition:fade={{ duration: 300 }}
-                type="button"
-                class="absolute inset-0 bg-black/80 backdrop-blur-xl border-none outline-none cursor-default"
+                role="button"
+                tabindex="-1"
+                class="modal-backdrop absolute inset-0 bg-black/60 backdrop-blur-md cursor-default"
                 onclick={closeFaq}
+                onkeydown={(e) => e.key === 'Escape' && closeFaq()}
                 aria-label="Đóng"
-            ></button>
+            ></div>
 
             <!-- Modal Content -->
             <div
                 transition:scale={{ duration: 400, start: 0.9, opacity: 0 }}
-                class="relative w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-[40px] shadow-[0_50px_100px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col p-10 lg:p-14"
+                class="modal-content relative z-10 w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-[40px] shadow-[0_50px_100px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col p-10 lg:p-14"
                 role="dialog"
                 aria-modal="true"
+                onclick={(e) => e.stopPropagation()}
             >
                 <button 
                     onclick={closeFaq} 
@@ -233,7 +238,8 @@ import X from "@lucide/svelte/icons/x";
 
                     <button 
                         onclick={closeFaq}
-                        class="mt-14 w-full py-5 bg-white text-black text-xs font-black tracking-[0.3em] rounded-2xl hover:bg-luxury-sakura hover:text-white transition-all transform hover:scale-[1.02] active:scale-95 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
+                        class="mt-14 w-full py-5 bg-white text-black !text-black text-xs font-black tracking-[0.3em] rounded-2xl hover:bg-luxury-sakura hover:text-white transition-all transform hover:scale-[1.02] active:scale-95 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
+                        style="color: black !important;"
                     >
                         Tôi đã rõ
                     </button>

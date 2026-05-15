@@ -71,7 +71,7 @@
     return (raw && raw !== "undefined" && raw !== "null") ? raw : null;
   };
 
-  const sanitize = (val: any) => {
+  const sanitize = (val: string | null | undefined): string | null => {
     if (!val || val === "undefined" || val === "null") return null;
     return val;
   };
@@ -121,8 +121,8 @@
   });
 
   const validProvinces = $derived.by(() => {
-    const rawData = (vnDivisions as any).default || vnDivisions;
-    return (rawData as unknown as VnDivision[]).filter((p) => p.id);
+    const rawData = (vnDivisions as unknown as { default: VnDivision[] }).default || (vnDivisions as unknown as VnDivision[]);
+    return rawData.filter((p) => p.id);
   });
 
   const unifiedOptions = $derived.by(() => {
@@ -268,8 +268,9 @@
       
       // Elite V4.0: Seamless Transition - Open form immediately after unlock
       setTimeout(() => startEditing(), 100);
-    } catch (err: any) {
-      showToast(err.message || "Xác thực thất bại", "error");
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      showToast(e.message || "Xác thực thất bại", "error");
     } finally {
       isLoading = false;
     }
@@ -280,7 +281,8 @@
     
     // Elite V4.0: Competition Shield
     // If data is masked, force a Full Identity check before opening the form
-    const isMasked = order.customer_name?.includes("*") || order.customer_address?.includes("*") || (order as any).customerName?.includes("*");
+    const isMasked = (order.customer_name || order.customerName || "").includes("*") || 
+                     (order.customer_address || order.customerAddress || "").includes("*");
     
     if (isMasked) {
       isLocked = true;
@@ -289,13 +291,12 @@
       return;
     }
 
-    const o = order as any;
-    const cName = o.customer_name || o.customerName || o.name_masked || "";
-    const cPhone = o.customer_phone || o.customerPhone || "";
-    const cAddress = o.customer_address || o.customerAddress || o.address_masked || "";
+    const cName = order.customer_name || order.customerName || "";
+    const cPhone = order.customer_phone || order.customerPhone || "";
+    const cAddress = order.customer_address || order.customerAddress || "";
 
     const addrParts = parseAddress(cAddress);
-    const meta = o?.orderMetadata || o?.order_metadata;
+    const meta = order.order_metadata || {};
 
     editForm = {
       name: cName,
@@ -304,8 +305,8 @@
       ward: addrParts.ward,
       street: addrParts.street,
       note:
-        o?.customer_note ||
-        o?.customerNote ||
+        order.customer_note ||
+        order.customerNote ||
         order.note ||
         (meta?.customer_note as string) ||
         (meta?.note as string) ||
@@ -374,7 +375,7 @@
           customer_address: `${editForm.street}, ${editForm.ward}, ${editForm.province}`,
           note: editForm.note,
           order_metadata: {
-            ...((order as any).orderMetadata || order.order_metadata || {}),
+            ...(order.order_metadata || order.orderMetadata || {}),
             customer_note: editForm.note,
           },
         },
@@ -435,8 +436,7 @@
   >
 </svelte:head>
 
-{#if browser}
-  {#if data.isMobile && order}
+{#if (data.isMobile || ui.isMobile) && order}
     <SuccessMobile bind:order {orderId} isLookup={isTrackingMode} />
   {:else}
     <div class="min-h-screen bg-[#fafafa] text-slate-900 pb-20 pt-4 md:pt-10">
@@ -994,9 +994,8 @@
             </div>
           </div>
         {/if}
-      </div>
     </div>
-  {/if}
+  </div>
 {/if}
 
 {#if isConfirmCancelOpen}
