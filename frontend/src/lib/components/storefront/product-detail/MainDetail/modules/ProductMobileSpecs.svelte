@@ -81,7 +81,7 @@
   {#if product.metadata?.ingredients}
     <div class="mt-4 mb-6 flex flex-col gap-2">
       <h2 class="flex items-center gap-2 text-[11px] font-bold text-gray-400 tracking-wider">
-        <Beaker size={12} class="text-teal-500" /> Bảng thành phần {product.name}
+        <Beaker size={12} class="text-teal-500" /> Bảng thành phần
       </h2>
       <button 
         type="button"
@@ -115,7 +115,7 @@
     </div>
   {/if}
   
-  <h2 class="section-title mt-6">Chi tiết {product.name}</h2>
+  <h2 class="section-title mt-6">Chi tiết</h2>
   
   <div 
     class="description-wrapper {(!isExpanded && hasMore) ? 'collapsed' : ''}"
@@ -147,7 +147,7 @@
   <!-- GEO 2026: Mobile FAQ Section -->
   {#if product.metadata?.faqs && product.metadata.faqs.length > 0}
     <div class="mt-8 border-t border-gray-100 pt-6">
-      <h2 class="section-title">Câu hỏi về {product.name}</h2>
+      <h2 class="section-title">Câu hỏi thường gặp</h2>
       <div class="flex flex-col gap-2 mt-4">
         {#each product.metadata.faqs as faq, i}
           <div class="bg-gray-50/50 border border-gray-100 rounded-[5px] overflow-hidden transition-all {activeMobileFaq === i ? 'border-[#ee4d2d]/30 bg-white shadow-sm' : ''}">
@@ -172,7 +172,16 @@
 
 <style>
   .content-section { padding: 8px 5px 16px 5px; background: white; margin-bottom: 8px; overflow: hidden; }
-  .section-title { font-size: 13px; font-weight: 800; color: #333; margin-bottom: 12px; border-left: 3px solid #ee4d2d; padding-left: 10px; text-transform: none; }
+  .section-title { 
+    font-size: 16px; 
+    font-weight: 900; 
+    color: #111; 
+    margin-bottom: 4px; 
+    border-left: 4px solid #ee4d2d; 
+    padding-left: 12px; 
+    text-transform: none; 
+    letter-spacing: -0.02em;
+  }
   
   /* Elite V2.2: Smooth Description Truncation */
   .description-wrapper {
@@ -223,8 +232,8 @@
   :global(.prose-osmo h2, .prose-osmo h3) {
     color: #000 !important;
     font-weight: 900 !important;
-    margin-top: 1.5rem !important;
-    margin-bottom: 0.75rem !important;
+    margin-top: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
   }
 
   :global(.prose-osmo ul) {

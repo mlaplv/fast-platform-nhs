@@ -259,10 +259,10 @@
   };
 </script>
 
-<div class="bg-white p-6 md:p-10 mt-0 rounded-none relative overflow-hidden mb-0">
-  <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 pb-6 border-b border-gray-50">
+<div id="product-reviews" class="max-w-[1200px] mx-auto bg-white p-6 mt-0 rounded-none relative overflow-hidden mb-0 shadow-[0_2px_20px_-5px_rgba(0,0,0,0.05)] border border-gray-50">
+  <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-3 pb-2 border-b border-gray-50">
     <div>
-      <h2 class="text-2xl font-black text-[#1a1a1a] tracking-tight leading-none mb-2">Đánh giá {product.name}</h2>
+      <h2 class="text-[24px] font-black text-[#1a1a1a] tracking-tight leading-none mb-2">Đánh giá</h2>
       <p class="text-gray-400 text-xs font-medium tracking-[0.2em]">Trải nghiệm thực tế từ người dùng</p>
     </div>
     <button 

@@ -417,34 +417,32 @@
       onTriggerViralFly={triggerViralFly}
     />
   </div>
-
-  <!-- DETAIL SECTIONS (Specs, Ingredients, Description, FAQs) -->
-  <ProductDetailSections 
-    {product} 
-    {productInfo} 
-    visibleAttributes={product.attributes ? Object.entries(product.attributes).filter(([key, value]) => {
-      const k = key.toLowerCase().replace(/_/g, " ").trim();
-      const brand = productInfo.brand;
-      const origin = productInfo.origin;
-      const weight = productInfo.weight;
-      return !( ((k === "xuất xứ" || k === "origin") && origin) || 
-                ((k === "trọng lượng" || k === "quy cách" || k === "weight") && weight) || 
-                ((k === "mã vạch" || k === "barcode") && productInfo.barcode && productInfo.barcode !== "N/A") || 
-                (k === "thương hiệu" || k === "brand") );
-    }) : []}
-  />
-
-  <!-- REVIEWS SECTION -->
-  <div id="product-reviews" class="max-w-[1200px] mx-auto mt-6">
-     <ProductReviews {product} />
-  </div>
-
-  <!-- RELATED PRODUCTS -->
-  <div class="max-w-[1200px] mx-auto mt-6 mb-12">
-    <RelatedProducts {product} initialProducts={relatedProducts} />
-  </div>
-
 </svelte:element>
+
+<!-- DETAIL SECTIONS (Specs, Ingredients, Description, FAQs) -->
+<ProductDetailSections 
+  {product} 
+  {productInfo} 
+  visibleAttributes={product.attributes ? Object.entries(product.attributes).filter(([key, value]) => {
+    const k = key.toLowerCase().replace(/_/g, " ").trim();
+    const brand = productInfo.brand;
+    const origin = productInfo.origin;
+    const weight = productInfo.weight;
+    return !( ((k === "xuất xứ" || k === "origin") && origin) || 
+              ((k === "trọng lượng" || k === "quy cách" || k === "weight") && weight) || 
+              ((k === "mã vạch" || k === "barcode") && productInfo.barcode && productInfo.barcode !== "N/A") || 
+              (k === "thương hiệu" || k === "brand") );
+  }) : []}
+/>
+
+<!-- REVIEWS SECTION -->
+<ProductReviews {product} />
+
+<!-- RELATED PRODUCTS -->
+<div class="max-w-[1200px] mx-auto mt-0 mb-12">
+  <RelatedProducts {product} initialProducts={relatedProducts} />
+</div>
+
 </svelte:element>
 
 <style>
