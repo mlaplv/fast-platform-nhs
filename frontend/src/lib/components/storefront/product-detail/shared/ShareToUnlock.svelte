@@ -437,9 +437,9 @@
 
   .stp-msg { flex: 1; display: flex; flex-direction: column; justify-content: center; }
   .stp-t { font-size: 13px; font-weight: 800; color: #111; letter-spacing: -0.01em; display: inline-block !important; text-transform: lowercase !important; }
-  .stp-t::first-letter { text-transform: !important; }
+  .stp-t::first-letter { text-transform: uppercase !important; }
   .stp-sub { font-size: 11px; color: #666; font-weight: 500; line-height: 1.2; margin-top: 1px; display: inline-block !important; text-transform: lowercase !important; }
-  .stp-sub::first-letter { text-transform: !important; }
+  .stp-sub::first-letter { text-transform: uppercase !important; }
   
   .stp-go { 
     position: relative;
@@ -452,7 +452,7 @@
     outline: none;
   }
   .stp-go span { display: inline-block !important; text-transform: lowercase !important; }
-  .stp-go span::first-letter { text-transform: !important; }
+  .stp-go span::first-letter { text-transform: uppercase !important; }
 
   .stp-go:hover { transform: translateY(-1px); opacity: 0.9; }
 

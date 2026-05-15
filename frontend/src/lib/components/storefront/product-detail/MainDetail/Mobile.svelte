@@ -454,7 +454,7 @@
     text-transform: lowercase !important;
   }
   .reward-label::first-letter {
-    text-transform: !important;
+    text-transform: uppercase !important;
   }
   .confirm-btns {
     display: flex;

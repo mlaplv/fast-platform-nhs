@@ -343,13 +343,13 @@
         {#if variant === 'floating'}
           <div class="stu-ios-container">
             <div class="stu-ios-content">
-              <h4 class="stu-ios-title">{displayRewardLabel}</h4>
+              <h4 class="stu-ios-title first-letter:uppercase">{displayRewardLabel}</h4>
               {#if subDescription}
-                <span class="stu-ios-sub">{subDescription}</span>
+                <span class="stu-ios-sub inline-block first-letter:uppercase">{subDescription}</span>
               {/if}
             </div>
             <button class="stu-ios-btn" onclick={viralActions.share}>
-               <span>{ctaText}</span>
+               <span class="inline-block first-letter:uppercase">{ctaText}</span>
                <ExternalLink size={12} class="ml-1.5" />
                <div class="stu-ios-btn-shimmer"></div>
             </button>
@@ -366,16 +366,16 @@
             </div>
             <div class="stp-funnel-row">
               <div class="stp-f-msg">
-                <span class="stp-f-t">{displayRewardLabel}</span>
+                <span class="stp-f-t inline-block first-letter:uppercase">{displayRewardLabel}</span>
                 {#if subDescription}
-                  <span class="text-[8px] text-[#ffb7c5]/60 font-medium leading-none mb-1">{subDescription}</span>
+                  <span class="text-[8px] text-[#ffb7c5]/60 font-medium leading-none mb-1 inline-block first-letter:uppercase">{subDescription}</span>
                 {/if}
                 <div class="stp-f-progress">
                   <div class="stp-f-bar" style="width: 50%"></div>
                 </div>
               </div>
               <button class="stp-f-btn" onclick={viralActions.share}>
-                <span>{ctaText}</span>
+                <span class="inline-block first-letter:uppercase">{ctaText}</span>
                 <div class="stu-f-btn-shine"></div>
               </button>
             </div>

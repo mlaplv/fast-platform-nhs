@@ -179,8 +179,8 @@
                 <div class="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full border border-gray-100"></div>
                 <div class="w-px h-6 bg-[#ee4d2d]/20 border-dashed border-l mx-1"></div>
                 <div class="flex flex-col items-start translate-x-1">
-                   <span class="text-[12px] font-black text-[#ee4d2d] leading-none">{v.label}</span>
-                   <span class="text-[9px] text-gray-400 font-bold mt-1 tracking-tighter">{v.sub || ''}</span>
+                   <span class="text-[12px] font-black text-[#ee4d2d] leading-none inline-block first-letter:uppercase">{v.label}</span>
+                   <span class="text-[9px] text-gray-400 font-bold mt-1 tracking-tighter inline-block first-letter:uppercase">{v.sub || ''}</span>
                 </div>
                 {#if isApplied}
                   <div class="absolute -top-2 -right-2 bg-[#ee4d2d] text-white rounded-full p-0.5 shadow-md">
