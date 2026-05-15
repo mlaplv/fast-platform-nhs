@@ -194,7 +194,7 @@
           if (!exists) {
              vouchersList.push({
                id: data.code,
-               label: data.label || 'VOUCHER LAN TỎA',
+               label: data.label || 'Voucher lan tỏa',
                sub: 'Đã mở khóa từ chiến dịch',
                type: 'discount'
              });
@@ -335,7 +335,7 @@
     <div class="fs-right">
       <div class="fs-title">
         <Zap size={18} fill="white" />
-        <span>FLASH SALE</span>
+        <span>F⚡ASH SALE</span>
       </div>
       <div class="fs-countdown">
         <span>Kết thúc sau</span>

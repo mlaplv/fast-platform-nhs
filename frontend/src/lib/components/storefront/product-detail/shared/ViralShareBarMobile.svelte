@@ -65,7 +65,7 @@
       isCampaignLoaded = true;
       fetch(`/api/v1/client/viral/campaign/${vId}`)
         .then(res => res.json())
-        .then((data: any) => { campaignData = data; })
+        .then((data: { voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string }) => { campaignData = data; })
         .catch(() => {});
     }
   });

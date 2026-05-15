@@ -5,7 +5,7 @@
   import { formatCurrency } from '$lib/utils/format';
   import { apiClient } from '$lib/utils/apiClient';
   import { browser } from '$app/environment';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { slide, fade } from 'svelte/transition';
   import vnDivisions from '$lib/data/vn_divisions.json';
   import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';
@@ -41,20 +41,19 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
 
 
   // Immersive layout management: Hide global header/footer on mobile
-  $effect.pre(() => {
-    if (clientUi.isDetermined && clientUi.isMobile) {
+  // Elite V2.2: Standardize to $effect to avoid SSR/Hydration race conditions
+  // Elite V2.2: Deterministic UI State (SSR-Compatible)
+  // We set this immediately to prevent CLS/Flash on SSR.
+  if (clientUi.isDetermined && clientUi.isMobile) {
       clientUi.isHeaderHidden = true;
       clientUi.isFooterHidden = true;
-    } else if (clientUi.isDetermined) {
-      clientUi.isHeaderHidden = false;
-      clientUi.isFooterHidden = false;
-    } else {
-      clientUi.isHeaderHidden = true;
-      clientUi.isFooterHidden = true;
-    }
+  }
+
+  $effect(() => {
     return () => {
-      clientUi.isHeaderHidden = false;
-      clientUi.isFooterHidden = false;
+       // Elite V2.2: Unitary Cleanup - prevent state leakage to other pages
+       clientUi.isHeaderHidden = false;
+       clientUi.isFooterHidden = false;
     };
   });
 
@@ -176,36 +175,29 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
   }
 
   // [ELITE V2.2] Auto-Stick Protocol: Synchronize with Neural Best-Deals
-  $effect.pre(() => {
+  // Optimized: Use standard $effect and track only necessary dependencies
+  $effect(() => {
     const subtotal = cartStore.totalAmountWithoutDiscount;
-    if (cartStore.vouchers.length > 0 && subtotal > 0) {
-      
-      // 1. Resolve Shipping Channel (Value-Based)
-      const hasShippingSelected = cartStore.selectedVoucherIds.some((id: string) => 
-        cartStore.vouchers.find((v: Voucher) => v.id === id)?.type === 'SHIPPING'
-      );
-      
-      if (!hasShippingSelected && !userInteractedVoucherTypes.SHIPPING) {
-        const bestShip = cartStore.vouchers
-          .filter((v: Voucher) => v.type === 'SHIPPING' && subtotal >= (v.min_spend || 0))
-          .sort((a, b) => {
-             const diff = getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal);
-             if (diff !== 0) return diff;
-             // Tie-breakers: Default flag -> Priority
-             if (b.is_default !== a.is_default) return b.is_default ? 1 : -1;
-             return (b.priority || 0) - (a.priority || 0);
-          })[0];
-          
-        if (bestShip) {
-          cartStore.toggleVoucher(bestShip.id);
+    const vouchers = cartStore.vouchers;
+    if (vouchers.length === 0 || subtotal <= 0) return;
+
+    untrack(() => {
+      const selectedIds = cartStore.selectedVoucherIds;
+      const hasShipSelected = vouchers.some(v => v.type === 'SHIPPING' && selectedIds.includes(v.id));
+      const hasDiscountSelected = vouchers.some(v => ['FIXED', 'PERCENT'].includes(v.type) && selectedIds.includes(v.id));
+
+      // 1. Auto-select best Shipping if nothing selected
+      if (!hasShipSelected && !userInteractedVoucherTypes.SHIPPING) {
+        const eligibleShip = vouchers.filter(v => v.type === 'SHIPPING' && subtotal >= (v.min_spend || 0));
+        if (eligibleShip.length > 0) {
+          const bestShip = eligibleShip.sort((a, b) => getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal))[0];
+          if (bestShip && !selectedIds.includes(bestShip.id)) {
+            cartStore.toggleVoucher(bestShip.id);
+          }
         }
       }
 
-      // 2. Resolve Discount Channel (Value-Based)
-      const hasDiscountSelected = cartStore.selectedVoucherIds.some((id: string) => 
-        ['FIXED', 'PERCENT'].includes(cartStore.vouchers.find((v: Voucher) => v.id === id)?.type || '')
-      );
-
+      // 2. Auto-select best Discount if nothing selected
       if (!hasDiscountSelected && !userInteractedVoucherTypes.DISCOUNT) {
         const bestDiscount = cartStore.vouchers
           .filter((v: Voucher) => ['FIXED', 'PERCENT'].includes(v.type) && subtotal >= (v.min_spend || 0))
@@ -221,7 +213,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
           cartStore.toggleVoucher(bestDiscount.id);
         }
       }
-    }
+    });
   });
 
   // ELITE V2.2: Dynamic Tier Notification System
@@ -534,11 +526,11 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
   <title>Thanh toán bảo mật | osmo</title>
 </svelte:head>
 
-{#if browser}
-  {#if !clientUi.isDetermined}
+<div class="checkout-viewport min-h-screen bg-[#fafafa]">
+  {#if !clientUi.isHydrated}
     <TikTokShopLoading variant="grid" />
   {:else if !clientUi.isMobile}
-    <div class="min-h-screen bg-[#fafafa] pb-20 pt-4 md:pt-10">
+    <div class="pb-20 pt-4 md:pt-10">
       <div class="max-w-[1240px] mx-auto px-4">
         {#if cartStore.items.length === 0}
           <div class="py-20 text-center space-y-6" in:fade>
@@ -656,7 +648,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
           {#if cartStore.totalAmountWithoutDiscount > 0}
             <div class="bg-[#eaf8f4] text-[#00a870] text-[13px] font-medium px-4 py-3 flex items-center gap-2 mb-2 mt-2">
               <svg class="w-5 h-5 text-[#00a870]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-              Bạn được freeship!
+              Bạn được Freeship!
             </div>
           {/if}
 
@@ -966,7 +958,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
       {/if}
     </div>
   {/if}
-{/if}
+</div>
 <style>
   .no-scrollbar::-webkit-scrollbar {
     display: none;

@@ -8,6 +8,7 @@
   import Facebook from "@lucide/svelte/icons/facebook";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Share2 from "@lucide/svelte/icons/share-2";
+  import { untrack } from 'svelte';
   import type { Product, ProductMetadata } from '$lib/types';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
@@ -81,6 +82,7 @@
 
   let campaignData = $state<{ voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string } | null>(null);
   let isCampaignLoaded = $state(false);
+  let isComponentMounted = true;
 
   $effect(() => {
     const vId = promoConfig?.voucher_id;
@@ -88,7 +90,7 @@
       isCampaignLoaded = true;
       fetch(`/api/v1/client/viral/campaign/${vId}`)
         .then(res => res.json())
-        .then((data: any) => { campaignData = data; })
+        .then((data: { voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string }) => { campaignData = data; })
         .catch(() => {});
     }
   });
@@ -157,6 +159,7 @@
       }
     }
     return () => {
+        isComponentMounted = false;
         document.removeEventListener('visibilitychange', onVisibilityChange);
         document.removeEventListener('click', onClick);
         window.removeEventListener('scroll', onScroll);
@@ -194,10 +197,10 @@
                 // Promise resolved = user picked an app. Auto verify!
                 await viralActions.verify();
             } catch (err: unknown) {
-                if (err.name === 'AbortError') {
+                if (err instanceof Error && err.name === 'AbortError') {
                     throw new Error('Bạn đã hủy chia sẻ');
                 }
-                throw err; // Fallback
+                throw err;
             }
         } else {
             shareMethod = 'popup';
@@ -214,13 +217,13 @@
             if (!popup || popup.closed || typeof popup.closed === 'undefined') {
                 popupWasBlocked = true;
                 // If popup blocked, let's just try to verify anyway, AI will handle
-                setTimeout(() => viralActions.verify(), 2000);
+                setTimeout(() => { if(isComponentMounted) viralActions.verify() }, 2000);
             } else {
                 let verifyAttempts = 0;
                 let isVerifying = false;
 
                 const attemptVerify = async () => {
-                    if (isVerifying || step === 'revealed' || verifyAttempts >= 3) return;
+                    if (!isComponentMounted || isVerifying || step === 'revealed' || verifyAttempts >= 3) return;
                     const elapsed = Date.now() - shareStartTime;
                     if (elapsed < 4000) return; // Too fast to be a real share
                     
@@ -239,21 +242,28 @@
                     if (step !== 'revealed') attemptVerify();
                 };
 
+                const handleVisibilityChange = () => {
+                    if (!document.hidden) handleFocus();
+                };
+
                 // Poll popup closure
                 const pollTimer = setInterval(() => {
-                    if (popup.closed) {
+                    if (!isComponentMounted || popup.closed) {
                         clearInterval(pollTimer);
-                        const elapsed = Date.now() - shareStartTime;
-                        if (elapsed < 1500) {
-                            // Firefox isolation detected. Popup is actually still open.
-                            // Rely strictly on focus events when they return to the main window.
-                            window.addEventListener('focus', handleFocus);
-                            document.addEventListener('visibilitychange', () => {
-                                if (!document.hidden) handleFocus();
-                            });
-                        } else {
-                            // Normal browser, popup legitimately closed.
-                            attemptVerify();
+                        window.removeEventListener('focus', handleFocus);
+                        document.removeEventListener('visibilitychange', handleVisibilityChange);
+                        
+                        if (isComponentMounted && popup.closed) {
+                            const elapsed = Date.now() - shareStartTime;
+                            if (elapsed < 1500) {
+                                // Firefox isolation detected. Popup is actually still open.
+                                // Rely strictly on focus events when they return to the main window.
+                                window.addEventListener('focus', handleFocus, { once: true });
+                                document.addEventListener('visibilitychange', handleVisibilityChange, { once: true });
+                            } else {
+                                // Normal browser, popup legitimately closed.
+                                attemptVerify();
+                            }
                         }
                     }
                 }, 500);

@@ -172,7 +172,7 @@
                <MessageCircleQuestion size={20} class="text-orange-500" />
             </div>
             <div class="flex flex-col">
-               <h4 class="text-[14px] font-black tracking-widest text-gray-900 leading-tight">Faq Schema Core</h4>
+               <h4 class="text-[14px] font-black tracking-widest text-gray-900 leading-tight">Câu hỏi thường gặp</h4>
                <span class="text-[8px] text-gray-400 font-bold tracking-widest">Hỗ trợ trích dẫn bởi AI Search 2026</span>
             </div>
          </div>

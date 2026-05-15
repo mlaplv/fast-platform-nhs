@@ -451,10 +451,12 @@
   .offer-gift-label, .offer-info-label, .voucher-sub-label,
   .cta-selection-label, .cta-ship-label {
     text-transform: lowercase;
+    display: inline-block;
   }
   .offer-status-label::first-letter, .offer-meta-label::first-letter, 
   .variant-title::first-letter, .offer-gift-label::first-letter, 
   .offer-info-label::first-letter, .voucher-sub-label::first-letter, .cta-selection-label::first-letter, 
   .cta-ship-label::first-letter {
-    }
+    text-transform: uppercase;
+  }
 </style>

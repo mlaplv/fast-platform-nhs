@@ -31,6 +31,9 @@ export class CartStore {
     selectedVoucherIds = $state<string[]>([]);
     giftInfo = $state<GiftInfo | null>(null);
     isGiftModalOpen = $state<boolean>(false);
+    
+    private static instance: CartStore | null = null;
+    private static cleanup: (() => void) | null = null;
 
     // Bắt sự kiện khởi tạo để load data từ LocalStorage
     constructor() {
@@ -326,8 +329,12 @@ export class CartStore {
 // 🚀 ELITE CONTEXT KEYS
 const CART_KEY = Symbol('CART_STORE');
 
+let _globalCartInstance: CartStore | null = null;
+
 export function setCartStore() {
-    return setContext(CART_KEY, new CartStore());
+    if (_globalCartInstance) return setContext(CART_KEY, _globalCartInstance);
+    _globalCartInstance = new CartStore();
+    return setContext(CART_KEY, _globalCartInstance);
 }
 
 export function getCartStore(): CartStore {

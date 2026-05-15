@@ -113,6 +113,7 @@ class SupportAgentState {
 
     // Pulse Lifecycle Manager
     private _pulseSource: EventSource | null = null;
+    private _pulseTimeout: ReturnType<typeof setTimeout> | null = null;
 
 
     // Elite V3.1/V6.3: Persona Intelligence — Dynamic Welcome Based on Identity & Context
@@ -453,13 +454,17 @@ class SupportAgentState {
         };
 
         // Guard: Kill pulse if it hangs (Reduced to 60s for better responsiveness)
-        setTimeout(() => {
+        this._pulseTimeout = setTimeout(() => {
             this.isTyping = false;
             this._disconnectPulse();
         }, 60000);
     }
 
     private _disconnectPulse() {
+        if (this._pulseTimeout) {
+            clearTimeout(this._pulseTimeout);
+            this._pulseTimeout = null;
+        }
         if (this._pulseSource) {
             console.log("[SupportAgent] Pulse infrastructure disposed.");
             this._pulseSource.close();
@@ -540,7 +545,7 @@ class SupportAgentState {
             }
         } catch (error: unknown) {
             console.error("[SupportAgent] Chat error:", error);
-            const status = (error as { status?: number })?.status;
+            const status = (error as { status?: number; response?: { status: number } })?.status || (error as { response?: { status: number } })?.response?.status;
             const userFriendlyMsg = status === 429
                 ? "Hệ thống đang xử lý nhiều luồng, bạn vui lòng đợi một lát rồi thử lại nhé!"
                 : "Xin lỗi bạn, hệ thống kết nối đang bị gián đoạn. Bạn vui lòng thử lại sau nhé.";

@@ -23,20 +23,26 @@
   // Elite V2.2: Context initialization gated by tenant
   let { children, data } = $props();
 
-  // Elite V6.3: Neural Path Synchronization
+  // Elite V2.2: Global Navigation Guard & State Reset Protocol
   $effect(() => {
     const path = page.url.pathname;
+    const isNavigating = !!navigating;
+
     untrack(() => {
         supportAgent.setPath(path);
         
-        // Elite V2.2: Global Navigation Guard (Scroll-Lock & Overlay Reset)
+        // Reset scroll locks and overlays
         if (typeof document !== 'undefined') {
             document.body.style.overflow = '';
             document.documentElement.style.overflow = '';
         }
         
-        if (ui) {
+        // Elite V2.2: Redundancy Guard - Only reset if not explicitly handled by the incoming page
+        // We use a small delay or trust the incoming page's effect to override this if needed.
+        if (ui && isNavigating) {
             ui.authModal.isOpen = false;
+            ui.isHeaderHidden = false;
+            ui.isFooterHidden = false;
         }
         
         try {
