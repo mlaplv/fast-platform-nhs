@@ -28,6 +28,7 @@
   interface BasicInfo {
     site_name: string;
     slogan: string;
+    subslogan: string;
     description: string;
     logo_desktop: string | null;
     logo_mobile: string | null;
@@ -110,7 +111,7 @@
   }
 
   let settings = $state<SystemSettings>({
-    basic_info: { site_name: "", slogan: "", description: "", logo_desktop: null, logo_mobile: null, favicon: null },
+    basic_info: { site_name: "", slogan: "", subslogan: "", description: "", logo_desktop: null, logo_mobile: null, favicon: null },
     contact_info: { company_name: "", tax_id: "", business_license: "", phone: "", hotline: "", email: "", address: "", working_hours: "" },
     social_media: [],
     seo_analytics: { meta_title: "", meta_description: "", meta_keywords: "", google_analytics_id: "", facebook_pixel_id: "" },
@@ -312,6 +313,10 @@
                   <div class="space-y-1">
                     <label for="site_slogan" class="text-[10px] font-mono text-zinc-500 tracking-widest">Slogan / Câu hiệu</label>
                     <input id="site_slogan" bind:value={settings.basic_info.slogan} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="e.g. Bật tông trắng sáng" />
+                  </div>
+                  <div class="space-y-1">
+                    <label for="site_subslogan" class="text-[10px] font-mono text-zinc-500 tracking-widest">Sub-Slogan / Khẩu hiệu phụ</label>
+                    <input id="site_subslogan" bind:value={settings.basic_info.subslogan} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-cyan-500/50 outline-none transition-colors" placeholder="e.g. Mỹ Phẩm Cao Cấp Từ Nhật Bản" />
                   </div>
                   <div class="space-y-1">
                     <label for="site_desc" class="text-[10px] font-mono text-zinc-500 tracking-widest">Mô tả hệ thống</label>

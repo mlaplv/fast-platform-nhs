@@ -21,6 +21,7 @@
       taxId: string;
       businessLicense: string;
       slogan: string;
+      subslogan: string;
       description: string;
       hotline: string;
       email: string;
@@ -76,21 +77,25 @@
       
       <!-- Brand & AI Trust Section -->
       <div class="lg:col-span-4 space-y-8">
-        <div class="flex flex-col group cursor-default">
-          <span class="text-4xl font-black tracking-[0.25em] leading-none bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(193,143,126,0.2)] uppercase">
-            {shopInfo.name}
-          </span>
-          <div class="flex items-center gap-2 mt-4">
-             <div class="h-[1px] w-12 bg-gradient-to-r from-[#C18F7E] to-transparent"></div>
-             <span class="text-[10px] font-black tracking-[0.4em] text-white/40 uppercase">
-               {shopInfo.slogan}
-             </span>
+        <div class="space-y-4">
+          <div class="flex flex-col group cursor-default">
+            <span class="text-4xl font-black tracking-[0.25em] leading-none bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(193,143,126,0.2)] uppercase">
+              {shopInfo.name}
+            </span>
+            <div class="flex items-center gap-2 mt-4">
+               <div class="h-[1px] w-12 bg-gradient-to-r from-[#C18F7E] to-transparent"></div>
+               <span class="text-[10px] font-black tracking-[0.4em] text-white/40 uppercase">
+                 {shopInfo.slogan}
+               </span>
+            </div>
           </div>
-        </div>
 
-        <p class="text-[14px] leading-relaxed text-slate-400 max-w-[320px] font-normal italic">
-          "{shopInfo.description}"
-        </p>
+          {#if shopInfo.subslogan}
+            <p class="text-[14px] leading-relaxed text-slate-400 max-w-[320px] font-normal italic">
+              "{shopInfo.subslogan}"
+            </p>
+          {/if}
+        </div>
 
         <!-- FOMO: Live Pulse -->
         <div class="flex items-center gap-3 py-3 px-4 bg-[#C18F7E]/5 border border-[#C18F7E]/20 rounded-2xl w-fit backdrop-blur-md group hover:bg-[#C18F7E]/10 transition-all">

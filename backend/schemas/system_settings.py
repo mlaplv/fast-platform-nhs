@@ -4,7 +4,8 @@ from typing import List, Optional
 class BasicInfo(BaseModel):
     site_name: str = "SmartShop"
     slogan: str = ""
-    description: str = ""
+    subslogan: str = "Làn da trắng mịn không chỉ là vẻ đẹp, đó là sự tự tin và kiêu hãnh của mỗi người phụ nữ."
+    description: str = "Mỹ Phẩm Cao Cấp Từ Nhật Bản"
     logo_desktop: Optional[str] = None
     logo_mobile: Optional[str] = None
     favicon: Optional[str] = None

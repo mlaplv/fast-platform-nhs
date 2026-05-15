@@ -734,6 +734,7 @@ export interface CurrencySettings {
 export interface ShopInfo {
   name: string;
   slogan?: string;
+  subslogan?: string;
   description?: string;
   hotline?: string;
   email?: string;
@@ -743,6 +744,7 @@ export interface ShopInfo {
   basic_info?: {
     site_name?: string;
     slogan?: string;
+    subslogan?: string;
     description?: string;
   };
   contact_info?: {
