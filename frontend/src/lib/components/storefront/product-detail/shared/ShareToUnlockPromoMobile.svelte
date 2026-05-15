@@ -430,7 +430,7 @@
   .stp-f-btn { 
     position: relative; overflow: hidden;
     background: linear-gradient(135deg, #ee4d2d, #ff7337); color: #fff; 
-    padding: 8px 20px; border-radius: 6px; font-size: 11px; font-weight: 1000; border: none; cursor: pointer;
+    padding: 8px 10px; border-radius: 6px; font-size: 11px; font-weight: 1000; border: none; cursor: pointer;
     box-shadow: 0 4px 15px rgba(238, 77, 45, 0.25); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     letter-spacing: 0.05em;
   }

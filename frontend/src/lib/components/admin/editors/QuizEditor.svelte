@@ -25,7 +25,8 @@
         return [];
     }
     
-    const keys = p.split(".");
+    const normalizedPath = p.replace(/\[(\d+)\]/g, '.$1');
+    const keys = normalizedPath.split(".");
     let current: any = liveEditStore.dirtyProduct as Product;
 
     for (const key of keys) {

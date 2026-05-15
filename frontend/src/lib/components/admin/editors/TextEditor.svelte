@@ -13,7 +13,8 @@
   // Get current value from dirty metadata
   function getValue(p: string) {
     if (!liveEditStore.dirtyProduct) return "";
-    const keys = p.split(".");
+    const normalizedPath = p.replace(/\[(\d+)\]/g, '.$1');
+    const keys = normalizedPath.split(".");
     let current: any = liveEditStore.dirtyProduct as Product;
     for (const key of keys) {
         if (!current) return "";

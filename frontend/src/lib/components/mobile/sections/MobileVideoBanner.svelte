@@ -213,12 +213,16 @@
           </div>
         {/if}
         
-        <div class="metrics-grid">
+        <div class="metrics-grid pointer-events-auto relative z-surface">
           {#each metrics as metric, i}
             <div class="metric-item">
               <div class="metric-dot"></div>
-              <span class="metric-label whitespace-nowrap text-sakura-pink">{metric.label}</span>
-              <span class="metric-value whitespace-nowrap">{metric.value}</span>
+              <EditableWrapper path="metadata.hero_metrics[{i}].label" value={metric.label} label="SỬA NHÃN {i+1}" as="span">
+                <span class="metric-label whitespace-nowrap text-sakura-pink">{metric.label}</span>
+              </EditableWrapper>
+              <EditableWrapper path="metadata.hero_metrics[{i}].value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}" as="span">
+                <span class="metric-value whitespace-nowrap">{metric.value}</span>
+              </EditableWrapper>
             </div>
           {/each}
         </div>

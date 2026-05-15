@@ -54,7 +54,8 @@
     if (!product) return fallback;
     
     try {
-        const keys = p.split(".");
+        const normalizedPath = p.replace(/\[(\d+)\]/g, '.$1');
+        const keys = normalizedPath.split(".");
         let current: unknown = product;
         for (const key of keys) {
             if (current === null || current === undefined || typeof current !== 'object') return fallback;
@@ -235,7 +236,7 @@
         <div class="relative w-full h-full pointer-events-auto flex flex-col" style="z-index: 999999;" onclick={(e) => e.stopPropagation()} ontouchend={(e) => e.stopPropagation()} onpointerdown={(e) => e.stopPropagation()} role="presentation">
             <textarea bind:this={taRef} use:initResize autofocus onkeydown={handleKeydown} oninput={(e) => autoResize(e.currentTarget as HTMLTextAreaElement)} class="w-full bg-transparent text-white outline-none font-sans resize-none placeholder:text-white/20 p-0 m-0 border-none transition-colors relative z-[999999]" style="font-size: inherit; line-height: inherit; font-weight: inherit; text-align: inherit; min-height: 1.5em; overflow: hidden;" placeholder="Nhập văn bản..."></textarea>
             
-            <div class="absolute top-full right-0 mt-2 flex items-center gap-1 p-1 bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-lg shadow-xl animate-fade-in w-max z-[999999]">
+                <div class="mt-2 ml-auto flex items-center gap-1 p-1 bg-slate-900/95 backdrop-blur-md border border-white/10 rounded-lg shadow-xl animate-fade-in w-max relative z-[999999]">
                 <button class="text-white/60 hover:text-white text-[10px] font-bold px-3 py-1.5 transition-colors" onclick={(e) => { e.stopPropagation(); cancelInline(); }} ontouchend={(e) => e.stopPropagation()} onpointerdown={(e) => e.stopPropagation()}>HỦY</button>
                 <button class="bg-blue-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-md flex items-center gap-1 active:scale-95 transition-transform" onclick={(e) => { e.stopPropagation(); saveInline(); }} ontouchend={(e) => e.stopPropagation()} onpointerdown={(e) => e.stopPropagation()}><Check size={12} strokeWidth={4} /> XONG</button>
             </div>
@@ -252,6 +253,13 @@
                 <Edit size={12} class="text-white" />
             {/if}
             <span class="text-[8px] font-black text-white uppercase tracking-widest px-1 min-w-[50px] inline-block">{label}</span>
+            
+            {#if type === 'text' || type === 'html'}
+                <button class="ml-2 pl-2 border-l border-white/20 text-white/60 hover:text-white transition-colors flex items-center gap-1 active:scale-90" onclick={(e) => { e.stopPropagation(); e.preventDefault(); triggerHaptic(15); window.dispatchEvent(new CustomEvent('open-editor', { detail: { path, type, label }, bubbles: true, composed: true })); }} ontouchend={(e) => { e.stopPropagation(); e.preventDefault(); triggerHaptic(15); window.dispatchEvent(new CustomEvent('open-editor', { detail: { path, type, label }, bubbles: true, composed: true })); }} title="Mở trình soạn thảo">
+                    <Settings2 size={12} strokeWidth={3} />
+                </button>
+            {/if}
+
             <button class="ml-2 pl-2 border-l border-white/20 text-white/60 hover:text-white transition-colors flex items-center gap-1 active:scale-90" onclick={toggleDisabled} ontouchend={toggleDisabled} title={isDisabled ? "Hiện nội dung" : "Ẩn nội dung"}>
                 {#if isDisabled}
                     <EyeOff size={12} strokeWidth={3} />

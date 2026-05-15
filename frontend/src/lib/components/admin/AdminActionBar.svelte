@@ -129,7 +129,7 @@
     <!-- Edit Toggle -->
     <button 
       onclick={toggleEditMode}
-      class="flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2.5 md:py-3 rounded-full transition-all duration-500 {liveEditStore.isEditMode ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.1)]' : 'hover:bg-white/5 text-white/60 hover:text-white'}"
+      class="flex items-center gap-2 md:gap-3 p-2.5 md:px-6 md:py-3 rounded-full transition-all duration-500 {liveEditStore.isEditMode ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.1)]' : 'hover:bg-white/5 text-white/60 hover:text-white'}"
     >
       <Edit3 size={15} />
       <span class="text-[11px] font-black uppercase tracking-[0.2em] hidden md:inline">{liveEditStore.isEditMode ? 'DANG CHỈNH SỬA' : 'CHẾ ĐỘ CHỈNH SỬA'}</span>
@@ -138,11 +138,10 @@
     {#if liveEditStore.isEditMode}
       <div class="w-px h-6 bg-white/10"></div>
       
-      <!-- Save Button -->
       <button 
         onclick={() => liveEditStore.save()}
         disabled={liveEditStore.isSaving}
-        class="flex items-center gap-2 md:gap-3 px-5 md:px-8 py-2.5 md:py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full transition-all duration-300 shadow-[0_10px_40px_rgba(37,99,235,0.3)] active:scale-95 disabled:opacity-50"
+        class="flex items-center gap-2 md:gap-3 p-2.5 md:px-8 md:py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full transition-all duration-300 shadow-[0_10px_40px_rgba(37,99,235,0.3)] active:scale-95 disabled:opacity-50"
       >
         {#if liveEditStore.isSaving}
           <RefreshCcw size={15} class="animate-spin" />

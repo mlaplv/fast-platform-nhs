@@ -69,7 +69,8 @@ class LiveEditStore {
     if (!this.dirtyProduct) return;
 
     try {
-      const keys = path.split(".");
+      const normalizedPath = path.replace(/\[(\d+)\]/g, '.$1');
+      const keys = normalizedPath.split(".");
       let current = this.dirtyProduct as unknown as RecordObject;
 
       for (let i = 0; i < keys.length - 1; i++) {
