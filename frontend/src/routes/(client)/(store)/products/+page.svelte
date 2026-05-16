@@ -43,7 +43,8 @@
       ? `Kết quả tìm kiếm "${data.searchQuery}" - ${data.total} sản phẩm chính hãng tại osmo Elite.`
       : "Khám phá toàn bộ sản phẩm chăm sóc sức khỏe chính hãng tại osmo Elite. Cam kết chất lượng, hỗ trợ 24/7."
   );
-  const seoRobots = $derived(data.searchQuery ? "noindex, follow" : "index, follow");
+  const seoRobots = $derived(data.searchQuery ? "noindex, nofollow" : "index, follow");
+
 </script>
 
 <SeoHead

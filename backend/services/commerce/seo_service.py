@@ -73,9 +73,11 @@ class SeoService:
         return _RE_HTML.sub('', text).strip()
 
     @staticmethod
-    def _build_title(name: str, seo_title: Optional[str] = None) -> str:
+    def _build_title(product: object, seo_title: Optional[str] = None) -> str:
         """Title ưu tiên trường admin nhập, fallback sang name + brand."""
-        title: str = seo_title or f"{name} | {_BRAND_NAME}"
+        name = getattr(product, "name", "Sản phẩm")
+        title: str = seo_title or getattr(product, "seoTitle", None) or getattr(product, "seo_title", None) or f"{name} | {_BRAND_NAME}"
+        
         # Tước bỏ HTML tags nếu có
         title = SeoService._strip_html(title)
         if len(title) > _TITLE_MAX:
@@ -83,18 +85,20 @@ class SeoService:
         return title
 
     @staticmethod
-    def _build_description(product: ProductResponse) -> str:
+    def _build_description(product: object) -> str:
         """
         Desc ưu tiên: seoDescription → shortDescription → description (cắt câu hoàn chỉnh).
-        Không để cắt ngang giữa từ bằng cách truncate đến khoảng trắng gần nhất.
+        Hỗ trợ cả Pydantic model (camelCase) và SQLAlchemy model (snake_case).
         """
-        raw: Optional[str] = (
-            product.seoDescription
-            or product.shortDescription
-            or product.description
-        )
+        seo_desc = getattr(product, "seoDescription", None) or getattr(product, "seo_description", None)
+        short_desc = getattr(product, "shortDescription", None) or getattr(product, "short_description", None)
+        full_desc = getattr(product, "description", None)
+        
+        raw: Optional[str] = seo_desc or short_desc or full_desc
+
         if not raw:
-            return f"Mua {product.name} chính hãng tại {_SITE_NAME}. Cam kết chất lượng, hỗ trợ 24/7."
+            name = getattr(product, "name", "sản phẩm")
+            return f"Mua {name} chính hãng tại {_SITE_NAME}. Cam kết chất lượng, hỗ trợ 24/7."
 
         # Tước bỏ HTML tags nếu có (description có thể chứa HTML)
         raw = SeoService._strip_html(raw)
@@ -110,16 +114,17 @@ class SeoService:
         return truncated + "…"
 
     @staticmethod
-    def _build_keywords(product: ProductResponse) -> str:
+    def _build_keywords(product: object) -> str:
         """
         Keywords đuôi dài (long-tail) theo chuẩn 2026 Vietnam E-commerce SEO.
         Ưu tiên admin nhập; fallback tự sinh từ tên + category + brand.
         """
-        if product.seoKeywords:
-            return product.seoKeywords
+        seo_keywords = getattr(product, "seoKeywords", None) or getattr(product, "seo_keywords", None)
+        if seo_keywords:
+            return seo_keywords
 
-        name: str = product.name
-        cat: str = product.category or ""
+        name: str = getattr(product, "name", "sản phẩm")
+        cat: str = getattr(product, "category", "") or getattr(product, "category_name", "") or ""
         brand: str = _BRAND_NAME
         site: str = _SITE_NAME
 
@@ -364,7 +369,7 @@ class SeoService:
         """
         canonical_url: str = f"{_SITE_URL}/{product.slug}"
 
-        title: str = SeoService._build_title(product.name, product.seoTitle)
+        title: str = SeoService._build_title(product, getattr(product, "seoTitle", None) or getattr(product, "seo_title", None))
         desc: str = SeoService._build_description(product)
         keywords: str = SeoService._build_keywords(product)
         json_ld: str = SeoService._build_json_ld(product, canonical_url, desc)

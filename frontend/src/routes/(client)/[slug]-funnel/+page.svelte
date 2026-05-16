@@ -1,33 +1,33 @@
 <script lang="ts">
-  import '../client.css';
-  import { onMount } from 'svelte';
-  import { setShopStore } from '$lib/state/commerce/shop.svelte';
-  import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import HeroBanner from '$lib/components/client/HeroBanner.svelte';
-  import LiquidHeader from '$lib/components/client/LiquidHeader.svelte';
-  import { browser } from '$app/environment';
-  import type { Action } from 'svelte/action';
-  
+  import "../client.css";
+  import { onMount } from "svelte";
+  import { setShopStore } from "$lib/state/commerce/shop.svelte";
+  import { getClientUi } from "$lib/state/commerce/ui.svelte";
+  import HeroBanner from "$lib/components/client/HeroBanner.svelte";
+  import LiquidHeader from "$lib/components/client/LiquidHeader.svelte";
+  import { browser } from "$app/environment";
+  import type { Action } from "svelte/action";
+
   // JIT Component Flags
   let loadJIT = $state(false);
-  
-  import MobileLandingLayout from '$lib/components/mobile/MobileLandingLayout.svelte';
-  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
-  import ScannerHUD from '$lib/components/storefront/product-detail/shared/ScannerHUD.svelte';
-  import VerificationCenter from '$lib/components/storefront/product-detail/shared/VerificationCenter.svelte';
+
+  import MobileLandingLayout from "$lib/components/mobile/MobileLandingLayout.svelte";
+  import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
+  import ScannerHUD from "$lib/components/storefront/product-detail/shared/ScannerHUD.svelte";
+  import VerificationCenter from "$lib/components/storefront/product-detail/shared/VerificationCenter.svelte";
   import X from "@lucide/svelte/icons/x";
-  import { portal } from '$lib/core/actions/portal';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
-  import { fade, scale } from 'svelte/transition';
-  
-  import type { PageData } from './$types';
-  
+  import { portal } from "$lib/core/actions/portal";
+  import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
+  import { fade, scale } from "svelte/transition";
+
+  import type { PageData } from "./$types";
+
   // Admin Live Editor (Elite V2.2)
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
-  import { permissionState } from '$lib/state/permissions.svelte';
+  import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
+  import { permissionState } from "$lib/state/permissions.svelte";
 
   let { data }: { data: PageData } = $props();
-  let themeMode = $state<'system' | 'light' | 'dark'>('system');
+  let themeMode = $state<"system" | "light" | "dark">("system");
 
   // 🚀 ELITE CONTEXT INJECTION (Elite V2.2)
   const shopStore = setShopStore();
@@ -38,17 +38,21 @@
   const seoMeta = $derived(product?.seoMeta || product?.seo_meta || null);
   const isMobile = $derived(data?.isMobile || false);
 
-  const loadingText = $derived(metadata.sync_loading_text || 'SYNCHRONIZING ELITE ASSETS...');
-  const siteName = $derived(metadata.seo_site_name || 'osmo Elite');
+  const loadingText = $derived(
+    metadata.sync_loading_text || "SYNCHRONIZING ELITE ASSETS...",
+  );
+  const siteName = $derived(metadata.seo_site_name || "osmo Elite");
 
   // Elite Smart-Adaptive: Reactive Layout Switching
   const clientUi = getClientUi();
-  const useMobileLayout = $derived(clientUi?.isHydrated ? clientUi.isMobile : isMobile);
+  const useMobileLayout = $derived(
+    clientUi?.isHydrated ? clientUi.isMobile : isMobile,
+  );
 
   // 🚀 QUANTUM SYNC (Elite V2.2 Protocol)
   // Inline init ensures SSR stability; Guarded initialization for client-side
   let isInitialized = false;
-  
+
   if (product?.id && !isInitialized) {
     shopStore.init(product);
     if (data.unlockedVoucherIds) {
@@ -57,21 +61,21 @@
     isInitialized = true;
   }
 
-  const updateDOM = (theme: 'light' | 'dark'): void => {
+  const updateDOM = (theme: "light" | "dark"): void => {
     if (!browser) return;
-    document.documentElement.setAttribute('data-theme', theme);
-    document.body.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute("data-theme", theme);
+    document.body.setAttribute("data-theme", theme);
   };
 
-  const applyTheme = (mode: 'system' | 'light' | 'dark') => {
+  const applyTheme = (mode: "system" | "light" | "dark") => {
     themeMode = mode;
     if (!browser) return;
-    localStorage.setItem('hero-theme-mode', mode);
-    if (mode === 'system') {
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      updateDOM(isDark ? 'dark' : 'light');
+    localStorage.setItem("hero-theme-mode", mode);
+    if (mode === "system") {
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      updateDOM(isDark ? "dark" : "light");
     } else {
-      updateDOM(mode as 'light' | 'dark');
+      updateDOM(mode as "light" | "dark");
     }
   };
 
@@ -89,55 +93,70 @@
   onMount(() => {
     if (!browser) return;
 
-    const savedTheme = localStorage.getItem('hero-theme-mode');
-    applyTheme((savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') ? savedTheme : 'system');
-      
+    const savedTheme = localStorage.getItem("hero-theme-mode");
+    applyTheme(
+      savedTheme === "light" || savedTheme === "dark" || savedTheme === "system"
+        ? savedTheme
+        : "system",
+    );
+
     if (product) {
       liveEditStore.init(product);
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('live_edit') === 'true') {
-        if (permissionState.hasRole('SUPER_ADMIN') || permissionState.hasRole('ADMIN')) {
+      if (urlParams.get("live_edit") === "true") {
+        if (
+          permissionState.hasRole("SUPER_ADMIN") ||
+          permissionState.hasRole("ADMIN")
+        ) {
           liveEditStore.isEditMode = true;
         } else {
-          window.location.replace(window.location.origin + window.location.pathname);
+          window.location.replace(
+            window.location.origin + window.location.pathname,
+          );
         }
       }
     }
-      
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const h = (e: MediaQueryListEvent): void => {
-      if (themeMode === 'system') updateDOM(e.matches ? 'dark' : 'light');
+      if (themeMode === "system") updateDOM(e.matches ? "dark" : "light");
     };
-    mq.addEventListener('change', h);
+    mq.addEventListener("change", h);
 
     // JIT ASSET LOADER (Elite V2.2 Protocol) - FIRE EARLY
-    const jitObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          loadJIT = true;
-          jitObserver.disconnect();
-        }
-      });
-    }, { rootMargin: '1200px', threshold: 0.01 });
+    const jitObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            loadJIT = true;
+            jitObserver.disconnect();
+          }
+        });
+      },
+      { rootMargin: "1200px", threshold: 0.01 },
+    );
 
     // SESSION COORDINATOR (Elite V2.2 HUD Sync) - FIRE AT CENTER
-    const sessionObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && !isWheelLocked) {
-          const idx = sectionIds.indexOf(entry.target.id);
-          if (idx !== -1) currentSessionIdx = idx;
-        }
-      });
-    }, {
-      rootMargin: '-50% 0px -50% 0px',
-      threshold: 0
-    });
+    const sessionObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !isWheelLocked) {
+            const idx = sectionIds.indexOf(entry.target.id);
+            if (idx !== -1) currentSessionIdx = idx;
+          }
+        });
+      },
+      {
+        rootMargin: "-50% 0px -50% 0px",
+        threshold: 0,
+      },
+    );
 
     // Register Assets
-    const trigger = document.getElementById('jit-trigger');
+    const trigger = document.getElementById("jit-trigger");
     if (trigger) jitObserver.observe(trigger);
 
-    sectionIds.forEach(id => {
+    sectionIds.forEach((id) => {
       const el = document.getElementById(id);
       if (el) sessionObserver.observe(el);
     });
@@ -146,7 +165,7 @@
 
     return () => {
       shopStore.dispose();
-      mq.removeEventListener('change', h);
+      mq.removeEventListener("change", h);
       jitObserver.disconnect();
       sessionObserver.disconnect();
       if (cleanupObservers) cleanupObservers();
@@ -154,18 +173,19 @@
   });
 
   const scrollToQuiz = () => {
-    const el = document.getElementById('diagnostics');
+    const el = document.getElementById("diagnostics");
     if (el) {
       currentSessionIdx = 1; // Sync programmatic tracker
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
   // Elite 2026 Programmatic Scroll Coordinator (O(1) Speed/Memory)
   const hasQuiz = $derived((metadata?.quiz_questions?.length || 0) > 0);
-  const sectionIds = $derived(hasQuiz 
-    ? ['hero', 'diagnostics', 'science', 'reviews', 'offers']
-    : ['hero', 'science', 'reviews', 'offers']
+  const sectionIds = $derived(
+    hasQuiz
+      ? ["hero", "diagnostics", "science", "reviews", "offers"]
+      : ["hero", "science", "reviews", "offers"],
   );
   let currentSessionIdx = $state(0);
   const activeId = $derived(sectionIds[currentSessionIdx]);
@@ -195,11 +215,16 @@
     const target = e.target as HTMLElement;
 
     // Elite V2.2 Escape: Don't hijack scroll if we are in Edit Mode and hovering over an editor
-    if (liveEditStore.isEditMode && (target?.closest('.edit-mode-container') || target?.closest('.editor-box'))) return;
-    
+    if (
+      liveEditStore.isEditMode &&
+      (target?.closest(".edit-mode-container") ||
+        target?.closest(".editor-box"))
+    )
+      return;
+
     // Ignore micro-scrolls (e.g., trackpad resting)
     if (Math.abs(e.deltaY) < 15) return;
-    
+
     // 100% Native Intercept - Bypass default DOM scrolling
     e.preventDefault();
     if (isWheelLocked) return;
@@ -211,11 +236,11 @@
     if (nextIdx >= 0 && nextIdx < sectionIds.length) {
       isWheelLocked = true;
       currentSessionIdx = nextIdx;
-      
+
       // O(1) Native C++ lookup
       const target = document.getElementById(sectionIds[currentSessionIdx]);
       if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
       // Memory-efficient cooling lock to prevent scroll-looping (450ms for ultra-fast snap)
@@ -227,194 +252,206 @@
 
   // Svelte 5 Native Action: Forced non-passive listener
   const initScrollObserver: Action<HTMLElement> = (node) => {
-    node.addEventListener('wheel', onWheelObserver, { passive: false });
+    node.addEventListener("wheel", onWheelObserver, { passive: false });
     return {
       destroy() {
-        node.removeEventListener('wheel', onWheelObserver);
-      }
+        node.removeEventListener("wheel", onWheelObserver);
+      },
     };
   };
+
+  // ── ELITE V2.2: SEO FAQ Extraction ───────────────────────────────────────
+  const normalizedFaqs = $derived(product?.metadata?.faqs || []);
 
   // ── SITE NAVIGATION LD (Google Sitelinks Support) ──────────────────────────
   const siteNavigationLd = $derived.by(() => {
     const sections = [
-      { name: 'Đầu trang', url: '#hero' },
-      { name: 'Chẩn đoán AI', url: '#diagnostics' },
-      { name: 'Cơ chế Khoa học', url: '#science' },
-      { name: 'Đánh giá thực tế', url: '#reviews' },
-      { name: 'Ưu đãi Đặc biệt', url: '#offers' }
+      { name: "Đầu trang", url: "#hero" },
+      { name: "Chẩn đoán AI", url: "#diagnostics" },
+      { name: "Cơ chế Khoa học", url: "#science" },
+      { name: "Đánh giá thực tế", url: "#reviews" },
+      { name: "Ưu đãi Đặc biệt", url: "#offers" },
     ];
-    
+
     return JSON.stringify({
       "@context": "https://schema.org",
       "@type": "ItemList",
-      "name": "Mục lục nội dung",
-      "itemListElement": sections.map((s, i) => ({
+      name: "Mục lục nội dung",
+      itemListElement: sections.map((s, i) => ({
         "@type": "ListItem",
-        "position": i + 1,
-        "name": s.name,
-        "url": s.url
-      }))
+        position: i + 1,
+        name: s.name,
+        url: s.url,
+      })),
     });
   });
 </script>
 
-{#if seoMeta}
-  <SeoHead
-    pageType="product"
-    title={seoMeta.title.split('|')[0].trim()}
-    description={seoMeta.description}
-    keywords={seoMeta.keywords}
-    canonical={seoMeta.canonical_url}
-    ogType="product"
-    ogImage={product?.images?.[0] || ""}
-    ogImageAlt={seoMeta.title}
-    siteName={siteName}
-    productData={{
-      name: (product?.name || seoMeta.title).replace(/40gr/g, '40g'),
-      images: product?.images,
-      description: seoMeta.description,
-      brand: metadata?.brand || "osmo",
-      sku: product?.sku || "OSMO-LP",
-      price: product?.price || 0,
-      currency: "VND",
-      availability: product?.stock_status === 'OUT_OF_STOCK' ? 'OutOfStock' : 'InStock',
-      ratingValue: 4.9,
-      reviewCount: 24
-    }}
-    jsonLdScripts={[
-      seoMeta.json_ld_string,
-      seoMeta.breadcrumb_ld_string,
-      seoMeta.faq_ld_string,
-      siteNavigationLd
-    ]}
-  />
-{:else}
-  <SeoHead
-    pageType="product"
-    title={(product?.name || 'Loading...').split('|')[0].trim()}
-    description={metadata?.short_description || product?.name || ""}
-    canonical=""
-    siteName={siteName}
-    ogType="product"
-    image={product?.images?.[0] || ""}
-    productData={{
-      name: (product?.name || "").replace(/40gr/g, '40g'),
-      images: product?.images,
-      description: metadata?.short_description || "",
-      brand: metadata?.brand || "osmo",
-      price: product?.price || 0,
-      ratingValue: 4.9,
-      reviewCount: 24
-    }}
-  />
-{/if}
+<SeoHead
+  pageType="product"
+  title={seoMeta?.title || product?.name || "osmo Elite"}
+  description={seoMeta?.description ||
+    product?.shortDescription ||
+    product?.short_description ||
+    product?.description ||
+    ""}
+  image={product?.images?.[0] || ""}
+  keywords={seoMeta?.keywords || ""}
+  siteName={seoMeta?.site_name || product?.metadata?.seo_site_name || "osmo"}
+  productData={{
+    name: product?.name || "",
+    price: product?.price || 0,
+    discountPrice: product?.discountPrice ?? product?.discount_price,
+    currency: "đ",
+    availability: product?.stock > 0 ? "InStock" : "OutOfStock",
+    brand: product?.metadata?.brand || "Osmo",
+    sku: product?.sku || product?.id,
+    images: product?.images || [],
+  }}
+  jsonLdScripts={[
+    seoMeta?.json_ld_string,
+    seoMeta?.breadcrumb_ld_string,
+    seoMeta?.faq_ld_string,
+    siteNavigationLd,
+  ]}
+  faqs={normalizedFaqs}
+/>
 
 {#if useMobileLayout}
   {#if product}
-    <MobileLandingLayout 
-      {product} 
-      reviewStats={data.reviewStats} 
-      reviews={data.reviews} 
-      relatedProducts={data.relatedProducts} 
+    <MobileLandingLayout
+      {product}
+      reviewStats={data.reviewStats}
+      reviews={data.reviews}
+      relatedProducts={data.relatedProducts}
     />
   {/if}
 {:else}
-  <div class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll" translate="no" use:initScrollObserver>
+  <div
+    class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll"
+    translate="no"
+    use:initScrollObserver
+  >
+    {#if product?.id}
+      <LiquidHeader
+        {product}
+        {themeMode}
+        {applyTheme}
+        {scrollToQuiz}
+        {activeId}
+      />
+      <HeroBanner {scrollToQuiz} {triggerScan} />
 
-  {#if product?.id}
-    <LiquidHeader {product} {themeMode} {applyTheme} scrollToQuiz={scrollToQuiz} {activeId} />
-    <HeroBanner {scrollToQuiz} {triggerScan} />
+      <!-- SECTIONS WITH INDEPENDENT JIT LOADING (Elite V2.2 Optimization) -->
+      <!-- This preserves snap points while components are loading -->
 
-    <!-- SECTIONS WITH INDEPENDENT JIT LOADING (Elite V2.2 Optimization) -->
-    <!-- This preserves snap points while components are loading -->
-    
-    <div id="jit-trigger"></div>
+      <div id="jit-trigger"></div>
 
-    {#if hasQuiz}
-      <section id="diagnostics" class="snap-session">
+      {#if hasQuiz}
+        <section id="diagnostics" class="snap-session">
+          {#if loadJIT}
+            {#await import("$lib/components/client/slug/DiagnosticsSection.svelte") then { default: DiagnosticsSection }}
+              <DiagnosticsSection {product} />
+            {/await}
+          {:else}
+            <div
+              class="w-full h-full bg-[#010101] animate-pulse rounded-t-3xl border-t border-[#111]"
+            ></div>
+          {/if}
+        </section>
+      {/if}
+
+      <section id="science" class="snap-session">
         {#if loadJIT}
-          {#await import('$lib/components/client/slug/DiagnosticsSection.svelte') then { default: DiagnosticsSection }}
-            <DiagnosticsSection {product} />
+          {#await import("$lib/components/client/slug/ScienceBento.svelte") then { default: ScienceBento }}
+            <ScienceBento />
           {/await}
         {:else}
-          <div class="w-full h-full bg-[#010101] animate-pulse rounded-t-3xl border-t border-[#111]"></div>
+          <div class="w-full h-full bg-[#010101] animate-pulse"></div>
         {/if}
       </section>
+
+      <section id="reviews" class="snap-session">
+        {#if loadJIT}
+          {#await import("$lib/components/client/slug/VerifiedReviews.svelte") then { default: VerifiedReviews }}
+            <VerifiedReviews initialReviews={data.reviews} />
+          {/await}
+        {:else}
+          <div class="w-full h-full bg-[#010101] animate-pulse"></div>
+        {/if}
+      </section>
+
+      <section id="offers" class="snap-session">
+        {#if loadJIT}
+          {#await import("$lib/components/client/slug/OfferGrid.svelte") then { default: OfferGrid }}
+            <OfferGrid onTriggerScan={triggerScan} />
+          {/await}
+        {:else}
+          <div class="w-full h-full bg-[#010101] animate-pulse"></div>
+        {/if}
+      </section>
+    {:else}
+      <div
+        class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white"
+      >
+        <div
+          class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"
+        ></div>
+        <p
+          class="text-sm tracking-[0.2em] font-light animate-pulse text-blue-400"
+        >
+          {loadingText}
+        </p>
+      </div>
     {/if}
 
-    <section id="science" class="snap-session">
-      {#if loadJIT}
-        {#await import('$lib/components/client/slug/ScienceBento.svelte') then { default: ScienceBento }}
-          <ScienceBento />
-        {/await}
-      {:else}
-        <div class="w-full h-full bg-[#010101] animate-pulse"></div>
-      {/if}
-    </section>
+    {#if isScanning}
+      <ScannerHUD
+        barcode={product?.sku || (product?.metadata?.["barcode"] as string)}
+        oncomplete={handleScanComplete}
+      />
+    {/if}
 
+    {#if showVerification}
+      <div
+        use:portal
+        transition:fade={{ duration: 200 }}
+        class="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+        style:z-index={Z_INDEX_CLIENT.MODAL + 100}
+        onclick={() => (showVerification = false)}
+      >
+        <div
+          transition:scale={{ duration: 300, start: 0.95 }}
+          class="bg-[#0a0a0a]/90 backdrop-blur-3xl w-full max-w-5xl p-0 shadow-[0_20px_100px_rgba(0,0,0,1)] border border-white/10 rounded-[5px] overflow-hidden relative"
+          onclick={(e) => e.stopPropagation()}
+        >
+          <button
+            class="absolute top-0 right-0 text-white/40 hover:text-white z-20 transition-all w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-bl-[5px]"
+            onclick={() => (showVerification = false)}
+          >
+            <X size={18} />
+          </button>
 
-    <section id="reviews" class="snap-session">
-      {#if loadJIT}
-        {#await import('$lib/components/client/slug/VerifiedReviews.svelte') then { default: VerifiedReviews }}
-          <VerifiedReviews initialReviews={data.reviews} />
-        {/await}
-      {:else}
-        <div class="w-full h-full bg-[#010101] animate-pulse"></div>
-      {/if}
-    </section>
-
-    <section id="offers" class="snap-session">
-      {#if loadJIT}
-        {#await import('$lib/components/client/slug/OfferGrid.svelte') then { default: OfferGrid }}
-          <OfferGrid onTriggerScan={triggerScan} />
-        {/await}
-      {:else}
-        <div class="w-full h-full bg-[#010101] animate-pulse"></div>
-      {/if}
-    </section>
-
-
-  {:else}
-    <div class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white">
-       <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-       <p class="text-sm tracking-[0.2em] font-light animate-pulse text-blue-400">{loadingText}</p>
-    </div>
-  {/if}
-
-
-  {#if isScanning}
-    <ScannerHUD barcode={product?.sku || (product?.metadata?.['barcode'] as string)} oncomplete={handleScanComplete} />
-  {/if}
-
-  {#if showVerification}
-    <div use:portal transition:fade={{duration: 200}} class="fixed inset-0 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" style:z-index={Z_INDEX_CLIENT.MODAL + 100} onclick={() => showVerification = false}>
-      <div transition:scale={{duration: 300, start: 0.95}} class="bg-[#0a0a0a]/90 backdrop-blur-3xl w-full max-w-5xl p-0 shadow-[0_20px_100px_rgba(0,0,0,1)] border border-white/10 rounded-[5px] overflow-hidden relative" onclick={(e) => e.stopPropagation()}>
-         <button 
-           class="absolute top-0 right-0 text-white/40 hover:text-white z-20 transition-all w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-bl-[5px]"
-           onclick={() => showVerification = false}
-         >
-           <X size={18} />
-         </button>
-         
-         <div class="relative z-10 pt-10 px-10 pb-2 max-h-[90vh] overflow-y-auto custom-scrollbar">
-           <VerificationCenter {product} {verificationData} />
-         </div>
+          <div
+            class="relative z-10 pt-10 px-10 pb-2 max-h-[90vh] overflow-y-auto custom-scrollbar"
+          >
+            <VerificationCenter {product} {verificationData} />
+          </div>
+        </div>
       </div>
-    </div>
-  {/if}
+    {/if}
   </div>
 {/if}
 
 <!-- Administrative HUD (Elite V2.2 Overlay Layer - Severely Protected) -->
 {#if liveEditStore.isAdmin}
-  {#await import('$lib/components/admin/AdminActionBar.svelte') then { default: AdminActionBar }}
+  {#await import("$lib/components/admin/AdminActionBar.svelte") then { default: AdminActionBar }}
     <AdminActionBar />
   {/await}
-  {#await import('$lib/components/admin/LiveEditorOverlay.svelte') then { default: LiveEditorOverlay }}
+  {#await import("$lib/components/admin/LiveEditorOverlay.svelte") then { default: LiveEditorOverlay }}
     <LiveEditorOverlay />
   {/await}
-  {#await import('$lib/components/admin/LiveEditNotification.svelte') then { default: LiveEditNotification }}
+  {#await import("$lib/components/admin/LiveEditNotification.svelte") then { default: LiveEditNotification }}
     <LiveEditNotification />
   {/await}
 {/if}
@@ -424,7 +461,7 @@
     antialiased: true;
     overflow-x: hidden;
     height: 100vh;
-    font-family: 'Be Vietnam Pro', sans-serif;
+    font-family: "Be Vietnam Pro", sans-serif;
     background-color: #010101; /* Viral 2026: Luxury Black foundation */
     color: var(--text-base);
   }
@@ -511,8 +548,13 @@
   }
 
   @keyframes scan-move {
-    0%, 100% { transform: translateY(-4px); }
-    50% { transform: translateY(4px); }
+    0%,
+    100% {
+      transform: translateY(-4px);
+    }
+    50% {
+      transform: translateY(4px);
+    }
   }
 
   .pulse-ring {
@@ -523,18 +565,32 @@
     opacity: 0;
   }
 
-  .ring-1 { animation: verify-pulse 3s infinite; }
-  .ring-2 { animation: verify-pulse 3s infinite 1.5s; }
+  .ring-1 {
+    animation: verify-pulse 3s infinite;
+  }
+  .ring-2 {
+    animation: verify-pulse 3s infinite 1.5s;
+  }
 
   @keyframes verify-pulse {
-    0% { transform: scale(1); opacity: 0.6; }
-    100% { transform: scale(1.6); opacity: 0; }
+    0% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    100% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
   }
 
   .glow-effect {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, rgba(255,255,255,0.4) 0%, transparent 70%);
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 255, 255, 0.4) 0%,
+      transparent 70%
+    );
     opacity: 0;
     transition: opacity 0.3s;
     border-radius: inherit;
@@ -560,7 +616,7 @@
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     transform: translateX(20px) scale(0.8);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
   }

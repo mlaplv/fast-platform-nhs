@@ -1,6 +1,6 @@
 <script lang="ts">
   import { authStore } from '$lib/state/authStore.svelte';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import Bell from "@lucide/svelte/icons/bell";
   import UserIcon from "@lucide/svelte/icons/user";
   import ShoppingBag from "@lucide/svelte/icons/shopping-bag";
@@ -11,8 +11,22 @@
   import Star from "@lucide/svelte/icons/star";
   import { goto } from '$app/navigation';
   import Avatar from './Avatar.svelte';
+  import type { Component } from 'svelte';
 
-  const menuItems = [
+  interface SubMenuItem {
+    label: string;
+    href: string;
+    icon: Component;
+  }
+
+  interface MenuItem {
+    label: string;
+    icon: Component;
+    href: string;
+    subItems?: SubMenuItem[];
+  }
+
+  const menuItems: MenuItem[] = [
     {
       label: 'Tài khoản của tôi',
       icon: UserIcon,
@@ -50,12 +64,12 @@
     goto('/');
   }
 
-  const currentPath = $derived($page.url.pathname);
+  const currentPath = $derived(page.url.pathname);
   
   // Elite V2.2: Deep Active Check
-  const isActive = (href: string, subItems?: any[]) => {
-    if (currentPath === href) return true;
-    if (subItems?.some(s => currentPath === s.href)) return true;
+  const isActive = (item: MenuItem) => {
+    if (currentPath === item.href) return true;
+    if (item.subItems?.some(s => currentPath === s.href)) return true;
     return false;
   };
 </script>
@@ -86,18 +100,19 @@
         <div class="space-y-4">
           <a
             href={item.href}
-            class="flex items-center gap-3 text-[12px] tracking-[2px] font-bold transition-all {isActive(item.href, item.subItems) ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
+            class="flex items-center gap-3 text-[12px] tracking-[2px] font-bold transition-all {isActive(item) ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
           >
-            <span class="{isActive(item.href, item.subItems) ? 'text-luxury-copper' : 'text-stone-300'}">
+            <span class="{isActive(item) ? 'text-luxury-copper' : 'text-stone-300'}">
               <item.icon class="w-4 h-4" />
             </span>
             {item.label}
           </a>
 
-          {#if item.subItems && isActive(item.href, item.subItems)}
+          {#if item.subItems && isActive(item)}
             <div class="flex flex-col ml-8 space-y-3 border-l border-stone-100 pl-4">
 
               {#each item.subItems as sub}
+
                 <a
                   href={sub.href}
                   class="text-[13px] transition-all relative group {currentPath === sub.href ? 'text-luxury-copper font-medium' : 'text-stone-500 hover:text-stone-800'}"

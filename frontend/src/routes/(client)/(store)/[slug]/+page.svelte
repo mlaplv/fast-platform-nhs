@@ -116,7 +116,7 @@
   <SeoHead
     pageType="product"
     title={productSeoMeta?.title || `${data.product.name} | osmo Elite`}
-    description={productSeoMeta?.description || data.product.short_description}
+    description={productSeoMeta?.description || data.product.short_description || data.product.shortDescription || data.product.description || ""}
     canonical={productSeoMeta?.canonical_url || `${siteUrl}/${data.product.slug}`}
     image={data.product.images?.[0]}
     {breadcrumbItems}
@@ -124,7 +124,7 @@
     productData={{
       name: data.product.name,
       images: data.product.images,
-      description: data.product.short_description,
+      description: productSeoMeta?.description || data.product.short_description || data.product.shortDescription || "",
       brand: (data.product.attributes?.brand as string) || (data.product.attributes?.['Thương hiệu'] as string) || "osmo Elite",
       sku: data.product.sku,
       price: data.product.price,
@@ -134,14 +134,14 @@
           price: v.price,
           discountPrice: v.discountPrice || v.discount_price,
           sku: v.sku,
-          availability: v.stock > 0 ? 'InStock' : 'OutOfStock'
+          availability: v.stock > 0 ? "InStock" : "OutOfStock"
       })),
       currency: "VND",
       availability: data.product.stock > 0 ? 'InStock' : 'OutOfStock',
       ratingValue: data.reviewStats?.average_rating || 5,
       reviewCount: data.reviewStats?.total_reviews || 1
     }}
-    jsonLdScripts={[productSeoMeta?.json_ld_string].filter(Boolean)}
+    jsonLdScripts={[productSeoMeta?.json_ld_string, productSeoMeta?.breadcrumb_ld_string, productSeoMeta?.faq_ld_string].filter(Boolean)}
   />
 {/if}
 

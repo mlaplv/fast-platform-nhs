@@ -1,65 +1,11 @@
 <script lang="ts">
-  import { browser } from '$app/environment';
-  import UserLayout from '$lib/components/storefront/user/UserLayout.svelte';
-  import { getClientUi } from '$lib/state/commerce/ui.svelte';
-  import { fade } from 'svelte/transition';
-  import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
-  import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
+  import UserPageWrapper from '$lib/components/storefront/user/UserPageWrapper.svelte';
   import PurchaseList from '$lib/components/storefront/user/PurchaseList.svelte';
-  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
-
-
-  const ui = getClientUi();
-  let isMenuOpen = $state(false);
-
-  // Quản lý layout: Ẩn Header mặc định trên mobile, hiển thị trên desktop
-  $effect.pre(() => {
-    if (ui.isMobile) {
-      ui.isHeaderHidden = true;
-    } else {
-      ui.isHeaderHidden = false;
-    }
-    ui.isFooterHidden = false;
-
-    return () => {
-      ui.isHeaderHidden = false;
-      ui.isFooterHidden = false;
-    };
-  });
 </script>
 
-<SeoHead 
-  title="Đơn mua | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
-  robots="noindex, nofollow"
-/>
-
-
-
-{#if browser}
-  {#if !ui.isMobile}
-    <UserLayout>
-      <div class="space-y-8" in:fade>
-        <!-- Header -->
-        <div class="border-b border-stone-100 pb-5">
-          <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Đơn mua</h1>
-          <p class="text-[13px] text-stone-400 mt-1 tracking-widest">Danh sách giao dịch</p>
-        </div>
-
-
-        <PurchaseList />
-      </div>
-    </UserLayout>
-  {:else}
-    <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
-    <UserHeaderMobile title="Đơn mua" bind:isMenuOpen />
-
-
-    <div
-      class="pb-20 px-0 space-y-0 bg-white min-h-screen"
-      style="padding-top: calc(env(safe-area-inset-top) + 52px);"
-    >
-      <PurchaseList />
-    </div>
-
-  {/if}
-{/if}
+<UserPageWrapper 
+  title="Đơn mua" 
+  description="Theo dõi trạng thái và lịch sử các đơn hàng của Quý khách."
+>
+  <PurchaseList />
+</UserPageWrapper>

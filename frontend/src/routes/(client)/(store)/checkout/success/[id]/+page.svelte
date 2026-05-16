@@ -16,6 +16,9 @@
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import { browser } from "$app/environment";
   import { authStore } from "$lib/state/authStore.svelte";
+  import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
+
+
 
   let { data } = $props<{ data: { isMobile: boolean } }>();
   const ui = getClientUi();
@@ -428,11 +431,11 @@
   });
 </script>
 
-<svelte:head>
-  <title
-    >{isTrackingMode ? "Tra cứu đơn hàng" : "Đặt hàng thành công"} | osmo</title
-  >
-</svelte:head>
+<SeoHead 
+  title="Đặt hàng thành công | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  robots="noindex, nofollow"
+/>
+
 
 {#if (data.isMobile || ui.isMobile) && order}
     <SuccessMobile bind:order {orderId} isLookup={isTrackingMode} />

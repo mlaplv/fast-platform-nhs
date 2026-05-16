@@ -31,6 +31,7 @@ class SchemaFactory {
     // Derived JSON-LD Strings
     breadcrumbLd = $derived(this.breadcrumbItems.length > 0 ? buildBreadcrumbLd(this.breadcrumbItems) : null);
     faqLd = $derived(this.faqs.length > 0 ? buildFaqLd(this.faqs) : null);
+    manualScripts = $state<(string | null | undefined)[]>([]);
     
     productLd = $derived.by(() => {
         if (this.pageType === 'product' && this.productData) {
@@ -94,7 +95,8 @@ class SchemaFactory {
             this.faqLd,
             this.productLd,
             this.articleLd,
-            this.categoryLd
+            this.categoryLd,
+            ...this.manualScripts
         ];
         return buildGraphLd(scripts);
     });
@@ -109,6 +111,7 @@ class SchemaFactory {
         this.productData = null;
         this.articleData = null;
         this.categoryData = null;
+        this.manualScripts = [];
     }
 
     /**

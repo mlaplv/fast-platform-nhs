@@ -11,11 +11,21 @@
 
   let activeFaqIndex = $state<number | null>(0);
 
-  const faqItems = $derived(product.metadata?.faqs || [
-    { q: "Sản phẩm có gây kích ứng da không?", a: "Sản phẩm đã được kiểm nghiệm da liễu, an toàn cho mọi loại da, kể cả da nhạy cảm." },
-    { q: "Bao lâu thì thấy hiệu quả rõ rệt?", a: "Hiệu quả tùy thuộc vào cơ địa, thông thường khách hàng sẽ thấy cải thiện sau 2-4 tuần sử dụng đều đặn." },
-    { q: "Cách bảo quản sản phẩm tốt nhất?", a: "Bảo quản nơi khô ráo, thoáng mát, tránh ánh nắng trực tiếp và đóng nắp kín sau khi sử dụng." }
-  ]);
+  // Elite V2.2 Fix: Normalize FAQ schema — DB uses {question,answer}, hardcode uses {q,a}
+  const faqItems = $derived.by(() => {
+    const raw = product.metadata?.faqs;
+    if (raw && raw.length > 0) {
+      return raw.map((f: Record<string, string>) => ({
+        q: f.question ?? f.q ?? '',
+        a: f.answer ?? f.a ?? '',
+      }));
+    }
+    return [
+      { q: "Sản phẩm có gây kích ứng da không?", a: "Sản phẩm đã được kiểm nghiệm da liễu, an toàn cho mọi loại da, kể cả da nhạy cảm." },
+      { q: "Bao lâu thì thấy hiệu quả rõ rệt?", a: "Hiệu quả tùy thuộc vào cơ địa, thông thường khách hàng sẽ thấy cải thiện sau 2-4 tuần sử dụng đều đặn." },
+      { q: "Cách bảo quản sản phẩm tốt nhất?", a: "Bảo quản nơi khô ráo, thoáng mát, tránh ánh nắng trực tiếp và đóng nắp kín sau khi sử dụng." }
+    ];
+  });
 
   function toggleFaq(index: number) {
     activeFaqIndex = activeFaqIndex === index ? null : index;

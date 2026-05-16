@@ -10,6 +10,12 @@
   let errorHash = $derived(generateErrorHash(status, message));
 </script>
 
+<svelte:head>
+  <title>{status} | {message}</title>
+  <meta name="robots" content="noindex, nofollow" />
+</svelte:head>
+
+
 <div class="min-h-screen bg-[#020202] flex flex-col items-center justify-center font-sans text-gray-100 p-6 selection:bg-[#00FFFF]/30 perspective-1000 overflow-hidden">
   
   <!-- Liquid Glass Atmosphere -->

@@ -1,5 +1,6 @@
 import { authStore } from '../authStore.svelte';
 import { apiClient } from '$lib/utils/apiClient';
+import { LOYALTY_TIERS } from '$lib/config/commerce';
 
 export interface PointTransaction {
     id: string;
@@ -32,9 +33,9 @@ class LoyaltyStore {
         try {
             const res = await apiClient.get<LoyaltyData>('/api/v1/client/user/loyalty');
             this.data = res;
-        } catch (err) {
+        } catch (err: unknown) {
             console.error("[Loyalty] Sync error:", err);
-            this.error = err.message || 'Lỗi khi tải dữ liệu tích điểm';
+            this.error = err instanceof Error ? err.message : 'Lỗi khi tải dữ liệu tích điểm';
         } finally {
             this.loading = false;
         }
@@ -52,10 +53,12 @@ class LoyaltyStore {
     get nextTierProgress() {
         if (!this.data) return 0;
         const total = this.data.total_spent;
-        if (total < 10000000) return (total / 10000000) * 100;
-        if (total < 20000000) return ((total - 10000000) / 10000000) * 100;
+        if (total < LOYALTY_TIERS.SILVER) return (total / LOYALTY_TIERS.SILVER) * 100;
+        if (total < LOYALTY_TIERS.GOLD) return ((total - LOYALTY_TIERS.SILVER) / (LOYALTY_TIERS.GOLD - LOYALTY_TIERS.SILVER)) * 100;
+        if (total < LOYALTY_TIERS.PLATINUM) return ((total - LOYALTY_TIERS.GOLD) / (LOYALTY_TIERS.PLATINUM - LOYALTY_TIERS.GOLD)) * 100;
         return 100;
     }
 }
 
 export const loyaltyStore = new LoyaltyStore();
+

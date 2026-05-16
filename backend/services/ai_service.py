@@ -211,7 +211,7 @@ class AIService:
         all_keys = key_rotator.keys
         results = []
         
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             for idx, key in enumerate(all_keys):
                 # We use gemini-1.5-flash for the ping as it's the most available
                 model = "gemini-1.5-flash"
@@ -305,7 +305,7 @@ class AIService:
             winners: list[str] = []
             failed: set[str] = set()
             
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 for s in scored:
                     model = s["name"]
                     if len(winners) >= 6: break # Collect top 6 for better waterfall
@@ -323,6 +323,7 @@ class AIService:
                     try:
                         resp = await client.post(url, json={"contents": [{"parts":[{"text": "ping"}]}]})
                         if resp.status_code != 200:
+                            logger.warning(f"[NeuralOpt] Connectivity probe failed for {model}: HTTP {resp.status_code} - {resp.text[:100]}")
                             if resp.status_code == 429 and ("daily" in resp.text.lower() or "quota" in resp.text.lower()):
                                 await key_rotator.mark_model_daily(key, model)
                             elif resp.status_code in [400, 404]:
@@ -377,13 +378,13 @@ class AIService:
 
             # 4. Elite V2.2: Inclusive CNS Priority Force-Sync
             # We ensure ALL discovered models are included in the waterfall.
-            # Order: High Priority > Healthy Probed > Others (Failed/Legacy)
-            priority_pool = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"]
+            # Order: High Priority (Healthy) > Healthy Probed > Others (Legacy/Failed)
+            priority_pool = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-2.0-pro"]
             final_winners: list[str] = []
             
-            # Phase A: High Priority Models (Force Top)
+            # Phase A: High Priority Models (Force Top IF Healthy)
             for p in priority_pool:
-                if not trinity_bridge.models_helper.is_blacklisted(p):
+                if not trinity_bridge.models_helper.is_blacklisted(p) and p not in failed:
                     if p not in final_winners:
                         final_winners.append(p)
             
@@ -393,6 +394,7 @@ class AIService:
                     final_winners.append(w)
             
             # Phase C: Failed/Remaining Discovered Models (Bottom - Max Redundancy)
+            # These are added at the end just in case everything above fails at runtime.
             for s in scored:
                 m_name = s["name"]
                 if m_name not in final_winners and not trinity_bridge.models_helper.is_blacklisted(m_name):

@@ -95,6 +95,7 @@
   title={footerShopInfo.name} 
   description={footerShopInfo.description}
   siteName={footerShopInfo.name}
+  isFallback={true}
 />
 
 

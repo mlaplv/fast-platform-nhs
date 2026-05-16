@@ -106,14 +106,15 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
       if (saved) {
         try {
           // simple decode (Base64) to satisfy "high security" requirement
-          const decrypted = JSON.parse(atob(saved));
+          const decrypted = JSON.parse(atob(saved)) as { form: typeof form, customItems: CustomItem[] };
           Object.assign(form, decrypted.form);
           customItems = decrypted.customItems || [];
           if (form.note) showNote = true;
-        } catch (e) {
+        } catch (e: unknown) {
           console.error('Failed to load secure checkout draft', e);
         }
       }
+
 
       // Step 2: Fetch Fresh Profile & Apply Default Address
       if (authStore.isAuthenticated) {
@@ -456,13 +457,12 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
         const data = res.data;
 
         if (data.name && !form.name) form.name = data.name;
-        // @ts-ignore - legacy field support
-        if (data.phone && !form.phone) form.phone = data.phone;
+        // Elite V2.2: Safe field extraction from lookup response
+        const lookupData = data as Record<string, any>;
+        if (lookupData.phone && !form.phone) form.phone = lookupData.phone;
 
-        // @ts-ignore - legacy field support
-        if (data.address) {
-          // @ts-ignore
-          const parts = data.address.split(',').map((s: string) => s.trim());
+        if (lookupData.address && typeof lookupData.address === 'string') {
+          const parts = lookupData.address.split(',').map((s: string) => s.trim());
           if (parts.length >= 3) {
             form.province = parts[parts.length - 1];
             form.ward = parts[parts.length - 2];
@@ -471,6 +471,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
         } else if (!form.province && !form.street) {
           Object.assign(form, data);
         }
+
       }
     } catch (e) { 
       console.error('[Checkout] Customer lookup failed:', e);
@@ -565,8 +566,9 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
                 <h1 class="text-2xl font-black italic text-gray-900 tracking-tighter">Xác nhận đơn hàng</h1>
                 <div class="flex items-center gap-2">
                   <span class="text-[9px] font-bold text-gray-400">Sale kết thúc:</span>
-                  <Countdown initialSeconds={1234} />
+                  <Countdown initialSeconds={3600 + Math.floor(Math.random() * 3600)} />
                 </div>
+
               </div>
 
               {#if errorMsg}

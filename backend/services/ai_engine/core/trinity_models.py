@@ -103,7 +103,7 @@ class TrinityModels:
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models?key={key}"
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 resp = await client.get(url)
                 if resp.status_code == 200:
                     all_models = resp.json().get("models", [])

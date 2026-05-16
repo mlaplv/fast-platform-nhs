@@ -28,12 +28,16 @@
         description={data.seo_meta.description}
         canonical={data.seo_meta.canonical_url}
         keywords={data.seo_meta.keywords}
+        robots={data.tenant === 'admin' ? "noindex, nofollow" : "index, follow"}
         jsonLdScripts={[
             data.seo_meta.json_ld_string,
             data.seo_meta.breadcrumb_ld_string
         ]}
     />
+{:else if data.tenant === 'admin'}
+    <SeoHead title="Admin Control Center" robots="noindex, nofollow" />
 {/if}
+
 
 <svelte:head>
     {#if data.tenant === 'admin'}

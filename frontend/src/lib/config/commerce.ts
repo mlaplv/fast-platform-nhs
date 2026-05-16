@@ -14,3 +14,10 @@ export const LOYALTY_CONFIG = {
   MAX_DISCOUNT_PERCENT: 0.01, // Max 1% of total
   EARNING_RATE_VND: 100000,
 };
+
+export const LOYALTY_TIERS = {
+  SILVER: 10000000,
+  GOLD: 20000000,
+  PLATINUM: 50000000, // Elite tier
+};
+

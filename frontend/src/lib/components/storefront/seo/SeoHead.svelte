@@ -61,7 +61,8 @@
     breadcrumbItems = [],
     faqs = [],
     jsonLdScripts = [],
-  }: SeoHeadProps = $props();
+    isFallback = false,
+  }: SeoHeadProps & { isFallback?: boolean } = $props();
 
   // Elite V2.2: Safe Fallback Title (Anti-Die)
   const finalTitle = $derived(title || siteName || "osmo Elite Việt Nam");
@@ -85,28 +86,52 @@
 
   // ── Requirement 2: Dynamic Human-like Description ─────────────────────────
   const finalDescription = $derived.by(() => {
-    if (description) return truncateDescription(description);
-    return truncateDescription(
-      `${finalTitle} - Giải pháp chăm sóc sức khỏe và sắc đẹp chuyên sâu từ osmo Elite Việt Nam.`,
-    );
+    let raw = description;
+    if (!raw) {
+      raw = `${finalTitle} - Giải pháp chăm sóc sức khỏe và sắc đẹp chuyên sâu từ osmo Elite Việt Nam.`;
+    }
+    return truncateDescription(raw);
+  });
+
+  // ── ELITE V2.2: SEO Auditor (Dev Intelligence) ──────────────────────────
+  $effect(() => {
+    if (import.meta.env.DEV && shouldRender) {
+      console.groupCollapsed(`%c 🔍 SEO AUDITOR: ${pageType.toUpperCase()} `, "background: #111; color: #39FF14; font-weight: bold; padding: 2px 5px; border-radius: 3px;");
+      console.log("%c Title: ", "color: #888", finalTitle);
+      console.log("%c Desc:  ", "color: #888", finalDescription, `(${finalDescription.length} chars)`);
+      console.log("%c Canon: ", "color: #888", absCanonical);
+      if (keywords) console.log("%c Keys:  ", "color: #888", keywords);
+      console.groupEnd();
+    }
   });
 
 
   // ── ELITE V2.2: SEO Factory Integration (SSR Compatible) ───────────────────
   // Note: We update synchronously for SSR support, but use $effect for client-side reactivity
   const syncSeo = () => {
+    // Elite V2.2: SGE Protection - Prevent Layout fallback from overwriting Page-level SEO
+    if (isFallback && seoFactory.pageType !== "default") {
+      return;
+    }
+
     seoFactory.pageType = pageType;
     seoFactory.breadcrumbItems = breadcrumbItems;
     seoFactory.faqs = faqs;
+    seoFactory.manualScripts = jsonLdScripts;
 
-    if (pageType === "product" && productData) {
+    // Elite V2.2: Intelligent Entity Deduplication
+    // We only build frontend-side LD if the backend hasn't already provided one in manualScripts
+    const hasManualProduct = jsonLdScripts.some(s => s && s.includes('"@type":"Product"'));
+    const hasManualArticle = jsonLdScripts.some(s => s && s.includes('"@type":"Article"'));
+
+    if (pageType === "product" && productData && !hasManualProduct) {
       seoFactory.productData = {
         ...productData,
         name: productData.name || title,
         url: absCanonical,
         image: (productData.images || [image]).map((img) => toAbsolute(img)),
       } as ProductLdConfig;
-    } else if (pageType === "article" && articleData) {
+    } else if (pageType === "article" && articleData && !hasManualArticle) {
       seoFactory.articleData = {
         ...articleData,
         headline: articleData.headline || title,
@@ -118,8 +143,8 @@
         ...categoryData,
         url: absCanonical,
       } as CategoryLdConfig;
-    } else if (pageType === "default") {
-        // Clear previous data if switching to default
+    } else {
+        // Clear if we are using manual scripts or don't have data
         seoFactory.productData = null;
         seoFactory.articleData = null;
         seoFactory.categoryData = null;
@@ -134,9 +159,13 @@
     syncSeo();
   });
 
+  // Elite V2.2: Prevent Duplicate Headers (Fallback only renders if no page-level SEO is active)
+  const shouldRender = $derived(!isFallback || seoFactory.pageType === "default");
+
 </script>
 
 <svelte:head>
+{#if shouldRender}
   <title>{finalTitle}</title>
 
   <!-- ELITE V2.2: Unified @graph JSON-LD (AI Search Optimization) -->
@@ -209,4 +238,5 @@
   {#if absImage}
     <meta name="twitter:image" content={absImage} />
   {/if}
+{/if}
 </svelte:head>

@@ -88,7 +88,10 @@
 
 </script>
 
+<SeoHead title="Đang xác thực | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" robots="noindex, nofollow" />
+
 <div class="fixed inset-0 bg-white z-[var(--z-modal-overlay)] flex items-center justify-center p-6">
+
     <div class="max-w-md w-full text-center space-y-6">
         {#if status === 'processing'}
             <div class="flex flex-col items-center gap-4">

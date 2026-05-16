@@ -34,10 +34,12 @@
 
   async function markAllAsRead() {
     const unreadIds = userNotifications.filter(n => !n.isRead).map(n => n.id);
-    for (const id of unreadIds) {
-      await notifStore.markNotificationAsRead(id);
-    }
+    if (unreadIds.length === 0) return;
+    
+    // Elite V2.2: Parallel execution for zero-latency UI
+    await Promise.all(unreadIds.map(id => notifStore.markNotificationAsRead(id)));
   }
+
 
   onMount(() => {
     untrack(() => {
