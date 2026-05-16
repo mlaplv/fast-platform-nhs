@@ -63,7 +63,7 @@
             </div>
             <div class="shrink-0 text-right">
               <span class="text-[14px] font-medium text-[#ee4d2d]">
-                {formatCurrency(item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0)}
+                {formatCurrency(Number(item.variant?.discountPrice) || Number(item.variant?.price) || Number(item.product.discountPrice) || Number(item.product.price) || 0)}
               </span>
             </div>
           </a>

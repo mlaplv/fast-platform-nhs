@@ -3,7 +3,7 @@ import os
 import logging
 import time
 import json
-from typing import Callable, Union, Dict, List, AsyncGenerator, Any
+from typing import Callable, Union, Dict, List, AsyncGenerator
 from dataclasses import dataclass, field
 from contextlib import asynccontextmanager
 
@@ -135,7 +135,7 @@ class InternalBus:
         except asyncio.QueueFull:
             logger.error(f"❌ [EventBus] GLOBAL QUEUE FULL! Dropping event {event_name}")
 
-    async def stream_emit(self, stream_name: str, payload: Dict[str, Any]):
+    async def stream_emit(self, stream_name: str, payload: Dict[str, object]):
         """
         [Elite V3.0] Durable Event Streaming via Redis Streams (Slow Path).
         Allows consumer groups and background forensic processing.

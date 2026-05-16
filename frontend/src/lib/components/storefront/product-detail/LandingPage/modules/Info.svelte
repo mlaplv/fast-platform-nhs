@@ -98,8 +98,8 @@
   <div class="price-bar">
     <div class="price-content">
       <div class="original-price-row">
-        <span class="original-price">{formatCurrency(activePrices.original)}</span>
         {#if Number(activePrices.original) > Number(activePrices.sale)}
+          <span class="original-price">{formatCurrency(activePrices.original)}</span>
           <span class="save-badge">
             Tiết kiệm {formatCurrency(Number(activePrices.original) - Number(activePrices.sale))}
           </span>

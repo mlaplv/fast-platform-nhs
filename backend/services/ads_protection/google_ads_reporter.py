@@ -13,7 +13,7 @@ import textwrap
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Optional
 
 import httpx
 
@@ -140,7 +140,7 @@ class GoogleAdsReporter:
 
     async def fetch_invalid_click_metrics(
         self, date_from: str, date_to: str
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, object]]:
         try:
             if not self._has_credentials():
                 logger.warning("google_ads_credentials_missing — returning empty metrics")
@@ -182,7 +182,7 @@ class GoogleAdsReporter:
                 
                 data = resp.json()
 
-            rows: list[dict[str, Any]] = []
+            rows: list[dict[str, object]] = []
             # data có thể là list (batches) hoặc dict tùy theo proxy/client
             batches = data if isinstance(data, list) else [data]
             
@@ -224,7 +224,7 @@ class GoogleAdsReporter:
 
     async def report_invalid_conversions(
         self, gclids: list[str], conversion_action_name: str
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         Upload negative signal cho Google Smart Bidding.
         Với mỗi GCLID được đánh là fraud, upload conversion với

@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 from litestar.exceptions import PermissionDeniedException
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models.system import Draft
@@ -23,7 +23,7 @@ class MartialLawManager:
         action: str,
         target_table: str,
         target_id: Optional[str],
-        payload: Dict[str, Any],
+        payload: Dict[str, object],
         is_super_admin: bool = False
     ) -> bool:
         """

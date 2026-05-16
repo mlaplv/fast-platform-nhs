@@ -131,6 +131,18 @@ class ProductController(Controller):
         await db_session.commit()
         return res
 
+    @post("/faq-suggest", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)], status_code=201)
+    async def suggest_faqs(
+        self,
+        product_service: ProductService,
+        data: Dict[str, str],
+    ) -> Dict[str, object]:
+        """GEO 2026: XOHI Auto FAQ Generator for Products."""
+        name = data.get("name", "")
+        description = data.get("description", "")
+        faqs = await product_service.suggest_faqs(name, description)
+        return {"data": faqs}
+
     @post("/seo-suggest", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
     async def suggest_seo(
         self,

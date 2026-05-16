@@ -25,14 +25,12 @@ class SpecBento(BaseModel):
 
 class RewriteResult(BaseModel):
     """Cấu trúc dữ liệu chuẩn JSON cho Dashboard Interactive UI"""
-    hero_headline: str = Field(..., description="Tiêu đề thôi miên (ngắn gọn, giật gân, có số liệu)")
-    unique_identity: str = Field(..., description="1-2 câu khẳng định vị thế độc bản")
-    spec_bento: List[SpecBento] = Field(..., description="Bảng thông số kỹ thuật (Thương hiệu, SKU, Xuất xứ...)")
-    golden_ingredients: List[ComponentData] = Field(..., description="Thành phần vàng & Công nghệ")
-    benefits: List[ComponentData] = Field(..., description="Công dụng (Feature -> Benefit)")
-    routine: List[str] = Field(..., description="Các bước hướng dẫn sử dụng")
-    safety_warnings: List[str] = Field(..., description="Lưu ý an toàn, kiêng cữ")
-    combinations: List[str] = Field(..., description="Gợi ý kết hợp (Combo)")
+    introduction: str = Field(..., description="Đoạn văn ngắn gọn giới thiệu tổng quan về sản phẩm")
+    uses: List[str] = Field(..., description="Danh sách các công dụng chính của sản phẩm")
+    target_audience: str = Field(..., description="Mô tả đối tượng hoặc loại da phù hợp")
+    how_to_use: List[str] = Field(..., description="Các bước hướng dẫn sử dụng")
+    notes: List[str] = Field(..., description="Lưu ý an toàn và kiêng cữ")
+    storage: List[str] = Field(..., description="Hướng dẫn điều kiện bảo quản")
     seo_metadata: str = Field(..., description="Tóm tắt SEO (150 ký tự)")
     generated_at: Optional[str] = Field(None, description="Mốc thời gian lập báo cáo")
 

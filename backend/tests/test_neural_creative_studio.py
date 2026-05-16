@@ -2,7 +2,7 @@ import os
 import asyncio
 import json
 import pytest
-from typing import Dict, Any
+from typing import Dict
 
 # Elite V2.2: Test environment flag
 os.environ["FAST_PLATFORM_TEST"] = "true"

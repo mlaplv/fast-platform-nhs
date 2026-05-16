@@ -43,7 +43,7 @@
 
     if (minPrice !== null || maxPrice !== null) {
         result = result.filter(p => {
-             const price = p.discountPrice ?? p.price;
+             const price = Number(p.discountPrice) || Number(p.price);
              if (minPrice !== null && price < minPrice) return false;
              if (maxPrice !== null && price > maxPrice) return false;
              return true;
@@ -171,7 +171,7 @@
             <div class="p-3">
               <h3 class="text-[13px] font-bold text-gray-800 line-clamp-2 leading-tight mb-2 min-h-[34px]">{trimProductName(p.name)}</h3>
               <div class="flex items-end justify-between">
-                <span class="text-[15px] font-black text-[#ee4d2d]">{formatCurrency(p.discountPrice ?? p.price)}</span>
+                <span class="text-[15px] font-black text-[#ee4d2d]">{formatCurrency(Number(p.discountPrice) || Number(p.price))}</span>
               </div>
             </div>
           </a>

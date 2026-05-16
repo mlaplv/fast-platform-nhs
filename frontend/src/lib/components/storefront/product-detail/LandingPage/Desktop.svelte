@@ -321,7 +321,7 @@
       "",
     originalPrice: pDiscountPrice
       ? product.price || product.base_price || 0
-      : (product.price || 0) * 1.55,
+      : (product.price || 0),
     salePrice: (pDiscountPrice as number) || (product.price as number) || 0,
   });
 
@@ -329,9 +329,7 @@
     sale: displayPrice.discountPrice || displayPrice.price,
     original: displayPrice.discountPrice
       ? displayPrice.price
-      : typeof displayPrice.price === "number"
-        ? displayPrice.price * 1.55
-        : displayPrice.price,
+      : displayPrice.price,
   });
 
   function buyNow() {

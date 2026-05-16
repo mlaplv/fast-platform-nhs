@@ -144,7 +144,7 @@
                     <div class="flex flex-col flex-grow min-w-0">
                       <h4 class="text-[13px] font-bold text-gray-900 line-clamp-1 mb-0.5 leading-tight">{trimProductName(p.name)}</h4>
                       <div class="flex items-center gap-3">
-                        <span class="text-[15px] font-black text-luxury-copper tabular-nums">{formatCurrency(p.discountPrice ?? p.price)}</span>
+                        <span class="text-[15px] font-black text-luxury-copper tabular-nums">{formatCurrency(Number(p.discountPrice) || Number(p.price))}</span>
                         {#if p.discountPrice}
                           <span class="text-[10px] text-gray-300 line-through font-bold">{formatCurrency(p.price)}</span>
                         {/if}
@@ -206,7 +206,7 @@
                       <div class="flex flex-col min-w-0">
                         <h4 class="text-[13px] font-bold text-gray-900 line-clamp-2 leading-tight mb-1">{p.name}</h4>
                         <div class="text-[15px] font-black text-luxury-copper tabular-nums">
-                          {formatCurrency(p.discountPrice ?? p.price)}
+                          {formatCurrency(Number(p.discountPrice) || Number(p.price))}
                         </div>
                       </div>
                     </a>

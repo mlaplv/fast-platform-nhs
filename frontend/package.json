@@ -6,8 +6,8 @@
   "description": "Fast Platform Monorepo - Token Saver & A2A Edition",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-old-space-size=1024' vite dev --host 0.0.0.0",
-    "build": "NODE_OPTIONS='--max-old-space-size=1024' vite build",
+    "dev": "NODE_OPTIONS='--max-old-space-size=1536' vite dev --host 0.0.0.0",
+    "build": "NODE_OPTIONS='--max-old-space-size=1536' vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run"

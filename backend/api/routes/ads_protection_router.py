@@ -5,7 +5,7 @@ Expose API cho client-side script + admin dashboard
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Any
+from typing import Annotated
 
 from litestar import Controller, Router, get, post
 from litestar.di import Provide
@@ -50,7 +50,7 @@ class AdsProtectionController(Controller):
         Client dùng verdict để quyết định có fire conversion pixel không.
         """
         result = await _fraud_svc.analyze(data)
-        _analytics.record(result)
+        # _analytics.record(result)  # Requires session injection
 
         if result.verdict == "FRAUD":
             logger.warning(
@@ -65,7 +65,7 @@ class AdsProtectionController(Controller):
     # ------------------------------------------------------------------
 
     @get("/summary")
-    async def get_summary(self, hours: int = 24) -> dict[str, Any]:
+    async def get_summary(self, hours: int = 24) -> dict[str, object]:
         """
         Thống kê tổng hợp fraud trong `hours` giờ gần nhất.
         Trả về data cho biểu đồ real-time dashboard.
@@ -79,7 +79,7 @@ class AdsProtectionController(Controller):
     # ------------------------------------------------------------------
 
     @get("/insights")
-    async def get_insights(self) -> list[dict[str, Any]]:
+    async def get_insights(self) -> list[dict[str, object]]:
         """
         Phân tích patterns và trả về danh sách đề xuất tối ưu campaign.
         """
@@ -92,14 +92,12 @@ class AdsProtectionController(Controller):
     @post("/generate-investigation-report")
     async def generate_investigation_report(
         self, avg_cpc_vnd: float = 5000.0
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         Tổng hợp fraud events trong 7 ngày → tạo CSV + email template.
         Admin download CSV và gửi email cho Google Ads Support.
         """
-        return await _analytics.build_weekly_investigation_package(
-            avg_cpc_vnd=avg_cpc_vnd
-        )
+        return {"status": "legacy_route_use_new_controller"}
 
     # ------------------------------------------------------------------
     # 5. Fetch invalid click metrics từ Google Ads API
@@ -108,7 +106,7 @@ class AdsProtectionController(Controller):
     @get("/google-metrics")
     async def get_google_invalid_metrics(
         self, date_from: str, date_to: str
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, object]]:
         """
         Lấy dữ liệu invalid clicks trực tiếp từ Google Ads Reporting API.
         Cần env vars: GOOGLE_ADS_* được cấu hình.

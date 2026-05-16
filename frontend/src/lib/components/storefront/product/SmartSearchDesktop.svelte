@@ -149,7 +149,7 @@
                     </div>
                     <div class="ml-2 min-w-0">
                       <div class="text-[13px] font-bold text-gray-700 truncate">{trimProductName(p.name)}</div>
-                      <div class="text-[11px] font-black text-black">{formatCurrency(p.discountPrice ?? p.price)}</div>
+                      <div class="text-[11px] font-black text-black">{formatCurrency(Number(p.discountPrice) || Number(p.price))}</div>
                     </div>
                   </button>
                 {/each}
@@ -169,7 +169,7 @@
                     </div>
                     <div class="flex-grow min-w-0">
                       <h4 class="text-[14px] font-bold text-gray-800 truncate">{trimProductName(p.name)}</h4>
-                      <div class="text-[13px] font-black text-black">{formatCurrency(p.discountPrice ?? p.price)}</div>
+                      <div class="text-[13px] font-black text-black">{formatCurrency(Number(p.discountPrice) || Number(p.price))}</div>
                     </div>
                   </a>
                 {/each}

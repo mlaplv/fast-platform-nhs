@@ -159,7 +159,7 @@
 
   const filteredProducts = $derived.by(() => {
     let result = enhancedProducts.filter(p => {
-      const price = p.discountPrice ?? p.price;
+      const price = Number(p.discountPrice) || Number(p.price);
       const matchPrice = price >= minPrice && price <= maxPrice;
       const matchBrand = selectedBrands.length === 0 || (() => { const b = getAttr(p, 'brand'); return b && selectedBrands.includes(b); })();
       const matchOrigin = selectedOrigins.length === 0 || (() => { const o = getAttr(p, 'origin'); return o && selectedOrigins.includes(o); })();

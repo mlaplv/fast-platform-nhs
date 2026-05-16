@@ -277,8 +277,24 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                 report_time = datetime.now(timezone.utc).strftime('%H:%M:%S %d/%m/%Y')
                 time_badge = f"> ⏱️ **Báo cáo lập lúc:** `{report_time}`\n\n"
                 
-                if hasattr(raw, 'verdict'):
-                    raw.verdict = time_badge + (raw.verdict or "⚠️ [BRAIN] Không có phản hồi nội dung phân tích.")
+                if hasattr(raw, 'verdict_gap') or hasattr(raw, 'verdict_evidence') or hasattr(raw, 'verdict_strategy'):
+                    gap = getattr(raw, 'verdict_gap', '') or ''
+                    evidence = getattr(raw, 'verdict_evidence', '') or ''
+                    strategy = getattr(raw, 'verdict_strategy', '') or ''
+                    
+                    combined = ""
+                    if gap or evidence or strategy:
+                        combined += f"### 🛡️ ⚔️ BẢN TRÌNH BÁO CHIẾN LƯỢC BẢN QUYỀN | {context.get('role_assignment', 'Chuyên gia')}\n---\n\n"
+                        if gap: combined += f"#### 🔍 [1. LUẬN ĐIỂM PHẢN BIỆN — CRITICAL GAP]\n\n{gap}\n\n"
+                        if evidence: combined += f"#### 🔗 [2. HỒ SƠ CHỨNG CỨ VÀ NGHIÊN CỨU — EVIDENCE & RESEARCH FILE]\n\n{evidence}\n\n"
+                        if strategy: combined += f"#### 💎 [3. CHIẾN LƯỢC TÁI CẤU TRÚC — RESTRUCTURING STRATEGY]\n\n{strategy}\n\n"
+                    
+                    if combined:
+                        raw.verdict = time_badge + combined
+                    else:
+                        raw.verdict = time_badge + (getattr(raw, 'verdict', '') or "⚠️ [BRAIN] Không có phản hồi nội dung phân tích.")
+                else:
+                    raw.verdict = time_badge + (getattr(raw, 'verdict', '') or "⚠️ [BRAIN] Không có phản hồi nội dung phân tích.")
                 
                 if hasattr(raw, 'logs'): raw.logs = logs
                 return raw
@@ -348,7 +364,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                 f"- Đoạn trùng lặp với đối thủ: {len(h_annots) - len(i_annots)} đoạn (Heuristic detection).\n\n"
                 f"#### 💎 [3. CHIẾN LƯỢC TÁI CẤU TRÚC — RESTRUCTURING STRATEGY]\n\n"
                 f"- **Bước 1 — ĐỊNH VỊ CỐT LÕI**: Xem xét lại góc tiếp cận tổng thể. Tránh dùng cấu trúc mô tả tuyến tính (công dụng → thành phần → hướng dẫn) — đây là cấu trúc phổ biến nhất của đối thủ. Thay vào đó, hãy mở đầu bằng vấn đề thực tế của người dùng (Pain Point) rồi mới giới thiệu giải pháp.\n"
-                f"- **Bước 2 — PHÂN BỔ 4 KHỐI**: Phân bổ lại nội dung theo 4 trụ cột (Lợi điểm cốt lõi / Cơ chế & Hoạt chất / Phương pháp & Trải nghiệm / Cam kết & Đặc quyền). Đảm bảo mỗi khối có ít nhất một điểm khác biệt so với đối thủ.\n"
+                f"- **Bước 2 — PHÂN BỔ 4 KHỐI (HOẶC BỘ KHUNG)**: Phân bổ lại nội dung theo 4 trụ cột (đối với bài viết) hoặc theo bộ khung chuẩn (Giới thiệu / Công dụng / Đối tượng / Cách sử dụng / Lưu ý / Bảo quản đối với sản phẩm). Đảm bảo thông tin truyền tải rõ ràng, đúng trọng tâm, ngắn gọn và không màu mè hoa lá hẹ.\n"
                 f"- **Bước 3 — KẾ HOẠCH REWRITE**: (1) Thay thế toàn bộ các đoạn bị đánh dấu bằng ngôn ngữ gốc từ trải nghiệm thực tế. (2) Bổ sung dẫn chứng khoa học hoặc số liệu cụ thể. (3) Sử dụng giọng văn thương hiệu nhất quán thay vì ngôn ngữ generic. (4) Kiểm tra lại sau khi sửa bằng công cụ Neural Copyright để xác nhận điểm Uniqueness đạt >0.85."
             )
         )

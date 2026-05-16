@@ -291,7 +291,7 @@
     brand: (product.metadata?.brand as string) || (product.attributes?.['brand'] as string) || (product.attributes?.['Thương hiệu'] as string) || '',
     origin: (product.metadata?.origin as string) || (product.attributes?.['origin'] as string) || (product.attributes?.['Xuất xứ'] as string) || '',
     weight: (product.metadata?.weight as string) || (product.attributes?.['weight'] as string) || (product.attributes?.['Trọng lượng'] as string) || '',
-    originalPrice: pDiscountPrice ? (product.price || product.base_price || 0) : (product.price || 0) * 1.55,
+    originalPrice: pDiscountPrice ? (product.price || product.base_price || 0) : (product.price || 0),
     salePrice: (pDiscountPrice as number) || (product.price as number) || 0
   });
 
@@ -299,7 +299,7 @@
 
   const activePrices = $derived({
     sale: displayPrice.discountPrice || displayPrice.price,
-    original: displayPrice.discountPrice ? displayPrice.price : (typeof displayPrice.price === 'number' ? displayPrice.price * 1.55 : displayPrice.price)
+    original: displayPrice.discountPrice ? displayPrice.price : displayPrice.price
   });
 
   function buyNow() {

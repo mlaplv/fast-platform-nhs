@@ -114,7 +114,6 @@ services:
     working_dir: /app/frontend
     volumes:
       - ./frontend:/app/frontend
-      - /app/frontend/node_modules
     expose:
       - "5173"
     logging:
@@ -130,11 +129,11 @@ services:
       - INTERNAL_API_URL=http://api:8000
       - APP_DOMAIN=${APP_DOMAIN}
       - ENVIRONMENT=${ENVIRONMENT}
-    mem_limit: ${UI_MEM_LIMIT:-1G}
+    mem_limit: ${UI_MEM_LIMIT:-2G}
     deploy:
       resources:
         limits:
-          memory: ${UI_MEM_LIMIT:-1G}
+          memory: ${UI_MEM_LIMIT:-2G}
     command: pnpm dev --host 0.0.0.0
     links:
       - api
@@ -229,6 +228,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - TZ=Asia/Ho_Chi_Minh
       - SKIP_MIGRATE=true
+      - PYTHONWARNINGS=ignore:Core Pydantic V1 functionality:UserWarning
     mem_limit: 512M
     deploy:
       resources:

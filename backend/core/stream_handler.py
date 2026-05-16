@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import UTC, datetime
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from redis.asyncio import Redis
 
@@ -18,7 +18,7 @@ class RedisStreamProducer:
         self.stream_name = stream_name
         self.max_len = 10000 # Giữ 10k bản ghi mới nhất (~1-2MB RAM)
 
-    async def produce(self, data: Dict[str, Any], event_type: str = "CLICK") -> Optional[str]:
+    async def produce(self, data: Dict[str, object], event_type: str = "CLICK") -> Optional[str]:
         """
         Đẩy event vào stream.
         """

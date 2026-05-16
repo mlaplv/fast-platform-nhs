@@ -116,11 +116,11 @@
   <div class="bg-[#f6f6f6] px-5 py-1.5 flex items-center justify-between mb-2 relative overflow-hidden group border-y border-gray-100/50">
     <div class="flex flex-col">
         <div class="flex items-center gap-3 mb-0.5">
-           <span class="text-[14px] text-gray-400 line-through">{formatCurrency(activePrices.original)}</span>
            {#if activePrices.original > activePrices.sale}
-              <span class="text-[11px] font-black text-[#00bfa5] tracking-widest bg-[#e6f9f6] px-1.5 py-0.5">
+             <span class="text-[14px] text-gray-400 line-through">{formatCurrency(activePrices.original)}</span>
+             <span class="text-[11px] font-black text-[#00bfa5] tracking-widest bg-[#e6f9f6] px-1.5 py-0.5">
                   Tiết kiệm {formatCurrency(Number(activePrices.original) - Number(activePrices.sale))}
-              </span>
+             </span>
            {/if}
         </div>
         <div class="flex items-baseline gap-4">

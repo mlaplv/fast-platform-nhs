@@ -147,7 +147,10 @@ class PlagiarismResult(BaseModel):
     flagged_sentences: List[str]
     annotations: List[CopyrightAnnotation]
     similar_sources: List[str]
-    verdict: str
+    verdict_gap: str = Field(default="", description="Nội dung chi tiết phần: 1. LUẬN ĐIỂM PHẢN BIỆN (Markdown). KHÔNG kèm tiêu đề.")
+    verdict_evidence: str = Field(default="", description="Nội dung chi tiết phần: 2. HỒ SƠ CHỨNG CỨ VÀ NGHIÊN CỨU (Markdown). KHÔNG kèm tiêu đề.")
+    verdict_strategy: str = Field(default="", description="Nội dung chi tiết phần: 3. CHIẾN LƯỢC TÁI CẤU TRÚC (Markdown). Trình bày đầy đủ 3 bước. KHÔNG kèm tiêu đề.")
+    verdict: str = Field(default="", description="Trường này hệ thống tự tổng hợp, hãy bỏ trống.")
     logs: List[str] = Field(default_factory=list, description="Live progress logs")
 
 class SeoAnnotation(BaseModel):

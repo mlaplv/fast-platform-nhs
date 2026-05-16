@@ -710,15 +710,15 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
                     <div class="flex flex-col items-start min-w-[70px]">
                       <div class="text-[17px] font-bold text-[#fe2c55] leading-none shrink-0 flex items-center gap-1">
                          {formatCurrency(cartStore.getEffectiveItemPrice(item.id))}
-                         {#if cartStore.getEffectiveItemPrice(item.id) < (item.variant?.discountPrice ?? item.product.discountPrice ?? item.variant?.price ?? item.product.price ?? 0)}
+                         {#if cartStore.getEffectiveItemPrice(item.id) < (item.variant?.discountPrice || item.product.discountPrice || item.variant?.price || item.product.price || 0)}
                            <span class="text-[8px] bg-[#fe2c55] text-white px-1 py-0.5 rounded-[2px] font-black italic tracking-tighter shadow-sm animate-pulse-subtle">Combo</span>
                          {/if}
                       </div>
                       <div class="flex items-center gap-1 mt-1">
-                         {#if cartStore.getEffectiveItemPrice(item.id) < (item.variant?.discountPrice ?? item.product.discountPrice ?? 0)}
-                           <span class="text-[11px] text-gray-400 line-through shrink-0 italic">{formatCurrency(item.variant?.discountPrice ?? item.product.discountPrice ?? 0)}</span>
+                         {#if cartStore.getEffectiveItemPrice(item.id) < (item.variant?.discountPrice || item.product.discountPrice || 0)}
+                           <span class="text-[11px] text-gray-400 line-through shrink-0 italic">{formatCurrency(item.variant?.discountPrice || item.product.discountPrice || 0)}</span>
                          {:else if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
-                           <span class="text-[11px] text-gray-400 line-through shrink-0 text-center">{formatCurrency(item.variant?.price ?? item.product.price ?? 0)}</span>
+                           <span class="text-[11px] text-gray-400 line-through shrink-0 text-center">{formatCurrency(item.variant?.price || item.product.price || 0)}</span>
                          {/if}
                          
                          {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}

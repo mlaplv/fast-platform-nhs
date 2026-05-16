@@ -106,18 +106,18 @@ class IPIntelligenceService:
         except ValueError:
             return True  # IP không hợp lệ → suspicious
 
-    async def _call_ipinfo(self, ip: str) -> dict[str, Any]:
+    async def _call_ipinfo(self, ip: str) -> dict[str, object]:
         url = f"{self._IPINFO_BASE}/{ip}/json?token={self._IPINFO_TOKEN}"
         async with httpx.AsyncClient(timeout=self._TIMEOUT) as client:
             resp = await client.get(url)
             resp.raise_for_status()
-            data: dict[str, Any] = resp.json()
+            data: dict[str, object] = resp.json()
             return data
 
     @staticmethod
-    def _build_report(ip: str, data: dict[str, Any], is_dc_local: bool) -> IPReport:
+    def _build_report(ip: str, data: dict[str, object], is_dc_local: bool) -> IPReport:
         org: str = data.get("org", "")
-        privacy: dict[str, Any] = data.get("privacy", {})
+        privacy: dict[str, object] = data.get("privacy", {})
 
         is_vpn     = bool(privacy.get("vpn", False))
         is_tor     = bool(privacy.get("tor", False))

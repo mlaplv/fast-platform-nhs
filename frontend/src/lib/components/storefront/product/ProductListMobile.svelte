@@ -64,7 +64,7 @@
     if (selectedOrigins.length > 0) result = result.filter(p => { const o = getAttr(p, 'origin'); return o && selectedOrigins.includes(o); });
     if (minPrice !== null || maxPrice !== null) {
       result = result.filter(p => {
-        const price = p.discountPrice ?? p.price;
+        const price = Number(p.discountPrice) || Number(p.price);
         if (minPrice !== null && price < minPrice) return false;
         if (maxPrice !== null && price > maxPrice) return false;
         return true;

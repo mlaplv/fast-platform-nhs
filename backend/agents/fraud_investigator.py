@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pydantic_ai import Agent, RunContext
 from sqlalchemy import select
@@ -10,14 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.models.ads import ClickFraudEvent, IPBlacklist
 from backend.services.ads_protection.schemas import ClickFraudResult, FraudSignal
+from backend.services.ads_protection.ip_intelligence_service import IPIntelligenceService
 
 logger = logging.getLogger("fast_platform.agents.fraud")
 
 @dataclass
 class ForensicDeps:
     db: AsyncSession
-    ip_intel_svc: Any  # IPIntelligenceService
-    knowledge_base: Optional[Any] = None
+    ip_intel_svc: IPIntelligenceService
+    knowledge_base: Optional[object] = None
 
 import os
 from pydantic_ai.models.test import TestModel
@@ -47,7 +48,7 @@ fraud_investigator = Agent(
 )
 
 @fraud_investigator.tool
-async def check_ip_history(ctx: RunContext[ForensicDeps], ip: str) -> List[Dict[str, Any]]:
+async def check_ip_history(ctx: RunContext[ForensicDeps], ip: str) -> List[Dict[str, object]]:
     """Truy xuất lịch sử click của IP này trong 7 ngày qua."""
     stmt = select(ClickFraudEvent).where(ClickFraudEvent.ip_address == ip).limit(50)
     result = await ctx.deps.db.execute(stmt)
@@ -66,14 +67,14 @@ async def check_knowledge_base(ctx: RunContext[ForensicDeps], pattern_query: str
     return f"Mẫu '{pattern_query}': Thường liên quan đến headless browser hoặc click farm từ vùng Đông Nam Á."
 
 @fraud_investigator.tool
-async def get_advanced_ip_intel(ctx: RunContext[ForensicDeps], ip: str) -> Dict[str, Any]:
+async def get_advanced_ip_intel(ctx: RunContext[ForensicDeps], ip: str) -> Dict[str, object]:
     """Lấy thông tin tình báo chuyên sâu về IP (ASN, ISP, Proxy, VPN)."""
     return await ctx.deps.ip_intel_svc.analyze(ip)
 
 async def run_forensic_analysis(
     db: AsyncSession, 
-    ip_svc: Any, 
-    click_data: Dict[str, Any]
+    ip_svc: IPIntelligenceService, 
+    click_data: Dict[str, object]
 ) -> ClickFraudResult:
     """Hàm wrapper để chạy Agentic Analysis."""
     deps = ForensicDeps(db=db, ip_intel_svc=ip_svc)

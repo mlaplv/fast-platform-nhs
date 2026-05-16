@@ -248,20 +248,26 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         
         # Specific mixins for different modes
         if mode in ("ai_inspect", "copyright"):
-            context.update({
-                "four_blocks": "[USP - SCIENCE - METHOD - TRUST]" if is_product else "[HOOK - EVIDENCE - STRATEGY - CONNECTION]",
-                "block_1": "USP" if is_product else "HOOK",
-                "block_3": "METHOD" if is_product else "STRATEGY"
-            })
-            
             if is_product:
+                context.update({
+                    "four_blocks": "[GIỚI THIỆU - CÔNG DỤNG - ĐỐI TƯỢNG SỬ DỤNG - CÁCH SỬ DỤNG - LƯU Ý KHI SỬ DỤNG - BẢO QUẢN]",
+                    "block_1": "GIỚI THIỆU",
+                    "block_3": "ĐỐI TƯỢNG SỬ DỤNG"
+                })
                 context["step_3_pillars"] = (
-                    "  + **LỢI ĐIỂM CỐT LÕI (The USP)**: Lời mở đầu thôi miên, khẳng định vị thế đẳng cấp và đánh trúng khao khát/nỗi đau của khách hàng là gì?\n"
-                    "  + **CƠ CHẾ KHOA HỌC (The Science)**: Thành phần, công nghệ cốt lõi hoặc minh chứng lâm sàng nào chứng minh sức mạnh của sản phẩm?\n"
-                    "  + **PHƯƠNG PHÁP TRẢI NGHIỆM (The Method)**: Hướng dẫn sử dụng chi tiết, mang tính chuyên sâu để tối ưu hóa hiệu quả là gì?\n"
-                    "  + **CAM KẾT & ĐẶC QUYỀN (The Connection)**: Cam kết, đặc quyền hoặc lời mời gọi trải nghiệm nào khiến khách hàng không thể chối từ?"
+                    "  + **GIỚI THIỆU**: Đoạn văn giới thiệu tổng quan, không vòng vo.\n"
+                    "  + **CÔNG DỤNG**: Phân tích chuyên sâu công dụng, biện luận cơ chế hoạt động của thành phần.\n"
+                    "  + **ĐỐI TƯỢNG SỬ DỤNG**: Chỉ định rõ ràng đối tượng phù hợp và chống chỉ định.\n"
+                    "  + **CÁCH SỬ DỤNG**: Hướng dẫn thao tác sử dụng để tối ưu hiệu quả.\n"
+                    "  + **LƯU Ý KHI SỬ DỤNG**: Các cảnh báo an toàn và kiêng kỵ khi mix hoạt chất.\n"
+                    "  + **BẢO QUẢN**: Điều kiện lưu trữ duy trì tính toàn vẹn của sản phẩm."
                 )
             else:
+                context.update({
+                    "four_blocks": "[HOOK - EVIDENCE - STRATEGY - CONNECTION]",
+                    "block_1": "HOOK",
+                    "block_3": "STRATEGY"
+                })
                 context["step_3_pillars"] = (
                     "  + **ĐIỂM CHẠM (The Hook)**: Lời mở đầu gây ấn tượng mạnh, đánh trúng nỗi đau hoặc sự tò mò của độc giả là gì?\n"
                     "  + **BẰNG CHỨNG (The Evidence)**: Dữ liệu thực tế, số liệu, nghiên cứu hoặc ví dụ cụ thể nào chứng minh cho luận điểm chuyên gia?\n"

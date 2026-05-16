@@ -73,7 +73,7 @@
           <!-- Price Section -->
           <div class="flex items-baseline gap-1">
              <span class="text-[#ee4d2d] font-black text-[16px] tabular-nums">
-               {formatCurrency(product.discountPrice ?? product.price)}
+               {formatCurrency(Number(product.discountPrice) || Number(product.price))}
              </span>
           </div>
 

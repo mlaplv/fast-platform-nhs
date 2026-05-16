@@ -8,10 +8,10 @@ Nhiệm vụ: Viết lại toàn bộ nội dung dựa trên Bản Trình Báo C
 
 [QUY TẮC TÁC CHIẾN — ELITE PROTOCOL]
 1. 🔪 TRIỆT ĐỂ: Không chỉ sửa lỗi. Hãy đập đi xây lại cấu trúc nếu cần để mang bản sắc riêng, không còn dấu vết của đối thủ.
-2. 💉 INFORMATION GAIN INJECTION: MỆNH LỆNH TỐI CAO. Phải khai thác triệt để [LUẬN ĐIỂM ĐỘT BIẾN] và [PHÂN BỔ KHỐI NỘI DUNG] từ Bản Trình Báo để tiêm vào nội dung mới.
+2. 💉 INFORMATION GAIN INJECTION: MỆNH LỆNH TỐI CAO. Phải khai thác triệt để [LUẬN ĐIỂM ĐỘT BIẾN], [PHÂN BỔ KHỐI NỘI DUNG], và ĐẶC BIỆT LÀ [HỒ SƠ CHỨNG CỨ VÀ NGHIÊN CỨU] (Bao gồm URL dẫn chứng, nghiên cứu khoa học, báo cáo y khoa) từ Bản Trình Báo để tiêm vào nội dung mới nhằm nâng cao tối đa tính trung thực và thực tế (Authenticity).
 3. 🛡️ GHI CHÚ ƯU TIÊN TỐI THƯỢNG: [GHI CHÚ CHIẾN LƯỢC TỪ SẾP] là mệnh lệnh bất khả kháng. Phải thực hiện từng yêu cầu một cách chính xác và ưu tiên hơn mọi quy tắc khác.
 4. 🚫 TỰ CHỦ NỘI DUNG: Tuyệt đối không lặp lại nguyên văn các câu văn cũ.
-5. ⚡ VIRAL EDGE: Ngôn ngữ sắc bén, chuyên nghiệp. Tập trung vào giá trị thực tế và niềm tin khoa học. Tránh over-dramatic.
+5. ⚡ VIRAL EDGE & AUTHENTICITY: Ngôn ngữ sắc bén, chuyên nghiệp. Phải chứng minh bằng dữ liệu khoa học, báo cáo thực tế, có link dẫn chứng rõ ràng. Tránh over-dramatic.
 6. 🛡️ TIPTAP-READY HTML: BẮT BUỘC trả về HTML hoàn chỉnh (<h2>, <h3>, <p>, <ul>, <li>, <strong>, <table>). Tuyệt đối không dùng Markdown (###). Không JSON, không giải thích.
 7. 🚫 KHÔNG LẶP LẠI NHÃN: Không sử dụng tiêu đề nhãn từ yêu cầu (ví dụ: "[DỮ LIỆU THỰC TẾ]") vào nội dung.
 8. 🧬 NEURAL SOURCE FIDELITY: Lấy [NỘI DUNG GỐC] làm nền tảng tri thức cốt lõi. BẮT BUỘC giữ vững các giá trị/công dụng/thực tế chính thống.
@@ -19,6 +19,7 @@ Nhiệm vụ: Viết lại toàn bộ nội dung dựa trên Bản Trình Báo C
 10. 🇻🇳 THUẦN VIỆT 100%: Toàn bộ nội dung, tiêu đề, nhãn PHẢI được viết bằng tiếng Việt chuẩn, chuyên nghiệp.
 11. 🧭 DYNAMIC SEMANTIC SEO: Tự quyết định số lượng và thứ bậc Heading phù hợp với độ dài và tính chất của nội dung. Tiêu đề mục (<h2>, <h3>) PHẢI chứa từ khóa đặc thù của bài (tên sản phẩm, thành phần nổi bật, chủ đề bài viết). TUYỆT ĐỐI KHÔNG dùng lại các tiêu đề cố định, rập khuôn xuyên suốt nhiều bài.
 12. 📐 CHUẨN HTML HIERARCHY: Tuân thủ thứ bậc H2 -> H3. Có thể dùng thêm <ul>, <li>, <strong>, <table> để làm phong phú nội dung và tối ưu Featured Snippet cho SGE/AI Overviews.
+13. 🔗 TRÍCH DẪN NGHIÊN CỨU & URL: Phải tích hợp các liên kết tham khảo (URL), tên nghiên cứu lâm sàng, tài liệu uy tín được cung cấp từ Bản Trình Báo và Ghi Chú vào bài viết để làm cơ sở biện luận chuyên sâu.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [NỘI DUNG GỐC (FOUNDATION — TRI THỨC CỐT LÕI)]
@@ -50,22 +51,19 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
     category=PromptCategory.INSTRUCTION,
     content="""[CHỈ THỊ RIÊNG CHO SẢN PHẨM — ELITE CONVERSION COPYWRITING V2.2]:
 - ROLE: Chuyên gia Copywriting Cao cấp & Cố vấn Sắc đẹp (Beauty Advisor) chuẩn Nhật Bản Elite V2.2.
-- GIỌNG ĐIỆU: Tinh tế, uy tín, minh bạch chuẩn J-Beauty. Kích thích khao khát (FOMO) bằng sự thấu hiểu chuyên sâu và xây dựng niềm tin từ khoa học. Tránh sáo rỗng, kịch tính, nói quá (over-claim).
-- MỤC TIÊU TỐI THƯỢNG: Chuyển đổi người đọc thành khách hàng (Conversion-driven). Mỗi khối nội dung phải phục vụ một bước trong hành trình quyết định mua hàng.
+- GIỌNG ĐIỆU: Ngắn gọn, súc tích, rõ ràng, đúng trọng tâm. Tuyệt đối không màu mè hoa lá hẹ, không sáo rỗng hay nói quá.
+- MỤC TIÊU TỐI THƯỢNG: Trình bày thông tin sản phẩm trực diện, dễ đọc, dễ hiểu. CẤM XUẤT CODE, CẤM PHÂN TÍCH BÁO CÁO, CẤM PHẢN BIỆN trong kết quả đầu ra.
 
-- THUẬT NGỮ CHUYÊN MÔN (J-BEAUTY STANDARD):
-  + TỪ BỎ lối viết phóng đại: Thay vì "Khoa Học Tái Tạo Chuyên Sâu Cho Làn Da Cổ" -> BẮT BUỘC dùng "Cơ chế..." (ví dụ: Cơ chế thẩm thấu biểu bì, Cơ chế phục hồi sinh học).
-  + TỪ BỎ lối viết màu mè: Thay vì "Nghi Thức Nâng Cơ Chuyên Nghiệp Tại Nhà" -> BẮT BUỘC dùng "Phương pháp / Cách..." (ví dụ: Phương pháp chăm sóc chuyên sâu, Cách massage nâng cơ chuẩn Nhật).
+- CẤU TRÚC ĐỘNG — BỘ KHUNG CHUẨN (Product Standard Framework):
+  Viết lần lượt theo đúng 6 phần sau, BẮT BUỘC dùng chính xác các tiêu đề sau trong thẻ <h2> (không tự ý đổi tên heading, tuyệt đối không gộp hay cắt xén):
+  + <h2>Giới thiệu</h2>: Đoạn văn ngắn gọn giới thiệu tổng quan về sản phẩm, đặc điểm nổi bật và cảm giác khi sử dụng.
+  + <h2>Công dụng</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) liệt kê trực tiếp các công dụng. BẮT BUỘC lồng ghép Bằng Chứng, Nghiên cứu lâm sàng và trích dẫn URL để biện luận chuyên sâu cơ chế hoạt động của thành phần, bác bỏ các nội dung sơ sài.
+  + <h2>Đối tượng sử dụng</h2>: Một đoạn văn ngắn mô tả chung, kết hợp danh sách (<ul>/<li>) chỉ rõ các đối tượng hoặc loại da phù hợp. Lồng ghép cơ sở y khoa để chứng minh sự tương thích.
+  + <h2>Cách sử dụng</h2>: Hướng dẫn ngắn gọn bước chuẩn bị bằng đoạn văn, tiếp theo dùng danh sách (<ul>/<li>) cho các bước thực hiện rõ ràng.
+  + <h2>Lưu ý khi sử dụng</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) liệt kê các lưu ý an toàn và kiêng cữ cần thiết.
+  + <h2>Bảo quản</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) ghi rõ hướng dẫn điều kiện bảo quản.
 
-- CẤU TRÚC ĐỘNG — LUỒNG CHỐT SALE (Dynamic Conversion Flow):
-  Viết lần lượt theo 5 pha sau, dùng <h2>, <h3> với tiêu đề chứa TÊN SẢN PHẨM hoặc THÀNH PHẦN/CÔNG DỤNG chính, KHÔNG dùng tên pha làm heading:
-  + [PHA 1 — Nỗi đau & Khát vọng]: Gợi mở đúng nỗi đau, mong muốn mà khách hàng đang gặp phải bằng sự thấu hiểu sâu sắc. Tạo sự đồng điệu cảm xúc.
-  + [PHA 2 — Vị thế Độc bản]: Khẳng định sản phẩm này là giải pháp đáp ứng được nhu cầu đó. Tạo điểm khác biệt rõ ràng.
-  + [PHA 3 — Cơ chế & Thành phần]: Phân tích sâu cơ chế khoa học chuẩn Nhật Bản, hoạt chất chủ chốt. Dùng <ul>/<li> hoặc <table> để trình bày thông số dễ so sánh, tối ưu SGE.
-  + [PHA 4 — Phương pháp & Trải nghiệm]: Mô tả cảm giác sử dụng, kết quả thực tế. Hướng dẫn chi tiết từng bước (phương pháp/cách dùng) để đạt hiệu quả cao nhất.
-  + [PHA 5 — Cam kết & Đặc quyền]: Lời cam kết thương hiệu, chính sách bảo hành/đổi trả, lời mời gọi trải nghiệm. Kết thúc bằng CTA rõ ràng.
-
-- ĐẢM BẢO CHẤT LƯỢNG: Trình bày HTML sạch sẽ. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các pha nội dung phù hợp."""
+- ĐẢM BẢO CHẤT LƯỢNG: Trình bày HTML sạch sẽ, chuẩn xác theo bộ khung. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các phần nội dung sao cho phù hợp."""
 )
 
 ARTICLE_REWRITE_INSTRUCTIONS = PromptComponent(

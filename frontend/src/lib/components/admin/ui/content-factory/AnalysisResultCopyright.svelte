@@ -56,13 +56,13 @@
       // Detect section header lines: markdown headings or known section markers
       const isSectionHeader =
         t.startsWith('###') || t.startsWith('####') ||
-        t.includes('[1. LUẬN ĐIỂM') || t.includes('[2. HỒ SƠ') || t.includes('[3. PHƯƠNG ÁN') ||
-        t.includes('[LUẬN ĐIỂM PHẢN BIỆN') || t.includes('[HỒ SƠ CHỨNG CỨ') || t.includes('[PHƯƠNG ÁN PHẪU THUẬT') ||
-        t.includes('刀') || t.includes('🔍') || t.includes('🔗');
+        t.includes('[1. LUẬN ĐIỂM') || t.includes('[2. HỒ SƠ') || t.includes('[3. PHƯƠNG ÁN') || t.includes('[3. CHIẾN LƯỢC') ||
+        t.includes('[LUẬN ĐIỂM PHẢN BIỆN') || t.includes('[HỒ SƠ CHỨNG CỨ') || t.includes('[PHƯƠNG ÁN PHẪU THUẬT') || t.includes('[CHIẾN LƯỢC TÁI CẤU TRÚC') ||
+        t.includes('刀') || t.includes('🔍') || t.includes('🔗') || t.includes('💎');
 
       if (isSectionHeader) {
         flushBlock();
-        const entersPlan = t.includes('PHƯƠNG ÁN') || t.includes('刀');
+        const entersPlan = t.includes('PHƯƠNG ÁN') || t.includes('刀') || t.includes('CHIẾN LƯỢC') || t.includes('💎');
         if (entersPlan) isPlanActive = true;
         // Bước 1/2 headers are inside the plan block — keep isPlanActive
         currentIsHeader = true;

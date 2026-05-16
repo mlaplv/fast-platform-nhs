@@ -152,7 +152,7 @@ export class CartStore {
         // In Elite V2.2, originalSubtotal is the sum of base prices.
         const originalSubtotal = this.items
             .filter(i => i.selected)
-            .reduce((acc, item) => acc + ((item.variant?.price ?? item.product.price ?? 0) * item.quantity), 0);
+            .reduce((acc, item) => acc + ((Number(item.variant?.price) || Number(item.product.price) || 0) * item.quantity), 0);
         
         const comboDiscount = Math.max(0, originalSubtotal - subtotal);
 
@@ -260,10 +260,10 @@ export class CartStore {
             );
             
             const resolvedVariant = bestTier || item.variant || item.product.variants?.[0];
-            return resolvedVariant?.discountPrice ?? item.product.discountPrice ?? resolvedVariant?.price ?? item.product.price ?? 0;
+            return Number(resolvedVariant?.discountPrice) || Number(item.product.discountPrice) || Number(resolvedVariant?.price) || Number(item.product.price) || 0;
         }
         
-        return item.variant?.discountPrice ?? item.variant?.price ?? item.product.discountPrice ?? item.product.price ?? 0;
+        return Number(item.variant?.discountPrice) || Number(item.variant?.price) || Number(item.product.discountPrice) || Number(item.product.price) || 0;
     }
 
     removeItem(id: string): void {

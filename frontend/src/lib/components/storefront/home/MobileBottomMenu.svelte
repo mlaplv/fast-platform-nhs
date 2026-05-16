@@ -115,7 +115,7 @@
                   {/each}
                 {:else if categoryProducts && categoryProducts.length > 0}
                   {#each categoryProducts as prod}
-                    <a href={`/${prod.slug}/`} onclick={toggleMenu} class="tbn-cat-card">
+                    <a href={`/${prod.slug}`} onclick={toggleMenu} class="tbn-cat-card">
                       <div class="tbn-cat-img-wrapper">
                          {#if Array.isArray(prod.images) && prod.images.length > 0}
                            <img src={prod.images[0]} alt={prod.name} loading="lazy" />
