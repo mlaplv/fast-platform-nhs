@@ -314,6 +314,7 @@
         class="mt-2 flex items-center gap-1.5 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20"
       >
         <div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
+        <span
           class="text-[9px] font-black text-amber-700 tracking-widest leading-none"
           >{LOYALTY_CONFIG.LABELS.EARN_PREFIX}{Math.floor(finalTotal / LOYALTY_CONFIG.EARNING_RATE_VND)} {LOYALTY_CONFIG.LABELS.POINTS_UNIT}</span
         >
