@@ -873,6 +873,37 @@ function purge_full_database() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
+function deploy_security_index() {
+    echo -e "${YELLOW}=== [SECURITY] DEPLOY GIN INDEX (POSTGRESQL PRODUCTION) ===${NC}"
+    echo -e "${RED}[IMPORTANT] Thao tác này nên chạy vào GIỜ THẤP TẢI để đảm bảo hiệu năng tốt nhất.${NC}"
+    echo -e "${CYAN}Ghi chú: Script dùng 'CONCURRENTLY' nên sẽ không gây lock table orders.${NC}"
+    
+    local SQL_FILE="backend/database/migrations/security_gin_index.sql"
+    
+    if [ ! -f "$SQL_FILE" ]; then
+        echo -e "${RED}[ERROR] Không tìm thấy file $SQL_FILE${NC}"
+        read -p "Nhấn Enter để quay lại..."
+        return 1
+    fi
+
+    # Kiểm tra Container DB có đang chạy không
+    if ! docker ps --format '{{.Names}}' | grep -q "fast_platform_db"; then
+        echo -e "${RED}[ERROR] Container fast_platform_db không chạy. Hãy khởi động hệ thống trước.${NC}"
+        read -p "Nhấn Enter để quay lại..."
+        return 1
+    fi
+
+    echo -e "${CYAN}-> Đang thực thi GIN Index Migration...${NC}"
+    # Đọc file SQL và pipe vào psql trong container
+    if cat "$SQL_FILE" | docker exec -i fast_platform_db psql -U postgres -d fast_platform; then
+        echo -e "${GREEN}[SUCCESS] Đã khởi tạo GIN Index thành công!${NC}"
+    else
+        echo -e "${RED}[ERROR] Thực thi SQL thất bại. Kiểm tra log của Database.${NC}"
+    fi
+    
+    read -p "Nhấn Enter để quay lại menu..."
+}
+
 
 while true; do
     clear
@@ -905,6 +936,7 @@ while true; do
     echo "17) ROTATE ENCRYPTION SALT (Vô hiệu hóa toàn bộ session)"
     echo "18) DI CƯ TENANT (Đổi Domain -> Update DB)"
     echo "19) LÀM SẠCH DATABASE (Dọn sạch toàn bộ Table)"
+    echo "20) DEPLOY GIN INDEX (PostgreSQL Security Index)"
     echo "0) Thoát (Exit)"
     echo ""
     read -p "Sếp chọn lệnh nào: " choice
@@ -983,6 +1015,9 @@ while true; do
             ;;
         19)
             purge_full_database
+            ;;
+        20)
+            deploy_security_index
             ;;
         0)
             exit 0

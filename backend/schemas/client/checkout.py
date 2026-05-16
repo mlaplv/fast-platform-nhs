@@ -29,10 +29,23 @@ class GiftInfoSchema(BaseModel):
 class StealthCheckoutSchema(BaseModel):
     model_config = ConfigDict(strict=True, from_attributes=True)
 
-    items: list[CheckoutItemSchema] = Field(..., description="Danh sách sản phẩm trong giỏ")
-    custom_items: list[CustomItemSchema] = Field(default_factory=list, description="Danh sách sản phẩm yêu cầu thêm")
+    items: list[CheckoutItemSchema] = Field(
+        ...,
+        min_length=1,
+        max_length=20,  # [SECURITY H-02] Chặn OOM/DDoS
+        description="Danh sách sản phẩm trong giỏ"
+    )
+    custom_items: list[CustomItemSchema] = Field(
+        default_factory=list,
+        max_length=10,  # [SECURITY H-02]
+        description="Danh sách sản phẩm yêu cầu thêm"
+    )
     gift_info: Optional[GiftInfoSchema] = Field(None, description="Thông tin quà tặng")
-    voucher_ids: list[str] = Field(default_factory=list, description="Danh sách mã giảm giá áp dụng")
+    voucher_ids: list[str] = Field(
+        default_factory=list,
+        max_length=5,  # [SECURITY C-03] Chặn near-zero dollar bằng voucher stacking
+        description="Danh sách mã giảm giá áp dụng"
+    )
     customer_name: str = Field(..., min_length=2, max_length=100, description="Tên khách hàng")
     customer_phone: str = Field(..., description="Số điện thoại khách hàng")
     customer_address: str = Field(..., min_length=5, max_length=500, description="Địa chỉ nhận hàng")

@@ -28,8 +28,11 @@ class AntiSpamService:
         self.redis = redis_client
         self.client = redis_client
         
-        self.PRO_THRESHOLD_SCORE = 90.0
-        self.AUDIT_THRESHOLD_SCORE = 70.0
+        self.BLOCK_THRESHOLD_SCORE = 90.0      # Tier 3: Block — từ chối ngay
+        self.CHALLENGE_THRESHOLD_SCORE = 70.0   # Tier 2: Challenge — yêu cầu xác nhận thêm
+        self.AUDIT_THRESHOLD_SCORE = 50.0       # Tier 1: Audit — lưu & gắn cờ để review
+        # Legacy alias cho backward compat
+        self.PRO_THRESHOLD_SCORE = self.BLOCK_THRESHOLD_SCORE
         self.MAX_ORDERS_24H = 3
         self.RAPID_FIRE_SECONDS = 5
         self.BLACKLIST_DURATION = 86400
@@ -125,6 +128,24 @@ class AntiSpamService:
             logger.error(f"[AntiSpam] Fatal Agentic Error: {e}")
             return 0.0 
 
+    async def _background_ai_flag(self, name: str, address: str, current_score: float, reasons: List[str]) -> None:
+        """
+        [P-01] Fire-and-Forget: Chạy AI review trong background task.
+        Không block checkout. Log kết quả để admin review.
+        """
+        try:
+            ai_penalty = await self.agentic_address_review(name, address)
+            if ai_penalty > 50.0:
+                final = min(current_score + ai_penalty, 100.0)
+                logger.warning(
+                    f"[AntiSpam-BG] AI review complete: score {current_score:.1f} → {final:.1f} "
+                    f"(AI penalty={ai_penalty:.1f}) | name='{name}' addr='{address[:40]}'"
+                )
+            else:
+                logger.debug(f"[AntiSpam-BG] AI review: Legitimate (penalty={ai_penalty:.1f})")
+        except Exception as e:
+            logger.error(f"[AntiSpam-BG] Background AI review error: {e}")
+
     async def check_order_spam(
         self,
         ip: str,
@@ -137,8 +158,9 @@ class AntiSpamService:
         phone_val = order_data.get("phone", "unspecified")
         phone: str = str(phone_val) if phone_val else "unspecified"
 
-        if os.getenv("ENVIRONMENT", "production") == "development":
-            logger.debug(f"[AntiSpam] DEV MODE BYPASS for order (phone={phone})")
+        if os.getenv("ENVIRONMENT", "production").lower().strip() == "development" \
+                and os.getenv("ALLOW_SPAM_BYPASS", "false").lower().strip() == "true":
+            logger.warning("[AntiSpam] ⚠️ DEV SPAM BYPASS ACTIVE — NEVER ENABLE IN PRODUCTION!")
             return False, "Dev Mode Bypass", 0.0, device_hash
 
         if not self.redis:
@@ -269,21 +291,40 @@ class AntiSpamService:
                     reasons.append("Stock Drain Attempt")
 
         # Result Evaluation
-        # 4. Viral 2026: Final Agentic Review for ambiguous cases
-        if self.AUDIT_THRESHOLD_SCORE > score >= 40.0:
-            ai_penalty: float = await self.agentic_address_review(name, address)
-            if ai_penalty > 50.0:
-                score = cast(float, score) + ai_penalty
-                reasons.append(f"Agentic AI Detection (Spam Score: {ai_penalty})")
+        # 4. Viral 2026: Final Agentic Review — Fire-and-Forget để không block checkout <200ms
+        # [P-01] AI review chạy background, không await trực tiếp trong hot path
+        import asyncio as _asyncio
 
-        is_spam = score >= self.PRO_THRESHOLD_SCORE
+        if self.CHALLENGE_THRESHOLD_SCORE > score >= 40.0:
+            # Chỉ trigger background review — không block
+            # Caller (checkout) đã lưu đơn với spam_score hiện tại
+            # Background task sẽ update score nếu AI confirm spam
+            _asyncio.create_task(
+                self._background_ai_flag(name, address, score, reasons)
+            )
+            logger.debug(f"[AntiSpam] Background AI review dispatched for score={score:.1f}")
+
+        # [H-05] 3-Tier Response:
+        # Tier 3 (>= 90): Block — từ chối ngay lập tức
+        # Tier 2 (70-89): Challenge — mark spam để controller xử lý (CAPTCHA/OTP)
+        # Tier 1 (50-69): Audit — lưu đơn nhưng gắn cờ PENDING_AUDIT
+        # Tier 0 (< 50):  Legitimate — pass qua bình thường
+        final_score = min(score, 100.0)
         final_reason = " | ".join(reasons) if reasons else "Legitimate"
-        
-        if score >= self.AUDIT_THRESHOLD_SCORE and not is_spam:
-            final_reason = f"PENDING_AUDIT: {final_reason}"
-            is_spam = True 
 
-        return is_spam, final_reason, min(score, 100.0), device_hash
+        if final_score >= self.BLOCK_THRESHOLD_SCORE:
+            is_spam = True
+            final_reason = f"BLOCK: {final_reason}"
+        elif final_score >= self.CHALLENGE_THRESHOLD_SCORE:
+            is_spam = True  # Controller xử lý challenge, không nhất thiết phải reject cứng
+            final_reason = f"CHALLENGE: {final_reason}"
+        elif final_score >= self.AUDIT_THRESHOLD_SCORE:
+            is_spam = False  # [H-05 Fix] Không block, chỉ audit — giảm false positive rate
+            final_reason = f"PENDING_AUDIT: {final_reason}"
+        else:
+            is_spam = False
+
+        return is_spam, final_reason, final_score, device_hash
 
 # apps/api-gateway/src/services/anti_spam.py
 from backend.services.xohi_memory import xohi_memory # type: ignore

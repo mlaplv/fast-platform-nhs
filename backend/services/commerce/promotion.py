@@ -117,7 +117,7 @@ class PromotionService:
                         it["qty"] -= count
                         consumed_qty += count
                     
-                    total_discount += bundle_discount
+                    total_discount += max(0.0, bundle_discount)  # [SECURITY H-03] Clamp — chặn bundle_price cấu hình sai gây discount âm
                                 
         return total_discount
 
@@ -141,42 +141,68 @@ class PromotionService:
         return min(discount, subtotal)
 
     @staticmethod
-    async def validate_and_use_voucher(db_session: AsyncSession, voucher_id: str, phone: str) -> Optional[Voucher]:
+    async def validate_and_use_voucher(
+        db_session: AsyncSession,
+        voucher_id: str,
+        phone: str,
+        voucher: Optional["Voucher"] = None
+    ) -> "Voucher":
         """
-        [ELITE V2.2] Shopee-Style Voucher Accounting & Protection
-        Increments usage count and prevents multi-use per phone.
+        [ELITE V2.2] Atomic Voucher Accounting — Anti-TOCTOU Race Condition.
+        Sử dụng SELECT FOR UPDATE để lock row, chặn double-spend khi 2 request đồng thời.
+        Nhận voucher object từ caller (nếu đã fetch) để tránh triple-fetch (M-02).
         """
         from backend.database.models.commerce import Order
-        from sqlalchemy import update, func
-        
-        # 1. Anti-Abuse: Check if this phone used this voucher already
-        # Using JSONB containment check for order_metadata.voucher_id
-        usage_stmt = select(Order).where(
-            and_(
-                Order.customer_phone == phone,
-                Order.order_metadata["voucher_id"].astext == voucher_id,
-                Order.status != "CANCELLED"
+        import re as _re
+
+        # [SECURITY] Normalize phone trước khi check — chặn bypass bằng format khác (H-01)
+        normalized_phone = _re.sub(r"[\s\.\-\+]", "", phone)
+        if normalized_phone.startswith("84") and len(normalized_phone) >= 11:
+            normalized_phone = "0" + normalized_phone[2:]
+
+        # 1. [SECURITY C-01] Row-level lock — chặn race condition đồng thời
+        locked_stmt = (
+            select(Voucher)
+            .where(
+                and_(
+                    Voucher.id == voucher_id,
+                    Voucher.is_active == True,
+                    Voucher.tenant_id == (current_tenant_id.get() or "default"),
+                )
             )
-        ).limit(1)
+            .with_for_update()  # SELECT FOR UPDATE — atomic lock
+        )
+        locked_res = await db_session.execute(locked_stmt)
+        locked_voucher = locked_res.scalar_one_or_none()
+        if not locked_voucher:
+            raise NotFoundException("Mã giảm giá không hợp lệ hoặc đã hết hạn.")
+
+        # 2. Usage limit check SAU KHI đã lock row
+        if locked_voucher.usage_limit and locked_voucher.used_count >= locked_voucher.usage_limit:
+            logger.warning(f"[VOUCHER-EXHAUSTED] Voucher {voucher_id} reached limit {locked_voucher.usage_limit}")
+            raise ValidationException("Mã giảm giá này đã hết lượt sử dụng.")
+
+        # 3. [SECURITY H-01] Anti-abuse: Check phone đã dùng voucher này chưa (SAU KHI lock)
+        usage_stmt = (
+            select(Order.id)
+            .where(
+                and_(
+                    Order.customer_phone == normalized_phone,
+                    Order.order_metadata["voucher_id"].astext == voucher_id,
+                    Order.status != "CANCELLED"
+                )
+            )
+            .limit(1)
+        )
         usage_res = await db_session.execute(usage_stmt)
         if usage_res.scalar_one_or_none():
-            logger.warning(f"[VOUCHER-ABUSE] Phone {phone} attempted second use of voucher {voucher_id}")
+            logger.warning(f"[VOUCHER-ABUSE] Phone {normalized_phone} attempted second use of voucher {voucher_id}")
             raise ValidationException("Bạn đã sử dụng mã giảm giá này cho đơn hàng trước đó.")
 
-        # 2. Atomic Increment & Limit Check
-        # We fetch the voucher first to check limits
-        voucher = await PromotionService.get_active_voucher(db_session, voucher_id)
-        if not voucher:
-             raise NotFoundException("Mã giảm giá không hợp lệ hoặc đã hết hạn.")
-             
-        if voucher.usage_limit and voucher.used_count >= voucher.usage_limit:
-             logger.warning(f"[VOUCHER-EXHAUSTED] Voucher {voucher_id} reached limit {voucher.usage_limit}")
-             raise ValidationException("Mã giảm giá này đã hết lượt sử dụng.")
-
-        # Atomic increment
-        voucher.used_count += 1
-        db_session.add(voucher)
-        # No full commit here, we let the CheckoutService handle the transaction commit
-        return voucher
+        # 4. Atomic increment — an toàn vì đã lock row ở bước 1
+        locked_voucher.used_count += 1
+        db_session.add(locked_voucher)
+        # Commit do CheckoutService quản lý — không commit ở đây
+        return locked_voucher
 
 

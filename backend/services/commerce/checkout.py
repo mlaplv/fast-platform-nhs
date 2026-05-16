@@ -4,7 +4,7 @@ import unicodedata
 import logging
 from typing import Optional, TypedDict, Dict, List
 import sqlalchemy as sa
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models.commerce import Order, ProductBase, ProductVariant, UserLoyalty, PointTransaction
 from backend.database.models.auth import User
@@ -17,7 +17,7 @@ from backend.services.commerce.promotion import PromotionService
 from backend.services.commerce.loyalty import LoyaltyService
 from backend.services.commerce.logic.identity_shield import IdentityShield, LookupResult, VerifyResult, _mask_name, _mask_address
 from backend.database.models.system import SystemSetting
-from backend.constants.commerce import ShippingConfig, LoyaltyConfig
+from backend.constants.commerce import ShippingConfig, LoyaltyConfig, CheckoutConfig
 
 logger = logging.getLogger("api-gateway")
 
@@ -81,7 +81,13 @@ class CheckoutService:
         )
 
         if is_spam:
-            logger.warning(f"[STRIKE] Spam Order Detected: {reason} (Score: {score}) | IP: {customer_ip}")
+            # [T-16] BLOCK Tier Enforcement: Nếu score >= 90 (BLOCK), từ chối ngay lập tức
+            if score >= anti_spam_service.BLOCK_THRESHOLD_SCORE:
+                logger.error(f"[SECURITY-BLOCK] Hard Blocked Spam Order: {reason} (Score: {score}) | Phone: {payload.customer_phone} | IP: {customer_ip}")
+                raise ValidationException("Hệ thống phát hiện dấu hiệu bất thường. Vui lòng liên hệ quản trị viên để được hỗ trợ.")
+            
+            # Tier 1 & 2 (Audit/Challenge): Vẫn cho phép lưu đơn để tracking nhưng mark as spam
+            logger.warning(f"[STRIKE] Spam Order Logged: {reason} (Score: {score}) | Phone: {payload.customer_phone} | IP: {customer_ip}")
             # R2026: Elite V2.2: We proceed to save but mark as spam to prevent 404 and allow tracking
 
         # ELITE V2.2: AUTH-AWARE IDENTITY RESOLUTION
@@ -121,30 +127,48 @@ class CheckoutService:
 
         # Build items list with correct prices
         items_list: List[OrderItem] = []
-        
+
         # [ELITE V2.2] Pre-calculate total quantity per product for tier resolution (Sync with Frontend)
         total_qty_by_product: Dict[str, int] = {}
         for item in payload.items:
             total_qty_by_product[item.product_id] = total_qty_by_product.get(item.product_id, 0) + item.quantity
 
+        # [SECURITY M-01] BATCH LOAD — Xoá N+1: 1 query cho tất cả products + variants
+        all_product_ids = list({item.product_id for item in payload.items})
+        all_variant_ids = [item.variant_id for item in payload.items if item.variant_id]
+
+        products_stmt = (
+            select(ProductBase)
+            .where(ProductBase.id.in_(all_product_ids))
+            .options(sa.orm.selectinload(ProductBase.variants))
+        )
+        products_res = await db_session.execute(products_stmt)
+        products_map: Dict[str, ProductBase] = {p.id: p for p in products_res.scalars().all()}
+
+        # Batch load orphan variants (không nằm trong selectinload nếu product_id mismatch)
+        variants_map: Dict[str, ProductVariant] = {}
+        if all_variant_ids:
+            variants_stmt = select(ProductVariant).where(ProductVariant.id.in_(all_variant_ids))
+            variants_res = await db_session.execute(variants_stmt)
+            variants_map = {v.id: v for v in variants_res.scalars().all()}
+
         # [ELITE V2.2] Price protection & tier resolution logic...
         original_subtotal = 0.0
 
         for item in payload.items:
-            product_stmt = select(ProductBase).where(ProductBase.id == item.product_id).options(sa.orm.selectinload(ProductBase.variants))
-            product_res = await db_session.execute(product_stmt)
-            product = product_res.scalar_one_or_none()
+            # Lấy từ map đã batch load — không cần thêm query
+            product = products_map.get(item.product_id)
             if not product:
                 logger.error(f"[CHECKOUT] Product {item.product_id} not found")
                 raise NotFoundException(f"Sản phẩm {item.product_id} không tồn tại")
-            
+
             # ELITE V2.2: DYNAMIC TIER PRICING ENGINE (Lazada/TikTok Style)
             # Find all potential combo variants
             combo_variants = [v for v in product.variants if v.attributes and v.attributes.get("combo_qty")]
-            
+
             db_price = None
             resolved_variant_id = item.variant_id
-            
+
             # Use total quantity of this product across all lines for tier resolution
             total_qty = total_qty_by_product.get(item.product_id, item.quantity)
 
@@ -162,7 +186,7 @@ class CheckoutService:
                 # Find the best tier matching total quantity (Highest combo_qty <= total_qty)
                 sorted_tiers = sorted(combo_variants, key=lambda v: int(v.attributes.get("combo_qty", 0)), reverse=True)
                 best_tier = next((v for v in sorted_tiers if int(v.attributes.get("combo_qty", 0)) <= total_qty), None)
-                
+
                 if best_tier:
                     db_price = best_tier.discount_price or best_tier.price
                 else:
@@ -171,9 +195,11 @@ class CheckoutService:
             else:
                 # STANDARD PRODUCT (Isolation Mode)
                 if item.variant_id:
-                    variant_stmt = select(ProductVariant).where(ProductVariant.id == item.variant_id)
-                    variant_res = await db_session.execute(variant_stmt)
-                    variant = variant_res.scalar_one_or_none()
+                    # Lấy từ variants_map batch đã load — không query thêm
+                    variant = (
+                        next((v for v in product.variants if v.id == item.variant_id), None)
+                        or variants_map.get(item.variant_id)
+                    )
                     if not variant:
                         logger.error(f"[CHECKOUT] Variant {item.variant_id} not found")
                         raise NotFoundException(f"Biến thể {item.variant_id} không tồn tại")
@@ -182,21 +208,20 @@ class CheckoutService:
                     db_price = product.discount_price or product.price
 
             # [VIRAL 2026 SECURITY] Rigorous Item Price Check
-            if db_price is None: db_price = 0.0
-            if abs(item.price - db_price) > 1.0: # Allow small rounding deltas
-                 logger.warning(f"[STRIKE-PRICE] Item price mismatch for {product.name} ({item.product_id}): ItemPayload={item.price}, ResolvedDB={db_price}. LineQty={item.quantity}, TotalQty={total_qty}")
-                 raise ValidationException("Giá sản phẩm đã thay đổi theo chương trình khuyến mãi. Vui lòng cập nhật lại giỏ hàng.")
+            if db_price is None:
+                db_price = 0.0
+            if abs(item.price - db_price) > CheckoutConfig.PRICE_TOLERANCE_VND:
+                logger.warning(f"[STRIKE-PRICE] Item price mismatch for {product.name} ({item.product_id}): ItemPayload={item.price}, ResolvedDB={db_price}. LineQty={item.quantity}, TotalQty={total_qty}")
+                raise ValidationException("Giá sản phẩm đã thay đổi theo chương trình khuyến mãi. Vui lòng cập nhật lại giỏ hàng.")
 
             # Resolve readable variant name from attributes (if variant exists)
             variant_name = None
+            v_obj = None
             if item.variant_id:
-                # Need to fetch the variant to get the actual attributes if it's not best_tier
-                v_obj = next((v for v in product.variants if v.id == item.variant_id), None)
-                if not v_obj:
-                    v_stmt = select(ProductVariant).where(ProductVariant.id == item.variant_id)
-                    variant_res = await db_session.execute(v_stmt)
-                    v_obj = variant_res.scalar_one_or_none()
-                    
+                v_obj = (
+                    next((v for v in product.variants if v.id == item.variant_id), None)
+                    or variants_map.get(item.variant_id)
+                )
                 if v_obj:
                     # Elite V2.2: Deterministic Variant Truth via Tier Index Mapping
                     tier_names = []
@@ -207,25 +232,21 @@ class CheckoutService:
                                 options = tier.get("options", [])
                                 if isinstance(options, list) and isinstance(t_idx, int) and t_idx < len(options):
                                     tier_names.append(str(options[t_idx]))
-                    
+
                     if tier_names:
                         variant_name = " - ".join(tier_names)
                     elif getattr(v_obj, 'attributes', None):
                         # Fallback for systems without tier_variations (Scalar values only)
-                        filtered_attrs = [str(v) for k, v in v_obj.attributes.items() 
-                                          if str(k).lower() not in ["combo_qty", "comboqty", "gifts"] 
+                        filtered_attrs = [str(v) for k, v in v_obj.attributes.items()
+                                          if str(k).lower() not in ["combo_qty", "comboqty", "gifts"]
                                           and isinstance(v, (str, int, float, bool))]
                         if filtered_attrs:
                             variant_name = " - ".join(filtered_attrs)
 
-            # Calculate Base Listed Price for audit
+            # [M-03] Fix: Calculate Base Listed Price for audit — không dùng try/except silent-fail
             base_listed_price = product.price or 0.0
-            if item.variant_id:
-                try:
-                    if 'v_obj' in locals() and v_obj:
-                        base_listed_price = v_obj.price or product.price or 0.0
-                except Exception:
-                    pass
+            if item.variant_id and v_obj:
+                base_listed_price = v_obj.price or product.price or 0.0
             original_subtotal += base_listed_price * item.quantity
 
             items_list.append({
@@ -239,15 +260,25 @@ class CheckoutService:
                 "image": product.images[0] if product.images else None
             })
 
+
         from backend.services.commerce.logic.pricing_engine import PricingEngine
         
         # 1. Fetch Vouchers and Combo Deals
-        vouchers = []
+        # [M-02] Batch fetch vouchers — xoá N+1 (giảm từ 3 query xuống 1 query/voucher)
+        vouchers: List[Voucher] = []
+        vouchers_map: Dict[str, Voucher] = {}
         if payload.voucher_ids:
-            for v_id in payload.voucher_ids:
-                v = await PromotionService.get_active_voucher(db_session, v_id)
-                if v:
-                    vouchers.append(v)
+            # [T-15] BATCH LOAD VOUCHERS
+            vouchers_stmt = select(Voucher).where(
+                and_(
+                    Voucher.id.in_(payload.voucher_ids),
+                    Voucher.is_active == True
+                )
+            )
+            v_res = await db_session.execute(vouchers_stmt)
+            for v in v_res.scalars().all():
+                vouchers.append(v)
+                vouchers_map[str(v.id)] = v
         
         combo_deals = await PromotionService.get_active_combo_deals(db_session)
         
@@ -256,8 +287,11 @@ class CheckoutService:
         point_value = LoyaltyConfig.POINT_VALUE
         loyalty = None
         if user_id:
-            loyalty_stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id).with_for_update()
-            l_res = await db_session.execute(loyalty_stmt)
+            # [SECURITY P-02] Chỉ lock row khi thực sự cần trừ điểm
+            loyalty_query = select(UserLoyalty).where(UserLoyalty.user_id == user_id)
+            if payload.points_redeemed and payload.points_redeemed > 0:
+                loyalty_query = loyalty_query.with_for_update()
+            l_res = await db_session.execute(loyalty_query)
             loyalty = l_res.scalar_one_or_none()
             if loyalty:
                 available_points = loyalty.available_points
@@ -287,20 +321,22 @@ class CheckoutService:
         expected_total = pricing.final_payable
         point_discount = pricing.point_discount_amount
         applied_voucher_ids = pricing.applied_voucher_ids
-        if user_id and loyalty and payload.points_redeemed > 0:
-            # Khóa/Trừ điểm tạm thời tại session này
-            loyalty.available_points -= payload.points_redeemed
+        # [SECURITY M-05] Dùng giá trị đã clamped từ engine, KHÔNG dùng payload raw để tránh balance âm
+        points_actually_used = pricing.points_redeemed
+        if user_id and loyalty and points_actually_used > 0:
+            loyalty.available_points -= points_actually_used
 
         # 3. Final Manipulation Lock
-        if expected_total <= 0:
-            logger.error(f"[SECURITY-ALERT] Zero-Dollar Checkout Blocked. ExpectedTotal={expected_total}, Phone={payload.customer_phone}")
-            raise ValidationException("Đơn hàng không hợp lệ: Tổng thanh toán cuối cùng phải lớn hơn 0đ (bao gồm cả phí ship).")
+        # [SECURITY C-03] Floor check — chặn near-zero dollar exploit
+        if expected_total < CheckoutConfig.MIN_ORDER_AMOUNT:
+            logger.error(f"[SECURITY-ALERT] Near-Zero Order Blocked. ExpectedTotal={expected_total}, MIN={CheckoutConfig.MIN_ORDER_AMOUNT}, Phone={payload.customer_phone}")
+            raise ValidationException(f"Giá trị đơn hàng tối thiểu là {CheckoutConfig.MIN_ORDER_AMOUNT:,.0f}đ sau tất cả giảm giá.")
 
         if expected_total < (original_subtotal * 0.5):
             logger.error(f"[SECURITY-ALERT] Extreme Discount Blocked. Total={expected_total}, Original={original_subtotal}, Phone={payload.customer_phone}")
             raise ValidationException("Hệ thống từ chối đơn hàng: Tổng thanh toán không được thấp hơn 50% tổng giá niêm yết.")
 
-        if abs(expected_total - payload.total_amount) > 1.0:
+        if abs(expected_total - payload.total_amount) > CheckoutConfig.TOTAL_TOLERANCE_VND:
             logger.error(f"[SECURITY-ALERT] Price Manipulation Attempt: Expected {expected_total}, Got {payload.total_amount}. Sub={pricing.subtotal}, Combo={pricing.combo_discount}, Vouchers={pricing.voucher_discount}, Points={point_discount}, Ship={payload.shipping_fee}. Phone: {payload.customer_phone}")
             raise ValidationException("Đơn hàng chưa được bảo vệ thành công do thay đổi về giá hoặc khuyến mãi. Vui lòng tải lại trang.")
 
@@ -317,9 +353,12 @@ class CheckoutService:
             "point_discount_amount": point_discount
         }
 
-        # 🚀 [ELITE V2.2] ACCOUNTING: Increment usage & protect against abuse for ALL applied vouchers
+        # 🚀 [ELITE V2.2] ACCOUNTING: Atomic increment & protect against abuse for ALL applied vouchers
+        # [M-02] Truyền voucher object đã fetch — không SELECT lại lần 3
         for v_id in applied_voucher_ids:
-            await PromotionService.validate_and_use_voucher(db_session, v_id, payload.customer_phone)
+            await PromotionService.validate_and_use_voucher(
+                db_session, v_id, payload.customer_phone, voucher=vouchers_map.get(v_id)
+            )
         
         if payload.note:
             order_metadata["customer_note"] = payload.note
@@ -361,10 +400,16 @@ class CheckoutService:
         prev_order = restore_res.scalar_one_or_none()
 
         if prev_order:
-            if final_name == _mask_name(prev_order.customer_name):
-                final_name = prev_order.customer_name
-            if final_address == _mask_address(prev_order.customer_address):
-                final_address = prev_order.customer_address
+            # [SECURITY H-04] Chỉ restore PII khi user_id khớp — chặn PII harvest attack
+            # Kẻ tấn công biết SĐT có thể gửi masked name để bẫy backend restore tên thật
+            is_same_user = (user and prev_order.user_id == user.id)
+            if is_same_user:
+                if final_name == _mask_name(prev_order.customer_name):
+                    final_name = prev_order.customer_name
+                if final_address == _mask_address(prev_order.customer_address):
+                    final_address = prev_order.customer_address
+            else:
+                logger.debug(f"[IdentityShield] Skipping PII restore: user_id mismatch (order.user={prev_order.user_id}, current={user.id if user else 'None'})")
 
         # 5. Save Order
         new_order = Order(
@@ -393,12 +438,12 @@ class CheckoutService:
         if pricing.points_to_earn > 0:
             await LoyaltyService.register_pending_points(db_session, user.id, pricing.points_to_earn)
         
-        # 5.1 Ghi log trừ điểm nếu có
-        if payload.points_redeemed > 0:
+        # 5.1 Ghi log trừ điểm nếu có — dùng points_actually_used đã validated bởi engine
+        if points_actually_used > 0:
             pt = PointTransaction(
                 user_id=user.id,
                 order_id=new_order.id,
-                amount=-payload.points_redeemed,
+                amount=-points_actually_used,
                 transaction_type="REDEEM_ORDER",
                 notes=f"Thanh toán một phần đơn hàng bằng điểm. (Chiết khấu 1% - Giá trị: {point_discount}đ)"
             )
