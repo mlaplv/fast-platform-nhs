@@ -7,6 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models.commerce import Order, ProductBase, ProductVariant, UserLoyalty, PointTransaction
+from backend.database.models.promotion import Voucher, ComboDeal
 from backend.database.models.auth import User
 from backend.schemas.client.checkout import StealthCheckoutSchema
 from litestar.exceptions import ValidationException

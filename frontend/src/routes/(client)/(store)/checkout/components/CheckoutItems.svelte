@@ -211,22 +211,22 @@
           </div>
           <div class="space-y-3">
             <div class="space-y-1">
-              <label class="text-[8px] font-black text-slate-500 ml-1">Tên sản phẩm</label>
-              <input type="text" bind:value={newCustomItem.name} placeholder="VD: Sữa rửa mặt Cerave SA 473ml..." class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] transition-colors text-gray-900" />
+              <label for="custom-name" class="text-[8px] font-black text-slate-500 ml-1">Tên sản phẩm</label>
+              <input id="custom-name" type="text" bind:value={newCustomItem.name} placeholder="VD: Sữa rửa mặt Cerave SA 473ml..." class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] transition-colors text-gray-900" />
             </div>
             <div class="grid grid-cols-2 gap-3">
                <div class="space-y-1">
-                 <label class="text-[8px] font-black text-slate-500 ml-1">Số lượng</label>
-                 <input type="number" bind:value={newCustomItem.quantity} class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] text-gray-900" />
+                 <label for="custom-qty" class="text-[8px] font-black text-slate-500 ml-1">Số lượng</label>
+                 <input id="custom-qty" type="number" bind:value={newCustomItem.quantity} class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] text-gray-900" />
                </div>
                <div class="space-y-1">
-                 <label class="text-[8px] font-black text-slate-500 ml-1">Giá dự kiến (VNĐ)</label>
-                 <input type="number" bind:value={newCustomItem.price} placeholder="0" class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] text-gray-900" />
+                 <label for="custom-price" class="text-[8px] font-black text-slate-500 ml-1">Giá dự kiến (VNĐ)</label>
+                 <input id="custom-price" type="number" bind:value={newCustomItem.price} placeholder="0" class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] text-gray-900" />
                </div>
             </div>
             <div class="space-y-1">
-              <label class="text-[8px] font-black text-slate-500 ml-1">Hình ảnh / Mô tả</label>
-              <input type="text" bind:value={newCustomItem.image} placeholder="Nhập Link ảnh hoặc yêu cầu màu sắc, kích thước..." class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] text-gray-900" />
+              <label for="custom-image" class="text-[8px] font-black text-slate-500 ml-1">Hình ảnh / Mô tả</label>
+              <input id="custom-image" type="text" bind:value={newCustomItem.image} placeholder="Nhập Link ảnh hoặc yêu cầu màu sắc, kích thước..." class="w-full bg-white border border-gray-100 px-3 py-2.5 text-[10px] font-bold outline-none focus:border-[#ee4d2d] text-gray-900" />
             </div>
           </div>
           <button 

@@ -804,12 +804,12 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
                     <button type="button" onclick={() => showCustomItemForm = false} class="text-gray-400 hover:text-gray-900"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
                   </div>
                   <div class="space-y-2">
-                    <input type="text" bind:value={newCustomItem.name} placeholder="VD: Sữa rửa mặt Cerave SA..." class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded" />
+                    <input id="mobile-custom-name" type="text" bind:value={newCustomItem.name} placeholder="VD: Sữa rửa mặt Cerave SA..." class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded" />
                     <div class="grid grid-cols-2 gap-2">
-                       <input type="number" bind:value={newCustomItem.quantity} placeholder="Số lượng" class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded" />
-                       <input type="number" bind:value={newCustomItem.price} placeholder="Giá dự kiến (nếu có)" class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded" />
+                       <input id="mobile-custom-qty" type="number" bind:value={newCustomItem.quantity} placeholder="Số lượng" class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded" />
+                       <input id="mobile-custom-price" type="number" bind:value={newCustomItem.price} placeholder="Giá dự kiến (nếu có)" class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded" />
                     </div>
-                    <input type="text" bind:value={newCustomItem.image} placeholder="Link ảnh hoặc ghi chú..." class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded" />
+                    <input id="mobile-custom-image" type="text" bind:value={newCustomItem.image} placeholder="Link ảnh hoặc ghi chú..." class="w-full bg-white border border-gray-200 px-3 py-2 text-[12px] font-medium outline-none focus:border-[#fe2c55] rounded" />
                   </div>
                   <button type="button" onclick={addCustomItem} class="w-full py-2.5 bg-gray-900 text-white text-[11px] font-bold tracking-wider hover:bg-[#fe2c55] transition-colors rounded">
                     Xác nhận thêm

@@ -86,8 +86,9 @@
   <div class="space-y-3">
     <div class="grid grid-cols-2 gap-3">
       <div class="space-y-1">
-        <label class="text-[9px] font-bold text-gray-500 ml-1">Họ và Tên</label>
+        <label for="checkout-name" class="text-[9px] font-bold text-gray-500 ml-1">Họ và Tên</label>
         <input 
+          id="checkout-name"
           type="text" 
           bind:value={form.name} 
           placeholder="Tên người nhận" 
@@ -95,8 +96,9 @@
         />
       </div>
       <div class="space-y-1">
-        <label class="text-[9px] font-bold text-gray-500 ml-1">Số điện thoại</label>
+        <label for="checkout-phone" class="text-[9px] font-bold text-gray-500 ml-1">Số điện thoại</label>
         <input 
+          id="checkout-phone"
           type="tel" 
           bind:value={form.phone} 
           onblur={lookupCustomer} 
@@ -118,8 +120,9 @@
     </div>
 
     <div class="space-y-1">
-      <label class="text-[9px] font-bold text-gray-500 ml-1">Địa chỉ chi tiết</label>
+      <label for="checkout-street" class="text-[9px] font-bold text-gray-500 ml-1">Địa chỉ chi tiết</label>
       <input 
+        id="checkout-street"
         type="text" 
         bind:value={form.street} 
         placeholder="Số nhà, tên đường..." 
