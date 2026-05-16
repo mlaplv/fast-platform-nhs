@@ -76,7 +76,7 @@ class AuthStore {
   }
 
   logout() {
-    const name = this.user?.name || 'Sếp';
+    const name = this.user?.name || 'Quý khách';
     this.token = null;
     this.user = null;
     if (browser) {

@@ -12,6 +12,7 @@
   } from '$lib/utils/commerce/viral';
 
   import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
+  import { untrack } from 'svelte';
 
   interface Props {
     product: Product;
@@ -52,6 +53,16 @@
   let campaignData = $state<{ voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string } | null>(null);
   let isCampaignLoading = $state(false);
   let isCampaignLoaded = $state(false);
+
+  $effect(() => {
+    // Reset state when switching products (track ONLY product.id)
+    product.id; 
+    import.meta.env.DEV && console.log('ViralShareBar: Product changed, resetting state');
+    untrack(() => {
+      isCampaignLoaded = false;
+      campaignData = null;
+    });
+  });
 
   $effect(() => {
     const vId = viralSuite?.share_promotion?.voucher_id;

@@ -282,7 +282,7 @@
         <div class="flex flex-col items-center justify-center py-10 text-center" in:scale>
           <CheckCircle2 class="w-16 h-16 text-green-500 mb-4" />
           <h3 class="text-lg font-black text-gray-900">Gửi đánh giá thành công!</h3>
-          <p class="text-sm text-gray-500 mt-1">Cảm ơn Sếp đã đóng góp ý kiến cho {entityType === 'CATEGORY' ? 'danh mục' : 'sản phẩm'}.</p>
+          <p class="text-sm text-gray-500 mt-1">Cảm ơn Bạn đã đóng góp ý kiến cho {entityType === 'CATEGORY' ? 'danh mục' : 'sản phẩm'}.</p>
         </div>
       {:else}
         <div class="space-y-6">

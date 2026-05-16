@@ -29,7 +29,7 @@
 
   const QUIZ_FALLBACKS = {
     result_headline: 'Phác đồ điều trị <br/><span class="text-luxury-copper">độc quyền.</span>',
-    result_subheadline: '⚠️ Cảnh báo từ AI: Hiện trạng sắc tố của Sếp cần can thiệp ngay với ít nhất <span class="text-luxury-gold font-semibold">{quantity} đơn vị</span> để đạt liệu trình phục hồi tối đa.',
+    result_subheadline: '⚠️ Cảnh báo từ AI: Hiện trạng sắc tố của Quý khách cần can thiệp ngay với ít nhất <span class="text-luxury-gold font-semibold">{quantity} đơn vị</span> để đạt liệu trình phục hồi tối đa.',
     result_cta: 'Kích hoạt liệu trình ngay',
     restart_label: 'Thiết lập lại dữ liệu',
     loading_label: 'Đang truy xuất cơ sở dữ liệu lâm sàng...'

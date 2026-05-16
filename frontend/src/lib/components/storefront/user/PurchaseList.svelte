@@ -135,7 +135,7 @@
     isReordering = true;
     let addedCount = 0;
     
-    ui.showToast('🚀 Đang chuẩn bị giỏ hàng của Sếp...', 'info');
+    ui.showToast('🚀 Đang chuẩn bị giỏ hàng của Bạn...', 'info');
     
     try {
       for (const item of order.items) {
@@ -174,7 +174,7 @@
   async function handleCancelOrder(orderId: string) {
     const isConfirmed = await ui.openConfirm({
       title: 'Xác nhận hủy đơn hàng',
-      message: 'Sếp có chắc chắn muốn hủy đơn hàng này không? 😢',
+      message: 'Bạn có chắc chắn muốn hủy đơn hàng này không? 😢',
       confirmLabel: 'ĐỒNG Ý HỦY',
       cancelLabel: 'Quay lại'
     });

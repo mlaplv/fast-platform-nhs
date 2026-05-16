@@ -34,7 +34,7 @@
       list.push({ 
         id: 'category', 
         label: 'Cùng danh mục', 
-        reasoning: `Dựa trên sở thích chăm sóc ${product.category_name || 'chuyên sâu'} của Sếp`,
+        reasoning: `Dựa trên sở thích chăm sóc ${product.category_name || 'chuyên sâu'} của Bạn`,
         icon: Flame, 
         color: '#ee4d2d' 
       });
@@ -53,7 +53,7 @@
       list.push({ 
         id: 'recent', 
         label: 'Vừa xem', 
-        reasoning: 'Gợi ý dựa trên lịch sử trinh sát của Sếp',
+        reasoning: 'Gợi ý dựa trên lịch sử quan tâm của Bạn',
         icon: History, 
         color: '#52c41a' 
       });

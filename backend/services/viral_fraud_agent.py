@@ -64,31 +64,35 @@ def heuristic_score(t: ShareTelemetry) -> tuple[float, str]:
     score = 50.0  # Start neutral
     reasons: list[str] = []
 
-    # Signal 1: Share duration (minimum 2s for genuine share)
-    if t.share_duration_ms < 1000:
-        score -= 20.0
-        reasons.append("Share quá nhanh (<1s)")
-    elif t.share_duration_ms >= 2000:
-        score += 15.0
+    # Signal 1: Share duration (Elite V2.2: Hardened thresholds)
+    if t.share_duration_ms < 3000:
+        score -= 40.0
+        reasons.append("Share cực nhanh (<3s) - Dấu hiệu gian lận")
+    elif t.share_duration_ms < 7000:
+        score -= 10.0
+        reasons.append("Thời gian share ngắn (<7s)")
+    elif t.share_duration_ms >= 12000:
+        score += 20.0
+        reasons.append("Thời gian share thực tế (>12s)")
 
     # Signal 2: Visibility changes (tab switch = likely opened share dialog)
     if t.visibility_changes >= 1:
-        score += 20.0
-        reasons.append("Tab đã chuyển (share dialog mở)")
+        score += 10.0 # Reduced weight, easy to trigger
+        reasons.append("Tab đã chuyển")
     else:
-        score -= 10.0
-        reasons.append("Tab không chuyển")
+        score -= 30.0
+        reasons.append("Tab không hề chuyển (gian lận lộ liễu)")
 
     # Signal 3: Web Share API (native share is strongest signal)
     if t.share_method == "native":
-        score += 25.0
-        reasons.append("Web Share API (native)")
+        score += 15.0
+        reasons.append("Web Share API")
     elif t.share_method == "popup":
-        if t.share_duration_ms < 5000:
-            score -= 20.0
-            reasons.append("Đóng popup quá nhanh, chưa kịp đăng nhập/share")
-        else:
-            score += 10.0
+        if t.share_duration_ms < 8000:
+            score -= 30.0
+            reasons.append("Đóng popup quá nhanh")
+        elif t.share_duration_ms >= 15000:
+            score += 15.0
 
     # Signal 4: Time on page (bots visit < 5s)
     if t.time_on_page_ms < 2000:
@@ -117,27 +121,23 @@ def heuristic_score(t: ShareTelemetry) -> tuple[float, str]:
 
 # ── PydanticAI Agent ──────────────────────────────────────────────────────────
 
-_SYSTEM_PROMPT = """You are a Vietnamese E-commerce Fraud Analyst specialized in Share-to-Unlock promotions.
+_SYSTEM_PROMPT = """You are an Elite Vietnamese E-commerce Fraud Analyst (AI Specialist).
+Your job: Rigorously analyze behavioral telemetry to detect "Share-to-Unlock" fraud.
 
-Your job: Analyze behavioral telemetry from a user who clicked "Share" on a product page.
-Determine if they GENUINELY shared the content to social media, or if they're trying to game the system.
+SIGNALS & THRESHOLDS:
+- share_duration_ms: Real shares take 12-25s (login + post). Anything < 8s is HIGHLY suspicious.
+- visibility_changes: Expect at least 1 (opening dialog). 0 is an immediate RED FLAG.
+- share_method: "native" is strong. "popup" requires > 10s. "clipboard" is very weak.
+- scroll_depth_pct: Engaged users who actually like the product scroll > 25%.
+- interaction_count: Real users have at least 3-5 interactions before sharing.
 
-SIGNALS TO ANALYZE:
-- share_duration_ms: How long between clicking Share and verification. Real shares take 3-10s+.
-- visibility_changes: Number of tab switches. At least 1 is expected (share dialog opens).
-- share_method: "native" (Web Share API) is strongest proof. "popup" is good. "clipboard" is weakest.
-- time_on_page_ms: Time on page before sharing. Bots are fast (<3s). Real users browse (>10s).
-- scroll_depth_pct: How far they scrolled. Engaged users scroll past 20%.
-- interaction_count: Clicks/taps before sharing. Real users interact.
-- popup_was_blocked: If true, user likely did NOT share.
+VERDICT CRITERIA:
+- 90-100: Flawless behavior.
+- 70-89: Likely legitimate but slightly rushed.
+- 40-69: Suspicious (rushed, low interaction, or blocked popups).
+- 0-39: Definite fraud (bot-like speed, no tab switch, or extreme rushing).
 
-SCORING GUIDE:
-- 80-100: Clearly legitimate (multiple strong signals)
-- 60-79: Likely legitimate (benefit of the doubt)
-- 30-59: Suspicious (some red flags)
-- 0-29: Likely fraud (multiple red flags)
-
-Reply with a JSON object: {"trust_score": float, "verdict": "APPROVE"|"DENY"|"SUSPICIOUS", "reasoning": "brief Vietnamese explanation"}
+Reply with JSON: {"trust_score": float, "verdict": "APPROVE"|"DENY"|"SUSPICIOUS", "reasoning": "strict Vietnamese explanation"}
 """
 
 share_fraud_agent = Agent(
@@ -159,7 +159,7 @@ async def analyze_share_behavior(telemetry: ShareTelemetry) -> ShareVerdict:
     # Layer 1: Heuristic fast-path
     h_score, h_reason = heuristic_score(telemetry)
 
-    if h_score >= 70.0:
+    if h_score >= 90.0:
         # Strong legitimate signals → skip AI (save cost + latency)
         logger.info(f"[ViralFraud] Heuristic APPROVE (score={h_score:.0f}): {h_reason}")
         return ShareVerdict(

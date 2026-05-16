@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
   // 1. If it ends with '/', it MUST be a Category
   if (hasTrailingSlash) {
     if (slug === 'bai-viet') {
-      // News list is explicitly NOT allowed with a trailing slash as per Sếp's simplified rule
+      // News list is explicitly NOT allowed with a trailing slash as per Elite V2.2 rules
       throw error(404, { message: "Không tìm thấy nội dung (Dấu '/' không được phép cho tin bài)" });
     }
 

@@ -11,6 +11,7 @@
   import type { Product } from '$lib/types';
   
   // States
+  import { onMount, onDestroy, untrack } from 'svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import { 
@@ -48,6 +49,7 @@
   // ── State Machine ──────────────────────────────────────────────────────────
   type Step = 'idle' | 'sharing' | 'verifying' | 'revealed' | 'error';
   let step = $state<Step>('idle');
+  let verificationText = $state('AI đang xác minh...');
 
   let _token = $state<string | null>(null);
   let _fingerprint = $state<string | null>(null);
@@ -71,6 +73,17 @@
   let showFlyGhost = $state(false);
 
   $effect(() => {
+    // Elite V2.2: Reset local states when product changes (track ONLY product.id)
+    product.id;
+    untrack(() => {
+      step = 'idle';
+      voucherCode = null;
+      voucherLabel = null;
+      errorMsg = '';
+      isCampaignLoaded = false;
+      campaignData = null;
+    });
+
     const onVisibilityChange = () => { 
       if (document.hidden) visibilityChanges++; 
     };
@@ -227,7 +240,29 @@
       const scrollDepthPct = Math.min(100, Math.round((maxScrollY / (document.documentElement.scrollHeight - window.innerHeight || 1)) * 100));
 
       step = 'verifying';
+      
+      // Elite V2.2: Simulated AI Deep Verification Sequence
+      const verificationSteps = [
+        'Đang phân tích Social Graph...',
+        'Kiểm tra tính nhất quán Metadata...',
+        'Xác thực hành vi chia sẻ...',
+        'Đối chiếu Telemetry thời gian thực...'
+      ];
+      
+      let currentStepIdx = 0;
+      const stepInterval = setInterval(() => {
+        if (currentStepIdx < verificationSteps.length - 1) {
+          currentStepIdx++;
+          verificationText = verificationSteps[currentStepIdx];
+        } else {
+          clearInterval(stepInterval);
+        }
+      }, 1200);
+
       try {
+        // Minimum wait time for AI "thinking" effect
+        await new Promise(r => setTimeout(r, 4500));
+
         const res = await fetch('/api/v1/client/viral/verify-share', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -237,8 +272,8 @@
             token: _token, 
             voucher_id: promoConfig.voucher_id,
             telemetry: {
-                time_on_page_ms: timeOnPageMs,
-                share_duration_ms: shareDurationMs,
+                time_on_page_ms: Math.round(timeOnPageMs),
+                share_duration_ms: Math.round(shareDurationMs),
                 visibility_changes: visibilityChanges,
                 scroll_depth_pct: scrollDepthPct,
                 interaction_count: interactionCount,
@@ -247,6 +282,9 @@
             }
           }),
         });
+        
+        clearInterval(stepInterval);
+        
         if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
             throw new Error(errData.detail || errData.error || 'Hệ thống phát hiện bất thường. Vui lòng chia sẻ lại!');
@@ -361,7 +399,7 @@
       <div class="stu-center glass-loading">
         <div class="loading-bg"></div>
         <Zap size={18} class="stu-spin-pulse text-blue-500 fill-blue-500/20" />
-        <span class="stu-loading-text-blue">{step === 'sharing' ? 'Đang kết nối...' : 'AI đang xác minh...'}</span>
+        <span class="stu-loading-text-blue">{step === 'sharing' ? 'Đang kết nối...' : verificationText}</span>
       </div>
 
     {:else if step === 'revealed' && voucherCode}
