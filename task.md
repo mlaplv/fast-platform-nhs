@@ -1,9 +1,7 @@
-# Task: Resolving Hardcoded Fake Discount UI
+# Checkout Price Misrepresentation & Integrity Audit
 
-- [x] Identify root cause of `930.000₫` fake price displaying when original price is `600.000₫`.
-- [x] Remove `* 1.55` hardcoded mock data from `MainDetail/Desktop.svelte`.
-- [x] Remove `* 1.55` hardcoded mock data from `LandingPage/Desktop.svelte`.
-- [x] Conditionally hide the original crossed-out price layout when there is no active discount in `MainDetail/modules/Info.svelte`.
-- [x] Conditionally hide the original crossed-out price layout when there is no active discount in `LandingPage/modules/Info.svelte`.
-- [x] Fix `0đ` price displaying in product category lists and grids due to `??` nullish coalescing operator treating `0` as a valid price.
-- [x] Fix `0đ` price displaying in checkout and cart logic due to `"0"` string bypass of `||` logical OR operator.
+- [x] Analyze discrepancy between Subtotal (600k) and Final Total (660k) in Order Tracker.
+- [x] Audit `PricingEngine` and `PromotionService` voucher calculations for negative value bugs.
+- [x] Investigate actual DB record for Order `#825718` to trace the source of the 60,000 VND.
+- [x] Fix hardcoded "Miễn phí" strings on the Success/Tracker page to reflect actual metadata `shipping_fee`.
+- [x] Update `DeliveryPaymentSection.svelte` on the Checkout page to display dynamic shipping fee instead of misleading "Miễn phí toàn quốc".

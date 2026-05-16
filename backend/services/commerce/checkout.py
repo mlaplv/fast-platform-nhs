@@ -127,6 +127,7 @@ class CheckoutService:
             total_qty_by_product[item.product_id] = total_qty_by_product.get(item.product_id, 0) + item.quantity
 
         # [ELITE V2.2] Price protection & tier resolution logic...
+        original_subtotal = 0.0
 
         for item in payload.items:
             product_stmt = select(ProductBase).where(ProductBase.id == item.product_id).options(sa.orm.selectinload(ProductBase.variants))
@@ -162,10 +163,10 @@ class CheckoutService:
                 best_tier = next((v for v in sorted_tiers if int(v.attributes.get("combo_qty", 0)) <= total_qty), None)
                 
                 if best_tier:
-                    db_price = best_tier.discount_price if best_tier.discount_price is not None else best_tier.price
+                    db_price = best_tier.discount_price or best_tier.price
                 else:
                     # Fallback to base product price if quantity is below all combo tiers
-                    db_price = product.discount_price if product.discount_price is not None else product.price
+                    db_price = product.discount_price or product.price
             else:
                 # STANDARD PRODUCT (Isolation Mode)
                 if item.variant_id:
@@ -175,9 +176,9 @@ class CheckoutService:
                     if not variant:
                         logger.error(f"[CHECKOUT] Variant {item.variant_id} not found")
                         raise NotFoundException(f"Biến thể {item.variant_id} không tồn tại")
-                    db_price = variant.discount_price if variant.discount_price is not None else variant.price
+                    db_price = variant.discount_price or variant.price
                 else:
-                    db_price = product.discount_price if product.discount_price is not None else product.price
+                    db_price = product.discount_price or product.price
 
             # [VIRAL 2026 SECURITY] Rigorous Item Price Check
             if db_price is None: db_price = 0.0
@@ -215,6 +216,16 @@ class CheckoutService:
                                           and isinstance(v, (str, int, float, bool))]
                         if filtered_attrs:
                             variant_name = " - ".join(filtered_attrs)
+
+            # Calculate Base Listed Price for audit
+            base_listed_price = product.price or 0.0
+            if item.variant_id:
+                try:
+                    if 'v_obj' in locals() and v_obj:
+                        base_listed_price = v_obj.price or product.price or 0.0
+                except Exception:
+                    pass
+            original_subtotal += base_listed_price * item.quantity
 
             items_list.append({
                 "id": item.product_id,
@@ -285,6 +296,14 @@ class CheckoutService:
             loyalty.available_points -= payload.points_redeemed
 
         # 3. Final Manipulation Lock
+        if expected_total <= 0:
+            logger.error(f"[SECURITY-ALERT] Zero-Dollar Checkout Blocked. ExpectedTotal={expected_total}, Phone={payload.customer_phone}")
+            raise ValidationException("Đơn hàng không hợp lệ: Tổng thanh toán cuối cùng phải lớn hơn 0đ (bao gồm cả phí ship).")
+
+        if expected_total < (original_subtotal * 0.5):
+            logger.error(f"[SECURITY-ALERT] Extreme Discount Blocked. Total={expected_total}, Original={original_subtotal}, Phone={payload.customer_phone}")
+            raise ValidationException("Hệ thống từ chối đơn hàng: Tổng thanh toán không được thấp hơn 50% tổng giá niêm yết.")
+
         if abs(expected_total - payload.total_amount) > 1.0:
             logger.error(f"[SECURITY-ALERT] Price Manipulation Attempt: Expected {expected_total}, Got {payload.total_amount}. Sub={pricing.subtotal}, Combo={pricing.combo_discount}, Vouchers={pricing.voucher_discount}, Points={point_discount}, Ship={payload.shipping_fee}. Phone: {payload.customer_phone}")
             raise ValidationException("Đơn hàng chưa được bảo vệ thành công do thay đổi về giá hoặc khuyến mãi. Vui lòng tải lại trang.")

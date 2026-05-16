@@ -13,13 +13,15 @@
     deliveryEstimate,
     canExpress,
     selectedProvinceData,
-    showCoInspectionModal = $bindable()
+    showCoInspectionModal = $bindable(),
+    shippingFee
   } = $props<{
     form: FormState;
     deliveryEstimate: string | null;
     canExpress: boolean;
     selectedProvinceData: ProvinceData | undefined;
     showCoInspectionModal: boolean;
+    shippingFee: number;
   }>();
 </script>
 
@@ -66,7 +68,9 @@
         <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
         <div class="text-left leading-tight">
           <span class="block font-bold text-[12px]">Tiêu chuẩn</span>
-          <span class="block text-[9px] font-medium {form.shippingMethod === 'standard' ? 'text-[#fe2c55]/80' : 'text-gray-400'}">Miễn phí toàn quốc</span>
+          <span class="block text-[9px] font-medium {form.shippingMethod === 'standard' ? 'text-[#fe2c55]/80' : 'text-gray-400'}">
+            {shippingFee === 0 && form.shippingMethod === 'standard' ? 'Miễn phí toàn quốc' : (form.shippingMethod === 'standard' ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(shippingFee) : 'Miễn phí toàn quốc')}
+          </span>
         </div>
         {#if form.shippingMethod === 'standard'}
           <div class="absolute bottom-0 right-0 w-0 h-0 border-b-[18px] border-l-[18px] border-b-[#fe2c55] border-l-transparent"></div>

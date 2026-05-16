@@ -411,6 +411,9 @@
   const comboDiscount = $derived(
     Number(order?.order_metadata?.combo_discount || 0),
   );
+  const shippingFee = $derived(
+    Number(order?.order_metadata?.shipping_fee || 0),
+  );
   const totalSavings = $derived(voucherDiscount + comboDiscount);
   const finalTotal = $derived(
     order?.total_amount ||
@@ -884,7 +887,9 @@
                     class="flex justify-between text-[11px] font-black text-emerald-500 italic"
                   >
                     <span>Vận chuyển:</span>
-                    <span>Miễn phí</span>
+                    <span class={shippingFee > 0 ? "text-slate-900" : ""}>
+                      {shippingFee > 0 ? formatCurrency(shippingFee) : 'Miễn phí'}
+                    </span>
                   </div>
 
                   <!-- 🧧 VIRAL SAVINGS BADGE -->

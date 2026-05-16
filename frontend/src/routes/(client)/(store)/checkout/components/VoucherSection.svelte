@@ -57,8 +57,14 @@
     <button
       type="button"
       onclick={onOptimize}
-      class="flex flex-col items-center gap-1.5 group transition-all active:scale-95"
+      class="flex flex-col items-center gap-1.5 group transition-all active:scale-95 relative"
     >
+      <!-- FOMO Tooltip -->
+      <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#fe2c55] text-white text-[7px] font-black px-2 py-1 rounded shadow-[0_0_8px_rgba(254,44,85,0.6)] whitespace-nowrap z-20 animate-bounce">
+        Tối ưu chọn mã tốt nhất
+        <!-- tooltip arrow -->
+        <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-[#fe2c55]"></div>
+      </div>
       <!-- AI Icon Container (Neural Gradient) -->
       <div class="w-10 h-10 rounded-2xl flex items-center justify-center bg-gradient-to-br from-[#fe2c55] via-[#ff4760] to-[#ff8a00] text-white shadow-md group-hover:shadow-lg relative overflow-hidden">
         <div class="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>

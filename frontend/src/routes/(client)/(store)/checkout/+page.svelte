@@ -179,15 +179,18 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
   $effect(() => {
     const subtotal = cartStore.totalAmountWithoutDiscount;
     const vouchers = cartStore.vouchers;
+    const selectedIds = cartStore.selectedVoucherIds;
+    const shipInteracted = userInteractedVoucherTypes.SHIPPING;
+    const discountInteracted = userInteractedVoucherTypes.DISCOUNT;
+
     if (vouchers.length === 0 || subtotal <= 0) return;
 
     untrack(() => {
-      const selectedIds = cartStore.selectedVoucherIds;
       const hasShipSelected = vouchers.some(v => v.type === 'SHIPPING' && selectedIds.includes(v.id));
       const hasDiscountSelected = vouchers.some(v => ['FIXED', 'PERCENT'].includes(v.type) && selectedIds.includes(v.id));
 
       // 1. Auto-select best Shipping if nothing selected
-      if (!hasShipSelected && !userInteractedVoucherTypes.SHIPPING) {
+      if (!hasShipSelected && !shipInteracted) {
         const eligibleShip = vouchers.filter(v => v.type === 'SHIPPING' && subtotal >= (v.min_spend || 0));
         if (eligibleShip.length > 0) {
           const bestShip = eligibleShip.sort((a, b) => getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal))[0];
@@ -198,7 +201,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
       }
 
       // 2. Auto-select best Discount if nothing selected
-      if (!hasDiscountSelected && !userInteractedVoucherTypes.DISCOUNT) {
+      if (!hasDiscountSelected && !discountInteracted) {
         const bestDiscount = cartStore.vouchers
           .filter((v: Voucher) => ['FIXED', 'PERCENT'].includes(v.type) && subtotal >= (v.min_spend || 0))
           .sort((a, b) => {
@@ -575,7 +578,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
                   </div>
                 {/if}
                 
-                <DeliveryPaymentSection bind:form {deliveryEstimate} {canExpress} {selectedProvinceData} bind:showCoInspectionModal />
+                <DeliveryPaymentSection bind:form {deliveryEstimate} {canExpress} {selectedProvinceData} bind:showCoInspectionModal {shippingFee} />
                 <VoucherSection vouchers={cartStore.vouchers} {toggleVoucher} onOptimize={optimizeVouchers} />
               </div>
             </div>
@@ -874,7 +877,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
           {/if}
 
           <div class="bg-white rounded-xl shadow-sm mb-3 overflow-hidden p-4 mx-2">
-             <DeliveryPaymentSection bind:form {deliveryEstimate} {canExpress} {selectedProvinceData} bind:showCoInspectionModal />
+             <DeliveryPaymentSection bind:form {deliveryEstimate} {canExpress} {selectedProvinceData} bind:showCoInspectionModal {shippingFee} />
           </div>
 
           <div class="bg-white rounded-xl shadow-sm mb-3 overflow-hidden p-4 mx-2">
