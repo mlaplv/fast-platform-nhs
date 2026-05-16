@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database.models.commerce import Order, UserLoyalty, PointTransaction
 from backend.database.models.system import SystemSetting
+from backend.constants.commerce import LoyaltyConfig
 from backend.utils.security import GeminiSecurity
 import math
 import json
@@ -113,8 +114,8 @@ class LoyaltyService:
         if order.points_earned > 0: # already earned
             return False
 
-        # Formula: 100k -> 1 point
-        points_to_earn = math.floor(order.total_amount / 100000)
+        # Formula: Use centralized earning rate [ELITE V2.2]
+        points_to_earn = math.floor(order.total_amount / LoyaltyConfig.EARNING_RATE_VND)
         
         if points_to_earn <= 0:
             return False

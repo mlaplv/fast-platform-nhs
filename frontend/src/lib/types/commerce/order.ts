@@ -50,29 +50,42 @@ export interface CustomRequestItem {
   price?: number;
 }
 
+export interface OrderMetadata {
+  zalo_status?: 'ACTIVE' | 'NOT_FOUND' | 'PENDING';
+  gift_info?: GiftInfo;
+  custom_requests?: CustomRequestItem[];
+  customer_note?: string;
+  note?: string;
+  shipping_fee?: number;
+  voucher_discount?: number;
+  combo_discount?: number;
+  [key: string]: unknown;
+}
+
 export interface Order {
   id: string;
   status: OrderStatus;
   created_at: string;
   total_amount: number;
+  total?: number; // Elite V2.2: Alias for total_amount
   items: OrderItem[];
   customer_name: string;
   customer_phone: string;
   customer_address: string;
+  
+  // Pydantic Aliases (CamelCase Sync)
+  customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  orderMetadata?: OrderMetadata;
+
   shipping_fee: number;
   payment_method: string;
   note?: string;
   is_trusted_device?: boolean;
   name_masked?: string;
   address_masked?: string;
-  order_metadata?: {
-    zalo_status?: 'ACTIVE' | 'NOT_FOUND' | 'PENDING';
-    gift_info?: GiftInfo;
-    custom_requests?: CustomRequestItem[];
-    customer_note?: string;
-    note?: string;
-    [key: string]: unknown;
-  };
+  order_metadata?: OrderMetadata;
 }
 
 export interface OrderDetail extends Order {
@@ -81,4 +94,5 @@ export interface OrderDetail extends Order {
     total_orders: number;
   };
   cancellation_reason?: string;
+  cancellationReason?: string; // Pydantic Alias
 }

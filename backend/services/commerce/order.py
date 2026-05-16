@@ -16,6 +16,7 @@ from backend.utils.sql import escape_like
 from backend.schemas.order import OrderResponse, OrderListResponse, OrderCreateRequest, OrderStatusUpdate, CancelOrderRequest, OrderPlanningRequest
 from backend.schemas.common import SuccessResponse
 from backend.services.commerce.loyalty import LoyaltyService
+from backend.constants.commerce import ShippingConfig, LoyaltyConfig
 
 # Phase 85: Strict JSON Typography
 JSONType = Union[str, int, float, bool, None, List["JSONType"], Dict[str, "JSONType"]]
@@ -45,12 +46,7 @@ class OrderInsight(TypedDict):
     last_order: Optional[str]
     previous_orders: List[PreviousOrder]
 
-def mask_string(s: str, visible_prefix: int = 1, visible_suffix: int = 1) -> str:
-    if not s or len(s) <= (visible_prefix + visible_suffix):
-        return "***"
-    if visible_suffix == 0:
-        return f"{s[:visible_prefix]}***"
-    return f"{s[:visible_prefix]}***{s[len(s)-visible_suffix:]}"
+
 
 logger = logging.getLogger("api-gateway")
 
@@ -97,13 +93,11 @@ class OrderService:
                 if loyalty.available_points < pts_to_use:
                     raise ValidationException(f"Sếp chỉ còn {loyalty.available_points} điểm, không đủ để trừ {pts_to_use} điểm ạ.")
                 
-                # Fetch Point Value (Default 1000)
-                s_stmt = select(SystemSetting).where(SystemSetting.key == "LOYALTY_POINT_VALUE_VND")
-                setting = (await db_session.execute(s_stmt)).scalar_one_or_none()
-                point_value = int(setting.value.get("value", 1000)) if setting and "value" in setting.value else 1000
+                # Fetch Point Value from Centralized Config [ELITE V2.2]
+                point_value = LoyaltyConfig.POINT_VALUE
                 
-                # Sếp Rule [ELITE V2.2]: Cap at 1% of total
-                max_point_discount = data.total_amount * 0.01 
+                # Sếp Rule [ELITE V2.2]: Cap at defined percentage of total
+                max_point_discount = data.total_amount * LoyaltyConfig.MAX_DISCOUNT_PERCENT 
                 proposed_discount = float(pts_to_use * point_value)
                 
                 if proposed_discount > max_point_discount:
@@ -350,8 +344,10 @@ class OrderService:
         res_dict["is_trusted_device"] = is_trusted
         
         # Elite V4.0: Masking is now handled at the Controller level for better granularity
-        res_dict["name_masked"] = mask_string(row.customer_name or "")
-        res_dict["address_masked"] = mask_string(row.customer_address or "", visible_prefix=4, visible_suffix=0)
+        # but we provide default masked versions for legacy compatibility
+        from backend.services.commerce.logic.identity_shield import _mask_name, _mask_address
+        res_dict["name_masked"] = _mask_name(row.customer_name or "")
+        res_dict["address_masked"] = _mask_address(row.customer_address or "")
 
         return OrderResponse.model_validate(res_dict)
 

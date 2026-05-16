@@ -23,6 +23,14 @@
     ui.forceMobile(data.isMobile);
   }
 
+  if (data.shopInfo) {
+    ui.settings = data.shopInfo;
+  }
+  
+  if (data.vouchers) {
+    cart.setVouchers(data.vouchers);
+  }
+
   onMount(() => {
     // Elite V2.2: Independent Fomo Initialization (Zero-Latency)
     if (!isAdmin && ui.settings?.conversions?.fomo_enabled) {
@@ -34,7 +42,7 @@
   // Re-check initialization if settings update
   // Elite V2.2: Unitary State Sync (Prop-driven reactivity)
   $effect(() => {
-    if (data.shopInfo && JSON.stringify(ui.settings) !== JSON.stringify(data.shopInfo)) {
+    if (data.shopInfo) {
         ui.settings = data.shopInfo;
     }
     if (data.vouchers) {

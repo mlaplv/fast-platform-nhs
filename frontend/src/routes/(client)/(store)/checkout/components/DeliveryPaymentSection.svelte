@@ -1,5 +1,6 @@
 <script lang="ts">
   import { slide } from 'svelte/transition';
+  import { formatCurrency } from '$lib/utils/format';
   import type { ProvinceData } from '$lib/types/commerce/checkout';
 
   interface FormState {
@@ -23,6 +24,12 @@
     showCoInspectionModal: boolean;
     shippingFee: number;
   }>();
+
+  const standardLabel = $derived.by(() => {
+    if (form.shippingMethod !== 'standard') return 'Miễn phí toàn quốc';
+    if (shippingFee === 0) return 'Miễn phí toàn quốc';
+    return formatCurrency(shippingFee);
+  });
 </script>
 
 <div class="space-y-4">
@@ -69,7 +76,7 @@
         <div class="text-left leading-tight">
           <span class="block font-bold text-[12px]">Tiêu chuẩn</span>
           <span class="block text-[9px] font-medium {form.shippingMethod === 'standard' ? 'text-[#fe2c55]/80' : 'text-gray-400'}">
-            {shippingFee === 0 && form.shippingMethod === 'standard' ? 'Miễn phí toàn quốc' : (form.shippingMethod === 'standard' ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(shippingFee) : 'Miễn phí toàn quốc')}
+            {standardLabel}
           </span>
         </div>
         {#if form.shippingMethod === 'standard'}

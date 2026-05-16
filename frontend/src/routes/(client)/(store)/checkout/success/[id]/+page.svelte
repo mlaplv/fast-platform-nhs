@@ -218,7 +218,7 @@
         console.log("[Elite-Sync] Order data received:", {
           id: order.id,
           name: order.customerName,
-          is_trusted: (order as any).is_trusted_device,
+          is_trusted: order.is_trusted_device,
           status: order.status
         });
         isLocked = false;
@@ -281,8 +281,8 @@
     
     // Elite V4.0: Competition Shield
     // If data is masked, force a Full Identity check before opening the form
-    const isMasked = (order.customer_name || order.customerName || "").includes("*") || 
-                     (order.customer_address || order.customerAddress || "").includes("*");
+    const isMasked = (order.customer_name || "").includes("*") || 
+                     (order.customer_address || "").includes("*");
     
     if (isMasked) {
       isLocked = true;
@@ -291,26 +291,21 @@
       return;
     }
 
-    const cName = order.customer_name || order.customerName || "";
-    const cPhone = order.customer_phone || order.customerPhone || "";
-    const cAddress = order.customer_address || order.customerAddress || "";
+    const rawName = order.customer_name || "";
+    const rawPhone = order.customer_phone || "";
+    const rawAddress = order.customer_address || "";
+    const meta = order.order_metadata;
+    const rawNote = meta?.customer_note || meta?.note || order.note || "";
 
-    const addrParts = parseAddress(cAddress);
-    const meta = order.order_metadata || {};
+    const addrParts = parseAddress(rawAddress);
 
     editForm = {
-      name: cName,
-      phone: cPhone,
+      name: rawName,
+      phone: rawPhone,
       province: addrParts.province,
       ward: addrParts.ward,
       street: addrParts.street,
-      note:
-        order.customer_note ||
-        order.customerNote ||
-        order.note ||
-        (meta?.customer_note as string) ||
-        (meta?.note as string) ||
-        "",
+      note: rawNote,
     };
 
     // Explicitly sync area selector with hierarchical fallback
@@ -364,8 +359,8 @@
 
     try {
       console.log("[Elite-Sync] Saving edit. Previous data:", {
-        name: order.customerName,
-        address: order.customerAddress
+        name: order.customer_name,
+        address: order.customer_address
       });
       const res = await apiClient.patch<OrderDetail>(
         `/api/v1/client/orders/${orderId}`,
@@ -375,7 +370,7 @@
           customer_address: `${editForm.street}, ${editForm.ward}, ${editForm.province}`,
           note: editForm.note,
           order_metadata: {
-            ...(order.order_metadata || order.orderMetadata || {}),
+            ...(order.order_metadata || {}),
             customer_note: editForm.note,
           },
         },
@@ -384,8 +379,8 @@
       if (res) {
         order = res;
         console.log("[Elite-Sync] Save success. Updated data:", {
-          name: order.customerName,
-          address: order.customerAddress
+          name: order.customer_name,
+          address: order.customer_address
         });
       }
       showToast("Đã cập nhật thông tin thành công");
@@ -417,13 +412,13 @@
   const totalSavings = $derived(voucherDiscount + comboDiscount);
   const finalTotal = $derived(
     order?.total_amount ||
-      (order as any)?.total ||
+      order?.total ||
       Math.max(0, subtotal - totalSavings),
   );
   const displayNote = $derived.by(() => {
     // Elite V2.2: Dual-Key Resolver (CamelCase API vs SnakeCase Schema)
-    const meta = (order as any)?.orderMetadata || (order as any)?.order_metadata;
-    return meta?.customer_note || (order as any)?.customer_note || order?.note || "";
+    const meta = order?.order_metadata;
+    return meta?.customer_note || meta?.note || order?.customer_note || order?.note || "";
   });
 
   $effect(() => {

@@ -17,6 +17,7 @@ from backend.services.commerce.promotion import PromotionService
 from backend.services.commerce.loyalty import LoyaltyService
 from backend.services.commerce.logic.identity_shield import IdentityShield, LookupResult, VerifyResult, _mask_name, _mask_address
 from backend.database.models.system import SystemSetting
+from backend.constants.commerce import ShippingConfig, LoyaltyConfig
 
 logger = logging.getLogger("api-gateway")
 
@@ -250,9 +251,9 @@ class CheckoutService:
         
         combo_deals = await PromotionService.get_active_combo_deals(db_session)
         
-        # 2. Get User Loyalty Context
+        # 2. Get User Loyalty Context [ELITE V2.2]
         available_points = 0
-        point_value = 1000.0
+        point_value = LoyaltyConfig.POINT_VALUE
         loyalty = None
         if user_id:
             loyalty_stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id).with_for_update()
@@ -260,11 +261,6 @@ class CheckoutService:
             loyalty = l_res.scalar_one_or_none()
             if loyalty:
                 available_points = loyalty.available_points
-                
-            setting_res = await db_session.execute(select(SystemSetting).where(SystemSetting.key == "LOYALTY_POINT_VALUE_VND"))
-            setting = setting_res.scalar_one_or_none()
-            if setting and "value" in setting.value:
-                point_value = float(setting.value.get("value", 1000))
 
         # 3. UNIFIED PRICING CALCULATION (Elite V2.2)
         from backend.schemas.pricing import PricingInputItem

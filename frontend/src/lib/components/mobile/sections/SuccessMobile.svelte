@@ -46,8 +46,8 @@
 
   const isLocked = $derived.by(() => {
     if (order.status !== "PENDING") return false;
-    const nameMasked = order.customer_name?.includes("*") || (order as any).customerName?.includes("*");
-    const addrMasked = order.customer_address?.includes("*") || (order as any).customerAddress?.includes("*");
+    const nameMasked = order.name_masked?.includes("*") || order.customerName?.includes("*");
+    const addrMasked = order.address_masked?.includes("*") || order.customerAddress?.includes("*");
     return nameMasked || addrMasked;
   });
 
@@ -78,17 +78,11 @@
       return;
     }
     // Elite V2.2: Dual-Layer Identity Recognition (Handles both camelCase and snake_case from API)
-    const rawName = order.customer_name || (order as any).customerName || "";
-    const rawPhone = order.customer_phone || (order as any).customerPhone || "";
-    const rawAddress =
-      order.customer_address || (order as any).customerAddress || "";
-    const meta = (order as any)?.orderMetadata || (order as any)?.order_metadata;
-    const rawNote =
-      (order as any)?.customer_note ||
-      order?.note ||
-      (meta?.customer_note as string) ||
-      (meta?.note as string) ||
-      "";
+    const rawName = order.customer_name || order.customerName || "";
+    const rawPhone = order.customer_phone || order.customerPhone || "";
+    const rawAddress = order.customer_address || order.customerAddress || "";
+    const meta = order.order_metadata || order.orderMetadata;
+    const rawNote = meta?.customer_note || meta?.note || order.note || "";
 
     const addrParts = parseAddress(rawAddress);
     editForm = {
@@ -130,8 +124,9 @@
       showToast("Xác thực thành công");
       // Seamless transition
       setTimeout(() => startEditing(), 100);
-    } catch (err: any) {
-      showToast(err.message || "Xác thực thất bại", "error");
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      showToast(e.message || "Xác thực thất bại", "error");
     } finally {
       isSubmittingVerify = false;
     }
@@ -169,8 +164,8 @@
 
       console.log(`[Elite-Sync] Saving mobile edit for ${orderId}...`);
       console.log("[Elite-Sync] Previous data:", {
-        name: order.customer_name || (order as any).customerName,
-        address: order.customer_address || (order as any).customerAddress
+        name: order.customer_name || order.customerName,
+        address: order.customer_address || order.customerAddress
       });
 
       const res = await apiClient.patch(
@@ -181,7 +176,7 @@
           customer_address: `${editForm.street}, ${editForm.ward}, ${editForm.province}`,
           note: editForm.note,
           order_metadata: {
-            ...((order as any).orderMetadata || order.order_metadata || {}),
+            ...(order.order_metadata || order.orderMetadata || {}),
             customer_note: editForm.note,
           },
         },
@@ -190,7 +185,7 @@
 
       // Refresh local data from response
       if (res) {
-        order = res as any;
+        order = res;
         console.log("[Elite-Sync] Save success. Updated data:", order);
       } else {
         order.customer_name = editForm.name;
@@ -294,13 +289,13 @@
   const customerNameDisplay = $derived(
     order?.name_masked ||
       order.customer_name ||
-      (order as any).customerName ||
+      order.customerName ||
       "Khách hàng",
   );
   const customerAddressDisplay = $derived(
     order?.address_masked ||
       order.customer_address ||
-      (order as any).customerAddress ||
+      order.customerAddress ||
       "Địa chỉ bảo mật",
   );
 
@@ -314,8 +309,8 @@
   const totalSavings = $derived(voucherDiscount + comboDiscount);
   const displayNote = $derived.by(() => {
     // Elite V2.2: Dual-Key Resolver (CamelCase API vs SnakeCase Schema)
-    const meta = (order as any)?.orderMetadata || (order as any)?.order_metadata;
-    return meta?.customer_note || (order as any)?.customer_note || order?.note || "";
+    const meta = order.order_metadata || order.orderMetadata;
+    return meta?.customer_note || meta?.note || order.note || "";
   });
 
   $effect(() => {

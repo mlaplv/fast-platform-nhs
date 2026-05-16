@@ -25,7 +25,8 @@
   const cartStore = getCartStore();
   const searchStore = getSearchStore();
 
-  let { settings = ui.settings } = $props<{ settings?: any }>();
+  let { settings: propSettings } = $props<{ settings?: unknown }>();
+  const settings = $derived(propSettings || ui.settings);
   
   let showAccountMenu: boolean = $state(false);
   let isHoveringCart: boolean = $state(false);

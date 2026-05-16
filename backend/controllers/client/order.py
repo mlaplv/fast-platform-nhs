@@ -74,24 +74,16 @@ class PublicOrderController(Controller):
         )
 
     def _mask_pii(self, response_data: PublicOrderResponse, is_trusted: bool) -> PublicOrderResponse:
-        """Centralized Elite V4.0 Masking Engine."""
+        """Centralized Elite V4.0 Masking Engine using IdentityShield helpers."""
+        from backend.services.commerce.logic.identity_shield import _mask_name, _mask_address
+        
         response_data.is_trusted_device = is_trusted
         if not is_trusted:
             if response_data.customerName:
-                parts = response_data.customerName.split()
-                if len(parts) > 1:
-                    response_data.customerName = f"{parts[0]} {' '.join(['*' for _ in parts[1:]])}"
-                else:
-                    response_data.customerName = response_data.customerName[0] + "***"
+                response_data.customerName = _mask_name(response_data.customerName)
             
             if response_data.customerAddress:
-                # Mask street but keep Ward/Province for recognition
-                addr_parts = [p.strip() for p in response_data.customerAddress.split(",")]
-                if len(addr_parts) >= 3:
-                    masked_street = addr_parts[0][:4] + " ***"
-                    response_data.customerAddress = f"{masked_street}, {', '.join(addr_parts[1:])}"
-                else:
-                    response_data.customerAddress = response_data.customerAddress[:10] + " ***"
+                response_data.customerAddress = _mask_address(response_data.customerAddress)
                     
         return response_data
 

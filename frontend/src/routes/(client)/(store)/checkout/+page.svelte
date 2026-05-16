@@ -12,6 +12,7 @@
   import { loyaltyStore } from '$lib/state/commerce/loyalty.svelte';
   import Wallet from "@lucide/svelte/icons/wallet";
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { SHIPPING_CONFIG, LOYALTY_CONFIG } from '$lib/config/commerce';
 
   // Satellite Components (Elite V2.2 Composition)
   import AddressSection from './components/AddressSection.svelte';
@@ -295,11 +296,9 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
     }
   });
 
-  const STANDARD_SHIPPING_FEE = 30000;
-
   const shippingFee = $derived.by(() => {
     // Determine Base Fee
-    let baseFee = STANDARD_SHIPPING_FEE;
+    let baseFee = SHIPPING_CONFIG.STANDARD_FEE;
     
     if (form.shippingMethod === 'express' && selectedProvinceData?.express_fee) {
        baseFee = selectedProvinceData.express_fee;
@@ -313,8 +312,8 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
     
     if (hasShippingDiscount) return 0;
     
-    // Elite V2.5: Store-wide Free Shipping Threshold (e.g., 2,000,000 VND)
-    if (cartStore.totalAmountWithoutDiscount >= 2000000) return 0;
+    // Elite V2.5: Store-wide Free Shipping Threshold
+    if (cartStore.totalAmountWithoutDiscount >= SHIPPING_CONFIG.FREE_THRESHOLD) return 0;
 
     return baseFee;
   });
@@ -502,7 +501,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
         customer_name: form.name,
         customer_phone: form.phone.replace(/[\s\.\-\+]/g, ''),
         customer_address: `${form.street}, ${form.ward}, ${form.province}`,
-        total_amount: cartStore.totalAmount + shippingFee - (pointsToRedeem * 1000),
+        total_amount: cartStore.totalAmount + shippingFee - (pointsToRedeem * LOYALTY_CONFIG.POINT_VALUE),
         shipping_fee: shippingFee,
         payment_method: form.paymentMethod,
         note: form.note || null,

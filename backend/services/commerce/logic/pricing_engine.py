@@ -3,6 +3,7 @@ from typing import List, Dict, Optional, Union
 from backend.schemas.pricing import PricingBreakdown, PricingItem, PricingInputItem
 from backend.database.models.promotion import Voucher, ComboDeal
 from backend.services.commerce.promotion import PromotionService
+from backend.constants.commerce import ShippingConfig, LoyaltyConfig
 
 logger = logging.getLogger("api-gateway")
 
@@ -20,8 +21,8 @@ class PricingEngine:
         combo_deals: Optional[List[ComboDeal]] = None,
         points_to_redeem: int = 0,
         available_points: int = 0,
-        point_value_vnd: float = 1000.0,
-        base_shipping_fee: float = 30000.0
+        point_value_vnd: float = LoyaltyConfig.POINT_VALUE,
+        base_shipping_fee: float = ShippingConfig.STANDARD_FEE
     ) -> PricingBreakdown:
         """
         Executes the full billing pipeline:
@@ -88,7 +89,7 @@ class PricingEngine:
         # --- 4. Point Discount (The Elite V2.2 Cap Rule) ---
         # Sếp Rule: Max 1% of the amount AFTER combo and vouchers
         amount_after_discounts = max(0, subtotal - combo_discount - total_voucher_discount)
-        max_allowed_vnd = amount_after_discounts * 0.01
+        max_allowed_vnd = amount_after_discounts * LoyaltyConfig.MAX_DISCOUNT_PERCENT
         
         # Effective points to use
         effective_points = min(points_to_redeem, available_points)
@@ -106,7 +107,7 @@ class PricingEngine:
         # --- 6. Final Calculation ---
         breakdown.final_payable = max(0, amount_after_discounts - breakdown.point_discount_amount + breakdown.final_shipping_fee)
         
-        # Points to earn: 1 point per 100k VND
-        breakdown.points_to_earn = int(breakdown.final_payable // 100000)
+        # Points to earn based on final payable amount [ELITE V2.2]
+        breakdown.points_to_earn = int(breakdown.final_payable // LoyaltyConfig.EARNING_RATE_VND)
 
         return breakdown
