@@ -55,7 +55,8 @@ async def list_products_logic(
         stmt = stmt.where(ProductBase.is_ai_featured == True)
     
     if search:
-        clean_search = noise_cleaner(search)
+        # Elite Noise Cleaning for Search Query
+        clean_search = await noise_cleaner.clean(search)
         search_pattern = f"%{escape_like(clean_search)}%"
         stmt = stmt.where(
             or_(
