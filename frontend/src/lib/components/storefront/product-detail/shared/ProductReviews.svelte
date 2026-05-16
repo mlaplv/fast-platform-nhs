@@ -338,7 +338,7 @@
             {#each attachedPhotos as photo}
               <div class="w-24 h-24 rounded-none overflow-hidden border-2 border-black relative group bg-gray-50 flex items-center justify-center">
                 {#if photo.endsWith('.mp4') || photo.endsWith('.webm') || photo.includes('video')}
-                   <video src={photo} class="w-full h-full object-cover" muted loop playsinline></video>
+                   <video src={photo} class="w-full h-full object-cover" muted loop playsinline title="Video đánh giá thực tế từ khách hàng"></video>
                    <div class="absolute inset-0 bg-black/10 flex items-center justify-center">
                      <Play class="w-6 h-6 text-white fill-current opacity-80" />
                    </div>

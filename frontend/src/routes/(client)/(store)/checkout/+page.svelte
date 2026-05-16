@@ -487,7 +487,32 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
     invalidFields = newInvalid;
 
     if (newInvalid.size > 0) {
-      errorMsg = 'Vui lòng điền đủ thông tin nhận hàng!';
+      const msg = 'Thông tin vận chuyển chưa hoàn thiện. Vui lòng kiểm tra các trường được đánh dấu.';
+      clientUi.showToast(msg, 'error');
+      isAddressFormVisible = true;
+      
+      // [ELITE V2.2] Smart Focus Protocol
+      const firstInvalid = ['name', 'phone', 'province', 'ward', 'street'].find(f => newInvalid.has(f));
+      const fieldIdMap: Record<string, string> = {
+        name: 'checkout-name',
+        phone: 'checkout-phone',
+        province: 'checkout-region',
+        ward: 'checkout-region',
+        street: 'checkout-street'
+      };
+
+      if (firstInvalid) {
+        const id = fieldIdMap[firstInvalid];
+        setTimeout(() => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (el instanceof HTMLInputElement || el instanceof HTMLButtonElement) {
+              el.focus();
+            }
+          }
+        }, 300); // Wait for transition
+      }
       return;
     }
 
@@ -572,9 +597,14 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
               </div>
 
               {#if errorMsg}
-                <div class="p-4 bg-red-50 border border-red-100 text-red-600 text-xs font-bold flex items-center gap-2" in:slide>
-                  <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                  {errorMsg}
+                <div class="p-5 bg-white border-l-4 border-[#ee4d2d] shadow-[0_10px_30px_rgba(238,77,45,0.1)] flex items-start gap-4 mb-6" in:slide>
+                  <div class="w-10 h-10 rounded-full bg-[#fff0f1] flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-[#ee4d2d]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-black text-gray-900 mb-1 italic">Helen AI: Yêu cầu bổ sung thông tin</h3>
+                    <p class="text-xs text-gray-500 font-medium leading-relaxed">Thông tin vận chuyển của Sếp chưa hoàn thiện. Helen đã đánh dấu các trường dữ liệu cần kiểm tra bằng màu đỏ để Sếp dễ dàng bổ sung.</p>
+                  </div>
                 </div>
               {/if}
 
@@ -906,16 +936,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
           Bằng cách đặt đơn hàng, bạn đồng ý với <a href="/terms" class="font-bold text-gray-700 hover:underline">Điều khoản sử dụng và bán hàng của osmo</a> và đồng ý rằng dữ liệu của bạn sẽ được xử lý theo <a href="/privacy" class="font-bold text-gray-700 hover:underline">Chính sách quyền riêng tư của osmo</a>.
         </div>
 
-        {#if errorMsg}
-           <div 
-             class="fixed top-[60px] left-1/2 -translate-x-1/2 bg-gray-900/90 text-white text-[12px] px-4 py-2 rounded-full shadow-lg flex items-center gap-2 whitespace-nowrap" 
-             style:z-index={Z_INDEX_CLIENT.POPUP}
-             in:slide
-           >
-             <svg class="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-             {errorMsg}
-           </div>
-        {/if}
+        <!-- Local errorMsg toast removed in favor of global premium toast -->
 
         <!-- Fixed Bottom Bar -->
         <div 

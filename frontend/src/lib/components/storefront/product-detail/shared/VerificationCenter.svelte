@@ -139,7 +139,7 @@
     
     <div class="flex items-center gap-2 relative z-10">
       <div class="w-16 h-16 rounded-none flex items-center justify-center relative group">
-        <img src="/01.Badge_52ad415e46.webp" alt="Verified Badge" class="w-full h-full object-contain group-hover:scale-110 transition-transform drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
+        <img src="/01.Badge_52ad415e46.webp" alt="Huy hiệu chứng nhận sản phẩm chính hãng bởi Osmo" class="w-full h-full object-contain group-hover:scale-110 transition-transform drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]" />
       </div>
       <div>
         <h2 class="text-3xl sm:text-4xl font-black text-white leading-none mb-2 drop-shadow-lg flex items-center gap-3">
@@ -223,7 +223,11 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-center relative z-10">
           <div class="h-40 bg-black/40 rounded-none relative overflow-hidden border border-white/10 group">
-            <div class="absolute inset-0 bg-[url('https://www.google.com/maps/vt/pb=!1m4!1m3!1i12!2i3638!3i1622!2m3!1e0!2sm!3i605151527!3m8!2svi!3sUS!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!5f2')] opacity-20 grayscale invert group-hover:scale-110 transition-transform duration-1000"></div>
+            <img 
+              src="https://www.google.com/maps/vt/pb=!1m4!1m3!1i12!2i3638!3i1622!2m3!1e0!2sm!3i605151527!3m8!2svi!3sUS!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!5f2" 
+              alt="Bản đồ vị trí nhà máy sản xuất {manufacturer.brand || 'Miccosmo'} tại Nhật Bản"
+              class="absolute inset-0 w-full h-full object-cover opacity-20 grayscale invert group-hover:scale-110 transition-transform duration-1000"
+            />
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
             <div class="absolute -inset-[100%] bg-[conic-gradient(from_0deg_at_50%_50%,rgba(193,143,126,0)_0%,rgba(193,143,126,0.1)_25%,rgba(193,143,126,0)_50%)] animate-[spin_4s_linear_infinite]"></div>
             

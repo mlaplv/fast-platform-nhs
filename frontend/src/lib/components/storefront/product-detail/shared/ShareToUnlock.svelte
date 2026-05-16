@@ -4,6 +4,7 @@
   import Check from "@lucide/svelte/icons/check";
   import Copy from "@lucide/svelte/icons/copy";
   import Loader from "@lucide/svelte/icons/loader";
+  import Zap from "@lucide/svelte/icons/zap";
   import Facebook from "@lucide/svelte/icons/facebook";
   
   // Types
@@ -172,7 +173,11 @@
                 const attemptVerify = async () => {
                     if (isVerifying || step === 'revealed' || verifyAttempts >= 3) return;
                     const elapsed = Date.now() - shareStartTime;
-                    if (elapsed < 4000) return; // Too fast to be a real share
+                    if (elapsed < 4000) {
+                        errorMsg = 'Vui lòng dành thêm chút thời gian để chia sẻ nhé!';
+                        step = 'error';
+                        return;
+                    }
                     
                     isVerifying = true;
                     verifyAttempts++;
@@ -355,8 +360,8 @@
     {:else if step === 'sharing' || step === 'verifying'}
       <div class="stu-center glass-loading">
         <div class="loading-bg"></div>
-        <Loader size={18} class="stu-spin text-blue-500" />
-        <span class="stu-loading-text">{step === 'sharing' ? 'Đang kết nối...' : 'AI đang xác minh...'}</span>
+        <Zap size={18} class="stu-spin-pulse text-blue-500 fill-blue-500/20" />
+        <span class="stu-loading-text-blue">{step === 'sharing' ? 'Đang kết nối...' : 'AI đang xác minh...'}</span>
       </div>
 
     {:else if step === 'revealed' && voucherCode}
@@ -461,6 +466,13 @@
     border-radius: 12px; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(8px);
   }
   .stu-loading-text { font-size: 12px; font-weight: 700; color: #ee4d2d; }
+  .stu-loading-text-blue { font-size: 12px; font-weight: 800; color: #3b82f6; letter-spacing: -0.01em; }
+  
+  :global(.stu-spin-pulse) { animation: stu-pulse-zap 1.5s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5)); }
+  @keyframes stu-pulse-zap {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.2) rotate(15deg); opacity: 0.7; }
+  }
   
   .stu-confirm-view { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 16px; background: transparent; border: none; }
   .stu-confirm-txt { font-size: 14px; font-weight: 800; color: #000; }

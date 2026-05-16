@@ -50,18 +50,21 @@
   );
 
   let campaignData = $state<{ voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string } | null>(null);
+  let isCampaignLoading = $state(false);
   let isCampaignLoaded = $state(false);
 
   $effect(() => {
     const vId = viralSuite?.share_promotion?.voucher_id;
-    if (vId && !isCampaignLoaded) {
-      isCampaignLoaded = true;
+    if (vId && !isCampaignLoaded && !isCampaignLoading) {
+      isCampaignLoading = true;
       fetch(`/api/v1/client/viral/campaign/${vId}`)
         .then(res => res.json())
         .then((data: { voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string }) => { 
           campaignData = data; 
+          isCampaignLoaded = true;
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => { isCampaignLoading = false; });
     }
   });
 
@@ -132,9 +135,15 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <div class="flex items-center gap-1.5">
-                <div class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                {#if isCampaignLoading}
+                  <Zap size={12} class="text-blue-500 animate-pulse fill-blue-500/20" />
+                {:else}
+                  <div class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                {/if}
               </div>
-              <span class="text-[11px] text-slate-500 line-clamp-1">{campaignDesc}</span>
+              <span class="text-[11px] {isCampaignLoading ? 'text-blue-500 font-bold' : 'text-slate-500'} line-clamp-1">
+                {isCampaignLoading ? 'Đang kết nối ưu đãi...' : campaignDesc}
+              </span>
             </div>
             <span class="text-[13px] font-black text-rose-500">{Math.round(shareProgress)}%</span>
           </div>

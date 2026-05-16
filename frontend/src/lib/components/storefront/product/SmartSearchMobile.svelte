@@ -135,7 +135,7 @@
                     class="group relative flex items-center gap-3 p-3 bg-white active:bg-gray-50 transition-colors text-left"
                   >
                     <div class="w-16 h-16 shrink-0 bg-white p-1 border border-gray-50 relative">
-                      <img src={p.images?.[0] ?? p.metadata?.image_url} alt="" class="w-full h-full object-contain mix-blend-multiply" />
+                      <img src={p.images?.[0] ?? p.metadata?.image_url} alt={p.name} class="w-full h-full object-contain mix-blend-multiply" />
                       <div class="absolute -top-1 -right-1 w-5 h-5 bg-[#FF3B30] text-white text-[9px] font-black flex items-center justify-center border border-white">
                         {i + 1}
                       </div>

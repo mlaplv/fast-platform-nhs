@@ -24,7 +24,7 @@
   };
 </script>
 
-<div class="fixed top-6 right-4 lg:right-[calc((100vw-1200px)/2+1rem)] z-[var(--z-toast)] flex flex-col gap-3 w-[340px] pointer-events-none">
+<div class="fixed top-6 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 lg:right-[calc((100vw-1200px)/2+1rem)] z-[var(--z-toast)] flex flex-col gap-3 w-full max-w-[calc(100vw-32px)] sm:w-[340px] pointer-events-none">
   {#each ui.toasts as toast (toast.id)}
     {@const Icon = icons[toast.type]}
     <div
@@ -43,7 +43,7 @@
 
         <!-- Content Area -->
         <div class="flex-1 min-w-0 pr-2">
-          <p class="text-[14px] font-semibold leading-tight text-gray-900 dark:text-white truncate">
+          <p class="text-[14px] font-semibold leading-tight text-gray-900 dark:text-white break-words">
             {toast.message}
           </p>
           <p class="text-[11px] text-gray-500 dark:text-gray-400 font-medium mt-0.5">

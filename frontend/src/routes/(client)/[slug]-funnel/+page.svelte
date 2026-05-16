@@ -161,6 +161,12 @@
       if (el) sessionObserver.observe(el);
     });
 
+    // Elite V2.2: Instant UI Recovery Protocol
+    if (clientUi) {
+      clientUi.isHeaderHidden = false;
+      clientUi.isFooterHidden = false;
+    }
+
     const cleanupObservers = clientUi.initObservers();
 
     return () => {

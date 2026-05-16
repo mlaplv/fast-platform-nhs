@@ -145,7 +145,7 @@
                 {#each searchStore.featuredProducts as p}
                   <button onclick={() => commitSearch(p.name)} class="flex items-center p-2 hover:bg-gray-50 transition-all text-left">
                     <div class="w-10 h-10 shrink-0 bg-white border border-gray-100 p-1">
-                      <img src={p.images?.[0] ?? p.metadata?.image_url} alt="" class="w-full h-full object-contain mix-blend-multiply" />
+                      <img src={p.images?.[0] ?? p.metadata?.image_url} alt={p.name} class="w-full h-full object-contain mix-blend-multiply" />
                     </div>
                     <div class="ml-2 min-w-0">
                       <div class="text-[13px] font-bold text-gray-700 truncate">{trimProductName(p.name)}</div>
@@ -165,7 +165,7 @@
                 {#each searchStore.searchResults as p}
                   <a href="/{p.slug}" onclick={() => { searchStore.addSearch(p.name); isFocused = false; }} class="flex items-center gap-4 p-2 hover:bg-gray-50 transition-colors group">
                     <div class="w-12 h-12 shrink-0 bg-white border border-gray-100 p-1">
-                      <img src={p.images?.[0]} alt="" class="w-full h-full object-contain mix-blend-multiply" />
+                      <img src={p.images?.[0]} alt={p.name} class="w-full h-full object-contain mix-blend-multiply" />
                     </div>
                     <div class="flex-grow min-w-0">
                       <h4 class="text-[14px] font-bold text-gray-800 truncate">{trimProductName(p.name)}</h4>
@@ -184,7 +184,7 @@
                 {#each searchStore.searchArticleResults as art}
                   <a href="/{art.slug}" onclick={() => { searchStore.addSearch(art.title); isFocused = false; }} class="flex items-center gap-4 p-2 hover:bg-gray-50 transition-colors group">
                     <div class="w-14 h-14 shrink-0 bg-gray-100 overflow-hidden">
-                      <img src={art.featuredImage} alt="" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      <img src={art.featuredImage} alt={art.title} class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     </div>
                     <div class="flex-grow min-w-0">
                       <div class="text-[9px] font-black text-luxury-copper mb-1">{art.category}</div>

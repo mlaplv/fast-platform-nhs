@@ -73,8 +73,13 @@ export class CartStore {
     }
 
     // Computed State
-    totalItems = $derived(this.items.reduce((acc, item) => acc + item.quantity, 0));
-    selectedItemsCount = $derived(this.items.filter(item => item.selected).reduce((acc, item) => acc + item.quantity, 0));
+    get totalItems() {
+        return this.items.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0);
+    }
+
+    get selectedItemsCount() {
+        return this.items.filter(item => item.selected).reduce((acc, item) => acc + (Number(item.quantity) || 0), 0);
+    }
 
     // Discount Mapping
     totalDiscount = $derived.by(() => {
@@ -338,5 +343,11 @@ export function setCartStore() {
 }
 
 export function getCartStore(): CartStore {
-    return getContext<CartStore>(CART_KEY);
+    const store = getContext<CartStore>(CART_KEY);
+    if (store) return store;
+    
+    // Elite V2.2: Singleton Fallback (Safety Net)
+    if (_globalCartInstance) return _globalCartInstance;
+    _globalCartInstance = new CartStore();
+    return _globalCartInstance;
 }

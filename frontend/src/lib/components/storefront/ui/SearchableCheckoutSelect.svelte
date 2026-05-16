@@ -8,7 +8,8 @@
     placeholder = "Chọn...", 
     disabled = false,
     onChange = () => {},
-    getBadge = undefined
+    getBadge = undefined,
+    id = undefined
   } = $props<{
     value: string;
     options: string[];
@@ -26,10 +27,15 @@
 
   const filteredOptions = $derived.by(() => {
     const q = search.toLowerCase().trim();
-    const results = !q ? options : options.filter(opt => 
-      opt && (opt.toLowerCase().includes(q) || 
-      removeAccents(opt.toLowerCase()).includes(removeAccents(q)))
-    );
+    if (!q) return options;
+    
+    const normalizedQ = removeAccents(q);
+    const results = options.filter(opt => {
+      if (!opt) return false;
+      const lowerOpt = opt.toLowerCase();
+      return lowerOpt.includes(q) || removeAccents(lowerOpt).includes(normalizedQ);
+    });
+    
     return results.slice(0, 50); // [ELITE V2.2] Performance Guard: Limit DOM nodes to 50
   });
 
@@ -131,6 +137,7 @@
           type="text" 
           bind:value={search} 
           placeholder="Tìm tên tỉnh, huyện, xã..." 
+          aria-label="Tìm kiếm tỉnh, quận, huyện hoặc xã"
           class="w-full bg-transparent outline-none text-sm font-bold text-gray-900 placeholder:text-gray-300 placeholder:font-normal"
         />
       </div>

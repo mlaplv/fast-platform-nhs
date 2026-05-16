@@ -367,7 +367,7 @@
                 </div>
 
                 <button onclick={() => triggerScan?.()} class="absolute top-2 right-2 z-[99] w-14 h-14 cursor-pointer hover:scale-105 transition-transform drop-shadow-md bg-transparent border-none p-0 focus:outline-none pointer-events-auto">
-                    <img src="/01.Badge_52ad415e46.webp" alt="Verified" class="w-full h-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)]" />
+                    <img src="/01.Badge_52ad415e46.webp" alt="Huy hiệu chứng nhận sản phẩm chính hãng bởi Osmo" class="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
                  </button>
 
                 <EditableWrapper path="images.0" type="image" label="SỬA ẢNH CHIẾN DỊCH">

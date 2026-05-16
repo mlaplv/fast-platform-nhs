@@ -31,18 +31,18 @@
     untrack(() => {
         supportAgent.setPath(path);
         
+        // Elite V2.2: Instant UI Recovery Protocol
+        // We force reset these states immediately on ANY navigation to prevent black screens
+        if (ui) {
+            ui.isHeaderHidden = false;
+            ui.isFooterHidden = false;
+            ui.authModal.isOpen = false;
+        }
+
         // Reset scroll locks and overlays
         if (typeof document !== 'undefined') {
             document.body.style.overflow = '';
             document.documentElement.style.overflow = '';
-        }
-        
-        // Elite V2.2: Redundancy Guard - Only reset if not explicitly handled by the incoming page
-        // We use a small delay or trust the incoming page's effect to override this if needed.
-        if (ui && isNavigating) {
-            ui.authModal.isOpen = false;
-            ui.isHeaderHidden = false;
-            ui.isFooterHidden = false;
         }
         
         try {
