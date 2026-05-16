@@ -59,7 +59,7 @@
 
     <!-- Title Group -->
     <div class="text-center mb-12">
-      <h1 in:fly={{ y: 20, duration: 600, delay: 200 }} class="text-3xl font-black italic tracking-tighter mb-2">TRA CỨU ĐƠN</h1>
+      <h2 in:fly={{ y: 20, duration: 600, delay: 200 }} class="text-3xl font-black italic tracking-tighter mb-2">TRA CỨU ĐƠN</h2>
       <div in:fade={{ delay: 400 }} class="flex items-center justify-center gap-2">
          <span class="w-1.5 h-1.5 bg-sky-500 rounded-full animate-pulse"></span>
          <p class="text-white/40 text-[9px] tracking-[0.4em] font-bold italic">Elite Radar Tracking V2.2</p>

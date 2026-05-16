@@ -16,34 +16,49 @@
         data: PageData;
         isMobile: boolean;
     }
-    interface DynamicModule { default: Component<DynamicModuleProps> };
-
     const loadAdmin = (): Promise<DynamicModule> => import("$lib/components/admin/layout/AdminDashboard.svelte");
     const loadStorefront = (): Promise<DynamicModule> => import("$lib/components/storefront/StorefrontHome.svelte");
+
+    // ELITE V2.2: SEO Derivation logic (Zero-Latency Sync)
+    const shopSettings = $derived(data.shopInfo);
+    const seoSiteName = $derived(
+        shopSettings?.basic_info?.site_name || shopSettings?.site_name || "osmo Elite"
+    );
+    const seoDescription = $derived(
+        data.seo_meta?.description || 
+        shopSettings?.basic_info?.description ||
+        shopSettings?.description ||
+        "Mỹ phẩm cao cấp từ Nhật Bản."
+    );
+    const seoSlogan = $derived(
+        shopSettings?.basic_info?.slogan || shopSettings?.slogan || ""
+    );
+    const seoTitle = $derived(
+        data.seo_meta?.title || 
+        (seoSlogan ? `${seoSiteName} - ${seoSlogan}` : seoSiteName)
+    );
 </script>
 
-{#if data.tenant !== 'admin' && data.seo_meta}
+{#if data.tenant !== 'admin'}
     <SeoHead
-        title={data.seo_meta.title}
-        description={data.seo_meta.description}
-        canonical={data.seo_meta.canonical_url}
-        keywords={data.seo_meta.keywords}
-        robots={data.tenant === 'admin' ? "noindex, nofollow" : "index, follow"}
+        pageType="HOMEPAGE_ELITE"
+        title={seoTitle}
+        description={seoDescription}
+        canonical={data.seo_meta?.canonical_url || "https://osmo.vn/"}
+        keywords={data.seo_meta?.keywords || ""}
+        robots="index, follow"
         jsonLdScripts={[
-            data.seo_meta.json_ld_string,
-            data.seo_meta.breadcrumb_ld_string
-        ]}
+            data.seo_meta?.json_ld_string,
+            data.seo_meta?.breadcrumb_ld_string
+        ].filter(Boolean)}
     />
-{:else if data.tenant === 'admin'}
+{:else}
     <SeoHead title="Admin Control Center" robots="noindex, nofollow" />
 {/if}
-
 
 <svelte:head>
     {#if data.tenant === 'admin'}
         <title>Xohi Darkboard</title>
-    {:else if !data.seo_meta}
-        <title>SmartShop Storefront</title>
     {/if}
 </svelte:head>
 

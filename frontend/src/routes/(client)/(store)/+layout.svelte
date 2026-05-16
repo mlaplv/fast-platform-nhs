@@ -89,14 +89,20 @@
       taxId: data.shopInfo?.contact_info?.tax_id || data.shopInfo?.tax_id || "",
       businessLicense: data.shopInfo?.contact_info?.business_license || data.shopInfo?.business_license || ""
   });
+  // Elite V2.2: Intelligent SSR SEO Guard
+  // Suppress layout fallback if the page already has product/article/category data OR is the homepage
+  const hasPageSeo = $derived(
+    !!data.product || 
+    !!data.article || 
+    !!data.category || 
+    data.type === 'category' || 
+    data.type === 'product' ||
+    data.type === 'article' ||
+    data.type === 'news' ||
+    page.url.pathname === '/' ||
+    page.url.pathname === '/home'
+  );
 </script>
-
-<SeoHead 
-  title={footerShopInfo.name} 
-  description={footerShopInfo.description}
-  siteName={footerShopInfo.name}
-  isFallback={true}
-/>
 
 
 <div class="client-layout min-h-screen flex flex-col {ui.isMobile && isAccountPage ? '!bg-white' : ''}" translate="no">

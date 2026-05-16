@@ -143,14 +143,14 @@
     if (desc.includes('<span') && desc.includes(keyword)) {
       desc = desc.replace(
         /<span([^>]*)>(.*?Beppin Body Virgin White Serum.*?)<\/span>/gi,
-        '<h1 style="display:inline;font-size:inherit;font-weight:inherit;margin:0;padding:0;color:inherit">$2</h1>'
+        '<strong style="display:inline;font-size:inherit;font-weight:700;margin:0;padding:0;color:inherit">$2</strong>'
       );
-      if (desc.includes('<h1')) return desc;
+      if (desc.includes('<strong')) return desc;
     }
 
     return desc.replace(
       new RegExp(keyword, 'gi'),
-      `<h1 class="inline font-semibold" style="font-size:inherit;margin:0;padding:0;color:inherit">$&</h1>`
+      `<strong class="inline font-bold" style="font-size:inherit;margin:0;padding:0;color:inherit">$&</strong>`
     );
   });
 </script>
