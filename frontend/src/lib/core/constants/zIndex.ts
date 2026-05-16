@@ -22,6 +22,7 @@ export const Z_INDEX_CLIENT = {
   CATEGORY_PILLS: 90,
   FLASH_SALE: 40,
   FOMO: 1500,
+  PARTICLE: 35000,
 } as const;
 
 export const Z_INDEX_ADMIN = {

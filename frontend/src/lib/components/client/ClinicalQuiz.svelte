@@ -170,7 +170,7 @@
   }
 
   function removeOption(qIdx: number, oIdx: number) {
-    const newQuestions = JSON.parse(JSON.stringify(questions));
+    const newQuestions = $state.snapshot(questions);
     newQuestions[qIdx].options.splice(oIdx, 1);
     liveEditStore.updateField('metadata.quiz_questions', newQuestions);
   }
@@ -202,11 +202,9 @@
 
   function toSentenceCase(str: string) {
     if (!str) return '';
-    // Xử lý loại bỏ HTML tags nếu có để tránh lỗi capitalize nhầm tag
-    const cleanStr = str.replace(/<[^>]*>/g, '');
+    const cleanStr = str.replace(/<[^>]*>/g, '').trim();
     if (!cleanStr) return str;
-    const lower = str.toLowerCase();
-    return lower.charAt(0).toUpperCase() + lower.slice(1);
+    return cleanStr.charAt(0).toUpperCase() + cleanStr.slice(1).toLowerCase();
   }
 </script>
 
@@ -487,7 +485,7 @@
     transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
   }
   .z-surface {
-    z-index: var(--z-surface, 20);
+    z-index: var(--z-content);
   }
 
   /* Premium Custom Scrollbar - Elite V2.2 */

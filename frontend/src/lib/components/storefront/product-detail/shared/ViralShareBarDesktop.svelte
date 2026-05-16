@@ -185,7 +185,7 @@
 </div>
 
 <style>
-  :global(.vsb-heart-burst) { position: fixed; pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); }
+  :global(.vsb-heart-burst) { position: fixed; pointer-events: none; z-index: var(--z-particle); transform: translate(-50%, -50%); }
   :global(.vsb-heart-particle) { position: absolute; font-size: 14px; animation: heart-fly 0.8s ease-out forwards; opacity: 0; }
   @keyframes heart-fly {
     0% { transform: translate(0,0) scale(0.5); opacity: 1; }

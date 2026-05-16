@@ -3,6 +3,7 @@
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import { formatCurrency } from "$lib/utils/format";
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
+  import { LOYALTY_CONFIG } from "$lib/constants/loyalty";
 
   interface FormState {
     securePackaging: boolean;
@@ -41,7 +42,7 @@
     handleSubmit: (e: SubmitEvent) => void;
   }>();
 
-  const pointDiscount = $derived(pointsRedeemed * 1000);
+  const pointDiscount = $derived(pointsRedeemed * LOYALTY_CONFIG.POINT_VALUE);
   const finalTotal = $derived(
     cartStore.totalAmount + shippingFee - pointDiscount,
   );
@@ -313,9 +314,8 @@
         class="mt-2 flex items-center gap-1.5 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20"
       >
         <div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
-        <span
           class="text-[9px] font-black text-amber-700 tracking-widest leading-none"
-          >Dự kiến tích lũy: +{Math.floor(finalTotal / 100000)} Pts</span
+          >{LOYALTY_CONFIG.LABELS.EARN_PREFIX}{Math.floor(finalTotal / LOYALTY_CONFIG.EARNING_RATE_VND)} {LOYALTY_CONFIG.LABELS.POINTS_UNIT}</span
         >
       </div>
     </div>

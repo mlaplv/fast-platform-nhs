@@ -10,6 +10,11 @@ class LoyaltyConfig:
     POINT_VALUE = 1000.0 # 1 point = 1000 VND
     MAX_DISCOUNT_PERCENT = 0.01 # Max 1% of total
     EARNING_RATE_VND = 100000.0 # 1 point earned per 100k VND spent
+    
+    # Tier Thresholds (Total Spent in VND)
+    TIER_SILVER_THRESHOLD = 5_000_000.0
+    TIER_GOLD_THRESHOLD = 10_000_000.0
+    TIER_PLATINUM_THRESHOLD = 20_000_000.0
 
 class CheckoutConfig:
     # [SECURITY] Giá trị đơn hàng tối thiểu sau tất cả giảm giá (bao gồm ship)

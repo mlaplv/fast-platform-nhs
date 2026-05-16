@@ -16,12 +16,14 @@ from backend.utils.sql import escape_like
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.event_bus import event_bus
 from backend.utils.media import extract_media_urls
+from backend.services.commerce.logic.product_ai import suggest_seo_logic, suggest_faqs_logic
+from backend.services.commerce.logic.viral_hydration import hydrate_viral_config_logic, sanitize_vouchers_logic
+from backend.services.commerce.logic.product_bulk import bulk_delete_logic, bulk_activate_logic, bulk_update_logic
+from backend.services.commerce.logic.product_query import list_products_logic, get_product_logic, get_product_by_slug_logic
 from sqlalchemy.dialects.postgresql import JSONB
+
 import re
 import json
-from pydantic_ai import Agent
-from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
-
 import hashlib
 import math
 import os
@@ -160,444 +162,62 @@ class ProductService:
         return ""
 
     async def _hydrate_viral_config(self, db_session: AsyncSession, row_dict: ProductRowDict) -> None:
-        """
-        Elite V2.2: Dynamic hydration from the Promotion system.
-        Uses the 'Single-Active-Viral' voucher as the Global Source of Truth (SSOT).
-        """
-        metadata = row_dict.get("metadata", {})
-        if not isinstance(metadata, dict):
-            metadata = {}
-            
-        share_promo = metadata.get("share_promotion")
-        # Respect the product-level toggle to enable viral bar for this specific landing
-        if not isinstance(share_promo, dict) or not share_promo.get("enabled"):
-            return
-            
-        from backend.database.models.promotion import Voucher
-        # 🚀 ELITE V2.2: Master Protocol - Fetch the globally active viral voucher
-        tenant = current_tenant_id.get()
-        if not tenant:
-            tenant = str(row_dict.get("tenant_id", "osmo.vn"))
-            
-        stmt = select(Voucher).where(
-            Voucher.is_viral == True,
-            Voucher.is_active == True,
-            Voucher.tenant_id == tenant
-        ).limit(1)
-        res = await db_session.execute(stmt)
-        voucher = res.scalar_one_or_none()
-        
-        if not voucher:
-            # Fallback: Find ANY master viral in the system
-            stmt = select(Voucher).where(Voucher.is_viral == True, Voucher.is_active == True).limit(1)
-            res = await db_session.execute(stmt)
-            voucher = res.scalar_one_or_none()
-
-        if voucher and voucher.metadata_json:
-            v_config = voucher.metadata_json.get("viral_suite", {})
-            master_id = str(voucher.id)
-            
-            # 1. Update the authoritative viral_suite (Modern Config)
-            metadata["viral_suite"] = {
-                "enabled": True,
-                "voucher_id": master_id,
-                "share_target": v_config.get("share_target", 10),
-                "share_reward_label": v_config.get("voucher_label", voucher.title or "QUÀ TẶNG LAN TỎA"),
-                "share_cta": v_config.get("cta_text", "CHIA SẺ NHẬN QUÀ"),
-                "share_text": v_config.get("share_text", ""),
-                "share_count": metadata.get("share_count", 0),
-                "likes_count": metadata.get("likes", 0)
-            }
-            
-            # 2. Update the legacy share_promotion (For UI compatibility & legacy funnels)
-            if not isinstance(metadata.get("share_promotion"), dict):
-                metadata["share_promotion"] = {}
-                
-            metadata["share_promotion"].update({
-                "enabled": True,
-                "voucher_id": master_id,
-                "voucher_label": v_config.get("voucher_label", metadata["share_promotion"].get("voucher_label")),
-                "cta_text": v_config.get("cta_text", metadata["share_promotion"].get("cta_text")),
-                "share_text": v_config.get("share_text", metadata["share_promotion"].get("share_text")),
-            })
-            
-            # 3. 🚀 CRITICAL: Force update the nested share_promotion inside viral_suite 
-            # This was the loophole where stale DB data (VIRAL149K) was hiding.
-            metadata["viral_suite"]["share_promotion"] = metadata["share_promotion"]
-            
-            # 🚀 ABSOLUTE PERSISTENCE: Re-assign to row_dict and metadata to ensure serialization
-            row_dict["metadata"] = metadata
-            row_dict["_master_viral_id"] = master_id
-            
-            logger.info(f"🧬 [ProductService] ULTRA-HYDRATED master {master_id} for product {row_dict.get('id')}")
-        else:
-            logger.warning(f"⚠️ [ProductService] No active master viral voucher found for tenant {tenant}")
+        """Elite V2.2: Dynamic hydration (Delegated)."""
+        await hydrate_viral_config_logic(db_session, row_dict)
 
     def _sanitize_vouchers(self, row_dict: ProductRowDict) -> None:
-        """
-        Elite V2.2: Anti-Leakage Protocol.
-        Lọc bỏ các Voucher Viral khỏi metadata công khai để tránh người dùng 'soi' được mã khi chưa share.
-        Các mã này chỉ được tiết lộ qua luồng verify-share chính thống.
-        """
-        metadata = row_dict.get("metadata")
-        if not isinstance(metadata, dict):
-            return
-            
-        vouchers = metadata.get("vouchers")
-        if not isinstance(vouchers, list):
-            return
-            
-        share_promo = metadata.get("share_promotion")
-        promo_v_id = share_promo.get("voucher_id") if isinstance(share_promo, dict) else None
-        
-        filtered = []
-        for v in vouchers:
-            v_id = str(v.get("id", "")).upper()
-            v_label = str(v.get("label", "")).upper()
-            
-            # Kiểm tra ID hoặc Nhãn chứa từ khóa nhạy cảm
-            is_viral = (promo_v_id and str(v.get("id", "")) == promo_v_id) or \
-                       "VIRAL" in v_id or \
-                       "LAN TOA" in v_id or \
-                       "LAN TỎA" in v_id or \
-                       "LAN TOA" in v_label or \
-                       "LAN TỎA" in v_label
-            
-            if not is_viral:
-                filtered.append(v)
-        
-        metadata["vouchers"] = filtered
+        """Elite V2.2: Anti-Leakage Protocol (Delegated)."""
+        sanitize_vouchers_logic(row_dict)
 
     async def list_products(
         self,
         db_session: AsyncSession,
+        category_slug: Optional[str] = None,
+        search: Optional[str] = None,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        status: Optional[str] = None,
+        is_ai_featured: Optional[bool] = None,
         limit: int = 20,
         offset: int = 0,
-        status: Optional[str] = None,
-        search: Optional[str] = None,
-        featured_only: bool = False,
-        category_slug: Optional[str] = None,
-        category_id: Optional[str] = None,
-        brand: Optional[str] = None,
-        origin: Optional[str] = None,
-        product_ids: Optional[List[str]] = None,
+        sort_by: str = "created_at",
+        sort_order: str = "desc"
     ) -> ProductListResponse:
-
-        """
-        Elite V3.0: Hybrid Viral Search Engine.
-        Combines Keyword Recall + Semantic Intent + Social Proof (Heat Ranking).
-        """
-        conditions = [ProductBase.deleted_at == None]
-        # Elite V2.2: Enforce dynamic tenant isolation (Rule R03)
-        from backend.database import current_tenant_id
-        from backend.constants.tenants import DEFAULT_TENANT_ID
-        tid = current_tenant_id.get() or DEFAULT_TENANT_ID
-        conditions.append(ProductBase.tenant_id == tid)
+        """Elite V2.2: Advanced Product Query (Delegated)."""
+        # Elite Note: We fetch and then hydrate to maintain consistency
+        res = await list_products_logic(
+            db_session, category_slug, search, min_price, max_price, 
+            status, is_ai_featured, limit, offset, sort_by, sort_order
+        )
         
-        # Elite V2.2: Chỉ lọc tồn kho cho Client Storefront (khi status="ACTIVE")
-        # Admin Panel cần thấy mọi sản phẩm để quản lý (kể cả khi hết hàng)
-        if status == "ACTIVE":
-            conditions.append(ProductBase.stock > 0)
-        
-        if status and status != "all":
-            conditions.append(ProductBase.status == status.upper())
-        if featured_only:
-            conditions.append(ProductBase.is_ai_featured == True)
-        if category_slug:
-            # Filter sản phẩm theo category slug (join Category)
-            conditions.append(Category.slug == category_slug)
-        if category_id:
-            conditions.append(ProductBase.category_id == category_id)
-        if brand:
-            brand_safe = escape_like(brand)
-            conditions.append(or_(
-                ProductBase.product_metadata["brand"].astext.ilike(f"%{brand_safe}%"),
-                ProductBase.attributes["brand"].astext.ilike(f"%{brand_safe}%"),
-                ProductBase.attributes["Thương hiệu"].astext.ilike(f"%{brand_safe}%")
-            ))
-        if origin:
-            origin_safe = escape_like(origin)
-            conditions.append(or_(
-                ProductBase.product_metadata["origin"].astext.ilike(f"%{origin_safe}%"),
-                ProductBase.attributes["origin"].astext.ilike(f"%{origin_safe}%"),
-                ProductBase.attributes["Xuất xứ"].astext.ilike(f"%{origin_safe}%")
-            ))
-        if product_ids:
-            conditions.append(ProductBase.id.in_(product_ids))
-
-
-        # 🎯 CASE 1: SEARCH OVERRIDE (Hybrid Strategy)
-        if search:
-            safe = escape_like(search)
+        # Post-processing hydration for list
+        for prod in res.data:
+            # We convert model back to dict for internal hydration methods
+            prod_dict = prod.model_dump()
+            await self._hydrate_viral_config(db_session, prod_dict)
+            self._sanitize_vouchers(prod_dict)
+            # Update the model with hydrated data
+            prod.metadata = prod_dict.get("metadata", prod.metadata)
             
-            # --- LAYER 1: KEYWORD RECALL (Primary for SKU/Prefix) ---
-            keyword_stmt = select(
-                ProductBase.id, ProductBase.name, ProductBase.sku,
-                ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
-                ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
-                ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-                ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
-                ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
-                ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
-                Category.name.label("category_name"), Category.slug.label("category_slug")
-            ).outerjoin(Category, ProductBase.category_id == Category.id).where(
-                and_(*conditions),
-                or_(
-                    func.unaccent(ProductBase.name).ilike(func.unaccent(f"%{safe}%")),
-                    ProductBase.sku.ilike(f"%{safe}%"),
-                )
-            ).limit(limit * 2) # Overfetch for ranking
-            
-            keyword_results = (await db_session.execute(keyword_stmt)).mappings().all()
-            
-            # --- LAYER 2: SEMANTIC RECALL (Intent Matching) ---
-            semantic_results = await self.vector_service.search_semantic(db_session, search, limit=limit)
-            semantic_ids = [r["id"] for r in semantic_results]
-            
-            # --- LAYER 3: VIRAL HEAT SCORING ---
-            final_map: Dict[str, Dict[str, object]] = {}
-            
-            # Process Keywords
-            search_low = search.lower().strip()
-            for r in keyword_results:
-                pid = str(r["id"])
-                name_low = r["name"].lower()
-                
-                # Elite V3.0 Rank Matrix: Exact Match Wins Total
-                if search_low == name_low:
-                    relevance = 5.0  # Absolute Peak Priority
-                elif name_low.startswith(search_low):
-                    relevance = 1.2  # Prefix Match
-                elif search_low in name_low:
-                    relevance = 0.8  # Fuzzy Keyword Match
-                else:
-                    relevance = 0.5
-                
-                # SKU Match Override
-                if r["sku"] and search_low == r["sku"].lower().strip():
-                    relevance = 5.0
-                
-                final_map[pid] = {**r, "score": relevance}
-
-            # Process Semantic (Merge & Boost)
-            # STEP 1: Collect IDs that are semantic-only (not in keyword results)
-            semantic_only_ids: List[str] = []
-            semantic_score_map: Dict[str, float] = {}
-            for r in semantic_results:
-                pid = str(r["id"])
-                score = float(r["match_score"])
-                semantic_score_map[pid] = score
-                if pid in final_map:
-                    # Combined Vector Boost (Avoid overriding Exact Match)
-                    if final_map[pid]["score"] < 2.0:
-                        final_map[pid]["score"] = max(float(final_map[pid]["score"]), score) + 0.2
-                else:
-                    semantic_only_ids.append(pid)
-
-            # STEP 2: Batch fetch all semantic-only products in ONE query (Anti N+1)
-            if semantic_only_ids:
-                batch_stmt = select(
-                    ProductBase.id, ProductBase.name, ProductBase.sku,
-                    ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
-                    ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
-                    ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-                    ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
-                    ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
-                    ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
-                    Category.name.label("category_name"), Category.slug.label("category_slug")
-                ).outerjoin(Category, ProductBase.category_id == Category.id).where(
-                    ProductBase.id.in_(semantic_only_ids)
-                )
-                batch_results = (await db_session.execute(batch_stmt)).mappings().all()
-                for full_r in batch_results:
-                    pid = str(full_r["id"])
-                    final_map[pid] = {**full_r, "score": semantic_score_map.get(pid, 0.5)}
-
-            # --- LAYER 4: VIRAL BOOST SCORING ---
-            ranked_list = []
-            for pid, p in final_map.items():
-                order_count = int(p.get("order_count") or 0)
-                is_viral = bool(p.get("is_ai_featured") or False)
-                # Boost based on sales volume and viral status
-                social_boost = math.log10(order_count + 1) * 0.15
-                viral_boost = 0.2 if is_viral else 0.0
-                
-                p["final_rank"] = float(p["score"]) + social_boost + viral_boost
-                ranked_list.append(p)
-
-            # --- LAYER 5: FINALIZE RESULT ---
-            ranked_list.sort(key=lambda x: x["final_rank"], reverse=True)
-            subset = ranked_list[offset : offset + limit]
-            
-            data: List[ProductResponse] = []
-            for row_mapping in subset:
-                row_dict: ProductRowDict = dict(row_mapping)
-                row_dict["variants"] = []
-                self._inject_marketing_boost(row_dict)
-                await self._hydrate_viral_config(db_session, row_dict)
-                self._sanitize_vouchers(row_dict)
-                data.append(ProductResponse.model_validate(row_dict))
-
-            # --- LAYER 6: COMPUTE FACETS (Elite V2.2 Dynamic Filters) ---
-            facet_brands: set[str] = set()
-            facet_origins: set[str] = set()
-            prices: List[float] = []
-            for p in ranked_list:
-                price_val = float(p.get("price") or 0)
-                if price_val > 0:
-                    prices.append(price_val)
-                attrs = p.get("attributes")
-                if isinstance(attrs, dict):
-                    b = attrs.get("brand") or attrs.get("Thương hiệu")
-                    if isinstance(b, str) and b.strip():
-                        facet_brands.add(b.strip())
-                    o = attrs.get("origin") or attrs.get("Xuất xứ")
-                    if isinstance(o, str) and o.strip():
-                        facet_origins.add(o.strip())
-
-            facets = SearchFacets(
-                brands=sorted(facet_brands),
-                origins=sorted(facet_origins),
-                price_min=min(prices) if prices else 0.0,
-                price_max=max(prices) if prices else 0.0,
-            )
-
-            return ProductListResponse(data=data, total=len(ranked_list), facets=facets)
-
-        # 🎯 CASE 2: STANDARD LISTING
-        # 1. COUNT (Zero-Hydration)
-        count_stmt = select(func.count(ProductBase.id))
-        if category_slug:
-            count_stmt = count_stmt.outerjoin(Category, ProductBase.category_id == Category.id)
-        
-        count_stmt = count_stmt.where(and_(*conditions))
-        total = await db_session.scalar(count_stmt) or 0
-
-        # 2. R76: Scalar Projection Fetch
-        stmt = select(
-            ProductBase.id, ProductBase.name, ProductBase.sku,
-            ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
-            ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
-            ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
-            ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
-            ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
-            Category.name.label("category_name"), Category.slug.label("category_slug")
-        ).outerjoin(Category, ProductBase.category_id == Category.id).where(
-            and_(*conditions)
-        ).limit(limit).offset(offset).order_by(ProductBase.created_at.desc())
-
-        result = await db_session.execute(stmt)
-        data = []
-        for row in result:
-            row_dict: ProductRowDict = dict(row._mapping)
-            row_dict["variants"] = []
-            self._inject_marketing_boost(row_dict)
-            await self._hydrate_viral_config(db_session, row_dict)
-            self._sanitize_vouchers(row_dict)
-            data.append(ProductResponse.model_validate(row_dict))
-
-        return ProductListResponse(data=data, total=total)
+        return res
 
     async def get_product(self, db_session: AsyncSession, product_id: str) -> ProductResponse:
-        """Get a single product (R76: Scalar Projection)."""
-        stmt = select(
-            ProductBase.id, ProductBase.name, ProductBase.sku,
-            ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
-            ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
-            ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
-            ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
-            ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
-            Category.name.label("category_name"), Category.slug.label("category_slug")
-        ).outerjoin(Category, ProductBase.category_id == Category.id).where(
-            ProductBase.id == product_id,
-            ProductBase.deleted_at == None
-        )
-
-        result = await db_session.execute(stmt)
-        row = result.first()
-
-        if not row:
-            raise NotFoundException(f"Product {product_id} not found")
-
-        # Fetch variants
-        v_stmt = select(ProductVariant).where(ProductVariant.product_base_id == product_id, ProductVariant.deleted_at == None)
-        variants = (await db_session.execute(v_stmt)).scalars().all()
-
-        row_dict: ProductRowDict = dict(row._mapping)
-        row_dict["variants"] = list(variants)
-
-        # Elite Dynamic Counting & Marketing Boost
-        self._inject_marketing_boost(row_dict)
-        await self._hydrate_viral_config(db_session, row_dict)
-        self._sanitize_vouchers(row_dict)
-
-        return ProductResponse.model_validate(row_dict)
+        """Elite V2.2: Single Product Fetch (Delegated)."""
+        product_res = await get_product_logic(db_session, product_id)
+        prod_dict = product_res.model_dump()
+        await self._hydrate_viral_config(db_session, prod_dict)
+        self._sanitize_vouchers(prod_dict)
+        product_res.metadata = prod_dict.get("metadata", product_res.metadata)
+        return product_res
 
     async def get_product_by_slug(self, db_session: AsyncSession, slug: str) -> ProductResponse:
-        """Get a single product by slug (R76: Scalar Projection)."""
-        # Normalize slug: remove trailing slashes to prevent 404 on clean URL variants
-        slug = slug.rstrip('/')
-        # Elite V2.2: Tenant Isolation Protocol
-        tid = current_tenant_id.get()
-        
-        stmt = select(
-            ProductBase.id, ProductBase.name, ProductBase.sku,
-            ProductBase.price, ProductBase.discount_price, ProductBase.stock, ProductBase.status,
-            ProductBase.category_id, ProductBase.short_description, ProductBase.description, ProductBase.type,
-            ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
-            ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
-            ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
-            ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
-            Category.name.label("category_name"), Category.slug.label("category_slug"), Category.slug.label("category_slug")
-        ).outerjoin(Category, ProductBase.category_id == Category.id).where(
-            ProductBase.deleted_at == sa.null()
-        )
-
-        # 1. Try Exact Match (Primary)
-        res = await db_session.execute(stmt.where(
-            ProductBase.slug == slug,
-            ProductBase.tenant_id == tid if tid else sa.true()
-        ))
-        row = res.first()
-
-        # 2. Robust Fallback: Try slugified name match if direct slug fails (Elite Reconstruction)
-        if not row:
-            from backend.utils.text import slugify
-            # Search by name-based slug if the current slug might be legacy/truncated
-            res = await db_session.execute(stmt.where(
-                sa.func.lower(ProductBase.name).like(f"%{slug.split('-')[0]}%"), # Heuristic prefix optimization
-                ProductBase.tenant_id == tid if tid else sa.true()
-            ))
-            candidates = res.all()
-            for cand in candidates:
-                if slugify(cand.name) == slug:
-                    row = cand
-                    break
-
-        if not row and not tid:
-             res = await db_session.execute(stmt.where(ProductBase.slug == slug))
-             row = res.first()
-
-        if not row:
-            logger.debug(f"[ProductService] Product with slug '{slug}' not found in DB")
-            raise NotFoundException(f"Product with slug '{slug}' not found")
-
-        product_id = row.id
-        # Fetch variants
-        v_stmt = select(ProductVariant).where(ProductVariant.product_base_id == product_id, ProductVariant.deleted_at == None)
-        variants = (await db_session.execute(v_stmt)).scalars().all()
-
-        row_dict: ProductRowDict = dict(row._mapping)
-        row_dict["variants"] = list(variants)
-
-        # Elite Dynamic Counting & Marketing Boost
-        self._inject_marketing_boost(row_dict)
-        await self._hydrate_viral_config(db_session, row_dict)
-        self._sanitize_vouchers(row_dict)
-
-        return ProductResponse.model_validate(row_dict)
+        """Elite V2.2: Slug-based Product Fetch (Delegated)."""
+        product_res = await get_product_by_slug_logic(db_session, slug)
+        prod_dict = product_res.model_dump()
+        await self._hydrate_viral_config(db_session, prod_dict)
+        self._sanitize_vouchers(prod_dict)
+        product_res.metadata = prod_dict.get("metadata", product_res.metadata)
+        return product_res
 
     async def create_product(self, db_session: AsyncSession, data: CreateProductRequest) -> SuccessResponse:
         """Create a new product and its embedding."""
@@ -796,123 +416,24 @@ class ProductService:
         return SuccessResponse(ok=True, id=product_id)
 
     async def bulk_delete(self, db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
-        stmt = update(ProductBase).where(ProductBase.id.in_(ids)).values(deleted_at=datetime.now(timezone.utc))
-        await db_session.execute(stmt)
-        return BulkActionResponse(ok=True, count=len(ids))
+        """Elite V2.2: Atomic Bulk Delete (Delegated)."""
+        return await bulk_delete_logic(db_session, ids)
 
     async def bulk_activate(self, db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
-        stmt = update(ProductBase).where(ProductBase.id.in_(ids)).values(status="ACTIVE")
-        await db_session.execute(stmt)
-        return BulkActionResponse(ok=True, count=len(ids))
+        """Elite V2.2: Atomic Bulk Activate (Delegated)."""
+        return await bulk_activate_logic(db_session, ids)
 
     async def bulk_update(self, db_session: AsyncSession, ids: List[str], data: UpdateProductRequest) -> BulkActionResponse:
-        """Elite V2.2: Atomic Bulk Update for Products."""
-        # Convert Pydantic data to dict, excluding unset fields
-        update_data = data.model_dump(exclude_unset=True, by_alias=False)
-
-        # Mapping frontend camelCase/Pydantic fields to SQLAlchemy snake_case
-        # Note: model_dump(by_alias=False) gives us the field names, but we need to ensure
-        # they match the ProductBase columns (mostly snake_case).
-
-        db_data = {}
-        if "name" in update_data: db_data["name"] = update_data["name"]
-        if "sku" in update_data: db_data["sku"] = update_data["sku"]
-        if "price" in update_data: db_data["price"] = update_data["price"]
-        if "discountPrice" in update_data: db_data["discount_price"] = update_data["discountPrice"]
-        if "stock" in update_data: db_data["stock"] = update_data["stock"]
-        if "status" in update_data: db_data["status"] = update_data["status"].upper()
-        if "isAiFeatured" in update_data: db_data["is_ai_featured"] = update_data["isAiFeatured"]
-        if "categoryId" in update_data: db_data["category_id"] = update_data["categoryId"]
-        if "shortDescription" in update_data: db_data["short_description"] = update_data["shortDescription"]
-        if "description" in update_data: db_data["description"] = update_data["description"]
-        if "slug" in update_data: db_data["slug"] = update_data["slug"]
-        if "seoTitle" in update_data: db_data["seo_title"] = update_data["seoTitle"]
-        if "seoDescription" in update_data: db_data["seo_description"] = update_data["seoDescription"]
-        if "seoKeywords" in update_data: db_data["seo_keywords"] = update_data["seoKeywords"]
-        if "images" in update_data: db_data["images"] = update_data["images"]
-        if "mobileImages" in update_data: db_data["mobile_images"] = update_data["mobileImages"]
-        if "attributes" in update_data: db_data["attributes"] = update_data["attributes"]
-        if "metadata" in update_data: db_data["product_metadata"] = update_data["metadata"]
-        if "tierVariations" in update_data: db_data["tier_variations"] = update_data["tierVariations"]
-
-        if not db_data:
-            return BulkActionResponse(ok=True, count=0)
-
-        stmt = update(ProductBase).where(ProductBase.id.in_(ids)).values(**db_data)
-        await db_session.execute(stmt)
-
-        # If name or description changed, embeddings might need update, but for bulk
-        # it's usually AI Featured or Discount, so we skip vector sync here to save O(N) cost
-        # unless explicitly requested.
-
-        return BulkActionResponse(ok=True, count=len(ids))
+        """Elite V2.2: Atomic Bulk Update (Delegated)."""
+        return await bulk_update_logic(db_session, ids, data)
 
     async def suggest_seo(self, name: str, description: str) -> Dict[str, str]:
-        """Elite V2.2: AI SEO Suggestion (C.O.R.E Engine)."""
-        agent = Agent(
-            system_prompt=(
-                "Bạn là chuyên gia SEO hàng đầu Việt Nam. Hãy tối ưu tiêu đề, mô tả và từ khóa SEO cho sản phẩm này. "
-                "QUY TẮC TỐI CAO: Dù tên sản phẩm hoặc mô tả đầu vào là tiếng Anh, bạn BẮT BUỘC phải phản hồi nội dung hoàn toàn bằng tiếng Việt thuần 100%. "
-                "Nội dung phải súc tích, hấp dẫn và chuẩn SEO. "
-                "Chỉ trả về JSON hợp lệ, không có markdown: "
-                "{\"title\": \"...\", \"description\": \"...\", \"keywords\": \"...\"}"
-            )
-        )
-        prompt = f"Tên sản phẩm: {name}\nMô tả: {description}"
-        
-        try:
-            result = await trinity_bridge.run(
-                agent=agent,
-                prompt=prompt,
-                role="fast",
-                timeout=30.0
-            )
-            
-            if result:
-                suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
-                match = re.search(r'\{.*\}', suggested_json_str, re.DOTALL)
-                parsed = json.loads(match.group(0)) if match else {"title": "", "description": "", "keywords": ""}
-                return parsed
-            
-            return {"title": f"{name} Chính Hãng", "description": "Sản phẩm chính hãng", "keywords": ""}
-            
-        except Exception as e:
-            logger.exception(f"[ProductService] AI SEO Suggestion Failed: {e}")
-            return {"title": f"{name} Chính Hãng", "description": "Mua sản phẩm chính hãng với nhiều ưu đãi", "keywords": ""}
+        """Elite V2.2: AI SEO Suggestion (Delegated)."""
+        return await suggest_seo_logic(name, description)
 
     async def suggest_faqs(self, name: str, description: str) -> List[Dict[str, str]]:
-        """Elite V2.2: XOHI Auto FAQ Generator."""
-        agent = Agent(
-            system_prompt=(
-                "Bạn là chuyên gia tư vấn sản phẩm. Dựa trên tên và mô tả sản phẩm, hãy tạo từ 3 đến 5 câu hỏi thường gặp và câu trả lời ngắn gọn, hữu ích bằng tiếng Việt. "
-                "QUY TẮC TỐI CAO: Dù tên sản phẩm đầu vào là tiếng Anh, toàn bộ câu hỏi và câu trả lời phải là tiếng Việt thuần 100%. "
-                "Chỉ trả về mảng JSON chính xác các đối tượng, không có markdown: "
-                "[{\"question\": \"...\", \"answer\": \"...\"}]"
-            )
-        )
-        prompt = f"Tên sản phẩm: {name}\nMô tả: {description}"
-
-        try:
-            result = await trinity_bridge.run(
-                agent=agent,
-                prompt=prompt,
-                role="fast",
-                timeout=45.0
-            )
-
-            if result:
-                suggested_json_str = str(getattr(result, "data", getattr(result, "output", result))).strip()
-                match = re.search(r'\[.*\]', suggested_json_str, re.DOTALL)
-                if match:
-                    parsed = json.loads(match.group(0))
-                    if isinstance(parsed, list):
-                        return parsed
-
-            return []
-
-        except Exception as e:
-            logger.exception(f"[ProductService] AI FAQ Suggestion Failed: {e}")
-            return []
+        """Elite V2.2: XOHI Auto FAQ Generator (Delegated)."""
+        return await suggest_faqs_logic(name, description)
 
     async def sync_market_price(self, db_session: AsyncSession, product_id: str) -> Dict[str, object]:
         """Elite V2.2: Market Price Intel Sync (1/Day)."""

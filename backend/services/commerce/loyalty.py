@@ -137,13 +137,13 @@ class LoyaltyService:
         loyalty.available_points += points_to_earn
         loyalty.total_spent += order.total_amount
         
-        # Check Tiers: STANDARD, SILVER, GOLD, PLATINUM (R2026)
+        # Check Tiers: STANDARD, SILVER, GOLD, PLATINUM (R2026) [ELITE STANDARDIZED]
         new_tier = "STANDARD"
-        if loyalty.total_spent > 20_000_000:
+        if loyalty.total_spent >= LoyaltyConfig.TIER_PLATINUM_THRESHOLD:
             new_tier = "PLATINUM"
-        elif loyalty.total_spent >= 20_000_000:
+        elif loyalty.total_spent >= LoyaltyConfig.TIER_GOLD_THRESHOLD:
             new_tier = "GOLD"
-        elif loyalty.total_spent >= 10_000_000:
+        elif loyalty.total_spent >= LoyaltyConfig.TIER_SILVER_THRESHOLD:
             new_tier = "SILVER"
 
         if loyalty.tier != new_tier:
