@@ -8,6 +8,8 @@
   import { onMount, untrack } from 'svelte';
   import { slide, fade } from 'svelte/transition';
   import vnDivisions from '$lib/data/vn_divisions.json';
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+
   import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';
   import { loyaltyStore } from '$lib/state/commerce/loyalty.svelte';
   import Wallet from "@lucide/svelte/icons/wallet";
@@ -534,9 +536,7 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
   }
 </script>
 
-<svelte:head>
-  <title>Thanh toán bảo mật | osmo</title>
-</svelte:head>
+<SeoHead title="Thanh toán | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
 
 <div class="checkout-viewport min-h-screen bg-[#fafafa]">
   {#if !clientUi.isHydrated}

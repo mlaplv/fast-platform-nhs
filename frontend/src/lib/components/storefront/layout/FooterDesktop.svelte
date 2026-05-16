@@ -26,8 +26,16 @@
       hotline: string;
       email: string;
       address: string;
+      social_links?: {
+        facebook?: string;
+        tiktok?: string;
+        zalo?: string;
+        youtube?: string;
+        linkedin?: string;
+      };
     };
   }
+
 
   let { shopInfo }: Props = $props();
 
@@ -249,15 +257,22 @@
         <div class="flex items-center gap-6">
           <div class="flex items-center gap-3">
              {#each [
-               { icon: Facebook, label: 'Facebook' },
-               { icon: Linkedin, label: 'LinkedIn' },
-               { icon: Youtube, label: 'YouTube' }
+               { icon: Facebook, label: 'Facebook', href: shopInfo.social_links?.facebook || '#' },
+               { icon: Linkedin, label: 'LinkedIn', href: shopInfo.social_links?.linkedin || '#' },
+               { icon: Youtube, label: 'YouTube', href: shopInfo.social_links?.youtube || '#' }
              ] as social}
-               <button aria-label={social.label} class="text-slate-600 hover:text-[#C18F7E] transition-all">
+               <a 
+                 href={social.href} 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 aria-label={social.label} 
+                 class="text-slate-600 hover:text-[#C18F7E] transition-all"
+               >
                   <social.icon size={16} />
-               </button>
+               </a>
              {/each}
           </div>
+
           <div class="flex items-center gap-2 group cursor-default">
              <span class="text-[9px] font-black tracking-widest text-slate-700 group-hover:text-slate-500 transition-colors">by lapiweb</span>
              <div class="w-1 h-1 rounded-full bg-[#C18F7E] animate-ping"></div>

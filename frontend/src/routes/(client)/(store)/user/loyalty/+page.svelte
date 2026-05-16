@@ -17,8 +17,11 @@
   import { browser } from '$app/environment';
   import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+
 
   const ui = getClientUi();
+
   let isMenuOpen = $state(false);
 
   onMount(() => {
@@ -54,6 +57,9 @@
   }
 </script>
 
+<SeoHead title="Tích điểm | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+
+
 {#if browser}
   {#if !ui.isMobile}
     <UserLayout>
@@ -61,9 +67,10 @@
     <!-- Page Header -->
     <div class="border-b border-stone-100 pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
       <div>
-        <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Điểm thưởng & Thành viên</h1>
+        <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Tích điểm</h1>
         <p class="text-[13px] text-stone-400 mt-1 tracking-widest">Tích điểm từ mỗi đơn hàng để nhận ưu đãi</p>
       </div>
+
       {#if loyaltyStore.data}
         <div class="flex items-center gap-3">
           {#if loyaltyStore.data.pending_points > 0}
@@ -208,7 +215,7 @@
     </UserLayout>
   {:else}
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
-    <UserHeaderMobile title="Điểm Thưởng" bind:isMenuOpen />
+    <UserHeaderMobile title="Tích điểm" bind:isMenuOpen />
 
     <div
       class="pb-20 px-4 space-y-8 bg-[#f9f8f6] min-h-screen"

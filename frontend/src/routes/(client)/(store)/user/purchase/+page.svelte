@@ -6,6 +6,8 @@
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
   import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
   import PurchaseList from '$lib/components/storefront/user/PurchaseList.svelte';
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+
 
   const ui = getClientUi();
   let isMenuOpen = $state(false);
@@ -26,22 +28,27 @@
   });
 </script>
 
+<SeoHead title="Đơn mua | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+
+
 {#if browser}
   {#if !ui.isMobile}
     <UserLayout>
       <div class="space-y-8" in:fade>
         <!-- Header -->
         <div class="border-b border-stone-100 pb-5">
-          <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Đơn Mua</h1>
+          <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Đơn mua</h1>
           <p class="text-[13px] text-stone-400 mt-1 tracking-widest">Danh sách giao dịch</p>
         </div>
+
 
         <PurchaseList />
       </div>
     </UserLayout>
   {:else}
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
-    <UserHeaderMobile title="Đơn Mua" bind:isMenuOpen />
+    <UserHeaderMobile title="Đơn mua" bind:isMenuOpen />
+
 
     <div
       class="pb-20 px-0 space-y-0 bg-white min-h-screen"

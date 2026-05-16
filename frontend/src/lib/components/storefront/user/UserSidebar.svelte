@@ -34,7 +34,7 @@
       href: '/user/vouchers'
     },
     {
-      label: 'Điểm thưởng',
+      label: 'Tích điểm',
       icon: Star,
       href: '/user/loyalty'
     },
@@ -51,7 +51,15 @@
   }
 
   const currentPath = $derived($page.url.pathname);
+  
+  // Elite V2.2: Deep Active Check
+  const isActive = (href: string, subItems?: any[]) => {
+    if (currentPath === href) return true;
+    if (subItems?.some(s => currentPath === s.href)) return true;
+    return false;
+  };
 </script>
+
 
 <aside class="w-full md:w-[240px] shrink-0 hidden md:block space-y-10">
   <!-- Profile Header -->
@@ -78,16 +86,17 @@
         <div class="space-y-4">
           <a
             href={item.href}
-            class="flex items-center gap-3 text-[12px] tracking-[2px] font-bold transition-all {currentPath.startsWith(item.href) ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
+            class="flex items-center gap-3 text-[12px] tracking-[2px] font-bold transition-all {isActive(item.href, item.subItems) ? 'text-stone-800' : 'text-stone-400 hover:text-stone-600'}"
           >
-            <span class="{currentPath.startsWith(item.href) ? 'text-luxury-copper' : 'text-stone-300'}">
+            <span class="{isActive(item.href, item.subItems) ? 'text-luxury-copper' : 'text-stone-300'}">
               <item.icon class="w-4 h-4" />
             </span>
             {item.label}
           </a>
 
-          {#if item.subItems && (currentPath.startsWith(item.href) || item.subItems.some(s => s.href === currentPath))}
+          {#if item.subItems && isActive(item.href, item.subItems)}
             <div class="flex flex-col ml-8 space-y-3 border-l border-stone-100 pl-4">
+
               {#each item.subItems as sub}
                 <a
                   href={sub.href}

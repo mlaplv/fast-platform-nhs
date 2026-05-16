@@ -39,13 +39,14 @@ class SchemaFactory {
                 const json = JSON.parse(rawLd);
                 // Elite V2.2: SGE Knowledge Graph Injection (mentions)
                 const kg = (this.productData as any)?.knowledge_graph;
-                if (kg?.entities) {
+                if (kg && Array.isArray(kg.entities)) {
                     json.mentions = kg.entities.map((e: any) => ({
                         "@type": "Thing",
                         "name": e.name,
                         "description": e.description
                     }));
                 }
+
                 return JSON.stringify(json);
             } catch (e) {
                 return rawLd;
@@ -61,13 +62,14 @@ class SchemaFactory {
                 const json = JSON.parse(rawLd);
                 // Elite V2.2: SGE Knowledge Graph Injection (mentions)
                 const kg = (this.articleData as any)?.knowledge_graph;
-                if (kg?.entities) {
+                if (kg && Array.isArray(kg.entities)) {
                     json.mentions = kg.entities.map((e: any) => ({
                         "@type": "Thing",
                         "name": e.name,
                         "description": e.description
                     }));
                 }
+
                 return JSON.stringify(json);
             } catch (e) {
                 return rawLd;

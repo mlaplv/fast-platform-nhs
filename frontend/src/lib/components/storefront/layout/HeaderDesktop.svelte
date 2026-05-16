@@ -185,8 +185,11 @@
         <div class="flex items-center gap-6 shrink-0 h-[48px]">
           <div class="hidden lg:flex flex-col items-end text-gray-700 justify-center">
             <span class="text-[9px] tracking-[0.1em] font-black opacity-30 leading-none mb-1">Hotline</span>
-            <a href="tel:0949901122" class="text-[13px] font-bold tracking-tight hover:text-[#C18F7E] transition-colors tabular-nums">0949 901 122</a>
+            <a href="tel:{(settings?.contact_info?.hotline || settings?.hotline || '0949901122').replace(/\s/g, '')}" class="text-[13px] font-bold tracking-tight hover:text-[#C18F7E] transition-colors tabular-nums">
+              {settings?.contact_info?.hotline || settings?.hotline || '0949 901 122'}
+            </a>
           </div>
+
 
           <div 
             class="flex items-center h-full relative"

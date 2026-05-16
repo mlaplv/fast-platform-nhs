@@ -3,8 +3,9 @@
   Centralized Meta Management with Dynamic JSON-LD Factory.
 -->
 <script lang="ts">
-  import { page } from "$app/stores";
+  import { page } from "$app/state";
   import { seoFactory } from "$lib/state/seo/schemaFactory.svelte";
+
   import {
     type ProductLdConfig,
     type ArticleLdConfig,
@@ -47,7 +48,7 @@
 
   let {
     pageType = "default",
-    title,
+    title = "",
     description = "",
     canonical = "",
     image = "",
@@ -62,6 +63,10 @@
     jsonLdScripts = [],
   }: SeoHeadProps = $props();
 
+  // Elite V2.2: Safe Fallback Title (Anti-Die)
+  const finalTitle = $derived(title || siteName || "osmo Elite Việt Nam");
+
+
   // ── Requirement 1: Absolute URL Normalization (GEO 2026: Force Production) ────
   const seoOrigin = "https://osmo.vn";
 
@@ -74,19 +79,22 @@
 
   const absImage = $derived(toAbsolute(image || "/images/default-og.png"));
   const absCanonical = $derived(
-    canonical ? toAbsolute(canonical) : `${seoOrigin}${$page.url.pathname}`,
+    canonical ? toAbsolute(canonical) : `${seoOrigin}${page.url.pathname}`,
   );
+
 
   // ── Requirement 2: Dynamic Human-like Description ─────────────────────────
   const finalDescription = $derived.by(() => {
     if (description) return truncateDescription(description);
     return truncateDescription(
-      `${title} - Giải pháp chăm sóc sức khỏe và sắc đẹp chuyên sâu từ osmo Elite Việt Nam.`,
+      `${finalTitle} - Giải pháp chăm sóc sức khỏe và sắc đẹp chuyên sâu từ osmo Elite Việt Nam.`,
     );
   });
 
-  // ── ELITE V2.2: SEO Factory Integration ────────────────────────────────────
-  $effect(() => {
+
+  // ── ELITE V2.2: SEO Factory Integration (SSR Compatible) ───────────────────
+  // Note: We update synchronously for SSR support, but use $effect for client-side reactivity
+  const syncSeo = () => {
     seoFactory.pageType = pageType;
     seoFactory.breadcrumbItems = breadcrumbItems;
     seoFactory.faqs = faqs;
@@ -110,17 +118,32 @@
         ...categoryData,
         url: absCanonical,
       } as CategoryLdConfig;
+    } else if (pageType === "default") {
+        // Clear previous data if switching to default
+        seoFactory.productData = null;
+        seoFactory.articleData = null;
+        seoFactory.categoryData = null;
     }
+  };
+
+  // Run once sync for SSR
+  syncSeo();
+
+  // Run reactive for Client
+  $effect(() => {
+    syncSeo();
   });
+
 </script>
 
 <svelte:head>
-  <title>{title}</title>
+  <title>{finalTitle}</title>
 
   <!-- ELITE V2.2: Unified @graph JSON-LD (AI Search Optimization) -->
   {#if seoFactory.graphLd}
-    {@html `<script type="application/ld+json">${seoFactory.graphLd}</script>`}
+    {@html `<script type="application/ld+json">${seoFactory.graphLd}<\/script>`}
   {/if}
+
 
   <meta name="description" content={finalDescription} />
   <meta name="google" content="notranslate" />
@@ -146,7 +169,8 @@
         ? "product"
         : "website"}
   />
-  <meta property="og:title" content={title} />
+  <meta property="og:title" content={finalTitle} />
+
   <meta property="og:description" content={finalDescription} />
   <meta property="og:url" content={absCanonical} />
   <meta property="og:site_name" content={siteName} />
@@ -157,8 +181,9 @@
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content={title} />
+    <meta property="og:image:alt" content={finalTitle} />
   {/if}
+
 
   {#if pageType === "product" && productData}
     <meta property="product:price:amount" content={String(productData.discountPrice || productData.price)} />
@@ -178,7 +203,8 @@
     name="twitter:card"
     content={absImage ? "summary_large_image" : "summary"}
   />
-  <meta name="twitter:title" content={title} />
+  <meta name="twitter:title" content={finalTitle} />
+
   <meta name="twitter:description" content={finalDescription} />
   {#if absImage}
     <meta name="twitter:image" content={absImage} />

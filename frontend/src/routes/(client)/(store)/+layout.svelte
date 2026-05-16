@@ -9,7 +9,9 @@
   import { fomoStore } from "$lib/state/commerce/fomo.svelte";
   import NeuralActivityBar from "$lib/components/client/common/NeuralActivityBar.svelte";
   import { onMount, type Snippet } from "svelte";
+  import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
   import type { LayoutData } from './$types';
+
   import "../client.css";
 
   let { data, children }: { data: LayoutData, children: Snippet } = $props();
@@ -88,6 +90,13 @@
       businessLicense: data.shopInfo?.contact_info?.business_license || data.shopInfo?.business_license || ""
   });
 </script>
+
+<SeoHead 
+  title={footerShopInfo.name} 
+  description={footerShopInfo.description}
+  siteName={footerShopInfo.name}
+/>
+
 
 <div class="client-layout min-h-screen flex flex-col {ui.isMobile && isAccountPage ? '!bg-white' : ''}" translate="no">
   {#if showGlobalHeader}

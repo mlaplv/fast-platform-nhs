@@ -12,6 +12,8 @@
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
   import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
   import PasswordForm from '$lib/components/storefront/user/PasswordForm.svelte';
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+
 
   const ui = getClientUi();
   let isMenuOpen = $state(false);
@@ -32,14 +34,18 @@
   });
 </script>
 
+<SeoHead title="Đổi mật khẩu | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+
+
 {#if browser}
   {#if !ui.isMobile}
     <UserLayout>
       <div class="space-y-8" in:fade>
         <div class="border-b border-stone-100 pb-5">
-          <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Đổi Mật Khẩu</h1>
+          <h1 class="text-xl font-serif italic text-stone-800 tracking-wide">Đổi mật khẩu</h1>
           <p class="text-[13px] text-stone-400 mt-1 tracking-widest">Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu cho người khác</p>
         </div>
+
 
         <div class="max-w-md">
           <PasswordForm />
@@ -48,7 +54,8 @@
     </UserLayout>
   {:else}
     <UserMenuMobile bind:active={isMenuOpen} onClose={() => isMenuOpen = false} />
-    <UserHeaderMobile title="Đổi Mật Khẩu" bind:isMenuOpen />
+    <UserHeaderMobile title="Đổi mật khẩu" bind:isMenuOpen />
+
 
     <div
       class="pb-20 px-4 space-y-6"

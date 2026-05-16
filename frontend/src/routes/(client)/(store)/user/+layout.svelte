@@ -2,6 +2,9 @@
   import { authStore } from '$lib/state/authStore.svelte';
   import { goto } from '$app/navigation';
   import { fade } from 'svelte/transition';
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+
 
   let { children } = $props();
   let isChecking = $state(true);
@@ -24,9 +27,14 @@
     window.addEventListener('auth:logout', handleLogout);
     return () => window.removeEventListener('auth:logout', handleLogout);
   });
+
+  const ui = getClientUi();
 </script>
 
+<SeoHead title="Tài khoản | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+
 {#if !isChecking && authStore.isAuthenticated}
+
   <div in:fade={{ duration: 400 }}>
     {@render children()}
   </div>

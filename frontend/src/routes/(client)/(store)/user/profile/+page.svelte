@@ -8,6 +8,8 @@
   import UserProfileForm from '$lib/components/storefront/user/UserProfileForm.svelte';
   import UserMenuMobile from '$lib/components/storefront/user/UserMenuMobile.svelte';
   import UserHeaderMobile from '$lib/components/storefront/user/UserHeaderMobile.svelte';
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+
 
   const ui = getClientUi();
   let isMenuOpen = $state(false);
@@ -35,7 +37,10 @@
   });
 </script>
 
+<SeoHead title="Hồ sơ của tôi | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+
 {#if browser}
+
   {#if !ui.isMobile}
     <UserLayout>
       <div class="space-y-8" in:fade>

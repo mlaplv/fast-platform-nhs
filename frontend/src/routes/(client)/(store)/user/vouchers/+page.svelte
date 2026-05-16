@@ -13,6 +13,8 @@
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Loader2 from "@lucide/svelte/icons/loader-2";
   import { formatCurrency } from '$lib/utils/format';
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+
 
   const ui = getClientUi();
   let isMenuOpen = $state(false);
@@ -77,9 +79,7 @@
   );
 </script>
 
-<svelte:head>
-  <title>Kho Voucher | osmo Elite</title>
-</svelte:head>
+<SeoHead title="Kho Voucher | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
 
 {#if browser}
   {#if !ui.isMobile}
