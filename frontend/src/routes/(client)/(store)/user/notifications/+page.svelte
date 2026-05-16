@@ -29,7 +29,11 @@
   });
 </script>
 
-<SeoHead title="Thông báo | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+<SeoHead 
+  title="Thông báo | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  robots="noindex, nofollow"
+/>
+
 
 
 {#if browser}

@@ -28,7 +28,11 @@
   });
 </script>
 
-<SeoHead title="Đơn mua | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+<SeoHead 
+  title="Đơn mua | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  robots="noindex, nofollow"
+/>
+
 
 
 {#if browser}

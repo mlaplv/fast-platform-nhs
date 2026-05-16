@@ -57,7 +57,11 @@
   }
 </script>
 
-<SeoHead title="Tích điểm | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+<SeoHead 
+  title="Tích điểm | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  robots="noindex, nofollow"
+/>
+
 
 
 {#if browser}

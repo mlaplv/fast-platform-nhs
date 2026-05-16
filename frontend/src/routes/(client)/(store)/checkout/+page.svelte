@@ -536,7 +536,12 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
   }
 </script>
 
-<SeoHead title="Thanh toán | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+<SeoHead 
+  title="Thanh toán | {clientUi.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  robots="noindex, nofollow"
+/>
+
+
 
 <div class="checkout-viewport min-h-screen bg-[#fafafa]">
   {#if !clientUi.isHydrated}

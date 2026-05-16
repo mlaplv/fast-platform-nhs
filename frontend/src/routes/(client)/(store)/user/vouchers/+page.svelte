@@ -79,7 +79,11 @@
   );
 </script>
 
-<SeoHead title="Kho Voucher | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+<SeoHead 
+  title="Kho Voucher | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  robots="noindex, nofollow"
+/>
+
 
 {#if browser}
   {#if !ui.isMobile}

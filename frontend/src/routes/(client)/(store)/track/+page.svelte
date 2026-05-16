@@ -9,6 +9,8 @@
 
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import TikTokShopLoading from '$lib/components/storefront/product/TikTokShopLoading.svelte';
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
+
 
   let { data } = $props<{ data: { isMobile: boolean } }>();
   const clientUi = getClientUi();
@@ -55,11 +57,11 @@
   }
 </script>
 
-<svelte:head>
-  <title>Tra cứu đơn hàng</title>
-  <meta name="description" content="Theo dõi trạng thái đơn hàng" />
-  <meta name="robots" content="noindex, nofollow" />
-</svelte:head>
+<SeoHead 
+  title="Tra cứu đơn hàng | {clientUi.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  description="Theo dõi trạng thái và lịch trình đơn hàng của bạn"
+  robots="noindex, nofollow"
+/>
 
 {#if !clientUi.isDetermined}
   <TikTokShopLoading variant="grid" />

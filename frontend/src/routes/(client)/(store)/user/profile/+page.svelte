@@ -37,7 +37,11 @@
   });
 </script>
 
-<SeoHead title="Hồ sơ của tôi | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+<SeoHead 
+  title="Hồ sơ của tôi | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  robots="noindex, nofollow"
+/>
+
 
 {#if browser}
 

@@ -31,7 +31,11 @@
   const ui = getClientUi();
 </script>
 
-<SeoHead title="Tài khoản | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+<SeoHead 
+  title="Tài khoản | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  robots="noindex, nofollow"
+/>
+
 
 {#if !isChecking && authStore.isAuthenticated}
 

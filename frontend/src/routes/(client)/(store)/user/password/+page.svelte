@@ -34,7 +34,11 @@
   });
 </script>
 
-<SeoHead title="Đổi mật khẩu | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" />
+<SeoHead 
+  title="Đổi mật khẩu | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  robots="noindex, nofollow"
+/>
+
 
 
 {#if browser}
