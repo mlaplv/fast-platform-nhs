@@ -173,11 +173,15 @@ class ProductService:
         self,
         db_session: AsyncSession,
         category_slug: Optional[str] = None,
+        category_id: Optional[str] = None,
         search: Optional[str] = None,
         min_price: Optional[float] = None,
         max_price: Optional[float] = None,
         status: Optional[str] = None,
-        is_ai_featured: Optional[bool] = None,
+        featured_only: bool = False,
+        brand: Optional[str] = None,
+        origin: Optional[str] = None,
+        product_ids: Optional[List[str]] = None,
         limit: int = 20,
         offset: int = 0,
         sort_by: str = "created_at",
@@ -186,37 +190,44 @@ class ProductService:
         """Elite V2.2: Advanced Product Query (Delegated)."""
         # Elite Note: We fetch and then hydrate to maintain consistency
         res = await list_products_logic(
-            db_session, category_slug, search, min_price, max_price, 
-            status, is_ai_featured, limit, offset, sort_by, sort_order
+            db_session, category_slug, category_id, search, min_price, max_price, 
+            status, featured_only, brand, origin, product_ids, limit, offset, sort_by, sort_order
         )
         
         # Post-processing hydration for list
         for prod in res.data:
-            # We convert model back to dict for internal hydration methods
-            prod_dict = prod.model_dump()
-            await self._hydrate_viral_config(db_session, prod_dict)
-            self._sanitize_vouchers(prod_dict)
-            # Update the model with hydrated data
-            prod.metadata = prod_dict.get("metadata", prod.metadata)
+            await self._hydrate_product_response(db_session, prod)
             
         return res
+
+    async def _hydrate_product_response(self, db_session: AsyncSession, product: ProductResponse) -> None:
+        """Elite V2.2: Centralized hydration for responses."""
+        prod_dict = product.model_dump()
+        
+        # 1. Marketing & Social Proof
+        self._inject_marketing_boost(prod_dict)
+        
+        # 2. Viral Configuration
+        await self._hydrate_viral_config(db_session, prod_dict)
+        
+        # 3. Security (Sanitize)
+        self._sanitize_vouchers(prod_dict)
+        
+        # 4. Sync back to model
+        product.metadata = prod_dict.get("metadata", product.metadata)
+        product.orderCount = prod_dict.get("order_count", product.orderCount)
+        product.orderCountText = prod_dict.get("order_count_text", product.orderCountText)
 
     async def get_product(self, db_session: AsyncSession, product_id: str) -> ProductResponse:
         """Elite V2.2: Single Product Fetch (Delegated)."""
         product_res = await get_product_logic(db_session, product_id)
-        prod_dict = product_res.model_dump()
-        await self._hydrate_viral_config(db_session, prod_dict)
-        self._sanitize_vouchers(prod_dict)
-        product_res.metadata = prod_dict.get("metadata", product_res.metadata)
+        await self._hydrate_product_response(db_session, product_res)
         return product_res
 
     async def get_product_by_slug(self, db_session: AsyncSession, slug: str) -> ProductResponse:
         """Elite V2.2: Slug-based Product Fetch (Delegated)."""
         product_res = await get_product_by_slug_logic(db_session, slug)
-        prod_dict = product_res.model_dump()
-        await self._hydrate_viral_config(db_session, prod_dict)
-        self._sanitize_vouchers(prod_dict)
-        product_res.metadata = prod_dict.get("metadata", product_res.metadata)
+        await self._hydrate_product_response(db_session, product_res)
         return product_res
 
     async def create_product(self, db_session: AsyncSession, data: CreateProductRequest) -> SuccessResponse:
