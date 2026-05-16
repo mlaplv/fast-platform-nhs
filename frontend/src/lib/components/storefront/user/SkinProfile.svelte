@@ -121,7 +121,7 @@
         <div class="w-8 h-8 rounded-full bg-luxury-copper/10 flex items-center justify-center">
           <Zap class="w-4 h-4 text-luxury-copper" />
         </div>
-        <h3 class="text-xl font-serif italic text-stone-800 leading-none">Chỉ số nhạy cảm</h3>
+        <label for="sensitivity-range" class="text-xl font-serif italic text-stone-800 leading-none">Chỉ số nhạy cảm</label>
       </div>
       <div class="flex items-baseline gap-1">
         <span class="text-2xl font-serif italic text-luxury-copper leading-none">{data.sensitivity}</span>
@@ -131,6 +131,7 @@
 
     <div class="relative py-4 flex items-center">
       <input
+        id="sensitivity-range"
         type="range"
         min="1"
         max="10"

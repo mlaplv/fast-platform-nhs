@@ -1,6 +1,4 @@
 import uuid
-import hashlib
-import unicodedata
 import logging
 from typing import Optional, TypedDict, Dict, List
 import sqlalchemy as sa
@@ -10,7 +8,7 @@ from backend.database.models.commerce import Order, ProductBase, ProductVariant,
 from backend.database.models.promotion import Voucher, ComboDeal
 from backend.database.models.auth import User
 from backend.schemas.client.checkout import StealthCheckoutSchema
-from litestar.exceptions import ValidationException
+from litestar.exceptions import ValidationException, NotFoundException
 from backend.database import current_tenant_id
 from backend.services.event_bus import event_bus
 from backend.utils.device import is_mobile_device
@@ -19,6 +17,10 @@ from backend.services.commerce.loyalty import LoyaltyService
 from backend.services.commerce.logic.identity_shield import IdentityShield, LookupResult, VerifyResult, _mask_name, _mask_address
 from backend.database.models.system import SystemSetting
 from backend.constants.commerce import ShippingConfig, LoyaltyConfig, CheckoutConfig
+from backend.services.anti_spam import anti_spam_service
+from backend.services.commerce.logic.pricing_engine import PricingEngine
+from backend.schemas.pricing import PricingInputItem
+
 
 logger = logging.getLogger("api-gateway")
 
@@ -37,25 +39,30 @@ class CheckoutResult(TypedDict):
     message: Optional[str]
 
 class OrderItem(TypedDict, total=False):
-    id: str         # Maps to product_id in schema
-    name: str       # Product name for history
+    id: str         
+    name: str       
     variant_id: Optional[str]
-    qty: int        # Maps to quantity in schema
-    unit_price: float # Maps to price in schema
+    variant_name: Optional[str]
+    qty: int        
+    unit_price: float 
     total_price: float
+    image: Optional[str]
 
 class OrderMetadata(TypedDict, total=False):
     items: List[OrderItem]
-    applied_deal: Dict[str, object]
+    applied_deal: Optional[Dict[str, object]]
     is_mobile: bool
     payment_method: str
     shipping_fee: float
+    combo_discount: float
+    voucher_discount: float
+    voucher_ids: List[str]
     customer_note: str
     custom_requests: List[Dict[str, object]]
     gift_info: Dict[str, object]
-    voucher_id: str
     points_redeemed: int
     point_discount_amount: float
+
 
 class CheckoutService:
     @staticmethod
@@ -66,7 +73,6 @@ class CheckoutService:
         user_agent: str,
         user_id: Optional[str] = None
     ) -> CheckoutResult:
-        from backend.services.anti_spam import anti_spam_service
 
         is_spam, reason, score, device_hash = await anti_spam_service.check_order_spam(
             ip=customer_ip,
@@ -117,11 +123,11 @@ class CheckoutService:
                     id=str(uuid.uuid4()),
                     username=payload.customer_phone,
                     phone=payload.customer_phone,
-                    email=f"{payload.customer_phone}@shadow.test",
+                    email=f"{payload.customer_phone}{CheckoutConfig.SHADOW_EMAIL_DOMAIN}",
                     name=payload.customer_name,
                     status="ACTIVE",
                     tenant_id=current_tenant_id.get() or "default",
-                    password="SHADOW_ACCOUNT"
+                    password=CheckoutConfig.SHADOW_PASSWORD_MARKER
                 )
                 db_session.add(user)
                 logger.info(f"[Checkout] Created new shadow account for phone: {payload.customer_phone}")
@@ -262,8 +268,7 @@ class CheckoutService:
             })
 
 
-        from backend.services.commerce.logic.pricing_engine import PricingEngine
-        
+
         # 1. Fetch Vouchers and Combo Deals
         # [M-02] Batch fetch vouchers — xoá N+1 (giảm từ 3 query xuống 1 query/voucher)
         vouchers: List[Voucher] = []
@@ -298,7 +303,6 @@ class CheckoutService:
                 available_points = loyalty.available_points
 
         # 3. UNIFIED PRICING CALCULATION (Elite V2.2)
-        from backend.schemas.pricing import PricingInputItem
         
         pricing_input = [
             PricingInputItem(
@@ -455,6 +459,58 @@ class CheckoutService:
             loyalty.balance_seal = LoyaltyService._create_balance_seal(loyalty)
 
         await db_session.commit()
+
+        # 🚀 [ELITE V2.2] AUTO-SAVE ADDRESS PROTOCOL
+        if user and payload.customer_address:
+            try:
+                # 1. Parse current address components
+                addr_parts = [p.strip() for p in payload.customer_address.split(',')]
+                if len(addr_parts) >= 3:
+                    province = addr_parts[-1]
+                    ward = addr_parts[-2]
+                    street = ", ".join(addr_parts[:-2])
+                    
+                    new_addr = {
+                        "id": str(uuid.uuid4()),
+                        "name": payload.customer_name,
+                        "phone": payload.customer_phone,
+                        "city": province,
+                        "ward": ward,
+                        "address": street,
+                        "isDefault": False
+                    }
+                    
+                    # 2. Update User Metadata
+                    if not user.extra_metadata:
+                        user.extra_metadata = {}
+                    
+                    addresses = user.extra_metadata.get("addresses", [])
+                    
+                    # 3. Duplicate Check (Nomalized)
+                    def norm(s): return str(s or "").lower().strip()
+                    exists = any(
+                        norm(a.get("city")) == norm(province) and 
+                        norm(a.get("ward")) == norm(ward) and 
+                        norm(a.get("address")) == norm(street)
+                        for a in addresses
+                    )
+                    
+                    if not exists:
+                        # Limit to 10 addresses (Elite V2.2 Discipline)
+                        if len(addresses) >= 10:
+                            addresses.pop(0) # Remove oldest
+                        
+                        # If first address, make it default
+                        if not addresses:
+                            new_addr["isDefault"] = True
+                            
+                        addresses.append(new_addr)
+                        user.extra_metadata["addresses"] = addresses
+                        sa.orm.attributes.flag_modified(user, "extra_metadata")
+                        await db_session.commit()
+            except Exception as e:
+                logging.error(f"[Checkout] Failed to auto-save address: {str(e)}")
+
 
         # 6. Proactive Nerve System: Notify Zalo Intelligence (Elite V2.2)
         await event_bus.emit("ORDER_CREATED", {

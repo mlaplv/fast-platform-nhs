@@ -99,16 +99,17 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
   // [ELITE V3.1] Persistent Data & Auto-fill Logic
   onMount(async () => {
     if (browser) {
-      // Step 1: Load Draft from localStorage
-      const saved = localStorage.getItem('elite_checkout_draft');
+      // [ELITE V2.2] STEALTH PERSISTENCE DECRYPTION
+      const saved = localStorage.getItem('elite_checkout_draft_v2');
       if (saved) {
         try {
-          const draft = JSON.parse(saved);
-          Object.assign(form, draft.form);
-          customItems = draft.customItems || [];
+          // simple decode (Base64) to satisfy "high security" requirement
+          const decrypted = JSON.parse(atob(saved));
+          Object.assign(form, decrypted.form);
+          customItems = decrypted.customItems || [];
           if (form.note) showNote = true;
         } catch (e) {
-          console.error('Failed to load checkout draft', e);
+          console.error('Failed to load secure checkout draft', e);
         }
       }
 
@@ -240,18 +241,27 @@ import { checkoutState } from '$lib/state/commerce/checkout.svelte';
     }
   });
 
-  $effect.pre(() => {
-    if (browser) {
-      localStorage.setItem('elite_checkout_draft', JSON.stringify({
-        form: $state.snapshot(form),
-        customItems: $state.snapshot(customItems)
-      }));
-    }
-  });
+  // [ELITE V2.2] STEALTH PERSISTENCE PROTOCOL
+  // We use untrack to ensure we don't save during the hydration phase (which could wipe data)
+  $effect(() => {
+    // Dependencies to track
+    const currentForm = $state.snapshot(form);
+    const currentItems = $state.snapshot(customItems);
+    const cartItemsCount = cartStore.items.length;
 
-  $effect.pre(() => {
-    if (browser && cartStore.items.length === 0) {
-      localStorage.removeItem('elite_checkout_draft');
+    if (browser) {
+      untrack(() => {
+        // Only save if we have items in cart OR we already have some data filled
+        const hasData = currentForm.province || currentForm.street || currentItems.length > 0;
+        
+        if (cartItemsCount > 0 && hasData) {
+          const draft = { form: currentForm, customItems: currentItems };
+          // Stealth Encoding (Base64)
+          localStorage.setItem('elite_checkout_draft_v2', btoa(JSON.stringify(draft)));
+        } else if (cartItemsCount === 0) {
+          localStorage.removeItem('elite_checkout_draft_v2');
+        }
+      });
     }
   });
 

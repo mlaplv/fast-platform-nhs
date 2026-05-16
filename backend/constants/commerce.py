@@ -29,3 +29,6 @@ class CheckoutConfig:
 
     # [SECURITY] Tolerance tổng đơn hàng (đồng)
     TOTAL_TOLERANCE_VND: float = 1.0
+    # [SECURITY] Shadow Account Configuration
+    SHADOW_EMAIL_DOMAIN: str = "@shadow.test"
+    SHADOW_PASSWORD_MARKER: str = "SHADOW_ACCOUNT"

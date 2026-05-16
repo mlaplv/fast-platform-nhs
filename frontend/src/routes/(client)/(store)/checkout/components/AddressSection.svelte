@@ -109,8 +109,9 @@
     </div>
     
     <div class="space-y-1">
-      <label class="text-[9px] font-bold text-gray-500 ml-1">Khu vực (Tỉnh / Quận / Huyện / Xã)</label>
+      <label for="checkout-region" class="text-[9px] font-bold text-gray-500 ml-1">Khu vực (Tỉnh / Quận / Huyện / Xã)</label>
       <SearchableCheckoutSelect 
+        id="checkout-region"
         bind:value={unifiedValue} 
         options={unifiedOptions} 
         placeholder="Gõ tên xã, quận, tỉnh để tìm nhanh..." 

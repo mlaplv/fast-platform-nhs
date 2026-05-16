@@ -168,13 +168,13 @@
     <div class="space-y-8">
       <div class="space-y-4">
         <div class="space-y-1.5 group">
-           <label class="text-[10px] tracking-widest text-stone-400 font-bold">Tỉnh / Thành phố</label>
-           <SearchableDropdown bind:value={city} options={divisions.map(d => d.name)} placeholder="Chọn tỉnh/thành..." />
+           <label for="addr-city" class="text-[10px] tracking-widest text-stone-400 font-bold">Tỉnh / Thành phố</label>
+           <SearchableDropdown id="addr-city" bind:value={city} options={divisions.map(d => d.name)} placeholder="Chọn tỉnh/thành..." />
         </div>
 
         <div class="space-y-1.5 group">
-           <label class="text-[10px] tracking-widest text-stone-400 font-bold">Quận / Huyện / Phường / Xã</label>
-           <SearchableDropdown bind:value={ward} options={currentWards} placeholder="Chọn khu vực..." disabled={!city} />
+           <label for="addr-ward" class="text-[10px] tracking-widest text-stone-400 font-bold">Quận / Huyện / Phường / Xã</label>
+           <SearchableDropdown id="addr-ward" bind:value={ward} options={currentWards} placeholder="Chọn khu vực..." disabled={!city} />
         </div>
       </div>
 
@@ -192,7 +192,7 @@
   </div>
 
   <div class="pt-4">
-    <label class="flex items-center gap-3 cursor-pointer group/check w-fit">
+    <label for="addr-default" class="flex items-center gap-3 cursor-pointer group/check w-fit">
       <div class="w-5 h-5 rounded-md border border-stone-200 flex items-center justify-center transition-all group-hover/check:border-luxury-copper {isDefault ? 'bg-stone-800 border-stone-800 shadow-sm' : ''}">
         {#if isDefault}
           <div in:fade>
@@ -200,7 +200,7 @@
           </div>
         {/if}
       </div>
-      <input type="checkbox" bind:checked={isDefault} class="hidden" />
+      <input id="addr-default" type="checkbox" bind:checked={isDefault} class="hidden" />
       <span class="text-[12px] font-bold text-stone-600 tracking-widest group-hover/check:text-stone-800 transition-colors">Đặt làm địa chỉ mặc định</span>
     </label>
   </div>

@@ -292,28 +292,30 @@
               >
               <div class="flex items-center gap-6 h-12">
                 {#each [["Nam", "MALE"], ["Nữ", "FEMALE"], ["Khác", "OTHER"]] as [label, val]}
-                  <label
-                    class="flex items-center gap-2.5 cursor-pointer group/radio py-2"
-                  >
-                    <div
-                      class="w-5 h-5 rounded-full border border-stone-300 flex items-center justify-center transition-all group-hover/radio:border-luxury-copper {gender ===
-                      val
-                        ? 'border-luxury-copper bg-luxury-copper/5'
-                        : ''}"
+                    <label
+                      for="gender-{val}"
+                      class="flex items-center gap-2.5 cursor-pointer group/radio py-2"
                     >
-                      {#if gender === val}
-                        <div
-                          class="w-2 h-2 bg-luxury-copper rounded-full"
-                          in:fade
-                        ></div>
-                      {/if}
-                    </div>
-                    <input
-                      type="radio"
-                      bind:group={gender}
-                      value={val}
-                      class="hidden"
-                    />
+                      <div
+                        class="w-5 h-5 rounded-full border border-stone-300 flex items-center justify-center transition-all group-hover/radio:border-luxury-copper {gender ===
+                        val
+                          ? 'border-luxury-copper bg-luxury-copper/5'
+                          : ''}"
+                      >
+                        {#if gender === val}
+                          <div
+                            class="w-2 h-2 bg-luxury-copper rounded-full"
+                            in:fade
+                          ></div>
+                        {/if}
+                      </div>
+                      <input
+                        id="gender-{val}"
+                        type="radio"
+                        bind:group={gender}
+                        value={val}
+                        class="hidden"
+                      />
                     <span
                       class="text-[13px] text-stone-600 group-hover/radio:text-stone-800 transition-colors"
                       >{label}</span
@@ -394,6 +396,7 @@
               <div class="flex items-center gap-2">
                 <Calendar class="w-3.5 h-3.5 text-luxury-copper" />
                 <label
+                  for="birth-day"
                   class="text-[10px] tracking-widest text-stone-400 font-bold"
                   >Ngày sinh của bạn</label
                 >
@@ -401,6 +404,7 @@
               <div class="flex gap-4">
                 <div class="flex-1 border-b border-stone-200">
                   <select
+                    id="birth-day"
                     bind:value={birthDay}
                     class="w-full h-12 bg-transparent outline-none text-[13px] text-stone-800 cursor-pointer appearance-none"
                   >
@@ -411,6 +415,7 @@
                 </div>
                 <div class="flex-1 border-b border-stone-200">
                   <select
+                    id="birth-month"
                     bind:value={birthMonth}
                     class="w-full h-12 bg-transparent outline-none text-[13px] text-stone-800 cursor-pointer appearance-none"
                   >
@@ -420,6 +425,7 @@
                 </div>
                 <div class="flex-1 border-b border-stone-200">
                   <select
+                    id="birth-year"
                     bind:value={birthYear}
                     class="w-full h-12 bg-transparent outline-none text-[13px] text-stone-800 cursor-pointer appearance-none"
                   >

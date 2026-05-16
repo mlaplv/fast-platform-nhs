@@ -19,6 +19,7 @@
     disabled?: boolean;
     onChange?: () => void;
     getBadge?: (opt: string) => { text: string, type: 'success' | 'warning' | 'info' | 'error' | 'default' } | null;
+    id?: string;
   }>();
 
   let open = $state(false);
@@ -53,6 +54,7 @@
 <div class="relative" bind:this={dropdownRef}>
   <!-- Dropdown Trigger -->
   <button
+    {id}
     type="button"
     class="w-full h-12 border-b border-stone-200 bg-transparent outline-none flex items-center justify-between text-left transition-colors {disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-luxury-copper'} {value ? 'text-stone-800' : 'text-stone-400'}"
     {disabled}

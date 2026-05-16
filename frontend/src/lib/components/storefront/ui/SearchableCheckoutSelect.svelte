@@ -16,6 +16,7 @@
     disabled?: boolean;
     onChange?: () => void;
     getBadge?: (opt: string) => { text: string, type: 'success' | 'warning' | 'info' | 'error' | 'default' } | null;
+    id?: string;
   }>();
 
   let open = $state(false);
@@ -82,6 +83,7 @@
   <!-- Main Display Box -->
   <div class="relative group">
     <button
+      {id}
       type="button"
       onclick={toggle}
       class="w-full bg-gray-50 border {open ? 'border-[#ee4d2d] shadow-[0_0_0_1px_#ee4d2d]' : 'border-gray-100'} pl-4 pr-8 py-3 text-sm outline-none font-bold flex items-center justify-between transition-all duration-200 {disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-gray-200'} {value ? 'text-gray-900' : 'text-gray-400'}"
