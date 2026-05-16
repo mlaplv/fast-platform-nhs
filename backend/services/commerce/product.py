@@ -201,19 +201,20 @@ class ProductService:
         return res
 
     async def _hydrate_product_response(self, db_session: AsyncSession, product: ProductResponse) -> None:
-        """Elite V2.2: Centralized hydration for responses."""
-        prod_dict = product.model_dump()
+        """Elite V2.2: Centralized hydration for responses (Snake-to-Camel Sync)."""
+        # R2026: Export to snake_case for internal logic compatibility
+        prod_dict = product.model_dump(by_alias=True)
         
-        # 1. Marketing & Social Proof
+        # 1. Marketing & Social Proof (Modifies prod_dict)
         self._inject_marketing_boost(prod_dict)
         
-        # 2. Viral Configuration
+        # 2. Viral Configuration (Modifies prod_dict)
         await self._hydrate_viral_config(db_session, prod_dict)
         
-        # 3. Security (Sanitize)
+        # 3. Security (Sanitize - Modifies prod_dict)
         self._sanitize_vouchers(prod_dict)
         
-        # 4. Sync back to model
+        # 4. Sync back to model (Manual mapping for safety)
         product.metadata = prod_dict.get("metadata", product.metadata)
         product.orderCount = prod_dict.get("order_count", product.orderCount)
         product.orderCountText = prod_dict.get("order_count_text", product.orderCountText)
