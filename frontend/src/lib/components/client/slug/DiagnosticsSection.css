@@ -6,9 +6,15 @@
   z-index: var(--z-surface);
   
   --glass-bg: rgba(255, 255, 255, 0.02);
-  --glass-border: rgba(193, 143, 126, 0.3);
-  --elite-accent: #C18F7E;
-  --elite-gold: #E8D5B0;
+  --glass-border: rgba(13, 148, 136, 0.2);
+  --elite-accent: #0d9488;
+  --elite-gold: #f59e0b;
+  --luxury-copper: #0d9488;
+  --luxury-gold: #f59e0b;
+  --luxury-peach: #ea580c;
+  --color-luxury-copper: #0d9488;
+  --color-luxury-gold: #f59e0b;
+  --color-luxury-peach: #ea580c;
   
   container-type: inline-size;
   container-name: diagnostics;
