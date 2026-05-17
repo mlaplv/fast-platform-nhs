@@ -461,5 +461,26 @@ Cập nhật endpoint `GET /` trong [backend/controllers/product.py](file:///hom
 
 ---
 
+# Bổ sung: Hồ sơ Tinh chỉnh Bố cục và Thu hẹp viền Thẻ sản phẩm (Storefront Desktop Grid)
+
+## 1. Yêu Cầu Thay Đổi
+Sếp yêu cầu điều chỉnh phần nội dung thông tin (tên sản phẩm, giá bán, thanh tiến trình) phía dưới hình ảnh của thẻ sản phẩm trên Storefront:
+- Cho **nội dung rộng ra tối đa**.
+- Thu hẹp khoảng cách padding cách biên của thẻ chỉ còn **5px** thay vì khoảng trống quá rộng trước kia.
+
+## 2. Giải Pháp Triển Khai (Zero-Gap Implementation)
+Chúng tôi đã áp dụng các cải tiến tối ưu hóa thị giác tại [HomeProductGrid.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/home/HomeProductGrid.svelte):
+- **Cắt giảm padding biên:** Thay thế lớp CSS padding `p-6` (24px) bằng padding siêu hẹp **`p-[5px]`** (đúng 5px) cho container thông tin phía dưới ảnh. Nhờ đó, phần nội dung chữ và giá được mở rộng thêm tới **38px diện tích bề ngang hữu ích**.
+- **Gom gọn khoảng cách tiêu đề:** Khoảng cách lề dưới (`margin-bottom`) của tiêu đề sản phẩm `h3` được giảm từ `mb-5` xuống còn **`mb-2`** để cân đối tuyệt đối với padding biên mới.
+- **Tối ưu hóa các khối dưới:**
+  - Khoảng cách padding-top của khu vực giá và thanh tiến trình bán hàng được giảm từ `pt-4` về **`pt-2`**.
+  - Khoảng cách dòng `space-y-3` được co rút về **`space-y-2`**.
+  - Kích thước font giá được tinh chỉnh nhẹ nhàng từ `text-2xl` sang **`text-xl font-black`** để hài hòa hoàn hảo với layout thắt chặt.
+
+## 3. Kết Quả Đạt Được
+Bố cục thẻ sản phẩm Storefront Desktop trông vô cùng gọn gàng, sắc nét. Các thông tin được hiển thị rộng rãi, dàn ngang tối ưu, giúp tận dụng trọn vẹn không gian hiển thị, đem lại cảm giác sang trọng, căng nét và chuyên nghiệp chuẩn Premium UX.
+
+---
+
 
 

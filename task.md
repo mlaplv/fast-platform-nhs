@@ -111,4 +111,11 @@
 - [x] Thiết kế nút bộ lọc **AI_RECOMMENDED** sang trọng với tông màu Cyan Neon `#00FFFF` và biểu tượng **Sparkles nhấp nháy** trong [ProductToolbar.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/ProductToolbar.svelte).
 - [x] Thực hiện biên dịch type-check thành công tuyệt đối (svelte-check exit code 0).
 
+# Storefront Product Card Wide Layout & Compact Padding Refinement
+- [x] Thu hẹp padding của vùng nội dung phía dưới hình ảnh từ `p-6` (24px) xuống còn `p-[5px]` (5px) trong [HomeProductGrid.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/home/HomeProductGrid.svelte) theo yêu cầu của Sếp.
+- [x] Tinh chỉnh khoảng cách lề dưới của tiêu đề sản phẩm `h3` từ `mb-5` xuống còn `mb-2` để bố cục cân đối.
+- [x] Gom gọn padding phần thông số/giá khuyến mại phía dưới: chuyển `pt-4` thành `pt-2`, và `space-y-3` thành `space-y-2`.
+- [x] Đồng bộ kích thước font chữ và các tag nhãn (`CHÁY HÀNG`, giá bán) sang dạng thắt chặt, giúp nội dung sản phẩm trải rộng và hiển thị tối đa diện tích hữu ích trên cả Desktop & Tablet.
+- [x] Chạy biên dịch svelte-check thành công tuyệt đối 100%.
+
 
