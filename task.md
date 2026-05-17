@@ -74,3 +74,9 @@
 - [x] Chuyển đổi màu sắc của h2/h3 thành màu xám dịu nhẹ (#6b7280 !important) và áp dụng Sentence Case (chỉ viết hoa ký tự đầu) tại [LandingPage/Desktop.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/LandingPage/Desktop.svelte) cho view Landing Page Desktop.
 - [x] Chuyển đổi màu sắc của h2 thành màu xám dịu nhẹ (#6b7280 !important) và áp dụng Sentence Case (chỉ viết hoa ký tự đầu) tại [LandingPage/modules/Description.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/LandingPage/modules/Description.svelte) cho module Description Landing Page.
 - [x] Chạy kiểm thức biên dịch dự án đảm bảo không phát sinh lỗi cú pháp nào.
+
+# Bulk Select All & Discount Percent Upgrade (Elite V2.2)
+- [x] Bổ sung `isAllSelected` derived state và truyền props vào ProductToolbar tại [ProductManagement.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/ProductManagement.svelte).
+- [x] Tích hợp nút SELECT_ALL sang trọng tại [ProductToolbar.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/ProductToolbar.svelte).
+- [x] Nâng cấp hàm `bulkDiscount()` thành form đa trường hỗ trợ 3 hình thức: Giảm theo %, Nhập giá trực tiếp, Xoá KM tại [ProductManagement.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/ProductManagement.svelte).
+- [x] Kiểm thức biên dịch frontend thành công (0 lỗi mới phát sinh từ các file đã sửa).

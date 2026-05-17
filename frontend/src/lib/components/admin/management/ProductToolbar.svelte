@@ -9,6 +9,8 @@
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Tag from "@lucide/svelte/icons/tag";
+  import CheckSquare from "@lucide/svelte/icons/check-square";
+  import Square from "@lucide/svelte/icons/square";
 
   let {
     searchInput,
@@ -17,6 +19,7 @@
     categories = [],
     pageSize = $bindable(),
     selectedIds,
+    isAllSelected = false,
     totalProducts,
     isLoading,
     isHeaderCollapsed = $bindable(),
@@ -30,6 +33,7 @@
     onBulkDelete,
     onBulkAiFeatured,
     onBulkDiscount,
+    onToggleSelectAll,
     onOpenCreate,
     onLoadProducts,
   } = $props<{
@@ -39,6 +43,7 @@
     categories: { id: string; name: string }[];
     pageSize: number;
     selectedIds: Set<string>;
+    isAllSelected: boolean;
     totalProducts: number;
     isLoading: boolean;
     isHeaderCollapsed: boolean;
@@ -52,12 +57,38 @@
     onBulkDelete: () => void;
     onBulkAiFeatured: (enabled: boolean) => void;
     onBulkDiscount: () => void;
+    onToggleSelectAll: () => void;
     onOpenCreate: () => void;
     onLoadProducts: () => void;
   }>();
 </script>
 
 <div class="flex flex-col xl:flex-row xl:items-center gap-4 bg-white/[0.02] border border-white/10 p-3 sm:p-2.5 rounded-2xl">
+  <!-- SELECT ALL Button (Elite V2.2: Works on both Mobile & Desktop) -->
+  <div class="xl:pr-2 xl:border-r xl:border-white/10 flex-shrink-0">
+    <button
+      onclick={(e) => { e.stopPropagation(); onToggleSelectAll(); }}
+      class="flex items-center gap-2 py-2.5 px-3 rounded-xl border text-[10px] font-mono font-bold tracking-wider transition-all duration-300 cursor-pointer group/select
+        {isAllSelected
+          ? 'text-[#FFB800] bg-[#FFB800]/10 border-[#FFB800]/40 shadow-[0_0_12px_rgba(255,184,0,0.15)]'
+          : 'text-gray-500 bg-black/40 border-white/5 hover:text-[#FFB800] hover:border-[#FFB800]/30 hover:bg-[#FFB800]/5'}"
+      title={isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả sản phẩm trang này"}
+    >
+      {#if isAllSelected}
+        <CheckSquare size={14} class="text-[#FFB800] transition-transform duration-200 group-hover/select:scale-110" />
+        <span class="hidden sm:inline">ALL_SELECTED</span>
+        <span class="sm:hidden">ALL</span>
+      {:else}
+        <Square size={14} class="transition-transform duration-200 group-hover/select:scale-110" />
+        <span class="hidden sm:inline">SELECT_ALL</span>
+        <span class="sm:hidden">SEL</span>
+      {/if}
+      {#if selectedIds.size > 0}
+        <span class="px-1.5 py-0.5 rounded-md bg-[#FFB800]/20 text-[#FFB800] text-[9px] font-black">{selectedIds.size}</span>
+      {/if}
+    </button>
+  </div>
+
   <!-- Search Input (Debounced) -->
   <div class="flex-1 relative group w-full xl:min-w-[250px]">
     <div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">

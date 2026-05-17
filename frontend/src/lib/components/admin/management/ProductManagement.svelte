@@ -74,6 +74,7 @@
   };
 
   const totalPages = $derived(Math.max(1, Math.ceil(totalProducts / pageSize)));
+  const isAllSelected = $derived(products.length > 0 && products.every(p => selectedIds.has(p.id)));
   const stats = $derived.by(() => ({
     total: totalProducts,
     active: products.filter(p => p.status === "active").length,
@@ -249,38 +250,123 @@
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
 
-    let title = "Cập nhật giá khuyến mãi hàng loạt";
-    let message = `Bạn muốn thiết lập giá khuyến mãi cho ${ids.length} sản phẩm? (Để trống để xóa)`;
+    const title = ids.length === 1
+      ? "Cập nhật giá khuyến mãi"
+      : `Cập nhật giá khuyến mãi hàng loạt (${ids.length} sản phẩm)`;
 
+    // Build context message hiển thị thông tin sản phẩm được chọn
+    let contextLines: string[] = [];
     if (ids.length === 1) {
       const p = products.find(x => x.id === ids[0]);
       if (p) {
-        title = "Cập nhật giá khuyến mãi";
         const currentDiscount = p.discountPrice ?? p.discount_price ?? 0;
-        message = `Sản phẩm: ${p.name}\nGiá gốc: ${formatCurrency(p.price)}`;
-        if (currentDiscount > 0) {
-          message += `\nGiá KM hiện tại: ${formatCurrency(currentDiscount)}`;
-        }
-        message += `\n\n(Để trống để xóa giá KM hiện tại)`;
+        contextLines.push(`📦 ${p.name}`);
+        contextLines.push(`💰 Giá gốc: ${formatCurrency(p.price)}`);
+        if (currentDiscount > 0) contextLines.push(`🏷️ Giá KM hiện tại: ${formatCurrency(currentDiscount)}`);
       }
+    } else {
+      // Hiển thị preview vài sản phẩm đầu
+      const previews = ids.slice(0, 3).map(id => {
+        const p = products.find(x => x.id === id);
+        return p ? `• ${p.name} — ${formatCurrency(p.price)}` : "";
+      }).filter(Boolean);
+      contextLines.push(...previews);
+      if (ids.length > 3) contextLines.push(`... và ${ids.length - 3} sản phẩm khác`);
     }
+    const message = contextLines.join("\n");
 
     const result = await nanobot.showConfirm({
       title,
       message,
-      isPrompt: true,
-      promptPlaceholder: "Nhập giá khuyến mãi...",
+      fields: [
+        {
+          key: "discountType",
+          label: "HÌNH THỨC GIẢM GIÁ",
+          type: "select",
+          required: true,
+          defaultValue: "percent",
+          options: [
+            { value: "percent", label: "🔥 Giảm theo phần trăm (%)" },
+            { value: "fixed",   label: "💰 Nhập giá khuyến mãi trực tiếp" },
+            { value: "clear",   label: "🗑️ Xoá giá khuyến mãi hiện tại" }
+          ]
+        },
+        {
+          key: "discountValue",
+          label: "MỨC GIẢM (%) HOẶC GIÁ KM MỚI",
+          type: "text",
+          required: false,
+          placeholder: "VD: 10 (giảm 10%) hoặc 250000 (giá KM trực tiếp)",
+          defaultValue: ""
+        }
+      ]
     });
+
     if (result === null) return;
+    const formResult = result as Record<string, string>;
+    const discountType = formResult["discountType"] ?? "percent";
+    const discountValue = (formResult["discountValue"] ?? "").trim();
+
     isSaving = true;
     try {
-      const discount_price = result.trim() === "" ? null : Number(result);
-      if (discount_price !== null && isNaN(discount_price)) throw new Error("Giá không hợp lệ");
-      await apiClient.post("/api/v1/products/bulk-update", { ids, data: { discount_price } });
-      nanobot.showToast(`Đã cập nhật giá khuyến mãi`, "success");
+      if (discountType === "clear") {
+        // Hình thức 1: Xoá giá khuyến mãi - 1 request bulk đơn giản
+        await apiClient.post("/api/v1/products/bulk-update", {
+          ids,
+          data: { discount_price: null }
+        });
+        nanobot.showToast(`Đã xoá giá khuyến mãi cho ${ids.length} sản phẩm`, "success");
+
+      } else if (discountType === "fixed") {
+        // Hình thức 2: Nhập giá khuyến mãi trực tiếp - 1 request bulk
+        if (!discountValue) throw new Error("Vui lòng nhập giá khuyến mãi");
+        const fixedPrice = Number(discountValue);
+        if (isNaN(fixedPrice) || fixedPrice < 0) throw new Error("Giá không hợp lệ");
+
+        // Kiểm tra bảo vệ: giá KM phải nhỏ hơn giá gốc của TẤT CẢ sản phẩm được chọn
+        const violators = ids
+          .map(id => products.find(p => p.id === id))
+          .filter(p => p && fixedPrice >= p.price);
+        if (violators.length > 0) {
+          throw new Error(`Giá KM phải nhỏ hơn giá gốc. ${violators.length} sản phẩm vi phạm điều kiện.`);
+        }
+
+        await apiClient.post("/api/v1/products/bulk-update", {
+          ids,
+          data: { discount_price: fixedPrice }
+        });
+        nanobot.showToast(`Đã cập nhật giá KM ${formatCurrency(fixedPrice)} cho ${ids.length} sản phẩm`, "success");
+
+      } else {
+        // Hình thức 3: Giảm theo % — tính toán riêng cho từng sản phẩm rồi gửi song song
+        if (!discountValue) throw new Error("Vui lòng nhập mức phần trăm giảm");
+        const rawPercent = parseFloat(discountValue.replace("%", "").trim());
+        if (isNaN(rawPercent) || rawPercent <= 0 || rawPercent >= 100) {
+          throw new Error("Phần trăm giảm phải từ 1% đến 99%");
+        }
+
+        // Tính toán giá KM riêng cho từng sản phẩm và gửi song song (HTTP/2 multiplexing)
+        const patchTasks = ids.map(id => {
+          const p = products.find(x => x.id === id);
+          if (!p) return Promise.resolve();
+          const newDiscountPrice = Math.round(p.price * (1 - rawPercent / 100));
+          const discountPercent = rawPercent;
+          return apiClient.patch(`/api/v1/products/${id}`, {
+            discount_price: newDiscountPrice,
+            discount_percent: discountPercent
+          });
+        });
+
+        await Promise.all(patchTasks);
+        nanobot.showToast(`Đã áp dụng giảm giá ${rawPercent}% cho ${ids.length} sản phẩm`, "success");
+      }
+
       await loadProducts();
-    } catch (err) { nanobot.showToast("Cập nhật thất bại: " + (err as Error).message, "error"); }
-    finally { isSaving = false; }
+    } catch (err) {
+      nanobot.showToast("Cập nhật thất bại: " + (err as Error).message, "error");
+    } finally {
+      isSaving = false;
+    }
   }
 
   async function save() {
@@ -397,6 +483,7 @@
         {categories}
         bind:pageSize
         {selectedIds}
+        {isAllSelected}
         {totalProducts}
         {isLoading}
         bind:isHeaderCollapsed
@@ -410,6 +497,7 @@
         onBulkDelete={() => bulk("del")}
         onBulkAiFeatured={bulkAiFeatured}
         onBulkDiscount={bulkDiscount}
+        onToggleSelectAll={toggleSelectAll}
         onOpenCreate={openCreate}
         onLoadProducts={loadProducts}
       />
