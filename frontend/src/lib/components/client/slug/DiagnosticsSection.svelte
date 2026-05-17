@@ -72,9 +72,9 @@
           x2="100%"
           y2="0%"
         >
-          <stop offset="0%" stop-color="#0d9488" stop-opacity="0" />
-          <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.8" />
-          <stop offset="100%" stop-color="#0d9488" stop-opacity="0" />
+          <stop offset="0%" stop-color="#C18F7E" stop-opacity="0" />
+          <stop offset="50%" stop-color="#E8D5B0" stop-opacity="0.8" />
+          <stop offset="100%" stop-color="#C18F7E" stop-opacity="0" />
         </linearGradient>
       </defs>
       <path

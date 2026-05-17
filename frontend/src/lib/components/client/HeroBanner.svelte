@@ -265,14 +265,14 @@
   onmousemove={handleMouseMove}
   style:--mx="{springMouse.x}px"
   style:--my="{springMouse.y}px"
-  style:--hero-accent="#0d9488"
+  style:--hero-accent="#C18F7E"
   style:--hero-glass-blur="64px"
-  style:--luxury-copper="#0d9488"
-  style:--luxury-gold="#f59e0b"
-  style:--luxury-peach="#ea580c"
-  style:--color-luxury-copper="#0d9488"
-  style:--color-luxury-gold="#f59e0b"
-  style:--color-luxury-peach="#ea580c"
+  style:--luxury-copper="#C18F7E"
+  style:--luxury-gold="#E8D5B0"
+  style:--luxury-peach="#E3B5A4"
+  style:--color-luxury-copper="#C18F7E"
+  style:--color-luxury-gold="#E8D5B0"
+  style:--color-luxury-peach="#E3B5A4"
 >
   <div class="absolute inset-0 overflow-hidden pointer-events-none" style="z-index: var(--z-base);">
     <div style:display={isEditing ? 'none' : 'block'} class="absolute inset-0">
@@ -417,7 +417,7 @@
                      }}>
                     <!-- Premium Flashlight Effect (Brightened) -->
                     <div class="absolute inset-0 z-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500 overflow-hidden rounded-3xl"
-                         style="background: radial-gradient(400px circle at var(--light-x, 50%) var(--light-y, 50%), rgba(13, 148, 136, 0.25), transparent 80%);">
+                         style="background: radial-gradient(400px circle at var(--light-x, 50%) var(--light-y, 50%), rgba(193, 143, 126, 0.25), transparent 80%);">
                     </div>
                     
                     <div class="relative z-10">
@@ -458,14 +458,14 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 50;
-            background: linear-gradient(135deg, #ea580c, #c2410c) !important;
+            background: linear-gradient(135deg, #C18F7E, #ea580c) !important;
             color: white !important;
             padding: 1rem 2.5rem !important;
             font-size: 14px !important;
             font-weight: 900 !important;
             border: none !important;
             border-radius: 9999px !important;
-            box-shadow: 0 10px 30px rgba(234, 88, 12, 0.45) !important;
+            box-shadow: 0 10px 30px rgba(193, 143, 126, 0.45) !important;
             letter-spacing: 0.1em;
             cursor: pointer;
           "
