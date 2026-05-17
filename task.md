@@ -97,4 +97,18 @@
 - [x] Thêm trigger element và nút "Xem thêm" sang trọng chân trang mobile.
 - [x] Tự kiểm thức và kiểm tra biên dịch frontend thành công.
 
+# Storefront Desktop Product Grid Sizing & Grid Wrapping Upgrade
+- [x] Phân tích lý do các sản phẩm tải thêm bị ẩn sang rìa bên phải trên Desktop do layout hàng ngang trượt `flex overflow-x-auto`.
+- [x] Cải tạo danh sách sản phẩm thành lưới dọc tự xuống dòng chuẩn `grid grid-cols-2 md:grid-cols-4 gap-4 pb-10`.
+- [x] Tinh chỉnh chiều rộng thẻ sản phẩm từ phép tính cứng sang tự thích ứng `w-full`.
+- [x] Loại bỏ toàn bộ event listener cuộn ngang không còn cần thiết.
+- [x] Đồng bộ code biên dịch và nạp thành công 100% trên trang storefront.
+
+# Admin AI Recommendations Filter (admin.osmo.vn)
+- [x] Khai báo tham số truy vấn `featured_only: bool` trong endpoint `GET /api/v1/products` của `ProductController` tại [backend/controllers/product.py](file:///home/lv/Desktop/fast-platform-core/backend/controllers/product.py) và đẩy xuống ProductService.
+- [x] Khai báo cờ trạng thái phản ứng `$state` rune `isAiFeaturedOnly` trong [ProductManagement.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/ProductManagement.svelte).
+- [x] Đăng ký Reactive Trigger trong `$effect` để tự động kích hoạt tải lại bảng sản phẩm khi check/uncheck bộ lọc AI.
+- [x] Thiết kế nút bộ lọc **AI_RECOMMENDED** sang trọng với tông màu Cyan Neon `#00FFFF` và biểu tượng **Sparkles nhấp nháy** trong [ProductToolbar.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/ProductToolbar.svelte).
+- [x] Thực hiện biên dịch type-check thành công tuyệt đối (svelte-check exit code 0).
+
 
