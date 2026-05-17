@@ -158,20 +158,47 @@ export class ShopStore {
         return this.variant?.price ?? this.product.price ?? 0;
     });
 
-    /** ELITE V2.2: Computed sorting for mini-sheet */
     productVouchers = $derived.by(() => {
         const raw = this.vouchers || [];
+        
+        const cleanString = (s: string) => {
+            return (s || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toUpperCase();
+        };
+
+        const isViralVoucher = (v: Voucher) => {
+            if (v.is_viral) return true;
+            const cleanId = cleanString(v.id);
+            const cleanTitle = cleanString(v.title);
+            return cleanId.includes('VIRAL') || 
+                   cleanId.includes('LAN TOA') || 
+                   cleanTitle.includes('VIRAL') || 
+                   cleanTitle.includes('LAN TOA');
+        };
+
         let mapped = raw.map((v: Voucher) => ({
             id: v.id,
             label: v.id || v.title || 'ƯU ĐÃI',
             sub: v.type === 'SHIPPING' ? 'FREESHIP đ0' : (v.type === 'PERCENT' ? `${v.value}%` : `đ${v.value?.toLocaleString()}`),
             type: v.type === 'SHIPPING' ? 'ship' : 'discount',
-            value: v.value || 0
+            value: v.value || 0,
+            is_viral: isViralVoucher(v)
         }));
 
-        if (this.voucherSortOrder === 'desc') return [...mapped].sort((a, b) => b.value - a.value);
-        if (this.voucherSortOrder === 'asc') return [...mapped].sort((a, b) => a.value - b.value);
-        return mapped;
+        let sorted = mapped;
+        if (this.voucherSortOrder === 'desc') {
+            sorted = [...mapped].sort((a, b) => b.value - a.value);
+        } else if (this.voucherSortOrder === 'asc') {
+            sorted = [...mapped].sort((a, b) => a.value - b.value);
+        }
+
+        // Put is_viral vouchers at the absolute top (Position #1)
+        return [
+            ...sorted.filter(v => v.is_viral),
+            ...sorted.filter(v => !v.is_viral)
+        ];
     });
 
     /**
@@ -232,18 +259,88 @@ export class ShopStore {
         }
     }
 
+    /**
+     * Elite V2.2: Inject a viral voucher to the HEAD of the vouchers list and auto-select it.
+     * Called immediately after a successful Share-to-Unlock verification.
+     * Does NOT show a revealed card — the voucher appears in the standard voucher section.
+     */
+    injectViralVoucher(voucherId: string, label: string, value: number, type: 'FIXED' | 'PERCENT' | 'SHIPPING', minSpend: number): void {
+        untrack(() => {
+            // Dedup: remove existing entry with same id first
+            const filtered = this.vouchers.filter(v => v.id !== voucherId);
+            const viralVoucher: Voucher = {
+                id: voucherId,
+                title: label,
+                desc: 'Mã lan tỏa đã mở khóa',
+                type,
+                value,
+                min_spend: minSpend,
+                category: 'viral',
+                is_default: false,
+                priority: 999,
+                is_viral: true,
+            } as unknown as Voucher;
+            // Prepend to head of list
+            this.vouchers = [viralVoucher, ...filtered];
+            // Auto-select it, replacing any existing same-type selection
+            if (!this.selectedVoucherIds.includes(voucherId)) {
+                // Remove other non-shipping vouchers if type is FIXED/PERCENT
+                if (type !== 'SHIPPING') {
+                    this.selectedVoucherIds = [
+                        ...this.selectedVoucherIds.filter(id => {
+                            const v = this.vouchers.find(v => v.id === id);
+                            return v?.type === 'SHIPPING';
+                        }),
+                        voucherId
+                    ];
+                } else {
+                    this.selectedVoucherIds = [
+                        ...this.selectedVoucherIds.filter(id => {
+                            const v = this.vouchers.find(v => v.id === id);
+                            return v?.type !== 'SHIPPING';
+                        }),
+                        voucherId
+                    ];
+                }
+            }
+        });
+    }
+
     setVouchers(data: Voucher[]): void {
         untrack(() => {
             // 🛡️ Elite V2.2: Stealth Vault - Hide viral vouchers unless unlocked
             const rawVouchers = data ? [...data] : [];
             
-            this.vouchers = rawVouchers.filter(v => {
-                if (!v.is_viral) return true;
+            const cleanString = (s: string) => {
+                return (s || '')
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .toUpperCase();
+            };
+
+            const isViralVoucher = (v: Voucher) => {
+                if (v.is_viral) return true;
+                const cleanId = cleanString(v.id);
+                const cleanTitle = cleanString(v.title);
+                return cleanId.includes('VIRAL') || 
+                       cleanId.includes('LAN TOA') || 
+                       cleanTitle.includes('VIRAL') || 
+                       cleanTitle.includes('LAN TOA');
+            };
+
+            const filtered = rawVouchers.filter(v => {
+                if (!isViralVoucher(v)) return true;
                 
                 // If is_viral, check if it's in the unlocked list
                 const unlockKey = `${this.product?.id}_${v.id}`;
                 return this.unlockedVoucherIds.includes(unlockKey) || this.unlockedVoucherIds.includes(v.id);
             });
+
+            // Position #1 priority for viral vouchers
+            this.vouchers = [
+                ...filtered.filter(v => isViralVoucher(v)),
+                ...filtered.filter(v => !isViralVoucher(v))
+            ];
             
             // 🚀 ELITE V2.2: Use Real 'is_default' Flag (Rule R00 Alignment)
             if (this.selectedVoucherIds.length === 0 && this.vouchers.length > 0) {

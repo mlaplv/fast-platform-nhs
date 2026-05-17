@@ -168,6 +168,11 @@
     "idle" | "sharing" | "awaiting_confirm" | "verifying" | "revealed"
   >("idle");
   let isViralUnlocked = $state(false);
+  $effect(() => {
+    if (typeof window !== "undefined") {
+      isViralUnlocked = !!localStorage.getItem(`viral_unlocked_${product.id}`);
+    }
+  });
   let displayRewardLabel = $derived(
     product.metadata?.share_promotion?.reward_label ||
       product.metadata?.share_reward_label ||

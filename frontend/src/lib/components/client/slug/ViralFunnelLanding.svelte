@@ -117,6 +117,58 @@
   
   const initTime = Date.now();
 
+  // ── Elite V2.2: Focus Listeners & Verification Controls ──────────────────────
+  import { onDestroy } from 'svelte';
+  let hasRegisteredListeners = false;
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let popupWindow: Window | null = null;
+  let verifyAttempts = 0;
+  let isVerifying = false;
+
+  const handleFocus = () => {
+    cleanupFocusListeners();
+    if (step !== 'revealed') attemptVerify();
+  };
+
+  const handleVisibilityChange = () => {
+    if (!document.hidden) {
+      cleanupFocusListeners();
+      if (step !== 'revealed') attemptVerify();
+    }
+  };
+
+  function cleanupFocusListeners() {
+    if (hasRegisteredListeners) {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      hasRegisteredListeners = false;
+    }
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  const attemptVerify = async () => {
+    if (isVerifying || step === 'revealed' || verifyAttempts >= 3) return;
+    const elapsed = Date.now() - shareStartTime;
+    if (elapsed < 4000) return; // Too fast to be a real share
+    
+    isVerifying = true;
+    verifyAttempts++;
+    try {
+      await viralActions.verify();
+    } catch (e) {
+      // Failed, let them try again by focusing
+    } finally {
+      isVerifying = false;
+    }
+  };
+
+  onDestroy(() => {
+    cleanupFocusListeners();
+  });
+
   const isVoucherApplied = $derived(
     promoConfig?.voucher_id && shopStore.selectedVoucherIds.includes(promoConfig.voucher_id)
   );
@@ -126,6 +178,9 @@
     const onVisibilityChange = () => { 
       if (document.hidden) visibilityChanges++; 
     };
+    const onBlur = () => {
+      visibilityChanges++;
+    };
     const onClick = () => interactionCount++;
     const onScroll = () => {
         const scrolled = window.scrollY;
@@ -133,6 +188,7 @@
     };
 
     document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('blur', onBlur);
     document.addEventListener('click', onClick);
     window.addEventListener('scroll', onScroll, { passive: true });
     
@@ -148,6 +204,7 @@
     
     return () => {
         document.removeEventListener('visibilitychange', onVisibilityChange);
+        window.removeEventListener('blur', onBlur);
         document.removeEventListener('click', onClick);
         window.removeEventListener('scroll', onScroll);
     };
@@ -184,6 +241,9 @@
         shareStartTime = Date.now();
         timeOnPageMs = shareStartTime - initTime;
 
+        // Reset verify attempts for a new share sequence
+        verifyAttempts = 0;
+
         // Viral 2026: Auto-detect share method
         if (navigator.share && /mobile|android|iphone/i.test(navigator.userAgent)) {
             shareMethod = 'native';
@@ -211,48 +271,29 @@
             const cleanUrl = window.location.origin + window.location.pathname;
             const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(cleanUrl)}`;
             
-            const popup = window.open(shareUrl, 'Share', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${top}, left=${left}`);
+            // Clean up old listeners before creating new ones
+            cleanupFocusListeners();
+
+            popupWindow = window.open(shareUrl, 'Share', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${top}, left=${left}`);
             
-            if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            if (!popupWindow || popupWindow.closed || typeof popupWindow.closed === 'undefined') {
                 popupWasBlocked = true;
                 // If popup blocked, let's just try to verify anyway, AI will handle
                 setTimeout(() => viralActions.verify(), 2000);
             } else {
-                let verifyAttempts = 0;
-                let isVerifying = false;
-
-                const attemptVerify = async () => {
-                    if (isVerifying || step === 'revealed' || verifyAttempts >= 3) return;
-                    const elapsed = Date.now() - shareStartTime;
-                    if (elapsed < 4000) return; // Too fast to be a real share
-                    
-                    isVerifying = true;
-                    verifyAttempts++;
-                    try {
-                        await viralActions.verify();
-                    } catch (e) {
-                        // Failed, let them try again by focusing
-                    } finally {
-                        isVerifying = false;
-                    }
-                };
-
-                const handleFocus = () => {
-                    if (step !== 'revealed') attemptVerify();
-                };
-
                 // Poll popup closure
-                const pollTimer = setInterval(() => {
-                    if (popup.closed) {
-                        clearInterval(pollTimer);
+                pollTimer = setInterval(() => {
+                    if (popupWindow && popupWindow.closed) {
+                        cleanupFocusListeners();
                         const elapsed = Date.now() - shareStartTime;
                         if (elapsed < 1500) {
                             // Firefox isolation detected. Popup is actually still open.
                             // Rely strictly on focus events when they return to the main window.
-                            window.addEventListener('focus', handleFocus);
-                            document.addEventListener('visibilitychange', () => {
-                                if (!document.hidden) handleFocus();
-                            });
+                            if (!hasRegisteredListeners) {
+                                hasRegisteredListeners = true;
+                                window.addEventListener('focus', handleFocus);
+                                document.addEventListener('visibilitychange', handleVisibilityChange);
+                            }
                         } else {
                             // Normal browser, popup legitimately closed.
                             attemptVerify();
@@ -296,7 +337,19 @@
         });
         if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || errData.error || 'Hệ thống phát hiện bất thường. Vui lòng chia sẻ lại!');
+            let errMsg = 'Mã xác nhận không hợp lệ hoặc đã hết hạn. Vui lòng chia sẻ lại.';
+            if (errData) {
+                if (typeof errData.detail === 'string') {
+                    errMsg = errData.detail;
+                } else if (Array.isArray(errData.detail) && errData.detail[0]?.message) {
+                    errMsg = errData.detail[0].message;
+                } else if (typeof errData.error === 'string') {
+                    errMsg = errData.error;
+                } else if (typeof errData.message === 'string') {
+                    errMsg = errData.message;
+                }
+            }
+            throw new Error(errMsg);
         }
         const data = await res.json();
         voucherCode = data.voucher_code;
@@ -332,8 +385,16 @@
         createHeartConfetti(window.innerWidth / 2, window.innerHeight / 2);
         clientUi.showToast(`🎉 Đã áp dụng mã ${voucherCode}!`, 'success');
       } catch (e: unknown) {
-        errorMsg = e instanceof Error ? e.message : String(e);
+        const errMsg = e instanceof Error ? e.message : String(e);
+        errorMsg = errMsg;
         step = 'error';
+        
+        // Elite V2.2: Professional transparent toast and clean logs
+        clientUi.showToast(errMsg, 'error');
+        console.groupCollapsed('⚠️ [Osmo Viral Verify] Xác thực lượt chia sẻ không thành công');
+        console.warn(`Chi tiết: ${errMsg}`);
+        console.warn(`Telemetry state: token=${_token ? _token.slice(0, 8) + '...' : 'none'}`);
+        console.groupEnd();
       }
     }
   };
@@ -377,8 +438,30 @@
              <span class="vfl-progress-val">{Math.round(shareProgress)}%</span>
            </div>
            <div class="vfl-progress-track">
-             <div class="vfl-progress-bar" style="width: {shareProgress}%">
-               <div class="vfl-progress-glow"></div>
+             <div class="h-1 w-full bg-white/5 rounded-full relative">
+               <!-- Glow shadow layer under the progress bar -->
+               <div 
+                 class="absolute top-0 left-0 h-full rounded-full blur-[2px] opacity-60 transition-all duration-1000" 
+                 style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 50%, rgba(238, 77, 45, 0) 100%);"
+               ></div>
+               <!-- Main filled progress bar with a comet fade-out tail -->
+               <div 
+                 class="absolute top-0 left-0 h-full rounded-full overflow-hidden transition-all duration-1000" 
+                 style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 75%, rgba(238, 77, 45, 0.15) 100%);"
+               >
+                 <!-- Liquid light sweep animation -->
+                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-viral-flow"></div>
+               </div>
+               <!-- Glowing neon active beacon at the progress tip -->
+               <div 
+                 class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 transition-all duration-1000 pointer-events-none" 
+                 style="left: {shareProgress}%"
+               >
+                 <span class="relative flex h-2.5 w-2.5">
+                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                   <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 shadow-[0_0_6px_#ff2d55]"></span>
+                 </span>
+               </div>
              </div>
            </div>
         </div>
@@ -495,22 +578,20 @@
   .vfl-progress-val { font-size: 10px; font-weight: 900; color: #ee4d2d; }
   
   .vfl-progress-track { 
-    height: 4px; 
-    background: rgba(255, 255, 255, 0.05); 
-    border-radius: 100px; 
-    overflow: hidden; 
+    height: 12px; 
     position: relative; 
+    display: flex;
+    align-items: center;
+    overflow: visible;
   }
-  .vfl-progress-bar { 
-    height: 100%; background: linear-gradient(90deg, #ee4d2d, #ff8c00); 
-    border-radius: 100px; transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
+  @keyframes viral-flow {
+    0% { transform: translateX(-150%); }
+    50% { transform: translateX(150%); }
+    100% { transform: translateX(150%); }
   }
-  .vfl-progress-glow {
-    position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    animation: vfl-shimmer 2s infinite linear;
+  .animate-viral-flow {
+    animation: viral-flow 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
-  @keyframes vfl-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
 
   .vfl-like-pill {
     display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.05);

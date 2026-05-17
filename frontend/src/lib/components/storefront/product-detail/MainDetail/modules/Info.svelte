@@ -109,7 +109,9 @@
   </div>
   
   <div class="mb-2">
-    <ShareToUnlock {product} compact={true} onUnlock={onTriggerViralFly} />
+    {#key product.id}
+      <ShareToUnlock {product} compact={true} onUnlock={onTriggerViralFly} />
+    {/key}
   </div>
 
   <!-- Price Bar -->

@@ -74,7 +74,9 @@
   <div class="image-counter">{activeImageIndex + 1}/{displayImages.length}</div>
 
   <div class="media-promo-anchor">
-     <ShareToUnlockPromoMobile {product} variant="floating" onUnlock={triggerViralFly} />
+     {#key product.id}
+       <ShareToUnlockPromoMobile {product} variant="floating" onUnlock={triggerViralFly} />
+     {/key}
   </div>
   <div class="thumbnails-track mt-4 px-4 flex gap-3 overflow-x-auto no-scrollbar">
     {#each displayImages as img, i}

@@ -181,7 +181,9 @@
 
   <!-- Share Promo -->
   <div class="section-row promo-row">
-    <ShareToUnlock {product} compact={true} onUnlock={onViralUnlock} />
+    {#key product.id}
+      <ShareToUnlock {product} compact={true} onUnlock={onViralUnlock} />
+    {/key}
   </div>
 
   <!-- Shipping -->

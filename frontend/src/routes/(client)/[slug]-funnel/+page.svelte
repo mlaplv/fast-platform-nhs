@@ -28,6 +28,7 @@
 
   let { data }: { data: PageData } = $props();
   let themeMode = $state<"system" | "light" | "dark">("system");
+  let isMounted = $state(false);
 
   // 🚀 ELITE CONTEXT INJECTION (Elite V2.2)
   const shopStore = setShopStore();
@@ -92,6 +93,9 @@
   // 🚀 ELITE QUANTUM COORDINATOR (Elite V2.2)
   onMount(() => {
     if (!browser) return;
+    const timer = setTimeout(() => {
+      isMounted = true;
+    }, 150);
 
     const savedTheme = localStorage.getItem("hero-theme-mode");
     applyTheme(
@@ -170,6 +174,7 @@
     const cleanupObservers = clientUi.initObservers();
 
     return () => {
+      clearTimeout(timer);
       shopStore.dispose();
       mq.removeEventListener("change", h);
       jitObserver.disconnect();
@@ -450,7 +455,7 @@
 {/if}
 
 <!-- Administrative HUD (Elite V2.2 Overlay Layer - Severely Protected) -->
-{#if liveEditStore.isAdmin}
+{#if isMounted && liveEditStore.isAdmin}
   {#await import("$lib/components/admin/AdminActionBar.svelte") then { default: AdminActionBar }}
     <AdminActionBar />
   {/await}

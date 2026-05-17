@@ -175,14 +175,27 @@
             type: (v.type === 'SHIPPING' || v.type === 'ship') ? 'ship' : 'discount'
           }));
 
-    const vouchersList = list.filter((v: { id: string; label?: string }) => {
+    const cleanString = (s: string) => {
+      return (s || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase();
+    };
+
+    const isViralVoucher = (v: { id: string; label?: string }) => {
       const promoVId = product.metadata?.share_promotion?.voucher_id;
-      const isViral = v.id.includes('VIRAL') || 
-                      (v.label || '').toUpperCase().includes('VIRAL') || 
-                      (v.label || '').toUpperCase().includes('LAN TỎA') ||
-                      (promoVId && v.id === promoVId);
-      if (!mounted) return !isViral;
-      return !isViral || isViralUnlocked;
+      const cleanId = cleanString(v.id);
+      const cleanLabel = cleanString(v.label);
+      return cleanId.includes('VIRAL') || 
+             cleanId.includes('LAN TOA') || 
+             cleanLabel.includes('VIRAL') || 
+             cleanLabel.includes('LAN TOA') ||
+             (promoVId && v.id === promoVId);
+    };
+
+    let vouchersList = list.filter((v: { id: string; label?: string }) => {
+      if (!mounted) return !isViralVoucher(v);
+      return !isViralVoucher(v) || isViralUnlocked;
     });
 
     if (mounted && isViralUnlocked) {
@@ -190,19 +203,24 @@
       if (saved) {
         try {
           const data = JSON.parse(saved);
-          const exists = vouchersList.find(v => v.id === data.code);
-          if (!exists) {
-             vouchersList.push({
-               id: data.code,
-               label: data.label || 'Voucher lan tỏa',
-               sub: 'Đã mở khóa từ chiến dịch',
-               type: 'discount'
-             });
-          }
+          // Filter out existing viral vouchers to prevent duplicates or wrong positions
+          vouchersList = vouchersList.filter(v => !isViralVoucher(v) && v.id !== data.code);
+          // Prepend at the absolute top (Position #1)
+          vouchersList.unshift({
+            id: data.code,
+            label: data.label || 'Voucher lan tỏa',
+            sub: 'Đã mở khóa từ chiến dịch',
+            type: 'discount'
+          });
         } catch (e) {}
       }
     }
-    return vouchersList;
+
+    // VOUCHER LAN TỎA 79K: LUỐN Ở VỊ TRÍ SỐ 1
+    const viralVouchers = vouchersList.filter(v => isViralVoucher(v));
+    const regularVouchers = vouchersList.filter(v => !isViralVoucher(v));
+
+    return [...viralVouchers, ...regularVouchers];
   });
 
   const activeVariant = $derived(selectedVariant || pVariants?.[0]);
@@ -369,9 +387,8 @@
             {@const isApplied = selectedVouchers.includes(v.id)}
             <button type="button" class="ticket-wrapper" onclick={() => toggleVoucher(v.id)}>
               <div class="ticket" class:active={isApplied}>
-                <div class="ticket-content">
+                <div class="ticket-content flex items-center justify-center h-full">
                    <span class="main">{v.label}</span>
-                   <span class="sub">{v.sub || ''}</span>
                 </div>
               </div>
               {#if isApplied}

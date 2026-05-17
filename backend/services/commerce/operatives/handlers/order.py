@@ -191,7 +191,7 @@ class OrderHandler(BaseHandler):
                                 # V4.2: If ambiguous, mark as NOT definite to trigger provincial ask
                                 ctx.order_draft.is_definite_intent = False
                         
-                        await xohi_memory.set_order_draft(ctx.session_id, ctx.order_draft.model_dump())
+                        await xohi_memory.set_order_draft(ctx.session_id, ctx.order_draft.model_dump(mode='json'))
                         logger.info(f"💾 [OrderHandler] V4.1 Draft persisted for SID: {ctx.session_id}")
                         
                         # 🚀 Elite V5.6: Fault-tolerant LeadOrderItem construction
@@ -257,7 +257,7 @@ class OrderHandler(BaseHandler):
                         ctx.order_draft.is_definite_intent = True
                     
                     # Persist to Redis
-                    await xohi_memory.set_order_draft(ctx.session_id, ctx.order_draft.model_dump())
+                    await xohi_memory.set_order_draft(ctx.session_id, ctx.order_draft.model_dump(mode='json'))
                     logger.info(f"💾 [OrderHandler] Draft Synchronized for SID: {ctx.session_id}")
             except Exception as e:
                 logger.error(f"[OrderHandler] Atomic extraction/draft failed: {e}")

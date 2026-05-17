@@ -212,18 +212,31 @@
       }));
     }
 
+    const cleanString = (s: string) => {
+      return (s || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase();
+    };
+
+    const isViralVoucher = (v: { id: string; label?: string }) => {
+      const promoVId = product.metadata?.share_promotion?.voucher_id;
+      const cleanId = cleanString(v.id);
+      const cleanLabel = cleanString(v.label);
+      return cleanId.includes('VIRAL') || 
+             cleanId.includes('LAN TOA') || 
+             cleanLabel.includes('VIRAL') || 
+             cleanLabel.includes('LAN TOA') ||
+             (promoVId && v.id === promoVId);
+    };
+
     /**
      * Elite V2.2: Intelligent Filtering
      * Lọc bỏ các Voucher Viral để tránh hiện ở khối chung khi CHƯA chia sẻ.
      * Nếu ĐÃ mở khóa (isViralUnlocked), mã sẽ được hiển thị như một phần của hệ thống.
      */
-    const vList = vouchers.filter((v: { id: string; label?: string }) => {
-      const promoVId = product.metadata?.share_promotion?.voucher_id;
-      const isViral = v.id.includes('VIRAL') || 
-                      (v.label || '').toUpperCase().includes('VIRAL') || 
-                      (v.label || '').toUpperCase().includes('LAN TỎA') ||
-                      (promoVId && v.id === promoVId);
-      return !isViral || isViralUnlocked;
+    let vList = vouchers.filter((v: { id: string; label?: string }) => {
+      return !isViralVoucher(v) || isViralUnlocked;
     });
 
     // Elite V2.2 Re-injection: Phục hồi voucher từ session local nếu đã mở khóa
@@ -232,19 +245,24 @@
       if (saved) {
         try {
           const data = JSON.parse(saved);
-          const exists = vList.find(v => v.id === data.code);
-          if (!exists) {
-            vList.push({
-              id: data.code,
-              label: data.label || 'Voucher lan tỏa',
-              sub: 'Đã mở khóa từ chiến dịch',
-              type: 'discount'
-            });
-          }
+          // Filter out existing viral vouchers to prevent duplicates or wrong positions
+          vList = vList.filter(v => !isViralVoucher(v) && v.id !== data.code);
+          // Prepend at the absolute top (Position #1)
+          vList.unshift({
+            id: data.code,
+            label: data.label || 'Voucher lan tỏa',
+            sub: 'Đã mở khóa từ chiến dịch',
+            type: 'discount'
+          });
         } catch (e) {}
       }
     }
-    return vList;
+
+    // VOUCHER LAN TỎA 79K: LUỐN Ở VỊ TRÍ SỐ 1
+    const viralVouchers = vList.filter(v => isViralVoucher(v));
+    const regularVouchers = vList.filter(v => !isViralVoucher(v));
+
+    return [...viralVouchers, ...regularVouchers];
   });
 
   /**

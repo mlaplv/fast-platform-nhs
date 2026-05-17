@@ -65,15 +65,15 @@ def heuristic_score(t: ShareTelemetry) -> tuple[float, str]:
     reasons: list[str] = []
 
     # Signal 1: Share duration (Elite V2.2: Hardened thresholds)
-    if t.share_duration_ms < 3000:
+    if t.share_duration_ms < 2000:
         score -= 40.0
-        reasons.append("Share cực nhanh (<3s) - Dấu hiệu gian lận")
-    elif t.share_duration_ms < 7000:
+        reasons.append("Share cực nhanh (<2s) - Dấu hiệu gian lận")
+    elif t.share_duration_ms < 4000:
         score -= 10.0
-        reasons.append("Thời gian share ngắn (<7s)")
-    elif t.share_duration_ms >= 12000:
+        reasons.append("Thời gian share ngắn (<4s)")
+    elif t.share_duration_ms >= 5000:
         score += 20.0
-        reasons.append("Thời gian share thực tế (>12s)")
+        reasons.append("Thời gian share thực tế (>5s)")
 
     # Signal 2: Visibility changes (tab switch = likely opened share dialog)
     if t.visibility_changes >= 1:
@@ -88,10 +88,10 @@ def heuristic_score(t: ShareTelemetry) -> tuple[float, str]:
         score += 15.0
         reasons.append("Web Share API")
     elif t.share_method == "popup":
-        if t.share_duration_ms < 8000:
+        if t.share_duration_ms < 3000:
             score -= 30.0
-            reasons.append("Đóng popup quá nhanh")
-        elif t.share_duration_ms >= 15000:
+            reasons.append("Đóng popup quá nhanh (<3s)")
+        elif t.share_duration_ms >= 5000:
             score += 15.0
 
     # Signal 4: Time on page (bots visit < 5s)
@@ -126,16 +126,17 @@ Your job: Rigorously analyze behavioral telemetry to detect "Share-to-Unlock" fr
 
 SIGNALS & THRESHOLDS:
 - share_duration_ms: Real shares take 12-25s (login + post). Anything < 8s is HIGHLY suspicious.
-- visibility_changes: Expect at least 1 (opening dialog). 0 is an immediate RED FLAG.
+- visibility_changes: Expect at least 1 (opening popup / switching tabs). 0 is a RED FLAG.
 - share_method: "native" is strong. "popup" requires > 10s. "clipboard" is very weak.
-- scroll_depth_pct: Engaged users who actually like the product scroll > 25%.
-- interaction_count: Real users have at least 3-5 interactions before sharing.
+- scroll_depth_pct: Real users may NOT scroll if the share button is at the top of the page (0% is completely normal and acceptable). Do NOT deny based on 0% scroll depth.
+- time_on_page_ms: Returning or fast-acting users might click the share button instantly (<3s). If their share_duration_ms is genuine (>10s), this is a REAL user, not a bot!
+- interaction_count: Real users have at least 1-2 interactions before sharing.
 
 VERDICT CRITERIA:
 - 90-100: Flawless behavior.
-- 70-89: Likely legitimate but slightly rushed.
+- 70-89: Likely legitimate (long share duration, even if page visit was short or didn't scroll).
 - 40-69: Suspicious (rushed, low interaction, or blocked popups).
-- 0-39: Definite fraud (bot-like speed, no tab switch, or extreme rushing).
+- 0-39: Definite fraud (bot-like speed, no tab/focus switch, or extreme rushing).
 
 Reply with JSON: {"trust_score": float, "verdict": "APPROVE"|"DENY"|"SUSPICIOUS", "reasoning": "strict Vietnamese explanation"}
 """
@@ -159,8 +160,8 @@ async def analyze_share_behavior(telemetry: ShareTelemetry) -> ShareVerdict:
     # Layer 1: Heuristic fast-path
     h_score, h_reason = heuristic_score(telemetry)
 
-    if h_score >= 90.0:
-        # Strong legitimate signals → skip AI (save cost + latency)
+    if h_score >= 80.0:
+        # Strong legitimate signals (e.g. >12s share duration + tab/window switch) → skip AI
         logger.info(f"[ViralFraud] Heuristic APPROVE (score={h_score:.0f}): {h_reason}")
         return ShareVerdict(
             trust_score=h_score,

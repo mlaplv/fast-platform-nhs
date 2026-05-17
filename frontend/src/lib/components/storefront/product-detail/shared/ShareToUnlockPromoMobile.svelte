@@ -9,7 +9,7 @@
   import Facebook from "@lucide/svelte/icons/facebook";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Share2 from "@lucide/svelte/icons/share-2";
-  import { untrack } from 'svelte';
+  import { untrack, onMount } from 'svelte';
   import type { Product, ProductMetadata } from '$lib/types';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
@@ -42,6 +42,11 @@
   let { product, compact = false, variant = 'floating', onUnlock }: Props = $props();
   const clientUi = getClientUi();
   const shopStore = getShopStore();
+
+  let isMounted = $state(false);
+  onMount(() => {
+    isMounted = true;
+  });
 
   const viralSuite = $derived(product.metadata?.viral_suite as (ViralSuiteMetadata | undefined) ?? null);
   
@@ -140,6 +145,9 @@
     const onVisibilityChange = () => { 
       if (document.hidden) visibilityChanges++; 
     };
+    const onBlur = () => {
+      visibilityChanges++;
+    };
     const onClick = () => interactionCount++;
     const onScroll = () => {
         const scrolled = window.scrollY;
@@ -147,35 +155,48 @@
     };
 
     document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('blur', onBlur);
     document.addEventListener('click', onClick);
     window.addEventListener('scroll', onScroll, { passive: true });
 
     if (typeof window !== 'undefined') {
-      const isCookieUnlocked = shopStore?.unlockedVoucherIds?.includes(`${product.id}_${promoConfig.voucher_id}`);
+      const isCookieUnlocked = promoConfig?.voucher_id && shopStore?.unlockedVoucherIds?.includes(`${product.id}_${promoConfig.voucher_id}`);
       const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
       
-      if (isCookieUnlocked) {
-        // If unlocked by server cookie, find it in the store
-        const existingVoucher = shopStore?.vouchers?.find(v => v.id === promoConfig.voucher_id);
-        if (existingVoucher) {
-            voucherCode = existingVoucher.code;
-            voucherLabel = existingVoucher.label || 'Voucher đặc quyền';
-            step = 'revealed';
-        }
-      } else if (saved) {
+      if (saved) {
         try {
           const data = JSON.parse(saved);
           voucherCode = data.code;
           voucherLabel = data.label;
+          shopStore?.injectViralVoucher(
+            data.code,
+            data.label,
+            data.value ?? 0,
+            data.type ?? 'FIXED',
+            data.min_spend ?? 0
+          );
           step = 'revealed';
         } catch {
           localStorage.removeItem(`viral_unlocked_${product.id}`);
+        }
+      } else if (isCookieUnlocked && promoConfig?.voucher_id) {
+        const existingVoucher = shopStore?.vouchers?.find(v => v.id === promoConfig.voucher_id);
+        if (existingVoucher) {
+          shopStore?.injectViralVoucher(
+            existingVoucher.id,
+            existingVoucher.title || 'Voucher đặc quyền',
+            existingVoucher.value ?? 0,
+            existingVoucher.type ?? 'FIXED',
+            existingVoucher.min_spend ?? 0
+          );
+          step = 'revealed';
         }
       }
     }
     return () => {
         isComponentMounted = false;
         document.removeEventListener('visibilitychange', onVisibilityChange);
+        window.removeEventListener('blur', onBlur);
         document.removeEventListener('click', onClick);
         window.removeEventListener('scroll', onScroll);
     };
@@ -353,12 +374,22 @@
         const data = await res.json();
         voucherCode = data.voucher_code;
         voucherLabel = data.voucher_label;
+        localStorage.setItem(`viral_unlocked_${product.id}`, JSON.stringify({
+          code: voucherCode, label: voucherLabel, unlocked_at: Date.now(),
+          value: data.voucher_value, type: data.voucher_type, min_spend: data.min_spend
+        }));
+         shopStore?.injectViralVoucher(
+          data.voucher_code,
+          data.voucher_label,
+          data.voucher_value,
+          data.voucher_type,
+          data.min_spend
+        );
         step = 'revealed';
-        localStorage.setItem(`viral_unlocked_${product.id}`, JSON.stringify({ code: voucherCode, label: voucherLabel, unlocked_at: Date.now() }));
         if (onUnlock) onUnlock();
         triggerFlyAnimation();
         createHeartConfetti(window.innerWidth / 2, window.innerHeight / 2);
-        clientUi.showToast('🎉 Đã mở khóa!', 'success');
+        clientUi.showToast('🎉 Đã áp mã ưu đãi!', 'success');
       } catch (e: unknown) {
         errorMsg = e instanceof Error ? e.message : 'Xác minh thất bại';
         step = 'error';
@@ -390,7 +421,7 @@
   </div>
 {/if}
 
-{#if isEnabled && step !== 'revealed'}
+{#if isMounted && isEnabled && step !== 'revealed'}
   <div class="stu-mobile-root" class:funnel={variant === 'funnel'} class:stu-compact={compact}>
     {#if step === 'idle' || step === 'error'}
       <div class="stu-view">
@@ -439,23 +470,8 @@
 
     {:else if step === 'sharing' || step === 'verifying'}
       <div class="stu-center glass-loading">
-        <Zap size={22} class="stu-spin-pulse text-blue-500 fill-blue-500/20" />
+        <Zap size={22} class="stu-spin-pulse text-white fill-white/20" />
         <span class="stu-loading-text-blue">{step === 'sharing' ? 'Đang kết nối...' : verificationText}</span>
-      </div>
-
-    {:else if step === 'revealed' && voucherCode}
-      <div class="stu-revealed-card {variant === 'floating' ? 'stu-float-card' : ''}">
-        <div class="stu-voucher-info">
-          <span class="stu-voucher-label">{voucherLabel}</span>
-          <span class="stu-voucher-code {variant === 'floating' ? 'text-lg' : ''}">{voucherCode}</span>
-        </div>
-        <button class="stu-copy-btn {variant === 'floating' ? 'text-[9px] px-2' : ''}" onclick={copyCode}>
-          {#if codeCopied}
-            <Check size={10} /><span>Xong</span>
-          {:else}
-            <Copy size={10} /><span>Copy</span>
-          {/if}
-        </button>
       </div>
     {/if}
   </div>
@@ -570,9 +586,9 @@
 
   .stu-center { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; }
   .stu-loading-text { font-size: 11px; font-weight: 800; color: #ee4d2d; }
-  .stu-loading-text-blue { font-size: 13px; font-weight: 1000; color: #3b82f6; letter-spacing: -0.01em; }
+  .stu-loading-text-blue { font-size: 13px; font-weight: 1000; color: #ffffff; letter-spacing: -0.01em; }
   
-  :global(.stu-spin-pulse) { animation: stu-pulse-zap 1.5s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5)); }
+  :global(.stu-spin-pulse) { animation: stu-pulse-zap 1.5s ease-in-out infinite; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4)); }
   @keyframes stu-pulse-zap {
     0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
     50% { transform: scale(1.2) rotate(15deg); opacity: 0.7; }

@@ -149,9 +149,31 @@
               </div>
               <span class="text-[12px] font-black text-rose-400">{Math.round(shareProgress)}%</span>
             </div>
-            <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden backdrop-blur-sm p-[1px]">
-              <div class="h-full rounded-full bg-gradient-to-r from-rose-500 to-pink-500 transition-all duration-1000 relative" style="width: {shareProgress}%">
-                <div class="absolute inset-0 bg-white/20 animate-shimmer-fast"></div>
+            <div class="relative w-full pt-1 pb-2 overflow-visible">
+              <div class="h-1.5 w-full bg-white/10 rounded-full relative backdrop-blur-sm">
+                <!-- Glow shadow layer under the progress bar -->
+                <div 
+                  class="absolute top-0 left-0 h-full rounded-full blur-[3px] opacity-60 transition-all duration-1000" 
+                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 50%, rgba(238, 77, 45, 0) 100%);"
+                ></div>
+                <!-- Main filled progress bar with a comet fade-out tail -->
+                <div 
+                  class="absolute top-0 left-0 h-full rounded-full overflow-hidden transition-all duration-1000" 
+                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 75%, rgba(238, 77, 45, 0.15) 100%);"
+                >
+                  <!-- Liquid light sweep animation -->
+                  <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-viral-flow"></div>
+                </div>
+                <!-- Glowing neon active beacon at the progress tip -->
+                <div 
+                  class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 transition-all duration-1000 pointer-events-none" 
+                  style="left: {shareProgress}%"
+                >
+                  <span class="relative flex h-3.5 w-3.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 shadow-[0_0_8px_#ff2d55]"></span>
+                  </span>
+                </div>
               </div>
             </div>
           {:else}
@@ -229,5 +251,13 @@
     0% { transform: translate(0,0) scale(0); opacity: 0; }
     20% { opacity: 1; transform: translate(0,0) scale(1.2); }
     100% { transform: translate(calc(cos(calc(var(--i) * 30deg)) * 100px), calc(sin(calc(var(--i) * 30deg)) * -80px - 40px)) scale(0.8); opacity: 0; }
+  }
+  @keyframes viral-flow {
+    0% { transform: translateX(-150%); }
+    50% { transform: translateX(150%); }
+    100% { transform: translateX(150%); }
+  }
+  .animate-viral-flow {
+    animation: viral-flow 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 </style>

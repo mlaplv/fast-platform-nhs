@@ -257,13 +257,51 @@
         type: v.type === "SHIPPING" ? "ship" : "discount",
       }));
     }
-    return vouchers.filter((v: { id: string; label?: string }) => {
-      const isViral =
-        v.id.includes("VIRAL") ||
-        (v.label || "").toUpperCase().includes("VIRAL");
-      if (!isViral) return true;
-      return isViralUnlocked;
+
+    const cleanString = (s: string) => {
+      return (s || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase();
+    };
+
+    const isViralVoucher = (v: { id: string; label?: string }) => {
+      const cleanId = cleanString(v.id);
+      const cleanLabel = cleanString(v.label);
+      return cleanId.includes('VIRAL') || 
+             cleanId.includes('LAN TOA') || 
+             cleanLabel.includes('VIRAL') || 
+             cleanLabel.includes('LAN TOA');
+    };
+
+    let vList = vouchers.filter((v: { id: string; label?: string }) => {
+      return !isViralVoucher(v) || isViralUnlocked;
     });
+
+    // Elite V2.2 Re-injection: Phục hồi voucher từ session local nếu đã mở khóa
+    if (typeof window !== 'undefined' && isViralUnlocked) {
+      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          // Filter out existing viral vouchers to prevent duplicates or wrong positions
+          vList = vList.filter(v => !isViralVoucher(v) && v.id !== data.code);
+          // Prepend at the absolute top (Position #1)
+          vList.unshift({
+            id: data.code,
+            label: data.label || 'Voucher lan tỏa',
+            sub: 'Đã mở khóa từ chiến dịch',
+            type: 'discount'
+          });
+        } catch (e) {}
+      }
+    }
+
+    // VOUCHER LAN TỎA 79K: LUỐN Ở VỊ TRÍ SỐ 1
+    const viralVouchers = vList.filter(v => isViralVoucher(v));
+    const regularVouchers = vList.filter(v => !isViralVoucher(v));
+
+    return [...viralVouchers, ...regularVouchers];
   });
 
   function triggerViralFly() {

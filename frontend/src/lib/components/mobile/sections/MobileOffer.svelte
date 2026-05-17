@@ -88,7 +88,7 @@
   const productVouchers = $derived.by(() => {
     const rawVouchers = (cartStore.vouchers && cartStore.vouchers.length > 0 ? cartStore.vouchers : []) as Voucher[];
 
-    const list = rawVouchers.map((v) => ({
+    let list = rawVouchers.map((v) => ({
       id: v.id,
       label: v.title || v.id || 'ƯU ĐÃI',
       sub: v.type === 'SHIPPING' ? 'Miễn phí vận chuyển' : (v.type === 'PERCENT' ? `GIẢM ${v.value}%` : `GIẢM ${formatCurrency(v.value || 0)}`),
@@ -97,28 +97,48 @@
       type_raw: v.type
     }));
 
+    const cleanString = (s: string) => {
+      return (s || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase();
+    };
+
+    const isViralVoucher = (v: { id: string; label?: string }) => {
+      const cleanId = cleanString(v.id);
+      const cleanLabel = cleanString(v.label);
+      return cleanId.includes('VIRAL') || 
+             cleanId.includes('LAN TOA') || 
+             cleanLabel.includes('VIRAL') || 
+             cleanLabel.includes('LAN TOA');
+    };
+
     // Elite V2.2 Re-injection: Phục hồi voucher từ session local nếu đã mở khóa
     if (typeof window !== 'undefined' && isViralUnlocked && product?.id) {
       const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
       if (saved) {
         try {
           const data = JSON.parse(saved);
-          const exists = list.find(v => v.id === data.code);
-          if (!exists) {
-            list.unshift({
-              id: data.code,
-              label: data.label || 'VOUCHER LAN TỎA',
-              sub: 'Đã mở khóa từ chiến dịch',
-              type: 'discount',
-              value: 0,
-              type_raw: 'FIXED'
-            });
-          }
+          // Filter out existing viral vouchers to prevent duplicates or wrong positions
+          list = list.filter(v => !isViralVoucher(v) && v.id !== data.code);
+          // Prepend at the absolute top (Position #1)
+          list.unshift({
+            id: data.code,
+            label: data.label || 'VOUCHER LAN TỎA',
+            sub: 'Đã mở khóa từ chiến dịch',
+            type: 'discount',
+            value: 0,
+            type_raw: 'FIXED'
+          });
         } catch (e) {}
       }
     }
 
-    return list;
+    // VOUCHER LAN TỎA 79K: LUỐN Ở VỊ TRÍ SỐ 1
+    const viralVouchers = list.filter(v => isViralVoucher(v));
+    const regularVouchers = list.filter(v => !isViralVoucher(v));
+
+    return [...viralVouchers, ...regularVouchers];
   });
 
   // --- FOMO Simulation (Elite V2.2) ---
@@ -222,11 +242,13 @@
     <!-- 🔥 Viral Share Bar (Inline variant for Funnel) -->
     {#if product}
       <div class="px-4">
-        <ShareToUnlockPromoMobile
-          product={product}
-          variant="funnel"
-          onUnlock={() => isViralUnlocked = true}
-        />
+        {#key product.id}
+          <ShareToUnlockPromoMobile
+            product={product}
+            variant="funnel"
+            onUnlock={() => isViralUnlocked = true}
+          />
+        {/key}
       </div>
     {/if}
     <!-- 🎛️ VARIANT SELECTOR -->
@@ -371,10 +393,8 @@
                 >
                    <!-- 📝 Content (Stamp Center) -->
                    <div class="flex-1 flex flex-col items-center justify-center px-4 py-1.5 min-w-0 bg-white/20 backdrop-blur-[2px] m-1 border border-black/5">
-                      <div class="flex flex-col items-center leading-none mb-1">
+                      <div class="flex flex-col items-center justify-center leading-none">
                          <span class="text-[14px] font-[1000] text-[#111111] tracking-tighter whitespace-nowrap drop-shadow-sm">{v.label}</span>
-                         <div class="w-10 h-[1.5px] bg-black/20 my-1 animate-pulse"></div>
-                         <span class="voucher-sub-label text-[10px] text-[#222222] font-black truncate tracking-tight italic">{v.sub}</span>
                       </div>
                       
                       <!-- 🖋️ Postage Mark Detail -->

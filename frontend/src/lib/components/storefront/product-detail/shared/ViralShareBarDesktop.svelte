@@ -12,7 +12,8 @@
   } from '$lib/utils/commerce/viral';
 
   import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
-  import { untrack } from 'svelte';
+  import { untrack, onMount } from 'svelte';
+  import { browser } from '$app/environment';
 
   interface Props {
     product: Product;
@@ -30,14 +31,18 @@
     dark = false
   }: Props = $props();
 
+  // Elite V2.2: Hydration guard — delay dynamic UI until client is fully mounted
+  let isMounted = $state(false);
+  onMount(() => { isMounted = true; });
+
   const viralSuite = $derived(product.metadata?.viral_suite ?? null);
   
   const shareCount = $derived(
-    viralSuite?.share_count ?? (typeof product.metadata.share_count === 'number' ? product.metadata.share_count : 0)
+    viralSuite?.share_count ?? (typeof product.metadata?.share_count === 'number' ? product.metadata.share_count : 0)
   );
 
   const shareTarget = $derived(
-    viralSuite?.share_target ?? (typeof product.metadata.share_target === 'number' ? product.metadata.share_target : 0)
+    viralSuite?.share_target ?? (typeof product.metadata?.share_target === 'number' ? product.metadata.share_target : 0)
   );
 
   const shareProgress = $derived(
@@ -57,7 +62,6 @@
   $effect(() => {
     // Reset state when switching products (track ONLY product.id)
     product.id; 
-    import.meta.env.DEV && console.log('ViralShareBar: Product changed, resetting state');
     untrack(() => {
       isCampaignLoaded = false;
       campaignData = null;
@@ -123,7 +127,7 @@
     
     <!-- Social & Like Row -->
     <div class="flex items-center justify-between">
-      {#if !hideLikes}
+      {#if isMounted && !hideLikes}
         <button onclick={handleLike} class="flex items-center gap-1.5 group/like hover:scale-105 transition-all">
           <Heart size={18} class="transition-transform group-hover/like:scale-110 {isLiked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}" />
           <span class="text-xs font-bold {isLiked ? 'text-rose-600' : 'text-slate-500'}">{formatViralCount(localLikeCount)}</span>
@@ -139,8 +143,8 @@
       <button onclick={copyLink} class="text-slate-400 hover:text-slate-900 transition-colors hover:scale-110" aria-label="Copy Link"><Copy size={18} /></button>
     </div>
 
-    <!-- Progress -->
-    {#if shareTarget > 0}
+    <!-- Progress: only render client-side to avoid hydration mismatch -->
+    {#if isMounted && shareTarget > 0}
       {#if shareProgress < 100}
         <div class="space-y-2">
           <div class="flex items-center justify-between">
@@ -158,8 +162,32 @@
             </div>
             <span class="text-[13px] font-black text-rose-500">{Math.round(shareProgress)}%</span>
           </div>
-          <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div class="h-full rounded-full bg-rose-500 transition-all duration-1000" style="width: {shareProgress}%"></div>
+          <div class="relative w-full pt-1 pb-2 overflow-visible">
+            <div class="h-1.5 w-full bg-slate-100 dark:bg-white/10 rounded-full relative">
+              <!-- Glow shadow layer under the progress bar -->
+              <div 
+                class="absolute top-0 left-0 h-full rounded-full blur-[3px] opacity-60 transition-all duration-1000" 
+                style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 50%, rgba(238, 77, 45, 0) 100%);"
+              ></div>
+              <!-- Main filled progress bar with a comet fade-out tail -->
+              <div 
+                class="absolute top-0 left-0 h-full rounded-full overflow-hidden transition-all duration-1000" 
+                style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 75%, rgba(238, 77, 45, 0.15) 100%);"
+              >
+                <!-- Liquid light sweep animation -->
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-viral-flow"></div>
+              </div>
+              <!-- Glowing neon active beacon at the progress tip -->
+              <div 
+                class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 transition-all duration-1000 pointer-events-none" 
+                style="left: {shareProgress}%"
+              >
+                <span class="relative flex h-3.5 w-3.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 shadow-[0_0_8px_#ff2d55]"></span>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       {:else}
@@ -190,5 +218,13 @@
   @keyframes heart-fly {
     0% { transform: translate(0,0) scale(0.5); opacity: 1; }
     100% { transform: translate(calc(cos(calc(var(--i) * 45deg)) * 60px), calc(sin(calc(var(--i) * 45deg)) * 60px)) scale(1.2); opacity: 0; }
+  }
+  @keyframes viral-flow {
+    0% { transform: translateX(-150%); }
+    50% { transform: translateX(150%); }
+    100% { transform: translateX(150%); }
+  }
+  .animate-viral-flow {
+    animation: viral-flow 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 </style>
