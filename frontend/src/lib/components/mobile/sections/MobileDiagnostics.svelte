@@ -400,15 +400,17 @@
             <!-- Result Header HUD -->
             <div class="flex justify-between items-start mb-4 border-b border-white/10 pb-3 shrink-0">
               <div class="flex-1">
-                <h3 class="text-xl font-black text-white tracking-tighter mb-1 drop-shadow-[0_0_15px_rgba(255,183,197,0.5)] italic sentence-case-target">
-                  Phác đồ điều trị
+                <h3 class="text-xl font-black text-white tracking-tighter mb-1 drop-shadow-[0_0_15px_rgba(255,183,197,0.5)] italic uppercase">
+                  PHÁC ĐỒ ĐIỀU TRỊ
                 </h3>
-                <p class="text-[7px] text-[#FFB7C5] font-bold tracking-[0.3em]">AI osmo 2026</p>
+                <p class="text-[7px] text-[#FFB7C5] font-bold tracking-[0.1em] italic">
+                  đã chẩn đoán cho {(Number(metadata.diagnostics_count || (Number(PUBLIC_G_BY_COUNT) * 5)) + sessionIncrement).toLocaleString()} người
+                </p>
               </div>
               <div class="flex items-center gap-2 shrink-0">
                <div class="text-right">
-                  <span class="block text-[6px] text-white/30 font-black sentence-case-target">Hiệu lực</span>
-                  <span class="block text-[7px] text-emerald-400 font-bold italic tracking-tighter sentence-case-target">An toàn tuyệt đối</span>
+                  <span class="block text-[6px] text-white/30 font-black">Hiệu lực</span>
+                  <span class="block text-[7px] text-emerald-400 font-bold italic tracking-tighter">An toàn tuyệt đối</span>
                </div>
                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                   <ShieldCheck class="w-5 h-5 text-emerald-400" />
@@ -419,7 +421,7 @@
             <div class="space-y-6">
               <div class="relative overflow-visible group">
                 <div class="flex items-center justify-between mb-2">
-                  <h4 class="text-[11px] font-black text-[#FFB7C5] group-hover:text-pink-300 transition-colors tracking-[0.2em] border-l-2 border-[#FFB7C5]/50 pl-2 sentence-case-target">
+                  <h4 class="text-[11px] font-black text-[#FFB7C5] group-hover:text-pink-300 transition-colors tracking-[0.2em] border-l-2 border-[#FFB7C5]/50 pl-2">
                     Phân tích chuyên sâu
                   </h4>
                   <span class="text-[10px] font-mono text-white/20">LOG_ID: A126-DX</span>
@@ -489,8 +491,14 @@
               }}
               class="w-full py-4 bg-[#FFB7C5]/90 rounded-2xl font-black text-slate-950 text-[13px] tracking-[0.3em] flex items-center justify-center gap-2 active:scale-95 transition-all italic shadow-[0_10px_30px_rgba(255,183,197,0.2)]"
             >
-              <span class="sentence-case-target">Xem liệu trình</span> <ArrowRight class="w-4 h-4" />
+              <span>Xem liệu trình</span> <ArrowRight class="w-4 h-4" />
             </button>
+
+            <!-- Security & Privacy Disclaimer integrated inside clinical results card for mobile -->
+            <p class="text-[9px] font-medium text-white/35 tracking-[0.05em] leading-relaxed max-w-[280px] mx-auto text-center mt-1">
+              AI có thể mắc sai sót. Vì vậy, hãy xác minh thông tin này với bác sĩ.
+            </p>
+
             <button 
               onclick={restart}
               class="flex items-center gap-2 mx-auto py-1 text-[8px] font-bold text-white/30 tracking-[0.3em] hover:text-[#FFB7C5] transition-colors"

@@ -56,7 +56,18 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
 
 - CẤU TRÚC ĐỘNG — BỘ KHUNG CHUẨN (Product Standard Framework):
   Viết lần lượt theo đúng 6 phần sau, BẮT BUỘC dùng chính xác các tiêu đề sau trong thẻ <h2> (không tự ý đổi tên heading, tuyệt đối không gộp hay cắt xén):
-  + <h2>Giới thiệu</h2>: Đoạn văn ngắn gọn giới thiệu tổng quan về sản phẩm, đặc điểm nổi bật và cảm giác khi sử dụng.
+
+  + <h2>Giới thiệu</h2>: BẮT BUỘC viết theo đúng 3 nhịp liên tục sau — KHÔNG TÁCH THÀNH CÁC ĐỀ MỤC CON, chỉ là một khối văn xuôi mạch lạc:
+
+    ▸ NHỊP 1 — NỖI ĐAU THỰC (Pain Identification):
+      Mở đầu bằng vấn đề/khó khăn CỤ THỂ mà người dùng đang gặp phải hằng ngày liên quan đến nhu cầu mà sản phẩm giải quyết (da khô, thâm nám, tóc gãy rụng, tiêu hóa kém...). Phải viết theo góc nhìn của người dùng, không phải quảng cáo. 1-2 câu, trực tiếp, gần gũi.
+
+    ▸ NHỊP 2 — KHUẾCH ĐẠI NỖI ĐAU (Pain Amplification):
+      Đẩy sâu hơn vào HỆ QUẢ và cảm xúc — nỗi đau đó kéo theo điều gì? (mất tự tin, tốn tiền thử đủ thứ không hiệu quả, vấn đề ngày càng nặng hơn...). Lồng ghép 1 con số hoặc thực tế khoa học ngắn gọn nếu phù hợp để tăng tính thực tế. 2-3 câu.
+
+    ▸ NHỊP 3 — GIẢI PHÁP XEN KẼ CÔNG DỤNG & CÁCH DÙNG (Solution + How-It-Works):
+      Giới thiệu sản phẩm như câu trả lời trực tiếp cho nỗi đau trên. Tích hợp TỰ NHIÊN 1-2 công dụng cốt lõi và gợi ý cách dùng căn bản (thoa lên da mỗi sáng/tối, uống sau bữa ăn...) vào trong câu giới thiệu — KHÔNG liệt kê rời rạc. Kết thúc bằng câu khẳng định giá trị thương hiệu/sản phẩm, ngắn gọn, tự tin. 3-4 câu.
+
   + <h2>Công dụng</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) liệt kê trực tiếp các công dụng. BẮT BUỘC lồng ghép Bằng Chứng, Nghiên cứu lâm sàng và trích dẫn URL để biện luận chuyên sâu cơ chế hoạt động của thành phần, bác bỏ các nội dung sơ sài.
   + <h2>Đối tượng sử dụng</h2>: Một đoạn văn ngắn mô tả chung, kết hợp danh sách (<ul>/<li>) chỉ rõ các đối tượng hoặc loại da phù hợp. Lồng ghép cơ sở y khoa để chứng minh sự tương thích.
   + <h2>Cách sử dụng</h2>: Hướng dẫn ngắn gọn bước chuẩn bị bằng đoạn văn, tiếp theo dùng danh sách (<ul>/<li>) cho các bước thực hiện rõ ràng.

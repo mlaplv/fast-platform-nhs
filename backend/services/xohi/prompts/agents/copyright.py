@@ -37,6 +37,12 @@ Dựa vào loại nội dung đang phân tích, PHẢI áp dụng thêm lớp in
   - Nếu bài viết thiếu tiếng nói khách hàng thực tế: Đề xuất cách lồng ghép attribute review ("87% khách hàng đánh giá Thấm thấu là Tốt/Rất tốt") làm vũ khí phản biện đối thủ.
   - Phân tích xem đối thủ đang dùng social proof dạng nào (số liệu giả tạo, rating không xác thực, review mơ hồ) và đề xuất cách phản bác bằng dữ liệu thực.
 
+  🎯 PAIN-POINT HOOK ANALYSIS (Phân tích móc nỗi đau):
+  - Đánh giá phần mở đầu (Giới thiệu) của [BÀI VIẾT CỦA BẠN] và các đối thủ: Có mở đầu bằng nỗi đau thực tế của người dùng không, hay chỉ là giới thiệu sản phẩm khô khan?
+  - Phân tích 3 nhịp Pain Hook của đối thủ (nếu có): (1) Có "đánh đúng nỗi đau" cụ thể không? (2) Có "khuếch đại" bằng hệ quả/cảm xúc/số liệu không? (3) Giải pháp có được xen kẽ tự nhiên với công dụng và cách dùng không?
+  - Xác định "Pain Gap": Nỗi đau nào người dùng đang gặp phải THỰC SỰ mà cả bài viết gốc lẫn đối thủ đều bỏ sót hoặc chạm không tới? Đây là cơ hội vàng để tạo kết nối cảm xúc vượt trội.
+  - Đề xuất 1-2 câu mở đầu Pain Hook cụ thể (theo đúng công thức: Nỗi đau thực → Khuếch đại → Giải pháp xen kẽ công dụng/cách dùng) để Rewriter có thể áp dụng ngay vào phần Giới thiệu.
+
 ▸ NẾU content_type = "Bài viết" → Tập trung vào:
   - Information Gain Gap: Thông tin gì đối thủ bỏ sót mà bài viết có thể khai thác?
   - Structural Parasitism: Bài viết đang copy cấu trúc tư duy của ai?
@@ -71,9 +77,10 @@ Dưới đây là hướng dẫn chi tiết cho từng trường:
 
 #### Hướng dẫn cho `verdict_strategy`:
 
-- **Bước 1 — ĐỊNH VỊ CỐT LÕI**: Đề xuất góc nhìn hoàn toàn mới, phá vỡ cấu trúc 'ký sinh' của đối thủ. Phải trả lời đủ 3 câu hỏi chiến lược:
+- **Bước 1 — ĐỊNH VỊ CỐT LÕI & PAIN HOOK**: Đề xuất góc nhìn hoàn toàn mới, phá vỡ cấu trúc 'ký sinh' của đối thủ. Phải trả lời đủ 4 câu hỏi chiến lược:
+  → **[Pain Gap]**: [CHỈ VỚI SẢN PHẨM] Nỗi đau thực tế nào của người dùng mà đối thủ đang bỏ sót hoặc chạm không tới? Đây là điểm khởi đầu cho phần Giới thiệu Pain Hook.
+  → **[Câu mở đầu Pain Hook gợi ý]**: [CHỈ VỚI SẢN PHẨM] Đề xuất 1-2 câu mở bài cụ thể theo 3 nhịp (Nỗi đau thực → Khuếch đại hệ quả → Giải pháp xen kẽ công dụng/cách dùng) để Rewriter áp dụng trực tiếp vào phần <h2>Giới thiệu</h2>.
   → **[Góc nhìn mới]**: Nội dung hiện tại đang nhìn vấn đề theo hướng nào? Hướng đối lập (counter-narrative) nào sẽ tạo ra thông tin hoàn toàn mới?
-  → **[Luận điểm cốt lõi]**: Câu khẳng định đột biến (1-2 câu) để mở đầu bài rewrite — phải khác biệt 100% so với cấu trúc đối thủ.
   → **[Lý do thuyết phục]**: Tại sao góc nhìn này có Information Gain cao hơn và được Google/AI ưu tiên hơn?
 
 - **Bước 2 — PHÂN BỔ BỘ KHUNG**: Chỉ định cách phân bổ dữ liệu vào **BỘ KHUNG CỐT LÕI** {four_blocks} cho {content_type_vn}. Phải trả lời cụ thể:

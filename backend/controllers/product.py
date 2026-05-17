@@ -143,6 +143,29 @@ class ProductController(Controller):
         faqs = await product_service.suggest_faqs(name, description)
         return {"data": faqs}
 
+    @post("/ingredients-suggest", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)], status_code=201)
+    async def suggest_ingredients(
+        self,
+        product_service: ProductService,
+        data: Dict[str, str],
+    ) -> Dict[str, object]:
+        """GEO 2026: XOHI Auto Ingredients Extractor for Products."""
+        name = data.get("name", "")
+        ingredients = data.get("ingredients", "")
+        result = await product_service.suggest_ingredients(name, ingredients)
+        return {"data": result}
+
+    @post("/specs-suggest", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)], status_code=201)
+    async def suggest_specs(
+        self,
+        product_service: ProductService,
+        data: Dict[str, str],
+    ) -> Dict[str, object]:
+        """GEO 2026: XOHI Auto Specs Extractor for Products."""
+        raw_text = data.get("raw_text", "")
+        result = await product_service.suggest_specs(raw_text)
+        return {"data": result}
+
     @post("/seo-suggest", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
     async def suggest_seo(
         self,

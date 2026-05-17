@@ -427,10 +427,15 @@
 
   /* Elite V2.2: Desktop Prose Heading Optimization */
   :global(.prose-osmo h2, .prose-osmo h3) {
-    color: #000 !important;
+    color: #6b7280 !important;
     font-weight: 900 !important;
     margin-top: 1rem !important;
     margin-bottom: 0.75rem !important;
     letter-spacing: -0.02em !important;
+    text-transform: lowercase !important;
+  }
+
+  :global(.prose-osmo h2::first-letter, .prose-osmo h3::first-letter) {
+    text-transform: uppercase !important;
   }
 </style>

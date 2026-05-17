@@ -178,7 +178,7 @@
     color: #111; 
     margin-bottom: 4px; 
     border-left: 4px solid #ee4d2d; 
-    padding-left: 12px; 
+    padding-left: 6px; 
     text-transform: none; 
     letter-spacing: -0.02em;
   }
@@ -226,14 +226,20 @@
   }
 
   :global(.prose-osmo p) {
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.75rem !important;
   }
 
   :global(.prose-osmo h2, .prose-osmo h3) {
-    color: #000 !important;
+    color: #6b7280 !important;
     font-weight: 900 !important;
-    margin-top: 0.75rem !important;
-    margin-bottom: 0.5rem !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.3rem !important;
+    line-height: 1.3 !important;
+    text-transform: lowercase !important;
+  }
+
+  :global(.prose-osmo h2::first-letter, .prose-osmo h3::first-letter) {
+    text-transform: uppercase !important;
   }
 
   :global(.prose-osmo ul) {
@@ -244,16 +250,17 @@
 
   :global(.prose-osmo li) {
     margin-bottom: 0.5rem !important;
-    position: relative;
-    padding-left: 1.5rem;
+    position: relative !important;
+    padding-left: 0 !important;
   }
 
   :global(.prose-osmo li::before) {
-    content: "✦";
-    position: absolute;
-    left: 0;
-    color: #ee4d2d;
-    font-weight: bold;
+    content: "✦" !important;
+    position: static !important;
+    display: inline-block !important;
+    color: #ee4d2d !important;
+    font-weight: bold !important;
+    margin-right: 0.35rem !important;
   }
 
   :global(.prose-osmo img) {

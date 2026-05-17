@@ -5,6 +5,7 @@
   import Info from "@lucide/svelte/icons/info";
   import AudioLines from "@lucide/svelte/icons/audio-lines";
   import VolumeX from "@lucide/svelte/icons/volume-x";
+  import Beaker from "@lucide/svelte/icons/beaker";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import { portal } from "$lib/core/actions/portal";
   import InteractiveDashboard from "$lib/components/ui/InteractiveDashboard.svelte";
@@ -539,7 +540,13 @@
               {/if}
 
               {#if product.metadata?.ingredients}
-                <p class="text-[11px] text-white/40 leading-relaxed">
+                <div class="mt-4 mb-2 flex items-center gap-1.5">
+                  <Beaker class="w-3.5 h-3.5 text-teal-300/80" />
+                  <span class="text-[11px] font-bold text-white/50 tracking-wider">
+                    Bảng thành phần đầy đủ
+                  </span>
+                </div>
+                <p class="text-[11px] text-white/40 leading-relaxed font-mono">
                   {product.metadata.ingredients}
                 </p>
               {/if}
@@ -567,7 +574,6 @@
             </BottomSheet>
           {/if}
 
-          <div class="w-full h-px bg-white/8 mb-6"></div>
         </div>
 
         <div class="px-[5px] elite-prose">

@@ -175,7 +175,7 @@
           <div class="flex items-center gap-2 mt-1.5">
              <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"></div>
              <p class="text-[11px] text-[#FFB7C5] font-black tracking-[0.3em] opacity-90">
-               {supportAgent.helenEnabled ? 'ĐANG HOẠT ĐỘNG' : 'CHUYÊN VIÊN TRỰC'}
+               {supportAgent.helenEnabled ? 'Đang hoạt động' : 'Chuyên viên trực'}
              </p>
           </div>
         </div>

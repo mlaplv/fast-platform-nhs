@@ -489,13 +489,17 @@
   }
 
   :global(.prose-osmo h2, .prose-osmo h3) {
-    color: #111827 !important;
+    color: #6b7280 !important;
     font-weight: 800 !important;
     margin-top: 2rem !important;
     margin-bottom: 1rem !important;
     font-family: inherit !important;
-    text-transform: none;
+    text-transform: lowercase !important;
     letter-spacing: -0.025em;
+  }
+
+  :global(.prose-osmo h2::first-letter, .prose-osmo h3::first-letter) {
+    text-transform: uppercase !important;
   }
 
   :global(.prose-osmo h2) { font-size: 20px !important; }
@@ -514,7 +518,7 @@
     list-style-type: none !important;
     position: relative !important;
     margin-bottom: 0.75rem !important;
-    padding-left: 1.5rem !important;
+    padding-left: 0 !important;
   }
 
   :global(.prose-osmo ul li::marker),
@@ -525,12 +529,12 @@
   /* Level 1 Bullet: Viral Sparkle */
   :global(.prose-osmo ul > li::before) {
     content: "✦" !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 0.1em !important;
+    position: static !important;
+    display: inline-block !important;
     color: #ee4d2d !important;
     font-size: 14px !important;
     line-height: 1.6 !important;
+    margin-right: 0.35rem !important;
   }
 
   /* Level 2 */

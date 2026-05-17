@@ -120,10 +120,15 @@
   :global(.prose-osmo h2) {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #111827;
+    color: #6b7280 !important;
     margin-top: 2.5rem;
     margin-bottom: 1.25rem;
     letter-spacing: -0.025em;
+    text-transform: lowercase !important;
+  }
+
+  :global(.prose-osmo h2::first-letter) {
+    text-transform: uppercase !important;
   }
 
   :global(.prose-osmo p) {

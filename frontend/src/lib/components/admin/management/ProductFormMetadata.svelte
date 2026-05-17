@@ -257,6 +257,48 @@
     }
   }
 
+  let isSuggestingIngredients = $state(false);
+
+  async function handleAiSuggestIngredients() {
+    if (!formState.metadata.ingredients || !formState.metadata.ingredients.trim()) {
+      nanobot.showToast(
+        "Vui lòng nhập bảng thành phần trước khi gọi XOHI.",
+        "warning",
+      );
+      return;
+    }
+    isSuggestingIngredients = true;
+    try {
+      const res = await apiClient.post<{
+        data: { name: string; benefit: string; icon: string }[];
+      }>("/api/v1/products/ingredients-suggest", {
+        name: formState.name || "",
+        ingredients: formState.metadata.ingredients,
+      });
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        formState.metadata.featured_ingredients = res.data.map((item) => ({
+          name: item.name,
+          benefit: item.benefit,
+          icon: item.icon || getIngredientIcon(item.name)
+        }));
+        nanobot.showToast(
+          "XOHI đã tự động tạo thành công 4 thành phần nổi bật.",
+          "success",
+        );
+      } else {
+        nanobot.showToast(
+          "XOHI không thể trích xuất thành phần. Vui lòng kiểm tra lại bảng thành phần.",
+          "error",
+        );
+      }
+    } catch (e) {
+      console.error("XOHI Ingredients Suggestion failed:", e);
+      nanobot.showToast("Lỗi kết nối tới hệ thống AI XOHI.", "error");
+    } finally {
+      isSuggestingIngredients = false;
+    }
+  }
+
   function toggleSharePromo() {
     if (!formState.metadata.share_promotion) {
       formState.metadata.share_promotion = {
@@ -725,12 +767,27 @@
         <Star size={11} class="text-amber-400/60" />
         Thành phần nổi bật
       </div>
-      <button
-        type="button"
-        onclick={addFeaturedIngredient}
-        class="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[9px] font-black tracking-wider"
-        >Thêm</button
-      >
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          onclick={handleAiSuggestIngredients}
+          disabled={isSuggestingIngredients}
+          class="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-black tracking-wider flex items-center gap-1.5 disabled:opacity-50"
+        >
+          {#if isSuggestingIngredients}
+            <RefreshCw size={10} class="animate-spin" />
+            PHÂN TÍCH...
+          {:else}
+            XOHI AUTO
+          {/if}
+        </button>
+        <button
+          type="button"
+          onclick={addFeaturedIngredient}
+          class="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400 text-[9px] font-black tracking-wider"
+          >Thêm</button
+        >
+      </div>
     </div>
 
     {#if formState.metadata.featured_ingredients && formState.metadata.featured_ingredients.length > 0}

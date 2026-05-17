@@ -400,7 +400,7 @@
           <div class="mb-0 md:mb-0 lg:mb-12 text-left relative overflow-hidden">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6">
               <div>
-                <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-semibold text-white tracking-tighter mb-2 whitespace-nowrap pt-2">Phác đồ điều trị</h3>
+                <h3 class="text-3xl md:text-[2.25rem] lg:text-5xl font-semibold text-white tracking-tighter mb-2 whitespace-nowrap pt-2 uppercase">PHÁC ĐỒ ĐIỀU TRỊ</h3>
                 <p class="text-luxury-copper/60 font-semibold text-[10px] tracking-[0.4em]">Kiến tạo bởi Trí tuệ Nhân tạo osmo 2026</p>
               </div>
               <div class="flex items-center gap-4">
@@ -453,6 +453,12 @@
               <span class="relative z-surface">Xem liệu trình</span>
               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
             </button>
+
+            <!-- Security & Privacy Disclaimer integrated inside clinical results card -->
+            <p class="text-[10px] font-medium text-white/35 tracking-[0.05em] leading-relaxed max-w-xs mx-auto text-center mt-2 animate-fade-in">
+              AI có thể mắc sai sót. Vì vậy, hãy xác minh thông tin này với bác sĩ.
+            </p>
+
             <button
               onclick={restart}
               class="text-[10px] font-semibold text-white/10 hover:text-luxury-copper/50 transition-colors tracking-[0.4em] py-2"

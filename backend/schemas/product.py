@@ -12,6 +12,13 @@ class FaqItem(BaseModel):
     question: str
     answer: str
 
+class FeaturedIngredientItem(BaseModel):
+    """Elite V2.2: Structured Featured Ingredient for Product Detail."""
+    model_config = ConfigDict(strict=True, populate_by_name=True)
+    name: str
+    benefit: str
+    icon: Optional[str] = ""
+
 class SeoMetaSchema(BaseModel):
     model_config = ConfigDict(strict=True)
     title: str
@@ -66,6 +73,9 @@ class ProductMetadata(BaseModel):
 
     # Elite V2.2: Product FAQs (Tùy biến từ Admin → hiện trên Product Detail + Schema JSON-LD)
     faqs: List[FaqItem] = Field(default_factory=list, alias="faqs")
+
+    # Elite V2.2: Featured Ingredients
+    featured_ingredients: List[FeaturedIngredientItem] = Field(default_factory=list, alias="featured_ingredients")
 
     # R00 Compliance: Externalized UI Labels
     sync_loading_text: Optional[str] = Field(None, alias="sync_loading_text")

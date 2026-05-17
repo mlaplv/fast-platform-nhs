@@ -78,6 +78,24 @@ export function createAnalysisController(config: {
                 const isSuccess = data.status === 'WAITING_FOR_REVIEW' || data.status === 'COMPLETED' || data.status === 'SUCCESS';
                 const isError = data.status === 'ERROR';
                 
+                // [CNS V92.2] Worker-Result Auto-Fetch: Khi worker xong, pull kết quả mới từ DB cache
+                // (skipSave=true vì worker đã lưu sẵn, force=false để lấy từ cache không tốn thêm AI token)
+                if (isSuccess) {
+                    const wasLoadingCopyright = isCopyrightLoading;
+                    const wasLoadingSeo       = isSeoLoading;
+                    const wasLoadingAi        = isAiLoading;
+                    if (wasLoadingCopyright) {
+                        addTerminalLog("🔄 Worker hoàn tất — đang tải kết quả mới từ Neural Vault...");
+                        runCopyrightCheck(false, true).catch(() => {});
+                    } else if (wasLoadingSeo) {
+                        addTerminalLog("🔄 Worker hoàn tất — đang tải kết quả SEO mới...");
+                        runSeoAnalysis(false, true).catch(() => {});
+                    } else if (wasLoadingAi) {
+                        addTerminalLog("🔄 Worker hoàn tất — đang tải kết quả AI mới...");
+                        runAiAnalysis(false, true).catch(() => {});
+                    }
+                }
+
                 // [CNS V90.0] Fire Toast BEFORE resetting loading flags to ensure condition matches
                 if (isSuccess && (isBulkFixing || isCopyrightLoading || isSeoLoading || isAiLoading)) {
                     nanobot.showToast(data.progress_msg || "Xử lý hoàn tất thành công!", "success");
@@ -93,14 +111,13 @@ export function createAnalysisController(config: {
                 }
 
                 // CNS V85.8: Persistence logic — giữ trạng thái "Hoàn tất" lâu hơn
-                if (isBulkFixing || isCopyrightLoading || isSeoLoading || isAiLoading) {
-                    bulkFixStatus = isSuccess ? "Hoàn tất ✅" : "Thất bại ❌"; 
-                    
+                // Chỉ reset ngay nếu KHÔNG phải đang auto-fetch (isSuccess với loading flags)
+                if (!isSuccess && (isBulkFixing || isCopyrightLoading || isSeoLoading || isAiLoading)) {
+                    bulkFixStatus = "Thất bại ❌";
                     setTimeout(() => {
-                        // Reset all flags after user had time to see the status
                         isCopyrightLoading = false; isSeoLoading = false; isAiLoading = false; isBulkFixing = false; isBoosting = false;
                         bulkFixStatus = "";
-                    }, 2500); // CNS V85.8: UI persistence — 2.5s is optimal
+                    }, 2500);
                 }
             });
         }

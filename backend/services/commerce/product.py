@@ -16,7 +16,7 @@ from backend.utils.sql import escape_like
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.event_bus import event_bus
 from backend.utils.media import extract_media_urls
-from backend.services.commerce.logic.product_ai import suggest_seo_logic, suggest_faqs_logic
+from backend.services.commerce.logic.product_ai import suggest_seo_logic, suggest_faqs_logic, suggest_ingredients_logic, suggest_specs_logic
 from backend.services.commerce.logic.viral_hydration import hydrate_viral_config_logic, sanitize_vouchers_logic
 from backend.services.commerce.logic.product_bulk import bulk_delete_logic, bulk_activate_logic, bulk_update_logic
 from backend.services.commerce.logic.product_query import list_products_logic, get_product_logic, get_product_by_slug_logic
@@ -446,6 +446,14 @@ class ProductService:
     async def suggest_faqs(self, name: str, description: str) -> List[Dict[str, str]]:
         """Elite V2.2: XOHI Auto FAQ Generator (Delegated)."""
         return await suggest_faqs_logic(name, description)
+
+    async def suggest_ingredients(self, name: str, ingredients: str) -> List[Dict[str, str]]:
+        """Elite V2.2: XOHI Auto Ingredients Extractor (Delegated)."""
+        return await suggest_ingredients_logic(name, ingredients)
+
+    async def suggest_specs(self, raw_text: str) -> Dict[str, str]:
+        """Elite V2.2: XOHI Auto Specifications Extractor (Delegated)."""
+        return await suggest_specs_logic(raw_text)
 
     async def sync_market_price(self, db_session: AsyncSession, product_id: str) -> Dict[str, object]:
         """Elite V2.2: Market Price Intel Sync (1/Day)."""

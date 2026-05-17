@@ -399,7 +399,7 @@
       <div class="w-full md:w-1/2 flex flex-col relative justify-center">
          <div class="metrics-arc-container">
             {#each metrics as metric, i}
-                <div class="hud-metric-segment group relative pt-5 px-6 pb-5 -mx-6 transition-all duration-500 rounded-3xl border border-transparent hover:border-white/10 hover:bg-white/[0.02]" 
+                <div class="hud-metric-segment group relative pt-3 px-6 pb-3 -mx-6 transition-all duration-500 rounded-3xl border border-transparent hover:border-white/10 hover:bg-white/[0.02]" 
                      style:--idx={i}
                      onmousemove={(e) => {
                        const rect = e.currentTarget.getBoundingClientRect();

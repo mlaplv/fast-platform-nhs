@@ -110,26 +110,33 @@ html {
   }
 
   & .hero-description {
-    font-family: var(--font-main);
-    font-weight: 300 !important;
+    font-family: 'Be Vietnam Pro', sans-serif !important;
+    font-weight: 400 !important;
     color: rgba(255, 255, 255, 0.85) !important;
     text-align: center;
-    line-height: 1.85 !important;
-    letter-spacing: 0.02em !important;
-    font-size: var(--fs-sub) !important;
-    max-width: 70ch;
+    line-height: 1.7 !important;
+    letter-spacing: 0.015em !important;
+    font-size: 1.1rem !important;
+    max-width: 82ch;
     margin: 0 auto !important;
     padding: 0 1.5rem;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     text-wrap: balance;
 
+    & p, & div {
+      font-size: inherit !important;
+      line-height: inherit !important;
+      letter-spacing: inherit !important;
+      font-weight: inherit !important;
+    }
+
     @media (max-width: 1024px) {
-      font-size: 1.25rem !important;
-      line-height: 1.7 !important;
+      font-size: 1.02rem !important;
+      line-height: 1.65 !important;
     }
 
     @media (max-width: 768px) {
-      font-size: 0.95rem !important;
+      font-size: 0.92rem !important;
       line-height: 1.6 !important;
       font-weight: 400 !important;
     }
@@ -137,7 +144,7 @@ html {
     & strong,
     & h1 {
       font-weight: 600 !important;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
     }
   }
 
@@ -241,7 +248,7 @@ html {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.25rem;
+    gap: 0.5rem;
     width: 100%;
     margin-bottom: 2rem;
 

@@ -277,22 +277,31 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
                 report_time = datetime.now(timezone.utc).strftime('%H:%M:%S %d/%m/%Y')
                 time_badge = f"> ⏱️ **Báo cáo lập lúc:** `{report_time}`\n\n"
                 
+                # CNS V92.1: Reset verdict field TRƯỚC — chặn AI leak "---"/whitespace vào fallback
+                raw.verdict = ""
+
                 if hasattr(raw, 'verdict_gap') or hasattr(raw, 'verdict_evidence') or hasattr(raw, 'verdict_strategy'):
-                    gap = getattr(raw, 'verdict_gap', '') or ''
-                    evidence = getattr(raw, 'verdict_evidence', '') or ''
-                    strategy = getattr(raw, 'verdict_strategy', '') or ''
-                    
+                    # .strip() bắt buộc: loại whitespace-only strings (truthy nhưng render rỗng)
+                    gap      = (getattr(raw, 'verdict_gap', '')      or '').strip()
+                    evidence = (getattr(raw, 'verdict_evidence', '') or '').strip()
+                    strategy = (getattr(raw, 'verdict_strategy', '') or '').strip()
+
+                    # CNS V92.3 DEBUG — dump để xác nhận AI có trả dữ liệu không
+                    logger.warning(f"🔬 [PlagiarismCop] gap={len(gap)}c | ev={len(evidence)}c | strat={len(strategy)}c")
+                    logger.warning(f"🔬 [PlagiarismCop] gap_preview={repr(gap[:120])}")
+
                     combined = ""
                     if gap or evidence or strategy:
-                        combined += f"### 🛡️ ⚔️ BẢN TRÌNH BÁO CHIẾN LƯỢC BẢN QUYỀN | {context.get('role_assignment', 'Chuyên gia')}\n---\n\n"
-                        if gap: combined += f"#### 🔍 [1. LUẬN ĐIỂM PHẢN BIỆN — CRITICAL GAP]\n\n{gap}\n\n"
+                        # CNS V92.3: Bỏ \n---\n\n khỏi header — đây là nguồn gốc dấu '---' trơ khi section rỗng
+                        combined += f"### 🛡️ ⚔️ BẢN TRÌNH BÁO CHIẾN LƯỢC BẢN QUYỀN | {context.get('role_assignment', 'Chuyên gia')}\n\n"
+                        if gap:      combined += f"#### 🔍 [1. LUẬN ĐIỂM PHẢN BIỆN — CRITICAL GAP]\n\n{gap}\n\n"
                         if evidence: combined += f"#### 🔗 [2. HỒ SƠ CHỨNG CỨ VÀ NGHIÊN CỨU — EVIDENCE & RESEARCH FILE]\n\n{evidence}\n\n"
                         if strategy: combined += f"#### 💎 [3. CHIẾN LƯỢC TÁI CẤU TRÚC — RESTRUCTURING STRATEGY]\n\n{strategy}\n\n"
                     
                     if combined:
                         raw.verdict = time_badge + combined
                     else:
-                        raw.verdict = time_badge + (getattr(raw, 'verdict', '') or "⚠️ [BRAIN] Không có phản hồi nội dung phân tích.")
+                        raw.verdict = time_badge + "⚠️ [BRAIN] AI không trả về nội dung phân tích — thử lại hoặc kiểm tra model."
                 else:
                     raw.verdict = time_badge + (getattr(raw, 'verdict', '') or "⚠️ [BRAIN] Không có phản hồi nội dung phân tích.")
                 
@@ -352,8 +361,7 @@ class PlagiarismCop(BaseAgentOperative, SearchKeyMixin):
             annotations=h_annots,
             similar_sources=[],
             verdict=(
-                f"### 🛡️ ⚔️ BẢN TRÌNH BÁO CHIẾN LƯỢC BẢN QUYỀN (HEURISTIC MODE)\n"
-                f"---\n\n"
+                f"### 🛡️ ⚔️ BẢN TRÌNH BÁO CHIẾN LƯỢC BẢN QUYỀN (HEURISTIC MODE)\n\n"
                 f"#### 🔍 [1. LUẬN ĐIỂM PHẢN BIỆN — CRITICAL GAP]\n\n"
                 f"- Hệ thống AI Neural đang tạm thời bận — đã kích hoạt chế độ trinh sát cục bộ (Local Heuristic) để đảm bảo tiến độ không gián đoạn.\n"
                 f"- Kết quả sơ bộ dựa trên so sánh từ vựng (Jaccard + Token Overlap) với nội dung đối thủ đã thu thập.\n"

@@ -4,6 +4,11 @@
   import Package from "@lucide/svelte/icons/package";
   import Edit2 from "@lucide/svelte/icons/edit-2";
   import Plus from "@lucide/svelte/icons/plus";
+  import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+  import { apiClient } from "$lib/utils/apiClient";
+  import { useNanobot } from "$lib/state/nanobot.svelte";
+
+  const nanobot = useNanobot();
 
   import type { ProductFormState } from "$lib/types";
 
@@ -66,6 +71,41 @@
     originalKey = key;
     showForm = true;
   }
+
+  let rawSpecsText = $state("");
+  let isExtractingSpecs = $state(false);
+
+  async function handleExtractSpecs() {
+    if (!rawSpecsText.trim()) {
+      nanobot.showToast("Vui lòng nhập văn bản thông số kỹ thuật thô.", "warning");
+      return;
+    }
+    isExtractingSpecs = true;
+    try {
+      const res = await apiClient.post<{ data: Record<string, string> }>(
+        "/api/v1/products/specs-suggest",
+        { raw_text: rawSpecsText }
+      );
+      if (res && res.data && Object.keys(res.data).length > 0) {
+        if (!formState.attributes) {
+          formState.attributes = {};
+        }
+        formState.attributes = {
+          ...formState.attributes,
+          ...res.data
+        };
+        rawSpecsText = "";
+        nanobot.showToast("Đã bóc tách thông số thành công!", "success");
+      } else {
+        nanobot.showToast("Không tìm thấy thông số phù hợp từ văn bản.", "error");
+      }
+    } catch (e) {
+      console.error("XOHI Specs Extraction failed:", e);
+      nanobot.showToast("Lỗi hệ thống khi bóc tách thông số.", "error");
+    } finally {
+      isExtractingSpecs = false;
+    }
+  }
 </script>
 
 <div class="section-label mb-4 flex items-center justify-between">
@@ -85,6 +125,43 @@
       EDIT / THÊM
     {/if}
   </button>
+</div>
+
+<!-- QUICK SPECS INPUT (XOHI Auto) -->
+<div class="mb-4 p-3 rounded-xl bg-purple-500/[0.02] border border-purple-500/10 flex flex-col gap-2">
+  <div class="flex items-center justify-between">
+    <span class="text-[8px] font-black tracking-wider text-purple-400">NHẬP NHANH THÔNG SỐ (XOHI AUTO)</span>
+    {#if isExtractingSpecs}
+      <span class="text-[8px] text-purple-400/60 font-mono flex items-center gap-1">
+        <RefreshCw size={8} class="animate-spin" /> Đang bóc tách...
+      </span>
+    {/if}
+  </div>
+  <div class="flex gap-2">
+    <input 
+      type="text" 
+      bind:value={rawSpecsText}
+      placeholder="Ví dụ: Thương hiệu: Hurry Harry, Xuất xứ: Japan, Quy cách: 40g"
+      class="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500/50 transition-colors"
+      onkeydown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleExtractSpecs();
+        }
+      }}
+    />
+    <button
+      type="button"
+      onclick={handleExtractSpecs}
+      disabled={isExtractingSpecs}
+      class="px-4 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500 border border-purple-500/30 text-purple-400 hover:text-white text-[9px] font-black tracking-wider transition-all disabled:opacity-50 flex items-center gap-1.5"
+    >
+      {#if isExtractingSpecs}
+        <RefreshCw size={9} class="animate-spin" />
+      {/if}
+      BÓC TÁCH
+    </button>
+  </div>
 </div>
 
 <div class="flex flex-col gap-3">
