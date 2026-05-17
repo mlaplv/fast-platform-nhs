@@ -35,6 +35,7 @@
   let editingId = $state<string | null>(null);
   let selectedIds = $state<Set<string>>(new Set());
   let isSaving = $state(false);
+  let isAiFeaturedOnly = $state(false);
 
   import type { ProductFormState } from "$lib/types";
 
@@ -90,6 +91,7 @@
       if (activeFilter !== "all") params.append("status", activeFilter);
       if (activeCategory) params.append("category_id", activeCategory);
       if (searchTerm) params.append("search", searchTerm);
+      if (isAiFeaturedOnly) params.append("featured_only", "true");
 
       const [pRes, cData] = await Promise.all([
         apiClient.get<{ data: Product[]; total: number }>(`/api/v1/products?${params.toString()}`),
@@ -120,7 +122,7 @@
 
   $effect(() => { 
     // Trigger reload only on these primary state changes
-    currentPage; pageSize; activeFilter; activeCategory; searchTerm;
+    currentPage; pageSize; activeFilter; activeCategory; searchTerm; isAiFeaturedOnly;
 
     untrack(() => {
       loadProducts(); 
@@ -500,6 +502,8 @@
         onToggleSelectAll={toggleSelectAll}
         onOpenCreate={openCreate}
         onLoadProducts={loadProducts}
+        isAiFeaturedOnly={isAiFeaturedOnly}
+        onAiFeaturedOnlyChange={(val) => { isAiFeaturedOnly = val; currentPage = 1; }}
       />
     </div>
 

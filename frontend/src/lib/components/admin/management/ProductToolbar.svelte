@@ -36,6 +36,8 @@
     onToggleSelectAll,
     onOpenCreate,
     onLoadProducts,
+    isAiFeaturedOnly = false,
+    onAiFeaturedOnlyChange,
   } = $props<{
     searchInput: string;
     activeFilter: string;
@@ -60,6 +62,8 @@
     onToggleSelectAll: () => void;
     onOpenCreate: () => void;
     onLoadProducts: () => void;
+    isAiFeaturedOnly: boolean;
+    onAiFeaturedOnlyChange: (val: boolean) => void;
   }>();
 </script>
 
@@ -136,6 +140,18 @@
           {f === "all" ? "Full_Grid" : STATUS_MAP[f]?.label || f}
         </button>
       {/each}
+
+      <!-- AI Recommendations Filter (Elite V2.2) -->
+      <button
+        onclick={() => onAiFeaturedOnlyChange(!isAiFeaturedOnly)}
+        class="px-4 py-2.5 text-[10px] font-mono tracking-[0.2em] rounded-xl transition-all duration-300 relative overflow-hidden group/btn font-bold flex-shrink-0 flex items-center gap-1.5
+            {isAiFeaturedOnly
+          ? 'text-[#00FFFF] bg-white/[0.05] ring-1 ring-[#00FFFF]/40 shadow-[0_0_12px_rgba(0,255,255,0.15)] font-black'
+          : 'text-gray-500 hover:text-[#00FFFF] hover:bg-white/[0.05]'}"
+      >
+        <Sparkles size={12} class={isAiFeaturedOnly ? "text-[#00FFFF] animate-pulse" : "opacity-50"} />
+        AI_RECOMMENDED
+      </button>
     </div>
 
     <!-- Actions -->
