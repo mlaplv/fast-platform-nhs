@@ -239,18 +239,6 @@
     };
   });
 
-  function onHorizontalScroll(e: Event): void {
-    const target = e.target as HTMLElement;
-    console.log('[DEBUG HomeProductGrid] Horizontal scroll event. scrollLeft:', target.scrollLeft);
-    if (autoLoaded || !hasMoreProducts) return;
-    // Hoặc khi Sếp kéo vuốt sản phẩm ngang > 50px
-    if (target.scrollLeft > 50) {
-      console.log('[DEBUG HomeProductGrid] Auto-load triggered via horizontal scroll! Setting limit to 8.');
-      visibleLimit = 8;
-      autoLoaded = true;
-    }
-  }
-
   function handleLoadMore(): void {
     visibleLimit += 4;
   }
@@ -393,12 +381,12 @@
     {/each}
   </div>
 
-  <!-- PRODUCT LIST -->
-  <div onscroll={onHorizontalScroll} class="flex overflow-x-auto no-scrollbar scroll-smooth gap-2 px-1 md:px-0 pb-10">
+  <!-- PRODUCT LIST (Grid Layout: Auto wraps vertically for Elite UX) -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pb-10">
     {#each currentProducts as product (product.id)}
       <button
         onclick={() => goto(`/${product.originalSlug || product.slug || slugify(product.name)}`)}
-        class="group/card relative flex-shrink-0 w-[calc((100%-6px)/2)] md:w-[calc((100%-6px)/4)] lg:w-[calc((100%-6px)/4)] bg-white border border-black/5 transition-all duration-700 cursor-pointer text-left flex flex-col active:scale-[0.98] shadow-sm hover:shadow-2xl"
+        class="group/card relative w-full bg-white border border-black/5 transition-all duration-700 cursor-pointer text-left flex flex-col active:scale-[0.98] shadow-sm hover:shadow-2xl"
       >
         <div class="aspect-square w-full relative overflow-hidden bg-[#fafafa]">
           {#if product.isAiPick}
