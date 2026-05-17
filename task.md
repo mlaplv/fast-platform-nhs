@@ -80,3 +80,21 @@
 - [x] Tích hợp nút SELECT_ALL sang trọng tại [ProductToolbar.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/ProductToolbar.svelte).
 - [x] Nâng cấp hàm `bulkDiscount()` thành form đa trường hỗ trợ 3 hình thức: Giảm theo %, Nhập giá trực tiếp, Xoá KM tại [ProductManagement.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/ProductManagement.svelte).
 - [x] Kiểm thức biên dịch frontend thành công (0 lỗi mới phát sinh từ các file đã sửa).
+
+# Home Product Grid Dynamic Load More on Scroll & Button (Elite V2.2)
+- [x] Phân tích `HomeProductGrid.svelte` và thiết kế giải pháp tải động sản phẩm.
+- [x] Khai báo các trạng thái `$state` cho `visibleLimit`, `autoLoaded`, và `triggerEl` trong `HomeProductGrid.svelte`.
+- [x] Tối ưu hóa `extendedCatalog` bằng cách chỉ tăng slice cho tab đang hoạt động để tiết kiệm RAM.
+- [x] Dựng `IntersectionObserver` tự giải phóng tài nguyên ngay sau khi scroll load lần đầu.
+- [x] Tích hợp phần tử trigger và bọc nút "Xem thêm" theo đúng logic: scroll load lần đầu, hiện nút từ lần 2.
+- [x] Tự kiểm thức và kiểm tra biên dịch frontend thành công.
+
+# Home Mobile Product Feed Dynamic Load More on Scroll & Button (Elite V2.2)
+- [x] Phân tích `MobileProductFeed.svelte` và cấu hình giải pháp tải động.
+- [x] Khai báo biến `$state` cho `visibleLimit`, `autoLoaded`, và `triggerEl` trên mobile.
+- [x] Lọc động danh sách hiển thị `displayedProducts` bằng slice để tối ưu hóa bộ nhớ.
+- [x] Tích hợp `IntersectionObserver` tự hủy ngầm ngay khi scroll-load lần đầu.
+- [x] Thêm trigger element và nút "Xem thêm" sang trọng chân trang mobile.
+- [x] Tự kiểm thức và kiểm tra biên dịch frontend thành công.
+
+

@@ -102,10 +102,12 @@
    */
   const extendedCatalog: Product[] = $derived(
     tabs.flatMap((tab) => {
+      const currentLimit = tab.id === activeTab ? visibleLimit : 10;
+      const endSlice = currentLimit + 1;
       if (tab.id === 'ai' && productsAi.length > 0) {
-        return productsAi.slice(1, 11).map((p) => normalizeProduct(p, 'ai'));
+        return productsAi.slice(1, endSlice).map((p) => normalizeProduct(p, 'ai'));
       } else if (products.length > 0) {
-        return products.slice(1, 11).map((p) => normalizeProduct(p, tab.id));
+        return products.slice(1, endSlice).map((p) => normalizeProduct(p, tab.id));
       }
       return [];
     })
@@ -162,9 +164,58 @@
   onDestroy(() => {
     if (timerInterval) clearInterval(timerInterval);
   });
+
+  /**
+   * LOAD MORE LOGIC - Desktop Scroll Listener (Elite V2.2)
+   * Dùng window scroll thay vì IntersectionObserver vì layout desktop là
+   * overflow-x-auto (scroll ngang), trigger element nằm ngay trong viewport.
+   */
+  let visibleLimit = $state(10);
+  let autoLoaded = $state(false);
+  let sectionEl = $state<HTMLElement | null>(null);
+
+  const hasMoreProducts = $derived(
+    activeTab === 'ai'
+      ? productsAi.length > visibleLimit + 1
+      : products.length > visibleLimit + 1
+  );
+
+  $effect(() => {
+    const _ = activeTab;
+    visibleLimit = 10;
+    autoLoaded = false;
+  });
+
+  $effect(() => {
+    if (autoLoaded || !hasMoreProducts || !sectionEl) return;
+
+    function onScroll(): void {
+      if (!sectionEl || autoLoaded) return;
+      const rect = sectionEl.getBoundingClientRect();
+      // Kích hoạt khi bottom của section cách đáy viewport <= 300px
+      if (rect.bottom <= window.innerHeight + 300) {
+        visibleLimit = 20;
+        autoLoaded = true;
+        window.removeEventListener('scroll', onScroll, { passive: true } as EventListenerOptions);
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // Kiểm tra ngay lập tức phòng trường hợp section đã trong viewport khi mount
+    onScroll();
+
+    return () => {
+      window.removeEventListener('scroll', onScroll, { passive: true } as EventListenerOptions);
+    };
+  });
+
+  function handleLoadMore(): void {
+    visibleLimit += 10;
+  }
 </script>
 
-<section class="home-product-grid-section relative mb-[5px] overflow-visible">
+<section bind:this={sectionEl} class="home-product-grid-section relative mb-[5px] overflow-visible">
 
   <!-- Optimized Background -->
   <div class="absolute inset-0 bg-gradient-to-b from-[#ee4d2d]/5 to-transparent pointer-events-none"></div>
@@ -377,19 +428,22 @@
     {/each}
   </div>
 
+
   <!-- BRAND FLOOR -->
-  <footer class="mt-[8px] mb-1 flex flex-col items-center">
-    <button 
-        onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        class="group/foot relative py-1 px-6 overflow-hidden active:scale-95 transition-all"
-    >
-        <span class="relative z-10 text-[11px] font-black tracking-[0.4em] text-black/40 group-hover/foot:text-black group-hover/foot:tracking-[0.5em] transition-all duration-700 flex items-center gap-4">
-            Xem thêm
-            <svg class="w-4 h-4 opacity-20 group-hover/foot:opacity-100 group-hover/foot:translate-x-2 transition-all duration-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-        </span>
-        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[1px] bg-black/10 group-hover/foot:w-full transition-all duration-1000"></div>
-    </button>
-  </footer>
+  {#if autoLoaded && hasMoreProducts}
+    <footer class="mt-[8px] mb-1 flex flex-col items-center">
+      <button 
+          onclick={handleLoadMore}
+          class="group/foot relative py-1 px-6 overflow-hidden active:scale-95 transition-all"
+      >
+          <span class="relative z-10 text-[11px] font-black tracking-[0.4em] text-black/40 group-hover/foot:text-black group-hover/foot:tracking-[0.5em] transition-all duration-700 flex items-center gap-4">
+              Xem thêm
+              <svg class="w-4 h-4 opacity-20 group-hover/foot:opacity-100 group-hover/foot:translate-x-2 transition-all duration-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+          </span>
+          <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[1px] bg-black/10 group-hover/foot:w-full transition-all duration-1000"></div>
+      </button>
+    </footer>
+  {/if}
 </section>
 
 <style>
