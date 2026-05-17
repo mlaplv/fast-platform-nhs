@@ -5,7 +5,7 @@ Sếp thắc mắc tại sao khi thao tác chia sẻ thành công một sản ph
 
 ## 2. Truy Vết (Forensic Trace)
 - **Lỗi hiển thị & ẩn (Flicker / Ghosting)**: 
-  - Khi xem code file `ShareToUnlock.svelte` và `ShareToUnlockPromoMobile.svelte`, AI phát hiện ra điều kiện render gốc của component là: `{#if isEnabled && step !== 'revealed'}`.
+  - Khi xem code file `ShareToUnlock.svelte` and `ShareToUnlockPromoMobile.svelte`, AI phát hiện ra điều kiện render gốc của component là: `{#if isEnabled && step !== 'revealed'}`.
   - Khi người dùng share thành công, biến `step` chuyển thành `'revealed'`. Điều kiện `step !== 'revealed'` trở thành sai, dẫn đến việc toàn bộ component **bị tháo dỡ khỏi DOM (unmounted) ngay lập tức**. Đây chính là lý do box share "biến mất" sau khi share.
 - **Lỗi tràn trạng thái (State Leakage) khi chuyển trang**:
   - Khi người dùng bấm sang một sản phẩm khác, SvelteKit tái sử dụng cấu trúc DOM (vì cùng một Route `[slug]-funnel`). 
@@ -35,7 +35,7 @@ Khi người dùng đăng nhập bằng tài khoản có đặc quyền quản t
 
 ## 2. Kết quả Forensic & Truy Vết Gốc Rễ (Root Cause)
 1. **Lệch pha phân quyền SSR vs CSR**:
-   - Phía Server (SSR): Vì domain đang truy cập là storefront, `locals.tenant` được xác định là `'client'`. Server-side render kết xuất HTML với `liveEditStore.isAdmin = false`. Toàn bộ bộ công cụ Dynamic Admin JIT (`AdminActionBar`, `LiveEditorOverlay`, `LiveEditNotification`) **KHÔNG được render** thành mã HTML gửi về.
+   - Phía Server (SSR): Vì domain đang truy cập là storefront, `locals.tenant` được xác định là `'client'`. Server-side render kết xuất HTML with `liveEditStore.isAdmin = false`. Toàn bộ bộ công cụ Dynamic Admin JIT (`AdminActionBar`, `LiveEditorOverlay`, `LiveEditNotification`) **KHÔNG được render** thành mã HTML gửi về.
    - Phía Client (Vòng đời Hydration): Lớp Singleton `PermissionState` giải mã token JWT từ Cookie `admin_token` ngay trong constructor lúc import module. Do đó, `permissionState.roles` có giá trị `["ADMIN"]` ngay lập tức trước khi Svelte kịp tiến hành Hydration.
    - Khi Svelte 5 bắt đầu tiến hành hydration ở Client, nó phát hiện `liveEditStore.isAdmin` là `true` nên cố gắng dựng và import động các widget Admin.
 2. **Crash do Hydration Mismatch**:
@@ -56,7 +56,7 @@ Khi người dùng đăng nhập bằng tài khoản có đặc quyền quản t
        isMounted = true;
      }, 150);
      ```
-   - Điều này đẩy việc chuyển trạng thái `isMounted = true` sang vòng lặp sự kiện (event loop) tiếp theo, đảm bảo Svelte đã hoàn thành 100% root hydration, đặt cờ `hydrating = false` và ổn định hoàn toàn cấu trúc DOM storefront.
+   - Điều này đẩy việc chuyển trạng thái `isMounted = true` sang vòng lặp sự kiện (event loop) tiếp theo, đảm bảo Svelte đã hoàn thành 100% root hydration, đặt cờ `hydrating = false` and ổn định hoàn toàn cấu trúc DOM storefront.
 3. **Kỷ Luật Tài Nguyên (Resource Discipline)**:
    - Đăng ký giải phóng `clearTimeout(timer)` tại hàm hủy của `onMount` để phòng tránh rò rỉ bộ nhớ (Memory Leak) trong trường hợp Component bị hủy trước khi bộ đếm kết thúc.
 4. Thay đổi điều kiện kết xuất bộ công cụ Admin:
@@ -64,7 +64,7 @@ Khi người dùng đăng nhập bằng tài khoản có đặc quyền quản t
    {#if isMounted && liveEditStore.isAdmin}
      {#await import("$lib/components/admin/AdminActionBar.svelte") then { default: AdminActionBar }}
        <AdminActionBar />
-     {/await}
+     {#await ...}
      ...
    {/if}
    ```
@@ -73,3 +73,26 @@ Cổng bảo vệ trì hoãn này ép Client phải duy trì DOM khớp tuyệt 
 ## 4. Kết Quả
 Hệ thống storefront hoạt động ổn định tuyệt đối với mọi loại tài khoản (từ khách vãng lai đến Super Admin tối cao). Đảm bảo giao diện Live Editor hiển thị tức thời cho Admin ngay sau khi tải trang mà không gây ra bất kỳ lỗi hydration hay đứt gãy DOM nào. Giao diện mượt mà và an toàn tối đa.
 
+---
+
+# Nâng cấp Thẩm mỹ: Thanh tiến trình Chia sẻ Lan tỏa & Hiệu ứng Viral (Elite V2.2)
+
+## 1. Yêu Cầu Thay Đổi
+- Làm cho dải màu tiến trình chia sẻ **"mờ dần về cuối" (fade out towards the right end)** thay vì dải màu hồng/đỏ trơn đơn điệu.
+- Thiết kế **hiệu ứng "viral" động** cực kỳ kích thích thị giác để gia tăng tỉ lệ tương tác của người dùng.
+
+## 2. Giải Pháp Chi Tiết
+Chúng tôi đã áp dụng nâng cấp đồng bộ trên cả 3 giao diện hiển thị thanh tiến trình chia sẻ:
+1. `ViralShareBarDesktop.svelte` (Desktop view)
+2. `ViralShareBarMobile.svelte` (Mobile view)
+3. `ViralFunnelLanding.svelte` (Landing page funnel)
+
+### Thiết kế Thẩm mỹ:
+*   **Vệt sao chổi mờ dần (Comet Fade-out Tail):** Sử dụng hệ màu HSL/RGB cao cấp chuyển từ sắc đỏ hồng đậm, qua đỏ cam cá tính và giảm dần độ mờ xuống còn 15% opacity tại đỉnh tiến trình:
+    `linear-gradient(90deg, #ff2d55 0%, #ee4d2d 75%, rgba(238, 77, 45, 0.15) 100%)`.
+*   **Đèn hiệu Neon lan tỏa (Glowing Neon Beacon):** Tại điểm tiến trình hiện tại, thiết kế một đèn hiệu dạng sao pulsing chuyển động liên tục thông qua hiệu ứng `@keyframes ping` của CSS. Đèn hiệu có bóng đổ phát quang mờ để nổi bật trên nền giao diện.
+*   **Hiệu ứng quét sóng lỏng (Liquid Shimmer Sweep):** Thêm một lớp gradient trắng mờ lướt liên tục từ trái qua phải tiến trình (`animate-viral-flow`) tạo cảm giác dải màu tràn đầy năng lượng và đang "flowing".
+
+### Kỹ thuật Tối ưu Hóa:
+- **Tối ưu phần cứng 100% (GPU Accelerated):** Sử dụng `transform: translateX` thay vì thay đổi thuộc tính `left` hay `width` cho các hiệu ứng shimmer để trình duyệt không phải thực hiện tính toán vẽ lại layout (Reflow), bảo vệ tối đa RAM và CPU.
+- **Hydration Safe:** Tiến trình được bao bọc dưới cổng logic `isMounted` để triệt tiêu hoàn toàn rủi ro Hydration Mismatch trên Svelte 5.

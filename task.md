@@ -12,12 +12,12 @@
 - [x] Nhận diện nguyên nhân: Sự chênh lệch trạng thái phân quyền giữa Server-Side (khách vãng lai, `liveEditStore.isAdmin = false`) và Client-Side (đã giải mã token trước lúc hydrate, `liveEditStore.isAdmin = true`) kích hoạt nỗ lực mount Admin JIT components không đồng nhất.
 - [x] Khai báo trạng thái `$state` rune `isMounted = false` trong `[slug]-funnel/+page.svelte`.
 - [x] Phát hiện hiện tượng chạy đồng bộ của `isMounted = true` trong `onMount` vẫn có thể bị cuốn vào chu kỳ hydration gốc của Svelte 5.
-- [x] Refactor sang cơ chế **Deferred Gate Guard (Trì hoãn bằng setTimeout 150ms)** để đẩy tác vụ render Admin HUD sang luồng event loop tiếp theo, khi Svelte đã hoàn toàn tắt chế độ hydration.
+- [x] Refactor sang cơ chế **Deferred Gate Guard (Trì hoãn bằng setTimeout 150ms)** để đẩy tác vụ render Admin HUD sang luồng event loop tiếp theo, khi Svelte đã hoàn thành 100% root hydration, đặt cờ `hydrating = false` và ổn định hoàn toàn cấu trúc DOM storefront.
 - [x] Đăng ký hàm hủy `clearTimeout` tại sự kiện hủy component trong `onMount` (Resource Discipline).
 - [x] Kiểm tra cú pháp và hoàn thành kiểm định.
 
 # Viral Progress Bar Visual Upgrade & Optimization
-- [ ] Phân tích và nâng cấp hiệu ứng thẩm mỹ cho thanh tiến trình chia sẻ trong `ViralShareBarDesktop.svelte` (vệt sao chổi mờ dần + neon beacon).
-- [ ] Phân tích và nâng cấp hiệu ứng thẩm mỹ cho thanh tiến trình chia sẻ trong `ViralShareBarMobile.svelte` (vệt sao chổi mờ dần + neon beacon).
-- [ ] Phân tích và nâng cấp hiệu ứng thẩm mỹ cho thanh tiến trình chia sẻ trong `ViralFunnelLanding.svelte` (vệt sao chổi mờ dần + neon beacon).
-- [ ] Tự kiểm thức và chạy kiểm tra cú pháp biên dịch dự án.
+- [x] Phân tích và nâng cấp hiệu ứng thẩm mỹ cho thanh tiến trình chia sẻ trong `ViralShareBarDesktop.svelte` (vệt sao chổi mờ dần + neon beacon).
+- [x] Phân tích và nâng cấp hiệu ứng thẩm mỹ cho thanh tiến trình chia sẻ trong `ViralShareBarMobile.svelte` (vệt sao chổi mờ dần + neon beacon).
+- [x] Phân tích và nâng cấp hiệu ứng thẩm mỹ cho thanh tiến trình chia sẻ trong `ViralFunnelLanding.svelte` (vệt sao chổi mờ dần + neon beacon).
+- [x] Tự kiểm thức và chạy kiểm tra cú pháp biên dịch dự án.
