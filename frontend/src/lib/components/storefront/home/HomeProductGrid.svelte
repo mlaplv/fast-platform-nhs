@@ -420,25 +420,25 @@
           />
         </div>
 
-        <div class="p-6 flex flex-col flex-1 bg-white relative">
-          <h3 class="text-black text-[14px] font-black tracking-tight line-clamp-2 h-[42px] leading-[21px] mb-5 group-hover/card:text-[#C18F7E] transition-colors">{product.name}</h3>
+        <div class="p-[5px] flex flex-col flex-1 bg-white relative">
+          <h3 class="text-black text-[14px] font-black tracking-tight line-clamp-2 h-[42px] leading-[21px] mb-2 group-hover/card:text-[#C18F7E] transition-colors">{product.name}</h3>
 
-          <div class="mt-auto pt-4 border-t border-black/[0.03] space-y-3">
-            <div class="flex flex-col gap-1">
+          <div class="mt-auto pt-2 border-t border-black/[0.03] space-y-2">
+            <div class="flex flex-col gap-0.5">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1.5">
                         {#if product.originalPrice}
                             <span class="text-[11px] font-bold text-gray-300 line-through tabular-nums decoration-gray-400/20">
                                 {formatCurrency(Math.round(product.originalPrice))}
                             </span>
                         {/if}
-                        <span class="text-[10px] font-black text-[#C18F7E] bg-[#C18F7E]/10 px-1.5 py-0.5">-{product.discountPercent}%</span>
+                        <span class="text-[10px] font-black text-[#C18F7E] bg-[#C18F7E]/10 px-1 py-0.5">-{product.discountPercent}%</span>
                     </div>
                     <span class="text-[9px] font-black text-[#C18F7E] animate-pulse flex items-center gap-1">
-                        <div class="w-1 h-1 rounded-full bg-[#C18F7E]"></div> ĐANG CHÁY HÀNG
+                        <div class="w-1 h-1 rounded-full bg-[#C18F7E]"></div> CHÁY HÀNG
                     </span>
                 </div>
-                <p class="text-[#ee4d2d] font-black text-2xl tracking-tighter tabular-nums flex items-end gap-1 group-hover/card:text-[#C18F7E] transition-colors">
+                <p class="text-[#ee4d2d] font-black text-xl tracking-tighter tabular-nums flex items-end gap-0.5 group-hover/card:text-[#C18F7E] transition-colors">
                     {formatCurrency(product.price)}
                 </p>
             </div>
