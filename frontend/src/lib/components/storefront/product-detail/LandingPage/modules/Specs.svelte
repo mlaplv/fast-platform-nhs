@@ -97,14 +97,15 @@
   }
 
   .spec-bar {
-    background: #010101;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     display: flex;
     justify-content: space-around;
     padding: 1.5rem 0.75rem;
     margin-bottom: 2.5rem;
     position: relative;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08) !important;
+    border-radius: 8px !important;
   }
 
   .spec-item {
@@ -123,20 +124,20 @@
     top: 20%;
     height: 60%;
     width: 1px;
-    background: linear-gradient(to bottom, transparent, rgba(193, 143, 126, 0.3), transparent);
+    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.1), transparent);
   }
 
   .spec-label {
     font-size: 8px;
     font-weight: 900;
     letter-spacing: 0.2em;
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.5) !important;
   }
 
   .spec-value {
     font-size: 13px;
     font-weight: 700;
-    color: #E8D5B0;
+    color: #f59e0b !important;
     text-align: center;
     line-height: 1.2;
   }
@@ -148,7 +149,7 @@
     color: #111827;
     margin-bottom: 1.25rem;
     padding-left: 0.75rem;
-    border-left: 3px solid #d0011b;
+    border-left: 4px solid #0d9488 !important;
   }
 
   .attributes-grid {
@@ -199,16 +200,16 @@
   }
 
   .ing-card:hover {
-    border-color: #d0011b;
+    border-color: #0d9488 !important;
     background: white;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 20px rgba(13, 148, 136, 0.08) !important;
     transform: translateY(-2px);
   }
 
   .ing-icon {
     width: 2.5rem;
     height: 2.5rem;
-    color: #d0011b;
+    color: #0d9488 !important;
   }
 
   .ing-name {

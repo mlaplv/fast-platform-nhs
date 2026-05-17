@@ -414,27 +414,27 @@
   const activeGifts = $derived(effectiveTier?.attributes?.gifts || []);
 </script>
 
-<div class="bg-[#f6f6f6] min-h-screen">
+<div class="min-h-screen" style="background: linear-gradient(135deg, #f0fdf4 0%, #fff7ed 100%);">
   <!-- BREADCRUMB -->
-  <div class="bg-[#f5f5f5] py-4">
+  <div class="py-4" style="background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(13, 148, 136, 0.05);">
     <div
       class="max-w-[1200px] mx-auto px-4 xl:px-0 flex items-center gap-3 text-[11px] text-gray-500 font-bold tracking-wider"
     >
       <a
         href="/"
-        class="flex items-center gap-2 bg-[#ee4d2d] text-white px-2 py-1 hover:brightness-110 transition-all"
+        class="flex items-center gap-2 bg-gradient-to-r from-[#0d9488] to-[#0f766e] text-white px-3 py-1 rounded-[4px] hover:brightness-110 transition-all shadow-sm"
       >
         <Diamond size={10} fill="currentColor" />
         <span class="text-[9px] font-black tracking-[0.25em]">OSMO</span>
       </a>
-      <span class="opacity-20">/</span>
-      <span class="text-gray-400 normal-case tracking-normal font-medium"
+      <span class="opacity-25 text-[#0d9488]">/</span>
+      <span class="text-gray-600 normal-case tracking-normal font-semibold"
         >{product.name}</span
       >
     </div>
   </div>
 
-  <main class="max-w-[1200px] mx-auto bg-white shadow-sm mt-0 p-5">
+  <main class="max-w-[1200px] mx-auto mt-6 p-6" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 20px 60px rgba(15, 23, 42, 0.04); border-radius: 12px;">
     <div class="flex flex-col md:flex-row gap-8">
       <div class="relative w-full md:w-[450px] shrink-0">
         <button

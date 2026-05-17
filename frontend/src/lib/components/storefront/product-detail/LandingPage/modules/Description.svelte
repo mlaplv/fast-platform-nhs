@@ -102,7 +102,7 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: #d0011b;
+    background: #0d9488 !important;
   }
 
   .prose-wrapper {
@@ -146,8 +146,9 @@
     margin-left: auto;
     margin-right: auto;
     padding: 2.5rem;
-    background: #f9fafb;
-    border-radius: 8px;
+    background: linear-gradient(135deg, #f0fdf4 0%, #fff7ed 100%) !important;
+    border: 1px solid rgba(13, 148, 136, 0.1) !important;
+    border-radius: 8px !important;
   }
 
   .section-header {
@@ -158,7 +159,7 @@
   }
 
   .header-icon {
-    color: #d0011b;
+    color: #0d9488 !important;
   }
 
   .section-title {
@@ -184,8 +185,8 @@
   }
 
   .faq-item.open {
-    border-color: #d0011b;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-color: #0d9488 !important;
+    box-shadow: 0 4px 15px rgba(13, 148, 136, 0.08) !important;
   }
 
   .faq-question {
@@ -213,7 +214,7 @@
 
   .open .chevron-icon {
     transform: rotate(180deg);
-    color: #d0011b;
+    color: #0d9488 !important;
   }
 
   .faq-answer {
