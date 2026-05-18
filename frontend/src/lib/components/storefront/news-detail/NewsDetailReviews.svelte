@@ -216,16 +216,16 @@
   };
 </script>
 
-<div class="bg-gray-50/50 p-10 mt-10 rounded-none border-t border-gray-100">
-  <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 pb-6 border-b border-gray-100">
-    <div>
-      <h2 class="text-2xl font-black text-[#0f172a] tracking-tighter">Phản hồi từ độc giả</h2>
-      <p class="text-gray-400 text-[10px] font-black tracking-[0.3em]">Xác thực trải nghiệm người dùng</p>
+<div class="bg-white py-12 px-6 md:px-14 mt-16 rounded-[2.5rem] border border-gray-100 shadow-[0_30px_100px_-15px_rgba(0,0,0,0.05)]">
+  <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-12 pb-8 border-b border-gray-100/80">
+    <div class="text-center md:text-left">
+      <h2 class="text-3xl font-black text-[#0f172a] tracking-tighter">Phản hồi từ độc giả</h2>
+      <p class="text-gray-400 text-[10px] font-black tracking-[0.4em] uppercase mt-2">Xác thực trải nghiệm người dùng</p>
     </div>
     <button 
       onclick={handleWriteReview}
-      class="px-10 py-5 bg-[#C18F7E] text-white font-black text-[11px] tracking-[0.3em] hover:bg-[#0f172a] transition-all">
-      Viết cảm nhận ngay
+      class="px-10 py-4 bg-[#C18F7E] text-white font-black text-[11px] tracking-[0.3em] hover:bg-[#0f172a] transition-all rounded-full shadow-[0_10px_30px_-10px_rgba(193,143,126,0.5)] active:scale-95">
+      VIẾT CẢM NHẬN NGAY
     </button>
   </div>
 
@@ -306,24 +306,25 @@
   {/if}
 
   {#if stats}
-   <div class="bg-white border border-gray-100 p-8 flex items-center gap-14 mb-10">
-    <div class="flex flex-col items-center">
-      <div class="flex items-baseline gap-1 text-[#0f172a]">
-        <span class="text-5xl font-black">{stats.average_rating}</span>
-        <span class="text-xs font-black text-gray-300">/ 5</span>
+   <div class="bg-gray-50/30 border border-gray-100 rounded-3xl p-8 md:p-10 flex flex-col md:flex-row items-center gap-10 md:gap-14 mb-12">
+    <div class="flex flex-col items-center shrink-0">
+      <div class="flex items-baseline gap-2 text-[#0f172a]">
+        <span class="text-6xl font-black tracking-tighter">{stats.average_rating}</span>
+        <span class="text-sm font-black text-gray-400">/ 5</span>
       </div>
-      <div class="flex gap-1 mt-2">
+      <div class="flex gap-1 mt-3">
         {#each Array(5) as _, i}
-          <Star class="w-5 h-5 {i < Math.round(stats.average_rating) ? 'text-[#C18F7E] fill-current' : 'text-gray-100'} " />
+          <Star class="w-6 h-6 {i < Math.round(stats.average_rating) ? 'text-[#C18F7E] fill-current drop-shadow-[0_0_8px_rgba(193,143,126,0.4)]' : 'text-gray-200'} " />
         {/each}
       </div>
+      <span class="text-[10px] font-bold text-gray-400 tracking-widest mt-4 uppercase">{stats.total_count} đánh giá</span>
     </div>
 
-    <div class="flex-1 flex flex-wrap gap-2">
+    <div class="flex-1 flex flex-wrap justify-center md:justify-start gap-3">
       {#each ratingTabs as tab}
         <button 
           onclick={() => activeTab = tab.key as 'all' | number | 'media'}
-          class="px-6 py-3 text-[10px] font-black border transition-all tracking-widest {activeTab === tab.key ? 'bg-[#0f172a] text-white border-[#0f172a]' : 'bg-white text-gray-400 border-gray-100 hover:border-[#C18F7E]'}">
+          class="px-6 py-3 text-[11px] font-black border transition-all tracking-widest rounded-full {activeTab === tab.key ? 'bg-[#0f172a] text-white border-[#0f172a] shadow-lg' : 'bg-white text-gray-500 border-gray-200 hover:border-[#C18F7E] hover:text-[#C18F7E]'}">
           {tab.label} {getTabCount(tab.key)}
         </button>
       {/each}
@@ -344,17 +345,17 @@
       </div>
     {:else}
       {#each reviews as review}
-        <div class="flex gap-6 pb-10 border-b border-gray-100 last:border-0" in:fade>
-          <div class="w-12 h-12 bg-gray-100 flex items-center justify-center text-[#C18F7E] font-black text-xl shrink-0">
+        <div class="flex flex-col md:flex-row gap-6 md:gap-8 pb-10 mb-10 border-b border-gray-100/80 last:border-0 last:mb-0 last:pb-0" in:fade>
+          <div class="w-14 h-14 bg-gray-50 rounded-full border border-gray-100 flex items-center justify-center text-[#C18F7E] font-black text-2xl shrink-0 shadow-inner">
             {review.initial}
           </div>
 
           <div class="flex-1">
-            <div class="flex items-center gap-3 mb-2">
-              <span class="text-sm font-black text-[#0f172a]">{review.name}</span>
-              <div class="flex gap-0.5">
+            <div class="flex flex-wrap items-center gap-3 mb-3">
+              <span class="text-base font-black text-[#0f172a]">{review.name}</span>
+              <div class="flex gap-1 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
                 {#each Array(5) as _, i}
-                  <Star class="w-3 h-3 {i < review.rating ? 'text-[#C18F7E] fill-current' : 'text-gray-200'}" />
+                  <Star class="w-3.5 h-3.5 {i < review.rating ? 'text-[#C18F7E] fill-current drop-shadow-[0_0_2px_rgba(193,143,126,0.3)]' : 'text-gray-200'}" />
                 {/each}
               </div>
               <span class="text-[10px] font-black text-gray-300 ml-auto">{formatDate(review.created_at)}</span>
@@ -371,7 +372,7 @@
               </div>
             {/if}
 
-            <div class="text-[14px] text-gray-700 leading-relaxed mb-6">
+            <div class="text-[15px] text-gray-700 leading-[1.8] mb-8">
               {@html review.content}
             </div>
 
