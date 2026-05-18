@@ -24,11 +24,13 @@
     productName,
     isOpen,
     onClose,
+    entityType = "PRODUCT",
   } = $props<{
     productId: string;
     productName: string;
     isOpen: boolean;
     onClose: () => void;
+    entityType?: "PRODUCT" | "NEWS" | "CATEGORY";
   }>();
 
   // --- TYPES ---
@@ -123,7 +125,7 @@
     try {
       const offset = (currentPage - 1) * PAGE_SIZE;
       const res = await apiClient.get<{ items: Review[]; total: number }>(
-        `/api/v1/reviews?entity_type=PRODUCT&entity_id=${productId}&limit=${PAGE_SIZE}&offset=${offset}`
+        `/api/v1/reviews?entity_type=${entityType}&entity_id=${productId}&limit=${PAGE_SIZE}&offset=${offset}`
       );
       reviews = res.items ?? [];
       totalReviews = res.total ?? 0;
@@ -156,7 +158,7 @@
     lastGenerated = null;
     try {
       const review = await apiClient.post<Review>("/api/v1/reviews/ai-seed", {
-        entity_type: "PRODUCT",
+        entity_type: entityType,
         entity_id: productId,
       });
       lastGenerated = review;

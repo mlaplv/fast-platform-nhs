@@ -7,6 +7,7 @@
   import ExternalLink from "@lucide/svelte/icons/external-link";
   import Eye from "@lucide/svelte/icons/eye";
   import Calendar from "@lucide/svelte/icons/calendar";
+  import StarIcon from "@lucide/svelte/icons/star";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import type { Article } from "$lib/types";
@@ -19,6 +20,7 @@
     onToggleSelectAll,
     onEdit,
     onDelete,
+    onOpenReviewLab,
   } = $props<{
     articles: Article[];
     selectedIds: Set<string>;
@@ -26,6 +28,7 @@
     onToggleSelectAll: () => void;
     onEdit: (a: Article) => void;
     onDelete: (id: string | string[]) => void;
+    onOpenReviewLab: (article: { id: string; name: string }) => void;
   }>();
 
   const isAllSelected = $derived(articles.length > 0 && articles.every(a => selectedIds.has(a.id)));
@@ -156,6 +159,14 @@
             >
               <ExternalLink size={14} />
             </a>
+            <button
+              onclick={(e: MouseEvent) => { e.stopPropagation(); onOpenReviewLab({ id: article.id, name: article.title }); }}
+              class="p-2 text-[#FFD700]/50 md:text-gray-500 hover:text-[#FFD700] transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-transparent hover:border-[#FFD700]/20"
+              title="Review Lab"
+              id="news-review-lab-btn-{article.id}"
+            >
+              <StarIcon size={14} />
+            </button>
             <button
               onclick={(e: MouseEvent) => { e.stopPropagation(); onEdit(article); }}
               class="p-2 text-gray-500 hover:text-cyan-400 transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-transparent hover:border-cyan-500/20"

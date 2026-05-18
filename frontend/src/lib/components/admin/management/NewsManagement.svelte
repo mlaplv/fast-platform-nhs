@@ -14,6 +14,7 @@
   import NewsTable from "./NewsTable.svelte";
   import OrderPagination from "./OrderPagination.svelte";
   import NewsForm from "./NewsForm.svelte";
+  import ReviewSeedingModal from "./ReviewSeedingModal.svelte";
 
   let { data = {} } = $props<BaseWidgetProps>();
 
@@ -56,6 +57,15 @@
   let isSaving = $state(false);
   let errors = $state<Record<string, string>>({});
   const totalPages = $derived(Math.max(1, Math.ceil(totalArticles / pageSize)));
+
+  // Review Lab state
+  let showReviewModal = $state(false);
+  let reviewArticle = $state<{ id: string; name: string } | null>(null);
+
+  function openReviewLab(article: { id: string; name: string }) {
+    reviewArticle = { id: article.id, name: article.name };
+    showReviewModal = true;
+  }
 
   // --- SERVER-SIDE FETCH ---
   async function loadArticles() {
@@ -348,6 +358,17 @@
   {errors}
 />
 
+<!-- Review Seeding Lab Modal -->
+{#if reviewArticle}
+  <ReviewSeedingModal
+    productId={reviewArticle.id}
+    productName={reviewArticle.name}
+    entityType="NEWS"
+    isOpen={showReviewModal}
+    onClose={() => { showReviewModal = false; reviewArticle = null; }}
+  />
+{/if}
+
 <div class="w-full h-full flex flex-col relative bg-[#050505] isolation-auto">
   <!-- Fixed Background Layer -->
   <div class="absolute inset-0 bg-[#050505] pointer-events-none -z-10"></div>
@@ -396,6 +417,7 @@
           onToggleSelectAll={toggleSelectAll}
           onEdit={openEdit}
           onDelete={confirmDelete}
+          onOpenReviewLab={openReviewLab}
         />
       </div>
     {/if}
