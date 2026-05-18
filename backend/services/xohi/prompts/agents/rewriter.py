@@ -83,7 +83,11 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
     </ul>
     <strong>Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>
 
-- ĐẢM BẢO CHẤT LƯỢNG: Trình bày HTML sạch sẽ, chuẩn xác theo bộ khung. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các phần nội dung sao cho phù hợp. BẮT BUỘC viết cô đọng, ngắn gọn và súc tích để toàn bộ bài viết bao gồm cả phần Cam kết ở cuối cùng được kết xuất đầy đủ, trọn vẹn, tuyệt đối không viết lan man dài dòng gây cạn kiệt token làm cắt cụt nội dung.
+- ĐẢM BẢO CHẤT LƯỢNG KỸ THUẬT & FORMAT:
+  1. Trình bày HTML sạch sẽ, chuẩn xác theo bộ khung.
+  2. BẢNG BIỂU (TABLE): Nếu có dùng bảng Markdown, BẮT BUỘC phải chèn một dòng trống (blank line) trước và sau bảng, đồng thời PHẢI XUỐNG DÒNG (sử dụng dấu enter/newline) cho mỗi hàng. TUYỆT ĐỐI KHÔNG viết liền các hàng trên cùng một dòng.
+  3. KIỂM SOÁT TỪ VỰNG: TUYỆT ĐỐI KHÔNG sử dụng từ "Nhau thai" hoặc "nhau thai". Bắt buộc thay thế hoàn toàn bằng từ "Placenta" trong mọi ngữ cảnh (VD: "chiết xuất Placenta", "tinh chất Placenta").
+  4. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các phần nội dung sao cho phù hợp. BẮT BUỘC viết cô đọng, ngắn gọn và súc tích để toàn bộ bài viết bao gồm cả phần Cam kết ở cuối cùng được kết xuất đầy đủ, trọn vẹn, tuyệt đối không viết lan man dài dòng gây cạn kiệt token làm cắt cụt nội dung.
 """
 )
 
@@ -102,7 +106,10 @@ ARTICLE_REWRITE_INSTRUCTIONS = PromptComponent(
   + [PHA 3 — Giải pháp & Hành động Thực tiễn]: Đưa ra khuyến nghị, bước đi cụ thể mà người đọc có thể áp dụng ngay. Thể hiện tính chuyên gia thực chiến.
   + [PHA 4 — Tổng kết & Giá trị Đọng lại]: Kết luận bằng một thông điệp sâu sắc, đáng suy ngẫm. Không kêu gọi mua hàng trực tiếp; có thể dẫn liên kết liên quan một cách tự nhiên.
 
-- ĐẢM BẢO CHẤT LƯỢNG: Trình bày HTML chuyên nghiệp. Giữ lại toàn bộ hình ảnh (<img>) minh họa từ bài gốc."""
+- ĐẢM BẢO CHẤT LƯỢNG KỸ THUẬT & FORMAT:
+  1. Trình bày HTML/Markdown chuyên nghiệp. Giữ lại toàn bộ hình ảnh (<img>) minh họa từ bài gốc.
+  2. BẢNG BIỂU (TABLE): Nếu có dùng bảng Markdown, BẮT BUỘC phải chèn một dòng trống (blank line) trước và sau bảng, đồng thời PHẢI XUỐNG DÒNG (sử dụng dấu enter/newline) cho mỗi hàng. TUYỆT ĐỐI KHÔNG viết liền các hàng trên cùng một dòng.
+  3. KIỂM SOÁT TỪ VỰNG: TUYỆT ĐỐI KHÔNG sử dụng từ "Nhau thai" hoặc "nhau thai". Bắt buộc thay thế hoàn toàn bằng từ "Placenta" trong mọi ngữ cảnh (VD: "chiết xuất Placenta")."""
 )
 
 def register_rewriter(composer_instance) -> None:
