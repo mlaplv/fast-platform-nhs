@@ -118,4 +118,11 @@
 - [x] Đồng bộ kích thước font chữ và các tag nhãn (`CHÁY HÀNG`, giá bán) sang dạng thắt chặt, giúp nội dung sản phẩm trải rộng và hiển thị tối đa diện tích hữu ích trên cả Desktop & Tablet.
 - [x] Chạy biên dịch svelte-check thành công tuyệt đối 100%.
 
+# Storefront Homepage Flash Deal Card Compact Padding Refinement
+- [x] Thu hẹp padding của toàn bộ thẻ sản phẩm Flashdeal `.deal-item` từ `padding: 1rem;` (16px) xuống còn **`padding: 5px;`** (5px) trong [HomeFlashDeal.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/home/HomeFlashDeal.svelte).
+- [x] Gom gọn lề dưới của ảnh `.item-media` từ `margin-bottom: 1rem;` về **`margin-bottom: 0.5rem;`** (8px).
+- [x] Điều chỉnh khoảng cách các thành phần chữ `.item-info` từ `gap: 0.75rem;` xuống **`gap: 0.4rem;`** (6px) và thêm khoảng lề đệm an toàn `padding: 0 0.15rem;`.
+- [x] Rút nhỏ kích thước font chữ của giá tiền từ `text-2xl` (`1.4rem`) về **`text-xl`** (`1.25rem`) giúp hạn chế tối đa hiện tượng tràn chữ, xuống dòng ngoài ý muốn.
+- [x] Thực hiện biên dịch svelte-check thành công tuyệt đối 100%.
+
 

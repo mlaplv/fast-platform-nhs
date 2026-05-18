@@ -482,5 +482,28 @@ Bố cục thẻ sản phẩm Storefront Desktop trông vô cùng gọn gàng, s
 
 ---
 
+# Bổ sung: Hồ sơ Tinh chỉnh Bố cục và Thu hẹp viền Thẻ Flash Sale (Storefront Homepage Flash Deal)
+
+## 1. Yêu Cầu Thay Đổi
+Tương tự như lưới sản phẩm chính, Sếp yêu cầu điều chỉnh các thẻ sản phẩm trong phiên **Flash Sale trang chủ** trên Desktop:
+- Cho **nội dung phía dưới hình rộng ra tối đa**.
+- Cách biên chỉ đúng **5px** để layout đồng nhất và căng tràn nét nhất.
+
+## 2. Giải Pháp Triển Khai (Zero-Gap Implementation)
+Chúng tôi đã thực hiện cấu trúc lại các lớp CSS của thẻ flashdeal trong [HomeFlashDeal.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/home/HomeFlashDeal.svelte):
+- **Thu hẹp khoảng cách viền thẻ (`.deal-item`):** Chuyển padding của thẻ card từ `padding: 1rem;` (16px) về **`padding: 5px;`** (5px). Thao tác này mở rộng không gian bề ngang đáng kể, giữ cho hình ảnh sản phẩm và nội dung chữ đều có khoảng cách biên 5px cực kỳ đồng điệu.
+- **Tối ưu hóa các khoảng trống dọc:**
+  - Giảm lề dưới của ảnh `.item-media` từ `margin-bottom: 1rem;` xuống **`margin-bottom: 0.5rem;`** (8px).
+  - Điều chỉnh khoảng cách các phần tử con `.item-info` từ `gap: 0.75rem;` xuống **`gap: 0.4rem;`** (6px) đồng thời bổ sung `padding: 0 0.15rem;` để chữ không chạm khít vào viền.
+  - Lề dưới tiêu đề sản phẩm trong `.product-name-wrapper` được giảm từ `margin-bottom: 0.5rem;` xuống **`margin-bottom: 0.2rem;`**.
+  - Lề trên của cụm giá bán `.price-container` giảm từ `margin-top: 0.5rem;` xuống **`margin-top: 0.1rem;`**.
+- **Chống tràn chữ:** Thu nhỏ font chữ của giá tiền từ `text-2xl` (`1.4rem`) về **`text-xl`** (`1.25rem`) giúp cụm giá hiển thị trọn vẹn trên một dòng, tránh hiện tượng nhảy xuống dòng mất thẩm mỹ khi co nhỏ khung màn hình.
+
+## 3. Kết Quả Đạt Được
+- Các thẻ Flash Sale trang chủ hiển thị cực kỳ sang trọng, chữ và thông số dàn rộng tuyệt đẹp, căn lề 5px hoàn mỹ, đồng nhất 100% với phong cách lưới sản phẩm chính mà Sếp vừa phê duyệt.
+- Biên dịch svelte-check thành công hoàn toàn tuyệt đối (exit code 0).
+
+---
+
 
 
