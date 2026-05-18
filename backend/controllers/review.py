@@ -1,4 +1,5 @@
 from litestar import Controller, get, patch, delete, post
+from litestar.exceptions import ValidationException
 from litestar.di import Provide
 from litestar.params import Parameter
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -102,10 +103,17 @@ class AdminReviewController(Controller):
         Phong cách random (tiktok/shopee/lazada/authentic), bypass anti-spam.
         Extensible: entity_type hỗ trợ PRODUCT, NEWS, CATEGORY.
         """
-        review = await review_service.ai_seed_one(
-            entity_type=data.entity_type,
-            entity_id=data.entity_id
-        )
+        try:
+            review = await review_service.ai_seed_one(
+                entity_type=data.entity_type,
+                entity_id=data.entity_id
+            )
+        except ValueError as exc:
+            logger.warning(
+                "[ReviewLab] Invalid seed request: entity_type=%s entity_id=%s — %s",
+                data.entity_type, data.entity_id, exc
+            )
+            raise ValidationException(detail=str(exc)) from exc
         await db_session.commit()
         logger.info(
             "[ReviewLab] AI-seeded review %s for %s %s (style=%s)",

@@ -371,12 +371,13 @@ class ReviewService:
             entity_desc = row.short_description or ""
             entity_attrs = (row.product_metadata or {}).get("attributes", {})
         elif entity_type == "NEWS":
-            # Placeholder branch — mở rộng khi News entity có trong system
-            from sqlalchemy import select, text
-            row = (await self.review_repo.session.execute(
-                text("SELECT title, excerpt FROM articles WHERE id = :id"),
-                {"id": entity_id}
-            )).fetchone()
+            from sqlalchemy import select
+            from backend.database.models.content import Article
+            stmt = select(
+                Article.title,
+                Article.excerpt
+            ).where(Article.id == entity_id)
+            row = (await self.review_repo.session.execute(stmt)).fetchone()
             if not row:
                 raise ValueError(f"News article {entity_id} not found")
             entity_name = row.title or ""
