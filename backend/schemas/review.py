@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 from backend.database.models.system import ReviewEntityType
@@ -72,3 +72,18 @@ class ReviewStatsResponse(BaseModel):
     """Dict[attribute_name, Dict[value, count]] — e.g. {'Thấm thấu': {'Tốt': 87, 'Rất tốt': 12}}
     Phục vụ Copyright Analyst lấy Social Proof thực tế từ khách hàng.
     """
+
+
+class AiSeedReviewRequest(BaseModel):
+    """
+    Extensible AI Seeding Request.
+    entity_type cho phép mở rộng sang NEWS / CATEGORY sau này
+    mà không cần đổi schema — chỉ thêm branch xử lý ở service.
+    """
+    model_config = ConfigDict(extra='forbid')
+
+    entity_type: Literal["PRODUCT", "NEWS", "CATEGORY"] = Field(
+        default="PRODUCT",
+        description="Loại entity cần seeding review"
+    )
+    entity_id: str = Field(..., description="ID của entity (product_id / news_id / category_id)")

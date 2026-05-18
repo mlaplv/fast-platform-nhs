@@ -11,6 +11,7 @@
   import TrendingUp from "@lucide/svelte/icons/trending-up";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import X from "@lucide/svelte/icons/x";
+  import StarIcon from "@lucide/svelte/icons/star";
   import { fade } from "svelte/transition";
   import { portal } from "$lib/core/actions/portal";
   import { useNanobot } from "$lib/state/nanobot.svelte";
@@ -35,6 +36,7 @@
     onEdit,
     onDelete,
     onSyncMarket,
+    onOpenReviewLab,
   } = $props<{
     products: Product[];
     selectedIds: Set<string>;
@@ -44,6 +46,7 @@
     onEdit: (p: Product) => void;
     onDelete: (id: string) => void;
     onSyncMarket: (id: string) => Promise<void>;
+    onOpenReviewLab: (product: { id: string; name: string }) => void;
   }>();
 
   let syncingStates = $state<Record<string, boolean>>({});
@@ -331,6 +334,14 @@
             >
               <Sparkles size={14} />
             </a>
+            <button
+              onclick={(e: MouseEvent) => { e.stopPropagation(); onOpenReviewLab({ id: product.id, name: product.name }); }}
+              class="p-2 text-[#FFD700]/60 md:text-gray-500 hover:text-[#FFD700] transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-transparent hover:border-[#FFD700]/20 shadow-sm"
+              title="Review Lab"
+              id="review-lab-btn-{product.id}"
+            >
+              <StarIcon size={14} />
+            </button>
             <button
               onclick={(e: MouseEvent) => { e.stopPropagation(); onEdit(product); }}
               class="p-2 text-gray-400 md:text-gray-500 hover:text-[#00FFFF] transition-colors rounded-xl md:bg-black/40 bg-white/5 border border-transparent hover:border-[#00FFFF]/20 shadow-sm"

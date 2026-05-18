@@ -1,13 +1,16 @@
-from litestar import Controller, get, patch, delete
+from litestar import Controller, get, patch, delete, post
 from litestar.di import Provide
 from litestar.params import Parameter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.schemas.review import UpdateReviewStatusRequest, UpdateReviewRequest, ReviewResponse
+from backend.schemas.review import UpdateReviewStatusRequest, UpdateReviewRequest, ReviewResponse, AiSeedReviewRequest
 from backend.services.review_service import ReviewService, provide_review_service
 from backend.database.repositories import provide_system_review_repo
 from backend.constants.permissions import PermissionEnum
 from backend.guards import PermissionGuard
+import logging
+
+logger = logging.getLogger("api-gateway")
 
 class AdminReviewController(Controller):
     path = "/api/v1/reviews"
@@ -25,12 +28,14 @@ class AdminReviewController(Controller):
         limit: int = Parameter(query="limit", default=20),
         offset: int = Parameter(query="offset", default=0),
         entity_type: str | None = Parameter(query="entity_type", required=False, default=None),
+        entity_id: str | None = Parameter(query="entity_id", required=False, default=None),
         status: str | None = Parameter(query="status", required=False, default=None)
     ) -> dict:
         reviews, total = await review_service.get_reviews(
             limit=limit,
             offset=offset,
             entity_type=entity_type,
+            entity_id=entity_id,
             status=status
         )
         return {
@@ -84,3 +89,27 @@ class AdminReviewController(Controller):
     ) -> None:
         await review_service.delete_review(review_id)
         await db_session.commit()
+
+    @post("/ai-seed")
+    async def ai_seed_one_review(
+        self,
+        data: AiSeedReviewRequest,
+        review_service: ReviewService,
+        db_session: AsyncSession
+    ) -> ReviewResponse:
+        """
+        Xohi Review Lab: Tạo 1 đánh giá chất lượng cao bằng AI.
+        Phong cách random (tiktok/shopee/lazada/authentic), bypass anti-spam.
+        Extensible: entity_type hỗ trợ PRODUCT, NEWS, CATEGORY.
+        """
+        review = await review_service.ai_seed_one(
+            entity_type=data.entity_type,
+            entity_id=data.entity_id
+        )
+        await db_session.commit()
+        logger.info(
+            "[ReviewLab] AI-seeded review %s for %s %s (style=%s)",
+            review.id, data.entity_type, data.entity_id,
+            (review.attributes or {}).get("style", "?")
+        )
+        return ReviewResponse.model_validate(review)

@@ -1,3 +1,4 @@
+import random
 from advanced_alchemy.exceptions import NotFoundError
 from advanced_alchemy.filters import LimitOffset
 
@@ -335,6 +336,163 @@ class ReviewService:
             self.review_repo.session.add(noti)
         except NotFoundError:
             raise ValueError(f"Review {review_id} not found")
+
+    async def ai_seed_one(self, entity_type: str, entity_id: str) -> SystemReview:
+        """
+        Xohi Review Lab: Tạo 1 đánh giá chất lượng cao bằng AI.
+        - Phong cách: ngẫu nhiên (tiktok / shopee / lazada / authentic)
+        - Bypass anti-spam: không check duplicate
+        - Extensible: thêm NEWS/CATEGORY chỉ cần thêm branch load entity
+        """
+        import uuid
+        import logging
+        from pydantic_ai import Agent
+        from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+
+        logger = logging.getLogger("api-gateway")
+
+        # --- 1. Load entity context (Extensible architecture) ---
+        entity_name = ""
+        entity_desc = ""
+        entity_attrs: dict[str, object] = {}
+
+        if entity_type == "PRODUCT":
+            from sqlalchemy import select
+            from backend.database.models import ProductBase
+            stmt = select(
+                ProductBase.name,
+                ProductBase.short_description,
+                ProductBase.product_metadata
+            ).where(ProductBase.id == entity_id)
+            row = (await self.review_repo.session.execute(stmt)).fetchone()
+            if not row:
+                raise ValueError(f"Product {entity_id} not found")
+            entity_name = row.name or ""
+            entity_desc = row.short_description or ""
+            entity_attrs = (row.product_metadata or {}).get("attributes", {})
+        elif entity_type == "NEWS":
+            # Placeholder branch — mở rộng khi News entity có trong system
+            from sqlalchemy import select, text
+            row = (await self.review_repo.session.execute(
+                text("SELECT title, excerpt FROM articles WHERE id = :id"),
+                {"id": entity_id}
+            )).fetchone()
+            if not row:
+                raise ValueError(f"News article {entity_id} not found")
+            entity_name = row.title or ""
+            entity_desc = row.excerpt or ""
+        elif entity_type == "CATEGORY":
+            from sqlalchemy import select, text
+            row = (await self.review_repo.session.execute(
+                text("SELECT name, description FROM categories WHERE id = :id"),
+                {"id": entity_id}
+            )).fetchone()
+            if not row:
+                raise ValueError(f"Category {entity_id} not found")
+            entity_name = row.name or ""
+            entity_desc = row.description or ""
+        else:
+            raise ValueError(f"Unsupported entity_type: {entity_type}")
+
+        # --- 2. Random style — backend chọn, UI không cần control ---
+        style = random.choice(["tiktok", "shopee", "lazada", "authentic"])
+
+        # --- 3. Random Vietnamese profile ---
+        vn_names = [
+            "Nguyễn Thị Lan", "Trần Thị Mai", "Lê Thị Hương", "Phạm Thị Ngọc",
+            "Hoàng Thị Linh", "Võ Thị Thu", "Bùi Thị Hà", "Trương Thị Dung",
+            "Nguyễn Văn An", "Trần Văn Bình", "Lê Văn Cường", "Phạm Văn Duy",
+            "Hoàng Văn Em", "Võ Văn Phúc", "Nguyễn Thị Thu Hương", "Đặng Thị Kim Oanh",
+            "Phan Thị Thanh Thảo", "Đỗ Thị Bích Ngọc", "Lưu Thị Minh Tuyết", "Cao Thị Lan Anh",
+            "Vũ Thị Hồng Hạnh", "Tạ Thị Kim Dung", "Nguyễn Thị Thanh Loan", "Trịnh Thị Lé",
+        ]
+        vn_locations = [
+            "TP.HCM", "Hà Nội", "Đà Nẵng", "Cần Thơ", "Hải Phòng",
+            "Nha Trang", "Huế", "Vũng Tàu", "Biên Hòa", "Bình Dương",
+            "Long An", "Tiền Giang", "Bến Tre", "Quảng Ngãi", "Quảng Nam",
+            "Thành phố Thủ Đức", "Quận 7", "Quận Bình Thạnh", "Hóc Môn", "Tân Bình",
+        ]
+        customer_name = random.choice(vn_names)
+        customer_location = random.choice(vn_locations)
+
+        # --- 4. Rating distribution realistic (5★ xác suất cao) ---
+        rating_pool = [5, 5, 5, 5, 5, 5, 5, 4, 4, 4, 3]
+        rating = random.choice(rating_pool)
+
+        # --- 5. Style-specific prompt instructions ---
+        style_instructions: dict[str, str] = {
+            "tiktok": (
+                "Phong cách TikTok Shop: rất ngắn (tối đa 20 từ), đưa 1-2 emoji tự nhiên, "
+                "giọng Gen Z/trẻ trung, không quá trang trọng. VD: '✨ món này xịt lắm, da mình mịn hờ'"
+            ),
+            "shopee": (
+                "Phong cách Shopee: trung bình 25-35 từ, chân thực như user thật, "
+                "có đề cập 1 chi tiết cụ thể (mùi hương, cảm giác, vỏ hộp, tốc độ giao hàng)."
+            ),
+            "lazada": (
+                "Phong cách Lazada: chuyên nghiệp hơn, khoảng 30-40 từ, "
+                "có nhận xét kỹ thuật (chất liệu, công nghệ, hiệu quả rõ ràng)."
+            ),
+            "authentic": (
+                "Phong cách tự nhiên: viết như nhắn tin thực tế, "
+                "không theo form cở nào, có thể có typo nhỏ, ngắn gọn và chân thực nhất."
+            ),
+        }
+
+        # --- 6. Build prompt — dùng REVIEW_BOOSTER pattern ---
+        context_lines = [f"Tên sản phẩm: {entity_name}"]
+        if entity_desc:
+            context_lines.append(f"Mô tả: {entity_desc[:200]}")
+        if entity_attrs:
+            attrs_text = ", ".join(f"{k}: {v}" for k, v in list(entity_attrs.items())[:5])
+            context_lines.append(f"Thuộc tính: {attrs_text}")
+        context_lines.append(f"Số sao đánh giá: {rating}/5")
+        content_foundation = "\n".join(context_lines)
+
+        system_prompt = f"""Bạn là một khách hàng Việt Nam vừa mua và dùng xong sản phẩm.
+Nhiệm vụ: Viết ĐÚNG 1 CÂU DĨNH GIÁ chân thực, không phän cóm, không hoa mỹ.
+{style_instructions[style]}
+CHỈ THị "THẬT":
+1. BÁM SÁT TÊN SẢN PHẨM trong câu.
+2. Đa dạng hóa: không lặp cấu trúc "Sản phẩm tốt, thấm nhanh...".
+3. Chỉ trả về ĐÚNG 1 CÂU duy nhất, không thêm gì khác."""
+
+        prompt = f"Dữ liệu: {content_foundation}"
+
+        # --- 7. Call LLM qua trinity_bridge ---
+        agent = Agent(output_type=str, retries=2)
+        try:
+            response = await trinity_bridge.run(
+                agent,
+                prompt,
+                system_prompt=system_prompt,
+                role="lite",
+                timeout=30.0,
+                safety_none=True,
+                model_settings={"max_tokens": 80},
+            )
+            content_raw = str(getattr(response, "data", response)).strip()
+            # Sanitize: bỏ quote dư và xử lý newline
+            content_raw = content_raw.strip('"\' \n').split('\n')[0][:200]
+        except Exception as exc:
+            logger.error(f"[ReviewService.ai_seed_one] LLM failed: {exc}")
+            raise ValueError(f"AI không thể tạo nội dung: {exc}")
+
+        # --- 8. Insert SystemReview APPROVED — bypass duplicate check ---
+        review = SystemReview(
+            id=str(uuid.uuid4()),
+            entity_type=entity_type,  # type: ignore[arg-type]
+            entity_id=entity_id,
+            customer_name=customer_name,
+            customer_phone=None,
+            customer_location=customer_location,
+            rating=rating,
+            content=content_raw,
+            status="APPROVED",
+            attributes={"style": style, "ai_seeded": True},
+        )
+        return await self.review_repo.add(review)
+
 
 async def provide_review_service(review_repo: SystemReviewRepository) -> ReviewService:
     return ReviewService(review_repo)

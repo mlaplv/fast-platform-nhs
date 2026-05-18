@@ -11,6 +11,7 @@
   import ProductForm from "./ProductForm.svelte";
   import ProductTable from "./ProductTable.svelte";
   import OrderPagination from "./OrderPagination.svelte";
+  import ReviewSeedingModal from "./ReviewSeedingModal.svelte";
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
 
   let { data = {} } = $props<{ data?: Record<string, unknown> }>();
@@ -36,6 +37,15 @@
   let selectedIds = $state<Set<string>>(new Set());
   let isSaving = $state(false);
   let isAiFeaturedOnly = $state(false);
+
+  // Review Lab state
+  let showReviewModal = $state(false);
+  let reviewProduct = $state<{ id: string; name: string } | null>(null);
+
+  function openReviewLab(product: { id: string; name: string }) {
+    reviewProduct = { id: product.id, name: product.name };
+    showReviewModal = true;
+  }
 
   import type { ProductFormState } from "$lib/types";
 
@@ -520,6 +530,7 @@
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAll}
           onEdit={openEdit}
+          onOpenReviewLab={openReviewLab}
           onDelete={async (id) => {
             try { await apiClient.post("/api/v1/products/bulk-delete", { ids: [id] }); await loadProducts(); }
             catch { nanobot.showToast("Xóa sản phẩm thất bại", "error"); }
@@ -550,6 +561,16 @@
     {generateSlug}
     {isSaving}
   />
+
+  <!-- Review Seeding Lab Modal -->
+  {#if reviewProduct}
+    <ReviewSeedingModal
+      productId={reviewProduct.id}
+      productName={reviewProduct.name}
+      isOpen={showReviewModal}
+      onClose={() => { showReviewModal = false; reviewProduct = null; }}
+    />
+  {/if}
 </div>
 
 <style>
