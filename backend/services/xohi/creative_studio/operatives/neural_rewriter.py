@@ -196,6 +196,9 @@ class NeuralRewriter(BaseAgentOperative):
             sanitized_content = self.clean_ai_html(content_raw)
             sanitized_content = shield_service.sanitize(sanitized_content)
             
+            # ELITE V2.2: Lệnh Sếp - Ép kiểu "Nhau thai" -> "Placenta" tuyệt đối (Post-processing Regex)
+            sanitized_content = re.sub(r'(?i)nhau thai', 'Placenta', sanitized_content)
+            
             # ELITE V2.2: Absolute Post-processing Guarantee for Product Commitment (Sếp's Master Plan)
             if content_type == "product":
                 commitment_html = (
