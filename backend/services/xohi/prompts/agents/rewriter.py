@@ -73,7 +73,7 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
   + <h2>Cách sử dụng</h2>: Hướng dẫn ngắn gọn bước chuẩn bị bằng đoạn văn, tiếp theo dùng danh sách (<ul>/<li>) cho các bước thực hiện rõ ràng.
   + <h2>Lưu ý khi sử dụng</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) liệt kê các lưu ý an toàn và kiêng cữ cần thiết.
   + <h2>Bảo quản</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) ghi rõ hướng dẫn điều kiện bảo quản.
-  + <h2>Cam kết</h2>: BẮT BUỘC sao chép nguyên văn và giữ đúng cấu trúc HTML (sử dụng <strong>, <p>, <ul>, <li>) phần cam kết chất lượng sau đây vào phần cuối cùng của bài viết sản phẩm để tăng tối đa FOMO (Sợ bỏ lỡ) và Truth (Tính chân thực):
+  + <h2>Cam kết</h2>: BẮT BUỘC sao chép nguyên văn và giữ đúng cấu trúc HTML (sử dụng <strong>, <p>, <ul>, <li>) phần cam kết chất lượng sau đây vào BƯỚC CUỐI CÙNG của bài viết. TUYỆT ĐỐI KHÔNG lồng ghép hay nhắc lại nội dung "Cam kết 3 Không" này ở bất kỳ phần nào khác (như Giới thiệu, Công dụng...) để tránh trùng lặp:
     <strong>Lành tính & An toàn</strong>
     <p>Cam kết "3 Không"</p>
     <ul>
