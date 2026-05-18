@@ -244,7 +244,7 @@
 
   /* Item Styles */
   .deal-item {
-    padding: 1rem;
+    padding: 5px;
     border-right: 1px solid #f3f4f6;
     background: white;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -277,7 +277,7 @@
     aspect-ratio: 1/1;
     width: 100%;
     position: relative;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     overflow: hidden;
     background: #f8f8f8;
   }
@@ -332,16 +332,17 @@
   .item-info {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.4rem;
     align-items: flex-start;
+    width: 100%;
   }
 
   .product-name-wrapper {
     height: 2.8em;
     overflow: hidden;
     position: relative;
-    margin-bottom: 0.5rem;
-    padding: 0 0.25rem;
+    margin-bottom: 0.2rem;
+    padding: 0 0.15rem;
     display: flex;
     justify-content: flex-start;
     align-items: flex-start;
@@ -371,12 +372,13 @@
     align-items: baseline;
     justify-content: flex-start;
     gap: 0.4rem;
-    margin-top: 0.5rem;
+    margin-top: 0.1rem;
+    padding: 0 0.15rem;
   }
 
   .final-price {
     color: #ee4d2d;
-    font-size: 1.4rem;
+    font-size: 1.25rem;
     font-weight: 800;
     line-height: 1;
     letter-spacing: -0.05em;
