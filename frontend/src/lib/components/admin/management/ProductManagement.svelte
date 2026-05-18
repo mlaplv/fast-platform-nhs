@@ -221,7 +221,8 @@
         discountPercent: Number(v.discountPercent ?? v.discount_percent ?? 0),
         stock: Number(v.stock || 0),
         tierIndex: v.tierIndex ?? v.tier_index ?? [],
-        is_default: v.is_default || false
+        is_default: v.is_default || false,
+        is_active: v.attributes?.is_active !== false
       })) : [];
       showForm = true;
     } catch (err) {
@@ -414,17 +415,23 @@
       tier_variations: (formState.tierVariations || []).map(tv => ({
         name: tv.name, options: tv.options, images: tv.images || null, mobile_images: tv.mobile_images || null
       })),
-      variants: (formState.variants || []).map(v => ({
-        id: v.id || null, 
-        sku: v.sku || "", 
-        price: Number(v.price), 
-        discount_price: v.discountPrice ? Number(v.discountPrice) : null,
-        discount_percent: v.discountPercent || null,
-        stock: Number(v.stock), 
-        tier_index: v.tierIndex || [],
-        is_default: v.is_default || false,
-        attributes: v.attributes || { combo_qty: null, gifts: [] }
-      }))
+      variants: (formState.variants || []).map(v => {
+        const variantAttributes = v.attributes || { combo_qty: null, gifts: [] };
+        return {
+          id: v.id || null, 
+          sku: v.sku || "", 
+          price: Number(v.price), 
+          discount_price: v.discountPrice ? Number(v.discountPrice) : null,
+          discount_percent: v.discountPercent || null,
+          stock: Number(v.stock), 
+          tier_index: v.tierIndex || [],
+          is_default: v.is_default || false,
+          attributes: {
+            ...variantAttributes,
+            is_active: v.is_active !== false
+          }
+        };
+      })
     };
     try {
       if (editingId) {

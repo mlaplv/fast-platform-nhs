@@ -25,7 +25,23 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
   const ui = getClientUi();
 
   const variations = $derived(product.tier_variations || product.tierVariations || product.attributes?.tier_variations || product.metadata?.tier_variations || []);
-  const pVariants = $derived(product.variants || []);
+  const pVariants = $derived((product.variants || []).filter(v => v.attributes?.is_active !== false));
+
+  // Helper to check if a specific option is active
+  function isOptionActive(tIdx: number, oIdx: number): boolean {
+    const rawVariants = product.variants || [];
+    if (variations.length === 1) {
+      const v = rawVariants.find(x => {
+        const idxs = x.tierIndex || x.tier_index || [];
+        return idxs[0] === oIdx;
+      });
+      return v?.attributes?.is_active !== false;
+    }
+    return rawVariants.some(x => {
+      const idxs = x.tierIndex || x.tier_index || [];
+      return idxs[tIdx] === oIdx && x.attributes?.is_active !== false;
+    });
+  }
 
   let selectedIndices = $state<number[]>([]);
   $effect(() => {
@@ -204,17 +220,19 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
             <h3 class="text-[13px] font-bold text-gray-500 tracking-wider">{tier.name}</h3>
             <div class="flex flex-wrap gap-3">
               {#each tier.options as option, oIdx}
-                {@const isSelected = selectedIndices[tIdx] === oIdx}
-                <button 
-                  onclick={() => selectOption(tIdx, oIdx)}
-                  class="relative px-5 py-2.5 text-[12px] font-black border-2 transition-all tracking-tight
-                  {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#ee4d2d]/5' : 'border-gray-100 bg-gray-50 text-gray-500'}"
-                >
-                  {option}
-                  {#if isSelected}
-                    <div class="absolute top-[-2px] right-[-2px] w-0 h-0 border-t-[8px] border-t-[#ee4d2d] border-l-[8px] border-l-transparent"></div>
-                  {/if}
-                </button>
+                {#if isOptionActive(tIdx, oIdx)}
+                  {@const isSelected = selectedIndices[tIdx] === oIdx}
+                  <button 
+                    onclick={() => selectOption(tIdx, oIdx)}
+                    class="relative px-5 py-2.5 text-[12px] font-black border-2 transition-all tracking-tight
+                    {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#ee4d2d]/5' : 'border-gray-100 bg-gray-50 text-gray-500'}"
+                  >
+                    {option}
+                    {#if isSelected}
+                      <div class="absolute top-[-2px] right-[-2px] w-0 h-0 border-t-[8px] border-t-[#ee4d2d] border-l-[8px] border-l-transparent"></div>
+                    {/if}
+                  </button>
+                {/if}
               {/each}
             </div>
           </div>

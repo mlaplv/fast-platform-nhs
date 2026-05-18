@@ -84,7 +84,8 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
     </ul>
     <strong>II. Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>
 
-- ĐẢM BẢO CHẤT LƯỢNG: Trình bày HTML sạch sẽ, chuẩn xác theo bộ khung. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các phần nội dung sao cho phù hợp."""
+- ĐẢM BẢO CHẤT LƯỢNG: Trình bày HTML sạch sẽ, chuẩn xác theo bộ khung. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các phần nội dung sao cho phù hợp. BẮT BUỘC viết cô đọng, ngắn gọn và súc tích để toàn bộ bài viết bao gồm cả phần Cam kết ở cuối cùng được kết xuất đầy đủ, trọn vẹn, tuyệt đối không viết lan man dài dòng gây cạn kiệt token làm cắt cụt nội dung.
+"""
 )
 
 ARTICLE_REWRITE_INSTRUCTIONS = PromptComponent(

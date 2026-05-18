@@ -250,7 +250,7 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         if mode in ("ai_inspect", "copyright"):
             if is_product:
                 context.update({
-                    "four_blocks": "[GIỚI THIỆU - CÔNG DỤNG - ĐỐI TƯỢNG SỬ DỤNG - CÁCH SỬ DỤNG - LƯU Ý KHI SỬ DỤNG - BẢO QUẢN]",
+                    "four_blocks": "[GIỚI THIỆU - CÔNG DỤNG - ĐỐI TƯỢNG SỬ DỤNG - CÁCH SỬ DỤNG - LƯU Ý KHI SỬ DỤNG - BẢO QUẢN - CAM KẾT]",
                     "block_1": "GIỚI THIỆU",
                     "block_3": "ĐỐI TƯỢNG SỬ DỤNG"
                 })
@@ -260,7 +260,8 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
                     "  + **ĐỐI TƯỢNG SỬ DỤNG**: Chỉ định rõ ràng đối tượng phù hợp và chống chỉ định.\n"
                     "  + **CÁCH SỬ DỤNG**: Hướng dẫn thao tác sử dụng để tối ưu hiệu quả.\n"
                     "  + **LƯU Ý KHI SỬ DỤNG**: Các cảnh báo an toàn và kiêng kỵ khi mix hoạt chất.\n"
-                    "  + **BẢO QUẢN**: Điều kiện lưu trữ duy trì tính toàn vẹn của sản phẩm."
+                    "  + **BẢO QUẢN**: Điều kiện lưu trữ duy trì tính toàn vẹn của sản phẩm.\n"
+                    "  + **CAM KẾT**: Cam kết an toàn sạch '3 Không' từ Osmo và chính sách đổi trả hoàn tiền."
                 )
             else:
                 context.update({

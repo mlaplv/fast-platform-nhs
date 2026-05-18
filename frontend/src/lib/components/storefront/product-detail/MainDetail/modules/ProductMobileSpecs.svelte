@@ -248,18 +248,46 @@
     list-style: none !important;
   }
 
-  :global(.prose-osmo li) {
+  :global(.prose-osmo ol) {
+    counter-reset: osmo-counter;
+    margin-bottom: 1rem !important;
+    padding-left: 0 !important;
+    list-style: none !important;
+  }
+
+  :global(.prose-osmo ul li) {
     margin-bottom: 0.5rem !important;
     position: relative !important;
     padding-left: 0 !important;
   }
 
-  :global(.prose-osmo li::before) {
+  :global(.prose-osmo ol li) {
+    margin-bottom: 0.5rem !important;
+    position: relative !important;
+    padding-left: 0 !important;
+  }
+
+  :global(.prose-osmo ul > li::before) {
     content: "✦" !important;
     position: static !important;
     display: inline-block !important;
     color: #ee4d2d !important;
     font-weight: bold !important;
+    margin-right: 0.35rem !important;
+  }
+
+  :global(.prose-osmo ol > li) {
+    counter-increment: osmo-counter;
+  }
+
+  :global(.prose-osmo ol > li::before) {
+    content: counter(osmo-counter) "." !important;
+    position: static !important;
+    display: inline-block !important;
+    color: #ee4d2d !important;
+    font-weight: 900 !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
     margin-right: 0.35rem !important;
   }
 

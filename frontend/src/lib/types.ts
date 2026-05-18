@@ -572,6 +572,7 @@ export interface ProductVariant {
     gifts?: { name: string; qty: number; image?: string }[];
   } | null;
   is_default?: boolean;
+  is_active?: boolean;
 }
 
 export interface MediaMetadata {

@@ -66,6 +66,22 @@
     onAddToCart, onBuyNow, onTriggerWriteReview, onTriggerViralFly
   }: Props = $props();
 
+  // Helper to check if a specific option is active
+  function isOptionActive(tIdx: number, oIdx: number): boolean {
+    const rawVariants = product.variants || [];
+    if (variations.length === 1) {
+      const v = rawVariants.find(x => {
+        const idxs = x.tierIndex || x.tier_index || [];
+        return idxs[0] === oIdx;
+      });
+      return v?.attributes?.is_active !== false;
+    }
+    return rawVariants.some(x => {
+      const idxs = x.tierIndex || x.tier_index || [];
+      return idxs[tIdx] === oIdx && x.attributes?.is_active !== false;
+    });
+  }
+
   const soldStr = $derived(product.order_count_text || product.orderCountText || (product.orderCount || product.order_count ? `${product.orderCount || product.order_count}` : ''));
 
 </script>
@@ -222,22 +238,24 @@
           <span class="w-[70px] shrink-0 text-[14px] text-gray-500 mt-2 capitalize">{tier.name}</span>
           <div class="flex flex-wrap gap-2.5">
             {#each tier.options as option, oIdx}
-              {@const isSelected = selectedIndices[tIdx] === oIdx}
-              <button 
-                type="button"
-                onclick={() => onSelectOption(tIdx, oIdx)}
-                class="relative min-w-[80px] h-10 px-4 border transition-all flex items-center justify-center text-[14px] hover:bg-[#ffeee8]/20 group
-                {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-white ring-1 ring-[#ee4d2d]/10' : 'border-gray-200 text-gray-800 bg-white'}"
-              >
-                {#if tIdx === 0 && tier.images?.[oIdx]}
-                  <img src={tier.images[oIdx]} alt={option} class="w-6 h-6 object-cover mr-2 border border-gray-100" />
-                {/if}
-                <span class="font-medium">{option}</span>
-                {#if isSelected}
-                  <div class="absolute bottom-0 right-0 w-0 h-0 border-t-[12px] border-t-transparent border-r-[12px] border-r-[#ee4d2d]"></div>
-                  <svg class="absolute bottom-0 right-0 w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M20 6L9 17l-5-5" /></svg>
-                {/if}
-              </button>
+              {#if isOptionActive(tIdx, oIdx)}
+                {@const isSelected = selectedIndices[tIdx] === oIdx}
+                <button 
+                  type="button"
+                  onclick={() => onSelectOption(tIdx, oIdx)}
+                  class="relative min-w-[80px] h-10 px-4 border transition-all flex items-center justify-center text-[14px] hover:bg-[#ffeee8]/20 group
+                  {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-white ring-1 ring-[#ee4d2d]/10' : 'border-gray-200 text-gray-800 bg-white'}"
+                >
+                  {#if tIdx === 0 && tier.images?.[oIdx]}
+                    <img src={tier.images[oIdx]} alt={option} class="w-6 h-6 object-cover mr-2 border border-gray-100" />
+                  {/if}
+                  <span class="font-medium">{option}</span>
+                  {#if isSelected}
+                    <div class="absolute bottom-0 right-0 w-0 h-0 border-t-[12px] border-t-transparent border-r-[12px] border-r-[#ee4d2d]"></div>
+                    <svg class="absolute bottom-0 right-0 w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M20 6L9 17l-5-5" /></svg>
+                  {/if}
+                </button>
+              {/if}
             {/each}
           </div>
         </div>

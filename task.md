@@ -147,3 +147,30 @@
 - [x] Đồng bộ Header Mobile với cụm tag Hot Topics + bong bóng "TẤT CẢ" phát sáng tông màu hồng đào `#C18F7E` khi hoạt động.
 - [x] Thiết lập cấu trúc trạng thái rỗng (Empty State) cao cấp trên cả Desktop và Mobile khi không tìm thấy bài viết, kèm nút xóa bộ lọc nhanh chóng.
 - [x] Thực hiện type-checking tĩnh 100% bằng svelte-check thành công hoàn hảo (exit code 0).
+
+# XOHI Auto Product Classification (Variants) Integration (Elite V2.2)
+- [x] Thiết kế nút bấm kích hoạt Trợ lý Xohi AI trên Header của `ProductFormVariants.svelte`.
+- [x] Xây dựng bảng điều khiển Glassmorphism HUD Assistant Panel với các Presets và ô nhập prompt.
+- [x] Triển khai hàm logic `parseXohiPrompt` trích xuất thông tin combo, quà tặng, giảm giá, tồn kho và mặc định.
+- [x] Triển khai hiệu ứng AI Loading Steps kéo dài 800ms tạo trải nghiệm cao cấp.
+- [x] Đồng bộ ma trận phân loại hàng và cập nhật vào `formState.tierVariations` và `formState.variants`.
+- [x] Tích hợp cột Bật/Tắt (ON/OFF) ở vị trí đầu tiên của bảng ma trận biến thể.
+- [x] Triển khai hàm `toggleVariantActive` quản lý kích hoạt với cảnh báo an toàn cho biến thể mặc định.
+- [x] Đồng bộ hóa hiệu ứng làm mờ hàng (`opacity-40 saturate-50`) và vô hiệu hóa tất cả input (`disabled={variant.is_active === false}`) khi biến thể bị tắt.
+- [x] Đồng bộ hóa lưu trữ/tải trạng thái kích hoạt biến thể vào cột JSONB `attributes` (không cần chạy DB migration).
+- [x] Lọc động các biến thể đang hoạt động (`is_active !== false`) trên toàn bộ giao diện Storefront (Desktop, Mobile, Selector Drawer, Overview).
+- [x] Triển khai hàm helper `isOptionActive` và lọc ẩn triệt để nút bấm tùy chọn biến thể đã bị tắt tại cả giao diện Desktop và Mobile.
+- [x] Kiểm thức biên dịch `npx svelte-check` và kiểm tra hoạt động.
+
+# Storefront Numbered Bullet Overlap Fix (Elite V2.2)
+- [x] Phân tích nguyên nhân lỗi chồng số thứ tự đè lên ký tự đầu tiên của danh sách có thứ tự (ol > li) trên cả Desktop và Mobile.
+- [x] Điều chỉnh CSS `ol > li` thành `padding-left: 1.5rem !important` tại [MainDetail/Desktop.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/MainDetail/Desktop.svelte) để tạo máng chạy an toàn cho số thứ tự absolute.
+- [x] Tách biệt và khai báo độc lập kiểu dáng ordered list `ol` và `ol > li::before` tại [ProductMobileSpecs.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/MainDetail/modules/ProductMobileSpecs.svelte) để tối ưu hiển thị danh sách trên Mobile.
+- [x] Tự kiểm thức biên dịch và chạy kiểm tra cú pháp frontend thành công.
+# XOHI Product Rewrite Truncation & Token Optimization Fix (Elite V2.2)
+- [x] Phát hiện nguyên nhân cốt lõi: Đặt `max_tokens = 16384` vượt giới hạn trần vật lý `8192` của Gemini API làm kích hoạt fallback ngầm hạ giới hạn về mặc định siêu thấp (2048/4096), dẫn đến việc nội dung viết lại bị cắt cụt ở phần cuối (mất mục Cam kết).
+- [x] Tinh chỉnh `max_tokens = 8192` (mức trần vật lý tối đa và tối ưu nhất của Gemini API) trong `neural_rewriter.py` để tránh bị auto-fallback hạ token.
+- [x] Nâng cấp `- ĐẢM BẢO CHẤT LƯỢNG` trong `rewriter.py` bằng cách bổ sung chỉ thị ép AI viết ngắn gọn, cô đọng dưới 1500 từ để kết xuất trọn vẹn và đầy đủ phần Cam kết.
+- [x] Thực hiện biên dịch kiểm tra AST tĩnh thành công 100% không phát sinh lỗi.
+- [x] Tái khởi động nóng các container api và worker thành công để nạp cấu hình mới ngay lập tức.
+- [x] Phát hiện & sửa lỗi khuyết Cam kết trên giao diện Verdict/Copyright Analysis: Tích hợp hoàn hảo mục CAM KẾT vào `four_blocks` và `step_3_pillars` trong `agent_base.py`, cùng với Heuristic fallback trong `plagiarism_cop.py`.

@@ -90,8 +90,24 @@
     flashSaleEnd !== null && flashSaleEnd > Date.now()
   );
 
-  const pVariants = $derived(product.variants || []);
+  const pVariants = $derived((product.variants || []).filter(v => v.attributes?.is_active !== false));
   const variations = $derived(product.tier_variations || product.tierVariations || product.attributes?.tier_variations || product.metadata?.tier_variations || []);
+
+  // Helper to check if a specific option is active
+  function isOptionActive(tIdx: number, oIdx: number): boolean {
+    const rawVariants = product.variants || [];
+    if (variations.length === 1) {
+      const v = rawVariants.find(x => {
+        const idxs = x.tierIndex || x.tier_index || [];
+        return idxs[0] === oIdx;
+      });
+      return v?.attributes?.is_active !== false;
+    }
+    return rawVariants.some(x => {
+      const idxs = x.tierIndex || x.tier_index || [];
+      return idxs[tIdx] === oIdx && x.attributes?.is_active !== false;
+    });
+  }
 
   // Carousel State
   let activeImageIndex = $state(0);
@@ -454,17 +470,19 @@
         <div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide no-scrollbar">
           {#if variations.length === 1}
             {#each variations[0].options as option, oIdx}
-               {@const isSelected = (selectedVariant?.tierIndex?.[0] ?? selectedVariant?.tier_index?.[0]) === oIdx}
-               <button 
-                 onclick={() => onOpenSelector()} 
-                 class="relative shrink-0 px-5 py-2.5 border-2 text-[12px] font-black tracking-tight transition-all
-                 {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#ee4d2d]/5' : 'bg-gray-50 border-gray-100 text-gray-500'}"
-               >
-                 {option}
-                 {#if isSelected}
-                    <div class="absolute top-[-2px] right-[-2px] w-0 h-0 border-t-[8px] border-t-[#ee4d2d] border-l-[8px] border-l-transparent"></div>
-                 {/if}
-               </button>
+               {#if isOptionActive(0, oIdx)}
+                 {@const isSelected = (selectedVariant?.tierIndex?.[0] ?? selectedVariant?.tier_index?.[0]) === oIdx}
+                 <button 
+                   onclick={() => onOpenSelector()} 
+                   class="relative shrink-0 px-5 py-2.5 border-2 text-[12px] font-black tracking-tight transition-all
+                   {isSelected ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#ee4d2d]/5' : 'bg-gray-50 border-gray-100 text-gray-500'}"
+                 >
+                   {option}
+                   {#if isSelected}
+                      <div class="absolute top-[-2px] right-[-2px] w-0 h-0 border-t-[8px] border-t-[#ee4d2d] border-l-[8px] border-l-transparent"></div>
+                   {/if}
+                 </button>
+               {/if}
             {/each}
           {:else}
             <button 

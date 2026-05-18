@@ -60,7 +60,7 @@
   });
   let quantity = $state(1);
 
-  const pVariants = $derived(product.variants || []);
+  const pVariants = $derived((product.variants || []).filter(v => v.attributes?.is_active !== false));
   let currentVariant = $derived<ProductVariant | undefined>(
     pVariants.find(v => 
       v.tierIndex.length === selectedIndices.length && 
@@ -587,16 +587,17 @@
   }
   :global(.prose-osmo ol > li) {
     counter-increment: osmo-counter;
+    padding-left: 0 !important;
   }
   :global(.prose-osmo ol > li::before) {
     content: counter(osmo-counter) "." !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    position: static !important;
+    display: inline-block !important;
     color: #ee4d2d !important;
     font-weight: 900 !important;
     font-size: 14px !important;
     line-height: 1.6 !important;
+    margin-right: 0.35rem !important;
   }
 
   :global(.prose-osmo img) {

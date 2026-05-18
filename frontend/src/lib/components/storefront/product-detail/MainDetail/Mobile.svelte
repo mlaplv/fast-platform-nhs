@@ -155,7 +155,7 @@
   // Elite V2.2: Neural Variant Initialization (Sync with Desktop)
   $effect(() => {
     if (product && !selectedVariant && variations.length > 0) {
-      const pVariants = product.variants || [];
+      const pVariants = (product.variants || []).filter((v) => v.attributes?.is_active !== false);
       const defaultV = pVariants.find((v) => v.is_default) || pVariants[0];
       if (defaultV) {
         selectedVariant = defaultV;
