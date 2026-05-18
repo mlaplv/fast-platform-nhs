@@ -196,6 +196,27 @@ class NeuralRewriter(BaseAgentOperative):
             sanitized_content = self.clean_ai_html(content_raw)
             sanitized_content = shield_service.sanitize(sanitized_content)
             
+            # ELITE V2.2: Absolute Post-processing Guarantee for Product Commitment (Sếp's Master Plan)
+            if content_type == "product":
+                commitment_html = (
+                    "<h2>Cam kết</h2>\n"
+                    "<strong>I. Lành tính & An toàn</strong>\n"
+                    "<p>Cam kết \"3 Không\" từ Miccosmo</p>\n"
+                    "<p>Chúng tôi hiểu rằng vùng da nhạy cảm cần sự nâng niu tuyệt đối. Sản phẩm Beppin Body tuân thủ nghiêm ngặt triết lý làm đẹp sạch:</p>\n"
+                    "<ul>\n"
+                    "  <li>KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.</li>\n"
+                    "  <li>KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.</li>\n"
+                    "  <li>KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ thảo mộc.</li>\n"
+                    "</ul>\n"
+                    "<strong>II. Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>"
+                )
+                match = re.search(r'<h2[^>]*>[^<]*?cam\s*kết[^<]*?</h2>', sanitized_content, re.IGNORECASE)
+                if match:
+                    cut_idx = match.start()
+                    sanitized_content = sanitized_content[:cut_idx].strip() + "\n\n" + commitment_html
+                else:
+                    sanitized_content = sanitized_content.strip() + "\n\n" + commitment_html
+            
             self.current_step = 3
             logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Tinh chỉnh sáng tạo hoàn tất trong {duration:.1f}s! Đã cập nhật vào Tiptap. ĐÃ XỬ LÝ XONG")
             await self._emit_progress(campaign_id, logs[-1], status="DONE")
