@@ -270,6 +270,7 @@ class ProductResponse(BaseModel):
     
     orderCount: int = Field(0, alias="order_count")
     orderCountText: Optional[str] = Field(None, alias="order_count_text")
+    review_count: int = 0
 
     # Market Price Intel (V2026)
     marketData: Optional[Dict[str, object]] = Field(None, alias="market_data")

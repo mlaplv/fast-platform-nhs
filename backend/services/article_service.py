@@ -108,7 +108,26 @@ class ArticleService:
         ).limit(limit).offset(offset).order_by(Article.created_at.desc())
 
         result = await db_session.execute(stmt)
-        data = [ArticleResponse.model_validate(row._mapping) for row in result]
+        rows = result.all()
+
+        # Elite V2.2: Fast bulk fetch for review counts
+        review_counts = {}
+        if rows:
+            from backend.database.models import SystemReview
+            rc_stmt = select(SystemReview.entity_id, func.count(SystemReview.id)).where(
+                SystemReview.entity_id.in_([str(r.id) for r in rows]),
+                SystemReview.entity_type == "NEWS",
+                SystemReview.status == "APPROVED"
+            ).group_by(SystemReview.entity_id)
+            rc_res = await db_session.execute(rc_stmt)
+            review_counts = {r[0]: r[1] for r in rc_res.all()}
+
+        data = []
+        for row in rows:
+            row_dict = dict(row._mapping)
+            row_dict["review_count"] = review_counts.get(str(row.id), 0)
+            data.append(ArticleResponse.model_validate(row_dict))
+
         return ArticleListResponse(data=data, total=total)
 
     async def search_semantic(

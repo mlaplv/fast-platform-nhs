@@ -141,7 +141,7 @@
                 👁️ {article.views || 0}
               </span>
               <span class="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[8px] text-gray-400 font-black" title="Đánh giá (Reviews)">
-                ⭐ {(article.metadata as any)?.reviews_stats?.total_count || 0}
+                ⭐ {article.review_count || 0}
               </span>
 
               <span class="md:hidden text-gray-800 ml-1">/</span>

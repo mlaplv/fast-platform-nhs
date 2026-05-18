@@ -103,6 +103,7 @@ class ArticleResponse(BaseModel):
     views: int = 0
     author: str = Field("System", alias="author_name")
     authorId: Optional[str] = Field(None, alias="author_id")
+    review_count: int = 0
     createdAt: datetime = Field(alias="created_at")
 
     @field_validator("author", mode="before")

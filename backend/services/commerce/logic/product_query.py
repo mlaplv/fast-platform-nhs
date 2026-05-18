@@ -93,9 +93,22 @@ async def list_products_logic(
     # R2026: Use mappings to prevent MissingGreenlet errors during Pydantic validation
     rows = result.mappings().all()
 
+    # Elite V2.2: Fast bulk fetch for review counts
+    review_counts = {}
+    if rows:
+        from backend.database.models import SystemReview
+        rc_stmt = select(SystemReview.entity_id, func.count(SystemReview.id)).where(
+            SystemReview.entity_id.in_([r["id"] for r in rows]),
+            SystemReview.entity_type == "PRODUCT",
+            SystemReview.status == "APPROVED"
+        ).group_by(SystemReview.entity_id)
+        rc_res = await db_session.execute(rc_stmt)
+        review_counts = {r[0]: r[1] for r in rc_res.all()}
+
     data = []
     for row in rows:
         row_dict = dict(row)
+        row_dict["review_count"] = review_counts.get(row_dict["id"], 0)
         # Fetch variants separately to avoid complex joins
         v_stmt = select(ProductVariant).where(
             ProductVariant.product_base_id == row_dict["id"],

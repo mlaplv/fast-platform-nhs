@@ -192,6 +192,7 @@ export interface Article {
   views: number;
   author: string;
   authorId: string | null;
+  review_count?: number;
   createdAt: string;
   analysis_report?: Record<string, unknown>;
   metadata?: ArticleMetadata;
@@ -523,6 +524,7 @@ export interface Product {
   rating?: number | string;
   rating_text?: string;
   views?: number;
+  review_count?: number;
   createdAt: string;
   analysis_report?: Record<string, unknown>;
   market_data?: MarketPriceIntel;
