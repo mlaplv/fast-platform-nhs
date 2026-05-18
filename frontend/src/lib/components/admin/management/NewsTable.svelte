@@ -117,8 +117,35 @@
             <div class="text-[14px] md:text-[13px] font-bold text-gray-100 truncate group-hover:text-cyan-400 transition-colors tracking-wide">
               {article.title}
             </div>
-            <div class="md:hidden text-[9px] font-mono text-gray-500 mt-1 tracking-widest">
-              {article.category || "Chung"}
+            <div class="text-[10px] font-mono text-gray-500 mt-1 tracking-[0.2em] flex items-center flex-wrap gap-2">
+              {#if article.metadata?.analysis_metrics}
+                {@const metrics = article.metadata.analysis_metrics}
+                {#if metrics.unique_score !== undefined}
+                  <span class="px-1.5 py-0.5 rounded-md bg-orange-500/10 border border-orange-500/30 text-[8px] text-orange-400 font-black shadow-[0_0_10px_rgba(249,115,22,0.1)]" title="Tiêu chí vàng: Copyright Certificate">
+                    © {Math.round(metrics.unique_score * 100)}%
+                  </span>
+                {/if}
+                {#if metrics.seo_score !== undefined}
+                  <span class="px-1.5 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/30 text-[8px] text-blue-400 font-black shadow-[0_0_10px_rgba(59,130,246,0.1)]" title="Tiêu chí vàng: SEO Certificate">
+                    📊 {metrics.seo_score}
+                  </span>
+                {/if}
+                {#if metrics.ai_ready_score !== undefined}
+                  <span class="px-1.5 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/30 text-[8px] text-purple-400 font-black shadow-[0_0_10px_rgba(168,85,247,0.1)]" title="Tiêu chí vàng: AI Mod Ready">
+                    🤖 {metrics.ai_ready_score}
+                  </span>
+                {/if}
+              {/if}
+
+              <span class="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[8px] text-gray-400 font-black" title="Lượt xem (Views)">
+                👁️ {article.views || 0}
+              </span>
+              <span class="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-[8px] text-gray-400 font-black" title="Đánh giá (Reviews)">
+                ⭐ {(article.metadata as any)?.reviews_stats?.total_count || 0}
+              </span>
+
+              <span class="md:hidden text-gray-800 ml-1">/</span>
+              <span class="md:hidden text-gray-600 font-bold ml-1">{article.category || "Chung"}</span>
             </div>
           </div>
         </div>

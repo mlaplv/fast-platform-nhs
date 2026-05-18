@@ -522,6 +522,7 @@ export interface Product {
   orderCountText?: string;
   rating?: number | string;
   rating_text?: string;
+  views?: number;
   createdAt: string;
   analysis_report?: Record<string, unknown>;
   market_data?: MarketPriceIntel;
