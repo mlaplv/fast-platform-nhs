@@ -198,14 +198,10 @@ class NeuralRewriter(BaseAgentOperative):
             
             # ELITE V2.2: Absolute Post-processing Guarantee for Product Commitment (Sếp's Master Plan)
             if content_type == "product":
-                product_name = topic.split(" - ")[0].strip() if " - " in topic else topic.strip()
-                if not product_name:
-                    product_name = "Miccosmo"
                 commitment_html = (
                     "<h2>Cam kết</h2>\n"
                     "<strong>Lành tính & An toàn</strong>\n"
                     "<p>Cam kết \"3 Không\" từ Miccosmo</p>\n"
-                    f"<p>Chúng tôi hiểu rằng vùng da nhạy cảm cần sự nâng niu tuyệt đối. Sản phẩm {product_name} tuân thủ nghiêm ngặt triết lý làm đẹp sạch:</p>\n"
                     "<ul>\n"
                     "  <li>KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.</li>\n"
                     "  <li>KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.</li>\n"
