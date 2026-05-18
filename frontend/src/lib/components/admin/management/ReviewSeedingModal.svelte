@@ -19,19 +19,19 @@
 
   const nanobot = useNanobot();
 
-  let {
-    productId,
-    productName,
-    isOpen,
-    onClose,
-    entityType = "PRODUCT",
-  } = $props<{
+  let props = $props<{
     productId: string;
     productName: string;
     isOpen: boolean;
     onClose: () => void;
     entityType?: "PRODUCT" | "NEWS" | "CATEGORY";
   }>();
+
+  const productId = $derived(props.productId);
+  const productName = $derived(props.productName);
+  const isOpen = $derived(props.isOpen);
+  const onClose = $derived(props.onClose);
+  const entityType = $derived(props.entityType || "PRODUCT");
 
   // --- TYPES ---
   interface Review {
