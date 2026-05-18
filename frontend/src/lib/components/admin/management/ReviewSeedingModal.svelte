@@ -13,6 +13,9 @@
   import Dices from "@lucide/svelte/icons/dices";
   import RefreshCw from "@lucide/svelte/icons/refresh-cw";
   import MapPin from "@lucide/svelte/icons/map-pin";
+  import Pencil from "@lucide/svelte/icons/pencil";
+  import Save from "@lucide/svelte/icons/save";
+  import Ban from "@lucide/svelte/icons/ban";
 
   const nanobot = useNanobot();
 
@@ -49,6 +52,53 @@
   let lastGenerated = $state<Review | null>(null);
   let currentPage = $state(1);
   const PAGE_SIZE = 15;
+
+  // Edit state
+  interface EditDraft {
+    customer_name: string;
+    customer_location: string;
+    rating: number;
+    content: string;
+  }
+  let editingId = $state<string | null>(null);
+  let editDraft = $state<EditDraft>({ customer_name: "", customer_location: "", rating: 5, content: "" });
+  let isSavingEdit = $state(false);
+
+  function openEdit(review: Review) {
+    editingId = review.id;
+    editDraft = {
+      customer_name: review.customer_name,
+      customer_location: review.customer_location ?? "",
+      rating: review.rating,
+      content: review.content,
+    };
+  }
+
+  function cancelEdit() {
+    editingId = null;
+  }
+
+  async function saveEdit(id: string) {
+    if (!editDraft.content.trim()) {
+      nanobot.showToast("Nội dung không được để trống", "error"); return;
+    }
+    isSavingEdit = true;
+    try {
+      await apiClient.patch(`/api/v1/reviews/${id}`, {
+        customer_name: editDraft.customer_name.trim() || undefined,
+        customer_location: editDraft.customer_location.trim() || undefined,
+        rating: editDraft.rating,
+        content: editDraft.content.trim(),
+      });
+      nanobot.showToast("✅ Đã lưu thay đổi", "success");
+      editingId = null;
+      await loadReviews();
+    } catch (err) {
+      nanobot.showToast("Lưu thất bại: " + (err as Error).message, "error");
+    } finally {
+      isSavingEdit = false;
+    }
+  }
 
   const totalPages = $derived(Math.max(1, Math.ceil(totalReviews / PAGE_SIZE)));
 
@@ -95,6 +145,7 @@
     if (!isOpen) {
       activeTab = "existing";
       lastGenerated = null;
+      editingId = null;
     }
   });
 
@@ -300,64 +351,167 @@
               {:else}
                 {#each reviews as review (review.id)}
                   {@const statusInfo = STATUS_MAP[review.status] ?? STATUS_MAP["PENDING"]}
+                  {@const isEditing = editingId === review.id}
                   <div
-                    class="review-card flex flex-col gap-2 p-3.5 rounded-2xl border border-white/[0.04] hover:border-white/[0.08] bg-white/[0.02] transition-all duration-200"
+                    class="review-card flex flex-col gap-2 p-3.5 rounded-2xl border transition-all duration-200
+                      {isEditing
+                        ? 'border-[#FFB800]/30 bg-[#FFB800]/[0.03]'
+                        : 'border-white/[0.04] hover:border-white/[0.08] bg-white/[0.02]'}"
                     transition:fade={{ duration: 120 }}
                   >
-                    <div class="flex items-start justify-between gap-2">
-                      <div class="flex flex-col gap-0.5 min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                          <span class="text-[12px] font-bold text-white/90">{review.customer_name}</span>
-                          {#if review.customer_location}
-                            <span class="flex items-center gap-1 text-[9px] text-white/30">
-                              <MapPin size={8} />
-                              {review.customer_location}
-                            </span>
-                          {/if}
-                          {#if review.attributes?.ai_seeded}
-                            {@const style = getStyleBadge(review.attributes)}
-                            <span class="px-1.5 py-0.5 rounded-md bg-[#FFB800]/10 border border-[#FFB800]/20 text-[7px] font-black text-[#FFB800]">
-                              🤖 {style}
-                            </span>
-                          {/if}
+                    {#if isEditing}
+                      <!-- ===== INLINE EDIT FORM ===== -->
+                      <div class="flex flex-col gap-3" transition:fly={{ y: -4, duration: 150 }}>
+                        <!-- Edit header -->
+                        <div class="flex items-center gap-2 text-[9px] font-black text-[#FFB800] tracking-widest">
+                          <Pencil size={10} />
+                          ĐANG CHỈNH SỬA
                         </div>
-                        <!-- Stars -->
-                        <div class="flex items-center gap-0.5">
-                          {#each [1,2,3,4,5] as s}
-                            <Star size={9} class="{s <= review.rating ? 'text-[#FFD700]' : 'text-white/10'}" fill="{s <= review.rating ? '#FFD700' : 'transparent'}" />
-                          {/each}
-                          <span class="text-[8px] text-white/20 ml-1 font-mono">{formatDate(review.created_at)}</span>
+
+                        <!-- Name + Location row -->
+                        <div class="grid grid-cols-2 gap-2">
+                          <div class="flex flex-col gap-1">
+                            <label class="text-[8px] font-black text-white/30 tracking-widest">TÊN KHÁCH</label>
+                            <input
+                              type="text"
+                              bind:value={editDraft.customer_name}
+                              class="edit-input text-[11px]"
+                              placeholder="Tên khách hàng"
+                            />
+                          </div>
+                          <div class="flex flex-col gap-1">
+                            <label class="text-[8px] font-black text-white/30 tracking-widest">ĐỊA ĐIỂM</label>
+                            <input
+                              type="text"
+                              bind:value={editDraft.customer_location}
+                              class="edit-input text-[11px]"
+                              placeholder="TP.HCM, Hà Nội..."
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <!-- Status + Actions -->
-                      <div class="flex items-center gap-1.5 shrink-0">
-                        <span
-                          class="px-2 py-1 rounded-lg text-[8px] font-black font-mono tracking-wider flex items-center gap-1"
-                          style:color={statusInfo.color}
-                          style:border="1px solid {statusInfo.color}30"
-                          style:background="{statusInfo.color}12"
-                        >
-                          {statusInfo.label}
-                        </span>
-                        {#if review.status === "PENDING"}
+
+                        <!-- Rating stars clickable -->
+                        <div class="flex flex-col gap-1">
+                          <label class="text-[8px] font-black text-white/30 tracking-widest">SỐ SAO</label>
+                          <div class="flex items-center gap-1">
+                            {#each [1,2,3,4,5] as s}
+                              <button
+                                onclick={() => editDraft.rating = s}
+                                class="transition-transform hover:scale-125 active:scale-95"
+                                title="{s} sao"
+                              >
+                                <Star
+                                  size={18}
+                                  class="{s <= editDraft.rating ? 'text-[#FFD700]' : 'text-white/10'} transition-colors"
+                                  fill="{s <= editDraft.rating ? '#FFD700' : 'transparent'}"
+                                />
+                              </button>
+                            {/each}
+                            <span class="text-[10px] font-mono text-white/30 ml-2">{editDraft.rating}/5</span>
+                          </div>
+                        </div>
+
+                        <!-- Content textarea -->
+                        <div class="flex flex-col gap-1">
+                          <label class="text-[8px] font-black text-white/30 tracking-widest">NỘI DUNG ĐÁNH GIÁ</label>
+                          <textarea
+                            bind:value={editDraft.content}
+                            rows={3}
+                            class="edit-input text-[12px] resize-none leading-relaxed"
+                            placeholder="Nhập nội dung đánh giá..."
+                          ></textarea>
+                          <span class="text-[8px] text-white/20 text-right font-mono">{editDraft.content.length}/200</span>
+                        </div>
+
+                        <!-- Action buttons -->
+                        <div class="flex items-center gap-2 justify-end">
                           <button
-                            onclick={() => approveReview(review.id)}
-                            class="p-1.5 rounded-lg bg-[#39FF14]/5 border border-[#39FF14]/20 text-[#39FF14]/60 hover:text-[#39FF14] hover:border-[#39FF14]/50 transition-all"
-                            title="Duyệt"
+                            onclick={cancelEdit}
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 text-[10px] font-black text-white/40 hover:text-white hover:border-white/30 transition-all"
                           >
-                            <CheckCircle size={12} />
+                            <Ban size={11} />
+                            Huỷ
                           </button>
-                        {/if}
-                        <button
-                          onclick={() => deleteReview(review.id)}
-                          class="p-1.5 rounded-lg bg-red-500/5 border border-red-500/10 text-red-500/40 hover:text-red-400 hover:border-red-500/30 transition-all"
-                          title="Xoá"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                          <button
+                            onclick={() => saveEdit(review.id)}
+                            disabled={isSavingEdit}
+                            class="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-[#FFB800]/15 border border-[#FFB800]/30 text-[10px] font-black text-[#FFB800] hover:bg-[#FFB800]/25 disabled:opacity-50 transition-all"
+                          >
+                            {#if isSavingEdit}
+                              <RefreshCw size={11} class="animate-spin" />
+                              Đang lưu...
+                            {:else}
+                              <Save size={11} />
+                              Lưu thay đổi
+                            {/if}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <p class="text-[12px] text-white/60 leading-relaxed">{review.content}</p>
+
+                    {:else}
+                      <!-- ===== VIEW MODE ===== -->
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="flex flex-col gap-0.5 min-w-0">
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-[12px] font-bold text-white/90">{review.customer_name}</span>
+                            {#if review.customer_location}
+                              <span class="flex items-center gap-1 text-[9px] text-white/30">
+                                <MapPin size={8} />
+                                {review.customer_location}
+                              </span>
+                            {/if}
+                            {#if review.attributes?.ai_seeded}
+                              {@const style = getStyleBadge(review.attributes)}
+                              <span class="px-1.5 py-0.5 rounded-md bg-[#FFB800]/10 border border-[#FFB800]/20 text-[7px] font-black text-[#FFB800]">
+                                🤖 {style}
+                              </span>
+                            {/if}
+                          </div>
+                          <!-- Stars -->
+                          <div class="flex items-center gap-0.5">
+                            {#each [1,2,3,4,5] as s}
+                              <Star size={9} class="{s <= review.rating ? 'text-[#FFD700]' : 'text-white/10'}" fill="{s <= review.rating ? '#FFD700' : 'transparent'}" />
+                            {/each}
+                            <span class="text-[8px] text-white/20 ml-1 font-mono">{formatDate(review.created_at)}</span>
+                          </div>
+                        </div>
+                        <!-- Status + Actions -->
+                        <div class="flex items-center gap-1.5 shrink-0">
+                          <span
+                            class="px-2 py-1 rounded-lg text-[8px] font-black font-mono tracking-wider flex items-center gap-1"
+                            style:color={statusInfo.color}
+                            style:border="1px solid {statusInfo.color}30"
+                            style:background="{statusInfo.color}12"
+                          >
+                            {statusInfo.label}
+                          </span>
+                          {#if review.status === "PENDING"}
+                            <button
+                              onclick={() => approveReview(review.id)}
+                              class="p-1.5 rounded-lg bg-[#39FF14]/5 border border-[#39FF14]/20 text-[#39FF14]/60 hover:text-[#39FF14] hover:border-[#39FF14]/50 transition-all"
+                              title="Duyệt"
+                            >
+                              <CheckCircle size={12} />
+                            </button>
+                          {/if}
+                          <button
+                            onclick={() => openEdit(review)}
+                            class="p-1.5 rounded-lg bg-[#FFB800]/5 border border-[#FFB800]/10 text-[#FFB800]/50 hover:text-[#FFB800] hover:border-[#FFB800]/40 transition-all"
+                            title="Sửa nội dung"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            onclick={() => deleteReview(review.id)}
+                            class="p-1.5 rounded-lg bg-red-500/5 border border-red-500/10 text-red-500/40 hover:text-red-400 hover:border-red-500/30 transition-all"
+                            title="Xoá"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                      <p class="text-[12px] text-white/60 leading-relaxed">{review.content}</p>
+                    {/if}
                   </div>
                 {/each}
               {/if}
@@ -524,4 +678,25 @@
 
   .custom-scrollbar::-webkit-scrollbar { width: 4px; }
   .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); border-radius: 20px; }
+
+  .edit-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 184, 0, 0.2);
+    border-radius: 10px;
+    padding: 8px 10px;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .edit-input:focus {
+    border-color: rgba(255, 184, 0, 0.5);
+    box-shadow: 0 0 0 3px rgba(255, 184, 0, 0.06);
+  }
+
+  .edit-input::placeholder {
+    color: rgba(255, 255, 255, 0.15);
+  }
 </style>
