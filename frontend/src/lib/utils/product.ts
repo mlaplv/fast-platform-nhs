@@ -115,7 +115,7 @@ export function parseCommitmentsHtml(html: string): CommitmentsData {
 
   let title = "Lành tính & An toàn";
   let subtitle = "Cam kết \"3 Không\" từ Miccosmo";
-  let intro = "Chúng tôi hiểu rằng vùng da nhạy cảm cần sự nâng niu tuyệt đối. Sản phẩm tuân thủ nghiêm ngặt triết lý làm đẹp sạch:";
+  let intro = "Chúng tôi hiểu rằng vùng da nhạy cảm cần sự nâng niu tuyệt đối";
   let fomo = "Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng";
 
   // Match title (line containing "Lành tính")
@@ -128,7 +128,14 @@ export function parseCommitmentsHtml(html: string): CommitmentsData {
 
   // Match intro (longer sentence containing "nâng niu" or "triết lý" or "tuân thủ")
   const introLine = allLines.find(l => (l.includes(':') || l.toLowerCase().includes('triết lý') || l.toLowerCase().includes('nâng niu') || l.toLowerCase().includes('tuân thủ') || l.toLowerCase().includes('hiểu rằng') || l.toLowerCase().includes('tuyệt đối')) && l.length > 40);
-  if (introLine) intro = introLine;
+  if (introLine) {
+    // Strip "Sản phẩm [tên sản phẩm] tuân thủ nghiêm ngặt triết lý làm đẹp sạch:" residue
+    // Keep only the first sentence before ". Sản phẩm"
+    const productMentionIdx = introLine.search(/\.\s*Sản phẩm/i);
+    intro = productMentionIdx !== -1
+      ? introLine.slice(0, productMentionIdx).trim()
+      : introLine;
+  }
 
   // Match fomo (line containing "đổi trả" or "hoàn tiền" or "free ship" or "freeship")
   const fomoLine = allLines.find(l => l.toLowerCase().includes('đổi trả') || l.toLowerCase().includes('hoàn tiền') || l.toLowerCase().includes('free ship') || l.toLowerCase().includes('freeship'));
