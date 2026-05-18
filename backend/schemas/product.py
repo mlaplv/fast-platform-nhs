@@ -173,6 +173,7 @@ class CreateProductRequest(BaseModel):
     type: str = Field("RETAIL", pattern=r"^(RETAIL|RENTAL|SERVICE)$")
     isAiFeatured: bool = Field(False, alias="is_ai_featured")
     analysis_report: Optional[Dict[str, object]] = Field(None, alias="analysis_report")
+    generate_knowledge_graph: bool = Field(False, alias="generate_knowledge_graph")
     
     # Professional Fashion Upgrade
     slug: str = Field(..., min_length=1, max_length=200)
@@ -210,6 +211,7 @@ class UpdateProductRequest(BaseModel):
     categoryId: Optional[str] = None
     isAiFeatured: Optional[bool] = Field(None, alias="is_ai_featured")
     analysis_report: Optional[Dict[str, object]] = Field(None, alias="analysis_report")
+    generate_knowledge_graph: Optional[bool] = Field(False, alias="generate_knowledge_graph")
     
     # Professional Fashion Upgrade
     slug: Optional[str] = Field(None, min_length=1, max_length=200)

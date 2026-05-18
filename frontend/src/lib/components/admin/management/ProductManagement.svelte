@@ -166,6 +166,7 @@
     formState.analysisReport = {};
     formState.marketData = { ads: [], organic_results: [], analysis: "" };
     formState.lastMarketSync = undefined;
+    formState.generateKnowledgeGraph = false;
     showForm = true;
   }
 
@@ -204,6 +205,7 @@
       formState.analysisReport = p.analysis_report || {};
       formState.marketData = p.marketData ?? p.market_data ?? { ads: [], organic_results: [], analysis: "" };
       formState.lastMarketSync = p.lastMarketSync ?? p.last_market_sync;
+      formState.generateKnowledgeGraph = false;
       const rawTierVariations = p.tierVariations ?? p.tier_variations ?? [];
       formState.tierVariations = Array.isArray(rawTierVariations) ? rawTierVariations.map(tv => ({
         name: tv.name || "",
@@ -412,6 +414,7 @@
       attributes: formState.attributes || {},
       metadata: formState.metadata || {},
       analysis_report: formState.analysisReport || {},
+      generate_knowledge_graph: formState.generateKnowledgeGraph,
       tier_variations: (formState.tierVariations || []).map(tv => ({
         name: tv.name, options: tv.options, images: tv.images || null, mobile_images: tv.mobile_images || null
       })),

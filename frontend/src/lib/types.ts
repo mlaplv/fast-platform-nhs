@@ -900,4 +900,5 @@ export interface ProductFormState {
   analysisReport: Record<string, unknown>;
   marketData: MarketPriceIntel;
   lastMarketSync?: string;
+  generateKnowledgeGraph?: boolean;
 }

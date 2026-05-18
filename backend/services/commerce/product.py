@@ -292,17 +292,18 @@ class ProductService:
         )
 
         # Elite V2.2: Knowledge Graph Generation (SGE Optimization)
-        from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
-        try:
-            kg_data = await generate_knowledge_graph(
-                content=cleaned_description,
-                topic=data.name
-            )
-            product.product_metadata["knowledge_graph"] = kg_data
-            from sqlalchemy.orm.attributes import flag_modified
-            flag_modified(product, "product_metadata")
-        except Exception as e:
-            logger.error(f"[ProductService] KG Generation failed for {new_id}: {e}")
+        if getattr(data, "generate_knowledge_graph", False):
+            from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
+            try:
+                kg_data = await generate_knowledge_graph(
+                    content=cleaned_description,
+                    topic=data.name
+                )
+                product.product_metadata["knowledge_graph"] = kg_data
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(product, "product_metadata")
+            except Exception as e:
+                logger.error(f"[ProductService] KG Generation failed for {new_id}: {e}")
 
         # Elite V2.2: Sync Media Links
         await self._sync_media_links(db_session, new_id, product)
@@ -371,19 +372,20 @@ class ProductService:
             )
             
             # Elite V2.2: Re-generate Knowledge Graph on content change
-            from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
-            try:
-                kg_data = await generate_knowledge_graph(
-                    content=product.description,
-                    topic=product.name
-                )
-                if not product.product_metadata:
-                    product.product_metadata = {}
-                product.product_metadata["knowledge_graph"] = kg_data
-                from sqlalchemy.orm.attributes import flag_modified
-                flag_modified(product, "product_metadata")
-            except Exception as e:
-                logger.error(f"[ProductService] KG Refresh failed for {product_id}: {e}")
+            if getattr(data, "generate_knowledge_graph", False):
+                from backend.services.xohi.creative_studio.operatives.kg_generator import generate_knowledge_graph
+                try:
+                    kg_data = await generate_knowledge_graph(
+                        content=product.description,
+                        topic=product.name
+                    )
+                    if not product.product_metadata:
+                        product.product_metadata = {}
+                    product.product_metadata["knowledge_graph"] = kg_data
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(product, "product_metadata")
+                except Exception as e:
+                    logger.error(f"[ProductService] KG Refresh failed for {product_id}: {e}")
 
         # Elite V2.2: Sync Media Links
         await self._sync_media_links(db_session, product_id, product)

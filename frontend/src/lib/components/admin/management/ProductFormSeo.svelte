@@ -133,6 +133,20 @@
         ></textarea>
       </div>
     </div>
+
+    <!-- SGE Knowledge Graph Toggle -->
+    <div class="mt-4 field-group bg-amber-500/5 border border-amber-500/20 p-4 rounded-xl flex flex-col gap-2">
+      <label class="flex items-center gap-3 cursor-pointer group w-fit">
+        <div class="relative flex items-center justify-center w-8 h-4 rounded-full transition-colors duration-300 {formState.generateKnowledgeGraph ? 'bg-amber-500/80' : 'bg-white/10 group-hover:bg-white/20'}">
+          <div class="absolute w-3 h-3 bg-white rounded-full transition-transform duration-300 shadow-sm {formState.generateKnowledgeGraph ? 'translate-x-2' : '-translate-x-2'}"></div>
+        </div>
+        <input type="checkbox" bind:checked={formState.generateKnowledgeGraph} class="hidden" />
+        <div class="flex flex-col">
+          <span class="text-[11px] font-bold text-white/90">Tự động sinh Bản đồ tri thức (Knowledge Graph)</span>
+          <span class="text-[9px] text-amber-500/70 leading-tight">Chỉ bật khi SEO chuyên sâu. Cảnh báo: Làm thời gian lưu chậm hơn (gọi AI)</span>
+        </div>
+      </label>
+    </div>
   </div>
 
   <!-- Preview Column -->
