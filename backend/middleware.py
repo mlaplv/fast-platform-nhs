@@ -126,7 +126,8 @@ class AuthMiddleware:
                     if jwt_dfp and client_dfp and str(jwt_dfp) != str(client_dfp):
                         logger.warning(f"🚨 [SECURITY] Fingerprint Mismatch! User: {payload.get('sub')}")
                         if is_admin:
-                            raise NotAuthorizedException("Thiết bị không hợp lệ (Security Fingerprint Mismatch).")
+                            if os.environ.get("ENVIRONMENT") != "development":
+                                raise NotAuthorizedException("Thiết bị không hợp lệ (Security Fingerprint Mismatch).")
 
                     # [THIẾT QUÂN LUẬT] Kiểm tra Session Revocation (Security Stamp)
                     if is_admin:
