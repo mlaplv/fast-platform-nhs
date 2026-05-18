@@ -55,15 +55,12 @@
         <div class="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-teal-100/20 blur-2xl pointer-events-none"></div>
         
         <div class="relative z-10 flex flex-col gap-3">
-          <!-- Compact Row 1: Header & Intro combined horizontally -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-emerald-500/10 gap-2">
-            <div class="flex items-center gap-2">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span class="text-[12px] font-black text-slate-800 uppercase tracking-widest">{commitments.title}</span>
-              <span class="text-gray-300">|</span>
-              <span class="text-[11.5px] font-black text-[#ee4d2d] tracking-tight">{commitments.subtitle}</span>
-            </div>
-            <span class="text-[11px] font-medium text-gray-500 italic max-w-md truncate text-left sm:text-right">{commitments.intro}</span>
+          <!-- Compact Row 1: Header (title | subtitle) -->
+          <div class="flex items-center gap-2 pb-3 border-b border-emerald-500/10">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-[12px] font-black text-slate-800 uppercase tracking-widest">{commitments.title}</span>
+            <span class="text-gray-300">|</span>
+            <span class="text-[11.5px] font-black text-[#ee4d2d] tracking-tight">{commitments.subtitle}</span>
           </div>
 
           <!-- Compact Row 2: Grid of 3 items -->
@@ -175,11 +172,10 @@
     margin: 0 auto;
   }
 
-  /* Standardized Prose for Elite V2.2 */
   :global(.prose-osmo) {
     color: #374151;
-    line-height: 1.8;
-    font-size: 15px;
+    line-height: 1.6;
+    font-size: 15px; /* Sleek e-commerce standard (Lazada/Shopee) */
   }
 
   :global(.prose-osmo h2) {
@@ -198,6 +194,8 @@
 
   :global(.prose-osmo p) {
     margin-bottom: 1.5rem;
+    font-weight: 400;
+    letter-spacing: -0.011em;
   }
 
   :global(.prose-osmo strong) {
@@ -267,7 +265,7 @@
   }
 
   .q-text {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     color: #1f2937;
   }

@@ -5,7 +5,10 @@
   import FlaskConical from "@lucide/svelte/icons/flask-conical";
   import Info from "@lucide/svelte/icons/info";
   import X from "@lucide/svelte/icons/x";
-  import { getIngredientIcon, parseDescriptionAndCommitments } from "$lib/utils/product";
+  import {
+    getIngredientIcon,
+    parseDescriptionAndCommitments,
+  } from "$lib/utils/product";
   import VerificationCenter from "../../shared/VerificationCenter.svelte";
   import ScannerHUD from "../../shared/ScannerHUD.svelte";
   import { fly, fade } from "svelte/transition";
@@ -30,7 +33,9 @@
   let verificationData = $state<BarcodeVerificationResponse | null>(null);
   let activeFaq = $state<number | null>(null);
 
-  const parsedDescription = $derived(parseDescriptionAndCommitments(product.description));
+  const parsedDescription = $derived(
+    parseDescriptionAndCommitments(product.description),
+  );
 
   $effect(() => {
     if (activeFaq === null && product.metadata?.faqs?.length > 0) {
@@ -111,7 +116,7 @@
             class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2"
           >
             <div class="w-1 h-1 rounded-full bg-amber-400 animate-pulse"></div>
-             Thương hiệu
+            Thương hiệu
           </span>
           <a
             href="/products?brand={encodeURIComponent(productInfo.brand)}"
@@ -141,7 +146,7 @@
             class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2"
           >
             <div class="w-1 h-1 rounded-full bg-blue-400"></div>
-             Xuất xứ
+            Xuất xứ
           </span>
           <span class="text-[14px] font-black text-gray-800 tracking-tighter"
             >{productInfo.origin}</span
@@ -156,7 +161,7 @@
             class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2"
           >
             <div class="w-1 h-1 rounded-full bg-emerald-400"></div>
-             Quy cách
+            Quy cách
           </span>
           <span class="text-[14px] font-black text-gray-800"
             >{productInfo.weight}</span
@@ -170,7 +175,7 @@
           class="text-[9px] text-gray-400 font-black tracking-[0.25em] mb-2 flex items-center gap-2"
         >
           <div class="w-1 h-1 rounded-full bg-indigo-400"></div>
-           Danh mục
+          Danh mục
         </span>
         <div
           class="flex items-center gap-2 text-[13px] font-bold tracking-tighter"
@@ -237,9 +242,9 @@
         {#if product.metadata?.featured_ingredients && product.metadata.featured_ingredients.length > 0}
           <div class="flex flex-col gap-3 py-2">
             <h2
-              class="flex items-center gap-2 text-[13px] font-black text-gray-400 tracking-widest"
+              class="flex items-center gap-2 text-[16px] font-bold text-gray-800 tracking-tight"
             >
-              <Sparkles size={12} class="text-amber-500" /> THÀNH PHẦN NỔI BẬT
+              <Sparkles size={16} class="text-amber-500" /> Thành phần nổi bật
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               {#each product.metadata.featured_ingredients as ing}
@@ -251,13 +256,12 @@
                   >
                     {ing.icon || getIngredientIcon(ing.name)}
                   </div>
-                  <div class="flex flex-col">
+                  <div class="flex flex-col justify-center">
                     <span
-                      class="text-[13px] font-black text-gray-900 leading-none mb-1"
+                      class="text-[15px] font-bold text-gray-900 leading-tight mb-0.5"
                       >{ing.name}</span
                     >
-                    <span
-                      class="text-[11px] text-gray-500 leading-relaxed font-medium"
+                    <span class="text-[13px] text-gray-500 leading-normal"
                       >{ing.benefit}</span
                     >
                   </div>
@@ -270,9 +274,9 @@
         {#if product.metadata?.ingredients}
           <div class="flex flex-col gap-2 py-1">
             <div
-              class="flex items-center gap-2 text-[13px] font-black text-gray-400 tracking-widest"
+              class="flex items-center gap-2 text-[16px] font-bold text-gray-800 tracking-tight"
             >
-              <Beaker size={12} class="text-teal-500" /> Bảng thành phần (Full INCI)
+              <Beaker size={16} class="text-teal-500" /> Bảng thành phần
             </div>
             <div
               class="bg-gray-50/50 border border-gray-100 p-4 rounded-none relative overflow-hidden group/inci"
@@ -283,15 +287,15 @@
                 <FlaskConical size={40} />
               </div>
               <p
-                class="text-[11px] text-gray-600 font-mono leading-relaxed tracking-tight relative z-10"
+                class="text-[13px] text-gray-600 font-mono leading-relaxed tracking-tight relative z-10"
               >
                 {product.metadata.ingredients}
               </p>
               <div
                 class="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2"
               >
-                <Info size={10} class="text-blue-500" />
-                <span class="text-[9px] text-gray-400 font-bold italic"
+                <Info size={12} class="text-blue-500" />
+                <span class="text-[11px] text-gray-400 font-bold italic"
                   >Bảng thành phần công bố (chi tiết có trên hộp / tem nhãn sản
                   phẩm chính hãng)</span
                 >
@@ -359,39 +363,68 @@
 
     {#if parsedDescription.commitments}
       {@const commitments = parsedDescription.commitments}
-      <div class="commitment-card-luxury mt-8 p-5 rounded-2xl border border-emerald-500/10 bg-white/40 relative overflow-hidden shadow-[0_15px_30px_rgba(4,120,87,0.02)] backdrop-blur-md transition-all duration-300">
+      <div
+        class="commitment-card-luxury mt-8 p-5 rounded-2xl border border-emerald-500/10 bg-white/40 relative overflow-hidden shadow-[0_15px_30px_rgba(4,120,87,0.02)] backdrop-blur-md transition-all duration-300"
+      >
         <!-- Subtle backlights -->
-        <div class="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-emerald-100/20 blur-2xl pointer-events-none"></div>
-        <div class="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-teal-100/20 blur-2xl pointer-events-none"></div>
-        
+        <div
+          class="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-emerald-100/20 blur-2xl pointer-events-none"
+        ></div>
+        <div
+          class="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-teal-100/20 blur-2xl pointer-events-none"
+        ></div>
+
         <div class="relative z-10 flex flex-col gap-3">
-          <!-- Compact Row 1: Header & Intro combined horizontally -->
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-emerald-500/10 gap-2">
-            <div class="flex items-center gap-2">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span class="text-[12px] font-black text-slate-800 uppercase tracking-widest">{commitments.title}</span>
-              <span class="text-gray-300">|</span>
-              <span class="text-[11.5px] font-black text-[#ee4d2d] tracking-tight">{commitments.subtitle}</span>
-            </div>
-            <span class="text-[11px] font-medium text-gray-500 italic max-w-md truncate text-left sm:text-right">{commitments.intro}</span>
+          <!-- Compact Row 1: Header (title | subtitle) -->
+          <div class="flex items-center gap-2 pb-3 border-b border-emerald-500/10">
+            <span
+              class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
+            ></span>
+            <span
+              class="text-[12px] font-black text-slate-800 uppercase tracking-widest"
+              >{commitments.title}</span
+            >
+            <span class="text-gray-300">|</span>
+            <span
+              class="text-[11.5px] font-black text-[#ee4d2d] tracking-tight"
+              >{commitments.subtitle}</span
+            >
           </div>
 
           <!-- Compact Row 2: Grid of 3 items -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {#each commitments.items as item}
-              {@const parts = item.split(':')}
+              {@const parts = item.split(":")}
               {@const boldPart = parts[0]}
-              {@const normalPart = parts.slice(1).join(':')}
-              <div class="flex items-center gap-2.5 p-2 bg-white/70 border border-emerald-500/5 hover:border-emerald-500/20 hover:bg-white rounded-xl transition-all duration-300 group min-w-0">
-                <div class="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
-                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              {@const normalPart = parts.slice(1).join(":")}
+              <div
+                class="flex items-center gap-2.5 p-2 bg-white/70 border border-emerald-500/5 hover:border-emerald-500/20 hover:bg-white rounded-xl transition-all duration-300 group min-w-0"
+              >
+                <div
+                  class="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0"
+                >
+                  <svg
+                    class="w-3.5 h-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="3"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 </div>
                 <div class="flex flex-col min-w-0 leading-tight">
-                  <span class="text-[11.5px] font-black text-slate-800 truncate">{boldPart.trim()}</span>
+                  <span class="text-[11.5px] font-black text-slate-800 truncate"
+                    >{boldPart.trim()}</span
+                  >
                   {#if normalPart}
-                    <span class="text-[10px] text-gray-500 truncate mt-0.5">{normalPart.trim()}</span>
+                    <span class="text-[10px] text-gray-500 truncate mt-0.5"
+                      >{normalPart.trim()}</span
+                    >
                   {/if}
                 </div>
               </div>
@@ -399,19 +432,49 @@
           </div>
 
           <!-- Compact Row 3: Simple Minimalist Viral Ribbon (No bg, no border) -->
-          <a href="/chinh-sach-doi-tra-hoan-tien" class="flex items-center justify-between gap-4 pt-3 border-t border-emerald-500/10 mt-1 group no-underline text-slate-700 hover:text-emerald-600 transition-all duration-300">
+          <a
+            href="/chinh-sach-doi-tra-hoan-tien"
+            class="flex items-center justify-between gap-4 pt-3 border-t border-emerald-500/10 mt-1 group no-underline text-slate-700 hover:text-emerald-600 transition-all duration-300"
+          >
             <div class="flex items-center gap-2 min-w-0">
-              <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              <svg
+                class="w-4 h-4 text-emerald-500 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                />
               </svg>
-              <span class="text-[10px] font-black text-slate-800 uppercase tracking-widest shrink-0">FREESHIP & ĐỔI TRẢ:</span>
-              <span class="text-[11px] font-medium text-gray-500 truncate">{commitments.fomo}</span>
+              <span
+                class="text-[10px] font-black text-slate-800 uppercase tracking-widest shrink-0"
+                >FREESHIP & ĐỔI TRẢ:</span
+              >
+              <span class="text-[11px] font-medium text-gray-500 truncate"
+                >{commitments.fomo}</span
+              >
             </div>
-            
-            <div class="flex items-center gap-0.5 shrink-0 text-emerald-600 text-[11px] font-bold group-hover:translate-x-1 transition-transform duration-300">
+
+            <div
+              class="flex items-center gap-0.5 shrink-0 text-emerald-600 text-[11px] font-bold group-hover:translate-x-1 transition-transform duration-300"
+            >
               <span>Xem thêm</span>
-              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              <svg
+                class="w-3 h-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="3"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </div>
           </a>
