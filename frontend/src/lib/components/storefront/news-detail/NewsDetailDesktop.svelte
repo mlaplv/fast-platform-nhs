@@ -247,6 +247,10 @@
         </a>
       </div>
 
+      <!-- ELITE V2.2: News Review Integration -->
+      {#if article.category !== "Chính sách"}
+        <NewsDetailReviews articleId={article.id} />
+      {/if}
     </main>
 
     <!-- RIGHT SIDEBAR -->
@@ -372,11 +376,6 @@
       </div>
     </aside>
   </div>
-
-  <!-- ELITE V2.2: News Review Integration (Full Width) -->
-  {#if article.category !== "Chính sách"}
-    <NewsDetailReviews articleId={article.id} />
-  {/if}
 
   {#if showScrollTop}
     <button
