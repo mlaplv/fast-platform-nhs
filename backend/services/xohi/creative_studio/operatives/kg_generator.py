@@ -33,7 +33,7 @@ class KnowledgeGraphGenerator(BaseAgentOperative):
         # Pydantic V2 structured output agent
         self._agent = Agent(
             model=None, # Use Trinity Bridge model settings
-            result_type=KnowledgeGraph,
+            output_type=KnowledgeGraph,
             system_prompt=(
                 "Bạn là Chuyên gia Kiến trúc Tri thức (Knowledge Architect) cấp cao. "
                 "Nhiệm vụ: Trích xuất các thực thể thực tế (Entities) từ nội dung để xây dựng Knowledge Graph cho Google SGE. "
