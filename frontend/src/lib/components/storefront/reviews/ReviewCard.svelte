@@ -72,9 +72,9 @@
   </div>
 
   <div class="review-body">
-    {#if review.attributes && Object.keys(review.attributes).length > 0}
+    {#if review.attributes && Object.keys(review.attributes).filter(k => !['style', 'ai_seeded'].includes(k)).length > 0}
       <div class="attributes">
-        {#each Object.entries(review.attributes) as [key, value]}
+        {#each Object.entries(review.attributes).filter(([k]) => !['style', 'ai_seeded'].includes(k)) as [key, value]}
           {#if value}
             <span class="attr-tag">{key}: <strong>{value}</strong></span>
           {/if}

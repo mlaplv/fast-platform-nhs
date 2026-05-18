@@ -360,9 +360,9 @@
               <span class="text-[10px] font-black text-gray-300 ml-auto">{formatDate(review.created_at)}</span>
             </div>
 
-            {#if review.attributes}
+            {#if review.attributes && Object.keys(review.attributes).filter(k => !['style', 'ai_seeded'].includes(k)).length > 0}
               <div class="flex flex-wrap gap-4 mb-4">
-                {#each Object.entries(review.attributes) as [key, val]}
+                {#each Object.entries(review.attributes).filter(([k]) => !['style', 'ai_seeded'].includes(k)) as [key, val]}
                   <div class="text-[11px] font-bold">
                     <span class="text-gray-400 tracking-widest">{key}:</span>
                     <span class="text-[#C18F7E]">{val}</span>

@@ -490,9 +490,9 @@
             <span class="text-[12px] text-gray-400 mb-4">{formatDate(review.created_at)}</span>
 
             <!-- Attributes -->
-            {#if review.attributes}
+            {#if review.attributes && Object.keys(review.attributes).filter(k => !['style', 'ai_seeded'].includes(k)).length > 0}
               <div class="space-y-1.5 mb-4">
-                {#each Object.entries(review.attributes) as [key, val]}
+                {#each Object.entries(review.attributes).filter(([k]) => !['style', 'ai_seeded'].includes(k)) as [key, val]}
                   <div class="flex items-baseline gap-2 text-[13px]">
                     <span class="text-gray-400 capitalize">{key}:</span>
                     <span class="text-gray-800 font-medium">{val}</span>
