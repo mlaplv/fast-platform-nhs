@@ -925,9 +925,20 @@ Trong tệp [product.ts](file:///home/lv/Desktop/fast-platform-core/frontend/src
 - **Khối 3 hoạt chất thu gọn (Row 2):** Xếp ngang 3 thẻ Card KHÔNG thành một hàng 3 cột cực kỳ gọn gàng. Chiều cao mỗi Card giảm từ 120px xuống chỉ còn 48px, vừa vặn khít khao nhờ kỹ thuật rút ngắn văn bản tự động.
 - **Dải băng tối giản tối đa (Row 3):** Loại bỏ hoàn toàn nền màu sẫm `bg-slate-900` và các viền bo góc, chuyển đổi thành một dòng phân tách tối giản, thanh lịch với đường kẻ mảnh (`border-t border-emerald-500/10`) để đồng bộ hoàn hảo với triết lý làm đẹp sạch Nhật Bản. Toàn bộ dải băng liên kết bằng thẻ neo `a href="/chinh-sach-doi-tra-hoan-tien"` đi kèm biểu tượng lá chắn xanh ngọc và nhãn `Xem thêm →` màu ngọc lục bảo tinh xảo.
 
+### 🔹 [C] Tinh chỉnh Typographic Mô tả, FAQ & Thành phần (Lazada/Shopee Standard):
+- **Cỡ chữ mô tả (prose-osmo):** Chuyển đổi font-size về chuẩn **15px** (Desktop) và **14px** (Mobile) cùng giãn dòng **1.6** trên toàn bộ hệ thống `.prose-osmo` (Desktop, Landing Page và Mobile Specs View). Định dạng này giúp tối ưu mật độ thông tin và giao diện vô cùng tinh gọn, chuẩn e-commerce cao cấp.
+- **Cỡ chữ FAQ (Câu hỏi thường gặp):** Tinh chỉnh kích thước câu hỏi lên mức **`15px` font-bold** và câu trả lời lên **`14px`** trên Desktop (Mobile tương ứng là **`14px` / `12px`**), mang lại cấu trúc thoáng mắt và thanh lịch.
+- **Cỡ chữ Thành phần nổi bật & Full INCI:** Tên hoạt chất được thiết lập ở mức **`14px` - `15px` font-bold** và công dụng ở mức **`12px` - `13px`**, kết hợp hộp icon thon gọn **`w-10 h-10`** (icon text **`18px`**). Phần Bảng thành phần công bố được thiết lập font chữ **`12px` - `13px` font-mono** cực kỳ rõ ràng, chuyên nghiệp.
+- **Tiêu đề phân khu thành phần:** Nâng cỡ chữ tiêu đề lên mức **`16px` font-bold**, loại bỏ chữ in hoa thô cứng (ví dụ: chuyển từ `THÀNH PHẦN NỔI BẬT` thành `Thành phần nổi bật`) giúp toàn bộ phần chi tiết nhẹ nhàng và sang trọng.
+
 ### 🔹 [B] Bản Mobile (Ultra-Compact Vertical Stack):
 - **Khung viền Micro-Glass:** Giảm padding xuống tối thiểu (`p-4`), bo góc nhỏ xinh (`rounded-xl`) và loại bỏ hoàn toàn các bóng sáng 3D cầu kỳ để tiết kiệm tài nguyên vẽ đồ họa và giữ cho không gian phẳng phiu.
 - **Tiêu đề rút gọn:** Gom toàn bộ tiêu đề chính, phụ lên đúng một dòng hiển thị duy nhất.
 - **3 dòng hoạt chất siêu mịn:** Thay thế 3 thẻ card cồng kềnh bằng **3 hàng danh sách nhỏ gọn liên tiếp (chiều cao chỉ 22px/hàng)**, biểu diễn đầy đủ hoạt chất và diễn giải mà không chiếm dụng không gian cuộn trang.
 - **Dải băng tối giản di động:** Loại bỏ nền màu sẫm và bo góc, chèn đường kẻ mảnh phân tách phía trên (`border-t border-emerald-500/10`) kết hợp liên kết neo `a href="/chinh-sach-doi-tra-hoan-tien"` dẫn thẳng tới trang chính sách, điểm xuyết bằng chỉ báo **"Xem thêm →"** màu ngọc lục bảo đồng bộ và mượt mà.
 
+- Đã thêm Toggle 'Tự động sinh Bản đồ tri thức (Knowledge Graph)' trong form SEO Sản phẩm (Mặc định: TẮT) để chặn việc gọi AI tự động khi lưu (nguyên nhân gây Rate limit và treo UX). Commit: 1d11ed53
+- [Kiểm định & Deployment] Restart Docker stack (api, workers, ui) thành công. Không yêu cầu migration (Trường config toggle lưu trong thuộc tính JSONB linh động). Phát hiện permission cache với Vite nhưng không ảnh hưởng runtime.
+- [Creative Studio] Đã fix cứng Prompt Rule yêu cầu AI tự động chèn khoảng trắng và xuống dòng khi render Bảng Markdown (ngăn chặn lỗi dính chữ), đồng thời cấm sử dụng từ 'Nhau thai', bắt buộc chuyển ngữ 100% sang 'Placenta'. Commit: 
+- [Creative Studio] Cập nhật Prompt Rule: Cấm AI sử dụng Markdown Table, bắt buộc ép kiểu xuất bảng HTML thuần (<table class='table-auto w-full'>, <tr>, <td>) để tương thích 100% với Svelte DOM (@html). Commit: 
+- [Creative Studio] Cập nhật Prompt Rule: Chặn đứng tình trạng AI tự ý rải rác điệp khúc 'Cam kết 3 Không' ở các mục trên (gây trùng lặp với thẻ tĩnh Cam Kết dưới cùng). Bắt buộc chỉ chèn duy nhất 1 lần ở BƯỚC CUỐI CÙNG của bài viết. Commit: 

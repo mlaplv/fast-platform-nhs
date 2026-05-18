@@ -556,12 +556,14 @@
 <style>
   :global(.prose-osmo) {
     font-family: inherit !important;
-    font-size: 16px !important;
-    line-height: 1.8 !important;
+    font-size: 15px !important; /* Sleek e-commerce standard (Lazada/Shopee) */
+    line-height: 1.6 !important;
     color: #374151 !important;
   }
   :global(.prose-osmo p) {
     margin-bottom: 1rem !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.011em !important;
   }
   :global(.prose-osmo h2, .prose-osmo h3) {
     color: #6b7280 !important;

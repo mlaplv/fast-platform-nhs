@@ -143,9 +143,9 @@
   }
 
   .section-title {
-    font-size: 14px;
-    font-weight: 900;
-    letter-spacing: 0.1em;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
     color: #111827;
     margin-bottom: 1.25rem;
     padding-left: 0.75rem;
@@ -213,7 +213,7 @@
   }
 
   .ing-name {
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 700;
     text-align: center;
     color: #374151;

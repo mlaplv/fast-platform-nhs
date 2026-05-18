@@ -464,17 +464,18 @@
 </svelte:element>
 
 <style>
-  /* Elite V2.2: Premium Prose System */
   :global(.prose-osmo) {
     font-family: inherit !important;
-    font-size: 16px !important;
-    line-height: 1.8 !important;
+    font-size: 15px !important; /* Sleek e-commerce standard (Lazada/Shopee) */
+    line-height: 1.6 !important;
     color: #374151 !important; /* text-gray-700 */
   }
 
   :global(.prose-osmo p) {
     margin-bottom: 1rem !important;
     font-family: inherit !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.011em !important;
   }
 
   /* Khử margin cho p bên trong li để list items khít nhau */

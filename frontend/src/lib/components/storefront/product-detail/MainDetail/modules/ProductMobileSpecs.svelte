@@ -64,12 +64,12 @@
       <div class="grid grid-cols-1 gap-2">
         {#each product.metadata.featured_ingredients as ing}
           <div class="group bg-[#fdf2f2]/40 border border-[#ee4d2d]/10 p-2 rounded-xl flex items-center gap-3 transition-all hover:bg-white hover:shadow-md">
-            <div class="w-10 h-10 shrink-0 bg-white border border-[#ee4d2d]/10 rounded-xl flex items-center justify-center text-[20px] shadow-sm group-hover:scale-110 transition-transform">
+            <div class="w-10 h-10 shrink-0 bg-white border border-[#ee4d2d]/10 rounded-xl flex items-center justify-center text-[18px] shadow-sm group-hover:scale-110 transition-transform">
               {ing.icon || getIngredientIcon(ing.name)}
             </div>
-            <div class="flex flex-col">
-              <span class="text-[12px] font-black text-gray-900 leading-tight">{ing.name}</span>
-              <p class="text-[10px] text-gray-500 leading-tight font-medium mt-0.5 line-clamp-2">
+            <div class="flex flex-col justify-center">
+              <span class="text-[14px] font-bold text-gray-900 leading-tight">{ing.name}</span>
+              <p class="text-[12px] text-gray-500 leading-normal mt-0.5">
                 {ing.benefit}
               </p>
             </div>
@@ -82,8 +82,8 @@
   <!-- Elite V2.2: Full Ingredients (Mobile Transparency) -->
   {#if product.metadata?.ingredients}
     <div class="mt-4 mb-6 flex flex-col gap-2">
-      <h2 class="flex items-center gap-2 text-[11px] font-bold text-gray-400 tracking-wider">
-        <Beaker size={12} class="text-teal-500" /> Bảng thành phần
+      <h2 class="flex items-center gap-2 text-[16px] font-bold text-gray-800 tracking-tight">
+        <Beaker size={16} class="text-teal-500" /> Bảng thành phần
       </h2>
       <button 
         type="button"
@@ -91,7 +91,7 @@
         onclick={() => isIngredientsExpanded = !isIngredientsExpanded}
         style:max-height={isIngredientsExpanded ? 'none' : '100px'}
       >
-        <p class="text-[11px] text-gray-600 font-mono leading-relaxed tracking-tight {!isIngredientsExpanded ? 'line-clamp-3' : ''}">
+        <p class="text-[12px] text-gray-600 font-mono leading-relaxed tracking-tight {!isIngredientsExpanded ? 'line-clamp-3' : ''}">
           {product.metadata.ingredients}
         </p>
         {#if !isIngredientsExpanded}
@@ -214,7 +214,7 @@
               class="w-full flex items-center justify-between p-3 text-left bg-transparent border-none"
               onclick={() => activeMobileFaq = activeMobileFaq === i ? null : i}
             >
-              <h3 class="text-[13px] font-bold text-gray-900 leading-tight pr-4">{faq.question}</h3>
+              <h3 class="text-[14px] font-bold text-gray-900 leading-tight pr-4">{faq.question}</h3>
               <ChevronDown size={14} class="text-gray-400 transition-transform {activeMobileFaq === i ? 'rotate-180 text-[#ee4d2d]' : ''}" />
             </button>
             {#if activeMobileFaq === i}
@@ -233,7 +233,7 @@
   .content-section { padding: 8px 5px 16px 5px; background: white; margin-bottom: 8px; overflow: hidden; }
   .section-title { 
     font-size: 16px; 
-    font-weight: 900; 
+    font-weight: 700; 
     color: #111; 
     margin-bottom: 4px; 
     border-left: 4px solid #ee4d2d; 
@@ -277,15 +277,16 @@
     box-shadow: none;
   }
 
-  /* Elite V2.2: Mobile Premium Prose System (Viral Bullets) */
   :global(.prose-osmo) {
-    font-size: 14px !important;
-    line-height: 1.7 !important;
-    color: #444 !important;
+    font-size: 14px !important; /* Sleek mobile e-commerce standard (Lazada/Shopee) */
+    line-height: 1.6 !important;
+    color: #374151 !important;
   }
 
   :global(.prose-osmo p) {
     margin-bottom: 0.75rem !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.011em !important;
   }
 
   :global(.prose-osmo h2, .prose-osmo h3) {

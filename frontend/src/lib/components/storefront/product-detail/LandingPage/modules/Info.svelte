@@ -1,22 +1,22 @@
 <script lang="ts">
-  import type { Product, ReviewStats } from '$lib/types';
-  import { formatCurrency } from '$lib/utils/format';
-  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
-  import { resolveMediaUrl } from '$lib/state/utils';
+  import type { Product, ReviewStats } from "$lib/types";
+  import { formatCurrency } from "$lib/utils/format";
+  import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
+  import { resolveMediaUrl } from "$lib/state/utils";
   import Package from "@lucide/svelte/icons/package";
   import Gift from "@lucide/svelte/icons/gift";
   import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
   import Minus from "@lucide/svelte/icons/minus";
   import Plus from "@lucide/svelte/icons/plus";
   import Sparkles from "@lucide/svelte/icons/sparkles";
-  import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
-  import ShareToUnlock from '../../shared/ShareToUnlock.svelte';
+  import HelenIcon from "$lib/components/client/support/HelenIcon.svelte";
+  import ShareToUnlock from "../../shared/ShareToUnlock.svelte";
 
   interface VoucherUI {
     id: string;
     label: string;
     sub: string;
-    type: 'ship' | 'discount';
+    type: "ship" | "discount";
   }
 
   interface Props {
@@ -26,7 +26,7 @@
     timeLeft: { hours: number; minutes: number; seconds: number };
     productVouchers: VoucherUI[];
     selectedVouchers: string[];
-    variations: import('$lib/types').TierVariation[];
+    variations: import("$lib/types").TierVariation[];
     selectedIndices: number[];
     quantity: number;
     currentStock: number;
@@ -44,11 +44,29 @@
     onTriggerVerify?: () => void;
   }
 
-  let { 
-    product, stats, isFlashSaleActive, timeLeft, productVouchers, selectedVouchers,
-    variations, selectedIndices, quantity, currentStock, activePrices,
-    activeComboQty, activeGifts, helenAdvice,
-    onSelectOption, onQuantityChange, onToggleVoucher, onAddToCart, onBuyNow, onWriteReview, onViralUnlock, onTriggerVerify
+  let {
+    product,
+    stats,
+    isFlashSaleActive,
+    timeLeft,
+    productVouchers,
+    selectedVouchers,
+    variations,
+    selectedIndices,
+    quantity,
+    currentStock,
+    activePrices,
+    activeComboQty,
+    activeGifts,
+    helenAdvice,
+    onSelectOption,
+    onQuantityChange,
+    onToggleVoucher,
+    onAddToCart,
+    onBuyNow,
+    onWriteReview,
+    onViralUnlock,
+    onTriggerVerify,
   }: Props = $props();
 
   const isMall = $derived(!!product.metadata?.is_mall);
@@ -59,36 +77,69 @@
   <div class="header">
     <div class="mall-badge group">
       <div class="shine-effect"></div>
-      <span class="badge-text">{isMall ? 'Mall' : 'Shop'}</span>
+      <span class="badge-text">{isMall ? "Mall" : "Shop"}</span>
     </div>
     <div class="verified-badge group">
       <div class="shine-effect"></div>
-      <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+      <svg
+        class="w-2.5 h-2.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="4"
+        ><path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M5 13l4 4L19 7"
+        /></svg
+      >
       <span class="badge-text">Verified</span>
     </div>
     <h1 class="product-title">
-      {product.name.replace(/40gr/g, '40g')}
+      {product.name.replace(/40gr/g, "40g")}
     </h1>
   </div>
 
   <!-- Stats Row -->
   <div class="stats-row">
     <div class="rating-box">
-      <span class="rating-value">{stats?.average_rating || product.metadata?.rating || '5.0'}</span>
+      <span class="rating-value"
+        >{stats?.average_rating || product.metadata?.rating || "5.0"}</span
+      >
       <div class="stars">
         {#each Array(5) as _, i}
-          <svg class="star-icon" class:active={i < Math.floor(stats?.average_rating || Number(product.metadata?.rating) || 5)} viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+          <svg
+            class="star-icon"
+            class:active={i <
+              Math.floor(
+                stats?.average_rating || Number(product.metadata?.rating) || 5,
+              )}
+            viewBox="0 0 24 24"
+            ><path
+              d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+            /></svg
+          >
         {/each}
       </div>
     </div>
     <div class="divider"></div>
-    <button class="stat-btn" onclick={() => document.getElementById('product-reviews')?.scrollIntoView({ behavior: 'smooth' })}>
-      <span class="stat-value">{stats?.total_count ?? (product.metadata?.reviews?.length || 0)}</span>
+    <button
+      class="stat-btn"
+      onclick={() =>
+        document
+          .getElementById("product-reviews")
+          ?.scrollIntoView({ behavior: "smooth" })}
+    >
+      <span class="stat-value"
+        >{stats?.total_count ?? (product.metadata?.reviews?.length || 0)}</span
+      >
       <span class="stat-label">Đánh giá</span>
     </button>
     <div class="divider"></div>
     <div class="stat-item">
-      <span class="stat-value">{product.order_count_text || product.orderCount || 0}</span>
+      <span class="stat-value"
+        >{product.order_count_text || product.orderCount || 0}</span
+      >
       <span class="stat-label">Đã bán</span>
     </div>
     <button class="report-btn" onclick={onWriteReview}>Tố cáo</button>
@@ -99,9 +150,13 @@
     <div class="price-content">
       <div class="original-price-row">
         {#if Number(activePrices.original) > Number(activePrices.sale)}
-          <span class="original-price">{formatCurrency(activePrices.original)}</span>
+          <span class="original-price"
+            >{formatCurrency(activePrices.original)}</span
+          >
           <span class="save-badge">
-            Tiết kiệm {formatCurrency(Number(activePrices.original) - Number(activePrices.sale))}
+            Tiết kiệm {formatCurrency(
+              Number(activePrices.original) - Number(activePrices.sale),
+            )}
           </span>
         {/if}
       </div>
@@ -114,7 +169,8 @@
           <div class="helen-header">
             {#if activeComboQty > 1}
               <div class="combo-pill">
-                <Package size={10} /> {activeComboQty} sp đã áp dụng
+                <Package size={10} />
+                {activeComboQty} sp đã áp dụng
               </div>
             {/if}
             <div class="helen-tag">
@@ -125,9 +181,23 @@
           </div>
           <div class="helen-body">
             <p class="advice-text">{helenAdvice}</p>
-            <button class="helen-verify-btn" onclick={() => onTriggerVerify?.()}>
-               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><line x1="7" y1="12" x2="17" y2="12" /></svg>
-               Xác thực nguồn gốc
+            <button
+              class="helen-verify-btn"
+              onclick={() => onTriggerVerify?.()}
+            >
+              <svg
+                class="w-3.5 h-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                ><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path
+                  d="M17 3h2a2 2 0 0 1 2 2v2"
+                /><path d="M21 17v2a2 2 0 0 1-2 2h-2" /><path
+                  d="M7 21H5a2 2 0 0 1-2-2v-2"
+                /><line x1="7" y1="12" x2="17" y2="12" /></svg
+              >
+              Xác thực nguồn gốc
             </button>
           </div>
         </div>
@@ -141,11 +211,17 @@
           <span class="timer-label">Kết thúc sau</span>
         </div>
         <div class="countdown">
-          <div class="time-unit">{timeLeft.hours.toString().padStart(2, '0')}</div>
+          <div class="time-unit">
+            {timeLeft.hours.toString().padStart(2, "0")}
+          </div>
           <span class="time-sep">:</span>
-          <div class="time-unit">{timeLeft.minutes.toString().padStart(2, '0')}</div>
+          <div class="time-unit">
+            {timeLeft.minutes.toString().padStart(2, "0")}
+          </div>
           <span class="time-sep">:</span>
-          <div class="time-unit">{timeLeft.seconds.toString().padStart(2, '0')}</div>
+          <div class="time-unit">
+            {timeLeft.seconds.toString().padStart(2, "0")}
+          </div>
         </div>
       </div>
     {/if}
@@ -157,7 +233,7 @@
     <div class="vouchers-list">
       {#each productVouchers as v}
         {@const isApplied = selectedVouchers.includes(v.id)}
-        <button 
+        <button
           onclick={() => onToggleVoucher(v.id)}
           class="voucher-ticket"
           class:applied={isApplied}
@@ -167,11 +243,22 @@
           <div class="ticket-divider"></div>
           <div class="ticket-content">
             <span class="voucher-label">{v.label}</span>
-            <span class="voucher-sub">{v.sub || ''}</span>
+            <span class="voucher-sub">{v.sub || ""}</span>
           </div>
           {#if isApplied}
             <div class="check-badge">
-              <svg class="check-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+              <svg
+                class="check-icon"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                ><path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="3"
+                  d="M5 13l4 4L19 7"
+                /></svg
+              >
             </div>
           {/if}
         </button>
@@ -191,12 +278,25 @@
     <span class="row-label">Vận chuyển</span>
     <div class="shipping-info">
       <div class="ship-header">
-        <svg class="check-icon-green" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+        <svg
+          class="check-icon-green"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          ><path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M5 13l4 4L19 7"
+          /></svg
+        >
         <span class="ship-status">Nhận hàng nhanh chóng</span>
       </div>
       <div class="ship-details">
         <span class="ship-price">Phí ship 0₫</span>
-        <p class="ship-desc">Giao hàng toàn quốc từ 2-4 ngày làm việc.</p>
+        <p class="ship-desc">
+          Miễn phí hỏa tốc giao nhanh toàn quốc, kiểm tra hàng mới thanh toán
+        </p>
       </div>
     </div>
   </div>
@@ -210,19 +310,29 @@
           <div class="options-list">
             {#each tier.options as option, oIdx}
               {@const isSelected = selectedIndices[tIdx] === oIdx}
-              <button 
+              <button
                 type="button"
                 onclick={() => onSelectOption(tIdx, oIdx)}
                 class="option-btn"
                 class:selected={isSelected}
               >
                 {#if tIdx === 0 && tier.images?.[oIdx]}
-                  <img src={tier.images[oIdx]} alt={option} class="option-img" />
+                  <img
+                    src={tier.images[oIdx]}
+                    alt={option}
+                    class="option-img"
+                  />
                 {/if}
                 <span class="option-text">{option}</span>
                 {#if isSelected}
                   <div class="selected-corner"></div>
-                  <svg class="selected-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><path d="M20 6L9 17l-5-5" /></svg>
+                  <svg
+                    class="selected-check"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="4"><path d="M20 6L9 17l-5-5" /></svg
+                  >
                 {/if}
               </button>
             {/each}
@@ -237,11 +347,19 @@
     <span class="row-label">Số lượng</span>
     <div class="quantity-controls">
       <div class="stepper">
-        <button class="step-btn" onclick={() => onQuantityChange(-1)} disabled={quantity <= 1}>
+        <button
+          class="step-btn"
+          onclick={() => onQuantityChange(-1)}
+          disabled={quantity <= 1}
+        >
           <Minus size={14} strokeWidth={3} />
         </button>
         <input type="text" readonly class="qty-input" value={quantity} />
-        <button class="step-btn" onclick={() => onQuantityChange(1)} disabled={quantity >= (currentStock || 99)}>
+        <button
+          class="step-btn"
+          onclick={() => onQuantityChange(1)}
+          disabled={quantity >= (currentStock || 99)}
+        >
           <Plus size={14} strokeWidth={3} />
         </button>
       </div>
@@ -280,7 +398,11 @@
               <div class="gift-item">
                 <div class="gift-thumb">
                   {#if gift.image}
-                    <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="thumb-img" />
+                    <img
+                      src={resolveMediaUrl(gift.image)}
+                      alt={gift.name}
+                      class="thumb-img"
+                    />
                   {:else}
                     <div class="thumb-placeholder"><Sparkles size={16} /></div>
                   {/if}
@@ -325,7 +447,8 @@
     margin-bottom: 0.5rem;
   }
 
-  .mall-badge, .verified-badge {
+  .mall-badge,
+  .verified-badge {
     color: white;
     padding: 0.125rem 0.5rem !important;
     font-size: 10px;
@@ -353,7 +476,12 @@
   .shine-effect {
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
     transform: translateX(-100%);
     transition: transform 1s;
   }
@@ -684,8 +812,12 @@
     border: 1px solid #f3f4f6;
   }
 
-  .ticket-notch.left { left: -0.25rem; }
-  .ticket-notch.right { right: -0.25rem; }
+  .ticket-notch.left {
+    left: -0.25rem;
+  }
+  .ticket-notch.right {
+    right: -0.25rem;
+  }
 
   .ticket-divider {
     width: 1px;
@@ -727,9 +859,14 @@
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
 
-  .check-icon { width: 0.75rem; height: 0.75rem; }
+  .check-icon {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
 
-  .promo-row { margin-bottom: 1rem; }
+  .promo-row {
+    margin-bottom: 1rem;
+  }
 
   .shipping-info {
     display: flex;
@@ -743,7 +880,11 @@
     gap: 0.5rem;
   }
 
-  .check-icon-green { width: 1.25rem; height: 1.25rem; color: #0d9488; }
+  .check-icon-green {
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #0d9488;
+  }
 
   .ship-status {
     font-size: 14px;
@@ -751,9 +892,18 @@
     color: #1f2937;
   }
 
-  .ship-details { font-size: 14px; }
-  .ship-price { color: #0d9488; font-weight: 900; }
-  .ship-desc { font-size: 12px; color: #9ca3af; margin-top: 0.25rem; }
+  .ship-details {
+    font-size: 14px;
+  }
+  .ship-price {
+    color: #0d9488;
+    font-weight: 900;
+  }
+  .ship-desc {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+  }
 
   .options-list {
     display: flex;
@@ -777,14 +927,22 @@
     transition: all 0.2s;
   }
 
-  .option-btn:hover { background: rgba(255, 238, 232, 0.2); }
+  .option-btn:hover {
+    background: rgba(255, 238, 232, 0.2);
+  }
   .option-btn.selected {
     border-color: #c2410c !important;
     color: #c2410c !important;
     box-shadow: inset 0 0 0 1px rgba(194, 65, 12, 0.1) !important;
   }
 
-  .option-img { width: 1.5rem; height: 1.5rem; object-fit: cover; margin-right: 0.5rem; border: 1px solid #f3f4f6; }
+  .option-img {
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: cover;
+    margin-right: 0.5rem;
+    border: 1px solid #f3f4f6;
+  }
 
   .selected-corner {
     position: absolute;
@@ -805,7 +963,10 @@
     color: white;
   }
 
-  .quantity-row { align-items: center; margin-bottom: 1rem; }
+  .quantity-row {
+    align-items: center;
+    margin-bottom: 1rem;
+  }
 
   .quantity-controls {
     display: flex;
@@ -835,9 +996,16 @@
     transition: all 0.2s;
   }
 
-  .step-btn:hover:not(:disabled) { background: #f9fafb; color: black; }
-  .step-btn:active:not(:disabled) { background: #f3f4f6; }
-  .step-btn:disabled { opacity: 0.2; }
+  .step-btn:hover:not(:disabled) {
+    background: #f9fafb;
+    color: black;
+  }
+  .step-btn:active:not(:disabled) {
+    background: #f3f4f6;
+  }
+  .step-btn:disabled {
+    opacity: 0.2;
+  }
 
   .qty-input {
     width: 3rem;
@@ -851,13 +1019,44 @@
     color: #111827;
   }
 
-  .stock-info { display: flex; flex-direction: column; gap: 0.125rem; }
-  .stock-status-title { font-size: 12px; color: #9ca3af; font-weight: 900; font-style: italic; letter-spacing: -0.025em; }
-  .stock-warning { font-size: 11px; font-weight: 700; color: #c2410c; display: flex; align-items: center; gap: 0.25rem; }
-  .ping-dot-red { width: 4px; height: 4px; background: #c2410c; border-radius: 50%; animation: pulse 1s infinite; }
-  .stock-ok { font-size: 11px; color: #0d9488; font-weight: 900; font-style: italic; }
+  .stock-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+  .stock-status-title {
+    font-size: 12px;
+    color: #9ca3af;
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: -0.025em;
+  }
+  .stock-warning {
+    font-size: 11px;
+    font-weight: 700;
+    color: #c2410c;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .ping-dot-red {
+    width: 4px;
+    height: 4px;
+    background: #c2410c;
+    border-radius: 50%;
+    animation: pulse 1s infinite;
+  }
+  .stock-ok {
+    font-size: 11px;
+    color: #0d9488;
+    font-weight: 900;
+    font-style: italic;
+  }
 
-  .gifts-section { padding: 0 1.25rem; margin-bottom: 1.5rem; }
+  .gifts-section {
+    padding: 0 1.25rem;
+    margin-bottom: 1.5rem;
+  }
 
   .gifts-card {
     background: linear-gradient(135deg, #f0fdf4, white) !important;
@@ -885,22 +1084,98 @@
     margin-top: 0.25rem;
   }
 
-  .gifts-content { flex: 1; display: flex; flex-direction: column; gap: 0.75rem; }
-  .gifts-header { display: flex; align-items: center; justify-content: space-between; }
-  .gifts-title { font-size: 14px; font-weight: 900; letter-spacing: 0.1em; color: #1f2937; margin: 0; }
-  .combo-tag { background: linear-gradient(135deg, #0d9488, #0f766e) !important; color: white; font-size: 10px; font-weight: 900; padding: 0.25rem 0.625rem; border-radius: 9999px; display: flex; align-items: center; gap: 0.375rem; box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.2) !important; }
+  .gifts-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .gifts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .gifts-title {
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    color: #1f2937;
+    margin: 0;
+  }
+  .combo-tag {
+    background: linear-gradient(135deg, #0d9488, #0f766e) !important;
+    color: white;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.2) !important;
+  }
 
-  .gifts-list { display: flex; flex-direction: column; gap: 0.625rem; }
-  .gift-item { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(8px); padding: 0.5rem; border: 1px solid rgba(13, 148, 136, 0.05); display: flex; gap: 0.75rem; transition: all 0.2s; }
-  .gift-item:hover { border-color: rgba(13, 148, 136, 0.2); }
-  .gift-thumb { width: 3rem; height: 3rem; border-radius: 2px; overflow: hidden; background: #f9fafb; border: 1px solid #f3f4f6; flex-shrink: 0; }
-  .gift-info { display: flex; flex-direction: column; }
-  .gift-name { font-size: 13px; font-weight: 700; color: #111827; line-height: 1.25; }
-  .gift-qty { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.125rem; }
-  .qty-label { font-size: 11px; color: #6b7280; font-weight: 500; }
-  .qty-val { font-size: 11px; color: #0d9488 !important; font-weight: 900; font-style: italic; }
+  .gifts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+  .gift-item {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    padding: 0.5rem;
+    border: 1px solid rgba(13, 148, 136, 0.05);
+    display: flex;
+    gap: 0.75rem;
+    transition: all 0.2s;
+  }
+  .gift-item:hover {
+    border-color: rgba(13, 148, 136, 0.2);
+  }
+  .gift-thumb {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 2px;
+    overflow: hidden;
+    background: #f9fafb;
+    border: 1px solid #f3f4f6;
+    flex-shrink: 0;
+  }
+  .gift-info {
+    display: flex;
+    flex-direction: column;
+  }
+  .gift-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.25;
+  }
+  .gift-qty {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.125rem;
+  }
+  .qty-label {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  .qty-val {
+    font-size: 11px;
+    color: #0d9488 !important;
+    font-weight: 900;
+    font-style: italic;
+  }
 
-  .cta-row { padding: 0 1.25rem; display: flex; gap: 1rem; margin-top: auto; padding-bottom: 1rem; }
+  .cta-row {
+    padding: 0 1.25rem;
+    display: flex;
+    gap: 1rem;
+    margin-top: auto;
+    padding-bottom: 1rem;
+  }
   .add-to-cart-btn {
     height: 3.25rem;
     min-width: 210px;
@@ -947,8 +1222,17 @@
   }
 
   @keyframes pulse {
-    0% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.2); }
-    100% { opacity: 1; transform: scale(1); }
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.2);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 </style>
