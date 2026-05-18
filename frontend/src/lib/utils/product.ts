@@ -28,3 +28,126 @@ export function getIngredientIcon(name: string): string {
   
   return '🧬'; // Standard science icon for unknown but technical ingredients
 }
+
+export interface CommitmentsData {
+  title: string;
+  subtitle: string;
+  intro: string;
+  items: string[];
+  fomo: string;
+}
+
+/**
+ * Robust HTML Commitments Parser for Elite Storefront conversion
+ */
+export function parseDescriptionAndCommitments(description: string): {
+  cleanDescription: string;
+  commitments: CommitmentsData | null;
+} {
+  if (!description) {
+    return { cleanDescription: '', commitments: null };
+  }
+
+  // Look for the "Cam kết" section header
+  const commitRegex = /(?:<h2[^>]*>\s*Cam\s*kết\s*<\/h2>|<strong[^>]*>\s*Cam\s*kết\s*<\/strong>|<h3>\s*Cam\s*kết\s*<\/h3>)/i;
+  const match = description.match(commitRegex);
+
+  if (!match) {
+    // Check if there is an implicit commitments section containing "3 Không" or "Lành tính & An toàn"
+    const fallbackRegex = /(?:<p[^>]*>|<strong>)\s*(?:Cam\s*kết\s*["“]3\s*Không["”]|Lành\s*tính\s*&\s*An\s*toàn)/i;
+    const fallbackMatch = description.match(fallbackRegex);
+    if (!fallbackMatch) {
+      return { cleanDescription: description, commitments: null };
+    }
+
+    const index = fallbackMatch.index!;
+    // Search backward to find nearby H2 or strong tags to split cleanly
+    const searchPart = description.slice(0, index);
+    const headerIndex = searchPart.lastIndexOf('<h2');
+    const splitIndex = headerIndex !== -1 ? headerIndex : index;
+
+    const cleanDescription = description.slice(0, splitIndex).trim();
+    const commitmentsHtml = description.slice(splitIndex).trim();
+
+    return {
+      cleanDescription,
+      commitments: parseCommitmentsHtml(commitmentsHtml)
+    };
+  }
+
+  const index = match.index!;
+  const cleanDescription = description.slice(0, index).trim();
+  const commitmentsHtml = description.slice(index).trim();
+
+  return {
+    cleanDescription,
+    commitments: parseCommitmentsHtml(commitmentsHtml)
+  };
+}
+
+export function unescapeHtml(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+}
+
+export function parseCommitmentsHtml(html: string): CommitmentsData {
+  // Extract all list items <li>...</li>
+  const liMatches = [...html.matchAll(/<li[^>]*>(.*?)<\/li>/gi)].map(m => m[1].trim());
+
+  let items = liMatches;
+  // Fallback: If no <li>, split by paragraph/br and look for uppercase lines or lines with "KHÔNG" or "+"
+  if (items.length === 0) {
+    const rawLines = html.replace(/<[^>]*>/g, '\n').split('\n').map(l => l.trim()).filter(Boolean);
+    items = rawLines.filter(l => l.startsWith('+') || l.startsWith('-') || l.startsWith('•') || l.toUpperCase().includes('KHÔNG '));
+  }
+
+  // Clean bullet prefixes
+  items = items.map(item => item.replace(/^[+\-•\s*]+/, '').trim());
+
+  // Extract titles and other segments
+  const allLines = html.replace(/<[^>]*>/g, '\n').split('\n').map(l => l.trim()).filter(Boolean);
+
+  let title = "Lành tính & An toàn";
+  let subtitle = "Cam kết \"3 Không\" từ Miccosmo";
+  let intro = "Chúng tôi hiểu rằng vùng da nhạy cảm cần sự nâng niu tuyệt đối. Sản phẩm tuân thủ nghiêm ngặt triết lý làm đẹp sạch:";
+  let fomo = "Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng";
+
+  // Match title (line containing "Lành tính")
+  const titleLine = allLines.find(l => l.toLowerCase().includes('lành tính') && !l.toLowerCase().includes('3 không') && !l.toLowerCase().includes('cam kết'));
+  if (titleLine) title = titleLine;
+
+  // Match subtitle (line containing "3 Không")
+  const subtitleLine = allLines.find(l => l.toLowerCase().includes('3 không'));
+  if (subtitleLine) subtitle = subtitleLine;
+
+  // Match intro (longer sentence containing "nâng niu" or "triết lý" or "tuân thủ")
+  const introLine = allLines.find(l => (l.includes(':') || l.toLowerCase().includes('triết lý') || l.toLowerCase().includes('nâng niu') || l.toLowerCase().includes('tuân thủ') || l.toLowerCase().includes('hiểu rằng') || l.toLowerCase().includes('tuyệt đối')) && l.length > 40);
+  if (introLine) intro = introLine;
+
+  // Match fomo (line containing "đổi trả" or "hoàn tiền" or "free ship" or "freeship")
+  const fomoLine = allLines.find(l => l.toLowerCase().includes('đổi trả') || l.toLowerCase().includes('hoàn tiền') || l.toLowerCase().includes('free ship') || l.toLowerCase().includes('freeship'));
+  if (fomoLine) fomo = fomoLine;
+
+  // Final sanitization: remove trailing colons or bullet structures from text
+  if (intro.endsWith(':')) {
+    intro = intro.slice(0, -1).trim();
+  }
+
+  return {
+    title: unescapeHtml(title),
+    subtitle: unescapeHtml(subtitle),
+    intro: unescapeHtml(intro),
+    items: (items.length > 0 ? items : [
+      "KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.",
+      "KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.",
+      "KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ thảo mộc."
+    ]).map(unescapeHtml),
+    fomo: unescapeHtml(fomo)
+  };
+}

@@ -5,7 +5,7 @@
   import FlaskConical from "@lucide/svelte/icons/flask-conical";
   import Info from "@lucide/svelte/icons/info";
   import X from "@lucide/svelte/icons/x";
-  import { getIngredientIcon } from "$lib/utils/product";
+  import { getIngredientIcon, parseDescriptionAndCommitments } from "$lib/utils/product";
   import VerificationCenter from "../../shared/VerificationCenter.svelte";
   import ScannerHUD from "../../shared/ScannerHUD.svelte";
   import { fly, fade } from "svelte/transition";
@@ -29,6 +29,8 @@
   let isScanning = $state(false);
   let verificationData = $state<BarcodeVerificationResponse | null>(null);
   let activeFaq = $state<number | null>(null);
+
+  const parsedDescription = $derived(parseDescriptionAndCommitments(product.description));
 
   $effect(() => {
     if (activeFaq === null && product.metadata?.faqs?.length > 0) {
@@ -350,10 +352,72 @@
           <InteractiveDashboard data={product.description} compact={false} />
         </div>
       {:else}
-        {@html product.description ||
+        {@html parsedDescription.cleanDescription ||
           "Chưa có mô tả chi tiết cho sản phẩm này."}
       {/if}
     </div>
+
+    {#if parsedDescription.commitments}
+      {@const commitments = parsedDescription.commitments}
+      <div class="commitment-card-luxury mt-8 p-5 rounded-2xl border border-emerald-500/10 bg-white/40 relative overflow-hidden shadow-[0_15px_30px_rgba(4,120,87,0.02)] backdrop-blur-md transition-all duration-300">
+        <!-- Subtle backlights -->
+        <div class="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-emerald-100/20 blur-2xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-teal-100/20 blur-2xl pointer-events-none"></div>
+        
+        <div class="relative z-10 flex flex-col gap-3">
+          <!-- Compact Row 1: Header & Intro combined horizontally -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-emerald-500/10 gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-[12px] font-black text-slate-800 uppercase tracking-widest">{commitments.title}</span>
+              <span class="text-gray-300">|</span>
+              <span class="text-[11.5px] font-black text-[#ee4d2d] tracking-tight">{commitments.subtitle}</span>
+            </div>
+            <span class="text-[11px] font-medium text-gray-500 italic max-w-md truncate text-left sm:text-right">{commitments.intro}</span>
+          </div>
+
+          <!-- Compact Row 2: Grid of 3 items -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {#each commitments.items as item}
+              {@const parts = item.split(':')}
+              {@const boldPart = parts[0]}
+              {@const normalPart = parts.slice(1).join(':')}
+              <div class="flex items-center gap-2.5 p-2 bg-white/70 border border-emerald-500/5 hover:border-emerald-500/20 hover:bg-white rounded-xl transition-all duration-300 group min-w-0">
+                <div class="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div class="flex flex-col min-w-0 leading-tight">
+                  <span class="text-[11.5px] font-black text-slate-800 truncate">{boldPart.trim()}</span>
+                  {#if normalPart}
+                    <span class="text-[10px] text-gray-500 truncate mt-0.5">{normalPart.trim()}</span>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+
+          <!-- Compact Row 3: Simple Minimalist Viral Ribbon (No bg, no border) -->
+          <a href="/chinh-sach-doi-tra-hoan-tien" class="flex items-center justify-between gap-4 pt-3 border-t border-emerald-500/10 mt-1 group no-underline text-slate-700 hover:text-emerald-600 transition-all duration-300">
+            <div class="flex items-center gap-2 min-w-0">
+              <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <span class="text-[10px] font-black text-slate-800 uppercase tracking-widest shrink-0">FREESHIP & ĐỔI TRẢ:</span>
+              <span class="text-[11px] font-medium text-gray-500 truncate">{commitments.fomo}</span>
+            </div>
+            
+            <div class="flex items-center gap-0.5 shrink-0 text-emerald-600 text-[11px] font-bold group-hover:translate-x-1 transition-transform duration-300">
+              <span>Xem thêm</span>
+              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+          </a>
+        </div>
+      </div>
+    {/if}
   </div>
 
   <!-- FAQ Section (Elite V2.2 Accordion) -->

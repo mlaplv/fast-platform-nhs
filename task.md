@@ -191,3 +191,15 @@
 - [x] Điều chỉnh ảnh bìa Mobile tràn lề 100% (Full Width) và loại bỏ hoàn toàn border radius bo góc.
 - [x] Loại bỏ đường kẻ ngang dưới Ban biên tập, thu nhỏ khoảng hở (pb-1 mb-2) và thay thế bằng huy hiệu vàng ngôi sao w-5 tinh tế, đẳng cấp.
 
+# Dynamic Commitments Format & Premium Glassmorphic UI Upgrade (Elite V2.2)
+- [x] Xây dựng bộ giải mã HTML động cực kỳ mạnh mẽ `parseDescriptionAndCommitments` trong [product.ts](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/utils/product.ts) để bóc tách vùng "Cam kết" của Miccosmo ra khỏi mô tả thô.
+- [x] Giải quyết triệt để lỗi Escaped Entity (`Lành tính &amp; An toàn` -> `Lành tính & An toàn`) bằng hàm unescape Html trong [product.ts](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/utils/product.ts).
+- [x] Tích hợp bộ giải mã vào [Sections.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/MainDetail/modules/Sections.svelte) (Desktop View) và dựng thiết kế đỉnh cao: Căn giữa tiêu đề, viền kính lỏng blur mịn kèm glow backlight và banner Cyberpunk Slate-900 sang trọng.
+- [x] Tích hợp bộ giải mã vào [ProductMobileSpecs.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/MainDetail/modules/ProductMobileSpecs.svelte) (Mobile View) và chèn khối kính lỏng an toàn y khoa chuẩn di động ở chân trang chi tiết.
+- [x] Tích hợp bộ giải mã vào [Description.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/LandingPage/modules/Description.svelte) (Landing Page View), đồng bộ giao diện cam kết động 100% trên toàn bộ các kênh storefront.
+- [x] Tự kiểm thức và chạy kiểm tra biên dịch type-check thành công hoàn toàn không có lỗi cú pháp mới.
+- [x] Thiết kế lại Desktop View ([Sections.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/MainDetail/modules/Sections.svelte) & [Description.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/LandingPage/modules/Description.svelte)) theo mô hình hàng ngang (Horizontal Ribbon) tiết kiệm diện tích tối đa, nén chiều cao banner xuống 38px mà vẫn đảm bảo tính sang trọng và hiệu ứng lướt sáng.
+- [x] Thiết kế lại Mobile View ([ProductMobileSpecs.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/product-detail/MainDetail/modules/ProductMobileSpecs.svelte)) theo mô hình hàng dọc siêu gọn gàng (22px/dòng), gom tiêu đề lên 1 dòng duy nhất, nén banner xuống 36px để giữ cho không gian cuộn trang vô cùng thanh thoát.
+- [x] Thiết lập thiết kế tối giản tối đa (background-less & border-less) cho dải băng FOMO theo chỉ thị mới của Sếp. Loại bỏ hoàn toàn nền `bg-slate-900` và các viền bo góc, chuyển đổi dải băng thành một dòng phân tách thanh lịch có đường kẻ mảnh (`border-t border-emerald-500/10`) để đồng bộ hoàn hảo với hệ sinh thái Miccosmo y khoa Nhật Bản, đi kèm liên kết `/chinh-sach-doi-tra-hoan-tien` và nhãn `Xem thêm →` màu ngọc lục bảo.
+- [x] Đạt kết quả biên dịch và chạy kiểm thử không phát sinh lỗi cú pháp mới.
+

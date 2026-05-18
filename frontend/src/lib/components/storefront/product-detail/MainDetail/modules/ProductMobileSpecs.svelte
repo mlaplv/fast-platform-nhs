@@ -6,7 +6,7 @@
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import type { Product } from '$lib/types';
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
-  import { getIngredientIcon } from '$lib/utils/product';
+  import { getIngredientIcon, parseDescriptionAndCommitments } from '$lib/utils/product';
 
   let { product, onTriggerScan }: { 
     product: Product,
@@ -20,6 +20,8 @@
   let activeMobileFaq = $state<number | null>(0);
   let mounted = $state(false);
   const truncatedHeight = 400;
+
+  const parsedDescription = $derived(parseDescriptionAndCommitments(product.description));
 
   import { onMount } from 'svelte';
   onMount(() => { mounted = true; });
@@ -125,7 +127,7 @@
       {#if isJson(product.description)}
          <InteractiveDashboard data={product.description} compact={true} />
       {:else}
-         {@html product.description || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
+         {@html parsedDescription.cleanDescription || 'Chưa có mô tả chi tiết cho sản phẩm này.'}
       {/if}
     </div>
   </div>
@@ -142,6 +144,63 @@
         Xem thêm <ChevronDown size={16} />
       {/if}
     </button>
+  {/if}
+
+  {#if parsedDescription.commitments}
+    {@const commitments = parsedDescription.commitments}
+    <div class="commitment-card-luxury mt-6 p-4 rounded-xl border border-emerald-500/10 bg-white/40 relative overflow-hidden shadow-[0_10px_20px_rgba(4,120,87,0.01)] backdrop-blur-md transition-all duration-300">
+      <!-- Subtle Mobile backlights -->
+      <div class="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-emerald-100/20 blur-xl pointer-events-none"></div>
+      <div class="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-teal-100/20 blur-xl pointer-events-none"></div>
+      
+      <div class="relative z-10 flex flex-col gap-2">
+        <!-- Mobile Header: Single horizontal line -->
+        <div class="flex items-center gap-1.5 pb-2 border-b border-emerald-500/10">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="text-[11px] font-black text-slate-800 uppercase tracking-wider truncate">{commitments.title}</span>
+          <span class="text-gray-300 text-[10px]">|</span>
+          <span class="text-[10px] font-bold text-[#ee4d2d] truncate">{commitments.subtitle}</span>
+        </div>
+
+        <!-- Mobile Items: 3 compact rows -->
+        <div class="flex flex-col gap-1 my-1">
+          {#each commitments.items as item}
+            {@const parts = item.split(':')}
+            {@const boldPart = parts[0]}
+            {@const normalPart = parts.slice(1).join(':')}
+            <div class="flex items-center gap-2 px-2 py-1 bg-white/70 border border-emerald-500/5 rounded-lg">
+              <svg class="w-3 h-3 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <div class="flex items-baseline gap-1 min-w-0">
+                <span class="text-[10.5px] font-black text-slate-800 shrink-0">{boldPart.trim()}</span>
+                {#if normalPart}
+                  <span class="text-[9.5px] text-gray-500 truncate">{normalPart.trim()}</span>
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+
+        <!-- Mobile Slate FOMO Ribbon (Clickable entire ribbon) -->
+        <a href="/chinh-sach-doi-tra-hoan-tien" class="flex items-center justify-between gap-3 pt-2 border-t border-emerald-500/10 mt-1 group no-underline text-slate-700 hover:text-emerald-600 transition-all duration-300">
+          <div class="flex items-center gap-1.5 relative z-10 min-w-0">
+            <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span class="text-[9.5px] font-black text-slate-800 uppercase tracking-wider shrink-0">FREESHIP:</span>
+            <span class="text-[10px] font-medium text-gray-500 truncate">{commitments.fomo}</span>
+          </div>
+          
+          <div class="flex items-center gap-0.5 relative z-10 shrink-0 text-emerald-600 text-[10px] font-bold group-hover:translate-x-1 transition-transform duration-300">
+            <span>Xem thêm</span>
+            <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </a>
+      </div>
+    </div>
   {/if}
 
   <!-- GEO 2026: Mobile FAQ Section -->
