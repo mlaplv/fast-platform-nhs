@@ -75,12 +75,11 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
   + <h2>Bảo quản</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) ghi rõ hướng dẫn điều kiện bảo quản.
   + <h2>Cam kết</h2>: BẮT BUỘC sao chép nguyên văn và giữ đúng cấu trúc HTML (sử dụng <strong>, <p>, <ul>, <li>) phần cam kết chất lượng sau đây vào phần cuối cùng của bài viết sản phẩm để tăng tối đa FOMO (Sợ bỏ lỡ) và Truth (Tính chân thực):
     <strong>Lành tính & An toàn</strong>
-    <p>Cam kết "3 Không" từ Miccosmo</p>
-    <p>Chúng tôi hiểu rằng vùng da nhạy cảm cần sự nâng niu tuyệt đối. Sản phẩm Beppin Body tuân thủ nghiêm ngặt triết lý làm đẹp sạch:</p>
+    <p>Cam kết "3 Không"</p>
     <ul>
       <li>KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.</li>
       <li>KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.</li>
-      <li>KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ thảo mộc.</li>
+      <li>KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ dược liệu Nhật bản.</li>
     </ul>
     <strong>Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>
 

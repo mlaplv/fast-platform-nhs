@@ -201,11 +201,11 @@ class NeuralRewriter(BaseAgentOperative):
                 commitment_html = (
                     "<h2>Cam kết</h2>\n"
                     "<strong>Lành tính & An toàn</strong>\n"
-                    "<p>Cam kết \"3 Không\" từ Miccosmo</p>\n"
+                    "<p>Cam kết \"3 Không\"</p>\n"
                     "<ul>\n"
                     "  <li>KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.</li>\n"
                     "  <li>KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.</li>\n"
-                    "  <li>KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ thảo mộc.</li>\n"
+                    "  <li>KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ dược liệu Nhật bản.</li>\n"
                     "</ul>\n"
                     "<strong>Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>"
                 )

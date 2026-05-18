@@ -134,7 +134,7 @@ export function parseCommitmentsHtml(html: string): CommitmentsData {
     items: (items.length > 0 ? items : [
       "KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.",
       "KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.",
-      "KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ thảo mộc."
+      "KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ dược liệu Nhật bản."
     ]).map(unescapeHtml),
     fomo: unescapeHtml(fomo)
   };
