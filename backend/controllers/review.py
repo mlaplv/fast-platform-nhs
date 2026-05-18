@@ -103,6 +103,7 @@ class AdminReviewController(Controller):
         Phong cách random (tiktok/shopee/lazada/authentic), bypass anti-spam.
         Extensible: entity_type hỗ trợ PRODUCT, NEWS, CATEGORY.
         """
+        logger.info(f"🚀 [DEBUG PAYLOAD] Received AI Seed Request: {data.model_dump()}")
         try:
             review = await review_service.ai_seed_one(
                 entity_type=data.entity_type,

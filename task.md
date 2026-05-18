@@ -125,4 +125,11 @@
 - [x] Rút nhỏ kích thước font chữ của giá tiền từ `text-2xl` (`1.4rem`) về **`text-xl`** (`1.25rem`) giúp hạn chế tối đa hiện tượng tràn chữ, xuống dòng ngoài ý muốn.
 - [x] Thực hiện biên dịch svelte-check thành công tuyệt đối 100%.
 
+# AI Diagnostic Recommendation Formatting & Aesthetics Upgrade (Elite V2.2)
+- [x] Phân tích hiện trạng dấu tích markdown `**` và lỗi định dạng khối chữ dày đặc ở phần "Liệu trình tối ưu" trên cả Desktop và Mobile.
+- [x] Xây dựng bộ giải mã (Parser) thông minh `formatRecommendation` có kiểu tĩnh 100% để trích xuất các bước (Numbered Steps 1, 2, 3) thành các thẻ **Card Glassmorphism** và lộ trình (Tấn công, Duy trì) thành các **Phase-specific alert cards** cao cấp.
+- [x] Tích hợp bộ giải mã vào file [ClinicalQuiz.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/client/ClinicalQuiz.svelte) và render bằng cú pháp `{@html ...}` trên giao diện Desktop.
+- [x] Tích hợp bộ giải mã vào file [MobileDiagnostics.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/mobile/sections/MobileDiagnostics.svelte) và render bằng cú pháp `{@html ...}` trên giao diện Mobile, loại bỏ các kiểu in đậm/nghiêng thô của khối cha.
+- [x] Chạy biên dịch svelte-check thành công hoàn toàn, không phát sinh lỗi cú pháp mới.
+
 

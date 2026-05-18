@@ -206,6 +206,86 @@
     if (!cleanStr) return str;
     return cleanStr.charAt(0).toUpperCase() + cleanStr.slice(1).toLowerCase();
   }
+
+  function formatRecommendation(text: string, theme: 'desktop' | 'mobile'): string {
+    if (!text) return '';
+    const cleaned = text.trim();
+
+    const stepMatches = [...cleaned.matchAll(/(\d+)\.\s*([^:]+):\s*(.+?)(?=\s*\d+\.\s*|\s*\*\*|\Z)/gs)];
+    const phaseMatches = [...cleaned.matchAll(/\*\*([^*]+?):\*\*\s*(.+?)(?=\s*\*\*|\Z)/gs)];
+
+    let html = '';
+
+    if (stepMatches.length > 0) {
+      html += `<div class="recommendation-steps-container space-y-3 mb-5 text-left">`;
+      stepMatches.forEach((m) => {
+        const num = m[1];
+        const title = m[2].trim();
+        const desc = m[3].trim();
+        
+        const accentColor = theme === 'desktop' ? 'var(--luxury-gold)' : '#FFB7C5';
+        const badgeBg = theme === 'desktop' ? 'rgba(193, 143, 126, 0.08)' : 'rgba(255, 183, 197, 0.08)';
+        const badgeBorder = theme === 'desktop' ? 'rgba(193, 143, 126, 0.2)' : 'rgba(255, 183, 197, 0.2)';
+        
+        html += `
+          <div class="step-card p-4 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all duration-300 flex items-start gap-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
+            <div class="step-badge w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0" 
+                 style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${accentColor}; box-shadow: 0 0 10px rgba(193,143,126,0.1)">
+              ${num}
+            </div>
+            <div class="flex-1 min-w-0">
+              <h5 class="text-xs font-black tracking-widest uppercase mb-1" style="color: ${accentColor};">${title}</h5>
+              <p class="text-white/85 text-xs md:text-sm leading-relaxed">${desc}</p>
+            </div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    }
+
+    if (phaseMatches.length > 0) {
+      html += `<div class="recommendation-phases-container grid grid-cols-1 gap-3 pt-4 border-t border-white/5 text-left">`;
+      phaseMatches.forEach((m) => {
+        const title = m[1].trim();
+        const desc = m[2].trim();
+        
+        let phaseBg = 'rgba(239, 68, 68, 0.03)';
+        let phaseBorder = 'rgba(239, 68, 68, 0.15)';
+        let phaseText = 'text-red-400';
+        
+        if (title.toLowerCase().includes('duy trì')) {
+          phaseBg = 'rgba(52, 211, 153, 0.03)';
+          phaseBorder = 'rgba(52, 211, 153, 0.15)';
+          phaseText = 'text-emerald-400';
+        } else if (title.toLowerCase().includes('tấn công')) {
+          phaseBg = theme === 'desktop' ? 'rgba(193, 143, 126, 0.03)' : 'rgba(255, 183, 197, 0.03)';
+          phaseBorder = theme === 'desktop' ? 'rgba(193, 143, 126, 0.15)' : 'rgba(255, 183, 197, 0.15)';
+          phaseText = theme === 'desktop' ? 'text-luxury-copper' : 'text-pink-300';
+        }
+        
+        html += `
+          <div class="phase-card p-4 rounded-[1.5rem] border transition-all duration-300" 
+               style="background: ${phaseBg}; border-color: ${phaseBorder};">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-1.5 h-1.5 rounded-full bg-current ${phaseText} animate-pulse"></div>
+              <h5 class="text-xs font-black tracking-[0.2em] uppercase ${phaseText}">${title}</h5>
+            </div>
+            <p class="text-white/85 text-xs md:text-sm leading-relaxed">${desc}</p>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    }
+
+    if (stepMatches.length === 0 && phaseMatches.length === 0) {
+      let fallback = cleaned
+        .replace(/\*\*([^*]+?):\*\*/g, '<strong class="text-emerald-400 font-bold">$1:</strong>')
+        .replace(/\*\*([^*]+?)\*\*/g, '<strong class="text-emerald-400 font-bold">$1</strong>');
+      return `<p class="text-white/80 text-xs md:text-sm leading-relaxed">${fallback}</p>`;
+    }
+
+    return html;
+  }
 </script>
 
 <!-- SVG Filter for Liquid/Gooey Effect -->
@@ -431,7 +511,9 @@
                   <div class="flex items-center gap-3 mb-3">
                     <h4 class="text-[10px] font-semibold text-emerald-400/60 tracking-[0.3em]">Liệu trình tối ưu</h4>
                   </div>
-                  <p class="text-emerald-500/80 text-sm font-medium leading-relaxed">{shopStore.diagnosticResult.recommendation}</p>
+                  <div class="text-emerald-500/80 text-sm font-medium leading-relaxed">
+                    {@html formatRecommendation(shopStore.diagnosticResult.recommendation, 'desktop')}
+                  </div>
                 </div>
               </div>
             </div>
