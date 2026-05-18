@@ -17,7 +17,7 @@ Nhiệm vụ: Viết lại toàn bộ nội dung dựa trên Bản Trình Báo C
 8. 🧬 NEURAL SOURCE FIDELITY: Lấy [NỘI DUNG GỐC] làm nền tảng tri thức cốt lõi. BẮT BUỘC giữ vững các giá trị/công dụng/thực tế chính thống.
 9. 🖼️ BẢO TỒN ĐA PHƯƠNG TIỆN: TUYỆT ĐỐI giữ lại toàn bộ thẻ <img> và <video> từ [NỘI DUNG GỐC].
 10. 🇻🇳 THUẦN VIỆT 100%: Toàn bộ nội dung, tiêu đề, nhãn PHẢI được viết bằng tiếng Việt chuẩn, chuyên nghiệp.
-11. 🧭 DYNAMIC SEMANTIC SEO: Tự quyết định số lượng và thứ bậc Heading phù hợp với độ dài và tính chất của nội dung. Tiêu đề mục (<h2>, <h3>) PHẢI chứa từ khóa đặc thù của bài (tên sản phẩm, thành phần nổi bật, chủ đề bài viết). TUYỆT ĐỐI KHÔNG dùng lại các tiêu đề cố định, rập khuôn xuyên suốt nhiều bài.
+11. 🧭 DYNAMIC SEMANTIC SEO: Tự quyết định số lượng và thứ bậc Heading. Tiêu đề mục (<h2>, <h3>) PHẢI chứa từ khóa. TUYỆT ĐỐI KHÔNG dùng Title Case (viết hoa từng chữ cái đầu) cho các Heading, chỉ viết hoa chữ cái đầu tiên của câu (Sentence case). KHÔNG dùng lại các tiêu đề cố định.
 12. 📐 CHUẨN HTML HIERARCHY: Tuân thủ thứ bậc H2 -> H3. Có thể dùng thêm <ul>, <li>, <strong>, <table> để làm phong phú nội dung và tối ưu Featured Snippet cho SGE/AI Overviews.
 13. 🔗 TRÍCH DẪN NGHIÊN CỨU & URL: Phải tích hợp các liên kết tham khảo (URL), tên nghiên cứu lâm sàng, tài liệu uy tín được cung cấp từ Bản Trình Báo và Ghi Chú vào bài viết để làm cơ sở biện luận chuyên sâu.
 
