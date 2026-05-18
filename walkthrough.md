@@ -540,5 +540,42 @@ Chúng tôi đã tích hợp hàm xử lý thông minh `formatRecommendation(tex
 
 ---
 
+# Bổ sung: Hồ sơ Tích hợp Mục Cam kết Osmo vào AI Rewriter Prompt (Elite V2.2)
+
+## 1. Yêu Cầu Thay Đổi
+- Tích hợp mục **CAM KẾT** để tăng tối đa tính trung thực (Truth) và cảm giác sợ bỏ lỡ (FOMO) của khách hàng đối với sản phẩm.
+- Các cam kết bao gồm:
+  - **I. Lành tính & An toàn:** Cam kết "3 Không" từ Osmo (Không Paraben, Không Dầu khoáng, Không Màu nhân tạo).
+  - **II. Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng.**
+
+## 2. Kết Quả Forensic & Giải Pháp Triển Khai (Zero-Gap Implementation)
+Hệ thống AI Rewriter Prompt được tối ưu nâng cấp trực tiếp tại [backend/services/xohi/prompts/agents/rewriter.py](file:///home/lv/Desktop/fast-platform-core/backend/services/xohi/prompts/agents/rewriter.py):
+
+### 🔹 [A] Nâng cấp Khung Cấu trúc Chuẩn (Product Standard Framework):
+- Chuyển đổi chỉ thị viết từ **6 phần chuẩn** lên thành **7 phần chuẩn** liên tục, quản lý chặt chẽ trong thẻ `<h2>` để đảm bảo LLM không tự ý cắt xén hay gộp các đầu mục.
+- Cập nhật chỉ thị đếm:
+  `Viết lần lượt theo đúng 7 phần sau, BẮT BUỘC dùng chính xác các tiêu đề sau trong thẻ <h2>...`
+
+### 🔹 [B] Tích hợp mục Cam kết HTML Tiptap-Ready:
+- Thiết lập chỉ thị `+ <h2>Cam kết</h2>` tại vị trí cuối cùng trong danh sách khung chuẩn.
+- Để ngăn ngừa LLM sinh cấu trúc HTML lệch pha hoặc tự tiện sinh Markdown làm đứt gãy trình soạn thảo Tiptap trên Client, chúng tôi đã đóng khung định dạng HTML tối ưu chuẩn 100% trong prompt chỉ thị:
+  ```html
+  + <h2>Cam kết</h2>: BẮT BUỘC sao chép nguyên văn và giữ đúng cấu trúc HTML (sử dụng <strong>, <p>, <ul>, <li>) phần cam kết chất lượng sau đây vào phần cuối cùng của bài viết sản phẩm để tăng tối đa FOMO (Sợ bỏ lỡ) và Truth (Tính chân thực):
+    <strong>I. Lành tính & An toàn</strong>
+    <p>Cam kết "3 Không" từ Osmo</p>
+    <p>Chúng tôi hiểu rằng vùng da nhạy cảm cần sự nâng niu tuyệt đối. Sản phẩm Beppin Body tuân thủ nghiêm ngặt triết lý làm đẹp sạch:</p>
+    <ul>
+      <li>KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.</li>
+      <li>KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.</li>
+      <li>KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ thảo mộc.</li>
+    </ul>
+    <strong>II. Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>
+  ```
+
+## 3. Kết Quả Kiểm Thử (Verification Results)
+- **Kiểm tra cú pháp tĩnh Python (AST Parsing):** Thực hiện parse AST thông qua trình biên dịch Python `ast.parse()` -> **Hoạt động hoàn hảo 100%**, không có bất kỳ lỗi cú pháp (`SyntaxError`), thụt lề hay lỗi đóng chuỗi nháy kép.
+- **Rủi ro Latency & RAM:** Văn bản thêm vào là tĩnh và có độ dài nhỏ gọn, hoàn toàn không phát sinh thêm tải CPU/RAM hoặc độ trễ phản hồi từ mô hình.
+
+
 
 

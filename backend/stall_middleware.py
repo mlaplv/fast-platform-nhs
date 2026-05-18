@@ -42,7 +42,8 @@ class StallDetectorMiddleware:
             "/api/v1/products/",           # AI Market Sync / SEO Suggest (Slow)
             "/api/v1/admin/ai/models/auto-optimize", # Auto-optimize AI stack (Tests all models)
             "/api/v1/admin/compliance/",   # AI-heavy Image Compliance OCR
-            # Article AI Generation
+            # Article AI Generation & CRUD
+            "/api/v1/articles/",           # Article CRUD with Knowledge Graph AI Generation
             "/api/v1/articles/content-suggest",
             "/api/v1/articles/excerpt-suggest",
             "/api/v1/articles/seo-suggest",

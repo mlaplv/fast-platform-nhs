@@ -132,4 +132,8 @@
 - [x] Tích hợp bộ giải mã vào file [MobileDiagnostics.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/mobile/sections/MobileDiagnostics.svelte) và render bằng cú pháp `{@html ...}` trên giao diện Mobile, loại bỏ các kiểu in đậm/nghiêng thô của khối cha.
 - [x] Chạy biên dịch svelte-check thành công hoàn toàn, không phát sinh lỗi cú pháp mới.
 
-
+# XOHI Product Rewrite Commitments Expansion (Elite V2.2)
+- [x] Phân tích file `backend/services/xohi/prompts/agents/rewriter.py` và chuẩn bị nội dung nâng cấp.
+- [x] Tích hợp mục thứ 7 `<h2>Cam kết</h2>` vào cấu trúc khung chuẩn của `PRODUCT_REWRITE_INSTRUCTIONS`.
+- [x] Yêu cầu LLM chép nguyên văn cam kết an toàn sạch "3 Không" từ Miccosmo và chính sách khách hàng linh hoạt.
+- [x] Chạy kiểm thử cú pháp Python và đảm bảo không có lỗi biên dịch.

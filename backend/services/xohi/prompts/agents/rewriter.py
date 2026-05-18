@@ -55,7 +55,7 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
 - MỤC TIÊU TỐI THƯỢNG: Trình bày thông tin sản phẩm trực diện, dễ đọc, dễ hiểu. CẤM XUẤT CODE, CẤM PHÂN TÍCH BÁO CÁO, CẤM PHẢN BIỆN trong kết quả đầu ra.
 
 - CẤU TRÚC ĐỘNG — BỘ KHUNG CHUẨN (Product Standard Framework):
-  Viết lần lượt theo đúng 6 phần sau, BẮT BUỘC dùng chính xác các tiêu đề sau trong thẻ <h2> (không tự ý đổi tên heading, tuyệt đối không gộp hay cắt xén):
+  Viết lần lượt theo đúng 7 phần sau, BẮT BUỘC dùng chính xác các tiêu đề sau trong thẻ <h2> (không tự ý đổi tên heading, tuyệt đối không gộp hay cắt xén):
 
   + <h2>Giới thiệu</h2>: BẮT BUỘC viết theo đúng 3 nhịp liên tục sau — KHÔNG TÁCH THÀNH CÁC ĐỀ MỤC CON, chỉ là một khối văn xuôi mạch lạc:
 
@@ -73,6 +73,16 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
   + <h2>Cách sử dụng</h2>: Hướng dẫn ngắn gọn bước chuẩn bị bằng đoạn văn, tiếp theo dùng danh sách (<ul>/<li>) cho các bước thực hiện rõ ràng.
   + <h2>Lưu ý khi sử dụng</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) liệt kê các lưu ý an toàn và kiêng cữ cần thiết.
   + <h2>Bảo quản</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) ghi rõ hướng dẫn điều kiện bảo quản.
+  + <h2>Cam kết</h2>: BẮT BUỘC sao chép nguyên văn và giữ đúng cấu trúc HTML (sử dụng <strong>, <p>, <ul>, <li>) phần cam kết chất lượng sau đây vào phần cuối cùng của bài viết sản phẩm để tăng tối đa FOMO (Sợ bỏ lỡ) và Truth (Tính chân thực):
+    <strong>I. Lành tính & An toàn</strong>
+    <p>Cam kết "3 Không" từ Osmo</p>
+    <p>Chúng tôi hiểu rằng vùng da nhạy cảm cần sự nâng niu tuyệt đối. Sản phẩm Beppin Body tuân thủ nghiêm ngặt triết lý làm đẹp sạch:</p>
+    <ul>
+      <li>KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.</li>
+      <li>KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.</li>
+      <li>KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ thảo mộc.</li>
+    </ul>
+    <strong>II. Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>
 
 - ĐẢM BẢO CHẤT LƯỢNG: Trình bày HTML sạch sẽ, chuẩn xác theo bộ khung. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các phần nội dung sao cho phù hợp."""
 )
