@@ -200,7 +200,7 @@ class NeuralRewriter(BaseAgentOperative):
             if content_type == "product":
                 commitment_html = (
                     "<h2>Cam kết</h2>\n"
-                    "<strong>I. Lành tính & An toàn</strong>\n"
+                    "<strong>Lành tính & An toàn</strong>\n"
                     "<p>Cam kết \"3 Không\" từ Miccosmo</p>\n"
                     "<p>Chúng tôi hiểu rằng vùng da nhạy cảm cần sự nâng niu tuyệt đối. Sản phẩm Beppin Body tuân thủ nghiêm ngặt triết lý làm đẹp sạch:</p>\n"
                     "<ul>\n"
@@ -208,7 +208,7 @@ class NeuralRewriter(BaseAgentOperative):
                     "  <li>KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.</li>\n"
                     "  <li>KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ thảo mộc.</li>\n"
                     "</ul>\n"
-                    "<strong>II. Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>"
+                    "<strong>Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>"
                 )
                 match = re.search(r'<h2[^>]*>[^<]*?cam\s*kết[^<]*?</h2>', sanitized_content, re.IGNORECASE)
                 if match:

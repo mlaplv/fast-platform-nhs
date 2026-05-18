@@ -74,15 +74,15 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
   + <h2>Lưu ý khi sử dụng</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) liệt kê các lưu ý an toàn và kiêng cữ cần thiết.
   + <h2>Bảo quản</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) ghi rõ hướng dẫn điều kiện bảo quản.
   + <h2>Cam kết</h2>: BẮT BUỘC sao chép nguyên văn và giữ đúng cấu trúc HTML (sử dụng <strong>, <p>, <ul>, <li>) phần cam kết chất lượng sau đây vào phần cuối cùng của bài viết sản phẩm để tăng tối đa FOMO (Sợ bỏ lỡ) và Truth (Tính chân thực):
-    <strong>I. Lành tính & An toàn</strong>
-    <p>Cam kết "3 Không" từ Osmo</p>
+    <strong>Lành tính & An toàn</strong>
+    <p>Cam kết "3 Không" từ Miccosmo</p>
     <p>Chúng tôi hiểu rằng vùng da nhạy cảm cần sự nâng niu tuyệt đối. Sản phẩm Beppin Body tuân thủ nghiêm ngặt triết lý làm đẹp sạch:</p>
     <ul>
       <li>KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.</li>
       <li>KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.</li>
       <li>KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ thảo mộc.</li>
     </ul>
-    <strong>II. Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>
+    <strong>Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>
 
 - ĐẢM BẢO CHẤT LƯỢNG: Trình bày HTML sạch sẽ, chuẩn xác theo bộ khung. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các phần nội dung sao cho phù hợp. BẮT BUỘC viết cô đọng, ngắn gọn và súc tích để toàn bộ bài viết bao gồm cả phần Cam kết ở cuối cùng được kết xuất đầy đủ, trọn vẹn, tuyệt đối không viết lan man dài dòng gây cạn kiệt token làm cắt cụt nội dung.
 """
