@@ -72,7 +72,7 @@
       customer_name: review.customer_name,
       customer_location: review.customer_location ?? "",
       rating: review.rating,
-      content: review.content,
+      content: review.content.replace(/<\/?[^>]+(>|$)/g, ""),
     };
   }
 
@@ -512,7 +512,9 @@
                           </button>
                         </div>
                       </div>
-                      <p class="text-[12px] text-white/60 leading-relaxed">{review.content}</p>
+                      <div class="text-[12px] text-white/60 leading-relaxed [&>p]:m-0 [&>p:not(:last-child)]:mb-1">
+                        {@html review.content}
+                      </div>
                     {/if}
                   </div>
                 {/each}
