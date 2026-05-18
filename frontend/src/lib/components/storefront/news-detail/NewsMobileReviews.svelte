@@ -197,7 +197,7 @@
   }
 </script>
 
-<div class="px-6 py-10 bg-white border-t border-gray-100">
+<div class="px-[10px] py-10 bg-white border-t border-gray-100">
   <!-- Professional Header -->
   <div class="flex items-center justify-between mb-8 pb-6 border-b border-gray-50">
     <div class="space-y-1.5">
@@ -290,49 +290,57 @@
     </div>
   {:else if reviews.length > 0}
     {@const review = reviews[0]}
-    <div class="bg-gray-50/50 p-5 border border-gray-100 rounded-none" in:fade>
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-10 h-10 bg-[#C18F7E]/10 rounded-full flex items-center justify-center text-[#C18F7E] font-black text-sm">
-          {(review.customer_name || 'U').charAt(0).toUpperCase()}
-        </div>
-        <div class="flex-1">
-          <div class="flex items-center gap-1">
-            <span class="text-xs font-black text-[#0f172a]">{review.customer_name || 'Khách hàng'}</span>
-            <CheckCircle2 size={12} fill="currentColor" class="text-green-500" />
+    <div class="bg-gray-50/50 p-4 border border-gray-100 rounded-none" in:fade>
+      <div class="flex items-start justify-between gap-3 mb-4">
+        <!-- User Info (Left Column) -->
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 bg-[#C18F7E]/10 rounded-full flex items-center justify-center text-[#C18F7E] font-black text-sm shrink-0">
+            {(review.customer_name || 'U').charAt(0).toUpperCase()}
           </div>
-          <div class="flex gap-0.5">
-            {#each Array(5) as _, i}
-              <Star size={10} class="{i < review.rating ? 'text-[#C18F7E] fill-current' : 'text-gray-200'}" />
-            {/each}
-          </div>
-        </div>
-        <div class="ml-auto flex items-center gap-3 relative">
-          <button 
-            onclick={() => activeDropdownId = activeDropdownId === review.id ? null : review.id}
-            class="text-gray-300 hover:text-gray-600 transition-colors">
-            <MoreHorizontal size={16} />
-          </button>
-          
-          {#if activeDropdownId === review.id}
-            <div class="absolute right-0 bottom-full mb-2 w-32 bg-white border border-gray-100 shadow-xl z-50 py-1 rounded-lg overflow-hidden">
-              <button 
-                onclick={() => handleReportReview(review.id)}
-                class="w-full text-left px-4 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 transition-colors tracking-widest"
-              >
-                Báo cáo
-              </button>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1">
+              <span class="text-xs font-black text-[#0f172a] truncate">{review.customer_name || 'Khách hàng'}</span>
+              <CheckCircle2 size={12} fill="currentColor" class="text-green-500 shrink-0" />
             </div>
-          {/if}
-
-          <button 
-            onclick={() => handleLike(review)}
-            class="flex items-center gap-1 {review._isLiked ? 'text-[#C18F7E]' : 'text-gray-300'} transition-all"
-          >
-            <ThumbsUp size={16} fill={review._isLiked ? "currentColor" : "none"} />
-            <span class="text-xs font-bold">{review.likes_count || 0}</span>
-          </button>
+            <div class="flex gap-0.5 mt-0.5">
+              {#each Array(5) as _, i}
+                <Star size={10} class="{i < review.rating ? 'text-[#C18F7E] fill-current' : 'text-gray-200'}" />
+              {/each}
+            </div>
+          </div>
         </div>
-        <span class="text-[9px] font-black text-gray-300 shrink-0">BÀI VIẾT HÀNG ĐẦU</span>
+
+        <!-- Interactions & Badge (Right Column) -->
+        <div class="flex items-center gap-3 shrink-0 pt-0.5">
+          <div class="flex items-center gap-2 relative">
+            <button 
+              onclick={() => activeDropdownId = activeDropdownId === review.id ? null : review.id}
+              class="text-gray-300 hover:text-gray-600 transition-colors p-1"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+            
+            {#if activeDropdownId === review.id}
+              <div class="absolute right-0 top-full mt-2 w-32 bg-white border border-gray-100 shadow-xl z-50 py-1 rounded-lg overflow-hidden">
+                <button 
+                  onclick={() => handleReportReview(review.id)}
+                  class="w-full text-left px-4 py-2 text-[10px] font-bold text-red-500 hover:bg-red-50 transition-colors tracking-widest"
+                >
+                  Báo cáo
+                </button>
+              </div>
+            {/if}
+
+            <button 
+              onclick={() => handleLike(review)}
+              class="flex items-center gap-1 {review._isLiked ? 'text-[#C18F7E]' : 'text-gray-300'} transition-all p-1"
+            >
+              <ThumbsUp size={14} fill={review._isLiked ? "currentColor" : "none"} />
+              <span class="text-xs font-bold">{review.likes_count || 0}</span>
+            </button>
+          </div>
+          <span class="text-[8px] font-black text-[#C18F7E] bg-[#C18F7E]/10 px-2 py-1 rounded tracking-wider shrink-0 uppercase">Nổi bật</span>
+        </div>
       </div>
 
       <div class="text-sm text-gray-700 leading-relaxed italic line-clamp-3 mb-4 font-medium">

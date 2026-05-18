@@ -2,6 +2,7 @@
   import { fade, fly, scale, slide } from "svelte/transition";
   import NewsDetailReviews from "./NewsDetailReviews.svelte";
   import ImageWithFallback from "../ui/ImageWithFallback.svelte";
+  import { resolveMediaUrl } from "$lib/state/utils";
 
   interface NewsItem {
     id: string;
@@ -157,28 +158,39 @@
           </div>
 
           <h1
-            class="text-4xl lg:text-5xl font-black text-gray-900 leading-[1.1] tracking-tight mb-6"
+            class="text-4xl lg:text-5xl font-black text-gray-900 leading-[1.1] tracking-tight mt-[10px] mb-[5px]"
           >
             {formattedTitle}
           </h1>
         </div>
 
         <!-- Featured Image -->
-        {#if article.category !== "Chính sách"}
-          <div class="px-0 mb-0">
-            <ImageWithFallback
-              src={article.featuredImage}
-              alt={article.title}
-              aspectRatio="aspect-video"
-              class="w-full"
-            />
-          </div>
+        {#if article.category !== "Chính sách" || (article.featuredImage && article.featuredImage.trim() !== "")}
+          {#if article.featuredImage && article.featuredImage.trim() !== ""}
+            <div class="w-full px-0 mb-0 overflow-hidden bg-gray-50 flex items-center justify-center">
+              <img
+                src={resolveMediaUrl(article.featuredImage)}
+                alt={article.title}
+                class="w-full h-auto object-contain block transition-transform duration-700"
+                loading="lazy"
+              />
+            </div>
+          {:else}
+            <div class="px-0 mb-0">
+              <ImageWithFallback
+                src={article.featuredImage}
+                alt={article.title}
+                aspectRatio="aspect-video"
+                class="w-full"
+              />
+            </div>
+          {/if}
         {/if}
 
         <!-- Content Body (Elite Prose) -->
         <svelte:element
           this={proseWrapper}
-          class="pt-5 pb-0 px-10 news-article-prose"
+          class="pt-[10px] pb-0 px-[10px] news-article-prose"
         >
           {@html article.content}
         </svelte:element>
@@ -255,7 +267,7 @@
 
     <!-- RIGHT SIDEBAR -->
     <aside
-      class="w-[320px] shrink-0 space-y-8 hidden xl:block"
+      class="w-[320px] shrink-0 space-y-8 hidden xl:block sticky top-6 self-start"
       in:fade={{ duration: 1000, delay: 500 }}
     >
       <!-- GEO 2026: FAQ Section Relocated to Top Sidebar -->
@@ -420,7 +432,7 @@
     font-size: 2rem;
     font-weight: 900;
     color: #111827 !important;
-    margin: 2.5rem 0 1rem 0;
+    margin: 0 0 1rem 0 !important;
     text-transform: none;
     line-height: 1.1;
   }

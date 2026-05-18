@@ -174,3 +174,20 @@
 - [x] Thực hiện biên dịch kiểm tra AST tĩnh thành công 100% không phát sinh lỗi.
 - [x] Tái khởi động nóng các container api và worker thành công để nạp cấu hình mới ngay lập tức.
 - [x] Phát hiện & sửa lỗi khuyết Cam kết trên giao diện Verdict/Copyright Analysis: Tích hợp hoàn hảo mục CAM KẾT vào `four_blocks` và `step_3_pillars` trong `agent_base.py`, cùng với Heuristic fallback trong `plagiarism_cop.py`.
+
+# Show Policy Featured Image if Exists (Elite V2.2)
+- [x] Phân tích điều kiện ẩn ảnh đại diện đối với danh mục "Chính sách".
+- [x] Cập nhật NewsDetailDesktop.svelte hiển thị ảnh đại diện nếu tồn tại trường featuredImage.
+- [x] Cập nhật NewsDetailMobile.svelte hiển thị ảnh đại diện dạng banner bo góc tinh tế bên dưới Clean Header nếu có ảnh.
+- [x] Tự kiểm thức biên dịch và kiểm tra cú pháp frontend thành công.
+- [x] Tinh chỉnh khoảng cách tiêu đề h1 (Desktop): mt-[10px] và mb-[5px] để cân đối tỷ lệ thị giác.
+- [x] Thu gọn khoảng hở lề trang chi tiết (Desktop): pt-5 thành pt-[10px], px-10 thành px-[10px], và pl-[10px] (Hero) làm lề đồng bộ 10px.
+- [x] Đưa top margin của prose h1 (:global(.news-article-prose h1)) về 0 để đồng bộ lề trên 10px đều đặn.
+- [x] Đưa hình đại diện về tỷ lệ gốc nguyên bản (w-full h-auto object-contain) trên cả Desktop & Mobile, loại bỏ hoàn toàn việc bị cắt xén hình ảnh.
+- [x] Làm cố định cột bên phải (Sticky Sidebar) trên Desktop khi cuộn chuột: sticky top-6 self-start.
+- [x] Khắc phục triệt để lỗi không cuộn trang lên đỉnh khi nhấn link liên kết chuyển trang ở footer: tích hợp afterNavigate và Double-Check Scroll.
+- [x] Thiết kế lại Reviews Mobile (NewsMobileReviews.svelte) mở rộng lề ngoài px-[10px] đồng bộ, tách cột chia luồng Avatar/Name & Interactions/Badge giúp tránh bóp méo hình ảnh.
+- [x] Giải phóng hình đại diện Mobile, loại bỏ Hero 65vh cắt xén thô kệch, đưa tiêu đề sạch lên trước và hiển thị ảnh bìa chuẩn nguyên bản w-full h-auto object-contain không xén pixel.
+- [x] Điều chỉnh ảnh bìa Mobile tràn lề 100% (Full Width) và loại bỏ hoàn toàn border radius bo góc.
+- [x] Loại bỏ đường kẻ ngang dưới Ban biên tập, thu nhỏ khoảng hở (pb-1 mb-2) và thay thế bằng huy hiệu vàng ngôi sao w-5 tinh tế, đẳng cấp.
+

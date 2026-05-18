@@ -1,8 +1,8 @@
 <script lang="ts">
   import { fade, slide, fly } from "svelte/transition";
 
-  import ImageWithFallback from "../ui/ImageWithFallback.svelte";
   import NewsMobileReviews from "./NewsMobileReviews.svelte";
+  import { resolveMediaUrl } from "$lib/state/utils";
   interface Props {
     article: {
       id: string;
@@ -70,130 +70,94 @@
 </script>
 
 <svelte:element this={outerWrapper} class="bg-white min-h-screen text-gray-900">
-  {#if article.category !== "Chính sách"}
-    <!-- Immersive Hero (Elite V2.6 Viral) -->
-    <div class="h-[65vh] relative w-full overflow-hidden bg-black">
-      <ImageWithFallback
-        src={article.featuredImage}
-        alt={article.title}
-        aspectRatio="aspect-video"
-        class="absolute inset-0 w-full h-full z-0 opacity-90 scale-105"
-      />
-      <div
-        class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-10"
-      ></div>
-
-      <!-- Top Action Bar (Premium Squircle) -->
-      <div
-        class="absolute top-0 left-0 w-full px-[5px] py-4 z-30 flex justify-between items-center"
+  <!-- Clean Header for All Pages on Mobile -->
+  <div class="bg-white border-b border-gray-100 sticky top-0 z-30">
+    <div class="flex items-center gap-4 px-4 py-3">
+      <button
+        onclick={() => history.back()}
+        class="w-8 h-8 flex items-center justify-center text-gray-900 active:scale-90 transition-transform"
       >
-        <button
-          onclick={() => history.back()}
-          class="w-10 h-10 bg-black/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-all"
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
         >
-          <svg
-            class="w-5 h-5 text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="3"
-              d="M15 19l-7-7 7-7"
-            /></svg
-          >
-        </button>
-        <button
-          class="w-10 h-10 bg-black/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-all"
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2.5"
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+      </button>
+      <h1 class="text-base font-black text-gray-900 tracking-tight truncate flex-1">
+        {article.title}
+      </h1>
+      <button
+        class="w-8 h-8 flex items-center justify-center text-gray-900 active:scale-90 transition-transform"
+      >
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
         >
-          <svg
-            class="w-5 h-5 text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="3"
-              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-            /></svg
-          >
-        </button>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2.5"
+            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+          />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- News Article Meta Info (Below Header) -->
+  {#if article.category !== "Chính sách"}
+    <div class="px-[10px] pt-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="bg-[#C18F7E]/10 text-[#C18F7E] px-2.5 py-1 text-[9px] font-black tracking-widest rounded-full uppercase">
+          {article.category || "HƯỚNG DẪN CHUYÊN MÔN"}
+        </span>
+        <span class="bg-gray-100 text-gray-500 px-2.5 py-1 text-[9px] font-black tracking-widest rounded-full uppercase">
+          ⏱️ 5 PHÚT ĐỌC
+        </span>
       </div>
 
-      <!-- Viral Content Overlay -->
-      <div
-        class="absolute bottom-0 left-0 w-full px-[5px] pb-10 z-20 flex flex-col items-start gap-4"
-      >
-        <div class="flex items-center gap-2">
-          <span
-            class="bg-[#C18F7E] text-white px-3 py-1.5 text-[9px] font-black tracking-widest rounded-full shadow-lg shadow-black/20 flex items-center gap-1.5 border border-white/10"
-          >
-            <span class="text-[12px]">💡</span>
-            {article.category || "HƯỚNG DẪN CHUYÊN MÔN"}
-          </span>
-          <span
-            class="bg-white/10 backdrop-blur-md text-white/80 px-3 py-1.5 text-[9px] font-black tracking-widest rounded-full border border-white/5"
-          >
-            ⏱️ 5 PHÚT ĐỌC
-          </span>
+      <h1 class="text-2xl font-black text-gray-900 leading-[1.25] tracking-tight mb-4">
+        {article.title}
+      </h1>
+
+      <div class="flex items-center gap-2 pb-1 mb-2">
+        <div class="w-5 h-5 rounded-full bg-gradient-to-tr from-[#C18F7E] to-[#E5C3B3] flex items-center justify-center shadow-sm shadow-[#C18F7E]/20 shrink-0">
+          <svg class="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
+          </svg>
         </div>
-
-        <h1
-          class="text-[32px] font-black text-white leading-[1.1] tracking-tight drop-shadow-2xl"
-        >
-          {formattedTitle}
-        </h1>
-
-        <div class="flex items-center gap-3 mt-2">
-          <div
-            class="w-8 h-8 rounded-full bg-gradient-to-br from-[#C18F7E] to-black border-2 border-white/20 flex items-center justify-center text-white text-[10px] font-black"
-          >
-            {(article.author || "O").charAt(0)}
-          </div>
-          <div class="flex flex-col">
-            <span class="text-[11px] font-black text-white tracking-widest"
-              >{article.author === "Xohi" ||
-              article.author === "System" ||
-              article.author === "Osmo"
-                ? "Ban biên tập osmo"
-                : article.author}</span
-            >
-            <span class="text-[9px] font-bold text-white/50 tracking-tighter"
-              >{article.publishedAt}</span
-            >
-          </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-black text-gray-900 tracking-wider">
+            {article.author === "Xohi" || article.author === "System" || article.author === "Osmo" ? "Ban biên tập osmo" : article.author}
+          </span>
+          <span class="text-gray-300 text-[10px] font-light">•</span>
+          <span class="text-[9px] font-bold text-gray-400 tracking-tight">
+            {article.publishedAt}
+          </span>
         </div>
       </div>
     </div>
-  {:else}
-    <!-- Clean Header for Policy Pages -->
-    <div class="bg-white border-b border-gray-100 sticky top-0 z-30">
-      <div class="flex items-center gap-4 px-6 py-4">
-        <button
-          onclick={() => history.back()}
-          class="w-8 h-8 flex items-center justify-center text-gray-900"
-        >
-          <svg
-            class="w-6 h-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2.5"
-              d="M15 19l-7-7 7-7"
-            /></svg
-          >
-        </button>
-        <h1
-          class="text-lg font-black text-gray-900 tracking-tight truncate flex-1"
-        >
-          {article.title}
-        </h1>
-      </div>
+  {/if}
+
+  <!-- Featured Image (Full-Width, Unrounded) -->
+  {#if article.featuredImage && article.featuredImage.trim() !== ""}
+    <div class="w-full mb-4 bg-gray-50 flex items-center justify-center">
+      <img
+        src={resolveMediaUrl(article.featuredImage)}
+        alt={article.title}
+        class="w-full h-auto object-contain block"
+        loading="lazy"
+      />
     </div>
   {/if}
 

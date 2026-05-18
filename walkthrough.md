@@ -795,3 +795,85 @@ Sau khi kiểm tra sâu hạ tầng gọi mô hình AI tại [neural_rewriter.py
 - Khắc phục triệt để hiện tượng bị cắt cụt nội dung.
 - Phần Cam kết chất lượng của Osmo hiển thị đầy đủ, nguyên vẹn và lộng lẫy ở cuối mỗi sản phẩm được viết lại, nâng cao trải nghiệm mua sắm và tỷ lệ chuyển đổi.
 - Bản phân tích kịch bản chiến lược (Verdict) của Plagiarism Cop hiển thị chuẩn xác **7 phần cốt lõi** đồng bộ 100%.
+
+---
+
+# Hiển thị Ảnh đại diện cho Trang Chính sách (Elite V2.2)
+
+## 1. Vấn đề Phát Hiện
+- Sếp yêu cầu đối với các trang thuộc mục **Chính sách** (ví dụ: các trang chính sách vận chuyển, kiểm hàng, đổi trả...) thì vẫn phải hiển thị hình ảnh đại diện (featured image) nếu bài viết đó có cấu hình hình ảnh đại diện.
+
+## 2. Nguyên nhân Gốc Rễ (Root Cause)
+- **Desktop View (`NewsDetailDesktop.svelte`)**: Có câu lệnh điều kiện `{#if article.category !== "Chính sách"}` tại dòng 167 bọc ngoài thẻ render ảnh đại diện, khiến cho toàn bộ bài viết có category là "Chính sách" bị ẩn cứng hình đại diện kể cả khi nó được gán ảnh đại diện.
+- **Mobile View (`NewsDetailMobile.svelte`)**: Sử dụng cấu trúc phân nhánh `{#if article.category !== "Chính sách"}` để chuyển hẳn sang giao diện **Clean Header Layout** (chỉ có tiêu đề chữ lớn phẳng, không có khu vực ảnh nền immersive hero như bài viết thường), và hoàn toàn không render ảnh đại diện dưới mọi hình thức.
+
+## 3. Giải Pháp Triển Khai (Zero-Gap Implementation Protocol)
+
+### 🔹 [A] Tinh chỉnh hiển thị trên Desktop (`NewsDetailDesktop.svelte`):
+- Cập nhật biểu thức điều kiện hiển thị ảnh đại diện tại dòng 167 thành:
+  `{#if article.category !== "Chính sách" || (article.featuredImage && article.featuredImage.trim() !== "")}`
+- Nhờ vậy, trên Desktop, các bài viết thuộc danh mục "Chính sách" vẫn sẽ hiển thị hình đại diện bình thường miễn là chúng có ảnh đại diện thực sự (tránh hiện khung rỗng hoặc placeholder không mong muốn).
+
+### 🔹 [B] Thiết kế Banner ảnh bo góc trên Mobile (`NewsDetailMobile.svelte`):
+- Để vừa giữ nguyên vẻ thanh lịch, gọn gàng của **Clean Header** dành riêng cho trang Chính sách trên Mobile, vừa đáp ứng trọn vẹn yêu cầu của Sếp, chúng em đã thiết kế một khối Banner ảnh bo góc sang xịn mịn ngay bên dưới Clean Header:
+  ```svelte
+  {#if article.featuredImage && article.featuredImage.trim() !== ""}
+    <div class="px-4 mt-4">
+      <ImageWithFallback
+        src={article.featuredImage}
+        alt={article.title}
+        aspectRatio="aspect-video"
+        class="w-full rounded-2xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)]"
+      />
+    </div>
+  {/if}
+  ```
+- Ảnh được bo góc `rounded-2xl` mượt mà cùng bóng đổ tinh tế (`shadow-[0_8px_30px_rgba(0,0,0,0.04)]`), tạo hiệu ứng thị giác cực kỳ cao cấp, hài hòa trước khi đi vào nội dung văn bản.
+
+## 4. Kết Quả Đạt Được
+- Các trang chính sách (chính sách bảo mật, chính sách bảo hành, chính sách kiểm hàng...) hiển thị ảnh đại diện đầy đủ, sang trọng và chuẩn chỉ trên cả Desktop lẫn Mobile khi bài viết có chứa hình đại diện.
+- Trình biên dịch `svelte-check` chạy hoàn hảo 100% không phát sinh lỗi hay cảnh báo nào liên quan đến 2 component được nâng cấp.
+
+### 🔹 [C] Tinh chỉnh khoảng cách tiêu đề h1 (Desktop Spacing Refinement):
+- Thay đổi lề của tiêu đề chính `h1` trong `NewsDetailDesktop.svelte` từ `mb-6` thành `mt-[10px] mb-[5px]`.
+- Giúp giãn cách tiêu đề xuống dưới 10px so với nhãn chuyên mục và thu gọn khoảng cách lề dưới với ảnh/nội dung xuống còn 5px, đạt tỷ lệ vàng thị giác.
+
+### 🔹 [D] Tinh chỉnh khoảng hở lề trang chi tiết (Desktop Padding Refinement):
+- Thay đổi class của khối `news-article-prose` từ `pt-5 px-10` thành `pt-[10px] px-[10px]` trong `NewsDetailDesktop.svelte` để rút ngắn khoảng hở phía trên và cố định lề hai bên ở 10px.
+- Thay đổi class `pl-[5px]` của khối `Hero Section` thành `pl-[10px]` để căn lề trái của phần tiêu đề bài viết hoàn toàn đồng bộ, thẳng hàng tăm tắp 10px với phần nội dung bên dưới.
+- Triệt tiêu lề trên của tiêu đề prose `h1` `:global(.news-article-prose h1)` từ `2.5rem` về `0` (`margin: 0 0 1rem 0 !important;`) để loại bỏ khoảng hở thừa phía trên, đảm bảo khoảng cách trên dưới trái phải đạt tỷ lệ 10px đều đặn và tinh tế.
+
+### 🔹 [E] Nâng cấp hình đại diện tỷ lệ nguyên bản (Uncropped Featured Image Upgrade):
+- Thay thế component `ImageWithFallback` (với class ép tỷ lệ cứng `aspect-video` và `object-cover` gây cắt xén ảnh) bằng việc render thẻ `<img>` trực quan có thuộc tính `w-full h-auto object-contain` trên cả Desktop & Mobile khi bài viết có chứa hình đại diện.
+- Nhập hàm `resolveMediaUrl` từ `$lib/state/utils` để đảm bảo phân giải đúng đường dẫn tệp tin trên CDN/Server.
+- Giữ lại `ImageWithFallback` cho các trường hợp bài viết tạp chí không có ảnh đại diện để hiển thị khung placeholder SVG sạch sẽ, chuyên nghiệp.
+
+### 🔹 [F] Cố định cột bên phải khi cuộn chuột (Sticky Sidebar Upgrade):
+- Bổ sung các class Tailwind `sticky top-6 self-start` cho phần tử `<aside>` (cột bên phải) của `NewsDetailDesktop.svelte`.
+- Giúp cột bên phải luôn ghim chặt cố định và di chuyển mượt mà song hành cùng nội dung dài ở cột bên trái, tối ưu không gian hiển thị và tăng tỷ lệ tương tác của người dùng.
+
+### 🔹 [G] Hệ thống Cuộn lên đầu tuyệt đối khi chuyển trang (Bulletproof Scroll-To-Top Shield):
+- Nhập hook `afterNavigate` từ `@app/navigation` trong [frontend/src/routes/(client)/(store)/[slug]/+page.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/routes/(client)/(store)/[slug]/+page.svelte).
+- Thực thi ghim cuộn trang tức thời (`window.scrollTo({ top: 0, behavior: 'instant' })`) ngay sau khi định tuyến kết thúc, kết hợp lệnh bồi thêm sau 50ms bằng `setTimeout` để triệt tiêu hoàn toàn bất kỳ sự giãn nở DOM/tải ảnh bất đồng bộ nào ở click đầu tiên hoặc các lần tiếp theo.
+
+### 🔹 [H] Thiết kế lại Giao diện Reviews trên Mobile (Premium Mobile Reviews Redesign):
+- Thay đổi padding ngoài của container chính từ `px-6` thành `px-[10px]` trong [NewsMobileReviews.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/storefront/news-detail/NewsMobileReviews.svelte) nhằm mở rộng tối đa chiều rộng vùng hiển thị, hoàn toàn đồng bộ với lề 10px của toàn trang.
+- Tái cấu trúc phần Header của Card đánh giá bằng cách phân tách rõ rệt cột thông tin tác giả (Avatar + Tên + Tích xanh + Sao) sang bên trái có `min-w-0` và cột tương tác kèm huy hiệu (More + Like + Huy hiệu "Nổi bật" màu nâu cực kỳ sang trọng) sang bên phải có `shrink-0`.
+- Khắc phục triệt để lỗi ép nhỏ, méo mó avatar chữ "N" cùng các thông tin đi kèm, nâng tầm trải nghiệm thị giác hiện đại, phóng khoáng và sắc nét.
+
+### 🔹 [I] Thiết kế lại Giao diện Banner Ảnh đại diện & Tiêu đề trên Mobile (Premium Mobile Headline & Image Redesign):
+- Thay thế hoàn toàn cơ chế Hero full-screen cũ (`h-[65vh] relative overflow-hidden bg-black` với `object-cover` gây zoom/cắt ảnh nặng nề) bằng cấu trúc Giao diện Tạp chí Cao cấp (Premium Editorial Layout) sạch sẽ, gọn gàng.
+- Đưa tiêu đề, nhãn danh mục, số phút đọc và thông tin tác giả xuống dưới Header, hiển thị sắc nét bằng chữ đen trên nền trắng, loại bỏ hoàn toàn hiện tượng đè chữ hỗn độn làm mất đi sự tinh tế của bài viết.
+- Định dạng hình đại diện Mobile chuẩn tỉ lệ gốc bằng thẻ `<img>` kết hợp Tailwind class `w-full h-auto object-contain block rounded-2xl` đặt gọn gàng trong khối bóng mờ `shadow-[0_8px_30px_rgba(0,0,0,0.04)]`, cam kết không cắt xén dù chỉ 1 pixel.
+- Tối ưu hóa chiều cao hiển thị tổng thể từ 65% màn hình xuống chỉ còn khoảng ~30%, nâng cao tốc độ tiếp cận nội dung bài viết và mang lại giao diện đọc tin tức cực kỳ sang xịn mịn.
+- Dọn dẹp import không còn sử dụng `ImageWithFallback` trong `NewsDetailMobile.svelte` để tối ưu kích thước gói bundle và giữ code siêu sạch.
+
+### 🔹 [J] Hình đại diện tràn viền và sắc cạnh trên Mobile (Mobile Full-Width Unrounded Featured Image):
+- Loại bỏ lề `px-[10px]` của khung bao bọc ảnh đại diện trên Mobile, cho phép bức ảnh tràn viền 100% (Full Width) sang sát hai mép màn hình thiết bị.
+- Triệt tiêu các góc bo tròn (`rounded-2xl`) cùng hiệu ứng bóng đổ (`shadow`) ở container ảnh bìa, mang lại phong thái hiển thị phẳng phiu, mạnh mẽ và sắc sảo nguyên bản của bức ảnh.
+
+### 🔹 [K] Tinh giản và Nâng tầm Giao diện Ban biên tập trên Mobile (Micro-Author Metadata Refinement):
+- Loại bỏ đường viền xám phân cách (`border-b border-gray-100`) bên dưới khu vực tác giả, giúp nội dung bài viết và hình đại diện nối liền mạch phẳng phiu và thời thượng.
+- Rút ngắn khoảng hở dư thừa bên dưới tên Ban biên tập từ `pb-4 mb-4` về mức siêu gọn gàng **`pb-1 mb-2`**.
+- Thay thế icon chữ "S" cũ cồng kềnh `w-8 h-8` bằng một **Huy hiệu Ngôi sao Vàng đồng tuyệt đẹp (`w-5 h-5`)** được vẽ bằng inline SVG sắc sảo, tích hợp hiệu ứng gradient rose-gold cực kỳ bắt mắt và viral.
+- Gom toàn bộ thông tin Ban biên tập và Ngày đăng bài viết lên **một hàng ngang duy nhất**, ngăn cách tinh tế bằng dấu chấm trung tâm (`•`), giảm thiểu độ cao thừa và tạo phong cách tối giản thanh lịch bậc nhất.

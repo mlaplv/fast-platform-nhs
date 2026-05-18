@@ -12,11 +12,22 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { onMount, untrack } from 'svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
+  import { afterNavigate } from '$app/navigation';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
   const ui = getClientUi();
   const siteUrl = "https://osmo.vn";
+
+  // Elite V2.2: Route Navigation Scroll Restoration Shield
+  afterNavigate(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }, 50);
+    }
+  });
 
   // Elite V2.2: Reactive Funnel Detection (Zero-Latency Sync)
   const landingType = $derived(data.product?.metadata?.landing_type || 'standard');
