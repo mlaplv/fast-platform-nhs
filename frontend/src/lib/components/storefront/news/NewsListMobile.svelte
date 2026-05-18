@@ -23,15 +23,83 @@
 
   const searchStore = getSearchStore();
   let searchQuery = $state("");
+  let selectedTag = $state<string | null>(null);
+
+  // Hàm phân loại ngữ nghĩa động từ văn bản bài viết (Zero-Migration)
+  const getArticleTags = (item: NewsItem): string[] => {
+    const title = (item.title || "").toLowerCase();
+    const summary = (item.summary || "").toLowerCase();
+    const text = `${title} ${summary}`;
+    
+    const tags: string[] = [];
+    if (text.includes("skin") || text.includes("aging") || text.includes("cleansing") || text.includes("hydration") || text.includes("da") || text.includes("dưỡng") || text.includes("rửa") || text.includes("cổ")) {
+      tags.push("DƯỠNG DA");
+    }
+    if (text.includes("inspiration") || text.includes("story") || text.includes("cảm hứng") || text.includes("hành trình") || text.includes("chia sẻ") || text.includes("lối sống")) {
+      tags.push("CẢM HỨNG");
+    }
+    if (text.includes("trend") || text.includes("strategies") || text.includes("future") || text.includes("xu hướng") || text.includes("2026") || text.includes("mới") || text.includes("lão hóa")) {
+      tags.push("XU HƯỚNG");
+    }
+    if (text.includes("deal") || text.includes("discount") || text.includes("voucher") || text.includes("ưu đãi") || text.includes("khuyến mãi") || text.includes("quà")) {
+      tags.push("ƯU ĐÃI");
+    }
+    if (text.includes("tips") || text.includes("fundamentals") || text.includes("how to") || text.includes("mẹo") || text.includes("hướng dẫn") || text.includes("nguyên tắc") || text.includes("cách")) {
+      tags.push("MẸO HAY");
+    }
+    if (text.includes("health") || text.includes("healthy") || text.includes("sức khỏe") || text.includes("lão hóa") || text.includes("dinh dưỡng")) {
+      tags.push("SỨC KHỎE");
+    }
+    
+    if (tags.length === 0) tags.push("MẸO HAY");
+    return tags;
+  };
+
+  const enhancedNews = $derived(() => {
+    return newsList.map((item, i) => {
+      const tags = getArticleTags(item);
+      return {
+        ...item,
+        tags,
+        category: tags[0] || 'LÀM ĐẸP',
+        date: item.date || 'THÁNG 03, 2026'
+      };
+    });
+  });
 
   const filteredNewsList = $derived(() => {
-    if (!searchQuery.trim()) return newsList;
-    const q = searchQuery.toLowerCase().trim();
-    return newsList.filter(n => 
-      n.title.toLowerCase().includes(q) || 
-      n.summary.toLowerCase().includes(q)
-    );
+    let list = enhancedNews();
+    const activeTag = selectedTag;
+    
+    // 1. Lọc theo tag
+    if (activeTag) {
+      list = list.filter(item => item.tags.includes(activeTag));
+    }
+    
+    // 2. Lọc theo thanh tìm kiếm
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(n => 
+        n.title.toLowerCase().includes(q) || 
+        n.summary.toLowerCase().includes(q)
+      );
+    }
+    
+    return list;
   });
+
+  function toggleTag(tag: string) {
+    if (selectedTag === tag) {
+      selectedTag = null;
+    } else {
+      selectedTag = tag;
+    }
+  }
+
+  function resetFilters() {
+    selectedTag = null;
+    searchQuery = "";
+  }
 </script>
 
 <div class="min-h-screen bg-[#F7F8F9] pb-24">
@@ -52,10 +120,19 @@
 
     <!-- Row 2: Category Bubble Scroller -->
     <div class="px-4 pb-4 overflow-x-auto scrollbar-hide flex items-center gap-3 whitespace-nowrap pt-1">
-      <button class="px-5 py-1.5 rounded-none bg-[#C18F7E] text-white text-[10px] font-black tracking-widest shadow-lg shadow-[#C18F7E]/20 transition-all active:scale-95">Tất cả</button>
-      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black tracking-widest border border-gray-100 transition-all active:scale-95">Tư vấn</button>
-      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black tracking-widest border border-gray-100 transition-all active:scale-95">Chăm sóc da</button>
-      <button class="px-5 py-1.5 rounded-none bg-gray-50 text-gray-400 text-[10px] font-black tracking-widest border border-gray-100 transition-all active:scale-95">Sự kiện</button>
+      <button 
+        onclick={() => selectedTag = null}
+        class="px-5 py-1.5 rounded-none text-[10px] font-black tracking-widest transition-all active:scale-95 {!selectedTag ? 'bg-[#C18F7E] text-white shadow-lg shadow-[#C18F7E]/20' : 'bg-gray-50 text-gray-400 border border-gray-100'}">
+        TẤT CẢ
+      </button>
+      {#each ['DƯỠNG DA', 'CẢM HỨNG', 'XU HƯỚNG', 'ƯU ĐÃI', 'MẸO HAY', 'SỨC KHỎE'] as tag}
+        <button 
+          onclick={() => toggleTag(tag)}
+          class="px-5 py-1.5 rounded-none text-[10px] font-black tracking-widest border transition-all active:scale-95 {selectedTag === tag ? 'bg-[#C18F7E] text-white border-[#C18F7E] shadow-lg shadow-[#C18F7E]/20' : 'bg-gray-50 text-gray-400 border-gray-100'}"
+        >
+          #{tag}
+        </button>
+      {/each}
     </div>
   </header>
 
@@ -117,12 +194,23 @@
     {/each}
 
     {#if filteredNewsList().length === 0}
-       <div class="flex flex-col items-center justify-center py-24 text-center" in:fade>
-          <div class="w-20 h-20 bg-white shadow-xl flex items-center justify-center mb-6">
-             <svg class="w-10 h-10 text-[#C18F7E]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2z" /></svg>
+       <div class="bg-white border border-gray-100 p-12 flex flex-col items-center justify-center text-center space-y-6 shadow-sm" in:fade={{duration: 600}}>
+          <div class="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center">
+             <svg class="w-8 h-8 text-[#C18F7E]/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10l4 4v10a2 2 0 01-2 2z" />
+             </svg>
           </div>
-          <p class="text-[11px] font-black text-[#C18F7E] tracking-[0.3em]">Không tìm thấy bài viết nào...</p>
-          <button onclick={() => searchQuery = ""} class="mt-4 text-[10px] font-bold text-gray-400 underline tracking-widest">Xóa tìm kiếm</button>
+          <div class="space-y-2">
+            <p class="text-[12px] font-black text-gray-800 tracking-wider">KHÔNG TÌM THẤY BÀI VIẾT NÀO</p>
+            <p class="text-[10px] text-gray-400 font-medium max-w-[240px] mx-auto leading-relaxed">
+              Không tìm thấy bài viết nào phù hợp với bộ lọc chủ đề hoặc tìm kiếm hiện tại của Sếp.
+            </p>
+          </div>
+          <button 
+            onclick={resetFilters} 
+            class="px-8 py-3 bg-[#C18F7E] text-white text-[9px] font-black tracking-widest shadow-lg shadow-[#C18F7E]/20 transition-all active:scale-95">
+            XÓA TẤT CẢ BỘ LỌC
+          </button>
        </div>
     {/if}
   </div>

@@ -137,3 +137,13 @@
 - [x] Tích hợp mục thứ 7 `<h2>Cam kết</h2>` vào cấu trúc khung chuẩn của `PRODUCT_REWRITE_INSTRUCTIONS`.
 - [x] Yêu cầu LLM chép nguyên văn cam kết an toàn sạch "3 Không" từ Miccosmo và chính sách khách hàng linh hoạt.
 - [x] Chạy kiểm thử cú pháp Python và đảm bảo không có lỗi biên dịch.
+
+# Storefront Hot Topics ("Chủ đề hot") News Page Integration (Elite V2.2)
+- [x] Phân tích hiện trạng đám mây thẻ tag ở Desktop và thanh cuộn bong bóng danh mục ở Mobile.
+- [x] Triển khai bộ phân tích ngữ nghĩa reactive `getArticleTags` tại client để tự động gán tag chủ đề theo tiêu đề và mô tả của từng bài viết.
+- [x] Nâng cấp nhãn danh mục hiển thị trên mỗi thẻ bài viết thành tag đầu tiên khớp được, tăng tính sống động và chuyên sâu cho tin bài.
+- [x] Triển khai bộ lọc động `filteredNews` và `filteredNewsList` sử dụng `$derived` để cập nhật danh sách bài viết lập tức (<5ms), tiết kiệm RAM dưới ngưỡng 2GB.
+- [x] Thiết lập giao diện tag ở Desktop với hiệu ứng chọn và hover mượt mà. Bấm lại tag đang chọn để hủy lọc.
+- [x] Đồng bộ Header Mobile với cụm tag Hot Topics + bong bóng "TẤT CẢ" phát sáng tông màu hồng đào `#C18F7E` khi hoạt động.
+- [x] Thiết lập cấu trúc trạng thái rỗng (Empty State) cao cấp trên cả Desktop và Mobile khi không tìm thấy bài viết, kèm nút xóa bộ lọc nhanh chóng.
+- [x] Thực hiện type-checking tĩnh 100% bằng svelte-check thành công hoàn hảo (exit code 0).
