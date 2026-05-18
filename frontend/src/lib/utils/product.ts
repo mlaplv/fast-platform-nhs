@@ -32,7 +32,6 @@ export function getIngredientIcon(name: string): string {
 export interface CommitmentsData {
   title: string;
   subtitle: string;
-  intro: string;
   items: string[];
   fomo: string;
 }
@@ -115,7 +114,6 @@ export function parseCommitmentsHtml(html: string): CommitmentsData {
 
   let title = "Lành tính & An toàn";
   let subtitle = "Cam kết \"3 Không\" từ Miccosmo";
-  let intro = "Chúng tôi hiểu rằng vùng da nhạy cảm cần sự nâng niu tuyệt đối";
   let fomo = "Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng";
 
   // Match title (line containing "Lành tính")
@@ -126,30 +124,13 @@ export function parseCommitmentsHtml(html: string): CommitmentsData {
   const subtitleLine = allLines.find(l => l.toLowerCase().includes('3 không'));
   if (subtitleLine) subtitle = subtitleLine;
 
-  // Match intro (longer sentence containing "nâng niu" or "triết lý" or "tuân thủ")
-  const introLine = allLines.find(l => (l.includes(':') || l.toLowerCase().includes('triết lý') || l.toLowerCase().includes('nâng niu') || l.toLowerCase().includes('tuân thủ') || l.toLowerCase().includes('hiểu rằng') || l.toLowerCase().includes('tuyệt đối')) && l.length > 40);
-  if (introLine) {
-    // Strip "Sản phẩm [tên sản phẩm] tuân thủ nghiêm ngặt triết lý làm đẹp sạch:" residue
-    // Keep only the first sentence before ". Sản phẩm"
-    const productMentionIdx = introLine.search(/\.\s*Sản phẩm/i);
-    intro = productMentionIdx !== -1
-      ? introLine.slice(0, productMentionIdx).trim()
-      : introLine;
-  }
-
   // Match fomo (line containing "đổi trả" or "hoàn tiền" or "free ship" or "freeship")
   const fomoLine = allLines.find(l => l.toLowerCase().includes('đổi trả') || l.toLowerCase().includes('hoàn tiền') || l.toLowerCase().includes('free ship') || l.toLowerCase().includes('freeship'));
   if (fomoLine) fomo = fomoLine;
 
-  // Final sanitization: remove trailing colons or bullet structures from text
-  if (intro.endsWith(':')) {
-    intro = intro.slice(0, -1).trim();
-  }
-
   return {
     title: unescapeHtml(title),
     subtitle: unescapeHtml(subtitle),
-    intro: unescapeHtml(intro),
     items: (items.length > 0 ? items : [
       "KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.",
       "KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.",
