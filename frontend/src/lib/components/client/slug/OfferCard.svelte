@@ -57,8 +57,28 @@
 
   // --- ELITE V2.2: DYNAMIC COMBO PRICING ENGINE ---
   const comboQty = $derived(variant.attributes?.combo_qty || 1);
-  const variantTitle = $derived(product?.tierVariations?.length && variant.tierIndex?.length ? variant.tierIndex.map((optIdx, tierIdx) => { const option = product.tierVariations![tierIdx]?.options[optIdx]; return typeof option === 'string' ? option : (typeof option === 'object' && option ? (option.name || option.label || '') : ''); }).filter(Boolean).join(' - ') : (variant.sku || 'Combo'));
-  const resolvedGifts = $derived(variant?.gifts && variant.gifts.length > 0 ? variant.gifts : (variantTitle === "Dứt điểm" || variantTitle.toLowerCase().includes("mua 3")) ? [{ name: "Miccosmo Beppin Body Virgin White Serum 30g", image: "/uploads/img/osmo/sp1.png", quantity: 1, type: "PRODUCT" }] : product?.gifts || []);
+  
+  function getVariantTitle(v: ProductVariant) {
+    const qty = v.attributes?.combo_qty || 1;
+    const qtySuffix = qty > 1 ? ` - BỘ ${qty} MÓN` : '';
+    if (product?.tierVariations?.length && v.tierIndex?.length) {
+      const title = v.tierIndex.map((optIdx, tierIdx) => {
+        const option = product.tierVariations![tierIdx]?.options[optIdx];
+        return typeof option === 'string' ? option : (typeof option === 'object' && option ? (option.name || option.label || '') : '');
+      }).filter(Boolean).join(' - ');
+      return title + qtySuffix;
+    }
+    return (v.sku || 'Combo') + qtySuffix;
+  }
+  
+  const variantTitle = $derived(getVariantTitle(variant));
+  const resolvedGifts = $derived(
+    variant?.gifts?.length ? variant.gifts 
+    : variant.attributes?.gifts?.length ? variant.attributes.gifts 
+    : (variantTitle === "Dứt điểm" || variantTitle.toLowerCase().includes("mua 3") || comboQty === 3) 
+      ? [{ name: "Miccosmo Beppin Body Virgin White Serum 30g", image: "/uploads/img/osmo/sp1.png", quantity: 1, type: "PRODUCT" }] 
+    : product?.gifts || []
+  );
   
   // Base unit prices (DB source)
   const unitPrice = $derived(variant.discountPrice || variant.price || 0);
@@ -123,17 +143,6 @@
     setTimeout(() => {
         window.location.href = '/checkout';
     }, 150);
-  }
-
-  function getVariantTitle(v: ProductVariant): string {
-    const qty = v.attributes?.combo_qty || 1;
-    const qtySuffix = qty > 1 ? ` - BỘ ${qty} MÓN` : '';
-    if (!product?.tierVariations?.length || !v.tierIndex?.length) return (v.sku || 'Combo') + qtySuffix;
-    const title = v.tierIndex.map((optIdx: number, tIdx: number) => {
-      const option = product.tierVariations![tIdx]?.options[optIdx];
-      return option || '';
-    }).filter(Boolean).join(' - ') || 'Combo';
-    return title + qtySuffix;
   }
 
   function handleTriggerVerify(e: MouseEvent) {
@@ -385,7 +394,7 @@
           </div>
 
           <p class="text-[7.5px] text-white/20 font-black tracking-[0.2em] mt-4 flex items-center gap-2 pointer-events-none relative z-10">
-            VIEW DETAILS & BONUSES
+            Xem chi tiết & ưu đãi
           </p>
         </div>
 

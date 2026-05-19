@@ -259,7 +259,7 @@
          {@const vPrice = priceData.final}
          {@const isActive = selectedIndex === i}
          {@const variantTitle = getVariantTitle(variant)}
-         {@const resolvedGifts = variant.attributes?.gifts && variant.attributes.gifts.length > 0 ? variant.attributes.gifts : (variantTitle === "Dứt điểm" || variantTitle.toLowerCase().includes("mua 3")) ? [{ name: "Miccosmo Beppin Body Virgin White Serum 30g", image: "/uploads/img/osmo/sp1.png", quantity: 1, type: "PRODUCT" }] : product?.gifts || []}
+         {@const resolvedGifts = variant.attributes?.gifts?.length ? variant.attributes.gifts : variant?.gifts?.length ? variant.gifts : (variantTitle === "Dứt điểm" || variantTitle.toLowerCase().includes("mua 3") || cQty === 3) ? [{ name: "Miccosmo Beppin Body Virgin White Serum 30g", image: "/uploads/img/osmo/sp1.png", quantity: 1, type: "PRODUCT" }] : product?.gifts || []}
          
            <div 
             role="button"

@@ -560,12 +560,28 @@
           0;
 
         const savingsPerUnit = currentUnitPrice - nextUnitPrice;
+        const nextComboName = cartStore.getVariantName(item.product, nextTier);
+        
+        const hasGift = nextComboName.includes("Dứt điểm") || nextComboName.includes("Mua 3") || (nextTier.attributes?.gifts && nextTier.attributes.gifts.length > 0) || (nextTier.gifts && nextTier.gifts.length > 0);
 
-        if (savingsPerUnit > 0) {
-          const nextComboName = cartStore.getVariantName(item.product, nextTier);
+        if (savingsPerUnit > 0 || hasGift) {
+          let benefitParts = [];
+          if (savingsPerUnit > 0) {
+              benefitParts.push(`Tiết kiệm thêm ${formatCurrency(savingsPerUnit)}/sp`);
+          }
+          if (hasGift) {
+              if (nextComboName.includes("Dứt điểm") || nextComboName.includes("Mua 3")) {
+                  benefitParts.push(savingsPerUnit > 0 ? "tặng thêm 1 sản phẩm cùng loại MIỄN PHÍ" : "Tặng thêm 1 sản phẩm cùng loại MIỄN PHÍ");
+              } else {
+                  benefitParts.push(savingsPerUnit > 0 ? "nhận quà tặng kèm" : "Nhận quà tặng kèm");
+              }
+          }
+          
+          const bonusGravity = hasGift ? 50000 : 0;
+          
           advices.push({
-            gravity: savingsPerUnit * (item.quantity + gap),
-            text: `Thêm ${gap} sp ${item.product.name} để thăng hạng lên combo "${nextComboName}". Tiết kiệm thêm ${formatCurrency(savingsPerUnit)}/sp!`,
+            gravity: savingsPerUnit * (item.quantity + gap) + bonusGravity,
+            text: `Thêm ${gap} sp ${item.product.name} để thăng hạng lên combo "${nextComboName}". ${benefitParts.join(" và ")}!`,
           });
         }
       }
@@ -580,7 +596,7 @@
     if (reachedCombos.length > 0) {
       const isDutDiem = reachedCombos.some(c => c.includes("Dứt điểm") || c.includes("Mua 3 tặng 1"));
       const giftMessage = isDutDiem ? " (Đặc quyền Mua 3 tặng thêm 1 sản phẩm cùng loại miễn phí!)" : "";
-      return `Tuyệt vời Sếp ơi! Đơn hàng đã kích hoạt thành công combo ${reachedCombos.join(", ")}${giftMessage} với ưu đãi giá rẻ kịch sàn. Chuyên gia Helen cam kết bảo vệ quyền lợi và đóng gói cẩn thận cho Sếp! ✨`;
+      return `Tuyệt vời! Đơn hàng đã kích hoạt thành công combo ${reachedCombos.join(", ")}${giftMessage} với ưu đãi giá rẻ kịch sàn. Chuyên gia Helen cam kết bảo vệ quyền lợi và đóng gói cẩn thận cho bạn! ✨`;
     }
 
     return "Tuyệt vời! Đơn hàng của bạn đã đạt mức giá tối ưu cho tất cả liệu trình. Helen cam kết bảo vệ quyền lợi và chất lượng sản phẩm cho bạn.";
@@ -1089,7 +1105,7 @@
       {:else}
         <div class="px-0">
           <!-- Freeship Banner -->
-          {#if cartStore.totalAmountWithoutDiscount > 0}
+          {#if shippingFee === 0 && cartStore.items.some(i => i.selected)}
             <div
               class="bg-[#eaf8f4] text-[#00a870] text-[13px] font-medium px-4 py-3 flex items-center gap-2 mb-2 mt-2"
             >
@@ -1114,7 +1130,13 @@
             class="bg-white rounded-xl shadow-sm mb-3 mt-1 overflow-hidden mx-2"
           >
             <!-- Gift Banner -->
-            {#if cartStore.items.some((i) => i.product.discountPrice)}
+            {#if cartStore.items.some(item => {
+                if (!item.selected) return false;
+                const activeVariant = cartStore.getEffectiveVariant(item.id);
+                const activeVariantName = activeVariant ? cartStore.getVariantName(item.product, activeVariant) : '';
+                const resolvedGifts = activeVariant?.attributes?.gifts?.length ? activeVariant.attributes.gifts : activeVariant?.gifts?.length ? activeVariant.gifts : (activeVariantName === 'Dứt điểm' || activeVariant?.attributes?.combo_qty === 3 || activeVariant?.attributes?.comboQty === 3) ? [1] : item.product?.gifts || [];
+                return resolvedGifts.length > 0;
+            })}
               <div
                 class="bg-[#fff0f1] text-[#fe2c55] text-[13px] font-medium px-3 py-3 flex items-center justify-between border-b border-[#ffe1e3]"
               >

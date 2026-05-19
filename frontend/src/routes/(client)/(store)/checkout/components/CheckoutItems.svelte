@@ -57,11 +57,7 @@
           {@const activeVariant = cartStore.getEffectiveVariant(item.id)}
           {@const activeVariantName = activeVariant ? cartStore.getVariantName(item.product, activeVariant) : ''}
           {@const giftMultiplier = activeVariant?.attributes?.combo_qty ? Math.floor(item.quantity / activeVariant.attributes.combo_qty) : item.quantity}
-          {@const resolvedGifts = activeVariant?.attributes?.gifts && activeVariant.attributes.gifts.length > 0
-            ? activeVariant.attributes.gifts
-            : (activeVariantName === 'Dứt điểm' || activeVariant?.attributes?.combo_qty === 3 || activeVariant?.attributes?.comboQty === 3)
-              ? [{ name: `${item.product.name} (Tặng thêm)`, qty: 1, image: item.product.image || item.product.images?.[0] }]
-              : []}
+          {@const resolvedGifts = activeVariant?.attributes?.gifts?.length ? activeVariant.attributes.gifts : activeVariant?.gifts?.length ? activeVariant.gifts : (activeVariantName === 'Dứt điểm' || activeVariant?.attributes?.combo_qty === 3 || activeVariant?.attributes?.comboQty === 3) ? [{ name: `${item.product.name} (Tặng thêm)`, qty: 1, image: item.product.image || item.product.images?.[0] }] : item.product?.gifts || []}
           <div class="flex gap-4 group bg-gray-50/50 p-2 border border-transparent hover:border-gray-100 transition-all">
             <div class="w-16 h-16 bg-white border border-gray-100 overflow-hidden shrink-0 relative">
               <img 
