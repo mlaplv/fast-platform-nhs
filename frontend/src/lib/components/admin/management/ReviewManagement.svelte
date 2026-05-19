@@ -168,15 +168,26 @@
     isRewriting = true;
     try {
       // Tìm tên thực thể đang được chọn để cung cấp ngữ cảnh cho AI
-      const entityName = targetEntities.find(e => e.id === editEntityId)?.name || "sản phẩm/dịch vụ";
+      const entityName = targetEntities.find(e => e.id === editEntityId)?.name || (editEntityType === 'NEWS' ? 'bài viết' : (editEntityType === 'CATEGORY' ? 'danh mục' : 'sản phẩm'));
       
+      let dynamicFeedback = "";
+      if (editEntityType === "PRODUCT") {
+        dynamicFeedback = "Viết lại thật chân thật, bám sát trải nghiệm thực tế về đúng loại sản phẩm này. Review phải chứa chính xác các cụm từ mô tả tính năng, công dụng hoặc ngữ cảnh sử dụng cụ thể. Tuyệt đối không dùng các từ mỹ miều sáo rỗng.";
+      } else if (editEntityType === "NEWS") {
+        dynamicFeedback = "Viết lại thật chân thật, bám sát nội dung và giá trị cốt lõi của bài viết/tin tức này. Review phải chứa chính xác các cụm từ mô tả kiến thức, thông tin hữu ích hoặc ngữ cảnh áp dụng thực tế từ bài viết. Tuyệt đối không dùng các từ mỹ miều sáo rỗng.";
+      } else if (editEntityType === "CATEGORY") {
+        dynamicFeedback = "Viết lại thật chân thật, đánh giá tổng quan về các sản phẩm thuộc danh mục này. Review phải chứa chính xác các cụm từ mô tả đặc điểm chung, ưu thế hoặc ngữ cảnh mua sắm cụ thể của nhóm sản phẩm. Tuyệt đối không dùng các từ mỹ miều sáo rỗng.";
+      } else {
+        dynamicFeedback = "Viết lại thật chân thật, bám sát trải nghiệm thực tế. Review phải chứa chính xác các cụm từ mô tả chi tiết lợi ích hoặc ngữ cảnh cụ thể. Tuyệt đối không dùng các từ mỹ miều sáo rỗng.";
+      }
+
       console.log(`🧬 [Xohi AI] Gửi nội dung cho [${entityName}]:`, editContent);
       // Gọi AI Rewrite chuyên dụng cho Review
       const res = await apiClient.post<{new_content: string}>("/api/v1/content/analyze/neural-rewrite", {
         content: editContent,
         content_type: "review",
         topic: entityName,
-        feedback: "Viết lại thật chân thật, bám sát trải nghiệm thực tế về đúng loại sản phẩm này. Tuyệt đối không dùng các từ mỹ miều sáo rỗng."
+        feedback: dynamicFeedback
       });
       
       console.log("🧬 [Xohi AI] Kết quả từ API:", res);
