@@ -259,6 +259,7 @@ class CheckoutService:
             items_list.append({
                 "id": item.product_id,
                 "name": product.name,
+                "slug": getattr(product, 'slug', ''),
                 "variant_id": item.variant_id,
                 "variant_name": variant_name,  # Elite V2.2: Include human readable name
                 "qty": item.quantity,
@@ -295,9 +296,13 @@ class CheckoutService:
             if applicable_product_ids:
                 has_eligible = False
                 eligible_raw_subtotal = 0.0
+                # Normalize voucher applicable product list (lowercase, stripped)
+                norm_applicable_ids = [str(x).strip().lower() for x in applicable_product_ids]
+
                 for it in items_list:
-                    p_id = it["id"]
-                    if p_id in applicable_product_ids:
+                    p_id = str(it["id"]).strip().lower()
+                    p_slug = str(it.get("slug") or "").strip().lower()
+                    if p_id in norm_applicable_ids or p_slug in norm_applicable_ids:
                         has_eligible = True
                         eligible_raw_subtotal += it["total_price"]
                 

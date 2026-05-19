@@ -54,6 +54,14 @@
     <!-- Items -->
     <div class="space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar mb-6">
       {#each cartStore.items.filter(i => i.selected) as item}
+          {@const activeVariant = cartStore.getEffectiveVariant(item.id)}
+          {@const activeVariantName = activeVariant ? cartStore.getVariantName(item.product, activeVariant) : ''}
+          {@const giftMultiplier = activeVariant?.attributes?.combo_qty ? Math.floor(item.quantity / activeVariant.attributes.combo_qty) : item.quantity}
+          {@const resolvedGifts = activeVariant?.attributes?.gifts && activeVariant.attributes.gifts.length > 0
+            ? activeVariant.attributes.gifts
+            : (activeVariantName === 'Dứt điểm' || activeVariant?.attributes?.combo_qty === 3 || activeVariant?.attributes?.comboQty === 3)
+              ? [{ name: `${item.product.name} (Tặng thêm)`, qty: 1, image: item.product.image || item.product.images?.[0] }]
+              : []}
           <div class="flex gap-4 group bg-gray-50/50 p-2 border border-transparent hover:border-gray-100 transition-all">
             <div class="w-16 h-16 bg-white border border-gray-100 overflow-hidden shrink-0 relative">
               <img 
@@ -66,10 +74,10 @@
             <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
               <div class="space-y-0.5">
                 <h4 class="text-[10px] font-bold text-gray-800 leading-tight italic line-clamp-2 antialiased">{item.product.name}</h4>
-                {#if item.variant}
+                {#if activeVariant}
                   <div class="flex items-center gap-1.5 mt-1">
-                    <span class="text-[7px] font-black text-white bg-gray-400 px-1.5 py-0.5 tracking-tighter">Phân loại</span>
-                    <span class="text-[8px] font-bold text-gray-500">{item.variant.sku}</span>
+                    <span class="text-[7px] font-black text-white bg-[#ee4d2d] px-1.5 py-0.5 tracking-tighter rounded-sm">Phân loại</span>
+                    <span class="text-[8px] font-extrabold text-gray-900 bg-gray-100 px-1.5 py-0.5 rounded-sm">{activeVariantName || activeVariant.sku}</span>
                   </div>
                 {/if}
               </div>
@@ -109,9 +117,9 @@
                    </button>
                 </div>
                 <div class="flex flex-col items-end gap-0">
-                  {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
+                  {#if (activeVariant?.discountPrice || item.product.discountPrice) && (activeVariant?.price || item.product.price)}
                     <span class="text-[9px] text-gray-400 line-through font-bold">
-                      {formatCurrency((item.variant?.price ?? item.product.price ?? 0) * item.quantity)}
+                      {formatCurrency((activeVariant?.price ?? item.product.price ?? 0) * item.quantity)}
                     </span>
                   {/if}
                   <span class="text-sm font-black text-[#ee4d2d] italic tracking-tightest antialiased">
@@ -121,7 +129,7 @@
               </div>
 
               <!-- QUÀ TẶNG KÈM THEO -->
-              {#if item.variant?.attributes?.gifts && item.variant.attributes.gifts.length > 0}
+              {#if resolvedGifts && resolvedGifts.length > 0}
                 <div class="mt-2 bg-orange-50/50 border border-orange-100 p-2.5 flex flex-col gap-2 rounded-sm relative overflow-hidden">
                   <div class="absolute inset-0 bg-gradient-to-r from-orange-100/30 to-transparent"></div>
                   <span class="text-[9px] font-black text-orange-600 flex items-center gap-1 relative z-10 mb-1">
@@ -130,7 +138,7 @@
                   </span>
                   
                   <div class="space-y-2 relative z-10">
-                    {#each item.variant.attributes.gifts as gift}
+                    {#each resolvedGifts as gift}
                       <div class="flex items-center gap-3 pl-1">
                         <!-- 🎁 GIFT IMAGE -->
                         <div class="w-8 h-8 bg-white border border-orange-100 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
@@ -142,8 +150,9 @@
                         </div>
                         
                         <div class="flex-1 flex items-center justify-between min-w-0">
-                          <span class="text-[10px] text-orange-600 font-extrabold tabular-nums">
-                            {gift.qty * item.quantity}
+                          <span class="text-[9px] text-orange-700 font-extrabold truncate pr-2">{gift.name}</span>
+                          <span class="text-[10px] text-orange-600 font-black tabular-nums bg-orange-100/80 px-1.5 py-0.5 rounded-sm">
+                            x{(gift.qty || gift.quantity || 1) * giftMultiplier}
                           </span>
                         </div>
                       </div>

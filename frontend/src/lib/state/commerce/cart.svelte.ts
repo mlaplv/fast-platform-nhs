@@ -86,41 +86,67 @@ export class CartStore {
         if (this.selectedVoucherIds.length === 0 || this.vouchers.length === 0) return 0;
         
         let total = 0;
-        const subtotal = this.totalAmountWithoutDiscount;
-
         for (const id of this.selectedVoucherIds) {
             const v = this.vouchers.find(v => v.id === id);
             if (!v) continue;
             
-            // Check if this voucher is locked to specific products
-            const applicableIds = v.metadata_json?.applicable_product_ids || [];
-            let targetSubtotal = subtotal;
-            
-            if (applicableIds && applicableIds.length > 0) {
-                targetSubtotal = 0;
-                for (const item of this.items) {
-                    if (item.selected) {
-                        const pId = item.product.id;
-                        const pSlug = item.product.slug;
-                        if (applicableIds.includes(pId) || applicableIds.includes(pSlug)) {
-                            targetSubtotal += this.getEffectiveItemPrice(item.id) * item.quantity;
-                        }
-                    }
-                }
-            }
-            
-            if (targetSubtotal < (v.min_spend || 0)) continue;
+            if (!this.isVoucherEligible(v)) continue;
+
+            const targetSubtotal = this.getEligibleSubtotal(v);
 
             if (v.type === 'FIXED') {
                 total += Math.min(v.value, targetSubtotal);
             } else if (v.type === 'PERCENT') {
-                total += (targetSubtotal * v.value) / 100;
+                const discount = (targetSubtotal * v.value) / 100;
+                total += v.max_discount ? Math.min(discount, v.max_discount) : discount;
             }
             // Elite V2.2: Shipping vouchers are EXCLUDED from product subtotal discount.
             // They are handled separately in the checkout layout.
         }
         return total;
     });
+
+    getEligibleSubtotal(v: Voucher): number {
+        const applicableIds = v.metadata_json?.applicable_product_ids || [];
+        if (!applicableIds || applicableIds.length === 0) {
+            return this.totalAmountWithoutDiscount;
+        }
+
+        let eligibleSubtotal = 0;
+        for (const item of this.items) {
+            if (item.selected) {
+                const pId = item.product.id;
+                const pSlug = item.product.slug;
+                if (applicableIds.includes(pId) || applicableIds.includes(pSlug)) {
+                    eligibleSubtotal += this.getEffectiveItemPrice(item.id) * item.quantity;
+                }
+            }
+        }
+        return eligibleSubtotal;
+    }
+
+    isVoucherEligible(v: Voucher): boolean {
+        const applicableIds = v.metadata_json?.applicable_product_ids || [];
+        let targetSubtotal = this.totalAmountWithoutDiscount;
+
+        if (applicableIds && applicableIds.length > 0) {
+            targetSubtotal = 0;
+            let hasApplicableItem = false;
+            for (const item of this.items) {
+                if (item.selected) {
+                    const pId = item.product.id;
+                    const pSlug = item.product.slug;
+                    if (applicableIds.includes(pId) || applicableIds.includes(pSlug)) {
+                        hasApplicableItem = true;
+                        targetSubtotal += this.getEffectiveItemPrice(item.id) * item.quantity;
+                    }
+                }
+            }
+            if (!hasApplicableItem) return false;
+        }
+
+        return targetSubtotal >= (v.min_spend || 0);
+    }
 
 
     totalAmountWithoutDiscount = $derived.by(() => {
@@ -287,6 +313,64 @@ export class CartStore {
         }
         
         return Number(item.variant?.discountPrice) || Number(item.variant?.price) || Number(item.product.discountPrice) || Number(item.product.price) || 0;
+    }
+
+    /**
+     * ELITE V2.2: Retrieve the resolved active variant based on combo quantity levels
+     */
+    getEffectiveVariant(itemId: string): ProductVariant | undefined {
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return undefined;
+
+        const selectedItems = this.items.filter(i => i.selected);
+        const totalQtyForProduct = selectedItems
+            .filter(i => i.product.id === item.product.id)
+            .reduce((acc, i) => acc + i.quantity, 0);
+
+        const getQty = (attrs: NonNullable<ProductVariant['attributes']>): number => 
+            Number(attrs?.combo_qty ?? attrs?.comboQty ?? 0);
+
+        const comboVariants = item.product?.variants?.filter(v => {
+            if (!v.attributes) return false;
+            return getQty(v.attributes) > 0;
+        }) || [];
+
+        if (comboVariants.length > 0) {
+            const sortedTiers = [...comboVariants].sort((a, b) => 
+                getQty(b.attributes as NonNullable<ProductVariant['attributes']>) - 
+                getQty(a.attributes as NonNullable<ProductVariant['attributes']>)
+            );
+            const bestTier = sortedTiers.find(v => 
+                getQty(v.attributes as NonNullable<ProductVariant['attributes']>) <= totalQtyForProduct
+            );
+
+            return bestTier || item.variant || item.product.variants?.[0];
+        }
+
+        return item.variant || item.product.variants?.[0];
+    }
+
+    /**
+     * ELITE V2.2: Resolve human-readable variant option name from tier_index and tier_variations
+     */
+    getVariantName(product: Product, variant?: ProductVariant): string {
+        if (!variant) return '';
+
+        const tierIndex = variant.tier_index ?? variant.tierIndex;
+        const tierVariations = product.tier_variations ?? product.tierVariations;
+
+        if (tierIndex && tierVariations && tierIndex.length > 0) {
+            const names: string[] = [];
+            tierIndex.forEach((tIdx, i) => {
+                const tier = tierVariations[i];
+                if (tier && tier.options && tIdx < tier.options.length) {
+                    names.push(String(tier.options[tIdx]));
+                }
+            });
+            if (names.length > 0) return names.join(' - ');
+        }
+
+        return variant.sku || '';
     }
 
     removeItem(id: string): void {

@@ -272,4 +272,26 @@
 - [x] Chặn cấp độ backend cho phạm vi áp dụng (Product Scope Enforcement) tại `backend/services/commerce/checkout.py` bằng cách ném ra `ValidationException` rõ ràng nếu payload chứa voucher không hợp lệ cho giỏ hàng hoặc không đạt min_spend tối thiểu của các sản phẩm nằm trong danh mục áp dụng của voucher đó.
 - [x] Chạy kiểm thức tĩnh `svelte-check` trên frontend và AST checks trên backend để đảm bảo 0 lỗi phát sinh.
 
+# Exclusive Product Voucher Optimizations & Security Safeguards (Elite V2.2 - Bản nâng cấp mịn)
+- [x] Thiết lập logic `isVoucherEligible(v)` và `getEligibleSubtotal(v)` tập trung trong `CartStore` (`cart.svelte.ts`) để thống nhất logic xác định tính hợp lệ của mã giảm giá giới hạn sản phẩm.
+- [x] Nâng cấp checkout storefront (`checkout/+page.svelte`):
+  - [x] Triển khai bộ lọc tự động gỡ các voucher không đạt điều kiện `min_spend` hoặc phạm vi áp dụng khi số lượng sản phẩm thay đổi.
+  - [x] Triển khai **Giao thức Tối ưu hóa Chọn Mã Giảm Giá Thông Minh (Intelligent Discount Optimization)**: Tự động so sánh số tiền giảm giá thực tế (VND) của tất cả các voucher phần trăm và cố định khả dụng, tự động chuyển đổi sang voucher tốt nhất cho người dùng khi tăng/giảm số lượng.
+  - [x] Thiết lập chặn thủ công (Manual Toggle Guard): Hiển thị toast cảnh báo và chặn chọn mã nếu giỏ hàng hoàn toàn không chứa sản phẩm hợp lệ của voucher giới hạn.
+- [x] Nâng cấp `VoucherSection.svelte` để đồng bộ cờ `isEligible` thông qua `cartStore.isVoucherEligible(v)`, tự động làm mờ và khóa click trực quan.
+- [x] Nâng cấp Backend Checkout Security Guard (`checkout.py`):
+  - [x] Tích hợp tính năng đối chiếu trùng khớp phạm vi áp dụng đối với cả ID sản phẩm lẫn Slug sản phẩm (đã trim và chuẩn hóa lowercase), triệt tiêu hoàn toàn mọi kịch bản bypass hoặc hack mã từ client.
+- [x] Chạy kiểm định tĩnh `svelte-check` trên toàn bộ storefront, xác nhận giải quyết triệt để lỗi type mismatch, biên dịch sạch sẽ 100%.
+- [x] Chạy AST check thành công trên backend Python, sẵn sàng vận hành tuyệt đối an toàn.
+
+# Helen AI Combo Recognition & Human-Readable Variant Checkout Upgrade (Elite V2.2)
+- [x] Bổ sung helper `getEffectiveVariant(itemId)` và `getVariantName(product, variant)` trong `CartStore` (`cart.svelte.ts`) để phân giải tự động các cấp combo (e.g. "Dứt điểm", "Hiệu quả") và tên biến thể một cách linh hoạt.
+- [x] Nâng cấp `CheckoutItems.svelte` để hiển thị:
+  - [x] Tên biến thể thân thiện (e.g. "Dứt điểm") thay vì hiển thị SKU thô kệch `4968123159004-2` dưới tag "Phân loại".
+  - [x] Tên quà tặng và số lượng combo quà tặng cụ thể một cách trực quan, đẹp mắt và sang trọng.
+- [x] Nâng cấp logic `helenAdvice` trong `checkout/+page.svelte` để phát hiện và tuyên dương khách hàng khi họ đạt được các combo cấp độ:
+  - [x] Thay vì phản hồi chung chung, Cố vấn AI Helen sẽ nêu rõ tên combo đạt được (e.g. "Dứt điểm") kèm lời chúc mừng đầy FOMO và cam kết chất lượng.
+- [x] Xác minh tính chính xác, giao diện hiển thị tinh xảo và tính nhất quán với Svelte 5 Runes.
+- [x] Cập nhật tài liệu nghiệm thu đầy đủ trong `walkthrough.md`.
+
 

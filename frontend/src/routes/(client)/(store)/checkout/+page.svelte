@@ -3,6 +3,7 @@
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import { authStore } from "$lib/state/authStore.svelte";
   import { formatCurrency } from "$lib/utils/format";
+  import { resolveMediaUrl } from "$lib/state/utils";
   import { apiClient } from "$lib/utils/apiClient";
   import { browser } from "$app/environment";
   import { onMount, untrack } from "svelte";
@@ -30,9 +31,9 @@
   import { checkoutState } from "$lib/state/commerce/checkout.svelte";
 
   // Types
+  import type { Voucher } from "$lib/types";
   import type {
     CustomItem,
-    Voucher,
     CheckoutPayload,
     CheckoutResponse,
     CustomerLookupResponse,
@@ -173,22 +174,7 @@
    * Resolves total spend only for products matching the voucher's applicable list
    */
   function getEligibleSubtotal(v: Voucher): number {
-    const applicableIds = v.metadata_json?.applicable_product_ids || [];
-    if (!applicableIds || applicableIds.length === 0) {
-      return cartStore.totalAmountWithoutDiscount;
-    }
-    
-    let eligibleSubtotal = 0;
-    for (const item of cartStore.items) {
-      if (item.selected) {
-        const pId = item.product.id;
-        const pSlug = item.product.slug;
-        if (applicableIds.includes(pId) || applicableIds.includes(pSlug)) {
-          eligibleSubtotal += cartStore.getEffectiveItemPrice(item.id) * item.quantity;
-        }
-      }
-    }
-    return eligibleSubtotal;
+    return cartStore.getEligibleSubtotal(v);
   }
 
   /**
@@ -196,12 +182,12 @@
    * Calculates actual VND savings for a given voucher and subtotal.
    */
   function getVoucherSavings(v: Voucher, subtotal: number): number {
-    const eligibleSubtotal = getEligibleSubtotal(v);
-    if (eligibleSubtotal < (v.min_spend || 0)) return -1; // Ineligible
+    if (!cartStore.isVoucherEligible(v)) return -1; // Ineligible
+
+    const eligibleSubtotal = cartStore.getEligibleSubtotal(v);
 
     if (v.type === "SHIPPING") {
       // For shipping vouchers, the saving is either the voucher value or the actual shipping fee
-      // (simplified to v.value for sorting purposes)
       return v.value || 0;
     }
 
@@ -222,54 +208,80 @@
     const vouchers = cartStore.vouchers;
     const selectedIds = cartStore.selectedVoucherIds;
     const shipInteracted = userInteractedVoucherTypes.SHIPPING;
-    const discountInteracted = userInteractedVoucherTypes.DISCOUNT;
 
     if (vouchers.length === 0 || subtotal <= 0) return;
 
     untrack(() => {
-      const hasShipSelected = vouchers.some(
-        (v) => v.type === "SHIPPING" && selectedIds.includes(v.id),
-      );
-      const hasDiscountSelected = vouchers.some(
-        (v) =>
-          ["FIXED", "PERCENT"].includes(v.type) && selectedIds.includes(v.id),
-      );
+      // 0. Auto-deselect ineligible vouchers
+      const activeSelectedIds = [...cartStore.selectedVoucherIds];
+      for (const selectedId of activeSelectedIds) {
+        const v = vouchers.find((x) => x.id === selectedId);
+        if (!v || !cartStore.isVoucherEligible(v)) {
+          cartStore.toggleVoucher(selectedId);
+        }
+      }
+
+      const currentSelectedIds = cartStore.selectedVoucherIds;
 
       // 1. Auto-select best Shipping if nothing selected
+      const hasShipSelected = vouchers.some(
+        (v) => v.type === "SHIPPING" && currentSelectedIds.includes(v.id),
+      );
       if (!hasShipSelected && !shipInteracted) {
         const eligibleShip = vouchers.filter(
-          (v) => v.type === "SHIPPING" && getEligibleSubtotal(v) >= (v.min_spend || 0),
+          (v) => v.type === "SHIPPING" && cartStore.isVoucherEligible(v),
         );
         if (eligibleShip.length > 0) {
           const bestShip = eligibleShip.sort(
             (a, b) =>
               getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal),
           )[0];
-          if (bestShip && !selectedIds.includes(bestShip.id)) {
+          if (bestShip && !currentSelectedIds.includes(bestShip.id)) {
             cartStore.toggleVoucher(bestShip.id);
           }
         }
       }
 
-      // 2. Auto-select best Discount if nothing selected
-      if (!hasDiscountSelected && !discountInteracted) {
-        const bestDiscount = cartStore.vouchers
-          .filter(
-            (v: Voucher) =>
-              ["FIXED", "PERCENT"].includes(v.type) &&
-              getEligibleSubtotal(v) >= (v.min_spend || 0),
-          )
-          .sort((a, b) => {
-            const diff =
-              getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal);
-            if (diff !== 0) return diff;
-            // Tie-breakers: Default flag -> Priority
-            if (b.is_default !== a.is_default) return b.is_default ? 1 : -1;
-            return (b.priority || 0) - (a.priority || 0);
-          })[0];
+      // 2. Intelligent Discount Optimization Protocol (PERCENT vs FIXED Value-First Resolution)
+      const eligibleDiscounts = vouchers.filter(
+        (v) =>
+          ["FIXED", "PERCENT"].includes(v.type) &&
+          cartStore.isVoucherEligible(v),
+      );
 
-        if (bestDiscount) {
-          cartStore.toggleVoucher(bestDiscount.id);
+      if (eligibleDiscounts.length > 0) {
+        const sortedDiscounts = [...eligibleDiscounts].sort((a, b) => {
+          const diff =
+            getVoucherSavings(b, subtotal) - getVoucherSavings(a, subtotal);
+          if (diff !== 0) return diff;
+          // Tie-breakers: Default flag -> Priority
+          if (b.is_default !== a.is_default) return b.is_default ? 1 : -1;
+          return (b.priority || 0) - (a.priority || 0);
+        });
+
+        const absoluteBest = sortedDiscounts[0];
+        const currentSelectedDiscount = vouchers.find(
+          (v) =>
+            ["FIXED", "PERCENT"].includes(v.type) &&
+            currentSelectedIds.includes(v.id),
+        );
+
+        if (absoluteBest) {
+          if (!currentSelectedDiscount) {
+            // No discount voucher is selected, auto-select the best one
+            cartStore.toggleVoucher(absoluteBest.id);
+          } else if (currentSelectedDiscount.id !== absoluteBest.id) {
+            // A discount voucher is selected, but if the absolute best one offers HIGHER savings,
+            // we automatically switch to it to optimize for the customer!
+            const currentSavings = getVoucherSavings(
+              currentSelectedDiscount,
+              subtotal,
+            );
+            const bestSavings = getVoucherSavings(absoluteBest, subtotal);
+            if (bestSavings > currentSavings) {
+              cartStore.toggleVoucher(absoluteBest.id);
+            }
+          }
         }
       }
     });
@@ -497,25 +509,39 @@
     if (selectedItems.length === 0) return "";
 
     const advices: { gravity: number; text: string }[] = [];
+    const reachedCombos: string[] = [];
 
     for (const item of selectedItems) {
+      // Find combo variants
       const comboVariants =
         item.product?.variants?.filter(
-          (v) => v.attributes && v.attributes.combo_qty,
+          (v) => v.attributes && (v.attributes.combo_qty ?? v.attributes.comboQty),
         ) || [];
       if (comboVariants.length === 0) continue;
 
+      const getQty = (v: any) => Number(v.attributes?.combo_qty ?? v.attributes?.comboQty ?? 0);
+
       const sortedTiers = [...comboVariants].sort(
-        (a, b) =>
-          Number(a.attributes?.combo_qty || 0) -
-          Number(b.attributes?.combo_qty || 0),
+        (a, b) => getQty(a) - getQty(b)
       );
+
+      // Find highest reached tier
+      const reachedTier = [...sortedTiers]
+        .reverse()
+        .find((t) => getQty(t) <= item.quantity);
+
+      if (reachedTier) {
+        const comboName = cartStore.getVariantName(item.product, reachedTier);
+        reachedCombos.push(`"${comboName}" (${item.product.name})`);
+      }
+
+      // Check if there is a next tier
       const nextTier = sortedTiers.find(
-        (t) => Number(t.attributes?.combo_qty || 0) > item.quantity,
+        (t) => getQty(t) > item.quantity,
       );
 
       if (nextTier) {
-        const gap = Number(nextTier.attributes?.combo_qty || 0) - item.quantity;
+        const gap = getQty(nextTier) - item.quantity;
         const nextUnitPrice =
           nextTier.discountPrice ||
           nextTier.discount_price ||
@@ -523,39 +549,67 @@
           0;
 
         // Calculate current effective unit price for this item
-        const reachedTier = [...sortedTiers]
-          .reverse()
-          .find((v) => Number(v.attributes?.combo_qty || 0) <= item.quantity);
         const currentUnitPrice =
           reachedTier?.discountPrice ||
+          reachedTier?.discount_price ||
           item.variant?.discountPrice ||
+          item.variant?.discount_price ||
           item.product.discountPrice ||
+          item.product.discount_price ||
           item.product.price ||
           0;
 
         const savingsPerUnit = currentUnitPrice - nextUnitPrice;
 
         if (savingsPerUnit > 0) {
+          const nextComboName = cartStore.getVariantName(item.product, nextTier);
           advices.push({
             gravity: savingsPerUnit * (item.quantity + gap),
-            text: `Thêm ${gap} sp ${item.product.name} để giảm thêm ${formatCurrency(savingsPerUnit)}/sp. Tiết kiệm ngay ${formatCurrency(nextUnitPrice)}/món!`,
+            text: `Thêm ${gap} sp ${item.product.name} để thăng hạng lên combo "${nextComboName}". Tiết kiệm thêm ${formatCurrency(savingsPerUnit)}/sp!`,
           });
         }
       }
     }
 
+    // If there are upsell advices, show the one with highest gravity
     if (advices.length > 0) {
       return advices.sort((a, b) => b.gravity - a.gravity)[0].text;
+    }
+
+    // If already reached the best combo/tiers, praise the client using reachedCombos
+    if (reachedCombos.length > 0) {
+      const isDutDiem = reachedCombos.some(c => c.includes("Dứt điểm") || c.includes("Mua 3 tặng 1"));
+      const giftMessage = isDutDiem ? " (Đặc quyền Mua 3 tặng thêm 1 sản phẩm cùng loại miễn phí!)" : "";
+      return `Tuyệt vời Sếp ơi! Đơn hàng đã kích hoạt thành công combo ${reachedCombos.join(", ")}${giftMessage} với ưu đãi giá rẻ kịch sàn. Chuyên gia Helen cam kết bảo vệ quyền lợi và đóng gói cẩn thận cho Sếp! ✨`;
     }
 
     return "Tuyệt vời! Đơn hàng của bạn đã đạt mức giá tối ưu cho tất cả liệu trình. Helen cam kết bảo vệ quyền lợi và chất lượng sản phẩm cho bạn.";
   });
 
   function toggleVoucher(voucher: Voucher) {
+    const applicableIds = voucher.metadata_json?.applicable_product_ids || [];
+    if (applicableIds && applicableIds.length > 0) {
+      const hasApplicableItem = cartStore.items.some(
+        (item) =>
+          item.selected &&
+          (applicableIds.includes(item.product.id) ||
+            applicableIds.includes(item.product.slug)),
+      );
+      if (!hasApplicableItem) {
+        clientUi.showToast(
+          "Mã giảm giá không áp dụng cho sản phẩm trong giỏ hàng!",
+          "error",
+        );
+        return;
+      }
+    }
+
     const eligibleSubtotal = getEligibleSubtotal(voucher);
     if (eligibleSubtotal < (voucher.min_spend || 0)) {
       clientUi.showToast(
-        `Cần mua thêm ${formatCurrency((voucher.min_spend || 0) - eligibleSubtotal)} cho các sản phẩm áp dụng mã này!`,
+        `Cần mua thêm ${formatCurrency(
+          (voucher.min_spend || 0) - eligibleSubtotal,
+        )} cho các sản phẩm áp dụng mã này!`,
         "info",
       );
       return;
@@ -1095,6 +1149,14 @@
             {/if}
 
             {#each cartStore.items as item}
+              {@const activeVariant = cartStore.getEffectiveVariant(item.id)}
+              {@const activeVariantName = activeVariant ? cartStore.getVariantName(item.product, activeVariant) : ''}
+              {@const giftMultiplierMobile = activeVariant?.attributes?.combo_qty ? Math.floor(item.quantity / activeVariant.attributes.combo_qty) : item.quantity}
+              {@const resolvedGiftsMobile = activeVariant?.attributes?.gifts && activeVariant.attributes.gifts.length > 0
+                ? activeVariant.attributes.gifts
+                : (activeVariantName === 'Dứt điểm' || activeVariant?.attributes?.combo_qty === 3 || activeVariant?.attributes?.comboQty === 3)
+                  ? [{ name: `${item.product.name} (Tặng thêm)`, qty: 1, image: item.product.image || item.product.images?.[0] }]
+                  : []}
               <div
                 class="p-3 border-b border-gray-50 flex items-start gap-3 last:border-b-0 relative"
               >
@@ -1143,20 +1205,19 @@
                   <h4
                     class="text-[14px] text-gray-800 leading-snug line-clamp-2"
                   >
-                    <span class="text-gray-500 font-normal">[ Hàng Xịn ]</span>
                     {item.product.name}
                   </h4>
 
-                  <div class="mt-1 flex flex-wrap gap-1">
-                    {#if item.variant}
+                  <div class="mt-1 flex flex-nowrap items-center gap-1.5 min-w-0">
+                    {#if activeVariant}
                       <button
-                        class="flex items-center bg-[#f5f5f5] text-gray-600 text-[11px] px-1.5 py-0.5 rounded gap-1 active:bg-gray-200 transition-colors"
+                        class="flex items-center bg-[#fff0f1] border border-[#fecdd3] text-[#fe2c55] font-bold text-[10px] px-1.5 py-0.5 rounded-[2px] gap-1 active:bg-[#ffe4e6] transition-colors shadow-sm leading-none min-w-0"
                       >
-                        <span class="max-w-[100px] truncate"
-                          >{item.variant.sku}</span
+                        <span class="truncate"
+                          >Phân loại: {activeVariantName || activeVariant.sku}</span
                         >
                         <svg
-                          class="w-3 h-3"
+                          class="w-3 h-3 shrink-0"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -1169,80 +1230,53 @@
                         >
                       </button>
                     {/if}
-                  </div>
-
-                  <div class="mt-1.5 flex items-center gap-2">
-                    <span
-                      class="bg-gradient-to-r from-[#ff4760] to-[#fe2c55] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm shadow-sm"
-                      >Flash Sale</span
-                    >
-                    {#if item.variant?.discountPrice || item.product.discountPrice}
+                    
+                    <div class="flex items-center gap-1 shrink-0">
                       <span
-                        class="text-[#fe2c55] text-[10px] font-bold flex items-center gap-1"
+                        class="bg-gradient-to-r from-[#ff4760] to-[#fe2c55] text-white text-[9px] font-bold px-1.5 py-[3px] rounded-[2px] shadow-sm leading-none"
+                        >Flash Sale</span
                       >
-                        <svg
-                          class="w-3 h-3"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          ><path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          /></svg
+                      {#if item.variant?.discountPrice || item.product.discountPrice}
+                        <span
+                          class="text-[#fe2c55] text-[9px] font-bold flex items-center gap-0.5 leading-none shrink-0"
                         >
-                        04:46:42
-                      </span>
-                    {/if}
+                          <svg
+                            class="w-3 h-3 shrink-0"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            ><path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            /></svg
+                          >
+                          04:46:42
+                        </span>
+                      {/if}
+                    </div>
                   </div>
 
-                  <div class="flex items-end justify-between mt-2 max-w-full">
-                    <div class="flex flex-col items-start min-w-[70px]">
+                  <div class="flex items-end justify-between mt-2 max-w-full gap-1">
+                    <div class="flex items-center gap-1 flex-1 min-w-0">
                       <div
-                        class="text-[17px] font-bold text-[#fe2c55] leading-none shrink-0 flex items-center gap-1"
+                        class="text-[14px] font-bold text-[#fe2c55] leading-none shrink-0 flex items-center gap-0.5"
                       >
-                        {formatCurrency(
-                          cartStore.getEffectiveItemPrice(item.id),
-                        )}
+                        {formatCurrency(cartStore.getEffectiveItemPrice(item.id))}
                         {#if cartStore.getEffectiveItemPrice(item.id) < (item.variant?.discountPrice || item.product.discountPrice || item.variant?.price || item.product.price || 0)}
-                          <span
-                            class="text-[8px] bg-[#fe2c55] text-white px-1 py-0.5 rounded-[2px] font-black italic tracking-tighter shadow-sm animate-pulse-subtle"
-                            >Combo</span
-                          >
+                          <span class="text-[8px] bg-[#fe2c55] text-white px-1 py-[1px] rounded-[2px] font-black italic tracking-tighter shadow-sm animate-pulse-subtle leading-none">Combo</span>
                         {/if}
                       </div>
-                      <div class="flex items-center gap-1 mt-1">
+                      <div class="flex items-center gap-0.5 min-w-0">
                         {#if cartStore.getEffectiveItemPrice(item.id) < (item.variant?.discountPrice || item.product.discountPrice || 0)}
-                          <span
-                            class="text-[11px] text-gray-400 line-through shrink-0 italic"
-                            >{formatCurrency(
-                              item.variant?.discountPrice ||
-                                item.product.discountPrice ||
-                                0,
-                            )}</span
-                          >
+                          <span class="text-[10px] text-gray-400 line-through shrink-0 italic">{formatCurrency(item.variant?.discountPrice || item.product.discountPrice || 0)}</span>
                         {:else if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
-                          <span
-                            class="text-[11px] text-gray-400 line-through shrink-0 text-center"
-                            >{formatCurrency(
-                              item.variant?.price || item.product.price || 0,
-                            )}</span
-                          >
+                          <span class="text-[10px] text-gray-400 line-through shrink-0">{formatCurrency(item.variant?.price || item.product.price || 0)}</span>
                         {/if}
-
                         {#if (item.variant?.discountPrice || item.product.discountPrice) && (item.variant?.price || item.product.price)}
-                          <span
-                            class="bg-[#fff0f1] text-[#fe2c55] text-[9px] px-1 py-0.5 rounded-sm font-bold shrink-0"
-                          >
-                            -{Math.round(
-                              100 -
-                                (cartStore.getEffectiveItemPrice(item.id) /
-                                  (item.variant?.price ??
-                                    item.product.price ??
-                                    1)) *
-                                  100,
-                            )}%
+                          <span class="bg-[#fff0f1] text-[#fe2c55] text-[8px] px-0.5 py-[1px] rounded-[2px] font-bold shrink-0 leading-none">
+                            -{Math.round(100 - (cartStore.getEffectiveItemPrice(item.id) / (item.variant?.price ?? item.product.price ?? 1)) * 100)}%
                           </span>
                         {/if}
                       </div>
@@ -1274,9 +1308,9 @@
                   </div>
 
                   <!-- QUÀ TẶNG KÈM THEO MOBILE -->
-                  {#if item.variant?.attributes?.gifts && item.variant.attributes.gifts.length > 0}
+                  {#if resolvedGiftsMobile && resolvedGiftsMobile.length > 0}
                     <div
-                      class="mt-2.5 bg-[#fef2f2] border border-[#fecdd3] rounded-sm p-1.5 flex flex-col gap-1 w-full relative overflow-hidden"
+                      class="mt-2.5 bg-[#fef2f2] border border-[#fecdd3] rounded-sm p-1.5 flex flex-col gap-1.5 w-full relative overflow-hidden"
                     >
                       <div
                         class="absolute inset-0 bg-gradient-to-r from-[#ffe4e6]/50 to-transparent pointer-events-none"
@@ -1298,20 +1332,32 @@
                         >
                         Quà tặng kèm:
                       </span>
-                      {#each item.variant.attributes.gifts as gift}
-                        <div
-                          class="flex items-center justify-between text-[11px] relative z-10 px-1"
-                        >
-                          <span
-                            class="text-gray-600 font-medium tracking-tight truncate max-w-[140px]"
-                            >- {gift.name}</span
-                          >
-                          <span
-                            class="text-[#e11d48] font-bold shrink-0 min-w-[16px] text-center"
-                            >x{gift.qty * item.quantity}</span
-                          >
-                        </div>
-                      {/each}
+                      
+                      <div class="space-y-1.5 relative z-10">
+                        {#each resolvedGiftsMobile as gift}
+                          <div class="flex items-center gap-2 pl-0.5">
+                            <!-- 🎁 MOBILE GIFT IMAGE -->
+                            <div class="w-6 h-6 bg-white border border-[#fecdd3] rounded-[2px] overflow-hidden shrink-0 flex items-center justify-center">
+                              {#if gift.image}
+                                <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                              {:else}
+                                <svg class="w-3 h-3 text-[#fecdd3]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                              {/if}
+                            </div>
+                            
+                            <div class="flex-1 flex items-center justify-between min-w-0">
+                              <span
+                                class="text-[#e11d48] font-bold text-[10px] tracking-tight truncate pr-2"
+                                >{gift.name}</span
+                              >
+                              <span
+                                class="text-[#e11d48] font-black text-[10px] shrink-0 min-w-[16px] text-center bg-[#ffe4e6] px-1 rounded-[2px]"
+                                >x{(gift.qty || gift.quantity || 1) * giftMultiplierMobile}</span
+                              >
+                            </div>
+                          </div>
+                        {/each}
+                      </div>
                     </div>
                   {/if}
                 </div>

@@ -80,7 +80,7 @@
   <div class="grid grid-cols-2 md:grid-cols-2 gap-2">
     {#each filteredVouchers as v}
       {@const isSelected = cartStore.selectedVoucherIds.includes(v.id)}
-      {@const isEligible = cartStore.totalAmountWithoutDiscount >= (v.min_spend || 0)}
+      {@const isEligible = cartStore.isVoucherEligible(v)}
       <button 
         type="button" 
         onclick={() => toggleVoucher(v)}

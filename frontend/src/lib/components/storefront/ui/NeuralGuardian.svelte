@@ -32,50 +32,40 @@
     <div class="w-1.5 h-1.5 rounded-full bg-luxury-copper animate-ping"></div>
   </div>
 
-  <div class="flex items-start gap-4 relative z-20">
-    <!-- Mini Agent Avatar -->
-    <div class="relative shrink-0 mt-0.5">
-      <div class="absolute -inset-1 bg- luxury-copper/10 rounded-full blur-sm"></div>
-      <div class="scale-75 origin-top-left">
-        <HelenIcon size={32} color="#c5a059" isPaused={status === 'success'} />
-      </div>
+  <div class="relative z-20">
+    <!-- Agentic Mono Header -->
+    <div class="flex items-center gap-2 mb-1.5">
+      <Terminal size={8} class="text-luxury-copper" />
+      <span class="text-[8px] font-mono font-bold tracking-[0.4em] text-stone-400 select-none">
+        {supportAgent.config.agentName}.AI Cố vấn AI
+      </span>
+      {#if status !== 'idle' && status !== 'success'}
+        <span class="w-1 h-3 bg-luxury-copper/40 animate-pulse rounded-full"></span>
+      {/if}
     </div>
     
-    <div class="flex flex-col flex-1 min-w-0">
-      <!-- Agentic Mono Header -->
-      <div class="flex items-center gap-2 mb-1.5">
-        <Terminal size={8} class="text-luxury-copper" />
-        <span class="text-[8px] font-mono font-bold tracking-[0.4em] text-stone-400 select-none">
-          {supportAgent.config.agentName}.AI Cố vấn AI
-        </span>
-        {#if status !== 'idle' && status !== 'success'}
-          <span class="w-1 h-3 bg-luxury-copper/40 animate-pulse rounded-full"></span>
-        {/if}
-      </div>
-      
-      <!-- Content Area with Caret -->
-      <div class="text-[12px] font-bold text-stone-800 leading-tight">
-        {#key status + advice}
-          <div in:fade={{ duration: 400 }} class="flex flex-col gap-1">
-            {#if advice}
-              <span class="text-stone-600 font-medium tracking-tight leading-relaxed">
-                {advice}<span class="inline-block w-1.5 h-4 ml-1 bg-luxury-copper/40 animate-caret align-middle"></span>
-              </span>
-            {:else}
-              <span class="text-stone-800">
-                {messages[status]}<span class="inline-block w-1.5 h-4 ml-1 bg-luxury-copper/40 animate-caret align-middle"></span>
-              </span>
-            {/if}
-          </div>
-        {/key}
-      </div>
+    <!-- Content Area with Inline Icon -->
+    <div class="text-[12px] font-bold text-stone-800 leading-tight">
+      {#key status + advice}
+        <div in:fade={{ duration: 400 }} class="block">
+          {#if advice}
+            <div class="text-stone-600 font-medium tracking-tight leading-relaxed inline">
+              <span class="inline-flex mr-0.5 align-middle -mt-0.5"><HelenIcon size={14} color="#c5a059" isPaused={status === 'success'} /></span>{advice}<span class="inline-block w-1.5 h-4 ml-1 bg-luxury-copper/40 animate-caret align-middle"></span>
+            </div>
+          {:else}
+            <div class="text-stone-800 inline">
+              <span class="inline-flex mr-0.5 align-middle -mt-0.5"><HelenIcon size={14} color="#c5a059" isPaused={status === 'success'} /></span>{messages[status]}<span class="inline-block w-1.5 h-4 ml-1 bg-luxury-copper/40 animate-caret align-middle"></span>
+            </div>
+          {/if}
+        </div>
+      {/key}
     </div>
 
     <!-- Integrity Shield on Success -->
     {#if status === 'success'}
-      <div in:fade={{ delay: 300 }} class="shrink-0 flex flex-col items-center gap-1 opacity-60">
-        <Shield size={14} class="text-luxury-copper" />
-        <span class="text-[7px] font-black text-luxury-copper tracking-tighter">Đã bảo mật</span>
+      <div in:fade={{ delay: 300 }} class="absolute -top-1 right-0 flex flex-col items-center gap-0.5 opacity-60">
+        <Shield size={12} class="text-luxury-copper" />
+        <span class="text-[6px] font-black text-luxury-copper tracking-tighter">Đã bảo mật</span>
       </div>
     {/if}
   </div>
