@@ -57,6 +57,8 @@
 
   // --- ELITE V2.2: DYNAMIC COMBO PRICING ENGINE ---
   const comboQty = $derived(variant.attributes?.combo_qty || 1);
+  const variantTitle = $derived(product?.tierVariations?.length && variant.tierIndex?.length ? variant.tierIndex.map((optIdx, tierIdx) => { const option = product.tierVariations![tierIdx]?.options[optIdx]; return typeof option === 'string' ? option : (typeof option === 'object' && option ? (option.name || option.label || '') : ''); }).filter(Boolean).join(' - ') : (variant.sku || 'Combo'));
+  const resolvedGifts = $derived(variant?.gifts && variant.gifts.length > 0 ? variant.gifts : (variantTitle === "Dứt điểm" || variantTitle.toLowerCase().includes("mua 3")) ? [{ name: "Miccosmo Beppin Body Virgin White Serum 30g", image: "/uploads/img/osmo/sp1.png", quantity: 1, type: "PRODUCT" }] : product?.gifts || []);
   
   // Base unit prices (DB source)
   const unitPrice = $derived(variant.discountPrice || variant.price || 0);
@@ -181,7 +183,7 @@
           label="SỬA NHÃN"
           class="block"
         >
-          <p class="text-[8px] font-black {idx >= 1 ? 'text-luxury-sakura' : 'text-slate-200'} tracking-[0.4em] px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+          <p class="text-[10px] font-bold {idx >= 1 ? 'text-luxury-sakura' : 'text-slate-200'} px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 shadow-sm leading-none first-letter:uppercase lowercase">
              {idx === 0 ? mkt.label_activation : mkt.label_full_treatment}
           </p>
         </EditableWrapper>
@@ -191,8 +193,35 @@
          <img src={product?.metadata?.verified_badge_url || SHOP_CONFIG.default_badge_url} alt="Verified" class="w-full h-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)]" />
       </button>
 
-      <!-- 🧪 ELITE V2.2: LIQUID SPECULAR GLASS -->
       <div class="liquid-specular-highlight"></div>
+
+      <!-- 🎁 QUÀ TẶNG KÈM THEO IN IMAGE OVERLAY (iOS GLASS) -->
+      {#if resolvedGifts && resolvedGifts.length > 0}
+        <div class="absolute bottom-3 left-3 right-3 z-30 bg-white/20 backdrop-blur-xl backdrop-saturate-150 border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.15)] rounded-2xl p-2.5 flex flex-col gap-2 transition-all {isCardActive ? 'opacity-100 translate-y-0' : 'opacity-80 translate-y-1'}">
+          <div class="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent rounded-2xl pointer-events-none"></div>
+          <span class="text-[10px] font-bold text-rose-700 flex items-center gap-1 leading-none relative z-10 drop-shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
+            Quà tặng độc quyền:
+          </span>
+          <div class="space-y-2 relative z-10">
+            {#each resolvedGifts as gift}
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 bg-white/60 backdrop-blur-md border border-white/50 rounded-lg overflow-hidden shrink-0 flex items-center justify-center shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
+                  {#if gift.image && gift.image !== "/uploads/img/osmo/sp1.png"}
+                    <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                  {:else}
+                    <img src={resolveMediaUrl(product?.images?.[0] || '')} alt={gift.name} class="w-full h-full object-cover mix-blend-multiply" />
+                  {/if}
+                </div>
+                <div class="flex-1 flex items-center justify-between min-w-0">
+                  <span class="text-stone-800 font-bold text-[11px] tracking-tight truncate pr-2 leading-tight drop-shadow-sm" style="text-transform: none;">{gift.name}</span>
+                  <span class="text-rose-700 font-black text-[10px] shrink-0 px-2 py-0.5 flex items-center justify-center bg-white/70 backdrop-blur-sm border border-white/50 shadow-sm rounded-full">x{gift.qty || gift.quantity || 1}</span>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
 
     <div class="px-5 pb-6 pt-2 flex flex-col flex-grow relative z-20">

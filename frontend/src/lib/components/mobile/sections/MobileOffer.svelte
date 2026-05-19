@@ -258,6 +258,8 @@
          {@const priceData = shopStore.calculateAdjustedPrice(variant, 1)}
          {@const vPrice = priceData.final}
          {@const isActive = selectedIndex === i}
+         {@const variantTitle = getVariantTitle(variant)}
+         {@const resolvedGifts = variant.attributes?.gifts && variant.attributes.gifts.length > 0 ? variant.attributes.gifts : (variantTitle === "Dứt điểm" || variantTitle.toLowerCase().includes("mua 3")) ? [{ name: "Miccosmo Beppin Body Virgin White Serum 30g", image: "/uploads/img/osmo/sp1.png", quantity: 1, type: "PRODUCT" }] : product?.gifts || []}
          
            <div 
             role="button"
@@ -289,7 +291,7 @@
              </div>
 
              <div class="flex-1 flex flex-col justify-center px-5 py-2 min-w-0">
-                <div class="flex items-center gap-2 mb-2">
+                <div class="flex items-center gap-2 mb-1.5">
                    {#if i === 1}
                       <div class="offer-badge best-seller bg-gradient-to-r from-amber-400 to-orange-500 text-black px-1.5 py-0.5 rounded-sm font-bold text-[10px] tracking-widest flex items-center gap-1 shadow-md shadow-amber-500/10">
                         <Flame class="w-3 h-3 fill-black" /> Bán chạy
@@ -300,40 +302,38 @@
                    {/if}
                 </div>
 
-                <span class="variant-title font-black tracking-tight italic text-[20px] leading-tight transition-all truncate {isActive ? 'text-white drop-shadow-md' : 'text-white/40'}">{getVariantTitle(variant)}</span>
+                <span class="variant-title font-black tracking-tight italic text-[18px] leading-tight transition-all truncate {isActive ? 'text-white drop-shadow-md' : 'text-white/40'}">{getVariantTitle(variant)}</span>
                 
-                <div class="flex items-end gap-2.5 my-1.5">
-                    <div class="flex flex-col">
-                       <span class="font-black text-[23px] italic tracking-tighter leading-none transition-colors duration-300 {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{formatCurrency(vPrice)}</span>
-                       <div class="flex items-center gap-1 mt-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1.5 py-0.5 rounded-full w-fit transition-all duration-300 transform-gpu origin-left {isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}">
-                          <Sparkles class="w-2 h-2 text-[#FFB7C5] {isActive ? 'animate-pulse' : ''}" />
-                          <span class="offer-points-label text-[9px] font-bold text-[#FFB7C5] tracking-widest whitespace-nowrap">+{Math.floor(vPrice / 100000)} điểm</span>
-                       </div>
+                <div class="flex flex-col mt-0.5 w-full">
+                    <div class="flex items-baseline gap-2">
+                       <span class="font-black text-[20px] italic tracking-tighter leading-none transition-colors duration-300 {isActive ? 'text-[#FFB7C5]' : 'text-[#FFB7C5]/40'}">{formatCurrency(vPrice)}</span>
+                       {#if variant.price > vPrice}
+                         <span class="text-[12px] text-white/20 line-through font-bold">{formatCurrency(variant.price)}</span>
+                       {/if}
                     </div>
-                   {#if variant.price > vPrice}
-                     <span class="text-[13px] text-white/20 line-through font-bold mb-1">{formatCurrency(variant.price)}</span>
-                   {/if}
+                    
+                    <div class="flex items-center gap-1.5 mt-1.5 w-full flex-wrap">
+                       <div class="flex items-center gap-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1.5 py-0.5 rounded-full w-fit shrink-0 transition-all duration-300 transform-gpu origin-left {isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}">
+                          <Sparkles class="w-2 h-2 text-[#FFB7C5] {isActive ? 'animate-pulse' : ''}" />
+                          <span class="offer-points-label text-[8.5px] font-bold text-[#FFB7C5] tracking-widest whitespace-nowrap">+{Math.floor(vPrice / 100000)} điểm</span>
+                       </div>
+                       {#if resolvedGifts.length > 0}
+                          <div class="flex items-center gap-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 backdrop-blur-md pl-0.5 pr-1.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(255,183,197,0.1)] shrink-0 transition-all duration-300 {isActive ? 'opacity-100' : 'opacity-50'}">
+                             <div class="w-3.5 h-3.5 rounded-full overflow-hidden bg-white/80 shrink-0 flex items-center justify-center">
+                                {#if resolvedGifts[0].image && resolvedGifts[0].image !== "/uploads/img/osmo/sp1.png"}
+                                   <img src={resolveMediaUrl(resolvedGifts[0].image)} alt={resolvedGifts[0].name} class="w-full h-full object-cover" />
+                                {:else}
+                                   <img src={resolveMediaUrl(product?.images?.[0] || '')} alt={resolvedGifts[0].name} class="w-full h-full object-cover mix-blend-multiply" />
+                                {/if}
+                             </div>
+                             <span class="text-[8.5px] font-bold text-white/90 truncate max-w-[95px] leading-none tracking-tight drop-shadow-sm" style="text-transform: none;">Tặng {resolvedGifts[0].name}</span>
+                             <span class="text-[8px] font-black text-[#FFB7C5] leading-none drop-shadow-[0_0_5px_rgba(255,183,197,0.5)]">x{resolvedGifts[0].qty || resolvedGifts[0].quantity || 1}</span>
+                          </div>
+                       {/if}
+                    </div>
                 </div>
 
-                <!-- 🎁 GIFTS INTEGRATED -->
-                {#if variant.attributes?.gifts?.length > 0}
-                   <div class="flex flex-wrap gap-1.5 mt-1">
-                      {#each variant.attributes.gifts as gift}
-                         <div class="flex items-center gap-2 bg-white/10 border border-white/10 px-2 py-1 rounded-sm">
-                            <div class="w-4 h-4 rounded-none overflow-hidden bg-black/40">
-                               {#if gift.image}
-                                  <img src={resolveMediaUrl(gift.image)} alt={gift.name || "Quà tặng đặc quyền"} loading="lazy" decoding="async" width="16" height="16" class="w-full h-full object-cover" />
-                               {:else}
-                                  <Gift class="w-full h-full p-0.5 text-[#FFB7C5]" />
-                               {/if}
-                            </div>
-                            <span class="offer-gift-label text-[10px] font-bold text-white/50 italic truncate max-w-[80px]">+{gift.qty} {gift.name}</span>
-                         </div>
-                      {/each}
-                   </div>
-                {/if}
-
-                <div class="w-full h-1 bg-white/5 rounded-full mt-3 overflow-hidden shadow-inner transition-opacity duration-300 {isActive ? 'opacity-100' : 'opacity-0'}">
+                <div class="w-full h-1 bg-white/5 rounded-full mt-2.5 overflow-hidden shadow-inner transition-opacity duration-300 {isActive ? 'opacity-100' : 'opacity-0'}">
                    <div class="h-full bg-[#FFB7C5] shadow-[0_0_15px_rgba(255,183,197,0.8)] transition-all duration-700 ease-out" style="width: {isActive ? Math.max(10, 90 - (i * 20)) : 0}%"></div>
                 </div>
              </div>
@@ -361,6 +361,13 @@
 
      <!-- 🎫 PIXEL-PERFECT VOUCHER 1:1 (Redemption Version) -->
      {#if productVouchers.length > 0}
+     {@const sortedVouchers = [...productVouchers].sort((a, b) => {
+         const aApplied = shopStore.selectedVoucherIds.includes(a.id);
+         const bApplied = shopStore.selectedVoucherIds.includes(b.id);
+         if (aApplied && !bApplied) return -1;
+         if (!aApplied && bApplied) return 1;
+         return 0;
+     })}
      <div class="px-4 mt-4 mb-2 z-surface shrink-0" in:fade>
         <div class="flex items-center justify-between mb-1.5 px-1">
            <span class="text-[10px] font-black text-white/30 tracking-[0.2em] italic flex items-center gap-2">
@@ -368,7 +375,7 @@
            </span>
         </div>
        <div class="flex flex-row gap-2 overflow-x-auto no-scrollbar pt-4 pb-2 -mx-4 px-3">
-          {#each productVouchers as v}
+          {#each sortedVouchers as v}
              {@const isApplied = shopStore.selectedVoucherIds.includes(v.id)}
              <button 
                onclick={() => handleVoucherClick(v)}
