@@ -1163,6 +1163,77 @@ Khi tiến hành phân tích hai tệp tin hiển thị Voucher chính ở Store
 - **Hiệu năng & RAM:** Thời gian render tại Client-side tốn `<0.01ms`, không phát sinh thêm bất kỳ truy vấn hay gánh nặng nào cho hệ thống, bảo vệ tuyệt đối giới hạn 2GB RAM.
 - **Trải nghiệm:** Giao diện voucher tinh gọn, thoáng đãng và chuẩn hóa hoàn hảo.
 
+---
+
+# IV. DỰ ÁN NÂNG CẤP MÃ GIẢM GIÁ GIỚI HẠN SẢN PHẨM (EXCLUSIVE PRODUCT VOUCHER - ELITE V2.2)
+
+## 1. Yêu Cầu Nghiệp Vụ từ Sếp
+- **Giao diện Quản trị (Admin):** Thay vì nhập thủ công trong textarea (dễ sai sót cú pháp, tốn công gõ link/slug), Sếp yêu cầu tích hợp trực tiếp ô tìm kiếm chọn lọc sản phẩm theo Tên / Slug / ID. Hiển thị các sản phẩm đã liên kết dưới dạng tag phát sáng neon (Emerald Glowing Tags) cực kỳ sang trọng, hỗ trợ xoá nhanh bằng nút `(X)`. Mặc định nếu không chọn sản phẩm thì mã giảm giá sẽ tự động áp dụng toàn sàn ("all").
+- **Công thức Tính toán (Backend):** Pricing Engine phải tự động nhận biết mã giảm giá có giới hạn sản phẩm hay không. Nếu có, chỉ tính giảm giá trên tổng tiền của các sản phẩm hợp lệ, sau khi đã scale tỉ lệ từ Combo của các sản phẩm đó để chống lỗ cho cửa hàng.
+- **Trạng thái Giỏ hàng & Thanh toán (Client):** `CartStore` và `checkout/+page.svelte` phải đồng bộ logic tính toán giảm giá và kiểm tra điều kiện áp dụng tối thiểu (`min_spend`) cụ thể theo tổng tiền sản phẩm hợp lệ, tự động kiểm soát Auto-Stick Protocol để tránh tình trạng kích hoạt sai mã.
+- **Bộ lọc Hiển thị chi tiết (Storefront product details page):** Khi xem một sản phẩm bất kỳ, chỉ hiển thị các Voucher toàn sàn hoặc Voucher được cấu hình áp dụng riêng cho chính sản phẩm đó (lấy theo danh sách `applicable_product_ids`), giấu hoàn toàn các voucher thuộc sản phẩm khác để mang lại trải nghiệm tinh tế nhất.
+- **Huy hiệu "Sản phẩm riêng" và "Toàn sàn" (Storefront vouchers list page):** Bổ sung các huy hiệu (badges) được thiết kế tinh xảo, phát sáng lộng lẫy để khách hàng dễ dàng nhận thức phạm vi hiệu lực của mã giảm giá khi truy cập trang danh sách voucher chung.
+- **Chốt chặn an ninh backend (Backend-level verification guard):** Validate chặt chẽ tại tầng tạo đơn hàng (`CheckoutService.create_order`), ném ra ngoại lệ `ValidationException` tức thì nếu voucher áp dụng không chứa sản phẩm hợp lệ nào hoặc tổng giá trị sản phẩm hợp lệ không đạt yêu cầu chi tiêu tối thiểu `min_spend`.
+
+## 2. Giải Pháp Triển Khai Kỹ Thuật (Elite Architecture)
+1. **Frontend Admin Drawer (`VoucherDrawer.svelte`):**
+   - Bổ sung `applicable_product_ids` và `applicable_product_display` vào `metadata_json` của Voucher schema.
+   - Triển khai debounced Real-time Product Search sử dụng endpoint `/api/v1/products` với độ trễ debounce `250ms` cực kỳ mượt mà.
+   - Thiết kế Panel "Phạm vi áp dụng" cao cấp với tags Emerald neon phát sáng tự nhiên. Chọn sản phẩm lập tức ghi nhận UUID và hiển thị nhãn thân thiện. Xoá tag cập nhật mảng phản ứng lập tức.
+2. **Backend Pricing Engine (`pricing_engine.py`):**
+   - Đọc giới hạn sản phẩm `applicable_product_ids` từ `metadata_json`.
+   - Nếu tồn tại, lọc các items trong giỏ hàng và cộng dồn `eligible_subtotal`.
+   - Scale tỉ lệ combo: `eligible_subtotal_after_combo = eligible_subtotal * (amount_after_combo / subtotal)` để đảm bảo chiết khấu voucher tính trên giá đã trừ combo một cách chuẩn xác nhất.
+3. **Frontend Cart Store (`cart.svelte.ts`):**
+   - Cập nhật derive `totalDiscount` để lọc sản phẩm hợp lệ theo `applicable_product_ids` trước khi áp dụng công thức chiết khấu FIXED / PERCENT, bảo vệ tính trung thực của số liệu.
+4. **Frontend Checkout Page (`checkout/+page.svelte`):**
+   - Định nghĩa helper `getEligibleSubtotal(v)` để lấy tổng tiền các sản phẩm hợp lệ trong giỏ hàng.
+   - Nâng cấp `getVoucherSavings` và `toggleVoucher` kiểm tra điều kiện áp dụng `min_spend` dựa trên `eligibleSubtotal` cụ thể cho từng Voucher thay vì tổng tiền toàn sàn.
+   - Nâng cấp bộ tự động gợi ý mã tốt nhất (Auto-Stick Protocol) để so sánh và lựa chọn chuẩn xác dựa trên sản phẩm đủ điều kiện thực tế.
+5. **Tự động lọc ngoài Admin tại trang Chi tiết sản phẩm:**
+   - Cập nhật logic lọc reactive tại `ProductMobileOverview.svelte` (dòng 187), `LandingPage/Desktop.svelte` (dòng 249), và `MainDetail/Desktop.svelte` (dòng 207). 
+   - Lọc mảng vouchers thông qua:
+     ```typescript
+     .filter(v => {
+       const applicableIds = v.metadata_json?.applicable_product_ids || [];
+       if (applicableIds && applicableIds.length > 0) {
+         return applicableIds.includes(product.id);
+       }
+       return true;
+     })
+     ```
+6. **Huy hiệu dynamic thẩm mỹ cao trên Storefront Vouchers list:**
+   - Thêm các nhãn dynamic phát sáng cao cấp trong `VouchersDesktop.svelte` và `VouchersMobile.svelte` bên cạnh nhãn độc quyền OSMO:
+     - Nhãn `"Sản phẩm riêng"` màu Rose-red quý phái: hiển thị khi voucher bị giới hạn sản phẩm.
+     - Nhãn `"Toàn sàn"` màu Emerald-green tươi mới: hiển thị khi voucher áp dụng không giới hạn.
+7. **Chốt chặn an toàn tối cao tại Backend Checkout Service (`checkout.py`):**
+   - Tích hợp vòng lặp kiểm tra bảo mật trong hàm `create_order` của `CheckoutService`:
+     ```python
+     for v in vouchers:
+         applicable_product_ids = []
+         if v.metadata_json and isinstance(v.metadata_json, dict):
+             applicable_product_ids = v.metadata_json.get("applicable_product_ids") or []
+         
+         if applicable_product_ids:
+             has_eligible = False
+             eligible_raw_subtotal = 0.0
+             for it in items_list:
+                 p_id = it["id"]
+                 if p_id in applicable_product_ids:
+                     has_eligible = True
+                     eligible_raw_subtotal += it["total_price"]
+             
+             if not has_eligible:
+                 raise ValidationException(f"Mã giảm giá {v.id} chỉ áp dụng cho một số sản phẩm nhất định trong danh sách quy định.")
+             
+             if eligible_raw_subtotal < v.min_spend:
+                 raise ValidationException(
+                     f"Mã giảm giá {v.id} yêu cầu đơn tối thiểu {v.min_spend:,.0f}đ cho các sản phẩm được áp dụng (hiện tại có {eligible_raw_subtotal:,.0f}đ)."
+                 )
+     ```
+8. **Typescript Type System (`types.ts`):**
+   - Bổ sung định nghĩa đầy đủ các trường `metadata_json`, `is_viral`, `start_date`, `end_date` vào interface `Voucher` giúp hệ thống type-check thông suốt 100% không lỗi biên dịch.
+
 
 
 

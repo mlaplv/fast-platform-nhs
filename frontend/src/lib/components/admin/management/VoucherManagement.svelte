@@ -106,7 +106,7 @@
     });
     if (confirm) {
       try {
-        await apiClient.delete(`/api/v1/admin/vouchers/${id}`);
+        await apiClient.delete(`/api/v1/admin/vouchers/${encodeURIComponent(id)}`);
         nanobot.showToast(`Đã xoá voucher ${id}`, "success");
         loadVouchers();
       } catch (error: unknown) {
@@ -115,6 +115,7 @@
       }
     }
   }
+
 
   function toggleSelect(id: string) {
     if (selectedIds.includes(id)) {
@@ -178,7 +179,7 @@
       const voucher = vouchers.find(v => v.id === id);
       if (!voucher) return;
       const newVal = !voucher.is_default;
-      await apiClient.patch(`/api/v1/admin/vouchers/${id}`, { is_default: newVal });
+      await apiClient.patch(`/api/v1/admin/vouchers/${encodeURIComponent(id)}`, { is_default: newVal });
       nanobot.showToast(`Đã cập nhật mặc định cho ${id}`, "success");
       loadVouchers();
     } catch (error: unknown) {
@@ -186,6 +187,7 @@
       nanobot.showToast(msg, "error");
     }
   };
+
 
   const handleSetDefaultBulk = async () => {
     try {

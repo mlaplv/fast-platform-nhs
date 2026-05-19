@@ -75,16 +75,41 @@ class PricingEngine:
         amount_after_combo = max(0, subtotal - combo_discount)
         
         for v in vouchers:
+            # Check if this voucher has target product restrictions
+            applicable_product_ids = []
+            if v.metadata_json and isinstance(v.metadata_json, dict):
+                applicable_product_ids = v.metadata_json.get("applicable_product_ids") or []
+            
+            if applicable_product_ids:
+                # Calculate subtotal only for eligible items
+                eligible_subtotal = 0.0
+                for it in pricing_items:
+                    if it.product_id in applicable_product_ids:
+                        eligible_subtotal += it.total_price
+                
+                # Apply proportional combo discount scaling to keep calculations fair
+                if subtotal > 0:
+                    scale = amount_after_combo / subtotal
+                    eligible_subtotal_after_combo = eligible_subtotal * scale
+                else:
+                    eligible_subtotal_after_combo = 0.0
+                
+                voucher_disc = PromotionService.calculate_voucher_discount(eligible_subtotal_after_combo, v)
+            else:
+                # Global voucher applies to all items after combo discount
+                voucher_disc = PromotionService.calculate_voucher_discount(amount_after_combo, v)
+
             if v.type == "SHIPPING":
                 # Shipping vouchers are handled separately at the end
-                shipping_voucher_discount += PromotionService.calculate_voucher_discount(amount_after_combo, v)
+                shipping_voucher_discount += voucher_disc
             else:
                 # Value vouchers (FIXED/PERCENT)
-                total_voucher_discount += PromotionService.calculate_voucher_discount(amount_after_combo, v)
+                total_voucher_discount += voucher_disc
             
             breakdown.applied_voucher_ids.append(str(v.id))
         
         breakdown.voucher_discount = total_voucher_discount
+
 
         # --- 4. Point Discount (The Elite V2.2 Cap Rule) ---
         # Sếp Rule: Max 1% of the amount AFTER combo and vouchers

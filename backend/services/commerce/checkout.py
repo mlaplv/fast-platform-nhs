@@ -285,6 +285,29 @@ class CheckoutService:
             for v in v_res.scalars().all():
                 vouchers.append(v)
                 vouchers_map[str(v.id)] = v
+
+        # [ELITE V2.2] Chặn cấp độ backend cho phạm vi áp dụng (Product Scope Enforcement)
+        for v in vouchers:
+            applicable_product_ids = []
+            if v.metadata_json and isinstance(v.metadata_json, dict):
+                applicable_product_ids = v.metadata_json.get("applicable_product_ids") or []
+            
+            if applicable_product_ids:
+                has_eligible = False
+                eligible_raw_subtotal = 0.0
+                for it in items_list:
+                    p_id = it["id"]
+                    if p_id in applicable_product_ids:
+                        has_eligible = True
+                        eligible_raw_subtotal += it["total_price"]
+                
+                if not has_eligible:
+                    raise ValidationException(f"Mã giảm giá {v.id} chỉ áp dụng cho một số sản phẩm nhất định trong danh sách quy định.")
+                
+                if eligible_raw_subtotal < v.min_spend:
+                    raise ValidationException(
+                        f"Mã giảm giá {v.id} yêu cầu đơn tối thiểu {v.min_spend:,.0f}đ cho các sản phẩm được áp dụng (hiện tại có {eligible_raw_subtotal:,.0f}đ)."
+                    )
         
         combo_deals = await PromotionService.get_active_combo_deals(db_session)
         

@@ -867,14 +867,30 @@ export interface Voucher {
   desc: string;
   value: number;
   min_spend: number;
-  max_discount?: number;
-  usage_limit?: number;
+  max_discount?: number | null;
+  usage_limit?: number | null;
   used_count: number;
   is_active: boolean;
   category: string;
   is_default: boolean;
   priority: number;
+  is_viral?: boolean;
+  start_date?: string;
+  end_date?: string;
+  metadata_json?: {
+    applicable_product_ids?: string[];
+    applicable_product_display?: string[];
+    viral_suite?: {
+      enabled: boolean;
+      share_target: number;
+      voucher_label?: string;
+      cta_text?: string;
+      share_text?: string;
+    };
+    [key: string]: any;
+  } | null;
 }
+
 
 export interface ProductFormState {
   name: string;

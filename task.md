@@ -261,3 +261,15 @@
 - [x] Cải tiến logic để tránh lỗi hiển thị "Giảm tối đa {v.value}đ" đối với Voucher dạng PERCENT khi không cấu hình `max_discount`.
 - [x] Thực hiện tự kiểm thức và chạy `npx svelte-check` kiểm tra cú pháp frontend.
 - [x] Cập nhật nhật ký bàn giao `walkthrough.md`.
+
+# Exclusive Product Voucher Configuration & Engine Integration (Elite V2.2)
+- [x] Thiết kế và tích hợp bộ tìm kiếm sản phẩm động (debounced Real-time Search Input) và hiển thị kết quả (Dropdown) kèm các nhãn Tag phát sáng neon màu ngọc lục bảo (Emerald Glowing Tags) cực kỳ sang trọng vào [VoucherDrawer.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/VoucherDrawer.svelte).
+- [x] Tích hợp trực tiếp UUID và nhãn hiển thị thân thiện vào mảng `applicable_product_ids` và `applicable_product_display` thông qua tương tác nhấp chọn trực quan thay vì gõ text thủ công, nâng cấp trải nghiệm sử dụng đúng chuẩn Elite V2.2.
+- [x] Cải tiến công thức tính giảm giá của pricing engine tại [backend/services/commerce/logic/pricing_engine.py](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/logic/pricing_engine.py) để tính giảm giá voucher riêng biệt trên các sản phẩm được áp dụng và scale tỷ lệ công bằng theo Combo.
+- [x] Đồng bộ hóa logic tính toán giảm giá và kiểm tra điều kiện tối thiểu tại client-side trong `CartStore` (`cart.svelte.ts`) và `checkout/+page.svelte` để khớp 100% với backend pricing.
+- [x] Bổ sung bộ lọc hiển thị voucher restricted (chưa lọc ngoài admin) tại `ProductMobileOverview.svelte`, `LandingPage/Desktop.svelte`, và `MainDetail/Desktop.svelte` để chỉ hiện voucher nếu nó không bị giới hạn hoặc được giới hạn đúng cho sản phẩm đang xem.
+- [x] Tích hợp huy hiệu độc quyền "Sản phẩm riêng" / "Toàn sàn" cao cấp vào danh sách voucher chung storefront (`VouchersDesktop.svelte` và `VouchersMobile.svelte`) tạo sự minh bạch và kích thích chốt đơn.
+- [x] Chặn cấp độ backend cho phạm vi áp dụng (Product Scope Enforcement) tại `backend/services/commerce/checkout.py` bằng cách ném ra `ValidationException` rõ ràng nếu payload chứa voucher không hợp lệ cho giỏ hàng hoặc không đạt min_spend tối thiểu của các sản phẩm nằm trong danh mục áp dụng của voucher đó.
+- [x] Chạy kiểm thức tĩnh `svelte-check` trên frontend và AST checks trên backend để đảm bảo 0 lỗi phát sinh.
+
+

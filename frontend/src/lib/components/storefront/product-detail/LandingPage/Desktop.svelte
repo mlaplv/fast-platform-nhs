@@ -246,16 +246,24 @@
     ) {
       vouchers = product.metadata.vouchers;
     } else {
-      vouchers = cartStore.vouchers.map((v) => ({
-        id: v.id,
-        label: v.title || v.id,
-        sub:
-          v.subtitle ||
-          (v.type === "SHIPPING"
-            ? "Miễn phí vận chuyển"
-            : `Giảm ${formatCurrency(v.value)}`),
-        type: v.type === "SHIPPING" ? "ship" : "discount",
-      }));
+      vouchers = cartStore.vouchers
+        .filter((v) => {
+          const applicableIds = v.metadata_json?.applicable_product_ids || [];
+          if (applicableIds && applicableIds.length > 0) {
+            return applicableIds.includes(product.id);
+          }
+          return true;
+        })
+        .map((v) => ({
+          id: v.id,
+          label: v.title || v.id,
+          sub:
+            v.subtitle ||
+            (v.type === "SHIPPING"
+              ? "Miễn phí vận chuyển"
+              : `Giảm ${formatCurrency(v.value)}`),
+          type: v.type === "SHIPPING" ? "ship" : "discount",
+        }));
     }
 
     const cleanString = (s: string) => {

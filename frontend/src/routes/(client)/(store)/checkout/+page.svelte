@@ -169,11 +169,35 @@
   });
 
   /**
+   * [ELITE V2.2] Product Scope Filter Helper
+   * Resolves total spend only for products matching the voucher's applicable list
+   */
+  function getEligibleSubtotal(v: Voucher): number {
+    const applicableIds = v.metadata_json?.applicable_product_ids || [];
+    if (!applicableIds || applicableIds.length === 0) {
+      return cartStore.totalAmountWithoutDiscount;
+    }
+    
+    let eligibleSubtotal = 0;
+    for (const item of cartStore.items) {
+      if (item.selected) {
+        const pId = item.product.id;
+        const pSlug = item.product.slug;
+        if (applicableIds.includes(pId) || applicableIds.includes(pSlug)) {
+          eligibleSubtotal += cartStore.getEffectiveItemPrice(item.id) * item.quantity;
+        }
+      }
+    }
+    return eligibleSubtotal;
+  }
+
+  /**
    * [NEURAL INTELLIGENCE V3.0] Value-First Voucher Resolution
    * Calculates actual VND savings for a given voucher and subtotal.
    */
   function getVoucherSavings(v: Voucher, subtotal: number): number {
-    if (subtotal < (v.min_spend || 0)) return -1; // Ineligible
+    const eligibleSubtotal = getEligibleSubtotal(v);
+    if (eligibleSubtotal < (v.min_spend || 0)) return -1; // Ineligible
 
     if (v.type === "SHIPPING") {
       // For shipping vouchers, the saving is either the voucher value or the actual shipping fee
@@ -181,10 +205,10 @@
       return v.value || 0;
     }
 
-    if (v.type === "FIXED") return v.value || 0;
+    if (v.type === "FIXED") return Math.min(v.value || 0, eligibleSubtotal);
 
     if (v.type === "PERCENT") {
-      const savings = (subtotal * (v.value || 0)) / 100;
+      const savings = (eligibleSubtotal * (v.value || 0)) / 100;
       return v.max_discount ? Math.min(savings, v.max_discount) : savings;
     }
 
@@ -214,7 +238,7 @@
       // 1. Auto-select best Shipping if nothing selected
       if (!hasShipSelected && !shipInteracted) {
         const eligibleShip = vouchers.filter(
-          (v) => v.type === "SHIPPING" && subtotal >= (v.min_spend || 0),
+          (v) => v.type === "SHIPPING" && getEligibleSubtotal(v) >= (v.min_spend || 0),
         );
         if (eligibleShip.length > 0) {
           const bestShip = eligibleShip.sort(
@@ -233,7 +257,7 @@
           .filter(
             (v: Voucher) =>
               ["FIXED", "PERCENT"].includes(v.type) &&
-              subtotal >= (v.min_spend || 0),
+              getEligibleSubtotal(v) >= (v.min_spend || 0),
           )
           .sort((a, b) => {
             const diff =
@@ -250,6 +274,7 @@
       }
     });
   });
+
 
   // ELITE V2.2: Dynamic Tier Notification System
   let prevTierMap = new Map<string, string>();
@@ -527,9 +552,10 @@
   });
 
   function toggleVoucher(voucher: Voucher) {
-    if (cartStore.totalAmountWithoutDiscount < (voucher.min_spend || 0)) {
+    const eligibleSubtotal = getEligibleSubtotal(voucher);
+    if (eligibleSubtotal < (voucher.min_spend || 0)) {
       clientUi.showToast(
-        `Cần mua thêm ${formatCurrency((voucher.min_spend || 0) - cartStore.totalAmountWithoutDiscount)}!`,
+        `Cần mua thêm ${formatCurrency((voucher.min_spend || 0) - eligibleSubtotal)} cho các sản phẩm áp dụng mã này!`,
         "info",
       );
       return;
@@ -541,6 +567,7 @@
 
     cartStore.toggleVoucher(voucher.id);
   }
+
 
   function optimizeVouchers() {
     // 1. Reset user interaction flags to allow Auto-Stick protocol to run

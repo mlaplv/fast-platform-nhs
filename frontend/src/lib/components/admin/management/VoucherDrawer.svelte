@@ -19,8 +19,17 @@
     onSaved: () => void;
   }>();
 
+  import type { Product } from "$lib/types";
+  import { formatCurrency } from "$lib/utils/format";
+
   let isLoading = $state(false);
   let isSaving = $state(false);
+
+  // Dynamic Product Search State
+  let searchQuery = $state("");
+  let searchResults = $state<Product[]>([]);
+  let isSearchingProducts = $state(false);
+  let searchTimeout = null as any;
 
   let form = $state({
     id: "",
@@ -39,6 +48,8 @@
     subtitle: "",
     is_viral: false,
     metadata_json: {
+      applicable_product_ids: [] as string[],
+      applicable_product_display: [] as string[],
       viral_suite: {
         enabled: true, // Internal flag for the engine section, but is_viral is the master
         share_target: 1000,
@@ -68,6 +79,58 @@
     }
   });
 
+  function handleSearchInput(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const query = input.value;
+    
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    if (!query.trim()) {
+      searchResults = [];
+      return;
+    }
+    
+    searchTimeout = setTimeout(async () => {
+      isSearchingProducts = true;
+      try {
+        const res = await apiClient.get<{ data: Product[] }>(`/api/v1/products?search=${encodeURIComponent(query)}&limit=10`);
+        searchResults = res.data || [];
+      } catch (err) {
+        console.error("Lỗi khi tìm kiếm sản phẩm", err);
+      } finally {
+        isSearchingProducts = false;
+      }
+    }, 250);
+  }
+
+  function selectProduct(prod: Product) {
+    if (!form.metadata_json.applicable_product_ids) {
+      form.metadata_json.applicable_product_ids = [];
+    }
+    if (!form.metadata_json.applicable_product_display) {
+      form.metadata_json.applicable_product_display = [];
+    }
+    
+    if (form.metadata_json.applicable_product_ids.includes(prod.id)) {
+      nanobot.showToast("Sản phẩm này đã được chọn", "info");
+      return;
+    }
+    
+    form.metadata_json.applicable_product_ids.push(prod.id);
+    form.metadata_json.applicable_product_display.push(`${prod.name} (${prod.slug})`);
+    
+    // Clear search query and results after selection
+    searchQuery = "";
+    searchResults = [];
+  }
+
+  function removeProduct(index: number) {
+    form.metadata_json.applicable_product_ids.splice(index, 1);
+    form.metadata_json.applicable_product_display.splice(index, 1);
+  }
+
   async function loadVoucher() {
     isLoading = true;
     try {
@@ -91,6 +154,8 @@
           subtitle: voucher.subtitle || "",
           is_viral: voucher.is_viral || false,
           metadata_json: {
+            applicable_product_ids: voucher.metadata_json?.applicable_product_ids || [],
+            applicable_product_display: voucher.metadata_json?.applicable_product_display || [],
             viral_suite: {
               enabled: false,
               share_target: 1000,
@@ -110,6 +175,8 @@
   }
 
   function resetForm() {
+    searchQuery = "";
+    searchResults = [];
     form = {
       id: "",
       type: "FIXED",
@@ -127,6 +194,8 @@
       subtitle: "",
       is_viral: false,
       metadata_json: {
+        applicable_product_ids: [],
+        applicable_product_display: [],
         viral_suite: {
           enabled: true,
           share_target: 1000,
@@ -137,6 +206,7 @@
       }
     };
   }
+
 
   async function handleSave() {
     isSaving = true;
@@ -155,7 +225,7 @@
       
       if (voucherId) {
         // Update (ID is now editable)
-        await apiClient.patch(`/api/v1/admin/vouchers/${voucherId}`, payload);
+        await apiClient.patch(`/api/v1/admin/vouchers/${encodeURIComponent(voucherId)}`, payload);
         nanobot.showToast(`Đã cập nhật voucher ${payload.id}`, "success");
       } else {
         // Create
@@ -323,7 +393,78 @@
             </div>
           </div>
 
+          <!-- Phạm vi áp dụng (Product Scope Filter) -->
+          <div class="space-y-3 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-black text-neon-cyan tracking-widest uppercase">Phạm vi áp dụng</span>
+              <span class="text-[9px] text-gray-500 font-mono">Elite Scope Filter</span>
+            </div>
+
+            <div class="relative">
+              <input
+                type="text"
+                placeholder="Gõ tìm kiếm theo tên, slug hoặc ID sản phẩm..."
+                bind:value={searchQuery}
+                oninput={handleSearchInput}
+                class="w-full bg-[#050505] border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-neon-cyan/50 text-xs"
+              />
+              
+              {#if isSearchingProducts}
+                <div class="absolute right-3 top-3 w-4 h-4 border border-neon-cyan/20 border-t-neon-cyan rounded-full animate-spin"></div>
+              {/if}
+
+              <!-- Search Results Dropdown -->
+              {#if searchResults.length > 0}
+                <div class="absolute left-0 right-0 mt-1 bg-[#090909] border border-white/10 rounded-xl shadow-2xl z-[2005] max-h-60 overflow-y-auto custom-scrollbar">
+                  {#each searchResults as prod}
+                    <button
+                      type="button"
+                      onclick={() => selectProduct(prod)}
+                      class="w-full text-left px-4 py-3 hover:bg-white/[0.03] border-b border-white/5 flex items-center gap-3 transition-colors animate-fade-in"
+                    >
+                      {#if prod.images?.length}
+                        <img src={prod.images[0]} alt={prod.name} class="w-8 h-8 rounded object-cover" />
+                      {/if}
+                      <div class="flex-1 min-w-0">
+                        <span class="block text-xs font-bold text-white truncate">{prod.name}</span>
+                        <span class="block text-[10px] text-gray-500 font-mono truncate">{prod.slug} | {prod.id.slice(0,8)}...</span>
+                      </div>
+                      <span class="text-xs font-black text-neon-cyan">{formatCurrency(prod.price)}</span>
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+
+            <!-- Selected Products Display Tags -->
+            <div class="space-y-2">
+              {#if form.metadata_json.applicable_product_ids && form.metadata_json.applicable_product_ids.length > 0}
+                <span class="block text-[9px] text-gray-500 font-mono tracking-wider">Sản phẩm đã liên kết ({form.metadata_json.applicable_product_ids.length}):</span>
+                <div class="flex flex-wrap gap-2">
+                  {#each form.metadata_json.applicable_product_ids as id, index}
+                    <div class="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg text-xs font-medium">
+                      <span>{form.metadata_json.applicable_product_display[index] || id}</span>
+                      <button
+                        type="button"
+                        onclick={() => removeProduct(index)}
+                        class="hover:text-red-400 transition-colors"
+                        aria-label="Remove Product"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  {/each}
+                </div>
+              {:else}
+                <div class="py-2 px-3 bg-emerald-500/5 border border-emerald-500/10 rounded-lg text-center">
+                  <span class="text-[10px] font-bold text-emerald-400 tracking-wider">✓ ÁP DỤNG TOÀN SÀN (Mặc định cho tất cả sản phẩm)</span>
+                </div>
+              {/if}
+            </div>
+          </div>
+
           <!-- Limits -->
+
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
               <label class="text-[10px] font-mono text-gray-500 tracking-widest" for="v-limit">Giới hạn dùng</label>

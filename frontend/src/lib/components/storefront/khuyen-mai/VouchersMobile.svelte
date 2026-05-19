@@ -191,8 +191,17 @@
                 {/if}
               </div>
 
-              <div class="tiktok-card-exclusive">
+              <div class="tiktok-card-exclusive flex gap-1.5 items-center flex-wrap">
                 <span>Độc quyền - {v.id.substring(0, 8)}...</span>
+                {#if v.metadata_json?.applicable_product_ids && v.metadata_json.applicable_product_ids.length > 0}
+                  <span class="px-1.5 py-0.5 text-[8px] font-black text-rose-500 bg-rose-50 border border-rose-100 rounded tracking-tighter uppercase shrink-0 leading-none">
+                    Sản phẩm riêng
+                  </span>
+                {:else}
+                  <span class="px-1.5 py-0.5 text-[8px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 rounded tracking-tighter uppercase shrink-0 leading-none">
+                    Toàn sàn
+                  </span>
+                {/if}
               </div>
 
               <p class="tiktok-card-detail">

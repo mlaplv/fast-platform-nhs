@@ -92,18 +92,36 @@ export class CartStore {
             const v = this.vouchers.find(v => v.id === id);
             if (!v) continue;
             
-            if (subtotal < (v.min_spend || 0)) continue;
+            // Check if this voucher is locked to specific products
+            const applicableIds = v.metadata_json?.applicable_product_ids || [];
+            let targetSubtotal = subtotal;
+            
+            if (applicableIds && applicableIds.length > 0) {
+                targetSubtotal = 0;
+                for (const item of this.items) {
+                    if (item.selected) {
+                        const pId = item.product.id;
+                        const pSlug = item.product.slug;
+                        if (applicableIds.includes(pId) || applicableIds.includes(pSlug)) {
+                            targetSubtotal += this.getEffectiveItemPrice(item.id) * item.quantity;
+                        }
+                    }
+                }
+            }
+            
+            if (targetSubtotal < (v.min_spend || 0)) continue;
 
             if (v.type === 'FIXED') {
-                total += v.value;
+                total += Math.min(v.value, targetSubtotal);
             } else if (v.type === 'PERCENT') {
-                total += (subtotal * v.value) / 100;
+                total += (targetSubtotal * v.value) / 100;
             }
             // Elite V2.2: Shipping vouchers are EXCLUDED from product subtotal discount.
             // They are handled separately in the checkout layout.
         }
         return total;
     });
+
 
     totalAmountWithoutDiscount = $derived.by(() => {
         const selectedItems = this.items.filter(item => item.selected);
