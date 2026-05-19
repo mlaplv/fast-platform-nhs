@@ -197,9 +197,7 @@
 
               <p class="tiktok-card-detail">
                 {#if v.type === "PERCENT" && v.max_discount}
-                  Giảm tối đa {formatShort(v.max_discount)}
-                {:else}
-                  Giảm tối đa {formatShort(v.value)}
+                  Giảm tối đa {formatShort(v.max_discount)} · 
                 {/if}
                 Đơn Tối Thiểu {formatShort(v.min_spend)}
               </p>

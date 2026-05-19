@@ -255,3 +255,9 @@
 - [x] Sửa lỗi rò rỉ dữ liệu chéo Tenant (Tenant Data Leakage) & Soft Delete: Cập nhật hàm fetch Voucher trong `support_agent.py` để bổ sung bộ lọc `tenant_id == current_tenant_id` và `deleted_at.is_(None)`. Khắc phục tình trạng Helen gợi ý các mã khuyến mãi (như VIRAL149K) thuộc Tenant khác hoặc đã bị xóa mềm.
 - [x] Kiểm thức biên dịch tĩnh `svelte-check` — Không lỗi mới phát sinh.
 - [x] Cập nhật nhật ký bàn giao `walkthrough.md`.
+
+# Storefront Percentage Voucher Display Fix (Giảm tối đa 5đ Fix)
+- [x] Phân tích logic render "Giảm tối đa" tại `VouchersDesktop.svelte` và `VouchersMobile.svelte`.
+- [x] Cải tiến logic để tránh lỗi hiển thị "Giảm tối đa {v.value}đ" đối với Voucher dạng PERCENT khi không cấu hình `max_discount`.
+- [x] Thực hiện tự kiểm thức và chạy `npx svelte-check` kiểm tra cú pháp frontend.
+- [x] Cập nhật nhật ký bàn giao `walkthrough.md`.
