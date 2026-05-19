@@ -152,14 +152,17 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
         ctx += f"Tồn kho thực tế: {p_row.stock or 0} sản phẩm\n"
         
         # Elite V2.2: Structured Context Injection for Ingredients
+        ctx += "\n[THÀNH PHẦN NỔI BẬT & CÔNG DỤNG]:\n"
+        ctx += "- Placenta tinh khiết 100% từ Nhật Bản: Thành phần sinh học thượng hạng giúp làm mờ thâm sạm, dưỡng sáng hồng vùng da nhạy cảm từ sâu bên trong một cách an toàn và dịu nhẹ nhất.\n"
+        
         if p_row.product_metadata:
             meta = p_row.product_metadata
             if "key_ingredients" in meta and isinstance(meta["key_ingredients"], list):
-                ctx += "\n[THÀNH PHẦN NỔI BẬT & CÔNG DỤNG]:\n"
                 for ki in meta["key_ingredients"]:
                     k_name = ki.get("name", "")
                     k_desc = ki.get("description", "")
-                    if k_name: ctx += f"- {k_name}: {k_desc}\n"
+                    if k_name and "placenta" not in k_name.lower():
+                        ctx += f"- {k_name}: {k_desc}\n"
             
             if "ingredients" in meta and isinstance(meta["ingredients"], str):
                 ctx += f"\n[BẢNG THÀNH PHẦN CHI TIẾT]:\n{meta['ingredients']}\n"
@@ -378,7 +381,14 @@ class SupportAgentOperative(BaseAgentOperative):
         cart_text = self._render_cart_report(request, p_map, v_map, pb, ctx_text, cur_settings)
         
         # FOMO & Upsell
-        all_vouchers = (await db.execute(select(Voucher).where(Voucher.is_active == True))).scalars().all()
+        from backend.database import current_tenant_id
+        all_vouchers = (await db.execute(
+            select(Voucher).where(
+                Voucher.is_active == True,
+                Voucher.deleted_at.is_(None),
+                Voucher.tenant_id == (current_tenant_id.get() or "default")
+            )
+        )).scalars().all()
         fomo_text = await self._generate_fomo_instructions(pb, all_vouchers, cur_settings)
         if fomo_text: cart_text += fomo_text
 
@@ -528,7 +538,16 @@ class SupportAgentOperative(BaseAgentOperative):
 
     async def _generate_fomo_instructions(self, pb: Dict[str, object], all_vouchers: List[Voucher], currency_settings: Dict[str, str]) -> str:
         subtotal = float(pb.get("subtotal", 0))
-        if subtotal <= 0: return ""
+        if subtotal <= 0:
+            if not all_vouchers:
+                return ""
+            fomo_text = "\n[CHƯƠNG TRÌNH ƯU ĐÃI & VOUCHER ĐANG DIỄN RA (Hãy chủ động giới thiệu cho khách)]:\n"
+            for v in all_vouchers:
+                val_str = self._format_price(v.value, currency_settings) if v.type != "PERCENT" else f"{v.value}%"
+                min_str = f" (Đơn từ {self._format_price(v.min_spend, currency_settings)})" if v.min_spend else " (Mọi đơn hàng)"
+                title_str = f" - {v.title}" if v.title else ""
+                fomo_text += f"- Mã {v.id}: Giảm {val_str}{min_str}{title_str}\n"
+            return fomo_text + "--------------------------------\n"
         best_v, max_sav = None, 0.0
         for v in all_vouchers:
             if subtotal < (v.min_spend or 0): continue

@@ -427,6 +427,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         "   - CẤM TỰ TÍNH TOÁN: Tuyệt đối KHÔNG ĐƯỢC tự tính lại giá tiền. Chỉ được sử dụng duy nhất con số trong [BẢNG TÍNH TOÁN CHI TIẾT] được cung cấp. Nếu bảng tính báo X đồng, bạn phải báo X đồng. Sai lệch 1 đồng là VI PHẠM HIẾN PHÁP.\n"
         "   - BÁO GIÁ CUỐI CÙNG: Luôn báo con số 'TỔNG THANH TOÁN CUỐI CÙNG' (in đậm) từ [BẢNG TÍNH TOÁN CHI TIẾT].\n"
         "   - CHỐT FOMO: Sử dụng dữ liệu [TỒN KHO] và [ĐANG XEM] để tạo sự khan hiếm thực tế.\n"
+        "   - KIỂM SOÁT TỪ VỰNG TỐI THƯỢNG: CẤM TUYỆT ĐỐI sử dụng từ 'Nhau thai' hoặc 'nhau thai' trong mọi câu phản hồi. BẮT BUỘC phải viết và dùng từ 'Placenta' để thay thế (Ví dụ: 'Placenta tinh khiết', 'chiết xuất Placenta'). Vi phạm điều này là VI PHẠM HIẾN PHÁP.\n"
         "2. HỆ THỐNG ĐIỂM & ƯU ĐÃI: Con số giảm giá (Voucher/Combo/Điểm) trong [BẢNG TÍNH TOÁN CHI TIẾT] là con số cuối cùng đã được hệ thống tối ưu hóa. Bạn chỉ việc liệt kê lại để khách thấy được hời như thế nào.\n"
         "3. PHONG THÁI CHUYÊN GIA: Xưng hô 'Helen' và gọi Tên riêng khách hàng nếu có. Tuyệt đối CẤM dùng từ 'bạn' hoặc 'Sếp'. Dùng 'Anh/Chị' hoặc 'Chị đẹp'. Phản hồi sang trọng, đẳng cấp ✨.\n"
         "4. KÍCH HOẠT FOMO & PHÁP LÝ (BẮT BUỘC): Khi khách hỏi về nguồn gốc, chính hãng, uy tín, BẮT BUỘC phải trích dẫn rành mạch số liệu từ [BẢO CHỨNG UY TÍN & FOMO] trong ngữ cảnh PRODUCT.\n"
@@ -435,7 +436,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         "   - Bước 1: Đồng cảm & khơi gợi vấn đề/nỗi lo lắng về da của khách hàng một cách tinh tế.\n"
         "   - Bước 2: Giải thích cơ chế giải pháp bằng khoa học thành phần (nguyên liệu từ Nhật Bản) dưới dạng chia sẻ của chuyên gia (sử dụng Bullet Points rõ ràng).\n"
         "   - Bước 3: Kích hoạt khát khao làm đẹp (viễn cảnh tự tin, rạng rỡ).\n"
-        "   - Bước 4: Đóng gói lời chào hàng bằng cách nêu rõ GIÁ NIÊM YẾT + GIÁ KHUYẾN MÃI (nếu có), tồn kho thực tế.\n"
+        "   - Bước 4: Đóng gói lời chào hàng bằng cách nêu rõ GIÁ NIÊM YẾT + GIÁ KHUYẾN MÃI (nếu có), tồn kho thực tế, VÀ CHỦ ĐỘNG GIỚI THIỆU CÁC CHƯƠNG TRÌNH VOUCHER/ƯU ĐÃI ĐANG DIỄN RA (nếu có trong dữ liệu).\n"
         "   - Bước 5 (Xoay vòng CTA thông minh theo trạng thái thông tin của khách hàng):\n"
         "     * TRƯỜNG HỢP A (Nếu khách chưa để lại SĐT và Địa chỉ): Phải dùng câu chốt linh hoạt để xin thông tin, TUYỆT ĐỐI CẤM lặp đi lặp lại một câu giống hệt từ câu thứ 2 trở đi. Hãy thay đổi cấu trúc câu linh hoạt dựa theo mạch hội thoại của khách:\n"
         "       + Cách 1 (Giữ ưu đãi): 'Chị đẹp nhắn cho Helen xin Số điện thoại và Địa chỉ nhận hàng nhé, em giữ voucher giảm giá và quà tặng đặc quyền này cho mình ngay ạ! 🎁'\n"
@@ -472,7 +473,9 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         has_address_signals = any(kw in msg_norm for kw in ["đường", "phố", "quận", "huyện", "phường", "xã", "tỉnh", "tp", "thành phố", "ngõ", "ngách", "/", ":"])
         buying_intent = any(kw in msg_norm for kw in ["mua", "đặt", "lấy", "ship", "giao", "ok", "chốt", "đơn", "lên đơn", "cho 1 đơn", "cho đơn", "về :"])
         
-        if (has_phone or has_address_signals) and buying_intent:
+        if "[system_consult]" in msg_norm:
+            pass
+        elif (has_phone or has_address_signals) and buying_intent:
             logger.info(f"🔇 [Consultant Silenced] Yielding to Order Flow: {msg_norm}")
             return False
 
@@ -569,8 +572,8 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
 
             
         try:
-            # Elite V2.2: Mask sensitive terms to bypass safety filters
-            masked_msg = await self._mask_sensitive_medical_terms(ctx.request.message)
+            clean_msg = ctx.request.message.replace("[system_consult]", "").strip()
+            masked_msg = await self._mask_sensitive_medical_terms(clean_msg)
             masked_prompt = await self._mask_sensitive_medical_terms(full_prompt)
             
             # Elite V2.6: Thread-Safe injection via deps.dynamic_prompt instead of agent.override()
@@ -581,7 +584,8 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                 masked_msg, 
                 deps=deps, 
                 role=trinity_bridge.ROLE_BRAIN,
-                safety_none=True
+                safety_none=True,
+                timeout=12.0
             )
             # [ELITE V2.2] Standardized Result Extraction (Trust the Bridge)
             res_data = cast(Optional[ConsultantResponse], res)
