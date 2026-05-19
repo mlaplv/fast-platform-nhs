@@ -64,10 +64,36 @@ class KeyMetricsMixin:
         kid, m_slug = self._get_key_id(key), str(model_name).replace("/", "_").replace("-", "_")[:40]
         return bool(await self.client.exists(f"{self.MODEL_DAILY_PREFIX}{kid}:{m_slug}"))
 
-    async def mark_model_poisoned(self, model_name: str, reason: str = "404") -> None:
+    async def mark_model_poisoned(self, model_name: str, reason: str = "404", cooldown_seconds: Optional[int] = None) -> None:
         if not self._use_redis or not self.client: return
         m_slug: str = model_name.replace("/", "_").replace("-", "_")[:40]
-        await self.client.set(f"{self.POISON_PREFIX}{m_slug}", reason, ex=self.MAX_COOLDOWN)
+        ex = cooldown_seconds if cooldown_seconds is not None else self.MAX_COOLDOWN
+        await self.client.set(f"{self.POISON_PREFIX}{m_slug}", reason, ex=ex)
+
+    async def track_model_failure(self, model_name: str, reason: str = "timeout") -> None:
+        """Elite R03: Model-level Circuit Breaker. Poisons the model temporarily on consecutive failures."""
+        if not self._use_redis or not self.client: return
+        m_slug: str = model_name.replace("/", "_").replace("-", "_")[:40]
+        key = f"ai:model:fail_count:{m_slug}"
+        try:
+            fails = await self.client.incr(key)
+            if fails == 1:
+                await self.client.expire(key, 60) # 60s failure window
+            if fails >= 3:
+                # Temporarily poison/blacklist model for 5 minutes (300s) to preserve latency
+                await self.mark_model_poisoned(model_name, reason=reason, cooldown_seconds=300)
+                logger.error(f"[KeyRotator] Circuit Breaker: Model {model_name} poisoned for 5m due to consecutive failures ({fails}).")
+                await self.client.delete(key)
+        except Exception as ce:
+            logger.warning(f"[KeyRotator] Failed to track model failure: {ce}")
+
+    async def reset_model_failures(self, model_name: str) -> None:
+        if not self._use_redis or not self.client: return
+        m_slug: str = model_name.replace("/", "_").replace("-", "_")[:40]
+        try:
+            await self.client.delete(f"ai:model:fail_count:{m_slug}")
+        except:
+            pass
 
     async def is_model_poisoned(self, model_name: str) -> bool:
         if not self._use_redis or not self.client: return False

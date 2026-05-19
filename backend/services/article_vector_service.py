@@ -116,3 +116,6 @@ class ArticleVectorService:
 async def provide_article_vector_service() -> ArticleVectorService:
     """Standard Litestar Provider for ArticleVectorService."""
     return ArticleVectorService()
+
+article_vector_service = ArticleVectorService()
+

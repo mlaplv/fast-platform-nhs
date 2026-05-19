@@ -27,6 +27,10 @@ class OrderHandler(BaseHandler):
     async def handle(self, ctx: SupportContext) -> bool:
         """ZONE 3: Order Closing. Refined Elite V3.0 Architecture."""
         msg = unicodedata.normalize("NFKC", ctx.request.message.lower().strip())
+        if "[system_consult]" in msg:
+            logger.info(" Bypassing OrderHandler for [system_consult] query.")
+            return False
+            
         session_id = ctx.session_id
         logger.info(f"⚡ [OrderHandler] Checking Intent for SID: {session_id} | Msg: '{msg[:30]}...' | HasDraft: {bool(ctx.order_draft)}")
         

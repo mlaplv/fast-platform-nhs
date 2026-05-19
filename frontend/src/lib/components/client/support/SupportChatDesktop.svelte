@@ -10,6 +10,7 @@
   import Maximize2 from "@lucide/svelte/icons/maximize-2";
   import Minimize2 from "@lucide/svelte/icons/minimize-2";
   import Beaker from "@lucide/svelte/icons/beaker";
+  import Target from "@lucide/svelte/icons/target";
   import Lock from "@lucide/svelte/icons/lock";
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
@@ -33,12 +34,14 @@
     label: string;
     icon: ComponentType<SvelteComponent>; // Elite V2.2: Explicit Svelte 5 Component Type
     prompt?: string;
+    displayPrompt?: string;
     action?: () => void;
   }
 
   const quickActions: QuickAction[] = [
     { label: 'Xuất xứ', icon: Sparkles, prompt: 'Sản phẩm này có chính hãng không? Nguồn gốc ở đâu?' },
-    { label: 'Công dụng', icon: Beaker, prompt: 'Sản phẩm này có thành phần gì và công dụng như thế nào?' }
+    { label: 'Công dụng', icon: Beaker, prompt: 'Sản phẩm này có thành phần gì và công dụng như thế nào?' },
+    { label: 'Tư vấn', icon: Target, prompt: '[system_consult] Hãy tư vấn bán hàng chuyên sâu cho sản phẩm này theo cấu trúc chi tiết sau nhưng CẤM ghi tên các tiêu đề kỹ thuật:\n1. Đồng cảm sâu sắc với nỗi lo thầm kín nhất của khách hàng về làn da/vấn đề sản phẩm giải quyết.\n2. Liệt kê và phân tích chi tiết cơ chế khoa học của các thành phần nổi bật chuẩn Nhật dưới dạng danh sách (bullet points) rõ ràng.\n3. Vẽ ra bức tranh sinh động về sự tự tin rạng rỡ sau khi sử dụng.\n4. Đưa ra báo giá chi tiết (giá niêm yết, khuyến mãi), tồn kho thực tế (FOMO), chương trình KM và Kêu Gọi Hành Động (CTA) xin SĐT + Địa chỉ nhận hàng để chốt đơn ngay.\nCHÚ Ý: CẤM viết các tiêu đề thô kệch như "Điểm đau", "Giải pháp", "Viễn cảnh tự do", "Lời khuyên mua sắm từ Helen". Hãy chia đoạn tự nhiên bằng các emoji sang trọng.', displayPrompt: 'Tư vấn chuyên sâu về sản phẩm này' }
   ];
 
   function closeChat() {
@@ -85,7 +88,7 @@
       return;
     }
     const pricingContext = checkoutState.breakdown || cartStore.breakdown;
-    await supportAgent.sendMessage(action.prompt, productSlug, undefined, undefined, undefined, cartStore.items, cartStore.selectedVoucherIds, pricingContext);
+    await supportAgent.sendMessage(action.prompt, productSlug, undefined, undefined, undefined, cartStore.items, cartStore.selectedVoucherIds, pricingContext, action.displayPrompt);
     scrollToNewestMessage();
   }
 

@@ -453,11 +453,11 @@ class SupportAgentState {
             this.isTyping = false;
         };
 
-        // Guard: Kill pulse if it hangs (Reduced to 60s for better responsiveness)
+        // Guard: Kill pulse if it hangs (Reduced to 30s for optimal user experience combined with backend fast failover)
         this._pulseTimeout = setTimeout(() => {
             this.isTyping = false;
             this._disconnectPulse();
-        }, 60000);
+        }, 30000);
     }
 
     private _disconnectPulse() {
@@ -490,14 +490,15 @@ class SupportAgentState {
         userId?: string,
         cartItems?: Array<{ product_id: string; quantity: number;[key: string]: unknown }>,
         selectedVouchers?: string[],
-        pricingContext?: SupportPricingContext
+        pricingContext?: SupportPricingContext,
+        displayText?: string
     ) {
         if (!text.trim() || this.isTyping) return;
 
         const userMsg: SupportMessage = {
             id: crypto.randomUUID(),
             role: "user",
-            content: text.trim(),
+            content: displayText !== undefined ? displayText : text.trim(),
             timestamp: new Date()
         };
 

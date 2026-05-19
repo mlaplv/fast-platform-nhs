@@ -179,6 +179,7 @@ class TrinityBridge:
                         await self.rotator.track_tokens(key, getattr(res.usage, 'total_tokens', 0))
 
                     await self.rotator.set_success(key, session_id=s_id)
+                    await self.rotator.reset_model_failures(m_name)
 
                     # Elite V2.2: Standardized Result Extraction (Universal Wrapper Bypass)
                     if hasattr(res, 'data'):
@@ -198,6 +199,9 @@ class TrinityBridge:
                 except (asyncio.TimeoutError, TimeoutError):
                     last_err = "Timeout"
                     logger.warning(f"[TrinityBridge] Model '{m_name}' timed out after {t}s. Breaking to next model.")
+                    if key:
+                        await self.rotator.mark_unhealthy(key, reason="timeout", session_id=s_id)
+                    await self.rotator.track_model_failure(m_name, reason="timeout")
                     break
                 except Exception as e:
                     last_err = e
@@ -220,9 +224,10 @@ class TrinityBridge:
                                 rpm_fail_count += 1
                                 continue
                         else:
-                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503): {m_name}. Retrying fallback...")
+                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503/500): {m_name}. Breaking to next model waterfall...")
                             await self.rotator.mark_unhealthy(key, reason="503", session_id=s_id)
-                            continue
+                            await self.rotator.track_model_failure(m_name, reason="503_unavailable")
+                            break
 
                     if cat == "fail_fast":
                         logger.error(f"🚫 [TrinityBridge] Fail-Fast: {m_name} | {str(e)[:100]}...")
@@ -236,6 +241,10 @@ class TrinityBridge:
 
                     # For all other errors, use standard logging
                     logger.warning(f"⚠️ [TrinityBridge] Model '{m_name}' error: {str(e)[:200]}")
+                    
+                    if "validation" in err_msg:
+                        logger.warning(f"⚠️ [TrinityBridge] Model {m_name} failed output validation. Breaking to next model waterfall...")
+                        break
                     
                     if cat == "tool_unsupported":
                         break
@@ -319,7 +328,9 @@ class TrinityBridge:
                             async with agent.run_stream(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs) as stream:
                                 yield stream
                     
-                    await self.rotator.set_success(key, session_id=s_id); return
+                    await self.rotator.set_success(key, session_id=s_id)
+                    await self.rotator.reset_model_failures(m_name)
+                    return
                 except Exception as e:
                     last_err = e
                     err_msg = str(e).lower()
@@ -334,11 +345,12 @@ class TrinityBridge:
                         if "resource_exhausted" in str(e).upper() or "QUOTA" in str(e).upper():
                             logger.warning(f"⚡ [TrinityBridge] Quota Exhausted (Stream): {m_name}{wait_info}. Rotating key...")
                             await self.rotator.mark_model_daily(key, m_name)
+                            continue
                         else:
-                            logger.warning(f"🛰️ [TrinityBridge] Rate Limit/Unavailable (Stream): {m_name}. Retrying fallback...")
+                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable/Rate Limit (Stream): {m_name}. Breaking to next model waterfall...")
                             await self.rotator.mark_unhealthy(key, reason="rate_limit", session_id=s_id)
-                            rpm_fail_count += 1
-                        continue
+                            await self.rotator.track_model_failure(m_name, reason="stream_error")
+                            break
 
                     if cat == "auth_hard": 
                         await self.rotator.mark_unhealthy(key, reason="auth_hard", session_id=s_id)
@@ -353,6 +365,9 @@ class TrinityBridge:
                         break
                         
                     logger.warning(f"⚠️ [TrinityBridge] Stream error '{m_name}': {str(e)[:150]}")
+                    if "validation" in err_msg:
+                        logger.warning(f"⚠️ [TrinityBridge] Stream model {m_name} failed output validation. Breaking to next model waterfall...")
+                        break
                     await self.rotator.mark_unhealthy(key, reason="unknown", session_id=s_id)
         raise AIConfigurationError(f"Stream Overloaded: {last_err}")
 

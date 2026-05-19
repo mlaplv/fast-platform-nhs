@@ -232,3 +232,21 @@
 - [x] Kiểm thức biên dịch tĩnh `svelte-check` toàn bộ dự án thành công.
 - [x] Cập nhật nhật ký bàn giao `walkthrough.md` đầy đủ bằng chứng.
 
+# Helen Nút Tư Vấn Siêu Cấp Bán Hàng (Sales Assassin Consulting)
+- [x] Thêm nút "Tư vấn" (icon Target) vào quickActions Desktop (`SupportChatDesktop.svelte`).
+- [x] Đồng bộ nút "Tư vấn" sang Mobile (`SupportChatMobile.svelte`).
+- [x] Thiết kế prompt 3 Điểm Chạm Tâm Lý (Pain/Selling/Buying Point + CTA).
+- [x] Sửa lỗi hiển thị prompt gốc lên bubble tin nhắn của khách hàng bằng tham số `displayText` trong `sendMessage`.
+- [x] Sửa lỗi Helen không phản hồi do OrderHandler đánh chặn bằng tag `[system_consult]` bypass và lọc tự động tại `ConsultantHandler`.
+- [x] Sửa lỗi `ConsultantHandler` tự động nhường quyền (silenced yield) cho Order Flow do chứa dấu hai chấm `:` và từ khóa `"mua sắm"` trong prompt.
+- [x] Sửa lỗi import thiếu instance `article_vector_service` khiến chức năng tìm kiếm bài viết bằng vector bị lỗi.
+- [x] Tối ưu hóa định tuyến `trinity_bridge`: Ngay lập tức thoát vòng lặp key (break) để nhảy sang model fallback tiếp theo nếu gặp lỗi dịch vụ `503/500` hoặc lỗi kiểm định đầu ra `ValidationError`, thay vì xoay vòng thử lại 8 key vô ích.
+- [x] Giới hạn thời gian chờ cuộc gọi AI của `ConsultantHandler` xuống còn `timeout=12.0` để tối đa hóa tốc độ phản hồi.
+- [x] Căn chỉnh thời gian chờ phía Client (`_pulseTimeout`) xuống còn `30` giây để tối ưu hóa trải nghiệm người dùng kết hợp với cơ chế fail-fast mới.
+- [x] Thiết lập Bộ ngắt mạch Model (Model Circuit Breaker): Cấu hình hàm `track_model_failure` để tự động cho model vào blacklist tạm thời trong 5 phút (300s) nếu xảy ra 3 lỗi liên tiếp (Timeout hoặc 503 Service Unavailable) trong 60 giây.
+- [x] Sửa lỗi Timeout không bị ghi nhận: Trước đây khi xảy ra `TimeoutError`, hệ thống chỉ thoát ra (`break`) mà không cập nhật độ khỏe của key (`mark_unhealthy`). Đã bổ sung logic ghi nhận lỗi timeout trên key và tăng số lỗi của model để hạ nhiệt đúng cách.
+- [x] Tách biệt tiêu đề kỹ thuật thô kệch: Cấm tuyệt đối Helen in ra các nhãn prompt như "Điểm đau", "Giải pháp", "Viễn cảnh tự do" trong phản hồi.
+- [x] Bổ sung CTA và thông tin ưu đãi/giá bán: Enforce Helen báo giá gốc + giá khuyến mãi từ dữ liệu PRODUCT, kích thích FOMO tồn kho, và đưa ra Kêu Gọi Hành Động (CTA) thu thập Lead quyết liệt (xin SĐT + Địa chỉ để đóng gói gửi ngay).
+- [x] Bảo toàn và chi tiết hóa thành phần nổi bật (Ingredients List): Cấu hình prompt tối ưu hóa để AI vẫn liệt kê đầy đủ chi tiết các thành phần nổi bật dưới dạng bullet points rõ ràng như thiết kế ban đầu, chỉ ẩn đi các tiêu đề thô sơ.
+- [x] Kiểm thức biên dịch tĩnh `svelte-check` — Không lỗi mới phát sinh.
+- [x] Cập nhật nhật ký bàn giao `walkthrough.md`.
