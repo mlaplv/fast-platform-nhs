@@ -43,8 +43,22 @@ class CategoryController(Controller):
 
     @post("/bulk-delete", guards=[PermissionGuard(PermissionEnum.CATEGORY_WRITE)])
     async def bulk_delete(self, db_session: "AsyncSession", data: BulkIdsRequest) -> BulkActionResponse:
-        """R18: Soft delete multiple categories. R39: Batch via update."""
+        """R18: Soft delete mú hàng loạt. Guard: bỏ qua ID có sản phẩm/con, trả về danh sách skipped."""
         res = await category_service.bulk_delete(db_session, data.ids)
+        await db_session.commit()
+        return res
+
+    @post("/hard-delete", guards=[PermissionGuard(PermissionEnum.CATEGORY_WRITE)])
+    async def hard_delete(self, db_session: "AsyncSession", data: BulkIdsRequest) -> SuccessResponse:
+        """Xóa vĩnh viễn 1 danh mục. Guard: Từ chối nếu có sản phẩm hoặc danh mục con."""
+        res = await category_service.hard_delete_category(db_session, data.ids[0])
+        await db_session.commit()
+        return res
+
+    @post("/bulk-hard-delete", guards=[PermissionGuard(PermissionEnum.CATEGORY_WRITE)])
+    async def bulk_hard_delete(self, db_session: "AsyncSession", data: BulkIdsRequest) -> BulkActionResponse:
+        """Xóa vĩnh viễn hàng loạt. Guard: bỏ qua ID có sản phẩm/con, trả về danh sách skipped."""
+        res = await category_service.bulk_hard_delete(db_session, data.ids)
         await db_session.commit()
         return res
 

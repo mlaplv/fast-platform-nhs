@@ -372,17 +372,19 @@
       <!-- Input Area: Optimized Padding -->
       <div class="p-6 px-10 pb-8 flex flex-col gap-5">
         <!-- Quick Actions (Optimized: Right Aligned & Tiny) -->
-        <div class="flex justify-end gap-2 px-1">
-          {#each quickActions as action}
-            {@const Icon = action.icon}
-            <button 
-              class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white rounded-full text-[11px] font-bold transition-all active:scale-95 group/action"
-              onclick={() => handleQuickAction(action)}
-            >
-              <Icon size={12} class="text-[#FFB7C5] opacity-30 group-hover/action:opacity-100 transition-opacity" /> {action.label}
-            </button>
-          {/each}
-        </div>
+        {#if productSlug && productSlug.trim() !== ''}
+          <div class="flex justify-end gap-2 px-1">
+            {#each quickActions as action}
+              {@const Icon = action.icon}
+              <button 
+                class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white rounded-full text-[11px] font-bold transition-all active:scale-95 group/action"
+                onclick={() => handleQuickAction(action)}
+              >
+                <Icon size={12} class="text-[#FFB7C5] opacity-30 group-hover/action:opacity-100 transition-opacity" /> {action.label}
+              </button>
+            {/each}
+          </div>
+        {/if}
 
         <div class="relative bg-black/60 border border-white/10 rounded-[44px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all">
           <textarea

@@ -22,6 +22,7 @@ class BulkActionResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     ok: bool = True
     count: int = 0
+    skipped: List[str] = Field(default_factory=list)  # IDs bị từ chối (có sản phẩm/con)
 
 class BulkIdsRequest(BaseModel):
     model_config = ConfigDict(strict=True)

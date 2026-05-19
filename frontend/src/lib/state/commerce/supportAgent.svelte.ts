@@ -139,7 +139,7 @@ class SupportAgentState {
             return `Dạ Helen chào ${user.name}! Rất vui được gặp lại mình. Helen đang đợi để chăm sóc làn da của mình đây ạ. ${user.name} muốn nhận ưu đãi đặc quyền gì hôm nay không? ✨💄`;
         }
 
-        return `Chào mừng Quý khách đến với osmo! Mình là ${agentName}, chuyên gia tư vấn làn da thủy tinh (Glass Skin). Quý khách cần mình giúp gì ạ? 🌸`;
+        return `Chào mừng Quý khách đến với osmo! Mình là ${agentName}, chuyên gia tư vấn Mỹ phẩm cao cấp chuẩn Nhật Bản. Quý khách cần mình giúp gì ạ? 🌸`;
     });
 
     // Config initialized once

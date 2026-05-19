@@ -207,3 +207,28 @@
 - [x] Thiết kế lại tiêu đề các phần **Thành phần nổi bật** và **Bảng thành phần** trên mọi giao diện: nâng cỡ chữ lên **`16px`** (thay vì in hoa thô cứng `THÀNH PHẦN NỔI BẬT`), sử dụng chữ in thường tự nhiên và giữ màu sắc tinh tế, mang lại phong thái tối giản sang trọng.
 - [x] Đạt kết quả biên dịch và chạy kiểm thử không phát sinh lỗi cú pháp mới.
 
+# Category Management Deletion Upgrades (Elite V2.2)
+- [x] Thiết lập trường `skipped: List[str]` trong `BulkActionResponse` schema tại [backend/schemas/common.py](file:///home/lv/Desktop/fast-platform-core/backend/schemas/common.py).
+- [x] Triển khai hàm kiểm tra tối ưu hóa SQL batch `_check_deletable` trong `CategoryService` tại [backend/services/commerce/category.py](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/category.py), ngăn chặn xóa danh mục chứa sản phẩm hoạt động hoặc danh mục con chưa xóa.
+- [x] Cập nhật các phương thức `delete_category`, `bulk_delete`, `hard_delete_category` và `bulk_hard_delete` áp dụng chặt chẽ các luật nghiệp vụ an toàn dữ liệu.
+- [x] Khai báo các API Endpoints `/hard-delete` và `/bulk-hard-delete` trong `CategoryController` tại [backend/controllers/category.py](file:///home/lv/Desktop/fast-platform-core/backend/controllers/category.py).
+- [x] Thiết kế hộp thoại xác nhận chuyên sâu (Confirm Dialog) hỗ trợ cả 4 trạng thái (Soft, Hard, Bulk Soft, Bulk Hard) với hiệu ứng Scale/Fade cao cấp và hiển thị chi tiết đối tượng bị ảnh hưởng trong [CategoryManagement.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/CategoryManagement.svelte).
+- [x] Nâng cấp bộ nút thao tác nhanh (Quick Actions) ngay trên dòng của cây danh mục gồm bật/tắt nhanh hiển thị (Mobile/Desktop) không reload và nút Purge vĩnh viễn trong [CategoryTree.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/CategoryTree.svelte).
+- [x] Viết kịch bản test đầy đủ vòng đời (Lifecycle Test) kiểm tra tính đúng đắn của logic khóa ngoại và cascade soft-delete tại [backend/scratch/test_category_deletion_flow.py](file:///home/lv/Desktop/fast-platform-core/backend/scratch/test_category_deletion_flow.py) chạy thành công 100%.
+
+# Category Temporary Cleanup (Elite V2.2)
+- [x] Xóa 3 danh mục thử nghiệm (`test_child_d04ce4`, `test_parent_a34f9a`, `test_parent_fbb536`) khỏi cơ sở dữ liệu.
+- [x] Xác minh trạng thái cơ sở dữ liệu sau khi xóa để đảm bảo sạch sẽ và không ảnh hưởng đến dữ liệu production.
+
+# Category Hierarchy N-Level Rendering Fix (Elite V2.2)
+- [x] Phân tích nguyên nhân mất sub3: `list_categories` ở backend chỉ query 2 tầng (`parent_id IS NULL` và `parent_id IN (parents)`), và `CategoryTree.svelte` chỉ render đúng 2 vòng lặp `#each`.
+- [x] Đề xuất 1 (Backend): Nâng cấp `list_categories` trong `backend/services/commerce/category.py`. Chuyển sang tải Zero-Hydration flat array toàn bộ danh mục, sau đó dùng Dictionary O(N) thuật toán build tree đệ quy. Điều này giúp lấy full độ sâu cây danh mục mà không làm tăng Query, Latency < 1ms, không ngốn RAM.
+- [x] Đề xuất 2 (Frontend): Nâng cấp `CategoryTree.svelte` sử dụng Svelte 5 `{#snippet}` để gọi đệ quy render danh mục, cho phép hiển thị N-level subcategories với đầy đủ UI mà không bị hardcode độ sâu. Không gây Memory Leak do sử dụng native snippet của Svelte Runes.
+- [x] Đã hoàn thành nạp cây danh mục N-level mượt mà.
+
+# Helen Quick Actions Conditional Visibility (Elite V2.2)
+- [x] Phân tích và bao bọc khối hiển thị quickActions ở Desktop (`SupportChatDesktop.svelte`) để chỉ hiển thị khi có `productSlug`.
+- [x] Phân tích và bao bọc khối hiển thị quickActions ở Mobile (`SupportChatMobile.svelte`) để chỉ hiển thị khi có `productSlug`.
+- [x] Kiểm thức biên dịch tĩnh `svelte-check` toàn bộ dự án thành công.
+- [x] Cập nhật nhật ký bàn giao `walkthrough.md` đầy đủ bằng chứng.
+

@@ -6,7 +6,7 @@ from typing import List, Dict, Optional, TypedDict
 from pydantic import JsonValue
 from collections import defaultdict
 
-from sqlalchemy import text, select, func, update
+from sqlalchemy import text, select, func, update, delete as sql_delete
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
@@ -46,14 +46,8 @@ class CategoryService:
         if cached:
             return CategoryListResponse(data=[CategoryResponse(**c) for c in json.loads(cached)], total=len(json.loads(cached)))
 
-        # 1. Zero-Hydration Count
-        count_stmt = select(func.count(Category.id)).where(
-            Category.parent_id == None,
-            Category.deleted_at == None
-        )
-        total = await db_session.scalar(count_stmt) or 0
-
-        # 2. Optimized Fetch (Rule 1.5 - Scalar Projection / Zero-Hydration)
+        # 1. Optimized Fetch ALL (Rule 1.5 - Scalar Projection / Zero-Hydration)
+        # Elite V2.2: We fetch ALL categories in one go for N-Level Tree Building
         stmt = select(
             Category.id, Category.name, Category.slug, Category.parent_id,
             Category.description, Category.seo_title, Category.seo_description,
@@ -61,36 +55,18 @@ class CategoryService:
             Category.position, Category.show_on_mobile, Category.show_on_desktop,
             Category.category_metadata
         ).where(
-            Category.parent_id == None,
-            Category.deleted_at == None
-        ).order_by(Category.position.asc(), Category.created_at.asc()).limit(limit).offset(offset)
-
-        res = await db_session.execute(stmt)
-        parent_rows = res.all()
-
-        if not parent_rows:
-            return CategoryListResponse(data=[], total=total)
-
-        parent_ids = [str(r.id) for r in parent_rows]
-
-        # Fetch children (Zero-Hydration)
-        child_stmt = select(
-            Category.id, Category.name, Category.slug, Category.parent_id,
-            Category.description, Category.seo_title, Category.seo_description,
-            Category.image, Category.icon, Category.created_at,
-            Category.position, Category.show_on_mobile, Category.show_on_desktop,
-            Category.category_metadata
-        ).where(
-            Category.parent_id.in_(parent_ids),
             Category.deleted_at == None
         ).order_by(Category.position.asc(), Category.created_at.asc())
 
-        child_res = await db_session.execute(child_stmt)
-        child_rows = child_res.all()
+        res = await db_session.execute(stmt)
+        all_rows = res.all()
+
+        if not all_rows:
+            return CategoryListResponse(data=[], total=0)
+
+        all_cat_ids = [str(r.id) for r in all_rows]
 
         # N+1 KILL: Single raw SQL to get ALL product counts grouped by categoryId
-        all_cat_ids = parent_ids + [str(r.id) for r in child_rows]
-
         count_map: Dict[str, int] = {}
         if all_cat_ids:
             query = text(
@@ -101,31 +77,11 @@ class CategoryService:
             c_res = await db_session.execute(query, {"ids": all_cat_ids})
             count_map = {str(r.category_id): r.cnt for r in c_res.all()}
 
-        # 3. Tree Reconstruction
-        children_by_parent = defaultdict(list)
-        for r in child_rows:
-            children_by_parent[str(r.parent_id)].append({
-                "id": str(r.id),
-                "name": r.name,
-                "slug": r.slug,
-                "parentId": str(r.parent_id),
-                "description": r.description,
-                "seoTitle": r.seo_title,
-                "seoDescription": r.seo_description,
-                "image": r.image,
-                "icon": r.icon,
-                "position": r.position,
-                "showOnMobile": r.show_on_mobile,
-                "showOnDesktop": r.show_on_desktop,
-                "category_metadata": r.category_metadata,
-                "productCount": count_map.get(str(r.id), 0),
-                "children": [],
-                "createdAt": r.created_at.isoformat() if r.created_at else None
-            })
-
-        data = []
-        for r in parent_rows:
-            data.append(CategoryResponse(
+        # 3. N-Level Tree Reconstruction in O(N)
+        cat_map: Dict[str, CategoryResponse] = {}
+        for r in all_rows:
+            # Pydantic alias will handle correct serialization
+            cat_map[str(r.id)] = CategoryResponse(
                 id=str(r.id),
                 name=r.name,
                 slug=r.slug,
@@ -140,9 +96,21 @@ class CategoryService:
                 show_on_desktop=r.show_on_desktop,
                 category_metadata=r.category_metadata,
                 product_count=count_map.get(str(r.id), 0),
-                children=children_by_parent[str(r.id)],
+                children=[],
                 created_at=r.created_at or datetime.now(timezone.utc)
-            ))
+            )
+
+        data = []
+        # Re-iterate to build the hierarchy
+        for r in all_rows:
+            cat_obj = cat_map[str(r.id)]
+            if r.parent_id and str(r.parent_id) in cat_map:
+                cat_map[str(r.parent_id)].children.append(cat_obj)
+            elif not r.parent_id:
+                data.append(cat_obj)
+        
+        total = len(data)
+        paginated_data = data[offset:offset+limit] if limit else data
 
         # Cache tree for 1 hour
         await xohi_memory.client.set("system:categories:tree", json.dumps([d.model_dump(mode='json') for d in data]), ex=3600)
@@ -302,20 +270,92 @@ class CategoryService:
         return SuccessResponse(ok=True, id=category_id, data=cat_data)
 
     @staticmethod
+    async def _check_deletable(db_session: AsyncSession, ids: List[str], include_soft_deleted_children: bool = False) -> tuple[List[str], List[str]]:
+        """Elite V2.2: Batch-check xem ID nào có sản phẩm hoặc có danh mục con → không được xóa.
+        Returns: (deletable_ids, blocked_ids)
+        """
+        if not ids:
+            return [], []
+
+        # 1. Check categories có con
+        if include_soft_deleted_children:
+            child_stmt = select(Category.parent_id).where(
+                Category.parent_id.in_(ids)
+            ).distinct()
+        else:
+            child_stmt = select(Category.parent_id).where(
+                Category.parent_id.in_(ids),
+                Category.deleted_at == None  # noqa
+            ).distinct()
+        child_res = await db_session.execute(child_stmt)
+        has_children_ids: set[str] = {str(r.parent_id) for r in child_res.all()}
+
+        # 2. Check categories có sản phẩm chưa xóa
+        prod_stmt = text(
+            "SELECT DISTINCT category_id FROM product_bases "
+            "WHERE category_id = ANY(:ids) AND deleted_at IS NULL"
+        )
+        prod_res = await db_session.execute(prod_stmt, {"ids": ids})
+        has_products_ids: set[str] = {str(r.category_id) for r in prod_res.all()}
+
+        blocked: set[str] = has_children_ids | has_products_ids
+        deletable = [i for i in ids if i not in blocked]
+        return deletable, list(blocked)
+
+    @staticmethod
     async def delete_category(db_session: AsyncSession, category_id: str) -> SuccessResponse:
+        """R18: Soft delete — Guard: Từ chối nếu có sản phẩm hoặc danh mục con."""
+        deletable, blocked = await CategoryService._check_deletable(db_session, [category_id])
+        if blocked:
+            from litestar.exceptions import ValidationException
+            raise ValidationException(
+                detail=f"BLOCKED: Danh mục này có sản phẩm hoặc danh mục con. Hãy di chuyển hoặc xóa chúng trước."
+            )
         stmt = select(Category).where(Category.id == category_id)
         res = await db_session.execute(stmt)
         category = res.scalar_one_or_none()
         if not category:
             raise NotFoundException(f"Category {category_id} not found")
         category.deleted_at = datetime.now(timezone.utc)
+        await CategoryService._invalidate_cache()
         return SuccessResponse(ok=True, id=category_id)
 
     @staticmethod
     async def bulk_delete(db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
-        stmt = update(Category).where(Category.id.in_(ids)).values(deleted_at=datetime.now(timezone.utc))
+        """Soft delete hàng loạt — Chỉ xóa được ID không có con và không có sản phẩm."""
+        deletable, blocked = await CategoryService._check_deletable(db_session, ids)
+        if deletable:
+            stmt = update(Category).where(Category.id.in_(deletable)).values(deleted_at=datetime.now(timezone.utc))
+            await db_session.execute(stmt)
+            await CategoryService._invalidate_cache()
+        return BulkActionResponse(ok=True, count=len(deletable), skipped=blocked)
+
+    @staticmethod
+    async def hard_delete_category(db_session: AsyncSession, category_id: str) -> SuccessResponse:
+        """Xóa vĩnh viễn 1 category — Guard: Không cho phép nếu có sản phẩm hoặc danh mục con (kể cả đã bị soft-deleted)."""
+        deletable, blocked = await CategoryService._check_deletable(db_session, [category_id], include_soft_deleted_children=True)
+        if blocked:
+            from litestar.exceptions import ValidationException
+            raise ValidationException(
+                detail=f"BLOCKED: Danh mục có sản phẩm hoặc danh mục con (kể cả đã ẩn). Hãy di chuyển hoặc xóa chúng trước."
+            )
+        stmt = sql_delete(Category).where(Category.id == category_id)
         await db_session.execute(stmt)
-        return BulkActionResponse(ok=True, count=len(ids))
+        await CategoryService._invalidate_cache()
+        logger.warning(f"[CategoryService] HARD DELETE executed for category_id={category_id}")
+        return SuccessResponse(ok=True, id=category_id)
+
+    @staticmethod
+    async def bulk_hard_delete(db_session: AsyncSession, ids: List[str]) -> BulkActionResponse:
+        """Xóa vĩnh viễn hàng loạt — Chỉ purge ID không có con (kể cả đã ẩn) và không có sản phẩm."""
+        deletable, blocked = await CategoryService._check_deletable(db_session, ids, include_soft_deleted_children=True)
+        if deletable:
+            stmt = sql_delete(Category).where(Category.id.in_(deletable))
+            await db_session.execute(stmt)
+            await CategoryService._invalidate_cache()
+            logger.warning(f"[CategoryService] BULK HARD DELETE executed for ids={deletable}")
+        return BulkActionResponse(ok=True, count=len(deletable), skipped=blocked)
+
 
     @staticmethod
     async def reorder_categories(db_session: AsyncSession, ids: List[str]) -> SuccessResponse:

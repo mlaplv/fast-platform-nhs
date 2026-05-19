@@ -13,6 +13,8 @@
     products: Product[];
     total: number;
     searchQuery: string;
+    brand: string;
+    origin: string;
     facets: ProductFacets | null;
   }
 
@@ -30,20 +32,36 @@
 
 
   // Elite V2.2: Search context - build proper props for category-oriented components
-  const searchLabel = $derived(data.searchQuery ? `Kết quả tìm kiếm: "${data.searchQuery}"` : 'Tất cả sản phẩm');
+  const searchLabel = $derived(
+    data.searchQuery
+      ? `Kết quả tìm kiếm: "${data.searchQuery}"`
+      : data.brand
+        ? `Thương hiệu: ${data.brand}`
+        : data.origin
+          ? `Xuất xứ: ${data.origin}`
+          : 'Tất cả sản phẩm'
+  );
 
   // GEO 2026: SEO Meta
   const seoTitle = $derived(
     data.searchQuery
       ? `Tìm kiếm "${data.searchQuery}" | osmo Elite`
-      : "Tất cả sản phẩm | osmo Elite"
+      : data.brand
+        ? `Thương hiệu ${data.brand} chính hãng | osmo Elite`
+        : data.origin
+          ? `Xuất xứ ${data.origin} | osmo Elite`
+          : "Tất cả sản phẩm | osmo Elite"
   );
   const seoDescription = $derived(
     data.searchQuery
       ? `Kết quả tìm kiếm "${data.searchQuery}" - ${data.total} sản phẩm chính hãng tại osmo Elite.`
-      : "Khám phá toàn bộ sản phẩm chăm sóc sức khỏe chính hãng tại osmo Elite. Cam kết chất lượng, hỗ trợ 24/7."
+      : data.brand
+        ? `Danh sách sản phẩm thương hiệu ${data.brand} chính hãng nhập khẩu tại osmo Elite. Cam kết chất lượng.`
+        : data.origin
+          ? `Danh sách sản phẩm xuất xứ từ ${data.origin} chính hãng tại osmo Elite.`
+          : "Khám phá toàn bộ sản phẩm chăm sóc sức khỏe chính hãng tại osmo Elite. Cam kết chất lượng, hỗ trợ 24/7."
   );
-  const seoRobots = $derived(data.searchQuery ? "noindex, nofollow" : "index, follow");
+  const seoRobots = $derived((data.searchQuery || data.brand || data.origin) ? "noindex, nofollow" : "index, follow");
 
 </script>
 

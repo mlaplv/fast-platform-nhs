@@ -44,6 +44,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
     products: data.data ?? (Array.isArray(data) ? data : (data.items || data.products || [])),
     total: data.total ?? 0,
     searchQuery: query,
+    brand: brand,
+    origin: origin,
     facets: data.facets ?? null,
   };
 };

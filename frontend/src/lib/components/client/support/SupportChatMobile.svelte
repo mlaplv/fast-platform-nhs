@@ -355,17 +355,19 @@
     <!-- Pinned Bottom Area -->
     <div class="flex-shrink-0 safe-area-bottom w-full relative z-20 px-7 pt-1 pb-4">
       <!-- Quick Actions (Optimized: Tiny & Right Aligned) -->
-      <div class="w-full flex justify-end gap-2 pb-2">
-        {#each quickActions as action}
-          {@const Icon = action.icon}
-          <button 
-            class="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 active:bg-white/10 text-white/60 border border-white/5 rounded-full text-[11px] font-bold transition-all active:scale-95"
-            onclick={() => handleQuickAction(action)}
-          >
-            <Icon size={12} class="text-[#FFB7C5] opacity-50" /> {action.label}
-          </button>
-        {/each}
-      </div>
+      {#if productSlug && productSlug.trim() !== ''}
+        <div class="w-full flex justify-end gap-2 pb-2">
+          {#each quickActions as action}
+            {@const Icon = action.icon}
+            <button 
+              class="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 active:bg-white/10 text-white/60 border border-white/5 rounded-full text-[11px] font-bold transition-all active:scale-95"
+              onclick={() => handleQuickAction(action)}
+            >
+              <Icon size={12} class="text-[#FFB7C5] opacity-50" /> {action.label}
+            </button>
+          {/each}
+        </div>
+      {/if}
 
       <!-- Capsule Dynamic Island Input -->
       <div class="relative bg-black/80 border border-white/5 rounded-[40px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all">

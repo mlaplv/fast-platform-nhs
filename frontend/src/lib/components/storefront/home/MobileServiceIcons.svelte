@@ -20,10 +20,10 @@
       badgeColor: '#FF4D4F'
     },
     { 
-      icon: '🎁', 
+      icon: '🎟️', 
       label: 'Kho voucher', 
-      href: '/user/vouchers',
-      badge: 'NEW',
+      href: '/khuyen-mai',
+      badge: 'HOT',
       badgeColor: '#EE4D2D'
     },
     { 
@@ -53,6 +53,7 @@
       href: '/bai-viet' 
     },
   ];
+
 
   let scrollContainer: HTMLDivElement;
 

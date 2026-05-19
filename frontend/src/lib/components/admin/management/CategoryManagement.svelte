@@ -1,15 +1,18 @@
 <script lang="ts">
-  import { fade } from "svelte/transition";
+  import { fade, scale } from "svelte/transition";
   import { tick } from "svelte";
   import FolderTree from "@lucide/svelte/icons/folder-tree";
   import Plus from "@lucide/svelte/icons/plus";
   import Search from "@lucide/svelte/icons/search";
   import Layers from "@lucide/svelte/icons/layers";
   import Trash2 from "@lucide/svelte/icons/trash-2";
+  import Skull from "@lucide/svelte/icons/skull";
   import CheckSquare from "@lucide/svelte/icons/check-square";
   import Square from "@lucide/svelte/icons/square";
   import Eye from "@lucide/svelte/icons/eye";
   import EyeOff from "@lucide/svelte/icons/eye-off";
+  import AlertTriangle from "@lucide/svelte/icons/triangle-alert";
+  import ShieldAlert from "@lucide/svelte/icons/shield-alert";
   import { useNanobot } from "$lib/state/nanobot.svelte";
   const nanobot = useNanobot();
   import { apiClient } from "$lib/utils/apiClient";
@@ -18,7 +21,7 @@
   import CategoryForm from "./CategoryForm.svelte";
   import CategoryTree from "./CategoryTree.svelte";
 
-  let { data = {} } = $props<BaseWidgetProps>();
+  let { data = {} }: BaseWidgetProps = $props();
 
   let categories = $state<Category[]>([]),
     isLoading = $state(true),
@@ -38,6 +41,24 @@
     formFaqs = $state<{ question: string; answer: string }[]>([]);
   let selectedIds = $state<Set<string>>(new Set()),
     expandedIds = $state<Set<string>>(new Set());
+
+  // ── Confirm Dialog State ──────────────────────────────────────────────────
+  type ConfirmMode = "soft" | "hard" | "bulk-soft" | "bulk-hard";
+  type ConfirmDialog = {
+    open: boolean;
+    mode: ConfirmMode;
+    ids: string[];
+    parentId: string | null;
+    categoryName: string;
+  };
+  let confirmDialog = $state<ConfirmDialog>({
+    open: false,
+    mode: "soft",
+    ids: [],
+    parentId: null,
+    categoryName: "",
+  });
+  let isProcessing = $state(false); // Double-call guard
 
   let filteredCategories = $derived.by(() => {
     if (!searchTerm) return categories;
@@ -256,41 +277,125 @@
     }
   }
 
-  async function del(id: string, p: string | null = null) {
-    try {
-      await apiClient.delete(`/api/v1/categories/${id}`);
-      if (p) {
-        const par = categories.find((c) => c.id === p);
-        if (par) par.children = par.children.filter((c) => c.id !== id);
-      } else {
-        categories = categories.filter((c) => c.id !== id);
+  // ── Helpers: remove IDs khỏi local state ─────────────────────────────────
+  /** Elite V2.2: Recursive N-Level tree search - tìm node bất kỳ ở mọi độ sâu */
+  function findNodeById(nodes: Category[], id: string): Category | null {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      if (node.children?.length) {
+        const found = findNodeById(node.children, id);
+        if (found) return found;
       }
-      selectedIds.delete(id);
-      selectedIds = new Set(selectedIds);
-      nanobot.showToast("Xóa danh mục thành công", "success");
-    } catch (e) {
-      console.error("[CategoryManagement] Delete failed:", e);
-      nanobot.showToast("Xóa danh mục thất bại", "error");
+    }
+    return null;
+  }
+
+  function removeFromTree(ids: string[], parentId: string | null = null) {
+    const idSet = new Set(ids);
+    if (parentId) {
+      // Tìm đệ quy N-Level thay vì chỉ tìm ở root
+      const par = findNodeById(categories, parentId);
+      if (par) par.children = par.children.filter((c) => !idSet.has(c.id));
+      // Force reactivity
+      categories = [...categories];
+    } else {
+      categories = categories.filter((c) => !idSet.has(c.id));
+      categories.forEach((c) => {
+        if (c.children) c.children = c.children.filter((ch) => !idSet.has(ch.id));
+      });
+    }
+    ids.forEach((id) => selectedIds.delete(id));
+    selectedIds = new Set(selectedIds);
+  }
+
+  // ── Open confirm dialog ───────────────────────────────────────────────────
+  function requestDelete(id: string, parentId: string | null, name: string, mode: "soft" | "hard") {
+    confirmDialog = { open: true, mode, ids: [id], parentId, categoryName: name };
+  }
+  function requestBulkDelete(mode: "bulk-soft" | "bulk-hard") {
+    if (selectedIds.size === 0) return;
+    confirmDialog = {
+      open: true, mode,
+      ids: Array.from(selectedIds),
+      parentId: null,
+      categoryName: `${selectedIds.size} danh mục đã chọn`,
+    };
+  }
+  function closeConfirm() {
+    if (!isProcessing) confirmDialog = { ...confirmDialog, open: false };
+  }
+
+  // ── Thực thi sau khi xác nhận ─────────────────────────────────────────────
+  async function executeConfirmed() {
+    if (isProcessing) return;
+    isProcessing = true;
+    const { mode, ids, parentId } = confirmDialog;
+    try {
+      if (mode === "soft") {
+        await apiClient.delete(`/api/v1/categories/${ids[0]}`);
+        removeFromTree(ids, parentId);
+        nanobot.showToast("Đã ẩn danh mục (soft delete)", "success");
+      } else if (mode === "hard") {
+        await apiClient.post("/api/v1/categories/hard-delete", { ids });
+        removeFromTree(ids, parentId);
+        nanobot.showToast("Đã xóa vĩnh viễn danh mục", "success");
+      } else if (mode === "bulk-soft") {
+        const res = await apiClient.post<{ count: number; skipped: string[] }>(
+          "/api/v1/categories/bulk-delete", { ids }
+        );
+        removeFromTree(ids);
+        if (res.skipped?.length > 0) {
+          nanobot.showToast(`Đã ẩn ${res.count} danh mục. Bỏ qua ${res.skipped.length} (có sản phẩm/con)`, "warning");
+        } else {
+          nanobot.showToast(`Đã ẩn ${res.count} danh mục`, "success");
+        }
+      } else if (mode === "bulk-hard") {
+        const res = await apiClient.post<{ count: number; skipped: string[] }>(
+          "/api/v1/categories/bulk-hard-delete", { ids }
+        );
+        removeFromTree(ids);
+        if (res.skipped?.length > 0) {
+          nanobot.showToast(`Đã purge ${res.count}. Bỏ qua ${res.skipped.length} (có sản phẩm/con)`, "warning");
+        } else {
+          nanobot.showToast(`Đã xóa vĩnh viễn ${res.count} danh mục`, "success");
+        }
+      }
+    } catch (e: unknown) {
+      const err = e as { detail?: string; message?: string };
+      const msg = err?.detail || err?.message || "Thao tác thất bại";
+      console.error(`[CategoryManagement] ${mode} failed:`, e);
+      // Backend trả BLOCKED → hiển thị lý do rõ ràng
+      if (msg.includes("BLOCKED")) {
+        nanobot.showToast("❌ Không thể xóa: danh mục có sản phẩm hoặc danh mục con", "error");
+      } else {
+        nanobot.showToast(msg, "error");
+      }
+    } finally {
+      isProcessing = false;
+      confirmDialog = { ...confirmDialog, open: false };
     }
   }
 
-  async function bulkDelete() {
-    if (selectedIds.size === 0) return;
-    const ids = Array.from(selectedIds);
+  // ── Quick Toggle Visibility (no confirm needed) ───────────────────────────
+  async function quickToggle(id: string, currentMobile: boolean, currentDesktop: boolean) {
+    const newActive = !(currentMobile && currentDesktop);
     try {
-      await apiClient.post("/api/v1/categories/bulk-delete", { ids });
-      // Remove from top level and children
-      categories = categories.filter((c) => !selectedIds.has(c.id));
-      categories.forEach(c => {
-        if (c.children) c.children = c.children.filter(ch => !selectedIds.has(ch.id));
-      });
-      selectedIds = new Set();
-      nanobot.showToast(`Đã xóa ${ids.length} danh mục`, "success");
+      await apiClient.post("/api/v1/categories/bulk-status", { ids: [id], active: newActive });
+      const updateTree = (list: Category[]) =>
+        list.map((c) => {
+          if (c.id === id) return { ...c, showOnMobile: newActive, showOnDesktop: newActive };
+          if (c.children?.length) c.children = updateTree(c.children);
+          return c;
+        });
+      categories = updateTree(categories);
+      nanobot.showToast(newActive ? "Đã bật hiển thị" : "Đã ẩn danh mục", "success");
     } catch (e) {
-      console.error("[CategoryManagement] Bulk delete failed:", e);
-      nanobot.showToast("Xóa hàng loạt thất bại", "error");
+      console.error("[CategoryManagement] Quick toggle failed:", e);
+      nanobot.showToast("Toggle thất bại", "error");
     }
   }
+
+  // bulkDelete → dùng requestBulkDelete("bulk-soft") để qua confirm dialog
 
   async function bulkStatusUpdate(active: boolean) {
     if (selectedIds.size === 0) return;
@@ -367,29 +472,28 @@
       <div class="flex items-center flex-wrap sm:flex-nowrap justify-between lg:justify-end gap-3 w-full lg:w-auto mt-1 lg:mt-0 lg:pr-2">
         <div class="flex items-center gap-2">
           {#if selectedIds.size > 0}
-            <div class="flex items-center gap-2 pr-2 mr-2 border-r border-white/10">
+            <div class="flex items-center gap-1.5 pr-2 mr-2 border-r border-white/10">
               <button
                 onclick={() => bulkStatusUpdate(true)}
                 class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl hover:bg-emerald-500/20 transition-all shadow-[0_0_15px_rgba(16,185,129,0.1)]"
                 title="Kích hoạt tất cả"
-              >
-                <Eye size={12} />
-                <span class="hidden xl:inline">Active</span>
-              </button>
+              ><Eye size={12} /><span class="hidden xl:inline">Active</span></button>
               <button
                 onclick={() => bulkStatusUpdate(false)}
                 class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-xl hover:bg-amber-500/20 transition-all shadow-[0_0_15px_rgba(245,158,11,0.1)]"
                 title="Vô hiệu hóa tất cả"
-              >
-                <EyeOff size={12} />
-                <span class="hidden xl:inline">Deactive</span>
-              </button>
+              ><EyeOff size={12} /><span class="hidden xl:inline">Deactive</span></button>
             </div>
             <button
-              onclick={bulkDelete}
-              class="flex items-center gap-2 px-3 py-2 text-[10px] font-mono bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all shadow-[0_0_15px_rgba(239,68,68,0.1)]"
-              ><Trash2 size={12} class="hidden sm:block"/><Trash2 size={14} class="sm:hidden"/><span class="hidden sm:inline">Purge ({selectedIds.size})</span><span class="sm:hidden">({selectedIds.size})</span></button
-            >
+              onclick={() => requestBulkDelete("bulk-soft")}
+              class="flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all"
+              title="Ẩn hàng loạt (soft delete)"
+            ><Trash2 size={13}/><span class="hidden sm:inline">Soft ({selectedIds.size})</span></button>
+            <button
+              onclick={() => requestBulkDelete("bulk-hard")}
+              class="flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono bg-rose-900/30 border border-rose-500/40 text-rose-400 rounded-xl hover:bg-rose-900/50 transition-all shadow-[0_0_15px_rgba(244,63,94,0.15)]"
+              title="Xóa vĩnh viễn hàng loạt!"
+            ><Skull size={13}/><span class="hidden sm:inline">Purge ({selectedIds.size})</span></button>
           {/if}
           <div
             class="flex sm:hidden items-center gap-2 px-3 py-2 bg-gradient-to-br from-neon-cyan/10 to-transparent border border-neon-cyan/30 rounded-xl text-[10px] font-mono text-neon-cyan tracking-[0.2em] shadow-[0_0_15px_rgba(0,255,255,0.05)]"
@@ -457,12 +561,112 @@
         onToggleExpand={toggleExpand}
         onAddSub={openCreate}
         onEdit={openEdit}
-        onDelete={del}
+        onRequestDelete={requestDelete}
+        onQuickToggle={quickToggle}
         onReorder={handleReorder}
       />
     {/if}
   </div>
 </div>
+
+<!-- ══ CONFIRM DIALOG ══ -->
+{#if confirmDialog.open}
+  <div
+    class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    transition:fade={{ duration: 150 }}
+  >
+    <!-- Backdrop -->
+    <button
+      class="absolute inset-0 bg-black/70 backdrop-blur-sm cursor-default"
+      onclick={closeConfirm}
+      tabindex="-1"
+      aria-label="Đóng"
+    ></button>
+
+    <!-- Dialog box -->
+    <div
+      class="relative z-10 w-full max-w-md bg-[#0d0d0d] border rounded-2xl shadow-2xl overflow-hidden
+        {confirmDialog.mode === 'hard' || confirmDialog.mode === 'bulk-hard'
+          ? 'border-rose-500/40 shadow-rose-500/10'
+          : 'border-red-500/30 shadow-red-500/10'}"
+      transition:scale={{ duration: 200, start: 0.95 }}
+    >
+      <!-- Header -->
+      <div
+        class="px-6 py-4 border-b flex items-center gap-3
+          {confirmDialog.mode === 'hard' || confirmDialog.mode === 'bulk-hard'
+            ? 'border-rose-500/20 bg-rose-950/30'
+            : 'border-red-500/20 bg-red-950/20'}"
+      >
+        {#if confirmDialog.mode === 'hard' || confirmDialog.mode === 'bulk-hard'}
+          <Skull size={18} class="text-rose-400 shrink-0" />
+          <span class="text-[11px] font-mono font-bold text-rose-400 tracking-widest">WARNING: XÓA VĨNH VIỄN</span>
+        {:else}
+          <AlertTriangle size={18} class="text-red-400 shrink-0" />
+          <span class="text-[11px] font-mono font-bold text-red-400 tracking-widest">XÁC NHẬN XÓA</span>
+        {/if}
+      </div>
+
+      <!-- Body -->
+      <div class="px-6 py-5 space-y-4">
+        <p class="text-[13px] text-gray-300 leading-relaxed">
+          {#if confirmDialog.mode === 'hard' || confirmDialog.mode === 'bulk-hard'}
+            <span class="text-rose-400 font-bold">Hành động này không thể hoàn tác!</span> Danh mục sẽ bị xóa khỏi database.
+          {:else}
+            Danh mục sẽ bị ẩn khỏi giao diện (soft delete, có thể khôi phục).
+          {/if}
+        </p>
+        <div class="bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 flex items-start gap-3">
+          <ShieldAlert size={14} class="text-gray-500 shrink-0 mt-0.5" />
+          <span class="text-[11px] font-mono text-gray-400 leading-relaxed">
+            <span class="text-white/60">Đối tượng:</span> {confirmDialog.categoryName}
+          </span>
+        </div>
+        {#if confirmDialog.mode === 'hard' || confirmDialog.mode === 'bulk-hard'}
+          <div class="bg-rose-950/40 border border-rose-500/20 rounded-xl px-4 py-3">
+            <p class="text-[10px] font-mono text-rose-300/80 leading-relaxed">
+              ⚠️ Danh mục có sản phẩm hoặc có danh mục con sẽ bị bỏ qua tự động — không thể purge.
+            </p>
+          </div>
+        {:else}
+          <div class="bg-amber-950/30 border border-amber-500/20 rounded-xl px-4 py-3">
+            <p class="text-[10px] font-mono text-amber-300/80 leading-relaxed">
+              ⚠️ Danh mục có sản phẩm hoặc có danh mục con sẽ bị bỏ qua — không thể xóa.
+            </p>
+          </div>
+        {/if}
+      </div>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 border-t border-white/[0.05] flex items-center justify-end gap-3">
+        <button
+          onclick={closeConfirm}
+          disabled={isProcessing}
+          class="px-4 py-2 text-[10px] font-mono text-gray-400 hover:text-white border border-white/10 rounded-xl hover:bg-white/5 transition-all disabled:opacity-50"
+        >Hủy bỏ</button>
+        <button
+          onclick={executeConfirmed}
+          disabled={isProcessing}
+          class="px-5 py-2 text-[10px] font-mono font-bold rounded-xl transition-all disabled:opacity-50 flex items-center gap-2
+            {confirmDialog.mode === 'hard' || confirmDialog.mode === 'bulk-hard'
+              ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.3)]'
+              : 'bg-red-600 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.2)]'}"
+        >
+          {#if isProcessing}
+            <div class="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+            XỬ LÝ...
+          {:else if confirmDialog.mode === 'hard' || confirmDialog.mode === 'bulk-hard'}
+            <Skull size={12} /> PURGE
+          {:else}
+            <Trash2 size={12} /> XÓA
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .custom-scrollbar::-webkit-scrollbar {

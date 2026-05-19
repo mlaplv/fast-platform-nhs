@@ -66,9 +66,19 @@ async def list_products_logic(
         )
 
     if brand:
-        stmt = stmt.where(ProductBase.attributes["brand"].astext == brand)
+        stmt = stmt.where(
+            or_(
+                ProductBase.attributes["brand"].astext == brand,
+                ProductBase.attributes["Thương hiệu"].astext == brand
+            )
+        )
     if origin:
-        stmt = stmt.where(ProductBase.attributes["origin"].astext == origin)
+        stmt = stmt.where(
+            or_(
+                ProductBase.attributes["origin"].astext == origin,
+                ProductBase.attributes["Xuất xứ"].astext == origin
+            )
+        )
 
     if min_price is not None:
         stmt = stmt.where(ProductBase.price >= min_price)
