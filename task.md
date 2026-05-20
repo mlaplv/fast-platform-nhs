@@ -67,3 +67,13 @@
 
 
 
+---
+
+# Cập nhật Hệ thống Trinity AI Core & Tự động khai tử mô hình (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] Cập nhật `HARD_BLACKLIST` trong `backend/services/ai_engine/core/trinity_models.py` loại bỏ `"gemini-2.0-pro"`, `"gemini-1.5-pro"`, `"gemini-1.5-flash"`.
+- [x] Xây dựng phương thức `add_to_persistent_blacklist` trong `TrinityModels` để lưu mô hình chết/lỗi vào DB SystemSetting `ai_orchestration_config`, xóa mô hình chết khỏi cấu hình `VoiceProfile.primary_model` và `VoiceProfile.ai_models` waterfall, đồng thời hot-reload bộ nhớ.
+- [x] Tích hợp cơ chế tự động gọi `add_to_persistent_blacklist` trong `TrinityBridge.run` và `TrinityBridge.run_stream` khi gặp lỗi `404 Model Not Found` (`model_not_found`).
+- [x] Thay thế `"gemini-2.0-pro"` trong `priority_pool` của `auto_optimize_stack` (`backend/services/ai_service.py`) bằng các dòng model mới 2026 (`gemini-2.5-flash`, `gemini-2.5-pro`).
+- [x] Thiết lập tác vụ định kỳ `_model_health_sync_loop` chạy ngầm mỗi 12 giờ tại `backend/lifespan.py` để ping kiểm tra và tự động khai tử/blacklist các mô hình lỗi thời/chết.

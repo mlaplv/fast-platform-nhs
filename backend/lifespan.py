@@ -54,6 +54,7 @@ async def lifespan(app: Litestar):
     media_cleanup_task = None
     resume_task = None
     autopilot_task = None
+    model_health_task = None
 
     try:
         # 2. Pre-load Data into Hot Cache (R76: Scalar Projection Optimization)
@@ -101,6 +102,7 @@ async def lifespan(app: Litestar):
         media_cleanup_task = _aio.create_task(_media_cleanup_loop())
         resume_task = _aio.create_task(content_factory.resume_all())
         autopilot_task = _aio.create_task(_autopilot_scheduler_loop()) # CNS V82.1: Neural Autopilot Engine
+        model_health_task = _aio.create_task(_model_health_sync_loop()) # Periodic LLM Tier Watchdog
 
         yield
     finally:
@@ -110,6 +112,7 @@ async def lifespan(app: Litestar):
         if media_cleanup_task: media_cleanup_task.cancel()
         if resume_task: resume_task.cancel()
         if autopilot_task: autopilot_task.cancel()
+        if model_health_task: model_health_task.cancel()
         await event_bus.stop()
         await SharedHttpClient.close()
         logger.info("[Trinity Core] Shutdown complete.")
@@ -244,3 +247,67 @@ async def _autopilot_scheduler_loop():
             
         # Scan frequency: 1 minute for precision
         await _aio.sleep(60)
+
+
+async def _model_health_sync_loop():
+    """
+    [Elite Engine] Periodic Model Integrity Watchdog.
+    Runs every 12 hours. Performs lightweight background connectivity checks (ping)
+    for all active models in the waterfall pool. Instantly blacklists and purges
+    any model returning 404/400 (deprecated/killed by Google).
+    """
+    import httpx
+    # Chờ 3 phút sau khởi động để tránh dồn tải lúc boot
+    await _aio.sleep(180)
+    while True:
+        try:
+            logger.info("🛰️ [ModelWatchdog] Running periodic model health synchronization...")
+            # 1. Fetch all discovered & config models to test
+            discovered = await trinity_bridge.models_helper.discover_available()
+            
+            # Extract key for probing
+            try:
+                # Use gemini-2.0-flash to get key
+                key = await key_rotator.get_key(model_name="gemini-2.0-flash")
+            except Exception:
+                logger.warning("[ModelWatchdog] No valid keys available for testing models.")
+                await _aio.sleep(3600) # Thử lại sau 1 tiếng
+                continue
+                
+            if not key:
+                await _aio.sleep(3600)
+                continue
+                
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                for model in list(discovered):
+                    # Skip statically blacklisted ones
+                    if trinity_bridge.models_helper.is_blacklisted(model):
+                        continue
+                        
+                    # Connectivity check
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+                    try:
+                        resp = await client.post(url, json={"contents": [{"parts":[{"text": "ping"}]}]}, timeout=5.0)
+                        
+                        # 404 Model Not Found or 400 Bad Request if model is deleted/deprecated
+                        if resp.status_code in [400, 404]:
+                            logger.error(f"🚨 [ModelWatchdog] Model {model} returned HTTP {resp.status_code}. Deprecation detected!")
+                            await trinity_bridge.models_helper.add_to_persistent_blacklist(model, reason=f"HTTP_{resp.status_code}")
+                            
+                    except httpx.HTTPStatusError as hse:
+                        if hse.response.status_code in [400, 404]:
+                            logger.error(f"🚨 [ModelWatchdog] Model {model} failed with {hse.response.status_code}. Blacklisting...")
+                            await trinity_bridge.models_helper.add_to_persistent_blacklist(model, reason=f"HTTP_{hse.response.status_code}")
+                    except Exception as e:
+                        # Timeout or general networking failure — do NOT blacklist immediately to avoid false positives
+                        logger.debug(f"[ModelWatchdog] Lightweight ping failed for {model}: {e}")
+                        
+                    # Tránh gửi request dồn dập
+                    await _aio.sleep(2.0)
+                    
+            logger.info("✅ [ModelWatchdog] Periodic model integrity check completed.")
+        except Exception as e:
+            logger.exception(f"❌ [ModelWatchdog] Loop cycle failed: {e}")
+            
+        # Chạy lại sau mỗi 12 tiếng (43200 giây)
+        await _aio.sleep(43200)

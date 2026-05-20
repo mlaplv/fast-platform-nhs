@@ -18,7 +18,8 @@ logger = logging.getLogger("api-gateway")
 HARD_BLACKLIST = [
     "gemma", "experimental", "alpha", "learnlm", "preview", "latest", 
     "exp", "-001", "-002", 
-    "flash-latest", "lite-latest", "gemini-1.5"
+    "flash-latest", "lite-latest", "gemini-1.5",
+    "gemini-2.0-pro", "gemini-1.5-pro", "gemini-1.5-flash"
 ]
 
 DEFAULT_AI_CONFIG = {
@@ -312,11 +313,74 @@ class TrinityModels:
         
         # Fail-safe: ensure we have AT LEAST the defaults (Force Hardcoded Stable)
         if not healthy:
-            for m in ["gemini-2.0-flash", "gemini-2.0-pro", self.default_model, self.fallback_model]:
+            for m in ["gemini-2.0-flash", "gemini-2.5-pro", self.default_model, self.fallback_model]:
                 if not await self.rotator.is_model_poisoned(m) and not self.is_blacklisted(m):
                     healthy.append(m)
 
         return healthy
+
+    async def add_to_persistent_blacklist(self, model_name: str, reason: str = "404") -> None:
+        """Elite V2.2: Persistently blacklist a model and scrub it from VoiceProfiles."""
+        from backend.database.models import SystemSetting, VoiceProfile
+        from sqlalchemy import select
+        
+        logger.warning(f"[TrinityModels] Adding {model_name} to persistent blacklist (Reason: {reason})")
+        
+        try:
+            async with alchemy_config.create_session_maker()() as session:
+                setting = (await session.execute(
+                    select(SystemSetting).where(SystemSetting.key == "ai_orchestration_config")
+                )).scalar_one_or_none()
+                
+                if not setting:
+                    setting = SystemSetting(key="ai_orchestration_config", value=DEFAULT_AI_CONFIG.copy())
+                    session.add(setting)
+                
+                config = dict(setting.value or DEFAULT_AI_CONFIG)
+                blacklist = config.setdefault("blacklist", [])
+                if model_name not in blacklist:
+                    blacklist.append(model_name)
+                    setting.value = config
+                    session.add(setting)
+                    logger.info(f"[TrinityModels] Model {model_name} added to DB blacklist.")
+                
+                # Scrub from VoiceProfiles
+                # Update any profile where this model is the primary_model to 'gemini-2.0-flash'
+                profiles = (await session.execute(
+                    select(VoiceProfile)
+                )).scalars().all()
+                
+                updated_profiles_count = 0
+                for profile in profiles:
+                    changed = False
+                    if profile.primary_model == model_name:
+                        profile.primary_model = "gemini-2.0-flash"
+                        changed = True
+                    if profile.ai_models and model_name in profile.ai_models:
+                        profile.ai_models = [m for m in profile.ai_models if m != model_name]
+                        changed = True
+                    if changed:
+                        session.add(profile)
+                        updated_profiles_count += 1
+                
+                await session.commit()
+                if updated_profiles_count > 0:
+                    logger.info(f"[TrinityModels] Scrubbed {model_name} from {updated_profiles_count} VoiceProfiles.")
+                    
+            # Hot-Reload memory states in trinity_bridge if available
+            from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
+            if trinity_bridge.db_primary_model == model_name:
+                trinity_bridge.db_primary_model = "gemini-2.0-flash"
+            trinity_bridge.db_waterfall = [m for m in trinity_bridge.db_waterfall if m != model_name]
+            
+            # Reset cache load time so the next check pulls fresh config from DB
+            self._last_config_load = 0
+            
+            # Ensure it is also marked as poisoned in Redis for immediate routing recovery
+            await self.rotator.mark_model_poisoned(model_name, reason=reason)
+            
+        except Exception as e:
+            logger.exception(f"[TrinityModels] Failed to persistently blacklist model {model_name}: {e}")
 
     def classify_error(self, err: str) -> str:
         err = err.lower()

@@ -379,7 +379,7 @@ class AIService:
             # 4. Elite V2.2: Inclusive CNS Priority Force-Sync
             # We ensure ALL discovered models are included in the waterfall.
             # Order: High Priority (Healthy) > Healthy Probed > Others (Legacy/Failed)
-            priority_pool = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-2.0-pro"]
+            priority_pool = ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"]
             final_winners: list[str] = []
             
             # Phase A: High Priority Models (Force Top IF Healthy)

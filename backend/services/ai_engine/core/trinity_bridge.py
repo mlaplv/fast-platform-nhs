@@ -81,12 +81,12 @@ class TrinityBridge:
                     self.db_primary_model, self.db_waterfall = p.primary_model, p.ai_models or []
                     
                     # Elite V2.2: Hard-redirection for deprecated models
-                    if self.db_primary_model in ["gemini-1.5-flash", "gemini-1.5-pro"]:
-                        logger.info(f"🔄 [TrinityBridge] Redirecting legacy primary model {self.db_primary_model} -> gemini-2.0-flash")
+                    if self.db_primary_model in ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-pro"]:
+                        logger.info(f"🔄 [TrinityBridge] Redirecting legacy/deprecated primary model {self.db_primary_model} -> gemini-2.0-flash")
                         self.db_primary_model = "gemini-2.0-flash"
                     
-                    # Sanitize waterfall: Purge all 1.5 references
-                    self.db_waterfall = [m for m in self.db_waterfall if "gemini-1.5" not in m]
+                    # Sanitize waterfall: Purge all 1.5 and 2.0-pro references
+                    self.db_waterfall = [m for m in self.db_waterfall if "gemini-1.5" not in m and "gemini-2.0-pro" not in m]
                         
                     logger.info(f"🧬 [TrinityBridge] Loaded VoiceProfile configuration: {self.db_primary_model} (Waterfall: {len(self.db_waterfall)} models)")
         except Exception as e: 
@@ -235,8 +235,8 @@ class TrinityBridge:
                         break
                     
                     if cat == "model_not_found":
-                        logger.error(f"🔍 [TrinityBridge] Model Not Found (404): {m_name}")
-                        await self.rotator.mark_model_poisoned(m_name, reason="404")
+                        logger.error(f"🔍 [TrinityBridge] Model Not Found (404): {m_name}. Persistent Blacklisting...")
+                        await self.models_helper.add_to_persistent_blacklist(m_name, reason="404")
                         break
 
                     # For all other errors, use standard logging
@@ -360,8 +360,8 @@ class TrinityBridge:
                         continue
                     
                     if cat == "model_not_found":
-                        logger.error(f"🔍 [TrinityBridge] Model Not Found (404): {m_name}")
-                        await self.rotator.mark_model_poisoned(m_name, reason="404")
+                        logger.error(f"🔍 [TrinityBridge] Model Not Found (404): {m_name}. Persistent Blacklisting...")
+                        await self.models_helper.add_to_persistent_blacklist(m_name, reason="404")
                         break
                         
                     logger.warning(f"⚠️ [TrinityBridge] Stream error '{m_name}': {str(e)[:150]}")
