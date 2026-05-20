@@ -147,7 +147,7 @@ cors_config = CORSConfig(allow_origins=allowed_origins, allow_credentials=True)
 # Application Instance
 memory_store = MemoryStore()
 rate_limit_config = RateLimitConfig(
-    rate_limit=(timedelta(minutes=1), int(os.getenv("RATE_LIMIT_GLOBAL_MINUTE", "1000"))),
+    rate_limit=("minute", int(os.getenv("RATE_LIMIT_GLOBAL_MINUTE", "1000"))),
     exclude=["/health", "/metrics", "/schema"],
     store="memory_store",
 )
