@@ -9,11 +9,7 @@ load_dotenv(".env")
 from backend.app_logging import setup_logging
 setup_logging()
 
-# Suppress library warnings
-warnings.filterwarnings("ignore", message=".*now uses mean pooling instead of CLS embedding.*")
-warnings.filterwarnings("ignore", category=UserWarning, module="pydantic_ai")
-# R61: Silence Pydantic V1/Alchemy legacy warnings on Python 3.14+ (System is fully V2)
-warnings.filterwarnings("ignore", message=".*Core Pydantic V1 functionality.*")
+
 
 from litestar import Litestar
 from litestar.config.cors import CORSConfig
