@@ -277,7 +277,8 @@ class LeadExtractor:
                     context_hint += f"\n\n[QUAN TRỌNG - GHÉP NỐI ĐỊA CHỈ]: Khách hàng ĐÃ cung cấp phần địa chỉ ở câu trước: '{draft_addr}'. Nếu tin nhắn hiện tại của khách là một Tỉnh/Thành phố hoặc Quận/Huyện còn thiếu (ví dụ: 'HCM', 'Hà Nội'), BẠN PHẢI GHÉP NỐI tin nhắn này vào địa chỉ cũ để trả về địa chỉ ĐẦY ĐỦ. Tuyệt đối KHÔNG ĐƯỢC vứt bỏ phần địa chỉ cũ."
             
             full_message = f"{message}\n\n[USER_CONTEXT_HINT]\n{context_hint}" if context_hint else message
-            result = await trinity_bridge.run(_lead_extraction_agent, full_message, role="fast", session_id=session_id)
+            # Elite V2.2: Add strict timeout=12.0s to prevent infinite background task hangs
+            result = await trinity_bridge.run(_lead_extraction_agent, full_message, role="fast", session_id=session_id, timeout=12.0)
             
             # Elite V2.2: Standardized Result Extraction (Trust the Bridge)
             if isinstance(result, dict):

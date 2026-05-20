@@ -331,15 +331,15 @@
         const badgeBorder = theme === 'desktop' ? 'rgba(193, 143, 126, 0.2)' : 'rgba(255, 183, 197, 0.2)';
         
         html += `
-          <div class="step-card p-4 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all duration-300 flex items-start gap-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
-            <div class="step-badge w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0" 
-                 style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${accentColor}; box-shadow: 0 0 10px rgba(193,143,126,0.1)">
-              ${num}
+          <div class="step-card p-4 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="step-badge w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0" 
+                   style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${accentColor}; box-shadow: 0 0 10px rgba(193,143,126,0.1)">
+                ${num}
+              </div>
+              <h5 class="text-xs font-black tracking-widest first-letter:uppercase" style="color: ${accentColor}; margin: 0;">${title}</h5>
             </div>
-            <div class="flex-1 min-w-0">
-              <h5 class="text-xs font-black tracking-widest uppercase mb-1" style="color: ${accentColor};">${title}</h5>
-              <p class="text-white/85 text-xs md:text-sm leading-relaxed">${desc}</p>
-            </div>
+            <p class="text-white/85 text-xs md:text-sm leading-relaxed">${desc}</p>
           </div>
         `;
       });
@@ -371,7 +371,7 @@
                style="background: ${phaseBg}; border-color: ${phaseBorder};">
             <div class="flex items-center gap-2 mb-2">
               <div class="w-1.5 h-1.5 rounded-full bg-current ${phaseText} animate-pulse"></div>
-              <h5 class="text-xs font-black tracking-[0.2em] uppercase ${phaseText}">${title}</h5>
+              <h5 class="text-xs font-black tracking-[0.2em] first-letter:uppercase ${phaseText}">${title}</h5>
             </div>
             <p class="text-white/85 text-xs md:text-sm leading-relaxed">${desc}</p>
           </div>
@@ -525,7 +525,7 @@
                     <div class="w-full shrink-0 px-1">
                        <div class="flex flex-col gap-2 h-auto max-h-[32dvh] overflow-y-auto hide-scrollbar"
                             style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);">
-                          <h4 class="text-[10px] font-black text-white/40 tracking-[0.2em] border-l-2 border-white/20 pl-2 sentence-case-target">01. Tổng quan lâm sàng</h4>
+                          <h4 class="text-[10px] font-black text-white/40 tracking-[0.2em] border-l-2 border-white/20 pl-2 uppercase">01. Tổng quan lâm sàng</h4>
                           <p class="text-white/80 text-[13px] font-medium leading-normal italic">{shopStore.diagnosticResult.reasoning}</p>
                           <div class="h-6"></div> <!-- Spacer for mask -->
                        </div>
@@ -536,7 +536,7 @@
                        <div class="flex flex-col gap-2 h-auto max-h-[32dvh] overflow-y-auto hide-scrollbar"
                             style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);">
                           <div class="flex items-center justify-between border-l-2 border-emerald-500/30 pl-2">
-                             <h4 class="text-[10px] font-black text-emerald-400/60 tracking-[0.2em] sentence-case-target">02. Liễu trình tối ưu</h4>
+                             <h4 class="text-[10px] font-black text-emerald-400/60 tracking-[0.2em] uppercase">02. Liệu trình tối ưu</h4>
                            </div>
                           <div class="text-emerald-400 text-[14px] font-medium leading-normal not-italic">
                             {@html formatRecommendation(shopStore.diagnosticResult.recommendation, 'mobile')}
@@ -577,7 +577,7 @@
             </button>
 
             <!-- Security & Privacy Disclaimer integrated inside clinical results card for mobile -->
-            <p class="text-[9px] font-medium text-white/35 tracking-[0.05em] leading-relaxed max-w-[280px] mx-auto text-center mt-1">
+            <p class="text-[8px] font-medium text-white/35 tracking-[0.05em] leading-relaxed whitespace-nowrap mx-auto text-center mt-1">
               AI có thể mắc sai sót. Vì vậy, hãy xác minh thông tin này với bác sĩ.
             </p>
 

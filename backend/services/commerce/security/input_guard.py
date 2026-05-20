@@ -31,6 +31,12 @@ _INJECTION_PATTERNS: Final[list[re.Pattern[str]]] = [
     re.compile(r"(api[_\s-]?key|secret|bearer|sk-|gemini[_\s]?key)", re.IGNORECASE),
     re.compile(r"(/backend|/services|/database|/models|\.py|\.env)", re.IGNORECASE),
 
+    # System tags & custom overrides (blocks [system...] but allows internal [system_consult])
+    re.compile(r"\[\s*(?!system_consult\])(system|instruction|role|prompt|override|command|config|setting|consult)\w*\s*\]", re.IGNORECASE),
+    re.compile(r"\{\{\s*(system|instruction|role|prompt|override|command)\w*\s*\}\}", re.IGNORECASE),
+    re.compile(r"<\s*(system|instruction|role|prompt|override|command)\w*\s*>", re.IGNORECASE),
+    re.compile(r"(?i)(system\s*override|dan\s*mode|developer\s*mode|jailbreak|bypass\s*filter)", re.IGNORECASE),
+
     # Vietnamese Profanity (Văng tục, tục tĩu) — Hygiene Layer ②
     re.compile(r"\b(địt|đụ|lồn|cặc|vcl|vkl|đm|dmm|đcm|cc|cl|đéo|mẹ\s*mày|chó\s*đẻ|ngu\s*lồn)\b", re.IGNORECASE),
 ]

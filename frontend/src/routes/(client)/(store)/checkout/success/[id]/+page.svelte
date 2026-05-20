@@ -42,7 +42,37 @@
   const cartStore = getCartStore();
 
   // Elite V2.2: Order Status Roadmap
-  import type { OrderDetail } from "$lib/types/commerce/order";
+  import type { OrderDetail, OrderItem } from "$lib/types/commerce/order";
+
+  interface GiftItem {
+    name: string;
+    qty: number;
+    image?: string;
+  }
+
+  function resolveItemGifts(item: OrderItem): GiftItem[] {
+    if (item.gifts && Array.isArray(item.gifts) && item.gifts.length > 0) {
+      return item.gifts as GiftItem[];
+    }
+    
+    // Fallback identical to checkout items promo gifts logic
+    const variantName = (item.variant_name || "").toLowerCase();
+    const qty = item.qty || item.quantity || 1;
+    const isMiccosmoVirginWhite = item.id === "prod_miccosmo_virgin_white" || (item.name || "").toLowerCase().includes("virgin white");
+    
+    if (isMiccosmoVirginWhite) {
+      if (variantName.includes("dứt điểm") || qty === 3 || variantName.includes("mua 3")) {
+        return [
+          {
+            name: `${item.name} (Tặng thêm)`,
+            qty: 1,
+            image: item.image || item.image_url || "/uploads/2026/04/535e0488-bca7-4035-935d-a8c3c022ab63.webp"
+          }
+        ];
+      }
+    }
+    return [];
+  }
 
   interface VnDivision {
     id: string;
@@ -403,14 +433,20 @@
   const subtotal = $derived(
     order?.items?.reduce((acc, it) => acc + (it.total_price || 0), 0) ?? 0,
   );
+  const meta = $derived(order?.order_metadata || order?.orderMetadata);
   const voucherDiscount = $derived(
-    Number(order?.order_metadata?.voucher_discount || 0),
+    Number(meta?.voucher_discount || meta?.voucherDiscount || 0),
   );
   const comboDiscount = $derived(
-    Number(order?.order_metadata?.combo_discount || 0),
+    Number(meta?.combo_discount || meta?.comboDiscount || 0),
   );
   const shippingFee = $derived(
-    Number(order?.order_metadata?.shipping_fee || 0),
+    Number(meta?.shipping_fee || meta?.shippingFee || 0),
+  );
+  const appliedVouchers = $derived(
+    (meta?.voucher_ids || meta?.voucherIds) && Array.isArray(meta?.voucher_ids || meta?.voucherIds)
+      ? (meta?.voucher_ids || meta?.voucherIds) as string[]
+      : []
   );
   const totalSavings = $derived(voucherDiscount + comboDiscount);
   const finalTotal = $derived(
@@ -789,33 +825,77 @@
                 </div>
                 <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2">
                   {#each order.items as item}
-                    <div class="flex items-center gap-4">
-                      <div
-                        class="w-14 h-14 bg-slate-50 border border-slate-100 rounded-sm flex items-center justify-center overflow-hidden italic"
-                      >
-                        {#if item.image_url}<img
-                            src={item.image_url}
-                            alt={item.name}
-                            class="w-full h-full object-cover"
-                          />{:else}📦{/if}
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <p
-                          class="text-xs font-black text-slate-900 mb-1 leading-snug"
+                    {@const resolvedItemImage = item.image_url || item.image}
+                    {@const itemGifts = resolveItemGifts(item)}
+                    <div class="border-b border-slate-50 pb-4 last:border-0 last:pb-0">
+                      <div class="flex items-center gap-4">
+                        <div
+                          class="w-14 h-14 bg-slate-50 border border-slate-100 rounded-sm flex items-center justify-center overflow-hidden italic shrink-0"
                         >
-                          {item.name}
-                        </p>
-                        <p class="text-[9px] text-slate-400 font-bold italic">
-                          {item.quantity || item.qty || 1} × {formatCurrency(
-                            item.unit_price || 0,
-                          )}
-                        </p>
+                          {#if resolvedItemImage}
+                            <img
+                              src={resolvedItemImage}
+                              alt={item.name}
+                              class="w-full h-full object-cover"
+                            />
+                          {:else}
+                            📦
+                          {/if}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p
+                            class="text-xs font-black text-slate-900 mb-1 leading-snug"
+                          >
+                            {item.name}
+                          </p>
+                          {#if item.variant_name}
+                            <p class="text-[9px] text-[#ee4d2d] font-bold mb-0.5">
+                              Phân loại: {item.variant_name}
+                            </p>
+                          {/if}
+                          <p class="text-[9px] text-slate-400 font-bold italic">
+                            {item.quantity || item.qty || 1} × {formatCurrency(
+                              item.unit_price || 0,
+                            )}
+                          </p>
+                        </div>
+                        <div class="text-right">
+                          <span class="text-sm font-black italic"
+                            >{formatCurrency(item.total_price || 0)}</span
+                          >
+                        </div>
                       </div>
-                      <div class="text-right">
-                        <span class="text-sm font-black italic"
-                          >{formatCurrency(item.total_price || 0)}</span
-                        >
-                      </div>
+
+                      <!-- 🎁 GIFTS FOR THIS ITEM (Glassmorphism layout) -->
+                      {#if itemGifts && itemGifts.length > 0}
+                        <div class="mt-3 bg-[#fff0f1]/80 border border-[#fecdd3] rounded-md p-2.5 space-y-2 relative overflow-hidden shadow-sm" style="margin-left: 4.5rem;">
+                          <div class="absolute inset-0 bg-gradient-to-r from-[#ffe4e6]/30 to-transparent pointer-events-none"></div>
+                          <span class="text-[10px] font-black text-[#ee4d2d] flex items-center gap-1.5 leading-none relative z-10 italic">
+                            🎁 Quà Tặng Khuyến Mãi:
+                          </span>
+                          <div class="space-y-2 relative z-10 pl-1">
+                            {#each itemGifts as gift}
+                              <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-white border border-[#fecdd3] rounded-md overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
+                                  {#if gift.image}
+                                    <img src={gift.image} alt={gift.name} class="w-full h-full object-cover" />
+                                  {:else}
+                                    📦
+                                  {/if}
+                                </div>
+                                <div class="flex-1 min-w-0 flex items-center justify-between">
+                                  <span class="text-[#ee4d2d] font-black text-[11px] tracking-tight truncate pr-2">
+                                    {gift.name}
+                                  </span>
+                                  <span class="text-[#ee4d2d] font-extrabold text-[10px] shrink-0 bg-[#ffe4e6] px-1.5 py-0.5 rounded italic">
+                                    SL: {gift.qty}
+                                  </span>
+                                </div>
+                              </div>
+                            {/each}
+                          </div>
+                        </div>
+                      {/if}
                     </div>
                   {/each}
                 </div>
@@ -872,12 +952,24 @@
                     </div>
                   {/if}
 
-                  {#if voucherDiscount > 0}
+                   {#if voucherDiscount > 0}
                     <div
                       class="flex justify-between text-[11px] font-black text-pink-500 italic"
                     >
                       <span>Voucher giảm giá:</span>
                       <span>-{formatCurrency(voucherDiscount)}</span>
+                    </div>
+                  {/if}
+
+                  <!-- 🎟️ APPLIED VOUCHERS LIST (Elite V2.2) -->
+                  {#if appliedVouchers && appliedVouchers.length > 0}
+                    <div class="flex flex-wrap gap-1.5 pt-1 pb-2">
+                      {#each appliedVouchers as code}
+                        <div class="flex items-center gap-1.5 bg-[#fff0f1] text-[#fe2c55] text-[9.5px] font-black px-2 py-0.5 rounded border border-dashed border-[#fecdd3] shadow-sm select-none" style="text-transform: uppercase;">
+                          <span class="inline-block w-1.5 h-1.5 bg-[#fe2c55] rounded-full"></span>
+                          <span>🎟️ {code}</span>
+                        </div>
+                      {/each}
                     </div>
                   {/if}
 

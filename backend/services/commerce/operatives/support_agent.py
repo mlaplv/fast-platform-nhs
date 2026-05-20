@@ -138,23 +138,27 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
                 return f"{currency_settings['symbol']}{formatted}"
             return f"{formatted}{currency_settings['symbol']}"
 
+        # L-2: Strip HTML & trim before injecting into LLM context (prevent indirect injection via DB content)
+        _name_safe = re.sub(r'<[^>]+>', ' ', str(p_row.name or ''))[:100].strip()
+        _desc_safe = re.sub(r'<[^>]+>', ' ', str(p_row.short_description or ''))[:300].strip()
+
         p_info = SupportProductInfo(
-            id=str(p_row.id), 
-            name=p_row.name, 
-            price=float(p_row.price or 0), 
-            price_display=fmt(p_row.discount_price or p_row.price or 0), 
+            id=str(p_row.id),
+            name=_name_safe,
+            price=float(p_row.price or 0),
+            price_display=fmt(p_row.discount_price or p_row.price or 0),
             slug=p_row.slug or "",
             image_url=img_url,
             stock=p_row.stock
         )
-        ctx = f"[SẢN PHẨM HIỆN TẠI]\nTên: {p_row.name}\nMô tả: {p_row.short_description}\nGiá niêm yết: {p_row.price} VND\n"
+        ctx = f"[SẢN PHẨM HIỆN TẠI]\nTên: {_name_safe}\nMô tả: {_desc_safe}\nGiá niêm yết: {p_row.price} VND\n"
         if p_row.discount_price: ctx += f"Giá khuyến mãi: {p_row.discount_price} VND\n"
         ctx += f"Tồn kho thực tế: {p_row.stock or 0} sản phẩm\n"
-        
+
         # Elite V2.2: Structured Context Injection for Ingredients
         ctx += "\n[THÀNH PHẦN NỔI BẬT & CÔNG DỤNG]:\n"
         ctx += "- Placenta tinh khiết 100% từ Nhật Bản: Thành phần sinh học thượng hạng giúp làm mờ thâm sạm, dưỡng sáng hồng vùng da nhạy cảm từ sâu bên trong một cách an toàn và dịu nhẹ nhất.\n"
-        
+
         if p_row.product_metadata:
             meta = p_row.product_metadata
             if "key_ingredients" in meta and isinstance(meta["key_ingredients"], list):
@@ -162,10 +166,15 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
                     k_name = ki.get("name", "")
                     k_desc = ki.get("description", "")
                     if k_name and "placenta" not in k_name.lower():
-                        ctx += f"- {k_name}: {k_desc}\n"
-            
+                        # C-2: Strip HTML + cap length to prevent Metadata Prompt Injection (OWASP LLM01)
+                        k_name_safe = re.sub(r'<[^>]+>', ' ', str(k_name))[:80].strip()
+                        k_desc_safe = re.sub(r'<[^>]+>', ' ', str(k_desc))[:200].strip()
+                        ctx += f"- {k_name_safe}: {k_desc_safe}\n"
+
             if "ingredients" in meta and isinstance(meta["ingredients"], str):
-                ctx += f"\n[BẢNG THÀNH PHẦN CHI TIẾT]:\n{meta['ingredients']}\n"
+                # C-2: Strip HTML + cap length to prevent Metadata Prompt Injection
+                _ing_safe = re.sub(r'<[^>]+>', ' ', str(meta['ingredients']))[:500].strip()
+                ctx += f"\n[BẢNG THÀNH PHẦN CHI TIẾT]:\n{_ing_safe}\n"
                 
         # FOMO & Trust Injection (0ms Latency)
         meta: dict[str, object] = p_row.product_metadata or {}
@@ -206,11 +215,34 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
         logger.warning("[SupportAgent] Context sweep failure: %s", e)
         return "", None
 
+# H-3: Output Shield — keywords indicating system prompt / internal config leakage (Elite V2.3 Expanded)
+_SYSTEM_LEAK_PATTERNS: list[re.Pattern[str]] = [
+    # Internal persona directives
+    re.compile(r"(BẢN SẮC|PHONG THÁI|SÁT THỦ BÁN HÀNG|NHIỆM VỤ TỐI THƯỢNG|QUY TẮC VÀNG|ELITE PROTOCOL)", re.IGNORECASE),
+    re.compile(r"(KIẾN TRÚC SƯ SẮC ĐẸP|NHẠY BÉN DỮ LIỆU|TRẢI NGHIỆM THƯỢNG LƯU|KỶ LUẬT THÀNH PHẦN)", re.IGNORECASE),
+    re.compile(r"(KÍCH HOẠT FOMO|CHỈ THỊ FOMO|CHỈ THỊ GROUND TRUTH)", re.IGNORECASE),
+    re.compile(r"(SYSTEM PROMPT|bạn là helen.{0,40}senior beauty architect)", re.IGNORECASE),
+    re.compile(r"(TỔNG THANH TOÁN CUỐI CÙNG.{0,30}PHÁP LỆNH)", re.IGNORECASE),
+    # Internal code / infra identifiers
+    re.compile(r"(system_prompt|dynamic_prompt|ConsultantDeps|trinity_bridge|SupportRouter|GuardrailHandler|RunContext)", re.IGNORECASE),
+    # Brand-internal technology terms (Nano-penetration)
+    re.compile(r"Nano-penetration", re.IGNORECASE),
+]
+_SAFE_FALLBACK_REPLY = "Dạ Helen rất xin lỗi, em vừa gặp sự cố nhỏ trong xử lý. Anh/Chị thông cảm thử lại sau nhé! 🌸"
+
 def _sanitize_response(text: str) -> str:
-    """Surgical leak prevention (Elite V2.2)."""
+    """Surgical leak prevention (Elite V2.2 + Output Shield V1.0)."""
+    # 1. Strip internal thinking tags
     clean = re.sub(r"<thought>.*?</thought>", "", text, flags=re.DOTALL)
+    # 2. Redact absolute file paths
     clean = re.sub(r"/\w+/\w+/\w+", "[REDACTED_PATH]", clean)
+    # 3. Partial mask phone numbers (retain prefix + last digits)
     clean = re.sub(r"(0|84|(\+84))(\d{2,3})[\s\.\-]?(\d{3})[\s\.\-]?(\d{3,4})", r"\1\3****\5", clean)
+    # 4. Output Shield: Detect system prompt leakage — nuke the full response
+    for _p in _SYSTEM_LEAK_PATTERNS:
+        if _p.search(clean):
+            logger.warning("[OutputShield] System prompt leakage detected in LLM output. Replacing with safe fallback.")
+            return _SAFE_FALLBACK_REPLY
     return clean.strip()
 
 class SupportAgentOperative(BaseAgentOperative):
@@ -256,6 +288,7 @@ class SupportAgentOperative(BaseAgentOperative):
 
     async def _fetch_chat_context(self, db: AsyncSession, session_id: str) -> str:
         try:
+            from backend.services.commerce.security.input_guard import input_guard as _ig
             stmt = select(SupportChatHistory).where(SupportChatHistory.session_id == session_id).order_by(desc(SupportChatHistory.created_at), desc(SupportChatHistory.id)).limit(10)
             history_rows = (await db.execute(stmt)).scalars().all()
             if not history_rows: return ""
@@ -266,12 +299,20 @@ class SupportAgentOperative(BaseAgentOperative):
                 h_content = GeminiSecurity.decrypt(r.content or "")
                 if h_content == HELEN_FOLLOW_UP_TRIGGER: continue
                 if len(h_content) > 300: h_content = h_content[:300] + "... [TRUNCATED]"
+                # H-2: Scan decrypted USER history for replay injection before re-injecting into LLM context
+                if r.role == "user":
+                    _safe, _ = _ig.validate(h_content[:2000])
+                    if not _safe:
+                        logger.warning("[SupportAgent] H-2: Skipping potentially injected history entry, SID: %s", session_id)
+                        continue
                 if total_chars + len(h_content) > MAX_TOTAL_CHARS: break
                 h_role = "Khách" if r.role == "user" else "Helen"
                 h_parts.append(f"{h_role}: {h_content}")
                 total_chars += len(h_content)
             return "\n[LỊCH SỬ GẦN ĐÂY]\n" + "\n".join(h_parts) + "\n" if h_parts else ""
-        except: return ""
+        except Exception as _e:  # H-4: Fix bare except — always log failures
+            logger.warning("[SupportAgent] _fetch_chat_context failed: %s", _e)
+            return ""
 
     async def _fetch_neural_dna(self, db: AsyncSession, session_id: str, lead_phone: Optional[str] = None, user_id: Optional[str] = None) -> NeuralDNA:
         try:
@@ -339,6 +380,18 @@ class SupportAgentOperative(BaseAgentOperative):
 
     async def process_brain_logic(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:
         session_id = request.session_id or str(uuid.uuid4())
+
+        # ══ SECURITY GATE ② ── InputGuard (Background Worker Guard) ══════════
+        # Second checkpoint for background tasks to prevent any injected payload
+        # that may have been enqueued before the gate was added.
+        from backend.services.commerce.security.input_guard import input_guard
+        _is_safe, _guard_reason = input_guard.validate(request.message)
+        if not _is_safe:
+            logger.warning("[SupportAgent/Brain] InputGuard rejected background task. Reason: %s | SID: %s", _guard_reason, session_id)
+            _rejection_reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin sản phẩm và dịch vụ của osmo. Rất mong Anh/Chị thông cảm ạ! 🙏"
+            return SupportResponse(ok=False, reply=_rejection_reply, intent=SupportIntent.UNKNOWN, session_id=session_id, status="REJECTED")
+        # ══════════════════════════════════════════════════════════════════════
+
         await event_bus.emit("SUPPORT_THOUGHT", {"session_id": session_id, "think": "Đang chuẩn bị context Senior Beauty Architect..."})
         
         cur_settings = await self._get_currency_settings()
@@ -376,7 +429,8 @@ class SupportAgentOperative(BaseAgentOperative):
             v_map = {v.id: v for v in v_rows}
 
         # Render Reports
-        pb = await self._prepare_pricing_breakdown(db, request, dna)
+        # C-1: Pass DB-authoritative price maps into pricing engine
+        pb = await self._prepare_pricing_breakdown(db, request, dna, p_map=p_map, v_map=v_map)
         cur_settings = await self._get_currency_settings()
         cart_text = self._render_cart_report(request, p_map, v_map, pb, ctx_text, cur_settings)
         
@@ -450,28 +504,46 @@ class SupportAgentOperative(BaseAgentOperative):
         
         return SupportResponse(ok=True, reply=safe_reply, intent=final_intent, session_id=session_id, product_info=p_info, status="DONE", ui_metadata=ctx.ui_metadata, processed_order_id=ctx.processed_order_id)
 
-    async def _prepare_pricing_breakdown(self, db: AsyncSession, request: SupportRequest, dna: NeuralDNA) -> Dict[str, object]:
-        """Unified Pricing Intelligence."""
+    async def _prepare_pricing_breakdown(
+        self, db: AsyncSession, request: SupportRequest, dna: NeuralDNA,
+        p_map: Dict[str, ProductBase] | None = None,
+        v_map: Dict[str, ProductVariant] | None = None,
+    ) -> Dict[str, object]:
+        """Unified Pricing Intelligence. C-1: ALL prices sourced from DB maps, never from client payload."""
         if request.pricing_context and request.pricing_context.subtotal > 0:
             res = request.pricing_context.model_dump()
             res["is_fallback"] = False
             return res
 
-        # Fallback logic
         from backend.services.commerce.logic.pricing_engine import PricingEngine
         from backend.schemas.pricing import PricingInputItem
-        input_items = []
+        _p_map = p_map or {}
+        _v_map = v_map or {}
+        input_items: list[PricingInputItem] = []
         if request.cart_items:
             for it in request.cart_items:
                 p_raw = it.get("product", {})
                 v_raw = it.get("variant", {})
-                p_id = p_raw.get("id")
+                p_id = str(p_raw.get("id") or "")
                 if not p_id: continue
-                price = float(v_raw.get("price") or p_raw.get("price") or 0)
-                input_items.append(PricingInputItem(product_id=p_id, name=p_raw.get("name", "SP"), quantity=it.get("quantity", 1), unit_price=price))
-        
-        if not input_items: return {"subtotal": 0.0, "final_payable": 0.0, "is_fallback": True}
+                # C-1 FIX: NEVER trust client-supplied price. Source from DB maps exclusively.
+                p_db_item = _p_map.get(p_id)
+                v_db_item = _v_map.get(str(v_raw.get("id", ""))) if v_raw.get("id") else None
+                db_price = float(
+                    v_db_item.price if v_db_item and v_db_item.price
+                    else (p_db_item.price if p_db_item and p_db_item.price else 0)
+                )
+                if db_price <= 0:
+                    logger.warning("[PricingBreakdown] C-1: DB price=0 for product_id=%s, skipping.", p_id)
+                    continue
+                p_name = p_db_item.name if p_db_item else str(p_raw.get("name", "SP"))
+                input_items.append(PricingInputItem(
+                    product_id=p_id, name=p_name,
+                    quantity=int(it.get("quantity", 1) or 1),
+                    unit_price=db_price
+                ))
 
+        if not input_items: return {"subtotal": 0.0, "final_payable": 0.0, "is_fallback": True}
         pb = PricingEngine.calculate(input_items, base_shipping_fee=30000.0)
         res = pb.model_dump()
         res["is_fallback"] = True
@@ -579,6 +651,17 @@ class SupportAgentOperative(BaseAgentOperative):
 
     async def _chat_internal(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:
         session_id = request.session_id or str(uuid.uuid4())
+
+        # ══ SECURITY GATE ① ── InputGuard (Elite V2.2) ════════════════════════
+        # Must fire BEFORE any LLM call, DNA fetch, or enqueue to protect quota & RAM.
+        from backend.services.commerce.security.input_guard import input_guard
+        _is_safe, _guard_reason = input_guard.validate(request.message)
+        if not _is_safe:
+            logger.warning("[SupportAgent] InputGuard rejected at entry. Reason: %s | SID: %s", _guard_reason, session_id)
+            _rejection_reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin sản phẩm và dịch vụ của osmo. Rất mong Anh/Chị thông cảm ạ! 🙏"
+            return SupportResponse(ok=False, reply=_rejection_reply, intent=SupportIntent.UNKNOWN, session_id=session_id, status="REJECTED")
+        # ══════════════════════════════════════════════════════════════════════
+
         dna = await self._fetch_neural_dna(db, session_id, lead_phone=request.customer_phone, user_id=request.user_id)
         c_name = dna.customer_name or request.customer_name or "Quý khách"
         if c_name in ["Khách ẩn danh", "Sếp"]: c_name = "Quý khách"

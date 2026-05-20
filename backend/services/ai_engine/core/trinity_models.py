@@ -187,7 +187,8 @@ class TrinityModels:
 
         # 1. Version Tier (The most important factor in 2026)
         # Modern Architecture Scoring (Elite V2.2)
-        if "3.1" in m: score += 2500
+        if "3.5" in m: score += 3000
+        elif "3.1" in m: score += 2500
         elif "3" in m: score += 2000
         elif "2.5" in m: score += 1500
         elif "2.0" in m: score += 1000

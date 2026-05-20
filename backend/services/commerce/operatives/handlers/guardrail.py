@@ -42,6 +42,16 @@ class GuardrailHandler(BaseHandler):
     async def handle(self, ctx: SupportContext) -> bool:
         msg = ctx.request.message.lower().strip()
         
+        # Elite V2.2: InputGuard Layer Integration
+        from backend.services.commerce.security.input_guard import input_guard
+        is_safe, reason = input_guard.validate(ctx.request.message)
+        if not is_safe:
+            logger.warning(f"[Guardrail] InputGuard rejected query. Reason: {reason}")
+            reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin liên quan đến sản phẩm và dịch vụ chăm sóc da của osmo. Rất mong Anh/Chị thông cảm và hợp tác ạ! 🙏 [z0]"
+            ctx.replies.append(reply)
+            ctx.intent = SupportIntent.UNKNOWN
+            return True # Terminate pipeline early
+            
         # 1. Micro-Heuristics (<2ms) - Keyword Match
         if any(kw in msg for kw in self.BLOCKED_KEYWORDS):
             reply = (

@@ -49,9 +49,13 @@ class SupportController(Controller):
             if not redis:
                 return
 
-            ip = request.client.host if request.client else "unknown"
-            if forwarded := request.headers.get("x-forwarded-for"):
-                ip = forwarded.split(",")[0].strip()
+            # M-1: Trusted IP resolution — prefer Nginx-injected x-real-ip over spoofable x-forwarded-for
+            # x-forwarded-for can be faked by the client to bypass rate limiting
+            ip = (
+                request.headers.get("x-real-ip")
+                or (request.client.host if request.client else None)
+                or "unknown"
+            )
 
             now_minute = int(time.time() // 60)
             ip_key = f"support:ip:{ip}:{now_minute}"
@@ -89,7 +93,8 @@ class SupportController(Controller):
                 httponly=True,
                 secure=True,
                 samesite="lax",
-                path="/"
+                path="/",
+                max_age=86400 * 30,  # M-4: 30-day TTL — prevent stale session accumulation
             )
             # Important: Prevent caching
             headers = {
@@ -117,6 +122,8 @@ class SupportController(Controller):
             return []
         
         try:
+            import re as _re
+            _UUID_RE = _re.compile(r'^[0-9a-f\-]{32,36}$', _re.IGNORECASE)
             stmt = (
                 select(SupportChatHistory)
                 .where(SupportChatHistory.session_id == session_id)
@@ -124,13 +131,12 @@ class SupportController(Controller):
                 .limit(limit)
             )
 
-            if before_id and before_id != "undefined":
-                # Subquery to find the timestamp of the before_id message
-                # Elite V2.2: Guard against invalid or missing cursor IDs
+            if before_id and before_id != "undefined" and _UUID_RE.match(before_id):
+                # M-3: UUID format validated — safe to use as DB cursor
                 cursor_stmt = select(SupportChatHistory.created_at).where(SupportChatHistory.id == before_id)
                 cursor_res = await db_session.execute(cursor_stmt)
                 cursor_time = cursor_res.scalar()
-                
+
                 if cursor_time:
                     stmt = stmt.where(
                         sa.or_(
@@ -186,7 +192,7 @@ class SupportController(Controller):
         
         return SupportStatusResponse(
             helen_enabled=helen_on != "0",
-            offline_message=offline_msg or "Dược sĩ tư vấn sẽ sớm phản hồi sếp. Vui lòng để lại lời nhắn ạ."
+            offline_message=offline_msg or "Dược sĩ tư vấn sẽ sớm phản hồi Quý khách. Vui lòng để lại lời nhắn ạ."
         )
 
     @post("/chat", guards=[])
@@ -220,7 +226,7 @@ class SupportController(Controller):
             return Response(
                 content=SupportResponse(
                     ok=False,
-                    reply="Xin lỗi sếp, hệ thống tư vấn đang gặp sự cố nhỏ. Sếp vui lòng thử lại sau vài giây ạ.",
+                    reply="Xin lỗi Quý khách, hệ thống tư vấn đang gặp sự cố nhỏ. Quý khách vui lòng thử lại sau vài giây ạ.",
                     intent=SupportIntent.UNKNOWN,
                     session_id=session_id,
                     status="FAILED"
@@ -250,7 +256,9 @@ class SupportController(Controller):
             from backend.services.signal_center import signal_center
             from backend.schemas.signal import SignalSchema, SignalSeverity
 
-            msg = f"Khách VIP {data.phone} yêu cầu gọi lại trong 30s! Nguồn: {data.source_url or 'Trang chủ'}"
+            # M-2: Mask phone number before broadcasting in cleartext to admin signals
+            _masked_phone = f"{data.phone[:3]}****{data.phone[-3:]}" if len(data.phone) >= 6 else "****"
+            msg = f"Khách VIP {_masked_phone} yêu cầu gọi lại trong 30s! Nguồn: {data.source_url or 'Trang chủ'}"
             
             signal = SignalSchema(
                 signal_type="URGENT_SUPPORT",

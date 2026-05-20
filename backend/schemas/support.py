@@ -95,6 +95,23 @@ class SupportRequest(BaseModel):
         # Only allow alphanumeric + hyphens (UUID format)
         return s if s.replace("-", "").isalnum() and len(s) <= 64 else None
 
+    @field_validator("cart_items", mode="before")
+    @classmethod
+    def cap_cart_items(cls, v: object) -> object:
+        """H-1 Security: Guard against OOM DoS via oversized cart_items payload.
+        Max 50 items — any excess is silently truncated at the gate."""
+        if isinstance(v, list) and len(v) > 50:
+            return v[:50]
+        return v
+
+    @field_validator("selected_vouchers", mode="before")
+    @classmethod
+    def cap_selected_vouchers(cls, v: object) -> object:
+        """Cap voucher list to prevent abuse."""
+        if isinstance(v, list) and len(v) > 10:
+            return v[:10]
+        return v
+
 
 class UrgentSupportRequest(BaseModel):
     """Viral 30-Second Rule: Urgent support request (Zero-Auth)."""

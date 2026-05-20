@@ -75,6 +75,69 @@
 - [x] Cập nhật `HARD_BLACKLIST` trong `backend/services/ai_engine/core/trinity_models.py` loại bỏ `"gemini-2.0-pro"`, `"gemini-1.5-pro"`, `"gemini-1.5-flash"`.
 - [x] Xây dựng phương thức `add_to_persistent_blacklist` trong `TrinityModels` để lưu mô hình chết/lỗi vào DB SystemSetting `ai_orchestration_config`, xóa mô hình chết khỏi cấu hình `VoiceProfile.primary_model` và `VoiceProfile.ai_models` waterfall, đồng thời hot-reload bộ nhớ.
 - [x] Tích hợp cơ chế tự động gọi `add_to_persistent_blacklist` trong `TrinityBridge.run` và `TrinityBridge.run_stream` khi gặp lỗi `404 Model Not Found` (`model_not_found`).
-- [x] Thay thế `"gemini-2.0-pro"` trong `priority_pool` của `auto_optimize_stack` (`backend/services/ai_service.py`) bằng các dòng model mới 2026 (`gemini-2.5-flash`, `gemini-2.5-pro`).
+- [x] Thay thế và mở rộng `priority_pool` của `auto_optimize_stack` (`backend/services/ai_service.py`) bằng các dòng model mới 2026 (`gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-2.5-pro`, `gemini-2.5-flash`), nâng cấp cấu hình trong `trinity_models.py` và `.env`.
 - [x] Thiết lập tác vụ định kỳ `_model_health_sync_loop` chạy ngầm mỗi 12 giờ tại `backend/lifespan.py` để ping kiểm tra và tự động khai tử/blacklist các mô hình lỗi thời/chết.
 - [x] Xây dựng cơ chế Hợp nhất Cấu hình Động (Dynamic Fusion Blacklist & Whitelist override) cho phép Sếp định cấu hình `whitelist` trong cơ sở dữ liệu để ghi đè hoàn toàn danh sách đen tĩnh `HARD_BLACKLIST`.
+
+---
+
+# Nâng cấp Bảo mật Helen: Chống Prompt Injection & Kiểm soát Hai Chiều (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] Nâng cấp các mẫu Regex của `InputGuard` để phát hiện và ngăn chặn triệt để hành vi chèn thẻ hệ thống.
+- [x] Tích hợp `InputGuard` tại cổng tiếp nhận đầu tiên của `_chat_internal` và `process_brain_logic`.
+- [x] Tích hợp `InputGuard` vào `GuardrailHandler.handle` làm lá chắn vòng trong.
+- [x] Nâng cấp `_sanitize_response` để phát hiện rò rỉ prompt nội bộ và thay bằng fallback an toàn.
+- [x] Kiểm tra AST cả 4 file đạt Syntax OK.
+
+---
+
+# Bảo mật Cấp Quân Đội Helen (Military-Grade Audit — 12 fixes)
+
+## Kế hoạch (PROPOSE đã duyệt)
+
+### Priority 1 (CRITICAL + HIGH)
+- [x] **[C-1]** Enforce giá từ DB: loại `p_raw.get("price")` khỏi PricingEngine, dùng `p_map`/`v_map` từ DB độc quyền.
+- [x] **[C-2]** Sanitize `product_metadata` trước khi nhúc vào LLM context: strip HTML, giới hạn 500 ký tự, scan qua `InputGuard`.
+- [x] **[H-1]** Thêm `cap_cart_items` field validator trong `SupportRequest` (max 50 items, cắt ngay tại Pydantic gate).
+- [x] **[H-2]** Scan lịch sử chat giải mã qua `input_guard.validate()` trong `_fetch_chat_context` trước khi inject vào LLM.
+- [x] **[H-3]** Mở rộng `_SYSTEM_LEAK_PATTERNS` (7 patterns), xóa false-positive `bắt buộc phải`.
+- [x] **[H-4]** Fix bare `except: return ""` → `except Exception as _e: logger.warning(...)`.
+- [x] **[H-5 - Hang Fix]** `trinity_bridge.py`: Áp dụng Global Timeout Enforcer. Track `start_time`, nếu `remaining_t <= 0` chặn hoàn toàn vòng lặp fallback models. Đảm bảo cam kết thời gian phản hồi (chặn đứng lỗi "xử lý vô tận").
+- [x] **[H-6 - Hang Fix]** `lead_extractor.py`: Thêm `timeout=12.0` vào `trinity_bridge.run` (cũ là 90s mặc định -> gây treo queue).
+- [x] **[H-7 - Hotfix]** `input_guard.py`: Whitelist thẻ `[system_consult]` (sử dụng Negative Lookahead regex) để không block tính năng tư vấn chuyên sâu của nút Quick Reply.
+
+### Priority 2 (MEDIUM + LOW)
+- [x] **[M-1]** Trusted IP resolution: ưu tiên `x-real-ip` (Nginx-inject), không tin `x-forwarded-for` có thể giả mạo.
+- [x] **[M-2]** Mask phone trong `urgent_support` signal: `{phone[:3]}****{phone[-3:]}`.
+- [x] **[M-3]** Validate UUID format cho `before_id` trước DB query.
+- [x] **[M-4]** Thêm `max_age=86400*30` (30 ngày) cho session cookie.
+- [x] **[L-1]** Thay "sếp" → "Quý khách" trong error messages của controller.
+- [x] **[L-2]** Strip HTML + trim `name`/`short_description` trước khi inject vào LLM context.
+
+---
+
+# Task: Khắc phục Thiếu Quà tặng trên Trang Success Đơn hàng (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Backend Data Fix]** Viết script Python để cập nhật trực tiếp DB:
+  - Cập nhật trường `attributes` của ProductVariant `v_ea1b5d6f82ea` ("Dứt điểm") để lưu quà tặng chuẩn: `"gifts": [{"name": "Miccosmo Beppin Body Virgin White Serum 30g (Tặng thêm)", "qty": 1, "image": "/uploads/2026/04/535e0488-bca7-4035-935d-a8c3c022ab63.webp"}]`.
+  - Cập nhật đơn hàng lỗi `5464b1da-4196-4302-b7a1-69351ff7319b` (SĐT `0949901122`) để bổ sung thông tin quà tặng vào trong item và `order_metadata` giúp dữ liệu flow chính thống từ DB.
+- [x] **[Frontend Desktop Success]** Cập nhật `/frontend/src/routes/(client)/(store)/checkout/success/[id]/+page.svelte`:
+  - Sửa lỗi hiển thị ảnh sản phẩm (sử dụng `item.image_url || item.image` thay vì chỉ check `item.image_url` cũ làm hiển thị icon hộp các-tông `📦`).
+  - Thiết kế khu vực hiển thị quà tặng khuyến mãi đính kèm của từng sản phẩm ngay bên dưới tên sản phẩm với phong cách "Glassmorphism" cao cấp (nền đỏ/hồng nhạt mịn màng, icon Hộp quà `Gift` từ Lucide, chữ đỏ đậm sắc nét).
+  - Ép kiểu tĩnh 100% (cấm dùng `any`).
+- [x] **[Frontend Mobile Success]** Cập nhật `/frontend/src/lib/components/mobile/sections/SuccessMobile.svelte`:
+  - Đồng bộ logic hiển thị quà tặng với giao diện Mobile: bổ sung khối danh sách quà tặng cực kỳ tinh tế và nhỏ gọn dưới mỗi sản phẩm.
+  - Sửa lỗi hiển thị ảnh sản phẩm trên mobile (hiển thị hình ảnh thay vì chỉ có tên sản phẩm thô sơ).
+- [x] **[Kiểm tra & Nghiệm thu]** Chạy `svelte-check` để đảm bảo type-safety tuyệt đối, kiểm tra log và quay video visual giao diện sau khi sửa để xác thực.
+
+---
+
+# Task: Hiển thị Voucher & Chi tiết Giảm giá trên Trang Success (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Frontend Price Calc Fix]** Khắc phục lỗi dual-key resolver cho `voucherDiscount`, `comboDiscount`, và `shippingFee` ở cả trang Desktop và Mobile bằng cách kiểm tra cả `order_metadata` và `orderMetadata` từ API để hiển thị đúng số tiền được chiết khấu thay vì mặc định về 0.
+- [x] **[Frontend Desktop Display]** Hiển thị danh sách Voucher đã áp dụng (`voucher_ids`) dưới dạng các nhãn vé Coupon màu đỏ/hồng nhạt nét đứt (`🎟️ CODE`) sang trọng, tăng tính minh bạch.
+- [x] **[Frontend Mobile Display]** Tích hợp bảng phân rã giá chi tiết (Tạm tính, Vận chuyển, Vouchers áp dụng) vào trang Mobile Success giúp giao diện minh bạch và đồng nhất với bản Desktop.
+

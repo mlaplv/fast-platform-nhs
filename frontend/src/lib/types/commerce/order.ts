@@ -11,6 +11,12 @@ export interface OrderItem {
   total_price: number;     // unit_price * quantity
   variant_id?: string;
   sku?: string;
+  variant_name?: string;
+  gifts?: {
+    name: string;
+    qty: number;
+    image?: string;
+  }[];
 }
 
 export interface OrderHistory {

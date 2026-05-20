@@ -135,6 +135,9 @@ class TrinityBridge:
         model_settings_base = cast(dict[str, object], kwargs.pop("model_settings", {}))
         safety_none = bool(kwargs.pop("safety_none", False))
 
+        import time
+        start_time = time.time()
+
         for m_name in models:
             if self.models_helper.is_blacklisted(m_name):
                 logger.debug(f"🛡️ [TrinityBridge] Blocking blacklisted model: {m_name}")
@@ -160,6 +163,12 @@ class TrinityBridge:
                     if safety_none:
                         ms["google_safety_settings"] = _G_SAFETY_NONE
 
+                    # Elite V2.2: Global Timeout Enforcement (prevents infinite waterfall loops)
+                    remaining_t = t - (time.time() - start_time)
+                    if remaining_t <= 0:
+                        logger.error(f"🛑 [TrinityBridge] GLOBAL TIMEOUT EXCEEDED ({t}s) across all models. Bailing out.")
+                        return None
+
                     # [R.C.3 FIX] Semaphore chỉ bảo vệ ĐÚNG tác vụ AI, không bảo vệ cả vòng lặp key.
                     # Timeout (t) được áp dụng bên trong guard để coroutine có thể bị cancel đúng cách.
                     async with self.concurrency_guard:
@@ -167,12 +176,12 @@ class TrinityBridge:
                             with agent.override(instructions=str(system_prompt)):
                                 res = await asyncio.wait_for(
                                     agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs),
-                                    timeout=t
+                                    timeout=remaining_t
                                 )
                         else:
                             res = await asyncio.wait_for(
                                 agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs),
-                                timeout=t
+                                timeout=remaining_t
                             )
 
                     if hasattr(res, 'usage'):

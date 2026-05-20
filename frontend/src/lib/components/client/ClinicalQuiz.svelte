@@ -228,15 +228,15 @@
         const badgeBorder = theme === 'desktop' ? 'rgba(193, 143, 126, 0.2)' : 'rgba(255, 183, 197, 0.2)';
         
         html += `
-          <div class="step-card p-4 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all duration-300 flex items-start gap-4 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
-            <div class="step-badge w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0" 
-                 style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${accentColor}; box-shadow: 0 0 10px rgba(193,143,126,0.1)">
-              ${num}
+          <div class="step-card p-4 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="step-badge w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shrink-0" 
+                   style="background: ${badgeBg}; border: 1px solid ${badgeBorder}; color: ${accentColor}; box-shadow: 0 0 10px rgba(193,143,126,0.1)">
+                ${num}
+              </div>
+              <h5 class="text-xs font-black tracking-widest first-letter:uppercase" style="color: ${accentColor}; margin: 0;">${title}</h5>
             </div>
-            <div class="flex-1 min-w-0">
-              <h5 class="text-xs font-black tracking-widest uppercase mb-1" style="color: ${accentColor};">${title}</h5>
-              <p class="text-white/85 text-xs md:text-sm leading-relaxed">${desc}</p>
-            </div>
+            <p class="text-white/85 text-xs md:text-sm leading-relaxed">${desc}</p>
           </div>
         `;
       });
@@ -268,7 +268,7 @@
                style="background: ${phaseBg}; border-color: ${phaseBorder};">
             <div class="flex items-center gap-2 mb-2">
               <div class="w-1.5 h-1.5 rounded-full bg-current ${phaseText} animate-pulse"></div>
-              <h5 class="text-xs font-black tracking-[0.2em] uppercase ${phaseText}">${title}</h5>
+              <h5 class="text-xs font-black tracking-[0.2em] first-letter:uppercase ${phaseText}">${title}</h5>
             </div>
             <p class="text-white/85 text-xs md:text-sm leading-relaxed">${desc}</p>
           </div>
@@ -537,7 +537,7 @@
             </button>
 
             <!-- Security & Privacy Disclaimer integrated inside clinical results card -->
-            <p class="text-[10px] font-medium text-white/35 tracking-[0.05em] leading-relaxed max-w-xs mx-auto text-center mt-2 animate-fade-in">
+            <p class="text-[9px] font-medium text-white/35 tracking-[0.05em] leading-relaxed whitespace-nowrap mx-auto text-center mt-2 animate-fade-in">
               AI có thể mắc sai sót. Vì vậy, hãy xác minh thông tin này với bác sĩ.
             </p>
 

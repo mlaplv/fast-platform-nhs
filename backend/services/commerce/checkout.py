@@ -256,6 +256,24 @@ class CheckoutService:
                 base_listed_price = v_obj.price or product.price or 0.0
             original_subtotal += base_listed_price * item.quantity
 
+            # Resolve promotional gifts for order item (Elite V2.2)
+            item_gifts = []
+            if v_obj and getattr(v_obj, 'attributes', None) and isinstance(v_obj.attributes, dict):
+                item_gifts = v_obj.attributes.get("gifts") or []
+            
+            if not item_gifts and v_obj:
+                v_name = variant_name or ""
+                v_attrs = v_obj.attributes or {}
+                c_qty = v_attrs.get("combo_qty") or v_attrs.get("comboQty") or 1
+                if "dứt điểm" in v_name.lower() or c_qty == 3 or "mua 3" in v_name.lower():
+                    item_gifts = [{
+                        "name": f"{product.name} (Tặng thêm)",
+                        "qty": 1,
+                        "image": product.images[0] if product.images else None
+                    }]
+                elif getattr(product, 'gifts', None):
+                    item_gifts = product.gifts
+
             items_list.append({
                 "id": item.product_id,
                 "name": product.name,
@@ -265,7 +283,8 @@ class CheckoutService:
                 "qty": item.quantity,
                 "unit_price": db_price,
                 "total_price": db_price * item.quantity,
-                "image": product.images[0] if product.images else None
+                "image": product.images[0] if product.images else None,
+                "gifts": item_gifts
             })
 
 
