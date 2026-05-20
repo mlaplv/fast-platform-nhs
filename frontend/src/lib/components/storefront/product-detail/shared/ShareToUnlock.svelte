@@ -73,6 +73,12 @@
   let interactionCount = $state<number>(0);
   let shareMethod = $state<'native' | 'popup' | 'clipboard'>('unknown');
   let popupWasBlocked = $state<boolean>(false);
+  let mouseAcceleration = $state<number>(0);
+  let interactionRhythm = $state<number>(0);
+  let honeypotTriggered = $state<boolean>(false);
+  
+  let _lastMouseX = 0, _lastMouseY = 0, _lastMouseTime = 0;
+  let _clickTimes: number[] = [];
   
   const initTime = Date.now();
   let showFlyGhost = $state(false);
@@ -150,7 +156,30 @@
     const onBlur = () => {
       visibilityChanges++;
     };
-    const onClick = () => interactionCount++;
+    const onClick = () => {
+      interactionCount++;
+      _clickTimes.push(Date.now());
+      if (_clickTimes.length > 2) {
+        const diffs = _clickTimes.slice(1).map((t, i) => t - _clickTimes[i]);
+        const mean = diffs.reduce((a,b) => a+b, 0) / diffs.length;
+        interactionRhythm = diffs.reduce((a,b) => a + Math.pow(b - mean, 2), 0) / diffs.length;
+      }
+    };
+    const onMouseMove = (e: MouseEvent) => {
+      const now = Date.now();
+      if (_lastMouseTime > 0) {
+        const dt = (now - _lastMouseTime) / 1000;
+        if (dt > 0) {
+          const dx = e.clientX - _lastMouseX;
+          const dy = e.clientY - _lastMouseY;
+          const v = Math.sqrt(dx*dx + dy*dy) / dt;
+          if (v > mouseAcceleration) mouseAcceleration = v; // Track max velocity/acceleration proxy
+        }
+      }
+      _lastMouseX = e.clientX;
+      _lastMouseY = e.clientY;
+      _lastMouseTime = now;
+    };
     const onScroll = () => {
         const scrolled = window.scrollY;
         if (scrolled > maxScrollY) maxScrollY = scrolled;
@@ -159,6 +188,7 @@
     document.addEventListener('visibilitychange', onVisibilityChange);
     window.addEventListener('blur', onBlur);
     document.addEventListener('click', onClick);
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
     window.addEventListener('scroll', onScroll, { passive: true });
 
     if (typeof window !== 'undefined') {
@@ -202,6 +232,7 @@
         document.removeEventListener('visibilitychange', onVisibilityChange);
         window.removeEventListener('blur', onBlur);
         document.removeEventListener('click', onClick);
+        window.removeEventListener('mousemove', onMouseMove);
         window.removeEventListener('scroll', onScroll);
     };
   });
@@ -337,7 +368,10 @@
                 scroll_depth_pct: scrollDepthPct,
                 interaction_count: interactionCount,
                 share_method: shareMethod,
-                popup_was_blocked: popupWasBlocked
+                popup_was_blocked: popupWasBlocked,
+                mouse_acceleration: mouseAcceleration,
+                interaction_rhythm: interactionRhythm,
+                honeypot_triggered: honeypotTriggered
             }
           }),
         });
@@ -463,6 +497,17 @@
 {/if}
 
 {#if isMounted && isEnabled && step !== 'revealed'}
+  <!-- Canary Trap / Honeypot: Hidden from real users but bots will interact with it -->
+  <button 
+    class="stu-honeypot" 
+    style="position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;" 
+    aria-hidden="true" 
+    tabindex="-1"
+    onclick={() => { honeypotTriggered = true; }}
+  >
+    Share Promo
+  </button>
+  
   <div class="stu-desktop-root" class:stu-compact={compact}>
     {#if step === 'idle' || step === 'error'}
       <div class="stu-view-bar group">

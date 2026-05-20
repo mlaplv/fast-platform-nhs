@@ -56,6 +56,9 @@ class ClickFraudEvent(Base, AuditMixin):
     mouse_events_count: Mapped[int] = mapped_column(Integer, default=0)
     touch_events_count: Mapped[int] = mapped_column(Integer, default=0)
     webdriver_detected: Mapped[bool] = mapped_column(Boolean, default=False)
+    mouse_acceleration: Mapped[Optional[float]] = mapped_column(Float, default=0.0, nullable=True)
+    interaction_rhythm: Mapped[Optional[float]] = mapped_column(Float, default=0.0, nullable=True)
+    honeypot_triggered: Mapped[Optional[bool]] = mapped_column(Boolean, default=False, nullable=True)
 
     # --- Fraud scoring ---
     fraud_score: Mapped[float] = mapped_column(Float, nullable=False, index=True)

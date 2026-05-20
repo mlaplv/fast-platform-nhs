@@ -179,7 +179,7 @@ class NeuralRewriter(BaseAgentOperative):
             
             # ELITE V2.2: Restoration of Tiptap-Ready HTML (Sếp's Order)
             # CNS V91.1: max_output_tokens=8192 (Gemini physical ceiling limit to avoid auto-fallback truncation)
-            max_tokens = 100 if content_type == "review" else 8192
+            max_tokens = 1024 if content_type == "review" else 8192
             response = await trinity_bridge.run(
                 self._agent, 
                 prompt, 

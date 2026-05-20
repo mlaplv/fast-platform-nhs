@@ -47,6 +47,9 @@ class ShareTelemetryPayload(BaseModel):
     interaction_count: int = Field(0, ge=0)
     share_method: str = Field("unknown")
     popup_was_blocked: bool = Field(False)
+    mouse_acceleration: float = Field(0.0, description="Sinh trắc học: Gia tốc chuột px/s^2")
+    interaction_rhythm: float = Field(0.0, description="Sinh trắc học: Nhịp độ tương tác (variance của khoảng cách click)")
+    honeypot_triggered: bool = Field(False, description="Honeypot: Bị bẫy bởi hidden element")
 
 
 class VerifyShareRequest(BaseModel):

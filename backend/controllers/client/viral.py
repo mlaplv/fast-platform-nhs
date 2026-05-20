@@ -111,13 +111,17 @@ class ViralController(Controller):
             f"IP={ip}, FP={data.fingerprint[:16]}…"
         )
 
+        telemetry_dict = data.telemetry.model_dump() if data.telemetry else None
+        if telemetry_dict is not None:
+            telemetry_dict["client_ip"] = ip
+
         result = await viral_share_service.verify_and_redeem(
             product_id=data.product_id,
             fingerprint=data.fingerprint,
             token=data.token,
             db_session=db_session,
             voucher_id=data.voucher_id,
-            telemetry_data=data.telemetry.model_dump() if data.telemetry else None,
+            telemetry_data=telemetry_dict,
         )
 
         if result is None:

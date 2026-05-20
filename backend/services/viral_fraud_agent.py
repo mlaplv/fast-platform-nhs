@@ -37,6 +37,7 @@ class ShareVerdict(BaseModel):
     reasoning: str = Field(
         ..., description="Brief explanation of the verdict (Vietnamese)"
     )
+    block_ip: bool = Field(False, description="Flag to block the user IP immediately")
 
 
 # ── Telemetry Schema ──────────────────────────────────────────────────────────
@@ -50,19 +51,40 @@ class ShareTelemetry(BaseModel):
     interaction_count: int = Field(0, description="Click/touch count before share")
     share_method: str = Field("unknown", description="native|popup|clipboard")
     popup_was_blocked: bool = Field(False, description="Was the popup blocked?")
+    mouse_acceleration: float = Field(0.0, description="Mouse acceleration px/s^2")
+    interaction_rhythm: float = Field(0.0, description="Interaction rhythm (variance)")
+    honeypot_triggered: bool = Field(False, description="Did bot click honeypot?")
+    client_ip: Optional[str] = Field(None, description="Client IP for blocking")
 
 
 # ── Heuristic Pre-filter ──────────────────────────────────────────────────────
 
-def heuristic_score(t: ShareTelemetry) -> tuple[float, str]:
+def heuristic_score(t: ShareTelemetry) -> tuple[float, str, bool]:
     """
-    Fast deterministic pre-filter. Returns (score, reason).
+    Fast deterministic pre-filter. Returns (score, reason, block_ip).
     Score >= 60 means likely legitimate (skip AI for speed).
     Score < 30 means definite fraud (skip AI to save cost).
     Score 30-59 means ambiguous → escalate to AI.
     """
+    # Sinh trắc học hành vi & Honeypot (Tuyệt đối ưu tiên)
+    if t.honeypot_triggered:
+        return 0.0, "Canary Trap Triggered (Honeypot) - Definite Bot", True
+
     score = 50.0  # Start neutral
     reasons: list[str] = []
+    block_ip = False
+
+    # Sinh trắc học hành vi
+    if t.mouse_acceleration > 10000:
+        score -= 40.0
+        reasons.append("Gia tốc chuột bất thường (>10,000 px/s²)")
+    elif t.mouse_acceleration == 0 and t.interaction_count > 0:
+        score -= 20.0
+        reasons.append("Tương tác không có di chuyển chuột (Bot/Script)")
+    
+    if t.interaction_rhythm > 0 and t.interaction_rhythm < 10:
+        score -= 30.0
+        reasons.append("Nhịp điệu quá đều đặn (Rhythm variance < 10ms)")
 
     # Signal 1: Share duration (Elite V2.2: Hardened thresholds)
     if t.share_duration_ms < 2000:
@@ -116,7 +138,7 @@ def heuristic_score(t: ShareTelemetry) -> tuple[float, str]:
 
     # Clamp
     score = max(0.0, min(100.0, score))
-    return score, " | ".join(reasons) if reasons else "Normal"
+    return score, " | ".join(reasons) if reasons else "Normal", block_ip
 
 
 # ── PydanticAI Agent ──────────────────────────────────────────────────────────
@@ -131,14 +153,17 @@ SIGNALS & THRESHOLDS:
 - scroll_depth_pct: Real users may NOT scroll if the share button is at the top of the page (0% is completely normal and acceptable). Do NOT deny based on 0% scroll depth.
 - time_on_page_ms: Returning or fast-acting users might click the share button instantly (<3s). If their share_duration_ms is genuine (>10s), this is a REAL user, not a bot!
 - interaction_count: Real users have at least 1-2 interactions before sharing.
+- mouse_acceleration: Very high (>8000) means bot telemetry. 0 with interactions means script clicking. Normal is 50-3000.
+- interaction_rhythm: Variance of time between clicks. <20ms is impossibly consistent (macro/script).
 
 VERDICT CRITERIA:
 - 90-100: Flawless behavior.
 - 70-89: Likely legitimate (long share duration, even if page visit was short or didn't scroll).
 - 40-69: Suspicious (rushed, low interaction, or blocked popups).
-- 0-39: Definite fraud (bot-like speed, no tab/focus switch, or extreme rushing).
+- 0-39: Definite fraud (bot-like speed, extreme rushing, rigid rhythm).
 
-Reply with JSON: {"trust_score": float, "verdict": "APPROVE"|"DENY"|"SUSPICIOUS", "reasoning": "strict Vietnamese explanation"}
+Reply with JSON: {"trust_score": float, "verdict": "APPROVE"|"DENY"|"SUSPICIOUS", "reasoning": "strict Vietnamese explanation", "block_ip": bool}
+(Set block_ip to True ONLY if score is < 15 and telemetry strongly indicates an automated bot attacking the system)
 """
 
 share_fraud_agent = Agent(
@@ -158,7 +183,7 @@ async def analyze_share_behavior(telemetry: ShareTelemetry) -> ShareVerdict:
     Returns ShareVerdict with trust_score, verdict, and reasoning.
     """
     # Layer 1: Heuristic fast-path
-    h_score, h_reason = heuristic_score(telemetry)
+    h_score, h_reason, h_block = heuristic_score(telemetry)
 
     if h_score >= 80.0:
         # Strong legitimate signals (e.g. >12s share duration + tab/window switch) → skip AI
@@ -166,7 +191,8 @@ async def analyze_share_behavior(telemetry: ShareTelemetry) -> ShareVerdict:
         return ShareVerdict(
             trust_score=h_score,
             verdict="APPROVE",
-            reasoning=f"Heuristic: {h_reason}"
+            reasoning=f"Heuristic: {h_reason}",
+            block_ip=h_block
         )
 
     if h_score < 10.0:
@@ -175,7 +201,8 @@ async def analyze_share_behavior(telemetry: ShareTelemetry) -> ShareVerdict:
         return ShareVerdict(
             trust_score=h_score,
             verdict="DENY",
-            reasoning=f"Heuristic: {h_reason}"
+            reasoning=f"Heuristic: {h_reason}",
+            block_ip=h_block
         )
 
     # Layer 2: Ambiguous → PydanticAI deep analysis
@@ -189,6 +216,8 @@ async def analyze_share_behavior(telemetry: ShareTelemetry) -> ShareVerdict:
         f"- time_on_page_ms: {telemetry.time_on_page_ms}\n"
         f"- scroll_depth_pct: {telemetry.scroll_depth_pct:.1f}\n"
         f"- interaction_count: {telemetry.interaction_count}\n"
+        f"- mouse_acceleration: {telemetry.mouse_acceleration:.2f}\n"
+        f"- interaction_rhythm: {telemetry.interaction_rhythm:.2f}\n"
         f"- popup_was_blocked: {telemetry.popup_was_blocked}\n"
         f"\nHeuristic pre-score: {h_score:.0f} ({h_reason})"
     )
@@ -214,6 +243,7 @@ async def analyze_share_behavior(telemetry: ShareTelemetry) -> ShareVerdict:
                 trust_score=float(getattr(result, "trust_score", h_score)),
                 verdict=str(getattr(result, "verdict", "SUSPICIOUS")),
                 reasoning=str(getattr(result, "reasoning", h_reason)),
+                block_ip=bool(getattr(result, "block_ip", h_block))
             )
 
     except Exception as e:
@@ -224,5 +254,6 @@ async def analyze_share_behavior(telemetry: ShareTelemetry) -> ShareVerdict:
     return ShareVerdict(
         trust_score=h_score,
         verdict=verdict,
-        reasoning=f"Fallback heuristic: {h_reason}"
+        reasoning=f"Fallback heuristic: {h_reason}",
+        block_ip=h_block
     )

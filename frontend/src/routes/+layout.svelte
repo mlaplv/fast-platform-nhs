@@ -70,9 +70,175 @@
       await supportAgent.init(data.agentName);
     }
 
-    if (ui) {
-      return ui.initObservers();
+    // Elite V3.5: Google Ads Click Protection (Real-time biometric & Canary detection)
+    let adsCleanup: (() => void) | null = null;
+    if (!isAdmin && typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const gclid = urlParams.get('gclid');
+      if (gclid) {
+        let mouseEventsCount = 0;
+        let touchEventsCount = 0;
+        let keyEventsCount = 0;
+        let maxScrollY = 0;
+        let mouseAcceleration = 0;
+        let interactionRhythm = 0;
+        let honeypotTriggered = false;
+        
+        let lastMouseX = 0, lastMouseY = 0, lastMouseTime = 0;
+        let clickTimes: number[] = [];
+        const startTime = Date.now();
+
+        const onMouseMove = (e: MouseEvent) => {
+          mouseEventsCount++;
+          const now = Date.now();
+          if (lastMouseTime > 0) {
+            const dt = (now - lastMouseTime) / 1000;
+            if (dt > 0) {
+              const dx = e.clientX - lastMouseX;
+              const dy = e.clientY - lastMouseY;
+              const v = Math.sqrt(dx*dx + dy*dx) / dt;
+              if (v > mouseAcceleration) mouseAcceleration = v;
+            }
+          }
+          lastMouseX = e.clientX;
+          lastMouseY = e.clientY;
+          lastMouseTime = now;
+        };
+
+        const onTouchMove = (e: TouchEvent) => {
+          touchEventsCount++;
+          const touch = e.touches[0];
+          if (!touch) return;
+          const now = Date.now();
+          if (lastMouseTime > 0) {
+            const dt = (now - lastMouseTime) / 1000;
+            if (dt > 0) {
+              const dx = touch.clientX - lastMouseX;
+              const dy = touch.clientY - lastMouseY;
+              const v = Math.sqrt(dx*dx + dy*dy) / dt;
+              if (v > mouseAcceleration) mouseAcceleration = v;
+            }
+          }
+          lastMouseX = touch.clientX;
+          lastMouseY = touch.clientY;
+          lastMouseTime = now;
+        };
+
+        const onClick = () => {
+          clickTimes.push(Date.now());
+          if (clickTimes.length > 2) {
+            const diffs = clickTimes.slice(1).map((t, i) => t - clickTimes[i]);
+            const mean = diffs.reduce((a,b) => a+b, 0) / diffs.length;
+            interactionRhythm = diffs.reduce((a,b) => a + Math.pow(b - mean, 2), 0) / diffs.length;
+          }
+        };
+
+        const onScroll = () => {
+          const scrolled = window.scrollY;
+          if (scrolled > maxScrollY) maxScrollY = scrolled;
+        };
+
+        const onKeyPress = () => {
+          keyEventsCount++;
+        };
+
+        // Listen to honeypot
+        const honeypotInput = document.getElementById('ads_honeypot_hidden') as HTMLInputElement | null;
+        const triggerHoneypot = () => { honeypotTriggered = true; };
+
+        // Bind events
+        window.addEventListener('mousemove', onMouseMove, { passive: true });
+        window.addEventListener('touchmove', onTouchMove, { passive: true });
+        window.addEventListener('click', onClick, { passive: true });
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('keypress', onKeyPress, { passive: true });
+        if (honeypotInput) {
+          honeypotInput.addEventListener('focus', triggerHoneypot);
+          honeypotInput.addEventListener('input', triggerHoneypot);
+        }
+
+        let reported = false;
+        const sendTelemetry = async () => {
+          if (reported) return;
+          reported = true;
+
+          const docHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 1);
+          const winHeight = window.innerHeight;
+          const scrollDepthPct = Math.min((maxScrollY / (docHeight - winHeight)) * 100, 100);
+
+          const payload = {
+            gclid: gclid,
+            campaign_id: urlParams.get('utm_campaign') || null,
+            ad_group_id: urlParams.get('utm_adgroup') || null,
+            keyword: urlParams.get('utm_term') || null,
+            ip_address: '0.0.0.0', // backend overrides this
+            user_agent: navigator.userAgent,
+            referrer: document.referrer || null,
+            landing_url: window.location.href,
+            session_duration_ms: Math.round(Date.now() - startTime),
+            scroll_depth_percent: Math.round(scrollDepthPct || 0),
+            mouse_events_count: mouseEventsCount,
+            touch_events_count: touchEventsCount,
+            key_events_count: keyEventsCount,
+            screen_width: window.screen.width,
+            screen_height: window.screen.height,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            language: navigator.language,
+            plugins_count: navigator.plugins.length,
+            webdriver_detected: navigator.webdriver || false,
+            cookie_enabled: navigator.cookieEnabled,
+            mouse_acceleration: mouseAcceleration,
+            interaction_rhythm: interactionRhythm,
+            honeypot_triggered: honeypotTriggered,
+            is_high_intent: false
+          };
+
+          try {
+            await fetch('/api/v1/ads-protection/validate-click', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+          } catch (e) {
+            console.error('[Ads-Protection] Telemetry failed:', e);
+          }
+        };
+
+        const timeoutId = setTimeout(sendTelemetry, 5000);
+        window.addEventListener('beforeunload', sendTelemetry);
+        const visibilityHandler = () => {
+          if (document.hidden) sendTelemetry();
+        };
+        document.addEventListener('visibilitychange', visibilityHandler);
+
+        adsCleanup = () => {
+          clearTimeout(timeoutId);
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('touchmove', onTouchMove);
+          window.removeEventListener('click', onClick);
+          window.removeEventListener('scroll', onScroll);
+          window.removeEventListener('keypress', onKeyPress);
+          window.removeEventListener('beforeunload', sendTelemetry);
+          document.removeEventListener('visibilitychange', visibilityHandler);
+          if (honeypotInput) {
+            honeypotInput.removeEventListener('focus', triggerHoneypot);
+            honeypotInput.removeEventListener('input', triggerHoneypot);
+          }
+        };
+      }
     }
+
+    if (ui) {
+      const observerCleanup = ui.initObservers();
+      return () => {
+        if (adsCleanup) adsCleanup();
+        if (observerCleanup) observerCleanup();
+      };
+    }
+
+    return () => {
+      if (adsCleanup) adsCleanup();
+    };
   });
 
   onDestroy(() => {
@@ -133,7 +299,9 @@
   </main>
 
   {#if !isAdmin}
-    
+    <!-- Elite V3.5: Honeypot / Canary Trap for Ad-fraud Bot Isolation -->
+    <input type="text" id="ads_honeypot_hidden" style="opacity: 0.01; position: absolute; left: -9999px; top: -9999px; height: 1px; width: 1px; z-index: -999;" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
     {#if ui?.authModal?.isOpen}
       <QuickLoginModal />
     {/if}

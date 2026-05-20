@@ -73,6 +73,15 @@ class ClickFraudService:
         signals = self._evaluate_signals(event, ip_report)
         fraud_score = self._compute_score(signals)
         
+        # [Elite V3.5] Honeypot Canary Trap instant block
+        if event.honeypot_triggered:
+            fraud_score = 1.0
+            # Ensure the honeypot signal in the list is marked as triggered
+            for s in signals:
+                if s.name == "honeypot_triggered":
+                    s.triggered = True
+            logger.warning("🚨 [Canary Trap] Honeypot triggered by IP: %s", event.ip_address)
+
         # [V3.0] Conversion Insurance (High-Intent Bypass)
         if event.is_high_intent:
             logger.info("💎 [Insurance] High-intent detected for %s. Reducing fraud_score.", event.ip_address)
@@ -211,6 +220,25 @@ class ClickFraudService:
                 triggered=(ip["country"] not in ("VN", "unknown", "")),
                 weight=0.25,
                 description=f"IP không thuộc Việt Nam (country={ip['country']})",
+            ),
+            # --- Biometric / Canary Trap Extensions (V3.5) ---
+            FraudSignal(
+                name="honeypot_triggered",
+                triggered=s.honeypot_triggered,
+                weight=0.90,
+                description="Bẫy Canary / Honeypot bị kích hoạt",
+            ),
+            FraudSignal(
+                name="robotic_mouse_movement",
+                triggered=bool(s.mouse_events_count > 0 and (s.mouse_acceleration == 0.0 or s.mouse_acceleration > 10000.0)),
+                weight=0.25,
+                description="Gia tốc chuột bất thường (bằng 0 hoặc quá nhanh)",
+            ),
+            FraudSignal(
+                name="robotic_click_rhythm",
+                triggered=bool((s.mouse_events_count > 1 or s.touch_events_count > 1) and (0 < s.interaction_rhythm < 50.0)),
+                weight=0.20,
+                description="Nhịp tương tác quá cơ học (phân sai click gần 0)",
             ),
         ]
 

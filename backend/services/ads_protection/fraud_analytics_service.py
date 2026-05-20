@@ -21,6 +21,7 @@ logger = logging.getLogger("ads_protection.analytics")
 
 
 from .schemas import (
+    ClickEvent,
     ClickFraudResult,
     FraudSummary,
     FraudSummaryTotals,
@@ -45,7 +46,7 @@ class FraudAnalyticsService:
     # Persist
     # -----------------------------------------------------------------------
 
-    async def record(self, result: ClickFraudResult) -> ClickFraudEvent:
+    async def record(self, result: ClickFraudResult, event_data: ClickEvent) -> ClickFraudEvent:
         """Lưu kết quả phân tích vào Postgres."""
         ip = result.ip_report
         triggered = [s.name for s in result.signals if s.triggered]
@@ -59,6 +60,14 @@ class FraudAnalyticsService:
             is_proxy=ip.is_proxy,
             ip_country=ip.country,
             ip_org=ip.org[:128],
+            session_duration_ms=event_data.session_duration_ms,
+            scroll_depth_percent=event_data.scroll_depth_percent,
+            mouse_events_count=event_data.mouse_events_count,
+            touch_events_count=event_data.touch_events_count,
+            webdriver_detected=event_data.webdriver_detected,
+            mouse_acceleration=event_data.mouse_acceleration,
+            interaction_rhythm=event_data.interaction_rhythm,
+            honeypot_triggered=event_data.honeypot_triggered,
             fraud_score=result.fraud_score,
             verdict=result.verdict,
             triggered_signals=json.dumps(triggered),

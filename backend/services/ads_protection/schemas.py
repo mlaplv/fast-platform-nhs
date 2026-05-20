@@ -47,6 +47,11 @@ class ClickEvent(BaseModel):
     touch_events_count: int = Field(default=0, ge=0)
     key_events_count: int = Field(default=0, ge=0)
 
+    # Biometric Telemetry
+    mouse_acceleration: float = Field(default=0.0, ge=0.0)
+    interaction_rhythm: float = Field(default=0.0, ge=0.0)
+    honeypot_triggered: bool = False
+
     screen_width: Optional[int] = None
     screen_height: Optional[int] = None
     timezone: Optional[str] = None

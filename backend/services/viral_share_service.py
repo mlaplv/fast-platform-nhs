@@ -196,6 +196,20 @@ class ViralShareService:
                 verdict = await analyze_share_behavior(telemetry)
                 trust_score = verdict.trust_score
 
+                if getattr(verdict, "block_ip", False) and telemetry.client_ip:
+                    try:
+                        from backend.database.models.ads import IPBlacklist
+                        logger.warning(f"[ViralShare] BLOCKING IP {telemetry.client_ip} due to AI Fraud Detection")
+                        new_bl = IPBlacklist(
+                            ip_address=telemetry.client_ip,
+                            reason=f"Honeypot/Bot Behavior: {verdict.reasoning}",
+                            fraud_score=1.0
+                        )
+                        db_session.add(new_bl)
+                        await db_session.commit()
+                    except Exception as ex:
+                        logger.error(f"[ViralShare] Failed to blacklist IP {telemetry.client_ip}: {ex}")
+
                 if verdict.verdict == "DENY":
                     logger.warning(
                         f"[ViralShare] AI DENIED share for product={product_id}: "

@@ -11,7 +11,7 @@ from pathlib import Path
 from datetime import datetime, timedelta, UTC
 from typing import AsyncGenerator, Optional, Annotated
 
-from litestar import Controller, get, post, patch, delete
+from litestar import Controller, get, post, patch, delete, Request
 from litestar.response import ServerSentEvent
 from litestar.params import Parameter
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -116,16 +116,23 @@ class AdsProtectionController(Controller):
     async def validate_click(
         self,
         db_session: AsyncSession,
+        request: Request,
         data: ClickEvent,
     ) -> ClickFraudResult:
         """
         Nhận fingerprint từ client-side script, phân tích fraud, persist vào DB.
         Trả về verdict để client quyết định có fire conversion pixel không.
         """
+        # Extract client IP
+        ip = request.headers.get("x-real-ip") or request.headers.get("x-forwarded-for") or request.connection.ip
+        if "," in ip:
+            ip = ip.split(",")[0].strip()
+        data.ip_address = ip
+
         result = await _fraud_svc.analyze(data)
 
         analytics = FraudAnalyticsService(db_session)
-        await analytics.record(result)
+        await analytics.record(result, data)
 
         # [V3.0 Fast Path] Push to stream for Agentic Analysis (Slow Path)
         await _stream_producer.produce(
@@ -146,6 +153,27 @@ class AdsProtectionController(Controller):
                 result.fraud_score,
                 [s.name for s in result.signals if s.triggered],
             )
+            # [Elite V3.5] Auto-block IP in local DB and Google Ads
+            try:
+                # Check if already blacklisted
+                stmt = select(IPBlacklist).where(IPBlacklist.ip_address == result.ip_address)
+                existing = (await db_session.execute(stmt)).scalar_one_or_none()
+                if not existing:
+                    new_bl = IPBlacklist(
+                        ip_address=result.ip_address,
+                        reason=f"Auto-blocked: Click Fraud detected (score={result.fraud_score}, gclid={result.gclid or 'N/A'})",
+                        fraud_score=result.fraud_score
+                    )
+                    db_session.add(new_bl)
+                    await db_session.commit()
+                    logger.info("🛡️ [Auto-Block] IP %s blacklisted locally", result.ip_address)
+                    
+                    # Async block in Google Ads if customer_id is configured
+                    if _campaign_mgr._has_credentials():
+                        # run in background task to avoid blocking response latency
+                        asyncio.create_task(_campaign_mgr.block_ip(campaign_resource_name="", ip_address=result.ip_address, is_global=True))
+            except Exception as ex:
+                logger.error("Auto-block IP failed for %s: %s", result.ip_address, ex)
 
         # Đẩy dữ liệu thời gian thực cho Dashboard qua SSE
         await _hub.broadcast({
@@ -339,12 +367,14 @@ class AdsProtectionController(Controller):
     # 7. Danh sách Campaigns
     # ------------------------------------------------------------------
     @get("/campaigns")
-    async def list_campaigns(self) -> list[CampaignInfo]:
+    async def list_campaigns(
+        self, db_session: AsyncSession
+    ) -> list[CampaignInfo]:
         """
         Lấy danh sách campaigns với metrics 30 ngày gần nhất.
         Trả list rỗng nếu chưa cấu hình credentials.
         """
-        return await _campaign_mgr.list_campaigns()
+        return await _campaign_mgr.list_campaigns(db_session=db_session)
 
     # ------------------------------------------------------------------
     # 8. Tạo Campaign mới (Policy validation bắt buộc)
