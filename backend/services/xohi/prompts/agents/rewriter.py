@@ -55,7 +55,7 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
 - MỤC TIÊU TỐI THƯỢNG: Trình bày thông tin sản phẩm trực diện, dễ đọc, dễ hiểu. CẤM XUẤT CODE, CẤM PHÂN TÍCH BÁO CÁO, CẤM PHẢN BIỆN trong kết quả đầu ra.
 
 - CẤU TRÚC ĐỘNG — BỘ KHUNG CHUẨN (Product Standard Framework):
-  Viết lần lượt theo đúng 7 phần sau, BẮT BUỘC dùng chính xác các tiêu đề sau trong thẻ <h2> (không tự ý đổi tên heading, tuyệt đối không gộp hay cắt xén):
+  Viết lần lượt theo đúng 6 phần sau, BẮT BUỘC dùng chính xác các tiêu đề sau trong thẻ <h2> (không tự ý đổi tên heading, tuyệt đối không gộp hay cắt xén):
 
   + <h2>Giới thiệu</h2>: BẮT BUỘC viết theo đúng 3 nhịp liên tục sau — KHÔNG TÁCH THÀNH CÁC ĐỀ MỤC CON, chỉ là một khối văn xuôi mạch lạc:
 
@@ -73,21 +73,12 @@ PRODUCT_REWRITE_INSTRUCTIONS = PromptComponent(
   + <h2>Cách sử dụng</h2>: Hướng dẫn ngắn gọn bước chuẩn bị bằng đoạn văn, tiếp theo dùng danh sách (<ul>/<li>) cho các bước thực hiện rõ ràng.
   + <h2>Lưu ý khi sử dụng</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) liệt kê các lưu ý an toàn và kiêng cữ cần thiết.
   + <h2>Bảo quản</h2>: Dùng danh sách gạch đầu dòng (<ul>/<li>) ghi rõ hướng dẫn điều kiện bảo quản.
-  + <h2>Cam kết</h2>: BẮT BUỘC sao chép nguyên văn và giữ đúng cấu trúc HTML (sử dụng <strong>, <p>, <ul>, <li>) phần cam kết chất lượng sau đây vào BƯỚC CUỐI CÙNG của bài viết. TUYỆT ĐỐI KHÔNG lồng ghép hay nhắc lại nội dung "Cam kết 3 Không" này ở bất kỳ phần nào khác (như Giới thiệu, Công dụng...) để tránh trùng lặp:
-    <strong>Lành tính & An toàn</strong>
-    <p>Cam kết "3 Không"</p>
-    <ul>
-      <li>KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.</li>
-      <li>KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.</li>
-      <li>KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ dược liệu Nhật bản.</li>
-    </ul>
-    <strong>Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>
 
 - ĐẢM BẢO CHẤT LƯỢNG KỸ THUẬT & FORMAT:
   1. Trình bày HTML sạch sẽ, chuẩn xác theo bộ khung. CẤM dùng Markdown.
   2. BẢNG BIỂU (TABLE): CẤM TUYỆT ĐỐI sử dụng định dạng bảng Markdown (ví dụ `| --- |`). BẤT CỨ KHI NÀO cần tạo bảng, BẮT BUỘC phải sử dụng thẻ HTML thuần (`<table class="table-auto w-full">`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>`). Việc dùng Markdown Table sẽ gây lỗi dính chữ trên Frontend.
   3. KIỂM SOÁT TỪ VỰNG: TUYỆT ĐỐI KHÔNG sử dụng từ "Nhau thai" hoặc "nhau thai". Bắt buộc thay thế hoàn toàn bằng từ "Placenta" trong mọi ngữ cảnh (VD: "chiết xuất Placenta", "tinh chất Placenta").
-  4. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các phần nội dung sao cho phù hợp. BẮT BUỘC viết cô đọng, ngắn gọn và súc tích để toàn bộ bài viết bao gồm cả phần Cam kết ở cuối cùng được kết xuất đầy đủ, trọn vẹn, tuyệt đối không viết lan man dài dòng gây cạn kiệt token làm cắt cụt nội dung.
+  4. Lồng ghép hình ảnh (<img>) từ bản gốc vào giữa các phần nội dung sao cho phù hợp. BẮT BUỘC viết cô đọng, ngắn gọn và súc tích để toàn bộ bài viết từ đầu đến cuối được kết xuất đầy đủ, trọn vẹn, tuyệt đối không viết lan man dài dòng gây cạn kiệt token làm cắt cụt nội dung.
 """
 )
 

@@ -542,7 +542,9 @@
               {#if product.metadata?.ingredients}
                 <div class="mt-4 mb-2 flex items-center gap-1.5">
                   <Beaker class="w-3.5 h-3.5 text-teal-300/80" />
-                  <span class="text-[11px] font-bold text-white/50 tracking-wider">
+                  <span
+                    class="text-[11px] font-bold text-white/50 tracking-wider"
+                  >
                     Bảng thành phần đầy đủ
                   </span>
                 </div>
@@ -573,7 +575,6 @@
               <MobileVerificationCenter {product} {verificationData} />
             </BottomSheet>
           {/if}
-
         </div>
 
         <div class="px-[5px] elite-prose">
@@ -602,6 +603,9 @@
             </div>
           {/if}
         </div>
+
+        <!-- Spacer to prevent floating CTA from overlapping content at the very bottom -->
+        <div class="h-32 w-full block clear-both shrink-0 pointer-events-none"></div>
       {/if}
     </div>
 
@@ -667,6 +671,7 @@
     text-align: left !important;
     word-break: break-word;
     letter-spacing: -0.01em;
+    margin-bottom: 8px;
   }
 
   /* 🏆 Premium Headings - VIRAL 2026 ELITE EDITION */

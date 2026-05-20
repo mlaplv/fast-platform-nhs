@@ -19,7 +19,8 @@ HARD_BLACKLIST = [
     "gemma", "experimental", "alpha", "learnlm", "preview", "latest", 
     "exp", "-001", "-002", 
     "flash-latest", "lite-latest", "gemini-1.5",
-    "gemini-2.0-pro", "gemini-1.5-pro", "gemini-1.5-flash"
+    "gemini-2.0-pro", "gemini-1.5-pro", "gemini-1.5-flash",
+    "gemini-2.0-flash-lite"
 ]
 
 DEFAULT_AI_CONFIG = {
@@ -355,7 +356,7 @@ class TrinityModels:
                 for profile in profiles:
                     changed = False
                     if profile.primary_model == model_name:
-                        profile.primary_model = "gemini-2.0-flash"
+                        profile.primary_model = trinity_bridge.primary_model
                         changed = True
                     if profile.ai_models and model_name in profile.ai_models:
                         profile.ai_models = [m for m in profile.ai_models if m != model_name]
@@ -371,7 +372,7 @@ class TrinityModels:
             # Hot-Reload memory states in trinity_bridge if available
             from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
             if trinity_bridge.db_primary_model == model_name:
-                trinity_bridge.db_primary_model = "gemini-2.0-flash"
+                trinity_bridge.db_primary_model = trinity_bridge.primary_model
             trinity_bridge.db_waterfall = [m for m in trinity_bridge.db_waterfall if m != model_name]
             
             # Reset cache load time so the next check pulls fresh config from DB

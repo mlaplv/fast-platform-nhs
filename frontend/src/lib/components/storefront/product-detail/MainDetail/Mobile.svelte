@@ -499,4 +499,31 @@
       opacity: 1;
     }
   }
+
+  :global(.prose-osmo figure) {
+    margin: 1rem 0 !important;
+    display: block !important;
+    text-align: center !important;
+  }
+
+  :global(.prose-osmo figure img) {
+    margin-top: 0 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  :global(.prose-osmo figcaption) {
+    text-align: center !important;
+    display: block !important;
+    margin-top: 0.25rem !important;
+    font-size: 12px !important;
+    color: #6b7280 !important;
+    font-style: italic !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Khử margin và tránh block-break gây vỡ hàng cho p trong li */
+  :global(.prose-osmo li p) {
+    display: inline !important;
+    margin-bottom: 0 !important;
+  }
 </style>

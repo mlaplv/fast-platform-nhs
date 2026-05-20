@@ -20,6 +20,41 @@ logger = logging.getLogger("api-gateway")
 
 RE_DIGIT = re.compile(r'\d+')
 
+# ══════════════════════════════════════════════════════════════
+# Elite V2.2: Markdown Table → HTML Table Converter
+# Safety net for AI model disobedience (Gemini outputs | --- | despite prompt ban)
+# ══════════════════════════════════════════════════════════════
+_MD_TABLE_RE = re.compile(
+    r'(\|[^\n]+\|[ \t]*\n)'           # Group 1: Header row
+    r'(\|[\s:\-|]+\|[ \t]*\n)'        # Group 2: Separator row (---/:---)
+    r'((?:\|[^\n]+\|[ \t]*(?:\n|$))+)',  # Group 3: Data rows (1+)
+)
+
+def _md_table_to_html(match: re.Match[str]) -> str:
+    """Convert a single Markdown table match to Tiptap-ready HTML <table>."""
+    header_line = match.group(1).strip()
+    data_block = match.group(3).strip()
+
+    headers = [c.strip() for c in header_line.strip('|').split('|')]
+    rows: list[list[str]] = []
+    for line in data_block.split('\n'):
+        line = line.strip()
+        if line and '|' in line:
+            rows.append([c.strip() for c in line.strip('|').split('|')])
+
+    parts = ['<table class="table-auto w-full">', '<thead>', '<tr>']
+    for h in headers:
+        parts.append(f'<th>{h}</th>')
+    parts.extend(['</tr>', '</thead>', '<tbody>'])
+    for row in rows:
+        parts.append('<tr>')
+        for cell in row:
+            parts.append(f'<td>{cell}</td>')
+        parts.append('</tr>')
+    parts.extend(['</tbody>', '</table>'])
+    return '\n'.join(parts)
+
+
 class PlagiarismRefiner(XoHiProgressMixin):
     """
     Handles deterministic deduplication and AI-powered surgical fixes for Copyright.
@@ -37,6 +72,8 @@ class PlagiarismRefiner(XoHiProgressMixin):
             return ""
         clean = re.sub(r'```html\s*', '', html, flags=re.IGNORECASE)
         clean = re.sub(r'```\s*', '', clean)
+        # Elite V2.2: Convert Markdown Tables → HTML Tables (Anti-Gemini Disobedience)
+        clean = _MD_TABLE_RE.sub(_md_table_to_html, clean)
         return clean.strip()
 
 

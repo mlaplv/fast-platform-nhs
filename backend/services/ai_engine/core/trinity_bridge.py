@@ -34,8 +34,8 @@ class TrinityBridge:
     """V65.0: Centralized AI Bridge. Modularized for Martial Law (<300 lines)."""
     def __init__(self) -> None:
         self.rotator: 'KeyRotator' = key_rotator
-        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-2.0-flash")
-        self.fallback_model: str = os.getenv("AI_FALLBACK_MODEL", "gemini-2.0-flash-lite")
+        self.primary_model: str = os.getenv("AI_PRIMARY_MODEL", "gemini-3.5-flash")
+        self.fallback_model: str = os.getenv("AI_FALLBACK_MODEL", "gemini-3.1-flash-lite")
         self.models_helper: TrinityModels = TrinityModels(self.rotator, self.primary_model, self.fallback_model)
         self.db_primary_model: Optional[str] = None
         self.db_waterfall: list[str] = []
@@ -81,12 +81,12 @@ class TrinityBridge:
                     self.db_primary_model, self.db_waterfall = p.primary_model, p.ai_models or []
                     
                     # Elite V2.2: Hard-redirection for deprecated models
-                    if self.db_primary_model in ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-pro"]:
-                        logger.info(f"🔄 [TrinityBridge] Redirecting legacy/deprecated primary model {self.db_primary_model} -> gemini-2.0-flash")
-                        self.db_primary_model = "gemini-2.0-flash"
+                    if self.db_primary_model in ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-pro", "gemini-2.0-flash-lite"]:
+                        logger.info(f"🔄 [TrinityBridge] Redirecting legacy/deprecated primary model {self.db_primary_model} -> {self.primary_model}")
+                        self.db_primary_model = self.primary_model
                     
-                    # Sanitize waterfall: Purge all 1.5 and 2.0-pro references
-                    self.db_waterfall = [m for m in self.db_waterfall if "gemini-1.5" not in m and "gemini-2.0-pro" not in m]
+                    # Sanitize waterfall: Purge all 1.5, 2.0-pro, and 2.0-flash-lite references
+                    self.db_waterfall = [m for m in self.db_waterfall if "gemini-1.5" not in m and "gemini-2.0-pro" not in m and "gemini-2.0-flash-lite" not in m]
                         
                     logger.info(f"🧬 [TrinityBridge] Loaded VoiceProfile configuration: {self.db_primary_model} (Waterfall: {len(self.db_waterfall)} models)")
         except Exception as e: 

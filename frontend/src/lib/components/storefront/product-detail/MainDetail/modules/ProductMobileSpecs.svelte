@@ -154,12 +154,15 @@
       <div class="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-teal-100/20 blur-xl pointer-events-none"></div>
       
       <div class="relative z-10 flex flex-col gap-2">
-        <!-- Mobile Header: Single horizontal line -->
-        <div class="flex items-center gap-1.5 pb-2 border-b border-emerald-500/10">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span class="text-[11px] font-black text-slate-800 uppercase tracking-wider truncate">{commitments.title}</span>
-          <span class="text-gray-300 text-[10px]">|</span>
-          <span class="text-[10px] font-bold text-[#ee4d2d] truncate">{commitments.subtitle}</span>
+        <!-- Mobile Header: Optimized flex wrapper - Prevent title compression -->
+        <div class="flex flex-col gap-1 pb-2 border-b border-emerald-500/10">
+          <div class="flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-[11px] font-black text-slate-800 uppercase tracking-wider whitespace-nowrap shrink-0">{commitments.title}</span>
+          </div>
+          {#if commitments.subtitle}
+            <span class="text-[10px] font-bold text-[#ee4d2d] leading-normal">{commitments.subtitle}</span>
+          {/if}
         </div>
 
         <!-- Mobile Items: 3 compact rows -->
@@ -172,10 +175,10 @@
               <svg class="w-3 h-3 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              <div class="flex items-baseline gap-1 min-w-0">
-                <span class="text-[10.5px] font-black text-slate-800 shrink-0">{boldPart.trim()}</span>
+              <div class="flex flex-col min-w-0 leading-normal py-0.5">
+                <span class="text-[10.5px] font-black text-slate-800 leading-tight">{boldPart.trim()}</span>
                 {#if normalPart}
-                  <span class="text-[9.5px] text-gray-500 truncate">{normalPart.trim()}</span>
+                  <span class="text-[9.5px] text-gray-500 leading-tight mt-0.5">{normalPart.trim()}</span>
                 {/if}
               </div>
             </div>
@@ -289,6 +292,12 @@
     letter-spacing: -0.011em !important;
   }
 
+  /* Khử margin và tránh block-break gây vỡ hàng cho p trong li */
+  :global(.prose-osmo li p) {
+    display: inline !important;
+    margin-bottom: 0 !important;
+  }
+
   :global(.prose-osmo h2, .prose-osmo h3) {
     color: #6b7280 !important;
     font-weight: 900 !important;
@@ -356,5 +365,26 @@
     margin: 1rem 0 !important;
     width: 100% !important;
     height: auto !important;
+  }
+
+  :global(.prose-osmo figure) {
+    margin: 1rem 0 !important;
+    display: block !important;
+    text-align: center !important;
+  }
+
+  :global(.prose-osmo figure img) {
+    margin-top: 0 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  :global(.prose-osmo figcaption) {
+    text-align: center !important;
+    display: block !important;
+    margin-top: 0.25rem !important;
+    font-size: 12px !important;
+    color: #6b7280 !important;
+    font-style: italic !important;
+    line-height: 1.4 !important;
   }
 </style>

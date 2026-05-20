@@ -65,22 +65,19 @@ export function parseDescriptionAndCommitments(description: string): {
     const headerIndex = searchPart.lastIndexOf('<h2');
     const splitIndex = headerIndex !== -1 ? headerIndex : index;
 
-    const cleanDescription = description.slice(0, splitIndex).trim();
-    const commitmentsHtml = description.slice(splitIndex).trim();
-
+    const cleanDescription = description.slice(0, splitIndex).trim() || description.slice(0, index).trim();
     return {
       cleanDescription,
-      commitments: parseCommitmentsHtml(commitmentsHtml)
+      commitments: null
     };
   }
 
   const index = match.index!;
   const cleanDescription = description.slice(0, index).trim();
-  const commitmentsHtml = description.slice(index).trim();
 
   return {
     cleanDescription,
-    commitments: parseCommitmentsHtml(commitmentsHtml)
+    commitments: null
   };
 }
 
@@ -93,49 +90,4 @@ export function unescapeHtml(str: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, ' ');
-}
-
-export function parseCommitmentsHtml(html: string): CommitmentsData {
-  // Extract all list items <li>...</li>
-  const liMatches = [...html.matchAll(/<li[^>]*>(.*?)<\/li>/gi)].map(m => m[1].trim());
-
-  let items = liMatches;
-  // Fallback: If no <li>, split by paragraph/br and look for uppercase lines or lines with "KHÔNG" or "+"
-  if (items.length === 0) {
-    const rawLines = html.replace(/<[^>]*>/g, '\n').split('\n').map(l => l.trim()).filter(Boolean);
-    items = rawLines.filter(l => l.startsWith('+') || l.startsWith('-') || l.startsWith('•') || l.toUpperCase().includes('KHÔNG '));
-  }
-
-  // Clean bullet prefixes
-  items = items.map(item => item.replace(/^[+\-•\s*]+/, '').trim());
-
-  // Extract titles and other segments
-  const allLines = html.replace(/<[^>]*>/g, '\n').split('\n').map(l => l.trim()).filter(Boolean);
-
-  let title = "Lành tính & An toàn";
-  let subtitle = "Cam kết \"3 Không\" từ Miccosmo";
-  let fomo = "Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng";
-
-  // Match title (line containing "Lành tính")
-  const titleLine = allLines.find(l => l.toLowerCase().includes('lành tính') && !l.toLowerCase().includes('3 không') && !l.toLowerCase().includes('cam kết'));
-  if (titleLine) title = titleLine;
-
-  // Match subtitle (line containing "3 Không")
-  const subtitleLine = allLines.find(l => l.toLowerCase().includes('3 không'));
-  if (subtitleLine) subtitle = subtitleLine;
-
-  // Match fomo (line containing "đổi trả" or "hoàn tiền" or "free ship" or "freeship")
-  const fomoLine = allLines.find(l => l.toLowerCase().includes('đổi trả') || l.toLowerCase().includes('hoàn tiền') || l.toLowerCase().includes('free ship') || l.toLowerCase().includes('freeship'));
-  if (fomoLine) fomo = fomoLine;
-
-  return {
-    title: unescapeHtml(title),
-    subtitle: unescapeHtml(subtitle),
-    items: (items.length > 0 ? items : [
-      "KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.",
-      "KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.",
-      "KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ dược liệu Nhật bản."
-    ]).map(unescapeHtml),
-    fomo: unescapeHtml(fomo)
-  };
 }

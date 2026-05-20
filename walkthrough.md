@@ -66,11 +66,11 @@
 ## Files đã sửa/tạo (5 files)
 
 ### Backend (4 files)
-1. **`backend/services/ai_engine/core/trinity_models.py`** — Cập nhật mảng `HARD_BLACKLIST` (loại bỏ `"gemini-2.0-pro"`, `"gemini-1.5-pro"`, `"gemini-1.5-flash"`). Nâng cấp hệ thống tính điểm `_score_model_sync` hỗ trợ trọng số đặc quyền cho các model 2026 thế hệ mới `3.5` (`score += 3000`). Bổ sung phương thức `add_to_persistent_blacklist` xử lý ghi nhận vĩnh viễn mô hình chết vào DB `SystemSetting` cấu hình `ai_orchestration_config`, đồng thời lọc sạch mô hình này ra khỏi bảng `VoiceProfile` và hot-reload bộ nhớ tức thời. Bổ sung cơ chế **Hợp nhất Cấu hình Động (Dynamic Fusion Whitelist/Blacklist)**.
-2. **`backend/services/ai_engine/core/trinity_bridge.py`** — Lồng ghép cơ chế gọi `add_to_persistent_blacklist` tại hàm `run` và `run_stream` khi bắt được mã lỗi `404 Model Not Found` (`model_not_found`). Thêm bộ tiền-lọc `"gemini-2.0-pro"` tại hàm `reload_models` để tự động redirect về `"gemini-2.0-flash"` khi khởi chạy hệ thống.
-3. **`backend/services/ai_service.py`** — Nâng cấp `priority_pool` trong tiến trình `auto_optimize_stack` chuyển đổi toàn diện lên dòng model thế hệ mới 2026: `["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-2.5-pro", "gemini-2.5-flash"]` giúp tối ưu hóa tuyệt đối stack AI và Lead Model.
+1. **`backend/services/ai_engine/core/trinity_models.py`** — Cập nhật mảng `HARD_BLACKLIST` (loại bỏ `"gemini-2.0-pro"`, `"gemini-1.5-pro"`, `"gemini-1.5-flash"`, và bổ sung trực tiếp `"gemini-2.0-flash-lite"` để khai tử triệt để dòng model hết hạn này khỏi hệ thống ngay lập tức). Nâng cấp hệ thống tính điểm `_score_model_sync` hỗ trợ trọng số đặc quyền cho các model 2026 thế hệ mới `3.5` (`score += 3000`). Thay thế hoàn toàn fallback `"gemini-2.0-flash"` cũ thành `trinity_bridge.primary_model` động khi dọn dẹp các profile cũ. Bổ sung cơ chế **Hợp nhất Cấu hình Động (Dynamic Fusion Whitelist/Blacklist)**.
+2. **`backend/services/ai_engine/core/trinity_bridge.py`** — Lồng ghép cơ chế gọi `add_to_persistent_blacklist` tại hàm `run` và `run_stream` khi bắt được mã lỗi `404 Model Not Found` (`model_not_found`). Thêm bộ tiền-lọc `"gemini-2.0-pro"` và `"gemini-2.0-flash-lite"` tại hàm `reload_models` để tự động redirect về `self.primary_model` động thay vì `"gemini-2.0-flash"` hardcode. Cấu hình lại các fallback mặc định khởi chạy sang `gemini-3.5-flash` và `gemini-3.1-flash-lite`.
+3. **`backend/services/ai_service.py`** — Khai tử hoàn toàn `priority_pool` hardcode cũ. Nâng cấp tiến trình `auto_optimize_stack` chuyển đổi sang cơ chế **Tổng hợp Thác nước Động 100% (Dynamic Stack Synthesis)**, tự động phân cấp các mô hình healthy qua Probe từ cao đến thấp và đẩy các mô hình dự phòng lỗi xuống đáy. Nếu danh sách winners trống, tự động fallback sang `[trinity_bridge.primary_model, trinity_bridge.fallback_model]` động thay cho chuỗi hardcode cũ.
 4. **`backend/lifespan.py`** — Cài đặt vệ binh định kỳ `_model_health_sync_loop` chạy ngầm 12 giờ một lần để kiểm tra độ trễ/kết nối của các mô hình LLM, tự động cô lập và blacklist các mô hình trả về lỗi `404` hay `400`.
-5. **`.env`** — Cập nhật model khởi đầu hệ thống mặc định: `AI_PRIMARY_MODEL=gemini-3.5-flash`.
+5. **`.env`** — Cập nhật model khởi đầu mặc định `AI_PRIMARY_MODEL=gemini-3.5-flash` và model dự phòng mặc định `AI_FALLBACK_MODEL=gemini-3.1-flash-lite`.
 
 ## Kiểm định
 - **Syntax Check**: Chạy kiểm tra AST của cả 4 files thành công (`Syntax OK`), cam kết không dính lỗi cú pháp.
@@ -187,4 +187,126 @@ Trong quá trình di chuyển mã nguồn và loại bỏ thẻ `{@const}` trên
 
 ## Kiểm định
 - **Syntax Validation**: Đã sửa đổi thành công, mọi thẻ đóng mở HTML và Svelte đều khớp hoàn hảo, không còn lỗi biên dịch.
+
+---
+
+# Walkthrough - Căn giữa và Thu sát Figcaption sát ảnh Mô tả Sản phẩm (Elite V2.2)
+
+## Nguyên nhân gốc (Root Cause Analysis)
+Trước đây, các thẻ chú thích hình ảnh (`figcaption`) trong mô tả chi tiết sản phẩm hiển thị lệch trái theo mặc định trình duyệt. Đồng thời, khoảng cách lề dưới (`margin-bottom`) mặc định của ảnh mô tả sản phẩm (`img`) khá lớn (`1.5rem` trên Desktop, `1rem` trên Mobile), làm cho chữ chú thích bị đẩy quá xa khỏi ảnh tương ứng, tạo cảm giác rời rạc và thiếu chuyên nghiệp.
+
+## Giải pháp (3 files)
+
+### Frontend (3 files)
+1. **`frontend/src/lib/components/storefront/product-detail/MainDetail/Desktop.svelte`** —
+   - Thêm luật CSS `:global(.prose-osmo figure)` để nhóm ảnh và chú thích thành khối căn giữa cân đối.
+   - Giảm lề dưới của ảnh trong figure (`:global(.prose-osmo figure img)`) về `0.25rem` để thu sát chú thích lên hình.
+   - Định dạng `:global(.prose-osmo figcaption)` căn giữa, màu xám mờ `#6b7280` in nghiêng sang trọng.
+2. **`frontend/src/lib/components/storefront/product-detail/MainDetail/Mobile.svelte`** —
+   - Bổ sung các luật CSS tương tự vào phần style toàn cục của wrapper mobile để tuân thủ chính xác yêu cầu chỉ định.
+3. **`frontend/src/lib/components/storefront/product-detail/MainDetail/modules/ProductMobileSpecs.svelte`** —
+   - Đồng bộ hoàn toàn các luật CSS căn chỉnh và thu sát khoảng cách figcaption cho giao diện Mobile để bảo vệ trải nghiệm hiển thị trơn tru nhất.
+
+## Kiểm định
+- **Syntax Validation**: 100% cú pháp Svelte và CSS hợp lệ. 
+- **Aesthetic**: Chú thích ảnh căn giữa đều tăm tắp, ôm sát vào chân ảnh (`4px` spacing) cực kỳ tinh tế và cao cấp.
+
+---
+
+# Walkthrough - Khắc phục vỡ layout / xuống dòng số thứ tự Bước 3 (Elite V2.2)
+
+## Nguyên nhân gốc (Root Cause Analysis)
+Khi trình soạn thảo văn bản phong phú (Tiptap Editor) xuất dữ liệu HTML chứa danh sách phức tạp (như có chứa danh sách con `✦` lồng bên trong), tiêu đề của phần tử `<li>` (Ví dụ: `Bước 3: Massage nâng cơ chuyên sâu.`) sẽ tự động được bọc trong một thẻ đoạn văn `<p>`. 
+Vì `<p>` là một phần tử dạng khối (**block-level element**), nó tự động đẩy mình xuống hàng tiếp theo, tách rời khỏi số thứ tự `3.` (được sinh ra bởi thẻ giả `:global(.prose-osmo ol > li::before)` vốn hiển thị ở dạng `inline-block`). Kết quả là số thứ tự bị bỏ lại cô độc trên dòng đầu tiên, gây vỡ và mất cân đối giao diện nghiêm trọng.
+
+## Giải pháp (3 files)
+Thiết lập lại trạng thái hiển thị của thẻ `<p>` nằm trong danh sách của `.prose-osmo` thành nội dòng (`display: inline !important`), giữ nguyên tính chất khối cho danh sách con `<ul>` đi kèm để nó vẫn xuống hàng đúng chuẩn.
+
+### Frontend (3 files)
+1. **`frontend/src/lib/components/storefront/product-detail/MainDetail/Desktop.svelte`** —
+   * Thay đổi thuộc tính `:global(.prose-osmo li p)` thành `display: inline !important` và loại bỏ lề dưới.
+2. **`frontend/src/lib/components/storefront/product-detail/MainDetail/modules/ProductMobileSpecs.svelte`** —
+   * Bổ sung luật `:global(.prose-osmo li p) { display: inline !important; margin-bottom: 0 !important; }` để đồng bộ layout trên Mobile.
+3. **`frontend/src/lib/components/storefront/product-detail/MainDetail/Mobile.svelte`** —
+   * Tích hợp luật CSS tương tự để đảm bảo tuân thủ nghiêm ngặt và ngăn chặn triệt để hiện tượng vỡ layout.
+
+## Kiểm định
+- **Syntax Validation**: Hệ thống compile sạch sẽ, không sinh lỗi biên dịch CSS hay Svelte.
+- **Aesthetic**: Số thứ tự đỏ đậm và văn bản Bước 3 đã thẳng hàng hoàn mỹ trên cùng một dòng, danh sách con `✦` vẫn thọc lề và xuống hàng cực kỳ đều đặn, chuẩn xác 100% như mong muốn của Sếp.
+
+---
+
+# Walkthrough - Hardening layout Box Cam Kết "3 Không" (Commitment Box) (Elite V2.2)
+
+## Nguyên nhân gốc (Root Cause Analysis)
+Khi sản phẩm có phần subtitle của box Cam kết quá dài (ví dụ do parser gom toàn bộ đoạn cam kết vào chung một dòng), cấu trúc header dạng Flex hàng ngang (`flex items-center gap-2`) cũ bị kéo giãn tối đa. Hệ quả là phần tiêu đề chính "LÀNH TÍNH & AN TOÀN" bị bóp nghẹt diện tích hiển thị và buộc phải xuống dòng từng ký tự theo chiều dọc, gây vỡ nát layout. 
+Đồng thời, việc lạm dụng class `truncate` khiến các nội dung cam kết dài bị cắt ngắn dạng `KHÔNG P...` và `KHONG DA...`, khiến khách hàng không đọc được thông tin chi tiết.
+
+## Giải pháp (3 files)
+Thiết kế lại cấu trúc hiển thị thông minh (Smart Layout Hardening) để triệt tiêu vỡ hàng và tối ưu hóa trải nghiệm đọc:
+1. **Header Chống Co Nén**: Chuyển cấu trúc Header của box sang dạng `flex flex-col sm:flex-row sm:items-center` kết hợp với `whitespace-nowrap shrink-0` cho tiêu đề chính. Tiêu đề sẽ không bao giờ bị bóp méo, và subtitle dài sẽ tự xuống dòng hoặc co giãn linh hoạt dưới dạng khối văn bản chuẩn.
+2. **Cho Phép Wrap Nội Dung**: Loại bỏ hoàn toàn class `truncate` trên các phần tử dòng cam kết và sử dụng `leading-normal` để chữ tự động xuống dòng đều đặn khi hết chiều ngang hiển thị, đảm bảo thông tin luôn hiển thị đầy đủ và tường minh.
+
+### Frontend (3 files)
+1. **`frontend/src/lib/components/storefront/product-detail/MainDetail/modules/Sections.svelte`** —
+   * Khắc phục Header và gỡ bỏ `truncate` ở danh sách cam kết chi tiết.
+2. **`frontend/src/lib/components/storefront/product-detail/LandingPage/modules/Description.svelte`** —
+   * Đồng bộ giải pháp tương tự cho box Cam kết trên phiên bản Landing Page.
+3. **`frontend/src/lib/components/storefront/product-detail/MainDetail/modules/ProductMobileSpecs.svelte`** —
+   * Tinh chỉnh cấu trúc Header di động thông minh dạng cột gọn gàng và loại bỏ `truncate` cho list cam kết trên Mobile.
+
+## Kiểm định
+- **Syntax Validation**: Code Svelte 5 biên dịch sạch 100%, không sinh cảnh báo hay lỗi cú pháp CSS.
+- **Aesthetic**: Box cam kết hiển thị sang trọng, tiêu đề "LÀNH TÍNH & AN TOÀN" nằm ngay ngắn trên một dòng, toàn bộ mô tả chi tiết cam kết tự động xuống dòng và đọc được 100% nội dung cực kỳ trực quan và cao cấp đúng chuẩn Elite V2.2.
+
+---
+
+# Walkthrough - Khắc phục lỗi hiển thị/rò rỉ bảng Markdown từ AI (Elite V2.2)
+
+## Nguyên nhân gốc (Root Cause Analysis)
+Khi sử dụng tính năng Neural Rewrite hoặc kiểm tra đạo văn thông qua Plagiarism Cop, mô hình ngôn ngữ lớn (Gemini) thỉnh thoảng bỏ qua chỉ thị prompt cấm dùng Markdown Table và kết xuất ra các đoạn bảng có cấu trúc dạng `| Tiêu chí | Cảm giác |` cùng dòng gạch ngang phân tách `| :--- | :--- |`. Định dạng này không được Tiptap Editor và các thẻ dựng HTML thông thường trên frontend render đúng chuẩn, dẫn đến việc rò rỉ mã nguồn bảng thô hoặc dính chữ thành một khối văn bản không thể đọc được.
+
+## Giải pháp (3 files)
+Thiết lập bộ lọc chuyển đổi động deterministic phía backend trước khi trả HTML về cho frontend:
+1. **`_md_table_to_html` (Regex Parser)**: Định nghĩa một biểu thức chính quy (regular expression) đáng tin cậy giúp bắt trọn các khối Markdown Table đầy đủ và tự động chuyển hóa chúng sang cấu trúc HTML chuẩn `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>` đi kèm class CSS chuyên nghiệp (`table-auto w-full`).
+2. **`NeuralRewriter.clean_ai_html()`**: Tích hợp bộ chuyển đổi này vào luồng lọc HTML thô sau khi AI sinh nội dung bài viết/sản phẩm.
+3. **`PlagiarismRefiner.clean_ai_html()`**: Tích hợp bộ lọc tương tự cho tính năng bulk-fix (sửa lỗi đạo văn hàng loạt) để đảm bảo tính đồng bộ của toàn bộ pipeline.
+
+### Files đã sửa/tạo (3 files)
+1. **`backend/services/xohi/creative_studio/operatives/neural_rewriter.py`** — Tích hợp parser chuyển đổi Markdown table trong `clean_ai_html()`.
+2. **`backend/services/xohi/creative_studio/operatives/plagiarism_refiner.py`** — Tích hợp tương tự trong `clean_ai_html()`.
+3. **`backend/tests/unit/test_md_table_converter.py`** — Tệp unit test viết mới độc lập kiểm tra hoạt động của bộ parser trên mẫu dữ liệu lỗi từ Sếp.
+
+## Kiểm định
+- **Unit Test Execution**: Chạy thử nghiệm thành công bằng lệnh `.venv/bin/python backend/tests/unit/test_md_table_converter.py` đạt kết quả:
+  ```text
+  test_markdown_table_conversion: PASSED
+  test_no_markdown_table: PASSED
+  All tests passed successfully!
+  ```
+- **Aesthetic**: Toàn bộ bảng Markdown tự động chuyển hóa thành HTML <table> và được render hoàn hảo với đầy đủ border, padding mịn màng trên frontend.
+
+---
+
+# Walkthrough - Loại bỏ hoàn toàn Box Cam kết ra khỏi hệ thống (Elite V2.2)
+
+## Nguyên nhân gốc (Root Cause Analysis)
+Sếp yêu cầu loại bỏ hoàn toàn phần Box Cam kết ("Lành tính & An toàn", "Cam kết 3 Không", v.v.) ra khỏi toàn bộ hệ thống để tối ưu hóa trải nghiệm đọc và tránh trùng lặp nội dung không cần thiết.
+
+## Giải pháp (3 files)
+Triển khai giải pháp đồng bộ từ Prompt AI, Bộ lọc Backend cho tới Engine hiển thị Frontend:
+1. **`backend/services/xohi/prompts/agents/rewriter.py`**: Loại bỏ hẳn phần `<h2>Cam kết</h2>` cùng các chỉ dẫn liên quan ra khỏi cấu trúc khung sản phẩm chuẩn (Product Standard Framework - giảm từ 7 phần xuống 6 phần).
+2. **`backend/services/xohi/creative_studio/operatives/neural_rewriter.py`**: Cập nhật bộ lọc `clean_ai_html()` để tự động phát hiện và cắt bỏ hoàn toàn thẻ `<h2>Cam kết</h2>` cùng toàn bộ nội dung phía sau nếu AI sinh ra (Safety Net).
+3. **`frontend/src/lib/utils/product.ts`**: Cập nhật hàm `parseDescriptionAndCommitments()` để luôn trả về `commitments: null`, đồng thời tự động cắt bỏ phần cam kết cũ có sẵn trong mô tả sản phẩm ở database. Điều này giúp triệt tiêu hoàn toàn Box Cam kết trên giao diện Desktop & Mobile mà không lo vỡ layout.
+
+### Files đã sửa (3 files)
+1. **`backend/services/xohi/prompts/agents/rewriter.py`** — Cập nhật prompt instruct cho AI.
+2. **`backend/services/xohi/creative_studio/operatives/neural_rewriter.py`** — Cập nhật bộ lọc post-processing backend.
+3. **`frontend/src/lib/utils/product.ts`** — Cập nhật logic parser frontend và dọn dẹp triệt để hàm chết `parseCommitmentsHtml` khỏi hệ thống.
+
+## Kiểm định
+- **Svelte Check**: Vượt qua khâu kiểm tra biên dịch của Svelte 5 trơn tru không có bất kỳ lỗi mới nào liên quan tới file đã sửa.
+- **UI Render**: Box Cam kết đã biến mất hoàn toàn trên cả Desktop và Mobile một cách an toàn và tinh tế.
+- **Ultra-Lean Codebase**: Loại bỏ 100% dead code `parseCommitmentsHtml` giúp file tiện ích trở nên sáng sủa, dễ bảo trì.
+
 

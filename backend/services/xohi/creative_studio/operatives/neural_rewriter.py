@@ -15,6 +15,41 @@ from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
+# ══════════════════════════════════════════════════════════════
+# Elite V2.2: Markdown Table → HTML Table Converter
+# Safety net for AI model disobedience (Gemini outputs | --- | despite prompt ban)
+# ══════════════════════════════════════════════════════════════
+_MD_TABLE_RE = re.compile(
+    r'(\|[^\n]+\|[ \t]*\n)'           # Group 1: Header row
+    r'(\|[\s:\-|]+\|[ \t]*\n)'        # Group 2: Separator row (---/:---)
+    r'((?:\|[^\n]+\|[ \t]*(?:\n|$))+)',  # Group 3: Data rows (1+)
+)
+
+def _md_table_to_html(match: re.Match[str]) -> str:
+    """Convert a single Markdown table match to Tiptap-ready HTML <table>."""
+    header_line = match.group(1).strip()
+    data_block = match.group(3).strip()
+
+    headers = [c.strip() for c in header_line.strip('|').split('|')]
+    rows: list[list[str]] = []
+    for line in data_block.split('\n'):
+        line = line.strip()
+        if line and '|' in line:
+            rows.append([c.strip() for c in line.strip('|').split('|')])
+
+    parts = ['<table class="table-auto w-full">', '<thead>', '<tr>']
+    for h in headers:
+        parts.append(f'<th>{h}</th>')
+    parts.extend(['</tr>', '</thead>', '<tbody>'])
+    for row in rows:
+        parts.append('<tr>')
+        for cell in row:
+            parts.append(f'<td>{cell}</td>')
+        parts.append('</tr>')
+    parts.extend(['</tbody>', '</table>'])
+    return '\n'.join(parts)
+
+
 class ComponentData(BaseModel):
     title: str = Field(..., description="Tiêu đề thành phần hoặc công dụng")
     description: str = Field(..., description="Mô tả chi tiết")
@@ -199,25 +234,12 @@ class NeuralRewriter(BaseAgentOperative):
             # ELITE V2.2: Lệnh Sếp - Ép kiểu "Nhau thai" -> "Placenta" tuyệt đối (Post-processing Regex)
             sanitized_content = re.sub(r'(?i)nhau thai', 'Placenta', sanitized_content)
             
-            # ELITE V2.2: Absolute Post-processing Guarantee for Product Commitment (Sếp's Master Plan)
+            # ELITE V2.2: Lệnh Sếp - Loại bỏ hoàn toàn phần Cam kết ra khỏi mô tả sản phẩm
             if content_type == "product":
-                commitment_html = (
-                    "<h2>Cam kết</h2>\n"
-                    "<strong>Lành tính & An toàn</strong>\n"
-                    "<p>Cam kết \"3 Không\"</p>\n"
-                    "<ul>\n"
-                    "  <li>KHÔNG PARABEN: An toàn cho sức khỏe lâu dài.</li>\n"
-                    "  <li>KHÔNG DẦU KHOÁNG: Không gây bí tắc lỗ chân lông.</li>\n"
-                    "  <li>KHÔNG MÀU NHÂN TẠO: Giữ nguyên bản tinh khiết từ dược liệu Nhật bản.</li>\n"
-                    "</ul>\n"
-                    "<strong>Đổi trả 7 ngày, free ship, hoàn tiền nhanh chóng</strong>"
-                )
                 match = re.search(r'<h2[^>]*>[^<]*?cam\s*kết[^<]*?</h2>', sanitized_content, re.IGNORECASE)
                 if match:
                     cut_idx = match.start()
-                    sanitized_content = sanitized_content[:cut_idx].strip() + "\n\n" + commitment_html
-                else:
-                    sanitized_content = sanitized_content.strip() + "\n\n" + commitment_html
+                    sanitized_content = sanitized_content[:cut_idx].strip()
             
             self.current_step = 3
             logs.append(f"✅ [{datetime.now(timezone.utc).strftime('%H:%M:%S')}] [QUANTUM] Tinh chỉnh sáng tạo hoàn tất trong {duration:.1f}s! Đã cập nhật vào Tiptap. ĐÃ XỬ LÝ XONG")
@@ -238,6 +260,9 @@ class NeuralRewriter(BaseAgentOperative):
         # 1. Remove Markdown blocks (Inherited from Base)
         clean = re.sub(r'```html\s*', '', html, flags=re.IGNORECASE)
         clean = re.sub(r'```\s*', '', clean)
+        
+        # 1.5 Elite V2.2: Convert Markdown Tables → HTML Tables (Anti-Gemini Disobedience)
+        clean = _MD_TABLE_RE.sub(_md_table_to_html, clean)
         
         # 2. Loại bỏ các nhãn phân đoạn dư thừa [LUẬN ĐIỂM], [PHƯƠNG ÁN], v.v.
         clean = re.sub(r'\[.*?\]', '', clean)

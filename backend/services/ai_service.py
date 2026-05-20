@@ -376,25 +376,18 @@ class AIService:
                         
                     await asyncio.sleep(0.8) # RPM Flood Protection (Surgical)
 
-            # 4. Elite V2.2: Inclusive CNS Priority Force-Sync
-            # We ensure ALL discovered models are included in the waterfall.
-            # Order: High Priority (Healthy) > Healthy Probed > Others (Legacy/Failed)
-            priority_pool = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-2.5-pro", "gemini-2.5-flash"]
+            # 4. Elite V2.2: 100% Dynamic Neural Stack Synthesis (Anti-Hardcode)
+            # We construct the waterfall in a fully automated hierarchy:
+            # Rank 1-6: Healthy Probed Models (automatically sorted by our Trinity Model Scoring Engine)
+            # Bottom: Unprobed or Failed Models as last-resort backups (Max Redundancy)
             final_winners: list[str] = []
             
-            # Phase A: High Priority Models (Force Top IF Healthy)
-            for p in priority_pool:
-                if not trinity_bridge.models_helper.is_blacklisted(p) and p not in failed:
-                    if p not in final_winners:
-                        final_winners.append(p)
-            
-            # Phase B: Healthy Probed Models (Middle)
+            # Phase A: Top Healthy Probed Models (dynamically scored)
             for w in winners:
                 if w not in final_winners:
                     final_winners.append(w)
             
-            # Phase C: Failed/Remaining Discovered Models (Bottom - Max Redundancy)
-            # These are added at the end just in case everything above fails at runtime.
+            # Phase B: Remaining Discovered Models (Unprobed/Failed) at the very bottom
             for s in scored:
                 m_name = s["name"]
                 if m_name not in final_winners and not trinity_bridge.models_helper.is_blacklisted(m_name):
@@ -404,7 +397,7 @@ class AIService:
             winners = final_winners[:6]
             
             if not winners:
-                winners = ["gemini-2.0-flash", "gemini-2.0-flash-lite"]
+                winners = [trinity_bridge.primary_model, trinity_bridge.fallback_model]
             
             # Persist to VoiceProfile (Current Scalar Projection Rule)
             from backend.database.models import VoiceProfile

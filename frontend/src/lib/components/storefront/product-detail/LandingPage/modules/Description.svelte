@@ -55,12 +55,16 @@
         <div class="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-teal-100/20 blur-2xl pointer-events-none"></div>
         
         <div class="relative z-10 flex flex-col gap-3">
-          <!-- Compact Row 1: Header (title | subtitle) -->
-          <div class="flex items-center gap-2 pb-3 border-b border-emerald-500/10">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="text-[12px] font-black text-slate-800 uppercase tracking-widest">{commitments.title}</span>
-            <span class="text-gray-300">|</span>
-            <span class="text-[11.5px] font-black text-[#ee4d2d] tracking-tight">{commitments.subtitle}</span>
+          <!-- Compact Row 1: Header (title | subtitle) - Prevent title compression -->
+          <div class="flex flex-col sm:flex-row sm:items-center gap-2 pb-3 border-b border-emerald-500/10">
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="text-[12px] font-black text-slate-800 uppercase tracking-widest shrink-0 whitespace-nowrap">{commitments.title}</span>
+            </div>
+            {#if commitments.subtitle}
+              <span class="text-gray-300 hidden sm:inline shrink-0">|</span>
+              <span class="text-[11.5px] font-black text-[#ee4d2d] tracking-tight leading-normal">{commitments.subtitle}</span>
+            {/if}
           </div>
 
           <!-- Compact Row 2: Grid of 3 items -->
@@ -75,10 +79,10 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <div class="flex flex-col min-w-0 leading-tight">
-                  <span class="text-[11.5px] font-black text-slate-800 truncate">{boldPart.trim()}</span>
+                <div class="flex flex-col min-w-0 leading-tight py-0.5">
+                  <span class="text-[11.5px] font-black text-slate-800 leading-normal">{boldPart.trim()}</span>
                   {#if normalPart}
-                    <span class="text-[10px] text-gray-500 truncate mt-0.5">{normalPart.trim()}</span>
+                    <span class="text-[10px] text-gray-500 leading-normal mt-0.5">{normalPart.trim()}</span>
                   {/if}
                 </div>
               </div>

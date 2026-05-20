@@ -486,8 +486,9 @@
     letter-spacing: -0.011em !important;
   }
 
-  /* Khử margin cho p bên trong li để list items khít nhau */
+  /* Khử margin và tránh block-break gây vỡ hàng cho p trong li */
   :global(.prose-osmo li p) {
+    display: inline !important;
     margin-bottom: 0 !important;
   }
 
@@ -616,5 +617,26 @@
     display: block;
     border-radius: 12px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  }
+
+  :global(.prose-osmo figure) {
+    margin: 1.5rem auto !important;
+    display: block !important;
+    text-align: center !important;
+  }
+
+  :global(.prose-osmo figure img) {
+    margin-top: 0 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  :global(.prose-osmo figcaption) {
+    text-align: center !important;
+    display: block !important;
+    margin-top: 0.25rem !important;
+    font-size: 13px !important;
+    color: #6b7280 !important;
+    font-style: italic !important;
+    line-height: 1.4 !important;
   }
 </style>

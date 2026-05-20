@@ -75,7 +75,10 @@
 - [x] Cập nhật `HARD_BLACKLIST` trong `backend/services/ai_engine/core/trinity_models.py` loại bỏ `"gemini-2.0-pro"`, `"gemini-1.5-pro"`, `"gemini-1.5-flash"`.
 - [x] Xây dựng phương thức `add_to_persistent_blacklist` trong `TrinityModels` để lưu mô hình chết/lỗi vào DB SystemSetting `ai_orchestration_config`, xóa mô hình chết khỏi cấu hình `VoiceProfile.primary_model` và `VoiceProfile.ai_models` waterfall, đồng thời hot-reload bộ nhớ.
 - [x] Tích hợp cơ chế tự động gọi `add_to_persistent_blacklist` trong `TrinityBridge.run` và `TrinityBridge.run_stream` khi gặp lỗi `404 Model Not Found` (`model_not_found`).
-- [x] Thay thế và mở rộng `priority_pool` của `auto_optimize_stack` (`backend/services/ai_service.py`) bằng các dòng model mới 2026 (`gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-2.5-pro`, `gemini-2.5-flash`), nâng cấp cấu hình trong `trinity_models.py` và `.env`.
+- [x] Khai tử hoàn toàn `priority_pool` hardcode khỏi `auto_optimize_stack` (`backend/services/ai_service.py`) để tự động hóa 100% việc dựng thác nước động dựa trên điểm số thực tế.
+- [x] Đưa thẳng `gemini-2.0-flash-lite` vào `HARD_BLACKLIST` trong `trinity_models.py` để khai tử vĩnh viễn và triệt để dòng model hết hạn này khỏi hệ thống ngay lập tức.
+- [x] Loại bỏ hoàn toàn các chuỗi hardcode `"gemini-2.0-flash"` / `"gemini-2.0-flash-lite"` làm fallback khi dọn dẹp profile lỗi hay khi danh sách winners rỗng, chuyển đổi hoàn chỉnh sang sử dụng động `trinity_bridge.primary_model` và `trinity_bridge.fallback_model`.
+- [x] Cập nhật đồng bộ cấu hình model khởi đầu `AI_PRIMARY_MODEL=gemini-3.5-flash` và model dự phòng `AI_FALLBACK_MODEL=gemini-3.1-flash-lite` trong `.env` và `trinity_bridge.py`.
 - [x] Thiết lập tác vụ định kỳ `_model_health_sync_loop` chạy ngầm mỗi 12 giờ tại `backend/lifespan.py` để ping kiểm tra và tự động khai tử/blacklist các mô hình lỗi thời/chết.
 - [x] Xây dựng cơ chế Hợp nhất Cấu hình Động (Dynamic Fusion Blacklist & Whitelist override) cho phép Sếp định cấu hình `whitelist` trong cơ sở dữ liệu để ghi đè hoàn toàn danh sách đen tĩnh `HARD_BLACKLIST`.
 
@@ -140,4 +143,67 @@
 - [x] **[Frontend Price Calc Fix]** Khắc phục lỗi dual-key resolver cho `voucherDiscount`, `comboDiscount`, và `shippingFee` ở cả trang Desktop và Mobile bằng cách kiểm tra cả `order_metadata` và `orderMetadata` từ API để hiển thị đúng số tiền được chiết khấu thay vì mặc định về 0.
 - [x] **[Frontend Desktop Display]** Hiển thị danh sách Voucher đã áp dụng (`voucher_ids`) dưới dạng các nhãn vé Coupon màu đỏ/hồng nhạt nét đứt (`🎟️ CODE`) sang trọng, tăng tính minh bạch.
 - [x] **[Frontend Mobile Display]** Tích hợp bảng phân rã giá chi tiết (Tạm tính, Vận chuyển, Vouchers áp dụng) vào trang Mobile Success giúp giao diện minh bạch và đồng nhất với bản Desktop.
+
+---
+
+# Task: Căn giữa và Thu sát Figcaption sát ảnh Mô tả Sản phẩm (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Frontend Desktop Align]** Bổ sung luật `:global(.prose-osmo figcaption)` trong `Desktop.svelte` để căn giữa chú thích, định dạng màu sắc `#6b7280` và font in nghiêng.
+- [x] **[Frontend Desktop Margin Fix]** Tối ưu khoảng cách margin của hình ảnh và hình bao `figure` (`margin-bottom: 0.25rem`) giúp chú thích sát lên hình ảnh.
+- [x] **[Frontend Mobile Align]** Đồng bộ luật CSS tương tự vào `Mobile.svelte` và `ProductMobileSpecs.svelte` để căn giữa và thu hẹp khoảng cách chú thích dưới hình ảnh trên giao diện mobile.
+- [x] **[Quy trình quản trị]** Hoàn thiện bằng chứng trong `walkthrough.md`.
+
+---
+
+# Task: Khắc phục vỡ layout / xuống dòng số thứ tự Bước 3 (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Analysis]** Xác định nguyên nhân do thẻ `<p>` block-level bẻ dòng số thứ tự `::before` của thẻ `<li>`.
+- [x] **[Frontend Style Fix]** Bổ sung thuộc tính `display: inline !important` và `margin-bottom: 0 !important` cho `:global(.prose-osmo li p)` trong `Desktop.svelte`, `Mobile.svelte`, và `ProductMobileSpecs.svelte`.
+- [x] **[Quy trình quản trị]** Hoàn thành tài liệu chứng thực trong `walkthrough.md`.
+
+---
+
+# Task: Hardening layout Box Cam Kết "3 Không" (Commitment Box) (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Analysis]** Phân tích box Cam kết bị vỡ layout do tiêu đề "LÀNH TÍNH & AN TOÀN" bị nén và chữ bị cắt ngắn `...` (truncate) vì text subtitle quá dài.
+- [x] **[Desktop Layout Hardening]** Chuyển đổi header box trong `Sections.svelte` và `Description.svelte` sang `flex-col sm:flex-row`, áp dụng `whitespace-nowrap shrink-0` cho tiêu đề và gỡ bỏ `truncate` ở các dòng nội dung để cho phép wrap tự nhiên.
+- [x] **[Mobile Layout Hardening]** Đồng bộ và tối ưu hóa hiển thị box Cam kết trong `ProductMobileSpecs.svelte` để tránh co nén chữ trên thiết bị di động.
+- [x] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
+
+---
+
+# Task: Khắc phục lỗi hiển thị/rò rỉ bảng Markdown từ AI (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Backend Safety Net]** Viết bộ chuyển đổi regex `_md_table_to_html` để biến đổi các bảng Markdown (`| --- |`) thành các bảng HTML chuẩn (`<table>`) trong kết quả trả về của AI.
+- [x] **[Integration]** Tích hợp bộ chuyển đổi này vào hàm `clean_ai_html` của `NeuralRewriter` và `PlagiarismRefiner` để xử lý triệt để bất kể AI có bất tuân chỉ dẫn prompt.
+- [x] **[Unit Testing]** Viết test case `backend/tests/unit/test_md_table_converter.py` chạy thử nghiệm để chứng minh thuật toán hoạt động hoàn hảo và không gây hồi quy (regression).
+- [x] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
+
+---
+
+# Task: Loại bỏ hoàn toàn Box Cam kết ra khỏi hệ thống (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Backend Instruction Fix]** Cập nhật `rewriter.py` loại bỏ phần `<h2>Cam kết</h2>` và các chỉ thị hướng dẫn AI sinh ra khối cam kết ở cuối mô tả sản phẩm.
+- [x] **[Backend Post-Processing]** Sửa đổi `NeuralRewriter.clean_ai_html()` để tự động lọc bỏ bất cứ khối `Cam kết` nào được sinh ra bởi AI khi viết lại sản phẩm.
+- [x] **[Frontend Global Elimination]** Sửa đổi hàm `parseDescriptionAndCommitments` trong `product.ts` để luôn trả về `commitments: null` và tự động dọn sạch các thẻ cam kết cũ có sẵn trong Database, giúp ẩn triệt để Box Cam kết trên giao diện Desktop và Mobile mà không làm vỡ các phần layout khác.
+- [x] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
+
+---
+
+# Task: Khắc phục nút đặt hàng che nội dung trên Mobile Product Details Modal (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [ ] **[Frontend Layout Fix]** Phân tích và khắc phục lỗi overlap của nút đặt hàng (CTA) trên Mobile Product Details Modal (`MobileProductDetailsModal.svelte`):
+  - Giải thích rõ tại sao `margin-bottom: 20px` trên `.elite-prose` không có tác dụng.
+  - Tích hợp thêm một khoảng đệm an toàn (`div` spacer với chiều cao `120px` hoặc `h-32`) ở cuối cùng của container cuộn (`contentRef`) để chừa đủ khoảng trống cho nút CTA bay lơ lửng (`absolute bottom-10` cao `65px`).
+- [ ] **[Syntax Verification]** Chạy `svelte-check` hoặc phân tích tĩnh để đảm bảo mã Svelte 5 không dính lỗi cú pháp.
+- [ ] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
+
+
+
 
