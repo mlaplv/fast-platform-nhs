@@ -281,9 +281,14 @@ html {
 
     @media (min-width: 768px) and (max-width: 1024px) {
       white-space: normal;
-      max-width: 240px;
+      max-width: 100%;
       overflow-wrap: break-word;
       font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+      width: 100%;
+      max-width: 500px;
     }
   }
 

@@ -410,3 +410,20 @@ Khắc phục triệt để lỗi đường dẫn cấu hình và tối ưu hóa
 
 ## Kiểm định
 * **Uvicorn Hot-Reload / Docker startup**: Hệ thống api gateway và workers khởi động thành công mỹ mãn không phát sinh thêm bất kỳ lỗi logic hay crash `.env` nào.
+
+---
+
+# Walkthrough - Cấu hình full width cho .metric-desc trên Mobile (Elite V2.2)
+
+## Nguyên nhân gốc (Root Cause Analysis)
+Trên thiết bị di động (màn hình dưới 768px), vùng mô tả chỉ số `.metric-desc` không có cấu hình độ rộng rõ ràng, dẫn đến chữ có thể bị bóp nghẹp hoặc hiển thị không đều theo chiều ngang.
+
+## Giải pháp (1 file)
+### Frontend (1 file)
+1. **`frontend/src/lib/components/client/HeroBanner.css`** —
+   * Bổ sung luật `@media (max-width: 768px)` vào bên trong `.metric-desc` để thiết lập `width: 100%; max-width: 100%;` giúp text mô tả chỉ số kéo giãn hết độ rộng màn hình di động một cách tự nhiên.
+
+## Kiểm định
+* **Svelte Compiler / svelte-check**: Đã thực thi `pnpm check` thành công, không phát sinh bất kỳ lỗi cú pháp hoặc kiểu dữ liệu nào đối với file CSS đã sửa đổi.
+* **Giao diện di động**: Lớp `.metric-desc` hiển thị dàn đều 100% chiều rộng trên các màn hình di động độ phân giải dưới 768px, tránh được việc co cụm chữ không mong muốn.
+

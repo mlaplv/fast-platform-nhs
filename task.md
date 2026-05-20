@@ -264,3 +264,12 @@
 - [x] **[Routing Grouping]** Tách biệt và gom nhóm các Router thành các mảng rõ ràng (`admin_routes`, `client_routes`, `public_routes`) và gộp lại trong instance `Litestar`.
 - [x] **[Middleware Ordering]** Tối ưu hóa thứ tự thực thi của Middleware (`AuthMiddleware` lên đầu) để lọc request không an toàn trước khi đi vào các tầng sâu hơn.
 
+---
+
+# Task: Cấu hình full width cho .metric-desc trên Mobile (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Frontend Style Fix]** Bổ sung thuộc tính `width: 100%` và `max-width: 100%` cho `.metric-desc` lồng bên trong `.hero-center-layout` dưới media query `@media (max-width: 768px)` trong file `HeroBanner.css`.
+- [x] **[Quy trình quản trị]** Hoàn thành tài liệu chứng thực trong `walkthrough.md`.
+
+
