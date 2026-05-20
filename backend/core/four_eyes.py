@@ -8,10 +8,10 @@ import uuid
 
 logger = logging.getLogger("api-gateway")
 
-class MartialLawManager:
+class FourEyesPrincipleManager:
     """
-    Elite V2.2: Martial Law DB Operation Manager.
-    Enforces '4-Eyes Principle' for critical operations.
+    Elite V2.2: Four-Eyes Principle DB Operation Manager.
+    Enforces dual approval ('4-Eyes Principle') for critical operations.
     """
     
     CRITICAL_TABLES = ["users", "roles", "permissions", "system_settings", "products"]
@@ -36,8 +36,8 @@ class MartialLawManager:
         if is_super_admin:
             return False
 
-        if target_table in MartialLawManager.CRITICAL_TABLES or action == "DELETE":
-            logger.warning(f"🎖️ [MARTIAL_LAW] Intercepted {action} on {target_table} by {actor_id}. Redirecting to Draft.")
+        if target_table in FourEyesPrincipleManager.CRITICAL_TABLES or action == "DELETE":
+            logger.warning(f"🎖️ [FOUR_EYES_PRINCIPLE] Intercepted {action} on {target_table} by {actor_id}. Redirecting to Draft.")
             
             new_draft = Draft(
                 id=str(uuid.uuid4()),
@@ -49,10 +49,8 @@ class MartialLawManager:
                 status="PENDING"
             )
             session.add(new_draft)
-            # We don't commit here, let the controller handle it.
-            # But we must stop the original action.
             return True
             
         return False
 
-martial_law_manager = MartialLawManager()
+four_eyes_manager = FourEyesPrincipleManager()

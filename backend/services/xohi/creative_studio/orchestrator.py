@@ -15,7 +15,8 @@ from backend.services.xohi.creative_studio.registry import registry
 from backend.constants.agentic import ORCHESTRATOR_SEMAPHORE_LIMIT
 from backend.database.alchemy_config import alchemy_config
 from backend.schemas.intent import IntentResponse
-from backend.models.schemas import GenericResponse, AgentResponse
+
+from backend.schemas.content import GenericResponse, AgentResponse
 
 # Modular Handlers
 from backend.services.xohi.creative_studio.handlers.voice import VoiceHandler

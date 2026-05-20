@@ -3,8 +3,11 @@ import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Dict, Optional
+
 from backend.database.repositories import ContentCampaignRepository
-from backend.models.schemas import GenericResponse
+from backend.schemas.content import GenericResponse
+
+
 from backend.services.event_bus import event_bus
 from backend.services.xohi.creative_studio.formatters.publisher import publish_campaign_to_news
 from sqlalchemy.orm.attributes import flag_modified

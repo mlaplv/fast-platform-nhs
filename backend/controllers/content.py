@@ -227,11 +227,6 @@ class ContentController(Controller):
         """
         [CNS V90.0] Batch Save — Gộp save-report + metadata thành 1 HTTP call.
         Giảm từ 2 POST → 1 POST per analysis. Tiết kiệm ~1 RTT mỗi phiên.
-
-        Body: {
-          "reports": { "copyright": {...}, "seo": {...}, "ai_inspect": {...} },
-          "evidence": { "copyright": { "score": 0.85, "timestamp": "..." }, ... }
-        }
         """
         from datetime import datetime, timezone
         data = await request.json()
@@ -277,4 +272,3 @@ class ContentController(Controller):
         except Exception as e:
             logger.error(f"[ContentController] Batch save error: {e}", exc_info=True)
             return GenericResponse(status="error", message=str(e))
-

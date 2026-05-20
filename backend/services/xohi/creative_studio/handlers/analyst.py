@@ -7,7 +7,8 @@ from typing import Dict, Optional, List, Union
 from sqlalchemy.orm.attributes import flag_modified
 
 from backend.database.repositories import ContentCampaignRepository
-from backend.models.schemas import GenericResponse
+from backend.schemas.content import GenericResponse
+
 from backend.services.event_bus import event_bus
 from backend.utils.text import is_json
 

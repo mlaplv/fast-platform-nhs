@@ -10,7 +10,7 @@ from litestar.di import Provide
 from backend.database.repositories import MediaRegistryRepository, provide_media_repo
 from backend.services.media.media_service import media_service
 from backend.services.media.schemas import *
-from backend.models.schemas import GenericResponse
+from backend.schemas.content import GenericResponse
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
 

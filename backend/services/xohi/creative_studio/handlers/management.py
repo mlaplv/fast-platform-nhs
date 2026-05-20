@@ -9,7 +9,10 @@ from backend.database.models.system import UnifiedAgentTask
 from backend.database.repositories import ContentCampaignRepository, MediaRegistryRepository
 from backend.database.alchemy_config import alchemy_config
 from backend.services.event_bus import event_bus
-from backend.models.schemas import CampaignListResponse, CampaignListItem, CampaignStatus, GenericResponse
+from backend.schemas.content import CampaignListResponse, CampaignListItem, CampaignStatus, GenericResponse
+
+
+
 
 if TYPE_CHECKING:
     from backend.services.xohi.creative_studio.orchestrator import ContentOrchestrator

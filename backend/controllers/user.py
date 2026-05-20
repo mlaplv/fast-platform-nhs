@@ -11,7 +11,7 @@ from backend.constants.permissions import PermissionEnum
 from backend.schemas.user import UserResponse, UserListResponse, RoleResponse, PermissionResponse, UserUpdatePayload, UserCreatePayload, LoyaltyResponse, PointAdjustmentRequest
 from backend.schemas.common import SuccessResponse
 from backend.services.user_service import user_service
-from backend.core.martial_law import martial_law_manager
+from backend.core.four_eyes import four_eyes_manager
 from litestar.exceptions import ClientException, PermissionDeniedException
 
 logger = logging.getLogger("api-gateway")
@@ -47,8 +47,8 @@ class UserController(Controller):
         actor_id = user_state.get("sub", "SYSTEM")
         is_super = "SUPER_ADMIN" in user_state.get("roles", [])
 
-        # [THIẾT QUÂN LUẬT] Chặn và chuyển sang Draft
-        intercepted = await martial_law_manager.intercept_critical_action(
+        # [4-EYES PRINCIPLE] Chặn và chuyển sang Draft
+        intercepted = await four_eyes_manager.intercept_critical_action(
             db_session, actor_id, "UPDATE_ROLES", "users", user_id, {"roles": data}, is_super
         )
         
@@ -91,8 +91,8 @@ class UserController(Controller):
         actor_id = user_state.get("sub", "SYSTEM")
         is_super = "SUPER_ADMIN" in user_state.get("roles", [])
 
-        # [THIẾT QUÂN LUẬT] Chặn và chuyển sang Draft
-        intercepted = await martial_law_manager.intercept_critical_action(
+        # [4-EYES PRINCIPLE] Chặn và chuyển sang Draft
+        intercepted = await four_eyes_manager.intercept_critical_action(
             db_session, actor_id, "DELETE", "users", user_id, {}, is_super
         )
         
@@ -130,8 +130,8 @@ class UserController(Controller):
         actor_id = user_state.get("sub", "SYSTEM")
         is_super = "SUPER_ADMIN" in user_state.get("roles", [])
 
-        # [THIẾT QUÂN LUẬT] Chặn và chuyển sang Draft nếu không phải Super Admin
-        intercepted = await martial_law_manager.intercept_critical_action(
+        # [4-EYES PRINCIPLE] Chặn và chuyển sang Draft nếu không phải Super Admin
+        intercepted = await four_eyes_manager.intercept_critical_action(
             db_session, actor_id, "FORCE_LOGOUT", "users", user_id, {}, is_super
         )
         
