@@ -1,11 +1,13 @@
 from litestar import Controller, get, post
 from litestar.response import Stream
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from backend.services.tts_engine import stream_tts
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
 
+
 class TTSRequest(BaseModel):
+    model_config = ConfigDict(extra='allow')
     text: str = Field(..., min_length=1, max_length=20000)
 
 class TTSController(Controller):
