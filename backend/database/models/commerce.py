@@ -80,7 +80,6 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     category: Mapped[Optional["Category"]] = relationship("Category", back_populates="products")
     
     variants: Mapped[List["ProductVariant"]] = relationship("ProductVariant", back_populates="product_base")
-    rentals: Mapped[List["RentalContract"]] = relationship("RentalContract", back_populates="product_base")
     embedding: Mapped[Optional["ProductEmbedding"]] = relationship("ProductEmbedding", back_populates="product_base", uselist=False)
     
     __table_args__ = (
@@ -103,16 +102,6 @@ class ProductVariant(Base, AuditMixin, SoftDeleteMixin):
     attributes: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, server_default='{}', default=dict)
     is_default: Mapped[bool] = mapped_column(Boolean, server_default=sa.text('false'), default=False)
 
-class RentalContract(Base, AuditMixin, SoftDeleteMixin):
-    __tablename__ = 'rental_contracts'
-
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    product_base_id: Mapped[str] = mapped_column(String, ForeignKey('product_bases.id'))
-    product_base: Mapped["ProductBase"] = relationship("ProductBase", back_populates="rentals")
-    start_date: Mapped[sa.DateTime] = mapped_column(sa.DateTime(timezone=True))
-    end_date: Mapped[sa.DateTime] = mapped_column(sa.DateTime(timezone=True))
-    status: Mapped[str] = mapped_column(String, default="ACTIVE")
-    terms: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB)
 
 class ProductEmbedding(Base, AuditMixin):
     __tablename__ = 'product_embeddings'

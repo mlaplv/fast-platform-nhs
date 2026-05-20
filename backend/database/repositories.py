@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from advanced_alchemy.repository import SQLAlchemyAsyncRepository
 from backend.database.models import (
     User, VoiceProfile, Role, Permission, Category, Article, Order,
-    ProductBase, ProductVariant, RentalContract, ProductEmbedding,
+    ProductBase, ProductVariant, ProductEmbedding,
     ArticleEmbedding, Draft, AgentTelemetryLog, ChatMessage, Notification,
     ContentCampaign, MediaRegistry, MediaUsage, Appointment, ContentScout,
     SupportKnowledge
@@ -39,11 +39,9 @@ class ProductBaseRepository(SQLAlchemyAsyncRepository[ProductBase]):
 class ProductVariantRepository(SQLAlchemyAsyncRepository[ProductVariant]):
     model_type = ProductVariant
 
-class RentalContractRepository(SQLAlchemyAsyncRepository[RentalContract]):
-    model_type = RentalContract
-
 class ProductEmbeddingRepository(SQLAlchemyAsyncRepository[ProductEmbedding]):
     model_type = ProductEmbedding
+
 
 class ArticleEmbeddingRepository(SQLAlchemyAsyncRepository[ArticleEmbedding]):
     model_type = ArticleEmbedding

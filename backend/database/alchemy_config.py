@@ -4,7 +4,7 @@ from typing import cast, Optional, Callable
 from advanced_alchemy.extensions.litestar import SQLAlchemyAsyncConfig as BaseSQLAlchemyAsyncConfig, AsyncSessionConfig
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession, AsyncEngine
 from sqlalchemy import event, select
-from backend.core.database import SYSTEM_READ_ONLY
+from backend.core.database import is_system_read_only
 from litestar.exceptions import PermissionDeniedException
 from advanced_alchemy.extensions.litestar._utils import get_aa_scope_state, set_aa_scope_state
 from advanced_alchemy.routing.context import reset_routing_context
@@ -98,8 +98,9 @@ from sqlalchemy.engine import Engine
 @event.listens_for(Engine, "before_cursor_execute", retval=True)
 def before_cursor_execute(conn, cursor, statement, parameters, context, execmany):
     # [THIẾT QUÂN LUẬT] Chặn Query mutation ở tầng driver nếu phong tỏa
-    if SYSTEM_READ_ONLY:
+    if is_system_read_only():
         forbidden_words = ["INSERT", "UPDATE", "DELETE", "DROP", "TRUNCATE", "ALTER"]
+
         stmt_upper = statement.upper()
         if any(word in stmt_upper for word in forbidden_words):
             allowed_tables = ["audit_logs", "drafts", "notifications", "chat_messages"]

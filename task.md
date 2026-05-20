@@ -44,5 +44,26 @@
   - Tự động khởi tạo (seed) 3 địa chỉ IP vi phạm biometrics mẫu vào bảng `ads_ip_blacklist` cục bộ để giao diện Dashboard không bị trống trải.
   - Tự động thống kê, tổng hợp số lượt click, chi phí (VND), tỷ lệ CTR và chuyển đổi (conversions) trực tiếp từ các sự kiện có thật trong bảng `click_fraud_events` ở Postgres để tạo luồng dữ liệu 100% chính thống từ DB.
 
+---
+
+# Chiến dịch dọn dẹp Database & Khôi phục Thiết Quân Luật (Giai đoạn 1 & 2)
+
+## Giai đoạn 1: Dọn dẹp Database (Alembic & Models)
+- [x] Loại bỏ dead model `RentalContract` ra khỏi `backend/database/models/commerce.py`
+- [x] Loại bỏ `RentalContractRepository` và imports của nó ra khỏi `backend/database/repositories.py`
+- [x] Tạo file migration Alembic mới để drop bảng `rental_contracts` trong PostgreSQL
+- [x] Chạy migration để đồng bộ cơ sở dữ liệu
+
+
+## Giai đoạn 2: Thanh lọc Code Thối & Khôi phục "Thiết Quân Luật"
+- [x] Thanh lọc triệt để `backend/core/database.py` (loại bỏ duplicated engine/plugin, viết hàm `is_system_read_only` động)
+- [x] Nâng cấp hàm `is_system_read_only` để tự động kiểm tra đồng bộ thông qua Redis (nếu Redis khả dụng) hoặc fallback qua OS environment
+- [x] Cập nhật driver DB (`backend/database/alchemy_config.py`) sử dụng `is_system_read_only()` động thay vì static boolean
+- [x] Cập nhật `backend/audit_middleware.py` sử dụng `is_system_read_only()` động
+- [x] Dọn dẹp imports thừa của `SYSTEM_READ_ONLY` trong `SecurityController` (`backend/controllers/security.py`)
+- [x] Xác minh, chạy thử nghiệm hệ thống và kiểm tra hoạt động của cơ chế Martial Law mới
+
+
+
 
 

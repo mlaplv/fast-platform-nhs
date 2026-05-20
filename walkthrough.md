@@ -35,4 +35,27 @@
 ### Frontend (1 file)
 6. **`frontend/src/routes/+layout.svelte`** — Theo dõi sinh trắc học tương tác và Canary Trap honeypot khi phát hiện URL chứa `gclid`, tự động báo cáo telemetry về endpoint `/validate-click`.
 
+---
+
+# Walkthrough - Dọn dẹp Database & Khôi phục Thiết Quân Luật (Giai đoạn 1 & 2)
+
+## Files đã sửa/tạo (6 files)
+
+### Database Cleanup (Giai đoạn 1)
+1. **`backend/database/models/commerce.py`** — Loại bỏ hoàn toàn model `RentalContract` mồ côi và mối quan hệ `rentals` khỏi `ProductBase`.
+2. **`backend/database/models/__init__.py`** — Loại bỏ `RentalContract` khỏi imports và danh sách xuất khẩu `__all__`.
+3. **`backend/database/repositories.py`** — Loại bỏ `RentalContractRepository` và import tương ứng.
+4. **`backend/migrations/versions/fe0e6bbf45b5_drop_rental_contracts.py`** — Tệp migration Alembic mới drop bảng `rental_contracts` ở `upgrade()` và khôi phục ở `downgrade()`.
+
+### Code Cleanup & Lockdown Sync (Giai đoạn 2)
+5. **`backend/core/database.py`** — Thanh lý triệt để code thối trùng lặp cấu hình DB, chuyển biến tĩnh `SYSTEM_READ_ONLY` thành hàm check động `is_system_read_only()` linh hoạt.
+6. **`backend/database/alchemy_config.py`** — Chuyển từ kiểm tra biến tĩnh sang gọi hàm dynamic `is_system_read_only()` tại event `before_cursor_execute` để khóa DB tức thời ở runtime.
+7. **`backend/audit_middleware.py`** — Tích hợp kiểm tra đồng bộ trạng thái Martial Law từ Redis bất đồng bộ trên mỗi HTTP request để cập nhật môi trường runtime, và chuyển sang dùng `is_system_read_only()` động để khóa API Mutation tức thời.
+8. **`backend/controllers/security.py`** — Dọn dẹp import thừa `SYSTEM_READ_ONLY`.
+
+## Kiểm định
+- **Alembic Migration**: Chạy thành công lệnh `alembic upgrade head`, dịch chuyển database lên phiên bản `fe0e6bbf45b5 (head)` và drop bảng `rental_contracts` thành công trong Postgres.
+- **Khởi động Litestar Engine**: Uvicorn khởi chạy và hot-reload thành công 100% không bắn ra bất cứ lỗi syntax hay import nào. Tự động đồng bộ RBAC và sẵn sàng phục vụ.
+
+
 

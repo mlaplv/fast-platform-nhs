@@ -8,8 +8,9 @@ from backend.services.ai_engine.core.security_guard import security_guard
 from backend.database.models.ads import IPBlacklist
 from sqlalchemy import select
 from backend.database.alchemy_config import alchemy_config
-from backend.core.database import SYSTEM_READ_ONLY
+from backend.core.database import is_system_read_only
 from litestar.exceptions import PermissionDeniedException
+
 import hmac
 import hashlib
 import os
@@ -70,10 +71,21 @@ class AuditMiddleware:
                 reason = "Malicious pattern in URL/Query"
                 break
 
+        # [THIẾT QUÂN LUẬT] Đồng bộ trạng thái Martial Law từ Redis (Async) để cập nhật process-local env
+        try:
+            from backend.services.ai_engine.core.key_rotator import key_rotator
+            if key_rotator._use_redis and key_rotator.client:
+                redis_val = await key_rotator.client.get("security:martial_law")
+                if redis_val is not None:
+                    os.environ["SYSTEM_READ_ONLY"] = "true" if redis_val == "1" else "false"
+        except Exception as e:
+            logger.warning(f"⚠️ [AuditMiddleware] Failed to sync Martial Law from Redis: {e}")
+
         # [THIẾT QUÂN LUẬT] Chặn mọi mutation nếu hệ thống đang Read-Only
-        if SYSTEM_READ_ONLY and method in ["POST", "PUT", "PATCH", "DELETE"]:
+        if is_system_read_only() and method in ["POST", "PUT", "PATCH", "DELETE"]:
             logger.error(f"🛑 [MARTIAL_LAW] Mutation Blocked: {method} {path} from {scope.get('client')}")
             raise PermissionDeniedException("Hệ thống đang trong trạng thái PHONG TỎA (Read-Only). Mọi thao tác thay đổi dữ liệu bị cấm.")
+
 
         # Chỉ Audit các action mutation hoặc các request nghi vấn
         if method in ["POST", "PUT", "PATCH", "DELETE"] or is_suspicious:

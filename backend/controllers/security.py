@@ -8,9 +8,9 @@ from backend.constants.permissions import PermissionEnum
 from backend.services.ai_engine.core.security_guard import security_guard, ThreatAnalysis
 from backend.services.security.draft_service import draft_service
 from backend.schemas.common import SuccessResponse
-from backend.core.database import SYSTEM_READ_ONLY
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Dict
+
 import json
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 
