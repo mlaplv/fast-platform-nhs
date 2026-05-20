@@ -66,7 +66,7 @@
 ## Files đã sửa/tạo (4 files)
 
 ### Backend (4 files)
-1. **`backend/services/ai_engine/core/trinity_models.py`** — Cập nhật mảng `HARD_BLACKLIST` (thêm `"gemini-2.0-pro"`, `"gemini-1.5-pro"`, `"gemini-1.5-flash"`). Bổ sung phương thức `add_to_persistent_blacklist` xử lý ghi nhận vĩnh viễn mô hình chết vào DB `SystemSetting` cấu hình `ai_orchestration_config`, đồng thời lọc sạch mô hình này ra khỏi bảng `VoiceProfile` và hot-reload bộ nhớ tức thời. Thay thế mô hình fallback chết bằng `"gemini-2.5-pro"`.
+1. **`backend/services/ai_engine/core/trinity_models.py`** — Cập nhật mảng `HARD_BLACKLIST` (thêm `"gemini-2.0-pro"`, `"gemini-1.5-pro"`, `"gemini-1.5-flash"`). Bổ sung phương thức `add_to_persistent_blacklist` xử lý ghi nhận vĩnh viễn mô hình chết vào DB `SystemSetting` cấu hình `ai_orchestration_config`, đồng thời lọc sạch mô hình này ra khỏi bảng `VoiceProfile` và hot-reload bộ nhớ tức thời. Thay thế mô hình fallback chết bằng `"gemini-2.5-pro"`. Bổ sung cơ chế **Hợp nhất Cấu hình Động (Dynamic Fusion Whitelist/Blacklist)** cho phép Sếp định hình cấu hình `whitelist` trong database để ghi đè/cứu sống bất kỳ model nào nằm trong `HARD_BLACKLIST`.
 2. **`backend/services/ai_engine/core/trinity_bridge.py`** — Lồng ghép cơ chế gọi `add_to_persistent_blacklist` tại hàm `run` và `run_stream` khi bắt được mã lỗi `404 Model Not Found` (`model_not_found`). Thêm bộ tiền-lọc `"gemini-2.0-pro"` tại hàm `reload_models` để tự động redirect về `"gemini-2.0-flash"` khi khởi chạy hệ thống.
 3. **`backend/services/ai_service.py`** — Nâng cấp `priority_pool` trong tiến trình `auto_optimize_stack` chuyển từ `"gemini-2.0-pro"` cũ sang các mô hình hiện đại `["gemini-2.5-flash", "gemini-2.5-pro"]`.
 4. **`backend/lifespan.py`** — Cài đặt vệ binh định kỳ `_model_health_sync_loop` chạy ngầm 12 giờ một lần để kiểm tra độ trễ/kết nối của các mô hình LLM, tự động cô lập và blacklist các mô hình trả về lỗi `404` hay `400`.
@@ -75,3 +75,4 @@
 - **Syntax Check**: Chạy kiểm tra AST của cả 4 files thành công (`Syntax OK`), cam kết không dính lỗi cú pháp.
 - **Docker Compose Restart**: Khởi động lại các container `api`, `worker_high`, `worker_default` trơn tru.
 - **Runtime Log Verify**: Đã kiểm chứng log container `api` khởi chạy không lỗi (`Application startup complete`), đồng bộ VoiceProfile, RBAC và nạp keys mượt mà.
+- **Dynamic Whitelist Test**: Hàm `is_blacklisted` ưu tiên kiểm tra whitelist của cơ sở dữ liệu trước tiên để cung cấp khả năng override động 100%.

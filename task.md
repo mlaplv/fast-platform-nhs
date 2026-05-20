@@ -77,3 +77,4 @@
 - [x] Tích hợp cơ chế tự động gọi `add_to_persistent_blacklist` trong `TrinityBridge.run` và `TrinityBridge.run_stream` khi gặp lỗi `404 Model Not Found` (`model_not_found`).
 - [x] Thay thế `"gemini-2.0-pro"` trong `priority_pool` của `auto_optimize_stack` (`backend/services/ai_service.py`) bằng các dòng model mới 2026 (`gemini-2.5-flash`, `gemini-2.5-pro`).
 - [x] Thiết lập tác vụ định kỳ `_model_health_sync_loop` chạy ngầm mỗi 12 giờ tại `backend/lifespan.py` để ping kiểm tra và tự động khai tử/blacklist các mô hình lỗi thời/chết.
+- [x] Xây dựng cơ chế Hợp nhất Cấu hình Động (Dynamic Fusion Blacklist & Whitelist override) cho phép Sếp định cấu hình `whitelist` trong cơ sở dữ liệu để ghi đè hoàn toàn danh sách đen tĩnh `HARD_BLACKLIST`.

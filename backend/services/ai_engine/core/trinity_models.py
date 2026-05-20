@@ -28,6 +28,7 @@ DEFAULT_AI_CONFIG = {
         "brain": ["pro", "ultra", "brain"]
     },
     "blacklist": ["-tts", "-embedding", "-aqa", "-image", "-vision", "deep-research", "robotics", "lyria", "banana", "lite-preview", "gemini-flash-latest", "gemini-flash-lite-latest", "-preview", "exp", "-latest", "-001", "-002"],
+    "whitelist": [],  # Elite V2.2: Dynamic Fusion whitelist overrides for HARD_BLACKLIST
     "lockdown": ["early-access", "alpha", "customtools"],
     "penalties": {
         "experimental": 100,
@@ -299,12 +300,11 @@ class TrinityModels:
         _add(self.fallback_model)
 
         # Filter: Remove blacklisted, locked, and poisoned models
-        blacklist = self._config.get("blacklist", [])
         lockdown = self._config.get("lockdown", [])
         
         healthy: list[str] = []
         for m in raw:
-            if any(bl in m for bl in blacklist) or any(hbl in m for hbl in HARD_BLACKLIST):
+            if self.is_blacklisted(m):
                 continue
             if any(l in m for l in lockdown):
                 continue
@@ -403,14 +403,27 @@ class TrinityModels:
             return False
         return any(p in err_lower for p in ["daily", "per_day", "requests_per_day", "generaterequestsperdayperproject"])
 
-    def is_blacklisted(self, model_name: str) -> bool:
-        """Elite V2.2: Martial Law verification."""
+    def is_whitelisted(self, model_name: str) -> bool:
+        """Elite V2.2: Check if model has a persistent DB-level whitelist override."""
         m = model_name.lower()
-        # 1. Hard Blacklist (Kernel level)
-        if any(hbl in m for hbl in HARD_BLACKLIST):
-            return True
+        whitelists = self._config.get("whitelist", [])
+        return any(wl in m for wl in whitelists)
+
+    def is_blacklisted(self, model_name: str) -> bool:
+        """Elite V2.2: Martial Law verification with dynamic fusion bypass."""
+        m = model_name.lower()
+        
+        # 1. DB Whitelist Override (highest precedence)
+        if self.is_whitelisted(model_name):
+            return False
+            
         # 2. Configurable Blacklist (DB level)
         if any(bl in m for bl in self._config.get("blacklist", [])):
             return True
+            
+        # 3. Hard Blacklist (Kernel level fallback)
+        if any(hbl in m for hbl in HARD_BLACKLIST):
+            return True
+            
         return False
 
