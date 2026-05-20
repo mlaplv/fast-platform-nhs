@@ -254,10 +254,13 @@
 - [x] **[Syntax Verification]** Chạy `svelte-check` để đảm bảo không lỗi kiểu hoặc cú pháp Svelte 5.
 - [x] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
 
+# Task: Làm sạch và tối ưu hóa backend/main.py (Elite V2.2)
 
-
-
-
-
-
+## Kế hoạch (PROPOSE)
+- [x] **[Environment Loading]** Tải file cấu hình `.env` động bằng cách tìm đúng thư mục gốc thông qua `Path(__file__).resolve().parents[1]` và tự động fallback về `load_dotenv()` nếu không tìm thấy file thay vì crash server bằng `FileNotFoundError`.
+- [x] **[Logging & Warnings]** Gộp và cấu hình lọc các cảnh báo thư viện như `pydantic` hay `pydantic_ai` một cách gọn gàng; tối ưu việc nạp logger namespaced.
+- [x] **[CORS Optimization]** Xây dựng hàm helper `_build_allowed_origins` để kiểm soát CORS origin động, bảo mật và tin cậy cao hơn.
+- [x] **[Rate Limit Config]** Chuyển đổi định cấu hình giới hạn tần suất yêu cầu sang kiểu `timedelta(minutes=1)` chuẩn chỉ và có kiểu tĩnh an toàn.
+- [x] **[Routing Grouping]** Tách biệt và gom nhóm các Router thành các mảng rõ ràng (`admin_routes`, `client_routes`, `public_routes`) và gộp lại trong instance `Litestar`.
+- [x] **[Middleware Ordering]** Tối ưu hóa thứ tự thực thi của Middleware (`AuthMiddleware` lên đầu) để lọc request không an toàn trước khi đi vào các tầng sâu hơn.
 

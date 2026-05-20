@@ -11,11 +11,12 @@ from datetime import timedelta
 from dotenv import load_dotenv
 
 # R00: Load environment before any local imports to ensure SSOT configuration
-# Resolve .env relative to repository root for robustness
-dotenv_path = Path(__file__).resolve().parents[2] / ".env"
-if not dotenv_path.is_file():
-    raise FileNotFoundError(f"Environment file not found at {dotenv_path}")
-load_dotenv(dotenv_path)
+# Resolve .env relative to repository root (parents[1])
+dotenv_path = Path(__file__).resolve().parents[1] / ".env"
+if dotenv_path.is_file():
+    load_dotenv(dotenv_path)
+else:
+    load_dotenv()
 
 from backend.app_logging import setup_logging
 # Pass module name for namespaced logging if supported
