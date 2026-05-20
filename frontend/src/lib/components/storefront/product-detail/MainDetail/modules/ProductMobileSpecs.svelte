@@ -43,6 +43,191 @@
   }
 
   const brand = $derived(product.attributes?.['Thương hiệu'] || product.attributes?.['Brand'] || product.metadata?.brand);
+
+  import AudioLines from "@lucide/svelte/icons/audio-lines";
+  import { onDestroy } from "svelte";
+
+  // 🎙️ TTS: WEB AUDIO ENGINE (Elite V7.0 - OS-Codec-Free)
+  let isReading = $state(false);
+  let isBuffering = $state(false);
+  let abortController: AbortController | null = null;
+  let currentAudio = $state<HTMLAudioElement | null>(null);
+
+  const CACHE_NAME = "osmo-tts-v2";
+  const productSlug = $derived(product?.slug || "unknown");
+
+  function sanitizeTtsText(raw: string): string {
+    const romanMap: Record<string, string> = {
+      'XX': 'hai mươi',
+      'XIX': 'mười chín',
+      'XVIII': 'mười tám',
+      'XVII': 'mười bảy',
+      'XVI': 'mười sáu',
+      'XV': 'mười lăm',
+      'XIV': 'mười bốn',
+      'XIII': 'mười ba',
+      'XII': 'mười hai',
+      'XI': 'mười một',
+      'X': 'mười',
+      'IX': 'chín',
+      'VIII': 'tám',
+      'VII': 'bảy',
+      'VI': 'sáu',
+      'V': 'năm',
+      'IV': 'bốn',
+      'III': 'ba',
+      'II': 'hai',
+      'I': 'một'
+    };
+
+    const romanRegex = /\b(XX|XIX|XVIII|XVII|XVI|XV|XIV|XIII|XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I)\b/g;
+
+    return (
+      raw
+        // Translate Roman numerals to Vietnamese
+        .replace(romanRegex, (match) => romanMap[match] || match)
+        // Strip all Emoji except digits/ASCII
+        .replace(/\p{Extended_Pictographic}/gu, "")
+        // Strip Miscellaneous Symbols & Dingbats blocks
+        .replace(/[\u2600-\u27BF]/g, "")
+        // Strip enclosed/supplemental alphanumerics & symbols
+        .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
+        // Strip zero-width joiners & variation selectors left over
+        .replace(/[\uFE00-\uFE0F\u200D]/g, "")
+        // Strip English-only parenthetical labels
+        .replace(/\(\s*[A-Za-z][A-Za-z\s\-']{0,40}\s*\)/g, "")
+        // Strip leading dash/hyphen left over
+        .replace(/^\s*[-–—]\s*/gm, "")
+        // Collapse multiple blank lines
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
+    );
+  }
+
+  async function toggleSpeech(): Promise<void> {
+    if (isReading || isBuffering) {
+      stopSpeech();
+      return;
+    }
+
+    if (!containerRef) return;
+    const tempEl = containerRef.cloneNode(true) as HTMLElement;
+    tempEl.querySelectorAll("figcaption").forEach((el) => el.remove());
+    const rawText = tempEl.innerText || "";
+    const text = sanitizeTtsText(rawText);
+    if (text.length < 10) return;
+
+    isBuffering = true;
+
+    try {
+      let audioUrl = "";
+      let usedCache = false;
+
+      const cache = await caches.open(CACHE_NAME);
+      const cachedResponse = await cache.match(`/tts/${productSlug}`);
+
+      if (cachedResponse) {
+        const blob = await cachedResponse.blob();
+        if (blob.size > 500 && blob.type.startsWith("audio/")) {
+          audioUrl = URL.createObjectURL(blob);
+          usedCache = true;
+        } else {
+          await cache.delete(`/tts/${productSlug}`);
+        }
+      }
+
+      if (!usedCache) {
+        abortController = new AbortController();
+        const prepRes = await fetch("/api/v1/client/tts/prepare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: text.slice(0, 20000) }),
+          signal: abortController.signal,
+        });
+
+        if (!prepRes.ok) throw new Error(`Prepare failed: ${prepRes.status}`);
+        const { id } = await prepRes.json();
+        if (!id) throw new Error("No stream ID returned");
+
+        audioUrl = `/api/v1/client/tts/stream?id=${id}`;
+      }
+
+      const audio = new Audio();
+      audio.src = audioUrl;
+      currentAudio = audio;
+
+      audio.onplay = () => {
+        isBuffering = false;
+        isReading = true;
+      };
+
+      audio.onloadedmetadata = () => {
+        const savedTime = localStorage.getItem(`tts_pos_${productSlug}`);
+        if (savedTime) audio.currentTime = parseFloat(savedTime);
+      };
+
+      audio.ontimeupdate = () => {
+        if (audio.currentTime > 0) {
+          localStorage.setItem(
+            `tts_pos_${productSlug}`,
+            audio.currentTime.toString(),
+          );
+        }
+      };
+
+      audio.onended = () => {
+        localStorage.removeItem(`tts_pos_${productSlug}`);
+        localStorage.setItem(`tts_done_${productSlug}`, "true");
+        cleanup();
+      };
+
+      audio.onerror = () => {
+        caches
+          .open(CACHE_NAME)
+          .then((c) => c.delete(`/tts/${productSlug}`))
+          .catch(() => {});
+        cleanup();
+      };
+
+      await audio.play();
+    } catch (e: unknown) {
+      const err = e as Error;
+      if (err?.name !== "AbortError") console.error("[TTS] Error:", err);
+      caches
+        .open(CACHE_NAME)
+        .then((c) => c.delete(`/tts/${productSlug}`))
+        .catch(() => {});
+      cleanup();
+    }
+  }
+
+  function stopSpeech(): void {
+    cleanup();
+  }
+
+  function cleanup(): void {
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+    }
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.ontimeupdate = null;
+      currentAudio.onplay = null;
+      currentAudio.onloadedmetadata = null;
+      if (currentAudio.src.startsWith("blob:")) {
+        URL.revokeObjectURL(currentAudio.src);
+      }
+      currentAudio.src = "";
+      currentAudio = null;
+    }
+    isReading = false;
+    isBuffering = false;
+  }
+
+  onDestroy(() => {
+    stopSpeech();
+  });
 </script>
 
 <section class="content-section">
@@ -117,7 +302,34 @@
     </div>
   {/if}
   
-  <h2 class="section-title mt-6">Chi tiết</h2>
+  <div class="flex items-center justify-between mt-6 mb-3 pr-1">
+    <h2 class="section-title !mb-0 !mt-0">Chi tiết</h2>
+    <!-- 🎙️ NEURAL VOICE CAPSULE (Elite V6.4 Lite) -->
+    <button
+      type="button"
+      onclick={toggleSpeech}
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 active:scale-95 border {isReading || isBuffering ? 'bg-[#ee4d2d]/10 text-[#ee4d2d] border-[#ee4d2d]/20' : 'bg-gray-50 border-gray-200 text-gray-600'}"
+      aria-label={isReading ? "Dừng đọc" : "Đọc thông tin"}
+    >
+      {#if isBuffering}
+        <div class="relative w-3.5 h-3.5 flex items-center justify-center">
+          <div class="absolute inset-0 border-[1.5px] border-gray-300 rounded-full"></div>
+          <div class="absolute inset-0 border-[1.5px] border-[#ee4d2d] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      {:else if isReading}
+        <div class="flex items-end gap-[2px] h-3">
+          <div class="w-[2px] bg-[#ee4d2d] animate-voice-bar-1"></div>
+          <div class="w-[2px] bg-[#ee4d2d] animate-voice-bar-2"></div>
+          <div class="w-[2px] bg-[#ee4d2d] animate-voice-bar-3"></div>
+        </div>
+      {:else}
+        <AudioLines size={13} strokeWidth={2.5} class="text-gray-500" />
+      {/if}
+      <span class="text-[11px] font-extrabold tracking-tight leading-none">
+        {isBuffering ? "..." : isReading ? "Dừng" : "Nghe"}
+      </span>
+    </button>
+  </div>
   
   <div 
     class="description-wrapper {(!isExpanded && hasMore) ? 'collapsed' : ''}"
@@ -386,5 +598,26 @@
     color: #6b7280 !important;
     font-style: italic !important;
     line-height: 1.4 !important;
+  }
+
+  /* 🎙️ Neural Voice Animations */
+  @keyframes voice-bar {
+    0%,
+    100% {
+      height: 4px;
+    }
+    50% {
+      height: 12px;
+    }
+  }
+
+  .animate-voice-bar-1 {
+    animation: voice-bar 0.6s infinite ease-in-out;
+  }
+  .animate-voice-bar-2 {
+    animation: voice-bar 0.8s infinite ease-in-out 0.2s;
+  }
+  .animate-voice-bar-3 {
+    animation: voice-bar 0.7s infinite ease-in-out 0.4s;
   }
 </style>

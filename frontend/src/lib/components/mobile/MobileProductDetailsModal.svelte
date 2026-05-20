@@ -53,6 +53,7 @@
   let startY = 0;
   let contentRef = $state<HTMLElement | null>(null);
   let isAtBottom = $state(false);
+  let showSpeechButton = $state(false);
 
   const shopStore = getShopStore();
   const cartStore = getCartStore();
@@ -63,6 +64,13 @@
     // Check if within 100px of bottom
     isAtBottom =
       target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
+
+    const proseEl = target.querySelector(".elite-prose") as HTMLElement;
+    if (proseEl) {
+      showSpeechButton = target.scrollTop >= proseEl.offsetTop - 150;
+    } else {
+      showSpeechButton = false;
+    }
   }
 
   let showVerification = $state(false);
@@ -84,6 +92,7 @@
   $effect(() => {
     if (active && contentRef) {
       contentRef.scrollTop = 0;
+      showSpeechButton = false;
     }
   });
 
@@ -118,6 +127,9 @@
   // Compatible with Firefox/Linux (no gstreamer-ugly needed), Chrome, Safari.
   let isReading: boolean = $state(false);
   let isBuffering: boolean = $state(false);
+  const shouldShowSpeech = $derived(
+    showSpeechButton || isReading || isBuffering,
+  );
   let abortController: AbortController | null = null;
 
   // R6.0 Memory State
@@ -130,8 +142,45 @@
    * as their Unicode description (e.g. ⚡ → "biển báo điện cao thế").
    */
   function sanitizeTtsText(raw: string): string {
+    const romanMap: Record<string, string> = {
+      XX: "hai mươi",
+      XIX: "mười chín",
+      XVIII: "mười tám",
+      XVII: "mười bảy",
+      XVI: "mười sáu",
+      XV: "mười lăm",
+      XIV: "mười bốn",
+      XIII: "mười ba",
+      XII: "mười hai",
+      XI: "mười một",
+      X: "10",
+      IX: "chín",
+      VIII: "tám",
+      VII: "bảy",
+      VI: "sáu",
+      V: "năm",
+      IV: "bốn",
+      III: "ba",
+      II: "hai",
+      I: "một",
+    };
+
+    const romanRegex =
+      /\b(XX|XIX|XVIII|XVII|XVI|XV|XIV|XIII|XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I)\b/g;
+
     return (
       raw
+        // Translate Roman numerals to Vietnamese
+        // Translate Roman numerals to Vietnamese
+.replace(romanRegex, (match, _unused, offset, str) => {
+  if (match === 'X') {
+    const before = str[offset - 1] ?? '';
+    const after = str[offset + 1] ?? '';
+    const isIsolated = (!before || /\s|[.,;!?"'‑-]/.test(before)) && (!after || /\s|[.,;!?"'‑-]/.test(after));
+    return isIsolated ? '10' : match;
+  }
+  return romanMap[match] || match;
+})
         // Strip all Emoji except digits/ASCII (Extended Pictographic)
         .replace(/\p{Extended_Pictographic}/gu, "")
         // Strip Miscellaneous Symbols & Dingbats blocks (☀ ★ ♦ etc.)
@@ -160,7 +209,11 @@
       return;
     }
 
-    const rawText: string = contentRef?.innerText || "";
+    const proseEl = contentRef?.querySelector(".elite-prose") as HTMLElement;
+    if (!proseEl) return;
+    const tempEl = proseEl.cloneNode(true) as HTMLElement;
+    tempEl.querySelectorAll("figcaption").forEach((el) => el.remove());
+    const rawText: string = tempEl.innerText || "";
     const text: string = sanitizeTtsText(rawText);
     if (text.length < 10) return;
 
@@ -332,7 +385,9 @@
           class="flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all duration-500 active:scale-95 pointer-events-auto border border-white/10 {isReading ||
           isBuffering
             ? 'bg-pink-500/80 text-white'
-            : 'bg-black/25 backdrop-blur-md text-white'}"
+            : 'bg-black/25 backdrop-blur-md text-white'} {shouldShowSpeech
+            ? 'opacity-100 scale-100'
+            : 'opacity-0 scale-90 pointer-events-none'}"
           aria-label={isReading ? "Dừng đọc" : "Đọc thông tin"}
         >
           {#if isBuffering}
@@ -605,7 +660,9 @@
         </div>
 
         <!-- Spacer to prevent floating CTA from overlapping content at the very bottom -->
-        <div class="h-32 w-full block clear-both shrink-0 pointer-events-none"></div>
+        <div
+          class="h-32 w-full block clear-both shrink-0 pointer-events-none"
+        ></div>
       {/if}
     </div>
 
@@ -718,7 +775,7 @@
     font-size: 1.15rem;
     color: #fff;
     border-left: 3px solid #ffb7c5;
-    padding-left: 12px;
+    padding-left: 6px;
     margin: 2rem 0 1rem 0;
     font-weight: 800;
     letter-spacing: -0.01em;

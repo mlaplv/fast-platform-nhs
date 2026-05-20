@@ -198,11 +198,65 @@
 # Task: Khắc phục nút đặt hàng che nội dung trên Mobile Product Details Modal (Elite V2.2)
 
 ## Kế hoạch (PROPOSE)
-- [ ] **[Frontend Layout Fix]** Phân tích và khắc phục lỗi overlap của nút đặt hàng (CTA) trên Mobile Product Details Modal (`MobileProductDetailsModal.svelte`):
+- [x] **[Frontend Layout Fix]** Phân tích và khắc phục lỗi overlap của nút đặt hàng (CTA) trên Mobile Product Details Modal (`MobileProductDetailsModal.svelte`):
   - Giải thích rõ tại sao `margin-bottom: 20px` trên `.elite-prose` không có tác dụng.
   - Tích hợp thêm một khoảng đệm an toàn (`div` spacer với chiều cao `120px` hoặc `h-32`) ở cuối cùng của container cuộn (`contentRef`) để chừa đủ khoảng trống cho nút CTA bay lơ lửng (`absolute bottom-10` cao `65px`).
-- [ ] **[Syntax Verification]** Chạy `svelte-check` hoặc phân tích tĩnh để đảm bảo mã Svelte 5 không dính lỗi cú pháp.
-- [ ] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
+- [x] **[Syntax Verification]** Chạy `svelte-check` hoặc phân tích tĩnh để đảm bảo mã Svelte 5 không dính lỗi cú pháp.
+- [x] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
+
+---
+
+# Task: Thu hẹp phạm vi đọc TTS chỉ đọc vùng mô tả chi tiết (.elite-prose) (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Frontend TTS Scope Fix]** Cập nhật logic lấy dữ liệu text trong hàm `toggleSpeech` của `MobileProductDetailsModal.svelte`:
+  - Thay vì lấy toàn bộ `contentRef.innerText` (làm đọc cả tên thương hiệu, xuất xứ, mã vạch, thành phần phụ), ta sẽ chỉ lấy `.elite-prose` bằng truy vấn `.querySelector('.elite-prose')`.
+- [x] **[Storefront Mobile TTS Integration]** Tích hợp Web Audio TTS Engine chuyên nghiệp vào `ProductMobileSpecs.svelte` (nằm trong `Mobile.svelte`):
+  - Thiết lập đầy đủ trạng thái `isReading`, `isBuffering`, `currentAudio` và các hàm `toggleSpeech`, `stopSpeech`, `sanitizeTtsText`.
+  - Thiết kế nút **Neural Voice Capsule** nằm sát ngay cạnh tiêu đề "Chi tiết" ở dạng flex layout cực kỳ thoáng và cân đối.
+  - Bổ sung hiệu ứng CSS giọng nói chuyển động.
+- [x] **[Syntax Verification]** Chạy `svelte-check` để đảm bảo không lỗi kiểu hoặc cú pháp Svelte 5.
+- [x] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
+
+---
+
+# Task: Loại bỏ figcaption (chú thích ảnh) khỏi nội dung đọc TTS (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Modal & Page TTS Scoping Fix]** Cập nhật logic trích xuất văn bản trong cả hai file:
+  - `MobileProductDetailsModal.svelte`
+  - `ProductMobileSpecs.svelte`
+  - Phương pháp: Clone node trong bộ nhớ (`cloneNode(true)`), duyệt qua và xóa bỏ tất cả các thẻ `figcaption` trước khi lấy `.innerText`. Đảm bảo không ảnh hưởng đến giao diện thật.
+- [x] **[Syntax Verification]** Chạy `svelte-check` để đảm bảo không lỗi kiểu hoặc cú pháp Svelte 5.
+- [x] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
+
+---
+
+# Task: Chuẩn hóa phát âm số La Mã (I, II, III...) sang tiếng Việt cho TTS (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Roman Numerals Translation]** Cập nhật hàm `sanitizeTtsText` trong cả hai file:
+  - `MobileProductDetailsModal.svelte`
+  - `ProductMobileSpecs.svelte`
+  - Phương pháp: Định nghĩa bảng tra cứu Roman numerals từ XX xuống I và dùng biểu thức chính quy (Regex) với ranh giới từ `\b` để thay thế chính xác các ký tự số La Mã viết hoa độc lập thành chữ số tiếng Việt tương ứng (VD: II -> hai).
+- [x] **[Syntax Verification]** Chạy `svelte-check` để đảm bảo không lỗi kiểu hoặc cú pháp Svelte 5.
+- [x] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
+
+---
+
+# Task: Nút nghe chỉ hiện khi scroll xuống phần mô tả chi tiết (.elite-prose) ở Modal (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Scroll Visibility TTS Button]** Cấy thêm biến trạng thái scroll và logic hiển thị nút nghe tại `MobileProductDetailsModal.svelte`:
+  - Khai báo state `showSpeechButton` và reactive derived rune `shouldShowSpeech = $derived(showSpeechButton || isReading || isBuffering)`.
+  - Trong hàm `handleScroll`, lấy vị trí offset `.elite-prose` và tự động kích hoạt `showSpeechButton = target.scrollTop >= proseEl.offsetTop - 150`.
+  - Tích hợp hiệu ứng CSS Smooth Transition (`opacity-0 scale-90` sang `opacity-100 scale-100`) trên nút Neural Voice Capsule để tránh hiện tượng layout shift và mang lại cảm giác mượt mà cực cao.
+- [x] **[Syntax Verification]** Chạy `svelte-check` để đảm bảo không lỗi kiểu hoặc cú pháp Svelte 5.
+- [x] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
+
+
+
+
 
 
 
