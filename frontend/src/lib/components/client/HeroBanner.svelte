@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { resolveMediaUrl } from '$lib/state/utils';
-  import { browser } from '$app/environment';
+  import { onMount } from "svelte";
+  import { resolveMediaUrl } from "$lib/state/utils";
+  import { browser } from "$app/environment";
   import "./HeroBanner.css";
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
-  import { SHOP_CONFIG } from '$lib/constants/shop';
-  import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
-  import { typewriter } from '$lib/actions/typewriter';
-  import { fade } from 'svelte/transition';
+  import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
+  import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
+  import { SHOP_CONFIG } from "$lib/constants/shop";
+  import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";
+  import { typewriter } from "$lib/actions/typewriter";
+  import { fade } from "svelte/transition";
 
   const shopStore = getShopStore();
 
@@ -18,20 +18,38 @@
   }
 
   let { scrollToQuiz, triggerScan }: HeroBannerProps = $props();
-  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
+  const product = $derived(
+    liveEditStore.isEditMode && liveEditStore.dirtyProduct
+      ? liveEditStore.dirtyProduct
+      : shopStore.product,
+  );
   const metadata = $derived(product?.metadata || {});
 
   const FALLBACK_METRICS = [
-    { label: '[TỰ TIN]', value: 'DIỆN BIKINI KHÔNG CHÚT TỲ VẾT', desc: 'Xóa tan mặc cảm thâm sạm vùng cánh và bikini line. Trả lại sự tự tin tuyệt đối cho nàng trong mọi trang phục quyến rũ.', color: 'copper' },
-    { label: '[TỐC ĐỘ]', value: 'BẬT TÔNG TRẮNG HỒNG SAU 14 NGÀY', desc: 'Công nghệ Nano-penetration độc quyền giúp tinh chất thẩm thấu sâu, ức chế melanin tối màu nhanh gấp 3 lần thông thường.', color: 'gold' },
-    { label: '[CẢM GIÁC]', value: 'MỊN MÀNG & QUYẾN RŨ TỨC THÌ', desc: 'Chất serum lỏng nhẹ như sương, không bết dính. Nuôi dưỡng làn da vùng nhạy cảm trở nên mướt mịn, thơm nhẹ nhàng.', color: 'peach' }
+    {
+      label: "[TỰ TIN]",
+      value: "DIỆN BIKINI KHÔNG CHÚT TỲ VẾT",
+      desc: "Xóa tan mặc cảm thâm sạm vùng cánh và bikini line. Trả lại sự tự tin tuyệt đối cho nàng trong mọi trang phục quyến rũ.",
+      color: "copper",
+    },
+    {
+      label: "[TỐC ĐỘ]",
+      value: "BẬT TÔNG TRẮNG HỒNG SAU 14 NGÀY",
+      desc: "Công nghệ Nano-penetration độc quyền giúp tinh chất thẩm thấu sâu, ức chế melanin tối màu nhanh gấp 3 lần thông thường.",
+      color: "gold",
+    },
+    {
+      label: "[CẢM GIÁC]",
+      value: "MỊN MÀNG & QUYẾN RŨ TỨC THÌ",
+      desc: "Chất serum lỏng nhẹ như sương, không bết dính. Nuôi dưỡng làn da vùng nhạy cảm trở nên mướt mịn, thơm nhẹ nhàng.",
+      color: "peach",
+    },
   ];
 
   let targetMouse = { x: 0, y: 0 };
   let springMouse = $state({ x: 0, y: 0 });
   let currentImageIndex = $state(0);
   let _springRafId: number | null = null;
-
 
   function _tickSpring() {
     const dx = targetMouse.x - springMouse.x;
@@ -78,34 +96,66 @@
   });
 
   const labels = $derived({
-    product_name: product?.name || metadata.hero_product_name_fallback || '',
-    video_url: (metadata.video_url as string) || (metadata.hero_video_url as string) || (metadata.hero_video as string) || '/uploads/video/HN_TikTok.mp4',
-    cta_text: metadata.hero_cta_text || 'Khám phá bí quyết sau 14 ngày',
-    aria_hero: metadata.hero_aria_label || 'Hero Spotlight Area',
-    aria_scroll: metadata.hero_aria_scroll || 'Scroll to results section',
+    product_name: product?.name || metadata.hero_product_name_fallback || "",
+    video_url:
+      (metadata.video_url as string) ||
+      (metadata.hero_video_url as string) ||
+      (metadata.hero_video as string) ||
+      "/uploads/video/HN_TikTok.mp4",
+    cta_text: metadata.hero_cta_text || "Khám phá bí quyết sau 14 ngày",
+    aria_hero: metadata.hero_aria_label || "Hero Spotlight Area",
+    aria_scroll: metadata.hero_aria_scroll || "Scroll to results section",
     metrics: FALLBACK_METRICS.map((fb, i) => {
       const custom = metadata.hero_metrics?.[i];
       if (!custom) return fb;
-      return { label: custom.label || fb.label, value: custom.value || fb.value, desc: custom.desc || fb.desc, color: custom.color || fb.color };
-    })
+      return {
+        label: custom.label || fb.label,
+        value: custom.value || fb.value,
+        desc: custom.desc || fb.desc,
+        color: custom.color || fb.color,
+      };
+    }),
   });
 
   const productName = $derived(labels.product_name);
   const images = $derived(product?.images || []);
-  const mainImage = $derived(images.length > 0 ? resolveMediaUrl(images[currentImageIndex]) : '');
-  
-  const stripTags = (h: string) => h ? h.replace(/<[^>]*>?/gm, '').trim() : '';
-  const legacyParts = $derived(metadata.hero_headline?.split('<br/>') || []);
-  const h1 = $derived(clean(metadata.hero_headline_1 || stripTags(legacyParts[0]) || "Miccosmo Beppin Body"));
-  const h2 = $derived(clean(metadata.hero_headline_2 || stripTags(legacyParts[1]) || "Virgin White Serum"));
-  
-  const rawH1 = $derived(metadata.hero_headline_1 || stripTags(legacyParts[0]) || "Miccosmo Beppin Body");
-  const rawH2 = $derived(metadata.hero_headline_2 || stripTags(legacyParts[1]) || "Virgin White Serum");
+  const mainImage = $derived(
+    images.length > 0 ? resolveMediaUrl(images[currentImageIndex]) : "",
+  );
+
+  const stripTags = (h: string) =>
+    h ? h.replace(/<[^>]*>?/gm, "").trim() : "";
+  const legacyParts = $derived(metadata.hero_headline?.split("<br/>") || []);
+  const h1 = $derived(
+    clean(
+      metadata.hero_headline_1 ||
+        stripTags(legacyParts[0]) ||
+        "Miccosmo Beppin Body",
+    ),
+  );
+  const h2 = $derived(
+    clean(
+      metadata.hero_headline_2 ||
+        stripTags(legacyParts[1]) ||
+        "Virgin White Serum",
+    ),
+  );
+
+  const rawH1 = $derived(
+    metadata.hero_headline_1 ||
+      stripTags(legacyParts[0]) ||
+      "Miccosmo Beppin Body",
+  );
+  const rawH2 = $derived(
+    metadata.hero_headline_2 ||
+      stripTags(legacyParts[1]) ||
+      "Virgin White Serum",
+  );
 
   const rawHeadline = $derived.by(() => {
-    const isH1Off = rawH1.startsWith('[OFF]');
-    const isH2Off = rawH2.startsWith('[OFF]');
-    if (isH1Off && isH2Off) return '';
+    const isH1Off = rawH1.startsWith("[OFF]");
+    const isH2Off = rawH2.startsWith("[OFF]");
+    if (isH1Off && isH2Off) return "";
     if (isH1Off) return `<span class="text-luxury-copper">${h2}</span>`;
     if (isH2Off) return h1;
     return `<span class="text-[1.2em] block leading-[1.4] mb-[-0.35em]">${h1}</span><span class="text-luxury-copper">${h2}</span>`;
@@ -123,44 +173,51 @@
   const processedDescription = $derived.by(() => {
     let desc = product?.shortDescription || fallbackDesc;
     const keyword = "Beppin Body Virgin White Serum";
-    
+
     // Nếu đã có thẻ h1 bọc từ khóa rồi thì trả về luôn
-    if (desc.includes('<h1') && desc.includes(keyword)) return desc;
+    if (desc.includes("<h1") && desc.includes(keyword)) return desc;
 
     // Ưu tiên thay thế nếu từ khóa đang nằm trong thẻ span (pattern cũ)
-    if (desc.includes('<span') && desc.includes(keyword)) {
+    if (desc.includes("<span") && desc.includes(keyword)) {
       desc = desc.replace(
         /<span([^>]*)>(.*?Beppin Body Virgin White Serum.*?)<\/span>/gi,
-        '<h1 style="display:inline;font-size:inherit;font-weight:inherit;margin:0;padding:0;color:inherit">$2</h1>'
+        '<h1 style="display:inline;font-size:inherit;font-weight:inherit;margin:0;padding:0;color:inherit">$2</h1>',
       );
-      if (desc.includes('<h1')) return desc;
+      if (desc.includes("<h1")) return desc;
     }
 
     // Nếu là text thô, bọc trực tiếp
     return desc.replace(
-      new RegExp(keyword, 'gi'),
-      `<h1 class="inline font-semibold" style="font-size:inherit;margin:0;padding:0;color:inherit">$&</h1>`
+      new RegExp(keyword, "gi"),
+      `<h1 class="inline font-semibold" style="font-size:inherit;margin:0;padding:0;color:inherit">$&</h1>`,
     );
   });
 
   const clean = (s: unknown) => {
     if (!s) return "";
     let val = String(s);
-    if (val.startsWith('[OFF]')) return val.substring(5).trim();
+    if (val.startsWith("[OFF]")) return val.substring(5).trim();
     return val;
   };
 
   const videoUrl = $derived.by(() => {
-    let url = labels.video_url?.trim() ?? '';
-    if (!url) return '';
-    if (url.startsWith('/')) return url;
-    if (url.startsWith('http') || url.startsWith('//') || url.startsWith('blob:')) return url;
+    let url = labels.video_url?.trim() ?? "";
+    if (!url) return "";
+    if (url.startsWith("/")) return url;
+    if (
+      url.startsWith("http") ||
+      url.startsWith("//") ||
+      url.startsWith("blob:")
+    )
+      return url;
     return resolveMediaUrl(url);
   });
 
-  type VideoMode = 'youtube' | 'tiktok' | 'local' | null;
+  type VideoMode = "youtube" | "tiktok" | "local" | null;
   function getYoutubeId(url: string): string | null {
-    const match = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    const match = url.match(
+      /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/,
+    );
     return match ? match[1] : null;
   }
   function getTiktokId(url: string): string | null {
@@ -170,14 +227,17 @@
 
   const videoMode = $derived.by((): VideoMode => {
     if (!videoUrl) return null;
-    if (getYoutubeId(videoUrl)) return 'youtube';
-    if (videoUrl.includes('tiktok.com')) return 'tiktok';
-    return 'local';
+    if (getYoutubeId(videoUrl)) return "youtube";
+    if (videoUrl.includes("tiktok.com")) return "tiktok";
+    return "local";
   });
 
   const videoStartTime = $derived(
-    typeof metadata.video_start_time === 'number' ? metadata.video_start_time :
-    (metadata.video_start_time != null ? Number(metadata.video_start_time) : 0)
+    typeof metadata.video_start_time === "number"
+      ? metadata.video_start_time
+      : metadata.video_start_time != null
+        ? Number(metadata.video_start_time)
+        : 0,
   );
   const videoEndTime = $derived.by((): number | null => {
     if (metadata.video_end_time == null) return null;
@@ -188,18 +248,18 @@
   let videoEl: HTMLVideoElement | null = $state(null);
 
   $effect(() => {
-    if (videoEl && videoMode === 'local' && videoUrl) {
+    if (videoEl && videoMode === "local" && videoUrl) {
       videoEl.load();
-      
+
       const onMeta = () => {
         if (videoEl) {
           videoEl.currentTime = videoStartTime;
           videoEl.play().catch(() => {});
         }
       };
-      
-      videoEl.addEventListener('loadedmetadata', onMeta, { once: true });
-      return () => videoEl?.removeEventListener('loadedmetadata', onMeta);
+
+      videoEl.addEventListener("loadedmetadata", onMeta, { once: true });
+      return () => videoEl?.removeEventListener("loadedmetadata", onMeta);
     }
   });
   // Elite V2.2: Reactive derived state so Svelte 5 $effect accurately tracks it
@@ -237,7 +297,7 @@
       if (videoEndTime) url += `&end=${videoEndTime}`;
       return url;
     }
-    if (videoUrl.includes('tiktok.com')) {
+    if (videoUrl.includes("tiktok.com")) {
       const ttId = getTiktokId(videoUrl);
       if (ttId) return `https://www.tiktok.com/embed/v2/${ttId}`;
       return `https://www.tiktok.com/embed/${encodeURIComponent(videoUrl)}`;
@@ -257,7 +317,7 @@
   // We use the centralized typewriter action to handle the animation
 </script>
 
-  <section
+<section
   id="hero"
   role="region"
   aria-label={labels.aria_hero}
@@ -274,19 +334,25 @@
   style:--color-luxury-gold="#E8D5B0"
   style:--color-luxury-peach="#E3B5A4"
 >
-  <div class="absolute inset-0 overflow-hidden pointer-events-none" style="z-index: var(--z-base);">
-    <div style:display={isEditing ? 'none' : 'block'} class="absolute inset-0">
-      {#if videoMode === 'local'}
+  <div
+    class="absolute inset-0 overflow-hidden pointer-events-none"
+    style="z-index: var(--z-base);"
+  >
+    <div style:display={isEditing ? "none" : "block"} class="absolute inset-0">
+      {#if videoMode === "local"}
         <video
           bind:this={videoEl}
           ontimeupdate={handleTimeUpdate}
           onended={handleVideoEnded}
-          autoplay muted preload="metadata" playsinline
+          autoplay
+          muted
+          preload="metadata"
+          playsinline
           loop={videoEndTime === null}
           class="elite-video-bg fade-in"
           src={videoUrl}
         ></video>
-      {:else if videoMode === 'youtube' || videoMode === 'tiktok'}
+      {:else if videoMode === "youtube" || videoMode === "tiktok"}
         <iframe
           class="elite-video-bg pointer-events-none fade-in"
           src={iframeEmbedUrl}
@@ -301,158 +367,270 @@
       <div class="elite-video-bg bg-[#0d1117] fade-in"></div>
     {/if}
 
-    <div class="video-dim-overlay {isEditing ? 'opacity-100 bg-black/90' : ''} transition-all duration-700"></div>
+    <div
+      class="video-dim-overlay {isEditing
+        ? 'opacity-100 bg-black/90'
+        : ''} transition-all duration-700"
+    ></div>
     <div class="video-vignette-top"></div>
     <div class="video-vignette-bottom"></div>
     <div class="video-vignette-radial"></div>
 
-    <div class="absolute inset-0 pointer-events-auto" style="z-index: var(--z-wave);">
-      <EditableWrapper path="metadata.video_url" type="video" label="SỬA VIDEO NỀN">
-         <span></span>
+    <div
+      class="absolute inset-0 pointer-events-auto"
+      style="z-index: var(--z-wave);"
+    >
+      <EditableWrapper
+        path="metadata.video_url"
+        type="video"
+        label="SỬA VIDEO NỀN"
+      >
+        <span></span>
       </EditableWrapper>
     </div>
   </div>
 
-  <div class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface">
+  <div
+    class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface"
+  >
     <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
       <div class="elite-hero-headline typing-headline text-center font-bold">
         {#if !liveEditStore.isEditMode}
-          <span 
-            use:typewriter={{ 
-                text: rawHeadline, 
-                speed: 40,
-                onComplete: () => isTypingComplete = true 
-            }}
-          >{@html rawHeadline}</span>
+          <span
+            use:typewriter={{
+              text: rawHeadline,
+              speed: 40,
+              onComplete: () => (isTypingComplete = true),
+            }}>{@html rawHeadline}</span
+          >
         {:else}
-          {#if !rawH1.startsWith('[OFF]') || liveEditStore.isEditMode}
-            <EditableWrapper path="metadata.hero_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
+          {#if !rawH1.startsWith("[OFF]") || liveEditStore.isEditMode}
+            <EditableWrapper
+              path="metadata.hero_headline_1"
+              type="text"
+              label="SỬA TIÊU ĐỀ 1"
+              class="inline"
+              as="span"
+            >
               {@html h1}
             </EditableWrapper>
           {/if}
-          
-          {#if (!rawH1.startsWith('[OFF]') && !rawH2.startsWith('[OFF]')) || liveEditStore.isEditMode}
-            <br/>
+
+          {#if (!rawH1.startsWith("[OFF]") && !rawH2.startsWith("[OFF]")) || liveEditStore.isEditMode}
+            <br />
           {/if}
- 
-          {#if !rawH2.startsWith('[OFF]') || liveEditStore.isEditMode}
+
+          {#if !rawH2.startsWith("[OFF]") || liveEditStore.isEditMode}
             <span class="text-luxury-copper">
-              <EditableWrapper path="metadata.hero_headline_2" type="text" label="SỬA TIÊU ĐỀ 2" class="inline" as="span">
+              <EditableWrapper
+                path="metadata.hero_headline_2"
+                type="text"
+                label="SỬA TIÊU ĐỀ 2"
+                class="inline"
+                as="span"
+              >
                 {@html h2}
               </EditableWrapper>
             </span>
           {/if}
         {/if}
-        <span class="typing-cursor {isTypingComplete ? 'is-complete' : ''} text-luxury-copper"></span>
+        <span
+          class="typing-cursor {isTypingComplete
+            ? 'is-complete'
+            : ''} text-luxury-copper"
+        ></span>
       </div>
 
       {#if processedDescription}
-         <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">
-              <div class="section-description hero-description text-slate-200 max-w-3xl mx-auto mt-4 md:mt-6">
-                {@html processedDescription}
-             </div>
-         </EditableWrapper>
+        <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">
+          <div
+            class="section-description hero-description text-slate-200 max-w-3xl mx-auto mt-4 md:mt-6"
+          >
+            {@html processedDescription}
+          </div>
+        </EditableWrapper>
       {/if}
     </header>
 
-    <div class="hero-product-display relative w-full mt-4 md:mt-6 lg:mt-8 pb-0 flex flex-col md:flex-row items-center justify-center gap-2 lg:gap-4 z-surface">
-          <div class="relative w-full md:w-1/2 flex justify-center parallax-layer">
-              <div class="group relative flex items-center justify-center w-full max-w-md float-anim cinematic-frame">
-                <div class="absolute -inset-2 z-20 pointer-events-none opacity-60 transition-opacity group-hover:opacity-100">
-                   <div class="absolute -top-4 -left-4 w-12 h-12 border-t-[1px] border-l-[1px] border-white/40 rounded-tl-[2px]">
-                      <span class="absolute top-2 left-2 text-[8px] font-mono tracking-widest text-[#E8D5B0] flex items-center gap-1">
-                         <span class="w-1.5 h-1.5 bg-[#E8D5B0] rounded-full animate-pulse"></span> REC
-                      </span>
-                   </div>
-                   <div class="absolute -top-4 -right-4 w-12 h-12 border-t-[1px] border-r-[1px] border-white/40 text-right rounded-tr-[2px]">
-                      <span class="absolute top-2 right-2 text-[8px] font-mono tracking-widest text-white/50">4K 60FPS</span>
-                   </div>
-                   <div class="absolute -bottom-4 -left-4 w-12 h-12 border-b-[1px] border-l-[1px] border-white/40 rounded-bl-[2px]">
-                      <span class="absolute bottom-2 left-2 text-[8px] font-mono tracking-widest text-white/50">TC 00:00:26:02</span>
-                   </div>
-                   <div class="absolute -bottom-4 -right-4 w-12 h-12 border-b-[1px] border-r-[1px] border-white/40 text-right rounded-br-[2px]">
-                      <span class="absolute bottom-2 right-2 text-[8px] font-mono tracking-widest text-white/50">ISO 100</span>
-                   </div>
-                </div>
-
-                <button onclick={() => triggerScan?.()} class="absolute top-2 right-2 z-[99] w-14 h-14 cursor-pointer hover:scale-105 transition-transform drop-shadow-md bg-transparent border-none p-0 focus:outline-none pointer-events-auto">
-                    <img src="/01.Badge_52ad415e46.webp" alt="Huy hiệu chứng nhận sản phẩm chính hãng bởi Osmo" class="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]" />
-                 </button>
-
-                <EditableWrapper path="images.0" type="image" label="SỬA ẢNH CHIẾN DỊCH">
-                    <div class="relative film-grain-container rounded-[2px] overflow-hidden">
-                        <img
-                          src="{mainImage}"
-                          alt="{productName}"
-                          loading="eager"
-                          fetchpriority="high"
-                          decoding="async"
-                          class="relative z-10 w-full h-auto object-contain transition-transform duration-700 group-hover:scale-[1.03] cinematic-grading rounded-[2px]"
-                        />
-                        <div class="absolute inset-0 z-20 pointer-events-none film-grain-mask"></div>
-                    </div>
-                </EditableWrapper>
-
-                <div class="absolute -bottom-16 left-0 right-0 flex justify-center gap-2" style="z-index: var(--z-content);">
-                   {#each images as _, i}
-                      <button
-                        onclick={() => currentImageIndex = i}
-                        class="h-1 rounded-full transition-all duration-500 {currentImageIndex === i ? 'bg-white w-8 shadow-sm' : 'bg-white/10 w-1.5'}"
-                        aria-label="Go to image {i + 1}"
-                      ></button>
-                   {/each}
-                </div>
-             </div>
+    <div
+      class="hero-product-display relative w-full mt-4 md:mt-6 lg:mt-8 pb-0 flex flex-col md:flex-row items-center justify-center gap-2 lg:gap-4 z-surface"
+    >
+      <div class="relative w-full md:w-1/2 flex justify-center parallax-layer">
+        <div
+          class="group relative flex items-center justify-center w-full max-w-md float-anim cinematic-frame"
+        >
+          <div
+            class="absolute -inset-2 z-20 pointer-events-none opacity-60 transition-opacity group-hover:opacity-100"
+          >
+            <div
+              class="absolute -top-4 -left-4 w-12 h-12 border-t-[1px] border-l-[1px] border-white/40 rounded-tl-[2px]"
+            >
+              <span
+                class="absolute top-2 left-2 text-[8px] font-mono tracking-widest text-[#E8D5B0] flex items-center gap-1"
+              >
+                <span
+                  class="w-1.5 h-1.5 bg-[#E8D5B0] rounded-full animate-pulse"
+                ></span> REC
+              </span>
+            </div>
+            <div
+              class="absolute -top-4 -right-4 w-12 h-12 border-t-[1px] border-r-[1px] border-white/40 text-right rounded-tr-[2px]"
+            >
+              <span
+                class="absolute top-2 right-2 text-[8px] font-mono tracking-widest text-white/50"
+                >4K 60FPS</span
+              >
+            </div>
+            <div
+              class="absolute -bottom-4 -left-4 w-12 h-12 border-b-[1px] border-l-[1px] border-white/40 rounded-bl-[2px]"
+            >
+              <span
+                class="absolute bottom-2 left-2 text-[8px] font-mono tracking-widest text-white/50"
+                >TC 00:00:26:02</span
+              >
+            </div>
+            <div
+              class="absolute -bottom-4 -right-4 w-12 h-12 border-b-[1px] border-r-[1px] border-white/40 text-right rounded-br-[2px]"
+            >
+              <span
+                class="absolute bottom-2 right-2 text-[8px] font-mono tracking-widest text-white/50"
+                >ISO 100</span
+              >
+            </div>
           </div>
 
-      <div class="w-full md:w-1/2 flex flex-col relative justify-center">
-         <div class="metrics-arc-container">
-            {#each metrics as metric, i}
-                <div class="hud-metric-segment group relative pt-3 px-6 pb-3 -mx-6 transition-all duration-500 rounded-3xl border border-transparent hover:border-white/10 hover:bg-white/[0.02]" 
-                     style:--idx={i}
-                     onmousemove={(e) => {
-                       const rect = e.currentTarget.getBoundingClientRect();
-                       e.currentTarget.style.setProperty('--light-x', `${e.clientX - rect.left}px`);
-                       e.currentTarget.style.setProperty('--light-y', `${e.clientY - rect.top}px`);
-                     }}>
-                    <!-- Premium Flashlight Effect (Brightened) -->
-                    <div class="absolute inset-0 z-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500 overflow-hidden rounded-3xl"
-                         style="background: radial-gradient(400px circle at var(--light-x, 50%) var(--light-y, 50%), rgba(193, 143, 126, 0.25), transparent 80%);">
-                    </div>
-                    
-                    <div class="relative z-10">
-                      <EditableWrapper path="metadata.hero_metrics.{i}.label" value={metric.label} label="SỬA NHÃN {i+1}">
-                        <span class="text-[10px] font-black tracking-[.2em] whitespace-nowrap transition-colors duration-500"
-                              class:text-luxury-copper={metric.color === 'copper'}
-                              class:text-luxury-gold={metric.color === 'gold'}
-                              class:text-luxury-peach={metric.color === 'peach'}
-                              class:text-sakura-pink={!metric.color || metric.color === 'sakura'}>{metric.label}</span>
-                      </EditableWrapper>
-                      
-                      <EditableWrapper path="metadata.hero_metrics.{i}.value" value={metric.value} label="SỬA GIÁ TRỊ {i+1}">
-                        <h3 class="text-lg font-black tracking-normal text-white transition-colors duration-300 whitespace-nowrap"
-                            class:group-hover:text-luxury-copper={metric.color === 'copper'}
-                            class:group-hover:text-luxury-gold={metric.color === 'gold'}
-                            class:group-hover:text-luxury-peach={metric.color === 'peach'}
-                            class:group-hover:text-sakura-pink={!metric.color || metric.color === 'sakura'}>{metric.value}</h3>
-                      </EditableWrapper>
+          <button
+            onclick={() => triggerScan?.()}
+            class="absolute top-2 right-2 z-[99] w-14 h-14 cursor-pointer hover:scale-105 transition-transform drop-shadow-md bg-transparent border-none p-0 focus:outline-none pointer-events-auto"
+          >
+            <img
+              src="/01.Badge_52ad415e46.webp"
+              alt="Huy hiệu chứng nhận sản phẩm chính hãng bởi Osmo"
+              class="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
+            />
+          </button>
 
-                      <p class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc">
-                        <EditableWrapper path="metadata.hero_metrics.{i}.desc" label="SỬA MÔ TẢ {i+1}" as="span">
-                          {metric.desc}
-                        </EditableWrapper>
-                      </p>
-                    </div>
-                </div>
+          <EditableWrapper
+            path="images.0"
+            type="image"
+            label="SỬA ẢNH CHIẾN DỊCH"
+          >
+            <div
+              class="relative film-grain-container rounded-[2px] overflow-hidden"
+            >
+              <img
+                src={mainImage}
+                alt={productName}
+                loading="eager"
+                fetchpriority="high"
+                decoding="async"
+                class="relative z-10 w-full h-auto object-contain transition-transform duration-700 group-hover:scale-[1.03] cinematic-grading rounded-[2px]"
+              />
+              <div
+                class="absolute inset-0 z-20 pointer-events-none film-grain-mask"
+              ></div>
+            </div>
+          </EditableWrapper>
+
+          <div
+            class="absolute -bottom-16 left-0 right-0 flex justify-center gap-2"
+            style="z-index: var(--z-content);"
+          >
+            {#each images as _, i}
+              <button
+                onclick={() => (currentImageIndex = i)}
+                class="h-1 rounded-full transition-all duration-500 {currentImageIndex ===
+                i
+                  ? 'bg-white w-8 shadow-sm'
+                  : 'bg-white/10 w-1.5'}"
+                aria-label="Go to image {i + 1}"
+              ></button>
             {/each}
-         </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-full md:w-1/2 flex flex-col relative justify-center">
+        <div class="metrics-arc-container">
+          {#each metrics as metric, i}
+            <div
+              class="hud-metric-segment group relative pt-3 px-6 pb-3 -mx-6 transition-all duration-500 rounded-3xl border border-transparent hover:border-white/10 hover:bg-white/[0.02]"
+              style:--idx={i}
+              onmousemove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                e.currentTarget.style.setProperty(
+                  "--light-x",
+                  `${e.clientX - rect.left}px`,
+                );
+                e.currentTarget.style.setProperty(
+                  "--light-y",
+                  `${e.clientY - rect.top}px`,
+                );
+              }}
+            >
+              <!-- Premium Flashlight Effect (Brightened) -->
+              <div
+                class="absolute inset-0 z-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500 overflow-hidden rounded-3xl"
+                style="background: radial-gradient(400px circle at var(--light-x, 50%) var(--light-y, 50%), rgba(193, 143, 126, 0.25), transparent 80%);"
+              ></div>
+
+              <div class="relative z-10">
+                <EditableWrapper
+                  path="metadata.hero_metrics.{i}.label"
+                  value={metric.label}
+                  label="SỬA NHÃN {i + 1}"
+                >
+                  <span
+                    class="text-[10px] font-black tracking-[.2em] whitespace-nowrap transition-colors duration-500"
+                    class:text-luxury-copper={metric.color === "copper"}
+                    class:text-luxury-gold={metric.color === "gold"}
+                    class:text-luxury-peach={metric.color === "peach"}
+                    class:text-sakura-pink={!metric.color ||
+                      metric.color === "sakura"}>{metric.label}</span
+                  >
+                </EditableWrapper>
+
+                <EditableWrapper
+                  path="metadata.hero_metrics.{i}.value"
+                  value={metric.value}
+                  label="SỬA GIÁ TRỊ {i + 1}"
+                >
+                  <h3
+                    class="text-lg font-black tracking-normal text-white transition-colors duration-300 whitespace-nowrap"
+                    class:group-hover:text-luxury-copper={metric.color ===
+                      "copper"}
+                    class:group-hover:text-luxury-gold={metric.color === "gold"}
+                    class:group-hover:text-luxury-peach={metric.color ===
+                      "peach"}
+                    class:group-hover:text-sakura-pink={!metric.color ||
+                      metric.color === "sakura"}
+                  >
+                    {metric.value}
+                  </h3>
+                </EditableWrapper>
+
+                <p
+                  class="mt-2 text-sm text-slate-400 font-medium leading-relaxed opacity-70 group-hover:opacity-100 transition-opacity metric-desc"
+                >
+                  <EditableWrapper
+                    path="metadata.hero_metrics.{i}.desc"
+                    label="SỬA MÔ TẢ {i + 1}"
+                    as="span"
+                  >
+                    {metric.desc}
+                  </EditableWrapper>
+                </p>
+              </div>
+            </div>
+          {/each}
+        </div>
       </div>
     </div>
   </div>
 
-
-  <button class="hero-cta-button shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95" 
-          style="
+  <button
+    class="hero-cta-button shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95"
+    style="
             position: absolute;
             bottom: 80px;
             left: 50%;
@@ -469,27 +647,54 @@
             letter-spacing: 0.1em;
             cursor: pointer;
           "
-          onclick={scrollToQuiz}>
-     <EditableWrapper path="metadata.hero_cta_text" value={ctaText} label="SỬA CHỮ NÚT BẤM" class="w-full flex justify-center">
-        <div class="flex items-center gap-3 justify-center">
-           <div class="elite-dot-container">
-              <span class="w-2.5 h-2.5 rounded-full bg-white block animate-pulse"></span>
-           </div>
-           <span class="tracking-[0.2em] font-extrabold uppercase">{ctaText}</span>
-           <svg class="w-5 h-5 text-white ml-1 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-           </svg>
+    onclick={scrollToQuiz}
+  >
+    <EditableWrapper
+      path="metadata.hero_cta_text"
+      value={ctaText}
+      label="SỬA CHỮ NÚT BẤM"
+      class="w-full flex justify-center"
+    >
+      <div class="flex items-center gap-3 justify-center">
+        <div class="elite-dot-container">
+          <span class="w-2.5 h-2.5 rounded-full bg-white block animate-pulse"
+          ></span>
         </div>
-     </EditableWrapper>
+        <span class="tracking-wider font-extrabold uppercase">{ctaText}</span>
+        <svg
+          class="w-5 h-5 text-white ml-1 transition-transform group-hover:translate-x-1"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M17 8l4 4m0 0l-4 4m4-4H3"
+          />
+        </svg>
+      </div>
+    </EditableWrapper>
   </button>
 
-  <a href="#diagnostics" class="mouse-scroll-indicator" aria-label={labels.aria_scroll} onclick={(e) => { e.preventDefault(); scrollToQuiz?.(); }}>
-     <div class="mouse-body">
-        <div class="mouse-wheel"></div>
-     </div>
+  <a
+    href="#diagnostics"
+    class="mouse-scroll-indicator"
+    aria-label={labels.aria_scroll}
+    onclick={(e) => {
+      e.preventDefault();
+      scrollToQuiz?.();
+    }}
+  >
+    <div class="mouse-body">
+      <div class="mouse-wheel"></div>
+    </div>
   </a>
 </section>
 
 <style>
-  .z-surface { z-index: var(--z-surface); }
+  .z-surface {
+    z-index: var(--z-surface);
+  }
 </style>

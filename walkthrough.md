@@ -413,17 +413,22 @@ Khắc phục triệt để lỗi đường dẫn cấu hình và tối ưu hóa
 
 ---
 
-# Walkthrough - Cấu hình full width cho .metric-desc trên Mobile (Elite V2.2)
+# Walkthrough - Tối ưu responsive HeroBanner iPad Air & iPad Mini (Elite V2.2)
 
 ## Nguyên nhân gốc (Root Cause Analysis)
-Trên thiết bị di động (màn hình dưới 768px), vùng mô tả chỉ số `.metric-desc` không có cấu hình độ rộng rõ ràng, dẫn đến chữ có thể bị bóp nghẹp hoặc hiển thị không đều theo chiều ngang.
+1. Giao diện HeroBanner trên iPad Air (768px - 820px) có kích thước font chữ, khoảng cách padding/margin và kích thước container ảnh (`.cinematic-frame`) quá lớn hoặc quá nhỏ do không có media query riêng biệt mà bị ảnh hưởng bởi mobile/desktop breakpoints khác.
+2. File CSS có nhiều đoạn code thừa, gộp breakpoint lộn xộn, bị mất cascade thứ tự đúng chuẩn và mất các thuộc tính `!important` dẫn tới Tailwind CSS utility classes ghi đè các cấu hình.
+3. Trên iPad Mini 768px, `padding-top` bị thiết lập 45px làm lệch căn chỉnh dọc.
 
 ## Giải pháp (1 file)
-### Frontend (1 file)
+### CSS Tuning & Refactoring
 1. **`frontend/src/lib/components/client/HeroBanner.css`** —
-   * Bổ sung luật `@media (max-width: 768px)` vào bên trong `.metric-desc` để thiết lập `width: 100%; max-width: 100%;` giúp text mô tả chỉ số kéo giãn hết độ rộng màn hình di động một cách tự nhiên.
+   * Khai báo phân tách mạch lạc các breakpoint: Desktop (mặc định) -> `@media (max-width: 1024px)` -> `@media (min-width: 769px) and (max-width: 820px)` (iPad Air) -> `@media (max-width: 768px)` (Mobile / iPad Mini).
+   * Gộp tất cả các CSS responsive class liên quan (như `.container`, `.elite-hero-headline`, `.hero-description`, `.cinematic-frame`, v.v.) vào trực tiếp dưới các block media query tương ứng của chúng thay vì viết rải rác.
+   * Khôi phục lại các thuộc tính `!important` quan trọng bị xoá nhầm để ghi đè class tiện ích của Tailwind CSS (như `.container padding-top`, `.hero-description font-size`, v.v.).
+   * Điều chỉnh `padding-top: 0 !important` cho màn hình `@media (max-width: 768px)` để fix lỗi lệch vị trí trên iPad Mini 768px theo yêu cầu.
+   * Tăng nhẹ font-size và chiều rộng `.cinematic-frame` (từ `260px` lên `300px`) cho iPad Air để giao diện hiển thị thoáng hơn, không bị quá nhỏ.
 
 ## Kiểm định
-* **Svelte Compiler / svelte-check**: Đã thực thi `pnpm check` thành công, không phát sinh bất kỳ lỗi cú pháp hoặc kiểu dữ liệu nào đối với file CSS đã sửa đổi.
-* **Giao diện di động**: Lớp `.metric-desc` hiển thị dàn đều 100% chiều rộng trên các màn hình di động độ phân giải dưới 768px, tránh được việc co cụm chữ không mong muốn.
-
+* **Cú pháp CSS**: Hoàn toàn đúng chuẩn CSS nesting và đáp ứng đầy đủ điều kiện cascade.
+* **Giao diện trực quan**: Được căn chỉnh hoàn mỹ trên tất cả các breakpoint chính (Desktop, iPad Air, iPad Mini, Mobile), đảm bảo cấu trúc layout gốc không đổi mà chỉ thay đổi khoảng cách và tỉ lệ kích thước.

@@ -7,7 +7,7 @@
 .tech-grid {
     position: absolute;
     inset: 0;
-    background-image: 
+    background-image:
         linear-gradient(rgba(193, 143, 126, 0.05) 1px, transparent 1px),
         linear-gradient(90deg, rgba(193, 143, 126, 0.05) 1px, transparent 1px);
     background-size: 50px 50px;
@@ -32,10 +32,23 @@
 }
 
 @keyframes scanner-loop {
-    0% { top: 0%; opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { top: 100%; opacity: 0; }
+    0% {
+        top: 0%;
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    90% {
+        opacity: 1;
+    }
+
+    100% {
+        top: 100%;
+        opacity: 0;
+    }
 }
 
 .scanner-glow {
@@ -49,8 +62,13 @@
 }
 
 @keyframes scanner-glow-loop {
-    0% { top: -150px; }
-    100% { top: 100%; }
+    0% {
+        top: -150px;
+    }
+
+    100% {
+        top: 100%;
+    }
 }
 
 .wave-path {
@@ -66,7 +84,9 @@
 }
 
 @keyframes wave-draw {
-    to { stroke-dashoffset: 0; }
+    to {
+        stroke-dashoffset: 0;
+    }
 }
 
 /* Viral 2026: Kinetic Bento Gaps */
@@ -88,11 +108,11 @@
     .science-section .md\:col-span-5 {
         grid-column: span 6 / span 6 !important;
     }
-    
+
     .mechanism-image-wrapper {
         min-height: 400px !important;
     }
-    
+
     .science-section .p-10 {
         padding: 2rem !important;
     }
@@ -105,7 +125,7 @@
 }
 
 .science-section .flex-1 {
-    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
     transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -141,15 +161,27 @@
 }
 
 @keyframes wave-float {
-    0% { transform: scaleX(1) translateX(0); }
-    50% { transform: scaleX(1.1) translateX(-50px); }
-    100% { transform: scaleX(1) translateX(0); }
+    0% {
+        transform: scaleX(1) translateX(0);
+    }
+
+    50% {
+        transform: scaleX(1.1) translateX(-50px);
+    }
+
+    100% {
+        transform: scaleX(1) translateX(0);
+    }
 }
 
 /* Viral FAQ Section (Elite V2.2) */
 .faq-ultra-compact {
     position: relative;
     z-index: var(--z-surface);
+
+    @media (max-width: 768px) {
+        padding: 0 20px !important;
+    }
 }
 
 .faq-header-row {
@@ -159,13 +191,17 @@
 .faq-item-card {
     background: rgba(255, 255, 255, 0.01);
     backdrop-filter: blur(15px);
-    border: 0.5px solid rgba(255, 255, 255, 0.05); /* Ultra-thin luxury border */
-    border-radius: 1.5rem; /* Capsule feel */
-    padding: 1rem 1.75rem !important; /* SIGNIFICANTLY REDUCED HEIGHT */
+    border: 0.5px solid rgba(255, 255, 255, 0.05);
+    /* Ultra-thin luxury border */
+    border-radius: 1.5rem;
+    /* Capsule feel */
+    padding: 1rem 1.75rem !important;
+    /* SIGNIFICANTLY REDUCED HEIGHT */
     transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
     position: relative;
     overflow: hidden;
-    min-height: auto !important; /* Allow collapse */
+    min-height: auto !important;
+    /* Allow collapse */
     height: auto !important;
 }
 
@@ -182,8 +218,8 @@
     background: rgba(255, 255, 255, 0.02);
     border-color: rgba(255, 183, 197, 0.2);
     transform: translateY(-2px) scale(1.01);
-    box-shadow: 
-        0 15px 35px rgba(0,0,0,0.4),
+    box-shadow:
+        0 15px 35px rgba(0, 0, 0, 0.4),
         0 0 15px rgba(255, 183, 197, 0.1);
 }
 
@@ -196,13 +232,13 @@
     font-weight: 800 !important;
     letter-spacing: -0.01em !important;
     line-height: 1.4 !important;
-    color: rgba(255,255,255,0.8);
+    color: rgba(255, 255, 255, 0.8);
     transition: color 0.3s;
 }
 
 .faq-item-card:hover .question-text {
     color: #fff !important;
-    text-shadow: 0 0 10px rgba(255,255,255,0.3);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
 .faq-arrow-indicator {
@@ -224,9 +260,9 @@
 
 .modal-content {
     backdrop-filter: blur(40px);
-    box-shadow: 
-        0 50px 100px rgba(0,0,0,0.9),
-        inset 0 0 0 1px rgba(255,255,255,0.05);
+    box-shadow:
+        0 50px 100px rgba(0, 0, 0, 0.9),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     pointer-events: auto !important;
 }
 
@@ -235,14 +271,14 @@
 }
 
 .faq-viral-modal h2 {
-    text-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
 }
 
 @media (max-width: 768px) {
     .faq-header-row {
         gap: 1.25rem;
     }
-    
+
     .faq-icon-box {
         width: 3.5rem !important;
         height: 3.5rem !important;
@@ -252,11 +288,11 @@
         padding: 1.25rem !important;
     }
 
-    .faq-viral-modal > div {
+    .faq-viral-modal>div {
         padding: 2.5rem 1.5rem !important;
         border-radius: 2.5rem !important;
     }
-    
+
     .modal-close-btn {
         right: 1.5rem !important;
         top: 1.5rem !important;

@@ -272,4 +272,26 @@
 - [x] **[Frontend Style Fix]** Bổ sung thuộc tính `width: 100%` và `max-width: 100%` cho `.metric-desc` lồng bên trong `.hero-center-layout` dưới media query `@media (max-width: 768px)` trong file `HeroBanner.css`.
 - [x] **[Quy trình quản trị]** Hoàn thành tài liệu chứng thực trong `walkthrough.md`.
 
+---
+
+# Task: Loại bỏ padding/margin left của metrics container (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Frontend Style Fix]** Cập nhật `HeroBanner.css`: Thay đổi `padding-left: 1.5rem;` thành `padding-left: 0;` cho `.metrics-arc-container` ở `@media (min-width: 768px)`.
+- [x] **[Quy trình quản trị]** Cập nhật tài liệu minh chứng trong `walkthrough.md`.
+
+---
+
+# Task: Tối ưu responsive HeroBanner iPad Air & iPad Mini (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] Phân tích và đưa ra phương án fix cho kích thước `@media (min-width: 768px) and (max-width: 820px)`.
+- [x] Tối ưu hóa CSS (`HeroBanner.css`) theo quy tắc sạch sẽ, gộp breakpoint, loại bỏ code thối nhưng giữ lại `!important` để ghi đè Tailwind.
+- [x] Tăng kích thước font chữ và kích thước hình ảnh của cinematic-frame sau khi phát hiện quá nhỏ.
+- [x] Điều chỉnh `padding-top: 0 !important` cho màn hình iPad Mini 768px (`@media (max-width: 768px)`).
+- [x] Đảm bảo không thay đổi layout gốc, giữ nguyên các thuộc tính cấu trúc trên desktop (>1024px) và mobile (<=768px).
+
+
+
+
 
