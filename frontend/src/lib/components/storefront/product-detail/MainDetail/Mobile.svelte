@@ -62,15 +62,6 @@
     scrollRatio = Math.min(1, st / 100);
     // Hide effect for Viral: 0 to 1 between 150px and 350px
     hideRatio = Math.max(0, Math.min(1, (st - 150) / 200));
-
-    const sections = ["overview", "description", "reviews", "recommendations"];
-    for (const id of [...sections].reverse()) {
-      const el = document.getElementById(id);
-      if (el && el.offsetTop <= st + 120) {
-        activeTab = id;
-        break;
-      }
-    }
   }
 
   function scrollToSection(id: string) {
@@ -92,7 +83,7 @@
     product.tier_variations || product.tierVariations || [],
   );
 
-  function handleVariantConfirm(variant: ProductVariant | null, qty: number) {
+  function handleVariantConfirm(variant: ProductVariant | undefined, qty: number) {
     selectedVariant = variant || null;
     selectedQty = qty;
     showVariantSelector = false;
@@ -124,12 +115,17 @@
   );
 
   $effect(() => {
-    if (!flashSaleEnd) return;
+    if (!flashSaleEnd) {
+      timeLeft = { hours: 0, minutes: 0, seconds: 0 };
+      return;
+    }
     function updateCountdown() {
       const diff = Math.max(0, flashSaleEnd! - Date.now());
-      timeLeft.hours = Math.floor(diff / 3600000);
-      timeLeft.minutes = Math.floor((diff % 3600000) / 60000);
-      timeLeft.seconds = Math.floor((diff % 60000) / 1000);
+      timeLeft = {
+        hours: Math.floor(diff / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+        seconds: Math.floor((diff % 60000) / 1000)
+      };
     }
     updateCountdown();
     const timer = setInterval(updateCountdown, 1000);
@@ -154,12 +150,13 @@
 
   // Elite V2.2: Neural Variant Initialization (Sync with Desktop)
   $effect(() => {
-    if (product && !selectedVariant && variations.length > 0) {
-      const pVariants = (product.variants || []).filter((v) => v.attributes?.is_active !== false);
+    const _id = product.id; // track product transitions
+    if (variations.length > 0) {
+      const pVariants = (product.variants || []).filter((v) => v.is_active !== false);
       const defaultV = pVariants.find((v) => v.is_default) || pVariants[0];
-      if (defaultV) {
-        selectedVariant = defaultV;
-      }
+      selectedVariant = defaultV || null;
+    } else {
+      selectedVariant = null;
     }
   });
 
@@ -169,12 +166,13 @@
   >("idle");
   let isViralUnlocked = $state(false);
   $effect(() => {
+    const _id = product.id; // track product transitions
     if (typeof window !== "undefined") {
       isViralUnlocked = !!localStorage.getItem(`viral_unlocked_${product.id}`);
     }
   });
-  let displayRewardLabel = $derived(
-    product.metadata?.share_promotion?.reward_label ||
+  const displayRewardLabel = $derived(
+    product.metadata?.share_promotion?.voucher_label ||
       product.metadata?.share_reward_label ||
       "Phần quà bí mật",
   );
@@ -238,12 +236,12 @@
       return;
     }
 
-    const { token, fingerprint } = JSON.parse(savedIntent);
-    const sharePromotion = product.metadata?.share_promotion;
-    const voucherId = sharePromotion?.voucher_id;
-
-    viralStep = "verifying";
     try {
+      const { token, fingerprint } = JSON.parse(savedIntent);
+      const sharePromotion = product.metadata?.share_promotion;
+      const voucherId = sharePromotion?.voucher_id;
+
+      viralStep = "verifying";
       const res = await fetch("/api/v1/client/viral/verify-share", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -275,15 +273,40 @@
     }
   }
 
+  let sectionObserver: IntersectionObserver | null = null;
+
   onMount(() => {
     window.addEventListener("scroll", handleScroll, { passive: true });
     
     const handleOpenVerification = () => triggerScan();
     window.addEventListener("openVerificationCenter", handleOpenVerification);
     
+    // Modern performant IntersectionObserver to eliminate Layout Thrashing (Reflow) on scroll
+    const sections = ["overview", "description", "reviews", "recommendations"];
+    const observerOptions = {
+      root: null,
+      rootMargin: "-20% 0px -60% 0px",
+      threshold: 0
+    };
+    
+    sectionObserver = new IntersectionObserver((entries) => {
+      const intersectingEntry = entries.find(entry => entry.isIntersecting);
+      if (intersectingEntry) {
+        activeTab = intersectingEntry.target.id;
+      }
+    }, observerOptions);
+    
+    sections.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) sectionObserver?.observe(el);
+    });
+    
     return () => {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("openVerificationCenter", handleOpenVerification);
+      if (sectionObserver) {
+        sectionObserver.disconnect();
+      }
     };
   });
 </script>
@@ -358,7 +381,7 @@
   <!-- 5. VERIFICATION OVERLAYS -->
   {#if isScanning}
     <ScannerHUD
-      barcode={product.metadata?.barcode || product.sku}
+      barcode={String(product.metadata?.barcode || product.sku || "")}
       oncomplete={handleScanComplete}
     />
   {/if}

@@ -19,6 +19,8 @@
     isProductMode?: boolean;
     product?: Product | null;
     selectedVariant?: import('$lib/types').ProductVariant | null;
+    onAddToCart?: () => void;
+    onBuyNow?: () => void;
     onChatOpen?: () => void;
     scrolled?: boolean;
   }

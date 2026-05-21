@@ -32,8 +32,7 @@
   let { product, relatedProducts = [], reviewStats = null }: Props = $props();
 
   // Elite Performance Sync (V2.2)
-  let stats = $state<ReviewStats | null>(reviewStats);
-  let likeCount = $derived(
+  const likeCount = $derived(
     Number(
       product.metadata?.share_promotion?.likes_count ||
         product.metadata?.["likes"] ||
@@ -41,31 +40,31 @@
     ),
   );
 
-  $effect(() => {
-    if (reviewStats !== undefined) stats = reviewStats;
-  });
-
   const variations = $derived(
     product.tier_variations || product.tierVariations || [],
   );
   let selectedIndices = $state<number[]>([]);
 
+  // Synchronize indices whenever product.id or variations change
   $effect(() => {
-    if (selectedIndices.length === 0 && variations.length > 0) {
+    const _id = product.id; // track product transitions
+    if (variations.length > 0) {
       const defaultVariant = pVariants.find((v) => v.is_default);
       if (defaultVariant && defaultVariant.tierIndex) {
         selectedIndices = [...defaultVariant.tierIndex];
       } else {
         selectedIndices = variations.map(() => 0);
       }
+    } else {
+      selectedIndices = [];
     }
   });
   let quantity = $state(1);
 
   const pVariants = $derived(
-    (product.variants || []).filter((v) => v.attributes?.is_active !== false),
+    (product.variants || []).filter((v) => v.is_active !== false),
   );
-  let currentVariant = $derived<ProductVariant | undefined>(
+  const currentVariant = $derived<ProductVariant | undefined>(
     pVariants.find(
       (v) =>
         v.tierIndex.length === selectedIndices.length &&
@@ -96,7 +95,7 @@
     return v.discountPrice || v.discount_price || v.price;
   });
 
-  let displayPrice = $derived.by(() => {
+  const displayPrice = $derived.by(() => {
     if (currentVariant) {
       return {
         price: currentVariant.price,
@@ -140,7 +139,7 @@
     };
   });
 
-  let currentStock = $derived(
+  const currentStock = $derived(
     currentVariant ? currentVariant.stock : product.stock,
   );
 
@@ -215,11 +214,25 @@
 
   /**
    * Elite V2.2: Theo dõi trạng thái mở khóa Viral để kích hoạt hiệu ứng bay
+   * Tối ưu hóa truy cập localStorage đồng bộ và cache vào reactive state.
    */
   let isViralUnlocked = $state(false);
+  let unlockedVoucherInfo = $state<{ code: string; label?: string } | null>(null);
+
   $effect(() => {
     if (typeof window !== "undefined") {
-      isViralUnlocked = !!localStorage.getItem(`viral_unlocked_${product.id}`);
+      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      if (saved) {
+        try {
+          unlockedVoucherInfo = JSON.parse(saved);
+          isViralUnlocked = true;
+          return;
+        } catch (e) {
+          // Silent fail safe
+        }
+      }
+      unlockedVoucherInfo = null;
+      isViralUnlocked = false;
     }
   });
 
@@ -288,22 +301,16 @@
     });
 
     // Elite V2.2 Re-injection: Phục hồi voucher từ session local nếu đã mở khóa
-    if (typeof window !== "undefined" && isViralUnlocked) {
-      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          // Filter out existing viral vouchers to prevent duplicates or wrong positions
-          vList = vList.filter((v) => !isViralVoucher(v) && v.id !== data.code);
-          // Prepend at the absolute top (Position #1)
-          vList.unshift({
-            id: data.code,
-            label: data.label || "Voucher lan tỏa",
-            sub: "Đã mở khóa từ chiến dịch",
-            type: "discount",
-          });
-        } catch (e) {}
-      }
+    if (unlockedVoucherInfo) {
+      // Filter out existing viral vouchers to prevent duplicates or wrong positions
+      vList = vList.filter((v) => !isViralVoucher(v) && v.id !== unlockedVoucherInfo!.code);
+      // Prepend at the absolute top (Position #1)
+      vList.unshift({
+        id: unlockedVoucherInfo.code,
+        label: unlockedVoucherInfo.label || "Voucher lan tỏa",
+        sub: "Đã mở khóa từ chiến dịch",
+        type: "discount",
+      });
     }
 
     // VOUCHER LAN TỎA 79K: LUỐN Ở VỊ TRÍ SỐ 1
@@ -340,13 +347,18 @@
   }
 
   $effect(() => {
-    if (!flashSaleEnd) return;
+    if (!flashSaleEnd) {
+      timeLeft = { hours: 0, minutes: 0, seconds: 0 };
+      return;
+    }
 
     function updateCountdown() {
       const diff = Math.max(0, flashSaleEnd! - Date.now());
-      timeLeft.hours = Math.floor(diff / 3600000);
-      timeLeft.minutes = Math.floor((diff % 3600000) / 60000);
-      timeLeft.seconds = Math.floor((diff % 60000) / 1000);
+      timeLeft = {
+        hours: Math.floor(diff / 3600000),
+        minutes: Math.floor((diff % 3600000) / 60000),
+        seconds: Math.floor((diff % 60000) / 1000)
+      };
     }
 
     updateCountdown();
@@ -517,7 +529,7 @@
       <div class="min-w-0 flex-1">
         <ProductPrimaryInfo
           {product}
-          {stats}
+          stats={reviewStats}
           {displayPrice}
           {activePrices}
           {helenAdvice}

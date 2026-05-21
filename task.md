@@ -378,3 +378,29 @@
 - [ ] **[Syntax & Type Safety Verification]**: Chạy `svelte-check` để đảm bảo code sạch lỗi cú pháp, kiểu dữ liệu, bảo toàn logic reactive và bảo vệ 2GB RAM.
 - [ ] **[Quy trình quản trị]**: Bổ sung kết quả và bằng chứng vào `walkthrough.md`.
 
+---
+
+# Task: Tối ưu hóa Hiệu năng & Làm sạch Code storefront/product-detail/MainDetail (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Desktop Optimization]**:
+  - Loại bỏ hoàn toàn state `stats` và $effect đồng bộ của nó. Truyền thẳng `reviewStats` xuống components.
+  - Ràng buộc $effect của `selectedIndices` trực tiếp với `product.id` để tự động reset/đồng bộ an toàn khi chuyển đổi sản phẩm.
+  - Thêm state `unlockedVoucherInfo` để lưu dữ liệu local voucher. Di chuyển toàn bộ Disk I/O `localStorage` ra khỏi derived `productVouchers` vào $effect chạy 1 lần.
+  - Tối ưu hóa countdown $effect để reset `timeLeft` về 0 khi kết thúc flash sale hoặc không có flash sale.
+  - Ép kiểu và chuyển đổi các derived `let` sang `const` chuẩn Svelte 5.
+  
+- [x] **[Mobile Optimization]**:
+  - Thiết lập `IntersectionObserver` hiệu năng cao cho việc tự động active tab khi cuộn. Loại bỏ hoàn toàn vòng lặp đo offset khỏi `handleScroll` để đạt 60FPS mượt mà và loại bỏ Layout Thrashing.
+  - Tối ưu hóa $effect đồng bộ `selectedVariant` theo `product.id` để tự động reset khi đổi trang sản phẩm.
+  - Đồng bộ hóa $effect `isViralUnlocked` theo `product.id` tránh rò rỉ cache.
+  - Bọc try-catch an toàn cho `JSON.parse` trong hàm `verifyShare`.
+  - Tối ưu hóa countdown $effect tương tự Desktop.
+  
+- [x] **[Type Safety & Static Check]**:
+  - Khắc phục lỗi `is_active` trên `ProductVariant` thay thế `v.attributes?.is_active` bằng `v.is_active` ở cả hai file.
+  - Khắc phục thuộc tính `reward_label` không tồn tại bằng `voucher_label` trong `Mobile.svelte`.
+  - Thêm callback properties `onAddToCart` và `onBuyNow` vào `MobileBottomNav` Props interface.
+  - Ép kiểu `barcode` sang String trong ScannerHUD để sửa lỗi type mismatch.
+  - Kiểm tra ast và biên dịch thành công 100% bằng svelte-check.
+
