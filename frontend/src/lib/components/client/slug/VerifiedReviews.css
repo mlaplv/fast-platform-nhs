@@ -1,5 +1,8 @@
+/* ReviewsSection.css - CTO Native Version (Elite V2.2)
+   Refactored: Modern CSS Nesting, Unified Responsive Cascades & Zero Redundancy.
+*/
 
-
+/* ─── DESIGN TOKENS & VIEWPORT ───────────────────────────── */
 .reviews-viewport {
   --clinical-blue: #10b981;
   --clinical-cyan: #06b6d4;
@@ -13,9 +16,37 @@
   background: var(--bg-deep);
   position: relative;
   overflow: visible;
+
+  /* Exclusive footer wave! */
+  & .wave-container {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 30%;
+    line-height: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.4;
+  }
+
+  & .wave-line {
+    fill: none;
+    stroke: url(#wave-gradient-reviews);
+    stroke-width: 2;
+    stroke-linecap: round;
+    animation: wave-motion-reviews 9s infinite alternate ease-in-out;
+    filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.2));
+
+    &.secondary {
+      stroke-opacity: 0.2;
+      animation-duration: 16s;
+      animation-delay: -4s;
+    }
+  }
 }
 
-/* Stable Bento Hub Container */
+/* ─── STABLE BENTO HUB CONTAINER ────────────────────────── */
 .reviews-container {
   max-width: 1400px;
   margin: 0 auto;
@@ -25,23 +56,24 @@
   flex-direction: column;
   gap: 4rem;
   /* Spacing between sections since border is gone */
-}
 
-.section-headline {
-  /* STYLES MOVED TO GLOBAL .elite-session-headline */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    gap: 2rem !important;
+  }
 }
 
 /* Bento Hub Frame - REMOVED BORDERS & BG AS REQUESTED */
 .bento-hub-frame.reviews-section {
   position: relative;
   width: 100%;
-  background-color: #010101; /* Matches Funnel & Hero */
+  background-color: #010101;
+  /* Matches Funnel & Hero */
   overflow: hidden;
   --review-accent: #C18F7E;
   --review-gold: #E8D5B0;
 }
 
-/* Review Grid/Swiper Optimization */
+/* ─── REVIEWS LAYOUT & SCROLL SYSTEM ────────────────────── */
 .reviews-layout {
   width: 100%;
 }
@@ -52,33 +84,33 @@
   /* 3 Columns on Desktop to avoid "CUT" */
   gap: 2rem;
   padding-bottom: 2rem;
-  align-items: stretch; /* All cards in row have same height */
-}
+  align-items: stretch;
+  /* All cards in row have same height */
 
-/* Mobile/Tablet Swiper Override (Elite Delicate) */
-@media (max-width: 1280px) {
-  .reviews-scroll-wrapper {
+  @media (max-width: 1280px) {
     display: flex;
     overflow-x: auto;
     padding: 0 0 3rem;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     gap: 1.5rem;
-    align-items: stretch; /* Keep slides same height */
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
-  .reviews-scroll-wrapper::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tablet-nav-controls {
-    display: flex !important;
+  @media (min-width: 768px) and (max-width: 1024px) {
+    padding: 0 1rem 3rem !important;
+    gap: 1.5rem !important;
   }
 }
 
+/* ─── REVIEW CARD COMPONENT ─────────────────────────────── */
 .review-card {
   scroll-snap-align: center;
-  padding: 1.75rem; /* Tighter padding (from 2.5rem) */
+  padding: 1.75rem;
+  /* Tighter padding (from 2.5rem) */
   border-radius: 2rem;
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(40px) saturate(180%);
@@ -86,94 +118,61 @@
   transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
-  height: auto; /* Dynamic height, but stretched by parent flex */
+  height: auto;
+  /* Dynamic height, but stretched by parent flex */
   position: relative;
   overflow: hidden;
-}
 
-.review-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.03), transparent 40%);
-  pointer-events: none;
-}
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.03), transparent 40%);
+    pointer-events: none;
+  }
 
-@media (max-width: 1280px) {
-  .review-card {
-    flex: 0 0 calc(45% - 1rem); /* Show ~2.2 cards to indicate scroll */
+  &:hover {
+    transform: translateY(-8px);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Responsive Cards Cascade */
+  @media (max-width: 1280px) {
+    flex: 0 0 calc(45% - 1rem);
+    /* Show ~2.2 cards to indicate scroll */
     min-width: 320px;
     padding: 2.5rem;
   }
-}
 
-@media (max-width: 1024px) {
-  .review-card {
-    flex: 0 0 calc(65% - 1rem); /* Elite V2.2: Show ~1.5 cards for better hinting on Tablet */
+  @media (max-width: 1024px) {
+    flex: 0 0 calc(65% - 1rem);
+    /* Elite V2.2: Show ~1.5 cards for better hinting on Tablet */
   }
-}
 
-@media (min-width: 900px) and (max-width: 1024px) {
-  .review-card {
-     flex: 0 0 calc(48% - 1rem); /* Show ~2.1 cards on wider tablets/landscape */
+  @media (min-width: 900px) and (max-width: 1024px) {
+    flex: 0 0 calc(48% - 1rem);
+    /* Show ~2.1 cards on wider tablets/landscape */
   }
-}
 
-@media (max-width: 768px) {
-  .review-card {
+  @media (min-width: 768px) and (max-width: 1024px) {
+    border-radius: 2rem;
+    padding: 2rem 1.75rem !important;
+    /* Optimizing vertical padding for iPad */
+  }
+
+  @media (max-width: 768px) {
     flex: 0 0 85vw;
     padding: 2rem;
     border-radius: 2rem;
   }
 }
 
-/* iPad Mini / Specific Tablet Optimization (REFINED) */
-@media (min-width: 768px) and (max-width: 1024px) {
-  .reviews-container {
-    gap: 2rem !important;
-  }
-
-  .reviews-scroll-wrapper {
-    padding: 0 1rem 3rem !important;
-    gap: 1.5rem !important;
-  }
-
-  .review-card {
-    scroll-snap-align: center;
-    border-radius: 2rem;
-    padding: 2rem 1.75rem !important; /* Optimizing vertical padding for iPad */
-  }
-
-  .nav-delicate {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .nav-delicate:hover {
-    transform: scale(1.1);
-    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
-  }
-}
-
-.tablet-nav-controls {
-  display: none;
-}
-
-.review-card:hover {
-  transform: translateY(-8px);
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(16, 185, 129, 0.3);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
-}
-
-/* Avatar & Badges */
+/* ─── AVATAR, BADGES & NAV CONTROLS ─────────────────────── */
 .avatar-circle {
   width: 48px;
   height: 48px;
@@ -200,69 +199,83 @@
   flex-shrink: 0;
 }
 
-/* Review Trigger Button */
+.tablet-nav-controls {
+  display: none;
+
+  @media (max-width: 1280px) {
+    display: flex !important;
+  }
+}
+
+.nav-delicate {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+  }
+}
+
 .write-review-trigger {
   cursor: pointer;
   z-index: 20;
 }
 
-/* Modal UI - Liquid Glass (HARDENED V2.2) */
+/* ─── MODAL UI & FORM SYSTEM (HARDENED V2.2) ────────────── */
 .modal-overlay {
-  background: rgba(2, 6, 23, 0.9); /* Darker backdrop */
+  background: rgba(2, 6, 23, 0.9);
+  /* Darker backdrop */
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   backdrop-filter: blur(40px) saturate(180%);
 }
 
 .modal-content-frame {
-  background: rgba(15, 23, 42, 0.98); /* Near-solid to prevent 'see-through' */
+  background: rgba(15, 23, 42, 0.98);
+  /* Near-solid to prevent 'see-through' */
   backdrop-filter: blur(60px) saturate(220%);
-  border: 1px solid rgba(255, 255, 255, 0.15); /* Slightly brighter border */
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  /* Slightly brighter border */
   box-shadow: 0 0 120px rgba(0, 0, 0, 1), inset 0 0 30px rgba(255, 255, 255, 0.05);
   border-radius: 3rem;
-}
 
-@media (max-width: 768px) {
-  .modal-content-frame {
-    border-radius: 2rem;
-    padding: 1rem;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1024px) {
-  .modal-content-frame {
+  @media (min-width: 768px) and (max-width: 1024px) {
     width: 95vw !important;
     max-height: 90vh !important;
     overflow-y: auto;
     border-radius: 2.5rem;
   }
 
-  .review-form-container {
-    padding: 2.5rem !important;
+  @media (max-width: 768px) {
+    border-radius: 2rem;
+    padding: 1rem;
   }
 }
 
-/* Success State in Modal */
 .success-overlay {
   background: rgba(2, 6, 23, 0.98);
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-/* Submission Form Alignment */
 .review-form-container {
   padding: 4rem;
   background: rgba(15, 23, 42, 0.1);
   /* Subtle contrast */
-}
 
-@media (max-width: 768px) {
-  .review-form-container {
+  @media (min-width: 768px) and (max-width: 1024px) {
+    padding: 2.5rem !important;
+  }
+
+  @media (max-width: 768px) {
     padding: 2rem;
   }
 }
 
-/* Indicator System delegated to global elite-status-pill */
-
-/* Elite V2.2 Inputs */
+/* ─── ELITE V2.2 INPUTS & RATINGS ──────────────────────── */
 .input-liquid {
   width: 100%;
   background: rgba(255, 255, 255, 0.03);
@@ -274,12 +287,20 @@
   font-weight: 500;
   outline: none;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
 
-.input-liquid:focus {
-  border-color: var(--clinical-blue);
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 30px rgba(16, 185, 129, 0.2), inset 0 0 10px rgba(16, 185, 129, 0.05);
+  &:focus {
+    border-color: var(--clinical-blue);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.2), inset 0 0 10px rgba(16, 185, 129, 0.05);
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
 }
 
 .rating-picker-viral {
@@ -288,39 +309,31 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.01);
-}
 
-.rating-picker-viral:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(16, 185, 129, 0.2);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(16, 185, 129, 0.05);
+  &:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(16, 185, 129, 0.05);
+  }
 }
 
 .star-viral-btn {
   transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: pointer;
-}
 
-.star-viral-btn:hover {
-  filter: grayscale(0) contrast(1.2);
-  transform: scale(1.3) translateY(-8px);
-  z-index: 20;
-}
+  &:hover {
+    filter: grayscale(0) contrast(1.2);
+    transform: scale(1.3) translateY(-8px);
+    z-index: 20;
+  }
 
-.star-viral-btn:active {
-  transform: scale(0.9);
-}
+  &:active {
+    transform: scale(0.9);
+  }
 
-.star-viral-btn svg {
-  filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.1));
-}
-
-.input-liquid::placeholder {
-  color: rgba(255, 255, 255, 0.2);
-  text-transform: uppercase;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  font-weight: 700;
+  & svg {
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.1));
+  }
 }
 
 /* Premium Button - Action Row */
@@ -332,27 +345,72 @@
   border-radius: 1.5rem;
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-4px);
+    filter: brightness(1.2);
+    box-shadow: 0 30px 60px rgba(16, 185, 129, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.2);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.2);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
 }
 
-.submit-glow-btn:hover:not(:disabled) {
-  transform: translateY(-4px);
-  filter: brightness(1.2);
-  box-shadow: 0 30px 60px rgba(16, 185, 129, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.2);
+/* ─── CUSTOM SCROLLBARS & UTILS ─────────────────────────── */
+.scrollbar-mission {
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
 }
 
-.submit-glow-btn:active:not(:disabled) {
-  transform: translateY(0);
+.custom-scrollbar {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
 }
 
-.submit-glow-btn:disabled {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.2);
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-/* Animations */
+/* ─── ANIMATION CORE ─────────────────────────────────────── */
 @keyframes glow-pulse {
 
   0%,
@@ -365,79 +423,12 @@
   }
 }
 
-.scrollbar-mission::-webkit-scrollbar {
-  width: 4px;
-}
-
-.scrollbar-mission::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-mission::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-}
-
-.scrollbar-mission::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-
-
-/* Exclusive footer wave! */
-.reviews-viewport .wave-container {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 30%;
-  line-height: 0;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.4;
-}
-
-.reviews-viewport .wave-line {
-  fill: none;
-  stroke: url(#wave-gradient-reviews);
-  stroke-width: 2;
-  stroke-linecap: round;
-  animation: wave-motion-reviews 9s infinite alternate ease-in-out;
-  filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.2));
-}
-
-.reviews-viewport .wave-line.secondary {
-  stroke-opacity: 0.2;
-  animation-duration: 16s;
-  animation-delay: -4s;
-}
-
 @keyframes wave-motion-reviews {
-  0% { transform: translateY(0) scaleX(1); }
-  100% { transform: translateY(18px) scaleX(1.05); }
-}
+  0% {
+    transform: translateY(0) scaleX(1);
+  }
 
-.custom-scrollbar {
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  100% {
+    transform: translateY(18px) scaleX(1.05);
+  }
 }
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  border: 1px solid transparent;
-  background-clip: padding-box;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}

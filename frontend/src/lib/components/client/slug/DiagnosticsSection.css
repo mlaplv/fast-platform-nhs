@@ -1,78 +1,53 @@
-/* DiagnosticsSection.css - CTO Native Version */
+/* DiagnosticsSection.css - Modern Nested Version */
 
 .diagnostics-container {
-  background-color: #010101; /* Matches Funnel & Hero */
+  /* 1. Reset & Layout Cơ Bản */
+  background-color: #010101;
+  /* Matches Funnel & Hero */
   position: relative;
   z-index: var(--z-surface);
-  
-  --glass-bg: rgba(255, 255, 255, 0.02);
-  --glass-border: rgba(193, 143, 126, 0.3);
-  --elite-accent: #C18F7E;
-  --elite-gold: #E8D5B0;
-  --luxury-copper: #C18F7E;
-  --luxury-gold: #E8D5B0;
-  --luxury-peach: #E3B5A4;
-  --color-luxury-copper: #C18F7E;
-  --color-luxury-gold: #E8D5B0;
-  --color-luxury-peach: #E3B5A4;
-  
+  min-height: 100vh;
+  overflow: visible;
+
+  /* 2. Định Nghĩa Thiết Lập Container Queries */
   container-type: inline-size;
   container-name: diagnostics;
-  
+
+  /* 3. Hệ Thống Biến (Đã dọn dẹp trùng lặp & Gom nhóm trực quan) */
+  --glass-bg: rgba(255, 255, 255, 0.02);
+  --glass-border: rgba(193, 143, 126, 0.3);
+
+  /* Brand Accents */
+  --elite-accent: #C18F7E;
+  --elite-gold: #E8D5B0;
+  --luxury-copper: var(--elite-accent);
+  --luxury-gold: var(--elite-gold);
+  --luxury-peach: #E3B5A4;
+
+  /* Dynamic Tokens */
   --diag-accent-glow: color-mix(in srgb, var(--elite-accent), transparent 92%);
   --diag-accent-text: var(--elite-accent);
 
-  min-height: 100vh;
-  overflow: visible;
-  
+  /* 4. Nesting Các Khối Thành Phần Con */
   & .badge-accent {
     background-color: var(--diag-accent-glow);
     color: var(--diag-accent-text);
   }
 
-  & .section-headline {
-    /* STYLES MOVED TO GLOBAL .elite-session-headline */
-  }
-}
-
-/* Container-Aware Scaling */
-/* Container queries kept for specific structural logic if needed! */
-@container diagnostics (min-width: 768px) {
-  .section-headline {
-    /* Maintained by clamp */
-  }
-}
-
-/* Tablet (768px - 1024px) Surgical Scaling */
-@media (min-width: 768px) and (max-width: 1024px) {
-  .diagnostics-container .section-headline {
-    font-size: clamp(2.5rem, 6vw, 4rem) !important;
-    margin-bottom: 1rem !important;
-  }
-  .diagnostics-container .section-description {
-    font-size: 0.9rem !important;
-    margin-bottom: 1.25rem;
-  }
-}
-
-@container diagnostics (max-width: 640px) {
-  .section-title {
-    line-height: 1.1;
-  }
-}
-
-/* Exclusive footer wave! */
-.diagnostics-container {
+  /* Khối Wave Chuyển Động */
   & .wave-container {
     position: absolute;
-    bottom: var(--wave-offset-diag); /* Centralized! */
+    bottom: var(--wave-offset-diag);
+    /* Centralized! */
     left: 0;
     width: 100%;
-    height: 20%; /* Cân bằng lại! */
+    height: 20%;
+    /* Cân bằng lại! */
     line-height: 0;
     z-index: 1;
     pointer-events: none;
-    opacity: 0.5; /* Rõ nét hơn */
+    opacity: 0.5;
+    /* Rõ nét hơn */
   }
 
   & .wave-line {
@@ -82,16 +57,48 @@
     stroke-linecap: round;
     animation: wave-motion-diag 10s infinite alternate ease-in-out;
     filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.3));
-    
+
     &.secondary {
       stroke-opacity: 0.2;
       animation-duration: 18s;
       animation-delay: -3s;
     }
   }
+
+  /* 5. Khối Responsive & Responsive Queries (Nested hoàn toàn) */
+
+  /* Tablet (768px - 1024px) Surgical Scaling */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    & .section-headline {
+      font-size: clamp(2.5rem, 6vw, 4rem) !important;
+      margin-bottom: 1rem !important;
+    }
+
+    & .section-description {
+      font-size: 0.9rem !important;
+      margin-bottom: 1.25rem;
+    }
+  }
+
+  /* Container Queries nội bộ */
+  @container diagnostics (max-width: 640px) {
+    & .section-title {
+      line-height: 1.1;
+    }
+  }
+
+  @container diagnostics (min-width: 768px) {
+    /* Maintained by clamp hoặc kế thừa global nếu cần */
+  }
 }
 
+/* 6. Khối Animation Toàn Cục */
 @keyframes wave-motion-diag {
-  0% { transform: translateY(0) scaleX(1); }
-  100% { transform: translateY(15px) scaleX(1.02); }
+  0% {
+    transform: translateY(0) scaleX(1);
+  }
+
+  100% {
+    transform: translateY(15px) scaleX(1.02);
+  }
 }

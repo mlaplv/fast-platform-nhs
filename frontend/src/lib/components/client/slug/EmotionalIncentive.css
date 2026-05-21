@@ -2,6 +2,11 @@
   background-color: #010101;
   padding-bottom: 10rem;
   overflow: hidden;
+
+  /* Gom nhóm Responsive media query vào bên trong selector gốc */
+  @media (max-width: 768px) {
+    padding-bottom: 5rem;
+  }
 }
 
 .luxury-bg-overlay {
@@ -21,61 +26,62 @@
 .scenario-card-wrapper {
   min-height: 400px;
   opacity: 0;
-}
 
-.scenario-card-wrapper.is-visible {
-  opacity: 1;
+  /* Sử dụng & để nối chuỗi class modifier trạng thái */
+  &.is-visible {
+    opacity: 1;
+  }
 }
 
 .scenario-card {
   transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-}
 
-.scenario-card:hover .image-frame {
-  transform: translateY(-15px) scale(1.02);
-  box-shadow: 0 50px 100px rgba(0, 0, 0, 0.8), 0 0 30px rgba(193, 143, 126, 0.1);
-}
+  /* Định nghĩa các phần tử con trực thuộc card */
+  .image-frame {
+    transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+  }
 
-.scenario-card:hover .content-frame h4 {
-  color: #E8D5B0;
-  transform: translateX(10px);
-}
+  .content-frame {
+    h4 {
+      transition: all 0.5s ease;
+    }
+  }
 
-.content-frame h4 {
-  transition: all 0.5s ease;
-}
+  .card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(193, 143, 126, 0.1), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
 
-.image-frame {
-  transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
-}
+  /* Gom toàn bộ hiệu ứng :hover của Card và các phần tử con vào một chỗ */
+  &:hover {
+    .image-frame {
+      transform: translateY(-15px) scale(1.02);
+      box-shadow: 0 50px 100px rgba(0, 0, 0, 0.8), 0 0 30px rgba(193, 143, 126, 0.1);
+    }
 
-.card-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at center, rgba(193, 143, 126, 0.1), transparent 70%);
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
+    .content-frame h4 {
+      color: #E8D5B0;
+      transform: translateX(10px);
+    }
 
-.scenario-card:hover .card-glow {
-  opacity: 1;
+    .card-glow {
+      opacity: 1;
+    }
+  }
 }
 
 .fomo-callout {
   transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-}
 
-.fomo-callout:hover {
-  transform: translateY(-5px);
-  border-color: rgba(193, 143, 126, 0.2);
-  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6);
-}
-
-@media (max-width: 768px) {
-  .emotional-section {
-    padding-bottom: 5rem;
+  &:hover {
+    transform: translateY(-5px);
+    border-color: rgba(193, 143, 126, 0.2);
+    box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6);
   }
 }

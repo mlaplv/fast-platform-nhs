@@ -101,7 +101,7 @@
   });
 </script>
 
-<div class="w-full md:w-[450px] shrink-0">
+<div class="w-full md:w-[250px] lg:w-[450px] shrink-0">
   <div class="aspect-square w-full rounded-none overflow-hidden relative border border-gray-100 flex items-center justify-center bg-white group">
     {#if isVideoUrl(currentImage)}
       <video

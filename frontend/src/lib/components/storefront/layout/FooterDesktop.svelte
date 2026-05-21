@@ -13,6 +13,7 @@
   import Lock from "@lucide/svelte/icons/lock";
   import CreditCard from "@lucide/svelte/icons/credit-card";
   import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
+  import ChevronDown from "@lucide/svelte/icons/chevron-down";
 
   interface Props {
     shopInfo: {
@@ -36,9 +37,7 @@
     };
   }
 
-
   let { shopInfo }: Props = $props();
-
   const currentYear = new Date().getFullYear();
 
   // FOMO: Simulated Live Activity Pulse
@@ -51,7 +50,16 @@
     return () => clearInterval(interval);
   });
 
-  // Elite V2.2: Link Ecosystem Data
+  // Accordion state (tablet md only)
+  let openSections = $state<Record<string, boolean>>({
+    ecosystem: false,
+    customer: false,
+    connect: false
+  });
+  function toggleSection(key: string): void {
+    openSections[key] = !openSections[key];
+  }
+
   const ecosystemLinks = [
     { name: 'Giới thiệu', href: '/gioi-thieu' },
     { name: 'Tuyển dụng', href: '/tuyen-dung' },
@@ -67,24 +75,163 @@
     { name: 'Chính sách Bảo hành', href: '/chinh-sach-bao-hanh' },
     { name: 'Phương thức Thanh toán', href: '/phuong-thuc-thanh-toan' }
   ];
+
+  const socialLinks = [
+    { icon: Facebook, label: 'Facebook', href: shopInfo.social_links?.facebook || '#' },
+    { icon: Linkedin, label: 'LinkedIn', href: shopInfo.social_links?.linkedin || '#' },
+    { icon: Youtube, label: 'YouTube', href: shopInfo.social_links?.youtube || '#' }
+  ];
 </script>
 
 <footer class="relative overflow-hidden bg-[#0c0a09] border-t border-white/5 text-slate-400 font-medium selection:bg-[#C18F7E]/30 selection:text-white">
-  <!-- Dynamic Mesh Background (Viral 2026 Atmosphere) -->
+  <!-- Dynamic Mesh Background -->
   <div class="absolute inset-0 pointer-events-none opacity-40">
     <div class="absolute top-[0%] left-[-10%] w-[40%] h-[60%] bg-[#C18F7E]/10 blur-[120px] rounded-full animate-pulse"></div>
     <div class="absolute bottom-[-20%] right-[-5%] w-[50%] h-[70%] bg-[#C18F7E]/5 blur-[150px] rounded-full"></div>
   </div>
-
-  <!-- Noise Texture Overlay -->
+  <!-- Noise Texture -->
   <div class="absolute inset-0 pointer-events-none opacity-[0.02] bg-[url('data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E')] brightness-100 contrast-150"></div>
 
   <div class="max-w-[1240px] mx-auto px-6 pt-10 pb-8 relative z-[var(--z-wave)]">
-    <!-- Elite Header Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 mb-12 items-start">
-      
-      <!-- Brand & AI Trust Section -->
-      <div class="lg:col-span-4 space-y-8">
+
+    <!-- ══════════════════════════════════════════════
+         TABLET (768px – 1023px): Compact + Accordion
+         ══════════════════════════════════════════════ -->
+    <div class="block lg:hidden mb-6">
+
+      <!-- Brand Row (horizontal compact) -->
+      <div class="flex items-start justify-between mb-5 pb-5 border-b border-white/5 gap-4">
+        <!-- Logo + slogan -->
+        <div>
+          <span class="text-2xl font-black tracking-[0.2em] bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent uppercase leading-none block">
+            {shopInfo.name}
+          </span>
+          <div class="flex items-center gap-2 mt-2">
+            <div class="h-[1px] w-8 bg-gradient-to-r from-[#C18F7E] to-transparent"></div>
+            <span class="text-[8px] font-black tracking-[0.35em] text-white/40 uppercase">{shopInfo.slogan}</span>
+          </div>
+          {#if shopInfo.subslogan}
+            <p class="text-[11px] leading-relaxed text-slate-400 font-normal italic mt-2 max-w-[220px]">"{shopInfo.subslogan}"</p>
+          {/if}
+        </div>
+
+        <!-- FOMO + AI Badges (right column) -->
+        <div class="flex flex-col items-end gap-2 shrink-0">
+          <div class="flex items-center gap-2 py-1.5 px-3 bg-[#C18F7E]/5 border border-[#C18F7E]/20 rounded-xl backdrop-blur-md">
+            <div class="relative flex h-1.5 w-1.5">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+            </div>
+            <p class="text-[10px] font-black tracking-widest text-[#C18F7E]">
+              <span class="tabular-nums">{activeViewers}</span> thành viên
+            </p>
+          </div>
+          <div class="flex gap-1.5 flex-wrap justify-end">
+            <div class="flex items-center gap-1 px-2 py-0.5 bg-white/5 border border-white/10 rounded-full">
+              <ShieldCheck size={9} class="text-[#C18F7E]" />
+              <span class="text-[7px] font-black tracking-widest text-white/70">AI Guard</span>
+            </div>
+            <div class="flex items-center gap-1 px-2 py-0.5 bg-white/5 border border-white/10 rounded-full">
+              <Zap size={9} class="text-[#C18F7E]" />
+              <span class="text-[7px] font-black tracking-widest text-white/70">Instant</span>
+            </div>
+            <div class="flex items-center gap-1 px-2 py-0.5 bg-white/5 border border-white/10 rounded-full">
+              <Clock size={9} class="text-[#C18F7E]" />
+              <span class="text-[7px] font-black tracking-widest text-white/70">24/7</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accordion: Hệ sinh thái -->
+      <div class="accordion-item">
+        <button
+          class="accordion-trigger"
+          onclick={() => toggleSection('ecosystem')}
+          aria-expanded={openSections.ecosystem}
+          id="acc-trigger-ecosystem"
+        >
+          <span class="acc-label">Hệ sinh thái</span>
+          <ChevronDown size={14} class="acc-chevron {openSections.ecosystem ? 'rotated' : ''}" />
+        </button>
+        <div class="accordion-body {openSections.ecosystem ? 'open' : ''}" id="acc-body-ecosystem">
+          <ul class="acc-list">
+            {#each ecosystemLinks as link}
+              <li><a href={link.href} class="acc-link">{link.name}</a></li>
+            {/each}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Accordion: Khách hàng -->
+      <div class="accordion-item">
+        <button
+          class="accordion-trigger"
+          onclick={() => toggleSection('customer')}
+          aria-expanded={openSections.customer}
+          id="acc-trigger-customer"
+        >
+          <span class="acc-label">Khách hàng</span>
+          <ChevronDown size={14} class="acc-chevron {openSections.customer ? 'rotated' : ''}" />
+        </button>
+        <div class="accordion-body {openSections.customer ? 'open' : ''}" id="acc-body-customer">
+          <ul class="acc-list grid-cols-2-list">
+            {#each customerLinks as link}
+              <li><a href={link.href} class="acc-link">{link.name}</a></li>
+            {/each}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Accordion: Kết nối -->
+      <div class="accordion-item">
+        <button
+          class="accordion-trigger"
+          onclick={() => toggleSection('connect')}
+          aria-expanded={openSections.connect}
+          id="acc-trigger-connect"
+        >
+          <span class="acc-label">Kết nối</span>
+          <ChevronDown size={14} class="acc-chevron {openSections.connect ? 'rotated' : ''}" />
+        </button>
+        <div class="accordion-body {openSections.connect ? 'open' : ''}" id="acc-body-connect">
+          <div class="py-3 space-y-3">
+            <div class="flex items-start gap-3">
+              <MapPin size={12} class="text-[#C18F7E] shrink-0 mt-0.5" />
+              <p class="text-[12px] text-slate-300 font-normal italic leading-relaxed">{shopInfo.address}</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <Mail size={12} class="text-[#C18F7E] shrink-0" />
+              <a href="mailto:{shopInfo.email}" class="text-[12px] text-slate-300 hover:text-[#C18F7E] transition-colors">{shopInfo.email}</a>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-white/5">
+              <div>
+                <span class="text-[8px] tracking-[0.2em] text-slate-500 font-bold block mb-0.5">Hotline 24/7</span>
+                <a href="tel:{shopInfo.hotline.replace(/-/g, '')}" class="text-xl font-black tracking-tighter text-white hover:text-[#C18F7E] transition-colors tabular-nums">
+                  {shopInfo.hotline}
+                </a>
+              </div>
+              <div class="flex items-center gap-4">
+                {#each socialLinks as s}
+                  <a href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label}
+                     class="text-slate-500 hover:text-[#C18F7E] transition-all">
+                    <s.icon size={16} />
+                  </a>
+                {/each}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         DESKTOP (lg 1024px+): Original 12-col grid
+         ══════════════════════════════════════════════ -->
+    <div class="hidden lg:grid grid-cols-12 gap-8 mb-12 items-start">
+
+      <!-- Brand & AI Trust -->
+      <div class="col-span-4 space-y-8">
         <div class="space-y-4">
           <div class="flex flex-col group cursor-default">
             <span class="text-4xl font-black tracking-[0.25em] leading-none bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(193,143,126,0.2)] uppercase">
@@ -92,20 +239,15 @@
             </span>
             <div class="flex items-center gap-2 mt-4">
                <div class="h-[1px] w-12 bg-gradient-to-r from-[#C18F7E] to-transparent"></div>
-               <span class="text-[10px] font-black tracking-[0.4em] text-white/40 uppercase">
-                 {shopInfo.slogan}
-               </span>
+               <span class="text-[10px] font-black tracking-[0.4em] text-white/40 uppercase">{shopInfo.slogan}</span>
             </div>
           </div>
-
           {#if shopInfo.subslogan}
-            <p class="text-[14px] leading-relaxed text-slate-400 max-w-[320px] font-normal italic">
-              "{shopInfo.subslogan}"
-            </p>
+            <p class="text-[14px] leading-relaxed text-slate-400 max-w-[320px] font-normal italic">"{shopInfo.subslogan}"</p>
           {/if}
         </div>
 
-        <!-- FOMO: Live Pulse -->
+        <!-- FOMO -->
         <div class="flex items-center gap-3 py-3 px-4 bg-[#C18F7E]/5 border border-[#C18F7E]/20 rounded-2xl w-fit backdrop-blur-md group hover:bg-[#C18F7E]/10 transition-all">
           <div class="relative flex h-2 w-2">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -116,7 +258,7 @@
           </p>
         </div>
 
-        <!-- AI Trust Badges (Viral 2026 Flair) -->
+        <!-- AI Badges -->
         <div class="flex flex-wrap gap-2">
           <div class="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full backdrop-blur-md hover:bg-white/10 transition-all cursor-default group">
             <ShieldCheck size={12} class="text-[#C18F7E] group-hover:scale-110 transition-transform" />
@@ -133,8 +275,8 @@
         </div>
       </div>
 
-      <!-- Links Column 1: Ecosystem -->
-      <div class="lg:col-span-2 space-y-6">
+      <!-- Links: Ecosystem -->
+      <div class="col-span-2 space-y-6">
         <h4 class="text-white font-black text-[10px] tracking-[0.4em] pl-2">Hệ sinh thái</h4>
         <ul class="space-y-3">
           {#each ecosystemLinks as link}
@@ -148,8 +290,8 @@
         </ul>
       </div>
 
-      <!-- Links Column 2: Support -->
-      <div class="lg:col-span-2 space-y-6">
+      <!-- Links: Customer -->
+      <div class="col-span-2 space-y-6">
         <h4 class="text-white font-black text-[10px] tracking-[0.4em] pl-2">Khách hàng</h4>
         <ul class="space-y-3">
           {#each customerLinks as link}
@@ -163,27 +305,22 @@
         </ul>
       </div>
 
-      <!-- Contact & Social Connect -->
-      <div class="lg:col-span-4 space-y-6">
+      <!-- Contact & Social -->
+      <div class="col-span-4 space-y-6">
         <h4 class="text-white font-black text-[10px] tracking-[0.4em] pl-2">Kết nối</h4>
-        
         <div class="bg-white/[0.02] border border-white/5 p-5 rounded-xl backdrop-blur-3xl space-y-5 hover:border-[#C18F7E]/20 transition-all group">
           <div class="flex items-center gap-4">
             <div class="w-7 h-7 rounded-lg bg-[#C18F7E]/10 flex items-center justify-center shrink-0">
               <MapPin size={14} class="text-[#C18F7E]" />
             </div>
-            <p class="text-[12px] leading-relaxed text-slate-300 font-normal italic">
-              {shopInfo.address}
-            </p>
+            <p class="text-[12px] leading-relaxed text-slate-300 font-normal italic">{shopInfo.address}</p>
           </div>
-
           <div class="flex items-center gap-4">
             <div class="w-7 h-7 rounded-lg bg-[#C18F7E]/10 flex items-center justify-center shrink-0">
               <Mail size={14} class="text-[#C18F7E]" />
             </div>
             <a href="mailto:{shopInfo.email}" class="text-[12px] text-slate-300 hover:text-[#C18F7E] transition-colors">{shopInfo.email}</a>
           </div>
-
           <div class="pt-4 border-t border-white/5 flex items-center justify-between">
             <div class="flex flex-col">
                <span class="text-[8px] tracking-[0.2em] text-slate-500 font-bold mb-1">Hotline 24/7</span>
@@ -197,7 +334,7 @@
           </div>
         </div>
 
-        <!-- Trust Badges & Payments -->
+        <!-- Trust Badges -->
         <div class="bg-zinc-950/40 border border-white/5 p-4 rounded-xl flex items-center justify-between gap-4">
           <div class="flex flex-col gap-2">
             <span class="text-[8px] font-black tracking-widest text-slate-500">Security & Payments</span>
@@ -219,13 +356,14 @@
           </div>
         </div>
       </div>
-
     </div>
 
-    <!-- Bottom Bar: Ownership & Legal -->
-    <div class="pt-8 border-t border-white/5">
-      <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-        <div class="space-y-3">
+    <!-- ══════════════════════════════════════════════
+         Bottom Bar (shared – responsive)
+         ══════════════════════════════════════════════ -->
+    <div class="pt-6 border-t border-white/5">
+      <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-6">
+        <div class="space-y-2 lg:space-y-3">
           <div class="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 italic">
             <p>© {currentYear} <span class="text-white font-bold uppercase">{shopInfo.name}</span></p>
             <span class="w-1 h-1 rounded-full bg-white/10"></span>
@@ -233,46 +371,35 @@
               <p class="font-bold text-slate-300 tracking-widest text-[8px]">{shopInfo.companyName}</p>
             {/if}
           </div>
-          
-          <div class="flex flex-wrap items-center gap-4 text-[9px] font-mono text-slate-600 tracking-widest leading-relaxed">
+          <div class="flex flex-wrap items-center gap-3 lg:gap-4 text-[9px] font-mono text-slate-600 tracking-widest leading-relaxed">
             {#if shopInfo.taxId}
-              <div class="flex items-center gap-1.5 border-r border-white/5 pr-4 last:border-0 last:pr-0">
+              <div class="flex items-center gap-1.5">
                 <span class="text-slate-800 font-black">MST:</span>
                 <span class="text-slate-500 tabular-nums">{shopInfo.taxId}</span>
               </div>
             {/if}
             {#if shopInfo.businessLicense}
-              <div class="flex items-center gap-1.5 border-r border-white/5 pr-4 last:border-0 last:pr-0">
+              <div class="flex items-center gap-1.5">
                 <span class="text-slate-800 font-black">GPKD:</span>
                 <span class="text-slate-500">{shopInfo.businessLicense}</span>
               </div>
             {/if}
-            <div class="flex items-center gap-1.5 border-r border-white/5 pr-4 last:border-0 last:pr-0">
+            <div class="flex items-center gap-1.5">
                <span class="text-slate-800 font-black">SSL:</span>
-               <span class="text-slate-500 font-bold text-emerald-600/80 tracking-tighter">ENCRYPTED 256B</span>
+               <span class="text-emerald-600/80 font-bold tracking-tighter">ENCRYPTED 256B</span>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-6">
+        <div class="flex items-center gap-4 lg:gap-6">
           <div class="flex items-center gap-3">
-             {#each [
-               { icon: Facebook, label: 'Facebook', href: shopInfo.social_links?.facebook || '#' },
-               { icon: Linkedin, label: 'LinkedIn', href: shopInfo.social_links?.linkedin || '#' },
-               { icon: Youtube, label: 'YouTube', href: shopInfo.social_links?.youtube || '#' }
-             ] as social}
-               <a 
-                 href={social.href} 
-                 target="_blank" 
-                 rel="noopener noreferrer"
-                 aria-label={social.label} 
-                 class="text-slate-600 hover:text-[#C18F7E] transition-all"
-               >
-                  <social.icon size={16} />
-               </a>
-             {/each}
+            {#each socialLinks as s}
+              <a href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label}
+                 class="text-slate-600 hover:text-[#C18F7E] transition-all">
+                <s.icon size={16} />
+              </a>
+            {/each}
           </div>
-
           <div class="flex items-center gap-2 group cursor-default">
              <span class="text-[9px] font-black tracking-widest text-slate-700 group-hover:text-slate-500 transition-colors">by lapiweb</span>
              <div class="w-1 h-1 rounded-full bg-[#C18F7E] animate-ping"></div>
@@ -280,11 +407,104 @@
         </div>
       </div>
     </div>
+
   </div>
 </footer>
 
 <style>
-  :global(footer) {
-    contain: paint;
+  :global(footer) { contain: paint; }
+
+  /* ── Accordion Core ── */
+  .accordion-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .accordion-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .accordion-trigger:focus-visible {
+    outline: 1.5px solid rgba(193, 143, 126, 0.5);
+    border-radius: 4px;
+  }
+
+  .acc-label {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.35em;
+    color: #fff;
+    text-transform: uppercase;
+  }
+
+  /* Chevron rotate animation */
+  :global(.acc-chevron) {
+    color: rgba(193, 143, 126, 0.7);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+  }
+  :global(.acc-chevron.rotated) {
+    transform: rotate(180deg);
+    color: #C18F7E;
+  }
+
+  /* Accordion body: smooth max-height collapse */
+  .accordion-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s ease;
+    opacity: 0;
+  }
+  .accordion-body.open {
+    max-height: 400px;
+    opacity: 1;
+  }
+
+  /* Link list styles */
+  .acc-list {
+    list-style: none;
+    padding: 0 0 12px 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .grid-cols-2-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+  }
+
+  .acc-link {
+    font-size: 13px;
+    color: rgb(100 116 139);
+    text-decoration: none;
+    transition: color 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .acc-link::before {
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 1.5px;
+    background: #C18F7E;
+    transition: width 0.25s ease;
+    flex-shrink: 0;
+  }
+  .acc-link:hover {
+    color: #fff;
+  }
+  .acc-link:hover::before {
+    width: 10px;
   }
 </style>

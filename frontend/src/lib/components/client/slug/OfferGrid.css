@@ -1,30 +1,42 @@
-/* OfferGrid.css - Glowing Sakura Viral 2026 Edition */
+/* OfferGrid.css - Glowing Sakura Viral 2026 Edition (Nested & Optimized) */
 
+/* =========================================
+   1. GLOBAL & BASE LAYOUT
+   ========================================= */
 .offer-section {
   container-type: inline-size;
   container-name: offer;
-
   --deep-bg: #010101;
   --luxury-sakura: #FFB7C5;
   --luxury-gold: #E8D5B0;
 
   background-color: var(--deep-bg);
-  font-family: 'Be Vietnam Pro', 'Be Vietnam Pro', sans-serif;
+  font-family: 'Be Vietnam Pro', sans-serif;
   position: relative;
   overflow: hidden;
   padding: 60px 0;
   contain: layout;
+
+  .liquid-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(140px);
+    opacity: 0.1;
+    z-index: 0;
+  }
 }
 
-.offer-section .liquid-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(140px);
-  opacity: 0.1;
-  z-index: 0;
+.offer-grid-headline {
+  font-size: clamp(24px, 5vw, 42px) !important;
+  line-height: 1.25 !important;
+  max-width: 900px;
+  margin-inline: auto;
+  letter-spacing: -0.02em !important;
 }
 
-/* VIRAL FOMO: Pulsing Scarcity */
+/* =========================================
+   2. BADGES & RIBBONS
+   ========================================= */
 .scarcity-badge-viral {
   background: rgba(255, 183, 197, 0.1);
   border: 1px solid rgba(255, 183, 197, 0.3);
@@ -32,8 +44,594 @@
   animation: neon-pulse 2s infinite ease-in-out;
 }
 
+.quantity-glow-badge {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  background: rgba(255, 183, 197, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 183, 197, 0.4);
+  color: var(--luxury-sakura);
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  z-index: 10;
+  box-shadow: 0 0 20px rgba(255, 183, 197, 0.1);
+  will-change: transform, border-color;
+}
+
+.expert-choice-ribbon {
+  background: linear-gradient(135deg, var(--luxury-gold) 0%, var(--luxury-sakura) 100%);
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer-gold 3s infinite;
+  }
+}
+
+.timer-badge {
+  background: rgba(255, 183, 197, 0.05);
+  border: 1px solid rgba(255, 183, 197, 0.1);
+  color: var(--luxury-sakura);
+}
+
+.ultimate-savings-box {
+  background: linear-gradient(135deg, #FFD700 0%, #FDB931 50%, #FFD700 100%);
+  color: #FFD1DC !important;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+
+/* =========================================
+   3. PACKAGE CARDS & OFFER BOXES
+   ========================================= */
+.package-offer-box {
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-2px);
+    border-color: rgba(255, 183, 197, 0.2);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+
+    .viral-liquid-border {
+      opacity: 1;
+    }
+
+    .sticker-mini-preview {
+      border-color: var(--luxury-sakura);
+      background: rgba(255, 183, 197, 0.05);
+    }
+  }
+
+  /* 💎 SPECULAR TOP HIGHLIGHT */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3) 0%, transparent 40%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* 🏔️ INNER CONTAINER MASK */
+  >div:not(.viral-liquid-border) {
+    position: relative;
+    z-index: 5;
+  }
+}
+
+.package-card {
+  background: rgba(255, 255, 255, 0.01);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3rem;
+  transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+
+  &.popular {
+    background: rgba(255, 183, 197, 0.02);
+    border-color: rgba(255, 183, 197, 0.15);
+  }
+
+  &.active {
+    background: rgba(255, 183, 197, 0.12);
+    border: 3px solid var(--luxury-sakura) !important;
+    box-shadow: 0 0 60px rgba(255, 183, 197, 0.4), inset 0 0 30px rgba(255, 183, 197, 0.2);
+    transform: translateY(-8px) scale(1.03);
+    z-index: 10;
+
+    .viral-liquid-border {
+      opacity: 1;
+    }
+
+    .variant-image-hero {
+      background: radial-gradient(circle at center, rgba(255, 183, 197, 0.15) 0%, transparent 70%);
+    }
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+    transform: translateY(-15px);
+    border-color: rgba(255, 183, 197, 0.3);
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+
+    .liquid-specular-highlight {
+      opacity: 0.8;
+      animation: liquid-float 10s infinite linear;
+    }
+
+    .variant-image-hero::before {
+      top: -50%;
+      left: -50%;
+      opacity: 0.5;
+    }
+  }
+}
+
+.variant-image-hero {
+  transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* GLOSSY SHINE ON IMAGE */
+  &::before {
+    content: '';
+    position: absolute;
+    top: -150%;
+    left: -150%;
+    width: 300%;
+    height: 300%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    z-index: 6;
+    pointer-events: none;
+    transition: all 1.5s ease;
+  }
+}
+
+.liquid-glass-deal {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.5s ease;
+
+  &.active {
+    background: rgba(255, 183, 197, 0.05);
+    border-color: var(--luxury-sakura);
+  }
+}
+
+.elite-price-cluster {
+  h5 {
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  .original-price {
+    transform: translateY(2px);
+  }
+
+  .animate-pulse {
+    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+/* =========================================
+   4. EFFECTS & GLOWS
+   ========================================= */
+.viral-liquid-border {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from 0deg, transparent 0%, var(--luxury-sakura) 15%, transparent 30%, transparent 70%, var(--luxury-sakura) 85%, transparent 100%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  z-index: 3;
+  pointer-events: none;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -150%;
+    background: inherit;
+    animation: led-rotate 4s linear infinite;
+    will-change: transform;
+  }
+}
+
+.viral-led-glow {
+  position: absolute;
+  inset: -2px;
+  background: conic-gradient(from 0deg, transparent, var(--luxury-sakura), transparent 30%, transparent 70%, var(--luxury-sakura), transparent);
+  animation: led-rotate 3s linear infinite;
+  border-radius: 14px;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: destination-out;
+  padding: 1.5px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.metallic-shimmer {
+  background-size: 200% 100%;
+  background-image: linear-gradient(110deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0) 100%);
+  animation: metallic-glide 3s infinite linear;
+}
+
+.liquid-specular-highlight {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.4) 0%, transparent 20%);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+/* =========================================
+   5. BUTTONS, VOUCHERS & STICKERS
+   ========================================= */
+.liquid-cta-viral {
+  background: linear-gradient(135deg, #C18F7E 0%, #E8D5B0 100%);
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 4px 25px rgba(193, 143, 126, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.2);
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1) !important;
+  animation: cta-breathing 4s infinite ease-in-out;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    filter: brightness(1.1);
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 15px 40px rgba(193, 143, 126, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.3);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.viral-voucher-tag {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
+    border-color: rgba(255, 183, 197, 0.2);
+  }
+
+  &.relative.h-\[74px\] {
+    height: 74px !important;
+  }
+}
+
+.active-viral-tag {
+  background: rgba(255, 183, 197, 0.1) !important;
+  border-color: rgba(255, 183, 197, 0.4) !important;
+}
+
+.viral-voucher-tag-mini {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 183, 197, 0.2);
+  }
+}
+
+.voucher-action-btn {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.15em;
+
+  &.active {
+    box-shadow: 0 0 20px rgba(255, 183, 197, 0.4);
+  }
+}
+
+.voucher-action-btn-mini {
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:not(.active) {
+    background: rgba(255, 183, 197, 0.05);
+    border: 1px solid rgba(255, 183, 197, 0.2);
+    color: var(--luxury-sakura);
+    backdrop-filter: blur(5px);
+
+    &:hover {
+      background: rgba(255, 183, 197, 0.1);
+      border-color: var(--luxury-sakura);
+      transform: translateY(-1px);
+    }
+  }
+
+  &.active {
+    background: linear-gradient(135deg, var(--luxury-sakura) 0%, #FFD1DC 100%);
+    color: #000 !important;
+    box-shadow: 0 4px 15px rgba(255, 183, 197, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+
+    &:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px) scale(1.05);
+      box-shadow: 0 8px 25px rgba(255, 183, 197, 0.6);
+    }
+  }
+}
+
+.liquid-done-btn {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    width: 50%;
+    transform: skewX(-20deg) translateX(-150%);
+    transition: transform 0.8s ease;
+  }
+
+  &:hover::after {
+    transform: skewX(-20deg) translateX(300%);
+  }
+}
+
+.liquid-done-btn-mini {
+  background: linear-gradient(135deg, var(--luxury-sakura) 0%, #FFD1DC 100%);
+  color: #000 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 40px rgba(255, 183, 197, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 15px 50px rgba(255, 183, 197, 0.6);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.elite-luxury-ticket:hover .ticket-shimmer {
+  animation: ticket-shimmer-run 1.2s infinite;
+}
+
+.ticket-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: skewX(-20deg);
+  transition: none;
+  pointer-events: none;
+}
+
+.elite-voucher-sticker {
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.2);
+  }
+}
+
+.sticker-tiny,
+.sticker-tiny-expanded {
+  &:hover {
+    transform: scale(1.05) rotate(1deg);
+  }
+}
+
+.offer-tabs-nav button {
+  position: relative;
+  padding-bottom: 4px;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--luxury-sakura);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  &.text-luxury-sakura::after {
+    transform: scaleX(1);
+  }
+}
+
+/* =========================================
+   6. MODALS, FOOTER & MISC
+   ========================================= */
+.offer-overlay-viral {
+  background: rgba(6, 6, 6, 0.98);
+  backdrop-filter: blur(20px) saturate(200%);
+  border: 1px solid rgba(255, 183, 197, 0.15);
+  border-radius: 3rem;
+  animation: overlay-slide-up 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 -20px 80px rgba(0, 0, 0, 0.8);
+}
+
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px) saturate(150%);
+  pointer-events: auto;
+}
+
+.modal-drag-handle {
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+}
+
+.pharmacy-footer {
+  background: rgba(255, 255, 255, 0.01);
+  border-radius: 4rem;
+  padding: 60px 40px;
+  margin-top: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.wave-line {
+  stroke: var(--luxury-sakura);
+  opacity: 0.1;
+  animation: wave-motion 10s infinite alternate ease-in-out;
+}
+
+.done-area-mini {
+  background: linear-gradient(to top, #060606 80%, transparent) !important;
+}
+
+.active-vouchers-row {
+  min-height: 24px;
+}
+
+.fomo-header-viral {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  letter-spacing: 0.15em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.sticker-mini-preview {
+  transition: all 0.3s ease;
+}
+
+.animate-led-red-pulse {
+  animation: led-red-pulse 1s infinite alternate;
+}
+
+/* =========================================
+   7. MEDIA QUERIES (Combined & Optimized)
+   ========================================= */
+@media (max-width: 1024px) {
+  .package-grid {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    gap: 2rem;
+    padding: 60px 2rem 100px 2rem !important;
+    margin-top: -40px !important;
+    margin-bottom: -60px !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-padding-inline: 2rem;
+
+    &::-webkit-scrollbar {
+      display: none !important;
+    }
+
+    >div {
+      scroll-snap-align: center;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      height: auto !important;
+      width: 85%;
+      max-width: 420px;
+      min-width: 290px;
+    }
+  }
+
+  .package-card {
+    border-radius: 3rem;
+    backface-visibility: hidden;
+    height: auto !important;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .variant-image-hero {
+    height: 220px;
+  }
+
+  .offer-grid-headline {
+    font-size: clamp(20px, 4vw, 30px) !important;
+  }
+
+  /* Merge 768px logic here to save block space */
+  @media (max-width: 768px) {
+    .offer-section {
+      padding: 60px 0;
+    }
+
+    .package-grid {
+      gap: 1rem;
+    }
+  }
+}
+
+@media (min-width: 768px) {
+  .offer-overlay-viral {
+    border-radius: 4rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 80vh !important;
+    border-top-left-radius: 3.5rem !important;
+    border-top-right-radius: 3.5rem !important;
+    box-shadow: 0 -20px 100px rgba(0, 0, 0, 0.9);
+  }
+}
+
+/* =========================================
+   8. KEYFRAMES (Globally grouped for readability)
+   ========================================= */
 @keyframes neon-pulse {
-  0% {
+
+  0%,
+  100% {
     box-shadow: 0 0 5px rgba(255, 183, 197, 0.2);
     border-color: rgba(255, 183, 197, 0.3);
   }
@@ -42,29 +640,6 @@
     box-shadow: 0 0 20px rgba(255, 183, 197, 0.6);
     border-color: var(--luxury-sakura);
   }
-
-  100% {
-    box-shadow: 0 0 5px rgba(255, 183, 197, 0.2);
-    border-color: rgba(255, 183, 197, 0.3);
-  }
-}
-
-/* GOLDEN SHIMMER RIBBON */
-.expert-choice-ribbon {
-  background: linear-gradient(135deg, #E8D5B0 0%, #FFB7C5 100%);
-  position: relative;
-  overflow: hidden;
-}
-
-.expert-choice-ribbon::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  animation: shimmer-gold 3s infinite;
 }
 
 @keyframes shimmer-gold {
@@ -77,101 +652,14 @@
   }
 }
 
-/* PACKAGE CARDS */
-.package-offer-box {
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-  background: rgba(255, 255, 255, 0.02);
-  box-shadow:
-    0 10px 40px rgba(0, 0, 0, 0.3),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  min-height: 80px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  position: relative;
-  overflow: hidden;
-  transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
-}
+@keyframes led-rotate {
+  from {
+    transform: rotate(0deg);
+  }
 
-.package-offer-box:hover {
-  background: rgba(255, 255, 255, 0.06);
-  transform: translateY(-2px);
-  border-color: rgba(255, 183, 197, 0.2);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-}
-
-/* 💎 SPECULAR TOP HIGHLIGHT */
-.package-offer-box::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3) 0%, transparent 40%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-  z-index: 2;
-}
-
-/* 🌪️ VIRAL LIQUID BORDER (CONIC GLOW) */
-.viral-liquid-border {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: conic-gradient(from 0deg,
-      transparent 0%,
-      var(--luxury-sakura) 15%,
-      transparent 30%,
-      transparent 70%,
-      var(--luxury-sakura) 85%,
-      transparent 100%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity 0.8s ease;
-  z-index: 3;
-  pointer-events: none;
-}
-
-/* Create the rotation via a pseudo-element as background */
-.viral-liquid-border::before {
-  content: "";
-  position: absolute;
-  inset: -150%;
-  background: inherit;
-  animation: led-rotate 4s linear infinite;
-  will-change: transform;
-}
-
-.package-card.active .viral-liquid-border,
-.package-offer-box:hover .viral-liquid-border {
-  opacity: 1;
-}
-
-/* 🏔️ INNER CONTAINER MASK (To keep border outside) */
-.package-offer-box>div:not(.viral-liquid-border) {
-  position: relative;
-  z-index: 5;
-}
-
-/* 🚀 ELITE METALLIC SHIMMER (GOLD/SAKURA) */
-.metallic-shimmer {
-  background-size: 200% 100%;
-  background-image: linear-gradient(110deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0) 40%,
-      rgba(255, 255, 255, 0.6) 50%,
-      rgba(255, 255, 255, 0) 60%,
-      rgba(255, 255, 255, 0) 100%);
-  animation: metallic-glide 3s infinite linear;
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes metallic-glide {
@@ -182,28 +670,6 @@
   to {
     background-position: -200% 0;
   }
-}
-
-/* 🧪 LIQUID SPECULAR GLASS HIGHLIGHT */
-.liquid-specular-highlight {
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at center,
-      rgba(255, 255, 255, 0.4) 0%,
-      transparent 20%);
-  mix-blend-mode: overlay;
-  pointer-events: none;
-  z-index: 10;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-
-.package-card:hover .liquid-specular-highlight {
-  opacity: 0.8;
-  animation: liquid-float 10s infinite linear;
 }
 
 @keyframes liquid-float {
@@ -220,15 +686,6 @@
   }
 }
 
-.offer-overlay-viral {
-  background: rgba(6, 6, 6, 0.98);
-  backdrop-filter: blur(20px) saturate(200%);
-  border: 1px solid rgba(255, 183, 197, 0.15);
-  border-radius: 3rem;
-  animation: overlay-slide-up 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-  box-shadow: 0 -20px 80px rgba(0, 0, 0, 0.8);
-}
-
 @keyframes overlay-slide-up {
   from {
     transform: translateY(100px);
@@ -241,83 +698,6 @@
   }
 }
 
-.sticker-mini-preview {
-  transition: all 0.3s ease;
-}
-
-.package-offer-box:hover .sticker-mini-preview {
-  border-color: var(--luxury-sakura);
-  background: rgba(255, 183, 197, 0.05);
-}
-
-.viral-voucher-tag {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.viral-voucher-tag:hover {
-  background: rgba(255, 255, 255, 0.07);
-  transform: translateX(4px);
-  border-color: rgba(255, 183, 197, 0.2);
-}
-
-.active-viral-tag {
-  background: rgba(255, 183, 197, 0.08);
-  border-color: transparent !important;
-}
-
-.viral-led-glow {
-  position: absolute;
-  inset: -2px;
-  background: conic-gradient(from 0deg,
-      transparent,
-      var(--luxury-sakura),
-      transparent 30%,
-      transparent 70%,
-      var(--luxury-sakura),
-      transparent);
-  animation: led-rotate 3s linear infinite;
-  border-radius: 14px;
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  -webkit-mask-composite: destination-out;
-  padding: 1.5px;
-  pointer-events: none;
-  z-index: 10;
-}
-
-@keyframes led-rotate {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.ticket-shimmer {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(90deg,
-      transparent,
-      rgba(255, 255, 255, 0.1),
-      transparent);
-  transform: skewX(-20deg);
-  transition: none;
-  pointer-events: none;
-}
-
-.elite-luxury-ticket:hover .ticket-shimmer {
-  animation: ticket-shimmer-run 1.2s infinite;
-}
-
 @keyframes ticket-shimmer-run {
   0% {
     left: -100%;
@@ -326,134 +706,6 @@
   100% {
     left: 200%;
   }
-}
-
-.sticker-tiny-expanded:hover {
-  transform: scale(1.05) rotate(1deg);
-}
-
-.offer-tabs-nav button {
-  position: relative;
-  padding-bottom: 4px;
-}
-
-.offer-tabs-nav button::after {
-  content: "";
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: var(--luxury-sakura);
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
-}
-
-.offer-tabs-nav button.text-luxury-sakura::after {
-  transform: scaleX(1);
-}
-
-.sticker-tiny:hover {
-  transform: scale(1.05) rotate(1deg);
-}
-
-.package-card {
-  background: rgba(255, 255, 255, 0.01);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 3rem;
-  transition: all 0.7s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.package-card.popular {
-  background: rgba(255, 183, 197, 0.02);
-  border-color: rgba(255, 183, 197, 0.15);
-}
-
-.package-card.active {
-  background: rgba(255, 183, 197, 0.12);
-  border: 3px solid var(--luxury-sakura) !important;
-  box-shadow: 0 0 60px rgba(255, 183, 197, 0.4), inset 0 0 30px rgba(255, 183, 197, 0.2);
-  transform: translateY(-8px) scale(1.03);
-  z-index: 10;
-}
-
-.package-card:hover {
-  background: rgba(255, 255, 255, 0.03);
-  transform: translateY(-15px);
-  border-color: rgba(255, 183, 197, 0.3);
-  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
-}
-
-/* QUANTITY BADGE VIRAL */
-.quantity-glow-badge {
-  position: absolute;
-  top: 2rem;
-  left: 2rem;
-  background: rgba(255, 183, 197, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 183, 197, 0.4);
-  color: var(--luxury-sakura);
-  padding: 0.5rem 1rem;
-  border-radius: 1rem;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.2em;
-  z-index: 10;
-  z-index: 10;
-  box-shadow: 0 0 20px rgba(255, 183, 197, 0.1);
-  will-change: transform, border-color;
-}
-
-.variant-image-hero {
-  transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-/* GLOSSY SHINE ON IMAGE */
-.variant-image-hero::before {
-  content: '';
-  position: absolute;
-  top: -150%;
-  left: -150%;
-  width: 300%;
-  height: 300%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-  z-index: 6;
-  pointer-events: none;
-  transition: all 1.5s ease;
-}
-
-.package-card:hover .variant-image-hero::before {
-  top: -50%;
-  left: -50%;
-  opacity: 0.5;
-}
-
-.active .variant-image-hero {
-  background: radial-gradient(circle at center, rgba(255, 183, 197, 0.15) 0%, transparent 70%);
-}
-
-/* LIQUID CTA BUTTON */
-/* 🚀 ELITE SIÊU CTA (ELITE V7.3: osmo COPPER IDENTITY) */
-.liquid-cta-viral {
-  background: linear-gradient(135deg, #C18F7E 0%, #E8D5B0 100%);
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 4px 25px rgba(193, 143, 126, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.2);
-  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1) !important;
-  animation: cta-breathing 4s infinite ease-in-out;
-  position: relative;
-  overflow: hidden;
-}
-
-.liquid-cta-viral:hover {
-  filter: brightness(1.1);
-  transform: scale(1.05) translateY(-2px);
-  box-shadow: 0 15px 40px rgba(193, 143, 126, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.3);
-}
-
-.liquid-cta-viral:active {
-  transform: scale(0.95);
 }
 
 @keyframes cta-breathing {
@@ -468,121 +720,10 @@
   }
 }
 
-.fomo-header-viral {
-  font-family: 'Be Vietnam Pro', sans-serif;
-  letter-spacing: 0.15em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-/* STATUS BAR */
-.timer-badge {
-  background: rgba(255, 183, 197, 0.05);
-  border: 1px solid rgba(255, 183, 197, 0.1);
-  color: var(--luxury-sakura);
-}
-
-/* DEAL CARDS */
-.liquid-glass-deal {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.5s ease;
-}
-
-.liquid-glass-deal.active {
-  background: rgba(255, 183, 197, 0.05);
-  border-color: var(--luxury-sakura);
-}
-
-/* PHARMACY FOOTER */
-.pharmacy-footer {
-  background: rgba(255, 255, 255, 0.01);
-  border-radius: 4rem;
-  padding: 60px 40px;
-  margin-top: 100px;
-  border: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-/* WAVE DIVIDER */
-.wave-line {
-  stroke: var(--luxury-sakura);
-  opacity: 0.1;
-  animation: wave-motion 10s infinite alternate ease-in-out;
-}
-
 @keyframes wave-motion {
   to {
     transform: translateY(20px) scaleX(1.1);
   }
-}
-
-@media (max-width: 768px) {
-  .offer-section {
-    padding: 60px 0;
-  }
-
-  .package-grid {
-    gap: 1rem;
-  }
-}
-
-/* Tablet & Mobile Slider Optimization (Elite V2.2) */
-@media (max-width: 1024px) {
-  .package-grid {
-    display: flex !important;
-    overflow-x: auto !important;
-    scroll-snap-type: x mandatory !important;
-    gap: 2rem;
-
-    /* FIX CLIPPING: Nới rộng padding trên-dưới để chứa shadow và hiệu ứng lift */
-    padding: 60px 2rem 100px 2rem !important;
-    margin-top: -40px !important;
-    margin-bottom: -60px !important;
-
-    -webkit-overflow-scrolling: touch;
-
-    /* ẨN THANH CUỘN (SCROLLBAR) */
-    scrollbar-width: none;
-    /* Firefox */
-    -ms-overflow-style: none;
-    /* IE/Edge */
-
-    /* SNAP ALIGNMENT PADDING */
-    scroll-padding-left: 2rem;
-    scroll-padding-right: 2rem;
-  }
-
-  /* ẨN THANH CUỘN CHROME/SAFARI */
-  .package-grid::-webkit-scrollbar {
-    display: none !important;
-  }
-
-  .package-grid>div {
-    scroll-snap-align: center;
-    flex-shrink: 0;
-  }
-
-  .package-card {
-    border-radius: 3rem;
-    /* Giảm độ giật khi scroll */
-    backface-visibility: hidden;
-  }
-
-  .variant-image-hero {
-    height: 280px;
-  }
-}
-
-/* 💎 ELITE PRICE CLUSTER (UNIFIED V2.4) */
-.elite-price-cluster h5 {
-  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
-
-.elite-price-cluster .original-price {
-  transform: translateY(2px);
-}
-
-.elite-price-cluster .animate-pulse {
-  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes pulse-glow {
@@ -594,34 +735,9 @@
   }
 
   50% {
-    opacity: .7;
+    opacity: 0.7;
     transform: scale(0.95);
   }
-}
-
-/* 🎫 ELITE VOUCHER STICKERS (STATIONARY) */
-.active-vouchers-row {
-  min-height: 24px;
-}
-
-.elite-voucher-sticker {
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.elite-voucher-sticker:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.2);
-}
-
-/* 💰 ULTIMATE SAVINGS BOX (GOLD & RED LED) */
-.ultimate-savings-box {
-  background: linear-gradient(135deg, #FFD700 0%, #FDB931 50%, #FFD700 100%);
-  color: #000 !important;
-  font-family: 'Be Vietnam Pro', sans-serif;
-}
-
-.animate-led-red-pulse {
-  animation: led-red-pulse 1s infinite alternate;
 }
 
 @keyframes led-red-pulse {
@@ -634,163 +750,4 @@
     background-color: #8b0000;
     box-shadow: 0 0 15px #ff0000, 0 0 30px #ff0000;
   }
-}
-
-/* 💎 BOTTOM SHEET OVERLAY (ELITE V2.6) */
-.offer-overlay-viral {
-  border-top-left-radius: 3.5rem !important;
-  border-top-right-radius: 3.5rem !important;
-  box-shadow: 0 -20px 100px rgba(0, 0, 0, 0.9);
-}
-
-.modal-drag-handle {
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
-}
-
-/* 🎫 ENLARGED VOUCHER TAG (74px) */
-.viral-voucher-tag.relative.h-\[74px\] {
-  height: 74px !important;
-}
-
-.active-viral-tag {
-  background: rgba(255, 183, 197, 0.1) !important;
-  border-color: rgba(255, 183, 197, 0.4) !important;
-}
-
-.viral-voucher-tag:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-/* 💎 ELITE VOUCHER ACTION BUTTONS (V2.7) */
-.voucher-action-btn {
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  letter-spacing: 0.15em;
-}
-
-.voucher-action-btn.active {
-  box-shadow: 0 0 20px rgba(255, 183, 197, 0.4);
-}
-
-/* ✨ LIQUID DONE BUTTON (GRADIENT SHIMMER) */
-.liquid-done-btn {
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.liquid-done-btn::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  width: 50%;
-  transform: skewX(-20deg) translateX(-150%);
-  transition: transform 0.8s ease;
-}
-
-.liquid-done-btn:hover::after {
-  transform: skewX(-20deg) translateX(300%);
-}
-
-/* 🌑 MODAL BACKDROP (ELITE V2.8) */
-.modal-backdrop {
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px) saturate(150%);
-  pointer-events: auto;
-}
-
-/* 🏔️ CENTERED BOTTOM SHEET ON DESKTOP */
-@media (min-width: 768px) {
-  .offer-overlay-viral {
-    border-radius: 4rem !important;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    max-height: 80vh !important;
-  }
-}
-
-/* 🌪️ MINI DONE BUTTON & AREA (ELITE V5.5) */
-.liquid-done-btn-mini {
-  background: linear-gradient(135deg, var(--luxury-sakura) 0%, #FFD1DC 100%);
-  color: #000 !important;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
-  box-shadow: 0 10px 40px rgba(255, 183, 197, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.liquid-done-btn-mini:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-  box-shadow: 0 15px 50px rgba(255, 183, 197, 0.6);
-}
-
-.liquid-done-btn-mini:active {
-  transform: scale(0.95);
-}
-
-.done-area-mini {
-  background: linear-gradient(to top, #060606 80%, transparent) !important;
-}
-
-.viral-voucher-tag-mini {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.3s ease;
-}
-
-.viral-voucher-tag-mini:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 183, 197, 0.2);
-}
-
-/* 🎫 MINI VOUCHER ACTION BUTTON (ELITE V5.9) */
-.voucher-action-btn-mini {
-  padding: 6px 14px;
-  border-radius: 10px;
-  font-size: 8px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-/* STATE: AVAILABLE (LẤY) */
-.voucher-action-btn-mini:not(.active) {
-  background: rgba(255, 183, 197, 0.05);
-  border: 1px solid rgba(255, 183, 197, 0.2);
-  color: var(--luxury-sakura);
-  backdrop-filter: blur(5px);
-}
-
-.voucher-action-btn-mini:not(.active):hover {
-  background: rgba(255, 183, 197, 0.1);
-  border-color: var(--luxury-sakura);
-  transform: translateY(-1px);
-}
-
-/* STATE: SELECTED (DÙNG) */
-.voucher-action-btn-mini.active {
-  background: linear-gradient(135deg, var(--luxury-sakura) 0%, #FFD1DC 100%);
-  color: #000 !important;
-  box-shadow: 0 4px 15px rgba(255, 183, 197, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.voucher-action-btn-mini.active:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px) scale(1.05);
-  box-shadow: 0 8px 25px rgba(255, 183, 197, 0.6);
-}
-
-/* ── ELITE TYPOGRAPHY ADJUSTMENT (Offer Grid Headline) ── */
-.offer-grid-headline {
-  /* Override the massive global .elite-session-headline font size */
-  font-size: clamp(24px, 5vw, 42px) !important;
-  line-height: 1.25 !important;
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-  letter-spacing: -0.02em !important;
 }

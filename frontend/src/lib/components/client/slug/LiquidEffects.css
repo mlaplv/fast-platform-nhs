@@ -32,20 +32,21 @@
   opacity: 0.5;
 }
 
-/* 4. Minimalist Interaction */
+/* 4. Minimalist Interaction (Gộp bằng CSS Nesting chuẩn hiện đại) */
 .liquid-bubble {
   position: relative;
   transition: all 0.4s ease;
   overflow: hidden;
-}
 
-.liquid-bubble:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
-}
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+  }
 
-.liquid-bubble::after {
-  display: none; /* Remove heavy gradient */
+  &::after {
+    display: none;
+    /* Remove heavy gradient */
+  }
 }
 
 /* 5. Minimal Typography */

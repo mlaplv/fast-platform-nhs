@@ -432,3 +432,28 @@ Khắc phục triệt để lỗi đường dẫn cấu hình và tối ưu hóa
 ## Kiểm định
 * **Cú pháp CSS**: Hoàn toàn đúng chuẩn CSS nesting và đáp ứng đầy đủ điều kiện cascade.
 * **Giao diện trực quan**: Được căn chỉnh hoàn mỹ trên tất cả các breakpoint chính (Desktop, iPad Air, iPad Mini, Mobile), đảm bảo cấu trúc layout gốc không đổi mà chỉ thay đổi khoảng cách và tỉ lệ kích thước.
+
+---
+
+# Walkthrough - Tối ưu hiển thị Slide Biến Thể Sản Phẩm trên Tablet (768px, 820px, 1024px) (Elite V2.2)
+
+## Nguyên nhân gốc (Root Cause Analysis)
+1. Ở chế độ máy tính bảng và thiết bị di động (màn hình <= 1024px), `.package-grid` chuyển đổi sang cấu hình `display: flex !important` và `overflow-x: auto !important` để tạo hiệu ứng slider hàng ngang.
+2. Tuy nhiên, cả thẻ bao ngoài của card (`.package-grid > div`) và chính card `.package-card` đều mang class `h-full` (`height: 100%`). Khi không có kích thước chiều cao cụ thể từ container cha, việc lồng lặp nhiều lớp `h-full` trong flexbox dẫn tới lỗi tính toán chiều cao không chính xác (circular height calculation dependency).
+3. Do độ rộng màn hình hẹp, chữ và vouchers trong card bị wrap làm tăng chiều cao nội dung. Card có `overflow: hidden` nhưng chiều cao hiển thị thực tế của card bị hạn chế bởi bug trên, khiến cho phần chân card (bao gồm cụm Mã giảm giá và nút MUA NGAY) bị cắt mất.
+4. Thiếu cấu hình chiều rộng cố định/tối thiểu cho card ở các biến thể ít hơn 3 sản phẩm (như bộ 2 món Beppin Body) trên tablet khiến các thẻ card hiển thị với kích thước không ổn định.
+
+## Giải pháp (1 file)
+
+### Tối ưu hóa CSS Responsive
+1. **`frontend/src/lib/components/client/slug/OfferGrid.css`** —
+   * Cập nhật block `@media (max-width: 1024px)` để thiết lập `.package-grid > div` thành một flex container: `display: flex; flex-direction: column; height: auto !important;`. Điều này gỡ bỏ ràng buộc chiều cao tĩnh và cho phép container tự co giãn theo nội dung.
+   * Định chuẩn kích thước chiều rộng linh hoạt và chuyên nghiệp cho card wrapper: `width: 85%; max-width: 420px; min-width: 290px;` để đảm bảo slide hiển thị cân đối trên cả 768px, 820px và 1024px.
+   * Thiết lập `.package-card` có `height: auto !important` và `flex-grow: 1; display: flex; flex-direction: column;`. Cơ chế này buộc card tự động giãn hết cỡ theo cột cao nhất của grid, qua đó căn chỉnh đồng bộ và đẩy toàn bộ cụm Mã giảm giá cùng nút MUA NGAY xuống sát đáy mà không bị cắt mất bất kỳ phần tử nào.
+   * Giảm kích thước text header chính `.offer-grid-headline` trên tablet/mobile xuống `clamp(20px, 4vw, 30px) !important` để tiêu đề gọn gàng, cân đối.
+   * Giảm chiều cao hình ảnh hiển thị `.variant-image-hero` từ `280px` xuống `220px` trên tablet/mobile để thu ngắn chiều cao tổng thể của các card và tăng không gian hiển thị cho các thành phần thông tin bên dưới.
+
+## Kiểm định
+* **Type-safety & Cú pháp CSS:** Đạt chuẩn CSS và tương thích tốt trên tất cả các trình duyệt.
+* **Giao diện trực quan:** Đảm bảo slider hiển thị đầy đủ thông tin, tiêu đề và hình ảnh gọn gàng, nút bấm CTA hiển thị rõ ràng và chuyên nghiệp.
+

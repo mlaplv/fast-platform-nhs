@@ -9,11 +9,11 @@
 </script>
 
 <div class="w-full pt-[15px] pb-6 overflow-hidden">
-  <div class="flex flex-wrap justify-start items-start gap-x-8 md:gap-x-12 gap-y-8 px-2 md:px-0">
+  <div class="flex flex-wrap justify-start items-start gap-x-8 md:gap-x-6 lg:gap-x-12 gap-y-8 px-2 md:px-0">
     {#each categories as category (category.id)}
       <button
         onclick={() => goto(`/${category.slug || slugify(category.name)}/`)}
-        class="flex flex-col items-center justify-start w-[85px] md:w-[100px] cursor-pointer group outline-none"
+        class="flex flex-col items-center justify-start w-[85px] md:w-[90px] lg:w-[100px] cursor-pointer group outline-none"
       >
         <!-- Elite Squircle Icon Container (Viral 2026) -->
         <div class="w-[50px] h-[50px] md:w-[60px] md:h-[60px] bg-white rounded-[20px] md:rounded-[24px] flex items-center justify-center border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)] transition-all duration-500 group-hover:-translate-y-2 group-hover:shadow-[0_12px_30px_rgba(193,143,126,0.15)] group-hover:border-[#C18F7E]/20 shrink-0 overflow-hidden relative">
@@ -44,7 +44,7 @@
     <a
       href="/khuyen-mai"
       id="desktop-quick-voucher"
-      class="flex flex-col items-center justify-start w-[85px] md:w-[100px] cursor-pointer group no-underline relative"
+      class="flex flex-col items-center justify-start w-[85px] md:w-[90px] lg:w-[100px] cursor-pointer group no-underline relative"
       aria-label="Mã Giảm Giá"
     >
       <div class="voucher-icon-wrap w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-[20px] md:rounded-[24px] flex items-center justify-center shrink-0 relative">

@@ -284,7 +284,7 @@
       <span class="w-[70px] shrink-0 text-[14px] text-gray-500 mt-2"
         >Mã giảm giá</span
       >
-      <div class="flex flex-wrap gap-3">
+      <div class="flex flex-wrap gap-3 max-w-full overflow-hidden">
         {#each productVouchers as v}
           {@const isApplied = selectedVouchers.includes(v.id)}
           <button
@@ -560,17 +560,17 @@
   {/if}
 
   <!-- CTA Buttons -->
-  <div class="flex gap-4 mt-4 pb-4">
+  <div class="flex flex-wrap gap-4 mt-4 pb-4">
     <button
       onclick={onAddToCart}
-      class="h-[52px] min-w-[210px] border border-[#d0011b] bg-[#ffeee8]/60 text-[#d0011b] font-medium flex items-center justify-center gap-2.5 hover:bg-[#ffeee8] transition-all rounded-none"
+      class="h-[52px] flex-1 min-w-[180px] border border-[#d0011b] bg-[#ffeee8]/60 text-[#d0011b] font-medium flex items-center justify-center gap-2.5 hover:bg-[#ffeee8] transition-all rounded-none"
     >
       <ShoppingCart class="w-5 h-5" />
       <span class="text-[14px] font-bold">Thêm vào giỏ hàng</span>
     </button>
     <button
       onclick={onBuyNow}
-      class="h-[52px] min-w-[180px] bg-[#d0011b] text-white font-bold text-[15px] hover:brightness-110 transition-all rounded-none"
+      class="h-[52px] flex-1 min-w-[140px] bg-[#d0011b] text-white font-bold text-[15px] hover:brightness-110 transition-all rounded-none"
     >
       Mua ngay
     </button>

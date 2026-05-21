@@ -291,7 +291,15 @@
 - [x] Điều chỉnh `padding-top: 0 !important` cho màn hình iPad Mini 768px (`@media (max-width: 768px)`).
 - [x] Đảm bảo không thay đổi layout gốc, giữ nguyên các thuộc tính cấu trúc trên desktop (>1024px) và mobile (<=768px).
 
+---
 
+# Task: Tối ưu hiển thị Slide Biến Thể Sản Phẩm trên Tablet (768px, 820px, 1024px) (Elite V2.2)
 
-
+## Kế hoạch (PROPOSE)
+- [x] Cập nhật `OfferGrid.css` trong block `@media (max-width: 1024px)` để bật flex container cho `.package-grid > div` giúp tự động giãn chiều cao.
+- [x] Gỡ bỏ giới hạn chiều cao tĩnh bằng `height: auto !important` cho `.package-grid > div` và `.package-card`.
+- [x] Cấu hình chiều rộng linh hoạt `width: 85%; max-width: 420px; min-width: 290px;` cho `.package-grid > div` trên tablet/mobile.
+- [x] Thiết lập `flex-grow: 1` cho `.package-card` để tự động kéo giãn hết cỡ chiều cao cột và đẩy cụm CTA xuống đáy đồng bộ.
+- [x] Giảm kích thước text header chính `.offer-grid-headline` xuống `clamp(20px, 4vw, 30px) !important` trên tablet/mobile.
+- [x] Giảm chiều cao hình ảnh `.variant-image-hero` từ `280px` xuống `220px` trên tablet/mobile.
 
