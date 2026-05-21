@@ -14,11 +14,24 @@
   import ProductPrimaryInfo from "./modules/Info.svelte";
   import ProductDetailSections from "./modules/Specs.svelte";
   import ProductDescription from "./modules/Description.svelte";
-  import ProductReviews from "../../shared/ProductReviews.svelte";
 
-  import RelatedProducts from "../shared/RelatedProducts.svelte";
-  import ScannerHUD from "../shared/ScannerHUD.svelte";
-  import VerificationCenter from "../shared/VerificationCenter.svelte";
+  // Below-fold sections: lazy-loaded via {#await} to reduce initial bundle
+  // Lazy-load heavy modal components (reduce initial bundle ~200KB)
+  import type { Component } from "svelte";
+  let ScannerHUDComponent = $state<Component<Record<string, unknown>> | null>(null);
+  let VerificationCenterComponent = $state<Component<Record<string, unknown>> | null>(null);
+  async function loadScannerHUD() {
+    if (!ScannerHUDComponent) {
+      const mod = await import("../shared/ScannerHUD.svelte");
+      ScannerHUDComponent = mod.default as Component<Record<string, unknown>>;
+    }
+  }
+  async function loadVerificationCenter() {
+    if (!VerificationCenterComponent) {
+      const mod = await import("../shared/VerificationCenter.svelte");
+      VerificationCenterComponent = mod.default as Component<Record<string, unknown>>;
+    }
+  }
   import X from "@lucide/svelte/icons/x";
   import { portal } from "$lib/core/actions/portal";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
@@ -49,15 +62,17 @@
   let showVerification = $state(false);
   let verificationData = $state<BarcodeVerificationResponse | undefined>(undefined);
 
-  function triggerScan() {
+  async function triggerScan() {
+    await loadScannerHUD();
     isScanning = true;
     showVerification = false;
   }
 
-  function handleScanComplete(data: { barcode: string; verificationData?: BarcodeVerificationResponse }) {
+  async function handleScanComplete(data: { barcode: string; verificationData?: BarcodeVerificationResponse }) {
     isScanning = false;
     if (data.verificationData) {
       verificationData = data.verificationData;
+      await loadVerificationCenter();
       showVerification = true;
     }
   }
@@ -515,16 +530,20 @@
     <ProductDescription {product} />
 
     <div id="product-reviews" class="max-w-[1200px] mx-auto mt-6">
-      <ProductReviews {product} />
+      {#await import("../../shared/ProductReviews.svelte") then { default: ProductReviews }}
+        <ProductReviews {product} />
+      {/await}
     </div>
 
     <div class="max-w-[1200px] mx-auto mt-6 mb-12">
-      <RelatedProducts {product} initialProducts={relatedProducts} />
+      {#await import("../shared/RelatedProducts.svelte") then { default: RelatedProducts }}
+        <RelatedProducts {product} initialProducts={relatedProducts} />
+      {/await}
     </div>
   </main>
 
-  {#if isScanning}
-    <ScannerHUD barcode={productInfo.barcode} oncomplete={handleScanComplete} />
+  {#if isScanning && ScannerHUDComponent}
+    <svelte:component this={ScannerHUDComponent} barcode={productInfo.barcode} oncomplete={handleScanComplete} />
   {/if}
 
   {#if showVerification}
@@ -550,7 +569,9 @@
         <div
           class="relative z-10 pt-10 px-10 pb-2 max-h-[90vh] overflow-y-auto custom-scrollbar"
         >
-          <VerificationCenter {product} {verificationData} />
+          {#if VerificationCenterComponent}
+            <svelte:component this={VerificationCenterComponent} {product} {verificationData} />
+          {/if}
         </div>
       </div>
     </div>
@@ -558,6 +579,12 @@
 </div>
 
 <style>
+  /* Performance: CSS Containment to prevent layout thrashing */
+  :global(#product-reviews),
+  :global(.description-container) {
+    contain: layout style;
+  }
+
   :global(.prose-osmo) {
     font-family: inherit !important;
     font-size: 15px !important; /* Sleek e-commerce standard (Lazada/Shopee) */

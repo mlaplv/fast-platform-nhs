@@ -8,8 +8,22 @@
   import MobileVideoBanner from './sections/MobileVideoBanner.svelte';
   import MobileHero from './sections/MobileHero.svelte';
   import MobileProductDetailsModal from './MobileProductDetailsModal.svelte';
-  import ScannerHUD from '../storefront/product-detail/shared/ScannerHUD.svelte';
-  import MobileVerificationCenter from '../storefront/product-detail/shared/MobileVerificationCenter.svelte';
+  // Lazy-load heavy modal components (reduce mobile initial bundle)
+  import type { Component } from 'svelte';
+  let ScannerHUDComponent = $state<Component<Record<string, unknown>> | null>(null);
+  let MobileVerificationCenterComponent = $state<Component<Record<string, unknown>> | null>(null);
+  async function loadScannerHUD() {
+    if (!ScannerHUDComponent) {
+      const mod = await import('../storefront/product-detail/shared/ScannerHUD.svelte');
+      ScannerHUDComponent = mod.default as Component<Record<string, unknown>>;
+    }
+  }
+  async function loadMobileVerificationCenter() {
+    if (!MobileVerificationCenterComponent) {
+      const mod = await import('../storefront/product-detail/shared/MobileVerificationCenter.svelte');
+      MobileVerificationCenterComponent = mod.default as Component<Record<string, unknown>>;
+    }
+  }
   import BottomSheet from './BottomSheet.svelte';
 
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
@@ -31,14 +45,16 @@
   let showVerification = $state(false);
   let verificationData: Record<string, unknown> | null = $state(null);
 
-  function triggerScan() {
+  async function triggerScan() {
+    await loadScannerHUD();
     isScanning = true;
     showVerification = false;
   }
 
-  function handleScanComplete(event: { verificationData: Record<string, unknown> }) {
+  async function handleScanComplete(event: { verificationData: Record<string, unknown> }) {
     isScanning = false;
     verificationData = event.verificationData;
+    await loadMobileVerificationCenter();
     showVerification = true;
   }
 
@@ -206,13 +222,15 @@
 
   <MobileProductDetailsModal bind:active={isDetailsModalOpen} {product} />
 
-  {#if isScanning}
-    <ScannerHUD barcode={product.metadata?.barcode || product.sku} oncomplete={handleScanComplete} />
+  {#if isScanning && ScannerHUDComponent}
+    <svelte:component this={ScannerHUDComponent} barcode={product.metadata?.barcode || product.sku} oncomplete={handleScanComplete} />
   {/if}
 
   {#if showVerification}
     <BottomSheet bind:active={showVerification} title="Verified" fullWidth={true} tight={true} extraStyle="padding-left: 5px !important; padding-right: 5px !important;">
-       <MobileVerificationCenter {product} {verificationData} />
+       {#if MobileVerificationCenterComponent}
+         <svelte:component this={MobileVerificationCenterComponent} {product} {verificationData} />
+       {/if}
     </BottomSheet>
   {/if}
 

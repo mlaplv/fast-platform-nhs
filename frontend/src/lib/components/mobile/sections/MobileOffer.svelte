@@ -211,7 +211,7 @@
        </div>
     </div>
 
-    <h3 class="text-4xl font-black text-center italic tracking-tighter leading-tight mb-2">
+    <h3 class="text-3xl font-black text-center italic tracking-tighter leading-tight mb-2">
       <span class="bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-white/40">
         <EditableWrapper path="metadata.offer_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">{h1}</EditableWrapper>
       </span>

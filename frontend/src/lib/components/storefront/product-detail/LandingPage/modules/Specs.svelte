@@ -1,10 +1,6 @@
 <script lang="ts">
   import type { Product } from '$lib/types';
   import { getIngredientIcon } from '$lib/utils/product';
-  import VerificationCenter from '../../shared/VerificationCenter.svelte';
-  import ScannerHUD from '../../shared/ScannerHUD.svelte';
-  import X from "@lucide/svelte/icons/x";
-  import { fly, fade, scale } from 'svelte/transition';
 
   interface Props {
     product: Product;
@@ -18,9 +14,6 @@
     onViewFullIngredients?: () => void;
     onTriggerScan?: () => void;
   }
- 
-  import { portal } from '$lib/core/actions/portal';
-  import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
   let { product, visibleAttributes, productInfo, onViewFullIngredients, onTriggerScan }: Props = $props();
 
