@@ -7,7 +7,9 @@
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import HelpCircle from "@lucide/svelte/icons/help-circle";
-import X from "@lucide/svelte/icons/x";
+  import X from "@lucide/svelte/icons/x";
+  import ChevronLeft from "@lucide/svelte/icons/chevron-left";
+  import ChevronRight from "@lucide/svelte/icons/chevron-right";
   import "./ScienceBento.css";
 
   const shopStore = getShopStore();
@@ -36,6 +38,17 @@ import X from "@lucide/svelte/icons/x";
   const faqs = $derived(metadata?.faqs || []);
 
   const selectedFaq = $derived(selectedFaqIndex >= 0 ? faqs[selectedFaqIndex] : null);
+
+  let faqScrollContainer = $state<HTMLDivElement | null>(null);
+
+  function scrollFaq(direction: 'left' | 'right') {
+    if (!faqScrollContainer) return;
+    const scrollAmount = faqScrollContainer.clientWidth;
+    faqScrollContainer.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+  }
 
   function openFaq(index: number) {
     selectedFaqIndex = index;
@@ -140,9 +153,10 @@ import X from "@lucide/svelte/icons/x";
                             {product?.metadata?.science_card2_desc || labels.card2_desc}
                         </EditableWrapper>
                     </p>
-                </div>
-                </div> <!-- Close Khối phải kinetic stack -->
-            </div> <!-- Close BENTO GRID -->
+                </div> <!-- Close Thẻ 2 -->
+            </div> <!-- Close Khối phải -->
+        </div> <!-- Close BENTO GRID -->
+
 
             <!-- FAQ SECTION (Super Compact Viral Modal Edition) -->
             {#if faqs.length > 0}
@@ -150,43 +164,91 @@ import X from "@lucide/svelte/icons/x";
                 <div class="max-w-6xl mx-auto flex flex-col items-start">
                     
                     <!-- HEADER: SINGLE ROW -->
-                    <div class="faq-header-row flex flex-row items-center gap-6 mb-10 w-full group cursor-pointer">
-                        <div class="faq-icon-box w-14 h-14 rounded-2xl bg-luxury-sakura/10 border border-luxury-sakura/20 flex items-center justify-center text-luxury-sakura shadow-[0_0_30px_rgba(193,143,126,0.1)] transition-transform group-hover:scale-110">
-                            <HelpCircle class="w-8 h-8" strokeWidth={2.5} />
+                    <div class="faq-header-row flex flex-row items-center justify-between gap-6 mb-10 w-full">
+                        <div class="flex flex-row items-center gap-6 group cursor-pointer">
+                            <div class="faq-icon-box w-14 h-14 rounded-2xl bg-luxury-sakura/10 border border-luxury-sakura/20 flex items-center justify-center text-luxury-sakura shadow-[0_0_30px_rgba(193,143,126,0.1)] transition-transform group-hover:scale-110">
+                                <HelpCircle class="w-8 h-8" strokeWidth={2.5} />
+                            </div>
+                            
+                            <div class="flex flex-col text-left">
+                                <h3 class="text-2xl lg:text-3xl font-black text-white tracking-tighter leading-none">
+                                    <EditableWrapper path="metadata.science_faq_title" type="text" label="SỬA TIÊU ĐỀ FAQ" as="span">
+                                        {labels.faq_title}
+                                    </EditableWrapper>
+                                </h3>
+                                <p class="text-[10px] tracking-[0.3em] font-bold text-slate-500 mt-2 opacity-60">
+                                    Click để xem giải đáp chuyên sâu
+                                </p>
+                            </div>
                         </div>
-                        
-                        <div class="flex flex-col">
-                            <h3 class="text-2xl lg:text-3xl font-black text-white tracking-tighter leading-none">
-                                <EditableWrapper path="metadata.science_faq_title" type="text" label="SỬA TIÊU ĐỀ FAQ" as="span">
-                                    {labels.faq_title}
-                                </EditableWrapper>
-                            </h3>
-                            <p class="text-[10px] tracking-[0.3em] font-bold text-slate-500 mt-2 opacity-60">
-                                Click để xem giải đáp chuyên sâu
-                            </p>
-                        </div>
+
+                        {#if faqs.length > 5}
+                            <div class="flex gap-2">
+                                <button 
+                                    class="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] hover:border-luxury-sakura/30 active:scale-95 transition-all shadow-lg cursor-pointer"
+                                    onclick={() => scrollFaq('left')}
+                                    aria-label="Trước"
+                                >
+                                    <ChevronLeft class="w-5 h-5" />
+                                </button>
+                                <button 
+                                    class="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/[0.08] hover:border-luxury-sakura/30 active:scale-95 transition-all shadow-lg cursor-pointer"
+                                    onclick={() => scrollFaq('right')}
+                                    aria-label="Sau"
+                                >
+                                    <ChevronRight class="w-5 h-5" />
+                                </button>
+                            </div>
+                        {/if}
                     </div>
 
-                    <!-- FAQ GRID (LOCKED TO MAX 4 ITEMS UI) -->
-                    <div class="faq-grid w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {#each faqs.slice(0, 4) as faq, i}
-                            <button 
-                                class="faq-item-card group relative bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-left transition-all duration-500 hover:bg-white/[0.04] hover:border-luxury-sakura/30 hover:-translate-y-1 h-full z-10"
-                                onclick={() => openFaq(i)}
-                            >
-                                <div class="flex items-center justify-between gap-4 w-full h-full">
-                                    <span class="question-text flex-1 text-[13px] font-bold text-white/90">
-                                        {faq.question}
-                                    </span>
-                                    <div class="faq-arrow-indicator shrink-0">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 opacity-40 group-hover:text-luxury-sakura group-hover:opacity-100 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M5 12h14m-7-7 7 7-7 7"/>
-                                        </svg>
-                                    </div>
+                    <!-- FAQ CAROUSEL / GRID -->
+                    {#if faqs.length > 5}
+                        <div 
+                            bind:this={faqScrollContainer}
+                            class="faq-slider-container w-full flex gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4"
+                        >
+                            {#each faqs as faq, i}
+                                <div class="faq-slide-item flex-shrink-0 snap-start">
+                                    <button 
+                                        class="faq-item-card w-full group relative bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-left transition-all duration-500 hover:bg-white/[0.04] hover:border-luxury-sakura/30 hover:-translate-y-1 h-full z-10 flex flex-col justify-center cursor-pointer"
+                                        onclick={() => openFaq(i)}
+                                    >
+                                        <div class="flex items-center justify-between gap-4 w-full h-full">
+                                            <span class="question-text flex-1 text-[13px] font-bold text-white/90">
+                                                {faq.question}
+                                            </span>
+                                            <div class="faq-arrow-indicator shrink-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 opacity-40 group-hover:text-luxury-sakura group-hover:opacity-100 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M5 12h14m-7-7 7 7-7 7"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </button>
                                 </div>
-                            </button>
-                        {/each}
-                    </div>
+                            {/each}
+                        </div>
+                    {:else}
+                        <div class="faq-grid w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {#each faqs as faq, i}
+                                <button 
+                                    class="faq-item-card group relative bg-white/[0.02] border border-white/5 rounded-2xl p-6 text-left transition-all duration-500 hover:bg-white/[0.04] hover:border-luxury-sakura/30 hover:-translate-y-1 h-full z-10 cursor-pointer"
+                                    onclick={() => openFaq(i)}
+                                >
+                                    <div class="flex items-center justify-between gap-4 w-full h-full">
+                                        <span class="question-text flex-1 text-[13px] font-bold text-white/90">
+                                            {faq.question}
+                                        </span>
+                                        <div class="faq-arrow-indicator shrink-0">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 opacity-40 group-hover:text-luxury-sakura group-hover:opacity-100 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M5 12h14m-7-7 7 7-7 7"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </button>
+                            {/each}
+                        </div>
+                    {/if}
                 </div>
             </div>
             {/if}
@@ -274,6 +336,35 @@ import X from "@lucide/svelte/icons/x";
   @keyframes reveal {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* FAQ Slider Styles */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .faq-slider-container {
+    display: flex !important;
+    gap: 16px !important;
+    overflow-x: auto !important;
+    scroll-behavior: smooth;
+  }
+  :global(.faq-slide-item) {
+    flex: 0 0 100% !important;
+    min-width: 260px !important;
+  }
+  @media (min-width: 640px) {
+    :global(.faq-slide-item) {
+      flex: 0 0 calc(50% - 8px) !important;
+    }
+  }
+  @media (min-width: 1024px) {
+    :global(.faq-slide-item) {
+      flex: 0 0 calc(25% - 12px) !important;
+    }
   }
 
   /* Resilience Logic: Force spans to behave like block rows if present */

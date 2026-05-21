@@ -320,4 +320,25 @@
   - Triển khai fallback tự động cuộn đến phần description nếu callback không được truyền.
 - [ ] **[Kiểm định & Dọn dẹp]** Chạy `svelte-check` để đảm bảo type-safety 100%, không rò rỉ bộ nhớ, và cập nhật tài liệu kỹ thuật trong `walkthrough.md`.
 
+---
+
+# Task: Slide Câu hỏi thường gặp khi có > 5 câu hỏi (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[ScienceBento FAQ Slider]**: Cập nhật `ScienceBento.svelte` (Desktop/Client):
+  - Nhận diện khi `faqs.length > 5`.
+  - Thiết lập cụm nút điều hướng "Trước" (ChevronLeft) và "Sau" (ChevronRight) bằng Svelte/Lucide siêu mượt.
+  - Tích hợp smooth-scroll container với CSS `scroll-behavior: smooth` và class `.no-scrollbar` ẩn scrollbar mặc định của trình duyệt.
+  - Mỗi item trong slide sẽ tự động giãn cột theo tỷ lệ vàng (`width: calc(25% - 12px)` trên Desktop, `calc(50% - 8px)` trên Tablet, `100%` trên Mobile) mang lại giao diện Glassmorphism đỉnh cao.
+  - Khi ít hơn hoặc bằng 5 câu hỏi, tự động fallback về layout Grid 4 cột gọn gàng.
+- [x] **[MobileScience FAQ Slider]**: Cập nhật `MobileScience.svelte` (Mobile):
+  - Hỗ trợ dynamic faqs được đồng bộ từ CMS/Metadata và tự động fallback về 4 câu hỏi mặc định khi trống.
+  - Sáng tạo cơ chế **Grid-Chunk Paging Slider** siêu việt: chia danh sách câu hỏi thành các nhóm 4 items. Mỗi slide là một Grid 2x2 cân đối, gọn đẹp. Người dùng dễ dàng vuốt ngang để chuyển trang giữa các nhóm câu hỏi này, giữ nguyên giao diện 2 dòng x 2 cột hoàn mỹ mà vẫn hiển thị đầy đủ thông tin.
+- [x] **[Verification & Polish]**:
+  - Biên dịch thành công 100% qua `pnpm check`.
+  - Cập nhật checklist và walkthrough.
+
+
+
+
 

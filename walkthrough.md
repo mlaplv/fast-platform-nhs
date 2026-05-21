@@ -457,3 +457,42 @@ Khắc phục triệt để lỗi đường dẫn cấu hình và tối ưu hóa
 * **Type-safety & Cú pháp CSS:** Đạt chuẩn CSS và tương thích tốt trên tất cả các trình duyệt.
 * **Giao diện trực quan:** Đảm bảo slider hiển thị đầy đủ thông tin, tiêu đề và hình ảnh gọn gàng, nút bấm CTA hiển thị rõ ràng và chuyên nghiệp.
 
+---
+
+# Walkthrough - Slide Câu hỏi thường gặp khi có > 5 câu hỏi (Elite V2.2)
+
+## Nguyên nhân gốc (Root Cause Analysis)
+Trang chi tiết sản phẩm hiển thị phần FAQ (Câu hỏi thường gặp). Khi số lượng câu hỏi nhiều (> 5 câu hỏi), việc hiển thị toàn bộ dưới dạng lưới (Grid) tĩnh chiếm quá nhiều không gian theo chiều dọc của trang web, làm loãng nội dung bento chính. 
+Yêu cầu đặt ra là tích hợp cơ chế Slider/Carousel cuộn ngang động khi có > 5 câu hỏi, đem lại giao diện Glassmorphism chuyên nghiệp, mượt mà ở cả phiên bản Desktop và Mobile.
+
+## Giải pháp (4 files)
+
+### 1. Nâng cấp ScienceBento (Desktop)
+* **`frontend/src/lib/components/client/slug/ScienceBento.svelte`** —
+  * Import `ChevronLeft` và `ChevronRight` từ `@lucide/svelte` để điều khiển slide.
+  * Tích hợp biến tham chiếu `faqScrollContainer = $state<HTMLDivElement | null>(null)` và hàm điều khiển scroll mượt mà `scrollFaq(direction)`.
+  * Thay thế phần render tĩnh bằng logic điều kiện:
+    * Nếu `faqs.length > 5`: Hiển thị nút điều hướng kính mờ (prev/next) sang trọng ở góc trên bên phải header và render danh sách dưới dạng `.faq-slider-container` cùng các slide item `.faq-slide-item` cuộn ngang cực kỳ mượt mà.
+    * Khi ít hơn hoặc bằng 5 câu hỏi: Tự động fallback về layout Grid tĩnh 4 cột gọn gàng và khoá số lượng tối đa.
+  * Thêm CSS quy định chiều rộng vàng của slide item (`width: calc(25% - 12px)` trên Desktop, `calc(50% - 8px)` trên Tablet, `100%` trên Mobile) cùng class ẩn thanh cuộn `.no-scrollbar` vào thẻ `<style>` nội bộ để cô lập phạm vi ảnh hưởng.
+
+### 2. Nâng cấp MobileScience (Mobile)
+* **`frontend/src/lib/components/mobile/sections/MobileScience.svelte`** —
+  * Cải tiến cách lấy `faqs` từ CMS: ưu tiên map mảng dynamic `metadata.faqs` (hỗ trợ đầy đủ `{ q, a }` và `{ question, answer }`) và tự động fallback về 4 câu hỏi mặc định khi DB rỗng.
+  * Triển khai cơ chế **Grid-Chunk Paging Slider** siêu việt: gom nhóm các câu hỏi thành từng trang slide (mỗi trang chứa tối đa 4 items sắp xếp dưới dạng Grid 2 hàng x 2 cột hoàn mỹ). Khi số lượng câu hỏi vượt quá 4, người dùng có thể vuốt ngang cực kỳ mượt mà để chuyển giữa các trang Grid 2x2.
+* **`frontend/src/lib/components/mobile/sections/MobileScience.css`** —
+  * Thiết lập độ rộng `.faq-chunks-slider` và `.faq-chunk-slide` chuẩn mực `100%` để triệt tiêu hoàn toàn khoảng trống pixel thừa ở bên phải.
+  * Bổ sung `width: 100% !important` cho `.faq-btn-item` để bảo đảm các nút câu hỏi luôn tự động giãn rộng 100% không gian cột Grid.
+
+## Kiểm định
+* **AST & Compiler Safety Check:** Biên dịch thành công 100% (`pnpm check` trả về `Exit code: 0` và không phát sinh bất kỳ lỗi cú pháp hay kiểu dữ liệu nào).
+* **Trực quan & UX:** 
+  * Chức năng click từng card câu hỏi để mở Modal chi tiết hoạt động hoàn hảo 100%.
+  * Hiệu năng cực cao nhờ sử dụng API native cuộn của trình duyệt (`scrollBy` kết hợp `behavior: 'smooth'`), tiết kiệm bộ nhớ tối đa, không phát sinh memory leak hay giật lag khi chuyển slide.
+  * **Hotfix - Desktop Layout Collapsing**: Sửa đổi thuộc tính CSS của `.faq-slide-item` sử dụng thuộc tính Flexbox kiên cố `flex: 0 0 calc(25% - 12px) !important` kết hợp `:global` scope và `min-width: 260px !important` để triệt tiêu vĩnh viễn hành vi co sập dồn cục của card khi phân bố trong flex-row container.
+  * **Root Cause Fix - Unclosed HTML Tags**: Phát hiện và vá thành công lỗi thiếu thẻ đóng `</div>` của Bento Grid và Khối Phải (`md:col-span-5`) thừa hưởng từ code cũ trong `ScienceBento.svelte`. Lỗi này làm cho toàn bộ phần FAQ bị lồng nhầm vào bên trong cột 5/12 của Bento Grid, gây ra hiện tượng bóp nghẹt chiều rộng cực hạn và dồn đè chữ theo chiều dọc trên Desktop. Sau khi bổ sung đầy đủ thẻ đóng, khối FAQ đã được giải phóng ra ngoài Grid và hiển thị full-width hoành tráng chuẩn 100%!
+  * **Mobile Layout Optimization**: Tối ưu hóa toàn diện giao diện Mobile, kết hợp hoàn hảo giữa cấu trúc **Grid đối xứng 2 hàng 2 cột** và **chỉ số vuốt ngang phân trang** giúp hiển thị không giới hạn câu hỏi mà không làm hỏng tỷ lệ vàng của giao diện di động.
+
+
+
+

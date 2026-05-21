@@ -241,6 +241,7 @@
   gap: 0.5rem;
   transition: all 0.3s ease;
   min-height: 56px;
+  width: 100% !important;
 }
 
 .faq-btn-item:active {
@@ -324,3 +325,34 @@
   background-color: rgba(255, 183, 197, 0.1);
   border: 1px solid rgba(255, 183, 197, 0.3);
 }
+
+/* FAQ Mobile Slider Utilities */
+.faq-slider-mobile {
+  scroll-behavior: smooth;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Stable Paged Chunk Slider */
+.faq-chunks-slider {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px !important;
+  overflow-x: auto !important;
+  scroll-behavior: smooth;
+  width: 100% !important;
+}
+
+.faq-chunk-slide {
+  width: 100% !important;
+  flex: 0 0 100% !important;
+  scroll-snap-align: start;
+}
+
+

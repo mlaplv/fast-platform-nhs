@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte';
-  import { fade, fly, scale } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
+  import { onMount, tick } from "svelte";
+  import { fade, fly, scale } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
   import Trash2 from "@lucide/svelte/icons/trash-2";
   import GripVertical from "@lucide/svelte/icons/grip-vertical";
   import Plus from "@lucide/svelte/icons/plus";
@@ -29,94 +29,140 @@
   import Wind from "@lucide/svelte/icons/wind";
   import Shield from "@lucide/svelte/icons/shield";
   import Layers from "@lucide/svelte/icons/layers";
-  import { SHOP_CONFIG } from '$lib/constants/shop';
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
-  import EditableWrapper from '../../admin/EditableWrapper.svelte';
-  import { PUBLIC_G_BY_COUNT } from '$env/static/public';
-
+  import { SHOP_CONFIG } from "$lib/constants/shop";
+  import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
+  import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
+  import EditableWrapper from "../../admin/EditableWrapper.svelte";
+  import { PUBLIC_G_BY_COUNT } from "$env/static/public";
 
   let { product: propProduct } = $props();
   const shopStore = getShopStore();
-  const product = $derived(liveEditStore.isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : (propProduct || shopStore.product));
+  const product = $derived(
+    liveEditStore.isEditMode && liveEditStore.dirtyProduct
+      ? liveEditStore.dirtyProduct
+      : propProduct || shopStore.product,
+  );
   const metadata = $derived(product?.metadata || {});
-  const selectedAreaLabel = $derived(answers.find(ans => ans.q.includes('giải cứu'))?.a || '');
-  
+  const selectedAreaLabel = $derived(
+    answers.find((ans) => ans.q.includes("giải cứu"))?.a || "",
+  );
+
   function toSentenceCase(str: string) {
-    if (!str) return '';
-    const cleanStr = str.replace(/<[^>]*>/g, '');
+    if (!str) return "";
+    const cleanStr = str.replace(/<[^>]*>/g, "");
     if (!cleanStr) return str;
     const lower = str.toLowerCase();
     return lower.charAt(0).toUpperCase() + lower.slice(1);
   }
-  
+
   const currentLevelOptions = $derived.by(() => {
     const area = selectedAreaLabel.toLowerCase();
-    if (area.includes('bikini')) return [
-      { label: 'Sắc tố chưa đồng nhất', value: 'light', icon: 'Moon' },
-      { label: 'Khu vực kém mịn màng', value: 'medium', icon: 'CloudMoon' },
-      { label: 'Điểm sắc tố li ti', value: 'heavy', icon: 'Activity' },
-      { label: 'Dày sừng vùng nhạy cảm', value: 'chronic', icon: 'ShieldAlert' }
-    ];
-    if (area.includes('nách')) return [
-      { label: 'Kích ứng sắc tố nhẹ', value: 'light', icon: 'Moon' },
-      { label: 'Tối màu do ma sát / hóa chất', value: 'medium', icon: 'CloudMoon' },
-      { label: 'Tập trung melanin sâu', value: 'heavy', icon: 'Activity' },
-      { label: 'Dày sừng do tổn thương bề mặt', value: 'chronic', icon: 'ShieldAlert' }
-    ];
-    if (area.includes('nhũ hoa')) return [
-      { label: 'Sắc tố chưa rạng rỡ', value: 'light', icon: 'Moon' },
-      { label: 'Vùng da kém mịn màng', value: 'medium', icon: 'CloudMoon' },
-      { label: 'Khu vực tập trung sắc tố', value: 'heavy', icon: 'Activity' },
-      { label: 'Mất độ hồng mọng tự nhiên', value: 'chronic', icon: 'ShieldAlert' }
-    ];
+    if (area.includes("bikini"))
+      return [
+        { label: "Sắc tố chưa đồng nhất", value: "light", icon: "Moon" },
+        { label: "Khu vực kém mịn màng", value: "medium", icon: "CloudMoon" },
+        { label: "Điểm sắc tố li ti", value: "heavy", icon: "Activity" },
+        {
+          label: "Dày sừng vùng nhạy cảm",
+          value: "chronic",
+          icon: "ShieldAlert",
+        },
+      ];
+    if (area.includes("nách"))
+      return [
+        { label: "Kích ứng sắc tố nhẹ", value: "light", icon: "Moon" },
+        {
+          label: "Tối màu do ma sát / hóa chất",
+          value: "medium",
+          icon: "CloudMoon",
+        },
+        { label: "Tập trung melanin sâu", value: "heavy", icon: "Activity" },
+        {
+          label: "Dày sừng do tổn thương bề mặt",
+          value: "chronic",
+          icon: "ShieldAlert",
+        },
+      ];
+    if (area.includes("nhũ hoa"))
+      return [
+        { label: "Sắc tố chưa rạng rỡ", value: "light", icon: "Moon" },
+        { label: "Vùng da kém mịn màng", value: "medium", icon: "CloudMoon" },
+        { label: "Khu vực tập trung sắc tố", value: "heavy", icon: "Activity" },
+        {
+          label: "Mất độ hồng mọng tự nhiên",
+          value: "chronic",
+          icon: "ShieldAlert",
+        },
+      ];
     return [
-      { label: 'Sắc tố bề mặt nhẹ', value: 'light', icon: 'Moon' },
-      { label: 'Vùng da kém rạng rỡ', value: 'medium', icon: 'CloudMoon' },
-      { label: 'Khu vực tối màu rõ rệt', value: 'heavy', icon: 'Activity' },
-      { label: 'Dày sừng & Sắc tố thâm niên', value: 'chronic', icon: 'ShieldAlert' }
+      { label: "Sắc tố bề mặt nhẹ", value: "light", icon: "Moon" },
+      { label: "Vùng da kém rạng rỡ", value: "medium", icon: "CloudMoon" },
+      { label: "Khu vực tối màu rõ rệt", value: "heavy", icon: "Activity" },
+      {
+        label: "Dày sừng & Sắc tố thâm niên",
+        value: "chronic",
+        icon: "ShieldAlert",
+      },
     ];
   });
 
-  const questions = $derived(metadata?.quiz_questions || [
-    {
-      id: 'area',
-      title: 'Vùng cần giải cứu sắc tố?',
-      options: [
-        { label: 'Vùng nách', value: 'armpit', icon: 'Wind' },
-        { label: 'Vùng bikini', value: 'bikini', icon: 'Shield' },
-        { label: 'Vùng nhũ hoa', value: 'sun', icon: 'Sun' },
-        { label: 'Khác / Đùi trong', value: 'other', icon: 'Layers' }
-      ]
-    },
-    {
-      id: 'level',
-      title: 'Hiện trạng sắc tố thực tế?',
-      options: currentLevelOptions
-    },
-    {
-      id: 'goal',
-      title: 'Mục tiêu mong muốn nhất?',
-      options: [
-        { label: 'Trắng sáng rạng rỡ', value: 'whitening', icon: 'Zap' },
-        { label: 'Phục hồi gốc da', value: 'recovery', icon: 'ShieldCheck' },
-        { label: 'Dứt điểm vùng tối màu', value: 'permanent', icon: 'Target' },
-        { label: 'Dịu nhẹ cho da nhạy cảm', value: 'sensitive', icon: 'Heart' }
-      ]
-    }
-  ]);
-  
+  const questions = $derived(
+    metadata?.quiz_questions || [
+      {
+        id: "area",
+        title: "Vùng cần giải cứu sắc tố?",
+        options: [
+          { label: "Vùng nách", value: "armpit", icon: "Wind" },
+          { label: "Vùng bikini", value: "bikini", icon: "Shield" },
+          { label: "Vùng nhũ hoa", value: "sun", icon: "Sun" },
+          { label: "Khác / Đùi trong", value: "other", icon: "Layers" },
+        ],
+      },
+      {
+        id: "level",
+        title: "Hiện trạng sắc tố thực tế?",
+        options: currentLevelOptions,
+      },
+      {
+        id: "goal",
+        title: "Mục tiêu mong muốn nhất?",
+        options: [
+          { label: "Trắng sáng rạng rỡ", value: "whitening", icon: "Zap" },
+          { label: "Phục hồi gốc da", value: "recovery", icon: "ShieldCheck" },
+          {
+            label: "Dứt điểm vùng tối màu",
+            value: "permanent",
+            icon: "Target",
+          },
+          {
+            label: "Dịu nhẹ cho da nhạy cảm",
+            value: "sensitive",
+            icon: "Heart",
+          },
+        ],
+      },
+    ],
+  );
+
   const labels = $derived({
-    headline: metadata?.diagnostics_headline || 'Chẩn đoán phục hồi <br/><span class="text-blue-500">Sắc tố gốc</span>',
-    subheadline: metadata?.diagnostics_subheadline || `Để hệ thống chẩn đoán của ${SHOP_CONFIG.pharmacy.name} thiết lập liệu trình liều lượng chính xác nhất.`,
-    result_headline: metadata?.quiz_result_headline || 'Liệu trình Optimal.',
-    result_subheadline: metadata?.quiz_result_subheadline || 'Hệ thống AI đề xuất: Bạn cần liệu trình {quantity} lọ để đạt hiệu quả tối ưu.',
-    result_cta: metadata?.quiz_result_cta || 'Kích hoạt liệu trình',
-    restart_label: metadata?.quiz_restart_label || 'Thiết lập lại'
+    headline:
+      metadata?.diagnostics_headline ||
+      'Chẩn đoán phục hồi <br/><span class="text-blue-500">Sắc tố gốc</span>',
+    subheadline:
+      metadata?.diagnostics_subheadline ||
+      `Để hệ thống chẩn đoán của ${SHOP_CONFIG.pharmacy.name} thiết lập liệu trình liều lượng chính xác nhất.`,
+    result_headline: metadata?.quiz_result_headline || "Liệu trình Optimal.",
+    result_subheadline:
+      metadata?.quiz_result_subheadline ||
+      "Hệ thống AI đề xuất: Bạn cần liệu trình {quantity} lọ để đạt hiệu quả tối ưu.",
+    result_cta: metadata?.quiz_result_cta || "Kích hoạt liệu trình",
+    restart_label: metadata?.quiz_restart_label || "Thiết lập lại",
   });
 
   let currentStep = $state(0);
-  const isEditable = $derived(liveEditStore.isEditMode && liveEditStore.isAdmin);
+  const isEditable = $derived(
+    liveEditStore.isEditMode && liveEditStore.isAdmin,
+  );
   let draggingIdx = $state<number | null>(null);
 
   function addQuestion() {
@@ -125,41 +171,65 @@
       title: "Câu hỏi mới?",
       subtitle: "Mô tả ngắn để khách hàng hiểu ngữ cảnh...",
       options: [
-        { label: "Lựa chọn 1", value: `v1_${Date.now()}`, score: 0, icon: "Circle" },
-        { label: "Lựa chọn 2", value: `v2_${Date.now()}`, score: 0, icon: "Circle" },
-        { label: "Lựa chọn 3", value: `v3_${Date.now()}`, score: 0, icon: "Circle" }
-      ]
+        {
+          label: "Lựa chọn 1",
+          value: `v1_${Date.now()}`,
+          score: 0,
+          icon: "Circle",
+        },
+        {
+          label: "Lựa chọn 2",
+          value: `v2_${Date.now()}`,
+          score: 0,
+          icon: "Circle",
+        },
+        {
+          label: "Lựa chọn 3",
+          value: `v3_${Date.now()}`,
+          score: 0,
+          icon: "Circle",
+        },
+      ],
     };
     const newQuestions = [newQuestion, ...questions];
-    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
   }
 
-  function handleDragStart(idx: number) { draggingIdx = idx; }
-  function handleDragOver(e: DragEvent, idx: number) { e.preventDefault(); }
+  function handleDragStart(idx: number) {
+    draggingIdx = idx;
+  }
+  function handleDragOver(e: DragEvent, idx: number) {
+    e.preventDefault();
+  }
   function handleDrop(targetIdx: number) {
     if (draggingIdx === null || draggingIdx === targetIdx) return;
     const newQuestions = JSON.parse(JSON.stringify(questions));
     const [movedItem] = newQuestions.splice(draggingIdx, 1);
     newQuestions.splice(targetIdx, 0, movedItem);
-    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
     draggingIdx = null;
   }
   function removeQuestion(idx: number) {
     const newQuestions = questions.filter((_, i) => i !== idx);
-    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
   }
   function addOption(qIdx: number) {
     const newQuestions = JSON.parse(JSON.stringify(questions));
-    newQuestions[qIdx].options.push({ label: "Lựa chọn mới", value: `v_${Date.now()}`, score: 0, icon: "Circle" });
-    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+    newQuestions[qIdx].options.push({
+      label: "Lựa chọn mới",
+      value: `v_${Date.now()}`,
+      score: 0,
+      icon: "Circle",
+    });
+    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
   }
   function removeOption(qIdx: number, oIdx: number) {
     const newQuestions = JSON.parse(JSON.stringify(questions));
     newQuestions[qIdx].options.splice(oIdx, 1);
-    liveEditStore.updateField('metadata.quiz_questions', newQuestions);
+    liveEditStore.updateField("metadata.quiz_questions", newQuestions);
   }
 
-  let answers = $state<Array<{q: string, a: string}>>([]);
+  let answers = $state<Array<{ q: string; a: string }>>([]);
   let analysisStatus = $state("Đang phân tích tập dữ liệu lâm sàng...");
   let binaryData = $state("0 1 0 1 1 1 0 0 1");
   let sessionIncrement = $state(0);
@@ -168,7 +238,7 @@
   // Memory cleanup for async timers
   const timers = new Set<ReturnType<typeof setTimeout>>();
   function clearTimers() {
-    timers.forEach(t => {
+    timers.forEach((t) => {
       clearTimeout(t);
       clearInterval(t);
     });
@@ -178,7 +248,7 @@
   $effect(() => {
     return () => clearTimers();
   });
-  
+
   // 🚀 Manual Swipe Support (Elite V2.2)
   let touchStartX = 0;
   let touchEndX = 0;
@@ -198,10 +268,6 @@
     }
   }
 
-
-
-
-
   function nextStep(value: string, label: string) {
     answers.push({ q: questions[currentStep].title, a: label });
     if (currentStep < questions.length - 1) {
@@ -209,14 +275,33 @@
     } else {
       // Binary data animation (visual only)
       const interval = setInterval(() => {
-        binaryData = Array.from({ length: 16 }, () => Math.round(Math.random())).join(" ");
+        binaryData = Array.from({ length: 16 }, () =>
+          Math.round(Math.random()),
+        ).join(" ");
       }, 80);
       timers.add(interval);
 
       // Status messages synchronized with desktop
-      timers.add(setTimeout(() => analysisStatus = "Đang xử lý cấu trúc sinh trắc học...", 1500));
-      timers.add(setTimeout(() => analysisStatus = "Đang tối ưu hóa liệu trình cá nhân hóa...", 3500));
-      timers.add(setTimeout(() => analysisStatus = "Hoàn tất cấu trúc Optimal. Đang chuẩn bị phác đồ...", 5000));
+      timers.add(
+        setTimeout(
+          () => (analysisStatus = "Đang xử lý cấu trúc sinh trắc học..."),
+          1500,
+        ),
+      );
+      timers.add(
+        setTimeout(
+          () => (analysisStatus = "Đang tối ưu hóa liệu trình cá nhân hóa..."),
+          3500,
+        ),
+      );
+      timers.add(
+        setTimeout(
+          () =>
+            (analysisStatus =
+              "Hoàn tất cấu trúc Optimal. Đang chuẩn bị phác đồ..."),
+          5000,
+        ),
+      );
 
       shopStore.analyzeDiagnostics(answers).then(() => {
         clearInterval(interval);
@@ -228,41 +313,41 @@
 
   // Elite V2.2: Icon Resolver for Quiz Options
   const iconMap: Record<string, typeof Activity> = {
-    'Circle': Circle,
-    'Zap': Zap,
-    'Sparkles': Sparkles,
-    'Flame': Flame,
-    'Sun': Sun,
-    'Droplets': Droplets,
-    'Moon': Moon,
-    'CloudMoon': CloudMoon,
-    'Activity': Activity,
-    'ShieldAlert': ShieldAlert,
-    'ShieldCheck': ShieldCheck,
-    'Target': Target,
-    'Heart': Heart,
-    'Wind': Wind,
-    'Shield': Shield,
-    'Layers': Layers,
+    Circle: Circle,
+    Zap: Zap,
+    Sparkles: Sparkles,
+    Flame: Flame,
+    Sun: Sun,
+    Droplets: Droplets,
+    Moon: Moon,
+    CloudMoon: CloudMoon,
+    Activity: Activity,
+    ShieldAlert: ShieldAlert,
+    ShieldCheck: ShieldCheck,
+    Target: Target,
+    Heart: Heart,
+    Wind: Wind,
+    Shield: Shield,
+    Layers: Layers,
     // 🚀 Elite Overwrite: Force-mapping legacy emojis to viral bio-icons
-    '🛁': Wind,
-    '👙': Shield,
-    '✨': Sun,
-    '💧': Layers,
-    '🌕': Moon,
-    '🌗': CloudMoon,
-    '🌑': ShieldAlert,
-    '🔘': ShieldCheck,
-    '🌱': Sparkles,
-    '🔄': RefreshCw,
-    '🚀': Zap,
-    '😊': Sparkles,
-    '😐': Activity,
-    '🕒': Timer,
-    '📅': Calendar,
-    '🧬': Dna,
-    'Plus': PlusCircle,
-    'none': Circle
+    "🛁": Wind,
+    "👙": Shield,
+    "✨": Sun,
+    "💧": Layers,
+    "🌕": Moon,
+    "🌗": CloudMoon,
+    "🌑": ShieldAlert,
+    "🔘": ShieldCheck,
+    "🌱": Sparkles,
+    "🔄": RefreshCw,
+    "🚀": Zap,
+    "😊": Sparkles,
+    "😐": Activity,
+    "🕒": Timer,
+    "📅": Calendar,
+    "🧬": Dna,
+    Plus: PlusCircle,
+    none: Circle,
   };
 
   function restart() {
@@ -288,36 +373,45 @@
         "85% khách hàng bắt đầu từ vùng này",
         "Hệ thống đang quét cấu trúc tế bào...",
         "Vùng nhạy cảm cần phác đồ dịu nhẹ",
-        "Lựa chọn phổ biến nhất hiện nay"
+        "Lựa chọn phổ biến nhất hiện nay",
       ],
       // Step 1: Tình trạng
       [
         "Xác nhận mức độ hắc sắc tố thực tế",
         "Phân tích mật độ sạm đen biometric",
         "Độ trễ phục hồi dự kiến: 12ms",
-        "Yêu cầu can thiệp liposome chuyên sâu"
+        "Yêu cầu can thiệp liposome chuyên sâu",
       ],
       // Step 2: Mục tiêu
       [
         "Ưu tiên trắng sáng bật tone sau 7 ngày",
         "Ngăn ngừa tái thâm sạm vĩnh viễn",
         "Phục hồi gốc da từ sâu bên trong",
-        "Phác đồ chuyên biệt cho da nhạy cảm"
-      ]
+        "Phác đồ chuyên biệt cho da nhạy cảm",
+      ],
     ];
 
     const stepMatrix = matrix[stepIdx] || matrix[0];
     return stepMatrix[optIdx % stepMatrix.length];
   }
 
-  function formatRecommendation(text: string, theme: 'desktop' | 'mobile'): string {
-    if (!text) return '';
+  function formatRecommendation(
+    text: string,
+    theme: "desktop" | "mobile",
+  ): string {
+    if (!text) return "";
     const cleaned = text.trim();
 
-    const stepMatches = [...cleaned.matchAll(/(\d+)\.\s*([^:]+):\s*(.+?)(?=\s*\d+\.\s*|\s*\*\*|\Z)/gs)];
-    const phaseMatches = [...cleaned.matchAll(/\*\*([^*]+?):\*\*\s*(.+?)(?=\s*\*\*|\Z)/gs)];
+    const stepMatches = [
+      ...cleaned.matchAll(
+        /(\d+)\.\s*([^:]+):\s*(.+?)(?=\s*\d+\.\s*|\s*\*\*|\Z)/gs,
+      ),
+    ];
+    const phaseMatches = [
+      ...cleaned.matchAll(/\*\*([^*]+?):\*\*\s*(.+?)(?=\s*\*\*|\Z)/gs),
+    ];
 
-    let html = '';
+    let html = "";
 
     if (stepMatches.length > 0) {
       html += `<div class="recommendation-steps-container space-y-3 mb-5 text-left">`;
@@ -325,11 +419,18 @@
         const num = m[1];
         const title = m[2].trim();
         const desc = m[3].trim();
-        
-        const accentColor = theme === 'desktop' ? 'var(--luxury-gold)' : '#FFB7C5';
-        const badgeBg = theme === 'desktop' ? 'rgba(193, 143, 126, 0.08)' : 'rgba(255, 183, 197, 0.08)';
-        const badgeBorder = theme === 'desktop' ? 'rgba(193, 143, 126, 0.2)' : 'rgba(255, 183, 197, 0.2)';
-        
+
+        const accentColor =
+          theme === "desktop" ? "var(--luxury-gold)" : "#FFB7C5";
+        const badgeBg =
+          theme === "desktop"
+            ? "rgba(193, 143, 126, 0.08)"
+            : "rgba(255, 183, 197, 0.08)";
+        const badgeBorder =
+          theme === "desktop"
+            ? "rgba(193, 143, 126, 0.2)"
+            : "rgba(255, 183, 197, 0.2)";
+
         html += `
           <div class="step-card p-4 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all duration-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
             <div class="flex items-center gap-3 mb-2">
@@ -351,21 +452,28 @@
       phaseMatches.forEach((m) => {
         const title = m[1].trim();
         const desc = m[2].trim();
-        
-        let phaseBg = 'rgba(239, 68, 68, 0.03)';
-        let phaseBorder = 'rgba(239, 68, 68, 0.15)';
-        let phaseText = 'text-red-400';
-        
-        if (title.toLowerCase().includes('duy trì')) {
-          phaseBg = 'rgba(52, 211, 153, 0.03)';
-          phaseBorder = 'rgba(52, 211, 153, 0.15)';
-          phaseText = 'text-emerald-400';
-        } else if (title.toLowerCase().includes('tấn công')) {
-          phaseBg = theme === 'desktop' ? 'rgba(193, 143, 126, 0.03)' : 'rgba(255, 183, 197, 0.03)';
-          phaseBorder = theme === 'desktop' ? 'rgba(193, 143, 126, 0.15)' : 'rgba(255, 183, 197, 0.15)';
-          phaseText = theme === 'desktop' ? 'text-luxury-copper' : 'text-pink-300';
+
+        let phaseBg = "rgba(239, 68, 68, 0.03)";
+        let phaseBorder = "rgba(239, 68, 68, 0.15)";
+        let phaseText = "text-red-400";
+
+        if (title.toLowerCase().includes("duy trì")) {
+          phaseBg = "rgba(52, 211, 153, 0.03)";
+          phaseBorder = "rgba(52, 211, 153, 0.15)";
+          phaseText = "text-emerald-400";
+        } else if (title.toLowerCase().includes("tấn công")) {
+          phaseBg =
+            theme === "desktop"
+              ? "rgba(193, 143, 126, 0.03)"
+              : "rgba(255, 183, 197, 0.03)";
+          phaseBorder =
+            theme === "desktop"
+              ? "rgba(193, 143, 126, 0.15)"
+              : "rgba(255, 183, 197, 0.15)";
+          phaseText =
+            theme === "desktop" ? "text-luxury-copper" : "text-pink-300";
         }
-        
+
         html += `
           <div class="phase-card p-4 rounded-[1.5rem] border transition-all duration-300" 
                style="background: ${phaseBg}; border-color: ${phaseBorder};">
@@ -382,8 +490,14 @@
 
     if (stepMatches.length === 0 && phaseMatches.length === 0) {
       let fallback = cleaned
-        .replace(/\*\*([^*]+?):\*\*/g, '<strong class="text-emerald-400 font-bold">$1:</strong>')
-        .replace(/\*\*([^*]+?)\*\*/g, '<strong class="text-emerald-400 font-bold">$1</strong>');
+        .replace(
+          /\*\*([^*]+?):\*\*/g,
+          '<strong class="text-emerald-400 font-bold">$1:</strong>',
+        )
+        .replace(
+          /\*\*([^*]+?)\*\*/g,
+          '<strong class="text-emerald-400 font-bold">$1</strong>',
+        );
       return `<p class="text-white/80 text-xs md:text-sm leading-relaxed">${fallback}</p>`;
     }
 
@@ -391,404 +505,654 @@
   }
 </script>
 
-<div class="h-[100dvh] transition-all duration-700 flex flex-col px-4 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden" id="diagnostics">
+<div
+  class="h-[100dvh] transition-all duration-700 flex flex-col px-4 pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] bg-[#030303] relative overflow-hidden"
+  id="diagnostics"
+>
   <!-- HUD Flourish -->
-  <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#FFB7C5]/50 to-transparent"></div>
-  
+  <div
+    class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#FFB7C5]/50 to-transparent"
+  ></div>
+
   {#if !shopStore.diagnosticResult}
     <div class="mt-3 mb-2" transition:fade>
-      <div class="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 rounded-full mb-2 backdrop-blur-md">
+      <div
+        class="inline-flex items-center gap-1.5 px-1.5 py-0.5 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 rounded-full mb-2 backdrop-blur-md"
+      >
         <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] animate-pulse"></div>
-        <span class="text-[10px] tracking-[0.2em] text-[#FFB7C5] font-bold italic">đã chẩn đoán cho {(Number(metadata.diagnostics_count || (Number(PUBLIC_G_BY_COUNT) * 5)) + sessionIncrement).toLocaleString()} người</span>
+        <span
+          class="text-[10px] tracking-[0.2em] text-[#FFB7C5] font-bold italic"
+          >đã chẩn đoán cho {(
+            Number(
+              metadata.diagnostics_count || Number(PUBLIC_G_BY_COUNT) * 5,
+            ) + sessionIncrement
+          ).toLocaleString()} người</span
+        >
       </div>
-        <h2 class="text-2xl font-extrabold text-white leading-relaxed tracking-tighter italic tiktok-shadow">
-          <EditableWrapper path="metadata.diagnostics_headline" type="text" label="Sửa tiêu đề">
-            {@html (product?.metadata?.diagnostics_headline || 'Chẩn đoán phục hồi <span class="text-blue-500">Sắc tố gốc</span>').replace('Sắc tố gốc', '<br/>Sắc tố gốc')}
-          </EditableWrapper>
-        </h2>
+      <h2
+        class="text-center text-3xl font-extrabold text-white leading-relaxed tracking-tighter italic tiktok-shadow"
+      >
+        <EditableWrapper
+          path="metadata.diagnostics_headline"
+          type="text"
+          label="Sửa tiêu đề"
+        >
+          {@html (
+            product?.metadata?.diagnostics_headline ||
+            'Chẩn đoán phục hồi <span class="text-blue-500">Sắc tố gốc</span>'
+          ).replace("Sắc tố gốc", "<br/>Sắc tố gốc")}
+        </EditableWrapper>
+      </h2>
     </div>
   {/if}
 
   <div class="relative flex-1 flex flex-col">
     {#if questions.length > 0}
       {#if shopStore.isAnalyzing}
-        <div class="absolute -inset-x-6 inset-y-0 z-modal flex flex-col items-center justify-center bg-[#030303] overflow-hidden" in:fade={{ duration: 400 }}>
+        <div
+          class="absolute -inset-x-6 inset-y-0 z-modal flex flex-col items-center justify-center bg-[#030303] overflow-hidden"
+          in:fade={{ duration: 400 }}
+        >
           <!-- Sci-fi Technical Grid -->
-          <div class="absolute inset-0 opacity-[0.07] tech-grid">
-          </div>
+          <div class="absolute inset-0 opacity-[0.07] tech-grid"></div>
 
           <!-- Biometric Pulses -->
-          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div class="w-64 h-64 border border-[#FFB7C5]/20 rounded-full animate-ping opacity-20"></div>
-            <div class="w-96 h-96 border border-[#FFB7C5]/10 rounded-full animate-ping opacity-10 biometric-pulse-delayed"></div>
+          <div
+            class="absolute inset-0 flex items-center justify-center pointer-events-none"
+          >
+            <div
+              class="w-64 h-64 border border-[#FFB7C5]/20 rounded-full animate-ping opacity-20"
+            ></div>
+            <div
+              class="w-96 h-96 border border-[#FFB7C5]/10 rounded-full animate-ping opacity-10 biometric-pulse-delayed"
+            ></div>
           </div>
 
           <div class="relative z-surface text-center px-4 -mt-20">
             <div class="mb-10 relative">
-              <div class="absolute inset-0 bg-[#FFB7C5]/30 blur-[60px] rounded-full animate-pulse"></div>
-              <div class="w-20 h-20 bg-[#FFB7C5]/10 rounded-full border border-[#FFB7C5]/40 flex items-center justify-center backdrop-blur-3xl shadow-[0_0_50px_rgba(255,183,197,0.3)] mx-auto relative group">
+              <div
+                class="absolute inset-0 bg-[#FFB7C5]/30 blur-[60px] rounded-full animate-pulse"
+              ></div>
+              <div
+                class="w-20 h-20 bg-[#FFB7C5]/10 rounded-full border border-[#FFB7C5]/40 flex items-center justify-center backdrop-blur-3xl shadow-[0_0_50px_rgba(255,183,197,0.3)] mx-auto relative group"
+              >
                 <Sparkles class="w-10 h-10 text-[#FFB7C5] animate-spin-slow" />
-                <div class="absolute -inset-1 border border-[#FFB7C5]/20 rounded-full animate-[pulse_3s_infinite]"></div>
+                <div
+                  class="absolute -inset-1 border border-[#FFB7C5]/20 rounded-full animate-[pulse_3s_infinite]"
+                ></div>
               </div>
             </div>
 
-            <div class="text-xl font-black text-white mb-2 tracking-widest italic drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] whitespace-nowrap">
+            <div
+              class="text-xl font-black text-white mb-2 tracking-widest italic drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] whitespace-nowrap"
+            >
               ĐANG PHÂN TÍCH...
             </div>
-            
-            <div class="text-[9px] text-[#FFB7C5] font-bold tracking-wider mb-12 h-4 animate-pulse whitespace-nowrap">
+
+            <div
+              class="text-[9px] text-[#FFB7C5] font-bold tracking-wider mb-12 h-4 animate-pulse whitespace-nowrap"
+            >
               {analysisStatus}
             </div>
 
-            <div class="relative w-64 h-[1px] bg-white/5 mx-auto overflow-hidden">
-               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-[#FFB7C5] to-transparent animate-[scan_2s_linear_infinite]"></div>
+            <div
+              class="relative w-64 h-[1px] bg-white/5 mx-auto overflow-hidden"
+            >
+              <div
+                class="absolute inset-0 bg-gradient-to-r from-transparent via-[#FFB7C5] to-transparent animate-[scan_2s_linear_infinite]"
+              ></div>
             </div>
           </div>
 
           <!-- HUD Data Overlays -->
-          <div class="absolute top-10 left-6 opacity-30 text-[10px] font-mono text-[#FFB7C5]/80 space-y-1 text-left">
-            <div class="flex items-center gap-1"><Cpu size={10} /> Hệ thống: Ổn định</div>
-            <div class="flex items-center gap-1"><Activity size={10} /> Độ trễ: 12ms</div>
-            <div class="flex items-center gap-1"><Database size={10} /> Mã hóa: Quantum_v3</div>
+          <div
+            class="absolute top-10 left-6 opacity-30 text-[10px] font-mono text-[#FFB7C5]/80 space-y-1 text-left"
+          >
+            <div class="flex items-center gap-1">
+              <Cpu size={10} /> Hệ thống: Ổn định
+            </div>
+            <div class="flex items-center gap-1">
+              <Activity size={10} /> Độ trễ: 12ms
+            </div>
+            <div class="flex items-center gap-1">
+              <Database size={10} /> Mã hóa: Quantum_v3
+            </div>
           </div>
 
-          <div class="absolute top-10 right-6 opacity-30 text-[7px] font-mono text-[#FFB7C5]/80 text-right">
+          <div
+            class="absolute top-10 right-6 opacity-30 text-[7px] font-mono text-[#FFB7C5]/80 text-right"
+          >
             <div>SIGNAL_STRENGTH: 98%</div>
             <div class="mt-1 flex gap-1 justify-end">
-               {#each Array(4) as _, i}
-                 <div class="w-1 h-1 rounded-full {i < Math.floor(Math.random()*4)+1 ? 'bg-[#FFB7C5]' : 'bg-white/10'}"></div>
-               {/each}
+              {#each Array(4) as _, i}
+                <div
+                  class="w-1 h-1 rounded-full {i <
+                  Math.floor(Math.random() * 4) + 1
+                    ? 'bg-[#FFB7C5]'
+                    : 'bg-white/10'}"
+                ></div>
+              {/each}
             </div>
           </div>
 
           <!-- Binary Streams -->
-          <div class="absolute bottom-10 left-6 right-6 opacity-20 text-[10px] font-mono text-[#FFB7C5]/80 flex justify-between">
+          <div
+            class="absolute bottom-10 left-6 right-6 opacity-20 text-[10px] font-mono text-[#FFB7C5]/80 flex justify-between"
+          >
             <div class="flex flex-col gap-1">
-                <div>AI_LOG_STREAM // Đồng bộ</div>
-                <div class="diagnostic-log-text tracking-widest">{binaryData}</div>
+              <div>AI_LOG_STREAM // Đồng bộ</div>
+              <div class="diagnostic-log-text tracking-widest">
+                {binaryData}
+              </div>
             </div>
             <div class="text-right flex flex-col justify-end">
-                <div>Mã hóa sinh trắc học</div>
-                <div>Đồng bộ hoàn tất</div>
+              <div>Mã hóa sinh trắc học</div>
+              <div>Đồng bộ hoàn tất</div>
             </div>
           </div>
         </div>
       {:else if shopStore.diagnosticResult}
-        <div class="flex-1 flex flex-col overflow-hidden" in:scale={{ duration: 500, start: 0.9 }}>
+        <div
+          class="flex-1 flex flex-col overflow-hidden"
+          in:scale={{ duration: 500, start: 0.9 }}
+        >
           <!-- Scrollable Content Area -->
           <div class="flex-1 overflow-y-auto hide-scrollbar pt-2 pb-4">
             <!-- Result Header HUD -->
-            <div class="flex justify-between items-start mb-4 border-b border-white/10 pb-3 shrink-0">
+            <div
+              class="flex justify-between items-start mb-4 border-b border-white/10 pb-3 shrink-0"
+            >
               <div class="flex-1">
-                <h3 class="text-xl font-black text-white tracking-tighter mb-1 drop-shadow-[0_0_15px_rgba(255,183,197,0.5)] italic uppercase">
+                <h3
+                  class="text-xl font-black text-white tracking-tighter mb-1 drop-shadow-[0_0_15px_rgba(255,183,197,0.5)] italic uppercase"
+                >
                   PHÁC ĐỒ ĐIỀU TRỊ
                 </h3>
-                <p class="text-[7px] text-[#FFB7C5] font-bold tracking-[0.1em] italic">
-                  đã chẩn đoán cho {(Number(metadata.diagnostics_count || (Number(PUBLIC_G_BY_COUNT) * 5)) + sessionIncrement).toLocaleString()} người
+                <p
+                  class="text-[7px] text-[#FFB7C5] font-bold tracking-[0.1em] italic"
+                >
+                  đã chẩn đoán cho {(
+                    Number(
+                      metadata.diagnostics_count ||
+                        Number(PUBLIC_G_BY_COUNT) * 5,
+                    ) + sessionIncrement
+                  ).toLocaleString()} người
                 </p>
               </div>
               <div class="flex items-center gap-2 shrink-0">
-               <div class="text-right">
-                  <span class="block text-[6px] text-white/30 font-black">Hiệu lực</span>
-                  <span class="block text-[7px] text-emerald-400 font-bold italic tracking-tighter">An toàn tuyệt đối</span>
-               </div>
-               <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <div class="text-right">
+                  <span class="block text-[6px] text-white/30 font-black"
+                    >Hiệu lực</span
+                  >
+                  <span
+                    class="block text-[7px] text-emerald-400 font-bold italic tracking-tighter"
+                    >An toàn tuyệt đối</span
+                  >
+                </div>
+                <div
+                  class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center"
+                >
                   <ShieldCheck class="w-5 h-5 text-emerald-400" />
-               </div>
+                </div>
               </div>
             </div>
 
             <div class="space-y-6">
               <div class="relative overflow-visible group">
                 <div class="flex items-center justify-between mb-2">
-                  <h4 class="text-[11px] font-black text-[#FFB7C5] group-hover:text-pink-300 transition-colors tracking-[0.2em] border-l-2 border-[#FFB7C5]/50 pl-2">
+                  <h4
+                    class="text-[11px] font-black text-[#FFB7C5] group-hover:text-pink-300 transition-colors tracking-[0.2em] border-l-2 border-[#FFB7C5]/50 pl-2"
+                  >
                     Phân tích chuyên sâu
                   </h4>
-                  <span class="text-[10px] font-mono text-white/20">LOG_ID: A126-DX</span>
+                  <span class="text-[10px] font-mono text-white/20"
+                    >LOG_ID: A126-DX</span
+                  >
                 </div>
-                <p class="text-white text-[15px] font-bold leading-relaxed italic px-1 drop-shadow-sm">
+                <p
+                  class="text-white text-[15px] font-bold leading-relaxed italic px-1 drop-shadow-sm"
+                >
                   "{shopStore.diagnosticResult.analysis}"
                 </p>
               </div>
 
               <!-- Info Slider: Tổng quan & Liệu trình -->
-              <div class="relative overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y" 
-                   role="region" 
-                   aria-label="Diagnostic Carousel"
-                   ontouchstart={handleTouchStart}
-                   ontouchend={handleTouchEnd}
+              <div
+                class="relative overflow-hidden cursor-grab active:cursor-grabbing touch-pan-y"
+                role="region"
+                aria-label="Diagnostic Carousel"
+                ontouchstart={handleTouchStart}
+                ontouchend={handleTouchEnd}
               >
-                 <div class="flex items-start transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]" 
-                      style:transform="translateX(-{activeSlide * 100}%)"
-                 >
-                    <!-- Slide 1: Tổng quan -->
-                    <div class="w-full shrink-0 px-1">
-                       <div class="flex flex-col gap-2 h-auto max-h-[32dvh] overflow-y-auto hide-scrollbar"
-                            style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);">
-                          <h4 class="text-[10px] font-black text-white/40 tracking-[0.2em] border-l-2 border-white/20 pl-2 uppercase">01. Tổng quan lâm sàng</h4>
-                          <p class="text-white/80 text-[13px] font-medium leading-normal italic">{shopStore.diagnosticResult.reasoning}</p>
-                          <div class="h-6"></div> <!-- Spacer for mask -->
-                       </div>
+                <div
+                  class="flex items-start transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]"
+                  style:transform="translateX(-{activeSlide * 100}%)"
+                >
+                  <!-- Slide 1: Tổng quan -->
+                  <div class="w-full shrink-0 px-1">
+                    <div
+                      class="flex flex-col gap-2 h-auto max-h-[32dvh] overflow-y-auto hide-scrollbar"
+                      style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);"
+                    >
+                      <h4
+                        class="text-[10px] font-black text-white/40 tracking-[0.2em] border-l-2 border-white/20 pl-2 uppercase"
+                      >
+                        01. Tổng quan lâm sàng
+                      </h4>
+                      <p
+                        class="text-white/80 text-[13px] font-medium leading-normal italic"
+                      >
+                        {shopStore.diagnosticResult.reasoning}
+                      </p>
+                      <div class="h-6"></div>
+                      <!-- Spacer for mask -->
                     </div>
-                    
-                    <!-- Slide 2: Liệu trình -->
-                    <div class="w-full shrink-0 px-1">
-                       <div class="flex flex-col gap-2 h-auto max-h-[32dvh] overflow-y-auto hide-scrollbar"
-                            style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);">
-                          <div class="flex items-center justify-between border-l-2 border-emerald-500/30 pl-2">
-                             <h4 class="text-[10px] font-black text-emerald-400/60 tracking-[0.2em] uppercase">02. Liệu trình tối ưu</h4>
-                           </div>
-                          <div class="text-emerald-400 text-[14px] font-medium leading-normal not-italic">
-                            {@html formatRecommendation(shopStore.diagnosticResult.recommendation, 'mobile')}
-                          </div>
-                          <div class="h-6"></div> <!-- Spacer for mask -->
-                       </div>
-                    </div>
-                 </div>
+                  </div>
 
-                 <!-- Paginated Indicators (Liquid Style) -->
-                 <div class="flex justify-center gap-2 mt-2">
-                    {#each Array(2) as _, i}
-                       <button 
-                         class="h-1 rounded-full transition-all duration-500 {activeSlide === i ? 'w-8 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)]' : 'w-2 bg-white/10'}"
-                         onclick={() => activeSlide = i}
-                         aria-label="Slide {i + 1}"
-                       ></button>
-                    {/each}
-                 </div>
+                  <!-- Slide 2: Liệu trình -->
+                  <div class="w-full shrink-0 px-1">
+                    <div
+                      class="flex flex-col gap-2 h-auto max-h-[32dvh] overflow-y-auto hide-scrollbar"
+                      style="mask-image: linear-gradient(to bottom, black 80%, transparent 100%);"
+                    >
+                      <div
+                        class="flex items-center justify-between border-l-2 border-emerald-500/30 pl-2"
+                      >
+                        <h4
+                          class="text-[10px] font-black text-emerald-400/60 tracking-[0.2em] uppercase"
+                        >
+                          02. Liệu trình tối ưu
+                        </h4>
+                      </div>
+                      <div
+                        class="text-emerald-400 text-[14px] font-medium leading-normal not-italic"
+                      >
+                        {@html formatRecommendation(
+                          shopStore.diagnosticResult.recommendation,
+                          "mobile",
+                        )}
+                      </div>
+                      <div class="h-6"></div>
+                      <!-- Spacer for mask -->
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Paginated Indicators (Liquid Style) -->
+                <div class="flex justify-center gap-2 mt-2">
+                  {#each Array(2) as _, i}
+                    <button
+                      class="h-1 rounded-full transition-all duration-500 {activeSlide ===
+                      i
+                        ? 'w-8 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)]'
+                        : 'w-2 bg-white/10'}"
+                      onclick={() => (activeSlide = i)}
+                      aria-label="Slide {i + 1}"
+                    ></button>
+                  {/each}
+                </div>
               </div>
             </div>
           </div>
-          
+
           <!-- Sticky Action Footer (Naked Style) -->
           <div class="flex-none space-y-4 pb-4 mt-auto relative z-modal">
-            <button 
+            <button
               onclick={() => {
-                const recommendedQty = shopStore.diagnosticResult?.quantity || 1;
-                const variant = shopStore.product?.variants?.find(v => (v.attributes?.combo_qty || 1) === recommendedQty);
+                const recommendedQty =
+                  shopStore.diagnosticResult?.quantity || 1;
+                const variant = shopStore.product?.variants?.find(
+                  (v) => (v.attributes?.combo_qty || 1) === recommendedQty,
+                );
                 if (variant) {
                   shopStore.selectVariant(variant);
                 }
-                document.getElementById('offers')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                document
+                  .getElementById("offers")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
               class="w-full py-4 bg-[#FFB7C5]/90 rounded-2xl font-black text-slate-950 text-[13px] tracking-[0.3em] flex items-center justify-center gap-2 active:scale-95 transition-all italic shadow-[0_10px_30px_rgba(255,183,197,0.2)]"
             >
-              <span>Xem liệu trình</span> <ArrowRight class="w-4 h-4" />
+              <span>Xem liệu trình</span>
+              <ArrowRight class="w-4 h-4" />
             </button>
 
             <!-- Security & Privacy Disclaimer integrated inside clinical results card for mobile -->
-            <p class="text-[8px] font-medium text-white/35 tracking-[0.05em] leading-relaxed whitespace-nowrap mx-auto text-center mt-1">
-              AI có thể mắc sai sót. Vì vậy, hãy xác minh thông tin này với bác sĩ.
+            <p
+              class="text-[8px] font-medium text-white/35 tracking-[0.05em] leading-relaxed whitespace-nowrap mx-auto text-center mt-1"
+            >
+              AI có thể mắc sai sót. Vì vậy, hãy xác minh thông tin này với bác
+              sĩ.
             </p>
 
-            <button 
+            <button
               onclick={restart}
               class="flex items-center gap-2 mx-auto py-1 text-[8px] font-bold text-white/30 tracking-[0.3em] hover:text-[#FFB7C5] transition-colors"
             >
-              <RefreshCw class="w-2.5 h-2.5" /> 
-              <EditableWrapper path="metadata.quiz_restart_label" label="SỬA CHỮ RESTART">
-                <span class="sentence-case-target">{product?.metadata?.quiz_restart_label || 'Thiết lập lại'}</span>
+              <RefreshCw class="w-2.5 h-2.5" />
+              <EditableWrapper
+                path="metadata.quiz_restart_label"
+                label="SỬA CHỮ RESTART"
+              >
+                <span class="sentence-case-target"
+                  >{product?.metadata?.quiz_restart_label ||
+                    "Thiết lập lại"}</span
+                >
               </EditableWrapper>
             </button>
           </div>
         </div>
-      {:else}
-        {#if isEditable}
-          <div class="edit-mode-container flex-1 flex flex-col min-h-0 relative z-surface animate-reveal py-4">
-              <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
-                  <div class="flex items-center gap-2">
-                      <div class="w-2 h-2 rounded-full bg-[#FFB7C5] animate-pulse"></div>
-                      <h3 class="text-[10px] font-bold text-white tracking-widest">QUIZ DIRECT ENGINE</h3>
-                  </div>
-                  <button 
-                      onclick={addQuestion}
-                      class="flex items-center gap-1 px-3 py-2 bg-[#FFB7C5] text-slate-900 text-[9px] font-bold rounded-lg shadow-xl active:scale-95 transition-all"
-                  >
-                      <Plus size={12} /> THÊM CÂU
-                  </button>
-              </div>
-
-              <div class="flex-1 space-y-6 overflow-y-auto px-1 pb-32 hide-scrollbar relative z-10 touch-pan-y">
-                  {#each questions as question, qIdx (question.id)}
-                      <div 
-                          class="bg-white/[0.02] border border-white/10 rounded-2xl p-4 relative group/q transition-all duration-300 {draggingIdx === qIdx ? 'opacity-20 scale-95 border-blue-500/50' : ''}"
-                          draggable="true"
-                          ondragstart={() => handleDragStart(qIdx)}
-                          ondragover={(e) => handleDragOver(e, qIdx)}
-                          ondrop={() => handleDrop(qIdx)}
-                          ondragend={() => draggingIdx = null}
-                      >
-                          <div class="absolute -left-2 top-1/2 -translate-y-1/2 p-2 text-white/20 active:text-blue-400">
-                              <GripVertical size={16} />
-                          </div>
-
-                          <button 
-                              onclick={() => removeQuestion(qIdx)}
-                              class="absolute -top-2 -right-2 w-6 h-6 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center border border-red-500/20 active:bg-red-500 active:text-white"
-                          >
-                              <Trash2 size={10} />
-                          </button>
-
-                          <div class="pl-4 space-y-4">
-                              <div class="space-y-1">
-                                  <label class="text-[7px] font-bold text-white/30 tracking-widest">Câu hỏi</label>
-                                  <input 
-                                      bind:value={question.title}
-                                      class="w-full bg-transparent border-b border-white/10 focus:border-[#FFB7C5] py-1 text-sm font-bold text-white outline-none transition-all"
-                                      oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.title`, question.title)}
-                                  />
-                              </div>
-                              <div class="space-y-1">
-                                  <label class="text-[7px] font-bold text-white/30 tracking-widest">Mô tả (Subtitle)</label>
-                                  <input 
-                                      bind:value={question.subtitle}
-                                      class="w-full bg-transparent border-b border-white/5 focus:border-[#FFB7C5]/50 py-1 text-[10px] text-white/50 outline-none transition-all"
-                                      oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.subtitle`, question.subtitle)}
-                                  />
-                              </div>
-
-                              <div class="space-y-2 pt-2">
-                                  <div class="flex items-center justify-between">
-                                      <span class="text-[7px] font-bold text-[#FFB7C5]/60 tracking-widest">Các Lựa chọn</span>
-                                      <button onclick={() => addOption(qIdx)} class="text-[8px] font-bold text-white/40 active:text-[#FFB7C5] tracking-widest flex items-center gap-1 bg-white/5 px-2 py-1 rounded">
-                                          <PlusCircle size={8} /> THÊM
-                                      </button>
-                                  </div>
-                                  <div class="grid grid-cols-1 gap-2">
-                                      {#each question.options as option, oIdx}
-                                          <div class="flex items-center gap-2 p-2 bg-black/20 border border-white/5 rounded-lg">
-                                              <input 
-                                                  bind:value={option.label}
-                                                  class="flex-1 bg-transparent text-[10px] font-medium text-white outline-none"
-                                                  oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.options.${oIdx}.label`, option.label)}
-                                              />
-                                              <div class="flex items-center gap-1 bg-white/5 px-1 py-1 rounded border border-white/5">
-                                                  <Target size={8} class="text-white/20" />
-                                                  <input 
-                                                      type="number" 
-                                                      bind:value={option.score}
-                                                      class="w-5 bg-transparent text-[9px] font-bold text-[#FFB7C5] text-center outline-none"
-                                                      oninput={() => liveEditStore.updateField(`metadata.quiz_questions.${qIdx}.options.${oIdx}.score`, option.score)}
-                                                  />
-                                              </div>
-                                              <button onclick={() => removeOption(qIdx, oIdx)} class="text-red-500/40 active:text-red-400 p-1">
-                                                  <Trash2 size={10} />
-                                              </button>
-                                          </div>
-                                      {/each}
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  {/each}
-              </div>
+      {:else if isEditable}
+        <div
+          class="edit-mode-container flex-1 flex flex-col min-h-0 relative z-surface animate-reveal py-4"
+        >
+          <div
+            class="flex items-center justify-between mb-6 border-b border-white/5 pb-4"
+          >
+            <div class="flex items-center gap-2">
+              <div
+                class="w-2 h-2 rounded-full bg-[#FFB7C5] animate-pulse"
+              ></div>
+              <h3 class="text-[10px] font-bold text-white tracking-widest">
+                QUIZ DIRECT ENGINE
+              </h3>
+            </div>
+            <button
+              onclick={addQuestion}
+              class="flex items-center gap-1 px-3 py-2 bg-[#FFB7C5] text-slate-900 text-[9px] font-bold rounded-lg shadow-xl active:scale-95 transition-all"
+            >
+              <Plus size={12} /> THÊM CÂU
+            </button>
           </div>
-        {:else}
-          <div class="flex-1 flex flex-col min-h-0">
-            <div class="grid grid-cols-1 grid-rows-1 flex-1 overflow-hidden h-full">
-              {#key currentStep}
-                <div 
-                  class="col-start-1 row-start-1 flex flex-col w-full h-full" 
-                  in:fly={{ x: 20, duration: 600, easing: cubicOut }} 
-                  out:fade={{ duration: 300 }}
+
+          <div
+            class="flex-1 space-y-6 overflow-y-auto px-1 pb-32 hide-scrollbar relative z-10 touch-pan-y"
+          >
+            {#each questions as question, qIdx (question.id)}
+              <div
+                class="bg-white/[0.02] border border-white/10 rounded-2xl p-4 relative group/q transition-all duration-300 {draggingIdx ===
+                qIdx
+                  ? 'opacity-20 scale-95 border-blue-500/50'
+                  : ''}"
+                draggable="true"
+                ondragstart={() => handleDragStart(qIdx)}
+                ondragover={(e) => handleDragOver(e, qIdx)}
+                ondrop={() => handleDrop(qIdx)}
+                ondragend={() => (draggingIdx = null)}
+              >
+                <div
+                  class="absolute -left-2 top-1/2 -translate-y-1/2 p-2 text-white/20 active:text-blue-400"
                 >
-                  <div class="flex items-center justify-between mb-4 bg-white/[0.03] p-3 rounded-2xl border border-white/10 backdrop-blur-3xl shadow-lg relative overflow-hidden group">
-                    <div class="absolute inset-0 bg-[#FFB7C5]/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    
-                    <div class="flex items-center gap-3 relative z-surface">
-                      {#if currentStep > 0}
-                        <button 
-                          onclick={prevStep}
-                          class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#FFB7C5] active:scale-90 transition-all hover:bg-[#FFB7C5]/10"
-                          aria-label="Quay lại bước trước"
-                        >
-                          <ArrowRight class="w-4 h-4 rotate-180" />
-                        </button>
-                      {/if}
-                      <div class="flex flex-col">
-                        <span class="diagnostic-phase-label text-[10px] text-white/30 tracking-[0.2em] font-black">Tiến trình chẩn đoán AI</span>
-                        <p class="text-[10px] text-[#FFB7C5] tracking-[0.2em] font-black italic mt-0.5">Bước {currentStep + 1} <span class="text-white/10">//</span> {questions.length}</p>
-                      </div>
-                    </div>
-                    <div class="relative w-20 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                      <div class="absolute inset-0 bg-[#FFB7C5]/10 animate-pulse"></div>
-                      <div class="absolute top-0 left-0 h-full bg-[#FFB7C5] transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1) progress-fill shadow-[0_0_10px_rgba(255,183,197,0.6)]" style:--progress="{((currentStep + 1) / questions.length) * 100}%"></div>
-                    </div>
+                  <GripVertical size={16} />
+                </div>
+
+                <button
+                  onclick={() => removeQuestion(qIdx)}
+                  class="absolute -top-2 -right-2 w-6 h-6 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center border border-red-500/20 active:bg-red-500 active:text-white"
+                >
+                  <Trash2 size={10} />
+                </button>
+
+                <div class="pl-4 space-y-4">
+                  <div class="space-y-1">
+                    <label
+                      class="text-[7px] font-bold text-white/30 tracking-widest"
+                      >Câu hỏi</label
+                    >
+                    <input
+                      bind:value={question.title}
+                      class="w-full bg-transparent border-b border-white/10 focus:border-[#FFB7C5] py-1 text-sm font-bold text-white outline-none transition-all"
+                      oninput={() =>
+                        liveEditStore.updateField(
+                          `metadata.quiz_questions.${qIdx}.title`,
+                          question.title,
+                        )}
+                    />
                   </div>
-                  
-                  <h3 class="text-xl font-bold text-white mb-6 leading-tight italic tracking-tight drop-shadow-sm sentence-case-target" style:text-transform="none">
-                    {#if typeof questions[currentStep].title === 'string'}
-                      {@html toSentenceCase(questions[currentStep].title)}
-                    {:else}
-                      Đang tải phác đồ...
-                    {/if}
-                  </h3>
-                  
-                  <div class="grid gap-3 content-start overflow-y-auto pb-8 hide-scrollbar">
-                    {#each questions[currentStep].options as opt, idx}
-                      <button 
-                        onclick={() => nextStep(opt.value, opt.label)}
-                        class="w-full py-4 px-5 bg-white/[0.04] border border-white/10 rounded-2xl text-left flex items-center gap-4 group active:scale-[0.97] transition-all duration-300 hover:bg-white/[0.08] hover:border-blue-500/30"
+                  <div class="space-y-1">
+                    <label
+                      class="text-[7px] font-bold text-white/30 tracking-widest"
+                      >Mô tả (Subtitle)</label
+                    >
+                    <input
+                      bind:value={question.subtitle}
+                      class="w-full bg-transparent border-b border-white/5 focus:border-[#FFB7C5]/50 py-1 text-[10px] text-white/50 outline-none transition-all"
+                      oninput={() =>
+                        liveEditStore.updateField(
+                          `metadata.quiz_questions.${qIdx}.subtitle`,
+                          question.subtitle,
+                        )}
+                    />
+                  </div>
+
+                  <div class="space-y-2 pt-2">
+                    <div class="flex items-center justify-between">
+                      <span
+                        class="text-[7px] font-bold text-[#FFB7C5]/60 tracking-widest"
+                        >Các Lựa chọn</span
                       >
-                        <!-- Option Icon: Viral Bio-Pulse (Elite V2.2) -->
-                        <div class="relative w-11 h-11 shrink-0">
-                          <div class="absolute inset-0 bg-[#FFB7C5]/10 rounded-full blur-[8px] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <div class="relative w-full h-full bg-white/5 rounded-full flex items-center justify-center text-lg font-black group-hover:bg-[#FFB7C5]/20 group-hover:text-[#FFB7C5] transition-all border border-white/5 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] overflow-hidden">
-                            {#if opt.icon && iconMap[opt.icon]}
-                              {@const IconComp = iconMap[opt.icon]}
-                              <IconComp size={18} strokeWidth={2} class="drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                            {:else if opt.icon && opt.icon.length <= 2}
-                              <span class="drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]">{opt.icon}</span>
-                            {:else}
-                              <span class="text-[14px] text-white/40 group-hover:text-blue-400">{idx + 1}</span>
-                            {/if}
-                          </div>
-                        </div>
-                        <div class="flex flex-col overflow-hidden">
-                          <span class="option-label text-white/90 font-bold text-xs tracking-tight truncate" style:text-transform="none">
-                            {#if typeof opt.label === 'string'}
-                              {@html toSentenceCase(opt.label)}
-                            {:else}
-                              Lưu trữ...
-                            {/if}
-                          </span>
-                          <span class="text-[10px] text-white/30 tracking-wide font-medium mt-1 group-hover:text-[#FFB7C5]/50 transition-colors">
-                            {getStepSubtitle(currentStep, idx)}
-                          </span>
-                        </div>
+                      <button
+                        onclick={() => addOption(qIdx)}
+                        class="text-[8px] font-bold text-white/40 active:text-[#FFB7C5] tracking-widest flex items-center gap-1 bg-white/5 px-2 py-1 rounded"
+                      >
+                        <PlusCircle size={8} /> THÊM
                       </button>
-                    {/each}
+                    </div>
+                    <div class="grid grid-cols-1 gap-2">
+                      {#each question.options as option, oIdx}
+                        <div
+                          class="flex items-center gap-2 p-2 bg-black/20 border border-white/5 rounded-lg"
+                        >
+                          <input
+                            bind:value={option.label}
+                            class="flex-1 bg-transparent text-[10px] font-medium text-white outline-none"
+                            oninput={() =>
+                              liveEditStore.updateField(
+                                `metadata.quiz_questions.${qIdx}.options.${oIdx}.label`,
+                                option.label,
+                              )}
+                          />
+                          <div
+                            class="flex items-center gap-1 bg-white/5 px-1 py-1 rounded border border-white/5"
+                          >
+                            <Target size={8} class="text-white/20" />
+                            <input
+                              type="number"
+                              bind:value={option.score}
+                              class="w-5 bg-transparent text-[9px] font-bold text-[#FFB7C5] text-center outline-none"
+                              oninput={() =>
+                                liveEditStore.updateField(
+                                  `metadata.quiz_questions.${qIdx}.options.${oIdx}.score`,
+                                  option.score,
+                                )}
+                            />
+                          </div>
+                          <button
+                            onclick={() => removeOption(qIdx, oIdx)}
+                            class="text-red-500/40 active:text-red-400 p-1"
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                        </div>
+                      {/each}
+                    </div>
                   </div>
                 </div>
-              {/key}
-            </div>
+              </div>
+            {/each}
           </div>
-        {/if}
+        </div>
+      {:else}
+        <div class="flex-1 flex flex-col min-h-0">
+          <div
+            class="grid grid-cols-1 grid-rows-1 flex-1 overflow-hidden h-full"
+          >
+            {#key currentStep}
+              <div
+                class="col-start-1 row-start-1 flex flex-col w-full h-full"
+                in:fly={{ x: 20, duration: 600, easing: cubicOut }}
+                out:fade={{ duration: 300 }}
+              >
+                <div
+                  class="flex items-center justify-between mb-4 bg-white/[0.03] p-3 rounded-2xl border border-white/10 backdrop-blur-3xl shadow-lg relative overflow-hidden group"
+                >
+                  <div
+                    class="absolute inset-0 bg-[#FFB7C5]/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  ></div>
+
+                  <div class="flex items-center gap-3 relative z-surface">
+                    {#if currentStep > 0}
+                      <button
+                        onclick={prevStep}
+                        class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#FFB7C5] active:scale-90 transition-all hover:bg-[#FFB7C5]/10"
+                        aria-label="Quay lại bước trước"
+                      >
+                        <ArrowRight class="w-4 h-4 rotate-180" />
+                      </button>
+                    {/if}
+                    <div class="flex flex-col">
+                      <span
+                        class="diagnostic-phase-label text-[10px] text-white/30 tracking-[0.2em] font-black"
+                        >Tiến trình chẩn đoán AI</span
+                      >
+                      <p
+                        class="text-[10px] text-[#FFB7C5] tracking-[0.2em] font-black italic mt-0.5"
+                      >
+                        Bước {currentStep + 1}
+                        <span class="text-white/10">//</span>
+                        {questions.length}
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    class="relative w-20 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5"
+                  >
+                    <div
+                      class="absolute inset-0 bg-[#FFB7C5]/10 animate-pulse"
+                    ></div>
+                    <div
+                      class="absolute top-0 left-0 h-full bg-[#FFB7C5] transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1) progress-fill shadow-[0_0_10px_rgba(255,183,197,0.6)]"
+                      style:--progress="{((currentStep + 1) /
+                        questions.length) *
+                        100}%"
+                    ></div>
+                  </div>
+                </div>
+
+                <h3
+                  class="text-xl font-bold text-white mb-6 leading-tight italic tracking-tight drop-shadow-sm sentence-case-target"
+                  style:text-transform="none"
+                >
+                  {#if typeof questions[currentStep].title === "string"}
+                    {@html toSentenceCase(questions[currentStep].title)}
+                  {:else}
+                    Đang tải phác đồ...
+                  {/if}
+                </h3>
+
+                <div
+                  class="grid gap-3 content-start overflow-y-auto pb-8 hide-scrollbar"
+                >
+                  {#each questions[currentStep].options as opt, idx}
+                    <button
+                      onclick={() => nextStep(opt.value, opt.label)}
+                      class="w-full py-4 px-5 bg-white/[0.04] border border-white/10 rounded-2xl text-left flex items-center gap-4 group active:scale-[0.97] transition-all duration-300 hover:bg-white/[0.08] hover:border-blue-500/30"
+                    >
+                      <!-- Option Icon: Viral Bio-Pulse (Elite V2.2) -->
+                      <div class="relative w-11 h-11 shrink-0">
+                        <div
+                          class="absolute inset-0 bg-[#FFB7C5]/10 rounded-full blur-[8px] opacity-0 group-hover:opacity-100 transition-opacity"
+                        ></div>
+                        <div
+                          class="relative w-full h-full bg-white/5 rounded-full flex items-center justify-center text-lg font-black group-hover:bg-[#FFB7C5]/20 group-hover:text-[#FFB7C5] transition-all border border-white/5 shadow-[inset_0_0_10px_rgba(255,255,255,0.05)] overflow-hidden"
+                        >
+                          {#if opt.icon && iconMap[opt.icon]}
+                            {@const IconComp = iconMap[opt.icon]}
+                            <IconComp
+                              size={18}
+                              strokeWidth={2}
+                              class="drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                            />
+                          {:else if opt.icon && opt.icon.length <= 2}
+                            <span
+                              class="drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+                              >{opt.icon}</span
+                            >
+                          {:else}
+                            <span
+                              class="text-[14px] text-white/40 group-hover:text-blue-400"
+                              >{idx + 1}</span
+                            >
+                          {/if}
+                        </div>
+                      </div>
+                      <div class="flex flex-col overflow-hidden">
+                        <span
+                          class="option-label text-white/90 font-bold text-xs tracking-tight truncate"
+                          style:text-transform="none"
+                        >
+                          {#if typeof opt.label === "string"}
+                            {@html toSentenceCase(opt.label)}
+                          {:else}
+                            Lưu trữ...
+                          {/if}
+                        </span>
+                        <span
+                          class="text-[10px] text-white/30 tracking-wide font-medium mt-1 group-hover:text-[#FFB7C5]/50 transition-colors"
+                        >
+                          {getStepSubtitle(currentStep, idx)}
+                        </span>
+                      </div>
+                    </button>
+                  {/each}
+                </div>
+              </div>
+            {/key}
+          </div>
+        </div>
       {/if}
     {:else}
-      <div class="flex-1 flex flex-col items-center justify-center gap-6" in:fade>
+      <div
+        class="flex-1 flex flex-col items-center justify-center gap-6"
+        in:fade
+      >
         <div class="relative">
-          <div class="w-16 h-16 border-2 border-[#FFB7C5]/10 border-t-[#FFB7C5] rounded-full animate-spin"></div>
+          <div
+            class="w-16 h-16 border-2 border-[#FFB7C5]/10 border-t-[#FFB7C5] rounded-full animate-spin"
+          ></div>
           <div class="absolute inset-0 flex items-center justify-center">
-             <div class="w-2 h-2 bg-[#FFB7C5] rounded-full animate-ping"></div>
+            <div class="w-2 h-2 bg-[#FFB7C5] rounded-full animate-ping"></div>
           </div>
         </div>
         <div class="text-center">
-          <p class="text-[10px] font-black text-white/30 tracking-[0.5em] animate-pulse">Syncing AI Core...</p>
-          <p class="text-[8px] text-[#FFB7C5]/40 tracking-widest mt-2 font-mono">Status: Secure_Protocol_Active</p>
+          <p
+            class="text-[10px] font-black text-white/30 tracking-[0.5em] animate-pulse"
+          >
+            Syncing AI Core...
+          </p>
+          <p
+            class="text-[8px] text-[#FFB7C5]/40 tracking-widest mt-2 font-mono"
+          >
+            Status: Secure_Protocol_Active
+          </p>
         </div>
       </div>
     {/if}
   </div>
 
   <!-- Decorative HUD elements -->
-  <div class="absolute bottom-10 left-0 w-32 h-32 bg-[#FFB7C5]/5 blur-[80px] rounded-full pointer-events-none"></div>
-  <div class="absolute top-40 right-0 w-48 h-48 bg-[#FFB7C5]/5 blur-[100px] rounded-full pointer-events-none"></div>
+  <div
+    class="absolute bottom-10 left-0 w-32 h-32 bg-[#FFB7C5]/5 blur-[80px] rounded-full pointer-events-none"
+  ></div>
+  <div
+    class="absolute top-40 right-0 w-48 h-48 bg-[#FFB7C5]/5 blur-[100px] rounded-full pointer-events-none"
+  ></div>
 </div>
 
 <style>
   .tech-grid {
-    background-image: linear-gradient(#FFB7C5 1px, transparent 1px), linear-gradient(90deg, #FFB7C5 1px, transparent 1px);
+    background-image: linear-gradient(#ffb7c5 1px, transparent 1px),
+      linear-gradient(90deg, #ffb7c5 1px, transparent 1px);
     background-size: 20px 20px;
   }
 
@@ -813,28 +1177,39 @@
     width: var(--progress, 0%);
   }
 
-  .option-label, .diagnostic-log-text, .sentence-case-target {
+  .option-label,
+  .diagnostic-log-text,
+  .sentence-case-target {
     text-transform: lowercase;
   }
-  .option-label, .sentence-case-target:not(.block) {
+  .option-label,
+  .sentence-case-target:not(.block) {
     display: inline-block;
   }
-  .option-label::first-letter, .diagnostic-log-text::first-letter, .sentence-case-target::first-letter {
-    }
+  .option-label::first-letter,
+  .diagnostic-log-text::first-letter,
+  .sentence-case-target::first-letter {
+  }
 
   .animate-spin-slow {
     animation: spin 3s linear infinite;
   }
 
   @keyframes scan {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>
-
-
