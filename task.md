@@ -303,3 +303,21 @@
 - [x] Giảm kích thước text header chính `.offer-grid-headline` xuống `clamp(20px, 4vw, 30px) !important` trên tablet/mobile.
 - [x] Giảm chiều cao hình ảnh `.variant-image-hero` từ `280px` xuống `220px` trên tablet/mobile.
 
+
+# Task: Phân tích Tối ưu hóa Landing Page Desktop (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [ ] **[Frontend Core Fix]** Khắc phục lỗi mất đồng bộ Props và Callbacks tại `LandingPage/Desktop.svelte`:
+  - Khai báo hàm `handleViewFullIngredients` thực hiện cuộn mượt (smooth scroll) đến mô tả sản phẩm.
+  - Sửa đổi callback truyền vào `ProductPrimaryInfo`: `onTriggerWriteReview` -> `onWriteReview`, `onTriggerViralFly` -> `onViralUnlock`, và truyền `onViewFullIngredients={handleViewFullIngredients}` vào `ProductDetailSections`.
+  - Tối ưu hóa hiệu năng bằng cách thay thế `$state` & `$effect` của `stats` và `likeCount` bằng `$derived` để tăng tốc độ phản hồi và tiết kiệm RAM.
+  - Nhập đầy đủ kiểu `BarcodeVerificationResponse` từ `$lib/types` ở đầu file script.
+- [ ] **[Frontend Gallery Optimization]** Tối ưu hóa `LandingPage/modules/Gallery.svelte`:
+  - Thiết kế lại interface `Props` để nhận các props tương thích với lớp cha giống như component Gallery của MainDetail.
+  - Tích hợp quản lý trạng thái Gallery nội bộ (`activeImageIndex`, `overrideImageIndex`, `currentImage` qua `$derived.by`) để loại bỏ hoàn toàn các lỗi undefined và đơ trang khi click thumbnail.
+- [ ] **[Frontend Specs Update]** Tối ưu hóa `LandingPage/modules/Specs.svelte`:
+  - Chuyển `onViewFullIngredients` thành optional trong interface `Props`.
+  - Triển khai fallback tự động cuộn đến phần description nếu callback không được truyền.
+- [ ] **[Kiểm định & Dọn dẹp]** Chạy `svelte-check` để đảm bảo type-safety 100%, không rò rỉ bộ nhớ, và cập nhật tài liệu kỹ thuật trong `walkthrough.md`.
+
+

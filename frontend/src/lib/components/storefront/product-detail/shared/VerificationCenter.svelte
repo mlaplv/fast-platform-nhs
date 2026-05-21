@@ -25,6 +25,7 @@
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
 
   let { product, verificationData }: { 
+    product: Product;
     verificationData?: BarcodeVerificationResponse 
   } = $props();
  

@@ -6,26 +6,48 @@
 
   interface Props {
     product: Product;
-    currentImage: string;
-    activeImageIndex: number;
-    isFlashSaleActive: boolean;
     likeCount: number;
+    isFlashSaleActive: boolean;
     productInfo: {
       salePrice: number;
       originalPrice: number;
     };
-    onThumbnailClick: (index: number) => void;
+    selectedIndices: number[];
+    variations: Array<{
+      name: string;
+      options: string[];
+      images?: (string | null)[];
+    }>;
   }
 
   let { 
     product, 
-    currentImage, 
-    activeImageIndex, 
+    likeCount, 
     isFlashSaleActive, 
-    likeCount,
-    productInfo,
-    onThumbnailClick 
+    productInfo, 
+    selectedIndices, 
+    variations 
   }: Props = $props();
+
+  let activeImageIndex = $state(0);
+  let overrideImageIndex = $state<number | null>(null);
+
+  $effect(() => {
+    // Reset override when variant changes
+    selectedIndices;
+    overrideImageIndex = null;
+  });
+
+  let currentImage = $derived.by(() => {
+    const pImages = product.images || [];
+    if (overrideImageIndex !== null) {
+      return pImages[overrideImageIndex] || pImages[0] || '/placeholder.png';
+    }
+    if (selectedIndices[0] >= 0 && variations?.[0]?.images?.[selectedIndices[0]]) {
+      return variations[0].images[selectedIndices[0]];
+    }
+    return pImages[activeImageIndex] || pImages[0] || '/placeholder.png';
+  });
 
   let videoEl = $state<HTMLVideoElement | null>(null);
   let videoMuted = $state(true);
@@ -114,7 +136,7 @@
         type="button"
         class="thumb-btn"
         class:active={activeImageIndex === i}
-        onclick={() => onThumbnailClick(i)}
+        onclick={() => { activeImageIndex = i; overrideImageIndex = i; }}
         aria-label="Xem ảnh {i + 1}"
       >
         {#if isVideoUrl(img)}

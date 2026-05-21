@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import type { Product, ProductVariant, ReviewStats } from "$lib/types";
+  import type { Product, ProductVariant, ReviewStats, BarcodeVerificationResponse } from "$lib/types";
   import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import { getClientUi } from "$lib/state/commerce/ui.svelte";
   import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
@@ -34,42 +34,32 @@
   }
   let { product, relatedProducts = [], reviewStats = null }: Props = $props();
 
-  // Elite Performance Fix P1.2: Khởi tạo từ server-prefetched data
-  let stats = $state<ReviewStats | null>(reviewStats);
-  let likeCount = $state(0);
-
-  // Sync stats khi server data thay đổi
-  $effect(() => {
-    if (reviewStats !== undefined) {
-      stats = reviewStats;
-    }
-  });
-
-  // Sync like state with product (Elite V2.2)
-  $effect(() => {
-    if (product) {
-      likeCount = Number(
-        product.metadata?.viral_suite?.likes_count ||
-          product.metadata?.likes ||
-          0,
-      );
-    }
-  });
+  // Elite Performance Fix: Derived from server-prefetched and reactive data
+  const stats = $derived<ReviewStats | null>(reviewStats);
+  const likeCount = $derived(
+    Number(
+      product.metadata?.viral_suite?.likes_count ||
+        product.metadata?.likes ||
+        0,
+    )
+  );
 
   // Verification System (Elite V2.2)
   let isScanning = $state(false);
   let showVerification = $state(false);
-  let verificationData = $state<BarcodeVerificationResponse | null>(null);
+  let verificationData = $state<BarcodeVerificationResponse | undefined>(undefined);
 
   function triggerScan() {
     isScanning = true;
     showVerification = false;
   }
 
-  function handleScanComplete(event: { verificationData: BarcodeVerificationResponse }) {
+  function handleScanComplete(data: { barcode: string; verificationData?: BarcodeVerificationResponse }) {
     isScanning = false;
-    verificationData = event.verificationData;
-    showVerification = true;
+    if (data.verificationData) {
+      verificationData = data.verificationData;
+      showVerification = true;
+    }
   }
 
   const variations = $derived(
@@ -104,10 +94,10 @@
     );
     if (comboVariants.length === 0) return currentVariant;
     const sortedTiers = [...comboVariants].sort(
-      (a, b) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty),
+      (a, b) => Number(b.attributes?.combo_qty || 0) - Number(a.attributes?.combo_qty || 0),
     );
     return (
-      sortedTiers.find((t) => Number(t.attributes.combo_qty) <= quantity) ||
+      sortedTiers.find((t) => Number(t.attributes?.combo_qty || 0) <= quantity) ||
       currentVariant
     );
   });
@@ -153,7 +143,7 @@
       return {
         price: formatRange(minPrice, maxPrice),
         discountPrice: minDiscount
-          ? formatRange(minDiscount, maxDiscount)
+          ? formatRange(minDiscount, maxDiscount ?? minDiscount)
           : undefined,
       };
     }
@@ -262,7 +252,7 @@
             (v.type === "SHIPPING"
               ? "Miễn phí vận chuyển"
               : `Giảm ${formatCurrency(v.value)}`),
-          type: v.type === "SHIPPING" ? "ship" : "discount",
+          type: (v.type === "SHIPPING" ? "ship" : "discount") as "ship" | "discount",
         }));
     }
 
@@ -275,7 +265,7 @@
 
     const isViralVoucher = (v: { id: string; label?: string }) => {
       const cleanId = cleanString(v.id);
-      const cleanLabel = cleanString(v.label);
+      const cleanLabel = cleanString(v.label || '');
       return cleanId.includes('VIRAL') || 
              cleanId.includes('LAN TOA') || 
              cleanLabel.includes('VIRAL') || 
@@ -299,7 +289,7 @@
             id: data.code,
             label: data.label || 'Voucher lan tỏa',
             sub: 'Đã mở khóa từ chiến dịch',
-            type: 'discount'
+            type: 'discount' as "ship" | "discount"
           });
         } catch (e) {}
       }
@@ -366,7 +356,7 @@
       (product.attributes?.["Trọng lượng"] as string) ||
       "",
     originalPrice: pDiscountPrice
-      ? product.price || product.base_price || 0
+      ? product.price || 0
       : (product.price || 0),
     salePrice: (pDiscountPrice as number) || (product.price as number) || 0,
   });
@@ -395,6 +385,13 @@
     }
   }
 
+  function handleViewFullIngredients() {
+    const el = document.getElementById("product-description") || document.querySelector(".description-container");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  }
+
   const helenAdvice = $derived.by(() => {
     const comboVariants = pVariants.filter(
       (cv) => cv.attributes && cv.attributes.combo_qty,
@@ -402,13 +399,13 @@
     if (comboVariants.length === 0)
       return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền.";
     const sortedTiers = [...comboVariants].sort(
-      (a, b) => Number(a.attributes.combo_qty) - Number(b.attributes.combo_qty),
+      (a, b) => Number(a.attributes?.combo_qty || 0) - Number(b.attributes?.combo_qty || 0),
     );
     const nextTier = sortedTiers.find(
-      (t) => Number(t.attributes.combo_qty) > quantity,
+      (t) => Number(t.attributes?.combo_qty || 0) > quantity,
     );
     if (nextTier) {
-      const gap = Number(nextTier.attributes.combo_qty) - quantity;
+      const gap = Number(nextTier.attributes?.combo_qty || 0) - quantity;
       return `Chỉ thêm ${gap} sản phẩm để nhận trọn vẹn đặc quyền quà tặng đi kèm!`;
     }
     return `Tuyệt vời! Bạn đã sở hữu Liệu Trình Hoàn Mỹ với mức giá tối ưu nhất.`;
@@ -450,7 +447,7 @@
           class="absolute top-2 right-2 z-20 w-14 h-14 cursor-pointer hover:scale-105 transition-transform drop-shadow-md bg-transparent border-none p-0 focus:outline-none"
         >
           <img
-            src={product?.metadata?.verified_badge_url ||
+            src={(product?.metadata?.verified_badge_url as string) ||
               SHOP_CONFIG.default_badge_url}
             alt="Verified"
             class="w-full h-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)]"
@@ -469,7 +466,6 @@
       <ProductPrimaryInfo
         {product}
         {stats}
-        {displayPrice}
         {activePrices}
         {helenAdvice}
         {productVouchers}
@@ -482,14 +478,13 @@
         {activeGifts}
         {isFlashSaleActive}
         {timeLeft}
-        {isViralUnlocked}
         onToggleVoucher={toggleVoucher}
         onSelectOption={selectOption}
         onQuantityChange={handleQuantityChange}
         onAddToCart={addToCart}
         onBuyNow={buyNow}
-        onTriggerWriteReview={triggerWriteReview}
-        onTriggerViralFly={triggerViralFly}
+        onWriteReview={triggerWriteReview}
+        onViralUnlock={triggerViralFly}
         onTriggerVerify={triggerScan}
       />
     </div>
@@ -497,6 +492,7 @@
     <ProductDetailSections
       {product}
       {productInfo}
+      onViewFullIngredients={handleViewFullIngredients}
       onTriggerScan={triggerScan}
       visibleAttributes={product.attributes
         ? Object.entries(product.attributes).filter(([key, value]) => {

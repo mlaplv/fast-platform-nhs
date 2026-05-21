@@ -15,7 +15,7 @@
       weight: string;
       barcode: string;
     };
-    onViewFullIngredients: () => void;
+    onViewFullIngredients?: () => void;
     onTriggerScan?: () => void;
   }
  
@@ -83,7 +83,27 @@
           </div>
         {/each}
       </div>
-      <button class="view-full-btn" onclick={onViewFullIngredients}>
+      <button class="view-full-btn" onclick={() => {
+        if (onViewFullIngredients) {
+          onViewFullIngredients();
+        } else {
+          const el = document.getElementById('product-description') || document.querySelector('.description-container');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }}>
+        Xem toàn bộ bảng thành phần
+      </button>
+    </div>
+  {#else}
+    <div class="mt-4">
+      <button class="view-full-btn" onclick={() => {
+        if (onViewFullIngredients) {
+          onViewFullIngredients();
+        } else {
+          const el = document.getElementById('product-description') || document.querySelector('.description-container');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }}>
         Xem toàn bộ bảng thành phần
       </button>
     </div>
