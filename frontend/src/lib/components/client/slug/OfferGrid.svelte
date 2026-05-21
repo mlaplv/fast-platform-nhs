@@ -153,6 +153,7 @@
             productVouchers={shopStore.productVouchers || []}
             onOpenVouchers={(id) => liveEditStore.togglePopover(id)}
             {onTriggerScan}
+            onOpenDetails={() => isDetailsOpen = true}
           />
       {/each}
     </div>

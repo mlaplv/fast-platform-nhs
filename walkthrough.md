@@ -188,12 +188,17 @@ Sau khi SvelteKit hot-reload tự động:
 4. **Kết quả**:
    - Khối Câu hỏi thường gặp trên iPad Air ($820px$) nay sở hữu khoảng cách đệm lề cực kỳ sang trọng, cân đối, trong khi màn hình lớn và máy tính để bàn vẫn hiển thị chuẩn mực 100%!
 
-
-
-
-
-
-
-
-
+### M. Tích hợp Nút Xem Chi Tiết Mô Tả Sản Phẩm trên Desktop như Mobile
+1. **Mục tiêu**: Bổ sung điểm chạm xem mô tả sản phẩm chi tiết trên Desktop tương tự như trên Mobile để mang lại trải nghiệm đầy đủ và trực quan cho người dùng.
+2. **Triển khai chi tiết**:
+   - **Tác chiến Svelte Props & State:**
+     * Trong [OfferCard.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/client/slug/OfferCard.svelte), định nghĩa callback prop `onOpenDetails?: () => void` để nhận tín hiệu mở modal từ component cha.
+     * Trong [OfferGrid.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/client/slug/OfferGrid.svelte), truyền prop `onOpenDetails={() => isDetailsOpen = true}` vào cụm gọi `OfferCard` để liên kết trực tiếp với modal chi tiết `DesktopProductDetailsModal` có sẵn.
+   - **Giao diện Specs Bullet Point tinh tế:**
+     * Nhận phản hồi từ Sếp: Loại bỏ nút tròn/icon trên hình để tránh rối mắt, chỉ giữ lại duy nhất 1 điểm chạm cực kỳ thanh lịch tại danh sách cam kết phía dưới.
+     * Thêm một bullet point cam kết vào danh sách `bullet-list` dưới dạng button text link màu Sakura gạch chân khi hover: `✦ Xem chi tiết`.
+     * Khi click vào link, sự kiện mở modal `DesktopProductDetailsModal` lập tức được kích hoạt mượt mà.
+3. **Kết quả & Bằng chứng Vận hành**:
+   - Giao diện Desktop hiển thị cực kỳ sang trọng, tích hợp hoàn chỉnh link "Xem chi tiết" đẹp mắt và tinh tế tại danh sách cam kết phía dưới từng card sản phẩm.
+   - Click kiểm thử hoạt động hoàn hảo 100%, modal hiển thị đầy đủ, chi tiết mô tả sản phẩm mà không xảy ra bất kỳ lỗi runtime nào hay làm ảnh hưởng tới RAM/Latency.
 

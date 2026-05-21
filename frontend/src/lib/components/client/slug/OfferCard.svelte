@@ -13,6 +13,7 @@
   import Zap from "@lucide/svelte/icons/zap";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
+  import Info from "@lucide/svelte/icons/info";
 
   interface MktLabels {
     sub: string;
@@ -37,7 +38,8 @@
     mkt,
     productVouchers,
     onOpenVouchers,
-    onTriggerScan
+    onTriggerScan,
+    onOpenDetails
   } = $props<{
     variant: ProductVariant;
     idx: number;
@@ -47,6 +49,7 @@
     productVouchers: Voucher[];
     onOpenVouchers: (id: string) => void;
     onTriggerScan?: () => void;
+    onOpenDetails?: () => void;
   }>();
 
   const shopStore = getShopStore();
@@ -337,10 +340,22 @@
           <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
           <EditableWrapper path="metadata.policy_return_label" type="text" label="SỬA CAM KẾT 2" class="flex-1 block" as="div">
             <a href="/chinh-sach-doi-tra-hoan-tien.html" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black tracking-widest text-luxury-sakura hover:underline leading-relaxed block w-full">
-              {product?.metadata?.policy_return_label || "Đổi trả 7 ngày"}
+               {product?.metadata?.policy_return_label || "Đổi trả 7 ngày"}
             </a>
           </EditableWrapper>
         </li>
+        {#if onOpenDetails}
+          <li class="flex items-start gap-3">
+            <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
+            <button 
+              type="button"
+              onclick={(e) => { e.stopPropagation(); onOpenDetails(); }}
+              class="text-[11px] font-black tracking-widest text-luxury-sakura hover:underline leading-relaxed text-left block w-full bg-transparent border-none p-0 cursor-pointer focus:outline-none"
+            >
+              Xem chi tiết
+            </button>
+          </li>
+        {/if}
       </ul>
 
         <div 

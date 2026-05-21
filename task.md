@@ -58,16 +58,11 @@
   - [x] Giải pháp: Tiến hành làm phẳng hoàn toàn 100% tệp `VerifiedReviews.css`, đưa toàn bộ các quy tắc và truy vấn truyền thống ra ngoài độc lập. Loại bỏ triệt để ký tự `&` và cú pháp nesting.
   - [x] Kết quả: Trình duyệt của mọi thiết bị (kể cả iPad Mini 768px, iPad Pro 1024px) phân tích cú pháp stylesheet siêu chuẩn xác, khóa cứng hiển thị chẵn đúng **2 items** trên máy tính bảng và **1 item** trên mobile một cách mỹ mãn!
 
-- [x] **Cô lập tuyệt đối Viewport bằng Phân vùng Media Query (CSS Specificity Shield)**
-  - [x] Phát hiện dị thường sâu sắc: Trình duyệt vẫn hiển thị 3 items trên screen `<= 1024px` (như iPad Mini 768px) do độ ưu tiên chọn lọc CSS (CSS Specificity) của selector `.reviews-scroll-wrapper.slider-mode .review-card` (độ đặc hiệu là 3 classes) cao hơn selector `@media (max-width: 1024px) .reviews-scroll-wrapper .review-card` (chỉ có 2 classes), khiến trình duyệt đè bẹp tỷ lệ `calc(50%)` bằng tỷ lệ `calc(33.333%)` mặc định!
-  - [x] Giải pháp: Thực hiện cô lập tuyệt đối các phân vùng bằng cách bao bọc toàn bộ các rule layout vào các media query độc quyền không giao thoa: Desktop (`min-width: 1025px`), Tablet (`min-width: 768px` and `max-width: 1024px`), Mobile (`max-width: 767px`).
-  - [x] Kết quả: Triệt tiêu hoàn toàn sự rò rỉ và tranh chấp độ ưu tiên CSS (Specificity leakage), khóa chặt hiển thị chẵn **đúng 2 items** cho toàn bộ máy tính bảng dưới mốc $1024px$ một cách hoàn mỹ.
-
 - [x] **Loại bỏ trùng lặp Media Query di sản 768px (Legacy 768px Overwrite Purge)**
   - [x] Phát hiện dị thường: Ở kích thước màn hình đúng bằng `768px`, slider lại đột ngột hiển thị chỉ còn **1 item** thay vì 2 items.
   - [x] Nguyên nhân: Tồn tại một khối `@media (max-width: 768px)` di sản nằm ở cuối tệp CSS cũ chứa luật cưỡng bức `.review-card { flex: 0 0 100% !important; }`. Lớp này đã kích hoạt chính xác tại mốc `768px` và ghi đè toàn bộ nỗ lực hiển thị 2 items của Tablet.
   - [x] Giải pháp: Xóa bỏ hoàn toàn khối `@media (max-width: 768px)` di sản trùng lặp ở cuối tệp CSS, chuyển giao toàn quyền quản lý mobile cho phân vùng chuẩn `@media (max-width: 767px)`.
-  - [x] Kết quả: iPad Mini (768px) nay hiển thị **chẵn chuẩn xác 2 items** siêu sắc sảo và rộng rãi đúng như thiết kế!
+  - [x] Kết quả: iPad Mini (768px) nay hiển thị **chẵn chính xác 2 items** siêu sắc sảo và rộng rãi đúng như thiết kế!
 
 - [x] **Đồng bộ hóa 2 items chẵn chằn chặn cho OfferCard trên Tablet <= 1024px**
   - [x] Phát hiện dị thường: Trên iPad Pro 1024px, liệu trình "Trắng Hồng" (`OfferCard`) bị hiển thị cắt đuôi (card thứ 3 bị lấp ló peeking cắt đôi nham nhở).
@@ -88,5 +83,23 @@
     1. Tiến hành phẳng hóa 100% luật lồng nhau của khối `.faq-ultra-compact` trong `ScienceBento.css`.
     2. Thiết lập quy tắc padding cưỡng bức **chỉ giới hạn cho các màn hình $\le 820px$** thông qua `@media (max-width: 820px) { .faq-ultra-compact { padding: 0 1.5rem !important; } }`. Các màn hình lớn hơn ($> 820px$) sẽ kế thừa padding tự nhiên của container, tuyệt đối không bị lỗi đúp padding (double padding).
   - [x] Kết quả: Tại mốc đúng bằng hoặc bé hơn $820px$, khối FAQ được hiển thị cân đối hoàn mỹ với khoảng đệm biên sang trọng; trong khi desktop vẫn giữ nguyên tỷ lệ đệm chuẩn của container!
+
+- [x] **Bổ sung Nút Xem Chi Tiết Mô Tả Sản Phẩm trên Desktop như Mobile (Product Details Integration)**
+  - [x] **Trinh sát & Phát hiện Dị thường (Scout Protocol)**:
+    - [x] Phân tích logic giao diện Desktop và phát hiện modal chi tiết `DesktopProductDetailsModal.svelte` đã được tích hợp sẵn trong `OfferGrid.svelte` thông qua reactive state `isDetailsOpen`, nhưng chưa được kích hoạt từ card sản phẩm `OfferCard.svelte`.
+    - [x] Phát hiện `OfferCard.svelte` thiếu callback prop `onOpenDetails` để liên kết với modal chi tiết trên `OfferGrid.svelte`.
+  - [x] **Lập Kế hoạch Tác chiến & Duyệt phương án (Propose-First)**:
+    - [x] Đề xuất truyền callback `onOpenDetails` từ `OfferGrid.svelte` vào `OfferCard.svelte`.
+    - [x] Nhận ý kiến phản hồi của Sếp: Loại bỏ hoàn toàn nút tròn/icon trên hình (để tránh rối mắt), chỉ giữ lại duy nhất 1 điểm chạm cực kỳ thanh lịch tại danh sách cam kết phía dưới và điều chỉnh nội dung hiển thị thành "Xem chi tiết".
+    - [x] Phản biện rủi ro: RAM & Latency tác động ở mức 0% vì sử dụng các cơ chế modal và state sẵn có của Svelte 5.
+  - [x] **Triển khai Giao diện & Tối ưu (Execution)**:
+    - [x] Cập nhật props interface và implementation của `OfferCard.svelte`.
+    - [x] Viết thêm bullet point "Xem chi tiết" liên kết trực tiếp tới `onOpenDetails`, đồng điệu 100% với các link chính sách kiểm hàng/đổi trả hiện có.
+    - [x] Cập nhật `OfferGrid.svelte` truyền prop `onOpenDetails={() => isDetailsOpen = true}` vào `OfferCard`.
+  - [x] **Kiểm thử & Xác minh (Verification)**:
+    - [x] Chạy kiểm tra Visual UI, đảm bảo text link bullet hiển thị cực kỳ mượt mà, không lệch lề hay vỡ dòng.
+    - [x] Click kiểm thử và xác minh modal `DesktopProductDetailsModal` mở lên hiển thị đầy đủ, chính xác mô tả sản phẩm.
+    - [x] Đóng lại mượt mà, bảo toàn 100% hiệu năng và logic Svelte 5.
+
 
 
