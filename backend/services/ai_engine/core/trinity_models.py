@@ -400,10 +400,26 @@ class TrinityModels:
     def is_daily_quota(self, err: str) -> bool:
         """Elite V2.2: Phân biệt chính xác hạn mức ngày vs hạn mức phút."""
         err_lower: str = err.lower()
-        # Nếu có chữ 'per minute' hoặc 'per minute per user' thì CHẮC CHẮN không phải daily
-        if "per minute" in err_lower:
+        
+        # 1. If it explicitly talks about minute, second, RPM, TPM, or limits per minute, it is NOT daily.
+        minute_signals = ["perminute", "per_minute", "per minute", "minute", "rpm", "tpm", "persecond", "per_second", "per second"]
+        if any(sig in err_lower for sig in minute_signals):
             return False
-        return any(p in err_lower for p in ["daily", "per_day", "requests_per_day", "generaterequestsperdayperproject"])
+            
+        # 2. Extract retry delay if present in error message
+        import re
+        retry_match = re.search(r"retry in ([\d\.]+)s", err_lower)
+        if retry_match:
+            try:
+                seconds = float(retry_match.group(1))
+                if seconds < 300: # Under 5 minutes is definitely minute-level RPM/TPM limit
+                    return False
+            except ValueError:
+                pass
+                
+        # 3. Check for actual daily indicators
+        daily_signals = ["daily", "per_day", "requests_per_day", "generaterequestsperdayperproject"]
+        return any(p in err_lower for p in daily_signals)
 
     def is_whitelisted(self, model_name: str) -> bool:
         """Elite V2.2: Check if model has a persistent DB-level whitelist override."""

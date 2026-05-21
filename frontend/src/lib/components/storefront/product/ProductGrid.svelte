@@ -71,10 +71,15 @@
 
         <div class="mt-auto">
           <!-- Price Section -->
-          <div class="flex items-baseline gap-1">
+          <div class="flex items-baseline gap-1.5 flex-wrap">
              <span class="text-[#ee4d2d] font-black text-[16px] tabular-nums">
                {formatCurrency(Number(product.discountPrice) || Number(product.price))}
              </span>
+             {#if product.discountPrice && product.price && product.discountPrice < product.price}
+               <span class="text-[11px] text-gray-400 line-through font-medium tabular-nums">
+                 {formatCurrency(product.price)}
+               </span>
+             {/if}
           </div>
 
           <!-- Marketplace Meta Footer -->

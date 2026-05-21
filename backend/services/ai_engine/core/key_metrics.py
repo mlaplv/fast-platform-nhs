@@ -76,11 +76,13 @@ class KeyMetricsMixin:
         m_slug: str = model_name.replace("/", "_").replace("-", "_")[:40]
         key = f"ai:model:fail_count:{m_slug}"
         try:
-            fails = await self.client.incr(key)
-            if fails == 1:
+            # Timeout and 503 are severe failures. Increment by 2 to trigger fast circuit breaker.
+            increment = 2 if reason in ["timeout", "503_unavailable"] else 1
+            fails = await self.client.incrby(key, increment)
+            if fails <= 2:
                 await self.client.expire(key, 60) # 60s failure window
             if fails >= 3:
-                # Temporarily poison/blacklist model for 5 minutes (300s) to preserve latency
+                # Temporarily poison/blacklist model for 5 minutes (300s) to preserve storefront performance
                 await self.mark_model_poisoned(model_name, reason=reason, cooldown_seconds=300)
                 logger.error(f"[KeyRotator] Circuit Breaker: Model {model_name} poisoned for 5m due to consecutive failures ({fails}).")
                 await self.client.delete(key)

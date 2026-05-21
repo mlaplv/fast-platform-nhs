@@ -22,6 +22,7 @@
     serverTotal: number;
     facets?: ProductFacets | null;
     category?: Category | null;
+    articles?: Article[];
   }
 
   let { 
@@ -31,6 +32,7 @@
     serverTotal,
     facets = null,
     category = null,
+    articles = [],
   }: Props = $props();
 
   // --- STATE & LOGIC ---
@@ -421,10 +423,44 @@
         {#if filteredProducts.length > 0}
           <ProductGrid products={displayProducts} />
         {:else}
-          <div class="bg-white border-2 border-dashed border-gray-200 py-32 flex flex-col items-center justify-center text-center">
-             <h3 class="text-xl font-black text-gray-900 mb-3 tracking-tight">Không tìm thấy sản phẩm!</h3>
-             <button onclick={() => goto('/')} class="px-8 py-3.5 bg-black text-white text-[11px] font-black tracking-[0.1em]">Về trang chủ</button>
+          <div class="bg-white border-2 border-dashed border-gray-200 py-16 px-6 flex flex-col items-center justify-center text-center mb-8">
+             <h3 class="text-xl font-black text-gray-900 mb-3 tracking-tight">Không tìm thấy sản phẩm phù hợp!</h3>
+             <p class="text-sm text-gray-400 max-w-md mb-6 leading-relaxed">Hãy thử tìm kiếm với từ khóa khác hoặc tham khảo các kiến thức chuyên môn bên dưới.</p>
+             <button onclick={() => goto('/')} class="px-8 py-3.5 bg-black text-white text-[11px] font-black tracking-[0.1em] hover:bg-zinc-800 transition-colors">Về trang chủ</button>
           </div>
+        {/if}
+
+        {#if isSearchMode && articles && articles.length > 0}
+          <section class="mt-12 pt-8 border-t border-gray-100">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-1.5 h-6 bg-[#C18F7E] rounded-full animate-pulse shadow-sm"></div>
+              <h2 class="text-xs font-black text-gray-400 uppercase tracking-[0.2em] italic">Kiến thức chuyên sâu liên quan</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {#each articles as art}
+                <a href="/{art.slug}.html" class="group bg-white border border-gray-100 hover:border-[#C18F7E]/30 hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden">
+                  <div class="aspect-video bg-gray-50 overflow-hidden relative">
+                    {#if art.featuredImage}
+                      <img src={art.featuredImage} alt={art.title} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    {:else}
+                      <div class="w-full h-full flex items-center justify-center bg-gray-100 text-gray-300">
+                        No Image
+                      </div>
+                    {/if}
+                    <div class="absolute top-3 left-3 bg-[#C18F7E] text-white text-[9px] font-black tracking-widest px-2.5 py-1 uppercase">{art.category}</div>
+                  </div>
+                  <div class="p-5 flex-grow flex flex-col justify-between">
+                    <div>
+                      <h3 class="text-[14px] font-bold text-gray-900 line-clamp-2 leading-snug group-hover:text-[#C18F7E] transition-colors mb-2 italic">"{art.title}"</h3>
+                      <p class="text-[12px] text-gray-400 line-clamp-3 leading-relaxed mb-4">{art.excerpt || ''}</p>
+                    </div>
+                    <span class="text-[11px] font-black text-[#C18F7E] tracking-widest uppercase flex items-center gap-1 group-hover:gap-2 transition-all">Đọc bài viết &rarr;</span>
+                  </div>
+                </a>
+              {/each}
+            </div>
+          </section>
         {/if}
       </div>
 

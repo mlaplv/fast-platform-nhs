@@ -267,7 +267,10 @@ class SupportAgentOperative(BaseAgentOperative):
     async def _save_history(self, db: AsyncSession, session_id: str, user_msg: str, assistant_reply: str, intent: SupportIntent, product_slug: Optional[str], customer_name: Optional[str] = None, customer_phone: Optional[str] = None) -> None:
         try:
             if user_msg != HELEN_FOLLOW_UP_TRIGGER:
-                enc_user_msg = GeminiSecurity.encrypt(user_msg)
+                clean_msg = user_msg
+                if "[system_consult]" in clean_msg:
+                    clean_msg = "Tư vấn chuyên sâu về sản phẩm này"
+                enc_user_msg = GeminiSecurity.encrypt(clean_msg)
                 msg_user = SupportChatHistory(session_id=session_id, role="user", content=enc_user_msg, intent=intent.value, product_slug=product_slug, customer_name=customer_name, customer_phone=customer_phone)
                 db.add(msg_user)
 
@@ -676,7 +679,7 @@ class SupportAgentOperative(BaseAgentOperative):
             cur_settings = await self._get_currency_settings()
             masked_msg = await self._mask_sensitive_medical_terms(request.message)
             _, p_info_fast = await _fetch_product_context(db, request.product_slug, cur_settings)
-            fast_res = await asyncio.wait_for(trinity_bridge.run(_fast_intent_agent, masked_msg, deps=FastIntentDeps(customer_name=c_name, product_name=p_info_fast.name if p_info_fast else None), role=trinity_bridge.ROLE_FAST, timeout=2.0), timeout=4.0)
+            fast_res = await asyncio.wait_for(trinity_bridge.run(_fast_intent_agent, masked_msg, deps=FastIntentDeps(customer_name=c_name, product_name=p_info_fast.name if p_info_fast else None), role=trinity_bridge.ROLE_FAST, timeout=8.0, per_model_timeout=3.5), timeout=9.0)
             f_data = cast(FastIntentResponse, fast_res)
             if f_data.intent == "GREETING" and f_data.quick_reply and not request.cart_items:
                 await self._save_history(db, session_id, request.message, f_data.quick_reply, SupportIntent.GENERAL_ADVICE, request.product_slug, c_name, request.customer_phone)

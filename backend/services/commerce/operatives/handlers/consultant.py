@@ -24,8 +24,13 @@ class ConsultantResponse(BaseModel):
     intent: str
     ui_component: Optional[str] = None
 
-# Elite V2.2: Module-level Singleton Agent (GC & RAM Optimization)
+# Elite V2.2: Module-level Singleton Agents (GC & RAM Optimization)
 _consultant_agent: Agent[ConsultantDeps, ConsultantResponse] = Agent(
+    output_type=ConsultantResponse,
+    deps_type=ConsultantDeps
+)
+
+_consultant_no_tool_agent: Agent[ConsultantDeps, ConsultantResponse] = Agent(
     output_type=ConsultantResponse,
     deps_type=ConsultantDeps
 )
@@ -33,6 +38,11 @@ _consultant_agent: Agent[ConsultantDeps, ConsultantResponse] = Agent(
 @_consultant_agent.system_prompt
 def _dynamic_system_prompt(ctx: RunContext[ConsultantDeps]) -> str:
     """Thread-safe dynamic prompt injection via Context deps."""
+    return ctx.deps.dynamic_prompt
+
+@_consultant_no_tool_agent.system_prompt
+def _dynamic_system_prompt_no_tool(ctx: RunContext[ConsultantDeps]) -> str:
+    """Thread-safe dynamic prompt injection for no-tool agent."""
     return ctx.deps.dynamic_prompt
 
 # 🛠️ TOOL LAYER 2: Lấy chi tiết thông tin cửa hàng và sản phẩm chuyên sâu
@@ -532,6 +542,97 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             masked_msg = (ctx.request.message[:15] + "...") if len(ctx.request.message) > 20 else ctx.request.message
             logger.debug(f"🔍 [L0 Fast-Path] No semantic match found for: '{masked_msg}'")
 
+        # RAG Pre-Retrieval: Active RAG Context injection to bypass multiple tool calls
+        pre_retrieved_ctx = ""
+        try:
+            from sqlalchemy import select, and_, or_, text
+            from backend.database import current_tenant_id
+            from backend.database.models.commerce import ProductBase
+            from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
+            
+            tid = (current_tenant_id.get() or "default")
+            msg_clean = ctx.request.message.replace("[system_consult]", "").strip()
+            
+            if len(msg_clean) > 2:
+                # 1. Pre-search products
+                p_rows = []
+                encoder = get_shared_encoder()
+                if encoder:
+                    try:
+                        vecs = list(encoder.embed([msg_clean]))
+                        if vecs:
+                            vec_str = f"[{','.join(map(str, vecs[0]))}]"
+                            sql = text("""
+                                SELECT p.id, p.name, p.short_description, p.description,
+                                       p.product_metadata, p.price, p.discount_price, p.stock, p.slug,
+                                       pe.embedding <=> CAST(:v AS vector) AS dist
+                                FROM product_bases p
+                                JOIN product_embeddings pe ON p.id = pe.product_base_id
+                                WHERE p.deleted_at IS NULL
+                                  AND p.status = 'ACTIVE'
+                                  AND p.tenant_id = :tid
+                                ORDER BY dist ASC
+                                LIMIT 3
+                            """)
+                            res = await ctx.db.execute(sql, {"v": vec_str, "tid": tid})
+                            p_rows = res.fetchall()
+                    except Exception as p_err:
+                        logger.debug(f"[ConsultantPreRetrieve] Product vector search failed: {p_err}")
+                
+                if not p_rows:
+                    kw = f"%{msg_clean}%"
+                    stmt = (
+                        select(
+                            ProductBase.id,
+                            ProductBase.name,
+                            ProductBase.short_description,
+                            ProductBase.description,
+                            ProductBase.product_metadata,
+                            ProductBase.price,
+                            ProductBase.discount_price,
+                            ProductBase.stock,
+                            ProductBase.slug,
+                        )
+                        .where(
+                            and_(
+                                ProductBase.deleted_at.is_(None),
+                                ProductBase.status == "ACTIVE",
+                                ProductBase.tenant_id == tid,
+                                or_(
+                                    ProductBase.name.ilike(kw),
+                                    ProductBase.short_description.ilike(kw),
+                                )
+                            )
+                        )
+                        .limit(3)
+                    )
+                    p_rows = (await ctx.db.execute(stmt)).fetchall()
+
+                if p_rows:
+                    pre_retrieved_ctx += "\n[DỮ LIỆU TÌM KIẾM HỆ THỐNG - SẢN PHẨM KHẢ QUAN]:\n"
+                    for idx, r in enumerate(p_rows):
+                        price_display = int(r.discount_price or r.price or 0)
+                        formatted = f"{price_display:,}đ".replace(",", ".")
+                        stock_txt = f"{r.stock} còn" if r.stock else "Hết hàng"
+                        pre_retrieved_ctx += f"  {idx+1}. {r.name} (Slug: {r.slug}) | Giá: {formatted} | Tồn: {stock_txt}\n"
+                        if r.short_description:
+                            pre_retrieved_ctx += f"     Mô tả: {r.short_description[:120]}\n"
+                        meta = getattr(r, 'product_metadata', {}) or {}
+                        if meta.get("ingredients"):
+                            pre_retrieved_ctx += f"     Thành phần: {str(meta['ingredients'])[:150]}\n"
+                        if meta.get("origin"):
+                            pre_retrieved_ctx += f"     Xuất xứ: {meta['origin']}\n"
+                
+                # 2. Pre-search Knowledge Base / Articles
+                kb_res = await kb_service.search_relevant_knowledge_raw(ctx.db, msg_clean, limit=2)
+                if kb_res:
+                    pre_retrieved_ctx += "\n[DỮ LIỆU TÌM KIẾM HỆ THỐNG - TRI THỨC VÀ CHÍNH SÁCH CHUNG]:\n"
+                    for idx, k in enumerate(kb_res):
+                        pre_retrieved_ctx += f"  - Tiêu đề: {k.get('title')} | Câu trả lời chính thức: {k.get('answer')}\n"
+
+        except Exception as e:
+            logger.warning(f"[ConsultantPreRetrieve] Failed pre-retrieval: {e}")
+
         # Assemble the specialist directive with current context
         lead_alert: str = ""
         if ctx.lead_data:
@@ -563,11 +664,16 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             f"{fomo_ctx}\n"
             f"{loyalty_ctx}\n"
             f"{lead_alert}\n"
+            f"\n[DỮ LIỆU TÌM KIẾM HỆ THỐNG (GROUND TRUTH)]\n{pre_retrieved_ctx or 'Không tìm thấy kết quả bổ sung.'}\n"
             f"\n[MỤC LỤC TRI THỨC HỆ THỐNG - LAYER 1]\n{ctx.knowledge_index}\n"
             f"\n[LỊCH SỬ GẦN ĐÂY]\n{ctx.history_text}\n"
             f"--- CART ---\n{ctx.cart_text}\n"
             f"--- PRODUCT ---\n{ctx.product_ctx}\n"
+            f"\nCHỈ THỊ PHỤC VỤ SÁT THỦ BÁN HÀNG:\n"
+            f"- ƯU TIÊN TUYỆT ĐỐI dữ liệu trong [DỮ LIỆU TÌM KIẾM HỆ THỐNG (GROUND TRUTH)] và [PRODUCT] để trả lời ngay.\n"
+            f"- CẤM TUYỆT ĐỐI gọi các Tool tìm kiếm (search_products_tool, search_knowledge_base, search_articles_tool) nếu thông tin cần trả lời đã nằm trong ngữ cảnh trên.\n"
         )
+
         
 
             
@@ -580,12 +686,13 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             deps = ConsultantDeps(db=ctx.db, dynamic_prompt=masked_prompt)
             
             res = await trinity_bridge.run(
-                _consultant_agent, 
+                _consultant_no_tool_agent, 
                 masked_msg, 
                 deps=deps, 
                 role=trinity_bridge.ROLE_BRAIN,
                 safety_none=True,
-                timeout=12.0
+                timeout=15.0,
+                per_model_timeout=9.0
             )
             # [ELITE V2.2] Standardized Result Extraction (Trust the Bridge)
             res_data = cast(Optional[ConsultantResponse], res)

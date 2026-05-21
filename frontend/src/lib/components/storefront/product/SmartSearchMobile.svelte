@@ -53,7 +53,7 @@
     searchStore.searchQuery = term;
     searchStore.addSearch(term);
     searchStore.isOverlayOpen = false;
-    goto(`/products?q=${encodeURIComponent(term.trim())}`);
+    goto(`/search?q=${encodeURIComponent(term.trim())}`);
   }
 
   function handleKeyDown(e: KeyboardEvent) {
@@ -224,7 +224,7 @@
                 <div class="flex flex-col gap-px bg-gray-100 border border-gray-100">
                   {#each searchStore.searchArticleResults as art}
                     <a 
-                      href="/{art.slug}" 
+                      href="/{art.slug}.html" 
                       onclick={() => { searchStore.addSearch(art.title); searchStore.isOverlayOpen = false; }} 
                       class="flex flex-col gap-3 p-4 bg-white active:bg-gray-50 transition-colors"
                     >

@@ -44,7 +44,7 @@
     searchStore.searchQuery = term;
     searchStore.addSearch(term);
     isFocused = false;
-    goto(`/products?q=${encodeURIComponent(term.trim())}`);
+    goto(`/search?q=${encodeURIComponent(term.trim())}`);
   }
 
   function handleKeyDown(e: KeyboardEvent) {
@@ -182,7 +182,7 @@
               <div class="text-[10px] font-black tracking-widest text-luxury-copper mb-3 ">Kiến thức chuyên sâu</div>
               <div class="flex flex-col gap-2">
                 {#each searchStore.searchArticleResults as art}
-                  <a href="/{art.slug}" onclick={() => { searchStore.addSearch(art.title); isFocused = false; }} class="flex items-center gap-4 p-2 hover:bg-gray-50 transition-colors group">
+                  <a href="/{art.slug}.html" onclick={() => { searchStore.addSearch(art.title); isFocused = false; }} class="flex items-center gap-4 p-2 hover:bg-gray-50 transition-colors group">
                     <div class="w-14 h-14 shrink-0 bg-gray-100 overflow-hidden">
                       <img src={art.featuredImage} alt={art.title} class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     </div>
@@ -204,11 +204,19 @@
     </div>
   {/if}
 </div>
-
 <style>
   @keyframes scanning {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
   }
   .animate-scanning { animation: scanning 1.5s linear infinite; }
+  
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-results-button,
+  input[type="search"]::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
 </style>

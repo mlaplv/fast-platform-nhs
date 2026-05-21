@@ -6,18 +6,19 @@
   import ChevronLeft from "@lucide/svelte/icons/chevron-left";
   import Search from "@lucide/svelte/icons/search";
   import Filter from "@lucide/svelte/icons/filter";
-  import type { Product, ProductFacets } from '$lib/types';
+  import type { Product, ProductFacets, Article } from '$lib/types';
 
   import BottomSheet from '$lib/components/mobile/BottomSheet.svelte';
   import SmartSearch from '$lib/components/storefront/product/SmartSearch.svelte';
 
   const searchStore = getSearchStore();
 
-  let { products = [], searchQuery = '', facets = null, loading = false } = $props<{
+  let { products = [], searchQuery = '', facets = null, loading = false, articles = [] } = $props<{
     products: Product[];
     searchQuery?: string;
     facets?: ProductFacets | null;
     loading?: boolean;
+    articles?: Article[];
   }>();
 
   let activeTab = $state('RELEVANT');
@@ -164,26 +165,67 @@
           <a href="/{p.slug}" class="bg-white rounded-2xl border border-gray-50 overflow-hidden shadow-sm hover:shadow-md transition-shadow active:scale-[0.98] transition-transform">
             <div class="aspect-square bg-gray-50 overflow-hidden relative">
               <img src={p.images?.[0] ?? p.metadata?.image_url} alt={p.name} class="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" decoding="async" />
-              {#if p.discountPrice}
-                <div class="absolute top-2 left-2 bg-[var(--color-brand-primary)] text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm shadow-md">GIẢM</div>
+              {#if p.discountPrice && p.price && p.discountPrice < p.price}
+                {@const percent = Math.round((1 - p.discountPrice / p.price) * 100)}
+                {#if percent > 0}
+                  <div class="absolute top-2 left-2 bg-[#ee4d2d] text-white text-[9px] font-black px-1.5 py-0.5 rounded-sm shadow-md">-{percent}%</div>
+                {/if}
               {/if}
             </div>
             <div class="p-3">
               <h3 class="text-[13px] font-bold text-gray-800 line-clamp-2 leading-tight mb-2 min-h-[34px]">{trimProductName(p.name)}</h3>
-              <div class="flex items-end justify-between">
+              <div class="flex items-baseline gap-1.5 flex-wrap">
                 <span class="text-[15px] font-black text-[#ee4d2d]">{formatCurrency(Number(p.discountPrice) || Number(p.price))}</span>
+                {#if p.discountPrice && p.price && p.discountPrice < p.price}
+                  <span class="text-[10px] text-gray-400 line-through font-medium tabular-nums">{formatCurrency(p.price)}</span>
+                {/if}
               </div>
             </div>
           </a>
         {/each}
       </div>
     {:else}
-      <div class="flex flex-col items-center justify-center py-20 text-center" in:fade>
-        <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-           <Search size={32} class="text-gray-300" />
+      <div class="flex flex-col items-center justify-center py-12 text-center" in:fade>
+        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+           <Search size={24} class="text-gray-300" />
         </div>
-        <p class="text-[14px] text-gray-500">Không tìm thấy sản phẩm nào.</p>
+        <p class="text-[13px] text-gray-500 font-bold">Không tìm thấy sản phẩm nào.</p>
+        <p class="text-[11px] text-gray-400 max-w-[250px] mt-1 leading-relaxed">Hãy tham khảo thêm các bài viết chia sẻ từ chuyên gia ở bên dưới.</p>
       </div>
+    {/if}
+
+    {#if articles && articles.length > 0}
+      <section class="mt-8 pt-6 border-t border-gray-100">
+        <div class="flex items-center gap-2 mb-4 px-1">
+          <div class="w-1 h-4 bg-[var(--color-brand-primary)] rounded-full"></div>
+          <h2 class="text-[11px] font-black text-gray-400 uppercase tracking-wider">Kiến thức chuyên gia liên quan</h2>
+        </div>
+        
+        <div class="flex flex-col gap-3">
+          {#each articles as art}
+            <a href="/{art.slug}.html" class="flex gap-3 bg-white p-3 border border-gray-100 rounded-xl active:scale-[0.98] transition-all">
+              <div class="w-24 h-24 shrink-0 bg-gray-50 rounded-lg overflow-hidden relative">
+                {#if art.featuredImage}
+                  <img src={art.featuredImage} alt={art.title} class="w-full h-full object-cover" />
+                {:else}
+                  <div class="w-full h-full flex items-center justify-center bg-gray-100 text-gray-300 text-[10px]">
+                    No Image
+                  </div>
+                {/if}
+                <div class="absolute top-1 left-1 bg-[var(--color-brand-primary)] text-white text-[7px] font-black px-1 py-0.5 rounded-sm uppercase tracking-tighter">{art.category}</div>
+              </div>
+              
+              <div class="flex-grow min-w-0 flex flex-col justify-between py-0.5">
+                <div>
+                  <h3 class="text-[13px] font-bold text-gray-900 leading-snug line-clamp-2 italic">"{art.title}"</h3>
+                  <p class="text-[11px] text-gray-400 line-clamp-2 leading-relaxed mt-1">{art.excerpt || ''}</p>
+                </div>
+                <div class="text-[10px] font-black text-[var(--color-brand-primary)] uppercase mt-2 flex items-center gap-0.5">Xem chi tiết &rarr;</div>
+              </div>
+            </a>
+          {/each}
+        </div>
+      </section>
     {/if}
   </div>
 

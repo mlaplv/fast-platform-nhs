@@ -81,7 +81,7 @@ class TrinityBridge:
                     self.db_primary_model, self.db_waterfall = p.primary_model, p.ai_models or []
                     
                     # Elite V2.2: Hard-redirection for deprecated models
-                    if self.db_primary_model in ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-pro", "gemini-2.0-flash-lite"]:
+                    if self.db_primary_model in ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-pro", "gemini-2.0-flash-lite", "gemini-2.0-flash"]:
                         logger.info(f"🔄 [TrinityBridge] Redirecting legacy/deprecated primary model {self.db_primary_model} -> {self.primary_model}")
                         self.db_primary_model = self.primary_model
                     
@@ -109,6 +109,9 @@ class TrinityBridge:
         
         val_force: object = kwargs.pop("force", False)
         force: bool = bool(val_force)
+        
+        val_pmt: object = kwargs.pop("per_model_timeout", None)
+        pmt: Optional[float] = float(val_pmt) if val_pmt is not None else None
         
         # Elite V2.2: Mandatory Late-Initialization Guard (R45 - Cold Start Protection)
         if not self._initialized:
@@ -169,6 +172,8 @@ class TrinityBridge:
                         logger.error(f"🛑 [TrinityBridge] GLOBAL TIMEOUT EXCEEDED ({t}s) across all models. Bailing out.")
                         return None
 
+                    attempt_timeout = min(remaining_t, pmt) if pmt is not None else remaining_t
+
                     # [R.C.3 FIX] Semaphore chỉ bảo vệ ĐÚNG tác vụ AI, không bảo vệ cả vòng lặp key.
                     # Timeout (t) được áp dụng bên trong guard để coroutine có thể bị cancel đúng cách.
                     async with self.concurrency_guard:
@@ -176,12 +181,12 @@ class TrinityBridge:
                             with agent.override(instructions=str(system_prompt)):
                                 res = await asyncio.wait_for(
                                     agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs),
-                                    timeout=remaining_t
+                                    timeout=attempt_timeout
                                 )
                         else:
                             res = await asyncio.wait_for(
                                 agent.run(prompt, model=model_instance, model_settings=cast(ModelSettings, ms), deps=deps, **kwargs),
-                                timeout=remaining_t
+                                timeout=attempt_timeout
                             )
 
                     if hasattr(res, 'usage'):
@@ -207,7 +212,7 @@ class TrinityBridge:
 
                 except (asyncio.TimeoutError, TimeoutError):
                     last_err = "Timeout"
-                    logger.warning(f"[TrinityBridge] Model '{m_name}' timed out after {t}s. Breaking to next model.")
+                    logger.warning(f"[TrinityBridge] Model '{m_name}' timed out after {attempt_timeout:.1f}s. Breaking to next model.")
                     if key:
                         await self.rotator.mark_unhealthy(key, reason="timeout", session_id=s_id)
                     await self.rotator.track_model_failure(m_name, reason="timeout")

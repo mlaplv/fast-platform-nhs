@@ -555,34 +555,45 @@
 /* =========================================
    7. MEDIA QUERIES (Combined & Optimized)
    ========================================= */
-@media (max-width: 1024px) {
+/* Desktop: > 1024px */
+@media (min-width: 1025px) {
+  .package-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    align-items: stretch;
+  }
+}
+
+/* Tablet: 768px to 1024px */
+@media (min-width: 768px) and (max-width: 1024px) {
   .package-grid {
     display: flex !important;
     overflow-x: auto !important;
     scroll-snap-type: x mandatory !important;
-    gap: 2rem;
-    padding: 60px 2rem 100px 2rem !important;
-    margin-top: -40px !important;
-    margin-bottom: -60px !important;
+    gap: 1.5rem !important;
+    padding: 30px 1.5rem 60px 1.5rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    scroll-padding-inline: 2rem;
+    scroll-padding-inline: 1.5rem;
+  }
 
-    &::-webkit-scrollbar {
-      display: none !important;
-    }
+  .package-grid::-webkit-scrollbar {
+    display: none !important;
+  }
 
-    >div {
-      scroll-snap-align: center;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      height: auto !important;
-      width: 85%;
-      max-width: 420px;
-      min-width: 290px;
-    }
+  .package-grid > div {
+    scroll-snap-align: center;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    height: auto !important;
+    width: calc(50% - 0.75rem) !important;
+    max-width: none !important;
+    min-width: 0 !important;
   }
 
   .package-card {
@@ -601,16 +612,58 @@
   .offer-grid-headline {
     font-size: clamp(20px, 4vw, 30px) !important;
   }
+}
 
-  /* Merge 768px logic here to save block space */
-  @media (max-width: 768px) {
-    .offer-section {
-      padding: 60px 0;
-    }
+/* Mobile: < 768px */
+@media (max-width: 767px) {
+  .offer-section {
+    padding: 60px 0;
+  }
 
-    .package-grid {
-      gap: 1rem;
-    }
+  .package-grid {
+    display: flex !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    gap: 1rem !important;
+    padding: 20px 1rem 50px 1rem !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-padding-inline: 1rem;
+  }
+
+  .package-grid::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .package-grid > div {
+    scroll-snap-align: center;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    height: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
+
+  .package-card {
+    border-radius: 3rem;
+    backface-visibility: hidden;
+    height: auto !important;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .variant-image-hero {
+    height: 220px;
+  }
+
+  .offer-grid-headline {
+    font-size: clamp(20px, 4vw, 30px) !important;
   }
 }
 

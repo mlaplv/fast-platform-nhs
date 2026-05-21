@@ -151,7 +151,7 @@
   }
 </script>
 
-<div class="relative h-full z-10 {variantsCount >= 3 ? 'min-w-[300px] md:min-w-[420px] lg:min-w-0 snap-center' : ''}">
+<div class="relative h-full z-10 {variantsCount >= 3 ? 'min-w-0 snap-center' : ''}">
   <div class="absolute -top-4 left-1/2 -translate-x-1/2 flex flex-wrap gap-2 justify-center w-[120%] z-[60] pointer-events-none mt-1">
     {#if idx === 1 && !isCardActive}
        <div class="px-5 py-2 expert-choice-ribbon text-white font-black text-[9px] tracking-[0.4em] rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">

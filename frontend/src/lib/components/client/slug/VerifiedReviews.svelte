@@ -388,7 +388,7 @@
             </div>
 
             <!-- iPad Mini / Tablet Navigation Controls (Elite Delicate) -->
-            <div class="tablet-nav-controls flex items-center gap-2">
+            <div class="tablet-nav-controls flex items-center gap-2" class:show-desktop={realReviews.length > 3}>
               <button 
                 onclick={scrollPrev}
                 class="nav-delicate group/nav p-2 transition-all active:scale-90"
@@ -413,7 +413,12 @@
             </div>
         </div>
 
-        <div class="reviews-scroll-wrapper scrollbar-hide flex overflow-x-auto snap-x snap-mandatory gap-4 xl:grid xl:grid-cols-3 xl:gap-8 w-full" bind:this={scrollContainer}>
+        <div 
+          class="reviews-scroll-wrapper scrollbar-hide w-full" 
+          class:grid-mode={realReviews.length <= 3}
+          class:slider-mode={realReviews.length > 3}
+          bind:this={scrollContainer}
+        >
           {#if isLoading && realReviews.length === 0}
             <div class="flex flex-col items-center justify-center p-24 gap-6">
               <div class="w-12 h-12 border-2 border-luxury-sakura/20 border-t-luxury-sakura rounded-full animate-spin"></div>
@@ -426,7 +431,7 @@
             </div>
           {:else}
             {#each realReviews as review, i}
-              <div class="review-card group/card flex-none w-[85vw] max-w-[400px] xl:w-auto snap-center" in:fly={{ y: 20, delay: i * 100, duration: 800 }}>
+              <div class="review-card group/card snap-center" in:fly={{ y: 20, delay: i * 100, duration: 800 }}>
                 <div class="review-header flex items-start justify-between gap-4 mb-4">
                   <div class="flex items-center gap-4">
                     <div class="avatar-circle relative group-hover/card:scale-110 transition-transform duration-500">
