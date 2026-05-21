@@ -17,7 +17,15 @@
       };
     };
   }
-  let { article }: Props = $props();
+  let { article: rawArticle }: Props = $props();
+
+  // Elite V2.2: Safe API Property Normalization
+  const article = $derived({
+    ...rawArticle,
+    featuredImage: rawArticle.featuredImage || (rawArticle as any).featured_image || "",
+    publishedAt: rawArticle.publishedAt || (rawArticle as any).created_at || (rawArticle as any).published_at || "",
+    author: rawArticle.author || (rawArticle as any).author_name || "System"
+  });
 
   // SGE Shield V1.0: Deterministic DOM Entropy
   const wrapperTags = ["div", "article", "section", "main"];

@@ -95,55 +95,43 @@
   <div class="max-w-[1240px] mx-auto px-6 pt-10 pb-8 relative z-[var(--z-wave)]">
 
     <!-- ══════════════════════════════════════════════
-         TABLET (768px – 1023px): Compact + Accordion
+         TABLET/MOBILE (≤1023px): Viral FOMO Redesign
          ══════════════════════════════════════════════ -->
     <div class="block lg:hidden mb-6">
 
-      <!-- Brand Row (horizontal compact) -->
-      <div class="flex items-start justify-between mb-5 pb-5 border-b border-white/5 gap-4">
-        <!-- Logo + slogan -->
-        <div>
-          <span class="text-2xl font-black tracking-[0.2em] bg-gradient-to-r from-[#C18F7E] via-[#E3B5A4] to-[#C18F7E] bg-clip-text text-transparent uppercase leading-none block">
-            {shopInfo.name}
-          </span>
-          <div class="flex items-center gap-2 mt-2">
-            <div class="h-[1px] w-8 bg-gradient-to-r from-[#C18F7E] to-transparent"></div>
-            <span class="text-[8px] font-black tracking-[0.35em] text-white/40 uppercase">{shopInfo.slogan}</span>
-          </div>
-          {#if shopInfo.subslogan}
-            <p class="text-[11px] leading-relaxed text-slate-400 font-normal italic mt-2 max-w-[220px]">"{shopInfo.subslogan}"</p>
-          {/if}
+      <!-- [1] FOMO Strip – Subtle inline -->
+      <div class="fomo-strip">
+        <div class="fomo-pulse-dot">
+          <span class="fomo-ping"></span>
+          <span class="fomo-dot"></span>
         </div>
-
-        <!-- FOMO + AI Badges (right column) -->
-        <div class="flex flex-col items-end gap-2 shrink-0">
-          <div class="flex items-center gap-2 py-1.5 px-3 bg-[#C18F7E]/5 border border-[#C18F7E]/20 rounded-xl backdrop-blur-md">
-            <div class="relative flex h-1.5 w-1.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
-            </div>
-            <p class="text-[10px] font-black tracking-widest text-[#C18F7E]">
-              <span class="tabular-nums">{activeViewers}</span> thành viên
-            </p>
-          </div>
-          <div class="flex gap-1.5 flex-wrap justify-end">
-            <div class="flex items-center gap-1 px-2 py-0.5 bg-white/5 border border-white/10 rounded-full">
-              <ShieldCheck size={9} class="text-[#C18F7E]" />
-              <span class="text-[7px] font-black tracking-widest text-white/70">AI Guard</span>
-            </div>
-            <div class="flex items-center gap-1 px-2 py-0.5 bg-white/5 border border-white/10 rounded-full">
-              <Zap size={9} class="text-[#C18F7E]" />
-              <span class="text-[7px] font-black tracking-widest text-white/70">Instant</span>
-            </div>
-            <div class="flex items-center gap-1 px-2 py-0.5 bg-white/5 border border-white/10 rounded-full">
-              <Clock size={9} class="text-[#C18F7E]" />
-              <span class="text-[7px] font-black tracking-widest text-white/70">24/7</span>
-            </div>
-          </div>
-        </div>
+        <span class="fomo-count tabular-nums">{activeViewers}</span>
+        <span class="fomo-label">đang online</span>
+        <span class="fomo-sep">·</span>
+        <ShieldCheck size={10} class="fomo-icon" />
+        <span class="fomo-tag">AI Guard</span>
+        <span class="fomo-sep">·</span>
+        <Zap size={10} class="fomo-icon" />
+        <span class="fomo-tag">Instant</span>
+        <span class="fomo-sep">·</span>
+        <Clock size={10} class="fomo-icon" />
+        <span class="fomo-tag">24/7</span>
       </div>
 
-      <!-- Accordion: Hệ sinh thái -->
+      <!-- [2] Brand Block – Centered, full width -->
+      <div class="brand-block">
+        <span class="brand-name">{shopInfo.name}</span>
+        <div class="brand-sub">
+          <div class="brand-line"></div>
+          <span class="brand-slogan">{shopInfo.slogan}</span>
+          <div class="brand-line brand-line-rev"></div>
+        </div>
+        {#if shopInfo.subslogan}
+          <p class="brand-desc">"{shopInfo.subslogan}"</p>
+        {/if}
+      </div>
+
+      <!-- [3] Accordion Links -->
       <div class="accordion-item">
         <button
           class="accordion-trigger"
@@ -151,7 +139,7 @@
           aria-expanded={openSections.ecosystem}
           id="acc-trigger-ecosystem"
         >
-          <span class="acc-label">Hệ sinh thái</span>
+          <span class="acc-label">Thông tin chung</span>
           <ChevronDown size={14} class="acc-chevron {openSections.ecosystem ? 'rotated' : ''}" />
         </button>
         <div class="accordion-body {openSections.ecosystem ? 'open' : ''}" id="acc-body-ecosystem">
@@ -163,7 +151,6 @@
         </div>
       </div>
 
-      <!-- Accordion: Khách hàng -->
       <div class="accordion-item">
         <button
           class="accordion-trigger"
@@ -183,7 +170,6 @@
         </div>
       </div>
 
-      <!-- Accordion: Kết nối -->
       <div class="accordion-item">
         <button
           class="accordion-trigger"
@@ -191,38 +177,41 @@
           aria-expanded={openSections.connect}
           id="acc-trigger-connect"
         >
-          <span class="acc-label">Kết nối</span>
+          <span class="acc-label">Thông tin liên hệ</span>
           <ChevronDown size={14} class="acc-chevron {openSections.connect ? 'rotated' : ''}" />
         </button>
         <div class="accordion-body {openSections.connect ? 'open' : ''}" id="acc-body-connect">
-          <div class="py-3 space-y-3">
-            <div class="flex items-start gap-3">
+          <div class="acc-contact-body">
+            <div class="acc-contact-row">
               <MapPin size={12} class="text-[#C18F7E] shrink-0 mt-0.5" />
-              <p class="text-[12px] text-slate-300 font-normal italic leading-relaxed">{shopInfo.address}</p>
+              <p class="acc-contact-text italic">{shopInfo.address}</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="acc-contact-row">
               <Mail size={12} class="text-[#C18F7E] shrink-0" />
-              <a href="mailto:{shopInfo.email}" class="text-[12px] text-slate-300 hover:text-[#C18F7E] transition-colors">{shopInfo.email}</a>
-            </div>
-            <div class="flex items-center justify-between pt-2 border-t border-white/5">
-              <div>
-                <span class="text-[8px] tracking-[0.2em] text-slate-500 font-bold block mb-0.5">Hotline 24/7</span>
-                <a href="tel:{shopInfo.hotline.replace(/-/g, '')}" class="text-xl font-black tracking-tighter text-white hover:text-[#C18F7E] transition-colors tabular-nums">
-                  {shopInfo.hotline}
-                </a>
-              </div>
-              <div class="flex items-center gap-4">
-                {#each socialLinks as s}
-                  <a href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label}
-                     class="text-slate-500 hover:text-[#C18F7E] transition-all">
-                    <s.icon size={16} />
-                  </a>
-                {/each}
-              </div>
+              <a href="mailto:{shopInfo.email}" class="acc-contact-text hover:text-[#C18F7E] transition-colors">{shopInfo.email}</a>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- [4] Contact Bar – Always visible at bottom of tablet block -->
+      <div class="contact-bar">
+        <div class="contact-bar-hotline">
+          <span class="contact-bar-hotline-label">Hotline 24/7</span>
+          <a href="tel:{shopInfo.hotline.replace(/-/g, '')}" class="contact-bar-hotline-number tabular-nums">
+            {shopInfo.hotline}
+          </a>
+        </div>
+        <div class="contact-bar-right">
+          {#each socialLinks as s}
+            <a href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label}
+               class="contact-bar-social">
+              <s.icon size={16} />
+            </a>
+          {/each}
+        </div>
+      </div>
+
     </div>
 
     <!-- ══════════════════════════════════════════════
@@ -277,7 +266,8 @@
 
       <!-- Links: Ecosystem -->
       <div class="col-span-2 space-y-6">
-        <h4 class="text-white font-black text-[10px] tracking-[0.4em] pl-2">Hệ sinh thái</h4>
+        <h4 class="text-white font-black text-[10px] tracking-[0.4em] pl-2">Thông tin chung
+</h4>
         <ul class="space-y-3">
           {#each ecosystemLinks as link}
             <li>
@@ -307,7 +297,7 @@
 
       <!-- Contact & Social -->
       <div class="col-span-4 space-y-6">
-        <h4 class="text-white font-black text-[10px] tracking-[0.4em] pl-2">Kết nối</h4>
+        <h4 class="text-white font-black text-[10px] tracking-[0.4em] pl-2">Thông tin liên hệ</h4>
         <div class="bg-white/[0.02] border border-white/5 p-5 rounded-xl backdrop-blur-3xl space-y-5 hover:border-[#C18F7E]/20 transition-all group">
           <div class="flex items-center gap-4">
             <div class="w-7 h-7 rounded-lg bg-[#C18F7E]/10 flex items-center justify-center shrink-0">
@@ -414,11 +404,130 @@
 <style>
   :global(footer) { contain: paint; }
 
+  /* ── FOMO Strip (subtle inline) ── */
+  .fomo-strip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 0;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .fomo-pulse-dot {
+    position: relative;
+    display: flex;
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+  }
+  .fomo-ping {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: #4ade80;
+    opacity: 0.75;
+    animation: ping 1.2s cubic-bezier(0,0,0.2,1) infinite;
+  }
+  .fomo-dot {
+    position: relative;
+    display: inline-flex;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: #22c55e;
+  }
+  @keyframes ping {
+    75%, 100% { transform: scale(2); opacity: 0; }
+  }
+  .fomo-count {
+    font-size: 12px;
+    font-weight: 900;
+    color: #C18F7E;
+    letter-spacing: -0.01em;
+  }
+  .fomo-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 0.05em;
+  }
+  .fomo-sep {
+    color: rgba(255,255,255,0.1);
+    font-size: 10px;
+    margin: 0 1px;
+  }
+  :global(.fomo-icon) {
+    color: rgba(193,143,126,0.5);
+    flex-shrink: 0;
+  }
+  .fomo-tag {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+  }
+
+  /* ── Brand Block ── */
+  .brand-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 4px;
+  }
+  .brand-name {
+    font-size: clamp(22px, 5vw, 30px);
+    font-weight: 900;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, #C18F7E, #E3B5A4, #C18F7E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    display: block;
+  }
+  .brand-sub {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .brand-line {
+    height: 1px;
+    width: 28px;
+    background: linear-gradient(90deg, transparent, #C18F7E);
+  }
+  .brand-line-rev {
+    background: linear-gradient(90deg, #C18F7E, transparent);
+  }
+  .brand-slogan {
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 0.38em;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .brand-desc {
+    margin-top: 8px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: rgb(148 163 184);
+    font-style: italic;
+    font-weight: 400;
+    max-width: 300px;
+  }
+
   /* ── Accordion Core ── */
   .accordion-item {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
-
   .accordion-trigger {
     width: 100%;
     display: flex;
@@ -435,7 +544,6 @@
     outline: 1.5px solid rgba(193, 143, 126, 0.5);
     border-radius: 4px;
   }
-
   .acc-label {
     font-size: 10px;
     font-weight: 900;
@@ -443,8 +551,6 @@
     color: #fff;
     text-transform: uppercase;
   }
-
-  /* Chevron rotate animation */
   :global(.acc-chevron) {
     color: rgba(193, 143, 126, 0.7);
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -454,21 +560,16 @@
     transform: rotate(180deg);
     color: #C18F7E;
   }
-
-  /* Accordion body: smooth max-height collapse */
   .accordion-body {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1),
-                opacity 0.3s ease;
+    transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
     opacity: 0;
   }
   .accordion-body.open {
     max-height: 400px;
     opacity: 1;
   }
-
-  /* Link list styles */
   .acc-list {
     list-style: none;
     padding: 0 0 12px 0;
@@ -482,7 +583,6 @@
     grid-template-columns: 1fr 1fr;
     gap: 10px 16px;
   }
-
   .acc-link {
     font-size: 13px;
     color: rgb(100 116 139);
@@ -501,10 +601,73 @@
     transition: width 0.25s ease;
     flex-shrink: 0;
   }
-  .acc-link:hover {
+  .acc-link:hover { color: #fff; }
+  .acc-link:hover::before { width: 10px; }
+
+  /* ── Accordion Contact Body ── */
+  .acc-contact-body {
+    padding: 10px 0 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .acc-contact-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .acc-contact-text {
+    font-size: 12px;
+    color: rgb(203 213 225);
+    font-weight: 400;
+    line-height: 1.5;
+    text-decoration: none;
+  }
+
+  /* ── Contact Bar ── */
+  .contact-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .contact-bar-hotline {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .contact-bar-hotline-label {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: rgb(100 116 139);
+    text-transform: uppercase;
+  }
+  .contact-bar-hotline-number {
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
     color: #fff;
+    text-decoration: none;
+    transition: color 0.2s ease;
   }
-  .acc-link:hover::before {
-    width: 10px;
+  .contact-bar-hotline-number:hover { color: #C18F7E; }
+  .contact-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
   }
+  .contact-bar-social {
+    color: rgb(100 116 139);
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+  }
+  .contact-bar-social:hover { color: #C18F7E; }
 </style>

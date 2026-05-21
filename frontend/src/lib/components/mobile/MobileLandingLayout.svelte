@@ -41,6 +41,27 @@
   let activeSectionIndex = $state(0);
   let isDetailsModalOpen = $state(false);
   let loadJIT = $state(false);
+  let MobileDiagnosticsComponent = $state<Component<Record<string, unknown>> | null>(null);
+  let MobileScienceComponent = $state<Component<Record<string, unknown>> | null>(null);
+  let MobileReviewsComponent = $state<Component<Record<string, unknown>> | null>(null);
+  let MobileOfferComponent = $state<Component<Record<string, unknown>> | null>(null);
+
+  $effect(() => {
+    if (loadJIT) {
+      import('./sections/MobileDiagnostics.svelte').then((mod) => {
+        MobileDiagnosticsComponent = mod.default as Component<Record<string, unknown>>;
+      });
+      import('./sections/MobileScience.svelte').then((mod) => {
+        MobileScienceComponent = mod.default as Component<Record<string, unknown>>;
+      });
+      import('./sections/MobileReviews.svelte').then((mod) => {
+        MobileReviewsComponent = mod.default as Component<Record<string, unknown>>;
+      });
+      import('./sections/MobileOffer.svelte').then((mod) => {
+        MobileOfferComponent = mod.default as Component<Record<string, unknown>>;
+      });
+    }
+  });
   let isScanning = $state(false);
   let showVerification = $state(false);
   let verificationData: Record<string, unknown> | null = $state(null);
@@ -177,10 +198,8 @@
 
   <!-- SECTION 2: NATIVE DIAGNOSTICS -->
   <section id="diagnostics" class="mobile-snap-section" data-section-idx={hasVideo ? 2 : 1}>
-    {#if loadJIT}
-      {#await import('./sections/MobileDiagnostics.svelte') then { default: MobileDiagnostics }}
-        <MobileDiagnostics {product} />
-      {/await}
+    {#if MobileDiagnosticsComponent}
+      <MobileDiagnosticsComponent {product} />
     {:else}
       <div class="w-full min-h-[50vh] bg-black animate-pulse"></div>
     {/if}
@@ -188,10 +207,8 @@
 
   <!-- SECTION 3: NATIVE SCIENCE -->
   <section id="science" class="mobile-snap-section" data-section-idx={hasVideo ? 3 : 2}>
-    {#if loadJIT}
-      {#await import('./sections/MobileScience.svelte') then { default: MobileScience }}
-        <MobileScience {product} />
-      {/await}
+    {#if MobileScienceComponent}
+      <MobileScienceComponent {product} />
     {:else}
       <div class="w-full min-h-[50vh] bg-black animate-pulse"></div>
     {/if}
@@ -199,10 +216,8 @@
 
   <!-- SECTION 4: NATIVE REVIEWS -->
   <section id="reviews" class="mobile-snap-section" data-section-idx={hasVideo ? 4 : 3}>
-    {#if loadJIT}
-      {#await import('./sections/MobileReviews.svelte') then { default: MobileReviews }}
-        <MobileReviews {product} initialReviews={reviews} />
-      {/await}
+    {#if MobileReviewsComponent}
+      <MobileReviewsComponent {product} initialReviews={reviews} />
     {:else}
       <div class="w-full min-h-[50vh] bg-black animate-pulse"></div>
     {/if}
@@ -210,10 +225,8 @@
 
   <!-- SECTION 5: NATIVE OFFER -->
   <section id="offers" class="mobile-snap-section" data-section-idx={hasVideo ? 5 : 4}>
-    {#if loadJIT}
-      {#await import('./sections/MobileOffer.svelte') then { default: MobileOffer }}
-        <MobileOffer {product} onOpenDetails={() => isDetailsModalOpen = true} {relatedProducts} {reviewStats} />
-      {/await}
+    {#if MobileOfferComponent}
+      <MobileOfferComponent {product} onOpenDetails={() => isDetailsModalOpen = true} {relatedProducts} {reviewStats} />
     {:else}
       <div class="w-full min-h-[100vh] bg-black animate-pulse"></div>
     {/if}

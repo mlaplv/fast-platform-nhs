@@ -6,10 +6,10 @@
     id: string;
     slug: string;
     title: string;
-    summary: string;
+    excerpt?: string;
     featuredImage: string;
     category?: string;
-    date?: string;
+    createdAt?: string;
   }
 
   interface Props {
@@ -25,8 +25,8 @@
   // Hàm phân loại ngữ nghĩa động từ văn bản bài viết (Zero-Migration)
   const getArticleTags = (item: NewsItem): string[] => {
     const title = (item.title || "").toLowerCase();
-    const summary = (item.summary || "").toLowerCase();
-    const text = `${title} ${summary}`;
+    const excerpt = (item.excerpt || "").toLowerCase();
+    const text = `${title} ${excerpt}`;
     
     const tags: string[] = [];
     if (text.includes("skin") || text.includes("aging") || text.includes("cleansing") || text.includes("hydration") || text.includes("da") || text.includes("dưỡng") || text.includes("rửa") || text.includes("cổ")) {
@@ -52,14 +52,28 @@
     return tags;
   };
 
+  /** Format ISO datetime → "THÁNG MM, YYYY" */
+  const formatArticleDate = (iso?: string): string => {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      return `THÁNG ${month}, ${d.getFullYear()}`;
+    } catch { return ''; }
+  };
+
   const enhancedNews = $derived(() => {
     return newsList.map((item, i) => {
       const tags = getArticleTags(item);
+      const featImg = item.featuredImage || (item as any).featured_image || "";
+      const created = item.createdAt || (item as any).created_at;
       return {
         ...item,
+        featuredImage: featImg,
         tags,
         category: tags[0] || 'LÀM ĐẸP',
-        date: item.date || 'THÁNG 03, 2026'
+        date: formatArticleDate(created)
       };
     });
   });
@@ -67,8 +81,16 @@
   const filteredNews = $derived(() => {
     const list = enhancedNews();
     const activeTag = selectedTag;
-    if (!activeTag) return list;
-    return list.filter(item => item.tags.includes(activeTag));
+    let result = activeTag 
+      ? list.filter(item => item.tags.includes(activeTag))
+      : list;
+
+    // Elite V2.2: Option B - Prevent duplication by hiding articles that are already featured
+    if (list.length > 5) {
+      const featuredIds = featuredNews().map(f => f.id);
+      result = result.filter(item => !featuredIds.includes(item.id));
+    }
+    return result;
   });
 
   const featuredNews = $derived(() => enhancedNews().slice(0, 5));
@@ -182,7 +204,7 @@
                   </h2>
 
                   <p class="text-gray-500 text-sm line-clamp-3 leading-relaxed font-medium mb-6">
-                    {news.summary}
+                    {news.excerpt || ''}
                   </p>
 
                   <div class="mt-auto pt-6 border-t border-gray-50 flex items-center justify-between">

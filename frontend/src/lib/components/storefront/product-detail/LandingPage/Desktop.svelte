@@ -32,6 +32,18 @@
       VerificationCenterComponent = mod.default as Component<Record<string, unknown>>;
     }
   }
+
+  let ProductReviewsComponent = $state<Component<Record<string, unknown>> | null>(null);
+  let RelatedProductsComponent = $state<Component<Record<string, unknown>> | null>(null);
+
+  $effect(() => {
+    import("../../shared/ProductReviews.svelte").then((mod) => {
+      ProductReviewsComponent = mod.default as Component<Record<string, unknown>>;
+    });
+    import("../shared/RelatedProducts.svelte").then((mod) => {
+      RelatedProductsComponent = mod.default as Component<Record<string, unknown>>;
+    });
+  });
   import X from "@lucide/svelte/icons/x";
   import { portal } from "$lib/core/actions/portal";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
@@ -530,15 +542,15 @@
     <ProductDescription {product} />
 
     <div id="product-reviews" class="max-w-[1200px] mx-auto mt-6">
-      {#await import("../../shared/ProductReviews.svelte") then { default: ProductReviews }}
-        <ProductReviews {product} />
-      {/await}
+      {#if ProductReviewsComponent}
+        <ProductReviewsComponent {product} />
+      {/if}
     </div>
 
     <div class="max-w-[1200px] mx-auto mt-6 mb-12">
-      {#await import("../shared/RelatedProducts.svelte") then { default: RelatedProducts }}
-        <RelatedProducts {product} initialProducts={relatedProducts} />
-      {/await}
+      {#if RelatedProductsComponent}
+        <RelatedProductsComponent {product} initialProducts={relatedProducts} />
+      {/if}
     </div>
   </main>
 

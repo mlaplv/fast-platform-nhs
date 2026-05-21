@@ -11,6 +11,29 @@
   // JIT Component Flags
   let loadJIT = $state(false);
 
+  import type { Component } from "svelte";
+  let DiagnosticsSection = $state<Component<any> | null>(null);
+  let ScienceBento = $state<Component<any> | null>(null);
+  let VerifiedReviews = $state<Component<any> | null>(null);
+  let OfferGrid = $state<Component<any> | null>(null);
+
+  $effect(() => {
+    if (loadJIT) {
+      import("$lib/components/client/slug/DiagnosticsSection.svelte").then((m) => {
+        DiagnosticsSection = m.default as Component<any>;
+      });
+      import("$lib/components/client/slug/ScienceBento.svelte").then((m) => {
+        ScienceBento = m.default as Component<any>;
+      });
+      import("$lib/components/client/slug/VerifiedReviews.svelte").then((m) => {
+        VerifiedReviews = m.default as Component<any>;
+      });
+      import("$lib/components/client/slug/OfferGrid.svelte").then((m) => {
+        OfferGrid = m.default as Component<any>;
+      });
+    }
+  });
+
   import MobileLandingLayout from "$lib/components/mobile/MobileLandingLayout.svelte";
   import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
   import ScannerHUD from "$lib/components/storefront/product-detail/shared/ScannerHUD.svelte";
@@ -360,10 +383,8 @@
 
       {#if hasQuiz}
         <section id="diagnostics" class="snap-session">
-          {#if loadJIT}
-            {#await import("$lib/components/client/slug/DiagnosticsSection.svelte") then { default: DiagnosticsSection }}
-              <DiagnosticsSection {product} />
-            {/await}
+          {#if DiagnosticsSection}
+            <DiagnosticsSection {product} />
           {:else}
             <div
               class="w-full h-full bg-[#010101] animate-pulse rounded-t-3xl border-t border-[#111]"
@@ -373,30 +394,24 @@
       {/if}
 
       <section id="science" class="snap-session">
-        {#if loadJIT}
-          {#await import("$lib/components/client/slug/ScienceBento.svelte") then { default: ScienceBento }}
-            <ScienceBento />
-          {/await}
+        {#if ScienceBento}
+          <ScienceBento />
         {:else}
           <div class="w-full h-full bg-[#010101] animate-pulse"></div>
         {/if}
       </section>
 
       <section id="reviews" class="snap-session">
-        {#if loadJIT}
-          {#await import("$lib/components/client/slug/VerifiedReviews.svelte") then { default: VerifiedReviews }}
-            <VerifiedReviews initialReviews={data.reviews} />
-          {/await}
+        {#if VerifiedReviews}
+          <VerifiedReviews initialReviews={data.reviews} />
         {:else}
           <div class="w-full h-full bg-[#010101] animate-pulse"></div>
         {/if}
       </section>
 
       <section id="offers" class="snap-session">
-        {#if loadJIT}
-          {#await import("$lib/components/client/slug/OfferGrid.svelte") then { default: OfferGrid }}
-            <OfferGrid onTriggerScan={triggerScan} />
-          {/await}
+        {#if OfferGrid}
+          <OfferGrid onTriggerScan={triggerScan} />
         {:else}
           <div class="w-full h-full bg-[#010101] animate-pulse"></div>
         {/if}

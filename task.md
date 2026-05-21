@@ -338,7 +338,43 @@
   - Biên dịch thành công 100% qua `pnpm check`.
   - Cập nhật checklist và walkthrough.
 
+---
 
+# Task: Cấu hình padding trái phải bằng 0 cho màn hình <= 820px (Elite V2.2)
 
+## Kế hoạch (PROPOSE)
+- [ ] **[Frontend Style Fix]**: Cập nhật `client.css` để thêm media query `@media (max-width: 820px)` thiết lập `padding-left: 0 !important` and `padding-right: 0 !important` cho các phần tử container (`.container`, `.reviews-container`, `.reviews-scroll-wrapper`, `.snap-session-standard > .container`).
+- [ ] **[Quy trình quản trị]**: Cập nhật tài liệu minh chứng trong `walkthrough.md`.
 
+---
+
+# Task: Khắc phục Đồng bộ Dữ liệu Tin tức & Bài viết (Storefront News V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Frontend News Fields Fix]**: Khắc phục lỗi bất đồng bộ tên trường (camelCase vs snake_case) giữa API backend (`featured_image`, `created_at`, `excerpt`) và Component frontend (`featuredImage`, `createdAt`, `summary` / `excerpt`).
+- [x] **[Desktop List Mapping]**: Cập nhật `NewsListDesktop.svelte` để map `featuredImage` từ cả hai định dạng (`item.featuredImage` hoặc `item.featured_image`) và `createdAt` (từ `item.createdAt` hoặc `item.created_at`), đồng thời đổi `summary` sang `excerpt`. Đồng thời tích hợp cơ chế Loại bỏ trùng lặp (Option B) để tự động lọc bỏ các bài viết đã xuất hiện trong danh sách Tin nổi bật ra khỏi phần Tin thường khi tổng số lượng bài viết > 5.
+- [x] **[Mobile List Mapping]**: Đồng bộ logic map thuộc tính trên sang `NewsListMobile.svelte` để khôi phục ảnh đại diện và ngày tháng bài viết chuẩn chỉ trên di động. Đồng thời tái thiết kế Card Spotlight đầu trang sang dạng thẻ Magazine độc lập tách rời tiêu đề khỏi ảnh nền, loại bỏ hoàn toàn hiện tượng loạn/đè chữ lên ảnh.
+- [x] **[Desktop Detail Mapping]**: Nâng cấp `NewsDetailDesktop.svelte` sử dụng reactive derived state `article` để tự động chuẩn hóa thuộc tính `featuredImage`, `publishedAt`, và `author` từ dữ liệu API thô.
+- [x] **[Mobile Detail Mapping]**: Đồng bộ logic chuẩn hóa properties trên sang `NewsDetailMobile.svelte` giúp loại bỏ toàn bộ placeholder lỗi ảnh bài viết trên di động.
+- [x] **[Quy trình quản trị]**: Cập nhật check-list tác chiến trong `task.md`.
+
+---
+
+# Task: Tối ưu hóa Tải Dữ liệu Tránh Reload 2-3 Lần & Giật Lag (Elite V2.2 JIT Optimization)
+
+## Kế hoạch (PROPOSE)
+- [ ] **[Analysis & Diagnostics]**: Phân tích hành vi `{#await import(...)}` trực tiếp tại template Svelte. Khi các biến phản chiếu (reactive variables) của component cha thay đổi (hướng cuộn, chỉ mục phiên, chế độ sáng/tối), biểu thức dynamic import sẽ tạo ra Promise mới, gây hủy bỏ (unmount) và tái khởi tạo (remount) component con liên tục.
+- [ ] **[Frontend Core Funnel Page Fix]**: Cập nhật `frontend/src/routes/(client)/[slug]-funnel/+page.svelte`:
+  - Khai báo các biến trạng thái `$state` cho 4 component lazy-load: `DiagnosticsSection`, `ScienceBento`, `VerifiedReviews`, `OfferGrid`.
+  - Sử dụng `$effect` theo dõi biến `loadJIT` và thực hiện `import` động lưu vào các biến trạng thái để giữ tham chiếu duy nhất.
+  - Thay thế khối `{#await import(...)}` trong mã HTML bằng việc kiểm tra và hiển thị trực tiếp component qua thẻ có điều kiện để loại bỏ hoàn toàn hiện tượng remount.
+- [ ] **[Frontend Mobile Landing Layout Fix]**: Cập nhật `frontend/src/lib/components/mobile/MobileLandingLayout.svelte`:
+  - Khai báo các biến trạng thái `$state` cho 4 component: `MobileDiagnosticsComponent`, `MobileScienceComponent`, `MobileReviewsComponent`, `MobileOfferComponent`.
+  - Sử dụng `$effect` để import khi `loadJIT = true`.
+  - Đồng bộ hiển thị trong HTML bằng component tham chiếu ổn định để giải quyết triệt để lỗi giật lag và load lại 2-3 lần khi cuộn trang.
+- [ ] **[Frontend Desktop Product Detail Fix]**: Cập nhật `frontend/src/lib/components/storefront/product-detail/LandingPage/Desktop.svelte`:
+  - Khai báo biến trạng thái `$state` cho `ProductReviewsComponent` và `RelatedProductsComponent`.
+  - Kích hoạt dynamic import thông qua một `$effect` chạy duy nhất sau khi mount để tránh lag ban đầu nhưng loại bỏ double-load.
+- [ ] **[Syntax & Type Safety Verification]**: Chạy `svelte-check` để đảm bảo code sạch lỗi cú pháp, kiểu dữ liệu, bảo toàn logic reactive và bảo vệ 2GB RAM.
+- [ ] **[Quy trình quản trị]**: Bổ sung kết quả và bằng chứng vào `walkthrough.md`.
 

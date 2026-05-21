@@ -287,7 +287,7 @@
 <section class="snap-session snap-session-standard reviews-viewport relative overflow-visible" style:padding-top="var(--standard-pt)">
   <div class="reviews-container container mx-auto px-6 max-w-6xl relative z-surface">
     <!-- Header Section -->
-    <div class="text-center mb-16" in:fade>
+    <div class="text-center mb-0" in:fade>
       <!-- FLOATING HUD: No layout space occupied -->
       <div class="absolute top-[-4vh] left-1/2 -translate-x-1/2 elite-status-pill !bg-transparent border-none shadow-none opacity-0 animate-fade-in pointer-events-none" style="animation-delay: 0.2s; --status-color: #ef4444;">
         <div class="elite-dot-container">

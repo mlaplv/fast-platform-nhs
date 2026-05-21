@@ -29,7 +29,15 @@
     relatedNews?: NewsItem[];
   }
 
-  let { article, relatedNews = [] }: Props = $props();
+  let { article: rawArticle, relatedNews = [] }: Props = $props();
+
+  // Elite V2.2: Safe API Property Normalization
+  const article = $derived({
+    ...rawArticle,
+    featuredImage: rawArticle.featuredImage || (rawArticle as any).featured_image || "",
+    publishedAt: rawArticle.publishedAt || (rawArticle as any).created_at || (rawArticle as any).published_at || "",
+    author: rawArticle.author || (rawArticle as any).author_name || "System"
+  });
 
   // ELITE V2.2: Dynamic Sidebar (Zero-Hydration Sync)
   const normalizedRelatedNews = $derived(() => {

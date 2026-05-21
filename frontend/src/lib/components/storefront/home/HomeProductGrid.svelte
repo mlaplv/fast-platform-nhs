@@ -306,7 +306,7 @@
       {#each tabs as tab}
         <button
           onclick={() => (activeTab = tab.id)}
-          class="relative px-8 py-5 flex flex-col items-center gap-1 group/tab transition-all duration-500"
+          class="relative px-3 py-5 flex flex-col items-center gap-1 group/tab transition-all duration-500"
         >
           <div class="flex items-center gap-3">
             <span
@@ -601,7 +601,7 @@
                   class="text-[9px] font-black text-[#C18F7E] animate-pulse flex items-center gap-1"
                 >
                   <div class="w-1 h-1 rounded-full bg-[#C18F7E]"></div>
-                   CHÁY HÀNG
+                  CHÁY HÀNG
                 </span>
               </div>
               <p

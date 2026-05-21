@@ -11,9 +11,10 @@
      id: string;
      slug: string;
      title: string;
-     summary: string;
+     excerpt?: string;
      featuredImage: string;
      category?: string;
+     createdAt?: string;
   }
   interface Props {
     newsList: NewsItem[];
@@ -28,8 +29,8 @@
   // Hàm phân loại ngữ nghĩa động từ văn bản bài viết (Zero-Migration)
   const getArticleTags = (item: NewsItem): string[] => {
     const title = (item.title || "").toLowerCase();
-    const summary = (item.summary || "").toLowerCase();
-    const text = `${title} ${summary}`;
+    const excerpt = (item.excerpt || "").toLowerCase();
+    const text = `${title} ${excerpt}`;
     
     const tags: string[] = [];
     if (text.includes("skin") || text.includes("aging") || text.includes("cleansing") || text.includes("hydration") || text.includes("da") || text.includes("dưỡng") || text.includes("rửa") || text.includes("cổ")) {
@@ -55,14 +56,28 @@
     return tags;
   };
 
+  /** Format ISO datetime → "THÁNG MM, YYYY" */
+  const formatArticleDate = (iso?: string): string => {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      return `THÁNG ${month}, ${d.getFullYear()}`;
+    } catch { return ''; }
+  };
+
   const enhancedNews = $derived(() => {
     return newsList.map((item, i) => {
       const tags = getArticleTags(item);
+      const featImg = item.featuredImage || (item as any).featured_image || "";
+      const created = item.createdAt || (item as any).created_at;
       return {
         ...item,
+        featuredImage: featImg,
         tags,
         category: tags[0] || 'LÀM ĐẸP',
-        date: item.date || 'THÁNG 03, 2026'
+        date: formatArticleDate(created)
       };
     });
   });
@@ -81,7 +96,7 @@
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(n => 
         n.title.toLowerCase().includes(q) || 
-        n.summary.toLowerCase().includes(q)
+        (n.excerpt || '').toLowerCase().includes(q)
       );
     }
     
@@ -142,25 +157,28 @@
         <!-- 2. Hero Spotlight Card (Only show if not searching) -->
         <a 
           href="/{news.slug}"
-          class="block group relative bg-white overflow-hidden shadow-2xl shadow-black/10 active:scale-[0.98] transition-all duration-500"
+          class="block group bg-white overflow-hidden shadow-xl shadow-black/5 active:scale-[0.98] transition-all duration-500 border border-gray-100"
           in:fly={{ y: 20, duration: 600 }}
         >
-          <div class="aspect-[16/10] relative overflow-hidden">
+          <div class="aspect-[16/10] relative overflow-hidden bg-gray-50 border-b border-gray-100">
              <ImageWithFallback 
                 src={news.featuredImage || "/home/lv/.gemini/antigravity/brain/9ea17a17-8f07-46fd-b120-9823cc68a3a5/osmo_news_hero_placeholder_1776682173691.png"} 
                 alt={news.title} 
-                aspectRatio="aspect-video" 
+                aspectRatio="aspect-[16/10]" 
                 class="w-full h-full object-cover scale-105 group-hover:scale-100 transition-transform duration-[8s]" 
              />
-             <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+             <div class="absolute top-4 left-4 z-10">
+                 <span class="bg-[#C18F7E] text-white px-3 py-1 text-[8px] font-black tracking-[0.2em] uppercase">Trending</span>
+             </div>
           </div>
-          <div class="absolute bottom-0 inset-x-0 p-6 space-y-2">
-            <div class="flex items-center gap-3">
-                <span class="bg-[#C18F7E] text-white px-2.5 py-1 text-[8px] font-black tracking-[0.2em] italic">osmo News</span>
-                <span class="text-[9px] text-white/60 font-medium">Trending now</span>
+          <div class="p-6 space-y-3 bg-white">
+            <div class="flex items-center gap-2">
+                <span class="text-[9px] font-black text-[#C18F7E] tracking-widest">{news.category || 'LÀM ĐẸP'}</span>
+                <div class="w-1 h-1 bg-gray-300 rounded-full"></div>
+                <span class="text-[9px] font-black text-gray-400 tracking-widest uppercase">{news.date}</span>
             </div>
-            <h3 class="text-2xl font-black text-white leading-tight tracking-tighter italic">{news.title}</h3>
-            <p class="text-[12px] text-white/70 line-clamp-2 leading-relaxed font-medium">{news.summary}</p>
+            <h3 class="text-[20px] font-black text-gray-900 leading-snug tracking-tight group-hover:text-[#C18F7E] transition-colors italic">{news.title}</h3>
+            <p class="text-[12px] text-gray-500 line-clamp-3 leading-relaxed font-medium">{news.excerpt || ''}</p>
           </div>
         </a>
       {:else}
