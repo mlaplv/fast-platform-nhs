@@ -395,7 +395,7 @@
               Bảo mật tên sản phẩm
             </div>
             <a
-              href="/chinh-sach-kiem-hang"
+              href="/chinh-sach-kiem-hang.html"
               target="_blank"
               rel="noopener noreferrer"
               class="flex items-center gap-1.5 text-[8px] font-black text-[#ee4d2d]/80 italic hover:underline"
@@ -432,7 +432,7 @@
               Đóng gói kín đáo 3 lớp
             </div>
             <a
-              href="/chinh-sach-doi-tra-hoan-tien"
+              href="/chinh-sach-doi-tra-hoan-tien.html"
               target="_blank"
               rel="noopener noreferrer"
               class="flex items-center gap-1.5 text-[8px] font-black text-[#ee4d2d]/80 italic hover:underline"

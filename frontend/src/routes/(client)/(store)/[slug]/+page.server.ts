@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { ServerEnv } from '$lib/server/env';
 import { isMobileDevice } from '$lib/utils/device';
@@ -191,56 +191,24 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
     console.error(`[PRODUCT FETCH SYSTEM ERROR] slug: ${slug}`, e);
   }
 
-  // Phase 2026: Friendly URL Fallback - If not a product (404), try fetching as News/Article
+  // Phase 2026: Redirect old article link structure to Sếp's professional `[slug].html` structure
   const articleUrl = `${apiUrl}/api/v1/client/news/slug/${slug}`;
   try {
     const artRes = await fetch(articleUrl, {
+      method: 'HEAD',
       headers: { 'x-tenant': tenantId },
-      signal: AbortSignal.timeout(3000)
+      signal: AbortSignal.timeout(1500)
     });
     if (artRes.ok) {
-      // Phase 2026: Parallel fetch for related news (Elite V2.2 Performance)
-      const newsUrl = `${apiUrl}/api/v1/client/news`;
-      const [artData, newsRes] = await Promise.all([
-        artRes.json(),
-        fetch(newsUrl, {
-          headers: { 'x-tenant': tenantId },
-          signal: AbortSignal.timeout(3000)
-        }).catch(e => {
-          console.error(`[RELATED NEWS FETCH FAILED]`, e);
-          return null;
-        })
-      ]);
-
-      const article = artData as Article;
-      let relatedNews: Article[] = [];
-      
-      if (newsRes && newsRes.ok) {
-        try {
-          const newsData = await newsRes.json();
-          const allNews = (Array.isArray(newsData) ? newsData : (newsData.data || newsData.items || [])) as Article[];
-          // Filter out current article and take 3
-          relatedNews = allNews
-            .filter((n: Article) => n.id !== article.id)
-            .slice(0, 3);
-        } catch (e) {
-          console.error(`[RELATED NEWS PARSE FAILED]`, e);
-        }
-      }
-
-      return {
-        type: 'article',
-        article,
-        relatedNews,
-        metadata: {
-          timestamp: new Date().toISOString()
-        }
-      };
+      throw redirect(301, `/${slug}.html`);
     }
-  } catch (artErr) {
-    console.error(`[FRIENDLY URL FALLBACK FAILED] slug: ${slug}`, artErr);
+  } catch (artErr: unknown) {
+    if (artErr && typeof artErr === 'object' && 'status' in artErr && (artErr as { status: number }).status === 301) {
+      throw artErr;
+    }
+    console.error(`[FRIENDLY URL FALLBACK CHECK FAILED] slug: ${slug}`, artErr);
   }
 
   // Final 404
-  throw error(404, { message: `Không tìm thấy nội dung cho: ${slug}` });
+  throw error(404, { message: `Không tìm thấy sản phẩm hoặc trang cho: ${slug}` });
 };

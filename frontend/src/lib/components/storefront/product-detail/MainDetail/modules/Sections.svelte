@@ -437,7 +437,7 @@
 
           <!-- Compact Row 3: Simple Minimalist Viral Ribbon (No bg, no border) -->
           <a
-            href="/chinh-sach-doi-tra-hoan-tien"
+            href="/chinh-sach-doi-tra-hoan-tien.html"
             class="flex items-center justify-between gap-4 pt-3 border-t border-emerald-500/10 mt-1 group no-underline text-slate-700 hover:text-emerald-600 transition-all duration-300"
           >
             <div class="flex items-center gap-2 min-w-0">

@@ -156,7 +156,7 @@
       {#if i === 0 && !searchQuery}
         <!-- 2. Hero Spotlight Card (Only show if not searching) -->
         <a 
-          href="/{news.slug}"
+          href="/{news.slug}.html"
           class="block group bg-white overflow-hidden shadow-xl shadow-black/5 active:scale-[0.98] transition-all duration-500 border border-gray-100"
           in:fly={{ y: 20, duration: 600 }}
         >
@@ -184,7 +184,7 @@
       {:else}
         <!-- 3. Standard Magazine Card -->
         <a 
-          href="/{news.slug}"
+          href="/{news.slug}.html"
           class="block bg-white group active:scale-[0.98] transition-all duration-300 shadow-xl shadow-black/5 border border-gray-100 p-4"
           in:fly={{ y: 20, delay: i * 50, duration: 500 }}
         >

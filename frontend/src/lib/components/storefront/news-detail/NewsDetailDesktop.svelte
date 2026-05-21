@@ -31,23 +31,33 @@
 
   let { article: rawArticle, relatedNews = [] }: Props = $props();
 
+  interface RawArticleExt {
+    featured_image?: string;
+    created_at?: string;
+    published_at?: string;
+    author_name?: string;
+  }
+
   // Elite V2.2: Safe API Property Normalization
-  const article = $derived({
-    ...rawArticle,
-    featuredImage: rawArticle.featuredImage || (rawArticle as any).featured_image || "",
-    publishedAt: rawArticle.publishedAt || (rawArticle as any).created_at || (rawArticle as any).published_at || "",
-    author: rawArticle.author || (rawArticle as any).author_name || "System"
+  const article = $derived.by(() => {
+    const ext = rawArticle as Props['article'] & RawArticleExt;
+    return {
+      ...rawArticle,
+      featuredImage: rawArticle.featuredImage || ext.featured_image || "",
+      publishedAt: rawArticle.publishedAt || ext.created_at || ext.published_at || "",
+      author: rawArticle.author || ext.author_name || "System"
+    };
   });
 
   // ELITE V2.2: Dynamic Sidebar (Zero-Hydration Sync)
-  const normalizedRelatedNews = $derived(() => {
-    return relatedNews.map((news, i) => ({
+  const normalizedRelatedNews = $derived(
+    relatedNews.map((news, i) => ({
       title: news.title,
       category: news.category || (i % 2 === 0 ? "LÀM ĐẸP" : "XU HƯỚNG"),
       image: news.featuredImage || news.featured_image || article.featuredImage,
       slug: news.slug,
-    }));
-  });
+    }))
+  );
 
   // SGE Shield V1.0: Deterministic DOM Entropy
   const wrapperTags = ["div", "article", "section", "main"];
@@ -63,8 +73,7 @@
   // Elite V2.2: Simple Pro Sentence Case
   const formattedTitle = $derived(
     article.title
-      ? article.title.charAt(0).toUpperCase() +
-          article.title.slice(1).toLowerCase()
+      ? article.title.charAt(0).toUpperCase() + article.title.slice(1)
       : "",
   );
 
@@ -73,10 +82,17 @@
   let showScrollTop = $state(false);
 
   $effect(() => {
+    let scrollTicking = false;
     const handleScroll = () => {
-      showScrollTop = window.scrollY > 400;
+      if (!scrollTicking) {
+        window.requestAnimationFrame(() => {
+          showScrollTop = window.scrollY > 400;
+          scrollTicking = false;
+        });
+        scrollTicking = true;
+      }
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   });
 
@@ -180,7 +196,9 @@
                 src={resolveMediaUrl(article.featuredImage)}
                 alt={article.title}
                 class="w-full h-auto object-contain block transition-transform duration-700"
-                loading="lazy"
+                loading="eager"
+                fetchpriority="high"
+                decoding="async"
               />
             </div>
           {:else}
@@ -346,8 +364,8 @@
         </h2>
 
         <div class="space-y-8">
-          {#each normalizedRelatedNews() as news}
-            <a href="/{news.slug}" class="group block space-y-3">
+          {#each normalizedRelatedNews as news}
+            <a href="/{news.slug}.html" class="group block space-y-3">
               <ImageWithFallback
                 src={news.image}
                 alt={news.title}

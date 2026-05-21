@@ -328,7 +328,7 @@
         <li class="flex items-start gap-3">
           <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
           <EditableWrapper path="metadata.policy_check_label" type="text" label="SỬA CAM KẾT 1" class="flex-1 block" as="div">
-            <a href="/chinh-sach-kiem-hang" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black tracking-widest text-luxury-sakura hover:underline leading-relaxed block w-full">
+            <a href="/chinh-sach-kiem-hang.html" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black tracking-widest text-luxury-sakura hover:underline leading-relaxed block w-full">
               {product?.metadata?.policy_check_label || "Kiểm tra hàng trước nhận"}
             </a>
           </EditableWrapper>
@@ -336,7 +336,7 @@
         <li class="flex items-start gap-3">
           <span class="text-luxury-sakura font-black text-[10px] mt-0.5 shrink-0">✦</span>
           <EditableWrapper path="metadata.policy_return_label" type="text" label="SỬA CAM KẾT 2" class="flex-1 block" as="div">
-            <a href="/chinh-sach-doi-tra-hoan-tien" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black tracking-widest text-luxury-sakura hover:underline leading-relaxed block w-full">
+            <a href="/chinh-sach-doi-tra-hoan-tien.html" target="_blank" rel="noopener noreferrer" class="text-[11px] font-black tracking-widest text-luxury-sakura hover:underline leading-relaxed block w-full">
               {product?.metadata?.policy_return_label || "Đổi trả 7 ngày"}
             </a>
           </EditableWrapper>

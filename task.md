@@ -404,3 +404,25 @@
   - Ép kiểu `barcode` sang String trong ScannerHUD để sửa lỗi type mismatch.
   - Kiểm tra ast và biên dịch thành công 100% bằng svelte-check.
 
+---
+
+# Task: Phân tách Tuyến đường Bài viết sang [slug].html & Tối ưu hóa Hiệu năng (Elite V2.2)
+
+## Kế hoạch (PROPOSE)
+- [x] **[Route Separation]**: Thiết lập cấu trúc route chuyên biệt mới tại `frontend/src/routes/(client)/(store)/[slug].html/`.
+- [x] **[Parallel Loader]**: Viết `+page.server.ts` riêng biệt cho Bài viết: chỉ tải trực tiếp API bài viết, gộp song song với related news bằng `Promise.all` để tăng tốc độ phản hồi <100ms.
+- [x] **[Separate Page Render]**: Viết `+page.svelte` riêng cho Bài viết: render chi tiết bài viết Desktop/Mobile và SeoHead độc lập, cập nhật canonical URL và breadcrumb URL tương ứng.
+- [x] **[Safe Dynamic Fallback Redirect]**: Dọn dẹp phần fallback tin tức cũ tại tuyến đường sản phẩm `[slug]` gốc để giữ sạch kiến trúc sản phẩm (cấm đụng đến link sản phẩm). Thay thế bằng 301 Redirect nhanh tự động dẫn hướng các link tin tức cũ dạng `/slug` sang dạng `/slug.html` an toàn.
+- [x] **[Desktop Optimization]**:
+  - Khắc phục lỗi Svelte 5 Rune abuse ở `normalizedRelatedNews`, chuyển đổi closure sang derived array tĩnh.
+  - Throttled Scroll Listener bằng `requestAnimationFrame` kết hợp passive listener để tối ưu hóa CPU và đạt 60FPS khi cuộn trang.
+  - Tối ưu hóa LCP Hero Image (loading="eager" + fetchpriority="high" + decoding="async").
+  - Bảo toàn case chữ Việt gốc của tiêu đề bài viết (loại bỏ `.toLowerCase()` lỗi thời).
+- [x] **[Mobile Optimization]**:
+  - Đồng bộ Throttled Scroll Listener và tối ưu ảnh Hero loading="eager".
+  - Bảo toàn casing tiếng Việt gốc của tiêu đề bài viết.
+- [x] **[Link Syncing]**:
+  - Đồng bộ hóa toàn bộ liên kết tin tức trong `NewsListDesktop.svelte`, `NewsListMobile.svelte`, `NewsDetailDesktop.svelte`, và admin `NewsTable.svelte` sang cấu trúc mới kết thúc bằng `.html`.
+  - Cập nhật toàn bộ các liên kết chính sách (Chính sách Bảo mật, Điều khoản Dịch vụ, Vận chuyển, Đổi trả, v.v.) trong `FooterDesktop.svelte`, `OrderSummarySection.svelte`, `Description.svelte`, `Sections.svelte`, `ProductMobileSpecs.svelte` và `MobileServiceIcons.svelte` sang `.html` tương thích với tuyến bài viết biệt lập.
+- [x] **[Type Safety Check]**: Kiểm nghiệm thành công, đảm bảo code static type safety và không phát sinh lỗi compile mới.
+

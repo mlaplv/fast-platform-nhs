@@ -61,19 +61,19 @@
   }
 
   const ecosystemLinks = [
-    { name: 'Giới thiệu', href: '/gioi-thieu' },
-    { name: 'Tuyển dụng', href: '/tuyen-dung' },
-    { name: 'Chính sách Bảo mật', href: '/chinh-sach-bao-mat-thong-tin' },
-    { name: 'Điều khoản Dịch vụ', href: '/dieu-khoan-dich-vu' }
+    { name: 'Giới thiệu', href: '/gioi-thieu.html' },
+    { name: 'Tuyển dụng', href: '/tuyen-dung.html' },
+    { name: 'Chính sách Bảo mật', href: '/chinh-sach-bao-mat-thong-tin.html' },
+    { name: 'Điều khoản Dịch vụ', href: '/dieu-khoan-dich-vu.html' }
   ];
 
   const customerLinks = [
     { name: 'Tra cứu đơn hàng', href: '/track' },
-    { name: 'Vận chuyển & Giao nhận', href: '/chinh-sach-van-chuyen-giao-nhan' },
-    { name: 'Đổi trả & Hoàn tiền', href: '/chinh-sach-doi-tra-hoan-tien' },
-    { name: 'Chính sách Kiểm hàng', href: '/chinh-sach-kiem-hang' },
-    { name: 'Chính sách Bảo hành', href: '/chinh-sach-bao-hanh' },
-    { name: 'Phương thức Thanh toán', href: '/phuong-thuc-thanh-toan' }
+    { name: 'Vận chuyển & Giao nhận', href: '/chinh-sach-van-chuyen-giao-nhan.html' },
+    { name: 'Đổi trả & Hoàn tiền', href: '/chinh-sach-doi-tra-hoan-tien.html' },
+    { name: 'Chính sách Kiểm hàng', href: '/chinh-sach-kiem-hang.html' },
+    { name: 'Chính sách Bảo hành', href: '/chinh-sach-bao-hanh.html' },
+    { name: 'Phương thức Thanh toán', href: '/phuong-thuc-thanh-toan.html' }
   ];
 
   const socialLinks = [

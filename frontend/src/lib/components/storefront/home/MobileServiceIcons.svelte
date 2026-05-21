@@ -39,7 +39,7 @@
     { 
       icon: '🛡️', 
       label: '7 ngày đổi trả', 
-      href: '/chinh-sach-doi-tra-hoan-tien',
+      href: '/chinh-sach-doi-tra-hoan-tien.html',
       badge: 'PRO'
     },
     { 

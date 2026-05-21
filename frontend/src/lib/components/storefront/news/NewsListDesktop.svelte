@@ -140,7 +140,7 @@
       <!-- Featured List -->
       <div class="space-y-6">
         {#each featuredNews() as news, i}
-          <a href="/{news.slug}" class="group flex gap-4 items-start" in:fly={{y: 20, duration: 800, delay: 100 * i}}>
+          <a href="/{news.slug}.html" class="group flex gap-4 items-start" in:fly={{y: 20, duration: 800, delay: 100 * i}}>
             <div class="w-20 h-20 shrink-0">
                 <ImageWithFallback src={news.featuredImage} alt={news.title} aspectRatio="aspect-square" class="rounded-none border border-gray-100" />
             </div>
@@ -178,7 +178,7 @@
       {#if filteredNews().length > 0}
         <div class="grid grid-cols-1 {categoryName === 'CHÍNH SÁCH' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8" in:fade={{duration: 400}}>
           {#each filteredNews() as news, i (news.id)}
-            <a href="/{news.slug}" 
+            <a href="/{news.slug}.html" 
                in:fly={{y: 40, duration: 1000, delay: 100 + (i * 50)}}
                class="group bg-white border border-gray-100 hover:border-red-600/20 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500 overflow-hidden flex flex-col h-full transform hover:-translate-y-2">
               <!-- Image Frame -->

@@ -5,8 +5,7 @@
   import ProductListMobile from '$lib/components/storefront/product/ProductListMobile.svelte';
   import NewsListDesktop from '$lib/components/storefront/news/NewsListDesktop.svelte';
   import NewsListMobile from '$lib/components/storefront/news/NewsListMobile.svelte';
-  import NewsDetailDesktop from '$lib/components/storefront/news-detail/NewsDetailDesktop.svelte';
-  import NewsDetailMobile from '$lib/components/storefront/news-detail/NewsDetailMobile.svelte';
+
   import FunnelPage from '../../[slug]-funnel/+page.svelte';
   import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
@@ -67,7 +66,7 @@
 
   // SEO Derived State (Elite V2.2)
   const productSeoMeta = $derived(data.product?.seoMeta || data.product?.seo_meta || null);
-  const articleSeoMeta = $derived(data.article?.seoMeta || data.article?.seo_meta || null);
+
   const categorySeoMeta = $derived(data.category?.seoMeta || data.category?.seo_meta || null);
 
   // Elite V2.2: Semantic Breadcrumb Logic (GEO 2026)
@@ -76,9 +75,7 @@
     
     if (data.type === 'category') {
       items.push({ name: data.categoryName, url: `/${data.categorySlug}/` });
-    } else if (data.type === 'article' && data.article) {
-      items.push({ name: 'Bài viết', url: '/bai-viet' });
-      items.push({ name: data.article.title, url: `/${data.article.slug}` });
+
     } else if (data.type === 'product' && data.product) {
       // If product has a primary category, we could inject it here
       if (data.product.category_name && data.product.category_slug) {
@@ -90,7 +87,7 @@
   });
 
   // Elite V2.2: FAQ Extraction for SGE
-  const pageFaqs = $derived(data.article?.metadata?.faqs || data.product?.metadata?.faqs || []);
+  const pageFaqs = $derived(data.product?.metadata?.faqs || []);
 </script>
 
 <!-- SEO HEAD (SGE & AI SEARCH COMPLIANT) -->
@@ -107,22 +104,7 @@
     }}
     jsonLdScripts={[categorySeoMeta?.json_ld_string].filter(Boolean)}
   />
-{:else if data.type === 'article' && data.article}
-  <SeoHead
-    pageType="article"
-    title={articleSeoMeta?.title || `${data.article.title} | osmo Elite`}
-    description={articleSeoMeta?.description || data.article.excerpt}
-    canonical={articleSeoMeta?.canonical_url || `${siteUrl}/${data.article.slug}`}
-    {breadcrumbItems}
-    faqs={pageFaqs}
-    articleData={{
-      headline: data.article.title,
-      author: data.article.author_name || "osmo Elite",
-      datePublished: data.article.created_at,
-      image: data.article.featured_image
-    }}
-    jsonLdScripts={[articleSeoMeta?.json_ld_string].filter(Boolean)}
-  />
+
 {:else if data.type === 'product' && !isFunnel}
   <SeoHead
     pageType="product"
@@ -171,15 +153,7 @@
       <ProductListDesktop products={data.items} categoryName={data.categoryName} categorySlug={data.categorySlug} serverTotal={data.serverTotal} facets={data.facets} category={data.category} />
     {/if}
   {/if}
-{:else if data.type === 'article'}
-  <!-- ARTICLE VIEW -->
-  <div class="news-detail-wrapper bg-[#F5F5F5] pb-8">
-    {#if ui.isMobile}
-      <NewsDetailMobile article={data.article} />
-    {:else}
-      <NewsDetailDesktop article={data.article} relatedNews={data.relatedNews} />
-    {/if}
-  </div>
+
 {:else}
   <!-- PRODUCT DETAIL / FUNNEL VIEW -->
   {#if isFunnel}
