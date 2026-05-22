@@ -275,7 +275,7 @@
                 {#if variantImages[i]}
                   <img 
                     src={variantImages[i]} 
-                    alt={getVariantTitle(variant) || (product?.name || "Sản phẩm")} 
+                    alt="{product?.name ? product.name + ' - ' : ''}{getVariantTitle(variant)}" 
                     loading="lazy"
                     decoding="async"
                     width="100"

@@ -32,14 +32,15 @@ Sau khi được Sếp duyệt đề xuất (Propose-First), chúng tôi đã ti
 - Chi tiết thay đổi: [seo.ts](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/utils/seo.ts)
 
 ### C. Khắc phục lỗi chí mạng Sitemap (Sitemap Fixes)
-- Xóa bỏ đường dẫn `/products` ra khỏi Sitemap vì thực chất đây là một trang Search/Filter có nội dung rỗng (thin-content) khi không có tham số, không nên để Google cào.
+- Xóa bỏ đường dẫn `/products` ra khỏi Sitemap vì thực chất đây là một route rác vi phạm cấu trúc UX.
 - Bổ sung cứng hậu tố `.html` vào cuối mỗi đường dẫn bài viết `f"{site_url}/{row['slug']}.html"` trong `seo.py` để trỏ thẳng tới đích cuối (Final Destination), triệt tiêu hoàn toàn vòng lặp Redirect 301.
 - Bổ sung đường dẫn `/khuyen-mai` vào bộ danh sách Static Pages để Google Index không bỏ lỡ.
 - Chi tiết thay đổi: [seo.py](file:///home/lv/Desktop/fast-platform-core/backend/controllers/client/seo.py)
 
-### D. Tối ưu Robots.txt & Chặn Link rác
-- Cập nhật `frontend/static/robots.txt` bổ sung các luật `Disallow: /products`, `Disallow: /search`, `Disallow: /*?*sort=`, `Disallow: /*?*filter=`, `Disallow: /*?*page=`.
-- Sửa file `frontend/src/routes/(client)/(store)/products/+page.svelte` để luôn trả về `noindex, nofollow` bằng meta tag bất kể có query param hay không.
+### D. Tối ưu Robots.txt & Xóa xổ Route Rác
+- **Xóa bỏ hoàn toàn vật lý thư mục `frontend/src/routes/(client)/(store)/products`**. Sửa các component `RelatedProducts.svelte` và `Sections.svelte` để điều hướng link "Thương hiệu" và "Tất cả sản phẩm" về trang chủ `/` và thanh `/search?q=`. Điều này giúp chuẩn hóa UX (chỉ dùng Search và Category như các sàn TMĐT lớn).
+- **Rà soát & Thanh trừng tệp tin rác**: Xóa sổ thư mục `frontend/src/routes/(client)/(store)/[slug].p[id]` (vốn chỉ chứa 1 file redirect chuyển hướng tàn dư cũ) và thư mục `home` rỗng. Việc tồn tại các Dynamic Route không cần thiết này khiến SvelteKit Router phải nội suy regex liên tục cho mỗi luồng traffic, gây overhead bộ nhớ. Xóa đi sẽ giúp tốc độ render Router tăng đáng kể.
+- Cập nhật `frontend/static/robots.txt` bổ sung các luật `Disallow: /search`, `Disallow: /*?*sort=`, `Disallow: /*?*filter=`, `Disallow: /*?*page=`.
 - Sửa đường dẫn cấu hình Sitemap thành `https://osmo.vn/sitemap.xml`.
 - Thay đổi này giúp khóa chặt các vòng lặp tìm kiếm, bảo vệ Crawl Budget để Google chỉ tập trung index các trang Sản phẩm và Bài viết quan trọng.
 - Chi tiết thay đổi: [robots.txt](file:///home/lv/Desktop/fast-platform-core/frontend/static/robots.txt)

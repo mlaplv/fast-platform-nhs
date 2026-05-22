@@ -15,8 +15,10 @@
 - [x] **Triển khai Tối ưu Schema (Execution)**
   - [x] Thêm interface `ReviewLd` vào `seo.ts`.
   - [x] Bổ sung logic render mảng `review` trong `buildProductLd`.
-  - [x] Sửa lỗi Sitemap: Loại bỏ `/products` (trang tìm kiếm rỗng) khỏi sitemap tĩnh, thêm hậu tố `.html` cho Article URLs và bổ sung route `/khuyen-mai` tại `backend/controllers/client/seo.py`.
-  - [x] Cập nhật `robots.txt`: Khóa hoàn toàn `/products`, `/search` và các tham số truy vấn (`?sort=`, `?filter=`, `?page=`) để tiết kiệm Crawl Budget, đổi `osmo.com` thành `osmo.vn`. Cập nhật `products/+page.svelte` khóa cứng `noindex`.
+  - [x] Sửa lỗi Sitemap: Loại bỏ `/products` khỏi sitemap tĩnh, thêm hậu tố `.html` cho Article URLs và bổ sung route `/khuyen-mai` tại `backend/controllers/client/seo.py`.
+  - [x] Cập nhật `robots.txt`: Khóa hoàn toàn `/search` và các tham số truy vấn (`?sort=`, `?filter=`, `?page=`) để tiết kiệm Crawl Budget, đổi `osmo.com` thành `osmo.vn`.
+  - [x] Xóa bỏ hoàn toàn mã nguồn thư mục `frontend/src/routes/(client)/(store)/products` và điều hướng mọi luồng click sang hệ thống Search/Category chuẩn.
+  - [x] Rà soát file rác: Xóa bỏ thư mục `frontend/src/routes/(client)/(store)/[slug].p[id]` (route chuyển hướng lỗi thời) và thư mục `home` trùng lặp để giảm thiểu Regex table của SvelteKit, giúp tăng tốc độ Load Router.
   - [x] Cấu trúc lại metadata chuẩn xác cho phép inject kịch bản seeding vào Schema.
 
 - [x] **Kiểm thử & Xác minh (Verification)**

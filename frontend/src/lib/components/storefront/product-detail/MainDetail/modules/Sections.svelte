@@ -119,7 +119,7 @@
             Thương hiệu
           </span>
           <a
-            href="/products?brand={encodeURIComponent(productInfo.brand)}"
+            href="/search?q={encodeURIComponent(productInfo.brand)}"
             class="text-[14px] font-black text-[#ee4d2d] hover:underline flex items-center gap-1.5 tracking-tight"
           >
             {productInfo.brand}
@@ -181,7 +181,7 @@
           class="flex items-center gap-2 text-[13px] font-bold tracking-tighter"
         >
           <a
-            href="/products"
+            href="/"
             class="text-gray-400 hover:text-gray-900 transition-colors">osmo</a
           >
           <svg

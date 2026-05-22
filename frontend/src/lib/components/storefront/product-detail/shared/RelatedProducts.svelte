@@ -144,7 +144,7 @@
        const brand = product.metadata?.brand || product.attributes?.brand || product.attributes?.['Thương hiệu'];
        return `/search?q=${encodeURIComponent(String(brand || ''))}`;
     }
-    return '/products';
+    return '/search';
   });
 </script>
 

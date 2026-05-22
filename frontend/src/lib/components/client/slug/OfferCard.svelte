@@ -175,7 +175,7 @@
       <div class="absolute inset-0 bg-radial-at-t from-luxury-sakura/10 to-transparent pointer-events-none transition-opacity duration-700 {isCardActive ? 'opacity-100' : 'opacity-0'}"></div>
       <img 
          src="{product?.images?.[idx] || product?.images?.[0] ? resolveMediaUrl(product.images[idx] || product.images[0]) : ''}" 
-         alt={getVariantTitle(variant)} 
+         alt="{product?.name ? product.name + ' - ' : ''}{getVariantTitle(variant)}" 
          loading="lazy"
          decoding="async"
          class="w-full h-full object-cover drop-shadow-[0_40px_30px_rgba(0,0,0,0.7)] transform hover:scale-110 transition-transform duration-1000 z-10 relative"

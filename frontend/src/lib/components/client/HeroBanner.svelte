@@ -520,7 +520,7 @@
             >
               <img
                 src={mainImage}
-                alt={productName}
+                alt={productName || "Hình ảnh sản phẩm nổi bật"}
                 loading="eager"
                 fetchpriority="high"
                 decoding="async"
