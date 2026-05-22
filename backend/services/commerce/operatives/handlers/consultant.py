@@ -506,49 +506,47 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                 # OrderHandler already runs before us. If we are here, OrderHandler likely 
                 # yielded because it wanted a consultant's touch (Interleaved).
 
-        # [ELITE V2.2] Layer 0: Static Fast-Path (The Root Solution)
-        # Bypassing AI entirely for high-confidence knowledge matches to eliminate latency and quota issues.
+        # ═══════════════════════════════════════════════════════
+        # [DB-FIRST LAYER] Kiểm tra dữ liệu sản phẩm trong DB
+        # trước khi gọi AI. AI chỉ là DB thứ hai (Elite V6.0)
+        # ═══════════════════════════════════════════════════════
+        db_direct = self._try_db_product_direct(ctx, msg_norm)
+        if db_direct:
+            logger.info("✅ [DB-First] Trả kết quả trực tiếp từ DB — AI bypass hoàn toàn")
+            ctx.replies.append(db_direct)
+            ctx.intent = SupportIntent.PRODUCT_QUERY
+            return True
+
+        # [ELITE V6.0] Layer 0: Knowledge Base Fast-Path — Mở rộng cho TẤT CẢ query (không chặn specialist)
         from backend.database.repositories import SupportKnowledgeRepository
         from backend.services.commerce.support_knowledge import SupportKnowledgeService
-        
+
         # R112: Isolated Resource Lifecycle (2GB RAM Guard)
         repo: SupportKnowledgeRepository = SupportKnowledgeRepository(session=ctx.db)
         kb_service: SupportKnowledgeService = SupportKnowledgeService(repo=repo)
-        
-        raw_matches: list[dict[str, object]] = []
-        # Bypass L0 for specialist queries (Origin/Legal/Ingredients) to force AI context reasoning
-        specialist_keywords: list[str] = ["nguồn gốc", "xuất xứ", "chính hãng", "uy tín", "giấy phép", "pháp lý", "thành phần", "công dụng"]
-        is_specialist_query: bool = any(kw in msg_norm for kw in specialist_keywords)
-        
-        if not is_specialist_query:
-            # 1. Semantic Match check (Adaptive threshold: 0.85 for short queries)
-            is_short_query: bool = len(ctx.request.message.strip()) < 25
-            threshold: float = 0.85 if is_short_query else 0.92
-            
-            # Returns list of matched knowledge dicts with explicit structure
-            raw_matches = await kb_service.search_relevant_knowledge_raw(ctx.db, ctx.request.message, limit=1)
-            
-            # Elite V2.2 Fallback: If no vector match or score too low, try case-insensitive Keyword Search!
-            if not raw_matches or float(raw_matches[0].get("match_score", 0)) <= threshold:
-                keyword_matches = await kb_service.search_relevant_knowledge_keyword(ctx.db, ctx.request.message, limit=1)
-                if keyword_matches:
-                    # Treat exact keyword match as 1.0 confidence since it is an exact token substring match!
-                    keyword_matches[0]["match_score"] = 1.0
-                    raw_matches = keyword_matches
-        
+
+        is_short_query: bool = len(ctx.request.message.strip()) < 25
+        threshold: float = 0.85 if is_short_query else 0.92
+        raw_matches: list[dict[str, object]] = await kb_service.search_relevant_knowledge_raw(ctx.db, ctx.request.message, limit=1)
+        if not raw_matches or float(raw_matches[0].get("match_score", 0)) <= threshold:
+            keyword_matches = await kb_service.search_relevant_knowledge_keyword(ctx.db, ctx.request.message, limit=1)
+            if keyword_matches:
+                keyword_matches[0]["match_score"] = 1.0
+                raw_matches = keyword_matches
+
         if raw_matches and not ctx.request.cart_items:
             match: dict[str, object] = raw_matches[0]
             score: float = float(match.get("match_score", 0))
             if score > threshold:
-                logger.info(f"✨ [L0 Fast-Path] Short-circuiting (Score: {score} / Req: {threshold})")
+                logger.info(f"✨ [L0 KB Fast-Path] Short-circuiting (Score: {score} / Req: {threshold})")
                 ctx.replies.append(str(match.get("answer", "")))
                 ctx.intent = SupportIntent.PRODUCT_QUERY
                 return True
             else:
-                logger.debug(f"⚠️ [Check Fail] Semantic match score ({score}) below threshold ({threshold})")
+                logger.debug(f"⚠️ [KB Check Fail] score={score} < threshold={threshold}")
         else:
             masked_msg = (ctx.request.message[:15] + "...") if len(ctx.request.message) > 20 else ctx.request.message
-            logger.debug(f"🔍 [L0 Fast-Path] No semantic match found for: '{masked_msg}'")
+            logger.debug(f"🔍 [L0 KB] No match for: '{masked_msg}'")
 
         # RAG Pre-Retrieval: Active RAG Context injection to bypass multiple tool calls
         pre_retrieved_ctx = ""
@@ -710,40 +708,181 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         )
 
         try:
+            import asyncio as _asyncio
             masked_msg = await self._mask_sensitive_medical_terms(clean_msg)
             masked_prompt = await self._mask_sensitive_medical_terms(full_prompt)
-            
-            # Elite V2.6: Thread-Safe injection via deps.dynamic_prompt instead of agent.override()
+
+            # Elite V6.0: Thread-Safe injection via deps.dynamic_prompt
             deps = ConsultantDeps(db=ctx.db, dynamic_prompt=masked_prompt)
-            
-            res = await trinity_bridge.run(
-                _consultant_no_tool_agent, 
-                masked_msg, 
-                deps=deps, 
-                role=trinity_bridge.ROLE_BRAIN,
-                safety_none=True,
-                timeout=15.0,
-                per_model_timeout=6.0
+
+            # ⏱️ Elite V6.0: Cổng bảo vệ 10s — AI chỉ có 10 giây, quá hạn kích hoạt Smart DB Fallback
+            res = await _asyncio.wait_for(
+                trinity_bridge.run(
+                    _consultant_no_tool_agent,
+                    masked_msg,
+                    deps=deps,
+                    role=trinity_bridge.ROLE_BRAIN,
+                    safety_none=True,
+                    timeout=15.0,
+                    per_model_timeout=6.0
+                ),
+                timeout=10.0
             )
             # [ELITE V2.2] Standardized Result Extraction (Trust the Bridge)
             res_data = cast(Optional[ConsultantResponse], res)
-            
+
             if res_data and hasattr(res_data, 'reply') and res_data.reply:
                 # Elite V2.7: Programmatic Prefix Enforcement (Deterministic & Token-Efficient)
                 final_reply: str = res_data.reply
                 if not final_reply.startswith("[z2]"):
                     final_reply = f"[z2] {final_reply}"
-                    
                 ctx.replies.append(final_reply)
-                # Ensure intent matches SupportIntent enum values safely
                 valid_intents = {i.value for i in SupportIntent}
                 ctx.intent = SupportIntent(res_data.intent) if res_data.intent in valid_intents else SupportIntent.PRODUCT_QUERY
                 ctx.ui_component = res_data.ui_component
-                return True 
-            
+                return True
+
             logger.warning(f"⚠️ [ConsultantHandler] AI returned invalid data: {type(res)}")
-            return False 
-            
+            # AI returned None/invalid — thử Smart DB Fallback
+            db_fallback = self._generate_db_fallback(ctx)
+            if db_fallback:
+                ctx.replies.append(db_fallback)
+                ctx.intent = SupportIntent.PRODUCT_QUERY
+                return True
+            return False
+
+        except _asyncio.TimeoutError:
+            logger.warning("⚠️ [ConsultantHandler] AI vượt 10s — Kích hoạt Smart DB Fallback")
+            db_fallback = self._generate_db_fallback(ctx)
+            if db_fallback:
+                ctx.replies.append(db_fallback)
+                ctx.intent = SupportIntent.PRODUCT_QUERY
+                return True
+            return False
+
         except Exception as e:
             logger.error(f"[ConsultantHandler] Sweep Failure: {e}")
+            db_fallback = self._generate_db_fallback(ctx)
+            if db_fallback:
+                ctx.replies.append(db_fallback)
+                ctx.intent = SupportIntent.PRODUCT_QUERY
+                return True
             return False
+
+    def _wrap_prefix(self, text: str) -> str:
+        if not text.startswith("[z2]"):
+            return f"[z2] {text}"
+        return text
+
+# Duplicate _wrap_prefix removed
+
+    def _try_db_product_direct(self, ctx: SupportContext, msg_norm: str) -> Optional[str]:
+        """DB-First Layer: Trả lời trực tiếp từ DB nếu câu hỏi có cấu trúc rõ ràng và DB có đủ dữ liệu."""
+        if not ctx.product_ctx or not ctx.p_info:
+            return None
+        # Câu hỏi hội thoại cá nhân phức tạp → xuống AI
+        is_complex_personal = any(kw in msg_norm for kw in [
+            "da em", "da mình", "da tôi", "bị mụn", "bị dị ứng",
+            "có phù hợp", "có nên dùng", "so sánh", "khác gì", "tốt hơn"
+        ])
+        if is_complex_personal:
+            return None
+        # Bỏ qua nếu là [system_consult] (tư vấn toàn diện cần AI)
+        if "[system_consult]" in ctx.request.message:
+            return None
+
+        p_name = ctx.p_info.name
+        price_display = ctx.p_info.price_display
+        product_ctx = ctx.product_ctx
+
+        # Trường hợp 1: Hỏi về thành phần / công dụng
+        is_ingredient_query = any(kw in msg_norm for kw in [
+            "thành phần", "chiết xuất", "nguyên liệu", "công dụng", "tác dụng"
+        ])
+        if is_ingredient_query and "[THÀNH PHẦN NỔI BẬT" in product_ctx:
+            lines = product_ctx.split("\n")
+            ingredient_lines: list[str] = []
+            in_section = False
+            for line in lines:
+                if "[THÀNH PHẦN NỔI BẬT" in line or "[BẢNG THÀNH PHẦN" in line:
+                    in_section = True
+                elif line.startswith("[") and in_section:
+                    break
+                elif in_section and line.strip():
+                    ingredient_lines.append(line.strip())
+            if ingredient_lines:
+                ing_text = "\n".join(ingredient_lines)
+                price_txt = f"💰 Giá hiện tại: **{price_display}**. " if price_display else ""
+                return (
+                    f"Dạ đây là thông tin kỹ thuật chính thức từ hãng về **{p_name}** ạ! ✨\n\n"
+                    f"🧪 **Thành phần & Công dụng nổi bật:**\n{ing_text}\n\n"
+                    f"{price_txt}"
+                    f"Anh/Chị muốn Helen tư vấn thêm về cách sử dụng phù hợp với tình trạng da của mình không ạ? 🌸"
+                )
+
+        # Trường hợp 2: Hỏi về xuất xứ / chính hãng / pháp lý
+        is_origin_query = any(kw in msg_norm for kw in [
+            "xuất xứ", "nguồn gốc", "chính hãng", "uy tín", "pháp lý", "chứng nhận", "giấy phép"
+        ])
+        if is_origin_query and "[BẢO CHỨNG UY TÍN" in product_ctx:
+            lines = product_ctx.split("\n")
+            trust_lines: list[str] = []
+            in_section = False
+            for line in lines:
+                if "[BẢO CHỨNG UY TÍN" in line:
+                    in_section = True
+                elif line.startswith("[") and in_section:
+                    break
+                elif in_section and line.strip():
+                    trust_lines.append(line.strip())
+            if trust_lines:
+                trust_text = "\n".join(trust_lines)
+                return (
+                    f"Dạ để Anh/Chị an tâm tuyệt đối, đây là bảo chứng uy tín chính thức của **{p_name}** ạ! 🛡️\n\n"
+                    f"{trust_text}\n\n"
+                    f"Sản phẩm 100% chính hãng, nhập khẩu nguyên đai nguyên kiện, đầy đủ hồ sơ pháp lý chuẩn Bộ Y Tế Việt Nam ạ. "
+                    f"Anh/Chị yên tâm đặt hàng nhé! 🌸"
+                )
+        return None
+
+    def _generate_db_fallback(self, ctx: SupportContext) -> str:
+        """Smart DB Fallback: Khi AI lỗi hoặc timeout > 10s, tự động dựng câu trả lời chuyên nghiệp từ DB."""
+        if not ctx.product_ctx or not ctx.p_info:
+            return "Dạ Helen xin lỗi Anh/Chị, hệ thống đang xử lý tải cao. Anh/Chị vui lòng thử lại sau vài giây nhé! 🌸"
+        p_name = ctx.p_info.name
+        price_display = ctx.p_info.price_display
+        lines = ctx.product_ctx.split("\n")
+        ingredient_lines: list[str] = []
+        trust_lines: list[str] = []
+        in_ingredient = False
+        in_trust = False
+        for line in lines:
+            if "[THÀNH PHẦN NỔI BẬT" in line or "[BẢNG THÀNH PHẦN" in line:
+                in_ingredient, in_trust = True, False
+            elif "[BẢO CHỨNG UY TÍN" in line:
+                in_trust, in_ingredient = True, False
+            elif line.startswith("[") and (in_ingredient or in_trust):
+                in_ingredient, in_trust = False, False
+            elif in_ingredient and line.strip():
+                ingredient_lines.append(line.strip())
+            elif in_trust and line.strip():
+                trust_lines.append(line.strip())
+        parts: list[str] = [
+            f"Dạ Helen đang kết nối lại với hệ thống tư vấn chuyên sâu, để không mất thời gian của Anh/Chị, "
+            f"Helen xin gửi ngay thông tin kỹ thuật chính thức của **{p_name}** từ cơ sở dữ liệu hãng ạ! ✨", ""
+        ]
+        if ingredient_lines:
+            parts.append("🧪 **Thành phần & Công dụng nổi bật:**")
+            parts.extend(ingredient_lines[:6])
+            parts.append("")
+        if trust_lines:
+            parts.append("🛡️ **Bảo chứng uy tín:**")
+            parts.extend(trust_lines[:3])
+            parts.append("")
+        if price_display:
+            parts.append(f"💰 **Giá hiện tại: {price_display}**")
+            parts.append("")
+        parts.append(
+            "Anh/Chị muốn tư vấn thêm hoặc đặt hàng, để lại số điện thoại để chuyên viên liên hệ hỗ trợ chi tiết nhé! 🌸"
+        )
+        return self._wrap_prefix("\n".join(parts))
