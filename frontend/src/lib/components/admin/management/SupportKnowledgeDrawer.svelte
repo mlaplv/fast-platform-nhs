@@ -53,8 +53,20 @@ import FileText from "@lucide/svelte/icons/file-text";
 
     let filteredProducts = $derived.by(() => {
         if (!productSearchQuery) return products;
-        const lower = productSearchQuery.toLowerCase();
-        return products.filter(p => p.name.toLowerCase().includes(lower));
+        const searchLower = productSearchQuery.toLowerCase().trim();
+        
+        return products.filter(p => {
+            const nameLower = p.name.toLowerCase();
+            // 1. Direct substring match (either way)
+            if (nameLower.includes(searchLower)) return true;
+            if (searchLower.includes(nameLower)) return true;
+            
+            // 2. Word by word match (if all words in the search query exist in the product name)
+            const searchWords = searchLower.split(/\s+/).filter(w => w.length > 0);
+            if (searchWords.length > 0 && searchWords.every(w => nameLower.includes(w))) return true;
+            
+            return false;
+        });
     });
 
     let selectedProductName = $derived.by(() => {
@@ -185,7 +197,7 @@ import FileText from "@lucide/svelte/icons/file-text";
 
                 <div class="space-y-3">
                     <label class="block text-[9px] font-mono font-black text-cyan-500/40 tracking-widest ml-1" for="product_id">Target_Product_ID (Tùy chọn)</label>
-                    <div class="relative group" onmouseleave={() => isProductDropdownOpen = false}>
+                    <div class="relative">
                         <!-- Clickable Header -->
                         <div 
                             class="w-full bg-white/10 border border-white/20 rounded-2xl px-6 py-4 text-sm font-bold text-cyan-400 outline-none cursor-pointer hover:bg-[#222] flex justify-between items-center transition-all shadow-inner"
@@ -197,6 +209,11 @@ import FileText from "@lucide/svelte/icons/file-text";
 
                         <!-- Dropdown Menu -->
                         {#if isProductDropdownOpen}
+                            <!-- Transparent Backdrop to close on click outside -->
+                            <!-- svelte-ignore a11y_click_events_have_key_events -->
+                            <!-- svelte-ignore a11y_no_static_element_interactions -->
+                            <div class="fixed inset-0 z-40" onclick={() => isProductDropdownOpen = false}></div>
+
                             <div class="absolute z-50 mt-2 w-full bg-[#0a0a0a] border border-white/20 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-64 shadow-cyan-900/20">
                                 <!-- Search Input -->
                                 <div class="p-3 border-b border-white/10 sticky top-0 bg-[#0a0a0a] z-10">

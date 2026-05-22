@@ -200,3 +200,24 @@
   - [ ] Phân tích thao tác 2: Tương tác 1:1 Thời gian thực (Skin Barrier Check).
   - [ ] Đề xuất UI/UX (Nút bấm, Vị trí, Hoạt ảnh) chuẩn "Liquid Glass" Elite 2026.
   - [ ] Đánh giá rủi ro tài nguyên (RAM/Latency) & Báo cáo Sếp chờ duyệt.
+
+# Task checklist: Nâng cấp Mở rộng Hệ thống RAG (Knowledge Base V2.2)
+
+- [x] **Trinh sát & Chuẩn bị DB Schema (Scout Protocol)**
+  - [x] Nâng cấp `SupportKnowledge` model: Bổ sung `product_id` (trỏ đến sản phẩm cụ thể), `source_type` (Enum: TEXT, URL, PDF) và `source_url`.
+  - [x] Thiết lập ràng buộc (constraints) và Schema Pydantic mới.
+  - [x] Chạy Migration qua Alembic (`alembic revision --autogenerate` & `alembic upgrade head`) để đẩy schema mới vào Postgres. Sửa lỗi thiếu PK của `media_registry`.
+
+- [x] **Thiết kế Giao diện Nhập liệu Chuẩn Quốc Tế (Execution)**
+  - [x] Tích hợp thanh Dropdown Custom xịn xò cho việc chọn **Target_Product_ID**, có khả năng filter/search nhanh hàng trăm mã sản phẩm.
+  - [x] Bổ sung điều kiện render (Conditional UI) theo `Data_Source_Type`.
+  - [x] Text/Q&A Input: Box rộng, tip rõ ràng.
+  - [x] URL Input: Box Textarea hỗ trợ nhập nhiều link trên nhiều dòng để Crawler chạy quét.
+  - [x] PDF Document Input: Tích hợp hệ thống kéo thả (Drag & Drop) siêu xịn, upload ngầm file qua API Media Server. Gắn hiệu ứng tương tác (Pulse / Visual Feedback) theo chuẩn SaaS quốc tế.
+  - [x] Thêm Tooltips (`Tip: ...`) chi tiết, minh bạch dưới mỗi trường thông tin để người dùng dễ hiểu.
+  
+- [x] **Kiểm định & Tương thích (Verification)**
+  - [x] Quét lỗi Type-safety Frontend qua lệnh `svelte-check`.
+  - [x] Khởi động lại `fast_platform_api` và `fast_platform_ui` bằng `docker compose restart`.
+  - [x] Code chạy ổn định, giao diện mượt mà và bảo toàn tài nguyên (2GB RAM).
+  - [x] Xây dựng phương án Crawler/Worker an toàn chống lỗi "Infinite Loop" (Rabbit Hole).
