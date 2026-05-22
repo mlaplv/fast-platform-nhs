@@ -68,6 +68,9 @@ class SupportKnowledgeService:
                 is_active=m.is_active,
                 priority=m.priority,
                 tags=list(m.tags) if m.tags else None,
+                product_id=m.product_id,
+                source_type=m.source_type,
+                source_url=m.source_url,
                 created_at=m.created_at.isoformat()
             ) for m in items
         ]
@@ -87,6 +90,9 @@ class SupportKnowledgeService:
             is_active=item.is_active,
             priority=item.priority,
             tags=list(item.tags) if item.tags else None,
+            product_id=item.product_id,
+            source_type=item.source_type,
+            source_url=item.source_url,
             created_at=item.created_at.isoformat()
         )
 
@@ -99,7 +105,10 @@ class SupportKnowledgeService:
             answer=data.answer,
             is_active=data.is_active,
             priority=data.priority,
-            tags=data.tags
+            tags=data.tags,
+            product_id=data.product_id,
+            source_type=data.source_type,
+            source_url=data.source_url
         )
         db_session.add(item)
         await db_session.flush() # Ensure ID is persistent before vectorization
@@ -120,6 +129,9 @@ class SupportKnowledgeService:
         if data.question is not None: item.question = data.question
         if data.answer is not None: item.answer = data.answer
         if data.tags is not None: item.tags = data.tags
+        if data.product_id is not None: item.product_id = data.product_id
+        if data.source_type is not None: item.source_type = data.source_type
+        if data.source_url is not None: item.source_url = data.source_url
         
         from backend.services.commerce.knowledge_vector import knowledge_vector_service
         await knowledge_vector_service.upsert_embedding(db_session, item_id, f"{item.question} {item.answer}")

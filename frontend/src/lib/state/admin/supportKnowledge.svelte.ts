@@ -8,6 +8,9 @@ export interface KnowledgeItem {
     is_active: boolean;
     priority: number;
     tags?: string[];
+    product_id?: string;
+    source_type?: 'TEXT' | 'URL' | 'PDF';
+    source_url?: string;
     created_at: string;
 }
 

@@ -166,10 +166,13 @@ class SupportHistoryItem(BaseModel):
 class SupportKnowledgeBase(BaseModel):
     category: SupportKnowledgeCategory = Field(default=SupportKnowledgeCategory.GENERAL)
     question: str = Field(..., min_length=1)
-    answer: str = Field(..., min_length=1)
+    answer: str = Field(default="[Đang phân tích dữ liệu...]")
     is_active: bool = True
     priority: int = 0
     tags: Optional[list[str]] = None
+    product_id: Optional[str] = None
+    source_type: str = Field(default="TEXT")
+    source_url: Optional[str] = None
 
 class CreateSupportKnowledgeRequest(SupportKnowledgeBase):
     pass
@@ -181,6 +184,9 @@ class UpdateSupportKnowledgeRequest(BaseModel):
     is_active: Optional[bool] = None
     priority: Optional[int] = None
     tags: Optional[list[str]] = None
+    product_id: Optional[str] = None
+    source_type: Optional[str] = None
+    source_url: Optional[str] = None
 
 class SupportKnowledgeResponse(SupportKnowledgeBase):
     id: str

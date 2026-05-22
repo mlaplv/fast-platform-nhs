@@ -139,6 +139,12 @@ class SupportKnowledge(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     
     category: Mapped[SupportKnowledgeCategory] = mapped_column(SQLEnum(SupportKnowledgeCategory), default=SupportKnowledgeCategory.GENERAL, index=True)
+    
+    # Extended RAG (Elite V2.2)
+    product_id: Mapped[Optional[str]] = mapped_column(String, sa.ForeignKey('product_bases.id'), index=True, nullable=True)
+    source_type: Mapped[str] = mapped_column(String(20), default="TEXT") # TEXT, URL, PDF
+    source_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # the url or minio path
+    
     question: Mapped[str] = mapped_column(Text)
     answer: Mapped[str] = mapped_column(Text)
     
