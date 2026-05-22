@@ -270,6 +270,8 @@ class SupportAgentOperative(BaseAgentOperative):
                 clean_msg = user_msg
                 if "[system_consult]" in clean_msg:
                     clean_msg = "Tư vấn chuyên sâu về sản phẩm này"
+                elif "[system_skin_barrier]" in clean_msg:
+                    clean_msg = "Kiểm tra sản phẩm có phù hợp cho da của tôi không?"
                 enc_user_msg = GeminiSecurity.encrypt(clean_msg)
                 msg_user = SupportChatHistory(session_id=session_id, role="user", content=enc_user_msg, intent=intent.value, product_slug=product_slug, customer_name=customer_name, customer_phone=customer_phone)
                 db.add(msg_user)

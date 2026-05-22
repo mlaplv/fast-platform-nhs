@@ -483,7 +483,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         has_address_signals = any(kw in msg_norm for kw in ["đường", "phố", "quận", "huyện", "phường", "xã", "tỉnh", "tp", "thành phố", "ngõ", "ngách", "/", ":"])
         buying_intent = any(kw in msg_norm for kw in ["mua", "đặt", "lấy", "ship", "giao", "ok", "chốt", "đơn", "lên đơn", "cho 1 đơn", "cho đơn", "về :"])
         
-        if "[system_consult]" in msg_norm:
+        if "[system_consult]" in msg_norm or "[system_skin_barrier]" in msg_norm:
             pass
         elif (has_phone or has_address_signals) and buying_intent:
             logger.info(f"🔇 [Consultant Silenced] Yielding to Order Flow: {msg_norm}")
@@ -658,8 +658,33 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         if ctx.dna.available_points > 0:
             loyalty_ctx = f"\n[LOYALTY DNA]\nKhách này là {ctx.dna.segment}. Có {ctx.dna.available_points} điểm. (Mức giảm điểm tối đa đã được tính sẵn trong [CART] bên dưới, tuyệt đối không tự tính lại).\n"
 
+        base_prompt = self.SYSTEM_PROMPT.format(point_value=ctx.dna.point_value_vnd or 1000)
+        clean_msg = ctx.request.message.replace("[system_consult]", "").strip()
+        
+        is_skin_barrier_session = "[system_skin_barrier]" in ctx.request.message or "kiểm tra sản phẩm có phù hợp cho da của tôi không?" in ctx.history_text.lower()
+
+        if is_skin_barrier_session:
+            if "[system_skin_barrier]" in ctx.request.message:
+                base_prompt = (
+                    "Bạn là Helen - Chuyên gia Da liễu AI ân cần của osmo.\n"
+                    "NHIỆM VỤ TỐI THƯỢNG: Đóng vai Bác sĩ Da liễu, tư vấn an toàn hàng rào bảo vệ da (Skin Barrier) cho khách.\n"
+                    "1. TUYỆT ĐỐI CẤM chốt sale, báo giá, xin số điện thoại hay địa chỉ ở bước này.\n"
+                    "2. KHOAN TƯ VẤN SẢN PHẨM NGAY. Hãy chào khách và CHỦ ĐỘNG hỏi thăm tình trạng da hiện tại của họ (ví dụ: da có đang mẩn đỏ, nhạy cảm, hay đang dùng treatment nặng như BHA/Retinol không?).\n"
+                    "3. GIẢI THÍCH NGẮN GỌN rằng Helen cần thông tin này để đối chiếu với Bảng Thành Phần (Ingredients) của sản phẩm, nhằm đánh giá xem sản phẩm có an toàn tuyệt đối cho 'hàng rào bảo vệ da' của riêng khách hay không.\n"
+                    "4. Giọng điệu ân cần, chuyên nghiệp, chuẩn y khoa. Chỉ tập trung hỏi thăm và chờ khách hàng trả lời."
+                )
+                clean_msg = "Sản phẩm này có an toàn cho da của tôi không? Xin hãy kiểm tra giúp."
+            else:
+                base_prompt = (
+                    "Bạn là Helen - Bác sĩ Da liễu AI ân cần của osmo.\n"
+                    "NHIỆM VỤ TỐI THƯỢNG: Đánh giá an toàn hàng rào bảo vệ da dựa trên thông tin khách vừa cung cấp.\n"
+                    "1. PHÂN TÍCH CHUYÊN MÔN: Đối chiếu tình trạng da hiện tại của khách với Bảng Thành Phần (Ingredients) của sản phẩm (Ưu tiên dùng thông tin ở [PRODUCT]). Giải thích rõ ràng tại sao sản phẩm an toàn/không an toàn cho hàng rào bảo vệ da của họ.\n"
+                    "2. ĐỒNG CẢM & KHUYÊN DÙNG: Thể hiện sự thấu hiểu. Giữ phong thái chuẩn y khoa, cấm dùng phong cách Sales hung hãn.\n"
+                    "3. SAU KHI TƯ VẤN XONG: Nếu sản phẩm phù hợp, hãy thông báo giá ưu đãi và nhẹ nhàng xin SĐT + Địa chỉ để lên đơn gửi sản phẩm cho họ trải nghiệm."
+                )
+
         full_prompt = (
-            f"{self.SYSTEM_PROMPT.format(point_value=ctx.dna.point_value_vnd or 1000)}\n"
+            f"{base_prompt}\n"
             f"{integration_ctx}\n"
             f"{fomo_ctx}\n"
             f"{loyalty_ctx}\n"
@@ -669,16 +694,12 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             f"\n[LỊCH SỬ GẦN ĐÂY]\n{ctx.history_text}\n"
             f"--- CART ---\n{ctx.cart_text}\n"
             f"--- PRODUCT ---\n{ctx.product_ctx}\n"
-            f"\nCHỈ THỊ PHỤC VỤ SÁT THỦ BÁN HÀNG:\n"
+            f"\nCHỈ THỊ TƯ VẤN:\n"
             f"- ƯU TIÊN TUYỆT ĐỐI dữ liệu trong [DỮ LIỆU TÌM KIẾM HỆ THỐNG (GROUND TRUTH)] và [PRODUCT] để trả lời ngay.\n"
-            f"- CẤM TUYỆT ĐỐI gọi các Tool tìm kiếm (search_products_tool, search_knowledge_base, search_articles_tool) nếu thông tin cần trả lời đã nằm trong ngữ cảnh trên.\n"
+            f"- CẤM TUYỆT ĐỐI gọi các Tool tìm kiếm nếu thông tin cần trả lời đã nằm trong ngữ cảnh trên.\n"
         )
 
-        
-
-            
         try:
-            clean_msg = ctx.request.message.replace("[system_consult]", "").strip()
             masked_msg = await self._mask_sensitive_medical_terms(clean_msg)
             masked_prompt = await self._mask_sensitive_medical_terms(full_prompt)
             

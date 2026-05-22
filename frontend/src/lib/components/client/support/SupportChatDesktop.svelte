@@ -36,9 +36,11 @@
     prompt?: string;
     displayPrompt?: string;
     action?: () => void;
+    title?: string;
   }
 
   const quickActions: QuickAction[] = [
+    { label: 'An toàn da', icon: ShieldCheck, prompt: '[system_skin_barrier] QUY TRÌNH KIỂM TRA HÀNG RÀO BẢO VỆ DA (SKIN BARRIER):\n1. ĐÓNG VAI LÀ HELEN - CHUYÊN GIA DA LIỄU AI ÂN CẦN.\n2. KHOAN TƯ VẤN SẢN PHẨM NGAY. Hãy chào khách và CHỦ ĐỘNG hỏi thăm tình trạng da hiện tại của họ (ví dụ: da có đang mẩn đỏ, nhạy cảm, hay đang dùng treatment nặng như BHA/Retinol không?).\n3. GIẢI THÍCH NGẮN GỌN rằng Helen cần thông tin này để đối chiếu với Bảng Thành Phần (Ingredients) của sản phẩm, nhằm đánh giá xem sản phẩm có an toàn tuyệt đối cho "hàng rào bảo vệ da" của riêng khách hay không.\n4. CẤM BÁO GIÁ HAY CHỐT SALE Ở BƯỚC NÀY. Chỉ tập trung hỏi thăm và chờ khách hàng trả lời.', displayPrompt: 'Kiểm tra an toàn cho da', title: 'Kiểm tra sản phẩm có phù hợp cho da của bạn không.' },
     { label: 'Xuất xứ', icon: Sparkles, prompt: 'Sản phẩm này có chính hãng không? Nguồn gốc ở đâu?' },
     { label: 'Công dụng', icon: Beaker, prompt: 'Sản phẩm này có thành phần gì và công dụng như thế nào?' },
     { label: 'Tư vấn', icon: Target, prompt: '[system_consult] Hãy tư vấn bán hàng chuyên sâu cho sản phẩm này theo cấu trúc chi tiết sau nhưng CẤM ghi tên các tiêu đề kỹ thuật:\n1. Đồng cảm sâu sắc với nỗi lo thầm kín nhất của khách hàng về làn da/vấn đề sản phẩm giải quyết.\n2. Liệt kê và phân tích chi tiết cơ chế khoa học của các thành phần nổi bật chuẩn Nhật dưới dạng danh sách (bullet points) rõ ràng.\n3. Vẽ ra bức tranh sinh động về sự tự tin rạng rỡ sau khi sử dụng.\n4. Đưa ra báo giá chi tiết (giá niêm yết, khuyến mãi), tồn kho thực tế (FOMO), chương trình KM và Kêu Gọi Hành Động (CTA) xin SĐT + Địa chỉ nhận hàng để chốt đơn ngay.\nCHÚ Ý: CẤM viết các tiêu đề thô kệch như "Điểm đau", "Giải pháp", "Viễn cảnh tự do", "Lời khuyên mua sắm từ Helen". Hãy chia đoạn tự nhiên bằng các emoji sang trọng.', displayPrompt: 'Tư vấn chuyên sâu về sản phẩm này' }
@@ -379,12 +381,19 @@
           <div class="flex justify-end gap-2 px-1">
             {#each quickActions as action}
               {@const Icon = action.icon}
-              <button 
-                class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white rounded-full text-[11px] font-bold transition-all active:scale-95 group/action"
-                onclick={() => handleQuickAction(action)}
-              >
-                <Icon size={12} class="text-[#FFB7C5] opacity-30 group-hover/action:opacity-100 transition-opacity" /> {action.label}
-              </button>
+              <div class="relative group/action">
+                {#if action.label === 'An toàn da' && supportAgent.messages.length <= 1}
+                  <div class="absolute -top-[38px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide shadow-[0_4px_16px_rgba(255,183,197,0.4)] animate-bounce z-50 pointer-events-none before:content-[''] before:absolute before:-bottom-1 before:left-1/2 before:-translate-x-1/2 before:w-2.5 before:h-2.5 before:bg-[#FF8FA3] before:rotate-45">
+                    Kiểm tra sản phẩm có phù hợp cho da của bạn không ✨
+                  </div>
+                {/if}
+                <button 
+                  class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white rounded-full text-[11px] font-bold transition-all active:scale-95 {action.label === 'An toàn da' ? 'ring-1 ring-[#FFB7C5]/30' : ''}"
+                  onclick={() => handleQuickAction(action)}
+                >
+                  <Icon size={12} class="text-[#FFB7C5] opacity-30 group-hover/action:opacity-100 transition-opacity" /> {action.label}
+                </button>
+              </div>
             {/each}
           </div>
         {/if}

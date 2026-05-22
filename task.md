@@ -186,3 +186,17 @@
 - [x] **Kiểm thử & Xác minh (Verification)**
   - [x] Đảm bảo giao diện tải mượt mà, cấu trúc metadata SEO được giữ nguyên hoặc động hoá an toàn.
   - [x] Kiểm thử toàn bộ route không bị vỡ lỗi Typescript.
+
+# Task checklist: Phân tích & Thiết kế Nút Hỗ trợ Khách hàng AI (AI Personal Shopper & Skin Barrier Check)
+
+- [x] **Trinh sát & Thu thập Yêu cầu (Scout Protocol)**
+  - [x] Tiếp nhận chỉ thị từ Sếp: Phân tích tính khả thi và quy trình cho 1 nút hỗ trợ khách hàng AI (Helen) dựa trên bảng thành phần sản phẩm.
+  - [x] Phân tích 2 yêu cầu cốt lõi: (1) Helen - Trợ lý mua sắm AI đề xuất và đặt hàng. (2) Chat 1:1 thời gian thực phân tích an toàn hàng rào bảo vệ da (Skin Barrier) ngay trên trang osmo.vn.
+  - [x] Rà soát cấu trúc dữ liệu hiện tại trong `support_agent.py` và `ProductBase`: Đã có metadata `key_ingredients`, `ingredients` và `NeuralDNA` (lịch sử mua, hạng thành viên).
+
+- [ ] **Kế hoạch Tác chiến & Duyệt phương án (Propose-First)**
+  - [ ] Xây dựng quy trình thu thập thông tin (Profile Da, Lịch sử mua hàng, Bảng thành phần).
+  - [ ] Phân tích thao tác 1: AI Personal Shopper (Đề xuất & Order).
+  - [ ] Phân tích thao tác 2: Tương tác 1:1 Thời gian thực (Skin Barrier Check).
+  - [ ] Đề xuất UI/UX (Nút bấm, Vị trí, Hoạt ảnh) chuẩn "Liquid Glass" Elite 2026.
+  - [ ] Đánh giá rủi ro tài nguyên (RAM/Latency) & Báo cáo Sếp chờ duyệt.

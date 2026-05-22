@@ -54,9 +54,10 @@ class MedicalShieldMixin:
         except Exception:
             pass # Keep using static map on Redis failure
 
-        processed = text.lower()
+        processed = text
         for slang, medical in mask_map.items():
-            processed = processed.replace(slang, medical)
+            # Elite V2.6: Preserve capitalization for SYSTEM PROMPT emphasis
+            processed = re.sub(re.escape(slang), medical, processed, flags=re.IGNORECASE)
         return processed
 
 class SearchKeyMixin:

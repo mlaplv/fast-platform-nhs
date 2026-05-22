@@ -27,8 +27,8 @@ class OrderHandler(BaseHandler):
     async def handle(self, ctx: SupportContext) -> bool:
         """ZONE 3: Order Closing. Refined Elite V3.0 Architecture."""
         msg = unicodedata.normalize("NFKC", ctx.request.message.lower().strip())
-        if "[system_consult]" in msg:
-            logger.info(" Bypassing OrderHandler for [system_consult] query.")
+        if "[system_consult]" in msg or "[system_skin_barrier]" in msg:
+            logger.info(" Bypassing OrderHandler for system query.")
             return False
             
         session_id = ctx.session_id
