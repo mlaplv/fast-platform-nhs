@@ -51,3 +51,4 @@ class BrainStatus(BaseModel):
     last_sync: float = Field(default=0.0)
     vector_engine: str = Field(default="trinity_core_v2.2")
     stability_score: float = Field(default=100.0)
+    storage_bytes: int = Field(default=0)

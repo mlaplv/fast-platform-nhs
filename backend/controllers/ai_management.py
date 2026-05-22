@@ -118,16 +118,27 @@ class AIManagementController(Controller):
         analytics = await brain_manager.get_node_analytics(db_session)
         duplicates = await brain_manager.get_semantic_duplicates(db_session)
         
+        # Calculate Real Stability Score (Dynamic)
+        coverage = float(analytics.get("coverage", 0))
+        duplicate_penalty = len(duplicates) * 5.0
+        health_score = max(0.0, min(100.0, coverage - duplicate_penalty))
+
         return BrainStatus(
-            total_nodes=analytics["total_entities"],
-            vector_health=analytics["health"],
-            coverage=analytics["coverage"],
+            total_nodes=analytics.get("total_entities", 0),
+            vector_health=health_score,
+            coverage=coverage,
             duplicates=[BrainAuditItem(**d) for d in duplicates],
             uptime=round(time.time() - self._start_time, 1),
             last_sync=self._last_sync,
-            stability_score=analytics["health"],
+            stability_score=round(health_score, 1),
+            storage_bytes=analytics.get("storage_bytes", 0),
             vector_engine="trinity_core_v2.2"
         )
+
+    @get("/brain/graph")
+    async def get_brain_graph(self, db_session: "AsyncSession") -> Dict:
+        """Elite V2.2: Fetch real Brain Matrix Graph Topology (Products & Articles)."""
+        return await brain_manager.get_graph_nodes(db_session)
 
     @get("/orchestration")
     async def get_orchestration_config(self) -> Dict:

@@ -113,12 +113,59 @@ class BrainManager:
         total_embeddings = emb_p + emb_a
         coverage = (total_embeddings / total_entities) * 100 if total_entities > 0 else 100.0
         
+        # Calculate real database size for vectors (ProductEmbedding + ArticleEmbedding)
+        try:
+            size_p = await db.scalar(sa_text("SELECT pg_total_relation_size('product_embeddings')")) or 0
+            size_a = await db.scalar(sa_text("SELECT pg_total_relation_size('article_embeddings')")) or 0
+            total_size_bytes = size_p + size_a
+        except Exception:
+            # Fallback if unsupported (e.g. SQLite)
+            total_size_bytes = total_embeddings * 3072 # 768 float32
+
         return {
             "total_entities": total_entities,
             "total_embeddings": total_embeddings,
             "coverage": round(coverage, 1),
-            "health": 98.5 if coverage > 90 else 85.0
+            "storage_bytes": total_size_bytes
         }
+
+    @staticmethod
+    async def get_graph_nodes(db: AsyncSession) -> Dict[str, List[Dict]]:
+        """
+        Elite V2.2: Get lightweight topology of the entire Brain Matrix (Products & Articles).
+        """
+        stmt_p = select(ProductBase.id, ProductBase.name, ProductBase.category_id)
+        p_nodes = (await db.execute(stmt_p)).all()
+        
+        stmt_a = select(Article.id, Article.title, Article.category_id)
+        a_nodes = (await db.execute(stmt_a)).all()
+
+        nodes = []
+        # Core
+        nodes.append({"id": "core", "label": "CORTEX CORE", "type": "core"})
+        
+        # Product Hub
+        nodes.append({"id": "hub_product", "label": "PRODUCTS", "type": "hub"})
+        # Article Hub
+        nodes.append({"id": "hub_article", "label": "ARTICLES", "type": "hub"})
+
+        for p in p_nodes:
+            nodes.append({
+                "id": f"p_{p[0]}",
+                "label": p[1][:25] + "..." if len(p[1]) > 25 else p[1],
+                "type": "product",
+                "parent": "hub_product"
+            })
+            
+        for a in a_nodes:
+            nodes.append({
+                "id": f"a_{a[0]}",
+                "label": a[1][:25] + "..." if len(p[1]) > 25 else a[1],
+                "type": "article",
+                "parent": "hub_article"
+            })
+            
+        return {"nodes": nodes}
 
     @staticmethod
     async def sync_all_embeddings(db: AsyncSession):

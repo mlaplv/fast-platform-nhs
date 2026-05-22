@@ -628,7 +628,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                 if kb_res:
                     pre_retrieved_ctx += "\n[DỮ LIỆU TÌM KIẾM HỆ THỐNG - TRI THỨC VÀ CHÍNH SÁCH CHUNG]:\n"
                     for idx, k in enumerate(kb_res):
-                        pre_retrieved_ctx += f"  - Tiêu đề: {k.get('title')} | Câu trả lời chính thức: {k.get('answer')}\n"
+                        pre_retrieved_ctx += f"  - Vấn đề: {k.get('question')} | Hướng giải quyết: {k.get('answer')}\n"
 
         except Exception as e:
             logger.warning(f"[ConsultantPreRetrieve] Failed pre-retrieval: {e}")

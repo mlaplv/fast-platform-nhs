@@ -157,7 +157,6 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
 
         # Elite V2.2: Structured Context Injection for Ingredients
         ctx += "\n[THÀNH PHẦN NỔI BẬT & CÔNG DỤNG]:\n"
-        ctx += "- Placenta tinh khiết 100% từ Nhật Bản: Thành phần sinh học thượng hạng giúp làm mờ thâm sạm, dưỡng sáng hồng vùng da nhạy cảm từ sâu bên trong một cách an toàn và dịu nhẹ nhất.\n"
 
         if p_row.product_metadata:
             meta = p_row.product_metadata
@@ -165,7 +164,7 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
                 for ki in meta["key_ingredients"]:
                     k_name = ki.get("name", "")
                     k_desc = ki.get("description", "")
-                    if k_name and "placenta" not in k_name.lower():
+                    if k_name:
                         # C-2: Strip HTML + cap length to prevent Metadata Prompt Injection (OWASP LLM01)
                         k_name_safe = re.sub(r'<[^>]+>', ' ', str(k_name))[:80].strip()
                         k_desc_safe = re.sub(r'<[^>]+>', ' ', str(k_desc))[:200].strip()
@@ -176,15 +175,31 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
                 _ing_safe = re.sub(r'<[^>]+>', ' ', str(meta['ingredients']))[:500].strip()
                 ctx += f"\n[BẢNG THÀNH PHẦN CHI TIẾT]:\n{_ing_safe}\n"
                 
+            # Elite V2.6: Knowledge Graph Injection (SGE Optimization)
+            if "knowledge_graph" in meta and isinstance(meta["knowledge_graph"], dict):
+                kg = meta["knowledge_graph"]
+                ctx += f"\n[KNOWLEDGE GRAPH - SƠ ĐỒ TRI THỨC Y KHOA]:\n"
+                if kg.get("main_takeaway"):
+                    ctx += f"- KẾT LUẬN LÂM SÀNG: {kg['main_takeaway']}\n"
+                if kg.get("expert_claim"):
+                    ctx += f"- KHẲNG ĐỊNH CHUYÊN MÔN: {kg['expert_claim']}\n"
+                if kg.get("entities") and isinstance(kg["entities"], list):
+                    ctx += "- THỰC THỂ (ENTITIES):\n"
+                    for ent in kg["entities"][:5]: # Giới hạn 5 thực thể cốt lõi để tiết kiệm token
+                        e_name = re.sub(r'<[^>]+>', '', str(ent.get("name", "")))
+                        e_type = re.sub(r'<[^>]+>', '', str(ent.get("type", "")))
+                        e_desc = re.sub(r'<[^>]+>', '', str(ent.get("description", "")))
+                        ctx += f"  + [{e_type}] {e_name}: {e_desc}\n"
+                
         # FOMO & Trust Injection (0ms Latency)
         meta: dict[str, object] = p_row.product_metadata or {}
-        origin: str = str(meta.get("origin", "Nhật Bản"))
-        brand: str = str(meta.get("brand", "Miccosmo"))
+        origin: str = str(meta.get("origin", "Chưa cập nhật"))
+        brand: str = str(meta.get("brand", "Chưa cập nhật"))
         
         # Real Compliance Data from Metadata
         real_certs: list[str] = []
         if meta.get("notification_no"):
-            auth = str(meta.get("authority", "Cục Quản lý Dược"))
+            auth = str(meta.get("authority", "Cơ quan quản lý"))
             real_certs.append(f"Số phiếu công bố {str(meta['notification_no'])} ({auth})")
         
         if meta.get("certificates"):
@@ -194,10 +209,7 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
             elif isinstance(certs, str): 
                 real_certs.append(certs)
             
-        if not real_certs:
-            real_certs = ["GMP Nhật Bản", "Bộ Y Tế VN cấp phép lưu hành"]
-            
-        certs_str: str = ", ".join(real_certs)
+        certs_str: str = ", ".join(real_certs) if real_certs else "Chưa có chứng nhận"
         
         # Combine base fake count from env + real order count
         base_count = int(os.getenv("PUBLIC_G_BY_COUNT", "0"))

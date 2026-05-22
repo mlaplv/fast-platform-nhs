@@ -15,8 +15,11 @@
     import HelpCircle from "@lucide/svelte/icons/help-circle";
     import LayoutGrid from "@lucide/svelte/icons/layout-grid";
     import List from "@lucide/svelte/icons/list";
-    import RefreshCw from "@lucide/svelte/icons/refresh-cw";    import SupportKnowledgeBulkActions from './SupportKnowledgeBulkActions.svelte';
+    import Network from "@lucide/svelte/icons/network";
+    import RefreshCw from "@lucide/svelte/icons/refresh-cw";
+    import SupportKnowledgeBulkActions from './SupportKnowledgeBulkActions.svelte';
     import SupportKnowledgeDrawer from './SupportKnowledgeDrawer.svelte';
+    import KnowledgeGraphVisualizer from './KnowledgeGraphVisualizer.svelte';
 
     const categories = ["all", "GENERAL", "POLICY", "SHIPPING", "PRODUCT", "PROMO"];
     let search = $state("");
@@ -38,6 +41,53 @@
     }
 
     let isAllSelected = $derived(kb.items.length > 0 && kb.items.every(item => kb.selectedIds.includes(item.id)));
+
+    // Generate graph from Q&A data
+    let graphData = $derived.by(() => {
+        const nodes: any[] = [];
+        const edges: any[] = [];
+        const categoryMap = new Map();
+
+        // Core Node
+        nodes.push({ id: 'core', label: 'HELEN BRAIN', color: '#00f0ff', size: 30 });
+
+        kb.items.forEach((item) => {
+            // Category Nodes
+            if (!categoryMap.has(item.category)) {
+                categoryMap.set(item.category, `cat_${item.category}`);
+                nodes.push({ id: `cat_${item.category}`, label: item.category, color: '#06b6d4', size: 25 });
+                edges.push({ from: 'core', to: `cat_${item.category}` });
+            }
+
+            // Question Node
+            const qId = `q_${item.id}`;
+            nodes.push({ 
+                id: qId, 
+                label: item.question.length > 25 ? item.question.substring(0, 25) + '...' : item.question,
+                title: item.question, // tooltip on hover
+                color: item.is_active ? '#34d399' : '#f87171',
+                size: 15
+            });
+            edges.push({ from: `cat_${item.category}`, to: qId });
+            
+            // Connect to tags or answer
+            if (item.tags && item.tags.length > 0) {
+                item.tags.forEach((tag: string) => {
+                    const tagId = `tag_${tag}`;
+                    if (!nodes.find(n => n.id === tagId)) {
+                        nodes.push({ id: tagId, label: `#${tag}`, color: '#a78bfa', size: 10 });
+                    }
+                    edges.push({ from: qId, to: tagId });
+                });
+            } else {
+                const ansId = `ans_${item.id}`;
+                nodes.push({ id: ansId, label: "Answer", title: item.answer, color: '#60a5fa', size: 10 });
+                edges.push({ from: qId, to: ansId, dashes: true });
+            }
+        });
+
+        return { nodes, edges };
+    });
 </script>
 
 <div class="w-full h-full flex flex-col bg-[#020202] text-white font-['Be Vietnam Pro'] relative overflow-hidden">
@@ -124,6 +174,13 @@
                 title="Dạng danh sách"
             >
                 <List size={16} />
+            </button>
+            <button 
+                onclick={() => kb.viewMode = 'graph'}
+                class="p-2 rounded-lg transition-all {kb.viewMode === 'graph' ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]' : 'text-gray-500 hover:text-gray-300'}"
+                title="Bản đồ tri thức (Graph)"
+            >
+                <Network size={16} />
             </button>
         </div>
     </div>
@@ -268,6 +325,11 @@
                             {/each}
                         </tbody>
                     </table>
+                </div>
+            {:else if kb.viewMode === 'graph'}
+                <!-- Graph View: Visual Node Topology -->
+                <div class="w-full h-full min-h-[600px]" in:fade>
+                    <KnowledgeGraphVisualizer data={graphData} height="100%" />
                 </div>
             {/if}
         {/if}

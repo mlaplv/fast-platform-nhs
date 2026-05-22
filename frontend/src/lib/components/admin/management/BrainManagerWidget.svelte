@@ -22,7 +22,8 @@
     import Terminal from "@lucide/svelte/icons/terminal";
     let { isWidget = false } = $props();
     import { useNanobot } from "$lib/state/nanobot.svelte";
-  const nanobot = useNanobot();
+    const nanobot = useNanobot();
+    import KnowledgeGraphVisualizer from './KnowledgeGraphVisualizer.svelte';
 
     let brainStatus = $state(null);
     let loading = $state(true);
@@ -45,31 +46,66 @@
         }
     });
 
+    let rawGraphNodes = $state<any[]>([]);
+
     onMount(async () => {
         await loadBrainStatus();
         const poll = setInterval(loadBrainStatus, 30000); // Polling telemetry every 30s
         return () => clearInterval(poll);
     });
 
+    let graphData = $derived.by(() => {
+        const nodes: any[] = [];
+        const edges: any[] = [];
+        
+        if (rawGraphNodes.length === 0) {
+            nodes.push({ id: 'core', label: 'CORTEX CORE', color: '#6366f1', size: 30 });
+            return { nodes, edges };
+        }
+
+        rawGraphNodes.forEach((node) => {
+            if (node.type === 'core') {
+                nodes.push({ id: node.id, label: node.label, color: '#6366f1', size: 35 });
+            } else if (node.type === 'hub') {
+                nodes.push({ id: node.id, label: node.label, color: '#10b981', size: 25 });
+                edges.push({ from: 'core', to: node.id, length: 150 });
+            } else if (node.type === 'product') {
+                nodes.push({ id: node.id, label: node.label, color: '#3b82f6', size: 12 });
+                edges.push({ from: node.parent, to: node.id });
+            } else if (node.type === 'article') {
+                nodes.push({ id: node.id, label: node.label, color: '#8b5cf6', size: 12 });
+                edges.push({ from: node.parent, to: node.id });
+            }
+        });
+
+        return { nodes, edges };
+    });
+
     async function loadBrainStatus() {
         try {
-            const res = await fetch('/api/v1/admin/ai/brain/status');
-            if (res.ok) {
-                const data = await res.json();
+            const [statusRes, graphRes] = await Promise.all([
+                fetch('/api/v1/admin/ai/brain/status'),
+                fetch('/api/v1/admin/ai/brain/graph')
+            ]);
+            
+            if (statusRes.ok) {
+                const data = await statusRes.json();
                 brainStatus = data;
-                // Sync with global state for Modal Header & HUD
                 nanobot.brainTotalNodes = data.total_nodes;
                 nanobot.brainVectorHealth = data.vector_health;
                 nanobot.brainDuplicatesCount = (data.duplicates || []).length;
                 nanobot.brainCoverage = data.coverage || 0;
-                
-                // Telemetry Sync
                 nanobot.brainUptime = data.uptime || 0;
                 nanobot.brainLastSync = data.last_sync || 0;
                 nanobot.brainStabilityScore = data.stability_score || 100;
             }
+
+            if (graphRes.ok) {
+                const gData = await graphRes.json();
+                rawGraphNodes = gData.nodes || [];
+            }
         } catch (e) {
-            console.error('Failed to load brain status:', e);
+            console.error('Failed to load brain telemetry:', e);
         } finally {
             loading = false;
         }
@@ -152,6 +188,13 @@
         if (diff < 60) return "JUST NOW";
         return formatUptime(diff) + " AGO";
     }
+    function formatBytes(bytes: number) {
+        if (bytes === 0) return '0 KB';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
 </script>
 
 <div class="brain-elite-hud {isWidget ? 'h-full' : 'min-h-screen p-8'} bg-[#020202] text-white flex flex-col overflow-hidden relative">
@@ -224,7 +267,7 @@
                                 <Database size={12} class="text-gray-500" />
                                 <span class="text-[9px] font-mono text-gray-500 tracking-widest">Storage</span>
                             </div>
-                            <span class="text-[11px] font-bold font-mono text-white tracking-widest">{Math.round(nanobot.brainTotalNodes * 0.42)} KB</span>
+                            <span class="text-[11px] font-bold font-mono text-white tracking-widest">{formatBytes(brainStatus.storage_bytes)}</span>
                         </div>
                     </div>
 
@@ -311,27 +354,11 @@
                             </table>
                         </div>
                     {:else}
-                        <!-- Empty State: Pure Matrix -->
-                        <div class="h-full flex flex-col items-center justify-center text-center py-20" in:fade>
-                            <div class="relative mb-12">
-                                <div class="absolute inset-0 bg-emerald-500/20 blur-[100px] rounded-full animate-pulse"></div>
-                                <div class="relative w-32 h-32 rounded-full border border-emerald-500/20 flex items-center justify-center">
-                                    <ShieldCheck size={64} class="text-emerald-500/40" />
-                                    <!-- Rotating Detail -->
-                                    <div class="absolute inset-0 border border-emerald-500/10 border-dashed rounded-full animate-spin-slow"></div>
-                                </div>
+                        <!-- Empty State: Pure Matrix Graph View -->
+                        <div class="h-full flex flex-col" in:fade>
+                            <div class="w-full flex-1 rounded-[2.5rem] overflow-hidden border border-emerald-500/10 shadow-[0_0_50px_rgba(16,185,129,0.05)]">
+                                <KnowledgeGraphVisualizer data={graphData} height="100%" />
                             </div>
-                            
-                            <h4 class="text-3xl font-black italic text-white tracking-widest mb-4">Neural Harmony Established</h4>
-                            <div class="flex items-center gap-4 mb-8">
-                                <div class="h-px w-12 bg-white/10"></div>
-                                <span class="text-[10px] font-mono text-emerald-400 tracking-[0.5em]">System Diagnostic: PURE</span>
-                                <div class="h-px w-12 bg-white/10"></div>
-                            </div>
-                            <p class="text-gray-500 text-[11px] font-medium italic tracking-[0.2em] max-w-sm leading-relaxed">
-                                Brain Matrix is in pristine condition. <br/> 
-                                zero semantic collisions detected across <span class="text-white">{nanobot.brainTotalNodes} nodes</span>.
-                            </p>
                         </div>
                     {/if}
                 </div>
