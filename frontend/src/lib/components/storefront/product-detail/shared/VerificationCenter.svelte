@@ -30,12 +30,7 @@
   } = $props();
  
   const ui = getClientUi();
- 
-  $effect(() => {
-    if (verificationData) {
-      console.log("🧬 [VerificationCenter] Glass UI reactive trigger - Data:", $state.snapshot(verificationData));
-    }
-  });
+
 
   // Elite V2.2: Real Data Integration (Derived from API response or Fallback)
   let manufacturer = $derived.by((): BarcodeVerificationResponse => {

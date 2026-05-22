@@ -216,18 +216,6 @@
       : products.length > visibleLimit + 1,
   );
 
-  // DEBUG EFFECT: Theo dõi mọi sự thay đổi của các biến trạng thái
-  $effect(() => {
-    console.log("[DEBUG HomeProductGrid] STATE CHANGED:", {
-      activeTab,
-      visibleLimit,
-      autoLoaded,
-      hasMoreProducts,
-      productsAiLength: productsAi.length,
-      productsLength: products.length,
-    });
-  });
-
   $effect(() => {
     const _ = activeTab;
     visibleLimit = 4;
@@ -236,32 +224,16 @@
 
   $effect(() => {
     if (autoLoaded) {
-      console.log(
-        "[DEBUG HomeProductGrid] Skip vertical listener: already autoLoaded.",
-      );
       return;
     }
     if (!hasMoreProducts) {
-      console.log(
-        "[DEBUG HomeProductGrid] Skip vertical listener: no more products to load.",
-      );
       return;
     }
 
-    console.log(
-      "[DEBUG HomeProductGrid] Registering window scroll event listener...",
-    );
     function onScroll(): void {
-      console.log(
-        "[DEBUG HomeProductGrid] Window scroll event. scrollY:",
-        window.scrollY,
-      );
       if (autoLoaded) return;
       // Chỉ tự tải khi Sếp thực sự cuộn trang dọc > 50px
       if (window.scrollY > 50) {
-        console.log(
-          "[DEBUG HomeProductGrid] Auto-load triggered via vertical scroll! Setting limit to 8.",
-        );
         visibleLimit = 8;
         autoLoaded = true;
         window.removeEventListener("scroll", onScroll, {
@@ -273,9 +245,6 @@
     window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      console.log(
-        "[DEBUG HomeProductGrid] Unregistering window scroll event listener.",
-      );
       window.removeEventListener("scroll", onScroll, {
         passive: true,
       } as EventListenerOptions);

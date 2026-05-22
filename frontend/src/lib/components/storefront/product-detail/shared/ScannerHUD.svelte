@@ -24,13 +24,10 @@
       if (progress >= 100) {
         clearInterval(interval);
         isVerifying = true;
-        
-        console.log(`🧬 [ScannerHUD] Starting verification for: ${barcode}`);
         try {
           const response = await fetch(`/api/v1/client/barcode/verify?barcode=${barcode}`);
           if (response.ok) {
             const data = await response.json();
-            console.log(`🧬 [ScannerHUD] Data received:`, data);
             oncomplete?.({ barcode, verificationData: data });
           } else {
             console.error(`🧬 [ScannerHUD] API Error: ${response.status}`);

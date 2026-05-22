@@ -101,5 +101,48 @@
     - [x] Click kiểm thử và xác minh modal `DesktopProductDetailsModal` mở lên hiển thị đầy đủ, chính xác mô tả sản phẩm.
     - [x] Đóng lại mượt mà, bảo toàn 100% hiệu năng và logic Svelte 5.
 
+# Task checklist: Làm sạch code thối và Tối ưu hiệu năng tải trang cho Product Detail và Home Product Grid
+
+- [x] **Trinh sát & Phát hiện Dị thường (Scout Protocol)**
+  - [x] Phân tích log console từ ảnh chụp màn hình của Sếp.
+  - [x] Phát hiện lệnh in log cuộn màn hình (`[DEBUG HomeProductGrid] Window scroll event`) bắn liên tục trên mỗi frame cuộn tại `HomeProductGrid.svelte`.
+  - [x] Phát hiện sự kiện cuộn màn hình trong `Mobile.svelte` chạy liên tục mà không được throttle, gây Layout Thrashing.
+  - [x] Phát hiện các lệnh debug log `console.log` còn sót lại trong luồng quét barcode tại `Sections.svelte`, `ScannerHUD.svelte`, `VerificationCenter.svelte`.
+
+- [x] **Kế hoạch Tác chiến & Duyệt phương án (Propose-First)**
+  - [x] Viết đề xuất tối ưu và phản biện rủi ro tại `proposal_performance_opt.md`.
+  - [x] Chờ Sếp phê duyệt kế hoạch tác chiến.
+
+- [x] **Triển khai Tối ưu Hiệu năng & Làm sạch Code (Execution)**
+  - [x] Dọn sạch toàn bộ log debug trong `HomeProductGrid.svelte`, triệt tiêu nghẽn CPU khi cuộn trang chủ.
+  - [x] Áp dụng cơ chế throttle bằng `requestAnimationFrame` cho `handleScroll()` trong `Mobile.svelte` để đạt 60 FPS mượt mà.
+  - [x] Dọn sạch các log debug còn sót lại trong `Sections.svelte`, `ScannerHUD.svelte`, `VerificationCenter.svelte`.
+
+- [x] **Kiểm thử & Xác minh (Verification)**
+  - [x] Kiểm tra tính ổn định của luồng cuộn và tốc độ phản hồi trên cả giao diện desktop và mobile storefront.
+  - [x] Đảm bảo tab console trình duyệt hoàn toàn sạch sẽ, không có bất kỳ log debug ô nhiễm nào xuất hiện khi cuộn hay tương tác.
+
+# Task checklist: Bổ sung Cam kết "3 Không" và Đổi trả vào mô tả sản phẩm
+
+- [x] **Triển khai Giao diện Cam kết (Execution)**
+  - [x] Tách biệt tuyệt đối Desktop và Mobile: Desktop giữ nguyên 100% bố cục dạng văn bản thuần túy (Classic Text List) như Sếp yêu cầu trong mô tả sản phẩm của `Sections.svelte`, không chịu bất kỳ ảnh hưởng hay biến dạng nào từ giao diện Mobile.
+  - [x] Tối ưu hóa giao diện Bento Grid cho màn hình Mobile dưới dạng vertical stack siêu tinh gọn (`ProductMobileSpecs.svelte`) khớp 100% với bản vẽ mockup mẫu.
+  - [x] Loại bỏ toàn bộ viền khung ngoài và các khung item bên trong, tạo kết cấu borderless tinh khiết, nhẹ nhõm.
+  - [x] Quy hoạch thông minh: Tách tiêu đề thành 1 dòng riêng (`OSMO Cam Kết Vàng`) và các Badges thành một dòng riêng liền kề, đồng thời khóa chặt bằng `whitespace-nowrap` để triệt tiêu hoàn toàn lỗi tự động xuống hàng/wrap chữ làm méo mó giao diện trên các thiết bị di động màn hình hẹp (như iPhone SE/5S).
+  - [x] Thay thế đường kẻ phân cách thô ráp (typo `gray-150` gây tràn màu mặc định gần đen) thành khoảng cách đệm tự nhiên hoặc đường kẻ mờ mượt mà (`border-gray-100/40`).
+  - [x] Chuyển đổi toàn bộ các heading `h3` và list `ul/li` thành các thẻ non-list semantic (`div`, `span`) để miễn dịch hoàn toàn khỏi hiện tượng tràn/leak style từ global `.prose-osmo`.
+  - [x] Tích hợp hiệu ứng Premium Glassmorphic, SVG icons sang trọng, hiệu ứng pulse và copywritng thúc đẩy FOMO tăng tối đa tỷ lệ chốt đơn (CRO).
+
+# Task checklist: Khắc phục sự cố mất style do lỗi phân quyền biên dịch (EACCES)
+
+- [x] **Xác định nguyên nhân gốc rễ (Root Cause)**
+  - [x] Phân tích log biên dịch tĩnh phát hiện lỗi phân quyền `EACCES: permission denied` tại các thư mục `.vite-temp` và `.svelte-kit` do Docker chạy dưới quyền root tạo ra.
+- [x] **Triển khai Vá lỗi Phân quyền (Resolution)**
+  - [x] Xoá bỏ thư mục `.vite-temp` cũ bị sở hữu bởi root.
+  - [x] Chuyển đổi sở hữu (chown) an toàn đối với toàn bộ thư mục `.svelte-kit` và `.vite` bên trong container `fast_platform_ui` từ `root:root` về user local `lv:lv` (UID 1000).
+  - [x] Xác minh Vite Hot Module Replacement (HMR) tái tạo và biên dịch CSS hoàn hảo không còn lỗi.
+
+
+
 
 

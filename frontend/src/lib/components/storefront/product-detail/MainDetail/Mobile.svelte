@@ -43,25 +43,31 @@
   let scrollRatio = $state(0);
   let hideRatio = $state(0);
 
+  let scrollTicking = false;
   function handleScroll() {
-    const st = window.scrollY;
-    showTabs = st > 400;
-    isScrolled = st > 50;
+    if (scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(() => {
+      const st = window.scrollY;
+      showTabs = st > 400;
+      isScrolled = st > 50;
 
-    // Directional scroll for Bottom Nav (Sync with Home)
-    const threshold = 15;
-    if (st > lastScrollY + threshold && st > 80) {
-      isShrunk = true;
-      lastScrollY = st;
-    } else if (st < lastScrollY - threshold || st <= 80) {
-      isShrunk = false;
-      lastScrollY = st;
-    }
+      // Directional scroll for Bottom Nav (Sync with Home)
+      const threshold = 15;
+      if (st > lastScrollY + threshold && st > 80) {
+        isShrunk = true;
+        lastScrollY = st;
+      } else if (st < lastScrollY - threshold || st <= 80) {
+        isShrunk = false;
+        lastScrollY = st;
+      }
 
-    // Shrink effect for Header: 0 to 1 over 100px
-    scrollRatio = Math.min(1, st / 100);
-    // Hide effect for Viral: 0 to 1 between 150px and 350px
-    hideRatio = Math.max(0, Math.min(1, (st - 150) / 200));
+      // Shrink effect for Header: 0 to 1 over 100px
+      scrollRatio = Math.min(1, st / 100);
+      // Hide effect for Viral: 0 to 1 between 150px and 350px
+      hideRatio = Math.max(0, Math.min(1, (st - 150) / 200));
+      scrollTicking = false;
+    });
   }
 
   function scrollToSection(id: string) {
