@@ -40,6 +40,7 @@
     };
     images?: string[];
     isAiFeatured?: boolean;
+    fomoTag?: string;
   }
 
   interface Props {
@@ -92,6 +93,16 @@
         : 0;
     const cleanName: string = trimProductName(p.name);
 
+    // Tính toán phần trăm tồn kho giả lập chuẩn FOMO ổn định và thuyết phục dựa trên ID sản phẩm
+    const idSeed =
+      typeof p.id === "string"
+        ? p.id.charCodeAt(0) + p.id.charCodeAt(p.id.length - 1) || 0
+        : 0;
+    const stockPercentValue = p.stock === 0 ? 0 : 100 - ((idSeed % 15) + 6); // Kết quả ổn định từ 79% đến 94%
+
+    // Nhãn ưu đãi vận chuyển chuẩn chỉnh cho phân khúc cao cấp
+    const fomoTagValue = "Free ship";
+
     return {
       ...p,
       id: `${tabId}-${p.id}`,
@@ -101,9 +112,10 @@
       originalPrice: originalPrice,
       discountPercent: discountPercent,
       sales: displaySales,
-      stockPercent: (p.stock ?? 0) > 0 ? 100 : 0,
+      stockPercent: stockPercentValue,
       isAiPick: tabId === "ai",
       originalSlug: p.slug,
+      fomoTag: fomoTagValue,
     };
   };
 
@@ -508,7 +520,7 @@
                 <div
                   class="bg-black text-[8px] font-black px-1.5 py-1 flex items-center justify-center tracking-tighter italic border-r border-white/10"
                 >
-                  SẮP CHÁY HÀNG
+                  Sắp cháy hàng
                 </div>
                 <div
                   class="flex items-center gap-0.5 px-2 py-1 font-mono text-[10px] font-black bg-[#ee4d2d]"
@@ -566,12 +578,12 @@
                     >-{product.discountPercent}%</span
                   >
                 </div>
-                <span
-                  class="text-[9px] font-black text-[#C18F7E] animate-pulse flex items-center gap-1"
-                >
-                  <div class="w-1 h-1 rounded-full bg-[#C18F7E]"></div>
-                  CHÁY HÀNG
-                </span>
+                <div class="bg-[#00c4a7] text-white flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] shadow-[0_2px_4px_rgba(0,196,167,0.3)] text-[8px] font-black tracking-tight">
+                  <svg class="w-2.5 h-2.5 text-white shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm2-5.5h-3V9h3v4z" />
+                  </svg>
+                  <span>FREESHIP</span>
+                </div>
               </div>
               <p
                 class="text-[#ee4d2d] font-black text-xl tracking-tighter tabular-nums flex items-end gap-0.5 group-hover/card:text-[#C18F7E] transition-colors"
@@ -581,27 +593,56 @@
             </div>
 
             <div
-              class="relative w-full h-4 bg-[#C18F7E]/5 overflow-hidden flex items-center justify-center border border-[#C18F7E]/10"
+              class="relative w-full h-[18px] bg-black/[0.03] rounded-full overflow-hidden flex items-center justify-center border border-black/[0.04] shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)]"
             >
+              <!-- Dải màu Neon Phát Sáng (Liquid Fill) -->
               <div
-                class="absolute inset-0 bg-gradient-to-r from-[#C18F7E] via-[#E2B1A2] to-[#C18F7E] transition-all duration-1000"
+                class="absolute left-0 top-0 bottom-0 rounded-full transition-all duration-1000 ease-out bg-gradient-to-r
+                {product.isAiPick
+                  ? 'from-[#FF3366] via-[#FF5E36] to-[#FFAE33] shadow-[0_0_8px_rgba(255,94,54,0.5)]'
+                  : 'from-[#C18F7E] via-[#E2B1A2] to-[#C18F7E]'}"
                 style="width: {product.stockPercent}%"
-              ></div>
-              <span
-                class="relative z-10 text-[9px] font-black text-[#C18F7E] mix-blend-multiply flex items-center gap-1"
               >
-                <svg class="w-2 h-2" fill="currentColor" viewBox="0 0 20 20"
-                  ><path
-                    d="M12 2a1 1 0 01.894.553L17.382 11H13v6a1 1 0 01-1.894.447l-5-10A1 1 0 017 6h4V2z"
-                  /></svg
+                <!-- Hiệu ứng vệt sáng thủy tinh chuyển động -->
+                <div
+                  class="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/25 to-transparent animate-gliding-light pointer-events-none"
+                ></div>
+
+                <!-- Điểm nhấp nháy Radar ở đầu mút (Spark Pulse) -->
+                {#if product.stockPercent && product.stockPercent > 0}
+                  <div
+                    class="absolute right-1 top-1/2 -translate-y-1/2 flex h-2.5 w-2.5 pointer-events-none"
+                  >
+                    <span
+                      class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"
+                    ></span>
+                    <span
+                      class="relative inline-flex rounded-full h-2.5 w-2.5 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+                    ></span>
+                  </div>
+                {/if}
+              </div>
+
+              <!-- Nội dung chữ FOMO nổi bật siêu nét -->
+              <span
+                class="relative z-10 text-[9.5px] font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] flex items-center gap-1 tracking-tight"
+              >
+                <svg
+                  class="w-2.5 h-2.5 text-white animate-pulse"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
+                  <path
+                    fill-rule="evenodd"
+                    d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.655-.389-1.414-.408-2.184A1 1 0 006 6.232c-.135.253-.25.51-.345.768-.426 1.156-.6 2.406-.6 3.654 0 2.205.861 4.316 2.395 5.851C8.984 18.04 11.094 18.9 13.3 18.9c2.206 0 4.316-.86 5.85-2.394 1.535-1.535 2.395-3.646 2.395-5.85 0-1.921-.606-3.8-1.733-5.3a1 1 0 00-1.48 0 11.955 11.955 0 01-1.984 2.185c-.413.344-.925.532-1.455.532A1.996 1.996 0 0111 6c0-.528.2-1.03.553-1.442.351-.412.793-.72 1.258-.922a1 1 0 00.584-1.083z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
                 {product.sales.toString().includes("Đã bán")
                   ? product.sales
                   : `Đã bán ${product.sales}`}
               </span>
-              <div
-                class="absolute inset-0 bg-white/20 w-1/3 skew-x-[-20deg] animate-gliding-light pointer-events-none"
-              ></div>
             </div>
           </div>
         </div>
@@ -677,12 +718,15 @@
   }
 
   @keyframes glidingLight {
-    from {
-      transform: translateX(-100%) skewX(-20deg);
+    0% {
+      transform: translateX(-150%) skewX(-20deg);
     }
-    to {
-      transform: translateX(400%) skewX(-20deg);
+    100% {
+      transform: translateX(250%) skewX(-20deg);
     }
+  }
+  .animate-gliding-light {
+    animation: glidingLight 2.5s infinite linear;
   }
   @keyframes shivering {
     0%,

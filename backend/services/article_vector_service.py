@@ -27,8 +27,13 @@ class ArticleVectorService:
         try:
             model = self.embedding_model
             if not model:
-                logger.warning("[VECTOR-SEARCH] Article Encoder not ready. Skipping semantic search.")
-                return []
+                from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
+                logger.info("[VECTOR-SEARCH] Article Encoder not ready. Attempting emergency warmup...")
+                await warmup_encoder()
+                model = self.embedding_model
+                if not model:
+                    logger.warning("[VECTOR-SEARCH] Article Encoder STILL not ready after warmup. Skipping semantic search.")
+                    return []
 
             # 1. Embed query
             vectors = list(model.embed([query]))
@@ -82,8 +87,13 @@ class ArticleVectorService:
             # Rule 1.10: Run CPU-bound embedding in executor
             model = self.embedding_model
             if not model:
-                logger.warning(f"[RAG] Encoder not ready. Skipping embedding for article {article_id}")
-                return
+                from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
+                logger.info("[RAG] Article Encoder not ready for upsert. Attempting emergency warmup...")
+                await warmup_encoder()
+                model = self.embedding_model
+                if not model:
+                    logger.warning(f"[RAG] Article Encoder STILL not ready after warmup. Skipping embedding for article {article_id}")
+                    return
 
             loop = asyncio.get_running_loop()
             vectors = await loop.run_in_executor(None, lambda: list(model.embed([text_to_embed])))

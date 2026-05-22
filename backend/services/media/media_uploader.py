@@ -37,6 +37,13 @@ class MediaUploaderMixin:
         if expected_mime == "video/webm":
             return header.startswith(b'\x1aE\xdf\xa3')
             
+        # Documents
+        if expected_mime == "application/pdf":
+            return header.startswith(b'%PDF-')
+        if expected_mime in ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"):
+            # DOCX is basically a ZIP file, starts with PK. Old DOC starts with D0CF11E0.
+            return header.startswith(b'PK\x03\x04') or header.startswith(b'\xd0\xcf\x11\xe0')
+            
         # Optional: default to False to block unknown binary structures
         return False
 

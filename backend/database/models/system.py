@@ -142,7 +142,7 @@ class SupportKnowledge(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     
     # Extended RAG (Elite V2.2)
     product_id: Mapped[Optional[str]] = mapped_column(String, sa.ForeignKey('product_bases.id'), index=True, nullable=True)
-    source_type: Mapped[str] = mapped_column(String(20), default="TEXT") # TEXT, URL, PDF
+    source_type: Mapped[str] = mapped_column(String(20), default="TEXT") # TEXT, URL, PDF, HTML
     source_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # the url or minio path
     
     question: Mapped[str] = mapped_column(Text)

@@ -79,7 +79,14 @@ class KnowledgeVectorService:
         """Atomic Vector Injection (Elite V2.2)."""
         try:
             model = self.encoder
-            if not model: return
+            if not model:
+                from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
+                logger.info("[KNOWLEDGE-VECTOR] Encoder not ready for upsert. Attempting emergency warmup...")
+                await warmup_encoder()
+                model = self.encoder
+                if not model:
+                    logger.warning("[KNOWLEDGE-VECTOR] Encoder STILL not ready for upsert after warmup.")
+                    return
 
             loop = asyncio.get_running_loop()
             vectors = await loop.run_in_executor(None, lambda: list(model.embed([content])))

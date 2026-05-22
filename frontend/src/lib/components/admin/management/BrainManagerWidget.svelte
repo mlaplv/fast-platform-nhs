@@ -75,6 +75,9 @@
             } else if (node.type === 'article') {
                 nodes.push({ id: node.id, label: node.label, color: '#8b5cf6', size: 12 });
                 edges.push({ from: node.parent, to: node.id });
+            } else if (node.type === 'knowledge') {
+                nodes.push({ id: node.id, label: node.label, color: '#ec4899', size: 12 });
+                edges.push({ from: node.parent, to: node.id });
             }
         });
 

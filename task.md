@@ -221,3 +221,50 @@
   - [x] Khởi động lại `fast_platform_api` và `fast_platform_ui` bằng `docker compose restart`.
   - [x] Code chạy ổn định, giao diện mượt mà và bảo toàn tài nguyên (2GB RAM).
   - [x] Xây dựng phương án Crawler/Worker an toàn chống lỗi "Infinite Loop" (Rabbit Hole).
+
+# Task checklist: Thanh tẩy code thối và 100% static typing cho RAG Admin (Elite V2.2)
+
+- [x] **Trinh sát & Phát hiện Dị thường (Scout Protocol)**
+  - [x] Phát hiện block try-except ghi file đồng bộ blocking sync I/O trong async method `clean` của `noise_cleaner.py`.
+  - [x] Phát hiện API endpoints `/extract`, `/optimize`, `/check-duplicate` sử dụng `dict` lỏng lẻo thay vì strict schema typing.
+  - [x] Phát hiện `import` động gây overhead hiệu năng trong controller.
+  - [x] Phát hiện biến `system_prompt` bị khai báo nhưng bỏ quên (không truyền vào `trinity_bridge.run` trong controller).
+
+- [x] **Triển khai Tối ưu hóa & Vá lỗi (Execution)**
+  - [x] Loại bỏ hoàn toàn sync blocking I/O ghi file debug trong `noise_cleaner.py`.
+  - [x] Khai báo các Pydantic V2 schema tĩnh 100% `ExtractContentRequest`, `ExtractContentResponse`, `OptimizeContentRequest`, `OptimizeContentResponse`, `CheckDuplicateRequest`, `CheckDuplicateResponse`, `DuplicateItem` tại `schemas/support.py`.
+  - [x] Cập nhật `admin_support.py` sử dụng toàn bộ import tĩnh ở đầu file.
+  - [x] Ép kiểu tĩnh 100% các endpoint controller với các schema mới.
+  - [x] Sửa lỗi logic: Truyền đầy đủ `system_prompt=system_prompt` vào cuộc gọi `trinity_bridge.run`.
+
+- [x] **Kiểm thử & Tác chiến (Verification)**
+  - [x] Khởi động lại API container `fast_platform_api` qua docker.
+  - [x] Đảm bảo Litestar startup thành công, Hot-reload hoạt động hoàn hảo và không ném lỗi.
+  - [x] Cập nhật đầy đủ walkthrough và checklist nhiệm vụ.
+
+# Task checklist: Thiết kế lại thanh tiến trình chuẩn Viral và FOMO tại HomeProductGrid.svelte
+
+- [x] **Trinh sát & Phát hiện Dị thường (Scout Protocol)**
+  - [x] Đọc mã nguồn `HomeProductGrid.svelte` phát hiện lỗi `stockPercent` cố định 0% hoặc 100%.
+  - [x] Phát hiện thiếu định nghĩa class CSS cho hiệu ứng ánh sáng `.animate-gliding-light` trong thẻ `<style>`.
+  - [x] Phân tích thiết kế thanh tiến trình nguyên bản: thiếu lực thị giác, không có aura neon, phối màu nhạt không kích thích.
+
+- [x] **Kế hoạch Tác chiến & Duyệt phương án (Propose-First)**
+  - [x] Đề xuất thuật toán dynamic stockPercent dựa trên mã băm ID sản phẩm ổn định (79% - 94%).
+  - [x] Thiết kế giao diện "Liquid Fire Aura" với gradient 3 điểm nóng rực, radar spark hạt lửa pulsing nhấp nháy, và glow phát sáng.
+  - [x] Đã nhận được sự phê duyệt (APPROVE) trực tiếp từ Sếp.
+
+- [x] **Triển khai Giao diện & Tối ưu hóa (Execution)**
+  - [x] Cập nhật logic `normalizeProduct` trong `HomeProductGrid.svelte` để tích hợp thuật toán dynamic stockPercent ổn định và chân thực.
+  - [x] Thiết kế lại cấu trúc HTML/Svelte của thanh tiến trình: Bo tròn pill shape `rounded-full`, nâng chiều cao `h-[18px]`, viền kính siêu thanh lịch.
+  - [x] Tích hợp dải màu gradient "Fiery Sunset Glow" cho AI Pick và "Sunset Golden" cho các tab sản phẩm khác.
+  - [x] Thêm hạt lửa pulsing Radar Spark nhấp nháy tại đầu mút thanh.
+  - [x] Viết hiệu ứng chữ có shadow sắc nét đảm bảo độ tương phản hoàn mỹ trên mọi nền.
+  - [x] Bổ sung keyframes CSS và class `.animate-gliding-light` hoàn chỉnh trong thẻ `<style>` để khôi phục vệt sáng thủy tinh chuyển động mượt mà.
+
+- [x] **Kiểm thử & Xác minh (Verification)**
+  - [x] Khởi chạy và kiểm tra trực quan giao diện HomeProductGrid trên cả Desktop và Mobile.
+  - [x] Đảm bảo không có bất kỳ lỗi biên dịch nào.
+  - [x] Xác minh thanh tiến trình chuyển động mượt mà, tạo cảm giác sang trọng và khẩn thiết chuẩn 2026.
+
+

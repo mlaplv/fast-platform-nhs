@@ -29,6 +29,11 @@ else
     echo "⏭️ [Trinity Boot] Skipping migration (Already synced by Master/XOHI OS)."
 fi
 
+# R90: Sync Python dependencies from uv.lock (ensures new packages survive container restarts)
+echo "📦 [Trinity Boot] Syncing Python dependencies from uv.lock..."
+cd /app && uv sync --frozen --no-dev 2>&1 | tail -5 || echo "⚠️ uv sync warning (non-fatal)"
+
+
 # R82: Start Litestar Application via Uvicorn (CTO Elite Mode)
 if [ "$#" -eq 0 ]; then
     echo "⚡ [Trinity Boot] Igniting Litestar Engine (Uvicorn Recycling)..."

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import uuid
+import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -336,6 +337,48 @@ class SupportKnowledgeService:
         await xohi_memory.clear_kb_cache()
         
         return SuccessResponse(ok=True)
+
+    async def check_duplicate_knowledge(
+        self, 
+        db_session: AsyncSession, 
+        text: str, 
+        current_id: Optional[str] = None, 
+        threshold: float = 0.82
+    ) -> dict:
+        """
+        Elite V2.2: Semantic Deduplication System.
+        Checks if the text content already exists in the RAG brain.
+        """
+        if not text or not text.strip():
+            return {"has_duplicate": False, "duplicates": []}
+            
+        from backend.services.commerce.knowledge_vector import knowledge_vector_service
+        
+        # 1. Semantic search on vector DB
+        results = await knowledge_vector_service.search_semantic(db_session, query=text, limit=5)
+        
+        duplicates = []
+        for r in results:
+            # Skip if it is the current item being edited
+            if current_id and str(r["id"]) == str(current_id):
+                continue
+                
+            # If similarity is above the strict threshold
+            if r["match_score"] >= threshold:
+                duplicates.append({
+                    "id": r["id"],
+                    "question": r["question"],
+                    "match_score": r["match_score"],
+                    "snippet": r["answer"][:100] + "..." if len(r["answer"]) > 100 else r["answer"]
+                })
+                
+        # Sort by match score descending
+        duplicates.sort(key=lambda x: x["match_score"], reverse=True)
+        
+        return {
+            "has_duplicate": len(duplicates) > 0,
+            "duplicates": duplicates
+        }
 
 # ==========================================
 # SERVICE PROVIDERS

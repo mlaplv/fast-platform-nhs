@@ -253,14 +253,21 @@
   {#if product.attributes && Object.entries(product.attributes).length > 0}
     <div class="mb-6 grid grid-cols-2 gap-x-6 gap-y-1">
       {#each Object.entries(product.attributes) as [key, val]}
+        {@const isBrandKey = key === "Thương hiệu" || key === "Brand" || key === "brand"}
         <div
           class="flex flex-col py-1.5 border-b border-gray-50/50 overflow-hidden"
         >
           <span class="text-[10px] text-gray-400 font-medium truncate"
             >{key.replace(/_/g, " ")}</span
           >
-          <span class="text-[12px] text-gray-800 font-bold truncate">{val}</span
-          >
+          {#if isBrandKey && val}
+            <a
+              href="/search?q={encodeURIComponent(String(val))}"
+              class="text-[12px] text-[#ee4d2d] font-bold truncate hover:underline"
+            >{val}</a>
+          {:else}
+            <span class="text-[12px] text-gray-800 font-bold truncate">{val}</span>
+          {/if}
         </div>
       {/each}
     </div>

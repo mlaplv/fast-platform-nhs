@@ -104,24 +104,30 @@ class BrainManager:
         """
         Elite V2.2: Composite knowledge metrics.
         """
+        from backend.database.models.system import SupportKnowledge, SupportKnowledgeEmbedding
+
         total_p = await db.scalar(select(func.count()).select_from(ProductBase)) or 0
         total_a = await db.scalar(select(func.count()).select_from(Article)) or 0
+        total_k = await db.scalar(select(func.count()).select_from(SupportKnowledge).where(SupportKnowledge.deleted_at.is_(None))) or 0
+
         emb_p = await db.scalar(select(func.count()).select_from(ProductEmbedding)) or 0
         emb_a = await db.scalar(select(func.count()).select_from(ArticleEmbedding)) or 0
+        emb_k = await db.scalar(select(func.count()).select_from(SupportKnowledgeEmbedding)) or 0
         
-        total_entities = total_p + total_a
-        total_embeddings = emb_p + emb_a
+        total_entities = total_p + total_a + total_k
+        total_embeddings = emb_p + emb_a + emb_k
         coverage = (total_embeddings / total_entities) * 100 if total_entities > 0 else 100.0
         
-        # Calculate real database size for vectors (ProductEmbedding + ArticleEmbedding)
+        # Calculate real database size for vectors
         try:
             size_p = await db.scalar(sa_text("SELECT pg_total_relation_size('product_embeddings')")) or 0
             size_a = await db.scalar(sa_text("SELECT pg_total_relation_size('article_embeddings')")) or 0
-            total_size_bytes = size_p + size_a
+            size_k = await db.scalar(sa_text("SELECT pg_total_relation_size('support_knowledge_embeddings')")) or 0
+            total_size_bytes = size_p + size_a + size_k
         except Exception:
             # Fallback if unsupported (e.g. SQLite)
             total_size_bytes = total_embeddings * 3072 # 768 float32
-
+        
         return {
             "total_entities": total_entities,
             "total_embeddings": total_embeddings,
@@ -132,13 +138,18 @@ class BrainManager:
     @staticmethod
     async def get_graph_nodes(db: AsyncSession) -> Dict[str, List[Dict]]:
         """
-        Elite V2.2: Get lightweight topology of the entire Brain Matrix (Products & Articles).
+        Elite V2.2: Get lightweight topology of the entire Brain Matrix (Products, Articles, & Support Knowledge).
         """
+        from backend.database.models.system import SupportKnowledge
+
         stmt_p = select(ProductBase.id, ProductBase.name, ProductBase.category_id)
         p_nodes = (await db.execute(stmt_p)).all()
         
         stmt_a = select(Article.id, Article.title, Article.category_id)
         a_nodes = (await db.execute(stmt_a)).all()
+
+        stmt_k = select(SupportKnowledge.id, SupportKnowledge.question, SupportKnowledge.product_id).where(SupportKnowledge.deleted_at.is_(None))
+        k_nodes = (await db.execute(stmt_k)).all()
 
         nodes = []
         # Core
@@ -148,8 +159,12 @@ class BrainManager:
         nodes.append({"id": "hub_product", "label": "PRODUCTS", "type": "hub"})
         # Article Hub
         nodes.append({"id": "hub_article", "label": "ARTICLES", "type": "hub"})
+        # Knowledge Hub
+        nodes.append({"id": "hub_knowledge", "label": "KNOWLEDGE", "type": "hub"})
 
+        product_ids = set()
         for p in p_nodes:
+            product_ids.add(str(p[0]))
             nodes.append({
                 "id": f"p_{p[0]}",
                 "label": p[1][:25] + "..." if len(p[1]) > 25 else p[1],
@@ -160,9 +175,22 @@ class BrainManager:
         for a in a_nodes:
             nodes.append({
                 "id": f"a_{a[0]}",
-                "label": a[1][:25] + "..." if len(p[1]) > 25 else a[1],
+                "label": a[1][:25] + "..." if len(a[1]) > 25 else a[1],
                 "type": "article",
                 "parent": "hub_article"
+            })
+
+        for k in k_nodes:
+            parent_id = "hub_knowledge"
+            if k[2] and str(k[2]) in product_ids:
+                # Direct contextual linking to its associated Product Node!
+                parent_id = f"p_{k[2]}"
+            
+            nodes.append({
+                "id": f"k_{k[0]}",
+                "label": k[1][:25] + "..." if len(k[1]) > 25 else k[1],
+                "type": "knowledge",
+                "parent": parent_id
             })
             
         return {"nodes": nodes}
@@ -213,15 +241,40 @@ class BrainManager:
                 logger.error(f"[BrainManager] Failed A-emb {a.id}: {e}")
                 await db.rollback()
 
+        # SupportKnowledge Batch Sync (Elite RAG Integration)
+        from backend.database.models.system import SupportKnowledge, SupportKnowledgeEmbedding
+        stmt = select(SupportKnowledge).where(
+            SupportKnowledge.deleted_at.is_(None),
+            ~SupportKnowledge.id.in_(select(SupportKnowledgeEmbedding.knowledge_id))
+        )
+        missing_k = (await db.execute(stmt)).scalars().all()
+        for k in missing_k:
+            try:
+                text_input = f"{k.question} {k.answer}"
+                loop = asyncio.get_running_loop()
+                vec = (await loop.run_in_executor(None, lambda: list(encoder.embed([text_input]))))[0]
+                import uuid
+                await db.execute(sa_text(
+                    "INSERT INTO support_knowledge_embeddings (id, knowledge_id, embedding, created_at, updated_at, tenant_id) "
+                    "VALUES (:id, :k_id, CAST(:emb AS vector), NOW(), NOW(), :tid)"
+                ), {"id": str(uuid.uuid4()), "k_id": str(k.id), "emb": str(vec.tolist()), "tid": k.tenant_id or "default"})
+                await db.commit()
+            except Exception as e:
+                logger.error(f"[BrainManager] Failed K-emb {k.id}: {e}")
+                await db.rollback()
+
     @staticmethod
     async def purge_orphans(db: AsyncSession):
         """
         Clean up embeddings where the parent entity is gone.
         """
+        from backend.database.models.system import SupportKnowledge, SupportKnowledgeEmbedding
         # Purge product embeddings
         await db.execute(delete(ProductEmbedding).where(~ProductEmbedding.product_base_id.in_(select(ProductBase.id))))
         # Purge article embeddings
         await db.execute(delete(ArticleEmbedding).where(~ArticleEmbedding.article_id.in_(select(Article.id))))
+        # Purge knowledge embeddings
+        await db.execute(delete(SupportKnowledgeEmbedding).where(~SupportKnowledgeEmbedding.knowledge_id.in_(select(SupportKnowledge.id))))
         await db.commit()
         logger.info("[BrainManager] Purge complete.")
 

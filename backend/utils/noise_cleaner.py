@@ -94,13 +94,6 @@ class NoiseCleaner:
         if not text:
             return ""
 
-        # DEBUG DUMP
-        try:
-            with open('/app/backend/scratch/noise_clean_input.html', 'w', encoding='utf-8') as f:
-                f.write(text)
-        except Exception:
-            pass
-
         # --- LAYER 0: ARTIFACT STRIPPING ---
         text = RE_MARKDOWN_FENCES.sub('', text)
 

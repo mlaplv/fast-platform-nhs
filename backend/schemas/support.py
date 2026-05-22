@@ -202,3 +202,48 @@ class BulkDeleteRequest(BaseModel):
 class BulkToggleRequest(BaseModel):
     ids: list[str]
     is_active: bool
+
+
+# 🚀 Elite V2.2: Advanced Admin Support Operational Schemas
+# (100% Static Typing Compliance - CẤM TUYỆT ĐỐI 'any')
+
+class ExtractContentRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    source_type: str = Field(..., description="Nguồn trích xuất: URL | PDF | HTML")
+    source_url: str = Field(..., description="Đường dẫn URL hoặc file tài liệu")
+
+class ExtractContentResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+    ok: bool
+    text: Optional[str] = None
+    error: Optional[str] = None
+
+class OptimizeContentRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    text: str = Field(..., min_length=1, description="Văn bản gốc cần tối ưu")
+
+class OptimizeContentResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+    ok: bool
+    text: Optional[str] = None
+    error: Optional[str] = None
+
+class CheckDuplicateRequest(BaseModel):
+    model_config = ConfigDict(strict=True)
+    text: str = Field(..., min_length=1, description="Văn bản cần kiểm tra trùng lặp")
+    current_id: Optional[str] = Field(default=None, description="UUID của item hiện tại (nếu đang sửa)")
+    threshold: Optional[float] = Field(default=0.82, ge=0.0, le=1.0, description="Ngưỡng so khớp tương đồng vector")
+
+class DuplicateItem(BaseModel):
+    model_config = ConfigDict(strict=True)
+    id: str
+    question: str
+    match_score: float
+    snippet: str
+
+class CheckDuplicateResponse(BaseModel):
+    model_config = ConfigDict(strict=True)
+    ok: bool
+    has_duplicate: bool = False
+    duplicates: list[DuplicateItem] = Field(default_factory=list)
+    error: Optional[str] = None

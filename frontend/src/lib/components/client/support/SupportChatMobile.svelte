@@ -160,7 +160,7 @@
       <div class="w-14 h-[6px] bg-white/20 rounded-full"></div>
     </div>
 
-    <header class="flex-shrink-0 pt-[40px] px-8 pb-6 flex items-center justify-between relative z-10 border-b border-white/5 bg-transparent">
+    <header class="flex-shrink-0 pt-[40px] px-4 pb-6 flex items-center justify-between relative z-10 border-b border-white/5 bg-transparent">
       <div class="flex items-center gap-4">
         <div class="relative">
           <div class="w-14 h-14 rounded-full bg-black/40 flex items-center justify-center shadow-[0_4px_16px_rgba(255,183,197,0.4)] border border-white/20 overflow-hidden">
@@ -220,16 +220,9 @@
     <!-- Chat Thread: Zero-Background Floating Text -->
     <div 
       bind:this={chatContainer}
-      class="flex-1 overflow-y-auto px-5 py-6 flex flex-col justify-start space-y-10 hide-scrollbar relative z-10"
+      class="flex-1 overflow-y-auto px-4 py-6 flex flex-col justify-start space-y-10 hide-scrollbar relative z-10"
     >
-      {#if !supportAgent.optimalPriceNotice}
-        <div class="flex flex-col items-center justify-center mb-10 opacity-30">
-          <div class="flex items-center gap-2.5 px-5 py-2 bg-black/40 border border-white/10 rounded-full">
-             <ShieldCheck size={14} class="text-[#FFB7C5]" />
-             <span class="text-[10px] text-white/60 tracking-[0.2em] font-black">Hệ thống chuyên gia Helen v3.2</span>
-          </div>
-        </div>
-      {/if}
+
 
       <!-- Viral Lazy Memory: Zalo-style pagination -->
       {#if supportAgent.hasMoreHistory}
@@ -264,6 +257,9 @@
             {#if msg.role === 'assistant'}
               <div class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"></div>
             {/if}
+            <span class="text-[9px] text-white/30 font-medium tracking-normal">
+              {msg.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+            </span>
           </div>
 
           <div class="flex items-start gap-4 w-full {msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}">
@@ -335,10 +331,7 @@
                 </div>
               {/if}
             </div>
-            
-            <div class="text-[10px] text-white/10 mt-3 px-2 font-black tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all duration-300">
-              {msg.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-            </div>
+
           </div>
         </div>
       </div>
@@ -357,53 +350,48 @@
     </div>
 
     <!-- Pinned Bottom Area -->
-    <div class="flex-shrink-0 safe-area-bottom w-full relative z-20 px-7 pt-1 pb-4">
-      <!-- Quick Actions (Optimized: Tiny & Right Aligned) -->
+    <div class="flex-shrink-0 safe-area-bottom w-full relative z-20 px-4 pt-1 pb-4">
+      <!-- Quick Actions (Optimized: Tiny, Borderless, Icon-free & Right Aligned) -->
       {#if productSlug && productSlug.trim() !== ''}
-        <div class="w-full flex justify-end gap-2 pb-2">
+        <div class="w-full flex justify-end gap-1.5 pb-2.5">
           {#each quickActions as action}
-            {@const Icon = action.icon}
             <div class="relative">
               {#if action.label === 'An toàn da' && supportAgent.messages.length <= 1}
-                <div class="absolute -top-[38px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide shadow-[0_4px_16px_rgba(255,183,197,0.4)] animate-bounce z-50 pointer-events-none before:content-[''] before:absolute before:-bottom-1 before:left-1/2 before:-translate-x-1/2 before:w-2.5 before:h-2.5 before:bg-[#FF8FA3] before:rotate-45">
+                <div class="helen-tip-bubble">
                   Kiểm tra sản phẩm có phù hợp cho da của bạn không ✨
                 </div>
               {/if}
               <button 
-                class="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 active:bg-white/10 text-white/60 border border-white/5 rounded-full text-[11px] font-bold transition-all active:scale-95 {action.label === 'An toàn da' ? 'ring-1 ring-[#FFB7C5]/30' : ''}"
+                class="px-2.5 py-1 bg-white/5 active:bg-white/10 text-white/60 border border-white/5 rounded-full text-[10px] font-black tracking-wide transition-all active:scale-95 {action.label === 'An toàn da' ? 'ring-1 ring-[#FFB7C5]/30 text-white' : ''}"
                 onclick={() => handleQuickAction(action)}
               >
-                <Icon size={12} class="text-[#FFB7C5] opacity-50" /> {action.label}
+                {action.label}
               </button>
             </div>
           {/each}
         </div>
       {/if}
-
-      <!-- Capsule Dynamic Island Input -->
-      <div class="relative bg-black/80 border border-white/5 rounded-[40px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all">
+ 
+      <!-- Sleek 2026 Premium Chat Input Bar (Ultra-Slim & Sleek) -->
+      <div class="relative bg-[#121212]/90 border border-white/10 rounded-[22px] focus-within:border-[#FFB7C5]/30 focus-within:bg-[#1a1a1a] flex items-end shadow-xl transition-all px-3.5 py-1">
         <textarea
           bind:this={inputElement}
           bind:value={userInput}
           onkeydown={handleKeyDown}
-          placeholder="Nói chuyện với chuyên gia..."
+          placeholder="Nhập tin nhắn..."
           onfocus={handleInputFocus}
           onblur={handleInputBlur}
-          class="block w-full bg-transparent border-0 py-[22px] pl-[60px] pr-20 text-white placeholder-gray-600 focus:ring-0 resize-none outline-none text-[17px] max-h-[160px] rounded-[40px] font-medium"
-          style="min-height: 72px;"
+          class="block w-full bg-transparent border-0 py-2 pl-1 pr-10 text-white placeholder-white/35 focus:ring-0 resize-none outline-none text-[14px] max-h-[120px] font-medium animate-none"
+          style="min-height: 36px; line-height: 1.4;"
           disabled={supportAgent.isTyping}
         ></textarea>
-
-        <div class="absolute left-7 top-[22px] pointer-events-none opacity-20 group-focus-within:opacity-50 transition-opacity">
-          <Lock size={20} class="text-white" />
-        </div>
         
         <button 
           onclick={handleSend}
           disabled={!userInput.trim() || supportAgent.isTyping}
-          class="absolute right-3 bottom-3 w-14 h-14 flex items-center justify-center rounded-full {userInput.trim() && !supportAgent.isTyping ? 'bg-[#FFB7C5] text-slate-950 shadow-[0_8px_24px_rgba(255,183,197,0.4)]' : 'bg-white/5 text-gray-700'} transition-all scale-100 active:scale-90"
+          class="absolute right-2 bottom-1.5 w-8 h-8 flex items-center justify-center rounded-full transition-all {userInput.trim() && !supportAgent.isTyping ? 'bg-[#FFB7C5] text-slate-950 shadow-md active:scale-90' : 'bg-white/5 text-white/20'}"
         >
-          <Send size={24} />
+          <Send size={14} />
         </button>
       </div>
     </div>
@@ -492,5 +480,40 @@
 
   :global(.helen-cta-btn:active) {
     transform: scale(0.98);
+  }
+
+  /* Premium Liquid Glass - Helen Safe Skin Tip Bubble */
+  .helen-tip-bubble {
+    position: absolute;
+    bottom: calc(100% + 14px);
+    left: -20px;
+    white-space: nowrap;
+    background: linear-gradient(90deg, #FFB7C5, #FF8FA3);
+    color: #0a0a0a;
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.025em;
+    box-shadow: 0 4px 16px rgba(255, 183, 197, 0.4);
+    animation: helen-bounce-tip 2s infinite ease-in-out;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  .helen-tip-bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 68px;
+    transform: translateX(-50%) rotate(45deg);
+    width: 8px;
+    height: 8px;
+    background: #FF8FA3;
+  }
+
+  @keyframes helen-bounce-tip {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
   }
 </style>

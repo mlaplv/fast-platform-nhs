@@ -527,6 +527,14 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             
             # Returns list of matched knowledge dicts with explicit structure
             raw_matches = await kb_service.search_relevant_knowledge_raw(ctx.db, ctx.request.message, limit=1)
+            
+            # Elite V2.2 Fallback: If no vector match or score too low, try case-insensitive Keyword Search!
+            if not raw_matches or float(raw_matches[0].get("match_score", 0)) <= threshold:
+                keyword_matches = await kb_service.search_relevant_knowledge_keyword(ctx.db, ctx.request.message, limit=1)
+                if keyword_matches:
+                    # Treat exact keyword match as 1.0 confidence since it is an exact token substring match!
+                    keyword_matches[0]["match_score"] = 1.0
+                    raw_matches = keyword_matches
         
         if raw_matches and not ctx.request.cart_items:
             match: dict[str, object] = raw_matches[0]
@@ -625,6 +633,8 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                 
                 # 2. Pre-search Knowledge Base / Articles
                 kb_res = await kb_service.search_relevant_knowledge_raw(ctx.db, msg_clean, limit=2)
+                if not kb_res:
+                    kb_res = await kb_service.search_relevant_knowledge_keyword(ctx.db, msg_clean, limit=2)
                 if kb_res:
                     pre_retrieved_ctx += "\n[DỮ LIỆU TÌM KIẾM HỆ THỐNG - TRI THỨC VÀ CHÍNH SÁCH CHUNG]:\n"
                     for idx, k in enumerate(kb_res):
@@ -713,7 +723,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                 role=trinity_bridge.ROLE_BRAIN,
                 safety_none=True,
                 timeout=15.0,
-                per_model_timeout=9.0
+                per_model_timeout=6.0
             )
             # [ELITE V2.2] Standardized Result Extraction (Trust the Bridge)
             res_data = cast(Optional[ConsultantResponse], res)
