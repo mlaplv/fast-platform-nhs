@@ -36,7 +36,7 @@
   onMount(() => {
     // Elite V2.2: Independent Fomo Initialization (Zero-Latency)
     if (!isAdmin && ui.settings?.conversions?.fomo_enabled) {
-        fomoStore.init('osmo-elite');
+        fomoStore.init('smartshop-elite');
     }
     return ui.initObservers();
   });
@@ -54,7 +54,7 @@
     // Fomo State Machine (Elite V2.6)
     const fomoEnabled = !isAdmin && ui.settings?.conversions?.fomo_enabled;
     if (fomoEnabled && !fomoStore.isInitialized) {
-        fomoStore.init('osmo-elite');
+        fomoStore.init('smartshop-elite');
     } else if (!fomoEnabled && fomoStore.isInitialized) {
         fomoStore.dispose();
     }
@@ -79,13 +79,13 @@
 
   // Map backend settings to UI structure (Elite V2.2: Deep Mapping)
   const footerShopInfo = $derived({
-      name: data.shopInfo?.basic_info?.site_name || data.shopInfo?.site_name || "osmo ELITE",
-      companyName: data.shopInfo?.contact_info?.company_name || data.shopInfo?.contact?.name || data.shopInfo?.basic_info?.site_name || "Hệ thống osmo",
-      slogan: data.shopInfo?.basic_info?.slogan || data.shopInfo?.slogan || "Bật tông trắng sáng",
-      description: data.shopInfo?.basic_info?.description || data.shopInfo?.description || "Hệ thống mỹ phẩm Elite 2026.",
-      hotline: data.shopInfo?.contact_info?.hotline || data.shopInfo?.contact?.hotline || "1800-osmo",
-      email: data.shopInfo?.contact_info?.email || data.shopInfo?.contact?.email || "legal@osmo",
-      address: data.shopInfo?.contact_info?.address || data.shopInfo?.contact?.address || "Bitexco Financial Tower, Quận 1, TP. HCM",
+      name: data.shopInfo?.basic_info?.site_name || data.shopInfo?.site_name || "SmartShop ELITE",
+      companyName: data.shopInfo?.contact_info?.company_name || data.shopInfo?.contact?.name || data.shopInfo?.basic_info?.site_name || "Hệ thống SmartShop",
+      slogan: data.shopInfo?.basic_info?.slogan || data.shopInfo?.slogan || "Mua sắm thông minh",
+      description: data.shopInfo?.basic_info?.description || data.shopInfo?.description || "Hệ thống thương mại điện tử Elite 2026.",
+      hotline: data.shopInfo?.contact_info?.hotline || data.shopInfo?.contact?.hotline || "1900-SMART",
+      email: data.shopInfo?.contact_info?.email || data.shopInfo?.contact?.email || "contact@smartshop.test",
+      address: data.shopInfo?.contact_info?.address || data.shopInfo?.contact?.address || "Hà Nội, Việt Nam",
       taxId: data.shopInfo?.contact_info?.tax_id || data.shopInfo?.tax_id || "",
       businessLicense: data.shopInfo?.contact_info?.business_license || data.shopInfo?.business_license || ""
   });

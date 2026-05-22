@@ -468,7 +468,7 @@
 </script>
 
 <SeoHead 
-  title="Đặt hàng thành công | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  title="Đặt hàng thành công | {ui.settings?.basic_info?.site_name || ui.settings?.site_name || 'SmartShop'}" 
   robots="noindex, nofollow"
 />
 

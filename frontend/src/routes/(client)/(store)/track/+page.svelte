@@ -58,7 +58,7 @@
 </script>
 
 <SeoHead 
-  title="Tra cứu đơn hàng | {clientUi.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  title="Tra cứu đơn hàng | {clientUi.settings?.basic_info?.site_name || clientUi.settings?.site_name || 'SmartShop'}" 
   description="Theo dõi trạng thái và lịch trình đơn hàng của bạn"
   robots="noindex, nofollow"
 />

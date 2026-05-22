@@ -1,3 +1,28 @@
+# Task checklist: Kiểm tra và Tối ưu hóa SEO & SGE (Sitemap, Breadcrumb, Review Seeding)
+
+- [x] **Trinh sát & Phân tích Dị thường (Scout Protocol)**
+  - [x] Kiểm tra sitemap tại `backend/controllers/client/seo.py`. Phát hiện 2 lỗi nghiêm trọng: Bài viết thiếu đuôi `.html` (gây lỗi redirect 301) và thiếu trang tĩnh `/khuyen-mai`.
+  - [x] Kiểm tra cấu trúc Breadcrumb và Semantic Internal Linking tại `frontend/src/lib/state/seo/schemaFactory.svelte.ts`.
+  - [x] Kiểm tra cấu hình `robots.txt` tại `frontend/static/robots.txt`. Phát hiện thiếu cấu hình chặn trang tìm kiếm (`/search`) và link chứa tham số rác (`?sort=`, `?filter=`, `?page=`), đồng thời sai domain sitemap (osmo.com).
+  - [x] Phân tích Schema Product tại `frontend/src/lib/utils/seo.ts` để kiểm tra khả năng Review Seeding cho SGE AI Summary.
+  - [x] Phát hiện thiếu hụt mảng `review` trong cấu hình ProductLdConfig, khiến AI không có ngữ liệu để tóm tắt.
+
+- [x] **Kế hoạch Tác chiến & Duyệt phương án (Propose-First)**
+  - [x] Báo cáo chi tiết trạng thái Sitemap (đã chuẩn) và Semantic Linking (đạt xuất sắc).
+  - [x] Đề xuất bổ sung interface `ReviewLd` và tích hợp cấu trúc `@type: Review` vào `buildProductLd` để SGE bốc được các từ khóa công năng.
+  - [x] Trình bày bản nháp sửa code cho Sếp và đợi phê duyệt.
+
+- [x] **Triển khai Tối ưu Schema (Execution)**
+  - [x] Thêm interface `ReviewLd` vào `seo.ts`.
+  - [x] Bổ sung logic render mảng `review` trong `buildProductLd`.
+  - [x] Sửa lỗi Sitemap: Loại bỏ `/products` (trang tìm kiếm rỗng) khỏi sitemap tĩnh, thêm hậu tố `.html` cho Article URLs và bổ sung route `/khuyen-mai` tại `backend/controllers/client/seo.py`.
+  - [x] Cập nhật `robots.txt`: Khóa hoàn toàn `/products`, `/search` và các tham số truy vấn (`?sort=`, `?filter=`, `?page=`) để tiết kiệm Crawl Budget, đổi `osmo.com` thành `osmo.vn`. Cập nhật `products/+page.svelte` khóa cứng `noindex`.
+  - [x] Cấu trúc lại metadata chuẩn xác cho phép inject kịch bản seeding vào Schema.
+
+- [x] **Kiểm thử & Xác minh (Verification)**
+  - [x] Đảm bảo cấu trúc Schema JSON-LD hợp lệ.
+  - [x] Sẵn sàng cho quá trình seeding kịch bản review.
+
 # Task checklist: Sửa lỗi vỡ Slide/Grid Đánh giá thực tế (VerifiedReviews) khi > 3 items
 
 - [x] **Trinh sát & Phân tích Dị thường (Scout Protocol)**
@@ -142,7 +167,20 @@
   - [x] Chuyển đổi sở hữu (chown) an toàn đối với toàn bộ thư mục `.svelte-kit` và `.vite` bên trong container `fast_platform_ui` từ `root:root` về user local `lv:lv` (UID 1000).
   - [x] Xác minh Vite Hot Module Replacement (HMR) tái tạo và biên dịch CSS hoàn hảo không còn lỗi.
 
+# Task checklist: Thanh tẩy mã nguồn, loại bỏ hardcode và thay thế "osmo" bằng dữ liệu động
 
+- [x] **Trinh sát & Phát hiện Dị thường (Scout Protocol)**
+  - [x] Rà soát thư mục `frontend/src/routes`.
+  - [x] Phát hiện file rác dư thừa `[slug].p[id]/+page.svelte` không bao giờ được truy cập.
+  - [x] Phát hiện hàng loạt chuỗi "osmo Elite", "osmo.vn" và link ảnh cứng trong các trang tĩnh và giao diện checkout.
+  - [x] Phát hiện các kiểu dữ liệu `any` nguy hiểm tại các component.
 
+- [x] **Triển khai Thanh tẩy (Execution)**
+  - [x] Xoá file dư thừa `[slug].p[id]/+page.svelte` do logic đã được cover 100% bằng redirect server-side.
+  - [x] Loại bỏ hoàn toàn các chuỗi "osmo Elite", "osmo.vn", thay thế bằng cấu hình động `ui.settings?.site_name` và domain `$page.url.origin` với fallback "SmartShop" chuẩn chỉnh.
+  - [x] Thay thế các ảnh fallback tĩnh "/uploads/img/osmo/sp1.png" bằng "/favicon.svg".
+  - [x] Khắc phục triệt để các kiểu dữ liệu `any` trong hàm map và reduce, đảm bảo Strict Typing 100%.
 
-
+- [x] **Kiểm thử & Xác minh (Verification)**
+  - [x] Đảm bảo giao diện tải mượt mà, cấu trúc metadata SEO được giữ nguyên hoặc động hoá an toàn.
+  - [x] Kiểm thử toàn bộ route không bị vỡ lỗi Typescript.

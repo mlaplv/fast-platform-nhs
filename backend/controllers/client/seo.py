@@ -30,8 +30,8 @@ class PublicSeoController(Controller):
 
         # 1. Static Pages
         urls.append(self._url(f"{site_url}/", "1.0", "daily"))
-        urls.append(self._url(f"{site_url}/products", "0.8", "daily"))
         urls.append(self._url(f"{site_url}/bai-viet", "0.6", "weekly"))
+        urls.append(self._url(f"{site_url}/khuyen-mai", "0.8", "weekly"))
 
         # 2. Products (Active only) — direct query, no service DI
         result = await db_session.execute(
@@ -68,7 +68,7 @@ class PublicSeoController(Controller):
         for row in art_result.mappings():
             lastmod = row["updated_at"] or row["created_at"]
             urls.append(self._url(
-                f"{site_url}/{row['slug']}",
+                f"{site_url}/{row['slug']}.html",
                 "0.6",
                 "monthly",
                 lastmod.strftime("%Y-%m-%d") if lastmod else None,

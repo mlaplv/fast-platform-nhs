@@ -7,6 +7,7 @@
   import HomeMobile from '$lib/components/storefront/home/HomeMobile.svelte';
   import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
   import { buildWebSiteLd, buildOrganizationLd } from '$lib/utils/seo';
+  import { page } from '$app/stores';
 
   let { data } = $props();
   const ui = getClientUi();
@@ -14,7 +15,7 @@
   // Elite V2.2: Derive SEO data from shop settings
   const shopSettings = $derived(data.shopInfo || ui.settings);
   const seoSiteName = $derived(
-    shopSettings?.basic_info?.site_name || shopSettings?.site_name || "osmo Elite"
+    shopSettings?.basic_info?.site_name || shopSettings?.site_name || "SmartShop"
   );
   const seoDescription = $derived(
     shopSettings?.basic_info?.description ||
@@ -29,7 +30,7 @@
   );
 
   // GEO 2026: JSON-LD for Homepage
-  const siteUrl = "https://osmo.vn";
+  const siteUrl = $derived($page.url.origin);
   const webSiteLd = $derived(buildWebSiteLd(seoSiteName, siteUrl));
   const organizationLd = $derived(buildOrganizationLd({
     name: shopSettings?.contact_info?.company_name || seoSiteName,
@@ -47,7 +48,7 @@
   pageType="home"
   title={seoTitle}
   description={seoDescription}
-  canonical="{siteUrl}/home"
+  canonical={$page.url.origin + $page.url.pathname}
   siteName={seoSiteName}
   jsonLdScripts={[webSiteLd, organizationLd]}
 />

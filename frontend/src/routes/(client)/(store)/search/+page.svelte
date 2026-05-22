@@ -5,6 +5,7 @@
   import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { page } from '$app/stores';
 
   import type { Product, ProductFacets, Article } from '$lib/types';
 
@@ -35,22 +36,23 @@
   );
 
   // GEO 2026: SEO Meta
+  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.site_name || "SmartShop");
   const seoTitle = $derived(
     data.searchQuery
-      ? `Tìm kiếm "${data.searchQuery}" | osmo Elite`
-      : "Tìm kiếm sản phẩm & kiến thức | osmo Elite"
+      ? `Tìm kiếm "${data.searchQuery}" | ${siteName}`
+      : `Tìm kiếm sản phẩm & kiến thức | ${siteName}`
   );
   const seoDescription = $derived(
     data.searchQuery
-      ? `Kết quả tìm kiếm "${data.searchQuery}" - ${data.total} sản phẩm và kiến thức chuyên sâu tại osmo Elite.`
-      : "Tìm kiếm toàn bộ sản phẩm và kiến thức chuyên sâu tại osmo Elite."
+      ? `Kết quả tìm kiếm "${data.searchQuery}" - ${data.total} sản phẩm và kiến thức chuyên sâu tại ${siteName}.`
+      : `Tìm kiếm toàn bộ sản phẩm và kiến thức chuyên sâu tại ${siteName}.`
   );
 </script>
 
 <SeoHead
   title={seoTitle}
   description={seoDescription}
-  canonical="https://osmo.vn/search"
+  canonical={$page.url.origin + $page.url.pathname}
   robots="noindex, nofollow"
 />
 

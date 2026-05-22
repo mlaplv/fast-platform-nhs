@@ -6,6 +6,7 @@
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { onMount } from 'svelte';
+  import { page } from '$app/stores';
 
   import type { Product, ProductFacets } from '$lib/types';
 
@@ -43,32 +44,33 @@
   );
 
   // GEO 2026: SEO Meta
+  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.site_name || "SmartShop");
   const seoTitle = $derived(
     data.searchQuery
-      ? `Tìm kiếm "${data.searchQuery}" | osmo Elite`
+      ? `Tìm kiếm "${data.searchQuery}" | ${siteName}`
       : data.brand
-        ? `Thương hiệu ${data.brand} chính hãng | osmo Elite`
+        ? `Thương hiệu ${data.brand} chính hãng | ${siteName}`
         : data.origin
-          ? `Xuất xứ ${data.origin} | osmo Elite`
-          : "Tất cả sản phẩm | osmo Elite"
+          ? `Xuất xứ ${data.origin} | ${siteName}`
+          : `Tất cả sản phẩm | ${siteName}`
   );
   const seoDescription = $derived(
     data.searchQuery
-      ? `Kết quả tìm kiếm "${data.searchQuery}" - ${data.total} sản phẩm chính hãng tại osmo Elite.`
+      ? `Kết quả tìm kiếm "${data.searchQuery}" - ${data.total} sản phẩm chính hãng tại ${siteName}.`
       : data.brand
-        ? `Danh sách sản phẩm thương hiệu ${data.brand} chính hãng nhập khẩu tại osmo Elite. Cam kết chất lượng.`
+        ? `Danh sách sản phẩm thương hiệu ${data.brand} chính hãng nhập khẩu tại ${siteName}. Cam kết chất lượng.`
         : data.origin
-          ? `Danh sách sản phẩm xuất xứ từ ${data.origin} chính hãng tại osmo Elite.`
-          : "Khám phá toàn bộ sản phẩm chăm sóc sức khỏe chính hãng tại osmo Elite. Cam kết chất lượng, hỗ trợ 24/7."
+          ? `Danh sách sản phẩm xuất xứ từ ${data.origin} chính hãng tại ${siteName}.`
+          : `Khám phá toàn bộ sản phẩm chăm sóc sức khỏe chính hãng tại ${siteName}. Cam kết chất lượng, hỗ trợ 24/7.`
   );
-  const seoRobots = $derived((data.searchQuery || data.brand || data.origin) ? "noindex, nofollow" : "index, follow");
+  const seoRobots = "noindex, nofollow";
 
 </script>
 
 <SeoHead
   title={seoTitle}
   description={seoDescription}
-  canonical="https://osmo/products"
+  canonical={$page.url.origin + $page.url.pathname}
   robots={seoRobots}
 />
 

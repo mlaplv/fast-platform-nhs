@@ -519,7 +519,7 @@
         ) || [];
       if (comboVariants.length === 0) continue;
 
-      const getQty = (v: any) => Number(v.attributes?.combo_qty ?? v.attributes?.comboQty ?? 0);
+      const getQty = (v: {attributes?: {combo_qty?: number, comboQty?: number}}) => Number(v.attributes?.combo_qty ?? v.attributes?.comboQty ?? 0);
 
       const sortedTiers = [...comboVariants].sort(
         (a, b) => getQty(a) - getQty(b)
@@ -790,8 +790,8 @@
 </script>
 
 <SeoHead
-  title="Thanh toán | {clientUi.settings?.basic_info?.site_name ||
-    'osmo Elite'}"
+  title="Thanh toán | {clientUi.settings?.basic_info?.site_name || clientUi.settings?.site_name ||
+    'SmartShop'}"
   robots="noindex, nofollow"
 />
 
@@ -1216,7 +1216,7 @@
                 >
                   <img
                     src={item.product.images?.[0] ||
-                      "/uploads/img/osmo/sp1.png"}
+                      "/favicon.svg"}
                     alt={item.product.name}
                     class="w-full h-full object-cover"
                   />
@@ -1713,11 +1713,11 @@
           Bằng cách đặt đơn hàng, bạn đồng ý với <a
             href="/terms"
             class="font-bold text-gray-700 hover:underline"
-            >Điều khoản sử dụng và bán hàng của osmo</a
+            >Điều khoản sử dụng và bán hàng của cửa hàng</a
           >
           và đồng ý rằng dữ liệu của bạn sẽ được xử lý theo
           <a href="/privacy" class="font-bold text-gray-700 hover:underline"
-            >Chính sách quyền riêng tư của osmo</a
+            >Chính sách quyền riêng tư của cửa hàng</a
           >.
         </div>
 

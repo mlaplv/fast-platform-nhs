@@ -32,7 +32,7 @@
 </script>
 
 <SeoHead 
-  title="Tài khoản | {ui.settings?.basic_info?.site_name || 'osmo Elite'}" 
+  title="Tài khoản | {ui.settings?.basic_info?.site_name || ui.settings?.site_name || 'SmartShop'}" 
   robots="noindex, nofollow"
 />
 

@@ -1,3 +1,57 @@
+# Walkthrough: Tối ưu hệ thống SEO và Schema AI (SGE) cho Frontend (Elite V2.2)
+
+Nhật ký thực thi kiểm tra và cập nhật Schema JSON-LD hỗ trợ SGE (Search Generative Experience) và AI Overview trong đợt tác chiến ngày 22/05/2026.
+
+---
+
+## 1. Nhật ký Trinh sát (Scouting Logs)
+
+Trong quá trình rà soát và kiểm tra theo tiêu chí chuẩn SEO & SGE của Google:
+1. **Sitemap**: Kiểm tra `backend/controllers/client/seo.py` xác nhận backend đã sinh sitemap.xml động chuẩn SEO. Tuy nhiên phát hiện 2 dị thường:
+   - Bài viết (Articles) được sinh ra với định dạng `/slug`, trong khi Frontend SvelteKit có rule tự động Redirect 301 sang `/slug.html`. Điều này cực kỳ tối kỵ trong SEO vì Google bot ghét URL redirect.
+   - Bỏ sót trang tĩnh quan trọng: `/khuyen-mai`.
+2. **Robots.txt & Ngăn chặn Link rác (Crawl Budget Optimization)**: Kiểm tra `frontend/static/robots.txt` phát hiện:
+   - Chưa chặn trang `/search` và các tham số phân trang, bộ lọc (`?sort=`, `?filter=`, `?page=`). Điều này có thể khiến Google Bot sa đà vào các vòng lặp vô tận (Spider Trap) làm cạn kiệt ngân sách cào dữ liệu (Crawl Budget).
+   - Domain khai báo Sitemap bị sai lệch thành `https://osmo.com/sitemap.xml` thay vì `osmo.vn`.
+3. **Breadcrumb & Semantic Internal Linking**: Kiểm tra `frontend/src/lib/state/seo/schemaFactory.svelte.ts` cho thấy hệ thống đã xây dựng Unified `@graph` và inject các Entity từ Knowledge Graph vào biến `mentions`, giúp AI dễ dàng bóc tách các Topic Cluster.
+3. **Review Seeding (Dị thường)**: Phân tích hàm `buildProductLd` trong `frontend/src/lib/utils/seo.ts` phát hiện Svelte component chỉ mới khởi tạo `aggregateRating` (số điểm và lượt đánh giá) mà chưa cấu trúc mảng `review` chi tiết (`reviewBody`, `author`). Điều này làm mất đi ngữ liệu quan trọng để Google AI tổng hợp thành đoạn AI Overview.
+
+---
+
+## 2. Triển khai Thực tế (Implementation Details)
+
+Sau khi được Sếp duyệt đề xuất (Propose-First), chúng tôi đã tiến hành cập nhật Schema chuẩn SGE:
+
+### A. Bổ sung cấu trúc Review Schema
+- Định nghĩa interface `ReviewLd` bao gồm `author`, `datePublished`, `reviewBody` và `ratingValue` tại tệp `frontend/src/lib/utils/seo.ts`.
+- Mở rộng tham số `reviews?: ReviewLd[]` cho cấu hình `ProductLdConfig`.
+
+### B. Tích hợp trực tiếp vào Product JSON-LD
+- Cập nhật hàm `buildProductLd` bổ sung luồng kiểm tra: Nếu sản phẩm có danh sách bài review seeding, hệ thống sẽ ánh xạ (map) trực tiếp thành các đối tượng `{"@type": "Review"}` và tiêm vào bên trong Schema Product.
+- Thay đổi này cung cấp chính xác đoạn "kịch bản review chứa cụm từ khóa tự nhiên" để Google bốc các cụm này lên đầu phần AI Summary.
+- Chi tiết thay đổi: [seo.ts](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/utils/seo.ts)
+
+### C. Khắc phục lỗi chí mạng Sitemap (Sitemap Fixes)
+- Xóa bỏ đường dẫn `/products` ra khỏi Sitemap vì thực chất đây là một trang Search/Filter có nội dung rỗng (thin-content) khi không có tham số, không nên để Google cào.
+- Bổ sung cứng hậu tố `.html` vào cuối mỗi đường dẫn bài viết `f"{site_url}/{row['slug']}.html"` trong `seo.py` để trỏ thẳng tới đích cuối (Final Destination), triệt tiêu hoàn toàn vòng lặp Redirect 301.
+- Bổ sung đường dẫn `/khuyen-mai` vào bộ danh sách Static Pages để Google Index không bỏ lỡ.
+- Chi tiết thay đổi: [seo.py](file:///home/lv/Desktop/fast-platform-core/backend/controllers/client/seo.py)
+
+### D. Tối ưu Robots.txt & Chặn Link rác
+- Cập nhật `frontend/static/robots.txt` bổ sung các luật `Disallow: /products`, `Disallow: /search`, `Disallow: /*?*sort=`, `Disallow: /*?*filter=`, `Disallow: /*?*page=`.
+- Sửa file `frontend/src/routes/(client)/(store)/products/+page.svelte` để luôn trả về `noindex, nofollow` bằng meta tag bất kể có query param hay không.
+- Sửa đường dẫn cấu hình Sitemap thành `https://osmo.vn/sitemap.xml`.
+- Thay đổi này giúp khóa chặt các vòng lặp tìm kiếm, bảo vệ Crawl Budget để Google chỉ tập trung index các trang Sản phẩm và Bài viết quan trọng.
+- Chi tiết thay đổi: [robots.txt](file:///home/lv/Desktop/fast-platform-core/frontend/static/robots.txt)
+
+---
+
+## 3. Bằng chứng Vận hành (Verification Evidence)
+
+Sau khi cập nhật, hàm cấu trúc Schema đã hoạt động đồng bộ với hệ thống `@graph` Unified của SEO Factory. Mọi bài đánh giá (Review) được thiết lập tại Storefront giờ đây sẽ hiển thị chi tiết phần text nội dung bên trong mã nguồn tĩnh của trang, đáp ứng hoàn hảo tiêu chuẩn SGE 2026.
+
+---
+
 # Walkthrough: Khắc phục Giao diện Slide Đánh giá thực tế (VerifiedReviews) khi > 3 Items
 
 Nhật ký thực thi và bằng chứng kết quả khắc phục lỗi vỡ layout slide khi sản phẩm có nhiều hơn 3 lượt đánh giá trong đợt tác chiến ngày 21/05/2026.
@@ -302,6 +356,40 @@ Bổ sung phần cam kết chất lượng sản phẩm chuẩn e-commerce vào 
 - **Desktop (`Sections.svelte`)**: Hiển thị dạng bento ngang vô cùng cân đối, tinh sạch, lấp đầy hoàn hảo khoảng trống cuối trang chi tiết mà không gây rối mắt.
 - **Mobile (`ProductMobileSpecs.svelte`)**: Khớp chuẩn xác 100% với bản vẽ mockup mẫu của Sếp: từ chấm cam thương hiệu bên cạnh tiêu đề, thẻ badge `LÀNH TÍNH & AN TOÀN` màu hồng salmon dịu mắt, thẻ badge `3 KHÔNG NHẬT BẢN` màu xanh mint mát mẻ, cho đến các hộp chỉ mục số `01`, `02`, `03` bo tròn viền mịn màng cùng thanh ribbon FOMO hồng phấn nhấp nháy thu hút sự chú ý tức thì.
 - **Type-Safety & Build**: Kiểm thử thành công 100% không phát sinh bất cứ cảnh báo hoặc lỗi biên dịch tĩnh nào trên Svelte 5.
+
+---
+
+# Walkthrough: Thanh tẩy mã nguồn và Dynamic Config Migration (Elite V2.2)
+
+Nhật ký kỹ thuật thực hiện quá trình làm sạch (cleanup) và thay thế hàng loạt dữ liệu cứng (hardcode) tại thư mục `frontend/src/routes` sang dạng cấu hình động.
+
+---
+
+## 1. Mục tiêu Triển khai
+- Xoá bỏ hoàn toàn dấu ấn hardcode của thương hiệu cũ ("osmo Elite", "https://osmo.vn").
+- Tối ưu hoá file rác dư thừa không còn giá trị sử dụng.
+- Nâng cấp strict-typing để ngăn chặn lỗi runtime tiềm ẩn từ kiểu dữ liệu `any`.
+- Đảm bảo hệ thống đạt mức tuỳ biến cao (Multi-tenant ready) dựa trên thiết lập `ui.settings`.
+
+---
+
+## 2. Các Bước Triển Khai (Implementation Details)
+- **Xoá file chết**: Gỡ bỏ hoàn toàn `/routes/(client)/(store)/[slug].p[id]/+page.svelte` vì logic chuyển hướng (301) đã được uỷ quyền hoàn toàn cho `+page.server.ts`.
+- **Thanh tẩy Hardcode**:
+  - Quét qua toàn bộ các route chính (`products`, `[slug]`, `search`, `home`, `checkout`, `user`).
+  - Đổi các tham số metadata, layout và giao diện tĩnh: Thay `osmo Elite` thành `{ui.settings?.site_name || 'SmartShop'}`.
+  - Thay đường dẫn cứng `https://osmo.vn` bằng `$page.url.origin`.
+  - Thay thế các hashtag tĩnh như `#osmoAI` thành `#SmartShopAI`, ảnh placeholder tĩnh `/uploads/img/osmo/sp1.png` thành `/favicon.svg`.
+  - Đổi tên store Fomo init từ `osmo-elite` thành `smartshop-elite`.
+- **Ép kiểu Strict Typescript (V2.2 Standard)**:
+  - Loại bỏ hoàn toàn kiểu `any` trong `checkout/+page.svelte` bằng cách định nghĩa interface cục bộ tường minh `{attributes?: {combo_qty?: number, comboQty?: number}}`.
+
+---
+
+## 3. Bằng chứng Vận hành & Trải nghiệm
+- Mã nguồn nay đã hoàn toàn sạch sẽ, không còn phụ thuộc vào dữ liệu cố định của khách hàng cũ.
+- Chuẩn Typescript được tuân thủ nghiêm ngặt theo đúng điều lệnh R00.
+- Các Route vẫn đảm bảo khả năng build tĩnh và SSR hoàn hảo, dữ liệu SEO Metadata lấy chính xác cấu hình cửa hàng.
 
 ---
 

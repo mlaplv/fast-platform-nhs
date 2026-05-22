@@ -4,11 +4,13 @@
   import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { afterNavigate } from '$app/navigation';
+  import { page } from '$app/stores';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
   const ui = getClientUi();
-  const siteUrl = "https://osmo.vn";
+  const siteUrl = $derived($page.url.origin);
+  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.site_name || "SmartShop");
 
   // Elite V2.2: Route Navigation Scroll Restoration Shield
   afterNavigate(() => {
@@ -41,14 +43,14 @@
 {#if data.article}
   <SeoHead
     pageType="article"
-    title={articleSeoMeta?.title || `${data.article.title} | osmo Elite`}
+    title={articleSeoMeta?.title || `${data.article.title} | ${siteName}`}
     description={articleSeoMeta?.description || data.article.excerpt || ""}
     canonical={articleSeoMeta?.canonical_url || `${siteUrl}/${data.article.slug}.html`}
     {breadcrumbItems}
     faqs={pageFaqs}
     articleData={{
       headline: data.article.title,
-      author: data.article.author_name || "osmo Elite",
+      author: data.article.author_name || siteName,
       datePublished: data.article.created_at,
       image: data.article.featured_image
     }}

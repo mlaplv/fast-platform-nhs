@@ -54,6 +54,13 @@ export interface FaqItem {
     answer: string;
 }
 
+export interface ReviewLd {
+    author: string;
+    datePublished: string;
+    reviewBody: string;
+    ratingValue: number;
+}
+
 export interface ProductVariantLd {
     price: number;
     discountPrice?: number;
@@ -77,6 +84,7 @@ export interface ProductLdConfig {
     availability: string;
     ratingValue?: number;
     reviewCount?: number;
+    reviews?: ReviewLd[];
     variants?: ProductVariantLd[];
 }
 
@@ -155,6 +163,23 @@ export function buildProductLd(config: ProductLdConfig): string {
             "bestRating": "5",
             "worstRating": "1"
         };
+    }
+
+    if (config.reviews && config.reviews.length > 0) {
+        product.review = config.reviews.map(r => ({
+            "@type": "Review",
+            "reviewRating": {
+                "@type": "Rating",
+                "ratingValue": String(r.ratingValue),
+                "bestRating": "5"
+            },
+            "author": {
+                "@type": "Person",
+                "name": r.author
+            },
+            "datePublished": r.datePublished,
+            "reviewBody": r.reviewBody
+        }));
     }
 
     return JSON.stringify(product);

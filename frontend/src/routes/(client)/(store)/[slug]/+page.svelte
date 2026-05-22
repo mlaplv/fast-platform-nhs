@@ -12,11 +12,13 @@
   import { onMount, untrack } from 'svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import { afterNavigate } from '$app/navigation';
+  import { page } from '$app/stores';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
   const ui = getClientUi();
-  const siteUrl = "https://osmo.vn";
+  const siteUrl = $derived($page.url.origin);
+  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.site_name || "SmartShop");
 
   // Elite V2.2: Route Navigation Scroll Restoration Shield
   afterNavigate(() => {
@@ -94,13 +96,13 @@
 {#if data.type === 'category' || data.type === 'news'}
   <SeoHead
     pageType="category"
-    title={categorySeoMeta?.title || `${data.categoryName} | osmo Elite`}
+    title={categorySeoMeta?.title || `${data.categoryName} | ${siteName}`}
     description={categorySeoMeta?.description || `${data.categoryName} - Sản phẩm chính hãng.`}
     canonical={categorySeoMeta?.canonical_url || `${siteUrl}/${data.categorySlug}/`}
     {breadcrumbItems}
     categoryData={{
       name: data.categoryName,
-      items: data.items?.map((it: any) => ({ name: it.name, url: `/${it.slug}` }))
+      items: data.items?.map((it: {name: string, slug: string}) => ({ name: it.name, url: `/${it.slug}` }))
     }}
     jsonLdScripts={[categorySeoMeta?.json_ld_string].filter(Boolean)}
   />
@@ -108,7 +110,7 @@
 {:else if data.type === 'product' && !isFunnel}
   <SeoHead
     pageType="product"
-    title={productSeoMeta?.title || `${data.product.name} | osmo Elite`}
+    title={productSeoMeta?.title || `${data.product.name} | ${siteName}`}
     description={productSeoMeta?.description || data.product.short_description || data.product.shortDescription || data.product.description || ""}
     canonical={productSeoMeta?.canonical_url || `${siteUrl}/${data.product.slug}`}
     image={data.product.images?.[0]}
@@ -118,11 +120,11 @@
       name: data.product.name,
       images: data.product.images,
       description: productSeoMeta?.description || data.product.short_description || data.product.shortDescription || "",
-      brand: (data.product.attributes?.brand as string) || (data.product.attributes?.['Thương hiệu'] as string) || "osmo Elite",
+      brand: (data.product.attributes?.brand as string) || (data.product.attributes?.['Thương hiệu'] as string) || siteName,
       sku: data.product.sku,
       price: data.product.price,
       discountPrice: data.product.discountPrice || data.product.discount_price,
-      variants: data.product.variants?.map((v: any) => ({
+      variants: data.product.variants?.map((v: {sku?: string, price: number, discountPrice?: number, discount_price?: number, stock: number}) => ({
           name: v.sku || data.product.name,
           price: v.price,
           discountPrice: v.discountPrice || v.discount_price,
