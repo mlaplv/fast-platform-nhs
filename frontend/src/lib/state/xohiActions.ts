@@ -112,12 +112,14 @@ export const xohiActions = {
     },
 
     // CNS V87.0: Neural Boost — tinh chỉnh toàn bộ content, trả về ContentPatch list
-    async runNeuralBoost(content: string, topic: string) {
+    // CNS V92.1: Truyền contentType để phân biệt product vs article
+    async runNeuralBoost(content: string, topic: string, contentType: string = 'article') {
         type Patch = { search_string: string; replacement_string: string; rationale: string };
         type Report = { patches: Patch[]; summary: string; logs: string[] };
         const res = await apiClient.post<GenericResponse<Report>>(`/api/v1/content/analyze/neural-boost`, {
             content,
             topic,
+            content_type: contentType,
         });
         return res;
     },

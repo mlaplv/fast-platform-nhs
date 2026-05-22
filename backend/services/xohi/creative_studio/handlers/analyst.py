@@ -196,7 +196,8 @@ class AnalystHandler:
 
     async def neural_boost(
         self, content: str, topic: str = "", campaign_id: Optional[str] = None,
-        campaign_repo: Optional[ContentCampaignRepository] = None
+        campaign_repo: Optional[ContentCampaignRepository] = None,
+        content_type: str = "article"  # CNS V92.1: phân biệt product/article
     ) -> GenericResponse:
         """
         CNS V87.0: Neural Boost — tinh chỉnh content, trả về ContentPatch list.
@@ -215,7 +216,7 @@ class AnalystHandler:
             return GenericResponse(status="error", message="Chưa có nội dung để tinh chỉnh.")
 
         try:
-            result = await run_neural_boost(raw_content, topic)
+            result = await run_neural_boost(raw_content, topic, content_type=content_type)
             return GenericResponse(status="success", data=result.model_dump())
         except Exception as exc:
             logger.error(f"[AnalystHandler] neural_boost failed: {exc}", exc_info=True)
@@ -476,11 +477,10 @@ class AnalystHandler:
                 )
 
                 # R.C.3 FIX: Lazy singleton Agent — tránh khởi tạo nặng mỗi lần gọi
+                # CNS V92.0 FIX: Không bake system_prompt vào constructor (stale topic issue).
+                # system_prompt được inject per-call qua agent.override(instructions=...) trong trinity_bridge.run().
                 if _SCOUT_AGENT is None:
-                    _SCOUT_AGENT = Agent(output_type=ScoutReport, system_prompt=scout_prompt)
-                else:
-                    # Override system_prompt với topic mới (immutable override via agent.override)
-                    pass
+                    _SCOUT_AGENT = Agent(output_type=ScoutReport, retries=2)
 
                 # R.C.2 FIX: Hard timeout 80s, giải phóng concurrency guard đúng thứ tự
                 response = await asyncio.wait_for(

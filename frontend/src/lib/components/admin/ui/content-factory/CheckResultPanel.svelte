@@ -26,6 +26,7 @@
     userPlanNote = $bindable(''),
     currentAnalysisStep = null,
     boosterAnnotations = [],
+    clinicalSources = [],
   }: {
     activeTab: 'copyright' | 'seo' | 'ai' | 'enrich' | null;
     copyrightResult: CopyrightResult | null; isCopyrightLoading: boolean;
@@ -46,6 +47,15 @@
     userPlanNote?: string;
     currentAnalysisStep?: number | null;
     boosterAnnotations?: AnalysisAnnotation[];
+    clinicalSources?: Array<{
+      title_vi: string;
+      title_original: string;
+      source_domain: string;
+      source_url: string;
+      year: string;
+      snippet_vi: string;
+      relevance: string;
+    }>;
   } = $props();
 
   let isFixing = $state<string | null>(null);
@@ -292,6 +302,81 @@
               </div>
               <span class="text-[8px] font-bold text-pink-400/60 tracking-tighter">{isBoosting ? 'Operating' : 'System Ready'}</span>
            </div>
+        </div>
+      {/if}
+
+      <!-- ═══ JAPAN CLINICAL EVIDENCE SECTION ═══ -->
+      {#if clinicalSources && clinicalSources.length > 0 && !isBoosting}
+        <div class="mt-2 border-t border-white/5">
+          <!-- Header -->
+          <div class="px-3 py-2 flex items-center gap-2 bg-sky-500/5">
+            <div class="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.6)]"></div>
+            <span class="text-[8px] font-black tracking-[0.25em] text-sky-400/80">NGHIÊN CỨU & LÂM SÀNG</span>
+            <span class="ml-auto px-1.5 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-[7px] font-black text-sky-400">
+              🇯🇵 {clinicalSources.length} NGUỒN UY TÍN
+            </span>
+          </div>
+
+          <!-- Source cards -->
+          <div class="flex flex-col divide-y divide-white/[0.04]">
+            {#each clinicalSources as src, si}
+              <div class="px-3 py-3 flex flex-col gap-1.5 hover:bg-sky-500/[0.03] transition-colors">
+                <!-- Domain badge + year -->
+                <div class="flex items-center gap-2">
+                  <span class="px-1.5 py-0.5 rounded text-[7px] font-black bg-sky-500/10 border border-sky-500/20 text-sky-300 tracking-tight">
+                    {src.source_domain}
+                  </span>
+                  {#if src.year && src.year !== 'N/A'}
+                    <span class="text-[8px] text-white/30 font-mono">{src.year}</span>
+                  {/if}
+                  <span class="ml-auto text-[7px] font-black text-white/15 tracking-widest">#{si + 1}</span>
+                </div>
+
+                <!-- Title (VI) -->
+                <p class="text-[11px] font-bold text-sky-200/90 leading-snug">
+                  {src.title_vi}
+                </p>
+
+                <!-- Snippet VI -->
+                {#if src.snippet_vi}
+                  <p class="text-[10px] text-white/55 leading-relaxed line-clamp-3">
+                    {src.snippet_vi}
+                  </p>
+                {/if}
+
+                <!-- Relevance tag -->
+                {#if src.relevance}
+                  <p class="text-[9px] text-sky-400/60 italic leading-relaxed">
+                    🎯 {src.relevance}
+                  </p>
+                {/if}
+
+                <!-- Footer: original title + verify link -->
+                <div class="flex items-center gap-2 mt-0.5 pt-1.5 border-t border-white/[0.04]">
+                  <span class="text-[8px] text-white/20 font-mono truncate flex-1" title={src.title_original}>
+                    {src.title_original.slice(0, 55)}{src.title_original.length > 55 ? '…' : ''}
+                  </span>
+                  {#if src.source_url}
+                    <a
+                      href={src.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="flex-shrink-0 px-1.5 py-0.5 rounded text-[7px] font-black text-sky-400 bg-sky-500/10 border border-sky-500/20 hover:bg-sky-500/20 transition-colors tracking-tight"
+                    >
+                      Verify ↗
+                    </a>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+
+          <!-- Disclaimer -->
+          <div class="px-3 py-2 bg-black/20">
+            <p class="text-[7.5px] text-white/20 leading-relaxed">
+              ⚠️ Tất cả nguồn trên đã được AI dịch thuần Việt từ bản gốc Nhật/Anh. Nhấn <span class="text-sky-400/60">Verify ↗</span> để đọc bản gốc và xác minh độc lập.
+            </p>
+          </div>
         </div>
       {/if}
     </div>

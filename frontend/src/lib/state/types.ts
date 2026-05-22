@@ -222,6 +222,17 @@ export interface AIInspectResult {
   ai_annotations: AnalysisAnnotation[];
 }
 
+// CNS V92.0: Bằng chứng lâm sàng Nhật Bản / quốc tế (dịch thuần Việt)
+export interface ClinicalSource {
+  title_vi: string;        // Tiêu đề dịch sang tiếng Việt
+  title_original: string;  // Tiêu đề gốc (JP/EN) để verify
+  source_domain: string;   // J-STAGE / PubMed / WHO / PMDA...
+  source_url: string;      // URL gốc
+  year: string;            // Năm công bố
+  snippet_vi: string;      // Trích đoạn dịch Việt
+  relevance: string;       // Liên quan đến chủ đề như thế nào
+}
+
 export interface NeuralAnalysisController {
   readonly copyrightResult: CopyrightResult | null;
   readonly isCopyrightLoading: boolean;
@@ -244,6 +255,7 @@ export interface NeuralAnalysisController {
   readonly aiLocked: boolean;
   readonly editorAnnotations: AnalysisAnnotation[];
   readonly boosterAnnotations: AnalysisAnnotation[];
+  readonly clinicalSources: ClinicalSource[];  // CNS V92.0
   readonly streamingText: string;
   readonly streamingTarget: string | null;
   runCopyrightCheck: (force?: boolean, skipSave?: boolean) => Promise<void>;

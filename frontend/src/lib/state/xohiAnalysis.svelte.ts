@@ -14,7 +14,8 @@ import type {
     CampaignData,
     BulkFixReplacement,
     TaskAcceptedResponse,
-    CleanOptions
+    CleanOptions,
+    ClinicalSource   // CNS V92.0
 } from "$lib/state/types";
 
 export function createAnalysisController(config: {
@@ -53,6 +54,7 @@ export function createAnalysisController(config: {
     let userPlanNote = $state("");
     let activeTab = $state<'copyright' | 'seo' | 'ai' | 'enrich' | null>(null);
     let boosterAnnotations = $state<AnalysisAnnotation[]>([]);
+    let clinicalSources = $state<ClinicalSource[]>([]);  // CNS V92.0
     // CNS V87.0: SSE Streaming state — typewriter effect
     let streamingText = $state<string>("");        // Text đang stream từng chunk
     let streamingTarget = $state<string | null>(null); // Annotation text đang được sửa
@@ -721,9 +723,20 @@ export function createAnalysisController(config: {
                 }
             } else {
                 // [CNS V90.0 Plan B] Ad-hoc mode — Surgeon Booster (không cần Google Search)
-                const res = await xohiActions.runNeuralBoost(content, topic);
+                // CNS V92.1: Truyền contentType để backend phân biệt đúng product vs article
+                const contentType = resolve(config.contentType) || 'article';
+                const res = await xohiActions.runNeuralBoost(content, topic, contentType);
                 if (res?.status === 'success' && res.data?.patches) {
                     bulkFixLogs = [...bulkFixLogs, `✅ Hoàn tất! Đã tìm thấy ${res.data.patches.length} điểm tinh chỉnh.`, ...res.data.logs];
+
+                    // CNS V92.0: Lưu clinical sources (nguồn lâm sàng đã dịch VI)
+                    const rawSources = (res.data as unknown as Record<string, unknown>)?.clinical_sources;
+                    if (Array.isArray(rawSources) && rawSources.length > 0) {
+                        clinicalSources = rawSources as ClinicalSource[];
+                        bulkFixLogs = [...bulkFixLogs, `📚 Đã trinh sát ${clinicalSources.length} nghiên cứu & bài báo uy tín (J-STAGE / PubMed / PMDA / Cosme).`];
+                    } else {
+                        clinicalSources = [];
+                    }
                     
                     // CNS V96.0: Stop auto-apply. Just store patches for user review ("Duyệt nới thêm vào")
                     const newAnnotations: AnalysisAnnotation[] = [];
@@ -1014,6 +1027,7 @@ export function createAnalysisController(config: {
         get aiLocked() { return aiLocked; },
         get editorAnnotations() { return editorAnnotations; },
         get boosterAnnotations() { return boosterAnnotations; },
+        get clinicalSources() { return clinicalSources; },  // CNS V92.0
         // CNS V87.0: expose streaming state cho UI typewriter effect
         get streamingText() { return streamingText; },
         get streamingTarget() { return streamingTarget; },
@@ -1021,7 +1035,7 @@ export function createAnalysisController(config: {
             // CLAUDE.md: dispose SSE resource khi component unmount
             _sseAbort?.abort(); _sseAbort = null;
             copyrightResult = null; seoResult = null; aiReadyResult = null; bulkFixStatus = ""; activeTab = null;
-            streamingText = ""; streamingTarget = null;
+            streamingText = ""; streamingTarget = null; clinicalSources = [];  // CNS V92.0: reset
         }
     };
 }

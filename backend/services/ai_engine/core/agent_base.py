@@ -207,7 +207,11 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
         """
         # 1. Identify Entity Type
         is_product = False
-        if hasattr(campaign, "category") and getattr(campaign, "category") == "PRODUCT_CATALOG":
+        # CNS V92.1: Ưu tiên check content_type kwarg (được truyền từ ad-hoc caller)
+        _ctype = str(kwargs.get("content_type", "") or "")
+        if _ctype in ("product", "PRODUCT_CATALOG", "Sản phẩm"):
+            is_product = True
+        elif hasattr(campaign, "category") and getattr(campaign, "category") == "PRODUCT_CATALOG":
             is_product = True
         elif hasattr(campaign, "get_gold_val"):
             if campaign.get_gold_val("contentType") == "product" or campaign.get_gold_val("category") == "Sản phẩm":

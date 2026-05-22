@@ -153,6 +153,7 @@ class SurgeonBoostRequest(BaseModel):
     content: str
     topic: str = ""
     campaign_id: Optional[str] = None
+    content_type: Optional[str] = "article"  # CNS V92.1: "article" | "product" | "review"
 
 class NeuralRewriteRequest(BaseModel):
     model_config = ConfigDict(strict=True)

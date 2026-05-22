@@ -192,7 +192,8 @@ class ContentController(Controller):
             content=data.content,
             topic=data.topic,
             campaign_id=data.campaign_id,
-            campaign_repo=campaign_repo
+            campaign_repo=campaign_repo,
+            content_type=data.content_type or "article",  # CNS V92.1
         )
 
     @post("/analyze/neural-rewrite", guards=[PermissionGuard(PermissionEnum.CONTENT_WRITE)])

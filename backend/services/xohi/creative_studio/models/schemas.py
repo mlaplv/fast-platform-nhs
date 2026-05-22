@@ -103,12 +103,30 @@ class ContentPatch(BaseModel):
     replacement_string: str # Đoạn text thay thế (cải tiến)
     rationale: str          # Giải thích ngắn gọn tại sao sửa
 
+class ClinicalSource(BaseModel):
+    """
+    CNS V92.0: Bằng chứng lâm sàng đã được trinh sát và dịch thuần Việt.
+    Đảm bảo minh bạch nguồn gốc & khả năng verify độc lập.
+    """
+    model_config = ConfigDict(strict=False)
+    title_vi: str           # Tiêu đề bài nghiên cứu dịch sang tiếng Việt
+    title_original: str     # Tiêu đề gốc (JP/EN) để verify
+    source_domain: str      # Tên nguồn: J-STAGE / PubMed / WHO / PMDA / JSCC...
+    source_url: str         # URL gốc để đọc thêm
+    year: str               # Năm công bố hoặc "N/A"
+    snippet_vi: str         # Trích đoạn đã dịch sang tiếng Việt chuẩn
+    relevance: str          # Giải thích ngắn tại sao nguồn này liên quan đến topic
+
 class NeuralBoosterReport(BaseModel):
     """Kết quả tinh chỉnh toàn bộ content từ Neural Booster Agent."""
     model_config = ConfigDict(strict=True)
     patches: List[ContentPatch] = Field(default_factory=list)
     summary: str = ""
     logs: List[str] = Field(default_factory=list)
+    clinical_sources: List[ClinicalSource] = Field(
+        default_factory=list,
+        description="Danh sách nguồn lâm sàng uy tín đã trinh sát & dịch Việt"
+    )
 
 # ══════════════════════════════════════════════════════════════
 # SCOUT & INTELLIGENCE SCHEMAS — V62.2 Elite
