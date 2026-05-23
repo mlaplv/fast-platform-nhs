@@ -37,7 +37,6 @@ text.key
 check_gemini.sh
 
 # 3. Dữ liệu sinh ra khi dev
-backups/
 temp_restore/
 *.resolved
 *.log

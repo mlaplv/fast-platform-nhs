@@ -373,6 +373,21 @@
   - [x] Cập nhật tệp `frontend/src/routes/(client)/(store)/[slug]/+page.svelte`.
   - [x] Chạy `rtk svelte-check` để đảm bảo 100% không có lỗi kiểu tĩnh.
 
+# Task checklist: Tiêu diệt Triệt để Lỗi Hydration và Đồng bộ Hóa Quyền Hạn (Elite V2.2)
+
+- [x] **Trinh sát & Phát hiện Nguyên nhân Gốc rễ (Permission Conflicts & Duplicate Runtime Bundles)**
+  - [x] Phát hiện lỗi `TypeError: Cannot read properties of undefined (reading 'call')` do `first_child_getter` bị `undefined` trong Svelte runtime.
+  - [x] Xác định nguyên nhân cốt lõi: Xung đột quyền ghi `EACCES` trên các thư mục cache `.vite-temp`, `.vite`, và `.svelte-kit` giữa người dùng Host (`lv:lv` UID 1000) và Docker Container (`root:root` UID 0).
+  - [x] Trình đóng gói Vite bị chặn không thể ghi đè/ghi đệm pre-bundle dependency, dẫn đến việc serving song song hai instance Svelte khác biệt (Instance A trong chunk chung và Instance B trong chunk riêng), phá hủy hoàn toàn cơ chế khởi tạo SSOT `init_operations()`.
+- [x] **Giải pháp Tác chiến & Thực thi Quyền lực (Docker Privilege Alignment)**
+  - [x] Thực thi chown đệ quy từ bên trong container `fast_platform_ui` bằng tài khoản `root` để đồng bộ quyền sở hữu toàn bộ mã nguồn `/app/frontend` về user `1000:1000` (`lv:lv`) trên host.
+  - [x] Xóa sạch các bộ đệm rác cũ kỹ: `.svelte-kit/`, `node_modules/.vite/`, `node_modules/.vite-temp/`.
+  - [x] Khởi động lại container `fast_platform_ui` để kích hoạt chu trình pre-bundling sạch 100% không tì vết.
+- [x] **Triển khai & Kiểm thử (Execution & Verification)**
+  - [x] Xác thực logs container khởi động trơn tru: `Forced re-optimization of dependencies` hoàn thành xuất sắc trong 2369ms.
+  - [x] Đảm bảo cấu trúc `.svelte-kit/` và các module runtime được gen ra hoàn hảo, không còn tì vết xung đột permission.
+
+
 
 
 
