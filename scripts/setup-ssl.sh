@@ -48,10 +48,18 @@ echo -e ""
 OS_TYPE=$(uname -s)
 
 if [ "$OS_TYPE" == "Linux" ]; then
-    echo -e "${YELLOW}Đang thiết lập tin cậy trên hệ thống Linux (Sẽ yêu cầu mật khẩu sudo)...${NC}"
-    sudo cp "$CERT_PATH" /usr/local/share/ca-certificates/caddy-root-ca.crt
-    sudo update-ca-certificates
-    echo -e "${GREEN}[OK] Hệ thống Linux đã tin tưởng chứng chỉ.${NC}"
+    echo -e "${YELLOW}Đang thiết lập tin cậy trên hệ thống Linux (Sẽ yêu cầu sudo nếu có)...${NC}"
+    if command -v sudo >/dev/null; then
+        if sudo -n true 2>/dev/null; then
+            sudo cp "$CERT_PATH" /usr/local/share/ca-certificates/caddy-root-ca.crt
+            sudo update-ca-certificates
+            echo -e "${GREEN}[OK] Hệ thống Linux đã tin tưởng chứng chỉ.${NC}"
+        else
+            echo -e "${YELLOW}[WARN] Không có quyền sudo không mật khẩu, bỏ qua tự động tin cậy. Hãy thêm cert thủ công nếu cần.${NC}"
+        fi
+    else
+        echo -e "${YELLOW}[WARN] sudo không khả dụng, bỏ qua bước tin cậy hệ thống.${NC}"
+    fi
 elif [ "$OS_TYPE" == "Darwin" ]; then
     echo -e "${YELLOW}Đang kiểm tra chứng chỉ cũ trên macOS...${NC}"
     # SMART SSL TRUST: Chỉ cập nhật nếu cần thiết

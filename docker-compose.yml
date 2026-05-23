@@ -51,10 +51,13 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - ./certs/caddy/pki:/data/caddy/pki
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Use ACME automatically; remove manual pki mount which may contain malformed certs
       - caddy_data:/data
       - caddy_config:/config
+    environment:
+      - ACME_AGREE=true
+      - EMAIL=admin@osmo.vn
     logging:
       driver: "json-file"
       options:

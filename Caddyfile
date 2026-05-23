@@ -16,7 +16,7 @@
 }
 
 {$APP_DOMAIN}, {$ADMIN_DOMAIN}, {$API_DOMAIN} {
-    tls internal
+    # tls internal  # removed to allow ACME automatic certificates
     import security_headers
 
     # Compression logic (Exclude SSE, WS, and streaming endpoints)
@@ -68,3 +68,5 @@
         }
     }
 }
+
+

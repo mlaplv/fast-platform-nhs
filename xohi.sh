@@ -982,8 +982,10 @@ while true; do
             update_ai_model
             ;;
         10)
-            echo -e "${CYAN}[SSL] Đang khởi động quy trình cấp and tin cậy SSL (HTTPS)...${NC}"
+            echo -e "${CYAN}[SSL] Đang khởi động quy trình cấp và tin cậy SSL (HTTPS)...${NC}"
             chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
+            echo -e "${YELLOW}[INFO] Đang rebuild Caddy để áp dụng chứng chỉ mới...${NC}"
+            docker compose up -d --build caddy
             read -p "Nhấn Enter để quay lại menu..."
             ;;
         11)
