@@ -236,13 +236,15 @@
   <MobileProductDetailsModal bind:active={isDetailsModalOpen} {product} />
 
   {#if isScanning && ScannerHUDComponent}
-    <svelte:component this={ScannerHUDComponent} barcode={product.metadata?.barcode || product.sku} oncomplete={handleScanComplete} />
+    {@const ScannerHUD = ScannerHUDComponent}
+    <ScannerHUD barcode={product.metadata?.barcode || product.sku} oncomplete={handleScanComplete} />
   {/if}
 
   {#if showVerification}
     <BottomSheet bind:active={showVerification} title="Verified" fullWidth={true} tight={true} extraStyle="padding-left: 5px !important; padding-right: 5px !important;">
        {#if MobileVerificationCenterComponent}
-         <svelte:component this={MobileVerificationCenterComponent} {product} {verificationData} />
+         {@const VerificationCenter = MobileVerificationCenterComponent}
+         <VerificationCenter {product} {verificationData} />
        {/if}
     </BottomSheet>
   {/if}

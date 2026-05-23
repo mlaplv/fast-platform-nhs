@@ -4,9 +4,22 @@ import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Giải quyết đường dẫn vật lý thực tế cho pnpm symlink để fast-glob tìm thấy file
+function getPhysicalPath(relativePath, globPattern = '') {
+	const symlinkPath = path.resolve(__dirname, relativePath);
+	try {
+		const realDir = fs.realpathSync(symlinkPath);
+		return path.join(realDir, globPattern).replace(/\\/g, '/');
+	} catch (e) {
+		console.warn(`[ViteConfig] Failed to resolve physical path for ${relativePath}:`, e);
+		return path.join(symlinkPath, globPattern).replace(/\\/g, '/');
+	}
+}
 
 export default defineConfig({
 	envDir: '../',
@@ -19,19 +32,19 @@ export default defineConfig({
 		viteStaticCopy({
 			targets: [
 				{
-					src: 'node_modules/@ricky0123/vad-web/dist/*.onnx',
+					src: getPhysicalPath('node_modules/@ricky0123/vad-web/dist', '*.onnx'),
 					dest: 'vad'
 				},
 				{
-					src: 'node_modules/@ricky0123/vad-web/dist/vad.worklet.bundle.min.js',
+					src: getPhysicalPath('node_modules/@ricky0123/vad-web/dist', 'vad.worklet.bundle.min.js'),
 					dest: 'vad'
 				},
 				{
-					src: 'node_modules/onnxruntime-web/dist/*.wasm',
+					src: getPhysicalPath('node_modules/onnxruntime-web/dist', '*.wasm'),
 					dest: 'wasm'
 				},
 				{
-					src: 'node_modules/onnxruntime-web/dist/*.mjs',
+					src: getPhysicalPath('node_modules/onnxruntime-web/dist', '*.mjs'),
 					dest: 'wasm'
 				}
 			]
@@ -55,9 +68,9 @@ export default defineConfig({
 		commonjsOptions: {
 			include: [/node_modules/],
 			dynamicRequireTargets: [
-				'node_modules/onnxruntime-web/dist/*.wasm',
-				'node_modules/onnxruntime-web/dist/*.mjs',
-				'node_modules/@ricky0123/vad-web/dist/*.wasm'
+				getPhysicalPath('node_modules/onnxruntime-web/dist', '*.wasm'),
+				getPhysicalPath('node_modules/onnxruntime-web/dist', '*.mjs'),
+				getPhysicalPath('node_modules/@ricky0123/vad-web/dist', '*.wasm')
 			]
 		}
 	}

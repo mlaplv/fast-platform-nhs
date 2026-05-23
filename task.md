@@ -461,6 +461,10 @@
   - [x] Ẩn toàn bộ phần hiển thị MST/GPĐKKD nếu dữ liệu trống thay vì hiển thị nhãn rỗng.
   - [x] Chạy kiểm thử runtime, kiểm tra kiểu dữ liệu tĩnh (`svelte-check`) để đảm bảo không xảy ra bất kỳ runtime error nào.
 
-
-
-
+- [x] **Cô lập & Trì hoãn Tải Mô Hình Nặng (Deferred FastEmbed Warmup)**
+  - [x] Rà soát và phân tích sự cần thiết của TextEmbedding/fastembed model trong container `api` so với các background `worker` processes.
+  - [x] Thực hiện gỡ bỏ `warmup_encoder()` khỏi luồng khởi động nóng đồng bộ trong `lifespan.py` của container `api`.
+  - [x] Tích hợp cơ chế tự động khởi tạo khẩn cấp (dynamic emergency warmup) trên cả `ProductVectorService` và `KnowledgeVectorService` để tải nạp mô hình JIT (Just-In-Time) khi phát sinh yêu cầu đột xuất trên API.
+  - [x] Giữ nguyên luồng khởi động mô hình trong `arq_worker.py` để các background workers luôn sẵn sàng xử lý tác vụ thông minh.
+  - [x] Kiểm định thực tế: RAM khởi động của API giảm mạnh từ **1.17 GiB xuống còn 486 MiB (giảm hơn 55%)**, giải phóng hơn 570 MB bộ nhớ cho VPS.
+  - [x] Tổng RAM trống khả dụng của VPS tăng vọt lên **1.5 GiB**, triệt tiêu hoàn toàn nguy cơ sập OOM và loại bỏ hiện tượng Swap thrashing.

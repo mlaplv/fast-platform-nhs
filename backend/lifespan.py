@@ -40,9 +40,9 @@ async def lifespan(app: Litestar):
 
     await _aio.gather(
         event_bus.start(),
-        trinity_bridge.initialize(),
-        warmup_encoder()
+        trinity_bridge.initialize()
     )
+    logger.info("🧠 [Trinity Core] API Gateway loaded. Encoder deferred to on-demand lazy initialization.")
 
     # Bind shared Redis client to viral_share_service (lazy init pattern)
     _viral_svc._redis = xohi_memory.client

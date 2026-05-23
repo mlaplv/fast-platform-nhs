@@ -1,15 +1,10 @@
-import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
-import { ServerEnv } from '$lib/server/env';
+import type { PageLoad } from './$types';
 
-export const load: PageServerLoad = async ({ fetch }) => {
-  const apiUrl = ServerEnv.INTERNAL_API_URL;
-  const tenantId = ServerEnv.TENANT_ID;
-  const targetUrl = `${apiUrl}/api/v1/client/home`;
+export const load: PageLoad = async ({ fetch }) => {
+  const targetUrl = `/api/v1/client/home`;
 
   try {
     const res = await fetch(targetUrl, {
-      headers: { 'x-tenant': tenantId },
       signal: AbortSignal.timeout(5000)
     });
 

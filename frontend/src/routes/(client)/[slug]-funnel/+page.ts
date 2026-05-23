@@ -1,34 +1,22 @@
 import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
-import { ServerEnv } from '$lib/server/env';
-import { isMobileDevice } from '$lib/utils/device';
+import type { PageLoad } from './$types';
 
-export const load: PageServerLoad = async ({ 
+export const load: PageLoad = async ({ 
     params, 
-    fetch, 
-    request,
-    cookies
+    fetch
 }: { 
     params: Record<string, string>, 
-    fetch: typeof globalThis.fetch, 
-    request: Request,
-    cookies: import('@sveltejs/kit').Cookies
+    fetch: typeof globalThis.fetch
 }) => {
     const { slug } = params;
-    
-    // R00: NO MOCK, NO SILENT FALLBACK. Let it fail clearly if API is down.
-    const apiUrl = ServerEnv.INTERNAL_API_URL;
-    const tenantId = ServerEnv.TENANT_ID;
     
     try {
         // Step 1: Fetch Product & Shop Settings in Parallel
         const [prodRes, settingsRes] = await Promise.all([
-            fetch(`${apiUrl}/api/v1/client/products/slug/${slug}`, {
-                headers: { 'x-tenant': tenantId },
+            fetch(`/api/v1/client/products/slug/${slug}`, {
                 signal: AbortSignal.timeout(4000)
             }),
-            fetch(`${apiUrl}/api/v1/client/settings/primary`, {
-                headers: { 'x-tenant': tenantId },
+            fetch(`/api/v1/client/settings/primary`, {
                 signal: AbortSignal.timeout(3000)
             }).catch(() => null)
         ]);
@@ -44,23 +32,18 @@ export const load: PageServerLoad = async ({
         const shopInfo = settingsRes && settingsRes.ok ? await settingsRes.json() : null;
 
         // Step 2: Fetch Supplemental Data (Reviews, Stats, Related) in Parallel
-        // This ensures the landing page modules (VerifiedReviews, OfferGrid) have data immediately
         const [statsRes, reviewsRes, relatedRes] = await Promise.all([
-            fetch(`${apiUrl}/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`, {
-                headers: { 'x-tenant': tenantId },
+            fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`, {
                 signal: AbortSignal.timeout(2000)
             }).catch(() => null),
-            fetch(`${apiUrl}/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED&limit=20`, {
-                headers: { 'x-tenant': tenantId },
+            fetch(`/api/v1/client/reviews?entity_type=PRODUCT&entity_id=${product.id}&status=APPROVED&limit=20`, {
                 signal: AbortSignal.timeout(2000)
             }).catch(() => null),
-            fetch(`${apiUrl}/api/v1/client/products/?limit=9`, {
-                headers: { 'x-tenant': tenantId },
+            fetch(`/api/v1/client/products/?limit=9`, {
                 signal: AbortSignal.timeout(2000)
             }).catch(() => null)
         ]);
 
-        // Parse Supplemental Data
         const reviewStats = statsRes && statsRes.ok ? await statsRes.json() : null;
         const reviewsData = reviewsRes && reviewsRes.ok ? await reviewsRes.json() : { items: [] };
         
@@ -72,14 +55,25 @@ export const load: PageServerLoad = async ({
                 .slice(0, 8);
         }
 
-        const userAgent = request.headers.get('user-agent') || '';
-        const isMobile = isMobileDevice(userAgent);
-        const effectiveIp = request.headers.get('cf-connecting-ip') || '127.0.0.1';
+        let userAgent = '';
+        let isMobile = false;
+        if (typeof navigator !== 'undefined') {
+            userAgent = navigator.userAgent;
+            isMobile = window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(userAgent);
+        }
 
-        // Elite V2.2: Military-Grade Security - Read HTTP-Only Cookies for unlocked vouchers
-        const unlockedVoucherIds = cookies.getAll()
-            .filter(c => c.name.startsWith('elite_viral_') && c.value === '1')
-            .map(c => c.name.replace('elite_viral_', ''));
+        // Parse unlocked vouchers from cookies on the client side
+        let unlockedVoucherIds: string[] = [];
+        if (typeof document !== 'undefined') {
+            unlockedVoucherIds = document.cookie.split(';')
+                .map(c => c.trim())
+                .filter(c => c.startsWith('elite_viral_') && c.includes('='))
+                .filter(c => {
+                    const parts = c.split('=');
+                    return parts[1] === '1';
+                })
+                .map(c => c.split('=')[0].replace('elite_viral_', ''));
+        }
 
         return {
             product,
@@ -89,7 +83,7 @@ export const load: PageServerLoad = async ({
             relatedProducts,
             unlockedVoucherIds,
             isMobile,
-            effectiveIp,
+            effectiveIp: '127.0.0.1',
             metadata: {
                 timestamp: new Date().toISOString(),
                 userAgent,

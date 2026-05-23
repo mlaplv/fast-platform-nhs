@@ -7,8 +7,12 @@
   }
 
   let { initialSeconds, onComplete }: Props = $props();
-  let seconds = $state(initialSeconds);
+  let seconds = $state(0);
   let timer: ReturnType<typeof setInterval>;
+
+  $effect.pre(() => {
+    seconds = initialSeconds;
+  });
 
   const hh = $derived(String(Math.floor(seconds / 3600)).padStart(2, '0'));
   const mm = $derived(String(Math.floor((seconds % 3600) / 60)).padStart(2, '0'));

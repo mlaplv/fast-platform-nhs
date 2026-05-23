@@ -13,13 +13,18 @@
   let { 
     negativeKeywords = [], 
     campaigns = [],
-    selectedCampaign = $bindable(null), 
-    isGlobalNegative = $bindable(true), 
-    newNegativeKeyword = $bindable(''),
+    selectedCampaign = $bindable(), 
+    isGlobalNegative = $bindable(), 
+    newNegativeKeyword = $bindable(),
     aiSuggest,
     addNegativeKeyword,
     removeNegativeKeyword
   } = $props();
+
+  // Khởi tạo an toàn để tránh lỗi props_invalid_value
+  if (selectedCampaign === undefined) selectedCampaign = null;
+  if (isGlobalNegative === undefined) isGlobalNegative = true;
+  if (newNegativeKeyword === undefined) newNegativeKeyword = '';
 
   let searchQuery = $state('');
   let currentPage = $state(1);

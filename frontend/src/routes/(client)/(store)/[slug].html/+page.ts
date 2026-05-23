@@ -1,6 +1,5 @@
 import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
-import { ServerEnv } from '$lib/server/env';
+import type { PageLoad } from './$types';
 
 export const trailingSlash = 'ignore';
 
@@ -14,23 +13,18 @@ interface Article {
   category?: string;
 }
 
-export const load: PageServerLoad = async ({ params, fetch }) => {
-  const apiUrl = ServerEnv.INTERNAL_API_URL;
-  const tenantId = ServerEnv.TENANT_ID;
+export const load: PageLoad = async ({ params, fetch }) => {
   const { slug } = params;
 
-  const articleUrl = `${apiUrl}/api/v1/client/news/slug/${slug}`;
-
-  const newsUrl = `${apiUrl}/api/v1/client/news`;
+  const articleUrl = `/api/v1/client/news/slug/${slug}`;
+  const newsUrl = `/api/v1/client/news`;
 
   try {
     const [artRes, newsRes] = await Promise.all([
       fetch(articleUrl, {
-        headers: { 'x-tenant': tenantId },
         signal: AbortSignal.timeout(3000)
       }),
       fetch(newsUrl, {
-        headers: { 'x-tenant': tenantId },
         signal: AbortSignal.timeout(3000)
       }).catch(e => {
         console.error(`[RELATED NEWS FETCH FAILED] slug: ${slug}`, e);

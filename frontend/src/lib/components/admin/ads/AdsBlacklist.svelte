@@ -12,12 +12,17 @@
   let { 
     blacklistedIPs = [],
     unblockIP,
-    manualIP = $bindable(''),
-    isGlobalIP = $bindable(false),
+    manualIP = $bindable(),
+    isGlobalIP = $bindable(),
     blockIP,
     campaigns = [],
-    selectedCampaign = $bindable(null)
+    selectedCampaign = $bindable()
   } = $props();
+
+  // Khởi tạo an toàn để tránh lỗi props_invalid_value
+  if (manualIP === undefined) manualIP = '';
+  if (isGlobalIP === undefined) isGlobalIP = false;
+  if (selectedCampaign === undefined) selectedCampaign = null;
 
   let searchQuery = $state('');
   let currentPage = $state(1);

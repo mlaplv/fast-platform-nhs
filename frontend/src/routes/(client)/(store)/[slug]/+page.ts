@@ -1,7 +1,5 @@
 import { error, redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
-import { ServerEnv } from '$lib/server/env';
-import { isMobileDevice } from '$lib/utils/device';
+import type { PageLoad } from './$types';
 
 export const trailingSlash = 'ignore';
 
@@ -15,9 +13,7 @@ interface Article {
   category?: string;
 }
 
-export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
-  const apiUrl = ServerEnv.INTERNAL_API_URL;
-  const tenantId = ServerEnv.TENANT_ID;
+export const load: PageLoad = async ({ params, fetch, url }) => {
   const { slug } = params;
   const hasTrailingSlash = url.pathname.endsWith('/');
 
@@ -25,22 +21,18 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
   // 1. If it ends with '/', it MUST be a Category
   if (hasTrailingSlash) {
     if (slug === 'bai-viet') {
-      // News list is explicitly NOT allowed with a trailing slash as per Elite V2.2 rules
       throw error(404, { message: "Không tìm thấy nội dung (Dấu '/' không được phép cho tin bài)" });
     }
 
-    // TĂNG GIỚI HẠN LÊN 49: 1 sp cho banner + 48 sp cho grid (4 cột x 12 hàng)
-    const productsUrl = `${apiUrl}/api/v1/client/products/?category_slug=${slug}&limit=49&status=ACTIVE`;
-    const categoryDetailUrl = `${apiUrl}/api/v1/client/categories/slug/${slug}`;
+    const productsUrl = `/api/v1/client/products/?category_slug=${slug}&limit=49&status=ACTIVE`;
+    const categoryDetailUrl = `/api/v1/client/categories/slug/${slug}`;
 
     try {
       const [prodRes, catDetailRes] = await Promise.all([
         fetch(productsUrl, {
-          headers: { 'x-tenant': tenantId },
           signal: AbortSignal.timeout(3000)
         }),
         fetch(categoryDetailUrl, {
-          headers: { 'x-tenant': tenantId },
           signal: AbortSignal.timeout(3000)
         }).catch(e => {
           console.error(`[CATEGORY DETAIL FETCH FAILED] slug: ${slug}`, e);
@@ -53,7 +45,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
         const items = (prodData.data || []) as unknown[];
         const total = prodData.total || items.length;
 
-        let category: Category | null = null;
+        let category = null;
         if (catDetailRes && catDetailRes.ok) {
           category = await catDetailRes.json();
         }
@@ -76,10 +68,9 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
 
   // 2. If it does NOT end with '/', it's either News List or Product
   if (slug === 'bai-viet') {
-    const newsUrl = `${apiUrl}/api/v1/client/news`;
+    const newsUrl = `/api/v1/client/news`;
     try {
       const newsRes = await fetch(newsUrl, {
-        headers: { 'x-tenant': tenantId },
         signal: AbortSignal.timeout(3000)
       });
       if (newsRes.ok) {
@@ -97,38 +88,36 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
   }
 
   // 3. Try Product (Standard Slug)
-  const productUrl = `${apiUrl}/api/v1/client/products/slug/${slug}`;
-  const relatedUrl = `${apiUrl}/api/v1/client/products/?limit=9`; // Fetch 9 to safely exclude current product and keep 8
+  const productUrl = `/api/v1/client/products/slug/${slug}`;
+  const relatedUrl = `/api/v1/client/products/?limit=9`;
 
   try {
     const prodRes = await fetch(productUrl, {
-      headers: { 'x-tenant': tenantId },
       signal: AbortSignal.timeout(3000)
     });
     if (prodRes.ok) {
       const product = await prodRes.json();
       
-      // Elite V2.2: Server-side Data Normalization (Zero-Hydration)
       if (product?.name) {
         product.name = product.name.replace(/40gr/g, '40g');
       }
 
-      const userAgent = request.headers.get('user-agent') || '';
-      const isMobile = isMobileDevice(userAgent);
-      const effectiveIp = request.headers.get('cf-connecting-ip') || '127.0.0.1';
+      let userAgent = '';
+      let isMobile = false;
+      if (typeof navigator !== 'undefined') {
+        userAgent = navigator.userAgent;
+        isMobile = window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(userAgent);
+      }
 
-      // Elite Performance Fix: Chạy related + reviewStats SONG SONG (parallel) thay vì tuần tự
-      // Tiết kiệm 200–500ms so với sequential waterfall cũ
+      // Parallel fetch for related products and reviews stats
       const [relRes, statsRes] = await Promise.all([
         fetch(relatedUrl, {
-          headers: { 'x-tenant': tenantId },
           signal: AbortSignal.timeout(2000)
         }).catch((relErr) => {
           console.error(`[RELATED PRODUCTS FETCH FAILED]`, relErr);
           return null;
         }),
-        fetch(`${apiUrl}/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`, {
-          headers: { 'x-tenant': tenantId },
+        fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`, {
           signal: AbortSignal.timeout(2000)
         }).catch((e) => {
           console.warn(`[REVIEW STATS FETCH FAILED] id: ${product.id}`, e);
@@ -141,7 +130,6 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
       if (relRes && relRes.ok) {
         try {
           const relData = await relRes.json();
-          // Remove current product and take exact 8 items
           relatedProducts = (relData.data || [])
             .filter((p: { id: string }) => p.id !== product.id)
             .slice(0, 8);
@@ -166,7 +154,7 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
         reviewStats,
         relatedProducts,
         isMobile,
-        effectiveIp,
+        effectiveIp: '127.0.0.1',
         metadata: {
           timestamp: new Date().toISOString(),
           userAgent,
@@ -175,8 +163,6 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
       };
     }
 
-    // Rule 2.2: Only fallback to Articles if Product is definitively NOT found (404)
-    // If it's a 500/403/etc, we should report the actual error or proceed to article ONLY if 404.
     if (prodRes.status !== 404) {
       const errorData = await prodRes.text();
       console.error(`[PRODUCT FETCH ERROR] status: ${prodRes.status}, slug: ${slug}, data: ${errorData}`);
@@ -187,16 +173,15 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
 
   } catch (e: unknown) {
     const err = e as { status?: number };
-    if (err.status) throw e; // Re-throw SvelteKit errors
+    if (err.status) throw e;
     console.error(`[PRODUCT FETCH SYSTEM ERROR] slug: ${slug}`, e);
   }
 
-  // Phase 2026: Redirect old article link structure to Sếp's professional `[slug].html` structure
-  const articleUrl = `${apiUrl}/api/v1/client/news/slug/${slug}`;
+  // Phase 2026: Redirect old article link structure to professional `[slug].html`
+  const articleUrl = `/api/v1/client/news/slug/${slug}`;
   try {
     const artRes = await fetch(articleUrl, {
       method: 'HEAD',
-      headers: { 'x-tenant': tenantId },
       signal: AbortSignal.timeout(1500)
     });
     if (artRes.ok) {
@@ -209,6 +194,5 @@ export const load: PageServerLoad = async ({ params, fetch, request, url }) => {
     console.error(`[FRIENDLY URL FALLBACK CHECK FAILED] slug: ${slug}`, artErr);
   }
 
-  // Final 404
   throw error(404, { message: `Không tìm thấy sản phẩm hoặc trang cho: ${slug}` });
 };

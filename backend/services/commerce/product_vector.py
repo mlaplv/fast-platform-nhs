@@ -40,8 +40,13 @@ class ProductVectorService:
                 tenant_id = current_tenant_id.get() or DEFAULT_TENANT_ID
             model = self.embedding_model
             if not model:
-                logger.warning("[VECTOR-SEARCH] Encoder not ready. Skipping semantic search.")
-                return []
+                from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
+                logger.info("[VECTOR-SEARCH] Encoder not ready. Attempting emergency warmup...")
+                await warmup_encoder()
+                model = self.embedding_model
+                if not model:
+                    logger.warning("[VECTOR-SEARCH] Encoder STILL not ready after emergency warmup. Skipping semantic search.")
+                    return []
 
             # 1. Embed query
             vectors = list(model.embed([query]))
@@ -96,8 +101,13 @@ class ProductVectorService:
             # Elite V2.2: Use local model and check readiness
             model = self.embedding_model
             if not model:
-                logger.warning(f"[RAG] Product Encoder not ready. Skipping embedding for {product_id}")
-                return
+                from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
+                logger.info("[RAG] Product Encoder not ready. Attempting emergency warmup...")
+                await warmup_encoder()
+                model = self.embedding_model
+                if not model:
+                    logger.warning(f"[RAG] Product Encoder STILL not ready after emergency warmup. Skipping embedding for {product_id}")
+                    return
 
             loop = asyncio.get_running_loop()
             vectors = await loop.run_in_executor(None, lambda: list(model.embed([content])))

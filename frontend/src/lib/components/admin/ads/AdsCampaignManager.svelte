@@ -19,11 +19,11 @@
   let { 
     campaigns = [],
     campaignLoading = false,
-    campaignView = $bindable('list'),
-    selectedCampaign = $bindable(null),
+    campaignView = $bindable(),
+    selectedCampaign = $bindable(),
     adGroups = [],
     adGroupLoading = false,
-    selectedAdGroup = $bindable(null),
+    selectedAdGroup = $bindable(),
     ads = [],
     adsLoading = false,
     fCampaign = $bindable(),
@@ -38,6 +38,11 @@
     fmt,
     activeTab = $bindable()
   } = $props();
+
+  // Khởi tạo an toàn để tránh lỗi props_invalid_value
+  if (campaignView === undefined) campaignView = 'list';
+  if (selectedCampaign === undefined) selectedCampaign = null;
+  if (selectedAdGroup === undefined) selectedAdGroup = null;
 
   // Search & Filter State
   let searchQuery = $state('');

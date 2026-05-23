@@ -11,7 +11,7 @@
 
   let { 
     voucherId = null, 
-    isOpen = $bindable(false), 
+    isOpen = $bindable(), 
     onSaved = () => {} 
   } = $props<{
     voucherId: string | null;
@@ -246,7 +246,7 @@
 {#if isOpen}
   <!-- Backdrop -->
   <div
-    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000]"
+    class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[var(--z-modal-overlay)]"
     transition:fade={{ duration: 300 }}
     onclick={() => (isOpen = false)}
     onkeydown={(e) => e.key === "Escape" && (isOpen = false)}
@@ -257,7 +257,7 @@
 
   <!-- Drawer Shell -->
   <div
-    class="fixed top-0 right-0 h-full w-full max-w-lg bg-[#050505] border-l border-white/5 shadow-2xl z-[2001] flex flex-col overflow-hidden"
+    class="fixed top-0 right-0 h-full w-full max-w-lg bg-[#050505] border-l border-white/5 shadow-2xl z-[var(--z-modal)] flex flex-col overflow-hidden"
     transition:fly={{ x: 500, duration: 400, opacity: 1 }}
   >
     <!-- Header -->
@@ -415,7 +415,7 @@
 
               <!-- Search Results Dropdown -->
               {#if searchResults.length > 0}
-                <div class="absolute left-0 right-0 mt-1 bg-[#090909] border border-white/10 rounded-xl shadow-2xl z-[2005] max-h-60 overflow-y-auto custom-scrollbar">
+                <div class="absolute left-0 right-0 mt-1 bg-[#090909] border border-white/10 rounded-xl shadow-2xl z-[var(--z-dropdown)] max-h-60 overflow-y-auto custom-scrollbar">
                   {#each searchResults as prod}
                     <button
                       type="button"
