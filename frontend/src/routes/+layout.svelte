@@ -6,7 +6,7 @@
   import { setNanobotContext } from "$lib/state/nanobot.svelte";
   import { setCartStore } from "$lib/state/commerce/cart.svelte";
   import { navigating, page } from "$app/state";
-  import { onMount, onDestroy, type Snippet } from "svelte";
+  import { onMount, onDestroy, type Snippet, type Component } from "svelte";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import ToastProvider from "$lib/components/storefront/ui/ToastProvider.svelte";
   import GlobalConfirmModal from "$lib/components/storefront/ui/GlobalConfirmModal.svelte";
@@ -14,11 +14,8 @@
   import { permissionState } from "$lib/state/permissions.svelte";
   import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
   import SupportAgentFAB from "$lib/components/client/support/SupportAgentFAB.svelte";
-  import SupportChatDesktop from "$lib/components/client/support/SupportChatDesktop.svelte";
-  import SupportChatMobile from "$lib/components/client/support/SupportChatMobile.svelte";
   import { untrack } from "svelte";
   import { getSearchStore } from "$lib/state/commerce/search.svelte";
-  import SmartSearch from "$lib/components/storefront/product/SmartSearch.svelte";
 
   // Elite V2.2: Context initialization gated by tenant
   let { children, data } = $props();
@@ -52,8 +49,27 @@
     });
   });
 
-  const isAdmin = $derived(data?.tenant === 'admin');
-  const ui = isAdmin ? null : setClientUi();
+  // Elite V2.2: Stable Admin Tenant Detection (SvelteKit-Native $app/state Page Rune)
+  const isAdmin = $derived(
+    data?.tenant === 'admin' || 
+    page.url.hostname.startsWith('admin.') || 
+    page.url.searchParams.has('admin')
+  );
+  
+  // Safe fallback to prevent undefined UI state during hydration mismatch
+  const ui = setClientUi(); 
+
+  // Elite V2.2: Zero-Latency State Sync (Sync before template hydration to prevent DOM mismatch crashes)
+  if (data?.isMobile !== undefined) {
+    ui.forceMobile(data.isMobile);
+  }
+
+  // Elite V2.2: Hydration Isolation Gate
+  let isMounted = $state(false);
+
+  // Elite V2.2: Dynamic Component State (Post-Mount Resolution & Non-Overlapping Imports)
+  let chatComponent = $state<Component<{ productSlug?: string }> | null>(null);
+  let searchComponent = $state<Component<{ variant: string }> | null>(null);
 
   setNanobotContext();
 
@@ -61,13 +77,40 @@
     setCartStore();
   }
 
-  onMount(async () => {
+  onMount(() => {
+    isMounted = true;
+
+    // Elite V2.2: Non-overlapping Dynamic Imports for Device Separation
+    if (!isAdmin) {
+      (async () => {
+        try {
+          if (ui?.isMobile) {
+            const [chatMod, searchMod] = await Promise.all([
+              import("$lib/components/client/support/SupportChatMobile.svelte"),
+              import("$lib/components/storefront/product/SmartSearch.svelte")
+            ]);
+            chatComponent = chatMod.default;
+            searchComponent = searchMod.default;
+          } else {
+            const chatMod = await import("$lib/components/client/support/SupportChatDesktop.svelte");
+            chatComponent = chatMod.default;
+          }
+        } catch (e) {
+          console.error("[SYSTEM FAULT] Dynamic layout component import failed:", e);
+        }
+      })();
+    }
+
     // Elite V2.2: Global Identity Handshake
-    await permissionState.handshake();
+    permissionState.handshake();
 
     // Elite V2.2: Neural Advisor Persona Initialization
+    // Optimized: Defer initialization to 3 seconds post-mount to keep initial page load <1s
+    let initTimer: ReturnType<typeof setTimeout> | null = null;
     if (!isAdmin) {
-      await supportAgent.init(data.agentName);
+      initTimer = setTimeout(() => {
+        supportAgent.init(data.agentName);
+      }, 3000);
     }
 
     // Elite V3.5: Google Ads Click Protection (Real-time biometric & Canary detection)
@@ -231,12 +274,14 @@
     if (ui) {
       const observerCleanup = ui.initObservers();
       return () => {
+        if (initTimer) clearTimeout(initTimer);
         if (adsCleanup) adsCleanup();
         if (observerCleanup) observerCleanup();
       };
     }
 
     return () => {
+      if (initTimer) clearTimeout(initTimer);
       if (adsCleanup) adsCleanup();
     };
   });
@@ -298,7 +343,7 @@
     {@render children()}
   </main>
 
-  {#if !isAdmin}
+  {#if isMounted && !isAdmin}
     <!-- Elite V3.5: Honeypot / Canary Trap for Ad-fraud Bot Isolation -->
     <input type="text" id="ads_honeypot_hidden" style="opacity: 0.01; position: absolute; left: -9999px; top: -9999px; height: 1px; width: 1px; z-index: -999;" tabindex="-1" autocomplete="off" aria-hidden="true" />
 
@@ -310,12 +355,18 @@
     <GlobalConfirmModal />
     <ReportReviewModal />
 
-    <SupportAgentFAB isMobile={ui.isMobile} />
-    {#if ui.isMobile}
-      <SupportChatMobile productSlug={page.params.slug} />
-      <SmartSearch variant="mobile-overlay" />
+    <SupportAgentFAB isMobile={ui?.isMobile || false} />
+    {#if ui?.isMobile}
+      {#if chatComponent}
+        <svelte:component this={chatComponent} productSlug={page.params.slug} />
+      {/if}
+      {#if searchComponent}
+        <svelte:component this={searchComponent} variant="mobile-overlay" />
+      {/if}
     {:else}
-      <SupportChatDesktop productSlug={page.params.slug} />
+      {#if chatComponent}
+        <svelte:component this={chatComponent} productSlug={page.params.slug} />
+      {/if}
     {/if}
   {/if}
 </div>

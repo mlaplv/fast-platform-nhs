@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { PageData } from './$types';
     import { fade } from 'svelte/transition';
-    import type { Component } from 'svelte';
+    import { onMount, type Component } from 'svelte';
     import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
 
     /**
@@ -11,13 +11,25 @@
      */
     let { data }: { data: PageData } = $props();
 
-    // ELITE V2.2: Strict Typing for Dynamic Imports
-    interface DynamicModuleProps {
-        data: PageData;
-        isMobile: boolean;
-    }
-    const loadAdmin = (): Promise<DynamicModule> => import("$lib/components/admin/layout/AdminDashboard.svelte");
-    const loadStorefront = (): Promise<DynamicModule> => import("$lib/components/storefront/StorefrontHome.svelte");
+    // ELITE V2.2: Dynamic Component State (Post-Mount Resolution)
+    let activeComponent = $state<Component<{ data: PageData; isMobile: boolean }> | null>(null);
+
+    const loadAdmin = () => import("$lib/components/admin/layout/AdminDashboard.svelte");
+    const loadStorefront = () => import("$lib/components/storefront/StorefrontHome.svelte");
+
+    onMount(async () => {
+        try {
+            if (data.tenant === 'admin') {
+                const mod = await loadAdmin();
+                activeComponent = mod.default;
+            } else {
+                const mod = await loadStorefront();
+                activeComponent = mod.default;
+            }
+        } catch (err) {
+            console.error("[SYSTEM FAULT] DYNAMIC_LOAD_FAILED:", err);
+        }
+    });
 
     // ELITE V2.2: SEO Derivation logic (Zero-Latency Sync)
     const shopSettings = $derived(data.shopInfo);
@@ -63,51 +75,30 @@
 </svelte:head>
 
 <div class="page-container md:h-auto md:overflow-visible h-dvh overflow-x-hidden overflow-y-auto bg-[#010101]">
-    {#if data.tenant === 'admin'}
-        {#await loadAdmin()}
-            <!-- Liquid Loading State (Viral 2026) -->
-            <div class="fixed inset-0 flex items-center justify-center bg-[#010101] z-[var(--z-modal-overlay)]">
-                <div class="relative flex flex-col items-center gap-4">
+    {#if activeComponent}
+        <div in:fade={{ duration: 300 }} class="flex-1 flex flex-col">
+            <svelte:component
+                this={activeComponent}
+                data={data}
+                isMobile={data.isMobile}
+            />
+        </div>
+    {:else}
+        <!-- Luxury Storefront/Admin Loading State (Elite V2.2) -->
+        <div class="fixed inset-0 flex items-center justify-center bg-[#020202] z-[var(--z-modal-overlay)]">
+            <div class="relative flex flex-col items-center gap-6">
+                {#if data.tenant === 'admin'}
                     <div class="w-12 h-12 border-2 border-[#00FFFF]/20 border-t-[#00FFFF] rounded-full animate-spin shadow-[0_0_15px_rgba(0,255,255,0.1)]"></div>
                     <div class="text-[9px] font-mono text-[#00FFFF]/50 tracking-[0.4em] animate-pulse">Initializing Neural Link...</div>
-                </div>
-            </div>
-        {:then mod}
-            <div in:fade={{ duration: 300 }}>
-                <mod.default
-                    data={data}
-                    isMobile={data.isMobile}
-                />
-            </div>
-        {:catch err}
-             <div class="fixed inset-0 flex items-center justify-center text-red-500 font-mono text-xs p-4 text-center">
-                [SYSTEM FAULT] AI_CORE_LOAD_FAILED<br/>{err.message}
-             </div>
-        {/await}
-    {:else}
-        {#await loadStorefront()}
-            <!-- Luxury Storefront Loading State (Elite V2.2) -->
-            <div class="fixed inset-0 flex items-center justify-center bg-[#020202] z-[var(--z-modal-overlay)]">
-                <div class="relative flex flex-col items-center gap-6">
+                {:else}
                     <div class="w-16 h-16 border-[1px] border-[#C5A25D]/10 border-t-[#C5A25D] rounded-full animate-spin duration-[2s]"></div>
                     <div class="absolute inset-0 flex items-center justify-center">
                          <div class="w-8 h-8 border-[1px] border-[#C5A25D]/5 border-b-[#C5A25D] rounded-full animate-spin-reverse duration-[3s]"></div>
                     </div>
                     <div class="text-[10px] font-serif italic text-[#C5A25D]/60 tracking-[0.5em] animate-pulse">Loading...</div>
-                </div>
+                {/if}
             </div>
-        {:then mod}
-             <div in:fade={{ duration: 300 }} class="flex-1 flex flex-col">
-                <mod.default
-                    data={data}
-                    isMobile={data.isMobile}
-                />
-            </div>
-        {:catch err}
-             <div class="fixed inset-0 flex items-center justify-center text-red-500 font-mono text-xs p-4 text-center">
-                [SYSTEM FAULT] STOREFRONT_LOAD_FAILED<br/>{err.message}
-             </div>
-        {/await}
+        </div>
     {/if}
 </div>
 
