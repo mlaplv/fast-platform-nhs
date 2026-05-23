@@ -360,6 +360,20 @@
   - [x] Cập nhật hoàn tất `StorefrontHome.svelte` và `FooterDesktop.svelte`.
   - [x] Loại bỏ hoàn toàn sự chồng chéo và các cảnh báo vi phạm ẩn link trong DOM.
 
+# Task checklist: Tách biệt hoàn toàn Desktop & Mobile trên Route [slug] (CẤM TẢI CẢ RỒI ẨN)
+
+- [x] **Trinh sát & Phát hiện Nguyên nhân Gốc rễ (Static Import Overlap on [slug] route)**
+  - [x] Phát hiện `frontend/src/routes/(client)/(store)/[slug]/+page.svelte` đang statically import tất cả các layout con: `ProductDetailDesktop`, `ProductDetailMobile`, `ProductListDesktop`, `ProductListMobile`, `NewsListDesktop`, `NewsListMobile`.
+  - [x] Điều này khiến bundle của trang chi tiết sản phẩm bị phình to (bloated), ép trình duyệt desktop tải code mobile và ngược lại, gây lãng phí tài nguyên nghiêm trọng.
+- [x] **Giải pháp Tác chiến (JIT Dynamic Separation)**
+  - [x] Xóa bỏ static imports của 6 component trên ở đầu file `+page.svelte`.
+  - [x] Khai báo các reactive component state sử dụng generic `Component` của Svelte 5 và ép kiểu tĩnh 100%, tuyệt đối cấm sử dụng `any` để tuân thủ luật `.agrules`.
+  - [x] Sử dụng `Promise.all` và IIFE trong callback `onMount` để tải song song JIT các component dựa theo trạng thái thiết bị `data.isMobile`.
+- [x] **Triển khai & Kiểm thử (Execution & Verification)**
+  - [x] Cập nhật tệp `frontend/src/routes/(client)/(store)/[slug]/+page.svelte`.
+  - [x] Chạy `rtk svelte-check` để đảm bảo 100% không có lỗi kiểu tĩnh.
+
+
 
 
 
