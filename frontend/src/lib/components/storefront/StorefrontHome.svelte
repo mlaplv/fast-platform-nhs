@@ -1,18 +1,58 @@
 <script lang="ts">
-    import HomeDesktop from './home/HomeDesktop.svelte';
-    import HomeMobile from './home/HomeMobile.svelte';
-    import HeaderDesktop from './layout/HeaderDesktop.svelte';
-    import FooterDesktop from './layout/FooterDesktop.svelte';
-    import type { HomeData } from '$lib/types';
+    import type { HomeData, ShopInfo, Product, Category, Banner } from '$lib/types';
     import { getClientUi } from '$lib/state/commerce/ui.svelte';
+    import { onMount, type Component } from 'svelte';
     import "./home/home.css";
+    
     const ui = getClientUi();
 
     let { data, isMobile }: { data: HomeData, isMobile: boolean } = $props();
 
+    // Elite V2.2: Dynamic components to prevent overlapping loading
+    let headerComponent = $state<Component<{ settings: ShopInfo | null | undefined }> | null>(null);
+    let homeComponent = $state<Component<{
+        banners: Banner[];
+        categories: Category[];
+        products: Product[];
+        aiProducts?: Product[];
+        videos?: Array<{ id: string; url: string; title: string; likes: number; image: string }>;
+    }> | null>(null);
+    let footerComponent = $state<Component<{ shopInfo: {
+        name: string;
+        companyName: string;
+        taxId: string;
+        businessLicense: string;
+        slogan: string;
+        subslogan: string;
+        description: string;
+        hotline: string;
+        email: string;
+        address: string;
+    } }> | null>(null);
+
+    onMount(async () => {
+        try {
+            if (isMobile) {
+                const mod = await import('./home/HomeMobile.svelte');
+                homeComponent = mod.default;
+            } else {
+                const [headerMod, homeMod, footerMod] = await Promise.all([
+                    import('./layout/HeaderDesktop.svelte'),
+                    import('./home/HomeDesktop.svelte'),
+                    import('./layout/FooterDesktop.svelte')
+                ]);
+                headerComponent = headerMod.default;
+                homeComponent = homeMod.default;
+                footerComponent = footerMod.default;
+            }
+        } catch (e) {
+            console.error("[SYSTEM FAULT] Dynamic storefront components failed to load:", e);
+        }
+    });
+
     $effect(() => {
         if (data.settings) {
-            ui.settings = data.settings as any;
+            ui.settings = data.settings as ShopInfo;
         }
     });
 
@@ -31,22 +71,31 @@
 </script>
 
 {#if isMobile}
-    <HomeMobile 
-        banners={data.banners}
-        categories={data.categories}
-        products={data.products}
-        aiProducts={data.ai_products}
-        videos={data.videos} 
-    />
-{:else}
-    <HeaderDesktop settings={data.settings} />
-    <main>
-        <HomeDesktop
+    {#if homeComponent}
+        <svelte:component 
+            this={homeComponent}
             banners={data.banners}
             categories={data.categories}
             products={data.products}
-            aiProducts={data.ai_products}
+            videos={data.videos} 
         />
+    {/if}
+{:else}
+    {#if headerComponent}
+        <svelte:component this={headerComponent} settings={data.settings} />
+    {/if}
+    <main>
+        {#if homeComponent}
+            <svelte:component
+                this={homeComponent}
+                banners={data.banners}
+                categories={data.categories}
+                products={data.products}
+                aiProducts={data.ai_products}
+            />
+        {/if}
     </main>
-    <FooterDesktop {shopInfo} />
+    {#if footerComponent}
+        <svelte:component this={footerComponent} shopInfo={shopInfo} />
+    {/if}
 {/if}

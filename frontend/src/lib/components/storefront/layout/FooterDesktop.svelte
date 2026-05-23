@@ -1,6 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+
+  const ui = getClientUi();
   import Facebook from "@lucide/svelte/icons/facebook";
   import Linkedin from "@lucide/svelte/icons/linkedin";
   import Youtube from "@lucide/svelte/icons/youtube";
@@ -94,13 +97,14 @@
 
   <div class="max-w-[1240px] mx-auto px-6 pt-10 pb-8 relative z-[var(--z-wave)]">
 
-    <!-- ══════════════════════════════════════════════
-         TABLET/MOBILE (≤1023px): Viral FOMO Redesign
-         ══════════════════════════════════════════════ -->
-    <div class="block lg:hidden mb-6">
+    {#if ui.isMobile}
+      <!-- ══════════════════════════════════════════════
+           TABLET/MOBILE (≤1023px): Viral FOMO Redesign
+           ══════════════════════════════════════════════ -->
+      <div class="block mb-6">
 
-      <!-- [1] FOMO Strip – Subtle inline -->
-      <div class="fomo-strip">
+        <!-- [1] FOMO Strip – Subtle inline -->
+        <div class="fomo-strip">
         <div class="fomo-pulse-dot">
           <span class="fomo-ping"></span>
           <span class="fomo-dot"></span>
@@ -213,11 +217,11 @@
       </div>
 
     </div>
-
-    <!-- ══════════════════════════════════════════════
-         DESKTOP (lg 1024px+): Original 12-col grid
-         ══════════════════════════════════════════════ -->
-    <div class="hidden lg:grid grid-cols-12 gap-8 mb-12 items-start">
+    {:else}
+      <!-- ══════════════════════════════════════════════
+           DESKTOP (lg 1024px+): Original 12-col grid
+           ══════════════════════════════════════════════ -->
+      <div class="grid grid-cols-12 gap-8 mb-12 items-start">
 
       <!-- Brand & AI Trust -->
       <div class="col-span-4 space-y-8">
@@ -347,6 +351,7 @@
         </div>
       </div>
     </div>
+    {/if}
 
     <!-- ══════════════════════════════════════════════
          Bottom Bar (shared – responsive)

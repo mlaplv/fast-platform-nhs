@@ -347,6 +347,19 @@
   - [x] Cập nhật hoàn tất `src/routes/+layout.svelte` và `src/routes/+page.svelte`.
   - [x] Loại bỏ hoàn toàn sự chồng chéo tải file của desktop/mobile.
 
+# Task checklist: Tiêu diệt triệt để Tải chồng chéo ở Banner & Footer (CẤM TẢI CẢ RỒI ẨN)
+
+- [x] **Trinh sát & Phát hiện Nguyên nhân Gốc rễ (CSS Hiding & Overlapping Imports)**
+  - [x] Phát hiện `FooterDesktop.svelte` chứa cả layout Mobile (accordion) và Desktop (grid), sử dụng CSS media queries (`block lg:hidden` và `hidden lg:grid`) để ẩn/hiện. Điều này khiến DOM luôn chứa cả 2 phiên bản, gây vi phạm cảnh báo SEO "Ẩn 15 Links | 2 Link Chết".
+  - [x] Phát hiện `StorefrontHome.svelte` chứa static imports của `HomeDesktop`, `HomeMobile`, `HeaderDesktop`, `FooterDesktop`. Kể cả khi có điều kiện `{#if isMobile}`, Vite vẫn gom tất cả vào chung một chunk lớn khiến client luôn tải song song toàn bộ code.
+- [x] **Giải pháp Tác chiến (Non-overlapping JIT Splitting)**
+  - [x] Refactor `FooterDesktop.svelte`: Sử dụng điều kiện Svelte `{#if ui.isMobile}` thay thế hoàn toàn cho CSS hiding, đảm bảo DOM chỉ chứa đúng layout của thiết bị hiện tại.
+  - [x] Refactor `StorefrontHome.svelte`: Chuyển đổi toàn bộ imports của `HomeDesktop`, `HomeMobile`, `HeaderDesktop`, `FooterDesktop` thành tải động thông qua `onMount` JIT load.
+  - [x] Giữ vững Kỷ luật Thiết quân luật: An toàn kiểu tĩnh 100%, không dùng `any` ở bất cứ đâu.
+- [x] **Triển khai & Kiểm thử (Execution & Verification)**
+  - [x] Cập nhật hoàn tất `StorefrontHome.svelte` và `FooterDesktop.svelte`.
+  - [x] Loại bỏ hoàn toàn sự chồng chéo và các cảnh báo vi phạm ẩn link trong DOM.
+
 
 
 
