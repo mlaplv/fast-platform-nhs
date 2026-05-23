@@ -37,6 +37,8 @@
 
   let scrolled = $state(false);
   let hoverId = $state<string | null>(null);
+  let lastScrollY = $state(0);
+  let showHeader = $state(true);
   
   // Elite V2.2: Advanced Sliding Logic
   let navElements = $state<Record<string, HTMLElement>>({});
@@ -75,7 +77,21 @@
   let isMounted = $state(false);
   onMount(() => {
     isMounted = true;
-    const handleScroll = () => { scrolled = window.scrollY > 50; };
+    lastScrollY = window.scrollY;
+    
+    const handleScroll = () => {
+      const y = window.scrollY;
+      scrolled = y > 50;
+      
+      // Smart Hide/Show on Scroll direction
+      if (y > lastScrollY && y > 150) {
+        showHeader = false;
+      } else {
+        showHeader = true;
+      }
+      
+      lastScrollY = y;
+    };
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     // Initial pos
@@ -84,9 +100,12 @@
   });
 
   const headerClass = $derived(`liquid-header-wrapper ${scrolled ? 'is-collapsed' : 'is-expanded'}`);
+  const headerDynamicStyle = $derived(
+    `opacity: ${showHeader ? 1 : 0}; transform: translateX(-50%) translateY(${showHeader ? '0' : '-110%'}) scale(${showHeader ? (scrolled ? 0.95 : 1) : 0.85}); pointer-events: ${showHeader ? 'auto' : 'none'};`
+  );
 </script>
 
-<div class={headerClass}>
+<div class={headerClass} style={headerDynamicStyle}>
   <nav class="fluid-island-container">
     <div class="liquid-island bg-[#0A0A0A]/70 backdrop-blur-[30px] border border-white/10 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative overflow-hidden">
       
@@ -145,7 +164,7 @@
 <style>
   .liquid-header-wrapper {
     position: fixed;
-    top: 2rem;
+    top: 0;
     left: 50%;
     transform: translateX(-50%);
     z-index: var(--z-header);
@@ -154,7 +173,7 @@
   }
 
   .liquid-header-wrapper.is-collapsed {
-    top: 1.25rem;
+    top: 0;
     transform: translateX(-50%) scale(0.9);
   }
 
@@ -164,6 +183,8 @@
   }
 
   .liquid-island {
+    border-radius: 0 0 1.75rem 1.75rem !important;
+    border-top: none !important;
     transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
   }
 

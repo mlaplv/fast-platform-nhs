@@ -51,7 +51,7 @@
 .science-section {
     background-color: #010101;
     position: relative;
-    padding-bottom: 2rem;
+    padding-bottom: 0.5rem;
 
     .tech-grid {
         position: absolute;

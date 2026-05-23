@@ -40,7 +40,7 @@ if [ "$#" -eq 0 ]; then
     
     # [Elite V2.2] Dynamic hot-reload for development
     RELOAD_FLAG=""
-    if [ "$ENVIRONMENT" == "development" ]; then
+    if [ "$DEVELOPMENT_RELOAD" == "true" ]; then
         echo "🔥 [Trinity Boot] Development mode detected: Enabling HOT-RELOAD"
         RELOAD_FLAG="--reload"
     fi

@@ -38,11 +38,15 @@ export default defineConfig({
 		})
 	],
 	server: {
-		allowedHosts: true
+		allowedHosts: true,
+		watch: {
+			usePolling: false,
+			ignored: ['**/node_modules/**', '**/.svelte-kit/**', '**/.git/**']
+		}
 	},
 	optimizeDeps: {
 		include: ['idb-keyval', 'clsx', 'tailwind-merge'],
-		exclude: ['@ricky0123/vad-web']
+		exclude: ['@ricky0123/vad-web', '@lucide/svelte']
 	},
 	ssr: {
 		external: ['@ricky0123/vad-web']

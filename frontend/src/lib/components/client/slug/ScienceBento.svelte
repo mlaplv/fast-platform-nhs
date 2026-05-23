@@ -68,7 +68,7 @@
 
     <div class="container mx-auto px-6 max-w-6xl text-center relative z-surface">
         
-        <h2 class="elite-session-headline mb-10 text-center bento-headline">
+        <h2 class="elite-session-headline mb-4 text-center bento-headline">
             <span>
                 <EditableWrapper path="metadata.science_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
                     {h1}

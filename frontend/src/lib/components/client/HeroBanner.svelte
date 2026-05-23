@@ -391,9 +391,9 @@
   </div>
 
   <div
-    class="container mx-auto px-6 max-w-7xl relative flex flex-col items-center pb-12 z-surface"
+    class="container mx-auto px-6 max-w-6xl relative flex flex-col items-center pb-6 z-surface"
   >
-    <header class="text-center w-full mb-8 md:mb-12 relative" in:fade>
+    <header class="text-center w-full mb-2 md:mb-4 relative" in:fade>
       <div class="elite-hero-headline typing-headline text-center font-bold">
         {#if !liveEditStore.isEditMode}
           <span
@@ -444,7 +444,7 @@
       {#if processedDescription}
         <EditableWrapper path="shortDescription" label="SỬA MÔ TẢ NGẮN">
           <div
-            class="section-description hero-description text-slate-200 max-w-3xl mx-auto mt-4 md:mt-6"
+            class="section-description hero-description text-slate-200 max-w-full mx-auto mt-1 md:mt-2"
           >
             {@html processedDescription}
           </div>
@@ -453,7 +453,7 @@
     </header>
 
     <div
-      class="hero-product-display relative w-full mt-4 md:mt-6 lg:mt-8 pb-0 flex flex-col md:flex-row items-center justify-center gap-2 lg:gap-4 z-surface"
+      class="hero-product-display relative w-full mt-0 md:mt-2 lg:mt-3 pb-0 flex flex-col md:flex-row items-center justify-center gap-2 lg:gap-4 z-surface"
     >
       <div class="relative w-full md:w-1/2 flex justify-center parallax-layer">
         <div

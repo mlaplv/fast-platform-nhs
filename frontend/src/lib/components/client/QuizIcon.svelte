@@ -79,14 +79,14 @@
 
 <div class="relative flex items-center justify-center w-full h-full group/icon">
   <!-- Liquid Glow Layer -->
-  <div class="absolute inset-0 bg-blue-500/10 blur-[20px] rounded-full scale-110 opacity-0 group-hover/icon:opacity-100 transition-opacity duration-700"></div>
+  <div class="absolute inset-0 bg-luxury-sakura/10 blur-[20px] rounded-full scale-110 opacity-0 group-hover/icon:opacity-100 transition-opacity duration-700"></div>
   
   <!-- Icon Stack -->
   <div class="relative transition-all duration-500 group-hover/icon:scale-110 group-hover/icon:rotate-[5deg]">
     <IconComponent 
       size={36} 
       strokeWidth={1.5} 
-      class="text-blue-400/80 drop-shadow-[0_0_12px_rgba(96,165,250,0.4)]"
+      class="text-[var(--luxury-sakura,#FFB7C5)] drop-shadow-[0_0_12px_rgba(255,183,197,0.4)]"
     />
   </div>
 

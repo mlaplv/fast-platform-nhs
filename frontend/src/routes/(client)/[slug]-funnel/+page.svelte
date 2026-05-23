@@ -16,6 +16,7 @@
   let ScienceBento = $state<Component<any> | null>(null);
   let VerifiedReviews = $state<Component<any> | null>(null);
   let OfferGrid = $state<Component<any> | null>(null);
+  let EliteLandingFooter = $state<Component<any> | null>(null);
 
   $effect(() => {
     if (loadJIT) {
@@ -30,6 +31,9 @@
       });
       import("$lib/components/client/slug/OfferGrid.svelte").then((m) => {
         OfferGrid = m.default as Component<any>;
+      });
+      import("$lib/components/client/slug/EliteLandingFooter.svelte").then((m) => {
+        EliteLandingFooter = m.default as Component<any>;
       });
     }
   });
@@ -363,6 +367,10 @@
           <div class="w-full h-full bg-[#010101] animate-pulse"></div>
         {/if}
       </section>
+
+      {#if EliteLandingFooter}
+        <EliteLandingFooter {product} onTriggerScan={triggerScan} />
+      {/if}
     {:else}
       <div
         class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white"
@@ -450,15 +458,15 @@
     flex-direction: column;
     justify-content: flex-start;
     position: relative;
-    padding: 3.5rem 0; /* Extremely neat and compact block spacing */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04); /* Elegant glass boundary separator */
+    padding: 1.5rem 0; /* Compact section spacing */
+    border-bottom: none; /* Elite V2.2: No section separators */
     transform: translateZ(0); /* Hardware Acceleration */
     will-change: transform;
   }
 
   @media (max-width: 1024px) {
     :global(.snap-session) {
-      padding: 2rem 0;
+      padding: 1rem 0;
     }
   }
 

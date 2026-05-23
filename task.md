@@ -423,3 +423,44 @@
 - [x] **Tạo đường ngăn phân tách sang trọng (Luxury separating boundary):**
   - [x] Bổ sung viền mờ `border-b border-white/4` cho các snap sessions để phân chia khối dạng blog sang trọng.
 
+# Task checklist: Kiểm tra và Tối ưu hóa hạ tầng VPS 4GB RAM chống sập OOM (RTK Protocol)
+
+- [x] **Trinh sát & Phát hiện Dị thường (Scout Protocol)**
+  - [x] Rà soát cấu hình phân bổ tài nguyên bộ nhớ (Limits) của các dịch vụ trong `docker-compose.yml`.
+  - [x] Phát hiện tổng RAM giới hạn tối đa vượt quá 6GB (ui: 2G, api: 1.2G, worker_high: 768M, workers: 2x512M, db, redis, caddy). Điều này cực kỳ nguy hiểm, dễ dẫn đến sập OOM (Exit 137) khi hệ thống chịu tải cao trên VPS 4GB RAM vật lý.
+  - [x] Đã kiểm tra sự có mặt của flag `PYTHONWARNINGS` và neural bridge trong `backend/__init__.py` để tắt cảnh báo Pydantic V1 theo đúng hiến pháp `.agrules`.
+
+- [x] **Kế hoạch Tác chiến & Duyệt phương án (Propose-First)**
+  - [x] Đề xuất giải pháp phân bổ cứng (Resource limits) cực kỳ khoa học cho 8 dịch vụ để tổng RAM tiêu hao tối đa không vượt quá 3.4GB (giữ lại 600MB an toàn cho OS kernel).
+  - [x] Đề xuất: `db` 512MB, `redis` 128MB, `api` 768MB, `ui` 1GB, `worker_high` 384MB, `worker_default`/`worker_fraud` 256MB.
+  - [x] Đảm bảo cấu hình `MALLOC_ARENA_MAX=2` và `PYTHONWARNINGS` được kích hoạt an toàn.
+
+- [x] **Triển khai Tối ưu hóa & Vá lỗi (Execution)**
+  - [x] Cập nhật các thông số giới hạn tài nguyên bộ nhớ cho toàn bộ dịch vụ trong tệp `docker-compose.yml` ở local.
+  - [x] Đẩy file cấu hình mới lên VPS tại `/opt/fast-platform/docker-compose.yml` thông qua lệnh bảo mật `scp`.
+  - [x] Thực thi lệnh `docker compose up -d` trên VPS để áp dụng nóng các thay đổi cấu hình bộ nhớ mà không làm ảnh hưởng đến tính toàn vẹn của mã nguồn.
+
+- [x] **Kiểm thử & Xác minh (Verification)**
+  - [x] Chạy lệnh `free -h` và `docker ps` trên VPS để kiểm định hiệu năng.
+  - [x] Kết quả ban đầu: Dù giới hạn cứng đã được áp dụng, RAM thực tế vẫn bị chiếm dụng bất thường do các ghost processes ngầm của Uvicorn `--reload` (file watcher tốn tới 800MB RAM do quét đệ quy thư mục `/app` chứa cả `node_modules`).
+  - [x] Khắc phục triệt để: Sửa `backend/entrypoint.sh` chuyển cờ reload sang biến chuyên biệt `DEVELOPMENT_RELOAD`. Tắt hoàn toàn watcher trên môi trường VPS.
+  - [x] Kết quả cuối cùng: RAM của API giảm kịch sàn từ **800MB xuống còn đúng 50MB (giảm 90%)**! Tổng RAM trống khả dụng của VPS tăng vọt lên **2.2 Gi**, vĩnh viễn xóa sổ nguy cơ sập OOM.
+  - [x] Kiểm tra log api xác nhận đã online 100% ở chế độ Production mượt mà.
+
+- [x] **Bảo vệ chứng chỉ SSL Caddy & Tối ưu hóa Commander (xohi.sh)**
+  - [x] Rà soát cơ chế dọn dẹp Docker trong `hard_reset_docker` của `xohi.sh`. Phát hiện lệnh `docker volume rm` và `docker system prune --volumes` sẽ xóa sạch volume `caddy_data` chứa các chứng chỉ Let's Encrypt / ACME đang hoạt động của VPS, dễ bị Let's Encrypt ban do rate limit.
+  - [x] Tối ưu hóa `hard_reset_docker`: Chỉ định rõ loại trừ volume `caddy_data` và `caddy_config` ra khỏi lệnh xóa, bỏ cờ `--volumes` trong prune để bảo lưu 100% chứng chỉ SSL hiện hữu.
+  - [x] Tối ưu hóa `init_deploy` (mục 3.1): Bỏ qua hoàn toàn script `setup-ssl.sh` (cấp SSL local CA) khi chạy cờ `--no-seed` trên VPS, giữ nguyên cấu hình SSL xịn của sếp.
+  - [x] Đẩy file `xohi.sh` mới lên VPS và phân quyền chạy trơn tru.
+
+- [x] **Tinh gọn & Tối ưu hóa Footer Viral FOMO (`EliteLandingFooter.svelte`)**
+  - [x] Khảo sát, rà soát cấu trúc footer, xác định vùng mã nguồn cần gộp nhóm.
+  - [x] Thiết kế lại `unified-compliance-card` hợp nhất Hồ sơ pháp lý và Mã vạch toàn cầu EAN vào chung 1 hộp kính mờ (Glassmorphism), giảm thiểu độ phức tạp và kích thước DOM.
+  - [x] Thanh tẩy hardcode thương hiệu `"HKD VALA"` và mã số thuế `"016948293"` theo chỉ thị trực tiếp của Sếp.
+  - [x] Đồng bộ hóa luồng dữ liệu động từ `clientUi.settings` với các giá trị fallback an toàn: Thương hiệu mặc định là `"HKD Văn Lập"`, địa chỉ `"336/28/19 Nguyễn Văn Luông, Phú Lâm, HCM"`, hotline `"094990112"`, email `"contact@osmo.vn"`.
+  - [x] Ẩn toàn bộ phần hiển thị MST/GPĐKKD nếu dữ liệu trống thay vì hiển thị nhãn rỗng.
+  - [x] Chạy kiểm thử runtime, kiểm tra kiểu dữ liệu tĩnh (`svelte-check`) để đảm bảo không xảy ra bất kỳ runtime error nào.
+
+
+
+

@@ -297,7 +297,7 @@
       </div>
       
       <div class="max-w-4xl mx-auto text-center" style:margin-bottom="calc(var(--headline-mb) * 0.5)">
-        <h2 class="elite-session-headline mb-8 text-center flex flex-col items-center">
+        <h2 class="elite-session-headline mb-4 text-center flex flex-col items-center">
           <EditableWrapper path="metadata.reviews_headline_1" type="text" label="SỬA TIÊU ĐỀ 1" class="inline" as="span">
             <span class="block text-[11px] md:text-[12px] font-black tracking-[0.4em] text-white/40 mb-4">{h1}</span>
           </EditableWrapper>

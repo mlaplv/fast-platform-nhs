@@ -33,21 +33,39 @@
   class="diagnostics-container diagnostic-premium-flow relative overflow-x-hidden"
 >
   <div
-    class="container mx-auto px-4 md:px-6 max-w-7xl text-center relative z-surface"
+    class="container mx-auto px-4 md:px-6 max-w-6xl text-center relative z-surface"
   >
     {#if !(product?.metadata?.diagnostics_headline || "").startsWith("[OFF]") || liveEditStore.isEditMode}
       <h3
         id="personalized-care"
-        class="elite-session-headline mb-8 text-center"
+        class="elite-session-headline mb-12 text-center diagnostics-headline"
       >
-        <EditableWrapper
-          path="metadata.diagnostics_headline"
-          type="text"
-          label="Sửa tiêu đề chẩn đoán"
-        >
-          {@html product?.metadata?.diagnostics_headline ||
-            "Thiết kế lộ trình tái sinh riêng biệt"}
-        </EditableWrapper>
+        <span>
+          <EditableWrapper
+            path="metadata.diagnostics_headline"
+            type="text"
+            label="Sửa tiêu đề chẩn đoán"
+            class="inline"
+            as="span"
+          >
+            {@html product?.metadata?.diagnostics_headline ||
+              "CHẨN ĐOÁN PHỤC HỒI SẮC TỐ GỐC"}
+          </EditableWrapper>
+        </span>
+        {#if !(product?.metadata?.diagnostics_subtitle || "").startsWith("[OFF]") || liveEditStore.isEditMode}
+          <span>
+            <EditableWrapper
+              path="metadata.diagnostics_subtitle"
+              type="text"
+              label="Sửa mô tả phụ chẩn đoán"
+              class="inline"
+              as="span"
+            >
+              {product?.metadata?.diagnostics_subtitle ||
+                "Thấu hiểu làn da toàn diện với phác đồ quét và phân tích sạm nám bằng công nghệ AI thế hệ mới"}
+            </EditableWrapper>
+          </span>
+        {/if}
       </h3>
     {/if}
 
@@ -95,5 +113,22 @@
 <style>
   .z-surface {
     z-index: var(--z-surface);
+  }
+
+  .diagnostics-headline {
+    font-size: clamp(1.8rem, 4vw, 2.6rem) !important;
+  }
+
+  .diagnostics-headline :global(span) {
+    display: block;
+    margin-bottom: 0.15rem;
+  }
+  
+  .diagnostics-headline :global(span:last-child) {
+    font-size: 0.65em !important;
+    opacity: 0.8;
+    letter-spacing: 0.05em !important;
+    font-weight: 500 !important;
+    -webkit-text-fill-color: white !important;
   }
 </style>

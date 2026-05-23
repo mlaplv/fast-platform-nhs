@@ -135,11 +135,13 @@ function hard_reset_docker() {
     docker stop $(docker ps -aq) 2>/dev/null || true
     docker rm -f $(docker ps -aq) 2>/dev/null || true
     docker rmi -f $(docker images -aq) 2>/dev/null || true
-    docker volume rm -f $(docker volume ls -q) 2>/dev/null || true
+    # [ELITE VPS PROTECT] Chỉ xóa các volumes của database/cache, giữ lại volume SSL của Caddy để tránh bị Let's Encrypt block rate limit
+    docker volume ls -q | grep -vE "caddy_data|caddy_config" | xargs -r docker volume rm -f 2>/dev/null || true
     docker network rm $(docker network ls -q --filter "type=custom") 2>/dev/null || true
-    docker system prune -af --volumes 2>/dev/null || true
+    # Bỏ cờ --volumes để bảo vệ an toàn cho volume caddy_data
+    docker system prune -af 2>/dev/null || true
     docker builder prune -af 2>/dev/null || true
-    echo -e "${GREEN}   ✔ Docker đã reset như mới cài!${NC}"
+    echo -e "${GREEN}   ✔ Docker đã reset sạch bóng (Bảo lưu chứng chỉ SSL Caddy)!${NC}"
 }
 
 function update_docker() {
@@ -344,7 +346,11 @@ function init_deploy() {
     docker compose build api worker_high worker_default ui
     export SKIP_MIGRATE=true
     docker compose up -d --remove-orphans api worker_high worker_default ui
-    chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
+    if [ "$NO_SEED" = true ]; then
+        echo -e "${GREEN}[SSL] Đã có cấu hình SSL thật trên VPS. Bỏ qua thiết lập SSL Local CA.${NC}"
+    else
+        chmod +x scripts/setup-ssl.sh && ./scripts/setup-ssl.sh
+    fi
     
     echo -e "${GREEN}=== HỆ THỐNG ĐÃ SẴN SÀNG! (Đã tối ưu RAM) ===${NC}"
     echo -e "${CYAN}Truy cập: https://admin.osmo.vn${NC}"

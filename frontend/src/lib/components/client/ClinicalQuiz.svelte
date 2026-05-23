@@ -301,7 +301,7 @@
 
 <div 
   bind:this={quizContainer} 
-  class="clinical-quiz {!shopStore.diagnosticResult ? 'glass-liquid border-white/5' : ''} {shopStore.diagnosticResult ? 'p-0 md:p-0 lg:p-12 max-w-7xl' : 'p-6 md:p-8 lg:p-12 max-w-4xl'} rounded-[3.5rem] relative overflow-hidden mx-auto shadow-2xl min-h-[500px]"
+  class="clinical-quiz {!shopStore.diagnosticResult ? 'glass-liquid border-white/5' : ''} {shopStore.diagnosticResult ? 'p-0 md:p-0 lg:p-12 max-w-6xl' : 'p-6 md:p-8 lg:p-12 max-w-6xl'} rounded-[3.5rem] relative overflow-hidden mx-auto shadow-2xl min-h-[500px]"
 >
   <!-- Subdued Neural Orbs -->
   <div class="neural-orb -top-20 -right-20 opacity-20" style:background="radial-gradient(circle, var(--luxury-copper) 0%, transparent 70%)" style:transform="scale(1.5)"></div>
@@ -441,13 +441,13 @@
         </div>
 
         <div class="mb-8 md:mb-10 text-left">
-          <h3 class="text-4xl md:text-5xl font-semibold text-white mb-3 tracking-[-0.04em] leading-tight" style:text-transform="none">
+          <h3 class="text-xl md:text-2xl font-black text-white mb-3 tracking-[-0.01em] leading-tight font-sans bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/90" style:text-transform="none">
             {@html toSentenceCase(questions[currentStep].title)}
           </h3>
           <p class="text-luxury-peach/40 font-medium text-lg leading-relaxed">{questions[currentStep].subtitle}</p>
         </div>
 
-        <div class="grid grid-cols-1 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           {#each questions[currentStep].options as option, idx}
             <button
               onclick={() => nextStep(option.value, option.label)}
@@ -571,6 +571,10 @@
 <style>
   :global(.clinical-quiz) {
     transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+    background: rgba(255, 255, 255, 0.015) !important;
+    backdrop-filter: blur(40px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
   }
   .z-surface {
     z-index: var(--z-content);
@@ -598,6 +602,24 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(193, 143, 126, 0.5);
     background-clip: content-box;
+  }
+
+  /* Premium Option Styling - Elite V2.2 */
+  :global(.clinical-quiz .liquid-bubble) {
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    background: rgba(255, 255, 255, 0.01) !important;
+    border: 1px solid rgba(255, 255, 255, 0.03) !important;
+  }
+
+  :global(.clinical-quiz .liquid-bubble:hover) {
+    border-color: rgba(255, 183, 197, 0.25) !important;
+    background: rgba(255, 183, 197, 0.02) !important;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(255, 183, 197, 0.05) !important;
+    transform: translateY(-2px);
+  }
+
+  :global(.clinical-quiz .liquid-bubble:active) {
+    transform: translateY(0) scale(0.98);
   }
 </style>
 
