@@ -190,13 +190,9 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    text-transform: lowercase;
     /* Force 0 padding bottom as requested */
     padding-bottom: 0;
   }
-
-  .service-label::first-letter {
-    }
 </style>
 
 

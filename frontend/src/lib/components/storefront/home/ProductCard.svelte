@@ -18,8 +18,13 @@
 
   // Elite V2.2: Universal Sanitization
   const cleanName = $derived(trimProductName(product.name));
-  
   const soldStr = $derived(product.orderCountText || product.order_count_text || product.metadata?.reviews_count_text || (product.orderCount || product.order_count ? `${product.orderCount || product.order_count}` : ''));
+
+  // R00 Compliant: Chỉ dùng real DB data — không fake/seed
+  const ratingDisplay = $derived(
+    product.metadata?.reviews_trust_score || product.metadata?.rating || null
+  );
+  const reviewCountDisplay = $derived(product.metadata?.reviews_count_text || null);
 
   function navigateProduct(): void {
     goto(`/${product.slug || product.id}`);
@@ -38,9 +43,11 @@
 
     <!-- Stickers/Badges -->
     {#if hasDiscount}
-      <div class="discount-sticker pulse-soft">
-        <span class="discount-label">GIẢM</span>
-        <span class="discount-percent">{discountPercent}%</span>
+      <div class="discount-sticker">
+        <span class="d-label">SALE</span>
+        <div class="d-num-row">
+          <span class="d-minus">−</span><span class="d-num">{discountPercent}</span><span class="d-pct">%</span>
+        </div>
       </div>
     {/if}
 
@@ -64,6 +71,18 @@
 
   <div class="product-info">
     <h3 class="product-name">{cleanName}</h3>
+
+    <!-- 🌟 Rating - chỉ hiện khi có real DB data -->
+    {#if ratingDisplay}
+      <div class="product-rating">
+        <span class="rating-stars">★★★★★</span>
+        <span class="rating-score">{ratingDisplay}</span>
+        {#if reviewCountDisplay}
+          <span class="rating-sep">&middot;</span>
+          <span class="rating-count">{reviewCountDisplay} đánh giá</span>
+        {/if}
+      </div>
+    {/if}
 
     <div class="price-section">
       <div class="price-row">
@@ -119,21 +138,44 @@
     object-fit: cover;
   }
 
+  /* ⚡ Viral FOMO Discount Badge */
+  @keyframes fomo-glow {
+    0%, 100% { box-shadow: 0 0 8px rgba(238,77,45,0.5), 0 2px 6px rgba(238,77,45,0.3); }
+    50%       { box-shadow: 0 0 20px rgba(238,77,45,0.85), 0 2px 14px rgba(238,77,45,0.55); }
+  }
   .discount-sticker {
     position: absolute;
     top: 0;
     right: 0;
-    background: linear-gradient(135deg, #ffd839, #ffbe0b);
-    color: #C18F7E;
-    padding: 4px 6px;
+    background: linear-gradient(150deg, #ee4d2d 0%, #ff6b35 100%);
+    color: #fff;
+    padding: 5px 7px 4px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     border-radius: 0 0 0 12px;
     z-index: var(--z-product-card-content);
+    animation: fomo-glow 2s infinite ease-in-out;
+    min-width: 40px;
+    box-shadow: 0 2px 8px rgba(238,77,45,0.45);
   }
-  .discount-label { font-size: 8px; font-weight: 900; line-height: 1; }
-  .discount-percent { font-size: 13px; font-weight: 950; line-height: 1; }
+  .d-label {
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    opacity: 0.85;
+  }
+  .d-num-row {
+    display: flex;
+    align-items: flex-start;
+    line-height: 1;
+    margin-top: 1px;
+  }
+  .d-minus { font-size: 12px; font-weight: 900; margin-top: 1px; }
+  .d-num   { font-size: 20px; font-weight: 950; letter-spacing: -0.05em; line-height: 0.9; }
+  .d-pct   { font-size: 10px; font-weight: 900; margin-top: 2px; }
 
   .img-overlay-row {
     position: absolute;
@@ -233,4 +275,36 @@
     50% { transform: scale(1.05); }
   }
   .pulse-soft { animation: pulse 1.5s infinite ease-in-out; }
+
+  /* 🌟 Compact Viral Rating */
+  .product-rating {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-top: -2px;
+    margin-bottom: 2px;
+  }
+  .rating-stars {
+    font-size: 10px;
+    color: #FF5722;
+    letter-spacing: -0.1em;
+    line-height: 1;
+  }
+  .rating-score {
+    font-size: 10px;
+    font-weight: 900;
+    color: #FF5722;
+    line-height: 1;
+  }
+  .rating-sep {
+    font-size: 8px;
+    color: #ccc;
+    font-weight: 700;
+  }
+  .rating-count {
+    font-size: 9px;
+    color: #aaa;
+    font-weight: 600;
+    line-height: 1;
+  }
 </style>

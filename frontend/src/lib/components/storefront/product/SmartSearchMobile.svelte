@@ -25,12 +25,6 @@
   let localQuery = $state(searchStore.searchQuery);
   let searchTimer: ReturnType<typeof setTimeout>;
 
-  // Deterministic Social Proof
-  function getLiveViews(id: string) {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) hash = (hash << 5) - hash + id.charCodeAt(i);
-    return (Math.abs(hash) % 45) + 12;
-  }
 
   $effect(() => {
     const storeVal = searchStore.searchQuery;
@@ -149,10 +143,27 @@
                           <span class="text-[10px] text-gray-300 line-through font-bold">{formatCurrency(p.price)}</span>
                         {/if}
                       </div>
-                      <div class="flex items-center gap-1.5 mt-1">
-                        <Eye size={10} class="text-gray-400" />
-                        <span class="text-[9px] font-bold text-gray-400">{getLiveViews(p.id)} người đang xem</span>
-                      </div>
+                      <!-- Real DB Rating -->
+                      {#if p.metadata?.reviews_trust_score}
+                        <div class="flex items-center gap-1 mt-0.5">
+                          <span class="text-[#FF5722] text-[10px] font-black leading-none tracking-[-0.05em]">★★★★★</span>
+                          <span class="text-[10px] font-black text-[#FF5722] leading-none">{p.metadata.reviews_trust_score.toFixed(1)}</span>
+                          {#if p.metadata.review_count}
+                            <span class="text-[9px] text-gray-400 font-bold leading-none">&middot; {p.metadata.review_count}</span>
+                          {/if}
+                        </div>
+                      {/if}
+                      {#if p.views}
+                        <div class="flex items-center gap-1.5 mt-1">
+                          <Eye size={10} class="text-gray-400" />
+                          <span class="text-[9px] font-bold text-gray-400">{p.views} người đang xem</span>
+                        </div>
+                      {:else if p.orderCount}
+                        <div class="flex items-center gap-1.5 mt-1">
+                          <Zap size={10} class="text-luxury-copper" />
+                          <span class="text-[9px] font-bold text-gray-400">{p.orderCount} người đã mua</span>
+                        </div>
+                      {/if}
                     </div>
                     
                     <Zap size={14} class="text-luxury-copper/20" />
@@ -208,6 +219,16 @@
                         <div class="text-[15px] font-black text-luxury-copper tabular-nums">
                           {formatCurrency(Number(p.discountPrice) || Number(p.price))}
                         </div>
+                        <!-- Real DB Rating -->
+                        {#if p.metadata?.reviews_trust_score}
+                          <div class="flex items-center gap-1 mt-0.5">
+                            <span class="text-[#FF5722] text-[10px] font-black leading-none tracking-[-0.05em]">★★★★★</span>
+                            <span class="text-[10px] font-black text-[#FF5722] leading-none">{p.metadata.reviews_trust_score.toFixed(1)}</span>
+                            {#if p.metadata.review_count}
+                              <span class="text-[9px] text-gray-400 font-bold leading-none">&middot; {p.metadata.review_count}</span>
+                            {/if}
+                          </div>
+                        {/if}
                       </div>
                     </a>
                   {/each}

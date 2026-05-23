@@ -38,7 +38,9 @@
           soldText: p.orderCountText || p.order_count_text || p.metadata?.reviews_count_text || '0', 
           isHot: (p.metadata?.scarcity_seconds || 0) > 0 || (p.discountPrice && p.discountPrice / p.price < 0.5) || (p.orderCount || 0) > 100,
           isFreeShip: p.metadata?.is_freeship !== false,
-          progress: Math.min(95, Math.max(20, (p.orderCount || 0) % 100))
+          progress: Math.min(95, Math.max(20, (p.orderCount || 0) % 100)),
+          ratingDisplay: p.metadata?.reviews_trust_score ?? p.metadata?.rating ?? null,
+          reviewsText: p.metadata?.review_count ? `${p.metadata.review_count}` : (p.metadata?.reviews_count_text || null)
         };
       })
       .sort((a, b) => b.discountPct - a.discountPct)
@@ -152,6 +154,17 @@
         <div class="product-name-wrap">
           <h3 class="product-name">{deal.name}</h3>
         </div>
+
+        <!-- 🌟 Rating - chỉ hiện khi có real DB data -->
+        {#if deal.ratingDisplay}
+          <div class="deal-rating">
+            <span class="dr-star">★★★★★</span>
+            <span class="dr-score">{deal.ratingDisplay}</span>
+            {#if deal.reviewsText}
+              <span class="dr-count">&middot; {deal.reviewsText}</span>
+            {/if}
+          </div>
+        {/if}
 
         <!-- Prices -->
         <div class="price-info">
@@ -394,9 +407,21 @@
     align-items: baseline;
     justify-content: flex-start;
     gap: 3px;
-    margin-top: 6px;
+    margin-top: 4px;
     padding: 0 5px;
   }
+
+  /* 🌟 Compact Deal Rating */
+  .deal-rating {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 0 5px;
+    margin-top: 2px;
+  }
+  .dr-star  { font-size: 10px; color: #FF5722; line-height: 1; }
+  .dr-score { font-size: 10px; font-weight: 900; color: #FF5722; line-height: 1; }
+  .dr-count { font-size: 8.5px; color: #aaa; font-weight: 600; line-height: 1; }
 
   .current-price {
     font-size: 15px;

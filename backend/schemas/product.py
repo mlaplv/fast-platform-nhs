@@ -90,7 +90,8 @@ class ProductMetadata(BaseModel):
     # Section: Reviews
     reviews_headline: Optional[str] = Field(None, alias="reviews_headline")
     reviews_subheadline: Optional[str] = Field(None, alias="reviews_subheadline")
-    reviews_trust_score: Optional[str] = Field(None, alias="reviews_trust_score")
+    reviews_trust_score: Optional[float] = Field(None, alias="reviews_trust_score")
+    review_count: Optional[int] = Field(None, alias="review_count")
     reviews_count_text: Optional[str] = Field(None, alias="reviews_count_text")
     reviews: List[Dict[str, JSONType]] = Field(default_factory=list, alias="reviews")
 

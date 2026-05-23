@@ -16,6 +16,7 @@
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
+  import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
 
   interface PromoConfig {
     enabled: boolean;
@@ -145,6 +146,18 @@
   );
 
   const stats = $derived(viralSuite?.stats ?? { redeemed_count: 0 });
+
+  const isLiked = $derived(isMounted ? wishlistStore.isLiked(product.id) : false);
+  const baseLikeCount = $derived(Number(viralSuite?.likes_count || (product.metadata as ProductMetadata)?.likes || shareCount * 12 || 0));
+  const likeCount = $derived(baseLikeCount + (isLiked ? 1 : 0));
+
+  function toggleLike() {
+    wishlistStore.toggle(product.id);
+    if (wishlistStore.isLiked(product.id)) {
+      clientUi.showToast('Đã lưu sản phẩm vào mục yêu thích!', 'success');
+      createHeartConfetti(window.innerWidth / 2, window.innerHeight / 2);
+    }
+  }
 
 
   $effect(() => {
@@ -491,7 +504,10 @@
         {:else}
           <div class="stp-funnel-wrapper">
             <div class="stp-f-social">
-              <button class="stp-f-heart"><Heart size={16} class="fill-current" /><span>{formatViralCount(shareCount * 12)}</span></button>
+              <button class="stp-f-heart" onclick={toggleLike} aria-label="Yêu thích sản phẩm">
+                <Heart size={16} class="fill-current {isLiked ? 'text-[#ff2c55]' : 'text-[#ffb7c5]'}" />
+                <span>{formatViralCount(likeCount)}</span>
+              </button>
               <div class="stp-f-divider"></div>
               <button class="stp-f-social-btn" onclick={viralActions.share} aria-label="Share on Facebook"><Facebook size={16} /></button>
               <button class="stp-f-social-btn" onclick={() => shareToPlatform('zalo', window.location.href, product.name)} aria-label="Share on Zalo"><span class="text-[9px] font-black italic">Zalo</span></button>

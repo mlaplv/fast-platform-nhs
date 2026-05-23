@@ -213,7 +213,8 @@ export interface ProductMetadata {
   show_reviews?: boolean;
   video_url?: string;
   reviews_headline?: string;
-  reviews_trust_score?: string;
+  reviews_trust_score?: number;   // Write-through from ReviewService (avg of APPROVED reviews)
+  review_count?: number;          // Write-through from ReviewService (count of APPROVED reviews)
   reviews_count_text?: string;
   reviews?: Review[];
   reviews_stats?: ReviewStats;

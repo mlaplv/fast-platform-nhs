@@ -1,5 +1,6 @@
 <script lang="ts">
   import { fade, slide, fly } from "svelte/transition";
+  import AudioLines from "@lucide/svelte/icons/audio-lines";
 
   import NewsMobileReviews from "./NewsMobileReviews.svelte";
   import { resolveMediaUrl } from "$lib/state/utils";
@@ -91,6 +92,176 @@
 
     activeFaq = i;
   }
+
+  // ─────────────────────────────────────────────────────────────────
+  // 🎙️ TTS: WEB AUDIO ENGINE (Elite V7.0 - OS-Codec-Free)
+  // Ported from MobileProductDetailsModal – adapted for article content
+  // ─────────────────────────────────────────────────────────────────
+  let contentRef: HTMLElement | null = $state(null);
+  const articleId: string = $derived(article?.id || "unknown");
+
+  let isReading: boolean = $state(false);
+  let isBuffering: boolean = $state(false);
+  let currentAudio: HTMLAudioElement | null = $state(null);
+  let abortController: AbortController | null = null;
+  const CACHE_NAME: string = "osmo-tts-v2";
+
+  /**
+   * Elite V7.1: TTS Text Sanitizer
+   * Strips emojis, pictographs, decorative Unicode, Roman numerals
+   * that edge-tts reads aloud as gibberish.
+   */
+  function sanitizeTtsText(raw: string): string {
+    const romanMap: Record<string, string> = {
+      XX: "hai mươi", XIX: "mười chín", XVIII: "mười tám", XVII: "mười bảy",
+      XVI: "mười sáu", XV: "mười lăm", XIV: "mười bốn", XIII: "mười ba",
+      XII: "mười hai", XI: "mười một", X: "10", IX: "chín", VIII: "tám",
+      VII: "bảy", VI: "sáu", V: "năm", IV: "bốn", III: "ba", II: "hai", I: "một",
+    };
+    const romanRegex =
+      /\b(XX|XIX|XVIII|XVII|XVI|XV|XIV|XIII|XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I)\b/g;
+
+    return raw
+      .replace(romanRegex, (match, _u, offset, str) => {
+        if (match === "X") {
+          const before = str[offset - 1] ?? "";
+          const after = str[offset + 1] ?? "";
+          const isIsolated =
+            (!before || /\s|[.,;!?"'‑-]/.test(before)) &&
+            (!after || /\s|[.,;!?"'‑-]/.test(after));
+          return isIsolated ? "10" : match;
+        }
+        return romanMap[match] || match;
+      })
+      .replace(/\p{Extended_Pictographic}/gu, "")
+      .replace(/[\u2600-\u27BF]/g, "")
+      .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
+      .replace(/[\uFE00-\uFE0F\u200D]/g, "")
+      .replace(/\(\s*[A-Za-z][A-Za-z\s\-']{0,40}\s*\)/g, "")
+      .replace(/^\s*[-–—]\s*/gm, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  async function toggleSpeech(): Promise<void> {
+    if (isReading || isBuffering) {
+      stopSpeech();
+      return;
+    }
+
+    const proseEl = contentRef?.querySelector(".elite-prose-mobile") as HTMLElement;
+    if (!proseEl) return;
+    const tempEl = proseEl.cloneNode(true) as HTMLElement;
+    tempEl.querySelectorAll("figcaption").forEach((el) => el.remove());
+    const rawText: string = tempEl.innerText || "";
+    const text: string = sanitizeTtsText(rawText);
+    if (text.length < 10) return;
+
+    isBuffering = true;
+
+    try {
+      let audioUrl = "";
+      let usedCache = false;
+
+      // 1. Check Cache
+      const cache = await caches.open(CACHE_NAME);
+      const cachedResponse = await cache.match(`/tts/${articleId}`);
+
+      if (cachedResponse) {
+        const blob = await cachedResponse.blob();
+        if (blob.size > 500 && blob.type.startsWith("audio/")) {
+          audioUrl = URL.createObjectURL(blob);
+          usedCache = true;
+        } else {
+          await cache.delete(`/tts/${articleId}`);
+        }
+      }
+
+      if (!usedCache) {
+        // 2. Prepare Stream via POST (saves text to Redis)
+        abortController = new AbortController();
+        const prepRes: Response = await fetch("/api/v1/client/tts/prepare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: text.slice(0, 20000) }),
+          signal: abortController.signal,
+        });
+
+        if (!prepRes.ok) throw new Error(`Prepare failed: ${prepRes.status}`);
+        const { id } = await prepRes.json();
+        if (!id) throw new Error("No stream ID returned");
+
+        // 3. Native Streaming via GET endpoint
+        audioUrl = `/api/v1/client/tts/stream?id=${id}`;
+      }
+
+      // 4. Play
+      const audio = new Audio();
+      audio.src = audioUrl;
+      currentAudio = audio;
+
+      audio.onplay = () => {
+        isBuffering = false;
+        isReading = true;
+      };
+
+      audio.onloadedmetadata = () => {
+        const savedTime = localStorage.getItem(`tts_pos_${articleId}`);
+        if (savedTime) audio.currentTime = parseFloat(savedTime);
+      };
+
+      audio.ontimeupdate = () => {
+        if (audio.currentTime > 0) {
+          localStorage.setItem(`tts_pos_${articleId}`, audio.currentTime.toString());
+        }
+      };
+
+      audio.onended = () => {
+        localStorage.removeItem(`tts_pos_${articleId}`);
+        localStorage.setItem(`tts_done_${articleId}`, "true");
+        cleanup();
+      };
+
+      audio.onerror = () => {
+        caches.open(CACHE_NAME).then((c) => c.delete(`/tts/${articleId}`)).catch(() => {});
+        cleanup();
+      };
+
+      await audio.play();
+    } catch (e: unknown) {
+      const err = e as Error;
+      if (err?.name !== "AbortError") console.error("[TTS] Error:", err);
+      caches.open(CACHE_NAME).then((c) => c.delete(`/tts/${articleId}`)).catch(() => {});
+      cleanup();
+    }
+  }
+
+  function stopSpeech(): void {
+    cleanup();
+  }
+
+  function cleanup(): void {
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+    }
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.ontimeupdate = null;
+      currentAudio.onplay = null;
+      currentAudio.onloadedmetadata = null;
+      if (currentAudio.src.startsWith("blob:")) {
+        URL.revokeObjectURL(currentAudio.src);
+      }
+      currentAudio.src = "";
+      currentAudio = null;
+    }
+    isReading = false;
+    isBuffering = false;
+  }
+
+  // Dispose TTS on page leave / component destroy
+  $effect(() => () => cleanup());
 </script>
 
 <svelte:element this={outerWrapper} class="bg-white min-h-screen text-gray-900">
@@ -118,22 +289,39 @@
       <h1 class="text-base font-black text-gray-900 tracking-tight truncate flex-1">
         {article.title}
       </h1>
+      <!-- 🎙️ TTS Header Capsule -->
       <button
-        class="w-8 h-8 flex items-center justify-center text-gray-900 active:scale-90 transition-transform"
+        onclick={toggleSpeech}
+        class="tts-pill relative flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 active:scale-90 select-none shrink-0
+          {isReading
+            ? 'tts-pill--reading'
+            : isBuffering
+              ? 'tts-pill--buffering'
+              : 'tts-pill--idle'}"
+        aria-label={isReading ? "Dừng đọc" : "Nghe bài viết"}
       >
-        <svg
-          class="w-5 h-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2.5"
-            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-          />
-        </svg>
+        {#if isBuffering}
+          <div class="relative w-3.5 h-3.5 shrink-0">
+            <div class="absolute inset-0 border-[1.5px] border-white/30 rounded-full"></div>
+            <div class="absolute inset-0 border-[1.5px] border-white border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <span class="text-[11px] font-bold text-white">...</span>
+        {:else if isReading}
+          <div class="flex items-end gap-[2px] h-[14px] shrink-0">
+            <div class="w-[2.5px] bg-white rounded-full news-bar-1"></div>
+            <div class="w-[2.5px] bg-white/90 rounded-full news-bar-2"></div>
+            <div class="w-[2.5px] bg-white rounded-full news-bar-3"></div>
+            <div class="w-[2.5px] bg-white/80 rounded-full news-bar-2"></div>
+            <div class="w-[2.5px] bg-white rounded-full news-bar-1"></div>
+          </div>
+          <span class="text-[11px] font-bold text-white">Dừng</span>
+        {:else}
+          <span class="relative flex shrink-0">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C18F7E] opacity-50"></span>
+            <span class="relative inline-flex"><AudioLines size={14} strokeWidth={2.5} /></span>
+          </span>
+          <span class="text-[11px] font-bold">Nghe bài</span>
+        {/if}
       </button>
     </div>
   </div>
@@ -188,9 +376,11 @@
   {/if}
 
   <!-- Content Reader (Elite Prose) -->
-  <svelte:element this={innerWrapper} class="px-[5px] py-0 elite-prose-mobile">
-    {@html article.content}
-  </svelte:element>
+  <div bind:this={contentRef}>
+    <svelte:element this={innerWrapper} class="px-[5px] py-0 elite-prose-mobile">
+      {@html article.content}
+    </svelte:element>
+  </div>
 
   <!-- GEO 2026: FAQ Section (Full Width Redesign) -->
   {#if article.metadata?.faqs && article.metadata.faqs.length > 0}
@@ -403,6 +593,44 @@
     position: relative;
     font-weight: 500;
   }
+
+  /* 🎙️ TTS Pill - Viral FOMO Capsule */
+  .tts-pill--idle {
+    background: linear-gradient(135deg, #fff5f2 0%, #fff0ee 100%);
+    color: #C18F7E;
+    border: 1.5px solid rgba(193,143,126,0.3);
+    box-shadow: 0 2px 10px rgba(193,143,126,0.12);
+  }
+  .tts-pill--buffering {
+    background: linear-gradient(135deg, #C18F7E 0%, #e8a898 100%);
+    color: white;
+    border: 1.5px solid transparent;
+    box-shadow: 0 4px 20px rgba(193,143,126,0.45);
+  }
+  .tts-pill--reading {
+    background: linear-gradient(135deg, #c47a6a 0%, #C18F7E 50%, #e8a898 100%);
+    color: white;
+    border: 1.5px solid transparent;
+    box-shadow:
+      0 4px 24px rgba(193,143,126,0.55),
+      0 0 0 4px rgba(193,143,126,0.12),
+      0 0 0 8px rgba(193,143,126,0.06);
+    animation: tts-glow-pulse 2s infinite ease-in-out;
+  }
+
+  @keyframes tts-glow-pulse {
+    0%, 100% { box-shadow: 0 4px 24px rgba(193,143,126,0.55), 0 0 0 4px rgba(193,143,126,0.12), 0 0 0 8px rgba(193,143,126,0.06); }
+    50%       { box-shadow: 0 6px 32px rgba(193,143,126,0.75), 0 0 0 6px rgba(193,143,126,0.18), 0 0 0 12px rgba(193,143,126,0.08); }
+  }
+
+  /* 🎚️ News Equalizer Bars (5 bars, varied rhythm) */
+  @keyframes news-bar {
+    0%, 100% { height: 3px; }
+    50%       { height: 18px; }
+  }
+  .news-bar-1 { animation: news-bar 0.55s infinite ease-in-out; }
+  .news-bar-2 { animation: news-bar 0.75s infinite ease-in-out 0.15s; }
+  .news-bar-3 { animation: news-bar 0.65s infinite ease-in-out 0.3s; }
 
   :global(.elite-prose-mobile li::before) {
     content: "";

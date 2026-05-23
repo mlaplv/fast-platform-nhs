@@ -82,6 +82,56 @@ class ReviewService:
         )
         return reviews, total
 
+    async def _sync_product_rating(self, entity_type: str, entity_id: str) -> None:
+        """Write-through: Recompute avg rating từ APPROVED reviews và ghi vào product_metadata.
+        Đảm bảo product listing API luôn trả đúng reviews_trust_score mà không cần N+1 join.
+        """
+        if entity_type != "PRODUCT":
+            return
+        try:
+            from sqlalchemy import select, func, and_, update
+            from sqlalchemy.orm.attributes import flag_modified
+            from backend.database.models import ProductBase
+
+            # 1. Tính avg + count của APPROVED reviews
+            stmt = select(
+                func.count(SystemReview.id).label("total"),
+                func.avg(SystemReview.rating).label("avg")
+            ).where(and_(
+                SystemReview.entity_type == entity_type,
+                SystemReview.entity_id == entity_id,
+                SystemReview.status == "APPROVED"
+            ))
+            result = await self.review_repo.session.execute(stmt)
+            row = result.fetchone()
+            total_count: int = row.total if row else 0
+            avg_rating: float = round(float(row.avg), 1) if (row and row.avg) else 0.0
+
+            # 2. Load product
+            p_stmt = select(ProductBase).where(ProductBase.id == entity_id)
+            product = (await self.review_repo.session.execute(p_stmt)).scalar_one_or_none()
+            if not product:
+                return
+
+            # 3. Ghi vào product_metadata — chỉ set khi có ít nhất 1 review
+            if not product.product_metadata:
+                product.product_metadata = {}
+            if total_count > 0:
+                product.product_metadata["reviews_trust_score"] = avg_rating
+                product.product_metadata["review_count"] = total_count
+            else:
+                # Xoá field nếu không còn review nào approved
+                product.product_metadata.pop("reviews_trust_score", None)
+                product.product_metadata.pop("review_count", None)
+
+            flag_modified(product, "product_metadata")
+            await self.review_repo.session.flush()
+        except Exception as exc:
+            import logging
+            logging.getLogger("api-gateway").warning(
+                f"[ReviewService._sync_product_rating] Non-blocking failure for {entity_id}: {exc}"
+            )
+
     async def update_status(self, review_id: str, data: UpdateReviewStatusRequest) -> SystemReview:
         try:
             review = await self.review_repo.get(review_id)
@@ -105,7 +155,12 @@ class ReviewService:
                     import logging
                     logging.getLogger("api-gateway").error(f"[ReviewService] KG Generation failed: {e}")
 
-            return await self.review_repo.update(review)
+            updated = await self.review_repo.update(review)
+
+            # Write-Through: cập nhật product_metadata sau mọi thay đổi status
+            await self._sync_product_rating(review.entity_type, review.entity_id)
+
+            return updated
         except NotFoundError:
             raise ValueError(f"Review {review_id} not found")
 
@@ -166,7 +221,12 @@ class ReviewService:
                 
                 review.attachments = data.attachments
 
-            return await self.review_repo.update(review)
+            updated = await self.review_repo.update(review)
+
+            # Write-Through: nếu rating thay đổi, recompute product avg_rating
+            await self._sync_product_rating(review.entity_type, review.entity_id)
+
+            return updated
         except NotFoundError:
             raise ValueError(f"Review {review_id} not found")
 
@@ -207,6 +267,9 @@ class ReviewService:
                                 pass
 
             await self.review_repo.delete(review_id)
+
+            # Write-Through: sau khi xoá, recompute product avg_rating
+            await self._sync_product_rating(review.entity_type, review.entity_id)
         except NotFoundError:
             raise ValueError(f"Review {review_id} not found")
 
@@ -492,7 +555,12 @@ CHỈ THị "THẬT":
             status="APPROVED",
             attributes={"style": style, "ai_seeded": True},
         )
-        return await self.review_repo.add(review)
+        result = await self.review_repo.add(review)
+
+        # Write-Through: AI seed tạo review APPROVED → cập nhật product_metadata
+        await self._sync_product_rating(entity_type, entity_id)
+
+        return result
 
 
 async def provide_review_service(review_repo: SystemReviewRepository) -> ReviewService:

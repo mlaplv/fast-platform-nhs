@@ -41,7 +41,9 @@
           soldCount: p.orderCount || p.order_count || parseInt(p.metadata?.sold_count?.toString() || '0'),
           soldText: p.orderCountText || p.order_count_text || p.metadata?.reviews_count_text || 'ĐÃ BÁN 0',
           isHot: (p.metadata?.scarcity_seconds || 0) > 0 || (p.discountPrice && p.discountPrice / p.price < 0.5),
-          progress: parseInt(p.metadata?.flash_sale_progress?.toString() || '0') || Math.min(95, Math.floor(((p.orderCount || 0) % 100)))
+          progress: parseInt(p.metadata?.flash_sale_progress?.toString() || '0') || Math.min(95, Math.floor(((p.orderCount || 0) % 100))),
+          ratingDisplay: p.metadata?.reviews_trust_score ?? p.metadata?.rating ?? null,
+          reviewsText: p.metadata?.review_count ? `${p.metadata.review_count}` : (p.metadata?.reviews_count_text || null)
         };
       })
       .sort((a, b) => b.discountPct - a.discountPct)
@@ -173,6 +175,17 @@
             <div class="product-name-wrapper">
               <h3 class="product-name">{deal.name}</h3>
             </div>
+
+            <!-- 🌟 Rating - chỉ hiện khi có real DB data -->
+            {#if deal.ratingDisplay}
+              <div class="deal-rating">
+                <span class="dr-stars">★★★★★</span>
+                <span class="dr-score">{deal.ratingDisplay}</span>
+                {#if deal.reviewsText}
+                  <span class="dr-count">&middot; {deal.reviewsText}</span>
+                {/if}
+              </div>
+            {/if}
             
             <!-- Price Block -->
             <div class="price-container">
@@ -300,42 +313,54 @@
     opacity: 1;
   }
 
-  /* Discount Badge matching screenshot */
+  /* ⚡ Viral FOMO Discount Badge */
+  @keyframes badge-glow {
+    0%, 100% { box-shadow: 0 0 6px rgba(238,77,45,0.4); }
+    50%       { box-shadow: 0 0 16px rgba(238,77,45,0.75); }
+  }
   .discount-badge {
     position: absolute;
     top: 0;
     right: 0;
     z-index: 10;
-    background: #ffd839;
-    padding: 0.25rem 0.4rem;
+    background: linear-gradient(150deg, #ee4d2d 0%, #ff6b35 100%);
+    padding: 5px 7px 4px;
     text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    animation: badge-glow 2s infinite ease-in-out;
   }
-
   .discount-badge .pct {
-    color: #ee4d2d;
-    font-size: 0.75rem;
-    font-weight: 900;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 950;
     line-height: 1;
+    letter-spacing: -0.03em;
   }
-
   .discount-badge .lbl {
-    color: white;
-    background: #ee4d2d;
-    font-size: 0.55rem;
-    font-weight: 700;
-    padding: 0 0.25rem;
-    border-radius: 1px;
-    margin-top: 0.1rem;
-    }
+    color: rgba(255,255,255,0.8);
+    font-size: 0.5rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    margin-top: 1px;
+  }
 
   .item-info {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.25rem;
     align-items: flex-start;
     width: 100%;
   }
+
+  /* 🌟 Deal Rating */
+  .deal-rating {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 0 0.15rem;
+  }
+  .dr-stars { font-size: 10px; color: #FF5722; letter-spacing: -0.08em; line-height: 1; }
+  .dr-score { font-size: 10px; font-weight: 900; color: #FF5722; line-height: 1; }
+  .dr-count { font-size: 9px; color: #aaa; font-weight: 600; line-height: 1; }
 
   .product-name-wrapper {
     height: 2.8em;

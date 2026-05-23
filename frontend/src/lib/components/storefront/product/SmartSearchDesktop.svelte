@@ -150,6 +150,16 @@
                     <div class="ml-2 min-w-0">
                       <div class="text-[13px] font-bold text-gray-700 truncate">{trimProductName(p.name)}</div>
                       <div class="text-[11px] font-black text-black">{formatCurrency(Number(p.discountPrice) || Number(p.price))}</div>
+                      <!-- Real DB Rating -->
+                      {#if p.metadata?.reviews_trust_score}
+                        <div class="flex items-center gap-1 mt-0.5">
+                          <span class="text-[#FF5722] text-[10px] font-black leading-none tracking-[-0.05em]">★★★★★</span>
+                          <span class="text-[10px] font-black text-[#FF5722] leading-none">{p.metadata.reviews_trust_score.toFixed(1)}</span>
+                          {#if p.metadata.review_count}
+                            <span class="text-[9px] text-gray-400 font-bold leading-none">&middot; {p.metadata.review_count}</span>
+                          {/if}
+                        </div>
+                      {/if}
                     </div>
                   </button>
                 {/each}
@@ -170,6 +180,16 @@
                     <div class="flex-grow min-w-0">
                       <h4 class="text-[14px] font-bold text-gray-800 truncate">{trimProductName(p.name)}</h4>
                       <div class="text-[13px] font-black text-black">{formatCurrency(Number(p.discountPrice) || Number(p.price))}</div>
+                      <!-- Real DB Rating -->
+                      {#if p.metadata?.reviews_trust_score}
+                        <div class="flex items-center gap-1 mt-0.5">
+                          <span class="text-[#FF5722] text-[10px] font-black leading-none tracking-[-0.05em]">★★★★★</span>
+                          <span class="text-[10px] font-black text-[#FF5722] leading-none">{p.metadata.reviews_trust_score.toFixed(1)}</span>
+                          {#if p.metadata.review_count}
+                            <span class="text-[9px] text-gray-400 font-bold leading-none">&middot; {p.metadata.review_count}</span>
+                          {/if}
+                        </div>
+                      {/if}
                     </div>
                   </a>
                 {/each}

@@ -225,15 +225,17 @@
         <div class="flex items-center gap-1.5">
            <ShoppingBag class="w-2.5 h-2.5 text-[#FFB7C5]" />
            <EditableWrapper path="metadata.offer_sales_label" type="text" label="SỬA NHÃN BÁN HÀNG" class="inline" as="span">
-             <span class="offer-meta-label text-[10px] text-white/40 font-bold tracking-widest italic">{fomoStore.totalSales || '8,421'} {metadata.offer_sales_label || 'đã bán'}</span>
+             <span class="offer-meta-label text-[10px] text-white/40 font-bold tracking-widest italic">{(fomoStore.totalSales || product?.orderCount || 0).toLocaleString()} {metadata.offer_sales_label || 'đã bán'}</span>
            </EditableWrapper>
         </div>
+        {#if product?.metadata?.reviews_trust_score}
         <div class="flex items-center gap-1.5">
            <Star class="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
            <EditableWrapper path="metadata.offer_rating_label" type="text" label="SỬA NHÃN RATING" class="inline" as="span">
-             <span class="offer-meta-label text-[10px] text-white/40 font-bold tracking-widest italic">{metadata.offer_rating_label || '4.9/5 đánh giá'}</span>
+             <span class="offer-meta-label text-[10px] text-white/40 font-bold tracking-widest italic">{product.metadata.reviews_trust_score.toFixed(1)}/5 ({product.metadata.review_count || 0} đánh giá)</span>
            </EditableWrapper>
         </div>
+        {/if}
     </div>
   </div>
 

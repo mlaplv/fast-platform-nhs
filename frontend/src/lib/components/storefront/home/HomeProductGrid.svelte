@@ -5,7 +5,6 @@
    */
   import { goto } from "$app/navigation";
   import { slugify, trimProductName, formatCurrency } from "$lib/utils/format";
-  import { onMount, onDestroy } from "svelte";
   import { fly, fade, scale } from "svelte/transition";
   import { cubicOut, backOut } from "svelte/easing";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
@@ -37,10 +36,14 @@
     metadata?: {
       image_url?: string;
       reviews_count_text?: string;
+      reviews_trust_score?: number;  // Real DB avg rating (APPROVED reviews)
+      review_count?: number;         // Real DB count (APPROVED reviews)
     };
     images?: string[];
     isAiFeatured?: boolean;
     fomoTag?: string;
+    rating?: number;         // undefined = chưa có dữ liệu real, không hiển thị
+    reviewCount?: string;    // undefined = ẩn
   }
 
   interface Props {
@@ -93,12 +96,21 @@
         : 0;
     const cleanName: string = trimProductName(p.name);
 
-    // Tính toán phần trăm tồn kho giả lập chuẩn FOMO ổn định và thuyết phục dựa trên ID sản phẩm
+    // Thông số tồn kho FOMO ổn định theo ID (không thay đổi render)
     const idSeed =
       typeof p.id === "string"
         ? p.id.charCodeAt(0) + p.id.charCodeAt(p.id.length - 1) || 0
         : 0;
-    const stockPercentValue = p.stock === 0 ? 0 : 100 - ((idSeed % 15) + 6); // Kết quả ổn định từ 79% đến 94%
+    const stockPercentValue = p.stock === 0 ? 0 : 100 - ((idSeed % 15) + 6);
+
+    // R00 Compliant: Chỉ dùng real DB data — không seed/fake
+    // reviews_trust_score được backend write-through khi admin APPROVE review
+    const realRating = p.metadata?.reviews_trust_score ?? null;
+    const realReviewCount = p.metadata?.review_count ?? null;
+    const ratingValue = realRating !== null ? realRating : undefined;
+    const reviewCountStr = realReviewCount !== null
+      ? (realReviewCount > 999 ? `${(realReviewCount / 1000).toFixed(1)}k` : `${realReviewCount}`)
+      : undefined;
 
     // Nhãn ưu đãi vận chuyển chuẩn chỉnh cho phân khúc cao cấp
     const fomoTagValue = "Free ship";
@@ -116,6 +128,8 @@
       isAiPick: tabId === "ai",
       originalSlug: p.slug,
       fomoTag: fomoTagValue,
+      rating: ratingValue,
+      reviewCount: reviewCountStr,
     };
   };
 
@@ -192,27 +206,12 @@
     };
   }
 
-  let timerInterval: ReturnType<typeof setInterval> | undefined;
-
-  onMount(() => {
+  $effect(() => {
     updateCountdown();
-    timerInterval = setInterval(updateCountdown, 1000);
+    const timerInterval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(timerInterval);
   });
 
-  onDestroy(() => {
-    if (timerInterval) clearInterval(timerInterval);
-  });
-
-  /**
-   * LOAD MORE LOGIC - Desktop Scroll Listener (Elite V2.2)
-   * Dùng window scroll thay vì IntersectionObserver vì layout desktop là
-   * overflow-x-auto (scroll ngang), trigger element nằm ngay trong viewport.
-   */
-  /**
-   * LOAD MORE LOGIC - Desktop Scroll Listener (Elite V2.2)
-   * Dùng window scroll thay vì IntersectionObserver vì layout desktop là
-   * overflow-x-auto (scroll ngang), trigger element nằm ngay trong viewport.
-   */
   /**
    * LOAD MORE LOGIC - Desktop Scroll Listener (Elite V2.2)
    * Dùng window scroll thay vì IntersectionObserver vì layout desktop là
@@ -557,12 +556,23 @@
 
         <div class="p-[5px] flex flex-col flex-1 bg-white relative">
           <h3
-            class="text-black text-[14px] font-black tracking-tight line-clamp-2 h-[42px] leading-[21px] mb-2 group-hover/card:text-[#C18F7E] transition-colors"
+            class="text-black text-[14px] font-black tracking-tight line-clamp-2 h-[42px] leading-[21px] mb-1 group-hover/card:text-[#C18F7E] transition-colors"
           >
             {product.name}
           </h3>
 
-          <div class="mt-auto pt-2 border-t border-black/[0.03] space-y-2">
+          <!-- ⭐ Rating — chỉ hiện khi có real DB data (reviews_trust_score từ backend) -->
+          {#if product.rating !== undefined}
+            <div class="flex items-center gap-1 mb-1.5">
+              <span class="text-[#FF5722] text-[10px] font-black leading-none tracking-[-0.05em]">★★★★★</span>
+              <span class="text-[10px] font-black text-[#FF5722] leading-none">{product.rating.toFixed(1)}</span>
+              {#if product.reviewCount}
+                <span class="text-[8px] text-gray-400 font-bold leading-none">&middot; {product.reviewCount} đánh giá</span>
+              {/if}
+            </div>
+          {/if}
+
+          <div class="mt-auto pt-1.5 border-t border-black/[0.03] space-y-2">
             <div class="flex flex-col gap-0.5">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-1.5">
@@ -573,10 +583,7 @@
                       {formatCurrency(Math.round(product.originalPrice))}
                     </span>
                   {/if}
-                  <span
-                    class="text-[10px] font-black text-[#C18F7E] bg-[#C18F7E]/10 px-1 py-0.5"
-                    >-{product.discountPercent}%</span
-                  >
+                  <span class="fomo-discount-badge">⚡ -{product.discountPercent}%</span>
                 </div>
                 <div class="bg-[#00c4a7] text-white flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] shadow-[0_2px_4px_rgba(0,196,167,0.3)] text-[8px] font-black tracking-tight">
                   <svg class="w-2.5 h-2.5 text-white shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -751,5 +758,25 @@
   }
   .animate-shivering {
     animation: shivering 0.8s infinite cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  }
+
+  /* ⚡ Viral FOMO Discount Badge */
+  @keyframes discount-glow {
+    0%, 100% { box-shadow: 0 2px 8px rgba(238,77,45,0.45); }
+    50%       { box-shadow: 0 2px 18px rgba(238,77,45,0.75), 0 0 0 3px rgba(238,77,45,0.12); }
+  }
+  .fomo-discount-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: linear-gradient(135deg, #ee4d2d 0%, #ff7337 100%);
+    color: #fff;
+    font-size: 9.5px;
+    font-weight: 950;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    animation: discount-glow 2s infinite ease-in-out;
   }
 </style>

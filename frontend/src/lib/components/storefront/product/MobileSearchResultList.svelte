@@ -180,6 +180,16 @@
                   <span class="text-[10px] text-gray-400 line-through font-medium tabular-nums">{formatCurrency(p.price)}</span>
                 {/if}
               </div>
+              <!-- Real DB Rating -->
+              {#if p.metadata?.reviews_trust_score}
+                <div class="flex items-center gap-1 mt-1">
+                  <span class="text-[#FF5722] text-[10px] font-black leading-none tracking-[-0.05em]">★★★★★</span>
+                  <span class="text-[10px] font-black text-[#FF5722] leading-none">{p.metadata.reviews_trust_score.toFixed(1)}</span>
+                  {#if p.metadata.review_count}
+                    <span class="text-[9px] text-gray-400 font-bold leading-none">&middot; {p.metadata.review_count}</span>
+                  {/if}
+                </div>
+              {/if}
             </div>
           </a>
         {/each}

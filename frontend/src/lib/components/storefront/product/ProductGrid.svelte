@@ -82,11 +82,21 @@
              {/if}
           </div>
 
+          <!-- Real DB Rating -->
+          {#if product.metadata?.reviews_trust_score}
+            <div class="flex items-center gap-1 mt-1 mb-0.5">
+              <span class="text-[#FF5722] text-[10px] font-black leading-none tracking-[-0.05em]">★★★★★</span>
+              <span class="text-[10px] font-black text-[#FF5722] leading-none">{product.metadata.reviews_trust_score.toFixed(1)}</span>
+              {#if product.metadata.review_count}
+                <span class="text-[9px] text-gray-400 font-bold leading-none">&middot; {product.metadata.review_count} đánh giá</span>
+              {/if}
+            </div>
+          {/if}
+
           <!-- Marketplace Meta Footer -->
-          <div class="mt-2 flex items-center justify-between">
-             <div class="flex items-center gap-0.5 text-[#ffac33]">
-                <svg class="w-2.5 h-2.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                <span class="text-[10px] text-gray-400 font-bold ml-0.5">
+          <div class="mt-auto pt-2 flex items-center justify-between">
+             <div class="flex items-center text-gray-400">
+                <span class="text-[10px] font-bold">
                   {soldStr.includes('Đã bán') ? soldStr : `Đã bán ${soldStr}`}
                 </span>
              </div>

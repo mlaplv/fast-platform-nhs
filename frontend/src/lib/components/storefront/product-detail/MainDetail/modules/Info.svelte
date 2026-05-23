@@ -119,42 +119,44 @@
 
   <!-- Stats Row -->
   <div class="flex items-center gap-6 text-[15px] mb-2">
-    <div class="flex items-center gap-2 text-[#ee4d2d] group cursor-default">
-      <span
-        class="text-[16px] font-black border-b-2 border-[#ee4d2d] leading-none pb-0.5"
-        >{stats?.average_rating || product.metadata?.rating || "5.0"}</span
-      >
-      <div class="flex gap-0.5">
-        {#each Array(5) as _, i}
-          <svg
-            class="w-3.5 h-3.5 {i <
-            Math.floor(
-              stats?.average_rating || Number(product.metadata?.rating) || 5,
-            )
-              ? 'text-orange-400'
-              : 'text-gray-200'} fill-current drop-shadow-sm"
-            viewBox="0 0 24 24"
-            ><path
-              d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-            /></svg
-          >
-        {/each}
+    {#if stats?.total_count || product.metadata?.review_count}
+      <div class="flex items-center gap-2 text-[#ee4d2d] group cursor-default">
+        <span
+          class="text-[16px] font-black border-b-2 border-[#ee4d2d] leading-none pb-0.5"
+          >{stats?.average_rating || product.metadata?.reviews_trust_score || "5.0"}</span
+        >
+        <div class="flex gap-0.5">
+          {#each Array(5) as _, i}
+            <svg
+              class="w-3.5 h-3.5 {i <
+              Math.floor(
+                stats?.average_rating || Number(product.metadata?.reviews_trust_score) || 5,
+              )
+                ? 'text-orange-400'
+                : 'text-gray-200'} fill-current drop-shadow-sm"
+              viewBox="0 0 24 24"
+              ><path
+                d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+              /></svg
+            >
+          {/each}
+        </div>
       </div>
-    </div>
-    <div class="w-[1.5px] h-4 bg-gray-200"></div>
-    <button
-      onclick={onTriggerWriteReview}
-      class="flex items-center gap-1.5 group cursor-pointer border-none bg-transparent hover:opacity-80 transition-opacity"
-    >
-      <span
-        class="text-black font-black border-b-2 border-black leading-none pb-0.5"
-        >{formatNumber(
-          stats?.total_count ?? (product.metadata?.reviews?.length || 0),
-        )}</span
+      <div class="w-[1.5px] h-4 bg-gray-200"></div>
+      <button
+        onclick={onTriggerWriteReview}
+        class="flex items-center gap-1.5 group cursor-pointer border-none bg-transparent hover:opacity-80 transition-opacity"
       >
-      <span class="text-gray-500 font-bold text-[14px]">đánh giá</span>
-    </button>
-    <div class="w-[1.5px] h-4 bg-gray-200"></div>
+        <span
+          class="text-black font-black border-b-2 border-black leading-none pb-0.5"
+          >{formatNumber(
+            stats?.total_count ?? (product.metadata?.review_count || 0),
+          )}</span
+        >
+        <span class="text-gray-500 font-bold text-[14px]">đánh giá</span>
+      </button>
+      <div class="w-[1.5px] h-4 bg-gray-200"></div>
+    {/if}
     <div class="flex items-center gap-1.5">
       {#if soldStr}
         <span class="text-black font-black text-[16px]"
