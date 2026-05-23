@@ -61,9 +61,15 @@
         style="transform: translateX(-{currentIndex * 100}%)"
       >
         {#each mainBanners as banner, i}
-          <a href={getProductLink(banner.link_url)} class="w-full h-full shrink-0 block">
-            <img src={banner.image_url} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
-          </a>
+          {#if banner.link_url && banner.link_url !== '#'}
+            <a href={getProductLink(banner.link_url)} class="w-full h-full shrink-0 block">
+              <img src={banner.image_url} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
+            </a>
+          {:else}
+            <div class="w-full h-full shrink-0 block">
+              <img src={banner.image_url} alt={banner.title || "Main Banner"} class="w-full h-full object-cover block" loading={i === 0 ? "eager" : "lazy"} fetchpriority={i === 0 ? "high" : "auto"} />
+            </div>
+          {/if}
         {/each}
       </div>
 
@@ -102,9 +108,15 @@
   <!-- Side Banners -->
   <div class="flex flex-col gap-[5px] h-full">
     {#each sideBanners as banner}
-      <a href={getProductLink(banner.link_url)} class="flex-1 relative rounded-[2px] overflow-hidden group block bg-[#eee]">
-        <img src={banner.image_url} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90 block" />
-      </a>
+      {#if banner.link_url && banner.link_url !== '#'}
+        <a href={getProductLink(banner.link_url)} class="flex-1 relative rounded-[2px] overflow-hidden group block bg-[#eee]">
+          <img src={banner.image_url} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90 block" />
+        </a>
+      {:else}
+        <div class="flex-1 relative rounded-[2px] overflow-hidden group block bg-[#eee]">
+          <img src={banner.image_url} alt={banner.title || "Side Banner"} class="w-full h-full object-cover transition-opacity duration-300 hover:opacity-95 active:opacity-90 block" />
+        </div>
+      {/if}
     {/each}
   </div>
 </div>

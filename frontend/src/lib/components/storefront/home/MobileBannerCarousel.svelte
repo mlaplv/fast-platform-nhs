@@ -63,15 +63,27 @@
     onscroll={handleScroll}
   >
     {#each homeBanners as banner, i}
-      <a href={getProductLink(banner.link_url)} class="banner-slide">
-        <img
-          src={banner.mobile_image_url || banner.image_url}
-          alt={banner.title || "Banner"}
-          class="w-full h-full object-cover select-none"
-          loading={i === 0 ? "eager" : "lazy"}
-          fetchpriority={i === 0 ? "high" : "auto"}
-        />
-      </a>
+      {#if banner.link_url && banner.link_url !== '#'}
+        <a href={getProductLink(banner.link_url)} class="banner-slide">
+          <img
+            src={banner.mobile_image_url || banner.image_url}
+            alt={banner.title || "Banner"}
+            class="w-full h-full object-cover select-none"
+            loading={i === 0 ? "eager" : "lazy"}
+            fetchpriority={i === 0 ? "high" : "auto"}
+          />
+        </a>
+      {:else}
+        <div class="banner-slide">
+          <img
+            src={banner.mobile_image_url || banner.image_url}
+            alt={banner.title || "Banner"}
+            class="w-full h-full object-cover select-none"
+            loading={i === 0 ? "eager" : "lazy"}
+            fetchpriority={i === 0 ? "high" : "auto"}
+          />
+        </div>
+      {/if}
     {/each}
 
     {#if homeBanners.length === 0}
