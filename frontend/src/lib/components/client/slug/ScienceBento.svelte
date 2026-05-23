@@ -61,7 +61,7 @@
   }
 </script>
 
-<section id="science-mechanism" class="snap-session snap-session-standard science-section relative w-full overflow-hidden" style:padding-top="var(--standard-pt)">
+<section id="science-mechanism" class="science-section relative w-full overflow-hidden">
     <!-- 150px Coordinate Grid Overlay -->
     <!-- 150px Coordinate Grid Overlay -->
     <div class="tech-grid opacity-30 pointer-events-none"></div>

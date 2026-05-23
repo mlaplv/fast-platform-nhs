@@ -113,7 +113,8 @@
   .banner-carousel-root {
     position: relative;
     width: 100%;
-    height: 185px;
+    aspect-ratio: 21 / 9;
+    height: auto;
     overflow: hidden;
     background: #f3f3f3;
   }

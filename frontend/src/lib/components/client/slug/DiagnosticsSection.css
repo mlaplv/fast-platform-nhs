@@ -6,7 +6,7 @@
   /* Matches Funnel & Hero */
   position: relative;
   z-index: var(--z-surface);
-  min-height: 100vh;
+  min-height: auto;
   overflow: visible;
 
   /* 2. Định Nghĩa Thiết Lập Container Queries */

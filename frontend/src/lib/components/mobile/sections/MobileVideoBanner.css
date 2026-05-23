@@ -19,6 +19,8 @@
 }
 
 .video-iframe-wrapper {
+  position: absolute;
+  inset: 0;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -26,12 +28,14 @@
 }
 
 .video-iframe-wrapper iframe {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: 9/16;
-  min-height: 100%;
-  min-width: 100%;
-  object-fit: cover;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100vw;
+  height: 177.78vw; /* Native 9:16 vertical scale */
+  min-height: 100dvh;
+  min-width: 56.25dvh; /* Native 9:16 horizontal scale */
 }
 
 /* Top gradient for safe-area / notch */

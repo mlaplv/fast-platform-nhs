@@ -6,7 +6,7 @@
   import HeroBanner from "$lib/components/client/HeroBanner.svelte";
   import LiquidHeader from "$lib/components/client/LiquidHeader.svelte";
   import { browser } from "$app/environment";
-  import type { Action } from "svelte/action";
+
 
   // JIT Component Flags
   let loadJIT = $state(false);
@@ -167,7 +167,7 @@
     const sessionObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && !isWheelLocked) {
+          if (entry.isIntersecting) {
             const idx = sectionIds.indexOf(entry.target.id);
             if (idx !== -1) currentSessionIdx = idx;
           }
@@ -223,7 +223,6 @@
   );
   let currentSessionIdx = $state(0);
   const activeId = $derived(sectionIds[currentSessionIdx]);
-  let isWheelLocked = false;
 
   // Verification System (Elite V2.2)
   let isScanning = $state(false);
@@ -241,58 +240,7 @@
     showVerification = true;
   }
 
-  const onWheelObserver = (e: WheelEvent) => {
-    // Escape limiters: Mobile layout, Server, or interacting with Checkout
-    if (useMobileLayout || !browser) return;
 
-    // Viral 2026: Neural Activity Interception? (Optional)
-    const target = e.target as HTMLElement;
-
-    // Elite V2.2 Escape: Don't hijack scroll if we are in Edit Mode and hovering over an editor
-    if (
-      liveEditStore.isEditMode &&
-      (target?.closest(".edit-mode-container") ||
-        target?.closest(".editor-box"))
-    )
-      return;
-
-    // Ignore micro-scrolls (e.g., trackpad resting)
-    if (Math.abs(e.deltaY) < 15) return;
-
-    // 100% Native Intercept - Bypass default DOM scrolling
-    e.preventDefault();
-    if (isWheelLocked) return;
-
-    const direction = e.deltaY > 0 ? 1 : -1;
-    let nextIdx = currentSessionIdx + direction;
-
-    // Clamp boundaries
-    if (nextIdx >= 0 && nextIdx < sectionIds.length) {
-      isWheelLocked = true;
-      currentSessionIdx = nextIdx;
-
-      // O(1) Native C++ lookup
-      const target = document.getElementById(sectionIds[currentSessionIdx]);
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-
-      // Memory-efficient cooling lock to prevent scroll-looping (450ms for ultra-fast snap)
-      setTimeout(() => {
-        isWheelLocked = false;
-      }, 450);
-    }
-  };
-
-  // Svelte 5 Native Action: Forced non-passive listener
-  const initScrollObserver: Action<HTMLElement> = (node) => {
-    node.addEventListener("wheel", onWheelObserver, { passive: false });
-    return {
-      destroy() {
-        node.removeEventListener("wheel", onWheelObserver);
-      },
-    };
-  };
 
   // ── ELITE V2.2: SEO FAQ Extraction ───────────────────────────────────────
   const normalizedFaqs = $derived(product?.metadata?.faqs || []);
@@ -362,9 +310,8 @@
   {/if}
 {:else}
   <div
-    class="client-page-root selection:bg-blue-600 selection:text-white h-screen overflow-y-scroll"
+    class="client-page-root selection:bg-blue-600 selection:text-white min-h-screen"
     translate="no"
-    use:initScrollObserver
   >
     {#if product?.id}
       <LiquidHeader
@@ -486,7 +433,7 @@
   .client-page-root {
     antialiased: true;
     overflow-x: hidden;
-    height: 100vh;
+    min-height: 100vh;
     font-family: "Be Vietnam Pro", sans-serif;
     background-color: #010101; /* Viral 2026: Luxury Black foundation */
     color: var(--text-base);
@@ -497,19 +444,27 @@
   }
 
   :global(.snap-session) {
-    min-height: 100dvh;
+    min-height: auto;
     height: auto;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     position: relative;
+    padding: 3.5rem 0; /* Extremely neat and compact block spacing */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04); /* Elegant glass boundary separator */
     transform: translateZ(0); /* Hardware Acceleration */
     will-change: transform;
   }
 
-  /* ELITE V2.2: Final section isolation - no forced min-height to prevent gaps */
+  @media (max-width: 1024px) {
+    :global(.snap-session) {
+      padding: 2rem 0;
+    }
+  }
+
+  /* ELITE V2.2: Final section isolation - no border bottom */
   #offers.snap-session {
-    min-height: auto;
+    border-bottom: none;
   }
 
   /* Ensure smooth transitions inside snap sessions */

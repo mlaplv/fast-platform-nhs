@@ -54,7 +54,7 @@
   });
 </script>
 
-<section id="transformation" class="emotional-section snap-session">
+<section id="transformation" class="emotional-section">
   <div class="luxury-bg-overlay"></div>
   
   <div class="container mx-auto px-6 max-w-6xl relative z-10">

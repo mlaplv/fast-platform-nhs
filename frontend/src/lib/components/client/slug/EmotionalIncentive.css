@@ -1,11 +1,11 @@
 .emotional-section {
   background-color: #010101;
-  padding-bottom: 10rem;
+  padding-bottom: 2rem;
   overflow: hidden;
 
   /* Gom nhóm Responsive media query vào bên trong selector gốc */
   @media (max-width: 768px) {
-    padding-bottom: 5rem;
+    padding-bottom: 1rem;
   }
 }
 

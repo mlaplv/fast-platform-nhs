@@ -18,7 +18,9 @@ html {
 /* ─── ROOT LAYOUT ────────────────────────────────────────── */
 .hero-center-layout {
   position: relative;
-  height: 100vh;
+  min-height: 100vh;
+  height: auto;
+  padding-bottom: 6rem;
   overflow: hidden;
   scroll-margin-top: 80px;
   container-type: inline-size;
@@ -26,15 +28,15 @@ html {
 
   /* ── Container padding ── */
   .container {
-    padding-top: calc(var(--standard-pt) + 20px) !important;
+    padding-top: calc(var(--standard-pt) / 2) !important;
 
     @media (width <=820px) {
-      padding: 55px 0 8px 0 !important;
+      padding: 28px 0 8px 0 !important;
     }
 
     @media (width <=768px) {
       padding: 0 0 10px 0 !important;
-      margin-top: 90px !important;
+      margin-top: 45px !important;
     }
   }
 
@@ -70,7 +72,7 @@ html {
 
   .video-dim-overlay {
     inset: 0;
-    background: rgba(2, 6, 23, 0.72);
+    background: rgba(1, 1, 1, 0.72);
     z-index: 1;
   }
 
@@ -84,20 +86,20 @@ html {
 
   .video-vignette-top {
     top: 0;
-    background: linear-gradient(to bottom, #020617 0%, rgba(2, 6, 23, 0.65) 50%, transparent 100%);
+    background: linear-gradient(to bottom, #010101 0%, rgba(1, 1, 1, 0.65) 50%, transparent 100%);
   }
 
   .video-vignette-bottom {
     bottom: 0;
-    background: linear-gradient(to top, #020617 0%, rgba(2, 6, 23, 0.55) 50%, transparent 100%);
+    background: linear-gradient(to top, #010101 0%, rgba(1, 1, 1, 0.55) 50%, transparent 100%);
   }
 
   .video-vignette-radial {
     inset: 0;
     background:
-      linear-gradient(to right, rgba(2, 6, 23, 0.75) 0%, transparent 30%),
-      linear-gradient(to left, rgba(2, 6, 23, 0.75) 0%, transparent 30%),
-      radial-gradient(ellipse 75% 55% at 50% 50%, transparent 25%, rgba(2, 6, 23, 0.4) 100%);
+      linear-gradient(to right, rgba(1, 1, 1, 0.75) 0%, transparent 30%),
+      linear-gradient(to left, rgba(1, 1, 1, 0.75) 0%, transparent 30%),
+      radial-gradient(ellipse 75% 55% at 50% 50%, transparent 25%, rgba(1, 1, 1, 0.4) 100%);
     z-index: 2;
   }
 
@@ -366,20 +368,24 @@ html {
   }
 
   .hero-cta-button {
-    position: absolute;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: relative;
     z-index: var(--z-cta);
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
     @media (768px < width <=820px) {
-      bottom: 40px !important;
+      margin-top: 2rem !important;
+      margin-bottom: 1rem !important;
       padding: 0.65rem 1.8rem !important;
       font-size: 11px !important;
     }
 
     @media (width <=768px) {
-      bottom: 30px !important;
+      margin-top: 1.5rem !important;
+      margin-bottom: 0.5rem !important;
       padding: 0.5rem 1.5rem !important;
       font-size: 10px !important;
     }
@@ -399,13 +405,11 @@ html {
 
 /* Mouse Scroll Indicator */
 .mouse-scroll-indicator {
-  position: absolute;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
+  margin-top: 1rem;
   z-index: var(--z-header, 100);
-  /* Thêm fallback cho z-header nếu chưa khai báo ở :root */
   cursor: pointer;
+  display: inline-block;
 
   &:hover .mouse-body {
     border-color: rgba(255, 255, 255, 0.6);

@@ -626,71 +626,66 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <button
-    class="hero-cta-button shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95"
-    style="
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 50;
-            background: linear-gradient(135deg, #C18F7E, #ea580c) !important;
-            color: white !important;
-            padding: 1rem 2.5rem !important;
-            font-size: 14px !important;
-            font-weight: 900 !important;
-            border: none !important;
-            border-radius: 9999px !important;
-            box-shadow: 0 10px 30px rgba(193, 143, 126, 0.45) !important;
-            letter-spacing: 0.1em;
-            cursor: pointer;
-          "
-    onclick={scrollToQuiz}
-  >
-    <EditableWrapper
-      path="metadata.hero_cta_text"
-      value={ctaText}
-      label="SỬA CHỮ NÚT BẤM"
-      class="w-full flex justify-center"
+    <button
+      class="hero-cta-button shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95"
+      style="
+              background: linear-gradient(135deg, #C18F7E, #ea580c) !important;
+              color: white !important;
+              padding: 1rem 2.5rem !important;
+              font-size: 14px !important;
+              font-weight: 900 !important;
+              border: none !important;
+              border-radius: 9999px !important;
+              box-shadow: 0 10px 30px rgba(193, 143, 126, 0.45) !important;
+              letter-spacing: 0.1em;
+              cursor: pointer;
+            "
+      onclick={scrollToQuiz}
     >
-      <div class="flex items-center gap-3 justify-center">
-        <div class="elite-dot-container">
-          <span class="w-2.5 h-2.5 rounded-full bg-white block animate-pulse"
-          ></span>
+      <EditableWrapper
+        path="metadata.hero_cta_text"
+        value={ctaText}
+        label="SỬA CHỮ NÚT BẤM"
+        as="span"
+        class="inline-flex items-center justify-center"
+      >
+        <div class="flex items-center gap-3 justify-center">
+          <div class="elite-dot-container">
+            <span class="w-2.5 h-2.5 rounded-full bg-white block animate-pulse"
+            ></span>
+          </div>
+          <span class="tracking-wider font-extrabold uppercase">{ctaText}</span>
+          <svg
+            class="w-5 h-5 text-white ml-1 transition-transform group-hover:translate-x-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 8l4 4m0 0l-4 4m4-4H3"
+            />
+          </svg>
         </div>
-        <span class="tracking-wider font-extrabold uppercase">{ctaText}</span>
-        <svg
-          class="w-5 h-5 text-white ml-1 transition-transform group-hover:translate-x-1"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17 8l4 4m0 0l-4 4m4-4H3"
-          />
-        </svg>
-      </div>
-    </EditableWrapper>
-  </button>
+      </EditableWrapper>
+    </button>
 
-  <a
-    href="#diagnostics"
-    class="mouse-scroll-indicator"
-    aria-label={labels.aria_scroll}
-    onclick={(e) => {
-      e.preventDefault();
-      scrollToQuiz?.();
-    }}
-  >
-    <div class="mouse-body">
-      <div class="mouse-wheel"></div>
-    </div>
-  </a>
+    <a
+      href="#diagnostics"
+      class="mouse-scroll-indicator"
+      aria-label={labels.aria_scroll}
+      onclick={(e) => {
+        e.preventDefault();
+        scrollToQuiz?.();
+      }}
+    >
+      <div class="mouse-body">
+        <div class="mouse-wheel"></div>
+      </div>
+    </a>
+  </div>
 </section>
 
 <style>

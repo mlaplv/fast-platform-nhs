@@ -387,9 +387,39 @@
   - [x] Xác thực logs container khởi động trơn tru: `Forced re-optimization of dependencies` hoàn thành xuất sắc trong 2369ms.
   - [x] Đảm bảo cấu trúc `.svelte-kit/` và các module runtime được gen ra hoàn hảo, không còn tì vết xung đột permission.
 
+# Task checklist: Loại bỏ Snap-Scroll Cuộn Theo Tab Trên Landing Desktop
 
+- [x] **Trinh sát & Phát hiện Dị thường (Scout Protocol)**
+  - [x] Kiểm tra cơ chế chặn bánh xe cuộn chuột `initScrollObserver` tại `+page.svelte`.
+  - [x] Xác định các class CSS và Tailwind cưỡng ép chiều cao `height: 100vh` trên `.client-page-root`.
 
+- [x] **Kế hoạch Tác chiến & Duyệt phương án (Propose-First)**
+  - [x] Phát thảo kế hoạch tác chiến loại bỏ snap-scroll cuộn cứng và chuyển sang cuộn tự do toàn trang.
+  - [x] Báo cáo rủi ro RAM/Latency/CPU lên Sếp và đợi phê duyệt.
 
+- [x] **Triển khai Tác chiến & Làm sạch Code (Execution)**
+  - [x] Gỡ bỏ hàm `onWheelObserver`, `initScrollObserver` và thuộc tính `use:initScrollObserver`.
+  - [x] Cập nhật class `.client-page-root` từ `h-screen overflow-y-scroll` thành `min-h-screen`.
+  - [x] Tinh chỉnh CSS của `.client-page-root` từ `height: 100vh` sang `min-height: 100vh`.
+  - [x] Cập nhật `sessionObserver` IntersectionObserver loại bỏ biến khoá `isWheelLocked` để đồng bộ tab tự do.
 
+- [x] **Kiểm thử & Xác minh (Verification)**
+  - [x] Đảm bảo SvelteKit biên dịch thành công, không gặp lỗi runtime.
+  - [x] Xác thực cuộn tự do mượt mà trên Desktop với tốc độ 60 FPS tối đa.
+  - [x] Đảm bảo thanh điều hướng phụ (Sub-header) vẫn tự động sáng đèn chuẩn xác theo section đang hiển thị.
 
+# Task checklist: Loại bỏ Chiều cao Cố định & Tái Thiết kế Giao diện Dạng Blog Flow
+
+- [x] **Đồng bộ hóa màu nền Luxury Black (100% #010101):**
+  - [x] Đồng bộ màu overlay và vignette trong `HeroBanner.css` về `#010101`.
+  - [x] Cấu trúc lại `--bg-deep` và gradient nền của `VerifiedReviews.css` về `#010101`.
+  - [x] Đồng bộ màu nền scifi quét sinh trắc học của `QuantumScan.css` về `#010101`.
+
+- [x] **Loại bỏ Cố định Chiều cao & Tự động thích ứng (Adaptive Height & Layout):**
+  - [x] Cập nhật `.hero-center-layout` trong `HeroBanner.css` sang `min-height: 100vh; height: auto`.
+  - [x] Đưa nút CTA chính và cuộn chỉ thị trong `HeroBanner.svelte` về dòng chảy tự nhiên (relative flex flow).
+  - [x] Thay thế `min-height: 100dvh` của `:global(.snap-session)` sang `min-height: auto; padding: 8rem 0` (Desktop) và `padding: 4.5rem 0` (Mobile).
+
+- [x] **Tạo đường ngăn phân tách sang trọng (Luxury separating boundary):**
+  - [x] Bổ sung viền mờ `border-b border-white/4` cho các snap sessions để phân chia khối dạng blog sang trọng.
 
