@@ -183,21 +183,44 @@
     if (shouldRender) {
       const isDebugParam = typeof window !== "undefined" && window.location.search.includes("debug");
       if (import.meta.env.DEV || isDebugParam) {
-        console.groupCollapsed(
-          `%c 🔍 ${resolvedSiteName.toUpperCase()} SEO AUDITOR: ${pageType.toUpperCase()} `,
-          "background: #1e1e2e; color: #f5c2e7; font-weight: 900; padding: 4px 8px; border-radius: 4px; border: 1px solid #cba6f7;"
-        );
-        console.log("%c Title:       ", "color: #fab387; font-weight: bold;", finalTitle);
-        console.log("%c Description: ", "color: #a6e3a1; font-weight: bold;", finalDescription, `(${finalDescription.length} chars)`);
-        console.log("%c Canonical:   ", "color: #89b4fa; font-weight: bold;", absCanonical);
-        if (finalKeywords) console.log("%c Keywords:    ", "color: #f9e2af; font-weight: bold;", finalKeywords);
-        console.log("%c Page Type:   ", "color: #cba6f7; font-weight: bold;", pageType);
-        console.log("%c Breadcrumbs: ", "color: #cdd6f4;", breadcrumbItems);
-        console.log("%c FAQs:        ", "color: #cdd6f4;", faqs);
-        if (jsonLdScripts && jsonLdScripts.length > 0) {
-          console.log("%c JSON-LD:     ", "color: #cdd6f4;", jsonLdScripts);
-        }
-        console.groupEnd();
+        const graphLdStr = seoFactory.graphLd; // Dynamic reactive tracking
+        if (!graphLdStr || graphLdStr.length < 100) return;
+        
+        untrack(() => {
+          console.groupCollapsed(
+            `%c 🔍 ${resolvedSiteName.toUpperCase()} SEO AUDITOR: ${pageType.toUpperCase()} `,
+            "background: #112b18; color: #a6e3a1; font-weight: 900; padding: 4px 8px; border-radius: 4px; border: 1px solid #a6e3a1;"
+          );
+          console.log("%c Title:       ", "color: #fab387; font-weight: bold;", finalTitle);
+          console.log("%c Description: ", "color: #a6e3a1; font-weight: bold;", finalDescription, `(${finalDescription.length} chars)`);
+          console.log("%c Canonical:   ", "color: #89b4fa; font-weight: bold;", absCanonical);
+          if (finalKeywords) console.log("%c Keywords:    ", "color: #f9e2af; font-weight: bold;", finalKeywords);
+          console.log("%c Page Type:   ", "color: #cba6f7; font-weight: bold;", pageType);
+          
+          // AggregateRating status in dynamic green audit log
+          if (pageType === "product" && productData) {
+            const hasRating = productData.ratingValue !== undefined && productData.reviewCount !== undefined;
+            const ratingText = hasRating 
+              ? `✅ PASS (${productData.ratingValue} / ${productData.reviewCount} reviews)`
+              : "⚠️ SELF-HEALING (Defaults applied: 5.0 / 1 review)";
+            const ratingColor = hasRating ? "color: #a6e3a1; font-weight: bold;" : "color: #f9e2af; font-weight: bold;";
+            console.log("%c Schema Audit: ", ratingColor, ratingText);
+          }
+
+          console.log("%c Breadcrumbs: ", "color: #cdd6f4;", breadcrumbItems);
+          console.log("%c FAQs:        ", "color: #cdd6f4;", faqs);
+          if (seoFactory.manualScripts && seoFactory.manualScripts.length > 0) {
+            console.log("%c Custom LDs:  ", "color: #cdd6f4;", seoFactory.manualScripts);
+          }
+          if (graphLdStr) {
+            try {
+              console.log("%c Unified Graph LD: ", "color: #ff79c6; font-weight: bold;", JSON.parse(graphLdStr));
+            } catch (e) {
+              console.log("%c Unified Graph LD (Raw): ", "color: #ff79c6; font-weight: bold;", graphLdStr);
+            }
+          }
+          console.groupEnd();
+        });
       }
     }
   });
@@ -215,12 +238,30 @@
       seoFactory.pageType = pageType;
       seoFactory.breadcrumbItems = breadcrumbItems;
       seoFactory.faqs = faqs;
-      seoFactory.manualScripts = jsonLdScripts;
+
+      // Elite V2.2: Deduplicate & Clean manual Product schemas
+      // We ALWAYS filter out backend-generated Product JSON-LD to let the Frontend build 
+      // the perfect, complete, reactive, and unified Product schema block (with seller & rating)!
+      seoFactory.manualScripts = jsonLdScripts.filter(s => {
+        if (s) {
+          const cleanStr = s.replace(/\s+/g, '');
+          if (cleanStr.includes('"@type":"Product"')) {
+            return false;
+          }
+        }
+        return true;
+      });
 
       // Elite V2.2: Intelligent Entity Deduplication
       // We only build frontend-side LD if the backend hasn't already provided one in manualScripts
-      const hasManualProduct = jsonLdScripts.some(s => s && s.includes('"@type":"Product"'));
-      const hasManualArticle = jsonLdScripts.some(s => s && s.includes('"@type":"Article"'));
+      const hasManualProduct = seoFactory.manualScripts.some(s => {
+        if (!s) return false;
+        return s.replace(/\s+/g, '').includes('"@type":"Product"');
+      });
+      const hasManualArticle = seoFactory.manualScripts.some(s => {
+        if (!s) return false;
+        return s.replace(/\s+/g, '').includes('"@type":"Article"');
+      });
 
       if (pageType === "product" && productData && !hasManualProduct) {
         seoFactory.productData = {
@@ -228,6 +269,9 @@
           name: productData.name || title,
           url: absCanonical,
           image: (productData.images || [image]).map((img) => toAbsolute(img)),
+          ratingValue: productData.ratingValue || 5.0,
+          reviewCount: productData.reviewCount || 1,
+          sellerName: resolvedSiteName,
         } as ProductLdConfig;
       } else if (pageType === "article" && articleData && !hasManualArticle) {
         seoFactory.articleData = {

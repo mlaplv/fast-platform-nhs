@@ -201,7 +201,10 @@
     faqs={pageFaqs}
     productData={{
       name: productData.product.name,
-      images: productData.product.images,
+      images: Array.from(new Set([
+        ...(productData.product.images || []),
+        ...(productData.product.tierVariations?.[0]?.images || [])
+      ])).filter(Boolean),
       description: productSeoMeta?.description || productData.product.short_description || productData.product.shortDescription || "",
       brand: (productData.product.attributes?.brand as string) || (productData.product.attributes?.['Thương hiệu'] as string) || siteName,
       sku: productData.product.sku,

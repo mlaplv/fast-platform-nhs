@@ -86,6 +86,7 @@ export interface ProductLdConfig {
     reviewCount?: number;
     reviews?: ReviewLd[];
     variants?: ProductVariantLd[];
+    sellerName?: string;
 }
 
 // ── Builders ──────────────────────────────────────────────────────────────────
@@ -98,20 +99,28 @@ export function buildProductLd(config: ProductLdConfig): string {
     const mainPrice = config.discountPrice || config.price;
     const hasDiscount = !!config.discountPrice && config.discountPrice < config.price;
 
+    // Support both priceCurrency and currency, standardizing currency values like 'đ' to 'VND'
+    const rawCurrency = config.priceCurrency || (config as any).currency || "VND";
+    const resolvedCurrency = rawCurrency === "đ" ? "VND" : rawCurrency;
+
     const offer: Record<string, unknown> = {
         "@type": "Offer",
         "url": config.url,
-        "priceCurrency": config.priceCurrency || "VND",
+        "priceCurrency": resolvedCurrency,
         "price": String(mainPrice),
         "availability": config.availability?.includes("InStock") ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-        "itemCondition": "https://schema.org/NewCondition"
+        "itemCondition": "https://schema.org/NewCondition",
+        "seller": {
+            "@type": "Organization",
+            "name": config.sellerName || "osmo.vn"
+        }
     };
 
     if (hasDiscount) {
         offer.priceSpecification = {
             "@type": "PriceSpecification",
             "price": String(mainPrice),
-            "priceCurrency": config.priceCurrency || "VND",
+            "priceCurrency": resolvedCurrency,
             "valueAddedTaxIncluded": true
         };
     }
@@ -134,19 +143,36 @@ export function buildProductLd(config: ProductLdConfig): string {
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
 
+        // Derive availability for AggregateOffer based on variant stock/availability
+        const isAggregateInStock = config.variants.some(v => 
+            v.availability?.includes("InStock") || 
+            (v as any).stock > 0 || 
+            (v as any).availability === "InStock"
+        );
+        const aggregateAvailability = isAggregateInStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
+
         product.offers = {
             "@type": "AggregateOffer",
             "lowPrice": String(minPrice),
             "highPrice": String(maxPrice),
-            "priceCurrency": config.priceCurrency || "VND",
+            "priceCurrency": resolvedCurrency,
+            "availability": aggregateAvailability,
             "offerCount": String(config.variants.length),
+            "seller": {
+                "@type": "Organization",
+                "name": config.sellerName || "osmo.vn"
+            },
             "offers": config.variants.map(v => ({
                 "@type": "Offer",
                 "name": v.name,
                 "sku": v.sku,
                 "price": String(v.discountPrice || v.price),
-                "priceCurrency": config.priceCurrency || "VND",
-                "availability": v.availability?.includes("InStock") ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+                "priceCurrency": resolvedCurrency,
+                "availability": v.availability?.includes("InStock") ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                "seller": {
+                    "@type": "Organization",
+                    "name": config.sellerName || "osmo.vn"
+                }
             }))
         };
     } else {

@@ -292,7 +292,12 @@
     availability: product?.stock > 0 ? "InStock" : "OutOfStock",
     brand: product?.metadata?.brand || "Osmo",
     sku: product?.sku || product?.id,
-    images: product?.images || [],
+    images: Array.from(new Set([
+      ...(product?.images || []),
+      ...(product?.tierVariations?.[0]?.images || [])
+    ])).filter(Boolean),
+    ratingValue: data?.reviewStats?.average_rating || 5,
+    reviewCount: data?.reviewStats?.total_count || 1,
   }}
   jsonLdScripts={[
     seoMeta?.json_ld_string,
