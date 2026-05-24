@@ -441,23 +441,10 @@ export function createPulseManager(
     }
   };
 
-  let idleDisconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-
   const handleBusyState = (isBusy: boolean) => {
-    if (isBusy) {
-      if (idleDisconnectTimeout) {
-        clearTimeout(idleDisconnectTimeout);
-        idleDisconnectTimeout = null;
-      }
-      connectPulse();
-    } else {
-      if (!idleDisconnectTimeout) {
-        idleDisconnectTimeout = setTimeout(() => {
-          disconnectPulse();
-          idleDisconnectTimeout = null;
-        }, 5000);
-      }
-    }
+    // Elite V2.2: Luôn luôn kết nối Pulse Stream khi Admin Panel có phiên đăng nhập hợp lệ thêu sếp!
+    // Không ngắt kết nối khi rỗi (IDLE) để đảm bảo nhận các sự kiện hệ thống (Khách chat, Đơn hàng mới, Gọi lại khẩn...)
+    connectPulse();
   };
 
   const shouldSkipSync = (campaign_id: string): boolean => {

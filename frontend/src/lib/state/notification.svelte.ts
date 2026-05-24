@@ -1,6 +1,7 @@
 import { apiClient } from "$lib/utils/apiClient";
 import type { Notification } from "./types";
 import { authStore } from "./authStore.svelte";
+import { vuiController } from "$lib/vui";
 
 export function createNotificationState() {
   const state = $state({
@@ -66,6 +67,15 @@ export function createNotificationState() {
         created_at: new Date().toISOString()
       };
       state.notifications = [notif, ...state.notifications].slice(0, 200);
+
+      // 🔈 REAL-TIME TACTICAL AUDIO: "Ting" sound for the Boss (Elite V2.2)
+      if (signal.severity === "ACTION" || signal.severity === "CRITICAL") {
+        try {
+          vuiController.playNotificationPing();
+        } catch (e) {
+          console.warn("[NotificationState] playNotificationPing failed:", e);
+        }
+      }
     },
     fetchNotifications,
     markNotificationAsRead,
