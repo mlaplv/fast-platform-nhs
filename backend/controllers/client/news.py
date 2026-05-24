@@ -77,6 +77,9 @@ class PublicNewsController(Controller):
                 author=article.author,
                 date_published=article.createdAt.isoformat() if article.createdAt else None,
                 faqs=faq_dicts,
+                seo_title=article.seoTitle,
+                seo_description=article.seoDescription,
+                seo_keywords=article.seoKeywords,
             )
             return article
         except NotFoundException:
@@ -104,6 +107,9 @@ class PublicNewsController(Controller):
                 author=article.author,
                 date_published=article.createdAt.isoformat() if article.createdAt else None,
                 faqs=faq_dicts,
+                seo_title=article.seoTitle,
+                seo_description=article.seoDescription,
+                seo_keywords=article.seoKeywords,
             )
             return article
         except NotFoundException:

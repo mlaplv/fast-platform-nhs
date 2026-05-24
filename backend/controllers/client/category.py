@@ -58,7 +58,9 @@ class PublicCategoryController(Controller):
             name=category.name,
             slug=category.slug,
             description=category.description,
-            faqs=faqs
+            faqs=faqs,
+            seo_title=category.seo_title,
+            seo_description=category.seo_description,
         )
 
         return CategoryResponse(

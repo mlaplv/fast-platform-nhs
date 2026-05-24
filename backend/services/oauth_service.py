@@ -19,7 +19,7 @@ class OAuth2Service:
         
     def _get_redirect_uri(self, provider: str) -> str:
         # Sử dụng API_URL thay vì APP_URL vì Controller Auth nằm ở Backend (api.osmo)
-        # Tuân thủ SSOT: Facebook/Google sẽ callback về đúng Endpoint xử lý code.
+        # Tuân thủ SSOT: Facebook/Google/Zalo sẽ callback về đúng Endpoint xử lý code.
         api_url = os.getenv("API_URL", "").rstrip('/')
         if not api_url:
             # Fallback nếu API_URL chưa set thì dùng FRONTEND_URL/api...
@@ -27,7 +27,7 @@ class OAuth2Service:
             return f"{base_url}/api/v1/auth/oauth/callback/{provider}"
         return f"{api_url}/api/v1/auth/oauth/callback/{provider}"
 
-    def get_login_url(self, provider: str) -> str:
+    def get_login_url(self, provider: str) -> Tuple[str, Optional[str]]:
         """Sinh ra Access URL để chuyển hướng User sang nền tảng chỉ định."""
         state = "".join(random.choices(string.ascii_letters + string.digits, k=32))
         redirect_uri = self._get_redirect_uri(provider)
@@ -45,7 +45,7 @@ class OAuth2Service:
                 "state": state,
                 "access_type": "online"
             }
-            return f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+            return f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}", None
             
         elif provider == "facebook":
             client_id = os.getenv("FACEBOOK_CLIENT_ID", "")
@@ -61,25 +61,36 @@ class OAuth2Service:
                 "state": state,
                 "response_type": "code"
             }
-            return f"{base_url}?{urlencode(params)}&scope={scope}"
+            return f"{base_url}?{urlencode(params)}&scope={scope}", None
             
         elif provider == "zalo":
-            app_id = os.getenv("ZALO_APP_ID", "")
+            app_id = os.getenv("ZALO_APP_ID") or os.getenv("ZALO_CLIENT_ID", "")
             if not app_id:
                 raise ClientException(status_code=500, detail="Chưa cấu hình ZALO_APP_ID")
                 
+            import secrets
+            import hashlib
+            import base64
+
+            # PKCE: Generate code_verifier (random string, 43 to 128 characters)
+            code_verifier = secrets.token_urlsafe(64)[:64]
+            # PKCE: Generate code_challenge
+            hashed = hashlib.sha256(code_verifier.encode('ascii')).digest()
+            code_challenge = base64.urlsafe_b64encode(hashed).decode('ascii').replace('=', '')
+
             params = {
                 "app_id": app_id,
                 "redirect_uri": redirect_uri,
-                "state": state
+                "state": state,
+                "code_challenge": code_challenge
             }
-            # Zalo uses a bespoke login portal
-            return f"https://oauth.zaloapp.com/v4/permission?{urlencode(params)}"
+            # Zalo uses a bespoke login portal requiring PKCE
+            return f"https://oauth.zaloapp.com/v4/permission?{urlencode(params)}", code_verifier
             
         else:
             raise ClientException(status_code=400, detail=f"Provider {provider} không được hỗ trợ.")
 
-    async def exchange_code_for_user(self, provider: str, code: str) -> Dict[str, str]:
+    async def exchange_code_for_user(self, provider: str, code: str, code_verifier: Optional[str] = None) -> Dict[str, str]:
         """Đổi Authorization Code lấy Access Token và trích xuất User Profile (Email, Name, Picture)."""
         redirect_uri = self._get_redirect_uri(provider)
         
@@ -89,7 +100,7 @@ class OAuth2Service:
             elif provider == "facebook":
                 return await self._process_facebook(client, code, redirect_uri)
             elif provider == "zalo":
-                return await self._process_zalo(client, code, redirect_uri)
+                return await self._process_zalo(client, code, redirect_uri, code_verifier)
             else:
                 raise ClientException(status_code=400, detail=f"Provider {provider} không được hỗ trợ.")
 
@@ -169,26 +180,42 @@ class OAuth2Service:
             "avatar": avatar
         }
 
-    async def _process_zalo(self, client: httpx.AsyncClient, code: str, redirect_uri: str) -> Dict[str, str]:
-        app_id = os.getenv("ZALO_APP_ID", "")
-        secret_key = os.getenv("ZALO_SECRET_KEY", "")
+    async def _process_zalo(self, client: httpx.AsyncClient, code: str, redirect_uri: str, code_verifier: Optional[str] = None) -> Dict[str, str]:
+        app_id = os.getenv("ZALO_APP_ID") or os.getenv("ZALO_CLIENT_ID", "")
+        secret_key = os.getenv("ZALO_SECRET_KEY") or os.getenv("ZALO_CLIENT_SECRET", "")
+        
+        if not app_id or not secret_key:
+            raise ClientException(status_code=500, detail="Chưa cấu hình thông tin xác thực Zalo")
         
         # 1. Exchange Code
+        data = {
+            "code": code,
+            "app_id": app_id,
+            "grant_type": "authorization_code"
+        }
+        if code_verifier:
+            data["code_verifier"] = code_verifier
+
         token_res = await client.post("https://oauth.zaloapp.com/v4/access_token", headers={
             "app_id": app_id,
             "secret_key": secret_key,
             "Content-Type": "application/x-www-form-urlencoded"
-        }, data={
-            "code": code,
-            "app_id": app_id,
-            "grant_type": "authorization_code"
-        })
+        }, data=data)
         
         if token_res.status_code != 200:
             logger.error(f"[OAuth Zalo] Token Exchange Failed: {token_res.text}")
             raise NotAuthorizedException("Zalo Login Failed.")
             
-        acc_token = token_res.json().get("access_token")
+        res_json = token_res.json()
+        if "error" in res_json or "error_description" in res_json:
+            error_msg = res_json.get("error_description") or res_json.get("message") or f"Mã lỗi: {res_json.get('error')}"
+            logger.error(f"[OAuth Zalo] API Error inside response: {res_json}")
+            raise NotAuthorizedException(f"Zalo Login Failed: {error_msg}")
+
+        acc_token = res_json.get("access_token")
+        if not acc_token:
+            logger.error(f"[OAuth Zalo] No access_token returned: {res_json}")
+            raise NotAuthorizedException("Zalo Login Failed: Không tìm thấy access token.")
         
         # 2. Extract Info
         user_res = await client.get("https://graph.zalo.me/v2.0/me", params={

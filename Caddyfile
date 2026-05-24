@@ -15,7 +15,21 @@
     }
 }
 
-{$APP_DOMAIN}, {$ADMIN_DOMAIN}, {$API_DOMAIN} {
+# Explicit HTTP Block to prevent ACME redirect loops and boost TLS bootstrapping
+http://{$APP_DOMAIN}, http://{$ADMIN_DOMAIN}, http://{$API_DOMAIN} {
+    # Let Caddy's internal ACME solver handle HTTP challenge on port 80 directly
+    @acme path /.well-known/acme-challenge/*
+    handle @acme {
+        # Fallback to bypass redirection
+    }
+
+    # Redirect all other HTTP traffic to HTTPS
+    handle {
+        redir https://{host}{uri} permanent
+    }
+}
+
+https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
     # tls internal  # removed to allow ACME automatic certificates
     import security_headers
 
@@ -42,15 +56,14 @@
     }
 
     # Frontend Routing (Only for main and admin domains)
-    # Elite V2.2: Bắt buộc forward Host header để SvelteKit nhận đúng hostname cho tenant detection.
-    # Nếu thiếu header_up Host, event.url.hostname = "ui" (container name) → tenant = "storefront" → BUG!
+    # Serves precompiled static files directly with high-performance Brotli and Gzip compression
     @frontend_host host {$APP_DOMAIN} {$ADMIN_DOMAIN}
     handle @frontend_host {
-        reverse_proxy ui:5173 {
-            header_up Host {host}
-            header_up X-Forwarded-Host {host}
-            header_up X-Real-IP {remote_host}
+        root * /app/frontend/dist
+        file_server {
+            precompressed br gzip
         }
+        try_files {path} /index.html
     }
 
     # Fallback for API_DOMAIN (proxy everything to backend if not caught by /api/*)

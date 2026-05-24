@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: fast_platform
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     logging:
@@ -64,6 +64,7 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./frontend/dist:/app/frontend/dist:ro
       # Use ACME automatically; remove manual pki mount which may contain malformed certs
       - caddy_data:/data
       - caddy_config:/config
@@ -119,41 +120,7 @@ services:
       redis:
         condition: service_healthy
 
-  ui:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
-      args:
-        - PNPM_CONCURRENCY=${PNPM_CONCURRENCY:-4}
-    container_name: fast_platform_ui
-    working_dir: /app/frontend
-    volumes:
-      - ./frontend:/app/frontend
-    expose:
-      - "5173"
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "5m"
-        max-file: "3"
-    env_file:
-      - .env
-    environment:
-      - VITE_API_URL=${API_DOMAIN}
-      - VITE_API_PROXY_TARGET=http://api:8000
-      - INTERNAL_API_URL=http://api:8000
-      - APP_DOMAIN=${APP_DOMAIN}
-      - ENVIRONMENT=${ENVIRONMENT}
-    mem_limit: ${UI_MEM_LIMIT:-1G}
-    deploy:
-      resources:
-        limits:
-          memory: ${UI_MEM_LIMIT:-1G}
-    command: pnpm dev --host 0.0.0.0
-    links:
-      - api
-    depends_on:
-      - api
+
 
   worker_high:
     build:

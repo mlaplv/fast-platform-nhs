@@ -153,8 +153,10 @@ class CategoryService:
         seo_meta = SeoService.generate_category_seo_meta(
             name=p_dict["name"],
             slug=p_dict["slug"],
-            description=p_dict.get("seo_description") or p_dict.get("description"),
-            faqs=faqs
+            description=p_dict.get("description"),
+            faqs=faqs,
+            seo_title=p_dict.get("seo_title"),
+            seo_description=p_dict.get("seo_description")
         )
         p_dict["seo_meta"] = seo_meta
 
@@ -239,8 +241,10 @@ class CategoryService:
         seo_meta = SeoService.generate_category_seo_meta(
             name=category.name,
             slug=category.slug,
-            description=category.seo_description or category.description,
-            faqs=faqs
+            description=category.description,
+            faqs=faqs,
+            seo_title=category.seo_title,
+            seo_description=category.seo_description
         )
 
         # 1. Zero-Hydration Response Reconstruction

@@ -75,8 +75,11 @@ class SeoService:
     @staticmethod
     def _build_title(product: object, seo_title: Optional[str] = None) -> str:
         """Title ưu tiên trường admin nhập, fallback sang name + brand."""
-        name = getattr(product, "name", "Sản phẩm")
-        title: str = seo_title or getattr(product, "seoTitle", None) or getattr(product, "seo_title", None) or f"{name} | {_BRAND_NAME}"
+        if isinstance(product, str):
+            title = seo_title or f"{product} | {_BRAND_NAME}"
+        else:
+            name = getattr(product, "name", "Sản phẩm")
+            title: str = seo_title or getattr(product, "seoTitle", None) or getattr(product, "seo_title", None) or f"{name} | {_BRAND_NAME}"
         
         # Tước bỏ HTML tags nếu có
         title = SeoService._strip_html(title)
@@ -411,14 +414,16 @@ class SeoService:
         slug: str, 
         description: Optional[str] = None, 
         items: Optional[list] = None,
-        faqs: Optional[list[dict]] = None
+        faqs: Optional[list[dict]] = None,
+        seo_title: Optional[str] = None,
+        seo_description: Optional[str] = None
     ) -> SeoMetaSchema:
         """Tạo SEO cho trang danh mục."""
         canonical_url = f"{_SITE_URL}/{slug}/"
-        title = SeoService._build_title(name)
+        title = seo_title or SeoService._build_title(name)
         
         # Build standard description for category
-        desc = description or f"Khám phá danh mục {name} chính hãng tại {_SITE_NAME}. Cam kết chất lượng, hỗ trợ tận tâm."
+        desc = seo_description or description or f"Khám phá danh mục {name} chính hãng tại {_SITE_NAME}. Cam kết chất lượng, hỗ trợ tận tâm."
         desc = SeoService._strip_html(desc)
         if len(desc) > _DESC_MAX:
             desc = desc[:_DESC_TRIM] + "…"
@@ -480,13 +485,18 @@ class SeoService:
         author: str = "Admin",
         date_published: Optional[str] = None,
         faqs: Optional[list[dict]] = None,
+        seo_title: Optional[str] = None,
+        seo_description: Optional[str] = None,
+        seo_keywords: Optional[str] = None,
     ) -> "ArticleSeoMeta":
         """GEO 2026: Tạo SEO + FAQPage JSON-LD cho trang bài viết."""
         from backend.schemas.article import ArticleSeoMeta
 
         canonical_url = f"{_SITE_URL}/{slug}"
-        seo_title = SeoService._build_title(title)
-        desc = excerpt or f"Đọc bài viết {title} để biết thêm thông tin chi tiết và hữu ích tại {_SITE_NAME}."
+        final_seo_title = seo_title or SeoService._build_title(title)
+        
+        # Elite V2.2: Prioritize DB-configured seo_description, fallback to excerpt
+        desc = seo_description or excerpt or f"Đọc bài viết {title} để biết thêm thông tin chi tiết và hữu ích tại {_SITE_NAME}."
         desc = SeoService._strip_html(desc)
         if len(desc) > _DESC_MAX:
             desc = desc[:_DESC_TRIM] + "…"
@@ -536,10 +546,13 @@ class SeoService:
         if faqs:
             faq_ld = SeoService._build_faq_ld(faqs)
 
+        # Elite V2.2: Prioritize DB-configured seo_keywords, fallback to default keywords list
+        final_keywords = seo_keywords or f"{title}, bài viết, {_SITE_NAME}"
+
         return ArticleSeoMeta(
-            title=seo_title,
+            title=final_seo_title,
             description=desc,
-            keywords=f"{title}, bài viết, {_SITE_NAME}",
+            keywords=final_keywords,
             canonical_url=canonical_url,
             json_ld_string=json.dumps(schema, separators=(",", ":"), ensure_ascii=False),
             breadcrumb_ld_string=json.dumps(breadcrumb, separators=(",", ":"), ensure_ascii=False),

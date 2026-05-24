@@ -83,14 +83,27 @@ class AuthController(Controller):
     # ═══════════════════════════════════════════════════════
 
     @get("/oauth/login/{provider:str}")
-    async def oauth_login(self, provider: str) -> Redirect:
+    async def oauth_login(self, request: Request, provider: str) -> Redirect:
         """PUBLIC: Chuyển hướng người dùng sang trang Đăng nhập của Provider."""
-        return Redirect(path=oauth2_service.get_login_url(provider))
+        login_url, code_verifier = oauth2_service.get_login_url(provider)
+        resp = Redirect(path=login_url)
+        if code_verifier:
+            resp.set_cookie(
+                key="zalo_code_verifier",
+                value=code_verifier,
+                httponly=True,
+                secure=True,
+                samesite="lax",
+                max_age=300,
+                path="/"
+            )
+        return resp
 
     @get("/oauth/callback/{provider:str}")
     async def oauth_callback(self, request: Request, db_session: AsyncSession, provider: str, code: str) -> Redirect:
         """PUBLIC: Hứng Authorization Code từ Provider, sinh JWT và set HttpOnly Cookie."""
-        user_profile = await oauth2_service.exchange_code_for_user(provider, code)
+        code_verifier = request.cookies.get("zalo_code_verifier")
+        user_profile = await oauth2_service.exchange_code_for_user(provider, code, code_verifier)
         access_token = await auth_service.handle_social_user(db_session, user_profile)
         await db_session.commit()
 
@@ -98,6 +111,9 @@ class AuthController(Controller):
         is_admin = self._is_admin_host(request)
         frontend_callback = f"{oauth2_service.frontend_url}/auth/callback?token={access_token}"
         resp = Redirect(path=frontend_callback)
+        if code_verifier:
+            resp.delete_cookie(key="zalo_code_verifier", path="/")
+            
         self._set_secure_cookie(resp, access_token, is_admin, remember_me=True)
         return resp
 
