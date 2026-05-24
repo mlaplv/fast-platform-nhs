@@ -573,4 +573,22 @@
   - [x] Sử dụng `rsync` đồng bộ hóa toàn bộ static build tối ưu `dist/` lên VPS production theo đúng đường dẫn thực tế `/opt/fast-platform/frontend/dist/`.
   - [x] Đảm bảo cấu trúc SEO/SGE hoạt động trơn tru 100%, load động trực tiếp từ Real DB, đáp ứng hoàn hảo tiêu chuẩn SGE/GEO 2026.
 
+# Task checklist: Triển khai & Tích hợp SEO Keywords cho Danh mục (Phase 12)
+
+- [x] **Trinh sát & Mở rộng Schema Động (Backend Schema Expansion)**
+  - [x] Rà soát và mở rộng cấu trúc `CategoryMetadata` Pydantic model trong `backend/schemas/category.py` để bổ sung trường `seoKeywords` (alias `seo_keywords`).
+  - [x] Đảm bảo cấu hình `extra='allow'` và alias tương thích hoàn toàn để dữ liệu tự động serialize/deserialize vào trường JSONB `category_metadata` trong Database.
+- [x] **Động hóa SEO Keywords Engine (Service Layer Hardening)**
+  - [x] Cập nhật hàm `generate_category_seo_meta` trong `backend/services/commerce/seo_service.py` để chấp nhận tham số `seo_keywords` động, thay thế cho fallback keywords cứng.
+  - [x] Cấu hình trích xuất động `seo_keywords` từ metadata trong `backend/services/commerce/category.py` cho cả luồng Get chi tiết và Update danh mục.
+  - [x] Cập nhật luồng Client Category Controller (`backend/controllers/client/category.py`) để đồng bộ keywords trực tiếp lên storefront.
+- [x] **Tích hợp Form SEO Keywords (Admin UX Integration)**
+  - [x] Mở rộng `CategoryForm.svelte` để khai báo prop `formSeoKeywords = $bindable()`, khởi tạo an toàn trong `onMount` và tích hợp AI Suggestion.
+  - [x] Thiết kế trường nhập liệu `Meta_Keywords_Snippet` sử dụng tone màu HSL Emerald sang trọng, bóng bẩy trong tab SEO của form.
+  - [x] Cập nhật `CategoryManagement.svelte` để duy trì state phản ứng `formSeoKeywords`, nạp động trong `openEdit`, xóa sạch trong `openCreate`, và gửi chuẩn xác lên API khi `save()`.
+- [x] **Kiểm định & Triển khai Thực địa (Verification & Zero-Hydration Deploy)**
+  - [x] Thực hiện biên dịch thử storefront bằng `pnpm build`, đạt kết quả xuất sắc: **Biên dịch thành công, Exit Code `0`**.
+  - [x] Sử dụng `rsync` đồng bộ hóa toàn bộ backend và static build tối ưu `dist/` lên VPS production.
+  - [x] Khởi động lại container API từ xa để áp dụng các thay đổi nghiệp vụ ngay lập tức.
+
 

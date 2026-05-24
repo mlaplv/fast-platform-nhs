@@ -48,9 +48,13 @@ class PublicCategoryController(Controller):
 
         # Prepare FAQs for SEO Service
         faqs = []
+        seo_keywords = None
         db_meta = category.category_metadata or {}
-        if isinstance(db_meta, dict) and "faqs" in db_meta:
-            faqs = db_meta["faqs"]
+        if isinstance(db_meta, dict):
+            if "faqs" in db_meta:
+                faqs = db_meta["faqs"]
+            if "seo_keywords" in db_meta:
+                seo_keywords = db_meta["seo_keywords"]
         
         verified_metadata = CategoryMetadata.model_validate(db_meta) if db_meta else CategoryMetadata()
 
@@ -61,6 +65,7 @@ class PublicCategoryController(Controller):
             faqs=faqs,
             seo_title=category.seo_title,
             seo_description=category.seo_description,
+            seo_keywords=seo_keywords,
         )
 
         return CategoryResponse(

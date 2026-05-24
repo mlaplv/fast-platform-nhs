@@ -7,6 +7,7 @@ from backend.schemas.product import SeoMetaSchema, FaqItem
 class CategoryMetadata(BaseModel):
     model_config = ConfigDict(extra='allow', populate_by_name=True)
     faqs: List[FaqItem] = Field(default_factory=list, alias="faqs")
+    seoKeywords: Optional[str] = Field(None, alias="seo_keywords")
 
 
 class CreateCategoryRequest(BaseModel):

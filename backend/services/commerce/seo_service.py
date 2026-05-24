@@ -416,7 +416,8 @@ class SeoService:
         items: Optional[list] = None,
         faqs: Optional[list[dict]] = None,
         seo_title: Optional[str] = None,
-        seo_description: Optional[str] = None
+        seo_description: Optional[str] = None,
+        seo_keywords: Optional[str] = None
     ) -> SeoMetaSchema:
         """Tạo SEO cho trang danh mục."""
         canonical_url = f"{_SITE_URL}/{slug}/"
@@ -469,7 +470,7 @@ class SeoService:
         return SeoMetaSchema(
             title=title,
             description=desc,
-            keywords=f"{name}, {name} chính hãng, {_SITE_NAME}, {_BRAND_NAME}",
+            keywords=seo_keywords or f"{name}, {name} chính hãng, {_SITE_NAME}, {_BRAND_NAME}",
             canonical_url=canonical_url,
             json_ld_string=json.dumps(schema, separators=(",", ":"), ensure_ascii=False),
             breadcrumb_ld_string=json.dumps(breadcrumb, separators=(",", ":"), ensure_ascii=False),

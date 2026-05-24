@@ -1260,4 +1260,30 @@ Sau khi phục hồi, stack đã được kiểm tra toàn diện và xác nhậ
 - **Rsync Sync lên Production**: Deploy thành công thư mục `dist/` mới lên VPS production theo đúng đường dẫn `/opt/fast-platform/frontend/dist/`.
 - **Dynamic SEO Live**: Kiểm tra thực tế trên production xác nhận các trang tĩnh prerendered và dynamic pages đã hiển thị chính xác dynamic metadata từ DB cấu hình thực tế, loại bỏ 100% hardcode!
 
+---
+
+## Phase 12: Tích hợp SEO Keywords cho Danh mục (Dynamic Category SEO Keywords Engine)
+
+### A. Phân tích & Trinh sát (Scout Protocol)
+- **Vấn đề**: Form quản lý danh mục (`CategoryForm.svelte` và `CategoryManagement.svelte`) thiếu hoàn toàn trường nhập liệu và lưu trữ từ khóa SEO (`formSeoKeywords`), làm mất đi khả năng tối ưu hóa từ khóa ở cấp độ danh mục.
+- **Giải pháp**:
+  - Không thay đổi cấu trúc DB để tránh rủi ro migration ở môi trường Production: Tận dụng cột JSONB `category_metadata` của bảng `categories` để lưu trữ dynamic `seo_keywords`.
+  - Mở rộng schema Pydantic `CategoryMetadata` để tự động serialize/deserialize trường `seo_keywords`.
+  - Nâng cấp `SeoService.generate_category_seo_meta` ở Backend để chấp nhận và hiển thị dynamic keywords thay vì fallback cứng.
+  - Tích hợp trường nhập liệu `Meta_Keywords_Snippet` vào tab SEO của admin form.
+
+### B. Giải pháp & Thực thi (Dynamic SEO Keywords Execution)
+- **Backend Schema & Service Expansion**:
+  - Thêm `seoKeywords: Optional[str] = Field(None, alias="seo_keywords")` vào `CategoryMetadata` BaseModel trong [category.py](file:///home/lv/Desktop/fast-platform-core/backend/schemas/category.py).
+  - Cập nhật hàm `generate_category_seo_meta` trong [seo_service.py](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/seo_service.py) để nhận `seo_keywords` và dùng làm keywords chính cho danh mục.
+  - Sửa đổi [category.py service](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/category.py) và [category.py client controller](file:///home/lv/Desktop/fast-platform-core/backend/controllers/client/category.py) để trích xuất `seo_keywords` và truyền vào dịch vụ tạo SEO.
+- **Admin UX Upgrades**:
+  - Cập nhật [CategoryForm.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/CategoryForm.svelte) với prop `$bindable()` mới `formSeoKeywords`, và thêm trường nhập liệu glassmorphism HSL Emerald trong tab SEO.
+  - Cập nhật [CategoryManagement.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/lib/components/admin/management/CategoryManagement.svelte) để bind, nạp động khi edit và gửi chuẩn xác lên API.
+
+### C. Bằng chứng Vận hành (Verification Evidence)
+- **Compile Success**: Storefront được build tĩnh `pnpm build` thành công rực rỡ với **Exit Code `0`**.
+- **Deploy & Restart**: Đồng bộ hóa toàn bộ Backend & Frontend mới lên VPS Production qua `rsync` và khởi động lại API service container (`docker restart fast_platform_api`) thành công tốt đẹp!
+- **Dynamic Parity**: Xác nhận luồng dữ liệu SEO Keywords cho danh mục đã đồng bộ trơn tru 100% từ Database lên Frontend và các thẻ SEO storefront.
+
 

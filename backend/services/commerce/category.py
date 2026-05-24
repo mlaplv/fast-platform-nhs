@@ -150,13 +150,15 @@ class CategoryService:
         
         # SEO Meta Generation
         faqs = p_dict.get("category_metadata", {}).get("faqs", [])
+        seo_keywords = p_dict.get("category_metadata", {}).get("seo_keywords")
         seo_meta = SeoService.generate_category_seo_meta(
             name=p_dict["name"],
             slug=p_dict["slug"],
             description=p_dict.get("description"),
             faqs=faqs,
             seo_title=p_dict.get("seo_title"),
-            seo_description=p_dict.get("seo_description")
+            seo_description=p_dict.get("seo_description"),
+            seo_keywords=seo_keywords
         )
         p_dict["seo_meta"] = seo_meta
 
@@ -183,7 +185,7 @@ class CategoryService:
             position=data.position,
             show_on_mobile=data.showOnMobile,
             show_on_desktop=data.showOnDesktop,
-            category_metadata=data.metadata.model_dump()
+            category_metadata=data.metadata.model_dump(by_alias=True)
         )
         db_session.add(category)
         await db_session.commit()
@@ -229,7 +231,7 @@ class CategoryService:
         if data.position is not None: category.position = data.position
         if data.showOnMobile is not None: category.show_on_mobile = data.showOnMobile
         if data.showOnDesktop is not None: category.show_on_desktop = data.showOnDesktop
-        if data.metadata is not None: category.category_metadata = data.metadata.model_dump()
+        if data.metadata is not None: category.category_metadata = data.metadata.model_dump(by_alias=True)
 
         category.updated_at = datetime.now(timezone.utc)
         await db_session.commit()
@@ -238,13 +240,15 @@ class CategoryService:
 
         # Elite V2.2: Deep Sync SEO Meta after update
         faqs = category.category_metadata.get("faqs", []) if category.category_metadata else []
+        seo_keywords = category.category_metadata.get("seo_keywords") if category.category_metadata else None
         seo_meta = SeoService.generate_category_seo_meta(
             name=category.name,
             slug=category.slug,
             description=category.description,
             faqs=faqs,
             seo_title=category.seo_title,
-            seo_description=category.seo_description
+            seo_description=category.seo_description,
+            seo_keywords=seo_keywords
         )
 
         # 1. Zero-Hydration Response Reconstruction

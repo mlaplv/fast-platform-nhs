@@ -24,6 +24,7 @@
     formDescription = $bindable(),
     formSeoTitle = $bindable(),
     formSeoDescription = $bindable(),
+    formSeoKeywords = $bindable(),
     formImage = $bindable(),
     formIcon = $bindable(),
     formShowOnMobile = $bindable(),
@@ -40,6 +41,7 @@
     formDescription: string;
     formSeoTitle: string;
     formSeoDescription: string;
+    formSeoKeywords: string;
     formImage: string;
     formIcon: string;
     formShowOnMobile: boolean;
@@ -56,6 +58,7 @@
     if (formDescription === undefined) formDescription = "";
     if (formSeoTitle === undefined) formSeoTitle = "";
     if (formSeoDescription === undefined) formSeoDescription = "";
+    if (formSeoKeywords === undefined) formSeoKeywords = "";
     if (formImage === undefined) formImage = "";
     if (formIcon === undefined) formIcon = "";
     if (formShowOnMobile === undefined) formShowOnMobile = true;
@@ -80,6 +83,7 @@
       });
       if (res.title) formSeoTitle = res.title;
       if (res.description) formSeoDescription = res.description;
+      if (res.keywords) formSeoKeywords = res.keywords;
       nanobot.showToast("Đã gợi ý SEO thành công", "success");
     } catch (e) {
       console.error("SEO suggest failed:", e);
@@ -321,6 +325,19 @@
                   class="w-full bg-transparent py-3.5 px-5 text-sm text-gray-100 placeholder:text-gray-700 focus:outline-none resize-none"
                 ></textarea>
                 <div class="absolute right-4 bottom-3 text-[9px] font-mono text-gray-600">{(formSeoDescription || "").length}/160</div>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-[9px] font-bold text-gray-500 tracking-widest ml-1 flex items-center gap-2 text-emerald-400">
+                Meta_Keywords_Snippet
+              </label>
+              <div class="relative group bg-black/40 border border-white/5 hover:border-white/10 focus-within:border-emerald-500/40 rounded-2xl transition-all shadow-inner">
+                <input
+                  bind:value={formSeoKeywords}
+                  placeholder="Keywords separated by commas (e.g. skin, beauty)..."
+                  class="w-full bg-transparent py-3.5 px-5 text-sm text-gray-100 placeholder:text-gray-700 focus:outline-none"
+                />
               </div>
             </div>
 

@@ -33,6 +33,7 @@
     formDescription = $state(""),
     formSeoTitle = $state(""),
     formSeoDescription = $state(""),
+    formSeoKeywords = $state(""),
     formImage = $state(""),
     formIcon = $state(""),
     formShowOnMobile = $state(true),
@@ -134,6 +135,7 @@
     formDescription = "";
     formSeoTitle = "";
     formSeoDescription = "";
+    formSeoKeywords = "";
     formImage = "";
     formIcon = "";
     formShowOnMobile = true;
@@ -160,7 +162,19 @@
     // Elite V2.2: Dual-Key Metadata Probe (Metadata vs CategoryMetadata)
     const raw: any = cat;
     const meta = raw.metadata || raw.category_metadata;
-    formFaqs = meta?.faqs || [];
+    
+    // Defensive copy & normalization of FAQs to guarantee clean, mutable array in Svelte 5
+    if (meta && Array.isArray(meta.faqs)) {
+      formFaqs = meta.faqs.map((f: any) => ({
+        question: f?.question || "",
+        answer: f?.answer || ""
+      }));
+    } else {
+      formFaqs = [];
+    }
+    
+    // Support both snake_case and camelCase for keywords
+    formSeoKeywords = meta?.seo_keywords || meta?.seoKeywords || "";
     
     console.log("[CategoryManagement] Metadata Found:", $state.snapshot(meta));
     console.log("[CategoryManagement] Form FAQs initialized:", $state.snapshot(formFaqs));
@@ -207,7 +221,10 @@
       icon: formIcon,
       show_on_mobile: formShowOnMobile,
       show_on_desktop: formShowOnDesktop,
-      metadata: { faqs: formFaqs }
+      metadata: { 
+        faqs: formFaqs,
+        seo_keywords: formSeoKeywords 
+      }
     };
     try {
       if (editingId) {
@@ -532,6 +549,7 @@
         bind:formDescription
         bind:formSeoTitle
         bind:formSeoDescription
+        bind:formSeoKeywords
         bind:formImage
         bind:formIcon
         bind:formShowOnMobile
