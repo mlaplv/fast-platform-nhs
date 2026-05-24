@@ -18,6 +18,11 @@ class OAuth2Service:
         return os.getenv("APP_URL", f"https://{app_domain}").rstrip('/')
         
     def _get_redirect_uri(self, provider: str) -> str:
+        # Zalo yêu cầu xác thực tên miền chính, bắt buộc dùng APP_URL (osmo.vn) làm Callback
+        if provider == "zalo":
+            base_url = os.getenv("APP_URL", "https://osmo.vn").rstrip('/')
+            return f"{base_url}/api/v1/auth/oauth/callback/zalo"
+
         # Sử dụng API_URL thay vì APP_URL vì Controller Auth nằm ở Backend (api.osmo)
         # Tuân thủ SSOT: Facebook/Google/Zalo sẽ callback về đúng Endpoint xử lý code.
         api_url = os.getenv("API_URL", "").rstrip('/')

@@ -691,4 +691,23 @@
   - [x] Chạy thử nghiệm thực tế lệnh `./xohi.sh dondep` trên VPS.
   - [x] Thu hồi thành công 21.43GB dung lượng ổ cứng mà không ảnh hưởng đến bất kỳ container hay database đang hoạt động nào.
 
+# Task checklist: Sửa lỗi Zalo OAuth Login (-14003 Invalid redirect uri)
+
+- [x] **Trinh sát & Phát hiện Nguyên nhân (Scout Protocol)**
+  - [x] Phân tích lỗi `-14003 (Invalid redirect uri)` từ Zalo OAuth.
+  - [x] Phát hiện sự sai lệch giữa Callback URL đăng ký trong Zalo Developers Console (`https://osmo.vn/api/v1/auth/oauth/callback/zalo`) và URL sinh động bằng `API_URL` của Backend (`https://api.osmo.vn/api/v1/auth/oauth/callback/zalo`).
+  - [x] Xác định lỗi `Uncaught SyntaxError` của trình duyệt là bug giao diện lỗi trên domain Zalo, không ảnh hưởng đến hệ thống.
+- [x] **Kế hoạch Tác chiến & Duyệt phương án (Propose-First)**
+  - [x] Đề xuất phương án định tuyến động Zalo callback về tên miền storefront chính `APP_URL` (`https://osmo.vn`), nơi đã được xác thực tên miền.
+  - [x] Đảm bảo Cookie `zalo_code_verifier` (PKCE) và định tuyến Caddy proxy `/api/*` hoạt động đồng nhất trên domain `osmo.vn`.
+  - [x] Được Sếp chính thức phê duyệt phương án.
+- [x] **Triển khai Đồng bộ & Vá lỗi (Execution)**
+  - [x] Cập nhật hàm `_get_redirect_uri` trong [oauth_service.py](file:///home/lv/Desktop/fast-platform-core/backend/services/oauth_service.py) để ép Zalo luôn sử dụng `APP_URL` làm Callback.
+  - [x] Nhập (import) thành phần `SeoHead` bị thiếu trong [auth/callback/+page.svelte](file:///home/lv/Desktop/fast-platform-core/frontend/src/routes/auth/callback/+page.svelte) để chấm dứt hoàn toàn lỗi crash JavaScript.
+  - [x] Khởi động lại container API `fast_platform_api` để nạp mã nguồn Python mới nhất.
+- [x] **Xác minh Vận hành & Thực địa (Verification)**
+  - [x] Kiểm tra trạng thái và logs khởi động của API container đảm bảo hoạt động an toàn và trơn tru.
+  - [x] Xác nhận logic điều hướng Zalo OAuth sinh URL Callback chuẩn xác 100%.
+  - [x] Build tĩnh frontend hoàn thành sạch sẽ, xác minh lỗi `SeoHead is not defined` đã biến mất hoàn toàn.
+
 

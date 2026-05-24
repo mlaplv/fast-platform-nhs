@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
   import Loader2 from "@lucide/svelte/icons/loader-2";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
