@@ -683,6 +683,28 @@ class SupportAgentOperative(BaseAgentOperative):
         c_name = dna.customer_name or request.customer_name or "Quý khách"
         if c_name in ["Khách ẩn danh", "Sếp"]: c_name = "Quý khách"
         
+        # Intercept Zalo OA Escalation Request (Zero-Latency / Ultra-Premium Fallback)
+        msg_clean = request.message.strip().lower()
+        if "tôi muốn kết nối trực tiếp với chuyên viên tư vấn" in msg_clean or "yêu cầu kết nối chuyên viên" in msg_clean or "gặp tư vấn viên" in msg_clean:
+            from backend.services.core.zalo_service import zalo_service
+            # Non-blocking background call to notify Sếp via Zalo OA (R03-compliant)
+            asyncio.create_task(
+                zalo_service.push_support_notification(
+                    customer_name=c_name,
+                    message=request.message,
+                    session_id=session_id
+                )
+            )
+            reply_text = (
+                "Dạ vâng ạ! Helen đã gửi thông báo yêu cầu hỗ trợ trực tiếp đến chuyên viên tư vấn. "
+                "Chuyên viên sẽ liên hệ và hỗ trợ Anh/Chị ngay lập tức ạ! 🥰\n\n"
+                "Để kết nối nhanh hơn, Anh/Chị vui lòng click vào nút **[Gặp Tư Vấn Viên]** có màu xanh sáng nổi bật ở góc trên cùng của thanh tiêu đề để chat trực tiếp qua Zalo OA nhé ạ! 🌸"
+            )
+            await self._save_history(db, session_id, request.message, reply_text, SupportIntent.UNKNOWN, request.product_slug, c_name, request.customer_phone)
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await db.flush()
+            return SupportResponse(ok=True, reply=reply_text, intent=SupportIntent.UNKNOWN, session_id=session_id, status="DONE")
+
         helen_on = await xohi_memory.client.get("system:helen_enabled")
         if helen_on == "0":
             from backend.services.core.zalo_service import zalo_service
