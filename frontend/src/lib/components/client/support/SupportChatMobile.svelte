@@ -183,6 +183,9 @@
   }
 
   async function requestZaloConsultant() {
+    const oaId = "71197756917084615";
+    window.open(`https://zalo.me/${oaId}`, "_blank");
+
     const text = "Tôi muốn kết nối trực tiếp với chuyên viên tư vấn";
     const user = authStore.user;
     const customer = shopStore?.customerData;
