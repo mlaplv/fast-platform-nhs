@@ -55,6 +55,24 @@ async def test_emit():
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
     
+    await asyncio.sleep(2)
+    
+    # 3. Test SYSTEM_SIGNAL (Urgent Support with CRITICAL severity)
+    urgent_id = str(uuid.uuid4())
+    print(f"🚨 Emitting SYSTEM_SIGNAL (Urgent Support, CRITICAL) notification_id={urgent_id}...")
+    await event_bus.emit("SYSTEM_SIGNAL", {
+        "notification_id": urgent_id,
+        "user_id": "user_admin",
+        "message": "Khách VIP 091****888 yêu cầu gọi lại trong 30s! Nguồn: Trang chủ",
+        "severity": "CRITICAL",
+        "signal_type": "URGENT_SUPPORT",
+        "payload": {
+            "phone": "0912345888",
+            "source_url": "https://smartshop.test/"
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+    
     # Sleep to let Telegram background task execute
     print("⏳ Waiting 3 seconds for background tasks to complete...")
     await asyncio.sleep(3)
@@ -65,4 +83,5 @@ async def test_emit():
 
 if __name__ == "__main__":
     asyncio.run(test_emit())
+
 
