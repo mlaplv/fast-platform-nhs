@@ -19,7 +19,7 @@ import backend.services.xohi.creative_studio.operatives.seo_analyzer
 import backend.services.xohi.creative_studio.operatives.ai_inspector
 import backend.services.xohi.creative_studio.operatives.content_enricher
 from backend.infra.jobs import cleanup_old_tasks, helen_follow_up_job
-logger = logging.getLogger("neural-worker")
+logger = logging.getLogger("arq.worker")
 
 async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, session_id: str, payload: Dict[str, object]) -> None:
     """
@@ -189,7 +189,68 @@ async def run_agent_task(ctx: Dict[str, object], agent_id: str, task_id: str, se
             
     except Exception as e:
         logger.error(f"❌ [Worker] Task {task_id} failed during execution: {e}", exc_info=True)
-        # Rollback is handled by session_maker's async context but we update status as FAILED
+        
+        if agent_id == "support_agent":
+            # Premium real-time chatbot resilience: Never retry, fall back immediately to keep UI ultra-fast
+            fallback_reply = "Dạ Helen chân thành xin lỗi Anh/Chị, hệ thống đang bận xử lý thông tin chuyên sâu. Để không làm gián đoạn trải nghiệm của mình, chuyên viên tư vấn sẽ liên hệ trực tiếp hỗ trợ ngay ạ! 🌸"
+            try:
+                # Let's extract product slug from payload to generate a highly detailed product fallback
+                product_slug = payload.get("product_slug") if isinstance(payload, dict) else getattr(payload, "product_slug", None)
+                if product_slug:
+                    async with session_maker() as db:
+                        cur_settings = {"symbol": "đ", "thousand_separator": ".", "decimal_separator": ",", "code": "VND"}
+                        from backend.services.commerce.operatives.support_agent import _fetch_product_context
+                        from backend.services.commerce.operatives.handlers.consultant import ConsultantHandler
+                        from backend.services.commerce.operatives.handlers.base import SupportContext
+                        
+                        ctx_text, p_info = await _fetch_product_context(db, product_slug, cur_settings)
+                        if p_info:
+                            dummy_ctx = SupportContext(
+                                db=db, request=None, session_id=session_id, dna=None,
+                                product_ctx=ctx_text, history_text="", knowledge_index="",
+                                p_info=p_info, cart_text="", order_draft=None,
+                                zalo_enabled=False, messenger_enabled=False
+                            )
+                            consultant = ConsultantHandler()
+                            fallback_reply = consultant._generate_db_fallback(dummy_ctx)
+            except Exception as fe:
+                logger.error(f"[Worker] Failed to generate specialized DB fallback: {fe}")
+
+            try:
+                async with session_maker() as done_db:
+                    await done_db.execute(
+                        update(UnifiedAgentTask)
+                        .where(UnifiedAgentTask.task_id == task_id)
+                        .values(
+                            status="DONE",
+                            result={"reply": fallback_reply, "intent": "UNKNOWN", "fallback": True},
+                            completed_at=datetime.now(timezone.utc)
+                        )
+                    )
+                    await done_db.commit()
+            except Exception as dbe:
+                logger.critical(f"💀 [Worker] Could not update support task fallback to DONE: {dbe}")
+
+            await event_bus.emit("AGENT_TASK_COMPLETED", {
+                "task_id": task_id,
+                "session_id": session_id,
+                "agent_id": agent_id,
+                "status": "DONE"
+            })
+            
+            await event_bus.emit("SUPPORT_RESPONSE_READY", {
+                "session_id": session_id,
+                "task_id": task_id,
+                "reply": fallback_reply,
+                "intent": "UNKNOWN",
+                "status": "DONE",
+                "ui_metadata": {"fallback": True}
+            })
+            
+            logger.info(f"🛡️ [Worker] Gracefully resolved failed support_agent task {task_id} with premium DB fallback.")
+            return
+
+        # Standard Offline Campaign fallback and retry
         try:
             async with session_maker() as fail_db:
                 await fail_db.execute(
@@ -283,6 +344,32 @@ async def startup(ctx: Dict[str, object]) -> None:
     # Without warmup_encoder(), all vector/semantic searches in worker tasks return empty lists.
     from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
     from backend.services.ai_engine.core.encoder_singleton import warmup_encoder
+    
+    # 🔍 Elite V2.2 Self-Healing: Auto-recovery for stalled tasks
+    try:
+        session_maker = alchemy_config.create_session_maker()
+        async with session_maker() as recovery_db:
+            # Mark all PENDING or RUNNING tasks older than 5 minutes as FAILED
+            from datetime import timedelta
+            cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
+            res = await recovery_db.execute(
+                update(UnifiedAgentTask)
+                .where(
+                    UnifiedAgentTask.status.in_(["RUNNING", "PENDING"]),
+                    UnifiedAgentTask.created_at < cutoff
+                )
+                .values(
+                    status="FAILED",
+                    error="Task timed out or worker process was terminated unexpectedly (Self-Healing).",
+                    completed_at=datetime.now(timezone.utc)
+                )
+            )
+            await recovery_db.commit()
+            if res.rowcount > 0:
+                logger.info(f"🛡️ [Self-Healing] Successfully recovered {res.rowcount} orphaned/stalled background tasks.")
+    except Exception as se:
+        logger.warning(f"⚠️ [Self-Healing] Task auto-recovery skipped during boot: {se}")
+
     await asyncio.gather(
         trinity_bridge.initialize(),
         warmup_encoder()

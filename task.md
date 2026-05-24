@@ -591,4 +591,22 @@
   - [x] Sử dụng `rsync` đồng bộ hóa toàn bộ backend và static build tối ưu `dist/` lên VPS production.
   - [x] Khởi động lại container API từ xa để áp dụng các thay đổi nghiệp vụ ngay lập tức.
 
+# Task checklist: Ổn định hóa Vòng lặp Hỗ trợ Khách hàng (Helen AI Loop & Worker Stability)
+- [x] **Tăng Giới Hạn Bộ Nhớ Background Worker (Docker-Compose Hardening)**
+  - [x] Nâng giới hạn `mem_limit` và `deploy.resources.limits.memory` của `worker_high` từ `384M` lên `640M` trong `docker-compose.yml`.
+  - [x] Nâng giới hạn `mem_limit` và `deploy.resources.limits.memory` của `worker_default` từ `256M` lên `640M` trong `docker-compose.yml`.
+  - [x] Tích hợp `MALLOC_ARENA_MAX=2` vào cấu hình môi trường của cả hai worker để kiểm soát sự phân mảnh bộ nhớ của glibc.
+- [x] **Lá Chắn Fallback Thời Gian Thực (Background Task Resiliency)**
+  - [x] Cải tiến `run_agent_task` trong `backend/arq_worker.py` để phát hiện và xử lý lỗi / timeout của `support_agent` thời gian thực.
+  - [x] Đảm bảo khi AI xảy ra sự cố (quá hạn, lỗi API key, hoặc crash), worker sẽ tự động sinh và trả về kết quả Dynamic DB Fallback (trạng thái `"DONE"`), phát tín hiệu `SUPPORT_RESPONSE_READY` thay vì để UI quay vô tận.
+  - [x] Loại bỏ hoàn toàn cơ chế Retry đối với chat thời gian thực (`support_agent`) để bảo vệ tài nguyên và thời gian chờ của người dùng.
+- [x] **Tối Ưu Hóa Bộ Lọc DB-First (Consultant Direct Matches)**
+  - [x] Mở rộng bảng từ khóa đối sánh trực tiếp trong `_try_db_product_direct` (`consultant.py`) để nâng cao tỷ lệ phản hồi trực tiếp không qua AI (<20ms).
+  - [x] Bổ sung các cụm từ truy vấn nâng cao về thành phần, công dụng, và xuất xứ vào các matchers.
+- [x] **Tự Động Thu Hồi Tác Vụ Mắc Kẹt (Self-Healing Orphaned Tasks)**
+  - [x] Thêm cơ chế tự phục hồi (auto-recovery) trong `startup` của worker để tự động dọn dẹp và đánh dấu FAILED cho các tác vụ bị kẹt ở trạng thái `RUNNING` trên 5 phút (do worker OOM hoặc khởi động lại đột ngột).
+- [x] **Xác Thực Vận Hành & Thực Địa (Verification & Hot-Restart)**
+  - [x] Đồng bộ hóa các thay đổi lên VPS production, khởi động lại toàn bộ hệ thống worker và kiểm tra log.
+
+
 

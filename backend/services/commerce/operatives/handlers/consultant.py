@@ -797,7 +797,9 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
 
         # Trường hợp 1: Hỏi về thành phần / công dụng
         is_ingredient_query = any(kw in msg_norm for kw in [
-            "thành phần", "chiết xuất", "nguyên liệu", "công dụng", "tác dụng"
+            "thành phần", "chiết xuất", "nguyên liệu", "công dụng", "tác dụng",
+            "chứa chất gì", "chứa gì", "thành phần gì", "có chất gì", "chất gì",
+            "dùng để làm gì", "có tác dụng gì", "giúp gì", "trị gì", "chữa gì", "đặc trị"
         ])
         if is_ingredient_query and "[THÀNH PHẦN NỔI BẬT" in product_ctx:
             lines = product_ctx.split("\n")
@@ -822,7 +824,8 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
 
         # Trường hợp 2: Hỏi về xuất xứ / chính hãng / pháp lý
         is_origin_query = any(kw in msg_norm for kw in [
-            "xuất xứ", "nguồn gốc", "chính hãng", "uy tín", "pháp lý", "chứng nhận", "giấy phép"
+            "xuất xứ", "nguồn gốc", "chính hãng", "uy tín", "pháp lý", "chứng nhận", "giấy phép",
+            "sản xuất ở đâu", "từ đâu", "nước nào", "của nước nào", "made in"
         ])
         if is_origin_query and "[BẢO CHỨNG UY TÍN" in product_ctx:
             lines = product_ctx.split("\n")
