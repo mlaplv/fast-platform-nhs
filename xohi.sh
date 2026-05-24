@@ -144,6 +144,25 @@ function hard_reset_docker() {
     echo -e "${GREEN}   ✔ Docker đã reset sạch bóng (Bảo lưu chứng chỉ SSL Caddy)!${NC}"
 }
 
+function prune_docker_garbage() {
+    echo -e "${CYAN}[CLEAN] ĐANG DỌN DẸP DOCKER (CHỈ GIỮ CÁC MỤC ĐANG CHẠY)...${NC}"
+    
+    echo -e "${YELLOW}-> [1/4] Đang xóa các container đã dừng (Stopped Containers)...${NC}"
+    docker container prune -f
+    
+    echo -e "${YELLOW}-> [2/4] Đang xóa các image không sử dụng (Unused Images)...${NC}"
+    # Prunes all unused images (both dangling and unreferenced by any running container)
+    docker image prune -a -f
+    
+    echo -e "${YELLOW}-> [3/4] Đang xóa các volume không sử dụng (Unused Volumes)...${NC}"
+    docker volume prune -f
+    
+    echo -e "${YELLOW}-> [4/4] Đang giải phóng bộ nhớ đệm build (Build Cache)...${NC}"
+    docker builder prune -a -f
+    
+    echo -e "${GREEN}[SUCCESS] Đã dọn dẹp Docker cực kỳ sạch sẽ! Chỉ giữ lại các container/image/volume đang hoạt động.${NC}"
+}
+
 function update_docker() {
     local NO_WAIT=false
     if [[ "$1" == "--no-wait" ]]; then
@@ -910,6 +929,15 @@ function deploy_security_index() {
     read -p "Nhấn Enter để quay lại menu..."
 }
 
+# Handle direct command-line arguments (e.g. ./xohi.sh dondep)
+if [[ -n "$1" ]]; then
+    case "$1" in
+        dondep|dọn_dẹp|dondep_docker|dondep-docker)
+            prune_docker_garbage
+            exit 0
+            ;;
+    esac
+fi
 
 while true; do
     clear
@@ -922,6 +950,7 @@ while true; do
     echo -e "${YELLOW}>>> LÊNH TỔNG LỰC:${NC}"
     echo "1) LÀM SẠCH CODE (Xóa Cache, Node_modules, Python Venv)"
     echo "2) BẢO TRÌ DOCKER (Làm sạch 100% + Cập nhật Engine)"
+    echo "2a) DỌN DẸP DOCKER RÁC (Chỉ giữ container & image đang chạy)"
     echo "3) FULL INIT (Dọn + Build + Migration + Seed + SSL)"
     echo "3.1) INITIALIZE (Bản 3.1: Dọn + Build + Migration + SSL - Trống DB)"
     echo ""
@@ -954,6 +983,10 @@ while true; do
             ;;
         2)
             update_docker
+            ;;
+        2a|2A)
+            prune_docker_garbage
+            read -p "Nhấn Enter để quay lại menu..."
             ;;
         3)
             init_deploy

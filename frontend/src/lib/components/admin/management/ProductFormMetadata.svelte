@@ -21,6 +21,7 @@
   import { useNanobot } from "$lib/state/nanobot.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { getIngredientIcon } from "$lib/utils/product";
+  import SemanticEditor from "$lib/components/admin/ui/SemanticEditor.svelte";
 
   const nanobot = useNanobot();
 
@@ -298,6 +299,92 @@
       isSuggestingIngredients = false;
     }
   }
+
+  let isSuggestingSemantic = $state(false);
+
+  async function handleAiSuggestSemantic() {
+    if (!formState.name) {
+      nanobot.showToast(
+        "Vui lòng nhập tên sản phẩm trước khi gọi XOHI.",
+        "warning",
+      );
+      return;
+    }
+    isSuggestingSemantic = true;
+    try {
+      const res = await apiClient.post<{
+        data: string;
+      }>("/api/v1/products/semantic-suggest", {
+        name: formState.name,
+        description: formState.description || "",
+      });
+      if (res && res.data) {
+        formState.metadata.desc_semantic = res.data;
+        nanobot.showToast(
+          "XOHI đã tối ưu hóa tóm tắt SGE Semantic thành công!",
+          "success",
+        );
+      } else {
+        nanobot.showToast(
+          "XOHI không thể tạo tóm tắt. Vui lòng kiểm tra mô tả sản phẩm.",
+          "error",
+        );
+      }
+    } catch (e) {
+      console.error("XOHI Semantic Suggestion failed:", e);
+      nanobot.showToast("Lỗi kết nối tới hệ thống AI XOHI.", "error");
+    } finally {
+      isSuggestingSemantic = false;
+    }
+  }
+
+  let isSuggestingIngredientsGrouped = $state(false);
+
+  async function handleAiSuggestIngredientsGrouped() {
+    if (!formState.metadata.ingredients || !formState.metadata.ingredients.trim()) {
+      nanobot.showToast(
+        "Vui lòng nhập bảng thành phần đầy đủ trước khi gọi XOHI phân nhóm.",
+        "warning",
+      );
+      return;
+    }
+    isSuggestingIngredientsGrouped = true;
+    try {
+      const res = await apiClient.post<{
+        data: { group: string; priority: number; items: string[] }[];
+      }>("/api/v1/products/ingredients-grouped", {
+        ingredients: formState.metadata.ingredients,
+      });
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        formState.metadata.ingredients_groups = res.data;
+        
+        // Cập nhật lại text thô trong bảng thành phần theo thứ tự độ ưu tiên giảm dần
+        const reordered = res.data
+          .map(grp => grp.items.join(", "))
+          .filter(Boolean)
+          .join(", ");
+        if (reordered) {
+          formState.metadata.ingredients = reordered;
+        }
+
+        nanobot.showToast(
+          "XOHI đã phân nhóm và sắp xếp lại bảng thành phần gốc theo độ ưu tiên thành công!",
+          "success",
+        );
+      } else {
+        nanobot.showToast(
+          "XOHI không thể phân nhóm thành phần. Vui lòng kiểm tra lại bảng thành phần.",
+          "error",
+        );
+      }
+    } catch (e) {
+      console.error("XOHI Ingredients Grouping failed:", e);
+      nanobot.showToast("Lỗi kết nối tới hệ thống AI XOHI.", "error");
+    } finally {
+      isSuggestingIngredientsGrouped = false;
+    }
+  }
+
 
   function toggleSharePromo() {
     if (!formState.metadata.share_promotion) {
@@ -743,19 +830,84 @@
     </div>
   </div>
 
+  <!-- Tóm tắt SGE / Semantic HTML (GEO 2026) -->
   <div class="flex flex-col gap-4">
-    <div
-      class="flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]"
-    >
-      <Beaker size={11} class="text-teal-400/60" />
-      Bảng thành phần
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]">
+        <Sparkles size={11} class="text-pink-400/60" />
+        Tóm tắt Semantic (Google SGE / AI Search)
+      </div>
+      <button
+        type="button"
+        onclick={handleAiSuggestSemantic}
+        disabled={isSuggestingSemantic}
+        class="px-3 py-1.5 rounded-lg bg-pink-500/10 border border-pink-500/30 text-pink-400 text-[9px] font-black tracking-wider flex items-center gap-1.5 disabled:opacity-50"
+      >
+        {#if isSuggestingSemantic}
+          <RefreshCw size={10} class="animate-spin" />
+          PHÂN TÍCH...
+        {:else}
+          XOHI AUTO
+        {/if}
+      </button>
+    </div>
+    <div class="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+      <SemanticEditor bind:value={formState.metadata.desc_semantic} />
+    </div>
+    <p class="text-[8px] text-white/30 italic -mt-2">
+      * Cấu trúc danh sách (h2, ul, li) chuẩn Semantic giúp Google SGE dễ dàng trích xuất thông tin sản phẩm làm câu trả lời hàng đầu.
+    </p>
+  </div>
+
+  <div class="flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2 text-[9px] font-black text-white/25 tracking-[0.25em]">
+        <Beaker size={11} class="text-teal-400/60" />
+        Bảng thành phần
+      </div>
+      <button
+        type="button"
+        onclick={handleAiSuggestIngredientsGrouped}
+        disabled={isSuggestingIngredientsGrouped}
+        class="px-3 py-1.5 rounded-lg bg-teal-500/10 border border-teal-500/30 text-teal-400 text-[9px] font-black tracking-wider flex items-center gap-1.5 disabled:opacity-50"
+      >
+        {#if isSuggestingIngredientsGrouped}
+          <RefreshCw size={10} class="animate-spin" />
+          PHÂN TÍCH...
+        {:else}
+          XOHI NHÓM
+        {/if}
+      </button>
     </div>
     <textarea
       bind:value={formState.metadata.ingredients}
       placeholder="Bảng thành phần đầy đủ..."
       rows="5"
-      class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-white/80 resize-none"
+      class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-white/80 resize-none font-mono"
     ></textarea>
+
+    {#if formState.metadata.ingredients_groups && formState.metadata.ingredients_groups.length > 0}
+      <div class="flex items-center gap-2 overflow-x-auto py-1 px-0.5 custom-scrollbar min-h-[36px]">
+        {#each formState.metadata.ingredients_groups as grp}
+          <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-white shrink-0 group relative cursor-pointer hover:bg-teal-500/25 transition-all">
+            <span class="text-[9px] font-bold text-teal-300">{grp.group}</span>
+            <span class="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-teal-400/20 text-teal-300">{grp.items.length}</span>
+            
+            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[280px] p-2.5 rounded-xl bg-[#0d1117] border border-white/10 shadow-2xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 z-50 text-[9px] text-white/80 leading-relaxed font-sans">
+              <div class="font-bold text-teal-300 mb-1 border-b border-white/10 pb-1 flex justify-between gap-4">
+                <span>{grp.group}</span>
+                <span class="text-white/40">Độ ưu tiên: {grp.priority}</span>
+              </div>
+              <ul class="list-disc pl-3 flex flex-col gap-0.5 text-white/70">
+                {#each grp.items as item}
+                  <li>{item}</li>
+                {/each}
+              </ul>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   <!-- Thành phần nổi bật -->

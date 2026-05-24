@@ -16,6 +16,7 @@
   import AdsNegativeKeywords from './ads/AdsNegativeKeywords.svelte';
   import AdsDatePicker from './ads/AdsDatePicker.svelte';
   import AdsPowHud from "./ads/AdsPowHud.svelte";
+  import GoogleMerchantWidget from "./widgets/GoogleMerchantWidget.svelte";
 
   // Icons
   import X from "@lucide/svelte/icons/x";
@@ -303,6 +304,7 @@
             { id: 'investigation', label: 'Pháp y' },
             { id: 'google', label: 'Google Live', fetch: () => ads.fetchGoogleMetrics() },
             { id: 'campaigns', label: 'Điều phối', fetch: () => ads.fetchCampaigns() },
+            { id: 'merchant', label: 'Google Merchant' },
             { id: 'blacklist', label: 'Danh sách đen' },
             { id: 'negative_keywords', label: 'Từ khóa phủ định', fetch: () => ads.fetchNegativeKeywords() }
           ] as tab}
@@ -349,6 +351,10 @@
             <AdsGoogleMetrics {...ads} />
           {:else if ads.activeTab === 'campaigns'}
             <AdsCampaignManager {...ads} />
+          {:else if ads.activeTab === 'merchant'}
+            <div class="max-w-5xl mx-auto py-2">
+              <GoogleMerchantWidget />
+            </div>
           {:else if ads.activeTab === 'blacklist'}
             <AdsBlacklist {...ads} />
           {:else if ads.activeTab === 'negative_keywords'}

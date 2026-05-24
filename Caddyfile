@@ -33,6 +33,13 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
     # tls internal  # removed to allow ACME automatic certificates
     import security_headers
 
+    # Serve dynamic/static assets directly from static folder for all domains (Elite V2.2)
+    @dynamic_assets path /uploads/* /v65_assets/* /avatars/*
+    handle @dynamic_assets {
+        root * /app/frontend/static
+        file_server
+    }
+
     # Compression logic (Exclude SSE, WS, and streaming endpoints)
     @encodable {
         not header Content-Type text/event-stream
@@ -48,6 +55,10 @@ https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
     }
 
     handle /sitemap.xml {
+        import service_proxy
+    }
+
+    handle /google-merchant.xml* {
         import service_proxy
     }
 

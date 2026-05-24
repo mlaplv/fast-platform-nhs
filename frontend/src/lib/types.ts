@@ -327,7 +327,9 @@ export interface ProductMetadata {
 
   // Elite V2.2: Ingredients & Featured Ingredients
   ingredients?: string;
+  desc_semantic?: string;
   featured_ingredients?: { name: string; benefit: string; icon?: string }[];
+  ingredients_groups?: { group: string; priority: number; items: string[] }[];
 
   analysis_cache?: AnalysisCache;
   analysis_metrics?: CampaignMetrics;

@@ -65,6 +65,7 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./frontend/dist:/app/frontend/dist:ro
+      - ./frontend/static:/app/frontend/static:ro
       # Use ACME automatically; remove manual pki mount which may contain malformed certs
       - caddy_data:/data
       - caddy_config:/config

@@ -175,6 +175,30 @@ class ProductController(Controller):
         result = await product_service.suggest_specs(raw_text)
         return {"data": result}
 
+    @post("/semantic-suggest", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)], status_code=201)
+    async def suggest_semantic(
+        self,
+        product_service: ProductService,
+        data: Dict[str, str],
+    ) -> Dict[str, object]:
+        """GEO 2026: XOHI Auto Semantic SGE Highlights Generator for Products."""
+        name = data.get("name", "")
+        description = data.get("description", "")
+        result = await product_service.suggest_semantic(name, description)
+        return {"data": result}
+
+    @post("/ingredients-grouped", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)], status_code=201)
+    async def suggest_ingredients_grouped(
+        self,
+        product_service: ProductService,
+        data: Dict[str, str],
+    ) -> Dict[str, object]:
+        """GEO 2026: XOHI Ingredients Grouper — phân loại thành phần cosmetic theo nhóm và độ ưu tiên."""
+        ingredients_text = data.get("ingredients", "")
+        result = await product_service.suggest_ingredients_grouped(ingredients_text)
+        return {"data": result}
+
+
     @post("/seo-suggest", guards=[PermissionGuard(PermissionEnum.PRODUCT_WRITE)])
     async def suggest_seo(
         self,

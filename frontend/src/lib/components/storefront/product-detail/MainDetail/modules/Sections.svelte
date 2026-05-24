@@ -13,6 +13,7 @@
   import ScannerHUD from "../../shared/ScannerHUD.svelte";
   import { fly, fade } from "svelte/transition";
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
+  import ChevronUp from "@lucide/svelte/icons/chevron-up";
 
   interface Props {
     product: Product;
@@ -32,6 +33,7 @@
   let isScanning = $state(false);
   let verificationData = $state<BarcodeVerificationResponse | null>(null);
   let activeFaq = $state<number | null>(null);
+  let isIngredientsExpanded = $state(false);
 
   const parsedDescription = $derived(
     parseDescriptionAndCommitments(product.description),
@@ -239,6 +241,16 @@
 
     <div class="text-[14px] space-y-10">
       <div class="grid grid-cols-1 gap-6 w-full">
+        {#if product.metadata?.desc_semantic}
+          <div class="flex flex-col gap-2 py-2 border-b border-gray-100 pb-6">
+            <div
+              class="prose max-w-none text-[14px] text-gray-700 semantic-summary"
+            >
+              {@html product.metadata.desc_semantic}
+            </div>
+          </div>
+        {/if}
+
         {#if product.metadata?.featured_ingredients && product.metadata.featured_ingredients.length > 0}
           <div class="flex flex-col gap-3 py-2">
             <h2
@@ -278,29 +290,106 @@
             >
               <Beaker size={16} class="text-teal-500" /> Bảng thành phần
             </div>
-            <div
-              class="bg-gray-50/50 border border-gray-100 p-4 rounded-none relative overflow-hidden group/inci"
-            >
+
+            {#if product.metadata?.ingredients_groups && product.metadata.ingredients_groups.length > 0}
+              <!-- Phân nhóm thành phần sinh động cho khách hàng (Expandable on Desktop) -->
               <div
-                class="absolute top-0 right-0 p-2 opacity-10 group-hover/inci:opacity-30 transition-opacity"
+                class="flex flex-col gap-4 bg-gray-50/50 border border-gray-100 p-5 rounded-2xl relative overflow-hidden transition-all duration-500 text-left"
+                style:max-height={isIngredientsExpanded ? "none" : "280px"}
               >
-                <FlaskConical size={40} />
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pb-12">
+                  {#each product.metadata.ingredients_groups as grp}
+                    <div
+                      class="flex flex-col gap-1.5 p-3 bg-white border border-gray-100/80 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)]"
+                    >
+                      <div
+                        class="flex items-center justify-between border-b border-gray-50 pb-1"
+                      >
+                        <span
+                          class="text-[11px] font-black text-teal-600 tracking-wider uppercase"
+                          >{grp.group}</span
+                        >
+                        <span
+                          class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-teal-50/10 text-teal-600"
+                          >{grp.items.length} chất</span
+                        >
+                      </div>
+                      <div class="flex flex-wrap gap-1 mt-1 font-mono">
+                        {#each grp.items as item}
+                          <span
+                            class="text-[11px] text-gray-600 px-2 py-0.5 rounded bg-gray-50 border border-gray-100/50 hover:border-teal-500/20 hover:bg-teal-50/20 hover:text-teal-700 transition-all"
+                            >{item}</span
+                          >
+                        {/each}
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+
+                {#if !isIngredientsExpanded}
+                  <div
+                    class="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-gray-50/98 via-gray-50/80 to-transparent flex items-end justify-center pb-3.5 z-10"
+                  >
+                    <button
+                      type="button"
+                      class="flex items-center gap-1 text-gray-400 font-sans hover:text-teal-600 transition-colors"
+                      onclick={() => (isIngredientsExpanded = true)}
+                    >
+                      <span class="text-[11px] font-medium"
+                        >Xem thêm phân nhóm</span
+                      >
+                      <ChevronDown size={12} />
+                    </button>
+                  </div>
+                {:else}
+                  <div
+                    class="pt-2 border-t border-gray-100 flex flex-col gap-2 mt-2"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-1.5">
+                        <Info size={11} class="text-blue-500" />
+                        <span class="text-[10px] text-gray-400 font-bold italic"
+                          >Thành phần phân tích tự động bằng AI, sắp xếp theo độ
+                          ưu tiên quan trọng giảm dần.</span
+                        >
+                      </div>
+                      <button
+                        type="button"
+                        class="flex items-center gap-1 text-gray-400 font-sans hover:text-teal-600 transition-colors"
+                        onclick={() => (isIngredientsExpanded = false)}
+                      >
+                        <span class="text-[11px] font-medium">Thu gọn</span>
+                        <ChevronUp size={12} />
+                      </button>
+                    </div>
+                  </div>
+                {/if}
               </div>
-              <p
-                class="text-[13px] text-gray-600 font-mono leading-relaxed tracking-tight relative z-10"
-              >
-                {product.metadata.ingredients}
-              </p>
+            {:else}
               <div
-                class="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2"
+                class="bg-gray-50/50 border border-gray-100 p-4 rounded-none relative overflow-hidden group/inci"
               >
-                <Info size={12} class="text-blue-500" />
-                <span class="text-[11px] text-gray-400 font-bold italic"
-                  >Bảng thành phần công bố (chi tiết có trên hộp / tem nhãn sản
-                  phẩm chính hãng)</span
+                <div
+                  class="absolute top-0 right-0 p-2 opacity-10 group-hover/inci:opacity-30 transition-opacity"
                 >
+                  <FlaskConical size={40} />
+                </div>
+                <p
+                  class="text-[13px] text-gray-600 font-mono leading-relaxed tracking-tight relative z-10"
+                >
+                  {product.metadata.ingredients}
+                </p>
+                <div
+                  class="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2"
+                >
+                  <Info size={12} class="text-blue-500" />
+                  <span class="text-[11px] text-gray-400 font-bold italic"
+                    >Bảng thành phần công bố (chi tiết có trên hộp / tem nhãn
+                    sản phẩm chính hãng)</span
+                  >
+                </div>
               </div>
-            </div>
+            {/if}
           </div>
         {/if}
       </div>
@@ -360,7 +449,6 @@
           "Chưa có mô tả chi tiết cho sản phẩm này."}
       {/if}
     </div>
-
   </div>
 
   <!-- FAQ Section (Elite V2.2 Accordion) -->
@@ -444,5 +532,43 @@
 
   :global(.prose-osmo h2::first-letter, .prose-osmo h3::first-letter) {
     text-transform: uppercase !important;
+  }
+
+  /* Google SGE Highlights Styling (GEO 2026) */
+  :global(.semantic-summary h2) {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    color: #1f2937 !important;
+    margin-top: 0 !important;
+    margin-bottom: 12px !important;
+    text-transform: none !important;
+    letter-spacing: -0.01em !important;
+  }
+  :global(.semantic-summary h2::first-letter) {
+    text-transform: none !important;
+  }
+  :global(.semantic-summary .product-highlights) {
+    list-style-type: none !important;
+    padding-left: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  :global(.semantic-summary .product-highlights li) {
+    position: relative !important;
+    padding-left: 20px !important;
+    font-size: 13.5px !important;
+    line-height: 1.6 !important;
+    color: #4b5563 !important;
+  }
+  :global(.semantic-summary .product-highlights li::before) {
+    content: "•" !important;
+    position: absolute !important;
+    left: 4px !important;
+    top: 0 !important;
+    color: #10b981 !important; /* HSL Emerald Green Bullet */
+    font-size: 18px !important;
+    line-height: 1.2 !important;
   }
 </style>

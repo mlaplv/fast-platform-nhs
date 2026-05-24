@@ -36,7 +36,12 @@
       voucher_id?: string;
       likes_count?: number;
     };
-    vouchers?: { id: string; label: string; sub: string; type: "ship" | "discount" }[];
+    vouchers?: {
+      id: string;
+      label: string;
+      sub: string;
+      type: "ship" | "discount";
+    }[];
     flash_sale_end?: string;
     brand?: string;
     origin?: string;
@@ -57,22 +62,28 @@
   }
 
   // Elite Performance Sync (V2.2)
-  const metadata = $derived((product.metadata || {}) as ExtendedProductMetadata);
+  const metadata = $derived(
+    (product.metadata || {}) as ExtendedProductMetadata,
+  );
 
   const likeCount = $derived(
     Number(
-      metadata.share_promotion?.likes_count ||
-        product.metadata?.["likes"] ||
-        0,
+      metadata.share_promotion?.likes_count || product.metadata?.["likes"] || 0,
     ),
   );
 
   const variations = $derived(
-    ((product.tier_variations || product.tierVariations || []) as RawTierVariation[]).map(v => ({
+    (
+      (product.tier_variations ||
+        product.tierVariations ||
+        []) as RawTierVariation[]
+    ).map((v) => ({
       name: v.name || "",
-      options: (v.options || []).map((o) => typeof o === "string" ? o : String(o?.name || o?.label || "")),
-      images: (v.images || []).filter((img): img is string => img !== null)
-    }))
+      options: (v.options || []).map((o) =>
+        typeof o === "string" ? o : String(o?.name || o?.label || ""),
+      ),
+      images: (v.images || []).filter((img): img is string => img !== null),
+    })),
   );
   let selectedIndices = $state<number[]>([]);
 
@@ -109,11 +120,14 @@
     );
     if (comboVariants.length === 0) return currentVariant;
     const sortedTiers = [...comboVariants].sort(
-      (a, b) => Number(b.attributes?.combo_qty || 0) - Number(a.attributes?.combo_qty || 0),
+      (a, b) =>
+        Number(b.attributes?.combo_qty || 0) -
+        Number(a.attributes?.combo_qty || 0),
     );
     return (
-      sortedTiers.find((t) => Number(t.attributes?.combo_qty || 0) <= quantity) ||
-      currentVariant
+      sortedTiers.find(
+        (t) => Number(t.attributes?.combo_qty || 0) <= quantity,
+      ) || currentVariant
     );
   });
 
@@ -158,9 +172,10 @@
 
       return {
         price: formatRange(minPrice, maxPrice),
-        discountPrice: (minDiscount !== undefined && maxDiscount !== undefined)
-          ? formatRange(minDiscount, maxDiscount)
-          : undefined,
+        discountPrice:
+          minDiscount !== undefined && maxDiscount !== undefined
+            ? formatRange(minDiscount, maxDiscount)
+            : undefined,
       };
     }
 
@@ -248,7 +263,9 @@
    * Tối ưu hóa truy cập localStorage đồng bộ và cache vào reactive state.
    */
   let isViralUnlocked = $state(false);
-  let unlockedVoucherInfo = $state<{ code: string; label?: string } | null>(null);
+  let unlockedVoucherInfo = $state<{ code: string; label?: string } | null>(
+    null,
+  );
 
   $effect(() => {
     if (typeof window !== "undefined") {
@@ -272,14 +289,21 @@
 
   // Use DB vouchers if available
   const productVouchers = $derived.by(() => {
-    let vouchers: { id: string; label: string; sub: string; type: "ship" | "discount" }[] = [];
+    let vouchers: {
+      id: string;
+      label: string;
+      sub: string;
+      type: "ship" | "discount";
+    }[] = [];
 
     // 1. Check if product has specific override vouchers in metadata
-    if (
-      Array.isArray(metadata.vouchers) &&
-      metadata.vouchers.length > 0
-    ) {
-      vouchers = metadata.vouchers as { id: string; label: string; sub: string; type: "ship" | "discount" }[];
+    if (Array.isArray(metadata.vouchers) && metadata.vouchers.length > 0) {
+      vouchers = metadata.vouchers as {
+        id: string;
+        label: string;
+        sub: string;
+        type: "ship" | "discount";
+      }[];
     } else {
       // 2. Fallback to global active vouchers from CartStore (Elite V2.2)
       vouchers = cartStore.vouchers
@@ -298,7 +322,8 @@
             (v.type === "SHIPPING"
               ? "Miễn phí vận chuyển"
               : `Giảm ${formatCurrency(v.value)}`),
-          type: v.type === "SHIPPING" ? ("ship" as const) : ("discount" as const),
+          type:
+            v.type === "SHIPPING" ? ("ship" as const) : ("discount" as const),
         }));
     }
 
@@ -334,7 +359,9 @@
     // Elite V2.2 Re-injection: Phục hồi voucher từ session local nếu đã mở khóa
     if (unlockedVoucherInfo) {
       // Filter out existing viral vouchers to prevent duplicates or wrong positions
-      vList = vList.filter((v) => !isViralVoucher(v) && v.id !== unlockedVoucherInfo!.code);
+      vList = vList.filter(
+        (v) => !isViralVoucher(v) && v.id !== unlockedVoucherInfo!.code,
+      );
       // Prepend at the absolute top (Position #1)
       vList.unshift({
         id: unlockedVoucherInfo.code,
@@ -388,7 +415,7 @@
       timeLeft = {
         hours: Math.floor(diff / 3600000),
         minutes: Math.floor((diff % 3600000) / 60000),
-        seconds: Math.floor((diff % 60000) / 1000)
+        seconds: Math.floor((diff % 60000) / 1000),
       };
     }
 
@@ -465,7 +492,9 @@
       return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền. Hãy chọn số lượng phù hợp để tối ưu kết quả.";
 
     const sortedTiers = [...comboVariants].sort(
-      (a, b) => Number(a.attributes?.combo_qty || 0) - Number(b.attributes?.combo_qty || 0),
+      (a, b) =>
+        Number(a.attributes?.combo_qty || 0) -
+        Number(b.attributes?.combo_qty || 0),
     );
     const nextTier = sortedTiers.find(
       (t) => Number(t.attributes?.combo_qty || 0) > quantity,
@@ -481,7 +510,7 @@
         (nextTier.tierIndex || [])
           .map((idx, i) => {
             const opt = variations?.[i]?.options?.[idx];
-            return typeof opt === 'string' ? opt : '';
+            return typeof opt === "string" ? opt : "";
           })
           .filter(Boolean)
           .join(" ") || "Combo tiếp theo";
@@ -524,7 +553,7 @@
         href="/"
         class="text-gray-400 hover:text-[#ee4d2d] transition-all font-black tracking-widest text-[11px]"
       >
-        osmo
+        Osmo
       </a>
       <span class="opacity-30">/</span>
       <span class="text-gray-500 font-medium">{product.name}</span>
@@ -794,5 +823,43 @@
     color: #6b7280 !important;
     font-style: italic !important;
     line-height: 1.4 !important;
+  }
+
+  /* Google SGE Highlights Styling (GEO 2026) */
+  :global(.semantic-summary h2) {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    color: #1f2937 !important;
+    margin-top: 0 !important;
+    margin-bottom: 12px !important;
+    text-transform: none !important;
+    letter-spacing: -0.01em !important;
+  }
+  :global(.semantic-summary h2::first-letter) {
+    text-transform: none !important;
+  }
+  :global(.semantic-summary .product-highlights) {
+    list-style-type: none !important;
+    padding-left: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  :global(.semantic-summary .product-highlights li) {
+    position: relative !important;
+    padding-left: 20px !important;
+    font-size: 13.5px !important;
+    line-height: 1.6 !important;
+    color: #4b5563 !important;
+  }
+  :global(.semantic-summary .product-highlights li::before) {
+    content: "•" !important;
+    position: absolute !important;
+    left: 4px !important;
+    top: 0 !important;
+    color: #10b981 !important; /* HSL Emerald Green Bullet */
+    font-size: 18px !important;
+    line-height: 1.2 !important;
   }
 </style>

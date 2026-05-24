@@ -149,3 +149,96 @@ async def suggest_specs_logic(raw_text: str) -> Dict[str, str]:
     except Exception as e:
         logger.exception(f"[ProductAI] AI Specs Extraction Failed: {e}")
         return {}
+
+async def suggest_semantic_logic(name: str, description: str) -> str:
+    """GEO 2026: XOHI Auto Semantic SGE Highlights Generator Logic (Isolated)."""
+    agent = Agent(
+        system_prompt=(
+            "Bạn là chuyên gia tối ưu cấu trúc dữ liệu Semantic HTML cho Google SGE AI bóc tách thông tin.\n"
+            "Nhiệm vụ của bạn là tạo ra một đoạn HTML hoàn chỉnh, tối ưu chuẩn SEO Semantic theo cấu trúc chính xác sau:\n"
+            "<h2>{Tên sản phẩm}:</h2>\n"
+            "<ul class=\"product-highlights\">\n"
+            "    <li>[Mô tả công nghệ/thành phần then chốt đột phá, tối đa 20 từ]</li>\n"
+            "    <li>[Kết cấu, độ lành tính, cảm giác trên da hoặc tính năng vượt trội tiện dụng, tối đa 20 từ]</li>\n"
+            "</ul>\n\n"
+            "QUY TẮC:\n"
+            "1. Nội dung phải hoàn toàn bằng tiếng Việt thuần 100%.\n"
+            "2. Viết ngắn gọn, súc tích, cực kỳ thuyết phục và bám sát thông tin sản phẩm.\n"
+            "3. Không trả về markdown hay ký tự bao bọc, chỉ trả về chuỗi HTML thô bắt đầu bằng <h2> và kết thúc bằng </ul>."
+        )
+    )
+    prompt = f"Tên sản phẩm: {name}\nMô tả: {description}"
+
+    try:
+        result = await trinity_bridge.run(
+            agent=agent,
+            prompt=prompt,
+            role="fast",
+            timeout=30.0
+        )
+
+        if result:
+            html_res = str(getattr(result, "data", getattr(result, "output", result))).strip()
+            # Clean possible ```html blocks if generated
+            html_res = re.sub(r"^```html\s*", "", html_res, flags=re.IGNORECASE)
+            html_res = re.sub(r"\s*```$", "", html_res)
+            return html_res.strip()
+
+        return ""
+
+    except Exception as e:
+        logger.exception(f"[ProductAI] AI Semantic Suggestion Failed: {e}")
+        return ""
+
+
+async def suggest_ingredients_grouped_logic(ingredients_text: str) -> List[Dict[str, object]]:
+    """GEO 2026: XOHI Ingredients Grouper — phân nhóm thành phần theo danh mục, sort mức độ quan trọng cao→thấp."""
+    agent = Agent(
+        system_prompt=(
+            "Bạn là chuyên gia phân tích thành phần mỹ phẩm / dược phẩm hàng đầu.\n"
+            "Nhiệm vụ: Đọc bảng thành phần INCI đầu vào và phân loại vào các nhóm chức năng.\n\n"
+            "Các nhóm được phép phân loại (tên tiếng Việt ngắn gọn):\n"
+            "- Hoạt chất chủ lực\n"
+            "- Phục hồi và tái tạo\n"
+            "- Chống oxy hoá & Làm sáng\n"
+            "- Dưỡng ẩm & Emollient\n"
+            "- Chất nhũ hoá & Cấu trúc\n"
+            "- Thành phần khác\n\n"
+            "QUY TẮC CỰC KỲ QUAN TRỌNG (ĐỘ UY TÍN THƯƠNG HIỆU):\n"
+            "1. CẤM TUYỆT ĐỐI tạo ra các nhóm riêng biệt liên quan đến chất bảo quan, bảo quản, hương liệu hoặc màu sắc (như 'Chất bảo quản', 'Hương liệu & Màu sắc', 'Hương liệu', 'Màu sắc'). Việc này làm giảm lòng tin của khách hàng về độ lành tính của sản phẩm.\n"
+            "2. BẮT BUỘC: Gộp toàn bộ các thành phần như chất bảo quản (preservatives), hương liệu (fragrance/perfume), chất tạo màu (colorants), dung môi (solvents), chất điều chỉnh (ph adjusters), và các tá dược/chất phụ trợ khác vào một nhóm duy nhất mang tên 'Thành phần khác'.\n"
+            "3. priority: Số nguyên từ 1 (cao nhất = Hoạt chất chủ lực) đến 8 (thấp nhất = Thành phần khác). Chỉ dùng mỗi số 1 lần. Nhóm 'Thành phần khác' phải luôn có priority là 8.\n"
+            "4. items: Mảng tên INCI nguyên gốc, giữ nguyên chính tả gốc, TỐI ĐA 8 thành phần mỗi nhóm.\n"
+            "5. Bỏ qua các nhóm rỗng (không có thành phần nào).\n"
+            "6. Chỉ trả về JSON array, không markdown:\n"
+            "[{\"group\": \"Hoạt chất chủ lực\", \"priority\": 1, \"items\": [\"Retinyl Palmitate\", ...]}, ...]"
+        )
+    )
+    prompt = f"Bảng thành phần:\n{ingredients_text[:3000]}"
+
+    try:
+        result = await trinity_bridge.run(
+            agent=agent,
+            prompt=prompt,
+            role="fast",
+            timeout=45.0
+        )
+
+        if result:
+            raw = str(getattr(result, "data", getattr(result, "output", result))).strip()
+            raw = re.sub(r"^```json\s*", "", raw, flags=re.IGNORECASE)
+            raw = re.sub(r"\s*```$", "", raw)
+            match = re.search(r'\[.*\]', raw, re.DOTALL)
+            if match:
+                parsed = json.loads(match.group(0))
+                if isinstance(parsed, list):
+                    # Sort by priority ascending (1 = highest importance)
+                    parsed.sort(key=lambda x: int(x.get("priority", 99)))
+                    return parsed
+
+        return []
+
+    except Exception as e:
+        logger.exception(f"[ProductAI] AI Ingredients Grouping Failed: {e}")
+        return []
+

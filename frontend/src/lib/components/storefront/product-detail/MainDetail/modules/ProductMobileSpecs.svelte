@@ -273,6 +273,14 @@
     </div>
   {/if}
 
+  {#if product.metadata?.desc_semantic}
+    <div class="mb-6 pb-6 border-b border-gray-100">
+      <div class="prose max-w-none text-[13.5px] text-gray-700 semantic-summary">
+        {@html product.metadata.desc_semantic}
+      </div>
+    </div>
+  {/if}
+
   <!-- Elite V2.2: Featured Ingredients (Viral Cards) -->
   {#if product.metadata?.featured_ingredients && product.metadata.featured_ingredients.length > 0}
     <div class="mb-6">
@@ -309,41 +317,85 @@
       >
         <Beaker size={16} class="text-teal-500" /> Bảng thành phần
       </h2>
-      <button
-        type="button"
-        class="bg-gray-50/50 border border-gray-100 p-4 rounded-xl text-left relative overflow-hidden transition-all duration-500"
-        onclick={() => (isIngredientsExpanded = !isIngredientsExpanded)}
-        style:max-height={isIngredientsExpanded ? "none" : "100px"}
-      >
-        <p
-          class="text-[12px] text-gray-600 font-mono leading-relaxed tracking-tight {!isIngredientsExpanded
-            ? 'line-clamp-3'
-            : ''}"
+      
+      {#if product.metadata?.ingredients_groups && product.metadata.ingredients_groups.length > 0}
+        <button
+          type="button"
+          class="bg-gray-50/50 border border-gray-100 p-4 rounded-xl text-left relative overflow-hidden transition-all duration-500"
+          onclick={() => (isIngredientsExpanded = !isIngredientsExpanded)}
+          style:max-height={isIngredientsExpanded ? "none" : "180px"}
         >
-          {product.metadata.ingredients}
-        </p>
-        {#if !isIngredientsExpanded}
-          <div
-            class="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-gray-50/95 to-transparent flex items-end justify-center pb-1"
+          <div class="flex flex-col gap-3 {!isIngredientsExpanded ? 'line-clamp-4' : ''}">
+            {#each product.metadata.ingredients_groups as grp}
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center justify-between border-b border-gray-100/50 pb-0.5">
+                  <span class="text-[10px] font-black text-teal-600 uppercase tracking-wider">{grp.group}</span>
+                  <span class="text-[9px] font-black text-gray-400">{grp.items.length} chất</span>
+                </div>
+                <div class="flex flex-wrap gap-1 mt-0.5 font-mono">
+                  {#each grp.items as item}
+                    <span class="text-[10px] text-gray-600 px-1.5 py-0.5 rounded bg-white border border-gray-100/80">{item}</span>
+                  {/each}
+                </div>
+              </div>
+            {/each}
+          </div>
+
+          {#if !isIngredientsExpanded}
+            <div
+              class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-50/95 to-transparent flex items-end justify-center pb-1"
+            >
+              <div class="flex items-center gap-1 text-gray-400 font-sans">
+                <span class="text-[11px] font-medium">Xem thêm phân nhóm</span>
+                <ChevronDown size={12} />
+              </div>
+            </div>
+          {:else}
+            <div class="mt-3 flex justify-center">
+              <div class="flex items-center gap-1 text-gray-400 font-sans">
+                <span class="text-[11px] font-medium">Thu gọn</span>
+                <ChevronUp size={12} />
+              </div>
+            </div>
+          {/if}
+        </button>
+      {:else}
+        <button
+          type="button"
+          class="bg-gray-50/50 border border-gray-100 p-4 rounded-xl text-left relative overflow-hidden transition-all duration-500"
+          onclick={() => (isIngredientsExpanded = !isIngredientsExpanded)}
+          style:max-height={isIngredientsExpanded ? "none" : "100px"}
+        >
+          <p
+            class="text-[12px] text-gray-600 font-mono leading-relaxed tracking-tight {!isIngredientsExpanded
+              ? 'line-clamp-3'
+              : ''}"
           >
-            <div class="flex items-center gap-1 text-gray-400 font-sans">
-              <span class="text-[11px] font-medium">Xem thêm</span>
-              <ChevronDown size={12} />
+            {product.metadata.ingredients}
+          </p>
+          {#if !isIngredientsExpanded}
+            <div
+              class="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-gray-50/95 to-transparent flex items-end justify-center pb-1"
+            >
+              <div class="flex items-center gap-1 text-gray-400 font-sans">
+                <span class="text-[11px] font-medium">Xem thêm</span>
+                <ChevronDown size={12} />
+              </div>
             </div>
-          </div>
-        {:else}
-          <div class="mt-2 flex justify-center">
-            <div class="flex items-center gap-1 text-gray-400 font-sans">
-              <span class="text-[11px] font-medium">Thu gọn</span>
-              <ChevronUp size={12} />
+          {:else}
+            <div class="mt-2 flex justify-center">
+              <div class="flex items-center gap-1 text-gray-400 font-sans">
+                <span class="text-[11px] font-medium">Thu gọn</span>
+                <ChevronUp size={12} />
+              </div>
             </div>
-          </div>
-        {/if}
-      </button>
+          {/if}
+        </button>
+      {/if}
       <div class="mt-1 flex items-center gap-2 px-1">
         <Info size={10} class="text-blue-500" />
         <span class="text-[9px] text-gray-400 font-bold italic"
-          >Chi tiết có trên bao bì sản phẩm chính hãng</span
+          >Phân tích thành phần bằng AI, sắp xếp theo độ ưu tiên giảm dần</span
         >
       </div>
     </div>
@@ -847,5 +899,43 @@
   }
   .animate-voice-bar-3 {
     animation: voice-bar 0.7s infinite ease-in-out 0.4s;
+  }
+
+  /* Google SGE Highlights Styling (GEO 2026) */
+  :global(.semantic-summary h2) {
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: #1f2937 !important;
+    margin-top: 0 !important;
+    margin-bottom: 10px !important;
+    text-transform: none !important;
+    letter-spacing: -0.01em !important;
+  }
+  :global(.semantic-summary h2::first-letter) {
+    text-transform: none !important;
+  }
+  :global(.semantic-summary .product-highlights) {
+    list-style-type: none !important;
+    padding-left: 0 !important;
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+  :global(.semantic-summary .product-highlights li) {
+    position: relative !important;
+    padding-left: 18px !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    color: #4b5563 !important;
+  }
+  :global(.semantic-summary .product-highlights li::before) {
+    content: "•" !important;
+    position: absolute !important;
+    left: 4px !important;
+    top: 0 !important;
+    color: #10b981 !important; /* HSL Emerald Green Bullet */
+    font-size: 16px !important;
+    line-height: 1.1 !important;
   }
 </style>

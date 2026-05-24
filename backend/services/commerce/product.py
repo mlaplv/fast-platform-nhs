@@ -16,7 +16,7 @@ from backend.utils.sql import escape_like
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.event_bus import event_bus
 from backend.utils.media import extract_media_urls
-from backend.services.commerce.logic.product_ai import suggest_seo_logic, suggest_faqs_logic, suggest_ingredients_logic, suggest_specs_logic
+from backend.services.commerce.logic.product_ai import suggest_seo_logic, suggest_faqs_logic, suggest_ingredients_logic, suggest_specs_logic, suggest_semantic_logic, suggest_ingredients_grouped_logic
 from backend.services.commerce.logic.viral_hydration import hydrate_viral_config_logic, sanitize_vouchers_logic
 from backend.services.commerce.logic.product_bulk import bulk_delete_logic, bulk_activate_logic, bulk_update_logic
 from backend.services.commerce.logic.product_query import list_products_logic, get_product_logic, get_product_by_slug_logic
@@ -456,6 +456,14 @@ class ProductService:
     async def suggest_specs(self, raw_text: str) -> Dict[str, str]:
         """Elite V2.2: XOHI Auto Specifications Extractor (Delegated)."""
         return await suggest_specs_logic(raw_text)
+
+    async def suggest_semantic(self, name: str, description: str) -> str:
+        """GEO 2026: XOHI Auto Semantic SGE Highlights Generator (Delegated)."""
+        return await suggest_semantic_logic(name, description)
+
+    async def suggest_ingredients_grouped(self, ingredients_text: str) -> list:
+        """GEO 2026: XOHI Ingredients Grouper — nhóm hóa bảng thành phần theo chức năng (Delegated)."""
+        return await suggest_ingredients_grouped_logic(ingredients_text)
 
     async def sync_market_price(self, db_session: AsyncSession, product_id: str) -> Dict[str, object]:
         """Elite V2.2: Market Price Intel Sync (1/Day)."""
