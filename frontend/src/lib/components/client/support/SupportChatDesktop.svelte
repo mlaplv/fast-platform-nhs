@@ -134,6 +134,31 @@
     scrollToNewestMessage();
   }
 
+  async function requestZaloConsultant() {
+    const text = "Tôi muốn kết nối trực tiếp với chuyên viên tư vấn";
+    const user = authStore.user;
+    const customer = shopStore?.customerData;
+    const name = user?.name || customer?.nameMasked || "Khách ẩn danh";
+    const userId = user?.id || null;
+    const pricingContext = checkoutState.breakdown || cartStore.breakdown;
+
+    await supportAgent.sendMessage(
+      text,
+      productSlug,
+      name,
+      undefined,
+      userId,
+      cartStore.items,
+      cartStore.selectedVoucherIds,
+      pricingContext,
+      "Yêu cầu kết nối Chuyên viên tư vấn (Zalo OA)",
+    );
+    scrollToNewestMessage();
+
+    const oaId = "71197756917084615";
+    window.open(`https://zalo.me/${oaId}`, "_blank");
+  }
+
   function handleKeyDown(e: KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -285,6 +310,16 @@
         </div>
 
         <div class="flex items-center gap-3">
+          <button
+            onclick={requestZaloConsultant}
+            class="px-4 h-11 flex items-center gap-2 rounded-full bg-[#0068FF]/10 hover:bg-[#0068FF]/20 text-[#0068FF] hover:text-blue-300 transition-all border border-[#0068FF]/20 active:scale-95 group/zalo"
+            title="Chat với tư vấn viên qua Zalo OA"
+          >
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12c0 2.19.72 4.22 1.94 5.86L3 21l3.29-.95C7.87 20.65 9.87 21 12 21c5.52 0 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/>
+            </svg>
+            <span class="text-xs font-black tracking-tight hidden sm:inline text-blue-400">Gặp Tư Vấn Viên</span>
+          </button>
           <button
             onclick={toggleExpand}
             class="w-11 h-11 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all border border-white/5 group/expand"

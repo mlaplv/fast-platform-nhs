@@ -710,4 +710,21 @@
   - [x] Xác nhận logic điều hướng Zalo OAuth sinh URL Callback chuẩn xác 100%.
   - [x] Build tĩnh frontend hoàn thành sạch sẽ, xác minh lỗi `SeoHead is not defined` đã biến mất hoàn toàn.
 
+# Task checklist: Tích hợp Zalo OA Support Bridge (Elite V2.2)
+
+- [x] **Trinh sát & Phân tích Dị thường (Scout Protocol)**
+  - [x] Rà soát cấu hình Zalo OA (ZALO_ADMIN_ID) trong hệ thống và `.env` để bảo đảm thông tin kết nối chính xác.
+  - [x] Phân tích trạng thái hoạt động của `SupportAgentOperative` và UI Svelte widgets.
+- [x] **Kế hoạch Tác chiến & Duyệt phương án (Propose-First)**
+  - [x] Đề xuất phương án dual-bridge: mở link chat Zalo OA trực tiếp tại client kết hợp với đẩy thông báo ngầm từ backend khi Helen AI tắt.
+  - [x] Sếp đã chính thức phê duyệt kế hoạch triển khai.
+- [x] **Triển khai Đồng bộ & Tích hợp (Execution)**
+  - [x] Cập nhật logic backend `support_agent.py`: Khi AI tắt (`helen_enabled == "0"`), sử dụng `asyncio.create_task` để gọi phi tuần tự `zalo_service.push_support_notification(...)` báo cáo tin nhắn của khách cho Admin qua Zalo OA, đồng thời lưu lịch sử và gửi tin nhắn offline.
+  - [x] Triển khai nút bấm Zalo OA "Gặp Tư Vấn Viên" trên giao diện Desktop `SupportChatDesktop.svelte` với màu sắc và phong cách HSL Glassmorphism sang trọng.
+  - [x] Triển khai nút bấm Zalo OA "Gặp Tư Vấn Viên" trên giao diện Mobile `SupportChatMobile.svelte` tối ưu không gian hiển thị tinh tế.
+- [x] **Xác minh & Đóng gói (Verification)**
+  - [x] Thực thi compile tĩnh frontend (`pnpm build`) đạt 100% success không còn bất kỳ lỗi cú pháp nào.
+  - [x] Toàn bộ hệ thống sẵn sàng hoạt động an toàn và tối ưu tài nguyên.
+
+
 

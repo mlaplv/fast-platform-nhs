@@ -684,7 +684,22 @@ class SupportAgentOperative(BaseAgentOperative):
         if c_name in ["Khách ẩn danh", "Sếp"]: c_name = "Quý khách"
         
         helen_on = await xohi_memory.client.get("system:helen_enabled")
-        if helen_on == "0": return SupportResponse(ok=False, reply="Hệ thống bảo trì...", intent=SupportIntent.UNKNOWN, session_id=session_id, status="FAILED")
+        if helen_on == "0":
+            from backend.services.core.zalo_service import zalo_service
+            # Non-blocking background call to notify Sếp via Zalo OA (R03-compliant)
+            asyncio.create_task(
+                zalo_service.push_support_notification(
+                    customer_name=c_name,
+                    message=request.message,
+                    session_id=session_id
+                )
+            )
+            offline_msg = await xohi_memory.client.get("system:helen_offline_msg")
+            reply_text = offline_msg or "Dược sĩ tư vấn sẽ sớm phản hồi Quý khách qua Zalo OA. Vui lòng để lại lời nhắn ạ. 🌸"
+            await self._save_history(db, session_id, request.message, reply_text, SupportIntent.UNKNOWN, request.product_slug, c_name, request.customer_phone)
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await db.flush()
+            return SupportResponse(ok=True, reply=reply_text, intent=SupportIntent.UNKNOWN, session_id=session_id, status="DONE")
         
         takeover_val = await xohi_memory.client.get(f"support:takeover:{session_id}")
         if takeover_val == "0": return SupportResponse(ok=True, reply="Dược sĩ đang hỗ trợ...", intent=SupportIntent.UNKNOWN, session_id=session_id, status="DONE")
