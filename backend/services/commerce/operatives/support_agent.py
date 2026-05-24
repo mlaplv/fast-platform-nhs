@@ -682,12 +682,32 @@ class SupportAgentOperative(BaseAgentOperative):
         dna = await self._fetch_neural_dna(db, session_id, lead_phone=request.customer_phone, user_id=request.user_id)
         c_name = dna.customer_name or request.customer_name or "Quý khách"
         if c_name in ["Khách ẩn danh", "Sếp"]: c_name = "Quý khách"
-        
-        # Intercept Zalo OA Escalation Request (Zero-Latency / Ultra-Premium Fallback)
         msg_clean = request.message.strip().lower()
-        if "tôi muốn kết nối trực tiếp với chuyên viên tư vấn" in msg_clean or "yêu cầu kết nối chuyên viên" in msg_clean or "gặp tư vấn viên" in msg_clean:
+
+        # ══════════════════════════════════════════════════════════════════════
+        # OPTION 1: Chat trực tiếp trong box — tắt Helen, báo Admin Inbox
+        # Keyword: [chat_inbox]
+        # ══════════════════════════════════════════════════════════════════════
+        if "[chat_inbox]" in msg_clean:
+            # Set TAKEOVER: AI silenced — Human operator takes over
+            await xohi_memory.client.set(f"support:takeover:{session_id}", "0", ex=86400 * 3)
+            # Emit event to Admin Inbox so operator sees the session immediately
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            reply_text = (
+                "Dạ vâng ạ! Helen đã mời chuyên viên tư vấn trực tiếp vào cuộc trò chuyện này. "
+                "Anh/Chị vui lòng chờ trong giây lát — chuyên viên sẽ phản hồi ngay tại đây ạ! 🤝\n\n"
+                "*(Helen tạm dừng để nhường chỗ cho chuyên viên)*"
+            )
+            await self._save_history(db, session_id, request.message, reply_text, SupportIntent.ESCALATE, request.product_slug, c_name, request.customer_phone)
+            await db.flush()
+            return SupportResponse(ok=True, reply=reply_text, intent=SupportIntent.ESCALATE, session_id=session_id, status="DONE")
+
+        # ══════════════════════════════════════════════════════════════════════
+        # OPTION 2: Chuyển qua Zalo OA — tắt Helen + thông báo Zalo + báo Inbox
+        # Keyword: [zalo_oa]
+        # ══════════════════════════════════════════════════════════════════════
+        if "[zalo_oa]" in msg_clean or "tôi muốn kết nối trực tiếp với chuyên viên tư vấn" in msg_clean or "yêu cầu kết nối chuyên viên" in msg_clean or "gặp tư vấn viên" in msg_clean:
             from backend.services.core.zalo_service import zalo_service
-            # Non-blocking background call to notify Sếp via Zalo OA (R03-compliant)
             asyncio.create_task(
                 zalo_service.push_support_notification(
                     customer_name=c_name,
@@ -695,18 +715,16 @@ class SupportAgentOperative(BaseAgentOperative):
                     session_id=session_id
                 )
             )
-            # Set takeover state to "0" (AI silenced, Handed over to Human Operator) in Redis instantly thưa sếp!
-            await xohi_memory.client.set(f"support:takeover:{session_id}", "0", ex=86400 * 3) # 3 days TTL
-            
-            reply_text = (
-                "Dạ vâng ạ! Helen đã chuyển cuộc trò chuyện sang chuyên viên tư vấn trực tiếp. "
-                "Chuyên viên sẽ phản hồi và hỗ trợ Anh/Chị ngay tại khung chat này nhé ạ! 🥰\n\n"
-                "Trong lúc chờ đợi, Anh/Chị cũng có thể click vào nút **[Gặp Tư Vấn Viên]** có màu xanh sáng nổi bật ở góc trên cùng của thanh tiêu đề để chat trực tiếp qua Zalo OA ạ! 🌸"
-            )
-            await self._save_history(db, session_id, request.message, reply_text, SupportIntent.UNKNOWN, request.product_slug, c_name, request.customer_phone)
+            await xohi_memory.client.set(f"support:takeover:{session_id}", "0", ex=86400 * 3)
             await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            reply_text = (
+                "Dạ vâng ạ! Helen đã mở kết nối Zalo OA cho Anh/Chị và thông báo cho chuyên viên tư vấn. "
+                "Chuyên viên sẽ theo dõi và có thể tiếp tục hỗ trợ ngay tại đây ạ! 💙\n\n"
+                "*(Helen tạm dừng để nhường chỗ cho chuyên viên)*"
+            )
+            await self._save_history(db, session_id, request.message, reply_text, SupportIntent.ESCALATE, request.product_slug, c_name, request.customer_phone)
             await db.flush()
-            return SupportResponse(ok=True, reply=reply_text, intent=SupportIntent.UNKNOWN, session_id=session_id, status="DONE")
+            return SupportResponse(ok=True, reply=reply_text, intent=SupportIntent.ESCALATE, session_id=session_id, status="DONE")
 
         helen_on = await xohi_memory.client.get("system:helen_enabled")
         if helen_on == "0":

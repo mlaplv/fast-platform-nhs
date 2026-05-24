@@ -464,11 +464,35 @@ class SupportAgentState {
             }
         });
 
-        // 🔴 2. Message Updated (Revoked/Deleted) - Elite V2.2 Professional Bridge
+        // 🔴 2. Message Updated (Revoked/Deleted) OR Admin Manual Reply
         this._pulseSource.addEventListener("SUPPORT_INBOX_UPDATE", (event: MessageEvent) => {
             try {
                 const data = JSON.parse(event.data);
 
+                // Case A: Admin manual reply — display it in the client chat widget
+                if (data.message && data.role === "assistant") {
+                    const isDuplicate = this.messages.some(
+                        m => m.content === data.message && m.role === "assistant"
+                            && (new Date().getTime() - m.timestamp.getTime() < 5000)
+                    );
+                    if (!isDuplicate) {
+                        this.messages = [
+                            ...this.messages,
+                            {
+                                id: data.id || crypto.randomUUID(),
+                                role: "assistant",
+                                content: data.message,
+                                intent: "MANUAL",
+                                timestamp: new Date()
+                            }
+                        ];
+                        this.vibrate([10, 50, 10]);
+                        this.isTyping = false;
+                    }
+                    return;
+                }
+
+                // Case B: Message revoked/deleted
                 if (data.message_id) {
                     const messages = [...this.messages];
                     const msgIdx = messages.findIndex(m => m.id === data.message_id);
@@ -494,11 +518,13 @@ class SupportAgentState {
             this.isTyping = false;
         };
 
-        // Guard: Kill pulse if it hangs (Reduced to 30s for optimal user experience combined with backend fast failover)
+        // Guard: Extend timeout to 10 min for takeover sessions (user waits for human admin reply)
+        // For AI response sessions, 30s is sufficient (fast failover)
+        const pulseTimeout = this.helenEnabled ? 30000 : 600000; // 30s for AI, 10min for human takeover
         this._pulseTimeout = setTimeout(() => {
             this.isTyping = false;
             this._disconnectPulse();
-        }, 30000);
+        }, pulseTimeout);
     }
 
     private _disconnectPulse() {
@@ -560,7 +586,9 @@ class SupportAgentState {
 
             if (res && res.status === "TAKEOVER") {
                 this.isTyping = false;
-                console.log("👤 [Human Takeover] Chat taken over by human representative.");
+                console.log("👤 [Human Takeover] Chat taken over by human representative. Keeping Pulse alive for admin replies.");
+                // CRITICAL: Must connect Pulse SSE so client receives admin messages in real-time
+                this._connectPulse();
                 return;
             }
 

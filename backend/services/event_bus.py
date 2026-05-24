@@ -92,6 +92,7 @@ class InternalBus:
         event = SystemEvent(name=event_name, payload=payload)
         
         # Elite V2.2: Cross-Container Redis PubSub Bridge & Stateful Pulse Caching
+        # IMPORTANT: Two INDEPENDENT if blocks so SUPPORT_INBOX_UPDATE always reaches BOTH client AND admin
         if event_name in ["SUPPORT_RESPONSE_READY", "SUPPORT_INBOX_UPDATE", "OTP_UPDATE"] and "session_id" in payload:
             async def _bg_bridge_session(p_load: dict, e_name: str):
                 try:
@@ -110,8 +111,11 @@ class InternalBus:
                     logger.error(f"❌ [EventBus] Session bridge failed: {e}")
 
             asyncio.create_task(_bg_bridge_session(payload, event_name))
-            
-        elif event_name in ["CONTENT_PROGRESS", "AGENT_TASK_COMPLETED", "MEDIA_ANALYZED", "SYSTEM_SIGNAL", "SUPPORT_INBOX_UPDATE"]:
+
+        # ─── INDEPENDENT block: always publish to admin:pulse regardless of above ───
+        # CRITICAL FIX: was `elif` before — meaning admin never got SUPPORT_INBOX_UPDATE
+        # when a session_id was present (which is always the case for chat events).
+        if event_name in ["CONTENT_PROGRESS", "AGENT_TASK_COMPLETED", "MEDIA_ANALYZED", "SYSTEM_SIGNAL", "SUPPORT_INBOX_UPDATE"]:
             async def _bg_bridge_admin(p_load: dict, e_name: str):
                 try:
                     from backend.services.xohi_memory import xohi_memory

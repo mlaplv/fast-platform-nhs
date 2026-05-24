@@ -29,6 +29,7 @@
   let userInput = $state("");
   let isExpanded = $state(false);
   let isInputFocused = $state(false);
+  let consultantCTAVisible = $state(true);
 
   interface QuickAction {
     label: string;
@@ -134,19 +135,16 @@
     scrollToNewestMessage();
   }
 
-  async function requestZaloConsultant() {
-    const oaId = "71197756917084615";
-    window.open(`https://zalo.me/${oaId}`, "_blank");
-
-    const text = "Tôi muốn kết nối trực tiếp với chuyên viên tư vấn";
+  // Option 1: Chat trực tiếp ngay tại box (không mở Zalo)
+  async function requestInboxChat() {
+    consultantCTAVisible = false;
     const user = authStore.user;
     const customer = shopStore?.customerData;
     const name = user?.name || customer?.nameMasked || "Khách ẩn danh";
     const userId = user?.id || null;
     const pricingContext = checkoutState.breakdown || cartStore.breakdown;
-
     await supportAgent.sendMessage(
-      text,
+      "[chat_inbox] Tôi muốn chat trực tiếp với chuyên viên tư vấn ngay tại đây",
       productSlug,
       name,
       undefined,
@@ -154,7 +152,31 @@
       cartStore.items,
       cartStore.selectedVoucherIds,
       pricingContext,
-      "Yêu cầu kết nối Chuyên viên tư vấn (Zalo OA)",
+      "💬 Yêu cầu chat trực tiếp với chuyên viên",
+    );
+    scrollToNewestMessage();
+  }
+
+  // Option 2: Mở Zalo OA (synchronous window.open trước, async notify sau)
+  async function requestZaloChat() {
+    consultantCTAVisible = false;
+    const oaId = "71197756917084615";
+    window.open(`https://zalo.me/${oaId}`, "_blank");
+    const user = authStore.user;
+    const customer = shopStore?.customerData;
+    const name = user?.name || customer?.nameMasked || "Khách ẩn danh";
+    const userId = user?.id || null;
+    const pricingContext = checkoutState.breakdown || cartStore.breakdown;
+    await supportAgent.sendMessage(
+      "[zalo_oa] Tôi muốn chat với chuyên viên qua Zalo OA",
+      productSlug,
+      name,
+      undefined,
+      userId,
+      cartStore.items,
+      cartStore.selectedVoucherIds,
+      pricingContext,
+      "💙 Yêu cầu kết nối qua Zalo OA",
     );
     scrollToNewestMessage();
   }
@@ -311,16 +333,6 @@
 
         <div class="flex items-center gap-3">
           <button
-            onclick={requestZaloConsultant}
-            class="px-4 h-11 flex items-center gap-2 rounded-full bg-[#0068FF] hover:bg-[#0084FF] text-white active:scale-95 shadow-[0_0_20px_rgba(0,104,255,0.4)] transition-all font-black"
-            title="Chat với tư vấn viên qua Zalo OA"
-          >
-            <svg class="w-5 h-5 fill-white" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12c0 2.19.72 4.22 1.94 5.86L3 21l3.29-.95C7.87 20.65 9.87 21 12 21c5.52 0 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/>
-            </svg>
-            <span class="text-xs font-black tracking-tight hidden sm:inline text-white">Gặp Tư Vấn Viên</span>
-          </button>
-          <button
             onclick={toggleExpand}
             class="w-11 h-11 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all border border-white/5 group/expand"
             title={isExpanded ? "Thu nhỏ" : "Toàn màn hình"}
@@ -432,7 +444,7 @@
           </div>
         {/if}
 
-        {#each supportAgent.messages as msg (msg.id)}
+        {#each supportAgent.messages as msg, msgIdx (msg.id)}
           <div
             class="flex flex-col w-full group animate-in fade-in slide-in-from-bottom-4 duration-500 message-bubble-container"
             data-role={msg.role}
@@ -588,6 +600,61 @@
             </div>
           </div>
         {/each}
+
+        <!-- ══════════════════════════════════════════════════════
+             Consultant CTA — standalone, always visible below all messages
+        ══════════════════════════════════════════════════════ -->
+        {#if consultantCTAVisible && supportAgent.helenEnabled && supportAgent.messages.length > 0}
+          <div class="px-4 pb-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <!-- Divider -->
+            <div class="flex items-center gap-4 mb-5">
+              <div class="flex-1 h-px" style="background: rgba(255,255,255,0.06);"></div>
+              <span class="text-[10px] font-black tracking-[0.3em] uppercase" style="color: rgba(255,255,255,0.2);">Kết nối chuyên viên</span>
+              <div class="flex-1 h-px" style="background: rgba(255,255,255,0.06);"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <!-- Option 1: Chat trong box -->
+              <button
+                onclick={requestInboxChat}
+                class="group relative flex flex-col items-start gap-3 p-4 rounded-2xl overflow-hidden text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.97]"
+                style="background: linear-gradient(135deg, rgba(255,183,197,0.09) 0%, rgba(255,183,197,0.03) 100%); border: 1px solid rgba(255,183,197,0.18);"
+              >
+                <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style="background: radial-gradient(ellipse at top left, rgba(255,183,197,0.12) 0%, transparent 60%);"></div>
+                <div class="relative w-10 h-10 rounded-xl flex items-center justify-center"
+                  style="background: rgba(255,183,197,0.12); border: 1px solid rgba(255,183,197,0.22);">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#FFB7C5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </div>
+                <div class="relative flex flex-col gap-0.5">
+                  <span class="text-[13px] font-black text-white tracking-tight leading-snug">Chat ngay tại đây</span>
+                  <span class="text-[10px] font-medium leading-snug" style="color: rgba(255,183,197,0.5);">Chuyên viên phản hồi trong khung chat này</span>
+                </div>
+              </button>
+              <!-- Option 2: Zalo OA -->
+              <button
+                onclick={requestZaloChat}
+                class="group relative flex flex-col items-start gap-3 p-4 rounded-2xl overflow-hidden text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.97]"
+                style="background: linear-gradient(135deg, rgba(0,104,255,0.11) 0%, rgba(0,104,255,0.04) 100%); border: 1px solid rgba(0,104,255,0.24);"
+              >
+                <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style="background: radial-gradient(ellipse at top left, rgba(0,132,255,0.15) 0%, transparent 60%);"></div>
+                <div class="relative w-10 h-10 rounded-xl flex items-center justify-center"
+                  style="background: rgba(0,104,255,0.15); border: 1px solid rgba(0,104,255,0.28);">
+                  <svg class="w-5 h-5" viewBox="0 0 40 40" fill="none">
+                    <path d="M20 3C10.611 3 3 10.164 3 19c0 4.884 2.21 9.267 5.707 12.277L7.5 35l4.215-2.192A18.14 18.14 0 0020 35c9.389 0 17-7.164 17-16S29.389 3 20 3z" fill="#0068FF"/>
+                    <path d="M28.5 22.6c-.3-.15-1.767-.87-2.04-.97-.273-.097-.472-.146-.67.147-.2.293-.77.97-.944 1.168-.173.2-.347.22-.646.074-.3-.147-1.263-.465-2.406-1.485-.888-.793-1.488-1.772-1.663-2.072-.175-.3-.019-.462.132-.61.135-.135.3-.35.45-.525.148-.175.197-.3.296-.498.098-.2.05-.374-.025-.523-.074-.147-.67-1.614-.918-2.21-.242-.578-.487-.5-.67-.51-.173-.008-.372-.01-.57-.01-.2 0-.523.074-.797.37-.273.297-1.04 1.016-1.04 2.48 0 1.463 1.065 2.877 1.213 3.076.148.2 2.096 3.2 5.08 4.487.71.307 1.264.49 1.695.627.713.227 1.362.195 1.876.118.572-.086 1.767-.722 2.016-1.42.25-.7.25-1.298.175-1.42-.075-.123-.273-.197-.572-.347z" fill="white"/>
+                  </svg>
+                </div>
+                <div class="relative flex flex-col gap-0.5">
+                  <span class="text-[13px] font-black tracking-tight leading-snug" style="color: #5BA4FF;">Chat qua Zalo OA</span>
+                  <span class="text-[10px] font-medium leading-snug" style="color: rgba(91,164,255,0.5);">Mở Zalo, chuyên viên cũng được thông báo</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        {/if}
 
         {#if supportAgent.isTyping}
           <div class="flex justify-start w-full">
