@@ -354,6 +354,11 @@ class SupportAgentState {
             if (!this.helenEnabled) {
                 this.config.agentName = "Chuyên viên Tư vấn";
             }
+            
+            // Connect to Pulse SSE permanently when chat is open thưa sếp!
+            this._connectPulse();
+        } else {
+            this._disconnectPulse();
         }
     }
 
@@ -366,6 +371,9 @@ class SupportAgentState {
             if (!this.helenEnabled) {
                 this.config.agentName = "Chuyên viên Tư vấn";
             }
+            
+            // Connect to Pulse SSE permanently when chat is open thưa sếp!
+            this._connectPulse();
         }
     }
 
@@ -383,10 +391,32 @@ class SupportAgentState {
 
         this._pulseSource = new EventSource(`/api/v1/client/support/pulse`, { withCredentials: true });
 
-        // 🟢 1. AI Response Ready - Replaces 'typing' state with content
+        // 🟢 1. AI Response Ready / Admin Manual Reply thưa sếp!
         this._pulseSource.addEventListener("SUPPORT_RESPONSE_READY", (event: MessageEvent) => {
             try {
                 const data = JSON.parse(event.data);
+                
+                // Case A: Manual representative reply from Admin Inbox thưa sếp!
+                if (data.message && data.role === "assistant") {
+                    const isDuplicate = this.messages.some(m => m.content === data.message && m.role === "assistant" && (new Date().getTime() - m.timestamp.getTime() < 3000));
+                    if (!isDuplicate) {
+                        this.messages = [
+                            ...this.messages,
+                            {
+                                id: data.id || crypto.randomUUID(),
+                                role: "assistant",
+                                content: data.message,
+                                intent: "MANUAL",
+                                timestamp: new Date()
+                            }
+                        ];
+                        this.vibrate([10, 50, 10]);
+                    }
+                    this.isTyping = false;
+                    return;
+                }
+
+                // Case B: AI response (from Trinity/Helen brain)
                 if (data.status === "DONE" && data.reply) {
                     const messages = [...this.messages];
                     const lastAssistantIdx = messages.findLastIndex(m => m.role === "assistant");
@@ -399,9 +429,20 @@ class SupportAgentState {
                             timestamp: new Date()
                         };
                         this.messages = messages;
+                    } else {
+                        this.messages = [
+                            ...this.messages,
+                            {
+                                id: crypto.randomUUID(),
+                                role: "assistant",
+                                content: data.reply,
+                                intent: data.intent,
+                                timestamp: new Date()
+                            }
+                        ];
                     }
 
-                    console.log("🧩 [Helen Pulse] Received Response:", data);
+                    console.log("🧩 [Helen Pulse] Received AI Response:", data);
 
                     if (data.ui_metadata) {
                         console.log("📊 [Helen UI Meta] Pulse Metadata:", data.ui_metadata);
@@ -416,7 +457,7 @@ class SupportAgentState {
 
                     this.vibrate([10, 50, 10]);
                     this.isTyping = false;
-                    this._disconnectPulse();
+                    // Note: We keep the SSE channel active permanently thưa sếp!
                 }
             } catch (e) {
                 console.error("[Pulse] Error parsing response data:", e);
@@ -516,6 +557,12 @@ class SupportAgentState {
                 selected_vouchers: selectedVouchers || null,
                 pricing_context: pricingContext || null
             }, { withCredentials: true });
+
+            if (res && res.status === "TAKEOVER") {
+                this.isTyping = false;
+                console.log("👤 [Human Takeover] Chat taken over by human representative.");
+                return;
+            }
 
             if (res && typeof res.reply === "string") {
                 this.messages = [

@@ -99,7 +99,7 @@ class AdminSupportInboxController(Controller):
         summaries: list[SupportSessionSummary] = []
         for row in rows:
             sid = row.session_id
-            is_takeover = await xohi_memory.client.get(f"support:takeover:{sid}") != "0"
+            is_takeover = await xohi_memory.client.get(f"support:takeover:{sid}") == "0"
             is_online = await xohi_memory.client.get(f"support:presence:{sid}") == "1"
             intent_str = (row.intent or "").upper()
             has_phone = bool(phone_map.get(sid))
@@ -171,7 +171,7 @@ class AdminSupportInboxController(Controller):
                 )
             )
 
-        is_takeover = await xohi_memory.client.get(f"support:takeover:{session_id}") != "0"
+        is_takeover = await xohi_memory.client.get(f"support:takeover:{session_id}") == "0"
         is_online = await xohi_memory.client.get(f"support:presence:{session_id}") == "1"
 
         return SupportSessionDetailResponse(
@@ -192,7 +192,7 @@ class AdminSupportInboxController(Controller):
         new_state = "1" if current == "0" else "0"
         await xohi_memory.client.set(key, new_state, ex=86400 * 3) # 3 days TTL
         
-        return {"is_takeover": new_state == "1"}
+        return {"is_takeover": new_state == "0"}
 
     @post("/sessions/{session_id:str}/message", summary="Send a manual message as high-level representative")
     async def send_manual_message(

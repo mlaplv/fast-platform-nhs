@@ -695,10 +695,13 @@ class SupportAgentOperative(BaseAgentOperative):
                     session_id=session_id
                 )
             )
+            # Set takeover state to "0" (AI silenced, Handed over to Human Operator) in Redis instantly thưa sếp!
+            await xohi_memory.client.set(f"support:takeover:{session_id}", "0", ex=86400 * 3) # 3 days TTL
+            
             reply_text = (
-                "Dạ vâng ạ! Helen đã gửi thông báo yêu cầu hỗ trợ trực tiếp đến chuyên viên tư vấn. "
-                "Chuyên viên sẽ liên hệ và hỗ trợ Anh/Chị ngay lập tức ạ! 🥰\n\n"
-                "Để kết nối nhanh hơn, Anh/Chị vui lòng click vào nút **[Gặp Tư Vấn Viên]** có màu xanh sáng nổi bật ở góc trên cùng của thanh tiêu đề để chat trực tiếp qua Zalo OA nhé ạ! 🌸"
+                "Dạ vâng ạ! Helen đã chuyển cuộc trò chuyện sang chuyên viên tư vấn trực tiếp. "
+                "Chuyên viên sẽ phản hồi và hỗ trợ Anh/Chị ngay tại khung chat này nhé ạ! 🥰\n\n"
+                "Trong lúc chờ đợi, Anh/Chị cũng có thể click vào nút **[Gặp Tư Vấn Viên]** có màu xanh sáng nổi bật ở góc trên cùng của thanh tiêu đề để chat trực tiếp qua Zalo OA ạ! 🌸"
             )
             await self._save_history(db, session_id, request.message, reply_text, SupportIntent.UNKNOWN, request.product_slug, c_name, request.customer_phone)
             await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
@@ -724,7 +727,19 @@ class SupportAgentOperative(BaseAgentOperative):
             return SupportResponse(ok=True, reply=reply_text, intent=SupportIntent.UNKNOWN, session_id=session_id, status="DONE")
         
         takeover_val = await xohi_memory.client.get(f"support:takeover:{session_id}")
-        if takeover_val == "0": return SupportResponse(ok=True, reply="Dược sĩ đang hỗ trợ...", intent=SupportIntent.UNKNOWN, session_id=session_id, status="DONE")
+        if takeover_val == "0":
+            # AI is silenced! Human operator is handling this thưa sếp.
+            # 1. Save customer's message to database history
+            await self._save_history(db, session_id, request.message, None, SupportIntent.UNKNOWN, request.product_slug, c_name, request.customer_phone)
+            # 2. Emit event so that Admin Inbox dashboard gets the new message instantly!
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+                "session_id": session_id,
+                "message": request.message,
+                "role": "user"
+            })
+            await db.flush()
+            # 3. Return TAKEOVER status so frontend doesn't render any automatic assistant reply thưa sếp!
+            return SupportResponse(ok=True, reply="", intent=SupportIntent.UNKNOWN, session_id=session_id, status="TAKEOVER")
         
         try:
             cur_settings = await self._get_currency_settings()

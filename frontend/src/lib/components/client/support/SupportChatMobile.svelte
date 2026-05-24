@@ -202,9 +202,6 @@
       "Yêu cầu kết nối Chuyên viên tư vấn (Zalo OA)",
     );
     scrollToNewestMessage();
-
-    const oaId = "71197756917084615";
-    window.open(`https://zalo.me/${oaId}`, "_blank");
   }
 </script>
 
