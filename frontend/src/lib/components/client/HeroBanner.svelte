@@ -9,8 +9,10 @@
   import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";
   import { typewriter } from "$lib/actions/typewriter";
   import { fade } from "svelte/transition";
+  import { getClientUi } from "$lib/state/commerce/ui.svelte";
 
   const shopStore = getShopStore();
+  const clientUi = getClientUi();
 
   interface HeroBannerProps {
     scrollToQuiz?: () => void;
@@ -118,7 +120,25 @@
   });
 
   const productName = $derived(labels.product_name);
-  const images = $derived(product?.images || []);
+  const images = $derived.by(() => {
+    const tierVar = product?.tierVariations?.[0] || product?.tier_varations?.[0] || product?.attributes?.tier_variations?.[0];
+    const isMob = clientUi?.isMobile;
+    
+    if (tierVar) {
+      if (isMob) {
+        const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
+        if (mobImgs.length > 0) return mobImgs;
+        const deskImgs = (tierVar.images || []).filter(Boolean);
+        if (deskImgs.length > 0) return deskImgs;
+      } else {
+        const deskImgs = (tierVar.images || []).filter(Boolean);
+        if (deskImgs.length > 0) return deskImgs;
+      }
+    }
+    
+    return product?.images || [];
+  });
+
   const mainImage = $derived(
     images.length > 0 ? resolveMediaUrl(images[currentImageIndex]) : "",
   );

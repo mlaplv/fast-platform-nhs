@@ -153,6 +153,25 @@
     }
   });
 
+  /** Auto-scroll mobile carousel to selected variant image */
+  $effect(() => {
+    if (selectedVariant) {
+      const idx = selectedVariant.tierIndex?.[0] ?? selectedVariant.tier_index?.[0];
+      if (typeof idx === 'number' && idx >= 0 && idx < displayImages.length) {
+        activeImageIndex = idx;
+        if (carouselRef) {
+          const width = carouselRef.offsetWidth || carouselRef.clientWidth;
+          if (width > 0) {
+            carouselRef.scrollTo({
+              left: idx * width,
+              behavior: 'smooth'
+            });
+          }
+        }
+      }
+    }
+  });
+
   function toggleMute() {
     videoMuted = !videoMuted;
     if (videoEl) videoEl.muted = videoMuted;
@@ -178,7 +197,16 @@
 
   const formatPrice = (p: number) => p.toLocaleString('vi-VN');
   
-  const displayImages = $derived(product.images?.length > 0 ? product.images : [product.images?.[0] || '']);
+  const displayImages = $derived.by(() => {
+    const tierVar = product.tierVariations?.[0] || product.tier_variations?.[0] || product.attributes?.tier_variations?.[0];
+    if (tierVar) {
+      const mobImgs = (tierVar.mobile_images || tierVar.mobileImages || []).filter(Boolean);
+      if (mobImgs.length > 0) return mobImgs;
+      const deskImgs = (tierVar.images || []).filter(Boolean);
+      if (deskImgs.length > 0) return deskImgs;
+    }
+    return product.images?.length > 0 ? product.images : [product.images?.[0] || ''];
+  });
   
   const vouchers = $derived.by(() => {
     const list: Array<{ id: string; label: string; sub: string; type: string }> = 

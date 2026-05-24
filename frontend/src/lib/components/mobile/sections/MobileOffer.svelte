@@ -77,11 +77,15 @@
 
   const variantImages = $derived(variants.map((v, i) => {
     const ev = v as ExtendedVariant;
+    const tierVar = product?.tierVariations?.[0] || product?.tier_variations?.[0];
+    const optIdx = v.tierIndex?.[0] ?? v.tier_index?.[0] ?? i;
+    const mobImg = tierVar?.mobile_images?.[optIdx] || tierVar?.mobileImages?.[optIdx];
+    const deskImg = tierVar?.images?.[optIdx];
     return resolveMediaUrl(
       ev.image_url || ev.imageUrl || ev.image || 
+      mobImg || deskImg ||
       (product?.images && product.images[i]) || 
-      (product?.images && product.images[0]) || 
-      (product?.tierVariations?.[0]?.images?.[v.tierIndex?.[0] ?? 0])
+      (product?.images && product.images[0])
     );
   }));
 

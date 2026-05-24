@@ -73,9 +73,16 @@
     if (videoEl) videoEl.muted = videoMuted;
   }
 
+  const displayImages = $derived.by(() => {
+    if (variations?.[0]?.images && variations[0].images.length > 0) {
+      return variations[0].images;
+    }
+    return product.images || [];
+  });
+
   // Derive current image based on variant selection or thumbnail index
   let currentImage = $derived.by(() => {
-    const pImages = product.images || [];
+    const pImages = displayImages;
     if (overrideImageIndex !== null) {
       return pImages[overrideImageIndex] || pImages[0] || '/placeholder.png';
     }
@@ -144,7 +151,7 @@
   </div>
   
   <div class="mt-6 grid grid-cols-5 gap-3 px-1">
-    {#each (product.images || []).slice(0, 5) as img, i}
+    {#each displayImages.slice(0, 5) as img, i}
       {@const isActive = activeImageIndex === i}
       <button 
         type="button"

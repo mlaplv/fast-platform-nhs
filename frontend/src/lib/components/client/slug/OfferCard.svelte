@@ -122,7 +122,18 @@
     
     let currentQty = displayQty;
     let displayQtyStr = currentQty < 10 ? `0${currentQty}` : `${currentQty}`;
-    return list.map(f => f.replace(/^(0?1)\s+/i, `${displayQtyStr} `));
+  });
+
+  const variantImage = $derived.by(() => {
+    const tierVar = product?.tierVariations?.[0] || product?.tier_varations?.[0];
+    const optIdx = variant.tierIndex?.[0] ?? variant.tier_index?.[0] ?? idx;
+    const deskImg = tierVar?.images?.[optIdx];
+    return resolveMediaUrl(
+      deskImg || 
+      (product?.images?.[idx]) || 
+      (product?.images?.[0]) || 
+      ''
+    );
   });
 
   let isNavigating = $state(false);
@@ -174,14 +185,14 @@
     <div class="variant-image-hero relative w-full h-[320px] overflow-hidden">
       <div class="absolute inset-0 bg-radial-at-t from-luxury-sakura/10 to-transparent pointer-events-none transition-opacity duration-700 {isCardActive ? 'opacity-100' : 'opacity-0'}"></div>
       <img 
-         src="{product?.images?.[idx] || product?.images?.[0] ? resolveMediaUrl(product.images[idx] || product.images[0]) : ''}" 
+         src={variantImage} 
          alt="{product?.name ? product.name + ' - ' : ''}{getVariantTitle(variant)}" 
          loading="lazy"
          decoding="async"
          class="w-full h-full object-cover drop-shadow-[0_40px_30px_rgba(0,0,0,0.7)] transform hover:scale-110 transition-transform duration-1000 z-10 relative"
       />
       <img 
-         src="{product?.images?.[idx] || product?.images?.[0] ? resolveMediaUrl(product.images[idx] || product.images[0]) : ''}" 
+         src={variantImage} 
          alt="" 
          aria-hidden="true"
          loading="lazy"
