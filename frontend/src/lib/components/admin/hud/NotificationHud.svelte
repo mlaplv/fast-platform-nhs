@@ -3,12 +3,43 @@
   import LucideBell from "@lucide/svelte/icons/bell";
   import LucideActivity from "@lucide/svelte/icons/activity";
   import { useNanobot } from "$lib/state/nanobot.svelte";
+  import type { Notification } from "$lib/state/types";
   const nanobot = useNanobot();
 
   function toggleDropdown() {
     nanobot.toggleHudPopup("NOTIFICATIONS");
     if (nanobot.activeHudPopup === "NOTIFICATIONS") {
       nanobot.fetchNotifications();
+    }
+  }
+
+  async function handleNotificationClick(note: Notification) {
+    // 1. Mark as read
+    nanobot.markNotificationAsRead(note.id);
+    
+    // 2. Close notification dropdown
+    nanobot.toggleHudPopup("NOTIFICATIONS");
+    
+    // 3. Routing logic based on notification type and payload
+    const type = note.type?.toUpperCase() || "";
+    const payload = note.payload || {};
+    
+    if (type === "ORDER" || type === "ORDER_CANCEL") {
+      const orderId = payload.order_id || note.id;
+      nanobot.activeWidget = "ORDER_MANAGEMENT";
+      nanobot.currentData = { order_id: orderId };
+      nanobot.showUniversalModal();
+    } else if (type === "URGENT_SUPPORT") {
+      const phone = payload.phone || "";
+      nanobot.activeWidget = "SUPPORT_INBOX";
+      nanobot.supportSearchTerm = phone;
+      nanobot.currentData = { session_id: "" };
+      nanobot.showUniversalModal();
+    } else if (type === "CHAT" || type === "SUPPORT_INBOX" || note.id.startsWith("chat-")) {
+      const sessionId = payload.session_id || note.id.split("-")[1] || "";
+      nanobot.activeWidget = "SUPPORT_INBOX";
+      nanobot.currentData = { session_id: sessionId };
+      nanobot.showUniversalModal();
     }
   }
 
@@ -83,7 +114,7 @@
       <div class="max-h-96 overflow-y-auto custom-scrollbar">
         {#each nanobot.notifications as note (note.id)}
           <button
-            onclick={() => nanobot.markNotificationAsRead(note.id)}
+            onclick={() => handleNotificationClick(note)}
             class="w-full text-left p-4 border-b border-white/5 hover:bg-white/[0.02] transition-colors group relative"
           >
             {#if !note.isRead}

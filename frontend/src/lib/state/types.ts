@@ -22,6 +22,8 @@ export interface Notification {
   message: string;
   isRead: boolean;
   created_at: string;
+  payload?: Record<string, any>;
+  signal_type?: string;
 }
 
 export type WidgetType =

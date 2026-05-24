@@ -24,7 +24,26 @@ export function createNotificationState() {
       const res = await apiClient.get<{ data: Notification[] }>(
         "/api/v1/client/notifications",
       );
-      state.notifications = res.data || [];
+      
+      const parsedData = (res.data || []).map(note => {
+        let msg = note.message || "";
+        let payload = {};
+        if (msg.includes(" |metadata:")) {
+          const parts = msg.split(" |metadata:");
+          msg = parts[0];
+          try {
+            payload = JSON.parse(parts[1]);
+          } catch (e) {
+            console.error("Failed to parse metadata", e);
+          }
+        }
+        return {
+          ...note,
+          message: msg,
+          payload
+        };
+      });
+      state.notifications = parsedData;
       state.hasInit = true; // CNS V90.1: Successfully loaded at least once
     } catch (e: unknown) {
       // Ignore 409 Conflict as it might be a temporary state or duplicate fetch
@@ -58,13 +77,14 @@ export function createNotificationState() {
       state.notifications = val;
     },
     // CNS V70: Real-time Bell sync — add from SSE without API round-trip
-    addPendingSignal: (signal: { id: string; message: string; severity: string; isRead: boolean }) => {
+    addPendingSignal: (signal: { id: string; message: string; severity: string; isRead: boolean; payload?: Record<string, any>; signal_type?: string }) => {
       const notif: Notification = {
         id: signal.id,
         message: signal.message,
         isRead: signal.isRead,
-        type: signal.severity,
-        created_at: new Date().toISOString()
+        type: signal.signal_type || signal.severity,
+        created_at: new Date().toISOString(),
+        payload: signal.payload
       };
       state.notifications = [notif, ...state.notifications].slice(0, 200);
 

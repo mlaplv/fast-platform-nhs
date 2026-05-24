@@ -142,6 +142,12 @@
     nanobot.addLog(`[ACTION] Mở chi tiết đơn: ${id.split("-")[0]}`, "Nanobot-System");
   }
 
+  $effect(() => {
+    if (data && (data as any).order_id) {
+      openDrawer((data as any).order_id);
+    }
+  });
+
   async function handleOrderAction(orderId: string, actionType: string) {
     const statusType = actionType.toUpperCase();
     if (statusType === "CANCELLED") {

@@ -18,7 +18,7 @@
     session_id: string; customer_name: string | null; customer_phone: string | null; product_slug: string | null; messages: MessageView[]; is_takeover: boolean; is_online: boolean;
   }
 
-  let { isWidget = false } = $props();
+  let { isWidget = false, data = {} } = $props();
   const nanobot = useNanobot();
 
   let sessions = $state<SessionSummary[]>([]);
@@ -70,6 +70,12 @@
       isTakeover = res.is_takeover;
     } catch { selectedSessionDetail = null; }
   }
+
+  $effect(() => {
+    if (data && (data as any).session_id) {
+      selectSession((data as any).session_id);
+    }
+  });
 
   async function toggleTakeover() {
     if (!selectedSessionId) return;

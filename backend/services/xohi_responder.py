@@ -45,7 +45,7 @@ class XoHiResponder:
                     )
 
                 customer = str(payload.get("customer", "Khách lạ"))
-                msg = f"Liệu trình mới từ {customer} (ID: {order_id[:8]})"
+                msg = f"Đơn hàng mới từ {customer} (SĐT: {phone}, ID: {order_id[:8]}) trị giá {total_amount:,.0f}đ."
                 
                 from backend.schemas.signal import SignalSchema, SignalSeverity
                 from backend.services.signal_center import signal_center
@@ -54,10 +54,10 @@ class XoHiResponder:
                 if is_spam:
                     if score >= 90:
                         severity = SignalSeverity.CRITICAL
-                        msg = f"🚨 RED ALERT: Phát hiện tấn công Click-Fraud cực mạnh! Đơn {order_id[:8]} đã bị cô lập hoàn toàn. Lý do: {reason}"
+                        msg = f"🚨 RED ALERT: Phát hiện tấn công Click-Fraud cực mạnh! Đơn {order_id[:8]} từ {customer} (SĐT: {phone}) trị giá {total_amount:,.0f}đ đã bị cô lập hoàn toàn. Lý do: {reason}"
                     else:
                         severity = SignalSeverity.ACTION
-                        msg = f"🚩 CẢNH BÁO SPAM: {msg} - {reason}"
+                        msg = f"🚩 CẢNH BÁO SPAM: Đơn hàng mới từ {customer} (SĐT: {phone}, ID: {order_id[:8]}) trị giá {total_amount:,.0f}đ - {reason}"
 
                 # Elite V2.2: Universal Signal Dispatch (Persistence managed by SignalCenter)
                 await signal_center.dispatch(
@@ -83,7 +83,7 @@ class XoHiResponder:
         order_id = str(payload.get("id", ""))
         reason = str(payload.get("reason", "Không rõ lý do"))
         tenant_id = str(payload.get("tenant_id", "default"))
-        msg = f"Khách đã HỦY liệu trình {order_id[:8]}. Lý do: {reason}"
+        msg = f"Đơn hàng {order_id[:8]} đã bị HỦY bởi khách hàng. Lý do: {reason}"
 
         from backend.schemas.signal import SignalSchema, SignalSeverity
         from backend.services.signal_center import signal_center

@@ -51,11 +51,16 @@ class SignalCenter:
         if should_persist:
             try:
                 from backend.database.models import Notification
+                import json
+                db_message = signal.message
+                if signal.payload:
+                    db_message = f"{signal.message} |metadata:{json.dumps(signal.payload)}"
+                
                 notif = Notification(
                     id=notif_id,
                     user_id=user_id,
                     type=signal.signal_type,
-                    message=signal.message,
+                    message=db_message,
                     is_read=False,
                 )
                 db_session.add(notif)

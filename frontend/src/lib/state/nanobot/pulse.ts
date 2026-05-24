@@ -71,7 +71,7 @@ interface PulseDeps {
     setIsWaitingForAction: (val: boolean) => void;
   };
   notification: {
-    addPendingSignal?: (signal: { id: string; message: string; severity: string; isRead: boolean }) => void;
+    addPendingSignal?: (signal: { id: string; message: string; severity: string; isRead: boolean; payload?: Record<string, any>; signal_type?: string }) => void;
   };
   chat: {
     clearHistory: (sessionId: string) => Promise<boolean>;
@@ -327,12 +327,19 @@ export function createPulseManager(
               state.liveStreamBuffer = (state.liveStreamBuffer || "") + chunkPayload.text;
            }
         } else if (eventName === "SYSTEM_SIGNAL") {
-          const signalPayload = payload as PulseSignal;
-          const { message, severity, notification_id } = signalPayload;
+          const signalPayload = payload as PulseSignal & { signal_type?: string; payload?: Record<string, any> };
+          const { message, severity, notification_id, signal_type, payload: signalMeta } = signalPayload;
           const discipline: VoiceDiscipline = VOICE_DISCIPLINE[severity as keyof typeof VOICE_DISCIPLINE] ?? "silent";
 
           if (typeof notification.addPendingSignal === "function") {
-            notification.addPendingSignal({ id: notification_id, message, severity, isRead: false });
+            notification.addPendingSignal({
+              id: notification_id,
+              message,
+              severity,
+              isRead: false,
+              payload: signalMeta,
+              signal_type
+            });
           }
 
           if (discipline === "interrupt") ui.showToast(message, "error", 7000);
@@ -402,7 +409,9 @@ export function createPulseManager(
                 id: `chat-${updatePayload.session_id}-${Date.now()}`,
                 message: `Khách mới nhắn tin: "${updatePayload.message || 'Tin nhắn mới'}"`,
                 severity: "ACTION",
-                isRead: false
+                isRead: false,
+                payload: { session_id: updatePayload.session_id },
+                signal_type: "CHAT"
               });
             }
           }

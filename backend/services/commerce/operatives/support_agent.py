@@ -684,6 +684,13 @@ class SupportAgentOperative(BaseAgentOperative):
         if c_name in ["Khách ẩn danh", "Sếp"]: c_name = "Quý khách"
         msg_clean = request.message.strip().lower()
 
+        # Emit support inbox update to trigger admin bell immediately thưa sếp!
+        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+            "session_id": session_id,
+            "message": request.message,
+            "role": "user"
+        })
+
         # ══════════════════════════════════════════════════════════════════════
         # OPTION 1: Chat trực tiếp trong box — tắt Helen, báo Admin Inbox
         # Keyword: [chat_inbox]
@@ -750,11 +757,7 @@ class SupportAgentOperative(BaseAgentOperative):
             # 1. Save customer's message to database history
             await self._save_history(db, session_id, request.message, None, SupportIntent.UNKNOWN, request.product_slug, c_name, request.customer_phone)
             # 2. Emit event so that Admin Inbox dashboard gets the new message instantly!
-            await event_bus.emit("SUPPORT_INBOX_UPDATE", {
-                "session_id": session_id,
-                "message": request.message,
-                "role": "user"
-            })
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
             await db.flush()
             # 3. Return TAKEOVER status so frontend doesn't render any automatic assistant reply thưa sếp!
             return SupportResponse(ok=True, reply="", intent=SupportIntent.UNKNOWN, session_id=session_id, status="TAKEOVER")

@@ -726,5 +726,30 @@
   - [x] Thực thi compile tĩnh frontend (`pnpm build`) đạt 100% success không còn bất kỳ lỗi cú pháp nào.
   - [x] Toàn bộ hệ thống sẵn sàng hoạt động an toàn và tối ưu tài nguyên.
 
+# Task checklist: Tối ưu hóa Chuông thông báo & Điều hướng sâu (System Notification Clarity & Deep-linking - Elite V2.2)
+
+- [x] **Trinh sát & Phát hiện Điểm yếu (Scout Protocol)**
+  - [x] Phát hiện thông báo Admin Bell hiển thị chung chung, không rõ ràng và không có link điều hướng.
+  - [x] Xác định nguyên nhân do Database schema `Notification` thiếu cột lưu trữ `payload` hoặc `metadata`.
+- [x] **Kế hoạch Tác chiến & Duyệt phương án (Propose-First)**
+  - [x] Đề xuất giải pháp **Zero-Migration Metadata Encoding**: tự động mã hóa JSON payload thành hậu tố ` |metadata:{...}` ở cuối trường `message` trong Database để không cần thay đổi DB Schema.
+  - [x] Lên phương án bóc tách JSON metadata ở tầng frontend Client API Helper và map với các widget chuyên dụng (`ORDER_MANAGEMENT`, `SUPPORT_INBOX`).
+  - [x] Sếp đã chính thức phê duyệt phương án tác chiến.
+- [x] **Triển khai Đồng bộ & Tối ưu hóa (Execution)**
+  - [x] **Backend Signal Center:** Cập nhật `signal_center.py` tự động mã hóa `payload` sang định dạng ` |metadata:{...}` khi lưu vào DB.
+  - [x] **Backend XoHiResponder:** Chuẩn hóa thông báo chi tiết đơn hàng (khách hàng, SĐT, ID đơn hàng rút gọn, tổng tiền, lý do hủy hoặc spam click-fraud).
+  - [x] **Frontend State & Pulse:** Cập nhật `types.ts` và `pulse.ts` để nạp và chuyển tiếp `payload` và `signal_type` thông qua SSE `SYSTEM_SIGNAL` và `SUPPORT_INBOX_UPDATE` sự kiện chat.
+  - [x] **Frontend Store:** Cập nhật `notification.svelte.ts` để tự động bóc tách JSON metadata khỏi thông báo DB và dọn dẹp message hiển thị sạch đẹp.
+  - [x] **Frontend Notification Hud:** Cấu trúc hàm `handleNotificationClick` điều hướng chuẩn xác:
+    - Nhấp thông báo `ORDER` / `ORDER_CANCEL`: Mở widget `ORDER_MANAGEMENT` và truyền `order_id`.
+    - Nhấp thông báo `CHAT` / `SUPPORT_INBOX` / ID bắt đầu bằng `chat-`: Mở widget `SUPPORT_INBOX` và truyền `session_id`.
+    - Nhấp thông báo `URGENT_SUPPORT`: Mở widget `SUPPORT_INBOX` và tự động tìm kiếm theo SĐT khách hàng (`supportSearchTerm`).
+  - [x] **Frontend Widgets Integration:**
+    - Tích hợp reactive `$effect` trong `OrderManagement.svelte` tự động mở Drawer chi tiết đơn hàng khi nhận `order_id`.
+    - Tích hợp reactive `$effect` trong `SupportInbox.svelte` tự động kết nối hội thoại khi nhận `session_id`.
+- [x] **Kiểm thử & Xác minh (Verification)**
+  - [x] Chạy test event bus backend (`test_notification.py`) chứng minh cấu trúc payload hoạt động ổn định.
+  - [x] Thực thi compile tĩnh frontend (`pnpm build`) hoàn thành thành công 100% `Exit Code 0`, sẵn sàng bàn giao cho Sếp.
+
 
 
