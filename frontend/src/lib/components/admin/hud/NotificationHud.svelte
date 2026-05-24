@@ -101,7 +101,7 @@
                 {note.type}
               </span>
               <span class="text-[9px] font-mono text-gray-700"
-                >{new Date(note.createdAt).toLocaleTimeString()}</span
+                >{new Date(note.createdAt || note.created_at || new Date()).toLocaleTimeString()}</span
               >
             </div>
             <p

@@ -21,6 +21,8 @@ function getPhysicalPath(relativePath, globPattern = '') {
 	}
 }
 
+const isWatch = process.argv.includes('--watch') || process.argv.includes('-w') || process.argv.includes('watch');
+
 export default defineConfig({
 	envDir: '../',
 	define: {
@@ -65,6 +67,7 @@ export default defineConfig({
 		external: ['@ricky0123/vad-web']
 	},
 	build: {
+		emptyOutDir: !isWatch,
 		commonjsOptions: {
 			include: [/node_modules/],
 			dynamicRequireTargets: [

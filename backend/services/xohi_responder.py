@@ -50,7 +50,7 @@ class XoHiResponder:
                 from backend.schemas.signal import SignalSchema, SignalSeverity
                 from backend.services.signal_center import signal_center
                 
-                severity = SignalSeverity.INFO
+                severity = SignalSeverity.ACTION
                 if is_spam:
                     if score >= 90:
                         severity = SignalSeverity.CRITICAL

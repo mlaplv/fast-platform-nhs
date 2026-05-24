@@ -73,10 +73,10 @@
           <div class="text-right">
             <span
               class="text-[10px] font-mono text-white/20 tracking-widest block"
-              >{new Date(note.createdAt).toLocaleDateString()}</span
+              >{new Date(note.createdAt || note.created_at || new Date()).toLocaleDateString()}</span
             >
             <span class="text-[10px] font-mono text-white/40 tabular-nums"
-              >{new Date(note.createdAt).toLocaleTimeString()}</span
+              >{new Date(note.createdAt || note.created_at || new Date()).toLocaleTimeString()}</span
             >
           </div>
         </div>

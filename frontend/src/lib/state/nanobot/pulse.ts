@@ -383,6 +383,7 @@ export function createPulseManager(
         } else if (eventName === "SUPPORT_INBOX_UPDATE") {
           // CNS V86.1: Neural Refresh Pulse (Elite V2.2)
           // Increment toggle to trigger re-fetch in SupportInbox.svelte
+           const updatePayload = payload as { session_id: string; message?: string; role?: string };
            if (state && typeof state.supportRefreshToggle !== 'undefined') {
              state.supportRefreshToggle++;
              // Signal a silent, premium successful update
@@ -392,6 +393,18 @@ export function createPulseManager(
             import("$lib/vui").then(({ vuiController }) => {
               vuiController.playNotificationPing();
             }).catch(() => {});
+          }
+
+          // [CNS V92.5] Push notifications to Bell on client chat
+          if (updatePayload && updatePayload.role === 'user') {
+            if (typeof notification.addPendingSignal === "function") {
+              notification.addPendingSignal({
+                id: `chat-${updatePayload.session_id}-${Date.now()}`,
+                message: `Khách mới nhắn tin: "${updatePayload.message || 'Tin nhắn mới'}"`,
+                severity: "ACTION",
+                isRead: false
+              });
+            }
           }
         }
       } catch (err) {

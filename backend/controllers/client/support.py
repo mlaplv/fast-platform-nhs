@@ -269,7 +269,7 @@ class SupportController(Controller):
             )
             
             await signal_center.dispatch(
-                user_id="ADMIN",  # Broadcast or specific admin role
+                user_id="user_admin",  # Broadcast or specific admin role
                 signal=signal,
                 db_session=db_session
             )
