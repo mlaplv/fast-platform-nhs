@@ -15,11 +15,13 @@ Rule Reference:
 """
 import uuid
 import logging
+import asyncio
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.schemas.signal import SignalSchema, SignalSeverity
 from backend.services.event_bus import event_bus
+from backend.database import alchemy_config
 
 logger = logging.getLogger("api-gateway")
 
@@ -30,16 +32,33 @@ class SignalCenter:
     Atomically: Save DB + Emit SSE Pulse with modality metadata.
     """
 
+    def __init__(self):
+        # Elite V2.2: Isolated Session Maker for non-blocking background persistence
+        self.session_maker = alchemy_config.create_session_maker()
+
     async def dispatch(
         self,
         user_id: str,
         signal: SignalSchema,
-        db_session: AsyncSession,
+        db_session: AsyncSession = None,
         tenant_id: str = "default"
     ) -> None:
         """
-        Unified signal dispatch.
+        Unified signal dispatch. Immediately offloads logic to a non-blocking background task
+        to prevent Blocking Event Loop and keep client response latency under 200ms.
         """
+        # Offload immediately to clean background task, decoupling from request db_session
+        asyncio.create_task(
+            self._dispatch_background(user_id, signal, tenant_id)
+        )
+
+    async def _dispatch_background(
+        self,
+        user_id: str,
+        signal: SignalSchema,
+        tenant_id: str
+    ) -> None:
+        """Background execution of signal database persistence and SSE broadcast."""
         notif_id = str(uuid.uuid4())
 
         # Phase 1: DB Persistence (Elite V2.2: Conditional Persistence Guard)
@@ -50,30 +69,30 @@ class SignalCenter:
 
         if should_persist:
             try:
-                from backend.database.models import Notification
-                import json
-                db_message = signal.message
-                if signal.payload:
-                    db_message = f"{signal.message} |metadata:{json.dumps(signal.payload)}"
-                
-                notif = Notification(
-                    id=notif_id,
-                    user_id=user_id,
-                    type=signal.signal_type,
-                    message=db_message,
-                    is_read=False,
-                )
-                db_session.add(notif)
-                # V70.3 Explicit Commit to bypass Autocommit uncertainties
-                await db_session.commit()
+                # Open isolated local session to guarantee zero connection reuse errors
+                async with self.session_maker() as session:
+                    from backend.database.models import Notification
+                    import json
+                    db_message = signal.message
+                    if signal.payload:
+                        db_message = f"{signal.message} |metadata:{json.dumps(signal.payload)}"
+                    
+                    notif = Notification(
+                        id=notif_id,
+                        user_id=user_id,
+                        type=signal.signal_type,
+                        message=db_message,
+                        is_read=False,
+                    )
+                    session.add(notif)
+                    # V70.3 Explicit Commit to bypass Autocommit uncertainties
+                    await session.commit()
             except Exception as e:
-                logger.error(f"[SignalCenter] DB persist failed for user {user_id}: {e}")
-                # Non-fatal: continue with SSE emit
+                logger.error(f"[SignalCenter] Background DB persist failed for user {user_id}: {e}")
         else:
             logger.debug(f"[SignalCenter] Noise-Gate: Bypassed DB persistence for {signal.severity} signal.")
 
         # Phase 2: SSE Emit with full modality context
-        # Frontend SignalDistributor will decode severity -> modalities
         try:
             await event_bus.emit("SYSTEM_SIGNAL", {
                 "notification_id": notif_id,
@@ -85,8 +104,9 @@ class SignalCenter:
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
         except Exception as e:
-            logger.error(f"[SignalCenter] SSE emit failed for user {user_id}: {e}")
+            logger.error(f"[SignalCenter] Background SSE emit failed for user {user_id}: {e}")
 
 
 # Singleton instance — import from anywhere
 signal_center = SignalCenter()
+
