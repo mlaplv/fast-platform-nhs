@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import type { Product } from '$lib/types';
   import MobileActionStack from './MobileActionStack.svelte';
 
@@ -26,7 +26,7 @@
   }
   import BottomSheet from './BottomSheet.svelte';
 
-  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
 
   import './mobile.css';
 
@@ -35,7 +35,7 @@
   const isEditMode = $derived(liveEditStore.isEditMode);
 
   // Elite V2.2: Reactive switching between live data and edited data
-  const product = $derived(isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product);
+  const product = $derived((isEditMode && liveEditStore.dirtyProduct ? liveEditStore.dirtyProduct : shopStore.product) || propProduct);
 
   // Active section index tracked via IntersectionObserver (O(1) – no scroll listeners)
   let activeSectionIndex = $state(0);
@@ -85,7 +85,7 @@
     reviews?: Record<string, unknown>[];
     relatedProducts?: Product[];
   }
-  let { reviewStats, reviews = [], relatedProducts = [] }: Props = $props();
+  let { product: propProduct, reviewStats, reviews = [], relatedProducts = [] }: Props = $props();
 
   // Check both `video_url` (admin field) and `hero_video_url` (desktop fallback) for compatibility
   const hasVideo = $derived(

@@ -1,198 +1,151 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
+import { normalizeSeoMeta, type NormalizedSeoMeta } from '$lib/utils/seo';
 
 export const trailingSlash = 'ignore';
 
-interface Article {
+// ── Shared local types ────────────────────────────────────────────────────────
+interface NewsItem {
   id: string;
   title: string;
   slug: string;
-  content?: string;
   excerpt?: string;
   featured_image?: string;
   category?: string;
 }
 
+interface ReviewStats {
+  average_rating: number;
+  total_count: number;
+}
+
+// ── Loader ────────────────────────────────────────────────────────────────────
 export const load: PageLoad = async ({ params, fetch, url }) => {
   const { slug } = params;
-  const hasTrailingSlash = url.pathname.endsWith('/');
 
-  // Rule 2.2: Standardize Structure
-  // 1. If it ends with '/', it MUST be a Category
-  if (hasTrailingSlash) {
+  // ── 1. Category (trailing slash) ─────────────────────────────────────────
+  if (url.pathname.endsWith('/')) {
     if (slug === 'bai-viet') {
-      throw error(404, { message: "Không tìm thấy nội dung (Dấu '/' không được phép cho tin bài)" });
+      throw error(404, { message: "Dấu '/' không được phép cho trang bài viết." });
     }
 
-    const productsUrl = `/api/v1/client/products/?category_slug=${slug}&limit=49&status=ACTIVE`;
-    const categoryDetailUrl = `/api/v1/client/categories/slug/${slug}`;
-
-    try {
-      const [prodRes, catDetailRes] = await Promise.all([
-        fetch(productsUrl, {
-          signal: AbortSignal.timeout(3000)
-        }),
-        fetch(categoryDetailUrl, {
-          signal: AbortSignal.timeout(3000)
-        }).catch(e => {
-          console.error(`[CATEGORY DETAIL FETCH FAILED] slug: ${slug}`, e);
-          return null;
-        })
-      ]);
-
-      if (prodRes.ok) {
-        const prodData = await prodRes.json();
-        const items = (prodData.data || []) as unknown[];
-        const total = prodData.total || items.length;
-
-        let category = null;
-        if (catDetailRes && catDetailRes.ok) {
-          category = await catDetailRes.json();
-        }
-
-        return {
-          type: 'category',
-          categoryName: category?.name || slug.replace(/-/g, ' ').toUpperCase(),
-          categorySlug: slug,
-          category,
-          serverTotal: total,
-          items
-        };
-      }
-    } catch (e) {
-      console.error(`[CATEGORY FETCH FAILED] slug: ${slug}`, e);
-    }
-
-    throw error(404, { message: `Danh mục không tồn tại: ${slug}/` });
-  }
-
-  // 2. If it does NOT end with '/', it's either News List or Product
-  if (slug === 'bai-viet') {
-    const newsUrl = `/api/v1/client/news`;
-    try {
-      const newsRes = await fetch(newsUrl, {
+    const [prodRes, catRes] = await Promise.all([
+      fetch(`/api/v1/client/products/?category_slug=${slug}&limit=49&status=ACTIVE`, {
         signal: AbortSignal.timeout(3000)
-      });
-      if (newsRes.ok) {
-        const data = await newsRes.json();
-        return {
-          type: 'news',
-          categoryName: 'Hướng dẫn - kiến thức',
-          items: (Array.isArray(data) ? data : (data.data || data.items || [])) as Article[]
-        };
-      }
-    } catch (e) {
-      console.error(`[NEWS FETCH FAILED]`, e);
-    }
-    throw error(404, { message: "Hiện tại chưa có bài viết nào." });
-  }
+      }),
+      fetch(`/api/v1/client/categories/slug/${slug}`, {
+        signal: AbortSignal.timeout(3000)
+      }).catch(e => {
+        console.error(`[CATEGORY DETAIL FETCH FAILED] ${slug}`, e);
+        return null;
+      })
+    ]);
 
-  // 3. Try Product (Standard Slug)
-  const productUrl = `/api/v1/client/products/slug/${slug}`;
-  const relatedUrl = `/api/v1/client/products/?limit=9`;
+    if (!prodRes.ok) throw error(404, { message: `Danh mục không tồn tại: ${slug}/` });
 
-  try {
-    const prodRes = await fetch(productUrl, {
-      signal: AbortSignal.timeout(3000)
-    });
-    if (prodRes.ok) {
-      const product = await prodRes.json();
-      
-      if (product?.name) {
-        product.name = product.name.replace(/40gr/g, '40g');
-      }
+    const prodData = await prodRes.json() as Record<string, unknown>;
+    const items = (prodData.data ?? []) as unknown[];
+    const total = (prodData.total as number) || items.length;
 
-      let userAgent = '';
-      let isMobile = false;
-      if (typeof navigator !== 'undefined') {
-        userAgent = navigator.userAgent;
-        isMobile = window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(userAgent);
-      }
-
-      // Parallel fetch for related products and reviews stats
-      const [relRes, statsRes] = await Promise.all([
-        fetch(relatedUrl, {
-          signal: AbortSignal.timeout(2000)
-        }).catch((relErr) => {
-          console.error(`[RELATED PRODUCTS FETCH FAILED]`, relErr);
-          return null;
-        }),
-        fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${product.id}`, {
-          signal: AbortSignal.timeout(2000)
-        }).catch((e) => {
-          console.warn(`[REVIEW STATS FETCH FAILED] id: ${product.id}`, e);
-          return null;
-        })
-      ]);
-
-      // Parse related products
-      let relatedProducts: { id: string }[] = [];
-      if (relRes && relRes.ok) {
-        try {
-          const relData = await relRes.json();
-          relatedProducts = (relData.data || [])
-            .filter((p: { id: string }) => p.id !== product.id)
-            .slice(0, 8);
-        } catch (e) {
-          console.error(`[RELATED PRODUCTS PARSE FAILED]`, e);
-        }
-      }
-
-      // Parse review stats
-      let reviewStats = null;
-      if (statsRes && statsRes.ok) {
-        try {
-          reviewStats = await statsRes.json();
-        } catch (e) {
-          console.warn(`[REVIEW STATS PARSE FAILED] id: ${product.id}`);
-        }
-      }
-
-      return {
-        type: 'product',
-        product,
-        reviewStats,
-        relatedProducts,
-        isMobile,
-        effectiveIp: '127.0.0.1',
-        metadata: {
-          timestamp: new Date().toISOString(),
-          userAgent,
-          isMobile
-        }
+    let category: Record<string, unknown> | null = null;
+    if (catRes?.ok) {
+      const catData = await catRes.json() as Record<string, unknown>;
+      const rawSeo = (catData.seoMeta ?? catData.seo_meta) as Record<string, unknown> | null;
+      category = {
+        ...catData,
+        seoMeta: normalizeSeoMeta(rawSeo, String(catData.name ?? ''))
       };
     }
 
-    if (prodRes.status !== 404) {
-      const errorData = await prodRes.text();
-      console.error(`[PRODUCT FETCH ERROR] status: ${prodRes.status}, slug: ${slug}, data: ${errorData}`);
-      throw error(prodRes.status, { 
-        message: `Lỗi hệ thống khi tải sản phẩm: ${slug} (${prodRes.status})` 
-      });
-    }
-
-  } catch (e: unknown) {
-    const err = e as { status?: number };
-    if (err.status) throw e;
-    console.error(`[PRODUCT FETCH SYSTEM ERROR] slug: ${slug}`, e);
+    return {
+      type: 'category' as const,
+      categoryName: (category?.name as string) || slug.replace(/-/g, ' ').toUpperCase(),
+      categorySlug: slug,
+      category,
+      serverTotal: total,
+      items
+    };
   }
 
-  // Phase 2026: Redirect old article link structure to professional `[slug].html`
-  const articleUrl = `/api/v1/client/news/slug/${slug}`;
-  try {
-    const artRes = await fetch(articleUrl, {
-      method: 'HEAD',
-      signal: AbortSignal.timeout(1500)
-    });
-    if (artRes.ok) {
-      throw redirect(301, `/${slug}.html`);
-    }
-  } catch (artErr: unknown) {
-    if (artErr && typeof artErr === 'object' && 'status' in artErr && (artErr as { status: number }).status === 301) {
-      throw artErr;
-    }
-    console.error(`[FRIENDLY URL FALLBACK CHECK FAILED] slug: ${slug}`, artErr);
+  // ── 2. News list ─────────────────────────────────────────────────────────
+  if (slug === 'bai-viet') {
+    const newsRes = await fetch(`/api/v1/client/news`, {
+      signal: AbortSignal.timeout(3000)
+    }).catch(e => { console.error('[NEWS FETCH FAILED]', e); return null; });
+
+    if (!newsRes?.ok) throw error(404, { message: 'Hiện tại chưa có bài viết nào.' });
+
+    const data = await newsRes.json() as Record<string, unknown>;
+    return {
+      type: 'news' as const,
+      categoryName: 'Hướng dẫn - kiến thức',
+      items: (Array.isArray(data) ? data : ((data.data ?? data.items ?? []) as unknown[])) as NewsItem[]
+    };
   }
 
-  throw error(404, { message: `Không tìm thấy sản phẩm hoặc trang cho: ${slug}` });
+  // ── 3. Product ────────────────────────────────────────────────────────────
+  const prodRes = await fetch(`/api/v1/client/products/slug/${slug}`, {
+    signal: AbortSignal.timeout(3000)
+  }).catch(e => { console.error(`[PRODUCT FETCH FAILED] ${slug}`, e); return null; });
+
+  if (prodRes?.ok) {
+    const prodData = await prodRes.json() as Record<string, unknown>;
+    const rawSeo = (prodData.seoMeta ?? prodData.seo_meta) as Record<string, unknown> | null;
+    const seoMeta: NormalizedSeoMeta | null = normalizeSeoMeta(rawSeo, String(prodData.name ?? ''));
+
+    const product = {
+      ...prodData,
+      seoMeta,
+      // Normalize legacy weight notation
+      name: typeof prodData.name === 'string' ? prodData.name.replace(/40gr/g, '40g') : prodData.name
+    };
+
+    const isMobile =
+      typeof window !== 'undefined'
+        ? window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(navigator.userAgent)
+        : false;
+
+    const [relRes, statsRes] = await Promise.all([
+      fetch(`/api/v1/client/products/?limit=9`, { signal: AbortSignal.timeout(2000) })
+        .catch(e => { console.error('[RELATED PRODUCTS FETCH FAILED]', e); return null; }),
+      fetch(`/api/v1/client/reviews/stats?entity_type=PRODUCT&entity_id=${String(product.id)}`, {
+        signal: AbortSignal.timeout(2000)
+      }).catch(e => { console.warn('[REVIEW STATS FETCH FAILED]', e); return null; })
+    ]);
+
+    let relatedProducts: { id: string }[] = [];
+    if (relRes?.ok) {
+      const relData = await relRes.json() as Record<string, unknown>;
+      relatedProducts = ((relData.data ?? []) as { id: string }[])
+        .filter(p => p.id !== String(product.id))
+        .slice(0, 8);
+    }
+
+    let reviewStats: ReviewStats | null = null;
+    if (statsRes?.ok) {
+      reviewStats = await statsRes.json() as ReviewStats;
+    }
+
+    return {
+      type: 'product' as const,
+      product,
+      reviewStats,
+      relatedProducts,
+      isMobile
+    };
+  }
+
+  if (prodRes && prodRes.status !== 404) {
+    throw error(prodRes.status, { message: `Lỗi hệ thống: ${slug} (${prodRes.status})` });
+  }
+
+  // ── 4. Article redirect (old URL → [slug].html) ───────────────────────────
+  const artRes = await fetch(`/api/v1/client/news/slug/${slug}`, {
+    method: 'HEAD',
+    signal: AbortSignal.timeout(1500)
+  }).catch(() => null);
+
+  if (artRes?.ok) throw redirect(301, `/${slug}.html`);
+
+  throw error(404, { message: `Không tìm thấy: ${slug}` });
 };

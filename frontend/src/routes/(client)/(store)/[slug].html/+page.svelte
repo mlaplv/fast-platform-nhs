@@ -4,57 +4,45 @@
   import SeoHead from '$lib/components/storefront/seo/SeoHead.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { afterNavigate } from '$app/navigation';
-  import { page } from '$app/stores';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
   const ui = getClientUi();
-  const siteUrl = $derived($page.url.origin);
-  const siteName = $derived(ui.settings?.basic_info?.site_name || ui.settings?.site_name || "SmartShop");
 
-  // Elite V2.2: Route Navigation Scroll Restoration Shield
   afterNavigate(() => {
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'instant' });
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'instant' });
-      }, 50);
     }
   });
 
-  // SEO Derived State (Elite V2.2)
-  const articleSeoMeta = $derived(data.article?.seoMeta || data.article?.seo_meta || null);
+  const seo = $derived(data.article?.seoMeta ?? null);
 
-  // Elite V2.2: Semantic Breadcrumb Logic (GEO 2026)
-  const breadcrumbItems = $derived.by(() => {
-    const items = [{ name: 'Trang chủ', url: '/' }];
-    if (data.article) {
-      items.push({ name: 'Bài viết', url: '/bai-viet' });
-      items.push({ name: data.article.title, url: `/${data.article.slug}.html` });
-    }
-    return items;
-  });
+  const breadcrumbItems = $derived([
+    { name: 'Trang chủ', url: '/' },
+    { name: 'Bài viết', url: '/bai-viet' },
+    ...(data.article ? [{ name: data.article.title, url: `/${data.article.slug}.html` }] : [])
+  ]);
 
-  // Elite V2.2: FAQ Extraction for SGE
-  const pageFaqs = $derived(data.article?.metadata?.faqs || []);
+  const pageFaqs = $derived(data.article?.metadata?.faqs ?? []);
 </script>
 
-<!-- SEO HEAD (SGE & AI SEARCH COMPLIANT) -->
 {#if data.article}
   <SeoHead
     pageType="article"
-    title={articleSeoMeta?.title || `${data.article.title} | ${siteName}`}
-    description={articleSeoMeta?.description || data.article.excerpt || ""}
-    canonical={articleSeoMeta?.canonical_url || `${siteUrl}/${data.article.slug}.html`}
+    title={seo?.title || data.article.title}
+    description={seo?.description || data.article.excerpt || ''}
+    canonical={seo?.canonical_url || ''}
+    keywords={seo?.keywords || ''}
+    image={data.article.featuredImage || data.article.featured_image || ''}
     {breadcrumbItems}
     faqs={pageFaqs}
     articleData={{
       headline: data.article.title,
-      author: data.article.author_name || siteName,
-      datePublished: data.article.created_at,
-      image: data.article.featured_image
+      author: data.article.author || data.article.author_name || '',
+      datePublished: data.article.publishedAt || data.article.published_at || data.article.created_at || '',
+      image: data.article.featuredImage || data.article.featured_image || ''
     }}
-    jsonLdScripts={[articleSeoMeta?.json_ld_string].filter(Boolean)}
+    jsonLdScripts={[seo?.json_ld_string, seo?.breadcrumb_ld_string, seo?.faq_ld_string].filter(Boolean)}
   />
 {/if}
 

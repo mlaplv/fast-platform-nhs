@@ -59,11 +59,42 @@
   }
   let { product, relatedProducts = [], reviewStats = null }: Props = $props();
 
+  interface ExtendedProductMetadata {
+    share_promotion?: {
+      voucher_id?: string;
+      likes_count?: number;
+    };
+    viral_suite?: {
+      likes_count?: number;
+    };
+    vouchers?: { id: string; label: string; sub: string; type: "ship" | "discount" }[];
+    flash_sale_end?: string;
+    brand?: string;
+    origin?: string;
+    weight?: string;
+  }
+
+  interface RawTierVariation {
+    name?: string;
+    options?: (string | { name?: string; label?: string })[];
+    images?: (string | null)[];
+  }
+
+  interface VoucherUI {
+    id: string;
+    label: string;
+    sub: string;
+    type: "ship" | "discount";
+  }
+
+  // Elite Performance Sync (V2.2)
+  const metadata = $derived((product.metadata || {}) as ExtendedProductMetadata);
+
   // Elite Performance Fix: Derived from server-prefetched and reactive data
   const stats = $derived<ReviewStats | null>(reviewStats);
   const likeCount = $derived(
     Number(
-      product.metadata?.viral_suite?.likes_count ||
+      metadata.viral_suite?.likes_count ||
         product.metadata?.likes ||
         0,
     )
@@ -90,7 +121,11 @@
   }
 
   const variations = $derived(
-    product.tier_variations || product.tierVariations || [],
+    ((product.tier_variations || product.tierVariations || []) as RawTierVariation[]).map(v => ({
+      name: v.name || "",
+      options: (v.options || []).map((o) => typeof o === "string" ? o : String(o?.name || o?.label || "")),
+      images: (v.images || []).filter((img): img is string => img !== null)
+    }))
   );
   let selectedIndices = $state<number[]>([]);
 
@@ -169,8 +204,8 @@
 
       return {
         price: formatRange(minPrice, maxPrice),
-        discountPrice: minDiscount
-          ? formatRange(minDiscount, maxDiscount ?? minDiscount)
+        discountPrice: (minDiscount !== undefined && maxDiscount !== undefined)
+          ? formatRange(minDiscount, maxDiscount)
           : undefined,
       };
     }
@@ -238,8 +273,8 @@
   }
 
   const flashSaleEnd = $derived(
-    product.metadata?.flash_sale_end
-      ? new Date(product.metadata.flash_sale_end).getTime()
+    metadata.flash_sale_end
+      ? new Date(metadata.flash_sale_end).getTime()
       : null,
   );
   const isFlashSaleActive = $derived(
@@ -256,12 +291,12 @@
 
   let selectedVouchers = $state<string[]>([]);
   const productVouchers = $derived.by(() => {
-    let vouchers = [];
+    let vouchers: { id: string; label: string; sub: string; type: "ship" | "discount" }[] = [];
     if (
-      Array.isArray(product.metadata?.vouchers) &&
-      product.metadata.vouchers.length > 0
+      Array.isArray(metadata.vouchers) &&
+      metadata.vouchers.length > 0
     ) {
-      vouchers = product.metadata.vouchers;
+      vouchers = metadata.vouchers as { id: string; label: string; sub: string; type: "ship" | "discount" }[];
     } else {
       vouchers = cartStore.vouchers
         .filter((v) => {
@@ -279,7 +314,7 @@
             (v.type === "SHIPPING"
               ? "Miễn phí vận chuyển"
               : `Giảm ${formatCurrency(v.value)}`),
-          type: (v.type === "SHIPPING" ? "ship" : "discount") as "ship" | "discount",
+          type: v.type === "SHIPPING" ? ("ship" as const) : ("discount" as const),
         }));
     }
 
@@ -326,7 +361,7 @@
     const viralVouchers = vList.filter(v => isViralVoucher(v));
     const regularVouchers = vList.filter(v => !isViralVoucher(v));
 
-    return [...viralVouchers, ...regularVouchers];
+    return [...viralVouchers, ...regularVouchers] as VoucherUI[];
   });
 
   function triggerViralFly() {
@@ -368,17 +403,17 @@
   const productInfo = $derived({
     barcode: (product.sku as string) || "N/A",
     brand:
-      (product.metadata?.brand as string) ||
+      metadata.brand ||
       (product.attributes?.brand as string) ||
       (product.attributes?.["Thương hiệu"] as string) ||
       "",
     origin:
-      (product.metadata?.origin as string) ||
+      metadata.origin ||
       (product.attributes?.origin as string) ||
       (product.attributes?.["Xuất xứ"] as string) ||
       "",
     weight:
-      (product.metadata?.weight as string) ||
+      metadata.weight ||
       (product.attributes?.weight as string) ||
       (product.attributes?.["Trọng lượng"] as string) ||
       "",
@@ -522,7 +557,7 @@
       onViewFullIngredients={handleViewFullIngredients}
       onTriggerScan={triggerScan}
       visibleAttributes={product.attributes
-        ? Object.entries(product.attributes).filter(([key, value]) => {
+        ? (Object.entries(product.attributes).filter(([key, value]) => {
             const k = key.toLowerCase().replace(/_/g, " ").trim();
             return !(
               k === "xuất xứ" ||
@@ -535,7 +570,7 @@
               k === "thương hiệu" ||
               k === "brand"
             );
-          })
+          }) as [string, string | number | boolean | null][])
         : []}
     />
 

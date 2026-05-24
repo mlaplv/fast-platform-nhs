@@ -456,3 +456,68 @@ export function buildGraphLd(scripts: (string | null | undefined)[]): string {
         "@graph": graphEntities
     }).replace(/</g, '\\u003C');
 }
+
+// ── SSOT: Normalized SEO Meta ──────────────────────────────────────────────────
+/**
+ * Elite V2.2: normalizeSeoMeta — SSOT SEO normalizer cho toàn hệ thống.
+ *
+ * Backend (Python/Litestar) luôn serialize theo snake_case:
+ *   canonical_url, json_ld_string, breadcrumb_ld_string, faq_ld_string
+ *
+ * Hàm này map cả hai dạng snake_case & camelCase thành 1 object chuẩn,
+ * dùng chung cho Article, Category, Product — không duplicate logic ở bất kỳ đâu.
+ *
+ * @param raw - Raw SEO object từ API (có thể là seoMeta hoặc seo_meta)
+ * @param fallbackTitle - Tiêu đề fallback nếu backend trả về rác (ví dụ: "Sản phẩm | osmo")
+ */
+export interface NormalizedSeoMeta {
+    title: string;
+    description: string;
+    keywords: string;
+    canonicalUrl: string;
+    canonical_url: string;
+    jsonLdString: string;
+    json_ld_string: string;
+    breadcrumb_ld_string: string;
+    faq_ld_string: string;
+}
+
+export function normalizeSeoMeta(
+    raw: Record<string, unknown> | null | undefined,
+    fallbackTitle = ""
+): NormalizedSeoMeta | null {
+    if (!raw) return null;
+
+    // Resolve từng field, ưu tiên camelCase → snake_case
+    const rawTitle = (raw["title"] as string) || "";
+    const isGenericFallback = !rawTitle || rawTitle.startsWith("Sản phẩm");
+    const title = (isGenericFallback && fallbackTitle) ? fallbackTitle : rawTitle;
+
+    const canonicalUrl =
+        (raw["canonicalUrl"] as string) ||
+        (raw["canonical_url"] as string) ||
+        "";
+
+    const jsonLdString =
+        (raw["jsonLdString"] as string) ||
+        (raw["json_ld_string"] as string) ||
+        "";
+
+    return {
+        title,
+        description: (raw["description"] as string) || "",
+        keywords: (raw["keywords"] as string) || "",
+        canonicalUrl,
+        canonical_url: canonicalUrl,
+        jsonLdString,
+        json_ld_string: jsonLdString,
+        breadcrumb_ld_string:
+            (raw["breadcrumb_ld_string"] as string) ||
+            (raw["breadcrumbLdString"] as string) ||
+            "",
+        faq_ld_string:
+            (raw["faq_ld_string"] as string) ||
+            (raw["faqLdString"] as string) ||
+            "",
+    };
+}

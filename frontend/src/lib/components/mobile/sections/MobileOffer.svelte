@@ -4,11 +4,11 @@
    * TikTok Shop Viral Strategy Implementation.
    * Following R00: NO HARDCODING | SENIOR ARCHITECT STANDARDS.
    */
-  import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getCartStore } from '$lib/state/commerce/cart.svelte';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import AddressSelector from '$lib/components/mobile/checkout/AddressSelector.svelte';
-  import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
+  import { fomoStore } from '$lib/state/commerce/fomo.svelte';
   import { SHOP_CONFIG, OFFER_CONSTANTS, PRIVACY_CONSTANTS } from '$lib/constants/shop';
   import { resolveMediaUrl } from '$lib/state/utils';
   import type { ProductVariant, Product, Voucher } from '$lib/types';
@@ -32,8 +32,14 @@
     onOpenDetails?: () => void;
   }
 
+  interface ExtendedVariant extends ProductVariant {
+    image_url?: string;
+    imageUrl?: string;
+    image?: string;
+  }
+
   // --- Props & State (Runes) ---
-  let { product: propProduct, onOpenDetails } = $props<MobileOfferProps>();
+  let { product: propProduct, onOpenDetails }: MobileOfferProps = $props();
   const shopStore = getShopStore();
   const cartStore = getCartStore();
   
@@ -44,7 +50,7 @@
   );
 
   const variants: ProductVariant[] = $derived(product?.variants || []);
-  const metadata = $derived(product?.metadata || {});
+  const metadata = $derived((product?.metadata || {}) as Record<string, string | undefined>);
 
   // Elite V2.2: Unbreakable UI Index Tracking
   let userSelectedIndex = $state<number | null>(null);
@@ -69,12 +75,15 @@
     metadata.offer_headline_2 || (product?.name ? product.name.split(' ').slice(1).join(' ') : "độc quyền")
   );
 
-  const variantImages = $derived(variants.map((v, i) => resolveMediaUrl(
-    v.image_url || v.imageUrl || v.image || 
-    (product?.images && product.images[i]) || 
-    (product?.images && product.images[0]) || 
-    (product?.tierVariations?.[0]?.images?.[v.tierIndex?.[0]])
-  )));
+  const variantImages = $derived(variants.map((v, i) => {
+    const ev = v as ExtendedVariant;
+    return resolveMediaUrl(
+      ev.image_url || ev.imageUrl || ev.image || 
+      (product?.images && product.images[i]) || 
+      (product?.images && product.images[0]) || 
+      (product?.tierVariations?.[0]?.images?.[v.tierIndex?.[0] ?? 0])
+    );
+  }));
 
   // Elite V2.2: Secure Viral State (Reactive Sync)
   let isViralUnlocked = $state(false);
@@ -157,7 +166,7 @@
   function getVariantTitle(v: ProductVariant): string {
     if (!product?.tierVariations?.length || !v.tierIndex?.length) return v.sku || 'Combo';
     return v.tierIndex.map((optIdx: number, tierIdx: number) => {
-      const option = product.tierVariations![tierIdx]?.options[optIdx];
+      const option = product.tierVariations![tierIdx]?.options[optIdx] as string | { name?: string; label?: string } | undefined;
       return typeof option === 'string' ? option : (typeof option === 'object' && option ? (option.name || option.label || '') : '');
     }).filter(Boolean).join(' - ') || v.sku || 'Combo';
   }

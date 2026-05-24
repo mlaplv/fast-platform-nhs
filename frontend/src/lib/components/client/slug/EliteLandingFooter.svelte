@@ -72,14 +72,27 @@
   );
 </script>
 
-<footer class="elite-minimalist-footer w-full bg-[#010101] pt-20 pb-20 relative overflow-hidden">
-  
+<footer
+  class="elite-minimalist-footer w-full bg-[#010101] pt-20 pb-20 relative overflow-hidden"
+>
   <!-- Dải sóng công nghệ lượn sóng mạnh mẽ & tinh tế (Neon Tech Wave Line) -->
-  <div class="absolute top-0 left-0 w-full overflow-hidden leading-[0] select-none pointer-events-none z-20">
-    <svg viewBox="0 0 1440 100" preserveAspectRatio="none" class="relative block w-full h-[50px]">
+  <div
+    class="absolute top-0 left-0 w-full overflow-hidden leading-[0] select-none pointer-events-none z-20"
+  >
+    <svg
+      viewBox="0 0 1440 100"
+      preserveAspectRatio="none"
+      class="relative block w-full h-[50px]"
+    >
       <defs>
         <!-- Dải màu gradient Rose Gold rực cháy phối hợp Ngọc lam hiện đại -->
-        <linearGradient id="tech-wave-glow-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <linearGradient
+          id="tech-wave-glow-grad"
+          x1="0%"
+          y1="0%"
+          x2="100%"
+          y2="0%"
+        >
           <stop offset="0%" stop-color="#FF3366" stop-opacity="0" />
           <stop offset="15%" stop-color="#FF3366" stop-opacity="0.1" />
           <stop offset="35%" stop-color="#FF5E36" stop-opacity="0.4" />
@@ -88,7 +101,13 @@
           <stop offset="85%" stop-color="#00c4a7" stop-opacity="0.1" />
           <stop offset="100%" stop-color="#00c4a7" stop-opacity="0" />
         </linearGradient>
-        <filter id="wave-neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+        <filter
+          id="wave-neon-glow"
+          x="-20%"
+          y="-20%"
+          width="140%"
+          height="140%"
+        >
           <feGaussianBlur stdDeviation="4" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
@@ -129,32 +148,51 @@
   <div class="container mx-auto px-6 max-w-6xl relative z-10">
     <!-- KHỐI HÌNH BẦU ĐỘC BẢN HỢP NHẤT TẤT CẢ (Unified Oval Capsule Card) -->
     <div class="elite-capsule-card">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-stretch">
-        
+      <div
+        class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-stretch"
+      >
         <!-- PHÂN HỆ 1: PHÁP LÝ & SỐ PHIẾU CÔNG BỐ (4 CỘT) -->
         <div class="lg:col-span-4 flex flex-col justify-between gap-6">
           <div>
             <div class="flex items-center gap-2 mb-4">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 indicator-glow-emerald"></span>
-              <span class="text-[10px] font-bold text-emerald-400 tracking-wider">Phiếu công bố</span>
+              <span
+                class="w-1.5 h-1.5 rounded-full bg-emerald-500 indicator-glow-emerald"
+              ></span>
+              <span
+                class="text-[10px] font-bold text-emerald-400 tracking-wider"
+                >Phiếu công bố</span
+              >
             </div>
 
             <div class="flex items-center gap-1.5 mb-1">
               <ShieldCheck size={12} class="text-emerald-400/80" />
-              <span class="text-white/40 text-[10px] font-medium">Mã số hồ sơ</span>
+              <span class="text-white/40 text-[10px] font-medium"
+                >Mã số hồ sơ</span
+              >
             </div>
-            <div class="text-white text-base md:text-lg font-black tracking-wide mb-3 font-mono">
+            <div
+              class="text-white text-base md:text-lg font-black tracking-wide mb-3 font-mono"
+            >
               {notificationNo}
             </div>
 
             <div class="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
               <div>
-                <span class="text-white/40 text-[9px] font-medium">Ngày cấp</span>
-                <span class="block text-white/80 text-xs font-bold font-mono mt-0.5">{notificationDate}</span>
+                <span class="text-white/40 text-[9px] font-medium"
+                  >Ngày cấp</span
+                >
+                <span
+                  class="block text-white/80 text-xs font-bold font-mono mt-0.5"
+                  >{notificationDate}</span
+                >
               </div>
               <div>
-                <span class="text-white/40 text-[9px] font-medium">Cơ quan</span>
-                <span class="block text-white/80 text-xs font-bold mt-0.5 truncate">{authority}</span>
+                <span class="text-white/40 text-[9px] font-medium">Cơ quan</span
+                >
+                <span
+                  class="block text-white/80 text-xs font-bold mt-0.5 truncate"
+                  >{authority}</span
+                >
               </div>
             </div>
           </div>
@@ -169,19 +207,30 @@
         </div>
 
         <!-- PHÂN HỆ 2: MÃ VẠCH & XÁC MINH NGUỒN GỐC (4 CỘT) -->
-        <div class="lg:col-span-4 flex flex-col justify-between gap-6 lg:px-10 lg:border-x lg:border-white/5">
+        <div
+          class="lg:col-span-4 flex flex-col justify-between gap-6 lg:px-10 lg:border-x lg:border-white/5"
+        >
           <div>
             <div class="flex items-center gap-2 mb-4">
-              <span class="w-1.5 h-1.5 rounded-full bg-blue-400 indicator-glow-blue"></span>
-              <span class="text-[10px] font-bold text-blue-400 tracking-wider">Xác thực DNA</span>
+              <span
+                class="w-1.5 h-1.5 rounded-full bg-blue-400 indicator-glow-blue"
+              ></span>
+              <span class="text-[10px] font-bold text-blue-400 tracking-wider"
+                >Xác thực DNA</span
+              >
             </div>
 
-            <span class="text-white/40 text-[10px] font-medium">Mã vạch EAN toàn cầu</span>
-            <div class="text-white text-base md:text-lg font-black tracking-widest mt-1 mb-2 font-mono">
+            <span class="text-white/40 text-[10px] font-medium"
+              >Mã vạch EAN toàn cầu</span
+            >
+            <div
+              class="text-white text-base md:text-lg font-black tracking-widest mt-1 mb-2 font-mono"
+            >
               {barcode}
             </div>
             <p class="text-white/40 text-[10px] leading-relaxed font-light">
-              Sản phẩm được dán nhãn DNA chống hàng giả. Hỗ trợ truy xuất nguồn gốc nhà máy tại Tokyo, Nhật Bản.
+              Sản phẩm được dán nhãn DNA chống hàng giả. Hỗ trợ truy xuất nguồn
+              gốc nhà máy tại Tokyo, Nhật Bản.
             </p>
           </div>
 
@@ -198,18 +247,28 @@
         <div class="lg:col-span-4 flex flex-col justify-between gap-6">
           <div>
             <div class="flex items-center gap-2 mb-4">
-              <span class="w-1.5 h-1.5 rounded-full bg-white/30 indicator-glow-white"></span>
-              <span class="text-[10px] font-bold text-white/50 tracking-wider">Liên hệ</span>
+              <span
+                class="w-1.5 h-1.5 rounded-full bg-white/30 indicator-glow-white"
+              ></span>
+              <span class="text-[10px] font-bold text-white/50 tracking-wider"
+                >Liên hệ</span
+              >
             </div>
 
-            <div class="flex flex-col gap-2.5 text-white/60 text-[10px] font-light">
+            <div
+              class="flex flex-col gap-2.5 text-white/60 text-[10px] font-light"
+            >
               <div class="flex items-start gap-2">
                 <MapPin size={12} class="text-[#E8D5B0] shrink-0 mt-0.5" />
                 <span class="leading-relaxed">{address}</span>
               </div>
               <div class="flex items-center gap-2">
                 <Phone size={12} class="text-[#C18F7E] shrink-0" />
-                <span>Hotline: <strong class="font-mono text-white">{hotline}</strong></span>
+                <span
+                  >Hotline: <strong class="font-mono text-white"
+                    >{hotline}</strong
+                  ></span
+                >
               </div>
               <div class="flex items-center gap-2">
                 <Mail size={12} class="text-[#E3B5A4] shrink-0" />
@@ -218,7 +277,9 @@
             </div>
           </div>
 
-          <div class="border-t border-white/5 pt-3 mt-1 flex flex-col gap-1 text-white/30 text-[8px] font-light font-mono leading-relaxed">
+          <div
+            class="border-t border-white/5 pt-3 mt-1 flex flex-col gap-1 text-white/30 text-[8px] font-light font-mono leading-relaxed"
+          >
             {#if taxId}
               <div>
                 MST: <strong class="font-mono text-white/50">{taxId}</strong>
@@ -226,7 +287,10 @@
             {/if}
             <div class="flex items-start gap-1">
               <span class="text-white/40 shrink-0">HKD VALA:</span>
-              <span class="text-white/50">{businessLicense || "066082007605, do UBND Phường Phú Lâm cấp ngày 28/4/2026"}</span>
+              <span class="text-white/50"
+                >{businessLicense ||
+                  "066082007605, do UBND Phường Phú Lâm cấp ngày 28/4/2026"}</span
+              >
             </div>
           </div>
         </div>
@@ -234,22 +298,29 @@
     </div>
 
     <!-- Bản quyền cuối trang -->
-    <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-white/20 text-[9px] font-light">
+    <div
+      class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-white/20 text-[9px] font-light"
+    >
       <p>
         © 2026 {product.metadata?.seo_site_name ||
           clientUi.settings?.basic_info?.site_name ||
           "OSMO"}. All rights reserved.
       </p>
-      <div class="flex items-center gap-2 grayscale opacity-40 hover:opacity-100 hover:grayscale-0 transition-all">
+      <div
+        class="flex items-center gap-2 grayscale opacity-40 hover:opacity-100 hover:grayscale-0 transition-all"
+      >
         <img
-          src="/bocongthuong.png"
+          src="/uploads/img/bocongthuong.webp"
           alt="Bộ Công Thương"
           class="h-6 object-contain"
           onerror={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}
         />
-        <span class="border border-white/10 px-2 py-0.5 rounded text-[8px] font-mono tracking-wider opacity-60">Secure SSL Encrypted</span>
+        <span
+          class="border border-white/10 px-2 py-0.5 rounded text-[8px] font-mono tracking-wider opacity-60"
+          >Secure SSL Encrypted</span
+        >
       </div>
     </div>
   </div>
@@ -292,17 +363,28 @@
         </p>
 
         <!-- Bản scan gốc làm hình nền của card để xác minh trực quan EEAT tuyệt đối -->
-        <div 
+        <div
           class="aspect-[3/4] w-full rounded-xl border border-white/10 overflow-hidden flex flex-col items-end justify-end p-6 relative bg-cover bg-center bg-no-repeat shadow-inner"
           style="background-image: url('{notificationDoc}');"
         >
           <!-- Gradient che phủ tinh xảo bảo vệ độ hiển thị của text -->
-          <div class="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent z-10"></div>
+          <div
+            class="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent z-10"
+          ></div>
 
-          <div class="absolute inset-x-0 bottom-0 p-5 z-20 text-center flex flex-col gap-1.5 bg-black/70 backdrop-blur-md border-t border-white/5">
-            <span class="text-emerald-400 text-[10px] font-bold tracking-wider uppercase">Trạng thái: Hoạt động</span>
-            <span class="text-white text-xs font-bold font-mono">{notificationNo}</span>
-            <span class="text-white/40 text-[8px] font-mono">Ngày cấp: {notificationDate} • {authority}</span>
+          <div
+            class="absolute inset-x-0 bottom-0 p-5 z-20 text-center flex flex-col gap-1.5 bg-black/70 backdrop-blur-md border-t border-white/5"
+          >
+            <span
+              class="text-emerald-400 text-[10px] font-bold tracking-wider uppercase"
+              >Trạng thái: Hoạt động</span
+            >
+            <span class="text-white text-xs font-bold font-mono"
+              >{notificationNo}</span
+            >
+            <span class="text-white/40 text-[8px] font-mono"
+              >Ngày cấp: {notificationDate} • {authority}</span
+            >
           </div>
         </div>
       </div>
@@ -321,7 +403,7 @@
     backdrop-filter: blur(20px);
     transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  
+
   @media (min-width: 768px) {
     .elite-capsule-card {
       border-radius: 64px 0 64px 0;
@@ -346,7 +428,7 @@
     overflow: hidden;
   }
   .scan-laser-btn::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: -100%;
@@ -364,8 +446,12 @@
     animation: laser-sweep 1.6s ease-in-out infinite;
   }
   @keyframes laser-sweep {
-    0% { left: -100%; }
-    100% { left: 160%; }
+    0% {
+      left: -100%;
+    }
+    100% {
+      left: 160%;
+    }
   }
 
   /* Glowing electronic pulse for status dots */
@@ -381,8 +467,14 @@
     box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
   }
   @keyframes indicator-pulse {
-    0% { transform: scale(0.85); opacity: 0.7; }
-    100% { transform: scale(1.15); opacity: 1; }
+    0% {
+      transform: scale(0.85);
+      opacity: 0.7;
+    }
+    100% {
+      transform: scale(1.15);
+      opacity: 1;
+    }
   }
 
   @keyframes wave-pulse {

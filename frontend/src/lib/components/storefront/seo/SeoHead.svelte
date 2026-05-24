@@ -4,6 +4,7 @@
 -->
 <script lang="ts">
   import { page } from "$app/state";
+  import { untrack } from "svelte";
   import { seoFactory } from "$lib/state/seo/schemaFactory.svelte";
 
   import {
@@ -53,7 +54,7 @@
     canonical = "",
     image = "",
     keywords = "",
-    siteName = "osmo Elite",
+    siteName = "",
     robots = "index, follow, max-image-preview:large",
     articleData = null,
     productData = null,
@@ -64,12 +65,69 @@
     isFallback = false,
   }: SeoHeadProps & { isFallback?: boolean } = $props();
 
-  // Elite V2.2: Safe Fallback Title (Anti-Die)
-  const finalTitle = $derived(title || siteName || "osmo Elite Việt Nam");
+  // ── Requirement 1: Resolve Central Shop Settings Dynamically (SSOT & Zero Hardcode) ──
+  const resolvedSiteName = $derived.by(() => {
+    // 1. Prioritize real database shopInfo settings first!
+    const dbSiteName = page.data.shopInfo?.basic_info?.site_name;
+    if (dbSiteName) return dbSiteName;
 
+    // 2. Prioritize dynamic siteName passed as prop, unless it's a hardcoded placeholder
+    const isHardcodedPlaceholder = (val: string) => {
+      const v = val.toLowerCase().trim();
+      return v === "osmo" || v === "osmo elite" || v === "smartshop" || v === "";
+    };
+    if (siteName && !isHardcodedPlaceholder(siteName)) {
+      return siteName;
+    }
 
-  // ── Requirement 1: Absolute URL Normalization (GEO 2026: Force Production) ────
-  const seoOrigin = "https://osmo.vn";
+    // 3. Fallback to default
+    return "osmo Elite";
+  });
+  
+  const resolvedSiteTitle = $derived(
+    page.data.shopInfo?.basic_info?.site_name
+      ? (page.data.shopInfo.basic_info.slogan
+          ? `${page.data.shopInfo.basic_info.site_name} | ${page.data.shopInfo.basic_info.slogan}`
+          : page.data.shopInfo.basic_info.site_name)
+      : "osmo Elite"
+  );
+
+  const seoOrigin = $derived.by(() => {
+    const dbDomain = page.data.shopInfo?.basic_info?.domain;
+    if (dbDomain) {
+      return dbDomain.startsWith("http") ? dbDomain : `https://${dbDomain}`;
+    }
+    return page.url.origin || "https://osmo.vn";
+  });
+
+  // Elite V2.2: Self-Healing Dynamic Title (Auto-appends " | Site Name" if not present)
+  const finalTitle = $derived.by(() => {
+    const isPlaceholder = (val: string) => {
+      const v = val.toLowerCase().trim();
+      return v === "osmo elite" || v === "osmo elite việt nam" || v === "smartshop" || v === "osmo" || v === "";
+    };
+
+    let baseTitle = title;
+    if (!baseTitle || isPlaceholder(baseTitle)) {
+      if (pageType === "home" || page.url.pathname === "/") {
+        baseTitle = page.data.shopInfo?.seo_analytics?.meta_title || resolvedSiteTitle;
+      } else {
+        baseTitle = resolvedSiteName;
+      }
+    }
+
+    // Auto-append dynamic site name to child pages (like Funnel pages) if not present
+    if (pageType !== "home" && page.url.pathname !== "/") {
+      const hasSiteName = baseTitle.includes("|") || 
+                           baseTitle.includes(" - ") || 
+                           baseTitle.toLowerCase().includes(resolvedSiteName.toLowerCase());
+      if (!hasSiteName) {
+        return `${baseTitle} | ${resolvedSiteName}`;
+      }
+    }
+
+    return baseTitle;
+  });
 
   const toAbsolute = (url: string | undefined) => {
     if (!url) return "";
@@ -78,30 +136,69 @@
     return `${seoOrigin}${cleanPath}`;
   };
 
-  const absImage = $derived(toAbsolute(image || "/images/default-og.png"));
+  const absImage = $derived(
+    toAbsolute(image || page.data.shopInfo?.basic_info?.logo_desktop || "/images/default-og.png")
+  );
+  
   const absCanonical = $derived(
-    canonical ? toAbsolute(canonical) : `${seoOrigin}${page.url.pathname}`,
+    canonical ? toAbsolute(canonical) : `${seoOrigin}${page.url.pathname}`
   );
 
-
-  // ── Requirement 2: Dynamic Human-like Description ─────────────────────────
+  // ── Requirement 2: Dynamic SGE & SEO Dynamic Description (Zero Hardcode Excerpts) ────
   const finalDescription = $derived.by(() => {
     let raw = description;
-    if (!raw) {
-      raw = `${finalTitle} - Giải pháp chăm sóc sức khỏe và sắc đẹp chuyên sâu từ osmo Elite Việt Nam.`;
+    const isPlaceholderDesc = (val: string) => {
+      const v = val.toLowerCase().trim();
+      return v.includes("osmo elite việt nam") && v.includes("chăm sóc sức khỏe");
+    };
+    if (!raw || isPlaceholderDesc(raw)) {
+      if (pageType === "home" || page.url.pathname === "/") {
+        raw = page.data.shopInfo?.seo_analytics?.meta_description || page.data.shopInfo?.basic_info?.description;
+      }
+      if (!raw) {
+        const slogan = page.data.shopInfo?.basic_info?.slogan || "Chăm sóc sức khỏe và sắc đẹp chuyên sâu";
+        raw = `${finalTitle} - ${slogan}. Sản phẩm nội địa chất lượng cao, an toàn và lành tính.`;
+      }
     }
     return truncateDescription(raw);
   });
 
-  // ── ELITE V2.2: SEO Auditor (Dev Intelligence) ──────────────────────────
+  const finalKeywords = $derived.by(() => {
+    if (keywords) return keywords;
+    return page.data.shopInfo?.seo_analytics?.meta_keywords || "";
+  });
+
+  const resolvedBrand = $derived.by(() => {
+    if (productData?.brand) {
+      const b = productData.brand.toLowerCase().trim();
+      if (b !== "osmo" && b !== "smartshop") {
+        return productData.brand;
+      }
+    }
+    return resolvedSiteName.split(".")[0] || "Osmo";
+  });
+
+  // ── ELITE V2.2: SEO Auditor (Dev Intelligence & Production Live Verification) ────
   $effect(() => {
-    if (import.meta.env.DEV && shouldRender) {
-      console.groupCollapsed(`%c 🔍 SEO AUDITOR: ${pageType.toUpperCase()} `, "background: #111; color: #39FF14; font-weight: bold; padding: 2px 5px; border-radius: 3px;");
-      console.log("%c Title: ", "color: #888", finalTitle);
-      console.log("%c Desc:  ", "color: #888", finalDescription, `(${finalDescription.length} chars)`);
-      console.log("%c Canon: ", "color: #888", absCanonical);
-      if (keywords) console.log("%c Keys:  ", "color: #888", keywords);
-      console.groupEnd();
+    if (shouldRender) {
+      const isDebugParam = typeof window !== "undefined" && window.location.search.includes("debug");
+      if (import.meta.env.DEV || isDebugParam) {
+        console.groupCollapsed(
+          `%c 🔍 ${resolvedSiteName.toUpperCase()} SEO AUDITOR: ${pageType.toUpperCase()} `,
+          "background: #1e1e2e; color: #f5c2e7; font-weight: 900; padding: 4px 8px; border-radius: 4px; border: 1px solid #cba6f7;"
+        );
+        console.log("%c Title:       ", "color: #fab387; font-weight: bold;", finalTitle);
+        console.log("%c Description: ", "color: #a6e3a1; font-weight: bold;", finalDescription, `(${finalDescription.length} chars)`);
+        console.log("%c Canonical:   ", "color: #89b4fa; font-weight: bold;", absCanonical);
+        if (finalKeywords) console.log("%c Keywords:    ", "color: #f9e2af; font-weight: bold;", finalKeywords);
+        console.log("%c Page Type:   ", "color: #cba6f7; font-weight: bold;", pageType);
+        console.log("%c Breadcrumbs: ", "color: #cdd6f4;", breadcrumbItems);
+        console.log("%c FAQs:        ", "color: #cdd6f4;", faqs);
+        if (jsonLdScripts && jsonLdScripts.length > 0) {
+          console.log("%c JSON-LD:     ", "color: #cdd6f4;", jsonLdScripts);
+        }
+        console.groupEnd();
+      }
     }
   });
 
@@ -109,46 +206,50 @@
   // ── ELITE V2.2: SEO Factory Integration (SSR Compatible) ───────────────────
   // Note: We update synchronously for SSR support, but use $effect for client-side reactivity
   const syncSeo = () => {
-    // Elite V2.2: SGE Protection - Prevent Layout fallback from overwriting Page-level SEO
-    if (isFallback && seoFactory.pageType !== "default") {
-      return;
-    }
+    untrack(() => {
+      // Elite V2.2: SGE Protection - Prevent Layout fallback from overwriting Page-level SEO
+      if (isFallback && seoFactory.pageType !== "default") {
+        return;
+      }
 
-    seoFactory.pageType = pageType;
-    seoFactory.breadcrumbItems = breadcrumbItems;
-    seoFactory.faqs = faqs;
-    seoFactory.manualScripts = jsonLdScripts;
+      seoFactory.pageType = pageType;
+      seoFactory.breadcrumbItems = breadcrumbItems;
+      seoFactory.faqs = faqs;
+      seoFactory.manualScripts = jsonLdScripts;
 
-    // Elite V2.2: Intelligent Entity Deduplication
-    // We only build frontend-side LD if the backend hasn't already provided one in manualScripts
-    const hasManualProduct = jsonLdScripts.some(s => s && s.includes('"@type":"Product"'));
-    const hasManualArticle = jsonLdScripts.some(s => s && s.includes('"@type":"Article"'));
+      // Elite V2.2: Intelligent Entity Deduplication
+      // We only build frontend-side LD if the backend hasn't already provided one in manualScripts
+      const hasManualProduct = jsonLdScripts.some(s => s && s.includes('"@type":"Product"'));
+      const hasManualArticle = jsonLdScripts.some(s => s && s.includes('"@type":"Article"'));
 
-    if (pageType === "product" && productData && !hasManualProduct) {
-      seoFactory.productData = {
-        ...productData,
-        name: productData.name || title,
-        url: absCanonical,
-        image: (productData.images || [image]).map((img) => toAbsolute(img)),
-      } as ProductLdConfig;
-    } else if (pageType === "article" && articleData && !hasManualArticle) {
-      seoFactory.articleData = {
-        ...articleData,
-        headline: articleData.headline || title,
-        url: absCanonical,
-        image: toAbsolute(articleData.image || image),
-      } as ArticleLdConfig;
-    } else if (pageType === "category" && categoryData) {
-      seoFactory.categoryData = {
-        ...categoryData,
-        url: absCanonical,
-      } as CategoryLdConfig;
-    } else {
-        // Clear if we are using manual scripts or don't have data
-        seoFactory.productData = null;
-        seoFactory.articleData = null;
-        seoFactory.categoryData = null;
-    }
+      if (pageType === "product" && productData && !hasManualProduct) {
+        seoFactory.productData = {
+          ...productData,
+          name: productData.name || title,
+          url: absCanonical,
+          image: (productData.images || [image]).map((img) => toAbsolute(img)),
+        } as ProductLdConfig;
+      } else if (pageType === "article" && articleData && !hasManualArticle) {
+        seoFactory.articleData = {
+          ...articleData,
+          headline: articleData.headline || title,
+          url: absCanonical,
+          image: toAbsolute(articleData.image || image),
+          description: articleData.description || finalDescription,
+          publisherName: articleData.publisherName || resolvedSiteName,
+        } as ArticleLdConfig;
+      } else if (pageType === "category" && categoryData) {
+        seoFactory.categoryData = {
+          ...categoryData,
+          url: absCanonical,
+        } as CategoryLdConfig;
+      } else {
+          // Clear if we are using manual scripts or don't have data
+          seoFactory.productData = null;
+          seoFactory.articleData = null;
+          seoFactory.categoryData = null;
+      }
+    });
   };
 
   // Run once sync for SSR
@@ -156,6 +257,21 @@
 
   // Run reactive for Client
   $effect(() => {
+    // Read dependencies reactively to trigger the effect on prop changes
+    pageType;
+    breadcrumbItems;
+    faqs;
+    jsonLdScripts;
+    productData;
+    articleData;
+    categoryData;
+    title;
+    absCanonical;
+    image;
+    finalDescription;
+    resolvedSiteName;
+    isFallback;
+
     syncSeo();
   });
 
@@ -176,8 +292,8 @@
 
   <meta name="description" content={finalDescription} />
   <meta name="google" content="notranslate" />
-  {#if keywords}
-    <meta name="keywords" content={keywords} />
+  {#if finalKeywords}
+    <meta name="keywords" content={finalKeywords} />
   {/if}
   <meta name="robots" content={robots} />
   <link rel="canonical" href={absCanonical} />
@@ -185,9 +301,9 @@
   <!-- Requirement 3: Global Copyright & Author -->
   <meta
     name="copyright"
-    content="Bản quyền thuộc về osmo Elite / Miccosmo Việt Nam"
+    content={`Bản quyền thuộc về ${page.data.shopInfo?.contact_info?.company_name || resolvedSiteName}`}
   />
-  <meta name="author" content={articleData?.author || "osmo Elite"} />
+  <meta name="author" content={articleData?.author || resolvedSiteName} />
 
   <!-- Open Graph / Facebook -->
   <meta
@@ -202,7 +318,7 @@
 
   <meta property="og:description" content={finalDescription} />
   <meta property="og:url" content={absCanonical} />
-  <meta property="og:site_name" content={siteName} />
+  <meta property="og:site_name" content={resolvedSiteName} />
   <meta property="og:locale" content="vi_VN" />
   {#if absImage}
     <meta property="og:image" content={absImage} />
@@ -224,7 +340,7 @@
       property="product:availability"
       content={productData.availability || "instock"}
     />
-    <meta property="product:brand" content={productData.brand || "osmo"} />
+    <meta property="product:brand" content={resolvedBrand} />
   {/if}
 
   <!-- Twitter / X -->

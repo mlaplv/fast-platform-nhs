@@ -31,17 +31,48 @@
   }
   let { product, relatedProducts = [], reviewStats = null }: Props = $props();
 
+  interface ExtendedProductMetadata {
+    share_promotion?: {
+      voucher_id?: string;
+      likes_count?: number;
+    };
+    vouchers?: { id: string; label: string; sub: string; type: "ship" | "discount" }[];
+    flash_sale_end?: string;
+    brand?: string;
+    origin?: string;
+    weight?: string;
+  }
+
+  interface RawTierVariation {
+    name?: string;
+    options?: (string | { name?: string; label?: string })[];
+    images?: (string | null)[];
+  }
+
+  interface VoucherUI {
+    id: string;
+    label: string;
+    sub: string;
+    type: "ship" | "discount";
+  }
+
   // Elite Performance Sync (V2.2)
+  const metadata = $derived((product.metadata || {}) as ExtendedProductMetadata);
+
   const likeCount = $derived(
     Number(
-      product.metadata?.share_promotion?.likes_count ||
+      metadata.share_promotion?.likes_count ||
         product.metadata?.["likes"] ||
         0,
     ),
   );
 
   const variations = $derived(
-    product.tier_variations || product.tierVariations || [],
+    ((product.tier_variations || product.tierVariations || []) as RawTierVariation[]).map(v => ({
+      name: v.name || "",
+      options: (v.options || []).map((o) => typeof o === "string" ? o : String(o?.name || o?.label || "")),
+      images: (v.images || []).filter((img): img is string => img !== null)
+    }))
   );
   let selectedIndices = $state<number[]>([]);
 
@@ -78,10 +109,10 @@
     );
     if (comboVariants.length === 0) return currentVariant;
     const sortedTiers = [...comboVariants].sort(
-      (a, b) => Number(b.attributes.combo_qty) - Number(a.attributes.combo_qty),
+      (a, b) => Number(b.attributes?.combo_qty || 0) - Number(a.attributes?.combo_qty || 0),
     );
     return (
-      sortedTiers.find((t) => Number(t.attributes.combo_qty) <= quantity) ||
+      sortedTiers.find((t) => Number(t.attributes?.combo_qty || 0) <= quantity) ||
       currentVariant
     );
   });
@@ -127,7 +158,7 @@
 
       return {
         price: formatRange(minPrice, maxPrice),
-        discountPrice: minDiscount
+        discountPrice: (minDiscount !== undefined && maxDiscount !== undefined)
           ? formatRange(minDiscount, maxDiscount)
           : undefined,
       };
@@ -203,8 +234,8 @@
   // --- SALES ASSASSIN FOMO & VOUCHER LOGIC ---
   // Elite V2.2: Derive countdown from DB (product.metadata.flash_sale_end)
   const flashSaleEnd = $derived(
-    product.metadata?.flash_sale_end
-      ? new Date(product.metadata.flash_sale_end).getTime()
+    metadata.flash_sale_end
+      ? new Date(metadata.flash_sale_end).getTime()
       : null,
   );
   const isFlashSaleActive = $derived(
@@ -241,14 +272,14 @@
 
   // Use DB vouchers if available
   const productVouchers = $derived.by(() => {
-    let vouchers = [];
+    let vouchers: { id: string; label: string; sub: string; type: "ship" | "discount" }[] = [];
 
     // 1. Check if product has specific override vouchers in metadata
     if (
-      Array.isArray(product.metadata?.vouchers) &&
-      product.metadata.vouchers.length > 0
+      Array.isArray(metadata.vouchers) &&
+      metadata.vouchers.length > 0
     ) {
-      vouchers = product.metadata.vouchers;
+      vouchers = metadata.vouchers as { id: string; label: string; sub: string; type: "ship" | "discount" }[];
     } else {
       // 2. Fallback to global active vouchers from CartStore (Elite V2.2)
       vouchers = cartStore.vouchers
@@ -267,7 +298,7 @@
             (v.type === "SHIPPING"
               ? "Miễn phí vận chuyển"
               : `Giảm ${formatCurrency(v.value)}`),
-          type: v.type === "SHIPPING" ? "ship" : "discount",
+          type: v.type === "SHIPPING" ? ("ship" as const) : ("discount" as const),
         }));
     }
 
@@ -279,7 +310,7 @@
     };
 
     const isViralVoucher = (v: { id: string; label?: string }) => {
-      const promoVId = product.metadata?.share_promotion?.voucher_id;
+      const promoVId = metadata.share_promotion?.voucher_id;
       const cleanId = cleanString(v.id);
       const cleanLabel = cleanString(v.label);
       return (
@@ -317,7 +348,7 @@
     const viralVouchers = vList.filter((v) => isViralVoucher(v));
     const regularVouchers = vList.filter((v) => !isViralVoucher(v));
 
-    return [...viralVouchers, ...regularVouchers];
+    return [...viralVouchers, ...regularVouchers] as VoucherUI[];
   });
 
   /**
@@ -434,21 +465,24 @@
       return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền. Hãy chọn số lượng phù hợp để tối ưu kết quả.";
 
     const sortedTiers = [...comboVariants].sort(
-      (a, b) => Number(a.attributes.combo_qty) - Number(b.attributes.combo_qty),
+      (a, b) => Number(a.attributes?.combo_qty || 0) - Number(b.attributes?.combo_qty || 0),
     );
     const nextTier = sortedTiers.find(
-      (t) => Number(t.attributes.combo_qty) > quantity,
+      (t) => Number(t.attributes?.combo_qty || 0) > quantity,
     );
 
     if (nextTier) {
-      const gap = Number(nextTier.attributes.combo_qty) - quantity;
+      const gap = Number(nextTier.attributes?.combo_qty || 0) - quantity;
       const nextUnitPrice =
         nextTier.discountPrice || nextTier.discount_price || nextTier.price;
       const currentUnitPrice = effectiveUnitPrice;
       const savingsPerUnit = currentUnitPrice - nextUnitPrice;
       const tierName =
-        nextTier.tierIndex
-          .map((idx, i) => variations?.[i]?.options?.[idx] || "")
+        (nextTier.tierIndex || [])
+          .map((idx, i) => {
+            const opt = variations?.[i]?.options?.[idx];
+            return typeof opt === 'string' ? opt : '';
+          })
           .filter(Boolean)
           .join(" ") || "Combo tiếp theo";
 
@@ -561,7 +595,7 @@
     {product}
     {productInfo}
     visibleAttributes={product.attributes
-      ? Object.entries(product.attributes).filter(([key, value]) => {
+      ? (Object.entries(product.attributes).filter(([key, value]) => {
           const k = key.toLowerCase().replace(/_/g, " ").trim();
           const brand = productInfo.brand;
           const origin = productInfo.origin;
@@ -576,7 +610,7 @@
             k === "thương hiệu" ||
             k === "brand"
           );
-        })
+        }) as [string, string | number | Record<string, unknown>][])
       : []}
   />
 

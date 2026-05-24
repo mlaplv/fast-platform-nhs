@@ -8,10 +8,10 @@
     article: {
       id: string;
       title: string;
-      author: string;
-      publishedAt: string;
-      content: string;
-      featuredImage: string;
+      author?: string;
+      publishedAt?: string;
+      content?: string;
+      featuredImage?: string;
       category?: string;
       metadata?: {
         faqs?: { question: string; answer: string }[];
@@ -29,6 +29,18 @@
 
   // Elite V2.2: Safe API Property Normalization
   const article = $derived.by(() => {
+    if (!rawArticle) {
+      return {
+        id: "",
+        title: "",
+        featuredImage: "",
+        publishedAt: "",
+        author: "System",
+        content: "",
+        category: "",
+        metadata: { faqs: [] }
+      };
+    }
     const ext = rawArticle as Props['article'] & RawArticleExt;
     return {
       ...rawArticle,

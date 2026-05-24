@@ -181,12 +181,13 @@
     title={categorySeoMeta?.title || `${data.categoryName} | ${siteName}`}
     description={categorySeoMeta?.description || `${data.categoryName} - Sản phẩm chính hãng.`}
     canonical={categorySeoMeta?.canonical_url || `${siteUrl}/${data.categorySlug}/`}
+    keywords={categorySeoMeta?.keywords || ""}
     {breadcrumbItems}
     categoryData={{
       name: data.categoryName,
       items: categoryData?.items?.map((it) => ({ name: it.name, url: `/${it.slug}` }))
     }}
-    jsonLdScripts={[categorySeoMeta?.json_ld_string].filter(Boolean)}
+    jsonLdScripts={[categorySeoMeta?.json_ld_string, categorySeoMeta?.breadcrumb_ld_string, categorySeoMeta?.faq_ld_string].filter(Boolean)}
   />
 
 {:else if data.type === 'product' && !isFunnel && productData}
