@@ -11,10 +11,21 @@ logging.basicConfig(
     stream=sys.stdout
 )
 
+# Load env variables for testing Telegram Bot Token / Chat ID
+from dotenv import load_dotenv
+load_dotenv()
+
 from backend.services.event_bus import event_bus
+from backend.services.xohi_responder import setup_subscriptions
 
 async def test_emit():
     print("🚀 [NotificationTest] Initializing test emitter...")
+    
+    # Start EventBus background loop
+    await event_bus.start()
+    
+    # Register all callbacks (including xohi_responder.handle_system_signal)
+    setup_subscriptions()
     
     # 1. Test SUPPORT_INBOX_UPDATE (Client Chat)
     session_id = str(uuid.uuid4())
@@ -44,7 +55,14 @@ async def test_emit():
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
     
-    print("✅ [NotificationTest] All test events emitted successfully!")
+    # Sleep to let Telegram background task execute
+    print("⏳ Waiting 3 seconds for background tasks to complete...")
+    await asyncio.sleep(3)
+    
+    # Stop EventBus
+    await event_bus.stop()
+    print("✅ [NotificationTest] All test events emitted and processed successfully!")
 
 if __name__ == "__main__":
     asyncio.run(test_emit())
+

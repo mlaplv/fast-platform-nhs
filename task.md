@@ -751,5 +751,23 @@
   - [x] Chạy test event bus backend (`test_notification.py`) chứng minh cấu trúc payload hoạt động ổn định.
   - [x] Thực thi compile tĩnh frontend (`pnpm build`) hoàn thành thành công 100% `Exit Code 0`, sẵn sàng bàn giao cho Sếp.
 
+## Section 27: Triển khai Thông Báo Telegram Đa Kênh & Khóa Chặn Đồng Bộ (OOM-Free & Zero-Latency)
+
+- [x] **Trinh sát & Phát hiện Điểm yếu (Scout Protocol)**
+  - [x] Xác định các cuộc gọi `signal_center.dispatch(...)` trên luồng Request HTTP chính (như đăng ký tài khoản, đăng nhập thành công, yêu cầu hỗ trợ khẩn cấp) thực hiện ghi Database và commit đồng bộ gây treo Event Loop và tăng độ trễ phản hồi.
+- [x] **Kế hoạch Tác chiến & Duyệt phương án (Propose-First)**
+  - [x] Đề xuất giải pháp **Khóa Chặn Đồng Bộ (Non-Blocking Offloading)**: bọc toàn bộ logic của `SignalCenter.dispatch` trong `asyncio.create_task` và sử dụng `session_maker` cô lập để hoàn tất ghi DB chạy nền.
+  - [x] Đề xuất phương án **Telegram Alerting Pluggable Subscriber**: Xây dựng `TelegramService` dùng chung duy nhất một `httpx.AsyncClient` kết nối (Connection Pool), cấu hình timeout nghiêm ngặt `3.0s` để ngăn ngừa rò rỉ Socket và lỗi tràn RAM (OOM).
+  - [x] Đăng ký lắng nghe sự kiện `SYSTEM_SIGNAL` qua Event Bus để đẩy các cảnh báo `CRITICAL` và `ACTION` trực tiếp sang Telegram mà không gây ảnh hưởng đến Core Logic.
+  - [x] Sếp đã chính thức phê duyệt phương án tác chiến.
+- [x] **Triển khai Bất đồng bộ Hóa 100% (Execution)**
+  - [x] **Signal Center Background Task:** Cập nhật `signal_center.py` khởi tạo `self.session_maker` riêng biệt, chuyển đổi `dispatch` sang cơ chế non-blocking chạy nền 100%.
+  - [x] **Telegram Service:** Tạo mới `telegram_service.py` thiết lập Connection Pooling, cấu hình backpressure và timeout nghiêm ngặt.
+  - [x] **XoHiResponder Subscription:** Thêm hàm `handle_system_signal` vào `XoHiResponder` bóc tách mức độ nghiêm trọng (`CRITICAL`/`ACTION`), định dạng tin nhắn HTML chuyên nghiệp và đăng ký sự kiện `SYSTEM_SIGNAL` trên Event Bus.
+- [x] **Kiểm thử & Xác minh (Verification)**
+  - [x] Chạy test direct dispatch Telegram (`test_telegram.py`) đạt phản hồi thành công `200 OK` từ Telegram API trên cấu hình Bot Token và Chat ID của Sếp.
+  - [x] Chạy tích hợp toàn chuỗi (`test_notification.py`) chứng minh toàn bộ Event Loop từ lúc phát tín hiệu đến lúc ghi DB nền và gửi đi Telegram hoạt động hoàn hảo và không bị chặn luồng chính.
+
+
 
 

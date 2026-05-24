@@ -210,6 +210,32 @@ class XoHiResponder:
         asyncio.create_task(analyst.process_registry_entry(asset_id))
         logger.info(f"[XoHiResponder] Triggered AI Analysis for asset: {asset_id}")
 
+    async def handle_system_signal(self, payload: Dict[str, object]):
+        """Subscriber callback for SYSTEM_SIGNAL events to route to Telegram (Elite V2.2)."""
+        try:
+            severity = str(payload.get("severity", "INFO"))
+            if severity not in ["CRITICAL", "ACTION"]:
+                return  # Noise-gate: Bypassed INFO/PROGRESS noise in Telegram channel
+
+            msg = str(payload.get("message", ""))
+            alert_type = str(payload.get("signal_type", "SYSTEM")).upper()
+            
+            # Format high-quality, professional HTML messages
+            status_icon = "🚨" if severity == "CRITICAL" else "🔔"
+            telegram_msg = (
+                f"{status_icon} <b>[FAST-PLATFORM ALERTS - {alert_type}]</b>\n"
+                f"────────────────\n"
+                f"{msg}\n"
+                f"────────────────\n"
+                f"🕒 <i>Time: {payload.get('timestamp')}</i>"
+            )
+            
+            from backend.services.telegram_service import telegram_service
+            # Offload Telegram dispatch entirely into background task
+            asyncio.create_task(telegram_service.send_alert(telegram_msg))
+        except Exception as e:
+            logger.error(f"❌ [XoHiResponder] Telegram alert forwarding failed: {e}")
+
 
 # Initialize and subscribe
 xohi_responder = XoHiResponder()
@@ -222,4 +248,6 @@ def setup_subscriptions():
     event_bus.subscribe("CONTENT_PROGRESS", xohi_responder.handle_content_progress)
     event_bus.subscribe("MEDIA_UPLOADED", xohi_responder.handle_media_uploaded)
     event_bus.subscribe("MEDIA_SYNC_REQUIRED", media_responder.handle_media_sync)
+    event_bus.subscribe("SYSTEM_SIGNAL", xohi_responder.handle_system_signal)
     logger.info("[XoHiResponder] Subscriptions initialized.")
+
