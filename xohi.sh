@@ -1007,15 +1007,15 @@ while true; do
             clean_backups
             ;;
         8)
-            echo -e "${CYAN}[RESTART] Đang làm sạch Log và khởi động lại Backend (api + workers)...${NC}"
-            docker compose stop api worker_high worker_default
-            docker compose rm -f api worker_high worker_default
-            docker compose up -d api worker_high worker_default
-            echo -e "${GREEN}[OK] Đã khởi động lại API và các Worker với Log sạch sẽ!${NC}"
-            echo -e "${YELLOW}--- Đang theo dõi LỖI MỚI (ERROR/CRITICAL/WARNING) ---${NC}"
+            echo -e "${CYAN}[RESTART] Đang làm sạch Log và khởi động lại Backend & Gateway (api + workers + fraud + caddy)...${NC}"
+            docker compose stop api worker_high worker_default worker_fraud caddy
+            docker compose rm -f api worker_high worker_default worker_fraud caddy
+            docker compose up -d api worker_high worker_default worker_fraud caddy
+            echo -e "${GREEN}[OK] Đã khởi động lại Hệ thống (API, Workers, Fraud, Caddy) sạch sẽ!${NC}"
+            echo -e "${YELLOW}--- Đang theo dõi LỖI MỚI (api + workers) ---${NC}"
             echo -e "${YELLOW}Nhấn Ctrl+C để quay lại menu.${NC}"
             # Lọc log lỗi cho Sếp thấy thực trạng hệ thống
-            docker compose logs -f api worker_high worker_default --tail 50 --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
+            docker compose logs -f api worker_high worker_default worker_fraud --tail 50 --no-log-prefix | grep -Ei --line-buffered "ERROR|CRITICAL|EXCEPTION|WARNING"
             ;;
         9)
             update_ai_model
