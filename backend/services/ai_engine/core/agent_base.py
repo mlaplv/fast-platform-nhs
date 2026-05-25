@@ -176,8 +176,8 @@ class BaseAgentOperative(ABC, MedicalShieldMixin, XoHiProgressMixin):
             await _persist()
             
             # 2. Redis Enqueue with Priority Support
-            # Rule R1.1: Helen (support_agent) gets the 'high' queue.
-            queue_name = "high" if self.agent_id == "support_agent" else "default"
+            # Rule R1.1: Route all agent tasks through the unified high worker queue to preserve resources
+            queue_name = "high"
             
             redis = await create_pool(get_redis_settings())
             await redis.enqueue_job(

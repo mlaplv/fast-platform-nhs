@@ -150,7 +150,7 @@ class AdsProtectionController(Controller):
                         "verdict": result.verdict,
                         "fingerprint": result.session_fingerprint
                     },
-                    _queue_name="default"
+                    _queue_name="high"
                 )
                 logger.info(f"🕵️ [AdsProtection] Enqueued on-demand fraud forensic task for IP: {result.ip_address}")
             except Exception as eq:
