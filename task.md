@@ -87,4 +87,13 @@
 - [x] Verify Svelte 5 static build status and ensure no compilation warnings or errors in the modified file. (Done - built successfully)
 
 
+# Task Checklist - Admin Gateway Auth Refinement & Code Smells Audit (Elite V2.2)
+
+- [x] Scan and trinh sát (scout) all login routes and storefront authentication component trees. (Done)
+- [x] Purge completely non-functional tabs (PHONE, SOCIAL) and dead mock code from `AdminLogin.svelte`. (Done)
+- [x] Clean up unused/redundant imports and messy layout bindings in `AdminLogin.svelte`. (Done)
+- [x] Identify and catalog 100% dead component files in storefront (`StorefrontLogin.svelte`, `LoginForm.svelte`) for deletion approval. (Done)
+- [x] Validate build health by executing `npm run build` using the RTK rule with **100% success**. (Done)
+
+
 

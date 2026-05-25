@@ -1,18 +1,15 @@
 <script lang="ts">
   import { fade, fly, scale } from 'svelte/transition';
-  import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import Lock from "@lucide/svelte/icons/lock";
   import Mail from "@lucide/svelte/icons/mail";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import Fingerprint from "@lucide/svelte/icons/fingerprint";
-  import Phone from "@lucide/svelte/icons/phone";
-  import Chrome from "@lucide/svelte/icons/chrome";
-  import Facebook from "@lucide/svelte/icons/facebook";
-  import MessageCircle from "@lucide/svelte/icons/message-circle";
   import Eye from "@lucide/svelte/icons/eye";
-  import EyeOff from "@lucide/svelte/icons/eye-off";  import { permissionState } from "$lib/state/permissions.svelte";
+  import EyeOff from "@lucide/svelte/icons/eye-off";
+  import { permissionState } from "$lib/state/permissions.svelte";
   import { apiClient } from "$lib/utils/apiClient";
   import { fallbackSha256 } from "$lib/utils/cryptoFallback";
+
   // Elite V2.2: Device fingerprinting hook
   const getFp = () => {
     if (typeof window === 'undefined') return '';
@@ -22,16 +19,12 @@
   import { goto } from "$app/navigation";
   import XohiLogo from "$lib/components/admin/XohiLogo.svelte";
 
-  type AuthTab = "EMAIL" | "PHONE" | "SOCIAL" | "BIOMETRIC";
-  
   let email = $state("");
   let password = $state("");
-  let phone = $state("");
   let isLoading = $state(false);
   let error = $state("");
   let showPage = $state(false);
   let showPassword = $state(false);
-  let lastTab = $state<AuthTab>("EMAIL");
   let rememberMe = $state(false);
 
   $effect(() => {
@@ -181,214 +174,138 @@
       <div
         class="bg-[#0a0a0a] md:bg-black/40 md:backdrop-blur-3xl border border-white/5 rounded-[40px] p-2 shadow-[0_0_60px_-15px_rgba(0,0,0,0.8)]"
       >
-        <!-- Tab Headers -->
-        <div class="flex p-2 bg-white/5 rounded-[32px] mb-6">
-          {#each ["EMAIL", "PHONE", "SOCIAL"] as tab}
-            <button
-              class="flex-1 py-3 rounded-[24px] text-[11px] font-bold tracking-widest transition-all duration-300 {lastTab ===
-              tab
-                ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30 shadow-[0_0_20px_rgba(var(--color-neon-cyan-raw),0.15)]'
-                : 'text-gray-500 hover:text-white'}"
-              onclick={() => (lastTab = tab)}
-            >
-              {tab}
-            </button>
-          {/each}
-        </div>
+        <div class="p-8">
+          <form onsubmit={handleLogin} class="space-y-6" in:fade>
+            {#if error}
+              <div
+                in:fly={{ y: -10 }}
+                class="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs text-center font-mono"
+              >
+                [SYSTEM ERROR]: {error}
+              </div>
+            {/if}
 
-        <div class="p-8 pt-2">
-          {#if lastTab === "EMAIL"}
-            <form onsubmit={handleLogin} class="space-y-6" in:fade>
-              {#if error}
+            <div class="space-y-2">
+              <label
+                for="email"
+                class="text-[10px] font-bold text-gray-500 tracking-widest ml-1"
+                >Identity Protocol</label
+              >
+              <div class="relative group">
                 <div
-                  in:fly={{ y: -10 }}
-                  class="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs text-center font-mono"
+                  class="absolute inset-0 bg-cyan-500/5 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none"
+                ></div>
+                <span
+                  class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-cyan-400 transition-colors z-20"
                 >
-                  [SYSTEM ERROR]: {error}
-                </div>
-              {/if}
-
-              <div class="space-y-2">
-                <label
-                  for="email"
-                  class="text-[10px] font-bold text-gray-500 tracking-widest ml-1"
-                  >Identity Protocol</label
-                >
-                <div class="relative group">
-                  <div
-                    class="absolute inset-0 bg-cyan-500/5 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none"
-                  ></div>
-                  <span
-                    class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-cyan-400 transition-colors z-20"
-                  >
-                    <Mail size={20} />
-                  </span>
-                  <input
-                    id="email"
-                    bind:value={email}
-                    type="text"
-                    required
-                    class="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-cyan-500/30 transition-all font-mono placeholder:text-gray-800 relative z-10"
-                    placeholder="EMAIL OR USERNAME..."
-                  />
-                </div>
+                  <Mail size={20} />
+                </span>
+                <input
+                  id="email"
+                  bind:value={email}
+                  type="text"
+                  required
+                  class="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-cyan-500/30 transition-all font-mono placeholder:text-gray-800 relative z-10"
+                  placeholder="EMAIL OR USERNAME..."
+                />
               </div>
+            </div>
 
-              <div class="space-y-2">
-                <label
-                  for="password"
-                  class="text-[10px] font-bold text-gray-500 tracking-widest ml-1"
-                  >Access Cipher</label
+            <div class="space-y-2">
+              <label
+                for="password"
+                class="text-[10px] font-bold text-gray-500 tracking-widest ml-1"
+                >Access Cipher</label
+              >
+              <div class="relative group">
+                <div
+                  class="absolute inset-0 bg-cyan-500/5 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none"
+                ></div>
+                <span
+                  class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-cyan-400 transition-colors z-20"
                 >
-                <div class="relative group">
-                  <div
-                    class="absolute inset-0 bg-cyan-500/5 rounded-2xl opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none"
-                  ></div>
-                  <span
-                    class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-cyan-400 transition-colors z-20"
-                  >
-                    <Lock size={20} />
-                  </span>
-                  <input
-                    id="password"
-                    bind:value={password}
-                    type={showPassword ? "text" : "password"}
-                    required
-                    class="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl py-4 pl-12 pr-12 text-sm text-white focus:outline-none focus:border-cyan-500/30 transition-all font-mono placeholder:text-gray-800 relative z-10"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onclick={() => (showPassword = !showPassword)}
-                    class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-cyan-400 transition-colors z-20"
-                  >
-                    {#if showPassword}
-                      <EyeOff size={18} />
-                    {:else}
-                      <Eye size={18} />
-                    {/if}
-                  </button>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-2 mt-2">
+                  <Lock size={20} />
+                </span>
+                <input
+                  id="password"
+                  bind:value={password}
+                  type={showPassword ? "text" : "password"}
+                  required
+                  class="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl py-4 pl-12 pr-12 text-sm text-white focus:outline-none focus:border-cyan-500/30 transition-all font-mono placeholder:text-gray-800 relative z-10"
+                  placeholder="••••••••"
+                />
                 <button
                   type="button"
-                  class="w-4 h-4 rounded border border-white/20 flex items-center justify-center transition-colors {rememberMe
-                    ? 'bg-cyan-500 border-cyan-500'
-                    : 'bg-transparent'}"
-                  onclick={() => {
-                    rememberMe = !rememberMe;
-                  }}
+                  onclick={() => (showPassword = !showPassword)}
+                  class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-cyan-400 transition-colors z-20"
                 >
-                  {#if rememberMe}
-                    <svg
-                      class="w-3 h-3 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      ><path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M5 13l4 4L19 7"
-                      /></svg
-                    >
+                  {#if showPassword}
+                    <EyeOff size={18} />
+                  {:else}
+                    <Eye size={18} />
                   {/if}
                 </button>
-                <button
-                  type="button"
-                  class="text-[10px] text-gray-400 font-bold tracking-widest cursor-pointer hover:text-white"
-                  onclick={() => {
-                    rememberMe = !rememberMe;
-                  }}
-                >
-                  Duy trì cảnh giới (7 ngày)
-                </button>
               </div>
+            </div>
 
+            <div class="flex items-center gap-2 mt-2">
               <button
-                type="submit"
-                disabled={isLoading}
-                class="w-full h-16 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-700 text-white font-black text-xs tracking-[0.3em] rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative group overflow-hidden shadow-[0_0_30px_-5px_rgba(var(--color-neon-cyan-raw),0.5)] border border-white/10"
-                style="background-color: rgb(0, 145, 178);"
+                type="button"
+                class="w-4 h-4 rounded border border-white/20 flex items-center justify-center transition-colors {rememberMe
+                  ? 'bg-cyan-500 border-cyan-500'
+                  : 'bg-transparent'}"
+                onclick={() => {
+                  rememberMe = !rememberMe;
+                }}
               >
-                <div
-                  class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                ></div>
-                {#if isLoading}
-                  <div
-                    class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"
-                  ></div>
-                {:else}
-                  <span>Establish Connect</span>
-                  <ArrowRight
-                    size={18}
-                    class="group-hover:translate-x-1 transition-transform"
-                  />
+                {#if rememberMe}
+                  <svg
+                    class="w-3 h-3 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    ><path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M5 13l4 4L19 7"
+                    /></svg
+                  >
                 {/if}
               </button>
-            </form>
-          {:else if lastTab === "PHONE"}
-            <div class="space-y-6" in:fade>
-              <div class="space-y-2">
-                <label
-                  for="phone"
-                  class="text-[10px] font-bold text-gray-500 tracking-widest ml-1"
-                  >Mobile Link</label
-                >
-                <div class="relative group">
-                  <span
-                    class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-cyan-400 transition-colors z-20"
-                  >
-                    <Phone size={20} />
-                  </span>
-                  <input
-                    id="phone"
-                    bind:value={phone}
-                    type="tel"
-                    class="w-full bg-[#0a0a0a] border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-cyan-500/30 transition-all font-mono placeholder:text-gray-800 relative z-10"
-                    placeholder="+84 ••• ••• •••"
-                  />
-                </div>
-              </div>
               <button
-                class="w-full h-16 bg-[#111] border border-white/10 text-gray-300 font-bold text-[10px] tracking-[0.2em] rounded-2xl hover:bg-white hover:text-black transition-all"
+                type="button"
+                class="text-[10px] text-gray-400 font-bold tracking-widest cursor-pointer hover:text-white"
+                onclick={() => {
+                  rememberMe = !rememberMe;
+                }}
               >
-                Request Access Code
+                Duy trì cảnh giới (7 ngày)
               </button>
             </div>
-          {:else if lastTab === "SOCIAL"}
-            <div class="space-y-4" in:fade>
-              <button
-                class="w-full h-14 bg-white/5 border border-white/5 rounded-2xl flex items-center px-6 gap-4 hover:bg-white/10 transition-all group"
-              >
-                <Chrome size={20} class="text-red-500" />
-                <span
-                  class="text-[10px] font-bold tracking-widest flex-1 text-center"
-                  >Continue with Google</span
-                >
-              </button>
-              <button
-                class="w-full h-14 bg-white/5 border border-white/5 rounded-2xl flex items-center px-6 gap-4 hover:bg-white/10 transition-all group"
-              >
-                <Facebook size={20} class="text-blue-500" />
-                <span
-                  class="text-[10px] font-bold tracking-widest flex-1 text-center"
-                  >Link Facebook ID</span
-                >
-              </button>
-              <button
-                class="w-full h-14 bg-white/5 border border-white/5 rounded-2xl flex items-center px-6 gap-4 hover:bg-white/10 transition-all group"
-              >
-                <MessageCircle size={20} class="text-blue-400" />
-                <span
-                  class="text-[10px] font-bold tracking-widest flex-1 text-center"
-                  >Authenticate via Zalo</span
-                >
-              </button>
-            </div>
-          {/if}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              class="w-full h-16 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-700 text-white font-black text-xs tracking-[0.3em] rounded-2xl hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-3 relative group overflow-hidden shadow-[0_0_30px_-5px_rgba(var(--color-neon-cyan-raw),0.5)] border border-white/10"
+              style="background-color: rgb(0, 145, 178);"
+            >
+              <div
+                class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+              ></div>
+              {#if isLoading}
+                <div
+                  class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"
+                ></div>
+              {:else}
+                <span>Establish Connect</span>
+                <ArrowRight
+                  size={18}
+                  class="group-hover:translate-x-1 transition-transform"
+                />
+              {/if}
+            </button>
+          </form>
 
           <!-- Biometric Shortcut -->
           <div

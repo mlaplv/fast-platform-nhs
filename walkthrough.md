@@ -168,5 +168,20 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
   - Verified static adapter build (`npm run build`) completed successfully with **100% success** (zero errors) in 1m 12s.
   - Mockup verified directly matching the official design language.
 
+## 15. Admin Gateway Auth Refinement & Code Smells Audit (Elite V2.2)
+
+- **Modified File**: `frontend/src/lib/components/admin/AdminLogin.svelte`
+- **Code Cleanups & Smell Purges**:
+  - **Unused/Dead Imports Removal**: Removed dead imports of Lucide icons (`ShieldCheck`, `Phone`, `Chrome`, `Facebook`, `MessageCircle`) that were never referenced, reducing overall load footprint.
+  - **Removed Dead Tabs (PHONE, SOCIAL)**: Purged the completely non-functional tabs from the gateway dashboard, which had no underlying handlers or actual endpoints and were purely static placeholders violating R00.
+  - **Refined Layout**: Restored a clean, unified, centered layout for credentials-based sign-in and neural-bypass biometric authentication.
+  - **Formatted Code Structure**: Restructured multi-statement imports on line 13 to be clean and multi-line, preserving high codebase readability.
+- **Verification & Static Build Results**:
+  - Verified compilation and build safety by executing `rtk npm run build` which compiled flawlessly with **zero errors** (Exit code: 0).
+- **Discovered Dead Component Files (Proposed for Deletion)**:
+  - `frontend/src/lib/components/storefront/StorefrontLogin.svelte` (100% dead code, never imported anywhere).
+  - `frontend/src/lib/components/storefront/LoginForm.svelte` (100% dead code, only imported by `StorefrontLogin.svelte`).
+  - *Note: Deletion will be executed upon Sếp's approval in compliance with CLAUDE.md structural preservation directives.*
+
 
 
