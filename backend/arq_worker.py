@@ -337,6 +337,60 @@ async def send_otp_email(ctx: Dict[str, object], email: str, code: str, request_
         
     return success
 
+async def run_fraud_forensic(ctx: Dict[str, object], click_data: Dict[str, object]) -> None:
+    """
+    [ELITE V2.2] On-Demand Fraud Forensic Investigator.
+    Runs only when explicitly queued, consuming zero CPU when idle.
+    """
+    from backend.database.alchemy_config import alchemy_config
+    from backend.database.models.ads import ClickFraudEvent
+    from backend.agents.fraud_investigator import run_forensic_analysis
+    from backend.services.ads_protection.ip_intelligence_service import IPIntelligenceService
+    from backend.controllers.ads_protection import _hub
+    from datetime import datetime, timezone
+    from sqlalchemy import update
+    
+    ip = click_data.get("ip")
+    gclid = click_data.get("gclid")
+    score = click_data.get("score", 0.0)
+    
+    if not ip or not gclid:
+        logger.warning(f"[Fraud Forensic] Skipping task: Missing critical keys (ip={ip}, gclid={gclid})")
+        return
+        
+    logger.info(f"🕵️ [Agentic On-Demand] Investigating Gray-Zone Click: IP={ip} Score={score}")
+    
+    ip_svc = IPIntelligenceService()
+    session_maker = alchemy_config.create_session_maker()
+    
+    try:
+        async with session_maker() as db:
+            agent_result = await run_forensic_analysis(db, ip_svc, click_data)
+            if agent_result:
+                # Safe SQL Guard: explicit filters to prevent bulk updates
+                stmt = update(ClickFraudEvent).where(
+                    ClickFraudEvent.gclid == gclid,
+                    ClickFraudEvent.ip_address == ip
+                ).values(
+                    verdict=agent_result.verdict,
+                    fraud_score=agent_result.fraud_score,
+                    reasoning=getattr(agent_result, 'reasoning', None),
+                    updated_at=datetime.now(timezone.utc)
+                )
+                await db.execute(stmt)
+                await db.commit()
+                
+                if agent_result.verdict == "FRAUD":
+                    await _hub.broadcast({
+                        "type": "NEW_CLICK",
+                        "ip": ip,
+                        "score": agent_result.fraud_score,
+                        "verdict": agent_result.verdict,
+                        "source": "AGENTIC_V3"
+                    })
+    except Exception as e:
+        logger.error(f"❌ [Fraud Forensic] Failed during forensic investigation: {e}", exc_info=True)
+
 async def startup(ctx: Dict[str, object]) -> None:
     logger.info("🚀 [Neural Worker] Arq Worker starting up... Elite V2.2 Protocol Active.")
     # Elite V2.2: Initialize both TrinityBridge AND Encoder in parallel.
@@ -369,7 +423,7 @@ async def startup(ctx: Dict[str, object]) -> None:
                 logger.info(f"🛡️ [Self-Healing] Successfully recovered {res.rowcount} orphaned/stalled background tasks.")
     except Exception as se:
         logger.warning(f"⚠️ [Self-Healing] Task auto-recovery skipped during boot: {se}")
-
+ 
     await asyncio.gather(
         trinity_bridge.initialize(),
         warmup_encoder()
@@ -382,7 +436,7 @@ from arq import cron
 
 class WorkerSettings:
     """Arq Base Configuration (Elite V2.2)."""
-    functions = [run_agent_task, helen_follow_up_job, send_otp_email]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic]
     redis_settings = get_redis_settings()
     on_startup = startup
     on_shutdown = shutdown
@@ -394,17 +448,18 @@ class WorkerSettings:
 class WorkerHighSettings(WorkerSettings):
     """Priority Worker for Helen (Client Support)."""
     queue_name = "high"
-    functions = [run_agent_task, helen_follow_up_job, send_otp_email]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
     max_jobs = 10
 
 class WorkerDefaultSettings(WorkerSettings):
     """Standard Worker for XoHi (Creative Studio)."""
     queue_name = "default"
-    functions = [run_agent_task, helen_follow_up_job, send_otp_email]
+    functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
     max_jobs = 5
     cron_jobs = [
         # Schedule cleanup at 3:00 AM every day
         cron(cleanup_old_tasks, hour=3, minute=0)
     ]
+

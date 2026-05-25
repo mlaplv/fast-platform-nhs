@@ -196,40 +196,6 @@ services:
         condition: service_healthy
     restart: always
 
-  worker_fraud:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile.dev
-    container_name: fast_platform_worker_fraud
-    volumes:
-      - .:/app
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    env_file:
-      - .env
-    environment:
-      - UV_PROJECT_ENVIRONMENT=/opt/venv
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/fast_platform
-      - REDIS_URL=redis://redis:6379/0
-      - TZ=Asia/Ho_Chi_Minh
-      - SKIP_MIGRATE=true
-      - PYTHONWARNINGS=ignore:Core Pydantic V1 functionality:UserWarning
-    mem_limit: 384M
-    deploy:
-      resources:
-        limits:
-          memory: 384M
-    command: /opt/venv/bin/python -m backend.workers.fraud_stream_worker
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: always
-
 volumes:
   postgres_data:
   redis_data:

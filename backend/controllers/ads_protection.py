@@ -134,16 +134,27 @@ class AdsProtectionController(Controller):
         analytics = FraudAnalyticsService(db_session)
         await analytics.record(result, data)
 
-        # [V3.0 Fast Path] Push to stream for Agentic Analysis (Slow Path)
-        await _stream_producer.produce(
-            data={
-                "gclid": result.gclid,
-                "ip": result.ip_address,
-                "score": result.fraud_score,
-                "verdict": result.verdict,
-                "fingerprint": result.session_fingerprint
-            }
-        )
+        # [V3.0 Fast Path] Queue Agentic Analysis (Slow Path) on-demand to arq
+        # Only invoke deep agentic analysis for gray-zone cases to conserve VPS resources
+        if 0.35 <= result.fraud_score <= 0.75:
+            try:
+                from backend.infra.arq_config import get_redis_settings
+                from arq import create_pool
+                redis_pool = await create_pool(get_redis_settings())
+                await redis_pool.enqueue_job(
+                    "run_fraud_forensic",
+                    {
+                        "gclid": result.gclid,
+                        "ip": result.ip_address,
+                        "score": result.fraud_score,
+                        "verdict": result.verdict,
+                        "fingerprint": result.session_fingerprint
+                    },
+                    _queue_name="default"
+                )
+                logger.info(f"🕵️ [AdsProtection] Enqueued on-demand fraud forensic task for IP: {result.ip_address}")
+            except Exception as eq:
+                logger.error(f"❌ [AdsProtection] Failed to enqueue on-demand fraud forensic: {eq}")
 
         if result.verdict == "FRAUD":
             logger.warning(
