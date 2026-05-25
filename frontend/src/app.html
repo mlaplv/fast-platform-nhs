@@ -7,6 +7,42 @@
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer',(function(){
+      function injectNoscript(gtmId) {
+        if (!gtmId) return;
+        var id = 'gtm-ns-' + gtmId;
+        if (document.getElementById(id)) return;
+        var ns = document.createElement('noscript');
+        ns.id = id;
+        var ifr = document.createElement('iframe');
+        ifr.src = 'https://www.googletagmanager.com/ns.html?id=' + gtmId;
+        ifr.height = '0';
+        ifr.width = '0';
+        ifr.style.display = 'none';
+        ifr.style.visibility = 'hidden';
+        ns.appendChild(ifr);
+        
+        var insert = function() {
+          if (document.body) {
+            document.body.insertBefore(ns, document.body.firstChild);
+          } else {
+            window.addEventListener('DOMContentLoaded', function() {
+              document.body.insertBefore(ns, document.body.firstChild);
+            });
+          }
+        };
+        insert();
+      }
+
+      function loadGTM(gtmId) {
+        if (!gtmId) return;
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer',gtmId);
+        injectNoscript(gtmId);
+      }
+
       try {
         var cached = sessionStorage.getItem('primary_config');
         if (cached) {
@@ -15,7 +51,10 @@
           if (!gtmId && seo?.google_analytics_id && seo.google_analytics_id.indexOf('GTM-') === 0) {
             gtmId = seo.google_analytics_id;
           }
-          if (gtmId) return gtmId;
+          if (gtmId) {
+            injectNoscript(gtmId);
+            return gtmId;
+          }
         }
       } catch(e) {}
       
@@ -31,16 +70,13 @@
                 gtmId = seo.google_analytics_id;
               }
               if (gtmId && gtmId !== 'GTM-WDJQ5S2F') {
-                (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-                new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-                j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-                'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-                })(window,document,'script','dataLayer',gtmId);
+                loadGTM(gtmId);
               }
             }
           }).catch(function(){});
       } catch(e) {}
 
+      injectNoscript('GTM-WDJQ5S2F');
       return 'GTM-WDJQ5S2F';
     })());</script>
     <!-- End Google Tag Manager -->

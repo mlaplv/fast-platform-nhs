@@ -58,6 +58,7 @@
     meta_keywords: string;
     google_analytics_id: string;
     facebook_pixel_id: string;
+    google_tag_manager_id: string;
   }
 
   interface GoogleMaps {
@@ -114,7 +115,7 @@
     basic_info: { site_name: "", slogan: "", subslogan: "", description: "", logo_desktop: null, logo_mobile: null, favicon: null },
     contact_info: { company_name: "", tax_id: "", business_license: "", phone: "", hotline: "", email: "", address: "", working_hours: "" },
     social_media: [],
-    seo_analytics: { meta_title: "", meta_description: "", meta_keywords: "", google_analytics_id: "", facebook_pixel_id: "" },
+    seo_analytics: { meta_title: "", meta_description: "", meta_keywords: "", google_analytics_id: "", facebook_pixel_id: "", google_tag_manager_id: "" },
     google_maps: { map_iframe: "", api_key: "" },
     maintenance: { is_enabled: false, message: "" },
     support_bot: { 
@@ -532,6 +533,10 @@
                     <input id="ga_id" bind:value={settings.seo_analytics.google_analytics_id} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-emerald-500/50 outline-none transition-colors" placeholder="G-XXXXXXXX" />
                   </div>
                   <div class="space-y-1">
+                    <label for="gtm_id" class="text-[10px] font-mono text-zinc-500 tracking-widest">Google Tag Manager ID</label>
+                    <input id="gtm_id" bind:value={settings.seo_analytics.google_tag_manager_id} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-emerald-500/50 outline-none transition-colors" placeholder="GTM-XXXXXXX" />
+                  </div>
+                  <div class="space-y-1 md:col-span-2">
                     <label for="fb_id" class="text-[10px] font-mono text-zinc-500 tracking-widest">Facebook Pixel ID</label>
                     <input id="fb_id" bind:value={settings.seo_analytics.facebook_pixel_id} type="text" autocomplete="off" class="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-emerald-500/50 outline-none transition-colors" placeholder="XXXXXXXXXX" />
                   </div>
