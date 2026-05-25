@@ -87,13 +87,11 @@
 - [x] Verify Svelte 5 static build status and ensure no compilation warnings or errors in the modified file. (Done - built successfully)
 
 
-# Task Checklist - Admin Gateway Auth Refinement & Code Smells Audit (Elite V2.2)
+# Task Checklist - Google Tag Manager (GTM) Integration (Elite V2.2)
 
-- [x] Scan and trinh sát (scout) all login routes and storefront authentication component trees. (Done)
-- [x] Purge completely non-functional tabs (PHONE, SOCIAL) and dead mock code from `AdminLogin.svelte`. (Done)
-- [x] Clean up unused/redundant imports and messy layout bindings in `AdminLogin.svelte`. (Done)
-- [x] Identify and catalog 100% dead component files in storefront (`StorefrontLogin.svelte`, `LoginForm.svelte`) for deletion approval. (Done)
-- [x] Validate build health by executing `npm run build` using the RTK rule with **100% success**. (Done)
+- [x] Add formal database/API support for `google_tag_manager_id` inside `SeoAnalytics` pydantic schema in the backend. (Done)
+- [x] Implement robust, non-blocking asynchronous GTM loader with session caching inside `app.html`. (Done)
+- [x] Support multiple setting fields dynamically (`google_tag_manager_id`, `gtm_id`, and standard GA ID fallback). (Done)
 
 
 

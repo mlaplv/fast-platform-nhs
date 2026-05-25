@@ -183,5 +183,16 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
   - `frontend/src/lib/components/storefront/LoginForm.svelte` (100% dead code, only imported by `StorefrontLogin.svelte`).
   - *Note: Deletion will be executed upon Sếp's approval in compliance with CLAUDE.md structural preservation directives.*
 
+## 16. Google Tag Manager (GTM) Dynamic Integration (Elite V2.2)
+
+- **Modified Files**:
+  - `backend/schemas/system_settings.py`: Added native pydantic support for `google_tag_manager_id` inside `SeoAnalytics` configuration class.
+  - `frontend/src/app.html`: Implemented an elegant, non-blocking asynchronous GTM injector at the start of the `<head>` tag.
+- **Smart Loader Core Features**:
+  - **Zero-Latency Session Caching**: Reads from `sessionStorage` first. If setting config is already cached client-side, loads GTM script synchronously instantly.
+  - **Asynchronous Non-Blocking Fallback**: If cache is empty, triggers a fast, non-blocking asynchronous API request to `/api/v1/client/settings/primary` to fetch settings, then initializes GTM and caches it.
+  - **Multiple-Field Fallback Check**: Extracted from `google_tag_manager_id`, `gtm_id`, or checks if `google_analytics_id` begins with `GTM-` as a smart fallback.
+  - **Automatic Noscript Injector**: Automatically builds and inserts the `<noscript>` iframe tag at the very beginning of the `<body>` on DOM load, complying perfectly with GTM installation guidelines.
+
 
 
