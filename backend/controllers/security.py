@@ -99,7 +99,6 @@ class SecurityController(Controller):
         import json
         
         TARGET_CONTAINERS = [
-            "fast_platform_worker_fraud",
             "fast_platform_worker_default",
             "fast_platform_worker_high",
             "fast_platform_api",
@@ -194,7 +193,6 @@ class SecurityController(Controller):
         action = data.get("action") # start, stop, restart
 
         TARGET_CONTAINERS = [
-            "fast_platform_worker_fraud",
             "fast_platform_worker_default",
             "fast_platform_worker_high",
             "fast_platform_api",
