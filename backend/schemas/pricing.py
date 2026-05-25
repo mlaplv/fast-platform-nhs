@@ -3,14 +3,14 @@ from typing import List, Optional
 
 class PricingInputItem(BaseModel):
     """Elite V2.2: Input model for PricingEngine to ensure 100% static typing."""
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=False)
     product_id: str
     name: str = "Sản phẩm"
     quantity: int = 1
     unit_price: float = 0.0
 
 class PricingItem(BaseModel):
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=False)
     product_id: str
     name: str
     quantity: int
@@ -19,7 +19,7 @@ class PricingItem(BaseModel):
 
 class PricingBreakdown(BaseModel):
     """Elite V2.2: Unified Pricing Breakdown Model"""
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=False)
     
     items: List[PricingItem] = Field(default_factory=list)
     

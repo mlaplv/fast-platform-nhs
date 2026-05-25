@@ -246,6 +246,7 @@ export class CartStore {
         if (existingItem) {
             existingItem.quantity += quantity;
             existingItem.selected = true; // Auto select when adding
+            this.items = [...this.items];
         } else {
             this.items.push({
                 id: uniqueId,
@@ -272,6 +273,7 @@ export class CartStore {
         const item = this.items.find(i => i.id === id);
         if (item) {
             item.quantity = quantity;
+            this.items = [...this.items];
             this.save();
         }
     }
@@ -380,11 +382,15 @@ export class CartStore {
 
     toggleItemSelection(id: string): void {
         const item = this.items.find(i => i.id === id);
-        if (item) item.selected = !item.selected;
+        if (item) {
+            item.selected = !item.selected;
+            this.items = [...this.items];
+        }
     }
 
     toggleAll(selected: boolean): void {
         this.items.forEach(item => item.selected = selected);
+        this.items = [...this.items];
     }
 
     clearCart(): void {

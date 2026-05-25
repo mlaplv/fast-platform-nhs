@@ -92,8 +92,9 @@
     const _id = product.id; // track product transitions
     if (variations.length > 0) {
       const defaultVariant = pVariants.find((v) => v.is_default);
-      if (defaultVariant && defaultVariant.tierIndex) {
-        selectedIndices = [...defaultVariant.tierIndex];
+      const dIndices = defaultVariant?.tierIndex || defaultVariant?.tier_index;
+      if (dIndices) {
+        selectedIndices = [...dIndices];
       } else {
         selectedIndices = variations.map(() => 0);
       }
@@ -107,11 +108,14 @@
     (product.variants || []).filter((v) => v.is_active !== false),
   );
   const currentVariant = $derived<ProductVariant | undefined>(
-    pVariants.find(
-      (v) =>
-        v.tierIndex.length === selectedIndices.length &&
-        v.tierIndex.every((val, i) => val === selectedIndices[i]),
-    ),
+    pVariants.find((v) => {
+      const vIndices = v.tierIndex || v.tier_index;
+      if (!vIndices) return false;
+      return (
+        vIndices.length === selectedIndices.length &&
+        vIndices.every((val, i) => val === selectedIndices[i])
+      );
+    }),
   );
 
   const effectiveTier = $derived.by(() => {
@@ -199,11 +203,14 @@
     selectedIndices = newSelected;
 
     // Sync quantity with combo_qty (Elite V2.2)
-    const nextVariant = pVariants.find(
-      (v) =>
-        v.tierIndex.length === selectedIndices.length &&
-        v.tierIndex.every((val, i) => val === selectedIndices[i]),
-    );
+    const nextVariant = pVariants.find((v) => {
+      const vIndices = v.tierIndex || v.tier_index;
+      if (!vIndices) return false;
+      return (
+        vIndices.length === selectedIndices.length &&
+        vIndices.every((val, i) => val === selectedIndices[i])
+      );
+    });
     if (nextVariant?.attributes?.combo_qty) {
       quantity = Number(nextVariant.attributes.combo_qty);
     } else if (quantity > currentStock) {
@@ -234,8 +241,9 @@
       const matchingVariant = pVariants.find(
         (v) => Number(v.attributes?.combo_qty || 0) === quantity,
       );
-      if (matchingVariant && matchingVariant.tierIndex) {
-        selectedIndices = [...matchingVariant.tierIndex];
+      const mIndices = matchingVariant?.tierIndex || matchingVariant?.tier_index;
+      if (mIndices) {
+        selectedIndices = [...mIndices];
       }
     }
   }
@@ -454,9 +462,7 @@
 
   const activePrices = $derived({
     sale: displayPrice.discountPrice || displayPrice.price,
-    original: displayPrice.discountPrice
-      ? displayPrice.price
-      : displayPrice.price,
+    original: displayPrice.price,
   });
 
   function buyNow() {
@@ -507,7 +513,7 @@
       const currentUnitPrice = effectiveUnitPrice;
       const savingsPerUnit = currentUnitPrice - nextUnitPrice;
       const tierName =
-        (nextTier.tierIndex || [])
+        ((nextTier.tierIndex || nextTier.tier_index) || [])
           .map((idx, i) => {
             const opt = variations?.[i]?.options?.[idx];
             return typeof opt === "string" ? opt : "";

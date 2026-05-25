@@ -125,3 +125,14 @@
 - [x] Thực hiện static build frontend và restart backend service để áp dụng thay đổi ngay lập tức. (Done)
 
 
+# Task Checklist - Helen AI Storefront Intelligence & Sync (Elite V2.2)
+
+- [x] Refactor `helenAdvice` in `checkout/+page.svelte` to remove incorrect "optimal price" success fallbacks for single items. (Done)
+- [x] Create a unified, clean fallback mechanism to correctly handle products without combo variants, providing branding-appropriate default advice. (Done)
+- [x] Purge "code thối" (extraneous/redundant hardcoded text) from storefront UI components (`MainDetail/Desktop.svelte` and `LandingPage/Desktop.svelte`). (Done)
+- [x] Revert custom/irregular manual adjustments in storefront views to restore the pristine architecture. (Done)
+- [x] Synchronize quantity-aware AI advice across checkout and details modules so they react smoothly to real-time quantity changes. (Done)
+- [x] Compile and build Svelte storefront code flawlessly with zero static compilation issues. (Done)
+- [x] Rsync the new pre-built storefront static `dist` bundle and backend modules to the production VPS and gracefully restart all services to achieve immediate application. (Done)
+
+

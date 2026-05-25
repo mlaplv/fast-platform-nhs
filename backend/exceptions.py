@@ -12,6 +12,18 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
     """
     trace_id = str(uuid.uuid4())[:8]
 
+    if isinstance(exc, ValidationException):
+        logger.warning(f"[TRACE:{trace_id}] Validation Error: {exc.detail} - Extra: {getattr(exc, 'extra', None)}")
+        return Response(
+            media_type=MediaType.JSON,
+            status_code=400,
+            content={
+                "detail": "Data validation failed",
+                "errors": exc.extra if hasattr(exc, "extra") else str(exc),
+                "trace_id": trace_id,
+            },
+        )
+
     if isinstance(exc, HTTPException) and exc.status_code < 500:
         if exc.status_code == 401 or (exc.status_code == 400 and "Invalid article ID format" in exc.detail):
             logger.debug(f"[TRACE:{trace_id}] HTTP {exc.status_code}: {exc.detail}")
@@ -21,18 +33,6 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
             media_type=MediaType.JSON,
             status_code=exc.status_code,
             content={"detail": exc.detail, "trace_id": trace_id},
-        )
-    
-    if isinstance(exc, ValidationException):
-        logger.warning(f"[TRACE:{trace_id}] Validation Error: {exc.detail}")
-        return Response(
-            media_type=MediaType.JSON,
-            status_code=400,
-            content={
-                "detail": "Data validation failed",
-                "errors": exc.extra if hasattr(exc, "extra") else str(exc),
-                "trace_id": trace_id,
-            },
         )
     
     # R82.35: Graceful Disconnection (Neural Hygiene)

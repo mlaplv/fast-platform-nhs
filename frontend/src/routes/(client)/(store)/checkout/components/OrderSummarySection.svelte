@@ -58,6 +58,11 @@
 </script>
 
 <div class="space-y-3 pt-5 border-t border-gray-100">
+  <!-- NEURAL GUARDIAN (AGENTIC AI OVERSIGHT - HELEN TƯ VẤN TRÊN CÙNG TỔNG PHÍ) -->
+  <div class="w-full mb-3">
+    <NeuralGuardian status={neuralStatus} advice={helenAdvice} />
+  </div>
+
   <div class="flex justify-between items-center group">
     <div
       class="flex items-center gap-2 text-[10px] font-bold text-gray-400 tracking-widest italic group-hover:text-gray-900 transition-colors"
@@ -470,10 +475,7 @@
       </div>
     </div>
 
-    <!-- NEURAL GUARDIAN (AGENTIC AI OVERSIGHT) -->
-    <div class="w-full mt-6">
-      <NeuralGuardian status={neuralStatus} advice={helenAdvice} />
-    </div>
+
 
     <!-- SUBMIT BUTTON (AGENTIC PHASES) -->
     <button

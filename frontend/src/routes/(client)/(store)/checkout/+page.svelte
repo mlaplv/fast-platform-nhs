@@ -517,7 +517,13 @@
         item.product?.variants?.filter(
           (v) => v.attributes && (v.attributes.combo_qty ?? v.attributes.comboQty),
         ) || [];
-      if (comboVariants.length === 0) continue;
+      if (comboVariants.length === 0) {
+        advices.push({
+          gravity: -1,
+          text: "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền.",
+        });
+        continue;
+      }
 
       const getQty = (v: {attributes?: {combo_qty?: number, comboQty?: number}}) => Number(v.attributes?.combo_qty ?? v.attributes?.comboQty ?? 0);
 

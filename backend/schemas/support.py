@@ -61,7 +61,7 @@ class SupportKnowledgeCategory(str, Enum):
 
 class SupportRequest(BaseModel):
     """Inbound chat message from the client (Zero-Auth)."""
-    model_config = ConfigDict(strict=True)
+    model_config = ConfigDict(strict=False)
 
     message: str = Field(..., min_length=1, max_length=2000, description="User question")
     session_id: Optional[str] = Field(

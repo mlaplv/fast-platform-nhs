@@ -132,8 +132,9 @@
   $effect(() => {
     if (selectedIndices.length === 0 && variations.length > 0) {
       const defaultVariant = pVariants.find((v) => v.is_default);
-      if (defaultVariant && defaultVariant.tierIndex) {
-        selectedIndices = [...defaultVariant.tierIndex];
+      const dIndices = defaultVariant?.tierIndex || defaultVariant?.tier_index;
+      if (dIndices) {
+        selectedIndices = [...dIndices];
       } else {
         selectedIndices = variations.map(() => 0);
       }
@@ -143,11 +144,14 @@
 
   const pVariants = $derived(product.variants || []);
   let currentVariant = $derived<ProductVariant | undefined>(
-    pVariants.find(
-      (v) =>
-        v.tierIndex.length === selectedIndices.length &&
-        v.tierIndex.every((val, i) => val === selectedIndices[i]),
-    ),
+    pVariants.find((v) => {
+      const vIndices = v.tierIndex || v.tier_index;
+      if (!vIndices) return false;
+      return (
+        vIndices.length === selectedIndices.length &&
+        vIndices.every((val, i) => val === selectedIndices[i])
+      );
+    }),
   );
 
   const effectiveTier = $derived.by(() => {
@@ -228,11 +232,14 @@
     }
     selectedIndices = newSelected;
 
-    const nextVariant = pVariants.find(
-      (v) =>
-        v.tierIndex.length === selectedIndices.length &&
-        v.tierIndex.every((val, i) => val === selectedIndices[i]),
-    );
+    const nextVariant = pVariants.find((v) => {
+      const vIndices = v.tierIndex || v.tier_index;
+      if (!vIndices) return false;
+      return (
+        vIndices.length === selectedIndices.length &&
+        vIndices.every((val, i) => val === selectedIndices[i])
+      );
+    });
     if (nextVariant?.attributes?.combo_qty) {
       quantity = Number(nextVariant.attributes.combo_qty);
     } else if (quantity > currentStock) {
@@ -260,8 +267,9 @@
       const matchingVariant = pVariants.find(
         (v) => Number(v.attributes?.combo_qty || 0) === quantity,
       );
-      if (matchingVariant && matchingVariant.tierIndex) {
-        selectedIndices = [...matchingVariant.tierIndex];
+      const mIndices = matchingVariant?.tierIndex || matchingVariant?.tier_index;
+      if (mIndices) {
+        selectedIndices = [...mIndices];
       }
     }
   }
@@ -417,17 +425,13 @@
       (product.attributes?.weight as string) ||
       (product.attributes?.["Trọng lượng"] as string) ||
       "",
-    originalPrice: pDiscountPrice
-      ? product.price || 0
-      : (product.price || 0),
+    originalPrice: product.price || 0,
     salePrice: (pDiscountPrice as number) || (product.price as number) || 0,
   });
 
   const activePrices = $derived({
     sale: displayPrice.discountPrice || displayPrice.price,
-    original: displayPrice.discountPrice
-      ? displayPrice.price
-      : displayPrice.price,
+    original: displayPrice.price,
   });
 
   function buyNow() {
@@ -661,72 +665,4 @@
     display: block;
   }
 
-  /* Elite V2.2: Floating Verify Button Styles */
-  .verify-floating-btn {
-    position: relative;
-    width: 56px;
-    height: 56px;
-    background: #00bfa5;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 10px 30px rgba(0, 191, 165, 0.4);
-    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-  }
-
-  .verify-floating-btn:hover {
-    transform: scale(1.1) translateY(-5px);
-    box-shadow: 0 15px 40px rgba(0, 191, 165, 0.6);
-  }
-
-  .btn-inner {
-    position: relative;
-    z-index: 2;
-  }
-
-  .pulse-ring {
-    position: absolute;
-    inset: -4px;
-    border: 2px solid #00bfa5;
-    border-radius: 8px;
-    opacity: 0;
-    animation: verify-pulse 2s infinite;
-  }
-
-  @keyframes verify-pulse {
-    0% {
-      transform: scale(0.95);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(1.4);
-      opacity: 0;
-    }
-  }
-
-  .btn-tooltip {
-    position: absolute;
-    left: 70px;
-    background: #0a0a0a;
-    color: white;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 800;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.3s;
-    transform: translateX(-10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .verify-floating-btn:hover .btn-tooltip {
-    opacity: 1;
-    transform: translateX(0);
-  }
 </style>

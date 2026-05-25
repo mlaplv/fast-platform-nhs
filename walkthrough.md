@@ -262,4 +262,19 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
 - **Verification**:
   - Successfully restarted `fast_platform_api` container to apply changes. Verified service is up and running.
 
+## 21. Helen AI Storefront Intelligence & Sync Optimization (Elite V2.2)
+
+- **Checkout Intelligence Alignment**: 
+  - Refactored `helenAdvice` in `checkout/+page.svelte` to remove the incorrect "optimal price" fallback for single-item orders.
+  - Implemented a unified fallback logic that correctly identifies products without combo variants and provides the branding-appropriate advice ("Cơ hội sở hữu liệu trình...").
+  - Ensured that the cart's derived state handles product quantities and combo availability without ignoring non-combo products.
+- **Product Detail & Landing Page Integrity**:
+  - Reverted extraneous hardcoded strings injected into `MainDetail/Desktop.svelte` and `LandingPage/Desktop.svelte` to restore the original, elegant implementation.
+  - Verified that these pages leverage the `ProductPrimaryInfo` module, which dynamically renders the `helenAdvice` based on the product context.
+  - Confirmed the presence of the "Quantity Row" in the `LandingPage` module, ensuring that the AI has access to real-time quantity state for its calculations.
+- **Hot Deployment and Service Control**:
+  - Successfully synced pre-built storefront assets and backend modules to the production VPS `/opt/fast-platform/` directory using `rsync`.
+  - Gracefully restarted the core `fast_platform_api`, `fast_platform_worker_high`, and `fast_platform_caddy` containers on the production server.
+  - Verified the successful startup of all containers, showing zero static errors or routing anomalies.
+
 
