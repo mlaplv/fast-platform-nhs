@@ -50,6 +50,18 @@
 
   const nanobot = useNanobot();
 
+  interface ContainerInfo {
+    name: string;
+    id: string;
+    state: string;
+    status: string;
+    image: string;
+    cpu: string;
+    mem_usage: string;
+    mem_perc: string;
+    pids: string;
+  }
+
   // --- Reactive States (Runes) ---
   let drafts = $state<SecurityDraft[]>([]);
   let logs = $state<AuditLog[]>([]);
@@ -59,9 +71,11 @@
     threat_level: "LOW",
     active_keys: 0
   });
+  let containers = $state<ContainerInfo[]>([]);
   
   let isLoading = $state<boolean>(true);
   let isActionLoading = $state<string | null>(null);
+  let opLoading = $state<string | null>(null); // Name of container being operated on
   let searchTerm = $state<string>("");
   let filterLevel = $state<string>("ALL");
   let selectedLogs = $state<Set<number>>(new Set());
@@ -86,10 +100,11 @@
     isLoading = true;
     try {
       const t: number = Date.now();
-      const [draftsRes, logsRes, statusRes] = await Promise.all([
+      const [draftsRes, logsRes, statusRes, containersRes] = await Promise.all([
         apiClient.get<SecurityDraft[]>(`/api/v1/security/drafts?t=${t}`),
         apiClient.get<AuditLog[]>(`/api/v1/security/audit-logs?limit=100&t=${t}`),
-        apiClient.get<SecurityStats>(`/api/v1/security/status?t=${t}`)
+        apiClient.get<SecurityStats>(`/api/v1/security/status?t=${t}`),
+        apiClient.get<ContainerInfo[]>(`/api/v1/security/containers?t=${t}`)
       ]);
 
       // Robust extraction based on Elite apiClient V45 standards
@@ -99,10 +114,35 @@
       if (rawStats) {
         stats = { ...stats, ...rawStats };
       }
+      containers = (containersRes as any).data || containersRes || [];
+
+      // [DEBUG LOG CONSOLE] Verification of live container resource data
+      console.log("[SOC] Polled Containers Live Data:", containers);
     } catch (e) {
       console.error("[SOC] Load Critical Failure", e);
     } finally {
       isLoading = false;
+    }
+  }
+
+  async function handleContainerAction(containerName: string, action: 'start' | 'stop' | 'restart'): Promise<void> {
+    const actionLabel = action === 'start' ? 'BẬT (ENABLE)' : action === 'stop' ? 'TẮT (DISABLE)' : 'KHỞI ĐỘNG LẠI (RESTART)';
+    if (!confirm(`[SOC WARNING] Xác nhận thực hiện thao tác ${actionLabel} trên container ${containerName}?`)) return;
+    
+    opLoading = containerName;
+    try {
+      const res: any = await apiClient.post(`/api/v1/security/containers/action`, {
+        container_name: containerName,
+        action
+      });
+      const data = res.data || res;
+      nanobot.ui.showToast(data.message || "Thao tác thành công", "success");
+      await loadSOCData();
+    } catch (e) {
+      console.error("[SOC] Subprocess execution error", e);
+      nanobot.ui.showToast("Lỗi gửi lệnh điều khiển container", "error");
+    } finally {
+      opLoading = null;
     }
   }
 
@@ -171,7 +211,7 @@
 
   onMount(() => {
     loadSOCData();
-    const interval = setInterval(loadSOCData, 20000); // Elite cycle
+    const interval = setInterval(loadSOCData, 10000); // 10s cycle for live resources
     return () => clearInterval(interval);
   });
 </script>
@@ -280,8 +320,103 @@
         </div>
       </div>
     {/if}
-
     <div class="flex-1 flex flex-col overflow-hidden">
+      <!-- Live Core Infrastructure (SOC Container Monitor) -->
+      {#if containers.length > 0}
+        <div class="p-6 border-b border-cyan-500/10 space-y-4 bg-cyan-950/[0.01]">
+          <div class="flex justify-between items-center">
+            <h2 class="text-[10px] font-black flex items-center gap-2 text-cyan-400 tracking-widest">
+              <span class="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-ping"></span>
+              CORE INFRASTRUCTURE RESOURCES (LIVE STATS)
+            </h2>
+            <span class="text-[8px] text-gray-500 font-mono tracking-widest">{containers.length} CONTAINER(S) ACTIVE</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {#each containers as c}
+              <div class="bg-white/[0.01] border border-white/5 rounded-xl p-4 hover:bg-white/[0.02] hover:border-cyan-500/20 transition-all duration-300 relative overflow-hidden group">
+                {#if opLoading === c.name}
+                  <div class="absolute inset-0 bg-black/85 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-2" transition:fade>
+                    <div class="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span class="text-[8px] text-cyan-400 font-black tracking-widest uppercase">CONTROLLING...</span>
+                  </div>
+                {/if}
+
+                <!-- Card Header -->
+                <div class="flex justify-between items-start mb-3">
+                  <div class="flex flex-col gap-0.5 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-1.5 h-1.5 rounded-full {
+                        c.state === 'running' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
+                        c.state === 'exited' ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'
+                      }"></span>
+                      <span class="text-[10px] font-mono font-black text-gray-200 truncate">{c.name.replace('fast_platform_', '')}</span>
+                    </div>
+                    <span class="text-[7px] text-gray-500 truncate max-w-[120px]">{c.image}</span>
+                  </div>
+
+                  <!-- Professional Operations Control -->
+                  <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {#if c.state === 'running'}
+                      <button 
+                        onclick={() => handleContainerAction(c.name, 'restart')}
+                        class="w-5 h-5 rounded bg-cyan-500/10 hover:bg-cyan-500/30 text-cyan-400 transition-all flex items-center justify-center cursor-pointer"
+                        title="Restart Container"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H12v4"></path></svg>
+                      </button>
+                      <button 
+                        onclick={() => handleContainerAction(c.name, 'stop')}
+                        class="w-5 h-5 rounded bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 transition-all flex items-center justify-center cursor-pointer"
+                        title="Stop Container"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                      </button>
+                    {:else}
+                      <button 
+                        onclick={() => handleContainerAction(c.name, 'start')}
+                        class="w-5 h-5 rounded bg-emerald-500/10 hover:bg-emerald-500/30 text-emerald-400 transition-all flex items-center justify-center cursor-pointer"
+                        title="Start Container"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                      </button>
+                    {/if}
+                  </div>
+                </div>
+
+                <!-- Metrics -->
+                <div class="grid grid-cols-2 gap-3 border-t border-white/5 pt-2 text-[9px]">
+                  <div class="flex flex-col">
+                    <span class="text-[7px] text-gray-500 font-bold block mb-0.5">CPU</span>
+                    <span class="font-bold text-gray-300">{c.cpu}</span>
+                    <div class="w-full bg-white/5 h-0.5 rounded-full mt-1 overflow-hidden">
+                      <div class="bg-cyan-500 h-full rounded-full transition-all duration-500" style="width: {c.cpu}"></div>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col">
+                    <div class="flex justify-between">
+                      <span class="text-[7px] text-gray-500 font-bold block">RAM</span>
+                      <span class="text-[7px] font-mono {
+                        parseFloat(c.mem_perc) > 85 ? 'text-rose-400 font-black animate-pulse' :
+                        parseFloat(c.mem_perc) > 70 ? 'text-orange-400 font-bold' : 'text-emerald-400'
+                      }">{c.mem_perc}</span>
+                    </div>
+                    <span class="font-bold text-gray-300 truncate mt-0.5">{c.mem_usage.split(' / ')[0]}</span>
+                    <div class="w-full bg-white/5 h-0.5 rounded-full mt-1 overflow-hidden">
+                      <div class="h-full rounded-full transition-all duration-500 {
+                        parseFloat(c.mem_perc) > 85 ? 'bg-rose-500' :
+                        parseFloat(c.mem_perc) > 70 ? 'bg-orange-500' : 'bg-emerald-500'
+                      }" style="width: {c.mem_perc}"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
       <div 
         title="Nhật ký truy vết các hành động thời gian thực của toàn bộ Admin và Hệ thống"
         class="grid grid-cols-[40px_100px_1fr_200px_100px] gap-4 px-6 py-3 border-b border-white/5 bg-white/[0.02] text-[9px] font-black text-gray-500 tracking-widest cursor-help"
