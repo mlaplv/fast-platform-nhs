@@ -392,9 +392,9 @@
             <span class="text-[8px] text-gray-500 font-mono tracking-widest">{containers.length} CONTAINER(S) ACTIVE</span>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="flex gap-4 overflow-x-auto scrollbar-mission pb-2">
             <!-- Neon Oscilloscope card -->
-            <div class="bg-cyan-950/[0.02] border border-cyan-500/20 rounded-xl p-4 flex flex-col justify-between h-[128px] overflow-hidden relative group md:col-span-2">
+            <div class="bg-cyan-950/[0.02] border border-cyan-500/20 rounded-xl p-4 flex flex-col justify-between h-[128px] overflow-hidden relative group w-[320px] shrink-0">
               <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_right,rgba(6,182,212,0.05)_0%,transparent_60%)]"></div>
               <div class="flex justify-between items-start z-10">
                 <div class="flex flex-col">
@@ -435,7 +435,7 @@
             </div>
 
             {#each containers as c}
-              <div class="bg-white/[0.01] border border-white/5 rounded-xl p-4 hover:bg-white/[0.02] hover:border-cyan-500/20 transition-all duration-300 relative overflow-hidden group">
+              <div class="bg-white/[0.01] border border-white/5 rounded-xl p-4 hover:bg-white/[0.02] hover:border-cyan-500/20 transition-all duration-300 relative overflow-hidden group w-[220px] shrink-0 h-[128px] flex flex-col justify-between">
                 {#if opLoading === c.name}
                   <div class="absolute inset-0 bg-black/85 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-2" transition:fade>
                     <div class="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
@@ -444,7 +444,7 @@
                 {/if}
 
                 <!-- Card Header -->
-                <div class="flex justify-between items-start mb-3">
+                <div class="flex justify-between items-start mb-2">
                   <div class="flex flex-col gap-0.5 min-w-0">
                     <div class="flex items-center gap-1.5">
                       <span class="w-1.5 h-1.5 rounded-full {
@@ -486,11 +486,11 @@
                 </div>
 
                 <!-- Metrics -->
-                <div class="grid grid-cols-2 gap-3 border-t border-white/5 pt-2 text-[9px]">
+                <div class="grid grid-cols-2 gap-2 border-t border-white/5 pt-1.5 text-[9px]">
                   <div class="flex flex-col">
                     <span class="text-[7px] text-gray-500 font-bold block mb-0.5">CPU</span>
                     <span class="font-bold text-gray-300">{c.cpu}</span>
-                    <div class="w-full bg-white/5 h-0.5 rounded-full mt-1 overflow-hidden">
+                    <div class="w-full bg-white/5 h-0.5 rounded-full mt-0.5 overflow-hidden">
                       <div class="bg-cyan-500 h-full rounded-full transition-all duration-500" style="width: {c.cpu}"></div>
                     </div>
                   </div>
@@ -504,7 +504,7 @@
                       }">{c.mem_perc}</span>
                     </div>
                     <span class="font-bold text-gray-300 truncate mt-0.5">{c.mem_usage.split(' / ')[0]}</span>
-                    <div class="w-full bg-white/5 h-0.5 rounded-full mt-1 overflow-hidden">
+                    <div class="w-full bg-white/5 h-0.5 rounded-full mt-0.5 overflow-hidden">
                       <div class="h-full rounded-full transition-all duration-500 {
                         parseFloat(c.mem_perc) > 85 ? 'bg-rose-500' :
                         parseFloat(c.mem_perc) > 70 ? 'bg-orange-500' : 'bg-emerald-500'
