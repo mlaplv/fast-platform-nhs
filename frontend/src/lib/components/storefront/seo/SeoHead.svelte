@@ -333,6 +333,9 @@
     {@html `<script type="application/ld+json">${seoFactory.graphLd}<\/script>`}
   {/if}
 
+  {#if page.data.shopInfo?.seo_analytics?.google_search_console_id}
+    <meta name="google-site-verification" content={page.data.shopInfo.seo_analytics.google_search_console_id} />
+  {/if}
 
   <meta name="description" content={finalDescription} />
   <meta name="google" content="notranslate" />

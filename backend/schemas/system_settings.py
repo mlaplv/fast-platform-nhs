@@ -32,6 +32,7 @@ class SeoAnalytics(BaseModel):
     google_analytics_id: str = ""
     facebook_pixel_id: str = ""
     google_tag_manager_id: str = ""
+    google_search_console_id: str = ""
 
 class GoogleMaps(BaseModel):
     map_iframe: str = ""
