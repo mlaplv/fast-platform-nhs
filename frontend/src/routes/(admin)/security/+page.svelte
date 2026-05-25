@@ -3,7 +3,55 @@
     import { fade, slide } from 'svelte/transition';
     import XohiLogo from '$lib/components/admin/XohiLogo.svelte';
 
-    let logs = $state([]);
+    interface ContainerInfo {
+        name: string;
+        id: string;
+        state: string;
+        status: string;
+        image: string;
+        cpu: string;
+        mem_usage: string;
+        mem_perc: string;
+        pids: string;
+    }
+
+    interface AuditLog {
+        id?: string;
+        timestamp: string;
+        action: string;
+        actor: string;
+        ip: string;
+        suspicious: boolean;
+        ms: number;
+        status?: number;
+        risk_reason?: string;
+    }
+
+    interface BlacklistIP {
+        ip: string;
+        reason: string;
+    }
+
+    interface SecurityDraft {
+        id: string;
+        requested_by_email: string;
+        action_type: string;
+        description: string;
+        payload: Record<string, unknown>;
+        created_at: string;
+        action: string;
+        proposed_by: string;
+        target_model: string;
+    }
+
+    interface AIAnalysis {
+        risk_level: string;
+        is_attack: boolean;
+        reason: string;
+        recommended_action: string;
+    }
+
+    let logs = $state<AuditLog[]>([]);
     let stats = $state({
         total_mutations_last_1000: 0,
         suspicious_events: 0,
@@ -11,31 +59,35 @@
         active_guards: [],
         emergency_lockdown: false
     });
-    let blacklist = $state([]);
-    let drafts = $state([]);
+    let blacklist = $state<BlacklistIP[]>([]);
+    let drafts = $state<SecurityDraft[]>([]);
+    let containers = $state<ContainerInfo[]>([]);
     let loading = $state(true);
-    let analyzing = $state(null); // ID of log being analyzed
-    let analysisResult = $state(null);
+    let analyzing = $state<string | null>(null); // ID of log being analyzed
+    let analysisResult = $state<AIAnalysis | null>(null);
     let viewSuspiciousOnly = $state(false);
+    let opLoading = $state<string | null>(null); // Name of container being operated on
 
-    onMount(async () => {
-        await refreshData();
+    onMount(() => {
+        refreshData();
         const interval = setInterval(refreshData, 30000); // Poll every 30s
         return () => clearInterval(interval);
     });
 
     async function refreshData() {
         try {
-            const [logsRes, statsRes, blRes, draftRes] = await Promise.all([
+            const [logsRes, statsRes, blRes, draftRes, containerRes] = await Promise.all([
                 fetch(`/api/v1/security/audit-logs?limit=50&suspicious_only=${viewSuspiciousOnly}`),
                 fetch(`/api/v1/security/stats`),
                 fetch(`/api/v1/ads-protection/blacklist`),
-                fetch(`/api/v1/security/drafts`)
+                fetch(`/api/v1/security/drafts`),
+                fetch(`/api/v1/security/containers`)
             ]);
             logs = await logsRes.json();
             stats = await statsRes.json();
             blacklist = await blRes.json();
             drafts = await draftRes.json();
+            containers = await containerRes.json();
         } catch (e) {
             console.error('Security Monitor Error:', e);
         } finally {
@@ -85,6 +137,27 @@
         }
     }
 
+    async function handleContainerAction(containerName: string, action: 'start' | 'stop' | 'restart') {
+        const actionLabel = action === 'start' ? 'BẬT (ENABLE)' : action === 'stop' ? 'TẮT (DISABLE)' : 'KHỞI ĐỘNG LẠI (RESTART)';
+        if (!confirm(`[SOC WARNING] Xác nhận thực hiện thao tác ${actionLabel} trên container ${containerName}?`)) return;
+        
+        opLoading = containerName;
+        try {
+            const res = await fetch(`/api/v1/security/containers/action`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ container_name: containerName, action })
+            });
+            const data = await res.json();
+            alert(data.message);
+            await refreshData();
+        } catch (e) {
+            alert('Lỗi gửi lệnh điều khiển container');
+        } finally {
+            opLoading = null;
+        }
+    }
+
     function getRiskColor(level: string) {
         switch (level) {
             case 'CRITICAL': return 'text-red-500 bg-red-500/10 border-red-500/20';
@@ -127,10 +200,112 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Main Log Table -->
-        <div class="lg:col-span-2 space-y-6">
-            <div class="flex justify-between items-center">
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Live Core Infrastructure (SOC Container Monitor) -->
+            <div class="mb-8 space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping"></span>
+                        <span class="w-2.5 h-2.5 bg-green-500 rounded-full absolute"></span>
+                        Hạ tầng & Container Resources (SOC Live Stats)
+                    </h2>
+                    <span class="text-xs text-gray-500 font-mono tracking-widest">{containers.length} Node(s) Active</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {#each containers as c}
+                        <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-5 hover:bg-white/[0.04] transition-all duration-300 relative overflow-hidden group">
+                            {#if opLoading === c.name}
+                                <div class="absolute inset-0 bg-black/85 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-3" transition:fade>
+                                    <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <span class="text-[10px] text-blue-400 font-black tracking-widest uppercase">Đang điều khiển...</span>
+                                </div>
+                            {/if}
+
+                            <!-- Card Header -->
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex flex-col gap-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full {
+                                            c.state === 'running' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' :
+                                            c.state === 'exited' ? 'bg-orange-500 shadow-[0_0_10px_#f97316]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'
+                                        }"></span>
+                                        <span class="text-xs font-mono font-black text-gray-200">{c.name}</span>
+                                    </div>
+                                    <span class="text-[9px] text-gray-500 truncate max-w-[180px]">{c.image}</span>
+                                </div>
+
+                                <!-- Professional Operations Control -->
+                                <div class="flex items-center gap-1.5 opacity-45 group-hover:opacity-100 transition-opacity">
+                                    {#if c.state === 'running'}
+                                        <button 
+                                            onclick={() => handleContainerAction(c.name, 'restart')}
+                                            class="w-6 h-6 rounded bg-blue-500/10 hover:bg-blue-600 hover:text-white text-blue-400 transition-all flex items-center justify-center cursor-pointer"
+                                            title="Khởi động lại (Restart)"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H12v4"></path></svg>
+                                        </button>
+                                        <button 
+                                            onclick={() => handleContainerAction(c.name, 'stop')}
+                                            class="w-6 h-6 rounded bg-red-500/10 hover:bg-red-600 hover:text-white text-red-400 transition-all flex items-center justify-center cursor-pointer"
+                                            title="Tắt (Disable)"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                        </button>
+                                    {:else}
+                                        <button 
+                                            onclick={() => handleContainerAction(c.name, 'start')}
+                                            class="w-6 h-6 rounded bg-green-500/10 hover:bg-green-600 hover:text-white text-green-400 transition-all flex items-center justify-center cursor-pointer"
+                                            title="Bật (Enable)"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                                        </button>
+                                    {/if}
+                                </div>
+                            </div>
+
+                            <!-- Metrics Grid -->
+                            <div class="grid grid-cols-3 gap-2 border-t border-white/5 pt-3">
+                                <div class="flex flex-col">
+                                    <span class="text-[9px] text-gray-500 font-bold block mb-1">CPU</span>
+                                    <span class="text-xs font-bold text-gray-300">{c.cpu}</span>
+                                    <div class="w-full bg-white/5 h-1 rounded-full mt-1.5 overflow-hidden">
+                                        <div class="bg-blue-500 h-full rounded-full transition-all duration-500" style="width: {c.cpu}"></div>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col col-span-2">
+                                    <div class="flex justify-between">
+                                        <span class="text-[9px] text-gray-500 font-bold block">RAM (Sức chứa)</span>
+                                        <span class="text-[9px] font-mono {
+                                            parseFloat(c.mem_perc) > 85 ? 'text-red-400 font-black animate-pulse' :
+                                            parseFloat(c.mem_perc) > 70 ? 'text-orange-400 font-bold' : 'text-green-400'
+                                        }">{c.mem_perc}</span>
+                                    </div>
+                                    <span class="text-xs font-bold text-gray-300 mt-1 truncate">{c.mem_usage}</span>
+                                    <div class="w-full bg-white/5 h-1 rounded-full mt-1.5 overflow-hidden">
+                                        <div class="h-full rounded-full transition-all duration-500 {
+                                            parseFloat(c.mem_perc) > 85 ? 'bg-red-500' :
+                                            parseFloat(c.mem_perc) > 70 ? 'bg-orange-500' : 'bg-green-500'
+                                        }" style="width: {c.mem_perc}"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ID / Status footer -->
+                            <div class="flex justify-between items-center mt-3 pt-2 border-t border-white/5 text-[9px] text-gray-600 font-mono">
+                                <span>ID: {c.id ? c.id.slice(0, 12) : 'N/A'}</span>
+                                <span class="capitalize">{c.status || 'Offline'}</span>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+
+            <!-- Audit Trail section -->
+            <div class="flex justify-between items-center mt-8">
                 <h2 class="text-xl font-bold flex items-center gap-2">
-                    <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                    <span class="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse"></span>
                     Audit Trail (Forensic)
                 </h2>
                 <button 
@@ -174,8 +349,8 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded border {log.status < 400 ? 'border-green-500/20 text-green-500' : 'border-red-500/20 text-red-500'}">
-                                            {log.status}
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded border {(log.status ?? 200) < 400 ? 'border-green-500/20 text-green-500' : 'border-red-500/20 text-red-500'}">
+                                            {log.status ?? 200}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right">

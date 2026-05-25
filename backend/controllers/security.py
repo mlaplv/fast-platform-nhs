@@ -76,6 +76,146 @@ class SecurityController(Controller):
         log_entry = json.dumps(data)
         return await security_guard.analyze_log_entry(log_entry)
 
+    @get("/containers")
+    async def get_containers(self) -> List[Dict]:
+        """
+        [ELITE V2.2] Lấy trạng thái tài nguyên thực tế của các container core (SOC).
+        """
+        import asyncio
+        import json
+        
+        TARGET_CONTAINERS = [
+            "fast_platform_worker_fraud",
+            "fast_platform_worker_default",
+            "fast_platform_worker_high",
+            "fast_platform_api",
+            "fast_platform_db",
+            "fast_platform_redis",
+            "fast_platform_caddy"
+        ]
+
+        try:
+            # 1. Chạy docker ps
+            proc_ps = await asyncio.create_subprocess_exec(
+                "docker", "ps", "-a", "--format", "{{json .}}",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout_ps, _ = await proc_ps.communicate()
+            
+            # 2. Chạy docker stats
+            proc_stats = await asyncio.create_subprocess_exec(
+                "docker", "stats", "--no-stream", "--format", "{{json .}}",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout_stats, _ = await proc_stats.communicate()
+
+            # Parse stats
+            stats_dict = {}
+            for line in stdout_stats.decode("utf-8").splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    data = json.loads(line)
+                    name = data.get("Name")
+                    if name:
+                        stats_dict[name] = data
+                except:
+                    continue
+
+            # Parse ps
+            containers = []
+            ps_names = set()
+            for line in stdout_ps.decode("utf-8").splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    data = json.loads(line)
+                    name = data.get("Names")
+                    if name in TARGET_CONTAINERS:
+                        ps_names.add(name)
+                        stat = stats_dict.get(name, {})
+                        containers.append({
+                            "name": name,
+                            "id": data.get("ID"),
+                            "state": data.get("State"), # running, exited, etc.
+                            "status": data.get("Status"), # Up 2 hours
+                            "image": data.get("Image"),
+                            "cpu": stat.get("CPUPerc", "0.00%"),
+                            "mem_usage": stat.get("MemUsage", "0B / 0B"),
+                            "mem_perc": stat.get("MemPerc", "0.00%"),
+                            "pids": stat.get("PIDs", "0")
+                        })
+                except:
+                    continue
+
+            # Thêm các container không tìm thấy trong ps (coi như offline/chưa tạo)
+            for name in TARGET_CONTAINERS:
+                if name not in ps_names:
+                    containers.append({
+                        "name": name,
+                        "id": "N/A",
+                        "state": "offline",
+                        "status": "Not Created",
+                        "image": "N/A",
+                        "cpu": "0.00%",
+                        "mem_usage": "0B / 0B",
+                        "mem_perc": "0.00%",
+                        "pids": "0"
+                    })
+
+            return sorted(containers, key=lambda x: TARGET_CONTAINERS.index(x["name"]))
+        except Exception as e:
+            logger.error(f"❌ [Security SOC] Failed to fetch container stats: {e}")
+            return []
+
+    @post("/containers/action")
+    async def container_action(self, data: Dict) -> SuccessResponse:
+        """
+        [ELITE V2.2] Thực hiện thao tác chuyên nghiệp trên Container (SOC Operations).
+        """
+        import asyncio
+        container_name = data.get("container_name")
+        action = data.get("action") # start, stop, restart
+
+        TARGET_CONTAINERS = [
+            "fast_platform_worker_fraud",
+            "fast_platform_worker_default",
+            "fast_platform_worker_high",
+            "fast_platform_api",
+            "fast_platform_db",
+            "fast_platform_redis",
+            "fast_platform_caddy"
+        ]
+
+        if container_name not in TARGET_CONTAINERS:
+            raise NotFoundException(detail="Container không thuộc quyền quản lý của SOC.")
+
+        if action not in ["start", "stop", "restart"]:
+            raise NotFoundException(detail="Thao tác không được hỗ trợ.")
+
+        try:
+            logger.warning(f"🚨 [SOC OPS] Admin triggered container action: {action} on {container_name}")
+            
+            # Thực thi lệnh Docker tương ứng
+            proc = await asyncio.create_subprocess_exec(
+                "docker", action, container_name,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await proc.communicate()
+
+            if proc.returncode != 0:
+                err_msg = stderr.decode("utf-8").strip()
+                logger.error(f"❌ [SOC OPS] Failed to {action} container {container_name}: {err_msg}")
+                return SuccessResponse(message=f"Lỗi: {err_msg}")
+
+            return SuccessResponse(message=f"Thành công: Đã {action} container {container_name}")
+        except Exception as e:
+            logger.error(f"❌ [SOC OPS] Critical exception during container action: {e}")
+            return SuccessResponse(message=f"Lỗi hệ thống: {str(e)}")
+
     @get("/status")
     async def get_security_status(self) -> Dict:
         """

@@ -215,11 +215,11 @@ services:
       - TZ=Asia/Ho_Chi_Minh
       - SKIP_MIGRATE=true
       - PYTHONWARNINGS=ignore:Core Pydantic V1 functionality:UserWarning
-    mem_limit: 256M
+    mem_limit: 384M
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 384M
     command: /opt/venv/bin/python -m backend.workers.fraud_stream_worker
     depends_on:
       db:

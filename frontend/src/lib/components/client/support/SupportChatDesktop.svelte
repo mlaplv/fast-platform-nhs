@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ComponentType, SvelteComponent } from "svelte";
+  import type { ComponentType, SvelteComponent, Component } from "svelte";
   import { tick } from "svelte";
   import { scale, fly } from "svelte/transition";
   import Send from "@lucide/svelte/icons/send";
@@ -12,6 +12,7 @@
   import Beaker from "@lucide/svelte/icons/beaker";
   import Target from "@lucide/svelte/icons/target";
   import Lock from "@lucide/svelte/icons/lock";
+  import PackageSearch from "@lucide/svelte/icons/package-search";
   import { supportAgent } from "$lib/state/commerce/supportAgent.svelte";
   import { authStore } from "$lib/state/authStore.svelte";
   import { getShopStore } from "$lib/state/commerce/shop.svelte";
@@ -33,7 +34,7 @@
 
   interface QuickAction {
     label: string;
-    icon: ComponentType<SvelteComponent>; // Elite V2.2: Explicit Svelte 5 Component Type
+    icon: ComponentType<SvelteComponent> | Component<any>; // Elite V2.2: Svelte 5 Component Type Compatibility
     prompt?: string;
     displayPrompt?: string;
     action?: () => void;
@@ -85,6 +86,40 @@
     isInputFocused = false;
   }
 
+  function getCartItemsMapped() {
+    return cartStore.items.map(item => ({
+      product_id: item.product.id,
+      quantity: item.quantity,
+      name: item.product.name,
+      unit_price: item.variant?.price || item.product.price || 0,
+      total_price: (item.variant?.price || item.product.price || 0) * item.quantity,
+    }));
+  }
+
+  function getPricingContextMapped() {
+    const cb = checkoutState.breakdown;
+    const cartB = cartStore.breakdown;
+    if (cb) {
+      return {
+        items: cartB.items,
+        subtotal: cb.subtotal,
+        combo_discount: cb.combo_discount,
+        voucher_discount: cb.voucher_discount,
+        base_shipping_fee: cb.shipping_fee,
+        shipping_discount: cb.shipping_discount,
+        final_shipping_fee: Math.max(0, cb.shipping_fee - cb.shipping_discount),
+        max_point_discount_allowed: cb.subtotal * 0.01,
+        points_redeemed: cb.points_redeemed,
+        point_discount_amount: cb.point_discount,
+        final_payable: cb.final_total,
+        points_to_earn: Math.floor(cb.final_total / 100000),
+        applied_voucher_ids: cb.applied_vouchers?.map(v => v.id) || [],
+        applied_combo_ids: []
+      };
+    }
+    return cartB;
+  }
+
   async function handleSend() {
     if (!userInput.trim() || supportAgent.isTyping) return;
     const text = userInput;
@@ -96,11 +131,11 @@
     const customer = shopStore?.customerData;
 
     const name = user?.name || customer?.nameMasked || "Khách ẩn danh";
-    const userId = user?.id || null;
+    const userId = user?.id || undefined;
 
     // Elite V2.2: Pass Ground Truth pricing if on checkout page
     // [FIX] Explicitly read from singleton for precision sync
-    const pricingContext = checkoutState.breakdown || cartStore.breakdown;
+    const pricingContext = getPricingContextMapped();
 
     await supportAgent.sendMessage(
       text,
@@ -108,7 +143,7 @@
       name,
       undefined,
       userId,
-      cartStore.items,
+      getCartItemsMapped(),
       cartStore.selectedVoucherIds,
       pricingContext,
     );
@@ -120,14 +155,14 @@
       action.action();
       return;
     }
-    const pricingContext = checkoutState.breakdown || cartStore.breakdown;
+    const pricingContext = getPricingContextMapped();
     await supportAgent.sendMessage(
-      action.prompt,
+      action.prompt || "",
       productSlug,
       undefined,
       undefined,
       undefined,
-      cartStore.items,
+      getCartItemsMapped(),
       cartStore.selectedVoucherIds,
       pricingContext,
       action.displayPrompt,
@@ -141,15 +176,15 @@
     const user = authStore.user;
     const customer = shopStore?.customerData;
     const name = user?.name || customer?.nameMasked || "Khách ẩn danh";
-    const userId = user?.id || null;
-    const pricingContext = checkoutState.breakdown || cartStore.breakdown;
+    const userId = user?.id || undefined;
+    const pricingContext = getPricingContextMapped();
     await supportAgent.sendMessage(
       "[chat_inbox] Tôi muốn chat trực tiếp với chuyên viên tư vấn ngay tại đây",
       productSlug,
       name,
       undefined,
       userId,
-      cartStore.items,
+      getCartItemsMapped(),
       cartStore.selectedVoucherIds,
       pricingContext,
       "💬 Yêu cầu chat trực tiếp với chuyên viên",
@@ -165,15 +200,15 @@
     const user = authStore.user;
     const customer = shopStore?.customerData;
     const name = user?.name || customer?.nameMasked || "Khách ẩn danh";
-    const userId = user?.id || null;
-    const pricingContext = checkoutState.breakdown || cartStore.breakdown;
+    const userId = user?.id || undefined;
+    const pricingContext = getPricingContextMapped();
     await supportAgent.sendMessage(
       "[zalo_oa] Tôi muốn chat với chuyên viên qua Zalo OA",
       productSlug,
       name,
       undefined,
       userId,
-      cartStore.items,
+      getCartItemsMapped(),
       cartStore.selectedVoucherIds,
       pricingContext,
       "💙 Yêu cầu kết nối qua Zalo OA",
@@ -241,11 +276,11 @@
 </script>
 
 {#if supportAgent.isOpen}
-  <!-- Hyper Drop Container (Viral 2026 Aggressive Asymmetric Shape) -->
+  <!-- Hyper Drop Container (Elite V2.2: Premium Glassmorphic Symmetric Card) -->
   <div
     class="support-chat-container fixed transform-gpu origin-bottom-right transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] {isExpanded
       ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px] overflow-hidden bg-[#0a0a0a]'
-      : 'bottom-[110px] right-8 w-[450px] h-[740px] max-h-[85vh] helen-box-v2 helen-float-v3'} {isInputFocused
+      : 'bottom-[110px] right-8 w-[450px] h-[740px] max-h-[85vh] helen-box-premium helen-float-premium'} {isInputFocused
       ? 'pause-animations'
       : ''}"
     style="z-index: {Z_INDEX_CLIENT.MODAL}; will-change: transform, opacity;"
@@ -256,21 +291,21 @@
       easing: (t) => 1 - Math.pow(1 - t, 5),
     }}
   >
-    <!-- Liquid Neural Border (Optimized for No-GPU) -->
+    <!-- Premium Symmetric Border Overlay (Optimized for No-GPU Paint) -->
     <div
       class="absolute inset-[-1px] border border-white/10 {isExpanded
         ? 'rounded-[48px]'
-        : 'helen-box-v2'} pointer-events-none z-[100]"
+        : 'helen-box-premium'} pointer-events-none z-[100]"
     ></div>
 
-    <!-- Specular Highlight (The "Refraction" layer that makes it viral) -->
+    <!-- Specular Highlight (Sophisticated Static Glow) -->
     <div
-      class="absolute top-[10%] left-[10%] w-[40%] h-[20%] bg-gradient-to-br from-white/20 to-transparent blur-xl {isExpanded
+      class="absolute top-[5%] left-[5%] w-[45%] h-[25%] bg-gradient-to-br from-[#FFB7C5]/10 via-[#FFB7C5]/3 to-transparent blur-2xl {isExpanded
         ? 'hidden'
-        : 'helen-box-v2'} pointer-events-none z-20"
+        : 'helen-box-premium'} pointer-events-none z-20"
     ></div>
     <div
-      class="absolute top-4 left-10 w-2 h-2 bg-white/40 blur-[2px] rounded-full {isExpanded
+      class="absolute top-4 left-10 w-2 h-2 bg-white/30 blur-[2px] rounded-full {isExpanded
         ? 'hidden'
         : ''} pointer-events-none z-20"
     ></div>
@@ -279,7 +314,7 @@
     <div
       class="absolute inset-0 apple-glass-dark-modal pointer-events-none transition-all duration-700 {isExpanded
         ? 'rounded-[48px] is-expanded'
-        : 'helen-box-v2'} border border-white/5 shadow-2xl"
+        : 'helen-box-premium'} border border-white/5 shadow-2xl"
     ></div>
 
     <!-- Interface Contents -->
@@ -396,14 +431,14 @@
         </div>
       {/if}
 
-      <!-- Thread: Zero-Background Floating Text Aesthetic -->
+      <!-- Thread: Beautifully Grouped Glassmorphic Conversations -->
       <div
         bind:this={chatContainer}
-        class="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-start space-y-12 hide-scrollbar relative"
+        class="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-start space-y-6 hide-scrollbar relative"
       >
         {#if !supportAgent.optimalPriceNotice}
           <div
-            class="flex flex-col items-center justify-center mb-10 opacity-30 hover:opacity-100 transition-opacity"
+            class="flex flex-col items-center justify-center mb-6 opacity-30 hover:opacity-100 transition-opacity"
           >
             <div
               class="flex items-center gap-2.5 px-5 py-2 bg-black/40 border border-white/10 rounded-full"
@@ -417,9 +452,9 @@
           </div>
         {/if}
 
-        <!-- Viral Lazy Memory: Zalo-style pagination -->
+        <!-- Zalo-style pagination -->
         {#if supportAgent.hasMoreHistory}
-          <div class="flex justify-center pb-8">
+          <div class="flex justify-center pb-4">
             <button
               onclick={() => supportAgent.loadHistory()}
               disabled={supportAgent.isHistoryLoading}
@@ -451,7 +486,7 @@
           >
             <!-- Name Label (Elite V3.1: Professional Identity) -->
             <div
-              class="flex items-center gap-2 mb-2 px-12 {msg.role === 'user'
+              class="flex items-center gap-2 mb-1.5 px-14 {msg.role === 'user'
                 ? 'flex-row-reverse'
                 : 'flex-row'}"
             >
@@ -506,53 +541,54 @@
                 {/if}
               </div>
 
-              <!-- Message Content (Minimalist Floating Text) -->
+              <!-- Message Content (Premium Glassmorphic Bubble Wrapper) -->
               <div
                 class="flex-1 max-w-[85%] {msg.role === 'user'
                   ? 'text-right'
                   : 'text-left'}"
               >
-                <div
-                  class="text-[17px] leading-[1.7] break-words transition-all
-                  {msg.role === 'user'
-                    ? 'text-white font-bold drop-shadow-[0_2px_8px_rgba(255,255,255,0.1)]'
-                    : 'text-gray-200 font-medium'}"
-                >
-                  {#if msg.is_revoked}
+                {#if msg.is_revoked}
+                  <div
+                    class="inline-block text-[15px] italic text-white/40 line-through select-none bg-white/[0.02] border border-white/5 rounded-2xl px-4 py-2.5"
+                  >
+                    [Tin nhắn đã bị thu hồi]
+                  </div>
+                {:else if msg.role === "assistant" && msg.intent === "ORDER_STATUS"}
+                  <div
+                    class="inline-block text-[15px] leading-[1.6] break-words text-left bg-white/[0.04] border border-white/5 rounded-2xl rounded-tl-none px-4.5 py-3.5 text-gray-200 max-w-full shadow-lg"
+                  >
                     <div
-                      class="text-[17px] italic text-white/40 line-through select-none"
+                      class="inline-flex items-center gap-2 px-3 py-1.5 mb-3 bg-[#FFB7C5]/10 text-[#FFB7C5] rounded-xl border border-[#FFB7C5]/20 font-black text-[13px] tracking-wider"
                     >
-                      [Tin nhắn đã bị thu hồi]
-                    </div>
-                  {:else if msg.role === "assistant" && msg.intent === "ORDER_STATUS"}
-                    <div
-                      class="inline-flex items-center gap-3 px-4 py-2 mb-4 bg-[#FFB7C5]/10 text-[#FFB7C5] rounded-2xl border border-[#FFB7C5]/20 font-black text-[15px] tracking-wider"
-                    >
-                      <PackageSearch size={18} /> Tra cứu vận đơn
+                      <PackageSearch size={14} /> Tra cứu vận đơn
                     </div>
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                    <div class="text-[16px] mb-6">
+                    <div class="text-[15px] mb-4">
                       {@html msg.content.replace(/\n/g, "<br/>")}
                     </div>
                     <div
-                      class="w-full max-w-[340px] p-1 bg-black/40 rounded-[32px] border border-white/10 shadow-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all"
+                      class="w-full max-w-[300px] p-1 bg-black/40 rounded-2xl border border-white/10 shadow-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all"
                     >
                       <div class="flex items-center">
                         <input
                           type="tel"
                           placeholder="Số điện thoại / Mã đơn"
-                          class="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-600 outline-none text-[15px]"
+                          class="flex-1 px-4 py-2 bg-transparent text-white placeholder-gray-600 outline-none text-[14px]"
                         />
                         <button
-                          class="mr-1 w-12 h-12 bg-[#FFB7C5] text-slate-950 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all"
+                          class="w-8 h-8 bg-[#FFB7C5] text-slate-950 rounded-lg flex items-center justify-center shadow-lg active:scale-95 transition-all"
                         >
-                          <Send size={18} />
+                          <Send size={14} />
                         </button>
                       </div>
                     </div>
-                  {:else if msg.role === "assistant" && msg.intent === "PRICE_QUERY"}
+                  </div>
+                {:else if msg.role === "assistant" && msg.intent === "PRICE_QUERY"}
+                  <div
+                    class="inline-block text-[15px] leading-[1.6] break-words text-left bg-white/[0.04] border border-white/5 rounded-2xl rounded-tl-none px-4.5 py-3.5 text-gray-200 max-w-full shadow-lg"
+                  >
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                    <div class="text-[17px]">
+                    <div class="text-[15px]">
                       {@html msg.content
                         .replace(
                           /\*\*(.*?)\*\*/g,
@@ -564,13 +600,17 @@
                     <button
                       onclick={() =>
                         shopStore?.openCheckout(cartStore, shopStore.product!)}
-                      class="mt-6 px-10 py-4 bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 text-[16px] font-black rounded-full shadow-[0_12px_32px_rgba(255,183,197,0.4)] hover:shadow-[0_16px_40px_rgba(255,183,197,0.5)] transition-all active:scale-[0.98] tracking-wider animate-pulse-subtle"
+                      class="mt-4 px-6 py-2.5 bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 text-[13px] font-black rounded-full shadow-[0_6px_20px_rgba(255,183,197,0.3)] hover:shadow-[0_10px_28px_rgba(255,183,197,0.4)] transition-all active:scale-[0.98] tracking-wider animate-pulse-subtle"
                     >
                       NHẬN ƯU ĐÃI NGAY →
                     </button>
-                  {:else if msg.role === "assistant"}
+                  </div>
+                {:else if msg.role === "assistant"}
+                  <div
+                    class="inline-block text-[15px] leading-[1.6] break-words text-left bg-white/[0.04] border border-white/5 rounded-2xl rounded-tl-none px-4.5 py-3.5 text-gray-200 max-w-full shadow-lg"
+                  >
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                    <div class="text-[17px]">
+                    <div class="text-[15px]">
                       {@html msg.content
                         .replace(
                           /\*\*(.*?)\*\*/g,
@@ -582,14 +622,18 @@
                         )
                         .replace(/\n/g, "<br/>")}
                     </div>
-                  {:else}
+                  </div>
+                {:else}
+                  <div
+                    class="inline-block text-[15px] leading-[1.6] break-words text-left bg-gradient-to-br from-[#FFB7C5]/15 to-[#FF8FA3]/5 border border-[#FFB7C5]/10 rounded-2xl rounded-tr-none px-4 py-2.5 text-white max-w-full shadow-md"
+                  >
                     {msg.content}
-                  {/if}
-                </div>
+                  </div>
+                {/if}
 
                 <!-- Timestamp -->
                 <div
-                  class="text-[9px] text-white/10 mt-3 font-black tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all duration-300"
+                  class="text-[9px] text-white/10 mt-2.5 font-black tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all duration-300"
                 >
                   {msg.timestamp.toLocaleTimeString("vi-VN", {
                     hour: "2-digit",
@@ -676,8 +720,8 @@
         <div class="h-20"></div>
       </div>
 
-      <!-- Input Area: Optimized Padding -->
-      <div class="p-6 px-10 pb-8 flex flex-col gap-5">
+      <!-- Input Area: Optimized Padding & Highly Compact Frame -->
+      <div class="p-6 px-10 pb-8 flex flex-col gap-4">
         <!-- Quick Actions (Optimized: Right Aligned & Tiny) -->
         {#if productSlug && productSlug.trim() !== ""}
           <div class="flex justify-end gap-2 px-1">
@@ -686,21 +730,21 @@
               <div class="relative group/action">
                 {#if action.label === "An toàn da" && supportAgent.messages.length <= 1}
                   <div
-                    class="absolute -top-[38px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wide shadow-[0_4px_16px_rgba(255,183,197,0.4)] animate-bounce z-50 pointer-events-none before:content-[''] before:absolute before:-bottom-1 before:left-1/2 before:-translate-x-1/2 before:w-2.5 before:h-2.5 before:bg-[#FF8FA3] before:rotate-45"
+                    class="absolute -top-[36px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 px-3 py-1 rounded-xl text-[9px] font-black tracking-wide shadow-[0_4px_12px_rgba(255,183,197,0.3)] animate-bounce z-50 pointer-events-none before:content-[''] before:absolute before:-bottom-1 before:left-1/2 before:-translate-x-1/2 before:w-2 before:h-2 before:bg-[#FF8FA3] before:rotate-45"
                   >
                     Kiểm tra sản phẩm có phù hợp cho da của bạn không ✨
                   </div>
                 {/if}
                 <button
-                  class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white rounded-full text-[11px] font-bold transition-all active:scale-95 {action.label ===
+                  class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-[#FFB7C5]/10 hover:border-[#FFB7C5]/30 hover:text-white border border-white/10 text-white/50 rounded-full text-[11px] font-bold transition-all active:scale-95 {action.label ===
                   'An toàn da'
                     ? 'ring-1 ring-[#FFB7C5]/30'
                     : ''}"
                   onclick={() => handleQuickAction(action)}
                 >
                   <Icon
-                    size={12}
-                    class="text-[#FFB7C5] opacity-30 group-hover/action:opacity-100 transition-opacity"
+                    size={11}
+                    class="text-[#FFB7C5] opacity-35 group-hover/action:opacity-100 transition-opacity"
                   />
                   {action.label}
                 </button>
@@ -710,7 +754,7 @@
         {/if}
 
         <div
-          class="relative bg-black/60 border border-white/10 rounded-[44px] flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all"
+          class="relative bg-black/60 border border-white/10 rounded-2xl flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all"
         >
           <textarea
             bind:this={inputElement}
@@ -719,26 +763,26 @@
             placeholder="Nói chuyện với chuyên gia..."
             onfocus={handleInputFocus}
             onblur={handleInputBlur}
-            class="block w-full bg-transparent border-0 py-7 pl-14 pr-24 text-white placeholder-gray-600 focus:ring-0 resize-none outline-none text-[16px] max-h-[220px] font-medium"
-            style="min-height: 80px;"
+            class="block w-full bg-transparent border-0 py-4 pl-12 pr-14 text-white placeholder-gray-600 focus:ring-0 resize-none outline-none text-[15px] max-h-[160px] font-medium"
+            style="min-height: 58px;"
             disabled={supportAgent.isTyping}
           ></textarea>
 
           <div
-            class="absolute left-6 top-7 pointer-events-none opacity-20 group-focus-within:opacity-50 transition-opacity"
+            class="absolute left-4 top-4.5 pointer-events-none opacity-25 group-focus-within:opacity-60 transition-opacity"
           >
-            <Lock size={18} class="text-white" />
+            <Lock size={15} class="text-white" />
           </div>
 
           <button
             onclick={handleSend}
             disabled={!userInput.trim() || supportAgent.isTyping}
-            class="absolute right-4 bottom-4 w-16 h-16 flex items-center justify-center rounded-full {userInput.trim() &&
+            class="absolute right-2 bottom-2 w-10 h-10 flex items-center justify-center rounded-xl {userInput.trim() &&
             !supportAgent.isTyping
-              ? 'bg-[#FFB7C5] text-slate-950 shadow-[0_8px_32px_rgba(255,183,197,0.4)]'
+              ? 'bg-[#FFB7C5] text-slate-950 shadow-[0_4px_12px_rgba(255,183,197,0.3)]'
               : 'bg-white/5 text-gray-700'} transition-all scale-100 active:scale-90"
           >
-            <Send size={28} />
+            <Send size={18} />
           </button>
         </div>
       </div>
@@ -769,26 +813,12 @@
     background: rgba(8, 12, 21, 0.98) !important;
   }
 
-  /* Liquid Hyper-Drop Shape V3 (Strict Aesthetic Morphing) */
-  .helen-box-v2 {
-    border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
-    animation: morph-blob-v3 12s infinite alternate
-      cubic-bezier(0.445, 0.05, 0.55, 0.95);
-  }
-
-  @keyframes morph-blob-v3 {
-    0% {
-      border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
-    }
-    33% {
-      border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%;
-    }
-    66% {
-      border-radius: 50% 50% 30% 70% / 50% 30% 70% 50%;
-    }
-    100% {
-      border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
-    }
+  /* Premium Frame Architecture (Elite V2.2) */
+  .helen-box-premium {
+    border-radius: 36px;
+    box-shadow: 
+      0 24px 64px rgba(0, 0, 0, 0.6), 
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
   .apple-glass-badge {
@@ -797,21 +827,17 @@
     box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.02);
   }
 
-  @keyframes liquid-float {
-    0%,
-    100% {
-      transform: translateY(0) rotate(0deg);
+  @keyframes float-premium {
+    0%, 100% {
+      transform: translateY(0);
     }
-    33% {
-      transform: translateY(-8px) rotate(0.5deg);
-    }
-    66% {
-      transform: translateY(4px) rotate(-0.5deg);
+    50% {
+      transform: translateY(-6px);
     }
   }
 
-  .helen-float-v3 {
-    animation: liquid-float 12s infinite ease-in-out;
+  .helen-float-premium {
+    animation: float-premium 6s infinite ease-in-out;
   }
 
   .hide-scrollbar::-webkit-scrollbar {
