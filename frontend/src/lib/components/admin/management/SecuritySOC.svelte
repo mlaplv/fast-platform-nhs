@@ -82,6 +82,17 @@
   let detailLog = $state<AuditLog | null>(null);
 
   // --- Derived Computations ---
+  // Elite V2.2: Sort containers by RAM consumption descending so heavy containers are highlighted first
+  let sortedContainers = $derived(
+    [...containers].sort((a, b) => {
+      const getVal = (c: ContainerInfo) => {
+        const perc = parseFloat(c.mem_perc || '0');
+        return isNaN(perc) ? 0 : perc;
+      };
+      return getVal(b) - getVal(a);
+    })
+  );
+
   let filteredLogs = $derived(
     logs.filter(l => {
       const matchesSearch = !searchTerm || 
@@ -434,7 +445,7 @@
               </div>
             </div>
 
-            {#each containers as c}
+            {#each sortedContainers as c}
               <div class="bg-white/[0.01] border border-white/5 rounded-xl p-4 hover:bg-white/[0.02] hover:border-cyan-500/20 transition-all duration-300 relative overflow-hidden group w-[220px] shrink-0 h-[128px] flex flex-col justify-between">
                 {#if opLoading === c.name}
                   <div class="absolute inset-0 bg-black/85 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-2" transition:fade>

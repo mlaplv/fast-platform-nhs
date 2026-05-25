@@ -99,6 +99,7 @@ class SecurityController(Controller):
         import json
         
         TARGET_CONTAINERS = [
+            "fast_platform_worker_fraud",
             "fast_platform_worker_default",
             "fast_platform_worker_high",
             "fast_platform_api",
@@ -178,7 +179,7 @@ class SecurityController(Controller):
                         "pids": "0"
                     })
 
-            return sorted(containers, key=lambda x: TARGET_CONTAINERS.index(x["name"]))
+            return containers
         except Exception as e:
             logger.error(f"❌ [Security SOC] Failed to fetch container stats: {e}")
             return []
@@ -193,6 +194,7 @@ class SecurityController(Controller):
         action = data.get("action") # start, stop, restart
 
         TARGET_CONTAINERS = [
+            "fast_platform_worker_fraud",
             "fast_platform_worker_default",
             "fast_platform_worker_high",
             "fast_platform_api",
@@ -212,6 +214,7 @@ class SecurityController(Controller):
             
             # Bản đồ ánh xạ từ container_name sang service_name tương ứng trong docker-compose
             SERVICE_MAP = {
+                "fast_platform_worker_fraud": "worker_fraud",
                 "fast_platform_worker_default": "worker_default",
                 "fast_platform_worker_high": "worker_high",
                 "fast_platform_api": "api",
