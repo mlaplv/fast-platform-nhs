@@ -2,76 +2,47 @@
 <html lang="vi" translate="no">
   <head>
     <!-- Google Tag Manager -->
-    <script>
-      (function() {
-        try {
-          var cached = sessionStorage.getItem('primary_config');
-          var settings = null;
-          if (cached) {
-            try {
-              settings = JSON.parse(cached);
-            } catch(e) {}
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer',(function(){
+      try {
+        var cached = sessionStorage.getItem('primary_config');
+        if (cached) {
+          var seo = JSON.parse(cached)?.seo_analytics;
+          var gtmId = seo?.google_tag_manager_id || seo?.gtm_id;
+          if (!gtmId && seo?.google_analytics_id && seo.google_analytics_id.indexOf('GTM-') === 0) {
+            gtmId = seo.google_analytics_id;
           }
-          
-          function initGTM(gtmId) {
-            if (!gtmId) return;
-            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-            })(window,document,'script','dataLayer',gtmId);
-
-            var injectNoscript = function() {
-              if (document.getElementById('gtm-noscript-' + gtmId)) return;
-              var ns = document.createElement('noscript');
-              ns.id = 'gtm-noscript-' + gtmId;
-              var ifr = document.createElement('iframe');
-              ifr.src = 'https://www.googletagmanager.com/ns.html?id=' + gtmId;
-              ifr.height = '0';
-              ifr.width = '0';
-              ifr.style.display = 'none';
-              ifr.style.visibility = 'hidden';
-              ns.appendChild(ifr);
-              document.body.insertBefore(ns, document.body.firstChild);
-            };
-
-            if (document.body) {
-              injectNoscript();
-            } else {
-              window.addEventListener('DOMContentLoaded', injectNoscript);
-            }
-          }
-
-          if (settings) {
-            var seo = settings.seo_analytics;
-            var gtmId = seo?.google_tag_manager_id || seo?.gtm_id;
-            if (!gtmId && seo?.google_analytics_id && seo.google_analytics_id.indexOf('GTM-') === 0) {
-              gtmId = seo.google_analytics_id;
-            }
-            if (gtmId) initGTM(gtmId);
-          } else {
-            fetch('/api/v1/client/settings/primary')
-              .then(function(res) { return res.json(); })
-              .then(function(data) {
-                if (data) {
-                  sessionStorage.setItem('primary_config', JSON.stringify(data));
-                  var seo = data.seo_analytics;
-                  var gtmId = seo?.google_tag_manager_id || seo?.gtm_id;
-                  if (!gtmId && seo?.google_analytics_id && seo.google_analytics_id.indexOf('GTM-') === 0) {
-                    gtmId = seo.google_analytics_id;
-                  }
-                  if (gtmId) initGTM(gtmId);
-                }
-              })
-              .catch(function(err) {
-                console.warn('[GTM] Settings load failed:', err);
-              });
-          }
-        } catch (err) {
-          console.warn('[GTM] Init error:', err);
+          if (gtmId) return gtmId;
         }
-      })();
-    </script>
+      } catch(e) {}
+      
+      try {
+        fetch('/api/v1/client/settings/primary')
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (d) {
+              sessionStorage.setItem('primary_config', JSON.stringify(d));
+              var seo = d.seo_analytics;
+              var gtmId = seo?.google_tag_manager_id || seo?.gtm_id;
+              if (!gtmId && seo?.google_analytics_id && seo.google_analytics_id.indexOf('GTM-') === 0) {
+                gtmId = seo.google_analytics_id;
+              }
+              if (gtmId && gtmId !== 'GTM-WDJQ5S2F') {
+                (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+                new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+                j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+                'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+                })(window,document,'script','dataLayer',gtmId);
+              }
+            }
+          }).catch(function(){});
+      } catch(e) {}
+
+      return 'GTM-WDJQ5S2F';
+    })());</script>
     <!-- End Google Tag Manager -->
     <meta charset="utf-8" />
     <meta
@@ -125,6 +96,10 @@
     <script src="/js/click-shield.js" defer></script>
   </head>
   <body data-sveltekit-preload-data="hover">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WDJQ5S2F"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
     <div class="contents">%sveltekit.body%</div>
   </body>
 </html>

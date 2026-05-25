@@ -27,6 +27,9 @@
 
   if (data.shopInfo) {
     ui.settings = data.shopInfo;
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('primary_config', JSON.stringify(data.shopInfo));
+    }
   }
   
   if (data.vouchers) {
@@ -46,6 +49,9 @@
   $effect(() => {
     if (data.shopInfo) {
         ui.settings = data.shopInfo;
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('primary_config', JSON.stringify(data.shopInfo));
+        }
     }
     if (data.vouchers) {
         cart.setVouchers(data.vouchers);

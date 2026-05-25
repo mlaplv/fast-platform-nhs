@@ -113,6 +113,9 @@
       // Inject global shop settings into the UI state for sub-components (OfferGrid, etc.)
       if (data.shopInfo) {
         clientUi.settings = data.shopInfo;
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('primary_config', JSON.stringify(data.shopInfo));
+        }
       }
     }
   });
