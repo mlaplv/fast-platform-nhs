@@ -92,6 +92,7 @@ services:
       - "8000"
     volumes:
       - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
     logging:
       driver: "json-file"
       options:
