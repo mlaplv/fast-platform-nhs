@@ -10,8 +10,12 @@
   import Pencil from "@lucide/svelte/icons/pencil";
   import AlertTriangle from "@lucide/svelte/icons/triangle-alert";
   import Sparkles from "@lucide/svelte/icons/sparkles";
+  import Database from "@lucide/svelte/icons/database";
+  import Search from "@lucide/svelte/icons/search";
+  import Link2Off from "@lucide/svelte/icons/link-2-off";
   import { resolveMediaUrl } from "$lib/state/utils";
-  import type { Product, ProductFormState } from "$lib/types";
+  import { apiClient } from "$lib/utils/apiClient";
+  import type { Product, ProductFormState, ProductVariant } from "$lib/types";
   import { onDestroy } from "svelte";
 
   let {
@@ -563,6 +567,112 @@
       formState.variants[vIndex].attributes!.gifts!.splice(gIndex, 1);
     }
   }
+
+  // --- ADVANCED GIFT DB PRODUCT SEARCH STATES & FUNCTIONS ---
+  let activeSearchVIdx = $state<number | null>(null);
+  let activeSearchGIdx = $state<number | null>(null);
+  let dbSearchQuery = $state("");
+  let dbSearchResults = $state<Product[]>([]);
+  let isSearchingDb = $state(false);
+  let searchDebounceTimer: any = null;
+  let loadedGiftProducts = $state<Record<string, Product>>({});
+
+  async function searchDbProducts(query: string) {
+    if (!query.trim()) {
+      dbSearchResults = [];
+      return;
+    }
+    isSearchingDb = true;
+    try {
+      const res = await apiClient.get<{ data: Product[]; total: number }>("/api/v1/products", {
+        params: { search: query, limit: "10" }
+      });
+      dbSearchResults = res.data || [];
+    } catch (err) {
+      console.error("Lỗi tìm kiếm sản phẩm:", err);
+      dbSearchResults = [];
+    } finally {
+      isSearchingDb = false;
+    }
+  }
+
+  function handleDbSearchInput(e: Event) {
+    const val = (e.target as HTMLInputElement).value;
+    dbSearchQuery = val;
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      searchDbProducts(val);
+    }, 300);
+  }
+
+  function selectDbProductForGift(vIndex: number, gIndex: number, product: Product) {
+    ensureAttributes(vIndex);
+    const gifts = formState.variants[vIndex].attributes!.gifts!;
+    if (gifts[gIndex]) {
+      gifts[gIndex].product_id = product.id;
+      gifts[gIndex].name = product.name;
+      gifts[gIndex].image = product.images?.[0] || "";
+      gifts[gIndex].slug = product.slug;
+      
+      const productVariants = product.variants || [];
+      if (productVariants.length > 0) {
+        gifts[gIndex].variant_id = productVariants[0].id;
+      } else {
+        gifts[gIndex].variant_id = undefined;
+      }
+      
+      // Save product details to local cache
+      loadedGiftProducts[product.id] = product;
+    }
+    
+    activeSearchVIdx = null;
+    activeSearchGIdx = null;
+    dbSearchQuery = "";
+    dbSearchResults = [];
+  }
+
+  async function loadGiftProductDetails(productId: string) {
+    if (loadedGiftProducts[productId]) return;
+    try {
+      const p = await apiClient.get<Product>(`/api/v1/products/${productId}`);
+      if (p) {
+        loadedGiftProducts[productId] = p;
+      }
+    } catch (err) {
+      console.error("Lỗi tải chi tiết sản phẩm quà tặng:", err);
+    }
+  }
+
+  function getVariantLabel(product: Product, variant: ProductVariant): string {
+    if (!variant.tierIndex || variant.tierIndex.length === 0) {
+      if (variant.tier_index && variant.tier_index.length > 0) {
+        variant.tierIndex = variant.tier_index;
+      } else {
+        return variant.sku || "Biến thể";
+      }
+    }
+    const tierVariations = product.tierVariations || product.tier_variations || [];
+    return variant.tierIndex
+      .map((tIdx, i) => {
+        const tier = tierVariations[i];
+        return tier ? tier.options[tIdx] : "";
+      })
+      .filter(Boolean)
+      .join(" - ") || variant.sku || "Biến thể";
+  }
+
+  $effect(() => {
+    // Reactively load product details for all DB-linked gifts
+    if (formState && formState.variants) {
+      formState.variants.forEach(v => {
+        v.attributes?.gifts?.forEach(g => {
+          if (g.product_id && !loadedGiftProducts[g.product_id]) {
+            loadGiftProductDetails(g.product_id);
+          }
+        });
+      });
+    }
+  });
 </script>
 
 <div class="flex flex-col gap-5 border border-white/5 rounded-2xl bg-[#0f0f0f] p-5 shadow-inner">
@@ -1003,47 +1113,192 @@
                        </div>
                        
                        {#each variant.attributes.gifts as gift, gIdx}
-                          <div class="flex gap-2 items-center bg-cyan-900/10 p-1.5 rounded border border-cyan-500/10 relative group/gift cursor-default">
-                            <!-- Small Thumbnail for Gift (Rule R03: Premium UX) -->
-                            <button 
-                              type="button"
-                              disabled={variant.is_active === false}
-                              onclick={() => onOpenVaultForGift(vIndex, gIdx)}
-                              class="w-6 h-6 rounded border border-white/10 bg-black/40 flex items-center justify-center overflow-hidden shrink-0 group/img-gift hover:border-cyan-500/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                              {#if gift.image}
-                                <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
-                              {:else}
-                                <ImagePlus size={10} class="text-cyan-500/40 group-hover/img-gift:text-cyan-400 transition-colors" />
-                              {/if}
-                            </button>
-
-                            <div class="flex flex-1 gap-1 items-start">
+                          {#if activeSearchVIdx === vIndex && activeSearchGIdx === gIdx}
+                            <!-- DB Search Mode Inline Panel -->
+                            <div class="flex flex-col gap-1.5 bg-[#070e14]/90 p-2 rounded-lg border border-cyan-500/30 relative">
+                              <div class="flex items-center gap-1.5">
+                                <Search size={10} class="text-cyan-400" />
+                                <span class="text-[8px] font-black text-cyan-400 tracking-wider uppercase">Tìm quà từ DB</span>
+                                <button 
+                                  type="button"
+                                  onclick={() => { activeSearchVIdx = null; activeSearchGIdx = null; }}
+                                  class="ml-auto text-white/30 hover:text-white transition-colors"
+                                >
+                                  <X size={10} />
+                                </button>
+                              </div>
                               <input 
-                                type="text" 
-                                bind:value={gift.name} 
-                                disabled={variant.is_active === false}
-                                placeholder="Tên quà (VD: Mặt nạ)" 
-                                class="flex-1 min-w-[80px] bg-transparent border-b border-white/10 outline-none text-[9px] text-white px-1 disabled:opacity-50 disabled:cursor-not-allowed" 
+                                type="text"
+                                placeholder="Gõ để tìm kiếm sản phẩm..."
+                                value={dbSearchQuery}
+                                oninput={handleDbSearchInput}
+                                class="w-full bg-black/60 border border-white/10 rounded px-2 py-1 text-[9px] text-white placeholder-white/20 outline-none focus:border-cyan-500/40"
+                                autofocus
                               />
+                              
+                              {#if isSearchingDb}
+                                <div class="text-[8px] text-cyan-400/50 italic animate-pulse">Đang tìm kiếm...</div>
+                              {/if}
+
+                              {#if dbSearchResults.length > 0}
+                                <div class="flex flex-col gap-1 max-h-[120px] overflow-y-auto mt-1 custom-scrollbar border border-white/5 bg-black/80 rounded p-1">
+                                  {#each dbSearchResults as p}
+                                    <button
+                                      type="button"
+                                      onclick={() => selectDbProductForGift(vIndex, gIdx, p)}
+                                      class="flex items-center gap-2 p-1.5 rounded hover:bg-cyan-500/10 text-left transition-colors"
+                                    >
+                                      <img src={resolveMediaUrl(p.images?.[0] || "")} alt={p.name} class="w-5 h-5 object-cover rounded bg-white/5 border border-white/10 shrink-0" />
+                                      <div class="flex-1 min-w-0">
+                                        <div class="text-[9px] font-medium text-white truncate">{p.name}</div>
+                                        <div class="text-[7px] text-cyan-400 font-mono">{new Intl.NumberFormat('vi-VN').format(p.price)}đ</div>
+                                      </div>
+                                    </button>
+                                  {/each}
+                                </div>
+                              {:else if dbSearchQuery.trim() && !isSearchingDb}
+                                <div class="text-[8px] text-white/30 italic">Không tìm thấy sản phẩm</div>
+                              {/if}
+                            </div>
+                          {:else if gift.product_id}
+                            <!-- DB-linked Gift Item View -->
+                            <div class="flex gap-2 items-center bg-violet-950/20 p-1.5 rounded border border-violet-500/20 relative group/gift cursor-default">
+                              <div class="w-6 h-6 rounded border border-violet-500/20 bg-black/40 flex items-center justify-center overflow-hidden shrink-0 relative">
+                                {#if gift.image}
+                                  <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                                {:else}
+                                  <Database size={10} class="text-violet-400" />
+                                {/if}
+                                <div class="absolute inset-0 bg-violet-500/10 pointer-events-none"></div>
+                              </div>
+
+                              <div class="flex flex-col flex-1 min-w-0">
+                                <div class="flex items-center gap-1">
+                                  <span class="text-[7px] font-black text-violet-400 bg-violet-500/15 px-1 rounded uppercase tracking-wider shrink-0">DB</span>
+                                  <span class="text-[9px] font-bold text-white truncate" title={gift.name}>{gift.name}</span>
+                                </div>
+                                
+                                {#if loadedGiftProducts[gift.product_id] && loadedGiftProducts[gift.product_id].variants?.length > 0}
+                                  {@const giftProd = loadedGiftProducts[gift.product_id]}
+                                  <div class="flex items-center gap-1 mt-0.5">
+                                    <span class="text-[7px] text-white/30 shrink-0">PL:</span>
+                                    <select 
+                                      bind:value={gift.variant_id}
+                                      disabled={variant.is_active === false}
+                                      onchange={(e) => {
+                                        const selectedVarId = (e.target as HTMLSelectElement).value;
+                                        const selectedVar = giftProd.variants.find(v => v.id === selectedVarId);
+                                        if (selectedVar) {
+                                          const tierVariations = giftProd.tierVariations || giftProd.tier_variations || [];
+                                          if (tierVariations.length > 0 && selectedVar.tierIndex && selectedVar.tierIndex.length > 0) {
+                                            const varImg = tierVariations[0].images?.[selectedVar.tierIndex[0]];
+                                            if (varImg) {
+                                              gift.image = varImg;
+                                            }
+                                          }
+                                        }
+                                      }}
+                                      class="bg-[#12081f] border border-violet-500/20 rounded px-1 py-0.5 text-[8px] text-violet-300 outline-none max-w-[120px] truncate"
+                                    >
+                                      {#each giftProd.variants as v}
+                                        <option value={v.id}>{getVariantLabel(giftProd, v)}</option>
+                                      {/each}
+                                    </select>
+                                  </div>
+                                {/if}
+                              </div>
+
                               <input 
                                 type="number" 
                                 bind:value={gift.qty} 
                                 disabled={variant.is_active === false}
                                 placeholder="SL" 
-                                class="w-10 bg-transparent border-b border-white/10 outline-none text-[9px] text-center text-rose-400 font-bold px-1 disabled:opacity-50 disabled:cursor-not-allowed" 
+                                class="w-8 bg-transparent border-b border-white/10 outline-none text-[9px] text-center text-rose-400 font-bold px-1 disabled:opacity-50 disabled:cursor-not-allowed" 
                               />
+
+                              <div class="flex items-center gap-0.5 opacity-0 group-hover/gift:opacity-100 transition-opacity">
+                                <button 
+                                  type="button"
+                                  title="Hủy liên kết DB (Chuyển tự nhập)"
+                                  onclick={() => {
+                                    gift.product_id = undefined;
+                                    gift.variant_id = undefined;
+                                    gift.slug = undefined;
+                                  }}
+                                  class="text-white/20 hover:text-amber-400 p-0.5 transition-colors"
+                                >
+                                  <Link2Off size={10} />
+                                </button>
+                                <button 
+                                  type="button"
+                                  disabled={variant.is_active === false}
+                                  onclick={() => removeGift(vIndex, gIdx)} 
+                                  class="text-white/20 hover:text-red-400 p-0.5"
+                                >
+                                  <X size={10}/>
+                                </button>
+                              </div>
                             </div>
-                            
-                            <button 
-                              type="button"
-                              disabled={variant.is_active === false}
-                              onclick={() => removeGift(vIndex, gIdx)} 
-                              class="text-white/20 hover:text-red-400 opacity-0 group-hover/gift:opacity-100 transition-opacity p-0.5 disabled:opacity-0 disabled:cursor-not-allowed"
-                            >
-                              <X size={10}/>
-                            </button>
-                          </div>
+                          {:else}
+                            <!-- Manual/Free text Gift Item View -->
+                            <div class="flex gap-2 items-center bg-cyan-900/10 p-1.5 rounded border border-cyan-500/10 relative group/gift cursor-default">
+                              <!-- Small Thumbnail for Gift (Rule R03: Premium UX) -->
+                              <button 
+                                type="button"
+                                disabled={variant.is_active === false}
+                                onclick={() => onOpenVaultForGift(vIndex, gIdx)}
+                                class="w-6 h-6 rounded border border-white/10 bg-black/40 flex items-center justify-center overflow-hidden shrink-0 group/img-gift hover:border-cyan-500/50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              >
+                                {#if gift.image}
+                                  <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                                {:else}
+                                  <ImagePlus size={10} class="text-cyan-500/40 group-hover/img-gift:text-cyan-400 transition-colors" />
+                                {/if}
+                              </button>
+
+                              <div class="flex flex-1 gap-1 items-start">
+                                <input 
+                                  type="text" 
+                                  bind:value={gift.name} 
+                                  disabled={variant.is_active === false}
+                                  placeholder="Tên quà (VD: Mặt nạ)" 
+                                  class="flex-1 min-w-[80px] bg-transparent border-b border-white/10 outline-none text-[9px] text-white px-1 disabled:opacity-50 disabled:cursor-not-allowed" 
+                                />
+                                <input 
+                                  type="number" 
+                                  bind:value={gift.qty} 
+                                  disabled={variant.is_active === false}
+                                  placeholder="SL" 
+                                  class="w-10 bg-transparent border-b border-white/10 outline-none text-[9px] text-center text-rose-400 font-bold px-1 disabled:opacity-50 disabled:cursor-not-allowed" 
+                                />
+                              </div>
+                              
+                              <div class="flex items-center gap-0.5 opacity-0 group-hover/gift:opacity-100 transition-opacity">
+                                <button 
+                                  type="button"
+                                  title="Liên kết sản phẩm DB"
+                                  onclick={() => {
+                                    activeSearchVIdx = vIndex;
+                                    activeSearchGIdx = gIdx;
+                                    dbSearchQuery = gift.name || "";
+                                    dbSearchResults = [];
+                                    if (dbSearchQuery) searchDbProducts(dbSearchQuery);
+                                  }}
+                                  class="text-white/20 hover:text-cyan-400 p-0.5 transition-colors"
+                                >
+                                  <Database size={10} />
+                                </button>
+                                <button 
+                                  type="button"
+                                  disabled={variant.is_active === false}
+                                  onclick={() => removeGift(vIndex, gIdx)} 
+                                  class="text-white/20 hover:text-red-400 p-0.5"
+                                >
+                                  <X size={10}/>
+                                </button>
+                              </div>
+                            </div>
+                          {/if}
                        {/each}
                        
                        <button 

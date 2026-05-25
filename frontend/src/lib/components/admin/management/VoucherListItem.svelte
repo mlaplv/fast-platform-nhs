@@ -108,23 +108,21 @@
             </span>
           {/if}
           
-          <!-- Elite V2.2: AUTO-STICK Badge -->
-          {#if props.voucher.is_default}
-            <div 
-              class="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500 text-black text-[8px] font-black tracking-widest animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.6)] shrink-0"
-              title="Automatically applied in Checkout"
-            >
-              <Sparkles size={8} />
-              AUTO-STICK
-            </div>
-          {:else}
-            <button
-              onclick={(e) => { e.stopPropagation(); props.onSetDefault?.(props.voucher.id); }}
-              class="px-2 py-0.5 rounded border border-white/10 hover:border-emerald-500/50 hover:bg-emerald-500/10 text-gray-600 hover:text-emerald-400 transition-all text-[8px] font-mono tracking-tighter shrink-0"
-            >
-              Set_Default
-            </button>
-          {/if}
+           <!-- Elite V2.2: Unified AUTO-STICK ON/OFF Toggle Switch -->
+           <div class="flex items-center gap-1.5 shrink-0 select-none">
+             <button
+               type="button"
+               onclick={(e) => { e.stopPropagation(); props.onSetDefault?.(props.voucher.id); }}
+               class="flex items-center gap-1 px-2.5 py-0.5 rounded-full border transition-all text-[8px] font-black tracking-widest shrink-0
+                 {props.voucher.is_default 
+                   ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.2)] hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400' 
+                   : 'bg-transparent border-white/10 text-gray-500 hover:border-emerald-500/30 hover:text-emerald-400'}"
+               title={props.voucher.is_default ? "Auto-Stick đang BẬT - Nhấn để TẮT" : "Auto-Stick đang TẮT - Nhấn để BẬT"}
+             >
+               <span class="w-1 h-1 rounded-full shrink-0 {props.voucher.is_default ? 'bg-emerald-400 animate-ping' : 'bg-gray-600'}"></span>
+               <span>{props.voucher.is_default ? 'AUTO-STICK: ON' : 'AUTO-STICK: OFF'}</span>
+             </button>
+           </div>
 
           <!-- Elite V2.2: VIRAL MASTER Badge -->
           {#if props.voucher.is_viral}

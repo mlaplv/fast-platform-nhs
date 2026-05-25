@@ -32,7 +32,7 @@
     currentStock: number;
     activePrices: { sale: number | string; original: number | string };
     activeComboQty: number;
-    activeGifts: { name: string; qty: number; image?: string }[];
+    activeGifts: { name: string; qty: number; image?: string; slug?: string }[];
     helenAdvice: string;
     onSelectOption: (tIdx: number, oIdx: number) => void;
     onQuantityChange: (delta: number) => void;
@@ -70,6 +70,10 @@
   }: Props = $props();
 
   const isMall = $derived(!!product.metadata?.is_mall);
+  const displayStockVal = $derived.by(() => {
+    const hash = [...String(product.id)].reduce((a, b) => a + b.charCodeAt(0), 0);
+    return (hash % 6) + 3;
+  });
 </script>
 
 <div class="info-container">
@@ -163,6 +167,8 @@
       <div class="sale-price-row">
         <span class="sale-price">{formatCurrency(activePrices.sale)}</span>
       </div>
+
+
 
       {#if helenAdvice}
         <div class="helen-intelligence">
@@ -395,26 +401,52 @@
           </div>
           <div class="gifts-list">
             {#each activeGifts as gift}
-              <div class="gift-item">
-                <div class="gift-thumb">
-                  {#if gift.image}
-                    <img
-                      src={resolveMediaUrl(gift.image)}
-                      alt={gift.name}
-                      class="thumb-img"
-                    />
-                  {:else}
-                    <div class="thumb-placeholder"><Sparkles size={16} /></div>
-                  {/if}
-                </div>
-                <div class="gift-info">
-                  <span class="gift-name">{gift.name}</span>
-                  <div class="gift-qty">
-                    <span class="qty-label">Số lượng:</span>
-                    <span class="qty-val">x{gift.qty}</span>
+              {#if gift.slug}
+                <a href="/{gift.slug}" class="gift-item hover:opacity-85 transition-opacity cursor-pointer group/gift-item w-full" style="text-decoration: none;">
+                  <div class="gift-thumb relative">
+                    {#if gift.image}
+                      <img
+                        src={resolveMediaUrl(gift.image)}
+                        alt={gift.name}
+                        class="thumb-img"
+                      />
+                    {:else}
+                      <div class="thumb-placeholder"><Sparkles size={16} /></div>
+                    {/if}
+                  </div>
+                  <div class="gift-info flex-1 min-w-0">
+                    <span class="gift-name group-hover/gift-item:text-[#ee4d2d] transition-colors truncate" style="color: #111827;">
+                      {gift.name}
+                      <span class="inline-block text-[8px] font-black text-rose-600 bg-rose-50 px-1 rounded uppercase tracking-wider ml-1">Xem</span>
+                    </span>
+                    <div class="gift-qty">
+                      <span class="qty-label">Số lượng:</span>
+                      <span class="qty-val">x{gift.qty}</span>
+                    </div>
+                  </div>
+                </a>
+              {:else}
+                <div class="gift-item">
+                  <div class="gift-thumb">
+                    {#if gift.image}
+                      <img
+                        src={resolveMediaUrl(gift.image)}
+                        alt={gift.name}
+                        class="thumb-img"
+                      />
+                    {:else}
+                      <div class="thumb-placeholder"><Sparkles size={16} /></div>
+                    {/if}
+                  </div>
+                  <div class="gift-info">
+                    <span class="gift-name">{gift.name}</span>
+                    <div class="gift-qty">
+                      <span class="qty-label">Số lượng:</span>
+                      <span class="qty-val">x{gift.qty}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              {/if}
             {/each}
           </div>
         </div>

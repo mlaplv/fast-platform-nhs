@@ -562,19 +562,38 @@
           {#if activeGifts.length > 0}
             <div class="flex flex-wrap gap-2">
                {#each activeGifts as gift}
-                  <div class="flex items-center gap-2 bg-[#fdf2f2]/50 p-1.5 pr-3 rounded-lg border border-[#ee4d2d]/5">
-                     <div class="w-8 h-8 rounded-md overflow-hidden bg-white border border-gray-100 shrink-0">
-                        {#if gift.image}
-                           <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
-                        {:else}
-                           <div class="w-full h-full flex items-center justify-center text-gray-200"><Package size={12} /></div>
-                        {/if}
+                  {#if gift.slug}
+                     <a href="/{gift.slug}" class="flex items-center gap-2 bg-[#fdf2f2]/50 p-1.5 pr-3 rounded-lg border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/25 hover:bg-rose-50 transition-all cursor-pointer group/gift-item w-fit" style="text-decoration: none;">
+                        <div class="w-8 h-8 rounded-md overflow-hidden bg-white border border-gray-100 shrink-0 relative">
+                           {#if gift.image}
+                              <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                           {:else}
+                              <div class="w-full h-full flex items-center justify-center text-gray-200"><Package size={12} /></div>
+                           {/if}
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                           <span class="text-[11px] font-bold text-gray-900 leading-tight truncate group-hover/gift-item:text-[#ee4d2d] transition-colors max-w-[140px]">
+                             {gift.name}
+                             <span class="inline-block text-[7px] font-black text-rose-600 bg-rose-50 px-1 rounded uppercase tracking-wider ml-1">Xem</span>
+                           </span>
+                           <span class="text-[9px] text-[#ee4d2d] font-black italic">Tặng x{gift.qty}</span>
+                        </div>
+                     </a>
+                  {:else}
+                     <div class="flex items-center gap-2 bg-[#fdf2f2]/50 p-1.5 pr-3 rounded-lg border border-[#ee4d2d]/5">
+                        <div class="w-8 h-8 rounded-md overflow-hidden bg-white border border-gray-100 shrink-0">
+                           {#if gift.image}
+                              <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />
+                           {:else}
+                              <div class="w-full h-full flex items-center justify-center text-gray-200"><Package size={12} /></div>
+                           {/if}
+                        </div>
+                        <div class="flex flex-col">
+                           <span class="text-[11px] font-bold text-gray-900 leading-tight truncate max-w-[150px]">{gift.name}</span>
+                           <span class="text-[9px] text-[#ee4d2d] font-black italic">Tặng x{gift.qty}</span>
+                        </div>
                      </div>
-                     <div class="flex flex-col">
-                        <span class="text-[11px] font-bold text-gray-900 leading-tight truncate max-w-[1200px]">{gift.name}</span>
-                        <span class="text-[9px] text-[#ee4d2d] font-black italic">Tặng x{gift.qty}</span>
-                     </div>
-                  </div>
+                  {/if}
                {/each}
             </div>
           {/if}

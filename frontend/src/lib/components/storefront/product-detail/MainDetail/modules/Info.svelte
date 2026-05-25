@@ -43,6 +43,7 @@
       name: string;
       image?: string;
       qty: number;
+      slug?: string;
     }>;
     isFlashSaleActive: boolean;
     timeLeft: { hours: number; minutes: number; seconds: number };
@@ -106,6 +107,11 @@
         ? `${product.orderCount || product.order_count}`
         : ""),
   );
+
+  const displayStockVal = $derived.by(() => {
+    const hash = [...String(product.id)].reduce((a, b) => a + b.charCodeAt(0), 0);
+    return (hash % 6) + 3;
+  });
 </script>
 
 <div class="flex-1 flex flex-col pt-0">
@@ -208,6 +214,8 @@
           >{formatCurrency(activePrices.sale)}</span
         >
       </div>
+
+
 
       <div class="mt-1 flex flex-col gap-2">
         <div class="flex items-center gap-2.5">
@@ -518,41 +526,81 @@
             </div>
             <div class="grid grid-cols-1 gap-2.5">
               {#each activeGifts as gift}
-                <div
-                  class="flex items-center gap-3 bg-white/60 backdrop-blur-md p-2 border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/20 transition-all group/gift-item rounded-sm"
-                >
-                  <div
-                    class="w-12 h-12 rounded-sm overflow-hidden bg-gray-50 border border-gray-100 shrink-0 group-hover/gift-item:scale-105 transition-transform shadow-sm"
+                {#if gift.slug}
+                  <a
+                    href="/{gift.slug}"
+                    class="flex items-center gap-3 bg-white/60 backdrop-blur-md p-2 border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/20 hover:bg-rose-50/40 transition-all group/gift-item rounded-sm w-full cursor-pointer"
+                    style="text-decoration: none;"
                   >
-                    {#if gift.image}
-                      <img
-                        src={gift.image}
-                        alt={gift.name}
-                        class="w-full h-full object-cover"
-                      />
-                    {:else}
-                      <div
-                        class="w-full h-full flex items-center justify-center bg-gray-50 text-gray-300"
-                      >
-                        <Sparkles size={16} />
-                      </div>
-                    {/if}
-                  </div>
-                  <div class="flex flex-col">
-                    <span
-                      class="text-[13px] font-bold text-gray-900 leading-tight"
-                      >{gift.name}</span
+                    <div
+                      class="w-12 h-12 rounded-sm overflow-hidden bg-gray-50 border border-gray-100 shrink-0 group-hover/gift-item:scale-105 transition-transform shadow-sm relative"
                     >
-                    <div class="flex items-center gap-2 mt-0.5">
-                      <span class="text-[11px] text-gray-500 font-medium"
-                        >Số lượng:</span
+                      {#if gift.image}
+                        <img
+                          src={gift.image}
+                          alt={gift.name}
+                          class="w-full h-full object-cover"
+                        />
+                      {:else}
+                        <div
+                          class="w-full h-full flex items-center justify-center bg-gray-50 text-gray-300"
+                        >
+                          <Sparkles size={16} />
+                        </div>
+                      {/if}
+                    </div>
+                    <div class="flex flex-col min-w-0 flex-1">
+                      <span
+                        class="text-[13px] font-bold text-gray-900 leading-tight truncate group-hover:text-[#ee4d2d] transition-colors"
+                        >{gift.name} <span class="inline-block text-[8px] font-black text-rose-600 bg-rose-50 px-1 rounded uppercase tracking-wider ml-1">Xem</span></span
                       >
-                      <span class="text-[11px] text-[#ee4d2d] font-black italic"
-                        >x{gift.qty}</span
+                      <div class="flex items-center gap-2 mt-0.5">
+                        <span class="text-[11px] text-gray-500 font-medium"
+                          >Số lượng:</span
+                        >
+                        <span class="text-[11px] text-[#ee4d2d] font-black italic"
+                          >x{gift.qty}</span
+                        >
+                      </div>
+                    </div>
+                  </a>
+                {:else}
+                  <div
+                    class="flex items-center gap-3 bg-white/60 backdrop-blur-md p-2 border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/20 transition-all group/gift-item rounded-sm"
+                  >
+                    <div
+                      class="w-12 h-12 rounded-sm overflow-hidden bg-gray-50 border border-gray-100 shrink-0 group-hover/gift-item:scale-105 transition-transform shadow-sm"
+                    >
+                      {#if gift.image}
+                        <img
+                          src={gift.image}
+                          alt={gift.name}
+                          class="w-full h-full object-cover"
+                        />
+                      {:else}
+                        <div
+                          class="w-full h-full flex items-center justify-center bg-gray-50 text-gray-300"
+                        >
+                          <Sparkles size={16} />
+                        </div>
+                      {/if}
+                    </div>
+                    <div class="flex flex-col">
+                      <span
+                        class="text-[13px] font-bold text-gray-900 leading-tight"
+                        >{gift.name}</span
                       >
+                      <div class="flex items-center gap-2 mt-0.5">
+                        <span class="text-[11px] text-gray-500 font-medium"
+                          >Số lượng:</span
+                        >
+                        <span class="text-[11px] text-[#ee4d2d] font-black italic"
+                          >x{gift.qty}</span
+                        >
+                      </div>
                     </div>
                   </div>
-                </div>
+                {/if}
               {/each}
             </div>
           </div>

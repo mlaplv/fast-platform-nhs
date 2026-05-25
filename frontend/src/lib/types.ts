@@ -339,7 +339,7 @@ export interface ProductMetadata {
   is_flash_sale?: boolean;
   likes?: number | string;
   combo_qty?: number;
-  gifts?: { name: string; qty: number; image?: string }[];
+  gifts?: { name: string; qty: number; image?: string; product_id?: string; variant_id?: string; slug?: string }[];
   faqs?: { question: string; answer: string }[];
 
   // Viral 2026: Share & Promotion Engine
@@ -572,7 +572,7 @@ export interface ProductVariant {
   attributes?: {
     combo_qty?: number;
     comboQty?: number;
-    gifts?: { name: string; qty: number; image?: string }[];
+    gifts?: { name: string; qty: number; image?: string; product_id?: string; variant_id?: string; slug?: string }[];
   } | null;
   is_default?: boolean;
   is_active?: boolean;

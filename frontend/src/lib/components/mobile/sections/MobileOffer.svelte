@@ -333,17 +333,39 @@
                           <span class="offer-points-label text-[8.5px] font-bold text-[#FFB7C5] tracking-widest whitespace-nowrap">+{Math.floor(vPrice / 100000)} điểm</span>
                        </div>
                        {#if resolvedGifts.length > 0}
-                          <div class="flex items-center gap-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 backdrop-blur-md pl-0.5 pr-1.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(255,183,197,0.1)] shrink-0 transition-all duration-300 {isActive ? 'opacity-100' : 'opacity-50'}">
-                             <div class="w-3.5 h-3.5 rounded-full overflow-hidden bg-white/80 shrink-0 flex items-center justify-center">
-                                {#if resolvedGifts[0].image && resolvedGifts[0].image !== "/uploads/img/osmo/sp1.png"}
-                                   <img src={resolveMediaUrl(resolvedGifts[0].image)} alt={resolvedGifts[0].name} class="w-full h-full object-cover" />
-                                {:else}
-                                   <img src={resolveMediaUrl(product?.images?.[0] || '')} alt={resolvedGifts[0].name} class="w-full h-full object-cover mix-blend-multiply" />
-                                {/if}
+                          {#if resolvedGifts[0].slug}
+                             <a 
+                               href="/{resolvedGifts[0].slug}" 
+                               onclick={(e) => e.stopPropagation()} 
+                               class="flex items-center gap-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 backdrop-blur-md pl-0.5 pr-1.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(255,183,197,0.1)] shrink-0 transition-all duration-300 hover:bg-[#FFB7C5]/20 hover:border-[#FFB7C5]/40 {isActive ? 'opacity-100' : 'opacity-50'}"
+                               style="text-decoration: none;"
+                             >
+                                <div class="w-3.5 h-3.5 rounded-full overflow-hidden bg-white/80 shrink-0 flex items-center justify-center relative">
+                                   {#if resolvedGifts[0].image && resolvedGifts[0].image !== "/uploads/img/osmo/sp1.png"}
+                                      <img src={resolveMediaUrl(resolvedGifts[0].image)} alt={resolvedGifts[0].name} class="w-full h-full object-cover" />
+                                   {:else}
+                                      <img src={resolveMediaUrl(product?.images?.[0] || '')} alt={resolvedGifts[0].name} class="w-full h-full object-cover mix-blend-multiply" />
+                                   {/if}
+                                </div>
+                                <span class="text-[8.5px] font-bold text-white/90 truncate max-w-[95px] leading-none tracking-tight drop-shadow-sm" style="text-transform: none;">
+                                  Tặng {resolvedGifts[0].name}
+                                  <span class="inline-block text-[6px] font-black text-[#FFB7C5] bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 px-1 rounded uppercase tracking-wider ml-0.5">Xem</span>
+                                </span>
+                                <span class="text-[8px] font-black text-[#FFB7C5] leading-none drop-shadow-[0_0_5px_rgba(255,183,197,0.5)]">x{resolvedGifts[0].qty || resolvedGifts[0].quantity || 1}</span>
+                             </a>
+                          {:else}
+                             <div class="flex items-center gap-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 backdrop-blur-md pl-0.5 pr-1.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(255,183,197,0.1)] shrink-0 transition-all duration-300 {isActive ? 'opacity-100' : 'opacity-50'}">
+                                <div class="w-3.5 h-3.5 rounded-full overflow-hidden bg-white/80 shrink-0 flex items-center justify-center">
+                                   {#if resolvedGifts[0].image && resolvedGifts[0].image !== "/uploads/img/osmo/sp1.png"}
+                                      <img src={resolveMediaUrl(resolvedGifts[0].image)} alt={resolvedGifts[0].name} class="w-full h-full object-cover" />
+                                   {:else}
+                                      <img src={resolveMediaUrl(product?.images?.[0] || '')} alt={resolvedGifts[0].name} class="w-full h-full object-cover mix-blend-multiply" />
+                                   {/if}
+                                </div>
+                                <span class="text-[8.5px] font-bold text-white/90 truncate max-w-[95px] leading-none tracking-tight drop-shadow-sm" style="text-transform: none;">Tặng {resolvedGifts[0].name}</span>
+                                <span class="text-[8px] font-black text-[#FFB7C5] leading-none drop-shadow-[0_0_5px_rgba(255,183,197,0.5)]">x{resolvedGifts[0].qty || resolvedGifts[0].quantity || 1}</span>
                              </div>
-                             <span class="text-[8.5px] font-bold text-white/90 truncate max-w-[95px] leading-none tracking-tight drop-shadow-sm" style="text-transform: none;">Tặng {resolvedGifts[0].name}</span>
-                             <span class="text-[8px] font-black text-[#FFB7C5] leading-none drop-shadow-[0_0_5px_rgba(255,183,197,0.5)]">x{resolvedGifts[0].qty || resolvedGifts[0].quantity || 1}</span>
-                          </div>
+                          {/if}
                        {/if}
                     </div>
                 </div>

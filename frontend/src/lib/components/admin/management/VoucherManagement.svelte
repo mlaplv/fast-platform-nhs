@@ -201,8 +201,21 @@
     }
   };
 
+  const handleUnsetDefaultBulk = async () => {
+    try {
+      await apiClient.post(`/api/v1/admin/vouchers/bulk-status`, { ids: selectedIds, is_default: false });
+      nanobot.showToast(`Đã gỡ bỏ mặc định cho ${selectedIds.length} voucher`, "success");
+      selectedIds = [];
+      loadVouchers();
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      nanobot.showToast(msg, "error");
+    }
+  };
+
   let totalPages = $derived(Math.max(1, Math.ceil(totalVouchers / pageSize)));
   let isAllSelected = $derived(vouchers.length > 0 && vouchers.every(v => selectedIds.includes(v.id)));
+  let isDefaultActive = $derived(selectedIds.length > 0 && selectedIds.every(id => vouchers.find(v => v.id === id)?.is_default === true));
 </script>
 
 <div class="w-full h-full flex flex-col relative bg-[#050505]">
@@ -257,10 +270,12 @@
 
   <BulkActionBar
     selectedCount={selectedIds.length}
+    isDefaultActive={isDefaultActive}
     onClear={() => selectedIds = []}
     onDeleteBulk={handleDeleteBulk}
     onArchiveBulk={() => handleStatusBulk("INACTIVE")}
     onSetDefaultBulk={handleSetDefaultBulk}
+    onUnsetDefaultBulk={handleUnsetDefaultBulk}
     onStatusBulk={handleStatusBulk}
     statusMap={VOUCHER_STATUS_MAP}
   />

@@ -13,10 +13,12 @@
     onClear: () => void;
     onDeleteBulk: () => void;
     onArchiveBulk: () => void;
-    onSetDefaultBulk: () => void;
+    onSetDefaultBulk?: () => void;
+    onUnsetDefaultBulk?: () => void;
     onStatusBulk: (status: string) => void;
     statusMap?: Record<string, { label: string; color: string; border: string }>;
     placeholder?: string;
+    isDefaultActive?: boolean;
   }
 
   let props = $props<Props>();
@@ -54,13 +56,25 @@
           Archive
         </button>
 
-        <button
-          onclick={() => props.onSetDefaultBulk?.()}
-          class="flex items-center gap-2 px-4 py-2 hover:bg-white/5 text-gray-400 hover:text-emerald-400 rounded-lg transition-all text-[10px] font-bold tracking-wider group"
-        >
-          <div class="w-2 h-2 rounded-full bg-emerald-500/20 border border-emerald-500/50 group-hover:bg-emerald-500 group-hover:shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all"></div>
-          Set_Default
-        </button>
+        {#if props.onSetDefaultBulk || props.onUnsetDefaultBulk}
+          {#if props.isDefaultActive}
+            <button
+              onclick={() => props.onUnsetDefaultBulk?.()}
+              class="flex items-center gap-2 px-4 py-2 hover:bg-white/5 text-gray-400 hover:text-red-400 rounded-lg transition-all text-[10px] font-bold tracking-wider group"
+            >
+              <div class="w-2 h-2 rounded-full bg-red-500/20 border border-red-500/50 group-hover:bg-red-500 group-hover:shadow-[0_0_8px_rgba(239,68,68,0.5)] transition-all"></div>
+              Gỡ_Default
+            </button>
+          {:else}
+            <button
+              onclick={() => props.onSetDefaultBulk?.()}
+              class="flex items-center gap-2 px-4 py-2 hover:bg-white/5 text-gray-400 hover:text-emerald-400 rounded-lg transition-all text-[10px] font-bold tracking-wider group"
+            >
+              <div class="w-2 h-2 rounded-full bg-emerald-500/20 border border-emerald-500/50 group-hover:bg-emerald-500 group-hover:shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all"></div>
+              Set_Default
+            </button>
+          {/if}
+        {/if}
 
         <button
           onclick={() => props.onDeleteBulk?.()}

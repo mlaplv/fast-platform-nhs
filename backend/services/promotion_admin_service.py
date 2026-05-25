@@ -160,18 +160,23 @@ class PromotionAdminService:
             stmt = update(Voucher).where(and_(Voucher.id.in_(ids), Voucher.tenant_id == tenant_id)).values(is_active=is_active)
             await db_session.execute(stmt)
             
-        if is_default is True:
-            # For bulk setting default, we pick the LAST one in the list to be the absolute default per category
-            stmt = select(Voucher).where(and_(Voucher.id.in_(ids), Voucher.tenant_id == tenant_id))
-            vouchers = (await db_session.execute(stmt)).scalars().all()
-            
-            categories = set(v.category for v in vouchers)
-            for cat in categories:
-                await db_session.execute(
-                    update(Voucher).where(and_(Voucher.tenant_id == tenant_id, Voucher.category == cat)).values(is_default=False)
-                )
-                last_in_cat = [v for v in vouchers if v.category == cat][-1]
-                last_in_cat.is_default = True
+        if is_default is not None:
+            if is_default is True:
+                # For bulk setting default, we pick the LAST one in the list to be the absolute default per category
+                stmt = select(Voucher).where(and_(Voucher.id.in_(ids), Voucher.tenant_id == tenant_id))
+                vouchers = (await db_session.execute(stmt)).scalars().all()
+                
+                categories = set(v.category for v in vouchers)
+                for cat in categories:
+                    await db_session.execute(
+                        update(Voucher).where(and_(Voucher.tenant_id == tenant_id, Voucher.category == cat)).values(is_default=False)
+                    )
+                    last_in_cat = [v for v in vouchers if v.category == cat][-1]
+                    last_in_cat.is_default = True
+            else:
+                # If is_default is False, unset default ONLY for the selected vouchers
+                stmt = update(Voucher).where(and_(Voucher.id.in_(ids), Voucher.tenant_id == tenant_id)).values(is_default=False)
+                await db_session.execute(stmt)
 
         if is_viral is True:
             # Elite V2.2: Exclusive Viral - Chỉ cho phép duy nhất 1 Voucher Viral

@@ -87,12 +87,13 @@
   }
 
   function getCartItemsMapped() {
-    return cartStore.items.map(item => ({
+    return cartStore.items.map((item) => ({
       product_id: item.product.id,
       quantity: item.quantity,
       name: item.product.name,
       unit_price: item.variant?.price || item.product.price || 0,
-      total_price: (item.variant?.price || item.product.price || 0) * item.quantity,
+      total_price:
+        (item.variant?.price || item.product.price || 0) * item.quantity,
     }));
   }
 
@@ -113,8 +114,8 @@
         point_discount_amount: cb.point_discount,
         final_payable: cb.final_total,
         points_to_earn: Math.floor(cb.final_total / 100000),
-        applied_voucher_ids: cb.applied_vouchers?.map(v => v.id) || [],
-        applied_combo_ids: []
+        applied_voucher_ids: cb.applied_vouchers?.map((v) => v.id) || [],
+        applied_combo_ids: [],
       };
     }
     return cartB;
@@ -279,8 +280,8 @@
   <!-- Hyper Drop Container (Elite V2.2: Premium Glassmorphic Symmetric Card) -->
   <div
     class="support-chat-container fixed transform-gpu origin-bottom-right transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] {isExpanded
-      ? 'bottom-8 right-8 w-[90vw] h-[85vh] rounded-[48px] overflow-hidden bg-[#0a0a0a]'
-      : 'bottom-[110px] right-8 w-[450px] h-[740px] max-h-[85vh] helen-box-premium helen-float-premium'} {isInputFocused
+      ? 'bottom-3 right-3 w-[90vw] h-[85vh] rounded-[32px] overflow-hidden bg-[#0a0a0a]'
+      : 'bottom-3 right-3 w-[360px] h-[540px] max-h-[85vh] helen-box-premium helen-float-premium'} {isInputFocused
       ? 'pause-animations'
       : ''}"
     style="z-index: {Z_INDEX_CLIENT.MODAL}; will-change: transform, opacity;"
@@ -294,7 +295,7 @@
     <!-- Premium Symmetric Border Overlay (Optimized for No-GPU Paint) -->
     <div
       class="absolute inset-[-1px] border border-white/10 {isExpanded
-        ? 'rounded-[48px]'
+        ? 'rounded-[32px]'
         : 'helen-box-premium'} pointer-events-none z-[100]"
     ></div>
 
@@ -305,7 +306,7 @@
         : 'helen-box-premium'} pointer-events-none z-20"
     ></div>
     <div
-      class="absolute top-4 left-10 w-2 h-2 bg-white/30 blur-[2px] rounded-full {isExpanded
+      class="absolute top-3 left-6 w-1.5 h-1.5 bg-white/30 blur-[1px] rounded-full {isExpanded
         ? 'hidden'
         : ''} pointer-events-none z-20"
     ></div>
@@ -313,7 +314,7 @@
     <!-- Ultra-Glass Background Layer -->
     <div
       class="absolute inset-0 apple-glass-dark-modal pointer-events-none transition-all duration-700 {isExpanded
-        ? 'rounded-[48px] is-expanded'
+        ? 'rounded-[32px] is-expanded'
         : 'helen-box-premium'} border border-white/5 shadow-2xl"
     ></div>
 
@@ -321,75 +322,75 @@
     <div class="relative z-10 flex flex-col h-full">
       <!-- Blended Ghost Header -->
       <header
-        class="flex-shrink-0 pt-10 px-12 pb-6 flex items-center justify-between"
+        class="flex-shrink-0 pt-4 px-5 pb-2.5 flex items-center justify-between"
       >
-        <div class="flex items-center gap-6">
+        <div class="flex items-center gap-3">
           <div class="relative group/avatar">
             <div
-              class="w-16 h-16 rounded-full bg-black/40 flex items-center justify-center shadow-[0_8px_32px_rgba(255,183,197,0.3)] border border-white/20 transition-transform group-hover/avatar:scale-105 overflow-hidden"
+              class="w-10 h-10 rounded-full bg-black/40 flex items-center justify-center shadow-[0_4px_16px_rgba(255,183,197,0.2)] border border-white/20 transition-transform group-hover/avatar:scale-105 overflow-hidden"
             >
-              <HelenIcon size={64} color="#FFB7C5" isPaused={isInputFocused} />
+              <HelenIcon size={38} color="#FFB7C5" isPaused={isInputFocused} />
             </div>
             <div
-              class="absolute bottom-0 right-0 w-4 h-4 bg-[#FFB7C5] rounded-full ring-[3px] ring-[#0a0a0a] shadow-[0_0_12px_#FFB7C5]"
+              class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#FFB7C5] rounded-full ring-[2px] ring-[#0a0a0a] shadow-[0_0_8px_#FFB7C5]"
             ></div>
           </div>
-          <div class="flex flex-col gap-1">
-            <div class="flex items-center gap-3">
+          <div class="flex flex-col gap-0.5">
+            <div class="flex items-center gap-2">
               <h3
-                class="font-black text-white tracking-[-0.03em] text-[24px] leading-none"
+                class="font-black text-white tracking-[-0.03em] text-[17px] leading-none"
               >
                 {supportAgent.config.agentName}
               </h3>
               <div
-                class="apple-glass-badge px-2 py-0.5 rounded-md flex items-center gap-1.5 border border-white/10"
+                class="apple-glass-badge px-1.5 py-0.5 rounded flex items-center gap-1 border border-white/10"
               >
-                <Lock size={9} class="text-white/30" />
+                <Lock size={7.5} class="text-white/30" />
                 <span
-                  class="text-[8px] text-white/40 font-black tracking-widest"
+                  class="text-[7px] text-white/40 font-black tracking-widest"
                   >AES_256</span
                 >
               </div>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5">
               <div
-                class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"
+                class="w-1 h-1 rounded-full bg-[#FFB7C5] shadow-[0_0_6px_#FFB7C5] animate-pulse"
               ></div>
               <p
-                class="text-[10px] text-[#FFB7C5] font-black tracking-[0.35em] opacity-90"
+                class="text-[9px] text-[#FFB7C5] font-black tracking-[0.25em] opacity-90"
               >
                 {supportAgent.helenEnabled
-                  ? "Đang hoạt động"
-                  : "Chuyên viên trực"}
+                  ? "ĐANG HOẠT ĐỘNG"
+                  : "CHUYÊN VIÊN TRỰC"}
               </p>
             </div>
           </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
           <button
             onclick={toggleExpand}
-            class="w-11 h-11 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all border border-white/5 group/expand"
+            class="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all border border-white/5 group/expand"
             title={isExpanded ? "Thu nhỏ" : "Toàn màn hình"}
           >
             {#if isExpanded}
               <Minimize2
-                size={20}
+                size={14}
                 class="group-hover/expand:scale-110 transition-transform"
               />
             {:else}
               <Maximize2
-                size={20}
+                size={14}
                 class="group-hover/expand:scale-110 transition-transform"
               />
             {/if}
           </button>
           <button
             onclick={closeChat}
-            class="w-11 h-11 flex items-center justify-center rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-all border border-red-500/10 group/close"
+            class="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-all border border-red-500/10 group/close"
           >
             <X
-              size={24}
+              size={16}
               class="group-hover/close:rotate-90 transition-transform duration-300"
             />
           </button>
@@ -434,24 +435,8 @@
       <!-- Thread: Beautifully Grouped Glassmorphic Conversations -->
       <div
         bind:this={chatContainer}
-        class="flex-1 overflow-y-auto px-6 py-4 flex flex-col justify-start space-y-6 hide-scrollbar relative"
+        class="flex-1 overflow-y-auto px-4 py-2 flex flex-col justify-start space-y-3.5 hide-scrollbar relative"
       >
-        {#if !supportAgent.optimalPriceNotice}
-          <div
-            class="flex flex-col items-center justify-center mb-6 opacity-30 hover:opacity-100 transition-opacity"
-          >
-            <div
-              class="flex items-center gap-2.5 px-5 py-2 bg-black/40 border border-white/10 rounded-full"
-            >
-              <ShieldCheck size={14} class="text-[#FFB7C5]" />
-              <span
-                class="text-[10px] text-white/60 tracking-[0.2em] font-black italic"
-                >Hệ thống chuyên gia Helen v3.2</span
-              >
-            </div>
-          </div>
-        {/if}
-
         <!-- Zalo-style pagination -->
         {#if supportAgent.hasMoreHistory}
           <div class="flex justify-center pb-4">
@@ -484,49 +469,27 @@
             class="flex flex-col w-full group animate-in fade-in slide-in-from-bottom-4 duration-500 message-bubble-container"
             data-role={msg.role}
           >
-            <!-- Name Label (Elite V3.1: Professional Identity) -->
+            <!-- Name Label, Avatar & Timestamp (Elite V3.2: Ultra-Compact Unified Header) -->
             <div
-              class="flex items-center gap-2 mb-1.5 px-14 {msg.role === 'user'
+              class="flex items-center gap-1.5 mb-1 px-2 {msg.role === 'user'
                 ? 'flex-row-reverse'
                 : 'flex-row'}"
             >
-              <span
-                class="text-[10px] font-black tracking-[0.2em] {msg.role ===
-                'user'
-                  ? 'text-[#FFB7C5]'
-                  : 'text-white/40'}"
-              >
-                {msg.role === "assistant"
-                  ? supportAgent.config.agentName
-                  : authStore.user?.name || "Quý khách"}
-              </span>
-              {#if msg.role === "assistant"}
-                <div
-                  class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"
-                ></div>
-              {/if}
-            </div>
-
-            <div
-              class="flex items-start gap-4 w-full {msg.role === 'user'
-                ? 'flex-row-reverse'
-                : 'flex-row'}"
-            >
-              <!-- Identity Icon -->
-              <div class="flex-shrink-0 mt-1">
+              <!-- Identity Icon (Unified on Name Label) -->
+              <div class="flex-shrink-0">
                 {#if msg.role === "assistant"}
                   <div
-                    class="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/10 shadow-lg overflow-hidden"
+                    class="w-[18px] h-[18px] rounded-full bg-black/40 flex items-center justify-center border border-white/10 shadow-sm overflow-hidden"
                   >
                     <HelenIcon
-                      size={28}
+                      size={14}
                       color="#FFB7C5"
                       isPaused={isInputFocused}
                     />
                   </div>
                 {:else}
                   <div
-                    class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/5 shadow-md overflow-hidden"
+                    class="w-[18px] h-[18px] rounded-full bg-white/10 flex items-center justify-center border border-white/5 shadow-sm overflow-hidden"
                   >
                     {#if authStore.user?.avatar_url}
                       <img
@@ -535,60 +498,98 @@
                         class="w-full h-full object-cover"
                       />
                     {:else}
-                      <UserRound size={16} class="text-white/60" />
+                      <UserRound size={9} class="text-white/60" />
                     {/if}
                   </div>
                 {/if}
               </div>
 
+              <!-- Name Text -->
+              <span
+                class="text-[9px] font-black tracking-[0.15em] {msg.role ===
+                'user'
+                  ? 'text-[#FFB7C5]'
+                  : 'text-white/40'}"
+              >
+                {msg.role === "assistant"
+                  ? supportAgent.config.agentName
+                  : authStore.user?.name || "Quý khách"}
+              </span>
+
+              <!-- Active Dot -->
+              {#if msg.role === "assistant"}
+                <div
+                  class="w-1 h-1 rounded-full bg-[#FFB7C5] shadow-[0_0_6px_#FFB7C5] animate-pulse"
+                ></div>
+              {/if}
+
+              <!-- Time -->
+              <span
+                class="text-[8px] text-white/30 font-medium tracking-normal {msg.role ===
+                'user'
+                  ? 'mr-0.5'
+                  : 'ml-0.5'}"
+              >
+                {msg.timestamp.toLocaleTimeString("vi-VN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+
+            <div
+              class="flex items-start w-full {msg.role === 'user'
+                ? 'flex-row-reverse'
+                : 'flex-row'}"
+            >
               <!-- Message Content (Premium Glassmorphic Bubble Wrapper) -->
               <div
-                class="flex-1 max-w-[85%] {msg.role === 'user'
-                  ? 'text-right'
-                  : 'text-left'}"
+                class="flex-1 max-w-[90%] {msg.role === 'user'
+                  ? 'text-right pe-2'
+                  : 'text-left ps-2'}"
               >
                 {#if msg.is_revoked}
                   <div
-                    class="inline-block text-[15px] italic text-white/40 line-through select-none bg-white/[0.02] border border-white/5 rounded-2xl px-4 py-2.5"
+                    class="inline-block text-[13.5px] italic text-white/40 line-through select-none bg-white/[0.02] border border-white/5 rounded-2xl px-3 py-1.8"
                   >
                     [Tin nhắn đã bị thu hồi]
                   </div>
                 {:else if msg.role === "assistant" && msg.intent === "ORDER_STATUS"}
                   <div
-                    class="inline-block text-[15px] leading-[1.6] break-words text-left bg-white/[0.04] border border-white/5 rounded-2xl rounded-tl-none px-4.5 py-3.5 text-gray-200 max-w-full shadow-lg"
+                    class="inline-block text-[13.5px] leading-[1.5] break-words text-left bg-white/[0.04] border border-white/5 rounded-2xl rounded-tl-none px-3.5 py-2.5 text-gray-200 max-w-full shadow-lg"
                   >
                     <div
-                      class="inline-flex items-center gap-2 px-3 py-1.5 mb-3 bg-[#FFB7C5]/10 text-[#FFB7C5] rounded-xl border border-[#FFB7C5]/20 font-black text-[13px] tracking-wider"
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 mb-2 bg-[#FFB7C5]/10 text-[#FFB7C5] rounded-lg border border-[#FFB7C5]/20 font-black text-[11px] tracking-wider"
                     >
-                      <PackageSearch size={14} /> Tra cứu vận đơn
+                      <PackageSearch size={12} /> Tra cứu vận đơn
                     </div>
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                    <div class="text-[15px] mb-4">
+                    <div class="text-[13.5px] mb-3">
                       {@html msg.content.replace(/\n/g, "<br/>")}
                     </div>
                     <div
-                      class="w-full max-w-[300px] p-1 bg-black/40 rounded-2xl border border-white/10 shadow-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all"
+                      class="w-full max-w-[260px] p-1 bg-black/40 rounded-xl border border-white/10 shadow-2xl overflow-hidden focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all"
                     >
                       <div class="flex items-center">
                         <input
                           type="tel"
                           placeholder="Số điện thoại / Mã đơn"
-                          class="flex-1 px-4 py-2 bg-transparent text-white placeholder-gray-600 outline-none text-[14px]"
+                          class="flex-1 px-3 py-1.5 bg-transparent text-white placeholder-gray-600 outline-none text-[13px]"
                         />
                         <button
-                          class="w-8 h-8 bg-[#FFB7C5] text-slate-950 rounded-lg flex items-center justify-center shadow-lg active:scale-95 transition-all"
+                          class="w-7 h-7 bg-[#FFB7C5] text-slate-950 rounded-lg flex items-center justify-center shadow-lg active:scale-95 transition-all"
                         >
-                          <Send size={14} />
+                          <Send size={12} />
                         </button>
                       </div>
                     </div>
                   </div>
                 {:else if msg.role === "assistant" && msg.intent === "PRICE_QUERY"}
                   <div
-                    class="inline-block text-[15px] leading-[1.6] break-words text-left bg-white/[0.04] border border-white/5 rounded-2xl rounded-tl-none px-4.5 py-3.5 text-gray-200 max-w-full shadow-lg"
+                    class="inline-block text-[13.5px] leading-[1.5] break-words text-left bg-white/[0.04] border border-white/5 rounded-2xl rounded-tl-none px-3.5 py-2.5 text-gray-200 max-w-full shadow-lg"
                   >
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                    <div class="text-[15px]">
+                    <div class="text-[13.5px]">
                       {@html msg.content
                         .replace(
                           /\*\*(.*?)\*\*/g,
@@ -600,17 +601,17 @@
                     <button
                       onclick={() =>
                         shopStore?.openCheckout(cartStore, shopStore.product!)}
-                      class="mt-4 px-6 py-2.5 bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 text-[13px] font-black rounded-full shadow-[0_6px_20px_rgba(255,183,197,0.3)] hover:shadow-[0_10px_28px_rgba(255,183,197,0.4)] transition-all active:scale-[0.98] tracking-wider animate-pulse-subtle"
+                      class="mt-3 px-5 py-2 bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 text-[11.5px] font-black rounded-full shadow-[0_4px_12px_rgba(255,183,197,0.25)] hover:shadow-[0_8px_20px_rgba(255,183,197,0.35)] transition-all active:scale-[0.98] tracking-wider animate-pulse-subtle"
                     >
                       NHẬN ƯU ĐÃI NGAY →
                     </button>
                   </div>
                 {:else if msg.role === "assistant"}
                   <div
-                    class="inline-block text-[15px] leading-[1.6] break-words text-left bg-white/[0.04] border border-white/5 rounded-2xl rounded-tl-none px-4.5 py-3.5 text-gray-200 max-w-full shadow-lg"
+                    class="inline-block text-[13.5px] leading-[1.5] break-words text-left bg-white/[0.04] border border-white/5 rounded-2xl rounded-tl-none px-3.5 py-2.5 text-gray-200 max-w-full shadow-lg"
                   >
                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                    <div class="text-[15px]">
+                    <div class="text-[13.5px]">
                       {@html msg.content
                         .replace(
                           /\*\*(.*?)\*\*/g,
@@ -625,21 +626,11 @@
                   </div>
                 {:else}
                   <div
-                    class="inline-block text-[15px] leading-[1.6] break-words text-left bg-gradient-to-br from-[#FFB7C5]/15 to-[#FF8FA3]/5 border border-[#FFB7C5]/10 rounded-2xl rounded-tr-none px-4 py-2.5 text-white max-w-full shadow-md"
+                    class="inline-block text-[13.5px] leading-[1.5] break-words text-left bg-gradient-to-br from-[#FFB7C5]/15 to-[#FF8FA3]/5 border border-[#FFB7C5]/10 rounded-2xl rounded-tr-none px-3.5 py-2 text-white max-w-full shadow-md"
                   >
                     {msg.content}
                   </div>
                 {/if}
-
-                <!-- Timestamp -->
-                <div
-                  class="text-[9px] text-white/10 mt-2.5 font-black tracking-[0.3em] opacity-0 group-hover:opacity-100 transition-all duration-300"
-                >
-                  {msg.timestamp.toLocaleTimeString("vi-VN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
               </div>
             </div>
           </div>
@@ -649,51 +640,91 @@
              Consultant CTA — standalone, always visible below all messages
         ══════════════════════════════════════════════════════ -->
         {#if consultantCTAVisible && supportAgent.helenEnabled && supportAgent.messages.length > 0}
-          <div class="px-4 pb-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div
+            class="px-2 pb-1.5 animate-in fade-in slide-in-from-bottom-4 duration-700"
+          >
             <!-- Divider -->
-            <div class="flex items-center gap-4 mb-5">
-              <div class="flex-1 h-px" style="background: rgba(255,255,255,0.06);"></div>
-              <span class="text-[10px] font-black tracking-[0.3em] uppercase" style="color: rgba(255,255,255,0.2);">Kết nối chuyên viên</span>
-              <div class="flex-1 h-px" style="background: rgba(255,255,255,0.06);"></div>
+            <div class="flex items-center gap-3 mb-2.5">
+              <div
+                class="flex-1 h-px"
+                style="background: rgba(255,255,255,0.06);"
+              ></div>
+              <span
+                class="text-[8.5px] font-black tracking-[0.25em] uppercase"
+                style="color: rgba(255,255,255,0.2);">Kết nối chuyên viên</span
+              >
+              <div
+                class="flex-1 h-px"
+                style="background: rgba(255,255,255,0.06);"
+              ></div>
             </div>
-            <div class="grid grid-cols-2 gap-3">
-              <!-- Option 1: Chat trong box -->
+            <div class="grid grid-cols-2 gap-1.5">
+              <!-- Option 1: Chat tại đây -->
               <button
                 onclick={requestInboxChat}
-                class="group relative flex flex-col items-start gap-3 p-4 rounded-2xl overflow-hidden text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.97]"
-                style="background: linear-gradient(135deg, rgba(255,183,197,0.09) 0%, rgba(255,183,197,0.03) 100%); border: 1px solid rgba(255,183,197,0.18);"
+                class="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all duration-200 hover:bg-white/[0.04] active:scale-[0.98] text-left w-full"
+                style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05);"
               >
-                <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  style="background: radial-gradient(ellipse at top left, rgba(255,183,197,0.12) 0%, transparent 60%);"></div>
-                <div class="relative w-10 h-10 rounded-xl flex items-center justify-center"
-                  style="background: rgba(255,183,197,0.12); border: 1px solid rgba(255,183,197,0.22);">
-                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#FFB7C5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                <!-- Icon (No container border, simple) -->
+                <div
+                  class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 bg-[#FFB7C5]/5"
+                >
+                  <svg
+                    class="w-3 h-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#FFB7C5"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                    />
                   </svg>
                 </div>
-                <div class="relative flex flex-col gap-0.5">
-                  <span class="text-[13px] font-black text-white tracking-tight leading-snug">Chat ngay tại đây</span>
-                  <span class="text-[10px] font-medium leading-snug" style="color: rgba(255,183,197,0.5);">Chuyên viên phản hồi trong khung chat này</span>
+                <div class="flex flex-col min-w-0">
+                  <span
+                    class="text-[10px] font-black text-white leading-tight truncate"
+                    >Tư vấn viên</span
+                  >
+                  <span
+                    class="text-[6px] font-medium text-white/30 leading-none mt-0.5 truncate"
+                    >Chat trực tiếp với Tư vấn viên</span
+                  >
                 </div>
               </button>
+
               <!-- Option 2: Zalo OA -->
               <button
                 onclick={requestZaloChat}
-                class="group relative flex flex-col items-start gap-3 p-4 rounded-2xl overflow-hidden text-left transition-all duration-200 hover:scale-[1.02] active:scale-[0.97]"
-                style="background: linear-gradient(135deg, rgba(0,104,255,0.11) 0%, rgba(0,104,255,0.04) 100%); border: 1px solid rgba(0,104,255,0.24);"
+                class="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all duration-200 hover:bg-white/[0.04] active:scale-[0.98] text-left w-full"
+                style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05);"
               >
-                <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  style="background: radial-gradient(ellipse at top left, rgba(0,132,255,0.15) 0%, transparent 60%);"></div>
-                <div class="relative w-10 h-10 rounded-xl flex items-center justify-center"
-                  style="background: rgba(0,104,255,0.15); border: 1px solid rgba(0,104,255,0.28);">
-                  <svg class="w-5 h-5" viewBox="0 0 40 40" fill="none">
-                    <path d="M20 3C10.611 3 3 10.164 3 19c0 4.884 2.21 9.267 5.707 12.277L7.5 35l4.215-2.192A18.14 18.14 0 0020 35c9.389 0 17-7.164 17-16S29.389 3 20 3z" fill="#0068FF"/>
-                    <path d="M28.5 22.6c-.3-.15-1.767-.87-2.04-.97-.273-.097-.472-.146-.67.147-.2.293-.77.97-.944 1.168-.173.2-.347.22-.646.074-.3-.147-1.263-.465-2.406-1.485-.888-.793-1.488-1.772-1.663-2.072-.175-.3-.019-.462.132-.61.135-.135.3-.35.45-.525.148-.175.197-.3.296-.498.098-.2.05-.374-.025-.523-.074-.147-.67-1.614-.918-2.21-.242-.578-.487-.5-.67-.51-.173-.008-.372-.01-.57-.01-.2 0-.523.074-.797.37-.273.297-1.04 1.016-1.04 2.48 0 1.463 1.065 2.877 1.213 3.076.148.2 2.096 3.2 5.08 4.487.71.307 1.264.49 1.695.627.713.227 1.362.195 1.876.118.572-.086 1.767-.722 2.016-1.42.25-.7.25-1.298.175-1.42-.075-.123-.273-.197-.572-.347z" fill="white"/>
+                <!-- Icon (Simple) -->
+                <div
+                  class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 bg-[#0068FF]/5"
+                >
+                  <svg class="w-3 h-3" viewBox="0 0 40 40" fill="none">
+                    <path
+                      d="M20 3C10.611 3 3 10.164 3 19c0 4.884 2.21 9.267 5.707 12.277L7.5 35l4.215-2.192A18.14 18.14 0 0020 35c9.389 0 17-7.164 17-16S29.389 3 20 3z"
+                      fill="#0068FF"
+                    />
+                    <path
+                      d="M28.5 22.6c-.3-.15-1.767-.87-2.04-.97-.273-.097-.472-.146-.67.147-.2.293-.77.97-.944 1.168-.173.2-.347.22-.646.074-.3-.147-1.263-.465-2.406-1.485-.888-.793-1.488-1.772-1.663-2.072-.175-.3-.019-.462.132-.61.135-.135.3-.35.45-.525.148-.175.197-.3.296-.498.098-.2.05-.374-.025-.523-.074-.147-.67-1.614-.918-2.21-.242-.578-.487-.5-.67-.51-.173-.008-.372-.01-.57-.01-.2 0-.523.074-.797.37-.273.297-1.04 1.016-1.04 2.48 0 1.463 1.065 2.877 1.213 3.076.148.2 2.096 3.2 5.08 4.487.71.307 1.264.49 1.695.627.713.227 1.362.195 1.876.118.572-.086 1.767-.722 2.016-1.42.25-.7.25-1.298.175-1.42-.075-.123-.273-.197-.572-.347z"
+                      fill="white"
+                    />
                   </svg>
                 </div>
-                <div class="relative flex flex-col gap-0.5">
-                  <span class="text-[13px] font-black tracking-tight leading-snug" style="color: #5BA4FF;">Chat qua Zalo OA</span>
-                  <span class="text-[10px] font-medium leading-snug" style="color: rgba(91,164,255,0.5);">Mở Zalo, chuyên viên cũng được thông báo</span>
+                <div class="flex flex-col min-w-0">
+                  <span
+                    class="text-[10px] font-black text-[#5BA4FF] leading-tight truncate"
+                    >Chat qua Zalo OA</span
+                  >
+                  <span
+                    class="text-[6px] font-medium text-white/30 leading-none mt-0.5 truncate"
+                    >Kế nối Zalo OA nhanh chóng</span
+                  >
                 </div>
               </button>
             </div>
@@ -721,31 +752,26 @@
       </div>
 
       <!-- Input Area: Optimized Padding & Highly Compact Frame -->
-      <div class="p-6 px-10 pb-8 flex flex-col gap-4">
+      <div class="p-3 px-4 pb-4 flex flex-col gap-2.5">
         <!-- Quick Actions (Optimized: Right Aligned & Tiny) -->
         {#if productSlug && productSlug.trim() !== ""}
-          <div class="flex justify-end gap-2 px-1">
+          <div class="flex justify-end gap-1 px-0.5">
             {#each quickActions as action}
-              {@const Icon = action.icon}
               <div class="relative group/action">
                 {#if action.label === "An toàn da" && supportAgent.messages.length <= 1}
                   <div
-                    class="absolute -top-[36px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 px-3 py-1 rounded-xl text-[9px] font-black tracking-wide shadow-[0_4px_12px_rgba(255,183,197,0.3)] animate-bounce z-50 pointer-events-none before:content-[''] before:absolute before:-bottom-1 before:left-1/2 before:-translate-x-1/2 before:w-2 before:h-2 before:bg-[#FF8FA3] before:rotate-45"
+                    class="absolute -top-[32px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-gradient-to-r from-[#FFB7C5] to-[#FF8FA3] text-slate-950 px-2 py-0.5 rounded-lg text-[8.5px] font-black tracking-wide shadow-[0_3px_8px_rgba(255,183,197,0.25)] animate-bounce z-50 pointer-events-none before:content-[''] before:absolute before:-bottom-1 before:left-1/2 before:-translate-x-1/2 before:w-1.5 before:h-1.5 before:bg-[#FF8FA3] before:rotate-45"
                   >
-                    Kiểm tra sản phẩm có phù hợp cho da của bạn không ✨
+                    Kiểm tra độ an toàn ✨
                   </div>
                 {/if}
                 <button
-                  class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-[#FFB7C5]/10 hover:border-[#FFB7C5]/30 hover:text-white border border-white/10 text-white/50 rounded-full text-[11px] font-bold transition-all active:scale-95 {action.label ===
+                  class="flex-shrink-0 whitespace-nowrap px-1.5 py-0.5 bg-white/5 hover:bg-[#FFB7C5]/10 hover:border-[#FFB7C5]/30 hover:text-white border border-white/10 text-white/50 rounded-full text-[10px] font-bold transition-all active:scale-95 {action.label ===
                   'An toàn da'
-                    ? 'ring-1 ring-[#FFB7C5]/30'
+                    ? 'ring-1 ring-[#FFB7C5]/20'
                     : ''}"
                   onclick={() => handleQuickAction(action)}
                 >
-                  <Icon
-                    size={11}
-                    class="text-[#FFB7C5] opacity-35 group-hover/action:opacity-100 transition-opacity"
-                  />
                   {action.label}
                 </button>
               </div>
@@ -754,7 +780,7 @@
         {/if}
 
         <div
-          class="relative bg-black/60 border border-white/10 rounded-2xl flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all"
+          class="relative bg-black/60 border border-white/10 rounded-xl flex items-end shadow-2xl focus-within:ring-2 focus-within:ring-[#FFB7C5]/40 transition-all"
         >
           <textarea
             bind:this={inputElement}
@@ -763,26 +789,27 @@
             placeholder="Nói chuyện với chuyên gia..."
             onfocus={handleInputFocus}
             onblur={handleInputBlur}
-            class="block w-full bg-transparent border-0 py-4 pl-12 pr-14 text-white placeholder-gray-600 focus:ring-0 resize-none outline-none text-[15px] max-h-[160px] font-medium"
-            style="min-height: 58px;"
+            class="block w-full bg-transparent border-0 py-2.5 pl-9 pr-11 text-white placeholder-gray-600 focus:ring-0 resize-none outline-none text-[13.5px] max-h-[120px] font-medium"
+            style="min-height: 40px;"
             disabled={supportAgent.isTyping}
           ></textarea>
 
           <div
-            class="absolute left-4 top-4.5 pointer-events-none opacity-25 group-focus-within:opacity-60 transition-opacity"
+            class="absolute left-3.5 top-3 pointer-events-none opacity-25 group-focus-within:opacity-60 transition-opacity"
           >
-            <Lock size={15} class="text-white" />
+            <Lock size={13} class="text-white" />
           </div>
 
           <button
             onclick={handleSend}
             disabled={!userInput.trim() || supportAgent.isTyping}
-            class="absolute right-2 bottom-2 w-10 h-10 flex items-center justify-center rounded-xl {userInput.trim() &&
+            class="absolute right-1.5 bottom-1.5 w-7.5 h-7.5 flex items-center justify-center rounded-lg transition-all scale-100 active:scale-90 {userInput.trim() &&
             !supportAgent.isTyping
-              ? 'bg-[#FFB7C5] text-slate-950 shadow-[0_4px_12px_rgba(255,183,197,0.3)]'
-              : 'bg-white/5 text-gray-700'} transition-all scale-100 active:scale-90"
+              ? 'bg-[#FFB7C5] text-slate-950 shadow-[0_3px_8px_rgba(255,183,197,0.25)]'
+              : 'bg-white/5 text-gray-700'}"
+            style="width: 30px; height: 30px;"
           >
-            <Send size={18} />
+            <Send size={14} />
           </button>
         </div>
       </div>
@@ -815,9 +842,9 @@
 
   /* Premium Frame Architecture (Elite V2.2) */
   .helen-box-premium {
-    border-radius: 36px;
-    box-shadow: 
-      0 24px 64px rgba(0, 0, 0, 0.6), 
+    border-radius: 24px;
+    box-shadow:
+      0 24px 64px rgba(0, 0, 0, 0.6),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 
@@ -828,7 +855,8 @@
   }
 
   @keyframes float-premium {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0);
     }
     50% {
@@ -863,25 +891,26 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-top: 1.5rem;
-    padding: 1.25rem 2.5rem;
+    margin-top: 1rem;
+    padding: 0.75rem 1.75rem;
     background: linear-gradient(135deg, #ffb7c5 0%, #ff8fa3 100%);
     color: #000 !important;
     font-weight: 900;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     border-radius: 9999px;
-    box-shadow: 0 10px 25px rgba(255, 183, 197, 0.3);
+    box-shadow: 0 6px 16px rgba(255, 183, 197, 0.25);
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     text-decoration: none !important;
     width: fit-content;
-    min-width: 240px;
+    min-width: 180px;
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 12.5px;
   }
 
   :global(.helen-cta-btn:hover) {
     transform: scale(1.03) translateY(-2px);
-    box-shadow: 0 15px 35px rgba(255, 183, 197, 0.4);
+    box-shadow: 0 10px 24px rgba(255, 183, 197, 0.35);
     filter: brightness(1.1);
   }
 
