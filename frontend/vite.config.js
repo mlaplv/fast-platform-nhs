@@ -2,6 +2,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import { ViteMinifyPlugin } from 'vite-plugin-minify';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -29,8 +30,19 @@ export default defineConfig({
 		global: 'window',
 	},
 	plugins: [
-		tailwindcss(), 
+		tailwindcss(),
 		sveltekit(),
+		/* Elite V2.2: HTML Minifier — production only, script-safe */
+		...(!isWatch ? [ViteMinifyPlugin({
+			minifyJS: false,
+			minifyCSS: true,
+			removeComments: true,
+			collapseBooleanAttributes: true,
+			removeRedundantAttributes: true,
+			removeScriptTypeAttributes: true,
+			removeStyleLinkTypeAttributes: true,
+			useShortDoctype: true,
+		})] : []),
 		viteStaticCopy({
 			targets: [
 				{

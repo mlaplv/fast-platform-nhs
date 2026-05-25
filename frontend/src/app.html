@@ -1,85 +1,85 @@
 <!doctype html>
 <html lang="vi" translate="no">
   <head>
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer',(function(){
-      function injectNoscript(gtmId) {
-        if (!gtmId) return;
-        var id = 'gtm-ns-' + gtmId;
-        if (document.getElementById(id)) return;
-        var ns = document.createElement('noscript');
-        ns.id = id;
-        var ifr = document.createElement('iframe');
-        ifr.src = 'https://www.googletagmanager.com/ns.html?id=' + gtmId;
-        ifr.height = '0';
-        ifr.width = '0';
-        ifr.style.display = 'none';
-        ifr.style.visibility = 'hidden';
-        ns.appendChild(ifr);
-        
-        var insert = function() {
-          if (document.body) {
-            document.body.insertBefore(ns, document.body.firstChild);
-          } else {
-            window.addEventListener('DOMContentLoaded', function() {
-              document.body.insertBefore(ns, document.body.firstChild);
-            });
+    <!-- [Elite V2.2] Dynamic Analytics Loader — GTM + GA + GSC + FB Pixel -->
+    <script>(function(){
+      var CACHE_KEY='primary_config';
+      function injectGTM(id){
+        if(!id||window.__gtm_loaded__)return;
+        window.__gtm_loaded__=true;
+        window['dataLayer']=window['dataLayer']||[];
+        window['dataLayer'].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
+        var f=document.getElementsByTagName('script')[0];
+        var j=document.createElement('script');
+        j.async=true;
+        j.src='https://www.googletagmanager.com/gtm.js?id='+id;
+        f.parentNode.insertBefore(j,f);
+        /* noscript iframe */
+        var inject=function(){
+          if(!document.getElementById('gtm-ns-'+id)){
+            var ns=document.createElement('noscript');
+            ns.id='gtm-ns-'+id;
+            var ifr=document.createElement('iframe');
+            ifr.src='https://www.googletagmanager.com/ns.html?id='+id;
+            ifr.height='0';ifr.width='0';
+            ifr.style.cssText='display:none;visibility:hidden';
+            ns.appendChild(ifr);
+            document.body.insertBefore(ns,document.body.firstChild);
           }
         };
-        insert();
+        if(document.body){inject();}else{document.addEventListener('DOMContentLoaded',inject);}
       }
-
-      function loadGTM(gtmId) {
-        if (!gtmId) return;
-        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-        })(window,document,'script','dataLayer',gtmId);
-        injectNoscript(gtmId);
+      function injectGA(id){
+        if(!id||window.__ga_loaded__)return;
+        window.__ga_loaded__=true;
+        var s=document.createElement('script');
+        s.async=true;
+        s.src='https://www.googletagmanager.com/gtag/js?id='+id;
+        document.head.appendChild(s);
+        window.dataLayer=window.dataLayer||[];
+        function gtag(){window.dataLayer.push(arguments);}
+        window.gtag=gtag;
+        gtag('js',new Date());
+        gtag('config',id);
       }
-
-      try {
-        var cached = sessionStorage.getItem('primary_config');
-        if (cached) {
-          var seo = JSON.parse(cached)?.seo_analytics;
-          var gtmId = seo?.google_tag_manager_id || seo?.gtm_id;
-          if (!gtmId && seo?.google_analytics_id && seo.google_analytics_id.indexOf('GTM-') === 0) {
-            gtmId = seo.google_analytics_id;
-          }
-          if (gtmId) {
-            injectNoscript(gtmId);
-            return gtmId;
-          }
-        }
-      } catch(e) {}
-      
-      try {
-        fetch('/api/v1/client/settings/primary')
-          .then(function(r) { return r.json(); })
-          .then(function(d) {
-            if (d) {
-              sessionStorage.setItem('primary_config', JSON.stringify(d));
-              var seo = d.seo_analytics;
-              var gtmId = seo?.google_tag_manager_id || seo?.gtm_id;
-              if (!gtmId && seo?.google_analytics_id && seo.google_analytics_id.indexOf('GTM-') === 0) {
-                gtmId = seo.google_analytics_id;
-              }
-              if (gtmId && gtmId !== 'GTM-WDJQ5S2F') {
-                loadGTM(gtmId);
-              }
-            }
+      function injectGSC(id){
+        if(!id||document.querySelector('meta[name="google-site-verification"]'))return;
+        var m=document.createElement('meta');
+        m.name='google-site-verification';
+        m.content=id;
+        document.head.appendChild(m);
+      }
+      function injectFBPixel(id){
+        if(!id||window.__fb_loaded__)return;
+        window.__fb_loaded__=true;
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=true;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=true;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+        window.fbq('init',id);
+        window.fbq('track','PageView');
+      }
+      function applyTrackers(seo){
+        if(!seo)return;
+        injectGTM(seo.google_tag_manager_id);
+        injectGA(seo.google_analytics_id);
+        injectGSC(seo.google_search_console_id);
+        injectFBPixel(seo.facebook_pixel_id);
+      }
+      /* 1. Zero-latency: try sessionStorage first */
+      try{
+        var raw=sessionStorage.getItem(CACHE_KEY);
+        if(raw){applyTrackers(JSON.parse(raw).seo_analytics);}
+      }catch(e){}
+      /* 2. Async fallback: fetch fresh config & cache it */
+      try{
+        fetch('/api/v1/client/settings/primary',{cache:'no-store'})
+          .then(function(r){return r.ok?r.json():null;})
+          .then(function(d){
+            if(!d)return;
+            try{sessionStorage.setItem(CACHE_KEY,JSON.stringify(d));}catch(e){}
+            applyTrackers(d.seo_analytics);
           }).catch(function(){});
-      } catch(e) {}
-
-      injectNoscript('GTM-WDJQ5S2F');
-      return 'GTM-WDJQ5S2F';
-    })());</script>
-    <!-- End Google Tag Manager -->
+      }catch(e){}
+    })();</script>
+    <!-- End Dynamic Analytics Loader -->
     <meta charset="utf-8" />
     <meta
       name="viewport"
@@ -103,17 +103,12 @@
 
     %sveltekit.head%
     <script>
-      /**
-       * Service Worker Registration for Fast Platform
-       * Requires HTTPS or Localhost. For .test domains, the Caddy Root CA must be trusted.
-       */
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", async () => {
           try {
             const registration = await navigator.serviceWorker.register("/sw.js");
             console.log("SW registered with scope:", registration.scope);
           } catch (err) {
-            // Check for SSL certificate errors specifically
             if (err.name === 'SecurityError' || err.message.includes('SSL certificate')) {
               console.warn(
                 "%c[SSL ERROR]%c Service Worker registration failed due to untrusted certificate.\n" +
@@ -132,10 +127,6 @@
     <script src="/js/click-shield.js" defer></script>
   </head>
   <body data-sveltekit-preload-data="hover">
-    <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WDJQ5S2F"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
     <div class="contents">%sveltekit.body%</div>
   </body>
 </html>
