@@ -450,7 +450,7 @@ class WorkerHighSettings(WorkerSettings):
     queue_name = "high"
     functions = [run_agent_task, helen_follow_up_job, send_otp_email, run_fraud_forensic]
     redis_settings = get_redis_settings() # Explicitly call again to be safe
-    max_jobs = 10
+    max_jobs = 15
 
 class WorkerDefaultSettings(WorkerSettings):
     """Standard Worker for XoHi (Creative Studio)."""
