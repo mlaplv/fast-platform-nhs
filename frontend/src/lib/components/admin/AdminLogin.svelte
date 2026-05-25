@@ -105,6 +105,7 @@
       sessionStorage.setItem("xohi_just_logged_in", "true");
       await goto("/");
     } catch (e: Error | unknown) {
+      console.error("[AdminLogin] Access control exception:", e);
       error = (e as Error).message || "Failed to login. Please check your credentials.";
     } finally {
       isLoading = false;

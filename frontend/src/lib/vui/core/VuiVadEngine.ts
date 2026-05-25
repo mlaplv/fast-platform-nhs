@@ -1,12 +1,12 @@
-// [Elite V3.0] SSR Stealth: Dynamic imports to prevent server-side crash
-// We only load these heavy/non-SSR libraries in the browser context.
-let MicVAD: any;
-let utils: any;
+import type { MicVAD as MicVADClass, utils as utilsNamespace } from "@ricky0123/vad-web";
+
+let MicVAD: typeof MicVADClass | null = null;
+let utils: typeof utilsNamespace | null = null;
 
 import { VUI_CONFIG } from "./VuiConstants";
 
 export class VuiVadEngine {
-  private vad: any = null;
+  private vad: MicVADClass | null = null;
   private _isSpeaking = false;
   private _probability = 0;
 
@@ -32,8 +32,21 @@ export class VuiVadEngine {
         
         // [Elite V3.0] Neural Runtime Hardening
         // We use the pre-loaded window.ort injected via app.html
-        if (typeof window !== 'undefined' && (window as any).ort) {
-            const ort = (window as any).ort;
+        interface OrtEnv {
+          wasm: {
+            wasmPaths: Record<string, string>;
+            numThreads: number;
+            proxy: boolean;
+          };
+        }
+        interface CustomWindow {
+          ort?: {
+            env: OrtEnv;
+          };
+        }
+        const customWindow = window as unknown as CustomWindow;
+        if (typeof window !== 'undefined' && customWindow.ort) {
+            const ort = customWindow.ort;
             const apiBase = `${window.location.protocol}//api.${window.location.hostname.split('.').slice(-2).join('.')}`;
             const wasmBase = `${apiBase}/wasm`;
             
@@ -54,7 +67,12 @@ export class VuiVadEngine {
 
     const apiBase = `${window.location.protocol}//api.${window.location.hostname.split('.').slice(-2).join('.')}`;
 
-    this.vad = await MicVAD.new({
+    if (!MicVAD || !utils) {
+      throw new Error("VAD engine or utils not initialized");
+    }
+
+    const currentUtils = utils;
+    const options = {
       positiveSpeechThreshold: VUI_CONFIG.VAD.THRESHOLD,
       minSpeechMs: VUI_CONFIG.VAD.MIN_SPEECH_MS,
       redemptionMs: VUI_CONFIG.VAD.REDEMPTION_MS,
@@ -74,12 +92,12 @@ export class VuiVadEngine {
       onSpeechEnd: (audio: Float32Array) => {
         this._isSpeaking = false;
         // Convert Float32Array (16kHz PCM) to WAV Blob for STT
-        const wavBuffer = utils.encodeWAV(audio);
+        const wavBuffer = currentUtils.encodeWAV(audio);
         const blob = new Blob([wavBuffer], { type: "audio/wav" });
         onSpeechEnd(blob);
       },
 
-      onFrameProcessed: (probs) => {
+      onFrameProcessed: (probs: { isSpeech: number }) => {
         this._probability = probs.isSpeech;
         onFrameProcessed(probs.isSpeech);
       },
@@ -88,7 +106,9 @@ export class VuiVadEngine {
         console.debug("[VuiVadEngine] VAD misfire (too short to be speech)");
         this._isSpeaking = false;
       },
-    });
+    };
+
+    this.vad = await MicVAD.new(options as unknown as Parameters<typeof MicVADClass.new>[0]);
   }
 
   /**

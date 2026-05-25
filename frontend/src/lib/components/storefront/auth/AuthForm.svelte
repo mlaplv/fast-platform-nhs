@@ -144,6 +144,7 @@
         isLoading = false;
       }
     } catch (e) {
+      console.error("[AuthForm] OTP send network failure:", e);
       error = 'Không thể kết nối máy chủ';
       isLoading = false;
     }
@@ -178,6 +179,7 @@
         error = data.detail || 'Mã OTP không chính xác';
       }
     } catch (e) {
+      console.error("[AuthForm] OTP verification failure:", e);
       error = 'Không thể xác thực';
     } finally {
       isLoading = false;
