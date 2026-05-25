@@ -32,6 +32,10 @@
 
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   const shopStore = getShopStore();
+
+  // ⚡ Elite V2.2: $props() MUST be declared before any $derived that references props
+  let { product: propProduct, reviewStats, reviews = [], relatedProducts = [] }: Props = $props();
+
   const isEditMode = $derived(liveEditStore.isEditMode);
 
   // Elite V2.2: Reactive switching between live data and edited data
@@ -85,7 +89,7 @@
     reviews?: Record<string, unknown>[];
     relatedProducts?: Product[];
   }
-  let { product: propProduct, reviewStats, reviews = [], relatedProducts = [] }: Props = $props();
+  // NOTE: $props() moved above — must precede $derived(propProduct)
 
   // Check both `video_url` (admin field) and `hero_video_url` (desktop fallback) for compatibility
   const hasVideo = $derived(

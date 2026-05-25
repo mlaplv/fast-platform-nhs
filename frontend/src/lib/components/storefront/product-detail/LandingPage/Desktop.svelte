@@ -353,7 +353,7 @@
             sub: 'Đã mở khóa từ chiến dịch',
             type: 'discount' as "ship" | "discount"
           });
-        } catch (e) {}
+        } catch (e) { console.warn('[Desktop] Viral voucher parse error — localStorage key may be corrupted:', e); }
       }
     }
 
