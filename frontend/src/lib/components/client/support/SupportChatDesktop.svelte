@@ -544,9 +544,9 @@
             >
               <!-- Message Content (Premium Glassmorphic Bubble Wrapper) -->
               <div
-                class="flex-1 max-w-[90%] {msg.role === 'user'
-                  ? 'text-right pe-2'
-                  : 'text-left ps-2'}"
+                class="flex-1 max-w-full {msg.role === 'user'
+                  ? 'text-right pe-1 ps-1'
+                  : 'text-left ps-1 pe-1'}"
               >
                 {#if msg.is_revoked}
                   <div
@@ -641,7 +641,7 @@
         ══════════════════════════════════════════════════════ -->
         {#if consultantCTAVisible && supportAgent.helenEnabled && supportAgent.messages.length > 0}
           <div
-            class="px-2 pb-1.5 animate-in fade-in slide-in-from-bottom-4 duration-700"
+            class="px-2 pb-1.5 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-[480px] mx-auto w-full"
           >
             <!-- Divider -->
             <div class="flex items-center gap-3 mb-2.5">

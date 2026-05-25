@@ -17,7 +17,13 @@ def get_redis_settings() -> RedisSettings:
         # Handle cases where scheme might be missing (e.g. "redis:6379")
         if "://" not in redis_url:
             host_parts = redis_url.split(":")[0]
-            host = host_parts if host_parts and host_parts != "localhost" else "redis"
+            if not host_parts or host_parts == "localhost":
+                if os.path.exists("/.dockerenv") or os.getenv("IN_DOCKER") == "true":
+                    host = "redis"
+                else:
+                    host = "localhost"
+            else:
+                host = host_parts
             port = 6379
             password = None
             database = 0
@@ -26,7 +32,10 @@ def get_redis_settings() -> RedisSettings:
             # FORCE 'redis' hostname if inside Docker and resolved to localhost
             host = url.hostname
             if not host or host == "localhost":
-                host = "redis"
+                if os.path.exists("/.dockerenv") or os.getenv("IN_DOCKER") == "true":
+                    host = "redis"
+                else:
+                    host = "localhost"
             
             port = url.port or 6379
             password = url.password

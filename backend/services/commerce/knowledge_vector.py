@@ -55,6 +55,8 @@ class KnowledgeVectorService:
                 WHERE k.deleted_at IS NULL
                   AND k.is_active = TRUE
                   AND k.tenant_id = :tid
+                  AND k.answer IS NOT NULL
+                  AND k.answer != ''
                 ORDER BY cosine_distance ASC
                 LIMIT :lim;
             """)

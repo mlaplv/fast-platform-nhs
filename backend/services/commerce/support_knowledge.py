@@ -261,6 +261,8 @@ class SupportKnowledgeService:
             and_(
                 SupportKnowledge.deleted_at == None,
                 SupportKnowledge.is_active == True,
+                SupportKnowledge.answer != "",
+                SupportKnowledge.answer.is_not(None),
                 or_(SupportKnowledge.tenant_id == tid, SupportKnowledge.tenant_id == "default"),
                 or_(
                     func.lower(SupportKnowledge.question).ilike(f"%{query_low}%"),
@@ -282,6 +284,8 @@ class SupportKnowledgeService:
                     and_(
                         SupportKnowledge.deleted_at == None,
                         SupportKnowledge.is_active == True,
+                        SupportKnowledge.answer != "",
+                        SupportKnowledge.answer.is_not(None),
                         or_(SupportKnowledge.tenant_id == tid, SupportKnowledge.tenant_id == "default"),
                         or_(
                             *[func.lower(SupportKnowledge.question).ilike(f"%{kw}%") for kw in kws],

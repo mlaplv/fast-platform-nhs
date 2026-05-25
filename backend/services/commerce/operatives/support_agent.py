@@ -39,7 +39,7 @@ from backend.utils.security import GeminiSecurity
 from backend.services.commerce.operatives.handlers.base import NeuralDNA, SupportContext
 from backend.services.commerce.operatives.router import SupportRouter
 
-logger = logging.getLogger("api-gateway")
+logger = logging.getLogger("arq.worker")
 
 class AgenticSupportResponse(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -507,8 +507,16 @@ class SupportAgentOperative(BaseAgentOperative):
         
         # Elite V5.6: Always check for optimal price signal
         ctx.ui_metadata["is_optimal_price"] = ctx.cart_text.find("[XÁC NHẬN]: Khách đã dùng mã tối ưu") != -1
-        
+        logger.info(f"🟢 [SupportAgent] final_reply (before Output Shield): {final_reply}")
         safe_reply = _sanitize_response(final_reply)
+        logger.info(f"🟢 [SupportAgent] safe_reply (after Output Shield): {safe_reply}")
+        
+        if not safe_reply:
+            logger.warning(f"[SupportAgent] Sanitized reply is empty for SID {session_id}! Triggering DB Fallback.")
+            from backend.services.commerce.operatives.handlers.consultant import ConsultantHandler
+            consultant = ConsultantHandler()
+            safe_reply = consultant._generate_db_fallback(ctx)
+
         final_intent = ctx.intent or SupportIntent.UNKNOWN
         if ctx.ui_component == "PRODUCT_CARD" and p_info:
             if not ctx.ui_metadata: ctx.ui_metadata = {}
@@ -769,25 +777,32 @@ class SupportAgentOperative(BaseAgentOperative):
             # 3. Return TAKEOVER status so frontend doesn't render any automatic assistant reply thưa sếp!
             return SupportResponse(ok=True, reply="", intent=SupportIntent.UNKNOWN, session_id=session_id, status="TAKEOVER")
         
-        try:
-            cur_settings = await self._get_currency_settings()
-            masked_msg = await self._mask_sensitive_medical_terms(request.message)
-            _, p_info_fast = await _fetch_product_context(db, request.product_slug, cur_settings)
-            fast_res = await asyncio.wait_for(trinity_bridge.run(_fast_intent_agent, masked_msg, deps=FastIntentDeps(customer_name=c_name, product_name=p_info_fast.name if p_info_fast else None), role=trinity_bridge.ROLE_FAST, timeout=8.0, per_model_timeout=3.5), timeout=9.0)
-            f_data = cast(FastIntentResponse, fast_res)
-            if f_data.intent == "GREETING" and f_data.quick_reply and not request.cart_items:
-                await self._save_history(db, session_id, request.message, f_data.quick_reply, SupportIntent.GENERAL_ADVICE, request.product_slug, c_name, request.customer_phone)
-                await db.flush()
-                return SupportResponse(ok=True, reply=f_data.quick_reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
-        except Exception: pass
+        is_system_prompt = request.message.strip().startswith("[system_")
+        if not is_system_prompt:
+            try:
+                cur_settings = await self._get_currency_settings()
+                masked_msg = await self._mask_sensitive_medical_terms(request.message)
+                _, p_info_fast = await _fetch_product_context(db, request.product_slug, cur_settings)
+                fast_res = await asyncio.wait_for(trinity_bridge.run(_fast_intent_agent, masked_msg, deps=FastIntentDeps(customer_name=c_name, product_name=p_info_fast.name if p_info_fast else None), role=trinity_bridge.ROLE_FAST, timeout=12.0, per_model_timeout=5.0), timeout=13.0)
+                f_data = cast(FastIntentResponse, fast_res)
+                if f_data.intent == "GREETING" and f_data.quick_reply and not request.cart_items:
+                    await self._save_history(db, session_id, request.message, f_data.quick_reply, SupportIntent.GENERAL_ADVICE, request.product_slug, c_name, request.customer_phone)
+                    await db.flush()
+                    return SupportResponse(ok=True, reply=f_data.quick_reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
+            except Exception: pass
 
         cur_settings = await self._get_currency_settings()
         _, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
         heuristic_res = await self._try_heuristic_sync(request, db, session_id, p_info, c_name)
         if heuristic_res: return heuristic_res
 
+        # Elite V2.2: Removed early system prefix stripping here. We must keep `[system_consult]` 
+        # so that OrderHandler can detect and bypass it correctly in the worker.
+        enqueue_data = request.model_dump()
+        enqueue_data["message"] = request.message
+
         if xohi_memory._use_redis and xohi_memory.client: await xohi_memory.client.delete(f"pulse:{session_id}:cache")
-        task_id = await self.enqueue_chat(request_data=request.model_dump(), session_id=session_id)
+        task_id = await self.enqueue_chat(request_data=enqueue_data, session_id=session_id)
         return SupportResponse(ok=True, reply="Helen đang xử lý...", intent=SupportIntent.UNKNOWN, session_id=session_id, task_id=task_id, status="PROCESSING")
 
     async def _try_heuristic_sync(self, request: SupportRequest, db: AsyncSession, session_id: str, p_info: Optional[SupportProductInfo] = None, customer_name: Optional[str] = None) -> Optional[SupportResponse]:

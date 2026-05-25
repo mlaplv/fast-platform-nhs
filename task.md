@@ -93,5 +93,35 @@
 - [x] Implement robust, non-blocking asynchronous GTM loader with session caching inside `app.html`. (Done)
 - [x] Support multiple setting fields dynamically (`google_tag_manager_id`, `gtm_id`, and standard GA ID fallback). (Done)
 
+# Task Checklist - Fixing Support Agent Validation (Elite V2.2)
+
+- [x] Align desktop `getCartItemsMapped` and `getPricingContextMapped` helpers in `SupportChatDesktop.svelte` with backend schemas and mobile logic. (Done)
+- [x] Avoid deserialization issues by passing raw `cartStore.items` and unified breakdown objects directly. (Done)
+- [x] Validate model schema using local testing to ensure zero future regression. (Done)
+
+# Task Checklist - Stabilizing Support Agent & Timeout Management (Elite V2.2)
+
+- [x] Optimize TrinityBridge timeout management by increasing the global threshold to 25s and per-model timeout to 8.0s inside `ConsultantHandler` to prevent premature model poisoning. (Done)
+- [x] Implement conditional Docker container detection (`/.dockerenv`) in `get_redis_settings()` to dynamically toggle hostname resolution, preventing name resolution errors outside Docker. (Done)
+- [x] Update arq worker self-healing routine to unconditionally recover/abort all orphaned `RUNNING` or `PENDING` tasks on startup, cleaning stale database task states. (Done)
+- [x] Bypass `_fast_intent_agent` execution when a system prompt (`[system_`) is passed to prevent unnecessary model timeouts, rate limit hits, and model poisoning. (Done)
+- [x] Verify the end-to-end consultant agent communication flow via in-container diagnostic script successfully. (Done)
+
+# Task Checklist - Helen AI Support Agent Stability & DB Defensive Guardrails (Elite V2.8)
+
+- [x] Address the single database tri thức anomaly for Beppin Body Virgin White Serum by populating the missing `answer` with a detailed scientific document. (Done)
+- [x] Harden `knowledge_vector.py` semantic pgvector SQL query to dynamically ignore any knowledge base records with empty or null answers. (Done)
+- [x] Refortify `support_knowledge.py` keyword-based lookup queries to automatically exclude records with empty or null answers. (Done)
+- [x] Upgrade `ConsultantHandler` L0 Fast-Path gate to require short queries (`< 25 chars`) for raw keyword matching, shielding the chatbot from prompt leakage and false positive keyword shortcuts. (Done)
+- [x] Implement the defensive Double-Lock check in `ConsultantHandler` to ensure no matched knowledge item is short-circuited unless it contains a valid, non-empty answer, gracefully falling back to AI/DB fallbacks if empty. (Done)
+- [x] Switch support agent and consultant handler loggers to `"arq.worker"` to guarantee 100% real-time log output and ultimate diagnostic transparency for Sếp. (Done)
+- [x] Hot-deploy code changes to the production VPS and successfully verify execution via task simulation. (Done)
+
+# Task Checklist - Xohi Neural Optimize Prompt Refinement (Elite V2.2)
+
+- [x] Cập nhật `system_prompt` trong `admin_support.py` thành prompt Chuyên gia quản trị tri thức (Knowledge Manager) chuyên sâu. (Done)
+- [x] Chỉnh tham số tiền xử lý `strip_markdown=False` trong `noise_cleaner.clean` để giữ nguyên cấu trúc Markdown gốc của tài liệu nguồn. (Done)
+- [x] Cập nhật tài liệu quản trị kiểm thử `walkthrough.md` làm bằng chứng nghiệm thu. (Done)
+- [x] Thực hiện static build frontend và restart backend service để áp dụng thay đổi ngay lập tức. (Done)
 
 

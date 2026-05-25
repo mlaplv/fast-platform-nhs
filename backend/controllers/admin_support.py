@@ -176,7 +176,7 @@ class AdminSupportController(Controller):
         try:
             # Pre-processing Layer: Dọn sạch HTML tags, code artifacts, markdown fences
             # bằng cơ chế deterministic CPU (0 token AI cost) TRƯỚC khi nạp cho AI
-            text = await noise_cleaner.clean(text, strip_html=True, strip_markdown=True)
+            text = await noise_cleaner.clean(text, strip_html=True, strip_markdown=False)
             
             if not text or not text.strip():
                 return OptimizeContentResponse(ok=False, error="Nội dung sau khi lọc rác hoàn toàn trống rỗng.")
@@ -184,16 +184,30 @@ class AdminSupportController(Controller):
             xohi_optimizer_agent = Agent()
             
             system_prompt = (
-                "Bạn là Senior Knowledge Architect tại osmo, chuyên gia tối ưu hóa tri thức RAG.\n"
-                "Nhiệm vụ tối cao của bạn là thực hiện HIỆU CHỈNH và LỌC BỎ các thông tin rác nhiễu khỏi văn bản gốc được cung cấp. "
-                "TUYỆT ĐỐI CẤM VIẾT LẠI HOẶC TỰ Ý SÁNG TẠO THÊM NỘI DUNG MỚI.\n\n"
-                "LUẬT HIỆU CHỈNH & LỌC BỎ (TUÂN THỦ 100%):\n"
-                "1. BẢO TOÀN TRÍ CHẤT GỐC: Giữ nguyên vẹn 100% nội dung tri thức, cấu trúc ý chính, câu từ, và phong thái học thuật của văn bản gốc. Chỉ thực hiện cắt tỉa các phần rác nhiễu còn sót lại dưới đây.\n"
-                "2. TRIỆT TIÊU RÁC IN ẤN & SỐ TRANG: Loại bỏ hoàn toàn các thông tin chỉ số trang (như 'Trang 1/2', 'Trang 2/2') và toàn bộ phần hướng dẫn xuất PDF, phím tắt in ấn ở cuối văn bản.\n"
-                "3. DỌN SẠCH MÃ NGUỒN LẬP TRÌNH CÒN SÓT: Nếu còn sót các khối code lập trình, hãy tóm gọn thành 1 câu mô tả tự nhiên ngắn gọn.\n"
-                "4. LÀM SẠCH LATEX TOÁN HỌC: Sửa đổi biểu thức LaTeX phức tạp thành sơ đồ văn bản trần đơn giản (dùng ký tự `->` hoặc `=>`).\n"
-                "5. BẢO TOÀN TRÍCH DẪN (CITATION GUARD): Giữ lại nguyên vẹn các trích dẫn dạng `[cite: X]` hoặc `[X]`.\n"
-                "6. ĐẦU RA TINH KHIẾT: Trả về văn bản gốc đã được làm sạch. Không nhúng trong code block ```markdown ... ```."
+                "Bạn là một chuyên gia quản trị tri thức (Knowledge Manager) cao cấp, chuyên môn hóa tài liệu khoa học kỹ thuật và RAG Knowledge Base.\n"
+                "Nhiệm vụ của bạn là phân tích, làm sạch, hệ thống hóa tài liệu chuyên sâu được cung cấp thành một bài viết Tri thức Doanh nghiệp (Corporate Knowledge Base) chuẩn mực, dễ tra cứu và sao chép. BẮT BUỘC tuân thủ các nguyên tắc sau:\n\n"
+                "1. PHONG THÁI & HÀNH VĂN (KNOWLEDGE ARCHITECT STANDARDS):\n"
+                "   - Sử dụng ngôn ngữ khách quan, khoa học, súc tích, mang tính chuyên môn cao.\n"
+                "   - Tuyệt đối KHÔNG có các từ ngữ dẫn dắt mang tính đàm thoại hay giao tiếp (ví dụ: 'Dưới đây là...', 'Chào bạn...', 'Hy vọng tài liệu này giúp ích...').\n"
+                "   - Viết ở ngôi thứ ba, giọng văn trang trọng và uy tín.\n\n"
+                "2. LÀM SẠCH DỮ LIỆU TUYỆT ĐỐI:\n"
+                "   - Loại bỏ hoàn toàn các yếu tố thừa: số trang, đầu trang/chân trang lặp lại, hướng dẫn in ấn, câu từ tiếp thị, quảng bá quá đà.\n"
+                "   - Chỉ giữ lại thông tin kỹ thuật, khoa học và giá trị cốt lõi của tài liệu.\n\n"
+                "3. CẤU TRÚC HÓA BẰNG MARKDOWN CHUYÊN NGHIỆP:\n"
+                "   - Sử dụng tiêu đề phân cấp hợp lý (# H1 cho Tên tài liệu/Chủ đề chính, ## H2 cho các mục lớn, ### H3 cho các nhánh nhỏ).\n"
+                "   - Sử dụng danh sách có ký hiệu đầu dòng (bullet points) để tóm tắt các đặc tính, thuộc tính kỹ thuật.\n"
+                "   - BẮT BUỘC sử dụng bảng (Markdown Table) đối với các thông số kỹ thuật, tiêu chuẩn chất lượng, hoặc dữ liệu cần so sánh đối chiếu.\n\n"
+                "4. CHIA PHÂN KHU LOGIC TRA CỨU:\n"
+                "   Bài viết Knowledge Base phải được sắp xếp khoa học theo các phần tương ứng sau (nếu tài liệu gốc có thông tin):\n"
+                "   - **Tổng Quan / Định Nghĩa**: Khái niệm cốt lõi.\n"
+                "   - **Cơ Chế Hoạt Động**: Mô tả cơ chế khoa học của thành phần/sản phẩm.\n"
+                "   - **Thông Số Kỹ Thuật / Tiêu Chuẩn Nguyên Liệu**: (Trình bày bằng bảng).\n"
+                "   - **Ứng Dụng Thực Tiễn / Hướng Dẫn**: Cách dùng, liều lượng, trường hợp chỉ định.\n"
+                "   - **Lưu Ý / Chống Chỉ Định**.\n\n"
+                "5. BẢO TOÀN GIÁ TRỊ GỐC:\n"
+                "   - Không tự ý sáng tạo hay thêm bớt thông tin sai lệch so với tài liệu gốc.\n"
+                "   - Đảm bảo đầu ra là một tài liệu tri thức tinh khiết, sẵn sàng đồng bộ vào Cơ sở dữ liệu RAG của doanh nghiệp.\n"
+                "   Lưu ý: Không bọc văn bản trong các khối mã ```markdown ... ```, hãy xuất trực tiếp nội dung dưới định dạng Markdown thô."
             )
             
             # Sử dụng trinity_bridge để chạy agent phi nghẽn, tự xoay key và chống quá tải

@@ -389,6 +389,7 @@ class SupportAgentState {
     private _connectPulse() {
         if (!browser || this._pulseSource) return;
 
+        // Elite V2.2: Backend automatically reads `helen_session_id` from cookies via withCredentials: true.
         this._pulseSource = new EventSource(`/api/v1/client/support/pulse`, { withCredentials: true });
 
         // 🟢 1. AI Response Ready / Admin Manual Reply thưa sếp!
@@ -417,14 +418,17 @@ class SupportAgentState {
                 }
 
                 // Case B: AI response (from Trinity/Helen brain)
-                if (data.status === "DONE" && data.reply) {
+                if (data.status === "DONE") {
+                    const fallbackReply = "Dạ Helen xin lỗi, hệ thống AI đang hơi quá tải một chút. Anh/Chị vui lòng thử lại hoặc để lại lời nhắn để chuyên viên hỗ trợ nhé! 🌸";
+                    const actualReply = data.reply || fallbackReply;
+                    
                     const messages = [...this.messages];
                     const lastAssistantIdx = messages.findLastIndex(m => m.role === "assistant");
 
                     if (lastAssistantIdx !== -1) {
                         messages[lastAssistantIdx] = {
                             ...messages[lastAssistantIdx],
-                            content: data.reply,
+                            content: actualReply,
                             intent: data.intent || messages[lastAssistantIdx].intent,
                             timestamp: new Date()
                         };
@@ -435,7 +439,7 @@ class SupportAgentState {
                             {
                                 id: crypto.randomUUID(),
                                 role: "assistant",
-                                content: data.reply,
+                                content: actualReply,
                                 intent: data.intent,
                                 timestamp: new Date()
                             }

@@ -35,7 +35,8 @@ class ClientPulseController(Controller):
         Streams events for a specific support session.
         Uses InternalBus.subscribe_context() for lean, targeted listening.
         """
-        session_id = request.cookies.get("helen_session_id")
+        # Elite V2.2: Support both cookie and query_param for maximum resilience
+        session_id = request.cookies.get("helen_session_id") or request.query_params.get("session_id")
         
         async def event_generator() -> AsyncGenerator[bytes, None]:
             from backend.services.xohi_memory import xohi_memory
@@ -44,7 +45,7 @@ class ClientPulseController(Controller):
             yield b": link-success\n\n"
             
             if not session_id:
-                logger.error("[ClientPulse] Missing helen_session_id cookie.")
+                logger.error("[ClientPulse] Missing session_id (cookie & query_param).")
                 return
             
             if not xohi_memory._use_redis or not xohi_memory.client:
@@ -75,18 +76,19 @@ class ClientPulseController(Controller):
                     yield f"retry: 3000\n".encode("utf-8")
                     yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
                     
-                    if payload.get("status") == "DONE":
-                        logger.info(f"[ClientPulse] Session {session_id} stateful delivery complete. Closing.")
-                        return
+                    # Elite V2.2 Fix: Do NOT close connection on DONE. The SSE stream must remain open
+                    # to receive SUPPORT_INBOX_UPDATE events (Admin manual replies).
+                    # Closing it causes the browser EventSource to enter an infinite reconnect loop.
             except Exception as ce:
                 logger.warning(f"[ClientPulse] Cache catch-up failed: {ce}")
             
             # --- PHASE 3: REAL-TIME STREAMING ---
+            last_ping_time = asyncio.get_event_loop().time()
             try:
                 while True:
                     try:
                         # R88: Heartbeat/Listen Loop with SSE Protocol logic
-                        message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=15.0)
+                        message = await pubsub.get_message(ignore_subscribe_messages=True)
                         
                         if message and message['type'] == 'message':
                             logger.info(f"[ClientPulse] Received event from Redis for {session_id}: {message['data']}")
@@ -103,13 +105,14 @@ class ClientPulseController(Controller):
                             yield f"retry: 3000\n".encode("utf-8")
                             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
                             
-                            # Elite V2.2: Dispose Resource immediately on DONE status (RAM 2GB target)
-                            if payload.get("status") == "DONE":
-                                logger.info(f"[ClientPulse] Session {session_id} real-time response delivered. Closing.")
-                                break
+                            # Elite V2.2 Fix: Do NOT close connection on DONE to prevent auto-recovering loops.
+                            # The stream must stay alive to listen for `SUPPORT_INBOX_UPDATE` (Admin replies).
                         elif message is None:
-                            # Standard Heartbeat
-                            yield b": ping\n\n"
+                            await asyncio.sleep(0.5)
+                            current_time = asyncio.get_event_loop().time()
+                            if current_time - last_ping_time > 15.0:
+                                yield b": ping\n\n"
+                                last_ping_time = current_time
                                 
                     except asyncio.TimeoutError:
                         yield b": ping\n\n"

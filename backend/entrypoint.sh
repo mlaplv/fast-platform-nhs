@@ -39,10 +39,10 @@ if [ "$#" -eq 0 ]; then
     echo "⚡ [Trinity Boot] Igniting Litestar Engine (Uvicorn Recycling)..."
     
     # [Elite V2.2] Dynamic hot-reload for development
-    RELOAD_FLAG=""
+    RELOAD_FLAGS=""
     if [ "$DEVELOPMENT_RELOAD" == "true" ]; then
         echo "🔥 [Trinity Boot] Development mode detected: Enabling HOT-RELOAD"
-        RELOAD_FLAG="--reload"
+        RELOAD_FLAGS="--reload --reload-dir /app/backend --reload-exclude /app/.venv"
     fi
 
     exec /opt/venv/bin/uvicorn backend.main:app \
@@ -54,9 +54,7 @@ if [ "$#" -eq 0 ]; then
         --limit-max-requests 10000 \
         --limit-concurrency 500 \
         --timeout-keep-alive 30 \
-        --reload-dir "/app/backend" \
-        --reload-exclude "/app/.venv" \
-        $RELOAD_FLAG
+        $RELOAD_FLAGS
 else
     echo "⚡ [Trinity Boot] Executing custom command: $@"
     # [Elite V2.2 Fix] Alembic cần chạy từ /app/backend (nơi có alembic.ini + migrations/)

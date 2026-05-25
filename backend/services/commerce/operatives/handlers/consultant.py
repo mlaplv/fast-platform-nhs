@@ -16,7 +16,7 @@ class ConsultantDeps(BaseModel):
 
 ConsultantDeps.model_rebuild()
 
-logger = logging.getLogger("api-gateway")
+logger = logging.getLogger("arq.worker")
 
 class ConsultantResponse(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -527,23 +527,31 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
 
         is_short_query: bool = len(ctx.request.message.strip()) < 25
         threshold: float = 0.85 if is_short_query else 0.92
+        # 1. Search semantically first using pgvector
         raw_matches: list[dict[str, object]] = await kb_service.search_relevant_knowledge_raw(ctx.db, ctx.request.message, limit=1)
+        
+        # 2. Hybrid Keyword Fallback (ONLY for short queries to prevent false positive keyword mapping on long prompts)
         if not raw_matches or float(raw_matches[0].get("match_score", 0)) <= threshold:
-            keyword_matches = await kb_service.search_relevant_knowledge_keyword(ctx.db, ctx.request.message, limit=1)
-            if keyword_matches:
-                keyword_matches[0]["match_score"] = 1.0
-                raw_matches = keyword_matches
+            if is_short_query:
+                keyword_matches = await kb_service.search_relevant_knowledge_keyword(ctx.db, ctx.request.message, limit=1)
+                # Double lock: only force score if match actually contains a non-empty answer!
+                if keyword_matches and str(keyword_matches[0].get("answer", "")).strip():
+                    keyword_matches[0]["match_score"] = 1.0
+                    raw_matches = keyword_matches
 
+        # 3. Fast-Path decision gate
         if raw_matches and not ctx.request.cart_items:
             match: dict[str, object] = raw_matches[0]
             score: float = float(match.get("match_score", 0))
-            if score > threshold:
+            ans = str(match.get("answer", "")).strip()
+            # Triple lock: score exceeds threshold AND matched answer is valid and non-empty!
+            if score > threshold and ans:
                 logger.info(f"✨ [L0 KB Fast-Path] Short-circuiting (Score: {score} / Req: {threshold})")
-                ctx.replies.append(str(match.get("answer", "")))
+                ctx.replies.append(ans)
                 ctx.intent = SupportIntent.PRODUCT_QUERY
                 return True
             else:
-                logger.debug(f"⚠️ [KB Check Fail] score={score} < threshold={threshold}")
+                logger.debug(f"⚠️ [KB Check Fail] score={score} < threshold={threshold} or empty answer")
         else:
             masked_msg = (ctx.request.message[:15] + "...") if len(ctx.request.message) > 20 else ctx.request.message
             logger.debug(f"🔍 [L0 KB] No match for: '{masked_msg}'")
@@ -670,12 +678,13 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         clean_msg = ctx.request.message.replace("[system_consult]", "").strip()
         
         is_skin_barrier_session = "[system_skin_barrier]" in ctx.request.message or "kiểm tra sản phẩm có phù hợp cho da của tôi không?" in ctx.history_text.lower()
+        is_system_consult = "[system_consult]" in ctx.request.message
 
         if is_skin_barrier_session:
             if "[system_skin_barrier]" in ctx.request.message:
                 base_prompt = (
                     "Bạn là Helen - Chuyên gia Da liễu AI ân cần của osmo.\n"
-                    "NHIỆM VỤ TỐI THƯỢNG: Đóng vai Bác sĩ Da liễu, tư vấn an toàn hàng rào bảo vệ da (Skin Barrier) cho khách.\n"
+                    "MỤC TIÊU CHÍNH: Đóng vai Bác sĩ Da liễu, tư vấn an toàn hàng rào bảo vệ da (Skin Barrier) cho khách.\n"
                     "1. TUYỆT ĐỐI CẤM chốt sale, báo giá, xin số điện thoại hay địa chỉ ở bước này.\n"
                     "2. KHOAN TƯ VẤN SẢN PHẨM NGAY. Hãy chào khách và CHỦ ĐỘNG hỏi thăm tình trạng da hiện tại của họ (ví dụ: da có đang mẩn đỏ, nhạy cảm, hay đang dùng treatment nặng như BHA/Retinol không?).\n"
                     "3. GIẢI THÍCH NGẮN GỌN rằng Helen cần thông tin này để đối chiếu với Bảng Thành Phần (Ingredients) của sản phẩm, nhằm đánh giá xem sản phẩm có an toàn tuyệt đối cho 'hàng rào bảo vệ da' của riêng khách hay không.\n"
@@ -685,11 +694,23 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             else:
                 base_prompt = (
                     "Bạn là Helen - Bác sĩ Da liễu AI ân cần của osmo.\n"
-                    "NHIỆM VỤ TỐI THƯỢNG: Đánh giá an toàn hàng rào bảo vệ da dựa trên thông tin khách vừa cung cấp.\n"
+                    "MỤC TIÊU CHÍNH: Đánh giá an toàn hàng rào bảo vệ da dựa trên thông tin khách vừa cung cấp.\n"
                     "1. PHÂN TÍCH CHUYÊN MÔN: Đối chiếu tình trạng da hiện tại của khách với Bảng Thành Phần (Ingredients) của sản phẩm (Ưu tiên dùng thông tin ở [PRODUCT]). Giải thích rõ ràng tại sao sản phẩm an toàn/không an toàn cho hàng rào bảo vệ da của họ.\n"
                     "2. ĐỒNG CẢM & KHUYÊN DÙNG: Thể hiện sự thấu hiểu. Giữ phong thái chuẩn y khoa, cấm dùng phong cách Sales hung hãn.\n"
                     "3. SAU KHI TƯ VẤN XONG: Nếu sản phẩm phù hợp, hãy thông báo giá ưu đãi và nhẹ nhàng xin SĐT + Địa chỉ để lên đơn gửi sản phẩm cho họ trải nghiệm."
                 )
+        elif is_system_consult:
+            base_prompt = (
+                "Bạn đóng vai Helen - Chuyên gia tư vấn cao cấp tại osmo.\n"
+                "MỤC TIÊU CHÍNH: Tư vấn bán hàng chuyên sâu cho sản phẩm này.\n"
+                "1. Đồng cảm sâu sắc với nỗi lo thầm kín nhất của khách hàng về làn da/vấn đề sản phẩm giải quyết.\n"
+                "2. Liệt kê và phân tích chi tiết cơ chế khoa học của các thành phần nổi bật dưới dạng danh sách (bullet points) rõ ràng.\n"
+                "3. Vẽ ra bức tranh sinh động về sự tự tin rạng rỡ sau khi sử dụng.\n"
+                "4. Đưa ra báo giá chi tiết, tồn kho thực tế (FOMO), chương trình KM và Kêu Gọi Hành Động xin SĐT + Địa chỉ nhận hàng để chốt đơn ngay.\n"
+                "5. BẮT BUỘC: Bạn PHẢI có câu trả lời giao tiếp với khách hàng. TUYỆT ĐỐI CẤM việc chỉ suy nghĩ mà không trả lời.\n"
+                "CHÚ Ý: CẤM viết các tiêu đề thô kệch như 'Điểm đau', 'Giải pháp'. Hãy chia đoạn tự nhiên bằng các emoji sang trọng."
+            )
+            clean_msg = "Hãy tư vấn chuyên sâu về sản phẩm này giúp tôi."
 
         full_prompt = (
             f"{base_prompt}\n"
@@ -712,10 +733,13 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             masked_msg = await self._mask_sensitive_medical_terms(clean_msg)
             masked_prompt = await self._mask_sensitive_medical_terms(full_prompt)
 
+            logger.info(f"🟢 [ConsultantHandler] SYSTEM PROMPT:\n{masked_prompt}")
+            logger.info(f"🟢 [ConsultantHandler] USER MESSAGE: {masked_msg}")
+
             # Elite V6.0: Thread-Safe injection via deps.dynamic_prompt
             deps = ConsultantDeps(db=ctx.db, dynamic_prompt=masked_prompt)
 
-            # ⏱️ Elite V6.0: Cổng bảo vệ 10s — AI chỉ có 10 giây, quá hạn kích hoạt Smart DB Fallback
+            # ⏱️ Elite V6.0: Cổng bảo vệ 25s — Tăng giới hạn AI để tránh timeout sớm và model poisoning
             res = await _asyncio.wait_for(
                 trinity_bridge.run(
                     _consultant_no_tool_agent,
@@ -723,13 +747,15 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                     deps=deps,
                     role=trinity_bridge.ROLE_BRAIN,
                     safety_none=True,
-                    timeout=15.0,
-                    per_model_timeout=6.0
+                    timeout=25.0,
+                    per_model_timeout=8.0
                 ),
-                timeout=10.0
+                timeout=25.0
             )
             # [ELITE V2.2] Standardized Result Extraction (Trust the Bridge)
             res_data = cast(Optional[ConsultantResponse], res)
+            
+            logger.info(f"🟢 [ConsultantHandler] RAW AI RESPONSE: {res_data}")
 
             if res_data and hasattr(res_data, 'reply') and res_data.reply:
                 # Elite V2.7: Programmatic Prefix Enforcement (Deterministic & Token-Efficient)

@@ -403,18 +403,15 @@ async def startup(ctx: Dict[str, object]) -> None:
     try:
         session_maker = alchemy_config.create_session_maker()
         async with session_maker() as recovery_db:
-            # Mark all PENDING or RUNNING tasks older than 5 minutes as FAILED
-            from datetime import timedelta
-            cutoff = datetime.now(timezone.utc) - timedelta(minutes=5)
+            # Mark all PENDING or RUNNING tasks as FAILED on startup since worker was restarted
             res = await recovery_db.execute(
                 update(UnifiedAgentTask)
                 .where(
-                    UnifiedAgentTask.status.in_(["RUNNING", "PENDING"]),
-                    UnifiedAgentTask.created_at < cutoff
+                    UnifiedAgentTask.status.in_(["RUNNING", "PENDING"])
                 )
                 .values(
                     status="FAILED",
-                    error="Task timed out or worker process was terminated unexpectedly (Self-Healing).",
+                    error="Worker restarted. Task aborted during execution (Self-Healing).",
                     completed_at=datetime.now(timezone.utc)
                 )
             )

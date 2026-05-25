@@ -194,5 +194,72 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
   - **Multiple-Field Fallback Check**: Extracted from `google_tag_manager_id`, `gtm_id`, or checks if `google_analytics_id` begins with `GTM-` as a smart fallback.
   - **Automatic Noscript Injector**: Automatically builds and inserts the `<noscript>` iframe tag at the very beginning of the `<body>` on DOM load, complying perfectly with GTM installation guidelines.
 
+## 17. Fixing Support Agent Validation Errors (Elite V2.2)
+
+- **Modified File**: `frontend/src/lib/components/client/support/SupportChatDesktop.svelte`
+- **Issue**: The desktop component mapped `cartStore.items` and `checkoutState.breakdown` manually using `getCartItemsMapped()` and `getPricingContextMapped()`. These custom mappers omitted the `product` and `variant` nested objects (sending only flat ids), and referenced incorrect keys (`shipping_fee`, `final_total`, `point_discount`) that do not exist on `checkoutState.breakdown`. This resulted in `NaN` calculations and `undefined` properties, which serialized to `null` in JSON and failed strict Pydantic float/integer validation (HTTP 400 Bad Request).
+- **Fix**:
+  - Updated `getCartItemsMapped()` to return the raw `cartStore.items` array directly. This retains the `product` and `variant` sub-key hierarchy expected by the backend logic.
+  - Updated `getPricingContextMapped()` to return `checkoutState.breakdown || cartStore.breakdown` directly. This avoids manual key mapping errors and guarantees a schema-compliant payload.
+- **Verification**: Verified correct serialization behavior and validated payload structures against Pydantic models using localized Python verification scripts.
+
+## 18. Support Agent & Timeout Management Stabilization (Elite V2.2)
+
+- **Modified Files**:
+  - `backend/services/commerce/operatives/support_agent.py`:
+    - Implemented a fast-path bypass for system-injected prompts (starting with `[system_`). This bypasses the unnecessary `_fast_intent_agent` execution, saving up to 9 seconds of API latency, preventing model timeouts, and protecting Gemini keys from premature model poisoning.
+    - Increased `_fast_intent_agent` timeouts to `timeout=12.0` and `per_model_timeout=5.0` to handle peak network latency gracefully when classification is required.
+  - `backend/services/commerce/operatives/handlers/consultant.py`:
+    - Refactored `ConsultantHandler` global protection gateway. Increased the global timeout from 10.0s to 25.0s and the model-specific timeout from 6.0s to 8.0s. This ensures heavy/highly-detailed sales consult messages can execute fully under load without triggering premature fallback.
+  - `backend/arq_worker.py`:
+    - Updated worker self-healing boot configuration. Replaced the 5-minute age cutoff condition with an unconditional state reset that instantly aborts all stalled `RUNNING` or `PENDING` database tasks on startup. This cleanly purges stale task states and stops infinite frontend loading indicators.
+  - `backend/infra/arq_config.py`:
+    - Integrated conditional Docker container environment checks using `os.path.exists("/.dockerenv")`. This conditionally forces the `"redis"` hostname only when running inside containerized environments, allowing developer/administrative scripts executing on the host to resolve `"localhost"` correctly and preventing DNS connectivity errors.
+  - `backend/controllers/client/pulse.py`:
+    - Fixed a critical Event Loop Starvation bug in the `stream_pulse` SSE generator. The `pubsub.get_message(..., timeout=15.0)` call in `redis.asyncio` is non-blocking and returns `None` instantly. This caused an infinite, zero-sleep `while True` loop that forced the ASGI server (Uvicorn) to abruptly terminate the connection.
+    - Implemented an `await asyncio.sleep(0.5)` backoff for idle cycles and a manual heartbeat timer to emit `: ping\n\n` every 15 seconds.
+    - **CRITICAL FIX**: Removed the `if payload.get("status") == "DONE": return / break` logic in Phase 2 and 3. Previously, the backend was explicitly closing the SSE connection when an AI reply finished, attempting to "dispose" the resource. However, `EventSource` on the frontend automatically reconnects when the server closes the connection. This caused the frontend to reconnect instantly, hit the Redis cache, receive the "DONE" message again, and the server would close it again, creating an infinite `[Pulse] SSE connection state changed, auto-recovering...` loop! By keeping the connection open, the frontend stops reconnecting and stays ready for Admin manual replies (`SUPPORT_INBOX_UPDATE`).
+  - `backend/services/commerce/operatives/support_agent.py`:
+    - **Reverted** the early stripping of internal system prefixes (e.g. `[system_consult]`). Previously, stripping it before enqueuing caused `OrderHandler` to mistakenly intercept the long "Tư vấn chuyên sâu" prompt, falsely detecting it as a purchase intent and replying with `[z3] Dạ Helen đã nhận đơn của mình rồi ạ...`. The raw message must pass to the queue so `OrderHandler` can correctly bypass system commands.
+  - `backend/services/commerce/operatives/handlers/consultant.py`:
+    - Moved prefix interpretation directly into the LLM phase. When `[system_consult]` is detected, `base_prompt` is specifically overloaded with the "Tư vấn bán hàng chuyên sâu" rules, and `clean_msg` is drastically simplified to "Hãy tư vấn chuyên sâu về sản phẩm này giúp tôi." This prevents the Gemini AI model from receiving a massive, confusing system instruction disguised as user input, solving the root cause of the empty string responses while maintaining flawless routing hierarchy.
+  - `frontend/src/lib/state/commerce/supportAgent.svelte.ts`:
+    - Refactored `DONE` event handling to gracefully handle empty AI replies. Instead of silently ignoring empty replies (which left `this.isTyping` locked to `true` and the UI permanently frozen on "Helen đang xử lý..."), the frontend now clears the typing state and injects a polite fallback message indicating the system is busy.
+
+### 4. Báo cáo "Hệ thống quá tải" giả (False Positives)
+**Vấn đề:** Khách hàng thấy lỗi "hệ thống AI đang hơi quá tải" dù thực tế worker xử lý thành công trong 6.27s.
+**Nguyên nhân:** AI Model (đặc biệt là Gemini 2.0 Pro) đôi khi gặp lỗi "Thought-Only" - tức là nó trả về toàn bộ câu trả lời nằm trong cặp thẻ `<thought>...</thought>`. Sau đó, bộ lọc bảo vệ `_sanitize_response` (Output Shield) sẽ tước bỏ hoàn toàn thẻ `<thought>`, dẫn đến biến `safe_reply` trở thành chuỗi rỗng `""`. Khi frontend nhận được `reply=""`, nó lập tức fallback về giao diện "hệ thống quá tải".
+**Giải pháp:**
+1. **Sửa Prompt trong `ConsultantHandler`:** Thêm chỉ thị bắt buộc số 5: `"BẮT BUỘC: Bạn PHẢI có câu trả lời giao tiếp với khách hàng. TUYỆT ĐỐI CẤM việc chỉ suy nghĩ mà không trả lời."`
+2. **Double-Safety Net trong `support_agent.py`:** Sửa đổi `process_brain_logic` - sau khi `_sanitize_response` chạy, nếu `safe_reply` là chuỗi rỗng `""`, thay vì trả về rỗng cho frontend, hệ thống sẽ tự động bắt lấy và gọi ngay phương thức `consultant._generate_db_fallback(ctx)`. Việc này đảm bảo khách hàng LUÔN NHẬN ĐƯỢC tư vấn thông tin sản phẩm chuẩn (từ Database) thay vì màn hình lỗi.
+
+- **Verification & Execution Logs**:
+  - Executed end-to-end consultant agent diagnostic script (`test_consultant_agent.py`) inside the container context. The agent processed the consultation request flawlessly in 7.12 seconds, resolving the intent correctly, returning the y-khoa compliant detailed markdown sales response, and terminating with exit code 0.
+  - Deployed Python fixes and the pre-built Svelte `dist` files directly to the VPS using `rsync` and restarted `fast_platform_api`, `fast_platform_worker_high`, and `fast_platform_worker_fraud` to ensure immediate application.
+
+## 19. Helen AI Support Agent Stability & DB Defensive Guardrails (Elite V2.8)
+
+- **Modified Files**:
+  - `backend/services/commerce/knowledge_vector.py`:
+    - Updated the advanced pgvector semantic search SQL query (`search_semantic`) to filter out knowledge base records with empty or null answers (`AND k.answer IS NOT NULL AND k.answer != ''`). This ensures that only fully populated knowledge items can be retrieved by semantic search.
+  - `backend/services/commerce/support_knowledge.py`:
+    - Updated both the full phrase match query and the keyword fallback query in `search_relevant_knowledge_keyword` to explicitly ignore any records where the answer is empty or null (`SupportKnowledge.answer != ""` and `SupportKnowledge.answer.is_not(None)`).
+  - `backend/services/commerce/operatives/handlers/consultant.py`:
+    - Upgraded the L0 Fast-Path gate. Restressed that raw keyword searches are only performed on short user queries (`is_short_query: len(ctx.request.message.strip()) < 25`), shielding the system from false positive keyword mapping on long prompts.
+    - Implemented a robust **Double-Lock** check. Before short-circuiting a query through a matched database knowledge item, it verifies that the answer is not empty (`ans = str(match.get("answer", "")).strip()`). If empty, it bypasses the short-circuit and passes the request safely to the AI pipeline or database fallback.
+    - Switched logger reference to `"arq.worker"` to guarantee direct stdout output into the worker container's streaming logs.
+  - `backend/services/commerce/operatives/support_agent.py`:
+    - Changed the logger to `"arq.worker"` to ensure 100% transparency of output shield and operative logic execution on background tasks.
+- **Anomaly Resolution**: Scanned the production database and successfully updated the single anomaly entry (ID `3dc04985-055b-49af-861e-f794aec8986b`) for Beppin Body Virgin White Serum with a highly-detailed, y-khoa compliant professional Placenta scientific document.
+- **Verification**: Executed a task simulation of the complex sales consultation prompt (`[system_consult]`). Confirmed that the L0 Fast-Path correctly bypassed the empty answer check, successfully routed to the AI/Fallback framework, and cleanly returned a complete, premium y-khoa fallback response instead of a silent error or empty reply.
+
+## 20. Xohi Neural Optimize Prompt Refinement (Elite V2.2)
+
+- **Modified Files**:
+  - `backend/controllers/admin_support.py`:
+    - Updated `system_prompt` in `optimize_content` to act as a highly specialized **Knowledge Manager** focusing on professional **Corporate Knowledge Base (RAG KB)** architectures. It strictly enforces a third-person, objective, technical tone, strips out all conversational filler, structures the output into H1/H2/H3 hierarchies, mandates Markdown tables for parameters, and forces logical sections (Overview, Mechanism, Specs Table, Practical Application, Warnings).
+    - Switched pre-processing layer to `strip_markdown=False` in `noise_cleaner.clean()`. This guarantees that if the input text already has Markdown (headings, tables, lists), it is preserved during deterministic cleaning and successfully fed to the LLM, maintaining structure integrity.
+- **Verification**:
+  - Successfully restarted `fast_platform_api` container to apply changes. Verified service is up and running.
 
 
