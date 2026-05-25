@@ -4,8 +4,10 @@
     <!-- [Elite V2.2] Dynamic Analytics Loader — GTM + GA + GSC + FB Pixel -->
     <script>(function(){
       var CACHE_KEY='primary_config';
+      /* Robust ID validator: rejects null, "null", "", "0", whitespace-only */
+      function ok(id){return typeof id==='string'&&id.trim().length>0&&id!=='null'&&id!=='undefined'&&id!=='0';}
       function injectGTM(id){
-        if(!id||window.__gtm_loaded__)return;
+        if(!ok(id)||window.__gtm_loaded__)return;
         window.__gtm_loaded__=true;
         window['dataLayer']=window['dataLayer']||[];
         window['dataLayer'].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
@@ -14,7 +16,6 @@
         j.async=true;
         j.src='https://www.googletagmanager.com/gtm.js?id='+id;
         f.parentNode.insertBefore(j,f);
-        /* noscript iframe */
         var inject=function(){
           if(!document.getElementById('gtm-ns-'+id)){
             var ns=document.createElement('noscript');
@@ -30,7 +31,7 @@
         if(document.body){inject();}else{document.addEventListener('DOMContentLoaded',inject);}
       }
       function injectGA(id){
-        if(!id||window.__ga_loaded__)return;
+        if(!ok(id)||window.__ga_loaded__)return;
         window.__ga_loaded__=true;
         var s=document.createElement('script');
         s.async=true;
@@ -43,14 +44,14 @@
         gtag('config',id);
       }
       function injectGSC(id){
-        if(!id||document.querySelector('meta[name="google-site-verification"]'))return;
+        if(!ok(id)||document.querySelector('meta[name="google-site-verification"]'))return;
         var m=document.createElement('meta');
         m.name='google-site-verification';
         m.content=id;
         document.head.appendChild(m);
       }
       function injectFBPixel(id){
-        if(!id||window.__fb_loaded__)return;
+        if(!ok(id)||window.__fb_loaded__)return;
         window.__fb_loaded__=true;
         !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=true;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=true;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
         window.fbq('init',id);
