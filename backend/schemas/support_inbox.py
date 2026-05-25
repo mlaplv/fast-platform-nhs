@@ -21,6 +21,8 @@ class SupportSessionSummary(BaseModel):
     is_takeover: bool = False
     is_high_intent: bool = False
     is_online: bool = False
+    is_unread: bool = False
+    is_trash: bool = False
 
 
 class SupportSessionListResponse(BaseModel):

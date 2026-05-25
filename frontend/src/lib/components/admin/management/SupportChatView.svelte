@@ -51,8 +51,47 @@
   function formatDate(dateStr: string | null) {
     if (!dateStr) return "";
     const d = new Date(dateStr);
-    return d.toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+    return d.toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit" });
   }
+
+  function getDateGroupLabel(dateStr: string | null): string {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    const now = new Date();
+    
+    const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const diffTime = nowDate.getTime() - dDate.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return "Hôm nay";
+    } else if (diffDays === 1) {
+      return "Hôm qua";
+    } else if (diffDays > 1 && diffDays <= 7) {
+      return `${diffDays} ngày trước`;
+    } else {
+      return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+    }
+  }
+
+  // Reactive derived grouping (Svelte 5 Rune thưa sếp)
+  let groupedMessages = $derived.by(() => {
+    if (!session || !session.messages) return [];
+    const items: ({ type: 'date'; label: string } | { type: 'message'; message: MessageView })[] = [];
+    let lastLabel = "";
+    
+    for (const msg of session.messages) {
+      const label = getDateGroupLabel(msg.created_at);
+      if (label && label !== lastLabel) {
+        items.push({ type: 'date', label });
+        lastLabel = label;
+      }
+      items.push({ type: 'message', message: msg });
+    }
+    return items;
+  });
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -87,35 +126,44 @@
     </div>
 
     <div class="flex-1 overflow-y-auto overflow-x-hidden p-6 space-y-4 custom-scrollbar" bind:this={chatScrollRef}>
-      {#each session.messages as msg}
-        <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full">
-          <div class="max-w-[80%] group relative">
-            <div class="{msg.role === 'user' ? 'bg-cyan-600/20 border border-cyan-500/30 rounded-tr-none' : 'bg-white/10 border border-white/10 rounded-tl-none'} transition-all p-4 rounded-2xl {msg.is_revoked ? 'opacity-40 grayscale' : ''}">
-              <div class="text-[9px] tracking-widest text-white/30 mb-1 flex justify-between gap-10">
-                <span>{msg.role === 'user' ? 'KHÁCH HÀNG' : 'HELEN AI'}</span>
-                <span>{msg.is_revoked ? '[ĐÃ THU HỒI]' : ''} {formatDate(msg.created_at)}</span>
+      {#each groupedMessages as item}
+        {#if item.type === 'date'}
+          <div class="flex justify-center my-4">
+            <span class="text-[9px] px-3 py-1 bg-white/5 border border-white/10 rounded-full text-white/40 uppercase tracking-widest font-semibold font-mono">
+              {item.label}
+            </span>
+          </div>
+        {:else}
+          {@const msg = item.message}
+          <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full animate-fade-in">
+            <div class="max-w-[80%] group relative">
+              <div class="{msg.role === 'user' ? 'bg-cyan-600/10 border border-cyan-500/20 rounded-tr-none' : 'bg-white/5 border border-white/5 rounded-tl-none'} transition-all p-4 rounded-2xl {msg.is_revoked ? 'opacity-40 grayscale' : ''}">
+                <div class="text-[9px] tracking-widest text-white/30 mb-1 flex justify-between gap-10">
+                  <span>{msg.role === 'user' ? 'KHÁCH HÀNG' : 'HELEN AI'}</span>
+                  <span>{msg.is_revoked ? '[ĐÃ THU HỒI]' : ''} {formatDate(msg.created_at)}</span>
+                </div>
+                <p class="text-sm leading-relaxed whitespace-pre-wrap {msg.is_revoked ? 'italic line-through' : ''}">{msg.content}</p>
+                {#if msg.intent && !msg.is_revoked}<div class="mt-2 text-[8px] text-cyan-400/40 font-mono tracking-wider">INTENT: {msg.intent}</div>{/if}
               </div>
-              <p class="text-sm leading-relaxed whitespace-pre-wrap {msg.is_revoked ? 'italic line-through' : ''}">{msg.content}</p>
-              {#if msg.intent}<div class="mt-2 text-[8px] text-cyan-400/50 font-mono">INTENT: {msg.intent}</div>{/if}
-            </div>
-            
-            <div class="absolute {msg.role === 'user' ? 'right-full mr-2' : 'left-full ml-2'} bottom-0 opacity-0 group-hover:opacity-100 transition-all z-20">
-              <div class="flex items-center gap-0.5 bg-zinc-900 border border-white/10 rounded-full p-0.5 shadow-xl">
-                 <button onclick={() => onQuoteMessage(msg)} class="p-2 text-white/40 hover:text-cyan-400"><Quote class="w-3 h-3" /></button>
-                 <button onclick={() => onCopyMessage(msg.content)} class="p-2 text-white/40 hover:text-white"><Copy class="w-3 h-3" /></button>
-                 <button onclick={() => onRevokeMessage(msg.id)} class="p-2 text-white/40 hover:text-red-400">
-                    {#if msg.is_revoked}<RotateCcw class="w-3 h-3" />{:else}<Trash2 class="w-3 h-3" />{/if}
-                 </button>
+              
+              <div class="absolute {msg.role === 'user' ? 'right-full mr-2' : 'left-full ml-2'} bottom-0 opacity-0 group-hover:opacity-100 transition-all z-20">
+                <div class="flex items-center gap-0.5 bg-zinc-950/90 border border-white/10 rounded-full p-0.5 shadow-2xl backdrop-blur-md">
+                   <button onclick={() => onQuoteMessage(msg)} class="p-2 text-white/40 hover:text-cyan-400" title="Trích dẫn"><Quote class="w-3 h-3" /></button>
+                   <button onclick={() => onCopyMessage(msg.content)} class="p-2 text-white/40 hover:text-white" title="Sao chép"><Copy class="w-3 h-3" /></button>
+                   {#if !msg.is_revoked}
+                     <button onclick={() => onRevokeMessage(msg.id)} class="p-2 text-white/40 hover:text-red-400" title="Thu hồi"><Trash2 class="w-3 h-3" /></button>
+                   {/if}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        {/if}
       {/each}
     </div>
 
     <div class="p-4 bg-black/40 border-t border-white/10 backdrop-blur-xl shrink-0 relative">
       {#if quotedMessage}
-        <div transition:slide={{ axis: 'y' }} class="absolute bottom-full left-0 right-0 bg-white/5 backdrop-blur-2xl border-t border-white/10 p-3 flex items-center justify-between z-10">
+        <div transition:slide={{ axis: 'y' }} class="absolute bottom-full left-0 right-0 bg-zinc-950/90 backdrop-blur-2xl border-t border-white/10 p-3 flex items-center justify-between z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.5)]">
           <div class="flex items-center gap-3"><div class="w-1 h-8 bg-cyan-500 rounded-full"></div><div>
             <span class="text-[10px] font-bold text-cyan-400 ">Trả lời {quotedMessage.role === 'assistant' ? 'Helen AI' : 'Khách'}</span>
             <p class="text-xs text-white/50 truncate max-w-md">{quotedMessage.content}</p>
@@ -125,7 +173,7 @@
       {/if}
       <div class="relative">
         <textarea bind:value={manualMessage} onkeydown={handleKeydown} oninput={(e) => onUpdateMessage(e.currentTarget.value)}
-          placeholder={isTakeover ? "Nhân Enter để gửi..." : "Bật 'Chặn Helen' để chát..."} disabled={!isTakeover}
+          placeholder={isTakeover ? "Nhấn Enter để gửi..." : "Bật 'Chặn Helen' để chat..."} disabled={!isTakeover}
           class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white resize-none min-h-[50px] {isTakeover ? 'opacity-100' : 'opacity-40'}"></textarea>
         <button onclick={onSendMessage} disabled={!isTakeover || !manualMessage.trim() || isSending} class="absolute right-4 bottom-4 p-2 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30">
           <Send class="w-4 h-4" />
@@ -141,6 +189,13 @@
 
 <style>
   .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.5); }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.3); }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
 </style>

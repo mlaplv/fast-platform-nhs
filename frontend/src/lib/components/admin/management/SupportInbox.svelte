@@ -34,12 +34,12 @@
   let quotedMessage = $state<MessageView | null>(null);
   let sidebarWidth = $state(320);
   let isResizing = $state(false);
+  let activeFilter = $state<"all" | "unread" | "read" | "trash">("all");
 
   // Sync Global Search & Refresh
   $effect(() => {
     if (nanobot.supportSearchTerm !== searchTerm) {
       searchTerm = nanobot.supportSearchTerm;
-      loadSessions();
     }
   });
 
@@ -50,11 +50,19 @@
     }
   });
 
+  // Reactive state-driven loader (Svelte 5 standard thưa sếp)
+  $effect(() => {
+    const _search = searchTerm;
+    const _filter = activeFilter;
+    loadSessions();
+  });
+
   async function loadSessions() {
     isLoading = true;
     try {
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
+      params.append("filter", activeFilter);
       const res = await apiClient.get<{ data: SessionSummary[]; total: number }>(`/api/v1/admin/support/inbox/sessions?${params.toString()}`);
       sessions = res.data;
       totalSessions = res.total;
@@ -68,6 +76,8 @@
       const res = await apiClient.get<SessionDetail>(`/api/v1/admin/support/inbox/sessions/${id}`);
       selectedSessionDetail = res;
       isTakeover = res.is_takeover;
+      // Mark as read locally on click
+      sessions = sessions.map(s => s.session_id === id ? { ...s, is_unread: false } : s);
     } catch { selectedSessionDetail = null; }
   }
 
@@ -106,13 +116,62 @@
     } catch { nanobot.showToast("Lỗi thu hồi", "error"); }
   }
 
+  async function toggleSessionRead(id: string, currentlyUnread: boolean) {
+    try {
+      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/read?is_unread=${!currentlyUnread}`);
+      sessions = sessions.map(s => s.session_id === id ? { ...s, is_unread: !currentlyUnread } : s);
+      nanobot.showToast(!currentlyUnread ? "Đã đánh dấu là chưa đọc" : "Đã đánh dấu là đã đọc", "success");
+    } catch { nanobot.showToast("Lỗi cập nhật trạng thái", "error"); }
+  }
+
+  async function moveSessionToTrash(id: string) {
+    try {
+      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/trash`);
+      sessions = sessions.filter(s => s.session_id !== id);
+      if (selectedSessionId === id) {
+        selectedSessionId = null;
+        selectedSessionDetail = null;
+      }
+      nanobot.showToast("Đã đưa hội thoại vào Thùng rác", "success");
+    } catch { nanobot.showToast("Lỗi chuyển vào Thùng rác", "error"); }
+  }
+
+  async function restoreSessionFromTrash(id: string) {
+    try {
+      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/restore`);
+      sessions = sessions.filter(s => s.session_id !== id);
+      if (selectedSessionId === id) {
+        selectedSessionId = null;
+        selectedSessionDetail = null;
+      }
+      nanobot.showToast("Đã khôi phục hội thoại thành công", "success");
+    } catch { nanobot.showToast("Lỗi khôi phục hội thoại", "error"); }
+  }
+
+  async function hardDeleteSession(id: string) {
+    const ok = await nanobot.showConfirm({
+      title: "HỆ THỐNG GIÁM SÁT",
+      message: "Sếp có chắc chắn muốn XÓA VĨNH VIỄN hội thoại này? Hành động này không thể khôi phục.",
+      confirmLabel: "XÓA VĨNH VIỄN",
+      cancelLabel: "HỦY BỎ"
+    });
+    if (!ok) return;
+    try {
+      await apiClient.post(`/api/v1/admin/support/inbox/sessions/${id}/hard-delete`);
+      sessions = sessions.filter(s => s.session_id !== id);
+      if (selectedSessionId === id) {
+        selectedSessionId = null;
+        selectedSessionDetail = null;
+      }
+      nanobot.showToast("Đã xóa vĩnh viễn cuộc hội thoại", "success");
+    } catch { nanobot.showToast("Lỗi xóa vĩnh viễn", "error"); }
+  }
+
   function handleSearch(e: Event) {
     const val = (e.target as HTMLInputElement).value;
     searchInput = val;
-    setTimeout(() => { searchTerm = val; loadSessions(); }, 500);
+    setTimeout(() => { searchTerm = val; }, 500);
   }
-
-  onMount(() => { loadSessions(); });
 </script>
 
 <div class="support-inbox h-full flex flex-col {!isWidget ? 'bg-obsidian-900/40 backdrop-blur-xl border border-white/5 rounded-2xl' : 'bg-transparent'} overflow-hidden">
@@ -133,7 +192,18 @@
     onmouseup={() => isResizing = false} onmouseleave={() => isResizing = false} role="presentation">
     
     <div style:width="{sidebarWidth}px" class="shrink-0 flex">
-      <SupportChatList {sessions} {selectedSessionId} {isLoading} onSelect={selectSession} />
+      <SupportChatList 
+        {sessions} 
+        {selectedSessionId} 
+        {isLoading} 
+        {activeFilter}
+        onSelect={selectSession} 
+        onFilterChange={(f) => activeFilter = f}
+        onToggleRead={toggleSessionRead}
+        onMoveToTrash={moveSessionToTrash}
+        onRestore={restoreSessionFromTrash}
+        onHardDelete={hardDeleteSession}
+      />
     </div>
 
     <!-- Divider -->

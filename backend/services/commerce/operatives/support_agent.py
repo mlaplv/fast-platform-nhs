@@ -684,6 +684,13 @@ class SupportAgentOperative(BaseAgentOperative):
         if c_name in ["Khách ẩn danh", "Sếp"]: c_name = "Quý khách"
         msg_clean = request.message.strip().lower()
 
+        # Mark session as unread in Redis Set (O(1) Memory & Latency compliance thưa sếp)
+        if xohi_memory._use_redis and xohi_memory.client:
+            try:
+                await xohi_memory.client.sadd("support:unread_sessions", session_id)
+            except Exception as re:
+                logger.error(f"[SupportAgent] Failed to mark unread in Redis Set: {re}")
+
         # Emit support inbox update to trigger admin bell immediately thưa sếp!
         await event_bus.emit("SUPPORT_INBOX_UPDATE", {
             "session_id": session_id,

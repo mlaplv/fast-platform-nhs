@@ -47,11 +47,22 @@ class AdminSupportInboxController(Controller):
         limit: int = 20,
         offset: int = 0,
         search: Optional[str] = None,
+        filter: str = "all",
     ) -> SupportSessionListResponse:
         """
         Returns one row per unique session_id with summary metadata.
         Groups by session, counts messages, shows last intent + timestamp.
         """
+        # Fetch unread session IDs from Redis Set (O(1) Memory & Latency compliant thưa sếp)
+        unread_sids: set[str] = set()
+        if xohi_memory._use_redis and xohi_memory.client:
+            try:
+                unread_sids = set(await xohi_memory.client.smembers("support:unread_sessions"))
+            except Exception as e:
+                logger.error(f"[AdminSupportInbox] Failed to get unread sessions from Redis: {e}")
+
+        is_trash_filter = filter == "trash"
+        
         # Subquery: message count, latest time, and any-phone detected per session
         subq = (
             select(
@@ -60,32 +71,46 @@ class AdminSupportInboxController(Controller):
                 func.max(SupportChatHistory.created_at).label("last_message_at"),
                 func.max(SupportChatHistory.customer_phone).label("any_phone"),
             )
-            .where(SupportChatHistory.deleted_at.is_(None))
+            .where(
+                SupportChatHistory.deleted_at.isnot(None) if is_trash_filter 
+                else SupportChatHistory.deleted_at.is_(None)
+            )
             .group_by(SupportChatHistory.session_id)
             .subquery()
         )
 
-        # Latest record per session for metadata (customer info, intent)
-        inner = (
+        # Core Query: Join SupportChatHistory with subq on session_id and created_at = last_message_at
+        # This gives us EXACTLY one record per session (the latest one) sorted by last_message_at DESC!
+        stmt = (
             select(SupportChatHistory)
-            .where(SupportChatHistory.deleted_at.is_(None))
-            .order_by(
-                SupportChatHistory.session_id,
-                desc(SupportChatHistory.created_at),
+            .join(
+                subq,
+                (SupportChatHistory.session_id == subq.c.session_id)
+                & (SupportChatHistory.created_at == subq.c.last_message_at)
             )
-            .distinct(SupportChatHistory.session_id)
+            .order_by(desc(subq.c.last_message_at))
         )
+
         if search:
-            inner = inner.where(
+            stmt = stmt.where(
                 SupportChatHistory.customer_phone.ilike(f"%{search}%")
                 | SupportChatHistory.customer_name.ilike(f"%{search}%")
                 | SupportChatHistory.product_slug.ilike(f"%{search}%")
             )
 
-        count_q = select(func.count()).select_from(inner.subquery())
+        if filter == "unread":
+            if unread_sids:
+                stmt = stmt.where(SupportChatHistory.session_id.in_(list(unread_sids)))
+            else:
+                stmt = stmt.where(SupportChatHistory.session_id == "EMPTY_FILTER_NO_UNREAD")
+        elif filter == "read":
+            if unread_sids:
+                stmt = stmt.where(~SupportChatHistory.session_id.in_(list(unread_sids)))
+
+        count_q = select(func.count()).select_from(stmt.subquery())
         total: int = (await db_session.execute(count_q)).scalar_one_or_none() or 0
 
-        paged = inner.limit(limit).offset(offset)
+        paged = stmt.limit(limit).offset(offset)
         rows = (await db_session.execute(paged)).scalars().all()
 
         # Fetch aggregated results from subquery
@@ -106,6 +131,8 @@ class AdminSupportInboxController(Controller):
             
             # Elite V2.2 Emergency: Any Phone detected in session history forces High Intent status
             is_high = has_phone or intent_str in high_intent_codes
+            is_unread = sid in unread_sids
+            is_trash = row.deleted_at is not None
             
             summaries.append(
                 SupportSessionSummary(
@@ -118,7 +145,9 @@ class AdminSupportInboxController(Controller):
                     last_message_at=time_map.get(sid),
                     is_takeover=is_takeover,
                     is_high_intent=is_high,
-                    is_online=is_online
+                    is_online=is_online,
+                    is_unread=is_unread,
+                    is_trash=is_trash
                 )
             )
 
@@ -134,6 +163,7 @@ class AdminSupportInboxController(Controller):
         Returns all messages for a session, decrypted.
         Sorted chronologically (oldest first) for inbox-style rendering.
         """
+        # First, try to query active messages
         stmt = (
             select(SupportChatHistory)
             .where(
@@ -143,6 +173,19 @@ class AdminSupportInboxController(Controller):
             .order_by(SupportChatHistory.created_at)
         )
         rows = (await db_session.execute(stmt)).scalars().all()
+        
+        # If no active messages, check if it exists in trash (soft-deleted)
+        if not rows:
+            stmt_trash = (
+                select(SupportChatHistory)
+                .where(
+                    SupportChatHistory.session_id == session_id,
+                    SupportChatHistory.deleted_at.isnot(None),
+                )
+                .order_by(SupportChatHistory.created_at)
+            )
+            rows = (await db_session.execute(stmt_trash)).scalars().all()
+
         if not rows:
             raise NotFoundException(detail=f"Session '{session_id}' not found.")
 
@@ -174,6 +217,13 @@ class AdminSupportInboxController(Controller):
         is_takeover = await xohi_memory.client.get(f"support:takeover:{session_id}") == "0"
         is_online = await xohi_memory.client.get(f"support:presence:{session_id}") == "1"
 
+        # Mark as read in Redis (O(1) Set compliance thưa sếp)
+        if xohi_memory._use_redis and xohi_memory.client:
+            try:
+                await xohi_memory.client.srem("support:unread_sessions", session_id)
+            except Exception as e:
+                logger.error(f"[AdminSupportInbox] Failed to clear unread in Redis: {e}")
+
         return SupportSessionDetailResponse(
             session_id=session_id,
             customer_name=first.customer_name or "Khách ẩn danh",
@@ -183,6 +233,112 @@ class AdminSupportInboxController(Controller):
             is_takeover=is_takeover,
             is_online=is_online
         )
+
+    @post("/sessions/{session_id:str}/read", summary="Toggle read/unread status for a session")
+    async def mark_session_read(
+        self,
+        session_id: str,
+        is_unread: bool,
+    ) -> dict[str, bool]:
+        """Manually mark a session as unread or read using Redis Set (O(1) compliance thưa sếp)"""
+        if xohi_memory._use_redis and xohi_memory.client:
+            try:
+                if is_unread:
+                    await xohi_memory.client.sadd("support:unread_sessions", session_id)
+                else:
+                    await xohi_memory.client.srem("support:unread_sessions", session_id)
+            except Exception as e:
+                logger.error(f"[AdminSupportInbox] Failed to toggle unread in Redis: {e}")
+        
+        # Emit event to sync with other admins
+        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+            "session_id": session_id,
+            "is_unread": is_unread
+        })
+        return {"is_unread": is_unread}
+
+    @post("/sessions/{session_id:str}/trash", summary="Move session to trash (soft delete)")
+    async def move_to_trash(
+        self,
+        db_session: AsyncSession,
+        session_id: str,
+    ) -> dict[str, bool]:
+        """Soft delete all messages in a session by setting deleted_at = utcnow()"""
+        stmt = select(SupportChatHistory).where(
+            SupportChatHistory.session_id == session_id,
+            SupportChatHistory.deleted_at.is_(None)
+        )
+        messages = (await db_session.execute(stmt)).scalars().all()
+        
+        from backend.database.models.base import utcnow
+        now = utcnow()
+        
+        for msg in messages:
+            msg.deleted_at = now
+        await db_session.commit()
+        
+        # Also clean up unread status from Redis
+        if xohi_memory._use_redis and xohi_memory.client:
+            try:
+                await xohi_memory.client.srem("support:unread_sessions", session_id)
+            except Exception as e:
+                logger.error(f"[AdminSupportInbox] Failed to clear unread in Redis: {e}")
+
+        # Emit update event
+        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+            "session_id": session_id,
+            "action": "trash"
+        })
+        return {"ok": True}
+
+    @post("/sessions/{session_id:str}/restore", summary="Restore session from trash")
+    async def restore_from_trash(
+        self,
+        db_session: AsyncSession,
+        session_id: str,
+    ) -> dict[str, bool]:
+        """Restore soft-deleted session messages by setting deleted_at = None"""
+        stmt = select(SupportChatHistory).where(
+            SupportChatHistory.session_id == session_id,
+            SupportChatHistory.deleted_at.isnot(None)
+        )
+        messages = (await db_session.execute(stmt)).scalars().all()
+        for msg in messages:
+            msg.deleted_at = None
+        await db_session.commit()
+        
+        # Emit update event
+        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+            "session_id": session_id,
+            "action": "restore"
+        })
+        return {"ok": True}
+
+    @post("/sessions/{session_id:str}/hard-delete", summary="Permanently delete a session")
+    async def hard_delete_session(
+        self,
+        db_session: AsyncSession,
+        session_id: str,
+    ) -> dict[str, bool]:
+        """Permanently delete all messages in a session from database"""
+        from sqlalchemy import delete
+        stmt = delete(SupportChatHistory).where(SupportChatHistory.session_id == session_id)
+        await db_session.execute(stmt)
+        await db_session.commit()
+        
+        # Also clean up unread from Redis
+        if xohi_memory._use_redis and xohi_memory.client:
+            try:
+                await xohi_memory.client.srem("support:unread_sessions", session_id)
+            except Exception as e:
+                logger.error(f"[AdminSupportInbox] Failed to clear unread in Redis: {e}")
+                
+        # Emit update event
+        await event_bus.emit("SUPPORT_INBOX_UPDATE", {
+            "session_id": session_id,
+            "action": "hard-delete"
+        })
+        return {"ok": True}
 
     @post("/sessions/{session_id:str}/takeover", summary="Toggle AI Takeover for a session")
     async def toggle_takeover(self, session_id: str) -> dict[str, bool]:
@@ -229,6 +385,13 @@ class AdminSupportInboxController(Controller):
         db_session.add(new_msg)
         await db_session.commit()
         await db_session.refresh(new_msg)
+
+        # Mark as read in Redis since admin replied (O(1) Set compliance thưa sếp)
+        if xohi_memory._use_redis and xohi_memory.client:
+            try:
+                await xohi_memory.client.srem("support:unread_sessions", session_id)
+            except Exception as e:
+                logger.error(f"[AdminSupportInbox] Failed to clear unread in Redis: {e}")
 
         # 🚀 Pulse Broadcaster: Zero-Latency Sync + "Ting" Sound
         await event_bus.emit("SUPPORT_INBOX_UPDATE", {

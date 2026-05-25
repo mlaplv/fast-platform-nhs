@@ -1,9 +1,16 @@
-# Task Checklist - Responsive Product Slideshow Optimization
+# Task Checklist - Restoring Support System Connectivity
 
-- [x] Integrate variant-specific mobile images in `ProductMobileOverview.svelte`'s dynamic carousel images list.
-- [x] Synchronize responsive variant images in `MobileOffer.svelte`.
-- [x] Implement variant specific desktop images in `OfferCard.svelte`.
-- [x] Make `HeroBanner.svelte` dynamically detect mobile/desktop and select the correct variant images array.
-- [x] Implement smooth auto-scroll to matching variant image when a user selects a variant in `ProductMobileOverview.svelte`.
-- [x] Implement dynamic variant thumbnail list selection in desktop `Gallery.svelte`.
-- [x] Run verification to ensure syntax correctness.
+- [x] Restart the exited `fast_platform_api` container and verify it is running and healthy. (Done)
+- [x] Verify end-to-end delivery of the Telegram notification pipeline using the `test_notification.py` framework. (Done)
+- [ ] Clean up the exited orphan `fast_platform_ui` container.
+- [ ] Add the `restart: always` directive to the `api` service in `docker-compose.yml` to prevent future silent downings.
+- [ ] Perform a full system status verify and ensure no memory leaks or stuck background workers exist.
+
+# Task Checklist - Chat UI Aesthetic & Space Optimization (Elite V2.2)
+
+- [ ] Transition chat window from irregular morphing blob (`helen-box-v2`) to static, ultra-premium iOS-style rounded rectangle (`helen-box-premium`, `rounded-[36px]`).
+- [ ] Replace zero-background floating message text with elegant glassmorphic bubbles (User: pink gradient glass, Helen: subtle white/gray glass).
+- [ ] Optimize chat thread vertical flow (reduce spacing from `space-y-12` to `space-y-6`, adjust message label padding).
+- [ ] Refine the bottom input capsule (reduce bloat, shrink input height, and scale down the send button).
+- [ ] Polish quick action tags and tooltips to avoid overflowing and visual clutter.
+- [ ] Verify there are zero runtime warnings, layout shifts, or horizontal scroll bleedings.
