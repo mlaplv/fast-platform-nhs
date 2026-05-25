@@ -210,9 +210,31 @@ class SecurityController(Controller):
         try:
             logger.warning(f"🚨 [SOC OPS] Admin triggered container action: {action} on {container_name}")
             
-            # Thực thi lệnh Docker tương ứng
+            # Bản đồ ánh xạ từ container_name sang service_name tương ứng trong docker-compose
+            SERVICE_MAP = {
+                "fast_platform_worker_default": "worker_default",
+                "fast_platform_worker_high": "worker_high",
+                "fast_platform_api": "api",
+                "fast_platform_db": "db",
+                "fast_platform_redis": "redis",
+                "fast_platform_caddy": "caddy"
+            }
+
+            service_name = SERVICE_MAP.get(container_name)
+            if service_name:
+                if action == "start":
+                    # Dùng '--profile admin' để tự động tạo mới & chạy container kể cả khi đã bị prune dọn dẹp
+                    cmd = ["docker", "compose", "--profile", "admin", "up", "-d", service_name]
+                elif action == "stop":
+                    cmd = ["docker", "compose", "--profile", "admin", "stop", service_name]
+                else: # restart
+                    cmd = ["docker", "compose", "--profile", "admin", "restart", service_name]
+            else:
+                # Fallback về docker CLI truyền thống
+                cmd = ["docker", action, container_name]
+
             proc = await asyncio.create_subprocess_exec(
-                "docker", action, container_name,
+                *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
