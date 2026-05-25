@@ -68,6 +68,20 @@ class SecurityController(Controller):
             headers={"Cache-Control": "no-store, no-cache, must-revalidate"}
         )
 
+    @post("/audit-logs/clear")
+    async def clear_audit_logs(self) -> SuccessResponse:
+        """
+        [ELITE V2.2] Xóa sạch nhật ký audit trail log file.
+        """
+        log_path = "logs/audit.log"
+        try:
+            with open(log_path, "w") as f:
+                f.write("")
+            return SuccessResponse(message="Đã làm sạch nhật ký an ninh thành công.")
+        except Exception as e:
+            logger.error(f"❌ [Security] Clear logs failure: {e}")
+            return SuccessResponse(message=f"Lỗi làm sạch log: {e}")
+
     @post("/analyze-threat")
     async def analyze_threat(self, data: Dict) -> ThreatAnalysis:
         """

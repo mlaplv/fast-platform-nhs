@@ -209,10 +209,61 @@
     }
   }
 
+  // --- [ELITE V2.2] Real-time Sinusoidal Oscilloscope Math ---
+  let phase = $state(0);
+  let animFrameId: number;
+
+  function animLoop() {
+    phase += 0.04;
+    animFrameId = requestAnimationFrame(animLoop);
+  }
+
+  let cpuPath = $derived.by(() => {
+    let points = [];
+    const avgCpu = containers.reduce((acc, c) => acc + parseFloat(c.cpu || '0'), 0) / (containers.length || 1);
+    const amp = 8 + avgCpu * 0.35; // Amplitude adjusts to CPU load
+    const freq = 0.04 + (avgCpu * 0.0005);
+    
+    for (let x = 0; x <= 300; x += 4) {
+      const y = 30 + Math.sin(x * freq + phase) * amp;
+      points.push(`${x},${y}`);
+    }
+    return `M ${points.join(" L ")}`;
+  });
+
+  let ramPath = $derived.by(() => {
+    let points = [];
+    const avgRam = containers.reduce((acc, c) => acc + parseFloat(c.mem_perc || '0'), 0) / (containers.length || 1);
+    const amp = 8 + avgRam * 0.25; // Amplitude adjusts to RAM load
+    const freq = 0.035;
+    
+    for (let x = 0; x <= 300; x += 4) {
+      const y = 30 + Math.sin(x * freq - phase * 0.7) * amp; // Scrolls reverse
+      points.push(`${x},${y}`);
+    }
+    return `M ${points.join(" L ")}`;
+  });
+
+  async function clearLogs(): Promise<void> {
+    if (!confirm("[SOC WARNING] Bạn có chắc chắn muốn XÓA SẠCH toàn bộ Nhật ký an ninh (Audit Trail)? Hành động này không thể hoàn tác!")) return;
+    try {
+      await apiClient.post("/api/v1/security/audit-logs/clear", {});
+      nanobot.ui.showToast("Nhật ký an ninh đã được làm sạch", "success");
+      await loadSOCData();
+    } catch (e) {
+      console.error("[SOC] Clear logs error:", e);
+      nanobot.ui.showToast("Lỗi làm sạch log", "error");
+    }
+  }
+
   onMount(() => {
     loadSOCData();
+    animLoop();
     const interval = setInterval(loadSOCData, 10000); // 10s cycle for live resources
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      cancelAnimationFrame(animFrameId);
+    };
   });
 </script>
 
@@ -295,6 +346,15 @@
         {/each}
       </div>
 
+      <button 
+        onclick={clearLogs} 
+        title="Làm sạch toàn bộ nhật ký an ninh (Flush Audit Logs)" 
+        class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 rounded text-[8px] font-black transition-all flex items-center gap-1 cursor-pointer border border-rose-500/20"
+      >
+        <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        LÀM SẠCH LOG
+      </button>
+
       <button onclick={loadSOCData} class="p-2 text-gray-500 hover:text-cyan-400 transition-colors">
         <RefreshCw size={14} class={isLoading ? 'animate-spin' : ''} />
       </button>
@@ -333,6 +393,47 @@
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Neon Oscilloscope card -->
+            <div class="bg-cyan-950/[0.02] border border-cyan-500/20 rounded-xl p-4 flex flex-col justify-between h-[128px] overflow-hidden relative group md:col-span-2">
+              <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_right,rgba(6,182,212,0.05)_0%,transparent_60%)]"></div>
+              <div class="flex justify-between items-start z-10">
+                <div class="flex flex-col">
+                  <span class="text-[8px] text-cyan-400 font-black tracking-widest uppercase">TRINITY NEURAL OSCILLOSCOPE</span>
+                  <span class="text-[7px] text-gray-500 font-mono tracking-wider mt-0.5">Real-time system pulse telemetry</span>
+                </div>
+                <div class="flex gap-3 text-[7px] font-mono">
+                  <div class="flex items-center gap-1"><span class="w-1 h-1 rounded-full bg-cyan-400"></span> CPU Wave</div>
+                  <div class="flex items-center gap-1"><span class="w-1 h-1 rounded-full bg-purple-400"></span> RAM Wave</div>
+                </div>
+              </div>
+
+              <!-- SVG Sine Wave Canvas -->
+              <div class="w-full h-[55px] relative overflow-hidden mt-1">
+                <svg class="w-full h-full" viewBox="0 0 300 60" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="cyan-glow" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.1" />
+                      <stop offset="50%" stop-color="#06b6d4" stop-opacity="0.8" />
+                      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.1" />
+                    </linearGradient>
+                    <linearGradient id="purple-glow" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.1" />
+                      <stop offset="50%" stop-color="#a855f7" stop-opacity="0.8" />
+                      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.1" />
+                    </linearGradient>
+                  </defs>
+                  <!-- Sine paths -->
+                  <path d={ramPath} fill="none" stroke="url(#purple-glow)" stroke-width="1.5" stroke-linecap="round" />
+                  <path d={cpuPath} fill="none" stroke="url(#cyan-glow)" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </div>
+
+              <div class="flex justify-between items-center text-[7px] text-gray-600 font-mono mt-1 pt-1 border-t border-white/5">
+                <span>FREQ: { (0.04 + (containers.reduce((acc, c) => acc + parseFloat(c.cpu || '0'), 0) / (containers.length || 1)) * 0.0005).toFixed(4) } GHz</span>
+                <span>AMP: { (8 + (containers.reduce((acc, c) => acc + parseFloat(c.cpu || '0'), 0) / (containers.length || 1)) * 0.35).toFixed(1) } mV</span>
+              </div>
+            </div>
+
             {#each containers as c}
               <div class="bg-white/[0.01] border border-white/5 rounded-xl p-4 hover:bg-white/[0.02] hover:border-cyan-500/20 transition-all duration-300 relative overflow-hidden group">
                 {#if opLoading === c.name}
