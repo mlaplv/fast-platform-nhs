@@ -346,50 +346,81 @@
     </div>
   </div>
 
-  <!-- Shipping -->
-  <div class="space-y-2 mb-2">
-    <div class="flex items-start">
-      <span class="w-[70px] shrink-0 text-[14px] text-gray-500">Vận chuyển</span
-      >
-      <div class="space-y-2">
-        <div class="flex items-center gap-2">
-          <svg
-            class="w-5 h-5 text-[#00bfa5]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M5 13l4 4L19 7"
-            /></svg
-          >
-          <span class="text-[14px] font-medium text-gray-800"
-            >Nhận hàng nhanh chóng</span
-          >
-          <svg
-            class="w-3.5 h-3.5 opacity-30"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2.5"
-              d="M9 5l7 7-7-7"
-            /></svg
-          >
+  <!-- Shipping (TikTok-Style Premium Trust Card) -->
+  <div class="mb-4 bg-gradient-to-r from-slate-50 to-emerald-50/30 border border-emerald-500/10 rounded-xl p-4 shadow-sm relative overflow-hidden group">
+    <!-- Premium Refraction Glow (TikTok Shop Style) -->
+    <div class="absolute -right-16 -top-16 w-32 h-32 bg-emerald-400/5 rounded-full blur-3xl group-hover:bg-emerald-400/10 transition-all duration-700"></div>
+    <div class="absolute -left-16 -bottom-16 w-32 h-32 bg-rose-400/5 rounded-full blur-3xl group-hover:bg-rose-400/10 transition-all duration-700"></div>
+
+    <div class="flex items-start gap-4">
+      <span class="w-[70px] shrink-0 text-[13px] font-black text-gray-400 tracking-wider uppercase mt-1">Giao Nhận</span>
+      
+      <div class="flex-1 space-y-3.5">
+        <!-- 1. Vận Chuyển: Giao Nhanh 2H -->
+        <div class="flex items-start gap-3 group/item">
+          <div class="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0 mt-0.5 shadow-sm group-hover/item:scale-110 transition-transform duration-200">
+            <svg class="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-2">
+              <span class="text-[14px] font-black text-gray-800">Vận chuyển</span>
+              <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black tracking-wider text-rose-600 bg-rose-500/10 border border-rose-500/20 rounded-md uppercase animate-pulse">
+                Giao nhanh 2h
+              </span>
+            </div>
+            <span class="text-[12px] text-gray-500 font-medium mt-0.5">Nhận hàng siêu tốc trong khu vực nội thành</span>
+          </div>
         </div>
-        <div class="text-[14px]">
-          <span class="text-[#00bfa5] font-black">Phí ship 0₫</span>
-          <p class="text-[12px] text-gray-400 mt-1">
-            Miễn phí hỏa tốc giao nhanh toàn quốc, kiểm tra hàng mới thanh toán.
-          </p>
+
+        <!-- Divider line -->
+        <div class="h-px bg-slate-100"></div>
+
+        <!-- 2. Phí Ship: 0Đ Toàn Quốc -->
+        <div class="flex items-start gap-3 group/item">
+          <div class="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5 shadow-sm group-hover/item:scale-110 transition-transform duration-200">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-2">
+              <span class="text-[14px] font-black text-gray-800">Phí ship 0đ</span>
+              <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black tracking-wider text-emerald-700 bg-emerald-500/15 border border-emerald-500/20 rounded-md uppercase">
+                Mọi đơn hàng
+              </span>
+            </div>
+            <span class="text-[12px] text-gray-500 font-medium mt-0.5">Áp dụng miễn phí vận chuyển trên phạm vi toàn quốc</span>
+          </div>
+        </div>
+
+        <!-- Divider line -->
+        <div class="h-px bg-slate-100"></div>
+
+        <!-- 3. Đồng Kiểm: Kiểm Hàng Trước Khi Thanh Toán -->
+        <div class="flex items-start gap-3 group/item">
+          <div class="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 mt-0.5 shadow-sm group-hover/item:scale-110 transition-transform duration-200">
+            <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+          </div>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-2">
+              <span class="text-[14px] font-black text-gray-800">Đồng kiểm</span>
+              <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black tracking-wider text-blue-700 bg-blue-500/15 border border-blue-500/20 rounded-md uppercase">
+                Kiểm hàng mới thanh toán
+              </span>
+            </div>
+            <span class="text-[12px] text-slate-600 font-semibold leading-relaxed mt-0.5">
+              Miễn phí hỏa tốc giao nhanh toàn quốc, kiểm tra hàng mới thanh toán.
+            </span>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
 
   <!-- Variations -->
   {#if variations.length > 0}

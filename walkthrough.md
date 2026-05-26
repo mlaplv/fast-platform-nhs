@@ -375,6 +375,23 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
     - **Execution**: Applied the migration successfully via `alembic upgrade head`, bringing both local and production databases into absolute alignment with the Pydantic schemas.
   - **Result**: Restores full integrity of the public campaigns endpoint and client-side voucher rendering. Regular active vouchers now load perfectly alongside viral vouchers!
 
+## 29. Redesign Shipping & Trust Badges TikTok-Style (Elite V2.2)
+
+- **Files Updated**:
+  - `frontend/src/lib/components/storefront/product-detail/MainDetail/modules/Info.svelte`
+  - `frontend/src/lib/components/storefront/product-detail/LandingPage/modules/Info.svelte`
+- **Features Implemented**:
+  - **Premium TikTok Trust Card Layout**: Crafted a beautiful layout (`bg-gradient-to-r from-slate-50 to-emerald-50/30 border border-emerald-500/10 rounded-xl p-4`) containing distinct section rows separated by subtle dividers (`h-px bg-slate-100`) for absolute scannability and cleanliness.
+  - **Specular Refraction Refinement**: Embedded two soft, wide blurry gradient spheres (`blur-3xl bg-emerald-400/5` and `bg-rose-400/5`) to create an high-end Apple Glassmorphism and active retail atmosphere.
+  - **Three Trust Badges Integration**:
+    1. **Vận Chuyển**: Icon Tia sét cam-đỏ rực rỡ, tag `Giao nhanh 2h` nhấp nháy (`animate-pulse`) màu hồng anh đào (`bg-rose-500/10 text-rose-600 border border-rose-500/20`), đi kèm phụ đề *"Nhận hàng siêu tốc trong khu vực nội thành"*.
+    2. **Phí Ship**: Icon Khiên xanh ngọc bích, tag `Mọi đơn hàng` màu ngọc bích (`bg-emerald-500/15 text-emerald-700 border border-emerald-500/20`), đi kèm phụ đề *"Áp dụng miễn phí vận chuyển trên phạm vi toàn quốc"*.
+    3. **Đồng Kiểm**: Icon Bảng kẹp clip-board xanh dương, tag `Kiểm hàng mới thanh toán` màu lam (`bg-blue-500/15 text-blue-700 border border-blue-500/20`), đi kèm khẳng định: *"Miễn phí hỏa tốc giao nhanh toàn quốc, kiểm tra hàng mới thanh toán."*
+- **Verification**:
+  - Run static compiler analysis and successfully built the storefront static `dist` bundle via `pnpm run build` with **exit code 0** (zero static errors).
+  - All icons are rendered via inline SVGs, preserving a zero-latency loading and zero network payload.
+
+
 
 
 

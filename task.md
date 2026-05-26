@@ -200,12 +200,12 @@
 
 # Task Checklist - Redesign Shipping Section TikTok-Style (Elite V2.2)
 
-- [ ] Thiết kế lại khối Vận Chuyển trong `MainDetail/modules/Info.svelte` chuẩn TikTok Shop style.
-- [ ] Thiết kế lại khối Vận Chuyển trong `LandingPage/modules/Info.svelte` đồng bộ chuẩn TikTok Shop style.
-- [ ] Tích hợp 3 tiêu điểm kích thích chuyển đổi (CRO):
+- [x] Thiết kế lại khối Vận Chuyển trong `MainDetail/modules/Info.svelte` chuẩn TikTok Shop style. (Done)
+- [x] Thiết kế lại khối Vận Chuyển trong `LandingPage/modules/Info.svelte` đồng bộ chuẩn TikTok Shop style. (Done)
+- [x] Tích hợp 3 tiêu điểm kích thích chuyển đổi (CRO): (Done)
   1. Vận chuyển: Nhãn "Giao nhanh 2h" nhấp nháy (pulsing) kèm icon tia sét độc quyền.
   2. Phí ship: Nhãn "Mọi đơn hàng" 0đ áp dụng phạm vi toàn quốc kèm icon bảo chứng xanh lá.
   3. Đồng kiểm: Khẳng định miễn phí hỏa tốc, cho phép "Kiểm tra hàng mới thanh toán" để gia tăng uy tín tối đa kèm icon tài liệu/đồng kiểm xanh dương.
-- [ ] Xây dựng layout dạng thẻ (Card) bo góc mềm mại, kết hợp dải màu gradient nhẹ tinh tế và hiệu ứng lóe sáng Apple Glassmorphism sang trọng.
-- [ ] Đảm bảo 100% responsive, biên dịch sạch không có cảnh báo/lỗi static build, và tải trang mượt mà <200ms.
+- [x] Xây dựng layout dạng thẻ (Card) bo góc mềm mại, kết hợp dải màu gradient nhẹ tinh tế và hiệu ứng lóe sáng Apple Glassmorphism sang trọng. (Done)
+- [x] Đảm bảo 100% responsive, biên dịch sạch không có cảnh báo/lỗi static build, và tải trang mượt mà <200ms. (Done)
 
