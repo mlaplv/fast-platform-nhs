@@ -287,6 +287,11 @@
     }, 150);
   }
 
+  function handleTriggerVerify(e: MouseEvent) {
+    e.stopPropagation();
+    onTriggerScan?.();
+  }
+
   function resolveGiftUrl(slug: string): string {
     if (!slug) return '';
     if (slug.startsWith('http://') || slug.startsWith('https://')) return slug;
