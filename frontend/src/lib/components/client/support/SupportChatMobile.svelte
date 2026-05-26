@@ -109,6 +109,7 @@
   }
 
   async function handleQuickAction(action: QuickAction) {
+    if (supportAgent.isTyping) return;
     if (action.action) {
       action.action();
       return;
@@ -648,7 +649,8 @@
                 class="px-2.5 py-1 bg-white/5 active:bg-white/10 text-white/60 border border-white/5 rounded-full text-[10px] font-black tracking-wide transition-all active:scale-95 {action.label ===
                 'An toàn da'
                   ? 'ring-1 ring-[#FFB7C5]/30 text-white'
-                  : ''}"
+                  : ''} disabled:opacity-20 disabled:pointer-events-none disabled:cursor-not-allowed"
+                disabled={supportAgent.isTyping}
                 onclick={() => handleQuickAction(action)}
               >
                 {action.label}

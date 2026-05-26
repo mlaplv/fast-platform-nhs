@@ -133,6 +133,7 @@
   }
 
   async function handleQuickAction(action: QuickAction) {
+    if (supportAgent.isTyping) return;
     if (action.action) {
       action.action();
       return;
@@ -750,7 +751,8 @@
                   class="flex-shrink-0 whitespace-nowrap px-1.5 py-0.5 bg-white/5 hover:bg-[#FFB7C5]/10 hover:border-[#FFB7C5]/30 hover:text-white border border-white/10 text-white/50 rounded-full text-[10px] font-bold transition-all active:scale-95 {action.label ===
                   'An toàn da'
                     ? 'ring-1 ring-[#FFB7C5]/20'
-                    : ''}"
+                    : ''} disabled:opacity-20 disabled:pointer-events-none disabled:cursor-not-allowed"
+                  disabled={supportAgent.isTyping}
                   onclick={() => handleQuickAction(action)}
                 >
                   {action.label}
