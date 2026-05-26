@@ -255,6 +255,8 @@ def _sanitize_response(text: str) -> str:
         if _p.search(clean):
             logger.warning("[OutputShield] System prompt leakage detected in LLM output. Replacing with safe fallback.")
             return _SAFE_FALLBACK_REPLY
+    # 5. Elite V2.2 Constitution: Hard-filter "nhau thai" -> "Placenta"
+    clean = re.sub(r"[Nn]hau\s+[Tt]hai", "Placenta", clean)
     return clean.strip()
 
 class SupportAgentOperative(BaseAgentOperative):

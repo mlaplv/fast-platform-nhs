@@ -98,28 +98,9 @@
   }
 
   function getPricingContextMapped() {
-    const cb = checkoutState.breakdown;
-    const cartB = cartStore.breakdown;
-    if (cb) {
-      return {
-        items: cartB.items,
-        subtotal: cb.subtotal,
-        combo_discount: cb.combo_discount,
-        voucher_discount: cb.voucher_discount,
-        base_shipping_fee: cb.shipping_fee,
-        shipping_discount: cb.shipping_discount,
-        final_shipping_fee: Math.max(0, cb.shipping_fee - cb.shipping_discount),
-        max_point_discount_allowed: cb.subtotal * 0.01,
-        points_redeemed: cb.points_redeemed,
-        point_discount_amount: cb.point_discount,
-        final_payable: cb.final_total,
-        points_to_earn: Math.floor(cb.final_total / 100000),
-        applied_voucher_ids: cb.applied_vouchers?.map((v) => v.id) || [],
-        applied_combo_ids: [],
-      };
-    }
-    return cartB;
+    return checkoutState.breakdown || cartStore.breakdown;
   }
+
 
   async function handleSend() {
     if (!userInput.trim() || supportAgent.isTyping) return;

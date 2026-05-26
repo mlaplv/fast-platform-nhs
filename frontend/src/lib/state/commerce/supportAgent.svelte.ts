@@ -387,144 +387,150 @@ class SupportAgentState {
      * Listens for AI responses and administrative updates (Revoke/Delete).
      */
     private _connectPulse() {
-        if (!browser || this._pulseSource) return;
+        if (!browser) return;
 
-        // Elite V2.2: Backend automatically reads `helen_session_id` from cookies via withCredentials: true.
-        this._pulseSource = new EventSource(`/api/v1/client/support/pulse`, { withCredentials: true });
+        // Elite V2.2: Reset/Clear any existing timeout since we are actively requesting/refreshing
+        if (this._pulseTimeout) {
+            clearTimeout(this._pulseTimeout);
+            this._pulseTimeout = null;
+        }
 
-        // 🟢 1. AI Response Ready / Admin Manual Reply thưa sếp!
-        this._pulseSource.addEventListener("SUPPORT_RESPONSE_READY", (event: MessageEvent) => {
-            try {
-                const data = JSON.parse(event.data);
-                
-                // Case A: Manual representative reply from Admin Inbox thưa sếp!
-                if (data.message && data.role === "assistant") {
-                    const isDuplicate = this.messages.some(m => m.content === data.message && m.role === "assistant" && (new Date().getTime() - m.timestamp.getTime() < 3000));
-                    if (!isDuplicate) {
-                        this.messages = [
-                            ...this.messages,
-                            {
-                                id: data.id || crypto.randomUUID(),
-                                role: "assistant",
-                                content: data.message,
-                                intent: "MANUAL",
-                                timestamp: new Date()
-                            }
-                        ];
-                        this.vibrate([10, 50, 10]);
-                    }
-                    this.isTyping = false;
-                    return;
-                }
+        if (!this._pulseSource) {
+            // Elite V2.2: Backend automatically reads `helen_session_id` from cookies via withCredentials: true.
+            this._pulseSource = new EventSource(`/api/v1/client/support/pulse`, { withCredentials: true });
 
-                // Case B: AI response (from Trinity/Helen brain)
-                if (data.status === "DONE") {
-                    const fallbackReply = "Dạ Helen xin lỗi, hệ thống AI đang hơi quá tải một chút. Anh/Chị vui lòng thử lại hoặc để lại lời nhắn để chuyên viên hỗ trợ nhé! 🌸";
-                    const actualReply = data.reply || fallbackReply;
+            // 🟢 1. AI Response Ready / Admin Manual Reply thưa sếp!
+            this._pulseSource.addEventListener("SUPPORT_RESPONSE_READY", (event: MessageEvent) => {
+                try {
+                    const data = JSON.parse(event.data);
                     
-                    const messages = [...this.messages];
-                    const lastAssistantIdx = messages.findLastIndex(m => m.role === "assistant");
+                    // Case A: Manual representative reply from Admin Inbox thưa sếp!
+                    if (data.message && data.role === "assistant") {
+                        const isDuplicate = this.messages.some(m => m.content === data.message && m.role === "assistant" && (new Date().getTime() - m.timestamp.getTime() < 3000));
+                        if (!isDuplicate) {
+                            this.messages = [
+                                ...this.messages,
+                                {
+                                    id: data.id || crypto.randomUUID(),
+                                    role: "assistant",
+                                    content: data.message,
+                                    intent: "MANUAL",
+                                    timestamp: new Date()
+                                }
+                            ];
+                            this.vibrate([10, 50, 10]);
+                        }
+                        this.isTyping = false;
+                        return;
+                    }
 
-                    if (lastAssistantIdx !== -1) {
-                        messages[lastAssistantIdx] = {
-                            ...messages[lastAssistantIdx],
-                            content: actualReply,
-                            intent: data.intent || messages[lastAssistantIdx].intent,
-                            timestamp: new Date()
-                        };
-                        this.messages = messages;
-                    } else {
-                        this.messages = [
-                            ...this.messages,
-                            {
-                                id: crypto.randomUUID(),
-                                role: "assistant",
+                    // Case B: AI response (from Trinity/Helen brain)
+                    if (data.status === "DONE") {
+                        const fallbackReply = "Dạ Helen xin lỗi, hệ thống AI đang hơi quá tải một chút. Anh/Chị vui lòng thử lại hoặc để lại lời nhắn để chuyên viên hỗ trợ nhé! 🌸";
+                        const actualReply = data.reply || fallbackReply;
+                        
+                        const messages = [...this.messages];
+                        const lastAssistantIdx = messages.findLastIndex(m => m.role === "assistant");
+
+                        if (lastAssistantIdx !== -1) {
+                            messages[lastAssistantIdx] = {
+                                ...messages[lastAssistantIdx],
                                 content: actualReply,
-                                intent: data.intent,
+                                intent: data.intent || messages[lastAssistantIdx].intent,
                                 timestamp: new Date()
-                            }
-                        ];
-                    }
-
-                    console.log("🧩 [Helen Pulse] Received AI Response:", data);
-
-                    if (data.ui_metadata) {
-                        console.log("📊 [Helen UI Meta] Pulse Metadata:", data.ui_metadata);
-                        if (data.ui_metadata.is_optimal_price !== undefined) {
-                            this.optimalPriceNotice = data.ui_metadata.is_optimal_price;
+                            };
+                            this.messages = messages;
+                        } else {
+                            this.messages = [
+                                ...this.messages,
+                                {
+                                    id: crypto.randomUUID(),
+                                    role: "assistant",
+                                    content: actualReply,
+                                    intent: data.intent,
+                                    timestamp: new Date()
+                                }
+                            ];
                         }
-                        if (data.ui_metadata.order_draft) {
-                            console.log("📝 [Order Draft] Current State:", data.ui_metadata.order_draft);
-                        }
-                    }
-                    if (data.metadata) console.log("🧠 [Helen Thoughts]:", data.metadata);
 
-                    this.vibrate([10, 50, 10]);
-                    this.isTyping = false;
-                    // Note: We keep the SSE channel active permanently thưa sếp!
-                }
-            } catch (e) {
-                console.error("[Pulse] Error parsing response data:", e);
-            }
-        });
+                        console.log("🧩 [Helen Pulse] Received AI Response:", data);
 
-        // 🔴 2. Message Updated (Revoked/Deleted) OR Admin Manual Reply
-        this._pulseSource.addEventListener("SUPPORT_INBOX_UPDATE", (event: MessageEvent) => {
-            try {
-                const data = JSON.parse(event.data);
-
-                // Case A: Admin manual reply — display it in the client chat widget
-                if (data.message && data.role === "assistant") {
-                    const isDuplicate = this.messages.some(
-                        m => m.content === data.message && m.role === "assistant"
-                            && (new Date().getTime() - m.timestamp.getTime() < 5000)
-                    );
-                    if (!isDuplicate) {
-                        this.messages = [
-                            ...this.messages,
-                            {
-                                id: data.id || crypto.randomUUID(),
-                                role: "assistant",
-                                content: data.message,
-                                intent: "MANUAL",
-                                timestamp: new Date()
+                        if (data.ui_metadata) {
+                            console.log("📊 [Helen UI Meta] Pulse Metadata:", data.ui_metadata);
+                            if (data.ui_metadata.is_optimal_price !== undefined) {
+                                this.optimalPriceNotice = data.ui_metadata.is_optimal_price;
                             }
-                        ];
+                            if (data.ui_metadata.order_draft) {
+                                console.log("📝 [Order Draft] Current State:", data.ui_metadata.order_draft);
+                            }
+                        }
+                        if (data.metadata) console.log("🧠 [Helen Thoughts]:", data.metadata);
+
                         this.vibrate([10, 50, 10]);
                         this.isTyping = false;
+                        // Note: We keep the SSE channel active permanently thưa sếp!
                     }
-                    return;
+                } catch (e) {
+                    console.error("[Pulse] Error parsing response data:", e);
                 }
+            });
 
-                // Case B: Message revoked/deleted
-                if (data.message_id) {
-                    const messages = [...this.messages];
-                    const msgIdx = messages.findIndex(m => m.id === data.message_id);
+            // 🔴 2. Message Updated (Revoked/Deleted) OR Admin Manual Reply
+            this._pulseSource.addEventListener("SUPPORT_INBOX_UPDATE", (event: MessageEvent) => {
+                try {
+                    const data = JSON.parse(event.data);
 
-                    if (msgIdx !== -1) {
-                        // V2.2: Apply revocation state immediately
-                        messages[msgIdx] = {
-                            ...messages[msgIdx],
-                            is_revoked: data.is_revoked ?? messages[msgIdx].is_revoked
-                        };
-                        this.messages = messages;
-                        this.vibrate(20);
+                    // Case A: Admin manual reply — display it in the client chat widget
+                    if (data.message && data.role === "assistant") {
+                        const isDuplicate = this.messages.some(
+                            m => m.content === data.message && m.role === "assistant"
+                                && (new Date().getTime() - m.timestamp.getTime() < 5000)
+                        );
+                        if (!isDuplicate) {
+                            this.messages = [
+                                ...this.messages,
+                                {
+                                    id: data.id || crypto.randomUUID(),
+                                    role: "assistant",
+                                    content: data.message,
+                                    intent: "MANUAL",
+                                    timestamp: new Date()
+                                }
+                            ];
+                            this.vibrate([10, 50, 10]);
+                            this.isTyping = false;
+                        }
+                        return;
                     }
-                }
-            } catch (e) {
-                console.error("[Pulse] Error parsing update data:", e);
-            }
-        });
 
-        this._pulseSource.onerror = (err) => {
-            console.warn("[Pulse] SSE connection state changed, auto-recovering...");
-            // Elite V2.2: Release typing lock on connection error to ensure UI resilience
-            this.isTyping = false;
-        };
+                    // Case B: Message revoked/deleted
+                    if (data.message_id) {
+                        const messages = [...this.messages];
+                        const msgIdx = messages.findIndex(m => m.id === data.message_id);
+
+                        if (msgIdx !== -1) {
+                            // V2.2: Apply revocation state immediately
+                            messages[msgIdx] = {
+                                ...messages[msgIdx],
+                                is_revoked: data.is_revoked ?? messages[msgIdx].is_revoked
+                            };
+                            this.messages = messages;
+                            this.vibrate(20);
+                        }
+                    }
+                } catch (e) {
+                    console.error("[Pulse] Error parsing update data:", e);
+                }
+            });
+
+            this._pulseSource.onerror = (err) => {
+                console.warn("[Pulse] SSE connection state changed, auto-recovering...");
+            };
+        }
 
         // Guard: Extend timeout to 10 min for takeover sessions (user waits for human admin reply)
-        // For AI response sessions, 30s is sufficient (fast failover)
-        const pulseTimeout = this.helenEnabled ? 30000 : 600000; // 30s for AI, 10min for human takeover
+        // For AI response sessions, 60s is safer to support heavy RAG/cascade logic thêu sếp!
+        const pulseTimeout = this.helenEnabled ? 60000 : 600000;
         this._pulseTimeout = setTimeout(() => {
             this.isTyping = false;
             this._disconnectPulse();

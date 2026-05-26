@@ -237,3 +237,13 @@
 - [x] Đồng bộ hóa và chuẩn hóa toàn bộ giao diện tư vấn "Helen AI" trên mọi trang chi tiết và checkout (Desktop/Mobile) sử dụng duy nhất một nguồn sự thật (SSOT). (Done)
 - [x] Sửa lỗi đường dẫn quà tặng (broken URL) bằng cách xây dựng helper phân giải liên kết `resolveGiftUrl` an toàn và tối ưu cho mọi cấu trúc slug/URL. (Done)
 - [x] Đảm bảo biên dịch static production build thành công 100%, không sinh cảnh báo hoặc lỗi type safety. (Done)
+
+# Task Checklist - Stabilizing Helen AI Support Chat (Elite V2.6)
+
+- [x] Sửa lỗi mất kết nối SSE sớm sau 30 giây bằng cách tự động xóa (clear) và đặt lại (reschedule) bộ đếm thời gian giữ kết nối (`pulseTimeout`) lên 60 giây mỗi khi gửi tin nhắn mới hoặc kích hoạt trạng thái phản hồi. (Done)
+- [x] Đảm bảo kết nối EventSource SSE không bị ngắt hoặc đưa về trạng thái `isTyping = false` không đúng lúc khi xảy ra lỗi mạng tạm thời (transient `onerror`), cho phép cơ chế tự động khôi phục của trình duyệt tự phục hồi luồng dữ liệu. (Done)
+- [x] Tích hợp bộ lọc Output Shield ngăn chặn sử dụng thuật từ thô "nhau thai" trong văn cảnh đối thoại của Helen AI, tự động chuyển đổi sang thuật từ cao cấp chuẩn Nhật Bản "Placenta". (Done)
+- [x] Thực hiện biên dịch kiểm tra tĩnh Svelte static production build thành công 100% với zero lỗi và zero cảnh báo static. (Done)
+- [x] Hot Sync toàn bộ mã nguồn frontend biên dịch (`dist/`) và các dịch vụ backend sang Production VPS thông qua giao thức Rsync tốc độ cao. (Done)
+- [x] Tái khởi động an toàn các container dịch vụ API (`fast_platform_api`) và Worker High Priority (`fast_platform_worker_high`) trên VPS để áp dụng ngay lập tức các cập nhật. (Done)
+

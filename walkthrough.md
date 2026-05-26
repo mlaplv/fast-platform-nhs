@@ -445,3 +445,35 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
   - **100% Build Compiling**: Successfully compiled the entire static storefront distribution (`dist`) in under 1 minute 12 seconds with absolute type safety and zero static warnings/errors.
 
 
+## 34. Fixing Support Chat Validation (Elite V2.2)
+
+- **Frontend Typos and Key Mismatch Resolution**:
+  - **File**: `frontend/src/lib/components/client/support/SupportChatDesktop.svelte`
+  - **Problem**: When on the checkout page, the desktop support chat was manually mapping fields in `getPricingContextMapped()`. It assumed `checkoutState.breakdown` used standard `CheckoutBreakdown` interface properties (like `shipping_fee`, `final_total`, etc.). However, `checkoutState.breakdown` actually uses `PricingBreakdown` schema keys (`base_shipping_fee`, `final_payable`, etc.). This caused several fields (`cb.shipping_fee`, `cb.final_total`) to evaluate to `undefined`, making the derived calculations (`final_shipping_fee` and `points_to_earn`) result in `NaN`.
+  - **Resolution**: Refactored the helper to match mobile's clean and extremely robust logic: `return checkoutState.breakdown || cartStore.breakdown;` directly. This guarantees 100% accurate key names and proper number/integer types are generated for the payload.
+- **Backend Schema Self-Healing Hardening (Defense-in-depth)**:
+  - **File**: `backend/schemas/pricing.py`
+  - **Problem**: Any incoming payload from edge client browsers containing `NaN`, `null`, or invalid string values for float/int fields within `PricingBreakdown` caused a hard validation failure (`400 Bad Request`), preventing the customer from using the support chat.
+  - **Resolution**: Added a robust `@field_validator` with `mode="before"` for all numeric fields (`subtotal`, `combo_discount`, `voucher_discount`, `base_shipping_fee`, `shipping_discount`, `final_shipping_fee`, `max_point_discount_allowed`, `points_redeemed`, `point_discount_amount`, `final_payable`, `points_to_earn`). The validator converts any invalid value (like `None`, `NaN`, `Infinity`, `"NaN"`, `"null"`, `"undefined"`, or empty strings) into standard default values (`0.0` or `0`), preventing any schema validation exceptions.
+- **Verification**:
+  - Validated both local and backend schema validation to ensure robust self-healing and zero regressions.
+
+
+## 35. Stabilizing Helen AI Support Chat (Elite V2.6)
+
+- **Frontend SSE Keep-Alive & Timeout Refactoring**:
+  - **File**: `frontend/src/lib/state/commerce/supportAgent.svelte.ts`
+  - **Problem**: When a customer opened the chat widget, `_connectPulse()` was called, establishing an EventSource SSE connection and scheduling a single 30s timeout timer (`pulseTimeout`). If the user sent a message later, `sendMessage` called `_connectPulse()`, but since the `_pulseSource` was already set, it returned immediately and failed to reset the timer. This meant that if the timer timed out (exactly 30 seconds after opening the chat), it set `isTyping = false` and disconnected the SSE stream prematurely, leaving the chat widget "stuck" on "Helen đang xử lý..." and hiding the typing indicators even while the backend was still generating the response.
+  - **Resolution**: Refactored `_connectPulse()` to clear any existing timeout (`pulseTimeout`) and schedule a fresh, robust timeout of 60 seconds whenever it is called (e.g. on new message dispatch). In addition, transient `onerror` triggers on the EventSource no longer immediately nuke the typing lock, allowing the browser's native automatic recovery to resume the stream while keeping the user interface active and reactive.
+- **Output Shield Leak Prevention & Constitution Compliance**:
+  - **File**: `backend/services/commerce/operatives/support_agent.py`
+  - **Problem**: Compliance with the Elite V2.2 Constitution prohibiting the use of raw, clinical terms like "nhau thai" in user-facing dialogue.
+  - **Resolution**: Integrated a strict regex filter in `_sanitize_response` within the Output Shield layer that scans all assistant replies and deterministically converts the phrase "nhau thai" / "Nhau thai" to its premium Japanese aesthetic equivalent "Placenta" prior to streaming or dispatching to customers.
+- **Production Deployment & Verification**:
+  - Compiled the static storefront bundle cleanly via `pnpm run build` locally.
+  - Synchronized the compiled `dist/` bundle and updated backend files to the production VPS `/opt/fast-platform/` using high-speed `rsync`.
+  - Restarted production services `fast_platform_api` and `fast_platform_worker_high` to immediately apply changes, ensuring absolute stability.
+
+
+
+
