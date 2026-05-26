@@ -442,7 +442,22 @@
    */
   function triggerViralFly() {
     isViralUnlocked = true; // Cập nhật state để Svelte render voucher vào box ngay
-    // Logic hiệu ứng bay sẽ được component con kích hoạt
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          unlockedVoucherInfo = data;
+          
+          // Elite V2.2: Tự động áp mã voucher vừa mới mở khóa để người dùng không phải click thủ công
+          if (data.code && !selectedVouchers.includes(data.code)) {
+            toggleVoucher(data.code);
+          }
+        } catch (e) {
+          console.error('Failed to parse saved viral voucher', e);
+        }
+      }
+    }
   }
 
   function toggleVoucher(id: string) {

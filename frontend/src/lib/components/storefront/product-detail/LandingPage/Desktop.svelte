@@ -424,6 +424,19 @@
 
   function triggerViralFly() {
     isViralUnlocked = true;
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(`viral_unlocked_${product.id}`);
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.code && !selectedVouchers.includes(data.code)) {
+            toggleVoucher(data.code);
+          }
+        } catch (e) {
+          console.error('Failed to parse saved viral voucher', e);
+        }
+      }
+    }
   }
 
   function toggleVoucher(id: string) {

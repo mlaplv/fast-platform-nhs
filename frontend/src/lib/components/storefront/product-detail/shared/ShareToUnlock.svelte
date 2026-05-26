@@ -1,11 +1,12 @@
 <script lang="ts">
-    import Gift from "@lucide/svelte/icons/gift";
+  import Gift from "@lucide/svelte/icons/gift";
   import ExternalLink from "@lucide/svelte/icons/external-link";
   import Check from "@lucide/svelte/icons/check";
   import Copy from "@lucide/svelte/icons/copy";
   import Loader from "@lucide/svelte/icons/loader";
   import Zap from "@lucide/svelte/icons/zap";
   import Facebook from "@lucide/svelte/icons/facebook";
+  import { fade, scale } from 'svelte/transition';
   
   // Types
   import type { Product } from '$lib/types';
@@ -34,6 +35,30 @@
     isMounted = true;
   });
 
+  let progressPercent = $state(0);
+  let progressInterval: ReturnType<typeof setInterval> | null = null;
+
+  function startProgress() {
+    if (progressInterval) clearInterval(progressInterval);
+    progressPercent = 0;
+    const duration = 4500;
+    const intervalTime = 50;
+    const stepAmount = (100 / (duration / intervalTime)) * 0.95; // run up to 95%
+    progressInterval = setInterval(() => {
+      if (progressPercent < 95) {
+        progressPercent += stepAmount;
+      }
+    }, intervalTime);
+  }
+
+  function finishProgress() {
+    if (progressInterval) {
+      clearInterval(progressInterval);
+      progressInterval = null;
+    }
+    progressPercent = 100;
+  }
+
   /**
    * Elite V2.2: Share promotion config from product.metadata.viral_suite
    */
@@ -44,8 +69,9 @@
     product.metadata?.share_promotion ?? 
     null
   );
+  let campaignExists = $state(true);
   const isEnabled = $derived(
-    promoConfig?.enabled === true && !!promoConfig?.voucher_id
+    promoConfig?.enabled === true && !!promoConfig?.voucher_id && campaignExists
   );
 
   const shareCount = $derived(
@@ -137,6 +163,9 @@
 
   onDestroy(() => {
     cleanupFocusListeners();
+    if (progressInterval) {
+      clearInterval(progressInterval);
+    }
   });
 
   $effect(() => {
@@ -242,6 +271,7 @@
     async share() {
       if (step !== 'idle' && step !== 'error') return;
       step = 'sharing';
+      startProgress();
       
       try {
         const res = await fetch('/api/v1/client/viral/share-intent', {
@@ -272,7 +302,7 @@
                 // Promise resolved = user picked an app. Auto verify!
                 await viralActions.verify();
             } catch (err: unknown) {
-                if (err.name === 'AbortError') {
+                if (err instanceof Error && err.name === 'AbortError') {
                     throw new Error('Bạn đã hủy chia sẻ');
                 }
                 throw err; // Fallback
@@ -321,6 +351,7 @@
       } catch (e: unknown) {
         errorMsg = e instanceof Error ? e.message : String(e);
         step = 'error';
+        finishProgress();
       }
     },
     async verify() {
@@ -331,6 +362,7 @@
       const scrollDepthPct = Math.min(100, Math.round((maxScrollY / (document.documentElement.scrollHeight - window.innerHeight || 1)) * 100));
 
       step = 'verifying';
+      startProgress();
       
       // Elite V2.2: Simulated AI Deep Verification Sequence
       const verificationSteps = [
@@ -433,6 +465,8 @@
         console.warn(`Chi tiết: ${errMsg}`);
         console.warn(`Telemetry state: token=${_token ? _token.slice(0, 8) + '...' : 'none'}`);
         console.groupEnd();
+      } finally {
+        finishProgress();
       }
     }
   };
@@ -464,9 +498,24 @@
     if (vId && !isCampaignLoaded) {
       isCampaignLoaded = true;
       fetch(`/api/v1/client/viral/campaign/${vId}`)
-        .then(res => res.json())
-        .then((data: any) => { campaignData = data; })
-        .catch(() => {});
+        .then(res => {
+          if (!res.ok) {
+            campaignExists = false;
+            return null;
+          }
+          return res.json();
+        })
+        .then((data: any) => {
+          if (data) {
+            campaignData = data;
+            campaignExists = true;
+          } else {
+            campaignExists = false;
+          }
+        })
+        .catch(() => {
+          campaignExists = false;
+        });
     }
   });
 
@@ -494,14 +543,6 @@
   );
 
 </script>
-
-{#if showFlyGhost}
-  <div class="stu-fly-ghost">
-    <div class="stu-fly-content">
-       <span class="text-[10px] font-black">{voucherCode}</span>
-    </div>
-  </div>
-{/if}
 
 {#if isMounted && isEnabled && step !== 'revealed'}
   <!-- Canary Trap / Honeypot: Hidden from real users but bots will interact with it -->
@@ -537,18 +578,143 @@
           </button>
         </div>
       </div>
-
-    {:else if step === 'sharing' || step === 'verifying'}
-      <div class="stu-center glass-loading">
-        <div class="loading-bg"></div>
-        <Zap size={18} class="stu-spin-pulse text-white fill-white/20" />
-        <span class="stu-loading-text-blue">{step === 'sharing' ? 'Đang kết nối...' : verificationText}</span>
-      </div>
     {/if}
   </div>
+
+  {#if step === 'sharing' || step === 'verifying'}
+    <div class="viral-overlay" transition:fade={{ duration: 250 }}>
+      <div class="viral-card" transition:scale={{ duration: 300, start: 0.95 }}>
+        <div class="viral-glow"></div>
+        <div class="viral-icon-box">
+          <Zap size={28} class="viral-zap-anim text-[#ee4d2d]" />
+        </div>
+        <h3 class="viral-title">
+          {step === 'sharing' ? 'Đang kết nối Facebook...' : 'AI đang xác minh lượt chia sẻ'}
+        </h3>
+        <p class="viral-step">{verificationText}</p>
+        
+        <div class="viral-progress-track">
+          <div class="viral-progress-bar" style="width: {progressPercent}%"></div>
+        </div>
+        
+        <span class="viral-footer">Hệ thống đang đối chiếu telemetry thời gian thực. Vui lòng giữ kết nối.</span>
+      </div>
+    </div>
+  {/if}
 {/if}
 
 <style>
+  .viral-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(8, 10, 18, 0.7);
+    backdrop-filter: blur(16px) saturate(180%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .viral-card {
+    position: relative;
+    background: rgba(17, 24, 39, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    max-width: 420px;
+    width: 100%;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .viral-glow {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(238, 77, 45, 0.08) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .viral-icon-box {
+    position: relative;
+    z-index: 1;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(238, 77, 45, 0.1);
+    border: 1px solid rgba(238, 77, 45, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    box-shadow: 0 0 20px rgba(238, 77, 45, 0.15);
+  }
+
+  :global(.viral-zap-anim) {
+    animation: viral-zap 1.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 8px rgba(238, 77, 45, 0.4));
+  }
+
+  @keyframes viral-zap {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.15) rotate(15deg); opacity: 0.85; }
+  }
+
+  .viral-title {
+    position: relative;
+    z-index: 1;
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .viral-step {
+    position: relative;
+    z-index: 1;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 24px;
+    min-height: 18px;
+  }
+
+  .viral-progress-track {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .viral-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ff4e50, #ee4d2d);
+    border-radius: 9999px;
+    transition: width 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .viral-footer {
+    position: relative;
+    z-index: 1;
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.02em;
+  }
+
   .stu-desktop-root { position: relative; margin: 0; }
   
   .stu-view-bar {
