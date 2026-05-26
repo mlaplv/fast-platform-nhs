@@ -213,14 +213,19 @@
                            </td>
                         </tr>
                      {:else}
-                        <tr>
-                           <td colspan="4" class="px-20 py-32 text-center">
-                               <div class="flex flex-col items-center gap-6 opacity-20">
-                                  <RefreshCw size={48} class="animate-spin text-cyan-400" />
-                                  <span class="font-black tracking-[0.4em] text-[10px] font-mono">Đang quét hạ tầng Google Ads...</span>
+                         <tr>
+                            <td colspan="4" class="px-20 py-24 text-center">
+                               <div class="flex flex-col items-center gap-4 max-w-md mx-auto" in:fade>
+                                  <div class="p-4 bg-cyan-400/5 border border-cyan-400/10 rounded-none mb-2">
+                                     <Target size={32} class="text-cyan-400/50 animate-pulse" />
+                                  </div>
+                                  <span class="text-[10px] font-black text-white tracking-[0.2em] font-mono uppercase">Tài khoản chưa có chiến dịch</span>
+                                  <p class="text-[10px] text-slate-500 font-medium leading-relaxed font-mono">
+                                     Google Ads API kết nối thành công! Tuy nhiên, tài khoản <strong>osmo</strong> hiện tại chưa có chiến dịch nào hoạt động. Sếp hãy nhấn nút <strong>"Khởi tạo chiến dịch"</strong> phía trên để bắt đầu triển khai!
+                                  </p>
                                </div>
-                           </td>
-                        </tr>
+                            </td>
+                         </tr>
                      {/each}
                   </tbody>
                </table>

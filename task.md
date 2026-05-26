@@ -216,3 +216,16 @@
 - [x] Thiết lập bộ lọc chặn/ghi đè setter `document.cookie` để bỏ qua các lệnh cập nhật trùng lặp thuộc tính `expires` khi giá trị cookie GA thực tế không thay đổi, triệt tiêu hoàn toàn cảnh báo trong bảng console trên mọi trình duyệt. (Done)
 - [x] Đẩy mã nguồn đã chỉnh sửa lên môi trường Production VPS, thực hiện kiểm tra và khởi động lại các container. (Done)
 
+# Task Checklist - Google Ads Credentials & Campaign Manager Stabilization (Elite V2.2)
+
+- [x] Diagnostics: Chạy mã kiểm thử chẩn đoán lỗi 400 Bad Request kết nối Google Ads API thành công, xác định chính xác nguyên nhân do mã `GOOGLE_ADS_REFRESH_TOKEN` cũ bị thu hồi/hết hạn. (Done)
+- [x] Account Correction: Xác định và cập nhật chính xác mã tài khoản khách hàng mục tiêu `9136327950` cho thương hiệu `osmo` mới liên kết vào MCC tổng trong file cấu hình `.env`. (Done)
+- [x] OAuth2 Re-authorization: Hướng dẫn Sếp lấy mã Code cấp quyền qua cổng Google Developer OAuth Playground thành công. (Done)
+- [x] Token Generation: Viết script `exchange_code.py` tự động đổi Authorization Code lấy Refresh Token trực tiếp từ Google API thành công. (Done)
+- [x] Local & Production Sync: Đồng bộ hóa cấu hình `GOOGLE_ADS_REFRESH_TOKEN` mới cực kỳ chính xác vào cả file `.env` cục bộ và `.env` trên môi trường VPS Production. (Done)
+
+# Task Checklist - Google Ads Campaign UI UX Stabilization (Elite V2.2)
+
+- [x] Diagnostics: Chẩn đoán nguyên nhân hiển thị spinner xoay tròn "Đang quét hạ tầng Google Ads..." liên tục do tài khoản **osmo** mới liên kết thực tế chưa có bất kỳ chiến dịch (campaign) nào được khởi tạo (trả về danh sách rỗng `[]` từ API). (Done)
+- [x] UI/UX Refactoring: Thay thế trạng thái spinner quay vô hạn bằng một Giao diện Trống (Empty State) đẳng cấp tối giản, ghi nhận kết nối Google Ads API thành công và hướng dẫn Sếp cách khởi tạo chiến dịch mới. (Done)
+- [x] Deployment: Biên dịch sạch dự án frontend tĩnh và đồng bộ tức thời (Rsync) toàn bộ thư mục `dist/` sang Production VPS `/opt/fast-platform/frontend/dist/`. (Done)

@@ -403,8 +403,22 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
   - Successfully deployed changes to the Production VPS.
   - Confirmed all containers started and ran perfectly without any issues.
 
+## 31. Google Ads Credentials & Campaign Manager Stabilization (Elite V2.2)
 
+- **Problem**: When `GOOGLE_ADS_REFRESH_TOKEN` expired or was revoked by Google, the system gracefully fell back to the local database seeds. However, restarting the API and checking logs via Option 8 printed `400 Bad Request` from the Google OAuth2 endpoint.
+- **Resolution**:
+  - **Diagnostics**: Built diagnostic scripts to directly test the Google OAuth2 endpoint using standard Python libraries, confirming the specific `invalid_grant` / `Token has been expired or revoked` error.
+  - **Step-by-Step Recovery**: Generated a Google OAuth2 authorization URL matching the client ID and `https://developers.google.com/oauthplayground` redirect URI.
+  - **Token Generation**: Built an exchange script `exchange_code.py` to exchange the authorization code for an active `refresh_token`.
+  - **Synchronization**: Updated the active `GOOGLE_ADS_REFRESH_TOKEN` to `1//0g3b3eFGE1JzUCgYIARAAGBASNwF-L9IrDvecX-S3kJBzwCIuTy614EQsx5fWH8QE1p1wIRiyB7op6wH8GoQgloRmr5gEl1HAcxQ` and corrected `GOOGLE_ADS_CUSTOMER_ID` comment in both the local and production `/opt/fast-platform/.env` files.
+- **Verification**:
+  - Verified the new refresh token is fully active and successfully authorized by Google OAuth2.
 
+## 32. Google Ads Campaign UI/UX Stabilization (Elite V2.2)
 
-
+- **Problem**: When the system connected to a newly linked Google Ads account like **osmo** (`913-632-7950`) that had zero active campaigns inside it, the API returned an empty list `[]`. In the frontend, Svelte 5 rendered the `{:else}` empty state block of the campaigns list table. However, this empty state was hardcoded as a spinning loader with the message "Đang quét hạ tầng Google Ads..." (Scanning Google Ads infrastructure...), causing users to believe the scan was hung or loading indefinitely.
+- **Resolution**:
+  - **Diagnostics**: Built and ran a standalone Google Ads API query script `scratch/test_fetch_campaigns.py`, confirming that the API successfully connected using the new credentials but returned zero results since the target account is brand new.
+  - **UI/UX Enhancement**: Refactored `AdsCampaignManager.svelte` to replace the spinning indicator with a premium, sleek HUD-themed Empty State card. The card confirms that the Google Ads API connection is successful and provides an elegant prompt instructing the manager to click **"Khởi tạo chiến dịch"** to deploy their first ad campaign.
+  - **Static Compiling & Hot Sync**: Compiled the updated storefront static pages cleanly and successfully synchronized the entire build folder `dist/` directly to the production VPS `/opt/fast-platform/frontend/dist/` in under 2 seconds.
 

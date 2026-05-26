@@ -16,45 +16,15 @@
             get: function() { return orgGet.call(document); },
             set: function(val) {
               if (typeof val === 'string') {
-                // 1. Clean duplicate attributes in the assignment string to prevent double expires warning
-                var parts = val.split(';');
-                if (parts.length > 1) {
-                  var first = parts[0];
-                  var attrs = {};
-                  var cleaned = [first];
-                  for (var i = 1; i < parts.length; i++) {
-                    var p = parts[i].trim();
-                    if (!p) continue;
-                    var eq = p.indexOf('=');
-                    var key = (eq !== -1 ? p.substring(0, eq) : p).trim().toLowerCase();
-                    if (key) {
-                      if (attrs[key]) continue;
-                      attrs[key] = true;
-                      cleaned.push(parts[i]);
-                    }
-                  }
-                  val = cleaned.join('; ');
+                var p = val.split(';').map(function(s){return s.trim();}).filter(Boolean);
+                var attrs = {}, cleaned = [p[0]];
+                for (var i = 1; i < p.length; i++) {
+                  var k = p[i].split('=')[0].toLowerCase();
+                  if (!attrs[k]) { attrs[k] = true; cleaned.push(p[i]); }
                 }
-
-                // 2. Prevent redundant writes with the identical value for GA cookies
-                var match = parts[0].match(/^\s*(_ga(_[A-Za-z0-9_]+)?)=([^;]+)/);
-                if (match) {
-                  var name = match[1].trim();
-                  var value = match[3].trim();
-                  var currentCookies = orgGet.call(document) || '';
-                  var currentVal = '';
-                  var cParts = currentCookies.split(';');
-                  for (var j = 0; j < cParts.length; j++) {
-                    var pair = cParts[j].split('=');
-                    if (pair[0].trim() === name) {
-                      currentVal = pair[1].trim();
-                      break;
-                    }
-                  }
-                  if (currentVal && currentVal === value) {
-                    return;
-                  }
-                }
+                val = cleaned.join('; ');
+                var m = p[0].match(/^\s*(_ga(_[A-Za-z0-9_]+)?)=([^;]+)/);
+                if (m && (orgGet.call(document) || '').indexOf(m[1] + '=' + m[3]) !== -1) return;
               }
               orgSet.call(document, val);
             }
