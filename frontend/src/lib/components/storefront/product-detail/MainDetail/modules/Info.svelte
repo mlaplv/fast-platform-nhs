@@ -109,7 +109,10 @@
   );
 
   const displayStockVal = $derived.by(() => {
-    const hash = [...String(product.id)].reduce((a, b) => a + b.charCodeAt(0), 0);
+    const hash = [...String(product.id)].reduce(
+      (a, b) => a + b.charCodeAt(0),
+      0,
+    );
     return (hash % 6) + 3;
   });
 </script>
@@ -129,14 +132,18 @@
       <div class="flex items-center gap-2 text-[#ee4d2d] group cursor-default">
         <span
           class="text-[16px] font-black border-b-2 border-[#ee4d2d] leading-none pb-0.5"
-          >{stats?.average_rating || product.metadata?.reviews_trust_score || "5.0"}</span
+          >{stats?.average_rating ||
+            product.metadata?.reviews_trust_score ||
+            "5.0"}</span
         >
         <div class="flex gap-0.5">
           {#each Array(5) as _, i}
             <svg
               class="w-3.5 h-3.5 {i <
               Math.floor(
-                stats?.average_rating || Number(product.metadata?.reviews_trust_score) || 5,
+                stats?.average_rating ||
+                  Number(product.metadata?.reviews_trust_score) ||
+                  5,
               )
                 ? 'text-orange-400'
                 : 'text-gray-200'} fill-current drop-shadow-sm"
@@ -214,8 +221,6 @@
           >{formatCurrency(activePrices.sale)}</span
         >
       </div>
-
-
 
       <div class="mt-1 flex flex-col gap-2">
         <div class="flex items-center gap-2.5">
@@ -346,81 +351,41 @@
     </div>
   </div>
 
-  <!-- Shipping (TikTok-Style Premium Trust Card) -->
-  <div class="mb-4 bg-gradient-to-r from-slate-50 to-emerald-50/30 border border-emerald-500/10 rounded-xl p-4 shadow-sm relative overflow-hidden group">
-    <!-- Premium Refraction Glow (TikTok Shop Style) -->
-    <div class="absolute -right-16 -top-16 w-32 h-32 bg-emerald-400/5 rounded-full blur-3xl group-hover:bg-emerald-400/10 transition-all duration-700"></div>
-    <div class="absolute -left-16 -bottom-16 w-32 h-32 bg-rose-400/5 rounded-full blur-3xl group-hover:bg-rose-400/10 transition-all duration-700"></div>
+  <!-- Shipping (TikTok-Style Compact Trust Badges) -->
+  <div class="flex items-center mb-3.5 py-1">
+    <span class="w-[70px] shrink-0 text-[14px] text-gray-500">Vận chuyển</span>
+    <div class="flex flex-wrap gap-2.5 items-center">
+      <!-- 1. Giao Nhanh 2h -->
+      <div class="flex items-center gap-1.5 bg-rose-500/[0.04] border border-rose-500/10 rounded-md py-1 px-2.5 hover:bg-rose-500/[0.08] transition-all duration-200 cursor-default">
+        <svg class="w-3.5 h-3.5 text-rose-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        <span class="text-[12px] font-black text-rose-600 uppercase tracking-wider">Giao nhanh 2h</span>
+      </div>
 
-    <div class="flex items-start gap-4">
-      <span class="w-[70px] shrink-0 text-[13px] font-black text-gray-400 tracking-wider uppercase mt-1">Giao Nhận</span>
-      
-      <div class="flex-1 space-y-3.5">
-        <!-- 1. Vận Chuyển: Giao Nhanh 2H -->
-        <div class="flex items-start gap-3 group/item">
-          <div class="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0 mt-0.5 shadow-sm group-hover/item:scale-110 transition-transform duration-200">
-            <svg class="w-4 h-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <div class="flex flex-col">
-            <div class="flex items-center gap-2">
-              <span class="text-[14px] font-black text-gray-800">Vận chuyển</span>
-              <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black tracking-wider text-rose-600 bg-rose-500/10 border border-rose-500/20 rounded-md uppercase animate-pulse">
-                Giao nhanh 2h
-              </span>
-            </div>
-            <span class="text-[12px] text-gray-500 font-medium mt-0.5">Nhận hàng siêu tốc trong khu vực nội thành</span>
-          </div>
-        </div>
+      <!-- 2. Phí Ship 0đ -->
+      <div class="flex items-center gap-1.5 bg-emerald-500/[0.04] border border-emerald-500/10 rounded-md py-1 px-2.5 hover:bg-emerald-500/[0.08] transition-all duration-200 cursor-default">
+        <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        <span class="text-[12px] font-black text-emerald-700">Freeship 0đ <span class="text-[11px] text-emerald-600 font-medium">toàn quốc</span></span>
+      </div>
 
-        <!-- Divider line -->
-        <div class="h-px bg-slate-100"></div>
-
-        <!-- 2. Phí Ship: 0Đ Toàn Quốc -->
-        <div class="flex items-start gap-3 group/item">
-          <div class="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5 shadow-sm group-hover/item:scale-110 transition-transform duration-200">
-            <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-          </div>
-          <div class="flex flex-col">
-            <div class="flex items-center gap-2">
-              <span class="text-[14px] font-black text-gray-800">Phí ship 0đ</span>
-              <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black tracking-wider text-emerald-700 bg-emerald-500/15 border border-emerald-500/20 rounded-md uppercase">
-                Mọi đơn hàng
-              </span>
-            </div>
-            <span class="text-[12px] text-gray-500 font-medium mt-0.5">Áp dụng miễn phí vận chuyển trên phạm vi toàn quốc</span>
-          </div>
-        </div>
-
-        <!-- Divider line -->
-        <div class="h-px bg-slate-100"></div>
-
-        <!-- 3. Đồng Kiểm: Kiểm Hàng Trước Khi Thanh Toán -->
-        <div class="flex items-start gap-3 group/item">
-          <div class="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 mt-0.5 shadow-sm group-hover/item:scale-110 transition-transform duration-200">
-            <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-          </div>
-          <div class="flex flex-col">
-            <div class="flex items-center gap-2">
-              <span class="text-[14px] font-black text-gray-800">Đồng kiểm</span>
-              <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-black tracking-wider text-blue-700 bg-blue-500/15 border border-blue-500/20 rounded-md uppercase">
-                Kiểm hàng mới thanh toán
-              </span>
-            </div>
-            <span class="text-[12px] text-slate-600 font-semibold leading-relaxed mt-0.5">
-              Miễn phí hỏa tốc giao nhanh toàn quốc, kiểm tra hàng mới thanh toán.
-            </span>
-          </div>
+      <!-- 3. Đồng Kiểm -->
+      <div class="flex items-center gap-1.5 bg-blue-500/[0.04] border border-blue-500/10 rounded-md py-1 px-2.5 hover:bg-blue-500/[0.08] transition-all duration-200 group/dk relative cursor-default">
+        <svg class="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+        <span class="text-[12px] font-black text-blue-700">Đồng kiểm <span class="text-[11px] text-blue-600 font-medium">nhận hàng</span></span>
+        
+        <!-- Elegant, micro-copy tooltip on hover -->
+        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900/95 backdrop-blur-md text-white text-[10px] font-medium rounded-lg shadow-xl opacity-0 translate-y-1 pointer-events-none group-hover/dk:opacity-100 group-hover/dk:translate-y-0 transition-all duration-300 z-50 text-center">
+          <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900/95"></div>
+          Kiểm hàng mới thanh toán, hoàn trả 0đ nếu không ưng ý!
         </div>
       </div>
     </div>
   </div>
-
 
   <!-- Variations -->
   {#if variations.length > 0}
@@ -583,13 +548,18 @@
                     <div class="flex flex-col min-w-0 flex-1">
                       <span
                         class="text-[13px] font-bold text-gray-900 leading-tight truncate group-hover:text-[#ee4d2d] transition-colors"
-                        >{gift.name} <span class="inline-block text-[8px] font-black text-rose-600 bg-rose-50 px-1 rounded uppercase tracking-wider ml-1">Xem</span></span
+                        >{gift.name}
+                        <span
+                          class="inline-block text-[8px] font-black text-rose-600 bg-rose-50 px-1 rounded uppercase tracking-wider ml-1"
+                          >Xem</span
+                        ></span
                       >
                       <div class="flex items-center gap-2 mt-0.5">
                         <span class="text-[11px] text-gray-500 font-medium"
                           >Số lượng:</span
                         >
-                        <span class="text-[11px] text-[#ee4d2d] font-black italic"
+                        <span
+                          class="text-[11px] text-[#ee4d2d] font-black italic"
                           >x{gift.qty}</span
                         >
                       </div>
@@ -625,7 +595,8 @@
                         <span class="text-[11px] text-gray-500 font-medium"
                           >Số lượng:</span
                         >
-                        <span class="text-[11px] text-[#ee4d2d] font-black italic"
+                        <span
+                          class="text-[11px] text-[#ee4d2d] font-black italic"
                           >x{gift.qty}</span
                         >
                       </div>
