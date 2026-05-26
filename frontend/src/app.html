@@ -18,19 +18,6 @@
         j.async=true;
         j.src='https://www.googletagmanager.com/gtm.js?id='+id;
         f.parentNode.insertBefore(j,f);
-        var inject=function(){
-          if(!document.getElementById('gtm-ns-'+id)){
-            var ns=document.createElement('noscript');
-            ns.id='gtm-ns-'+id;
-            var ifr=document.createElement('iframe');
-            ifr.src='https://www.googletagmanager.com/ns.html?id='+id;
-            ifr.height='0';ifr.width='0';
-            ifr.style.cssText='display:none;visibility:hidden';
-            ns.appendChild(ifr);
-            document.body.insertBefore(ns,document.body.firstChild);
-          }
-        };
-        if(document.body){inject();}else{document.addEventListener('DOMContentLoaded',inject);}
       }
       function injectGA(id){
         if(!ok(id)||window.__ga_loaded__)return;

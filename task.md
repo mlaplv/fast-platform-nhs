@@ -192,8 +192,20 @@
 
 # Task Checklist - Share To Unlock Processing Box & Real-Time Sync (Elite V2.2)
 
-- [ ] Thiết kế overlay tiến trình xử lý xác thực AI (Processing Overlay) dạng Glassmorphism cao cấp, che phủ viewport khi đang chia sẻ hoặc xác minh trong `ShareToUnlock.svelte`.
-- [ ] Thêm thanh tiến trình chạy mượt mà từ 0% đến 95% trong 4.5 giây đi kèm với hiển thị các bước phân tích telemetry chân thực của AI.
-- [ ] Khắc phục triệt để lỗi "báo áp mã nhưng phải F5 mới thấy" bằng cách cập nhật reactive state `unlockedVoucherInfo` ngay lập tức khi mở khóa thành công trong `Desktop.svelte` và `LandingPage/Desktop.svelte`.
-- [ ] Cập nhật đồng bộ cho cả phiên bản di động `ShareToUnlockPromoMobile.svelte` để đảm bảo trải nghiệm đồng nhất.
-- [ ] Kiểm tra lỗi biên dịch static build để bảo đảm hệ thống chạy mượt mà, zero warning.
+- [x] Thiết kế overlay tiến trình xử lý xác thực AI (Processing Overlay) dạng Glassmorphism cao cấp, che phủ viewport khi đang chia sẻ hoặc xác minh trong `ShareToUnlock.svelte`. (Done)
+- [x] Thêm thanh tiến trình chạy mượt mà từ 0% đến 95% trong 4.5 giây đi kèm với hiển thị các bước phân tích telemetry chân thực của AI. (Done)
+- [x] Khắc phục triệt để lỗi "báo áp mã nhưng phải F5 mới thấy" bằng cách cập nhật reactive state `unlockedVoucherInfo` ngay lập tức khi mở khóa thành công trong `Desktop.svelte` và `LandingPage/Desktop.svelte`. (Done)
+- [x] Cập nhật đồng bộ cho cả phiên bản di động `ShareToUnlockPromoMobile.svelte` để đảm bảo trải nghiệm đồng nhất. (Done)
+- [x] Kiểm tra lỗi biên dịch static build để bảo đảm hệ thống chạy mượt mà, zero warning. (Done)
+
+# Task Checklist - Redesign Shipping Section TikTok-Style (Elite V2.2)
+
+- [ ] Thiết kế lại khối Vận Chuyển trong `MainDetail/modules/Info.svelte` chuẩn TikTok Shop style.
+- [ ] Thiết kế lại khối Vận Chuyển trong `LandingPage/modules/Info.svelte` đồng bộ chuẩn TikTok Shop style.
+- [ ] Tích hợp 3 tiêu điểm kích thích chuyển đổi (CRO):
+  1. Vận chuyển: Nhãn "Giao nhanh 2h" nhấp nháy (pulsing) kèm icon tia sét độc quyền.
+  2. Phí ship: Nhãn "Mọi đơn hàng" 0đ áp dụng phạm vi toàn quốc kèm icon bảo chứng xanh lá.
+  3. Đồng kiểm: Khẳng định miễn phí hỏa tốc, cho phép "Kiểm tra hàng mới thanh toán" để gia tăng uy tín tối đa kèm icon tài liệu/đồng kiểm xanh dương.
+- [ ] Xây dựng layout dạng thẻ (Card) bo góc mềm mại, kết hợp dải màu gradient nhẹ tinh tế và hiệu ứng lóe sáng Apple Glassmorphism sang trọng.
+- [ ] Đảm bảo 100% responsive, biên dịch sạch không có cảnh báo/lỗi static build, và tải trang mượt mà <200ms.
+
