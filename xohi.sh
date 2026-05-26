@@ -1011,6 +1011,12 @@ while true; do
             docker compose stop api worker_high caddy
             docker compose rm -f api worker_high caddy
             docker compose up -d api worker_high caddy
+            # [Elite V2.2] Purge pycache trong image layer để Python load code mới từ SFTP bind mount
+            echo -e "${YELLOW}[PYCACHE] Đang xóa pycache cũ trong container...${NC}"
+            sleep 3
+            docker exec -u root fast_platform_api find /app/backend -name "*.pyc" -delete 2>/dev/null || true
+            docker exec -u root fast_platform_api find /app/backend -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+            docker restart fast_platform_api
             echo -e "${GREEN}[OK] Đã khởi động lại Hệ thống (API, Worker High, Caddy) sạch sẽ!${NC}"
             echo -e "${YELLOW}--- Đang theo dõi LỖI MỚI (api + worker_high) ---${NC}"
             echo -e "${YELLOW}Nhấn Ctrl+C để quay lại menu.${NC}"

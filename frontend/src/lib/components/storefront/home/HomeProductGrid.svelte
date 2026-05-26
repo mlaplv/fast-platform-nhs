@@ -36,14 +36,14 @@
     metadata?: {
       image_url?: string;
       reviews_count_text?: string;
-      reviews_trust_score?: number;  // Real DB avg rating (APPROVED reviews)
-      review_count?: number;         // Real DB count (APPROVED reviews)
+      reviews_trust_score?: number; // Real DB avg rating (APPROVED reviews)
+      review_count?: number; // Real DB count (APPROVED reviews)
     };
     images?: string[];
     isAiFeatured?: boolean;
     fomoTag?: string;
-    rating?: number;         // undefined = chưa có dữ liệu real, không hiển thị
-    reviewCount?: string;    // undefined = ẩn
+    rating?: number; // undefined = chưa có dữ liệu real, không hiển thị
+    reviewCount?: string; // undefined = ẩn
   }
 
   interface Props {
@@ -108,9 +108,12 @@
     const realRating = p.metadata?.reviews_trust_score ?? null;
     const realReviewCount = p.metadata?.review_count ?? null;
     const ratingValue = realRating !== null ? realRating : undefined;
-    const reviewCountStr = realReviewCount !== null
-      ? (realReviewCount > 999 ? `${(realReviewCount / 1000).toFixed(1)}k` : `${realReviewCount}`)
-      : undefined;
+    const reviewCountStr =
+      realReviewCount !== null
+        ? realReviewCount > 999
+          ? `${(realReviewCount / 1000).toFixed(1)}k`
+          : `${realReviewCount}`
+        : undefined;
 
     // Nhãn ưu đãi vận chuyển chuẩn chỉnh cho phân khúc cao cấp
     const fomoTagValue = "Free ship";
@@ -422,7 +425,7 @@
             >
               <span
                 class="relative z-10 transition-colors group-hover/btn:text-white"
-                >Sở Hữu Ngay</span
+                >Xem chi tiết</span
               >
               <div
                 class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:animate-shivering pointer-events-none"
@@ -564,10 +567,17 @@
           <!-- ⭐ Rating — chỉ hiện khi có real DB data (reviews_trust_score từ backend) -->
           {#if product.rating !== undefined}
             <div class="flex items-center gap-1 mb-1.5">
-              <span class="text-[#FF5722] text-[10px] font-black leading-none tracking-[-0.05em]">★★★★★</span>
-              <span class="text-[10px] font-black text-[#FF5722] leading-none">{product.rating.toFixed(1)}</span>
+              <span
+                class="text-[#FF5722] text-[10px] font-black leading-none tracking-[-0.05em]"
+                >★★★★★</span
+              >
+              <span class="text-[10px] font-black text-[#FF5722] leading-none"
+                >{product.rating.toFixed(1)}</span
+              >
               {#if product.reviewCount}
-                <span class="text-[8px] text-gray-400 font-bold leading-none">&middot; {product.reviewCount} đánh giá</span>
+                <span class="text-[8px] text-gray-400 font-bold leading-none"
+                  >&middot; {product.reviewCount} đánh giá</span
+                >
               {/if}
             </div>
           {/if}
@@ -583,11 +593,21 @@
                       {formatCurrency(Math.round(product.originalPrice))}
                     </span>
                   {/if}
-                  <span class="fomo-discount-badge">⚡ -{product.discountPercent}%</span>
+                  <span class="fomo-discount-badge"
+                    >⚡ -{product.discountPercent}%</span
+                  >
                 </div>
-                <div class="bg-[#00c4a7] text-white flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] shadow-[0_2px_4px_rgba(0,196,167,0.3)] text-[8px] font-black tracking-tight">
-                  <svg class="w-2.5 h-2.5 text-white shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm2-5.5h-3V9h3v4z" />
+                <div
+                  class="bg-[#00c4a7] text-white flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] shadow-[0_2px_4px_rgba(0,196,167,0.3)] text-[8px] font-black tracking-tight"
+                >
+                  <svg
+                    class="w-2.5 h-2.5 text-white shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm2-5.5h-3V9h3v4z"
+                    />
                   </svg>
                   <span>FREESHIP</span>
                 </div>
@@ -762,8 +782,15 @@
 
   /* ⚡ Viral FOMO Discount Badge */
   @keyframes discount-glow {
-    0%, 100% { box-shadow: 0 2px 8px rgba(238,77,45,0.45); }
-    50%       { box-shadow: 0 2px 18px rgba(238,77,45,0.75), 0 0 0 3px rgba(238,77,45,0.12); }
+    0%,
+    100% {
+      box-shadow: 0 2px 8px rgba(238, 77, 45, 0.45);
+    }
+    50% {
+      box-shadow:
+        0 2px 18px rgba(238, 77, 45, 0.75),
+        0 0 0 3px rgba(238, 77, 45, 0.12);
+    }
   }
   .fomo-discount-badge {
     display: inline-flex;

@@ -3,15 +3,82 @@
   <head>
     <!-- [Elite V2.2] Dynamic Analytics Loader — GTM + GA + GSC + FB Pixel -->
     <script>(function(){
+      // Hook document.cookie to prevent redundant cookie writes that only update 'expires'
+      try {
+        var desc = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie') || 
+                   Object.getOwnPropertyDescriptor(HTMLDocument.prototype, 'cookie');
+        if (desc && desc.set) {
+          var orgSet = desc.set;
+          var orgGet = desc.get;
+          Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            enumerable: true,
+            get: function() { return orgGet.call(document); },
+            set: function(val) {
+              if (typeof val === 'string') {
+                // 1. Clean duplicate attributes in the assignment string to prevent double expires warning
+                var parts = val.split(';');
+                if (parts.length > 1) {
+                  var first = parts[0];
+                  var attrs = {};
+                  var cleaned = [first];
+                  for (var i = 1; i < parts.length; i++) {
+                    var p = parts[i].trim();
+                    if (!p) continue;
+                    var eq = p.indexOf('=');
+                    var key = (eq !== -1 ? p.substring(0, eq) : p).trim().toLowerCase();
+                    if (key) {
+                      if (attrs[key]) continue;
+                      attrs[key] = true;
+                      cleaned.push(parts[i]);
+                    }
+                  }
+                  val = cleaned.join('; ');
+                }
+
+                // 2. Prevent redundant writes with the identical value for GA cookies
+                var match = parts[0].match(/^\s*(_ga(_[A-Za-z0-9_]+)?)=([^;]+)/);
+                if (match) {
+                  var name = match[1].trim();
+                  var value = match[3].trim();
+                  var currentCookies = orgGet.call(document) || '';
+                  var currentVal = '';
+                  var cParts = currentCookies.split(';');
+                  for (var j = 0; j < cParts.length; j++) {
+                    var pair = cParts[j].split('=');
+                    if (pair[0].trim() === name) {
+                      currentVal = pair[1].trim();
+                      break;
+                    }
+                  }
+                  if (currentVal && currentVal === value) {
+                    return;
+                  }
+                }
+              }
+              orgSet.call(document, val);
+            }
+          });
+        }
+      } catch(e) {}
+
       var CACHE_KEY='primary_config';
       /* Robust ID validator: rejects null, "null", "", "0", whitespace-only, X-placeholders */
       function ok(id){return typeof id==='string'&&id.trim().length>0&&id!=='null'&&id!=='undefined'&&id!=='0'&&!/^[Xx]+$/.test(id.trim());}
       /* FB Pixel ID must be purely numeric (9–16 digits) */
       function okPixel(id){return ok(id)&&/^\d{9,16}$/.test(id.trim());}
+
+      // Khởi tạo dataLayer & gtag sớm để cấu hình cookie_update = false toàn cục
+      window['dataLayer']=window['dataLayer']||[];
+      function gtag(){window['dataLayer'].push(arguments);}
+      window['gtag']=gtag;
+      gtag('js',new Date());
+      gtag('set', 'cookie_update', false);
+      gtag('set', {'cookie_update': false}); // Triệt tiêu cảnh báo overwrite cookie expires khi chuyển trang
+
       function injectGTM(id){
         if(!ok(id)||window.__gtm_loaded__)return;
         window.__gtm_loaded__=true;
-        window['dataLayer']=window['dataLayer']||[];
         window['dataLayer'].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
         var f=document.getElementsByTagName('script')[0];
         var j=document.createElement('script');
@@ -20,17 +87,19 @@
         f.parentNode.insertBefore(j,f);
       }
       function injectGA(id){
-        if(!ok(id)||window.__ga_loaded__)return;
-        window.__ga_loaded__=true;
-        var s=document.createElement('script');
-        s.async=true;
-        s.src='https://www.googletagmanager.com/gtag/js?id='+id;
-        document.head.appendChild(s);
-        window.dataLayer=window.dataLayer||[];
-        function gtag(){window.dataLayer.push(arguments);}
-        window.gtag=gtag;
-        gtag('js',new Date());
-        gtag('config',id);
+        if(!ok(id))return;
+        // Guard: nếu cùng GA ID đã được config rồi thì bỏ qua, tránh overwrite cookie
+        if(window.__ga_id__===id)return;
+        if(!window.__ga_loaded__){
+          window.__ga_loaded__=true;
+          var s=document.createElement('script');
+          s.async=true;
+          s.src='https://www.googletagmanager.com/gtag/js?id='+id;
+          document.head.appendChild(s);
+        }
+        // Chỉ gọi config nếu ID chưa từng được config
+        window.__ga_id__=id;
+        window.gtag('config',id,{'cookie_update':false});
       }
       function injectGSC(id){
         if(!ok(id)||document.querySelector('meta[name="google-site-verification"]'))return;
@@ -48,8 +117,12 @@
       }
       function applyTrackers(seo){
         if(!seo)return;
+        var hasGTM=ok(seo.google_tag_manager_id);
         injectGTM(seo.google_tag_manager_id);
-        injectGA(seo.google_analytics_id);
+        /* Nếu đã có GTM thì KHÔNG inject GA4 trực tiếp.
+           GTM container sẽ tự fire GA4 tag — tránh double-load
+           cùng measurement ID gây overwrite cookie _ga_XXXXXXXX */
+        if(!hasGTM){injectGA(seo.google_analytics_id);}
         injectGSC(seo.google_search_console_id);
         injectFBPixel(seo.facebook_pixel_id);
       }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fetchViralCampaign } from '$lib/utils/viralCampaignCache';
     import Facebook from "@lucide/svelte/icons/facebook";
   import Copy from "@lucide/svelte/icons/copy";
   import Heart from "@lucide/svelte/icons/heart";
@@ -54,15 +55,20 @@
 
   let campaignData = $state<any>(null);
   let isCampaignLoaded = $state(false);
+  let campaignExists = $state(true); // Elite V2.2: Zero-Failure Campaign Self-Correction
 
   $effect(() => {
+    // Elite V2.2: Singleton Cache — deduplicate per voucher_id, no loop possible
     const vId = promoConfig?.voucher_id;
     if (vId && !isCampaignLoaded) {
-      isCampaignLoaded = true;
-      fetch(`/api/v1/client/viral/campaign/${vId}`)
-        .then(res => res.json())
-        .then(data => { campaignData = data; })
-        .catch(() => {});
+      isCampaignLoaded = true; // Set IMMEDIATELY — prevents any re-run from triggering fetch
+      fetchViralCampaign(vId).then((result) => {
+        if (!result.exists || !result.enabled) {
+          campaignExists = false;
+          return;
+        }
+        campaignData = result.data;
+      });
     }
   });
 
@@ -446,6 +452,7 @@
   }
 </script>
 
+{#if campaignExists && promoConfig?.voucher_id}
 <div class="vfl-root">
   <!-- Canary Trap / Honeypot: Hidden from real users but bots will interact with it -->
   <input 
@@ -473,7 +480,7 @@
         <Copy size={12} />
       </button>
     </div>
-
+ 
         <div class="vfl-progress-area">
            <div class="vfl-progress-info">
              <div class="flex flex-col">
@@ -512,20 +519,20 @@
              </div>
            </div>
         </div>
-
+ 
     <button onclick={handleLike} class="vfl-like-pill" class:liked={isLiked}>
       <Heart size={12} fill={isLiked ? '#ee4d2d' : 'none'} color={isLiked ? '#ee4d2d' : '#fff'} />
       <span class="vfl-like-count">{formatViralCount(localLikeCount)}</span>
     </button>
   </div>
-
+ 
   <!-- 🎫 Viral Redemption Funnel -->
   <div class="vfl-redemption">
     <div class="vfl-ticket-box" class:revealed={step === 'revealed'}>
       <!-- Ticket Notches -->
       <div class="ticket-notch notch-l"></div>
       <div class="ticket-notch notch-r"></div>
-
+ 
       {#if step === 'idle' || step === 'error'}
         <div class="ticket-inner">
           <div class="flex flex-col gap-0.5">
@@ -579,6 +586,7 @@
     </div>
   </div>
 </div>
+{/if}
 
 <style>
   .vfl-root {

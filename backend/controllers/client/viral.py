@@ -154,5 +154,16 @@ class ViralController(Controller):
         """
         result = await viral_share_service.get_campaign_details(voucher_id, db_session)
         if not result:
-            raise NotFoundException("Không tìm thấy chiến dịch lan tỏa cho mã này.")
-        return result
+            return {
+                "exists": False,
+                "enabled": False,
+                "voucher_id": voucher_id,
+                "voucher_label": "Quà tặng đặc biệt",
+                "cta_text": "Chia Sẻ Nhận Quà",
+                "share_text": "Nhận ngay quà tặng lan tỏa cực hot!"
+            }
+        return {
+            "exists": True,
+            "enabled": result.get("is_active", True),
+            **result
+        }

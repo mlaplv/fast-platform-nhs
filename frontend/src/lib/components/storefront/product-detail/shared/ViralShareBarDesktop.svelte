@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fetchViralCampaign } from '$lib/utils/viralCampaignCache';
   import Instagram from "@lucide/svelte/icons/instagram";
   import Send from "@lucide/svelte/icons/send";
   import Twitter from "@lucide/svelte/icons/twitter";
@@ -56,30 +57,23 @@
   );
 
   let campaignData = $state<{ voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string } | null>(null);
-  let isCampaignLoading = $state(false);
   let isCampaignLoaded = $state(false);
+  let campaignExists = $state(true); // Elite V2.2: Zero-Failure Campaign Self-Correction
+  // isCampaignLoading: true khi chưa load xong (dùng cho template spinner)
+  const isCampaignLoading = $derived(!isCampaignLoaded);
 
   $effect(() => {
-    // Reset state when switching products (track ONLY product.id)
-    product.id; 
-    untrack(() => {
-      isCampaignLoaded = false;
-      campaignData = null;
-    });
-  });
-
-  $effect(() => {
-    const vId = viralSuite?.share_promotion?.voucher_id;
-    if (vId && !isCampaignLoaded && !isCampaignLoading) {
-      isCampaignLoading = true;
-      fetch(`/api/v1/client/viral/campaign/${vId}`)
-        .then(res => res.json())
-        .then((data: { voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string }) => { 
-          campaignData = data; 
-          isCampaignLoaded = true;
-        })
-        .catch(() => {})
-        .finally(() => { isCampaignLoading = false; });
+    // Elite V2.2: Singleton Cache — deduplicate per voucher_id, no loop possible
+    const vId = viralSuite?.share_promotion?.voucher_id || promoConfig?.voucher_id;
+    if (vId && !isCampaignLoaded) {
+      isCampaignLoaded = true; // Set IMMEDIATELY — prevents any re-run from triggering fetch
+      fetchViralCampaign(vId).then((result) => {
+        if (!result.exists || !result.enabled) {
+          campaignExists = false;
+          return;
+        }
+        campaignData = result.data as any;
+      });
     }
   });
 
@@ -122,6 +116,7 @@
   }
 </script>
 
+{#if campaignExists && promoConfig?.voucher_id}
 <div class="w-full font-sans">
   <div class="flex flex-col gap-4 w-full">
     
@@ -142,7 +137,7 @@
       <button onclick={() => share('telegram')} class="text-slate-400 hover:text-[#229ed9] transition-colors hover:scale-110" aria-label="Share Telegram"><Send size={18} /></button>
       <button onclick={copyLink} class="text-slate-400 hover:text-slate-900 transition-colors hover:scale-110" aria-label="Copy Link"><Copy size={18} /></button>
     </div>
-
+ 
     <!-- Progress: only render client-side to avoid hydration mismatch -->
     {#if isMounted && shareTarget > 0}
       {#if shareProgress < 100}
@@ -211,6 +206,7 @@
     {/if}
   </div>
 </div>
+{/if}
 
 <style>
   :global(.vsb-heart-burst) { position: fixed; pointer-events: none; z-index: var(--z-particle); transform: translate(-50%, -50%); }

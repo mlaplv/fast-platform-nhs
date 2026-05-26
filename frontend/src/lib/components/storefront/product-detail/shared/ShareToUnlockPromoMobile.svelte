@@ -151,7 +151,7 @@
           return res.json();
         })
         .then((data: any) => {
-          if (data) {
+          if (data && data.exists !== false && data.enabled !== false) {
             campaignData = data;
             campaignExists = true;
           } else {
@@ -253,16 +253,24 @@
       if (saved) {
         try {
           const data = JSON.parse(saved);
-          voucherCode = data.code;
-          voucherLabel = data.label;
-          shopStore?.injectViralVoucher(
-            data.code,
-            data.label,
-            data.value ?? 0,
-            data.type ?? 'FIXED',
-            data.min_spend ?? 0
-          );
-          step = 'revealed';
+          
+          // Elite V2.2: Nếu mã đã lưu khác với mã đang hoạt động được backend hydrate -> dọn sạch cache cũ để tự động chuyển dịch sang mã mới
+          if (promoConfig?.voucher_id && data.code !== promoConfig.voucher_id) {
+            localStorage.removeItem(`viral_unlocked_${product.id}`);
+            voucherCode = null;
+            voucherLabel = null;
+          } else {
+            voucherCode = data.code;
+            voucherLabel = data.label;
+            shopStore?.injectViralVoucher(
+              data.code,
+              data.label,
+              data.value ?? 0,
+              data.type ?? 'FIXED',
+              data.min_spend ?? 0
+            );
+            step = 'revealed';
+          }
         } catch {
           localStorage.removeItem(`viral_unlocked_${product.id}`);
         }

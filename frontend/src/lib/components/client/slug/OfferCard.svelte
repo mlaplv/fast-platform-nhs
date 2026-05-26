@@ -202,7 +202,11 @@
       const subText = String(v.sub || v.subtitle || "").toLowerCase();
       const labelText = String(v.label || v.title || "").toLowerCase();
 
-      if (v.type === "PERCENT" || subText.includes("%") || labelText.includes("%")) {
+      if (
+        v.type === "PERCENT" ||
+        subText.includes("%") ||
+        labelText.includes("%")
+      ) {
         return (productPrice * rawVal) / 100;
       }
       return rawVal;
@@ -219,9 +223,13 @@
     // 1. Viral/Độc quyền Vouchers always at the absolute top
     const viralVouchers = sorted.filter((v) => isViralVoucher(v));
     // 2. Regular discount/gift vouchers
-    const regularDiscount = sorted.filter((v) => !isViralVoucher(v) && v.type !== "ship");
+    const regularDiscount = sorted.filter(
+      (v) => !isViralVoucher(v) && v.type !== "ship",
+    );
     // 3. Regular shipping vouchers
-    const regularShipping = sorted.filter((v) => !isViralVoucher(v) && v.type === "ship");
+    const regularShipping = sorted.filter(
+      (v) => !isViralVoucher(v) && v.type === "ship",
+    );
 
     return [...viralVouchers, ...regularDiscount, ...regularShipping];
   });
@@ -815,7 +823,7 @@
                 MUA NGAY
               </span>
               <span class="text-[9px] text-white/80 font-bold tracking-[0.1em]">
-                Sở hữu ngay • {formatCurrency(totalPackagePrice)}
+                Xem chi tiết • {formatCurrency(totalPackagePrice)}
               </span>
             </div>
           </div>

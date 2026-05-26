@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fetchViralCampaign } from '$lib/utils/viralCampaignCache';
   import Heart from "@lucide/svelte/icons/heart";
   import Instagram from "@lucide/svelte/icons/instagram";
   import Send from "@lucide/svelte/icons/send";
@@ -58,15 +59,20 @@
 
   let campaignData = $state<{ voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string } | null>(null);
   let isCampaignLoaded = $state(false);
+  let campaignExists = $state(true); // Elite V2.2: Zero-Failure Campaign Self-Correction
 
   $effect(() => {
-    const vId = viralSuite?.share_promotion?.voucher_id;
+    // Elite V2.2: Singleton Cache — deduplicate per voucher_id, no loop possible
+    const vId = viralSuite?.share_promotion?.voucher_id || promoConfig?.voucher_id;
     if (vId && !isCampaignLoaded) {
-      isCampaignLoaded = true;
-      fetch(`/api/v1/client/viral/campaign/${vId}`)
-        .then(res => res.json())
-        .then((data: { voucher_label?: string; cta_text?: string; share_text?: string; voucher_subtitle?: string; voucher_id?: string }) => { campaignData = data; })
-        .catch(() => {});
+      isCampaignLoaded = true; // Set IMMEDIATELY — prevents any re-run from triggering fetch
+      fetchViralCampaign(vId).then((result) => {
+        if (!result.exists || !result.enabled) {
+          campaignExists = false;
+          return;
+        }
+        campaignData = result.data as any;
+      });
     }
   });
 
@@ -117,6 +123,7 @@
 
 <svelte:window onscroll={handleScroll} />
 
+{#if campaignExists && promoConfig?.voucher_id}
 <div class="w-full font-sans relative group z-10" class:opacity-60={isCollapsed} class:opacity-0={isHidden} class:pointer-events-none={isHidden}>
   {#if variant === 'funnel'}
     <div class="flex flex-col w-full relative z-10 transition-all duration-300">
@@ -127,7 +134,7 @@
           <Heart size={14} class={isLiked ? 'fill-current' : ''} />
           <span class="text-xs font-bold">{formatViralCount(localLikeCount)}</span>
         </button>
-
+ 
         <!-- Social Icons Group (Liquid Glass) -->
         <div class="flex-1 flex items-center justify-around gap-2 px-3 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl overflow-x-auto scrollbar-hide">
           <button onclick={() => share('facebook')} class="text-white/80 hover:text-white transition-all active:scale-90" aria-label="FB"><Facebook size={18} class="fill-current" /></button>
@@ -137,7 +144,7 @@
           <button onclick={copyLink} class="text-white/80 hover:text-white transition-all active:scale-90" aria-label="Copy"><Copy size={18} /></button>
         </div>
       </div>
-
+ 
       <!-- FOMO Progress (Neon Standard) -->
       {#if shareTarget > 0}
         <div class="relative z-10 mt-2 px-1">
@@ -204,14 +211,14 @@
       <button class="w-10 h-10 flex items-center justify-center relative active:scale-90 transition-transform drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)] focus:outline-none" onclick={triggerVerify}>
         <img src={product?.metadata?.verified_badge_url || SHOP_CONFIG.default_badge_url} alt="Verified Badge" class="w-full h-full object-contain" />
       </button>
-
+ 
       <button class="flex flex-col items-center gap-1 drop-shadow-md active:scale-90 transition-transform" onclick={handleLike}>
         <div class="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-colors {isLiked ? 'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)]' : 'bg-black/40 border border-white/20'}">
            <Heart size={18} class={isLiked ? 'fill-white text-white' : 'text-white'} />
         </div>
         <span class="text-[10px] font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{formatViralCount(localLikeCount)}</span>
       </button>
-
+ 
       <div class="flex flex-col gap-3">
         <button class="active:scale-90 transition-transform" onclick={() => share('facebook')}>
           <div class="w-9 h-9 rounded-full bg-[#1877f2] flex items-center justify-center shadow-lg"><Facebook size={16} class="fill-white text-white" /></div>
@@ -226,6 +233,7 @@
     </div>
   {/if}
 </div>
+{/if}
 
 <style>
   @keyframes shimmer {

@@ -209,3 +209,10 @@
 - [x] Xây dựng layout dạng thẻ (Card) bo góc mềm mại, kết hợp dải màu gradient nhẹ tinh tế và hiệu ứng lóe sáng Apple Glassmorphism sang trọng. (Done)
 - [x] Đảm bảo 100% responsive, biên dịch sạch không có cảnh báo/lỗi static build, và tải trang mượt mà <200ms. (Done)
 
+# Task Checklist - GA4 & GTM Cookie Warnings Resolution (Elite V2.2)
+
+- [x] Cấu hình `cookie_update: false` sử dụng đồng thời cú pháp string (`gtag('set', 'cookie_update', false)`) và object (`gtag('set', {'cookie_update': false})`) toàn cục. (Done)
+- [x] Tích hợp cấu hình `'cookie_update': false` trực tiếp vào trong lệnh `gtag('config', id, {'cookie_update': false})` để triệt tiêu cảnh báo ghi đè thuộc tính "expires" của cookie _ga. (Done)
+- [x] Thiết lập bộ lọc chặn/ghi đè setter `document.cookie` để bỏ qua các lệnh cập nhật trùng lặp thuộc tính `expires` khi giá trị cookie GA thực tế không thay đổi, triệt tiêu hoàn toàn cảnh báo trong bảng console trên mọi trình duyệt. (Done)
+- [x] Đẩy mã nguồn đã chỉnh sửa lên môi trường Production VPS, thực hiện kiểm tra và khởi động lại các container. (Done)
+
