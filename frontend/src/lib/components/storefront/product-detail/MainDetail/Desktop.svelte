@@ -556,45 +556,7 @@
   }
 
   // --- HELEN AI PRICE INTELLIGENCE (VIRAL 2026) ---
-  const helenAdvice = $derived.by(() => {
-    const comboVariants = pVariants.filter(
-      (cv) => cv.attributes && cv.attributes.combo_qty,
-    );
-    if (comboVariants.length === 0)
-      return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền. Hãy chọn số lượng phù hợp để tối ưu kết quả.";
-
-    const sortedTiers = [...comboVariants].sort(
-      (a, b) =>
-        Number(a.attributes?.combo_qty || 0) -
-        Number(b.attributes?.combo_qty || 0),
-    );
-    const nextTier = sortedTiers.find(
-      (t) => Number(t.attributes?.combo_qty || 0) > quantity,
-    );
-
-    if (nextTier) {
-      const gap = Number(nextTier.attributes?.combo_qty || 0) - quantity;
-      const nextUnitPrice =
-        nextTier.discountPrice || nextTier.discount_price || nextTier.price;
-      const currentUnitPrice = effectiveUnitPrice;
-      const savingsPerUnit = currentUnitPrice - nextUnitPrice;
-      const tierName =
-        ((nextTier.tierIndex || nextTier.tier_index) || [])
-          .map((idx, i) => {
-            const opt = variations?.[i]?.options?.[idx];
-            return typeof opt === "string" ? opt : "";
-          })
-          .filter(Boolean)
-          .join(" ") || "Combo tiếp theo";
-
-      if (savingsPerUnit > 0) {
-        return `Nâng cấp ngay lên bộ "${tierName}" (thêm ${gap} sp) để chạm ngưỡng tiết kiệm ${formatCurrency(nextUnitPrice)}/sp. Bạn sẽ giảm thêm ${formatCurrency(savingsPerUnit)} trên mỗi sản phẩm!`;
-      }
-      return `Chỉ thêm ${gap} sản phẩm để kích hoạt bộ "${tierName}" và nhận trọn vẹn đặc quyền quà tặng đi kèm!`;
-    }
-
-    return `Tuyệt vời! Bạn đã sở hữu Liệu Trình Hoàn Mỹ với mức giá tối ưu nhất. ${supportAgent.config.agentName} cam kết bảo vệ quyền lợi và chất lượng sản phẩm cho đơn hàng của bạn.`;
-  });
+  const helenAdvice = $derived(cartStore.getPromotionAdvice(product, quantity).text);
 
   const activeComboQty = $derived(
     effectiveTier?.attributes?.combo_qty ||

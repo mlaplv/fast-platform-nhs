@@ -508,6 +508,109 @@ export class CartStore {
         }
         this.save();
     }
+
+    /**
+     * ELITE V2.2: Unified Promotion & Gift Advice Engine
+     * Dynamically resolved from Variant/Product metadata and attributes.
+     */
+    getPromotionAdvice(product: Product, currentQty: number) {
+        if (!product) {
+            return { text: '', hasGift: false, nextTier: null, nextComboName: '', gap: 0 };
+        }
+
+        const getQty = (attrs: any): number => Number(attrs?.combo_qty ?? attrs?.comboQty ?? 0);
+        
+        const comboVariants = product.variants?.filter(v => {
+            if (!v.attributes) return false;
+            return getQty(v.attributes) > 0;
+        }) || [];
+
+        if (comboVariants.length === 0) {
+            return {
+                text: "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền. Hãy chọn số lượng phù hợp để tối ưu kết quả.",
+                hasGift: false,
+                nextTier: null,
+                nextComboName: '',
+                gap: 0
+            };
+        }
+
+        const sortedTiers = [...comboVariants].sort((a, b) => 
+            getQty(a.attributes) - getQty(b.attributes)
+        );
+
+        // Find currently reached tier
+        const reachedTier = [...sortedTiers]
+            .reverse()
+            .find(t => getQty(t.attributes) <= currentQty);
+
+        // Find next tier
+        const nextTier = sortedTiers.find(t => getQty(t.attributes) > currentQty);
+
+        if (!nextTier) {
+            const currentGifts = reachedTier?.attributes?.gifts?.length 
+                ? reachedTier.attributes.gifts 
+                : reachedTier?.gifts?.length 
+                    ? reachedTier.gifts 
+                    : [];
+            
+            return {
+                text: "Chúc mừng bạn! Bạn đã đạt hạng combo ưu đãi cao nhất và nhận được mức giá tốt nhất cùng quà tặng độc quyền!",
+                hasGift: currentGifts.length > 0,
+                nextTier: null,
+                nextComboName: '',
+                gap: 0
+            };
+        }
+
+        const gap = nextTier.attributes ? (getQty(nextTier.attributes) - currentQty) : 0;
+        const nextComboName = this.getVariantName(product, nextTier);
+
+        // Check gifts on next tier variant
+        const gifts = nextTier.attributes?.gifts?.length 
+            ? nextTier.attributes.gifts 
+            : nextTier.gifts?.length 
+                ? nextTier.gifts 
+                : [];
+        
+        const hasGift = gifts.length > 0;
+
+        // Calculate saving/discount
+        const currentUnitPrice = reachedTier 
+            ? (Number(reachedTier.discountPrice) || Number(reachedTier.price) || 0)
+            : (Number(product.discountPrice) || Number(product.price) || 0);
+
+        const nextUnitPrice = Number(nextTier.discountPrice) || Number(nextTier.price) || 0;
+        const savingsPerUnit = Math.max(0, currentUnitPrice - nextUnitPrice);
+
+        const benefitParts: string[] = [];
+        if (savingsPerUnit > 0) {
+            benefitParts.push(`tiết kiệm thêm ${savingsPerUnit.toLocaleString('vi-VN')}đ/sản phẩm`);
+        }
+
+        if (hasGift) {
+            const giftStrings = gifts.map((g: any) => {
+                const gQty = g.qty || g.quantity || 1;
+                return `${gQty} ${g.name}`;
+            });
+            benefitParts.push(`tặng thêm ${giftStrings.join(', ')} MIỄN PHÍ`);
+        }
+
+        let text = `Thêm ${gap} sp ${product.name} để thăng hạng lên combo "${nextComboName}".`;
+        if (benefitParts.length > 0) {
+            text += ` Nhận ngay ưu đãi ${benefitParts.join(" và ")}!`;
+        } else {
+            text += ` Hãy thăng hạng để nhận thêm ưu đãi đặc quyền!`;
+        }
+
+        return {
+            text,
+            hasGift,
+            nextTier,
+            nextComboName,
+            gap
+        };
+    }
 }
 
 // 🚀 ELITE CONTEXT KEYS

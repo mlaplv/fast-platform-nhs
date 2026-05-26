@@ -14,6 +14,8 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import HelenIcon from '$lib/components/client/support/HelenIcon.svelte';
   import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
 
+  import { getCartStore } from '$lib/state/commerce/cart.svelte';
+
   interface Props {
     product: Product;
     show: boolean;
@@ -23,6 +25,7 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
 
   let { product, show, onClose, onConfirm }: Props = $props();
   const ui = getClientUi();
+  const cartStore = getCartStore();
 
   const variations = $derived(product.tier_variations || product.tierVariations || product.attributes?.tier_variations || product.metadata?.tier_variations || []);
   const pVariants = $derived((product.variants || []).filter(v => v.attributes?.is_active !== false));
@@ -93,28 +96,7 @@ import ShieldCheck from "@lucide/svelte/icons/shield-check";
   });
 
   // --- HELEN AI PRICE INTELLIGENCE (MOBILE VERSION) ---
-  const helenAdvice = $derived.by(() => {
-    const comboVariants = pVariants.filter(cv => cv.attributes && cv.attributes.combo_qty);
-    if (comboVariants.length === 0) return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền.";
-    
-    const sortedTiers = [...comboVariants].sort((a, b) => Number(a.attributes.combo_qty) - Number(b.attributes.combo_qty));
-    const nextTier = sortedTiers.find(t => Number(t.attributes.combo_qty) > quantity);
-    
-    if (nextTier) {
-      const gap = Number(nextTier.attributes.combo_qty) - quantity;
-      const nextUnitPrice = nextTier.discountPrice || nextTier.discount_price || nextTier.price;
-      const currentUnitPrice = effectiveUnitPrice;
-      const savingsPerUnit = currentUnitPrice - nextUnitPrice;
-      const tierName = nextTier.tierIndex.map((idx, i) => variations?.[i]?.options?.[idx] || '').filter(Boolean).join(' ') || "Combo tiếp theo";
-      
-      if (savingsPerUnit > 0) {
-        return `Thêm ${gap} sp để nâng cấp lên "${tierName}" (giảm ${formatCurrency(savingsPerUnit)}/sp)!`;
-      }
-      return `Chỉ thêm ${gap} sp để nhận trọn bộ quà tặng "${tierName}"!`;
-    }
-    
-    return "Tuyệt vời! Bạn đang nhận được mức giá tối ưu nhất cho liệu trình này.";
-  });
+  const helenAdvice = $derived(cartStore.getPromotionAdvice(product, quantity).text);
 
   let currentPrice = $derived(effectiveUnitPrice);
   let totalPrice = $derived(effectiveUnitPrice * quantity);

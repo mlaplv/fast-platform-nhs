@@ -89,22 +89,11 @@
 
   const variantTitle = $derived(getVariantTitle(variant));
   const resolvedGifts = $derived(
-    variant?.gifts?.length
-      ? variant.gifts
-      : variant.attributes?.gifts?.length
-        ? variant.attributes.gifts
-        : variantTitle === "Dứt điểm" ||
-            variantTitle.toLowerCase().includes("mua 3") ||
-            comboQty === 3
-          ? [
-              {
-                name: "Miccosmo Beppin Body Virgin White Serum 30g",
-                image: "/uploads/img/osmo/sp1.png",
-                quantity: 1,
-                type: "PRODUCT",
-              },
-            ]
-          : product?.gifts || [],
+    variant?.attributes?.gifts?.length
+      ? variant.attributes.gifts
+      : variant?.gifts?.length
+        ? variant.gifts
+        : product?.gifts || []
   );
 
   function getGiftPrice(gift: any): number {
@@ -298,9 +287,11 @@
     }, 150);
   }
 
-  function handleTriggerVerify(e: MouseEvent) {
-    e.stopPropagation();
-    onTriggerScan?.();
+  function resolveGiftUrl(slug: string): string {
+    if (!slug) return '';
+    if (slug.startsWith('http://') || slug.startsWith('https://')) return slug;
+    const cleanSlug = slug.startsWith('/') ? slug.slice(1) : slug;
+    return `/${cleanSlug}`;
   }
 </script>
 
@@ -409,7 +400,7 @@
                 {#each resolvedGifts as gift}
                   {#if gift.slug}
                     <a
-                      href="/{gift.slug}"
+                      href={resolveGiftUrl(gift.slug)}
                       onclick={(e) => e.stopPropagation()}
                       class="flex items-center gap-2 min-w-0 flex-1 group/gift-item hover:opacity-90 transition-opacity"
                       style="text-decoration: none;"

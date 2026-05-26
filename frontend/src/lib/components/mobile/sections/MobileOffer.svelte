@@ -238,11 +238,12 @@
   const noiseSvg = `data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E`;
 
   // 🚀 SYNC CLOUD VOUCHERS TO FUNNEL STORE (Elite V2.2)
-  $effect(() => {
-    if (cartStore.vouchers?.length > 0) {
-      shopStore.setVouchers(cartStore.vouchers);
-    }
-  });
+  function resolveGiftUrl(slug: string): string {
+    if (!slug) return '';
+    if (slug.startsWith('http://') || slug.startsWith('https://')) return slug;
+    const cleanSlug = slug.startsWith('/') ? slug.slice(1) : slug;
+    return `/${cleanSlug}`;
+  }
 </script>
 
 <div class="h-full w-full container flex flex-col !px-0 !max-w-none pt-[var(--mobile-top-space)] pb-[var(--mobile-bottom-space)] relative overflow-hidden bg-black text-white">
@@ -320,7 +321,7 @@
          {@const vPrice = priceData.final}
          {@const isActive = selectedIndex === i}
          {@const variantTitle = getVariantTitle(variant)}
-         {@const resolvedGifts = variant.attributes?.gifts?.length ? variant.attributes.gifts : variant?.gifts?.length ? variant.gifts : (variantTitle === "Dứt điểm" || variantTitle.toLowerCase().includes("mua 3") || cQty === 3) ? [{ name: "Miccosmo Beppin Body Virgin White Serum 30g", image: "/uploads/img/osmo/sp1.png", quantity: 1, type: "PRODUCT" }] : product?.gifts || []}
+         {@const resolvedGifts = variant.attributes?.gifts?.length ? variant.attributes.gifts : variant?.gifts?.length ? variant.gifts : product?.gifts || []}
          
            <div 
             role="button"
@@ -381,7 +382,7 @@
                        {#if resolvedGifts.length > 0}
                           {#if resolvedGifts[0].slug}
                              <a 
-                               href="/{resolvedGifts[0].slug}" 
+                               href={resolveGiftUrl(resolvedGifts[0].slug)} 
                                onclick={(e) => e.stopPropagation()} 
                                class="flex items-center gap-1 bg-[#FFB7C5]/10 border border-[#FFB7C5]/20 backdrop-blur-md pl-0.5 pr-1.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(255,183,197,0.1)] shrink-0 transition-all duration-300 hover:bg-[#FFB7C5]/20 hover:border-[#FFB7C5]/40 {isActive ? 'opacity-100' : 'opacity-50'}"
                                style="text-decoration: none;"

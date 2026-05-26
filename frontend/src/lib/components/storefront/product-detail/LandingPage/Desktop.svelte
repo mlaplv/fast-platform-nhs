@@ -521,24 +521,7 @@
     }
   }
 
-  const helenAdvice = $derived.by(() => {
-    const comboVariants = pVariants.filter(
-      (cv) => cv.attributes && cv.attributes.combo_qty,
-    );
-    if (comboVariants.length === 0)
-      return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền.";
-    const sortedTiers = [...comboVariants].sort(
-      (a, b) => Number(a.attributes?.combo_qty || 0) - Number(b.attributes?.combo_qty || 0),
-    );
-    const nextTier = sortedTiers.find(
-      (t) => Number(t.attributes?.combo_qty || 0) > quantity,
-    );
-    if (nextTier) {
-      const gap = Number(nextTier.attributes?.combo_qty || 0) - quantity;
-      return `Chỉ thêm ${gap} sản phẩm để nhận trọn vẹn đặc quyền quà tặng đi kèm!`;
-    }
-    return `Tuyệt vời! Bạn đã sở hữu Liệu Trình Hoàn Mỹ với mức giá tối ưu nhất.`;
-  });
+  const helenAdvice = $derived(cartStore.getPromotionAdvice(product, quantity).text);
 
   const activeComboQty = $derived(
     effectiveTier?.attributes?.combo_qty ||

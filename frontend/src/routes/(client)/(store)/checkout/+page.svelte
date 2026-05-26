@@ -515,103 +515,42 @@
   // --- HELEN AI PRICE INTELLIGENCE (CHECKOUT CONTEXT) ---
   const helenAdvice = $derived.by(() => {
     const selectedItems = cartStore.items.filter((i) => i.selected);
-    if (selectedItems.length === 0) return "";
+    if (selectedItems.length === 0) return "Dạ chào Sếp, em là Helen. Hãy chọn sản phẩm Sếp muốn thanh toán để em tối ưu hóa ưu đãi nhé!";
 
     const advices: { gravity: number; text: string }[] = [];
     const reachedCombos: string[] = [];
+    let giftMessage = "";
 
     for (const item of selectedItems) {
-      // Find combo variants
-      const comboVariants =
-        item.product?.variants?.filter(
-          (v) => v.attributes && (v.attributes.combo_qty ?? v.attributes.comboQty),
-        ) || [];
-      if (comboVariants.length === 0) {
-        advices.push({
-          gravity: -1,
-          text: "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền.",
-        });
-        continue;
-      }
-
-      const getQty = (v: {attributes?: {combo_qty?: number, comboQty?: number}}) => Number(v.attributes?.combo_qty ?? v.attributes?.comboQty ?? 0);
-
-      const sortedTiers = [...comboVariants].sort(
-        (a, b) => getQty(a) - getQty(b)
-      );
-
-      // Find highest reached tier
-      const reachedTier = [...sortedTiers]
-        .reverse()
-        .find((t) => getQty(t) <= item.quantity);
-
-      if (reachedTier) {
-        const comboName = cartStore.getVariantName(item.product, reachedTier);
-        reachedCombos.push(`"${comboName}" (${item.product.name})`);
-      }
-
-      // Check if there is a next tier
-      const nextTier = sortedTiers.find(
-        (t) => getQty(t) > item.quantity,
-      );
-
-      if (nextTier) {
-        const gap = getQty(nextTier) - item.quantity;
-        const nextUnitPrice =
-          nextTier.discountPrice ||
-          nextTier.discount_price ||
-          nextTier.price ||
-          0;
-
-        // Calculate current effective unit price for this item
-        const currentUnitPrice =
-          reachedTier?.discountPrice ||
-          reachedTier?.discount_price ||
-          item.variant?.discountPrice ||
-          item.variant?.discount_price ||
-          item.product.discountPrice ||
-          item.product.discount_price ||
-          item.product.price ||
-          0;
-
-        const savingsPerUnit = currentUnitPrice - nextUnitPrice;
-        const nextComboName = cartStore.getVariantName(item.product, nextTier);
-        
-        const hasGift = nextComboName.includes("Dứt điểm") || nextComboName.includes("Mua 3") || (nextTier.attributes?.gifts && nextTier.attributes.gifts.length > 0) || (nextTier.gifts && nextTier.gifts.length > 0);
-
-        if (savingsPerUnit > 0 || hasGift) {
-          let benefitParts = [];
-          if (savingsPerUnit > 0) {
-              benefitParts.push(`Tiết kiệm thêm ${formatCurrency(savingsPerUnit)}/sp`);
-          }
-          if (hasGift) {
-              if (nextComboName.includes("Dứt điểm") || nextComboName.includes("Mua 3")) {
-                  benefitParts.push(savingsPerUnit > 0 ? "tặng thêm 1 sản phẩm cùng loại MIỄN PHÍ" : "Tặng thêm 1 sản phẩm cùng loại MIỄN PHÍ");
-              } else {
-                  benefitParts.push(savingsPerUnit > 0 ? "nhận quà tặng kèm" : "Nhận quà tặng kèm");
-              }
-          }
-          
-          const bonusGravity = hasGift ? 50000 : 0;
-          
-          advices.push({
-            gravity: savingsPerUnit * (item.quantity + gap) + bonusGravity,
-            text: `Thêm ${gap} sp ${item.product.name} để thăng hạng lên combo "${nextComboName}". ${benefitParts.join(" và ")}!`,
-          });
-        }
+      const advice = cartStore.getPromotionAdvice(item.product, item.quantity);
+      if (advice.nextTier && advice.text) {
+         advices.push({ gravity: advice.gap, text: advice.text });
+      } else {
+         const activeVariant = cartStore.getEffectiveVariant(item.id);
+         if (activeVariant) {
+            const comboName = cartStore.getVariantName(item.product, activeVariant);
+            if (comboName) reachedCombos.push(`"${comboName}" (${item.product.name})`);
+            
+            const gifts = activeVariant.attributes?.gifts?.length 
+               ? activeVariant.attributes.gifts 
+               : activeVariant.gifts?.length 
+                  ? activeVariant.gifts 
+                  : [];
+            if (gifts.length > 0) {
+               const giftStrings = gifts.map((g: any) => `${g.qty || g.quantity || 1} ${g.name}`);
+               giftMessage += ` (Nhận ngay quà tặng: ${giftStrings.join(', ')} miễn phí!)`;
+            }
+         }
       }
     }
 
-    // If there are upsell advices, show the one with highest gravity
     if (advices.length > 0) {
-      return advices.sort((a, b) => b.gravity - a.gravity)[0].text;
+      // Prioritize the upsell with smallest gap to encourage conversion
+      return advices.sort((a, b) => a.gravity - b.gravity)[0].text;
     }
 
-    // If already reached the best combo/tiers, praise the client using reachedCombos
     if (reachedCombos.length > 0) {
-      const isDutDiem = reachedCombos.some(c => c.includes("Dứt điểm") || c.includes("Mua 3 tặng 1"));
-      const giftMessage = isDutDiem ? " (Đặc quyền Mua 3 tặng thêm 1 sản phẩm cùng loại miễn phí!)" : "";
-      return `Tuyệt vời! Đơn hàng đã kích hoạt thành công combo ${reachedCombos.join(", ")}${giftMessage} với ưu đãi giá rẻ kịch sàn. Chuyên gia Helen cam kết bảo vệ quyền lợi và đóng gói cẩn thận cho bạn! ✨`;
+      return `Tuyệt vời! Đơn hàng đã kích hoạt thành công combo ${reachedCombos.join(", ")}${giftMessage} với ưu đãi giá cực tốt. Helen cam kết bảo vệ quyền lợi và đóng gói cẩn thận cho Sếp! ✨`;
     }
 
     return "Tuyệt vời! Đơn hàng của bạn đã đạt mức giá tối ưu cho tất cả liệu trình. Helen cam kết bảo vệ quyền lợi và chất lượng sản phẩm cho bạn.";
@@ -1189,11 +1128,11 @@
               {@const activeVariant = cartStore.getEffectiveVariant(item.id)}
               {@const activeVariantName = activeVariant ? cartStore.getVariantName(item.product, activeVariant) : ''}
               {@const giftMultiplierMobile = activeVariant?.attributes?.combo_qty ? Math.floor(item.quantity / activeVariant.attributes.combo_qty) : item.quantity}
-              {@const resolvedGiftsMobile = activeVariant?.attributes?.gifts && activeVariant.attributes.gifts.length > 0
+              {@const resolvedGiftsMobile = activeVariant?.attributes?.gifts?.length
                 ? activeVariant.attributes.gifts
-                : (activeVariantName === 'Dứt điểm' || activeVariant?.attributes?.combo_qty === 3 || activeVariant?.attributes?.comboQty === 3)
-                  ? [{ name: `${item.product.name} (Tặng thêm)`, qty: 1, image: item.product.image || item.product.images?.[0] }]
-                  : []}
+                : activeVariant?.gifts?.length
+                  ? activeVariant.gifts
+                  : item.product?.gifts || []}
               <div
                 class="p-3 border-b border-gray-50 flex items-start gap-3 last:border-b-0 relative"
               >

@@ -383,28 +383,14 @@
 
   const activeComboQty = $derived((selectedVariant || pVariants?.[0])?.attributes?.combo_qty || (selectedVariant || pVariants?.[0])?.attributes?.comboQty || product.metadata?.combo_qty || 0);
   const activeGifts = $derived((selectedVariant || pVariants?.[0])?.attributes?.gifts || product.metadata?.gifts || []);
-  const helenAdvice = $derived.by(() => {
-    const comboVariants = pVariants.filter(cv => cv.attributes && (cv.attributes.combo_qty || cv.attributes.comboQty));
-    if (comboVariants.length === 0) return "Cơ hội sở hữu liệu trình chuyên sâu với ưu đãi độc quyền. Hãy chọn số lượng phù hợp để tối ưu kết quả.";
-    
-    const sortedTiers = [...comboVariants].sort((a, b) => Number(a.attributes.combo_qty || a.attributes.comboQty) - Number(b.attributes.combo_qty || b.attributes.comboQty));
-    const currentQty = selectedQty;
-    const nextTier = sortedTiers.find(t => Number(t.attributes.combo_qty || t.attributes.comboQty) > currentQty);
-    
-    if (nextTier) {
-      const gap = Number(nextTier.attributes.combo_qty || nextTier.attributes.comboQty) - currentQty;
-      const nextUnitPrice = nextTier.discountPrice || nextTier.discount_price || nextTier.price;
-      const currentUnitPrice = effectiveUnitPrice;
-      const savingsPerUnit = currentUnitPrice - nextUnitPrice;
-      
-      if (savingsPerUnit > 0) {
-        return `Nâng cấp thêm ${gap} sp để giảm thêm ${formatCurrency(savingsPerUnit)}/sp!`;
-      }
-      return `Thêm ${gap} sản phẩm để nhận trọn vẹn quà tặng độc quyền!`;
-    }
-    
-    return `Tuyệt vời! Bạn đã nhận mức giá tối ưu nhất từ ${supportAgent.config.agentName}.`;
-  });
+  const helenAdvice = $derived(cartStore.getPromotionAdvice(product, selectedQty).text);
+
+  function resolveGiftUrl(slug: string): string {
+    if (!slug) return '';
+    if (slug.startsWith('http://') || slug.startsWith('https://')) return slug;
+    const cleanSlug = slug.startsWith('/') ? slug.slice(1) : slug;
+    return `/${cleanSlug}`;
+  }
 </script>
 
 <section id="overview" class="overview-section">
@@ -611,7 +597,7 @@
             <div class="flex flex-wrap gap-2">
                {#each activeGifts as gift}
                   {#if gift.slug}
-                     <a href="/{gift.slug}" class="flex items-center gap-2 bg-[#fdf2f2]/50 p-1.5 pr-3 rounded-lg border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/25 hover:bg-rose-50 transition-all cursor-pointer group/gift-item w-fit" style="text-decoration: none;">
+                     <a href={resolveGiftUrl(gift.slug)} class="flex items-center gap-2 bg-[#fdf2f2]/50 p-1.5 pr-3 rounded-lg border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/25 hover:bg-rose-50 transition-all cursor-pointer group/gift-item w-fit" style="text-decoration: none;">
                         <div class="w-8 h-8 rounded-md overflow-hidden bg-white border border-gray-100 shrink-0 relative">
                            {#if gift.image}
                               <img src={resolveMediaUrl(gift.image)} alt={gift.name} class="w-full h-full object-cover" />

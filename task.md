@@ -229,3 +229,11 @@
 - [x] Diagnostics: Chẩn đoán nguyên nhân hiển thị spinner xoay tròn "Đang quét hạ tầng Google Ads..." liên tục do tài khoản **osmo** mới liên kết thực tế chưa có bất kỳ chiến dịch (campaign) nào được khởi tạo (trả về danh sách rỗng `[]` từ API). (Done)
 - [x] UI/UX Refactoring: Thay thế trạng thái spinner quay vô hạn bằng một Giao diện Trống (Empty State) đẳng cấp tối giản, ghi nhận kết nối Google Ads API thành công và hướng dẫn Sếp cách khởi tạo chiến dịch mới. (Done)
 - [x] Deployment: Biên dịch sạch dự án frontend tĩnh và đồng bộ tức thời (Rsync) toàn bộ thư mục `dist/` sang Production VPS `/opt/fast-platform/frontend/dist/`. (Done)
+
+# Task Checklist - Unifying Dynamic Promotion Logic (Elite V2.2)
+
+- [x] Thay thế logic "Dứt điểm" hardcode lỗi thời bằng hệ thống phân giải quà tặng động dựa hoàn toàn trên Variant Metadata (`variant.attributes.gifts` hoặc `variant.gifts`). (Done)
+- [x] Trung tâm hóa logic tư vấn khuyến mãi (Upsell/Cross-sell) và phân giải quà tặng trong `CartStore` (`cart.svelte.ts`) bằng phương thức `getPromotionAdvice` phản ứng (reactive). (Done)
+- [x] Đồng bộ hóa và chuẩn hóa toàn bộ giao diện tư vấn "Helen AI" trên mọi trang chi tiết và checkout (Desktop/Mobile) sử dụng duy nhất một nguồn sự thật (SSOT). (Done)
+- [x] Sửa lỗi đường dẫn quà tặng (broken URL) bằng cách xây dựng helper phân giải liên kết `resolveGiftUrl` an toàn và tối ưu cho mọi cấu trúc slug/URL. (Done)
+- [x] Đảm bảo biên dịch static production build thành công 100%, không sinh cảnh báo hoặc lỗi type safety. (Done)

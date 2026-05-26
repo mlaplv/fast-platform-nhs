@@ -422,3 +422,26 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
   - **UI/UX Enhancement**: Refactored `AdsCampaignManager.svelte` to replace the spinning indicator with a premium, sleek HUD-themed Empty State card. The card confirms that the Google Ads API connection is successful and provides an elegant prompt instructing the manager to click **"Khởi tạo chiến dịch"** to deploy their first ad campaign.
   - **Static Compiling & Hot Sync**: Compiled the updated storefront static pages cleanly and successfully synchronized the entire build folder `dist/` directly to the production VPS `/opt/fast-platform/frontend/dist/` in under 2 seconds.
 
+## 33. Unifying Dynamic Promotion Logic (Elite V2.2)
+
+- **Files Updated**:
+  - `frontend/src/lib/state/commerce/cart.svelte.ts` (Dynamic Advice Engine & Helper)
+  - `frontend/src/routes/(client)/(store)/checkout/+page.svelte` (Checkout Mobile/Desktop Advice & Gifts)
+  - `frontend/src/routes/(client)/(store)/checkout/components/CheckoutItems.svelte` (Checkout Row Gifts)
+  - `frontend/src/lib/components/mobile/sections/MobileOffer.svelte` (Mobile Offer Gifts & Links)
+  - `frontend/src/lib/components/client/slug/OfferCard.svelte` (Desktop Funnel Offer Card Gifts & Links)
+  - `frontend/src/lib/components/storefront/product-detail/MainDetail/modules/Info.svelte` (Storefront Detail Gifts Links)
+  - `frontend/src/lib/components/storefront/product-detail/LandingPage/modules/Info.svelte` (Landing Page Gifts Links)
+  - `frontend/src/lib/components/storefront/product-detail/MainDetail/modules/ProductMobileOverview.svelte` (Mobile Detail Advice & Links)
+  - `frontend/src/lib/components/storefront/product-detail/MainDetail/modules/ProductMobileVariantSelector.svelte` (Mobile Selector Advice)
+  - `frontend/src/lib/components/storefront/product-detail/MainDetail/Desktop.svelte` (Desktop Detail Advice)
+  - `frontend/src/lib/components/storefront/product-detail/LandingPage/Desktop.svelte` (Landing Desktop Advice)
+  - `backend/services/commerce/checkout.py` (Backend Dynamic Order Gifts Resolution)
+- **Features Implemented & Unifications**:
+  - **Centralized Promotion Advice Engine**: Engineered a highly intelligent, unified, reactive Svelte 5 derived state generator `getPromotionAdvice(product, quantity)` directly in the global `CartStore`. It computes exact upgrade thresholds (`combo_qty`), price-per-unit gaps, and extracts tier-specific gift metadata dynamically from database variant attributes.
+  - **Dynamic Variant-Attribute Gift Resolution**: Purged all hardcoded string comparisons (checking for `"Dứt điểm"` variant name) from both backend Order compilation (`checkout.py`) and all frontend modules (Checkout desktop/mobile layout, `CheckoutItems` row items, product funnel selectors). The system now maps gifts dynamically and strictly from variant/product attributes.
+  - **Global Helen AI Advice Unification**: Standardized `helenAdvice` across every single storefront, checkout, and mobile selector interface to pull from a single source of truth (SSOT) using `cartStore.getPromotionAdvice(product, quantity).text`. This ensures perfect advice consistency as quantities scale.
+  - **Robust Path & Slug Resolver**: Introduced the robust URL path resolver `resolveGiftUrl(slug)` inside every detail page, funnel card, and checkout row. It guards against broken links, verifying absolute protocols (`http://`/`https://`) and dynamically prepending leading slashes correctly so that all promotional gift hyperlinks point to correct product pages.
+  - **100% Build Compiling**: Successfully compiled the entire static storefront distribution (`dist`) in under 1 minute 12 seconds with absolute type safety and zero static warnings/errors.
+
+

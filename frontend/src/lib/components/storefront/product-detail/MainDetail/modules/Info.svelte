@@ -108,13 +108,12 @@
         : ""),
   );
 
-  const displayStockVal = $derived.by(() => {
-    const hash = [...String(product.id)].reduce(
-      (a, b) => a + b.charCodeAt(0),
-      0,
-    );
-    return (hash % 6) + 3;
-  });
+  function resolveGiftUrl(slug: string): string {
+    if (!slug) return '';
+    if (slug.startsWith('http://') || slug.startsWith('https://')) return slug;
+    const cleanSlug = slug.startsWith('/') ? slug.slice(1) : slug;
+    return `/${cleanSlug}`;
+  }
 </script>
 
 <div class="flex-1 flex flex-col pt-0">
@@ -524,7 +523,7 @@
               {#each activeGifts as gift}
                 {#if gift.slug}
                   <a
-                    href="/{gift.slug}"
+                    href={resolveGiftUrl(gift.slug)}
                     class="flex items-center gap-3 bg-white/60 backdrop-blur-md p-2 border border-[#ee4d2d]/5 hover:border-[#ee4d2d]/20 hover:bg-rose-50/40 transition-all group/gift-item rounded-sm w-full cursor-pointer"
                     style="text-decoration: none;"
                   >

@@ -69,11 +69,12 @@
     onTriggerVerify,
   }: Props = $props();
 
-  const isMall = $derived(!!product.metadata?.is_mall);
-  const displayStockVal = $derived.by(() => {
-    const hash = [...String(product.id)].reduce((a, b) => a + b.charCodeAt(0), 0);
-    return (hash % 6) + 3;
-  });
+  function resolveGiftUrl(slug: string): string {
+    if (!slug) return '';
+    if (slug.startsWith('http://') || slug.startsWith('https://')) return slug;
+    const cleanSlug = slug.startsWith('/') ? slug.slice(1) : slug;
+    return `/${cleanSlug}`;
+  }
 </script>
 
 <div class="info-container">
@@ -411,7 +412,7 @@
           <div class="gifts-list">
             {#each activeGifts as gift}
               {#if gift.slug}
-                <a href="/{gift.slug}" class="gift-item hover:opacity-85 transition-opacity cursor-pointer group/gift-item w-full" style="text-decoration: none;">
+                <a href={resolveGiftUrl(gift.slug)} class="gift-item hover:opacity-85 transition-opacity cursor-pointer group/gift-item w-full" style="text-decoration: none;">
                   <div class="gift-thumb relative">
                     {#if gift.image}
                       <img

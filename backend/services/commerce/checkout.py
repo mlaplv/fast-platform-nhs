@@ -261,18 +261,8 @@ class CheckoutService:
             if v_obj and getattr(v_obj, 'attributes', None) and isinstance(v_obj.attributes, dict):
                 item_gifts = v_obj.attributes.get("gifts") or []
             
-            if not item_gifts and v_obj:
-                v_name = variant_name or ""
-                v_attrs = v_obj.attributes or {}
-                c_qty = v_attrs.get("combo_qty") or v_attrs.get("comboQty") or 1
-                if "dứt điểm" in v_name.lower() or c_qty == 3 or "mua 3" in v_name.lower():
-                    item_gifts = [{
-                        "name": f"{product.name} (Tặng thêm)",
-                        "qty": 1,
-                        "image": product.images[0] if product.images else None
-                    }]
-                elif getattr(product, 'gifts', None):
-                    item_gifts = product.gifts
+            if not item_gifts and getattr(product, 'gifts', None):
+                item_gifts = product.gifts
 
             items_list.append({
                 "id": item.product_id,
