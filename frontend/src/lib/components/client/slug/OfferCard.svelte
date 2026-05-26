@@ -176,6 +176,56 @@
     selectedVouchers.find((v) => v.type !== "SHIPPING"),
   );
 
+  const sortedProductVouchers = $derived.by(() => {
+    const cleanString = (s: string) => {
+      return (s || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase();
+    };
+
+    const isViralVoucher = (v: Voucher) => {
+      const cleanId = cleanString(v.id);
+      const cleanLabel = cleanString(v.label || v.title || "");
+      return (
+        v.is_viral ||
+        cleanId.includes("VIRAL") ||
+        cleanId.includes("LAN TOA") ||
+        cleanLabel.includes("VIRAL") ||
+        cleanLabel.includes("LAN TOA")
+      );
+    };
+
+    const getVoucherValue = (v: Voucher) => {
+      let rawVal = v.value || 0;
+      const productPrice = finalUnitPrice || unitPrice || 0;
+      const subText = String(v.sub || v.subtitle || "").toLowerCase();
+      const labelText = String(v.label || v.title || "").toLowerCase();
+
+      if (v.type === "PERCENT" || subText.includes("%") || labelText.includes("%")) {
+        return (productPrice * rawVal) / 100;
+      }
+      return rawVal;
+    };
+
+    // Sort by value descending (Giá giảm dần)
+    const sorted = [...productVouchers].sort((a, b) => {
+      const valA = getVoucherValue(a);
+      const valB = getVoucherValue(b);
+      return valB - valA;
+    });
+
+    // Grouping by type:
+    // 1. Viral/Độc quyền Vouchers always at the absolute top
+    const viralVouchers = sorted.filter((v) => isViralVoucher(v));
+    // 2. Regular discount/gift vouchers
+    const regularDiscount = sorted.filter((v) => !isViralVoucher(v) && v.type !== "ship");
+    // 3. Regular shipping vouchers
+    const regularShipping = sorted.filter((v) => !isViralVoucher(v) && v.type === "ship");
+
+    return [...viralVouchers, ...regularDiscount, ...regularShipping];
+  });
+
   // Elite V2.2: Realistic FOMO - Deterministic stock based on variant ID
   const displayStock = $derived.by(() => {
     if (variant.stock && variant.stock < 10) return variant.stock;
@@ -503,8 +553,8 @@
         <div
           class="flex flex-wrap items-center gap-2 mt-1.5 min-h-[20px] relative z-20"
         >
-          {#if productVouchers.filter( (v) => shopStore.selectedVoucherIds.includes(v.id), ).length > 0}
-            {#each productVouchers.filter( (v) => shopStore.selectedVoucherIds.includes(v.id), ) as v}
+          {#if sortedProductVouchers.filter( (v) => shopStore.selectedVoucherIds.includes(v.id), ).length > 0}
+            {#each sortedProductVouchers.filter( (v) => shopStore.selectedVoucherIds.includes(v.id), ) as v}
               <span
                 class="text-[11px] font-black text-luxury-sakura leading-none flex items-center"
               >
@@ -523,8 +573,8 @@
                 </span>
               </span>
             {/each}
-          {:else if productVouchers.length > 0}
-            {@const bestV = productVouchers[0]}
+          {:else if sortedProductVouchers.length > 0}
+            {@const bestV = sortedProductVouchers[0]}
             <span
               class="text-[11px] font-black text-luxury-sakura leading-none flex items-center"
             >
@@ -544,7 +594,7 @@
             </span>
           {/if}
 
-          {#if productVouchers.length > 0}
+          {#if sortedProductVouchers.length > 0}
             <button
               type="button"
               onclick={(e) => {

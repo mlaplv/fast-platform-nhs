@@ -35,9 +35,64 @@
     },
   ];
 
+  const sortedVouchers = $derived.by(() => {
+    const cleanString = (s: string) => {
+      return (s || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase();
+    };
+
+    const isViralVoucher = (v: Voucher) => {
+      const cleanId = cleanString(v.id);
+      const cleanTitle = cleanString(v.title || "");
+      return (
+        v.is_viral ||
+        cleanId.includes("VIRAL") ||
+        cleanId.includes("LAN TOA") ||
+        cleanTitle.includes("VIRAL") ||
+        cleanTitle.includes("LAN TOA")
+      );
+    };
+
+    const getVoucherValue = (v: Voucher) => {
+      let rawVal = v.value || 0;
+      const subtotal = cartStore.totalAmountWithoutDiscount || 1;
+      if (v.type === "PERCENT") {
+        return (subtotal * rawVal) / 100;
+      }
+      return rawVal;
+    };
+
+    // Sort by value descending (Giá giảm dần)
+    const sorted = [...vouchers].sort((a, b) => {
+      const valA = getVoucherValue(a);
+      const valB = getVoucherValue(b);
+      return valB - valA;
+    });
+
+    // Grouping by type:
+    // 1. Viral/Độc quyền Vouchers always at the absolute top
+    const viralVouchers = sorted.filter((v) => isViralVoucher(v));
+    // 2. Regular discount/gift vouchers
+    const regularDiscount = sorted.filter((v) => !isViralVoucher(v) && v.type !== "SHIPPING");
+    // 3. Regular shipping vouchers
+    const regularShipping = sorted.filter((v) => !isViralVoucher(v) && v.type === "SHIPPING");
+
+    return [...viralVouchers, ...regularDiscount, ...regularShipping];
+  });
+
   let filteredVouchers = $derived.by(() => {
-    if (activeCategory === "ALL") return vouchers;
-    return vouchers.filter((v) => v.category === activeCategory);
+    if (activeCategory === "ALL") return sortedVouchers;
+    return sortedVouchers.filter((v) => {
+      if (activeCategory === "SHIPPING") {
+        return v.category === "SHIPPING" || v.type === "SHIPPING";
+      }
+      if (activeCategory === "DISCOUNT") {
+        return (v.category === "DISCOUNT" || v.type !== "SHIPPING") && v.category !== "GIFT";
+      }
+      return v.category === activeCategory;
+    });
   });
 </script>
 
@@ -222,7 +277,7 @@
               <div
                 class="text-[10px] font-black text-gray-900 leading-tight truncate"
               >
-                {v.title}
+                {v.title || v.id}
               </div>
             </div>
             <div
@@ -230,17 +285,16 @@
                 ? 'text-[#fe2c55]'
                 : 'text-gray-400'} font-bold tracking-tightest leading-tight"
             >
-              {#if isEligible}
-                {v.subtitle ||
-                  (v.type === "SHIPPING"
-                    ? "Miễn phí vận chuyển"
-                    : v.type === "PERCENT"
-                      ? `Giảm ${v.value}%`
-                      : v.value > 100
-                        ? `Giảm ${formatCurrency(v.value)}`
-                        : `Giảm ${v.value}%`)}
-              {:else}
-                HĐ {formatCurrency(v.min_spend || v.minSpend || 0)}
+              {v.subtitle ||
+                (v.type === "SHIPPING"
+                  ? "Miễn phí vận chuyển"
+                  : v.type === "PERCENT"
+                    ? `Giảm ${v.value}%`
+                    : `Giảm ${formatCurrency(v.value)}`)}
+              {#if !isEligible || (v.min_spend || v.minSpend)}
+                <span class="text-gray-400 font-medium block text-[7px] mt-0.5">
+                  Đơn tối thiểu {formatCurrency(v.min_spend || v.minSpend || 0)}
+                </span>
               {/if}
             </div>
             {#if isEligible}

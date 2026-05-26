@@ -29,11 +29,47 @@
     const q = search.toLowerCase().trim();
     if (!q) return options;
     
-    const normalizedQ = removeAccents(q);
+    // Split search query into individual keywords
+    const queryWords = q.split(/\s+/).filter(Boolean);
+    const queryNormalizedWords = queryWords.map(w => removeAccents(w));
+    
+    if (queryWords.length === 0) return options;
+    
     const results = options.filter(opt => {
       if (!opt) return false;
       const lowerOpt = opt.toLowerCase();
-      return lowerOpt.includes(q) || removeAccents(lowerOpt).includes(normalizedQ);
+      const normalizedOpt = removeAccents(lowerOpt);
+      
+      // All query keywords must match the option text or their abbreviation mappings
+      return queryWords.every((qw, idx) => {
+        const nqw = queryNormalizedWords[idx];
+        
+        // 1. Advanced abbreviation mappings for rapid search
+        if (qw === 'hcm' || qw === 'tphcm') {
+          if (normalizedOpt.includes('ho chi minh') || normalizedOpt.includes('hcm')) return true;
+        }
+        if (qw === 'hn' || qw === 'tphn') {
+          if (normalizedOpt.includes('ha noi') || normalizedOpt.includes('hn')) return true;
+        }
+        if (qw === 'tp') {
+          if (normalizedOpt.includes('thanh pho') || normalizedOpt.includes('tp')) return true;
+        }
+        if (qw === 'q' || qw === 'q.') {
+          if (normalizedOpt.includes('quan') || normalizedOpt.includes('q')) return true;
+        }
+        if (qw === 'h' || qw === 'h.') {
+          if (normalizedOpt.includes('huyen') || normalizedOpt.includes('h')) return true;
+        }
+        if (qw === 'p' || qw === 'p.') {
+          if (normalizedOpt.includes('phuong') || normalizedOpt.includes('p')) return true;
+        }
+        if (qw === 'x' || qw === 'x.') {
+          if (normalizedOpt.includes('xa') || normalizedOpt.includes('x')) return true;
+        }
+        
+        // 2. Fallback to exact or accent-insensitive substring matching
+        return lowerOpt.includes(qw) || normalizedOpt.includes(nqw);
+      });
     });
     
     return results.slice(0, 50); // [ELITE V2.2] Performance Guard: Limit DOM nodes to 50

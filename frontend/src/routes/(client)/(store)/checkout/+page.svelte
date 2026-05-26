@@ -115,8 +115,14 @@
       const saved = localStorage.getItem("elite_checkout_draft_v2");
       if (saved) {
         try {
-          // simple decode (Base64) to satisfy "high security" requirement
-          const decrypted = JSON.parse(atob(saved)) as {
+          // Safe Unicode Base64 Decode to prevent InvalidCharacterError
+          const decodedDraft = decodeURIComponent(
+            atob(saved)
+              .split("")
+              .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+              .join(""),
+          );
+          const decrypted = JSON.parse(decodedDraft) as {
             form: typeof form;
             customItems: CustomItem[];
           };
@@ -336,11 +342,14 @@
 
         if (cartItemsCount > 0 && hasData) {
           const draft = { form: currentForm, customItems: currentItems };
-          // Stealth Encoding (Base64)
-          localStorage.setItem(
-            "elite_checkout_draft_v2",
-            btoa(JSON.stringify(draft)),
+          // Safe Unicode Base64 Encode to prevent InvalidCharacterError
+          const draftStr = JSON.stringify(draft);
+          const encodedDraft = btoa(
+            encodeURIComponent(draftStr).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+              String.fromCharCode(parseInt(p1, 16)),
+            ),
           );
+          localStorage.setItem("elite_checkout_draft_v2", encodedDraft);
         } else if (cartItemsCount === 0) {
           localStorage.removeItem("elite_checkout_draft_v2");
         }

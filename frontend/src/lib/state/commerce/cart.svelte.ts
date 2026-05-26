@@ -60,6 +60,7 @@ export class CartStore {
                     console.error('Failed to parse cart data', e);
                 }
             }
+            this.setVouchers([]);
         }
 
         // Auto-save on state change
@@ -409,8 +410,78 @@ export class CartStore {
         this.addItem(product, variant, quantity, voucherIds);
     }
 
+    loadUnlockedViralVouchers(): Voucher[] {
+        if (!browser) return [];
+        const viralVouchersMap = new Map<string, { voucher: Voucher, productIds: Set<string | number> }>();
+        try {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('viral_unlocked_')) {
+                    const productId = key.replace('viral_unlocked_', '');
+                    const saved = localStorage.getItem(key);
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (parsed && parsed.code) {
+                            const code = parsed.code;
+                            const existing = viralVouchersMap.get(code);
+                            
+                            const pIds = existing ? existing.productIds : new Set<string | number>();
+                            if (productId) {
+                                pIds.add(String(productId));
+                                if (!isNaN(Number(productId))) {
+                                    pIds.add(Number(productId));
+                                }
+                            }
+                            
+                            const v: Voucher = {
+                                id: code,
+                                title: parsed.label || 'Voucher Đặc Quyền',
+                                desc: 'Mã lan tỏa đã mở khóa',
+                                type: parsed.type || 'FIXED',
+                                value: parsed.value || 0,
+                                min_spend: parsed.min_spend || 0,
+                                category: 'DISCOUNT',
+                                is_default: false,
+                                priority: 1000,
+                                is_viral: true,
+                                metadata_json: {
+                                    applicable_product_ids: []
+                                }
+                            } as unknown as Voucher;
+                            
+                            viralVouchersMap.set(code, { voucher: v, productIds: pIds });
+                        }
+                    }
+                }
+            }
+            
+            const result: Voucher[] = [];
+            for (const entry of viralVouchersMap.values()) {
+                entry.voucher.metadata_json = {
+                    applicable_product_ids: Array.from(entry.productIds)
+                };
+                result.push(entry.voucher);
+            }
+            return result;
+        } catch (e) {
+            console.error('Failed to load unlocked viral vouchers from localStorage', e);
+        }
+        return [];
+    }
+
     setVouchers(data: Voucher[]): void {
-        this.vouchers = data || [];
+        const baseVouchers = data || [];
+        const unlockedViral = this.loadUnlockedViralVouchers();
+        
+        // Dedup: prioritize the unlocked viral vouchers
+        const allVouchers = [...unlockedViral];
+        for (const v of baseVouchers) {
+            if (!allVouchers.some(x => x.id === v.id)) {
+                allVouchers.push(v);
+            }
+        }
+        
+        this.vouchers = allVouchers;
     }
 
     toggleVoucher(id: string): void {

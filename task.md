@@ -136,3 +136,64 @@
 - [x] Rsync the new pre-built storefront static `dist` bundle and backend modules to the production VPS and gracefully restart all services to achieve immediate application. (Done)
 
 
+# Task Checklist - Resolving Viral Voucher Checkout Persistence (Elite V2.2)
+
+- [x] Load unlocked viral vouchers from `localStorage` into `cartStore.vouchers` to ensure they persist through the final checkout stage. (Done)
+- [x] Add the newly unlocked viral vouchers to `cartStore.vouchers` at initialization (constructor) and within `setVouchers` method inside `cart.svelte.ts`. (Done)
+- [x] Ensure that when `verify-share` is successful in `ShareToUnlock.svelte` and `ShareToUnlockPromoMobile.svelte`, the viral voucher is correctly injected and selected in the global `cartStore` if we are already in the store. (Done)
+- [x] Verify that checkout page correctly retrieves the selected viral voucher, applies the discount in the cart breakdown, and displays the voucher as selected. (Done)
+- [x] Rsync the modified frontend build to the production VPS and verify that the viral voucher persists to the final checkout API request and order creation. (Done)
+
+# Task Checklist - Storefront Voucher Sorting & Priority Optimization (Elite V2.2)
+
+- [x] Update `ShopStore` in `shop.svelte.ts` to implement default value descending sorting for all derived product vouchers. (Done)
+- [x] Integrate robust numeric value resolver and descending sorting in `Desktop.svelte` product detail component. (Done)
+- [x] Integrate robust numeric value resolver and descending sorting in `ProductMobileOverview.svelte` storefront component. (Done)
+- [x] Implement robust numeric value resolver and descending sorting in `MobileOffer.svelte` storefront section. (Done)
+- [x] Update tie-breaker sorting for active vouchers inside the pixel-perfect stamp list in `MobileOffer.svelte` to respect value descending. (Done)
+- [x] Compile and build Svelte storefront code flawlessly with zero static compilation issues. (Done)
+
+# Task Checklist - Product-Specific Viral Voucher Eligibility (Elite V2.2)
+
+- [x] Modify `CartStore.loadUnlockedViralVouchers()` in `cart.svelte.ts` to extract the exact `productId` from the `localStorage` key. (Done)
+- [x] Inject `metadata_json: { applicable_product_ids: [...] }` containing the resolved `productId` into the reconstructed viral `Voucher` object in `CartStore`. (Done)
+- [x] Safeguard type discrepancies by matching both string and numeric representations of `productId` within `applicable_product_ids`. (Done)
+- [x] Modify `ShopStore.injectViralVoucher()` in `shop.svelte.ts` to also include the resolved `applicable_product_ids` upon direct share-unlock injection. (Done)
+- [x] Ensure Svelte checkout page auto-deselects/filters out viral vouchers if they do not match any eligible product currently present in the cart. (Done)
+- [x] Verify static compilation and build reliability (Zero errors, exit code 0). (Done)
+
+# Task Checklist - Grouped Voucher Sorting & Checkout Alignment (Elite V2.2)
+
+- [x] Fix percentage formatting bug across all product detail views (`Desktop.svelte`, `LandingPage/Desktop.svelte`, `ProductMobileOverview.svelte`) displaying `%` instead of `đ` for PERCENT vouchers. (Done)
+- [x] Implement robust percentage monetary conversion in `getVoucherValue()` using the effective product unit price. (Done)
+- [x] Divide voucher lists into 3 groups: Viral/Độc quyền (Position #1), Regular Discount Vouchers, and Shipping Vouchers, and sort strictly by descending value *within* each group. (Done)
+- [x] Implement the exact same value-based descending sorting, percentage conversion, and grouping inside the checkout `VoucherSection.svelte` module. (Done)
+- [x] Integrate robust numeric value resolver and descending sorting in `OfferCard.svelte` storefront component. (Done)
+- [x] Fix percentage formatting bug and group category sorting inside `LandingPage/Desktop.svelte` and `MobileOffer.svelte`. (Done)
+- [x] Verify flawless compilation and static build compilation with Svelte 5. (Done)
+
+# Task Checklist - Fixing Unicode Base64 Checkout Draft Serialization (Elite V2.2)
+
+- [x] Support secure, non-Latin1 safe Base64 encoding for checkout form draft local persistence. (Done)
+- [x] Implement robust percent-encoding Unicode restoration on Base64 draft decryption. (Done)
+- [x] Verify clean, error-free checkout area selection for Vietnamese Unicode provinces, districts, and wards. (Done)
+
+# Task Checklist - Storefront Area Search Optimization (Elite V2.2)
+
+- [x] Implement multi-keyword splitting search in `SearchableCheckoutSelect` to handle arbitrary keyword ordering (e.g. "hcm phú lâm"). (Done)
+- [x] Integrate advanced abbreviation mapping support for common Vietnamese administrative labels: `"hcm"`, `"hn"`, `"tp"`, `"q"`, `"h"`, `"p"`, `"x"`. (Done)
+- [x] Secure accent-insensitive matching support for fragmented search queries, preventing search lookup failures. (Done)
+
+# Task Checklist - Fixing Database Column and Campaign 404 Mismatch (Elite V2.2)
+
+- [x] Generate and apply a new Alembic migration to add the missing `metadata_json` column to the `vouchers` table in the database. (Done)
+- [x] Resolve the database exception UndefinedColumnError that crashed the public campaign lookup endpoint. (Done)
+- [x] Verify the database migration resolves the public vouchers lookup query, enabling correct rendering of all regular vouchers. (Done)
+
+# Task Checklist - Share To Unlock Processing Box & Real-Time Sync (Elite V2.2)
+
+- [ ] Thiết kế overlay tiến trình xử lý xác thực AI (Processing Overlay) dạng Glassmorphism cao cấp, che phủ viewport khi đang chia sẻ hoặc xác minh trong `ShareToUnlock.svelte`.
+- [ ] Thêm thanh tiến trình chạy mượt mà từ 0% đến 95% trong 4.5 giây đi kèm với hiển thị các bước phân tích telemetry chân thực của AI.
+- [ ] Khắc phục triệt để lỗi "báo áp mã nhưng phải F5 mới thấy" bằng cách cập nhật reactive state `unlockedVoucherInfo` ngay lập tức khi mở khóa thành công trong `Desktop.svelte` và `LandingPage/Desktop.svelte`.
+- [ ] Cập nhật đồng bộ cho cả phiên bản di động `ShareToUnlockPromoMobile.svelte` để đảm bảo trải nghiệm đồng nhất.
+- [ ] Kiểm tra lỗi biên dịch static build để bảo đảm hệ thống chạy mượt mà, zero warning.

@@ -188,7 +188,7 @@ export class ShopStore {
         }));
 
         let sorted = mapped;
-        if (this.voucherSortOrder === 'desc') {
+        if (this.voucherSortOrder === 'none' || this.voucherSortOrder === 'desc') {
             sorted = [...mapped].sort((a, b) => b.value - a.value);
         } else if (this.voucherSortOrder === 'asc') {
             sorted = [...mapped].sort((a, b) => a.value - b.value);
@@ -268,6 +268,11 @@ export class ShopStore {
         untrack(() => {
             // Dedup: remove existing entry with same id first
             const filtered = this.vouchers.filter(v => v.id !== voucherId);
+            const applicableIds = this.product?.id ? [
+                String(this.product.id),
+                isNaN(Number(this.product.id)) ? this.product.id : Number(this.product.id)
+            ] : [];
+
             const viralVoucher: Voucher = {
                 id: voucherId,
                 title: label,
@@ -279,6 +284,9 @@ export class ShopStore {
                 is_default: false,
                 priority: 999,
                 is_viral: true,
+                metadata_json: {
+                    applicable_product_ids: applicableIds
+                }
             } as unknown as Voucher;
             // Prepend to head of list
             this.vouchers = [viralVoucher, ...filtered];

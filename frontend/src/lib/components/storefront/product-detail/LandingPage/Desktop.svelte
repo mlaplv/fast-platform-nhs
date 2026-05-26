@@ -299,12 +299,12 @@
 
   let selectedVouchers = $state<string[]>([]);
   const productVouchers = $derived.by(() => {
-    let vouchers: { id: string; label: string; sub: string; type: "ship" | "discount" }[] = [];
+    let vouchers: { id: string; label: string; sub: string; type: "ship" | "discount"; value?: number }[] = [];
     if (
       Array.isArray(metadata.vouchers) &&
       metadata.vouchers.length > 0
     ) {
-      vouchers = metadata.vouchers as { id: string; label: string; sub: string; type: "ship" | "discount" }[];
+      vouchers = metadata.vouchers as { id: string; label: string; sub: string; type: "ship" | "discount"; value?: number }[];
     } else {
       vouchers = cartStore.vouchers
         .filter((v) => {
@@ -321,8 +321,11 @@
             v.subtitle ||
             (v.type === "SHIPPING"
               ? "Miễn phí vận chuyển"
-              : `Giảm ${formatCurrency(v.value)}`),
+              : v.type === "PERCENT"
+                ? `Giảm ${v.value}%`
+                : `Giảm ${formatCurrency(v.value)}`),
           type: v.type === "SHIPPING" ? ("ship" as const) : ("discount" as const),
+          value: v.value || 0,
         }));
     }
 
@@ -359,17 +362,64 @@
             id: data.code,
             label: data.label || 'Voucher lan tỏa',
             sub: 'Đã mở khóa từ chiến dịch',
-            type: 'discount' as "ship" | "discount"
+            type: 'discount' as "ship" | "discount",
+            value: data.value || 79000
           });
         } catch (e) { console.warn('[Desktop] Viral voucher parse error — localStorage key may be corrupted:', e); }
       }
     }
 
-    // VOUCHER LAN TỎA 79K: LUỐN Ở VỊ TRÍ SỐ 1
-    const viralVouchers = vList.filter(v => isViralVoucher(v));
-    const regularVouchers = vList.filter(v => !isViralVoucher(v));
+    const getVoucherValue = (v: any) => {
+      let rawVal = typeof v.value === 'number' ? v.value : 0;
+      const subText = String(v.sub || "").toLowerCase();
+      const labelText = String(v.label || "").toLowerCase();
 
-    return [...viralVouchers, ...regularVouchers] as VoucherUI[];
+      const productPrice = effectiveUnitPrice || product.price || 0;
+
+      if (rawVal === 0) {
+        const found = cartStore.vouchers.find(x => x.id === v.id);
+        if (found) {
+          rawVal = found.value || 0;
+          if (found.type === 'PERCENT') {
+            return (productPrice * rawVal) / 100;
+          }
+        }
+      }
+
+      if (subText.includes("%") || labelText.includes("%")) {
+        const parsedPercent = parseInt((v.sub || v.label || "").replace(/[^0-9]/g, ""), 10);
+        if (!isNaN(parsedPercent)) {
+          return (productPrice * parsedPercent) / 100;
+        }
+      }
+
+      if (rawVal > 0) {
+        if (rawVal <= 100 && (v.type === 'percent' || String(v.id).toLowerCase().includes('pct') || subText.includes('%'))) {
+          return (productPrice * rawVal) / 100;
+        }
+        return rawVal;
+      }
+
+      const parsed = parseInt(subText.replace(/[^0-9]/g, ''), 10);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    // Sort by value descending (Giá giảm dần)
+    const sorted = [...vList].sort((a, b) => {
+      const valA = getVoucherValue(a);
+      const valB = getVoucherValue(b);
+      return valB - valA;
+    });
+
+    // Grouping by type:
+    // 1. Viral/Độc quyền always at the absolute top
+    const viralVouchers = sorted.filter(v => isViralVoucher(v));
+    // 2. Regular discount vouchers
+    const regularDiscount = sorted.filter(v => !isViralVoucher(v) && v.type === 'discount');
+    // 3. Regular shipping vouchers
+    const regularShipping = sorted.filter(v => !isViralVoucher(v) && v.type === 'ship');
+
+    return [...viralVouchers, ...regularDiscount, ...regularShipping] as VoucherUI[];
   });
 
   function triggerViralFly() {

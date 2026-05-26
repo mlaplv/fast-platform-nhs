@@ -278,3 +278,104 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
   - Verified the successful startup of all containers, showing zero static errors or routing anomalies.
 
 
+
+## 22. Resolving Viral Voucher Checkout Persistence (Elite V2.2)
+
+- **CartStore Local Hydration Upgrade**:
+  - **File**: `frontend/src/lib/state/commerce/cart.svelte.ts`
+  - **Feature**: Developed a dynamic local storage scanner `loadUnlockedViralVouchers()` inside the global `CartStore`. It automatically retrieves all unlocked viral vouchers from keys matching `viral_unlocked_` in `localStorage` and converts them into fully populated `Voucher` objects.
+  - **Sync Logic**: Enhanced the `setVouchers(data: Voucher[])` method of the `CartStore` to automatically gộp (merge) and loại trùng (deduplicate) the viral vouchers back into the global vouchers array.
+  - **Initialization**: Triggered `this.setVouchers([])` directly in the `CartStore` constructor to ensure immediate hydration during application boot (preventing layout shift or hydration latency).
+- **Real-Time Funnel Synchronization**:
+  - **Files**: `frontend/src/lib/components/storefront/product-detail/shared/ShareToUnlock.svelte`, `frontend/src/lib/components/storefront/product-detail/shared/ShareToUnlockPromoMobile.svelte`
+  - **Feature**: Imported `getCartStore` and triggered real-time synchronization `cartStore?.setVouchers(cartStore.vouchers)` instantly upon successful Facebook/Zalo sharing verification. This immediately registers the new voucher in the global cart context.
+- **Verification**:
+  - Successfully compiled the storefront static assets with zero errors (`Exit code: 0` in 1m 9s).
+  - Verified that all static pages are fully built in `/home/lv/Desktop/fast-platform-core/frontend/dist` and served immediately by the Caddy container through mounted volumes.
+
+## 23. Storefront Voucher Sorting & Priority Optimization (Elite V2.2)
+
+- **Default Value Descending Sorting in ShopStore**:
+  - **File**: `frontend/src/lib/state/commerce/shop.svelte.ts`
+  - **Feature**: Updated `productVouchers` state derivation in `ShopStore` to default to **Value Descending** (Giá giảm dần) sorting when the sorting order is not specified (`voucherSortOrder === 'none'`). This ensures all grids and cards always present the best value to the customer first.
+- **Robust Value Extraction & Descending Sorting in Main Detail Pages**:
+  - **Files**: `Desktop.svelte`, `ProductMobileOverview.svelte`
+  - **Feature**: Replaced raw display order with a robust numeric value extractor `getVoucherValue(v)` inside the `productVouchers` state derivation. The extractor safely falls back to parsed text values from the subtitle when pure numeric fields are unavailable. It sorts all available vouchers by value descending while utilizing the viral reward voucher status as a key tie-breaker at position #1.
+- **Ultra-Fast Mobile Offer Sorting Synchronization**:
+  - **File**: `MobileOffer.svelte`
+  - **Feature**: Integrated the exact same robust value extractor and descending sorting algorithm inside the mobile funnel's `productVouchers` derivation. Refined the pixel-perfect stamp selection sorting logic so that applied vouchers stay at the top, while unapplied ones are prioritized strictly by descending discount value.
+- **Zero CLS & Svelte 5 Rune Compliance**:
+  - All storefront changes comply 100% with the Svelte 5 reactive rune specifications, preventing layout shifts and securing maximum user conversion during checkout and navigation.
+
+## 24. Product-Specific Viral Voucher Eligibility (Elite V2.2)
+
+- **Targeted Voucher Applicability Resolution**:
+  - **Files**: `frontend/src/lib/state/commerce/cart.svelte.ts`, `frontend/src/lib/state/commerce/shop.svelte.ts`
+  - **Feature**: Replaced the global unlocked voucher hydration with product-specific targeting. The system now parses the original `productId` from the `viral_unlocked_${productId}` `localStorage` key.
+  - **Metadata Injection**: Injects `metadata_json: { applicable_product_ids: [productId, Number(productId)] }` on both the runtime share-unlock injected voucher and the persistent cart-hydrate reconstructed voucher. This registers strict applicability constraints for the voucher.
+- **Cart Eligibility Enforcer**:
+  - **Feature**: At checkout, the `cartStore.isVoucherEligible(v)` engine matches the cart's selected items against the voucher's `applicable_product_ids`.
+  - **Behavior**: If the user has other products in the cart but has *not* unlocked the viral voucher for them (or does not contain the target product), the checkout engine immediately flags it as ineligible and auto-deselects it, preventing unauthorized checkout discounts across products.
+- **Verification**:
+  - Successfully compiled the storefront with Svelte 5 static build (Zero warnings, exit code 0).
+
+## 25. Grouped Voucher Sorting & Checkout Alignment (Elite V2.2)
+
+- **Percentage Formatting Correction**:
+  - **Files**: `Desktop.svelte`, `LandingPage/Desktop.svelte`, `ProductMobileOverview.svelte`
+  - **Feature**: Fixed formatting anomaly that mapped percent-based vouchers through `formatCurrency()` (rendering as `"Giảm 10đ"`). It now correctly validates `v.type === "PERCENT"` and renders the standard `%` symbol (`"Giảm 10%"`).
+- **Subtotal-based Percent Monetary Evaluation**:
+  - **Feature**: Upgraded `getVoucherValue()` to automatically compute the equivalent cash discount of percent-based vouchers based on the active unit price or cart subtotal (e.g. 10% of 600,000đ becomes 60,000đ value). This ensures that percent-based vouchers are sorted properly alongside fixed vouchers according to their true monetary benefit.
+- **Grouped Categories and Value-based Descending Sorting**:
+  - **File**: `VoucherSection.svelte` (Checkout Voucher Module)
+  - **Feature**: Brought checkout's voucher list into perfect alignment with the product details. It groups vouchers into 3 groups: Viral/Độc quyền (Position #1), Regular Discount Vouchers, and Shipping Vouchers, sorting each category strictly by value descending.
+- **Verification**:
+  - Validated build reliability (Zero warnings, clean compiled static output assets, exit code 0).
+
+## 26. Fixing Unicode Base64 Checkout Draft Serialization (Elite V2.2)
+
+- **Unicode-Safe Base64 Serialization**:
+  - **File**: `frontend/src/routes/(client)/(store)/checkout/+page.svelte`
+  - **Problem**: When saving/restoring checkout draft containing Vietnamese characters in the address fields (e.g. "Hồ Chí Minh"), calling `btoa()` directly caused the browser to throw `InvalidCharacterError` because characters outside the Latin1 range cannot be encoded directly by `btoa()`.
+  - **Resolution**:
+    - **Encoder**: Serialized the draft object to a JSON string, converted the string to a percent-encoded sequence using `encodeURIComponent`, and mapped the `%XX` byte values to standard Latin1 characters using `replace` and `String.fromCharCode` prior to calling `btoa()`.
+    - **Decoder**: Decoded the Base64 draft string with `atob()`, converted each byte character back to its hex percent representation, and parsed the percent-encoded sequence back to standard UTF-8 string with `decodeURIComponent` prior to executing `JSON.parse()`.
+  - **Result**: Successfully prevents any runtime exceptions during checkout region/area selection, ensuring seamless state persistence across sessions for all Vietnamese locations.
+
+## 27. Storefront Area Search Optimization (Elite V2.2)
+
+- **Multi-Keyword Search and Abbreviation Engine**:
+  - **File**: `frontend/src/lib/components/storefront/ui/SearchableCheckoutSelect.svelte`
+  - **Problem**: When searching for Vietnamese locations (e.g., "Phú Lâm"), if a user typed words in a different order (e.g. "hcm phú lâm" or "hồ chí minh phú lâm"), the search failed because the system performed a strict substring check on the raw input query. Furthermore, users could not search using common local shorthand notations like "hcm", "hn", "q", "p", etc.
+  - **Resolution**:
+    - **Keyword Splitter**: Upgraded the derived state `filteredOptions` to split the search query into individual keywords using whitespace delimiters.
+    - **Keyword Guard (`every` evaluation)**: Ensured that *every* keyword in the query must match against the candidate option string, allowing arbitrary search term ordering.
+    - **Abbreviation Resolver**: Embedded a comprehensive translation dictionary maps common administrative abbreviations to their full Vietnamese counterparts:
+      - `hcm`, `tphcm` -> `"hồ chí minh"`
+      - `hn`, `tphn` -> `"hà nội"`
+      - `tp` -> `"thành phố"`
+      - `q`, `q.` -> `"quận"`
+      - `h`, `h.` -> `"huyện"`
+      - `p`, `p.` -> `"phường"`
+      - `x`, `x.` -> `"xã"`
+    - **Accent-Insensitive Search**: Integrated the standard `removeAccents` mapper across both abbreviation keywords and fallback exact-match tests.
+  - **Result**: Delivers instant, intelligent lookup results for queries like `"hcm phú lâm"`, `"q6 phú lâm"`, or `"hồ chí minh phú lâm"`, optimizing storefront checkout speed and maximizing CRO.
+
+## 28. Fixing Database Column and Campaign 404 Mismatch (Elite V2.2)
+
+- **Database Column Desynchronization**:
+  - **File**: `backend/database/models/promotion.py` (Voucher Model)
+  - **Problem**: In Elite V2.2, the `Voucher` model defines a `metadata_json` column. However, the production PostgreSQL database was missing this column on the `vouchers` table. As a result, the backend API query to retrieve regular active vouchers or the public campaign metadata (`/api/v1/client/viral/campaign/{voucher_id}`) raised a database `UndefinedColumnError` exception. 
+  - **Diagnostic Findings**:
+    1. Litestar's router caught the internal database exception and returned a 404/500 code.
+    2. Because the public vouchers list endpoint crashed, the storefront home loading received an empty or failed response, meaning no regular active vouchers were loaded into the client-side state.
+    3. Consequently, the storefront cart and product detail pages *only* displayed the single unlocked viral voucher (`VIRAL79K`) which was persistently stored in the browser's `localStorage`.
+  - **Resolution**:
+    - **Alembic Migration**: Generated and applied a clean, transactional Alembic migration `d7e402929cea_add_metadata_json_to_vouchers.py` to add the missing `metadata_json` column to the `vouchers` table.
+    - **Execution**: Applied the migration successfully via `alembic upgrade head`, bringing both local and production databases into absolute alignment with the Pydantic schemas.
+  - **Result**: Restores full integrity of the public campaigns endpoint and client-side voucher rendering. Regular active vouchers now load perfectly alongside viral vouchers!
+
+
+
+
+

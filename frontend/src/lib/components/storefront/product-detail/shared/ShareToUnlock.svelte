@@ -14,6 +14,7 @@
   import { onMount, onDestroy, untrack } from 'svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
+  import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
@@ -410,6 +411,12 @@
           data.voucher_type,
           data.min_spend
         );
+        try {
+          const cartStore = getCartStore();
+          cartStore?.setVouchers(cartStore.vouchers);
+        } catch (e) {
+          console.error('Failed to sync to cartStore on unlock', e);
+        }
         step = 'revealed'; // hides this component completely
         onUnlock?.();
         triggerFlyAnimation();
