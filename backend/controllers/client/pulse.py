@@ -14,13 +14,17 @@ from __future__ import annotations
 import json
 import asyncio
 import logging
-from typing import AsyncGenerator
+import re
+from typing import AsyncGenerator, Union
 
 from litestar import Controller, get, Request
 from litestar.response import Stream
 from backend.services.event_bus import event_bus
 
 logger = logging.getLogger("api-gateway")
+
+_UUID_RE = re.compile(r"^[0-9a-fA-F\-]{32,36}$")
+
 
 class ClientPulseController(Controller):
     """
@@ -42,6 +46,12 @@ class ClientPulseController(Controller):
             logger.error("[ClientPulse] Missing session_id (cookie & query_param).")
             from litestar.exceptions import BadRequestException
             raise BadRequestException("Missing session_id")
+
+        # Elite V3.5: Strict Security Validation to prevent Redis injection/malicious queries
+        if not _UUID_RE.match(session_id):
+            logger.error(f"[ClientPulse] Blocked invalid session_id attempt: {session_id}")
+            from litestar.exceptions import BadRequestException
+            raise BadRequestException("Invalid session_id format")
 
         async def event_generator() -> AsyncGenerator[bytes, None]:
             from backend.services.xohi_memory import xohi_memory
@@ -88,8 +98,9 @@ class ClientPulseController(Controller):
             try:
                 while True:
                     try:
-                        # R88: Heartbeat/Listen Loop with SSE Protocol logic
-                        message = await pubsub.get_message(ignore_subscribe_messages=True)
+                        # R88: Heartbeat/Listen Loop with SSE Protocol logic.
+                        # Elite V3.5: Non-polling block wait (5.0s timeout) to eliminate CPU cycle waste (0.5s sleep polling)
+                        message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=5.0)
                         
                         if message and message['type'] == 'message':
                             logger.info(f"[ClientPulse] Received event from Redis for {session_id}: {message['data']}")
@@ -108,22 +119,31 @@ class ClientPulseController(Controller):
                             
                             # Elite V2.2 Fix: Do NOT close connection on DONE to prevent auto-recovering loops.
                             # The stream must stay alive to listen for `SUPPORT_INBOX_UPDATE` (Admin replies).
-                        elif message is None:
-                            await asyncio.sleep(0.5)
-                            current_time = asyncio.get_event_loop().time()
-                            if current_time - last_ping_time > 15.0:
-                                yield b": ping\n\n"
-                                last_ping_time = current_time
+                        
+                        # Heartbeat validation after active message wait
+                        current_time = asyncio.get_event_loop().time()
+                        if current_time - last_ping_time > 15.0:
+                            yield b": ping\n\n"
+                            last_ping_time = current_time
                                 
                     except asyncio.TimeoutError:
-                        yield b": ping\n\n"
+                        # Periodically send ping when there are no new messages to keep connection active
+                        current_time = asyncio.get_event_loop().time()
+                        if current_time - last_ping_time > 15.0:
+                            yield b": ping\n\n"
+                            last_ping_time = current_time
                         
             except (asyncio.CancelledError, GeneratorExit):
                 logger.debug(f"[ClientPulse] Client disconnected from {channel}.")
             except Exception as e:
                 logger.error(f"[ClientPulse] Protocol error: {e}")
             finally:
-                await pubsub.unsubscribe(channel)
+                # Elite V3.5: Comprehensive Resource Disposal to protect 2GB VPS memory limit (R00/I)
+                try:
+                    await pubsub.unsubscribe(channel)
+                    await pubsub.close()  # Hard dispose to release socket file descriptors!
+                except Exception as ex:
+                    logger.warning(f"[ClientPulse] PubSub close error: {ex}")
                 logger.info(f"[ClientPulse] Session {session_id} unlinked.")
 
         # R90: Standardized Headers for Proxy/Cache-Bypass
