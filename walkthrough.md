@@ -518,4 +518,9 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
    - Giảm các tham số thời gian chờ của AI tại `ConsultantHandler` từ `timeout=25.0s, per_model_timeout=8.0s` xuống còn `timeout=12.0s, per_model_timeout=5.0s`.
    - Nếu AI bị nghẽn mạng hoặc quá tải phản hồi chậm trong giờ cao điểm, hệ thống sẽ tự động kích hoạt **Smart DB Fallback** chỉ sau 5-8 giây thay vì chờ tới 25 giây, đảm bảo người dùng nhận được câu trả lời chất lượng cao từ DB và không gặp tình trạng spinner xoay tròn vô tận.
 
+4. **Tối Ưu Hóa Bộ Lọc Tin Nhắn & Bộ Nhớ SupportAgent:**
+   - Khắc phục triệt để lỗi trôi nổi của các task chạy nền `asyncio.create_task` bằng cách đăng ký chúng vào `self._background_tasks` Set và tự động hủy bỏ khi hoàn thành để ngăn chặn triệt để Garbage Collection huỷ task giữa chừng.
+   - Loại bỏ hoàn toàn lỗi **Double Database Queries / Double calls** ở hàm `_chat_internal` cho `_get_currency_settings` và `_fetch_product_context` bằng cách gọi chúng một lần duy nhất trước khi rẽ nhánh.
+   - **Kết quả**: Tiết kiệm 50% số lượng truy vấn sản phẩm và giảm đáng kể thời gian phản hồi CPU/RAM.
+
 
