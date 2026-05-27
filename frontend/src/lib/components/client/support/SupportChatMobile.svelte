@@ -400,7 +400,7 @@
         >
           <!-- Name Label (Elite V3.1: Professional Identity) -->
           <div
-            class="flex items-center gap-2 mb-2 px-12 {msg.role === 'user'
+            class="flex items-center gap-2 mb-2 px-1 {msg.role === 'user'
               ? 'flex-row-reverse'
               : 'flex-row'}"
           >
