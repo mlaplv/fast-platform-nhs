@@ -524,6 +524,13 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
    - **Kết quả**: Tiết kiệm 50% số lượng truy vấn sản phẩm và giảm đáng kể thời gian phản hồi CPU/RAM.
 
 5. **Sửa Lỗi Cuộn Ghim Top Gây "Mất Đầu" Tin Nhắn Chat:**
-   - **Phát hiện lỗi:** Cả 2 component `SupportChatMobile.svelte` và `SupportChatDesktop.svelte` đều sử dụng logic cuộn `lastMessageEl.scrollIntoView({ behavior: "smooth", block: "start" })` cho tin nhắn của Helen (assistant). Thuộc tính `block: "start"` đẩy mép trên của bubble tin nhắn lên sát đỉnh viewport, làm nó bị trượt quá đà hoặc chui xuống dưới Header cố định của cửa sổ chat, dẫn đến việc tin nhắn bị "mất đầu/che khuất" và buộc người dùng phải scroll tay ngược lên mới đọc được.
-   - **Giải pháp xử lý:** Loại bỏ hoàn toàn `scrollIntoView` với `block: "start"` và đồng bộ hóa hành vi cuộn mượt mà xuống đáy container `chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" })` cho mọi tin nhắn.
-   - **Kết quả:** Bubble tin nhắn mới xuất hiện tự nhiên từ phía dưới và được ghim hiển thị trọn vẹn từ dòng đầu tiên đến dòng cuối cùng. Tuyệt đối không bị che khuất phần đầu tin nhắn, đảm bảo đúng chuẩn giao diện chat cao cấp (Zalo, Messenger).
+   - **Phát hiện lỗi gốc rễ:** Cả 2 component `SupportChatMobile.svelte` và `SupportChatDesktop.svelte` trước đây sử dụng `scrollIntoView` đẩy mép trên bubble tin nhắn sát mép đỉnh `chatContainer`. Khi chuyển sang cuộn đáy đơn thuần, đối với các câu trả lời rất dài của Helen (assistant), việc cuộn sát đáy đẩy toàn bộ phần đầu của tin nhắn Helen trôi lên phía trên vượt quá mép cắt (overflow-y) của container viewport, làm chữ bị cắt phẳng lỳ ở dòng đầu tiên ("Chưa cập nhật)").
+   - **Giải pháp xử lý tối ưu:** Triển khai thuật toán **Tính Toán Tọa Độ Cuộn Tương Đối (Smart Scroll-Top Offset)**. Khi nhận tin nhắn mới của Helen (assistant), hệ thống tự động đo vị trí đỉnh của bubble mới so với container cuộn:
+     ```typescript
+     const relativeTop = bubbleRect.top - containerRect.top + chatContainer.scrollTop;
+     ```
+     Sau đó thực hiện cuộn chính xác đến vị trí `relativeTop - safe_padding` (12px - 16px). Đối với tin nhắn ngắn của chính user, hệ thống vẫn cuộn mượt mà sát đáy `scrollHeight`.
+   - **Kết quả:** Triệt tiêu hoàn toàn lỗi "mất đầu/trôi đầu". Phần đầu của tin nhắn của Helen cùng avatar luôn xuất hiện sang trọng, sắc nét ở ngay dưới header và người dùng có thể đọc từ chữ đầu tiên một cách tự nhiên mà không cần phải cuộn tay ngược lên trên.
+
+
+
