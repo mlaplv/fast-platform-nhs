@@ -523,4 +523,7 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
    - Loại bỏ hoàn toàn lỗi **Double Database Queries / Double calls** ở hàm `_chat_internal` cho `_get_currency_settings` và `_fetch_product_context` bằng cách gọi chúng một lần duy nhất trước khi rẽ nhánh.
    - **Kết quả**: Tiết kiệm 50% số lượng truy vấn sản phẩm và giảm đáng kể thời gian phản hồi CPU/RAM.
 
-
+5. **Sửa Lỗi Cuộn Ghim Top Gây "Mất Đầu" Tin Nhắn Chat:**
+   - **Phát hiện lỗi:** Cả 2 component `SupportChatMobile.svelte` và `SupportChatDesktop.svelte` đều sử dụng logic cuộn `lastMessageEl.scrollIntoView({ behavior: "smooth", block: "start" })` cho tin nhắn của Helen (assistant). Thuộc tính `block: "start"` đẩy mép trên của bubble tin nhắn lên sát đỉnh viewport, làm nó bị trượt quá đà hoặc chui xuống dưới Header cố định của cửa sổ chat, dẫn đến việc tin nhắn bị "mất đầu/che khuất" và buộc người dùng phải scroll tay ngược lên mới đọc được.
+   - **Giải pháp xử lý:** Loại bỏ hoàn toàn `scrollIntoView` với `block: "start"` và đồng bộ hóa hành vi cuộn mượt mà xuống đáy container `chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" })` cho mọi tin nhắn.
+   - **Kết quả:** Bubble tin nhắn mới xuất hiện tự nhiên từ phía dưới và được ghim hiển thị trọn vẹn từ dòng đầu tiên đến dòng cuối cùng. Tuyệt đối không bị che khuất phần đầu tin nhắn, đảm bảo đúng chuẩn giao diện chat cao cấp (Zalo, Messenger).

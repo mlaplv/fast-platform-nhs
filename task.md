@@ -260,6 +260,7 @@
 - [x] Thiết kế cơ chế Fast-Path DB-First cho lệnh `[system_consult]` tại lượt trò chuyện đầu tiên để phản hồi tức thì (<20ms) bằng kịch bản tư vấn động chuẩn Helen dựng từ DB. (Done)
 - [x] Tinh chỉnh thời gian timeout của AI trong `ConsultantHandler` xuống `12.0s` (hoặc `15.0s`) thay vì `25.0s` nhằm kích hoạt Smart DB Fallback sớm hơn khi LLM quá tải. (Done)
 - [x] Tinh chỉnh hệ thống prompt của cả Support Agent và Consultant để giới hạn số từ dưới 200-250 từ, cấm AI viết lan man dài dòng. (Done)
+- [x] Sửa lỗi tự động cuộn mất đầu tin nhắn ("mất đầu/che khuất") của Helen chat trên cả bản Mobile và Desktop, đảm bảo cuộn mượt mà xuống bottom tự nhiên. (Done)
 
 
 
