@@ -269,6 +269,7 @@
 # Task Checklist - ClientPulse SSE Loop Hotfix (Elite V2.2)
 
 - [x] Sửa lỗi vòng lặp kết nối SSE vô tận (loop) cứ mỗi 5 giây khi bấm nút tư vấn bằng giải pháp trả về BadRequestException phía backend và đồng bộ sessionId qua query parameter phía frontend. (Done)
+- [x] Nâng cấp bảo mật & tài nguyên cho `/client/support/pulse` bằng cách kiểm duyệt UUID định dạng chặt chẽ, đóng socket PubSub triệt để giải phóng RAM, và loại bỏ CPU polling loop. (Done)
 
 
 
