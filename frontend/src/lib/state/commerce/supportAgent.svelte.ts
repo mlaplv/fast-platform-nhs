@@ -84,6 +84,7 @@ class SupportAgentState {
     isHistoryLoading = $state(false);
     hasMoreHistory = $state(true);
     messages = $state<SupportMessage[]>([]);
+    sessionId = $state("");
 
     // Elite V2.2: AI Toggle State
     helenEnabled = $state(true);
@@ -272,7 +273,10 @@ class SupportAgentState {
     async init(envAgentName?: string) {
         // Elite V2.2 (R03): Secure Cookie Initialization
         try {
-            await apiClient.get("/api/v1/client/support/init", { withCredentials: true });
+            const res = await apiClient.get<{ ok: boolean; session_id?: string }>("/api/v1/client/support/init", { withCredentials: true });
+            if (res && res.session_id) {
+                this.sessionId = res.session_id;
+            }
         } catch(e) {
             console.warn("[SupportAgent] Failed to init secure session cookie:", e);
         }
@@ -396,8 +400,11 @@ class SupportAgentState {
         }
 
         if (!this._pulseSource) {
-            // Elite V2.2: Backend automatically reads `helen_session_id` from cookies via withCredentials: true.
-            this._pulseSource = new EventSource(`/api/v1/client/support/pulse`, { withCredentials: true });
+            // Elite V2.2: Support both cookie and query_param for maximum resilience
+            const url = this.sessionId 
+                ? `/api/v1/client/support/pulse?session_id=${encodeURIComponent(this.sessionId)}`
+                : `/api/v1/client/support/pulse`;
+            this._pulseSource = new EventSource(url, { withCredentials: true });
 
             // 🟢 1. AI Response Ready / Admin Manual Reply thưa sếp!
             this._pulseSource.addEventListener("SUPPORT_RESPONSE_READY", (event: MessageEvent) => {
@@ -525,6 +532,10 @@ class SupportAgentState {
 
             this._pulseSource.onerror = (err) => {
                 console.warn("[Pulse] SSE connection state changed, auto-recovering...");
+                // If there's a permanent error or we have no session, disconnect to prevent infinite loop thưa sếp!
+                if (!this.sessionId) {
+                    this._disconnectPulse();
+                }
             };
         }
 
@@ -593,6 +604,10 @@ class SupportAgentState {
                 selected_vouchers: selectedVouchers || null,
                 pricing_context: pricingContext || null
             }, { withCredentials: true });
+
+            if (res && res.session_id) {
+                this.sessionId = res.session_id;
+            }
 
             if (res && res.status === "TAKEOVER") {
                 this.isTyping = false;

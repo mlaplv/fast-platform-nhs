@@ -38,15 +38,16 @@ class ClientPulseController(Controller):
         # Elite V2.2: Support both cookie and query_param for maximum resilience
         session_id = request.cookies.get("helen_session_id") or request.query_params.get("session_id")
         
+        if not session_id:
+            logger.error("[ClientPulse] Missing session_id (cookie & query_param).")
+            from litestar.exceptions import BadRequestException
+            raise BadRequestException("Missing session_id")
+
         async def event_generator() -> AsyncGenerator[bytes, None]:
             from backend.services.xohi_memory import xohi_memory
             
             # Initial keep-alive to establish connection
             yield b": link-success\n\n"
-            
-            if not session_id:
-                logger.error("[ClientPulse] Missing session_id (cookie & query_param).")
-                return
             
             if not xohi_memory._use_redis or not xohi_memory.client:
                 logger.error("[ClientPulse] Redis is offline. Cannot stream events.")

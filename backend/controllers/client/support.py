@@ -102,8 +102,8 @@ class SupportController(Controller):
                 "Pragma": "no-cache",
                 "Expires": "0",
             }
-            return Response({"ok": True}, cookies=[cookie], headers=headers)
-        return Response({"ok": True})
+            return Response({"ok": True, "session_id": session_id}, cookies=[cookie], headers=headers)
+        return Response({"ok": True, "session_id": session_id})
 
     @get("/history", guards=[])
     async def get_history(
