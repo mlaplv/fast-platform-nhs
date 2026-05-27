@@ -1,12 +1,12 @@
 <script lang="ts">
   import type { ComponentType, SvelteComponent } from "svelte";
   import { tick } from "svelte";
-  import { fade, fly } from "svelte/transition";
+  import { fly } from "svelte/transition";
   import Send from "@lucide/svelte/icons/send";
   import X from "@lucide/svelte/icons/x";
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import Sparkles from "@lucide/svelte/icons/sparkles";
-  import UserRound from "@lucide/svelte/icons/user-round";
+
   import Beaker from "@lucide/svelte/icons/beaker";
   import Target from "@lucide/svelte/icons/target";
   import Lock from "@lucide/svelte/icons/lock";
