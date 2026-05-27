@@ -688,7 +688,8 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                     "1. TUYỆT ĐỐI CẤM chốt sale, báo giá, xin số điện thoại hay địa chỉ ở bước này.\n"
                     "2. KHOAN TƯ VẤN SẢN PHẨM NGAY. Hãy chào khách và CHỦ ĐỘNG hỏi thăm tình trạng da hiện tại của họ (ví dụ: da có đang mẩn đỏ, nhạy cảm, hay đang dùng treatment nặng như BHA/Retinol không?).\n"
                     "3. GIẢI THÍCH NGẮN GỌN rằng Helen cần thông tin này để đối chiếu với Bảng Thành Phần (Ingredients) của sản phẩm, nhằm đánh giá xem sản phẩm có an toàn tuyệt đối cho 'hàng rào bảo vệ da' của riêng khách hay không.\n"
-                    "4. Giọng điệu ân cần, chuyên nghiệp, chuẩn y khoa. Chỉ tập trung hỏi thăm và chờ khách hàng trả lời."
+                    "4. Giọng điệu ân cần, chuyên nghiệp, chuẩn y khoa. Chỉ tập trung hỏi thăm và chờ khách hàng trả lời.\n"
+                    "5. GIỚI HẠN ĐỘ DÀI: Câu trả lời bắt buộc dưới 200 từ, ngắn gọn và súc tích."
                 )
                 clean_msg = "Sản phẩm này có an toàn cho da của tôi không? Xin hãy kiểm tra giúp."
             else:
@@ -697,7 +698,8 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                     "MỤC TIÊU CHÍNH: Đánh giá an toàn hàng rào bảo vệ da dựa trên thông tin khách vừa cung cấp.\n"
                     "1. PHÂN TÍCH CHUYÊN MÔN: Đối chiếu tình trạng da hiện tại của khách với Bảng Thành Phần (Ingredients) của sản phẩm (Ưu tiên dùng thông tin ở [PRODUCT]). Giải thích rõ ràng tại sao sản phẩm an toàn/không an toàn cho hàng rào bảo vệ da của họ.\n"
                     "2. ĐỒNG CẢM & KHUYÊN DÙNG: Thể hiện sự thấu hiểu. Giữ phong thái chuẩn y khoa, cấm dùng phong cách Sales hung hãn.\n"
-                    "3. SAU KHI TƯ VẤN XONG: Nếu sản phẩm phù hợp, hãy thông báo giá ưu đãi và nhẹ nhàng xin SĐT + Địa chỉ để lên đơn gửi sản phẩm cho họ trải nghiệm."
+                    "3. SAU KHI TƯ VẤN XONG: Nếu sản phẩm phù hợp, hãy thông báo giá ưu đãi và nhẹ nhàng xin SĐT + Địa chỉ để lên đơn gửi sản phẩm cho họ trải nghiệm.\n"
+                    "4. GIỚI HẠN ĐỘ DÀI: Câu trả lời bắt buộc dưới 220 từ, ngắn gọn và súc tích."
                 )
         elif is_system_consult:
             base_prompt = (
@@ -708,6 +710,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                 "3. Vẽ ra bức tranh sinh động về sự tự tin rạng rỡ sau khi sử dụng.\n"
                 "4. Đưa ra báo giá chi tiết, tồn kho thực tế (FOMO), chương trình KM và Kêu Gọi Hành Động xin SĐT + Địa chỉ nhận hàng để chốt đơn ngay.\n"
                 "5. BẮT BUỘC: Bạn PHẢI có câu trả lời giao tiếp với khách hàng. TUYỆT ĐỐI CẤM việc chỉ suy nghĩ mà không trả lời.\n"
+                "6. GIỚI HẠN ĐỘ DÀI & SÚC TÍCH: Câu trả lời bắt buộc dưới 250 từ. Trình bày cực kỳ súc tích, sắc bén, chuyên nghiệp, cấm lan man dài dòng hay lặp ý.\n"
                 "CHÚ Ý: CẤM viết các tiêu đề thô kệch như 'Điểm đau', 'Giải pháp'. Hãy chia đoạn tự nhiên bằng các emoji sang trọng."
             )
             clean_msg = "Hãy tư vấn chuyên sâu về sản phẩm này giúp tôi."
@@ -739,7 +742,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             # Elite V6.0: Thread-Safe injection via deps.dynamic_prompt
             deps = ConsultantDeps(db=ctx.db, dynamic_prompt=masked_prompt)
 
-            # ⏱️ Elite V6.0: Cổng bảo vệ 25s — Tăng giới hạn AI để tránh timeout sớm và model poisoning
+            # ⏱️ Elite V6.0: Cổng bảo vệ 12s - Giảm để kích hoạt Smart DB Fallback sớm hơn khi tải cao
             res = await _asyncio.wait_for(
                 trinity_bridge.run(
                     _consultant_no_tool_agent,
@@ -747,10 +750,10 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
                     deps=deps,
                     role=trinity_bridge.ROLE_BRAIN,
                     safety_none=True,
-                    timeout=25.0,
-                    per_model_timeout=8.0
+                    timeout=12.0,
+                    per_model_timeout=5.0
                 ),
-                timeout=25.0
+                timeout=12.0
             )
             # [ELITE V2.2] Standardized Result Extraction (Trust the Bridge)
             res_data = cast(Optional[ConsultantResponse], res)
@@ -800,6 +803,76 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
             return f"[z2] {text}"
         return text
 
+    def _generate_fast_db_consultation(self, ctx: SupportContext) -> Optional[str]:
+        """Fast-Path DB-First Consultation: Tạo kịch bản bán hàng động siêu tốc (<20ms) cho lượt click đầu tiên."""
+        if not ctx.product_ctx or not ctx.p_info:
+            return None
+
+        p_name = ctx.p_info.name
+        price_display = ctx.p_info.price_display
+        product_ctx = ctx.product_ctx
+
+        # 1. Trích xuất thành phần nổi bật (tối đa 4 dòng để ngắn gọn)
+        ingredient_lines: list[str] = []
+        if "[THÀNH PHẦN NỔI BẬT" in product_ctx:
+            lines = product_ctx.split("\n")
+            in_section = False
+            for line in lines:
+                if "[THÀNH PHẦN NỔI BẬT" in line or "[BẢNG THÀNH PHẦN" in line:
+                    in_section = True
+                elif line.startswith("[") and in_section:
+                    break
+                elif in_section and line.strip():
+                    ingredient_lines.append(line.strip())
+        
+        ing_text = ""
+        if ingredient_lines:
+            ing_text = "\n".join(f"🧬 {line}" for line in ingredient_lines[:4])
+
+        # 2. Trích xuất Vouchers đang diễn ra
+        voucher_lines: list[str] = []
+        for line in ctx.cart_text.split("\n"):
+            if line.strip().startswith("- Mã"):
+                voucher_lines.append(line.strip().replace("- Mã", "🎟️ Mã"))
+        
+        promo_text = ""
+        if voucher_lines:
+            promo_text = "\n" + "\n".join(voucher_lines[:2])
+
+        # 3. Dựng kịch bản Sales Assassin 5 bước siêu súc tích (<250 từ) chuẩn Helen
+        parts = [
+            f"Dạ Helen chào Anh/Chị! Rất vui được đồng hành cùng Anh/Chị thiết kế liệu trình chăm sóc da hoàn hảo với siêu phẩm **{p_name}** ạ! ✨",
+            "",
+            f"🌸 **Tại sao {p_name} lại là giải pháp tối ưu cho làn da?**"
+        ]
+        
+        if ing_text:
+            parts.append(ing_text)
+        else:
+            parts.append(f"🧬 Sản phẩm được bào chế với công nghệ hiện đại chuẩn Nhật Bản, cung cấp dưỡng chất thẩm thấu sâu, nuôi dưỡng làn da khỏe mạnh từ gốc tế bào.")
+
+        parts.extend([
+            "",
+            "✨ **Hiệu quả thực tế:** Sau 14 ngày, làn da sẽ cải thiện rõ rệt, mịn màng, sáng khỏe và củng cố hàng rào bảo vệ da săn chắc hơn.",
+            "",
+            f"💰 **Ưu đãi độc quyền hôm nay:**"
+        ])
+
+        if price_display:
+            parts.append(f"• Giá hiện tại: **{price_display}**")
+            
+        if promo_text:
+            parts.append(f"• Quà tặng: Tặng kèm quà độc quyền theo sản phẩm.{promo_text}")
+        else:
+            parts.append("• Quà tặng: Tặng kèm quà độc quyền theo sản phẩm.")
+            
+        parts.extend([
+            "",
+            "💬 Để không bỏ lỡ chương trình ưu đãi đặc biệt hôm nay, **Anh/Chị nhắn ngay Số Điện Thoại + Địa Chỉ** để Helen hỗ trợ lên đơn và gửi quà tặng độc quyền giao tận nơi nhé! 🌸"
+        ])
+
+        return self._wrap_prefix("\n".join(parts))
+
 # Duplicate _wrap_prefix removed
 
     def _try_db_product_direct(self, ctx: SupportContext, msg_norm: str) -> Optional[str]:
@@ -813,8 +886,12 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
         ])
         if is_complex_personal:
             return None
-        # Bỏ qua nếu là [system_consult] (tư vấn toàn diện cần AI)
+        # Lượt đầu tiên click "Tư vấn" -> Dùng Fast-Path DB-First Template để phản hồi siêu tốc (<20ms)
         if "[system_consult]" in ctx.request.message:
+            if not ctx.history_text.strip():
+                fast_reply = self._generate_fast_db_consultation(ctx)
+                if fast_reply:
+                    return fast_reply
             return None
 
         p_name = ctx.p_info.name

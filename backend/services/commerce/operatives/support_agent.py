@@ -73,7 +73,8 @@ _support_ai_agent: Agent[SupportAgentDeps, AgenticSupportResponse] = Agent(
         "4. CHỈ THỊ GROUND TRUTH: Tuyệt đối tin tưởng và sử dụng con số [TỔNG THANH TOÁN CUỐI CÙNG] trong context. Đó là con số pháp lệnh.\n"
         "5. KỶ LUẬT THÀNH PHẦN: Tuyệt đối phân tích công dụng dựa trên danh sách [THÀNH PHẦN NỔI BẬT] được cung cấp. CẤM tự ý chế thêm thành phần không có trong ngữ cảnh. Trình bày rành mạch, chuyên nghiệp theo bullet points.\n"
         "6. KÍCH HOẠT FOMO & PHÁP LÝ (BẮT BUỘC): Khi khách hỏi về nguồn gốc, chính hãng, uy tín, BẮT BUỘC phải trích dẫn rành mạch số liệu từ [BẢO CHỨNG UY TÍN & FOMO].\n"
-        "   - Yêu cầu: Trình bày bằng Bullet Points rõ ràng. Nhấn mạnh vào: 1. Hồ sơ pháp lý (Bộ Y Tế), 2. Độ HOT (Lượt bán), 3. Sự khan hiếm (Tồn kho ít - nếu có)."
+        "   - Yêu cầu: Trình bày bằng Bullet Points rõ ràng. Nhấn mạnh vào: 1. Hồ sơ pháp lý (Bộ Y Tế), 2. Độ HOT (Lượt bán), 3. Sự khan hiếm (Tồn kho ít - nếu có).\n"
+        "7. GIỚI HẠN ĐỘ DÀI & ĐI THẲNG VÀO VẤN ĐỀ: Toàn bộ câu trả lời bắt buộc dưới 200 từ. CẤM viết lan man, lặp từ, dông dài hoa mỹ. Tập trung đi thẳng vào giải pháp chuyên môn và kêu gọi đặt hàng."
     )
 )
 
