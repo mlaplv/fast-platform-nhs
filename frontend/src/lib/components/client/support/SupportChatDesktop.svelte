@@ -237,10 +237,35 @@
     await tick();
     if (!chatContainer) return;
 
-    chatContainer.scrollTo({
-      top: chatContainer.scrollHeight,
-      behavior: "smooth",
-    });
+    const messageElements = chatContainer.querySelectorAll(
+      ".message-bubble-container",
+    );
+    const lastMessageEl = messageElements[messageElements.length - 1] as HTMLElement;
+
+    if (lastMessageEl) {
+      const role = lastMessageEl.getAttribute("data-role");
+      if (role === "assistant") {
+        // Calculate relative top position of the assistant bubble to align it with a safe padding thưa sếp
+        const containerRect = chatContainer.getBoundingClientRect();
+        const bubbleRect = lastMessageEl.getBoundingClientRect();
+        const relativeTop = bubbleRect.top - containerRect.top + chatContainer.scrollTop;
+
+        chatContainer.scrollTo({
+          top: relativeTop - 12,
+          behavior: "smooth",
+        });
+      } else {
+        chatContainer.scrollTo({
+          top: chatContainer.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    } else {
+      chatContainer.scrollTo({
+        top: chatContainer.scrollHeight,
+        behavior: "smooth",
+      });
+    }
   }
 </script>
 
