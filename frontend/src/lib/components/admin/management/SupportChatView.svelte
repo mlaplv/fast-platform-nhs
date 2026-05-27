@@ -266,38 +266,40 @@
       {/each}
     </div>
 
-    <div class="p-4 bg-black/40 border-t border-white/10 backdrop-blur-xl shrink-0 relative">
-      {#if quotedMessage}
-        {@const parsedCompose = parseQuotedContent(quotedMessage.content)}
-        <div transition:slide={{ axis: 'y' }} class="absolute bottom-full left-4 right-4 bg-zinc-950/95 backdrop-blur-2xl border border-white/10 border-b-0 rounded-t-xl p-3 flex items-center justify-between z-10 shadow-[0_-8px_16px_rgba(0,0,0,0.6)]">
-          <div class="flex items-center gap-3 min-w-0 flex-1">
-            <div class="w-1 h-8 bg-cyan-500 rounded-full shrink-0"></div>
-            {#if parsedCompose.imageUrl}
-              <img src={parsedCompose.imageUrl} alt="Quote composer thumbnail" class="w-9 h-9 rounded object-cover border border-white/10 shrink-0" />
-            {/if}
-            <div class="min-w-0 flex-1">
-              <span class="text-[10px] font-bold text-cyan-400 block leading-tight">Trả lời {quotedMessage.role === 'assistant' ? 'Helen AI' : 'Khách'}</span>
-              <p class="text-xs text-white/70 truncate pr-4 leading-normal">
-                {#if parsedCompose.imageUrl && parsedCompose.text === "[Hình ảnh]"}
-                  <span class="text-cyan-400 font-medium">[Hình ảnh]</span>
-                {:else if parsedCompose.imageUrl}
-                  <span class="text-cyan-400 font-medium">[Hình ảnh]</span> {parsedCompose.text}
-                {:else}
-                  {parsedCompose.text}
-                {/if}
-              </p>
+    <div class="p-4 bg-black/40 border-t border-white/10 backdrop-blur-xl shrink-0">
+      <div class="relative flex flex-col bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+        {#if quotedMessage}
+          {@const parsedCompose = parseQuotedContent(quotedMessage.content)}
+          <div transition:slide={{ axis: 'y' }} class="bg-zinc-950/95 backdrop-blur-2xl border-b border-white/10 p-3 flex items-center justify-between z-10 shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <div class="w-1 h-8 bg-cyan-500 rounded-full shrink-0"></div>
+              {#if parsedCompose.imageUrl}
+                <img src={parsedCompose.imageUrl} alt="Quote composer thumbnail" class="w-9 h-9 rounded object-cover border border-white/10 shrink-0" />
+              {/if}
+              <div class="min-w-0 flex-1">
+                <span class="text-[10px] font-bold text-cyan-400 block leading-tight">Trả lời {quotedMessage.role === 'assistant' ? 'Helen AI' : 'Khách'}</span>
+                <p class="text-xs text-white/70 truncate pr-4 leading-normal">
+                  {#if parsedCompose.imageUrl && parsedCompose.text === "[Hình ảnh]"}
+                    <span class="text-cyan-400 font-medium">[Hình ảnh]</span>
+                  {:else if parsedCompose.imageUrl}
+                    <span class="text-cyan-400 font-medium">[Hình ảnh]</span> {parsedCompose.text}
+                  {:else}
+                    {parsedCompose.text}
+                  {/if}
+                </p>
+              </div>
             </div>
+            <button onclick={onClearQuote} class="p-2 text-white/40 hover:text-white shrink-0 active:scale-95 transition-transform"><X class="w-4 h-4" /></button>
           </div>
-          <button onclick={onClearQuote} class="p-2 text-white/40 hover:text-white shrink-0 active:scale-95 transition-transform"><X class="w-4 h-4" /></button>
+        {/if}
+        <div class="relative">
+          <textarea bind:value={manualMessage} onkeydown={handleKeydown} oninput={(e) => onUpdateMessage(e.currentTarget.value)}
+            placeholder={isTakeover ? "Nhấn Enter để gửi..." : "Bật 'Chặn Helen' để chat..."} disabled={!isTakeover}
+            class="w-full bg-transparent border-0 focus:ring-0 focus:outline-none px-4 py-3 pb-12 text-sm text-white resize-none min-h-[60px] {isTakeover ? 'opacity-100' : 'opacity-40'}"></textarea>
+          <button onclick={onSendMessage} disabled={!isTakeover || !manualMessage.trim() || isSending} class="absolute right-4 bottom-4 p-2 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30 transition-transform active:scale-95">
+            <Send class="w-4 h-4" />
+          </button>
         </div>
-      {/if}
-      <div class="relative">
-        <textarea bind:value={manualMessage} onkeydown={handleKeydown} oninput={(e) => onUpdateMessage(e.currentTarget.value)}
-          placeholder={isTakeover ? "Nhấn Enter để gửi..." : "Bật 'Chặn Helen' để chat..."} disabled={!isTakeover}
-          class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white resize-none min-h-[50px] {isTakeover ? 'opacity-100' : 'opacity-40'}"></textarea>
-        <button onclick={onSendMessage} disabled={!isTakeover || !manualMessage.trim() || isSending} class="absolute right-4 bottom-4 p-2 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30">
-          <Send class="w-4 h-4" />
-        </button>
       </div>
     </div>
   {:else if isLoading}
