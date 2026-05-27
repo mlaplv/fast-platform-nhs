@@ -262,5 +262,9 @@
 - [x] Tinh chỉnh hệ thống prompt của cả Support Agent và Consultant để giới hạn số từ dưới 200-250 từ, cấm AI viết lan man dài dòng. (Done)
 - [x] Sửa lỗi tự động cuộn mất đầu tin nhắn ("mất đầu/che khuất") của Helen chat trên cả bản Mobile và Desktop, đảm bảo cuộn mượt mà xuống bottom tự nhiên. (Done)
 
+# Task Checklist - Ads Protection Service Hotfix (Elite V2.2)
+
+- [x] Khắc phục triệt để ngoại lệ `TypeError: 'IPReport' object is not subscriptable` tại endpoint `validate-click` của Click Fraud Service, khôi phục khả năng ghi nhận click từ Google Ads. (Done)
+
 
 

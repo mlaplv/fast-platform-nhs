@@ -532,5 +532,10 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
      Sau đó thực hiện ghim cứng (stick top) lập tức bằng `behavior: "instant"` đến vị trí `relativeTop - safe_padding` (12px - 16px). Đối với tin nhắn ngắn của chính user, hệ thống vẫn cuộn mượt mà sát đáy `scrollHeight`.
    - **Kết quả:** Triệt tiêu hoàn toàn lỗi "mất đầu/trôi đầu". Phần đầu của tin nhắn của Helen cùng avatar luôn được ghim cứng lập tức ở vị trí sang trọng, sắc nét ở ngay dưới header và người dùng có thể đọc từ chữ đầu tiên một cách tự nhiên mà không bao giờ bị trôi giật hay trễ hình do smooth rendering.
 
+6. **Hotfix Ads Protection — Sửa Lỗi 'IPReport' object is not subscriptable:**
+   - **Phát hiện lỗi:** Khi Sếp xem log khởi động của API, hệ thống ném ra ngoại lệ `TypeError: 'IPReport' object is not subscriptable` tại hàm `_evaluate_signals` của [click_fraud_service.py](file:///home/lv/Desktop/fast-platform-core/backend/services/ads_protection/click_fraud_service.py) khi client gửi request `POST /api/v1/ads-protection/validate-click`. Lỗi xảy ra do đối tượng `ip` (kiểu `IPReport`) là một Pydantic `BaseModel` nhưng trong code lại truy cập bằng cú pháp dictionary subscript `ip["is_datacenter"]`, `ip["is_vpn"]`, `ip["country"]`...
+   - **Giải pháp xử lý:** Thay thế toàn bộ các cú pháp truy cập dạng dict bằng truy cập thuộc tính dot-notation chuẩn Pydantic: `ip.is_datacenter`, `ip.is_vpn`, `ip.is_tor`, `ip.is_proxy`, `ip.country`.
+   - **Kết quả:** Phục hồi 100% khả năng hoạt động thông suốt của hệ thống phân tích click tặc (Click Fraud Protection), phản hồi 200 OK mượt mà về GTM và Dashboard mà không gặp bất cứ lỗi Internal Server Error nào.
+
 
 
