@@ -133,25 +133,25 @@ class ClickFraudService:
         signals: list[FraudSignal] = [
             FraudSignal(
                 name="ip_is_datacenter",
-                triggered=ip["is_datacenter"],
+                triggered=ip.is_datacenter,
                 weight=0.40,
                 description="IP thuộc datacenter/hosting (AWS, GCP, Azure…)",
             ),
             FraudSignal(
                 name="ip_is_vpn",
-                triggered=ip["is_vpn"],
+                triggered=ip.is_vpn,
                 weight=0.25,
                 description="IP là VPN exit node",
             ),
             FraudSignal(
                 name="ip_is_tor",
-                triggered=ip["is_tor"],
+                triggered=ip.is_tor,
                 weight=0.30,
                 description="IP là Tor exit node",
             ),
             FraudSignal(
                 name="ip_is_proxy",
-                triggered=ip["is_proxy"],
+                triggered=ip.is_proxy,
                 weight=0.20,
                 description="IP là proxy công khai",
             ),
@@ -204,7 +204,7 @@ class ClickFraudService:
                     s.screen_width is not None
                     and s.screen_height is not None
                     and (s.screen_width == 0 or s.screen_height == 0
-                         or s.screen_width > 7680)  # 8K+
+                        or s.screen_width > 7680)  # 8K+
                 ),
                 weight=0.20,
                 description="Độ phân giải màn hình bất thường",
@@ -217,9 +217,9 @@ class ClickFraudService:
             ),
             FraudSignal(
                 name="non_vn_ip",
-                triggered=(ip["country"] not in ("VN", "unknown", "")),
+                triggered=(ip.country not in ("VN", "unknown", "")),
                 weight=0.25,
-                description=f"IP không thuộc Việt Nam (country={ip['country']})",
+                description=f"IP không thuộc Việt Nam (country={ip.country})",
             ),
             # --- Biometric / Canary Trap Extensions (V3.5) ---
             FraudSignal(
