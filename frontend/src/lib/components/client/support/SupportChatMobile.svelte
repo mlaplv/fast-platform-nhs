@@ -621,18 +621,18 @@
     <div
       class="flex-shrink-0 safe-area-bottom w-full relative z-20 px-[3px] pt-1 pb-4"
     >
-      <!-- Quick Actions (Optimized: Tiny, Borderless, Icon-free & Right Aligned) -->
+      <!-- Quick Actions: full-width equal pills, tap-friendly -->
       {#if productSlug && productSlug.trim() !== ""}
-        <div class="w-full flex justify-end gap-1.5 pb-2.5">
+        <div class="w-full flex gap-1.5 pb-2.5 overflow-x-auto hide-scrollbar">
           {#each quickActions as action}
-            <div class="relative">
+            <div class="relative flex-1 min-w-0">
               {#if action.label === "An toàn da" && supportAgent.messages.length <= 1}
                 <div class="helen-tip-bubble">
                   Kiểm tra sản phẩm có phù hợp cho da của bạn không ✨
                 </div>
               {/if}
               <button
-                class="px-2.5 py-1 bg-white/5 active:bg-white/10 text-white/60 border border-white/5 rounded-full text-[10px] font-black tracking-wide transition-all active:scale-95 {action.label ===
+                class="w-full px-1 py-2 bg-white/5 active:bg-white/10 text-white/70 border border-white/8 rounded-full text-[12px] font-black tracking-wide whitespace-nowrap transition-all active:scale-95 {action.label ===
                 'An toàn da'
                   ? 'ring-1 ring-[#FFB7C5]/30 text-white'
                   : ''} disabled:opacity-20 disabled:pointer-events-none disabled:cursor-not-allowed"
