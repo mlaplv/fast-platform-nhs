@@ -266,5 +266,9 @@
 
 - [x] Khắc phục triệt để ngoại lệ `TypeError: 'IPReport' object is not subscriptable` tại endpoint `validate-click` của Click Fraud Service, khôi phục khả năng ghi nhận click từ Google Ads. (Done)
 
+# Task Checklist - ClientPulse SSE Loop Hotfix (Elite V2.2)
+
+- [x] Sửa lỗi vòng lặp kết nối SSE vô tận (loop) cứ mỗi 5 giây khi bấm nút tư vấn bằng giải pháp trả về BadRequestException phía backend và đồng bộ sessionId qua query parameter phía frontend. (Done)
+
 
 
