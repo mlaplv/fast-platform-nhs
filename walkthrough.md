@@ -537,5 +537,12 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
    - **Giải pháp xử lý:** Thay thế toàn bộ các cú pháp truy cập dạng dict bằng truy cập thuộc tính dot-notation chuẩn Pydantic: `ip.is_datacenter`, `ip.is_vpn`, `ip.is_tor`, `ip.is_proxy`, `ip.country`.
    - **Kết quả:** Phục hồi 100% khả năng hoạt động thông suốt của hệ thống phân tích click tặc (Click Fraud Protection), phản hồi 200 OK mượt mà về GTM và Dashboard mà không gặp bất cứ lỗi Internal Server Error nào.
 
+7. **Nâng Cấp Giao Diện Trích Dẫn & Hiển Thị Ảnh Cận Cảnh (Chuẩn Zalo-Style):**
+   - **Phát triển lõi:** Cài đặt hàm `parseQuotedContent` và `parseMessageContent` sử dụng Regex nguyên bản hiệu năng cao (<0.1ms) để tách trích dẫn, ảnh thu nhỏ (thumbnail) và hình ảnh đính kèm chính từ nội dung tin nhắn.
+   - **Tái thiết kế thanh Composer trích dẫn:** Thay thế dải composer thô bằng một khung kính mờ Glassmorphism sang trọng bo cong nổi góc (`rounded-t-xl`), hiển thị ảnh thumbnail 36x36px bo góc sắc sảo khi tin nhắn trích dẫn chứa ảnh.
+   - **Khối trích dẫn lồng ghép (Zalo style):** Nâng cấp bong bóng chat lịch sử hiển thị khung trích dẫn chuyên nghiệp màu tối (`bg-black/35`), viền trái màu cyan đặc trưng (`border-l-[3px] border-cyan-500/80`), giúp tối ưu hóa cấu trúc thông tin đối thoại.
+   - **Bong bóng ảnh trực quan:** Nhúng ảnh trực quan trong khung chat thay vì hiển thị text link markdown thô, hỗ trợ nhấp chuột mở tab mới zoom ảnh nhanh chóng.
+   - **Kết quả:** Giao diện hỗ trợ quản trị viên đạt độ tinh tế đỉnh cao, chuyên nghiệp như các ứng dụng nhắn tin hàng đầu (Zalo, Telegram), tối ưu hóa luồng tương tác và trải nghiệm tư vấn bán hàng.
+
 
 

@@ -93,6 +93,71 @@
     return items;
   });
 
+  // Helper to parse content of quoted message
+  function parseQuotedContent(content: string) {
+    if (!content) return { text: "", imageUrl: null };
+    // 1. Detect markdown image: ![alt](url)
+    const mdImgRegex = /!\[.*?\]\((.*?)\)/;
+    const mdMatch = content.match(mdImgRegex);
+    if (mdMatch) {
+      const imageUrl = mdMatch[1];
+      const textWithoutImg = content.replace(mdImgRegex, "").trim() || "[Hình ảnh]";
+      return { text: textWithoutImg, imageUrl };
+    }
+    // 2. Detect raw URL that is an image
+    const rawUrlRegex = /(https?:\/\/[^\s]+?\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?[^\s]*)?)/i;
+    const rawMatch = content.match(rawUrlRegex);
+    if (rawMatch) {
+      const imageUrl = rawMatch[1];
+      const textWithoutImg = content.replace(rawUrlRegex, "").trim() || "[Hình ảnh]";
+      return { text: textWithoutImg, imageUrl };
+    }
+    return { text: content, imageUrl: null };
+  }
+
+  interface ParsedMessage {
+    quoteAuthor: string | null;
+    quoteText: string | null;
+    quoteImageUrl: string | null;
+    mainContent: string;
+    mainImageUrl: string | null;
+  }
+
+  // Helper to parse full message content (extract quotes and main content images)
+  function parseMessageContent(content: string): ParsedMessage {
+    if (!content) return { quoteAuthor: null, quoteText: null, quoteImageUrl: null, mainContent: "", mainImageUrl: null };
+
+    // Detect if there is a quoted section: > Author: QuotedText\n\nMainText
+    const quoteRegex = /^>\s*([^:\n]+):\s*([\s\S]+?)\n\n([\s\S]*)$/;
+    const match = content.match(quoteRegex);
+
+    let quoteAuthor: string | null = null;
+    let quoteText: string | null = null;
+    let quoteImageUrl: string | null = null;
+    let remainingContent = content;
+
+    if (match) {
+      quoteAuthor = match[1].trim();
+      const rawQuoteContent = match[2].trim();
+      remainingContent = match[3].trim();
+
+      const parsedQuote = parseQuotedContent(rawQuoteContent);
+      quoteText = parsedQuote.text;
+      quoteImageUrl = parsedQuote.imageUrl;
+    }
+
+    // Now detect if the main content itself has a single image or multiple
+    const parsedMain = parseQuotedContent(remainingContent);
+
+    return {
+      quoteAuthor,
+      quoteText,
+      quoteImageUrl,
+      mainContent: parsedMain.text,
+      mainImageUrl: parsedMain.imageUrl
+    };
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -135,14 +200,54 @@
           </div>
         {:else}
           {@const msg = item.message}
+          {@const parsed = parseMessageContent(msg.content)}
           <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full animate-fade-in">
-            <div class="max-w-[80%] group relative">
+            <div class="max-w-[85%] sm:max-w-[70%] group relative">
               <div class="{msg.role === 'user' ? 'bg-cyan-600/10 border border-cyan-500/20 rounded-tr-none' : 'bg-white/5 border border-white/5 rounded-tl-none'} transition-all p-4 rounded-2xl {msg.is_revoked ? 'opacity-40 grayscale' : ''}">
-                <div class="text-[9px] tracking-widest text-white/30 mb-1 flex justify-between gap-10">
+                <div class="text-[9px] tracking-widest text-white/30 mb-1.5 flex justify-between gap-10">
                   <span>{msg.role === 'user' ? 'KHÁCH HÀNG' : 'HELEN AI'}</span>
                   <span>{msg.is_revoked ? '[ĐÃ THU HỒI]' : ''} {formatDate(msg.created_at)}</span>
                 </div>
-                <p class="text-sm leading-relaxed whitespace-pre-wrap {msg.is_revoked ? 'italic line-through' : ''}">{msg.content}</p>
+                
+                {#if !msg.is_revoked}
+                  <!-- Render Nested Quoted Message (Zalo Style) -->
+                  {#if parsed.quoteText}
+                    <div class="mb-3 p-2 bg-black/35 rounded-lg border-l-[3px] border-cyan-500/80 flex items-center gap-2 max-w-full overflow-hidden select-none">
+                      {#if parsed.quoteImageUrl}
+                        <img src={parsed.quoteImageUrl} alt="Quote thumbnail" class="w-8 h-8 rounded object-cover border border-white/10 shrink-0" />
+                      {/if}
+                      <div class="min-w-0 flex-1">
+                        <span class="text-[10px] font-bold text-cyan-400 block leading-tight">{parsed.quoteAuthor}</span>
+                        <p class="text-xs text-white/50 truncate leading-snug">
+                          {#if parsed.quoteImageUrl && parsed.quoteText === "[Hình ảnh]"}
+                            <span class="text-cyan-500/90 font-medium">[Hình ảnh]</span>
+                          {:else if parsed.quoteImageUrl}
+                            <span class="text-cyan-500/90 font-medium">[Hình ảnh]</span> {parsed.quoteText}
+                          {:else}
+                            {parsed.quoteText}
+                          {/if}
+                        </p>
+                      </div>
+                    </div>
+                  {/if}
+
+                  <!-- Render Main Message Text -->
+                  {#if parsed.mainContent && parsed.mainContent !== "[Hình ảnh]"}
+                    <p class="text-sm leading-relaxed whitespace-pre-wrap">{parsed.mainContent}</p>
+                  {/if}
+
+                  <!-- Render Main Message Image Attachment (Zalo Style Image bubble) -->
+                  {#if parsed.mainImageUrl}
+                    <div class="mt-2 relative rounded-xl overflow-hidden border border-white/10 max-w-xs group/img shadow-md bg-black/20">
+                      <a href={parsed.mainImageUrl} target="_blank" rel="noopener noreferrer" class="block cursor-zoom-in">
+                        <img src={parsed.mainImageUrl} alt="Attachment" class="w-full max-h-60 object-cover transition-transform duration-300 group-hover/img:scale-[1.03]" loading="lazy" />
+                      </a>
+                    </div>
+                  {/if}
+                {:else}
+                  <p class="text-sm leading-relaxed whitespace-pre-wrap italic line-through opacity-60">{msg.content}</p>
+                {/if}
+
                 {#if msg.intent && !msg.is_revoked}<div class="mt-2 text-[8px] text-cyan-400/40 font-mono tracking-wider">INTENT: {msg.intent}</div>{/if}
               </div>
               
@@ -163,12 +268,27 @@
 
     <div class="p-4 bg-black/40 border-t border-white/10 backdrop-blur-xl shrink-0 relative">
       {#if quotedMessage}
-        <div transition:slide={{ axis: 'y' }} class="absolute bottom-full left-0 right-0 bg-zinc-950/90 backdrop-blur-2xl border-t border-white/10 p-3 flex items-center justify-between z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.5)]">
-          <div class="flex items-center gap-3"><div class="w-1 h-8 bg-cyan-500 rounded-full"></div><div>
-            <span class="text-[10px] font-bold text-cyan-400 ">Trả lời {quotedMessage.role === 'assistant' ? 'Helen AI' : 'Khách'}</span>
-            <p class="text-xs text-white/50 truncate max-w-md">{quotedMessage.content}</p>
-          </div></div>
-          <button onclick={onClearQuote} class="p-2 text-white/40 hover:text-white"><X class="w-4 h-4" /></button>
+        {@const parsedCompose = parseQuotedContent(quotedMessage.content)}
+        <div transition:slide={{ axis: 'y' }} class="absolute bottom-full left-4 right-4 bg-zinc-950/95 backdrop-blur-2xl border border-white/10 border-b-0 rounded-t-xl p-3 flex items-center justify-between z-10 shadow-[0_-8px_16px_rgba(0,0,0,0.6)]">
+          <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="w-1 h-8 bg-cyan-500 rounded-full shrink-0"></div>
+            {#if parsedCompose.imageUrl}
+              <img src={parsedCompose.imageUrl} alt="Quote composer thumbnail" class="w-9 h-9 rounded object-cover border border-white/10 shrink-0" />
+            {/if}
+            <div class="min-w-0 flex-1">
+              <span class="text-[10px] font-bold text-cyan-400 block leading-tight">Trả lời {quotedMessage.role === 'assistant' ? 'Helen AI' : 'Khách'}</span>
+              <p class="text-xs text-white/70 truncate pr-4 leading-normal">
+                {#if parsedCompose.imageUrl && parsedCompose.text === "[Hình ảnh]"}
+                  <span class="text-cyan-400 font-medium">[Hình ảnh]</span>
+                {:else if parsedCompose.imageUrl}
+                  <span class="text-cyan-400 font-medium">[Hình ảnh]</span> {parsedCompose.text}
+                {:else}
+                  {parsedCompose.text}
+                {/if}
+              </p>
+            </div>
+          </div>
+          <button onclick={onClearQuote} class="p-2 text-white/40 hover:text-white shrink-0 active:scale-95 transition-transform"><X class="w-4 h-4" /></button>
         </div>
       {/if}
       <div class="relative">

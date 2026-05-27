@@ -282,4 +282,14 @@
 - [x] Tích hợp cơ chế fallback thông minh tự động chuyển sang `func.count()` chuẩn nếu database không hỗ trợ `pg_class` (như SQLite trong môi trường phát triển local/test). (Done)
 
 
+# Task Checklist - Support Inbox Quote & Image Aesthetics (Elite V2.2)
+
+- [x] Thiết lập hàm phân giải `parseQuotedContent` và `parseMessageContent` trong `SupportChatView.svelte`. (Done)
+- [x] Thiết kế lại dải xem trước trích dẫn (Reply Composer Bar) tinh gọn, bo góc, căn giữa, nền Glassmorphic mờ và có hiển thị thumbnail ảnh 36x36px nếu có. (Done)
+- [x] Nâng cấp bong bóng chat lịch sử hiển thị khối trích dẫn lồng ghép chuyên nghiệp chuẩn Zalo. (Done)
+- [x] Tích hợp tính năng hiển thị ảnh trực quan trong bong bóng tin nhắn đối thoại thay vì hiện text link thô. (Done)
+- [x] Kiểm tra biên dịch tĩnh (Svelte 5 static build) để đảm bảo không lỗi type/warning. (Done)
+
+
+
 
