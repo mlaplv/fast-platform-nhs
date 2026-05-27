@@ -41,10 +41,18 @@
         onToggleTakeover, onSendMessage, onRevokeMessage, onCopyMessage, onQuoteMessage, onClearQuote, onUpdateMessage }: Props = $props();
 
   let chatScrollRef: HTMLDivElement | null = $state(null);
+  let textareaRef: HTMLTextAreaElement | null = $state(null);
 
   $effect(() => {
     if (session && chatScrollRef) {
       setTimeout(() => { chatScrollRef?.scrollTo({ top: chatScrollRef.scrollHeight, behavior: "smooth" }); }, 50);
+    }
+  });
+
+  $effect(() => {
+    if (isTakeover && textareaRef) {
+      // Focus instantly when taking over the chat
+      textareaRef.focus();
     }
   });
 
@@ -267,36 +275,42 @@
     </div>
 
     <div class="p-4 bg-black/40 border-t border-white/10 backdrop-blur-xl shrink-0">
-      <div class="relative flex flex-col bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div 
+        onclick={() => { if (!isTakeover) onToggleTakeover(); }}
+        class="relative flex flex-col bg-white/5 border border-white/10 rounded-xl overflow-hidden {!isTakeover ? 'cursor-pointer hover:bg-white/10 transition-colors' : ''}">
         {#if quotedMessage}
           {@const parsedCompose = parseQuotedContent(quotedMessage.content)}
-          <div transition:slide={{ axis: 'y' }} class="bg-zinc-950/95 backdrop-blur-2xl border-b border-white/10 p-3 flex items-center justify-between z-10 shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
-            <div class="flex items-center gap-3 min-w-0 flex-1">
-              <div class="w-1 h-8 bg-cyan-500 rounded-full shrink-0"></div>
+          <div transition:slide={{ axis: 'y' }} class="bg-white/[0.02] border-b border-white/10 p-3 pl-4 flex items-center justify-between z-10 relative">
+            <div class="flex items-center gap-3 min-w-0 flex-1 border-l-2 border-cyan-500 pl-3">
               {#if parsedCompose.imageUrl}
                 <img src={parsedCompose.imageUrl} alt="Quote composer thumbnail" class="w-9 h-9 rounded object-cover border border-white/10 shrink-0" />
               {/if}
               <div class="min-w-0 flex-1">
-                <span class="text-[10px] font-bold text-cyan-400 block leading-tight">Trả lời {quotedMessage.role === 'assistant' ? 'Helen AI' : 'Khách'}</span>
-                <p class="text-xs text-white/70 truncate pr-4 leading-normal">
+                <div class="flex items-center gap-1.5 text-cyan-400 block leading-tight">
+                  <Quote class="w-3 h-3 shrink-0" />
+                  <span class="text-[11px] font-semibold">Trả lời {quotedMessage.role === 'assistant' ? 'Helen AI' : 'Khách'}</span>
+                </div>
+                <p class="text-xs text-white/50 truncate pr-4 mt-0.5 leading-normal">
                   {#if parsedCompose.imageUrl && parsedCompose.text === "[Hình ảnh]"}
-                    <span class="text-cyan-400 font-medium">[Hình ảnh]</span>
+                    <span class="text-cyan-400/80 font-medium">[Hình ảnh]</span>
                   {:else if parsedCompose.imageUrl}
-                    <span class="text-cyan-400 font-medium">[Hình ảnh]</span> {parsedCompose.text}
+                    <span class="text-cyan-400/80 font-medium">[Hình ảnh]</span> {parsedCompose.text}
                   {:else}
                     {parsedCompose.text}
                   {/if}
                 </p>
               </div>
             </div>
-            <button onclick={onClearQuote} class="p-2 text-white/40 hover:text-white shrink-0 active:scale-95 transition-transform"><X class="w-4 h-4" /></button>
+            <button onclick={(e) => { e.stopPropagation(); onClearQuote(); }} class="p-1.5 text-white/40 hover:text-white rounded-full hover:bg-white/5 shrink-0 active:scale-95 transition-all"><X class="w-4 h-4" /></button>
           </div>
         {/if}
         <div class="relative">
-          <textarea bind:value={manualMessage} onkeydown={handleKeydown} oninput={(e) => onUpdateMessage(e.currentTarget.value)}
-            placeholder={isTakeover ? "Nhấn Enter để gửi..." : "Bật 'Chặn Helen' để chat..."} disabled={!isTakeover}
+          <textarea bind:this={textareaRef} bind:value={manualMessage} onkeydown={handleKeydown} oninput={(e) => onUpdateMessage(e.currentTarget.value)}
+            placeholder={isTakeover ? "Nhập nội dung tin nhắn..." : "Bật 'Chặn Helen' để chat..."} disabled={!isTakeover}
             class="w-full bg-transparent border-0 focus:ring-0 focus:outline-none px-4 py-3 pb-12 text-sm text-white resize-none min-h-[60px] {isTakeover ? 'opacity-100' : 'opacity-40'}"></textarea>
-          <button onclick={onSendMessage} disabled={!isTakeover || !manualMessage.trim() || isSending} class="absolute right-4 bottom-4 p-2 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30 transition-transform active:scale-95">
+          <button onclick={onSendMessage} disabled={!isTakeover || !manualMessage.trim() || isSending} class="absolute right-4 bottom-4 p-2 bg-cyan-500/20 text-cyan-400 rounded-lg border border-cyan-500/30 transition-all hover:bg-cyan-500/30 active:scale-95">
             <Send class="w-4 h-4" />
           </button>
         </div>

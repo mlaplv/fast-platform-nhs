@@ -220,7 +220,12 @@
       onSendMessage={sendManualMessage}
       onRevokeMessage={revokeMessage}
       onCopyMessage={(c) => { navigator.clipboard.writeText(c); nanobot.showToast("Đã copy", "success"); }}
-      onQuoteMessage={(m) => { quotedMessage = m; }}
+      onQuoteMessage={(m) => { 
+        quotedMessage = m; 
+        if (!isTakeover) {
+          toggleTakeover();
+        }
+      }}
       onClearQuote={() => quotedMessage = null}
       onUpdateMessage={(v) => manualMessage = v}
     />
