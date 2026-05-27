@@ -473,7 +473,38 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
   - Compiled the static storefront bundle cleanly via `pnpm run build` locally.
   - Synchronized the compiled `dist/` bundle and updated backend files to the production VPS `/opt/fast-platform/` using high-speed `rsync`.
   - Restarted production services `fast_platform_api` and `fast_platform_worker_high` to immediately apply changes, ensuring absolute stability.
+## 36. Diagnostics for Invisible Viral Campaign Component (Elite V2.2)
 
+- **Comprehensive Codebase Trace**:
+  - **Issue**: The `ShareToUnlock.svelte` component was completely invisible on the product detail page.
+  - **Diagnostic Findings**:
+    1. Traced the storefront detail page rendering and confirmed the component depends strictly on `product.metadata.viral_suite.share_promotion` or `product.metadata.share_promotion` configuration in its `promoConfig` object.
+    2. Checked the backend dynamic hydration logic (`hydrate_viral_config_logic` in [viral_hydration.py](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/logic/viral_hydration.py)) and found that it dynamically queries the database for the active master viral voucher (`Voucher.is_viral == True`, `Voucher.is_active == True`).
+    3. Checked the database seeding scripts ([seed.py](file:///home/lv/Desktop/fast-platform-core/backend/scripts/seed.py) and [seed_viral_products.py](file:///home/lv/Desktop/fast-platform-core/backend/scripts/seed_viral_products.py)) and discovered that the vouchers were seeded but **completely missed the `is_viral=True` flag**, causing them to default to `False`.
+    4. Due to the missing `is_viral=True` flag, no active viral voucher existed in the database $\rightarrow$ the backend dynamic hydration returned early without populating metadata $\rightarrow$ `promoConfig` remained `null` $\rightarrow$ the frontend rendered nothing.
+    5. Additionally, the component's eligibility check API `/api/v1/client/viral/campaign/{voucher_id}` delegates to `get_campaign_details` in [viral_share_service.py](file:///home/lv/Desktop/fast-platform-core/backend/services/viral_share_service.py), which strictly rejects any voucher where `is_viral` is not `True`, returning `exists: false` and driving `campaignExists` to `false`.
+  - **Result**: Successfully created a detailed diagnostic report in [viral_unlock_diagnosis.md](file:///home/lv/.gemini/antigravity/brain/fbf0e5f6-7060-4019-825a-f9e0b89788cb/artifacts/viral_unlock_diagnosis.md) and updated [task.md](file:///home/lv/Desktop/fast-platform-core/task.md) with the corrective task actions to resolve the sync gap.
 
+## 37. Phân Tích Nguyên Nhân Nút "Tư Vấn" AI Xử Lý Lâu (Elite V2.2)
 
+### A. Phát Hiện Sự Khác Biệt Giữa Các Nút
+- **Nút "Xuất xứ" & "Công dụng" (Siêu Nhanh ~10ms):**
+  - Khi click, gửi các câu hỏi thông thường như: *"Sản phẩm này có thành phần gì và công dụng như thế nào?"* hoặc *"Sản phẩm này có chính hãng không? Nguồn gốc ở đâu?"*.
+  - Tại backend, bộ lọc **DB-First Layer** (`_try_db_product_direct` tại `consultant.py`) phát hiện các từ khóa mang tính trích xuất tĩnh (`"thành phần"`, `"công dụng"`, `"tác dụng"`, `"xuất xứ"`, `"chính hãng"`...).
+  - Hệ thống lập tức trích xuất thông tin kỹ thuật đã được biên soạn sẵn trong cơ sở dữ liệu (`product_ctx` / `product_metadata`), đóng gói thành câu trả lời và trả về ngay lập tức.
+  - **Kết quả**: Bypass LLM hoàn toàn, thời gian phản hồi gần như tức thì (<10ms).
+
+- **Nút "Tư vấn" (Triệu Hồi AI Chậm từ 2s - 8s):**
+  - Khi click, nút gửi mã hệ thống: `[system_consult] Hãy tư vấn bán hàng chuyên sâu...`
+  - Heuristic tại DB-First Layer chủ động phát hiện cờ `[system_consult]` và trả về `None`, chuyển tiếp yêu cầu xuống **AI Pipeline** chuyên sâu (`ConsultantHandler`).
+  - Hệ thống bắt buộc phải triệu hồi LLM (`trinity_bridge.run` gọi Gemini 2.0 Pro) để phân tích toàn diện ngữ cảnh (thành phần sản phẩm, giỏ hàng, điểm loyalty, kịch bản chốt sale "sát thủ" 5 bước).
+  - **Kết quả**: LLM mất thời gian suy luận và sinh văn bản tự nhiên theo kịch bản, dẫn đến độ trễ từ 2s - 8s và kích hoạt trạng thái loading "Helen đang xử lý...".
+
+### B. Giải Pháp Đề Xuất (PROPOSE)
+1. **Giải pháp 1: Tối ưu hóa Timeout & Fallback của AI:**
+   - Hạ thấp thời gian chờ timeout của AI tại `ConsultantHandler` từ `25.0s` xuống `12.0s` hoặc `15.0s`. Nếu AI bị treo hoặc phản hồi quá lâu trong giờ cao điểm, hệ thống sẽ tự động kích hoạt **Smart DB Fallback** siêu tốc nhằm trả về câu trả lời tĩnh chất lượng cao dựng từ DB chỉ trong vài giây, bảo vệ trải nghiệm của khách.
+2. **Giải pháp 2: Cơ chế Fast-Path DB-First cho cuộc hội thoại đầu tiên:**
+   - Xây dựng một template kịch bản tư vấn bán hàng động chuẩn Helen ngay tại DB-First layer khi nhận được cờ `[system_consult]`.
+   - Nếu đây là tin nhắn đầu tiên của khách (chưa có lịch sử hội thoại phức tạp), hệ thống sẽ lập tức trả về kịch bản tư vấn đầy đủ (5 bước chuẩn Sales Assassin nhưng dựng tự động bằng cách map các thuộc tính Product Metadata, Giá, Vouchers từ DB) chỉ trong `<20ms` mà không cần gọi LLM.
+   - Các lượt phản hồi tiếp theo (khi khách hàng hỏi thêm/hội thoại cá nhân) mới sử dụng đến LLM để đảm bảo tính tự nhiên và linh hoạt.
 

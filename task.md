@@ -247,3 +247,18 @@
 - [x] Hot Sync toàn bộ mã nguồn frontend biên dịch (`dist/`) và các dịch vụ backend sang Production VPS thông qua giao thức Rsync tốc độ cao. (Done)
 - [x] Tái khởi động an toàn các container dịch vụ API (`fast_platform_api`) và Worker High Priority (`fast_platform_worker_high`) trên VPS để áp dụng ngay lập tức các cập nhật. (Done)
 
+# Task Checklist - Restoring Viral Campaign Functionality (Elite V2.2)
+
+- [ ] Phân tích mã nguồn và cấu hình cơ sở dữ liệu để tìm ra nguyên nhân ẩn component `ShareToUnlock.svelte`. (Done - Báo cáo trong file `viral_unlock_diagnosis.md`)
+- [ ] Đề xuất sửa đổi tệp seeding (`seed_viral_products.py` và `seed.py`) để thêm cờ `is_viral=True` cho các Voucher chiến dịch. (Pending Sếp duyệt)
+- [ ] Thực hiện chạy lại seeding và kiểm tra phản hồi API `/api/v1/client/viral/campaign/VIRAL50K` để xác nhận kích hoạt thành công. (Pending Sếp duyệt)
+- [ ] Thực hiện static production build frontend và rsync lên Production VPS. (Pending Sếp duyệt)
+
+# Task Checklist - Optimizing AI Support Consultation Performance (Elite V2.2)
+
+- [x] Phân tích nguyên nhân tại sao nút "Tư vấn" và "An toàn da" triệu hồi AI xử lý lâu hơn các nút trích xuất dữ liệu trực tiếp ("Xuất xứ", "Công dụng"). (Done)
+- [ ] Thiết kế cơ chế Fast-Path DB-First cho lệnh `[system_consult]` tại lượt trò chuyện đầu tiên để phản hồi tức thì (<20ms) bằng kịch bản tư vấn động chuẩn Helen dựng từ DB. (Pending Sếp duyệt)
+- [ ] Tinh chỉnh thời gian timeout của AI trong `ConsultantHandler` xuống `12.0s` (hoặc `15.0s`) thay vì `25.0s` nhằm kích hoạt Smart DB Fallback sớm hơn khi LLM quá tải. (Pending Sếp duyệt)
+
+
+
