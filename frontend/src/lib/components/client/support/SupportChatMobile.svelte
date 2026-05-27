@@ -363,7 +363,7 @@
     <!-- Chat Thread: Zero-Background Floating Text -->
     <div
       bind:this={chatContainer}
-      class="flex-1 overflow-y-auto px-[3px] py-6 flex flex-col justify-start space-y-10 hide-scrollbar relative z-10"
+      class="flex-1 overflow-y-scroll px-[3px] py-6 flex flex-col justify-start space-y-10 hide-scrollbar relative z-10"
     >
       <!-- Viral Lazy Memory: Zalo-style pagination -->
       {#if supportAgent.hasMoreHistory}
@@ -698,6 +698,10 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
     scroll-behavior: smooth;
+    /* Safari iOS scroll fix */
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
   }
 
   .helen-box-v2 {
