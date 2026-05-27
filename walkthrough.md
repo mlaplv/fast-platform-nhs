@@ -529,8 +529,8 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
      ```typescript
      const relativeTop = bubbleRect.top - containerRect.top + chatContainer.scrollTop;
      ```
-     Sau đó thực hiện cuộn chính xác đến vị trí `relativeTop - safe_padding` (12px - 16px). Đối với tin nhắn ngắn của chính user, hệ thống vẫn cuộn mượt mà sát đáy `scrollHeight`.
-   - **Kết quả:** Triệt tiêu hoàn toàn lỗi "mất đầu/trôi đầu". Phần đầu của tin nhắn của Helen cùng avatar luôn xuất hiện sang trọng, sắc nét ở ngay dưới header và người dùng có thể đọc từ chữ đầu tiên một cách tự nhiên mà không cần phải cuộn tay ngược lên trên.
+     Sau đó thực hiện ghim cứng (stick top) lập tức bằng `behavior: "instant"` đến vị trí `relativeTop - safe_padding` (12px - 16px). Đối với tin nhắn ngắn của chính user, hệ thống vẫn cuộn mượt mà sát đáy `scrollHeight`.
+   - **Kết quả:** Triệt tiêu hoàn toàn lỗi "mất đầu/trôi đầu". Phần đầu của tin nhắn của Helen cùng avatar luôn được ghim cứng lập tức ở vị trí sang trọng, sắc nét ở ngay dưới header và người dùng có thể đọc từ chữ đầu tiên một cách tự nhiên mà không bao giờ bị trôi giật hay trễ hình do smooth rendering.
 
 
 
