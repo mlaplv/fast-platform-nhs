@@ -66,6 +66,7 @@
   const ecosystemLinks = [
     { name: 'Giới thiệu', href: '/gioi-thieu.html' },
     { name: 'Tuyển dụng', href: '/tuyen-dung.html' },
+    { name: 'Hướng dẫn mua hàng', href: '/huong-dan-mua-hang.html' },
     { name: 'Chính sách Bảo mật', href: '/chinh-sach-bao-mat-thong-tin.html' },
     { name: 'Điều khoản Dịch vụ', href: '/dieu-khoan-dich-vu.html' }
   ];
