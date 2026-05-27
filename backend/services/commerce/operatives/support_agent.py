@@ -268,6 +268,7 @@ class SupportAgentOperative(BaseAgentOperative):
         super().__init__(agent_id=agent_id)
         self.router = SupportRouter()
         self._arq_pool = None
+        self._background_tasks: set[asyncio.Task[object]] = set()
 
     async def _get_arq_pool(self) -> object:
         if self._arq_pool is None:
@@ -733,13 +734,16 @@ class SupportAgentOperative(BaseAgentOperative):
         # ══════════════════════════════════════════════════════════════════════
         if "[zalo_oa]" in msg_clean or "tôi muốn kết nối trực tiếp với chuyên viên tư vấn" in msg_clean or "yêu cầu kết nối chuyên viên" in msg_clean or "gặp tư vấn viên" in msg_clean:
             from backend.services.core.zalo_service import zalo_service
-            asyncio.create_task(
+            task = asyncio.create_task(
                 zalo_service.push_support_notification(
                     customer_name=c_name,
                     message=request.message,
                     session_id=session_id
                 )
             )
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
+
             await xohi_memory.client.set(f"support:takeover:{session_id}", "0", ex=86400 * 3)
             await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
             reply_text = (
@@ -755,13 +759,16 @@ class SupportAgentOperative(BaseAgentOperative):
         if helen_on == "0":
             from backend.services.core.zalo_service import zalo_service
             # Non-blocking background call to notify Sếp via Zalo OA (R03-compliant)
-            asyncio.create_task(
+            task = asyncio.create_task(
                 zalo_service.push_support_notification(
                     customer_name=c_name,
                     message=request.message,
                     session_id=session_id
                 )
             )
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
+
             offline_msg = await xohi_memory.client.get("system:helen_offline_msg")
             reply_text = offline_msg or "Dược sĩ tư vấn sẽ sớm phản hồi Quý khách qua Zalo OA. Vui lòng để lại lời nhắn ạ. 🌸"
             await self._save_history(db, session_id, request.message, reply_text, SupportIntent.UNKNOWN, request.product_slug, c_name, request.customer_phone)
@@ -780,13 +787,15 @@ class SupportAgentOperative(BaseAgentOperative):
             # 3. Return TAKEOVER status so frontend doesn't render any automatic assistant reply thưa sếp!
             return SupportResponse(ok=True, reply="", intent=SupportIntent.UNKNOWN, session_id=session_id, status="TAKEOVER")
         
+        # Source settings & product info exactly once to avoid double database queries / calls (Performance optimization thưa sếp)
+        cur_settings = await self._get_currency_settings()
+        _, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
+
         is_system_prompt = request.message.strip().startswith("[system_")
         if not is_system_prompt:
             try:
-                cur_settings = await self._get_currency_settings()
                 masked_msg = await self._mask_sensitive_medical_terms(request.message)
-                _, p_info_fast = await _fetch_product_context(db, request.product_slug, cur_settings)
-                fast_res = await asyncio.wait_for(trinity_bridge.run(_fast_intent_agent, masked_msg, deps=FastIntentDeps(customer_name=c_name, product_name=p_info_fast.name if p_info_fast else None), role=trinity_bridge.ROLE_FAST, timeout=12.0, per_model_timeout=5.0), timeout=13.0)
+                fast_res = await asyncio.wait_for(trinity_bridge.run(_fast_intent_agent, masked_msg, deps=FastIntentDeps(customer_name=c_name, product_name=p_info.name if p_info else None), role=trinity_bridge.ROLE_FAST, timeout=12.0, per_model_timeout=5.0), timeout=13.0)
                 f_data = cast(FastIntentResponse, fast_res)
                 if f_data.intent == "GREETING" and f_data.quick_reply and not request.cart_items:
                     await self._save_history(db, session_id, request.message, f_data.quick_reply, SupportIntent.GENERAL_ADVICE, request.product_slug, c_name, request.customer_phone)
@@ -794,8 +803,6 @@ class SupportAgentOperative(BaseAgentOperative):
                     return SupportResponse(ok=True, reply=f_data.quick_reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
             except Exception: pass
 
-        cur_settings = await self._get_currency_settings()
-        _, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
         heuristic_res = await self._try_heuristic_sync(request, db, session_id, p_info, c_name)
         if heuristic_res: return heuristic_res
 
