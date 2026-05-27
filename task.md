@@ -271,5 +271,10 @@
 - [x] Sửa lỗi vòng lặp kết nối SSE vô tận (loop) cứ mỗi 5 giây khi bấm nút tư vấn bằng giải pháp trả về BadRequestException phía backend và đồng bộ sessionId qua query parameter phía frontend. (Done)
 - [x] Nâng cấp bảo mật & tài nguyên cho `/client/support/pulse` bằng cách kiểm duyệt UUID định dạng chặt chẽ, đóng socket PubSub triệt để giải phóng RAM, và loại bỏ CPU polling loop. (Done)
 
+# Task Checklist - Chat Anti-Spam & Button Protection (Elite V3.5)
+
+- [x] Thiết lập hàng rào chống double-click và spam gửi câu hỏi liên tiếp bằng cơ chế khóa cứng UI (vô hiệu hóa các input, button quick action, button liên hệ) khi AI đang phản hồi. (Done)
+- [x] Phát triển cơ chế phát hiện câu hỏi trùng lặp/quấy phá tại chỗ (Client-side duplicate prevention) và kiểm soát băm (Redis query MD5 hashing) tại Backend (<10s) để từ chối xử lý sớm, bảo vệ 100% tài nguyên LLM. (Done)
+
 
 
