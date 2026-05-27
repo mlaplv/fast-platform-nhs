@@ -237,24 +237,10 @@
     await tick();
     if (!chatContainer) return;
 
-    const messageElements = chatContainer.querySelectorAll(
-      ".message-bubble-container",
-    );
-    const lastMessageEl = messageElements[messageElements.length - 1];
-
-    if (lastMessageEl) {
-      const role = lastMessageEl.getAttribute("data-role");
-      if (role === "assistant") {
-        // Align to top of message if it's long, ensuring 'Helen' is visible
-        lastMessageEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else {
-        // Scroll to bottom for user's own message
-        chatContainer.scrollTo({
-          top: chatContainer.scrollHeight,
-          behavior: "smooth",
-        });
-      }
-    }
+    chatContainer.scrollTo({
+      top: chatContainer.scrollHeight,
+      behavior: "smooth",
+    });
   }
 </script>
 
