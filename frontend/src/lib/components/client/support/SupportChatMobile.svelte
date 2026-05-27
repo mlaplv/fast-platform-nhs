@@ -567,7 +567,8 @@
             <!-- Option 1: Chat trong box -->
             <button
               onclick={requestInboxChat}
-              class="group relative flex items-center gap-4 w-full px-5 py-4 rounded-2xl overflow-hidden text-left transition-all duration-200 active:scale-[0.97]"
+              disabled={supportAgent.isTyping}
+              class="group relative flex items-center gap-4 w-full px-5 py-4 rounded-2xl overflow-hidden text-left transition-all duration-200 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none"
               style="background: linear-gradient(135deg, rgba(255,183,197,0.08) 0%, rgba(255,183,197,0.03) 100%); border: 1px solid rgba(255,183,197,0.15);"
             >
               <!-- Glow on press -->
@@ -594,7 +595,8 @@
             <!-- Option 2: Zalo OA -->
             <button
               onclick={requestZaloChat}
-              class="group relative flex items-center gap-4 w-full px-5 py-4 rounded-2xl overflow-hidden text-left transition-all duration-200 active:scale-[0.97]"
+              disabled={supportAgent.isTyping}
+              class="group relative flex items-center gap-4 w-full px-5 py-4 rounded-2xl overflow-hidden text-left transition-all duration-200 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none"
               style="background: linear-gradient(135deg, rgba(0,104,255,0.10) 0%, rgba(0,104,255,0.04) 100%); border: 1px solid rgba(0,104,255,0.22);"
             >
               <div class="absolute inset-0 opacity-0 group-active:opacity-100 transition-opacity"

@@ -215,6 +215,54 @@ class SupportController(Controller):
         data.session_id = session_id # Override with secure cookie session
         
         try:
+            # Elite V3.5: Hardened Anti-Spam & Duplicate Message Defense thưa sếp!
+            from backend.services.xohi_memory import xohi_memory
+            redis = xohi_memory.client
+            if redis:
+                import hashlib
+                msg_clean = data.message.strip().lower()
+                msg_hash = hashlib.md5(msg_clean.encode("utf-8")).hexdigest()
+                
+                # A. Anti-Spam click check (<1.5s interval)
+                last_time_key = f"support:last_msg_time:{session_id}"
+                last_time_val = await redis.get(last_time_key)
+                now = time.time()
+                
+                if last_time_val:
+                    elapsed = now - float(last_time_val)
+                    if elapsed < 1.5:
+                        logger.warning(f"🛡️ [Anti-Spam] Session {session_id} click rate limit exceeded: {elapsed:.2f}s")
+                        from backend.schemas.support import SupportIntent
+                        return Response(
+                            content=SupportResponse(
+                                ok=False,
+                                reply="Helen đang xử lý yêu cầu trước đó của mình, vui lòng đợi một chút nhé ạ! ✨",
+                                intent=SupportIntent.UNKNOWN,
+                                session_id=session_id,
+                                status="FAILED"
+                            ),
+                            status_code=200 # Return 200 with soft warning for seamless UX
+                        )
+                await redis.set(last_time_key, str(now), ex=5)
+
+                # B. Anti-Duplicate query check (<10s interval)
+                hash_key = f"support:dup_hash:{session_id}"
+                last_hash = await redis.get(hash_key)
+                if last_hash and last_hash.decode("utf-8") == msg_hash:
+                    logger.warning(f"🛡️ [Anti-Spam] Duplicate question blocked for Session {session_id}")
+                    from backend.schemas.support import SupportIntent
+                    return Response(
+                        content=SupportResponse(
+                           ok=False,
+                           reply="Helen vừa nhận được câu hỏi này từ mình rồi ạ. Mình đợi Helen trả lời xong nhé! 💕",
+                           intent=SupportIntent.UNKNOWN,
+                           session_id=session_id,
+                           status="FAILED"
+                        ),
+                        status_code=200
+                    )
+                await redis.set(hash_key, msg_hash, ex=10)
+
             await self._check_rate_limit(request, session_id)
             response = await support_agent.chat(request=data, db=db_session)
             await db_session.commit()

@@ -583,6 +583,14 @@ class SupportAgentState {
     ) {
         if (!text.trim() || this.isTyping) return;
 
+        // Elite V3.5: Client-side duplicate message check thưa sếp!
+        const lastUserMsg = this.messages.filter(m => m.role === "user").slice(-1)[0];
+        const normalizedInput = (displayText !== undefined ? displayText.trim() : text.trim()).toLowerCase();
+        if (lastUserMsg && lastUserMsg.content.trim().toLowerCase() === normalizedInput) {
+             console.warn("🛡️ [Client-Spam] Prevented duplicate message trigger: ", text);
+             return;
+        }
+
         const userMsg: SupportMessage = {
             id: crypto.randomUUID(),
             role: "user",

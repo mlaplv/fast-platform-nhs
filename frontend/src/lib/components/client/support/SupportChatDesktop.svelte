@@ -655,7 +655,8 @@
               <!-- Option 1: Chat tại đây -->
               <button
                 onclick={requestInboxChat}
-                class="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all duration-200 hover:bg-white/[0.04] active:scale-[0.98] text-left w-full"
+                disabled={supportAgent.isTyping}
+                class="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all duration-200 hover:bg-white/[0.04] active:scale-[0.98] text-left w-full disabled:opacity-40 disabled:pointer-events-none"
                 style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05);"
               >
                 <!-- Icon (No container border, simple) -->
@@ -691,7 +692,8 @@
               <!-- Option 2: Zalo OA -->
               <button
                 onclick={requestZaloChat}
-                class="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all duration-200 hover:bg-white/[0.04] active:scale-[0.98] text-left w-full"
+                disabled={supportAgent.isTyping}
+                class="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-all duration-200 hover:bg-white/[0.04] active:scale-[0.98] text-left w-full disabled:opacity-40 disabled:pointer-events-none"
                 style="background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05);"
               >
                 <!-- Icon (Simple) -->
