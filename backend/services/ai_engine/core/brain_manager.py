@@ -102,17 +102,34 @@ class BrainManager:
     @staticmethod
     async def get_node_analytics(db: AsyncSession) -> Dict[str, JsonValue]:
         """
-        Elite V2.2: Composite knowledge metrics.
+        Elite V2.2: Composite knowledge metrics (Optimized via pg_class estimation thưa sếp!).
         """
         from backend.database.models.system import SupportKnowledge, SupportKnowledgeEmbedding
 
-        total_p = await db.scalar(select(func.count()).select_from(ProductBase)) or 0
-        total_a = await db.scalar(select(func.count()).select_from(Article)) or 0
-        total_k = await db.scalar(select(func.count()).select_from(SupportKnowledge).where(SupportKnowledge.deleted_at.is_(None))) or 0
+        async def get_count_optimized(model, table_name: str) -> int:
+            try:
+                # Try Postgres high-speed estimation thưa sếp!
+                res = await db.execute(sa_text(f"SELECT reltuples::bigint FROM pg_class WHERE relname = '{table_name}'"))
+                val = res.scalar()
+                if val is not None and val >= 0:
+                    return int(val)
+            except Exception:
+                pass
+            
+            # Fallback to standard count if pg_class fails (e.g. local SQLite testing)
+            try:
+                return await db.scalar(select(func.count()).select_from(model)) or 0
+            except Exception as e:
+                logger.error(f"[BrainManager] Optimized count fallback failed for {table_name}: {e}")
+                return 0
 
-        emb_p = await db.scalar(select(func.count()).select_from(ProductEmbedding)) or 0
-        emb_a = await db.scalar(select(func.count()).select_from(ArticleEmbedding)) or 0
-        emb_k = await db.scalar(select(func.count()).select_from(SupportKnowledgeEmbedding)) or 0
+        total_p = await get_count_optimized(ProductBase, "product_bases")
+        total_a = await get_count_optimized(Article, "articles")
+        total_k = await get_count_optimized(SupportKnowledge, "support_knowledge")
+
+        emb_p = await get_count_optimized(ProductEmbedding, "product_embeddings")
+        emb_a = await get_count_optimized(ArticleEmbedding, "article_embeddings")
+        emb_k = await get_count_optimized(SupportKnowledgeEmbedding, "support_knowledge_embeddings")
         
         total_entities = total_p + total_a + total_k
         total_embeddings = emb_p + emb_a + emb_k
