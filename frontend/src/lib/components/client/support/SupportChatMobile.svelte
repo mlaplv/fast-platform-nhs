@@ -280,7 +280,7 @@
     </div>
 
     <header
-      class="flex-shrink-0 pt-[40px] px-4 pb-6 flex items-center justify-between relative z-10 border-b border-white/5 bg-transparent"
+      class="flex-shrink-0 pt-[40px] px-4 pb-3 flex items-center justify-between relative z-20 bg-transparent"
     >
       <div class="flex items-center gap-4">
         <div class="relative">
@@ -307,7 +307,7 @@
               >
             </div>
           </h3>
-          <div class="flex items-center gap-2 mt-1.5">
+          <div class="flex items-center gap-2 mt-1">
             <div
               class="w-1.5 h-1.5 rounded-full bg-[#FFB7C5] shadow-[0_0_8px_#FFB7C5] animate-pulse"
             ></div>
@@ -330,6 +330,8 @@
         </button>
       </div>
     </header>
+    <!-- Header fade-out edge: xuyên thấu khi chat cuộn sát mép -->
+    <div class="header-fade-edge flex-shrink-0"></div>
 
     {#if supportAgent.optimalPriceNotice}
       <div
@@ -363,7 +365,7 @@
     <!-- Chat Thread: Zero-Background Floating Text -->
     <div
       bind:this={chatContainer}
-      class="flex-1 overflow-y-scroll px-[3px] py-6 flex flex-col justify-start space-y-10 hide-scrollbar relative z-10"
+      class="flex-1 overflow-y-scroll px-[3px] py-4 flex flex-col justify-start space-y-3 hide-scrollbar relative z-10"
     >
       <!-- Viral Lazy Memory: Zalo-style pagination -->
       {#if supportAgent.hasMoreHistory}
@@ -676,6 +678,16 @@
 {/if}
 
 <style>
+  /* Header bottom fade — xuyên thấu khi nội dung chat cuộn sát mép */
+  .header-fade-edge {
+    height: 20px;
+    margin-top: -20px;
+    background: linear-gradient(to bottom, rgba(10, 10, 10, 0.95) 0%, transparent 100%);
+    pointer-events: none;
+    position: relative;
+    z-index: 15;
+  }
+
   .apple-glass-dark-mobile {
     background: rgba(10, 10, 10, 0.95);
     backdrop-filter: blur(8px);
