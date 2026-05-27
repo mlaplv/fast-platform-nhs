@@ -179,7 +179,7 @@
 
         chatContainer.scrollTo({
           top: relativeTop - 16,
-          behavior: "smooth",
+          behavior: "instant",
         });
       } else {
         chatContainer.scrollTo({

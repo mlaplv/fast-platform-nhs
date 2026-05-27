@@ -252,7 +252,7 @@
 
         chatContainer.scrollTo({
           top: relativeTop - 12,
-          behavior: "smooth",
+          behavior: "instant",
         });
       } else {
         chatContainer.scrollTo({
