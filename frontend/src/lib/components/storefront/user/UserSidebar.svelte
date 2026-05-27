@@ -9,6 +9,7 @@
   import LogOut from "@lucide/svelte/icons/log-out";
   import Ticket from "@lucide/svelte/icons/ticket";
   import Star from "@lucide/svelte/icons/star";
+  import Award from "@lucide/svelte/icons/award";
   import { goto } from '$app/navigation';
   import Avatar from './Avatar.svelte';
   import type { Component } from 'svelte';
@@ -41,6 +42,11 @@
       label: 'Đơn mua',
       icon: ShoppingBag,
       href: '/user/purchase'
+    },
+    {
+      label: 'Kênh CTV',
+      icon: Award,
+      href: '/user/ctv'
     },
     {
       label: 'Kho Voucher',

@@ -37,6 +37,7 @@ import VideoFullView from "../../widgets/VideoFullView.svelte";
 import VoucherManagement from "../management/VoucherManagement.svelte";
 import AdsFraudDashboard from "../AdsFraudDashboard.svelte";
 import SecuritySOC from "../management/SecuritySOC.svelte";
+import CtvManagement from "../management/CtvManagement.svelte";
 
   import type { Component } from "svelte";
   import type { WidgetType } from "$lib/state/types";
@@ -69,6 +70,7 @@ import SecuritySOC from "../management/SecuritySOC.svelte";
     VOUCHER_MANAGEMENT: VoucherManagement,
     ADS_PROTECTION: AdsFraudDashboard,
     SECURITY_SOC: SecuritySOC,
+    CTV_MANAGEMENT: CtvManagement,
   };
 
   const WIDGET_LABEL: Record<string, string> = {
@@ -96,6 +98,7 @@ import SecuritySOC from "../management/SecuritySOC.svelte";
     VOUCHER_MANAGEMENT: "QUẢN LÝ VOUCHER & KHUYẾN MÃI",
     ADS_PROTECTION: "ADS FRAUD PROTECTION & CLICK SHIELD",
     SECURITY_SOC: "SECURITY OPERATIONS CENTER (SOC)",
+    CTV_MANAGEMENT: "QUẢN LÝ HỆ THỐNG LIÊN KẾT (CTV)",
   };
 
   let open = $derived(nanobot.universalModalOpen);
@@ -238,7 +241,7 @@ import SecuritySOC from "../management/SecuritySOC.svelte";
       {/if}
 
       <!-- Widget Content (scrollable container managed by widget internally for CONTENT_REVIEW) -->
-      <div class="flex-1 {['CONTENT_REVIEW', 'ADS_PROTECTION', 'SECURITY_SOC', 'APPOINTMENTS', 'SUPPORT_INBOX', 'BRAIN_MANAGEMENT', 'ORDER_MANAGEMENT', 'PRODUCT_MANAGEMENT', 'VOUCHER_MANAGEMENT', 'NEWS_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT'].includes(nanobot.activeWidget) ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
+      <div class="flex-1 {['CONTENT_REVIEW', 'ADS_PROTECTION', 'SECURITY_SOC', 'CTV_MANAGEMENT', 'APPOINTMENTS', 'SUPPORT_INBOX', 'BRAIN_MANAGEMENT', 'ORDER_MANAGEMENT', 'PRODUCT_MANAGEMENT', 'VOUCHER_MANAGEMENT', 'NEWS_MANAGEMENT', 'CATEGORY_MANAGEMENT', 'USER_MANAGEMENT'].includes(nanobot.activeWidget) ? 'overflow-hidden p-0' : 'overflow-y-auto overflow-x-hidden p-4'}">
         <ActiveWidget data={WidgetData} isWidget={true} />
       </div>
 

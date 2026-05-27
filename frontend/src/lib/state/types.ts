@@ -52,6 +52,7 @@ export type WidgetType =
   | "BRAIN_MANAGEMENT"
   | "ADS_PROTECTION"
   | "SECURITY_SOC"
+  | "CTV_MANAGEMENT"
   | "VOUCHER_MANAGEMENT";
 
 export type NanoBotState =

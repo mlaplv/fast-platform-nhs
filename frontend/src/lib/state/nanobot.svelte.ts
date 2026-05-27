@@ -70,6 +70,7 @@ export function createNanobotState() {
       { label: "Viết Bài viết", command: "tạo Bài viết" },
       { label: "Đào tạo Helen", command: "mở tri thức helen" },
       { label: "Quản lý Voucher", command: "mở voucher" },
+      { label: "Quản lý CTV", command: "manage ctv" },
     ] as Suggestion[],
     mobileScrollPosition: 0,
     isExpanded: false,

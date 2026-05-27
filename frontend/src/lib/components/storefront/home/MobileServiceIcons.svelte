@@ -2,6 +2,11 @@
 <!-- Ultra-Lean Quick service icons with enhanced Viral FOMO -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { goto } from '$app/navigation';
+
+  const ui = getClientUi();
 
   interface Service {
     icon: string;
@@ -12,6 +17,13 @@
   }
 
   const services: Service[] = [
+    { 
+      icon: '🔥', 
+      label: 'Kiếm tiền', 
+      href: '/user/ctv',
+      badge: '25%',
+      badgeColor: '#c5a059'
+    },
     { 
       icon: '💰', 
       label: 'Tích điểm', 
@@ -69,7 +81,18 @@
   >
     <div class="service-grid">
       {#each services as svc}
-        <a href={svc.href} class="service-item">
+        <a 
+          href={svc.href} 
+          onclick={(e) => {
+            if (svc.href === '/user/ctv' && !authStore.isAuthenticated) {
+              e.preventDefault();
+              ui.openLogin(() => {
+                goto('/user/ctv');
+              }, '/user/ctv');
+            }
+          }}
+          class="service-item"
+        >
           <div class="service-icon-container">
             <div class="service-icon-bg">
               <span class="service-icon">{svc.icon}</span>

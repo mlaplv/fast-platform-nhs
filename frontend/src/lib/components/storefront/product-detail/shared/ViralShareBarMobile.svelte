@@ -11,9 +11,15 @@
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
+  import { fade, scale } from 'svelte/transition';
   import { SHOP_CONFIG } from '$lib/constants/shop';
 
   import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
+  import { authStore } from '$lib/state/authStore.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { apiClient } from '$lib/utils/apiClient';
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
 
   interface Props {
     product: Product;
@@ -86,6 +92,64 @@
   const baseLikeCount = $derived(Number(viralSuite?.likes_count || product.metadata?.likes || likeCount || 0));
   const localLikeCount = $derived(baseLikeCount + (isLiked ? 1 : 0));
 
+  let isCtv = $state(false);
+  let ctvCode = $state('');
+  let showCtvPopover = $state(false);
+
+  onMount(async () => {
+    if (browser && authStore.isAuthenticated) {
+      try {
+        const ctvProfile = await apiClient.get<{ ctv_code?: string; encrypted_code?: string }>('/client/ctv/profile');
+        if (ctvProfile) {
+          isCtv = true;
+          ctvCode = ctvProfile.encrypted_code || ctvProfile.ctv_code || '';
+        }
+      } catch (e) {
+        // Not ctv, silent
+      }
+    }
+  });
+
+  function createGoldConfetti(x: number, y: number) {
+    if (typeof document === 'undefined') return;
+    const burst = document.createElement('div');
+    burst.className = 'vsb-gold-burst';
+    burst.style.left = `${x}px`;
+    burst.style.top = `${y}px`;
+    document.body.appendChild(burst);
+
+    for (let i = 0; i < 8; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'vsb-gold-particle';
+      particle.innerHTML = '✨';
+      particle.style.setProperty('--i', i.toString());
+      particle.style.setProperty('--delay', `${Math.random() * 0.1}s`);
+      burst.appendChild(particle);
+    }
+
+    setTimeout(() => burst.remove(), 1000);
+  }
+
+  async function copyCtvLink(e: MouseEvent) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (typeof window !== 'undefined' && ctvCode) {
+      const ctvLink = `${window.location.origin}${window.location.pathname}?ctv=${ctvCode}`;
+      try {
+        await navigator.clipboard.writeText(ctvLink);
+        getClientUi().showToast('Đã copy link tiếp thị CTV độc quyền của sản phẩm này!', 'success');
+        if (e) {
+          createGoldConfetti(e.clientX, e.clientY);
+        }
+        onShareComplete?.();
+      } catch (err) {
+        console.error('Failed to copy CTV link:', err);
+      }
+    }
+  }
+
   let scrollY = $state(0);
   
   const isCollapsed = $derived(scrolled || scrollRatio > 0.5 || (scrollY >= 100 && scrollY < 400));
@@ -141,6 +205,22 @@
           <button onclick={() => share('zalo')} class="text-white/80 hover:text-white transition-all active:scale-90 font-bold text-[12px]" aria-label="Zalo">Zalo</button>
           <button onclick={() => share('x')} class="text-white/80 hover:text-white transition-all active:scale-90" aria-label="X"><Twitter size={18} class="fill-current" /></button>
           <button onclick={() => share('instagram')} class="text-white/80 hover:text-white transition-all active:scale-90" aria-label="IG"><Instagram size={18} /></button>
+          
+          {#if isCtv}
+            <button 
+              onclick={(e) => {
+                e.preventDefault();
+                showCtvPopover = true;
+              }} 
+              class="px-2 py-1 bg-gradient-to-r from-amber-500 to-luxury-copper text-stone-950 hover:from-amber-600 hover:to-amber-500 rounded-lg transition-all active:scale-95 font-black text-[9px] tracking-wider uppercase shrink-0 flex items-center gap-1 shadow-sm shadow-luxury-copper/20 relative overflow-hidden group" 
+              aria-label="Copy CTV"
+            >
+              <!-- Shimmer light sweep -->
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer-fast"></div>
+              <Zap size={10} class="fill-stone-950 text-stone-950 animate-pulse" /> Kênh CTV
+            </button>
+          {/if}
+
           <button onclick={copyLink} class="text-white/80 hover:text-white transition-all active:scale-90" aria-label="Copy"><Copy size={18} /></button>
         </div>
       </div>
@@ -226,9 +306,79 @@
         <button class="active:scale-90 transition-transform" onclick={() => share('zalo')}>
           <div class="w-9 h-9 rounded-full bg-[#0068ff] flex items-center justify-center shadow-lg"><span class="text-[9px] font-black italic text-white tracking-tighter">Zalo</span></div>
         </button>
+        
+        {#if isCtv}
+          <button 
+            class="active:scale-95 transition-transform relative group" 
+            onclick={(e) => {
+              e.preventDefault();
+              showCtvPopover = true;
+            }} 
+            title="Kênh Tiếp Thị CTV"
+          >
+            <div class="w-9 h-9 rounded-full bg-gradient-to-r from-amber-500 to-luxury-copper flex items-center justify-center shadow-lg shadow-luxury-copper/30 border border-amber-400/40 relative overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer-fast"></div>
+              <Zap size={14} class="text-stone-950 fill-stone-950 animate-pulse" />
+            </div>
+          </button>
+        {/if}
+
         <button class="active:scale-90 transition-transform" onclick={copyLink}>
           <div class="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg"><Copy size={14} class="text-white" /></div>
         </button>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Premium Centered Popover Modal for Mobile QR Code Sharing -->
+  {#if showCtvPopover}
+    <!-- Blurred overlay backdrop -->
+    <div 
+      onclick={() => showCtvPopover = false}
+      class="fixed inset-0 bg-black/70 backdrop-blur-md z-[9999] flex items-center justify-center p-4 transition-all"
+      transition:fade
+    >
+      <!-- Premium Glass Modal Box -->
+      <div 
+        onclick={(e) => e.stopPropagation()}
+        class="w-full max-w-xs bg-stone-950 border border-stone-850 rounded-2xl p-5 shadow-2xl flex flex-col items-center text-center gap-4 relative overflow-hidden"
+        transition:scale={{ duration: 250, start: 0.95 }}
+      >
+        <!-- Liquid color glow spheres in background -->
+        <div class="absolute -top-16 -left-16 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-16 -right-16 w-32 h-32 bg-luxury-copper/10 rounded-full blur-3xl"></div>
+
+        <div class="flex flex-col items-center">
+          <span class="text-[10px] tracking-[3px] font-black text-luxury-copper uppercase">KÊNH TIẾP THỊ CTV</span>
+          <span class="text-[9px] text-stone-400 mt-1.5 px-2 leading-relaxed">Chia sẻ liên kết hoặc quét mã để tích lũy hoa hồng!</span>
+        </div>
+
+        <!-- QR Code Container with amber tones -->
+        <div class="p-2 bg-white rounded-xl border border-amber-500/25 shadow-xl relative">
+          <img 
+            src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=78350f&data={encodeURIComponent(window.location.origin + window.location.pathname + '?ctv=' + ctvCode)}" 
+            alt="CTV QR Code"
+            class="w-36 h-36 object-contain rounded-lg"
+          />
+        </div>
+
+        <div class="flex flex-col gap-2 w-full mt-1">
+          <button 
+            onclick={(e) => {
+              copyCtvLink(e);
+              showCtvPopover = false;
+            }}
+            class="w-full py-2.5 bg-gradient-to-r from-amber-500 to-luxury-copper text-stone-950 rounded-xl font-black text-[10px] tracking-[2px] uppercase shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5"
+          >
+            <Copy size={12} class="fill-stone-950" /> SAO CHÉP LIÊN KẾT
+          </button>
+          <button 
+            onclick={() => showCtvPopover = false}
+            class="w-full py-2 bg-stone-900 hover:bg-stone-850 text-stone-400 border border-stone-800 rounded-xl text-[9px] font-bold tracking-[2px] uppercase transition-colors"
+          >
+            ĐÓNG
+          </button>
+        </div>
       </div>
     </div>
   {/if}
@@ -267,5 +417,14 @@
   }
   .animate-viral-flow {
     animation: viral-flow 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  /* Elite V2.2: Gold Glitter Confetti for CTV Success */
+  :global(.vsb-gold-burst) { position: fixed; pointer-events: none; z-index: 10000; transform: translate(-50%, -50%); }
+  :global(.vsb-gold-particle) { position: absolute; font-size: 16px; animation: gold-fly 1s cubic-bezier(0.12, 0, 0.39, 0) forwards; opacity: 0; animation-delay: var(--delay, 0s); }
+  @keyframes gold-fly {
+    0% { transform: translate(0,0) scale(0); opacity: 0; }
+    20% { opacity: 1; transform: translate(0,0) scale(1.2); }
+    100% { transform: translate(calc(cos(calc(var(--i) * 45deg)) * 80px), calc(sin(calc(var(--i) * 45deg)) * -60px - 20px)) scale(0.6); opacity: 0; }
   }
 </style>

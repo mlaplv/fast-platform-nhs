@@ -8,6 +8,7 @@
   // Core & Utils
   import { fly, fade } from 'svelte/transition';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { goto } from '$app/navigation';
   
   // State Management
   import { authStore } from '$lib/state/authStore.svelte';
@@ -44,6 +45,15 @@
     if (!showSupportModal) showSupportModal = true;
   }
 
+  function handleCtvClick(e: MouseEvent): void {
+    if (!authStore.isAuthenticated) {
+      e.preventDefault();
+      ui.openLogin(() => {
+        goto('/user/ctv');
+      }, '/user/ctv');
+    }
+  }
+
   function toggleAccountMenu(e: MouseEvent): void {
     e.stopPropagation();
     if (!authStore.isAuthenticated) {
@@ -73,6 +83,8 @@
     <!-- Top Navbar -->
     <div class="flex items-center justify-between h-[28px] text-[11px] text-gray-500 border-b border-gray-50 bg-gray-50/30 -mx-4 px-4 xl:-mx-0 xl:px-0">
       <div class="flex items-center space-x-3">
+        <a href="/user/ctv" onclick={handleCtvClick} class="hover:text-luxury-copper transition-colors font-bold text-luxury-copper">🔥 Tham gia bán hàng</a>
+        <span class="w-[1px] h-3 bg-gray-200"></span>
         <a href="/track" class="hover:text-luxury-copper transition-colors font-medium">Kiểm tra đơn</a>
         <span class="w-[1px] h-3 bg-gray-200"></span> 
         <a href="/bai-viet" class="hover:text-luxury-copper transition-colors">Hướng dẫn - kiến thức</a>
@@ -130,6 +142,7 @@
               >
                 <div class="absolute -top-1 right-[22px] w-3 h-3 bg-white rotate-45 z-[var(--z-popup-indicator)] border-t border-l border-black/5" style:z-index={Z_INDEX_CLIENT.POPUP_INDICATOR}></div>
                 <div class="flex flex-col text-left py-1 relative shadow-xl bg-white border border-gray-100">
+                  <a href="/user/ctv" onclick={handleCtvClick} class="px-4 py-2.5 text-[13px] text-luxury-copper hover:text-luxury-copper hover:bg-gray-50 transition-colors font-bold border-b border-gray-50/50">🔥 Kênh đại lý CTV</a>
                   <a href="/user/profile" class="px-4 py-2.5 text-[13px] text-gray-700 hover:text-luxury-copper hover:bg-gray-50 transition-colors font-medium">Hồ sơ của tôi</a>
                   <a href="/user/purchase" class="px-4 py-2.5 text-[13px] text-gray-700 hover:text-luxury-copper hover:bg-gray-50 transition-colors font-medium">Đơn mua</a>
                   <button 

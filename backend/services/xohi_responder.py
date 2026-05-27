@@ -90,6 +90,13 @@ class XoHiResponder:
 
         async with self.session_maker() as session:
             try:
+                # R102: Handle CTV commission rollback and penalty x2 shipping fee on order cancellation
+                try:
+                    from backend.services.ctv_service import CtvService
+                    await CtvService.cancel_commission(session, order_id)
+                except Exception as ex:
+                    logger.error(f"[CTV-PENALTY] Failed to process commission rollback for cancelled order {order_id}: {ex}")
+
                 await signal_center.dispatch(
                     user_id="user_admin",
                     signal=SignalSchema(

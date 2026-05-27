@@ -63,6 +63,9 @@ export const COMMAND_WIDGET_MAP: Record<string, WidgetType> = {
   "voucher": "VOUCHER_MANAGEMENT",
   "khuyến mãi": "VOUCHER_MANAGEMENT",
   "mã giảm giá": "VOUCHER_MANAGEMENT",
+  "manage ctv": "CTV_MANAGEMENT",
+  "mở ctv": "CTV_MANAGEMENT",
+  "quản lý ctv": "CTV_MANAGEMENT",
 };
 
 export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
@@ -90,6 +93,7 @@ export const ACTION_WIDGET_MAP: Record<string, WidgetType> = {
   show_support_inbox: "SUPPORT_INBOX",
   show_brain: "BRAIN_MANAGEMENT",
   show_voucher_management: "VOUCHER_MANAGEMENT",
+  show_ctv_management: "CTV_MANAGEMENT",
 };
 
 export const WIDGET_VI_LABEL: Record<string, string> = {
@@ -112,4 +116,5 @@ export const WIDGET_VI_LABEL: Record<string, string> = {
   SUPPORT_INBOX: "Hộp thư Helen AI",
   BRAIN_MANAGEMENT: "HELEN BRAIN — QUẢN TRỊ TRI THỨC",
   VOUCHER_MANAGEMENT: "Quản lý Voucher & Khuyến mãi",
+  CTV_MANAGEMENT: "Quản lý Hệ thống Liên kết (CTV)",
 };

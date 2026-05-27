@@ -71,7 +71,9 @@ class CheckoutService:
         payload: StealthCheckoutSchema,
         customer_ip: str,
         user_agent: str,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        ctv_code: Optional[str] = None,
+        attribution_source: Optional[str] = None,
     ) -> CheckoutResult:
 
         is_spam, reason, score, device_hash = await anti_spam_service.check_order_spam(
@@ -453,6 +455,22 @@ class CheckoutService:
             else:
                 logger.debug(f"[IdentityShield] Skipping PII restore: user_id mismatch (order.user={prev_order.user_id}, current={user.id if user else 'None'})")
 
+        # CTV Attribution: Validate code and resolve affiliate_id
+        resolved_ctv_code: Optional[str] = None
+        resolved_ctv_affiliate_id: Optional[str] = None
+        if ctv_code:
+            from backend.services.ctv_service import ctv_service
+            affiliate = await ctv_service.validate_ctv_code(db_session, ctv_code)
+            if affiliate:
+                # Anti self-referral guard
+                if user and affiliate.user_id == user.id:
+                    logger.warning(f"[CTV-FRAUD] Self-referral blocked at checkout: {ctv_code}")
+                else:
+                    resolved_ctv_code = affiliate.ctv_code
+                    resolved_ctv_affiliate_id = affiliate.id
+            else:
+                logger.warning(f"[CTV] Invalid/inactive code at checkout: {ctv_code}")
+
         # 5. Save Order
         new_order = Order(
             id=str(uuid.uuid4()),
@@ -471,7 +489,10 @@ class CheckoutService:
             spam_reason=reason,
             order_metadata=order_metadata,
             points_redeemed=payload.points_redeemed,
-            point_discount_amount=point_discount
+            point_discount_amount=point_discount,
+            ctv_code=resolved_ctv_code,
+            ctv_affiliate_id=resolved_ctv_affiliate_id,
+            attribution_source=attribution_source if resolved_ctv_code else None,
         )
 
         db_session.add(new_order)

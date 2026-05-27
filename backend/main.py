@@ -98,6 +98,8 @@ from backend.controllers.client.barcode import BarcodeController
 from backend.controllers.compliance import ComplianceController
 from backend.controllers.ads_protection import AdsProtectionController
 from backend.controllers.security import SecurityController
+from backend.controllers.client.ctv import ClientCtvController
+from backend.controllers.admin_ctv import AdminCtvController
 
 from backend.middleware import AuthMiddleware
 from backend.body_limit import BodyLimitMiddleware
@@ -170,6 +172,7 @@ admin_routes = [
     SecurityController,
     PublicSeoController,
     PublicGoogleMerchantController,
+    AdminCtvController,
 ]
 
 client_routes = [
@@ -187,6 +190,7 @@ client_routes = [
     PublicTTSController,
     ViralController,
     BarcodeController,
+    ClientCtvController,
 ]
 
 public_routes = [

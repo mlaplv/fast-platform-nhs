@@ -284,11 +284,41 @@
 
 # Task Checklist - Support Inbox Quote & Image Aesthetics (Elite V2.2)
 
-- [x] Thiết lập hàm phân giải `parseQuotedContent` và `parseMessageContent` trong `SupportChatView.svelte`. (Done)
+- [x] Thiết lập hàm phân giải `parseQuotedContent` and `parseMessageContent` trong `SupportChatView.svelte`. (Done)
 - [x] Thiết kế lại dải xem trước trích dẫn (Reply Composer Bar) tinh gọn, bo góc, căn giữa, nền Glassmorphic mờ và có hiển thị thumbnail ảnh 36x36px nếu có. (Done)
 - [x] Nâng cấp bong bóng chat lịch sử hiển thị khối trích dẫn lồng ghép chuyên nghiệp chuẩn Zalo. (Done)
 - [x] Tích hợp tính năng hiển thị ảnh trực quan trong bong bóng tin nhắn đối thoại thay vì hiện text link thô. (Done)
 - [x] Kiểm tra biên dịch tĩnh (Svelte 5 static build) để đảm bảo không lỗi type/warning. (Done)
+
+# Task Checklist - Fixing Admin Order Status (Elite V2.2)
+
+- [x] Phân tích mã nguồn và nhật ký lỗi 400 Bad Request khi chuyển trạng thái đơn hàng. (Done)
+- [x] Đồng bộ hóa các giá trị tùy chọn trong sơ đồ `ORDER_UPDATE_STATUS` (`mutationSchemas.ts`) về các giá trị chuẩn: `pending`, `packed`, `shipping`, `delivered`, `cancelled`. (Done)
+- [x] Cập nhật `mutationExecutor.ts` để tự động chuyển giá trị `status` thành chữ in hoa (`.toUpperCase()`) trước khi gửi lên API Backend để thỏa mãn biểu thức chính quy nghiêm ngặt của Pydantic (`^(PENDING|PACKED|SHIPPING|DELIVERED|CANCELLED)$`). (Done)
+- [x] Khắc phục lỗi BulkActionBar của Đơn hàng tự động nhận cấu hình Campaign bằng cách truyền đúng `statusMap={ORDER_STATUS_MAP}` và `placeholder="TRẠNG THÁI..."` trong `OrderManagement.svelte`. (Done)
+- [x] Thực hiện static production build frontend và restart dịch vụ để đảm bảo thay đổi có hiệu lực. (Done)
+- [x] Phân tích và phát hiện ràng buộc chuyển trạng thái (state machine) nghiêm ngặt tại backend gây ra lỗi khi chuyển trực tiếp `PENDING` -> `SHIPPING` hoặc `PENDING` -> `DELIVERED`. (Done)
+- [x] Nới lỏng `VALID_TRANSITIONS` trong `backend/services/commerce/order.py` để cho phép chuyển đổi trạng thái linh hoạt cho quản trị viên, loại bỏ hoàn toàn lỗi 400 không đáng có. (Done)
+- [x] Triển khai đồng bộ (rsync) mã nguồn backend & frontend đã xây dựng hoàn chỉnh lên Production VPS và khởi động lại an toàn dịch vụ `api` + `worker_high`. (Done)
+
+# Task Checklist - Fixing Admin Order Deletion & Purging (Elite V2.2)
+
+- [x] Phân tích lỗi 405 Method Not Allowed khi gọi API DELETE `/api/v1/orders/{order_id}` để thực hiện tính năng xóa/Purge. (Done)
+- [x] Bổ sung phương thức `@delete("/{order_id:str}")` hỗ trợ Soft-delete (`deleted_at`) trong `OrderController` tại `backend/controllers/order.py`. (Done)
+- [x] Đồng bộ tệp `controllers/order.py` lên VPS và khởi động lại dịch vụ `api` + `worker_high` thành công. (Done)
+
+# Task Checklist - Checkout Anti-Spam Whitelisting (Elite V2.2)
+
+- [x] Phân tích lỗi 400 Bad Request tại endpoint `/api/v1/client/checkout/stealth`, phát hiện hệ thống chống spam Professional Cluster Detect hoạt động nhạy bén chặn IP và SĐT test `0949901122`. (Done)
+- [x] Đưa số điện thoại của Sếp (`0949901122`) và các SĐT test phổ thông vào danh sách trắng `spam:whitelist:phones` trong cơ sở dữ liệu Redis của hệ thống. (Done)
+- [x] Xóa sạch lịch sử giới hạn tần suất (velocity/spam score) cho thiết bị và SĐT của Sếp trong Redis để đưa điểm số về 0. (Done)
+
+# Task Checklist - Whitelist Phone Numbers UI (Elite V2.2)
+
+- [x] Phát triển các API Whitelist số điện thoại gồm `GET`, `POST` (thêm SĐT + tự động xóa sạch bộ đếm/điểm spam cũ) và `DELETE` trong `SecurityController` tại `backend/controllers/security.py`. (Done)
+- [x] Tích hợp Giao diện Anti-Spam Whitelist ("Liquid Glass" theme) với input và danh sách SĐT kèm nút gỡ bỏ trực tiếp trong trang quản trị `security/+page.svelte`. (Done)
+- [x] Thực hiện biên dịch tĩnh SvelteKit trực tiếp trên VPS thành công thông qua `pnpm build`, đưa các thay đổi lên hoạt động tức thì. (Done)
+
 
 
 

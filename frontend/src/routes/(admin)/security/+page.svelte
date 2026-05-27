@@ -62,6 +62,9 @@
     let blacklist = $state<BlacklistIP[]>([]);
     let drafts = $state<SecurityDraft[]>([]);
     let containers = $state<ContainerInfo[]>([]);
+    let whitelistPhones = $state<string[]>([]);
+    let newPhone = $state('');
+    let phoneLoading = $state(false);
     let loading = $state(true);
     let analyzing = $state<string | null>(null); // ID of log being analyzed
     let analysisResult = $state<AIAnalysis | null>(null);
@@ -76,18 +79,20 @@
 
     async function refreshData() {
         try {
-            const [logsRes, statsRes, blRes, draftRes, containerRes] = await Promise.all([
+            const [logsRes, statsRes, blRes, draftRes, containerRes, phoneRes] = await Promise.all([
                 fetch(`/api/v1/security/audit-logs?limit=50&suspicious_only=${viewSuspiciousOnly}`),
                 fetch(`/api/v1/security/stats`),
                 fetch(`/api/v1/ads-protection/blacklist`),
                 fetch(`/api/v1/security/drafts`),
-                fetch(`/api/v1/security/containers`)
+                fetch(`/api/v1/security/containers`),
+                fetch(`/api/v1/security/whitelist/phones`)
             ]);
             logs = await logsRes.json();
             stats = await statsRes.json();
             blacklist = await blRes.json();
             drafts = await draftRes.json();
             containers = await containerRes.json();
+            whitelistPhones = await phoneRes.json();
         } catch (e) {
             console.error('Security Monitor Error:', e);
         } finally {
@@ -134,6 +139,46 @@
             await refreshData();
         } catch (e) {
             alert('Lỗi gỡ chặn IP');
+        }
+    }
+
+    async function addPhone() {
+        if (!newPhone.trim()) return;
+        phoneLoading = true;
+        try {
+            const res = await fetch(`/api/v1/security/whitelist/phones`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: newPhone.trim() })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                newPhone = '';
+                await refreshData();
+            } else {
+                alert('Lỗi: ' + data.detail);
+            }
+        } catch (e) {
+            alert('Lỗi thêm số điện thoại');
+        } finally {
+            phoneLoading = false;
+        }
+    }
+
+    async function removePhone(phone: string) {
+        if (!confirm(`Gỡ số điện thoại ${phone} khỏi danh sách trắng?`)) return;
+        try {
+            const res = await fetch(`/api/v1/security/whitelist/phones/${phone}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+            if (res.ok) {
+                await refreshData();
+            } else {
+                alert('Lỗi: ' + data.detail);
+            }
+        } catch (e) {
+            alert('Lỗi gỡ số điện thoại');
         }
     }
 
@@ -441,6 +486,58 @@
                         </div>
                     {:else}
                         <div class="text-center py-10 opacity-30 italic text-xs">Không có yêu cầu chờ duyệt.</div>
+                    {/each}
+                </div>
+            </div>
+
+            <!-- Whitelist Phone Numbers (Anti-Spam) -->
+            <div class="whitelist-box bg-[#0d0d0d] border border-blue-500/20 rounded-2xl p-6 space-y-5">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-black tracking-tighter text-blue-400 uppercase italic">Anti-Spam Whitelist</h3>
+                    <span class="text-[10px] font-mono text-gray-600">{whitelistPhones.length} SĐT</span>
+                </div>
+
+                <!-- Input form -->
+                <div class="flex gap-2">
+                    <input 
+                        type="text" 
+                        bind:value={newPhone} 
+                        placeholder="Nhập số điện thoại test..."
+                        class="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50 transition-colors"
+                        disabled={phoneLoading}
+                        onkeydown={(e) => e.key === 'Enter' && addPhone()}
+                    />
+                    <button 
+                        onclick={addPhone}
+                        disabled={phoneLoading}
+                        class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-md shadow-blue-600/10 cursor-pointer flex items-center justify-center min-w-[60px]"
+                    >
+                        {#if phoneLoading}
+                            <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        {:else}
+                            Thêm
+                        {/if}
+                    </button>
+                </div>
+
+                <!-- Whitelisted phones list -->
+                <div class="space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar">
+                    {#each whitelistPhones as phone}
+                        <div class="flex justify-between items-center p-3 rounded-xl bg-black/40 border border-white/5 group hover:border-blue-500/20 transition-all duration-300">
+                            <div class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></span>
+                                <span class="text-xs font-mono font-bold text-gray-300">{phone}</span>
+                            </div>
+                            <button 
+                                onclick={() => removePhone(phone)}
+                                class="text-gray-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                                title="Xóa khỏi Whitelist"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    {:else}
+                        <div class="text-center py-8 opacity-30 italic text-xs">Chưa có SĐT whitelist nào.</div>
                     {/each}
                 </div>
             </div>

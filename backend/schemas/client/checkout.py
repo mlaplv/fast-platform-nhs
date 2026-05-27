@@ -54,6 +54,11 @@ class StealthCheckoutSchema(BaseModel):
     payment_method: str = Field(default="cod", description="Phương thức thanh toán: cod, bank")
     points_redeemed: Optional[int] = Field(default=0, ge=0, description="Hệ thống Loyalty: Số điểm muốn trừ tiền")
     note: Optional[str] = Field(None, description="Ghi chú đơn hàng từ khách hàng")
+    # CTV Attribution — Viral 2026 (manual fallback nếu không có cookie)
+    ctv_code: Optional[str] = Field(
+        None, max_length=20, pattern=r"^[A-Za-z0-9]*$",
+        description="Mã người giới thiệu CTV (optional)"
+    )
 
     @field_validator("customer_phone", mode="before")
     @classmethod

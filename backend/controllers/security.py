@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 import logging
-from litestar import Controller, get, post, Request, Response
+from litestar import Controller, delete, get, post, Request, Response
 from litestar.exceptions import NotFoundException
 from backend.guards import PermissionGuard
 from backend.constants.permissions import PermissionEnum
@@ -375,3 +375,42 @@ class SecurityController(Controller):
         """
         reviewer_id = request.state.user.get("sub", "ADMIN")
         return await draft_service.reject_draft(db_session, draft_id, reviewer_id)
+
+    @get("/whitelist/phones")
+    async def get_whitelist_phones(self) -> List[str]:
+        """[ELITE V2.2] Lấy danh sách số điện thoại Whitelist từ Redis."""
+        from backend.services.xohi_memory import xohi_memory
+        if not xohi_memory.client:
+            return []
+        phones = await xohi_memory.client.smembers("spam:whitelist:phones")
+        return [p.decode("utf-8") if isinstance(p, bytes) else str(p) for p in phones]
+
+    @post("/whitelist/phones")
+    async def add_whitelist_phone(self, data: Dict) -> SuccessResponse:
+        """[ELITE V2.2] Thêm số điện thoại vào Whitelist trong Redis."""
+        phone = data.get("phone", "").strip()
+        if not phone:
+            raise NotFoundException(detail="Số điện thoại không hợp lệ.")
+        
+        from backend.services.xohi_memory import xohi_memory
+        if not xohi_memory.client:
+            return SuccessResponse(message="Lỗi kết nối Redis.", success=False)
+            
+        await xohi_memory.client.sadd("spam:whitelist:phones", phone)
+        # Clear any existing rate limiting history for this phone to reset score to 0
+        await xohi_memory.client.delete(
+            f"spam:last:phone:{phone}",
+            f"spam:sync:phone:{phone}",
+            f"spam:v2026:phone:{phone}"
+        )
+        return SuccessResponse(message=f"Đã thêm số {phone} vào danh sách trắng thành công.")
+
+    @delete("/whitelist/phones/{phone:str}", status_code=200)
+    async def remove_whitelist_phone(self, phone: str) -> SuccessResponse:
+        """[ELITE V2.2] Xóa số điện thoại khỏi Whitelist trong Redis."""
+        from backend.services.xohi_memory import xohi_memory
+        if not xohi_memory.client:
+            return SuccessResponse(message="Lỗi kết nối Redis.", success=False)
+            
+        await xohi_memory.client.srem("spam:whitelist:phones", phone)
+        return SuccessResponse(message=f"Đã xóa số {phone} khỏi danh sách trắng thành công.")

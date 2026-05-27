@@ -110,6 +110,7 @@
       children: [
         { label: "Người dùng", widget: "USER_MANAGEMENT" },
         { label: "Phân quyền", widget: "PERMISSION_MANAGEMENT" },
+        { label: "Hệ thống CTV", widget: "CTV_MANAGEMENT" },
       ]
     },
     {

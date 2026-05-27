@@ -151,7 +151,7 @@ async function updateStatus(
 ): Promise<{ status: string }> {
   if (target === "order") {
     return apiClient.patch<{ status: string }>(`/api/v1/orders/${entityId}/status`, {
-      status: data.status,
+      status: data.status.toUpperCase(),
     });
   }
   throw new Error(`Unsupported update_status target: ${target}`);

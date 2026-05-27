@@ -12,6 +12,7 @@
   import Settings from "@lucide/svelte/icons/settings";
   import Home from "@lucide/svelte/icons/home";
   import Megaphone from "@lucide/svelte/icons/megaphone";
+  import Award from "@lucide/svelte/icons/award";
   
   interface MenuItem {
     id: WidgetType;
@@ -28,6 +29,7 @@
     { id: "CAMPAIGNS", label: "Campaigns", icon: Megaphone, color: "#39ff14" },
     { id: "USER_MANAGEMENT", label: "Nhân viên", icon: Users, color: "#39FF14" },
     { id: "PERMISSION_MANAGEMENT", label: "Phân quyền", icon: Shield, color: "#39FF14" },
+    { id: "CTV_MANAGEMENT", label: "Hệ thống CTV", icon: Award, color: "#00FFFF" },
     { id: "VOICE_SETTINGS", label: "Cài đặt giọng nói", icon: Settings, color: "#gray-400" },
   ];
 

@@ -6,7 +6,7 @@ from backend.services.event_bus import event_bus
 from backend.services.anti_spam import AntiSpamService
 
 logger = logging.getLogger("api-gateway")
-from litestar import Controller, get, patch, post, Request
+from litestar import Controller, delete, get, patch, post, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.di import Provide
 from litestar.exceptions import NotFoundException
@@ -102,3 +102,18 @@ class OrderController(Controller):
         res = await order_service.update_planning(db_session, order_id, data, user_email)
         await db_session.commit()
         return res
+
+    @delete("/{order_id:str}", status_code=200, guards=[PermissionGuard(PermissionEnum.ORDER_WRITE)])
+    async def delete_order(self, db_session: "AsyncSession", order_id: str) -> SuccessResponse:
+        """DELETE an order (Soft-delete)."""
+        stmt = select(Order).where(Order.id == order_id)
+        res = await db_session.execute(stmt)
+        order = res.scalar_one_or_none()
+
+        if not order:
+            raise NotFoundException(f"Order {order_id} not found")
+
+        # Soft delete by setting deleted_at
+        order.deleted_at = datetime.now(timezone.utc)
+        await db_session.commit()
+        return SuccessResponse(success=True, message=f"Order {order_id} deleted successfully")

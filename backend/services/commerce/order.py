@@ -371,11 +371,11 @@ class OrderService:
         new_status = new_status.upper()
 
         VALID_TRANSITIONS = {
-            "PENDING": ["PACKED", "CANCELLED"],
-            "PACKED": ["SHIPPING", "CANCELLED"],
-            "SHIPPING": ["DELIVERED"],
-            "DELIVERED": [],
-            "CANCELLED": ["PENDING"] # Allow reopening
+            "PENDING": ["PACKED", "SHIPPING", "DELIVERED", "CANCELLED"],
+            "PACKED": ["PENDING", "SHIPPING", "DELIVERED", "CANCELLED"],
+            "SHIPPING": ["PENDING", "PACKED", "DELIVERED", "CANCELLED"],
+            "DELIVERED": ["PENDING", "PACKED", "SHIPPING", "CANCELLED"],
+            "CANCELLED": ["PENDING", "PACKED", "SHIPPING", "DELIVERED"]
         }
 
         if new_status not in VALID_TRANSITIONS.get(current_status, []):

@@ -385,6 +385,8 @@
     onDeleteBulk={() => handleBulkAction("PURGE")}
     onArchiveBulk={() => handleBulkAction("ARCHIVE")}
     onStatusBulk={handleBulkStatusUpdate}
+    statusMap={ORDER_STATUS_MAP}
+    placeholder="TRẠNG THÁI..."
   />
 </div>
 

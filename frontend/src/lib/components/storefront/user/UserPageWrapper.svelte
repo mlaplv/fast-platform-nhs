@@ -2,13 +2,18 @@
   import { onMount, type Snippet } from 'svelte';
   import { browser } from '$app/environment';
   import { goto } from '$app/navigation';
-  import { fade } from 'svelte/transition';
+  import { fade, scale } from 'svelte/transition';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { apiClient } from '$lib/utils/apiClient';
   import UserLayout from './UserLayout.svelte';
   import UserMenuMobile from './UserMenuMobile.svelte';
   import UserHeaderMobile from './UserHeaderMobile.svelte';
   import SeoHead from '../seo/SeoHead.svelte';
+  
+  import Award from '@lucide/svelte/icons/award';
+  import ShieldCheck from '@lucide/svelte/icons/shield-check';
+  import Sparkles from '@lucide/svelte/icons/sparkles';
 
   interface Props {
     title: string;
@@ -30,15 +35,41 @@
 
   const ui = getClientUi();
   let isMenuOpen = $state(false);
+  let showCtvPromo = $state(false);
+  let isCtvRegistered = $state(true); // default true
 
-  // Elite V2.2: Deterministic Layout Management
-  onMount(() => {
+  // Elite V2.2: Deterministic Layout Management + CTV Verification
+  onMount(async () => {
     if (ui.isMobile) {
       ui.isHeaderHidden = headerHiddenOnMobile;
     } else {
       ui.isHeaderHidden = false;
     }
     ui.isFooterHidden = false;
+
+    // Async CTV Promo check
+    if (browser && authStore.isAuthenticated && window.location.pathname !== '/user/ctv') {
+      try {
+        const ctvProfile = await apiClient.get<{ is_registered: boolean }>('/client/ctv/profile');
+        isCtvRegistered = ctvProfile?.is_registered ?? false;
+        if (!isCtvRegistered) {
+          const dismissed = sessionStorage.getItem('ctv_promo_dismissed');
+          if (!dismissed) {
+            setTimeout(() => {
+              showCtvPromo = true;
+            }, 800);
+          }
+        }
+      } catch (e: any) {
+        isCtvRegistered = false;
+        const dismissed = sessionStorage.getItem('ctv_promo_dismissed');
+        if (!dismissed) {
+          setTimeout(() => {
+            showCtvPromo = true;
+          }, 800);
+        }
+      }
+    }
 
     return () => {
       ui.isHeaderHidden = false;
@@ -53,6 +84,16 @@
       goto('/');
     }
   });
+
+  function dismissPromo(): void {
+    showCtvPromo = false;
+    sessionStorage.setItem('ctv_promo_dismissed', 'true');
+  }
+
+  function activatePromo(): void {
+    showCtvPromo = false;
+    goto('/user/ctv');
+  }
 
   const displayMobileTitle = $derived(mobileTitle || title);
 </script>
@@ -86,6 +127,85 @@
       in:fade={{ duration: 300 }}
     >
       {@render children()}
+    </div>
+  {/if}
+
+  {#if showCtvPromo}
+    <div class="fixed inset-0 bg-stone-950/60 backdrop-blur-md z-[999999] flex items-center justify-center p-4" transition:fade={{ duration: 250 }}>
+      <div class="bg-gradient-to-tr from-stone-900 to-neutral-950 text-white rounded-2xl w-full max-w-md border border-stone-850 p-6 md:p-8 relative overflow-hidden shadow-2xl" transition:scale={{ start: 0.95, duration: 300 }}>
+        <!-- Glow highlights -->
+        <div class="absolute -right-20 -top-20 w-48 h-48 bg-luxury-copper/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-20 -bottom-20 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div class="relative z-10 space-y-6">
+          <!-- Premium Header Badge -->
+          <div class="flex items-center gap-2.5">
+            <div class="w-10 h-10 bg-luxury-copper/15 rounded-xl flex items-center justify-center border border-luxury-copper/30">
+              <Award class="w-5 h-5 text-luxury-copper" />
+            </div>
+            <div>
+              <span class="text-[9px] tracking-[4px] text-luxury-copper font-black block uppercase">Đặc quyền Thành viên</span>
+              <h3 class="text-lg font-serif italic text-stone-100 font-light">Kích hoạt Kênh Đại lý số & CTV</h3>
+            </div>
+          </div>
+
+          <!-- Highlight Promo Card -->
+          <div class="bg-stone-950/80 border border-stone-850 rounded-xl p-4 space-y-3.5 shadow-inner">
+            <div class="flex items-center justify-between">
+              <span class="px-2 py-0.5 bg-amber-500/15 border border-amber-500/30 text-amber-500 text-[8px] tracking-[2px] font-black uppercase rounded-full">
+                🔥 Hot Deal Commission
+              </span>
+              <span class="flex items-center gap-1 text-[8px] text-stone-500 font-mono tracking-widest">
+                <ShieldCheck class="w-3.5 h-3.5 text-emerald-500" /> AES-GCM SECURED
+              </span>
+            </div>
+            
+            <p class="text-[11px] text-stone-300 leading-relaxed font-light">
+              Nhận ngay chiết khấu chi trả độc quyền từ <strong class="text-luxury-copper">15% đến 25%</strong> trên mỗi đơn hàng được giới thiệu thành công. Không cần ôm hàng, không lo vận chuyển!
+            </p>
+
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-stone-850 text-center">
+              <div class="p-2 bg-stone-900/60 rounded border border-stone-850">
+                <span class="block text-[8px] text-stone-500 font-bold uppercase tracking-wider">HOA HỒNG LÊN TỚI</span>
+                <span class="block text-base font-bold text-luxury-copper mt-0.5 font-mono">25%</span>
+              </div>
+              <div class="p-2 bg-stone-900/60 rounded border border-stone-850">
+                <span class="block text-[8px] text-stone-500 font-bold uppercase tracking-wider">MÃ CTV ĐỘC QUYỀN</span>
+                <span class="block text-xs font-bold text-white mt-1.5 uppercase font-mono tracking-wider">THEO TÊN BẠN</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bullet Points -->
+          <ul class="space-y-2 text-[11px] text-stone-400 font-light leading-relaxed">
+            <li class="flex items-center gap-2">
+              <Sparkles class="w-3.5 h-3.5 text-luxury-copper shrink-0" />
+              <span>Đối soát minh bạch, rút tiền nhanh chóng hàng tuần.</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <Sparkles class="w-3.5 h-3.5 text-luxury-copper shrink-0" />
+              <span>Depth limit d = 1, tối ưu biên lợi nhuận cao nhất cho bạn.</span>
+            </li>
+          </ul>
+
+          <!-- Actions -->
+          <div class="flex flex-col gap-2.5 pt-2">
+            <button 
+              onclick={activatePromo}
+              class="w-full py-3.5 bg-luxury-copper hover:bg-amber-600 text-stone-950 font-black text-[10px] tracking-[4px] uppercase rounded-xl transition-all shadow-lg shadow-luxury-copper/15 active:scale-[0.98]"
+            >
+              KÍCH HOẠT MIỄN PHÍ NGAY
+            </button>
+            
+            <button 
+              onclick={dismissPromo}
+              class="w-full py-2 text-stone-500 hover:text-stone-300 font-bold text-[9px] tracking-[2px] uppercase transition-colors"
+            >
+              ĐỂ SAU
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   {/if}
 {/if}

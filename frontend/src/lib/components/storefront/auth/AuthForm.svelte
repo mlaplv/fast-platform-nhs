@@ -105,6 +105,11 @@
       });
 
       onClose?.();
+      
+      if (ui.authModal.onSuccess) {
+        ui.authModal.onSuccess();
+        ui.authModal.onSuccess = undefined;
+      }
     } catch (e) {
       error = (e as Error).message || 'Tên đăng nhập hoặc mật khẩu không đúng';
     } finally {
@@ -175,6 +180,11 @@
         });
 
         onClose?.();
+
+        if (ui.authModal.onSuccess) {
+          ui.authModal.onSuccess();
+          ui.authModal.onSuccess = undefined;
+        }
       } else {
         error = data.detail || 'Mã OTP không chính xác';
       }
@@ -203,7 +213,8 @@
   function handleSocialLogin(provider: 'google' | 'facebook' | 'zalo') {
     isLoading = true;
     error = null;
-    sessionStorage.setItem('returnTo', window.location.pathname + window.location.search);
+    const targetUrl = ui.authModal.redirectUrl || (window.location.pathname + window.location.search);
+    sessionStorage.setItem('returnTo', targetUrl);
     sessionStorage.setItem('returnScroll', window.scrollY.toString());
     window.location.href = `/api/v1/auth/oauth/login/${provider}`;
   }

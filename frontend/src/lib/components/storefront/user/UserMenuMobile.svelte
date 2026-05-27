@@ -14,6 +14,7 @@
   import Bell from "@lucide/svelte/icons/bell";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Ticket from "@lucide/svelte/icons/ticket";
+  import Award from "@lucide/svelte/icons/award";
   import X from "@lucide/svelte/icons/x";
 
   interface Props {
@@ -25,6 +26,7 @@
   const links = [
     { label: 'Hồ sơ', href: '/user/profile', icon: UserIcon },
     { label: 'Đơn mua', href: '/user/purchase', icon: Package },
+    { label: 'Kênh CTV', href: '/user/ctv', icon: Award },
     { label: 'Kho Voucher', href: '/user/vouchers', icon: Ticket },
     { label: 'Tích điểm', href: '/user/loyalty', icon: Sparkles },
     { label: 'Địa chỉ', href: '/user/address', icon: MapPin },

@@ -36,6 +36,11 @@ class Order(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     spam_score: Mapped[float] = mapped_column(Float, default=0.0)
     device_hash: Mapped[Optional[str]] = mapped_column(String)
     spam_reason: Mapped[Optional[str]] = mapped_column(String)
+
+    # CTV / Affiliate Attribution (Viral 2026)
+    ctv_code: Mapped[Optional[str]] = mapped_column(String(20), nullable=True, index=True)
+    ctv_affiliate_id: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
+    attribution_source: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)  # cookie|manual|link
     
     __table_args__ = (
         Index("ix_orders_tenant_deleted", "tenant_id", "deleted_at"),

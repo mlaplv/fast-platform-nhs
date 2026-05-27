@@ -72,6 +72,9 @@
     active_keys: 0
   });
   let containers = $state<ContainerInfo[]>([]);
+  let whitelistPhones = $state<string[]>([]);
+  let newPhone = $state('');
+  let phoneLoading = $state(false);
   
   let isLoading = $state<boolean>(true);
   let isActionLoading = $state<string | null>(null);
@@ -111,11 +114,12 @@
     isLoading = true;
     try {
       const t: number = Date.now();
-      const [draftsRes, logsRes, statusRes, containersRes] = await Promise.all([
+      const [draftsRes, logsRes, statusRes, containersRes, phoneRes] = await Promise.all([
         apiClient.get<SecurityDraft[]>(`/api/v1/security/drafts?t=${t}`),
         apiClient.get<AuditLog[]>(`/api/v1/security/audit-logs?limit=100&t=${t}`),
         apiClient.get<SecurityStats>(`/api/v1/security/status?t=${t}`),
-        apiClient.get<ContainerInfo[]>(`/api/v1/security/containers?t=${t}`)
+        apiClient.get<ContainerInfo[]>(`/api/v1/security/containers?t=${t}`),
+        apiClient.get<string[]>(`/api/v1/security/whitelist/phones?t=${t}`)
       ]);
 
       // Robust extraction based on Elite apiClient V45 standards
@@ -126,6 +130,7 @@
         stats = { ...stats, ...rawStats };
       }
       containers = (containersRes as any).data || containersRes || [];
+      whitelistPhones = (phoneRes as any).data || phoneRes || [];
 
       // [DEBUG LOG CONSOLE] Verification of live container resource data
       console.log("[SOC] Polled Containers Live Data:", containers);
@@ -133,6 +138,44 @@
       console.error("[SOC] Load Critical Failure", e);
     } finally {
       isLoading = false;
+    }
+  }
+
+  async function addPhone(): Promise<void> {
+    if (!newPhone.trim()) return;
+    phoneLoading = true;
+    try {
+      const res: any = await apiClient.post(`/api/v1/security/whitelist/phones`, {
+        phone: newPhone.trim()
+      });
+      const data = res.data || res;
+      if (data.success) {
+        newPhone = '';
+        nanobot.ui.showToast(data.message, "success");
+        await loadSOCData();
+      } else {
+        nanobot.ui.showToast(data.message || "Lỗi thêm số", "error");
+      }
+    } catch (e) {
+      nanobot.ui.showToast("Lỗi thêm số điện thoại", "error");
+    } finally {
+      phoneLoading = false;
+    }
+  }
+
+  async function removePhone(phone: string): Promise<void> {
+    if (!confirm(`Gỡ số điện thoại ${phone} khỏi danh sách trắng?`)) return;
+    try {
+      const res: any = await apiClient.delete(`/api/v1/security/whitelist/phones/${phone}`);
+      const data = res.data || res;
+      if (data.success) {
+        nanobot.ui.showToast(data.message, "success");
+        await loadSOCData();
+      } else {
+        nanobot.ui.showToast(data.message || "Lỗi gỡ số", "error");
+      }
+    } catch (e) {
+      nanobot.ui.showToast("Lỗi gỡ số điện thoại", "error");
     }
   }
 
@@ -595,6 +638,58 @@
              </div>
           </div>
         {/each}
+      </div>
+
+      <!-- Whitelist Phone Numbers (Anti-Spam) -->
+      <div class="p-4 border-t border-white/5 space-y-4 bg-black/20">
+        <div class="flex justify-between items-center">
+          <span class="text-[10px] font-black tracking-widest text-cyan-400 uppercase italic">Anti-Spam Whitelist</span>
+          <span class="text-[9px] font-mono text-gray-500">{whitelistPhones.length} SĐT</span>
+        </div>
+
+        <!-- Input form -->
+        <div class="flex gap-2">
+          <input 
+            type="text" 
+            bind:value={newPhone} 
+            placeholder="Nhập số điện thoại test..."
+            class="flex-1 bg-black/50 border border-white/10 rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+            disabled={phoneLoading}
+            onkeydown={(e) => e.key === 'Enter' && addPhone()}
+          />
+          <button 
+            onclick={addPhone}
+            disabled={phoneLoading}
+            class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[9px] font-black tracking-widest transition-all cursor-pointer flex items-center justify-center min-w-[50px]"
+          >
+            {#if phoneLoading}
+              <div class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            {:else}
+              Thêm
+            {/if}
+          </button>
+        </div>
+
+        <!-- Whitelisted phones list -->
+        <div class="space-y-1.5 max-h-[250px] overflow-y-auto scrollbar-mission">
+          {#each whitelistPhones as phone}
+            <div class="flex justify-between items-center p-2 rounded bg-black/40 border border-white/5 group hover:border-cyan-500/20 transition-all duration-300">
+              <div class="flex items-center gap-1.5">
+                <span class="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]"></span>
+                <span class="text-[10px] font-mono font-bold text-gray-300">{phone}</span>
+              </div>
+              <button 
+                onclick={() => removePhone(phone)}
+                class="text-gray-600 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                title="Xóa khỏi Whitelist"
+              >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+              </button>
+            </div>
+          {:else}
+            <div class="text-center py-6 opacity-30 italic text-[9px]">Chưa có SĐT whitelist nào.</div>
+          {/each}
+        </div>
       </div>
     </aside>
   </main>

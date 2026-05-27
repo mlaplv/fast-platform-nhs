@@ -18,7 +18,8 @@ export function createClientUiState(): ClientUiState {
         authModal: {
             isOpen: false,
             mode: 'login' as 'login' | 'register' | 'profile',
-            onSuccess: undefined as (() => void) | undefined
+            onSuccess: undefined as (() => void) | undefined,
+            redirectUrl: undefined as string | undefined
         },
         confirmModal: null as {
             title: string;
@@ -77,15 +78,17 @@ export function createClientUiState(): ClientUiState {
         get isDesktop() { return isDesktop; },
         get isPortrait() { return isPortrait; },
 
-        openLogin(onSuccess?: () => void) {
+        openLogin(onSuccess?: () => void, redirectUrl?: string) {
             globalState.authModal.mode = 'login';
             globalState.authModal.onSuccess = onSuccess;
+            globalState.authModal.redirectUrl = redirectUrl;
             globalState.authModal.isOpen = true;
         },
 
-        openRegister(onSuccess?: () => void) {
+        openRegister(onSuccess?: () => void, redirectUrl?: string) {
             globalState.authModal.mode = 'register';
             globalState.authModal.onSuccess = onSuccess;
+            globalState.authModal.redirectUrl = redirectUrl;
             globalState.authModal.isOpen = true;
         },
 

@@ -137,6 +137,30 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
+  // CTV Attribution — Viral 2026
+  // Capture ?ctv=CODE from URL params → set HTTPOnly __ctv cookie (7 days)
+  // Cookie is set even before the page is rendered (SSR-first attribution)
+  const ctvParam = event.url.searchParams.get("ctv");
+  if (ctvParam) {
+    let ctvValue = ctvParam.trim();
+    if (ctvValue.length <= 20 && /^[a-zA-Z0-9]+$/.test(ctvValue)) {
+      ctvValue = ctvValue.toUpperCase();
+    } else {
+      // Cryptographically secure token — preserve urlsafe base64 characters: [A-Za-z0-9_\-]
+      ctvValue = ctvValue.replace(/[^A-Za-z0-9_\-]/g, "");
+    }
+    
+    if (ctvValue.length >= 4) {
+      event.cookies.set("__ctv", ctvValue, {
+        path: "/",
+        httpOnly: true,
+        secure: !ServerEnv.isDev,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+    }
+  }
+
   // Process the request
   const response = await resolve(event);
 
