@@ -363,7 +363,7 @@
     <!-- Chat Thread: Zero-Background Floating Text -->
     <div
       bind:this={chatContainer}
-      class="flex-1 overflow-y-auto px-4 py-6 flex flex-col justify-start space-y-10 hide-scrollbar relative z-10"
+      class="flex-1 overflow-y-auto px-[3px] py-6 flex flex-col justify-start space-y-10 hide-scrollbar relative z-10"
     >
       <!-- Viral Lazy Memory: Zalo-style pagination -->
       {#if supportAgent.hasMoreHistory}
@@ -428,42 +428,13 @@
           </div>
 
           <div
-            class="flex items-start gap-4 w-full {msg.role === 'user'
+            class="flex items-start w-full {msg.role === 'user'
               ? 'flex-row-reverse'
               : 'flex-row'}"
           >
-            <!-- Identity Icon -->
-            <div class="flex-shrink-0 mt-1">
-              {#if msg.role === "assistant"}
-                <div
-                  class="w-8 h-8 rounded-full bg-black/40 flex items-center justify-center border border-white/10 shadow-lg overflow-hidden"
-                >
-                  <HelenIcon
-                    size={28}
-                    color="#FFB7C5"
-                    isPaused={isInputFocused}
-                  />
-                </div>
-              {:else}
-                <div
-                  class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/5 shadow-md overflow-hidden"
-                >
-                  {#if authStore.user?.avatar_url}
-                    <img
-                      src={authStore.user.avatar_url}
-                      alt="User"
-                      class="w-full h-full object-cover"
-                    />
-                  {:else}
-                    <UserRound size={16} class="text-white/60" />
-                  {/if}
-                </div>
-              {/if}
-            </div>
-
             <!-- Message Content -->
             <div
-              class="flex-1 max-w-[85%] {msg.role === 'user'
+              class="flex-1 w-full {msg.role === 'user'
                 ? 'text-right'
                 : 'text-left'}"
             >
@@ -568,26 +539,26 @@
             <button
               onclick={requestInboxChat}
               disabled={supportAgent.isTyping}
-              class="group relative flex items-center gap-4 w-full px-5 py-4 rounded-2xl overflow-hidden text-left transition-all duration-200 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none"
+              class="group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl overflow-hidden text-left transition-all duration-200 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none"
               style="background: linear-gradient(135deg, rgba(255,183,197,0.08) 0%, rgba(255,183,197,0.03) 100%); border: 1px solid rgba(255,183,197,0.15);"
             >
               <!-- Glow on press -->
               <div class="absolute inset-0 opacity-0 group-active:opacity-100 transition-opacity"
                 style="background: radial-gradient(circle at 30% 50%, rgba(255,183,197,0.15) 0%, transparent 70%);"></div>
               <!-- Icon -->
-              <div class="relative w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              <div class="relative w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style="background: rgba(255,183,197,0.12); border: 1px solid rgba(255,183,197,0.2);">
-                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#FFB7C5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#FFB7C5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
               </div>
               <!-- Text -->
               <div class="relative flex flex-col min-w-0">
-                <span class="text-[14px] font-black text-white tracking-tight leading-snug">Chat với nhân viên ngay tại đây</span>
-                <span class="text-[11px] font-medium mt-0.5" style="color: rgba(255,183,197,0.55);">Chuyên viên phản hồi trong khung chat này</span>
+                <span class="text-[12px] font-bold text-white tracking-tight leading-snug">Chat với nhân viên ngay tại đây</span>
+                <span class="text-[10px] font-medium mt-0.5" style="color: rgba(255,183,197,0.55);">Chuyên viên phản hồi trong khung chat này</span>
               </div>
               <!-- Arrow -->
-              <svg class="ml-auto flex-shrink-0 w-4 h-4 text-white/20 group-active:text-white/50 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="ml-auto flex-shrink-0 w-3 h-3 text-white/20 group-active:text-white/50 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 18l6-6-6-6"/>
               </svg>
             </button>
@@ -596,26 +567,26 @@
             <button
               onclick={requestZaloChat}
               disabled={supportAgent.isTyping}
-              class="group relative flex items-center gap-4 w-full px-5 py-4 rounded-2xl overflow-hidden text-left transition-all duration-200 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none"
+              class="group relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl overflow-hidden text-left transition-all duration-200 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none"
               style="background: linear-gradient(135deg, rgba(0,104,255,0.10) 0%, rgba(0,104,255,0.04) 100%); border: 1px solid rgba(0,104,255,0.22);"
             >
               <div class="absolute inset-0 opacity-0 group-active:opacity-100 transition-opacity"
                 style="background: radial-gradient(circle at 30% 50%, rgba(0,132,255,0.18) 0%, transparent 70%);"></div>
               <!-- Icon -->
-              <div class="relative w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              <div class="relative w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style="background: rgba(0,104,255,0.15); border: 1px solid rgba(0,104,255,0.25);">
-                <svg class="w-5 h-5" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg class="w-4 h-4" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M20 3C10.611 3 3 10.164 3 19c0 4.884 2.21 9.267 5.707 12.277L7.5 35l4.215-2.192A18.14 18.14 0 0020 35c9.389 0 17-7.164 17-16S29.389 3 20 3z" fill="#0068FF"/>
                   <path d="M28.5 22.6c-.3-.15-1.767-.87-2.04-.97-.273-.097-.472-.146-.67.147-.2.293-.77.97-.944 1.168-.173.2-.347.22-.646.074-.3-.147-1.263-.465-2.406-1.485-.888-.793-1.488-1.772-1.663-2.072-.175-.3-.019-.462.132-.61.135-.135.3-.35.45-.525.148-.175.197-.3.296-.498.098-.2.05-.374-.025-.523-.074-.147-.67-1.614-.918-2.21-.242-.578-.487-.5-.67-.51-.173-.008-.372-.01-.57-.01-.2 0-.523.074-.797.37-.273.297-1.04 1.016-1.04 2.48 0 1.463 1.065 2.877 1.213 3.076.148.2 2.096 3.2 5.08 4.487.71.307 1.264.49 1.695.627.713.227 1.362.195 1.876.118.572-.086 1.767-.722 2.016-1.42.25-.7.25-1.298.175-1.42-.075-.123-.273-.197-.572-.347z" fill="white"/>
                 </svg>
               </div>
               <!-- Text -->
               <div class="relative flex flex-col min-w-0">
-                <span class="text-[14px] font-black tracking-tight leading-snug" style="color: #5BA4FF;">Chat qua Zalo OA</span>
-                <span class="text-[11px] font-medium mt-0.5" style="color: rgba(91,164,255,0.55);">Mở Zalo, chuyên viên cũng được thông báo</span>
+                <span class="text-[12px] font-bold tracking-tight leading-snug" style="color: #5BA4FF;">Chat qua Zalo OA</span>
+                <span class="text-[10px] font-medium mt-0.5" style="color: rgba(91,164,255,0.55);">Mở Zalo, chuyên viên cũng được thông báo</span>
               </div>
               <!-- Arrow -->
-              <svg class="ml-auto flex-shrink-0 w-4 h-4 text-white/20 group-active:text-white/50 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="ml-auto flex-shrink-0 w-3 h-3 text-white/20 group-active:text-white/50 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 18l6-6-6-6"/>
               </svg>
             </button>
@@ -646,7 +617,7 @@
 
     <!-- Pinned Bottom Area -->
     <div
-      class="flex-shrink-0 safe-area-bottom w-full relative z-20 px-4 pt-1 pb-4"
+      class="flex-shrink-0 safe-area-bottom w-full relative z-20 px-[3px] pt-1 pb-4"
     >
       <!-- Quick Actions (Optimized: Tiny, Borderless, Icon-free & Right Aligned) -->
       {#if productSlug && productSlug.trim() !== ""}
