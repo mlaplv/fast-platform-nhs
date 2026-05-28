@@ -37,6 +37,8 @@
     active_ctv: number;
     total_gmv: number;
     total_commission: number;
+    pending_commission: number;
+    available_commission: number;
     pending_withdrawals: number;
   }
   interface LeaderboardItem {
@@ -51,6 +53,8 @@
     active_ctv: 0,
     total_gmv: 0.0,
     total_commission: 0.0,
+    pending_commission: 0.0,
+    available_commission: 0.0,
     pending_withdrawals: 0,
   });
   let leaderboard = $state<LeaderboardItem[]>([]);
@@ -112,6 +116,17 @@
   let tiers = $state<CommissionTier[]>([]);
   let showTierModal = $state(false);
   let editingTier = $state<Partial<CommissionTier> | null>(null);
+  let defaultShippingFee = $state(25000);
+
+  async function saveShippingConfig() {
+    try {
+      await apiClient.post("/api/v1/admin/ctv/config/shipping", { default_fee: defaultShippingFee });
+      nanobot.showToast(`Đã lưu phí vận chuyển mặc định: ${defaultShippingFee.toLocaleString()}đ`, "success");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      nanobot.showToast(`Lỗi lưu phí ship: ${msg}`, "error");
+    }
+  }
 
   // Tab Load triggers
   $effect(() => {
@@ -152,8 +167,12 @@
         members = res.items;
         memberTotal = res.total;
       } else if (activeTab === "tiers") {
-        const res = await apiClient.get<CommissionTier[]>("/api/v1/admin/ctv/tiers");
-        tiers = res;
+        const [tiersRes, shipRes] = await Promise.all([
+          apiClient.get<CommissionTier[]>("/api/v1/admin/ctv/tiers"),
+          apiClient.get<{ default_fee: number }>("/api/v1/admin/ctv/config/shipping")
+        ]);
+        tiers = tiersRes;
+        defaultShippingFee = shipRes.default_fee;
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -356,9 +375,13 @@
             </div>
             <div class="bg-gray-900/40 border border-white/5 rounded-2xl p-4 flex flex-col justify-between h-24 hover:border-[#00FFFF]/20 transition-all duration-300">
               <span class="text-[9px] font-mono text-gray-500 tracking-wider">TỔNG HOA HỒNG PHÁT SINH</span>
-              <div class="flex items-baseline justify-between mt-2">
+              <div class="flex items-baseline justify-between mt-1.5">
                 <span class="text-xl font-black text-amber-500">{statsSummary.total_commission.toLocaleString()}đ</span>
                 <DollarSign class="w-4 h-4 text-amber-500/40" />
+              </div>
+              <div class="text-[9px] text-gray-500 font-mono flex items-center justify-between mt-1 border-t border-white/5 pt-1">
+                <span>Khả dụng: <span class="text-[#39FF14] font-bold">{statsSummary.available_commission.toLocaleString()}đ</span></span>
+                <span>Treo: <span class="text-amber-500 font-bold">{statsSummary.pending_commission.toLocaleString()}đ</span></span>
               </div>
             </div>
             <div class="bg-gray-900/40 border border-[#FE2C55]/20 rounded-2xl p-4 flex flex-col justify-between h-24 hover:border-[#FE2C55]/40 transition-all duration-300 col-span-2 lg:col-span-1">
@@ -642,15 +665,33 @@
       <!-- ── TAB 4: COMMISSION TIERS ── -->
       {:else if activeTab === "tiers"}
         <div class="space-y-4" in:fade={{ duration: 300 }}>
-          <!-- Toolbar -->
-          <div class="flex justify-between items-center bg-[#0a0a0a]/50 p-4 border border-white/5 rounded-2xl">
-            <span class="text-xs font-mono text-gray-500 tracking-wider">CẤU HÌNH CÁC TẦNG DOANH SỐ & % HOA HỒNG CHI TRẢ CHO CTV</span>
-            <button 
-              onclick={() => openTierModal(null)}
-              class="px-4 py-1.5 bg-[#00FFFF] hover:bg-[#00FFFF]/80 text-black text-xs font-bold tracking-widest rounded-lg flex items-center gap-1.5 transition-all shadow-lg"
-            >
-              <Plus class="w-3.5 h-3.5" /> TẠO CẤP HẠNG MỚI
-            </button>
+          <!-- Toolbar with Shipping Fee Config -->
+          <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-[#0a0a0a]/50 p-4 border border-white/5 rounded-2xl">
+            <div class="space-y-1">
+              <span class="text-xs font-mono text-gray-400 tracking-wider uppercase block font-bold">CẤU HÌNH CẤP HẠNG & VẬN CHUYỂN</span>
+              <p class="text-[10px] text-gray-500 font-mono">Quản lý các tầng doanh thu, tỷ lệ hoa hồng và phí vận chuyển mặc định của CTV.</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+              <!-- Shipping Fee Config Input -->
+              <div class="flex items-center bg-black/60 border border-white/10 rounded-lg px-3 py-1.5 font-mono text-xs gap-2">
+                <span class="text-gray-500 text-[10px] uppercase">Phí Ship Mặc Định:</span>
+                <input 
+                  type="number" 
+                  class="bg-transparent border-b border-white/10 w-20 text-center font-bold text-[#00FFFF] focus:outline-none focus:border-[#00FFFF]/40" 
+                  bind:value={defaultShippingFee}
+                  onblur={saveShippingConfig}
+                />
+                <span class="text-gray-400">đ</span>
+              </div>
+
+              <button 
+                onclick={() => openTierModal(null)}
+                class="px-4 py-1.5 bg-[#00FFFF] hover:bg-[#00FFFF]/80 text-black text-xs font-bold tracking-widest rounded-lg flex items-center gap-1.5 transition-all shadow-lg font-mono"
+              >
+                <Plus class="w-3.5 h-3.5" /> TẠO CẤP HẠNG
+              </button>
+            </div>
           </div>
 
           <!-- Tiers Grid -->

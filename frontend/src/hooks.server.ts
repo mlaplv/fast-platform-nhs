@@ -147,7 +147,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       ctvValue = ctvValue.toUpperCase();
     } else {
       // Cryptographically secure token — preserve urlsafe base64 characters: [A-Za-z0-9_\-]
-      ctvValue = ctvValue.replace(/[^A-Za-z0-9_\-]/g, "");
+      ctvValue = ctvValue.replace(/[^A-Za-z0-9_\-=]/g, "");
     }
     
     if (ctvValue.length >= 4) {

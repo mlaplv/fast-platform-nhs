@@ -31,6 +31,7 @@
   let code = $state(['', '', '', '', '', '']);
   let otpToken = $state('');
   let isLoading = $state(false);
+  let isSocialLoading = $state<'google' | 'facebook' | 'zalo' | null>(null);
   let error = $state<string | null>(null);
   let authMethod = $state<'otp' | 'password'>('otp');
   let password = $state('');
@@ -211,11 +212,14 @@
   }
 
   function handleSocialLogin(provider: 'google' | 'facebook' | 'zalo') {
-    isLoading = true;
+    if (isSocialLoading) return; // chống double-click
+    isSocialLoading = provider;
     error = null;
     const targetUrl = ui.authModal.redirectUrl || (window.location.pathname + window.location.search);
     sessionStorage.setItem('returnTo', targetUrl);
     sessionStorage.setItem('returnScroll', window.scrollY.toString());
+    // Auto-clear sau 3s phòng trường hợp redirect thất bại / user nhấn back
+    setTimeout(() => { isSocialLoading = null; }, 3000);
     window.location.href = `/api/v1/auth/oauth/login/${provider}`;
   }
 
@@ -418,10 +422,15 @@
             <button
                 type="button"
                 onclick={() => handleSocialLogin('zalo')}
-                disabled={isLoading}
-                class="flex items-center justify-center w-14 h-14 {r} bg-white border border-gray-100 hover:bg-gray-50 active:scale-90 transition-all disabled:opacity-30 shadow-sm"
+                disabled={isLoading || isSocialLoading !== null}
+                class="flex items-center justify-center w-14 h-14 {r} bg-white border border-gray-100 hover:bg-gray-50 active:scale-90 transition-all disabled:opacity-30 shadow-sm relative"
                 aria-label="Login with Zalo"
             >
+                {#if isSocialLoading === 'zalo'}
+                  <div class="absolute inset-0 flex items-center justify-center {r} bg-white/80">
+                    <div class="w-5 h-5 border-2 border-[#0068FF] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                {/if}
                 <svg class="w-8 h-8 animate-in zoom-in duration-300" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
                 <path d="M50,11.8C25.4,11.8,5.5,28.6,5.5,49.2c0,11.9,6.5,22.6,16.5,29.3c-1.3,4.6-4.3,13.2-4.5,13.9c-0.5,1.5,0.7,2.6,2.1,1.8c1.3-0.8,14.6-8.7,20.2-11.8c3.3,0.6,6.7,0.9,10.2,0.9c24.6,0,44.5-16.8,44.5-37.4C94.5,28.6,74.6,11.8,50,11.8z" fill="#0068FF"/>
                 <g transform="translate(18, 17) scale(2.7)">
@@ -432,10 +441,15 @@
             <button
                 type="button"
                 onclick={() => handleSocialLogin('google')}
-                disabled={isLoading}
-                class="flex items-center justify-center w-14 h-14 {r} bg-white border border-gray-100 hover:bg-gray-50 active:scale-90 transition-all disabled:opacity-30 shadow-sm"
+                disabled={isLoading || isSocialLoading !== null}
+                class="flex items-center justify-center w-14 h-14 {r} bg-white border border-gray-100 hover:bg-gray-50 active:scale-90 transition-all disabled:opacity-30 shadow-sm relative"
                 aria-label="Login with Google"
             >
+                {#if isSocialLoading === 'google'}
+                  <div class="absolute inset-0 flex items-center justify-center {r} bg-white/80">
+                    <div class="w-5 h-5 border-2 border-[#4285F4] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                {/if}
                 <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -446,10 +460,15 @@
             <button
                 type="button"
                 onclick={() => handleSocialLogin('facebook')}
-                disabled={isLoading}
-                class="flex items-center justify-center w-14 h-14 {r} bg-white border border-gray-100 hover:bg-gray-50 active:scale-90 transition-all disabled:opacity-30 shadow-sm"
+                disabled={isLoading || isSocialLoading !== null}
+                class="flex items-center justify-center w-14 h-14 {r} bg-white border border-gray-100 hover:bg-gray-50 active:scale-90 transition-all disabled:opacity-30 shadow-sm relative"
                 aria-label="Login with Facebook"
             >
+                {#if isSocialLoading === 'facebook'}
+                  <div class="absolute inset-0 flex items-center justify-center {r} bg-white/80">
+                    <div class="w-5 h-5 border-2 border-[#1877F2] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                {/if}
                 <svg class="w-6 h-6 text-[#1877F2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
                 </svg>

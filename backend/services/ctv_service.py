@@ -78,9 +78,9 @@ def _verify_commission_seal(ledger: CommissionLedger) -> bool:
 class CtvService:
 
     @staticmethod
-    async def _get_default_tier(db_session: AsyncSession) -> Optional[CommissionTier]:
+    async def _get_default_tier(db_session: AsyncSession, tenant_id: Optional[str] = None) -> Optional[CommissionTier]:
         """Get the default commission tier (is_default=True)."""
-        tenant = current_tenant_id.get() or "default"
+        tenant = tenant_id or current_tenant_id.get() or "default"
         stmt = select(CommissionTier).where(
             and_(CommissionTier.is_default == True, CommissionTier.tenant_id == tenant)
         ).limit(1)
@@ -98,6 +98,9 @@ class CtvService:
 
         # Step 1: Try to decrypt (handles encrypted token or plain code transparently)
         raw = ctv_code.strip()
+        # Auto-restore Base64 padding that may have been stripped by frontend sanitizer
+        if len(raw) > 20 and len(raw) % 4 != 0:
+            raw += '=' * (4 - len(raw) % 4)
         try:
             decrypted = GeminiSecurity.decrypt(raw)
             # Only use decrypted value if it's a non-empty string (not dict/list from JSON)
@@ -174,8 +177,8 @@ class CtvService:
                     chain_depth = referrer.referral_chain_depth + 1
 
         # Get default tier
-        default_tier = await CtvService._get_default_tier(db_session)
         tenant = current_tenant_id.get() or "default"
+        default_tier = await CtvService._get_default_tier(db_session, tenant_id=tenant)
 
         if aff:
             # REACTIVATE existing profile (Preserve stats and ledger, update status and code)
@@ -230,11 +233,11 @@ class CtvService:
         Compares cached balance fields with live ledger aggregates.
         Suspends account and raises alert on any discrepancy.
         """
-        # 1. Live sum of all earned/confirmed/paid commission from ledger
+        # 1. Live sum of all earned/confirmed/paid/pending commission from ledger
         ledger_stmt = select(func.sum(CommissionLedger.commission_amount)).where(
             and_(
                 CommissionLedger.affiliate_id == aff.id,
-                CommissionLedger.status.in_(["CONFIRMED", "PAID"])
+                CommissionLedger.status.in_(["PENDING", "CONFIRMED", "PAID"])
             )
         )
         ledger_res = await db_session.execute(ledger_stmt)
@@ -356,6 +359,13 @@ class CtvService:
         tiers_res = await db_session.execute(tiers_stmt)
         tiers_list = tiers_res.scalars().all()
 
+        active_tier = aff.tier
+        if not active_tier:
+            try:
+                active_tier = await CtvService._get_default_tier(db_session, aff.tenant_id)
+            except Exception:
+                pass
+
         return {
             "is_registered": True,
             "ctv_code": aff.ctv_code,
@@ -363,9 +373,9 @@ class CtvService:
             "status": aff.status,
             "bank_info": bank_info,
             "tier": {
-                "name": aff.tier.name if aff.tier else "Đồng",
-                "commission_rate": aff.tier.commission_rate if aff.tier else 0.15,
-                "min_revenue_threshold": aff.tier.min_revenue_threshold if aff.tier else 0.0,
+                "name": active_tier.name if active_tier else "Đồng",
+                "commission_rate": active_tier.commission_rate if active_tier else 0.05,
+                "min_revenue_threshold": active_tier.min_revenue_threshold if active_tier else 0.0,
             },
             "stats": {
                 "total_revenue": aff.total_revenue,
@@ -391,10 +401,11 @@ class CtvService:
     async def _get_actual_shipping_fee(order: Order) -> float:
         """
         Dynamically extracts shipping fee from order metadata (immutable snapshot).
-        If not recorded, fetches default standard shipping fee from dynamic Redis configuration.
+        If not recorded or if it is 0.0 (meaning free-shipped to customer, but merchant still pays),
+        fetches default standard shipping fee from dynamic Redis configuration.
         """
         shipping_fee = order.order_metadata.get("shipping_fee") if order.order_metadata else None
-        if shipping_fee is not None:
+        if shipping_fee is not None and float(shipping_fee) > 0.0:
             return float(shipping_fee)
 
         fallback_ship = 25000.0
@@ -411,14 +422,14 @@ class CtvService:
     @staticmethod
     async def credit_commission(db_session: AsyncSession, order_id: str) -> bool:
         """
-        Idempotent commission credit triggered by ORDER_CONFIRMED event.
-        Called after CONFIRMATION_DELAY_HOURS (72h anti-fraud window).
+        Idempotent commission credit — called at checkout.
+        Creates PENDING ledger entry (tiền chờ). Later when DELIVERED,
+        confirm_pending_commissions() promotes PENDING → CONFIRMED (tiền thực).
 
         Anti-fraud rules:
         1. Idempotency: skip if order_id already in commission_ledger
         2. Self-referral: skip if order.user_id == affiliate.user_id
-        3. Status check: order must be CONFIRMED or DELIVERED
-        4. AES-GCM seal on each ledger entry
+        3. AES-GCM seal on each ledger entry
         """
         # 1. Load order
         order_stmt = select(Order).where(Order.id == order_id)
@@ -428,9 +439,6 @@ class CtvService:
         if not order or not order.ctv_code:
             return False  # No CTV attribution
 
-        if order.status not in ("CONFIRMED", "DELIVERED"):
-            return False
-
         # 2. Idempotency guard
         existing_stmt = select(CommissionLedger).where(CommissionLedger.order_id == order_id)
         existing = await db_session.execute(existing_stmt)
@@ -438,12 +446,17 @@ class CtvService:
             logger.info(f"[CTV] Commission already credited for order {order_id} — skipping")
             return False
 
-        # 3. Load affiliate
-        aff_stmt = select(AffiliateProfile).where(
-            and_(
-                AffiliateProfile.ctv_code == order.ctv_code,
-                AffiliateProfile.status == "ACTIVE",
-                AffiliateProfile.deleted_at == None,
+        # 3. Load affiliate with tier loaded
+        from sqlalchemy.orm import joinedload
+        aff_stmt = (
+            select(AffiliateProfile)
+            .options(joinedload(AffiliateProfile.tier))
+            .where(
+                and_(
+                    AffiliateProfile.ctv_code == order.ctv_code,
+                    AffiliateProfile.status == "ACTIVE",
+                    AffiliateProfile.deleted_at == None,
+                )
             )
         )
         aff_res = await db_session.execute(aff_stmt)
@@ -458,9 +471,13 @@ class CtvService:
             logger.warning(f"[CTV-FRAUD] Self-referral blocked: code={order.ctv_code}, order={order_id}")
             return False
 
-        # 5. Determine commission rate from tier
-        rate = 0.15  # Default fallback
-        tier_snapshot: dict = {"name": "Đồng", "commission_rate": rate}
+        # 5. Determine commission rate from tier (database default if no tier assigned)
+        default_tier = await CtvService._get_default_tier(db_session, tenant_id=aff.tenant_id)
+        default_rate = default_tier.commission_rate if default_tier else 0.05
+        default_name = default_tier.name if default_tier else "Đồng"
+
+        rate = default_rate
+        tier_snapshot: dict = {"name": default_name, "commission_rate": rate}
         if aff.tier:
             rate = aff.tier.commission_rate
             tier_snapshot = {"name": aff.tier.name, "commission_rate": rate}
@@ -468,10 +485,24 @@ class CtvService:
         # R102 Dynamic Pricing: Deduct actual shipping fee and 3% tax from base revenue for commission calculation
         shipping_fee = await CtvService._get_actual_shipping_fee(order)
         tax_rate = 0.03  # 3% tax
+        tax_deduction = round((order.total_amount - shipping_fee) * tax_rate, 2)
         
         # Revenue Net (Doanh thu thuần sau thuế và ship)
         revenue_net = max(0.0, (order.total_amount - shipping_fee) * (1.0 - tax_rate))
         commission_amount = round(revenue_net * rate, 2)
+
+        # Store detailed breakdown for tooltip transparency
+        import json
+        breakdown = {
+            "order_total": order.total_amount,
+            "shipping_fee": shipping_fee,
+            "tax_rate": tax_rate,
+            "tax_deduction": tax_deduction,
+            "revenue_net": revenue_net,
+            "rate_applied": rate,
+            "commission_amount": commission_amount
+        }
+        admin_note = json.dumps(breakdown)
 
         # 6. Create ledger entry
         ledger = CommissionLedger(
@@ -483,7 +514,8 @@ class CtvService:
             rate_applied=rate,
             tier_snapshot=tier_snapshot,
             status="PENDING",
-            tenant_id=current_tenant_id.get() or "default",
+            admin_note=admin_note,
+            tenant_id=aff.tenant_id or current_tenant_id.get() or "default",
         )
         ledger.integrity_token = _create_commission_seal(ledger)
         db_session.add(ledger)
@@ -508,8 +540,8 @@ class CtvService:
     @staticmethod
     async def confirm_pending_commissions(db_session: AsyncSession, order_id: str) -> bool:
         """
-        Called 72h after ORDER_CONFIRMED: move PENDING → CONFIRMED.
-        Triggered from arq_worker background job.
+        Called when order transitions to DELIVERED: move PENDING → CONFIRMED.
+        Commission becomes available for withdrawal after confirmation.
         """
         stmt = select(CommissionLedger).where(
             and_(CommissionLedger.order_id == order_id, CommissionLedger.status == "PENDING")
@@ -528,6 +560,37 @@ class CtvService:
         ledger.confirmed_at = datetime.now(timezone.utc)
         await db_session.commit()
         logger.info(f"[CTV] Commission confirmed: {ledger.id}")
+        return True
+
+    @staticmethod
+    async def void_commission(db_session: AsyncSession, order_id: str) -> bool:
+        """
+        Called when order is CANCELLED: void PENDING commission entry.
+        Deducts from affiliate aggregated stats and marks ledger as VOIDED.
+        """
+        stmt = select(CommissionLedger).where(
+            and_(CommissionLedger.order_id == order_id, CommissionLedger.status == "PENDING")
+        )
+        res = await db_session.execute(stmt)
+        ledger: Optional[CommissionLedger] = res.scalar_one_or_none()
+        if not ledger:
+            return False  # Nothing to void
+
+        # Rollback affiliate aggregated stats
+        aff_stmt = select(AffiliateProfile).where(AffiliateProfile.id == ledger.affiliate_id)
+        aff_res = await db_session.execute(aff_stmt)
+        aff: Optional[AffiliateProfile] = aff_res.scalar_one_or_none()
+
+        if aff:
+            aff.total_revenue = max(0.0, aff.total_revenue - ledger.order_amount)
+            aff.total_commission = max(0.0, aff.total_commission - ledger.commission_amount)
+            aff.total_orders = max(0, aff.total_orders - 1)
+            aff.balance_seal = _create_balance_seal(aff)
+            logger.info(f"[CTV] Rolled back stats for affiliate {aff.ctv_code}: -{ledger.commission_amount:,.0f}đ")
+
+        ledger.status = "VOIDED"
+        await db_session.commit()
+        logger.info(f"[CTV] Commission voided: {ledger.id} for order {order_id}")
         return True
 
     @staticmethod

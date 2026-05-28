@@ -62,10 +62,43 @@ class PayoutSchema(BaseModel):
     note: Optional[str] = None
 
 
+class ShippingConfigSchema(BaseModel):
+    default_fee: float = Field(25000.0, ge=0.0)
+
+
 class AdminCtvController(Controller):
     """Admin: Full CTV management — tiers, members, withdrawals, stats."""
     path = "/api/v1/admin/ctv"
     guards = []
+
+    # ── Shipping Config ──────────────────────────────────────────────────────
+
+    @get("/config/shipping")
+    async def get_shipping_config(self, request: Request) -> dict:
+        """Lấy cấu hình phí vận chuyển mặc định của CTV."""
+        _require_admin(request)
+        from backend.services.xohi_memory import xohi_memory
+        
+        default_fee = 25000.0
+        if xohi_memory._use_redis and xohi_memory.client:
+            try:
+                val = await xohi_memory.client.get("config:shipping:default_fee")
+                if val:
+                    default_fee = float(val)
+            except Exception:
+                pass
+        return {"default_fee": default_fee}
+
+    @post("/config/shipping")
+    async def update_shipping_config(self, request: Request, data: ShippingConfigSchema) -> dict:
+        """Cập nhật cấu hình phí vận chuyển mặc định của CTV."""
+        _require_admin(request)
+        from backend.services.xohi_memory import xohi_memory
+        
+        if xohi_memory._use_redis and xohi_memory.client:
+            await xohi_memory.client.set("config:shipping:default_fee", str(data.default_fee))
+            
+        return {"message": f"Cập nhật phí ship mặc định thành {data.default_fee:,.0f}đ thành công!"}
 
     # ── Commission Tiers ─────────────────────────────────────────────────────
 
@@ -194,6 +227,24 @@ class AdminCtvController(Controller):
         default_rate = default_tier.commission_rate if default_tier else 0.15
         default_name = default_tier.name if default_tier else "Đồng"
 
+        # Query pending commissions for the loaded members to avoid N+1 queries
+        member_ids = [m.id for m in members]
+        pending_map = {}
+        if member_ids:
+            pending_stmt = (
+                select(CommissionLedger.affiliate_id, func.sum(CommissionLedger.commission_amount))
+                .where(
+                    and_(
+                        CommissionLedger.affiliate_id.in_(member_ids),
+                        CommissionLedger.status == "PENDING"
+                    )
+                )
+                .group_by(CommissionLedger.affiliate_id)
+            )
+            pending_res = await db_session.execute(pending_stmt)
+            for aff_id, amt in pending_res.all():
+                pending_map[aff_id] = float(amt or 0.0)
+
         return {
             "items": [
                 {
@@ -206,6 +257,8 @@ class AdminCtvController(Controller):
                     "total_revenue": m.total_revenue,
                     "total_commission": m.total_commission,
                     "paid_commission": m.paid_commission,
+                    "pending_commission": pending_map.get(m.id, 0.0),
+                    "available_commission": max(0.0, m.total_commission - m.paid_commission - pending_map.get(m.id, 0.0)),
                     "total_orders": m.total_orders,
                     "registered_at": m.created_at.isoformat(),
                 }
@@ -425,9 +478,26 @@ class AdminCtvController(Controller):
             .where(and_(WithdrawalRequest.tenant_id == tenant, WithdrawalRequest.status == "PENDING"))
         )
 
+        # Query pending and paid commissions dynamically to calculate available/treo sums
+        from backend.database.models.affiliate import CommissionLedger
+        pending_commission = await db_session.scalar(
+            select(func.sum(CommissionLedger.commission_amount))
+            .where(and_(CommissionLedger.tenant_id == tenant, CommissionLedger.status == "PENDING"))
+        ) or 0.0
+
+        total_paid_commission = await db_session.scalar(
+            select(func.sum(AffiliateProfile.paid_commission))
+            .where(AffiliateProfile.tenant_id == tenant)
+        ) or 0.0
+
+        total_commission_val = total_commission or 0.0
+        available_commission = max(0.0, total_commission_val - total_paid_commission - pending_commission)
+
         # Leaderboard (ẩn danh: CTV***01)
+        from sqlalchemy.orm import joinedload
         top_stmt = (
             select(AffiliateProfile)
+            .options(joinedload(AffiliateProfile.tier))
             .where(and_(AffiliateProfile.tenant_id == tenant, AffiliateProfile.status == "ACTIVE"))
             .order_by(desc(AffiliateProfile.total_revenue))
             .limit(10)
@@ -443,7 +513,9 @@ class AdminCtvController(Controller):
                 "total_ctv": total_ctv or 0,
                 "active_ctv": active_ctv or 0,
                 "total_gmv": total_gmv or 0.0,
-                "total_commission": total_commission or 0.0,
+                "total_commission": total_commission_val,
+                "pending_commission": pending_commission,
+                "available_commission": available_commission,
                 "pending_withdrawals": pending_withdrawals or 0,
             },
             "leaderboard": [

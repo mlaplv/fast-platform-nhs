@@ -80,6 +80,14 @@
   onMount(() => {
     isMounted = true;
 
+    // Self-healing: Reload page on dynamic asset preload failures (common after new builds)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('vite:preloadError', (event) => {
+        console.warn("[SYSTEM] Vite preload error detected. Auto-healing by reloading page...", event);
+        window.location.reload();
+      });
+    }
+
     // Elite V2.2: Non-overlapping Dynamic Imports for Device Separation
     if (!isAdmin) {
       (async () => {
@@ -117,6 +125,22 @@
     let adsCleanup: (() => void) | null = null;
     if (!isAdmin && typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
+      
+      // Capture CTV affiliate tracking parameter client-side for SPA routing
+      const ctv = urlParams.get('ctv');
+      if (ctv) {
+        let ctvValue = ctv.trim();
+        if (ctvValue.length <= 20) {
+          ctvValue = ctvValue.toUpperCase();
+        } else {
+          ctvValue = ctvValue.replace(/[^A-Za-z0-9_\-=]/g, "");
+        }
+        if (ctvValue.length >= 4) {
+          const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `__ctv=${ctvValue}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax${secure}`;
+        }
+      }
+
       const gclid = urlParams.get('gclid');
       if (gclid) {
         let mouseEventsCount = 0;

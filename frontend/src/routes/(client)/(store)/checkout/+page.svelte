@@ -691,6 +691,15 @@
       neuralStatus = "encoding";
       neuralStatus = "submitting";
 
+      // Extract ctv_code from __ctv cookie to pass in payload as fallback
+      let ctvCode: string | null = null;
+      if (typeof document !== 'undefined') {
+        const match = document.cookie.match(/(?:^|; )__ctv=([^;]*)/);
+        if (match) {
+          ctvCode = match[1];
+        }
+      }
+
       const backendPayload = {
         items: cartStore.items
           .filter((i) => i.selected)
@@ -722,6 +731,7 @@
           cartStore.giftInfo?.sender_name && cartStore.giftInfo?.sender_phone
             ? cartStore.giftInfo
             : null,
+        ctv_code: ctvCode,
       };
 
       const res = await apiClient.post<{

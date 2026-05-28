@@ -400,13 +400,35 @@ class OrderService:
             "tenant_id": tenant_id
         })
         
-        # Elite V2.2: Loyalty Point Accrual
+        # Elite V2.2: Loyalty Point Accrual + CTV Commission Confirmation
         if new_status == "DELIVERED":
             try:
                 await LoyaltyService.earn_order_points(db_session, order_id)
                 logger.info(f"[LOYALTY] Points processed for order {order_id}")
             except Exception as e:
                 logger.error(f"[LOYALTY-ERROR] Failed to process points for order {order_id}: {e}")
+
+            # CTV Attribution: Confirm pending commission (PENDING → CONFIRMED = tiền thực)
+            if order.ctv_code:
+                try:
+                    from backend.services.ctv_service import CtvService
+                    confirmed = await CtvService.confirm_pending_commissions(db_session, order_id)
+                    if confirmed:
+                        logger.info(f"[CTV] Commission CONFIRMED for order {order_id} (code={order.ctv_code})")
+                    else:
+                        logger.warning(f"[CTV] No pending commission to confirm for order {order_id}")
+                except Exception as e:
+                    logger.error(f"[CTV-ERROR] Failed to confirm commission for order {order_id}: {e}")
+
+        # CTV Attribution: Void pending commission when order is CANCELLED
+        if new_status == "CANCELLED" and order.ctv_code:
+            try:
+                from backend.services.ctv_service import CtvService
+                voided = await CtvService.void_commission(db_session, order_id)
+                if voided:
+                    logger.info(f"[CTV] Commission VOIDED for cancelled order {order_id} (code={order.ctv_code})")
+            except Exception as e:
+                logger.error(f"[CTV-ERROR] Failed to void commission for order {order_id}: {e}")
 
         return SuccessResponse(ok=True, id=order_id, message=f"Status updated to {new_status}")
 
@@ -443,6 +465,16 @@ class OrderService:
         order.history = history
 
         tenant_id = order.user_id
+
+        # CTV Attribution: Void pending commission on cancellation
+        if order.ctv_code:
+            try:
+                from backend.services.ctv_service import CtvService
+                voided = await CtvService.void_commission(db_session, order_id)
+                if voided:
+                    logger.info(f"[CTV] Commission VOIDED for cancelled order {order_id} (code={order.ctv_code})")
+            except Exception as e:
+                logger.error(f"[CTV-ERROR] Failed to void commission for order {order_id}: {e}")
 
         await event_bus.emit("ORDER_CANCELLED", {
             "id": order_id,

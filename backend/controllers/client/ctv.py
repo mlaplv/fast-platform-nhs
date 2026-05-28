@@ -7,9 +7,11 @@ from typing import Optional
 from litestar import Controller, Request, get, post, patch, delete
 from litestar.status_codes import HTTP_200_OK
 from litestar.exceptions import NotAuthorizedException
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from backend.services.ctv_service import ctv_service
+from backend.database.models.auth import User
 
 
 def _require_user(request: Request) -> dict:
@@ -22,6 +24,7 @@ def _require_user(request: Request) -> dict:
 class RegisterCtvSchema(BaseModel):
     ctv_code: str = Field(..., min_length=4, max_length=20, pattern=r"^[A-Za-z0-9]+$")
     referred_by_code: Optional[str] = Field(None, max_length=20)
+    email: Optional[EmailStr] = Field(None)
 
 
 class BankInfoSchema(BaseModel):
@@ -60,6 +63,16 @@ class ClientCtvController(Controller):
             ctv_code=data.ctv_code,
             referred_by_code=data.referred_by_code,
         )
+
+        # Update User.email nếu user cung cấp và chưa có email
+        if data.email:
+            await db_session.execute(
+                update(User)
+                .where(User.id == user_state["id"], User.email == None)  # noqa: E711
+                .values(email=data.email.lower())
+            )
+            await db_session.flush()
+
         return {
             "ok": True,
             "ctv_code": aff.ctv_code,
@@ -133,6 +146,7 @@ class ClientCtvController(Controller):
                     "confirmed_at": it.confirmed_at.isoformat() if it.confirmed_at else None,
                     "paid_at": it.paid_at.isoformat() if it.paid_at else None,
                     "created_at": it.created_at.isoformat(),
+                    "admin_note": it.admin_note,
                 }
                 for it in items
             ],

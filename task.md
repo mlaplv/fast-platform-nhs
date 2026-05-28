@@ -319,7 +319,29 @@
 - [x] Tích hợp Giao diện Anti-Spam Whitelist ("Liquid Glass" theme) với input và danh sách SĐT kèm nút gỡ bỏ trực tiếp trong trang quản trị `security/+page.svelte`. (Done)
 - [x] Thực hiện biên dịch tĩnh SvelteKit trực tiếp trên VPS thành công thông qua `pnpm build`, đưa các thay đổi lên hoạt động tức thì. (Done)
 
+# Task Checklist - Fixing CTV Commission Accuracy & Breakdown Tooltips (Elite V2.2)
 
+- [x] Fix the core bug where the `_get_default_tier` fallback logic fetched the wrong tenant's default tier due to the lack of an explicit `tenant_id` context. (Done)
+- [x] Refactor `CtvService.credit_commission` to pass `aff.tenant_id` explicitly for multi-tenant tier resolution. (Done)
+- [x] Calculate detailed commission breakdowns (including Gross Revenue, actual shipping fee deductions, 3% tax deductions, and Net Revenue) in `credit_commission` and persist it as a JSON string inside `admin_note`. (Done)
+- [x] Expose the `admin_note` field in `/api/v1/client/ctv/commissions` endpoint to allow frontend accessibility. (Done)
+- [x] Implement a premium glassmorphic hover details tooltip in `frontend/src/routes/(client)/(store)/user/ctv/+page.svelte` to present real-time transparent breakdowns to CTV affiliates. (Done)
+- [x] Compile and build Svelte storefront code flawlessly with zero static compilation issues. (Done)
+- [x] Sync all updated backend and frontend components to production VPS and restart the active backend containers. (Done)
 
+# Task Checklist - CTV Admin Stability & Mobile Client Optimization (Elite V2.2)
 
+- [x] Resolved: lazy loading relationship error `MissingGreenlet` in Admin Stats Leaderboard query by using SQLAlchemy `joinedload` on the `AffiliateProfile.tier` relationship. (Done)
+- [x] Synchronized the backend code to the VPS and restarted `fast_platform_api` and `fast_platform_worker_high`. (Done)
+- [x] Integrated Web Share API in Client CTV Affiliate page to enable modern touch-first native sharing for mobile devices. (Done)
+- [x] Optimized financial metrics grid on the client dashboard to prevent numerical clipping, applying uniform heights, custom font weights, responsive padding, and `break-all`. (Done)
+- [x] Streamlined commission history by designing a desktop table layout hidden on mobile and a premium, responsive card list layout visible on mobile. (Done)
+- [x] Optimized tier progress/leaderboard ranking history using a mobile-first list view layout on mobile and the static table on desktop. (Done)
+- [x] Compiled and deployed static storefront assets cleanly with 100% success (`Exit code: 0`) and synced them to the VPS web server root. (Done)
+
+# Task Checklist - Admin Chat Z_INDEX ReferenceError Hotfix (Elite V2.2)
+
+- [x] Diagnosed `ReferenceError: Z_INDEX is not defined` error occurring during page load/hydration. (Done)
+- [x] Corrected line 150 in `src/routes/(admin)/chat/+page.svelte` to refer to `Z_INDEX_ADMIN.POPOVER` instead of undefined `Z_INDEX`. (Done)
+- [x] Compiled static production build frontend flawlessly and rsync-deployed static storefront assets successfully to the VPS root. (Done)
 

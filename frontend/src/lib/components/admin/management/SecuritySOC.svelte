@@ -164,7 +164,13 @@
   }
 
   async function removePhone(phone: string): Promise<void> {
-    if (!confirm(`Gỡ số điện thoại ${phone} khỏi danh sách trắng?`)) return;
+    const confirmed = await nanobot.ui.showConfirm({
+      title: "GỠ WHITELIST SỐ ĐIỆN THOẠI",
+      message: `Bạn có chắc chắn muốn gỡ số điện thoại ${phone} khỏi danh sách trắng không?`,
+      confirmLabel: "XÁC NHẬN GỠ",
+      cancelLabel: "HỦY"
+    });
+    if (!confirmed) return;
     try {
       const res: any = await apiClient.delete(`/api/v1/security/whitelist/phones/${phone}`);
       const data = res.data || res;
@@ -181,7 +187,13 @@
 
   async function handleContainerAction(containerName: string, action: 'start' | 'stop' | 'restart'): Promise<void> {
     const actionLabel = action === 'start' ? 'BẬT (ENABLE)' : action === 'stop' ? 'TẮT (DISABLE)' : 'KHỞI ĐỘNG LẠI (RESTART)';
-    if (!confirm(`[SOC WARNING] Xác nhận thực hiện thao tác ${actionLabel} trên container ${containerName}?`)) return;
+    const confirmed = await nanobot.ui.showConfirm({
+      title: "CẢNH BÁO HỆ THỐNG SOC",
+      message: `[SOC WARNING] Xác nhận thực hiện thao tác ${actionLabel} trên container ${containerName}?`,
+      confirmLabel: "XÁC NHẬN CHẠY",
+      cancelLabel: "QUAY LẠI"
+    });
+    if (!confirmed) return;
     
     opLoading = containerName;
     try {
@@ -299,7 +311,13 @@
   });
 
   async function clearLogs(): Promise<void> {
-    if (!confirm("[SOC WARNING] Bạn có chắc chắn muốn XÓA SẠCH toàn bộ Nhật ký an ninh (Audit Trail)? Hành động này không thể hoàn tác!")) return;
+    const confirmed = await nanobot.ui.showConfirm({
+      title: "CẢNH BÁO TỐI CAO SOC",
+      message: "[SOC WARNING] Bạn có chắc chắn muốn XÓA SẠCH toàn bộ Nhật ký an ninh (Audit Trail)? Hành động này không thể hoàn tác!",
+      confirmLabel: "XÓA HOÀN TOÀN",
+      cancelLabel: "HỦY BỎ"
+    });
+    if (!confirmed) return;
     try {
       await apiClient.post("/api/v1/security/audit-logs/clear", {});
       nanobot.ui.showToast("Nhật ký an ninh đã được làm sạch", "success");

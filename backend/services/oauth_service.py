@@ -87,7 +87,8 @@ class OAuth2Service:
                 "app_id": app_id,
                 "redirect_uri": redirect_uri,
                 "state": state,
-                "code_challenge": code_challenge
+                "code_challenge": code_challenge,
+                "code_challenge_method": "S256"
             }
             # Zalo uses a bespoke login portal requiring PKCE
             return f"https://oauth.zaloapp.com/v4/permission?{urlencode(params)}", code_verifier

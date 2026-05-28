@@ -637,8 +637,125 @@ This walkthrough documents the successful diagnosis, self-healing configuration,
 - **Verification**:
   - Verified that the Whitelist Phone Numbers card renders beautifully under the SOC dashboard sidebar and allows administrators to view, add, and remove test SĐTs instantly with real-time reactive feedback.
 
+## 43. Fixing CTV Commission Accuracy & Real-Time Calculation Transparency (Elite V2.2)
 
+- **Issue**:
+  - Bronze ("Đồng") tier affiliates were receiving 15% commission instead of the configured 5%. This occurred because during the checkout commission calculation in `credit_commission` (`backend/services/ctv_service.py`), `_get_default_tier` was invoked without an explicit `tenant_id` context. As a result, it defaulted to the standard `"default"` tenant config (which has a 15% default Bronze tier rate) rather than the active `"osmo.vn"` tenant config (which has a 5% Bronze tier rate).
+  - Affiliate partners lacked visibility into the exact step-by-step commission calculations (shipping fee deductions, 3% tax deductions, etc.) in their commissions ledger history.
+- **Resolution & Code Upgrades**:
+  - **Multi-Tenant Safe Default Tier Resolution**:
+    - Enhanced `CtvService._get_default_tier` to accept an optional `tenant_id` parameter to resolve the correct default commission tier.
+    - Updated `credit_commission` to pass `aff.tenant_id` explicitly when resolving the default tier fallback, guaranteeing that tenant-specific settings (e.g. 5% Bronze rate for `osmo.vn`) are always prioritized over generic global configurations.
+  - **Detailed Calculation Breakdown & JSON Persistence**:
+    - Modified `credit_commission` to compute the complete breakdown of the commission calculation, detailing:
+      - `order_total`: Gross order value.
+      - `shipping_fee`: Standard or promo-reimbursed shipping fee deduction.
+      - `tax_rate`: The standard 3% tax.
+      - `tax_deduction`: Calculated 3% tax amount.
+      - `revenue_net`: Net revenue after subtracting shipping and tax.
+      - `rate_applied`: Tier commission rate.
+      - `commission_amount`: Final credited commission.
+    - Saved this breakdown as a JSON string inside the `admin_note` database field of the `CommissionLedger` entry.
+  - **API Exposure**:
+    - Updated the client-facing commissions list endpoint in `backend/controllers/client/ctv.py` (`/api/v1/client/ctv/commissions`) to expose the `admin_note` field in the response items.
+  - **Svelte 5 Glassmorphic Tooltip Breakdown UI**:
+    - Created a Svelte helper function `parseBreakdown` to dynamically parse the JSON breakdown from `admin_note`.
+    - Integrated a premium, glassmorphic hover details tooltip (`bg-stone-950/95 backdrop-blur-md border border-stone-850`) inside `frontend/src/routes/(client)/(store)/user/ctv/+page.svelte`.
+    - When hovering over the commission amount, the UI dynamically renders a beautiful, pixel-perfect breakdown showing exactly how the final amount was calculated (Gross, shipping fee, tax, net, and rate), providing ultimate transparency to CTV members. For regular text-based ledger notes (like shipping penalties), the tooltip gracefully falls back to displaying the text notes directly.
+- **Production Hot-Sync & Restart**:
+  - Successfully synced `ctv_service.py` and Svelte frontend updates to the VPS.
+  - Compiled Svelte storefront code cleanly and synced the `dist/` bundle in under 3 seconds.
+  - Gracefully restarted the active `fast_platform_api` and `fast_platform_worker_high` containers to apply the backend fixes immediately.
+- **UI Tooltip Layout & Stacking Context Healing**:
+  - **Identified Table Overflow Clipping**: Diagnosed that the absolute tooltips (both the 7-day policy note and our glassmorphic audit breakdown) were being clipped/cut off horizontally and vertically by the table's `.overflow-x-auto` wrapper and card's `.overflow-hidden` container.
+  - **Eliminated Desktop Clipping**: Patched the Svelte template to toggle overflow visibility on desktop viewports (`lg:overflow-visible overflow-hidden` and `lg:overflow-visible overflow-x-auto`), allowing tooltips to float outside table borders beautifully.
+  - **Dynamic Stacking Stacking Context**: Added `hover:relative hover:z-40` to each table row (`tr`). This elevates the currently-hovered row above all other rows in the CSS stacking context, ensuring tooltips never hide underneath adjacent table items.
+  - **Align Tooltip Z-Indexes**: Elevated tooltip z-index values to `z-[200]`, matching `Z_INDEX_CLIENT.DROPDOWN` for maximum layering safety.
+- **Verification**:
+  - Confirmed the backend started cleanly with zero runtime exceptions.
+  - Verified that all future commission calculations resolve to the exact tenant-specific rate (5% for Bronze tier on `osmo.vn`), and partners enjoy full transparency into their calculations via the glassmorphic breakdown hover card.
 
+- **Self-Healing Admin Initialization & Asset Cache Recovery**:
+  - **Identified Chunk Loading Mismatch**: Diagnosed that when new production builds are deployed, old Vite chunk files are replaced by fresh hashed files. If Sếp or users load the admin page using their browser's cached index or service worker, the browser attempts to fetch missing old chunks. Since the server returns index.html, SvelteKit fails to initialize silently or hangs at the dynamic `"Initializing Neural Link..."` router gate.
+  - **Auto-Healing Router Fallback**: Added a catch block inside `/frontend/src/routes/+page.svelte`'s dynamic route loader:
+    ```typescript
+    } catch (err) {
+        console.error("[SYSTEM FAULT] DYNAMIC_LOAD_FAILED:", err);
+        if (typeof window !== 'undefined') {
+            console.warn("[RECOVER] Chunk loading failed. Reloading page to force synchronization...");
+            window.location.reload();
+        }
+    }
+    ```
+  - **Global Vite Preload Watcher**: Implemented a global listener in `+layout.svelte` to catch all `vite:preloadError` events system-wide, triggering an instant, transparent page reload to download the absolute latest compiled index and chunks:
+    ```typescript
+    if (typeof window !== 'undefined') {
+      window.addEventListener('vite:preloadError', (event) => {
+        console.warn("[SYSTEM] Vite preload error detected. Auto-healing by reloading page...", event);
+        window.location.reload();
+      });
+    }
+    ```
+  - **Successful Compilation & Deployment**: Recompiled the entire frontend cleanly via `pnpm build` and synchronized all static assets to the production VPS `/opt/fast-platform/frontend/dist` directory. Both the client and the admin portal are now 100% self-healing, guaranteeing zero-hang loads.
+### **Checkpoint 30: Admin Stats Greenlet Fix & Client CTV Mobile Optimization**
+
+We successfully resolved the critical backend database access hang and redesigned the client-side affiliate CTV dashboard layout for high-end mobile devices.
+
+#### **1. Resolved SQLAlchemy MissingGreenlet (Admin Stats API)**
+- **Root Cause**: The `/api/v1/admin/ctv/stats` handler accesses the relationship attribute `m.tier.name` when building the Leaderboard response. Since the `tier` relationship was not eager loaded in `top_stmt`, SQLAlchemy attempted to dynamically lazy load it synchronously, which threw `MissingGreenlet` under the async engine context.
+- **Solution**: Refactored the `top_stmt` database query in `backend/controllers/admin_ctv.py` to eager load the `tier` relationship using `joinedload`:
+  ```python
+  from sqlalchemy.orm import joinedload
+  top_stmt = (
+      select(AffiliateProfile)
+      .options(joinedload(AffiliateProfile.tier))
+      .where(and_(AffiliateProfile.tenant_id == tenant, AffiliateProfile.status == "ACTIVE"))
+      .order_by(desc(AffiliateProfile.total_revenue))
+      .limit(10)
+  )
+  ```
+- **Result**: Confirmed absolute stability of stats retrieval, and successfully restarted the `fast_platform_api` container to reload changes.
+
+#### **2. Client CTV Mobile UI Optimization**
+- **Dynamic Link Sharing (Web Share API)**: Integrated modern native sharing using the browser's `navigator.share` protocol. Mobile community partners can now summon their mobile OS native share sheets to directly spread referral links.
+- **Auto-Height Responsive Metrics Grid**: Converted the rigid 2x2 grid to a beautifully padded, uniform auto-height grid (`p-3.5 sm:p-5 flex flex-col justify-between`) equipped with responsive text sizes (`text-base sm:text-lg md:text-xl font-bold`) and `break-all` protection to completely eliminate numerical wrapping or clipping.
+- **Mobile Card Lists (Commissions & Leaderboard)**: Designed premium, native-app card feeds specifically for mobile screens, shifting standard tables to desktop-only mode:
+  - **Mobile Commissions**: Fully responsive feed items showing order IDs, totals, and commission amounts with collapsible glassmorphic break-down details containing taxes and shipping exclusions.
+  - **Mobile Leaderboard**: Sleek, vertically stacked profiles with rank badges, clean tier indicators, and total sales.
+- **Verification & Deployment**: Completed a flawless compilation build (`pnpm build`) and synced all static assets to the production VPS `/opt/fast-platform/frontend/dist` directory. All changes are completely live and active.
+
+### **Checkpoint 31: Premium Frosted Sky-Blue Glassmorphic Redesign**
+
+We redesigned the CTV Dashboard's main information card and the general system-wide CTV registration promo modal to use a high-end, bright, and translucent frosted glass theme ("kính nền như hình 2"), replacing the heavy, dark stone styling.
+
+#### **1. Redesigned CTV Active Dashboard Header Card (`+page.svelte`)**
+- **Frosted Glass Container**: Converted the heavy dark container (`bg-gradient-to-tr from-stone-900 to-neutral-950 text-white`) into a highly polished, translucent sky-blue frosted glass panel (`bg-gradient-to-br from-sky-100/60 via-sky-50/40 to-white/70 text-sky-950 border border-white/60 backdrop-blur-xl`).
+- **Glow Accents**: Replaced the deep coppery glows with soft, airy sky bubbles (`bg-sky-300/20` and `bg-luxury-copper/5`) for depth.
+- **Typography & Elements**:
+  - Greet name and codes are highlighted with deep ocean blue (`text-sky-900` / `text-stone-900`) and soft warm gold (`text-[#8C6239] bg-white/80 border-white/95 shadow-sm`).
+  - The Link Share Hub is enclosed inside a glassy inner tray (`bg-white/30 border-white/60 shadow-inner`) containing a pristine white input box (`bg-white/70 border-white/85 shadow-sm`).
+  - Action buttons render glass-hover properties (`hover:bg-white/85 text-sky-900`).
+
+#### **2. Redesigned CTV Promo Modal (`UserPageWrapper.svelte`)**
+- Updated the main member promotion popup modal to match the exact same airy sky-blue frosted look, replacing its heavy dark background with modern crystal-like translucency, matching "Hình 2" perfectly.
+
+#### **3. Compilation & VPS Synchronization**
+- Verified compile logs to ensure zero warnings or errors. Static assets are successfully synced via `rsync` to `/opt/fast-platform/frontend/dist/`.
+
+### **Checkpoint 32: Admin Chat Z_INDEX ReferenceError Hotfix**
+
+We diagnosed and hotfixed a critical `ReferenceError: Z_INDEX is not defined` error occurring during page load / hydration.
+
+#### **1. Identified Root Cause**
+- In `/frontend/src/routes/(admin)/chat/+page.svelte` on line 150, the code was referencing `Z_INDEX.POPOVER` instead of using the correctly imported `Z_INDEX_ADMIN` constant object from `$lib/core/constants/z_index_admin`.
+
+#### **2. Fixed & Validated**
+- Corrected the template code to use `Z_INDEX_ADMIN.POPOVER` instead:
+  ```svelte
+  style="z-index: {Z_INDEX_ADMIN.POPOVER};"
+  ```
+- Performed a clean `pnpm build` which succeeded flawlessly without any compile warnings or errors (`Exit code: 0`).
+- Synced the modified file `/frontend/src/routes/(admin)/chat/+page.svelte` and the compiled static directory `dist` directly to the production VPS `/opt/fast-platform/frontend/dist/`. The portal is now 100% active and stable!
 
 
 

@@ -570,6 +570,18 @@ class CheckoutService:
                 logging.error(f"[Checkout] Failed to auto-save address: {str(e)}")
 
 
+        # CTV Attribution: Credit commission immediately (PENDING ledger entry = tiền chờ)
+        if resolved_ctv_code:
+            try:
+                from backend.services.ctv_service import CtvService
+                credited = await CtvService.credit_commission(db_session, new_order.id)
+                if credited:
+                    logger.info(f"[CTV] PENDING commission created for order {new_order.id} (code={resolved_ctv_code})")
+                else:
+                    logger.warning(f"[CTV] Commission skipped for order {new_order.id} (code={resolved_ctv_code})")
+            except Exception as e:
+                logger.error(f"[CTV-ERROR] Failed to credit commission at checkout for order {new_order.id}: {e}")
+
         # 6. Proactive Nerve System: Notify Zalo Intelligence (Elite V2.2)
         await event_bus.emit("ORDER_CREATED", {
             "id": new_order.id,

@@ -33,8 +33,14 @@
     total_revenue?: number;
     total_commission?: number;
     paid_commission?: number;
+    pending_commission?: number;
     total_orders?: number;
     status?: 'ACTIVE' | 'PENDING' | 'SUSPENDED' | 'BANNED' | 'CANCELLED';
+    tier?: {
+      name: string;
+      commission_rate: number;
+      min_revenue_threshold: number;
+    };
     tiers?: Array<{
       name: string;
       commission_rate: number;
@@ -52,9 +58,11 @@
     order_id: string;
     order_amount: number;
     commission_rate: number;
+    rate_applied?: number;
     commission_amount: number;
-    status: 'PENDING' | 'CONFIRMED' | 'PAID' | 'CANCELLED';
+    status: 'PENDING' | 'CONFIRMED' | 'PAID' | 'CANCELLED' | 'VOIDED';
     created_at: string;
+    admin_note?: string;
   }
 
   interface LeaderboardRow {
@@ -84,8 +92,10 @@
   // Form states
   let isRegistering = $state(false);
   let regCode = $state('');
+  let regEmail = $state('');
   let regReferredBy = $state('');
   let regError = $state('');
+  let acceptedTerms = $state(false);
 
   // Bank form state
   let showBankModal = $state(false);
@@ -112,12 +122,26 @@
   async function loadCtvData() {
     isLoading = true;
     try {
-      // 1. Fetch profile
-      const rawProfile = await apiClient.get<CtvProfile>('/client/ctv/profile');
-      // Guard: infer is_registered from ctv_code presence (backward compat)
+      // 1. Fetch profile — flatten nested stats/tier from API into flat profile
+      const raw = await apiClient.get<any>('/client/ctv/profile');
+      const stats = raw.stats || {};
+      const tier = raw.tier || {};
       profile = {
-        ...rawProfile,
-        is_registered: rawProfile.is_registered ?? !!rawProfile.ctv_code,
+        is_registered: raw.is_registered ?? !!raw.ctv_code,
+        ctv_code: raw.ctv_code,
+        encrypted_code: raw.encrypted_code,
+        status: raw.status,
+        bank_info: raw.bank_info,
+        tier: tier,
+        tier_name: tier.name || 'Đồng',
+        commission_rate: tier.commission_rate || 0.15,
+        total_revenue: stats.total_revenue || 0,
+        total_commission: stats.total_commission || 0,
+        paid_commission: stats.paid_commission || 0,
+        pending_commission: stats.pending_commission || 0,
+        balance: stats.available_to_withdraw || 0,
+        total_orders: stats.total_orders || 0,
+        tiers: raw.tiers || [],
       };
       if (profile && profile.bank_info) {
         bankName = profile.bank_info.bank || '';
@@ -125,7 +149,7 @@
         bankAccountName = profile.bank_info.account_name || '';
       }
       
-      // 2. Fetch history and leaderboard if registered
+      // 2. Fetch commission history if registered
       if (profile?.is_registered) {
         const commData = await apiClient.get<{ items: CommissionItem[] }>('/client/ctv/commissions?page=1&page_size=30');
         commissions = commData.items || [];
@@ -148,11 +172,16 @@
   async function handleRegister(e: Event) {
     e.preventDefault();
     regError = '';
+    if (!acceptedTerms) {
+      regError = 'Vui lòng đọc và chấp nhận Điều khoản & Chính sách CTV trước khi đăng ký.';
+      return;
+    }
     isRegistering = true;
     
     try {
       const res = await apiClient.post<any>('/client/ctv/register', {
         ctv_code: regCode.trim().toUpperCase(),
+        email: regEmail.trim() || undefined,
         referred_by_code: regReferredBy.trim().toUpperCase() || undefined
       });
       ui.showToast(res.message || 'Đăng ký CTV thành công!', 'success');
@@ -263,12 +292,37 @@
     }
   }
 
+  function parseBreakdown(note: string | undefined) {
+    if (!note) return null;
+    try {
+      return JSON.parse(note);
+    } catch (e) {
+      return null;
+    }
+  }
+
   const referralLink = $derived(
     profile?.encrypted_code 
       ? `${window.location.origin}?ctv=${profile.encrypted_code}` 
       : (profile?.ctv_code ? `${window.location.origin}?ctv=${profile.ctv_code}` : '')
   );
   const qrCodeUrl = $derived(referralLink ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(referralLink)}` : '');
+
+  const canShare = $derived(typeof navigator !== 'undefined' && !!navigator.share);
+
+  async function handleNativeShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Trở thành Đại lý số Osmo',
+          text: 'Tham gia mạng lưới Đại lý số & CTV thông minh của Osmo để nhận chiết khấu hoa hồng hấp dẫn!',
+          url: referralLink,
+        });
+      } catch (err) {
+        console.log('User cancelled share or sharing failed:', err);
+      }
+    }
+  }
 </script>
 
 <UserPageWrapper 
@@ -368,6 +422,19 @@
             </div>
 
             <div class="space-y-2">
+              <label for="regEmail" class="block text-[10px] tracking-[2px] font-bold text-stone-400 uppercase">Email nhận thông báo <span class="text-stone-600">(Tùy chọn)</span></label>
+              <input 
+                id="regEmail"
+                type="email" 
+                bind:value={regEmail}
+                placeholder="email@example.com"
+                autocomplete="email"
+                class="w-full bg-stone-900/60 border border-stone-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-luxury-copper text-white placeholder:text-stone-600 transition-colors"
+              />
+              <p class="text-[9px] text-stone-500 tracking-wider">Nhận thông báo hoa hồng và cập nhật chương trình qua email.</p>
+            </div>
+
+            <div class="space-y-2">
               <label for="regReferredBy" class="block text-[10px] tracking-[2px] font-bold text-stone-400 uppercase">Mã giới thiệu người bảo trợ (Nếu có)</label>
               <input 
                 id="regReferredBy"
@@ -379,10 +446,29 @@
               />
             </div>
 
+            <!-- Terms & Conditions Checkbox -->
+            <label class="flex items-start gap-3 cursor-pointer group pt-1">
+              <input
+                type="checkbox"
+                bind:checked={acceptedTerms}
+                class="mt-0.5 w-4 h-4 rounded accent-luxury-copper shrink-0 cursor-pointer"
+              />
+              <span class="text-[11px] text-stone-400 leading-relaxed font-light group-hover:text-stone-300 transition-colors">
+                Tôi đã đọc và đồng ý với
+                <a
+                  href="/quy-dinh-chinh-sach-doi-tac-affiliate-cong-tac-vien-ban-hang-tren-website-osmovn.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-luxury-copper hover:text-amber-400 underline underline-offset-2 font-semibold transition-colors"
+                  onclick={(e) => e.stopPropagation()}
+                >Điều khoản & Chính sách Đối tác CTV/Affiliate của osmo.vn</a>
+              </span>
+            </label>
+
             <button 
               type="submit" 
-              disabled={isRegistering}
-              class="w-full py-4 rounded-xl bg-luxury-copper hover:bg-amber-600 disabled:bg-stone-800 text-stone-950 font-black text-xs tracking-[4px] uppercase active:scale-[0.98] transition-all shadow-lg shadow-luxury-copper/10 mt-6"
+              disabled={isRegistering || !acceptedTerms}
+              class="w-full py-4 rounded-xl bg-luxury-copper hover:bg-amber-600 disabled:bg-stone-800 disabled:opacity-60 disabled:cursor-not-allowed text-stone-950 font-black text-xs tracking-[4px] uppercase active:scale-[0.98] transition-all shadow-lg shadow-luxury-copper/10 mt-2"
             >
               {#if isRegistering}
                 ĐANG KÍCH HOẠT...
@@ -399,45 +485,55 @@
     <div class="space-y-8" in:fade>
       
       <!-- Premium Glass Header Badge -->
-      <div class="bg-gradient-to-tr from-stone-900 to-neutral-950 text-white rounded-2xl p-6 md:p-8 border border-stone-800 relative overflow-hidden shadow-xl">
-        <div class="absolute -right-20 -top-20 w-52 h-52 bg-luxury-copper/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="bg-gradient-to-br from-sky-100/60 via-sky-50/40 to-white/70 text-sky-950 rounded-2xl p-6 md:p-8 border border-white/60 relative overflow-hidden shadow-xl shadow-sky-900/5 backdrop-blur-xl">
+        <div class="absolute -right-20 -top-20 w-52 h-52 bg-sky-300/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-20 -bottom-20 w-44 h-44 bg-luxury-copper/5 rounded-full blur-3xl pointer-events-none"></div>
         <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           
           <div class="space-y-3">
             <div class="flex items-center gap-2">
-              <span class="px-2.5 py-0.5 bg-luxury-copper/20 border border-luxury-copper/30 text-luxury-copper text-[9px] tracking-[2px] font-black uppercase rounded-full">
+              <span class="px-2.5 py-0.5 bg-luxury-copper/10 border border-luxury-copper/20 text-[#8C6239] text-[9px] tracking-[2px] font-black uppercase rounded-full">
                 Tier {profile.tier_name || 'Đồng'}
               </span>
-              <span class="flex items-center gap-1 text-[10px] text-stone-400 font-mono tracking-widest">
-                <ShieldCheck class="w-3.5 h-3.5 text-emerald-500" /> AES-GCM SEALED
+              <span class="flex items-center gap-1 text-[10px] text-sky-800/80 font-mono tracking-widest font-bold">
+                <ShieldCheck class="w-3.5 h-3.5 text-emerald-600" /> AES-GCM SEALED
               </span>
             </div>
             
-            <h2 class="text-2xl md:text-3xl font-serif italic text-stone-100 font-light">
-              Xin chào, <span class="font-bold text-white not-italic">{authStore.user?.name}</span>
+            <h2 class="text-2xl md:text-3xl font-serif italic text-sky-900 font-light">
+              Xin chào, <span class="font-bold text-stone-900 not-italic">{authStore.user?.name}</span>
             </h2>
             
-            <p class="text-xs text-stone-400 tracking-wider">
-              Mã giới thiệu độc quyền của bạn: <strong class="text-luxury-copper text-sm tracking-widest bg-stone-900/80 px-3 py-1 rounded border border-stone-800 font-mono uppercase ml-1">{profile.ctv_code}</strong>
+            <p class="text-xs text-sky-800/80 tracking-wider">
+              Mã giới thiệu độc quyền của bạn: <strong class="text-[#8C6239] text-sm tracking-widest bg-white/80 px-3 py-1 rounded border border-white/95 font-mono uppercase ml-1 shadow-sm">{profile.ctv_code}</strong>
             </p>
           </div>
 
           <!-- Link Share Hub -->
-          <div class="bg-stone-900/60 border border-stone-800/80 rounded-xl p-4 space-y-3 lg:max-w-md w-full">
-            <span class="block text-[9px] tracking-[3px] font-black text-stone-500 uppercase">Liên kết tiếp thị của bạn</span>
-            <div class="flex items-center bg-stone-950 border border-stone-800 rounded-lg p-1.5 pl-3">
-              <span class="text-[11px] text-stone-400 truncate flex-1 font-mono tracking-tight">{referralLink}</span>
+          <div class="bg-white/30 border border-white/60 rounded-xl p-4 space-y-3 lg:max-w-md w-full shadow-inner backdrop-blur-md">
+            <span class="block text-[9px] tracking-[3px] font-black text-sky-900/60 uppercase">Liên kết tiếp thị của bạn</span>
+            <div class="flex items-center bg-white/70 border border-white/85 rounded-lg p-1.5 pl-3 shadow-sm">
+              <span class="text-[11px] text-sky-950 truncate flex-1 font-mono tracking-tight">{referralLink}</span>
               <div class="flex items-center gap-1.5 ml-2 shrink-0">
+                {#if canShare}
+                  <button 
+                    onclick={handleNativeShare}
+                    class="p-2 hover:bg-white/85 text-sky-900 hover:text-luxury-copper rounded transition-colors"
+                    title="Chia sẻ liên kết"
+                  >
+                    <ExternalLink class="w-4 h-4" />
+                  </button>
+                {/if}
                 <button 
                   onclick={() => copyToClipboard(referralLink)}
-                  class="p-2 hover:bg-stone-900 text-stone-300 hover:text-luxury-copper rounded transition-colors"
+                  class="p-2 hover:bg-white/85 text-sky-900 hover:text-luxury-copper rounded transition-colors"
                   title="Sao chép liên kết"
                 >
                   <Copy class="w-4 h-4" />
                 </button>
                 <button 
                   onclick={() => showQrCode = !showQrCode}
-                  class="p-2 hover:bg-stone-900 text-stone-300 hover:text-luxury-copper rounded transition-colors"
+                  class="p-2 hover:bg-white/85 text-sky-900 hover:text-luxury-copper rounded transition-colors"
                   title="Mã QR"
                 >
                   <QrCode class="w-4 h-4" />
@@ -446,9 +542,9 @@
             </div>
 
             {#if showQrCode}
-              <div class="flex flex-col items-center justify-center p-4 bg-white rounded-lg mt-2 transition-all border border-stone-200" transition:slide>
+              <div class="flex flex-col items-center justify-center p-4 bg-white/90 rounded-lg mt-2 transition-all border border-white/80 shadow-md" transition:slide>
                 <img src={qrCodeUrl} alt="Mã QR Giới thiệu" class="w-36 h-36" />
-                <p class="text-[9px] text-stone-500 mt-2 font-medium tracking-wider">Quét mã để mua hàng qua mã CTV của bạn</p>
+                <p class="text-[9px] text-sky-900/60 mt-2 font-medium tracking-wider">Quét mã để mua hàng qua mã CTV của bạn</p>
               </div>
             {/if}
           </div>
@@ -456,96 +552,94 @@
       </div>
 
       <!-- Financial Metrics Grid -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         
         <!-- Current Balance -->
-        <div class="bg-white rounded-xl p-5 border border-stone-100 shadow-[0_4px_20px_rgba(0,0,0,0.01)] hover:shadow-lg transition-all space-y-4">
+        <div class="bg-white rounded-xl p-3.5 sm:p-5 border border-stone-100 shadow-[0_4px_20px_rgba(0,0,0,0.01)] hover:shadow-lg transition-all flex flex-col justify-between space-y-3 sm:space-y-4">
           <div class="flex items-center justify-between">
-            <span class="text-[10px] tracking-[0.5px] font-bold text-stone-400">Số dư khả dụng</span>
-            <div class="w-8 h-8 rounded-lg bg-luxury-copper/10 flex items-center justify-center text-luxury-copper">
-              <Coins class="w-4 h-4" />
+            <span class="text-[9px] sm:text-[10px] tracking-[0.5px] font-bold text-stone-400 uppercase">Số dư khả dụng</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-luxury-copper/10 flex items-center justify-center text-luxury-copper shrink-0">
+              <Coins class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div>
-            <p class="text-xl font-bold text-stone-800 font-mono tracking-tight">{formatVnd(profile.balance || 0)}</p>
-            <p class="text-[9px] text-stone-400 mt-1">Rút tối thiểu 200k • Phê duyệt nhanh</p>
+            <p class="text-base sm:text-lg md:text-xl font-bold text-stone-800 font-mono tracking-tight break-all">{formatVnd(profile.balance || 0)}</p>
+            <p class="text-[8px] sm:text-[9px] text-stone-400 mt-1">Rút tối thiểu 200k • Phê duyệt nhanh</p>
           </div>
           <button 
             onclick={() => showWithdrawModal = true}
-            class="w-full py-2.5 rounded-lg bg-stone-900 hover:bg-luxury-copper hover:text-stone-950 text-white font-bold text-[10px] tracking-[1px] transition-all"
+            class="w-full py-2 sm:py-2.5 rounded-lg bg-stone-900 hover:bg-luxury-copper hover:text-stone-950 text-white font-bold text-[9px] sm:text-[10px] tracking-[0.5px] sm:tracking-[1px] transition-all mt-auto"
           >
-            Yêu cầu rút tiền
+            Rút tiền
           </button>
         </div>
 
         <!-- Total Revenue -->
-        <div class="bg-white rounded-xl p-5 border border-stone-100 shadow-[0_4px_20px_rgba(0,0,0,0.01)] space-y-4">
+        <div class="bg-white rounded-xl p-3.5 sm:p-5 border border-stone-100 shadow-[0_4px_20px_rgba(0,0,0,0.01)] flex flex-col justify-between space-y-3 sm:space-y-4">
           <div class="flex items-center justify-between">
-            <span class="text-[10px] tracking-[0.5px] font-bold text-stone-400">Tổng doanh số</span>
-            <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500">
-              <TrendingUp class="w-4 h-4" />
+            <span class="text-[9px] sm:text-[10px] tracking-[0.5px] font-bold text-stone-400 uppercase">Tổng doanh số</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
+              <TrendingUp class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div>
-            <p class="text-xl font-bold text-stone-800 font-mono tracking-tight">{formatVnd(profile.total_revenue || 0)}</p>
-            <p class="text-[9px] text-stone-400 mt-1">Tổng giá trị đơn hàng thành công</p>
+            <p class="text-base sm:text-lg md:text-xl font-bold text-stone-800 font-mono tracking-tight break-all">{formatVnd(profile.total_revenue || 0)}</p>
+            <p class="text-[8px] sm:text-[9px] text-stone-400 mt-1">Tổng đơn thành công</p>
           </div>
-          <div class="text-[9px] font-medium text-stone-500 bg-stone-50 py-2.5 px-3 rounded-lg text-center tracking-wider border border-stone-100">
+          <div class="text-[8px] sm:text-[9px] font-medium text-stone-500 bg-stone-50 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-center tracking-wider border border-stone-100 mt-auto">
             Chiết khấu: {((profile.tier?.commission_rate ?? profile.commission_rate ?? 0.05) * 100).toFixed(1)}%
           </div>
         </div>
 
         <!-- Total Commission -->
-        <div class="bg-white rounded-xl p-5 border border-stone-100 shadow-[0_4px_20px_rgba(0,0,0,0.01)] space-y-4">
+        <div class="bg-white rounded-xl p-3.5 sm:p-5 border border-stone-100 shadow-[0_4px_20px_rgba(0,0,0,0.01)] flex flex-col justify-between space-y-3 sm:space-y-4">
           <div class="flex items-center justify-between">
-            <span class="text-[10px] tracking-[0.5px] font-bold text-stone-400">Tổng hoa hồng tích lũy</span>
-            <div class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500">
-              <Award class="w-4 h-4" />
+            <span class="text-[9px] sm:text-[10px] tracking-[0.5px] font-bold text-stone-400 uppercase">Tích lũy</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-500 shrink-0">
+              <Award class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div>
-            <p class="text-xl font-bold text-stone-800 font-mono tracking-tight">{formatVnd(profile.total_commission || 0)}</p>
-            <p class="text-[9px] text-stone-400 mt-1">Tổng hoa hồng thực nhận + khả dụng</p>
+            <p class="text-base sm:text-lg md:text-xl font-bold text-stone-800 font-mono tracking-tight break-all">{formatVnd(profile.total_commission || 0)}</p>
+            <p class="text-[8px] sm:text-[9px] text-stone-400 mt-1">Treo: {formatVnd(profile.pending_commission || 0)}</p>
           </div>
-          <div class="text-[9px] font-medium text-stone-500 bg-stone-50 py-2.5 px-3 rounded-lg text-center tracking-wider border border-stone-100">
-            Đã thanh toán: {formatVnd(profile.paid_commission || 0)}
+          <div class="text-[8px] sm:text-[9px] font-medium text-stone-500 bg-stone-50 py-2 sm:py-2.5 px-2 sm:px-3 rounded-lg text-center tracking-wider border border-stone-100 mt-auto truncate">
+            Đã nhận: {formatVnd(profile.paid_commission || 0)}
           </div>
         </div>
 
         <!-- Total Referral Orders -->
-        <div class="bg-white rounded-xl p-5 border border-stone-100 shadow-[0_4px_20px_rgba(0,0,0,0.01)] space-y-4">
+        <div class="bg-white rounded-xl p-3.5 sm:p-5 border border-stone-100 shadow-[0_4px_20px_rgba(0,0,0,0.01)] flex flex-col justify-between space-y-3 sm:space-y-4">
           <div class="flex items-center justify-between">
-            <span class="text-[10px] tracking-[0.5px] font-bold text-stone-400">Đơn giới thiệu</span>
-            <div class="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-500">
-              <ShoppingBag class="w-4 h-4" />
+            <span class="text-[9px] sm:text-[10px] tracking-[0.5px] font-bold text-stone-400 uppercase">Đơn hàng</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-500 shrink-0">
+              <ShoppingBag class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
           <div>
-            <p class="text-xl font-bold text-stone-800 font-mono tracking-tight">{profile.total_orders || 0} đơn</p>
-            <p class="text-[9px] text-stone-400 mt-1">Số đơn hàng phát sinh từ link của bạn</p>
+            <p class="text-base sm:text-lg md:text-xl font-bold text-stone-800 font-mono tracking-tight break-all">{profile.total_orders || 0} đơn</p>
+            <p class="text-[8px] sm:text-[9px] text-stone-400 mt-1">Số đơn giới thiệu thành công</p>
           </div>
           <!-- Bank & Deactivate Buttons Row (Compact Icon-Only Layout) -->
-          <div class="flex items-center justify-center gap-2 pt-3 border-t border-stone-100 mt-2">
+          <div class="flex items-center justify-center gap-1.5 pt-2 sm:pt-3 border-t border-stone-100 mt-auto">
             <!-- Bank Update Button -->
             <button 
               onclick={() => showBankModal = true}
-              class="flex-1 py-2.5 rounded-xl border border-stone-200 hover:border-stone-400 hover:bg-stone-50 text-stone-600 hover:text-stone-800 transition-all flex items-center justify-center group relative"
+              class="flex-1 py-1.5 sm:py-2.5 rounded-lg border border-stone-200 hover:border-stone-400 hover:bg-stone-50 text-stone-600 hover:text-stone-800 transition-all flex items-center justify-center group relative"
               title="Cập nhật tài khoản ngân hàng"
             >
-              <Landmark class="w-4 h-4 transition-transform group-hover:scale-110" />
-              <span class="absolute -top-8 bg-stone-900 text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity font-bold whitespace-nowrap shadow-md">Liên kết ngân hàng</span>
+              <Landmark class="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" />
             </button>
 
             <!-- Deactivate Button -->
             <button 
               onclick={() => showDeactivateConfirm = true}
-              class="flex-1 py-2.5 rounded-xl border border-red-100 hover:border-red-300 hover:bg-red-50/50 text-red-400 hover:text-red-500 transition-all flex items-center justify-center group relative"
+              class="flex-1 py-1.5 sm:py-2.5 rounded-lg border border-red-100 hover:border-red-300 hover:bg-red-50/50 text-red-400 hover:text-red-500 transition-all flex items-center justify-center group relative"
               title="Hủy đăng ký chương trình CTV"
             >
-              <svg class="w-4 h-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              <span class="absolute -top-8 bg-red-950 text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity font-bold whitespace-nowrap shadow-md">Hủy tham gia CTV</span>
             </button>
           </div>
         </div>
@@ -670,7 +764,7 @@
               {#if showFullPolicy}
                 <div class="space-y-3.5 pt-3.5 border-t border-stone-200/60" transition:slide>
                   <li class="flex items-start gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-luxury-copper mt-1.5 shrink-0"></span>
+                     <span class="w-1.5 h-1.5 rounded-full bg-luxury-copper mt-1.5 shrink-0"></span>
                     <span><strong>Chiết khấu trực tiếp:</strong> osmo áp dụng mô hình liên kết trực tiếp (depth = 1), đảm bảo minh bạch, lành mạnh và tối ưu hóa lợi nhuận cao nhất cho CTV.</span>
                   </li>
                   <li class="flex items-start gap-2">
@@ -692,12 +786,22 @@
                 Xem thêm chính sách <ChevronDown class="w-3.5 h-3.5" />
               {/if}
             </button>
+
+            <!-- Link to full affiliate policy article -->
+            <a
+              href="/quy-dinh-chinh-sach-doi-tac-affiliate-cong-tac-vien-ban-hang-tren-website-osmovn.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="w-full mt-1 flex items-center justify-center gap-1.5 text-[9px] font-bold text-sky-600 hover:text-sky-700 transition-colors tracking-[0.5px] py-1"
+            >
+              <ExternalLink class="w-3 h-3" /> Xem chi tiết Điều khoản & Chính sách CTV
+            </a>
           </div>
 
         </div>
       {:else if activeTab === 'history'}
         <!-- Lịch sử hoa hồng Tab -->
-        <div class="bg-white rounded-xl border border-stone-100 shadow-[0_4px_20px_rgba(0,0,0,0.01)] overflow-hidden" in:fade>
+        <div class="bg-white rounded-xl border border-stone-100 shadow-[0_4px_20px_rgba(0,0,0,0.01)] lg:overflow-visible overflow-hidden" in:fade>
           
           <div class="px-6 py-4 border-b border-stone-100 flex items-center justify-between">
             <h3 class="text-xs tracking-[0.5px] font-bold text-stone-800 flex items-center gap-1.5">
@@ -705,7 +809,8 @@
             </h3>
           </div>
 
-          <div class="overflow-x-auto">
+          <!-- Desktop Table Layout -->
+          <div class="hidden lg:block lg:overflow-visible overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="bg-stone-50 border-b border-stone-100 text-[10px] tracking-[0.5px] font-bold text-stone-400">
@@ -726,27 +831,82 @@
                   </tr>
                 {:else}
                   {#each commissions as item}
-                    <tr class="hover:bg-stone-50/50 transition-colors">
+                    <tr class="hover:bg-stone-50/50 transition-colors hover:relative hover:z-40">
                       <td class="py-4 px-6 font-mono font-medium text-stone-700">#{item.order_id.split('-')[0].toUpperCase()}</td>
                       <td class="py-4 px-6 text-right font-mono font-medium text-stone-800">{formatVnd(item.order_amount)}</td>
-                      <td class="py-4 px-6 text-right font-mono text-stone-500">{(item.rate_applied || 0.15) * 100}%</td>
-                      <td class="py-4 px-6 text-right font-mono font-bold text-luxury-copper">+{formatVnd(item.commission_amount)}</td>
+                      <td class="py-4 px-6 text-right font-mono text-stone-500">{(item.rate_applied ?? profile.tier?.commission_rate ?? profile.commission_rate ?? 0.05) * 100}%</td>
+                      <td class="py-4 px-6 text-right font-mono font-bold text-luxury-copper relative group cursor-help">
+                        <span>+{formatVnd(item.commission_amount)}</span>
+                        
+                        <!-- Premium Glassmorphic Tooltip for breakdown details -->
+                        {#if parseBreakdown(item.admin_note)}
+                          {@const bd = parseBreakdown(item.admin_note)}
+                          <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block w-64 bg-stone-950/95 backdrop-blur-md border border-stone-850 text-[10px] text-stone-300 rounded-xl p-3.5 shadow-2xl z-[200] leading-relaxed text-left font-sans">
+                            <!-- Arrow pointing down to the cell -->
+                            <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-stone-950"></div>
+                            
+                            <h4 class="font-bold text-white mb-2 pb-1 border-b border-stone-850 flex items-center justify-between">
+                              <span>📝 Chi tiết đối soát</span>
+                              <span class="text-[8px] font-mono font-bold text-luxury-copper uppercase tracking-wider">Micsmo V2.2</span>
+                            </h4>
+                            
+                            <div class="space-y-1.5 font-mono text-[9px]">
+                              <div class="flex justify-between">
+                                <span class="text-stone-500">Doanh thu gộp:</span>
+                                <span class="text-white">{formatVnd(bd.order_total)}</span>
+                              </div>
+                              <div class="flex justify-between">
+                                <span class="text-stone-500">Khấu trừ ship:</span>
+                                <span class="text-red-400">-{formatVnd(bd.shipping_fee)}</span>
+                              </div>
+                              <div class="flex justify-between">
+                                <span class="text-stone-500">Thuế thu nhập (3%):</span>
+                                <span class="text-red-400">-{formatVnd(bd.tax_deduction)}</span>
+                              </div>
+                              <div class="h-[1px] bg-stone-850 my-1"></div>
+                              <div class="flex justify-between">
+                                <span class="text-stone-400 font-bold">Doanh thu thuần:</span>
+                                <span class="text-emerald-400 font-bold">{formatVnd(bd.revenue_net)}</span>
+                              </div>
+                              <div class="flex justify-between">
+                                <span class="text-stone-500">Tỷ lệ chiết khấu:</span>
+                                <span class="text-luxury-copper font-bold">{(bd.rate_applied * 100).toFixed(1)}%</span>
+                              </div>
+                              <div class="h-[1px] bg-stone-850 my-1"></div>
+                              <div class="flex justify-between text-xs pt-0.5">
+                                <span class="text-white font-bold">Hoa hồng thực nhận:</span>
+                                <span class="text-luxury-copper font-bold">+{formatVnd(bd.commission_amount)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        {/if}
+
+                        {#if !parseBreakdown(item.admin_note) && item.admin_note}
+                          <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block w-56 bg-stone-950/95 backdrop-blur-md border border-stone-850 text-[10px] text-stone-300 rounded-xl p-3.5 shadow-2xl z-[200] leading-relaxed text-left font-sans">
+                            <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-stone-950"></div>
+                            <h4 class="font-bold text-white mb-1.5 pb-1 border-b border-stone-800 flex items-center gap-1.5">
+                              <span>⚠️ Ghi chú xử lý</span>
+                            </h4>
+                            <p class="font-mono text-[9px] leading-relaxed">{item.admin_note}</p>
+                          </div>
+                        {/if}
+                      </td>
                       <td class="py-4 px-6 relative group">
                         <span class="px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wide transition-all
                           {item.status === 'CONFIRMED' ? 'bg-amber-50 border border-amber-200 text-amber-600' : ''}
                           {item.status === 'PAID' ? 'bg-emerald-50 border border-emerald-200 text-emerald-600' : ''}
                           {item.status === 'PENDING' ? 'bg-orange-50/70 border border-orange-200 text-orange-600' : ''}
-                          {item.status === 'CANCELLED' ? 'bg-red-50 border border-red-200 text-red-500' : ''}
+                          {item.status === 'CANCELLED' || item.status === 'VOIDED' ? 'bg-red-50 border border-red-200 text-red-500' : ''}
                         ">
                           {item.status === 'CONFIRMED' ? 'Khả dụng' : ''}
                           {item.status === 'PAID' ? 'Đã chi trả' : ''}
                           {item.status === 'PENDING' ? getPendingDaysLeft(item.created_at) : ''}
-                          {item.status === 'CANCELLED' ? 'Đã hủy bỏ' : ''}
+                          {item.status === 'CANCELLED' || item.status === 'VOIDED' ? 'Đã hủy bỏ' : ''}
                         </span>
                         
                         {#if item.status === 'PENDING'}
-                          <!-- Premium Tooltip for 7-day Return Policy Validation -->
-                          <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-52 bg-stone-950 border border-stone-800 text-[10px] text-stone-300 rounded-lg p-2.5 shadow-xl z-10 leading-relaxed">
+                          <!-- Premium Tooltip for 7-day Return Policy Validation (Positioned TOP) -->
+                          <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block w-52 bg-stone-950 border border-stone-800 text-[10px] text-stone-300 rounded-lg p-2.5 shadow-xl z-[200] leading-relaxed text-left font-sans">
                             <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-stone-950"></div>
                             <p class="font-bold text-white mb-0.5">🔒 Đơn hàng đã ghi nhận</p>
                             <p>Đang đối soát theo chính sách 7 ngày đổi trả của Osmo. Hoa hồng sẽ tự động chuyển sang "Khả dụng" sau khi hết hạn đổi trả.</p>
@@ -759,6 +919,91 @@
                 {/if}
               </tbody>
             </table>
+          </div>
+
+          <!-- Mobile Card List Layout -->
+          <div class="block lg:hidden divide-y divide-stone-100">
+            {#if commissions.length === 0}
+              <div class="py-12 text-center text-stone-400 font-light italic text-xs">
+                Bạn chưa phát sinh giao dịch hoa hồng nào. Hãy chia sẻ liên kết ngay!
+              </div>
+            {:else}
+              {#each commissions as item}
+                <div class="p-4 space-y-3 hover:bg-stone-50/50 transition-colors">
+                  <div class="flex items-center justify-between">
+                    <span class="font-mono font-bold text-stone-800 text-xs sm:text-sm">#{item.order_id.split('-')[0].toUpperCase()}</span>
+                    <span class="px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wide
+                      {item.status === 'CONFIRMED' ? 'bg-amber-50 border border-amber-200 text-amber-600' : ''}
+                      {item.status === 'PAID' ? 'bg-emerald-50 border border-emerald-200 text-emerald-600' : ''}
+                      {item.status === 'PENDING' ? 'bg-orange-50/70 border border-orange-200 text-orange-600' : ''}
+                      {item.status === 'CANCELLED' || item.status === 'VOIDED' ? 'bg-red-50 border border-red-200 text-red-500' : ''}
+                    ">
+                      {item.status === 'CONFIRMED' ? 'Khả dụng' : ''}
+                      {item.status === 'PAID' ? 'Đã chi trả' : ''}
+                      {item.status === 'PENDING' ? getPendingDaysLeft(item.created_at) : ''}
+                      {item.status === 'CANCELLED' || item.status === 'VOIDED' ? 'Đã hủy bỏ' : ''}
+                    </span>
+                  </div>
+
+                  <div class="grid grid-cols-3 gap-2 text-[10px] sm:text-[11px] text-stone-500">
+                    <div>
+                      <span class="block text-[8px] uppercase tracking-wider text-stone-400">Doanh thu</span>
+                      <span class="font-mono font-semibold text-stone-700">{formatVnd(item.order_amount)}</span>
+                    </div>
+                    <div>
+                      <span class="block text-[8px] uppercase tracking-wider text-stone-400">Tỷ lệ</span>
+                      <span class="font-mono font-semibold text-stone-700">{(item.rate_applied ?? profile.tier?.commission_rate ?? profile.commission_rate ?? 0.05) * 100}%</span>
+                    </div>
+                    <div class="text-right">
+                      <span class="block text-[8px] uppercase tracking-wider text-stone-400">Hoa hồng nhận</span>
+                      <span class="font-mono font-extrabold text-luxury-copper text-xs sm:text-sm">+{formatVnd(item.commission_amount)}</span>
+                    </div>
+                  </div>
+
+                  <!-- Mobile Audit Breakdown Card -->
+                  {#if parseBreakdown(item.admin_note)}
+                    {@const bd = parseBreakdown(item.admin_note)}
+                    <div class="bg-stone-50 border border-stone-200/50 rounded-xl p-3 space-y-2 mt-2">
+                      <div class="flex items-center justify-between text-[8px] text-stone-400 font-bold uppercase tracking-wider">
+                        <span>📊 Chi tiết đối soát</span>
+                        <span class="text-luxury-copper font-mono">Micsmo V2.2</span>
+                      </div>
+                      <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono text-[9px] text-stone-600">
+                        <div class="flex justify-between">
+                          <span>Gộp:</span>
+                          <span class="text-stone-850 font-medium">{formatVnd(bd.order_total)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span>Thuần:</span>
+                          <span class="text-emerald-600 font-bold">{formatVnd(bd.revenue_net)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span>Phí ship:</span>
+                          <span class="text-red-500 font-medium">-{formatVnd(bd.shipping_fee)}</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span>Tỷ lệ:</span>
+                          <span class="text-luxury-copper font-medium">{(bd.rate_applied * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="flex justify-between col-span-2 pt-1 border-t border-stone-200/50">
+                          <span class="text-stone-500">Thuế TN (3%):</span>
+                          <span class="text-red-500 font-bold">-{formatVnd(bd.tax_deduction)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  {:else if item.admin_note}
+                    <div class="bg-amber-50/40 border border-amber-200/40 rounded-xl p-3 text-[9px] text-stone-600 leading-relaxed">
+                      <strong class="block text-[8px] uppercase tracking-wider text-stone-400 mb-1">⚠️ Ghi chú:</strong>
+                      {item.admin_note}
+                    </div>
+                  {/if}
+
+                  <div class="text-[8px] text-stone-400 font-mono flex items-center justify-between pt-1 border-t border-stone-100/50">
+                    <span>Thời gian: {new Date(item.created_at).toLocaleDateString('vi-VN')} {new Date(item.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </div>
+              {/each}
+            {/if}
           </div>
         </div>
       {:else if activeTab === 'leaderboard'}
@@ -773,7 +1018,8 @@
               </h3>
             </div>
 
-            <div class="overflow-x-auto">
+            <!-- Desktop Leaderboard Table -->
+            <div class="hidden lg:block lg:overflow-visible overflow-x-auto">
               <table class="w-full text-left border-collapse">
                 <thead>
                   <tr class="bg-stone-50 border-b border-stone-100 text-[10px] tracking-[0.5px] font-bold text-stone-400">
@@ -818,6 +1064,46 @@
                   {/if}
                 </tbody>
               </table>
+            </div>
+
+            <!-- Mobile Leaderboard Layout -->
+            <div class="block lg:hidden divide-y divide-stone-100">
+              {#if !globalStats?.leaderboard || globalStats.leaderboard.length === 0}
+                <div class="py-12 text-center text-stone-400 font-light italic text-xs">
+                  Đang cập nhật bảng xếp hạng đại lý...
+                </div>
+              {:else}
+                {#each globalStats.leaderboard as row, idx}
+                  <div class="p-4 flex items-center justify-between hover:bg-stone-50/50 transition-colors {idx < 3 ? 'bg-amber-50/5' : ''}">
+                    <div class="flex items-center gap-3">
+                      <!-- Rank Badge -->
+                      <div class="w-8 h-8 flex items-center justify-center shrink-0">
+                        {#if idx === 0}
+                          <span class="inline-flex w-7 h-7 items-center justify-center rounded-full bg-amber-400 text-stone-900 shadow-md font-bold text-xs">1</span>
+                        {:else if idx === 1}
+                          <span class="inline-flex w-7 h-7 items-center justify-center rounded-full bg-stone-300 text-stone-900 shadow-md font-bold text-xs">2</span>
+                        {:else if idx === 2}
+                          <span class="inline-flex w-7 h-7 items-center justify-center rounded-full bg-amber-600 text-white shadow-md font-bold text-xs">3</span>
+                        {:else}
+                          <span class="text-stone-400 font-mono font-bold text-sm">{idx + 1}</span>
+                        {/if}
+                      </div>
+                      
+                      <div class="space-y-1">
+                        <span class="font-mono tracking-wider font-bold text-stone-800 text-xs sm:text-sm block">{row.ctv_code_masked}</span>
+                        <span class="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider border border-stone-200 text-stone-600 bg-stone-50">
+                          {row.tier || 'Đồng'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="text-right space-y-1">
+                      <span class="font-mono font-extrabold text-stone-800 text-xs sm:text-sm block">{formatVnd(row.total_revenue)}</span>
+                      <span class="text-[9px] text-stone-400 font-mono block">{row.total_orders} đơn</span>
+                    </div>
+                  </div>
+                {/each}
+              {/if}
             </div>
           </div>
 

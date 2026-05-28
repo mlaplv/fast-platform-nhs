@@ -147,7 +147,7 @@
 
   <div 
     class="fixed bottom-8 left-0 right-0 pointer-events-none"
-    style="z-index: {Z_INDEX.POPOVER};"
+    style="z-index: {Z_INDEX_ADMIN.POPOVER};"
   >
     <div class="pointer-events-auto">
       <OmniCommand />

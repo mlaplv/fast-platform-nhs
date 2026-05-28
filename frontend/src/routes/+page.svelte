@@ -28,6 +28,10 @@
             }
         } catch (err) {
             console.error("[SYSTEM FAULT] DYNAMIC_LOAD_FAILED:", err);
+            if (typeof window !== 'undefined') {
+                console.warn("[RECOVER] Chunk loading failed. Reloading page to force synchronization...");
+                window.location.reload();
+            }
         }
     });
 

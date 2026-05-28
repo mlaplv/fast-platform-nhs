@@ -421,8 +421,14 @@
                       </td>
                       <td class="py-4 px-6 text-right text-stone-300 font-bold">{item.commission_rate_pct}</td>
                       <td class="py-4 px-6 text-right text-stone-400">{formatVnd(item.total_revenue)}</td>
-                      <td class="py-4 px-6 text-right text-white font-bold">{formatVnd(item.total_commission)}</td>
-                      <td class="py-4 px-6 text-right text-emerald-400">{formatVnd(item.paid_commission)}</td>
+                      <td class="py-4 px-6 text-right text-white font-bold">
+                        <div>{formatVnd(item.total_commission)}</div>
+                        <div class="text-[9px] text-stone-500 font-normal mt-0.5">Treo: {formatVnd(item.pending_commission || 0)}</div>
+                      </td>
+                      <td class="py-4 px-6 text-right text-emerald-400">
+                        <div>{formatVnd(item.paid_commission)}</div>
+                        <div class="text-[9px] text-stone-500 font-normal mt-0.5">Khả dụng: {formatVnd(item.available_commission || 0)}</div>
+                      </td>
                       <td class="py-4 px-6 text-center">
                         <span class="px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide uppercase 
                           {item.status === 'ACTIVE' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : ''}
