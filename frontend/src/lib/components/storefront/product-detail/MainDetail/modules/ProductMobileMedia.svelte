@@ -78,7 +78,7 @@
        <ShareToUnlockPromoMobile {product} variant="floating" onUnlock={triggerViralFly} />
      {/key}
   </div>
-  <div class="thumbnails-track mt-4 px-4 flex gap-3 overflow-x-auto no-scrollbar">
+  <div class="thumbnails-track mt-[10px] px-4 flex gap-3 overflow-x-auto no-scrollbar">
     {#each displayImages as img, i}
       {@const isActive = activeImageIndex === i}
       <button 

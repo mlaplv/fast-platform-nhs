@@ -492,11 +492,11 @@
     </div>
 
     <!-- Title & Stats -->
-    <div class="title-row mt-2">
+    <div class="title-row">
       <h1 class="product-title">{product.name.replace(/40gr/g, '40g')}</h1>
     </div>
 
-    <div class="product-stats-row mb-2">
+    <div class="product-stats-row">
       {#if stats?.total_count || product.metadata?.review_count}
         <div class="rating-box">
           <span class="scoreText">{stats?.average_rating || product.metadata?.reviews_trust_score || '5.0'}</span>
@@ -527,7 +527,7 @@
     </div>
 
     {#if variations.length > 0}
-      <div class="w-full py-3 border-y border-gray-50 my-2">
+      <div class="w-full border-y border-gray-50 variations-container">
         <div class="flex items-center justify-between mb-2 px-1">
           <span class="text-[12px] text-gray-400 font-bold tracking-wider">
             {variations.length === 1 ? variations[0].name : 'Lựa chọn'}
@@ -572,7 +572,7 @@
     {/if}
 
     {#if activeComboQty > 1 || activeGifts.length > 0}
-      <div class="mb-4 relative overflow-hidden bg-white border border-[#ee4d2d]/10 rounded-xl p-3 shadow-sm">
+      <div class="promo-container relative overflow-hidden bg-white border border-[#ee4d2d]/10 rounded-xl p-3 shadow-sm">
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-2">
               <div class="w-6 h-6 rounded-full bg-[#ee4d2d] flex items-center justify-center text-white shrink-0">
@@ -669,8 +669,8 @@
   .time-box span { background: rgba(0,0,0,0.3); color: white; padding: 2px 6px; border-radius: 4px; font-weight: 1000; border: 1px solid rgba(255,255,255,0.2); min-width: 28px; text-align: center; font-size: 13px; }
   .time-box .separator { background: none; border: none; padding: 0; min-width: 4px; opacity: 0.8; text-align: center; font-weight: 1000; }
 
-  .info-content { background: white; padding: 10px 5px 2px 5px; }
-  .vouchers-outer { position: relative; margin-bottom: 12px; margin-left: -5px; margin-right: -5px; }
+  .info-content { background: white; padding: 10px 5px 0px 5px; }
+  .vouchers-outer { position: relative; margin-bottom: 10px; margin-left: -5px; margin-right: -5px; }
   .vouchers-list {
     display: flex;
     gap: 8px;
@@ -693,17 +693,25 @@
   .scroll-btn.prev { left: 4px; }
   .scroll-btn.next { right: 4px; }
 
-  .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+  .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 10px; margin-bottom: 10px; }
   .product-title { font-size: 16px; font-weight: 800; line-height: 1.4; color: #222; flex: 1; margin: 0; }
-  .bookmark-btn { background: none; border: none; color: #666; padding: 0; transition: color 0.3s; }
-  .bookmark-active { color: #ff424f !important; }
 
-  .product-stats-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; }
+  .product-stats-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #888; margin-bottom: 10px; }
   .rating-box { display: flex; align-items: center; gap: 4px; color: #222; font-weight: 900; }
   .stars { display: flex; align-items: center; gap: 1px; }
   .divider { width: 1px; height: 10px; background: #eee; }
-  .trust-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; letter-spacing: 0.05em; }
 
   /* CSS Variables for global sync */
   .overview-section { --z-media-promo: var(--z-index-media-promo, 10); }
+
+  .variations-container {
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+
+  .promo-container {
+    margin-bottom: 10px;
+  }
 </style>

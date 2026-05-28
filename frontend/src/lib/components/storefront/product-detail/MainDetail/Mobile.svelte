@@ -346,19 +346,13 @@
       />
     </section>
 
-    <div class="section-divider"></div>
-
     <section id="description">
       <ProductMobileSpecs {product} onTriggerScan={triggerScan} />
     </section>
 
-    <div class="section-divider"></div>
-
     <section id="reviews">
       <ProductMobileReviews {product} />
     </section>
-
-    <div class="section-divider"></div>
 
     <section id="recommendations">
       <ProductMobileRecommendations {relatedProducts} />
@@ -435,10 +429,7 @@
     flex-direction: column;
   }
 
-  .section-divider {
-    height: 8px;
-    background: #f5f5f5;
-  }
+
 
   .h-20 {
     height: 80px;

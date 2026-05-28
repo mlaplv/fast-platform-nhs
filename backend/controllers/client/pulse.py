@@ -36,14 +36,21 @@ class ClientPulseController(Controller):
     @get("", guards=[])
     async def stream_pulse(self, request: Request) -> Stream:
         """
-        Streams events for a specific support session.
-        Uses InternalBus.subscribe_context() for lean, targeted listening.
+        Streams events for a specific support session via Query parameter or Cookie.
         """
-        # Elite V2.2: Support both cookie and query_param for maximum resilience
         session_id = request.cookies.get("helen_session_id") or request.query_params.get("session_id")
-        
+        return self._build_stream(request, session_id)
+
+    @get("/{session_id:str}", guards=[])
+    async def stream_pulse_legacy(self, request: Request, session_id: str) -> Stream:
+        """
+        Legacy support for path parameter format: /pulse/{session_id}
+        """
+        return self._build_stream(request, session_id)
+
+    def _build_stream(self, request: Request, session_id: str | None) -> Stream:
         if not session_id:
-            logger.error("[ClientPulse] Missing session_id (cookie & query_param).")
+            logger.error("[ClientPulse] Missing session_id (cookie, path, or query_param).")
             from litestar.exceptions import BadRequestException
             raise BadRequestException("Missing session_id")
 

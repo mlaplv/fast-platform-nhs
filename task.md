@@ -345,3 +345,9 @@
 - [x] Corrected line 150 in `src/routes/(admin)/chat/+page.svelte` to refer to `Z_INDEX_ADMIN.POPOVER` instead of undefined `Z_INDEX`. (Done)
 - [x] Compiled static production build frontend flawlessly and rsync-deployed static storefront assets successfully to the VPS root. (Done)
 
+# Task Checklist - Fixing CTV Affiliate Deactivation (Elite V2.2)
+
+- [ ] Phân tích và nới lỏng kiểm tra hủy đăng ký CTV tại `deactivate_profile` trong `backend/controllers/client/ctv.py`.
+- [ ] Loại bỏ hoàn toàn chốt chặn `ValidationException` đối với hoa hồng đang chờ duyệt (`pending_amount > 0`) và yêu cầu rút tiền đang xử lý (`pending_wr_count > 0`).
+- [ ] Cập nhật tài liệu minh chứng `walkthrough.md` với các chi tiết kỹ thuật đã thực hiện.
+- [ ] Đồng bộ hóa mã nguồn sửa đổi lên Production VPS và khởi động lại dịch vụ backend an toàn.

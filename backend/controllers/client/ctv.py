@@ -225,38 +225,7 @@ class ClientCtvController(Controller):
         if not aff:
             raise NotFoundException("Bạn chưa đăng ký chương trình CTV")
 
-        # 2. Block if pending commission exists (protect CTV from losing unpaid earnings)
-        pending_stmt = select(func.sum(CommissionLedger.commission_amount)).where(
-            and_(
-                CommissionLedger.affiliate_id == aff.id,
-                CommissionLedger.status == "PENDING",
-            )
-        )
-        pending_res = await db_session.execute(pending_stmt)
-        pending_amount = float(pending_res.scalar() or 0.0)
-        if pending_amount > 0:
-            raise ValidationException(
-                f"Bạn còn {pending_amount:,.0f}đ hoa hồng chưa được xác nhận. "
-                f"Vui lòng đợi hoa hồng được xác nhận hoặc liên hệ Admin để xử lý trước khi rời chương trình."
-            )
-
-        # 3. Check for pending withdrawal requests
-        from backend.database.models.affiliate import WithdrawalRequest
-        pending_wr_stmt = select(func.count()).select_from(WithdrawalRequest).where(
-            and_(
-                WithdrawalRequest.affiliate_id == aff.id,
-                WithdrawalRequest.status.in_(["PENDING", "APPROVED"]),
-            )
-        )
-        pending_wr_res = await db_session.execute(pending_wr_stmt)
-        pending_wr_count = pending_wr_res.scalar() or 0
-        if pending_wr_count > 0:
-            raise ValidationException(
-                "Bạn còn yêu cầu rút tiền chưa được xử lý. "
-                "Vui lòng đợi Admin duyệt xong trước khi rời chương trình."
-            )
-
-        # 4. Soft-delete — preserve all ledger history
+        # 2. Soft-delete — preserve all ledger history (re-activation will fully restore stats)
         aff.status = "CANCELLED"
         aff.deleted_at = datetime.now(timezone.utc)
         await db_session.commit()

@@ -120,6 +120,11 @@
 
   async function handleRequestOTP() {
     if (!identifier) return;
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(identifier)) {
+      error = "Vui lòng nhập đúng định dạng email (ví dụ: name@example.com)";
+      return;
+    }
     if (mode === 'register' && !fullName) {
       error = "Vui lòng nhập họ và tên để đăng ký.";
       return;

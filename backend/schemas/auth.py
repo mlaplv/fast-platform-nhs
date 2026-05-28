@@ -61,7 +61,7 @@ class SocialLoginRequest(BaseModel):
 class OTPRequest(BaseModel):
     model_config = ConfigDict(strict=True)
     phone: Optional[str] = Field(None, pattern=r"^\+?[0-9]{10,15}$")
-    email: Optional[str] = Field(None, pattern=r"^[a-zA-Z0-9_.@+-]+$")
+    email: Optional[str] = Field(None, pattern=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 class OTPVerifyRequest(BaseModel):
     model_config = ConfigDict(strict=True)

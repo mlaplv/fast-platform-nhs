@@ -209,6 +209,8 @@ class PublicGoogleMerchantController(Controller):
                     f"{sale_price_str}"
                     f"      <g:brand>{brand}</g:brand>\n"
                     "      <g:condition>new</g:condition>\n"
+                    "      <g:excluded_destination>free_local_listings</g:excluded_destination>\n"
+                    "      <g:excluded_destination>local_inventory_ads</g:excluded_destination>\n"
                     "    </item>"
                 )
                 items_xml.append(item_str)
@@ -266,6 +268,8 @@ class PublicGoogleMerchantController(Controller):
                         f"      <g:brand>{brand}</g:brand>\n"
                         "      <g:condition>new</g:condition>\n"
                         f"      <g:item_group_id>{self._escape(p.id)}</g:item_group_id>\n"
+                        "      <g:excluded_destination>free_local_listings</g:excluded_destination>\n"
+                        "      <g:excluded_destination>local_inventory_ads</g:excluded_destination>\n"
                         "    </item>"
                     )
                     items_xml.append(item_str)
