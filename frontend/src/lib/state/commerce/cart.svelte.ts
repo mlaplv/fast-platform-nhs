@@ -518,7 +518,7 @@ export class CartStore {
             return { text: '', hasGift: false, nextTier: null, nextComboName: '', gap: 0 };
         }
 
-        const getQty = (attrs: any): number => Number(attrs?.combo_qty ?? attrs?.comboQty ?? 0);
+        const getQty = (attrs: ProductVariant['attributes']): number => Number(attrs?.combo_qty ?? attrs?.comboQty ?? 0);
         
         const comboVariants = product.variants?.filter(v => {
             if (!v.attributes) return false;
@@ -589,7 +589,7 @@ export class CartStore {
         }
 
         if (hasGift) {
-            const giftStrings = gifts.map((g: any) => {
+            const giftStrings = gifts.map((g: { name: string; qty?: number; quantity?: number }) => {
                 const gQty = g.qty || g.quantity || 1;
                 return `${gQty} ${g.name}`;
             });

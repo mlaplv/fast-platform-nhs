@@ -32,6 +32,22 @@
         }
       } catch(e) {}
 
+      // Silence noisy third-party cookie/partitioned console warnings
+      try {
+        var orgWarn = console.warn;
+        console.warn = function() {
+          var msg = arguments[0];
+          if (typeof msg === 'string' && (
+            msg.indexOf('test_cookie') !== -1 ||
+            msg.indexOf('doubleclick.net') !== -1 ||
+            msg.indexOf('Partitioned') !== -1
+          )) {
+            return;
+          }
+          orgWarn.apply(console, arguments);
+        };
+      } catch(e) {}
+
       var CACHE_KEY='primary_config';
       /* Robust ID validator: rejects null, "null", "", "0", whitespace-only, X-placeholders */
       function ok(id){return typeof id==='string'&&id.trim().length>0&&id!=='null'&&id!=='undefined'&&id!=='0'&&!/^[Xx]+$/.test(id.trim());}
@@ -45,6 +61,7 @@
       gtag('js',new Date());
       gtag('set', 'cookie_update', false);
       gtag('set', {'cookie_update': false}); // Triệt tiêu cảnh báo overwrite cookie expires khi chuyển trang
+      gtag('set', 'cookie_flags', 'SameSite=None;Secure;Partitioned'); // Hỗ trợ Partitioned cookie cho GA/GTM
 
       function injectGTM(id){
         if(!ok(id)||window.__gtm_loaded__)return;
@@ -69,7 +86,7 @@
         }
         // Chỉ gọi config nếu ID chưa từng được config
         window.__ga_id__=id;
-        window.gtag('config',id,{'cookie_update':false});
+        window.gtag('config',id,{'cookie_update':false, 'cookie_flags': 'SameSite=None;Secure;Partitioned', 'allow_display_features': false});
       }
       function injectGSC(id){
         if(!ok(id)||document.querySelector('meta[name="google-site-verification"]'))return;

@@ -34,8 +34,8 @@
 
 <style>
   .tbn-action-group { 
-    display: flex; flex: 1; height: 100%; margin-left: 8px; margin-right: -6px; 
-    border-radius: 0 18px 18px 0; overflow: hidden; 
+    display: flex; flex: 1; height: 100%; margin-left: 8px; margin-right: 0; 
+    border-radius: 0; overflow: hidden; 
     background: #fff; border-left: 1px solid #f5f5f5;
   }
   .tbn-action-split { display: flex; flex-direction: column; align-items: center; justify-content: center; border: none; cursor: pointer; transition: all 0.2s ease; }

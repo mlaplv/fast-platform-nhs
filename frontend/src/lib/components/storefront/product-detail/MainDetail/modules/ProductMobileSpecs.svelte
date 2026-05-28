@@ -401,7 +401,7 @@
     </div>
   {/if}
 
-  <div class="flex items-center justify-between mt-[10px] mb-[10px] pr-1">
+  <div class="flex items-center justify-between mt-[10px] mb-[4px] pr-1">
     <h2 class="section-title !mb-0 !mt-0">Chi tiết</h2>
     <!-- 🎙️ NEURAL VOICE CAPSULE (Elite V6.4 Lite) -->
     <button
@@ -775,6 +775,11 @@
     font-size: 14px !important; /* Sleek mobile e-commerce standard (Lazada/Shopee) */
     line-height: 1.6 !important;
     color: #374151 !important;
+  }
+
+  :global(.prose-osmo > *:first-child) {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
   }
 
   :global(.prose-osmo p) {

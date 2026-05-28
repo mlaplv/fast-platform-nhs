@@ -1,7 +1,6 @@
 <!-- MobileServiceIcons.svelte -->
 <!-- Ultra-Lean Quick service icons with enhanced Viral FOMO -->
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { authStore } from '$lib/state/authStore.svelte';
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { goto } from '$app/navigation';
@@ -66,12 +65,7 @@
     },
   ];
 
-
   let scrollContainer: HTMLDivElement;
-
-  onMount(() => {
-    // Logic removed as dots are gone
-  });
 </script>
 
 <div class="service-icons-wrap">

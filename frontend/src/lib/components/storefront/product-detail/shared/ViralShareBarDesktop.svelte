@@ -205,7 +205,7 @@
   }
 </script>
 
-{#if campaignExists && promoConfig?.voucher_id}
+{#if (campaignExists && promoConfig?.voucher_id) || isCtv}
 <div class="w-full font-sans">
   <div class="flex flex-col gap-4 w-full">
     

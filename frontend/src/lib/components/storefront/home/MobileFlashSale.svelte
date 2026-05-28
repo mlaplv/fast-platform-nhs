@@ -3,7 +3,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
-  import { slugify, formatCurrency } from '$lib/utils/format';
+  import { formatCurrency } from '$lib/utils/format';
 
   import type { Product } from '$lib/types';
 

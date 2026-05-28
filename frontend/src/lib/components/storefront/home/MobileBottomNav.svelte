@@ -36,6 +36,8 @@
   }: Props = $props();
 
   let isShrunk = $state(false);
+  let isMini = $state(false);
+  let isHidden = $state(false);
   let lastScrollY = 0;
   let isMenuOpen = $state(false);
   let categoriesData = $state<Category[]>([]);
@@ -105,11 +107,29 @@
       const currentScrollY = scroller === window ? window.scrollY : (scroller as Element).scrollTop;
       const threshold = 15;
       if (currentScrollY > lastScrollY + threshold && currentScrollY > 80) {
-        if (!isShrunk) isShrunk = true;
+        if (currentScrollY > 280) {
+          isHidden = true;
+          isMini = true;
+          isShrunk = true;
+        } else if (currentScrollY > 160) {
+          isHidden = false;
+          isMini = true;
+          isShrunk = true;
+        } else {
+          isShrunk = true;
+          isMini = false;
+          isHidden = false;
+        }
         if (isMenuOpen) isMenuOpen = false;
         lastScrollY = currentScrollY;
       } else if (currentScrollY < lastScrollY - threshold || currentScrollY <= 80) {
-        if (isShrunk) isShrunk = false;
+        isHidden = false;
+        isMini = false;
+        if (currentScrollY <= 80) {
+          isShrunk = false;
+        } else {
+          isShrunk = true;
+        }
         lastScrollY = currentScrollY;
       }
     };
@@ -136,10 +156,10 @@
 />
 
 <nav 
-  class="tbn-nav {isShrunk ? 'tbn-nav--shrunk' : ''}" 
+  class="tbn-nav {isShrunk ? 'tbn-nav--shrunk' : ''} {isMini ? 'tbn-nav--mini' : ''} {isHidden ? 'tbn-nav--hidden' : ''}" 
   style="z-index: var(--z-mobile-tab-bar, 100);"
 >
-  <div class="tbn-nav-inner">
+  <div class="tbn-nav-inner {isProductMode ? 'tbn-nav-inner--product' : ''}">
     {#if !isProductMode}
       <button class="tbn-item {isMenuOpen ? 'tbn-item--active' : ''}" aria-label="Menu" onclick={toggleMenu}>
         <div class="relative flex flex-col items-center">
@@ -182,14 +202,110 @@
 </nav>
 
 <style>
-  .tbn-nav { position: fixed; bottom: max(env(safe-area-inset-bottom), 12px); left: 50%; translate: -50% 0; width: max-content; max-width: calc(100vw - 24px); height: 50px; background: #FFFFFF; border: 1px solid #F0F0F0; border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); display: flex; align-items: center; transition: all 0.3s cubic-bezier(0.2, 1, 0.3, 1); }
+  .tbn-nav {
+    position: fixed;
+    bottom: max(env(safe-area-inset-bottom), 12px);
+    left: 50%;
+    translate: -50% 0;
+    width: max-content;
+    max-width: calc(100vw - 24px);
+    height: 50px;
+    background: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+    backdrop-filter: blur(20px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 24px;
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.06), 
+      0 2px 4px rgba(0, 0, 0, 0.02),
+      inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    transition: 
+      height 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+      border-radius 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+      translate 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+      scale 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.35s ease,
+      background-color 0.3s ease,
+      box-shadow 0.4s ease;
+  }
   .tbn-nav-inner { width: 100%; height: 100%; display: flex; align-items: center; gap: 4px; padding: 0 8px; }
-  .tbn-nav--shrunk { height: 40px; border-radius: 14px; translate: -50% 6px; }
-  .tbn-item { display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; border: none; color: #666; transition: all 0.2s ease; height: 100%; min-width: 56px; padding: 0 8px; }
+  .tbn-nav-inner--product { padding-right: 0 !important; }
+  .tbn-nav--shrunk {
+    height: 42px;
+    border-radius: 16px;
+    translate: -50% 6px;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 
+      0 8px 30px rgba(0, 0, 0, 0.08), 
+      0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+  .tbn-nav--mini {
+    scale: 0.86 !important;
+    opacity: 0.75;
+    translate: -50% 4px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  }
+  .tbn-nav--hidden {
+    translate: -50% 80px !important;
+    scale: 0.25 !important;
+    opacity: 0;
+    pointer-events: none;
+    filter: blur(10px);
+  }
+  .tbn-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: #555;
+    transition: 
+      scale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+      opacity 0.25s ease,
+      color 0.25s ease;
+    height: 100%;
+    min-width: 56px;
+    padding: 0 8px;
+    cursor: pointer;
+  }
+  .tbn-item:active {
+    scale: 0.9 !important;
+    opacity: 0.7;
+  }
   .tbn-item--active { color: #000 !important; }
-  .tbn-icon { width: 22px; height: 22px; margin-bottom: 2px; }
-  .tbn-label { font-size: 10px; font-weight: 800; letter-spacing: 0.5px; }
-  .tbn-nav--shrunk .tbn-label { display: none; }
-  .tbn-nav--shrunk .tbn-icon { scale: 0.9; margin-bottom: 0; }
+  .tbn-icon {
+    width: 22px;
+    height: 22px;
+    margin-bottom: 2px;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .tbn-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    transition: 
+      opacity 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+      transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+      max-height 0.3s ease,
+      margin-top 0.3s ease;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .tbn-nav--shrunk .tbn-label {
+    opacity: 0 !important;
+    transform: translateY(6px) !important;
+    pointer-events: none;
+    max-height: 0 !important;
+    margin-top: -2px !important;
+    overflow: hidden;
+  }
+  .tbn-nav--shrunk .tbn-icon {
+    scale: 0.92;
+    margin-bottom: 0;
+  }
   .tbn-label--ai { background: linear-gradient(90deg, #C18F7E, #E3B5A4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; }
 </style>

@@ -21,6 +21,7 @@
   import { apiClient } from '$lib/utils/apiClient';
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
+  import { goto } from '$app/navigation';
 
   interface Props {
     product: Product;
@@ -214,9 +215,114 @@
 
 <svelte:window onscroll={handleScroll} />
 
-{#if campaignExists && promoConfig?.voucher_id}
-<div class="w-full font-sans relative group z-10" class:opacity-60={isCollapsed} class:opacity-0={isHidden} class:pointer-events-none={isHidden}>
-  {#if variant === 'funnel'}
+{#if (campaignExists && promoConfig?.voucher_id) || isCtv || variant === 'inline'}
+<div class="w-full font-sans relative group z-10" class:opacity-60={isCollapsed && variant !== 'inline'} class:opacity-0={isHidden && variant !== 'inline'} class:pointer-events-none={isHidden && variant !== 'inline'}>
+  {#if variant === 'inline'}
+    <!-- Inline Clean Style for White Background (Elite V2.2) -->
+    <div class="flex flex-col w-full relative z-10">
+      <div class="flex items-center justify-between gap-3">
+        {#if !hideLikes}
+          <button onclick={handleLike} class="flex items-center gap-1.5 group/like hover:scale-105 active:scale-95 transition-all">
+            <Heart size={16} class="transition-transform {isLiked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}" />
+            <span class="text-[11px] font-bold {isLiked ? 'text-rose-600' : 'text-slate-500'}">{formatViralCount(localLikeCount)}</span>
+          </button>
+          <div class="w-[1px] h-3.5 bg-slate-200 shrink-0"></div>
+        {/if}
+
+        <!-- Social Icons Group -->
+        <button onclick={() => share('facebook')} class="text-slate-400 hover:text-[#1877f2] active:scale-90 transition-all" aria-label="Share Facebook"><Facebook size={16} class="fill-current" /></button>
+        <button onclick={() => share('zalo')} class="text-slate-400 hover:text-[#0068ff] active:scale-90 transition-all font-black text-[10px]" aria-label="Share Zalo">Zalo</button>
+        <button onclick={() => share('x')} class="text-slate-400 hover:text-black active:scale-90 transition-all" aria-label="Share X"><Twitter size={16} class="fill-current" /></button>
+        <button onclick={() => share('instagram')} class="text-slate-400 hover:text-[#e4405f] active:scale-90 transition-all" aria-label="Share Instagram"><Instagram size={16} /></button>
+
+        <div class="w-[1px] h-3.5 bg-slate-200 shrink-0"></div>
+
+        <!-- Dynamic CTV Button (Personalized for status) -->
+        {#if isCtv}
+          <button 
+            onclick={(e) => {
+              e.preventDefault();
+              showCtvPopover = true;
+            }} 
+            class="px-2 py-1 bg-gradient-to-r from-amber-500 to-luxury-copper text-stone-950 hover:from-amber-600 hover:to-amber-500 active:scale-95 transition-all rounded-lg font-black text-[8px] tracking-wider uppercase shrink-0 flex items-center gap-1 shadow-sm shadow-luxury-copper/20 relative overflow-hidden group" 
+            aria-label="Copy CTV"
+          >
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer-fast"></div>
+            <Zap size={9} class="fill-stone-950 text-stone-950 animate-pulse" /> Kênh CTV - {activeRatePercent}
+          </button>
+        {:else}
+          <button 
+            onclick={(e) => {
+              e.preventDefault();
+              if (!authStore.isAuthenticated) {
+                getClientUi().showToast('Vui lòng đăng nhập để tham gia CTV!', 'info');
+                getClientUi().openLogin();
+              } else {
+                goto('/user/ctv');
+              }
+            }} 
+            class="px-2 py-1 bg-amber-50 text-amber-800 border border-amber-200/60 active:scale-95 transition-all rounded-lg font-black text-[8px] tracking-wider uppercase shrink-0 flex items-center gap-1"
+            aria-label="Đăng ký CTV"
+          >
+            🔥 Nhận {activeRatePercent}
+          </button>
+        {/if}
+
+        <button onclick={copyLink} class="text-slate-400 hover:text-slate-900 active:scale-90 transition-all" aria-label="Copy Link"><Copy size={16} /></button>
+      </div>
+
+      <!-- FOMO Progress (Inline Light Style) -->
+      {#if shareTarget > 0 && campaignExists && promoConfig?.voucher_id}
+        {#if shareProgress < 100}
+          <div class="mt-3 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <div class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0"></div>
+                <span class="text-[10px] text-slate-500 font-medium truncate leading-none">
+                  {campaignDesc}
+                </span>
+              </div>
+              <span class="text-[11px] font-black text-rose-500 shrink-0">{Math.round(shareProgress)}%</span>
+            </div>
+            <div class="relative w-full pt-1 pb-1.5 overflow-visible">
+              <div class="h-1.5 w-full bg-slate-100 rounded-full relative">
+                <div 
+                  class="absolute top-0 left-0 h-full rounded-full blur-[2px] opacity-40 transition-all duration-1000" 
+                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 50%, rgba(238, 77, 45, 0) 100%);"
+                ></div>
+                <div 
+                  class="absolute top-0 left-0 h-full rounded-full overflow-hidden transition-all duration-1000" 
+                  style="width: {shareProgress}%; background: linear-gradient(90deg, #ff2d55 0%, #ee4d2d 75%, rgba(238, 77, 45, 0.15) 100%);"
+                >
+                  <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-viral-flow"></div>
+                </div>
+                <div 
+                  class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 transition-all duration-1000 pointer-events-none" 
+                  style="left: {shareProgress}%"
+                >
+                  <span class="relative flex h-2.5 w-2.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 shadow-[0_0_6px_#ff2d55]"></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        {:else}
+          <div class="mt-3 p-2.5 rounded-xl bg-rose-50/50 border border-rose-100/50 flex items-center justify-between">
+            <div class="flex flex-col min-w-0">
+              <span class="text-[9px] font-black text-rose-600 mb-0.5 tracking-wider uppercase">ĐÃ ĐẠT MỤC TIÊU 🎉</span>
+              <span class="text-[10px] text-slate-500 truncate">Sử dụng mã giảm giá độc quyền ngay:</span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-rose-100 shadow-sm shrink-0">
+              <span class="font-bold text-rose-600 text-xs font-mono">{voucherCode}</span>
+              <button onclick={() => voucherCode && navigator.clipboard.writeText(voucherCode)} class="text-slate-400 hover:text-rose-500 active:scale-90 transition-transform"><Copy size={11} /></button>
+            </div>
+          </div>
+        {/if}
+      {/if}
+    </div>
+  {:else if variant === 'funnel'}
     <div class="flex flex-col w-full relative z-10 transition-all duration-300">
       <!-- Actions Row (Premium Glass) -->
       <div class="relative z-10 flex items-center justify-between gap-2 mt-3 mb-2">
@@ -318,14 +424,14 @@
       <button class="w-10 h-10 flex items-center justify-center relative active:scale-90 transition-transform drop-shadow-[0_4px_10px_rgba(0,0,0,0.1)] focus:outline-none" onclick={triggerVerify}>
         <img src={product?.metadata?.verified_badge_url || SHOP_CONFIG.default_badge_url} alt="Verified Badge" class="w-full h-full object-contain" />
       </button>
- 
+  
       <button class="flex flex-col items-center gap-1 drop-shadow-md active:scale-90 transition-transform" onclick={handleLike}>
         <div class="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-colors {isLiked ? 'bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)]' : 'bg-black/40 border border-white/20'}">
            <Heart size={18} class={isLiked ? 'fill-white text-white' : 'text-white'} />
         </div>
         <span class="text-[10px] font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{formatViralCount(localLikeCount)}</span>
       </button>
- 
+  
       <div class="flex flex-col gap-3">
         <button class="active:scale-90 transition-transform" onclick={() => share('facebook')}>
           <div class="w-9 h-9 rounded-full bg-[#1877f2] flex items-center justify-center shadow-lg"><Facebook size={16} class="fill-white text-white" /></div>
@@ -352,15 +458,38 @@
               {activeRatePercent}
             </span>
           </button>
+        {:else}
+          <button 
+            class="active:scale-95 transition-transform relative group" 
+            onclick={(e) => {
+              e.preventDefault();
+              if (!authStore.isAuthenticated) {
+                getClientUi().showToast('Vui lòng đăng nhập để tham gia CTV!', 'info');
+                getClientUi().openLogin();
+              } else {
+                goto('/user/ctv');
+              }
+            }} 
+            title="Đăng ký CTV - Nhận hoa hồng"
+          >
+            <div class="w-9 h-9 rounded-full bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30 border border-orange-400/40 relative overflow-hidden">
+              <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer-fast"></div>
+              <span class="text-[9px] font-black text-white italic tracking-tighter">CTV</span>
+            </div>
+            <!-- Dynamic small badge showing % on floating bubble -->
+            <span class="absolute -top-1.5 -right-1.5 px-1 py-0.5 bg-amber-400 text-stone-950 rounded-full font-black text-[7px] scale-90 border border-stone-950 shadow-md whitespace-nowrap">
+              +{activeRatePercent}
+            </span>
+          </button>
         {/if}
-
+ 
         <button class="active:scale-90 transition-transform" onclick={copyLink}>
           <div class="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg"><Copy size={14} class="text-white" /></div>
         </button>
       </div>
     </div>
   {/if}
-
+ 
   <!-- Premium Centered Popover Modal for Mobile QR Code Sharing -->
   {#if showCtvPopover}
     <!-- Blurred overlay backdrop -->
