@@ -95,6 +95,9 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __table_args__ = (
         Index("ix_products_tenant_deleted", "tenant_id", "deleted_at"),
         Index("ix_products_created_at", "created_at"),
+        Index("ix_products_deleted_at", "deleted_at"),
+        Index("ix_products_category_id", "category_id"),
+        Index("ix_products_status_deleted", "status", "deleted_at"),
     )
 
 class ProductVariant(Base, AuditMixin, SoftDeleteMixin):

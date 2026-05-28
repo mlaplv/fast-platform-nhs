@@ -358,3 +358,50 @@
 - [x] Add a public endpoint `@get("/shipping")` under `ClientSettingsController` in `backend/controllers/client/settings.py` to retrieve the dynamic, Redis-backed default shipping fee for the storefront. (Done)
 - [x] Update frontend checkout page `frontend/src/routes/(client)/(store)/checkout/+page.svelte` to dynamically fetch the default shipping fee from the new endpoint instead of relying on the static `SHIPPING_CONFIG.STANDARD_FEE` constant. (Done)
 - [x] Validate financial accuracy in commission calculations by ensuring the 35,000 VND Redis-configured fee is consistently applied across all tenant environments. (Done)
+
+# Task Checklist - Database Query Performance Optimization (Elite V2.2)
+
+- [x] Phân tích cấu trúc các câu truy vấn chậm gây ra log SLOW_QUERY trên vouchers, product_bases, và articles. (Done)
+- [x] Thêm các chỉ mục composite và chỉ mục đơn lẻ thích hợp vào các model SQLAlchemy (`Voucher`, `ProductBase`, `Article`). (Done)
+- [x] Tạo file migration tự động bằng Alembic để áp dụng cấu trúc index mới vào cơ sở dữ liệu Postgres. (Done)
+- [x] Tiến hành upgrade migration và xác nhận toàn bộ index được tạo thành công trong Postgres catalog. (Done)
+
+# Task Checklist - GA4/GTM DoubleClick Cookie Warning Resolution (Elite V2.2)
+
+- [x] Cấu hình `cookie_flags` toàn cục trong gtag với giá trị `'SameSite=None;Secure;Partitioned'` tại `frontend/src/app.html`. (Done)
+- [x] Tích hợp `cookie_flags` và `allow_display_features: false` vào `window.gtag('config')` để ngăn ngừa doubleclick.net tự ý ghi cookie remarketing không an toàn. (Done)
+- [x] Thiết lập bộ lọc chặn/ghi đè `console.warn` để bỏ qua các cảnh báo liên quan đến `test_cookie`, `doubleclick.net` hoặc `Partitioned` do trình duyệt tự động kích hoạt ngoài tầm kiểm soát của ứng dụng. (Done)
+
+# Task Checklist - MobileBottomNav Orange Button Right Gap Hotfix (Elite V2.2)
+
+- [x] Thiết lập `overflow: hidden;` toàn cục cho `.tbn-nav` để tự động bo tròn và cắt mọi phần tử con tràn ra khỏi biên thanh điều hướng dưới. (Done)
+- [x] Cấu hình class điều kiện `tbn-nav-inner--product` cho `.tbn-nav-inner` để triệt tiêu khoảng đệm bên phải (`padding-right: 0 !important;`) khi đang hiển thị chế độ chi tiết sản phẩm. (Done)
+- [x] Tối ưu hóa `.tbn-action-group` trong `ProductMobileActions.svelte` bằng cách loại bỏ margin âm dư thừa (`margin-right: 0;`) và border-radius thừa để nút màu cam chạm tuyệt đối vào mép phải và được cắt bo tròn hoàn hảo bởi khung cha. (Done)
+
+# Task Checklist - MobileBottomNav Multi-Stage Kinetic Scroll Hiding (Elite V2.2)
+
+- [x] Khai báo trạng thái phản ứng `isHidden` và `isMini` của thanh điều hướng di động để hỗ trợ giai đoạn trung gian siêu thu gọn và ẩn mượt mà. (Done)
+- [x] Cải tiến hàm xử lý sự kiện cuộn `handleScroll` trong `onMount` thành 4 giai đoạn mượt mà thích ứng:
+  - Hiển thị đầy đủ (`scrollY <= 80px`)
+  - Thu nhỏ dạng viên thuốc (`80px < scrollY <= 160px`)
+  - Siêu thu gọn & bán trong suốt (`160px < scrollY <= 280px`)
+  - Ẩn hoàn toàn khỏi màn hình (`scrollY > 280px`). (Done)
+- [x] Cấu hình hiệu ứng CSS trượt biến mất kết hợp scale nhỏ dần (`scale: 0.3 !important; translate: -50% 80px !important; opacity: 0;`) khi ẩn, loại bỏ hoàn toàn cảm giác "hụt hẫng" khi cuộn trang đột ngột. (Done)
+- [x] Tích hợp cơ chế phản hồi cuộn ngược (Scroll Up detection) để lập tức phục hồi trạng thái thanh điều hướng (`isHidden = false`, `isMini = false`) ở bất kỳ độ sâu trang nào, đảm bảo người dùng có thể tương tác Hotline/Giỏ hàng/AI Chat tức thì. (Done)
+
+# Task Checklist - MobileBottomNav iPhone Viral 2026 UI/UX Polish (Elite V2.2)
+
+- [x] Áp dụng các đường cong chuyển động đàn hồi vật lý iOS (`cubic-bezier(0.34, 1.56, 0.64, 1)`) trên toàn bộ các thuộc tính kích thước, dịch chuyển, bo góc, tạo cảm giác nảy hồi (spring rebound) cực kỳ tự nhiên. (Done)
+- [x] Nâng cấp vật liệu kính "Liquid Glass" pha lê cao cấp (`backdrop-filter: blur(20px) saturate(190%)` kết hợp viền bán trong suốt `rgba(255,255,255,0.6)` và đổ bóng đổ đa lớp). (Done)
+- [x] Triển khai cơ chế hòa tan chữ mềm mại (Fade & Slide Dissolve) thay cho việc ẩn nóng nhãn chữ đột ngột khi thanh điều hướng co rút lại. (Done)
+- [x] Thiết lập phản hồi nhấn cơ học (Haptic Press Simulation: `scale: 0.9` và `opacity: 0.7` trên sự kiện `:active`) mang lại cảm xúc cao cấp khi chạm ngón tay. (Done)
+- [x] Thêm bộ lọc mờ động nghệ thuật (`filter: blur(10px)`) khi thu bé biến mất để mô phỏng chiều sâu camera điện ảnh (Bokeh/Depth of Field). (Done)
+
+# Task Checklist - CTV Mobile Features Integration (Elite V2.2)
+
+- [x] Tích hợp thanh chia sẻ affiliate `ViralShareBarMobile` định dạng `mobile` (dọc phải TikTok) trực tiếp trên slide phương tiện di động (`ProductMobileMedia.svelte` / `ProductMobileOverview.svelte`). (Done)
+- [x] Cải tiến logic wrapper của `ViralShareBarMobile.svelte` và `ViralShareBarDesktop.svelte` để luôn hiển thị cho người dùng có vai trò CTV hoạt động (`isCtv`). (Done)
+- [x] Tạo nút CTA "CTV" kiêm hoa hồng cho người dùng chưa là CTV ngay trên cột dọc TikTok để hướng dẫn đăng ký hoặc liên kết tài khoản an toàn. (Done)
+- [x] Thiết lập phong cách tối giản "Zero-Gap", giao diện sắc nét hòa quyện hoàn hảo với nền trắng của phần mô tả tổng quan di động. (Done)
+- [x] Loại bỏ thanh chia sẻ inline dư thừa ở thân bài để tối ưu không gian hiển thị và tránh phân mảnh trải nghiệm người dùng di động. (Done)
+

@@ -66,6 +66,8 @@ class Article(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __table_args__ = (
         Index("ix_articles_tenant_deleted", "tenant_id", "deleted_at"),
         Index("ix_articles_created_at", "created_at"),
+        Index("ix_articles_deleted_at", "deleted_at"),
+        Index("ix_articles_status", "status"),
     )
 
 class ArticleEmbedding(Base, AuditMixin):

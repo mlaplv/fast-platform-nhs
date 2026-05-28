@@ -1,7 +1,7 @@
 from typing import Optional
 import sqlalchemy as sa
 from sqlalchemy import (
-    String, Integer, Boolean, Text, Float, DateTime
+    String, Integer, Boolean, Text, Float, DateTime, Index
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -41,6 +41,12 @@ class Voucher(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     is_viral: Mapped[bool] = mapped_column(Boolean, default=False) # Elite V2.2: Explicit Viral Control
     priority: Mapped[int] = mapped_column(Integer, default=0)
     metadata_json: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, default={})
+
+    __table_args__ = (
+        Index("ix_vouchers_tenant_deleted", "tenant_id", "deleted_at"),
+        Index("ix_vouchers_deleted_at", "deleted_at"),
+        Index("ix_vouchers_active_viral", "is_active", "is_viral"),
+    )
 
 class ComboDeal(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'combo_deals'
