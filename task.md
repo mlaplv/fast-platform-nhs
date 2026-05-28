@@ -420,6 +420,6 @@
 - [x] Xây dựng bộ lọc `isAdminZone` chặn tải các script GTM, GA, Facebook Pixel và GSC trực tiếp tại `app.html` khi phát hiện môi trường quản trị. (Done)
 - [x] Tích hợp cơ chế vô hiệu hóa GA4/GTM/Facebook Pixel tự động (opt-out & no-op) trong `(admin)/+layout.svelte` để triệt tiêu theo dõi khi chuyển trang client-side. (Done)
 - [x] Tích hợp cơ chế vô hiệu hóa GA4/GTM/Facebook Pixel tự động trong trang root `routes/+page.svelte` khi tenant là admin. (Done)
-- [x] Tinh giản kiến trúc Admin, cấu hình điều hướng (redirect 307) từ đường dẫn `/ctv` cũ về trang chủ Dashboard quản trị thống nhất (`/dashboard`) để loại bỏ hoàn toàn giao diện dư thừa (Image 2) và tuân thủ mô hình Dynamic Canvas Modal chuẩn (Image 1). (Done)
+- [x] Tinh giản triệt để kiến trúc Admin, xoá bỏ hoàn toàn (permanent purge) thư mục route `/ctv` cũ (`routes/(admin)/ctv`) để làm sạch mã nguồn, giảm dung lượng bundle và tuân thủ 100% mô hình Dynamic Canvas Modal chuẩn (Hình 1). (Done)
 - [x] Cập nhật tài liệu `walkthrough.md` làm bằng chứng kỹ thuật đã hoàn thành. (Done)
 
