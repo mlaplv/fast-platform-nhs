@@ -414,3 +414,11 @@
 - [x] Xóa bỏ khối mã DOM floating button `{#if showScrollTop}` khỏi `NewsDetailMobile.svelte`. (Done)
 - [x] Kiểm tra lỗi và thực hiện biên dịch tĩnh SvelteKit `pnpm build` thành công 100% để đảm bảo không còn cảnh báo thừa. (Done)
 
+
+# Task Checklist - Preventing Admin Data Leaks to Analytics (Elite V2.2)
+
+- [x] Xây dựng bộ lọc `isAdminZone` chặn tải các script GTM, GA, Facebook Pixel và GSC trực tiếp tại `app.html` khi phát hiện môi trường quản trị. (Done)
+- [x] Tích hợp cơ chế vô hiệu hóa GA4/GTM/Facebook Pixel tự động (opt-out & no-op) trong `(admin)/+layout.svelte` để triệt tiêu theo dõi khi chuyển trang client-side. (Done)
+- [x] Tích hợp cơ chế vô hiệu hóa GA4/GTM/Facebook Pixel tự động trong trang root `routes/+page.svelte` khi tenant là admin. (Done)
+- [x] Cập nhật tài liệu `walkthrough.md` làm bằng chứng kỹ thuật đã hoàn thành. (Done)
+

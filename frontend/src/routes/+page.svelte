@@ -18,6 +18,21 @@
     const loadStorefront = () => import("$lib/components/storefront/StorefrontHome.svelte");
 
     onMount(async () => {
+        // Disable GA/GTM/Pixel tracking early if in admin tenant mode to prevent data leak
+        if (data.tenant === 'admin') {
+            try {
+                const seo = data.shopInfo?.seo_analytics;
+                if (seo) {
+                    if (seo.google_analytics_id) window[`ga-disable-${seo.google_analytics_id}`] = true;
+                    if (seo.google_tag_manager_id) window[`ga-disable-${seo.google_tag_manager_id}`] = true;
+                }
+                window.gtag = function() {};
+                window.fbq = function() {};
+            } catch (e) {
+                console.error("[SECURITY] Failed to disable analytics for Admin Tenant:", e);
+            }
+        }
+
         try {
             if (data.tenant === 'admin') {
                 const mod = await loadAdmin();

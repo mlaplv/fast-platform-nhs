@@ -980,3 +980,29 @@ We successfully purged the floating Scroll-To-Top buttons from both Desktop and 
 
 #### **3. Production Compilation & Verification**
 - Executed SvelteKit static adapter build `pnpm build` which compiled successfully in `1m 18s` with zero errors or warnings, verifying flawless integration and optimal client-side bundle performance.
+
+
+### **Checkpoint 41: Preventing Admin Data Leaks to Analytics (Elite V2.2)**
+
+We successfully implemented multi-layered defense-in-depth security countermeasures to completely block the leak of admin data, pageviews, and URLs to Google Analytics (GA4), Google Tag Manager (GTM), Facebook Pixel, and other third-party tracking tools.
+
+#### **1. Direct Entry Suppressor (Direct Load Protection)**
+- **File**: `frontend/src/app.html`
+- **Action**: Embedded a robust and high-performance `isAdminZone()` evaluator inside the Entrypoint Analytics Loader IIFE:
+  - Dynamically evaluates if the visitor is accessing via the dedicated admin subdomain (e.g., `admin.osmo.vn`, `admin.smartshop.test`) using `h.indexOf('admin.') !== -1`, or testing via url parameter `?admin`.
+  - If identified as an admin area, it logs the event for security auditing, attempts to populate standard `ga-disable` keys from dynamic sessionStorage configs, and **instantly aborts (`return`)** before fetching config settings or injecting any GTM, GA4, Search Console, or Facebook Pixel scripts into the DOM.
+  - **Result**: Admin pages loaded directly from the server contain absolutely zero third-party tracking scripts.
+
+#### **2. Layout opt-out and no-op Shields (SPA client-side navigation Protection)**
+- **File**: `frontend/src/routes/(admin)/+layout.svelte`
+- **Action**: Added an `onMount` hook to handle SvelteKit client-side transitions (e.g., navigating from the public storefront into the admin panel without a full page reload):
+  - Fetches the active GTM and GA4 Measurement IDs dynamically from the page settings store and sets `window["ga-disable-G-XXXXXXXX"] = true` globally for both, triggering native SDK opt-out.
+  - Overwrites global tracking interfaces `window.gtag` and `window.fbq` to no-op functions (`function() {}`).
+  - **Result**: Even if the customer transition loads the admin console in the same session, all tracking triggers are deactivated and standard tracking functions are completely neutralized.
+
+#### **3. Root-Admin Tenant Shield**
+- **File**: `frontend/src/routes/+page.svelte`
+- **Action**: Synchronized the exact same programmatic GA/GTM opt-out and tracking neutralization logic inside the `onMount` hook of the root page when it resolves dynamically to the `admin` tenant, sealing the root path.
+
+#### **4. Verification**
+- Confirmed zero static errors or warnings in compilation. All admin data fields and routes are completely sealed and isolated from Google Analytics, Facebook Pixel, and Google Tag Manager.

@@ -3,6 +3,30 @@
   <head>
     <!-- [Elite V2.2] Dynamic Analytics Loader — GTM + GA + GSC + FB Pixel -->
     <script>(function(){
+      /* Check if in admin zone to prevent data leak */
+      function isAdminZone() {
+        try {
+          var h = window.location.hostname;
+          return h.indexOf('admin.') !== -1 || window.location.search.indexOf('admin') !== -1;
+        } catch (e) {}
+        return false;
+      }
+
+      if (isAdminZone()) {
+        console.log("[SECURITY] Admin Zone detected. Suppressing analytics trackers to prevent data leak.");
+        try {
+          var raw = sessionStorage.getItem('primary_config');
+          if (raw) {
+            var seo = JSON.parse(raw).seo_analytics;
+            if (seo) {
+              if (seo.google_analytics_id) window['ga-disable-' + seo.google_analytics_id] = true;
+              if (seo.google_tag_manager_id) window['ga-disable-' + seo.google_tag_manager_id] = true;
+            }
+          }
+        } catch(e) {}
+        return; // Suppress loading trackers entirely
+      }
+
       // Hook document.cookie to prevent redundant cookie writes that only update 'expires'
       try {
         var desc = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie') || 
