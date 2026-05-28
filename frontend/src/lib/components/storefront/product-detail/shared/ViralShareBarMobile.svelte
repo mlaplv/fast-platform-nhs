@@ -11,6 +11,7 @@
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
+  import { formatCurrency } from '$lib/utils/format';
   import { fade, scale } from 'svelte/transition';
   import { SHOP_CONFIG } from '$lib/constants/shop';
 
@@ -94,15 +95,41 @@
 
   let isCtv = $state(false);
   let ctvCode = $state('');
+  let ctvRate = $state(0.05); // Default 5%
   let showCtvPopover = $state(false);
+
+  // Elite V2.2 Hybrid Priority Chain Commission Rate Calculation
+  const activeRate = $derived.by(() => {
+    const override = product.ctv_rate_override ?? product.ctvRateOverride;
+    if (override !== undefined && override !== null) {
+      return override;
+    }
+    return ctvRate;
+  });
+
+  const activeRatePercent = $derived(`${Math.round(activeRate * 100)}%`);
+
+  const estimatedCommission = $derived.by(() => {
+    const price = product.discountPrice ?? product.discount_price ?? product.price ?? 0;
+    // R102 Dynamic Pricing: Deduct 3% tax from base revenue for estimated commission calculation
+    const revenueNet = price * 0.97;
+    return Math.round(revenueNet * activeRate);
+  });
 
   onMount(async () => {
     if (browser && authStore.isAuthenticated) {
       try {
-        const ctvProfile = await apiClient.get<{ ctv_code?: string; encrypted_code?: string }>('/client/ctv/profile');
+        const ctvProfile = await apiClient.get<{ 
+          ctv_code?: string; 
+          encrypted_code?: string;
+          tier?: { commission_rate: number };
+        }>('/client/ctv/profile');
         if (ctvProfile) {
           isCtv = true;
           ctvCode = ctvProfile.encrypted_code || ctvProfile.ctv_code || '';
+          if (ctvProfile.tier?.commission_rate !== undefined) {
+            ctvRate = ctvProfile.tier.commission_rate;
+          }
         }
       } catch (e) {
         // Not ctv, silent
@@ -217,7 +244,7 @@
             >
               <!-- Shimmer light sweep -->
               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer-fast"></div>
-              <Zap size={10} class="fill-stone-950 text-stone-950 animate-pulse" /> Kênh CTV
+              <Zap size={10} class="fill-stone-950 text-stone-950 animate-pulse" /> Kênh CTV - {activeRatePercent}
             </button>
           {/if}
 
@@ -320,6 +347,10 @@
               <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer-fast"></div>
               <Zap size={14} class="text-stone-950 fill-stone-950 animate-pulse" />
             </div>
+            <!-- Dynamic small badge showing % on floating bubble -->
+            <span class="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-rose-500 text-white rounded-full font-black text-[8px] scale-90 border border-stone-950 shadow-md">
+              {activeRatePercent}
+            </span>
           </button>
         {/if}
 
@@ -351,6 +382,13 @@
         <div class="flex flex-col items-center">
           <span class="text-[10px] tracking-[3px] font-black text-luxury-copper uppercase">KÊNH TIẾP THỊ CTV</span>
           <span class="text-[9px] text-stone-400 mt-1.5 px-2 leading-relaxed">Chia sẻ liên kết hoặc quét mã để tích lũy hoa hồng!</span>
+        </div>
+
+        <!-- Dynamic Commission Card (Premium TikTok/Shopee style) -->
+        <div class="w-full p-2.5 bg-stone-900/50 border border-amber-500/20 rounded-xl flex flex-col gap-1 items-center">
+          <span class="text-[9px] font-bold text-stone-400">Hoa hồng của bạn</span>
+          <span class="text-sm font-black text-amber-400">{activeRatePercent}</span>
+          <span class="text-[9px] font-medium text-stone-300">~{formatCurrency(estimatedCommission)} / sản phẩm</span>
         </div>
 
         <!-- QR Code Container with amber tones -->

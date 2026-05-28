@@ -64,6 +64,7 @@ class PayoutSchema(BaseModel):
 
 class ShippingConfigSchema(BaseModel):
     default_fee: float = Field(25000.0, ge=0.0)
+    tax_rate: float = Field(0.03, ge=0.0, le=1.0)
 
 
 class AdminCtvController(Controller):
@@ -74,31 +75,144 @@ class AdminCtvController(Controller):
     # ── Shipping Config ──────────────────────────────────────────────────────
 
     @get("/config/shipping")
-    async def get_shipping_config(self, request: Request) -> dict:
-        """Lấy cấu hình phí vận chuyển mặc định của CTV."""
+    async def get_shipping_config(self, request: Request, db_session: AsyncSession) -> dict:
+        """Lấy cấu hình phí vận chuyển mặc định và tỷ lệ thuế của CTV."""
         _require_admin(request)
         from backend.services.xohi_memory import xohi_memory
+        from backend.database.models.system import SystemSetting
         
-        default_fee = 25000.0
+        default_fee = None
+        tax_rate = None
+        
+        # 1. Thử đọc từ Redis trước để tăng tốc độ tối đa
         if xohi_memory._use_redis and xohi_memory.client:
             try:
-                val = await xohi_memory.client.get("config:shipping:default_fee")
-                if val:
-                    default_fee = float(val)
+                fee_val = await xohi_memory.client.get("config:shipping:default_fee")
+                if fee_val:
+                    default_fee = float(fee_val)
+                tax_val = await xohi_memory.client.get("config:shipping:tax_rate")
+                if tax_val:
+                    tax_rate = float(tax_val)
             except Exception:
                 pass
-        return {"default_fee": default_fee}
+                
+        # 2. Nếu thiếu dữ liệu, đọc từ DB Postgres (Bền vững)
+        if default_fee is None or tax_rate is None:
+            try:
+                stmt = select(SystemSetting).where(SystemSetting.key == "ctv_shipping_config")
+                result = await db_session.execute(stmt)
+                setting = result.scalar_one_or_none()
+                if setting and setting.value:
+                    if default_fee is None:
+                        default_fee = float(setting.value.get("default_fee", 25000.0))
+                    if tax_rate is None:
+                        tax_rate = float(setting.value.get("tax_rate", 0.03))
+                else:
+                    if default_fee is None:
+                        default_fee = 25000.0
+                    if tax_rate is None:
+                        tax_rate = 0.03
+                
+                # Lưu ngược lại Redis để cache cho các lượt sau
+                if xohi_memory._use_redis and xohi_memory.client:
+                    await xohi_memory.client.set("config:shipping:default_fee", str(default_fee))
+                    await xohi_memory.client.set("config:shipping:tax_rate", str(tax_rate))
+            except Exception:
+                if default_fee is None:
+                    default_fee = 25000.0
+                if tax_rate is None:
+                    tax_rate = 0.03
+                
+        return {"default_fee": default_fee, "tax_rate": tax_rate}
 
     @post("/config/shipping")
-    async def update_shipping_config(self, request: Request, data: ShippingConfigSchema) -> dict:
-        """Cập nhật cấu hình phí vận chuyển mặc định của CTV."""
+    async def update_shipping_config(self, request: Request, db_session: AsyncSession, data: ShippingConfigSchema) -> dict:
+        """Cập nhật cấu hình phí vận chuyển mặc định và tỷ lệ thuế của CTV."""
         _require_admin(request)
         from backend.services.xohi_memory import xohi_memory
+        from backend.database.models.system import SystemSetting
         
+        # 1. Lưu vào Postgres DB (Đảm bảo bền vững tuyệt đối, sống sót qua mọi đợt deploy/restart)
+        stmt = select(SystemSetting).where(SystemSetting.key == "ctv_shipping_config")
+        result = await db_session.execute(stmt)
+        setting = result.scalar_one_or_none()
+        if not setting:
+            setting = SystemSetting(key="ctv_shipping_config", value={"default_fee": data.default_fee, "tax_rate": data.tax_rate})
+            db_session.add(setting)
+        else:
+            setting.value = {"default_fee": data.default_fee, "tax_rate": data.tax_rate}
+        await db_session.commit()
+        
+        # 2. Đồng bộ lưu vào Redis cache
         if xohi_memory._use_redis and xohi_memory.client:
-            await xohi_memory.client.set("config:shipping:default_fee", str(data.default_fee))
+            try:
+                await xohi_memory.client.set("config:shipping:default_fee", str(data.default_fee))
+                await xohi_memory.client.set("config:shipping:tax_rate", str(data.tax_rate))
+            except Exception:
+                pass
             
-        return {"message": f"Cập nhật phí ship mặc định thành {data.default_fee:,.0f}đ thành công!"}
+        return {"message": "Cập nhật phí vận chuyển mặc định và tỷ lệ thuế CTV thành công!"}
+
+    @get("/commissions")
+    async def list_commissions(
+        self,
+        request: Request,
+        db_session: AsyncSession,
+        page: int = 1,
+        page_size: int = 1000,
+        search: Optional[str] = None
+    ) -> dict:
+        """Danh sách đối soát chi tiết hoa hồng cho Admin xem hoặc export."""
+        _require_admin(request)
+        from backend.database import current_tenant_id
+        from backend.database.models.affiliate import CommissionLedger, AffiliateProfile
+        tenant = current_tenant_id.get() or "default"
+        
+        conditions = [CommissionLedger.tenant_id == tenant]
+        if search:
+            # Join AffiliateProfile to search by ctv_code
+            conditions.append(AffiliateProfile.ctv_code.ilike(f"%{search}%"))
+            
+        stmt = (
+            select(CommissionLedger)
+            .join(CommissionLedger.affiliate)
+            .where(and_(*conditions))
+            .order_by(desc(CommissionLedger.created_at))
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        res = await db_session.execute(stmt)
+        items = res.scalars().all()
+        
+        # Get count
+        count_stmt = (
+            select(func.count())
+            .select_from(CommissionLedger)
+            .join(CommissionLedger.affiliate)
+            .where(and_(*conditions))
+        )
+        total_res = await db_session.execute(count_stmt)
+        total = total_res.scalar() or 0
+        
+        return {
+            "items": [
+                {
+                    "id": item.id,
+                    "order_id": item.order_id,
+                    "ctv_code": item.affiliate.ctv_code if item.affiliate else None,
+                    "order_amount": item.order_amount,
+                    "commission_amount": item.commission_amount,
+                    "rate_applied": item.rate_applied,
+                    "status": item.status,
+                    "admin_note": item.admin_note,
+                    "created_at": item.created_at.isoformat(),
+                }
+                for item in items
+            ],
+            "total": total,
+            "page": page,
+            "page_size": page_size
+        }
 
     # ── Commission Tiers ─────────────────────────────────────────────────────
 

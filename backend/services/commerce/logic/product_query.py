@@ -20,7 +20,7 @@ def _get_base_query():
         ProductBase.slug, ProductBase.seo_title, ProductBase.seo_description, ProductBase.seo_keywords,
         ProductBase.images, ProductBase.mobile_images, ProductBase.attributes, ProductBase.tier_variations, 
         ProductBase.product_metadata.label("metadata"), ProductBase.market_data, ProductBase.last_market_sync,
-        ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured,
+        ProductBase.created_at, ProductBase.order_count, ProductBase.is_ai_featured, ProductBase.ctv_rate_override,
         Category.name.label("category_name"), Category.slug.label("category_slug")
     ).outerjoin(Category, ProductBase.category_id == Category.id)
 

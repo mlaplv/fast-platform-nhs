@@ -58,6 +58,11 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     price: Mapped[float] = mapped_column(Float, default=0)
     discount_price: Mapped[Optional[float]] = mapped_column(Float)
     discount_percent: Mapped[Optional[float]] = mapped_column(Float)
+    # Phase 2: Hybrid Commission Rate (Priority Chain: product override → tier rate → system default)
+    # NULL = sử dụng tier rate của CTV (mặc định an toàn)
+    # 0.0 = tắt hoa hồng cho sản phẩm này (hàng độc quyền/margin thấp)
+    # 0.2 = ép 20% bất kể tier CTV
+    ctv_rate_override: Mapped[Optional[float]] = mapped_column(Float, nullable=True, default=None)
     stock: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String, default="DRAFT")
     type: Mapped[str] = mapped_column(String, default="RETAIL")
@@ -106,6 +111,11 @@ class ProductVariant(Base, AuditMixin, SoftDeleteMixin):
     stock: Mapped[int] = mapped_column(Integer, default=0)
     attributes: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, server_default='{}', default=dict)
     is_default: Mapped[bool] = mapped_column(Boolean, server_default=sa.text('false'), default=False)
+
+    __table_args__ = (
+        Index("ix_product_variants_product_base_id", "product_base_id"),
+        Index("ix_product_variants_deleted_at", "deleted_at"),
+    )
 
 
 class ProductEmbedding(Base, AuditMixin):

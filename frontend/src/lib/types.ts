@@ -916,6 +916,7 @@ export interface ProductFormState {
   tierVariations: TierVariation[];
   variants: ProductVariant[];
   isAiFeatured: boolean;
+  ctvRateOverride?: number | null; // Phase 2: Per-product commission override
   analysisReport: Record<string, unknown>;
   marketData: MarketPriceIntel;
   lastMarketSync?: string;

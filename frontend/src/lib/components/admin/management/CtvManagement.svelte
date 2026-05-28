@@ -117,14 +117,18 @@
   let showTierModal = $state(false);
   let editingTier = $state<Partial<CommissionTier> | null>(null);
   let defaultShippingFee = $state(25000);
+  let taxRatePercent = $state(3);
 
   async function saveShippingConfig() {
     try {
-      await apiClient.post("/api/v1/admin/ctv/config/shipping", { default_fee: defaultShippingFee });
-      nanobot.showToast(`Đã lưu phí vận chuyển mặc định: ${defaultShippingFee.toLocaleString()}đ`, "success");
+      await apiClient.post("/api/v1/admin/ctv/config/shipping", { 
+        default_fee: defaultShippingFee,
+        tax_rate: taxRatePercent / 100
+      });
+      nanobot.showToast(`Đã lưu phí vận chuyển mặc định: ${defaultShippingFee.toLocaleString()}đ và thuế CTV: ${taxRatePercent}%`, "success");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      nanobot.showToast(`Lỗi lưu phí ship: ${msg}`, "error");
+      nanobot.showToast(`Lỗi lưu cấu hình: ${msg}`, "error");
     }
   }
 
@@ -169,10 +173,11 @@
       } else if (activeTab === "tiers") {
         const [tiersRes, shipRes] = await Promise.all([
           apiClient.get<CommissionTier[]>("/api/v1/admin/ctv/tiers"),
-          apiClient.get<{ default_fee: number }>("/api/v1/admin/ctv/config/shipping")
+          apiClient.get<{ default_fee: number, tax_rate: number }>("/api/v1/admin/ctv/config/shipping")
         ]);
         tiers = tiersRes;
         defaultShippingFee = shipRes.default_fee;
+        taxRatePercent = Math.round((shipRes.tax_rate || 0.03) * 100);
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -683,6 +688,20 @@
                   onblur={saveShippingConfig}
                 />
                 <span class="text-gray-400">đ</span>
+              </div>
+
+              <!-- Tax Rate Config Input -->
+              <div class="flex items-center bg-black/60 border border-white/10 rounded-lg px-3 py-1.5 font-mono text-xs gap-2">
+                <span class="text-gray-500 text-[10px] uppercase">Thuế Thu Nhập:</span>
+                <input 
+                  type="number" 
+                  min="0"
+                  max="100"
+                  class="bg-transparent border-b border-white/10 w-12 text-center font-bold text-[#00FFFF] focus:outline-none focus:border-[#00FFFF]/40" 
+                  bind:value={taxRatePercent}
+                  onblur={saveShippingConfig}
+                />
+                <span class="text-gray-400">%</span>
               </div>
 
               <button 

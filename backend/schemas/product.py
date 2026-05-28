@@ -173,6 +173,7 @@ class CreateProductRequest(BaseModel):
     categoryId: Optional[str] = None
     type: str = Field("RETAIL", pattern=r"^(RETAIL|RENTAL|SERVICE)$")
     isAiFeatured: bool = Field(False, alias="is_ai_featured")
+    ctvRateOverride: Optional[float] = Field(None, ge=0, le=1.0, alias="ctv_rate_override")
     analysis_report: Optional[Dict[str, object]] = Field(None, alias="analysis_report")
     generate_knowledge_graph: bool = Field(False, alias="generate_knowledge_graph")
     
@@ -211,6 +212,7 @@ class UpdateProductRequest(BaseModel):
     description: Optional[str] = Field(None, max_length=100000)
     categoryId: Optional[str] = None
     isAiFeatured: Optional[bool] = Field(None, alias="is_ai_featured")
+    ctvRateOverride: Optional[float] = Field(None, ge=0, le=1.0, alias="ctv_rate_override")
     analysis_report: Optional[Dict[str, object]] = Field(None, alias="analysis_report")
     generate_knowledge_graph: Optional[bool] = Field(False, alias="generate_knowledge_graph")
     
@@ -254,6 +256,7 @@ class ProductResponse(BaseModel):
     description: Optional[str] = None
     type: str = "RETAIL"
     isAiFeatured: bool = Field(False, alias="is_ai_featured")
+    ctvRateOverride: Optional[float] = Field(None, alias="ctv_rate_override")
     analysis_report: Optional[Dict[str, object]] = Field(None, alias="analysis_report")
     
     # Professional Fashion Upgrade

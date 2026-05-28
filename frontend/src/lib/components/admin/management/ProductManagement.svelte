@@ -70,6 +70,7 @@
     tierVariations: [],
     variants: [],
     isAiFeatured: false,
+    ctvRateOverride: null,
     analysisReport: {},
     marketData: { ads: [], organic_results: [], analysis: "" },
     lastMarketSync: undefined
@@ -163,6 +164,7 @@
     formState.metadata = { landing_type: 'standard', analysis_cache: {}, analysis_metrics: {} };
     formState.tierVariations = []; formState.variants = [];
     formState.isAiFeatured = false;
+    formState.ctvRateOverride = null;
     formState.analysisReport = {};
     formState.marketData = { ads: [], organic_results: [], analysis: "" };
     formState.lastMarketSync = undefined;
@@ -202,6 +204,8 @@
       if (!formState.metadata.analysis_cache) formState.metadata.analysis_cache = {};
       if (!formState.metadata.analysis_metrics) formState.metadata.analysis_metrics = {};
       formState.isAiFeatured = p.isAiFeatured ?? p.is_ai_featured ?? false;
+      const overrideVal = p.ctvRateOverride ?? (p as any).ctv_rate_override;
+      formState.ctvRateOverride = overrideVal !== null && overrideVal !== undefined ? Number(overrideVal) * 100 : null;
       formState.analysisReport = p.analysis_report || {};
       formState.marketData = p.marketData ?? p.market_data ?? { ads: [], organic_results: [], analysis: "" };
       formState.lastMarketSync = p.lastMarketSync ?? p.last_market_sync;
@@ -403,6 +407,7 @@
       categoryId: formState.category || null,
       status: (formState.status || "draft").toUpperCase(),
       is_ai_featured: formState.isAiFeatured,
+      ctv_rate_override: formState.ctvRateOverride !== undefined && formState.ctvRateOverride !== null && formState.ctvRateOverride !== "" ? Number(formState.ctvRateOverride) / 100 : null,
       shortDescription: formState.shortDescription,
       description: formState.description,
       slug: formState.slug || generateSlug(formState.name),

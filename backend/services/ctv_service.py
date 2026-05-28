@@ -399,7 +399,7 @@ class CtvService:
         }
 
     @staticmethod
-    async def _get_actual_shipping_fee(order: Order) -> float:
+    async def _get_actual_shipping_fee(db_session: AsyncSession, order: Order) -> float:
         """
         Dynamically extracts shipping fee from order metadata (immutable snapshot).
         If not recorded or if it is 0.0 (meaning free-shipped to customer, but merchant still pays),
@@ -412,13 +412,54 @@ class CtvService:
         fallback_ship = ShippingConfig.STANDARD_FEE
         try:
             from backend.services.xohi_memory import xohi_memory
+            redis_fee = None
             if xohi_memory._use_redis:
                 redis_fee = await xohi_memory.client.get("config:shipping:default_fee")
                 if redis_fee:
                     fallback_ship = float(redis_fee)
+                    return fallback_ship
+            
+            # Đọc từ Postgres DB nếu Redis không có
+            from backend.database.models.system import SystemSetting
+            from sqlalchemy import select
+            stmt = select(SystemSetting).where(SystemSetting.key == "ctv_shipping_config")
+            res = await db_session.execute(stmt)
+            setting = res.scalar_one_or_none()
+            if setting and setting.value and "default_fee" in setting.value:
+                fallback_ship = float(setting.value["default_fee"])
+                if xohi_memory._use_redis and xohi_memory.client:
+                    await xohi_memory.client.set("config:shipping:default_fee", str(fallback_ship))
         except Exception as e:
             logger.error(f"[CTV] Failed to fetch dynamic shipping fee: {e}")
         return fallback_ship
+
+    @staticmethod
+    async def _get_actual_tax_rate(db_session: AsyncSession) -> float:
+        """
+        Retrieves the dynamic tax rate from Redis or Postgres database.
+        Falls back to 0.03 (3%) if not configured.
+        """
+        fallback_tax = 0.03
+        try:
+            from backend.services.xohi_memory import xohi_memory
+            if xohi_memory._use_redis:
+                redis_tax = await xohi_memory.client.get("config:shipping:tax_rate")
+                if redis_tax:
+                    return float(redis_tax)
+            
+            # Đọc từ Postgres DB nếu Redis cache miss
+            from backend.database.models.system import SystemSetting
+            from sqlalchemy import select
+            stmt = select(SystemSetting).where(SystemSetting.key == "ctv_shipping_config")
+            res = await db_session.execute(stmt)
+            setting = res.scalar_one_or_none()
+            if setting and setting.value and "tax_rate" in setting.value:
+                fallback_tax = float(setting.value["tax_rate"])
+                if xohi_memory._use_redis and xohi_memory.client:
+                    await xohi_memory.client.set("config:shipping:tax_rate", str(fallback_tax))
+        except Exception as e:
+            logger.error(f"[CTV] Failed to fetch dynamic tax rate: {e}")
+        return fallback_tax
 
     @staticmethod
     async def credit_commission(db_session: AsyncSession, order_id: str) -> bool:
@@ -472,25 +513,162 @@ class CtvService:
             logger.warning(f"[CTV-FRAUD] Self-referral blocked: code={order.ctv_code}, order={order_id}")
             return False
 
-        # 5. Determine commission rate from tier (database default if no tier assigned)
+        # Collect all product IDs and Names for both main items and their gifts
+        main_product_identifiers = set()
+        gift_names = set()
+        gift_product_ids = set()
+        
+        item_list = order.items if isinstance(order.items, list) else []
+        for it in item_list:
+            m_id = it.get("product_id") or it.get("id")
+            if m_id:
+                main_product_identifiers.add(m_id)
+            
+            gifts = it.get("gifts") or []
+            for g in gifts:
+                g_id = g.get("product_id") or g.get("id")
+                if g_id:
+                    gift_product_ids.add(g_id)
+                g_name = g.get("name")
+                if g_name:
+                    gift_names.add(g_name)
+
+        from backend.database.models.commerce import ProductBase
+        # Query products by ID
+        all_query_ids = list(main_product_identifiers.union(gift_product_ids))
+        products_map = {}
+        
+        if all_query_ids:
+            prod_stmt = select(ProductBase).where(ProductBase.id.in_(all_query_ids))
+            prod_res = await db_session.execute(prod_stmt)
+            for p in prod_res.scalars():
+                products_map[p.id] = p
+                products_map[p.name.lower().strip()] = p
+                
+        # Query gifts by Name if not found by ID
+        if gift_names:
+            gift_name_list = list(gift_names)
+            gift_stmt = select(ProductBase).where(ProductBase.name.in_(gift_name_list))
+            gift_res = await db_session.execute(gift_stmt)
+            for p in gift_res.scalars():
+                products_map[p.name.lower().strip()] = p
+                products_map[p.id] = p
+
+        # Resolve tier rates
         default_tier = await CtvService._get_default_tier(db_session, tenant_id=aff.tenant_id)
         default_rate = default_tier.commission_rate if default_tier else 0.05
         default_name = default_tier.name if default_tier else "Đồng"
 
-        rate = default_rate
-        tier_snapshot: dict = {"name": default_name, "commission_rate": rate}
+        tier_rate = default_rate
+        tier_name = default_name
         if aff.tier:
-            rate = aff.tier.commission_rate
-            tier_snapshot = {"name": aff.tier.name, "commission_rate": rate}
+            tier_rate = aff.tier.commission_rate
+            tier_name = aff.tier.name
 
-        # R102 Dynamic Pricing: Deduct actual shipping fee and 3% tax from base revenue for commission calculation
-        shipping_fee = await CtvService._get_actual_shipping_fee(order)
-        tax_rate = 0.03  # 3% tax
-        tax_deduction = round((order.total_amount - shipping_fee) * tax_rate, 2)
-        
+        # R102 Dynamic Pricing: Deduct actual shipping fee
+        shipping_fee = await CtvService._get_actual_shipping_fee(db_session, order)
+        tax_rate = await CtvService._get_actual_tax_rate(db_session)
+        revenue_to_allocate = max(0.0, order.total_amount - shipping_fee)
+
+        # Build list of items to allocate
+        allocation_items = []
+        total_retail_value = 0.0
+
+        for it in item_list:
+            m_id = it.get("product_id") or it.get("id")
+            qty = it.get("qty") or 1
+            main_prod = products_map.get(m_id) if m_id else None
+            
+            # If main product not in map, search by name
+            if not main_prod and it.get("name"):
+                main_prod = products_map.get(it.get("name").lower().strip())
+                
+            retail_price = main_prod.price if main_prod else (it.get("unit_price") or 0.0)
+            main_total_retail = retail_price * qty
+            total_retail_value += main_total_retail
+
+            allocation_items.append({
+                "type": "main",
+                "id": m_id or (main_prod.id if main_prod else ""),
+                "name": it.get("name") or (main_prod.name if main_prod else "Sản phẩm chính"),
+                "qty": qty,
+                "retail_price": retail_price,
+                "total_retail": main_total_retail,
+                "prod_obj": main_prod
+            })
+
+            # Check and add gifts
+            gifts = it.get("gifts") or []
+            for g in gifts:
+                g_id = g.get("product_id") or g.get("id")
+                g_qty = g.get("qty") or g.get("quantity") or 1
+                g_name = g.get("name") or ""
+                
+                gift_prod = products_map.get(g_id) if g_id else None
+                if not gift_prod and g_name:
+                    gift_prod = products_map.get(g_name.lower().strip())
+                
+                g_retail_price = gift_prod.price if gift_prod else 0.0
+                g_total_retail = g_retail_price * g_qty
+                total_retail_value += g_total_retail
+
+                allocation_items.append({
+                    "type": "gift",
+                    "id": g_id or (gift_prod.id if gift_prod else ""),
+                    "name": g_name or (gift_prod.name if gift_prod else "Quà tặng"),
+                    "qty": g_qty,
+                    "retail_price": g_retail_price,
+                    "total_retail": g_total_retail,
+                    "prod_obj": gift_prod
+                })
+
+        # Calculate allocated revenue and commission for each item
+        allocation_details = []
+        total_allocated_revenue = 0.0
+        total_gross_commission = 0.0
+
+        for ai in allocation_items:
+            prod_obj = ai["prod_obj"]
+            
+            # 1. Resolve fraction
+            fraction = (ai["total_retail"] / total_retail_value) if total_retail_value > 0.0 else 0.0
+            allocated_rev = revenue_to_allocate * fraction
+            total_allocated_revenue += allocated_rev
+
+            # 2. Resolve rate
+            rate_source = "tier"
+            if prod_obj and prod_obj.ctv_rate_override is not None:
+                rate = prod_obj.ctv_rate_override
+                rate_source = "product_override"
+            else:
+                rate = tier_rate
+                
+            # Calculate gross commission
+            gross_comm = allocated_rev * rate
+            total_gross_commission += gross_comm
+
+            allocation_details.append({
+                "name": ai["name"],
+                "type": ai["type"],
+                "qty": ai["qty"],
+                "retail_price": ai["retail_price"],
+                "total_retail": ai["total_retail"],
+                "allocated_revenue": round(allocated_rev, 2),
+                "fraction": round(fraction * 100, 2),
+                "rate": rate,
+                "rate_source": rate_source,
+                "gross_commission": round(gross_comm, 2)
+            })
+
         # Revenue Net (Doanh thu thuần sau thuế và ship)
-        revenue_net = max(0.0, (order.total_amount - shipping_fee) * (1.0 - tax_rate))
-        commission_amount = round(revenue_net * rate, 2)
+        tax_deduction = round(total_gross_commission * tax_rate, 2)
+        commission_amount = max(0.0, round(total_gross_commission * (1.0 - tax_rate), 2))
+        revenue_net = max(0.0, revenue_to_allocate)
+
+        # Average effective rate for display compatibility
+        rate = (total_gross_commission / revenue_to_allocate) if revenue_to_allocate > 0.0 else tier_rate
+        rate_source = "hybrid_allocation"
+        tier_snapshot = {"name": tier_name, "commission_rate": rate, "source": rate_source}
 
         # Store detailed breakdown for tooltip transparency
         import json
@@ -501,7 +679,10 @@ class CtvService:
             "tax_deduction": tax_deduction,
             "revenue_net": revenue_net,
             "rate_applied": rate,
-            "commission_amount": commission_amount
+            "rate_source": rate_source,
+            "commission_amount": commission_amount,
+            "is_allocated": True,
+            "allocation_details": allocation_details
         }
         admin_note = json.dumps(breakdown)
 
@@ -774,7 +955,7 @@ class CtvService:
         aff.total_commission = max(0.0, aff.total_commission - ledger.commission_amount)
 
         # 5. Apply Penalty x2 Shipping Fee for boom/returned orders
-        shipping_fee = await CtvService._get_actual_shipping_fee(order)
+        shipping_fee = await CtvService._get_actual_shipping_fee(db_session, order)
         penalty = shipping_fee * 2.0
         aff.total_commission = max(0.0, aff.total_commission - penalty)
 

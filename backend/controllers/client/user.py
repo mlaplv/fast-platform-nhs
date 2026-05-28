@@ -193,7 +193,7 @@ class ClientUserController(Controller):
         SECURITY: MIME whitelist, 5MB cap, isolated 'avatars/' storage.
         """
         from litestar.exceptions import NotAuthorizedException, ValidationException, NotFoundException, InternalServerException
-        from backend.database.models.system import MediaRegistry  # noqa: F401 - used below
+        from backend.database.models.media import MediaRegistry  # noqa: F401 - used below
 
         user_state = request.scope.get("state", {}).get("user")
         if not user_state:

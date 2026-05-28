@@ -97,19 +97,36 @@ class ClientCtvController(Controller):
         }
 
     @get("/shipping", guards=[])  # PUBLIC - dung o checkout
-    async def get_shipping_config(self) -> dict:
-        """PUBLIC: Lấy cấu hình phí ship mặc định của CTV (Dynamic Redis-backed)."""
+    async def get_shipping_config(self, db_session: AsyncSession) -> dict:
+        """PUBLIC: Lấy cấu hình phí ship mặc định của CTV (Dynamic DB/Redis-backed)."""
         from backend.services.xohi_memory import xohi_memory
-        from backend.constants.commerce import ShippingConfig
+        from backend.database.models.system import SystemSetting
         
-        default_fee = ShippingConfig.STANDARD_FEE
+        default_fee = None
         if xohi_memory._use_redis and xohi_memory.client:
             try:
                 val = await xohi_memory.client.get("config:shipping:default_fee")
                 if val:
                     default_fee = float(val)
+            except Exception:
+                pass
+                
+        if default_fee is None:
+            try:
+                stmt = select(SystemSetting).where(SystemSetting.key == "ctv_shipping_config")
+                result = await db_session.execute(stmt)
+                setting = result.scalar_one_or_none()
+                if setting and setting.value and "default_fee" in setting.value:
+                    default_fee = float(setting.value["default_fee"])
+                else:
+                    default_fee = 25000.0
+                
+                if xohi_memory._use_redis and xohi_memory.client:
+                    await xohi_memory.client.set("config:shipping:default_fee", str(default_fee))
             except Exception as e:
-                logger.error(f"[CTV] Failed to get dynamic shipping config: {e}")
+                logger.error(f"[CTV] Failed to load config from DB fallback: {e}")
+                default_fee = 25000.0
+                
         return {"default_fee": default_fee}
 
     @get("/commissions")

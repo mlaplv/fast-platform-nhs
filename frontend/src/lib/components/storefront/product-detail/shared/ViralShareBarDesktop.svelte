@@ -11,6 +11,7 @@
   import { 
     formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
   } from '$lib/utils/commerce/viral';
+  import { formatCurrency } from '$lib/utils/format';
 
   import { wishlistStore } from '$lib/state/commerce/wishlist.svelte';
   import { authStore } from '$lib/state/authStore.svelte';
@@ -99,16 +100,42 @@
 
   let isCtv = $state(false);
   let ctvCode = $state('');
+  let ctvRate = $state(0.05); // Default 5%
   let showCtvPopover = $state(false);
+
+  // Elite V2.2 Hybrid Priority Chain Commission Rate Calculation
+  const activeRate = $derived.by(() => {
+    const override = product.ctv_rate_override ?? product.ctvRateOverride;
+    if (override !== undefined && override !== null) {
+      return override;
+    }
+    return ctvRate;
+  });
+
+  const activeRatePercent = $derived(`${Math.round(activeRate * 100)}%`);
+
+  const estimatedCommission = $derived.by(() => {
+    const price = product.discountPrice ?? product.discount_price ?? product.price ?? 0;
+    // R102 Dynamic Pricing: Deduct 3% tax from base revenue for estimated commission calculation
+    const revenueNet = price * 0.97;
+    return Math.round(revenueNet * activeRate);
+  });
 
   onMount(async () => {
     isMounted = true;
     if (browser && authStore.isAuthenticated) {
       try {
-        const ctvProfile = await apiClient.get<{ ctv_code?: string; encrypted_code?: string }>('/client/ctv/profile');
+        const ctvProfile = await apiClient.get<{ 
+          ctv_code?: string; 
+          encrypted_code?: string;
+          tier?: { commission_rate: number };
+        }>('/client/ctv/profile');
         if (ctvProfile) {
           isCtv = true;
           ctvCode = ctvProfile.encrypted_code || ctvProfile.ctv_code || '';
+          if (ctvProfile.tier?.commission_rate !== undefined) {
+            ctvRate = ctvProfile.tier.commission_rate;
+          }
         }
       } catch (e) {
         // Not ctv, silent
@@ -209,7 +236,7 @@
           >
             <!-- Continuous shimmering light sweep -->
             <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-shimmer-fast"></div>
-            <Zap size={10} class="fill-stone-950 text-stone-950 animate-pulse" /> Kênh CTV
+            <Zap size={10} class="fill-stone-950 text-stone-950 animate-pulse" /> Kênh CTV - {activeRatePercent}
           </button>
 
           <!-- Premium Popover Tooltip -->
@@ -225,6 +252,13 @@
               <div class="flex flex-col items-center">
                 <span class="text-[10px] tracking-[2px] font-black text-luxury-copper uppercase">KÊNH CTV OSMO</span>
                 <span class="text-[9px] text-stone-400 mt-1">Quét mã hoặc chia sẻ để nhận hoa hồng giới thiệu</span>
+              </div>
+
+              <!-- Dynamic Commission Card (Premium TikTok/Shopee style) -->
+              <div class="w-full mt-1 p-2 bg-stone-900/50 border border-amber-500/20 rounded-lg flex flex-col gap-1 items-center">
+                <span class="text-[9px] font-bold text-stone-400">Hoa hồng của bạn</span>
+                <span class="text-sm font-black text-amber-400">{activeRatePercent}</span>
+                <span class="text-[9px] font-medium text-stone-300">~{formatCurrency(estimatedCommission)} / sản phẩm</span>
               </div>
 
               <!-- QR Code Container with dynamic lookup -->

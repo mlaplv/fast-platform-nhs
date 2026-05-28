@@ -115,17 +115,17 @@
           </a>
 
           {#if item.subItems && isActive(item)}
-            <div class="flex flex-col ml-8 space-y-3 border-l border-stone-100 pl-4">
-
+            <div class="flex flex-col ml-8 space-y-3.5 border-l border-stone-200/60 pl-4 py-0.5">
               {#each item.subItems as sub}
-
                 <a
                   href={sub.href}
-                  class="text-[13px] transition-all relative group {currentPath === sub.href ? 'text-luxury-copper font-medium' : 'text-stone-500 hover:text-stone-800'}"
+                  class="text-[12px] tracking-wide transition-all relative group pl-0.5 {currentPath === sub.href ? 'text-[#8C6239] font-bold' : 'text-stone-400 hover:text-stone-700'}"
                 >
                   {sub.label}
                   {#if currentPath === sub.href}
-                    <div class="absolute -left-[17px] top-1/2 -translate-y-1/2 w-1 h-1 bg-luxury-copper rounded-full"></div>
+                    <div class="absolute -left-4 top-1/2 -translate-y-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-luxury-copper rounded-full shadow-[0_0_8px_rgba(201,147,59,0.8)]"></div>
+                  {:else}
+                    <div class="absolute -left-4 top-1/2 -translate-y-1/2 -translate-x-1/2 w-1 h-1 bg-stone-300 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200"></div>
                   {/if}
                 </a>
               {/each}

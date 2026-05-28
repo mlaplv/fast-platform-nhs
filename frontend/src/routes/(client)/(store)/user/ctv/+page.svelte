@@ -271,6 +271,135 @@
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
   }
 
+  function handleExportExcel() {
+    if (!commissions || commissions.length === 0) return;
+    
+    // Add ctv_code to items if not present
+    const itemsToExport = commissions.map(item => ({
+      ...item,
+      ctv_code: profile?.ctv_code || ''
+    }));
+
+    exportLedgerToExcel(itemsToExport, `DoiSoat_CTV_${profile?.ctv_code || 'User'}`);
+    ui.showToast('Đã xuất file đối soát hoa hồng thành công!', 'success');
+  }
+
+  function exportLedgerToExcel(items: any[], fileName: string) {
+    const BOM = '\uFEFF';
+    let html = `
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          table { border-collapse: collapse; font-family: sans-serif; }
+          th { background-color: #c9933b; color: white; font-weight: bold; border: 1px solid #ddd; padding: 8px; text-transform: uppercase; font-size: 11px; }
+          td { border: 1px solid #ddd; padding: 8px; font-size: 11px; vertical-align: top; }
+          .title-row { font-size: 16px; font-weight: bold; text-align: center; color: #333; }
+          .header-meta { font-size: 10px; color: #666; font-style: italic; }
+          .allocated-box { background-color: #fcf8e3; border: 1px solid #faebcc; padding: 6px; border-radius: 4px; font-size: 9px; }
+          .allocated-item { border-bottom: 1px dashed #e4e4e4; padding-bottom: 4px; margin-bottom: 4px; }
+          .allocated-item:last-child { border-bottom: none; }
+          .status-paid { color: #2e7d32; font-weight: bold; }
+          .status-confirmed { color: #f57c00; font-weight: bold; }
+          .status-pending { color: #1976d2; font-weight: bold; }
+          .number-cell { text-align: right; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr>
+            <td colspan="11" class="title-row">${fileName.toUpperCase()}</td>
+          </tr>
+          <tr>
+            <td colspan="11" class="header-meta">Ngày xuất báo cáo: ${new Date().toLocaleString('vi-VN')} | Micsmo Elite Financial Protection</td>
+          </tr>
+          <tr><td colspan="11"></td></tr>
+          <tr>
+            <th>Mã Đơn hàng</th>
+            <th>Ngày giao dịch</th>
+            <th>Mã CTV</th>
+            <th>Trạng thái</th>
+            <th>Doanh thu gộp</th>
+            <th>Khấu trừ ship</th>
+            <th>Thuế thu nhập</th>
+            <th>Doanh thu thuần</th>
+            <th>Tỷ lệ chiết khấu tb</th>
+            <th>Hoa hồng thực nhận</th>
+            <th>Chi tiết phân bổ (Sản phẩm / Quà tặng)</th>
+          </tr>
+    `;
+
+    items.forEach(item => {
+      let bd: any = null;
+      try {
+        if (item.admin_note) {
+          bd = JSON.parse(item.admin_note);
+        }
+      } catch (e) {}
+
+      const orderTotal = bd ? bd.order_total : item.order_amount;
+      const shippingFee = bd ? bd.shipping_fee : 0;
+      const taxDeduction = bd ? bd.tax_deduction : 0;
+      const revenueNet = bd ? bd.revenue_net : (orderTotal - shippingFee);
+      const rateApplied = bd ? bd.rate_applied : (item.rate_applied || 0.05);
+      const commAmount = item.commission_amount;
+      
+      let statusText = 'Chờ duyệt';
+      let statusClass = 'status-pending';
+      if (item.status === 'CONFIRMED') {
+        statusText = 'Khả dụng';
+        statusClass = 'status-confirmed';
+      } else if (item.status === 'PAID') {
+        statusText = 'Đã chi trả';
+        statusClass = 'status-paid';
+      } else if (item.status === 'CANCELLED' || item.status === 'VOIDED') {
+        statusText = 'Đã hủy';
+        statusClass = '';
+      }
+
+      let allocationText = '';
+      if (bd && bd.is_allocated && bd.allocation_details && bd.allocation_details.length > 0) {
+        bd.allocation_details.forEach((detail: any) => {
+          allocationText += `• ${detail.name} (x${detail.qty}): pb ${detail.fraction}% (${detail.allocated_revenue.toLocaleString('vi-VN')}đ) | chiết khấu ${(detail.rate * 100).toFixed(1)}% | hoa hồng: +${detail.gross_commission.toLocaleString('vi-VN')}đ\n`;
+        });
+      } else {
+        allocationText = 'Không có thông tin phân bổ lẻ';
+      }
+
+      html += `
+        <tr>
+          <td>#${item.order_id.split('-')[0].toUpperCase()}</td>
+          <td>${new Date(item.created_at || item.requested_at).toLocaleDateString('vi-VN')}</td>
+          <td>${item.ctv_code || ''}</td>
+          <td class="${statusClass}">${statusText}</td>
+          <td class="number-cell">${orderTotal.toLocaleString('vi-VN')}đ</td>
+          <td class="number-cell">${shippingFee.toLocaleString('vi-VN')}đ</td>
+          <td class="number-cell">${taxDeduction.toLocaleString('vi-VN')}đ</td>
+          <td class="number-cell">${revenueNet.toLocaleString('vi-VN')}đ</td>
+          <td class="number-cell">${(rateApplied * 100).toFixed(1)}%</td>
+          <td class="number-cell" style="font-weight: bold; color: #c9933b;">+${commAmount.toLocaleString('vi-VN')}đ</td>
+          <td style="white-space: pre-line;">${allocationText}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([BOM + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}_${new Date().toISOString().slice(0, 10)}.xls`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   // Calculate remaining return days (7-day Osmo policy)
   function getPendingDaysLeft(createdAtStr: string): string {
     try {
@@ -501,22 +630,47 @@
         <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           
           <div class="space-y-3">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="px-2.5 py-0.5 bg-luxury-copper/10 border border-luxury-copper/20 text-[#8C6239] text-[9px] tracking-[2px] font-black uppercase rounded-full">
                 Tier {profile.tier_name || 'Đồng'}
               </span>
+              <!-- Phase 1: Commission Rate Badge (TikTok/Shopee style) -->
+              <span class="flex items-center gap-1 px-3 py-1 bg-[#8C6239] text-white text-[11px] font-black rounded-full shadow-sm shadow-[#8C6239]/30">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+                Hoa hồng {((profile.tier?.commission_rate ?? profile.commission_rate ?? 0.15) * 100).toFixed(0)}%
+              </span>
               <span class="flex items-center gap-1 text-[10px] text-sky-800/80 font-mono tracking-widest font-bold">
-                <ShieldCheck class="w-3.5 h-3.5 text-emerald-600" /> AES-GCM SEALED
+                <ShieldCheck class="w-3.5 h-3.5 text-[#8C6239]" /> AES-GCM SEALED
               </span>
             </div>
             
             <h2 class="text-2xl md:text-3xl font-serif italic text-sky-900 font-light">
               Xin chào, <span class="font-bold text-stone-900 not-italic">{authStore.user?.name}</span>
             </h2>
-            
+
             <p class="text-xs text-sky-800/80 tracking-wider">
               Mã giới thiệu độc quyền của bạn: <strong class="text-[#8C6239] text-sm tracking-widest bg-white/80 px-3 py-1 rounded border border-white/95 font-mono uppercase ml-1 shadow-sm">{profile.ctv_code}</strong>
             </p>
+
+            <!-- Phase 1: Tier Roadmap Progress (Shopee Affiliate style) -->
+            {#if profile.tiers && profile.tiers.length > 1}
+              <div class="pt-1 space-y-1.5">
+                <p class="text-[9px] text-sky-800/60 font-bold tracking-widest uppercase">Lộ trình cấp bậc</p>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  {#each profile.tiers as t}
+                    {@const isActive = t.name === (profile.tier?.name || profile.tier_name)}
+                    <div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black border transition-all
+                      {isActive
+                        ? 'bg-[#8C6239] border-[#8C6239] text-white shadow-sm'
+                        : 'bg-white/60 border-white/80 text-sky-800/60'}
+                    ">
+                      {t.name} · {(t.commission_rate * 100).toFixed(0)}%
+                      {#if isActive}<span class="ml-0.5">✓</span>{/if}
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {/if}
           </div>
 
           <!-- Link Share Hub -->
@@ -817,6 +971,14 @@
             <h3 class="text-xs tracking-[0.5px] font-bold text-stone-800 flex items-center gap-1.5">
               <History class="w-4 h-4 text-luxury-copper" /> Biến động số dư hoa hồng
             </h3>
+            
+            <button
+              onclick={handleExportExcel}
+              disabled={commissions.length === 0}
+              class="px-3 py-1.5 bg-luxury-copper hover:bg-amber-600 disabled:bg-stone-100 disabled:text-stone-400 active:scale-95 text-stone-950 font-bold rounded-lg transition-all tracking-wider text-[9px] uppercase shadow-lg shadow-luxury-copper/5 flex items-center gap-1"
+            >
+              📊 Xuất Excel đối soát
+            </button>
           </div>
 
           <!-- Desktop Table Layout -->
@@ -870,7 +1032,7 @@
                                 <span class="text-red-400">-{formatVnd(bd.shipping_fee)}</span>
                               </div>
                               <div class="flex justify-between">
-                                <span class="text-stone-500">Thuế thu nhập (3%):</span>
+                                <span class="text-stone-500">Thuế thu nhập ({Math.round((bd.tax_rate || 0.03) * 100)}%):</span>
                                 <span class="text-red-400">-{formatVnd(bd.tax_deduction)}</span>
                               </div>
                               <div class="h-[1px] bg-stone-850 my-1"></div>
@@ -882,6 +1044,25 @@
                                 <span class="text-stone-500">Tỷ lệ chiết khấu:</span>
                                 <span class="text-luxury-copper font-bold">{(bd.rate_applied * 100).toFixed(1)}%</span>
                               </div>
+                              
+                              {#if bd.is_allocated && bd.allocation_details && bd.allocation_details.length > 0}
+                                <div class="mt-2 pt-2 border-t border-stone-800 space-y-1.5">
+                                  <span class="block text-[8px] uppercase tracking-wider text-amber-500 font-black">Phân bổ doanh thu (Proportional Allocation):</span>
+                                  {#each bd.allocation_details as detail}
+                                    <div class="bg-stone-900/60 p-2 rounded border border-stone-850/80 space-y-1">
+                                      <div class="flex justify-between text-[8px] font-bold text-white leading-tight">
+                                        <span class="truncate max-w-[150px]">{detail.name} (x{detail.qty})</span>
+                                        <span class="text-amber-400 font-mono">{(detail.rate * 100).toFixed(1)}%</span>
+                                      </div>
+                                      <div class="flex justify-between text-[8px] text-stone-400 font-mono">
+                                        <span>pb {detail.fraction}%: {formatVnd(detail.allocated_revenue)}</span>
+                                        <span class="text-luxury-copper">+{formatVnd(detail.gross_commission)}</span>
+                                      </div>
+                                    </div>
+                                  {/each}
+                                </div>
+                              {/if}
+
                               <div class="h-[1px] bg-stone-850 my-1"></div>
                               <div class="flex justify-between text-xs pt-0.5">
                                 <span class="text-white font-bold">Hoa hồng thực nhận:</span>
@@ -973,7 +1154,7 @@
                   <!-- Mobile Audit Breakdown Card -->
                   {#if parseBreakdown(item.admin_note)}
                     {@const bd = parseBreakdown(item.admin_note)}
-                    <div class="bg-stone-50 border border-stone-200/50 rounded-xl p-3 space-y-2 mt-2">
+                    <div class="bg-stone-50 border border-stone-200/50 rounded-xl p-3 space-y-2.5 mt-2">
                       <div class="flex items-center justify-between text-[8px] text-stone-400 font-bold uppercase tracking-wider">
                         <span>📊 Chi tiết đối soát</span>
                         <span class="text-luxury-copper font-mono">Micsmo V2.2</span>
@@ -992,14 +1173,32 @@
                           <span class="text-red-500 font-medium">-{formatVnd(bd.shipping_fee)}</span>
                         </div>
                         <div class="flex justify-between">
-                          <span>Tỷ lệ:</span>
+                          <span>Tỷ lệ tb:</span>
                           <span class="text-luxury-copper font-medium">{(bd.rate_applied * 100).toFixed(1)}%</span>
                         </div>
                         <div class="flex justify-between col-span-2 pt-1 border-t border-stone-200/50">
-                          <span class="text-stone-500">Thuế TN (3%):</span>
+                          <span class="text-stone-500">Thuế TN ({Math.round((bd.tax_rate || 0.03) * 100)}%):</span>
                           <span class="text-red-500 font-bold">-{formatVnd(bd.tax_deduction)}</span>
                         </div>
                       </div>
+
+                      {#if bd.is_allocated && bd.allocation_details && bd.allocation_details.length > 0}
+                        <div class="pt-2 border-t border-stone-200 space-y-1.5">
+                          <span class="block text-[8px] uppercase tracking-wider text-amber-600 font-black">Phân bổ doanh thu (Proportional):</span>
+                          {#each bd.allocation_details as detail}
+                            <div class="bg-stone-100/70 p-2 rounded border border-stone-200/60 space-y-0.5">
+                              <div class="flex justify-between text-[8.5px] font-bold text-stone-800 leading-tight">
+                                <span class="truncate max-w-[130px]">{detail.name} (x{detail.qty})</span>
+                                <span class="text-amber-600 font-mono">{(detail.rate * 100).toFixed(1)}%</span>
+                              </div>
+                              <div class="flex justify-between text-[8px] text-stone-500 font-mono">
+                                <span>pb {detail.fraction}%: {formatVnd(detail.allocated_revenue)}</span>
+                                <span class="text-luxury-copper font-bold">+{formatVnd(detail.gross_commission)}</span>
+                              </div>
+                            </div>
+                          {/each}
+                        </div>
+                      {/if}
                     </div>
                   {:else if item.admin_note}
                     <div class="bg-amber-50/40 border border-amber-200/40 rounded-xl p-3 text-[9px] text-stone-600 leading-relaxed">

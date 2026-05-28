@@ -258,6 +258,7 @@ class ProductService:
             mobile_images=data.mobileImages,
             attributes=data.attributes,
             tier_variations=[tv.model_dump() for tv in data.tierVariations] if data.tierVariations else [],
+            ctv_rate_override=data.ctvRateOverride,
         )
 
         # R00 Compliance: Viral settings are now managed via Promotions (Vouchers)
@@ -346,6 +347,7 @@ class ProductService:
         if data.tierVariations is not None: product.tier_variations = [tv.model_dump() for tv in data.tierVariations]
         if data.metadata is not None: product.product_metadata = data.metadata.model_dump()
         if data.isAiFeatured is not None: product.is_ai_featured = data.isAiFeatured
+        if "ctvRateOverride" in data.model_fields_set: product.ctv_rate_override = data.ctvRateOverride
 
         if data.variants is not None:
             # Delete old variants strictly (Hard delete to avoid PK conflicts if reusing IDs)
