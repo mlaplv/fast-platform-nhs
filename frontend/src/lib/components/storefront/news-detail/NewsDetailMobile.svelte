@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { fade, slide, fly } from "svelte/transition";
+  import { slide } from "svelte/transition";
   import AudioLines from "@lucide/svelte/icons/audio-lines";
 
   import NewsMobileReviews from "./NewsMobileReviews.svelte";
@@ -67,22 +67,6 @@
 
   // Elite V2.2: Professional Mobile Accordion State
   let activeFaq = $state<number | null>(null);
-  let showScrollTop = $state(false);
-
-  $effect(() => {
-    let scrollTicking = false;
-    const handleScroll = () => {
-      if (!scrollTicking) {
-        window.requestAnimationFrame(() => {
-          showScrollTop = window.scrollY > 400;
-          scrollTicking = false;
-        });
-        scrollTicking = true;
-      }
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  });
 
   $effect(() => {
     if (activeFaq === null && article.metadata?.faqs?.length > 0) {
@@ -468,28 +452,7 @@
     </div>
   </div>
 
-  {#if showScrollTop}
-    <button
-      class="fixed bottom-6 right-4 w-10 h-10 bg-white/20 backdrop-blur-xl border border-white/40 shadow-xl rounded-full flex items-center justify-center text-gray-900 z-50 active:scale-75 transition-all"
-      onclick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      in:fly={{ y: 20, duration: 400 }}
-      out:fade
-    >
-      <svg
-        class="w-5 h-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="3"
-          d="M5 15l7-7 7 7"
-        />
-      </svg>
-    </button>
-  {/if}
+
 </svelte:element>
 
 <style>

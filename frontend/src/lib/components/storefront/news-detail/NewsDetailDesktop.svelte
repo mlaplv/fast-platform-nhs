@@ -91,22 +91,6 @@
 
   // Elite V2.2: Professional Accordion State
   let activeFaq = $state<number | null>(null);
-  let showScrollTop = $state(false);
-
-  $effect(() => {
-    let scrollTicking = false;
-    const handleScroll = () => {
-      if (!scrollTicking) {
-        window.requestAnimationFrame(() => {
-          showScrollTop = window.scrollY > 400;
-          scrollTicking = false;
-        });
-        scrollTicking = true;
-      }
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  });
 
   $effect(() => {
     if (activeFaq === null && article.metadata?.faqs?.length > 0) {
@@ -427,28 +411,7 @@
     </aside>
   </div>
 
-  {#if showScrollTop}
-    <button
-      class="fixed bottom-10 right-10 w-14 h-14 bg-white/90 backdrop-blur-xl border border-gray-100 shadow-2xl rounded-full flex items-center justify-center text-[#C18F7E] z-50 hover:bg-black hover:text-white hover:scale-110 active:scale-90 transition-all group"
-      onclick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      in:fly={{ y: 20, duration: 400 }}
-      out:fade
-    >
-      <svg
-        class="w-6 h-6 transform group-hover:-translate-y-1 transition-transform"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="3"
-          d="M5 15l7-7 7 7"
-        />
-      </svg>
-    </button>
-  {/if}
+
 </svelte:element>
 
 <style>

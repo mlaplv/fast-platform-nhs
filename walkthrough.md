@@ -959,9 +959,24 @@ We successfully integrated and consolidated the mobile CTV (Affiliate) onboardin
   - Non-partner users are presented with a highly integrated, high-fidelity floating `CTV +{activeRatePercent}` button (colored in a premium red-orange gradient) directly in the right sidebar. Tapping this redirects them to `/user/ctv` or triggers the login drawer, encouraging conversion.
 - **Benefits**: Maximizes available vertical space, avoids layout fragmentation, and adheres 100% to premium iOS/TikTok-style mobile storefront styling rules.
 
+### **Checkpoint 40: Purging Scroll-To-Top Buttons from News Detail Pages (Elite V2.2)**
 
+We successfully purged the floating Scroll-To-Top buttons from both Desktop and Mobile news detail components to eliminate visual layout clutter and resolve overlapping issues with the Helen AI Support Agent FAB.
 
+#### **1. Purged Desktop Floating Button**
+- **File**: `frontend/src/lib/components/storefront/news-detail/NewsDetailDesktop.svelte`
+- **Actions**:
+  - Removed state `showScrollTop = $state(false)`.
+  - Cleared the `$effect` hook registering the global window scroll listener (`window.addEventListener('scroll')`).
+  - Purged the `<button class="fixed bottom-10 right-10 ...">` floating DOM markup.
+- **Result**: Visual overlap with Helen AI Support FAB is completely resolved; user can still scroll to top using the static "Quay lên đầu" text button inside the social sharing bar.
 
+#### **2. Purged Mobile Floating Button**
+- **File**: `frontend/src/lib/components/storefront/news-detail/NewsDetailMobile.svelte`
+- **Actions**:
+  - Removed state `showScrollTop = $state(false)`.
+  - Cleared the `$effect` hook registering the window scroll event listener.
+  - Purged the `<button class="fixed bottom-6 right-4 ...">` floating DOM markup.
 
-
-
+#### **3. Production Compilation & Verification**
+- Executed SvelteKit static adapter build `pnpm build` which compiled successfully in `1m 18s` with zero errors or warnings, verifying flawless integration and optimal client-side bundle performance.

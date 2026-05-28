@@ -405,3 +405,12 @@
 - [x] Thiết lập phong cách tối giản "Zero-Gap", giao diện sắc nét hòa quyện hoàn hảo với nền trắng của phần mô tả tổng quan di động. (Done)
 - [x] Loại bỏ thanh chia sẻ inline dư thừa ở thân bài để tối ưu không gian hiển thị và tránh phân mảnh trải nghiệm người dùng di động. (Done)
 
+
+# Task Checklist - Purging Scroll-To-Top Buttons from News Detail Pages (Elite V2.2)
+
+- [x] Loại bỏ hoàn toàn state `showScrollTop` và bộ lắng nghe sự kiện cuộn `$effect` khỏi `NewsDetailDesktop.svelte`. (Done)
+- [x] Xóa bỏ khối mã DOM floating button `{#if showScrollTop}` khỏi `NewsDetailDesktop.svelte`. (Done)
+- [x] Loại bỏ hoàn toàn state `showScrollTop` và bộ lắng nghe sự kiện cuộn `$effect` khỏi `NewsDetailMobile.svelte`. (Done)
+- [x] Xóa bỏ khối mã DOM floating button `{#if showScrollTop}` khỏi `NewsDetailMobile.svelte`. (Done)
+- [x] Kiểm tra lỗi và thực hiện biên dịch tĩnh SvelteKit `pnpm build` thành công 100% để đảm bảo không còn cảnh báo thừa. (Done)
+
