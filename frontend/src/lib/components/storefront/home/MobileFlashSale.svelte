@@ -189,30 +189,38 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 14px 10px;
+    padding: 0 12px 10px;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow: hidden;
   }
 
   .flash-sale-title-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
   }
 
   .flash-sale-title {
     display: flex;
     align-items: center;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .title-f, .title-rest {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 900;
     color: #111;
+    white-space: nowrap;
   }
 
   .lightning {
-    width: 15px;
-    height: 15px;
-    margin: 0 -2px;
+    width: 14px;
+    height: 14px;
+    margin: 0 -1px;
     flex-shrink: 0;
     filter: drop-shadow(0 2px 4px rgba(255, 43, 84, 0.4));
   }
@@ -220,29 +228,33 @@
   .flash-fomo-badge {
     background: linear-gradient(90deg, #ff2b54, #ff5e83);
     color: #fff;
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 800;
     padding: 3px 8px;
     border-radius: 999px; /* Pill shape */
-    line-height: 1.4;
+    line-height: 1.2;
     white-space: nowrap;
     box-shadow: 0 3px 8px rgba(255, 43, 84, 0.25);
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .flash-countdown {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
+    flex-shrink: 0;
   }
 
   .time-block {
     background: #C18F7E;
     color: #fff;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
-    padding: 3px 4px;
+    padding: 2.5px 3.5px;
     border-radius: 4px;
-    min-width: 24px;
+    min-width: 22px;
     text-align: center;
     line-height: 1.2;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -251,9 +263,32 @@
   .time-sep {
     color: #C18F7E;
     font-weight: 900;
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1;
-    margin: 0 -2px;
+    margin: 0 -1px;
+  }
+
+  /* Responsive tuning for super narrow devices */
+  @media (max-width: 380px) {
+    .title-f, .title-rest {
+      font-size: 16px;
+    }
+    .lightning {
+      width: 12px;
+      height: 12px;
+    }
+    .flash-fomo-badge {
+      font-size: 8px;
+      padding: 2px 6px;
+    }
+    .time-block {
+      font-size: 10px;
+      min-width: 18px;
+      padding: 2px 3px;
+    }
+    .time-sep {
+      font-size: 10px;
+    }
   }
 
   /* Horizontal scroll track */
