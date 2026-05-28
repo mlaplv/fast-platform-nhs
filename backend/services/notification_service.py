@@ -14,7 +14,10 @@ logger = logging.getLogger("api-gateway")
 class NotificationService:
     @staticmethod
     async def get_notifications(db_session: AsyncSession, user_email: Optional[str]) -> NotificationListResponse:
-        """Fetch notifications (R76: Scalar Projection). R1.5: Zero-Hydration."""
+        """Fetch notifications (R76: Scalar Projection). R1.5: Zero-Hydration.
+        SECURITY: SYSTEM_ type notifications are strictly admin-only and never
+        returned to end clients regardless of user_id linkage.
+        """
         # Build query conditions
         if not user_email:
             conditions = [Notification.user_id == None]
@@ -31,8 +34,13 @@ class NotificationService:
                 )
             ]
 
+        # SECURITY FILTER: Never expose SYSTEM_ alerts to end clients.
+        # System alerts (DB pool, AI latency, order anomaly) are infra-internal.
+        from sqlalchemy import not_
+        system_filter = not_(Notification.type.like("SYSTEM_%"))
+
         # 1. Total Count (Zero-Hydration)
-        count_stmt = select(func.count(Notification.id)).where(*conditions)
+        count_stmt = select(func.count(Notification.id)).where(*conditions, system_filter)
         total = await db_session.scalar(count_stmt) or 0
 
         # 2. Results (R76: Scalar Projection)
@@ -41,7 +49,7 @@ class NotificationService:
                 Notification.id, Notification.type, Notification.message,
                 Notification.is_read, Notification.created_at, Notification.user_id
             )
-            .where(*conditions)
+            .where(*conditions, system_filter)
             .order_by(Notification.created_at.desc())
             .limit(20)
         )

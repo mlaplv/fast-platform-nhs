@@ -224,9 +224,11 @@ class AnomalyDetector:
         return None
 
     async def _persist_alerts(self, session: AsyncSession, alerts: List[AnomalyAlert], tenant_id: str):
-        """Create Notification records for detected anomalies (with dedup)."""
+        """Create Notification records for detected anomalies (with dedup).
+        SECURITY: All system anomaly alerts are stored with type prefix 'SYSTEM_'
+        and user_id=NULL. They are ONLY visible to admin — NOT to end clients.
+        """
         for alert in alerts:
-            # DEBT-4 fix: platform-agnostic interval logic
             since = datetime.now(timezone.utc) - timedelta(hours=1)
                 
             existing = await session.scalar(
@@ -242,14 +244,17 @@ class AnomalyDetector:
                 logger.debug(f"[AnomalyDetector] Skipping duplicate alert: {alert['type']}")
                 continue
 
+            # SECURITY: Prefix type with SYSTEM_ so client-side query can exclude it.
+            system_type = f"SYSTEM_{alert['severity']}"
+
             await session.execute(
                 text("""
-                    INSERT INTO notifications (id, type, message, is_read, tenant_id, created_at, updated_at)
-                    VALUES (:id, :type, :msg, false, :tid, :now, :now)
+                    INSERT INTO notifications (id, type, message, is_read, user_id, tenant_id, created_at, updated_at)
+                    VALUES (:id, :type, :msg, false, NULL, :tid, :now, :now)
                 """),
                 {
                     "id": str(uuid.uuid4()),
-                    "type": alert["severity"],
+                    "type": system_type,
                     "msg": alert["message"],
                     "tid": tenant_id,
                     "now": datetime.now(timezone.utc)

@@ -27,7 +27,8 @@ def _require_user(request: Request) -> dict:
 class RegisterCtvSchema(BaseModel):
     ctv_code: str = Field(..., min_length=4, max_length=20, pattern=r"^[A-Za-z0-9]+$")
     referred_by_code: Optional[str] = Field(None, max_length=20)
-    email: Optional[EmailStr] = Field(None)
+    # SECURITY: email is MANDATORY at backend level to ensure commission notification reliability
+    email: EmailStr = Field(..., description="Email nhận thông báo hoa hồng - bắt buộc")
 
 
 class BankInfoSchema(BaseModel):
@@ -120,12 +121,17 @@ class ClientCtvController(Controller):
         page_size: int = 20,
         status: Optional[str] = None,
     ) -> dict:
-        """Lịch sử hoa hồng - phân trang, filter theo status."""
-        from sqlalchemy import select, and_, desc
+        """Lịch sử hoa hồng - phân trang, filter theo status. PACKED = kho đã đóng gói, không thể tự hủy — phải liên hệ shop."""
+        from sqlalchemy import select, and_, desc, func
         from backend.database.models.affiliate import AffiliateProfile, CommissionLedger
 
         user_state = _require_user(request)
         user_id: str = user_state["id"]
+
+        # SECURITY: Cap pagination to prevent DoS
+        page = max(1, page)
+        page_size = max(1, min(page_size, 50))
+
         aff_stmt = select(AffiliateProfile).where(AffiliateProfile.user_id == user_id)
         aff_res = await db_session.execute(aff_stmt)
         aff = aff_res.scalar_one_or_none()
@@ -136,10 +142,9 @@ class ClientCtvController(Controller):
         if status:
             conditions.append(CommissionLedger.status == status.upper())
 
-        count_stmt = select(CommissionLedger).where(and_(*conditions))
-        count_res = await db_session.execute(count_stmt)
-        all_items = count_res.scalars().all()
-        total = len(all_items)
+        # SECURITY FIX: Use scalar COUNT instead of loading all records into memory (O(N) DoS)
+        count_stmt = select(func.count(CommissionLedger.id)).where(and_(*conditions))
+        total: int = await db_session.scalar(count_stmt) or 0
 
         offset = (page - 1) * page_size
         stmt = (

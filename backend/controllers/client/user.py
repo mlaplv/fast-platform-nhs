@@ -109,6 +109,10 @@ class ClientUserController(Controller):
 
         user_id = user_state.get("id")
 
+        # SECURITY: Cap pagination to prevent DoS
+        limit = max(1, min(limit, 100))
+        offset = max(0, min(offset, 10_000))
+
         conditions = [
             Order.user_id == user_id,
             Order.deleted_at == None,
@@ -163,10 +167,9 @@ class ClientUserController(Controller):
         if str(order.user_id) != str(user_id):
              raise NotAuthorizedException("Bạn không có quyền hủy đơn hàng này.")
 
-        # 2. Strict State Machine: Users can only cancel if PENDING or PACKED
-        # Note: Shopee allows PENDING cancellation immediately. 
-        # PACKED might require shop approval in reality, but for MVP we allow it if PENDING.
-        if order.status.upper() not in ["PENDING", "PACKED"]:
+        # 2. Strict State Machine (Shopee policy): Only PENDING orders can be self-cancelled.
+        # PACKED = kho da dong goi, khong the tu huy — phai lien he shop.
+        if order.status.upper() not in ["PENDING"]:
              raise ValidationException("Đơn hàng này đã vào giai đoạn vận chuyển và không thể tự hủy.")
 
         # 3. Delegate to Service for history and event bus
@@ -187,11 +190,13 @@ class ClientUserController(Controller):
     ) -> SuccessResponse:
         """
         Elite V3.0: Securely upload and set profile avatar.
-        Implements hard-delete of old avatar and isolated storage in 'avatars/' folder.
+        SECURITY: MIME whitelist, 5MB cap, isolated 'avatars/' storage.
         """
+        from litestar.exceptions import NotAuthorizedException, ValidationException, NotFoundException, InternalServerException
+        from backend.database.models.system import MediaRegistry  # noqa: F401 - used below
+
         user_state = request.scope.get("state", {}).get("user")
         if not user_state:
-            from litestar.exceptions import NotAuthorizedException
             raise NotAuthorizedException("User not authenticated")
 
         user_id = user_state.get("id")
@@ -200,36 +205,33 @@ class ClientUserController(Controller):
         file = form.get("file")
 
         if not file or not hasattr(file, "read"):
-             from litestar.exceptions import ValidationException
-             raise ValidationException("Vui lòng cung cấp tệp tin hình ảnh (field: 'file')")
+            raise ValidationException("Vui long cung cap tep tin hinh anh (field: 'file')")
+
+        # SECURITY: MIME whitelist - block executable/malicious types
+        ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+        content_type = getattr(file, "content_type", "") or ""
+        if content_type.lower() not in ALLOWED_MIME:
+            raise ValidationException(f"Dinh dang khong duoc phep: {content_type}. Chi chap nhan: JPEG, PNG, WebP, GIF.")
 
         content = await file.read()
         filename = file.filename
-        content_type = file.content_type
+
+        # SECURITY: 5MB hard cap to prevent memory exhaustion
+        MAX_AVATAR_BYTES = 5 * 1024 * 1024  # 5MB
+        if len(content) > MAX_AVATAR_BYTES:
+            raise ValidationException("Kich thuoc anh khong duoc vuot qua 5MB.")
 
         # 1. Fetch current user to get old avatar_url
         stmt = select(User).where(User.id == user_id)
         result = await db_session.execute(stmt)
         user = result.scalar_one_or_none()
         if not user:
-            from litestar.exceptions import NotFoundException
             raise NotFoundException("User not found")
 
         old_avatar_path = user.avatar_url
 
         # 2. Upload new avatar with 'avatars/' prefix for isolation
         repo = MediaRegistryRepository(session=db_session)
-        # Custom logic: force storage in 'avatars/'
-        from backend.services.media.media_uploader import MediaUploaderMixin
-
-        # Use existing media service, but ensure isolation
-        # Assuming media_service.upload_asset handles storage path.
-        # We need to ensure the path is isolated.
-
-        # Temporary workaround: pass owner_id, and if MediaUploader handles path,
-        # we might need to adjust MediaUploader or pass a flag.
-        # Since we can't easily change MediaUploader, we'll proceed with standard upload
-        # and if needed handle the path logic inside.
         asset = await media_service.upload_asset(
             repo=repo,
             file_content=content,
@@ -240,7 +242,6 @@ class ClientUserController(Controller):
         )
 
         if not asset:
-            from litestar.exceptions import InternalServerException
             raise InternalServerException("Failed to process avatar upload")
 
         # 3. Update user avatar_url
@@ -249,13 +250,9 @@ class ClientUserController(Controller):
 
         # 4. Hard-delete old avatar if it exists
         if old_avatar_path:
-            # Need to delete both from storage and from MediaRegistry
             from backend.services.storage.manager import storage
             try:
-                # Assuming old_avatar_path is the file_path in MediaRegistry
                 await storage.delete(old_avatar_path)
-
-                # Also delete from MediaRegistry record
                 stmt_asset = select(MediaRegistry).where(MediaRegistry.file_path == old_avatar_path)
                 old_asset = (await db_session.execute(stmt_asset)).scalar_one_or_none()
                 if old_asset:

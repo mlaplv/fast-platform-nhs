@@ -61,17 +61,20 @@ class AlchemyConfig:
             # Rule: Only add pooling for Postgres (SQLite uses StaticPool)
             if self._url.startswith("postgresql"):
                 # [Elite V2.2] Optimized pooling for 2GB RAM VPS
+                # pool_size=20: handle concurrent requests under peak load
+                # max_overflow=15: burst buffer before hard-reject (total max 35 conn)
+                # pool_timeout=10: fail fast instead of hanging requests
                 engine_kwargs.update({
-                    "pool_size": 8,
-                    "max_overflow": 10,
-                    "pool_timeout": 30,
+                    "pool_size": 20,
+                    "max_overflow": 15,
+                    "pool_timeout": 10,
                     "pool_pre_ping": True,
                     "pool_recycle": 300,
-                    # [PHASE 8] Truyền cấu hình chuyên sâu xuống asyncpg
+                    # [PHASE 8] Truyen cau hinh chuyen sau xuong asyncpg
                     "connect_args": {
                         "command_timeout": 30,
                         "server_settings": {
-                            "jit": "off", # Tắt JIT để tiết kiệm RAM cho Postgres
+                            "jit": "off", # Tat JIT de tiet kiem RAM cho Postgres
                             "application_name": "fast-platform-v2.2",
                         }
                     }

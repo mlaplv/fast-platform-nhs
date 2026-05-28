@@ -35,8 +35,6 @@
   async function markAllAsRead() {
     const unreadIds = userNotifications.filter(n => !n.isRead).map(n => n.id);
     if (unreadIds.length === 0) return;
-    
-    // Elite V2.2: Parallel execution for zero-latency UI
     await Promise.all(unreadIds.map(id => notifStore.markNotificationAsRead(id)));
   }
 
@@ -98,7 +96,7 @@
                 {notif.message}
               </p>
               <div class="flex items-center gap-3">
-                <span class="text-[9px] text-stone-400 font-black tracking-[2px]">{formatDate(notif.created_at)}</span>
+                <span class="text-[9px] text-stone-400 font-black tracking-[2px]">{formatDate(notif.createdAt)}</span>
                 {#if !notif.isRead}
                   <span class="w-1 h-1 rounded-full bg-stone-200"></span>
                   <span class="text-[9px] text-luxury-copper font-black tracking-[2px]">Mới</span>
