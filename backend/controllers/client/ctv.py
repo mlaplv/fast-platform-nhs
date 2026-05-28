@@ -1,9 +1,12 @@
 """
-Client CTV Controller — Elite V2.2 / Viral 2026
+Client CTV Controller - Elite V2.2 / Viral 2026
 Endpoints: /api/v1/client/ctv/*
 Auth: JWT required for all endpoints.
 """
+import logging
 from typing import Optional
+
+logger = logging.getLogger("api-gateway")
 from litestar import Controller, Request, get, post, patch, delete
 from litestar.status_codes import HTTP_200_OK
 from litestar.exceptions import NotAuthorizedException
@@ -80,7 +83,7 @@ class ClientCtvController(Controller):
             "message": f"Đăng ký thành công! Mã CTV của bạn: {aff.ctv_code}",
         }
 
-    @get("/validate/{code:str}", guards=[])  # PUBLIC — dùng ở checkout
+    @get("/validate/{code:str}", guards=[])  # PUBLIC - dung o checkout
     async def validate_code(self, db_session: AsyncSession, code: str) -> dict:
         """PUBLIC: Validate mã CTV tại checkout (real-time)."""
         aff = await ctv_service.validate_ctv_code(db_session, code.upper())
@@ -92,6 +95,22 @@ class ClientCtvController(Controller):
             "message": "Mã CTV hợp lệ",
         }
 
+    @get("/shipping", guards=[])  # PUBLIC - dung o checkout
+    async def get_shipping_config(self) -> dict:
+        """PUBLIC: Lấy cấu hình phí ship mặc định của CTV (Dynamic Redis-backed)."""
+        from backend.services.xohi_memory import xohi_memory
+        from backend.constants.commerce import ShippingConfig
+        
+        default_fee = ShippingConfig.STANDARD_FEE
+        if xohi_memory._use_redis and xohi_memory.client:
+            try:
+                val = await xohi_memory.client.get("config:shipping:default_fee")
+                if val:
+                    default_fee = float(val)
+            except Exception as e:
+                logger.error(f"[CTV] Failed to get dynamic shipping config: {e}")
+        return {"default_fee": default_fee}
+
     @get("/commissions")
     async def get_commissions(
         self,
@@ -101,7 +120,7 @@ class ClientCtvController(Controller):
         page_size: int = 20,
         status: Optional[str] = None,
     ) -> dict:
-        """Lịch sử hoa hồng — phân trang, filter theo status."""
+        """Lịch sử hoa hồng - phân trang, filter theo status."""
         from sqlalchemy import select, and_, desc
         from backend.database.models.affiliate import AffiliateProfile, CommissionLedger
 
@@ -225,7 +244,7 @@ class ClientCtvController(Controller):
         if not aff:
             raise NotFoundException("Bạn chưa đăng ký chương trình CTV")
 
-        # 2. Soft-delete — preserve all ledger history (re-activation will fully restore stats)
+        # 2. Soft-delete - preserve all ledger history (re-activation will fully restore stats)
         aff.status = "CANCELLED"
         aff.deleted_at = datetime.now(timezone.utc)
         await db_session.commit()

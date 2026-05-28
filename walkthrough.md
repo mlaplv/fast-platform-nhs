@@ -757,6 +757,26 @@ We diagnosed and hotfixed a critical `ReferenceError: Z_INDEX is not defined` er
 - Performed a clean `pnpm build` which succeeded flawlessly without any compile warnings or errors (`Exit code: 0`).
 - Synced the modified file `/frontend/src/routes/(admin)/chat/+page.svelte` and the compiled static directory `dist` directly to the production VPS `/opt/fast-platform/frontend/dist/`. The portal is now 100% active and stable!
 
+### **Checkpoint 33: Resolving CTV Shipping Fee Discrepancy**
+
+We successfully eliminated the hardcoded 25,000 VND shipping fee fallback in both backend and frontend components, enforcing system-wide adherence to the dynamic Redis-backed shipping configurations.
+
+#### **1. Removed Backend Hardcoded 25k Fallback**
+- Refactored `CtvService._get_actual_shipping_fee` in `backend/services/ctv_service.py` to replace the hardcoded `25000.0` emergency fallback with a dynamic fallback to `ShippingConfig.STANDARD_FEE` (which defaults to `30,000` VND).
+- Dynamic Redis lookup key (`config:shipping:default_fee`) remains prioritized to correctly retrieve any administratively configured value (such as `35,000` VND).
+
+#### **2. Added Public Shipping Config Client Endpoint (Cohesive CTV Module)**
+- Implemented `@get("/shipping", guards=[])` under `ClientCtvController` in `backend/controllers/client/ctv.py` to retrieve the dynamic standard shipping fee (from Redis if available, falling back safely to the core settings standard fee). This avoids polluting settings or general routes, grouping the CTV shipping fee configuration cohesively within the CTV system.
+
+#### **3. Synchronized Frontend Checkout**
+- Refactored Svelte checkout module `frontend/src/routes/(client)/(store)/checkout/+page.svelte` to initialize the default standard fee reactively as `$state(SHIPPING_CONFIG.STANDARD_FEE)`.
+- Implemented `loadDynamicShippingFee()` to dynamically query the public `/api/v1/client/ctv/shipping` endpoint on mount, synchronizing the client-side checkout calculation with the dynamic backend settings.
+- Replaced the hardcoded standard shipping fee inside the derived `shippingFee` rune with the synchronized dynamic state.
+
+#### **4. Deployed and Verified**
+- Sync-deployed all updated backend controllers and services (`backend/controllers/client/ctv.py`, `backend/services/ctv_service.py`) and frontend routes (`checkout/+page.svelte`) directly to the production VPS `/opt/fast-platform/` using secure `rsync`.
+- Safely restarted `fast_platform_api` and `fast_platform_worker_high` containers on the VPS to immediately apply all changes.
+
 
 
 

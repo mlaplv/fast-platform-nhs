@@ -108,8 +108,22 @@
     quantity: 1,
   });
 
+  let standardShippingFee = $state(SHIPPING_CONFIG.STANDARD_FEE);
+
+  async function loadDynamicShippingFee() {
+    try {
+      const res = await apiClient.get<{ default_fee: number }>("/api/v1/client/ctv/shipping");
+      if (res && typeof res.default_fee === "number") {
+        standardShippingFee = res.default_fee;
+      }
+    } catch (e) {
+      console.error("Failed to load dynamic shipping fee", e);
+    }
+  }
+
   // [ELITE V3.1] Persistent Data & Auto-fill Logic
   onMount(async () => {
+    loadDynamicShippingFee();
     if (browser) {
       // [ELITE V2.2] STEALTH PERSISTENCE DECRYPTION
       const saved = localStorage.getItem("elite_checkout_draft_v2");
@@ -407,8 +421,7 @@
   });
 
   const shippingFee = $derived.by(() => {
-    // Determine Base Fee
-    let baseFee = SHIPPING_CONFIG.STANDARD_FEE;
+    let baseFee = standardShippingFee;
 
     if (
       form.shippingMethod === "express" &&

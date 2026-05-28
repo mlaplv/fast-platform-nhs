@@ -351,3 +351,10 @@
 - [ ] Loại bỏ hoàn toàn chốt chặn `ValidationException` đối với hoa hồng đang chờ duyệt (`pending_amount > 0`) và yêu cầu rút tiền đang xử lý (`pending_wr_count > 0`).
 - [ ] Cập nhật tài liệu minh chứng `walkthrough.md` với các chi tiết kỹ thuật đã thực hiện.
 - [ ] Đồng bộ hóa mã nguồn sửa đổi lên Production VPS và khởi động lại dịch vụ backend an toàn.
+
+# Task Checklist - Resolving CTV Shipping Fee Discrepancy (Elite V2.2)
+
+- [x] Refactor `CtvService._get_actual_shipping_fee` in `backend/services/ctv_service.py` to remove the hardcoded `25000.0` fallback and dynamically fallback to `ShippingConfig.STANDARD_FEE` (30,000 VND). (Done)
+- [x] Add a public endpoint `@get("/shipping")` under `ClientSettingsController` in `backend/controllers/client/settings.py` to retrieve the dynamic, Redis-backed default shipping fee for the storefront. (Done)
+- [x] Update frontend checkout page `frontend/src/routes/(client)/(store)/checkout/+page.svelte` to dynamically fetch the default shipping fee from the new endpoint instead of relying on the static `SHIPPING_CONFIG.STANDARD_FEE` constant. (Done)
+- [x] Validate financial accuracy in commission calculations by ensuring the 35,000 VND Redis-configured fee is consistently applied across all tenant environments. (Done)

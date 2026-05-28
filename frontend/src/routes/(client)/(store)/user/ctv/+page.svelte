@@ -176,12 +176,21 @@
       regError = 'Vui lòng đọc và chấp nhận Điều khoản & Chính sách CTV trước khi đăng ký.';
       return;
     }
+    if (!regEmail || !regEmail.trim()) {
+      regError = 'Vui lòng nhập Email để nhận thông báo hoa hồng.';
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(regEmail.trim())) {
+      regError = 'Địa chỉ email không hợp lệ. Vui lòng nhập đúng định dạng (VD: email@example.com).';
+      return;
+    }
     isRegistering = true;
     
     try {
       const res = await apiClient.post<any>('/client/ctv/register', {
         ctv_code: regCode.trim().toUpperCase(),
-        email: regEmail.trim() || undefined,
+        email: regEmail.trim(),
         referred_by_code: regReferredBy.trim().toUpperCase() || undefined
       });
       ui.showToast(res.message || 'Đăng ký CTV thành công!', 'success');
@@ -378,70 +387,71 @@
     </div>
   {:else if !profile?.is_registered}
     <!-- REGISTRATION FLOW -->
-    <div class="max-w-xl mx-auto py-6" in:fade>
-      <div class="bg-gradient-to-tr from-stone-900 to-neutral-950 text-white rounded-2xl p-8 shadow-xl border border-stone-800 relative overflow-hidden">
+    <div class="max-w-xl mx-auto py-6 animate-fade-in" in:fade>
+      <div class="bg-gradient-to-br from-sky-100/60 via-sky-50/40 to-white/70 text-sky-950 rounded-2xl p-8 shadow-xl border border-white/60 relative overflow-hidden backdrop-blur-xl">
         <!-- Decoration background -->
-        <div class="absolute -right-16 -top-16 w-48 h-48 bg-luxury-copper/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -left-16 -bottom-16 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -right-16 -top-16 w-48 h-48 bg-sky-300/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-16 -bottom-16 w-48 h-48 bg-luxury-copper/5 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="relative z-10 space-y-6">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-luxury-copper/20 rounded-xl flex items-center justify-center border border-luxury-copper/30">
+            <div class="w-10 h-10 bg-luxury-copper/10 rounded-xl flex items-center justify-center border border-luxury-copper/20">
               <Award class="w-5 h-5 text-luxury-copper" />
             </div>
             <div>
-              <span class="text-[10px] tracking-[4px] text-luxury-copper font-black">CHƯƠNG TRÌNH ĐẠI LÝ SỐ</span>
-              <h2 class="text-xl font-serif italic tracking-wide">Trở thành đối tác osmo</h2>
+              <span class="text-[10px] tracking-[2px] text-[#8C6239] font-bold">Chương trình Đại lý số</span>
+              <h2 class="text-xl font-serif italic tracking-wide text-sky-900 font-light animate-pulse">Trở thành đối tác osmo</h2>
             </div>
           </div>
 
-          <p class="text-xs text-stone-300 leading-relaxed font-light">
+          <p class="text-xs text-sky-900/80 leading-relaxed font-normal">
             Tham gia mạng lưới đại lý số & CTV thông minh của osmo. Nhận ngay chiết khấu hoa hồng hấp dẫn theo cấp bậc trên mỗi đơn hàng được giới thiệu thành công. Không cần ôm hàng, không cần vận chuyển.
           </p>
 
-          <form onsubmit={handleRegister} class="space-y-4 pt-4 border-t border-stone-800">
+          <form onsubmit={handleRegister} class="space-y-4 pt-4 border-t border-sky-100/80">
             {#if regError}
-              <div class="p-3 bg-red-950/50 border border-red-900/50 text-red-400 text-xs rounded-lg animate-pulse">
+              <div class="p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg animate-pulse">
                 {regError}
               </div>
             {/if}
 
             <div class="space-y-2">
-              <label for="regCode" class="block text-[10px] tracking-[2px] font-bold text-stone-400 uppercase">Mã giới thiệu mong muốn</label>
+              <label for="regCode" class="block text-xs font-bold text-sky-900/70">Mã giới thiệu mong muốn</label>
               <input 
                 id="regCode"
                 type="text" 
                 bind:value={regCode}
                 placeholder="VD: MINHMINH99, LOUISTHANH" 
-                class="w-full bg-stone-900/60 border border-stone-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-luxury-copper text-white uppercase font-bold tracking-wider placeholder:text-stone-600 transition-colors"
+                class="w-full bg-white/75 border border-white/80 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-luxury-copper text-stone-900 uppercase font-bold tracking-wider placeholder:text-stone-400 transition-colors shadow-sm focus:bg-white"
                 required
                 minlength="4"
                 maxlength="20"
               />
-              <p class="text-[9px] text-stone-500 tracking-wider">Viết liền không dấu, từ 4-20 ký tự (Chỉ gồm chữ và số).</p>
+              <p class="text-[9px] text-sky-900/50 tracking-wider">Viết liền không dấu, từ 4-20 ký tự (Chỉ gồm chữ và số).</p>
             </div>
 
             <div class="space-y-2">
-              <label for="regEmail" class="block text-[10px] tracking-[2px] font-bold text-stone-400 uppercase">Email nhận thông báo <span class="text-stone-600">(Tùy chọn)</span></label>
+              <label for="regEmail" class="block text-xs font-bold text-sky-900/70">Email nhận thông báo <span class="text-red-500 font-bold">(Bắt buộc)</span></label>
               <input 
                 id="regEmail"
                 type="email" 
                 bind:value={regEmail}
                 placeholder="email@example.com"
                 autocomplete="email"
-                class="w-full bg-stone-900/60 border border-stone-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-luxury-copper text-white placeholder:text-stone-600 transition-colors"
+                class="w-full bg-white/75 border border-white/80 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-luxury-copper text-stone-900 placeholder:text-stone-400 transition-colors shadow-sm focus:bg-white"
+                required
               />
-              <p class="text-[9px] text-stone-500 tracking-wider">Nhận thông báo hoa hồng và cập nhật chương trình qua email.</p>
+              <p class="text-[9px] text-sky-900/50 tracking-wider">Nhận thông báo hoa hồng và cập nhật chương trình qua email.</p>
             </div>
 
             <div class="space-y-2">
-              <label for="regReferredBy" class="block text-[10px] tracking-[2px] font-bold text-stone-400 uppercase">Mã giới thiệu người bảo trợ (Nếu có)</label>
+              <label for="regReferredBy" class="block text-xs font-bold text-sky-900/70">Mã giới thiệu người bảo trợ (Nếu có)</label>
               <input 
                 id="regReferredBy"
                 type="text" 
                 bind:value={regReferredBy}
                 placeholder="Nhập mã của người giới thiệu bạn" 
-                class="w-full bg-stone-900/60 border border-stone-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-luxury-copper text-white uppercase tracking-wider placeholder:text-stone-600 transition-colors"
+                class="w-full bg-white/75 border border-white/80 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-luxury-copper text-stone-900 uppercase tracking-wider placeholder:text-stone-400 transition-colors shadow-sm focus:bg-white"
                 maxlength="20"
               />
             </div>
@@ -453,13 +463,13 @@
                 bind:checked={acceptedTerms}
                 class="mt-0.5 w-4 h-4 rounded accent-luxury-copper shrink-0 cursor-pointer"
               />
-              <span class="text-[11px] text-stone-400 leading-relaxed font-light group-hover:text-stone-300 transition-colors">
+              <span class="text-[11px] text-sky-900/70 leading-relaxed font-medium group-hover:text-sky-900 transition-colors">
                 Tôi đã đọc và đồng ý với
                 <a
                   href="/quy-dinh-chinh-sach-doi-tac-affiliate-cong-tac-vien-ban-hang-tren-website-osmovn.html"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="text-luxury-copper hover:text-amber-400 underline underline-offset-2 font-semibold transition-colors"
+                  class="text-[#8C6239] hover:text-amber-600 underline underline-offset-2 font-semibold transition-colors"
                   onclick={(e) => e.stopPropagation()}
                 >Điều khoản & Chính sách Đối tác CTV/Affiliate của osmo.vn</a>
               </span>
@@ -468,12 +478,12 @@
             <button 
               type="submit" 
               disabled={isRegistering || !acceptedTerms}
-              class="w-full py-4 rounded-xl bg-luxury-copper hover:bg-amber-600 disabled:bg-stone-800 disabled:opacity-60 disabled:cursor-not-allowed text-stone-950 font-black text-xs tracking-[4px] uppercase active:scale-[0.98] transition-all shadow-lg shadow-luxury-copper/10 mt-2"
+              class="w-full py-3.5 rounded-xl bg-[#8C6239] hover:bg-[#704d2b] disabled:bg-stone-200 disabled:text-stone-400 disabled:opacity-80 disabled:cursor-not-allowed text-white font-bold text-sm tracking-wide active:scale-[0.98] transition-all shadow-lg shadow-luxury-copper/15 mt-2"
             >
               {#if isRegistering}
-                ĐANG KÍCH HOẠT...
+                Đang kích hoạt...
               {:else}
-                ĐĂNG KÝ NGAY
+                Đăng ký ngay
               {/if}
             </button>
           </form>

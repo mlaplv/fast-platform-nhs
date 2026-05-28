@@ -1,5 +1,5 @@
 """
-CtvService — Elite V2.2 / Viral 2026
+CtvService - Elite V2.2 / Viral 2026
 Affiliate (CTV) commission engine with AES-GCM integrity seals,
 multi-tier support, anti-fraud guards, and idempotent crediting.
 """
@@ -18,6 +18,7 @@ from backend.database.models.affiliate import (
     AffiliateProfile, CommissionLedger, CommissionTier, WithdrawalRequest,
 )
 from backend.database.models.commerce import Order
+from backend.constants.commerce import ShippingConfig
 from backend.database import current_tenant_id
 from backend.utils.security import GeminiSecurity
 
@@ -33,7 +34,7 @@ MAX_REFERRAL_CHAIN_DEPTH = 1  # Chống MLM fraud
 # ── Security Helpers ──────────────────────────────────────────────────────────
 
 def _create_commission_seal(ledger: CommissionLedger) -> str:
-    """AES-GCM integrity seal — chống tamper DB trực tiếp."""
+    """AES-GCM integrity seal - chống tamper DB trực tiếp."""
     return GeminiSecurity.encrypt({
         "id": ledger.id,
         "o": ledger.order_id,
@@ -62,7 +63,7 @@ def _create_balance_seal(aff: AffiliateProfile) -> str:
 
 def _verify_commission_seal(ledger: CommissionLedger) -> bool:
     if not ledger.integrity_token:
-        return True  # Legacy data — no seal yet
+        return True  # Legacy data - no seal yet
     data = GeminiSecurity.decrypt(ledger.integrity_token)
     if not isinstance(data, dict):
         return False
@@ -107,12 +108,12 @@ class CtvService:
             if decrypted and isinstance(decrypted, str) and decrypted != raw:
                 raw = decrypted.strip()
         except Exception:
-            pass  # Decryption failed — treat as plain code
+            pass  # Decryption failed - treat as plain code
 
         # Step 2: Normalize
         raw = raw.upper()
 
-        # Step 3: Validate format — reject garbage/tampered tokens
+        # Step 3: Validate format - reject garbage/tampered tokens
         if not CTV_CODE_PATTERN.match(raw):
             logger.warning(f"[CTV] Invalid code format after normalize: {raw[:20]!r}")
             return None
@@ -306,7 +307,7 @@ class CtvService:
     async def get_dashboard_stats(db_session: AsyncSession, user_id: str) -> dict:
         """
         Returns aggregated dashboard stats for a CTV.
-        Reads from pre-aggregated columns — O(1), no GROUP BY.
+        Reads from pre-aggregated columns - O(1), no GROUP BY.
         """
         from litestar.exceptions import NotFoundException
 
@@ -408,23 +409,23 @@ class CtvService:
         if shipping_fee is not None and float(shipping_fee) > 0.0:
             return float(shipping_fee)
 
-        fallback_ship = 25000.0
+        fallback_ship = ShippingConfig.STANDARD_FEE
         try:
             from backend.services.xohi_memory import xohi_memory
             if xohi_memory._use_redis:
                 redis_fee = await xohi_memory.client.get("config:shipping:default_fee")
                 if redis_fee:
                     fallback_ship = float(redis_fee)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"[CTV] Failed to fetch dynamic shipping fee: {e}")
         return fallback_ship
 
     @staticmethod
     async def credit_commission(db_session: AsyncSession, order_id: str) -> bool:
         """
-        Idempotent commission credit — called at checkout.
+        Idempotent commission credit - called at checkout.
         Creates PENDING ledger entry (tiền chờ). Later when DELIVERED,
-        confirm_pending_commissions() promotes PENDING → CONFIRMED (tiền thực).
+        confirm_pending_commissions() promotes PENDING -> CONFIRMED (tiền thực).
 
         Anti-fraud rules:
         1. Idempotency: skip if order_id already in commission_ledger
@@ -443,7 +444,7 @@ class CtvService:
         existing_stmt = select(CommissionLedger).where(CommissionLedger.order_id == order_id)
         existing = await db_session.execute(existing_stmt)
         if existing.scalar_one_or_none():
-            logger.info(f"[CTV] Commission already credited for order {order_id} — skipping")
+            logger.info(f"[CTV] Commission already credited for order {order_id} - skipping")
             return False
 
         # 3. Load affiliate with tier loaded
