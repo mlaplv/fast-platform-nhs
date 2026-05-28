@@ -421,5 +421,6 @@
 - [x] Tích hợp cơ chế vô hiệu hóa GA4/GTM/Facebook Pixel tự động (opt-out & no-op) trong `(admin)/+layout.svelte` để triệt tiêu theo dõi khi chuyển trang client-side. (Done)
 - [x] Tích hợp cơ chế vô hiệu hóa GA4/GTM/Facebook Pixel tự động trong trang root `routes/+page.svelte` khi tenant là admin. (Done)
 - [x] Tinh giản triệt để kiến trúc Admin, xoá bỏ hoàn toàn (permanent purge) thư mục route `/ctv` cũ (`routes/(admin)/ctv`) để làm sạch mã nguồn, giảm dung lượng bundle và tuân thủ 100% mô hình Dynamic Canvas Modal chuẩn (Hình 1). (Done)
+- [x] Làm sạch triệt để toàn bộ các tàn dư định tuyến không liên quan trong cổng quản trị: Xóa sổ vĩnh viễn (permanent purge) 5 thư mục route cũ (`brain`, `chat`, `security`, `skills`, `support`) khỏi phân vùng `routes/(admin)`. Chỉ giữ lại duy nhất `/login` (đăng nhập) và `/dashboard` (trang chủ điều khiển trung tâm Dynamic Canvas). (Done)
 - [x] Cập nhật tài liệu `walkthrough.md` làm bằng chứng kỹ thuật đã hoàn thành. (Done)
 
