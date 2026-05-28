@@ -21,7 +21,7 @@
       icon: '🔥', 
       label: 'Kiếm tiền', 
       href: '/user/ctv',
-      badge: '25%',
+      badge: '15%',
       badgeColor: '#c5a059'
     },
     { 
@@ -84,11 +84,12 @@
         <a 
           href={svc.href} 
           onclick={(e) => {
-            if (svc.href === '/user/ctv' && !authStore.isAuthenticated) {
+            const authRequiredRoutes = ['/user/ctv', '/user/loyalty', '/user/profile', '/user/purchase'];
+            if (authRequiredRoutes.includes(svc.href) && !authStore.isAuthenticated) {
               e.preventDefault();
               ui.openLogin(() => {
-                goto('/user/ctv');
-              }, '/user/ctv');
+                goto(svc.href);
+              }, svc.href);
             }
           }}
           class="service-item"

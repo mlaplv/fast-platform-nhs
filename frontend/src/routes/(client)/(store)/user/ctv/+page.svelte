@@ -624,8 +624,8 @@
     <div class="space-y-8" in:fade>
       
       <!-- Premium Glass Header Badge -->
-      <div class="bg-gradient-to-br from-sky-100/60 via-sky-50/40 to-white/70 text-sky-950 rounded-2xl p-6 md:p-8 border border-white/60 relative overflow-hidden shadow-xl shadow-sky-900/5 backdrop-blur-xl">
-        <div class="absolute -right-20 -top-20 w-52 h-52 bg-sky-300/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="bg-gradient-to-br from-stone-100/90 via-white/70 to-stone-50/80 text-stone-900 rounded-2xl p-6 md:p-8 border border-white/80 relative overflow-hidden shadow-xl shadow-stone-900/5 backdrop-blur-xl">
+        <div class="absolute -right-20 -top-20 w-52 h-52 bg-luxury-copper/5 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute -left-20 -bottom-20 w-44 h-44 bg-luxury-copper/5 rounded-full blur-3xl pointer-events-none"></div>
         <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           
@@ -639,30 +639,30 @@
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
                 Hoa hồng {((profile.tier?.commission_rate ?? profile.commission_rate ?? 0.15) * 100).toFixed(0)}%
               </span>
-              <span class="flex items-center gap-1 text-[10px] text-sky-800/80 font-mono tracking-widest font-bold">
+              <span class="flex items-center gap-1 text-[10px] text-[#8C6239] font-mono tracking-widest font-bold">
                 <ShieldCheck class="w-3.5 h-3.5 text-[#8C6239]" /> AES-GCM SEALED
               </span>
             </div>
             
-            <h2 class="text-2xl md:text-3xl font-serif italic text-sky-900 font-light">
+            <h2 class="text-2xl md:text-3xl font-serif italic text-stone-850 font-light">
               Xin chào, <span class="font-bold text-stone-900 not-italic">{authStore.user?.name}</span>
             </h2>
 
-            <p class="text-xs text-sky-800/80 tracking-wider">
+            <p class="text-xs text-stone-500 tracking-wider">
               Mã giới thiệu độc quyền của bạn: <strong class="text-[#8C6239] text-sm tracking-widest bg-white/80 px-3 py-1 rounded border border-white/95 font-mono uppercase ml-1 shadow-sm">{profile.ctv_code}</strong>
             </p>
 
             <!-- Phase 1: Tier Roadmap Progress (Shopee Affiliate style) -->
             {#if profile.tiers && profile.tiers.length > 1}
               <div class="pt-1 space-y-1.5">
-                <p class="text-[9px] text-sky-800/60 font-bold tracking-widest uppercase">Lộ trình cấp bậc</p>
+                <p class="text-[9px] text-stone-400 font-bold tracking-widest uppercase">Lộ trình cấp bậc</p>
                 <div class="flex items-center gap-1.5 flex-wrap">
                   {#each profile.tiers as t}
                     {@const isActive = t.name === (profile.tier?.name || profile.tier_name)}
                     <div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black border transition-all
                       {isActive
                         ? 'bg-[#8C6239] border-[#8C6239] text-white shadow-sm'
-                        : 'bg-white/60 border-white/80 text-sky-800/60'}
+                        : 'bg-white/60 border-white/80 text-stone-400 hover:text-stone-600'}
                     ">
                       {t.name} · {(t.commission_rate * 100).toFixed(0)}%
                       {#if isActive}<span class="ml-0.5">✓</span>{/if}
@@ -675,14 +675,14 @@
 
           <!-- Link Share Hub -->
           <div class="bg-white/30 border border-white/60 rounded-xl p-4 space-y-3 lg:max-w-md w-full shadow-inner backdrop-blur-md">
-            <span class="block text-[9px] tracking-[3px] font-black text-sky-900/60 uppercase">Liên kết tiếp thị của bạn</span>
+            <span class="block text-[9px] tracking-[3px] font-black text-stone-400 uppercase">Liên kết tiếp thị của bạn</span>
             <div class="flex items-center bg-white/70 border border-white/85 rounded-lg p-1.5 pl-3 shadow-sm">
-              <span class="text-[11px] text-sky-950 truncate flex-1 font-mono tracking-tight">{referralLink}</span>
+              <span class="text-[11px] text-stone-600 truncate flex-1 font-mono tracking-tight">{referralLink}</span>
               <div class="flex items-center gap-1.5 ml-2 shrink-0">
                 {#if canShare}
                   <button 
                     onclick={handleNativeShare}
-                    class="p-2 hover:bg-white/85 text-sky-900 hover:text-luxury-copper rounded transition-colors"
+                    class="p-2 hover:bg-white/85 text-[#8C6239] hover:text-luxury-copper rounded transition-colors"
                     title="Chia sẻ liên kết"
                   >
                     <ExternalLink class="w-4 h-4" />
@@ -690,14 +690,14 @@
                 {/if}
                 <button 
                   onclick={() => copyToClipboard(referralLink)}
-                  class="p-2 hover:bg-white/85 text-sky-900 hover:text-luxury-copper rounded transition-colors"
+                  class="p-2 hover:bg-white/85 text-[#8C6239] hover:text-luxury-copper rounded transition-colors"
                   title="Sao chép liên kết"
                 >
                   <Copy class="w-4 h-4" />
                 </button>
                 <button 
                   onclick={() => showQrCode = !showQrCode}
-                  class="p-2 hover:bg-white/85 text-sky-900 hover:text-luxury-copper rounded transition-colors"
+                  class="p-2 hover:bg-white/85 text-[#8C6239] hover:text-luxury-copper rounded transition-colors"
                   title="Mã QR"
                 >
                   <QrCode class="w-4 h-4" />
@@ -708,7 +708,7 @@
             {#if showQrCode}
               <div class="flex flex-col items-center justify-center p-4 bg-white/90 rounded-lg mt-2 transition-all border border-white/80 shadow-md" transition:slide>
                 <img src={qrCodeUrl} alt="Mã QR Giới thiệu" class="w-36 h-36" />
-                <p class="text-[9px] text-sky-900/60 mt-2 font-medium tracking-wider">Quét mã để mua hàng qua mã CTV của bạn</p>
+                <p class="text-[9px] text-stone-400 mt-2 font-medium tracking-wider">Quét mã để mua hàng qua mã CTV của bạn</p>
               </div>
             {/if}
           </div>
