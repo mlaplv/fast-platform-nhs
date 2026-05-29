@@ -1642,6 +1642,14 @@ Hệ thống nạp ĐÚNG tài khoản Admin tối cao của Sếp (`admin@micsm
   - *Issue*: Core desktop sections (`DiagnosticsSection`, `ScienceBento`, `VerifiedReviews`, `OfferGrid`, `EliteLandingFooter`) were dynamically imported on client scroll, leading to high CLS and dark pulsing skeleton artifacts on desktop landing funnels.
   - *Fix*: Upgraded all 5 main desktop sections to static imports, eliminating lazy loader blocks and enabling 100% stable pre-rendered SSR on desktop.
 
+## 57. Hardening Security Policy for Base64 Sound & Media Asset Loading (Elite V2.2)
+
+### Diagnostics & Architectural Upgrades
+- **Strict Content-Security-Policy (CSP) Adjustment in Caddy Edge Router (`Caddyfile`)**:
+  - *Issue*: In the previous default-src block, the browser blocked base64 sound data (`data:audio/wav;base64`) because `media-src` was not defined, falling back to `default-src 'self'`. This caused interactive speech responses or notifications to fail.
+  - *Fix*: Configured and injected `media-src 'self' data:;` directly inside the primary `Content-Security-Policy` header in the Caddyfile. Successfully reloaded Caddy configs in the production container cluster to whitelist base64 and standard self-hosted media streams securely.
+
+
 
 
 

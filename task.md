@@ -604,6 +604,7 @@
 - [x] Tối ưu hóa trang thanh toán `checkout/+page.svelte` bằng cách nâng cấp Auto-Stick Voucher, phương thức vận chuyển và đồng bộ hóa breakdown sang `$effect.pre` để tránh giật giá và phí. (Done)
 - [x] Đồng bộ giá trị tỉnh/quận/huyện pre-paint trong `AddressSection.svelte` và `checkout/success/[id]/+page.svelte` để triệt tiêu nhấp nháy dữ liệu khi nạp bản nháp hoặc nạp đơn. (Done)
 - [x] Chuyển đổi JIT Dynamic Import sang Static Import hoàn toàn cho các phân khúc trên Desktop Funnel (`[slug]-funnel/+page.svelte`) giúp trang Funnel có độ phủ SSR tuyệt đối, 0ms layout flash. (Done)
+- [x] Sửa lỗi vi phạm Content Security Policy (CSP) đối với dữ liệu base64 âm thanh/media (`data:audio/wav;base64`) bằng cách bổ sung cấu hình `media-src 'self' data:;` trong `Caddyfile`. (Done)
 
 
 
