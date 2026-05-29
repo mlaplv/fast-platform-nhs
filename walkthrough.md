@@ -1656,6 +1656,14 @@ Hệ thống nạp ĐÚNG tài khoản Admin tối cao của Sếp (`admin@micsm
   - *Issue*: The network graph component (`vis-network`) loaded dynamically from `https://unpkg.com` was blocked by the browser because the domain was not listed in the CSP `script-src` whitelist.
   - *Fix*: Whitelisted `https://unpkg.com` within the `script-src` parameter of the primary Content-Security-Policy header in the `Caddyfile`. Successfully synced and reloaded Caddy configs on the VPS to permit the secure delivery of network visualization scripts.
 
+## 59. Whitelisting Unpkg Source Maps in Content-Security-Policy connect-src (Elite V2.2)
+
+### Diagnostics & Architectural Upgrades
+- **Strict connect-src Domain Integration in Caddy Edge Router (`Caddyfile`)**:
+  - *Issue*: The browser's developer tools attempted to request the source map file (`https://unpkg.com/vis-network/standalone/umd/vis-network.min.js.map`) for debugging, which triggered a CSP violation on `connect-src` because `unpkg.com` was not whitelisted for connection requests.
+  - *Fix*: Appended `https://unpkg.com` to the `connect-src` whitelist of the primary Content-Security-Policy header in the `Caddyfile`. Successfully updated and hot-reloaded the configuration on the production VPS.
+
+
 
 
 
