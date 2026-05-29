@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { slide } from "svelte/transition";
   import AudioLines from "@lucide/svelte/icons/audio-lines";
 
   import NewsMobileReviews from "./NewsMobileReviews.svelte";
-  import { resolveMediaUrl } from "$lib/state/utils";
+  import { resolveMediaUrl, resolveOptimizedImageUrl } from "$lib/state/utils";
   interface Props {
     article: {
       id: string;
@@ -67,6 +68,22 @@
 
   // Elite V2.2: Professional Mobile Accordion State
   let activeFaq = $state<number | null>(null);
+  let loadBelowFold = $state(false);
+
+  onMount(() => {
+    // Defer dynamic loading of below-the-fold modules to maximize FCP & LCP PageSpeed metrics
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        requestIdleCallback(() => {
+          loadBelowFold = true;
+        });
+      } else {
+        setTimeout(() => {
+          loadBelowFold = true;
+        }, 200);
+      }
+    }
+  });
 
   $effect(() => {
     if (activeFaq === null && article.metadata?.faqs?.length > 0) {
@@ -361,7 +378,7 @@
   {#if article.featuredImage && article.featuredImage.trim() !== ""}
     <div class="w-full mb-4 bg-gray-50 flex items-center justify-center">
       <img
-        src={resolveMediaUrl(article.featuredImage)}
+        src={resolveOptimizedImageUrl(article.featuredImage, 600)}
         alt={article.title}
         class="w-full h-auto object-contain block"
         loading="eager"
@@ -434,7 +451,14 @@
 
   <!-- News Review Integration -->
   {#if article.category !== "Chính sách"}
-    <NewsMobileReviews articleId={article.id} slug={article.title} />
+    {#if loadBelowFold}
+      <NewsMobileReviews articleId={article.id} slug={article.title} />
+    {:else}
+      <div class="h-[150px] bg-white flex flex-col items-center justify-center text-gray-300 gap-2 border-t border-gray-100">
+        <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+        <span class="text-[10px] font-black tracking-widest uppercase">Đang tải bình luận...</span>
+      </div>
+    {/if}
   {/if}
 
   <!-- Footer Navigation -->

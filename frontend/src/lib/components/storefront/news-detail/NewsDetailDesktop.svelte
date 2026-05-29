@@ -1,8 +1,9 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { fade, fly, scale, slide } from "svelte/transition";
   import NewsDetailReviews from "./NewsDetailReviews.svelte";
   import ImageWithFallback from "../ui/ImageWithFallback.svelte";
-  import { resolveMediaUrl } from "$lib/state/utils";
+  import { resolveMediaUrl, resolveOptimizedImageUrl } from "$lib/state/utils";
 
   interface NewsItem {
     id: string;
@@ -91,6 +92,22 @@
 
   // Elite V2.2: Professional Accordion State
   let activeFaq = $state<number | null>(null);
+  let loadBelowFold = $state(false);
+
+  onMount(() => {
+    // Defer dynamic loading of below-the-fold modules to maximize FCP & LCP PageSpeed metrics
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        requestIdleCallback(() => {
+          loadBelowFold = true;
+        });
+      } else {
+        setTimeout(() => {
+          loadBelowFold = true;
+        }, 200);
+      }
+    }
+  });
 
   $effect(() => {
     if (activeFaq === null && article.metadata?.faqs?.length > 0) {
@@ -189,7 +206,7 @@
           {#if article.featuredImage && article.featuredImage.trim() !== ""}
             <div class="w-full px-0 mb-0 overflow-hidden bg-gray-50 flex items-center justify-center">
               <img
-                src={resolveMediaUrl(article.featuredImage)}
+                src={resolveOptimizedImageUrl(article.featuredImage, 1000)}
                 alt={article.title}
                 class="w-full h-auto object-contain block transition-transform duration-700"
                 loading="eager"
@@ -283,7 +300,14 @@
 
       <!-- ELITE V2.2: News Review Integration -->
       {#if article.category !== "Chính sách"}
-        <NewsDetailReviews articleId={article.id} />
+        {#if loadBelowFold}
+          <NewsDetailReviews articleId={article.id} />
+        {:else}
+          <div class="h-[180px] bg-white border border-gray-100 flex flex-col items-center justify-center text-gray-300 gap-2 mt-8">
+            <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+            <span class="text-[10px] font-black tracking-widest uppercase">Đang tải bình luận học thuật...</span>
+          </div>
+        {/if}
       {/if}
     </main>
 
