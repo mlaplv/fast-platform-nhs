@@ -4,7 +4,7 @@ from backend.services.commerce.operatives.handlers.order import OrderHandler
 from backend.services.commerce.operatives.handlers.consultant import ConsultantHandler
 from backend.services.commerce.operatives.handlers.base import SupportContext
 from backend.schemas.support import SupportRequest
-from backend.database.config import get_database_url
+from backend.database.alchemy_config import alchemy_config
 from backend.database.models.commerce import ProductBase, Order
 from backend.services.xohi_memory import xohi_memory
 import logging
@@ -12,7 +12,7 @@ import sys
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
 async def test():
-    engine = create_async_engine(get_database_url())
+    engine = alchemy_config.get_engine()
     session_maker = async_sessionmaker(engine, expire_on_commit=False)
     
     async with session_maker() as db:

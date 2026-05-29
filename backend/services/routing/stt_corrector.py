@@ -13,7 +13,7 @@ from backend.services.ai_engine.core.key_rotator import key_rotator
 from backend.services.xohi_memory import xohi_memory
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge
 from .stt_schemas import STTCorrectorDeps, STTCorrectionOutput
-from .stt_prompts import STT_CORRECTOR_PROMPT
+from backend.services.xohi.prompts import composer
 from .stt_utils import NORM_NAV_PATTERNS, SOUND_ALIKES, get_norm
 from .stt_neural import NeuralLocalCorrector
 
@@ -36,7 +36,7 @@ class STTCorrector:
         self.agent: Agent[STTCorrectorDeps, STTCorrectionOutput] = Agent(
             deps_type=STTCorrectorDeps,
             output_type=STTCorrectionOutput,
-            system_prompt=STT_CORRECTOR_PROMPT
+            system_prompt=composer.compose("stt_corrector_premium")
         )
 
         @self.agent.system_prompt

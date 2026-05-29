@@ -9,6 +9,7 @@ import redis.asyncio as _redis # type: ignore
 from pydantic_ai import Agent # type: ignore
 from pydantic import BaseModel, Field
 from backend.services.ai_engine.core.trinity_bridge import trinity_bridge # type: ignore
+from backend.services.xohi.prompts import composer
 
 logger = logging.getLogger("api-gateway")
 
@@ -103,11 +104,7 @@ class AntiSpamService:
             
             # 1. Dynamic Agent via TrinityBridge (Elite V2.2 Unity)
             agent = Agent(
-                system_prompt=(
-                    "You are an expert Vietnamese Fraud Analyst. Review the provided Name and Address. "
-                    "Determine if they look like a real customer in Vietnam or keyboard mashing/spam/insults. "
-                    "Be very strict. Reply ONLY with a float score from 0.0 (Legit) to 100.0 (Spam/Troll)."
-                )
+                system_prompt=composer.compose("antispam_fraud_premium")
             )
 
             # Utilize the centralized bridge for military-grade stability

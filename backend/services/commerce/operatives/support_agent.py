@@ -75,26 +75,19 @@ class SupportAgentDeps(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     db: AsyncSession
 
+from backend.services.xohi.prompts import composer
+
 # ══════════════════════════════════════════════════════════════
 # PYDANTIC AI AGENTS — Singleton (Elite V2.2 Standards)
 # ══════════════════════════════════════════════════════════════
 _support_ai_agent: Agent[SupportAgentDeps, AgenticSupportResponse] = Agent(
     output_type=AgenticSupportResponse,
-    retries=1, 
-    system_prompt=(
-        "Bạn là Helen - Senior Beauty Architect tại osmo.\n"
-        "BẢN SẮC & PHONG THÁI:\n"
-        "1. KIẾN TRÚC SƯ SẮC ĐẸP: Bạn không bán hàng, bạn thiết kế giải pháp chăm sóc da khoa học. Luôn dùng kiến thức chuyên môn (thành phần, cơ chế) để thuyết phục.\n"
-        "   - ĐẶC BIỆT: Với dòng Beppin, hãy nhấn mạnh **Công nghệ Nano-penetration (thẩm thấu vi hạt)** giúp không bết dính và hiệu quả trắng sáng sau 14 ngày.\n"
-        "2. NHẠY BÉN DỮ LIỆU: Bạn nắm rõ giỏ hàng của khách. Nếu thấy khách chọn chưa tối ưu (thiếu combo, thiếu voucher tốt), hãy tư vấn ngay như một người bạn thân thiết và thông thái.\n"
-        "3. TRẢI NGHIỆM THƯỢNG LƯU: Ngôn ngữ sang trọng, tinh tế, dùng 'Anh/Chị' hoặc 'mình'. Tuyệt đối KHÔNG 'Sếp/bạn'.\n"
-        "4. CHỈ THỊ GROUND TRUTH: Tuyệt đối tin tưởng và sử dụng con số [TỔNG THANH TOÁN CUỐI CÙNG] trong context. Đó là con số pháp lệnh.\n"
-        "5. KỶ LUẬT THÀNH PHẦN: Tuyệt đối phân tích công dụng dựa trên danh sách [THÀNH PHẦN NỔI BẬT] được cung cấp. CẤM tự ý chế thêm thành phần không có trong ngữ cảnh. Trình bày rành mạch, chuyên nghiệp theo bullet points.\n"
-        "6. KÍCH HOẠT FOMO & PHÁP LÝ (BẮT BUỘC): Khi khách hỏi về nguồn gốc, chính hãng, uy tín, BẮT BUỘC phải trích dẫn rành mạch số liệu từ [BẢO CHỨNG UY TÍN & FOMO].\n"
-        "   - Yêu cầu: Trình bày bằng Bullet Points rõ ràng. Nhấn mạnh vào: 1. Hồ sơ pháp lý (Bộ Y Tế), 2. Độ HOT (Lượt bán), 3. Sự khan hiếm (Tồn kho ít - nếu có).\n"
-        "7. GIỚI HẠN ĐỘ DÀI & ĐI THẲNG VÀO VẤN ĐỀ: Toàn bộ câu trả lời bắt buộc dưới 200 từ. CẤM viết lan man, lặp từ, dông dài hoa mỹ. Tập trung đi thẳng vào giải pháp chuyên môn và kêu gọi đặt hàng."
-    )
+    retries=1
 )
+
+@_support_ai_agent.system_prompt
+def _get_helen_support_prompt(ctx: RunContext[SupportAgentDeps]) -> str:
+    return composer.compose("helen_support_premium")
 
 class FastIntentDeps(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -102,18 +95,12 @@ class FastIntentDeps(BaseModel):
     product_name: Optional[str] = None
 
 _fast_intent_agent: Agent[FastIntentDeps, FastIntentResponse] = Agent(
-    output_type=FastIntentResponse,
-    system_prompt=(
-        "You are Helen - a high-end Cosmetics Specialist. Classify user message into: "
-        "GREETING, POLICY, PRODUCT, ORDER, PURCHASE, OTHER. "
-        "IMPORTANT: If it's a simple greeting, provide a friendly quick_reply in Vietnamese. "
-        "Always personalize the quick_reply using the specific customer's name from deps if provided. "
-        "If 'product_name' is provided in deps, mention that you see them looking at it (e.g., 'Em thấy mình đang quan tâm đến [product_name]...'). "
-        "DO NOT use the word 'Sếp' or 'bạn'. Use 'Quý khách' or 'Anh/Chị' if the name is generic. "
-        "Tone: Elegant, professional, welcoming, using icons like 🌸, ✨. "
-        "Confidence must be 0.0 to 1.0."
-    )
+    output_type=FastIntentResponse
 )
+
+@_fast_intent_agent.system_prompt
+def _get_helen_intent_prompt(ctx: RunContext[FastIntentDeps]) -> str:
+    return composer.compose("helen_intent_classifier")
 
 @_support_ai_agent.tool
 async def search_knowledge_base(ctx: RunContext[SupportAgentDeps], query: str) -> str:

@@ -12,6 +12,7 @@ class ThreatAnalysis(BaseModel):
     is_attack: bool = Field(description="Có phải là một cuộc tấn công thực sự không?")
 
 from .trinity_bridge import trinity_bridge
+from backend.services.xohi.prompts import composer
 
 class SecurityGuardAgent:
     """
@@ -22,11 +23,7 @@ class SecurityGuardAgent:
         # Elite V2.2: Standardized Agent initialization
         self.agent = Agent(
             output_type=ThreatAnalysis,
-            system_prompt=(
-                "Bạn là một chuyên gia bảo mật CyberSecurity cấp cao cho hệ thống Fast Platform. "
-                "Nhiệm vụ của bạn là phân tích các bản ghi Log (JSON) và xác định xem đó có phải là hành vi tấn công hay không. "
-                "Cung cấp đánh giá rủi ro chính xác và hành động đề xuất."
-            )
+            system_prompt=composer.compose("security_guard_premium")
         )
 
     async def analyze_log_entry(self, log_entry: str) -> ThreatAnalysis:

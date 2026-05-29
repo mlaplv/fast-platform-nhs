@@ -518,3 +518,11 @@
 - [x] Harden unified entrance login, social login, and OTP verify inside `AuthService` to prevent blocked users from acquiring new sessions. (Done)
 - [x] Integrate real-time active status verification for administrators inside `AuthMiddleware` aligned with Redis session surveillance. (Done)
 
+# Task Checklist - Centralizing AI Prompt Governance (Elite V3.5)
+
+- [x] Centralize all scattered system prompts from `consultant.py`, `support_agent.py`, `anti_spam.py`, and `security_guard.py` into unified modular prompt components. (Done)
+- [x] Integrate Zero-Trust Context Sandwiching using automatic XML boundary isolation within `PromptComposer` compilation logic. (Done)
+- [x] Replace all raw inline hardcoded prompt definitions with dynamic, clean POS `composer.compose()` calls. (Done)
+- [x] Validate POS integration through custom test runs (`test_skin_barrier.py`), ensuring robust and correct execution. (Done)
+
+

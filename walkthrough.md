@@ -1377,13 +1377,26 @@ We audited the backend's Machine-to-Machine (M2M) integration and API credential
   - Usage rates, failures, and cooling times are dynamically monitored in Redis, guaranteeing seamless service rotation and immediate defensive fail-soft actions.
 
 
+### **Checkpoint 59: Centralizing AI Prompt Governance (Elite V3.5)**
 
+We successfully audited, unified, and hardened the entire AI prompt ecosystem of the Micsmo Platform-Core into a secure, centralized, and highly maintainable architecture.
 
+#### **1. Structural Prompt Migration**
+- **Decoupled Prompt Definitions**: Moved all scattered, monolithic, and hardcoded system prompts from `support_agent.py`, `consultant.py`, `anti_spam.py`, and `security_guard.py` into specialized files under a modular directory:
+  - `backend/services/xohi/prompts/agents/support.py` (Helen main agent, routing, and intent classifier).
+  - `backend/services/xohi/prompts/agents/routing.py` (Context generation and instruction templates).
+  - `backend/services/xohi/prompts/agents/security.py` (Spam fraud analyst and cybersecurity log entry threat analyzer).
+- **Central Registration**: Registered all legacy prompts as modular `PromptComponent` definitions within the POS (`__init__.py`) registry. Mapped keys such as `helen_support_premium`, `helen_intent_classifier`, `helen_consultant_premium`, `helen_consultant_skin_barrier`, `helen_consultant_skin_barrier_analysis`, `helen_system_consultation`, `antispam_fraud_premium`, and `security_guard_premium`.
 
+#### **2. Security Hardening (Context Sandwiching & XML Shielding)**
+- **Trinity-Lock Isolation**: Implemented automatic `Context Sandwiching` within `PromptComposer.compose()`. All dynamic or potentially untrusted runtime contexts (like client input, history, database search result payloads) are strictly wrapped in XML boundary tags:
+  ```xml
+  <untrusted_context_block namespace="{namespace}">
+  [Context Content]
+  </untrusted_context_block>
+  ```
+- **Shielding Guards**: Automatically injected strict anti-jailbreak instruction locks before and after all dynamic context blocks, making it structurally impossible for malicious user inputs or indirect payloads to hijack the agent execution flow.
 
-
-
-
-
-
-
+#### **3. API Integration and Dynamic Resolution**
+- **Clean POS Composer Calls**: Fully refactored and updated agent logic to resolve prompts dynamically using `composer.compose(key, context)` instead of relying on hardcoded static strings or local variables.
+- **Verification Suite**: Executed the `test_skin_barrier.py` script. Verified that the new central Prompt Orchestration System resolves, compiles, and delivers the dynamic prompts flawlessly under execution loops, showing absolute type safety and zero structural regressions.

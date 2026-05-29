@@ -11,6 +11,9 @@ from .agents.review_booster import register_review_booster
 from .shields.adapters import register_adapters
 from .niches.cosmetics import register_cosmetics
 from .niches.pharmaceuticals import register_pharma
+from .agents.support import register_support
+from .agents.routing import register_routing
+from .agents.security import register_security
 
 # Initialize and Register all components
 register_core(composer)
@@ -25,6 +28,9 @@ register_review_booster(composer)
 register_adapters(composer)
 register_cosmetics(composer)
 register_pharma(composer)
+register_support(composer)
+register_routing(composer)
+register_security(composer)
 
 # Register Templates
 from .schema import PromptTemplate
@@ -121,3 +127,62 @@ composer.register_template(PromptTemplate(
     name="review_rewrite",
     components=["core_constitution", "agent_review_booster"]
 ))
+
+# Micsmo Core Commerce Templates
+composer.register_template(PromptTemplate(
+    name="helen_support_premium",
+    components=["helen_support_persona"]
+))
+
+composer.register_template(PromptTemplate(
+    name="helen_intent_classifier",
+    components=["helen_intent_classifier"]
+))
+
+composer.register_template(PromptTemplate(
+    name="helen_consultant_premium",
+    components=["helen_sales_assassin"]
+))
+
+composer.register_template(PromptTemplate(
+    name="helen_consultant_skin_barrier",
+    components=["helen_skin_barrier_inquiry"]
+))
+
+composer.register_template(PromptTemplate(
+    name="helen_consultant_skin_barrier_analysis",
+    components=["helen_skin_barrier_analysis"]
+))
+
+composer.register_template(PromptTemplate(
+    name="helen_system_consultation",
+    components=["helen_system_consultation"]
+))
+
+# Micsmo Routing & STT Templates
+composer.register_template(PromptTemplate(
+    name="stt_corrector_premium",
+    components=["stt_corrector_prompt"]
+))
+
+composer.register_template(PromptTemplate(
+    name="t2_dispatcher_premium",
+    components=["t2_dispatcher_prompt"]
+))
+
+composer.register_template(PromptTemplate(
+    name="t3_assistant_premium",
+    components=["t3_assistant_prompt"]
+))
+
+# Micsmo Security Templates
+composer.register_template(PromptTemplate(
+    name="security_guard_premium",
+    components=["security_guard_prompt"]
+))
+
+composer.register_template(PromptTemplate(
+    name="antispam_fraud_premium",
+    components=["antispam_fraud_prompt"]
+))
+
