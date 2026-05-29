@@ -41,6 +41,23 @@ from backend.services.commerce.operatives.router import SupportRouter
 
 logger = logging.getLogger("arq.worker")
 
+# ══════════════════════════════════════════════════════════════
+# KT4: Probabilistic Early-Exit — Greeting Trie (0ms, no LLM)
+# ══════════════════════════════════════════════════════════════
+_GREETING_TRIE: frozenset[str] = frozenset([
+    "xin chào", "hello", "hi", "chào", "hey", "alo", "chào helen",
+    "cho hỏi", "em ơi", "cho em hỏi", "tư vấn giúp", "hỏi chút",
+    "hỏi thăm", "tư vấn", "cần tư vấn", "bạn ơi", "shop ơi",
+])
+
+def _is_definite_greeting(msg: str) -> bool:
+    """O(k) prefix scan — bypass LLM entirely for known short greetings."""
+    normalized = msg.lower().strip()
+    return len(normalized) < 50 and any(
+        normalized == kw or normalized.startswith(kw + " ") or normalized == kw
+        for kw in _GREETING_TRIE
+    )
+
 class AgenticSupportResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     reply: str = Field(..., description="Văn bản phản hồi tự nhiên. Nếu khách muốn xem hình hoặc hỏi sản phẩm, hãy dùng PRODUCT_CARD.")
@@ -337,6 +354,18 @@ class SupportAgentOperative(BaseAgentOperative):
 
     async def _fetch_neural_dna(self, db: AsyncSession, session_id: str, lead_phone: Optional[str] = None, user_id: Optional[str] = None) -> NeuralDNA:
         try:
+            # KT3: Adaptive DNA Cache — signature hash key avoids DB on returning sessions
+            import hashlib
+            _sig = hashlib.md5(f"{session_id}:{lead_phone or ''}:{user_id or ''}".encode()).hexdigest()[:12]
+            _dna_key = f"support:dna:{_sig}"
+            if xohi_memory._use_redis and xohi_memory.client:
+                try:
+                    _cached = await xohi_memory.client.get(_dna_key)
+                    if _cached:
+                        return NeuralDNA.model_validate_json(_cached)
+                except Exception as _ce:
+                    logger.debug("[SupportAgent] DNA cache read failed: %s", _ce)
+
             mem = await xohi_memory.get_user_context(session_id)
             if mem and "dna" in mem:
                 dna_obj = NeuralDNA.model_validate(mem["dna"])
@@ -394,6 +423,13 @@ class SupportAgentOperative(BaseAgentOperative):
                 customer_name=customer_name
             )
             await xohi_memory.set_user_context(session_id, {"dna": dna.model_dump()})
+            # KT3: Store in adaptive TTL cache (VIP: 5min refresh, others: 10min)
+            if xohi_memory._use_redis and xohi_memory.client:
+                try:
+                    _ttl = 300 if dna.segment == "VIP" else 600
+                    await xohi_memory.client.set(_dna_key, dna.model_dump_json(), ex=_ttl)
+                except Exception as _se:
+                    logger.debug("[SupportAgent] DNA cache store failed: %s", _se)
             return dna
         except Exception as e:
             logger.warning("[SupportAgent] DNA fetch failed: %s", e)
@@ -415,11 +451,20 @@ class SupportAgentOperative(BaseAgentOperative):
 
         await event_bus.emit("SUPPORT_THOUGHT", {"session_id": session_id, "think": "Đang chuẩn bị context Senior Beauty Architect..."})
         
-        cur_settings = await self._get_currency_settings()
-        ctx_text, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
+        # KT1: Wave 1 — Pure Redis ops run in parallel (safe: no DB session contention)
+        cur_settings, raw_draft = await asyncio.gather(
+            self._get_currency_settings(),
+            xohi_memory.get_order_draft(session_id),
+        )
+        order_draft = OrderDraft.model_validate(raw_draft) if raw_draft else None
+
+        # Wave 2: DB ops — sequential to respect AsyncSession single-connection model
         hist_text = await self._fetch_chat_context(db, session_id)
         dna = await self._fetch_neural_dna(db, session_id, lead_phone=request.customer_phone, user_id=request.user_id)
-        
+
+        # Wave 3: Product context depends on cur_settings from Wave 1
+        ctx_text, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
+
         # 1.0 Layer 1 Memory
         try:
             repo = SupportKnowledgeRepository(session=db)
@@ -428,10 +473,6 @@ class SupportAgentOperative(BaseAgentOperative):
         except Exception as e:
             logger.warning("[SupportAgent] KnowledgeIndex fetch failed: %s", e)
             kb_index = ""
-
-        # 1.1 Order Draft Hydration
-        raw_draft = await xohi_memory.get_order_draft(session_id)
-        order_draft = OrderDraft.model_validate(raw_draft) if raw_draft else None
 
         # 🚀 Elite V5.5: HIGH-PERFORMANCE CONTEXT ARCHITECTURE
         # Bulk Fetch Products & Variants
@@ -454,7 +495,7 @@ class SupportAgentOperative(BaseAgentOperative):
         # Render Reports
         # C-1: Pass DB-authoritative price maps into pricing engine
         pb = await self._prepare_pricing_breakdown(db, request, dna, p_map=p_map, v_map=v_map)
-        cur_settings = await self._get_currency_settings()
+        # KT1 Bugfix: cur_settings already fetched in Wave 1 — removed duplicate Redis call
         cart_text = self._render_cart_report(request, p_map, v_map, pb, ctx_text, cur_settings)
         
         # FOMO & Upsell
@@ -478,6 +519,11 @@ class SupportAgentOperative(BaseAgentOperative):
                 zalo_on = cfg_data.get("integrations", {}).get("zalo", {}).get("enabled", False)
                 msg_on = cfg_data.get("integrations", {}).get("messenger", {}).get("enabled", False)
         except Exception: pass
+
+        # KT6: Token Budget Guard — trim context before LLM injection
+        cart_text, ctx_text, hist_text, kb_index = self._trim_context_to_budget(
+            cart_text, ctx_text, hist_text, kb_index
+        )
 
         ctx = SupportContext(
             db=db, request=request, session_id=session_id, dna=dna,
@@ -581,12 +627,20 @@ class SupportAgentOperative(BaseAgentOperative):
         return res
 
     async def _get_currency_settings(self) -> Dict[str, str]:
+        """KT2: Redis Pipeline — 3 GETs batched into 1 round-trip."""
         try:
-            symbol = await xohi_memory.client.get("system:currency:symbol") or "₫"
-            position = await xohi_memory.client.get("system:currency:position") or "suffix"
-            thousand_sep = await xohi_memory.client.get("system:currency:thousand_sep") or "."
-            return {"symbol": symbol, "position": position, "thousand_sep": thousand_sep}
-        except:
+            async with xohi_memory.client.pipeline(transaction=False) as pipe:
+                pipe.get("system:currency:symbol")
+                pipe.get("system:currency:position")
+                pipe.get("system:currency:thousand_sep")
+                results = await pipe.execute()
+            return {
+                "symbol": results[0] or "₫",
+                "position": results[1] or "suffix",
+                "thousand_sep": results[2] or ".",
+            }
+        except Exception as e:
+            logger.warning("[SupportAgent] Currency settings pipeline failed: %s", e)
             return {"symbol": "₫", "position": "suffix", "thousand_sep": "."}
 
     def _format_price(self, amount: float, settings: Dict[str, str]) -> str:
@@ -594,6 +648,35 @@ class SupportAgentOperative(BaseAgentOperative):
         if settings["position"] == "prefix":
             return f"{settings['symbol']}{formatted}"
         return f"{formatted}{settings['symbol']}"
+
+    @staticmethod
+    def _trim_context_to_budget(
+        cart_text: str, ctx_text: str, hist_text: str, kb_index: str,
+        budget: int = 16000,
+    ) -> tuple[str, str, str, str]:
+        """KT6: Token Budget Guard — priority trim to keep prompt under budget.
+        Trim order: hist_text → kb_index → ctx_text. cart_text is never trimmed (ground truth).
+        """
+        total = len(cart_text) + len(ctx_text) + len(hist_text) + len(kb_index)
+        if total <= budget:
+            return cart_text, ctx_text, hist_text, kb_index
+
+        # Step 1: Trim hist to last 1500 chars
+        if len(hist_text) > 1500:
+            hist_text = hist_text[-1500:]
+
+        # Step 2: Trim kb_index if still over budget
+        remaining = budget - len(cart_text) - len(ctx_text) - len(hist_text)
+        if len(kb_index) > max(0, remaining):
+            kb_index = kb_index[:max(0, remaining)] + "...[TRUNCATED]"
+
+        # Step 3: Trim ctx_text (product description) if extreme overflow
+        remaining = budget - len(cart_text) - len(hist_text) - len(kb_index)
+        if len(ctx_text) > max(0, remaining):
+            ctx_text = ctx_text[:max(0, remaining)] + "...[TRUNCATED]"
+
+        logger.debug("[SupportAgent] KT6: Context trimmed from %d to budget %d chars.", total, budget)
+        return cart_text, ctx_text, hist_text, kb_index
 
     def _render_cart_report(self, request: SupportRequest, p_map: Dict[str, ProductBase], v_map: Dict[str, ProductVariant], pb: Dict[str, object], ctx_text: str, currency_settings: Dict[str, str]) -> str:
         cart_lines = []
@@ -663,7 +746,8 @@ class SupportAgentOperative(BaseAgentOperative):
             if float(pb.get("voucher_discount", 0)) < (max_sav - 1000):
                 fomo_text += f"- [CẢNH BÁO]: Khách chưa dùng mã tốt nhất. HÃY THUYẾT PHỤC KHÁCH DÙNG MÃ '{best_v.id}'!\n"
             else: fomo_text += f"- [XÁC NHẬN]: Khách đã dùng mã tối ưu. Khen khách thông thái và chốt đơn ngay.\n"
-        next_v = next((v for v in all_vouchers if (v.min_spend or 0) > subtotal), None)
+        # Bugfix R01: Sort vouchers by min_spend ascending before finding the next tier
+        next_v = next((v for v in sorted(all_vouchers, key=lambda v: v.min_spend or 0) if (v.min_spend or 0) > subtotal), None)
         if next_v:
             gap = next_v.min_spend - subtotal
             if gap < 300000: fomo_text += f"- Gợi ý mua thêm: Chỉ thiếu {self._format_price(gap, currency_settings)} nữa là dùng được mã '{next_v.id}' (Giảm cực sâu).\n"
@@ -794,6 +878,21 @@ class SupportAgentOperative(BaseAgentOperative):
         _, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
 
         is_system_prompt = request.message.strip().startswith("[system_")
+
+        # KT4: Greeting Trie Early-Exit — deterministic 0ms path, no LLM call needed
+        if not is_system_prompt and not request.cart_items and _is_definite_greeting(request.message):
+            _c = c_name if c_name not in ["Quý khách"] else ""
+            _salutation = f" {_c}" if _c else ""
+            greeting_reply = (
+                f"Xin chào{_salutation}! 🌸 Helen rất vui được hỗ trợ Anh/Chị. "
+                "Anh/Chị cần tư vấn về sản phẩm, đơn hàng hay bất kỳ điều gì, "
+                "cứ nhắn Helen nhé! ✨"
+            )
+            await self._save_history(db, session_id, request.message, greeting_reply, SupportIntent.GENERAL_ADVICE, request.product_slug, c_name, request.customer_phone)
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await db.flush()
+            return SupportResponse(ok=True, reply=greeting_reply, intent=SupportIntent.GENERAL_ADVICE, session_id=session_id, status="DONE")
+
         if not is_system_prompt:
             try:
                 masked_msg = await self._mask_sensitive_medical_terms(request.message)
