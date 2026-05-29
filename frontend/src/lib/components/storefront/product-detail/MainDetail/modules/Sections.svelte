@@ -53,10 +53,6 @@
   function handleScanComplete(event: {
     verificationData: BarcodeVerificationResponse;
   }) {
-    console.log(
-      "🧬 [Sections] Scan complete received:",
-      $state.snapshot(event),
-    );
     isScanning = false;
     verificationData = event.verificationData;
     showVerification = true;
