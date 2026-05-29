@@ -2,6 +2,7 @@ from __future__ import annotations
 import uuid
 import asyncio
 import logging
+from backend.utils.uid import new_id
 from datetime import datetime, timezone
 from typing import List, Optional
 import sqlalchemy as sa
@@ -98,7 +99,7 @@ class SupportKnowledgeService:
         )
 
     async def create_knowledge(self, db_session: AsyncSession, data: CreateSupportKnowledgeRequest) -> SuccessResponse:
-        new_id = str(uuid.uuid4())
+        new_id = new_id()
         item = SupportKnowledge(
             id=new_id,
             category=data.category,

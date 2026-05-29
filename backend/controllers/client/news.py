@@ -29,6 +29,7 @@ class PublicNewsController(Controller):
         limit: int = 20,
         offset: int = 0,
         search: Optional[str] = None,
+        cursor: Optional[str] = None,
     ) -> ArticleListResponse:
         """PUBLIC: List news articles with pagination."""
         return await article_service.list_articles(
@@ -37,7 +38,8 @@ class PublicNewsController(Controller):
             offset=offset, 
             status="PUBLISHED", 
             search=search, 
-            category="Bài viết"
+            category="Bài viết",
+            cursor=cursor
         )
 
     @get("/search")

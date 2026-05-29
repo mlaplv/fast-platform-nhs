@@ -26,7 +26,12 @@ export class SearchState {
 
   constructor() {
     this.loadHistory();
-    this.loadFeatured();
+  }
+
+  async ensureFeaturedLoaded() {
+    if (this.featuredProducts.length === 0) {
+      await this.loadFeatured();
+    }
   }
 
   // --- Logic ---

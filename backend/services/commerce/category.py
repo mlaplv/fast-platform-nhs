@@ -18,6 +18,7 @@ from backend.services.event_bus import event_bus
 from backend.utils.media import extract_media_urls
 from backend.services.xohi_memory import xohi_memory
 from backend.services.commerce.seo_service import SeoService
+from backend.utils.uid import new_id, new_short_id
 
 class CategoryNode(TypedDict, total=False):
     id: str
@@ -171,11 +172,11 @@ class CategoryService:
 
     @staticmethod
     async def create_category(db_session: AsyncSession, data: CreateCategoryRequest) -> SuccessResponse:
-        new_id = str(uuid.uuid4())
+        new_id_val = new_id()
         category = Category(
-            id=new_id,
+            id=new_id_val,
             name=data.name,
-            slug=data.slug or str(uuid.uuid4())[:8],
+            slug=data.slug or new_short_id(8),
             parent_id=data.parentId,
             description=data.description,
             seo_title=data.seoTitle,
@@ -190,10 +191,10 @@ class CategoryService:
         db_session.add(category)
         await db_session.commit()
         await CategoryService._invalidate_cache()
-        await CategoryService._sync_media_links(new_id, data.image)
+        await CategoryService._sync_media_links(new_id_val, data.image)
 
         cat_data = CategoryResponse(
-            id=new_id,
+            id=new_id_val,
             name=category.name,
             slug=category.slug,
             parent_id=category.parent_id,
@@ -210,7 +211,7 @@ class CategoryService:
             category_metadata=category.category_metadata,
             created_at=datetime.now(timezone.utc)
         )
-        return SuccessResponse(ok=True, id=new_id, data=cat_data)
+        return SuccessResponse(ok=True, id=new_id_val, data=cat_data)
 
     @staticmethod
     async def update_category(db_session: AsyncSession, category_id: str, data: UpdateCategoryRequest) -> SuccessResponse:

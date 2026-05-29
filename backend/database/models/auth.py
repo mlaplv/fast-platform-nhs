@@ -1,4 +1,5 @@
 from typing import Optional, List
+from backend.utils.uid import new_id_default
 import sqlalchemy as sa
 from sqlalchemy import (
     String, ForeignKey, Table, Column, Index, JSON, Float
@@ -27,7 +28,7 @@ import uuid
 class User(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'users'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     username: Mapped[str] = mapped_column(String, unique=True)
     email: Mapped[str] = mapped_column(String, unique=True)
     name: Mapped[Optional[str]] = mapped_column(String)
@@ -64,7 +65,7 @@ class User(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class VoiceProfile(Base, AuditMixin):
     __tablename__ = 'voice_profiles'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     user_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), unique=True)
     user: Mapped["User"] = relationship("User", back_populates="voice_profile")
     wake_words: Mapped[list[str]] = mapped_column(JSON, default=list)
@@ -88,7 +89,7 @@ class VoiceProfile(Base, AuditMixin):
 class Role(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'roles'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     name: Mapped[str] = mapped_column(String)
     code: Mapped[str] = mapped_column(String)
     description: Mapped[Optional[str]] = mapped_column(String)
@@ -104,7 +105,7 @@ class Role(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class Permission(Base, AuditMixin, SoftDeleteMixin):
     __tablename__ = 'permissions'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     name: Mapped[str] = mapped_column(String, unique=True)
     code: Mapped[str] = mapped_column(String, unique=True)
     description: Mapped[Optional[str]] = mapped_column(String)

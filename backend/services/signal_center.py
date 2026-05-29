@@ -14,6 +14,7 @@ Rule Reference:
   - R00: Central dispatch, no ad-hoc side effects in controllers
 """
 import uuid
+from backend.utils.uid import new_id
 import logging
 import asyncio
 from datetime import datetime, timezone
@@ -59,7 +60,7 @@ class SignalCenter:
         tenant_id: str
     ) -> None:
         """Background execution of signal database persistence and SSE broadcast."""
-        notif_id = str(uuid.uuid4())
+        notif_id = new_id()
 
         # Phase 1: DB Persistence (Elite V2.2: Conditional Persistence Guard)
         should_persist = signal.persist

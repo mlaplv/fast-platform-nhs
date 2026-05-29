@@ -1,5 +1,6 @@
 from typing import Optional, List, Union
 from datetime import datetime
+from backend.utils.uid import new_id_default
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy import (
@@ -11,7 +12,7 @@ from backend.database.models.base import Base, AuditMixin, SoftDeleteMixin, Tena
 class Category(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'categories'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     name: Mapped[str] = mapped_column(String)
     slug: Mapped[str] = mapped_column(String)
     parent_id: Mapped[Optional[str]] = mapped_column(String, sa.ForeignKey('categories.id'))
@@ -38,7 +39,7 @@ class Category(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class Article(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'articles'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     title: Mapped[str] = mapped_column(String)
     slug: Mapped[str] = mapped_column(String)
     excerpt: Mapped[Optional[str]] = mapped_column(String)
@@ -73,7 +74,7 @@ class Article(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class ArticleEmbedding(Base, AuditMixin):
     __tablename__ = 'article_embeddings'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     article_id: Mapped[str] = mapped_column(String, ForeignKey('articles.id'), unique=True)
     article: Mapped["Article"] = relationship("Article", back_populates="embedding")
     embedding: Mapped[str] = mapped_column(sa.Text)
@@ -81,7 +82,7 @@ class ArticleEmbedding(Base, AuditMixin):
 class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'content_campaigns'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     user_id: Mapped[Optional[str]] = mapped_column(String, sa.ForeignKey('users.id'))
     user: Mapped[Optional["User"]] = relationship("User", back_populates="content_campaigns")
     source_input: Mapped[str] = mapped_column(Text)
@@ -125,7 +126,7 @@ class ContentCampaign(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class CampaignEvent(Base, AuditMixin, TenantMixin):
     __tablename__ = 'campaign_events'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     campaign_id: Mapped[str] = mapped_column(String, sa.ForeignKey('content_campaigns.id', ondelete="CASCADE"), index=True)
     event_type: Mapped[str] = mapped_column(String, index=True)
     payload: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
@@ -138,7 +139,7 @@ class CampaignEvent(Base, AuditMixin, TenantMixin):
 class Appointment(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'appointments'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     title: Mapped[str] = mapped_column(String)
     description: Mapped[Optional[str]] = mapped_column(Text)
     start_time: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), index=True)
@@ -160,7 +161,7 @@ class Appointment(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class ContentScout(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'content_scouts'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     topic: Mapped[str] = mapped_column(String, index=True)
     report_data: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
     

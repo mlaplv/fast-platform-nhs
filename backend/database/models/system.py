@@ -6,12 +6,13 @@ from sqlalchemy import (
 )
 import enum
 import uuid
+from backend.utils.uid import new_id_default
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.models.base import Base, AuditMixin, SoftDeleteMixin, TenantMixin
 
 class Draft(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'drafts'
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     proposed_by: Mapped[str] = mapped_column(String)
     target_model: Mapped[str] = mapped_column(String)
     target_id: Mapped[Optional[str]] = mapped_column(String)
@@ -23,7 +24,7 @@ class Draft(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
 class AgentTelemetryLog(Base, AuditMixin, TenantMixin):
     __tablename__ = 'agent_telemetry_logs'
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     session_id: Mapped[str] = mapped_column(String)
     agent_name: Mapped[str] = mapped_column(String)
     intent_hash: Mapped[str] = mapped_column(String)
@@ -34,7 +35,7 @@ class AgentTelemetryLog(Base, AuditMixin, TenantMixin):
 
 class ChatMessage(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'chat_messages'
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     session_id: Mapped[str] = mapped_column(String)
     user_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id'))
     user: Mapped[Optional["User"]] = relationship("User", back_populates="chat_messages")
@@ -52,7 +53,7 @@ class ChatMessage(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
 class Notification(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'notifications'
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     user_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('users.id'))
     user: Mapped[Optional["User"]] = relationship("User", back_populates="notifications")
     type: Mapped[str] = mapped_column(String, default="INFO")
@@ -72,7 +73,7 @@ class ReviewEntityType(str, enum.Enum):
 
 class SystemReview(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'system_reviews'
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     
     # Polymorphic Router
     entity_type: Mapped[ReviewEntityType] = mapped_column(SQLEnum(ReviewEntityType), index=True)
@@ -99,7 +100,7 @@ class SystemReview(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
 class SupportChatHistory(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'support_chat_history'
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     session_id: Mapped[str] = mapped_column(String, index=True)
     role: Mapped[str] = mapped_column(String) # user, assistant
     content: Mapped[str] = mapped_column(Text)
@@ -136,7 +137,7 @@ class SupportKnowledge(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     Stores pre-approved Q&A, policies, and brand information.
     """
     __tablename__ = 'support_knowledge'
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     
     category: Mapped[SupportKnowledgeCategory] = mapped_column(SQLEnum(SupportKnowledgeCategory), default=SupportKnowledgeCategory.GENERAL, index=True)
     
@@ -160,7 +161,7 @@ class SupportKnowledge(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class SupportKnowledgeEmbedding(Base, AuditMixin, TenantMixin):
     """Elite V2.2: pgvector persistence for Knowledge Base."""
     __tablename__ = 'support_knowledge_embeddings'
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     knowledge_id: Mapped[str] = mapped_column(String, sa.ForeignKey('support_knowledge.id'), unique=True, index=True)
     embedding: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # Will be cast to vector in SQL operations
 
@@ -170,7 +171,7 @@ class UnifiedAgentTask(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     Stores metadata for background jobs (Helen & XoHi).
     """
     __tablename__ = 'unified_agent_tasks'
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     
     agent_id: Mapped[str] = mapped_column(String, index=True)
     task_id: Mapped[str] = mapped_column(String, unique=True, index=sa.Index("ix_unified_task_task_id"))
@@ -195,7 +196,7 @@ class AuditLog(Base, TenantMixin):
     Lưu vết mọi thao tác thay đổi dữ liệu nhạy cảm.
     """
     __tablename__ = 'audit_logs'
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     
     # Actor Info
     actor_id: Mapped[Optional[str]] = mapped_column(String, index=True, nullable=True)

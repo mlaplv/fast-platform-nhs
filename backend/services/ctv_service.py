@@ -21,6 +21,7 @@ from backend.database.models.commerce import Order
 from backend.constants.commerce import ShippingConfig
 from backend.database import current_tenant_id
 from backend.utils.security import GeminiSecurity
+from backend.utils.uid import new_id
 
 logger = logging.getLogger("api-gateway.ctv")
 
@@ -193,7 +194,7 @@ class CtvService:
         else:
             # CREATE new profile
             aff = AffiliateProfile(
-                id=str(uuid.uuid4()),
+                id=new_id(),
                 user_id=user_id,
                 ctv_code=code_upper,
                 status="ACTIVE",
@@ -709,7 +710,7 @@ class CtvService:
 
         # 6. Create ledger entry
         ledger = CommissionLedger(
-            id=str(uuid.uuid4()),
+            id=new_id(),
             affiliate_id=aff.id,
             order_id=order_id,
             order_amount=revenue_net,  # Record net revenue for clarity
@@ -884,7 +885,7 @@ class CtvService:
             raise ValidationException("Bạn đã có yêu cầu rút tiền đang chờ xử lý")
 
         wr = WithdrawalRequest(
-            id=str(uuid.uuid4()),
+            id=new_id(),
             affiliate_id=aff.id,
             amount_requested=amount,
             bank_snapshot_enc=aff.bank_info_enc,  # Snapshot tại thời điểm request
@@ -1008,7 +1009,7 @@ class CtvService:
         
         # 7. Create penalty log ledger
         penalty_ledger = CommissionLedger(
-            id=str(uuid.uuid4()),
+            id=new_id(),
             affiliate_id=aff.id,
             order_id=order_id,
             order_amount=0,

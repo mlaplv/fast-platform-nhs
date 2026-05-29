@@ -11,7 +11,7 @@ from backend.utils.uid import new_id_default
 class Banner(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'banners'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     title: Mapped[str] = mapped_column(String)
     description: Mapped[Optional[str]] = mapped_column(Text)
     image_url: Mapped[str] = mapped_column(String)
@@ -25,7 +25,7 @@ class Banner(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class Voucher(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'vouchers'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True) # E.g., SALE30K, SHIP0
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     type: Mapped[str] = mapped_column(String, default="FIXED") # FIXED, PERCENT, SHIPPING
     title: Mapped[Optional[str]] = mapped_column(String)
     subtitle: Mapped[Optional[str]] = mapped_column(String)
@@ -55,7 +55,7 @@ class Voucher(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class ComboDeal(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'combo_deals'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True) # UUID
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     name: Mapped[str] = mapped_column(String) # e.g., "Mua 2 Tặng 1", "Combo Số Lượng"
     type: Mapped[str] = mapped_column(String, default="BUY_X_GET_Y") # BUY_X_GET_Y, BUNDLE_PRICE
     condition_payload: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB) # {"buy_qty": 2, "product_ids": [...]}

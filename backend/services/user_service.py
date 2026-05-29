@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import List, Dict, Union, Optional, Tuple
 from collections import defaultdict
 import uuid
+from backend.utils.uid import new_id
 
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.exc import IntegrityError
@@ -197,7 +198,7 @@ class UserService:
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         
         new_user = User(
-            id=str(uuid.uuid4()),
+            id=new_id(),
             email=email,
             username=username,
             name=name,
@@ -325,7 +326,7 @@ class UserService:
         
         # 3. Security Stamp rotation if applicable
         if hasattr(user, "security_stamp"):
-            user.security_stamp = str(uuid.uuid4())
+            user.security_stamp = new_id()
             # Invalidate Redis cache for stamp
             try:
                 from backend.services.ai_engine.core.key_rotator import key_rotator
@@ -408,13 +409,13 @@ class UserService:
             return user, False, last_addr, address_changed
 
         # 3. New Customer - Auto-Creation (Identity-First Protocol)
-        new_id = str(uuid.uuid4())
+        new_id_val = new_id()
         # Use phone as username/email fallback to satisfy NOT NULL constraints
         username = phone
         email = f"{phone}@osmo"
         
         new_user = User(
-            id=new_id,
+            id=new_id_val,
             username=username,
             email=email,
             name=name or "Quý khách",

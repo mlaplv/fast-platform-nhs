@@ -1,6 +1,7 @@
 import os
 import jwt
 import uuid
+from backend.utils.uid import new_id, new_short_id
 import bcrypt
 import logging
 from datetime import datetime, timedelta, timezone
@@ -35,7 +36,7 @@ class AuthService:
         if res.scalar_one_or_none():
             raise ClientException(status_code=400, detail="Email này đã được sử dụng")
 
-        user_id = str(uuid.uuid4())
+        user_id = new_id()
         hashed = bcrypt.hashpw(data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
         new_user = User(
@@ -150,7 +151,7 @@ class AuthService:
         avatar = profile.get("avatar", "")
         # Nếu provider không cấp email (như Zalo), ta sinh email ảo
         if not email:
-            email = f"user_{uuid.uuid4().hex[:8]}@social.osmo"
+            email = f"user_{new_short_id(8)}@social.osmo"
             
         stmt = (
             select(User)
@@ -161,7 +162,7 @@ class AuthService:
         user = res.scalar_one_or_none()
         
         if not user:
-            user_id = str(uuid.uuid4())
+            user_id = new_id()
             user_kwargs = {
                 "id": user_id,
                 "username": email,
@@ -219,11 +220,11 @@ class AuthService:
 
         # 1. Generate 6-digit code (Elite V2.2: Cryptographically secure via secrets)
         code = "".join([str(secrets.randbelow(10)) for _ in range(6)])
-        otp_token = str(uuid.uuid4())
+        otp_token = new_id()
         
         # 2. Store in DB
         new_otp = SystemOTP(
-            id=str(uuid.uuid4()),
+            id=new_id(),
             identifier=identifier,
             code=code,
             token=otp_token,
@@ -233,7 +234,7 @@ class AuthService:
         db_session.add(new_otp)
         
         # 3. Real Delivery: Enqueue background job (Elite V2.2)
-        request_id = str(uuid.uuid4())
+        request_id = new_id()
         try:
             from backend.infra.arq_config import get_redis_settings
             from arq import create_pool
@@ -304,7 +305,7 @@ class AuthService:
 
         if not user:
             # Create a basic user
-            user_id = str(uuid.uuid4())
+            user_id = new_id()
             user = User(
                 id=user_id,
                 username=identifier,

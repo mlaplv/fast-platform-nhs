@@ -1,7 +1,7 @@
-import uuid
 import logging
 from litestar import Request, Response, MediaType
 from litestar.exceptions import HTTPException, ValidationException
+from backend.utils.uid import new_short_id
 
 logger = logging.getLogger("api-gateway")
 
@@ -10,7 +10,7 @@ def global_exception_handler(request: Request, exc: Exception) -> Response:
     Catches ALL unhandled exceptions and returns a sanitized JSON response.
     NEVER leaks stack traces, DB schemas, or internal paths to the client.
     """
-    trace_id = str(uuid.uuid4())[:8]
+    trace_id = new_short_id(8)
 
     if isinstance(exc, ValidationException):
         logger.warning(f"[TRACE:{trace_id}] Validation Error: {exc.detail} - Extra: {getattr(exc, 'extra', None)}")

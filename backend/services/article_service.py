@@ -2,6 +2,7 @@ import re
 import json
 import time
 import uuid
+from backend.utils.uid import new_id
 import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Optional
@@ -60,8 +61,9 @@ class ArticleService:
         status: Optional[str] = None,
         search: Optional[str] = None,
         category: Optional[str] = None,
+        cursor: Optional[str] = None,
     ) -> ArticleListResponse:
-        """List articles (R76: Scalar Projection). R1.5: Zero-Hydration."""
+        """List articles (R76: Scalar Projection) with Keyset Cursor Pagination."""
         conditions = [Article.deleted_at == None]
         if status and status != "all":
             conditions.append(Article.status == status.upper())
@@ -74,27 +76,42 @@ class ArticleService:
                 Article.category.ilike(f"%{safe}%"),
             ))
 
+        # Keyset (Cursor) Pagination if cursor is provided
+        if cursor and cursor != "undefined":
+            # Fetch created_at of the cursor record
+            cursor_query = select(Article.id, Article.created_at).where(Article.id == cursor)
+            cursor_res = await db_session.execute(cursor_query)
+            cursor_row = cursor_res.first()
+            if cursor_row:
+                c_id, c_time = cursor_row[0], cursor_row[1]
+                conditions.append(
+                    or_(
+                        Article.created_at < c_time,
+                        and_(Article.created_at == c_time, Article.id < c_id)
+                    )
+                )
+
         # 1. COUNT Cache Redis Optimization
-        cache_key = f"articles:count:status={status}:cat={category}:search={search}"
-        total = None
-
-        if xohi_memory._use_redis:
-            try:
-                cached_count = await xohi_memory.client.get(cache_key)
-                if cached_count is not None:
-                    total = int(cached_count)
-            except Exception:
-                pass
-
-        if total is None:
-            count_stmt = select(func.count(Article.id)).where(and_(*conditions))
-            total = await db_session.scalar(count_stmt) or 0
-
+        total = 0
+        if not cursor:
+            cache_key = f"articles:count:status={status}:cat={category}:search={search}"
             if xohi_memory._use_redis:
                 try:
-                    await xohi_memory.client.set(cache_key, str(total), ex=300)
+                    cached_count = await xohi_memory.client.get(cache_key)
+                    if cached_count is not None:
+                        total = int(cached_count)
                 except Exception:
                     pass
+
+            if total is None or total == 0:
+                count_stmt = select(func.count(Article.id)).where(and_(*conditions))
+                total = await db_session.scalar(count_stmt) or 0
+
+                if xohi_memory._use_redis:
+                    try:
+                        await xohi_memory.client.set(cache_key, str(total), ex=300)
+                    except Exception:
+                        pass
 
         # 2. Scalar Projection Fetch
         stmt = select(
@@ -105,10 +122,17 @@ class ArticleService:
             UserModel.name.label("author_name")
         ).outerjoin(UserModel, Article.author_id == UserModel.id).where(
             and_(*conditions)
-        ).limit(limit).offset(offset).order_by(Article.created_at.desc())
+        ).order_by(Article.created_at.desc(), Article.id.desc()).limit(limit + 1)
+
+        if not cursor:
+            stmt = stmt.offset(offset)
 
         result = await db_session.execute(stmt)
         rows = result.all()
+
+        has_more = len(rows) > limit
+        if has_more:
+            rows = rows[:limit]
 
         # Elite V2.2: Fast bulk fetch for review counts
         review_counts = {}
@@ -128,7 +152,16 @@ class ArticleService:
             row_dict["review_count"] = review_counts.get(str(row.id), 0)
             data.append(ArticleResponse.model_validate(row_dict))
 
-        return ArticleListResponse(data=data, total=total)
+        next_cursor = None
+        if data and has_more:
+            next_cursor = str(data[-1].id)
+
+        return ArticleListResponse(
+            data=data,
+            total=total,
+            next_cursor=next_cursor,
+            has_more=has_more
+        )
 
     async def search_semantic(
         self,
@@ -275,7 +308,7 @@ class ArticleService:
                 .replace("ơ", "o").replace("ư", "u")
         ).strip("-") + f"-{int(time.time())}"
 
-        new_id = str(uuid.uuid4())
+        new_id_val = new_id()
 
         # SGE Shield V1.0: Lexical Sanitizer — tôn trọng flag admin
         sge_cfg = await _get_sge_config_async()
@@ -311,7 +344,7 @@ class ArticleService:
 
         # RAG Upsert
         await self.vector_service.upsert_article_embedding(
-            db_session, new_id, data.title, cleaned_content
+            db_session, new_id_val, data.title, cleaned_content
         )
 
         # Elite V2.2: Knowledge Graph Generation (SGE Optimization)
@@ -326,15 +359,15 @@ class ArticleService:
             from sqlalchemy.orm.attributes import flag_modified
             flag_modified(article, "article_metadata")
         except Exception as e:
-            logger.error(f"[ArticleService] KG Generation failed for {new_id}: {e}")
+            logger.error(f"[ArticleService] KG Generation failed for {new_id_val}: {e}")
 
         # Invalidate Count Cache
         await xohi_memory.clear_article_cache()
         
         # Elite V2.2: Sync Media Links
-        await self._sync_media_links(db_session, new_id, article)
+        await self._sync_media_links(db_session, new_id_val, article)
         
-        return SuccessResponse(ok=True, id=new_id)
+        return SuccessResponse(ok=True, id=new_id_val)
 
     async def update_article(self, db_session: AsyncSession, article_id: str, data: UpdateArticleRequest) -> SuccessResponse:
         """Update an article and its embedding."""

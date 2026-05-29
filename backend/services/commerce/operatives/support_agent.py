@@ -12,6 +12,7 @@ import logging
 import re
 import time
 import uuid
+from backend.utils.uid import new_id
 from typing import Optional, cast, Union, Dict, Type, List, Tuple
 from pydantic import BaseModel, Field, ConfigDict, JsonValue
 from pydantic_ai import Agent, RunContext
@@ -129,6 +130,16 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
     if any(p in slug for p in ["chinh-sach", "gioi-thieu", "tuyen-dung", "dieu-khoan", "thanh-toan", "kiem-hang", "bao-hanh"]):
         return "", None
         
+    cache_key = f"support:prod_ctx:slug={slug}"
+    if xohi_memory._use_redis and xohi_memory.client:
+        try:
+            cached = await xohi_memory.client.get(cache_key)
+            if cached:
+                data = json.loads(cached)
+                return data["ctx_text"], SupportProductInfo.model_validate(data["p_info"])
+        except Exception:
+            pass
+
     try:
         stmt = (
             select(
@@ -240,6 +251,19 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
             ctx += f"- Tồn kho cảnh báo: Chỉ còn đúng {p_row.stock} sản phẩm (Rất khan hiếm).\n"
         ctx += f"- Hồ sơ pháp lý: {certs_str}.\n"
                 
+        if xohi_memory._use_redis and xohi_memory.client:
+            try:
+                await xohi_memory.client.set(
+                    cache_key,
+                    json.dumps({
+                        "ctx_text": ctx,
+                        "p_info": p_info.model_dump()
+                    }),
+                    ex=300
+                )
+            except Exception:
+                pass
+
         return ctx, p_info
     except Exception as e:
         logger.warning("[SupportAgent] Context sweep failure: %s", e)
@@ -327,8 +351,16 @@ class SupportAgentOperative(BaseAgentOperative):
     async def _fetch_chat_context(self, db: AsyncSession, session_id: str) -> str:
         try:
             from backend.services.commerce.security.input_guard import input_guard as _ig
-            stmt = select(SupportChatHistory).where(SupportChatHistory.session_id == session_id).order_by(desc(SupportChatHistory.created_at), desc(SupportChatHistory.id)).limit(10)
-            history_rows = (await db.execute(stmt)).scalars().all()
+            # Scalar projection to avoid ORM hydration
+            stmt = select(
+                SupportChatHistory.id,
+                SupportChatHistory.role,
+                SupportChatHistory.content
+            ).where(SupportChatHistory.session_id == session_id).order_by(
+                desc(SupportChatHistory.created_at), desc(SupportChatHistory.id)
+            ).limit(10)
+            result = await db.execute(stmt)
+            history_rows = result.all()
             if not history_rows: return ""
             h_parts = []
             total_chars = 0
@@ -397,10 +429,25 @@ class SupportAgentOperative(BaseAgentOperative):
                     loyalty = (await db.execute(l_stmt)).scalar_one_or_none()
                     if loyalty: available_pts = loyalty.available_points
             
-            s_stmt = select(SystemSetting).where(SystemSetting.key == "LOYALTY_POINT_VALUE_VND")
-            setting = (await db.execute(s_stmt)).scalar_one_or_none()
-            if setting and isinstance(setting.value, dict) and "value" in setting.value:
-                pt_value = int(setting.value["value"])
+            # Cache check for LOYALTY_POINT_VALUE_VND
+            if xohi_memory._use_redis and xohi_memory.client:
+                try:
+                    cached_pt = await xohi_memory.client.get("system:setting:LOYALTY_POINT_VALUE_VND")
+                    if cached_pt is not None:
+                        pt_value = int(cached_pt)
+                except Exception:
+                    pass
+
+            if pt_value == 1000:
+                s_stmt = select(SystemSetting).where(SystemSetting.key == "LOYALTY_POINT_VALUE_VND")
+                setting = (await db.execute(s_stmt)).scalar_one_or_none()
+                if setting and isinstance(setting.value, dict) and "value" in setting.value:
+                    pt_value = int(setting.value["value"])
+                    if xohi_memory._use_redis and xohi_memory.client:
+                        try:
+                            await xohi_memory.client.set("system:setting:LOYALTY_POINT_VALUE_VND", str(pt_value), ex=3600)
+                        except Exception:
+                            pass
 
             total_spent = 0.0
             order_count = 0
@@ -408,10 +455,16 @@ class SupportAgentOperative(BaseAgentOperative):
                 cond = []
                 if lead_phone: cond.append(Order.customer_phone == lead_phone)
                 if final_user_id: cond.append(Order.user_id == final_user_id)
-                stmt = select(Order).where(and_(or_(*cond), Order.status == "DELIVERED"))
-                orders = (await db.execute(stmt)).scalars().all()
-                order_count = len(orders)
-                total_spent = sum(float(o.total_amount or 0) for o in orders)
+                
+                # Direct SQL Aggregations to prevent ORM hydration
+                from sqlalchemy import func
+                stmt = select(func.count(Order.id), func.sum(Order.total_amount)).where(
+                    and_(or_(*cond), Order.status == "DELIVERED")
+                )
+                agg_res = (await db.execute(stmt)).first()
+                if agg_res:
+                    order_count = int(agg_res[0] or 0)
+                    total_spent = float(agg_res[1] or 0.0)
 
             dna = NeuralDNA(
                 segment="VIP" if (order_count >= 3 or total_spent > 5000000) else ("REGULAR" if order_count >= 1 else "NEW"),
@@ -436,7 +489,7 @@ class SupportAgentOperative(BaseAgentOperative):
             return NeuralDNA()
 
     async def process_brain_logic(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:
-        session_id = request.session_id or str(uuid.uuid4())
+        session_id = request.session_id or new_id()
 
         # ══ SECURITY GATE ② ── InputGuard (Background Worker Guard) ══════════
         # Second checkpoint for background tasks to prevent any injected payload
@@ -765,7 +818,7 @@ class SupportAgentOperative(BaseAgentOperative):
         return await self._chat_internal(request, db)
 
     async def _chat_internal(self, request: SupportRequest, db: AsyncSession) -> SupportResponse:
-        session_id = request.session_id or str(uuid.uuid4())
+        session_id = request.session_id or new_id()
 
         # ══ SECURITY GATE ① ── InputGuard (Elite V2.2) ════════════════════════
         # Must fire BEFORE any LLM call, DNA fetch, or enqueue to protect quota & RAM.

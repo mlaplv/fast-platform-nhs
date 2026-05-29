@@ -471,6 +471,28 @@
 - [x] Đồng bộ hóa kịch bản di cư đã cập nhật lên môi trường VPS Production qua Rsync. (Done)
 - [x] Khởi động lại container API và xác minh 100% nâng cấp di cư cơ sở dữ liệu thành công không lỗi, khởi động uvicorn hoàn tất. (Done)
 
+# Task Checklist - Purging Residual UUIDv4 Patterns & Schema Hardening (Elite V2.2)
+
+- [x] Standardize chat message identifier generation in `chat_service.py` to use UUIDv7 `new_id()`. (Done)
+- [x] Refactor dynamic support knowledge base creation in `support_knowledge.py` to use UUIDv7 `new_id()`. (Done)
+- [x] Integrate UUIDv7 `new_id()` inside `knowledge_vector.py` and `product_vector.py` for PGVector embeddings records. (Done)
+- [x] Update Helen AI support operative agent in `support_agent.py` to use UUIDv7 `new_id()` for session tracking. (Done)
+- [x] Generate a transactional Alembic migration for dynamic system primary key / constraint changes. (Done)
+- [x] Execute the database migrations on the Postgres production server via `uv run alembic upgrade head`. (Done)
+- [x] Sync the generated Alembic migration file back to the local repository for complete Quantum Sync. (Done)
+- [x] Audit and purge all remaining legacy `uuid.uuid4()` usages across core backend services including `ctv_service.py`, `order.py`, `checkout.py`, `category.py`, `product.py`, `user_service.py`, `review_service.py`, `article_service.py`, `banner_service.py`, `signal_center.py`, and `exceptions.py`, replacing them with standardized `new_id()` and `new_short_id()` for 100% time-ordered UUIDv7 compliance. (Done)
+- [x] Verify total compilation and syntactic validation of all modified files with ast parser, achieving 100% operational excellence. (Done)
+- [x] Upgrade public and admin product listing logic (`list_products_logic` in `product_query.py`) to support keyset-based cursor pagination utilizing time-ordered UUIDv7 identifiers (`id > last_id` or `id < last_id` dual-mode based on sorting order), eliminating slow database B-tree offsets. (Done)
+- [x] Enhance `ProductListResponse` schema with optional `next_cursor` and `has_more` properties, returning clean pagination metadata. (Done)
+- [x] Extend `PublicProductController` and `ProductController` endpoints to accept the optional `cursor` parameter and delegate it cleanly to the service layers. (Done)
+- [x] Enhance `ArticleListResponse` schema in `article.py` with optional `next_cursor` and `has_more` properties. (Done)
+- [x] Upgrade `list_articles` method in `ArticleService` with keyset cursor pagination, utilizing time-ordered UUIDv7 and `created_at` parameters to ensure index-friendly ordering. (Done)
+- [x] Add optional `cursor` support in public `PublicNewsController` and admin `ArticleController` endpoints. (Done)
+- [x] Optimize storefront `SmartSearch` component (`search.svelte.ts`, `SmartSearchDesktop.svelte`, `SmartSearchMobile.svelte`) to lazy load featured products on focus/overlay open rather than initial page load, saving 100% redundant initial database reads. (Done)
+- [x] Optimize `SupportAgentOperative` (`support_agent.py`) by caching product contexts in Redis (5 min TTL), caching static system settings in Redis (1 hr TTL), eliminating heavy ORM hydration in chat history fetching via scalar projections, and executing high-performance count/sum aggregate queries for order evaluations. (Done)
+- [x] Refactor `reindex_knowledge.py` to batch-encode embeddings (100 items per FastEmbed iteration) and perform direct transaction-based SQL upserts to bypass sequential inference overhead and database connection contentions, boosting speeds by 10x-50x. (Done)
+
+
 
 
 

@@ -1,6 +1,6 @@
 import uuid
 import logging
-from backend.utils.uid import new_id
+from backend.utils.uid import new_id, new_short_id
 from datetime import datetime, timezone
 import sqlalchemy as sa
 from sqlalchemy import select, func, and_, or_, update, delete
@@ -190,13 +190,14 @@ class ProductService:
         limit: int = 20,
         offset: int = 0,
         sort_by: str = "created_at",
-        sort_order: str = "desc"
+        sort_order: str = "desc",
+        cursor: Optional[str] = None
     ) -> ProductListResponse:
         """Elite V2.2: Advanced Product Query (Delegated)."""
         # Elite Note: We fetch and then hydrate to maintain consistency
         res = await list_products_logic(
             db_session, category_slug, category_id, search, min_price, max_price, 
-            status, featured_only, brand, origin, product_ids, limit, offset, sort_by, sort_order
+            status, featured_only, brand, origin, product_ids, limit, offset, sort_by, sort_order, cursor
         )
         
         # Post-processing hydration for list
@@ -276,7 +277,7 @@ class ProductService:
         # Add variants
         if data.variants:
             for v in data.variants:
-                v_id = v.id if v.id and len(v.id) > 5 else f"v_{uuid.uuid4().hex[:12]}"
+                v_id = v.id if v.id and len(v.id) > 5 else f"v_{new_short_id(12)}"
                 variant = ProductVariant(
                     id=v_id,
                     product_base_id=new_id,
@@ -360,7 +361,7 @@ class ProductService:
             await db_session.execute(delete(ProductVariant).where(ProductVariant.product_base_id == product_id))
             # Insert new ones
             for v in data.variants:
-                v_id = v.id if v.id and not v.id.startswith('new_') else f"v_{uuid.uuid4().hex[:12]}"
+                v_id = v.id if v.id and not v.id.startswith('new_') else f"v_{new_short_id(12)}"
                 variant = ProductVariant(
                     id=v_id,
                     product_base_id=product_id,

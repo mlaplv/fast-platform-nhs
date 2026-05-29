@@ -44,9 +44,18 @@ class ArticleController(Controller):
         status: Optional[str] = None,
         search: Optional[str] = None,
         category: Optional[str] = None,
+        cursor: Optional[str] = None,
     ) -> ArticleListResponse:
         """List articles with server-side pagination. R41: N+1 Safe. R1.5: Zero-Hydration."""
-        return await article_service.list_articles(db_session=db_session, limit=limit, offset=offset, status=status, search=search, category=category)
+        return await article_service.list_articles(
+            db_session=db_session,
+            limit=limit,
+            offset=offset,
+            status=status,
+            search=search,
+            category=category,
+            cursor=cursor,
+        )
 
     @get("/{article_id:str}", guards=[PermissionGuard(PermissionEnum.CONTENT_READ)])
     async def get_article(

@@ -1,5 +1,6 @@
 import logging
 from typing import List, Dict, Union, Optional, TypedDict
+from backend.utils.uid import new_id
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.services.ai_engine.core.encoder_singleton import get_shared_encoder
 from backend.database import async_session_maker
@@ -124,7 +125,7 @@ class ProductVectorService:
                 ON CONFLICT (product_base_id)
                 DO UPDATE SET embedding = CAST(:vector AS vector), updated_at = NOW();
             """)
-            await db_session.execute(sql, {"id": str(uuid.uuid4()), "product_id": product_id, "vector": vector_str})
+            await db_session.execute(sql, {"id": new_id(), "product_id": product_id, "vector": vector_str})
         except Exception as e:
             logger.warning(f"[RAG] Product embedding failed for {product_id}: {e}")
 

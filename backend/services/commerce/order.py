@@ -13,6 +13,7 @@ from backend.database.models import Order, User
 from backend.database import current_tenant_id
 from backend.services.event_bus import event_bus
 from backend.utils.sql import escape_like
+from backend.utils.uid import new_id
 from backend.schemas.order import OrderResponse, OrderListResponse, OrderCreateRequest, OrderStatusUpdate, CancelOrderRequest, OrderPlanningRequest
 from backend.schemas.common import SuccessResponse
 from backend.services.commerce.loyalty import LoyaltyService
@@ -54,7 +55,7 @@ class OrderService:
     @staticmethod
     async def create_order(db_session: AsyncSession, data: OrderCreateRequest, ip: str, ua: str, user_id: str) -> SuccessResponse:
         """Moves logic from OrderController.create_order. Emits ORDER_CREATED event via event_bus."""
-        new_id = str(uuid.uuid4())
+        new_id_val = new_id()
         history: List[OrderHistoryItem] = [{
             "status": "PENDING",
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -118,17 +119,17 @@ class OrderService:
                     # Log Transaction
                     pt = PointTransaction(
                         user_id=user_id,
-                        order_id=new_id,
+                        order_id=new_id_val,
                         amount=-points_redeemed,
                         transaction_type="REDEEM_ORDER",
-                        notes=f"Thanh toán đơn hàng {new_id} bằng điểm. (Giảm giá: {point_discount:,.0f}đ)"
+                        notes=f"Thanh toán đơn hàng {new_id_val} bằng điểm. (Giảm giá: {point_discount:,.0f}đ)"
                     )
                     pt.integrity_token = LoyaltyService._create_transaction_token(pt)
                     db_session.add(pt)
-                    logger.info(f"[LOYALTY] User {user_id} redeemed {points_redeemed} pts for order {new_id}")
+                    logger.info(f"[LOYALTY] User {user_id} redeemed {points_redeemed} pts for order {new_id_val}")
 
         order = Order(
-            id=new_id,
+            id=new_id_val,
             user_id=user_id,
             items=data.items,
             total_amount=data.total_amount - point_discount, # Apply Discount
@@ -151,7 +152,7 @@ class OrderService:
         await db_session.flush()
 
         await event_bus.emit("ORDER_CREATED", {
-            "id": new_id,
+            "id": new_id_val,
             "user_id": user_id,
             "ip": ip,
             "user_agent": ua,
@@ -163,7 +164,7 @@ class OrderService:
             "items": data.items if isinstance(data.items, list) else [],
         })
 
-        return SuccessResponse(ok=True, id=new_id)
+        return SuccessResponse(ok=True, id=new_id_val)
 
     @staticmethod
     async def list_orders(

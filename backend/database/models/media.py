@@ -1,5 +1,6 @@
 import uuid
 from typing import Optional, List
+from backend.utils.uid import new_id_default
 import sqlalchemy as sa
 from sqlalchemy import String, ForeignKey, Integer, JSON, Index, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -54,7 +55,7 @@ class MediaUsage(Base, AuditMixin, TenantMixin):
     """
     __tablename__ = 'media_usage'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     asset_id: Mapped[str] = mapped_column(String, ForeignKey('media_registry.id', ondelete='CASCADE'), index=True)
     
     # Định danh đối tượng sử dụng (e.g. Product ID, News ID)

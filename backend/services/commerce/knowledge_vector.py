@@ -1,6 +1,7 @@
 import logging
 import uuid
 import asyncio
+from backend.utils.uid import new_id
 from typing import List, Dict, Union, Optional, TypedDict
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -102,7 +103,7 @@ class KnowledgeVectorService:
                 ON CONFLICT (knowledge_id)
                 DO UPDATE SET embedding = CAST(:v AS vector), updated_at = NOW(), tenant_id = :tid;
             """)
-            await db_session.execute(sql, {"id": str(uuid.uuid4()), "kid": knowledge_id, "v": vector_str, "tid": tenant_id})
+            await db_session.execute(sql, {"id": new_id(), "kid": knowledge_id, "v": vector_str, "tid": tenant_id})
         except Exception as e:
             logger.warning(f"[KNOWLEDGE-VECTOR] Upsert Failed: {e}")
 

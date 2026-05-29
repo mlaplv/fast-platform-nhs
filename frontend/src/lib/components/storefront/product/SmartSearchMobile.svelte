@@ -58,6 +58,7 @@
     if (typeof document !== 'undefined') {
       if (searchStore.isOverlayOpen) {
         document.body.style.overflow = 'hidden';
+        searchStore.ensureFeaturedLoaded();
         if (inputElement) {
           tick().then(() => inputElement?.focus());
         }

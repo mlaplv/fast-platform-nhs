@@ -11,7 +11,7 @@ from backend.utils.uid import new_id_default
 class Order(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'orders'
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id_default)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey('users.id'))
     user: Mapped["User"] = relationship("User", back_populates="orders")
     # 💰 BigInteger VNĐ — tổng giá trị đơn hàng (không bao giờ dùng float)
@@ -53,7 +53,7 @@ class Order(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'product_bases'
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id_default)
     name: Mapped[str] = mapped_column(String)
     short_description: Mapped[Optional[str]] = mapped_column(String(1000))
     description: Mapped[Optional[str]] = mapped_column(Text)
@@ -107,7 +107,7 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class ProductVariant(Base, AuditMixin, SoftDeleteMixin):
     __tablename__ = 'product_variants'
 
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id_default)
     product_base_id: Mapped[str] = mapped_column(String(36), ForeignKey('product_bases.id'))
     product_base: Mapped["ProductBase"] = relationship("ProductBase", back_populates="variants")
     tier_index: Mapped[Optional[list[int]]] = mapped_column(JSONB, default=list) # R102 Matrix Index: e.g [0, 1] means Đỏ, Size M
@@ -129,7 +129,7 @@ class ProductVariant(Base, AuditMixin, SoftDeleteMixin):
 class ProductEmbedding(Base, AuditMixin):
     __tablename__ = 'product_embeddings'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     product_base_id: Mapped[str] = mapped_column(String, ForeignKey('product_bases.id'), unique=True)
     product_base: Mapped["ProductBase"] = relationship("ProductBase", back_populates="embedding")
     embedding: Mapped[str] = mapped_column(Text)

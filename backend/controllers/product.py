@@ -42,6 +42,7 @@ class ProductController(Controller):
         search: Optional[str] = None,
         category_id: Optional[str] = None,
         featured_only: bool = False,
+        cursor: Optional[str] = None,
     ) -> ProductListResponse:
         """List products (R76: Scalar Projection). R41: N+1 Safe."""
         return await product_service.list_products(
@@ -51,7 +52,8 @@ class ProductController(Controller):
             status=status,
             search=search,
             category_id=category_id,
-            featured_only=featured_only
+            featured_only=featured_only,
+            cursor=cursor,
         )
 
     @get("/{product_id:str}", guards=[PermissionGuard(PermissionEnum.PRODUCT_READ)])

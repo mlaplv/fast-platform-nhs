@@ -3,7 +3,7 @@ import logging
 from litestar import Controller, get
 from litestar.di import Provide
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 
 from backend.schemas.product import ProductResponse, ProductListResponse
 from backend.services.commerce.product import ProductService, provide_product_service
@@ -34,6 +34,7 @@ class PublicProductController(Controller):
         brand: Optional[str] = None,
         origin: Optional[str] = None,
         ids: Optional[str] = None,
+        cursor: Optional[str] = None,
     ) -> ProductListResponse:
         """PUBLIC: List products. Supports filter by category_slug, category_id and IDs."""
         product_ids = ids.split(",") if ids else None
@@ -49,6 +50,7 @@ class PublicProductController(Controller):
             brand=brand,
             origin=origin,
             product_ids=product_ids,
+            cursor=cursor,
         )
 
 

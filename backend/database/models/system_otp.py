@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import String, DateTime, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from backend.database.models.base import Base, AuditMixin, TenantMixin
+from backend.utils.uid import new_id_default
 
 class SystemOTP(Base, AuditMixin, TenantMixin):
     """
@@ -11,7 +12,7 @@ class SystemOTP(Base, AuditMixin, TenantMixin):
     """
     __tablename__ = "system_otps"
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     identifier: Mapped[str] = mapped_column(String, index=True) # email or phone
     code: Mapped[str] = mapped_column(String(10))
     token: Mapped[str] = mapped_column(String(255), index=True) # Reference token for verification

@@ -1,6 +1,7 @@
 import uuid
 import base64
 import logging
+from backend.utils.uid import new_id
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Union, TypedDict
 
@@ -54,7 +55,7 @@ class ChatService:
         if role not in ("user", "assistant"):
             raise HTTPException(status_code=400, detail="Invalid role. Must be 'user' or 'assistant'.")
 
-        msg_id = str(uuid.uuid4())
+        msg_id = new_id()
         created_at = datetime.now(timezone.utc)
 
         # ═══ R30/R74: LOAD SETTINGS FIRST ═══

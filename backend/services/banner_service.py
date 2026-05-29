@@ -1,4 +1,5 @@
 import uuid
+from backend.utils.uid import new_id
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -48,9 +49,9 @@ class BannerService:
     @staticmethod
     async def create_banner(db_session: AsyncSession, data: CreateBannerRequest) -> SuccessResponse:
         """Create a new banner."""
-        new_id = str(uuid.uuid4())
+        new_id_val = new_id()
         banner = Banner(
-            id=new_id,
+            id=new_id_val,
             title=data.title,
             description=data.description,
             image_url=data.image_url,
@@ -65,9 +66,9 @@ class BannerService:
         await db_session.commit()
         
         # Elite V2.2: Sync Media
-        await BannerService._sync_media_links(new_id, data.image_url, data.mobile_image_url)
+        await BannerService._sync_media_links(new_id_val, data.image_url, data.mobile_image_url)
         
-        return SuccessResponse(ok=True, id=new_id)
+        return SuccessResponse(ok=True, id=new_id_val)
 
     @staticmethod
     async def update_banner(db_session: AsyncSession, banner_id: str, data: UpdateBannerRequest) -> SuccessResponse:

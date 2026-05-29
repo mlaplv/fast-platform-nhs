@@ -1,6 +1,7 @@
 import random
 from advanced_alchemy.exceptions import NotFoundError
 from advanced_alchemy.filters import LimitOffset
+from backend.utils.uid import new_id
 
 from backend.database.models.system import SystemReview, ReviewEntityType
 from backend.database.repositories import SystemReviewRepository
@@ -389,9 +390,8 @@ class ReviewService:
         try:
             review = await self.review_repo.get(review_id)
             from backend.database.models.system import Notification
-            import uuid
             noti = Notification(
-                id=str(uuid.uuid4()),
+                id=new_id(),
                 type="REPORT",
                 message=f"Báo cáo đánh giá {review_id} (Entity: {review.entity_type} {review.entity_id}): {reason}",
                 user_id=None # System wide admin notification
@@ -544,7 +544,7 @@ CHỈ THị "THẬT":
 
         # --- 8. Insert SystemReview APPROVED — bypass duplicate check ---
         review = SystemReview(
-            id=str(uuid.uuid4()),
+            id=new_id(),
             entity_type=entity_type,  # type: ignore[arg-type]
             entity_id=entity_id,
             customer_name=customer_name,

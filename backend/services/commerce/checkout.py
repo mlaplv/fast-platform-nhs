@@ -14,6 +14,7 @@ from backend.services.event_bus import event_bus
 from backend.utils.device import is_mobile_device
 from backend.services.commerce.promotion import PromotionService
 from backend.services.commerce.loyalty import LoyaltyService
+from backend.utils.uid import new_id
 from backend.services.commerce.logic.identity_shield import IdentityShield, LookupResult, VerifyResult, _mask_name, _mask_address
 from backend.database.models.system import SystemSetting
 from backend.constants.commerce import ShippingConfig, LoyaltyConfig, CheckoutConfig
@@ -122,7 +123,7 @@ class CheckoutService:
             if not user:
                 # 3. Create Shadow Account if absolutely no matching user found
                 user = User(
-                    id=str(uuid.uuid4()),
+                    id=new_id(),
                     username=payload.customer_phone,
                     phone=payload.customer_phone,
                     email=f"{payload.customer_phone}{CheckoutConfig.SHADOW_EMAIL_DOMAIN}",
@@ -473,7 +474,7 @@ class CheckoutService:
 
         # 5. Save Order
         new_order = Order(
-            id=str(uuid.uuid4()),
+            id=new_id(),
             user_id=user.id,
             total_amount=payload.total_amount,
             status="PENDING",
@@ -529,7 +530,7 @@ class CheckoutService:
                     street = ", ".join(addr_parts[:-2])
                     
                     new_addr = {
-                        "id": str(uuid.uuid4()),
+                        "id": new_id(),
                         "name": payload.customer_name,
                         "phone": payload.customer_phone,
                         "city": province,

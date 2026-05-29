@@ -82,7 +82,7 @@
       bind:this={inputElement}
       type="search"
       bind:value={localQuery}
-      onfocus={() => isFocused = true}
+      onfocus={() => { isFocused = true; searchStore.ensureFeaturedLoaded(); }}
       onkeydown={handleKeyDown}
       placeholder={contextPlaceholder}
       class="flex-grow h-[40px] pl-4 pr-10 text-[14px] text-gray-800 bg-transparent focus:outline-none placeholder:text-gray-400/40 font-medium"

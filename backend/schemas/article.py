@@ -157,6 +157,8 @@ class ArticleListResponse(BaseModel):
     model_config = ConfigDict(strict=True)
     data: List[ArticleResponse]
     total: int
+    next_cursor: Optional[str] = None
+    has_more: Optional[bool] = None
 
 
 class BulkPatchRequest(BaseModel):

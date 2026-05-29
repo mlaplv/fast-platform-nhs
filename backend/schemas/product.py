@@ -363,6 +363,8 @@ class ProductListResponse(BaseModel):
     data: List[ProductResponse]
     total: int
     facets: Optional[SearchFacets] = None
+    next_cursor: Optional[str] = None
+    has_more: Optional[bool] = None
 
 
 class BulkUpdateProductRequest(BaseModel):
