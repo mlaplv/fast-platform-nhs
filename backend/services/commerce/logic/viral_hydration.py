@@ -1,10 +1,12 @@
 import logging
-import time
+import contextvars
+import json
 from typing import Dict, Optional, Tuple
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import current_tenant_id
 from backend.database.models.promotion import Voucher
+from backend.services.xohi_memory import xohi_memory
 
 logger = logging.getLogger("api-gateway")
 
@@ -14,20 +16,66 @@ class CachedVoucher:
         self.title = title
         self.metadata_json = metadata_json
 
-# TTL Cache: {tenant_id: (CachedVoucher, timestamp)}
-_viral_voucher_cache: Dict[str, Tuple[Optional[CachedVoucher], float]] = {}
-CACHE_TTL = 5.0 # 5 seconds to eliminate N+1 database roundtrips while maintaining rapid configuration syncs
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "metadata_json": self.metadata_json
+        }
 
-def _get_cached_voucher(tenant: str) -> Tuple[bool, Optional[CachedVoucher]]:
-    now = time.time()
-    if tenant in _viral_voucher_cache:
-        val, expiry = _viral_voucher_cache[tenant]
-        if now - expiry < CACHE_TTL:
-            return True, val
+    @classmethod
+    def from_dict(cls, data: dict) -> "CachedVoucher":
+        return cls(
+            id=data["id"],
+            title=data.get("title"),
+            metadata_json=data.get("metadata_json")
+        )
+
+# L1 Request-Scoped Cache: Thread- & Async-safe context variables (0ns latency)
+# Maps tenant_id -> CachedVoucher (or False to represent positive validation of non-existence)
+_request_voucher_cache = contextvars.ContextVar("_request_voucher_cache", default=None)
+
+def _get_l1_cache(tenant: str) -> Tuple[bool, Optional[CachedVoucher]]:
+    cache_dict = _request_voucher_cache.get()
+    if cache_dict is not None and tenant in cache_dict:
+        val = cache_dict[tenant]
+        return True, (val if val is not False else None)
     return False, None
 
-def _set_cached_voucher(tenant: str, voucher: Optional[CachedVoucher]) -> None:
-    _viral_voucher_cache[tenant] = (voucher, time.time())
+def _set_l1_cache(tenant: str, voucher: Optional[CachedVoucher]) -> None:
+    cache_dict = _request_voucher_cache.get()
+    if cache_dict is None:
+        cache_dict = {}
+        _request_voucher_cache.set(cache_dict)
+    cache_dict[tenant] = voucher if voucher is not None else False
+
+# L2 Redis Distributed Cache: Handles shared cache across clustered API replicas (1ms latency)
+async def _get_l2_cache(tenant: str) -> Tuple[bool, Optional[CachedVoucher]]:
+    if not xohi_memory._use_redis or not xohi_memory.client:
+        return False, None
+    try:
+        key = f"cache:v2.2:viral_voucher:{tenant}"
+        raw_val = await xohi_memory.client.get(key)
+        if raw_val:
+            if raw_val == "NONE":
+                return True, None
+            data = json.loads(raw_val)
+            return True, CachedVoucher.from_dict(data)
+    except Exception as e:
+        logger.debug(f"🧬 [ViralHydration] L2 Cache read failed: {e}")
+    return False, None
+
+async def _set_l2_cache(tenant: str, voucher: Optional[CachedVoucher]) -> None:
+    if not xohi_memory._use_redis or not xohi_memory.client:
+        return
+    try:
+        key = f"cache:v2.2:viral_voucher:{tenant}"
+        if voucher is None:
+            await xohi_memory.client.set(key, "NONE", ex=60)
+        else:
+            await xohi_memory.client.set(key, json.dumps(voucher.to_dict(), ensure_ascii=False), ex=60)
+    except Exception as e:
+        logger.debug(f"🧬 [ViralHydration] L2 Cache write failed: {e}")
 
 async def hydrate_viral_config_logic(db_session: AsyncSession, row_dict: Dict) -> None:
     """
@@ -43,35 +91,44 @@ async def hydrate_viral_config_logic(db_session: AsyncSession, row_dict: Dict) -
     if not tenant:
         tenant = str(row_dict.get("tenant_id", "osmo.vn"))
         
-    # 1. Check cache first to prevent N+1 query loops
-    has_cache, cached_val = _get_cached_voucher(tenant)
-    if has_cache:
-        voucher = cached_val
-    else:
-        # Query DB
-        stmt = select(Voucher).where(
-            Voucher.is_viral == True,
-            Voucher.is_active == True,
-            Voucher.tenant_id == tenant
-        ).limit(1)
-        res = await db_session.execute(stmt)
-        db_voucher = res.scalar_one_or_none()
-        
-        if not db_voucher:
-            stmt = select(Voucher).where(Voucher.is_viral == True, Voucher.is_active == True).limit(1)
+    # --- DOUBLE-LAYER CACHING ENGINE (L1 Memory + L2 Redis) ---
+    
+    # 1. Try L1 Request-Scoped Cache (0ns)
+    has_l1, voucher = _get_l1_cache(tenant)
+    if not has_l1:
+        # 2. Try L2 Redis Distributed Cache (1ms)
+        has_l2, voucher = await _get_l2_cache(tenant)
+        if not has_l2:
+            # 3. Fallback to L3 Database Query
+            stmt = select(Voucher).where(
+                Voucher.is_viral == True,
+                Voucher.is_active == True,
+                Voucher.tenant_id == tenant
+            ).limit(1)
             res = await db_session.execute(stmt)
             db_voucher = res.scalar_one_or_none()
             
-        if db_voucher:
-            voucher = CachedVoucher(
-                id=db_voucher.id,
-                title=db_voucher.title,
-                metadata_json=db_voucher.metadata_json
-            )
-        else:
-            voucher = None
+            if not db_voucher:
+                stmt = select(Voucher).where(Voucher.is_viral == True, Voucher.is_active == True).limit(1)
+                res = await db_session.execute(stmt)
+                db_voucher = res.scalar_one_or_none()
+                
+            if db_voucher:
+                voucher = CachedVoucher(
+                    id=db_voucher.id,
+                    title=db_voucher.title,
+                    metadata_json=db_voucher.metadata_json
+                )
+            else:
+                voucher = None
+                
+            # Populate L2 Distributed Cache
+            await _set_l2_cache(tenant, voucher)
             
-        _set_cached_voucher(tenant, voucher)
+        # Populate L1 Request-scoped Cache
+        _set_l1_cache(tenant, voucher)
+        
+    # --- END CACHING ENGINE ---
 
     if not voucher:
         logger.debug(f"🧬 [ViralHydration] No active master viral voucher found for tenant {tenant} (Normal if campaign is disabled)")

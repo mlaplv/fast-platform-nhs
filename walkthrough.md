@@ -1591,8 +1591,11 @@ Hệ thống nạp ĐÚNG tài khoản Admin tối cao của Sếp (`admin@micsm
 1. **Bulk Variant Fetching (Preloading)**:
    - Refactored `list_products_logic` in `product_query.py` to extract all product IDs and query their active `ProductVariant` records collectively in **one single `IN (...)` bulk fetch**.
    - Mapped variants into a dictionary keyed by `product_base_id` and assigned them instantly without sequential database calls, bringing variant querying complexity from $O(N)$ down to $O(1)$ roundtrips.
-2. **Viral Voucher TTL Caching**:
-   - Implemented a lightweight, memory-safe `CachedVoucher` object and a 5-second TTL cache in `viral_hydration.py` to cache the global master viral voucher.
-   - Caching the master voucher (and caching its absence when disabled) completely eliminates the serial database queries, making list hydrations run instantaneously without database impact.
+2. **Double-Layer Caching Engine**:
+   - Upgraded `viral_hydration.py` to use a top-tier **Double-Layer Caching Architecture**:
+     * **L1 Cache (Local Request-Scoped Memory)**: Implemented using thread- and async-safe Python `contextvars`. This cache operates at 0ns latency and guarantees exactly 1 lookup per request context, preventing duplicate queries.
+     * **L2 Cache (Redis Distributed Cache)**: Leveraged the global `xohi_memory.client` Redis connection. Caches the serialized campaign data or `"NONE"` sentinel for 60 seconds. This shares campaign data across clustered API gateway processes on the 2GB VPS, protecting the Postgres DB.
+     * **L3 Fallback**: Queries Postgres ONLY if both caches miss.
 3. **Operational Restart**:
    - Pushed structural updates to the VPS `/opt/fast-platform/` and successfully performed a soft-restart of the `api` and `worker_high` containers to apply the database latency improvements immediately.
+
