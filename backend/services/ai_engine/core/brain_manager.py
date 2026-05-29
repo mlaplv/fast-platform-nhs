@@ -109,7 +109,7 @@ class BrainManager:
         async def get_count_optimized(model, table_name: str) -> int:
             try:
                 # Try Postgres high-speed estimation thưa sếp!
-                res = await db.execute(sa_text(f"SELECT reltuples::bigint FROM pg_class WHERE relname = '{table_name}'"))
+                res = await db.execute(sa_text("SELECT reltuples::bigint FROM pg_class WHERE relname = :table_name"), {"table_name": table_name})
                 val = res.scalar()
                 if val is not None and val >= 0:
                     return int(val)

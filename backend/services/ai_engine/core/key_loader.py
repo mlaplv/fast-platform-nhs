@@ -22,7 +22,7 @@ class KeyLoaderMixin:
             if isinstance(decoded, list):
                 return [str(k).strip() for k in decoded if k]
             return [str(decoded).strip()]
-        except:
+        except (json.JSONDecodeError, ValueError):
             # 2. Fallback to comma-separated
             # Strip JSON-like brackets if they exist in the raw string before splitting
             clean_raw = raw.strip("[]")

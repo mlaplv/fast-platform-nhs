@@ -893,7 +893,7 @@ export interface Voucher {
       cta_text?: string;
       share_text?: string;
     };
-    [key: string]: any;
+    [key: string]: unknown;
   } | null;
 }
 

@@ -248,8 +248,8 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
                     }),
                     ex=300
                 )
-            except Exception:
-                pass
+            except Exception as _re:
+                logger.warning("[SupportAgent] Cache context set failure: %s", _re)
 
         return ctx, p_info
     except Exception as e:
@@ -630,7 +630,8 @@ class SupportAgentOperative(BaseAgentOperative):
                 cfg_data = json.loads(raw_cfg)
                 zalo_on = cfg_data.get("integrations", {}).get("zalo", {}).get("enabled", False)
                 msg_on = cfg_data.get("integrations", {}).get("messenger", {}).get("enabled", False)
-        except Exception: pass
+        except Exception as _ce:
+            logger.warning("[SupportAgent] Integration config fetch failure: %s", _ce)
 
         # KT6: Token Budget Guard — trim context before LLM injection
         cart_text, ctx_text, hist_text, kb_index = self._trim_context_to_budget(

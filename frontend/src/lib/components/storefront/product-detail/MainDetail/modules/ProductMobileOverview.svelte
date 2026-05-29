@@ -24,6 +24,7 @@
   // Utils
   import { resolveMediaUrl } from '$lib/state/utils';
   import { formatCurrency, formatNumber } from '$lib/utils/format';
+  import { getProductLikeCount } from '$lib/utils/commerce/viral';
   
   // Components
   import ViralShareBarMobile from '../../shared/ViralShareBarMobile.svelte';
@@ -66,8 +67,7 @@
   // --- LIKE / BOOKMARK STATE ---
   let likeAnimating = $state(false);
   const isLiked = $derived(wishlistStore.isLiked(product.id));
-  const baseLikeCount = $derived(Number(product.metadata?.viral_suite?.likes_count || product.metadata?.likes || 0));
-  const likeCount = $derived(baseLikeCount + (isLiked ? 1 : 0));
+  const likeCount = $derived(getProductLikeCount(product, isLiked));
 
   function toggleLike() {
     const wasLiked = isLiked;
@@ -638,7 +638,7 @@
     <ViralShareBarMobile 
       {product} 
       variant="mobile" 
-      likeCount={baseLikeCount}
+      likeCount={likeCount}
       scrolled={isScrolled}
       forceHidden={isHidden}
       {scrollRatio}

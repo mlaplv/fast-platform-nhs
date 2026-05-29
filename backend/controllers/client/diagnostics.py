@@ -29,6 +29,6 @@ class DiagnosticController(Controller):
         
         if res is None:
             from litestar.exceptions import HTTPException
-            raise HTTPException(status_code=500, detail="Hệ thống chẩn đoán AI hiện đang bận. Vui lòng thử lại sau giây lát.")
+            raise HTTPException(status_code=503, detail="Hệ thống chẩn đoán AI hiện đang bận. Vui lòng thử lại sau giây lát.")
             
         return res

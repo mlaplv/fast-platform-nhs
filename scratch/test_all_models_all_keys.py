@@ -4,7 +4,7 @@ import os
 import json
 import httpx
 
-# Load .env manually to ensure variables are available
+# Load .env
 def load_env():
     env_path = "/home/lv/Desktop/fast-platform-core/.env"
     if os.path.exists(env_path):
@@ -51,13 +51,16 @@ async def test_key_model(key: str, model: str) -> tuple[bool, str]:
 
 async def main():
     await key_rotator.load_keys()
-    print(f"Loaded {len(key_rotator.keys)} keys.")
-    
-    print("=== TESTING ALL CONFIGURABLE KEYS FOR gemini-2.0-flash ===")
-    for idx, key in enumerate(key_rotator.keys):
-        ok, res = await test_key_model(key, "gemini-2.0-flash")
-        masked = key[:8] + "..." + key[-4:]
-        print(f"Key #{idx+1} ({masked}): {'✅ SUCCESS' if ok else '❌ FAILED'} -> {res}")
+    models = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-2.0-flash"]
+    print("=== TESTING VARIOUS MODELS AGAINST ALL 8 KEYS ===")
+    for model in models:
+        print(f"\n--- Testing {model} ---")
+        for idx, key in enumerate(key_rotator.keys):
+            ok, res = await test_key_model(key, model)
+            masked = key[:8] + "..." + key[-4:]
+            print(f"  Key #{idx+1} ({masked}): {'✅ SUCCESS' if ok else '❌ FAILED'} -> {res}")
+            if ok:
+                print(f"🎉 FOUND WORKING KEY FOR {model}: {masked}")
 
 if __name__ == "__main__":
     asyncio.run(main())

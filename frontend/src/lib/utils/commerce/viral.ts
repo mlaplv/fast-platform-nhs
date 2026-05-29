@@ -1,8 +1,23 @@
+import { env } from '$env/dynamic/public';
 import { getClientUi } from '$lib/state/commerce/ui.svelte';
+import type { Product } from '$lib/types';
 
 /**
  * Elite V2.2: Centralized Viral Utils
  */
+
+export function getProductLikeCount(product: Product | null | undefined, isLiked: boolean): number {
+  const baseCount = parseInt(env.PUBLIC_G_BY_COUNT || '569', 10);
+  const seed = product?.id ? product.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) : 0;
+  const stableRand = (seed % 41) + 10;
+  const realLikes = Number(
+    product?.metadata?.viral_suite?.likes_count ?? 
+    product?.metadata?.likes ?? 
+    0
+  );
+  const userInteraction = isLiked ? 1 : 0;
+  return baseCount + stableRand + realLikes + userInteraction;
+}
 
 export function formatViralCount(count: number): string {
   if (count >= 1000) return (count / 1000).toFixed(1).replace('.0', '') + 'k';
@@ -62,4 +77,30 @@ export function createHeartConfetti(clientX: number, clientY: number) {
       container.remove();
     }
   }, 1000);
+}
+
+export function getProductShareCount(product: Product | null | undefined): number {
+  const viralSuite = product?.metadata?.viral_suite ?? null;
+  return Number(
+    viralSuite?.share_count ?? 
+    product?.metadata?.share_count ?? 
+    0
+  );
+}
+
+export function getProductShareTarget(product: Product | null | undefined): number {
+  const viralSuite = product?.metadata?.viral_suite ?? null;
+  return Number(
+    viralSuite?.share_target ?? 
+    product?.metadata?.share_target ?? 
+    0
+  );
+}
+
+export function getProductShareProgress(product: Product | null | undefined): number {
+  const shareCount = getProductShareCount(product);
+  const shareTarget = getProductShareTarget(product);
+  return shareTarget > 0 
+    ? Math.max(80, Math.min((shareCount / shareTarget) * 100, 100)) 
+    : 80;
 }

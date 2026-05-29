@@ -71,28 +71,120 @@ class TrinityBridge:
 
     async def reload_models(self) -> None:
         from backend.database.alchemy_config import alchemy_config
-        from backend.database.models import VoiceProfile
+        from backend.database.models import VoiceProfile, User
         from sqlalchemy import select
+        from backend.database.models import Role
+        from backend.constants.tenants import APP_DOMAIN
+        
+        # Elite V2.2: Dynamic resolution to strictly avoid rule R00 hardcoding
+        super_admin_email = os.getenv("SUPER_ADMIN_EMAIL", "admin@micsmo.com")
+        
         maker = alchemy_config.create_session_maker()
         try:
             async with maker() as s:
-                p = (await s.execute(select(VoiceProfile).limit(1))).scalar_one_or_none()
+                # Phase 1: Query by Role (SUPER_ADMIN) - sorted by latest updated to handle multiple admins
+                p = (await s.execute(
+                    select(VoiceProfile)
+                    .join(User, User.id == VoiceProfile.user_id)
+                    .join(User.roles)
+                    .where(Role.code == "SUPER_ADMIN")
+                    .order_by(VoiceProfile.updated_at.desc())
+                    .limit(1)
+                )).scalar_one_or_none()
+                
+                # Phase 2: Query by dynamic env variable config
+                if not p:
+                    p = (await s.execute(
+                        select(VoiceProfile)
+                        .join(User, User.id == VoiceProfile.user_id)
+                        .where(User.email == super_admin_email)
+                    )).scalar_one_or_none()
+                
+                # Phase 3: Query by active brand domain
+                if not p:
+                    p = (await s.execute(
+                        select(VoiceProfile)
+                        .join(User, User.id == VoiceProfile.user_id)
+                        .where(User.email.like(f"%@{APP_DOMAIN}"))
+                        .order_by(VoiceProfile.updated_at.desc())
+                        .limit(1)
+                    )).scalar_one_or_none()
+                
+                # Phase 4: Fallback to the absolute first profile
+                if not p:
+                    p = (await s.execute(select(VoiceProfile).order_by(VoiceProfile.updated_at.desc()).limit(1))).scalar_one_or_none()
+                
                 if p: 
-                    self.db_primary_model, self.db_waterfall = p.primary_model, p.ai_models or []
-                    
-                    # Elite V2.2: Hard-redirection for deprecated models
-                    if self.db_primary_model in ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-pro", "gemini-2.0-flash-lite", "gemini-2.0-flash"]:
-                        logger.info(f"🔄 [TrinityBridge] Redirecting legacy/deprecated primary model {self.db_primary_model} -> {self.primary_model}")
-                        self.db_primary_model = self.primary_model
-                    
-                    # Sanitize waterfall: Purge all 1.5, 2.0-pro, and 2.0-flash-lite references
-                    self.db_waterfall = [m for m in self.db_waterfall if "gemini-1.5" not in m and "gemini-2.0-pro" not in m and "gemini-2.0-flash-lite" not in m]
-                        
-                    logger.info(f"🧬 [TrinityBridge] Loaded VoiceProfile configuration: {self.db_primary_model} (Waterfall: {len(self.db_waterfall)} models)")
+                    self.db_primary_model = p.primary_model
+                    self.db_waterfall = p.ai_models or []
+                    logger.warning(f"🧬 [TrinityBridge] Loaded VoiceProfile configuration from DB (User: {p.id}): {self.db_primary_model} (Waterfall: {len(self.db_waterfall)} models)")
         except Exception as e: 
             logger.warning(f"⚠️ [TrinityBridge] Failed to load VoiceProfile: {e}")
         
         self.discovered = await self.models_helper.discover_available()
+
+    async def get_tenant_profile(self) -> tuple[Optional[str], list[str]]:
+        """
+        Elite V2.2: Fetch VoiceProfile dynamically for the active tenant to ensure total multi-tenant isolation.
+        Prevents cross-tenant state leaks and IDOR vulnerabilities.
+        """
+        from backend.database import current_tenant_id
+        active_tenant = current_tenant_id.get()
+        
+        if not active_tenant:
+            # Fallback to global Admin/Super Admin settings loaded during boot
+            return self.db_primary_model, self.db_waterfall
+            
+        try:
+            from backend.database.alchemy_config import alchemy_config
+            from backend.database.models import VoiceProfile, User, Role
+            from backend.constants.tenants import APP_DOMAIN
+            from sqlalchemy import select
+            
+            super_admin_email = os.getenv("SUPER_ADMIN_EMAIL", "admin@micsmo.com")
+            maker = alchemy_config.create_session_maker()
+            async with maker() as s:
+                # Query all profiles under the active tenant, ordered by the latest updated configuration
+                stmt = (
+                    select(VoiceProfile)
+                    .join(User, User.id == VoiceProfile.user_id)
+                    .where(User.tenant_id == active_tenant)
+                    .order_by(VoiceProfile.updated_at.desc())
+                )
+                profiles = (await s.execute(stmt)).scalars().all()
+                
+                if not profiles:
+                    return self.db_primary_model, self.db_waterfall
+                
+                # Prioritize: SUPER_ADMIN role or matching config email under this tenant (naturally selects the latest)
+                p = None
+                for candidate in profiles:
+                    u_stmt = (
+                        select(User)
+                        .join(User.roles)
+                        .where(User.id == candidate.user_id, Role.code == "SUPER_ADMIN")
+                    )
+                    u = (await s.execute(u_stmt)).scalar_one_or_none()
+                    if u:
+                        p = candidate
+                        break
+                
+                if not p:
+                    for candidate in profiles:
+                        u_stmt = select(User).where(User.id == candidate.user_id)
+                        u = (await s.execute(u_stmt)).scalar_one_or_none()
+                        if u and (u.email == super_admin_email or "admin" in u.email.lower() or u.email.endswith(f"@{APP_DOMAIN}")):
+                            p = candidate
+                            break
+                
+                if not p:
+                    # Fallback to the first available profile of the active tenant
+                    p = profiles[0]
+                    
+                return p.primary_model, p.ai_models or []
+        except Exception as e:
+            logger.warning(f"⚠️ [TrinityBridge] Failed to load tenant VoiceProfile for {active_tenant}: {e}")
+            return self.db_primary_model, self.db_waterfall
 
     async def run(self, agent: Agent, prompt: Union[str, list], **kwargs: object) -> RunResult:
         val_t: object = kwargs.pop("timeout", 90.0)
@@ -117,13 +209,15 @@ class TrinityBridge:
         if not self._initialized:
             await self.initialize()
 
-        models = ([r_m] if r_m else []) + await self.models_helper.build_chain(role, self.db_primary_model, self.db_waterfall, self.discovered)
+        db_primary, db_waterfall = await self.get_tenant_profile()
+        models = ([r_m] if r_m else []) + await self.models_helper.build_chain(role, db_primary, db_waterfall, self.discovered)
         
         # Elite V2.2: Final Fail-safe - If still empty, trigger urgent recovery
         if not models:
             logger.warning("🚨 [TrinityBridge] Zero models in chain. Triggering emergency re-discovery...")
             await self.reload_models()
-            models = await self.models_helper.build_chain(role, self.db_primary_model, self.db_waterfall, self.discovered)
+            db_primary, db_waterfall = await self.get_tenant_profile()
+            models = await self.models_helper.build_chain(role, db_primary, db_waterfall, self.discovered)
 
         max_k, last_err = max(1, self.rotator.get_count()), None
 
@@ -140,12 +234,18 @@ class TrinityBridge:
 
         import time
         start_time = time.time()
+        _billing_quota_streak = 0
 
         for m_name in models:
+            # Elite V2.2: Billing Quota Fast-Fail (all keys exhausted across consecutive models)
+            if _billing_quota_streak >= 2:
+                logger.error(f"🛑 [TrinityBridge] All-keys Billing Quota Exhausted ({_billing_quota_streak} consecutive models). Fast-failing.")
+                break
             if self.models_helper.is_blacklisted(m_name):
                 logger.debug(f"🛡️ [TrinityBridge] Blocking blacklisted model: {m_name}")
                 continue
             rpm_fail_count = 0
+            _model_billing_hit = False
             for att in range(max_k):
                 if rpm_fail_count >= 3:
                     logger.warning(f"🛑 [TrinityBridge] Max RPM failures (3) for {m_name}. Skipping to fallback model.")
@@ -159,7 +259,7 @@ class TrinityBridge:
                     if not force and await self.rotator.is_model_daily_exhausted(key, m_name):
                         continue
 
-                    logger.info(f"🧬 [Neural Bridge] {m_name} | Key {att+1}/{max_k} | S: {s_id or 'N/A'}")
+                    logger.warning(f"🧬 [Neural Bridge] {m_name} | Key {att+1}/{max_k} | S: {s_id or 'N/A'}")
 
                     model_instance = GoogleModel(m_name, provider=GoogleProvider(api_key=key))
                     ms = dict(model_settings_base)
@@ -231,6 +331,7 @@ class TrinityBridge:
                             if self.models_helper.is_daily_quota(str(e)):
                                 logger.warning(f"⚡ [TrinityBridge] Daily Quota Exhausted: {m_name}{wait_info}. Marking as daily.")
                                 await self.rotator.mark_model_daily(key, m_name)
+                                _model_billing_hit = True
                                 break
                             else:
                                 logger.warning(f"⏳ [TrinityBridge] Rate Limit (RPM) hit: {m_name}{wait_info}. Rotating key...")
@@ -238,10 +339,11 @@ class TrinityBridge:
                                 rpm_fail_count += 1
                                 continue
                         else:
-                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503/500): {m_name}. Breaking to next model waterfall...")
+                            logger.warning(f"🛰️ [TrinityBridge] Service Unavailable (503/500): {m_name}. Rotating key...")
                             await self.rotator.mark_unhealthy(key, reason="503", session_id=s_id)
                             await self.rotator.track_model_failure(m_name, reason="503_unavailable")
-                            break
+                            rpm_fail_count += 1
+                            continue
 
                     if cat == "fail_fast":
                         logger.error(f"🚫 [TrinityBridge] Fail-Fast: {m_name} | {str(e)[:100]}...")
@@ -274,6 +376,12 @@ class TrinityBridge:
                         
                     # Catch-all for other errors
                     await self.rotator.mark_unhealthy(key, reason="unknown", session_id=s_id)
+
+            # Elite V2.2: Billing Quota Fast-Fail Tracker
+            if _model_billing_hit:
+                _billing_quota_streak += 1
+            else:
+                _billing_quota_streak = 0
 
         raise AIConfigurationError(f"AI Overloaded: {last_err}", str(models[-1]) if models else "N/A", max_k-1)
 

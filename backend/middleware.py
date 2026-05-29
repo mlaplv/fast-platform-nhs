@@ -19,7 +19,14 @@ class UserPayload(TypedDict, total=False):
     stamp: str
     name: str
 
-SECRET_KEY = os.environ.get("ENCRYPTION_SALT", "osmo_Elite_Standard_Salt_2026")  # R00: Consistent SSOT Key
+SECRET_KEY = os.environ.get("ENCRYPTION_SALT")
+if not SECRET_KEY:
+    if os.environ.get("ENVIRONMENT") == "production":
+        import sys
+        logger.critical("🚨 [CRITICAL_CONFIG_ERROR] ENCRYPTION_SALT is missing in Production environment! Absolute security shutdown.")
+        sys.exit("CRITICAL CONFIGURATION ERROR: ENCRYPTION_SALT MUST BE CONFIGURED IN PRODUCTION.")
+    else:
+        SECRET_KEY = "osmo_Elite_Standard_Salt_2026"  # Dev fallback thưa Sếp!
 ALGORITHM = "HS256"
 logger = logging.getLogger("api-gateway.auth")
 

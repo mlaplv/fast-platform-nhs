@@ -101,7 +101,7 @@ class DiagnosticAgent:
                     # Baseline from .envSSOT
                     try:
                         env_base = int(os.getenv("PUBLIC_G_BY_COUNT", "569"))
-                    except:
+                    except (ValueError, TypeError):
                         env_base = 500
                     current_count = env_base * 5
                 
@@ -171,7 +171,8 @@ class DiagnosticAgent:
                 prompt=prompt,
                 system_prompt=system_prompt,
                 role="fast", 
-                timeout=45.0
+                timeout=45.0,
+                per_model_timeout=12.0
             )
             
             if result:

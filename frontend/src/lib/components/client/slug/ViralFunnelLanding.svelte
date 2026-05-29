@@ -13,7 +13,8 @@
   import { getClientUi } from '$lib/state/commerce/ui.svelte';
   import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import { 
-    formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
+    formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti, getProductLikeCount,
+    getProductShareCount, getProductShareTarget, getProductShareProgress
   } from '$lib/utils/commerce/viral';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
 
@@ -25,7 +26,7 @@
     onUnlock?: () => void;
   }
 
-  let { product, timer_prefix = "Ưu đãi đặc quyền kết thúc sau:", onUnlock }: Props = $props();
+  let { product, timer_prefix = 'CHỈ CÒN', onUnlock }: Props = $props();
   const clientUi = getClientUi();
   const shopStore = getShopStore();
   const timeLeft = $derived(shopStore.timeLeft);
@@ -43,15 +44,9 @@
     null
   );
   
-  const shareCount = $derived(
-    viralSuite?.share_count ?? (typeof product.metadata?.share_count === 'number' ? product.metadata.share_count : 0)
-  );
-  const shareTarget = $derived(
-    viralSuite?.share_target ?? (typeof product.metadata?.share_target === 'number' ? product.metadata.share_target : 0)
-  );
-  const shareProgress = $derived(
-    shareTarget > 0 ? Math.min((shareCount / shareTarget) * 100, 100) : (shareCount > 0 ? 100 : 0)
-  );
+  const shareCount = $derived(getProductShareCount(product));
+  const shareTarget = $derived(getProductShareTarget(product));
+  const shareProgress = $derived(getProductShareProgress(product));
 
   let campaignData = $state<any>(null);
   let isCampaignLoaded = $state(false);
@@ -106,8 +101,7 @@
 
   // Elite V2.2: Centralized Favorite Management
   const isLiked = $derived(wishlistStore.isLiked(product.id));
-  const baseLikeCount = $derived(Number(viralSuite?.likes_count || product.metadata?.likes || 0));
-  const localLikeCount = $derived(baseLikeCount + (isLiked ? 1 : 0));
+  const localLikeCount = $derived(getProductLikeCount(product, isLiked));
 
   let _token = $state<string | null>(null);
   let _fingerprint = $state<string | null>(null);

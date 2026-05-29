@@ -153,7 +153,7 @@ class TrinityModels:
                         models.append(short)
                     
                     # Elite V2.2: Hard-inject CNS models if missing from Google API list
-                    cns_models = [self.default_model, self.fallback_model, "gemini-2.0-flash", "gemini-2.0-flash-lite"]
+                    cns_models = [self.default_model, self.fallback_model, "gemini-3.5-flash", "gemini-3.1-flash-lite"]
                     for cns in cns_models:
                         if cns not in [m.get("name", "").replace("models/", "") for m in all_models]:
                             if any(hbl in cns for hbl in HARD_BLACKLIST): continue
@@ -315,7 +315,7 @@ class TrinityModels:
         
         # Fail-safe: ensure we have AT LEAST the defaults (Force Hardcoded Stable)
         if not healthy:
-            for m in ["gemini-2.0-flash", "gemini-2.5-pro", self.default_model, self.fallback_model]:
+            for m in [self.default_model, self.fallback_model, "gemini-3.5-flash", "gemini-3.1-flash-lite"]:
                 if not await self.rotator.is_model_poisoned(m) and not self.is_blacklisted(m):
                     healthy.append(m)
 
@@ -417,8 +417,11 @@ class TrinityModels:
             except ValueError:
                 pass
                 
-        # 3. Check for actual daily indicators
-        daily_signals = ["daily", "per_day", "requests_per_day", "generaterequestsperdayperproject"]
+        # 3. Check for actual daily/billing-level indicators
+        daily_signals = [
+            "daily", "per_day", "requests_per_day", "generaterequestsperdayperproject",
+            "exceeded your current quota", "check your plan and billing",
+        ]
         return any(p in err_lower for p in daily_signals)
 
     def is_whitelisted(self, model_name: str) -> bool:

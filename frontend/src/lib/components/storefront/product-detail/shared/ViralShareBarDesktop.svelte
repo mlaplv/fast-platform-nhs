@@ -9,7 +9,8 @@
   import Zap from "@lucide/svelte/icons/zap";
   import type { Product } from '$lib/types';
   import { 
-    formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti 
+    formatViralCount, shareToPlatform, copyViralLink, createHeartConfetti, getProductLikeCount,
+    getProductShareCount, getProductShareTarget, getProductShareProgress
   } from '$lib/utils/commerce/viral';
   import { formatCurrency } from '$lib/utils/format';
 
@@ -42,17 +43,9 @@
 
   const viralSuite = $derived(product.metadata?.viral_suite ?? null);
   
-  const shareCount = $derived(
-    viralSuite?.share_count ?? (typeof product.metadata?.share_count === 'number' ? product.metadata.share_count : 0)
-  );
-
-  const shareTarget = $derived(
-    viralSuite?.share_target ?? (typeof product.metadata?.share_target === 'number' ? product.metadata.share_target : 0)
-  );
-
-  const shareProgress = $derived(
-    shareTarget > 0 ? Math.max(80, Math.min((shareCount / shareTarget) * 100, 100)) : 80
-  );
+  const shareCount = $derived(getProductShareCount(product));
+  const shareTarget = $derived(getProductShareTarget(product));
+  const shareProgress = $derived(getProductShareProgress(product));
   
   const promoConfig = $derived(
     viralSuite?.share_promotion ?? 
@@ -95,8 +88,7 @@
 
   // Elite V2.2: Centralized Favorite Management
   const isLiked = $derived(wishlistStore.isLiked(product.id));
-  const baseLikeCount = $derived(Number(viralSuite?.likes_count || product.metadata?.likes || likeCount || 0));
-  const localLikeCount = $derived(baseLikeCount + (isLiked ? 1 : 0));
+  const localLikeCount = $derived(getProductLikeCount(product, isLiked));
 
   let isCtv = $state(false);
   let ctvCode = $state('');

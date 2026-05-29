@@ -229,16 +229,21 @@ class CtvService:
         return res.scalar_one_or_none()
 
     @staticmethod
-    def _verify_balance_seal_only(aff: AffiliateProfile) -> bool:
+    async def _verify_balance_seal_only(aff: AffiliateProfile) -> bool:
         """
         #12 Fix: Fast-path seal check — O(1), zero DB query.
         Chỉ verify AES-GCM seal, không chạy aggregate query.
-        Full reconciliation (verify_financial_integrity) được chuyển sang arq background job.
+        Full reconciliation (verify_financial_integrity) được chuyển sang arq background job thêu Sếp!
         """
         if not aff.balance_seal:
             return True  # Legacy data — no seal yet, allow
         try:
-            seal_data = GeminiSecurity.decrypt(aff.balance_seal)
+            import asyncio
+            loop = asyncio.get_running_loop()
+            seal_data = await loop.run_in_executor(
+                None,
+                lambda: GeminiSecurity.decrypt(aff.balance_seal)
+            )
         except Exception:
             return False
         if not isinstance(seal_data, dict):
@@ -257,24 +262,28 @@ class CtvService:
         Suspends account and raises alert on any discrepancy.
         NOTE: Gọi bởi arq background worker mỗi 1h — KHÔNG gọi per-request.
         """
-        # 1. Live sum of all earned/confirmed/paid/pending commission from ledger
+        # 1. Live sum of all earned/confirmed/paid/pending commission from ledger thêu Sếp!
         ledger_stmt = select(func.sum(CommissionLedger.commission_amount)).where(
             and_(
                 CommissionLedger.affiliate_id == aff.id,
                 CommissionLedger.status.in_(["PENDING", "CONFIRMED", "PAID"])
             )
         )
-        ledger_res = await db_session.execute(ledger_stmt)
-        real_total_com = float(ledger_res.scalar() or 0.0)
 
-        # All paid withdrawals
+        # All paid withdrawals thêu Sếp!
         withdrawal_stmt = select(func.sum(WithdrawalRequest.amount_approved)).where(
             and_(
                 WithdrawalRequest.affiliate_id == aff.id,
                 WithdrawalRequest.status == "PAID"
             )
         )
-        withdrawal_res = await db_session.execute(withdrawal_stmt)
+
+        import asyncio
+        ledger_task = db_session.execute(ledger_stmt)
+        withdrawal_task = db_session.execute(withdrawal_stmt)
+        ledger_res, withdrawal_res = await asyncio.gather(ledger_task, withdrawal_task)
+
+        real_total_com = float(ledger_res.scalar() or 0.0)
         real_paid_com = float(withdrawal_res.scalar() or 0.0)
 
         # 2. Check cached values vs live aggregates
@@ -313,8 +322,8 @@ class CtvService:
                 
             return False
 
-        # 3. Verify balance seal
-        if not CtvService._verify_balance_seal_only(aff):
+        # 3. Verify balance seal thêu Sếp!
+        if not await CtvService._verify_balance_seal_only(aff):
             logger.critical(f"[CTV-SECURITY-BREACH] Balance seal mismatch for affiliate {aff.id}! Account SUSPENDED.")
             aff.status = "SUSPENDED"
             await db_session.commit()
@@ -337,8 +346,8 @@ class CtvService:
             from litestar.exceptions import ValidationException
             raise ValidationException("Tài khoản CTV của bạn đã bị tạm khóa do vi phạm chính sách")
 
-        # #12 Fix: Chỉ verify AES-GCM seal (O(1), zero DB) — Full reconciliation được chuyển sang arq worker (mỗi 1h)
-        if not CtvService._verify_balance_seal_only(aff):
+        # #12 Fix: Chỉ verify AES-GCM seal (O(1), zero DB) — Full reconciliation được chuyển sang arq worker (mỗi 1h) thêu Sếp!
+        if not await CtvService._verify_balance_seal_only(aff):
             from litestar.exceptions import ValidationException
             raise ValidationException(
                 "Cảnh báo bảo mật: Seal tài khoản không hợp lệ. Giao dịch đã bị tạm khóa!"

@@ -44,6 +44,10 @@ async def migrate():
         
         total_updates = 0
         for table in tables:
+            # Defensive check: ensure table identifier contains only safe alphanumeric/underscore characters thưa Sếp!
+            if not table or not all(c.islower() or c.isdigit() or c == '_' for c in table):
+                logger.warning(f"⚠️ Skipping potentially unsafe table identifier: {table}")
+                continue
             for old in old_tenants:
                 stmt = text(f"UPDATE {table} SET tenant_id = :new WHERE tenant_id = :old")
                 result = await db.execute(stmt, {"new": new_tenant, "old": old})

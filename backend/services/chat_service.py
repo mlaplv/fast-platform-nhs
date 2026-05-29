@@ -151,8 +151,9 @@ class ChatService:
             raw = base64.urlsafe_b64decode(cursor.encode()).decode()
             ts_str, msg_id = raw.split("|", 1)
             return datetime.fromisoformat(ts_str), msg_id
-        except Exception:
-            # Backwards compat: cursor cũ là UUID thuần — trả None để fallback DB lookup
+        except Exception as _ce:
+            # Backwards compat: cursor cũ là UUID thuần — trả None để fallback DB lookup thêu Sếp!
+            logger.debug(f"[ChatService] Cursor decode failed, falling back to legacy UUID: {_ce}")
             return None
 
     @staticmethod
