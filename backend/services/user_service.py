@@ -326,6 +326,14 @@ class UserService:
         # 3. Security Stamp rotation if applicable
         if hasattr(user, "security_stamp"):
             user.security_stamp = str(uuid.uuid4())
+            # Invalidate Redis cache for stamp
+            try:
+                from backend.services.ai_engine.core.key_rotator import key_rotator
+                if key_rotator._use_redis and key_rotator.client:
+                    stamp_key = f"security:stamp:{user_id}"
+                    await key_rotator.client.delete(stamp_key)
+            except Exception:
+                pass
 
         return SuccessResponse(ok=True, id=user_id, message="Mật khẩu đã được cập nhật thành công.")
 

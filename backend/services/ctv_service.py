@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from sqlalchemy import select, and_, func
+from sqlalchemy import select, update, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database.models.affiliate import (
@@ -38,8 +38,8 @@ def _create_commission_seal(ledger: CommissionLedger) -> str:
     return GeminiSecurity.encrypt({
         "id": ledger.id,
         "o": ledger.order_id,
-        "a": str(round(ledger.commission_amount, 2)),
-        "r": str(round(ledger.rate_applied, 4)),
+        "a": str(int(ledger.commission_amount)),   # BigInteger VNĐ
+        "r": str(int(ledger.rate_applied_bps)),     # bps integer
     })
 
 
@@ -47,7 +47,7 @@ def _create_withdrawal_seal(wr: WithdrawalRequest) -> str:
     return GeminiSecurity.encrypt({
         "id": wr.id,
         "aff": wr.affiliate_id,
-        "amt": str(round(wr.amount_requested, 2)),
+        "amt": str(int(wr.amount_requested)),  # BigInteger VNĐ
     })
 
 
@@ -228,11 +228,33 @@ class CtvService:
         return res.scalar_one_or_none()
 
     @staticmethod
+    def _verify_balance_seal_only(aff: AffiliateProfile) -> bool:
+        """
+        #12 Fix: Fast-path seal check — O(1), zero DB query.
+        Chỉ verify AES-GCM seal, không chạy aggregate query.
+        Full reconciliation (verify_financial_integrity) được chuyển sang arq background job.
+        """
+        if not aff.balance_seal:
+            return True  # Legacy data — no seal yet, allow
+        try:
+            seal_data = GeminiSecurity.decrypt(aff.balance_seal)
+        except Exception:
+            return False
+        if not isinstance(seal_data, dict):
+            return False
+        return (
+            seal_data.get("id") == aff.id
+            and abs(float(seal_data.get("com", 0)) - aff.total_commission) < 0.01
+            and abs(float(seal_data.get("paid", 0)) - aff.paid_commission) < 0.01
+        )
+
+    @staticmethod
     async def verify_financial_integrity(db_session: AsyncSession, aff: AffiliateProfile) -> bool:
         """
         Military-grade Double-Entry Reconciliation Guard.
         Compares cached balance fields with live ledger aggregates.
         Suspends account and raises alert on any discrepancy.
+        NOTE: Gọi bởi arq background worker mỗi 1h — KHÔNG gọi per-request.
         """
         # 1. Live sum of all earned/confirmed/paid/pending commission from ledger
         ledger_stmt = select(func.sum(CommissionLedger.commission_amount)).where(
@@ -291,15 +313,11 @@ class CtvService:
             return False
 
         # 3. Verify balance seal
-        if aff.balance_seal:
-            seal_data = GeminiSecurity.decrypt(aff.balance_seal)
-            if not isinstance(seal_data, dict) or \
-               abs(float(seal_data.get("com", 0)) - aff.total_commission) > 0.01 or \
-               abs(float(seal_data.get("paid", 0)) - aff.paid_commission) > 0.01:
-                logger.critical(f"[CTV-SECURITY-BREACH] Balance seal mismatch for affiliate {aff.id}! Account SUSPENDED.")
-                aff.status = "SUSPENDED"
-                await db_session.commit()
-                return False
+        if not CtvService._verify_balance_seal_only(aff):
+            logger.critical(f"[CTV-SECURITY-BREACH] Balance seal mismatch for affiliate {aff.id}! Account SUSPENDED.")
+            aff.status = "SUSPENDED"
+            await db_session.commit()
+            return False
                 
         return True
 
@@ -315,10 +333,12 @@ class CtvService:
         if not aff:
             raise NotFoundException("Bạn chưa đăng ký chương trình CTV")
 
-        # Verify integrity seal & live reconciliation (Military-Grade financial protection)
-        if not await CtvService.verify_financial_integrity(db_session, aff):
+        # #12 Fix: Chỉ verify AES-GCM seal (O(1), zero DB) — Full reconciliation được chuyển sang arq worker (mỗi 1h)
+        if not CtvService._verify_balance_seal_only(aff):
             from litestar.exceptions import ValidationException
-            raise ValidationException("Cảnh báo bảo mật hệ thống: Phát hiện tài khoản có số dư không nhất quán. Giao dịch đã bị tạm khóa để bảo vệ tài sản!")
+            raise ValidationException(
+                "Cảnh báo bảo mật: Seal tài khoản không hợp lệ. Giao dịch đã bị tạm khóa!"
+            )
 
         # Pending commission (not yet CONFIRMED)
         pending_stmt = select(func.sum(CommissionLedger.commission_amount)).where(
@@ -375,7 +395,8 @@ class CtvService:
             "bank_info": bank_info,
             "tier": {
                 "name": active_tier.name if active_tier else "Đồng",
-                "commission_rate": active_tier.commission_rate if active_tier else 0.05,
+                "commission_rate_bps": active_tier.commission_rate_bps if active_tier else 1500,
+                "commission_rate_pct": f"{(active_tier.commission_rate_bps / 100) if active_tier else 15.0:.1f}%",
                 "min_revenue_threshold": active_tier.min_revenue_threshold if active_tier else 0.0,
             },
             "stats": {
@@ -389,9 +410,9 @@ class CtvService:
             "tiers": [
                 {
                     "name": t.name,
-                    "commission_rate": t.commission_rate,
-                    "min_revenue_threshold": t.min_revenue_threshold,
-                    "bonus_rate": t.bonus_rate
+                    "commission_rate_bps": t.commission_rate_bps,
+                    "commission_rate_pct": f"{t.commission_rate_bps / 100:.1f}%",
+                    "bonus_rate_bps": t.bonus_rate_bps
                 }
                 for t in tiers_list
             ],
@@ -399,67 +420,67 @@ class CtvService:
         }
 
     @staticmethod
-    async def _get_actual_shipping_fee(db_session: AsyncSession, order: Order) -> float:
+    async def _get_shipping_and_tax(
+        db_session: AsyncSession, order: Order
+    ) -> tuple[float, float]:
         """
-        Dynamically extracts shipping fee from order metadata (immutable snapshot).
-        If not recorded or if it is 0.0 (meaning free-shipped to customer, but merchant still pays),
-        fetches default standard shipping fee from dynamic Redis configuration.
+        #7 Fix: Fetch shipping fee + tax rate trong 1 Redis pipeline (thay vì 2 query riêng).
+        Returns (shipping_fee: float, tax_rate: float)
         """
-        shipping_fee = order.order_metadata.get("shipping_fee") if order.order_metadata else None
-        if shipping_fee is not None and float(shipping_fee) > 0.0:
-            return float(shipping_fee)
+        shipping_fee: Optional[float] = None
+        tax_rate: Optional[float] = None
 
-        fallback_ship = ShippingConfig.STANDARD_FEE
+        # Fast path: Redis pipeline — 2 GET trong 1 round-trip
         try:
             from backend.services.xohi_memory import xohi_memory
-            redis_fee = None
-            if xohi_memory._use_redis:
-                redis_fee = await xohi_memory.client.get("config:shipping:default_fee")
-                if redis_fee:
-                    fallback_ship = float(redis_fee)
-                    return fallback_ship
-            
-            # Đọc từ Postgres DB nếu Redis không có
-            from backend.database.models.system import SystemSetting
-            from sqlalchemy import select
-            stmt = select(SystemSetting).where(SystemSetting.key == "ctv_shipping_config")
-            res = await db_session.execute(stmt)
-            setting = res.scalar_one_or_none()
-            if setting and setting.value and "default_fee" in setting.value:
-                fallback_ship = float(setting.value["default_fee"])
-                if xohi_memory._use_redis and xohi_memory.client:
-                    await xohi_memory.client.set("config:shipping:default_fee", str(fallback_ship))
+            if xohi_memory._use_redis and xohi_memory.client:
+                pipe = xohi_memory.client.pipeline()
+                pipe.get("config:shipping:default_fee")
+                pipe.get("config:shipping:tax_rate")
+                results = await pipe.execute()
+                if results[0]:
+                    shipping_fee = float(results[0])
+                if results[1]:
+                    tax_rate = float(results[1])
         except Exception as e:
-            logger.error(f"[CTV] Failed to fetch dynamic shipping fee: {e}")
-        return fallback_ship
+            logger.error(f"[CTV] Redis pipeline failed: {e}")
 
-    @staticmethod
-    async def _get_actual_tax_rate(db_session: AsyncSession) -> float:
-        """
-        Retrieves the dynamic tax rate from Redis or Postgres database.
-        Falls back to 0.03 (3%) if not configured.
-        """
-        fallback_tax = 0.03
-        try:
-            from backend.services.xohi_memory import xohi_memory
-            if xohi_memory._use_redis:
-                redis_tax = await xohi_memory.client.get("config:shipping:tax_rate")
-                if redis_tax:
-                    return float(redis_tax)
-            
-            # Đọc từ Postgres DB nếu Redis cache miss
-            from backend.database.models.system import SystemSetting
-            from sqlalchemy import select
-            stmt = select(SystemSetting).where(SystemSetting.key == "ctv_shipping_config")
-            res = await db_session.execute(stmt)
-            setting = res.scalar_one_or_none()
-            if setting and setting.value and "tax_rate" in setting.value:
-                fallback_tax = float(setting.value["tax_rate"])
-                if xohi_memory._use_redis and xohi_memory.client:
-                    await xohi_memory.client.set("config:shipping:tax_rate", str(fallback_tax))
-        except Exception as e:
-            logger.error(f"[CTV] Failed to fetch dynamic tax rate: {e}")
-        return fallback_tax
+        # Fallback: 1 DB query duy nhất cho cả 2 giá trị
+        if shipping_fee is None or tax_rate is None:
+            try:
+                from backend.services.xohi_memory import xohi_memory
+                from backend.database.models.system import SystemSetting
+                stmt = select(SystemSetting).where(SystemSetting.key == "ctv_shipping_config")
+                res = await db_session.execute(stmt)
+                setting = res.scalar_one_or_none()
+                if setting and setting.value:
+                    if shipping_fee is None and "default_fee" in setting.value:
+                        shipping_fee = float(setting.value["default_fee"])
+                    if tax_rate is None and "tax_rate" in setting.value:
+                        tax_rate = float(setting.value["tax_rate"])
+                # Write-through cache cho lần sau
+                try:
+                    if xohi_memory._use_redis and xohi_memory.client:
+                        if shipping_fee is not None:
+                            await xohi_memory.client.set(
+                                "config:shipping:default_fee", str(shipping_fee)
+                            )
+                        if tax_rate is not None:
+                            await xohi_memory.client.set(
+                                "config:shipping:tax_rate", str(tax_rate)
+                            )
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.error(f"[CTV] Failed to load config from DB: {e}")
+
+        # Check order metadata for actual shipping snapshot
+        order_shipping = order.order_metadata.get("shipping_fee") if order.order_metadata else None
+        if order_shipping is not None and float(order_shipping) > 0.0:
+            shipping_fee = float(order_shipping)
+
+        return (shipping_fee or ShippingConfig.STANDARD_FEE, tax_rate or 0.03)
+
 
     @staticmethod
     async def credit_commission(db_session: AsyncSession, order_id: str) -> bool:
@@ -554,20 +575,20 @@ class CtvService:
                 products_map[p.name.lower().strip()] = p
                 products_map[p.id] = p
 
-        # Resolve tier rates
+        # Resolve tier rates (bps → float cho arithmetic lịch sử, sẽ chuyển integer sau Sprint 3)
         default_tier = await CtvService._get_default_tier(db_session, tenant_id=aff.tenant_id)
-        default_rate = default_tier.commission_rate if default_tier else 0.05
+        default_rate_bps = default_tier.commission_rate_bps if default_tier else 500  # 5% = 500 bps
+        default_rate = default_rate_bps / 10000.0  # float chỉ dùng cho phép tính nội bộ
         default_name = default_tier.name if default_tier else "Đồng"
 
         tier_rate = default_rate
         tier_name = default_name
         if aff.tier:
-            tier_rate = aff.tier.commission_rate
+            tier_rate = aff.tier.commission_rate_bps / 10000.0
             tier_name = aff.tier.name
 
-        # R102 Dynamic Pricing: Deduct actual shipping fee
-        shipping_fee = await CtvService._get_actual_shipping_fee(db_session, order)
-        tax_rate = await CtvService._get_actual_tax_rate(db_session)
+        # #7 Fix: Redis pipeline — 1 round-trip cho cả shipping fee + tax rate (thay vì 2 query riêng)
+        shipping_fee, tax_rate = await CtvService._get_shipping_and_tax(db_session, order)
         revenue_to_allocate = max(0.0, order.total_amount - shipping_fee)
 
         # Build list of items to allocate
@@ -637,8 +658,8 @@ class CtvService:
 
             # 2. Resolve rate
             rate_source = "tier"
-            if prod_obj and prod_obj.ctv_rate_override is not None:
-                rate = prod_obj.ctv_rate_override
+            if prod_obj and prod_obj.ctv_rate_override_bps is not None:
+                rate = prod_obj.ctv_rate_override_bps / 10000.0  # bps → float cho arithmetic
                 rate_source = "product_override"
             else:
                 rate = tier_rate
@@ -668,7 +689,7 @@ class CtvService:
         # Average effective rate for display compatibility
         rate = (total_gross_commission / revenue_to_allocate) if revenue_to_allocate > 0.0 else tier_rate
         rate_source = "hybrid_allocation"
-        tier_snapshot = {"name": tier_name, "commission_rate": rate, "source": rate_source}
+        tier_snapshot = {"name": tier_name, "commission_rate_bps": round(rate * 10000), "source": rate_source}
 
         # Store detailed breakdown for tooltip transparency
         import json
@@ -678,7 +699,7 @@ class CtvService:
             "tax_rate": tax_rate,
             "tax_deduction": tax_deduction,
             "revenue_net": revenue_net,
-            "rate_applied": rate,
+            "rate_applied_bps": round(rate * 10000),
             "rate_source": rate_source,
             "commission_amount": commission_amount,
             "is_allocated": True,
@@ -693,7 +714,7 @@ class CtvService:
             order_id=order_id,
             order_amount=revenue_net,  # Record net revenue for clarity
             commission_amount=commission_amount,
-            rate_applied=rate,
+            rate_applied_bps=round(rate * 10000),
             tier_snapshot=tier_snapshot,
             status="PENDING",
             admin_note=admin_note,
@@ -702,10 +723,24 @@ class CtvService:
         ledger.integrity_token = _create_commission_seal(ledger)
         db_session.add(ledger)
 
-        # 7. Update affiliate aggregated stats
-        aff.total_revenue += revenue_net
-        aff.total_commission += commission_amount
-        aff.total_orders += 1
+        # #4 Fix: Atomic aggregate stats update — SQL UPDATE thay vì ORM read-modify-write
+        # Ngăn race condition khi 2 đơn hàng của cùng CTV submit đồng thời
+        new_revenue = aff.total_revenue + revenue_net
+        new_commission = aff.total_commission + commission_amount
+        new_orders = aff.total_orders + 1
+        await db_session.execute(
+            update(AffiliateProfile)
+            .where(AffiliateProfile.id == aff.id)
+            .values(
+                total_revenue=AffiliateProfile.total_revenue + revenue_net,
+                total_commission=AffiliateProfile.total_commission + commission_amount,
+                total_orders=AffiliateProfile.total_orders + 1,
+            )
+        )
+        # Sync in-memory object với giá trị mới để tạo seal chính xác
+        aff.total_revenue = new_revenue
+        aff.total_commission = new_commission
+        aff.total_orders = new_orders
         aff.balance_seal = _create_balance_seal(aff)
 
         # 8. Auto-upgrade tier if threshold crossed
@@ -764,9 +799,18 @@ class CtvService:
         aff: Optional[AffiliateProfile] = aff_res.scalar_one_or_none()
 
         if aff:
-            aff.total_revenue = max(0.0, aff.total_revenue - ledger.order_amount)
-            aff.total_commission = max(0.0, aff.total_commission - ledger.commission_amount)
-            aff.total_orders = max(0, aff.total_orders - 1)
+            # #4 Fix: Atomic rollback — func.greatest() đảm bảo không vào số âm
+            await db_session.execute(
+                update(AffiliateProfile)
+                .where(AffiliateProfile.id == aff.id)
+                .values(
+                    total_revenue=func.greatest(0, AffiliateProfile.total_revenue - ledger.order_amount),
+                    total_commission=func.greatest(0, AffiliateProfile.total_commission - ledger.commission_amount),
+                    total_orders=func.greatest(0, AffiliateProfile.total_orders - 1),
+                )
+            )
+            # Refresh để lấy giá trị DB mới nhất trước khi seal
+            await db_session.refresh(aff)
             aff.balance_seal = _create_balance_seal(aff)
             logger.info(f"[CTV] Rolled back stats for affiliate {aff.ctv_code}: -{ledger.commission_amount:,.0f}đ")
 
@@ -967,9 +1011,9 @@ class CtvService:
             id=str(uuid.uuid4()),
             affiliate_id=aff.id,
             order_id=order_id,
-            order_amount=0.0,
+            order_amount=0,
             commission_amount=-penalty,
-            rate_applied=0.0,
+            rate_applied_bps=0,
             tier_snapshot={"name": "Penalty", "reason": "Order Boom/Return x2 Ship Penalty"},
             status="CANCELLED",
             tenant_id=aff.tenant_id,

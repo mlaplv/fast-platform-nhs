@@ -132,16 +132,28 @@
         encrypted_code: raw.encrypted_code,
         status: raw.status,
         bank_info: raw.bank_info,
-        tier: tier,
+        tier: {
+          name: tier.name || 'Đồng',
+          commission_rate_bps: tier.commission_rate_bps || 1500,
+          commission_rate_pct: tier.commission_rate_pct || '15.0%',
+          min_revenue_threshold: tier.min_revenue_threshold || 0,
+        },
         tier_name: tier.name || 'Đồng',
-        commission_rate: tier.commission_rate || 0.15,
+        commission_rate: (tier.commission_rate_bps || 1500) / 10000,
         total_revenue: stats.total_revenue || 0,
         total_commission: stats.total_commission || 0,
         paid_commission: stats.paid_commission || 0,
         pending_commission: stats.pending_commission || 0,
         balance: stats.available_to_withdraw || 0,
         total_orders: stats.total_orders || 0,
-        tiers: raw.tiers || [],
+        tiers: (raw.tiers || []).map((t: any) => ({
+          name: t.name,
+          commission_rate_bps: t.commission_rate_bps,
+          commission_rate_pct: t.commission_rate_pct,
+          min_revenue_threshold: t.min_revenue_threshold || 0,
+          bonus_rate: (t.bonus_rate_bps || 0) / 10000,
+          bonus_rate_bps: t.bonus_rate_bps || 0,
+        })),
       };
       if (profile && profile.bank_info) {
         bankName = profile.bank_info.bank || '';
@@ -151,8 +163,11 @@
       
       // 2. Fetch commission history if registered
       if (profile?.is_registered) {
-        const commData = await apiClient.get<{ items: CommissionItem[] }>('/client/ctv/commissions?page=1&page_size=30');
-        commissions = commData.items || [];
+        const commData = await apiClient.get<{ items: any[] }>('/client/ctv/commissions?page=1&page_size=30');
+        commissions = (commData.items || []).map((item: any) => ({
+          ...item,
+          rate_applied: (item.rate_applied_bps || 500) / 10000,
+        }));
       }
       
       // 3. Global stats: client CTV không có quyền admin — bỏ qua silently

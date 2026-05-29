@@ -139,11 +139,19 @@ class UserController(Controller):
             await db_session.commit()
             return SuccessResponse(message="Yêu cầu cưỡng bức đăng xuất đã được gửi vào hàng chờ Phê duyệt.")
 
-        # Rotate Stamp
+        # Rotate Stamp (force revoke all sessions)
         import uuid
         import sqlalchemy as sa
         stmt = sa.update(User).where(User.id == user_id).values(security_stamp=str(uuid.uuid4()))
         await db_session.execute(stmt)
         await db_session.commit()
-        
+
+        # Invalidate Redis stamp cache — đảm bảo bị kick ngay, không chờ TTL 5 phút
+        try:
+            from backend.services.ai_engine.core.key_rotator import key_rotator
+            if key_rotator._use_redis and key_rotator.client:
+                await key_rotator.client.delete(f"security:stamp:{user_id}")
+        except Exception:
+            pass
+
         return SuccessResponse(message=f"Đã thu hồi toàn bộ phiên làm việc của user {user_id}")

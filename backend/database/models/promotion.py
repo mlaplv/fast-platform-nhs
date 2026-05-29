@@ -1,11 +1,12 @@
 from typing import Optional
 import sqlalchemy as sa
 from sqlalchemy import (
-    String, Integer, Boolean, Text, Float, DateTime, Index
+    String, Integer, Boolean, Text, BigInteger, DateTime, Index
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from backend.database.models.base import Base, AuditMixin, SoftDeleteMixin, TenantMixin
+from backend.utils.uid import new_id_default
 
 class Banner(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'banners'
@@ -28,9 +29,12 @@ class Voucher(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     type: Mapped[str] = mapped_column(String, default="FIXED") # FIXED, PERCENT, SHIPPING
     title: Mapped[Optional[str]] = mapped_column(String)
     subtitle: Mapped[Optional[str]] = mapped_column(String)
-    value: Mapped[float] = mapped_column(Float, default=0) # amount or percentage
-    min_spend: Mapped[float] = mapped_column(Float, default=0)
-    max_discount: Mapped[Optional[float]] = mapped_column(Float)
+    # 💰 BigInteger VNĐ — số tiền giảm (FIXED) hoặc 0-100 (PERCENT, lưu nguyên để tránh float)
+    value: Mapped[int] = mapped_column(BigInteger, default=0)
+    # 💰 BigInteger VNĐ — ngưỡng đơn tối thiểu để áp mã
+    min_spend: Mapped[int] = mapped_column(BigInteger, default=0)
+    # 💰 BigInteger VNĐ — giảm tối đa (cho PERCENT voucher)
+    max_discount: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     usage_limit: Mapped[Optional[int]] = mapped_column(Integer)
     used_count: Mapped[int] = mapped_column(Integer, default=0)
     start_date: Mapped[Optional[sa.DateTime]] = mapped_column(DateTime(timezone=True))

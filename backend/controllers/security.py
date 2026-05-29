@@ -332,14 +332,22 @@ class SecurityController(Controller):
                     processed_count += 1
         
         elif action == "REVOKE":
+            user_ids_to_invalidate = []
             for actor in targets:
                 # Update security stamp to invalidate all sessions
                 new_stamp = str(uuid.uuid4())
-                await db_session.execute(
-                    update(User).where(User.email == actor).values(security_stamp=new_stamp)
+                result = await db_session.execute(
+                    update(User).where(User.email == actor).values(security_stamp=new_stamp).returning(User.id)
                 )
+                revoked_id = result.scalar_one_or_none()
+                if revoked_id:
+                    user_ids_to_invalidate.append(str(revoked_id))
                 processed_count += 1
             await db_session.commit()
+            # Invalidate Redis stamp cache — kick ngay, không chờ TTL 5 phút
+            if key_rotator._use_redis and key_rotator.client and user_ids_to_invalidate:
+                keys = [f"security:stamp:{uid}" for uid in user_ids_to_invalidate]
+                await key_rotator.client.delete(*keys)
 
         return SuccessResponse(message=f"Thành công: Đã thực hiện {action} trên {processed_count} mục tiêu.")
 

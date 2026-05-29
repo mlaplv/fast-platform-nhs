@@ -38,7 +38,7 @@ class BankInfoSchema(BaseModel):
 
 
 class WithdrawSchema(BaseModel):
-    amount: float = Field(..., ge=200_000)
+    amount: int = Field(..., ge=200_000)
 
 
 class ClientCtvController(Controller):
@@ -181,7 +181,8 @@ class ClientCtvController(Controller):
                     "order_id": it.order_id,
                     "order_amount": it.order_amount,
                     "commission_amount": it.commission_amount,
-                    "rate_applied": it.rate_applied,
+                    "rate_applied_bps": it.rate_applied_bps,
+                    "rate_applied_pct": f"{it.rate_applied_bps / 100:.2f}%",
                     "tier_name": (it.tier_snapshot or {}).get("name", "Đồng"),
                     "status": it.status,
                     "confirmed_at": it.confirmed_at.isoformat() if it.confirmed_at else None,

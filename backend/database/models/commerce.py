@@ -1,19 +1,21 @@
 from typing import Optional, List
 import sqlalchemy as sa
 from sqlalchemy import (
-    String, ForeignKey, Integer, Float, Boolean, Index, Text
+    String, ForeignKey, Integer, BigInteger, Float, Boolean, Index, Text
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from backend.database.models.base import Base, AuditMixin, SoftDeleteMixin, TenantMixin
-import uuid
+from backend.utils.uid import new_id_default
+
 class Order(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'orders'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    user_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'))
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey('users.id'))
     user: Mapped["User"] = relationship("User", back_populates="orders")
-    total_amount: Mapped[float] = mapped_column(Float)
+    # 💰 BigInteger VNĐ — tổng giá trị đơn hàng (không bao giờ dùng float)
+    total_amount: Mapped[int] = mapped_column(BigInteger)
     status: Mapped[str] = mapped_column(String, default="PENDING")
     items: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB)
     cancellation_reason: Mapped[Optional[str]] = mapped_column(String)
@@ -29,7 +31,8 @@ class Order(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     # Loyalty V2.2 Points Tracking
     points_earned: Mapped[int] = mapped_column(Integer, default=0)
     points_redeemed: Mapped[int] = mapped_column(Integer, default=0)
-    point_discount_amount: Mapped[float] = mapped_column(Float, default=0.0)
+    # 💰 BigInteger VNĐ — số tiền giảm từ điểm loyalty (không dùng float)
+    point_discount_amount: Mapped[int] = mapped_column(BigInteger, default=0)
     
     # V56.5 Anti-Spam Shield Fields
     is_spam: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -50,19 +53,20 @@ class Order(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
     __tablename__ = 'product_bases'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
     name: Mapped[str] = mapped_column(String)
     short_description: Mapped[Optional[str]] = mapped_column(String(1000))
     description: Mapped[Optional[str]] = mapped_column(Text)
     sku: Mapped[Optional[str]] = mapped_column(String)
-    price: Mapped[float] = mapped_column(Float, default=0)
-    discount_price: Mapped[Optional[float]] = mapped_column(Float)
-    discount_percent: Mapped[Optional[float]] = mapped_column(Float)
+    # 💰 BigInteger VNĐ — giá gốc và giá sau giảm (không bao giờ dùng float)
+    price: Mapped[int] = mapped_column(BigInteger, default=0)
+    discount_price: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    discount_percent: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # Bản chất là % → lưu nguyên 0-100
     # Phase 2: Hybrid Commission Rate (Priority Chain: product override → tier rate → system default)
     # NULL = sử dụng tier rate của CTV (mặc định an toàn)
-    # 0.0 = tắt hoa hồng cho sản phẩm này (hàng độc quyền/margin thấp)
-    # 0.2 = ép 20% bất kể tier CTV
-    ctv_rate_override: Mapped[Optional[float]] = mapped_column(Float, nullable=True, default=None)
+    # 0 = tắt hoa hồng cho sản phẩm này (hàng độc quyền/margin thấp)
+    # 2000 = ép 20% (2000 bps) bất kể tier CTV
+    ctv_rate_override_bps: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, default=None)
     stock: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String, default="DRAFT")
     type: Mapped[str] = mapped_column(String, default="RETAIL")
@@ -103,14 +107,15 @@ class ProductBase(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 class ProductVariant(Base, AuditMixin, SoftDeleteMixin):
     __tablename__ = 'product_variants'
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    product_base_id: Mapped[str] = mapped_column(String, ForeignKey('product_bases.id'))
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    product_base_id: Mapped[str] = mapped_column(String(36), ForeignKey('product_bases.id'))
     product_base: Mapped["ProductBase"] = relationship("ProductBase", back_populates="variants")
     tier_index: Mapped[Optional[list[int]]] = mapped_column(JSONB, default=list) # R102 Matrix Index: e.g [0, 1] means Đỏ, Size M
     sku: Mapped[Optional[str]] = mapped_column(String, unique=True)
-    price: Mapped[float] = mapped_column(Float)
-    discount_price: Mapped[Optional[float]] = mapped_column(Float)
-    discount_percent: Mapped[Optional[float]] = mapped_column(Float)
+    # 💰 BigInteger VNĐ — giá variant (không bao giờ dùng float)
+    price: Mapped[int] = mapped_column(BigInteger)
+    discount_price: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    discount_percent: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     stock: Mapped[int] = mapped_column(Integer, default=0)
     attributes: Mapped[Optional[dict[str, object]]] = mapped_column(JSONB, server_default='{}', default=dict)
     is_default: Mapped[bool] = mapped_column(Boolean, server_default=sa.text('false'), default=False)
@@ -133,12 +138,13 @@ class UserLoyalty(Base, AuditMixin, TenantMixin):
     """Elite V2.2: User Loyalty Account Snapshot"""
     __tablename__ = 'user_loyalty'
     
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), unique=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id_default)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey('users.id'), unique=True)
     tier: Mapped[str] = mapped_column(String, default="STANDARD") # STANDARD, SILVER, GOLD, PLATINUM
     available_points: Mapped[int] = mapped_column(Integer, default=0)
     pending_points: Mapped[int] = mapped_column(Integer, default=0)
-    total_spent: Mapped[float] = mapped_column(Float, default=0.0) # Accumulation for tier upgrades
+    # 💰 BigInteger VNĐ — tổng chi tiêu tích lũy (dùng cho upgrade tier)
+    total_spent: Mapped[int] = mapped_column(BigInteger, default=0)
     tier_updated_at: Mapped[Optional[sa.DateTime]] = mapped_column(sa.DateTime(timezone=True))
     balance_seal: Mapped[Optional[str]] = mapped_column(String) # R2026: AES-GCM Integrity Seal
 
@@ -146,7 +152,7 @@ class PointTransaction(Base, AuditMixin, TenantMixin):
     """Elite V2.2: Immutable Ledger for Point Activity"""
     __tablename__ = 'point_transactions'
     
-    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id_default)
     user_id: Mapped[str] = mapped_column(String, ForeignKey('users.id'), index=True)
     order_id: Mapped[Optional[str]] = mapped_column(String, ForeignKey('orders.id'), index=True)
     amount: Mapped[int] = mapped_column(Integer) # Can be positive or negative

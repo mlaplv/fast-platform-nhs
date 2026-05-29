@@ -31,20 +31,20 @@ def _require_admin(request: Request) -> dict:
 
 class TierCreateSchema(BaseModel):
     name: str = Field(..., max_length=100)
-    min_revenue_threshold: float = Field(0.0, ge=0)
-    commission_rate: float = Field(0.15, ge=0.0, le=1.0)
-    bonus_rate: float = Field(0.0, ge=0.0)
-    max_withdrawal_per_month: float = Field(50_000_000.0, ge=0)
+    min_revenue_threshold: int = Field(0, ge=0, description="VNĐ integer")
+    commission_rate: float = Field(0.15, ge=0.0, le=1.0, description="Float % (0.15=15%) — convert sang bps internally")
+    bonus_rate: float = Field(0.0, ge=0.0, description="Float % — convert sang bps internally")
+    max_withdrawal_per_month: int = Field(50_000_000, ge=0, description="VNĐ integer")
     is_default: bool = False
 
 
 class TierUpdateSchema(BaseModel):
-    name: Optional[str] = Field(None, max_length=100)
-    min_revenue_threshold: Optional[float] = Field(None, ge=0)
-    commission_rate: Optional[float] = Field(None, ge=0.0, le=1.0)
-    bonus_rate: Optional[float] = Field(None, ge=0.0)
-    max_withdrawal_per_month: Optional[float] = Field(None, ge=0)
-    is_default: Optional[bool] = None
+    name: str | None = Field(None, max_length=100)
+    min_revenue_threshold: int | None = Field(None, ge=0)
+    commission_rate: float | None = Field(None, ge=0.0, le=1.0)
+    bonus_rate: float | None = Field(None, ge=0.0)
+    max_withdrawal_per_month: int | None = Field(None, ge=0)
+    is_default: bool | None = None
 
 
 class StatusUpdateSchema(BaseModel):
@@ -58,8 +58,8 @@ class TierAssignSchema(BaseModel):
 
 class PayoutSchema(BaseModel):
     withdrawal_id: str
-    amount_approved: float = Field(..., ge=0)
-    note: Optional[str] = None
+    amount_approved: int = Field(..., ge=0, description="VNĐ integer")
+    note: str | None = None
 
 
 class ShippingConfigSchema(BaseModel):
@@ -202,7 +202,8 @@ class AdminCtvController(Controller):
                     "ctv_code": item.affiliate.ctv_code if item.affiliate else None,
                     "order_amount": item.order_amount,
                     "commission_amount": item.commission_amount,
-                    "rate_applied": item.rate_applied,
+                    "rate_applied_bps": item.rate_applied_bps,
+                    "rate_applied_pct": f"{item.rate_applied_bps / 100:.2f}%",
                     "status": item.status,
                     "admin_note": item.admin_note,
                     "created_at": item.created_at.isoformat(),
@@ -234,9 +235,10 @@ class AdminCtvController(Controller):
                 "id": t.id,
                 "name": t.name,
                 "min_revenue_threshold": t.min_revenue_threshold,
-                "commission_rate": t.commission_rate,
-                "commission_rate_pct": f"{t.commission_rate * 100:.1f}%",
-                "bonus_rate": t.bonus_rate,
+                "commission_rate_bps": t.commission_rate_bps,
+                "commission_rate_pct": f"{t.commission_rate_bps / 100:.1f}%",
+                "bonus_rate_bps": t.bonus_rate_bps,
+                "bonus_rate_pct": f"{t.bonus_rate_bps / 100:.1f}%",
                 "max_withdrawal_per_month": t.max_withdrawal_per_month,
                 "is_default": t.is_default,
             }
@@ -253,8 +255,8 @@ class AdminCtvController(Controller):
             id=str(uuid.uuid4()),
             name=data.name,
             min_revenue_threshold=data.min_revenue_threshold,
-            commission_rate=data.commission_rate,
-            bonus_rate=data.bonus_rate,
+            commission_rate_bps=round(data.commission_rate * 10000),  # float % → bps
+            bonus_rate_bps=round(data.bonus_rate * 10000),            # float % → bps
             max_withdrawal_per_month=data.max_withdrawal_per_month,
             is_default=data.is_default,
             tenant_id=current_tenant_id.get() or "default",
@@ -279,11 +281,11 @@ class AdminCtvController(Controller):
         if data.name is not None:
             tier.name = data.name
         if data.commission_rate is not None:
-            tier.commission_rate = data.commission_rate
+            tier.commission_rate_bps = round(data.commission_rate * 10000)
         if data.min_revenue_threshold is not None:
             tier.min_revenue_threshold = data.min_revenue_threshold
         if data.bonus_rate is not None:
-            tier.bonus_rate = data.bonus_rate
+            tier.bonus_rate_bps = round(data.bonus_rate * 10000)
         if data.max_withdrawal_per_month is not None:
             tier.max_withdrawal_per_month = data.max_withdrawal_per_month
         if data.is_default is not None:
@@ -338,7 +340,7 @@ class AdminCtvController(Controller):
 
         # Get default tier dynamically to prevent hardcoding fallbacks
         default_tier = await ctv_service._get_default_tier(db_session)
-        default_rate = default_tier.commission_rate if default_tier else 0.15
+        default_rate_bps = default_tier.commission_rate_bps if default_tier else 1500
         default_name = default_tier.name if default_tier else "Đồng"
 
         # Query pending commissions for the loaded members to avoid N+1 queries
@@ -367,12 +369,12 @@ class AdminCtvController(Controller):
                     "user_id": m.user_id,
                     "status": m.status,
                     "tier_name": m.tier.name if m.tier else default_name,
-                    "commission_rate_pct": f"{(m.tier.commission_rate if m.tier else default_rate) * 100:.1f}%",
+                    "commission_rate_pct": f"{(m.tier.commission_rate_bps if m.tier else default_rate_bps) / 100:.1f}%",
                     "total_revenue": m.total_revenue,
                     "total_commission": m.total_commission,
                     "paid_commission": m.paid_commission,
-                    "pending_commission": pending_map.get(m.id, 0.0),
-                    "available_commission": max(0.0, m.total_commission - m.paid_commission - pending_map.get(m.id, 0.0)),
+                    "pending_commission": pending_map.get(m.id, 0),
+                    "available_commission": max(0, m.total_commission - m.paid_commission - pending_map.get(m.id, 0)),
                     "total_orders": m.total_orders,
                     "registered_at": m.created_at.isoformat(),
                 }
@@ -514,7 +516,7 @@ class AdminCtvController(Controller):
             if not isinstance(seal_data, dict) or \
                seal_data.get("id") != wr.id or \
                seal_data.get("aff") != wr.affiliate_id or \
-               abs(float(seal_data.get("amt", 0)) - wr.amount_requested) > 0.01:
+               int(seal_data.get("amt", 0)) != int(wr.amount_requested):  # exact int match
                 import logging
                 logging.getLogger("api-gateway.ctv").critical(
                     f"[CTV-SECURITY-BREACH] Withdrawal request tampered! id={wr.id}"
@@ -549,11 +551,11 @@ class AdminCtvController(Controller):
         )
         aff = aff_res.scalar_one_or_none()
         if aff:
-            # Reconcile BEFORE updating stats (Military-Grade financial protection)
+            # Reconcile BEFORE updating stats
             if not await ctv_service.verify_financial_integrity(db_session, aff):
-                raise ValidationException("Cảnh báo bảo mật hệ thống: Phát hiện tài khoản có số dư không nhất quán. Giao dịch đã bị tạm khóa để bảo vệ tài sản!")
-
-            aff.paid_commission += data.amount_approved
+                raise ValidationException("Cảnh báo bảo mật hệ thống: Phát hiện tài khoản có số dư không nhất quán. Giao dịch đã bị tạm khóa!")
+            
+            aff.paid_commission += int(data.amount_approved)  # BigInteger += int
             aff.balance_seal = _create_balance_seal(aff)
 
         await db_session.commit()

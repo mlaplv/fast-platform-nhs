@@ -131,21 +131,40 @@ class AuthMiddleware:
 
                     # [THIẾT QUÂN LUẬT] Kiểm tra Session Revocation (Security Stamp)
                     if is_admin:
-                        from backend.database import async_session_maker
-                        from sqlalchemy import select
-                        from backend.database.models import User
-                        
-                        async with async_session_maker() as session:
-                            user_stmt = select(User.security_stamp).where(User.id == payload["id"])
-                            user_res = await session.execute(user_stmt)
-                            db_stamp = user_res.scalar()
-                            
-                            token_stamp = payload.get("stamp")
-                            # Chỉ check nếu token có stamp (để hỗ trợ chuyển đổi từ legacy token)
-                            if db_stamp and token_stamp and token_stamp != "MISSING":
-                                if str(db_stamp) != str(token_stamp):
-                                    logger.error(f"🚫 [MARTIAL_LAW] Session Revoked for {payload['sub']}. Stamp mismatch.")
-                                    raise NotAuthorizedException("Phiên làm việc đã hết hạn hoặc bị thu hồi.")
+                        token_stamp = payload.get("stamp")
+                        # Chỉ check nếu token có stamp (để hỗ trợ chuyển đổi từ legacy token)
+                        if token_stamp and token_stamp != "MISSING":
+                            # R03: Fast path — Redis cache stamp (TTL 5 phút)
+                            # Tránh 1 DB query trên MỌI admin request → giảm latency ~10ms/req
+                            stamp_key = f"security:stamp:{payload['id']}"
+                            db_stamp: Optional[str] = None
+                            try:
+                                if key_rotator._use_redis and key_rotator.client:
+                                    raw = await key_rotator.client.get(stamp_key)
+                                    if raw:
+                                        db_stamp = raw.decode() if isinstance(raw, bytes) else str(raw)
+                            except Exception:
+                                pass
+
+                            if db_stamp is None:
+                                # Cache miss: query DB một lần, write-through cache
+                                from backend.database import async_session_maker
+                                from sqlalchemy import select
+                                from backend.database.models import User
+                                async with async_session_maker() as session:
+                                    user_res = await session.execute(
+                                        select(User.security_stamp).where(User.id == payload["id"])
+                                    )
+                                    db_stamp = user_res.scalar()
+                                try:
+                                    if key_rotator._use_redis and key_rotator.client and db_stamp:
+                                        await key_rotator.client.set(stamp_key, str(db_stamp), ex=300)
+                                except Exception:
+                                    pass
+
+                            if db_stamp and str(db_stamp) != str(token_stamp):
+                                logger.error(f"🚫 [MARTIAL_LAW] Session Revoked for {payload['sub']}. Stamp mismatch.")
+                                raise NotAuthorizedException("Phiên làm việc đã hết hạn hoặc bị thu hồi.")
 
                     if "state" not in scope:
                         scope["state"] = {} # type: ignore

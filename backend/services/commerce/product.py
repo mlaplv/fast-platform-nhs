@@ -1,5 +1,6 @@
 import uuid
 import logging
+from backend.utils.uid import new_id
 from datetime import datetime, timezone
 import sqlalchemy as sa
 from sqlalchemy import select, func, and_, or_, update, delete
@@ -124,8 +125,12 @@ class ProductService:
         # Unique deterministic offset per product (500 to 8000 range)
         # Using MD5 instead of hash() to ensure persistence across process restarts
         pid_str = str(row_dict.get("id", ""))
-        pid_hash = int(hashlib.md5(pid_str.encode()).hexdigest(), 16)
-        unique_offset = (pid_hash % 150) * 50 # Variates by up to 7500
+        try:
+            unique_offset = (int(pid_str.replace("-", ""), 16) % 150) * 50  # Variates by up to 7500
+        except ValueError:
+            import hashlib
+            h = hashlib.md5(pid_str.encode("utf-8")).hexdigest()
+            unique_offset = (int(h, 16) % 150) * 50
         
         fomo_boost = hour_factor + min_factor + unique_offset
         
@@ -233,7 +238,7 @@ class ProductService:
 
     async def create_product(self, db_session: AsyncSession, data: CreateProductRequest) -> SuccessResponse:
         """Create a new product and its embedding."""
-        new_id = str(uuid.uuid4())
+        new_id = new_id()
 
         # Phase 76.95: Advanced Structural Noise Cleaning (Elite V2.2)
         cleaned_description = await noise_cleaner.clean(data.description, strip_html=False) if data.description else ""
@@ -258,7 +263,8 @@ class ProductService:
             mobile_images=data.mobileImages,
             attributes=data.attributes,
             tier_variations=[tv.model_dump() for tv in data.tierVariations] if data.tierVariations else [],
-            ctv_rate_override=data.ctvRateOverride,
+            # ctv_rate_override_bps: API nhận float (0.0-1.0) → convert sang bps (×10000)
+            ctv_rate_override_bps=round(data.ctvRateOverride * 10000) if data.ctvRateOverride is not None else None,
         )
 
         # R00 Compliance: Viral settings are now managed via Promotions (Vouchers)
@@ -347,7 +353,7 @@ class ProductService:
         if data.tierVariations is not None: product.tier_variations = [tv.model_dump() for tv in data.tierVariations]
         if data.metadata is not None: product.product_metadata = data.metadata.model_dump()
         if data.isAiFeatured is not None: product.is_ai_featured = data.isAiFeatured
-        if "ctvRateOverride" in data.model_fields_set: product.ctv_rate_override = data.ctvRateOverride
+        if "ctvRateOverride" in data.model_fields_set: product.ctv_rate_override_bps = round(data.ctvRateOverride * 10000) if data.ctvRateOverride is not None else None
 
         if data.variants is not None:
             # Delete old variants strictly (Hard delete to avoid PK conflicts if reusing IDs)
