@@ -25,7 +25,43 @@ class SupportRouter:
         
     async def process(self, ctx: SupportContext) -> SupportContext:
         """Execute the pipeline of specialists based on priority hierarchy."""
+        from backend.schemas.support import SupportIntent
+
+        # 1. Chống Spammer bằng cách đếm tin nhắn trong 2 phút gần nhất tại Database (Anti-DoS Shield)
+        try:
+            from sqlalchemy import select, func, and_
+            from datetime import datetime, timedelta, timezone
+            from backend.database.models.system import SupportChatHistory
+            
+            two_mins_ago = datetime.now(timezone.utc) - timedelta(minutes=2)
+            stmt = select(func.count(SupportChatHistory.id)).where(
+                and_(
+                    SupportChatHistory.session_id == ctx.session_id,
+                    SupportChatHistory.created_at >= two_mins_ago,
+                    SupportChatHistory.role == "user"
+                )
+            )
+            recent_count = (await ctx.db.execute(stmt)).scalar() or 0
+            if recent_count > 8:
+                logger.warning(f"[SupportRouter] Spammer Loop Guard Triggered! SID: {ctx.session_id} | count={recent_count}")
+                reply = "Dạ hệ thống Helen nhận thấy mình đang cần hỗ trợ gấp với nhiều câu hỏi liên tục. Để phục vụ tốt nhất, em xin phép chuyển tiếp cuộc gọi đến Chuyên viên Tư vấn con người hỗ trợ trực tiếp cho mình ngay nhé! 🌸 [z0]"
+                ctx.replies.clear()
+                ctx.replies.append(reply)
+                ctx.intent = SupportIntent.ESCALATE
+                return ctx
+        except Exception as e:
+            logger.warning(f"[SupportRouter] Spammer check failed: {e}")
+
         for handler in self.handlers:
+            # 2. Turn-level Loop Guard trong Turn xử lý hiện tại (Phase 2 Loop Limitation)
+            if ctx.tool_calls_count > 3:
+                logger.warning(f"[SupportRouter] Turn Loop Guard Triggered! SID: {ctx.session_id} | calls={ctx.tool_calls_count}")
+                reply = "Dạ Helen xin lỗi, câu hỏi đang yêu cầu quá nhiều bước xử lý phức tạp. Em xin phép chuyển hướng đến chuyên viên hỗ trợ trực tiếp để phục vụ mình tốt nhất nhé! 🙏 [z0]"
+                ctx.replies.clear()
+                ctx.replies.append(reply)
+                ctx.intent = SupportIntent.ESCALATE
+                return ctx
+
             try:
                 # If a handler returns True, it has 'consumed' the logic and stops further specialists.
                 if await handler.handle(ctx):

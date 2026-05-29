@@ -1270,6 +1270,27 @@ We systematically analyzed and optimized both the AI support pipeline and the ad
 - **FastEmbed Batch Vectorization**: Chuyển đổi cơ chế sinh vector tuần tự (tải từng item, khởi tạo và sinh vector riêng rẽ) thành **Batch Processing** theo khối 100 items. FastEmbed tận dụng sức mạnh SIMD/BLAS của CPU để sinh vector đồng thời cho cả nhóm, giảm thời gian xử lý xuống từ **10 đến 50 lần**.
 - **Atomic SQL Transaction Upserts**: Loại bỏ các cuộc gọi hàm `upsert_embedding` riêng lẻ để tránh xung đột kết nối cơ sở dữ liệu `db_session`. Toàn bộ vector được chuẩn bị sẵn, thực thi chèn/cập nhật thông qua lệnh SQL `INSERT ... ON CONFLICT DO UPDATE` nguyên tử trên cùng một session và chỉ `commit()` một lần duy nhất ở cuối mỗi batch, đảm bảo an toàn tuyệt đối cho Event Loop.
 
+### **Checkpoint 52: Hardening Micsmo AI Security (Elite V3.0)**
+
+We successfully implemented a military-grade security posture and proactive defensive architecture across the Micsmo AI support pipeline, focusing on advanced input validation, rate-limiting anti-DoS rate controls, turn-level execution limits, and strict data leakage shielding.
+
+#### **1. Advanced Input Guarding (Phase 1)**
+- **Base64 Obfuscation Scanning**: Upgraded [input_guard.py](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/security/input_guard.py) with automated Base64 scanning. It extracts long base64-like substrings from user inputs, decodes them, and scans the decoded payload for adversarial prompt injection, SQL injection, or system leakage patterns before passing them to the LLM.
+- **Unicode NFKC Normalization bypass protection**: Normalizes all incoming prompts using the `NFKC` Unicode form before standard regex scanning to catch and neutralize bypass attempts using mathematical glyphs, italicized scripts, or strange characters.
+
+#### **2. Zero-Trust Sandboxing & Execution Loop Guards (Phase 2)**
+- **turn-level Loop Guards**: Integrated a dynamic turn-level execution tracker inside [router.py](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/operatives/router.py). The shared `SupportContext` now tracks `tool_calls_count` which is incremented in search-intensive handlers like [consultant.py](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/operatives/handlers/consultant.py). If a request takes more than 3 steps of deep processing, the pipeline immediately short-circuits and safely routes to a human operator.
+- **Anti-DoS Session Rate Control**: Implemented a database-backed recent query count threshold check in `SupportRouter`. If a specific session makes more than 8 queries in the last 2 minutes, it triggers a defensive rate-limit guard, clearing LLM invocation tasks and gracefully routing to a human agent, fully protecting the API's token budget.
+
+#### **3. Upgraded Output Shielding & Path Redaction (Phase 4)**
+- **Deep Unix Path Redaction**: Upgraded `_sanitize_response` in [support_agent.py](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/operatives/support_agent.py) to redact Unix file paths of arbitrary depth (using `/\w+(/\w+)+(\.\w+)?`) preventing workspace directory layouts and environment structure leakages.
+
+#### **4. Dual-LLM Guardrail Dynamic Scan (Phase 3)**
+- **Asynchronous Prompt Firewall**: Developed `validate_async` on [input_guard.py](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/security/input_guard.py).
+- **Centralized Model Routing**: When the fast synchronous regex validations pass, it invokes `trinity_bridge.run` with a dedicated prompt analysis agent utilizing a high-speed model (`role="fast"`, timeout `5.0` seconds) to semantically audit user inputs for jailbreaks, adversarial phrasing, and social engineering tricks. If it detects danger, it logs the threat details and preemptively blocks the pipeline with zero latency overhead.
+- **Flawless Pipeline Integration**: Swapped synchronous validators inside [guardrail.py](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/operatives/handlers/guardrail.py) and [support_agent.py](file:///home/lv/Desktop/fast-platform-core/backend/services/commerce/operatives/support_agent.py) with `await input_guard.validate_async(...)` to activate real-time semantic guard shielding across all chat entries and background worker queues.
+
+
 
 
 

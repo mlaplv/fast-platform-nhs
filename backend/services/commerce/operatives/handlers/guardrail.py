@@ -44,7 +44,7 @@ class GuardrailHandler(BaseHandler):
         
         # Elite V2.2: InputGuard Layer Integration
         from backend.services.commerce.security.input_guard import input_guard
-        is_safe, reason = input_guard.validate(ctx.request.message)
+        is_safe, reason = await input_guard.validate_async(ctx.request.message)
         if not is_safe:
             logger.warning(f"[Guardrail] InputGuard rejected query. Reason: {reason}")
             reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin liên quan đến sản phẩm và dịch vụ chăm sóc da của osmo. Rất mong Anh/Chị thông cảm và hợp tác ạ! 🙏 [z0]"

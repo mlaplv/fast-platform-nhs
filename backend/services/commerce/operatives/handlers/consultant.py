@@ -472,6 +472,7 @@ class ConsultantHandler(BaseHandler, MedicalShieldMixin):
 
     async def _handle_internal(self, ctx: SupportContext) -> bool:
         """ZONE 2: Consultant Specialist (Depth & Advice)."""
+        ctx.tool_calls_count += 1
         msg_norm = ctx.request.message.lower().strip()
         
         # 🚀 Elite V2.5: Order Safeguard (Triple-Lock)

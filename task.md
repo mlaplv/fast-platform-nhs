@@ -492,6 +492,15 @@
 - [x] Optimize `SupportAgentOperative` (`support_agent.py`) by caching product contexts in Redis (5 min TTL), caching static system settings in Redis (1 hr TTL), eliminating heavy ORM hydration in chat history fetching via scalar projections, and executing high-performance count/sum aggregate queries for order evaluations. (Done)
 - [x] Refactor `reindex_knowledge.py` to batch-encode embeddings (100 items per FastEmbed iteration) and perform direct transaction-based SQL upserts to bypass sequential inference overhead and database connection contentions, boosting speeds by 10x-50x. (Done)
 
+# Task Checklist - Hardening Micsmo AI Security (Elite V3.0)
+
+- [x] Upgrade `InputGuard` with advanced Base64 obfuscation decoding and Unicode normalization scanning (Phase 1). (Done)
+- [x] Implement turn-level Execution Loop Guard and anti-DoS rate-limit checking inside `SupportRouter` (Phase 2). (Done)
+- [x] Add `tool_calls_count` state to `SupportContext` and increment it inside consultant search handlers (Phase 2). (Done)
+- [x] Enhance output shielding in `support_agent.py` to prevent system prompt leakage and absolute file paths disclosure (Phase 4). (Done)
+- [x] Integrate Dual-LLM Guardrail Dynamic Scan utilizing `trinity_bridge.run` for semantic jailbreak filtering (Phase 3). (Done)
+- [x] Run validation tests to ensure zero security regressions and successful production build. (Done)
+
 
 
 

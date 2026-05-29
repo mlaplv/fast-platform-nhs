@@ -288,8 +288,8 @@ def _sanitize_response(text: str) -> str:
     """Surgical leak prevention (Elite V2.2 + Output Shield V1.0)."""
     # 1. Strip internal thinking tags
     clean = re.sub(r"<thought>.*?</thought>", "", text, flags=re.DOTALL)
-    # 2. Redact absolute file paths
-    clean = re.sub(r"/\w+/\w+/\w+", "[REDACTED_PATH]", clean)
+    # 2. Redact absolute file paths of arbitrary depth (Elite V3.0)
+    clean = re.sub(r"/\w+(/\w+)+(\.\w+)?", "[REDACTED_PATH]", clean)
     # 3. Partial mask phone numbers (retain prefix + last digits)
     clean = re.sub(r"(0|84|(\+84))(\d{2,3})[\s\.\-]?(\d{3})[\s\.\-]?(\d{3,4})", r"\1\3****\5", clean)
     # 4. Output Shield: Detect system prompt leakage — nuke the full response
@@ -495,7 +495,7 @@ class SupportAgentOperative(BaseAgentOperative):
         # Second checkpoint for background tasks to prevent any injected payload
         # that may have been enqueued before the gate was added.
         from backend.services.commerce.security.input_guard import input_guard
-        _is_safe, _guard_reason = input_guard.validate(request.message)
+        _is_safe, _guard_reason = await input_guard.validate_async(request.message)
         if not _is_safe:
             logger.warning("[SupportAgent/Brain] InputGuard rejected background task. Reason: %s | SID: %s", _guard_reason, session_id)
             _rejection_reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin sản phẩm và dịch vụ của osmo. Rất mong Anh/Chị thông cảm ạ! 🙏"
@@ -823,7 +823,7 @@ class SupportAgentOperative(BaseAgentOperative):
         # ══ SECURITY GATE ① ── InputGuard (Elite V2.2) ════════════════════════
         # Must fire BEFORE any LLM call, DNA fetch, or enqueue to protect quota & RAM.
         from backend.services.commerce.security.input_guard import input_guard
-        _is_safe, _guard_reason = input_guard.validate(request.message)
+        _is_safe, _guard_reason = await input_guard.validate_async(request.message)
         if not _is_safe:
             logger.warning("[SupportAgent] InputGuard rejected at entry. Reason: %s | SID: %s", _guard_reason, session_id)
             _rejection_reply = "Dạ Helen xin lỗi, em chỉ có thể hỗ trợ các thông tin sản phẩm và dịch vụ của osmo. Rất mong Anh/Chị thông cảm ạ! 🙏"

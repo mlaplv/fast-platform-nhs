@@ -59,6 +59,9 @@ class SupportContext(BaseModel):
     zalo_enabled: bool = False
     messenger_enabled: bool = False
 
+    # Execution Loop Guard (Elite V3.0)
+    tool_calls_count: int = 0
+
 # Late binding for Pydantic V2
 SupportContext.model_rebuild()
 
