@@ -1,19 +1,15 @@
-import uuid
 import logging
 from backend.utils.uid import new_id, new_short_id
 from datetime import datetime, timezone
-import sqlalchemy as sa
 from sqlalchemy import select, func, and_, or_, update, delete
 from typing import List, Dict, Optional, TypedDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
 
-from backend.database import current_tenant_id
-from backend.database.models import ProductBase, Category, ProductVariant, Order
-from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse, SearchFacets
+from backend.database.models import ProductBase, ProductVariant, Order
+from backend.schemas.product import CreateProductRequest, UpdateProductRequest, ProductResponse, ProductListResponse
 from backend.schemas.common import SuccessResponse, BulkActionResponse
 from backend.services.commerce.product_vector import ProductVectorService
-from backend.utils.sql import escape_like
 from backend.utils.noise_cleaner import noise_cleaner
 from backend.services.event_bus import event_bus
 from backend.utils.media import extract_media_urls
@@ -26,7 +22,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 import re
 import json
 import hashlib
-import math
 import os
 
 logger = logging.getLogger("api-gateway")
@@ -128,7 +123,6 @@ class ProductService:
         try:
             unique_offset = (int(pid_str.replace("-", ""), 16) % 150) * 50  # Variates by up to 7500
         except ValueError:
-            import hashlib
             h = hashlib.md5(pid_str.encode("utf-8")).hexdigest()
             unique_offset = (int(h, 16) % 150) * 50
         

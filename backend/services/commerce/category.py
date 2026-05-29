@@ -1,19 +1,15 @@
-import uuid
 import json
 import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, TypedDict
-from pydantic import JsonValue
-from collections import defaultdict
 
 from sqlalchemy import text, select, func, update, delete as sql_delete
-from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from litestar.exceptions import NotFoundException
 
 from backend.database.models import Category
 from backend.schemas.category import CreateCategoryRequest, UpdateCategoryRequest, CategoryResponse, CategoryListResponse
-from backend.schemas.common import SuccessResponse, BulkActionResponse, BulkIdsRequest
+from backend.schemas.common import SuccessResponse, BulkActionResponse
 from backend.services.event_bus import event_bus
 from backend.utils.media import extract_media_urls
 from backend.services.xohi_memory import xohi_memory
