@@ -8,6 +8,7 @@
   import Truck from "@lucide/svelte/icons/truck";
   import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
   interface Props {
     products: Product[];
@@ -156,10 +157,13 @@
             </div>
             
             <img 
-              src={deal.image} 
+              src={resolveOptimizedImageUrl(deal.image, 400)} 
               alt={deal.name} 
               class="product-img group-hover:scale-110 transition-transform duration-700" 
               loading="lazy"
+              decoding="async"
+              width="400"
+              height="400"
             />
             
             <div class="media-overlay"></div>

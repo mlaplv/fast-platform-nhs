@@ -3,6 +3,7 @@
   import { trimProductName, formatCurrency } from '$lib/utils/format';
   import type { Product } from '$lib/types';
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
   interface Props {
     product: Product;
@@ -35,10 +36,14 @@
   <div class="product-img-wrap">
     <!-- Image -->
     <img
-      src={product.images?.[0] || ''}
+      src={resolveOptimizedImageUrl(product.images?.[0] || '', 400)}
       alt={product.name}
       class="product-img"
-      loading="lazy"
+      loading={index < 4 ? "eager" : "lazy"}
+      fetchpriority={index === 0 ? "high" : "auto"}
+      decoding="async"
+      width="400"
+      height="400"
     />
 
     <!-- Stickers/Badges -->
