@@ -42,9 +42,9 @@ class ClientUserController(Controller):
         result = await db_session.execute(stmt)
         user = result.scalar_one_or_none()
         
-        if not user:
-            from litestar.exceptions import NotFoundException
-            raise NotFoundException("User profile not found")
+        if not user or user.status != "ACTIVE":
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("Tai khoan cua ban da bi khoa hoac ngung hoat dong")
             
         return UserResponse.model_validate(user)
 
@@ -59,6 +59,13 @@ class ClientUserController(Controller):
             raise NotAuthorizedException("User not authenticated")
 
         user_id = user_state.get("id")
+
+        # SECURITY: Status check to prevent suspended users from executing updates
+        stmt_status = select(User.status).where(User.id == user_id)
+        user_status = (await db_session.execute(stmt_status)).scalar()
+        if not user_status or user_status != "ACTIVE":
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("Tai khoan cua ban da bi khoa hoac ngung hoat dong")
 
         try:
             # We use a restricted update for clients (can't change roles/status)
@@ -109,6 +116,13 @@ class ClientUserController(Controller):
 
         user_id = user_state.get("id")
 
+        # SECURITY: Status check to prevent suspended users from fetching orders
+        stmt_status = select(User.status).where(User.id == user_id)
+        user_status = (await db_session.execute(stmt_status)).scalar()
+        if not user_status or user_status != "ACTIVE":
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("Tai khoan cua ban da bi khoa hoac ngung hoat dong")
+
         # SECURITY: Cap pagination to prevent DoS
         limit = max(1, min(limit, 100))
         offset = max(0, min(offset, 10_000))
@@ -154,6 +168,13 @@ class ClientUserController(Controller):
         if not user_state:
             raise NotAuthorizedException("User not authenticated")
         user_id = user_state.get("id")
+
+        # SECURITY: Status check to prevent suspended users from cancelling orders
+        stmt_status = select(User.status).where(User.id == user_id)
+        user_status = (await db_session.execute(stmt_status)).scalar()
+        if not user_status or user_status != "ACTIVE":
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("Tai khoan cua ban da bi khoa hoac ngung hoat dong")
 
         # 1. Ownership & Existential Verification
         stmt = select(Order).where(Order.id == order_id)
@@ -214,7 +235,39 @@ class ClientUserController(Controller):
             raise ValidationException(f"Dinh dang khong duoc phep: {content_type}. Chi chap nhan: JPEG, PNG, WebP, GIF.")
 
         content = await file.read()
-        filename = file.filename
+        filename = getattr(file, "filename", "") or "avatar.jpg"
+
+        # [Elite Security] Path Traversal and Command Injection defense
+        import re as _re
+        filename = _re.sub(r"[^a-zA-Z0-9._-]", "_", filename)
+
+        # [Elite Security] Double extension / shell upload defense
+        if "." in filename:
+            parts = filename.split(".")
+            if len(parts) > 2:
+                # Force rename to singular extension to block double extension bypass (e.g. payload.php.png)
+                filename = f"{parts[0]}.{parts[-1]}"
+
+        # [Elite Security] Quarantine Check: Magic Byte Enforcement (Bypasses MIME spoofing)
+        def _verify_magic_bytes(data: bytes) -> bool:
+            if len(data) < 12:
+                return False
+            # JPEG
+            if data.startswith(b"\xff\xd8\xff"):
+                return True
+            # PNG
+            if data.startswith(b"\x89PNG\r\n\x1a\n"):
+                return True
+            # WebP (RIFF .... WEBP)
+            if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+                return True
+            # GIF
+            if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+                return True
+            return False
+
+        if not _verify_magic_bytes(content):
+            raise ValidationException("Dinh dang hinh anh khong hop le hoac chu ky tep tin bi sai. Chi chap nhan hinh anh JPEG, PNG, WebP, GIF thuc su.")
 
         # SECURITY: 5MB hard cap to prevent memory exhaustion
         MAX_AVATAR_BYTES = 5 * 1024 * 1024  # 5MB
@@ -225,8 +278,9 @@ class ClientUserController(Controller):
         stmt = select(User).where(User.id == user_id)
         result = await db_session.execute(stmt)
         user = result.scalar_one_or_none()
-        if not user:
-            raise NotFoundException("User not found")
+        if not user or user.status != "ACTIVE":
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("Tai khoan cua ban da bi khoa hoac ngung hoat dong")
 
         old_avatar_path = user.avatar_url
 
@@ -274,6 +328,13 @@ class ClientUserController(Controller):
             raise NotAuthorizedException("User not authenticated")
 
         user_id = user_state.get("id")
+
+        # SECURITY: Status check to prevent suspended users from executing password updates
+        stmt_status = select(User.status).where(User.id == user_id)
+        user_status = (await db_session.execute(stmt_status)).scalar()
+        if not user_status or user_status != "ACTIVE":
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("Tai khoan cua ban da bi khoa hoac ngung hoat dong")
         
         res = await user_service.update_password(
             db_session=db_session,
@@ -295,6 +356,13 @@ class ClientUserController(Controller):
             raise NotAuthorizedException("User not authenticated")
             
         user_id = user_state.get("id")
+
+        # SECURITY: Status check to prevent suspended users from fetching loyalty points
+        stmt_status = select(User.status).where(User.id == user_id)
+        user_status = (await db_session.execute(stmt_status)).scalar()
+        if not user_status or user_status != "ACTIVE":
+            from litestar.exceptions import NotAuthorizedException
+            raise NotAuthorizedException("Tai khoan cua ban da bi khoa hoac ngung hoat dong")
         
         # Fetch loyalty profile
         l_stmt = select(UserLoyalty).where(UserLoyalty.user_id == user_id)

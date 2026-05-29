@@ -501,8 +501,20 @@
 - [x] Integrate Dual-LLM Guardrail Dynamic Scan utilizing `trinity_bridge.run` for semantic jailbreak filtering (Phase 3). (Done)
 - [x] Run validation tests to ensure zero security regressions and successful production build. (Done)
 
+# Task Checklist - Military-Grade Client Security Hardening (Elite V3.5)
 
+- [x] Perform Trinh sát (Scout) and deep code analysis of `user.py` and `ctv.py` to identify security vulnerabilities. (Done)
+- [x] Design and propose military-grade security upgrades including File Signature Magic Bytes Verification and Financial Race Condition double-locks. (Done)
+- [x] Create detailed security hardening artifact detailing all architectural upgrades for the AI era. (Done)
+- [x] Implement in-memory magic bytes checking and double-extension defenses in `ClientUserController.upload_avatar` for user profile security. (Done)
+- [x] Implement database pessimistic lock `with_for_update()` in `CtvService.request_withdrawal` to eliminate balance double-spend concurrency race conditions. (Done)
+- [x] Apply Litestar IP-level Rate Limiters on public client endpoints `/validate/{code}` and `/shipping` to prevent brute-force CTV code harvesting and scraping. (Done)
 
+# Task Checklist - Broken Authentication Hardening (Elite V3.5)
 
-
+- [x] Perform security audit for Broken Authentication & Status Bypass on client-facing authenticated routes. (Done)
+- [x] Propose detailed controller-level fixes for User and CTV status verification. (Done)
+- [x] Integrate status-validation guards across user profile, order, and affiliate controllers. (Done)
+- [x] Harden unified entrance login, social login, and OTP verify inside `AuthService` to prevent blocked users from acquiring new sessions. (Done)
+- [x] Integrate real-time active status verification for administrators inside `AuthMiddleware` aligned with Redis session surveillance. (Done)
 

@@ -91,6 +91,9 @@ class AuthService:
         if not is_user_valid or not is_valid:
             raise NotAuthorizedException("Invalid email or password")
 
+        if user.status != "ACTIVE":
+            raise NotAuthorizedException("Tài khoản đã bị tạm khóa hoặc ngừng hoạt động")
+
         # Roles and Permissions
         roles = [r.code for r in getattr(user, "roles", [])]
         permissions = []
@@ -183,6 +186,8 @@ class AuthService:
             permissions = []
             logger.info(f"[AuthService] Mới tạo tài khoản Oauth2 cho {email}")
         else:
+            if user.status != "ACTIVE":
+                raise NotAuthorizedException("Tài khoản đã bị tạm khóa hoặc ngừng hoạt động")
             roles = [r.code for r in getattr(user, "roles", [])]
             permissions = []
             for r in getattr(user, "roles", []):
@@ -322,6 +327,8 @@ class AuthService:
             logger.info(f"[AuthService] New user auto-registered via OTP: {identifier}")
         else:
             # 4. Generate real access token data from existing user
+            if user.status != "ACTIVE":
+                raise NotAuthorizedException("Tài khoản đã bị tạm khóa hoặc ngừng hoạt động")
             roles = [r.code for r in getattr(user, "roles", [])]
             permissions = []
             for r in getattr(user, "roles", []):

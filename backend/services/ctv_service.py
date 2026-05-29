@@ -333,6 +333,9 @@ class CtvService:
         aff = await CtvService.get_affiliate_by_user(db_session, user_id)
         if not aff:
             raise NotFoundException("Bạn chưa đăng ký chương trình CTV")
+        if aff.status == "SUSPENDED":
+            from litestar.exceptions import ValidationException
+            raise ValidationException("Tài khoản CTV của bạn đã bị tạm khóa do vi phạm chính sách")
 
         # #12 Fix: Chỉ verify AES-GCM seal (O(1), zero DB) — Full reconciliation được chuyển sang arq worker (mỗi 1h)
         if not CtvService._verify_balance_seal_only(aff):
@@ -853,7 +856,14 @@ class CtvService:
         """Submit a withdrawal request. Snapshots bank_info at request time."""
         from litestar.exceptions import ValidationException
 
-        aff = await CtvService.get_affiliate_by_user(db_session, user_id)
+        # SECURITY: Row lock (SELECT ... FOR UPDATE) to prevent financial race conditions (double spend / balance drain)
+        stmt = (
+            select(AffiliateProfile)
+            .where(and_(AffiliateProfile.user_id == user_id, AffiliateProfile.deleted_at == None))
+            .with_for_update()
+        )
+        res = await db_session.execute(stmt)
+        aff = res.scalar_one_or_none()
         if not aff:
             raise ValidationException("Bạn chưa đăng ký chương trình CTV")
         if aff.status != "ACTIVE":
@@ -936,6 +946,8 @@ class CtvService:
         aff = await CtvService.get_affiliate_by_user(db_session, user_id)
         if not aff:
             raise ValidationException("Bạn chưa đăng ký chương trình CTV")
+        if aff.status != "ACTIVE":
+            raise ValidationException("Tài khoản CTV không ở trạng thái hoạt động")
 
         aff.bank_info_enc = GeminiSecurity.encrypt(bank_info)
         

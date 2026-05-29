@@ -10,11 +10,17 @@ logger = logging.getLogger("api-gateway")
 from litestar import Controller, Request, get, post, patch, delete
 from litestar.status_codes import HTTP_200_OK
 from litestar.exceptions import NotAuthorizedException
+from litestar.middleware.rate_limit import RateLimitConfig
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field, EmailStr
 from backend.services.ctv_service import ctv_service
 from backend.database.models.auth import User
+
+# SECURITY: Anti-brute force and code harvesting limit (10 requests/min per IP)
+ctv_validate_rate_limit = RateLimitConfig(rate_limit=("minute", 10), store="memory_store")
+# SECURITY: Anti-scraping limit for shipping configs (30 requests/min per IP)
+shipping_rate_limit = RateLimitConfig(rate_limit=("minute", 30), store="memory_store")
 
 
 def _require_user(request: Request) -> dict:
@@ -61,6 +67,11 @@ class ClientCtvController(Controller):
     ) -> dict:
         """Đăng ký trở thành CTV. Auto-active với tier Đồng (15%)."""
         user_state = _require_user(request)
+        # SECURITY: Verify user is active
+        stmt_status = select(User.status).where(User.id == user_state["id"])
+        user_status = (await db_session.execute(stmt_status)).scalar()
+        if not user_status or user_status != "ACTIVE":
+            raise NotAuthorizedException("Tai khoan cua ban da bi khoa hoac ngung hoat dong")
         aff = await ctv_service.register_affiliate(
             db_session,
             user_id=user_state["id"],
@@ -84,7 +95,7 @@ class ClientCtvController(Controller):
             "message": f"Đăng ký thành công! Mã CTV của bạn: {aff.ctv_code}",
         }
 
-    @get("/validate/{code:str}", guards=[])  # PUBLIC - dung o checkout
+    @get("/validate/{code:str}", guards=[], middleware=[ctv_validate_rate_limit.middleware])  # PUBLIC - dung o checkout
     async def validate_code(self, db_session: AsyncSession, code: str) -> dict:
         """PUBLIC: Validate mã CTV tại checkout (real-time)."""
         aff = await ctv_service.validate_ctv_code(db_session, code.upper())
@@ -96,7 +107,7 @@ class ClientCtvController(Controller):
             "message": "Mã CTV hợp lệ",
         }
 
-    @get("/shipping", guards=[])  # PUBLIC - dung o checkout
+    @get("/shipping", guards=[], middleware=[shipping_rate_limit.middleware])  # PUBLIC - dung o checkout
     async def get_shipping_config(self, db_session: AsyncSession) -> dict:
         """PUBLIC: Lấy cấu hình phí ship mặc định của CTV (Dynamic DB/Redis-backed)."""
         from backend.services.xohi_memory import xohi_memory
@@ -154,6 +165,9 @@ class ClientCtvController(Controller):
         aff = aff_res.scalar_one_or_none()
         if not aff:
             return {"items": [], "total": 0, "page": page}
+        if aff.status != "ACTIVE":
+            from litestar.exceptions import ValidationException
+            raise ValidationException("Tai khoan CTV cua ban khong hoat dong hoac dang bi khoa")
 
         conditions = [CommissionLedger.affiliate_id == aff.id]
         if status:
@@ -266,6 +280,8 @@ class ClientCtvController(Controller):
         aff = aff_res.scalar_one_or_none()
         if not aff:
             raise NotFoundException("Bạn chưa đăng ký chương trình CTV")
+        if aff.status != "ACTIVE":
+            raise ValidationException("Tài khoản CTV không ở trạng thái hoạt động")
 
         # 2. Soft-delete - preserve all ledger history (re-activation will fully restore stats)
         aff.status = "CANCELLED"

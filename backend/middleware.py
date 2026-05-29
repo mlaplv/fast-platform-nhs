@@ -137,30 +137,40 @@ class AuthMiddleware:
                             # R03: Fast path — Redis cache stamp (TTL 5 phút)
                             # Tránh 1 DB query trên MỌI admin request → giảm latency ~10ms/req
                             stamp_key = f"security:stamp:{payload['id']}"
+                            cached_val: Optional[str] = None
                             db_stamp: Optional[str] = None
+                            db_status: Optional[str] = None
                             try:
                                 if key_rotator._use_redis and key_rotator.client:
                                     raw = await key_rotator.client.get(stamp_key)
                                     if raw:
-                                        db_stamp = raw.decode() if isinstance(raw, bytes) else str(raw)
+                                        cached_val = raw.decode() if isinstance(raw, bytes) else str(raw)
+                                        if cached_val and ":" in cached_val:
+                                            db_stamp, db_status = cached_val.split(":", 1)
                             except Exception:
                                 pass
 
-                            if db_stamp is None:
+                            if not db_stamp:
                                 # Cache miss: query DB một lần, write-through cache
                                 from backend.database import async_session_maker
                                 from sqlalchemy import select
                                 from backend.database.models import User
                                 async with async_session_maker() as session:
                                     user_res = await session.execute(
-                                        select(User.security_stamp).where(User.id == payload["id"])
+                                        select(User.security_stamp, User.status).where(User.id == payload["id"])
                                     )
-                                    db_stamp = user_res.scalar()
+                                    row = user_res.first()
+                                    if row:
+                                        db_stamp, db_status = row[0], row[1]
                                 try:
                                     if key_rotator._use_redis and key_rotator.client and db_stamp:
-                                        await key_rotator.client.set(stamp_key, str(db_stamp), ex=300)
+                                        await key_rotator.client.set(stamp_key, f"{db_stamp}:{db_status or 'ACTIVE'}", ex=300)
                                 except Exception:
                                     pass
+
+                            if db_status and db_status != "ACTIVE":
+                                logger.error(f"🚫 [MARTIAL_LAW] Admin Account Suspended for {payload['sub']}. Status: {db_status}")
+                                raise NotAuthorizedException("Tài khoản của bạn đã bị khóa hoặc ngừng hoạt động.")
 
                             if db_stamp and str(db_stamp) != str(token_stamp):
                                 logger.error(f"🚫 [MARTIAL_LAW] Session Revoked for {payload['sub']}. Stamp mismatch.")
