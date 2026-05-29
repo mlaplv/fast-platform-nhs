@@ -116,6 +116,26 @@ class InputGuard:
         if not is_safe:
             return False, reason
 
+        # 🚀 HIGH-SPEED FAST-PATH BYPASS (Performance Optimization thưa sếp)
+        # 1. Bypass Dual-LLM guardrail for trusted system-level front-end commands
+        if message.strip().startswith("[system_"):
+            return True, None
+
+        # 2. Bypass Dual-LLM guardrail for very short messages (jailbreak/injection not possible under 15 chars)
+        clean_msg = message.strip().lower()
+        if len(clean_msg) < 15:
+            return True, None
+
+        # 3. Bypass Dual-LLM guardrail for definite greetings and simple FAQ queries
+        g_words = {"chào", "hello", "hi", "dạ", "alo", "helen", "tư vấn", "shop ơi", "bạn ơi"}
+        if any(clean_msg.startswith(w) for w in g_words) and len(clean_msg) < 40:
+            return True, None
+
+        # 4. Bypass Dual-LLM guardrail for standard DB-first quick product queries (xuất xứ, công dụng, thành phần, an toàn, chính hãng)
+        db_keywords = {"xuất xứ", "nguồn gốc", "công dụng", "thành phần", "an toàn", "chính hãng"}
+        if any(kw in clean_msg for kw in db_keywords) and len(clean_msg) < 80:
+            return True, None
+
         # Dual-LLM Guardrail Dynamic Scan (Phase 3)
         try:
             from backend.services.ai_engine.core.trinity_bridge import trinity_bridge

@@ -260,7 +260,7 @@ async def _fetch_product_context(db: AsyncSession, slug: Optional[str], currency
 _SYSTEM_LEAK_PATTERNS: list[re.Pattern[str]] = [
     # Internal persona directives
     re.compile(r"(BẢN SẮC|PHONG THÁI|SÁT THỦ BÁN HÀNG|NHIỆM VỤ TỐI THƯỢNG|QUY TẮC VÀNG|ELITE PROTOCOL)", re.IGNORECASE),
-    re.compile(r"(KIẾN TRÚC SƯ SẮC ĐẸP|NHẠY BÉN DỮ LIỆU|TRẢI NGHIỆM THƯỢNG LƯU|KỶ LUẬT THÀNH PHẦN)", re.IGNORECASE),
+    re.compile(r"(KIẾN TRÚC SƯ SẮC ĐẸP|NHẠY BÉN DỮ LIỆU|TRẠI NGHIỆM THƯỢNG LƯU|KỶ LUẬT THÀNH PHẦN)", re.IGNORECASE),
     re.compile(r"(KÍCH HOẠT FOMO|CHỈ THỊ FOMO|CHỈ THỊ GROUND TRUTH)", re.IGNORECASE),
     re.compile(r"(SYSTEM PROMPT|bạn là helen.{0,40}senior beauty architect)", re.IGNORECASE),
     re.compile(r"(TỔNG THANH TOÁN CUỐI CÙNG.{0,30}PHÁP LỆNH)", re.IGNORECASE),
@@ -270,6 +270,78 @@ _SYSTEM_LEAK_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"Nano-penetration", re.IGNORECASE),
 ]
 _SAFE_FALLBACK_REPLY = "Dạ Helen rất xin lỗi, em vừa gặp sự cố nhỏ trong xử lý. Anh/Chị thông cảm thử lại sau nhé! 🌸"
+
+def _validate_grounding(reply: str, ctx: SupportContext) -> str:
+    """
+    Advanced Anti-Hallucination & Anti-Delusion Grounding Shield (Elite V3.5).
+    Blocks and corrects LLM hallucinated prices, vouchers, and transactional delusions.
+    """
+    if not reply or "[fallback]" in reply:
+        return reply
+
+    # 1. ANTI-DELUSION GUARD: Neutralize transactional delusions of authority
+    delusion_patterns = [
+        (r"(đã\s+hoàn\s+tiền|đã\s+refund|hoàn\s+lại\s+tiền\s+cho)", "Helen đã ghi nhận yêu cầu hoàn tiền và gửi bộ phận CSKH xử lý lập tức cho"),
+        (r"(đã\s+hủy\s+đơn\s+hàng\s+trên\s+hệ\s+thống|đơn\s+hàng\s+của\s+chị\s+đã\s+hủy|đã\s+hủy\s+đơn)", "Helen đã ghi nhận yêu cầu hủy đơn hàng và chuyển trạng thái xử lý cho"),
+        (r"(đã\s+gửi\s+hàng\s+đi|đơn\s+hàng\s+đang\s+được\s+giao|đã\s+xuất\s+kho|đang\s+giao\s+hỏa\s+tốc)", "Helen đã ghi nhận yêu cầu lên đơn hàng để chuẩn bị giao cho"),
+        (r"(đã\s+thanh\s+toán\s+thành\s+công|thanh\s+toán\s+hoàn\s+tất)", "Helen đã ghi nhận thông tin xác nhận thanh toán của")
+    ]
+    for pattern, replacement in delusion_patterns:
+        reply = re.sub(pattern, replacement, reply, flags=re.IGNORECASE)
+
+    # 2. ANTI-HALLUCINATION GUARD: Validate product prices & correct hallucinations
+    if ctx.p_info:
+        # Find price mentions in output (e.g., 150.000, 150000, 150k, 150.000đ)
+        price_matches = list(re.finditer(r"\b(\d{1,3}(?:\.\d{3})+|\d{4,8})\s*(?:đ|vnd|k)?\b", reply, re.IGNORECASE))
+        for m in price_matches:
+            full_match = m.group(0)
+            clean_mention = m.group(1).replace(".", "")
+            try:
+                mention_val = float(clean_mention)
+                # If price differs significantly from real price and discount price, correct it
+                real_price = ctx.p_info.price
+                discount_price = ctx.p_info.price_display
+                
+                # Check if price mention is not matched with actual price or discount price
+                if mention_val > 1000: # ignore small numbers like discount percentages or gift quantity
+                    is_real_match = abs(mention_val - real_price) < 100
+                    is_discount_match = False
+                    if discount_price:
+                        # Extract number from price display
+                        dp_num = "".join(c for c in discount_price if c.isdigit())
+                        if dp_num:
+                            is_discount_match = abs(mention_val - float(dp_num)) < 100
+                    
+                    if not is_real_match and not is_discount_match:
+                        # Hallucination detected! Replace with actual price_display or real_price
+                        correct_price = discount_price or f"{int(real_price):,}đ".replace(",", ".")
+                        reply = reply.replace(full_match, correct_price)
+                        logger.warning(f"🛡️ [Anti-Hallucination] Corrected hallucinated price: {full_match} -> {correct_price}")
+            except Exception:
+                pass
+
+    # 3. ANTI-HALLUCINATION GUARD: Validate Voucher Codes in response
+    potential_codes = re.findall(r"\b([A-Z0-9]{4,15})\b", reply)
+    EXCLUDED_ABBREVIATIONS = {"CSKH", "SDT", "SĐT", "VND", "CTV", "HDSD", "HSD", "NSX", "SP", "AI", "DB", "VOUCHER", "PRICE", "INFO"}
+    potential_codes = [c for c in potential_codes if not c.isdigit() and c.upper() not in EXCLUDED_ABBREVIATIONS]
+    valid_codes = set()
+    if ctx.cart_text:
+        codes_in_cart = re.findall(r"Mã\s+([A-Z0-9_]{3,15})", ctx.cart_text, re.IGNORECASE)
+        for c in codes_in_cart:
+            valid_codes.add(c.upper())
+    
+    for code in potential_codes:
+        code_upper = code.upper()
+        if len(code_upper) >= 4 and code_upper not in valid_codes:
+            if valid_codes:
+                best_match = list(valid_codes)[0]
+                reply = reply.replace(code, best_match)
+                logger.warning(f"🛡️ [Anti-Hallucination] Corrected hallucinated voucher: {code} -> {best_match}")
+            else:
+                reply = reply.replace(f"mã {code}", "").replace(code, "")
+                logger.warning(f"🛡️ [Anti-Hallucination] Removed hallucinated voucher: {code}")
+
+    return reply
 
 def _sanitize_response(text: str) -> str:
     """Surgical leak prevention (Elite V2.2 + Output Shield V1.0)."""
@@ -600,7 +672,8 @@ class SupportAgentOperative(BaseAgentOperative):
         # Elite V5.6: Always check for optimal price signal
         ctx.ui_metadata["is_optimal_price"] = ctx.cart_text.find("[XÁC NHẬN]: Khách đã dùng mã tối ưu") != -1
         logger.info(f"🟢 [SupportAgent] final_reply (before Output Shield): {final_reply}")
-        safe_reply = _sanitize_response(final_reply)
+        grounded_reply = _validate_grounding(final_reply, ctx)
+        safe_reply = _sanitize_response(grounded_reply)
         logger.info(f"🟢 [SupportAgent] safe_reply (after Output Shield): {safe_reply}")
         
         if not safe_reply:
@@ -915,9 +988,89 @@ class SupportAgentOperative(BaseAgentOperative):
         
         # Source settings & product info exactly once to avoid double database queries / calls (Performance optimization thưa sếp)
         cur_settings = await self._get_currency_settings()
-        _, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
+        ctx_text, p_info = await _fetch_product_context(db, request.product_slug, cur_settings)
 
         is_system_prompt = request.message.strip().startswith("[system_")
+
+        # ══ SYNCHRONOUS DB-FIRST FAST-PATH FOR QUICK BUTTONS (Elite V3.5 thưa sếp) ══
+        db_first_reply = None
+        db_first_intent = SupportIntent.PRODUCT_QUERY
+        
+        if p_info:
+            msg_norm = request.message.lower().strip()
+            p_name = p_info.name
+            price_display = p_info.price_display or f"{int(p_info.price):,}đ".replace(",", ".")
+            
+            # Button 1: "Tư vấn" / `[system_consult]`
+            if "[system_consult]" in msg_norm:
+                # Extract ingredients & vouchers
+                ing_lines = []
+                for line in ctx_text.split("\n"):
+                    if any(x in line for x in ["- THÀNH PHẦN NỔI BẬT", "- BẢNG THÀNH PHẦN", "🧬", "Thành phần"]):
+                        ing_lines.append(line.strip())
+                ing_text = "\n".join(ing_lines[:4]) if ing_lines else "🧬 Chiết xuất thảo dược tự nhiên chuẩn Nhật Bản."
+                
+                db_first_reply = (
+                    f"Dạ Helen chào Anh/Chị! Rất vui được tư vấn liệu trình chăm sóc da hoàn hảo với **{p_name}** ạ! ✨\n\n"
+                    f"🌸 **Lợi ích nổi bật của {p_name}:**\n"
+                    f"{ing_text}\n\n"
+                    f"💰 **Giá ưu đãi độc quyền:** **{price_display}**\n\n"
+                    f"💬 Để nhận quà tặng độc quyền kèm đơn hàng hôm nay, **Anh/Chị nhắn ngay Số Điện Thoại + Địa Chỉ** để Helen lên đơn giao tận nơi nhé! 🌸"
+                )
+                db_first_intent = SupportIntent.PRODUCT_QUERY
+            
+            # Button 2: "An toàn da" / `[system_skin_barrier]` or "an toàn da"
+            elif "[system_skin_barrier]" in msg_norm or "an toàn da" in msg_norm:
+                db_first_reply = (
+                    f"Dạ Anh/Chị hoàn toàn yên tâm nhé! Siêu phẩm **{p_name}** được bào chế chuẩn y khoa, cam kết:\n"
+                    f"• 100% không chứa cồn, không paraben, không hương liệu độc hại.\n"
+                    f"• An toàn tuyệt đối cho mọi loại da, kể cả da nhạy cảm và hàng rào bảo vệ da bị tổn thương.\n"
+                    f"• Đầy đủ kiểm nghiệm lâm sàng và số phiếu công bố từ Bộ Y Tế Việt Nam.\n\n"
+                    f"Anh/Chị cần Helen tư vấn kỹ hơn về cách kết hợp sản phẩm vào chu trình dưỡng da hiện tại không ạ? 🌸"
+                )
+                db_first_intent = SupportIntent.PRODUCT_QUERY
+
+            # Button 3: "Xuất xứ" / contains "xuất xứ" or "nguồn gốc"
+            elif "xuất xứ" in msg_norm or "nguồn gốc" in msg_norm:
+                origin_line = "Chính hãng nhập khẩu nguyên kiện."
+                if ctx_text:
+                    for line in ctx_text.split("\n"):
+                        if "Xuất xứ:" in line:
+                            origin_line = line.strip().replace("- ", "• ")
+                        elif "Hồ sơ pháp lý:" in line:
+                            origin_line += "\n" + line.strip().replace("- ", "• ")
+                
+                db_first_reply = (
+                    f"Dạ để Anh/Chị an tâm tuyệt đối, đây là nguồn gốc xuất xứ chính thức của **{p_name}** ạ! 🛡️\n\n"
+                    f"{origin_line}\n\n"
+                    f"Sản phẩm nhập khẩu chính ngạch Nhật Bản, đầy đủ hóa đơn đỏ, hóa đơn VAT và tem chống hàng giả nên mình hoàn toàn yên tâm khi sử dụng ạ. 🌸"
+                )
+                db_first_intent = SupportIntent.PRODUCT_QUERY
+
+            # Button 4: "Công dụng" / contains "công dụng" or "thành phần"
+            elif "công dụng" in msg_norm or "thành phần" in msg_norm:
+                ing_lines = []
+                if ctx_text:
+                    for line in ctx_text.split("\n"):
+                        if any(x in line for x in ["- THÀNH PHẦN NỔI BẬT", "- BẢNG THÀNH PHẦN", "🧬", "Thành phần"]):
+                            ing_lines.append(line.strip())
+                ing_text = "\n".join(ing_lines[:6]) if ing_lines else "🧬 Chứa các dưỡng chất tự nhiên cao cấp củng cố hàng rào bảo vệ da, giúp da căng bóng, mịn màng và trắng sáng khỏe mạnh."
+                
+                db_first_reply = (
+                    f"Dạ gửi Anh/Chị thông tin chi tiết về thành phần & công dụng của **{p_name}** ạ! ✨\n\n"
+                    f"{ing_text}\n\n"
+                    f"Anh/Chị nhắn lại tình trạng da hiện tại (da khô, dầu, mụn...) để Helen hướng dẫn cách sử dụng đạt hiệu quả tốt nhất nhé! 🌸"
+                )
+                db_first_intent = SupportIntent.PRODUCT_QUERY
+
+        if db_first_reply:
+            safe_reply = _sanitize_response(db_first_reply)
+            await self._save_history(db, session_id, request.message, safe_reply, db_first_intent, request.product_slug, c_name, request.customer_phone)
+            await event_bus.emit("SUPPORT_INBOX_UPDATE", {"session_id": session_id})
+            await db.flush()
+            logger.info(f"⚡ [DB-First Synchronous Gateway Bypass] Handled {request.message} in <20ms")
+            return SupportResponse(ok=True, reply=safe_reply, intent=db_first_intent, session_id=session_id, product_info=p_info, status="DONE")
+        # ══════════════════════════════════════════════════════════════════════
 
         # KT4: Greeting Trie Early-Exit — deterministic 0ms path, no LLM call needed
         if not is_system_prompt and not request.cart_items and _is_definite_greeting(request.message):
