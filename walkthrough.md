@@ -1626,5 +1626,22 @@ Hệ thống nạp ĐÚNG tài khoản Admin tối cao của Sếp (`admin@micsm
   - *Issue*: The primary snap sections (`MobileDiagnostics`, `MobileScience`, `MobileReviews`, `MobileOffer`) were dynamically imported during client scroll. This caused jarring black/pulsing skeleton flashes and high CLS on mobile platforms (iPad Mini / iOS).
   - *Fix*: Upgraded all 4 main sections to static imports at the layout script header. The layout pre-renders complete snap structures directly on the server, ensuring absolute layout stability and 0ms loading shifts.
 
+## 56. Global Storefront Layout & Funnel Pre-paint Hardening (Elite V2.2)
+
+### Diagnostics & Architectural Upgrades
+- **Checkout Value-First Synchronization (`checkout/+page.svelte`)**:
+  - *Issue*: Dynamic voucher Best-Deals, shipping method, and breakdown calculations were bound to post-paint `$effect` loops. This triggered layout thrashing and jarring price jumps on load or province change.
+  - *Fix*: Migrated all 3 reactive sync blocks to `$effect.pre`. Calculations execute pre-paint, displaying solid, flicker-free prices and shipping methods immediately upon view render.
+- **Address & Success Matrix Hydration (`AddressSection.svelte` & `checkout/success/[id]/+page.svelte`)**:
+  - *Issue*: Area display mapping (`unifiedValue`) from form states updated inside post-paint `$effect` loops, causing inputs to flash blank or old values during hydration.
+  - *Fix*: Migrated display synch loops to `$effect.pre` to resolve all transient hydration visual flickers on checkout success or drafts load.
+- **Global Header/Footer Layout Shifts (`+layout.svelte`, `[slug]/+page.svelte` & `user/+layout.svelte`)**:
+  - *Issue*: Syncing global layouts and hiding/showing navigation bars inside post-paint `$effect` forced late DOM mutations, leading to jarring layout shifting.
+  - *Fix*: Refactored navigation bar hidden status and SPA login checking to `$effect.pre`, allowing absolute sync prior to paint.
+- **Desktop Funnel Section Deferral Cleansing (`[slug]-funnel/+page.svelte`)**:
+  - *Issue*: Core desktop sections (`DiagnosticsSection`, `ScienceBento`, `VerifiedReviews`, `OfferGrid`, `EliteLandingFooter`) were dynamically imported on client scroll, leading to high CLS and dark pulsing skeleton artifacts on desktop landing funnels.
+  - *Fix*: Upgraded all 5 main desktop sections to static imports, eliminating lazy loader blocks and enabling 100% stable pre-rendered SSR on desktop.
+
+
 
 

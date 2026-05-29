@@ -10,8 +10,8 @@
   let isChecking = $state(true);
 
   // SSR đã chặn pre-render trong hooks.server.ts.
-  // Guard này xử lý SPA navigation (khi user logout trong lúc đang ở /user/*)
-  $effect(() => {
+  // Guard này xử lý SPA navigation (khi user logout trong lúc đang ở /user/*) - pre-paint synchronization
+  $effect.pre(() => {
     if (!authStore.isAuthenticated) {
       goto('/');
     } else {

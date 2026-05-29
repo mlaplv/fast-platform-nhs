@@ -221,9 +221,8 @@
     return 0;
   }
 
-  // [ELITE V2.2] Auto-Stick Protocol: Synchronize with Neural Best-Deals
-  // Optimized: Use standard $effect and track only necessary dependencies
-  $effect(() => {
+  // [ELITE V2.2] Auto-Stick Protocol: Synchronize with Neural Best-Deals - pre-paint synchronization
+  $effect.pre(() => {
     const subtotal = cartStore.totalAmountWithoutDiscount;
     const vouchers = cartStore.vouchers;
     const selectedIds = cartStore.selectedVoucherIds;
@@ -412,7 +411,7 @@
     );
   });
 
-  $effect(() => {
+  $effect.pre(() => {
     if (canExpress && form.shippingMethod !== "express") {
       form.shippingMethod = "express";
     } else if (!canExpress && form.shippingMethod === "express") {
@@ -505,8 +504,8 @@
     cartStore.totalAmount + shippingFee - pointDiscount,
   );
 
-  // [ELITE V5.0] Ground Truth Sync: Leverage unified breakdown from CartStore
-  $effect(() => {
+  // [ELITE V5.0] Ground Truth Sync: Leverage unified breakdown from CartStore - pre-paint synchronization
+  $effect.pre(() => {
     const shippingVoucherDiscount = cartStore.vouchers
       .filter(
         (v) =>

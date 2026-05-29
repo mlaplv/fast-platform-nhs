@@ -49,8 +49,8 @@
   const landingType = $derived(data.product?.metadata?.landing_type || 'standard');
   const isFunnel = $derived(landingType !== 'standard');
 
-  // Elite V2.2: Dynamic Layout Sync (Viral 2026 Protocol)
-  $effect(() => {
+  // Elite V2.2: Dynamic Layout Sync (Viral 2026 Protocol) - pre-paint synchronization
+  $effect.pre(() => {
     if (isFunnel || ui.isMobile) {
       ui.isHeaderHidden = true;
       ui.isFooterHidden = true;

@@ -45,8 +45,8 @@
   });
 
   // Re-check initialization if settings update
-  // Elite V2.2: Unitary State Sync (Prop-driven reactivity)
-  $effect(() => {
+  // Elite V2.2: Unitary State Sync (Prop-driven reactivity) - pre-paint synchronization
+  $effect.pre(() => {
     if (data.shopInfo) {
         ui.settings = data.shopInfo;
         if (typeof sessionStorage !== 'undefined') {

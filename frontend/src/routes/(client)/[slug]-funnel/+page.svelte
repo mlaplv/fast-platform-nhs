@@ -8,35 +8,12 @@
   import { browser } from "$app/environment";
 
 
-  // JIT Component Flags
-  let loadJIT = $state(false);
-
-  import type { Component } from "svelte";
-  let DiagnosticsSection = $state<Component<any> | null>(null);
-  let ScienceBento = $state<Component<any> | null>(null);
-  let VerifiedReviews = $state<Component<any> | null>(null);
-  let OfferGrid = $state<Component<any> | null>(null);
-  let EliteLandingFooter = $state<Component<any> | null>(null);
-
-  $effect(() => {
-    if (loadJIT) {
-      import("$lib/components/client/slug/DiagnosticsSection.svelte").then((m) => {
-        DiagnosticsSection = m.default as Component<any>;
-      });
-      import("$lib/components/client/slug/ScienceBento.svelte").then((m) => {
-        ScienceBento = m.default as Component<any>;
-      });
-      import("$lib/components/client/slug/VerifiedReviews.svelte").then((m) => {
-        VerifiedReviews = m.default as Component<any>;
-      });
-      import("$lib/components/client/slug/OfferGrid.svelte").then((m) => {
-        OfferGrid = m.default as Component<any>;
-      });
-      import("$lib/components/client/slug/EliteLandingFooter.svelte").then((m) => {
-        EliteLandingFooter = m.default as Component<any>;
-      });
-    }
-  });
+  // ⚡️ Elite 2026: Static imports of primary desktop funnel sections to guarantee complete SSR coverage and 0ms layout flash
+  import DiagnosticsSection from "$lib/components/client/slug/DiagnosticsSection.svelte";
+  import ScienceBento from "$lib/components/client/slug/ScienceBento.svelte";
+  import VerifiedReviews from "$lib/components/client/slug/VerifiedReviews.svelte";
+  import OfferGrid from "$lib/components/client/slug/OfferGrid.svelte";
+  import EliteLandingFooter from "$lib/components/client/slug/EliteLandingFooter.svelte";
 
   import MobileLandingLayout from "$lib/components/mobile/MobileLandingLayout.svelte";
   import SeoHead from "$lib/components/storefront/seo/SeoHead.svelte";
@@ -349,50 +326,26 @@
       />
       <HeroBanner {scrollToQuiz} {triggerScan} />
 
-      <!-- SECTIONS WITH INDEPENDENT JIT LOADING (Elite V2.2 Optimization) -->
-      <!-- This preserves snap points while components are loading -->
-
-      <div id="jit-trigger"></div>
-
+      <!-- SECTIONS WITH DIRECT STATIC RENDERING (Elite 2026 Optimization) -->
       {#if hasQuiz}
         <section id="diagnostics" class="snap-session">
-          {#if DiagnosticsSection}
-            <DiagnosticsSection {product} />
-          {:else}
-            <div
-              class="w-full h-full bg-[#010101] animate-pulse rounded-t-3xl border-t border-[#111]"
-            ></div>
-          {/if}
+          <DiagnosticsSection {product} />
         </section>
       {/if}
 
       <section id="science" class="snap-session">
-        {#if ScienceBento}
-          <ScienceBento />
-        {:else}
-          <div class="w-full h-full bg-[#010101] animate-pulse"></div>
-        {/if}
+        <ScienceBento />
       </section>
 
       <section id="reviews" class="snap-session">
-        {#if VerifiedReviews}
-          <VerifiedReviews initialReviews={data.reviews} />
-        {:else}
-          <div class="w-full h-full bg-[#010101] animate-pulse"></div>
-        {/if}
+        <VerifiedReviews initialReviews={data.reviews} />
       </section>
 
       <section id="offers" class="snap-session">
-        {#if OfferGrid}
-          <OfferGrid onTriggerScan={triggerScan} />
-        {:else}
-          <div class="w-full h-full bg-[#010101] animate-pulse"></div>
-        {/if}
+        <OfferGrid onTriggerScan={triggerScan} />
       </section>
 
-      {#if EliteLandingFooter}
-        <EliteLandingFooter {product} onTriggerScan={triggerScan} />
-      {/if}
+      <EliteLandingFooter {product} onTriggerScan={triggerScan} />
     {:else}
       <div
         class="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white"

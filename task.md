@@ -600,6 +600,11 @@
 - [x] Tối ưu hóa đồng bộ chỉ mục biến thể trong `MainDetail/Mobile.svelte` và `MainDetail/Desktop.svelte` bằng cách chuyển sang sử dụng `$effect.pre` để triệt tiêu độ trễ hydration. (Done)
 - [x] Chuyển đổi JIT Dynamic Import sang Static Import đối với 4 phân khúc chính trong `MobileLandingLayout.svelte` để tăng tốc vẽ FCP/LCP trên di động và loại bỏ skeleton flickering. (Done)
 - [x] Đưa khối thông số chi tiết sản phẩm (`ProductMobileSpecs` và `ProductDetailSections`) ra ngoài khối defer `loadBelowFold` để đảm bảo 100% SEO indexable và 0ms độ trễ hiển thị thông số. (Done)
+- [x] Nâng cấp đồng bộ layout trong `+layout.svelte`, `user/+layout.svelte` và `[slug]/+page.svelte` sang `$effect.pre` để triệt tiêu chớp Header/Footer và Loading màn hình đăng nhập. (Done)
+- [x] Tối ưu hóa trang thanh toán `checkout/+page.svelte` bằng cách nâng cấp Auto-Stick Voucher, phương thức vận chuyển và đồng bộ hóa breakdown sang `$effect.pre` để tránh giật giá và phí. (Done)
+- [x] Đồng bộ giá trị tỉnh/quận/huyện pre-paint trong `AddressSection.svelte` và `checkout/success/[id]/+page.svelte` để triệt tiêu nhấp nháy dữ liệu khi nạp bản nháp hoặc nạp đơn. (Done)
+- [x] Chuyển đổi JIT Dynamic Import sang Static Import hoàn toàn cho các phân khúc trên Desktop Funnel (`[slug]-funnel/+page.svelte`) giúp trang Funnel có độ phủ SSR tuyệt đối, 0ms layout flash. (Done)
+
 
 
 

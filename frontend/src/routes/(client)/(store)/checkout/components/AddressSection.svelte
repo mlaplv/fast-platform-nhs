@@ -41,8 +41,8 @@
 
   let unifiedValue = $state(form.ward && form.province ? `${form.ward}, ${form.province}` : '');
 
-  // Sync from form state to unified display (for initial load/drafts)
-  $effect(() => {
+  // Sync from form state to unified display (for initial load/drafts) - pre-paint synchronization
+  $effect.pre(() => {
     if (form.ward && form.province) {
        const combined = `${form.ward}, ${form.province}`;
        if (unifiedValue !== combined) unifiedValue = combined;
