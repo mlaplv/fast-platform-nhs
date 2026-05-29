@@ -1564,10 +1564,18 @@ Hệ thống nạp ĐÚNG tài khoản Admin tối cao của Sếp (`admin@micsm
        * `frame-src`: Added `https://*.google.com` to allow safe sandboxed conversion frames.
      - This guarantees 100% telemetry and campaign attribution accuracy without compromising platform security integrity.
 
+## 52. Vietnam Regional CSP Support & Storefront Telemetry Performance Clean (Elite V2.2)
 
+### Diagnostics & Execution
+- **Issue 1 (Vietnam Regional Google Ads Redirection)**: Google Ads and GTM pixel tracking utilize localized endpoints (e.g. `https://www.google.com.vn`) when triggered inside Vietnam. The initial general CSP policy only allowed `*.google.com`, which blocked Vietnam localized domains, throwing console CSP errors on real-world storefront interactions.
+- **Issue 2 (Telemetry Overhead/Code Smell)**: The `Sections.svelte` component had a high-overhead `console.log` wrapping `$state.snapshot(event)` in `handleScanComplete()`. This was serializing huge barcode structures in the client browser on production, creating memory fragmentation and reducing rendering latency.
 
-
-
-
-
+### Resolutions Applied
+1. **CSP Regional Expansion**:
+   - Expanded the Caddyfile `Content-Security-Policy` header to support regional subdomains:
+     * Added `https://*.google.com.vn` and `https://*.google.vn` to `script-src`, `img-src`, `connect-src`, and `frame-src`.
+   - Directly copied the configured `Caddyfile` to the production VPS `/opt/fast-platform/Caddyfile` and hot-reloaded the active Caddy gateway container instantly with zero downtime.
+2. **Telemetry Overhead Cleanup**:
+   - Cleaned up the Svelte storefront by removing the redundant, high-overhead debug `console.log` in `Sections.svelte`.
+   - Directly deployed the optimized Svelte storefront component to the VPS to maximize rendering performance.
 

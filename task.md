@@ -591,6 +591,9 @@
 - [x] Chạy tiến trình kiểm thử tĩnh `pnpm build` của Svelte storefront để đảm bảo zero warnings/errors. (Done)
 - [x] Cập nhật tệp minh chứng kỹ thuật `walkthrough.md` để ghi nhận bằng chứng nghiệm thu thành công. (Done)
 - [x] Khai thông Content Security Policy (CSP) trong Caddyfile để hỗ trợ đầy đủ các kết nối, tập lệnh và pixel từ Google Ads, Tag Manager và Doubleclick. (Done)
+- [x] Mở rộng CSP hỗ trợ các tên miền Google khu vực Việt Nam (`*.google.com.vn`, `*.google.vn`) để xử lý triệt để lỗi chặn redirect/telemetry. (Done)
+- [x] Làm sạch code dư thừa, loại bỏ debug `console.log` có overhead `$state.snapshot` cao tại `Sections.svelte` để nâng cao hiệu năng runtime. (Done)
+
 
 
 
