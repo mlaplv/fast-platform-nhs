@@ -16,6 +16,7 @@
     onMount(() => {
         // Dynamically load vis-network script
         const script = document.createElement('script');
+        script.id = "vis-network-script";
         script.src = "https://unpkg.com/vis-network/standalone/umd/vis-network.min.js";
         script.onload = () => {
             initGraph();
@@ -25,6 +26,17 @@
         return () => {
             if (network) {
                 network.destroy();
+            }
+            // Elite V2.2: Extreme resource discipline - purge DOM script pollution and release heavy global objects
+            const el = document.getElementById("vis-network-script");
+            if (el) el.remove();
+            
+            if ((window as any).vis) {
+                try {
+                    delete (window as any).vis;
+                } catch {
+                    (window as any).vis = undefined;
+                }
             }
         };
     });

@@ -607,6 +607,7 @@
 - [x] Sửa lỗi vi phạm Content Security Policy (CSP) đối với dữ liệu base64 âm thanh/media (`data:audio/wav;base64`) bằng cách bổ sung cấu hình `media-src 'self' data:;` trong `Caddyfile`. (Done)
 - [x] Sửa lỗi vi phạm Content Security Policy (CSP) khi tải thư viện đồ thị liên kết (`unpkg.com`) bằng cách thêm `https://unpkg.com` vào danh sách `script-src` whitelist trong `Caddyfile`. (Done)
 - [x] Sửa lỗi vi phạm Content Security Policy (CSP) đối với các yêu cầu Source Map của vis-network bằng cách bổ sung `https://unpkg.com` vào danh sách `connect-src` whitelist trong `Caddyfile`. (Done)
+- [x] Bổ sung cơ chế dọn dẹp (cleanup) phần tử script và giải phóng đối tượng bộ nhớ `window.vis` khi component `KnowledgeGraphVisualizer.svelte` unmount để tránh rò rỉ bộ nhớ (leak) và tăng hiệu năng ứng dụng SPA. (Done)
 
 
 

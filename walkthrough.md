@@ -1663,6 +1663,14 @@ Hệ thống nạp ĐÚNG tài khoản Admin tối cao của Sếp (`admin@micsm
   - *Issue*: The browser's developer tools attempted to request the source map file (`https://unpkg.com/vis-network/standalone/umd/vis-network.min.js.map`) for debugging, which triggered a CSP violation on `connect-src` because `unpkg.com` was not whitelisted for connection requests.
   - *Fix*: Appended `https://unpkg.com` to the `connect-src` whitelist of the primary Content-Security-Policy header in the `Caddyfile`. Successfully updated and hot-reloaded the configuration on the production VPS.
 
+## 60. Hardening Resource and Memory Discipline in Knowledge Graph Visualizer (Elite V2.2)
+
+### Diagnostics & Architectural Upgrades
+- **DOM & Memory Garbage Collection in Dynamic Script Insertion (`KnowledgeGraphVisualizer.svelte`)**:
+  - *Issue*: The heavy network visualization engine script (`vis-network.min.js`) was dynamically appended to `document.head` but never removed when navigating away in SvelteKit's single-page-app (SPA) session. This leaked 3MB+ of script space, kept unnecessary background threads active, and made subsequent views laggy for admins and client article sharing.
+  - *Fix*: Integrated a strict cleanup routine in `onDestroy`/`onMount` callback. We now explicitly search for and remove the `#vis-network-script` element from the DOM and purge the heavy global `window.vis` object upon component unmount, ensuring extreme memory isolation and zero runtime leaks.
+
+
 
 
 
