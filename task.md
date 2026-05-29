@@ -526,3 +526,24 @@
 - [x] Validate POS integration through custom test runs (`test_skin_barrier.py`), ensuring robust and correct execution. (Done)
 
 
+# Task Checklist - BPS Cross-Module Audit: Promotion, Checkout, Order, Product (Elite V2.2)
+
+- [x] Audit Promotion/Voucher: Xác nhận `value` 0-100 cho PERCENT, `value / 100.0` → đúng, không dính BPS. (Safe)
+- [x] Audit PricingEngine: Gọi `PromotionService.calculate_voucher_discount()` trực tiếp → an toàn. (Safe)
+- [x] Audit Checkout: Không chạm BPS, dùng PricingEngine → an toàn. (Safe)
+- [x] Audit Order Controller: Chỉ hiển thị amount/status → không ảnh hưởng. (Safe)
+- [x] Fix Bug 1: `ProductResponse.ctvRateOverride` luôn `None` do field alias mismatch sau migration → thêm `@model_validator` convert `ctv_rate_override_bps → ctv_rate_override`. (Done)
+- [x] Fix Bug 2: ViralShareBar Desktop + Mobile đọc `commission_rate` (không tồn tại) → sửa thành `commission_rate_bps / 10000`. (Done)
+- [x] Bổ sung `ctvRateOverride` + `ctv_rate_override` vào `Product` interface trong `types.ts`. (Done)
+- [x] Build thành công (`pnpm run build`, Exit 0, 52.49s). (Done)
+- [x] Deploy production VPS `/opt/fast-platform/frontend/dist/` via rsync. (Done)
+
+# Task Checklist - Fixing CTV Commission Display Issue (Elite V2.2)
+
+- [x] Phân tích nguyên nhân và bổ sung map trường `commission_rate` từ `commission_rate_bps` cho `profile.tier` và `profile.tiers` trong `+page.svelte`. (Done)
+- [x] Cập nhật interface `CtvProfile` để khai báo rõ các thuộc tính `commission_rate_bps`, `commission_rate_pct`, và `bonus_rate_bps`. (Done)
+- [x] Sửa lỗi biên dịch 'profile is possibly null' bằng cách sử dụng optional chaining (?.) tại form rút tiền. (Done)
+- [x] Biên dịch thành công toàn bộ tĩnh của Storefront (`dist`) bằng `pnpm run build` với không lỗi. (Done)
+
+
+

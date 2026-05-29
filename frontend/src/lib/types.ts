@@ -506,6 +506,9 @@ export interface Product {
   type: string;
   isAiFeatured: boolean;
   is_ai_featured?: boolean;
+  /** BPS-migrated: backend converts ctv_rate_override_bps → ctv_rate_override (float 0.0-1.0) at schema layer */
+  ctvRateOverride?: number;
+  ctv_rate_override?: number;
   slug: string;
   seoTitle: string | null;
   seoDescription: string | null;

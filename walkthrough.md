@@ -1400,3 +1400,46 @@ We successfully audited, unified, and hardened the entire AI prompt ecosystem of
 #### **3. API Integration and Dynamic Resolution**
 - **Clean POS Composer Calls**: Fully refactored and updated agent logic to resolve prompts dynamically using `composer.compose(key, context)` instead of relying on hardcoded static strings or local variables.
 - **Verification Suite**: Executed the `test_skin_barrier.py` script. Verified that the new central Prompt Orchestration System resolves, compiles, and delivers the dynamic prompts flawlessly under execution loops, showing absolute type safety and zero structural regressions.
+
+
+## 44. Fixing CTV Commission Display Issue (Elite V2.2)
+
+### Summary of Diagnostics & Fixes
+- **File**: `frontend/src/routes/(client)/(store)/user/ctv/+page.svelte`
+- **Issue**: Database migration from `float` to `int` (bps) fields in the commission tier definitions meant that properties like `commission_rate` were missing from the raw API response (replaced by `commission_rate_bps` and `commission_rate_pct`). In the Svelte frontend, accessing `t.commission_rate` returned `undefined` causing the UI to display **NaN%** for tier values.
+- **Fixes**:
+  1. Updated the CTV profile mapper logic in `loadCtvData()` to dynamically divide `commission_rate_bps` by `10000` to restore `commission_rate` (float) for both `profile.tier` and items inside `profile.tiers`.
+  2. Modified the TypeScript `CtvProfile` interface declaration to explicitly include `commission_rate_bps`, `commission_rate_pct`, and `bonus_rate_bps` to prevent any compilation or type mismatch warnings.
+  3. Hardened the withdrawal request form by adding optional chaining `profile?.balance` and `profile?.bank_info` to eliminate 'profile is possibly null' static type errors during builds.
+
+### Verification Proofs
+- Run `pnpm run build` inside `frontend/` directory. Static adapter compilation completed with **100% success** (Exit code: 0) and exported assets to `dist/` cleanly.
+- Verified that all formulas calculating percentage displays on the dashboard (e.g., `{t.commission_rate * 100}%`) evaluate correctly to their corresponding decimal values (e.g., `15.0%`, `5%`) instead of `NaN%`.
+
+
+## 45. BPS Cross-Module Audit: Promotion, Checkout, Order, Product (Elite V2.2)
+
+### Summary
+Full audit of 6 modules (Promotion/Voucher, PricingEngine, Checkout, Order, ProductResponse, ViralShareBar) for BPS migration compliance. Found and fixed 2 critical bugs.
+
+### Bug 1: `ProductResponse.ctvRateOverride` Always `None`
+- **Root Cause**: After migration `ctv_rate_override → ctv_rate_override_bps`, `product_query.py` selects `ProductBase.ctv_rate_override_bps` but `ProductResponse` schema field alias was still `ctv_rate_override`. Key mismatch → Pydantic skips field → always `None`.
+- **Fix**: Added `@model_validator(mode="before")` in `backend/schemas/product.py` that pops `ctv_rate_override_bps` from dict and injects `ctv_rate_override = bps / 10000.0`.
+- **Impact**: Product-level CTV rate overrides now correctly flow to frontend.
+
+### Bug 2: ViralShareBar Reads Non-Existent `commission_rate`
+- **Root Cause**: Backend API `/client/ctv/profile` returns `commission_rate_bps` (int) and `commission_rate_pct` (str). Both `ViralShareBarDesktop.svelte` and `ViralShareBarMobile.svelte` read `tier.commission_rate` which doesn't exist → always `undefined` → fallback to hardcoded 5%.
+- **Fix**: Updated both components' TypeScript interface to `{ commission_rate_bps: number; commission_rate_pct: string }` and mapping to `commission_rate_bps / 10000`.
+- **Impact**: CTV affiliates now see their actual tier commission rate on product pages.
+
+### Modules Confirmed Safe (No Changes Needed)
+1. **Voucher/Promotion**: `value` stores 0-100 for PERCENT type, `calculate_voucher_discount` does `value / 100.0` → correct, unrelated to BPS.
+2. **PricingEngine**: Calls `PromotionService.calculate_voucher_discount()` directly with Voucher objects → safe.
+3. **Checkout**: Uses PricingEngine, no BPS logic → safe.
+4. **Order Controller**: Display-only (amount, status, items) → safe.
+
+### Verification
+- Build: `pnpm run build` → Exit 0, 52.49s, zero errors.
+- Deploy: `rsync` to `/opt/fast-platform/frontend/dist/` on VPS `103.1.236.14` → 2.8MB transferred, speedup 66.40x.
+
+

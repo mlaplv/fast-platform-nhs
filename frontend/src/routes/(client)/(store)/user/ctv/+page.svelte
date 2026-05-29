@@ -38,14 +38,19 @@
     status?: 'ACTIVE' | 'PENDING' | 'SUSPENDED' | 'BANNED' | 'CANCELLED';
     tier?: {
       name: string;
+      commission_rate_bps: number;
+      commission_rate_pct: string;
       commission_rate: number;
       min_revenue_threshold: number;
     };
     tiers?: Array<{
       name: string;
+      commission_rate_bps: number;
+      commission_rate_pct: string;
       commission_rate: number;
       min_revenue_threshold: number;
       bonus_rate: number;
+      bonus_rate_bps: number;
     }>;
     bank_info?: {
       bank?: string;
@@ -136,6 +141,7 @@
           name: tier.name || 'Đồng',
           commission_rate_bps: tier.commission_rate_bps || 1500,
           commission_rate_pct: tier.commission_rate_pct || '15.0%',
+          commission_rate: (tier.commission_rate_bps || 1500) / 10000,
           min_revenue_threshold: tier.min_revenue_threshold || 0,
         },
         tier_name: tier.name || 'Đồng',
@@ -150,6 +156,7 @@
           name: t.name,
           commission_rate_bps: t.commission_rate_bps,
           commission_rate_pct: t.commission_rate_pct,
+          commission_rate: (t.commission_rate_bps || 0) / 10000,
           min_revenue_threshold: t.min_revenue_threshold || 0,
           bonus_rate: (t.bonus_rate_bps || 0) / 10000,
           bonus_rate_bps: t.bonus_rate_bps || 0,
@@ -1451,12 +1458,12 @@
         <div class="bg-stone-50 p-4 rounded-xl space-y-2 border border-stone-100">
           <div class="flex justify-between text-xs text-stone-500">
             <span>Số dư khả dụng:</span>
-            <span class="font-bold font-mono text-stone-850">{formatVnd(profile.balance || 0)}</span>
+            <span class="font-bold font-mono text-stone-850">{formatVnd(profile?.balance || 0)}</span>
           </div>
           <div class="flex justify-between text-xs text-stone-500">
             <span>Ngân hàng nhận:</span>
             {#if profile?.bank_info?.bank}
-              <span class="font-bold text-stone-850">{profile.bank_info.bank} - {profile.bank_info.account_no}</span>
+              <span class="font-bold text-stone-850">{profile?.bank_info?.bank} - {profile?.bank_info?.account_no}</span>
             {:else}
               <span class="text-rose-500 font-bold">Chưa liên kết Bank!</span>
             {/if}
@@ -1470,7 +1477,7 @@
             type="number" 
             bind:value={withdrawAmount}
             min="200000"
-            max={profile.balance || 0}
+            max={profile?.balance || 0}
             step="10000"
             class="w-full bg-white text-stone-900 border border-stone-200 rounded-lg px-3 py-2.5 text-base focus:outline-none focus:border-luxury-copper font-mono font-bold placeholder:text-stone-300"
             required

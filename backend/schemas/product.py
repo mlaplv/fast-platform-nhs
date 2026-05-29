@@ -284,6 +284,17 @@ class ProductResponse(BaseModel):
 
     createdAt: datetime = Field(alias="created_at")
 
+    @model_validator(mode="before")
+    @classmethod
+    def convert_bps_fields(cls, data: object) -> object:
+        """BPS Migration Fix: convert ctv_rate_override_bps (int) → ctv_rate_override (float)
+        sau khi column rename trong v606_financial_hardening_bigint_uuidv7."""
+        if isinstance(data, dict):
+            bps_val = data.pop("ctv_rate_override_bps", None)
+            if bps_val is not None and "ctv_rate_override" not in data:
+                data["ctv_rate_override"] = bps_val / 10000.0
+        return data
+
     @field_validator("id", "categoryId", mode="before")
     @classmethod
     def stringify_ids(cls, v: object) -> Optional[str]:

@@ -128,13 +128,14 @@
         const ctvProfile = await apiClient.get<{ 
           ctv_code?: string; 
           encrypted_code?: string;
-          tier?: { commission_rate: number };
+          tier?: { commission_rate_bps: number; commission_rate_pct: string };
         }>('/client/ctv/profile');
         if (ctvProfile) {
           isCtv = true;
           ctvCode = ctvProfile.encrypted_code || ctvProfile.ctv_code || '';
-          if (ctvProfile.tier?.commission_rate !== undefined) {
-            ctvRate = ctvProfile.tier.commission_rate;
+          // BPS Fix: API trả commission_rate_bps (integer), không phải commission_rate (float)
+          if (ctvProfile.tier?.commission_rate_bps !== undefined) {
+            ctvRate = ctvProfile.tier.commission_rate_bps / 10000;
           }
         }
       } catch (e) {
