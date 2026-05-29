@@ -5,7 +5,7 @@
   import type { Product } from '$lib/types';
   import EditableWrapper from '../../admin/EditableWrapper.svelte';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
 
   let { product: propProduct } = $props<{ product: Product | null }>();
   const shopStore = getShopStore();

@@ -11,7 +11,7 @@
   import Home from "@lucide/svelte/icons/home";
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import Edit3 from "@lucide/svelte/icons/edit-3";
-  import { formatCurrency, formatDate } from "$lib/utils/format.ts";
+  import { formatCurrency, formatDate } from "$lib/utils/format";
   import { goto } from "$app/navigation";
   import { SHOP_CONFIG } from "$lib/constants/shop";
   import { apiClient } from "$lib/utils/apiClient";

@@ -618,6 +618,7 @@
 
 
 
-
-
+- [x] Sửa lỗi runtime `Cannot read properties of undefined (reading 'filter')` khi thực hiện tính toán breakdown tại `checkout/+page.svelte` bằng cách thêm cơ chế phòng thủ null-safety `(cartStore.vouchers || [])` trong khối đồng bộ `$effect.pre`. (Done)
+- [x] Chuẩn hóa kiến trúc module build Svelte 5 / Vite bằng cách loại bỏ triệt để phần mở rộng tệp `.ts` và `.svelte.ts` của các import nội bộ trong: `VerifiedReviews.svelte`, `DiagnosticsSection.svelte`, `OfferCard.svelte`, `ClinicalQuiz.svelte`, `HeroBanner.svelte`, `MobileProductDetailsModal.svelte`, `MobileScience.svelte`, `MobileDiagnostics.svelte`, `GiftModal.svelte`, `pulse.ts`, `supportAgent.svelte.ts`, `nanobot.svelte.ts`, `MobileHero.svelte`, `MobileReviews.svelte`, `MobileVariantTabs.svelte`, `SupportAgentFAB.svelte`, `DesktopProductDetailsModal.svelte`, `ScienceBento.svelte`, `OfferGrid.svelte`, `OfferVoucherSheet.svelte`, `EmotionalIncentive.svelte`, `OfferFomoTimer.svelte`, `MobileGiftModal.svelte`, và `TiptapEditor.svelte`. (Done)
+- [x] Chạy thử nghiệm thành công tiến trình build sản phẩm `npm run build` trên SvelteKit storefront để xác nhận triệt tiêu toàn bộ lỗi Module Resolution và Temporal Dead Zone (TDZ). (Done)
 

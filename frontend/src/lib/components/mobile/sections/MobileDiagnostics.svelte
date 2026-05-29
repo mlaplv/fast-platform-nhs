@@ -30,7 +30,7 @@
   import Shield from "@lucide/svelte/icons/shield";
   import Layers from "@lucide/svelte/icons/layers";
   import { SHOP_CONFIG } from "$lib/constants/shop";
-  import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
+  import { getShopStore } from "$lib/state/commerce/shop.svelte";
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
   import EditableWrapper from "../../admin/EditableWrapper.svelte";
   import { PUBLIC_G_BY_COUNT } from "$env/static/public";

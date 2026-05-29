@@ -1,7 +1,7 @@
 <script lang="ts">
   import { resolveMediaUrl } from '$lib/state/utils';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import { scale, fade } from 'svelte/transition';
   import { portal } from '$lib/core/actions/portal';

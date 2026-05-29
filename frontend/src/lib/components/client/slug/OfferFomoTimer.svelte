@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   const shopStore = getShopStore();
   const timeLeft = $derived(shopStore.timeLeft);

@@ -3,7 +3,7 @@
   import './EmotionalIncentive.css';
   import { fade, fly } from 'svelte/transition';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
 
   const shopStore = getShopStore();

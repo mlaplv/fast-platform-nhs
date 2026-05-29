@@ -4,9 +4,9 @@
   import { fade, fly, scale, blur } from "svelte/transition";
   import { cubicOut, elasticOut, backOut } from "svelte/easing";
   import type { Review, ProductMetadata } from "$lib/types";
-  import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
-  import { getClientUi } from "$lib/state/commerce/ui.svelte.ts";
-  import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex.ts";
+  import { getShopStore } from "$lib/state/commerce/shop.svelte";
+  import { getClientUi } from "$lib/state/commerce/ui.svelte";
+  import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";
   import "./VerifiedReviews.css";
 

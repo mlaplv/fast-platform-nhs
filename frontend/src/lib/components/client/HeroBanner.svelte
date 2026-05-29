@@ -3,7 +3,7 @@
   import { resolveMediaUrl, resolveOptimizedImageUrl } from "$lib/state/utils";
   import { browser } from "$app/environment";
   import "./HeroBanner.css";
-  import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
+  import { getShopStore } from "$lib/state/commerce/shop.svelte";
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
   import { SHOP_CONFIG } from "$lib/constants/shop";
   import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";

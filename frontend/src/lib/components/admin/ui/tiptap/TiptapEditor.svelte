@@ -16,8 +16,8 @@
   import { getNanobot } from '$lib/state/nanobot.svelte';
   import { portal } from '$lib/core/actions/portal';
   import { Z_INDEX_ADMIN } from "$lib/core/constants/z_index_admin";
-  import { createAnnotationManager } from './parts/AnnotationManager.svelte.ts';
-  import { createEditorHandlers } from './parts/EditorHandlers.svelte.ts';
+  import { createAnnotationManager } from './parts/AnnotationManager.svelte';
+  import { createEditorHandlers } from './parts/EditorHandlers.svelte';
   import './TiptapEditor.css';
   import '$lib/styles/neural-highlights.css';
 

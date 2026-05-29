@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade, fly, scale } from "svelte/transition";
   import { quintOut } from "svelte/easing";
-  import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
+  import { getShopStore } from "$lib/state/commerce/shop.svelte";
   import type { QuizQuestion, Product, ProductMetadata } from "$lib/types";
   import QuizIcon from "./QuizIcon.svelte";
   import DiagnosticScanner from "./slug/DiagnosticScanner.svelte";

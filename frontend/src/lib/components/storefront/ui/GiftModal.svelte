@@ -1,8 +1,8 @@
 <script lang="ts">
   import { portal } from "$lib/core/actions/portal";
   import { fade, fly, scale } from "svelte/transition";
-  import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
-  import { getCartStore } from "$lib/state/commerce/cart.svelte.ts";
+  import { getShopStore } from "$lib/state/commerce/shop.svelte";
+  import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import ViralDatePicker from "./ViralDatePicker.svelte";
 

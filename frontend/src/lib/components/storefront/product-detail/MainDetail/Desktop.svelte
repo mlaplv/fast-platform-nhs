@@ -86,6 +86,11 @@
       images: (v.images || []).filter((img): img is string => img !== null),
     })),
   );
+
+  const pVariants = $derived(
+    (product.variants || []).filter((v) => v.is_active !== false),
+  );
+
   let selectedIndices = $state<number[]>([]);
 
   // Synchronize indices synchronously before paint to prevent layout shifts
@@ -121,9 +126,6 @@
     }
   });
 
-  const pVariants = $derived(
-    (product.variants || []).filter((v) => v.is_active !== false),
-  );
   const currentVariant = $derived<ProductVariant | undefined>(
     pVariants.find((v) => {
       const vIndices = v.tierIndex || v.tier_index;

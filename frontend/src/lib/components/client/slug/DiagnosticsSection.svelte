@@ -2,7 +2,7 @@
   import ClinicalQuiz from "$lib/components/client/ClinicalQuiz.svelte";
   import type { QuizQuestion, ProductMetadata, Product } from "$lib/types";
   import { SHOP_CONFIG } from "$lib/constants/shop";
-  import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
+  import { getShopStore } from "$lib/state/commerce/shop.svelte";
   import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";
   import "./DiagnosticsSection.css";
   import "./LiquidEffects.css";

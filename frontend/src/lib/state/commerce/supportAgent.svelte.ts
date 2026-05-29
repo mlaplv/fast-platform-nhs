@@ -1,7 +1,7 @@
 import { apiClient } from "$lib/utils/apiClient";
 import { browser } from "$app/environment";
 import { getNotificationState } from "$lib/state/notification.svelte";
-import { authStore } from "$lib/state/authStore.svelte.ts";
+import { authStore } from "$lib/state/authStore.svelte";
 
 export interface SupportProductInfo {
     id: string;

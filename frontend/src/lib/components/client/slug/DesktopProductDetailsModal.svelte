@@ -7,7 +7,7 @@
   import { portal } from '$lib/core/actions/portal';
   import { fade, scale } from 'svelte/transition';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import InteractiveDashboard from '$lib/components/ui/InteractiveDashboard.svelte';
 

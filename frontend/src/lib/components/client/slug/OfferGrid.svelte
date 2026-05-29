@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
-  import { getClientUi } from '$lib/state/commerce/ui.svelte.ts';
-  import { getCartStore } from '$lib/state/commerce/cart.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
+  import { getClientUi } from '$lib/state/commerce/ui.svelte';
+  import { getCartStore } from '$lib/state/commerce/cart.svelte';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import type { Product, ProductVariant, Voucher } from '$lib/types';

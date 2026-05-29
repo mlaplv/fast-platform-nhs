@@ -9,9 +9,9 @@
   import { Z_INDEX_CLIENT } from "$lib/core/constants/zIndex";
   import { portal } from "$lib/core/actions/portal";
   import InteractiveDashboard from "$lib/components/ui/InteractiveDashboard.svelte";
-  import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
-  import { getCartStore } from "$lib/state/commerce/cart.svelte.ts";
-  import { fomoStore } from "$lib/state/commerce/fomo.svelte.ts";
+  import { getShopStore } from "$lib/state/commerce/shop.svelte";
+  import { getCartStore } from "$lib/state/commerce/cart.svelte";
+  import { fomoStore } from "$lib/state/commerce/fomo.svelte";
   import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
   import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import Droplet from "@lucide/svelte/icons/droplet";

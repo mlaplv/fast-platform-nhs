@@ -7,7 +7,7 @@
   import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";
   import "./MobileScience.css";
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
-  import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
+  import { getShopStore } from "$lib/state/commerce/shop.svelte";
 
   const shopStore = getShopStore();
   const ui = getClientUi();

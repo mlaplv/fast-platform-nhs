@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
   import Sparkles from "@lucide/svelte/icons/sparkles";
   import ShoppingCart from "@lucide/svelte/icons/shopping-cart";
   import CreditCard from "@lucide/svelte/icons/credit-card";

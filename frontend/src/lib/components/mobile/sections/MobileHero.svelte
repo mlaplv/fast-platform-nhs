@@ -10,9 +10,9 @@
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';
   import './MobileHero.css';
   import { resolveMediaUrl, resolveOptimizedImageUrl } from '$lib/state/utils';
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import type { Product, ProductVariant } from '$lib/types';
-  import { fomoStore } from '$lib/state/commerce/fomo.svelte.ts';
+  import { fomoStore } from '$lib/state/commerce/fomo.svelte';
   import MobileVariantTabs from '../MobileVariantTabs.svelte';
   import { formatCurrency } from '$lib/utils/format';
 

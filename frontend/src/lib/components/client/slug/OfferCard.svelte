@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { getShopStore } from "$lib/state/commerce/shop.svelte.ts";
-  import { getCartStore } from "$lib/state/commerce/cart.svelte.ts";
+  import { getShopStore } from "$lib/state/commerce/shop.svelte";
+  import { getCartStore } from "$lib/state/commerce/cart.svelte";
   import { resolveMediaUrl } from "$lib/state/utils";
   import { liveEditStore } from "$lib/state/commerce/liveEdit.svelte";
   import EditableWrapper from "$lib/components/admin/EditableWrapper.svelte";

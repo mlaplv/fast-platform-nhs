@@ -506,10 +506,10 @@
 
   // [ELITE V5.0] Ground Truth Sync: Leverage unified breakdown from CartStore - pre-paint synchronization
   $effect.pre(() => {
-    const shippingVoucherDiscount = cartStore.vouchers
+    const shippingVoucherDiscount = (cartStore.vouchers || [])
       .filter(
         (v) =>
-          cartStore.selectedVoucherIds.includes(v.id) && v.type === "SHIPPING",
+          (cartStore.selectedVoucherIds || []).includes(v.id) && v.type === "SHIPPING",
       )
       .reduce((acc, v) => acc + v.value, 0);
 

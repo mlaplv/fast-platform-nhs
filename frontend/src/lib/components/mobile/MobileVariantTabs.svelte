@@ -1,6 +1,6 @@
 <script lang="ts">
 
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import { getSearchStore } from '$lib/state/commerce/search.svelte';
   import SmartSearchMobile from '$lib/components/storefront/product/SmartSearchMobile.svelte';
 

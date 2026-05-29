@@ -148,7 +148,7 @@ export function createPulseManager(
         }
 
         if (eventName === "MEDIA_ANALYZED") {
-          import("$lib/state/media.svelte.ts").then((module: unknown) => {
+          import("$lib/state/media.svelte").then((module: unknown) => {
             const m = module as { mediaStore?: { handleMediaAnalyzed: (p: unknown) => void } };
             if (m && m.mediaStore) {
                 m.mediaStore.handleMediaAnalyzed(payload);

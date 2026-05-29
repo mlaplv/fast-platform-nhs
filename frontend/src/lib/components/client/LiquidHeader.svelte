@@ -3,7 +3,7 @@
   import { browser } from '$app/environment';
   import Tag from "@lucide/svelte/icons/tag";
   import Sparkles from "@lucide/svelte/icons/sparkles";
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import { spring } from 'svelte/motion';
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
   import EditableWrapper from '$lib/components/admin/EditableWrapper.svelte';

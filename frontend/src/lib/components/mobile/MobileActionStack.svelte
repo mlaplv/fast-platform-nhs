@@ -6,7 +6,7 @@
   import ShieldCheck from "@lucide/svelte/icons/shield-check";
   import { Z_INDEX_CLIENT } from '$lib/core/constants/zIndex';
   import type { Product } from '$lib/types';
-  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte.ts';
+  import { supportAgent } from '$lib/state/commerce/supportAgent.svelte';
 
   interface Props {
     product: Product;

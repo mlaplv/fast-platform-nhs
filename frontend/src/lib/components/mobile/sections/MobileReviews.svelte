@@ -13,7 +13,7 @@
   import Send from "@lucide/svelte/icons/send";
   import CheckCircle2 from "@lucide/svelte/icons/check-circle-2";
   import { liveEditStore } from '$lib/state/commerce/liveEdit.svelte';
-  import { getShopStore } from '$lib/state/commerce/shop.svelte.ts';
+  import { getShopStore } from '$lib/state/commerce/shop.svelte';
   import { SHOP_CONFIG } from '$lib/constants/shop';
   import EditableWrapper from '../../admin/EditableWrapper.svelte';
   import type { Review } from '$lib/types';

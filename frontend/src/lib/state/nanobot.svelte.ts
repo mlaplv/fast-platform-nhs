@@ -9,7 +9,7 @@ import { createVoiceState } from "./voice.svelte";
 import { createUiState } from "./ui.svelte";
 import { createLogState } from "./log.svelte";
 import { createTrainingState } from "./training_state.svelte";
-import { createIntentManager } from "./intent_manager.svelte.ts";
+import { createIntentManager } from "./intent_manager.svelte";
 import { vuiState, vuiController } from "$lib/vui";
 import { permissionState } from "./permissions.svelte";
 import { normalizeVn } from "$lib/utils/text";
@@ -335,7 +335,7 @@ export function createNanobotState() {
         resetVui();
 
         // CNS V82.11: Hard Purge Global Image Store
-        import("$lib/state/xohiImage.svelte.ts").then(({ xohiImageStore }) => {
+        import("$lib/state/xohiImage.svelte").then(({ xohiImageStore }) => {
           if (xohiImageStore && typeof xohiImageStore.clearAll === 'function') {
             xohiImageStore.clearAll();
           }
