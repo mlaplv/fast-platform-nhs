@@ -1,8 +1,9 @@
 <script lang="ts">
-    import Volume2 from "@lucide/svelte/icons/volume-2";
+  import Volume2 from "@lucide/svelte/icons/volume-2";
   import VolumeX from "@lucide/svelte/icons/volume-x";
   import type { Product } from '$lib/types';
   import ShareToUnlockPromoMobile from '../../shared/ShareToUnlockPromoMobile.svelte';
+  import { resolveOptimizedImageUrl } from '$lib/state/utils';
 
   interface Props {
     product: Product;
@@ -66,7 +67,14 @@
             ></video>
           {/if}
         {:else}
-          <img src={img} alt={product.name} class="slide-media" />
+          <img 
+            src={resolveOptimizedImageUrl(img, 600)} 
+            alt={product.name} 
+            class="slide-media" 
+            loading={i === 0 ? "eager" : "lazy"} 
+            fetchpriority={i === 0 ? "high" : "low"}
+            decoding={i === 0 ? "sync" : "async"}
+          />
         {/if}
       </div>
     {/each}
@@ -104,7 +112,13 @@
           </div>
           <div class="viral-badge">Viral</div>
         {:else}
-          <img src={img} alt="{product.name} - Thumbnail {i + 1}" class="w-full h-full object-cover" />
+          <img 
+            src={resolveOptimizedImageUrl(img, 120)} 
+            alt="{product.name} - Thumbnail {i + 1}" 
+            class="w-full h-full object-cover" 
+            loading="lazy"
+            decoding="async"
+          />
         {/if}
       </button>
     {/each}

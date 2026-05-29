@@ -36,6 +36,7 @@
 
   // --- TAB & SCROLL STATE ---
   let activeTab = $state("overview");
+  let loadBelowFold = $state(false);
   let showTabs = $state(false);
   let isScrolled = $state(false);
   let isShrunk = $state(false);
@@ -286,6 +287,19 @@
     
     const handleOpenVerification = () => triggerScan();
     window.addEventListener("openVerificationCenter", handleOpenVerification);
+
+    // Defer dynamic loading of below-the-fold modules to maximize FCP & LCP PageSpeed metrics
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        requestIdleCallback(() => {
+          loadBelowFold = true;
+        });
+      } else {
+        setTimeout(() => {
+          loadBelowFold = true;
+        }, 200);
+      }
+    }
     
     // Modern performant IntersectionObserver to eliminate Layout Thrashing (Reflow) on scroll
     const sections = ["overview", "description", "reviews", "recommendations"];
@@ -347,15 +361,36 @@
     </section>
 
     <section id="description">
-      <ProductMobileSpecs {product} onTriggerScan={triggerScan} />
+      {#if loadBelowFold}
+        <ProductMobileSpecs {product} onTriggerScan={triggerScan} />
+      {:else}
+        <div class="h-[250px] bg-white flex flex-col items-center justify-center text-gray-300 gap-2 border-b border-gray-100">
+          <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+          <span class="text-[10px] font-black tracking-widest uppercase">Đang tải thông số...</span>
+        </div>
+      {/if}
     </section>
 
     <section id="reviews">
-      <ProductMobileReviews {product} />
+      {#if loadBelowFold}
+        <ProductMobileReviews {product} />
+      {:else}
+        <div class="h-[250px] bg-white flex flex-col items-center justify-center text-gray-300 gap-2 border-b border-gray-100">
+          <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+          <span class="text-[10px] font-black tracking-widest uppercase">Đang tải đánh giá...</span>
+        </div>
+      {/if}
     </section>
 
     <section id="recommendations">
-      <ProductMobileRecommendations {relatedProducts} />
+      {#if loadBelowFold}
+        <ProductMobileRecommendations {relatedProducts} />
+      {:else}
+        <div class="h-[250px] bg-white flex flex-col items-center justify-center text-gray-300 gap-2">
+          <div class="w-8 h-8 rounded-full border-2 border-gray-100 animate-spin" style="border-top-color: var(--color-luxury-copper, #C18F7E);"></div>
+          <span class="text-[10px] font-black tracking-widest uppercase">Đang tải gợi ý...</span>
+        </div>
+      {/if}
     </section>
   </div>
 
@@ -371,12 +406,14 @@
   />
 
   <!-- 4. VARIANT SELECTOR -->
-  <ProductMobileVariantSelector
-    {product}
-    show={showVariantSelector}
-    onClose={() => (showVariantSelector = false)}
-    onConfirm={handleVariantConfirm}
-  />
+  {#if showVariantSelector}
+    <ProductMobileVariantSelector
+      {product}
+      show={showVariantSelector}
+      onClose={() => (showVariantSelector = false)}
+      onConfirm={handleVariantConfirm}
+    />
+  {/if}
 
   <!-- 5. VERIFICATION OVERLAYS -->
   {#if isScanning}
