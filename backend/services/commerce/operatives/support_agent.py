@@ -425,7 +425,9 @@ class SupportAgentOperative(BaseAgentOperative):
             repo = SupportKnowledgeRepository(session=db)
             kb_service = SupportKnowledgeService(repo=repo)
             kb_index = await kb_service.get_knowledge_index(db)
-        except: kb_index = ""
+        except Exception as e:
+            logger.warning("[SupportAgent] KnowledgeIndex fetch failed: %s", e)
+            kb_index = ""
 
         # 1.1 Order Draft Hydration
         raw_draft = await xohi_memory.get_order_draft(session_id)
