@@ -1649,6 +1649,14 @@ Hệ thống nạp ĐÚNG tài khoản Admin tối cao của Sếp (`admin@micsm
   - *Issue*: In the previous default-src block, the browser blocked base64 sound data (`data:audio/wav;base64`) because `media-src` was not defined, falling back to `default-src 'self'`. This caused interactive speech responses or notifications to fail.
   - *Fix*: Configured and injected `media-src 'self' data:;` directly inside the primary `Content-Security-Policy` header in the Caddyfile. Successfully reloaded Caddy configs in the production container cluster to whitelist base64 and standard self-hosted media streams securely.
 
+## 58. Whitelisting Unpkg Network Visualization Scripts in Content-Security-Policy (Elite V2.2)
+
+### Diagnostics & Architectural Upgrades
+- **Unpkg Domain Integration in Caddy Edge Router (`Caddyfile`)**:
+  - *Issue*: The network graph component (`vis-network`) loaded dynamically from `https://unpkg.com` was blocked by the browser because the domain was not listed in the CSP `script-src` whitelist.
+  - *Fix*: Whitelisted `https://unpkg.com` within the `script-src` parameter of the primary Content-Security-Policy header in the `Caddyfile`. Successfully synced and reloaded Caddy configs on the VPS to permit the secure delivery of network visualization scripts.
+
+
 
 
 
