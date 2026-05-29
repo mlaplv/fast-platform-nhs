@@ -424,3 +424,14 @@
 - [x] Làm sạch triệt để toàn bộ các tàn dư định tuyến không liên quan trong cổng quản trị: Xóa sổ vĩnh viễn (permanent purge) 5 thư mục route cũ (`brain`, `chat`, `security`, `skills`, `support`) khỏi phân vùng `routes/(admin)`. Chỉ giữ lại duy nhất `/login` (đăng nhập) và `/dashboard` (trang chủ điều khiển trung tâm Dynamic Canvas). (Done)
 - [x] Cập nhật tài liệu `walkthrough.md` làm bằng chứng kỹ thuật đã hoàn thành. (Done)
 
+# Task Checklist - Optimizing Mobile Storefront Layouts (Elite V2.2)
+
+- [x] Áp dụng layout flexbox full-width, tỉ lệ phân bổ đồng đều `flex: 1 1 0%` và co giãn chữ linh hoạt `clamp` trong `MobileServiceIcons.svelte` để triệt tiêu hiện tượng co cụm và đè chữ trên mobile/tablet. (Done)
+- [x] Thay thế logic responsive trong `FooterDesktop.svelte` từ `ui.isMobile` thành `!ui.isDesktop` để kích hoạt chuẩn xác giao diện Accordion trên iPad Air/Pro. (Done)
+- [x] Nâng cấp cấu trúc Accordion trên các dòng máy tính bảng/iPad thành **iPadOS 2026 Premium Liquid Glassmorphic Cards Grid** với gradient 135 độ, độ nhám frosted glass saturation 210% và bo góc mềm mại 20px. (Done)
+- [x] Sửa lỗi ẩn nội dung liên kết (accordion links) khi chạy trên tablet bằng cách thiết lập rõ ràng hiển thị block và tắt giới hạn chiều cao `max-height: none` trong CSS Card. (Done)
+- [x] Triệt tiêu hoàn toàn sự cố hiển thị trùng lặp `contact-bar` di động ở dưới chân trang trên máy tính bảng và màn hình lớn bằng việc ép buộc `@media (min-width: 768px) { display: none !important }`. (Done)
+- [x] Giữ nguyên menu Accordion thu gọn tiện lợi cho điện thoại di động ($< 768$px) để tối ưu không gian cuộn dọc. (Done)
+- [x] Tối ưu hóa padding (`p-4 xl:p-5`) và gap (`gap-4 xl:gap-8`) cho phần liên hệ Desktop để ngăn ngừa layout bị chèn ép trên màn hình 1024px. (Done)
+- [x] Thực hiện static production build thành công 100% không cảnh báo lỗi, rsync đồng bộ tức thì lên VPS để hoạt động trực tiếp. (Done)
+

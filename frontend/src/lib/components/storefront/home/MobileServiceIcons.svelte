@@ -108,28 +108,23 @@
     background: #ffffff;
     /* Ultra-Lean: Reduced bottom padding by another 50% */
     padding: 4px 0 2px;
+    width: 100%;
     overflow: hidden;
   }
 
   .service-scroll-area {
-    display: flex;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    scroll-snap-type: x mandatory;
-    /* Ultra-Lean: Minimal 5px side padding */
-    padding: 0 5px;
-  }
-
-  .service-scroll-area::-webkit-scrollbar {
-    display: none;
+    width: 100%;
+    /* Elegant side padding */
+    padding: 0 6px;
   }
 
   .service-grid {
     display: flex;
-    /* Reduced gap to 2px for ultra-tight spacing */
+    width: 100%;
+    justify-content: space-between;
+    align-items: flex-start;
+    /* Precise 2px gap to fit tightly on smallest viewports */
     gap: 2px;
-    padding: 0 5px;
   }
 
   .service-item {
@@ -142,7 +137,8 @@
     cursor: pointer;
     /* Ultra-Lean: No bottom padding */
     padding: 6px 0 0;
-    scroll-snap-align: start;
+    flex: 1 1 0%;
+    min-width: 0;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
@@ -196,18 +192,22 @@
   }
 
   .service-label {
-    font-size: 10px;
+    /* Responsive font-size using clamp to dynamically shrink text on tiny viewports, preventing overflows */
+    font-size: clamp(8px, 2.3vw, 10px);
     color: #444;
     /* Not bold, lowercase only as requested */
     font-weight: 500;
     text-align: center;
-    line-height: 1.1;
+    line-height: 1.15;
     width: 100%;
-    height: 2.2em; 
+    height: 2.3em; 
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    /* Prevent character-breaking for a premium appearance */
+    overflow-wrap: break-word;
+    word-break: break-word;
     /* Force 0 padding bottom as requested */
     padding-bottom: 0;
   }

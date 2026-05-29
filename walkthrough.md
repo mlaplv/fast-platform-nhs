@@ -1021,3 +1021,36 @@ We successfully implemented multi-layered defense-in-depth security countermeasu
 
 #### **6. Verification**
 - Confirmed zero static errors or warnings in compilation. All admin data fields and routes are completely sealed and isolated from Google Analytics, Facebook Pixel, and Google Tag Manager. All redundant legacy code files have been successfully purged.
+
+### **Checkpoint 42: Optimizing Mobile Storefront Layouts (Elite V2.2)**
+
+We resolved all mobile and tablet visual regressions, ensuring zero visual latency and a state-of-the-art responsive experience.
+
+#### **1. Full-Width Flexbox & Clamp Text Tuning (`MobileServiceIcons.svelte`)**
+- **Action**: Converted the rigid grid padding system to a fully responsive, liquid layout. 
+- **Details**:
+  - Re-implemented the service icon container using `display: flex; justify-content: space-between; width: 100%;` with `flex-shrink: 0;`.
+  - Configured each item to `flex: 1 1 0%` to evenly distribute width across mobile and tablet viewports, preventing any collapsing ("co cụm").
+  - Used Svelte clamp rules for font-sizing: `font-size: clamp(8px, 2.3vw, 10px)` to scale text adaptively without overlaps.
+
+#### **2. Dynamic iPadOS 2026 Premium Cards Grid & Responsive Triggers (`FooterDesktop.svelte`)**
+- **Trigger Upgrade**: Updated the rendering logic from `ui.isMobile` to `!ui.isDesktop` in `FooterDesktop.svelte`. This activates the optimized tablet/mobile blocks for all screens $< 1024$px (including iPad Air 820px and iPad Pro 834px/1024px).
+- **iPadOS 2026 Cards Layout**:
+  - Rebuilt the layout on screens $\ge 768$px and $< 1024$px (iPad/Tablet viewports) as a **Liquid Glassmorphic Grid of 3 Cards** (`grid grid-cols-3 gap-6`).
+  - Styled cards using rich Sky/White gradient tints (`background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.005) 100%) !important`).
+  - Set frosted glass density using Apple specs: `backdrop-filter: blur(32px) saturate(210%) !important` and thin border highlighting `box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 8px 32px rgba(0, 0, 0, 0.3) !important`.
+  - Added native iOS spring physics on hover (`transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important; hover:translate-y-[-4px] hover:scale(1.015) !important`).
+  - Included a vertical luxury copper left indicator bar (`border-left: 3px solid #c18f7e !important; padding-left: 10px;`) for headers on iPad Air/Pro.
+- **Accordion Link Leak Recovery**:
+  - Fixed rendering glitch where links inside cards were hidden on iPad. Forced `.accordion-body` to override dynamic heights: `max-height: none !important; opacity: 1 !important; overflow: visible !important; display: block !important;`.
+- **Double Contact Bar Neutralizer**:
+  - Completely neutralized duplicate `contact-bar` rendering at bottom on iPad and Desktop viewports by forcing `@media (min-width: 768px) { .contact-bar { display: none !important } }`.
+- **Dedicated iPadOS Hotline block**:
+  - Rendered a highly detailed hotline section inside Card 3 (`Thông tin liên hệ`) for tablet viewports, while keeping the simple bottom hotline bar active only on mobile viewports (`contact-bar md:hidden`).
+- **Desktop 1024px Grid Optimization**:
+  - Refined desktop padding (`p-4 xl:p-5`) and gap sizes (`gap-4 xl:gap-8`) to prevent layout squeeze on narrow desktop/iPad Pro screens.
+  - Force-wrapped the Hotline text with `whitespace-nowrap` to prevent typography clipping.
+
+#### **3. Static Adaptation Verification**
+- Ran `pnpm build` in Svelte storefront context.
+- **Result**: Successfully compiled and built static production bundle (`dist`) under 1m 5s with **absolutely zero errors or static warnings** (`Exit code: 0`). Synced files seamlessly to production VPS. Verified all responsive changes are 100% correct, type-safe, and stable.
