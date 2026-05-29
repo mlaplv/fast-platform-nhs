@@ -75,7 +75,7 @@ from backend.controllers.client.news import PublicNewsController
 from backend.controllers.client.user import ClientUserController
 from backend.controllers.client.settings import ClientSettingsController
 from backend.controllers.client.notifications import ClientNotificationController
-from backend.controllers.client.seo import PublicSeoController, PublicGoogleMerchantController
+from backend.controllers.client.seo import PublicSeoController, PublicGoogleMerchantController, PublicCrawlerSeoController
 from backend.controllers.admin_support import AdminSupportController
 from backend.controllers.admin_support_inbox import AdminSupportInboxController
 from backend.controllers.review import AdminReviewController
@@ -191,6 +191,7 @@ client_routes = [
     ViralController,
     BarcodeController,
     ClientCtvController,
+    PublicCrawlerSeoController,
 ]
 
 public_routes = [

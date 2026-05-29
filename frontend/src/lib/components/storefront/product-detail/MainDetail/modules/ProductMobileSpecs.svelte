@@ -800,11 +800,6 @@
     margin-top: 1rem !important;
     margin-bottom: 0.3rem !important;
     line-height: 1.3 !important;
-    text-transform: lowercase !important;
-  }
-
-  :global(.prose-osmo h2::first-letter, .prose-osmo h3::first-letter) {
-    text-transform: uppercase !important;
   }
 
   :global(.prose-osmo ul) {

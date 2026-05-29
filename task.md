@@ -571,6 +571,29 @@
 - [x] Refactor `ViralFunnelLanding.svelte` (Landing Page component) để đồng bộ hóa hoàn toàn với logic 80% đúng từ `MainDetail`, giải quyết triệt để lỗi hiển thị `0%` cho Landing Page. (Done)
 - [x] Cập nhật đầy đủ tài liệu minh chứng `walkthrough.md` với các thay đổi và cấu trúc của task này. (Done)
 
+# Task Checklist - Fixing Social Media Share Preview Mismatch (Elite V2.2)
+
+- [x] Phân tích lý do Facebook/Zalo crawler không hiển thị thông tin xem trước (preview) thực tế: Do hệ thống storefront sử dụng `adapter-static` kết hợp SPA thuần, không chạy tiến trình Node.js SSR, khiến các bot crawler (vốn không chạy javascript client) chỉ nhận được file `index.html` rỗng tuếch không có các thẻ Open Graph (OG) tương ứng. (Done)
+- [x] Thiết lập bộ lọc chặn bots `@social_bots` (sử dụng `header_regexp` để khớp chuỗi con không phân biệt chữ hoa chữ thường với các bot của Facebook, Zalo, Google, Twitter, Slack...) ngay từ tầng reverse proxy `Caddyfile`. (Done)
+- [x] Cấu hình rewrite và proxy ngược toàn bộ yêu cầu của bots về phía Backend Python Litestar thông qua endpoint `/seo-render?url=...`. (Done)
+- [x] Xây dựng bộ điều phối SEO động `PublicCrawlerSeoController` (`/seo-render`) trong `backend/controllers/client/seo.py` để tự động truy vấn DB nạp thông tin chi tiết của sản phẩm (bao gồm funnel) hoặc bài viết tin tức dựa trên slug trích xuất từ URL. (Done)
+- [x] Tự động nạp cấu hình toàn cục `primary_config` từ bảng `SystemSetting` làm fallback (tên cửa hàng, ảnh đại diện mặc định, mô tả mặc định) trong trường hợp không khớp sản phẩm/bài viết cụ thể. (Done)
+- [x] Trả về mã nguồn HTML tĩnh được điền đầy đủ các thẻ meta Open Graph (`og:title`, `og:description`, `og:image`, `og:url`...) và Twitter cards chuẩn chỉnh, giúp tối ưu hóa hiển thị xem trước 100% trên thực tế mà không hao tốn tài nguyên RAM chạy SSR. (Done)
+- [x] Khai báo và đăng ký controller mới `PublicCrawlerSeoController` vào `backend/main.py`. (Done)
+- [x] Cập nhật tài liệu minh chứng `walkthrough.md` với toàn bộ luồng kỹ thuật đỉnh cao này. (Done)
+
+# Task Checklist - Storefront Prose-Osmo Sentence-Case & SQL Index Optimization (Elite V2.2)
+
+- [x] Chuẩn hóa Typography "Elite V2.2" bằng cách loại bỏ triệt để các thuộc tính `text-transform: lowercase` và `::first-letter { text-transform: uppercase }` lỗi thời tại các file Svelte storefront. (Done)
+- [x] Bổ sung chỉ mục `index=True` cho `Article.slug` và `Category.slug` trong `backend/database/models/content.py`. (Done)
+- [x] Khởi tạo kịch bản di cư Alembic tự động cho các chỉ mục slug mới. (Done)
+- [x] Áp dụng các thay đổi database và kiểm tra trạng thái chỉ mục trong Postgres DB. (Done)
+- [x] Chạy tiến trình kiểm thử tĩnh `pnpm build` của Svelte storefront để đảm bảo zero warnings/errors. (Done)
+- [x] Cập nhật tệp minh chứng kỹ thuật `walkthrough.md` để ghi nhận bằng chứng nghiệm thu thành công. (Done)
+- [x] Khai thông Content Security Policy (CSP) trong Caddyfile để hỗ trợ đầy đủ các kết nối, tập lệnh và pixel từ Google Ads, Tag Manager và Doubleclick. (Done)
+
+
+
 
 
 

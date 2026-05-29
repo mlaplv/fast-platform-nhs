@@ -91,6 +91,7 @@
 
   let codeCopied = $state(false);
   let errorMsg = $state('');
+  let activePlatform = $state<string>('facebook');
 
   // Viral 2026 Telemetry State
   let shareStartTime = $state<number>(0);
@@ -276,8 +277,9 @@
   });
 
   const viralActions = {
-    async share() {
+    async share(platform: string = 'facebook') {
       if (step !== 'idle' && step !== 'error') return;
+      activePlatform = platform;
       step = 'sharing';
       startProgress();
       
@@ -323,7 +325,15 @@
             const left = (window.innerWidth / 2) - (w / 2);
             const top = (window.innerHeight / 2) - (h / 2);
             const cleanUrl = window.location.origin + window.location.pathname;
-            const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(cleanUrl)}`;
+            
+            const encodedUrl = encodeURIComponent(cleanUrl);
+            const platforms: Record<string, string> = {
+              facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+              zalo: `https://sp.zalo.me/plugins/share?url=${encodedUrl}`,
+              twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(product.name)}`,
+              tiktok: `https://www.tiktok.com/`
+            };
+            const shareUrl = platforms[platform] || platforms['facebook'];
             
             // Clean up old listeners before creating new ones
             cleanupFocusListeners();
@@ -597,7 +607,7 @@
           <Zap size={28} class="viral-zap-anim text-[#ee4d2d]" />
         </div>
         <h3 class="viral-title">
-          {step === 'sharing' ? 'Đang kết nối Facebook...' : 'AI đang xác minh lượt chia sẻ'}
+          {step === 'sharing' ? `Đang kết nối ${activePlatform === 'zalo' ? 'Zalo' : activePlatform === 'tiktok' ? 'TikTok' : 'Facebook'}...` : 'AI đang xác minh lượt chia sẻ'}
         </h3>
         <p class="viral-step">{verificationText}</p>
         

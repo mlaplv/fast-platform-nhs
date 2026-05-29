@@ -14,7 +14,7 @@ class Category(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     name: Mapped[str] = mapped_column(String)
-    slug: Mapped[str] = mapped_column(String)
+    slug: Mapped[str] = mapped_column(String, index=True)
     parent_id: Mapped[Optional[str]] = mapped_column(String, sa.ForeignKey('categories.id'))
     parent: Mapped[Optional["Category"]] = relationship("Category", back_populates="children", remote_side=[id])
     children: Mapped[List["Category"]] = relationship("Category", back_populates="parent")
@@ -41,7 +41,7 @@ class Article(Base, AuditMixin, SoftDeleteMixin, TenantMixin):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=new_id_default)
     title: Mapped[str] = mapped_column(String)
-    slug: Mapped[str] = mapped_column(String)
+    slug: Mapped[str] = mapped_column(String, index=True)
     excerpt: Mapped[Optional[str]] = mapped_column(String)
     content: Mapped[Optional[str]] = mapped_column(Text)
     seo_title: Mapped[Optional[str]] = mapped_column(String)

@@ -340,3 +340,172 @@ class PublicGoogleMerchantController(Controller):
             }
         }
 
+
+from urllib.parse import urlparse
+
+class PublicCrawlerSeoController(Controller):
+    """Elite V2.2: Dynamic SEO Prerender Controller for Social Bots.
+    
+    Intercepts Facebook, Zalo, Google, and other bots to serve complete,
+    hydrated Open Graph/Twitter HTML previews for a purely static/SPA frontend.
+    """
+    path = "/seo-render"
+
+    @route(["", "/"], http_method=["GET"], media_type=MediaType.HTML)
+    async def render_crawler_page(
+        self,
+        db_session: AsyncSession,
+        url: str = "",
+    ) -> Response:
+        """Hydrates product, article, or shop settings into clean HTML with full meta tags."""
+        from backend.database.models import SystemSetting
+        
+        # 1. Fetch Primary Config to get global defaults
+        stmt = select(SystemSetting).where(SystemSetting.key == "primary_config")
+        result = await db_session.execute(stmt)
+        setting = result.scalar_one_or_none()
+        
+        site_name = "osmo Elite"
+        default_logo = "https://osmo.vn/favicon.svg"
+        default_desc = "Nền tảng mỹ phẩm Elite hàng đầu Việt Nam."
+        
+        if setting and setting.value:
+            basic_info = setting.value.get("basic_info", {})
+            site_name = basic_info.get("site_name") or site_name
+            default_logo = basic_info.get("logo_desktop") or default_logo
+            default_desc = basic_info.get("description") or default_desc
+
+        if default_logo.startswith("/"):
+            default_logo = f"https://osmo.vn{default_logo}"
+
+        # 2. Parse path and determine page type
+        parsed = urlparse(url)
+        path = parsed.path.strip("/")
+        
+        title = site_name
+        description = default_desc
+        image = default_logo
+        og_type = "website"
+        price_meta = ""
+        
+        # 3. Resolve path to Product or Article
+        if path:
+            if path.endswith(".html"):
+                # Article path, e.g. "tin-tuc-beppin-body.html"
+                art_slug = path[:-5]
+                art_stmt = select(Article).where(Article.slug == art_slug).where(Article.status == "PUBLISHED")
+                art_res = await db_session.execute(art_stmt)
+                article = art_res.scalar_one_or_none()
+                if article:
+                    title = article.title
+                    description = article.excerpt or article.description or default_desc
+                    og_type = "article"
+                    if article.featured_image:
+                        image = article.featured_image
+            else:
+                # Product or Funnel path
+                prod_slug = path
+                is_funnel = False
+                if prod_slug.endswith("-funnel"):
+                    prod_slug = prod_slug[:-7]
+                    is_funnel = True
+                    
+                prod_stmt = select(ProductBase).where(ProductBase.slug == prod_slug).where(ProductBase.status == "ACTIVE").where(ProductBase.deleted_at == None)
+                prod_res = await db_session.execute(prod_stmt)
+                product = prod_res.scalar_one_or_none()
+                if product:
+                    title = f"{product.name} | {site_name}" if is_funnel else product.name
+                    raw_desc = product.short_description or product.description or default_desc
+                    description = re.sub(r'<[^>]+>', '', raw_desc)
+                    og_type = "product"
+                    
+                    if product.images and len(product.images) > 0:
+                        image = product.images[0]
+                    
+                    price = product.discount_price if product.discount_price and product.discount_price < product.price else product.price
+                    price_meta = (
+                        f'<meta property="product:price:amount" content="{int(price)}">\n'
+                        f'<meta property="product:price:currency" content="VND">\n'
+                        f'<meta property="product:availability" content="{"instock" if product.stock > 0 else "outofstock"}">\n'
+                    )
+
+        # 4. Clean and normalize inputs
+        if image.startswith("/"):
+            image = f"https://osmo.vn{image}"
+            
+        description = re.sub(r'\s+', ' ', description).strip()
+        if len(description) > 200:
+            description = description[:197] + "..."
+
+        # Escape helper
+        def _escape_html(s: str) -> str:
+            return (
+                s.replace("&", "&amp;")
+                 .replace("<", "&lt;")
+                 .replace(">", "&gt;")
+                 .replace('"', "&quot;")
+                 .replace("'", "&apos;")
+            )
+
+        title_esc = _escape_html(title)
+        desc_esc = _escape_html(description)
+        img_esc = _escape_html(image)
+        url_esc = _escape_html(url)
+        site_name_esc = _escape_html(site_name)
+
+        # 4.5. Retrieve and escape Facebook App ID (FACEBOOK_CLIENT_ID)
+        fb_app_id = os.getenv("FACEBOOK_CLIENT_ID", "")
+        fb_app_id_meta = ""
+        if fb_app_id:
+            fb_app_id_esc = _escape_html(fb_app_id)
+            fb_app_id_meta = f'<meta property="fb:app_id" content="{fb_app_id_esc}">\n'
+
+        # 5. Render beautiful static preview HTML for bots
+        html_content = f"""<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>{title_esc}</title>
+    <meta name="description" content="{desc_esc}">
+    <link rel="canonical" href="{url_esc}">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    {fb_app_id_meta}    <meta property="og:type" content="{og_type}">
+    <meta property="og:title" content="{title_esc}">
+    <meta property="og:description" content="{desc_esc}">
+    <meta property="og:image" content="{img_esc}">
+    <meta property="og:image:secure_url" content="{img_esc}">
+    <meta property="og:image:type" content="image/jpeg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="{title_esc}">
+    <meta property="og:url" content="{url_esc}">
+    <meta property="og:site_name" content="{site_name_esc}">
+    <meta property="og:locale" content="vi_VN">
+    {price_meta}
+    
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{title_esc}">
+    <meta name="twitter:description" content="{desc_esc}">
+    <meta name="twitter:image" content="{img_esc}">
+</head>
+<body>
+    <article style="max-width: 600px; margin: 40px auto; font-family: sans-serif; padding: 20px; line-height: 1.6;">
+        <h1 style="font-size: 28px; margin-bottom: 20px;">{title_esc}</h1>
+        <img src="{img_esc}" alt="{title_esc}" style="width: 100%; height: auto; margin-bottom: 20px; border-radius: 8px;">
+        <p style="font-size: 16px; color: #333;">{desc_esc}</p>
+    </article>
+</body>
+</html>"""
+
+        return Response(
+            content=html_content,
+            media_type=MediaType.HTML,
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "X-Robots-Tag": "index, follow",
+            }
+        )
+

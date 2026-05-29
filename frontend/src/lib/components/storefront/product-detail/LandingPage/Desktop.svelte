@@ -726,11 +726,6 @@
     font-weight: 800 !important;
     margin-top: 2rem !important;
     margin-bottom: 1rem !important;
-    text-transform: lowercase !important;
-  }
-
-  :global(.prose-osmo h2::first-letter, .prose-osmo h3::first-letter) {
-    text-transform: uppercase !important;
   }
   :global(.prose-osmo img) {
     width: 100% !important;

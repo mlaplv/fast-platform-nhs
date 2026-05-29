@@ -1,111 +1,121 @@
 (service_proxy) {
-    reverse_proxy api:8000 {
-        flush_interval -1
-        header_up X-Real-IP {remote_host}
-    }
+	reverse_proxy api:8000 {
+		flush_interval -1
+		header_up X-Real-IP {remote_host}
+	}
 }
 
 (security_headers) {
-    header {
-        X-Content-Type-Options nosniff
-        X-Frame-Options SAMEORIGIN
-        Referrer-Policy strict-origin-when-cross-origin
-        Permissions-Policy "camera=(), microphone=(self), geolocation=(), interest-cohort=()"
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://*.facebook.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*.google-analytics.com https://*.doubleclick.net https://*.facebook.com https://*.osmo.vn https://osmo.vn; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.g.doubleclick.net https://*.facebook.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://*.doubleclick.net https://*.facebook.com; object-src 'none';"
-        -Server
-    }
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(self), geolocation=(), interest-cohort=()"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.googletagmanager.com https://connect.facebook.net https://*.facebook.net https://*.doubleclick.net https://*.googleadservices.com https://*.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://*.google-analytics.com https://*.doubleclick.net https://*.facebook.com https://*.osmo.vn https://osmo.vn https://*.google.com https://*.googleadservices.com; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.g.doubleclick.net https://*.facebook.com https://*.google.com https://*.googleadservices.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' https://*.doubleclick.net https://*.facebook.com https://*.google.com; object-src 'none';"
+		-Server
+	}
 }
 
 # Explicit HTTP Block to prevent ACME redirect loops and boost TLS bootstrapping
 http://{$APP_DOMAIN}, http://{$ADMIN_DOMAIN}, http://{$API_DOMAIN} {
-    # Let Caddy's internal ACME solver handle HTTP challenge on port 80 directly
-    @acme path /.well-known/acme-challenge/*
-    handle @acme {
-        # Fallback to bypass redirection
-    }
+	# Let Caddy's internal ACME solver handle HTTP challenge on port 80 directly
+	@acme path /.well-known/acme-challenge/*
+	handle @acme {
+		# Fallback to bypass redirection
+	}
 
-    # Redirect all other HTTP traffic to HTTPS
-    handle {
-        redir https://{host}{uri} permanent
-    }
+	# Redirect all other HTTP traffic to HTTPS
+	handle {
+		redir https://{host}{uri} permanent
+	}
 }
 
 https://{$APP_DOMAIN}, https://{$ADMIN_DOMAIN}, https://{$API_DOMAIN} {
-    # tls internal  # removed to allow ACME automatic certificates
-    import security_headers
+	# tls internal  # removed to allow ACME automatic certificates
+	import security_headers
 
-    # Serve dynamic/static assets directly from static folder for all domains (Elite V2.2)
-    @dynamic_assets path /uploads/* /v65_assets/* /avatars/*
-    handle @dynamic_assets {
-        root * /app/frontend/static
-        header Cache-Control "public, max-age=31536000"
-        file_server
-    }
+	# Elite V2.2: Dynamic Rendering for SPA SEO (Social Preview & Bot hydration)
+	# Intercepts crawlers requesting storefront pages and routes them to python pre-renderer
+	@social_bots {
+		header_regexp User-Agent (?i)(facebookexternalhit|facebot|zalobot|twitterbot|slackbot|googlebot|bingbot)
+		host {$APP_DOMAIN}
+		not path /api/* /sitemap.xml /google-merchant.xml* /ws/* /uploads/* /v65_assets/* /avatars/*
+	}
+	handle @social_bots {
+		rewrite * /seo-render?url=https://{host}{uri}
+		import service_proxy
+	}
 
-    # Compression logic (Exclude SSE, WS, and streaming endpoints)
-    @encodable {
-        not header Content-Type text/event-stream
-        not path /api/v1/*/stream*
-        not path /ws/*
-    }
-    
-    encode @encodable zstd gzip
+	# Serve dynamic/static assets directly from static folder for all domains (Elite V2.2)
+	@dynamic_assets path /uploads/* /v65_assets/* /avatars/*
+	handle @dynamic_assets {
+		root * /app/frontend/static
+		header Cache-Control "public, max-age=31536000"
+		file_server
+	}
 
-    # Backend Routes (Unified)
-    handle /api/* {
-        import service_proxy
-    }
+	# Compression logic (Exclude SSE, WS, and streaming endpoints)
+	@encodable {
+		not header Content-Type text/event-stream
+		not path /api/v1/*/stream*
+		not path /ws/*
+	}
 
-    handle /sitemap.xml {
-        import service_proxy
-    }
+	encode @encodable zstd gzip
 
-    handle /google-merchant.xml* {
-        import service_proxy
-    }
+	# Backend Routes (Unified)
+	handle /api/* {
+		import service_proxy
+	}
 
-    handle /ws/* {
-        import service_proxy
-    }
+	handle /sitemap.xml {
+		import service_proxy
+	}
 
-    # Frontend Routing (Only for main and admin domains)
-    # Serves precompiled static files directly with high-performance Brotli and Gzip compression
-    @frontend_host host {$APP_DOMAIN} {$ADMIN_DOMAIN}
-    handle @frontend_host {
-        root * /app/frontend/dist
-        
-        # Match immutable assets compiled by SvelteKit
-        @immutable path /_app/immutable/*
-        header @immutable Cache-Control "public, max-age=31536000, immutable"
-        
-        # Match other static assets (wasm, js, images, etc.) but exclude index.html to ensure quick updates
-        @cacheable {
-            path *.js *.css *.png *.jpg *.jpeg *.gif *.svg *.ico *.woff *.woff2 *.wasm *.json
-            not path /index.html
-        }
-        header @cacheable Cache-Control "public, max-age=31536000"
+	handle /google-merchant.xml* {
+		import service_proxy
+	}
 
-        file_server {
-            precompressed br gzip
-        }
-        try_files {path} /index.html
-    }
+	handle /ws/* {
+		import service_proxy
+	}
 
-    # Fallback for API_DOMAIN (proxy everything to backend if not caught by /api/*)
-    @api_host host {$API_DOMAIN}
-    handle @api_host {
-        import service_proxy
-    }
+	# Frontend Routing (Only for main and admin domains)
+	# Serves precompiled static files directly with high-performance Brotli and Gzip compression
+	@frontend_host host {$APP_DOMAIN} {$ADMIN_DOMAIN}
+	handle @frontend_host {
+		root * /app/frontend/dist
 
-    # Logs with Rotation (Elite V2.2: Hardened logging)
-    log {
-        output file /var/log/caddy/access.log {
-            roll_size 10mb
-            roll_keep 5
-            roll_keep_for 720h
-        }
-    }
+		# Match immutable assets compiled by SvelteKit
+		@immutable path /_app/immutable/*
+		header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+		# Match other static assets (wasm, js, images, etc.) but exclude index.html to ensure quick updates
+		@cacheable {
+			path *.js *.css *.png *.jpg *.jpeg *.gif *.svg *.ico *.woff *.woff2 *.wasm *.json
+			not path /index.html
+		}
+		header @cacheable Cache-Control "public, max-age=31536000"
+
+		file_server {
+			precompressed br gzip
+		}
+		try_files {path} /index.html
+	}
+
+	# Fallback for API_DOMAIN (proxy everything to backend if not caught by /api/*)
+	@api_host host {$API_DOMAIN}
+	handle @api_host {
+		import service_proxy
+	}
+
+	# Logs with Rotation (Elite V2.2: Hardened logging)
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 10mb
+			roll_keep 5
+			roll_keep_for 720h
+		}
+	}
 }
-
-

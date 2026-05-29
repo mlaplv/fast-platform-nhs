@@ -189,11 +189,6 @@
     margin-top: 2.5rem;
     margin-bottom: 1.25rem;
     letter-spacing: -0.025em;
-    text-transform: lowercase !important;
-  }
-
-  :global(.prose-osmo h2::first-letter) {
-    text-transform: uppercase !important;
   }
 
   :global(.prose-osmo p) {

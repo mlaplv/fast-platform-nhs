@@ -741,15 +741,10 @@
   :global(.prose-osmo h2, .prose-osmo h3) {
     color: #6b7280 !important;
     font-weight: 800 !important;
-    margin-top: 2rem !important;
+    margin-top: 0.5rem !important;
     margin-bottom: 1rem !important;
     font-family: inherit !important;
-    text-transform: lowercase !important;
     letter-spacing: -0.025em;
-  }
-
-  :global(.prose-osmo h2::first-letter, .prose-osmo h3::first-letter) {
-    text-transform: uppercase !important;
   }
 
   :global(.prose-osmo h2) {

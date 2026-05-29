@@ -527,11 +527,6 @@
     margin-top: 1rem !important;
     margin-bottom: 0.75rem !important;
     letter-spacing: -0.02em !important;
-    text-transform: lowercase !important;
-  }
-
-  :global(.prose-osmo h2::first-letter, .prose-osmo h3::first-letter) {
-    text-transform: uppercase !important;
   }
 
   /* Google SGE Highlights Styling (GEO 2026) */

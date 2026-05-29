@@ -103,6 +103,7 @@
 
   let codeCopied = $state(false);
   let errorMsg = $state('');
+  let activePlatform = $state<string>('facebook');
 
   // Viral 2026 Telemetry State
   let shareStartTime = $state<number>(0);
@@ -308,8 +309,9 @@
   });
 
   const viralActions = {
-    async share() {
+    async share(platform: string = 'facebook') {
       if (step !== 'idle' && step !== 'error') return;
+      activePlatform = platform;
       step = 'sharing';
       startProgress();
       
@@ -352,7 +354,15 @@
             const left = (window.innerWidth / 2) - (w / 2);
             const top = (window.innerHeight / 2) - (h / 2);
             const cleanUrl = window.location.origin + window.location.pathname;
-            const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(cleanUrl)}`;
+            
+            const encodedUrl = encodeURIComponent(cleanUrl);
+            const platforms: Record<string, string> = {
+              facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+              zalo: `https://sp.zalo.me/plugins/share?url=${encodedUrl}`,
+              twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(product.name)}`,
+              tiktok: `https://www.tiktok.com/`
+            };
+            const shareUrl = platforms[platform] || platforms['facebook'];
             
             const popup = window.open(shareUrl, 'Share', `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${w}, height=${h}, top=${top}, left=${left}`);
             
@@ -579,9 +589,9 @@
                 <span>{formatViralCount(likeCount)}</span>
               </button>
               <div class="stp-f-divider"></div>
-              <button class="stp-f-social-btn" onclick={viralActions.share} aria-label="Share on Facebook"><Facebook size={16} /></button>
-              <button class="stp-f-social-btn" onclick={() => shareToPlatform('zalo', window.location.href, product.name)} aria-label="Share on Zalo"><span class="text-[9px] font-black italic">Zalo</span></button>
-              <button class="stp-f-social-btn" onclick={() => shareToPlatform('tiktok', window.location.href, product.name)} aria-label="Share on TikTok"><span class="text-[9px] font-black italic">TikTok</span></button>
+              <button class="stp-f-social-btn" onclick={() => viralActions.share('facebook')} aria-label="Share on Facebook"><Facebook size={16} /></button>
+              <button class="stp-f-social-btn" onclick={() => viralActions.share('zalo')} aria-label="Share on Zalo"><span class="text-[9px] font-black italic">Zalo</span></button>
+              <button class="stp-f-social-btn" onclick={() => viralActions.share('tiktok')} aria-label="Share on TikTok"><span class="text-[9px] font-black italic">TikTok</span></button>
               <button class="stp-f-social-btn" onclick={copyCode} aria-label="Copy code"><Copy size={14} /></button>
             </div>
             <div class="stp-funnel-row">
@@ -613,7 +623,7 @@
           <Zap size={28} class="viral-zap-anim text-[#ee4d2d]" />
         </div>
         <h3 class="viral-title">
-          {step === 'sharing' ? 'Đang kết nối Facebook...' : 'AI đang xác minh lượt chia sẻ'}
+          {step === 'sharing' ? `Đang kết nối ${activePlatform === 'zalo' ? 'Zalo' : activePlatform === 'tiktok' ? 'TikTok' : 'Facebook'}...` : 'AI đang xác minh lượt chia sẻ'}
         </h3>
         <p class="viral-step">{verificationText}</p>
         
